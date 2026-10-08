@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { MapPin, Eye, ArrowUpDown, RotateCw } from 'lucide-react';
 import EnterprisePagination from '../../../components/ui/EnterprisePagination';
 import apiClient from '../../../utils/axiosConfig';
@@ -25,6 +26,53 @@ const pillClass = (active) =>
       ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
   }`;
+
+const coordsText = (c) => `${c.lat.toFixed(3)}, ${c.lng.toFixed(3)}`;
+
+/**
+ * Where the fill happened. Inside a saved place it links to that place in
+ * Place Hub, named if someone named it; an unnamed place still links, so it
+ * can be named there.
+ */
+function LocationCell({ row }) {
+  const { place } = row;
+  if (place) {
+    const label = place.name || row.location || 'Unnamed place';
+    const hint = !place.name ? (row.location ? 'Unnamed place' : null) : null;
+    return (
+      <Link
+        to={`/place-hub?place=${encodeURIComponent(place.hubId)}`}
+        className="group flex items-start gap-1.5 max-w-[220px]"
+        title={
+          row.billLocation && row.billLocation !== label
+            ? `Bill: ${row.billLocation} · Open in Place Hub`
+            : 'Open in Place Hub'
+        }
+      >
+        <MapPin className="w-3.5 h-3.5 mt-0.5 text-indigo-500 shrink-0" />
+        <span className="min-w-0">
+          <span className="block truncate font-medium text-indigo-600 dark:text-indigo-400 group-hover:underline">
+            {label}
+          </span>
+          {(hint || (!place.name && !row.location && row.coords)) && (
+            <span className="block text-[11px] text-slate-400">
+              {hint || coordsText(row.coords)}
+            </span>
+          )}
+        </span>
+      </Link>
+    );
+  }
+  if (!row.location && !row.coords) return <span className="text-slate-400">—</span>;
+  return (
+    <div className="flex items-center gap-1.5 max-w-[220px]" title={row.location || undefined}>
+      <MapPin className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+      <span className="truncate text-slate-700 dark:text-slate-300 font-medium">
+        {row.location || coordsText(row.coords)}
+      </span>
+    </div>
+  );
+}
 
 /**
  * Sensor litres as the hand-off says: the corrected figure ± the truck's band,
@@ -351,20 +399,7 @@ export default function LiveRefuelTab({
                     </td>
 
                     <td className="py-3 px-4">
-                      {row.location || row.coords ? (
-                        <div
-                          className="flex items-center gap-1.5 max-w-[220px]"
-                          title={row.location || undefined}
-                        >
-                          <MapPin className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                          <span className="truncate text-slate-700 dark:text-slate-300 font-medium">
-                            {row.location ||
-                              `${row.coords.lat.toFixed(3)}, ${row.coords.lng.toFixed(3)}`}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
+                      <LocationCell row={row} />
                     </td>
 
                     <td className="py-3 px-4 text-right font-mono text-slate-700 dark:text-slate-300">

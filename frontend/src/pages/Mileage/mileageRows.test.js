@@ -76,6 +76,25 @@ describe('mapUnifiedRow', () => {
     expect(row.odometer).toBeNull();
     expect(row.slipLitres).toBeNull();
   });
+
+  it('a fill inside a named saved place shows that name, linked to the place', () => {
+    const row = mapUnifiedRow({
+      ...slipRow,
+      place: { id: 's1', hubId: 'site:s1', name: 'Dankuni pump', siteType: 'FUEL_PUMP' },
+    });
+    expect(row.location).toBe('Dankuni pump');
+    expect(row.billLocation).toBe('IOCL Dankuni');
+    expect(row.place).toEqual({ hubId: 'site:s1', name: 'Dankuni pump', siteType: 'FUEL_PUMP' });
+  });
+
+  it('an unnamed saved place keeps the bill text, or the coordinates, and still links', () => {
+    const unnamed = { id: 's2', hubId: 'site:s2', name: null, siteType: 'UNKNOWN' };
+    expect(mapUnifiedRow({ ...slipRow, place: unnamed }).location).toBe('IOCL Dankuni');
+    const sensorOnly = mapUnifiedRow({ ...sensorOnlyRow, place: unnamed });
+    expect(sensorOnly.location).toBeNull();
+    expect(sensorOnly.coords).toEqual({ lat: 22.57, lng: 88.36 });
+    expect(sensorOnly.place.hubId).toBe('site:s2');
+  });
 });
 
 describe('drawer detail', () => {

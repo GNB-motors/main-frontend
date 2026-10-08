@@ -75,6 +75,12 @@ export const PlaceHubService = {
     return { ...result, proposedTotal };
   },
 
+  /** One site by id: a suggestion outside the 200 busiest that a link opens. */
+  loadSite: async (id, { signal } = {}) => {
+    const d = await PlaceIntelligenceService.getSite(id, { signal });
+    return d?.site ?? null;
+  },
+
   loadHotspots: ({ signal } = {}) => layer(() => listHotspots({ signal })),
 
   loadDrainMap: ({ signal } = {}) => layer(() => getDrainMap({ signal })),

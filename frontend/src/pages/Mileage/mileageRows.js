@@ -133,7 +133,12 @@ export function mapUnifiedRow(row) {
   const sensor = row.sensor || null;
   const slipLocation =
     slip?.location && String(slip.location).trim() !== '-' ? String(slip.location).trim() : null;
-  const location = slipLocation || sensor?.fuelPumpName || null;
+  // The saved place the sensor fix falls in (Place Hub) names the pump when
+  // someone named it; otherwise the bill's text, then the raw coordinates.
+  const place = row.place?.hubId
+    ? { hubId: row.place.hubId, name: row.place.name || null, siteType: row.place.siteType }
+    : null;
+  const location = place?.name || slipLocation || sensor?.fuelPumpName || null;
   const coords =
     !location && num(sensor?.lat) != null && num(sensor?.lng) != null
       ? { lat: num(sensor.lat), lng: num(sensor.lng) }
@@ -158,7 +163,9 @@ export function mapUnifiedRow(row) {
     billVarianceL: num(sensor?.billVarianceL),
     billToleranceL: num(sensor?.billToleranceL),
     location,
+    billLocation: slipLocation,
     coords,
+    place,
     rate: effectiveRate(slip),
     totalAmount: num(slip?.totalAmount),
     odometer,
