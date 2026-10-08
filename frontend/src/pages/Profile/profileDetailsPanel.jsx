@@ -1,14 +1,30 @@
-import { User, Mail, Phone, MapPin, Building2, Hash, CreditCard, ShieldCheck } from 'lucide-react';
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Building2,
+  Hash,
+  CreditCard,
+  ShieldCheck,
+  Radar,
+  ArrowRight,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
 import CompanyLogoUploader from '../../components/CompanyLogoUploader.jsx';
 import { Field, SectionHeader } from './profileAtoms';
 import { LocationsManager } from './profileLocationsManager';
 
-/** Right-hand column: personal info, organisation details + logo, locations. */
+/**
+ * Right-hand column: personal info, organisation details + logo, fleet data
+ * coverage (when the viewer may open it), locations.
+ */
 export const DetailsPanel = ({
   user,
   organization,
   canEditLogo,
   canManageLocations,
+  showFleetCoverage = false,
   onLogoChange,
 }) => (
   <div className="flex h-full flex-col gap-6">
@@ -57,6 +73,26 @@ export const DetailsPanel = ({
         )}
       </div>
     </div>
+
+    {/* FleetEdge directory vs fleet master — opens /fleet-coverage */}
+    {showFleetCoverage && (
+      <div className="rounded-2xl bg-white p-6 shadow-[0_4px_24px_rgba(41,64,211,0.08)]">
+        <SectionHeader icon={Radar} title="Fleet Data Coverage" />
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <p className="max-w-xl text-sm text-slate-500">
+            Compare the vehicles your FleetEdge account reports with the vehicles in your fleet
+            master, and add any that are missing.
+          </p>
+          <Link
+            to="/fleet-coverage"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+          >
+            View fleet coverage
+            <ArrowRight size={15} />
+          </Link>
+        </div>
+      </div>
+    )}
 
     {/* Locations (operating branches) */}
     <LocationsManager canManage={canManageLocations} />

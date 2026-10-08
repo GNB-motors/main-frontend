@@ -460,7 +460,6 @@ function App() {
             {/* Fleet Intelligence Routes */}
             <Route path="/route-hub" element={<RouteHubPage />} />
             <Route path="/idling-console" element={<IdlingConsolePage />} />
-            <Route path="/fleet-coverage" element={<FleetCoveragePage />} />
             <Route path="/drivers" element={<DriversPage />} />
             <Route path="/access-control" element={<AccessControlPage />} />
             <Route path="/access-control/assigned-employees" element={<AssignedEmployeesPage />} />

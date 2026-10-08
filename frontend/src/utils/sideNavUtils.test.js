@@ -94,3 +94,11 @@ describe('Mileage hub nav access', () => {
     expect(hasAnywhere(flags(['fleetIntelligence']), '/mileage')).toBe(false);
   });
 });
+
+describe('Fleet Coverage nav access', () => {
+  it('is no longer a sidebar entry — it opens from Profile', () => {
+    expect(hasAnywhere(flags(['fleetIntelligence', 'vehicleActivity']), '/fleet-coverage')).toBe(
+      false,
+    );
+  });
+});

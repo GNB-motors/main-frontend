@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { ProfileService } from './ProfileService';
 import { getThemeCSS } from '../../utils/colorTheme';
-import { useOrganization } from '../../contexts/FeatureFlagsContext.jsx';
+import { useFeatureFlags, useOrganization } from '../../contexts/FeatureFlagsContext.jsx';
 import { setProfileField, setThemeColor } from '../../utils/session.js';
 import PageShell from '../../components/ui/PageShell';
 import { ProfileCard, ProfileSkeleton } from './profileCard';
@@ -15,6 +15,7 @@ const ProfilePage = () => {
   const [error, setError] = useState(null);
   const [themeColors] = useState(getThemeCSS());
   const { refresh: refreshOrganization } = useOrganization();
+  const { canAccess } = useFeatureFlags();
 
   // Repaint this page from the server response, then re-read the shared
   // context so the sidebar mark swaps over without a reload.
@@ -91,6 +92,11 @@ const ProfilePage = () => {
               organization={organizationData}
               canEditLogo={['OWNER', 'SUPER_ADMIN'].includes(userData?.role)}
               canManageLocations={['OWNER', 'MANAGER'].includes(userData?.role)}
+              // Same gates as before the page left the sidebar: the org flag,
+              // and the roles GET /api/fleet-coverage authorizes.
+              showFleetCoverage={
+                canAccess('fleetIntelligence') && ['OWNER', 'MANAGER'].includes(userData?.role)
+              }
               onLogoChange={handleLogoChange}
             />
           </div>

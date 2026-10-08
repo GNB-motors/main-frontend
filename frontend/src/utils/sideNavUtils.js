@@ -306,7 +306,6 @@ export const SIDE_NAV_ITEMS = [
       // Dark-launch: gated on its own key, not fleetIntelligence, so it can be
       // toggled on per org independently of the rest of this group.
       { to: '/idling-console', label: 'Idling Console', key: 'idlingConsole' },
-      { to: '/fleet-coverage', label: 'Fleet Coverage', key: 'fleetIntelligence' },
       { to: '/optimal-speed', label: 'Optimal Speed', key: 'optimalSpeed' },
       { to: '/refuel-advisory', label: 'Refuel Advisory', key: 'refuelAdvisory' },
       { to: '/driving-dna', label: 'Driving DNA', key: 'drivingDna' },
@@ -317,7 +316,6 @@ export const SIDE_NAV_ITEMS = [
     ],
     matchRoutes: [
       '/idling-console',
-      '/fleet-coverage',
       '/optimal-speed',
       '/refuel-advisory',
       '/driving-dna',

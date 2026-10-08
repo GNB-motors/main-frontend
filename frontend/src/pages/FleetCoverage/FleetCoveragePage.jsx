@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useApi from '../../hooks/useApi';
 import FleetDataService from '../../services/FleetDataService';
@@ -69,6 +71,12 @@ const masterColumns = [
 ];
 
 export default function FleetCoveragePage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  // Reached from Profile (or Vehicle 360) → go back there. Opened cold from a
+  // bookmark/refresh there is no in-app history, so fall back to Profile,
+  // where this page's entry point lives.
+  const goBack = () => (location.key !== 'default' ? navigate(-1) : navigate('/profile'));
   const { data, loading, error, refetch } = useApi(
     (signal) => FleetDataService.getFleetCoverage(signal),
     [],
@@ -239,7 +247,21 @@ export default function FleetCoveragePage() {
   return (
     <PageShell
       className="cluster-page"
-      title="FleetEdge Coverage"
+      title={
+        <span className="inline-flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={goBack}
+            className="cluster-inset inline-flex items-center justify-center rounded-lg p-1.5 text-xs transition hover:opacity-75"
+            style={{ color: 'var(--cluster-text-dim)' }}
+            title="Go back"
+            aria-label="Go back"
+          >
+            <ArrowLeft size={16} />
+          </button>
+          <span>FleetEdge Coverage</span>
+        </span>
+      }
       subtitle="Vehicles your FleetEdge account reports vs vehicles in your fleet master."
       filters={
         <FilterBar
