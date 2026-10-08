@@ -3,7 +3,7 @@ import {
   Users,
   User,
   Truck,
-  MapPin,
+  MapPinned,
   Fuel,
   BookOpen,
   Navigation,
@@ -232,6 +232,34 @@ export const SIDE_NAV_ITEMS = [
   },
   {
     type: 'link',
+    key: null,
+    access: 'fleet',
+    to: '/auto-trips',
+    label: 'Trip',
+    icon: Navigation,
+  },
+  // Yards trips start and end at. `key: null` on purpose — this is master data the
+  // anchoring depends on, so it must not be behind its own flag: an org with FMS
+  // that never sees this page has no way to make trip start/end correct.
+  {
+    type: 'link',
+    key: null,
+    access: 'fleet',
+    to: '/warehouses',
+    label: 'Warehouses',
+    icon: Warehouse,
+  },
+  // Moved out of Fleet Intelligence to sit with Trip and Warehouses; same flag.
+  {
+    type: 'link',
+    key: 'fleetIntelligence',
+    access: 'fleet',
+    to: '/places',
+    label: 'Place Intelligence',
+    icon: MapPinned,
+  },
+  {
+    type: 'link',
     access: 'fleet',
     to: '/whatsapp-approvals',
     label: 'WhatsApp Approvals',
@@ -278,7 +306,6 @@ export const SIDE_NAV_ITEMS = [
       // used to be five separate entries — now one card-based hub page.
       { to: '/route-hub', label: 'Route Hub', key: 'fleetIntelligence' },
       { to: '/hotspots', label: 'Fuel Risk Hotspots', key: 'fleetIntelligence' },
-      { to: '/places', label: 'Place Intelligence', key: 'fleetIntelligence' },
     ],
     matchRoutes: [
       '/idling-console',
@@ -293,17 +320,10 @@ export const SIDE_NAV_ITEMS = [
       '/route-profitability',
       '/overspeed',
       '/hotspots',
-      '/places',
     ],
   },
-  {
-    type: 'link',
-    key: 'locations',
-    access: 'fleet',
-    to: '/locations',
-    label: 'Locations',
-    icon: MapPin,
-  },
+  // Locations (/locations) is hidden from the sidebar on purpose; the page and its
+  // add-location flow still work from direct links.
   {
     type: 'link',
     key: null,
@@ -311,36 +331,6 @@ export const SIDE_NAV_ITEMS = [
     to: '/routes',
     label: 'Routes',
     icon: Route,
-  },
-  // Yards trips start and end at. `key: null` on purpose — this is master data the
-  // anchoring depends on, so it must not be behind its own flag: an org with FMS
-  // that never sees this page has no way to make trip start/end correct.
-  {
-    type: 'link',
-    key: null,
-    access: 'fleet',
-    to: '/warehouses',
-    label: 'Warehouses',
-    icon: Warehouse,
-  },
-  // The warehouse-to-warehouse cycle list. Same reasoning as Warehouses above:
-  // `key: null` because it reads the data the yards produce, and hiding it behind
-  // its own flag would leave an FMS org unable to see why its distances look wrong.
-  {
-    type: 'link',
-    key: null,
-    access: 'fleet',
-    to: '/vehicle-tours',
-    label: 'Vehicle Tours',
-    icon: Route,
-  },
-  {
-    type: 'link',
-    key: null,
-    access: 'fleet',
-    to: '/auto-trips',
-    label: 'Auto Trips',
-    icon: Navigation,
   },
   {
     type: 'group',
