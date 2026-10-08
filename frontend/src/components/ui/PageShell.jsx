@@ -14,6 +14,10 @@ import FreshnessBadge from '../cluster/FreshnessBadge';
  *   >
  *     <DataTable ... />
  *   </PageShell>
+ *
+ * `embedded` — the page is mounted inside another page's tab (e.g. the
+ * /mileage hub), which already carries the title: only actions, filters and
+ * content render.
  */
 export default function PageShell({
   title,
@@ -25,20 +29,27 @@ export default function PageShell({
   footer = null,
   children,
   className = '',
+  embedded = false,
 }) {
   return (
-    <div className={`pshell ${className}`.trim()}>
-      <header className="pshell-head">
-        <div className="pshell-head-main">
-          <div className="pshell-title-row">
-            <h1 className="pshell-title">{title}</h1>
-            {count != null && <span className="pshell-count num">{count}</span>}
-            {freshnessAt ? <FreshnessBadge at={freshnessAt} /> : null}
-          </div>
-          {subtitle ? <p className="pshell-subtitle">{subtitle}</p> : null}
-        </div>
-        {actions ? <div className="pshell-actions">{actions}</div> : null}
-      </header>
+    <div
+      className={['pshell', embedded && 'pshell--embedded', className].filter(Boolean).join(' ')}
+    >
+      {!embedded || actions ? (
+        <header className="pshell-head">
+          {!embedded && (
+            <div className="pshell-head-main">
+              <div className="pshell-title-row">
+                <h1 className="pshell-title">{title}</h1>
+                {count != null && <span className="pshell-count num">{count}</span>}
+                {freshnessAt ? <FreshnessBadge at={freshnessAt} /> : null}
+              </div>
+              {subtitle ? <p className="pshell-subtitle">{subtitle}</p> : null}
+            </div>
+          )}
+          {actions ? <div className="pshell-actions">{actions}</div> : null}
+        </header>
+      ) : null}
       {filters ? <div className="pshell-filters">{filters}</div> : null}
       <div className="pshell-body">{children}</div>
       {footer ? <footer className="pshell-footer">{footer}</footer> : null}

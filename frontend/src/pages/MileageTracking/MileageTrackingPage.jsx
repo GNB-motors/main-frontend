@@ -27,7 +27,7 @@ import { formatMileageDate } from './mileageTrackingLogic';
 
 const PAGE_SIZE = 10;
 
-const MileageTrackingPage = () => {
+const MileageTrackingPage = ({ embedded = false }) => {
   const navigate = useNavigate();
   const [vehicles, setVehicles] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,12 +35,14 @@ const MileageTrackingPage = () => {
   const [pagination, setPagination] = useState({ page: 1, limit: PAGE_SIZE, total: 0 });
 
   useEffect(() => {
+    // Inside the /mileage hub the hub owns the page padding.
+    if (embedded) return undefined;
     const el = document.querySelector('.page-content');
     if (el) el.classList.add('no-padding');
     return () => {
       if (el) el.classList.remove('no-padding');
     };
-  }, []);
+  }, [embedded]);
 
   const handleSearchChange = (value) => {
     setSearchQuery(value);
@@ -169,6 +171,7 @@ const MileageTrackingPage = () => {
   return (
     <div className="mt-page-wrapper">
       <PageShell
+        embedded={embedded}
         title="Mileage Tracking"
         subtitle="Fleet fuel efficiency and odometer performance across vehicles"
         actions={
@@ -210,7 +213,7 @@ const MileageTrackingPage = () => {
               <span>{kpiStats.avg}</span>
               {kpiStats.avg !== '—' && <span className="mt-kpi-card__unit">km/L</span>}
             </div>
-            <div className="mt-kpi-card__sub">Weighted active average</div>
+            <div className="mt-kpi-card__sub">Mean of vehicles on this page</div>
           </div>
 
           {/* Tracked Vehicles */}
@@ -258,7 +261,7 @@ const MileageTrackingPage = () => {
               </span>
             </div>
             <div className="mt-kpi-card__val">{kpiStats.stale}</div>
-            <div className="mt-kpi-card__sub">&gt;14 days without log</div>
+            <div className="mt-kpi-card__sub">&gt;7 days since last cycle</div>
           </div>
 
           {/* No Data */}

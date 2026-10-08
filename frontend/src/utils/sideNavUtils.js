@@ -39,7 +39,10 @@ import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js
  *                   fields: { key, to, label, icon, end? }
  * type 'group'   -> collapsible dropdown.
  *                   fields: { key?, groupId?, label, icon, children[], matchRoutes[] }
- *                   children:    [{ to, label, end?, key? }]
+ *                   children:    [{ to, label, end?, key?, anyKey? }]
+ *                   child `key` array = saare flags chahiye (AND); `anyKey` array =
+ *                   koi ek flag kaafi hai (OR) — jab ek page kai purane pages ko
+ *                   merge karta hai, har purane page ka flag usse khol de.
  *                   matchRoutes: routes jinpe hone par group apne aap expand rahe
  *                                (chhupe/deep routes bhi include karo).
  * type 'section' -> non-clickable heading jo neeche wale items ko group karta hai.
@@ -272,7 +275,13 @@ export const SIDE_NAV_ITEMS = [
     label: 'Fuel Management',
     icon: Fuel,
     children: [
-      { to: '/mileage', label: 'Mileage', key: 'fuelIntegrity' },
+      // Merges Refuel Logs, Mileage Tracking and Fuel Comparison, so any of their
+      // flags opens it; the hub hides the views an org isn't entitled to.
+      {
+        to: '/mileage',
+        label: 'Mileage',
+        anyKey: ['fuelIntegrity', 'vehicleActivity', 'fuelComparison'],
+      },
       { to: '/fuel-integrity', label: 'Fuel Integrity', key: 'fuelIntegrity' },
       { to: '/def-ledger', label: 'DEF Ledger', key: 'fuelIntegrity' },
     ],
@@ -369,6 +378,7 @@ export const getNavGroupId = (group) => group.groupId || group.key;
 /** Children visible for the current org's feature flags. */
 export const getVisibleNavChildren = (group, isEnabled) =>
   (group.children || []).filter((child) => {
+    if (child.anyKey) return child.anyKey.some((k) => isEnabled(k));
     if (!child.key) return true;
     if (Array.isArray(child.key)) return child.key.every((k) => isEnabled(k));
     return isEnabled(child.key);

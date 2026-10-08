@@ -48,7 +48,7 @@ const VARIANCE_OPTIONS = [
   { key: 'NO_DATA', label: 'No Telematics' },
 ];
 
-const FuelComparisonPage = () => {
+const FuelComparisonPage = ({ embedded = false }) => {
   const role = getUserRole();
   const themeColors = useMemo(() => getThemeCSS(role), [role]);
 
@@ -425,16 +425,12 @@ const FuelComparisonPage = () => {
   return (
     <div className="fc-page-wrapper" style={themeColors}>
       <PageShell
+        embedded={embedded}
         title="Fuel Comparison"
         subtitle="CAN-bus telematics audit reconciling driver fuel bills against engine consumption"
         count={tabCounts.all ?? total}
         actions={
           <div className="fc-header-actions">
-            <span className="fc-engine-pill">
-              <span className="fc-engine-dot" />
-              Telematics Sink Active
-            </span>
-
             <button
               type="button"
               className="pshell-btn"

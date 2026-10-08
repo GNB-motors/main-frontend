@@ -81,3 +81,16 @@ describe('Trip Windows nav access', () => {
     ).toBe(false);
   });
 });
+
+describe('Mileage hub nav access', () => {
+  it.each(['fuelIntegrity', 'vehicleActivity', 'fuelComparison'])(
+    'shows with only %s, the flag of one of the pages it replaced',
+    (flag) => {
+      expect(hasAnywhere(flags([flag]), '/mileage')).toBe(true);
+    },
+  );
+
+  it('hides with none of those flags', () => {
+    expect(hasAnywhere(flags(['fleetIntelligence']), '/mileage')).toBe(false);
+  });
+});

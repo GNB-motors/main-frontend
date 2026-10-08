@@ -120,71 +120,6 @@
   color: #94a3b8;
 }
 
-/* Priority Watchlist Alert Strip */
-.mileage-priority-strip {
-  background: linear-gradient(135deg, #fff1f2 0%, #fffbeb 100%);
-  border: 1px solid #fecdd3;
-  border-radius: 12px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  box-shadow: 0 2px 4px rgba(225, 29, 72, 0.04);
-}
-
-.dark .mileage-priority-strip {
-  background: linear-gradient(135deg, #2a1215 0%, #291b0c 100%);
-  border-color: #5c1d24;
-}
-
-.mileage-priority-left {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-}
-
-.mileage-priority-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 8px;
-  background: #f43f5e;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.mileage-priority-content h3 {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: #9f1239;
-  margin: 0;
-}
-
-.dark .mileage-priority-content h3 {
-  color: #fecdd3;
-}
-
-.mileage-priority-content p {
-  font-size: 0.8125rem;
-  color: #be123c;
-  margin: 0.125rem 0 0;
-}
-
-.dark .mileage-priority-content p {
-  color: #fda4af;
-}
-
-.mileage-priority-badges {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
 /* Navigation Tabs */
 .mileage-tab-nav {
   display: flex;
@@ -347,6 +282,40 @@
   background: #2e1065;
   color: #c4b5fd;
   border-color: #4c1d95;
+}
+
+.mileage-badge-neutral {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.dark .mileage-badge-neutral {
+  background: #1e293b;
+  color: #cbd5e1;
+  border-color: #334155;
+}
+
+/* Pre-hub pages mounted as hub views: the hub owns padding, title, canvas. */
+.mileage-embedded .fc-page-wrapper,
+.mileage-embedded .fc-page-wrapper .pshell {
+  min-height: 0;
+}
+
+.mileage-embedded .fc-page-wrapper .pshell,
+.mileage-embedded .mt-page-wrapper .pshell,
+.mileage-embedded .pshell.pshell--embedded {
+  padding: 0;
+  background: transparent;
+  min-height: 0;
+}
+
+.mileage-embedded .mt-page-wrapper {
+  padding: 0;
+}
+
+.mileage-embedded .pshell-head {
+  justify-content: flex-end;
 }
 
 /* Monospace Plate & Readings */

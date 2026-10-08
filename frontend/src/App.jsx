@@ -128,7 +128,6 @@ const AddMaintenancePage = lazy(() => import('./pages/Maintenance/AddMaintenance
 const RoutesPage = lazy(() => import('./pages/Routes/RoutesPage.jsx'));
 const AddRoutePage = lazy(() => import('./pages/Routes/AddRoutePage.jsx'));
 const MileagePage = lazy(() => import('./pages/Mileage/MileagePage.jsx'));
-const MileageTrackingPage = lazy(() => import('./pages/MileageTracking/MileageTrackingPage.jsx'));
 const MileageTrackingVehicleDetail = lazy(
   () => import('./pages/MileageTracking/MileageTrackingVehicleDetail.jsx'),
 );
@@ -138,11 +137,9 @@ const AdBlueTrackingPage = lazy(() => import('./pages/MileageTracking/AdBlueTrac
 const MileageIntervalDetailPage = lazy(
   () => import('./pages/MileageTracking/MileageIntervalDetailPage.jsx'),
 );
-const ModelComparisonPage = lazy(() => import('./pages/MileageTracking/ModelComparisonPage.jsx'));
 const LocationPage = lazy(() => import('./pages/Locations/LocationPage.jsx'));
 const AddLocationPage = lazy(() => import('./pages/Locations/AddLocationPage.jsx'));
 const RefuelLogsPage = lazy(() => import('./pages/Trip/RefuelLogsPage.jsx'));
-const FuelComparisonPage = lazy(() => import('./pages/FuelComparison/FuelComparisonPage.jsx'));
 const FuelIntegrityPage = lazy(() => import('./pages/FuelIntegrity/FuelIntegrityPage.jsx'));
 const RouteHubPage = lazy(() => import('./pages/RouteHub/RouteHubPage.jsx'));
 const VehicleWarehousesPage = lazy(
@@ -409,7 +406,6 @@ function App() {
             <Route path="/driving-dna" element={<DrivingDnaPage />} />
             <Route path="/vehicles/:registrationNumber" element={<Vehicle360Page />} />
             <Route path="/reports" element={<ReportsPage />} />
-            <Route path="/fuel-comparison" element={<FuelComparisonPage />} />
             <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
             <Route
               path="/whatsapp-approvals"
@@ -486,19 +482,26 @@ function App() {
               path="/mileage-tracking"
               element={<Navigate to="/mileage?tab=performance" replace />}
             />
+            {/* Drill-downs the hub's tables link to */}
+            <Route
+              path="/mileage-tracking/vehicle/:vehicleId"
+              element={<MileageTrackingVehicleDetail />}
+            />
+            <Route path="/mileage-tracking/new" element={<MileageFuelLogPage />} />
+            <Route path="/mileage-tracking/:id" element={<MileageIntervalDetailPage />} />
             <Route
               path="/fuel-comparison"
-              element={<Navigate to="/mileage?tab=reconciliation" replace />}
+              element={<Navigate to="/mileage?tab=reconciliation&view=ecu" replace />}
             />
             <Route path="/adblue-tracking" element={<Navigate to="/def-ledger" replace />} />
             <Route path="/adblue-tracking/new" element={<Navigate to="/def-ledger" replace />} />
             <Route
               path="/model-comparison"
-              element={<Navigate to="/mileage?tab=performance" replace />}
+              element={<Navigate to="/mileage?tab=performance&view=models" replace />}
             />
             <Route
               path="/expected-mileage"
-              element={<Navigate to="/mileage?tab=performance" replace />}
+              element={<Navigate to="/mileage?tab=performance&view=models" replace />}
             />
             <Route path="/def-tracking" element={<Navigate to="/def-ledger" replace />} />
             <Route path="/fuel-bills" element={<Navigate to="/mileage?tab=live" replace />} />

@@ -27,7 +27,7 @@ import './MileageTracking.css';
 
 const MIN_CYCLE_OPTIONS = [1, 2, 3, 5];
 
-const ModelComparisonPage = () => {
+const ModelComparisonPage = ({ embedded = false }) => {
   const [data, setData] = useState([]);
   const [meta, setMeta] = useState(null);
   const [selectedModel, setSelectedModel] = useState(null);
@@ -36,12 +36,14 @@ const ModelComparisonPage = () => {
   const [minCycles, setMinCycles] = useState(1);
 
   useEffect(() => {
+    // Inside the /mileage hub the hub owns the page padding.
+    if (embedded) return undefined;
     const el = document.querySelector('.page-content');
     if (el) el.classList.add('no-padding');
     return () => {
       if (el) el.classList.remove('no-padding');
     };
-  }, []);
+  }, [embedded]);
 
   const params = useMemo(() => {
     // minCycles=1 is the API default; leaving it out keeps the request valid
@@ -131,6 +133,7 @@ const ModelComparisonPage = () => {
 
   return (
     <PageShell
+      embedded={embedded}
       title="Model Comparison"
       subtitle="Average mileage performance by vehicle model"
       filters={
