@@ -10,7 +10,7 @@ import { DEFAULT_REPORT, resolveReport } from './reportCatalog';
 import DriverReport from './reports/DriverReport.jsx';
 import VehicleReport from './reports/VehicleReport.jsx';
 import MileageIntervalReport from './reports/MileageIntervalReport.jsx';
-import RefuelLogsPage from '../Trip/RefuelLogsPage.jsx';
+import DieselRefuelReport from './reports/DieselRefuelReport.jsx';
 import AdBlueComparisonReport from './reports/AdBlueComparisonReport.jsx';
 import ModelComparisonPage from '../MileageTracking/ModelComparisonPage.jsx';
 import FuelCyclesReport from './reports/FuelCyclesReport.jsx';
@@ -23,7 +23,7 @@ const REPORT_COMPONENTS = {
   vehicle: () => <VehicleReport />,
   mileageIntervals: () => <MileageIntervalReport />,
   modelComparison: () => <ModelComparisonPage />,
-  dieselReport: () => <RefuelLogsPage fuelType="DIESEL" />,
+  dieselReport: () => <DieselRefuelReport />,
   adblueReport: () => <AdBlueComparisonReport />,
   oilAverage: () => <OilAverageReport />,
   fuelCycles: () => <FuelCyclesReport />,

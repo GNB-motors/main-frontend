@@ -45,12 +45,41 @@ export const FieldAgentFuelService = {
     return unwrapList(res);
   },
 
+  /**
+   * Field-agent uploads in one approval state, for the Approvals page.
+   * @param {{ status?: 'PENDING'|'APPROVED'|'REJECTED', page?: number, limit?: number }} params
+   * @returns {Promise<{ data: Array, meta: Object }>}
+   */
+  approvalList: async (params = {}, { signal } = {}) => {
+    const res = await apiClient.get('/api/field-agent/fuel-logs/approvals', { params, signal });
+    return res.data;
+  },
+
+  /** @returns {Promise<{ PENDING: number, APPROVED: number, REJECTED: number }>} */
+  approvalCounts: async ({ signal } = {}) => {
+    const res = await apiClient.get('/api/field-agent/fuel-logs/approvals/counts', { signal });
+    return res.data?.data ?? {};
+  },
+
+  approve: async (ids) => {
+    const res = await apiClient.post('/api/field-agent/fuel-logs/approvals/approve', { ids });
+    return res.data?.data;
+  },
+
+  reject: async (ids, reason) => {
+    const res = await apiClient.post('/api/field-agent/fuel-logs/approvals/reject', {
+      ids,
+      ...(reason ? { reason } : {}),
+    });
+    return res.data?.data;
+  },
+
   /** Upload fuel log photo */
   uploadFuelPhoto: async (formData, orgId) => {
     const res = await apiClient.post('/api/mileage/fuel-log/from-photo', formData, {
-      headers: { 
+      headers: {
         'Content-Type': 'multipart/form-data',
-        'X-Org-Id': orgId
+        'X-Org-Id': orgId,
       },
     });
     return res.data;

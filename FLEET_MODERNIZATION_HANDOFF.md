@@ -92,7 +92,7 @@ The application sidebar (`frontend/src/utils/sideNavUtils.js`) and routing tree 
 | `/refuel-logs` | *Redirect to `/mileage?tab=live`* | Legacy redirect ensuring bookmarks and saved links never break. |
 | `/mileage-tracking` | *Redirect to `/mileage?tab=dna`* | Legacy redirect to Vehicle & Driver DNA Analytics. |
 | `/fuel-comparison` | *Redirect to `/mileage?tab=reconciliation`* | Legacy redirect to Reconciliation & Cross-Talk. |
-| `/field-agent-fuel` | *Redirect to `/whatsapp-approvals`* | Deprecated redundant page (field entries are natively approved via WhatsApp). |
+| `/field-agent-fuel` | *Redirect to `/approvals?type=field-agent`* | Deprecated page; field-agent uploads are approved on the Field agent tab of Approvals. |
 | `/fleet-coverage` | *Redirect to `/settings?tab=devices`* | Absorbed into Telematics Device Sync tab in Settings. |
 
 ---

@@ -8,6 +8,8 @@ import { formatNum } from '../../utils/formatters';
 import { COVERAGE_REASON_LABEL } from './autoTripModel';
 
 const CAN_SEE = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
+const REASON_ORDER = ['NO_CONFIRMED_PICKUP', 'NO_STOPS'];
+const plural = (n, word) => `${formatNum(n)} ${word}${n === 1 ? '' : 's'}`;
 
 /**
  * Trucks with no trips, and the places they stop at longest that are not confirmed
@@ -53,31 +55,85 @@ export default function AutoTripCoverage() {
           <div>
             <h4>Places to confirm as a pickup</h4>
             {places.length ? (
-              <ul>
-                {places.map((p) => (
-                  <li key={p.orgSiteId}>
-                    <Link to={`/places?place=${p.orgSiteId}`}>{p.name || 'Unconfirmed place'}</Link>{' '}
-                    — {p.trucks} truck{p.trucks === 1 ? '' : 's'}, {p.stops} long stops
-                  </li>
-                ))}
-              </ul>
+              <>
+                <p className="atx-cov-note">Bar = trucks that stop there for long</p>
+                <PlaceBars places={places} />
+              </>
             ) : (
               <p style={{ margin: 0 }}>No long stops at a known place in the last 30 days.</p>
             )}
           </div>
           <div>
             <h4>Trucks without trips</h4>
-            <ul className="atx-scroll">
-              {(data.missing || []).map((m) => (
-                <li key={m.vehicleId}>
-                  <span className="atx-plate">{m.registrationNumber}</span> —{' '}
-                  {COVERAGE_REASON_LABEL[m.reason] || m.reason}
-                </li>
-              ))}
-            </ul>
+            <ReasonGroups missing={data.missing || []} total={n} />
           </div>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function PlaceBars({ places }) {
+  const max = Math.max(...places.map((p) => p.trucks || 0), 1);
+  return (
+    <ul className="atx-cov-bars">
+      {places.map((p) => (
+        <li key={p.orgSiteId} className="atx-cov-bar-row">
+          <Link to={`/places?place=${p.orgSiteId}`} className="atx-cov-bar-label">
+            {p.name || 'Unconfirmed place'}
+          </Link>
+          <span className="atx-cov-track" aria-hidden="true">
+            <span
+              className="atx-cov-bar atx-cov--NO_CONFIRMED_PICKUP"
+              style={{ width: `${((p.trucks || 0) / max) * 100}%` }}
+            />
+          </span>
+          <span className="atx-cov-val">
+            <strong>{plural(p.trucks, 'truck')}</strong> · {plural(p.stops, 'stop')}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ReasonGroups({ missing, total }) {
+  const groups = REASON_ORDER.map((reason) => ({
+    reason,
+    trucks: missing.filter((m) => m.reason === reason),
+  }))
+    .concat(
+      [...new Set(missing.map((m) => m.reason))]
+        .filter((r) => !REASON_ORDER.includes(r))
+        .map((reason) => ({ reason, trucks: missing.filter((m) => m.reason === reason) })),
+    )
+    .filter((g) => g.trucks.length);
+
+  return (
+    <div className="atx-cov-groups">
+      {groups.map((g) => (
+        <section key={g.reason} className="atx-cov-group">
+          <div className="atx-cov-bar-row">
+            <span className="atx-cov-bar-label">{COVERAGE_REASON_LABEL[g.reason] || g.reason}</span>
+            <span className="atx-cov-track" aria-hidden="true">
+              <span
+                className={`atx-cov-bar atx-cov--${g.reason}`}
+                style={{ width: `${(g.trucks.length / Math.max(total, 1)) * 100}%` }}
+              />
+            </span>
+            <span className="atx-cov-val">
+              <strong>{plural(g.trucks.length, 'truck')}</strong>
+            </span>
+          </div>
+          <ul className="atx-cov-plates">
+            {g.trucks.map((m) => (
+              <li key={m.vehicleId} className="atx-plate">
+                {m.registrationNumber}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
   );
 }

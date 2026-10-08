@@ -25,6 +25,43 @@ const STATUS_OPTIONS = [
   { value: 'UNRECONCILED_NO_LEDGER', label: 'Unreconciled (no ledger)' },
 ];
 
+// The fuel-cycles validator accepts OPEN · CLOSED · RECONCILED only (400 on
+// anything else), so the no-ledger status is narrowed here on the rows that
+// came back, and exported from them.
+const CLIENT_ONLY_STATUS = 'UNRECONCILED_NO_LEDGER';
+
+const EXPORT_HEADERS = [
+  'Open',
+  'Close',
+  'Vehicle',
+  'Start Odo',
+  'End Odo',
+  'Distance (km)',
+  'Bills (L)',
+  'ECU (L)',
+  'Unaccounted (L)',
+  'Mileage T2T (km/L)',
+  'Cost (INR)',
+  'Status',
+  'Flags',
+];
+
+const exportRowOf = (r) => [
+  r.open?.at ?? '',
+  r.close?.at ?? '',
+  r.registrationNumber ?? '',
+  r.open?.odo ?? '',
+  r.close?.odo ?? '',
+  r.km?.sumBest ?? '',
+  r.fuel?.bills ?? '',
+  r.fuel?.ecu ?? '',
+  r.fuel?.unaccounted ?? '',
+  r.mileage?.tankToTank ?? '',
+  r.cost?.total ?? '',
+  r.status ?? '',
+  (r.flags || []).join(' '),
+];
+
 const FuelCyclesReport = () => {
   const [rows, setRows] = useState([]);
   const [truncated, setTruncated] = useState(false);
@@ -34,6 +71,7 @@ const FuelCyclesReport = () => {
   const [to, setTo] = useState('');
   const [vehicleId, setVehicleId] = useState('all');
   const [status, setStatus] = useState('all');
+  const serverStatus = status === CLIENT_ONLY_STATUS ? 'all' : status;
 
   const [vehicleOptions, setVehicleOptions] = useState([]);
   const [isExporting, setIsExporting] = useState(false);
@@ -52,8 +90,11 @@ const FuelCyclesReport = () => {
     error: rowsError,
     refetch: refetchRows,
   } = useApi(
-    () => ReportsService.getFuelCycles(buildTripFilterParams({ from, to, vehicleId, status })),
-    [JSON.stringify({ from, to, vehicleId, status })],
+    () =>
+      ReportsService.getFuelCycles(
+        buildTripFilterParams({ from, to, vehicleId, status: serverStatus }),
+      ),
+    [JSON.stringify({ from, to, vehicleId, serverStatus })],
   );
 
   useEffect(() => {
@@ -71,6 +112,11 @@ const FuelCyclesReport = () => {
     }
   }, [rowsError]);
 
+  const visibleRows = useMemo(
+    () => (status === CLIENT_ONLY_STATUS ? rows.filter((r) => r.status === status) : rows),
+    [rows, status],
+  );
+
   const selectedVehicleLabel = useMemo(() => {
     if (vehicleId === 'all') return 'All Vehicles';
     return vehicleOptions.find((v) => v.id === vehicleId)?.label || 'All Vehicles';
@@ -82,9 +128,13 @@ const FuelCyclesReport = () => {
       setIsExporting(true);
       try {
         await exportFilteredReportCsv({
-          fetchExport: (filters) =>
-            ReportsService.exportReportCsv('api/reports/fuel-cycles/export', filters),
-          filters: buildTripFilterParams({ from, to, vehicleId, status }),
+          ...(status === CLIENT_ONLY_STATUS
+            ? { headers: EXPORT_HEADERS, rows: visibleRows, mapRow: exportRowOf }
+            : {
+                fetchExport: (filters) =>
+                  ReportsService.exportReportCsv('api/reports/fuel-cycles/export', filters),
+                filters: buildTripFilterParams({ from, to, vehicleId, status: serverStatus }),
+              }),
           filenamePrefix: 'fuel_cycles_report',
           extension,
           errorMessage: 'Could not export fuel cycles report.',
@@ -95,7 +145,7 @@ const FuelCyclesReport = () => {
         setIsExporting(false);
       }
     },
-    [isExporting, from, to, vehicleId, status],
+    [isExporting, from, to, vehicleId, status, serverStatus, visibleRows],
   );
 
   const clearFilters = () => {
@@ -115,13 +165,13 @@ const FuelCyclesReport = () => {
       className="p-6"
       title="Fuel Cycles"
       subtitle="Full-tank to full-tank cycles — distance, fuel reconciliation and cost per cycle"
-      count={rows.length}
+      count={visibleRows.length}
       actions={
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => downloadReport('csv')}
-            disabled={isExporting || rows.length === 0}
+            disabled={isExporting || visibleRows.length === 0}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#ECECEE] bg-[#F8F8FB] transition-colors hover:bg-[#ECECEE] disabled:opacity-40"
             title="Export filtered rows to CSV"
           >
@@ -130,7 +180,7 @@ const FuelCyclesReport = () => {
           <button
             type="button"
             onClick={() => downloadReport('xlsx')}
-            disabled={isExporting || rows.length === 0}
+            disabled={isExporting || visibleRows.length === 0}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#ECECEE] bg-[#F8F8FB] transition-colors hover:bg-[#ECECEE] disabled:opacity-40"
             title="Export filtered rows to Excel"
           >
@@ -188,22 +238,22 @@ const FuelCyclesReport = () => {
       footer={
         truncated ? (
           <span className="text-dim text-xs">
-            First {rows.length} cycles only — narrow the dates to see the rest.
+            First {visibleRows.length} cycles only — narrow the dates to see the rest.
           </span>
         ) : (
-          <span className="text-dim text-xs">{rows.length} cycles</span>
+          <span className="text-dim text-xs">{visibleRows.length} cycles</span>
         )
       }
     >
       <DataTable
         columns={columns}
-        rows={rows}
+        rows={visibleRows}
         rowKey={(r) => r._id}
         loading={isLoading}
         error={error}
         onRetry={refetchRows}
-        showing={rows.length}
-        total={rows.length}
+        showing={visibleRows.length}
+        total={visibleRows.length}
         emptyTitle="No fuel cycles found"
         emptyHint="Try widening the date range or clearing the vehicle and status filters."
       />

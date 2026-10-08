@@ -1,13 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import dayjs from 'dayjs';
 import {
+  CORRECTION_META,
   VERIFICATION_META,
+  calibrationHint,
+  dailyRollup,
   drawerFromLiveRow,
   drawerFromReconciliationRow,
   kpisFromSources,
+  mapFuelCycleRow,
   mapIntervalRow,
   mapUnifiedRow,
   presetRange,
+  rangeToParams,
 } from './mileageRows';
 
 const slipRow = {
@@ -78,7 +83,8 @@ describe('drawer detail', () => {
     const d = drawerFromLiveRow(mapUnifiedRow(slipRow));
     expect(d.badge.label).toBe('Flagged');
     expect(d.varianceL).toBe(-40);
-    expect(d.variancePct).toBeCloseTo(-33.33, 1);
+    // shown as sent; the hub never derives a bill verdict on the client
+    expect(d.variancePct).toBeNull();
     expect(d.bill.documentId).toBe('doc1');
     expect(d.sensor.litres).toBe(80);
   });
@@ -181,5 +187,145 @@ describe('kpisFromSources', () => {
     expect(k.reconciledPct).toBeNull();
     expect(k.flagged).toBeNull();
     expect(k.fleetKmPerL).toBeNull();
+  });
+});
+
+describe('PR #142 feed fields', () => {
+  const corrected = {
+    ...slipRow,
+    slip: { ...slipRow.slip, id: 'log1' },
+    sensor: {
+      litres: 80,
+      rawLitres: 76.4,
+      correction: 'V2_GAIN',
+      gainBills: 12,
+      bandL: 6.2,
+      billVarianceL: -40,
+      billToleranceL: 7.5,
+      billFlag: true,
+      v1BillVarianceL: -43.6,
+      v1BillFlag: true,
+    },
+  };
+
+  it('has a badge for every status, glitches included, and a label per correction', () => {
+    expect(VERIFICATION_META.SENSOR_GLITCH.label).toBe('Not a refuel');
+    expect(CORRECTION_META.V2_GAIN.label).toBe('Corrected');
+    expect(CORRECTION_META.GAIN.label).toBe('Calibrated');
+    expect(CORRECTION_META.RAW.label).toBe('Gauge reading');
+    expect(calibrationHint(12)).toBe('Calibrated on 12 bills');
+    expect(calibrationHint(1)).toBe('Calibrated on 1 bill');
+    expect(calibrationHint(0)).toBe('Fleet default');
+  });
+
+  it('keeps the corrected and raw figures apart', () => {
+    const row = mapUnifiedRow(corrected);
+    expect(row.sensorLitres).toBe(80);
+    expect(row.rawLitres).toBe(76.4);
+    expect(row.bandL).toBe(6.2);
+    expect(row.correction).toBe('V2_GAIN');
+    expect(row.billVarianceL).toBe(-40);
+    expect(row.billToleranceL).toBe(7.5);
+  });
+
+  it('passes the server bill check and the old check through to the drawer', () => {
+    const d = drawerFromLiveRow(mapUnifiedRow(corrected));
+    expect(d.varianceL).toBe(-40);
+    expect(d.billCheck).toEqual({
+      toleranceL: 7.5,
+      flagged: true,
+      v1VarianceL: -43.6,
+      v1Flagged: true,
+    });
+    expect(d.bill.id).toBe('log1');
+    expect(d.sensor.rawLitres).toBe(76.4);
+  });
+
+  it('a glitch has no corrected litres', () => {
+    const row = mapUnifiedRow({
+      id: 'fill_9',
+      verificationStatus: 'SENSOR_GLITCH',
+      litres: null,
+      slip: null,
+      sensor: { litres: null, rawLitres: 42, correction: 'SENSOR_GLITCH' },
+    });
+    expect(row.sensorLitres).toBeNull();
+    expect(row.rawLitres).toBe(42);
+  });
+});
+
+describe('rangeToParams', () => {
+  it('sends the start and end of the IST day', () => {
+    expect(rangeToParams({ from: '2026-10-08', to: '2026-10-08' })).toEqual({
+      from: '2026-10-07T18:30:00.000Z',
+      to: '2026-10-08T18:29:59.999Z',
+    });
+  });
+});
+
+describe('mapFuelCycleRow', () => {
+  it('reads the fuel-cycles fields and turns coverage shares into percents', () => {
+    const row = mapFuelCycleRow({
+      _id: 'c1',
+      registrationNumber: 'WB11J8562',
+      open: { source: 'BILL', at: '2026-10-01T04:00:00Z', odo: 100000 },
+      close: null,
+      km: { odo: 1200 },
+      fuel: { bills: 400, ecu: 380, tankDelta: 0 },
+      mileage: { tankToTank: 3, ecu: 3.16 },
+      coverage: { kmMeasured: 0.92, fuelEcu: null },
+      flags: ['RECONCILE_GAP'],
+      status: 'OPEN',
+    });
+    expect(row.km).toBe(1200);
+    expect(row.closeAt).toBeNull();
+    expect(row.kmPerLTankToTank).toBe(3);
+    expect(row.kmPerLEcu).toBe(3.16);
+    expect(row.kmCoveragePct).toBeCloseTo(92, 5);
+    expect(row.fuelCoveragePct).toBeNull();
+    expect(row.flags).toEqual(['RECONCILE_GAP']);
+  });
+});
+
+describe('dailyRollup', () => {
+  it('sums hours per IST day and scores only windows with an expected figure', () => {
+    const days = dailyRollup([
+      {
+        windowFrom: '2026-10-08T03:00:00Z',
+        distanceKm: 40,
+        actualL: 12,
+        expectedL: 10,
+        deviationL: 2,
+        source: 'REGRESSION',
+      },
+      {
+        windowFrom: '2026-10-08T04:00:00Z',
+        distanceKm: 30,
+        actualL: 9,
+        expectedL: null,
+        deviationL: null,
+        source: 'NONE',
+      },
+      {
+        windowFrom: '2026-10-09T03:00:00Z',
+        distanceKm: 10,
+        actualL: 3,
+        expectedL: null,
+        deviationL: null,
+        source: 'NONE',
+      },
+    ]);
+    expect(days).toHaveLength(2);
+    expect(days[0]).toMatchObject({
+      windows: 2,
+      distanceKm: 70,
+      actualL: 21,
+      expectedL: 10,
+      deviationL: 2,
+      scored: 1,
+    });
+    expect(days[0].deviationPct).toBeCloseTo(20, 5);
+    expect(days[1].expectedL).toBeNull();
+    expect(days[1].deviationPct).toBeNull();
   });
 });

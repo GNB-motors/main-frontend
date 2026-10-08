@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { lazy, Suspense, useEffect, useLayoutEffect } from 'react';
 import LottieLoader from './components/LottieLoader';
 import { TripCreationProvider } from './contexts/TripCreationContext.jsx';
@@ -7,6 +7,11 @@ import { setNavigator } from './utils/navigation.js';
 function RedirectWithState({ to }) {
   const location = useLocation();
   return <Navigate to={to} state={location.state} replace />;
+}
+
+function LegacyReceiptRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/approvals/whatsapp/${id}`} replace />;
 }
 
 // Hands the router's navigate() to utils/navigation so the axios interceptor
@@ -118,6 +123,7 @@ const ReceiptApprovalPage = lazy(
 const ReceiptApprovalDetailPage = lazy(
   () => import('./pages/Superadmin/components/ReceiptApprovalDetailPage.jsx'),
 );
+const FleetApprovalsPage = lazy(() => import('./pages/Approvals/ApprovalsPage.jsx'));
 const VehiclesPage = lazy(() => import('./pages/Profile/VehiclesPage.jsx'));
 const AddVehiclePage = lazy(() => import('./pages/Profile/AddVehiclePage.jsx'));
 const VehicleDashboardPage = lazy(() => import('./pages/Profile/VehicleDashboardPage.jsx'));
@@ -137,7 +143,6 @@ const MileageIntervalDetailPage = lazy(
 );
 const LocationPage = lazy(() => import('./pages/Locations/LocationPage.jsx'));
 const AddLocationPage = lazy(() => import('./pages/Locations/AddLocationPage.jsx'));
-const RefuelLogsPage = lazy(() => import('./pages/Trip/RefuelLogsPage.jsx'));
 const FuelIntegrityPage = lazy(() => import('./pages/FuelIntegrity/FuelIntegrityPage.jsx'));
 const RouteHubPage = lazy(() => import('./pages/RouteHub/RouteHubPage.jsx'));
 const VehicleWarehousesPage = lazy(
@@ -152,6 +157,7 @@ const HotspotsPage = lazy(() => import('./pages/Hotspots/HotspotsPage.jsx'));
 const PlaceIntelligencePage = lazy(
   () => import('./pages/PlaceIntelligence/PlaceIntelligencePage.jsx'),
 );
+const PlaceHubPage = lazy(() => import('./pages/PlaceHub/PlaceHubPage.jsx'));
 const LiveTrackingPage = lazy(() => import('./pages/LiveTracking/LiveTrackingPage.jsx'));
 const PublicTrackingPage = lazy(() => import('./pages/PublicTracking/PublicTrackingPage.jsx'));
 const OwnerAlertsPage = lazy(() => import('./pages/OwnerAlerts/OwnerAlertsPage.jsx'));
@@ -406,21 +412,27 @@ function App() {
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
             <Route
-              path="/whatsapp-approvals"
+              path="/approvals"
               element={
                 <Suspense fallback={null}>
-                  <ReceiptApprovalPage />
+                  <FleetApprovalsPage />
                 </Suspense>
               }
             />
             <Route
-              path="/whatsapp-approvals/:id"
+              path="/approvals/whatsapp/:id"
               element={
                 <Suspense fallback={null}>
                   <ReceiptApprovalDetailPage />
                 </Suspense>
               }
             />
+            {/* WhatsApp Approvals became the WhatsApp tab of Approvals */}
+            <Route
+              path="/whatsapp-approvals"
+              element={<Navigate to="/approvals?type=whatsapp" replace />}
+            />
+            <Route path="/whatsapp-approvals/:id" element={<LegacyReceiptRedirect />} />
             <Route
               path="/route-deviation"
               element={<RedirectWithState to="/route-hub?tab=deviation" />}
@@ -439,6 +451,7 @@ function App() {
             />
             <Route path="/hotspots" element={<HotspotsPage />} />
             <Route path="/places" element={<PlaceIntelligencePage />} />
+            <Route path="/place-hub" element={<PlaceHubPage />} />
             <Route path="/live-tracking" element={<LiveTrackingPage />} />
             <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
             <Route path="/geofence" element={<GeofencePage />} />
@@ -448,14 +461,14 @@ function App() {
               path="/geofence/alerts"
               element={<Navigate to="/geofence/zones?tab=alerts" replace />}
             />
-            {/* Field Agent Fuel deprecated -> redirects to WhatsApp Approvals */}
+            {/* Field Agent Fuel deprecated -> the Field agent tab of Approvals */}
             <Route
               path="/field-agent-fuel"
-              element={<Navigate to="/whatsapp-approvals" replace />}
+              element={<Navigate to="/approvals?type=field-agent" replace />}
             />
             <Route
               path="/field-agent-fuel/new"
-              element={<Navigate to="/whatsapp-approvals" replace />}
+              element={<Navigate to="/approvals?type=field-agent" replace />}
             />
             {/* Fleet Intelligence Routes */}
             <Route path="/route-hub" element={<RouteHubPage />} />

@@ -4,6 +4,7 @@ import {
   User,
   Truck,
   MapPinned,
+  Map as MapIcon,
   Fuel,
   BookOpen,
   Navigation,
@@ -240,6 +241,16 @@ export const SIDE_NAV_ITEMS = [
     label: 'Trip',
     icon: Navigation,
   },
+  // One map for every place: warehouses, zones, loading points, idling, fuel risk.
+  // `key: null` like Warehouses — the page hides the tabs an org isn't entitled to.
+  {
+    type: 'link',
+    key: null,
+    access: 'fleet',
+    to: '/place-hub',
+    label: 'Place Hub',
+    icon: MapIcon,
+  },
   // Yards trips start and end at. `key: null` on purpose — this is master data the
   // anchoring depends on, so it must not be behind its own flag: an org with FMS
   // that never sees this page has no way to make trip start/end correct.
@@ -263,8 +274,8 @@ export const SIDE_NAV_ITEMS = [
   {
     type: 'link',
     access: 'fleet',
-    to: '/whatsapp-approvals',
-    label: 'WhatsApp Approvals',
+    to: '/approvals',
+    label: 'Approvals',
     icon: ReceiptText,
   },
   {

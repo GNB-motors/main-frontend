@@ -16,8 +16,10 @@ const TABS = [
   { key: 'COMPLETE', label: 'Delivered' },
   { key: 'NEEDS_REVIEW', label: 'Needs a check' },
   { key: 'OPEN', label: 'On the road' },
-  { key: 'CONFIRMED', label: 'Confirmed' },
-  { key: 'DISMISSED', label: 'Rejected' },
+  // Only a person moves a trip here (Confirm trip / Not a real trip on the trip page),
+  // so these stay hidden until someone has.
+  { key: 'CONFIRMED', label: 'Confirmed', hideWhenEmpty: true },
+  { key: 'DISMISSED', label: 'Rejected', hideWhenEmpty: true },
 ];
 
 const PAGE_SIZE = 50;
@@ -51,6 +53,7 @@ export default function AutoTripsPage() {
   const allCount = Object.values(tabCounts).reduce((a, b) => a + (b || 0), 0) || total;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const countFor = (key) => (key === '' ? allCount : (tabCounts[key] ?? 0));
+  const tabs = TABS.filter((t) => !t.hideWhenEmpty || countFor(t.key) > 0 || statusTab === t.key);
 
   const columns = useMemo(
     () => [
@@ -180,7 +183,7 @@ export default function AutoTripsPage() {
         <AutoTripCoverage />
 
         <div role="tablist" aria-label="Filter trips" className="atx-tabs">
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <button
               key={t.key || 'all'}
               type="button"

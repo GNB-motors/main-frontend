@@ -14,6 +14,9 @@ function daysAgoISO(n) {
 }
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const DEFAULT_DAYS = 30;
+// Delivered, or confirmed by a person. The API returns only these; filtering here too
+// keeps trips still on the road or needing a check out against an older API.
+const COMPLETED = new Set(['COMPLETE', 'CONFIRMED']);
 
 function fmtDate(v) {
   if (!v) return '';
@@ -119,7 +122,7 @@ export default function OilAverageReport() {
     [JSON.stringify(params)],
   );
 
-  const rows = data?.rows ?? [];
+  const rows = useMemo(() => (data?.rows ?? []).filter((r) => COMPLETED.has(r.status)), [data]);
 
   const columns = useMemo(
     () =>
@@ -140,7 +143,7 @@ export default function OilAverageReport() {
       className="p-6"
       title="Oil & Average Report"
       count={rows.length}
-      subtitle="Trip-wise — each trip with its fuel, mileage and odometer where available. Mileage is laden distance ÷ fuel used on the run (not litres bought)."
+      subtitle="Completed trips only — each with its fuel, mileage and odometer where available. Mileage is laden distance ÷ fuel used on the run (not litres bought)."
       actions={
         <button
           type="button"
@@ -186,7 +189,7 @@ export default function OilAverageReport() {
         showing={rows.length}
         total={rows.length}
         onRowClick={(r) => navigate(`/auto-trips/${r.autoTripId}`)}
-        emptyTitle="No trips in this range"
+        emptyTitle="No completed trips in this range"
         emptyHint="Widen the date range, or confirm pickup / drop places so more trips are detected."
       />
     </PageShell>

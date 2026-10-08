@@ -91,6 +91,7 @@ const Navbar = ({ toggleSidebar }) => {
     if (location.pathname.match(/^\/erp\/trips\/[a-f0-9]{24}$/)) {
       return 'Trip Details';
     }
+    if (location.pathname === '/place-hub') return 'Place Hub';
 
     // The fallback below is a URL slug, so any route ending in a raw
     // ObjectId would render the id as the page title. Fall back to the

@@ -5,11 +5,14 @@ import apiClient from '../../../utils/axiosConfig';
 import { toISTDateString, toISTTimeString } from '../../../utils/dateUtils';
 import { formatINR, formatLitres } from '../../../utils/formatters';
 import {
+  CORRECTION_META,
   DATE_PRESETS,
   DEFAULT_PRESET,
+  GLITCH_STATUS,
   ODOMETER_SOURCE_META,
   STATUS_FILTERS,
   VERIFICATION_META,
+  calibrationHint,
   drawerFromLiveRow,
   mapUnifiedRow,
   presetRange,
@@ -23,7 +26,52 @@ const pillClass = (active) =>
       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
   }`;
 
-export default function LiveRefuelTab({ searchQuery = '', onOpenDrawer }) {
+/**
+ * Sensor litres as the hand-off says: the corrected figure ± the truck's band,
+ * "Gauge rose X L" when the raw rise differs, and the correction badge. A
+ * glitch shows only the struck-through raw rise.
+ */
+function SensorLitresCell({ row }) {
+  if (row.status === 'SENSOR_GLITCH') {
+    return (
+      <div className="flex flex-col items-end gap-0.5">
+        <span className="line-through text-slate-400">{formatLitres(row.rawLitres)}</span>
+        <span className="text-[11px] text-slate-500">Not a refuel</span>
+      </div>
+    );
+  }
+  if (row.sensorLitres == null) return '—';
+  const correction = CORRECTION_META[row.correction];
+  const showRaw = row.rawLitres != null && row.rawLitres !== row.sensorLitres;
+  return (
+    <div className="flex flex-col items-end gap-0.5">
+      <span>
+        {formatLitres(row.sensorLitres)}
+        {row.bandL != null && (
+          <span className="ml-1 text-[11px] text-slate-400">± {row.bandL.toFixed(1)} L</span>
+        )}
+      </span>
+      {showRaw && (
+        <span className="text-[11px] text-slate-400">Gauge rose {formatLitres(row.rawLitres)}</span>
+      )}
+      {correction && (
+        <span
+          className={`mileage-badge mileage-badge-${correction.tone} !px-1.5 !py-0.5 !text-[10px]`}
+          title={calibrationHint(row.gainBills)}
+        >
+          {correction.label}
+        </span>
+      )}
+    </div>
+  );
+}
+
+export default function LiveRefuelTab({
+  searchQuery = '',
+  onOpenDrawer,
+  fuelType = null,
+  refreshKey = 0,
+}) {
   const [logs, setLogs] = useState([]);
   const [meta, setMeta] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,6 +104,7 @@ export default function LiveRefuelTab({ searchQuery = '', onOpenDrawer }) {
             limit: pageSize,
             ...rangeToParams(range),
             search: searchQuery || undefined,
+            fuelType: fuelType || undefined,
             status: statusFilter !== 'all' ? statusFilter : undefined,
             // desc is the API default; only the non-default goes on the wire.
             sort: sortOrder === 'earliest' ? 'asc' : undefined,
@@ -78,7 +127,17 @@ export default function LiveRefuelTab({ searchQuery = '', onOpenDrawer }) {
     return () => {
       isMounted = false;
     };
-  }, [page, pageSize, searchQuery, statusFilter, sortOrder, range, reloadKey]);
+  }, [
+    page,
+    pageSize,
+    searchQuery,
+    fuelType,
+    statusFilter,
+    sortOrder,
+    range,
+    reloadKey,
+    refreshKey,
+  ]);
 
   const choosePreset = (key) => {
     setPreset(key);
@@ -173,6 +232,21 @@ export default function LiveRefuelTab({ searchQuery = '', onOpenDrawer }) {
             </button>
           );
         })}
+        {/* Glitches are never in the main list or its totals — only here. */}
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter(GLITCH_STATUS);
+            setPage(1);
+          }}
+          className={pillClass(statusFilter === GLITCH_STATUS)}
+          title="Gauge dipped and came back — not refuels"
+        >
+          Gauge glitches
+          {meta?.sensorGlitch != null && (
+            <span className="ml-1.5 font-mono text-slate-400">{meta.sensorGlitch}</span>
+          )}
+        </button>
       </div>
 
       <div className="mileage-panel overflow-x-auto">
@@ -182,7 +256,7 @@ export default function LiveRefuelTab({ searchQuery = '', onOpenDrawer }) {
               <th className="py-3 px-4">Vehicle No</th>
               <th className="py-3 px-4">Refuel Time (IST)</th>
               <th className="py-3 px-4 text-right">Bill Litres</th>
-              <th className="py-3 px-4 text-right">Sensor Rise</th>
+              <th className="py-3 px-4 text-right">Sensor (corrected)</th>
               <th className="py-3 px-4 text-center">Verification Status</th>
               <th className="py-3 px-4">Location (Pump / Station)</th>
               <th className="py-3 px-4 text-right">Rate (₹/L)</th>
@@ -252,7 +326,7 @@ export default function LiveRefuelTab({ searchQuery = '', onOpenDrawer }) {
                     </td>
 
                     <td className="py-3 px-4 text-right font-mono text-slate-700 dark:text-slate-300">
-                      {formatLitres(row.sensorLitres)}
+                      <SensorLitresCell row={row} />
                     </td>
 
                     <td className="py-3 px-4 text-center">
@@ -265,6 +339,14 @@ export default function LiveRefuelTab({ searchQuery = '', onOpenDrawer }) {
                         </span>
                       ) : (
                         '—'
+                      )}
+                      {row.billVarianceL != null && (
+                        <div className="mt-1 text-[10px] font-mono text-slate-400">
+                          {row.billVarianceL > 0 ? '+' : ''}
+                          {row.billVarianceL.toFixed(1)} L
+                          {row.billToleranceL != null &&
+                            ` · allowed ±${row.billToleranceL.toFixed(1)} L`}
+                        </div>
                       )}
                     </td>
 

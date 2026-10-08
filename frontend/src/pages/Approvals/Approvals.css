@@ -1,0 +1,164 @@
+/* Approvals hub: one tab per kind of approval, above that kind's own page. */
+
+.apv-types {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.apv-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: -1px;
+  padding: 10px 16px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.apv-type:hover {
+  color: var(--foreground);
+}
+
+.apv-type.is-active {
+  border-bottom-color: #2563eb;
+  color: #2563eb;
+}
+
+.apv-type:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.apv-type__count {
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: 20px;
+  background: color-mix(in srgb, #f59e0b 18%, transparent);
+  color: #b45309;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* The WhatsApp page sits inside the hub: the hub owns the padding and the title. */
+.ra-page--embedded {
+  padding: 0;
+  max-width: none;
+}
+
+.ra-page--embedded .ra-header__top-row {
+  justify-content: flex-end;
+}
+
+/* Field agent tab */
+.apv-section .ra-toolbar {
+  margin-bottom: 14px;
+}
+
+.apv-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--secondary);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+
+.apv-chip--warn {
+  background: color-mix(in srgb, #f59e0b 16%, transparent);
+  color: #b45309;
+}
+
+.apv-photos {
+  display: inline-flex;
+  gap: 10px;
+}
+
+.apv-link {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: #2563eb;
+  cursor: pointer;
+}
+
+.apv-link:hover {
+  text-decoration: underline;
+}
+
+.apv-row-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.apv-row-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.apv-row-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.apv-row-btn--approve {
+  border-color: #16a34a;
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.apv-row-btn--approve:hover:not(:disabled) {
+  background: #15803d;
+}
+
+.apv-row-btn--reject {
+  color: #dc2626;
+}
+
+.apv-row-btn--reject:hover:not(:disabled) {
+  border-color: color-mix(in srgb, #dc2626 40%, transparent);
+  background: color-mix(in srgb, #dc2626 8%, var(--card));
+}
+
+.apv-decision {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.apv-decision__reason {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.apv-pager {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}

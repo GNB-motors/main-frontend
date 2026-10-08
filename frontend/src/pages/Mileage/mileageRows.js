@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import { toISTDateString } from '../../utils/dateUtils';
 
 /**
  * Pure mapping for the /mileage hub: backend rows → what the tabs and the
@@ -28,7 +29,25 @@ export const VERIFICATION_META = {
     tone: 'pending',
     hint: 'Bill uploaded with no matching tank-level rise',
   },
+  SENSOR_GLITCH: {
+    label: 'Not a refuel',
+    tone: 'neutral',
+    hint: 'Gauge glitch: the level dipped and came back',
+  },
 };
+
+/** sensor.correction → badge label (hand-off "How to show a refuel"). */
+export const CORRECTION_META = {
+  V2_GAIN: { label: 'Corrected', tone: 'genuine' },
+  GAIN: { label: 'Calibrated', tone: 'pending' },
+  RAW: { label: 'Gauge reading', tone: 'neutral' },
+};
+
+/** "Calibrated on N bills", or "Fleet default" while nothing is learned. */
+export const calibrationHint = (gainBills) =>
+  gainBills > 0 ? `Calibrated on ${gainBills} bill${gainBills === 1 ? '' : 's'}` : 'Fleet default';
+
+export const GLITCH_STATUS = 'sensor_glitch';
 
 /** Status filter chips; `countKey` reads the unified feed's `meta` counts. */
 export const STATUS_FILTERS = [
@@ -89,11 +108,11 @@ export function presetRange(key, now = dayjs()) {
   }
 }
 
-/** Calendar range → API params (start/end of the local day, ISO). */
+/** Calendar range → API params: start and end of the IST day, as ISO. */
 export function rangeToParams({ from, to }) {
   const params = {};
-  if (from) params.from = dayjs(from).startOf('day').toISOString();
-  if (to) params.to = dayjs(to).endOf('day').toISOString();
+  if (from) params.from = new Date(`${from}T00:00:00.000+05:30`).toISOString();
+  if (to) params.to = new Date(`${to}T23:59:59.999+05:30`).toISOString();
   return params;
 }
 
@@ -128,8 +147,16 @@ export function mapUnifiedRow(row) {
     model: row.vehicleModel || null,
     at: row.at || null,
     status: row.verificationStatus || null,
+    litres: num(row.litres),
     slipLitres: num(slip?.litres),
+    // Corrected figure (null for a glitch); rawLitres is how far the gauge rose.
     sensorLitres: num(sensor?.litres),
+    rawLitres: num(sensor?.rawLitres),
+    bandL: num(sensor?.bandL),
+    correction: sensor?.correction || null,
+    gainBills: num(sensor?.gainBills),
+    billVarianceL: num(sensor?.billVarianceL),
+    billToleranceL: num(sensor?.billToleranceL),
     location,
     coords,
     rate: effectiveRate(slip),
@@ -153,6 +180,7 @@ export function drawerFromLiveRow(row) {
     badge: meta ? { label: meta.label, tone: meta.tone, hint: meta.hint } : null,
     bill: slip
       ? {
+          id: slip.id || null,
           litres: num(slip.litres),
           amount: num(slip.totalAmount),
           rate: row.rate,
@@ -165,11 +193,17 @@ export function drawerFromLiveRow(row) {
           odometerSource: row.odometerSource,
           channel: slip.submissionChannel || null,
           documentId: slip.documentId || null,
+          rawRate: num(slip.rate),
+          rawLocation: slipLocationOf(slip),
         }
       : null,
     sensor: sensor
       ? {
           litres: num(sensor.litres),
+          rawLitres: num(sensor.rawLitres),
+          correction: sensor.correction || null,
+          gainBills: num(sensor.gainBills),
+          bandL: num(sensor.bandL),
           at: sensor.at || null,
           pumpName: sensor.fuelPumpName || null,
           lat: num(sensor.lat),
@@ -177,13 +211,25 @@ export function drawerFromLiveRow(row) {
           confirmationStatus: sensor.confirmationStatus || null,
         }
       : null,
-    // billVarianceL = tank rise − billed litres (negative ⇒ bill claims more).
+    // As sent: corrected sensor litres − billed (+ ⇒ the tank rose more).
     varianceL: num(sensor?.billVarianceL),
-    variancePct:
-      num(sensor?.billVarianceL) != null && num(sensor?.claimedLitres)
-        ? (num(sensor.billVarianceL) / num(sensor.claimedLitres)) * 100
+    variancePct: null,
+    billCheck:
+      slip && sensor
+        ? {
+            toleranceL: num(sensor.billToleranceL),
+            flagged: Boolean(sensor.billFlag),
+            v1VarianceL: num(sensor.v1BillVarianceL),
+            v1Flagged: sensor.v1BillFlag == null ? null : Boolean(sensor.v1BillFlag),
+          }
         : null,
   };
+}
+
+function slipLocationOf(slip) {
+  return slip?.location && String(slip.location).trim() !== '-'
+    ? String(slip.location).trim()
+    : null;
 }
 
 export function drawerFromReconciliationRow(r) {
@@ -216,6 +262,36 @@ export function drawerFromReconciliationRow(r) {
     },
     varianceL: num(r.varianceL),
     variancePct: num(r.variancePct),
+    billCheck: null,
+  };
+}
+
+/**
+ * GET /reports/fuel-cycles row (FuelCycleLedger) → Completed cycles row.
+ * Fill-to-fill cycles from slips and the OIL REPORT register.
+ */
+export function mapFuelCycleRow(r) {
+  const pct = (v) => (num(v) == null ? null : num(v) * 100);
+  return {
+    id: r._id || r.cycleKey,
+    vehicleNo: r.registrationNumber || null,
+    vehicleId: r.vehicleId || null,
+    openAt: r.open?.at || null,
+    closeAt: r.close?.at || null,
+    openSource: r.open?.source || null,
+    closeSource: r.close?.source || null,
+    openOdo: num(r.open?.odo),
+    closeOdo: num(r.close?.odo),
+    km: num(r.km?.odo),
+    fuelBills: num(r.fuel?.bills),
+    fuelEcu: num(r.fuel?.ecu),
+    tankDelta: num(r.fuel?.tankDelta),
+    kmPerLTankToTank: num(r.mileage?.tankToTank),
+    kmPerLEcu: num(r.mileage?.ecu),
+    kmCoveragePct: pct(r.coverage?.kmMeasured),
+    fuelCoveragePct: pct(r.coverage?.fuelEcu),
+    status: r.status || null,
+    flags: Array.isArray(r.flags) ? r.flags : [],
   };
 }
 
@@ -295,4 +371,42 @@ export function kpisFromSources({ feedMeta, modelData }) {
       ? (feedMeta.verified || 0) + (feedMeta.flagged || 0) + (feedMeta.slipOnly || 0)
       : null,
   };
+}
+
+const EXPECTED_SOURCE_LABEL = { REGRESSION: 'Truck model', CATALOG: 'Catalog', NONE: '—' };
+
+/** Hourly windows → one row per IST day; expected/deviation only over scored windows. */
+export function dailyRollup(windows) {
+  const days = new Map();
+  for (const w of windows) {
+    const key = toISTDateString(w.windowFrom);
+    const d = days.get(key) || {
+      day: key,
+      at: w.windowFrom,
+      windows: 0,
+      distanceKm: 0,
+      actualL: 0,
+      expectedL: 0,
+      deviationL: 0,
+      scored: 0,
+      sources: new Set(),
+    };
+    d.windows += 1;
+    d.distanceKm += w.distanceKm || 0;
+    d.actualL += w.actualL || 0;
+    if (w.expectedL != null) {
+      d.expectedL += w.expectedL;
+      d.deviationL += w.deviationL || 0;
+      d.scored += 1;
+    }
+    d.sources.add(w.source);
+    days.set(key, d);
+  }
+  return [...days.values()].map((d) => ({
+    ...d,
+    expectedL: d.scored ? d.expectedL : null,
+    deviationL: d.scored ? d.deviationL : null,
+    deviationPct: d.scored && d.expectedL > 0 ? (d.deviationL / d.expectedL) * 100 : null,
+    source: [...d.sources].map((s) => EXPECTED_SOURCE_LABEL[s] || s).join(' · '),
+  }));
 }

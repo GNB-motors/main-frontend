@@ -23,7 +23,7 @@ const Card = ({ label, icon, valueClass, value, sub }) => (
  * tank sensor sees diesel); fleet km/L is the model comparison's
  * distance-weighted total, which needs the vehicleActivity module.
  */
-export default function MileageKpiBar({ showFleetMileage }) {
+export default function MileageKpiBar({ showFleetMileage, refreshKey = 0 }) {
   const [feedMeta, setFeedMeta] = useState(null);
   const [modelData, setModelData] = useState(null);
   const [state, setState] = useState('loading'); // loading | ready | error
@@ -49,7 +49,7 @@ export default function MileageKpiBar({ showFleetMileage }) {
     return () => {
       isMounted = false;
     };
-  }, [showFleetMileage]);
+  }, [showFleetMileage, refreshKey]);
 
   const k = kpisFromSources({ feedMeta, modelData });
   const pending = state === 'loading' ? '…' : '—';

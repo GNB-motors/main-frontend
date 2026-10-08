@@ -83,11 +83,15 @@ const STATUS_BADGE = {
   CLEARED: 'ra-badge--cleared',
 };
 
-const ReceiptApprovalPage = () => {
+/**
+ * `embedded`: rendered as the WhatsApp tab of the Approvals page, which owns the title.
+ * `onCounts` gets the status counts whenever they load, for the tab's pending badge.
+ */
+const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isSuperadminRoute = location.pathname.startsWith('/superadmin');
-  const basePath = isSuperadminRoute ? '/superadmin/receipts' : '/whatsapp-approvals';
+  const basePath = isSuperadminRoute ? '/superadmin/receipts' : '/approvals/whatsapp';
 
   const { organization } = useFeatureFlags();
   const [odoMode, setOdoMode] = useState(
@@ -175,6 +179,7 @@ const ReceiptApprovalPage = () => {
         setItems(draftsRes.data?.data?.items ?? []);
         if (countsRes?.data?.data) {
           setCounts(countsRes.data.data);
+          onCounts?.(countsRes.data.data);
         }
       } catch (e) {
         setError(e.response?.data?.message || 'Failed to load receipts');
@@ -183,7 +188,7 @@ const ReceiptApprovalPage = () => {
         setRefreshing(false);
       }
     },
-    [status],
+    [status, onCounts],
   );
 
   useEffect(() => {
@@ -435,35 +440,35 @@ const ReceiptApprovalPage = () => {
   };
 
   return (
-    <div className="ra-page">
+    <div className={`ra-page${embedded ? ' ra-page--embedded' : ''}`}>
       {/* ── Top Header & Atmospheric Bar ── */}
       <div className="ra-header">
-        <button
-          type="button"
-          className="ra-header__back"
-          onClick={() => navigate(isSuperadminRoute ? '/superadmin' : '/profile')}
-        >
-          <ArrowLeft size={15} />
-          {isSuperadminRoute ? 'Superadmin Portal' : 'Fleet Dashboard'}
-        </button>
+        {isSuperadminRoute && (
+          <button type="button" className="ra-header__back" onClick={() => navigate('/superadmin')}>
+            <ArrowLeft size={15} />
+            Superadmin Portal
+          </button>
+        )}
 
         <div className="ra-header__top-row">
-          <div className="ra-header__bar">
-            <div className="ra-header__icon">
-              <Fuel size={24} />
-            </div>
-            <div>
-              <div className="ra-header__tagline">
-                <Sparkles size={13} />
-                <span>AI-Powered Telematics Fuel Audit</span>
+          {!embedded && (
+            <div className="ra-header__bar">
+              <div className="ra-header__icon">
+                <Fuel size={24} />
               </div>
-              <h1 className="ra-header__title">WhatsApp Fuel Approvals</h1>
-              <p className="ra-header__subtitle">
-                Review driver fuel bills captured over WhatsApp, verify against CAN-bus telematics,
-                and publish atomically into the fuel ledger.
-              </p>
+              <div>
+                <div className="ra-header__tagline">
+                  <Sparkles size={13} />
+                  <span>AI-Powered Telematics Fuel Audit</span>
+                </div>
+                <h1 className="ra-header__title">WhatsApp Fuel Approvals</h1>
+                <p className="ra-header__subtitle">
+                  Review driver fuel bills captured over WhatsApp, verify against CAN-bus
+                  telematics, and publish atomically into the fuel ledger.
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="ra-header__actions">
             {/* Odometer Policy Pill Button */}

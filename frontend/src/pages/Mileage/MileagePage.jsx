@@ -2,11 +2,14 @@ import React, { Suspense, lazy, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Fuel, GitCompare, TrendingUp, Search, Plus } from 'lucide-react';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
+import { getUserRole } from '../../utils/session.js';
 import LiveRefuelTab from './components/LiveRefuelTab';
 import ReconciliationTab from './components/ReconciliationTab';
 import CompletedCyclesSubtab from './components/CompletedCyclesSubtab';
 import MileageKpiBar from './components/MileageKpiBar';
 import RefuelDetailDrawer from './components/RefuelDetailDrawer';
+import PumpLedgerView from './components/PumpLedgerView';
+import ExpectedFuelView from './components/ExpectedFuelView';
 import './MileagePage.css';
 
 // The pre-hub pages, mounted as hub views rather than re-implemented.
@@ -15,23 +18,30 @@ const MileageTrackingPage = lazy(() => import('../MileageTracking/MileageTrackin
 const ModelComparisonPage = lazy(() => import('../MileageTracking/ModelComparisonPage.jsx'));
 
 /**
- * Which hub surfaces an org gets. The hub replaced three sidebar entries with
- * different flags, so each view keeps its old gate — and the backend gate of
- * the endpoint it reads (fuel-comparison/records ⇒ fuelIntegrity,
- * mileage/fleet-overview + model-comparison ⇒ vehicleActivity).
+ * Which hub surfaces a viewer gets: each view follows the gate of the
+ * endpoint it reads, so it is never shown just to 404/403. Most fuel reads are
+ * OWNER/MANAGER only; the refuel feed is open to any signed-in user.
  */
-function hubAccess(canAccess) {
-  const tank = canAccess('fuelIntegrity');
-  const ecu = canAccess('fuelComparison');
-  const mileage = canAccess('vehicleActivity');
+function hubAccess(canAccess, role) {
+  const manages = ['OWNER', 'MANAGER'].includes(role);
+  const integrity = canAccess('fuelIntegrity') && manages; // records, pump-ledger
+  const ecu = canAccess('fuelComparison') && manages; // /api/extension comparisons
+  const mileage = canAccess('vehicleActivity'); // fleet-overview, model-comparison
   return {
     tabs: {
       live: true,
-      reconciliation: tank || ecu,
+      reconciliation: integrity || ecu,
       performance: mileage,
     },
-    reconciliationViews: [tank && 'tank', ecu && 'ecu'].filter(Boolean),
+    views: {
+      reconciliation: [integrity && 'tank', integrity && 'pumps', ecu && 'ecu'].filter(Boolean),
+      performance: ['vehicles', 'models', canAccess('fuelModel') && manages && 'expected'].filter(
+        Boolean,
+      ),
+    },
     fleetMileage: mileage,
+    fuelCycles: canAccess('autoTrips') && manages, // /api/reports/fuel-cycles
+    editBills: mileage, // PUT/DELETE /api/mileage/fuel-log/:id
   };
 }
 
@@ -53,6 +63,7 @@ const SUBVIEWS = {
     param: 'view',
     options: [
       { key: 'tank', label: 'Bill vs tank rise (per fill)' },
+      { key: 'pumps', label: 'Pumps (short delivery)' },
       { key: 'ecu', label: 'Bill vs ECU fuel used (per refuel window)' },
     ],
   },
@@ -61,6 +72,7 @@ const SUBVIEWS = {
     options: [
       { key: 'vehicles', label: 'By vehicle' },
       { key: 'models', label: 'By model' },
+      { key: 'expected', label: 'Expected vs actual' },
     ],
   },
 };
@@ -72,14 +84,14 @@ const EmbeddedFallback = () => (
 export default function MileagePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { canAccess, ready } = useFeatureFlags();
-  const access = hubAccess(canAccess);
+  const access = hubAccess(canAccess, getUserRole());
 
   const requestedTab = searchParams.get('tab') || 'live';
   const activeTab = access.tabs[requestedTab] ? requestedTab : 'live';
 
   const subview = SUBVIEWS[activeTab];
   const allowedSubviews = subview.options.filter(
-    (o) => activeTab !== 'reconciliation' || access.reconciliationViews.includes(o.key),
+    (o) => !access.views[activeTab] || access.views[activeTab].includes(o.key),
   );
   const requestedSubview = searchParams.get(subview.param);
   const activeSubview = allowedSubviews.some((o) => o.key === requestedSubview)
@@ -96,6 +108,8 @@ export default function MileagePage() {
   }
 
   const [drawerDetail, setDrawerDetail] = useState(null);
+  // Bumped after a bill is edited or deleted so the feed and KPIs refetch.
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const updateParams = (patch) => {
     const next = new URLSearchParams(searchParams);
@@ -117,9 +131,7 @@ export default function MileagePage() {
 
   // Only the refuel stream's search reaches beyond the plate.
   const searchHint =
-    activeSubview === 'stream'
-      ? 'Search vehicle, station, or driver...'
-      : 'Search vehicle plate...';
+    activeSubview === 'stream' ? 'Search plate, driver, phone, pump...' : 'Search vehicle plate...';
 
   return (
     <div className="mileage-hub">
@@ -165,7 +177,7 @@ export default function MileagePage() {
 
       {ready && (
         <>
-          <MileageKpiBar showFleetMileage={access.fleetMileage} />
+          <MileageKpiBar showFleetMileage={access.fleetMileage} refreshKey={refreshKey} />
 
           <div className="mileage-tab-nav">
             {TABS.filter((t) => access.tabs[t.key]).map((tab) => {
@@ -205,16 +217,24 @@ export default function MileagePage() {
           )}
 
           {activeTab === 'live' && activeSubview === 'stream' && (
-            <LiveRefuelTab searchQuery={search} onOpenDrawer={setDrawerDetail} />
+            <LiveRefuelTab
+              searchQuery={search}
+              onOpenDrawer={setDrawerDetail}
+              refreshKey={refreshKey}
+            />
           )}
 
           {activeTab === 'live' && activeSubview === 'completed' && (
-            <CompletedCyclesSubtab searchQuery={search} />
+            <CompletedCyclesSubtab searchQuery={search} fuelCyclesAllowed={access.fuelCycles} />
           )}
 
           {activeTab === 'reconciliation' && activeSubview === 'tank' && (
             <ReconciliationTab searchQuery={search} onOpenDrawer={setDrawerDetail} />
           )}
+
+          {activeTab === 'reconciliation' && activeSubview === 'pumps' && <PumpLedgerView />}
+
+          {activeTab === 'performance' && activeSubview === 'expected' && <ExpectedFuelView />}
 
           <div className="mileage-embedded">
             <Suspense fallback={<EmbeddedFallback />}>
@@ -232,7 +252,15 @@ export default function MileagePage() {
         </>
       )}
 
-      <RefuelDetailDrawer detail={drawerDetail} onClose={() => setDrawerDetail(null)} />
+      <RefuelDetailDrawer
+        detail={drawerDetail}
+        onClose={() => setDrawerDetail(null)}
+        canEdit={access.editBills}
+        onChanged={() => {
+          setDrawerDetail(null);
+          setRefreshKey((k) => k + 1);
+        }}
+      />
     </div>
   );
 }

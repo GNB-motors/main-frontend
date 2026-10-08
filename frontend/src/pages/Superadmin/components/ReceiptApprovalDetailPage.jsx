@@ -98,7 +98,7 @@ const ReceiptApprovalDetailPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isSuperadminRoute = location.pathname.startsWith('/superadmin');
-  const basePath = isSuperadminRoute ? '/superadmin/receipts' : '/whatsapp-approvals';
+  const basePath = isSuperadminRoute ? '/superadmin/receipts' : '/approvals?type=whatsapp';
 
   const [draft, setDraft] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -205,7 +205,8 @@ const ReceiptApprovalDetailPage = () => {
     <div className="ra-page">
       {/* Back button */}
       <button className="ra-back-link" onClick={() => navigate(basePath)}>
-        <ArrowLeft size={16} /> Back to WhatsApp Approvals
+        <ArrowLeft size={16} />{' '}
+        {isSuperadminRoute ? 'Back to WhatsApp Approvals' : 'Back to Approvals'}
       </button>
 
       {/* Header bar */}

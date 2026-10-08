@@ -6,6 +6,7 @@ import apiClient from '../../../utils/axiosConfig';
 import { formatDateTimeIST } from '../../../utils/dateUtils';
 import { formatINR, formatKm, formatLitres } from '../../../utils/formatters';
 import { mapIntervalRow } from '../mileageRows';
+import FuelCyclesList from './FuelCyclesList';
 
 const mileageTone = (kmPerL) => {
   if (kmPerL == null) return 'text-slate-500';
@@ -16,7 +17,7 @@ const mileageTone = (kmPerL) => {
   return 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950 dark:text-rose-300';
 };
 
-export default function CompletedCyclesSubtab({ searchQuery = '' }) {
+function IntervalCycles({ searchQuery = '' }) {
   const navigate = useNavigate();
   const [cycles, setCycles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -190,5 +191,43 @@ export default function CompletedCyclesSubtab({ searchQuery = '' }) {
         />
       </div>
     </div>
+  );
+}
+
+/**
+ * Slip-based intervals for orgs that log slips (GNB). An org whose bills come
+ * in the OIL REPORT register has none, so it gets the fill-to-fill cycles from
+ * /api/reports/fuel-cycles instead (autoTrips flag, OWNER/MANAGER).
+ */
+export default function CompletedCyclesSubtab({ searchQuery = '', fuelCyclesAllowed = false }) {
+  const [source, setSource] = useState(fuelCyclesAllowed ? null : 'intervals');
+
+  useEffect(() => {
+    if (!fuelCyclesAllowed) return undefined;
+    let isMounted = true;
+    apiClient
+      .get('/api/mileage/intervals', { params: { page: 1, limit: 1, status: 'COMPLETED' } })
+      .then((res) => {
+        if (isMounted) setSource(res.data?.meta?.total > 0 ? 'intervals' : 'fuelCycles');
+      })
+      .catch(() => {
+        if (isMounted) setSource('fuelCycles');
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [fuelCyclesAllowed]);
+
+  if (!source) {
+    return (
+      <div className="mileage-panel py-12 text-center text-xs text-slate-400 font-mono">
+        Loading completed refuel cycles...
+      </div>
+    );
+  }
+  return source === 'fuelCycles' ? (
+    <FuelCyclesList searchQuery={searchQuery} />
+  ) : (
+    <IntervalCycles searchQuery={searchQuery} />
   );
 }
