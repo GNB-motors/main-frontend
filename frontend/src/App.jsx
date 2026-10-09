@@ -84,7 +84,6 @@ const AddDriverPage = lazy(() => import('./pages/Drivers/AddDriverPage.jsx'));
 const BulkUploadDriversPage = lazy(() => import('./pages/Drivers/BulkUploadDriversPage.jsx'));
 const BulkUploadVehiclesPage = lazy(() => import('./pages/Profile/BulkUploadVehiclesPage.jsx'));
 const TripManagementPage = lazy(() => import('./pages/Trip/TripManagementPage.jsx'));
-const TripCreationFlow = lazy(() => import('./pages/Trip/TripCreationFlow.jsx'));
 const TripDetailPage = lazy(() => import('./pages/Trip/TripDetailPage.jsx'));
 // Superadmin pages are lazy-loaded: admin-only JSX (incl. the LEMU
 // observability page) must not ship in the customer bundle.
@@ -479,7 +478,8 @@ function App() {
             <Route path="/drivers/bulk-upload" element={<BulkUploadDriversPage />} />
             <Route path="/trip-management" element={<TripManagementPage />} />
             <Route path="/trip-management/trip/:id" element={<TripDetailPage />} />
-            <Route path="/trip/new" element={<TripCreationFlow />} />
+            {/* The old weight-slip trip form was retired with its backend; adding a trip now happens on the Trips page. */}
+            <Route path="/trip/new" element={<Navigate to="/auto-trips?new=manual" replace />} />
             <Route path="/trip/:tripId" element={<TripManagementPage />} />
             {/* Fuel Management Routes */}
             <Route path="/mileage" element={<MileagePage />} />
