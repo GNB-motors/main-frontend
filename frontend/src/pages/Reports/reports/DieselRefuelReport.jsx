@@ -1,57 +1,75 @@
-import React, { useState } from 'react';
-import { Search } from 'lucide-react';
+import React, { useDeferredValue, useState } from 'react';
+import { Search, X } from 'lucide-react';
 import PageShell from '../../../components/ui/PageShell';
+import HubDateBar from '../../Mileage/components/HubDateBar';
 import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
+import { getUserRole } from '../../../utils/session.js';
 import LiveRefuelTab from '../../Mileage/components/LiveRefuelTab';
 import RefuelDetailDrawer from '../../Mileage/components/RefuelDetailDrawer';
+import { DEFAULT_PRESET, presetRange } from '../../Mileage/mileageRows';
 import '../../Mileage/MileagePage.css';
 
 /**
- * Reports → Diesel Report: the /mileage hub's refuel stream with fuelType
- * fixed to DIESEL (corrected litres, glitch chip, server bill check), instead
- * of the old RefuelLogsPage and its legacy GET /api/fuel-logs.
+ * Reports → Diesel Report: the Diesel & Mileage hub's fill list with fuelType
+ * fixed to DIESEL, instead of the old RefuelLogsPage and its legacy
+ * GET /api/fuel-logs.
  */
 export default function DieselRefuelReport() {
   const { canAccess } = useFeatureFlags();
-  const [searchInput, setSearchInput] = useState('');
+  const manages = ['OWNER', 'MANAGER'].includes(getUserRole());
   const [search, setSearch] = useState('');
+  const deferredSearch = useDeferredValue(search);
+  const [preset, setPreset] = useState(DEFAULT_PRESET);
+  const [range, setRange] = useState(() => presetRange(DEFAULT_PRESET));
   const [drawerDetail, setDrawerDetail] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   return (
     <PageShell
       title="Diesel Report"
-      subtitle="Diesel bills and tank-sensor refills, with corrected litres."
+      subtitle="Every diesel fill: the bill, what reached the tank, and whether they match."
       actions={
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setSearch(searchInput.trim());
-          }}
-          className="flex items-center gap-2"
-        >
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+        <div className="mhub-top-actions">
+          <label className="mhub-search">
+            <Search size={15} className="mhub-search-icon" aria-hidden />
             <input
-              type="text"
-              aria-label="Search plate, driver, phone, pump"
-              placeholder="Search plate, driver, phone, pump..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9 pr-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 w-64 outline-none focus:border-indigo-500"
+              type="search"
+              aria-label="Truck number, driver, phone or pump"
+              placeholder="Truck number, driver, phone or pump"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
             />
-          </div>
-          <button
-            type="submit"
-            className="px-3 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition cursor-pointer"
-          >
-            Search
-          </button>
-        </form>
+            {search ? (
+              <button
+                type="button"
+                className="mhub-search-clear"
+                onClick={() => setSearch('')}
+                aria-label="Clear search"
+              >
+                <X size={13} aria-hidden />
+              </button>
+            ) : null}
+          </label>
+        </div>
+      }
+      filters={
+        <HubDateBar
+          preset={preset}
+          range={range}
+          onPreset={(key) => {
+            setPreset(key);
+            setRange(presetRange(key));
+          }}
+          onRange={(next) => {
+            setPreset(null);
+            setRange(next);
+          }}
+        />
       }
     >
       <LiveRefuelTab
-        searchQuery={search}
+        range={range}
+        searchQuery={deferredSearch}
         fuelType="DIESEL"
         onOpenDrawer={setDrawerDetail}
         refreshKey={refreshKey}
@@ -59,7 +77,7 @@ export default function DieselRefuelReport() {
       <RefuelDetailDrawer
         detail={drawerDetail}
         onClose={() => setDrawerDetail(null)}
-        canEdit={canAccess('vehicleActivity')}
+        canEdit={canAccess('vehicleActivity') && manages}
         onChanged={() => {
           setDrawerDetail(null);
           setRefreshKey((k) => k + 1);

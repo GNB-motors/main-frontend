@@ -48,7 +48,11 @@ const VARIANCE_OPTIONS = [
   { key: 'NO_DATA', label: 'No Telematics' },
 ];
 
-const FuelComparisonPage = ({ embedded = false }) => {
+/**
+ * `range` ({ from, to } calendar days): the /mileage hub's shared dates. When
+ * given, the page follows it and hides its own date controls.
+ */
+const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
   const role = getUserRole();
   const themeColors = useMemo(() => getThemeCSS(role), [role]);
 
@@ -60,12 +64,24 @@ const FuelComparisonPage = ({ embedded = false }) => {
   const [datePreset, setDatePreset] = useState('ALL');
   const [inputFromDate, setInputFromDate] = useState('');
   const [inputToDate, setInputToDate] = useState('');
+  const fromDate = hubRange
+    ? new Date(`${hubRange.from}T00:00:00.000+05:30`).toISOString()
+    : inputFromDate;
+  const toDate = hubRange
+    ? new Date(`${hubRange.to}T23:59:59.999+05:30`).toISOString()
+    : inputToDate;
   const [varianceFilter, setVarianceFilter] = useState('ALL');
 
   // Pagination
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  // New dates are a new result set: back to page 1 in the same render.
+  const [shownDates, setShownDates] = useState(`${fromDate}|${toDate}`);
+  if (shownDates !== `${fromDate}|${toDate}`) {
+    setShownDates(`${fromDate}|${toDate}`);
+    setPage(1);
+  }
 
   // Data
   const [records, setRecords] = useState([]);
@@ -151,11 +167,11 @@ const FuelComparisonPage = ({ embedded = false }) => {
         params.search = searchQuery.trim();
       }
 
-      if (inputFromDate) {
-        params.fromDate = inputFromDate;
+      if (fromDate) {
+        params.fromDate = fromDate;
       }
-      if (inputToDate) {
-        params.toDate = inputToDate;
+      if (toDate) {
+        params.toDate = toDate;
       }
 
       let fetchedTasks = [];
@@ -208,7 +224,7 @@ const FuelComparisonPage = ({ embedded = false }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [page, activeTab, searchQuery, inputFromDate, inputToDate, varianceFilter]);
+  }, [page, activeTab, searchQuery, fromDate, toDate, varianceFilter]);
 
   // Initial and reactive data loads
   useEffect(() => {
@@ -571,24 +587,26 @@ const FuelComparisonPage = ({ embedded = false }) => {
 
           {/* Inline Filter Controls */}
           <div className="fc-filters-row">
-            {/* Date Preset */}
-            <div className="fc-select-wrap">
-              <select
-                value={datePreset}
-                onChange={(e) => handlePresetChange(e.target.value)}
-                className="fc-select fc-select--compact"
-                aria-label="Filter by date range"
-              >
-                {DATE_PRESETS.map((p) => (
-                  <option key={p.key} value={p.key}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Date Preset (the /mileage hub supplies its own dates) */}
+            {!hubRange && (
+              <div className="fc-select-wrap">
+                <select
+                  value={datePreset}
+                  onChange={(e) => handlePresetChange(e.target.value)}
+                  className="fc-select fc-select--compact"
+                  aria-label="Filter by date range"
+                >
+                  {DATE_PRESETS.map((p) => (
+                    <option key={p.key} value={p.key}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Custom Dates */}
-            {datePreset === 'CUSTOM' && (
+            {!hubRange && datePreset === 'CUSTOM' && (
               <div className="fc-custom-dates">
                 <input
                   type="date"

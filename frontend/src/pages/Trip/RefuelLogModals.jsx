@@ -7,6 +7,7 @@
 
 import { createPortal } from 'react-dom';
 import { X, AlertTriangle } from 'lucide-react';
+import FuelBillPopup from '../../components/ui/FuelBillPopup';
 
 const FUEL_TYPES = ['DIESEL', 'ADBLUE'];
 const FILLING_TYPES = ['PARTIAL', 'FULL_TANK'];
@@ -200,68 +201,7 @@ const RefuelLogModals = ({
       )}
 
     {/* View Image Modal */}
-    {viewImageUrl &&
-      createPortal(
-        <div
-          className="refuel-modal-overlay"
-          role="presentation"
-          onClick={onViewImageClose}
-          style={{ zIndex: 9999 }}
-        >
-          <div
-            role="presentation"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              position: 'relative',
-              maxWidth: '80vw',
-              maxHeight: '75vh',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <button
-              type="button"
-              onClick={onViewImageClose}
-              style={{
-                position: 'absolute',
-                top: '-14px',
-                right: '-14px',
-                background: '#fff',
-                border: '1px solid #e5e7eb',
-                color: '#4b5563',
-                borderRadius: '50%',
-                width: '32px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                zIndex: 10,
-              }}
-            >
-              <X size={18} />
-            </button>
-            <img
-              src={viewImageUrl}
-              alt="Fuel Bill"
-              style={{
-                maxWidth: '100%',
-                maxHeight: '75vh',
-                objectFit: 'contain',
-                borderRadius: '16px',
-                background: 'white',
-                padding: '16px',
-                boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
-                display: 'block',
-              }}
-            />
-          </div>
-        </div>,
-        document.body,
-      )}
+    {viewImageUrl && <FuelBillPopup imageSrc={viewImageUrl} onClose={onViewImageClose} />}
   </>
 );
 

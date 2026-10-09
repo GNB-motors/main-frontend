@@ -27,12 +27,17 @@ import './MileageTracking.css';
 
 const MIN_CYCLE_OPTIONS = [1, 2, 3, 5];
 
-const ModelComparisonPage = ({ embedded = false }) => {
+/**
+ * `range` ({ from, to } calendar days): the /mileage hub's shared dates. When
+ * given, the page follows it and hides its own date inputs.
+ */
+const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
   const [data, setData] = useState([]);
   const [meta, setMeta] = useState(null);
   const [selectedModel, setSelectedModel] = useState(null);
   const [selectedVehicles, setSelectedVehicles] = useState([]);
-  const [range, setRange] = useState({ from: '', to: '' });
+  const [ownRange, setRange] = useState({ from: '', to: '' });
+  const range = hubRange || ownRange;
   const [minCycles, setMinCycles] = useState(1);
 
   useEffect(() => {
@@ -115,7 +120,11 @@ const ModelComparisonPage = ({ embedded = false }) => {
   const totalVehicles = data.reduce((s, d) => s + d.vehicleCount, 0);
   const bestModel = data[0] ?? null;
   const maxAvg = data.length ? Math.max(...data.map((d) => d.avgMileage)) : 0;
-  const activeFilters = (range.from ? 1 : 0) + (range.to ? 1 : 0) + (minCycles > 1 ? 1 : 0);
+  const activeFilters = hubRange
+    ? minCycles > 1
+      ? 1
+      : 0
+    : (range.from ? 1 : 0) + (range.to ? 1 : 0) + (minCycles > 1 ? 1 : 0);
 
   const methodNote = meta
     ? [
@@ -140,7 +149,7 @@ const ModelComparisonPage = ({ embedded = false }) => {
         <FilterBar
           from={range.from}
           to={range.to}
-          onRangeChange={(patch) => setRange((prev) => ({ ...prev, ...patch }))}
+          onRangeChange={hubRange ? null : (patch) => setRange((prev) => ({ ...prev, ...patch }))}
           activeCount={activeFilters}
           onClear={() => {
             setRange({ from: '', to: '' });

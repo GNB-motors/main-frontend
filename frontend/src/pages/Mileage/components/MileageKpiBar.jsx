@@ -1,102 +1,138 @@
-import React, { useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle, Gauge, IndianRupee } from 'lucide-react';
-import apiClient from '../../../utils/axiosConfig';
-import { formatInrCompact, formatNum, formatPct } from '../../../utils/formatters';
-import { kpisFromSources, presetRange, rangeToParams } from '../mileageRows';
+import React from 'react';
+import StatusChip from '../../../components/ui/StatusChip';
+import { useApi } from '../../../hooks/useApi';
+import { formatInrCompact, formatNum } from '../../../utils/formatters';
+import { MileageApi } from '../mileageApi';
+import { billCoverage, kpisFromSources, mileageBand } from '../mileageRows';
+import InfoTip from './InfoTip';
 
-const Card = ({ label, icon, valueClass, value, sub }) => (
-  <div className="mileage-kpi-card">
-    <div className="mileage-kpi-top">
+const Tile = ({ label, explanation, value, valueClass = '', children }) => (
+  <section className="mhub-kpi" aria-label={label}>
+    <div className="mhub-kpi-head">
       <span>{label}</span>
-      {icon}
+      <InfoTip explanation={explanation} />
     </div>
-    <div className={`mileage-kpi-value ${valueClass}`}>{value}</div>
-    <div className="mileage-kpi-sub">
-      <span>{sub}</span>
-    </div>
-  </div>
+    <div className={`mhub-kpi-value ${valueClass}`}>{value}</div>
+    <div className="mhub-kpi-foot">{children}</div>
+  </section>
 );
 
 /**
- * Org-wide figures for the last 30 days, independent of the tab filters.
- * Reconciliation figures come from the unified feed's meta (diesel only — the
- * tank sensor sees diesel); fleet km/L is the model comparison's
- * distance-weighted total, which needs the vehicleActivity module.
+ * Four plain-word figures for the hub's dates. Reconciliation figures come
+ * from the fill list's counts (diesel only, the tank sensor sees diesel);
+ * average mileage is the model comparison's distance-weighted total, which
+ * needs the vehicleActivity module.
  */
-export default function MileageKpiBar({ showFleetMileage, refreshKey = 0 }) {
-  const [feedMeta, setFeedMeta] = useState(null);
-  const [modelData, setModelData] = useState(null);
-  const [state, setState] = useState('loading'); // loading | ready | error
+export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 }) {
+  const feed = useApi(
+    (signal) => MileageApi.unifiedFeed(range, { fuelType: 'DIESEL', limit: 1 }, signal),
+    [range.from, range.to, refreshKey],
+  );
+  const models = useApi(
+    (signal) => MileageApi.modelComparison(range, signal),
+    [range.from, range.to, refreshKey],
+    { enabled: showFleetMileage },
+  );
 
-  useEffect(() => {
-    let isMounted = true;
-    const range = rangeToParams(presetRange('30DAYS'));
-    Promise.allSettled([
-      apiClient.get('/api/fuel-logs/unified', {
-        params: { ...range, fuelType: 'DIESEL', limit: 1 },
-      }),
-      showFleetMileage
-        ? apiClient.get('/api/mileage/model-comparison', { params: range })
-        : Promise.resolve(null),
-    ]).then(([feed, models]) => {
-      if (!isMounted) return;
-      setFeedMeta(feed.status === 'fulfilled' ? feed.value.data?.meta || null : null);
-      setModelData(
-        models.status === 'fulfilled' && models.value ? models.value.data?.data || [] : null,
-      );
-      setState(feed.status === 'rejected' ? 'error' : 'ready');
-    });
-    return () => {
-      isMounted = false;
-    };
-  }, [showFleetMileage, refreshKey]);
-
-  const k = kpisFromSources({ feedMeta, modelData });
-  const pending = state === 'loading' ? '…' : '—';
+  const k = kpisFromSources({
+    feedMeta: feed.data?.meta || null,
+    modelData: showFleetMileage ? models.data?.data || null : null,
+  });
+  const pending = feed.loading ? '…' : '—';
+  const coveragePct = k.sensorFills ? (k.matched / k.sensorFills) * 100 : null;
+  const skipped = models.data?.meta?.excludedCycleCount;
 
   return (
-    <div className="mileage-kpi-grid">
+    <div className="mhub-kpis">
       {showFleetMileage && (
-        <Card
-          label="Fleet Avg Mileage"
-          icon={<Gauge className="w-4 h-4 text-indigo-500" />}
-          valueClass="text-indigo-600 dark:text-indigo-400"
-          value={k.fleetKmPerL != null ? `${k.fleetKmPerL.toFixed(2)} km/L` : pending}
-          sub={
-            k.vehicleCount
-              ? `Last 30 days · ${k.vehicleCount} vehicles · distance-weighted`
-              : 'No completed cycles in the last 30 days'
+        <Tile
+          label="Average mileage"
+          value={
+            k.fleetKmPerL != null ? (
+              <>
+                {k.fleetKmPerL.toFixed(2)}
+                <small>km/L</small>
+              </>
+            ) : models.loading ? (
+              '…'
+            ) : (
+              '—'
+            )
           }
-        />
+          explanation={{
+            title: 'How average mileage is worked out',
+            text: 'All km driven divided by all diesel, over every full-tank-to-full-tank round that ended in these dates. Long rounds count more than short ones.',
+            lines: [
+              ['Trucks', k.vehicleCount != null ? formatNum(k.vehicleCount) : '—'],
+              [
+                'Rounds skipped',
+                skipped != null ? `${formatNum(skipped)} (odometer looked wrong)` : '—',
+              ],
+            ],
+          }}
+        >
+          {k.fleetKmPerL != null ? (
+            <StatusChip group="mileageBand" value={mileageBand(k.fleetKmPerL)} />
+          ) : null}
+          <span>
+            {k.vehicleCount ? `${k.vehicleCount} trucks` : 'No full-tank rounds in these dates'}
+          </span>
+        </Tile>
       )}
 
-      <Card
-        label="Diesel Billed"
-        icon={<IndianRupee className="w-4 h-4 text-blue-500" />}
-        valueClass="text-blue-600 dark:text-blue-400"
+      <Tile
+        label="Diesel bought"
         value={k.spendInr != null ? formatInrCompact(k.spendInr) : pending}
-        sub={k.bills != null ? `${formatNum(k.bills)} bills · last 30 days` : 'Last 30 days'}
-      />
+        explanation={{
+          title: 'Diesel bought',
+          text: 'The amounts on every diesel bill in these dates. AdBlue bills are not included.',
+          lines: [['Bills', k.bills != null ? formatNum(k.bills) : '—']],
+        }}
+      >
+        <span>{k.bills != null ? `${formatNum(k.bills)} bills` : ' '}</span>
+      </Tile>
 
-      <Card
-        label="Reconciled Fills"
-        icon={<CheckCircle className="w-4 h-4 text-emerald-500" />}
-        valueClass="text-emerald-600 dark:text-emerald-400"
-        value={k.reconciledPct != null ? formatPct(k.reconciledPct, { decimals: 1 }) : pending}
-        sub={
-          k.sensorFills != null
-            ? `${formatNum(k.matched)} of ${formatNum(k.sensorFills)} tank rises have a bill`
-            : 'Tank rises backed by a bill'
+      <Tile
+        label="Fills with a bill"
+        value={
+          k.sensorFills != null ? (
+            <>
+              {formatNum(k.matched)}
+              <small>of {formatNum(k.sensorFills)}</small>
+            </>
+          ) : (
+            pending
+          )
         }
-      />
+        explanation={{
+          title: 'Fills with a bill',
+          text: 'Of the refills the tank sensor saw, how many have a bill uploaded. The rest need the driver to upload one.',
+          lines: [
+            ['With a bill', k.matched != null ? formatNum(k.matched) : '—'],
+            ['Tank saw', k.sensorFills != null ? formatNum(k.sensorFills) : '—'],
+            ['Share', coveragePct != null ? `${Math.round(coveragePct)}%` : '—'],
+          ],
+        }}
+      >
+        {coveragePct != null ? (
+          <StatusChip group="billCoverage" value={billCoverage(coveragePct)} />
+        ) : null}
+      </Tile>
 
-      <Card
-        label="Flagged Variances"
-        icon={<AlertTriangle className="w-4 h-4 text-amber-500" />}
-        valueClass="text-amber-600 dark:text-amber-400"
+      <Tile
+        label="Bills to check"
         value={k.flagged != null ? formatNum(k.flagged) : pending}
-        sub="Bill vs tank mismatch · last 30 days"
-      />
+        valueClass={k.flagged > 0 ? 'mhub-kpi-value--critical' : ''}
+        explanation={{
+          title: 'Bills to check',
+          text: 'Bills where the litres on the bill and the rise in the tank disagree by more than that truck normally varies.',
+          lines: [],
+        }}
+      >
+        {k.flagged != null ? (
+          <StatusChip group="billsToCheck" value={k.flagged > 0 ? 'NEEDS_A_LOOK' : 'ALL_CLEAR'} />
+        ) : null}
+      </Tile>
     </div>
   );
 }
