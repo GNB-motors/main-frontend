@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import RoadService from '../../../services/RoadService';
-import { RefreshButton, Empty } from '../routeHubShared.jsx';
+import { RefreshButton, Empty, TableSkeleton } from '../routeHubShared.jsx';
 import { istHourOfWeek, howLabel } from '../intelligenceFormat.js';
 
 /**
@@ -8,6 +8,15 @@ import { istHourOfWeek, howLabel } from '../intelligenceFormat.js';
  * congested at the chosen hour (maths R22), pooled across organisations under the R8 publish rule. Replaces
  * the old corridor-time page, which bucketed hours in UTC (maths R6 warning) on a different pipeline.
  */
+const CONGESTION_COLUMNS = [
+  'Road class',
+  'Region',
+  'Congestion',
+  'Typical speed',
+  'Free flow',
+  'Evidence (rows)',
+];
+
 export default function IntelligenceView() {
   const [how, setHow] = useState(() => istHourOfWeek());
   const [rows, setRows] = useState(null);
@@ -88,7 +97,16 @@ export default function IntelligenceView() {
             sub="Could not load congestion data."
           />
         ) : state === 'loading' || rows === null ? (
-          <Empty icon="clock" tone="#6B7280" title="Loading" />
+          <table aria-label="Loading congestion">
+            <thead>
+              <tr>
+                {CONGESTION_COLUMNS.map((c) => (
+                  <th key={c}>{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <TableSkeleton cols={CONGESTION_COLUMNS.length} rows={5} />
+          </table>
         ) : rows.length === 0 ? (
           <Empty
             title="Typical for this hour"
@@ -98,12 +116,9 @@ export default function IntelligenceView() {
           <table>
             <thead>
               <tr>
-                <th>Road class</th>
-                <th>Region</th>
-                <th>Congestion</th>
-                <th>Typical speed</th>
-                <th>Free flow</th>
-                <th>Evidence (rows)</th>
+                {CONGESTION_COLUMNS.map((c) => (
+                  <th key={c}>{c}</th>
+                ))}
               </tr>
             </thead>
             <tbody>

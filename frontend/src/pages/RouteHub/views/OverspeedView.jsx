@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import RouteHubService from '../../../services/RouteHubService';
 import Ico from '../routeHubIcons.jsx';
 import { L, useLeafletMap, useLayerGroup } from '../routeHubMap';
-import { KpiRow, RefreshButton, TableEmpty } from '../routeHubShared.jsx';
+import { KpiRow, RefreshButton, TableEmpty, TableSkeleton } from '../routeHubShared.jsx';
 import { downloadCsv, fmtDT, fmtT } from '../routeHubFormat';
 
 const WINDOWS = [
@@ -482,7 +482,7 @@ export default function OverspeedView({ params, toast, setBadge }) {
         </button>
       </div>
 
-      <KpiRow items={kpis} />
+      <KpiRow items={kpis} loading={loading && !fleet && !detail} />
 
       {error ? (
         <div className="card">
@@ -556,15 +556,13 @@ export default function OverspeedView({ params, toast, setBadge }) {
                         </tr>
                       ))}
                     </tbody>
+                  ) : loading ? (
+                    <TableSkeleton cols={6} />
                   ) : (
                     <TableEmpty
                       colSpan={6}
-                      title={loading ? 'Running audit…' : 'No sustained overspeed'}
-                      sub={
-                        loading
-                          ? 'Recomputing from position history.'
-                          : `Nothing stayed above ${thr} km/h for ${dur}+ minutes in this window.`
-                      }
+                      title="No sustained overspeed"
+                      sub={`Nothing stayed above ${thr} km/h for ${dur}+ minutes in this window.`}
                     />
                   )}
                 </table>

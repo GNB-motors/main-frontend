@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import RouteHubService from '../../../services/RouteHubService';
 import Ico from '../routeHubIcons.jsx';
 import { L, useLeafletMap, useLayerGroup, cityLayer } from '../routeHubMap';
-import { KpiRow, RefreshButton, Seg } from '../routeHubShared.jsx';
+import { KpiRow, RefreshButton, RowsSkeleton, Seg, Skel } from '../routeHubShared.jsx';
 import { HEALTH, inr, inrK } from '../routeHubFormat';
 
 const RANGES = [
@@ -89,9 +89,47 @@ function Gauge({ peak, eventCount, flagged, vehicleCount }) {
   );
 }
 
+function GaugeSkeleton() {
+  return (
+    <div className="gauge" aria-busy="true">
+      <Skel w={120} h={96} r={14} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <Skel w={64} h={20} />
+        <Skel w={96} h={10} />
+        <Skel w={56} h={20} />
+        <Skel w={96} h={10} />
+      </div>
+    </div>
+  );
+}
+
+/** Margin bars while the routes load: name, figure and a track per row. */
+function BarsSkeleton({ n = 4 }) {
+  return (
+    <div className="bars" aria-busy="true">
+      {Array.from({ length: n }, (_, i) => (
+        <div className="bar" key={i}>
+          <span className="n">
+            <Skel w={['62%', '48%', '70%', '55%'][i % 4]} h={12} />
+          </span>
+          <span className="a">
+            <Skel w={42} h={12} />
+          </span>
+          <Skel w={58} h={20} r={999} />
+          <span className="track">
+            <Skel w="100%" h="100%" />
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function OverviewView({ go, toast, setBadge }) {
   const [hours, setHours] = useState(24);
   const [loading, setLoading] = useState(true);
+  // Skeletons only on the first load; a refresh keeps the numbers on screen.
+  const [ready, setReady] = useState(false);
   const [deviation, setDeviation] = useState([]);
   const [overspeed, setOverspeed] = useState(null);
   const [profit, setProfit] = useState(null);
@@ -132,12 +170,14 @@ export default function OverviewView({ go, toast, setBadge }) {
     );
     setBadge('overspeed', os?.totals?.eventCount ?? 0);
     setLoading(false);
+    setReady(true);
   }, [hours, setBadge]);
 
   useEffect(() => {
     load();
   }, [load]);
 
+  const first = loading && !ready;
   const openDev = deviation.filter((d) => String(d.status || '').toUpperCase() === 'OPEN');
   const osTotals = overspeed?.totals || {};
   const target = profit?.targetMarginPct ?? 22.5;
@@ -282,7 +322,7 @@ export default function OverviewView({ go, toast, setBadge }) {
         </div>
       </div>
 
-      <KpiRow items={kpis} n={5} />
+      <KpiRow items={kpis} n={5} loading={first} />
 
       <div className="bento">
         <div className="card s8" style={{ minHeight: 560 }}>
@@ -378,6 +418,12 @@ export default function OverviewView({ go, toast, setBadge }) {
                     Open in profitability <Ico n="arrowR" s={12} />
                   </button>
                 </>
+              ) : first ? (
+                <>
+                  <div className="eyebrow">Network</div>
+                  <Skel w={170} h={16} style={{ marginTop: 6 }} />
+                  <Skel w={130} h={10} style={{ marginTop: 6 }} />
+                </>
               ) : (
                 <>
                   <div className="eyebrow">Network</div>
@@ -416,23 +462,32 @@ export default function OverviewView({ go, toast, setBadge }) {
             <div className="ministat">
               <div>
                 <div className="v" style={{ color: '#C2323A' }}>
-                  {openDev.length}
+                  {first ? <Skel w={36} h={20} /> : openDev.length}
                 </div>
                 <div className="k">pending review</div>
               </div>
               <div>
                 <div className="v">
-                  {inr(openDev.reduce((a, d) => a + (d.estimatedExtraCostInr || 0), 0))}
+                  {first ? (
+                    <Skel w={56} h={20} />
+                  ) : (
+                    inr(openDev.reduce((a, d) => a + (d.estimatedExtraCostInr || 0), 0))
+                  )}
                 </div>
                 <div className="k">est. detour cost</div>
               </div>
               <div>
                 <div className="v">
-                  +{openDev.reduce((a, d) => a + (d.extraKmEstimate || 0), 0).toFixed(1)}
+                  {first ? (
+                    <Skel w={48} h={20} />
+                  ) : (
+                    `+${openDev.reduce((a, d) => a + (d.extraKmEstimate || 0), 0).toFixed(1)}`
+                  )}
                 </div>
                 <div className="k">extra km</div>
               </div>
             </div>
+            {first ? <RowsSkeleton n={3} /> : null}
             <div className="rows">
               {openDev.slice(0, 3).map((d) => (
                 <div className="row" key={d._id}>
@@ -467,12 +522,19 @@ export default function OverviewView({ go, toast, setBadge }) {
                 <Ico n="arrowUR" s={15} />
               </button>
             </div>
-            <Gauge
-              peak={osTotals.peakSpeedKmh || 0}
-              eventCount={osTotals.eventCount || 0}
-              flagged={osTotals.vehiclesFlagged || 0}
-              vehicleCount={osTotals.vehicleCount || vehicles.length}
-            />
+            {first ? (
+              <>
+                <GaugeSkeleton />
+                <RowsSkeleton n={3} />
+              </>
+            ) : (
+              <Gauge
+                peak={osTotals.peakSpeedKmh || 0}
+                eventCount={osTotals.eventCount || 0}
+                flagged={osTotals.vehiclesFlagged || 0}
+                vehicleCount={osTotals.vehicleCount || vehicles.length}
+              />
+            )}
             <div className="rows">
               {(overspeed?.vehicles || [])
                 .filter((v) => v.eventCount)
@@ -509,7 +571,8 @@ export default function OverviewView({ go, toast, setBadge }) {
               <Ico n="arrowUR" s={15} />
             </button>
           </div>
-          <div className="bars">
+          {first ? <BarsSkeleton /> : null}
+          <div className="bars" hidden={first}>
             {routes.map((r) => (
               <div className="bar" key={r.routeId} style={{ '--c': r.health.c }}>
                 <span className="n">
@@ -584,7 +647,18 @@ export default function OverviewView({ go, toast, setBadge }) {
             </button>
           </div>
           <div className="rows" style={{ paddingBottom: 'var(--space-4)' }}>
-            {(utilization?.vehicles || vehicles.slice(0, 5)).slice(0, 5).map((v) => {
+            {first
+              ? Array.from({ length: 5 }, (_, i) => (
+                  <div className="trip" key={i} aria-hidden="true">
+                    <Skel w={30} h={30} r={999} />
+                    <div className="route">
+                      <Skel w={88} h={22} r={6} />
+                    </div>
+                    <Skel w={40} h={10} />
+                  </div>
+                ))
+              : null}
+            {(first ? [] : utilization?.vehicles || vehicles.slice(0, 5)).slice(0, 5).map((v) => {
               const reg = v.registrationNumber;
               const km = v.totalKm != null ? Math.round(v.totalKm) : null;
               return (

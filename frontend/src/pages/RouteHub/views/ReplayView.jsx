@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import RouteHubService from '../../../services/RouteHubService';
 import Ico from '../routeHubIcons.jsx';
 import { L, useLeafletMap, useLayerGroup, pinIcon, truckIcon } from '../routeHubMap';
-import { Seg } from '../routeHubShared.jsx';
+import { Seg, Skel } from '../routeHubShared.jsx';
 import { dkey, fmtT, haversineKm, hm } from '../routeHubFormat';
 import RoadService from '../../../services/RoadService';
 import {
@@ -672,6 +672,14 @@ export default function ReplayView({ params, toast }) {
           </span>
           <span className="sp" />
           <div className="stats">
+            {loading && !trip
+              ? ['Distance', 'Duration', 'Avg speed', 'Peak speed'].map((k) => (
+                  <span className="stat" key={k} aria-hidden="true">
+                    {k}
+                    <Skel w={44} h={12} />
+                  </span>
+                ))
+              : null}
             {stats.map(([i, k, val, c]) => (
               <span className="stat" key={k} style={{ '--c': c }}>
                 <Ico n={i} s={14} />
@@ -709,6 +717,7 @@ export default function ReplayView({ params, toast }) {
           <div>
             <div className={`persp ${persp === 'flat' ? '' : persp}`}>
               <div className="lmap" ref={containerRef} />
+              {loading ? <div className="ov ovs-notice">Loading replay…</div> : null}
               <div className="ov hud">
                 <div>
                   <div className="k">Time</div>
@@ -831,6 +840,17 @@ export default function ReplayView({ params, toast }) {
                   <b>No replay</b>
                   <span>{error}</span>
                 </div>
+              ) : loading && !trip ? (
+                Array.from({ length: 7 }, (_, i) => (
+                  <div className="lev lev--skel" key={i} aria-hidden="true">
+                    <Skel w={10} h={10} r={999} />
+                    <span style={{ display: 'grid', gap: 6 }}>
+                      <Skel w={['70%', '55%', '62%', '48%'][i % 4]} h={11} />
+                      <Skel w={['45%', '38%', '52%'][i % 3]} h={9} />
+                    </span>
+                    <Skel w={38} h={10} />
+                  </div>
+                ))
               ) : (
                 (trip?.events || []).map((e, i) => (
                   <button

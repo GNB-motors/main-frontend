@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import RouteHubService from '../../../services/RouteHubService';
 import Ico from '../routeHubIcons.jsx';
 import { L, useLeafletMap, useLayerGroup, cityLayer } from '../routeHubMap';
-import { KpiRow, RefreshButton, TableEmpty } from '../routeHubShared.jsx';
+import { KpiRow, RefreshButton, Skel, TableEmpty, TableSkeleton } from '../routeHubShared.jsx';
 import { HEALTH, downloadCsv, inr, inrK } from '../routeHubFormat';
 
 /** Cost-slice colours, in the design's order. */
@@ -21,6 +21,7 @@ export default function ProfitabilityView({ params, toast, go }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selId, setSelId] = useState(params.get('c') || null);
+  const first = loading && !data;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -180,7 +181,7 @@ export default function ProfitabilityView({ params, toast, go }) {
         </div>
       </div>
 
-      <KpiRow items={kpis} />
+      <KpiRow items={kpis} loading={first} />
 
       <div className="card">
         <div className="card-head">
@@ -196,7 +197,15 @@ export default function ProfitabilityView({ params, toast, go }) {
               <Ico n="ledger" s={16} />
               Commercial revenue (ERP)
             </div>
-            <div className="v">{totals.revenueInr != null ? inrK(totals.revenueInr) : '—'}</div>
+            <div className="v">
+              {first ? (
+                <Skel w={96} h={24} />
+              ) : totals.revenueInr != null ? (
+                inrK(totals.revenueInr)
+              ) : (
+                '—'
+              )}
+            </div>
             <div className="d">
               Contracted freight rates, billed invoices, detention charges and loading manifests.
             </div>
@@ -207,7 +216,9 @@ export default function ProfitabilityView({ params, toast, go }) {
               <Ico n="fuel" s={16} />
               Telematics &amp; direct cost
             </div>
-            <div className="v">{totals.costInr != null ? inrK(totals.costInr) : '—'}</div>
+            <div className="v">
+              {first ? <Skel w={96} h={24} /> : totals.costInr != null ? inrK(totals.costInr) : '—'}
+            </div>
             <div className="d">
               GPS odometer km, diesel refuels, AdBlue top-ups, Fastag toll debits and trip
               allowances.
@@ -220,7 +231,8 @@ export default function ProfitabilityView({ params, toast, go }) {
               Net margin per route
             </div>
             <div className="v" style={{ color: '#187A32' }}>
-              {totals.marginInr != null ? inrK(totals.marginInr) : '—'}
+              {first ? <Skel w={120} h={24} /> : null}
+              {first ? null : totals.marginInr != null ? inrK(totals.marginInr) : '—'}
               {totals.marginPct != null ? (
                 <span style={{ fontSize: 'var(--type-s)' }}>
                   {' '}
@@ -312,22 +324,13 @@ export default function ProfitabilityView({ params, toast, go }) {
                   </tr>
                 ))}
               </tbody>
+            ) : first ? (
+              <TableSkeleton cols={9} />
             ) : (
               <TableEmpty
                 colSpan={9}
-                title={
-                  loading
-                    ? 'Loading…'
-                    : error
-                      ? 'Profitability unavailable'
-                      : 'No billed routes yet'
-                }
-                sub={
-                  error ||
-                  (loading
-                    ? 'Joining ERP billing with measured running cost.'
-                    : 'No ERP trips with billing in the last 30 days.')
-                }
+                title={error ? 'Profitability unavailable' : 'No billed routes yet'}
+                sub={error || 'No ERP trips with billing in the last 30 days.'}
                 tone={error ? '#C56200' : '#187A32'}
                 icon={error ? 'alert' : 'check'}
               />
@@ -353,6 +356,8 @@ export default function ProfitabilityView({ params, toast, go }) {
                   {selected.distanceKm ?? '—'} km · {selected.tripCount ?? 0} trips this month
                 </span>
               </>
+            ) : first ? (
+              <Skel w={200} h={16} />
             ) : (
               <h3>No route selected</h3>
             )}
@@ -470,6 +475,20 @@ export default function ProfitabilityView({ params, toast, go }) {
                 </div>
               ) : null}
             </>
+          ) : first ? (
+            <div aria-busy="true">
+              <div className="card-head">
+                <Skel w={120} h={16} />
+                <span className="sp" />
+                <Skel w={70} h={14} />
+              </div>
+              <div style={{ display: 'grid', gap: 12, padding: '4px 16px 18px' }}>
+                <Skel h={10} r={999} />
+                {['72%', '58%', '66%', '44%', '52%'].map((w) => (
+                  <Skel key={w} w={w} h={12} />
+                ))}
+              </div>
+            </div>
           ) : (
             <div className="empty">
               <b>No route selected</b>

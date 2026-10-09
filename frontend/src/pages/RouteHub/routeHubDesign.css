@@ -1894,3 +1894,63 @@ html.dark .nova-rh .persp::before {
     --n: 2 !important;
   }
 }
+
+/* ─── Loading skeletons ───────────────────────────────────────────────────
+   Tinted from currentColor so one rule reads on cards, the accent KPI and in
+   dark mode alike. */
+.nova-rh .skel {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  vertical-align: middle;
+  border-radius: 6px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.nova-rh .skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, currentColor 10%, transparent),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: rh-skel 1.4s ease-in-out infinite;
+}
+
+.nova-rh .phead .t .skel {
+  display: block;
+}
+
+.nova-rh .tbl td.num .skel {
+  margin-left: auto;
+}
+
+.nova-rh .lev--skel {
+  cursor: default;
+}
+
+.nova-rh .bars[hidden] {
+  display: none;
+}
+
+/* Unstyled tables (Intelligence) have no cell padding of their own. */
+.nova-rh table:not(.tbl) tbody[aria-busy='true'] td {
+  padding: 9px 16px;
+}
+
+@keyframes rh-skel {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nova-rh .skel::after {
+    animation: none;
+  }
+}

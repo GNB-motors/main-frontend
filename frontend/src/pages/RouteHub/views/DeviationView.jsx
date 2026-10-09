@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import RouteHubService from '../../../services/RouteHubService';
 import Ico from '../routeHubIcons.jsx';
 import { L, useLeafletMap, useLayerGroup, pinIcon } from '../routeHubMap';
-import { KpiRow, RefreshButton, TableEmpty } from '../routeHubShared.jsx';
+import { KpiRow, RefreshButton, TableEmpty, TableSkeleton } from '../routeHubShared.jsx';
 import { ago, dkey, downloadCsv, fmtDT, inr } from '../routeHubFormat';
 
 const STATUS_FILTERS = [
@@ -55,6 +55,7 @@ export default function DeviationView({ params, toast, setBadge, go }) {
     load();
   }, [load]);
 
+  const first = loading && !records.length;
   const open = records.filter(isOpen);
   const reviewed = records.filter((d) => !isOpen(d));
 
@@ -264,7 +265,7 @@ export default function DeviationView({ params, toast, setBadge, go }) {
         </div>
       </div>
 
-      <KpiRow items={kpis} />
+      <KpiRow items={kpis} loading={first} />
 
       <div className="fbar">
         <label className="field grow">
@@ -438,14 +439,13 @@ export default function DeviationView({ params, toast, setBadge, go }) {
                     );
                   })}
                 </tbody>
+              ) : first ? (
+                <TableSkeleton cols={8} />
               ) : (
                 <TableEmpty
                   colSpan={8}
-                  title={loading ? 'Loading…' : error ? 'Feed unavailable' : 'No deviations match'}
-                  sub={
-                    error ||
-                    (loading ? 'Fetching deviation events.' : 'Change the filters or date range.')
-                  }
+                  title={error ? 'Feed unavailable' : 'No deviations match'}
+                  sub={error || 'Change the filters or date range.'}
                   tone={error ? '#C56200' : '#187A32'}
                   icon={error ? 'alert' : 'check'}
                 />

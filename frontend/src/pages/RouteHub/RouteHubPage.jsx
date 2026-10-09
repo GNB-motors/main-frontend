@@ -4,6 +4,7 @@ import { useToast } from './useRouteHubToast.jsx';
 import { useFullPageLayout } from '../../hooks/usePageLayout';
 import Ico from './routeHubIcons.jsx';
 import RouteHubService from '../../services/RouteHubService';
+import { ViewSkeleton } from './routeHubShared.jsx';
 import './routeHubDesign.css';
 
 const OverviewView = lazy(() => import('./views/OverviewView.jsx'));
@@ -303,34 +304,7 @@ export default function RouteHubPage() {
       </header>
 
       <main className="page">
-        <Suspense
-          fallback={
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minHeight: '360px',
-                flexDirection: 'column',
-                gap: 12,
-                color: 'var(--muted-foreground, #64748b)',
-                fontSize: '14px',
-              }}
-            >
-              <div
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  border: '3px solid rgba(37, 99, 235, 0.2)',
-                  borderTopColor: '#2563eb',
-                  borderRadius: '50%',
-                  animation: 'spin 0.8s linear infinite',
-                }}
-              />
-              <span>Loading route intelligence…</span>
-            </div>
-          }
-        >
+        <Suspense fallback={<ViewSkeleton />}>
           <ActiveComponent go={go} toast={toast} params={searchParams} setBadge={setBadge} />
         </Suspense>
       </main>
