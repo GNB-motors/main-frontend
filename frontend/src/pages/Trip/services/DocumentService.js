@@ -102,7 +102,9 @@ class DocumentService {
    */
   static async getDocumentsByEntity(entityType, entityId) {
     try {
-      const resp = await apiClient.get(`/api/documents?entityType=${entityType}&entityId=${entityId}`);
+      const resp = await apiClient.get(
+        `/api/documents?entityType=${entityType}&entityId=${entityId}`,
+      );
       if (resp.data && resp.data.status === 'success' && resp.data.data) {
         return resp.data.data;
       }
@@ -124,26 +126,6 @@ class DocumentService {
     } catch (err) {
       console.error('Failed to delete document', err.response?.data || err.message);
       throw err.response?.data || { detail: err.message || 'Failed to delete document' };
-    }
-  }
-
-  /**
-   * Process a document with OCR
-   * @param {string} documentId - Document ID to process
-   * @returns {Promise<Object>} Processed document with OCR data
-   */
-  static async processDocument(documentId) {
-    if (!documentId) throw new Error('documentId required');
-
-    try {
-      const resp = await apiClient.post(`/api/documents/${documentId}/process`);
-      if (resp.data && resp.data.status === 'success' && resp.data.data) {
-        return resp.data.data;
-      }
-      return resp.data;
-    } catch (err) {
-      console.error('Document processing failed', err.response?.data || err.message);
-      throw err.response?.data || { detail: err.message || 'Document processing failed' };
     }
   }
 

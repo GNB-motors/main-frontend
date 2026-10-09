@@ -166,30 +166,6 @@ class TripService {
   }
 
   /**
-   * Create and immediately start a trip
-   * @param {Object} tripData - Trip creation data
-   * @param {string} tripData.vehicleId - Vehicle ID (required)
-   * @param {string} tripData.driverId - Driver ID (required)
-   * @param {string} tripData.routeSource - Source location (required)
-   * @param {string} tripData.routeDestination - Destination location (required)
-   * @param {number} tripData.startOdometer - Starting odometer reading (optional)
-   * @param {string} tripData.weighInWeight - Weigh-in weight (optional)
-   * @returns {Promise} API response with created trip
-   */
-  static async directStartTrip(tripData) {
-    try {
-      console.log('TripService: Making request to /api/trips/direct-start with data:', tripData);
-      const response = await apiClient.post('/api/trips/direct-start', tripData);
-      console.log('TripService: Response received:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to start trip:', error);
-      console.error('Error details:', error.response?.data);
-      throw error.response?.data || error;
-    }
-  }
-
-  /**
    * End an ongoing trip
    * @param {string} tripId - Trip ID
    * @param {Object} endData - End trip data
@@ -218,38 +194,6 @@ class TripService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch trip:', error);
-      throw error.response?.data || error;
-    }
-  }
-
-  /**
-   * Update trip details
-   * @param {string} tripId - Trip ID
-   * @param {Object} updateData - Trip update data
-   * @returns {Promise} API response with updated trip
-   */
-  static async updateTrip(tripId, updateData) {
-    try {
-      const response = await apiClient.patch(`/api/trips/${tripId}`, updateData);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to update trip:', error);
-      throw error.response?.data || error;
-    }
-  }
-
-  /**
-   * Cancel a trip
-   * @param {string} tripId - Trip ID
-   * @param {string} reason - Cancellation reason
-   * @returns {Promise} API response
-   */
-  static async cancelTrip(tripId, reason) {
-    try {
-      const response = await apiClient.post(`/api/trips/${tripId}/cancel`, { reason });
-      return response.data;
-    } catch (error) {
-      console.error('Failed to cancel trip:', error);
       throw error.response?.data || error;
     }
   }
@@ -369,20 +313,6 @@ class TripService {
     }
   }
 
-  /**
-   * Get driver/employee by ID
-   * @param {string} driverId - Driver ID
-   * @returns {Promise} API response with driver details
-   */
-  static async getDriverById(driverId) {
-    try {
-      const response = await apiClient.get(`/api/employees/${driverId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch driver by ID:', error);
-      throw error.response?.data || error;
-    }
-  }
   /**
    * Get vehicle's last fuel log for start odometer calculation
    * @param {string} vehicleId - Vehicle ID
