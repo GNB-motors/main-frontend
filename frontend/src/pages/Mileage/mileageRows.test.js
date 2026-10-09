@@ -1,19 +1,31 @@
 import { describe, it, expect } from 'vitest';
 import dayjs from 'dayjs';
 import {
-  CORRECTION_META,
-  VERIFICATION_META,
-  calibrationHint,
+  REFUEL_CHIPS,
+  billCoverage,
+  cleanStationName,
   dailyRollup,
+  dieselUse,
   drawerFromLiveRow,
   drawerFromReconciliationRow,
+  fillExplanation,
+  fillVerdict,
+  hubRangeFromParams,
   kpisFromSources,
   mapFuelCycleRow,
   mapIntervalRow,
+  mapPumpRow,
   mapUnifiedRow,
+  mileageBand,
   presetRange,
+  pumpHonestyStatus,
+  pumpLedgerSummary,
+  rangeLabel,
   rangeToParams,
+  refuelResult,
+  trucksFromModels,
 } from './mileageRows';
+import { LABELS } from '../../lib/vocabulary';
 
 const slipRow = {
   id: 'log_1',
@@ -47,10 +59,20 @@ const sensorOnlyRow = {
 };
 
 describe('mapUnifiedRow', () => {
-  it('maps every backend verification status to a badge', () => {
-    for (const status of ['VERIFIED', 'UNVERIFIED', 'SLIP_ONLY', 'FLAGGED']) {
-      expect(VERIFICATION_META[status]).toBeDefined();
+  it('turns every backend status into a plain-word result that has a label', () => {
+    for (const status of ['VERIFIED', 'UNVERIFIED', 'SLIP_ONLY', 'FLAGGED', 'SENSOR_GLITCH']) {
+      expect(LABELS.refuel[refuelResult(status, -1)]).toBeDefined();
     }
+  });
+
+  it('says which way a flagged bill is wrong', () => {
+    expect(refuelResult('FLAGGED', -40)).toBe('BILL_TOO_HIGH');
+    expect(refuelResult('FLAGGED', 12)).toBe('BILL_TOO_LOW');
+    expect(refuelResult('FLAGGED', null)).toBe('BILL_TOO_HIGH');
+    expect(refuelResult('UNVERIFIED')).toBe('BILL_MISSING');
+    expect(refuelResult('SLIP_ONLY')).toBe('NO_TANK_READING');
+    expect(refuelResult('SENSOR_GLITCH')).toBe('GAUGE_JUMP');
+    expect(refuelResult('SOMETHING_NEW')).toBeNull();
   });
 
   it('keeps real values and derives the rate from amount ÷ litres', () => {
@@ -100,7 +122,7 @@ describe('mapUnifiedRow', () => {
 describe('drawer detail', () => {
   it('a flagged live row shows as flagged with its variance, never as a match', () => {
     const d = drawerFromLiveRow(mapUnifiedRow(slipRow));
-    expect(d.badge.label).toBe('Flagged');
+    expect(d.result).toBe('BILL_TOO_HIGH');
     expect(d.varianceL).toBe(-40);
     // shown as sent; the hub never derives a bill verdict on the client
     expect(d.variancePct).toBeNull();
@@ -123,7 +145,8 @@ describe('drawer detail', () => {
       varianceL: -17,
       variancePct: -17.89,
     });
-    expect(d.badge.label).toBe('Flagged overbilling');
+    expect(d.result).toBe('BILL_TOO_HIGH');
+    expect(d.explanation.lines).toContainEqual(['Allowed', '± 10.0 L']);
     expect(d.bill.litres).toBe(95);
     expect(d.sensor.litres).toBe(78);
     expect(d.varianceL).toBe(-17);
@@ -152,7 +175,7 @@ describe('mapIntervalRow', () => {
     expect(row.fuelL).toBe(645);
     expect(row.kmPerL).toBe(3.8);
     expect(row.cost).toBe(60950);
-    expect(row.audit.label).toBe('Matches telematics');
+    expect(row.check).toBe('TRACKER_MATCHES');
   });
 
   it('leaves missing values null instead of filling them in', () => {
@@ -162,7 +185,7 @@ describe('mapIntervalRow', () => {
     expect(row.kmPerL).toBeNull();
     expect(row.cost).toBeNull();
     expect(row.distanceKm).toBeNull();
-    expect(row.audit.label).toBe('Pending');
+    expect(row.check).toBe('TRACKER_PENDING');
   });
 
   it('flags from FleetEdge win over the computed status', () => {
@@ -170,8 +193,7 @@ describe('mapIntervalRow', () => {
       ...interval,
       fleetEdge: { status: 'COMPUTED', isFlaggedFuel: true },
     });
-    expect(row.audit.label).toBe('Flagged');
-    expect(row.audit.hint).toMatch(/fuel/);
+    expect(row.check).toBe('TRACKER_DIFFERS');
   });
 });
 
@@ -227,14 +249,29 @@ describe('PR #142 feed fields', () => {
     },
   };
 
-  it('has a badge for every status, glitches included, and a label per correction', () => {
-    expect(VERIFICATION_META.SENSOR_GLITCH.label).toBe('Not a refuel');
-    expect(CORRECTION_META.V2_GAIN.label).toBe('Corrected');
-    expect(CORRECTION_META.GAIN.label).toBe('Calibrated');
-    expect(CORRECTION_META.RAW.label).toBe('Gauge reading');
-    expect(calibrationHint(12)).toBe('Calibrated on 12 bills');
-    expect(calibrationHint(1)).toBe('Calibrated on 1 bill');
-    expect(calibrationHint(0)).toBe('Fleet default');
+  it('puts the maths behind ⓘ: gauge rise, correction, bill gap and allowance', () => {
+    const e = fillExplanation(mapUnifiedRow(corrected));
+    expect(e.title).toBe('Bill is more than the tank got');
+    expect(e.lines).toEqual([
+      ['Gauge rose', '76.4 L'],
+      ['Corrected to', '80.0 L'],
+      ['Correction', 'from 12 bills of this truck'],
+      ['Normal error', '± 6.2 L'],
+      ['Bill', '120.0 L'],
+      ['Tank − bill', '-40.0 L'],
+      ['Allowed', '± 7.5 L'],
+    ]);
+  });
+
+  it('says when the correction is only the fleet average', () => {
+    const e = fillExplanation(
+      mapUnifiedRow({
+        ...sensorOnlyRow,
+        sensor: { litres: 157.7, rawLitres: 141.5, gainBills: 0, bandL: 36.1 },
+      }),
+    );
+    expect(e.title).toBe('Diesel went in, no bill');
+    expect(e.lines).toContainEqual(['Correction', 'fleet average, no bills for this truck yet']);
   });
 
   it('keeps the corrected and raw figures apart', () => {
@@ -346,5 +383,180 @@ describe('dailyRollup', () => {
     expect(days[0].deviationPct).toBeCloseTo(20, 5);
     expect(days[1].expectedL).toBeNull();
     expect(days[1].deviationPct).toBeNull();
+  });
+});
+
+describe('pump honesty', () => {
+  it('judges a pump only once it has 3 fills', () => {
+    expect(pumpHonestyStatus(55.5, 1)).toBe('INSUFFICIENT_DATA');
+    expect(pumpHonestyStatus(55.5, 2)).toBe('INSUFFICIENT_DATA');
+    expect(pumpHonestyStatus(55.5, 3)).toBe('CHRONIC_SHORTAGE');
+  });
+
+  it('grades by short-delivery %, boundaries inclusive', () => {
+    expect(pumpHonestyStatus(-2, 5)).toBe('HONEST');
+    expect(pumpHonestyStatus(1, 5)).toBe('HONEST');
+    expect(pumpHonestyStatus(3, 5)).toBe('RELIABLE');
+    expect(pumpHonestyStatus(6, 5)).toBe('SUSPICIOUS');
+    expect(pumpHonestyStatus(7.9, 11)).toBe('UNRELIABLE');
+    expect(pumpHonestyStatus(10.1, 5)).toBe('CHRONIC_SHORTAGE');
+    expect(pumpHonestyStatus(null, 5)).toBe('HONEST');
+  });
+
+  it('has a plain-word label for every verdict', () => {
+    [
+      'HONEST',
+      'RELIABLE',
+      'SUSPICIOUS',
+      'UNRELIABLE',
+      'CHRONIC_SHORTAGE',
+      'INSUFFICIENT_DATA',
+    ].forEach((k) => expect(LABELS.pumpHonesty[k]).toBeDefined());
+  });
+
+  it('cleans a dealer name into its oil company and the highway', () => {
+    const s = cleanStationName(
+      'M/s SHREE NIDHI SALES Dealer of Reliance BP Mobility Limited NH19,TARASHAKTI RICE MILL',
+    );
+    expect(s.brand).toBe('Reliance BP');
+    expect(s.displayName).toBe('Reliance BP Mobility Limited NH19');
+    expect(s.location).toBe('NH19');
+  });
+
+  it('does not repeat the name as its own location', () => {
+    expect(cleanStationName('DANKUNI SUPER SER STN DELHI ROAD')).toEqual({
+      displayName: 'DANKUNI SUPER SER STN DELHI ROAD',
+      brand: '',
+      location: '',
+    });
+  });
+
+  it('names a missing pump', () => {
+    expect(cleanStationName(null).displayName).toBe('Unknown pump');
+    expect(cleanStationName('  ').displayName).toBe('Unknown pump');
+  });
+
+  it('maps a ledger row and rolls the totals up', () => {
+    const rows = [
+      {
+        pump: 'DANKUNI SUPER SER STN DELHI ROAD',
+        fills: 11,
+        flaggedFills: 4,
+        claimedLitres: 3222,
+        actualLitres: 2967.5,
+        shortfallLitres: 254.5,
+        shortfallPct: 7.9,
+        estimatedLossInr: 24181,
+        lastFillAt: '2026-10-01T06:00:00Z',
+      },
+      {
+        pump: 'RANI FILLING STATION',
+        fills: 1,
+        claimedLitres: 341,
+        shortfallLitres: 189.3,
+        estimatedLossInr: 17982,
+      },
+    ].map(mapPumpRow);
+
+    expect(rows[0]).toMatchObject({
+      fills: 11,
+      flaggedFills: 4,
+      shortfallPct: 7.9,
+      status: 'UNRELIABLE',
+    });
+    // No shortfallPct from the server: derived from litres.
+    expect(rows[1].shortfallPct).toBeCloseTo(55.51, 1);
+    expect(rows[1].status).toBe('INSUFFICIENT_DATA');
+    expect(pumpLedgerSummary(rows)).toEqual({
+      pumps: 2,
+      fills: 12,
+      shortfallLitres: 443.8,
+      lossInr: 42163,
+      chronic: 0,
+    });
+  });
+});
+
+describe('hub dates', () => {
+  const now = dayjs('2026-10-09T12:00:00');
+  const at = (qs) => hubRangeFromParams(new URLSearchParams(qs), now);
+
+  it('defaults to the last 30 days', () => {
+    expect(at('')).toEqual({ preset: '30DAYS', range: { from: '2026-09-10', to: '2026-10-09' } });
+  });
+
+  it('reads a quick choice, including yesterday and this month', () => {
+    expect(at('dates=YESTERDAY').range).toEqual({ from: '2026-10-08', to: '2026-10-08' });
+    expect(at('dates=MONTH').range).toEqual({ from: '2026-10-01', to: '2026-10-09' });
+  });
+
+  it('picked dates win over a quick choice', () => {
+    expect(at('dates=7DAYS&from=2026-08-01&to=2026-08-31')).toEqual({
+      preset: null,
+      range: { from: '2026-08-01', to: '2026-08-31' },
+    });
+  });
+
+  it('ignores picked dates that are back to front or not dates', () => {
+    expect(at('from=2026-09-30&to=2026-09-01').preset).toBe('30DAYS');
+    expect(at('from=yesterday&to=2026-09-01').preset).toBe('30DAYS');
+  });
+
+  it('labels the range in words', () => {
+    expect(rangeLabel({ from: '2026-10-09', to: '2026-10-09' })).toBe('9 Oct 2026');
+    expect(rangeLabel({ from: '2026-09-10', to: '2026-10-09' })).toBe('10 Sep – 9 Oct 2026');
+    expect(rangeLabel({ from: '2025-12-20', to: '2026-01-05' })).toBe('20 Dec 2025 – 5 Jan 2026');
+  });
+});
+
+describe('plain-word verdicts', () => {
+  it('bands mileage the way the cycles list always coloured it', () => {
+    expect(mileageBand(4.1)).toBe('MILEAGE_GOOD');
+    expect(mileageBand(3.6)).toBe('MILEAGE_AVERAGE');
+    expect(mileageBand(3.03)).toBe('MILEAGE_LOW');
+    expect(mileageBand(null)).toBeNull();
+  });
+
+  it('bill coverage and daily diesel use', () => {
+    expect(billCoverage(95)).toBe('BILLS_UP_TO_DATE');
+    expect(billCoverage(70)).toBe('SOME_BILLS_MISSING');
+    expect(billCoverage(0)).toBe('MANY_BILLS_MISSING');
+    expect(dieselUse(4)).toBe('USED_NORMAL');
+    expect(dieselUse(11)).toBe('USED_EXTRA');
+    expect(dieselUse(-8)).toBe('USED_LESS');
+    expect(dieselUse(null)).toBeNull();
+  });
+
+  it('the drawer opens with what happened and what to do', () => {
+    const d = drawerFromLiveRow(mapUnifiedRow({ ...sensorOnlyRow, sensor: { litres: 157.7 } }));
+    expect(fillVerdict(d)).toEqual({
+      headline: 'About 158 L went into the tank. No bill uploaded yet.',
+      next: 'Ask the driver to upload the bill.',
+    });
+  });
+
+  it('fill chips read the feed counts, gauge jumps kept out of All', () => {
+    const m = { verified: 21, flagged: 1, unverified: 81, slipOnly: 61, sensorGlitch: 3 };
+    expect(REFUEL_CHIPS.map((c) => c.count(m))).toEqual([164, 21, 1, 81, 61, 3]);
+  });
+});
+
+describe('trucksFromModels', () => {
+  it('flattens the model comparison into trucks, best mileage first', () => {
+    const rows = trucksFromModels([
+      {
+        model: 'Signa',
+        vehicles: [{ vehicleId: 'a', vehicleNumber: 'WB1', avgMileage: 3.1, recordCount: 4 }],
+      },
+      {
+        model: 'Prima',
+        vehicles: [{ vehicleId: 'b', vehicleNumber: 'WB2', avgMileage: 3.6, recordCount: 2 }],
+      },
+    ]);
+    expect(rows.map((r) => [r.vehicleNo, r.model, r.kmPerL, r.rounds])).toEqual([
+      ['WB2', 'Prima', 3.6, 2],
+      ['WB1', 'Signa', 3.1, 4],
+    ]);
+    expect(trucksFromModels(null)).toEqual([]);
   });
 });

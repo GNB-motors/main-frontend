@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Fuel, Pencil, Trash2, X } from 'lucide-react';
+import { FileText, Pencil, Trash2, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import {
   Sheet,
@@ -9,199 +9,48 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import apiClient from '../../../utils/axiosConfig';
+import StatusChip from '../../../components/ui/StatusChip';
+import FuelBillPopup from '../../../components/ui/FuelBillPopup';
+import { useMutation } from '../../../hooks/useMutation';
+import { toneOf } from '../../../lib/vocabulary';
 import DocumentService from '../../Trip/services/DocumentService';
 import { formatDateTimeIST } from '../../../utils/dateUtils';
 import { formatINR, formatKm, formatLitres } from '../../../utils/formatters';
-import { CORRECTION_META, ODOMETER_SOURCE_META, calibrationHint } from '../mileageRows';
+import { MileageApi } from '../mileageApi';
+import { ODOMETER_SOURCE, fillVerdict } from '../mileageRows';
+import BillEditForm from './BillEditForm';
+import ExplanationLines from './ExplanationLines';
 
-const Field = ({ label, children }) => (
-  <div className="flex items-baseline justify-between gap-4 py-1.5 text-xs">
-    <span className="text-slate-500 dark:text-slate-400 shrink-0">{label}</span>
-    <span className="text-right font-medium text-slate-800 dark:text-slate-200 break-words">
-      {children ?? '—'}
-    </span>
+const Row = ({ label, children }) => (
+  <div className="mhub-kv">
+    <span>{label}</span>
+    <span>{children ?? '—'}</span>
   </div>
 );
 
-const Section = ({ icon, title, action = null, children }) => (
-  <section className="rounded-lg border border-slate-200 dark:border-slate-700 px-4 py-3">
-    <div className="mb-1 flex items-center justify-between gap-2">
-      <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-        {icon}
-        {title}
-      </h3>
-      {action}
-    </div>
-    <div className="divide-y divide-slate-100 dark:divide-slate-800">{children}</div>
-  </section>
-);
-
-const fmtRate = (rate) =>
-  rate?.value != null
-    ? `${formatINR(rate.value, { decimals: 2 })}/L${rate.provenance === 'CALCULATED' ? ' (amount ÷ litres)' : ''}`
-    : null;
-
-const signedL = (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)} L`;
-
-const pad = (n) => String(n).padStart(2, '0');
-const toDatetimeLocal = (iso) => {
-  const d = iso ? new Date(iso) : null;
-  if (!d || Number.isNaN(d.getTime())) return '';
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
-
-const inputClass =
-  'w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200';
-
-/** PUT /api/mileage/fuel-log/:id — the same fields the old Refuel Logs edit had. */
-function BillEditForm({ bill, onCancel, onSaved }) {
-  const [form, setForm] = useState({
-    fuelType: bill.fuelType || 'DIESEL',
-    fillingType: bill.fillingType || 'PARTIAL',
-    litres: bill.litres ?? '',
-    rate: bill.rawRate ?? '',
-    odometerReading: bill.odometer ?? '',
-    location: bill.rawLocation || '',
-    refuelTime: toDatetimeLocal(bill.at),
-  });
-  const [saving, setSaving] = useState(false);
-  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
-  const numberOrUndefined = (v) => (v === '' || v == null ? undefined : Number(v));
-
-  const submit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      await apiClient.put(`/api/mileage/fuel-log/${bill.id}`, {
-        fuelType: form.fuelType,
-        fillingType: form.fillingType,
-        litres: numberOrUndefined(form.litres),
-        rate: numberOrUndefined(form.rate),
-        odometerReading: numberOrUndefined(form.odometerReading),
-        location: form.location.trim() || undefined,
-        refuelTime: form.refuelTime ? new Date(form.refuelTime).toISOString() : undefined,
-      });
-      toast.success('Bill updated');
-      onSaved();
-    } catch (err) {
-      toast.error(err?.response?.data?.message || 'Failed to update the bill');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const label = (text, control) => (
-    <label className="flex flex-col gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400">
-      {text}
-      {control}
-    </label>
-  );
-
-  return (
-    <form onSubmit={submit} className="grid grid-cols-2 gap-2.5 py-2">
-      {label(
-        'Fuel',
-        <select className={inputClass} value={form.fuelType} onChange={set('fuelType')}>
-          <option value="DIESEL">Diesel</option>
-          <option value="ADBLUE">AdBlue</option>
-        </select>,
-      )}
-      {label(
-        'Fill',
-        <select className={inputClass} value={form.fillingType} onChange={set('fillingType')}>
-          <option value="PARTIAL">Partial</option>
-          <option value="FULL_TANK">Full tank</option>
-        </select>,
-      )}
-      {label(
-        'Litres',
-        <input
-          className={inputClass}
-          type="number"
-          min="0"
-          step="0.01"
-          value={form.litres}
-          onChange={set('litres')}
-        />,
-      )}
-      {label(
-        'Rate (₹/L)',
-        <input
-          className={inputClass}
-          type="number"
-          min="0"
-          step="0.01"
-          value={form.rate}
-          onChange={set('rate')}
-        />,
-      )}
-      {label(
-        'Odometer (km)',
-        <input
-          className={inputClass}
-          type="number"
-          min="0"
-          value={form.odometerReading}
-          onChange={set('odometerReading')}
-        />,
-      )}
-      {label(
-        'Refuel time',
-        <input
-          className={inputClass}
-          type="datetime-local"
-          value={form.refuelTime}
-          onChange={set('refuelTime')}
-        />,
-      )}
-      <div className="col-span-2">
-        {label(
-          'Station',
-          <input className={inputClass} value={form.location} onChange={set('location')} />,
-        )}
-      </div>
-      <div className="col-span-2 flex justify-end gap-2 pt-1">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 cursor-pointer"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={saving}
-          className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-xs font-semibold text-white cursor-pointer disabled:opacity-60"
-        >
-          {saving ? 'Saving…' : 'Save'}
-        </button>
-      </div>
-    </form>
-  );
-}
+const rateText = (rate) =>
+  rate?.value != null ? `${formatINR(rate.value, { decimals: 2 })} a litre` : null;
 
 /**
- * One refuel, bill beside tank sensor. `detail` is the normalised shape from
- * mileageRows.drawerFromLiveRow / drawerFromReconciliationRow, so both tabs
- * share this drawer without either pretending to be a FuelComparisonTask.
- * Litres, bill check and flags are shown as the server sends them.
+ * One fill: what happened in a sentence, what to do, then the bill and the
+ * tank. `detail` comes from mileageRows.drawerFromLiveRow /
+ * drawerFromReconciliationRow, so both lists share this drawer.
  */
 export default function RefuelDetailDrawer({ detail, onClose, canEdit = false, onChanged }) {
   const [openingBill, setOpeningBill] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [billPreview, setBillPreview] = useState(null); // { url, title } | null
+  const [mode, setMode] = useState('view'); // 'view' | 'edit' | 'confirm-delete'
+  const remove = useMutation((id, opts) => MileageApi.deleteBill(id, opts));
   const bill = detail?.bill;
   const sensor = detail?.sensor;
-  const check = detail?.billCheck;
+  const verdict = fillVerdict(detail);
 
-  // A new row opens in read mode.
+  // A new fill opens in read mode with no photo up.
   const [shownDetail, setShownDetail] = useState(detail);
   if (shownDetail !== detail) {
     setShownDetail(detail);
-    setEditing(false);
-    setConfirmingDelete(false);
+    setMode('view');
+    setBillPreview(null);
   }
 
   const openBill = async () => {
@@ -210,252 +59,190 @@ export default function RefuelDetailDrawer({ detail, onClose, canEdit = false, o
     try {
       const doc = await DocumentService.getDocument(bill.documentId);
       const url = doc?.publicUrl || doc?.data?.publicUrl;
-      if (url) window.open(url, '_blank', 'noopener,noreferrer');
-      else toast.error('No image found for this bill');
+      // Shown in place: a window.open after the await is no longer a user
+      // gesture, so popup blockers drop it.
+      if (url) setBillPreview({ url, title: `Fuel bill · ${detail?.title || ''}`.trim() });
+      else toast.error('This bill has no photo.');
     } catch {
-      toast.error('Failed to load the bill');
+      toast.error('Could not open the bill photo. Try again.');
     } finally {
       setOpeningBill(false);
     }
   };
 
   const deleteBill = async () => {
-    setDeleting(true);
     try {
-      await apiClient.delete(`/api/mileage/fuel-log/${bill.id}`);
+      await remove.mutate(bill.id);
       toast.success('Bill deleted');
       onChanged?.();
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Failed to delete the bill');
-    } finally {
-      setDeleting(false);
+      toast.error(err?.response?.data?.message || 'Could not delete the bill. Try again.');
     }
   };
 
-  const odoMeta = bill?.odometerSource ? ODOMETER_SOURCE_META[bill.odometerSource] : null;
-  const correction = sensor?.correction ? CORRECTION_META[sensor.correction] : null;
-  const isGlitch = sensor?.correction === 'SENSOR_GLITCH';
+  const odoSource = bill?.odometerSource ? ODOMETER_SOURCE[bill.odometerSource] : null;
   const editable = canEdit && bill?.id;
 
   return (
     <Sheet
       open={Boolean(detail)}
+      // The bill photo sits above the drawer: its clicks and Esc must not
+      // close the drawer underneath.
+      disablePointerDismissal={Boolean(billPreview)}
       onOpenChange={(open) => {
-        if (!open) onClose();
+        if (!open && !billPreview) onClose();
       }}
     >
       <SheetContent className="w-full !max-w-[440px] gap-0 p-0">
         <SheetHeader className="shrink-0 items-start gap-3">
           <div className="min-w-0 flex flex-col gap-1.5">
             <SheetTitle className="flex items-center gap-2">
-              <span className="mileage-plate">{detail?.title || '—'}</span>
-              {detail?.badge && (
-                <span
-                  className={`mileage-badge mileage-badge-${detail.badge.tone}`}
-                  title={detail.badge.hint}
-                >
-                  {detail.badge.label}
-                </span>
-              )}
+              <span className="mhub-plate">{detail?.title || '—'}</span>
+              {detail?.result && <StatusChip group="refuel" value={detail.result} />}
             </SheetTitle>
             <SheetDescription className="text-xs">
-              {detail?.subtitle || 'Refuel detail'}
+              {detail?.subtitle || 'Diesel fill'}
             </SheetDescription>
           </div>
-          <SheetClose
-            className="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
-            aria-label="Close"
-          >
-            <X className="w-4 h-4" />
+          <SheetClose className="pshell-btn" aria-label="Close">
+            <X size={16} />
           </SheetClose>
         </SheetHeader>
 
         {detail && (
           <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
-            {detail.varianceL != null && (
-              <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 px-4 py-3 text-xs">
-                <div className="text-slate-500 dark:text-slate-400">Tank rise − billed litres</div>
-                <div
-                  className={`mt-0.5 font-mono text-base font-bold ${
-                    (check ? check.flagged : detail.varianceL < 0)
-                      ? 'text-rose-600 dark:text-rose-400'
-                      : 'text-slate-800 dark:text-slate-200'
-                  }`}
-                >
-                  {signedL(detail.varianceL)}
-                  {detail.variancePct != null && (
-                    <span className="ml-1.5 text-xs font-medium text-slate-500">
-                      ({detail.variancePct > 0 ? '+' : ''}
-                      {detail.variancePct.toFixed(1)}%)
-                    </span>
-                  )}
-                </div>
-                {check?.toleranceL != null && (
-                  <div className="mt-1 text-slate-500 dark:text-slate-400">
-                    Allowed ±{check.toleranceL.toFixed(1)} L for this truck ·{' '}
-                    {check.flagged ? 'outside the allowance' : 'within the allowance'}
-                  </div>
-                )}
-                {!check && detail.varianceL < 0 && (
-                  <div className="mt-1 text-slate-500 dark:text-slate-400">
-                    The bill claims more fuel than reached the tank.
-                  </div>
-                )}
-                {check?.v1VarianceL != null && (
-                  <div className="mt-2 border-t border-slate-200 dark:border-slate-700 pt-1.5 text-[10px] text-slate-400">
-                    Old check: {signedL(check.v1VarianceL)}, {check.v1Flagged ? 'flagged' : 'ok'}
-                  </div>
-                )}
+            {verdict && (
+              <div className={`mhub-verdict mhub-verdict--${toneOf('refuel', detail.result)}`}>
+                <strong>{verdict.headline}</strong>
+                <span>{verdict.next}</span>
               </div>
             )}
 
-            <Section
-              icon={<FileText className="w-3.5 h-3.5" />}
-              title="Bill"
-              action={
-                editable && !editing ? (
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setEditing(true)}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                    >
-                      <Pencil className="w-3 h-3" /> Edit
+            <section className="mhub-box">
+              <h3>
+                <span>Bill</span>
+                {editable && mode === 'view' && (
+                  <span className="flex gap-1">
+                    <button type="button" className="pshell-btn" onClick={() => setMode('edit')}>
+                      <Pencil size={13} aria-hidden /> Edit
                     </button>
                     <button
                       type="button"
-                      onClick={() => setConfirmingDelete(true)}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 cursor-pointer"
+                      className="pshell-btn pshell-btn--danger"
+                      onClick={() => setMode('confirm-delete')}
                     >
-                      <Trash2 className="w-3 h-3" /> Delete
+                      <Trash2 size={13} aria-hidden /> Delete
                     </button>
-                  </div>
-                ) : null
-              }
-            >
-              {confirmingDelete && (
-                <div className="my-1.5 flex items-center justify-between gap-2 rounded-md bg-rose-50 dark:bg-rose-950/60 px-3 py-2 text-xs text-rose-700 dark:text-rose-300">
-                  <span>Delete this bill? This can&apos;t be undone.</span>
-                  <span className="flex gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setConfirmingDelete(false)}
-                      className="px-2 py-1 rounded font-semibold cursor-pointer"
-                    >
+                  </span>
+                )}
+              </h3>
+              {mode === 'confirm-delete' && (
+                <div className="mhub-verdict mhub-verdict--critical my-1.5">
+                  <strong>Delete this bill?</strong>
+                  <span>This can’t be undone.</span>
+                  <span className="mhub-actions">
+                    <button type="button" className="pshell-btn" onClick={() => setMode('view')}>
                       Cancel
                     </button>
                     <button
                       type="button"
+                      className="pshell-btn pshell-btn--danger"
                       onClick={deleteBill}
-                      disabled={deleting}
-                      className="px-2 py-1 rounded bg-rose-600 font-semibold text-white cursor-pointer disabled:opacity-60"
+                      disabled={remove.loading}
                     >
-                      {deleting ? 'Deleting…' : 'Delete'}
+                      {remove.loading ? 'Deleting…' : 'Delete'}
                     </button>
                   </span>
                 </div>
               )}
-              {bill && editing ? (
+              {bill && mode === 'edit' ? (
                 <BillEditForm
                   bill={bill}
-                  onCancel={() => setEditing(false)}
+                  onCancel={() => setMode('view')}
                   onSaved={() => {
-                    setEditing(false);
+                    setMode('view');
                     onChanged?.();
                   }}
                 />
               ) : bill ? (
                 <>
-                  <Field label="Litres">{formatLitres(bill.litres)}</Field>
-                  <Field label="Amount">
-                    {bill.amount != null ? formatINR(bill.amount) : null}
-                  </Field>
-                  <Field label="Rate">{fmtRate(bill.rate)}</Field>
-                  <Field label="Refuel time">{bill.at ? formatDateTimeIST(bill.at) : null}</Field>
-                  <Field label="Station">{bill.location}</Field>
-                  <Field label="Fuel">
-                    {[bill.fuelType, bill.fillingType?.replace('_', ' ')]
-                      .filter(Boolean)
-                      .join(' · ') || null}
-                  </Field>
-                  <Field label="Driver">{bill.driverName}</Field>
-                  <Field label="Odometer">
-                    {bill.odometer != null ? (
-                      <span title={odoMeta?.hint}>
-                        {formatKm(bill.odometer)}
-                        {odoMeta?.suffix ? ` (${odoMeta.suffix})` : ''}
-                      </span>
-                    ) : null}
-                  </Field>
-                  {bill.channel && <Field label="Submitted via">{bill.channel}</Field>}
+                  <Row label="Diesel">{formatLitres(bill.litres)}</Row>
+                  <Row label="Amount">{bill.amount != null ? formatINR(bill.amount) : null}</Row>
+                  <Row label="Rate">{rateText(bill.rate)}</Row>
+                  <Row label="Filled at">{bill.at ? formatDateTimeIST(bill.at) : null}</Row>
+                  <Row label="Pump">{bill.location}</Row>
+                  <Row label="Driver">{bill.driverName}</Row>
+                  <Row label="Odometer">
+                    {bill.odometer != null
+                      ? `${formatKm(bill.odometer)}${odoSource ? ` (${odoSource})` : ''}`
+                      : null}
+                  </Row>
+                  {bill.fillingType && (
+                    <Row label="Fill">
+                      {bill.fillingType === 'FULL_TANK' ? 'Full tank' : 'Part tank'}
+                    </Row>
+                  )}
+                  {bill.channel && <Row label="Sent by">{bill.channel}</Row>}
                   {bill.documentId && (
-                    <div className="pt-2.5">
+                    <div className="mhub-actions">
                       <button
                         type="button"
+                        className="pshell-btn pshell-btn--primary"
                         onClick={openBill}
                         disabled={openingBill}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer disabled:opacity-60"
                       >
-                        <FileText className="w-3.5 h-3.5" />
-                        {openingBill ? 'Opening…' : 'View bill'}
+                        <FileText size={14} aria-hidden />
+                        {openingBill ? 'Opening…' : 'See bill photo'}
                       </button>
                     </div>
                   )}
                 </>
               ) : (
-                <p className="py-1.5 text-xs text-slate-500">No bill matched to this fill yet.</p>
+                <p className="mhub-note">No bill for this fill yet.</p>
               )}
-            </Section>
+            </section>
 
-            <Section icon={<Fuel className="w-3.5 h-3.5" />} title="Tank sensor">
+            <section className="mhub-box">
+              <h3>
+                <span>Tank sensor</span>
+              </h3>
               {sensor ? (
                 <>
-                  <Field label="Litres">
-                    {isGlitch ? (
-                      'Not a refuel'
-                    ) : sensor.litres != null ? (
-                      <>
-                        {formatLitres(sensor.litres)}
-                        {sensor.bandL != null && ` ± ${sensor.bandL.toFixed(1)} L`}
-                      </>
-                    ) : null}
-                  </Field>
-                  <Field label="Gauge rose">
-                    {sensor.rawLitres != null ? (
-                      <span className={isGlitch ? 'line-through' : undefined}>
-                        {formatLitres(sensor.rawLitres)}
-                      </span>
-                    ) : null}
-                  </Field>
-                  <Field label="Correction">
-                    {correction ? (
-                      <span title={calibrationHint(sensor.gainBills)}>
-                        {correction.label} · {calibrationHint(sensor.gainBills)}
-                      </span>
-                    ) : isGlitch ? (
-                      'Gauge glitch'
-                    ) : null}
-                  </Field>
-                  <Field label="Detected at">
-                    {sensor.at ? formatDateTimeIST(sensor.at) : null}
-                  </Field>
-                  <Field label="Pump">{sensor.pumpName}</Field>
-                  <Field label="Location">
-                    {sensor.lat != null && sensor.lng != null
-                      ? `${sensor.lat.toFixed(4)}, ${sensor.lng.toFixed(4)}`
-                      : null}
-                  </Field>
-                  <Field label="Confidence">{sensor.confirmationStatus}</Field>
+                  <Row label="Diesel into tank">
+                    {detail.result === 'GAUGE_JUMP'
+                      ? 'None (gauge jump)'
+                      : formatLitres(sensor.litres)}
+                  </Row>
+                  <Row label="Seen at">{sensor.at ? formatDateTimeIST(sensor.at) : null}</Row>
+                  <Row label="Where">
+                    {sensor.pumpName ||
+                      (sensor.lat != null && sensor.lng != null
+                        ? `${sensor.lat.toFixed(4)}, ${sensor.lng.toFixed(4)}`
+                        : null)}
+                  </Row>
                 </>
               ) : (
-                <p className="py-1.5 text-xs text-slate-500">
-                  No tank-level rise matched to this bill.
-                </p>
+                <p className="mhub-note">The tank sensor saw no refill around this time.</p>
               )}
-            </Section>
+            </section>
+
+            {detail.explanation && (
+              <details className="mhub-how mhub-box">
+                <summary>How we worked this out</summary>
+                <p>{detail.explanation.text}</p>
+                <ExplanationLines lines={detail.explanation.lines} />
+              </details>
+            )}
           </div>
         )}
       </SheetContent>
+      {billPreview && (
+        <FuelBillPopup
+          imageSrc={billPreview.url}
+          title={billPreview.title}
+          onClose={() => setBillPreview(null)}
+        />
+      )}
     </Sheet>
   );
 }

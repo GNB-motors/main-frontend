@@ -1,171 +1,236 @@
-import React, { useEffect, useState } from 'react';
-import { RotateCw } from 'lucide-react';
+import React, { useState } from 'react';
+import DataTable from '../../../components/ui/DataTable';
+import EnterprisePagination from '../../../components/ui/EnterprisePagination';
+import StatusChip from '../../../components/ui/StatusChip';
 import apiClient from '../../../utils/axiosConfig';
-import { formatDateTimeIST } from '../../../utils/dateUtils';
-import { formatINR, formatLitres, formatNum } from '../../../utils/formatters';
-import { DATE_PRESETS, DEFAULT_PRESET, presetRange, rangeToParams } from '../mileageRows';
+import { useApi } from '../../../hooks/useApi';
+import { parseSafe } from '../../../schemas/validate';
+import { toISTDateString } from '../../../utils/dateUtils';
+import { formatINR, formatInrCompact, formatLitres, formatNum } from '../../../utils/formatters';
+import { PUMP_MIN_FILLS, mapPumpRow, pumpLedgerSummary, rangeToParams } from '../mileageRows';
+import InfoTip from './InfoTip';
 
-const pillClass = (active) =>
-  `px-2.5 py-1 rounded-md text-xs font-semibold transition cursor-pointer ${
-    active
-      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-  }`;
+const fetchPumpLedger = (range, signal) =>
+  apiClient
+    .get('/api/fuel-integrity/pump-ledger', { params: rangeToParams(range), signal })
+    .then((res) =>
+      parseSafe(
+        'pumpLedgerSchema',
+        () => import('../../../schemas/pumpLedger.schema.js'),
+        res.data?.data ?? null,
+      ),
+    );
+
+const barColour = (p) =>
+  p.status === 'INSUFFICIENT_DATA'
+    ? 'var(--inert)'
+    : p.shortfallPct > 6
+      ? 'var(--critical)'
+      : p.shortfallPct > 1
+        ? 'var(--caution)'
+        : 'var(--ok)';
+
+const explainPump = (p, price) => ({
+  title: p.station.displayName,
+  text:
+    p.status === 'INSUFFICIENT_DATA'
+      ? `Only ${p.fills} fill${p.fills === 1 ? '' : 's'} here so far. One fill can be off for many reasons, so a pump is judged after ${PUMP_MIN_FILLS}.`
+      : 'Over all matched fills here: the diesel billed against what reached the tanks.',
+  lines: [
+    ['Billed', formatLitres(p.claimedLitres)],
+    ['Reached tanks', formatLitres(p.actualLitres)],
+    [
+      'Short',
+      `${formatLitres(p.shortfallLitres)} (${p.shortfallPct != null ? p.shortfallPct.toFixed(1) : '—'}%)`,
+    ],
+    [
+      'Money lost',
+      `${formatINR(p.lossInr)}${price != null ? ` at ${formatINR(price, { decimals: 2 })}/L` : ''}`,
+    ],
+    ['Honest', '1% or less short'],
+    ['Mostly fine', 'up to 3%'],
+    ['Watch this pump', 'up to 6%'],
+    ['Often short', 'up to 10%'],
+    ['Always short', 'over 10%'],
+  ],
+});
+
+const columns = (price) => [
+  {
+    key: 'pump',
+    label: 'Pump',
+    render: (p) => (
+      <span title={p.pump || undefined}>
+        <strong>{p.station.displayName}</strong>
+        {p.station.location ? <span className="mhub-sub">{p.station.location}</span> : null}
+      </span>
+    ),
+  },
+  {
+    key: 'fills',
+    label: 'Fills',
+    align: 'right',
+    render: (p) => <span className="num">{formatNum(p.fills)}</span>,
+  },
+  {
+    key: 'verdict',
+    label: 'Verdict',
+    render: (p) => (
+      <span className="mhub-cell">
+        <StatusChip group="pumpHonesty" value={p.status} />
+        <InfoTip explanation={explainPump(p, price)} />
+      </span>
+    ),
+  },
+  {
+    key: 'short',
+    label: 'Short',
+    align: 'right',
+    render: (p) => (
+      <span>
+        <span className="mhub-litres">{formatLitres(p.shortfallLitres, { decimals: 0 })}</span>
+        <span className="mhub-bar" aria-hidden>
+          <span
+            style={{
+              width: `${Math.min(100, Math.max(4, (p.shortfallPct || 0) * 10))}%`,
+              background: barColour(p),
+            }}
+          />
+        </span>
+      </span>
+    ),
+  },
+  {
+    key: 'lost',
+    label: 'Money lost',
+    align: 'right',
+    render: (p) => (
+      <span
+        className="num"
+        style={{ color: p.lossInr > 0 ? 'var(--critical)' : undefined, fontWeight: 600 }}
+      >
+        {formatINR(p.lossInr)}
+      </span>
+    ),
+  },
+  {
+    key: 'last',
+    label: 'Last fill',
+    render: (p) => (
+      <span className="num">{p.lastFillAt ? toISTDateString(p.lastFillAt) : '—'}</span>
+    ),
+  },
+];
+
+const Tile = ({ label, value, valueClass = '', sub }) => (
+  <section className="mhub-kpi" aria-label={label}>
+    <div className="mhub-kpi-head">
+      <span>{label}</span>
+    </div>
+    <div className={`mhub-kpi-value ${valueClass}`}>{value}</div>
+    <div className="mhub-kpi-foot">
+      <span>{sub}</span>
+    </div>
+  </section>
+);
 
 /**
- * GET /api/fuel-integrity/pump-ledger — short delivery per pump over bills
- * that were matched to a tank rise. ₹ is an estimate at the configured diesel
- * price; the server's disclaimer goes under the table.
+ * Pump honesty — GET /api/fuel-integrity/pump-ledger: per pump, litres billed
+ * against what reached the tank over bills matched to a tank rise, with a
+ * verdict once the pump has enough fills.
  */
-export default function PumpLedgerView() {
-  const [data, setData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-  const [reloadKey, setReloadKey] = useState(0);
-  const [preset, setPreset] = useState(DEFAULT_PRESET);
-  const [range, setRange] = useState(() => presetRange(DEFAULT_PRESET));
+export default function PumpLedgerView({ range, searchQuery = '' }) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      setIsLoading(true);
-      setLoadError(false);
-      try {
-        const res = await apiClient.get('/api/fuel-integrity/pump-ledger', {
-          params: rangeToParams(range),
-        });
-        if (isMounted) setData(res.data?.data || null);
-      } catch {
-        if (isMounted) {
-          setData(null);
-          setLoadError(true);
-        }
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    })();
-    return () => {
-      isMounted = false;
-    };
-  }, [range, reloadKey]);
+  const [queryKey, setQueryKey] = useState(`${searchQuery}|${range.from}|${range.to}`);
+  const nextKey = `${searchQuery}|${range.from}|${range.to}`;
+  if (queryKey !== nextKey) {
+    setQueryKey(nextKey);
+    setPage(1);
+  }
 
-  const pumps = data?.pumps || [];
+  const { data, loading, error, refetch } = useApi(
+    (signal) => fetchPumpLedger(range, signal),
+    [range.from, range.to],
+  );
+
+  const rows = (data?.pumps || []).map(mapPumpRow);
+  const summary = pumpLedgerSummary(rows);
+  const needle = searchQuery.trim().toLowerCase();
+  const filtered = needle
+    ? rows.filter((r) =>
+        [r.pump, r.station.displayName, r.station.location].some((s) =>
+          (s || '').toLowerCase().includes(needle),
+        ),
+      )
+    : rows;
+  const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const ready = Boolean(data) && !error;
+  const dash = loading ? '…' : '—';
+  const avoid = rows.filter(
+    (r) => r.status === 'UNRELIABLE' || r.status === 'CHRONIC_SHORTAGE',
+  ).length;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between flex-wrap gap-2 px-1">
-        <p className="text-xs text-slate-500">
-          Per pump: litres billed against what reached the tank, over matched bills.
-          {data?.fuelPriceInrPerL != null &&
-            ` Loss estimated at ${formatINR(data.fuelPriceInrPerL, { decimals: 2 })}/L.`}
-        </p>
-        <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
-          {DATE_PRESETS.map((p) => (
-            <button
-              key={p.key}
-              type="button"
-              onClick={() => {
-                setPreset(p.key);
-                setRange(presetRange(p.key));
-              }}
-              className={pillClass(preset === p.key)}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
+    <div className="mhub">
+      <div className="mhub-kpis">
+        <Tile
+          label="Fills checked"
+          value={ready ? formatNum(summary.fills) : dash}
+          sub={ready ? `${formatNum(summary.pumps)} pumps` : ' '}
+        />
+        <Tile
+          label="Diesel not delivered"
+          value={ready ? formatLitres(summary.shortfallLitres, { decimals: 0 }) : dash}
+          sub="Billed but never reached the tank"
+        />
+        <Tile
+          label="Money lost (approx.)"
+          valueClass="mhub-kpi-value--critical"
+          value={ready ? formatInrCompact(summary.lossInr) : dash}
+          sub={
+            data?.fuelPriceInrPerL != null
+              ? `At ${formatINR(data.fuelPriceInrPerL, { decimals: 2 })} a litre`
+              : 'At the diesel price'
+          }
+        />
+        <Tile
+          label="Pumps to avoid"
+          valueClass={avoid > 0 ? 'mhub-kpi-value--critical' : ''}
+          value={ready ? formatNum(avoid) : dash}
+          sub="Often or always short"
+        />
       </div>
 
-      <div className="mileage-panel overflow-x-auto">
-        <table className="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-400">
-              <th className="py-3 px-4">Pump</th>
-              <th className="py-3 px-4 text-right">Fills</th>
-              <th className="py-3 px-4 text-right">Billed</th>
-              <th className="py-3 px-4 text-right">Reached tank</th>
-              <th className="py-3 px-4 text-right">Short</th>
-              <th className="py-3 px-4 text-right">Short %</th>
-              <th className="py-3 px-4 text-right">Est. loss</th>
-              <th className="py-3 px-4">Last fill (IST)</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {isLoading ? (
-              <tr>
-                <td colSpan={8} className="py-12 text-center text-slate-400 font-mono">
-                  Loading pump ledger...
-                </td>
-              </tr>
-            ) : loadError ? (
-              <tr>
-                <td colSpan={8} className="py-12 text-center text-slate-500">
-                  <span>Couldn&apos;t load the pump ledger.</span>
-                  <button
-                    type="button"
-                    onClick={() => setReloadKey((k) => k + 1)}
-                    className="ml-2 inline-flex items-center gap-1 font-semibold text-indigo-600 hover:underline cursor-pointer"
-                  >
-                    <RotateCw className="w-3.5 h-3.5" /> Retry
-                  </button>
-                </td>
-              </tr>
-            ) : pumps.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="py-12 text-center text-slate-400">
-                  No matched bills in this range.
-                </td>
-              </tr>
-            ) : (
-              pumps.map((p) => (
-                <tr
-                  key={p.pump}
-                  className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
-                >
-                  <td className="py-3 px-4 font-medium text-slate-800 dark:text-slate-200">
-                    {p.pump || '—'}
-                    {p.flaggedFills > 0 && (
-                      <span className="mileage-badge mileage-badge-variance ml-2 !px-1.5 !py-0.5 !text-[10px]">
-                        {p.flaggedFills} flagged
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 text-right font-mono">{formatNum(p.fills)}</td>
-                  <td className="py-3 px-4 text-right font-mono">
-                    {formatLitres(p.claimedLitres)}
-                  </td>
-                  <td className="py-3 px-4 text-right font-mono">{formatLitres(p.actualLitres)}</td>
-                  <td className="py-3 px-4 text-right font-mono font-semibold">
-                    {formatLitres(p.shortfallLitres)}
-                  </td>
-                  <td
-                    className={`py-3 px-4 text-right font-mono font-semibold ${
-                      p.shortfallPct > 0 ? 'text-amber-600 dark:text-amber-400' : ''
-                    }`}
-                  >
-                    {p.shortfallPct != null ? `${p.shortfallPct}%` : '—'}
-                  </td>
-                  <td
-                    className={`py-3 px-4 text-right font-mono font-bold ${
-                      p.estimatedLossInr > 0 ? 'text-rose-600 dark:text-rose-400' : ''
-                    }`}
-                  >
-                    {formatINR(p.estimatedLossInr)}
-                  </td>
-                  <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-300">
-                    {p.lastFillAt ? formatDateTimeIST(p.lastFillAt) : '—'}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-        {data?.disclaimer && (
-          <p className="px-4 py-3 text-[11px] text-slate-500 border-t border-slate-100 dark:border-slate-800">
-            {data.disclaimer}
-          </p>
-        )}
-      </div>
+      <DataTable
+        columns={columns(data?.fuelPriceInrPerL)}
+        rows={pageRows}
+        rowKey={(p) => p.id}
+        loading={loading && !data}
+        error={error}
+        onRetry={refetch}
+        showing={pageRows.length}
+        total={filtered.length}
+        emptyTitle={rows.length ? 'No pump matches this search' : 'No matched bills in these dates'}
+        emptyHint={
+          rows.length ? null : 'Pumps show up once their bills are matched to a tank rise.'
+        }
+        pagination={
+          <EnterprisePagination
+            page={page}
+            totalPages={Math.max(1, Math.ceil(filtered.length / pageSize))}
+            totalItems={filtered.length}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
+        }
+      />
+      {data?.disclaimer && <p className="mhub-footnote">{data.disclaimer}</p>}
     </div>
   );
 }

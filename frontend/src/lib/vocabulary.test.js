@@ -85,3 +85,20 @@ describe('curation sanity', () => {
     }
   });
 });
+
+describe('Diesel & Mileage hub groups', () => {
+  it('names every fill result in plain words, with a tone that says if it needs a look', () => {
+    expect(label('refuel', 'BILL_TOO_HIGH')).toBe('Bill too high');
+    expect(toneOf('refuel', 'BILL_TOO_HIGH')).toBe('critical');
+    expect(toneOf('refuel', 'BILL_MISSING')).toBe('caution');
+    expect(toneOf('refuel', 'BILL_MATCHES')).toBe('ok');
+    expect(toneOf('refuel', 'GAUGE_JUMP')).toBe('inert');
+    expect(toneOf('refuel', 'NO_TANK_READING')).toBe('inert');
+  });
+
+  it('pump verdicts never render the raw constant', () => {
+    expect(label('pumpHonesty', 'CHRONIC_SHORTAGE')).toBe('Always short');
+    expect(label('pumpHonesty', 'INSUFFICIENT_DATA')).toBe('Too few fills');
+    expect(toneOf('pumpHonesty', 'INSUFFICIENT_DATA')).toBe('inert');
+  });
+});

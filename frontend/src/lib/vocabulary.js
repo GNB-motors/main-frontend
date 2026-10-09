@@ -59,6 +59,54 @@ export const LABELS = {
     API: 'Fetched from price API',
     MANUAL: 'Entered manually',
   },
+  // Diesel & Mileage hub (/mileage): one fill, as an owner reads it.
+  refuel: {
+    BILL_MATCHES: 'Bill matches',
+    BILL_TOO_HIGH: 'Bill too high',
+    BILL_TOO_LOW: 'Bill too low',
+    BILL_MISSING: 'Bill missing',
+    NO_TANK_READING: 'No tank reading',
+    GAUGE_JUMP: 'Gauge jump',
+  },
+  pumpHonesty: {
+    HONEST: 'Honest',
+    RELIABLE: 'Mostly fine',
+    SUSPICIOUS: 'Watch this pump',
+    UNRELIABLE: 'Often short',
+    CHRONIC_SHORTAGE: 'Always short',
+    INSUFFICIENT_DATA: 'Too few fills',
+  },
+  mileageBand: {
+    MILEAGE_GOOD: 'Good',
+    MILEAGE_AVERAGE: 'Average',
+    MILEAGE_LOW: 'Low',
+  },
+  trackerCheck: {
+    TRACKER_MATCHES: 'Matches tracker',
+    TRACKER_DIFFERS: 'Tracker shows different',
+    TRACKER_NONE: 'No tracker data',
+    TRACKER_PENDING: 'Checking tracker',
+  },
+  fuelCycle: {
+    OPEN: 'Still running',
+    CLOSED: 'Closed',
+    RECONCILED: 'Checked',
+    UNRECONCILED_NO_LEDGER: 'No trip data',
+  },
+  dieselUse: {
+    USED_NORMAL: 'Normal',
+    USED_EXTRA: 'Used extra',
+    USED_LESS: 'Used less',
+  },
+  billCoverage: {
+    BILLS_UP_TO_DATE: 'Bills up to date',
+    SOME_BILLS_MISSING: 'Some bills missing',
+    MANY_BILLS_MISSING: 'Many bills missing',
+  },
+  billsToCheck: {
+    ALL_CLEAR: 'All clear',
+    NEEDS_A_LOOK: 'Needs a look',
+  },
 };
 
 /**
@@ -98,6 +146,30 @@ export const TONES = {
   IDLE: 'caution',
   LEGIT: 'ok',
   EXCESS: 'caution',
+  BILL_MATCHES: 'ok',
+  BILL_TOO_HIGH: 'critical',
+  BILL_TOO_LOW: 'caution',
+  BILL_MISSING: 'caution',
+  HONEST: 'ok',
+  RELIABLE: 'ok',
+  SUSPICIOUS: 'caution',
+  UNRELIABLE: 'critical',
+  CHRONIC_SHORTAGE: 'critical',
+  MILEAGE_GOOD: 'ok',
+  MILEAGE_AVERAGE: 'caution',
+  MILEAGE_LOW: 'critical',
+  TRACKER_MATCHES: 'ok',
+  TRACKER_DIFFERS: 'caution',
+  RECONCILED: 'ok',
+  UNRECONCILED_NO_LEDGER: 'caution',
+  USED_NORMAL: 'ok',
+  USED_EXTRA: 'caution',
+  USED_LESS: 'ok',
+  BILLS_UP_TO_DATE: 'ok',
+  SOME_BILLS_MISSING: 'caution',
+  MANY_BILLS_MISSING: 'critical',
+  ALL_CLEAR: 'ok',
+  NEEDS_A_LOOK: 'critical',
 };
 
 const normaliseKey = (key) =>

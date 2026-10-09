@@ -1,6 +1,8 @@
-import React, { Suspense, lazy, useState } from 'react';
+import React, { Suspense, lazy, useDeferredValue, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Fuel, GitCompare, TrendingUp, Search, Plus } from 'lucide-react';
+import { Plus, Search, X } from 'lucide-react';
+import PageShell from '../../components/ui/PageShell';
+import HubDateBar from './components/HubDateBar';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import { getUserRole } from '../../utils/session.js';
 import LiveRefuelTab from './components/LiveRefuelTab';
@@ -10,23 +12,24 @@ import MileageKpiBar from './components/MileageKpiBar';
 import RefuelDetailDrawer from './components/RefuelDetailDrawer';
 import PumpLedgerView from './components/PumpLedgerView';
 import ExpectedFuelView from './components/ExpectedFuelView';
+import TruckMileageView from './components/TruckMileageView';
+import { hubRangeFromParams } from './mileageRows';
 import './MileagePage.css';
 
 // The pre-hub pages, mounted as hub views rather than re-implemented.
 const FuelComparisonPage = lazy(() => import('../FuelComparison/FuelComparisonPage.jsx'));
-const MileageTrackingPage = lazy(() => import('../MileageTracking/MileageTrackingPage.jsx'));
 const ModelComparisonPage = lazy(() => import('../MileageTracking/ModelComparisonPage.jsx'));
 
 /**
  * Which hub surfaces a viewer gets: each view follows the gate of the
  * endpoint it reads, so it is never shown just to 404/403. Most fuel reads are
- * OWNER/MANAGER only; the refuel feed is open to any signed-in user.
+ * OWNER/MANAGER only; the fill list is open to any signed-in user.
  */
 function hubAccess(canAccess, role) {
   const manages = ['OWNER', 'MANAGER'].includes(role);
   const integrity = canAccess('fuelIntegrity') && manages; // records, pump-ledger
   const ecu = canAccess('fuelComparison') && manages; // /api/extension comparisons
-  const mileage = canAccess('vehicleActivity'); // fleet-overview, model-comparison
+  const mileage = canAccess('vehicleActivity'); // model-comparison
   return {
     tabs: {
       live: true,
@@ -41,45 +44,64 @@ function hubAccess(canAccess, role) {
     },
     fleetMileage: mileage,
     fuelCycles: canAccess('autoTrips') && manages, // /api/reports/fuel-cycles
-    editBills: mileage, // PUT/DELETE /api/mileage/fuel-log/:id
+    editBills: mileage && manages, // PUT/DELETE /api/mileage/fuel-log/:id
   };
 }
 
+// URL keys stay as they were so old links and redirects keep landing here.
 const TABS = [
-  { key: 'live', label: 'Refuels', badge: 'Bills + sensor', icon: Fuel },
-  { key: 'reconciliation', label: 'Reconciliation', badge: 'Audit', icon: GitCompare },
-  { key: 'performance', label: 'Vehicle & Model Mileage', badge: 'Analytics', icon: TrendingUp },
+  { key: 'live', label: 'Diesel fills', hint: 'bills + tank' },
+  { key: 'reconciliation', label: 'Bill check', hint: 'is the bill right?' },
+  { key: 'performance', label: 'Mileage', hint: 'km per litre' },
 ];
 
 const SUBVIEWS = {
   live: {
     param: 'subtab',
     options: [
-      { key: 'stream', label: 'Refuel stream' },
-      { key: 'completed', label: 'Completed refuel cycles' },
+      {
+        key: 'stream',
+        label: 'Every fill',
+        note: 'Each time diesel went into a truck: from the bill, the tank sensor or both.',
+      },
+      {
+        key: 'completed',
+        label: 'Full tank to full tank',
+        note: 'Distance and diesel between two full-tank fills. Mileage comes from these.',
+      },
     ],
   },
   reconciliation: {
     param: 'view',
     options: [
-      { key: 'tank', label: 'Bill vs tank rise (per fill)' },
-      { key: 'pumps', label: 'Pumps (short delivery)' },
-      { key: 'ecu', label: 'Bill vs ECU fuel used (per refuel window)' },
+      { key: 'tank', label: 'Bill vs tank', note: 'Did the diesel on the bill reach the tank?' },
+      {
+        key: 'pumps',
+        label: 'Pumps',
+        note: 'Which pumps give less diesel than they bill, over many fills.',
+      },
+      {
+        key: 'ecu',
+        label: 'Bill vs engine',
+        note: 'Diesel billed against what the engine burned between two fills.',
+      },
     ],
   },
   performance: {
     param: 'view',
     options: [
-      { key: 'vehicles', label: 'By vehicle' },
-      { key: 'models', label: 'By model' },
-      { key: 'expected', label: 'Expected vs actual' },
+      { key: 'vehicles', label: 'By truck', note: 'Average km per litre for each truck.' },
+      { key: 'models', label: 'By model', note: 'Which truck model gives the best mileage.' },
+      {
+        key: 'expected',
+        label: 'Used vs should use',
+        note: 'Diesel used each day against what that driving should have needed.',
+      },
     ],
   },
 };
 
-const EmbeddedFallback = () => (
-  <div className="mileage-panel py-12 text-center text-xs text-slate-400 font-mono">Loading…</div>
-);
+const EmbeddedFallback = () => <div className="mhub-note">Loading…</div>;
 
 export default function MileagePage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -94,162 +116,170 @@ export default function MileagePage() {
     (o) => !access.views[activeTab] || access.views[activeTab].includes(o.key),
   );
   const requestedSubview = searchParams.get(subview.param);
-  const activeSubview = allowedSubviews.some((o) => o.key === requestedSubview)
-    ? requestedSubview
-    : allowedSubviews[0]?.key;
+  const active =
+    allowedSubviews.find((o) => o.key === requestedSubview) || allowedSubviews[0] || null;
+  const activeSubview = active?.key;
 
-  // The tabs read the submitted search (URL), never the half-typed input.
+  // One range and one search for every tab; both live in the URL.
+  const { preset, range } = hubRangeFromParams(searchParams);
   const search = searchParams.get('search') || '';
-  const [searchInput, setSearchInput] = useState(search);
-  const [syncedSearch, setSyncedSearch] = useState(search);
-  if (syncedSearch !== search) {
-    setSyncedSearch(search);
-    setSearchInput(search);
-  }
+  const deferredSearch = useDeferredValue(search);
 
   const [drawerDetail, setDrawerDetail] = useState(null);
-  // Bumped after a bill is edited or deleted so the feed and KPIs refetch.
+  // Bumped after a bill is edited or deleted so the list and tiles refetch.
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const updateParams = (patch) => {
+  const updateParams = (patch, { replace = false } = {}) => {
     const next = new URLSearchParams(searchParams);
     Object.entries(patch).forEach(([key, value]) => {
       if (value) next.set(key, value);
       else next.delete(key);
     });
-    setSearchParams(next);
+    setSearchParams(next, { replace });
   };
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    updateParams({ search: searchInput.trim() });
+  const choosePreset = (key) => updateParams({ dates: key, from: null, to: null });
+  const changeRange = (patch) => {
+    const next = { ...range, ...patch };
+    if (!next.from || !next.to || next.from > next.to) return;
+    updateParams({ dates: null, from: next.from, to: next.to });
   };
 
-  // Embedded pages bring their own search box.
-  const usesHubSearch =
-    activeTab === 'live' || (activeTab === 'reconciliation' && activeSubview === 'tank');
-
-  // Only the refuel stream's search reaches beyond the plate.
+  // Only the fill list's search reaches past the truck number.
   const searchHint =
-    activeSubview === 'stream' ? 'Search plate, driver, phone, pump...' : 'Search vehicle plate...';
+    activeSubview === 'stream'
+      ? 'Truck number, driver, phone or pump'
+      : activeSubview === 'pumps'
+        ? 'Pump or highway'
+        : 'Truck number';
 
   return (
-    <div className="mileage-hub">
-      <div className="mileage-header">
-        <div className="mileage-title-block">
-          <h1>Mileage & Refuel Command Center</h1>
-          <p>Fuel bills, tank-sensor refills and refuel-to-refuel mileage in one place.</p>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {usesHubSearch && (
-            <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  aria-label={searchHint}
-                  placeholder={searchHint}
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  className="pl-9 pr-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 w-64 outline-none focus:border-indigo-500"
-                />
-              </div>
+    <PageShell
+      title="Diesel & Mileage"
+      subtitle="Every diesel fill, whether its bill is right, and how far each truck goes on a litre."
+      actions={
+        <div className="mhub-top-actions">
+          <label className="mhub-search">
+            <Search size={15} className="mhub-search-icon" aria-hidden />
+            <input
+              type="search"
+              aria-label={searchHint}
+              placeholder={searchHint}
+              value={search}
+              onChange={(e) => updateParams({ search: e.target.value }, { replace: true })}
+            />
+            {search ? (
               <button
-                type="submit"
-                className="px-3 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition cursor-pointer"
+                type="button"
+                className="mhub-search-clear"
+                onClick={() => updateParams({ search: '' }, { replace: true })}
+                aria-label="Clear search"
               >
-                Search
+                <X size={13} aria-hidden />
               </button>
-            </form>
-          )}
-          {ready && access.fleetMileage && (
+            ) : null}
+          </label>
+          {ready && access.fleetMileage ? (
             <Link
               to="/mileage-tracking/new"
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+              className="pshell-btn pshell-btn--primary mhub-add-btn"
             >
-              <Plus className="w-3.5 h-3.5" />
-              Log fuel
+              <Plus size={15} aria-hidden /> Add diesel bill
             </Link>
-          )}
+          ) : null}
         </div>
-      </div>
-
+      }
+      filters={
+        <HubDateBar preset={preset} range={range} onPreset={choosePreset} onRange={changeRange} />
+      }
+    >
       {ready && (
-        <>
-          <MileageKpiBar showFleetMileage={access.fleetMileage} refreshKey={refreshKey} />
+        <div className="mhub">
+          <MileageKpiBar
+            range={range}
+            showFleetMileage={access.fleetMileage}
+            refreshKey={refreshKey}
+          />
 
-          <div className="mileage-tab-nav">
-            {TABS.filter((t) => access.tabs[t.key]).map((tab) => {
-              const TabIcon = tab.icon;
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => updateParams({ tab: tab.key, subtab: null, view: null })}
-                  className={`mileage-tab-btn ${activeTab === tab.key ? 'active' : ''}`}
-                >
-                  <TabIcon className="w-4 h-4" />
-                  <span>{tab.label}</span>
-                  <span className="mileage-tab-badge">{tab.badge}</span>
-                </button>
-              );
-            })}
+          <div className="mhub-tabs" role="tablist" aria-label="Section">
+            {TABS.filter((t) => access.tabs[t.key]).map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === t.key}
+                className="mhub-tab"
+                onClick={() => updateParams({ tab: t.key, subtab: null, view: null })}
+              >
+                {t.label}
+                <span className="mhub-tab-hint" aria-hidden>
+                  {t.hint}
+                </span>
+              </button>
+            ))}
           </div>
 
-          {allowedSubviews.length > 1 && (
-            <div className="flex items-center gap-2 mb-4 flex-wrap">
-              {allowedSubviews.map((o) => (
-                <button
-                  key={o.key}
-                  type="button"
-                  onClick={() => updateParams({ [subview.param]: o.key })}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                    activeSubview === o.key
-                      ? 'bg-slate-900 text-white dark:bg-indigo-600'
-                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
-                  }`}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="mhub-subrow">
+            {allowedSubviews.length > 1 && (
+              <div className="mhub-views" role="tablist" aria-label="View">
+                {allowedSubviews.map((o) => (
+                  <button
+                    key={o.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeSubview === o.key}
+                    className="mhub-view"
+                    onClick={() => updateParams({ [subview.param]: o.key })}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {active && <p className="mhub-note">{active.note}</p>}
+          </div>
 
           {activeTab === 'live' && activeSubview === 'stream' && (
             <LiveRefuelTab
-              searchQuery={search}
+              range={range}
+              searchQuery={deferredSearch}
               onOpenDrawer={setDrawerDetail}
               refreshKey={refreshKey}
             />
           )}
-
           {activeTab === 'live' && activeSubview === 'completed' && (
-            <CompletedCyclesSubtab searchQuery={search} fuelCyclesAllowed={access.fuelCycles} />
+            <CompletedCyclesSubtab
+              range={range}
+              searchQuery={deferredSearch}
+              fuelCyclesAllowed={access.fuelCycles}
+            />
           )}
-
           {activeTab === 'reconciliation' && activeSubview === 'tank' && (
-            <ReconciliationTab searchQuery={search} onOpenDrawer={setDrawerDetail} />
+            <ReconciliationTab
+              range={range}
+              searchQuery={deferredSearch}
+              onOpenDrawer={setDrawerDetail}
+            />
+          )}
+          {activeTab === 'reconciliation' && activeSubview === 'pumps' && (
+            <PumpLedgerView range={range} searchQuery={deferredSearch} />
+          )}
+          {activeTab === 'performance' && activeSubview === 'vehicles' && (
+            <TruckMileageView range={range} searchQuery={deferredSearch} />
+          )}
+          {activeTab === 'performance' && activeSubview === 'expected' && (
+            <ExpectedFuelView range={range} />
           )}
 
-          {activeTab === 'reconciliation' && activeSubview === 'pumps' && <PumpLedgerView />}
-
-          {activeTab === 'performance' && activeSubview === 'expected' && <ExpectedFuelView />}
-
-          <div className="mileage-embedded">
-            <Suspense fallback={<EmbeddedFallback />}>
-              {activeTab === 'reconciliation' && activeSubview === 'ecu' && (
-                <FuelComparisonPage embedded />
-              )}
-              {activeTab === 'performance' && activeSubview === 'vehicles' && (
-                <MileageTrackingPage embedded />
-              )}
-              {activeTab === 'performance' && activeSubview === 'models' && (
-                <ModelComparisonPage embedded />
-              )}
-            </Suspense>
-          </div>
-        </>
+          <Suspense fallback={<EmbeddedFallback />}>
+            {activeTab === 'reconciliation' && activeSubview === 'ecu' && (
+              <FuelComparisonPage embedded range={range} />
+            )}
+            {activeTab === 'performance' && activeSubview === 'models' && (
+              <ModelComparisonPage embedded range={range} />
+            )}
+          </Suspense>
+        </div>
       )}
 
       <RefuelDetailDrawer
@@ -261,6 +291,6 @@ export default function MileagePage() {
           setRefreshKey((k) => k + 1);
         }}
       />
-    </div>
+    </PageShell>
   );
 }

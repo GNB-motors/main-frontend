@@ -1,342 +1,566 @@
-/* ─────────────────────────────────────────────────────────────
-   MileagePage.css — Modern Enterprise Styles for Unified Mileage
-   ───────────────────────────────────────────────────────────── */
+/* Diesel & Mileage hub (/mileage). Built on the app shell (PageShell, FilterBar,
+   DataTable, StatusChip); this file only adds what those don't carry. Light
+   theme, app tokens only. */
 
-.mileage-hub {
-  padding: 1.5rem 2rem 3rem;
-  background: var(--bg-main, #f8fafc);
-  min-height: calc(100vh - 64px);
-  color: var(--text-main, #0f172a);
-}
-
-.dark .mileage-hub {
-  background: #090d16;
-  color: #f1f5f9;
-}
-
-/* Header & Title */
-.mileage-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.mileage-title-block h1 {
-  font-size: 1.625rem;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  color: #0f172a;
-  margin: 0;
-}
-
-.dark .mileage-title-block h1 {
-  color: #f8fafc;
-}
-
-.mileage-title-block p {
-  font-size: 0.875rem;
-  color: #64748b;
-  margin: 0.25rem 0 0;
-}
-
-.dark .mileage-title-block p {
-  color: #94a3b8;
-}
-
-/* Top KPI Bar */
-.mileage-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.75rem;
-}
-
-.mileage-kpi-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 1rem 1.25rem;
+.mhub {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s ease;
+  gap: 16px;
 }
 
-.dark .mileage-kpi-card {
-  background: #111827;
-  border-color: #1f2937;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+/* Header search & action buttons */
+.mhub-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.mhub-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-white, #ffffff);
+  border: 1px solid var(--ds-line2, #cbd5e1);
+  border-radius: 999px;
+  padding: 0 14px;
+  height: 40px;
+  min-width: 0;
+  width: 300px;
+  max-width: 100%;
+  box-shadow: var(--ds-shadow, 0 1px 2px rgba(20, 26, 38, 0.06));
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.mhub-search:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+.mhub-search-icon {
+  flex: none;
+  color: var(--ds-ink3, #64748b);
+}
+.mhub-search input {
+  border: 0;
+  background: transparent;
+  outline: none;
+  min-width: 0;
+  flex: 1;
+  font-size: 13.5px;
+  color: var(--ds-ink, #0f172a);
+}
+.mhub-search input::placeholder {
+  color: var(--ds-ink3, #64748b);
+}
+.mhub-search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--ds-sunk, #eef2f7);
+  color: var(--ds-ink2, #44506a);
+  padding: 0;
+  cursor: pointer;
+  flex: none;
+}
+.mhub-search-clear:hover {
+  background: var(--ds-line2, #cbd5e1);
+  color: var(--ds-ink, #0f172a);
+}
+.mhub-add-btn {
+  border-radius: 999px !important;
+  height: 40px !important;
+  padding: 0 18px !important;
 }
 
-.mileage-kpi-card:hover {
-  border-color: #cbd5e1;
-  transform: translateY(-1px);
+/* Shared Date Bar */
+.mhub-datebar {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 5;
+  background: var(--color-white, #ffffff);
+  border: 1px solid var(--ds-line, #e2e8f0);
+  border-radius: var(--ds-radius-md, 12px);
+  box-shadow: var(--ds-shadow, 0 1px 2px rgba(20, 26, 38, 0.06));
+  padding: 10px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.mhub-datebar-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ds-ink3, #64748b);
+}
+.mhub-range {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--ds-ink2, #44506a);
+  white-space: nowrap;
+}
+.mhub-range b {
+  color: var(--ds-ink, #0f172a);
+  font-weight: 600;
 }
 
-.dark .mileage-kpi-card:hover {
-  border-color: #374151;
+/* Grouped pill control / Segmented chips */
+.mhub-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  background: var(--ds-sunk, #eef2f7);
+  border-radius: 999px;
+  padding: 4px;
+  align-items: center;
+}
+.mhub-seg button,
+.mhub-seg-chip {
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-ink2, #44506a);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  line-height: 1.2;
+}
+.mhub-seg button:hover,
+.mhub-seg-chip:hover {
+  color: var(--ds-ink, #0f172a);
+}
+.mhub-seg button[aria-pressed='true'],
+.mhub-seg-chip[aria-pressed='true'],
+.mhub-seg-chip--active {
+  background: var(--color-white, #ffffff);
+  color: var(--ds-ink, #0f172a);
+  box-shadow: 0 1px 3px rgba(20, 26, 38, 0.08);
+}
+.mhub-seg-count {
+  font-family: var(--font-mono, monospace);
+  font-weight: 500;
+  color: var(--ds-ink3, #64748b);
+  margin-left: 3px;
+  font-size: 12px;
 }
 
-.mileage-kpi-top {
+/* Custom from-to date inputs (expandable below date bar) */
+.mhub-custom {
+  display: none;
+  width: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding-top: 10px;
+  margin-top: 2px;
+  border-top: 1px dashed var(--ds-line, #e2e8f0);
+}
+.mhub-custom.open {
+  display: flex;
+}
+.mhub-custom label {
+  font-size: 13px;
+  color: var(--ds-ink3, #64748b);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+.mhub-custom input[type='date'] {
+  height: 36px;
+  border: 1px solid var(--ds-line2, #cbd5e1);
+  border-radius: var(--ds-radius-sm, 8px);
+  padding: 0 10px;
+  background: var(--color-white, #ffffff);
+  color: var(--ds-ink, #0f172a);
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+.mhub-custom input[type='date']:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+.mhub-custom .pshell-btn {
+  height: 36px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+.mhub-custom-problem {
+  font-size: 12.5px;
+  color: var(--critical, #dc2626);
+  font-weight: 500;
+}
+
+/* Status row for subtabs */
+.mhub-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* Summary tiles */
+.mhub-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.mhub-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 16px;
+  background: var(--color-white);
+  border: 1px solid var(--ds-line);
+  border-radius: var(--ds-radius-md);
+  box-shadow: var(--ds-shadow);
+}
+.mhub-kpi-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #64748b;
-  font-size: 0.75rem;
+  gap: 8px;
+  font-size: 13px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  color: var(--ds-ink2);
 }
-
-.dark .mileage-kpi-top {
-  color: #94a3b8;
+.mhub-kpi-value {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--ds-ink);
+  font-variant-numeric: tabular-nums;
 }
-
-.mileage-kpi-value {
-  font-size: 1.625rem;
-  font-weight: 700;
-  font-family: var(--font-mono, monospace);
-  color: #0f172a;
-  letter-spacing: -0.02em;
+.mhub-kpi-value small {
+  margin-left: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ds-ink3);
 }
-
-.dark .mileage-kpi-value {
-  color: #f8fafc;
+.mhub-kpi-value--critical {
+  color: var(--critical);
 }
-
-.mileage-kpi-sub {
-  font-size: 0.75rem;
-  color: #64748b;
+.mhub-kpi-foot {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.375rem;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ds-ink3);
 }
 
-.dark .mileage-kpi-sub {
-  color: #94a3b8;
-}
-
-/* Navigation Tabs */
-.mileage-tab-nav {
+/* Section tabs: underlined, with a short hint of what each holds. */
+.mhub-tabs {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  border-bottom: 1px solid #e2e8f0;
-  margin-bottom: 1.25rem;
+  gap: 4px;
+  border-bottom: 1px solid var(--ds-line);
   overflow-x: auto;
 }
-
-.dark .mileage-tab-nav {
-  border-bottom-color: #1f2937;
+.mhub-tab {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: -1px;
+  padding: 12px 16px 11px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ds-ink3);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.mhub-tab:hover {
+  color: var(--ds-ink);
+}
+.mhub-tab[aria-selected='true'] {
+  color: var(--brand-ink, #16296b);
+  border-bottom-color: var(--brand, #1e3a8a);
+}
+.mhub-tab-hint {
+  font-family: var(--font-body, inherit);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ds-ink3);
 }
 
-.mileage-tab-btn {
+/* Views inside a section: pills, the chosen one filled. */
+.mhub-subrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.mhub-views {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.mhub-view {
+  padding: 6px 14px;
+  border: 1px solid var(--ds-line);
+  border-radius: 999px;
+  background: var(--color-white);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ds-ink2);
+  cursor: pointer;
+}
+.mhub-view:hover {
+  border-color: var(--ds-line2);
+  color: var(--ds-ink);
+}
+.mhub-view[aria-selected='true'] {
+  border-color: var(--ds-ink);
+  background: var(--ds-ink);
+  color: var(--color-white);
+}
+.mhub-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ds-ink3);
+}
+
+/* ⓘ and what it opens */
+.mhub-info {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #64748b;
-  border-bottom: 2px solid transparent;
-  background: none;
-  border-top: none;
-  border-left: none;
-  border-right: none;
+  justify-content: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--ds-line);
+  border-radius: 999px;
+  background: var(--color-white);
+  color: var(--ds-ink3);
   cursor: pointer;
-  transition: all 0.2s ease;
+}
+.mhub-info:hover,
+.mhub-info[data-popup-open] {
+  border-color: var(--orange);
+  color: var(--accent-ink);
+  background: var(--orange-tint);
+}
+.mhub-calc {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-sunk);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mhub-calc-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12.5px;
+}
+.mhub-calc-row dt {
+  color: var(--ds-ink3);
+}
+.mhub-calc-row dd {
+  margin: 0;
+  color: var(--ds-ink);
+  text-align: right;
+}
+
+/* Table cells */
+.mhub-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.mhub-plate {
+  display: inline-block;
+  padding: 3px 7px;
+  border: 1px solid var(--ds-line2);
+  border-radius: 6px;
+  background: var(--color-white);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
   white-space: nowrap;
 }
-
-.dark .mileage-tab-btn {
-  color: #94a3b8;
+.mhub-sub {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--ds-ink3);
 }
-
-.mileage-tab-btn:hover {
-  color: #0f172a;
+.mhub-litres {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
-
-.dark .mileage-tab-btn:hover {
-  color: #f8fafc;
+.mhub-dim {
+  color: var(--ds-ink3);
 }
-
-.mileage-tab-btn.active {
-  color: #4f46e5;
-  border-bottom-color: #4f46e5;
+.mhub-link {
+  color: var(--accent-ink);
+  font-weight: 600;
+  text-decoration: none;
 }
-
-.dark .mileage-tab-btn.active {
-  color: #818cf8;
-  border-bottom-color: #818cf8;
+.mhub-link:hover {
+  text-decoration: underline;
 }
-
-.mileage-tab-badge {
-  padding: 0.125rem 0.5rem;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  border-radius: 9999px;
-  background: #f1f5f9;
-  color: #475569;
+.mhub-open {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--ds-line);
+  border-radius: 999px;
+  background: var(--color-white);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ds-ink2);
+  cursor: pointer;
+  white-space: nowrap;
 }
-
-.dark .mileage-tab-badge {
-  background: #1e293b;
-  color: #cbd5e1;
+.mhub-open:hover {
+  border-color: var(--orange);
+  color: var(--accent-ink);
 }
-
-.mileage-tab-btn.active .mileage-tab-badge {
-  background: #e0e7ff;
-  color: #4338ca;
-}
-
-.dark .mileage-tab-btn.active .mileage-tab-badge {
-  background: #312e81;
-  color: #c7d2fe;
-}
-
-/* Table Wrappers & Badges */
-.mileage-panel {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+.mhub-bar {
+  width: 88px;
+  height: 6px;
+  margin-top: 5px;
+  margin-left: auto;
+  border-radius: 999px;
+  background: var(--ds-sunk);
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.mhub-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+.mhub-footnote {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ds-ink3);
 }
 
-.dark .mileage-panel {
-  background: #111827;
-  border-color: #1f2937;
+/* Fill drawer */
+.mhub-verdict {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: var(--ds-radius-md);
+  font-size: 13px;
 }
-
-/* Status Badges */
-.mileage-badge {
-  display: inline-flex;
+.mhub-verdict strong {
+  font-family: var(--font-display);
+  font-size: 16px;
+  line-height: 1.3;
+}
+.mhub-verdict--ok {
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 10%, transparent);
+}
+.mhub-verdict--caution {
+  color: var(--ds-warn-ink);
+  background: color-mix(in srgb, var(--caution) 12%, transparent);
+}
+.mhub-verdict--critical {
+  color: var(--critical);
+  background: color-mix(in srgb, var(--critical) 10%, transparent);
+}
+.mhub-verdict--inert {
+  color: var(--ds-ink2);
+  background: var(--ds-sunk);
+}
+.mhub-verdict span {
+  color: var(--ds-ink2);
+}
+.mhub-box {
+  padding: 10px 14px;
+  border: 1px solid var(--ds-line);
+  border-radius: var(--ds-radius-md);
+}
+.mhub-box h3 {
+  margin: 0 0 4px;
+  display: flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.625rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1;
-}
-
-.mileage-badge-genuine {
-  background: #ecfdf5;
-  color: #047857;
-  border: 1px solid #a7f3d0;
-}
-
-.dark .mileage-badge-genuine {
-  background: #064e3b;
-  color: #6ee7b7;
-  border-color: #047857;
-}
-
-.mileage-badge-variance {
-  background: #fffbeb;
-  color: #b45309;
-  border: 1px solid #fde68a;
-}
-
-.dark .mileage-badge-variance {
-  background: #451a03;
-  color: #fcd34d;
-  border-color: #78350f;
-}
-
-.mileage-badge-noise {
-  background: #fef2f2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
-}
-
-.dark .mileage-badge-noise {
-  background: #450a0a;
-  color: #fca5a5;
-  border-color: #7f1d1d;
-}
-
-.mileage-badge-pending {
-  background: #eff6ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
-}
-
-.dark .mileage-badge-pending {
-  background: #1e3a8a;
-  color: #93c5fd;
-  border-color: #1e40af;
-}
-
-.mileage-badge-depot {
-  background: #f5f3ff;
-  color: #6d28d9;
-  border: 1px solid #ddd6fe;
-}
-
-.dark .mileage-badge-depot {
-  background: #2e1065;
-  color: #c4b5fd;
-  border-color: #4c1d95;
-}
-
-.mileage-badge-neutral {
-  background: #f8fafc;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-}
-
-.dark .mileage-badge-neutral {
-  background: #1e293b;
-  color: #cbd5e1;
-  border-color: #334155;
-}
-
-/* Pre-hub pages mounted as hub views: the hub owns padding, title, canvas. */
-.mileage-embedded .fc-page-wrapper,
-.mileage-embedded .fc-page-wrapper .pshell {
-  min-height: 0;
-}
-
-.mileage-embedded .fc-page-wrapper .pshell,
-.mileage-embedded .mt-page-wrapper .pshell,
-.mileage-embedded .pshell.pshell--embedded {
-  padding: 0;
-  background: transparent;
-  min-height: 0;
-}
-
-.mileage-embedded .mt-page-wrapper {
-  padding: 0;
-}
-
-.mileage-embedded .pshell-head {
-  justify-content: flex-end;
-}
-
-/* Monospace Plate & Readings */
-.mileage-plate {
-  font-family: var(--font-mono, monospace);
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
   font-weight: 700;
-  font-size: 0.8125rem;
-  color: #1e293b;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  padding: 0.1875rem 0.5rem;
-  border-radius: 5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ds-ink3);
 }
-
-.dark .mileage-plate {
-  color: #f1f5f9;
-  background: #1e293b;
-  border-color: #334155;
+.mhub-kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px dashed var(--ds-line);
 }
-
-.mileage-num {
-  font-family: var(--font-mono, monospace);
+.mhub-kv:last-child {
+  border-bottom: 0;
+}
+.mhub-kv > span:first-child {
+  color: var(--ds-ink3);
+  flex: none;
+}
+.mhub-kv > span:last-child {
   font-weight: 600;
+  color: var(--ds-ink);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.mhub-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 10px;
+}
+.mhub-how summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-ink);
+}
+.mhub-how[open] summary {
+  margin-bottom: 8px;
+}
+.mhub-how p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--ds-ink2);
+}
+
+@media (max-width: 1024px) {
+  .mhub-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .mhub-kpis {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
