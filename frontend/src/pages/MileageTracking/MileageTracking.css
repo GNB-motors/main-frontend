@@ -2194,11 +2194,13 @@
 }
 
 .mc-kpi-value {
-  font-size: 20px;
+  font-family: 'JetBrains Mono', 'DM Mono', monospace;
+  font-size: 24px;
   font-weight: 700;
   color: #0f172a;
   letter-spacing: -0.02em;
   line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Card ─────────────────────────────────── */
