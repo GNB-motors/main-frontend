@@ -149,6 +149,7 @@ const RouteHubPage = lazy(() => import('./pages/RouteHub/RouteHubPage.jsx'));
 //   () => import('./pages/VehicleWarehouses/VehicleWarehousesPage.jsx'),
 // );
 const AutoTripsPage = lazy(() => import('./pages/AutoTrips/AutoTripsPage.jsx'));
+const TripPlansPage = lazy(() => import('./pages/AutoTrips/TripPlansPage.jsx'));
 const AutoTripDetailPage = lazy(() => import('./pages/AutoTrips/AutoTripDetailPage.jsx'));
 const ExcursionsPage = lazy(() => import('./pages/AutoTrips/ExcursionsPage.jsx'));
 const ExcursionDetailPage = lazy(() => import('./pages/AutoTrips/ExcursionDetailPage.jsx'));
@@ -538,6 +539,7 @@ function App() {
             <Route path="/auto-trips/excursions" element={<ExcursionsPage />} />
             <Route path="/auto-trips/excursions/:id" element={<ExcursionDetailPage />} />
             <Route path="/auto-trips/approvals" element={<MovementApprovalsPage />} />
+            <Route path="/auto-trips/plans" element={<TripPlansPage />} />
             <Route path="/auto-trips/:id" element={<AutoTripDetailPage />} />
             <Route path="/khata-ledger" element={<KhataLedgerPage />} />
             {/* ISOCL ERP — five workspaces (CRM / Operations / Finance / Approval Center) */}
