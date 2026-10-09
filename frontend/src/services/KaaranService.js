@@ -100,16 +100,6 @@ export const KaaranService = {
       throw err.response?.data || { message: 'Failed to load pump ledger' };
     }
   },
-
-  getPumpHonesty: async (pumpId) => {
-    try {
-      const res = await apiClient.get(`/api/kaaran/pumps/${pumpId}/honesty`);
-      return res.data?.data || res.data;
-    } catch (err) {
-      console.error('KaaranService.getPumpHonesty error:', err);
-      throw err.response?.data || { message: 'Failed to load pump honesty' };
-    }
-  },
 };
 
 export default KaaranService;

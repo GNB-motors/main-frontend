@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { FileText, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { CalendarClock, FileText, Plus, ShieldCheck, TriangleAlert } from 'lucide-react';
 import DataTable from '../../components/ui/DataTable';
 import { useApi } from '../../hooks/useApi';
 import AutoTripService from '../../services/AutoTripService';
@@ -8,6 +8,8 @@ import { formatNum } from '../../utils/formatters';
 import { dropLabel } from '../PlaceIntelligence/facilityText';
 import AutoTripCoverage from './AutoTripCoverage';
 import RegisterMatchCard from './RegisterMatchCard';
+import ManualTripDialog from './ManualTripDialog';
+import TripPlanDialog from './TripPlanDialog';
 import { STATUS_CLASS, STATUS_LABEL, fmtDayTime, fmtKm, notReachedYet } from './autoTripModel';
 import './AutoTrips.css';
 
@@ -36,6 +38,21 @@ export default function AutoTripsPage() {
   const navigate = useNavigate();
   const [statusTab, setStatusTab] = useState('');
   const [page, setPage] = useState(1);
+  // { kind: 'manual' } | { kind: 'plan' } | null. ?new=manual|plan opens one on arrival
+  // (the old "Start New Trip" buttons and /trip/new land here).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [dialog, setDialogState] = useState(() => {
+    const kind = searchParams.get('new');
+    return kind === 'manual' || kind === 'plan' ? { kind } : null;
+  });
+  const setDialog = (next) => {
+    setDialogState(next);
+    if (!next && searchParams.has('new')) {
+      const rest = new URLSearchParams(searchParams);
+      rest.delete('new');
+      setSearchParams(rest, { replace: true });
+    }
+  };
 
   const params = useMemo(
     () => ({ page, limit: PAGE_SIZE, ...(statusTab ? { status: statusTab } : {}) }),
@@ -154,6 +171,21 @@ export default function AutoTripsPage() {
           <div className="atx-actions">
             <button
               type="button"
+              className="atx-btn atx-btn--primary"
+              onClick={() => setDialog({ kind: 'manual' })}
+            >
+              <Plus size={16} strokeWidth={2} aria-hidden="true" />
+              Add missed trip
+            </button>
+            <button type="button" className="atx-btn" onClick={() => setDialog({ kind: 'plan' })}>
+              <CalendarClock size={16} strokeWidth={2} aria-hidden="true" />
+              Schedule trip
+            </button>
+            <button type="button" className="atx-btn" onClick={() => navigate('/auto-trips/plans')}>
+              Planned trips
+            </button>
+            <button
+              type="button"
               className="atx-btn"
               onClick={() => navigate('/auto-trips/excursions')}
             >
@@ -217,6 +249,17 @@ export default function AutoTripsPage() {
           }
         />
       </div>
+
+      <ManualTripDialog
+        open={dialog?.kind === 'manual'}
+        onOpenChange={(o) => setDialog(o ? { kind: 'manual' } : null)}
+        onAdded={refetch}
+      />
+      <TripPlanDialog
+        open={dialog?.kind === 'plan'}
+        onOpenChange={(o) => setDialog(o ? { kind: 'plan' } : null)}
+        onCreated={() => navigate('/auto-trips/plans')}
+      />
     </div>
   );
 }

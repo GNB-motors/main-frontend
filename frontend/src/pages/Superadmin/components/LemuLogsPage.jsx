@@ -16,6 +16,7 @@ import { PageHeader } from '../../Drivers/Component';
 import { LemuService } from './LemuService';
 import LemuStatsStrip from './lemu/LemuStatsStrip';
 import LemuJobsPanel from './lemu/LemuJobsPanel';
+import LemuJobKpisPanel from './lemu/LemuJobKpisPanel';
 import LemuLogsExplorer from './lemu/LemuLogsExplorer';
 import LemuErrorsInbox from './lemu/LemuErrorsInbox';
 import LemuFlagsTab from './lemu/LemuFlagsTab';
@@ -517,7 +518,10 @@ const LemuLogsPage = () => {
         )}
 
         {activeTab === 'jobs' && (
-          <LemuJobsPanel jobs={jobs} loading={graph.jobsLoading} error={graph.jobsError} />
+          <>
+            <LemuJobsPanel jobs={jobs} loading={graph.jobsLoading} error={graph.jobsError} />
+            <LemuJobKpisPanel />
+          </>
         )}
 
         {activeTab === 'errors' && (

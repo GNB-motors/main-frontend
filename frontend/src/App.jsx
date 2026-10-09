@@ -84,7 +84,6 @@ const AddDriverPage = lazy(() => import('./pages/Drivers/AddDriverPage.jsx'));
 const BulkUploadDriversPage = lazy(() => import('./pages/Drivers/BulkUploadDriversPage.jsx'));
 const BulkUploadVehiclesPage = lazy(() => import('./pages/Profile/BulkUploadVehiclesPage.jsx'));
 const TripManagementPage = lazy(() => import('./pages/Trip/TripManagementPage.jsx'));
-const TripCreationFlow = lazy(() => import('./pages/Trip/TripCreationFlow.jsx'));
 const TripDetailPage = lazy(() => import('./pages/Trip/TripDetailPage.jsx'));
 // Superadmin pages are lazy-loaded: admin-only JSX (incl. the LEMU
 // observability page) must not ship in the customer bundle.
@@ -149,6 +148,7 @@ const RouteHubPage = lazy(() => import('./pages/RouteHub/RouteHubPage.jsx'));
 //   () => import('./pages/VehicleWarehouses/VehicleWarehousesPage.jsx'),
 // );
 const AutoTripsPage = lazy(() => import('./pages/AutoTrips/AutoTripsPage.jsx'));
+const TripPlansPage = lazy(() => import('./pages/AutoTrips/TripPlansPage.jsx'));
 const AutoTripDetailPage = lazy(() => import('./pages/AutoTrips/AutoTripDetailPage.jsx'));
 const ExcursionsPage = lazy(() => import('./pages/AutoTrips/ExcursionsPage.jsx'));
 const ExcursionDetailPage = lazy(() => import('./pages/AutoTrips/ExcursionDetailPage.jsx'));
@@ -478,7 +478,8 @@ function App() {
             <Route path="/drivers/bulk-upload" element={<BulkUploadDriversPage />} />
             <Route path="/trip-management" element={<TripManagementPage />} />
             <Route path="/trip-management/trip/:id" element={<TripDetailPage />} />
-            <Route path="/trip/new" element={<TripCreationFlow />} />
+            {/* The old weight-slip trip form was retired with its backend; adding a trip now happens on the Trips page. */}
+            <Route path="/trip/new" element={<Navigate to="/auto-trips?new=manual" replace />} />
             <Route path="/trip/:tripId" element={<TripManagementPage />} />
             {/* Fuel Management Routes */}
             <Route path="/mileage" element={<MileagePage />} />
@@ -538,6 +539,7 @@ function App() {
             <Route path="/auto-trips/excursions" element={<ExcursionsPage />} />
             <Route path="/auto-trips/excursions/:id" element={<ExcursionDetailPage />} />
             <Route path="/auto-trips/approvals" element={<MovementApprovalsPage />} />
+            <Route path="/auto-trips/plans" element={<TripPlansPage />} />
             <Route path="/auto-trips/:id" element={<AutoTripDetailPage />} />
             <Route path="/khata-ledger" element={<KhataLedgerPage />} />
             {/* ISOCL ERP — five workspaces (CRM / Operations / Finance / Approval Center) */}

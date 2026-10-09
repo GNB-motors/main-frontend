@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Plus } from 'lucide-react';
+import { CalendarClock, Plus } from 'lucide-react';
 import {
   Pagination,
   PaginationContent,
@@ -96,7 +96,7 @@ const TripManagementPage = () => {
   }, [weightSlipPagination.page, refuelPagination.page]);
 
   useEffect(() => {
-    const h = () => navigate('/trip/new');
+    const h = () => navigate('/auto-trips?new=manual');
     window.addEventListener('startNewTrip', h);
     return () => window.removeEventListener('startNewTrip', h);
   }, [navigate]);
@@ -142,13 +142,22 @@ const TripManagementPage = () => {
       title="Trip Management"
       count={activePagination.total}
       actions={
-        <button
-          type="button"
-          className="pshell-btn pshell-btn--primary"
-          onClick={() => navigate('/trip/new')}
-        >
-          <Plus size={16} /> Start New Trip
-        </button>
+        <>
+          <button
+            type="button"
+            className="pshell-btn"
+            onClick={() => navigate('/auto-trips?new=plan')}
+          >
+            <CalendarClock size={16} /> Schedule trip
+          </button>
+          <button
+            type="button"
+            className="pshell-btn pshell-btn--primary"
+            onClick={() => navigate('/auto-trips?new=manual')}
+          >
+            <Plus size={16} /> Add missed trip
+          </button>
+        </>
       }
       filters={
         <FilterBar
@@ -174,8 +183,8 @@ const TripManagementPage = () => {
         emptyHint={searchQuery ? 'Try adjusting your search' : null}
         emptyAction={
           !searchQuery ? (
-            <button className="empty-action-btn" onClick={() => navigate('/trip/new')}>
-              <Plus size={16} /> Start New Trip
+            <button className="empty-action-btn" onClick={() => navigate('/auto-trips?new=manual')}>
+              <Plus size={16} /> Add missed trip
             </button>
           ) : null
         }

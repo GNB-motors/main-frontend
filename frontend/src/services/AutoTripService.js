@@ -36,6 +36,14 @@ export const AutoTripService = {
   track: async (id, { signal } = {}) =>
     parsed('autoTripTrackSchema', await apiClient.get(`${BASE}/${id}/track`, { signal })),
 
+  /** Add a trip the detector missed; the server builds it from the truck's GPS in the window. */
+  addManual: async (body, { signal } = {}) =>
+    parsed('autoTripSchema', await apiClient.post(`${BASE}/manual`, body, { signal })),
+
+  /** Queue a re-read of a truck's last 30 days of GPS, so its past trips are detected. */
+  backfill: async ({ vehicleId }, { signal } = {}) =>
+    unwrap(await apiClient.post(`${BASE}/vehicles/${vehicleId}/backfill`, {}, { signal })),
+
   confirm: async ({ id }, { signal } = {}) =>
     unwrap(await apiClient.post(`${BASE}/${id}/confirm`, {}, { signal })),
 

@@ -95,7 +95,7 @@ const TripDetailPage = () => {
 
   // Enable Start New Trip button to work from this page
   useEffect(() => {
-    const handleStartNewTrip = () => navigate('/trip/new');
+    const handleStartNewTrip = () => navigate('/auto-trips?new=manual');
     window.addEventListener('startNewTrip', handleStartNewTrip);
     return () => window.removeEventListener('startNewTrip', handleStartNewTrip);
   }, [navigate]);

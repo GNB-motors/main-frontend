@@ -43,12 +43,14 @@ const LedgerDetailView = ({ entityType, entityId }) => {
   const [filterOptions, setFilterOptions] = useState({ vehicles: [], drivers: [] });
 
   useEffect(() => {
-    const loadEntity = async () => {
+    const loadEntity = async (driversPromise) => {
       setEntityLoading(true);
       try {
         if (isDriver) {
-          const res = await TripService.getDriverById(entityId);
-          const data = res?.data ?? res;
+          // There is no GET /api/employees/:id; the driver list loaded for the
+          // filters already carries the name.
+          const drivers = await driversPromise;
+          const data = drivers.find((d) => String(d._id ?? d.id) === String(entityId));
           setEntityName(getDriverName(data) || 'Driver Ledger');
         } else {
           const res = await TripService.getVehicleById(entityId);
@@ -68,17 +70,19 @@ const LedgerDetailView = ({ entityType, entityId }) => {
           TripService.getVehicles({ limit: 200 }),
           TripService.getDrivers({ limit: 200 }),
         ]);
+        const drivers = dRes?.data || dRes?.results || dRes || [];
         setFilterOptions({
           vehicles: vRes?.data || vRes?.results || vRes || [],
-          drivers: dRes?.data || dRes?.results || dRes || [],
+          drivers,
         });
+        return Array.isArray(drivers) ? drivers : [];
       } catch {
         // Filter dropdowns are a convenience; the ledger still loads without them.
+        return [];
       }
     };
 
-    loadEntity();
-    loadFilterOptions();
+    loadEntity(loadFilterOptions());
   }, [entityId, isDriver]);
 
   const fetchData = useCallback(
