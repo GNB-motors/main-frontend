@@ -25,6 +25,11 @@ vi.mock('./PlaceHubService.js', () => {
     loadZones: vi.fn(),
     loadSites: vi.fn(),
     loadSite: vi.fn(),
+    siteDetail: vi.fn(),
+    loadSummary: vi.fn(),
+    loadBreaks: vi.fn(),
+    loadPoi: vi.fn(),
+    tagStop: vi.fn(),
     loadHotspots: vi.fn(),
     loadDrainMap: vi.fn(),
     loadLiveIdling: vi.fn(),
@@ -108,6 +113,33 @@ function seed() {
   );
   PlaceHubService.loadIdleHistory.mockResolvedValue({ rows: [], error: null, truncated: false });
   PlaceHubService.warehouseRoster.mockResolvedValue({ inside: [] });
+  PlaceHubService.siteDetail.mockResolvedValue(null);
+  PlaceHubService.loadSummary.mockReturnValue(
+    ok({ unproductive: { hours: 6, stops: 2, trucks: 1 }, lastRunAt: '2026-10-09T02:00:00Z' }),
+  );
+  PlaceHubService.loadBreaks.mockReturnValue(
+    ok([
+      {
+        _id: 'b1',
+        orgSiteId: null,
+        lat: 22.5,
+        lng: 88.1,
+        registrationNumber: 'WB11G0962',
+        startAt: '2026-10-08T10:00:00Z',
+        dwellMinutes: 180,
+      },
+      {
+        _id: 'b2',
+        orgSiteId: null,
+        lat: 22.5,
+        lng: 88.1,
+        registrationNumber: 'WB11G0962',
+        startAt: '2026-10-07T10:00:00Z',
+        dwellMinutes: 180,
+      },
+    ]),
+  );
+  PlaceHubService.tagStop.mockResolvedValue({});
 }
 
 function renderPage(path = '/place-hub') {
@@ -162,7 +194,8 @@ describe('PlaceHubPage', () => {
     fireEvent.click(screen.getByRole('tab', { name: /To review/ }));
     fireEvent.click(await screen.findByText('Maybe a dhaba'));
     const drawer = screen.getByRole('complementary', { name: 'Maybe a dhaba' });
-    expect(within(drawer).getByText('Is this a real place?')).toBeInTheDocument();
+    expect(within(drawer).getByText('What is this place?')).toBeInTheDocument();
+    expect(within(drawer).getByRole('button', { name: /Not a real place/ })).toBeInTheDocument();
     expect(within(drawer).queryByRole('button', { name: /Edit/ })).not.toBeInTheDocument();
   });
 
@@ -183,7 +216,7 @@ describe('PlaceHubPage', () => {
       radiusM: 100,
     });
     renderPage('/place-hub?place=site%3As9');
-    expect(await screen.findByRole('complementary', { name: 'Unknown' })).toBeInTheDocument();
+    expect(await screen.findByRole('complementary', { name: 'Unnamed stop' })).toBeInTheDocument();
     expect(PlaceHubService.loadSite).toHaveBeenCalledWith('s9');
   });
 
@@ -208,6 +241,26 @@ describe('PlaceHubPage', () => {
     expect(await screen.findByText('NH16 lay-by')).toBeInTheDocument();
   });
 
+  it('answers unexplained stops from the stops tab, all at once', async () => {
+    renderPage('/place-hub?tab=stops');
+    expect(await screen.findByRole('button', { name: /^Stops/ })).toHaveTextContent('6 h');
+    fireEvent.click(await screen.findByText(/2 stops/));
+    const drawer = screen.getByRole('complementary', { name: 'Unexplained stops' });
+    fireEvent.click(within(drawer).getByRole('button', { name: /All 2 were rest/ }));
+    await vi.waitFor(() => expect(PlaceHubService.tagStop).toHaveBeenCalledTimes(2));
+    expect(PlaceHubService.tagStop).toHaveBeenCalledWith('b1', 'REST');
+    expect(PlaceHubService.loadBreaks).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows Place Intelligence’s table views as tabs', async () => {
+    renderPage();
+    await screen.findByText('Dankuni yard');
+    for (const name of ['Routes', 'Facilities', 'Regions', 'Driver homes']) {
+      expect(screen.getByRole('button', { name: new RegExp(name) })).toBeInTheDocument();
+    }
+    expect(screen.queryByRole('button', { name: /Shadow report/ })).not.toBeInTheDocument();
+  });
+
   it('keeps manager-only views and editing away from other roles', async () => {
     getUserRole.mockReturnValue('DRIVER');
     renderPage('/place-hub?tab=idling');
@@ -216,5 +269,6 @@ describe('PlaceHubPage', () => {
     expect(screen.queryByRole('button', { name: /Add place/ })).not.toBeInTheDocument();
     expect(PlaceHubService.loadSites).not.toHaveBeenCalled();
     expect(PlaceHubService.loadLiveIdling).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /Routes/ })).not.toBeInTheDocument();
   });
 });

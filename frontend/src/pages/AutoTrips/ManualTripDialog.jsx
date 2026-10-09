@@ -14,6 +14,7 @@ import { Input } from '../../components/ui/input';
 import { useMutation } from '../../hooks/useMutation';
 import AutoTripService from '../../services/AutoTripService';
 import PickSelect from './PickSelect';
+import PlacePick from './PlacePick';
 import useTripPickLists from './useTripPickLists';
 import { EMPTY_MANUAL_TRIP, formReducer, manualTripBody, validateManualTrip } from './tripForms';
 
@@ -119,25 +120,15 @@ export default function ManualTripDialog({ open, onOpenChange, onAdded }) {
             options={lists.places}
             noneLabel="First GPS stop in that time"
           />
-          <PickSelect
+          <PlacePick
             label="Unloaded at"
-            value={form.dropSiteId}
-            onChange={set('dropSiteId')}
-            options={lists.places}
-            noneLabel="Last GPS stop, or type below"
+            siteId={form.dropSiteId}
+            onSite={set('dropSiteId')}
+            name={form.dropName}
+            onName={set('dropName')}
+            places={lists.places}
+            noneLabel="Last GPS stop"
           />
-          <div className="atx-field">
-            <label className="atx-field-label" htmlFor="mt-dropName">
-              Unloaded at (not a saved place)
-            </label>
-            <Input
-              id="mt-dropName"
-              value={form.dropName}
-              onChange={setInput('dropName')}
-              placeholder="e.g. Cuttack dealer"
-              disabled={Boolean(form.dropSiteId)}
-            />
-          </div>
           <div className="atx-field">
             <label className="atx-field-label" htmlFor="mt-km">
               Distance, km (only if there is no GPS)
@@ -146,7 +137,7 @@ export default function ManualTripDialog({ open, onOpenChange, onAdded }) {
           </div>
           <div className="atx-field atx-field--wide">
             <label className="atx-field-label" htmlFor="mt-note">
-              Note
+              Note (optional)
             </label>
             <Input id="mt-note" value={form.note} onChange={setInput('note')} maxLength={500} />
           </div>

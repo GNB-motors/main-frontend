@@ -65,7 +65,8 @@ function SelectContent({
         align={align}
         alignOffset={alignOffset}
         alignItemWithTrigger={alignItemWithTrigger}
-        className="isolate z-50"
+        // Above dialogs and sheets (z 10050-10051), or a select inside one opens behind it.
+        className="isolate z-[10060]"
       >
         <SelectPrimitive.Popup
           data-slot="select-content"

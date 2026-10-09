@@ -14,8 +14,18 @@ import {
   Warehouse,
   Hexagon,
   MousePointerClick,
+  Clock,
+  Route,
+  Factory,
+  Layers,
+  Home,
+  ShieldCheck,
+  Building2,
 } from 'lucide-react';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import { toast } from 'react-toastify';
+import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
 import { useFullPageLayout } from '../../hooks/usePageLayout';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import { useConfirm } from '../../components/ui/confirmContext';
@@ -24,8 +34,15 @@ import { num } from '../../utils/formatMoney.js';
 import PlaceHubService from './PlaceHubService.js';
 import PlaceHubMap from './PlaceHubMap.jsx';
 import PlaceHubDrawer from './PlaceHubDrawer.jsx';
-import { PlacesPanel, IdlingPanel, FuelPanel } from './PlaceHubPanels.jsx';
+import { PlacesPanel, IdlingPanel, FuelPanel, StopsPanel } from './PlaceHubPanels.jsx';
 import LocationSearch from './LocationSearch.jsx';
+import RoutesTab from './intelligence/RoutesTab.jsx';
+import FacilitiesView from './intelligence/FacilitiesView.jsx';
+import RegionsView from './intelligence/RegionsView.jsx';
+import DriverHomesView from './intelligence/DriverHomesView.jsx';
+import ShadowReportTab from './intelligence/ShadowReportTab.jsx';
+import { PURPOSE_LABEL } from './intelligence/placeIntelligenceModel.js';
+import AutoTripCoverage from '../AutoTrips/AutoTripCoverage.jsx';
 import {
   canEditPlaces,
   mergePlaces,
@@ -46,6 +63,7 @@ import {
   payloadFor,
   centroidOf,
   hasPosition,
+  stopGroupsOf,
 } from './placeHubModel.js';
 import {
   styleOfType,
@@ -53,8 +71,15 @@ import {
   PROVENANCE_COLOR,
   DRAIN_COLOR,
   CONTEXT_COLOR,
+  STOP_COLOR,
+  RISK_COLOR,
+  POI_COLOR,
+  POI_LABEL,
 } from './placeHubStyle.js';
+import './intelligence/placeIntelligence.css';
 import './PlaceHub.css';
+
+dayjs.extend(relativeTime);
 
 // Same libraries as the other place pages, so moving between them does not
 // make @react-google-maps/api tear down and reload the Maps script.
@@ -63,6 +88,8 @@ const EMPTY_LAYER = { rows: [], error: null };
 const LIVE_REFRESH_MS = 60_000;
 const MAX_IDLE_SPOTS = 150;
 const KIND_ICON = { WAREHOUSE: Warehouse, ZONE: Hexagon, HOTSPOT: Flame };
+/** Tabs drawn on the map; the rest are tables that take the whole body. */
+const MAP_TABS = new Set(['places', 'idling', 'fuel', 'stops']);
 
 function useHtmlDark() {
   const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
@@ -135,13 +162,23 @@ function AddMenu({ allowHotspot, onAdd }) {
   );
 }
 
-function Legend({ tab, places, showContext }) {
+function PoiKeys() {
+  return Object.keys(POI_COLOR).map((k) => (
+    <span key={k} className="ph-legend-item">
+      <i className="is-square" style={{ background: POI_COLOR[k] }} /> {POI_LABEL[k]}
+    </span>
+  ));
+}
+
+function Legend({ tab, places, showContext, showPoi }) {
+  const poi = showPoi && <PoiKeys />;
   if (tab === 'places') {
     const types = [
-      ...new Set(places.filter((p) => p.status !== 'PROPOSED').map((p) => p.type)),
+      ...new Set(places.filter((p) => p.status === 'CONFIRMED').map((p) => p.type)),
     ].slice(0, 8);
     const proposed = places.some((p) => p.status === 'PROPOSED');
-    if (!types.length && !proposed) return null;
+    const risk = places.some((p) => p.risk);
+    if (!types.length && !proposed && !risk && !poi) return null;
     return (
       <div className="ph-legend">
         {types.map((t) => (
@@ -154,6 +191,12 @@ function Legend({ tab, places, showContext }) {
             <i className="is-hollow" /> To review
           </span>
         )}
+        {risk && (
+          <span className="ph-legend-item">
+            <i className="is-ring" style={{ borderColor: RISK_COLOR }} /> Fuel risk
+          </span>
+        )}
+        {poi}
       </div>
     );
   }
@@ -162,6 +205,17 @@ function Legend({ tab, places, showContext }) {
       <i className="is-ring" style={{ borderColor: CONTEXT_COLOR }} /> Your places
     </span>
   );
+  if (tab === 'stops') {
+    return (
+      <div className="ph-legend">
+        <span className="ph-legend-item">
+          <i style={{ background: STOP_COLOR }} /> Unexplained stops (size = hours)
+        </span>
+        {context}
+        {poi}
+      </div>
+    );
+  }
   if (tab === 'idling') {
     return (
       <div className="ph-legend">
@@ -175,6 +229,7 @@ function Legend({ tab, places, showContext }) {
           <i style={{ background: IDLE_COLOR.excess }} /> Idle spot (size = ₹)
         </span>
         {context}
+        {poi}
       </div>
     );
   }
@@ -191,6 +246,7 @@ function Legend({ tab, places, showContext }) {
         <i style={{ background: DRAIN_COLOR }} /> Fuel drops (size = ₹)
       </span>
       {context}
+      {poi}
     </div>
   );
 }
@@ -208,6 +264,7 @@ export default function PlaceHubPage() {
   const confirm = useConfirm();
   const isDark = useHtmlDark();
   const canEdit = canEditPlaces(getUserRole());
+  const isSuperAdmin = getUserRole() === 'SUPER_ADMIN';
   const [params, setParams] = useSearchParams();
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
@@ -233,17 +290,20 @@ export default function PlaceHubPage() {
     live: [],
     history: [],
     historyTruncated: false,
+    summary: null,
+    breaks: [],
   });
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState({ places: true, idling: true, fuel: true });
-  const [loaded, setLoaded] = useState({ places: false, idling: false, fuel: false });
+  const [loading, setLoading] = useState({ places: true, idling: true, fuel: true, stops: true });
+  const [loaded, setLoaded] = useState({ places: false, idling: false, fuel: false, stops: false });
 
   const loadPlaces = useCallback(async () => {
     setLoading((l) => ({ ...l, places: true }));
-    const [w, z, s] = await Promise.all([
+    const [w, z, s, summary] = await Promise.all([
       PlaceHubService.loadWarehouses(),
       allowZones ? PlaceHubService.loadZones() : EMPTY_LAYER,
       allowSites ? PlaceHubService.loadSites() : EMPTY_LAYER,
+      allowSites ? PlaceHubService.loadSummary() : { rows: null, error: null },
     ]);
     setData((d) => ({
       ...d,
@@ -251,6 +311,7 @@ export default function PlaceHubPage() {
       zones: z.rows,
       sites: s.rows,
       proposedTotal: s.proposedTotal || 0,
+      summary: summary.rows || d.summary,
     }));
     setErrors((e) => ({ ...e, warehouses: w.error, zones: z.error, 'detected places': s.error }));
     setLoading((l) => ({ ...l, places: false }));
@@ -286,6 +347,16 @@ export default function PlaceHubPage() {
     setLoaded((l) => ({ ...l, fuel: true }));
   }, [allowFuel]);
 
+  const loadStops = useCallback(async () => {
+    if (!allowSites) return;
+    setLoading((l) => ({ ...l, stops: true }));
+    const breaks = await PlaceHubService.loadBreaks();
+    setData((d) => ({ ...d, breaks: breaks.rows }));
+    setErrors((e) => ({ ...e, stops: breaks.error }));
+    setLoading((l) => ({ ...l, stops: false }));
+    setLoaded((l) => ({ ...l, stops: true }));
+  }, [allowSites]);
+
   useEffect(() => {
     if (ready) loadPlaces();
   }, [ready, loadPlaces]);
@@ -296,18 +367,34 @@ export default function PlaceHubPage() {
     if (ready) loadFuel();
   }, [ready, loadFuel]);
 
+  // Bumped after an answer or a refresh so the table tabs refetch with the map.
+  const [version, setVersion] = useState(0);
   const refreshAll = () => {
     loadPlaces();
     loadIdling();
     loadFuel();
+    if (loaded.stops) loadStops();
+    setVersion((v) => v + 1);
+  };
+  const onLearned = () => {
+    setVersion((v) => v + 1);
+    loadPlaces();
   };
 
   /* ─── Tabs ────────────────────────────────────────────────────────────── */
 
+  // Place Intelligence's views live here too: the map ones first, then its tables.
   const tabs = [
     { id: 'places', label: 'Places', Icon: MapPinned },
     allowIdling && { id: 'idling', label: 'Idling', Icon: Hourglass },
     allowFuel && { id: 'fuel', label: 'Fuel risk', Icon: Flame },
+    allowSites && { id: 'stops', label: 'Stops', Icon: Clock, title: 'Unexplained stops' },
+    allowSites && { id: 'routes', label: 'Routes', Icon: Route, table: true },
+    allowSites && { id: 'facilities', label: 'Facilities', Icon: Factory, table: true },
+    allowSites && { id: 'regions', label: 'Regions', Icon: Layers, table: true },
+    allowSites && { id: 'homes', label: 'Driver homes', Icon: Home, table: true },
+    allowSites &&
+      isSuperAdmin && { id: 'shadow', label: 'Shadow report', Icon: ShieldCheck, table: true },
   ].filter(Boolean);
   const requestedTab = params.get('tab');
   const tab = tabs.some((t) => t.id === requestedTab) ? requestedTab : 'places';
@@ -319,6 +406,7 @@ export default function PlaceHubPage() {
   const [idleView, setIdleView] = useState('live');
   const [fuelView, setFuelView] = useState('hotspots');
   const [satellite, setSatellite] = useState(false);
+  const [showPoi, setShowPoi] = useState(false);
   const [showContext, setShowContext] = useState(true);
   const [fitNonce, setFitNonce] = useState(0);
 
@@ -334,6 +422,10 @@ export default function PlaceHubPage() {
       { replace: true },
     );
   };
+
+  useEffect(() => {
+    if (tab === 'stops' && !loaded.stops) loadStops();
+  }, [tab, loaded.stops, loadStops]);
 
   // Live idling moves minute to minute; refresh it while someone is watching.
   useEffect(() => {
@@ -369,9 +461,15 @@ export default function PlaceHubPage() {
     [places, group, query],
   );
   const contextPlaces = useMemo(
-    () => (showContext ? places.filter((p) => p.status !== 'PROPOSED') : []),
+    () => (showContext ? places.filter((p) => p.status === 'CONFIRMED') : []),
     [places, showContext],
   );
+  const sitesById = useMemo(
+    () => new Map(places.filter((p) => p.source === 'site').map((p) => [p.sourceId, p])),
+    [places],
+  );
+  const siteOf = useCallback((id) => (id ? sitesById.get(String(id)) || null : null), [sitesById]);
+  const stopGroups = useMemo(() => stopGroupsOf(data.breaks), [data.breaks]);
 
   const live = useMemo(
     () => data.live.filter(hasPosition).sort((a, b) => (b.durationMin || 0) - (a.durationMin || 0)),
@@ -406,11 +504,14 @@ export default function PlaceHubPage() {
       return { kind: 'hotspot', item: hotspots.find((h) => h.id === selectedId) };
     if (prefix === 'drain')
       return { kind: 'drain', item: drainCells.find((c) => c.id === selectedId) };
+    if (prefix === 'stop')
+      return { kind: 'stops', item: stopGroups.find((g) => g.id === selectedId) };
     return { kind: 'place', item: places.find((p) => p.id === selectedId) };
-  }, [selectedId, live, idleSpots, hotspots, drainCells, places]);
+  }, [selectedId, live, idleSpots, hotspots, drainCells, stopGroups, places]);
 
   const fitPoints = useMemo(() => {
     if (tab === 'places') return visiblePlaces;
+    if (tab === 'stops') return stopGroups.slice(0, 40);
     if (tab === 'idling')
       return [
         ...live.map((e) => ({ lat: Number(e.lat), lng: Number(e.lng) })),
@@ -418,8 +519,8 @@ export default function PlaceHubPage() {
       ];
     // Network hotspots span the country; fitting to them would zoom out to India.
     return [...hotspots.filter((h) => h.provenance !== 'network'), ...drainCells.slice(0, 40)];
-  }, [tab, visiblePlaces, live, idleSpots, hotspots, drainCells]);
-  const subView = tab === 'places' ? group : tab === 'idling' ? idleView : fuelView;
+  }, [tab, visiblePlaces, stopGroups, live, idleSpots, hotspots, drainCells]);
+  const subView = { places: group, idling: idleView, fuel: fuelView }[tab] || '';
   const fitKey = `${tab}:${subView}:${loaded[tab] ? 1 : 0}:${fitNonce}`;
 
   /* ─── Selection ───────────────────────────────────────────────────────── */
@@ -447,9 +548,10 @@ export default function PlaceHubPage() {
           ...idleSpots,
           ...hotspots,
           ...drainCells,
+          ...stopGroups,
         ].map((p) => [p.id, p]),
       ),
-    [places, live, idleSpots, hotspots, drainCells],
+    [places, live, idleSpots, hotspots, drainCells, stopGroups],
   );
   const pickFromMap = useCallback(
     (id) => {
@@ -468,7 +570,7 @@ export default function PlaceHubPage() {
     if (!linkedPlace || !loaded.places) return;
     const p = places.find((x) => x.id === linkedPlace);
     if (p) {
-      setGroup(p.group === 'review' ? 'review' : 'all');
+      setGroup(p.group === 'review' || p.group === 'rejected' ? p.group : 'all');
       pickFromList(p.id, p.lat, p.lng);
       setParams(
         (prev) => {
@@ -494,6 +596,44 @@ export default function PlaceHubPage() {
       })
       .catch(() => toast.error('Could not open that place'));
   }, [linkedPlace, loaded.places, places, allowSites, pickFromList, setParams]);
+
+  /** Opens a detected place on the Places tab — from a stop, a facility or a link. */
+  const openSite = useCallback(
+    (siteId) => {
+      setSelectedId(null);
+      setParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('tab');
+          next.set('place', `site:${siteId}`);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setParams],
+  );
+
+  /* ─── Unexplained stops: answers ──────────────────────────────────────── */
+
+  const [stopsBusy, setStopsBusy] = useState(false);
+  const answerStops = async (stops, purpose) => {
+    setStopsBusy(true);
+    try {
+      // One at a time, so a failure part-way says which stops were saved.
+      for (const st of stops) await PlaceHubService.tagStop(st._id, purpose);
+      toast.success(
+        `${stops.length === 1 ? 'Stop' : `${stops.length} stops`} marked as ${PURPOSE_LABEL[purpose].toLowerCase()}`,
+      );
+      await loadStops();
+      loadPlaces();
+    } catch (err) {
+      toast.error(errorText(err, 'Could not save the answer'));
+      loadStops();
+    } finally {
+      setStopsBusy(false);
+    }
+  };
 
   /* ─── Add / edit ──────────────────────────────────────────────────────── */
 
@@ -653,8 +793,16 @@ export default function PlaceHubPage() {
     if (draft && draft.shape === 'circle') changeDraft({ center: { lat: loc.lat, lng: loc.lng } });
   };
 
-  const tabCount = { places: totals.places, idling: liveTotals.count, fuel: fuel.active };
+  const unexplainedHours = data.summary?.unproductive?.hours;
+  const tabBadge = {
+    places: loaded.places ? num(totals.places) : null,
+    idling: loaded.idling ? num(liveTotals.count) : null,
+    fuel: loaded.fuel ? num(fuel.active) : null,
+    stops: unexplainedHours ? `${num(unexplainedHours)} h` : null,
+  };
   const panelOpen = Boolean(draft || selection?.item);
+  const isMapTab = MAP_TABS.has(tab);
+  const lastRunAt = data.summary?.lastRunAt;
 
   /* ─── Render ──────────────────────────────────────────────────────────── */
 
@@ -662,27 +810,34 @@ export default function PlaceHubPage() {
     <div className="ph-page">
       <header className="ph-head">
         <nav className="ph-tabs" aria-label="Place Hub views">
-          {tabs.map((t) => {
+          {tabs.map((t, i) => {
             const TabIcon = t.Icon;
+            const firstTable = t.table && !tabs[i - 1]?.table;
             return (
-              <button
-                key={t.id}
-                type="button"
-                className={`ph-tab${tab === t.id ? ' is-on' : ''}`}
-                aria-current={tab === t.id ? 'page' : undefined}
-                onClick={() => setTab(t.id)}
-              >
-                <TabIcon size={15} />
-                {t.label}
-                {loaded[t.id] && <span className="ph-tab-count">{num(tabCount[t.id])}</span>}
-              </button>
+              <span key={t.id} className="ph-tab-slot">
+                {firstTable && <span className="ph-tab-sep" aria-hidden="true" />}
+                <button
+                  type="button"
+                  className={`ph-tab${tab === t.id ? ' is-on' : ''}`}
+                  aria-current={tab === t.id ? 'page' : undefined}
+                  title={t.title}
+                  onClick={() => setTab(t.id)}
+                >
+                  <TabIcon size={15} />
+                  {t.label}
+                  {tabBadge[t.id] && <span className="ph-tab-count">{tabBadge[t.id]}</span>}
+                </button>
+              </span>
             );
           })}
         </nav>
 
-        <p className="ph-tagline">Every place your fleet works with, on one map</p>
-
         <div className="ph-actions">
+          {lastRunAt && (
+            <span className="ph-fresh" title={dayjs(lastRunAt).format('D MMM YYYY, h:mm a')}>
+              Learned {dayjs(lastRunAt).fromNow()}
+            </span>
+          )}
           <button
             type="button"
             className="ph-icon-btn"
@@ -692,18 +847,43 @@ export default function PlaceHubPage() {
           >
             <RefreshCw size={16} className={loading[tab] ? 'ph-spin' : ''} />
           </button>
-          {canEdit && <AddMenu allowHotspot={allowFuel} onAdd={(k) => startAdd(k)} />}
+          {canEdit && (
+            <AddMenu
+              allowHotspot={allowFuel}
+              onAdd={(k) => {
+                // Drawing needs the map.
+                if (!isMapTab) setTab('places');
+                startAdd(k);
+              }}
+            />
+          )}
         </div>
       </header>
 
-      <div className={`ph-body${panelOpen ? ' has-panel' : ''}`}>
+      {!isMapTab && (
+        <section className="ph-insight" aria-label={tabs.find((t) => t.id === tab)?.label}>
+          <PanelErrorBoundary name={`place-hub-${tab}`}>
+            {tab === 'routes' && <RoutesTab version={version} />}
+            {/* Trucks with no trips need their plant marked a pickup — this tab's job. */}
+            {tab === 'facilities' && isEnabled('autoTrips') && <AutoTripCoverage />}
+            {tab === 'facilities' && (
+              <FacilitiesView version={version} onChanged={onLearned} onOpenPlace={openSite} />
+            )}
+            {tab === 'regions' && <RegionsView version={version} onChanged={onLearned} />}
+            {tab === 'homes' && <DriverHomesView version={version} onChanged={onLearned} />}
+            {tab === 'shadow' && <ShadowReportTab />}
+          </PanelErrorBoundary>
+        </section>
+      )}
+
+      {/* Hidden, not unmounted, on the table tabs: every new map is a billed map load. */}
+      <div className={`ph-body${panelOpen ? ' has-panel' : ''}`} hidden={!isMapTab}>
         <aside className="ph-side" aria-label={`${tab} list`}>
           {tab === 'places' && (
             <PlacesPanel
               loading={loading.places}
               places={visiblePlaces}
               counts={counts}
-              totals={totals}
               group={group}
               onGroup={setGroup}
               query={query}
@@ -753,6 +933,16 @@ export default function PlaceHubPage() {
               onPickCell={(c) => pickFromList(c.id, c.lat, c.lng)}
             />
           )}
+          {tab === 'stops' && (
+            <StopsPanel
+              loading={loading.stops}
+              error={errors.stops}
+              groups={stopGroups}
+              siteOf={siteOf}
+              selectedId={selectedId}
+              onPick={(g) => pickFromList(g.id, g.lat, g.lng)}
+            />
+          )}
         </aside>
 
         <section className="ph-mapwrap" aria-label="Map">
@@ -768,6 +958,8 @@ export default function PlaceHubPage() {
             idleSpots={idleSpots}
             hotspots={hotspots}
             drainCells={drainCells}
+            stopGroups={stopGroups}
+            showPoi={showPoi}
             hiddenPlaceId={hiddenPlaceId}
             selectedId={selectedId}
             onSelect={pickFromMap}
@@ -780,7 +972,11 @@ export default function PlaceHubPage() {
 
           <div className="ph-map-top">
             <div className="ph-map-search">
-              <LocationSearch isLoaded={isLoaded} onPick={onMapSearch} />
+              <LocationSearch
+                isLoaded={isLoaded}
+                onPick={onMapSearch}
+                placeholder="Go to a town or address"
+              />
             </div>
             <div className="ph-map-tools">
               {tab !== 'places' && (
@@ -794,6 +990,15 @@ export default function PlaceHubPage() {
                   <MapPinned size={15} /> Your places
                 </button>
               )}
+              <button
+                type="button"
+                className={`ph-tool${showPoi ? ' is-on' : ''}`}
+                onClick={() => setShowPoi((v) => !v)}
+                aria-pressed={showPoi}
+                title="Plants, sidings, pumps and dhabas the map data knows about — zoom in to see them"
+              >
+                <Building2 size={15} /> Map data
+              </button>
               <button
                 type="button"
                 className={`ph-tool${satellite ? ' is-on' : ''}`}
@@ -829,7 +1034,12 @@ export default function PlaceHubPage() {
             </div>
           )}
 
-          <Legend tab={tab} places={visiblePlaces} showContext={showContext && tab !== 'places'} />
+          <Legend
+            tab={tab}
+            places={visiblePlaces}
+            showContext={showContext && tab !== 'places'}
+            showPoi={showPoi}
+          />
         </section>
 
         {panelOpen && (
@@ -841,9 +1051,13 @@ export default function PlaceHubPage() {
             onClose={() => setSelectedId(null)}
             onEdit={startEdit}
             onDelete={removePlace}
-            onReviewed={() => loadPlaces()}
+            onReviewed={onLearned}
             onAdd={startAdd}
             onToggleHotspot={toggleHotspot}
+            siteOf={siteOf}
+            stopsBusy={stopsBusy}
+            onAnswerStops={answerStops}
+            onOpenSite={openSite}
             editor={{
               errors: draftErrors,
               saving,

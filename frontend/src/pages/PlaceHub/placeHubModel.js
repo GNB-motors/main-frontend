@@ -6,13 +6,29 @@
  * events — folds them into one list for one map, and sends every edit back to
  * the store it came from.
  */
-import { typeLabel } from '../PlaceIntelligence/placeIntelligenceModel.js';
+import {
+  typeLabel,
+  effectiveType,
+  hasRisk,
+  placeTitle,
+  groupBreaks,
+} from './intelligence/placeIntelligenceModel.js';
 import { provenanceOf } from '../../services/HotspotService.js';
 
 export const EDITOR_ROLES = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
 export const canEditPlaces = (role) => EDITOR_ROLES.includes(String(role || '').toUpperCase());
 
-export const TAB_IDS = ['places', 'idling', 'fuel'];
+export const TAB_IDS = [
+  'places',
+  'idling',
+  'fuel',
+  'stops',
+  'routes',
+  'facilities',
+  'regions',
+  'homes',
+  'shadow',
+];
 
 /* ─── Place types and groups ─────────────────────────────────────────────── */
 
@@ -33,14 +49,19 @@ const GROUP_OF_TYPE = {
 };
 
 export const PLACE_GROUPS = [
-  { id: 'all', label: 'All places' },
-  { id: 'warehouse', label: 'Warehouses & yards' },
+  { id: 'all', label: 'All' },
+  { id: 'warehouse', label: 'Warehouses' },
   { id: 'zone', label: 'Zones' },
-  { id: 'trade', label: 'Loading & unloading' },
+  { id: 'trade', label: 'Load & unload' },
   { id: 'road', label: 'On the road' },
   { id: 'other', label: 'Other' },
+  { id: 'risk', label: 'Fuel risk' },
   { id: 'review', label: 'To review' },
+  { id: 'rejected', label: 'Not a place' },
 ];
+
+/** Groups that sit outside "All places": suggestions, and places said not to exist. */
+const SET_ASIDE = new Set(['review', 'rejected']);
 
 export function groupOfType(type) {
   return GROUP_OF_TYPE[type] || 'other';
@@ -147,18 +168,24 @@ export function alertSummary(entry, exit) {
   return 'No alerts';
 }
 
+const SITE_GROUP_OF_STATUS = { PROPOSED: 'review', REJECTED: 'rejected' };
+
 export function fromSite(s) {
-  const type = s.siteType || 'UNKNOWN';
+  // The engine's reading when nobody has answered yet, so a suggestion shows as
+  // "Fuel pump, Kolaghat" rather than "Unknown".
+  const { type } = effectiveType(s);
   const erp = (s.origins || []).includes('ERP_DECLARED');
-  const proposed = s.status === 'PROPOSED';
+  const status = s.status || 'PROPOSED';
   return {
     id: `site:${s._id}`,
     source: 'site',
     sourceId: String(s._id),
-    name: s.name || placeTypeLabel(type),
+    name: placeTitle(s),
     type,
-    group: proposed ? 'review' : groupOfType(type),
-    status: s.status || 'PROPOSED',
+    group: SITE_GROUP_OF_STATUS[status] || groupOfType(type),
+    status,
+    risk: hasRisk(s),
+    reviewRank: Number.isInteger(s.reviewRank) ? s.reviewRank : null,
     lat: toNum(s.centroidLat),
     lng: toNum(s.centroidLng),
     radiusM: Number(s.radiusM) || null,
@@ -193,26 +220,44 @@ export function mergePlaces({ warehouses = [], zones = [], sites = [] } = {}) {
       .filter((z) => !String(z.description || '').startsWith(MIRROR_NOTE))
       .map(fromZone),
     ...sites
-      .filter((s) => s.status !== 'REJECTED' && !s.supersededBy)
+      .filter((s) => !s.supersededBy)
       .filter((s) => !warehouseIds.has(String(s.legacy?.vehicleWarehouseId || '')))
       .map(fromSite),
   ].filter((p) => isNum(p.lat) && isNum(p.lng));
 
   return places.sort(
     (a, b) =>
-      Number(a.status === 'PROPOSED') - Number(b.status === 'PROPOSED') ||
+      (STATUS_ORDER[a.status] ?? 0) - (STATUS_ORDER[b.status] ?? 0) ||
+      (a.status === 'PROPOSED' ? byReviewPriority(a, b) : 0) ||
       a.name.localeCompare(b.name),
   );
 }
 
+const STATUS_ORDER = { CONFIRMED: 0, PROPOSED: 1, REJECTED: 2 };
+
+/** The review queue's order first (it puts trip drops up front), then the busiest. */
+function byReviewPriority(a, b) {
+  const ra = a.reviewRank ?? Infinity;
+  const rb = b.reviewRank ?? Infinity;
+  if (ra !== rb) return ra - rb;
+  return (Number(b.raw?.visitCount) || 0) - (Number(a.raw?.visitCount) || 0);
+}
+
+function inGroup(p, group) {
+  if (group === 'all') return !SET_ASIDE.has(p.group);
+  if (group === 'risk') return Boolean(p.risk) && p.group !== 'rejected';
+  return p.group === group;
+}
+
 /**
  * "All" means every confirmed place. Suggestions waiting for an answer can run
- * into the hundreds, so they live only under "To review" and never crowd it.
+ * into the hundreds, so they live only under "To review" and never crowd it;
+ * places answered "not a place" wait under their own chip, to be undone.
  */
 export function filterPlaces(places, { group = 'all', query = '' } = {}) {
   const q = query.trim().toLowerCase();
   return places.filter((p) => {
-    if (group === 'all' ? p.group === 'review' : p.group !== group) return false;
+    if (!inGroup(p, group)) return false;
     if (!q) return true;
     return [p.name, p.subtitle, placeTypeLabel(p.type)]
       .filter(Boolean)
@@ -221,21 +266,22 @@ export function filterPlaces(places, { group = 'all', query = '' } = {}) {
 }
 
 export function countByGroup(places) {
-  const counts = { all: 0 };
+  const counts = { all: 0, risk: 0 };
   for (const p of places) {
     counts[p.group] = (counts[p.group] || 0) + 1;
-    if (p.group !== 'review') counts.all += 1;
+    if (!SET_ASIDE.has(p.group)) counts.all += 1;
+    if (inGroup(p, 'risk')) counts.risk += 1;
   }
   return counts;
 }
 
 export function placeTotals(places) {
-  const confirmed = places.filter((p) => p.status !== 'PROPOSED');
+  const confirmed = places.filter((p) => p.status === 'CONFIRMED');
   return {
     places: confirmed.length,
     warehouses: confirmed.filter((p) => p.group === 'warehouse').length,
     zones: confirmed.filter((p) => p.group === 'zone').length,
-    toReview: places.length - confirmed.length,
+    toReview: places.filter((p) => p.status === 'PROPOSED').length,
   };
 }
 
@@ -315,6 +361,27 @@ export function idleHistoryTotals(events = []) {
     },
     { events: 0, hours: 0, rupees: 0, excessRupees: 0 },
   );
+}
+
+/* ─── Unexplained stops ──────────────────────────────────────────────────── */
+
+/** Last week's unexplained stops, one entry per place (its site, else a ~100 m cell), worst first. */
+export function stopGroupsOf(breaks = []) {
+  return groupBreaks(breaks)
+    .filter((g) => isNum(g.lat) && isNum(g.lng))
+    .map((g) => ({ ...g, id: `stop:${g.key}` }));
+}
+
+export function stopTotals(groups = []) {
+  const trucks = new Set();
+  let stops = 0;
+  let minutes = 0;
+  for (const g of groups) {
+    stops += g.stops.length;
+    minutes += g.minutes;
+    g.trucks.forEach((t) => trucks.add(t));
+  }
+  return { places: groups.length, stops, minutes, trucks: trucks.size };
 }
 
 /* ─── Fuel risk ──────────────────────────────────────────────────────────── */

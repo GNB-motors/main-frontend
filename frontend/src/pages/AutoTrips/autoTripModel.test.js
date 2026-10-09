@@ -12,6 +12,8 @@ import {
   stopsOnWayText,
   stopKind,
   timelineRows,
+  timelinePlan,
+  fmtDay,
   inWindow,
   notReachedYet,
 } from './autoTripModel';
@@ -71,7 +73,7 @@ describe('stop helpers', () => {
 
   it('answerPlaceHref only for a guessed drop at a known place', () => {
     expect(answerPlaceHref({ drop: { orgSiteId: 's1', source: 'INFERRED_TURNAROUND' } })).toBe(
-      '/places?place=s1',
+      '/place-hub?place=site%3As1',
     );
     expect(answerPlaceHref({ drop: { orgSiteId: 's1', source: 'LABELLED_PLACE' } })).toBeNull();
     expect(answerPlaceHref({ drop: { source: 'INFERRED_TURNAROUND' } })).toBeNull();
@@ -193,6 +195,97 @@ describe('timelineRows', () => {
 
   it('is empty without a trip', () => {
     expect(timelineRows(null)).toEqual([]);
+  });
+});
+
+describe('timelinePlan', () => {
+  const trip = {
+    status: 'COMPLETE',
+    pickup: {
+      name: 'Dalmia Salbani',
+      arrivedAt: '2026-10-07T00:00:00Z',
+      departedAt: '2026-10-07T15:03:00Z',
+    },
+    drop: {
+      name: 'Mamudpur',
+      arrivedAt: '2026-10-07T22:50:00Z',
+      departedAt: '2026-10-08T01:21:00Z',
+      source: 'LABELLED_PLACE',
+    },
+    durations: { plantMin: 903 },
+    routeStops: [
+      {
+        _id: 's1',
+        startAt: '2026-10-07T15:22:00Z',
+        endAt: '2026-10-07T15:25:00Z',
+        dwellMinutes: 3,
+        purpose: { unexplained: true },
+      },
+      {
+        _id: 's2',
+        startAt: '2026-10-07T22:50:00Z',
+        endAt: '2026-10-08T01:21:00Z',
+        dwellMinutes: 151,
+      },
+    ],
+  };
+
+  it('puts a drive between each pair of steps and splits the time', () => {
+    const plan = timelinePlan(trip);
+    expect(plan.items.map((it) => it.kind || it.type)).toEqual([
+      'loading',
+      'leg',
+      'unknown',
+      'leg',
+      'drop',
+    ]);
+    expect(plan.items[1]).toMatchObject({ driveMin: 19, load: 'loaded' });
+    expect(plan.items[3]).toMatchObject({ driveMin: 445, load: 'loaded' });
+    expect(plan.spans.map((s) => s.kind)).toEqual(['plant', 'drive', 'unknown', 'drive', 'drop']);
+    expect(plan.legend).toEqual([
+      { kind: 'plant', label: 'At plant', min: 903 },
+      { kind: 'drive', label: 'Driving', min: 464 },
+      { kind: 'unknown', label: 'Unknown stop', min: 3 },
+      { kind: 'drop', label: 'Unloading', min: 151 },
+    ]);
+    expect(plan.totalMin).toBe(903 + 464 + 3 + 151);
+    expect(plan.totalOf).toBe('plant arrival to drop departure');
+  });
+
+  it('drives after the last drop are empty', () => {
+    const later = {
+      ...trip,
+      routeStops: [
+        ...trip.routeStops,
+        {
+          _id: 's3',
+          startAt: '2026-10-08T03:00:00Z',
+          endAt: '2026-10-08T03:40:00Z',
+          dwellMinutes: 40,
+          purpose: { top: 'FUEL' },
+        },
+      ],
+    };
+    const plan = timelinePlan(later);
+    expect(plan.items[5]).toMatchObject({ type: 'leg', driveMin: 99, load: 'empty' });
+    expect(plan.legend.find((l) => l.kind === 'stop')).toMatchObject({ min: 40 });
+    expect(plan.totalOf).toBe('plant arrival to last stop departure');
+  });
+
+  it('leaves the drive blank when the last departure is unknown', () => {
+    const plan = timelinePlan({ ...trip, pickup: { ...trip.pickup, departedAt: null } });
+    expect(plan.items[1]).toMatchObject({ type: 'leg', driveMin: null });
+  });
+
+  it('is empty without a trip', () => {
+    expect(timelinePlan(null)).toMatchObject({ items: [], spans: [], legend: [], totalMin: 0 });
+  });
+});
+
+describe('fmtDay', () => {
+  it('prints the day and month', () => {
+    expect(fmtDay(new Date(2026, 9, 7, 20, 30))).toBe('7 Oct');
+    expect(fmtDay(null)).toBe('—');
   });
 });
 

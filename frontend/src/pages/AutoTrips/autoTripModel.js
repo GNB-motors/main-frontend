@@ -1,7 +1,7 @@
 /**
  * Auto Trips — pure helpers for the list, detail and map. No React, no I/O.
  */
-import { dropLabel } from '../PlaceIntelligence/facilityText';
+import { dropLabel } from '../PlaceHub/intelligence/facilityText';
 
 export const FLAG_LABEL = {
   DROP_INFERRED: 'Drop guessed from the turnaround',
@@ -82,13 +82,17 @@ export function stopLabel(stop) {
 }
 
 /**
- * A guessed drop at a known place is a question for the Places page: answering it there
+ * A guessed drop at a known place is a question for Place Hub: answering it there
  * settles every trip that turned around at it.
  */
+/** Place Hub, opened on one detected place. */
+export const placeHubHref = (orgSiteId) =>
+  `/place-hub?place=${encodeURIComponent(`site:${orgSiteId}`)}`;
+
 export function answerPlaceHref(trip) {
   const drop = trip?.drop;
   if (!drop?.orgSiteId || drop.source !== 'INFERRED_TURNAROUND') return null;
-  return `/places?place=${drop.orgSiteId}`;
+  return placeHubHref(drop.orgSiteId);
 }
 
 // ─── Status ──────────────────────────────────────────────────────────────────
@@ -128,6 +132,12 @@ export function fmtClock(v) {
   if (!d) return '—';
   const h = d.getHours();
   return `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
+}
+
+/** "7 Oct" */
+export function fmtDay(v) {
+  const d = toDate(v);
+  return d ? `${d.getDate()} ${MONTHS[d.getMonth()]}` : '—';
 }
 
 /** "7 Oct, 8:30 pm" — or "07 Oct, 8:30 pm" with padDay, as in the trip list. */
@@ -249,6 +259,15 @@ function stopPlace(stop) {
   return 'Unnamed place';
 }
 
+/** When the truck left: the recorded time, else arrival plus the stay. */
+function leftAtOf(endAt, startAt, stayMin) {
+  if (endAt) return endAt;
+  const start = toDate(startAt);
+  return start && stayMin != null
+    ? new Date(start.getTime() + stayMin * 60000).toISOString()
+    : null;
+}
+
 /**
  * One row per step of the trip, in time order: loading at the plant, every stop after
  * it, and each drop. Row kinds: loading | drop | stop | unknown.
@@ -266,6 +285,7 @@ export function timelineRows(trip) {
       place: pickup.name || 'Pickup place',
       placeNote: 'plant',
       at: pickupAt,
+      leftAt: pickup.departedAt || null,
       stayMin: trip.durations?.plantMin ?? pickup.dwellMin ?? null,
       playAt: pickup.departedAt || pickupAt,
       stop: null,
@@ -288,6 +308,7 @@ export function timelineRows(trip) {
         place: dropLabel(drop),
         placeNote: DROP_NOTE[drop.source] || null,
         at: s.startAt,
+        leftAt: leftAtOf(s.endAt || drop.departedAt, s.startAt, s.dwellMinutes ?? drop.dwellMin),
         stayMin: s.dwellMinutes ?? drop.dwellMin ?? null,
         playAt: s.startAt,
         stop: s,
@@ -302,6 +323,7 @@ export function timelineRows(trip) {
       place: stopPlace(s),
       placeNote: null,
       at: s.startAt,
+      leftAt: leftAtOf(s.endAt, s.startAt, s.dwellMinutes),
       stayMin: s.dwellMinutes ?? null,
       playAt: s.startAt,
       stop: s,
@@ -318,6 +340,7 @@ export function timelineRows(trip) {
       place: dropLabel(d),
       placeNote: DROP_NOTE[d.source] || null,
       at: d.arrivedAt,
+      leftAt: leftAtOf(d.departedAt, d.arrivedAt, d.dwellMin),
       stayMin: d.dwellMin ?? (i === 0 ? trip.durations?.dropMin : null) ?? null,
       playAt: d.arrivedAt,
       stop: null,
@@ -325,6 +348,80 @@ export function timelineRows(trip) {
   });
 
   return rows.sort((a, b) => toDate(a.at).getTime() - toDate(b.at).getTime());
+}
+
+/** A plant visit this long is worth a second look, so it shows amber. */
+export const LONG_PLANT_MIN = 4 * 60;
+
+const SPAN_KIND = { loading: 'plant', drop: 'drop', unknown: 'unknown', stop: 'stop' };
+
+export const TIMELINE_SPANS = [
+  { kind: 'plant', label: 'At plant' },
+  { kind: 'drive', label: 'Driving' },
+  { kind: 'unknown', label: 'Unknown stop' },
+  { kind: 'stop', label: 'Other stops' },
+  { kind: 'drop', label: 'Unloading' },
+];
+
+function minutesBetween(a, b) {
+  const s = toDate(a);
+  const e = toDate(b);
+  if (!s || !e) return null;
+  return Math.round((e.getTime() - s.getTime()) / 60000);
+}
+
+/**
+ * The timeline as steps with the drive between each pair, and where the time went: each
+ * step's stay, then the drive to the next (its arrival minus the last departure). Drives
+ * up to the last drop are loaded and later ones empty; with no drop at all the load is
+ * only known while the trip is still on its way.
+ */
+export function timelinePlan(trip) {
+  const rows = timelineRows(trip);
+  let lastDrop = -1;
+  rows.forEach((r, i) => {
+    if (r.kind === 'drop') lastDrop = i;
+  });
+  const onTheWay = notReachedYet(trip);
+
+  const items = [];
+  const spans = [];
+  rows.forEach((row, i) => {
+    if (i > 0) {
+      const driveMin = minutesBetween(rows[i - 1].leftAt, row.at);
+      let load = null;
+      if (lastDrop >= 0) load = i <= lastDrop ? 'loaded' : 'empty';
+      else if (onTheWay) load = 'loaded';
+      items.push({
+        type: 'leg',
+        id: `leg-${row.id}`,
+        driveMin: driveMin > 0 ? driveMin : null,
+        load,
+      });
+      if (driveMin > 0) spans.push({ kind: 'drive', min: driveMin });
+    }
+    items.push({ type: 'step', ...row });
+    if (row.stayMin > 0) spans.push({ kind: SPAN_KIND[row.kind], min: row.stayMin });
+  });
+
+  const byKind = new Map();
+  spans.forEach((s) => byKind.set(s.kind, (byKind.get(s.kind) || 0) + s.min));
+  const first = rows[0];
+  const last = rows[rows.length - 1];
+  return {
+    items,
+    spans,
+    legend: TIMELINE_SPANS.filter((s) => byKind.get(s.kind) > 0).map((s) => ({
+      ...s,
+      min: byKind.get(s.kind),
+    })),
+    totalMin: spans.reduce((sum, s) => sum + s.min, 0),
+    totalOf: first
+      ? `${first.kind === 'loading' ? 'plant arrival' : 'first stop'} to ${
+          last.kind === 'drop' ? 'drop' : 'last stop'
+        } departure`
+      : '',
+  };
 }
 
 /** Whether a time falls inside the replay window, so "play from here" can jump to it. */

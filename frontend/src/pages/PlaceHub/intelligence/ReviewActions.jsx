@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Check, X, Pencil, Loader2, ArrowRight } from 'lucide-react';
+import { Check, X, Pencil, Loader2 } from 'lucide-react';
 import TypeChips from './TypeChips';
 import { aType, effectiveType, suggestion, typeLabel } from './placeIntelligenceModel';
 
@@ -9,7 +8,7 @@ import { aType, effectiveType, suggestion, typeLabel } from './placeIntelligence
  *  - the engine has a confident guess → one click "Yes, it's a fuel pump";
  *  - it has none → every type as a chip, no dropdown;
  *  - already answered → change it, or say it is not a place.
- * A declared warehouse is owned by the Warehouses page, so it links there.
+ * A declared warehouse is edited as a warehouse, not answered here.
  * Parent keys this by site id, so the open/name state resets per place.
  */
 export default function ReviewActions({ site, answer }) {
@@ -24,9 +23,7 @@ export default function ReviewActions({ site, answer }) {
     return (
       <div className="pi-answer">
         <p className="pi-answer-q">This is one of your declared warehouses.</p>
-        <Link to="/warehouses" className="pi-link">
-          Change its boundary or trucks on the Warehouses page <ArrowRight size={13} />
-        </Link>
+        <p className="pi-note">Change its boundary from the warehouse itself in the Places list.</p>
       </div>
     );
   }

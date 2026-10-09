@@ -1,6 +1,6 @@
 import apiClient from '../../utils/axiosConfig';
 import VehicleWarehouseService from '../../services/VehicleWarehouseService.js';
-import PlaceIntelligenceService from '../PlaceIntelligence/PlaceIntelligenceService.js';
+import PlaceIntelligenceService from './intelligence/PlaceIntelligenceService.js';
 import { listHotspots, getDrainMap } from '../../services/HotspotService.js';
 import IdlingConsoleService from '../IdlingConsole/IdlingConsoleService.js';
 
@@ -53,7 +53,11 @@ export const PlaceHubService = {
       return res.data?.zones ?? [];
     }),
 
-  /** Every confirmed site, plus the 200 busiest suggestions and how many there are in all. */
+  /**
+   * Every confirmed site, the 200 busiest suggestions (and how many there are
+   * in all), the latest places said not to exist, and the review queue's order —
+   * it puts places trips turn around at first, so those are asked about first.
+   */
   loadSites: async ({ signal } = {}) => {
     let proposedTotal = 0;
     const result = await layer(async () => {
@@ -65,15 +69,51 @@ export const PlaceHubService = {
             totalPages: Math.ceil((d?.total || 0) / 200),
           }),
         );
-      const [confirmed, proposed] = await Promise.all([
+      const [confirmed, proposed, rejected, queue] = await Promise.all([
         allPages(page('CONFIRMED'), MAX_SITE_PAGES),
         page('PROPOSED')(1),
+        page('REJECTED')(1),
+        // The order is a nicety; the suggestions still list without it.
+        PlaceIntelligenceService.reviewQueue({ limit: 100 }, { signal }).catch(() => null),
       ]);
       proposedTotal = proposed.total;
-      return [...confirmed.rows, ...proposed.rows];
+      const byId = new Map(
+        [...confirmed.rows, ...proposed.rows, ...rejected.rows].map((s) => [String(s._id), s]),
+      );
+      (queue?.items || []).forEach((item, rank) => {
+        if (!item?.site?._id) return;
+        const id = String(item.site._id);
+        byId.set(id, {
+          ...item.site,
+          ...byId.get(id),
+          tripDrops: item.tripDrops,
+          reviewRank: rank,
+        });
+      });
+      return [...byId.values()];
     });
     return { ...result, proposedTotal };
   },
+
+  /** The full record behind a detected place: evidence, facility, address. */
+  siteDetail: (id, { signal } = {}) =>
+    PlaceIntelligenceService.getSite(id, { signal }).then((d) => d?.site ?? null),
+
+  /** Headline numbers: unexplained stop time, when the engine last ran. */
+  loadSummary: ({ signal } = {}) => layer(() => PlaceIntelligenceService.summary({ signal })),
+
+  /** Last week's stops nothing explains — not fuel, loading, rest rules or a queue. */
+  loadBreaks: ({ signal } = {}) =>
+    layer(
+      async () =>
+        (await PlaceIntelligenceService.listBreaks({ limit: 200 }, { signal }))?.records ?? [],
+    ),
+
+  /** Plants, pumps, sidings … the map data knows about inside a box. A database read. */
+  loadPoi: (box, { signal } = {}) =>
+    PlaceIntelligenceService.listPoi(box, { signal }).then((d) => d?.items || []),
+
+  tagStop: (id, purpose) => PlaceIntelligenceService.tagStop({ id, purpose }),
 
   /** One site by id: a suggestion outside the 200 busiest that a link opens. */
   loadSite: async (id, { signal } = {}) => {

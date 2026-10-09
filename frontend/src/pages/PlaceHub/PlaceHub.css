@@ -1,6 +1,6 @@
 /* ─── Place Hub ──────────────────────────────────────────────────────────────
    Prefix: ph-. Full-bleed page (useFullPageLayout): header, then a list rail
-   beside one map, with the detail / editor drawer floating over the map.
+   beside one map, with the detail / editor docked as a third column.
    Colours are tokens on .ph-page so the dark theme only swaps values.
    ─────────────────────────────────────────────────────────────────────────── */
 
@@ -96,31 +96,48 @@
   flex-shrink: 0;
 }
 
-.ph-tagline {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--ph-dim);
-  font-size: 12.5px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .ph-tabs {
   display: flex;
   gap: 2px;
+  min-width: 0;
   padding: 3px;
+  overflow-x: auto;
+  scrollbar-width: none;
   background: var(--ph-sunk);
   border: 1px solid var(--ph-border);
   border-radius: 12px;
+}
+
+.ph-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.ph-tab-slot {
+  display: flex;
+  align-items: center;
   flex-shrink: 0;
+}
+
+/* Map views on the left of it, Place Intelligence's tables on the right. */
+.ph-tab-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 5px 0 3px;
+  background: var(--ph-border-strong);
+}
+
+.ph-fresh {
+  color: var(--ph-dim);
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .ph-tab {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 6px 14px;
+  gap: 6px;
+  padding: 6px 11px;
+  white-space: nowrap;
   border: 0;
   border-radius: 9px;
   background: transparent;
@@ -165,6 +182,7 @@
   align-items: center;
   gap: 8px;
   margin-left: auto;
+  flex-shrink: 0;
 }
 
 /* ─── Buttons ── */
@@ -348,6 +366,26 @@
   grid-template-columns: 340px minmax(0, 1fr);
 }
 
+.ph-body[hidden] {
+  display: none;
+}
+
+/* Place Intelligence's table views (routes, facilities, regions …) take the whole body. */
+.ph-insight {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 20px 24px;
+}
+
+.ph-insight > * + * {
+  margin-top: 12px;
+}
+
+.ph-insight .pi-filters {
+  margin-bottom: 12px;
+}
+
 /* The detail / editor panel takes its own column, so it never covers the map. */
 .ph-body.has-panel {
   grid-template-columns: 340px minmax(0, 1fr) 380px;
@@ -357,9 +395,18 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--ph-surface);
   border-right: 1px solid var(--ph-border);
+}
+
+/* Only the list scrolls; the search and filters above it stay in place. */
+.ph-side > .ph-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ph-border-strong) transparent;
 }
 
 /* ─── KPI tiles ── */
@@ -421,9 +468,13 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 6px 14px 10px;
+  padding: 6px 14px 12px;
   background: var(--ph-surface);
   border-bottom: 1px solid var(--ph-border);
+}
+
+.ph-filter:first-child {
+  padding-top: 14px;
 }
 
 .ph-input {
@@ -453,25 +504,24 @@
   font: inherit;
 }
 
-.ph-chips {
+.ph-chip-rows {
   display: flex;
+  flex-direction: column;
   gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  margin: 0 -14px;
-  padding: 0 14px;
 }
 
-.ph-chips::-webkit-scrollbar {
-  display: none;
+.ph-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
 .ph-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding: 0 10px;
+  gap: 5px;
+  height: 27px;
+  padding: 0 9px;
   border: 1px solid var(--ph-border);
   border-radius: 999px;
   background: var(--ph-surface);
@@ -505,6 +555,10 @@
 
 .ph-chip--warn:not(.is-on) span {
   color: var(--ph-warn);
+}
+
+.ph-chip--crit:not(.is-on) span {
+  color: var(--ph-crit);
 }
 
 .ph-seg {
@@ -611,6 +665,12 @@
   font-weight: 600;
 }
 
+.ph-row-flag {
+  color: var(--ph-warn);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
 .ph-row-sub {
   overflow: hidden;
   color: var(--ph-dim);
@@ -648,6 +708,7 @@
 .ph-pill {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   height: 20px;
   padding: 0 8px;
   border-radius: 999px;
@@ -682,9 +743,18 @@
   color: var(--ph-dim);
 }
 
-.ph-note,
-.ph-layer-error {
+/* .ph-page scoped: the page-wide `.ph-page p { margin: 0 }` reset outranks a bare class. */
+.ph-page .ph-note,
+.ph-page .ph-layer-error {
   margin: 8px 14px 0;
+}
+
+.ph-page .ph-note--lead {
+  margin: 0 14px 8px;
+}
+
+.ph-page .ph-note,
+.ph-page .ph-layer-error {
   color: var(--ph-dim);
   font-size: 11.5px;
   line-height: 1.45;
@@ -809,7 +879,8 @@
 }
 
 .ph-map-search {
-  width: min(340px, 100%);
+  flex: 0 1 340px;
+  min-width: 140px;
 }
 
 .ph-map-search .ph-search {
@@ -818,6 +889,7 @@
 
 .ph-map-tools {
   display: flex;
+  flex-shrink: 0;
   gap: 6px;
 }
 
@@ -825,6 +897,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
   height: 36px;
   padding: 0 11px;
   border: 1px solid var(--ph-border);
@@ -875,8 +948,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px 14px;
-  max-width: min(560px, calc(100% - 90px));
-  padding: 8px 12px;
+  max-width: calc(100% - 76px);
+  padding: 7px 12px;
   border: 1px solid var(--ph-border);
   border-radius: 10px;
   background: color-mix(in srgb, var(--ph-surface) 92%, transparent);
@@ -913,6 +986,12 @@
   background: transparent;
   border-width: 2px;
   box-shadow: none;
+}
+
+.ph-legend-item i.is-square {
+  border-radius: 1px;
+  width: 8px;
+  height: 8px;
 }
 
 .ph-legend-item i.is-diamond {
@@ -1202,6 +1281,72 @@
   color: var(--ph-warn);
 }
 
+.ph-callout--crit {
+  background: var(--ph-crit-tint);
+  color: var(--ph-crit);
+}
+
+/* ─── Unexplained stops in the detail panel ── */
+.ph-stops {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ph-stop {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--ph-border);
+  border-radius: 10px;
+}
+
+.ph-stop-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ph-stop-line strong {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ph-panel-body > .ph-btn {
+  align-self: flex-start;
+}
+
+/* Place Intelligence's verdict, answer and evidence blocks, sized for the panel. */
+.ph-panel .pi-verdict {
+  margin-bottom: 0;
+}
+
+.ph-panel .pi-answer {
+  margin: 0 -16px;
+  padding: 14px 16px;
+  background: var(--ph-raised);
+  border-color: var(--ph-border);
+}
+
+.ph-panel .pi-detail-sec {
+  padding: 0;
+}
+
+.ph-panel .pi-section-title {
+  color: var(--ph-dim);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.ph-panel .pi-callout {
+  margin-top: 8px;
+}
+
 .ph-split {
   display: flex;
   height: 8px;
@@ -1466,10 +1611,6 @@
 
 /* ─── Narrow screens ── */
 @media (max-width: 1360px) {
-  .ph-tagline {
-    display: none;
-  }
-
   .ph-body {
     grid-template-columns: 300px minmax(0, 1fr);
   }

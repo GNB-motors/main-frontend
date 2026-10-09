@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react';
 import { ChevronDown, ChevronRight, ArrowRight, Route } from 'lucide-react';
-import useApi from '../../hooks/useApi';
-import { formatNum } from '../../utils/formatters';
+import useApi from '../../../hooks/useApi';
+import { formatNum } from '../../../utils/formatters';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
 import PanelLoading from './PanelLoading';
 import EmptyPanel from './EmptyPanel';

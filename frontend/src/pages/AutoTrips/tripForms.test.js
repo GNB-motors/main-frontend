@@ -82,7 +82,7 @@ describe('tripForms', () => {
       ]),
     ).toEqual([{ id: '1', label: 'Ravi' }]);
     expect(placeOptions([{ _id: 's', name: 'AMBUJA', siteType: 'LOADING' }])).toEqual([
-      { id: 's', label: 'AMBUJA · LOADING' },
+      { id: 's', label: 'AMBUJA · Loading point' },
     ]);
   });
 

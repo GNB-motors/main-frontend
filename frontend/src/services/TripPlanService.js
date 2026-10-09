@@ -1,6 +1,6 @@
 import apiClient from '../utils/axiosConfig';
 import { parseSafe } from '../schemas/validate.js';
-import PlaceIntelligenceService from '../pages/PlaceIntelligence/PlaceIntelligenceService';
+import PlaceIntelligenceService from '../pages/PlaceHub/intelligence/PlaceIntelligenceService';
 
 const BASE = '/api/trip-plans';
 const asList = (response) => {

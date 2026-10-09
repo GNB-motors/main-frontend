@@ -2,34 +2,32 @@ import { useCallback, useMemo, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Check } from 'lucide-react';
-import DataTable from '../../components/ui/DataTable';
 import { useApi } from '../../hooks/useApi';
 import { useMutation } from '../../hooks/useMutation';
 import AutoTripService from '../../services/AutoTripService';
 import { getUserRole } from '../../utils/session.js';
-import { dropLabel } from '../PlaceIntelligence/facilityText';
+import { dropLabel } from '../PlaceHub/intelligence/facilityText';
 import AutoTripReplay from './AutoTripReplay';
+import AutoTripTimeline from './AutoTripTimeline';
 import {
   FLAG_LABEL,
+  LONG_PLANT_MIN,
   STATUS_CLASS,
   STATUS_LABEL,
   answerPlaceHref,
-  canMarkPlace,
   fmtDayTime,
   fmtDuration,
   fmtKm,
   inWindow,
   notReachedYet,
   stopsOnWayText,
-  timelineRows,
+  timelinePlan,
   tripDateRange,
 } from './autoTripModel';
 import './AutoTrips.css';
 
 /** Confirm, dismiss and drop fixes are owner/manager actions on the server. */
 const CAN_EDIT = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
-/** A plant visit this long is worth a second look, so it shows amber. */
-const LONG_PLANT_MIN = 4 * 60;
 
 function Field({ label, children, mono = false, warn = false }) {
   return (
@@ -101,7 +99,7 @@ export default function AutoTripDetailPage() {
     [refetch, refetchTrack],
   );
 
-  const rows = useMemo(() => timelineRows(trip), [trip]);
+  const plan = useMemo(() => timelinePlan(trip), [trip]);
 
   if (loading && !trip) {
     return (
@@ -137,86 +135,6 @@ export default function AutoTripDetailPage() {
       { id, stopId: stop._id, ...(markPlaceAsDrop ? { markPlaceAsDrop: true } : {}) },
       markPlaceAsDrop ? 'Drop set and the place saved as a drop place' : 'Drop updated',
     );
-
-  const columns = [
-    {
-      key: 'what',
-      label: 'What happened',
-      render: (r) => (
-        <span className={`atx-what atx-what--${r.kind}`}>
-          <span className="atx-dot" aria-hidden="true" />
-          {r.label}
-        </span>
-      ),
-    },
-    {
-      key: 'place',
-      label: 'Place',
-      render: (r) => (
-        <>
-          {r.place}
-          {r.placeNote ? <span className="atx-muted"> ({r.placeNote})</span> : null}
-        </>
-      ),
-    },
-    { key: 'reached', label: 'Reached', render: (r) => fmtDayTime(r.at) },
-    {
-      key: 'stayed',
-      label: 'Stayed',
-      align: 'right',
-      render: (r) => <span className="atx-mono">{fmtDuration(r.stayMin)}</span>,
-    },
-    {
-      key: 'actions',
-      label: '',
-      align: 'right',
-      render: (r) => {
-        if (r.stop && r.kind !== 'drop' && canEdit && !frozen) {
-          return (
-            <div className="atx-row-actions">
-              <button
-                type="button"
-                className="atx-btn atx-btn--sm"
-                disabled={busy}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDrop(r.stop, false);
-                }}
-              >
-                Mark as drop
-              </button>
-              {canMarkPlace(r.stop) ? (
-                <button
-                  type="button"
-                  className="atx-btn atx-btn--sm atx-btn--primary"
-                  disabled={busy}
-                  title="Also save this place as a drop place, so other trips that stopped here settle too"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDrop(r.stop, true);
-                  }}
-                >
-                  Mark as drop &amp; save place
-                </button>
-              ) : null}
-            </div>
-          );
-        }
-        return playable(r.playAt) ? (
-          <button
-            type="button"
-            className="atx-link"
-            onClick={(e) => {
-              e.stopPropagation();
-              playFrom(r.playAt);
-            }}
-          >
-            ▶ Play from here
-          </button>
-        ) : null;
-      },
-    },
-  ];
 
   return (
     <div className="atx-page atx-page--detail">
@@ -340,27 +258,14 @@ export default function AutoTripDetailPage() {
           </div>
         </div>
 
-        <div className="atx-card atx-card--clip atx-timeline">
-          <div className="atx-timeline-head">
-            <h2 className="atx-card-title">Trip timeline</h2>
-            <span className="atx-hint">
-              {hasTrack
-                ? 'Click any step to jump the replay there'
-                : 'No GPS track to replay for this trip'}
-            </span>
-          </div>
-          <DataTable
-            columns={columns}
-            rows={rows}
-            rowKey={(r) => r.id}
-            rowClassName={(r) => (r.kind === 'unknown' ? 'atx-row--unknown' : '')}
-            onRowClick={(r) => {
-              if (playable(r.playAt)) playFrom(r.playAt);
-            }}
-            emptyTitle="No steps yet"
-            emptyHint="This trip has no plant visit or stops recorded."
-          />
-        </div>
+        <AutoTripTimeline
+          plan={plan}
+          canEdit={canEdit && !frozen}
+          busy={busy}
+          playable={playable}
+          onPlay={playFrom}
+          onSetDrop={setDrop}
+        />
       </div>
     </div>
   );

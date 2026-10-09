@@ -163,7 +163,7 @@ describe('mergePlaces', () => {
     expect(mergePlaces({ zones: [orphan] })).toEqual([]);
   });
 
-  it('skips rejected and superseded sites and puts proposals last', () => {
+  it('skips superseded sites; proposals, then places said not to exist, go last', () => {
     const places = mergePlaces({
       sites: [
         site({ _id: 'a', name: 'A', status: 'PROPOSED' }),
@@ -172,8 +172,42 @@ describe('mergePlaces', () => {
         site({ _id: 'd', supersededBy: 'b' }),
       ],
     });
-    expect(places.map((p) => p.sourceId)).toEqual(['b', 'a']);
-    expect(places[1].group).toBe('review');
+    expect(places.map((p) => p.sourceId)).toEqual(['b', 'a', 'c']);
+    expect(places.map((p) => p.group)).toEqual(['trade', 'review', 'rejected']);
+    expect(filterPlaces(places).map((p) => p.sourceId)).toEqual(['b']);
+    expect(filterPlaces(places, { group: 'rejected' }).map((p) => p.sourceId)).toEqual(['c']);
+  });
+
+  it('orders suggestions by the review queue, then by visits', () => {
+    const places = mergePlaces({
+      sites: [
+        site({ _id: 'busy', status: 'PROPOSED', visitCount: 90 }),
+        site({ _id: 'quiet', status: 'PROPOSED', visitCount: 2 }),
+        site({ _id: 'drop', status: 'PROPOSED', visitCount: 5, reviewRank: 0 }),
+      ],
+    });
+    expect(places.map((p) => p.sourceId)).toEqual(['drop', 'busy', 'quiet']);
+  });
+
+  it('names a suggestion from the engine and flags fuel risk', () => {
+    const [p] = mergePlaces({
+      sites: [
+        site({
+          _id: 'x',
+          name: undefined,
+          siteType: 'UNKNOWN',
+          status: 'PROPOSED',
+          engine: { siteType: 'FUEL_PUMP' },
+          address: { locality: 'Kolaghat' },
+          risk: { theftIncidents: 2 },
+        }),
+      ],
+    });
+    expect(p.type).toBe('FUEL_PUMP');
+    expect(p.name).toBe('Fuel pump, Kolaghat');
+    expect(p.risk).toBe(true);
+    expect(countByGroup([p])).toMatchObject({ review: 1, risk: 1, all: 0 });
+    expect(filterPlaces([p], { group: 'risk' })).toHaveLength(1);
   });
 
   it('marks ERP pickup/drop sites read-only', () => {

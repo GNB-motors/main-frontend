@@ -1,0 +1,448 @@
+/* Place Intelligence's blocks inside Place Hub: the verdict, answer and
+   evidence in a place's detail panel, and the routes / facilities / regions /
+   driver-homes tables. Built on the --ds-* tokens so it reads like the rest
+   of the app. */
+
+/* ─── Filter chips (table views) ───────────────────────────────────────── */
+
+.pi-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.pi-filters button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--ds-line);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-ink2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pi-filters button:hover {
+  border-color: var(--ds-line2);
+}
+
+.pi-filters button.is-active {
+  background: var(--orange-solid);
+  border-color: var(--orange-solid);
+  color: #fff;
+}
+
+/* ─── Detail ───────────────────────────────────────────────────────────── */
+
+.pi-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-ink);
+}
+
+.pi-detail-sec {
+  padding: 18px 20px;
+}
+
+.pi-section-title {
+  margin: 0 0 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ds-ink3);
+}
+
+.pi-detail-sec > :last-child {
+  margin-bottom: 0;
+}
+
+.pi-verdict {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--ds-sunk);
+  margin-bottom: 10px;
+}
+
+.pi-verdict strong {
+  font-size: 15px;
+  color: var(--ds-ink);
+}
+
+.pi-verdict span {
+  font-size: 12px;
+  color: var(--ds-ink3);
+}
+
+.pi-meter {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--ds-line);
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.pi-meter > i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--pi-type, var(--orange));
+}
+
+.pi-why {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pi-why li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ds-ink2);
+}
+
+.pi-why li svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.pi-why .is-sensor svg,
+.pi-why .is-record svg {
+  color: var(--ds-ok-ink);
+}
+
+.pi-why .is-pattern svg,
+.pi-why .is-map svg {
+  color: var(--ds-ink3);
+}
+
+.pi-why .is-gap svg {
+  color: var(--ds-warn-ink);
+}
+
+.pi-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--ds-sunk);
+}
+
+.pi-bar i {
+  display: block;
+  height: 100%;
+}
+
+.pi-bar-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ds-ink2);
+}
+
+.pi-bar-keys span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pi-bar-keys i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.pi-callout {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  margin-top: 10px;
+}
+
+.pi-callout--warn {
+  background: var(--ds-warn-tint);
+  color: var(--ds-warn-ink);
+}
+
+.pi-callout--info {
+  background: var(--ds-info-tint);
+  color: var(--accent-ink);
+}
+
+/* ─── Answer ───────────────────────────────────────────────────────────── */
+
+.pi-answer {
+  padding: 14px 16px;
+  border-top: 1px solid var(--ds-line);
+  border-bottom: 1px solid var(--ds-line);
+  background: #fafbfe;
+}
+
+.pi-answer-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.pi-answer-q {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ds-ink);
+  margin: 0 0 10px;
+}
+
+.pi-btn-yes {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--ds-ok-ink);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pi-btn-yes:hover {
+  filter: brightness(1.08);
+}
+
+.pi-btn-quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--ds-ink3);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pi-btn-quiet:hover {
+  background: var(--ds-sunk);
+  color: var(--ds-crit-ink);
+}
+
+.pi-btn-yes:disabled,
+.pi-btn-quiet:disabled,
+.pi-chip:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.pi-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.pi-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid var(--ds-line);
+  border-radius: 9px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-ink2);
+  cursor: pointer;
+  text-align: left;
+}
+
+.pi-chip svg {
+  color: var(--pi-type);
+  flex: 0 0 auto;
+}
+
+.pi-chip:hover {
+  border-color: var(--pi-type);
+  background: color-mix(in srgb, var(--pi-type) 8%, #fff);
+}
+
+.pi-chip.is-current {
+  border-color: var(--pi-type);
+  box-shadow: inset 0 0 0 1px var(--pi-type);
+}
+
+.pi-name {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--ds-line2);
+  border-radius: 9px;
+  font-size: 13px;
+  min-width: 220px;
+  flex: 1;
+}
+
+.pi-note {
+  font-size: 12px;
+  color: var(--ds-ink3);
+  margin: 8px 0 0;
+}
+
+/* ─── Empty / placeholder ──────────────────────────────────────────────── */
+
+.pi-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  padding: 36px 16px;
+  border: 1px dashed var(--ds-line2);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ds-ink3);
+  font-size: 13px;
+}
+
+.pi-empty strong {
+  font-size: 15px;
+  color: var(--ds-ink);
+}
+
+.pi-empty svg {
+  color: var(--ds-ok-ink);
+}
+
+.pi-skel {
+  height: 64px;
+  border-radius: 10px;
+  background: var(--ds-sunk);
+  animation: pi-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pi-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* ─── Plates ───────────────────────────────────────────────────────────── */
+
+.pi-plate {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--ds-ink);
+}
+
+/* ─── Routes ───────────────────────────────────────────────────────────── */
+
+.pi-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: #fff;
+}
+
+.pi-table-wrap {
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  overflow-x: auto;
+  background: #fff;
+}
+
+.pi-table th {
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ds-ink3);
+  padding: 10px 12px;
+  background: var(--ds-sunk);
+  white-space: nowrap;
+}
+
+.pi-table td {
+  padding: 10px 12px;
+  border-top: 1px solid var(--ds-sunk);
+  vertical-align: middle;
+}
+
+.pi-table td.pi-num,
+.pi-table th.pi-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pi-table tr.is-open td {
+  background: #fafbff;
+}
+
+.pi-leg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-weight: 600;
+  color: var(--ds-ink);
+}
+
+.pi-leg-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pi-leg-end svg {
+  color: var(--pi-type);
+}
+
+.pi-trav {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.pi-trav li {
+  display: grid;
+  grid-template-columns: 110px 170px 80px 80px 1fr;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 12.5px;
+  color: var(--ds-ink2);
+}
+
+.pi-trav .is-odd {
+  color: var(--ds-warn-ink);
+  font-weight: 600;
+}
+
+.pi-trav .is-ok {
+  color: var(--ds-ok-ink);
+}

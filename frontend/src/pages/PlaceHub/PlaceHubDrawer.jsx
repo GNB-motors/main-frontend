@@ -1,5 +1,3 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   X,
   Pencil,
@@ -18,6 +16,12 @@ import {
   Info,
   EyeOff,
   Eye,
+  Clock,
+  Coffee,
+  Briefcase,
+  Wrench,
+  ShieldAlert,
+  ArrowRight,
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -25,8 +29,19 @@ import { toast } from 'react-toastify';
 import useApi from '../../hooks/useApi';
 import PlaceLabel from '../../components/ui/PlaceLabel';
 import { inr, num } from '../../utils/formatMoney.js';
-import { ANSWER_TYPES, typeLabel } from '../PlaceIntelligence/placeIntelligenceModel.js';
-import useSiteAnswer from '../PlaceIntelligence/useSiteAnswer.js';
+import { formatDateIST } from '../../utils/dateUtils';
+import {
+  minutesLabel,
+  placeStats,
+  riskSentence,
+  tripDropNote,
+} from './intelligence/placeIntelligenceModel.js';
+import useSiteAnswer from './intelligence/useSiteAnswer.js';
+import PlaceVerdict from './intelligence/PlaceVerdict.jsx';
+import ReviewActions from './intelligence/ReviewActions.jsx';
+import EvidenceList from './intelligence/EvidenceList.jsx';
+import PurposeBar from './intelligence/PurposeBar.jsx';
+import FacilityCard from './intelligence/FacilityCard.jsx';
 import LocationSearch from './LocationSearch.jsx';
 import PlaceHubService from './PlaceHubService.js';
 import { TypeTile } from './PlaceHubPanels.jsx';
@@ -41,14 +56,15 @@ import {
   alertSummary,
   addressParts,
 } from './placeHubModel.js';
-import { IDLE_COLOR, idleTone, PROVENANCE_COLOR, DRAIN_COLOR } from './placeHubStyle.js';
+import {
+  IDLE_COLOR,
+  idleTone,
+  PROVENANCE_COLOR,
+  DRAIN_COLOR,
+  STOP_COLOR,
+} from './placeHubStyle.js';
 
 dayjs.extend(relativeTime);
-
-const SOURCE_LINK = {
-  warehouse: { to: '/warehouses', label: 'Open Warehouses' },
-  zone: { to: '/geofence/zones', label: 'Open Geofence zones' },
-};
 
 const RADIUS_STEPS = [
   50, 100, 150, 200, 300, 400, 500, 750, 1000, 1500, 2000, 3000, 5000, 10000, 20000, 50000,
@@ -125,9 +141,10 @@ function Where({ lat, lng, shape, address }) {
 }
 
 function Note({ children, tone = 'info' }) {
+  const Icon = tone === 'crit' ? ShieldAlert : Info;
   return (
     <p className={`ph-callout ph-callout--${tone}`}>
-      <Info size={14} aria-hidden="true" />
+      <Icon size={14} aria-hidden="true" />
       <span>{children}</span>
     </p>
   );
@@ -162,49 +179,51 @@ function WarehouseRoster({ id }) {
   );
 }
 
-function SiteReview({ place, onAnswered }) {
-  const [type, setType] = useState(place.type !== 'UNKNOWN' ? place.type : 'LOADING');
-  const { accept, reject, busyId } = useSiteAnswer(onAnswered);
-  const busy = busyId === place.raw._id;
+/**
+ * What the engine makes of a detected place, why, and the answer that teaches
+ * it. The list's copy shows at once; the full record (evidence, facility, the
+ * address looked up once) replaces it when it arrives.
+ */
+function SiteInsight({ place, canAnswer, onAnswered }) {
+  const { data } = useApi(
+    (signal) => PlaceHubService.siteDetail(place.sourceId, { signal }),
+    [place.sourceId, place.raw],
+  );
+  const site =
+    data?._id && String(data._id) === place.sourceId ? { ...place.raw, ...data } : place.raw;
+  const answer = useSiteAnswer(onAnswered);
+  const st = placeStats(site);
+  const risk = riskSentence(site.risk, formatDateIST);
+  const drops = tripDropNote(site);
   return (
-    <section className="ph-section ph-review">
-      <h3>Is this a real place?</h3>
-      <p className="ph-muted">
-        Place Intelligence found trucks stopping here. Confirm what it is and trips, idling and
-        alerts start using it.
-      </p>
-      <div className="ph-review-row">
-        <select
-          className="ph-select"
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          aria-label="Place type"
-          disabled={busy}
-        >
-          {ANSWER_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {typeLabel(t)}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          className="ph-btn ph-btn--primary"
-          disabled={busy}
-          onClick={() => accept(place.raw, type)}
-        >
-          <Check size={14} /> Confirm
-        </button>
-      </div>
-      <button
-        type="button"
-        className="ph-link-btn ph-link-btn--danger"
-        disabled={busy}
-        onClick={() => reject(place.raw)}
-      >
-        Not a place
-      </button>
-    </section>
+    <>
+      {drops && <Note tone="warn">{drops}</Note>}
+      <section className="ph-section">
+        <h3>What we think</h3>
+        <PlaceVerdict site={site} />
+        {risk && <Note tone="crit">{risk}</Note>}
+      </section>
+      {canAnswer && <ReviewActions key={site._id} site={site} answer={answer} />}
+      <Stats
+        items={[
+          { label: 'Stops', value: st.visits == null ? '—' : num(st.visits) },
+          { label: 'Different trucks', value: st.trucks == null ? '—' : num(st.trucks) },
+          { label: 'Typical stop', value: minutesLabel(st.medianDwellMin) },
+          { label: 'Long stops (1 in 10)', value: minutesLabel(st.p90DwellMin) },
+          { label: 'First seen', value: st.firstSeenAt ? formatDateIST(st.firstSeenAt) : '—' },
+          { label: 'Last seen', value: st.lastSeenAt ? formatDateIST(st.lastSeenAt) : '—' },
+        ]}
+      />
+      <FacilityCard site={site} />
+      <section className="ph-section">
+        <h3>Why</h3>
+        <EvidenceList engine={site.engine} />
+      </section>
+      <section className="ph-section">
+        <h3>What trucks do here</h3>
+        <PurposeBar engine={site.engine} />
+      </section>
+    </>
   );
 }
 
@@ -219,9 +238,6 @@ function PlaceDetail({ place, canEdit, onClose, onEdit, onDelete, onReviewed }) 
       ? [raw.address, raw.city, raw.state, raw.pincode].filter(Boolean).join(', ')
       : raw.address?.formatted || '';
   const editable = canEdit && !place.readOnly && !isSite;
-  const link = isSite
-    ? { to: `/places?place=${place.sourceId}`, label: 'Open Place Intelligence' }
-    : SOURCE_LINK[place.source];
 
   return (
     <Frame
@@ -230,14 +246,9 @@ function PlaceDetail({ place, canEdit, onClose, onEdit, onDelete, onReviewed }) 
       title={place.name}
       onClose={onClose}
       footer={
-        <>
-          {link && (
-            <Link className="ph-btn ph-btn--ghost" to={link.to}>
-              {link.label}
-            </Link>
-          )}
-          <span className="ph-spacer" />
-          {editable && (
+        editable && (
+          <>
+            <span className="ph-spacer" />
             <button
               type="button"
               className="ph-btn ph-btn--ghost ph-btn--danger"
@@ -245,19 +256,14 @@ function PlaceDetail({ place, canEdit, onClose, onEdit, onDelete, onReviewed }) 
             >
               <Trash2 size={14} /> {place.source === 'warehouse' ? 'Deactivate' : 'Delete'}
             </button>
-          )}
-          {editable && (
             <button type="button" className="ph-btn ph-btn--primary" onClick={() => onEdit(place)}>
               <Pencil size={14} /> Edit
             </button>
-          )}
-        </>
+          </>
+        )
       }
     >
       {place.readOnlyReason && <Note>{place.readOnlyReason}</Note>}
-      {isSite && place.status === 'PROPOSED' && canEdit && (
-        <SiteReview place={place} onAnswered={onReviewed} />
-      )}
 
       {place.source === 'warehouse' && (
         <Stats
@@ -276,29 +282,107 @@ function PlaceDetail({ place, canEdit, onClose, onEdit, onDelete, onReviewed }) 
         />
       )}
       {isSite && (
-        <Stats
-          items={[
-            { label: 'Visits', value: num(raw.visitCount || 0) },
-            { label: 'Trucks', value: num(raw.distinctVehicleCount || 0) },
-            {
-              label: 'Typical stop',
-              value: raw.medianDwellMin ? durationLabel(raw.medianDwellMin) : '—',
-            },
-            raw.risk?.theftIncidents
-              ? { label: 'Theft incidents', value: num(raw.risk.theftIncidents), tone: 'crit' }
-              : null,
-          ]}
-        />
+        <SiteInsight place={place} canAnswer={canEdit && !place.readOnly} onAnswered={onReviewed} />
       )}
 
       <Where lat={place.lat} lng={place.lng} shape={shape} address={address} />
       {place.source === 'warehouse' && <WarehouseRoster id={place.sourceId} />}
       {place.source === 'zone' && (
-        <Note>
-          A truck idling inside this zone counts as legit idling. Entry and exit alerts show in
-          Geofence → Zones &amp; Alerts.
-        </Note>
+        <Note>A truck idling inside this zone counts as legit idling.</Note>
       )}
+    </Frame>
+  );
+}
+
+/* ─── Unexplained stops ──────────────────────────────────────────────────── */
+
+/** The three answers a manager gives a stop; each is evidence for that one stop. */
+const STOP_ANSWERS = [
+  { purpose: 'REST', label: 'Rest / meal', Icon: Coffee },
+  { purpose: 'LOAD', label: 'Work', Icon: Briefcase },
+  { purpose: 'SERVICE', label: 'Repair', Icon: Wrench },
+];
+
+function StopsDetail({ group, site, canEdit, busy, onClose, onAnswer, onOpenSite }) {
+  const many = group.stops.length > 1;
+  return (
+    <Frame
+      icon={
+        site ? (
+          <TypeTile type={site.type} size={40} />
+        ) : (
+          <TypeTile Icon={Clock} color={STOP_COLOR} size={40} />
+        )
+      }
+      eyebrow="Unexplained stops"
+      title={site ? site.name : <PlaceLabel lat={group.lat} lng={group.lng} showMap={false} />}
+      label={site ? site.name : 'Unexplained stops'}
+      onClose={onClose}
+    >
+      <Stats
+        items={[
+          { label: 'Unexplained', value: hoursLabel(group.minutes / 60), tone: 'warn' },
+          { label: 'Stops · 7 days', value: num(group.stops.length) },
+        ]}
+      />
+      {group.siteId && canEdit && (
+        <button type="button" className="ph-btn" onClick={() => onOpenSite(group.siteId)}>
+          Say what this place is <ArrowRight size={14} />
+        </button>
+      )}
+
+      <section className="ph-section">
+        <h3>Each stop · newest first</h3>
+        <ul className="ph-stops">
+          {group.stops.map((st) => (
+            <li key={st._id} className="ph-stop">
+              <div className="ph-stop-line">
+                <span className="ph-truck-chip">
+                  <Truck size={11} /> {st.registrationNumber || 'Truck'}
+                </span>
+                <span className="ph-muted">{dayjs(st.startAt).format('D MMM, h:mm a')}</span>
+                <strong>{minutesLabel(st.dwellMinutes)}</strong>
+              </div>
+              {canEdit && (
+                <div className="ph-btn-row">
+                  {STOP_ANSWERS.map((a) => (
+                    <button
+                      key={a.purpose}
+                      type="button"
+                      className="ph-btn ph-btn--sm"
+                      disabled={busy}
+                      onClick={() => onAnswer([st], a.purpose)}
+                    >
+                      <a.Icon size={12} /> {a.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {canEdit && many && (
+        <section className="ph-section">
+          <h3>Were they all the same thing?</h3>
+          <div className="ph-btn-row">
+            {STOP_ANSWERS.map((a) => (
+              <button
+                key={a.purpose}
+                type="button"
+                className="ph-btn ph-btn--sm"
+                disabled={busy}
+                onClick={() => onAnswer(group.stops, a.purpose)}
+              >
+                <a.Icon size={12} /> All {group.stops.length} were {a.label.toLowerCase()}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <Where lat={group.lat} lng={group.lng} />
     </Frame>
   );
 }
@@ -854,6 +938,17 @@ export default function PlaceHubDrawer({ selection, draft, ...props }) {
   if (kind === 'drain')
     return (
       <DrainDetail cell={item} disclaimer={props.disclaimer} {...common} onAdd={props.onAdd} />
+    );
+  if (kind === 'stops')
+    return (
+      <StopsDetail
+        group={item}
+        site={props.siteOf(item.siteId)}
+        {...common}
+        busy={props.stopsBusy}
+        onAnswer={props.onAnswerStops}
+        onOpenSite={props.onOpenSite}
+      />
     );
   return null;
 }

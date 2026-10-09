@@ -17,6 +17,7 @@ import FuelCyclesReport from './reports/FuelCyclesReport.jsx';
 import NonBusinessReport from './reports/NonBusinessReport.jsx';
 import RunningCostReport from './reports/RunningCostReport.jsx';
 import OilAverageReport from './reports/OilAverageReport.jsx';
+import RegisterMatchReport from './reports/RegisterMatchReport.jsx';
 
 const REPORT_COMPONENTS = {
   driver: () => <DriverReport />,
@@ -29,6 +30,7 @@ const REPORT_COMPONENTS = {
   fuelCycles: () => <FuelCyclesReport />,
   nonBusiness: () => <NonBusinessReport />,
   runningCost: () => <RunningCostReport />,
+  registerMatch: () => <RegisterMatchReport />,
 };
 
 const ReportsPage = () => {

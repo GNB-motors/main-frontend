@@ -5,7 +5,8 @@ import { useApi } from '../../hooks/useApi';
 import { getUserRole } from '../../utils/session.js';
 import AutoTripService from '../../services/AutoTripService';
 import { formatNum } from '../../utils/formatters';
-import { COVERAGE_REASON_LABEL } from './autoTripModel';
+import { COVERAGE_REASON_LABEL, placeHubHref } from './autoTripModel';
+import './AutoTrips.css';
 
 const CAN_SEE = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
 const REASON_ORDER = ['NO_CONFIRMED_PICKUP', 'NO_STOPS'];
@@ -14,7 +15,7 @@ const plural = (n, word) => `${formatNum(n)} ${word}${n === 1 ? '' : 's'}`;
 /**
  * Trucks with no trips, and the places they stop at longest that are not confirmed
  * pickups yet. Confirming one of those places as a pickup is what gives them trips, so
- * each links straight to it on the Places page. Owners and managers only (the API is).
+ * each opens it in Place Hub. Owners and managers only (the API is).
  */
 export default function AutoTripCoverage() {
   const canSee = CAN_SEE.includes(getUserRole());
@@ -29,7 +30,7 @@ export default function AutoTripCoverage() {
   const n = data.trucksMissing;
 
   return (
-    <div className="atx-banner atx-banner--warn">
+    <div className="atx-scope atx-banner atx-banner--warn">
       <div className="atx-banner-row">
         <div className="atx-banner-msg">
           <TriangleAlert size={18} strokeWidth={2} aria-hidden="true" />
@@ -79,7 +80,7 @@ function PlaceBars({ places }) {
     <ul className="atx-cov-bars">
       {places.map((p) => (
         <li key={p.orgSiteId} className="atx-cov-bar-row">
-          <Link to={`/places?place=${p.orgSiteId}`} className="atx-cov-bar-label">
+          <Link to={placeHubHref(p.orgSiteId)} className="atx-cov-bar-label">
             {p.name || 'Unconfirmed place'}
           </Link>
           <span className="atx-cov-track" aria-hidden="true">

@@ -4,6 +4,8 @@
  * go to the API as ISO instants.
  */
 
+import { typeLabel } from '../PlaceHub/intelligence/placeIntelligenceModel.js';
+
 const MAX_TRIP_DAYS = 15; // the server refuses a manual trip longer than this
 
 export const EMPTY_MANUAL_TRIP = {
@@ -129,7 +131,7 @@ export function placeOptions(sites = []) {
     .map((s) => ({
       id: idOf(s),
       label: s.siteType
-        ? `${s.name || s.key || 'Place'} · ${s.siteType}`
+        ? `${s.name || s.key || 'Place'} · ${typeLabel(s.siteType)}`
         : s.name || s.key || 'Place',
     }))
     .filter((p) => p.id)

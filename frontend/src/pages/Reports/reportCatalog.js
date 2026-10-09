@@ -31,6 +31,7 @@ export const REPORT_GROUPS = [
       { id: 'fuelCycles', label: 'Fuel Cycles', flag: 'autoTrips' },
       { id: 'nonBusiness', label: 'Non-Business', flag: 'autoTrips' },
       { id: 'runningCost', label: 'Running Cost', flag: 'autoTrips' },
+      { id: 'registerMatch', label: 'Trip Register Match', flag: 'autoTrips' },
     ],
   },
 ];

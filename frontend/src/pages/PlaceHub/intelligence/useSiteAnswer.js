@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
-import { useMutation } from '../../hooks/useMutation';
-import { useConfirm } from '../../components/ui/confirmContext';
+import { useMutation } from '../../../hooks/useMutation';
+import { useConfirm } from '../../../components/ui/confirmContext';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
 import {
   impactSummary,

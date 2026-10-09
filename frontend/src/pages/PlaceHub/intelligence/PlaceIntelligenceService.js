@@ -1,8 +1,8 @@
-import apiClient from '../../utils/axiosConfig';
-import { parseSafe } from '../../schemas/validate.js';
+import apiClient from '../../../utils/axiosConfig';
+import { parseSafe } from '../../../schemas/validate.js';
 
 const BASE = '/api/place-intelligence';
-const schemas = () => import('../../schemas/placeIntelligence.schema.js');
+const schemas = () => import('../../../schemas/placeIntelligence.schema.js');
 
 const unwrap = (response) => response.data?.data ?? response.data;
 const parsed = async (name, response) => parseSafe(name, schemas, unwrap(response));

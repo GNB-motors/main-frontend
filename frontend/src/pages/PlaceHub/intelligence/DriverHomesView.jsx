@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { Home } from 'lucide-react';
-import useApi from '../../hooks/useApi';
-import { useMutation } from '../../hooks/useMutation';
+import useApi from '../../../hooks/useApi';
+import { useMutation } from '../../../hooks/useMutation';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
 import PanelLoading from './PanelLoading';
 import EmptyPanel from './EmptyPanel';

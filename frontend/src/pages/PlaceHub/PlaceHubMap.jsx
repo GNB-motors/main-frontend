@@ -1,6 +1,15 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { GoogleMap, MarkerF, CircleF, PolygonF, PolylineF } from '@react-google-maps/api';
-import { boundsOf } from '../PlaceIntelligence/placeIntelligenceModel.js';
+import {
+  GoogleMap,
+  MarkerF,
+  MarkerClustererF,
+  CircleF,
+  PolygonF,
+  PolylineF,
+} from '@react-google-maps/api';
+import { boundsOf } from './intelligence/placeIntelligenceModel.js';
+import PlaceHubService from './PlaceHubService.js';
+import { LIGHT_MAP_STYLE, DARK_MAP_STYLE } from '../LiveTracking/liveTracking.shared.js';
 import {
   styleOfType,
   PROVENANCE_COLOR,
@@ -9,41 +18,61 @@ import {
   DRAIN_COLOR,
   DRAFT_COLOR,
   CONTEXT_COLOR,
+  STOP_COLOR,
+  RISK_COLOR,
+  POI_COLOR,
+  poiBucket,
 } from './placeHubStyle.js';
-import { durationLabel } from './placeHubModel.js';
+import { durationLabel, hoursLabel } from './placeHubModel.js';
 import { compactInr } from '../../utils/formatMoney.js';
 
 const MAP_STYLE = { width: '100%', height: '100%' };
 const INDIA = { lat: 22.5, lng: 82 };
 /** Below this zoom a few-hundred-metre circle is a speck; draw the pin only. */
 const SHAPE_MIN_ZOOM = 11;
+/** Above this zoom places a kilometre apart no longer overlap; show every pin. */
+const CLUSTER_MAX_ZOOM = 12;
 
-const LIGHT_STYLES = [
-  { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
-  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-];
-
-const DARK_STYLES = [
-  { elementType: 'geometry', stylers: [{ color: '#1b2535' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#8fa0b8' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#0b1220' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2b3a52' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#3b4f6e' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0b1220' }] },
+// Satellite keeps its own colours; only the clutter goes.
+const SATELLITE_STYLES = [
   { featureType: 'poi', stylers: [{ visibility: 'off' }] },
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
 ];
 
+function clusterStyle(size, textSize, { fill, text }) {
+  const r = size / 2;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${r}" cy="${r}" r="${r - 1}" fill="${fill}" fill-opacity="0.2"/><circle cx="${r}" cy="${r}" r="${r - 6}" fill="${fill}" stroke="#ffffff" stroke-width="2"/></svg>`;
+  return {
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    width: size,
+    height: size,
+    textColor: text,
+    textSize,
+    fontWeight: '700',
+    fontFamily: 'inherit',
+  };
+}
+
+// Neutral, so a cluster is never mistaken for one place type's colour.
+const clusterStyles = (tone) => [
+  clusterStyle(34, 12, tone),
+  clusterStyle(40, 12, tone),
+  clusterStyle(46, 13, tone),
+];
+const CLUSTER_STYLES_LIGHT = clusterStyles({ fill: '#1e293b', text: '#ffffff' });
+const CLUSTER_STYLES_DARK = clusterStyles({ fill: '#cbd5e1', text: '#0f172a' });
+const CLUSTER_OPTIONS = { gridSize: 52, maxZoom: CLUSTER_MAX_ZOOM, averageCenter: true };
+
 const PIN_PATH = 'M12 0C7.03 0 3 4.03 3 9c0 6.75 9 15 9 15s9-8.25 9-15c0-4.97-4.03-9-9-9z';
 const DIAMOND_PATH = 'M 0 -7 L 7 0 L 0 7 L -7 0 z';
 
-function pinIcon(color, { selected = false, hollow = false } = {}) {
+function pinIcon(color, { selected = false, hollow = false, risk = false } = {}) {
   return {
     path: PIN_PATH,
     fillColor: hollow ? '#ffffff' : color,
     fillOpacity: 1,
-    strokeColor: hollow ? color : '#ffffff',
-    strokeWeight: hollow ? 2.5 : 1.5,
+    strokeColor: risk ? RISK_COLOR : hollow ? color : '#ffffff',
+    strokeWeight: risk ? 3 : hollow ? 2.5 : 1.5,
     scale: selected ? 1.5 : 1.1,
     anchor: new window.google.maps.Point(12, 24),
   };
@@ -110,12 +139,18 @@ const PlaceShape = memo(function PlaceShape({
   );
 });
 
-const PlaceMarker = memo(function PlaceMarker({ place, selected, interactive, onSelect }) {
+const PlaceMarker = memo(function PlaceMarker({
+  place,
+  selected,
+  interactive,
+  onSelect,
+  clusterer,
+}) {
   const { color } = styleOfType(place.type);
   const proposed = place.status === 'PROPOSED';
   const icon = useMemo(
-    () => pinIcon(color, { selected, hollow: proposed }),
-    [color, selected, proposed],
+    () => pinIcon(color, { selected, hollow: proposed, risk: place.risk }),
+    [color, selected, proposed, place.risk],
   );
   const click = useCallback(() => onSelect(place.id), [onSelect, place.id]);
   return (
@@ -126,9 +161,32 @@ const PlaceMarker = memo(function PlaceMarker({ place, selected, interactive, on
       clickable={interactive}
       zIndex={selected ? 1000 : proposed ? 1 : 10}
       onClick={click}
+      clusterer={clusterer}
+      noClustererRedraw
     />
   );
 });
+
+/**
+ * Markers join and leave the clusterer without redrawing it — 200 suggestions
+ * would mean 200 full redraws — so it is repainted once per change of set.
+ * Rendered after the markers, so their effects have already run. Styles are
+ * set here too: the clusterer's own style effect runs after its children's.
+ */
+function ClusterRepaint({ clusterer, styles, places, hiddenPlaceId }) {
+  useEffect(() => {
+    clusterer.setStyles(styles);
+    clusterer.repaint();
+  }, [clusterer, styles, places, hiddenPlaceId]);
+  return null;
+}
+
+// MarkerClustererF leaves its overlay on the map when it unmounts, so without
+// this the cluster bubbles would linger on the Idling and Fuel risk tabs.
+function detachClusterer(clusterer) {
+  clusterer.clearMarkers();
+  clusterer.setMap(null);
+}
 
 const ContextShape = memo(function ContextShape({ place, showCircle }) {
   const options = useMemo(
@@ -333,6 +391,97 @@ function DraftLayer({ draft, onDraftChange }) {
   );
 }
 
+/* ─── Map data: plants, sidings, pumps … learned from OSM / Google ───────── */
+
+const POI_MIN_ZOOM = 10;
+const MAX_POI = 1500;
+
+function poiIcon(color) {
+  return {
+    path: 'M -3.5 -3.5 L 3.5 -3.5 L 3.5 3.5 L -3.5 3.5 z',
+    scale: 1,
+    fillColor: color,
+    fillOpacity: 0.9,
+    strokeColor: '#ffffff',
+    strokeWeight: 1,
+  };
+}
+
+function poiTitle(p) {
+  const what = (p.category || '').toLowerCase().replace(/_/g, ' ');
+  const src = p.source === 'GOOGLE_PLACES' ? 'Google' : 'OpenStreetMap';
+  return `${p.name || what} · ${what} · ${src}`;
+}
+
+/** What the map data knows inside the visible box, refetched when the map settles. */
+function usePoiLayer(map, on) {
+  const [pois, setPois] = useState([]);
+  const ctl = useRef(null);
+  const load = useCallback(() => {
+    if (!map || !on) return;
+    const b = map.getBounds();
+    if ((map.getZoom() || 0) < POI_MIN_ZOOM || !b) {
+      setPois([]);
+      return;
+    }
+    const ne = b.getNorthEast();
+    const sw = b.getSouthWest();
+    ctl.current?.abort();
+    ctl.current = new AbortController();
+    PlaceHubService.loadPoi(
+      { south: sw.lat(), west: sw.lng(), north: ne.lat(), east: ne.lng() },
+      { signal: ctl.current.signal },
+    )
+      .then((items) => setPois(items.filter((p) => poiBucket(p.category))))
+      .catch(() => {});
+  }, [map, on]);
+  useEffect(() => {
+    if (on) load();
+    else {
+      ctl.current?.abort();
+      setPois([]);
+    }
+  }, [on, load]);
+  useEffect(() => () => ctl.current?.abort(), []);
+  return { pois, load };
+}
+
+const PoiLayer = memo(function PoiLayer({ pois }) {
+  return (
+    <>
+      {pois
+        .filter((p) => Array.isArray(p.footprint) && p.footprint.length > 3)
+        .map((p) => {
+          const color = POI_COLOR[poiBucket(p.category)];
+          return (
+            <PolygonF
+              key={`fp-${p.source}-${p.sourceId}`}
+              paths={p.footprint}
+              options={{
+                strokeColor: color,
+                strokeOpacity: 0.8,
+                strokeWeight: 1,
+                fillColor: color,
+                fillOpacity: 0.06,
+                clickable: false,
+              }}
+            />
+          );
+        })}
+      {pois.slice(0, MAX_POI).map((p) => (
+        <MarkerF
+          key={`poi-${p.source}-${p.sourceId}`}
+          position={{ lat: p.lat, lng: p.lng }}
+          icon={poiIcon(POI_COLOR[poiBucket(p.category)])}
+          title={poiTitle(p)}
+          clickable={false}
+          zIndex={0}
+        />
+      ))}
+    </>
+  );
+});
+
 /* ─── Map ────────────────────────────────────────────────────────────────── */
 
 /**
@@ -351,6 +500,8 @@ export default function PlaceHubMap({
   idleSpots,
   hotspots,
   drainCells,
+  stopGroups = [],
+  showPoi = false,
   hiddenPlaceId,
   selectedId,
   onSelect,
@@ -364,6 +515,7 @@ export default function PlaceHubMap({
   const [zoom, setZoom] = useState(5);
   const lastFitKey = useRef(null);
   const drafting = Boolean(draft);
+  const { pois, load: loadPois } = usePoiLayer(map, showPoi);
 
   const options = useMemo(
     () => ({
@@ -373,7 +525,7 @@ export default function PlaceHubMap({
       zoomControl: true,
       clickableIcons: false,
       gestureHandling: 'greedy',
-      styles: isDark && !satellite ? DARK_STYLES : LIGHT_STYLES,
+      styles: satellite ? SATELLITE_STYLES : isDark ? DARK_MAP_STYLE : LIGHT_MAP_STYLE,
       draggableCursor: drafting ? 'crosshair' : undefined,
     }),
     [isDark, satellite, drafting],
@@ -433,8 +585,10 @@ export default function PlaceHubMap({
   // While drafting, every click belongs to the draft — even one that lands on
   // an existing place, which is exactly where a new fence is often drawn.
   const interactive = !drafting;
+  const clusterStylesNow = isDark && !satellite ? CLUSTER_STYLES_DARK : CLUSTER_STYLES_LIGHT;
   const maxIdle = Math.max(0, ...idleSpots.map((s) => s.rupees));
   const maxDrain = Math.max(0, ...drainCells.map((c) => c.rupees || c.events));
+  const maxStop = Math.max(0, ...stopGroups.map((g) => g.minutes));
 
   return (
     <GoogleMap
@@ -445,8 +599,11 @@ export default function PlaceHubMap({
       onLoad={setMap}
       onUnmount={() => setMap(null)}
       onZoomChanged={() => map && setZoom(map.getZoom() || 5)}
+      onIdle={loadPois}
       onClick={onMapClick}
     >
+      {showPoi && <PoiLayer pois={pois} />}
+
       {tab === 'places' &&
         places.map((p) =>
           p.id === hiddenPlaceId ? null : (
@@ -460,18 +617,37 @@ export default function PlaceHubMap({
             />
           ),
         )}
-      {tab === 'places' &&
-        places.map((p) =>
-          p.id === hiddenPlaceId ? null : (
-            <PlaceMarker
-              key={`m-${p.id}`}
-              place={p}
-              selected={p.id === selectedId}
-              interactive={interactive}
-              onSelect={onSelect}
-            />
-          ),
-        )}
+      {tab === 'places' && (
+        <MarkerClustererF
+          options={CLUSTER_OPTIONS}
+          styles={clusterStylesNow}
+          title="Zoom in to see these places"
+          onUnmount={detachClusterer}
+        >
+          {(clusterer) => (
+            <>
+              {places.map((p) =>
+                p.id === hiddenPlaceId ? null : (
+                  <PlaceMarker
+                    key={`m-${p.id}`}
+                    place={p}
+                    selected={p.id === selectedId}
+                    interactive={interactive}
+                    onSelect={onSelect}
+                    clusterer={clusterer}
+                  />
+                ),
+              )}
+              <ClusterRepaint
+                clusterer={clusterer}
+                styles={clusterStylesNow}
+                places={places}
+                hiddenPlaceId={hiddenPlaceId}
+              />
+            </>
+          )}
+        </MarkerClustererF>
+      )}
 
       {tab !== 'places' &&
         contextPlaces.map((p) => (
@@ -499,6 +675,22 @@ export default function PlaceHubMap({
             key={`live-${e._id}`}
             event={e}
             selected={`live:${e._id}` === selectedId}
+            interactive={interactive}
+            onSelect={onSelect}
+          />
+        ))}
+
+      {tab === 'stops' &&
+        stopGroups.map((g) => (
+          <ScaledDot
+            key={g.id}
+            id={g.id}
+            lat={g.lat}
+            lng={g.lng}
+            color={STOP_COLOR}
+            scale={scaleFor(g.minutes, maxStop)}
+            title={`${hoursLabel(g.minutes / 60)} unexplained · ${g.stops.length} stops`}
+            selected={g.id === selectedId}
             interactive={interactive}
             onSelect={onSelect}
           />

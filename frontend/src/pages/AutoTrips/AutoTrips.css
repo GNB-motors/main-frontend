@@ -5,7 +5,10 @@
  * mockup's; `.dark` swaps the tokens.
  */
 
-.atx-page {
+/* The tokens also sit on .atx-scope: the trip register and trip-coverage banners
+   live on the Reports page and Place Hub, outside .atx-page. */
+.atx-page,
+.atx-scope {
   --atx-bg: #f7f8fa;
   --atx-surface: #ffffff;
   --atx-ink: #0f172a;
@@ -42,11 +45,18 @@
   --atx-rm-missed: #eb6834;
   --atx-rm-nogps: #cbd5e1;
   --atx-cov-nogps: #a8a29e;
+  --atx-amber-soft: #fef3c7;
+  --atx-green-soft: #dcfce7;
+  --atx-green-ink: #166534;
+  --atx-tl-plant: #475569;
+  --atx-tl-drive: #3b82f6;
+  --atx-tl-drive-soft: #93c5fd;
+  --atx-tl-unknown: #d97706;
+  --atx-tl-stop: #94a3b8;
+  --atx-tl-drop: #16a34a;
+  --atx-tl-rail: #cbd5e1;
   --atx-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  min-height: 100%;
-  padding: 36px 24px;
-  background: var(--atx-bg);
   color: var(--atx-ink);
   font-family:
     'Plus Jakarta Sans',
@@ -56,7 +66,14 @@
     sans-serif;
 }
 
-.dark .atx-page {
+.atx-page {
+  min-height: 100%;
+  padding: 36px 24px;
+  background: var(--atx-bg);
+}
+
+.dark .atx-page,
+.dark .atx-scope {
   --atx-bg: #0b1220;
   --atx-surface: #111a2b;
   --atx-ink: #e8eef7;
@@ -93,6 +110,16 @@
   --atx-rm-missed: #d95926;
   --atx-rm-nogps: #3a4a63;
   --atx-cov-nogps: #57534e;
+  --atx-amber-soft: rgba(245, 158, 11, 0.18);
+  --atx-green-soft: rgba(34, 197, 94, 0.16);
+  --atx-green-ink: #86efac;
+  --atx-tl-plant: #94a3b8;
+  --atx-tl-drive: #3b82f6;
+  --atx-tl-drive-soft: rgba(96, 165, 250, 0.55);
+  --atx-tl-unknown: #f59e0b;
+  --atx-tl-stop: #64748b;
+  --atx-tl-drop: #22c55e;
+  --atx-tl-rail: #334155;
 }
 
 .atx-page--detail {
@@ -963,69 +990,338 @@
   background: var(--atx-line-3);
 }
 
-/* timeline */
-.atx-timeline-head {
-  padding: 16px 20px;
+/* timeline: where the time went, then each stop with the drive before it */
+.atx-tl {
+  /* centre of the marker column: 120px times + 16px gap + half of 32px */
+  --atx-tl-rail-x: 152px;
+}
+.atx-tl-head {
+  padding: 20px 24px 18px;
   border-bottom: 1px solid var(--atx-line-3);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.atx-tl-head-row {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  align-items: center;
-  gap: 12px;
+  align-items: baseline;
+  gap: 4px 16px;
 }
-.atx-hint {
-  font-size: 13px;
+.atx-tl-head .atx-card-title {
+  line-height: 20px;
+}
+.atx-tl-total {
+  font-size: 14px;
   color: var(--atx-ink-3);
 }
-.atx-timeline .dt {
-  border: 0;
-  border-radius: 0;
+.atx-tl-total strong {
+  font-weight: 700;
+  color: var(--atx-ink);
 }
-.atx-timeline .dt .dt-tools {
-  display: none;
+.atx-tl-bar {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--atx-line-3);
 }
-.atx-timeline .dt .dt-table {
-  min-width: 900px;
+.atx-tl-span {
+  flex: 0 1 0;
+  min-width: 6px;
 }
-.atx-timeline .dt .dt-table thead th {
-  padding: 12px 20px;
+.atx-tl-span--plant {
+  background: var(--atx-tl-plant);
 }
-.atx-timeline .dt .dt-table tbody td {
-  padding: 14px 20px;
+.atx-tl-span--drive {
+  background: var(--atx-tl-drive);
 }
-.atx-page .dt .dt-row.atx-row--unknown td {
-  background: var(--atx-amber-bg);
+.atx-tl-span--unknown {
+  background: var(--atx-tl-unknown);
 }
-.atx-what {
+.atx-tl-span--stop {
+  background: var(--atx-tl-stop);
+}
+.atx-tl-span--drop {
+  background: var(--atx-tl-drop);
+}
+.atx-tl-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+.atx-tl-legend li {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  white-space: nowrap;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--atx-ink-2);
 }
-.atx-dot {
+.atx-tl-legend strong {
+  font-weight: 700;
+}
+.atx-tl-swatch {
   width: 10px;
   height: 10px;
   flex: none;
+  border-radius: 3px;
+}
+
+.atx-tl-list {
+  list-style: none;
+  margin: 0;
+  padding: 24px 24px 22px;
+}
+.atx-tl-step,
+.atx-tl-leg {
+  position: relative;
+  display: grid;
+  grid-template-columns: 120px 32px minmax(0, 1fr) auto;
+  column-gap: 16px;
+  align-items: start;
+}
+.atx-tl-step::before,
+.atx-tl-leg::before,
+.atx-tl-leg::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--atx-tl-rail-x) - 1px);
+  width: 2px;
+}
+.atx-tl-step::before,
+.atx-tl-leg::before {
+  top: 0;
+  bottom: 0;
+  background: var(--atx-tl-rail);
+}
+.atx-tl-step.is-first::before {
+  top: 16px;
+}
+.atx-tl-step.is-last::before {
+  bottom: auto;
+  height: 16px;
+}
+.atx-tl-step.is-first.is-last::before {
+  display: none;
+}
+
+.atx-tl-when {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+.atx-tl-day,
+.atx-tl-left {
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--atx-ink-3);
+}
+.atx-tl-left {
+  line-height: 16px;
+}
+.atx-tl-clock {
+  font-size: 15px;
+  line-height: 18px;
+  font-weight: 700;
+  color: var(--atx-ink);
+}
+
+.atx-tl-mark {
+  position: relative;
+  justify-self: center;
+  width: 16px;
+  height: 16px;
+  margin-top: 8px;
+  box-sizing: border-box;
   border-radius: 5px;
-  background: var(--atx-ink);
+  background: var(--atx-tl-plant);
+  box-shadow: 0 0 0 3px var(--atx-line-2);
 }
-.atx-what--drop {
-  color: var(--atx-green);
+.atx-tl-step--drop .atx-tl-mark {
+  background: var(--atx-tl-drop);
+  box-shadow: 0 0 0 3px var(--atx-green-soft);
 }
-.atx-what--drop .atx-dot {
-  background: var(--atx-green);
+.atx-tl-step--unknown .atx-tl-mark,
+.atx-tl-step--stop .atx-tl-mark {
+  margin-top: 10px;
+  border: 2.5px solid var(--atx-tl-unknown);
+  border-radius: 50%;
+  background: var(--atx-surface);
+  box-shadow: none;
 }
-.atx-what--unknown {
+.atx-tl-step--stop .atx-tl-mark {
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+  border-color: var(--atx-tl-stop);
+}
+
+.atx-tl-body {
+  min-width: 0;
+}
+.atx-tl-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px 10px;
+}
+.atx-tl-title {
+  margin: 0;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 700;
+  letter-spacing: normal;
+  color: var(--atx-ink);
+}
+.atx-tl-step--unknown .atx-tl-title {
   color: var(--atx-amber-link);
 }
-.atx-what--unknown .atx-dot,
-.atx-what--stop .atx-dot {
-  border: 2px solid var(--atx-amber);
-  background: transparent;
+.atx-tl-step--drop .atx-tl-title {
+  color: var(--atx-green);
 }
-.atx-what--stop .atx-dot {
-  border-color: var(--atx-ink-4);
+.atx-tl-place {
+  margin: 1px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--atx-ink-3);
+}
+.atx-tl-step--unknown .atx-tl-place {
+  color: var(--atx-amber-ink);
+}
+.atx-tl-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: var(--atx-chip);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--atx-ink-2);
+}
+.atx-tl-pill--long {
+  background: var(--atx-amber-soft);
+  color: var(--atx-amber-link);
+}
+.atx-tl-pill--unknown {
+  border: 1px solid var(--atx-amber-line);
+  background: var(--atx-surface);
+  color: var(--atx-amber-link);
+}
+.atx-tl-pill--drop {
+  background: var(--atx-green-soft);
+  color: var(--atx-green-ink);
+}
+.atx-tl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 9px;
+}
+.atx-tl-play {
+  gap: 6px;
+  padding: 0 12px 0 15px;
+  font-weight: 700;
+  color: var(--atx-blue);
+}
+.atx-tl-play:hover:not(:disabled) {
+  color: var(--atx-blue-hover);
+}
+
+/* the unknown stop is asked about in an amber card; times and Play line up with its text */
+.atx-tl-step--unknown .atx-tl-when {
+  padding-top: 5px;
+}
+.atx-tl-step--unknown .atx-tl-body {
+  padding: 13px 16px 11px;
+  border: 1px solid var(--atx-amber-line);
+  border-radius: 10px;
+  background: var(--atx-amber-bg);
+}
+.atx-tl-step--unknown .atx-tl-play {
+  margin-top: 12px;
+}
+
+.atx-tl-leg {
+  --atx-tl-leg-top: 3px;
+  --atx-tl-leg-bottom: 12px;
+  --atx-tl-leg-h: 40px;
+  grid-template-rows: var(--atx-tl-leg-h);
+  padding: var(--atx-tl-leg-top) 0 var(--atx-tl-leg-bottom);
+}
+.atx-tl-leg--after-card {
+  --atx-tl-leg-top: 10px;
+}
+.atx-tl-leg--before-card {
+  --atx-tl-leg-bottom: 8px;
+}
+.atx-tl-leg.is-quiet {
+  --atx-tl-leg-h: 16px;
+}
+.atx-tl-leg::after {
+  top: var(--atx-tl-leg-top);
+  height: var(--atx-tl-leg-h);
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--atx-tl-drive-soft) 0 4px,
+    var(--atx-surface) 4px 6px
+  );
+}
+.atx-tl-drive {
+  grid-column: 3;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--atx-blue);
+}
+.atx-tl-drive svg {
+  flex: none;
+}
+.atx-tl-empty {
+  margin: 0;
+  padding: 32px 24px;
+  font-size: 14px;
+  color: var(--atx-ink-3);
+}
+@media (max-width: 640px) {
+  .atx-tl {
+    --atx-tl-rail-x: 92px;
+  }
+  .atx-tl-head,
+  .atx-tl-list {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .atx-tl-step,
+  .atx-tl-leg {
+    grid-template-columns: 72px 16px minmax(0, 1fr) auto;
+    column-gap: 12px;
+  }
+  .atx-tl-play {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+  .atx-tl-play-text {
+    display: none;
+  }
+  .atx-tl-step--unknown .atx-tl-play {
+    margin-top: 8px;
+  }
 }
 .atx-row-actions {
   display: flex;
@@ -1035,10 +1331,25 @@
 }
 
 /* ─── Add missed trip / schedule trip forms, planned trips ─────────────────── */
+/* Dialog content has no padding of its own, and the dialog portals out of
+   .atx-page, so the --atx-* tokens are not set here; --ds-* ones are. */
 .atx-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px 16px;
+  align-items: start;
+  gap: 16px;
+  padding: 20px 24px;
+}
+.atx-form-grid .atx-field {
+  gap: 6px;
+}
+.atx-form-grid .atx-field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ds-ink2);
+}
+.atx-form-grid .atx-place-pick {
+  gap: 8px;
 }
 .atx-field--wide {
   grid-column: 1 / -1;

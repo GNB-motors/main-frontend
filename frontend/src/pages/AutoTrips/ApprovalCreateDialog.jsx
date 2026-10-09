@@ -20,8 +20,8 @@ import { Input } from '../../components/ui/input';
 import { useApi } from '../../hooks/useApi';
 import { useMutation } from '../../hooks/useMutation';
 import MovementApprovalService from '../../services/MovementApprovalService';
-import PlaceIntelligenceService from '../PlaceIntelligence/PlaceIntelligenceService';
-import { SITE_TYPE_LABEL } from '../PlaceIntelligence/placeIntelligenceModel';
+import PlaceIntelligenceService from '../PlaceHub/intelligence/PlaceIntelligenceService';
+import { SITE_TYPE_LABEL } from '../PlaceHub/intelligence/placeIntelligenceModel';
 
 const PLACE_KINDS = [
   { value: 'ANY_WORKSHOP', label: 'Any workshop' },

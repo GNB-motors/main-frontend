@@ -1,5 +1,5 @@
-import useApi from '../../hooks/useApi';
-import { formatDateTimeIST } from '../../utils/dateUtils';
+import useApi from '../../../hooks/useApi';
+import { formatDateTimeIST } from '../../../utils/dateUtils';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
 import PanelLoading from './PanelLoading';
 import { kmLabel, messageOf, minutesLabel } from './placeIntelligenceModel';

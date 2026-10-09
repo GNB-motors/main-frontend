@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { GoogleMap, MarkerF, PolylineF, useLoadScript } from '@react-google-maps/api';
 import { Pause, Play } from 'lucide-react';
+import { createVehicleMarkerIcon } from '../LiveTracking/liveTracking.shared.js';
 import { positionAt, toFrames, toLatLngSegments } from '../RouteReplay/routeReplay';
 import { fmtClock, fmtDayTime, routeMapPoints, stopKind } from './autoTripModel';
 
@@ -10,6 +11,9 @@ const INDIA = { lat: 22.9734, lng: 78.6569 };
 /** At 1× the replay plays one minute of the trip every second; 10× and 50× scale up. */
 const TRIP_MS_PER_MS = 60;
 const SPEEDS = [1, 10, 50];
+/** Heading snapped to 5° so the truck icon is rebuilt only when it visibly turns, not every frame. */
+const HEADING_STEP = 5;
+const MOVING_KMPH = 3;
 const COLOR = {
   trail: '#CBD5E1',
   run: '#1D4ED8',
@@ -37,8 +41,10 @@ const MAP_THEME = [
 ];
 const LINE = (color, zIndex) => ({ strokeColor: color, strokeOpacity: 1, strokeWeight: 6, zIndex });
 
+const headKmph = (head) => head?.reportedSpeed ?? head?.groundSpeedKmph;
+
 function speedText(head) {
-  const kmph = head?.reportedSpeed ?? head?.groundSpeedKmph;
+  const kmph = headKmph(head);
   return kmph == null ? '— km/h' : `${Math.round(kmph)} km/h`;
 }
 
@@ -73,6 +79,7 @@ export default function AutoTripReplay({ trip, track, loading, error, autoPlay =
   const [cursor, setCursor] = useState(0); // ms into the track
   const [playing, setPlaying] = useState(() => Boolean(autoPlay) && canPlay);
   const [speed, setSpeed] = useState(10);
+  const [zoom, setZoom] = useState(9);
   const cursorRef = useRef(0);
 
   // A new track starts the replay over (and plays it when opened from "Replay").
@@ -199,9 +206,23 @@ export default function AutoTripReplay({ trip, track, loading, error, autoPlay =
       drop: circle(COLOR.drop, 10, '#FFFFFF', 2, 3),
       unknown: circle('#FFFFFF', 7, COLOR.unknown, 3),
       stop: circle('#FFFFFF', 5, COLOR.stop, 2),
-      truck: circle(COLOR.run, 11, '#FFFFFF', 4),
     };
   }, [isLoaded]);
+
+  // The same truck as Live Tracking: faces its heading, green while moving, purple while parked.
+  const truckMoving = (headKmph(head) ?? 0) > MOVING_KMPH;
+  const truckHeading = (Math.round((head?.heading || 0) / HEADING_STEP) * HEADING_STEP) % 360;
+  const truckIcon = useMemo(
+    () =>
+      isLoaded && window.google
+        ? createVehicleMarkerIcon({
+            status: truckMoving ? 'moving' : 'stopped',
+            courseDegrees: truckHeading,
+            zoom,
+          })
+        : null,
+    [isLoaded, truckMoving, truckHeading, zoom],
+  );
 
   const togglePlay = () => {
     if (!canPlay) return;
@@ -242,6 +263,10 @@ export default function AutoTripReplay({ trip, track, loading, error, autoPlay =
             }}
             onUnmount={() => {
               mapRef.current = null;
+            }}
+            onZoomChanged={() => {
+              const z = mapRef.current?.getZoom();
+              if (z != null) setZoom(z);
             }}
             options={{
               disableDefaultUI: true,
@@ -302,10 +327,10 @@ export default function AutoTripReplay({ trip, track, loading, error, autoPlay =
                   zIndex={4}
                 />
               ))}
-            {icons && head ? (
+            {truckIcon && head ? (
               <MarkerF
                 position={{ lat: head.lat, lng: head.lng }}
-                icon={icons.truck}
+                icon={truckIcon}
                 title="Truck"
                 zIndex={10}
               />

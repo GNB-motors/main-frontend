@@ -5,9 +5,7 @@ import DataTable from '../../components/ui/DataTable';
 import { useApi } from '../../hooks/useApi';
 import AutoTripService from '../../services/AutoTripService';
 import { formatNum } from '../../utils/formatters';
-import { dropLabel } from '../PlaceIntelligence/facilityText';
-import AutoTripCoverage from './AutoTripCoverage';
-import RegisterMatchCard from './RegisterMatchCard';
+import { dropLabel } from '../PlaceHub/intelligence/facilityText';
 import ManualTripDialog from './ManualTripDialog';
 import TripPlanDialog from './TripPlanDialog';
 import { STATUS_CLASS, STATUS_LABEL, fmtDayTime, fmtKm, notReachedYet } from './autoTripModel';
@@ -210,9 +208,6 @@ export default function AutoTripsPage() {
             </button>
           </div>
         </div>
-
-        <RegisterMatchCard />
-        <AutoTripCoverage />
 
         <div role="tablist" aria-label="Filter trips" className="atx-tabs">
           {tabs.map((t) => (

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import useApi from '../../hooks/useApi';
-import EmptyState from '../../components/cluster/EmptyState';
+import useApi from '../../../hooks/useApi';
+import EmptyState from '../../../components/cluster/EmptyState';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
 import PanelLoading from './PanelLoading';
 import { gateRows, messageOf } from './placeIntelligenceModel';

@@ -13,6 +13,7 @@ import { Input } from '../../components/ui/input';
 import { useMutation } from '../../hooks/useMutation';
 import TripPlanService from '../../services/TripPlanService';
 import PickSelect from './PickSelect';
+import PlacePick from './PlacePick';
 import useTripPickLists from './useTripPickLists';
 import { EMPTY_PLAN, formReducer, planBody, validatePlan } from './tripForms';
 
@@ -68,48 +69,30 @@ export default function TripPlanDialog({ open, onOpenChange, onCreated }) {
             noneLabel={lists.loading ? 'Loading…' : 'Pick the truck'}
           />
           <PickSelect
-            label="Driver"
+            label="Driver (optional)"
             value={form.driverId}
             onChange={set('driverId')}
             options={lists.drivers}
             noneLabel="No driver yet"
           />
-          <PickSelect
+          <PlacePick
             label="Loads at"
-            value={form.pickupSiteId}
-            onChange={set('pickupSiteId')}
-            options={lists.places}
-            noneLabel="Not a saved place — type below"
+            siteId={form.pickupSiteId}
+            onSite={set('pickupSiteId')}
+            name={form.pickupName}
+            onName={set('pickupName')}
+            places={lists.places}
+            noneLabel="Pick a saved place"
           />
-          <PickSelect
+          <PlacePick
             label="Drops at"
-            value={form.dropSiteId}
-            onChange={set('dropSiteId')}
-            options={lists.places}
-            noneLabel="Not a saved place — type below"
+            siteId={form.dropSiteId}
+            onSite={set('dropSiteId')}
+            name={form.dropName}
+            onName={set('dropName')}
+            places={lists.places}
+            noneLabel="Pick a saved place"
           />
-          <div className="atx-field">
-            <label className="atx-field-label" htmlFor="tp-pickupName">
-              Loads at (name)
-            </label>
-            <Input
-              id="tp-pickupName"
-              value={form.pickupName}
-              onChange={setInput('pickupName')}
-              disabled={Boolean(form.pickupSiteId)}
-            />
-          </div>
-          <div className="atx-field">
-            <label className="atx-field-label" htmlFor="tp-dropName">
-              Drops at (name)
-            </label>
-            <Input
-              id="tp-dropName"
-              value={form.dropName}
-              onChange={setInput('dropName')}
-              disabled={Boolean(form.dropSiteId)}
-            />
-          </div>
           <div className="atx-field">
             <label className="atx-field-label" htmlFor="tp-plannedStartAt">
               Planned start
@@ -134,7 +117,7 @@ export default function TripPlanDialog({ open, onOpenChange, onCreated }) {
           </div>
           <div className="atx-field atx-field--wide">
             <label className="atx-field-label" htmlFor="tp-note">
-              Note
+              Note (optional)
             </label>
             <Input id="tp-note" value={form.note} onChange={setInput('note')} maxLength={500} />
           </div>

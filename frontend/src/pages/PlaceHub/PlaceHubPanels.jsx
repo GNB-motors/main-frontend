@@ -1,4 +1,14 @@
-import { Search, MapPinPlus, Truck, Flame, Droplets, CircleAlert } from 'lucide-react';
+import {
+  Search,
+  MapPinPlus,
+  Truck,
+  Flame,
+  Droplets,
+  CircleAlert,
+  CircleCheck,
+  Clock,
+  ShieldAlert,
+} from 'lucide-react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import PlaceLabel from '../../components/ui/PlaceLabel';
@@ -10,6 +20,7 @@ import {
   radiusLabel,
   durationLabel,
   hoursLabel,
+  stopTotals,
 } from './placeHubModel.js';
 import {
   styleOfType,
@@ -17,6 +28,7 @@ import {
   IDLE_COLOR,
   idleTone,
   DRAIN_COLOR,
+  STOP_COLOR,
 } from './placeHubStyle.js';
 
 dayjs.extend(relativeTime);
@@ -112,18 +124,28 @@ function LayerError({ errors }) {
 /* ─── Places ─────────────────────────────────────────────────────────────── */
 
 function placeMeta(p) {
+  if (p.risk && p.status !== 'REJECTED')
+    return (
+      <span className="ph-pill ph-pill--crit" title="Theft or unauthorised refuelling reported">
+        <ShieldAlert size={11} /> Fuel risk
+      </span>
+    );
   if (p.status === 'PROPOSED') return <span className="ph-pill ph-pill--warn">To review</span>;
+  if (p.status === 'REJECTED') return <span className="ph-pill ph-pill--muted">Not a place</span>;
   if (p.erp) return <span className="ph-pill ph-pill--muted">ERP</span>;
   if (p.source === 'zone' && (p.alerts.entry || p.alerts.exit))
     return <span className="ph-pill ph-pill--info">Alerts</span>;
   return null;
 }
 
+const STATUS_CHIPS = new Set(['risk', 'review', 'rejected']);
+const CHIP_TONE = { risk: 'crit', review: 'warn' };
+
+// No KPI tiles here: the chips already carry every count.
 export function PlacesPanel({
   loading,
   places,
   counts,
-  totals,
   group,
   onGroup,
   query,
@@ -136,18 +158,21 @@ export function PlacesPanel({
   reviewNote,
 }) {
   const chips = PLACE_GROUPS.filter((g) => g.id === 'all' || counts[g.id]);
+  const chip = (g) => (
+    <button
+      key={g.id}
+      type="button"
+      role="tab"
+      aria-selected={group === g.id}
+      className={`ph-chip${group === g.id ? ' is-on' : ''}${CHIP_TONE[g.id] ? ` ph-chip--${CHIP_TONE[g.id]}` : ''}`}
+      onClick={() => onGroup(g.id)}
+    >
+      {g.label}
+      <span>{num(counts[g.id] || 0)}</span>
+    </button>
+  );
   return (
     <>
-      <div className="ph-kpis">
-        <Kpi label="Places" value={num(totals.places)} />
-        <Kpi label="Warehouses" value={num(totals.warehouses)} />
-        <Kpi label="Zones" value={num(totals.zones)} />
-        <Kpi
-          label="To review"
-          value={num(totals.toReview)}
-          tone={totals.toReview ? 'warn' : null}
-        />
-      </div>
       <div className="ph-filter">
         <label className="ph-input">
           <Search size={14} aria-hidden="true" />
@@ -158,20 +183,12 @@ export function PlacesPanel({
             aria-label="Search places"
           />
         </label>
-        <div className="ph-chips" role="tablist" aria-label="Place type">
-          {chips.map((g) => (
-            <button
-              key={g.id}
-              type="button"
-              role="tab"
-              aria-selected={group === g.id}
-              className={`ph-chip${group === g.id ? ' is-on' : ''}${g.id === 'review' ? ' ph-chip--warn' : ''}`}
-              onClick={() => onGroup(g.id)}
-            >
-              {g.label}
-              <span>{num(counts[g.id] || 0)}</span>
-            </button>
-          ))}
+        {/* Two rows: what kind of place, then where it stands. */}
+        <div className="ph-chip-rows" role="tablist" aria-label="Which places">
+          <div className="ph-chips">{chips.filter((g) => !STATUS_CHIPS.has(g.id)).map(chip)}</div>
+          {chips.some((g) => STATUS_CHIPS.has(g.id)) && (
+            <div className="ph-chips">{chips.filter((g) => STATUS_CHIPS.has(g.id)).map(chip)}</div>
+          )}
         </div>
       </div>
       <LayerError errors={errors} />
@@ -196,6 +213,12 @@ export function PlacesPanel({
                     {p.polygon ? 'Outline' : radiusLabel(p.radiusM)}
                     {p.subtitle ? ` · ${p.subtitle}` : ''}
                   </span>
+                  {p.raw?.tripDrops?.trips ? (
+                    <span className="ph-row-flag">
+                      {num(p.raw.tripDrops.trips)} trip
+                      {p.raw.tripDrops.trips === 1 ? '' : 's'} turned around here
+                    </span>
+                  ) : null}
                 </span>
                 {placeMeta(p)}
               </button>
@@ -339,6 +362,75 @@ export function IdlingPanel({
         </>
       ) : (
         <Empty icon={Truck} title="No idling in the last 7 days" />
+      )}
+    </>
+  );
+}
+
+/* ─── Unexplained stops ──────────────────────────────────────────────────── */
+
+export function StopsPanel({ loading, error, groups, siteOf, selectedId, onPick }) {
+  const t = stopTotals(groups);
+  return (
+    <>
+      <div className="ph-kpis">
+        <Kpi
+          label="Unexplained"
+          value={hoursLabel(t.minutes / 60)}
+          tone={t.minutes ? 'warn' : null}
+        />
+        <Kpi label="Places" value={num(t.places)} />
+        <Kpi label="Stops · 7 days" value={num(t.stops)} />
+        <Kpi label="Trucks" value={num(t.trucks)} />
+      </div>
+      <p className="ph-note ph-note--lead">
+        Long stops that fuel, loading, a bill, a service, rest rules or a queue don’t explain.
+        Answer one and it leaves the list.
+      </p>
+      {loading && !groups.length ? (
+        <ListSkeleton />
+      ) : error ? (
+        <Empty title="Could not load stops" body="Try again in a minute." />
+      ) : groups.length ? (
+        <ol className="ph-list">
+          {groups.map((g) => {
+            const site = siteOf(g.siteId);
+            return (
+              <li key={g.id}>
+                <button
+                  type="button"
+                  className={`ph-row${g.id === selectedId ? ' is-selected' : ''}`}
+                  onClick={() => onPick(g)}
+                >
+                  {site ? (
+                    <TypeTile type={site.type} />
+                  ) : (
+                    <TypeTile Icon={Clock} color={STOP_COLOR} />
+                  )}
+                  <span className="ph-row-main">
+                    <span className="ph-row-title">
+                      {site ? site.name : <PlaceLabel lat={g.lat} lng={g.lng} showMap={false} />}
+                    </span>
+                    <span className="ph-row-sub">
+                      {num(g.stops.length)} stop{g.stops.length === 1 ? '' : 's'} ·{' '}
+                      {num(g.trucks.length)} truck{g.trucks.length === 1 ? '' : 's'}
+                    </span>
+                  </span>
+                  <span className="ph-row-end">
+                    <strong>{hoursLabel(g.minutes / 60)}</strong>
+                    <span className="ph-row-sub">unexplained</span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      ) : (
+        <Empty
+          icon={CircleCheck}
+          title="No unexplained stop time this week"
+          body="Every long stop matched fuel, loading, a bill, a service, rest rules or a queue — or you answered it."
+        />
       )}
     </>
   );

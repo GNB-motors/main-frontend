@@ -5,6 +5,7 @@ import { getUserRole } from '../../utils/session.js';
 import AutoTripService from '../../services/AutoTripService';
 import { formatNum } from '../../utils/formatters';
 import { fmtDateRange } from './autoTripModel';
+import './AutoTrips.css';
 
 const CAN_SEE = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
 const pct = (x) => (x == null ? '—' : `${Math.round(x * 100)}%`);
@@ -29,24 +30,25 @@ function breakdown(b) {
  * How well the detected trips reproduce the org's own trip register (the oil
  * report), measured every night. "Seen by GPS" counts only the register trips
  * whose truck was sending GPS at the time, so a feed outage shows up as an
- * outage and not as a detection miss. Hidden for orgs with no register.
+ * outage and not as a detection miss. Shows `empty` (nothing by default) for an
+ * org with no register.
  */
-export default function RegisterMatchCard() {
+export default function RegisterMatchCard({ defaultOpen = false, empty = null }) {
   const canSee = CAN_SEE.includes(getUserRole());
-  const [open, setOpen] = useState(false);
-  const { data } = useApi(
+  const [open, setOpen] = useState(defaultOpen);
+  const { data, loading } = useApi(
     (signal) => (canSee ? AutoTripService.registerMatch({ signal }) : Promise.resolve(null)),
     [canSee],
   );
   const r = data?.latest?.['autotrip-3'];
-  if (!r?.totals?.cycles) return null;
+  if (!r?.totals?.cycles) return loading ? null : empty;
   const t = r.totals;
   const plants = Object.entries(r.byFrom || {}).slice(0, 8);
   const range = fmtDateRange(r.window?.from, r.window?.to);
   const gpsMissed = t.detectable != null && t.detectable < t.cycles;
 
   return (
-    <div className="atx-banner">
+    <div className="atx-scope atx-banner">
       <div className="atx-banner-row">
         <div className="atx-banner-msg">
           <ClipboardCheck size={18} strokeWidth={2} aria-hidden="true" />

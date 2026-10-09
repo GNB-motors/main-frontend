@@ -3,7 +3,6 @@ import {
   Users,
   User,
   Truck,
-  MapPinned,
   Map as MapIcon,
   Fuel,
   BookOpen,
@@ -263,15 +262,6 @@ export const SIDE_NAV_ITEMS = [
     icon: Warehouse,
   },
   */
-  // Moved out of Fleet Intelligence to sit with Trip and Warehouses; same flag.
-  {
-    type: 'link',
-    key: 'fleetIntelligence',
-    access: 'fleet',
-    to: '/places',
-    label: 'Place Intelligence',
-    icon: MapPinned,
-  },
   {
     type: 'link',
     access: 'fleet',

@@ -19,6 +19,7 @@ describe('visibleReportGroups', () => {
       'fuelCycles',
       'nonBusiness',
       'runningCost',
+      'registerMatch',
     ]);
   });
 
@@ -27,6 +28,7 @@ describe('visibleReportGroups', () => {
     expect(visible).not.toContain('fuelCycles');
     expect(visible).not.toContain('nonBusiness');
     expect(visible).not.toContain('runningCost');
+    expect(visible).not.toContain('registerMatch');
   });
 
   it('keeps the Oil & Average report for every org (its API has no sub-flag)', () => {

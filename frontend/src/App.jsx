@@ -9,6 +9,13 @@ function RedirectWithState({ to }) {
   return <Navigate to={to} state={location.state} replace />;
 }
 
+// Place Intelligence was folded into Place Hub; `?place=<siteId>` still opens that place.
+function PlacesRedirect() {
+  const id = new URLSearchParams(useLocation().search).get('place');
+  const to = id ? `/place-hub?place=${encodeURIComponent(`site:${id}`)}` : '/place-hub';
+  return <Navigate to={to} replace />;
+}
+
 function LegacyReceiptRedirect() {
   const { id } = useParams();
   return <Navigate to={`/approvals/whatsapp/${id}`} replace />;
@@ -154,9 +161,6 @@ const ExcursionsPage = lazy(() => import('./pages/AutoTrips/ExcursionsPage.jsx')
 const ExcursionDetailPage = lazy(() => import('./pages/AutoTrips/ExcursionDetailPage.jsx'));
 const MovementApprovalsPage = lazy(() => import('./pages/AutoTrips/MovementApprovalsPage.jsx'));
 // const HotspotsPage = lazy(() => import('./pages/Hotspots/HotspotsPage.jsx'));
-const PlaceIntelligencePage = lazy(
-  () => import('./pages/PlaceIntelligence/PlaceIntelligencePage.jsx'),
-);
 const PlaceHubPage = lazy(() => import('./pages/PlaceHub/PlaceHubPage.jsx'));
 const LiveTrackingPage = lazy(() => import('./pages/LiveTracking/LiveTrackingPage.jsx'));
 const PublicTrackingPage = lazy(() => import('./pages/PublicTracking/PublicTrackingPage.jsx'));
@@ -452,7 +456,7 @@ function App() {
             {/* Deprecated / hidden routes redirect cleanly so no blank screens appear */}
             <Route path="/hotspots" element={<Navigate to="/route-hub" replace />} />
             <Route path="/idling-console" element={<Navigate to="/route-hub" replace />} />
-            <Route path="/places" element={<PlaceIntelligencePage />} />
+            <Route path="/places" element={<PlacesRedirect />} />
             <Route path="/place-hub" element={<PlaceHubPage />} />
             <Route path="/live-tracking" element={<LiveTrackingPage />} />
             <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
