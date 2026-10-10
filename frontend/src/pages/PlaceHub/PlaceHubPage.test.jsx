@@ -34,6 +34,7 @@ vi.mock('./PlaceHubService.js', () => {
     loadDrainMap: vi.fn(),
     loadLiveIdling: vi.fn(),
     loadIdleHistory: vi.fn(),
+    loadIdleSetting: vi.fn(),
     warehouseRoster: vi.fn(),
     createZone: vi.fn(),
     createWarehouse: vi.fn(),
@@ -112,6 +113,10 @@ function seed() {
     ]),
   );
   PlaceHubService.loadIdleHistory.mockResolvedValue({ rows: [], error: null, truncated: false });
+  PlaceHubService.loadIdleSetting.mockResolvedValue({
+    idleThresholdMin: 20,
+    idleThresholdSource: 'DEFAULT',
+  });
   PlaceHubService.warehouseRoster.mockResolvedValue({ inside: [] });
   PlaceHubService.siteDetail.mockResolvedValue(null);
   PlaceHubService.loadSummary.mockReturnValue(
@@ -236,6 +241,12 @@ describe('PlaceHubPage', () => {
     renderPage('/place-hub?tab=idling');
     expect(await screen.findByText('WB11G0962')).toBeInTheDocument();
     expect(screen.getByText('Excess')).toBeInTheDocument();
+    // the threshold the list is counting by comes from Settings, not the page
+    expect(screen.getByText('20 min')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Change' })).toHaveAttribute(
+      'href',
+      '/settings?section=idling',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: /Fuel risk/ }));
     expect(await screen.findByText('NH16 lay-by')).toBeInTheDocument();

@@ -9,6 +9,7 @@ import {
   Clock,
   ShieldAlert,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import PlaceLabel from '../../components/ui/PlaceLabel';
@@ -256,10 +257,12 @@ export function IdlingPanel({
   spots,
   historyTotals,
   truncated,
+  idleSetting,
   selectedId,
   onPickLive,
   onPickSpot,
 }) {
+  const thresholdMin = idleSetting?.idleThresholdMin;
   return (
     <>
       <div className="ph-kpis">
@@ -286,6 +289,16 @@ export function IdlingPanel({
             { id: 'spots', label: 'Idle spots · 7 days', count: spots.length },
           ]}
         />
+        {thresholdMin != null ? (
+          <p className="ph-idle-rule">
+            <Clock size={13} aria-hidden="true" />
+            <span>
+              Counting stops of <strong>{num(thresholdMin)} min</strong> or more
+              {idleSetting.idleThresholdSource === 'DEFAULT' ? ' (default)' : ''}
+            </span>
+            <Link to="/settings?section=idling">Change</Link>
+          </p>
+        ) : null}
       </div>
       {loading && !live.length && !spots.length ? (
         <ListSkeleton />

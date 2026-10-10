@@ -290,6 +290,7 @@ export default function PlaceHubPage() {
     live: [],
     history: [],
     historyTruncated: false,
+    idleSetting: null,
     summary: null,
     breaks: [],
   });
@@ -321,15 +322,17 @@ export default function PlaceHubPage() {
   const loadIdling = useCallback(async () => {
     if (!allowIdling) return;
     setLoading((l) => ({ ...l, idling: true }));
-    const [live, history] = await Promise.all([
+    const [live, history, idleSetting] = await Promise.all([
       PlaceHubService.loadLiveIdling(),
       PlaceHubService.loadIdleHistory({ days: 7 }),
+      PlaceHubService.loadIdleSetting(),
     ]);
     setData((d) => ({
       ...d,
       live: live.rows,
       history: history.rows,
       historyTruncated: history.truncated,
+      idleSetting,
     }));
     setLoading((l) => ({ ...l, idling: false }));
     setLoaded((l) => ({ ...l, idling: true }));
@@ -914,6 +917,7 @@ export default function PlaceHubPage() {
               spots={idleSpots}
               historyTotals={historyTotals}
               truncated={data.historyTruncated}
+              idleSetting={data.idleSetting}
               selectedId={selectedId}
               onPickLive={(e) => pickFromList(`live:${e._id}`, Number(e.lat), Number(e.lng))}
               onPickSpot={(s) => pickFromList(s.id, s.lat, s.lng)}

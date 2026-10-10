@@ -127,6 +127,13 @@ export const PlaceHubService = {
 
   loadLiveIdling: ({ signal } = {}) => layer(() => IdlingConsoleService.getLive({ signal })),
 
+  /** The org's idle threshold — the same value the idling endpoints filter by. */
+  loadIdleSetting: ({ signal } = {}) =>
+    apiClient
+      .get('/api/fuel-settings', { signal })
+      .then(unwrap)
+      .catch(() => null),
+
   /** Closed idle events for the last `days`, newest first, capped at 500. */
   loadIdleHistory: async ({ days = 7, signal } = {}) => {
     const from = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
