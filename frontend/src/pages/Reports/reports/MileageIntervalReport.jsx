@@ -120,11 +120,14 @@ const MileageIntervalReport = () => {
         );
       }
       try {
+        // Excel: the owner workbook (what to check, where each vehicle's litres
+        // went, idling, missing bills, every cycle); CSV: the flat rows.
+        const filters = buildFilterParams({ startDate, endDate, vehicleId, driverId });
         await exportFilteredReportCsv({
-          fetchExport: (filters) =>
-            ReportsService.exportReportCsv('api/reports/mileage-intervals/export', filters),
-          filters: buildFilterParams({ startDate, endDate, vehicleId, driverId }),
-          filenamePrefix: 'mileage_interval_report',
+          fetchExport: (f) =>
+            ReportsService.exportReportCsv('api/reports/mileage-intervals/export', f),
+          filters: extension === 'xlsx' ? { ...filters, format: 'xlsx' } : filters,
+          filenamePrefix: extension === 'xlsx' ? 'mileage_report' : 'mileage_interval_report',
           extension,
           errorMessage: 'Could not export mileage report.',
         });
@@ -173,9 +176,9 @@ const MileageIntervalReport = () => {
           <button
             type="button"
             onClick={() => downloadReport('xlsx')}
-            disabled={isExporting || rows.length === 0}
+            disabled={isExporting}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#ECECEE] bg-[#F8F8FB] transition-colors hover:bg-[#ECECEE] disabled:opacity-40"
-            title="Export filtered rows to Excel"
+            title="Export the mileage workbook to Excel: what to check, litres per vehicle, idling, missing bills"
           >
             <ExcelIcon width={18} height={18} />
           </button>
