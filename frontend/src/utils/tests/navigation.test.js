@@ -1,4 +1,4 @@
-import { setNavigator, navigateTo, isOnAuthPage } from './navigation.js';
+import { setNavigator, navigateTo, isOnAuthPage } from '../navigation.js';
 
 describe('navigation.js — router bridge', () => {
   afterEach(() => setNavigator(null));

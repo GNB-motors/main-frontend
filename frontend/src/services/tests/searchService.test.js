@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normaliseResults, TYPE_ORDER } from './searchService';
+import { normaliseResults, TYPE_ORDER } from '../searchService';
 
 describe('normaliseResults', () => {
   it('groups results by type order (vehicles, drivers, trips) and drops routes', () => {

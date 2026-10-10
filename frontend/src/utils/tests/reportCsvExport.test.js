@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import * as XLSX from 'xlsx';
-import { csvTextToXlsxBuffer } from './reportCsvExport';
+import { csvTextToXlsxBuffer } from '../reportCsvExport';
 
 const readBack = (buffer) => {
   const wb = XLSX.read(buffer, { type: 'array' });

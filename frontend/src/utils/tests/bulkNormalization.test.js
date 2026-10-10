@@ -7,7 +7,7 @@ import {
   validateDriverRow,
   dedupeRows,
   dedupeRowsByContent,
-} from './bulkNormalization.js';
+} from '../bulkNormalization.js';
 
 describe('bulkNormalization.js — bulk upload column detection and normalization', () => {
   describe('normalizeVehicleDataset', () => {

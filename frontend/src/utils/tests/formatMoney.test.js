@@ -1,4 +1,4 @@
-import { inr, compactInr, num, pct, money, signedInr, drCr } from './formatMoney.js';
+import { inr, compactInr, num, pct, money, signedInr, drCr } from '../formatMoney.js';
 
 describe('formatMoney.js — central currency formatting', () => {
   describe('inr', () => {

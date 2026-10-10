@@ -8,7 +8,7 @@ import {
   timeAgo,
   freshnessOf,
   gradeSignal,
-} from './formatters.js';
+} from '../formatters.js';
 
 describe('formatters.js', () => {
   describe('formatINR', () => {

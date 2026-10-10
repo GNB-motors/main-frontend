@@ -6,9 +6,9 @@ import {
   isSessionInvalid401,
   validateTokenBeforeRequest,
   getTokenTimeRemaining,
-} from './authUtils.js';
-import { setSession, getToken } from './session.js';
-import { setNavigator } from './navigation.js';
+} from '../authUtils.js';
+import { setSession, getToken } from '../session.js';
+import { setNavigator } from '../navigation.js';
 
 const makeToken = (payload) => {
   const b64 = (obj) => btoa(JSON.stringify(obj)).replace(/=+$/, '');

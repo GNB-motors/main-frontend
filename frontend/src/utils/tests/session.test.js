@@ -27,7 +27,7 @@ import {
   removeProfileField,
   hasProfileData,
   clearSession,
-} from './session.js';
+} from '../session.js';
 
 describe('session.js — the sole localStorage gateway', () => {
   beforeEach(() => {

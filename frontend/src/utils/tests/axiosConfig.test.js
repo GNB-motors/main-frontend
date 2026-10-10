@@ -1,4 +1,4 @@
-import apiClient, { DEFAULT_TIMEOUT, SLOW_TIMEOUT } from './axiosConfig.js';
+import apiClient, { DEFAULT_TIMEOUT, SLOW_TIMEOUT } from '../axiosConfig.js';
 
 /** Run the request interceptors over a config the way axios would. */
 const applyRequest = async (config) => {

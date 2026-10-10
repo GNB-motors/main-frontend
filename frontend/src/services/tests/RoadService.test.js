@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../utils/axiosConfig', () => ({ default: { get: vi.fn() } }));
+vi.mock('../../utils/axiosConfig', () => ({ default: { get: vi.fn() } }));
 
-import apiClient from '../utils/axiosConfig';
-import RoadService from './RoadService';
+import apiClient from '../../utils/axiosConfig';
+import RoadService from '../RoadService';
 
 describe('RoadService (plan P4.8)', () => {
   beforeEach(() => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { provenanceOf } from './HotspotService';
+import { provenanceOf } from '../HotspotService';
 
 describe('provenanceOf', () => {
   it('marks orgId:null rows as network-shared', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getVisibleNavItems, getVisibleNavChildren, SIDE_NAV_ITEMS } from './sideNavUtils';
+import { getVisibleNavItems, getVisibleNavChildren, SIDE_NAV_ITEMS } from '../sideNavUtils';
 
 const flags = (on) => (key) => on.includes(key);
 const shows = (items, to) => items.some((item) => item.to === to);

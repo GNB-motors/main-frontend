@@ -4,8 +4,8 @@ import {
   getProfileField,
   clearProfileData,
   hasProfileData,
-} from './profileStorage.js';
-import { getThemeColor } from './session.js';
+} from '../profileStorage.js';
+import { getThemeColor } from '../session.js';
 
 describe('profileStorage.js — profile data in the session store', () => {
   beforeEach(() => {

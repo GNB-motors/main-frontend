@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { coordKey, dedupePoints, CACHE_LIMIT } from './PlaceService';
+import { coordKey, dedupePoints, CACHE_LIMIT } from '../PlaceService';
 
 describe('coordKey', () => {
   it('rounds to ~11 m grid', () => {

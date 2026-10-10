@@ -1,4 +1,4 @@
-import { installGlobalHandlers, lemuEndpoint } from './sentry.js';
+import { installGlobalHandlers, lemuEndpoint } from '../sentry.js';
 
 describe('sentry.js — lemuEndpoint', () => {
   it('targets the backend mount /api/extension/telemetry/ingest under the API base', () => {

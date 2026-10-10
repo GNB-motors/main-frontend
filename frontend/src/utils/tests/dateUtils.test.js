@@ -5,7 +5,7 @@ import {
   formatDateTimeLongIST,
   toISTDateString,
   toISTTimeString,
-} from './dateUtils.js';
+} from '../dateUtils.js';
 
 // 2024-01-15T10:30:00.000Z is 16:00 IST on the same calendar day.
 // All expected strings below were verified against V8's en-IN/en-CA/en-GB ICU data.

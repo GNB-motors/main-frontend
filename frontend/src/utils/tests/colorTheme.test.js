@@ -5,8 +5,8 @@ import {
   applyThemeToRoot,
   getThemeCSS,
   applyThemeToElement,
-} from './colorTheme.js';
-import { setThemeColor } from './session.js';
+} from '../colorTheme.js';
+import { setThemeColor } from '../session.js';
 
 describe('colorTheme.js — central colour theming', () => {
   beforeEach(() => {
