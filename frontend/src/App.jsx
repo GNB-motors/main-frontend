@@ -203,7 +203,6 @@ const DocumentDetailPage = lazy(() => import('./pages/ErpAccounts/DocumentDetail
 const DailyDigestPage = lazy(() => import('./pages/DailyDigest/DailyDigestPage.jsx'));
 const FleetAlertsPage = lazy(() => import('./pages/FleetAlerts/FleetAlertsPage.jsx'));
 // const IdlingConsolePage = lazy(() => import('./pages/IdlingConsole/IdlingConsolePage.jsx'));
-const DailyBriefPage = lazy(() => import('./pages/DailyBrief/DailyBriefPage.jsx'));
 const OptimalSpeedPage = lazy(() => import('./pages/OptimalSpeed/OptimalSpeedPage.jsx'));
 const RefuelAdvisoryPage = lazy(() => import('./pages/RefuelAdvisory/RefuelAdvisoryPage.jsx'));
 const DrivingDnaPage = lazy(() => import('./pages/DrivingDna/DrivingDnaPage.jsx'));
@@ -401,7 +400,7 @@ function App() {
             <Route path="/digest" element={<DailyDigestPage />} />
             <Route path="/fleet-alerts" element={<FleetAlertsPage />} />
             <Route path="/idling-console" element={<Navigate to="/route-hub" replace />} />
-            <Route path="/daily-brief" element={<DailyBriefPage />} />
+            <Route path="/daily-brief" element={<Navigate to="/digest" replace />} />
             <Route path="/def-ledger" element={<DefLedgerPage />} />
             <Route path="/fleet-coverage" element={<FleetCoveragePage />} />
             <Route path="/route-hub" element={<RouteHubPage />} />

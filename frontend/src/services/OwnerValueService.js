@@ -41,6 +41,9 @@ export const OwnerValueService = {
 
   /** Per-vehicle trip/service/document events over a date window. */
   getFleetCalendar: (params = {}, signal) => get('/api/owner-value/fleet-calendar', params, signal),
+
+  /** One IST day's excess idling and fuel-over-expected ₹, top-5 vehicles each, with an action. */
+  getMorningBrief: (params = {}, signal) => get('/api/owner-value/morning-brief', params, signal),
 };
 
 export default OwnerValueService;

@@ -23,6 +23,7 @@ import {
   MapPinOff,
   Calendar as CalendarIcon,
   Truck,
+  Sparkles,
 } from 'lucide-react';
 import { formatINR, formatKm, formatLitres, formatNum } from '../../utils/formatters';
 import { formatDateIST, formatDateTimeIST } from '../../utils/dateUtils';
@@ -1205,6 +1206,182 @@ export function NdWasteTable({ idlingTop5, detourTop5, onOpenVehicle }) {
   );
 }
 
+/* ============================= Morning brief ============================= */
+
+// Excess idling is the zone-aware slice of "Idling cost" and fuel over
+// expected overlaps "Low-mileage loss", so these cards stand apart from the
+// ₹ impact card and are never added to its total.
+const BRIEF_SECTION = {
+  excessIdling: {
+    c: '#C56200',
+    icon: Clock,
+    col: 'Idling',
+    detail: (v) => (v.durationMin ? `${formatNum(v.durationMin)} min` : '—'),
+    sub: 'idling outside known loading and customer zones',
+    clean: 'No vehicle idled outside known loading or customer zones today.',
+  },
+  fuelOverModel: {
+    c: '#9333EA',
+    icon: Droplet,
+    col: 'Over model',
+    detail: (v) => (v.excessL ? formatLitres(v.excessL) : '—'),
+    sub: 'burnt above each vehicle’s learned fuel model',
+    clean: 'Every vehicle burnt within its fuel model today.',
+  },
+};
+const BRIEF_FALLBACK = {
+  c: '#C2323A',
+  icon: TrendingDown,
+  col: 'Detail',
+  detail: () => '—',
+  sub: 'lost today',
+  clean: 'Nothing to report today.',
+};
+
+function NdBriefCard({ section, onOpenVehicle }) {
+  const meta = BRIEF_SECTION[section.key] || BRIEF_FALLBACK;
+  const vehicles = section.vehicles || [];
+  const Icon = meta.icon;
+
+  return (
+    <div className="nd-card nd-opcard" style={{ '--c': meta.c }}>
+      <div className="nd-card-head">
+        <h2>{section.label}</h2>
+        <span className="nd-sp" />
+        <span className="nd-hint">Today · top 5 vehicles</span>
+      </div>
+      {section.status !== 'ok' ? (
+        <div className="nd-empty">
+          <span className="nd-ok">
+            <Check size={22} />
+          </span>
+          <b>Clean today</b>
+          <span>{meta.clean}</span>
+        </div>
+      ) : (
+        <>
+          <div className="nd-big">
+            <span className="nd-v" style={{ color: meta.c }}>
+              {formatINR(section.rupees)}
+            </span>
+            <span className="nd-u">
+              <Icon size={12} style={{ verticalAlign: '-2px', marginRight: 4 }} />
+              {meta.sub}
+            </span>
+          </div>
+          <table className="nd-tbl">
+            <thead>
+              <tr>
+                <th>Vehicle</th>
+                <th>{meta.col}</th>
+                <th className="nd-num">Cost today</th>
+              </tr>
+            </thead>
+            <tbody>
+              {vehicles.map((v) => (
+                <tr
+                  key={v.registrationNumber}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onOpenVehicle(v.registrationNumber)}
+                  onKeyDown={onRowKeyDown(() => onOpenVehicle(v.registrationNumber))}
+                >
+                  <td>
+                    <span className="nd-plate">{v.registrationNumber}</span>
+                  </td>
+                  <td className="nd-muted">{meta.detail(v)}</td>
+                  <td className="nd-num" style={{ color: meta.c }}>
+                    {formatINR(v.rupees)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function NdMorningBriefSkeleton() {
+  return (
+    <section className="nd-brief">
+      <div className="nd-eyebrow">Morning brief</div>
+      <div className="nd-cols nd-cols--half">
+        {['Excess idling', 'Fuel over expected'].map((title) => (
+          <NdCardSkeleton
+            key={title}
+            title={title}
+            hint="Today · top 5 vehicles"
+            big
+            rows={3}
+            rowHeight={36}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** The day's leaks ranked biggest-first, led by the one action worth taking first. */
+export function NdMorningBrief({ brief, onOpenVehicle, onRetry }) {
+  const rank = (s) => (s.status === 'ok' ? s.rupees || 0 : -1);
+  const sections = [...(brief?.sections || [])].sort((a, b) => rank(b) - rank(a));
+
+  // A failed load keeps its place on the page — a section that silently
+  // vanishes reads as "this feature doesn't exist", not "this didn't load".
+  if (!sections.length) {
+    return (
+      <section className="nd-brief" id="nd-brief">
+        <div className="nd-eyebrow">Morning brief</div>
+        <div className="nd-card">
+          <div className="nd-empty">
+            <span
+              className="nd-ok"
+              style={{ background: 'rgba(197, 98, 0, 0.12)', color: '#C56200' }}
+            >
+              <Info size={22} />
+            </span>
+            <b>Morning brief couldn&apos;t load</b>
+            <span>Excess idling and fuel over expected for today will show here.</span>
+            {onRetry ? (
+              <button type="button" className="nd-btn nd-btn--sm" onClick={onRetry}>
+                Try again
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </section>
+    );
+  }
+  const top = sections[0].status === 'ok' ? sections[0] : null;
+
+  return (
+    <section className="nd-brief" id="nd-brief">
+      <div className="nd-eyebrow">Morning brief</div>
+      {top?.suggestedAction ? (
+        <div
+          className="nd-brief-start"
+          style={{ '--c': (BRIEF_SECTION[top.key] || BRIEF_FALLBACK).c }}
+        >
+          <span className="nd-brief-start-ico">
+            <Sparkles size={16} />
+          </span>
+          <div>
+            <div className="nd-brief-start-k">Start here</div>
+            <div className="nd-brief-start-m">{top.suggestedAction}</div>
+          </div>
+        </div>
+      ) : null}
+      <div className="nd-cols nd-cols--half">
+        {sections.map((s) => (
+          <NdBriefCard key={s.key} section={s} onOpenVehicle={onOpenVehicle} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /* ================================ Upcoming =============================== */
 
 const UPCOMING_BUCKETS = [
@@ -1402,7 +1579,7 @@ export function NdOpsRow({ money, fuelEfficiency, onOpenVehicle }) {
               {formatINR(money.idlingWasteInr)}
             </span>
             <span className="nd-u">
-              {idleMinutesTotal} min outside known loading and customer zones
+              {idleMinutesTotal} min idling across the top {idlingTop5.length} vehicles
             </span>
           </div>
         ) : (
@@ -1411,7 +1588,7 @@ export function NdOpsRow({ money, fuelEfficiency, onOpenVehicle }) {
               <Check size={22} />
             </span>
             <b>No idling waste today</b>
-            <span>Vehicles idling over 30 min outside known zones appear here.</span>
+            <span>Vehicles idling over 30 min appear here.</span>
           </div>
         )}
       </div>

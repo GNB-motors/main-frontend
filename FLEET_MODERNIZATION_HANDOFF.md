@@ -85,7 +85,7 @@ The application sidebar (`frontend/src/utils/sideNavUtils.js`) and routing tree 
 | `/mileage` | `MileagePage.jsx` | **Master Command Center** unifying Refuel Logs, Mileage Tracking, and Fuel Comparison. |
 | `/def-ledger` | `DefLedgerPage.jsx` | Modernized DEF ledger with BS-VI SCR dosing corridor physics and tamper detection. |
 | `/fuel-integrity` | `FuelIntegrityPage.jsx` | High-precision sensor anomaly and fuel theft investigation console. |
-| `/daily-brief` | `DailyBriefPage.jsx` | Executive morning brief positioned directly below Daily Digest in navigation. |
+| ~~`/daily-brief`~~ | — | Removed 2026-10-10; its cards now live in the Daily Digest (`/digest`) as the "Morning brief" section. |
 | `/idling-console` | `IdlingConsolePage.jsx` | Renovated console with custom client threshold timer, micro-idling, and terminal queue recognition. |
 | `/route-hub` | `RouteHubPage.jsx` | Route intelligence with universal fuzzy search bar, roundabout detour alerts, and GSM dead-zone continuity. |
 | `/settings` | `SettingsPage.jsx` | Dedicated settings hub absorbing telematics device sync (replacing `/fleet-coverage`). |
@@ -232,6 +232,8 @@ $$\text{Detour Flag} \iff (D_{\text{extra}} \ge 12\text{ km}) \;\lor\; (\text{Ma
 ## 8. Executive Morning Brief (`/daily-brief`) & Settings Hub (`/settings`)
 
 ### 8.1 Executive Morning Brief (`DailyBriefPage.jsx`)
+> **Removed 2026-10-10.** The page and `/api/daily-brief` are gone; excess idling and fuel-over-expected now render in the Daily Digest's "Morning brief" section from `GET /api/owner-value/morning-brief`.
+
 * Repositioned in the sidebar directly underneath **Daily Digest**.
 * Displays yesterday's financial leakage summary (unreconciled fuel, idling burn, detour fuel penalties).
 * High-priority operational dispatch cards with quantified ₹ impact and recommended operational remedies.

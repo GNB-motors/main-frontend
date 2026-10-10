@@ -1,5 +1,6 @@
 /**
- * Zod validation for the Daily/Morning Brief response (feature #17).
+ * Zod validation for the Daily Digest's morning brief
+ * (GET /api/owner-value/morning-brief).
  * Permissive by design (see schemas/primitives.js): known fields are typed,
  * every optional field also accepts null, and unknown fields pass through so a
  * new backend section never turns a healthy response into a failed request.
@@ -7,7 +8,7 @@
 import { z } from 'zod';
 import { str, num, ref } from './primitives.js';
 
-const briefEventSchema = z
+const briefVehicleSchema = z
   .object({
     vehicleId: ref,
     registrationNumber: str,
@@ -21,20 +22,20 @@ const briefSectionSchema = z
   .object({
     key: str,
     label: str,
-    // 'ok' | 'empty' | 'not_available_yet' — kept as a plain string so a new
-    // status value never throws on an otherwise-healthy brief.
+    // 'ok' | 'empty' — kept as a plain string so a new status value never
+    // throws on an otherwise-healthy brief.
     status: str,
     rupees: num,
     suggestedAction: str,
-    reason: str,
-    events: z.array(briefEventSchema).nullish(),
+    vehicles: z.array(briefVehicleSchema).nullish(),
   })
   .passthrough();
 
-export const dailyBriefSchema = z
+export const morningBriefSchema = z
   .object({
     date: str,
     totalRupees: num,
     sections: z.array(briefSectionSchema).nullish(),
+    disclaimer: str,
   })
   .passthrough();

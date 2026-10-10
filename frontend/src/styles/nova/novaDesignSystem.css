@@ -2401,6 +2401,46 @@ html.dark .nd-upcard-risk--upcoming {
   color: var(--fg-secondary);
   font-size: 12px;
 }
+
+/* ---------- morning brief ---------- */
+.nd-brief {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.nd-brief-start {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 12px 14px;
+  background: color-mix(in srgb, var(--c) 7%, var(--bg-surface));
+  border: 1px solid color-mix(in srgb, var(--c) 22%, transparent);
+  border-radius: var(--radius-l);
+}
+.nd-brief-start-ico {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+  color: var(--c);
+}
+.nd-brief-start-k {
+  font-family: var(--font-eyebrow);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c);
+}
+.nd-brief-start-m {
+  margin-top: 2px;
+  color: var(--fg-primary);
+  font-size: var(--type-s);
+  line-height: 1.4;
+}
 .nd-spark {
   display: flex;
   align-items: flex-end;

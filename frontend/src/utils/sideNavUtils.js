@@ -18,7 +18,6 @@ import {
   ReceiptText,
   Radar,
   Warehouse,
-  SunMedium,
   Route,
 } from 'lucide-react';
 
@@ -69,14 +68,6 @@ export const SIDE_NAV_ITEMS = [
     to: '/digest',
     label: 'Daily Digest',
     icon: CalendarClock,
-  },
-  {
-    type: 'link',
-    key: 'dailyBrief',
-    access: 'fleet',
-    to: '/daily-brief',
-    label: 'Morning Brief',
-    icon: SunMedium,
   },
 
   // ─── Shared master data ────────────────────────────────────────────────────

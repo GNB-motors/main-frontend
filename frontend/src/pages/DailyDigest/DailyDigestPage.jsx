@@ -8,6 +8,7 @@ import { VehicleService } from '../Profile/VehicleService.jsx';
 import { getToken } from '../../utils/session.js';
 import { OwnerAlertsService } from '../OwnerAlerts/OwnerAlertsService';
 import { FuelIntegrityService } from '../FuelIntegrity/FuelIntegrityService';
+import { morningBriefSchema } from '../../schemas/morningBrief.schema';
 
 import { formatNum } from '../../utils/formatters';
 import { formatDateLongIST } from '../../utils/dateUtils';
@@ -29,6 +30,8 @@ import {
   NdOpsRow,
   NdOpsRowSkeleton,
   NdLeaderboardCard,
+  NdMorningBrief,
+  NdMorningBriefSkeleton,
   NdCardSkeleton,
   NdVehicleDrawer,
 } from './novaDigestComponents.jsx';
@@ -55,6 +58,10 @@ export default function DailyDigestPage() {
   const utilization$ = useApi((s) => OwnerValueService.getUtilization({ from }, s), [from]);
   const healthScore$ = useApi((s) => OwnerValueService.getHealthScore(s), []);
   const driverLeaderboard$ = useApi((s) => FleetDataService.getDriverLeaderboard({}, s), []);
+  const morningBrief$ = useApi(
+    (s) => OwnerValueService.getMorningBrief({}, s).then((d) => morningBriefSchema.parse(d)),
+    [],
+  );
 
   const { data: money } = money$;
   const { data: fleetDashboard } = fleetDashboard$;
@@ -68,6 +75,7 @@ export default function DailyDigestPage() {
   const { data: utilization } = utilization$;
   const { data: healthScore } = healthScore$;
   const { data: driverLeaderboard } = driverLeaderboard$;
+  const { data: morningBrief } = morningBrief$;
 
   const loading =
     money$.loading ||
@@ -93,6 +101,7 @@ export default function DailyDigestPage() {
     (downtime$.loading && !downtime) || (fleetDashboard$.loading && !fleetDashboard);
   const opsLoading = (money$.loading && !money) || (fuelEfficiency$.loading && !fuelEfficiency);
   const leaderboardLoading = driverLeaderboard$.loading && !driverLeaderboard;
+  const briefLoading = morningBrief$.loading && !morningBrief;
 
   const [lastUpdated, setLastUpdated] = useState(() => Date.now());
   const [, forceTick] = useState(0);
@@ -119,6 +128,7 @@ export default function DailyDigestPage() {
       utilization$,
       healthScore$,
       driverLeaderboard$,
+      morningBrief$,
     ].forEach((h) => h.refetch?.());
     setLastUpdated(Date.now());
   };
@@ -281,6 +291,14 @@ export default function DailyDigestPage() {
         detail: `${r.idleMinutes} min`,
         amount: r.idleCostInr,
       })),
+      ...(morningBrief?.sections || []).flatMap((sec) =>
+        (sec.vehicles || []).map((v) => ({
+          section: `Morning brief · ${sec.label}`,
+          vehicle: v.registrationNumber,
+          detail: v.durationMin ? `${v.durationMin} min` : v.excessL ? `${v.excessL} L` : '',
+          amount: v.rupees,
+        })),
+      ),
       ...upcoming.map((u) => ({
         section: 'Upcoming',
         vehicle: u.registrationNumber,
@@ -288,7 +306,7 @@ export default function DailyDigestPage() {
         amount: '',
       })),
     ],
-    [actions, money, upcoming],
+    [actions, money, morningBrief, upcoming],
   );
 
   const digestExportColumns = [
@@ -372,6 +390,16 @@ export default function DailyDigestPage() {
             )}
           </div>
         </section>
+
+        {briefLoading ? (
+          <NdMorningBriefSkeleton />
+        ) : (
+          <NdMorningBrief
+            brief={morningBrief}
+            onOpenVehicle={openVehicle}
+            onRetry={morningBrief$.refetch}
+          />
+        )}
 
         {calendarLoading ? (
           <NdCardSkeleton title="Fleet calendar" tabs={2} rows={6} rowHeight={40} />
