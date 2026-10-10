@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { DetailsPanel } from './profileDetailsPanel';
 
 vi.mock('./profileLocationsManager', () => ({ LocationsManager: () => null }));
+vi.mock('./profileIdleSetting', () => ({ IdleThresholdSetting: () => null }));
 vi.mock('../../components/CompanyLogoUploader.jsx', () => ({ default: () => null }));
 
 const renderPanel = (props) =>

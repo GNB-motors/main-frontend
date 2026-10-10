@@ -16,7 +16,10 @@ import {
   fmtDay,
   inWindow,
   notReachedYet,
+  tripRoadLayers,
+  tripRoadAt,
 } from './autoTripModel';
+import { encodePolyline6 } from '../../lib/polyline6';
 
 const pickup = { lat: 22.5, lng: 88.2, name: 'AMBUJA' };
 const drop = { lat: 21.9, lng: 87.5, arrivedAt: '2026-09-20T13:00:00Z' };
@@ -303,5 +306,36 @@ describe('inWindow / notReachedYet', () => {
       false,
     );
     expect(notReachedYet({ status: 'COMPLETE', drop: {} })).toBe(false);
+  });
+});
+
+describe('tripRoadLayers / tripRoadAt: the trip replay draws the road our engine matched', () => {
+  const T0 = Date.UTC(2026, 9, 7, 0, 7, 26);
+  const A = { lat: 25.6066864, lng: 84.287424 };
+  const M = { lat: 25.59, lng: 84.22 };
+  const B = { lat: 25.5796912, lng: 84.1612288 };
+  const trail = {
+    mode: 'MATCHED',
+    segments: [
+      // the frozen-GPS gap of WB11N2762 on 7 Oct, drawn on the road
+      { kind: 'INFERRED', t0: T0, t1: T0 + 600e3, distM: 15350, geom: encodePolyline6([A, M, B]) },
+    ],
+  };
+
+  it('no road trail, or raw only: null (the replay keeps its GPS line)', () => {
+    expect(tripRoadLayers(null)).toBeNull();
+    expect(tripRoadLayers({ mode: 'RAW_ONLY', segments: [] })).toBeNull();
+  });
+
+  it('the whole road, the part driven so far, and the truck on the road', () => {
+    const full = tripRoadLayers(trail);
+    expect(full).toHaveLength(1);
+    expect(full[0].path).toHaveLength(3);
+    const r = tripRoadAt(full, T0 + 300e3);
+    expect(r.run).toHaveLength(1);
+    expect(r.run[0].path.length).toBeGreaterThanOrEqual(2);
+    // halfway in time is on the road between A and B, not on the straight chord
+    expect(r.truckAt.lng).toBeLessThan(A.lng);
+    expect(r.truckAt.lng).toBeGreaterThan(B.lng);
   });
 });

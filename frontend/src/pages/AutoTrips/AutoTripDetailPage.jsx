@@ -5,6 +5,7 @@ import { Check } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
 import { useMutation } from '../../hooks/useMutation';
 import AutoTripService from '../../services/AutoTripService';
+import RoadService from '../../services/RoadService';
 import { getUserRole } from '../../utils/session.js';
 import { dropLabel } from '../PlaceHub/intelligence/facilityText';
 import AutoTripReplay from './AutoTripReplay';
@@ -72,6 +73,17 @@ export default function AutoTripDetailPage() {
     error: trackError,
     refetch: refetchTrack,
   } = useApi((signal) => AutoTripService.track(id, { signal }), [id]);
+  // The road our engine matched for the same window: the replay draws the road, never a GPS jump.
+  const { data: roadTrail } = useApi(
+    (signal) =>
+      RoadService.getRoadTrailIfEnabled(
+        track.registrationNumber,
+        { from: track.from, to: track.to },
+        signal,
+      ),
+    [track?.registrationNumber, track?.from, track?.to],
+    { enabled: Boolean(track?.registrationNumber && track?.from && track?.to) },
+  );
 
   const confirmM = useMutation(AutoTripService.confirm);
   const dropM = useMutation(AutoTripService.drop);
@@ -204,6 +216,7 @@ export default function AutoTripDetailPage() {
               ref={replayRef}
               trip={trip}
               track={track}
+              roadTrail={roadTrail}
               loading={trackLoading}
               error={trackError}
               autoPlay={autoPlay}

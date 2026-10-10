@@ -14,10 +14,11 @@ import { Link } from 'react-router-dom';
 import CompanyLogoUploader from '../../components/CompanyLogoUploader.jsx';
 import { Field, SectionHeader } from './profileAtoms';
 import { LocationsManager } from './profileLocationsManager';
+import { IdleThresholdSetting } from './profileIdleSetting';
 
 /**
  * Right-hand column: personal info, organisation details + logo, fleet data
- * coverage (when the viewer may open it), locations.
+ * coverage (when the viewer may open it), idling threshold, locations.
  */
 export const DetailsPanel = ({
   user,
@@ -93,6 +94,9 @@ export const DetailsPanel = ({
         </div>
       </div>
     )}
+
+    {/* Idle threshold — owners and managers change it, everyone sees it */}
+    <IdleThresholdSetting canEdit={canManageLocations} />
 
     {/* Locations (operating branches) */}
     <LocationsManager canManage={canManageLocations} />
