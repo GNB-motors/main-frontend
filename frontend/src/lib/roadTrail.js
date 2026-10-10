@@ -133,6 +133,26 @@ export function clipLayersAt(layers, t) {
   return out;
 }
 
+/**
+ * The road driven between times a and b (an overspeed stretch, say): each road layer the span
+ * touches, cut to the metres driven in it. RAW fixes and gaps carry no road, so none is drawn there.
+ */
+export function layersBetween(layers, a, b) {
+  if (!(b > a)) return [];
+  const out = [];
+  for (const l of layers) {
+    if (l.kind === 'RAW' || l.t1 <= a || l.t0 >= b) continue;
+    const m0 = metresAt(l, a);
+    const m1 = metresAt(l, b);
+    if (!(m1 > m0)) continue;
+    const head = slicePath(l.path, l.cum, m1);
+    const start = pointAt(l.path, l.cum, m0);
+    const path = [start, ...head.filter((_, i) => l.cum[i] > m0 && i < head.length - 1), head[head.length - 1]];
+    out.push({ ...l, path, partial: true });
+  }
+  return out;
+}
+
 /** On-road position at time t, or null when t is not on a drawn road (RAW and gaps excluded). */
 export function positionAt(layers, t) {
   const l = layers.find((x) => x.kind !== 'RAW' && x.t0 <= t && t <= x.t1);

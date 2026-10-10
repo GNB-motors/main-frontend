@@ -13,8 +13,14 @@ import {
   toLatLngPairs,
 } from '../../../lib/roadTrail';
 import { addRoadLayers } from '../../../lib/roadTrailLeaflet';
+import { overspeedStretches, replayWindow } from '../overspeedReplay';
 
 const EVC = { start: '#187A32', stop: '#6A43D8', os: '#F0AA48', dev: '#C2323A', end: '#1E1E20' };
+/** Where the truck was over the limit, painted on the road it drove. */
+const OVERSPEED_STRETCH = '#C2323A';
+/** The audit's defaults when the replay is opened without its own limit. */
+const DEFAULT_LIMIT_KMH = 60;
+const DEFAULT_DUR_MIN = 3;
 const RANGES = [
   { value: 'today', label: 'Today' },
   { value: 'yesterday', label: 'Yesterday' },
@@ -237,6 +243,7 @@ function buildTrip(points, overspeedEvents, deviationEvents, anchors = null, roa
     fixes,
     path,
     events,
+    overspeed: overspeedEvents || [],
     km: acc,
     distanceSource: timeline ? 'road' : 'straight-line',
     roadLayers: matched ? toLayers(road) : [],
@@ -268,9 +275,13 @@ function sampleAt(trip, t) {
 }
 
 export default function ReplayView({ params, toast }) {
+  // Opened from the overspeed audit (?from&to&at&limit&dur): that window, at that event.
+  const linked = useMemo(() => replayWindow(params), [params]);
+  const limitKmh = linked?.limitKmh || DEFAULT_LIMIT_KMH;
+  const durMin = linked?.durMin || DEFAULT_DUR_MIN;
   const [vehicles, setVehicles] = useState([]);
   const [reg, setReg] = useState('');
-  const [range, setRange] = useState('today');
+  const [range, setRange] = useState(linked ? 'custom' : 'today');
   const [from, setFrom] = useState(dkey(new Date(Date.now() - 7 * 86400000)));
   const [to, setTo] = useState(dkey(new Date()));
   const [trip, setTrip] = useState(null);
@@ -319,7 +330,11 @@ export default function ReplayView({ params, toast }) {
       // back to the ERP timestamps when the trip has not been anchored yet — those
       // are operator-typed and can be hours off, which is exactly why the labels
       // stay honest about which source they came from.
-      const win = tripRow ? tripWindow(tripRow) : windowForRange(nextRange, from, to);
+      const win = tripRow
+        ? tripWindow(tripRow)
+        : nextRange === 'linked' && linked
+          ? { from: linked.from, to: linked.to }
+          : windowForRange(nextRange, from, to);
       setLoading(true);
       setError(null);
       try {
@@ -336,8 +351,8 @@ export default function ReplayView({ params, toast }) {
             vehicleId: vehicle._id,
             from: win.from.toISOString(),
             to: win.to.toISOString(),
-            speedKmh: 60,
-            durationSec: 180,
+            speedKmh: limitKmh,
+            durationSec: durMin * 60,
           })
             .then((r) => r.events || [])
             .catch(() => []);
@@ -362,7 +377,11 @@ export default function ReplayView({ params, toast }) {
         });
         const built = buildTrip(trail.points, os, dev, anchors, road);
         setTrip(built);
-        setT(0);
+        const startT =
+          built && nextRange === 'linked' && linked?.at
+            ? Math.max(0, Math.min(1, (linked.at - built.startAt) / (built.durationMin * 60000 || 1)))
+            : 0;
+        setT(startT);
         setPlaying(false);
         if (!built) setError('No position fixes in this window.');
       } catch (e) {
@@ -372,11 +391,11 @@ export default function ReplayView({ params, toast }) {
         setLoading(false);
       }
     },
-    [reg, range, from, to, vehicles, erpTripId],
+    [reg, range, from, to, vehicles, erpTripId, linked, limitKmh, durMin],
   );
 
   useEffect(() => {
-    if (reg && !trip && !loading && !error) load(reg, range);
+    if (reg && !trip && !loading && !error) load(reg, linked ? 'linked' : range);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reg]);
 
@@ -433,6 +452,29 @@ export default function ReplayView({ params, toast }) {
           lineCap: 'round',
         }).addTo(group);
       }
+      // Over the limit: the stretch itself, along the road, so the map shows where.
+      overspeedStretches(trip, trip.overspeed).forEach(({ event, onRoad, paths }) => {
+        const at = new Date(event.startAt);
+        L.polyline(paths, {
+          color: OVERSPEED_STRETCH,
+          weight: 7,
+          opacity: 0.85,
+          lineCap: 'round',
+          dashArray: onRoad ? null : '6 6',
+        })
+          .bindTooltip(
+            `Over ${limitKmh} km/h · peak ${event.maxSpeedKmh} km/h · ${fmtT(at)}${
+              onRoad ? '' : ' (GPS fixes, no matched road)'
+            }`,
+            { className: 'tag', sticky: true },
+          )
+          .on('click', () => {
+            setPlaying(false);
+            setT(Math.max(0, Math.min(1, (at - trip.startAt) / (trip.durationMin * 60000 || 1))));
+          })
+          .addTo(group);
+      });
+
       runRef.current = L.polyline([trip.path[0]], {
         color: '#2F58EE',
         weight: 5,
@@ -468,7 +510,7 @@ export default function ReplayView({ params, toast }) {
       );
       map.fitBounds(L.latLngBounds(trip.path), { padding: [60, 60] });
     },
-    [trip],
+    [trip, limitKmh],
   );
 
   const frame = trip ? sampleAt(trip, t) : null;
@@ -492,10 +534,10 @@ export default function ReplayView({ params, toast }) {
       runRef.current.setLatLngs(trip.path.slice(0, frame.upto).concat([frame.ll]));
     }
     const el = truckRef.current.getElement()?.querySelector('.rh-truck');
-    if (el) el.classList.toggle('fast', (frame.speed || 0) > 60);
+    if (el) el.classList.toggle('fast', (frame.speed || 0) > limitKmh);
     if (persp === 'follow' && mapRef.current)
       mapRef.current.setView(frame.ll, 12, { animate: false });
-  }, [trip, frame, persp, mapRef]);
+  }, [trip, frame, persp, mapRef, limitKmh]);
 
   useEffect(() => {
     if (!playing || !trip) return undefined;
@@ -729,7 +771,7 @@ export default function ReplayView({ params, toast }) {
                   <div className="k">Speed</div>
                   <div
                     className="v"
-                    style={{ color: (frame?.speed || 0) > 60 ? '#C2323A' : 'inherit' }}
+                    style={{ color: (frame?.speed || 0) > limitKmh ? '#C2323A' : 'inherit' }}
                   >
                     {frame ? frame.speed : '—'}{' '}
                     <span style={{ fontSize: 11, color: 'var(--fg-secondary)', fontWeight: 500 }}>
