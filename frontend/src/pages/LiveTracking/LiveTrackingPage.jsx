@@ -154,12 +154,49 @@ const trailDistanceKm = (points) => {
   return sum;
 };
 
+/* ---------------- Loading skeletons ---------------- */
+const Skel = ({ w = '100%', h = 12 }) => (
+  <span className="skel" aria-hidden="true" style={{ width: w, height: h }} />
+);
+
+const SKEL_CARD_COUNT = 6;
+
+// Same frame as a real .vcard so the list doesn't jump when positions land.
+const VehicleCardSkeleton = () => (
+  <div className="vcard vcard--skel" aria-hidden="true">
+    <div className="vc-top">
+      <div className="vc-id">
+        <div className="vc-plate">
+          <Skel w={96} h={14} />
+          <Skel w={52} h={14} />
+        </div>
+        <div className="vc-vin">
+          <Skel w={128} h={10} />
+        </div>
+      </div>
+      <span className="vc-state">
+        <Skel w={56} h={12} />
+      </span>
+    </div>
+    <div className="vc-loc">
+      <Skel w="70%" h={12} />
+    </div>
+    <div className="vc-meta">
+      <Skel w={44} h={11} />
+      <Skel w={36} h={11} />
+      <Skel w={40} h={11} />
+      <span className="sp" />
+      <Skel w={48} h={11} />
+    </div>
+  </div>
+);
+
 /* ---------------- Main LiveTrackingPage Component ---------------- */
 const LiveTrackingPage = () => {
   // Live positions hook
   const {
     positions: rawPositions,
-    isLoading: _isLiveLoading,
+    isLoading: isLiveLoading,
     refresh: refreshLivePositions,
   } = useLivePositions();
   const [vehiclesMeta, setVehiclesMeta] = useState({});
@@ -927,7 +964,7 @@ const LiveTrackingPage = () => {
 
           <span className="livepill">
             <i />
-            <span>{counts.gps} Live on Map</span>
+            <span>{isLiveLoading ? <Skel w={14} h={10} /> : counts.gps} Live on Map</span>
           </span>
 
           {/* Connected Telematics Status Bar Strip (WheelsEye Style) */}
@@ -947,7 +984,7 @@ const LiveTrackingPage = () => {
                     className="gnb-status-card-count"
                     style={!isActive && card.countColor ? { color: card.countColor } : undefined}
                   >
-                    {card.count}
+                    {isLiveLoading ? <Skel w={18} h={14} /> : card.count}
                   </span>
                   <span className="gnb-status-card-label">{card.label}</span>
                   {!isActive && (
@@ -1308,11 +1345,15 @@ const LiveTrackingPage = () => {
                 <div className="ftitle">
                   <h2>Fleet</h2>
                   <div className="fsub">
-                    {vehicles.length === 0
-                      ? '0 vehicles · 0 live'
-                      : filteredVehicles.length === vehicles.length
-                        ? `${vehicles.length} vehicles · ${counts.gps} live`
-                        : `${filteredVehicles.length} of ${vehicles.length} vehicles`}
+                    {isLiveLoading ? (
+                      <Skel w={120} h={10} />
+                    ) : vehicles.length === 0 ? (
+                      '0 vehicles · 0 live'
+                    ) : filteredVehicles.length === vehicles.length ? (
+                      `${vehicles.length} vehicles · ${counts.gps} live`
+                    ) : (
+                      `${filteredVehicles.length} of ${vehicles.length} vehicles`
+                    )}
                   </div>
                 </div>
 
@@ -1345,8 +1386,10 @@ const LiveTrackingPage = () => {
               </div>
 
               {/* Cards List */}
-              <div className="flist">
-                {!filteredVehicles.length ? (
+              <div className="flist" aria-busy={isLiveLoading}>
+                {isLiveLoading ? (
+                  Array.from({ length: SKEL_CARD_COUNT }, (_, i) => <VehicleCardSkeleton key={i} />)
+                ) : !filteredVehicles.length ? (
                   <div className="fempty">
                     {vehicles.length === 0
                       ? "No vehicles found in your organization's fleet."

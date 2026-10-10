@@ -2400,3 +2400,49 @@ html.dark .vcard:hover,
   cursor: pointer;
   white-space: nowrap;
 }
+
+/* ---------- loading skeletons ---------- */
+/* Tinted from currentColor so one rule reads on the status cards, the live
+   pill and the fleet list in both themes. */
+.gnb-lt-page .skel {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  vertical-align: middle;
+  border-radius: 6px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+.gnb-lt-page .skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, currentColor 10%, transparent),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: lt-skel 1.4s ease-in-out infinite;
+}
+.gnb-lt-page .fsub .skel {
+  display: block;
+  margin-top: 4px;
+}
+.gnb-lt-page .vcard--skel,
+.gnb-lt-page .vcard--skel:hover {
+  cursor: default;
+  border-color: var(--border-default);
+  background: var(--bg-subtle);
+}
+@keyframes lt-skel {
+  to {
+    transform: translateX(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gnb-lt-page .skel::after {
+    animation: none;
+  }
+}
