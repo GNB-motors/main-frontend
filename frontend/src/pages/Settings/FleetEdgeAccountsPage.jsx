@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import { Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { listAccounts, updateAccount, deleteAccount } from '../Profile/FleetEdgeAccountService';
 import { getToken, getUserRole } from '../../utils/session.js';
 import { useConfirm } from '../../components/ui/confirmContext';
@@ -11,6 +12,7 @@ import RenameForm from './fleetEdgeAccountsRenameForm';
 import DriftTab from './fleetEdgeAccountsDrift';
 
 export default function FleetEdgeAccountsPage() {
+  const navigate = useNavigate();
   const [accounts, setAccounts] = useState([]);
   const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
@@ -85,7 +87,20 @@ export default function FleetEdgeAccountsPage() {
 
   return (
     <PageShell
-      title="FleetEdge Accounts"
+      title={
+        <span className="inline-flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => navigate('/settings?section=fleet-data')}
+            className="inline-flex items-center justify-center rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100"
+            title="Back to Settings"
+            aria-label="Back to Settings"
+          >
+            <ArrowLeft size={16} />
+          </button>
+          <span>FleetEdge Accounts</span>
+        </span>
+      }
       subtitle="Manage the FleetEdge accounts supplying data to this organisation"
       count={activeTab === 'accounts' && !loading ? accounts.length : null}
       footer={

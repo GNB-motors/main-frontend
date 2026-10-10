@@ -12,12 +12,12 @@ import {
 import { useActiveBranch } from '../../contexts/BranchContext.jsx';
 import { BranchService } from '../../services/branchService';
 import { getUserRole } from '../../utils/session.js';
-import { SectionHeader } from './profileAtoms';
+import { Card, SectionHead, Skeleton } from './settingsAtoms';
 
 const INITIAL_FORM = { name: '', city: '', state: '', address: '' };
 
 /**
- * Operating locations (branches) manager in Profile.
+ * Operating locations (branches) on Settings.
  * Authorized users can view, add, edit, and delete operating locations.
  */
 export const LocationsManager = ({ canManage }) => {
@@ -126,90 +126,89 @@ export const LocationsManager = ({ canManage }) => {
   const isFormModalOpen = modal?.kind === 'add' || modal?.kind === 'edit';
   const isEdit = modal?.kind === 'edit';
 
-  return (
-    <div className="rounded-2xl bg-white p-6 shadow-[0_4px_24px_rgba(41,64,211,0.08)]">
-      <SectionHeader icon={MapPin} title="Locations" />
+  const count = branches?.length ?? 0;
 
-      {loading ? (
-        <p className="text-sm text-slate-400">Loading locations…</p>
-      ) : (branches?.length ?? 0) === 0 ? (
-        <p className="text-sm italic text-slate-400">
-          No locations yet. Add one below — it will appear in the location switcher in the top bar.
-        </p>
-      ) : (
-        <ul className="divide-y divide-slate-100 rounded-xl border border-slate-100 bg-slate-50/60 overflow-hidden">
-          {branches.map((b) => (
-            <li
-              key={b._id}
-              className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-slate-50"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+  return (
+    <>
+      <SectionHead
+        id="stx-sec-locations"
+        title="Locations"
+        desc="The branches and depots you run trucks from. Each one appears in the location switcher in the top bar."
+        action={
+          isAuthorized ? (
+            <button type="button" onClick={openAddModal} className="stx-btn stx-btn--primary">
+              <Plus size={16} strokeWidth={2} aria-hidden="true" />
+              Add location
+            </button>
+          ) : null
+        }
+      />
+
+      <Card
+        title="Your locations"
+        aside={loading ? null : <span className="stx-count">{count}</span>}
+        foot="Records you create while a location is selected belong to that location. In “All locations” they are enterprise-wide."
+        flush
+      >
+        {loading ? (
+          <Skeleton rows={3} />
+        ) : count === 0 ? (
+          <div className="stx-empty">
+            <MapPin size={20} aria-hidden="true" />
+            <p className="stx-empty-title">No locations yet</p>
+            <p className="stx-empty-hint">
+              {isAuthorized
+                ? 'Add your first branch or depot. It will appear in the location switcher.'
+                : 'Ask an owner or manager to add one.'}
+            </p>
+          </div>
+        ) : (
+          <ul className="stx-rows">
+            {branches.map((b) => (
+              <li key={b._id} className="stx-row">
+                <span className="stx-row-icon" aria-hidden="true">
                   <MapPin size={16} />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-800 text-sm truncate">{b.name}</span>
-                    {b.isDefault && (
-                      <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-700">
-                        default
-                      </span>
-                    )}
+                </span>
+                <div className="stx-row-main">
+                  <div className="stx-row-title">
+                    <span className="stx-row-name">{b.name}</span>
+                    {b.isDefault ? <span className="stx-badge">Default</span> : null}
                   </div>
-                  {(b.address || b.city || b.state) && (
-                    <p className="text-xs text-slate-400 truncate">
+                  {b.address || b.city || b.state ? (
+                    <p className="stx-row-sub">
                       {[b.address, b.city, b.state].filter(Boolean).join(', ')}
                     </p>
-                  )}
+                  ) : null}
                 </div>
-              </div>
 
-              {isAuthorized && (
-                <div className="flex items-center gap-1 shrink-0 ml-3">
-                  <button
-                    type="button"
-                    onClick={() => openEditModal(b)}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                    title="Edit location"
-                    aria-label={`Edit location ${b.name}`}
-                  >
-                    <Edit2 size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openDeleteModal(b)}
-                    disabled={b.isDefault}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400 disabled:cursor-not-allowed"
-                    title={b.isDefault ? 'Cannot delete default location' : 'Delete location'}
-                    aria-label={`Delete location ${b.name}`}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {isAuthorized && (
-        <div className="mt-4 border-t border-slate-100 pt-4">
-          <button
-            type="button"
-            onClick={openAddModal}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
-          >
-            <Plus size={15} />
-            Add location
-          </button>
-        </div>
-      )}
-
-      <p className="mt-3 text-[11px] leading-relaxed text-slate-400">
-        Added locations appear in the switcher in the top action bar, where you can switch between
-        them. Records you create while a location is selected belong to that location; in “All
-        locations” they are enterprise-wide.
-      </p>
+                {isAuthorized ? (
+                  <div className="stx-row-actions">
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(b)}
+                      className="stx-icon-btn"
+                      title="Edit location"
+                      aria-label={`Edit location ${b.name}`}
+                    >
+                      <Edit2 size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openDeleteModal(b)}
+                      disabled={b.isDefault}
+                      className="stx-icon-btn stx-icon-btn--danger"
+                      title={b.isDefault ? 'Cannot delete default location' : 'Delete location'}
+                      aria-label={`Delete location ${b.name}`}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
 
       {/* Add / Edit Location Modal */}
       <Dialog open={isFormModalOpen} onOpenChange={(open) => !open && closeModal()}>
@@ -379,6 +378,6 @@ export const LocationsManager = ({ canManage }) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 };

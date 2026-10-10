@@ -73,10 +73,11 @@ const masterColumns = [
 export default function FleetCoveragePage() {
   const navigate = useNavigate();
   const location = useLocation();
-  // Reached from Profile (or Vehicle 360) → go back there. Opened cold from a
-  // bookmark/refresh there is no in-app history, so fall back to Profile,
+  // Reached from Settings (or Vehicle 360) → go back there. Opened cold from a
+  // bookmark/refresh there is no in-app history, so fall back to Settings,
   // where this page's entry point lives.
-  const goBack = () => (location.key !== 'default' ? navigate(-1) : navigate('/profile'));
+  const goBack = () =>
+    location.key !== 'default' ? navigate(-1) : navigate('/settings?section=fleet-data');
   const { data, loading, error, refetch } = useApi(
     (signal) => FleetDataService.getFleetCoverage(signal),
     [],

@@ -1206,16 +1206,15 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
               <div className="ra-policy-footer-note">
                 <SlidersHorizontal size={14} />
                 <span>
-                  To configure company-wide automatic thresholds, trip deviation limits, and OCR
-                  tolerances, visit{' '}
+                  The same choice lives in{' '}
                   <strong
                     style={{ cursor: 'pointer', textDecoration: 'underline' }}
                     onClick={() => {
                       setOdoPolicyModalOpen(false);
-                      navigate('/settings');
+                      navigate('/settings?section=whatsapp');
                     }}
                   >
-                    Settings &gt; Telematics Integration
+                    Settings › WhatsApp bills
                   </strong>
                   .
                 </span>

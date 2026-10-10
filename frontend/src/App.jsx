@@ -83,7 +83,7 @@ const SignUpPage = lazy(() => import('./pages/SignUp/SIgnUpPage.jsx'));
 const ContactPage = lazy(() => import('./pages/Contact/ContactPage.jsx'));
 const ReportsPage = lazy(() => import('./pages/Reports/ReportsPage.jsx'));
 const ProfilePage = lazy(() => import('./pages/Profile/ProfilePage.jsx'));
-const SettingsPage = lazy(() => import('./pages/Profile/SettingsPage.jsx'));
+const SettingsPage = lazy(() => import('./pages/Settings/SettingsPage.jsx'));
 const FleetEdgeAccountsPage = lazy(() => import('./pages/Settings/FleetEdgeAccountsPage.jsx'));
 const OnboardingPage = lazy(() => import('./pages/Onboarding/OnboardingPage.jsx'));
 const DriversPage = lazy(() => import('./pages/Drivers/DriversPage.jsx'));

@@ -13,7 +13,7 @@ const renderFrom = (entries) =>
     <MemoryRouter initialEntries={entries} initialIndex={entries.length - 1}>
       <Routes>
         <Route path="/fleet-coverage" element={<FleetCoveragePage />} />
-        <Route path="/profile" element={<p>Profile page</p>} />
+        <Route path="/settings" element={<p>Settings page</p>} />
         <Route path="/vehicles/:reg" element={<p>Vehicle 360</p>} />
       </Routes>
     </MemoryRouter>,
@@ -26,9 +26,9 @@ describe('FleetCoveragePage back button', () => {
     expect(screen.getByText('Vehicle 360')).toBeInTheDocument();
   });
 
-  it('falls back to Profile when opened directly', () => {
+  it('falls back to Settings when opened directly', () => {
     renderFrom(['/fleet-coverage']);
     fireEvent.click(screen.getByRole('button', { name: 'Go back' }));
-    expect(screen.getByText('Profile page')).toBeInTheDocument();
+    expect(screen.getByText('Settings page')).toBeInTheDocument();
   });
 });
