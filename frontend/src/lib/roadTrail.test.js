@@ -58,6 +58,17 @@ describe('polyline6 (plan P4.8; pitfall L1)', () => {
 });
 
 describe('roadTrail (plan P4.8)', () => {
+  it('a GPS gap the fleet can drive is the road, dashed; a GPS fault draws nothing', () => {
+    const segments = [
+      { kind: 'INFERRED', t0: T0, t1: T0 + 600e3, distM: 15350, geom: encodePolyline6([A, B, C]) },
+      { kind: 'IMPOSSIBLE', t0: T0 + 600e3, t1: T0 + 840e3, gcM: 13007, geom: null },
+    ];
+    const layers = toLayers({ mode: 'MATCHED', segments });
+    expect(layers.map((l) => [l.kind, l.pattern, l.distM])).toEqual([
+      ['INFERRED', 'dashed', 15350],
+    ]);
+  });
+
   it('turns segments into styled layers; gaps and stops draw no line', () => {
     const layers = toLayers(trail);
     expect(layers.map((l) => [l.kind, l.pattern])).toEqual([

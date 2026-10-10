@@ -2,6 +2,7 @@
  * Auto Trips — pure helpers for the list, detail and map. No React, no I/O.
  */
 import { dropLabel } from '../PlaceHub/intelligence/facilityText';
+import { toLayers, clipLayersAt, positionAt as roadPositionAt } from '../../lib/roadTrail';
 
 export const FLAG_LABEL = {
   DROP_INFERRED: 'Drop guessed from the turnaround',
@@ -431,4 +432,20 @@ export function inWindow(at, track) {
   const to = toDate(track?.to)?.getTime();
   if (t == null || from == null || to == null) return false;
   return t >= from && t <= to;
+}
+
+/**
+ * The trip replay on the road our engine matched (GET /api/road/trail). Across a GPS gap the truck follows
+ * the road the fleet drives, never a straight jump.
+ * tripRoadLayers: the whole road, or null when there is no matched trail (the replay keeps its GPS line).
+ * tripRoadAt: the part driven by time `at` (ms) and the truck's on-road position (null off the road).
+ */
+export function tripRoadLayers(roadTrail) {
+  if (!roadTrail || roadTrail.mode !== 'MATCHED') return null;
+  const full = toLayers(roadTrail);
+  return full.length ? full : null;
+}
+
+export function tripRoadAt(layers, at) {
+  return { run: clipLayersAt(layers, at), truckAt: roadPositionAt(layers, at) };
 }

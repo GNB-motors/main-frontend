@@ -3,7 +3,15 @@ import { GoogleMap, MarkerF, PolylineF, useLoadScript } from '@react-google-maps
 import { Pause, Play } from 'lucide-react';
 import { createVehicleMarkerIcon } from '../LiveTracking/liveTracking.shared.js';
 import { positionAt, toFrames, toLatLngSegments } from '../RouteReplay/routeReplay';
-import { fmtClock, fmtDayTime, routeMapPoints, stopKind } from './autoTripModel';
+import RoadTrailLayer from '../../components/map/RoadTrailLayer';
+import {
+  fmtClock,
+  fmtDayTime,
+  routeMapPoints,
+  stopKind,
+  tripRoadAt,
+  tripRoadLayers,
+} from './autoTripModel';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const CONTAINER = { width: '100%', height: '100%' };
@@ -61,12 +69,22 @@ function placeLabel(text, color) {
 }
 
 /**
- * The trip on a map with a replay: the whole GPS track in grey, the part driven so far
- * in blue, and the truck moving along it. Playback interpolates on time, so a parked
- * truck stays parked; across a GPS gap it holds at the last fix instead of flying.
+ * The trip on a map with a replay: the whole route in grey, the part driven so far in
+ * blue, and the truck moving along it. When our road engine matched the trip
+ * (`roadTrail`), the route is the road itself and a GPS gap follows the road the fleet
+ * drives; otherwise the GPS line, held at the last fix across a gap. Playback
+ * interpolates on time, so a parked truck stays parked.
  * The parent jumps the replay with `ref.current.playFrom(time)`.
  */
-export default function AutoTripReplay({ trip, track, loading, error, autoPlay = false, ref }) {
+export default function AutoTripReplay({
+  trip,
+  track,
+  roadTrail = null,
+  loading,
+  error,
+  autoPlay = false,
+  ref,
+}) {
   const { isLoaded } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
   const mapRef = useRef(null);
   const wrapRef = useRef(null);
@@ -151,6 +169,13 @@ export default function AutoTripReplay({ trip, track, loading, error, autoPlay =
     }
     return segs;
   }, [frames, head, canPlay]);
+
+  const roadLayers = useMemo(() => tripRoadLayers(roadTrail), [roadTrail]);
+  const onRoad = useMemo(
+    () => (roadLayers && head ? tripRoadAt(roadLayers, head.at) : null),
+    [roadLayers, head],
+  );
+  const truckAt = onRoad?.truckAt || head;
 
   const pts = useMemo(() => routeMapPoints(trip || {}), [trip]);
   const windowEnd = track?.to ? new Date(track.to).getTime() : null;
@@ -276,18 +301,25 @@ export default function AutoTripReplay({ trip, track, loading, error, autoPlay =
               styles: MAP_THEME,
             }}
           >
-            {frames.length > 1
-              ? fullSegments.map((seg, i) =>
-                  seg.length > 1 ? (
-                    <PolylineF key={`full-${i}`} path={seg} options={LINE(COLOR.trail, 1)} />
-                  ) : null,
-                )
-              : pts.path.length > 1 && <PolylineF path={pts.path} options={LINE(COLOR.trail, 1)} />}
-            {runSegments.map((seg, i) =>
-              seg.length > 1 ? (
-                <PolylineF key={`run-${i}`} path={seg} options={LINE(COLOR.run, 2)} />
-              ) : null,
-            )}
+            {roadLayers && <RoadTrailLayer layers={roadLayers} color={COLOR.trail} />}
+            {roadLayers && onRoad && <RoadTrailLayer layers={onRoad.run} color={COLOR.run} />}
+            {roadLayers
+              ? null
+              : frames.length > 1
+                ? fullSegments.map((seg, i) =>
+                    seg.length > 1 ? (
+                      <PolylineF key={`full-${i}`} path={seg} options={LINE(COLOR.trail, 1)} />
+                    ) : null,
+                  )
+                : pts.path.length > 1 && (
+                    <PolylineF path={pts.path} options={LINE(COLOR.trail, 1)} />
+                  )}
+            {!roadLayers &&
+              runSegments.map((seg, i) =>
+                seg.length > 1 ? (
+                  <PolylineF key={`run-${i}`} path={seg} options={LINE(COLOR.run, 2)} />
+                ) : null,
+              )}
             {icons &&
               stopMarks.map((m) => (
                 <MarkerF
@@ -329,7 +361,7 @@ export default function AutoTripReplay({ trip, track, loading, error, autoPlay =
               ))}
             {truckIcon && head ? (
               <MarkerF
-                position={{ lat: head.lat, lng: head.lng }}
+                position={{ lat: truckAt.lat, lng: truckAt.lng }}
                 icon={truckIcon}
                 title="Truck"
                 zIndex={10}
