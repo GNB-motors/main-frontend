@@ -4,6 +4,7 @@ import Ico from '../routeHubIcons.jsx';
 import { L, useLeafletMap, useLayerGroup } from '../routeHubMap';
 import { KpiRow, RefreshButton, TableEmpty, TableSkeleton } from '../routeHubShared.jsx';
 import { downloadCsv, fmtDT, fmtT } from '../routeHubFormat';
+import { replayParams } from '../overspeedReplay';
 
 const WINDOWS = [
   { value: 6, label: 'Last 6 hours' },
@@ -137,7 +138,7 @@ function SpeedChart({ fixes, events, threshold, from, to }) {
   );
 }
 
-export default function OverspeedView({ params, toast, setBadge }) {
+export default function OverspeedView({ params, toast, setBadge, go }) {
   const [vehicles, setVehicles] = useState([]);
   const [selected, setSelected] = useState(params.get('v') || '');
   const [thr, setThr] = useState(60);
@@ -645,6 +646,7 @@ export default function OverspeedView({ params, toast, setBadge }) {
                       <th className="num">Peak</th>
                       <th className="num">Avg</th>
                       <th className="num">Distance</th>
+                      <th aria-label="Replay" />
                     </tr>
                   </thead>
                   {events.length ? (
@@ -660,12 +662,30 @@ export default function OverspeedView({ params, toast, setBadge }) {
                           <td className="num mono">
                             {e.distanceKm != null ? `${Number(e.distanceKm).toFixed(1)} km` : '—'}
                           </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="btn btn--sm"
+                              aria-label={`Replay the overspeed at ${fmtT(new Date(e.startAt))}`}
+                              onClick={() => {
+                                const { tab, ...extra } = replayParams({
+                                  vehicleId: selected,
+                                  event: e,
+                                  limitKmh: appliedThr,
+                                  durMin: dur,
+                                });
+                                go(tab, extra);
+                              }}
+                            >
+                              <Ico n="play" s={13} /> Replay
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   ) : (
                     <TableEmpty
-                      colSpan={5}
+                      colSpan={6}
                       title="No sustained overspeed"
                       sub={`Nothing stayed above ${thr} km/h for ${dur}+ minutes in this window.`}
                     />

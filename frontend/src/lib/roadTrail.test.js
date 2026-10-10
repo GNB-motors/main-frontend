@@ -4,6 +4,7 @@ import {
   toLayers,
   distanceAtTime,
   clipLayersAt,
+  layersBetween,
   positionAt,
   summaryOf,
   legendOf,
@@ -99,6 +100,19 @@ describe('roadTrail (plan P4.8)', () => {
     expect(clipped[0].partial).toBe(true);
     expect(clipped[0].path[clipped[0].path.length - 1].lat).toBeCloseTo(pos.lat, 6);
     expect(clipLayersAt(layers, T0 + 1000e3)).toHaveLength(2);
+  });
+
+  it('the road driven between two times (an overspeed stretch), by distance marks', () => {
+    const layers = toLayers(trail);
+    // 60 s to 120 s is the fast minute: from 500 m to the end of the road
+    const piece = layersBetween(layers, T0 + 60e3, T0 + 120e3);
+    expect(piece).toHaveLength(1);
+    expect(piece[0].path[0].lat).toBeCloseTo(22.0 + 0.018 * (500 / 2002), 4);
+    expect(piece[0].path[piece[0].path.length - 1].lat).toBeCloseTo(C.lat, 6);
+    // a stretch inside a GPS gap or on raw fixes draws no road
+    expect(layersBetween(layers, T0 + 300e3, T0 + 600e3)).toEqual([]);
+    expect(layersBetween(layers, T0 + 900e3, T0 + 960e3)).toEqual([]);
+    expect(layersBetween(layers, T0 + 120e3, T0 + 60e3)).toEqual([]);
   });
 
   it('no on-road position inside a gap or on raw fixes', () => {
