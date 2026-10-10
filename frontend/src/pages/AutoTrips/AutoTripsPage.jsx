@@ -8,7 +8,9 @@ import { formatNum } from '../../utils/formatters';
 import { dropLabel } from '../PlaceHub/intelligence/facilityText';
 import ManualTripDialog from './ManualTripDialog';
 import TripPlanDialog from './TripPlanDialog';
+import TripRangePicker from './TripRangePicker';
 import { STATUS_CLASS, STATUS_LABEL, fmtDayTime, fmtKm, notReachedYet } from './autoTripModel';
+import { rangeToParams, readRange, writeRange } from './tripRange';
 import './AutoTrips.css';
 
 const TABS = [
@@ -52,9 +54,21 @@ export default function AutoTripsPage() {
     }
   };
 
+  const range = readRange(searchParams);
+  const { range: rangeKind, from: rangeFrom, to: rangeTo } = range;
+  const changeRange = (next) => {
+    setSearchParams(writeRange(searchParams, next), { replace: true });
+    setPage(1);
+  };
+
   const params = useMemo(
-    () => ({ page, limit: PAGE_SIZE, ...(statusTab ? { status: statusTab } : {}) }),
-    [page, statusTab],
+    () => ({
+      page,
+      limit: PAGE_SIZE,
+      ...(statusTab ? { status: statusTab } : {}),
+      ...rangeToParams({ range: rangeKind, from: rangeFrom, to: rangeTo }),
+    }),
+    [page, statusTab, rangeKind, rangeFrom, rangeTo],
   );
 
   const { data, loading, error, refetch } = useApi(
@@ -209,20 +223,23 @@ export default function AutoTripsPage() {
           </div>
         </div>
 
-        <div role="tablist" aria-label="Filter trips" className="atx-tabs">
-          {tabs.map((t) => (
-            <button
-              key={t.key || 'all'}
-              type="button"
-              role="tab"
-              aria-selected={statusTab === t.key}
-              className="atx-tab"
-              onClick={() => changeTab(t.key)}
-            >
-              {t.label}
-              <span className="atx-tab-count">{formatNum(countFor(t.key))}</span>
-            </button>
-          ))}
+        <div className="atx-toolbar">
+          <div role="tablist" aria-label="Filter trips" className="atx-tabs">
+            {tabs.map((t) => (
+              <button
+                key={t.key || 'all'}
+                type="button"
+                role="tab"
+                aria-selected={statusTab === t.key}
+                className="atx-tab"
+                onClick={() => changeTab(t.key)}
+              >
+                {t.label}
+                <span className="atx-tab-count">{formatNum(countFor(t.key))}</span>
+              </button>
+            ))}
+          </div>
+          <TripRangePicker value={range} onChange={changeRange} />
         </div>
 
         <DataTable
@@ -236,11 +253,13 @@ export default function AutoTripsPage() {
           total={total}
           pagination={pagination}
           onRowClick={(r) => navigate(`/auto-trips/${r._id}`)}
-          emptyTitle="No trips in this view"
+          emptyTitle={range.range === 'all' ? 'No trips in this view' : 'No trips in this period'}
           emptyHint={
-            statusTab
-              ? 'Try another tab, or confirm pickup / drop places so more trips are detected.'
-              : 'Trips appear once GPS stops are detected at confirmed pickup places.'
+            range.range !== 'all'
+              ? 'No truck left a pickup in this period. Try a longer range.'
+              : statusTab
+                ? 'Try another tab, or confirm pickup / drop places so more trips are detected.'
+                : 'Trips appear once GPS stops are detected at confirmed pickup places.'
           }
         />
       </div>

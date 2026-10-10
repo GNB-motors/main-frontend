@@ -662,6 +662,143 @@
   color: #ffffff;
 }
 
+/* ─── Status tabs + period dropdown ──────────────────────────────────── */
+
+.atx-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.atx-range-trigger {
+  height: 40px;
+  padding: 0 12px 0 14px;
+  border: 1px solid var(--atx-line-2);
+  border-radius: 10px;
+  background: var(--atx-surface);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--atx-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.atx-range-trigger:hover {
+  background: var(--atx-hover);
+}
+.atx-range-trigger svg {
+  flex: none;
+  color: var(--atx-ink-4);
+}
+.atx-range-trigger--on {
+  border-color: var(--atx-blue-line);
+  background: var(--atx-blue-bg);
+  color: var(--atx-blue);
+}
+.atx-range-trigger--on:hover {
+  background: var(--atx-blue-bg);
+  border-color: var(--atx-blue);
+}
+.atx-range-trigger--on svg {
+  color: var(--atx-blue);
+}
+.atx-range-chev {
+  margin-left: 2px;
+}
+
+.atx-range-pop {
+  border-radius: 12px;
+  background: var(--atx-surface);
+  border-color: var(--atx-line-2);
+  color: var(--atx-ink);
+}
+.atx-range-list {
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: 6px;
+}
+.atx-range-opt {
+  height: 38px;
+  padding: 0 10px 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--atx-ink-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+.atx-range-opt:hover {
+  background: var(--atx-hover);
+  color: var(--atx-ink);
+}
+.atx-range-opt[aria-selected='true'] {
+  background: var(--atx-blue-bg);
+  color: var(--atx-blue);
+  font-weight: 700;
+}
+.atx-range-sep {
+  height: 1px;
+  margin: 6px 4px;
+  background: var(--atx-line-3);
+}
+.atx-range-custom {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px 12px;
+}
+.atx-range-back {
+  align-self: flex-start;
+  height: 30px;
+  padding: 0 8px 0 4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--atx-ink-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.atx-range-back:hover {
+  background: var(--atx-hover);
+  color: var(--atx-ink);
+}
+.atx-range-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 4px 0;
+  border-top: 1px solid var(--atx-line-3);
+}
+.atx-range-draft {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--atx-ink-3);
+}
+.atx-range-foot .atx-btn--sm {
+  height: 34px;
+}
+
 /* ─── Status pills & small bits ─────────────────────────────────────── */
 
 .atx-status {
