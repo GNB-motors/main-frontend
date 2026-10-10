@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
-import { Shield, Save, RotateCcw, Building2, MapPin, Plus, Trash2 } from 'lucide-react';
+import { Shield, Building2, MapPin, Plus, Trash2 } from 'lucide-react';
 import AccessControlApi from './accessControlService';
 import PermissionTreeView from './PermissionTreeView';
 import RoleFormModal from './RoleFormModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
+import FormFooter from '../Drivers/Component/FormFooter.jsx';
+import NewButton from '@/components/ui/NewButton';
 import { getUserRole } from '../../utils/session.js';
 
 const setsEqual = (a, b) => a.size === b.size && [...a].every((k) => b.has(k));
@@ -88,7 +90,6 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
       } finally {
         setLoading(false);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
     [selectRoleRow],
   );
@@ -332,39 +333,23 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
         </div>
       )}
 
-      {/* Full-page sticky footer (matches the Employee form's FormFooter) —
-          not scoped to the detail card, so it stays anchored to the viewport. */}
       {selectedRow && (
-        <div className="form-footer">
-          <div className="form-footer-content">
-            <div className="form-footer-actions">
-              <button
-                type="button"
-                className="ff-btn ff-btn--ghost"
-                onClick={resetToDefault}
-                disabled={saving || !selectedRow.hasBranchConfig}
-              >
-                Reset to Enterprise Default
-              </button>
-              <button
-                type="button"
-                className="ff-btn ff-btn--secondary"
-                onClick={revert}
-                disabled={!dirty || saving}
-              >
-                <RotateCcw size={16} /> Cancel
-              </button>
-              <button
-                type="button"
-                className="ff-btn ff-btn--primary"
-                onClick={save}
-                disabled={!dirty || saving}
-              >
-                <Save size={16} /> {saving ? 'Saving…' : 'Save override'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <FormFooter
+          fullWidth
+          onCancel={revert}
+          onSubmit={save}
+          isSubmitting={saving}
+          cancelDisabled={!dirty}
+          submitDisabled={!dirty}
+          submitText="Save override"
+        >
+          <NewButton
+            variant="tertiary"
+            text="Reset to Enterprise Default"
+            onClick={resetToDefault}
+            disabled={saving || !selectedRow.hasBranchConfig}
+          />
+        </FormFooter>
       )}
 
       <RoleFormModal

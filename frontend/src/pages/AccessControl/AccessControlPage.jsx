@@ -20,15 +20,13 @@ const AccessControlPage = () => {
 
   // Follow the header scope: a selected location forces Branch Access; switching
   // back to "All locations" restores the enterprise view.
-  useEffect(() => { setTab(insideBranch ? 'branch' : 'enterprise'); }, [insideBranch]);
+  useEffect(() => {
+    setTab(insideBranch ? 'branch' : 'enterprise');
+  }, [insideBranch]);
 
   return (
-    <div className="ff-page">
-      <PageHeader
-        currentLabel="Employee Access Control"
-        title="Employee Access Control"
-        description=""
-      />
+    <div className="ff-page ac-page">
+      <PageHeader showBreadcrumb={false} title="Employee Access Control" description="" />
 
       {/* The tab switcher only makes sense at the enterprise scope. Inside a
           location there is a single view (Branch Access), so no tabs are shown. */}
@@ -51,9 +49,14 @@ const AccessControlPage = () => {
         </div>
       )}
 
-      {insideBranch || tab === 'branch'
-        ? <BranchAccessTab initialBranchId={branchId || ''} lockedBranchName={activeBranch?.name || ''} />
-        : <EnterpriseRolesTab />}
+      {insideBranch || tab === 'branch' ? (
+        <BranchAccessTab
+          initialBranchId={branchId || ''}
+          lockedBranchName={activeBranch?.name || ''}
+        />
+      ) : (
+        <EnterpriseRolesTab />
+      )}
     </div>
   );
 };

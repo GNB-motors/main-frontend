@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, Plus, RotateCcw, Save, Shield, Trash2, UserPlus, Users } from 'lucide-react';
+import { Pencil, Plus, Shield, Trash2, UserPlus, Users } from 'lucide-react';
 import AccessControlApi from './accessControlService';
 import PermissionTreeView from './PermissionTreeView';
 import AssignRoleDrawer from './AssignRoleDrawer';
 import RoleFormModal from './RoleFormModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
+import FormFooter from '../Drivers/Component/FormFooter.jsx';
 import { getUserRole } from '../../utils/session.js';
 
 const setsEqual = (a, b) => a.size === b.size && [...a].every((k) => b.has(k));
@@ -349,31 +350,16 @@ const EnterpriseRolesTab = () => {
         </div>
       )}
 
-      {/* Full-page sticky footer (matches the Employee form's FormFooter) —
-          not scoped to the detail card, so it stays anchored to the viewport. */}
       {selectedRole && canEditSelected && (
-        <div className="form-footer">
-          <div className="form-footer-content">
-            <div className="form-footer-actions">
-              <button
-                type="button"
-                className="ff-btn ff-btn--cancel"
-                onClick={cancelPermissionEdits}
-                disabled={!dirty || savingPerms}
-              >
-                <RotateCcw size={16} /> Cancel
-              </button>
-              <button
-                type="button"
-                className="ff-btn ff-btn--primary"
-                onClick={savePermissionEdits}
-                disabled={!dirty || savingPerms}
-              >
-                <Save size={16} /> {savingPerms ? 'Saving…' : 'Save'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <FormFooter
+          fullWidth
+          onCancel={cancelPermissionEdits}
+          onSubmit={savePermissionEdits}
+          isSubmitting={savingPerms}
+          cancelDisabled={!dirty}
+          submitDisabled={!dirty}
+          submitText="Save"
+        />
       )}
 
       <AssignRoleDrawer

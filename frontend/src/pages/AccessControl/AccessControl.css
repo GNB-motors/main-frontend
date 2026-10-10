@@ -117,37 +117,9 @@
   color: #92400e;
 }
 
-/* Full-page sticky Save/Cancel bar — matches Drivers/Component/FormFooter.css
-   (same class names, kept as a per-page copy per this codebase's convention). */
-.form-footer {
-  position: sticky;
-  bottom: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 14px 24px;
-  border-top: 1px solid #dfdfe2;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
-  width: 100%;
-  box-sizing: border-box;
-  z-index: 40;
-  min-height: 60px;
-  margin-top: 24px;
-}
-
-.form-footer-content {
-  width: 100%;
-  max-width: 920px;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-.form-footer-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
+/* Clears the fixed FormFooter, same as the Add Employee page. */
+.ff-page.ac-page {
+  padding-bottom: 80px;
 }
 
 /* ── Assigned employees table ───────────────────────────── */
