@@ -83,6 +83,82 @@ const STATUS_BADGE = {
   CLEARED: 'ra-badge--cleared',
 };
 
+const SKEL_ROWS = 6;
+
+const Skel = ({ w, h = 12, round = false, radius }) => (
+  <span
+    aria-hidden="true"
+    className={`ra-skel${round ? ' ra-skel--round' : ''}`}
+    style={{ width: w, height: h, ...(radius ? { borderRadius: radius } : {}) }}
+  />
+);
+
+// Same cells and wrappers as a receipt row, so the table keeps its shape when drafts land.
+function ReceiptRowSkeleton() {
+  return (
+    <tr aria-hidden="true">
+      <td className="ra-table__td-select">
+        <Skel w={16} h={16} />
+      </td>
+      <td className="ra-table__td-slip">
+        <Skel w={42} h={42} radius={8} />
+      </td>
+      <td>
+        <div className="ra-veh-cell">
+          <span className="ra-veh">
+            <Skel w={28} h={28} radius={7} />
+            <Skel w={86} h={13} />
+          </span>
+        </div>
+      </td>
+      <td>
+        <div className="ra-driver-cell">
+          <Skel w={96} h={13} />
+          <Skel w={84} h={10} />
+        </div>
+      </td>
+      <td>
+        <div className="ra-station-cell">
+          <Skel w={118} h={13} />
+          <Skel w={44} h={10} />
+        </div>
+      </td>
+      <td className="ra-right">
+        <Skel w={46} />
+      </td>
+      <td className="ra-right">
+        <Skel w={62} />
+      </td>
+      <td className="ra-center">
+        <div className="ra-odo-cell">
+          <Skel w={58} />
+          <Skel w={66} h={17} radius={6} />
+        </div>
+      </td>
+      <td className="ra-center">
+        <div className="ra-ocr-cell">
+          <Skel w={50} h={19} radius={6} />
+          <Skel w={58} h={10} />
+        </div>
+      </td>
+      <td className="ra-center">
+        <Skel w={72} h={23} round />
+      </td>
+      <td>
+        <div className="ra-skel-stack">
+          <Skel w={96} />
+          <Skel w={58} h={10} />
+        </div>
+      </td>
+      <td className="ra-center">
+        <div className="ra-row-actions">
+          <Skel w={30} h={30} radius={8} />
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 /**
  * `embedded`: rendered as the WhatsApp tab of the Approvals page, which owns the title.
  * `onCounts` gets the status counts whenever they load, for the tab's pending badge.
@@ -510,11 +586,21 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
         <div className="ra-kpi-card ra-kpi-card--pending">
           <div className="ra-kpi-card__head">
             <span className="ra-kpi-card__title">Pending Approvals</span>
-            <span className="ra-kpi-card__badge-pulse">{kpis.pendingCount} Pending</span>
+            {loading ? (
+              <Skel w={74} h={21} round />
+            ) : (
+              <span className="ra-kpi-card__badge-pulse">{kpis.pendingCount} Pending</span>
+            )}
           </div>
-          <div className="ra-kpi-card__val font-mono">{fmtMoney(kpis.pendingAmount)}</div>
+          <div className="ra-kpi-card__val font-mono">
+            {loading ? <Skel w={128} h={26} /> : fmtMoney(kpis.pendingAmount)}
+          </div>
           <div className="ra-kpi-card__sub">
-            Awaiting manager verification across {kpis.pendingCount} fuel slips
+            {loading ? (
+              <Skel w="80%" h={11} />
+            ) : (
+              <>Awaiting manager verification across {kpis.pendingCount} fuel slips</>
+            )}
           </div>
         </div>
 
@@ -523,8 +609,16 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
             <span className="ra-kpi-card__title">Total Volume</span>
             <Fuel size={16} className="ra-kpi-card__icon" />
           </div>
-          <div className="ra-kpi-card__val font-mono">{fmtLitres(kpis.totalLitres)}</div>
-          <div className="ra-kpi-card__sub">Diesel logged across {kpis.totalCount} receipts</div>
+          <div className="ra-kpi-card__val font-mono">
+            {loading ? <Skel w={104} h={26} /> : fmtLitres(kpis.totalLitres)}
+          </div>
+          <div className="ra-kpi-card__sub">
+            {loading ? (
+              <Skel w="70%" h={11} />
+            ) : (
+              <>Diesel logged across {kpis.totalCount} receipts</>
+            )}
+          </div>
         </div>
 
         <div className="ra-kpi-card">
@@ -532,9 +626,17 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
             <span className="ra-kpi-card__title">Total Fuel Billed</span>
             <TrendingUp size={16} className="ra-kpi-card__icon" />
           </div>
-          <div className="ra-kpi-card__val font-mono">{fmtMoney(kpis.totalAmount)}</div>
+          <div className="ra-kpi-card__val font-mono">
+            {loading ? <Skel w={128} h={26} /> : fmtMoney(kpis.totalAmount)}
+          </div>
           <div className="ra-kpi-card__sub">
-            Average price: <strong>₹{kpis.avgRate}/L</strong> across regional stations
+            {loading ? (
+              <Skel w="75%" h={11} />
+            ) : (
+              <>
+                Average price: <strong>₹{kpis.avgRate}/L</strong> across regional stations
+              </>
+            )}
           </div>
         </div>
 
@@ -559,7 +661,9 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
               color={kpis.missingOdoCount > 0 ? '#2563eb' : 'currentColor'}
             />
           </div>
-          <div className="ra-kpi-card__val font-mono">{kpis.missingOdoCount}</div>
+          <div className="ra-kpi-card__val font-mono">
+            {loading ? <Skel w={40} h={26} /> : kpis.missingOdoCount}
+          </div>
           <div className="ra-kpi-card__sub">
             {odoFilter === 'MISSING' ? (
               <span style={{ color: '#2563eb', fontWeight: 600 }}>Active Filter Applied ✓</span>
@@ -581,9 +685,12 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
               onClick={() => setStatus(t.key)}
             >
               {t.label}
-              {t.key !== 'ALL' && counts[t.key] != null && (
-                <span className="ra-tab__count">{counts[t.key]}</span>
-              )}
+              {t.key !== 'ALL' &&
+                (counts[t.key] != null ? (
+                  <span className="ra-tab__count">{counts[t.key]}</span>
+                ) : loading ? (
+                  <Skel w={20} h={16} round />
+                ) : null)}
             </button>
           ))}
         </div>
@@ -737,19 +844,9 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
                 <th className="ra-center">Actions</th>
               </tr>
             </thead>
-            <tbody>
-              {loading && (
-                <tr>
-                  <td colSpan={12}>
-                    <div className="ra-state" style={{ padding: '60px 0' }}>
-                      <div className="ra-spinner" />
-                      <div className="ra-state__title" style={{ marginTop: 14 }}>
-                        Loading WhatsApp fuel drafts…
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              )}
+            <tbody aria-busy={loading}>
+              {loading &&
+                Array.from({ length: SKEL_ROWS }, (_, i) => <ReceiptRowSkeleton key={i} />)}
 
               {!loading && filtered.length === 0 && (
                 <tr>

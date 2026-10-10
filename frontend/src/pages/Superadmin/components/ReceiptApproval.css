@@ -1800,3 +1800,31 @@
   border-radius: 50%;
   animation: ra-spin 0.8s linear infinite;
 }
+
+/* Loading placeholders, sized like the value they stand in for */
+.ra-skel {
+  display: inline-block;
+  vertical-align: middle;
+  max-width: 100%;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--ds-sunk) 25%, var(--ds-line) 37%, var(--ds-sunk) 63%);
+  background-size: 400% 100%;
+  animation: gnb-shimmer 1.4s ease-in-out infinite;
+}
+
+.ra-skel--round {
+  border-radius: 20px;
+}
+
+.ra-skel-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ra-skel {
+    animation: none;
+  }
+}

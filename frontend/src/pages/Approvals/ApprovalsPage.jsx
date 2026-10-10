@@ -49,7 +49,7 @@ export default function ApprovalsPage() {
     types.forEach((t) => {
       t.pendingCount()
         .then((n) => alive && setPending((p) => ({ ...p, [t.key]: n })))
-        .catch(() => {});
+        .catch(() => alive && setPending((p) => ({ ...p, [t.key]: null })));
     });
     return () => {
       alive = false;
@@ -97,7 +97,11 @@ export default function ApprovalsPage() {
             >
               <Icon size={16} />
               {t.label}
-              {n ? <span className="apv-type__count">{n}</span> : null}
+              {n === undefined ? (
+                <span aria-hidden="true" className="ra-skel ra-skel--round apv-type__count-skel" />
+              ) : n ? (
+                <span className="apv-type__count">{n}</span>
+              ) : null}
             </button>
           );
         })}

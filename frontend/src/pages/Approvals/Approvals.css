@@ -51,6 +51,11 @@
   text-align: center;
 }
 
+.apv-type__count-skel {
+  width: 22px;
+  height: 18px;
+}
+
 /* The WhatsApp page sits inside the hub: the hub owns the padding and the title. */
 .ra-page--embedded {
   padding: 0;
