@@ -270,7 +270,7 @@ export default function AutoTripReplay({
     : `Reached drop ${fmtClock(track?.to || trip?.drop?.arrivedAt)}`;
 
   return (
-    <div ref={wrapRef}>
+    <div ref={wrapRef} className="atx-replay">
       <div className="atx-map">
         {!GOOGLE_MAPS_API_KEY ? (
           <div className="atx-map-empty">

@@ -945,7 +945,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: 24px;
-  align-items: start;
+  /* The replay and the summary card share one height; the map takes up the slack. */
+  align-items: stretch;
 }
 .atx-span-2 {
   grid-column: span 2;
@@ -976,9 +977,16 @@
 }
 
 /* replay */
+.atx-replay {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
 .atx-map {
   position: relative;
-  height: 380px;
+  flex: 1;
+  min-height: 380px;
   background: var(--atx-map);
 }
 .atx-map-chip {
