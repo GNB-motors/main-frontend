@@ -317,7 +317,9 @@ export default function ReplayView({ params, toast }) {
         const match = list.find((v) => v._id === wanted || v.registrationNumber === wanted);
         setReg((r) => r || match?.registrationNumber || list[0]?.registrationNumber || '');
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!ac.signal.aborted) setError('Could not load vehicles.');
+      });
     return () => ac.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

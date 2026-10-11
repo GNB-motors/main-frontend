@@ -158,7 +158,9 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
     const ac = new AbortController();
     RouteHubService.getVehicles(ac.signal)
       .then(setVehicles)
-      .catch(() => {});
+      .catch(() => {
+        if (!ac.signal.aborted) setError('Could not load vehicles.');
+      });
     return () => ac.abort();
   }, []);
 

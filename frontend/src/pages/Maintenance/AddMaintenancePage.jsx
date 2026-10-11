@@ -87,6 +87,7 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
       .catch(() => setDrivers([]));
     MaintenanceService.getOptions()
       .then((o) => setOptions(o || { workshops: [], serviceTypes: [], repairTypes: [] }))
+      // The modal falls back to its built-in service and repair type lists.
       .catch(() => {});
   }, []);
 

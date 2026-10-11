@@ -98,6 +98,7 @@ const NotificationBell = () => {
           );
         });
       })
+      // A missed poll is retried on the next tick; nothing to show the user.
       .catch(() => {});
     return () => {
       cancelled = true;

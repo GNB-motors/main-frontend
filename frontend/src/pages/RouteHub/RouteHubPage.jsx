@@ -63,6 +63,7 @@ export default function RouteHubPage() {
           );
         }
       })
+      // Only feeds the instant suggestions; without it they stay empty.
       .catch(() => {});
 
     RouteHubService.getCorridors()
@@ -78,6 +79,7 @@ export default function RouteHubPage() {
           );
         }
       })
+      // Only feeds the instant suggestions; without it they stay empty.
       .catch(() => {});
 
     return () => {

@@ -433,6 +433,7 @@ function usePoiLayer(map, on) {
       { signal: ctl.current.signal },
     )
       .then((items) => setPois(items.filter((p) => poiBucket(p.category))))
+      // Aborted on every pan, and the POI layer is optional.
       .catch(() => {});
   }, [map, on]);
   useEffect(() => {

@@ -125,7 +125,7 @@ const WhatsAppAuditPage = () => {
   useEffect(() => {
     WhatsAppAuditService.getOrganizations()
       .then((orgs) => setOrganizations(Array.isArray(orgs) ? orgs : []))
-      .catch(() => {});
+      .catch((err) => logger.warn('WhatsAppAuditPage', 'Could not load organizations', err));
   }, []);
 
   // Fetch stats and requests

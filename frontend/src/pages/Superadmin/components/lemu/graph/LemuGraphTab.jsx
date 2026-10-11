@@ -203,6 +203,7 @@ const LemuGraphTab = ({
         if (!alive) return;
         setPulseBuckets(sortPulseBuckets(d));
       })
+      // The pulse strip is decoration; the graph works without it.
       .catch(() => {});
     return () => {
       alive = false;

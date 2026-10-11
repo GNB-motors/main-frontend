@@ -79,7 +79,8 @@ const AddVehiclePage = () => {
         setFleetEdgeAccounts(active);
         if (active.length === 1) setSelectedAccountId(String(active[0]._id));
       })
-      .catch(() => {});
+      // The FleetEdge account picker is optional; the vehicle saves without it.
+      .catch((err) => logger.warn('AddVehiclePage', 'Could not load FleetEdge accounts', err));
   }, []);
 
   // If navigated here for editing, prefill form from location.state.editingVehicle

@@ -216,6 +216,7 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
       .then((res) => {
         if (alive && res.data?.data?.odometerMode) setOdoMode(res.data.data.odometerMode);
       })
+      // On failure the policy seeded from /auth/me (organization.whatsappSettings) stays.
       .catch(() => {});
     return () => {
       alive = false;

@@ -130,6 +130,10 @@ const ICONS = {
   flag: '<path d="M5 21V4"/><path d="M5 4.5h11l-2 3.5 2 3.5H5"/>',
 };
 
+// Clipboard access can be missing (insecure origin) or refused; callers report either way.
+const copyText = (text) =>
+  navigator.clipboard?.writeText(text) ?? Promise.reject(new Error('Clipboard unavailable'));
+
 const renderIconSvg = (name, size = 16, className = '') => {
   return (
     <svg
@@ -814,8 +818,10 @@ const LiveTrackingPage = () => {
 
   // Share Page Link (kept for when universal share button is restored)
   const _handleShareAll = useCallback(() => {
-    navigator.clipboard?.writeText(window.location.href).catch(() => {});
-    showToast('Live tracking link copied to clipboard');
+    copyText(window.location.href).then(
+      () => showToast('Live tracking link copied to clipboard'),
+      () => showToast('Could not copy the link'),
+    );
   }, [showToast]);
 
   // Share Vehicle Link — opens a dialog to choose how long the link works and
@@ -836,9 +842,11 @@ const LiveTrackingPage = () => {
         options: { trailHours },
       },
       {
-        onDone: (url) => {
+        onDone: (url, _link, { copied } = {}) => {
           setShareDialog((prev) => (prev ? { ...prev, url } : prev));
-          showToast(`Public link copied · ${plate}`);
+          showToast(
+            copied ? `Public link copied · ${plate}` : `Link ready · ${plate} — copy it below`,
+          );
         },
         onError: () => showToast(`Could not create link for ${plate}`),
       },
@@ -1958,8 +1966,10 @@ const LiveTrackingPage = () => {
                 <button
                   className="sharedlg-copy"
                   onClick={() => {
-                    navigator.clipboard?.writeText(shareDialog.url).catch(() => {});
-                    showToast('Link copied');
+                    copyText(shareDialog.url).then(
+                      () => showToast('Link copied'),
+                      () => showToast('Could not copy — select the link and copy it'),
+                    );
                   }}
                 >
                   {renderIconSvg('share', 15)}
