@@ -323,6 +323,8 @@ export function mapFuelCycleRow(r) {
     fuelCoveragePct: pct(r.coverage?.fuelEcu),
     status: r.status || null,
     flags: Array.isArray(r.flags) ? r.flags : [],
+    // A loss alert whose bill check used this round (backend withLossChecks).
+    lossCheck: r.lossCheck || null,
   };
 }
 

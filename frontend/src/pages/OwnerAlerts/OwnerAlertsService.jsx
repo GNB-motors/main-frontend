@@ -47,6 +47,7 @@ export const OwnerAlertsService = {
 
 export const ALERT_TYPE_LABELS = {
   FUEL_SIPHON_SUSPECTED: 'Fuel loss — please review',
+  FUEL_DATA_REVIEW: 'Fuel data review — not theft',
   REFUEL_ESTIMATED: 'Refuel estimated',
   ADBLUE_BALANCE_FLAG: 'AdBlue balance — please review',
   IDLING_BURN_HIGH: 'High idling burn',

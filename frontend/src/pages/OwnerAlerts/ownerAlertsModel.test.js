@@ -195,4 +195,34 @@ describe('ownerAlertsModel', () => {
       expect(SORTS.length).toBeGreaterThan(0);
     });
   });
+
+  describe('refuel bill check', () => {
+    it('carries a loss alert bill verdict onto the row', () => {
+      const [a] = computeView(
+        [
+          {
+            id: '1',
+            type: 'FUEL_SIPHON_SUSPECTED',
+            at: '2026-10-11T03:39:00Z',
+            billCheck: { verdict: 'CONFIRMED', reason: 'r' },
+          },
+        ],
+        'all',
+        'newest',
+      );
+      expect(a.bill).toMatchObject({ label: 'Bill confirms loss', tone: 'critical', reason: 'r' });
+      const [b] = computeView(
+        [{ id: '2', type: 'IDLING_BURN_HIGH', at: '2026-10-11T03:39:00Z' }],
+        'all',
+        'newest',
+      );
+      expect(b.bill).toBeNull();
+    });
+
+    it('a fuel data review is a data issue, not theft', () => {
+      expect(sevOf('FUEL_DATA_REVIEW')).toBe('WARNING');
+      expect(catOf('FUEL_DATA_REVIEW')).toBe('data');
+      expect(titleOf('FUEL_DATA_REVIEW')).toBe('Fuel data review');
+    });
+  });
 });
