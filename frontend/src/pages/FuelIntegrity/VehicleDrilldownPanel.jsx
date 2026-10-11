@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { Panel, StatusPill } from '../../components/overview.primitives.jsx';
 import { toIST } from './fiDates.js';
+import { billCheckView } from '../../utils/billCheck';
 
 export default function VehicleDrilldownPanel({
   vehicle,
@@ -106,6 +107,13 @@ export default function VehicleDrilldownPanel({
                       </StatusPill>
                     ) : (
                       <StatusPill tone="ok">OK</StatusPill>
+                    )}
+                    {billCheckView(w.billCheck) && (
+                      <div className="mt-1" title={w.billCheck.reason || undefined}>
+                        <StatusPill tone={billCheckView(w.billCheck).tone}>
+                          {billCheckView(w.billCheck).label}
+                        </StatusPill>
+                      </div>
                     )}
                   </td>
                   <td className="text-right">

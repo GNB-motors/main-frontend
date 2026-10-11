@@ -115,6 +115,11 @@ export default function OwnerAlertsTable({
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-slate-900">{a.title}</span>
                           <StatusChip group="severity" value={a.severity} />
+                          {a.bill && (
+                            <span title={a.bill.reason || undefined}>
+                              <StatusPill tone={a.bill.tone}>{a.bill.label}</StatusPill>
+                            </span>
+                          )}
                           {a.inrEstimate != null && (
                             <span className="num text-xs font-semibold" style={{ color }}>
                               {formatINR(a.inrEstimate)}

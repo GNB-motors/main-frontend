@@ -8,6 +8,8 @@ import { formatKm, formatLitres } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
 import { mapFuelCycleRow, mileageBand } from '../mileageRows';
 import InfoTip from './InfoTip';
+import { StatusPill } from '../../../components/overview.primitives.jsx';
+import { billCheckView } from '../../../utils/billCheck';
 
 const compact = (s) =>
   String(s || '')
@@ -73,7 +75,19 @@ const COLUMNS = [
   {
     key: 'status',
     label: 'Status',
-    render: (r) => <StatusChip group="fuelCycle" value={r.status} />,
+    render: (r) => {
+      const bill = billCheckView(r.lossCheck);
+      return (
+        <span className="mhub-cell">
+          <StatusChip group="fuelCycle" value={r.status} />
+          {bill && (
+            <span title={bill.reason || undefined}>
+              <StatusPill tone={bill.tone}>Loss flagged · {bill.label}</StatusPill>
+            </span>
+          )}
+        </span>
+      );
+    },
   },
 ];
 
