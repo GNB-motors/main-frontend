@@ -10,11 +10,9 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
 import PlaceLabel from '../../components/ui/PlaceLabel';
 import { inr, num } from '../../utils/formatMoney.js';
-import { formatInrCompact } from '../../utils/formatters.js';
+import { formatInrCompact, timeAgo } from '../../utils/formatters.js';
 import {
   PLACE_GROUPS,
   PROVENANCE_LABEL,
@@ -32,8 +30,6 @@ import {
   DRAIN_COLOR,
   STOP_COLOR,
 } from './placeHubStyle.js';
-
-dayjs.extend(relativeTime);
 
 /* ─── Shared bits ────────────────────────────────────────────────────────── */
 
@@ -512,7 +508,7 @@ export function FuelPanel({
                     <span className="ph-row-title">{h.name}</span>
                     <span className="ph-row-sub">
                       {PROVENANCE_LABEL[h.provenance]} · {radiusLabel(h.radiusM)}
-                      {h.lastIncidentAt ? ` · ${dayjs(h.lastIncidentAt).fromNow()}` : ''}
+                      {h.lastIncidentAt ? ` · ${timeAgo(h.lastIncidentAt)}` : ''}
                     </span>
                   </span>
                   <span className="ph-row-end">

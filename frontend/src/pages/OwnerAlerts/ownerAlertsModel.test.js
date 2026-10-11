@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-  toIST,
   formatIST,
   formatRelativeIST,
   sevOf,
@@ -16,21 +15,12 @@ import {
 
 describe('ownerAlertsModel', () => {
   describe('date helpers', () => {
-    it('toIST returns a dayjs object in Asia/Kolkata or null', () => {
-      expect(toIST(null)).toBeNull();
-      expect(toIST(undefined)).toBeNull();
-      const d = toIST('2026-09-06T12:00:00Z');
-      expect(d).not.toBeNull();
-      // UTC 12:00 -> IST 17:30
-      expect(d.format('HH:mm')).toBe('17:30');
-    });
-
     it('formatIST returns formatted IST string or dash', () => {
       expect(formatIST(null)).toBe('—');
       expect(formatIST('2026-09-06T12:00:00Z')).toBe('06 Sep 2026, 05:30 PM IST');
     });
 
-    it('formatRelativeIST returns fromNow string or null', () => {
+    it('formatRelativeIST returns a relative "ago" string or null', () => {
       expect(formatRelativeIST(null)).toBeNull();
       expect(typeof formatRelativeIST('2026-09-06T12:00:00Z')).toBe('string');
     });

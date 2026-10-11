@@ -1,5 +1,11 @@
+import {
+  formatInIST,
+  istDayEndISO,
+  istDayStartISO,
+  istDayString,
+  shiftDay,
+} from '../../../utils/dateUtils';
 import React, { useEffect, useState } from 'react';
-import dayjs from 'dayjs';
 import { AlertTriangle, CheckCircle2, Clock3, Droplets, Gauge, Info, Search } from 'lucide-react';
 import apiClient from '../../../utils/axiosConfig';
 import useApi from '../../../hooks/useApi';
@@ -38,8 +44,8 @@ const AdBlueComparisonReport = () => {
   const [summary, setSummary] = useState({});
   const [methodology, setMethodology] = useState({});
   const [meta, setMeta] = useState({ page: 1, total: 0, totalPages: 1 });
-  const [startDate, setStartDate] = useState(dayjs().subtract(30, 'day').format('YYYY-MM-DD'));
-  const [endDate, setEndDate] = useState(dayjs().format('YYYY-MM-DD'));
+  const [startDate, setStartDate] = useState(() => shiftDay(istDayString(), -30));
+  const [endDate, setEndDate] = useState(() => istDayString());
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -64,8 +70,8 @@ const AdBlueComparisonReport = () => {
         params: {
           page,
           limit: PAGE_SIZE,
-          startDate: dayjs(startDate).startOf('day').toISOString(),
-          endDate: dayjs(endDate).endOf('day').toISOString(),
+          startDate: istDayStartISO(startDate),
+          endDate: istDayEndISO(endDate),
           ...(debouncedSearch && { search: debouncedSearch }),
         },
         signal,
@@ -255,9 +261,7 @@ const AdBlueComparisonReport = () => {
                     </span>
                   </td>
                   <td>
-                    {row.lastSyncedAt
-                      ? dayjs(row.lastSyncedAt).format('DD MMM YYYY, hh:mm A')
-                      : '—'}
+                    {row.lastSyncedAt ? formatInIST(row.lastSyncedAt, 'DD MMM YYYY, hh:mm A') : '—'}
                   </td>
                   <td>
                     <StatusBadge status={row.status} reason={row.statusReason} />

@@ -1,25 +1,11 @@
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-import relativeTime from 'dayjs/plugin/relativeTime';
+import { formatInIST } from '../../utils/dateUtils';
+import { timeAgo } from '../../utils/formatters';
 import { ALERT_TYPE_LABELS } from './OwnerAlertsService.js';
 
-dayjs.extend(utc);
-dayjs.extend(timezone);
-dayjs.extend(relativeTime);
-
-export const IST_ZONE = 'Asia/Kolkata';
 export const LIMIT = 20;
 
-export const toIST = (s) => (s ? dayjs.utc(s).tz(IST_ZONE) : null);
-export const formatIST = (s) => {
-  const d = toIST(s);
-  return d ? d.format('DD MMM YYYY, hh:mm A [IST]') : '—';
-};
-export const formatRelativeIST = (s) => {
-  const d = toIST(s);
-  return d ? d.fromNow() : null;
-};
+export const formatIST = (s) => formatInIST(s, 'DD MMM YYYY, hh:mm A [IST]') ?? '—';
+export const formatRelativeIST = (s) => (s ? timeAgo(s) : null);
 
 // Severity / title / category derived from the alert type.
 const SEVERITY_BY_TYPE = {

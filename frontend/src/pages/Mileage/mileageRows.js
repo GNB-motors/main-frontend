@@ -1,5 +1,4 @@
-import dayjs from 'dayjs';
-import { toISTDateString } from '../../utils/dateUtils';
+import { formatInIST, istDayString, shiftDay, toISTDateString } from '../../utils/dateUtils';
 
 const num = (v) => (v == null || Number.isNaN(Number(v)) ? null : Number(v));
 
@@ -85,28 +84,27 @@ export const HUB_DATE_PRESETS = [
 
 export const DEFAULT_PRESET = '30DAYS';
 
-const DAY = 'YYYY-MM-DD';
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
-/** Preset → inclusive { from, to } calendar dates (YYYY-MM-DD, local). */
-export function presetRange(key, now = dayjs()) {
-  const to = now.format(DAY);
+/** Preset → inclusive { from, to } IST calendar dates (YYYY-MM-DD). */
+export function presetRange(key, now = new Date()) {
+  const to = istDayString(now);
   switch (key) {
     case 'TODAY':
       return { from: to, to };
     case 'YESTERDAY': {
-      const y = now.subtract(1, 'day').format(DAY);
+      const y = shiftDay(to, -1);
       return { from: y, to: y };
     }
     case '7DAYS':
-      return { from: now.subtract(6, 'day').format(DAY), to };
+      return { from: shiftDay(to, -6), to };
     case 'MONTH':
-      return { from: now.startOf('month').format(DAY), to };
+      return { from: `${to.slice(0, 8)}01`, to };
     case '90DAYS':
-      return { from: now.subtract(89, 'day').format(DAY), to };
+      return { from: shiftDay(to, -89), to };
     case '30DAYS':
     default:
-      return { from: now.subtract(29, 'day').format(DAY), to };
+      return { from: shiftDay(to, -29), to };
   }
 }
 
@@ -114,7 +112,7 @@ export function presetRange(key, now = dayjs()) {
  * URL → the hub's range. `?dates=7DAYS`, or `?from=…&to=…` for picked dates;
  * anything unreadable falls back to the default 30 days.
  */
-export function hubRangeFromParams(params, now = dayjs()) {
+export function hubRangeFromParams(params, now = new Date()) {
   const from = params.get('from');
   const to = params.get('to');
   if (ISO_DAY.test(from || '') && ISO_DAY.test(to || '') && from <= to) {
@@ -127,10 +125,9 @@ export function hubRangeFromParams(params, now = dayjs()) {
 
 /** "9 Oct 2026", or "10 Sep – 9 Oct 2026". */
 export function rangeLabel({ from, to }) {
-  const a = dayjs(from);
-  const b = dayjs(to);
-  if (from === to) return b.format('D MMM YYYY');
-  return `${a.format(a.year() === b.year() ? 'D MMM' : 'D MMM YYYY')} – ${b.format('D MMM YYYY')}`;
+  if (from === to) return formatInIST(to, 'D MMM YYYY');
+  const sameYear = from.slice(0, 4) === to.slice(0, 4);
+  return `${formatInIST(from, sameYear ? 'D MMM' : 'D MMM YYYY')} – ${formatInIST(to, 'D MMM YYYY')}`;
 }
 
 /** Calendar range → API params: start and end of the IST day, as ISO. */

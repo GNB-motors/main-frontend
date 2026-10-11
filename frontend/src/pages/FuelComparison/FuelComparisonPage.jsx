@@ -1,3 +1,10 @@
+import {
+  formatInIST,
+  istDayEndISO,
+  istDayStartISO,
+  istDayString,
+  shiftDay,
+} from '../../utils/dateUtils';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Fuel,
@@ -11,7 +18,6 @@ import {
   X,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import dayjs from 'dayjs';
 import PageShell from '../../components/ui/PageShell';
 import ExportButton from '../../components/ui/ExportButton';
 import { ReportsService } from '../Reports/ReportsService.jsx';
@@ -20,7 +26,7 @@ import { getThemeCSS } from '../../utils/colorTheme.js';
 import ComparisonTable from './ComparisonTable.jsx';
 import FuelComparisonDrawer from './FuelComparisonDrawer.jsx';
 import ReviewModal from './ReviewModal.jsx';
-import { IST_ZONE, toIST, fmtDuration, fmtLitres } from './formatIST.js';
+import { fmtDuration, fmtLitres } from './formatIST.js';
 import './FuelComparison.css';
 import logger from '../../utils/logger';
 
@@ -109,23 +115,23 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
     setDatePreset(presetKey);
     setPage(1);
 
-    const now = dayjs().tz(IST_ZONE);
+    const today = istDayString();
     if (presetKey === 'ALL') {
       setInputFromDate('');
       setInputToDate('');
     } else if (presetKey === 'TODAY') {
-      setInputFromDate(now.startOf('day').toISOString());
-      setInputToDate(now.endOf('day').toISOString());
+      setInputFromDate(istDayStartISO(today));
+      setInputToDate(istDayEndISO(today));
     } else if (presetKey === 'YESTERDAY') {
-      const y = now.subtract(1, 'day');
-      setInputFromDate(y.startOf('day').toISOString());
-      setInputToDate(y.endOf('day').toISOString());
+      const y = shiftDay(today, -1);
+      setInputFromDate(istDayStartISO(y));
+      setInputToDate(istDayEndISO(y));
     } else if (presetKey === '7DAYS') {
-      setInputFromDate(now.subtract(6, 'day').startOf('day').toISOString());
-      setInputToDate(now.endOf('day').toISOString());
+      setInputFromDate(istDayStartISO(shiftDay(today, -6)));
+      setInputToDate(istDayEndISO(today));
     } else if (presetKey === '30DAYS') {
-      setInputFromDate(now.subtract(29, 'day').startOf('day').toISOString());
-      setInputToDate(now.endOf('day').toISOString());
+      setInputFromDate(istDayStartISO(shiftDay(today, -29)));
+      setInputToDate(istDayEndISO(today));
     }
   };
 
@@ -288,8 +294,8 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
         const driverName = r.driverId
           ? `${r.driverId.firstName || ''} ${r.driverId.lastName || ''}`.trim()
           : '';
-        const fromStr = r.fromDate ? toIST(r.fromDate)?.format('YYYY-MM-DD HH:mm') || '' : '';
-        const toStr = r.toDate ? toIST(r.toDate)?.format('YYYY-MM-DD HH:mm') || '' : '';
+        const fromStr = r.fromDate ? formatInIST(r.fromDate, 'YYYY-MM-DD HH:mm') || '' : '';
+        const toStr = r.toDate ? formatInIST(r.toDate, 'YYYY-MM-DD HH:mm') || '' : '';
         const durStr = fmtDuration(r.fromDate, r.toDate) || '';
         const varL = r.variance != null ? -r.variance : null;
         const varPct = r.variancePercent != null ? -r.variancePercent : null;

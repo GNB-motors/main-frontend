@@ -1,6 +1,6 @@
+import { istDayString, istDayStartISO, shiftDay } from '../../utils/dateUtils';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { RefreshCw, AlertTriangle, X, Check, Loader2 } from 'lucide-react';
-import dayjs from 'dayjs';
 import { OwnerAlertsService, ALERT_TYPE_LABELS } from './OwnerAlertsService.js';
 import { LIMIT, CHIPS, SINCE, SORTS, computeView, buildSummary } from './ownerAlertsModel';
 import AlertDetailsDrawer from './AlertDetailsDrawer.jsx';
@@ -44,7 +44,7 @@ const OwnerAlertsPage = () => {
       if (type) params.type = type;
       if (ackFilter !== 'all') params.acknowledged = ackFilter === 'acknowledged';
       if (since !== 'all') {
-        params.from = dayjs().subtract(Number(since), 'day').startOf('day').utc().toISOString();
+        params.from = istDayStartISO(shiftDay(istDayString(), -Number(since)));
       }
       const data = await OwnerAlertsService.getAlerts(params);
       setAlerts(data.records || []);

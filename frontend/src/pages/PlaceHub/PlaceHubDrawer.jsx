@@ -1,3 +1,4 @@
+import { timeAgo } from '../../utils/formatters';
 import {
   X,
   Pencil,
@@ -23,13 +24,11 @@ import {
   ShieldAlert,
   ArrowRight,
 } from 'lucide-react';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
 import { toast } from 'react-toastify';
 import useApi from '../../hooks/useApi';
 import PlaceLabel from '../../components/ui/PlaceLabel';
 import { inr, num } from '../../utils/formatMoney.js';
-import { formatDateIST } from '../../utils/dateUtils';
+import { formatDateIST, formatInIST } from '../../utils/dateUtils';
 import {
   minutesLabel,
   placeStats,
@@ -63,8 +62,6 @@ import {
   DRAIN_COLOR,
   STOP_COLOR,
 } from './placeHubStyle.js';
-
-dayjs.extend(relativeTime);
 
 const RADIUS_STEPS = [
   50, 100, 150, 200, 300, 400, 500, 750, 1000, 1500, 2000, 3000, 5000, 10000, 20000, 50000,
@@ -340,7 +337,7 @@ function StopsDetail({ group, site, canEdit, busy, onClose, onAnswer, onOpenSite
                 <span className="ph-truck-chip">
                   <Truck size={11} /> {st.registrationNumber || 'Truck'}
                 </span>
-                <span className="ph-muted">{dayjs(st.startAt).format('D MMM, h:mm a')}</span>
+                <span className="ph-muted">{formatInIST(st.startAt, 'D MMM, h:mm a')}</span>
                 <strong>{minutesLabel(st.dwellMinutes)}</strong>
               </div>
               {canEdit && (
@@ -439,7 +436,7 @@ function LiveIdleDetail({ event, canEdit, onClose, onAdd }) {
         lng={center.lng}
         shape={event.zoneName ? `Inside ${event.zoneName}` : 'Outside every warehouse and zone'}
       />
-      <p className="ph-muted">Since {dayjs(event.startAt).format('D MMM, h:mm a')}</p>
+      <p className="ph-muted">Since {formatInIST(event.startAt, 'D MMM, h:mm a')}</p>
       {excess && <AddHere canEdit={canEdit} onAdd={onAdd} center={center} name="" />}
     </Frame>
   );
@@ -526,7 +523,7 @@ function HotspotDetail({ hotspot, canEdit, onClose, onEdit, onToggle }) {
           },
           {
             label: 'Last incident',
-            value: hotspot.lastIncidentAt ? dayjs(hotspot.lastIncidentAt).fromNow() : '—',
+            value: hotspot.lastIncidentAt ? timeAgo(hotspot.lastIncidentAt) : '—',
           },
           {
             label: 'Signal',

@@ -1,3 +1,5 @@
+import { formatInIST } from '../../utils/dateUtils';
+import { timeAgo } from '../../utils/formatters';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLoadScript } from '@react-google-maps/api';
@@ -22,8 +24,6 @@ import {
   ShieldCheck,
   Building2,
 } from 'lucide-react';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
 import { toast } from 'react-toastify';
 import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
 import { useFullPageLayout } from '../../hooks/usePageLayout';
@@ -78,8 +78,6 @@ import {
 } from './placeHubStyle.js';
 import './intelligence/placeIntelligence.css';
 import './PlaceHub.css';
-
-dayjs.extend(relativeTime);
 
 // Same libraries as the other place pages, so moving between them does not
 // make @react-google-maps/api tear down and reload the Maps script.
@@ -837,8 +835,8 @@ export default function PlaceHubPage() {
 
         <div className="ph-actions">
           {lastRunAt && (
-            <span className="ph-fresh" title={dayjs(lastRunAt).format('D MMM YYYY, h:mm a')}>
-              Learned {dayjs(lastRunAt).fromNow()}
+            <span className="ph-fresh" title={formatInIST(lastRunAt, 'D MMM YYYY, h:mm a')}>
+              Learned {timeAgo(lastRunAt)}
             </span>
           )}
           <button

@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Panel, StatusPill } from '../../components/overview.primitives.jsx';
-import { toIST } from './fiDates.js';
+import { formatInIST } from '../../utils/dateUtils';
 
 export default function VehicleDrilldownPanel({
   vehicle,
@@ -82,8 +82,8 @@ export default function VehicleDrilldownPanel({
               {windows.map((w) => (
                 <tr key={w._id}>
                   <td className="num text-dim">
-                    {toIST(w.windowFrom)?.format('DD MMM') || '—'} →{' '}
-                    {toIST(w.windowTo)?.format('DD MMM YY') || '—'}
+                    {formatInIST(w.windowFrom, 'DD MMM') || '—'} →{' '}
+                    {formatInIST(w.windowTo, 'DD MMM YY') || '—'}
                   </td>
                   <td className="num text-right">{w.fillsLitres ?? '—'}</td>
                   <td className="num text-right">{w.engineBurnL ?? '—'}</td>

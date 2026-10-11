@@ -1,3 +1,4 @@
+import { formatInIST, istWallClockToISO } from '../../utils/dateUtils';
 import React, { useState, useEffect } from 'react';
 import {
   X,
@@ -21,24 +22,10 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
 import { ReportsService } from '../Reports/ReportsService.jsx';
-import { IST_ZONE, formatDateTimeIST, fmtLitres, fmtKm, fmtDuration } from './formatIST';
+import { formatDateTimeIST, fmtLitres, fmtKm, fmtDuration } from './formatIST';
 
-dayjs.extend(utc);
-dayjs.extend(timezone);
-
-const formatForInput = (iso) => {
-  if (!iso) return '';
-  try {
-    const d = dayjs.utc(iso).tz(IST_ZONE);
-    return d.isValid() ? d.format('YYYY-MM-DDTHH:mm') : '';
-  } catch {
-    return '';
-  }
-};
+const formatForInput = (iso) => formatInIST(iso, 'YYYY-MM-DDTHH:mm') ?? '';
 
 const FuelComparisonDrawer = ({
   task,
@@ -106,8 +93,8 @@ const FuelComparisonDrawer = ({
     setSaving(true);
     try {
       const updates = {};
-      if (fromDate) updates.fromDate = dayjs.tz(fromDate, IST_ZONE).utc().toISOString();
-      if (toDate) updates.toDate = dayjs.tz(toDate, IST_ZONE).utc().toISOString();
+      if (fromDate) updates.fromDate = istWallClockToISO(fromDate);
+      if (toDate) updates.toDate = istWallClockToISO(toDate);
       if (odometerReading !== '') updates.odometerReading = parseFloat(odometerReading);
 
       const taskId = task._id || task.id;

@@ -1,19 +1,11 @@
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-import relativeTime from 'dayjs/plugin/relativeTime';
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
-dayjs.extend(relativeTime);
+import { formatInIST } from '../../utils/dateUtils';
+import { timeAgo } from '../../utils/formatters';
 
 /**
  * Presentation helpers for live vehicle positions, shared by the full Live
  * Tracking page and the dashboard's embedded mini-map so the two views can
  * never disagree about colours, state labels or timestamps.
  */
-
-export const IST_ZONE = 'Asia/Kolkata';
 
 export const INDIA_CENTER = { lat: 22.5937, lng: 78.9629 };
 
@@ -28,22 +20,11 @@ export const STATE_META = {
 
 export const getStateMeta = (state) => STATE_META[state] || STATE_META.OFFLINE;
 
-export const toIST = (utcStr) => (utcStr ? dayjs.utc(utcStr).tz(IST_ZONE) : null);
+export const formatIST = (utcStr) => formatInIST(utcStr, 'DD MMM YYYY, hh:mm A [IST]') ?? '—';
 
-export const formatIST = (utcStr) => {
-  const d = toIST(utcStr);
-  return d ? d.format('DD MMM YYYY, hh:mm A [IST]') : '—';
-};
+export const formatRelativeIST = (utcStr) => (utcStr ? timeAgo(utcStr) : null);
 
-export const formatRelativeIST = (utcStr) => {
-  const d = toIST(utcStr);
-  return d ? d.fromNow() : null;
-};
-
-export const formatCardTime = (utcStr) => {
-  const d = toIST(utcStr);
-  return d ? d.format('h:mmA, DD MMM YYYY') : '—';
-};
+export const formatCardTime = (utcStr) => formatInIST(utcStr, 'h:mmA, DD MMM YYYY') ?? '—';
 
 export const pinIcon = (color, dimmed) => ({
   url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(

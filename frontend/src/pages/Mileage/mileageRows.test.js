@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import dayjs from 'dayjs';
 import {
   REFUEL_CHIPS,
   billCoverage,
@@ -198,7 +197,7 @@ describe('mapIntervalRow', () => {
 });
 
 describe('presetRange', () => {
-  const now = dayjs('2026-10-08T12:00:00');
+  const now = new Date('2026-10-08T12:00:00+05:30');
   it('defaults to the last 30 days inclusive', () => {
     expect(presetRange('30DAYS', now)).toEqual({ from: '2026-09-09', to: '2026-10-08' });
   });
@@ -478,7 +477,7 @@ describe('pump honesty', () => {
 });
 
 describe('hub dates', () => {
-  const now = dayjs('2026-10-09T12:00:00');
+  const now = new Date('2026-10-09T12:00:00+05:30');
   const at = (qs) => hubRangeFromParams(new URLSearchParams(qs), now);
 
   it('defaults to the last 30 days', () => {

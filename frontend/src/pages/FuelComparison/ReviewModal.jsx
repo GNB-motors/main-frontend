@@ -1,23 +1,9 @@
+import { formatInIST, istWallClockToISO } from '../../utils/dateUtils';
 import React, { useState, useEffect } from 'react';
 import { Gauge, X, AlertTriangle, ExternalLink, Loader2, Check } from 'lucide-react';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
 import { ReportsService } from '../Reports/ReportsService.jsx';
-import { IST_ZONE } from './formatIST.js';
 
-dayjs.extend(utc);
-dayjs.extend(timezone);
-
-const formatForInput = (iso) => {
-  if (!iso) return '';
-  try {
-    const d = dayjs.utc(iso).tz(IST_ZONE);
-    return d.isValid() ? d.format('YYYY-MM-DDTHH:mm') : '';
-  } catch {
-    return '';
-  }
-};
+const formatForInput = (iso) => formatInIST(iso, 'YYYY-MM-DDTHH:mm') ?? '';
 
 const ReviewModal = ({ task, onClose, onSave, onApproved }) => {
   const [fromDate, setFromDate] = useState(() => formatForInput(task?.fromDate));
@@ -55,10 +41,10 @@ const ReviewModal = ({ task, onClose, onSave, onApproved }) => {
     try {
       const updates = {};
       if (fromDate) {
-        updates.fromDate = dayjs.tz(fromDate, IST_ZONE).utc().toISOString();
+        updates.fromDate = istWallClockToISO(fromDate);
       }
       if (toDate) {
-        updates.toDate = dayjs.tz(toDate, IST_ZONE).utc().toISOString();
+        updates.toDate = istWallClockToISO(toDate);
       }
       if (odometerReading !== '') {
         const parsedOdo = parseFloat(odometerReading);

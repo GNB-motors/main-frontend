@@ -1,3 +1,10 @@
+import {
+  daysBetween,
+  istDayEndISO,
+  istDayStartISO,
+  istDayString,
+  shiftDay,
+} from '../../utils/dateUtils';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   AlertTriangle,
@@ -14,7 +21,6 @@ import {
   Activity,
   Layers,
 } from 'lucide-react';
-import dayjs from 'dayjs';
 import PageShell from '../../components/ui/PageShell';
 import ExportButton from '../../components/ui/ExportButton';
 import { FuelIntegrityService } from './FuelIntegrityService.js';
@@ -23,8 +29,8 @@ import EvidenceDrawer from '../../components/cluster/EvidenceDrawer.jsx';
 import EventInvestigationDrawer from './EventInvestigationDrawer.jsx';
 import FuelIntegrityTables from './FuelIntegrityTables.jsx';
 import VehicleDrilldownPanel from './VehicleDrilldownPanel.jsx';
-import { IST_ZONE, formatRelativeIST, formatIST } from './fiDates.js';
-import { formatINR, formatLitres } from '../../utils/formatters';
+import { formatRelativeIST, formatIST } from './fiDates.js';
+import { formatINR, formatLitres, timeAgo } from '../../utils/formatters';
 import {
   buildEvents,
   eventMatchesFilters,
@@ -102,8 +108,8 @@ const FuelIntegrityPage = () => {
   const buildParams = useCallback(() => {
     const params = {};
     if (vehicle) params.vehicle = vehicle;
-    if (fromDate) params.from = dayjs.tz(fromDate, IST_ZONE).utc().toISOString();
-    if (toDate) params.to = dayjs.tz(toDate, IST_ZONE).endOf('day').utc().toISOString();
+    if (fromDate) params.from = istDayStartISO(fromDate);
+    if (toDate) params.to = istDayEndISO(toDate);
     return params;
   }, [vehicle, fromDate, toDate]);
 
@@ -120,7 +126,7 @@ const FuelIntegrityPage = () => {
       setSummary(summaryData);
       setFills(fillsData.records || []);
       setWindows(windowsData.records || []);
-      setLastSynced(dayjs());
+      setLastSynced(new Date());
     } catch (err) {
       setError(err.message || 'Could not load fuel integrity data.');
     } finally {
@@ -160,8 +166,8 @@ const FuelIntegrityPage = () => {
   };
 
   const applyRange = (days) => {
-    const to = dayjs().format('YYYY-MM-DD');
-    const from = dayjs().subtract(days, 'day').format('YYYY-MM-DD');
+    const to = istDayString();
+    const from = shiftDay(to, -days);
     setRangeDays(days);
     setInputFromDate(from);
     setInputToDate(to);
@@ -187,9 +193,7 @@ const FuelIntegrityPage = () => {
   const lossL = totals?.siphonSuspectedLossL || 0;
   const billCount = totals?.billFlagCount || 0;
   const defCount = totals?.defFlagCount || 0;
-  const windowDays = summary
-    ? dayjs(summary.window?.to).diff(dayjs(summary.window?.from), 'day')
-    : null;
+  const windowDays = summary ? daysBetween(summary.window?.from, summary.window?.to) : null;
 
   const totalFillsLitres = totals?.totalFillsLitres ?? totals?.fillsLitres ?? 0;
   const totalEngineBurnL = totals?.totalEngineBurnL ?? 0;
@@ -309,7 +313,7 @@ const FuelIntegrityPage = () => {
       actions={
         <div className="flex items-center gap-2">
           {lastSynced && (
-            <span className="text-dim hidden text-xs sm:inline">Synced {lastSynced.fromNow()}</span>
+            <span className="text-dim hidden text-xs sm:inline">Synced {timeAgo(lastSynced)}</span>
           )}
           <ExportButton
             rows={exportRows}

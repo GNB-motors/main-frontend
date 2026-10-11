@@ -1,4 +1,4 @@
-import dayjs from 'dayjs';
+import { istDayString } from './dateUtils.js';
 import { toast } from 'react-toastify';
 import * as XLSX from 'xlsx';
 
@@ -105,7 +105,7 @@ export async function exportFilteredReportCsv({
   }
 
   const mimeType = getReportExportMime(extension);
-  const filename = `${filenamePrefix}_${dayjs().format('YYYY-MM-DD')}.${extension}`;
+  const filename = `${filenamePrefix}_${istDayString()}.${extension}`;
 
   try {
     let content;
