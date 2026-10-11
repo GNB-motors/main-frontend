@@ -315,7 +315,6 @@ export const SIDE_NAV_ITEMS = [
       // Route Intelligence, Deviation, Replay, Profitability and Overspeed
       // used to be five separate entries — now one card-based hub page.
       { to: '/route-hub', label: 'Route Hub', key: 'fleetIntelligence' },
-      { to: '/hotspots', label: 'Fuel Risk Hotspots', key: 'fleetIntelligence' },
     ],
     matchRoutes: [
       '/idling-console',
@@ -328,24 +327,7 @@ export const SIDE_NAV_ITEMS = [
       '/route-replay',
       '/route-profitability',
       '/overspeed',
-      '/hotspots',
     ],
-  },
-  */
-  // Geofence group (commented out per request)
-  /*
-  {
-    type: 'group',
-    groupId: 'geofence',
-    key: null,
-    access: 'fleet',
-    label: 'Geofence',
-    icon: Navigation,
-    children: [
-      { to: '/geofence', label: 'Anomalies' },
-      { to: '/geofence/zones', label: 'Zones & Alerts' },
-    ],
-    matchRoutes: ['/geofence', '/geofence/zones'],
   },
   */
 
