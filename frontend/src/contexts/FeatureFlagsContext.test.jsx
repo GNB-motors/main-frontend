@@ -90,3 +90,30 @@ describe('FeatureFlagsProvider ready gate', () => {
     expect(apiClient.get).not.toHaveBeenCalled();
   });
 });
+
+// Every consumer (Sidebar, Navbar, CommandPalette, pages) re-renders when the
+// context value's identity changes, so an unchanged payload must keep it.
+describe('FeatureFlagsProvider value identity', () => {
+  it('keeps the same value object when the provider re-renders with no change', () => {
+    isAuthenticated.mockReturnValue(false);
+    const seen = [];
+    function ValueProbe() {
+      seen.push(useFeatureFlags());
+      return null;
+    }
+
+    const { rerender } = render(
+      <FeatureFlagsProvider>
+        <ValueProbe />
+      </FeatureFlagsProvider>,
+    );
+    rerender(
+      <FeatureFlagsProvider>
+        <ValueProbe />
+      </FeatureFlagsProvider>,
+    );
+
+    expect(seen.length).toBeGreaterThanOrEqual(2);
+    expect(seen.at(-1)).toBe(seen.at(-2));
+  });
+});

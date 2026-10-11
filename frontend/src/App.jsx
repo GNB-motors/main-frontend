@@ -2,7 +2,6 @@ import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from 're
 import { lazy, Suspense, useEffect, useLayoutEffect } from 'react';
 import LottieLoader from './components/LottieLoader';
 import RequireAuth from './components/RequireAuth.jsx';
-import { TripCreationProvider } from './contexts/TripCreationContext.jsx';
 import { setNavigator } from './utils/navigation.js';
 
 function RedirectWithState({ to }) {
@@ -387,9 +386,7 @@ function App() {
           <Route
             element={
               <RequireAuth>
-                <TripCreationProvider>
-                  <DashboardLayout />
-                </TripCreationProvider>
+                <DashboardLayout />
               </RequireAuth>
             }
           >

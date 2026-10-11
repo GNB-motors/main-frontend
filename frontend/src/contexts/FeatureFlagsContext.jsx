@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import apiClient from '../utils/axiosConfig';
 import useApi from '../hooks/useApi';
 import { isAuthenticated } from '../utils/session.js';
@@ -86,24 +86,34 @@ export const FeatureFlagsProvider = ({ children }) => {
     [isEnabled, hasPermission],
   );
 
-  return (
-    <FeatureFlagsContext.Provider
-      value={{
-        flags,
-        permissions,
-        organization,
-        profile,
-        loading,
-        ready,
-        isEnabled,
-        hasPermission,
-        canAccess,
-        refresh,
-      }}
-    >
-      {children}
-    </FeatureFlagsContext.Provider>
+  const value = useMemo(
+    () => ({
+      flags,
+      permissions,
+      organization,
+      profile,
+      loading,
+      ready,
+      isEnabled,
+      hasPermission,
+      canAccess,
+      refresh,
+    }),
+    [
+      flags,
+      permissions,
+      organization,
+      profile,
+      loading,
+      ready,
+      isEnabled,
+      hasPermission,
+      canAccess,
+      refresh,
+    ],
   );
+
+  return <FeatureFlagsContext.Provider value={value}>{children}</FeatureFlagsContext.Provider>;
 };
 
 export const useFeatureFlags = () => useContext(FeatureFlagsContext);

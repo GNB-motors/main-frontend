@@ -1,7 +1,12 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { BranchService } from '../services/branchService';
-import { getOrgId, getBranchId, setBranchId as persistBranchId, getToken } from '../utils/session.js';
+import {
+  getOrgId,
+  getBranchId,
+  setBranchId as persistBranchId,
+  getToken,
+} from '../utils/session.js';
 
 /**
  * Global "active location" (branch) context.
@@ -83,15 +88,20 @@ export const BranchProvider = ({ children }) => {
     [persist],
   );
 
-  const activeBranch = branches.find((b) => String(b._id) === String(branchId)) || null;
-
-  return (
-    <BranchContext.Provider
-      value={{ businessRefId, branchId, branches, activeBranch, loading, setBranch, refresh }}
-    >
-      {children}
-    </BranchContext.Provider>
+  const value = useMemo(
+    () => ({
+      businessRefId,
+      branchId,
+      branches,
+      activeBranch: branches.find((b) => String(b._id) === String(branchId)) || null,
+      loading,
+      setBranch,
+      refresh,
+    }),
+    [businessRefId, branchId, branches, loading, setBranch, refresh],
   );
+
+  return <BranchContext.Provider value={value}>{children}</BranchContext.Provider>;
 };
 
 export const useActiveBranch = () => useContext(BranchContext);
