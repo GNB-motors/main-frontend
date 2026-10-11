@@ -17,7 +17,8 @@ export default defineConfig([
   // outside src/ so Vite never bundles them, and ignored here so dead code can't
   // fail the gate. See quarantine/README.md.
   // public/draco/ is the vendored Draco decoder (served verbatim, never bundled).
-  globalIgnores(['dist', 'Design', 'amitansu-handoff', 'quarantine', 'public/draco']),
+  // coverage/ is the generated `npm run test:coverage` report.
+  globalIgnores(['dist', 'coverage', 'Design', 'amitansu-handoff', 'quarantine', 'public/draco']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

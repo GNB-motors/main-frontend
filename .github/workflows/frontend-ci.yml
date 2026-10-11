@@ -31,7 +31,24 @@ jobs:
         env:
           HUSKY: '0'
 
-      # The same command developers run: eslint (with the warning ratchet),
-      # vitest, vite build, then the main-chunk bundle budget.
+      # The same checks as `npm run build` (keep the two in step), run one per
+      # step so a failure names itself, with tests measuring coverage.
+      - name: Lint
+        run: npm run lint
+
+      - name: Test (with coverage)
+        run: npm run test:coverage
+
       - name: Build
-        run: npm run build
+        run: npx vite build
+
+      - name: Bundle budget
+        run: node scripts/check-bundle.mjs
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+          if-no-files-found: ignore
