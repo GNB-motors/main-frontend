@@ -74,11 +74,9 @@ const VehiclesPage = () => {
     const fetchVehicles = async () => {
       setIsLoadingVehicles(true);
       setVehicleError(null);
-      const token = getToken();
       try {
         const result = await VehicleService.getAllVehicles(
           businessRefId,
-          token,
           currentPage,
           itemsPerPage,
         );
@@ -87,7 +85,7 @@ const VehiclesPage = () => {
 
         // Fetch FleetEdge accounts for the column (fire-and-forget, don't block vehicle render)
         try {
-          const accounts = await listAccounts(token);
+          const accounts = await listAccounts();
           setFleetEdgeAccounts(accounts || []);
         } catch {
           /* non-fatal */
@@ -117,7 +115,7 @@ const VehiclesPage = () => {
     const removedVehicle = vehicles.find((v) => v.id === vehicleIdToRemove);
     setVehicles((prevVehicles) => prevVehicles.filter((v) => v.id !== vehicleIdToRemove));
     try {
-      await VehicleService.removeVehicle(businessRefId, vehicleIdToRemove, token);
+      await VehicleService.removeVehicle(vehicleIdToRemove);
       toast.success(
         `Vehicle "${removedVehicle?.registration_no || vehicleIdToRemove}" removed successfully!`,
       );
@@ -145,9 +143,8 @@ const VehiclesPage = () => {
   // Activate a deactivated (moved-away) vehicle back into the current location.
   // Re-import moves it here (active here, deactivated where it was).
   const handleActivateHere = async (vehicle) => {
-    const token = getToken();
     try {
-      await VehicleService.importVehicle(vehicle.id, token);
+      await VehicleService.importVehicle(vehicle.id);
       toast.success('Vehicle activated in this location');
       setRefreshKey((k) => k + 1);
     } catch (err) {
@@ -188,18 +185,12 @@ const VehiclesPage = () => {
   // page — pull all pages from the API (capped at the backend's max `limit`
   // of 1000 per request) before applying the same search filter as the table.
   const fetchAllVehiclesForExport = async () => {
-    const token = getToken();
     const EXPORT_PAGE_LIMIT = 1000;
-    const first = await VehicleService.getAllVehicles(businessRefId, token, 1, EXPORT_PAGE_LIMIT);
+    const first = await VehicleService.getAllVehicles(businessRefId, 1, EXPORT_PAGE_LIMIT);
     const all = (first.data || []).map(normalizeVehicle);
     const totalPages = first.meta?.totalPages || 1;
     for (let page = 2; page <= totalPages; page += 1) {
-      const next = await VehicleService.getAllVehicles(
-        businessRefId,
-        token,
-        page,
-        EXPORT_PAGE_LIMIT,
-      );
+      const next = await VehicleService.getAllVehicles(businessRefId, page, EXPORT_PAGE_LIMIT);
       all.push(...(next.data || []).map(normalizeVehicle));
     }
     return filterVehicles(all, { search: searchVehicleNo }).map((v) =>

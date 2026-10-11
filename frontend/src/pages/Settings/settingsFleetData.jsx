@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Radio } from 'lucide-react';
 import useApi from '../../hooks/useApi';
 import { listAccounts } from '../Profile/FleetEdgeAccountService';
-import { getToken } from '../../utils/session.js';
 import { formatNum, formatPct } from '../../utils/formatters';
 import { Card, SectionHead, Skeleton } from './settingsAtoms';
 
@@ -18,7 +17,7 @@ const NO_FEED_HINT =
   'Connect FleetEdge from the GNB Edge Chrome extension and its vehicles appear here.';
 
 function FleetEdgeAccounts() {
-  const { data, loading, error } = useApi(() => listAccounts(getToken()), []);
+  const { data, loading, error } = useApi((signal) => listAccounts({ signal }), []);
   const accounts = data || [];
 
   return (

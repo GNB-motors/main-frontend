@@ -1,44 +1,27 @@
-import axios from 'axios';
+import apiClient from '../../utils/axiosConfig';
 import ApiError from '../../errors/ApiError';
 
-// Get the backend URL from environment variables or default to localhost
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:3000';
-
-const updateOrganization = async (organizationData, token, orgId) => {
+const updateOrganization = async (organizationData, orgId) => {
   try {
     // PATCH /api/admin/organizations/:id - Update organization details
-    const response = await axios.patch(
-      `${API_BASE_URL}/api/admin/organizations/${orgId}`,
-      organizationData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      },
-    );
+    const response = await apiClient.patch(`/api/admin/organizations/${orgId}`, organizationData);
     return response.data;
   } catch (error) {
     throw ApiError.from(error);
   }
 };
 
-const updateUserProfile = async (profileData, token) => {
+const updateUserProfile = async (profileData) => {
   try {
     // PATCH /api/auth/me - Update user profile including theme color
-    const response = await axios.patch(`${API_BASE_URL}/api/auth/me`, profileData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await apiClient.patch('/api/auth/me', profileData);
     return response.data;
   } catch (error) {
     throw ApiError.from(error);
   }
 };
 
-const completeOnboarding = async (onboardingData, token, orgId) => {
+const completeOnboarding = async (onboardingData, orgId) => {
   // Step 1: Update organization with company details (companyName, gstin)
   const organizationPayload = {
     companyName: onboardingData.companyName,
@@ -49,7 +32,7 @@ const completeOnboarding = async (onboardingData, token, orgId) => {
     organizationPayload.gstin = onboardingData.gstin;
   }
 
-  await updateOrganization(organizationPayload, token, orgId);
+  await updateOrganization(organizationPayload, orgId);
 
   // Step 2: Update user profile with theme color
   const profilePayload = {
@@ -62,7 +45,7 @@ const completeOnboarding = async (onboardingData, token, orgId) => {
     profilePayload.primaryThemeColor = onboardingData.primaryThemeColor;
   }
 
-  await updateUserProfile(profilePayload, token);
+  await updateUserProfile(profilePayload);
 
   return { success: true, message: 'Onboarding completed successfully' };
 };

@@ -19,7 +19,6 @@ import { MaintenanceService } from './MaintenanceService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
 import AlertsTab from './Component/AlertsTab.jsx';
 import ResolveIssueModal from './Component/ResolveIssueModal.jsx';
-import { getToken } from '../../utils/session.js';
 import { useConfirm } from '../../components/ui/confirmContext';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
@@ -87,8 +86,7 @@ const ServiceIntelligencePage = () => {
     let mounted = true;
     (async () => {
       try {
-        const token = getToken();
-        const alerts = await MaintenanceService.getAlerts(token);
+        const alerts = await MaintenanceService.getAlerts();
         if (mounted && Array.isArray(alerts)) {
           const activeCount = alerts.filter((a) => !a.resolved).length;
           setActiveAlertsCount(activeCount);
@@ -114,15 +112,14 @@ const ServiceIntelligencePage = () => {
     const myId = ++requestIdRef.current;
     setLoading(true);
     try {
-      const token = getToken();
       const [recordsRes, summaryRes] = await Promise.all([
-        MaintenanceService.listRecords(token, {
+        MaintenanceService.listRecords({
           recordType,
           search: q || undefined,
           page: pageNum,
           limit: ITEMS_PER_PAGE,
         }),
-        MaintenanceService.getSummary(token, { recordType, search: q || undefined }),
+        MaintenanceService.getSummary({ recordType, search: q || undefined }),
       ]);
       if (myId !== requestIdRef.current) return;
       setRows(recordsRes.data);
@@ -162,8 +159,7 @@ const ServiceIntelligencePage = () => {
     });
     if (!ok) return;
     try {
-      const token = getToken();
-      await MaintenanceService.deleteRecord(token, row._id);
+      await MaintenanceService.deleteRecord(row._id);
       setRows((prev) => prev.filter((r) => r._id !== row._id));
       toast.success('Record deleted');
     } catch (err) {
@@ -183,13 +179,12 @@ const ServiceIntelligencePage = () => {
     amount,
     resolveDate,
   }) => {
-    const token = getToken();
     const existingNotes = targetItem.notes || '';
     const resolutionTag = `[RESOLVED: ${resolutionNote} (${resolveDate})]`;
     const updatedNotes = existingNotes ? `${existingNotes} ${resolutionTag}` : resolutionTag;
 
     try {
-      const updatedRecord = await MaintenanceService.updateRecord(token, targetItem._id, {
+      const updatedRecord = await MaintenanceService.updateRecord(targetItem._id, {
         notes: updatedNotes,
         workshop: workshop || targetItem.workshop,
         amount: amount !== undefined ? amount : targetItem.amount,

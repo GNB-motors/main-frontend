@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { getDrift } from '../Profile/FleetEdgeAccountService';
-import { getToken } from '../../utils/session.js';
 import FilterBar from '../../components/ui/FilterBar';
 import DataTable from '../../components/ui/DataTable';
 import ExportButton from '../../components/ui/ExportButton';
@@ -45,8 +44,7 @@ export default function DriftTab() {
   const load = useCallback(() => {
     setLoading(true);
     setLoadError(null);
-    const token = getToken();
-    getDrift(token)
+    getDrift()
       .then((d) => setRows(d.drift || []))
       .catch((err) => {
         setLoadError(err);

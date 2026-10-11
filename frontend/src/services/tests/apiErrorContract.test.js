@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('axios', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 vi.mock('../../utils/axiosConfig', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 
-import axios from 'axios';
 import apiClient from '../../utils/axiosConfig';
 import ApiError from '../../errors/ApiError';
 import { VehicleService } from '../../pages/Profile/VehicleService';
@@ -23,20 +21,18 @@ describe('service errors arrive as ApiError', () => {
     vi.clearAllMocks();
   });
 
-  it('raw-axios service: keeps status and the body the Import offer reads', async () => {
+  it('keeps status and the body the Import offer reads', async () => {
     const body = {
       status: 'error',
       code: 'ALREADY_IN_ENTERPRISE',
       message: 'This registration number already belongs to a vehicle in your enterprise.',
       data: { vehicle: { id: 'v1', registrationNumber: 'WB25V8040' } },
     };
-    axios.post.mockRejectedValueOnce(httpError(409, body));
+    apiClient.post.mockRejectedValueOnce(httpError(409, body));
 
-    const err = await VehicleService.addVehicle(
-      'org1',
-      { registration_no: 'WB25V8040' },
-      't',
-    ).catch((e) => e);
+    const err = await VehicleService.addVehicle('org1', { registration_no: 'WB25V8040' }).catch(
+      (e) => e,
+    );
 
     expect(err).toBeInstanceOf(ApiError);
     expect(err.status).toBe(409);

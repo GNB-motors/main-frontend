@@ -14,7 +14,6 @@ import {
   detectColumnMappings,
 } from '../../utils/bulkNormalization';
 import EditRowModal from '../BulkUpload/EditRowModal';
-import { getToken } from '../../utils/session.js';
 import { VEHICLE_COLUMNS } from './bulkUploadVehiclesColumns.js';
 import {
   filterRowsByStatus,
@@ -219,7 +218,6 @@ const BulkUploadVehiclesContent = ({ onCompleted, variant = 'page' }) => {
     setUploadResult(null);
 
     try {
-      const token = getToken();
       const options = { dry_run: dryRun, upsert };
       const chunkSize = 50;
 
@@ -229,7 +227,7 @@ const BulkUploadVehiclesContent = ({ onCompleted, variant = 'page' }) => {
       let totalUpdated = 0;
       for (let i = 0; i < rows.length; i += chunkSize) {
         const chunk = rows.slice(i, i + chunkSize);
-        const resp = await VehicleService.addBulkVehicles(businessRefId, chunk, options, token);
+        const resp = await VehicleService.addBulkVehicles(businessRefId, chunk, options);
         const respData = resp && resp.data ? resp.data : resp;
 
         totalCreated +=

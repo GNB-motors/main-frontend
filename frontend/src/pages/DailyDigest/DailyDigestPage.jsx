@@ -5,7 +5,6 @@ import ExportButton from '../../components/ui/ExportButton';
 import OwnerValueService from '../../services/OwnerValueService';
 import FleetDataService from '../../services/FleetDataService';
 import { VehicleService } from '../Profile/VehicleService.jsx';
-import { getToken } from '../../utils/session.js';
 import { OwnerAlertsService } from '../OwnerAlerts/OwnerAlertsService';
 import { FuelIntegrityService } from '../FuelIntegrity/FuelIntegrityService';
 import { morningBriefSchema } from '../../schemas/morningBrief.schema';
@@ -47,7 +46,7 @@ export default function DailyDigestPage() {
   const from = startOfTodayIST();
 
   const money$ = useApi((s) => OwnerValueService.getMoney({ from }, s), [from]);
-  const fleetDashboard$ = useApi(() => VehicleService.getFleetDashboard(getToken()), []);
+  const fleetDashboard$ = useApi((signal) => VehicleService.getFleetDashboard({ signal }), []);
   const downtime$ = useApi((s) => OwnerValueService.getDowntimeRisk(s), []);
   const alerts$ = useApi((s) => OwnerAlertsService.getAlerts({ from, limit: 10 }, s), [from]);
   const fuel$ = useApi((s) => FuelIntegrityService.getSummary({ from }, s), [from]);

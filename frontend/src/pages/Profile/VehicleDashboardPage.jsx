@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { VehicleService } from './VehicleService.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
-import { getToken } from '../../utils/session.js';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
 import DataTable from '../../components/ui/DataTable';
@@ -58,8 +57,7 @@ const VehicleDashboardPage = () => {
     const myId = ++requestIdRef.current;
     setLoading(true);
     try {
-      const token = getToken();
-      const data = await VehicleService.getFleetDashboard(token, q || undefined);
+      const data = await VehicleService.getFleetDashboard({ search: q || undefined });
       if (myId !== requestIdRef.current) return;
       setRows(Array.isArray(data) ? data : []);
     } catch (err) {

@@ -72,7 +72,7 @@ const AddVehiclePage = () => {
   useEffect(() => {
     const token = getToken();
     if (!token) return;
-    listAccounts(token)
+    listAccounts()
       .then((accounts) => {
         const active = (accounts || []).filter((a) => a.status === 'ACTIVE');
         setFleetEdgeAccounts(active);
@@ -103,8 +103,7 @@ const AddVehiclePage = () => {
 
         // Fetch existing vehicle documents — server returns subdocs with files[]
         try {
-          const token = getToken();
-          const fetchedDocs = await VehicleService.getVehicleDocuments(vId, token);
+          const fetchedDocs = await VehicleService.getVehicleDocuments(vId);
           setDocuments(mapFetchedDocsToUiState(fetchedDocs, emptyDocsState));
         } catch (err) {
           console.error('Failed to load vehicle documents', err);
@@ -150,16 +149,10 @@ const AddVehiclePage = () => {
         if (filesInOrder.length === 0) continue;
 
         try {
-          await VehicleService.uploadVehicleDocument(
-            entityId,
-            meta.backendType,
-            filesInOrder,
-            token,
-            {
-              sides: sidesInOrder,
-              expiryDate: entry.expiryDate || undefined,
-            },
-          );
+          await VehicleService.uploadVehicleDocument(entityId, meta.backendType, filesInOrder, {
+            sides: sidesInOrder,
+            expiryDate: entry.expiryDate || undefined,
+          });
         } catch (docErr) {
           console.error(`Failed to upload ${meta.backendType}`, docErr);
           toast.warning(`Failed to upload ${meta.label}`);
@@ -173,23 +166,21 @@ const AddVehiclePage = () => {
           businessRefId,
           vehicleId || formData.registration_no,
           formData,
-          token,
         );
         await uploadDocuments(vehicleId);
         toast.success(`Vehicle "${formData.registration_no}" updated successfully`);
         navigate('/vehicles');
       } else {
-        const savedVehicle = await VehicleService.addVehicle(
-          businessRefId,
-          { ...formData, branchId: selectedBranchId },
-          token,
-        );
+        const savedVehicle = await VehicleService.addVehicle(businessRefId, {
+          ...formData,
+          branchId: selectedBranchId,
+        });
         const newVehicleId = savedVehicle._id || savedVehicle.id;
         if (newVehicleId) {
           await uploadDocuments(newVehicleId);
           if (selectedAccountId) {
             try {
-              await reassignVehicleAccount(token, newVehicleId, selectedAccountId);
+              await reassignVehicleAccount(newVehicleId, selectedAccountId);
             } catch {
               /* non-fatal — resolver will tag on next ingestion */
             }
@@ -216,7 +207,7 @@ const AddVehiclePage = () => {
     if (!importCandidate?.id) return;
     setImporting(true);
     try {
-      await VehicleService.importVehicle(importCandidate.id, getToken());
+      await VehicleService.importVehicle(importCandidate.id);
       toast.success('Vehicle imported and activated in this location.');
       setImportCandidate(null);
       navigate('/vehicles');
@@ -229,8 +220,7 @@ const AddVehiclePage = () => {
 
   const handleDeleteDocument = async (documentId) => {
     if (!vehicleId) return;
-    const token = getToken();
-    await VehicleService.deleteVehicleDocument(vehicleId, documentId, token);
+    await VehicleService.deleteVehicleDocument(vehicleId, documentId);
   };
 
   const handleFooterSubmit = (e) => {

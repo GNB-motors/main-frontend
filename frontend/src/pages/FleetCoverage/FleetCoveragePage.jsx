@@ -18,7 +18,7 @@ import { activeFilterCount, footerSummary } from '../../lib/tableState';
 import { humanise } from '../../lib/vocabulary';
 import { formatNum, formatPct } from '../../utils/formatters';
 import { formatDateIST } from '../../utils/dateUtils';
-import { getToken, getProfileField, getUserRole } from '../../utils/session.js';
+import { getProfileField, getUserRole } from '../../utils/session.js';
 import {
   ADD_TO_FLEET_ROLES,
   isAddableRegistration,
@@ -120,7 +120,7 @@ export default function FleetCoveragePage() {
     const key = edgeRowKey(row, onlyEdgeFiltered.indexOf(row));
     setAddingKey(key);
     try {
-      await VehicleService.addVehicle(businessRefId, toVehiclePayload(row), getToken());
+      await VehicleService.addVehicle(businessRefId, toVehiclePayload(row));
       toast.success(`${row.registrationNumber} added to fleet`);
       refetch();
     } catch (err) {
@@ -149,7 +149,6 @@ export default function FleetCoveragePage() {
         businessRefId,
         rowsToAdd.map(toVehiclePayload),
         {},
-        getToken(),
       );
       const result = resp?.data ?? resp;
       setBulkResult(result);

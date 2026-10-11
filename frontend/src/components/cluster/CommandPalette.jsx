@@ -56,7 +56,7 @@ export default function CommandPalette() {
     { enabled: open },
   );
   const { data: fleetDash, loading: fleetLoading } = useApi(
-    (signal) => VehicleService.getFleetDashboard(null, '', { signal }),
+    (signal) => VehicleService.getFleetDashboard({ signal }),
     [],
     { enabled: open },
   );

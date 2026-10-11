@@ -1,15 +1,14 @@
-import axios from 'axios';
-import { getBranchId } from '../../utils/session.js';
+import apiClient from '../../utils/axiosConfig';
 import ApiError from '../../errors/ApiError';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+const MULTIPART = { headers: { 'Content-Type': 'multipart/form-data' } };
 
-const authHeader = (token) => ({ Authorization: `Bearer ${token}` });
-
-// This service uses raw axios (not the shared apiClient), so the X-Branch-Id
-// interceptor doesn't apply — pass the active location explicitly as a query param.
-// Omitted in the enterprise "All locations" view.
-const activeBranchId = () => getBranchId() || null;
+// Blank filters are dropped, as the old query-string builder did; axios omits undefined params.
+const filterParams = ({ recordType, vehicleId, search }) => ({
+  recordType: recordType || undefined,
+  vehicleId: vehicleId || undefined,
+  search: search || undefined,
+});
 
 // Build a FormData payload for create/update. `attachments` is an array of File/Blob.
 const buildFormData = (payload, attachments) => {
@@ -22,19 +21,10 @@ const buildFormData = (payload, attachments) => {
   return fd;
 };
 
-const listRecords = async (token, { recordType, vehicleId, search, page = 1, limit = 50 } = {}) => {
-  const params = new URLSearchParams();
-  if (recordType) params.set('recordType', recordType);
-  if (vehicleId) params.set('vehicleId', vehicleId);
-  if (search) params.set('search', search);
-  const branchId = activeBranchId();
-  if (branchId) params.set('branchId', branchId);
-  params.set('page', page);
-  params.set('limit', limit);
-
+const listRecords = async ({ recordType, vehicleId, search, page = 1, limit = 50 } = {}) => {
   try {
-    const res = await axios.get(`${API_BASE_URL}/api/maintenance?${params}`, {
-      headers: authHeader(token),
+    const res = await apiClient.get('/api/maintenance', {
+      params: { ...filterParams({ recordType, vehicleId, search }), page, limit },
     });
     return {
       data: Array.isArray(res.data?.data) ? res.data.data : [],
@@ -46,14 +36,12 @@ const listRecords = async (token, { recordType, vehicleId, search, page = 1, lim
   }
 };
 
-const createRecord = async (token, payload, attachments) => {
+const createRecord = async (payload, attachments) => {
   try {
-    const res = await axios.post(
-      `${API_BASE_URL}/api/maintenance`,
+    const res = await apiClient.post(
+      '/api/maintenance',
       buildFormData(payload, attachments),
-      {
-        headers: { ...authHeader(token), 'Content-Type': 'multipart/form-data' },
-      },
+      MULTIPART,
     );
     return res.data?.data || res.data;
   } catch (err) {
@@ -62,12 +50,12 @@ const createRecord = async (token, payload, attachments) => {
   }
 };
 
-const updateRecord = async (token, id, payload, attachments) => {
+const updateRecord = async (id, payload, attachments) => {
   try {
-    const res = await axios.patch(
-      `${API_BASE_URL}/api/maintenance/${id}`,
+    const res = await apiClient.patch(
+      `/api/maintenance/${id}`,
       buildFormData(payload, attachments),
-      { headers: { ...authHeader(token), 'Content-Type': 'multipart/form-data' } },
+      MULTIPART,
     );
     return res.data?.data || res.data;
   } catch (err) {
@@ -76,11 +64,9 @@ const updateRecord = async (token, id, payload, attachments) => {
   }
 };
 
-const deleteRecord = async (token, id) => {
+const deleteRecord = async (id) => {
   try {
-    const res = await axios.delete(`${API_BASE_URL}/api/maintenance/${id}`, {
-      headers: authHeader(token),
-    });
+    const res = await apiClient.delete(`/api/maintenance/${id}`);
     return res.data;
   } catch (err) {
     console.error('deleteRecord error', err.response?.data || err.message);
@@ -88,18 +74,10 @@ const deleteRecord = async (token, id) => {
   }
 };
 
-// Org's saved dropdown options. Workshop list starts empty; service/repair type
-// lists are merged with frontend defaults inside the modal.
 // System-generated alerts (no caching server-side; refetch to refresh).
-const getAlerts = async (token) => {
+const getAlerts = async () => {
   try {
-    const branchId = activeBranchId();
-    const url = branchId
-      ? `${API_BASE_URL}/api/maintenance/alerts?branchId=${branchId}`
-      : `${API_BASE_URL}/api/maintenance/alerts`;
-    const res = await axios.get(url, {
-      headers: authHeader(token),
-    });
+    const res = await apiClient.get('/api/maintenance/alerts');
     return Array.isArray(res.data?.data) ? res.data.data : [];
   } catch (err) {
     console.error('getAlerts error', err.response?.data || err.message);
@@ -109,12 +87,11 @@ const getAlerts = async (token) => {
 
 // Mark an alert occurrence as resolved. `fingerprint` must be the value the
 // alert carried in getAlerts()'s response — it pins the exact occurrence.
-const resolveAlert = async (token, alertId, { fingerprint, resolutionNote } = {}) => {
+const resolveAlert = async (alertId, { fingerprint, resolutionNote } = {}) => {
   try {
-    const res = await axios.put(
-      `${API_BASE_URL}/api/maintenance/alerts/${encodeURIComponent(alertId)}/resolve`,
+    const res = await apiClient.put(
+      `/api/maintenance/alerts/${encodeURIComponent(alertId)}/resolve`,
       { fingerprint, resolutionNote },
-      { headers: { ...authHeader(token), 'Content-Type': 'application/json' } },
     );
     return res.data?.data;
   } catch (err) {
@@ -125,17 +102,10 @@ const resolveAlert = async (token, alertId, { fingerprint, resolutionNote } = {}
 
 // KPI summary aggregated across every matching record (not just one loaded
 // page) — accepts the same filters as listRecords, minus pagination.
-const getSummary = async (token, { recordType, vehicleId, search } = {}) => {
-  const params = new URLSearchParams();
-  if (recordType) params.set('recordType', recordType);
-  if (vehicleId) params.set('vehicleId', vehicleId);
-  if (search) params.set('search', search);
-  const branchId = activeBranchId();
-  if (branchId) params.set('branchId', branchId);
-
+const getSummary = async ({ recordType, vehicleId, search } = {}) => {
   try {
-    const res = await axios.get(`${API_BASE_URL}/api/maintenance/summary?${params}`, {
-      headers: authHeader(token),
+    const res = await apiClient.get('/api/maintenance/summary', {
+      params: filterParams({ recordType, vehicleId, search }),
     });
     return res.data?.data || { total: 0, totalAmount: 0, last30: 0 };
   } catch (err) {
@@ -144,11 +114,11 @@ const getSummary = async (token, { recordType, vehicleId, search } = {}) => {
   }
 };
 
-const getOptions = async (token) => {
+// Org's saved dropdown options. Workshop list starts empty; service/repair type
+// lists are merged with frontend defaults inside the modal.
+const getOptions = async () => {
   try {
-    const res = await axios.get(`${API_BASE_URL}/api/maintenance/options`, {
-      headers: authHeader(token),
-    });
+    const res = await apiClient.get('/api/maintenance/options');
     return res.data?.data || { workshops: [], serviceTypes: [], repairTypes: [] };
   } catch (err) {
     console.error('getOptions error', err.response?.data || err.message);
@@ -158,29 +128,12 @@ const getOptions = async (token) => {
 
 // Add a new dropdown option (workshop / service type / repair type) explicitly,
 // e.g. when the user opens the "Add Workshop" mini-modal from the page form.
-const addOption = async (token, category, value) => {
+const addOption = async (category, value) => {
   try {
-    const res = await axios.post(
-      `${API_BASE_URL}/api/maintenance/options`,
-      { category, value },
-      { headers: { ...authHeader(token), 'Content-Type': 'application/json' } },
-    );
+    const res = await apiClient.post('/api/maintenance/options', { category, value });
     return res.data?.data || { category, value };
   } catch (err) {
     console.error('addOption error', err.response?.data || err.message);
-    throw ApiError.from(err);
-  }
-};
-
-const deleteAttachment = async (token, id, fileKey) => {
-  try {
-    const res = await axios.delete(
-      `${API_BASE_URL}/api/maintenance/${id}/attachments/${encodeURIComponent(fileKey)}`,
-      { headers: authHeader(token) },
-    );
-    return res.data;
-  } catch (err) {
-    console.error('deleteAttachment error', err.response?.data || err.message);
     throw ApiError.from(err);
   }
 };
@@ -190,7 +143,6 @@ export const MaintenanceService = {
   createRecord,
   updateRecord,
   deleteRecord,
-  deleteAttachment,
   getOptions,
   addOption,
   getAlerts,

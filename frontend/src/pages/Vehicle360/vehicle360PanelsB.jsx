@@ -6,7 +6,6 @@ import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
 import PlaceLabel from '../../components/ui/PlaceLabel';
 import { formatINR, formatKm, formatLitres, formatNum, timeAgo } from '../../utils/formatters';
 import { formatDateIST, formatDateTimeIST } from '../../utils/dateUtils';
-import { getToken } from '../../utils/session.js';
 import useApi from '../../hooks/useApi';
 import DriverVehicleAssignmentService from '../../services/DriverVehicleAssignmentService';
 import { VehicleService } from '../Profile/VehicleService.jsx';
@@ -237,8 +236,8 @@ export function DocumentsPanel({ vehicleId, documents, onChanged }) {
     loading: docsLoading,
     refetch: refetchDocs,
   } = useApi(
-    () =>
-      vehicleId ? VehicleService.getVehicleDocuments(vehicleId, getToken()) : Promise.resolve(null),
+    (signal) =>
+      vehicleId ? VehicleService.getVehicleDocuments(vehicleId, { signal }) : Promise.resolve(null),
     [vehicleId],
     { enabled: Boolean(vehicleId) },
   );
@@ -255,7 +254,6 @@ export function DocumentsPanel({ vehicleId, documents, onChanged }) {
 
   const handleDocumentsChange = async (updated) => {
     setUiState(updated);
-    const token = getToken();
 
     for (const meta of VEHICLE_DOC_TYPES) {
       if (uploadingKeys.current.has(meta.key)) continue;
@@ -273,16 +271,10 @@ export function DocumentsPanel({ vehicleId, documents, onChanged }) {
 
       uploadingKeys.current.add(meta.key);
       try {
-        await VehicleService.uploadVehicleDocument(
-          vehicleId,
-          meta.backendType,
-          filesInOrder,
-          token,
-          {
-            sides: sidesInOrder,
-            expiryDate: entry.expiryDate || undefined,
-          },
-        );
+        await VehicleService.uploadVehicleDocument(vehicleId, meta.backendType, filesInOrder, {
+          sides: sidesInOrder,
+          expiryDate: entry.expiryDate || undefined,
+        });
         await refetchDocs();
         onChanged?.();
       } catch (err) {
@@ -296,7 +288,7 @@ export function DocumentsPanel({ vehicleId, documents, onChanged }) {
 
   const handleDeleteDocument = async (documentId) => {
     try {
-      await VehicleService.deleteVehicleDocument(vehicleId, documentId, getToken());
+      await VehicleService.deleteVehicleDocument(vehicleId, documentId);
       await refetchDocs();
       onChanged?.();
     } catch (err) {

@@ -12,7 +12,6 @@ import { VehicleService } from '../Profile/VehicleService.jsx';
 import { DriverService } from '../Drivers/DriverService.jsx';
 import { normalizeDriver } from '../Drivers/driverList.js';
 import { getThemeCSS } from '../../utils/colorTheme';
-import { getToken } from '../../utils/session.js';
 import '../Profile/VehiclesPage.css';
 
 /**
@@ -76,8 +75,7 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
   }, []);
 
   useEffect(() => {
-    const token = getToken();
-    VehicleService.getAllVehicles(null, token, 1, 1000)
+    VehicleService.getAllVehicles(null, 1, 1000)
       .then((res) => setVehicles(Array.isArray(res?.data) ? res.data : []))
       .catch(() => setVehicles([]));
     DriverService.getAllDrivers(null, { limit: 300 })
@@ -87,7 +85,7 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
         setDrivers(list);
       })
       .catch(() => setDrivers([]));
-    MaintenanceService.getOptions(token)
+    MaintenanceService.getOptions()
       .then((o) => setOptions(o || { workshops: [], serviceTypes: [], repairTypes: [] }))
       .catch(() => {});
   }, []);
@@ -152,7 +150,6 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
     }
     setIsSubmitting(true);
     try {
-      const token = getToken();
       const payload = {
         vehicleId: formData.vehicleId,
         recordType,
@@ -165,7 +162,7 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
       if (formData.driverId) payload.driverId = formData.driverId;
       if (isService && formData.currentKm !== '') payload.currentKm = Number(formData.currentKm);
 
-      await MaintenanceService.createRecord(token, payload, files);
+      await MaintenanceService.createRecord(payload, files);
       toast.success(`${isService ? 'Service' : 'Repair'} record added.`);
       navigate('/vehicles/service-intelligence', { state: { focusTab: recordType } });
     } catch (err) {

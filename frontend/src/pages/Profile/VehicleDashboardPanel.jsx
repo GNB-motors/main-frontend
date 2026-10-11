@@ -21,7 +21,6 @@ import {
 } from 'lucide-react';
 import { DOC_COLS, bucketFor, daysUntil } from './vehicleDashboardLogic';
 import { VehicleService } from './VehicleService';
-import { getToken } from '../../utils/session';
 import './VehicleDashboardPage.css';
 
 /**
@@ -56,8 +55,7 @@ export default function VehicleDashboardPanel({
     const fetchDocs = async () => {
       setLoadingDocs(true);
       try {
-        const token = getToken();
-        const docs = await VehicleService.getVehicleDocuments(selectedVehicle._id, token);
+        const docs = await VehicleService.getVehicleDocuments(selectedVehicle._id);
         if (!isCancelled) {
           setFullDocs(Array.isArray(docs) ? docs : []);
         }

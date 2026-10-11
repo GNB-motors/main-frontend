@@ -12,10 +12,6 @@ vi.mock('../MaintenanceService.jsx', () => ({
   },
 }));
 
-vi.mock('../../../utils/session.js', () => ({
-  getToken: () => 'token',
-}));
-
 const ALERT = {
   id: 'SERVICE_DUE-v1',
   fingerprint: '2026-01-01T00:00:00.000Z',
@@ -68,7 +64,7 @@ describe('AlertsTab — resolve workflow', () => {
     ]);
     fireEvent.click(screen.getByText('Resolve'));
 
-    expect(MaintenanceService.resolveAlert).toHaveBeenCalledWith('token', ALERT.id, {
+    expect(MaintenanceService.resolveAlert).toHaveBeenCalledWith(ALERT.id, {
       fingerprint: ALERT.fingerprint,
     });
 

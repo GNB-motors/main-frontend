@@ -1,11 +1,7 @@
-import axios from 'axios';
 import apiClient from '../../utils/axiosConfig';
 import { getBranchId } from '../../utils/session.js';
 import { parseSafe } from '../../schemas/validate.js';
 import ApiError from '../../errors/ApiError';
-
-// Get the backend URL from environment variables or default to localhost
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
 /**
  * Shape the form's expected-mileage input for the API. Returns undefined for an
@@ -31,24 +27,11 @@ const resolveVehicleBranchId = (vehicleData) => {
   return getBranchId() || null;
 };
 
-const getAllVehicles = async (businessRefId, token, page = 1, limit = 10, branchId) => {
+const getAllVehicles = async (businessRefId, page = 1, limit = 10, { signal } = {}) => {
   try {
-    // New API: GET /vehicles with optional orgId query param and pagination
-    let url = `${API_BASE_URL}/api/vehicles?page=${page}&limit=${limit}`;
-    if (businessRefId) {
-      url += `&orgId=${businessRefId}`;
-    }
-    // Scope to the active location. These calls use raw axios (not the shared
-    // apiClient), so the X-Branch-Id interceptor doesn't apply — pass it explicitly.
-    // Omit for the enterprise "All locations" view (branch not selected).
-    const activeBranchId = branchId !== undefined ? branchId : getBranchId();
-    if (activeBranchId) {
-      url += `&branchId=${activeBranchId}`;
-    }
-    const response = await axios.get(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const response = await apiClient.get('/api/vehicles', {
+      params: { page, limit, orgId: businessRefId || undefined },
+      signal,
     });
 
     // Return both data and meta for pagination
@@ -70,7 +53,7 @@ const getAllVehicles = async (businessRefId, token, page = 1, limit = 10, branch
 };
 
 // Placeholder for Add Vehicle API call
-const addVehicle = async (businessRefId, vehicleData, token) => {
+const addVehicle = async (businessRefId, vehicleData) => {
   try {
     // Map UI keys (snake_case) to API expected camelCase keys
     const body = {
@@ -93,12 +76,7 @@ const addVehicle = async (businessRefId, vehicleData, token) => {
       expectedMileage: toExpectedMileage(vehicleData.expected_mileage),
     };
 
-    const response = await axios.post(`${API_BASE_URL}/api/vehicles`, body, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await apiClient.post('/api/vehicles', body);
 
     // Prefer new response shape
     if (response.data && response.data.status === 'success' && response.data.data) {
@@ -112,7 +90,7 @@ const addVehicle = async (businessRefId, vehicleData, token) => {
 };
 
 // Bulk create vehicles
-const addBulkVehicles = async (businessRefId, vehiclesArray, options = {}, token) => {
+const addBulkVehicles = async (businessRefId, vehiclesArray, options = {}) => {
   try {
     // Map each row to API expected shape
     const vehicles = vehiclesArray.map((r) => ({
@@ -137,11 +115,9 @@ const addBulkVehicles = async (businessRefId, vehiclesArray, options = {}, token
       branchId: options.branchId || getBranchId() || undefined,
     };
 
-    const response = await axios.post(`${API_BASE_URL}/api/vehicles/bulk`, payload, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+    // Same budget as the employee bulk create: at least 2 minutes, ~200ms per row.
+    const response = await apiClient.post('/api/vehicles/bulk', payload, {
+      timeout: Math.max(120000, vehicles.length * 200),
     });
 
     if (response.data && response.data.status === 'success' && response.data.data) {
@@ -154,35 +130,20 @@ const addBulkVehicles = async (businessRefId, vehiclesArray, options = {}, token
   }
 };
 
-// Import (move) an existing enterprise vehicle into the active location. Raw
-// axios (no interceptor), so pass the active branch explicitly via header + body.
-const importVehicle = async (vehicleId, token) => {
+// Import (move) an existing enterprise vehicle into the active location; the
+// target branch travels in the X-Branch-Id header the interceptor adds.
+const importVehicle = async (vehicleId) => {
   try {
-    const branchId = getBranchId() || undefined;
-    const response = await axios.post(
-      `${API_BASE_URL}/api/vehicles/${vehicleId}/import`,
-      { branchId },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          ...(branchId ? { 'X-Branch-Id': branchId } : {}),
-        },
-      },
-    );
+    const response = await apiClient.post(`/api/vehicles/${vehicleId}/import`);
     return response.data?.data ?? response.data;
   } catch (error) {
     throw ApiError.from(error);
   }
 };
 
-const removeVehicle = async (businessRefId, vehicleId, token) => {
+const removeVehicle = async (vehicleId) => {
   try {
-    const response = await axios.delete(`${API_BASE_URL}/api/vehicles/${vehicleId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await apiClient.delete(`/api/vehicles/${vehicleId}`);
     return response.data;
   } catch (error) {
     throw ApiError.from(error);
@@ -190,7 +151,7 @@ const removeVehicle = async (businessRefId, vehicleId, token) => {
 };
 
 // Placeholder for Edit Vehicle API call
-const updateVehicle = async (businessRefId, vehicleId, vehicleData, token) => {
+const updateVehicle = async (businessRefId, vehicleId, vehicleData) => {
   try {
     // Build body mapping only provided fields to API expected camelCase
     const body = {};
@@ -215,12 +176,7 @@ const updateVehicle = async (businessRefId, vehicleId, vehicleData, token) => {
     // Include orgId when provided by caller (some servers expect it)
     if (businessRefId) body.orgId = businessRefId;
 
-    const response = await axios.patch(`${API_BASE_URL}/api/vehicles/${vehicleId}`, body, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await apiClient.patch(`/api/vehicles/${vehicleId}`, body);
 
     // Prefer new response shape
     if (response.data && response.data.status === 'success' && response.data.data) {
@@ -233,57 +189,12 @@ const updateVehicle = async (businessRefId, vehicleId, vehicleData, token) => {
   }
 };
 
-/**
- * Get correction logs for a specific vehicle
- */
-const getVehicleCorrectionLogs = async (vehicleId, token) => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/api/vehicles/${vehicleId}/corrections`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (response.data && response.data.status === 'success') {
-      return response.data.data;
-    }
-    return response.data;
-  } catch (error) {
-    throw ApiError.from(error);
-  }
-};
-
-/**
- * Classify existing unclassified vehicles
- */
-const classifyExistingVehicles = async (token) => {
-  try {
-    const response = await axios.post(
-      `${API_BASE_URL}/api/vehicles/classify-existing`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      },
-    );
-
-    if (response.data && response.data.status === 'success') {
-      return response.data.data;
-    }
-    return response.data;
-  } catch (error) {
-    throw ApiError.from(error);
-  }
-};
-
 // Vehicle documents are stored embedded on the Vehicle itself (not in the
 // generic Document collection). All doc endpoints are scoped under the vehicle.
 
 // `files` is an array of File/Blob. RC and NATIONAL_PERMIT accept up to 2 (front + back).
 // `sides` is an optional array like ['FRONT','BACK'] mapped positionally.
-const uploadVehicleDocument = async (vehicleId, docType, files, token, opts = {}) => {
+const uploadVehicleDocument = async (vehicleId, docType, files, opts = {}) => {
   try {
     const list = Array.isArray(files) ? files : [files];
     if (!list.length) throw new Error('No files to upload');
@@ -296,16 +207,11 @@ const uploadVehicleDocument = async (vehicleId, docType, files, token, opts = {}
       formData.append('sides', opts.sides.join(','));
     }
 
-    const response = await axios.post(
-      `${API_BASE_URL}/api/vehicles/${vehicleId}/documents`,
-      formData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-      },
-    );
+    // RC uploads are OCR'd server-side; same budget as the other OCR uploads.
+    const response = await apiClient.post(`/api/vehicles/${vehicleId}/documents`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120000,
+    });
     return response.data?.data || response.data;
   } catch (error) {
     console.error('API Error uploading vehicle document:', error.response?.data || error.message);
@@ -313,13 +219,9 @@ const uploadVehicleDocument = async (vehicleId, docType, files, token, opts = {}
   }
 };
 
-const getVehicleDocuments = async (vehicleId, token) => {
+const getVehicleDocuments = async (vehicleId, { signal } = {}) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/vehicles/${vehicleId}/documents`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await apiClient.get(`/api/vehicles/${vehicleId}/documents`, { signal });
     return response.data?.data || response.data || [];
   } catch (error) {
     console.error('API Error fetching vehicle documents:', error.response?.data || error.message);
@@ -330,13 +232,11 @@ const getVehicleDocuments = async (vehicleId, token) => {
 // Fleet-wide dashboard: every vehicle + a per-docType expiry digest. Backend
 // derives the owner name from RC OCR. Returns plain array, badges are computed
 // client-side from expiryDate.
-const getFleetDashboard = async (token, search) => {
+const getFleetDashboard = async ({ search, signal } = {}) => {
   try {
-    const url = search
-      ? `/api/vehicles/dashboard?search=${encodeURIComponent(search)}`
-      : `/api/vehicles/dashboard`;
-    const response = await apiClient.get(url, {
-      ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+    const response = await apiClient.get('/api/vehicles/dashboard', {
+      params: { search: search || undefined },
+      signal,
     });
     return response.data?.data || response.data || [];
   } catch (error) {
@@ -345,16 +245,9 @@ const getFleetDashboard = async (token, search) => {
   }
 };
 
-const deleteVehicleDocument = async (vehicleId, docId, token) => {
+const deleteVehicleDocument = async (vehicleId, docId) => {
   try {
-    const response = await axios.delete(
-      `${API_BASE_URL}/api/vehicles/${vehicleId}/documents/${docId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
+    const response = await apiClient.delete(`/api/vehicles/${vehicleId}/documents/${docId}`);
     return response.data;
   } catch (error) {
     console.error('API Error deleting vehicle document:', error.response?.data || error.message);
@@ -382,8 +275,6 @@ export const VehicleService = {
   importVehicle,
   removeVehicle,
   updateVehicle,
-  getVehicleCorrectionLogs,
-  classifyExistingVehicles,
   uploadVehicleDocument,
   getVehicleDocuments,
   deleteVehicleDocument,

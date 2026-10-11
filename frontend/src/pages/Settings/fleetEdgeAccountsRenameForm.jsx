@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { updateAccount } from '../Profile/FleetEdgeAccountService';
-import { getToken } from '../../utils/session.js';
 
 export default function RenameForm({ account, onSuccess, onClose }) {
   const [name, setName] = useState(account.friendlyName || '');
@@ -11,8 +10,7 @@ export default function RenameForm({ account, onSuccess, onClose }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const token = getToken();
-      await updateAccount(token, account._id, { friendlyName: name.trim() });
+      await updateAccount(account._id, { friendlyName: name.trim() });
       toast.success('Name updated');
       onSuccess();
     } catch (err) {

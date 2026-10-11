@@ -1,13 +1,12 @@
-import axios from 'axios';
+import apiClient from '../../utils/axiosConfig';
 import ApiError from '../../errors/ApiError';
-
-// Get the backend URL from environment variables or default to localhost
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
 const loginUser = async (credentials) => {
   try {
-    // Updated to use new API endpoint without /v1
-    const response = await axios.post(`${API_BASE_URL}/api/auth/login`, credentials);
+    // A wrong-password 401 is the form's own answer, never a lost session.
+    const response = await apiClient.post('/api/auth/login', credentials, {
+      skipAuthRedirect: true,
+    });
 
     // Handle new response structure: { status: "success", data: { user, token } }
     if (response.data.status === 'success' && response.data.data) {
@@ -21,8 +20,6 @@ const loginUser = async (credentials) => {
     // Fallback for old API structure
     return response.data;
   } catch (error) {
-    // Rethrow the error so the component can handle it
-    // Include the response data if available, as it might contain specific error messages from the backend
     throw ApiError.from(error);
   }
 };

@@ -1,43 +1,26 @@
-import axios from 'axios';
+import apiClient from '../../utils/axiosConfig';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
-const BASE = `${API_BASE_URL}/api/fleetedge/accounts`;
+const BASE = '/api/fleetedge/accounts';
 
-function headers(token) {
-  return { Authorization: `Bearer ${token}` };
-}
-
-export const listAccounts = async (token) => {
-  const res = await axios.get(BASE, { headers: headers(token) });
+export const listAccounts = async ({ signal } = {}) => {
+  const res = await apiClient.get(BASE, { signal });
   return res.data.data.accounts;
 };
 
-export const updateAccount = async (token, id, payload) => {
-  await axios.patch(`${BASE}/${id}`, payload, { headers: headers(token) });
+export const updateAccount = async (id, payload) => {
+  await apiClient.patch(`${BASE}/${id}`, payload);
 };
 
-export const deleteAccount = async (token, id) => {
-  const res = await axios.delete(`${BASE}/${id}`, { headers: headers(token) });
+export const deleteAccount = async (id) => {
+  const res = await apiClient.delete(`${BASE}/${id}`);
   return res.data;
 };
 
-export const assignVehicles = async (token, id, vehicleIds) => {
-  const res = await axios.post(`${BASE}/${id}/assign`, { vehicleIds }, { headers: headers(token) });
+export const getDrift = async (page = 1, limit = 50, { signal } = {}) => {
+  const res = await apiClient.get(`${BASE}/drift`, { params: { page, limit }, signal });
   return res.data.data;
 };
 
-export const getDrift = async (token, page = 1, limit = 50) => {
-  const res = await axios.get(`${BASE}/drift`, {
-    params: { page, limit },
-    headers: headers(token),
-  });
-  return res.data.data;
-};
-
-export const reassignVehicleAccount = async (token, vehicleId, fleetEdgeAccountId) => {
-  await axios.patch(
-    `${API_BASE_URL}/api/vehicles/${vehicleId}/fleet-edge-account`,
-    { fleetEdgeAccountId },
-    { headers: headers(token) },
-  );
+export const reassignVehicleAccount = async (vehicleId, fleetEdgeAccountId) => {
+  await apiClient.patch(`/api/vehicles/${vehicleId}/fleet-edge-account`, { fleetEdgeAccountId });
 };

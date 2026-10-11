@@ -3,7 +3,7 @@ import { toast } from 'react-toastify';
 import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { listAccounts, updateAccount, deleteAccount } from '../Profile/FleetEdgeAccountService';
-import { getToken, getUserRole } from '../../utils/session.js';
+import { getUserRole } from '../../utils/session.js';
 import { useConfirm } from '../../components/ui/confirmContext';
 import PageShell from '../../components/ui/PageShell';
 import StatusBadge from './fleetEdgeAccountsStatus';
@@ -27,8 +27,7 @@ export default function FleetEdgeAccountsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const token = getToken();
-      const data = await listAccounts(token);
+      const data = await listAccounts();
       setAccounts(data);
     } catch {
       toast.error('Failed to load FleetEdge accounts');
@@ -62,8 +61,7 @@ export default function FleetEdgeAccountsPage() {
     if (!ok) return;
     setDeletingId(account._id);
     try {
-      const token = getToken();
-      const res = await deleteAccount(token, account._id);
+      const res = await deleteAccount(account._id);
       toast.success(res.message || 'Account removed');
       load();
     } catch (err) {
@@ -76,8 +74,7 @@ export default function FleetEdgeAccountsPage() {
   const handleToggleStatus = async (account) => {
     const newStatus = account.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
     try {
-      const token = getToken();
-      await updateAccount(token, account._id, { status: newStatus });
+      await updateAccount(account._id, { status: newStatus });
       toast.success(`Account ${newStatus === 'ACTIVE' ? 'enabled' : 'disabled'}`);
       load();
     } catch (err) {
