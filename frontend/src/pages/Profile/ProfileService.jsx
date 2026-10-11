@@ -1,5 +1,6 @@
 import apiClient from '../../utils/axiosConfig';
 import { parseSafe } from '../../schemas/validate.js';
+import ApiError from '../../errors/ApiError';
 
 const getProfile = async () => {
   try {
@@ -18,7 +19,7 @@ const getProfile = async () => {
     return response.data;
   } catch (error) {
     // Rethrow the error so the component can handle it, including 404
-    throw error.response?.data || { detail: error.message || 'Could not fetch profile.' };
+    throw ApiError.from(error);
   }
 };
 
@@ -27,7 +28,7 @@ const getUserInfo = async () => {
     const response = await apiClient.get('/api/auth/me');
     return response.data;
   } catch (error) {
-    throw error.response?.data || { detail: error.message || 'Could not fetch user information.' };
+    throw ApiError.from(error);
   }
 };
 

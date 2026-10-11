@@ -97,7 +97,7 @@ const VehiclesPage = () => {
         setTotalVehicles(result.meta.total);
       } catch (apiError) {
         console.error('Failed to fetch vehicles:', apiError);
-        setVehicleError(apiError?.detail || 'Failed to load vehicles.');
+        setVehicleError(apiError?.message || 'Failed to load vehicles.');
       } finally {
         setIsLoadingVehicles(false);
       }
@@ -132,7 +132,7 @@ const VehiclesPage = () => {
       }
     } catch (apiError) {
       console.error('Failed to remove vehicle:', apiError);
-      const errorMessage = apiError?.detail || 'Could not remove vehicle.';
+      const errorMessage = apiError?.message || 'Could not remove vehicle.';
       setFormError(errorMessage);
       toast.error(errorMessage);
       setVehicles(originalVehicles);
@@ -151,7 +151,7 @@ const VehiclesPage = () => {
       toast.success('Vehicle activated in this location');
       setRefreshKey((k) => k + 1);
     } catch (err) {
-      toast.error(err?.detail || err?.message || 'Could not activate vehicle here');
+      toast.error(err?.message || 'Could not activate vehicle here');
     }
   };
 

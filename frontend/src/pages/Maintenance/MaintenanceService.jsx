@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getBranchId } from '../../utils/session.js';
+import ApiError from '../../errors/ApiError';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
@@ -41,7 +42,7 @@ const listRecords = async (token, { recordType, vehicleId, search, page = 1, lim
     };
   } catch (err) {
     console.error('listRecords error', err.response?.data || err.message);
-    throw err.response?.data || { detail: 'Failed to load records' };
+    throw ApiError.from(err);
   }
 };
 
@@ -57,7 +58,7 @@ const createRecord = async (token, payload, attachments) => {
     return res.data?.data || res.data;
   } catch (err) {
     console.error('createRecord error', err.response?.data || err.message);
-    throw err.response?.data || { detail: 'Failed to create record' };
+    throw ApiError.from(err);
   }
 };
 
@@ -71,7 +72,7 @@ const updateRecord = async (token, id, payload, attachments) => {
     return res.data?.data || res.data;
   } catch (err) {
     console.error('updateRecord error', err.response?.data || err.message);
-    throw err.response?.data || { detail: 'Failed to update record' };
+    throw ApiError.from(err);
   }
 };
 
@@ -83,7 +84,7 @@ const deleteRecord = async (token, id) => {
     return res.data;
   } catch (err) {
     console.error('deleteRecord error', err.response?.data || err.message);
-    throw err.response?.data || { detail: 'Failed to delete record' };
+    throw ApiError.from(err);
   }
 };
 
@@ -102,7 +103,7 @@ const getAlerts = async (token) => {
     return Array.isArray(res.data?.data) ? res.data.data : [];
   } catch (err) {
     console.error('getAlerts error', err.response?.data || err.message);
-    throw err.response?.data || { detail: 'Failed to load alerts' };
+    throw ApiError.from(err);
   }
 };
 
@@ -118,7 +119,7 @@ const resolveAlert = async (token, alertId, { fingerprint, resolutionNote } = {}
     return res.data?.data;
   } catch (err) {
     console.error('resolveAlert error', err.response?.data || err.message);
-    throw err.response?.data || { detail: 'Failed to resolve alert' };
+    throw ApiError.from(err);
   }
 };
 
@@ -139,7 +140,7 @@ const getSummary = async (token, { recordType, vehicleId, search } = {}) => {
     return res.data?.data || { total: 0, totalAmount: 0, last30: 0 };
   } catch (err) {
     console.error('getSummary error', err.response?.data || err.message);
-    throw err.response?.data || { detail: 'Failed to load summary' };
+    throw ApiError.from(err);
   }
 };
 
@@ -167,7 +168,7 @@ const addOption = async (token, category, value) => {
     return res.data?.data || { category, value };
   } catch (err) {
     console.error('addOption error', err.response?.data || err.message);
-    throw err.response?.data || { detail: 'Failed to add option' };
+    throw ApiError.from(err);
   }
 };
 
@@ -180,7 +181,7 @@ const deleteAttachment = async (token, id, fileKey) => {
     return res.data;
   } catch (err) {
     console.error('deleteAttachment error', err.response?.data || err.message);
-    throw err.response?.data || { detail: 'Failed to delete attachment' };
+    throw ApiError.from(err);
   }
 };
 

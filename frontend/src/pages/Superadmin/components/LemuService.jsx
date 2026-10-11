@@ -1,4 +1,5 @@
 import apiClient from '../../../utils/axiosConfig';
+import ApiError from '../../../errors/ApiError';
 
 /**
  * Service functions for the LEMU observability super-admin screen.
@@ -14,7 +15,7 @@ export const LemuService = {
       return response.data || {};
     } catch (error) {
       console.error('API Error fetching LEMU dashboard:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Could not fetch LEMU dashboard.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -27,7 +28,7 @@ export const LemuService = {
       return response.data || {};
     } catch (error) {
       console.error('API Error fetching LEMU jobs:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Could not fetch LEMU job health.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -40,7 +41,7 @@ export const LemuService = {
       const response = await apiClient.get(`/api/lemu/jobs/kpis`, { params: { hours } });
       return response.data || {};
     } catch (error) {
-      throw error.response?.data || { detail: 'Could not fetch job KPIs.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -54,7 +55,7 @@ export const LemuService = {
       return response.data || {};
     } catch (error) {
       console.error('API Error fetching LEMU events:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Could not fetch LEMU events.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -71,7 +72,7 @@ export const LemuService = {
         'API Error fetching LEMU error trackers:',
         error.response?.data || error.message,
       );
-      throw error.response?.data || { detail: 'Could not fetch LEMU error trackers.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -92,7 +93,7 @@ export const LemuService = {
         'API Error resolving LEMU error tracker:',
         error.response?.data || error.message,
       );
-      throw error.response?.data || { detail: 'Could not resolve the error tracker.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -105,7 +106,7 @@ export const LemuService = {
       return response.data || {};
     } catch (error) {
       console.error('API Error fetching LEMU manifest:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Could not fetch LEMU manifest.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -119,7 +120,7 @@ export const LemuService = {
       return response.data || {};
     } catch (error) {
       console.error('API Error fetching LEMU manifests:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Could not fetch LEMU manifests.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -133,7 +134,7 @@ export const LemuService = {
       return response.data || {};
     } catch (error) {
       console.error('API Error fetching LEMU pulse:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Could not fetch LEMU pulse.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -148,7 +149,7 @@ export const LemuService = {
       return response.data || {};
     } catch (error) {
       console.error('API Error fetching LEMU liveness:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Could not fetch LEMU liveness.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -161,7 +162,7 @@ export const LemuService = {
       return response.data || {};
     } catch (error) {
       console.error('API Error fetching LEMU findings:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Could not fetch LEMU findings.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -180,7 +181,7 @@ export const LemuService = {
         'API Error fetching LEMU manifest diff:',
         error.response?.data || error.message,
       );
-      throw error.response?.data || { detail: 'Could not fetch the manifest diff.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -193,7 +194,7 @@ export const LemuService = {
       return response.data || {};
     } catch (error) {
       console.error('API Error rebuilding LEMU manifest:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Could not rebuild the manifest.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -210,7 +211,7 @@ export const LemuService = {
         'API Error fetching fuel-integrity lineage:',
         error.response?.data || error.message,
       );
-      throw error.response?.data || { detail: 'Could not fetch fuel-integrity lineage.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -224,7 +225,7 @@ export const LemuService = {
       return response.data || {};
     } catch (error) {
       console.error('API Error fetching LEMU topology:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Could not fetch LEMU topology.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -243,7 +244,7 @@ export const LemuService = {
         'API Error fetching LEMU error attribution:',
         error.response?.data || error.message,
       );
-      throw error.response?.data || { detail: 'Could not fetch error attribution.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -259,7 +260,7 @@ export const LemuService = {
         'API Error fetching warehouse freshness:',
         error.response?.data || error.message,
       );
-      throw error.response?.data || { detail: 'Could not fetch warehouse freshness.' };
+      throw ApiError.from(error);
     }
   },
 };

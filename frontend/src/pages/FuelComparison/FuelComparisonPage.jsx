@@ -370,11 +370,7 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
         throw new Error(errorMsg);
       }
     } catch (err) {
-      const msg =
-        err?.detail ||
-        err?.response?.data?.message ||
-        err?.message ||
-        'An error occurred during task reconciliation';
+      const msg = err?.message || 'An error occurred during task reconciliation';
       toast.error(msg);
       throw err;
     }

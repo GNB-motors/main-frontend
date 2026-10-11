@@ -144,7 +144,7 @@ const LemuLogsPage = () => {
       // rollup flat. Read both so the strip never silently renders all dashes.
       setDashboard(data?.dashboard || data || null);
     } catch (e) {
-      setDashboardError(e.detail || e.message || 'Failed to load dashboard stats');
+      setDashboardError(e.message || 'Failed to load dashboard stats');
     } finally {
       setDashboardLoading(false);
     }
@@ -164,7 +164,7 @@ const LemuLogsPage = () => {
         setEvents(data.data || []);
         setPagination(data.pagination || { total: 0, page: 1, limit: PAGE_SIZE, pages: 1 });
       } catch (e) {
-        setEventsError(e.detail || e.message || 'Failed to load events');
+        setEventsError(e.message || 'Failed to load events');
       } finally {
         setEventsLoading(false);
       }
@@ -185,7 +185,7 @@ const LemuLogsPage = () => {
         setTrackers(data.trackers || data.data || []);
         setErrorsSummary(data.summary || null);
       } catch (e) {
-        setTrackersError(e.detail || e.message || 'Failed to load error trackers');
+        setTrackersError(e.message || 'Failed to load error trackers');
       } finally {
         setTrackersLoading(false);
       }
@@ -358,7 +358,7 @@ const LemuLogsPage = () => {
       );
       loadDashboard(true);
     } catch (e) {
-      setTrackersError(e.detail || e.message || 'Failed to resolve error');
+      setTrackersError(e.message || 'Failed to resolve error');
     } finally {
       setResolvingFp(null);
     }

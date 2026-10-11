@@ -59,7 +59,7 @@ export default function RefuelAdvisoryPage() {
             <div className="text-dim p-6 text-sm">Loading refuel advisories…</div>
           ) : error ? (
             <div className="p-6 text-sm" style={{ color: 'var(--critical)' }}>
-              Could not load refuel advisories. {error.detail || error.message || ''}
+              Could not load refuel advisories. {error.message || ''}
             </div>
           ) : (
             <div className="flex flex-col gap-4">

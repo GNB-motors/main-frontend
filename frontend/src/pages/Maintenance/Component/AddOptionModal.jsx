@@ -9,7 +9,15 @@ import { getToken } from '../../../utils/session.js';
  * new workshop / service-type / repair-type to the org's options list and
  * returns the saved value via `onSaved(value)` so the parent can select it.
  */
-const AddOptionModal = ({ open, onClose, category, title, placeholder, initialValue = '', onSaved }) => {
+const AddOptionModal = ({
+  open,
+  onClose,
+  category,
+  title,
+  placeholder,
+  initialValue = '',
+  onSaved,
+}) => {
   const [value, setValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -39,7 +47,7 @@ const AddOptionModal = ({ open, onClose, category, title, placeholder, initialVa
       onSaved?.(v);
       onClose?.();
     } catch (err) {
-      toast.error(err?.detail || 'Failed to add');
+      toast.error(err?.message || 'Failed to add');
     } finally {
       setSubmitting(false);
     }
@@ -84,7 +92,14 @@ const AddOptionModal = ({ open, onClose, category, title, placeholder, initialVa
           <button
             type="button"
             onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 4, display: 'flex' }}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#64748b',
+              padding: 4,
+              display: 'flex',
+            }}
             aria-label="Close"
           >
             <X size={18} />

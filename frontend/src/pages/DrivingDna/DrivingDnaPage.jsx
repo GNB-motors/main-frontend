@@ -57,7 +57,7 @@ export default function DrivingDnaPage() {
             <div className="text-dim p-6 text-sm">Loading driving-DNA profiles…</div>
           ) : error ? (
             <div className="p-6 text-sm" style={{ color: 'var(--critical)' }}>
-              Could not load driving-DNA profiles. {error.detail || error.message || ''}
+              Could not load driving-DNA profiles. {error.message || ''}
             </div>
           ) : (
             <div className="flex flex-col gap-4">

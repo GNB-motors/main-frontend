@@ -52,7 +52,7 @@ const OwnerAlertsPage = () => {
       setUnacknowledgedCount(data.unacknowledgedCount || 0);
       setTotalPages(data.totalPages || 0);
     } catch (err) {
-      setError(err.detail || 'Could not load alerts.');
+      setError(err.message || 'Could not load alerts.');
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +89,7 @@ const OwnerAlertsPage = () => {
       await fetchData();
       setDetail((d) => (d && d.id === id ? { ...d, acknowledged: true } : d));
     } catch (err) {
-      setError(err.detail || 'Could not acknowledge the alert.');
+      setError(err.message || 'Could not acknowledge the alert.');
     } finally {
       setAckingId(null);
     }
@@ -104,7 +104,7 @@ const OwnerAlertsPage = () => {
       await fetchData();
       setSelected(new Set());
     } catch (err) {
-      setError(err.detail || 'Could not acknowledge the selected alerts.');
+      setError(err.message || 'Could not acknowledge the selected alerts.');
     } finally {
       setBulkAcking(false);
     }

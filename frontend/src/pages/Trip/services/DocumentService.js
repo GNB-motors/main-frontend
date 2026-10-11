@@ -3,6 +3,7 @@
  * Handles document upload, retrieval, and processing
  */
 import apiClient from '../../../utils/axiosConfig';
+import ApiError from '../../../errors/ApiError';
 
 class DocumentService {
   /**
@@ -36,7 +37,7 @@ class DocumentService {
       return resp.data;
     } catch (err) {
       console.error('Document upload failed', err.response?.data || err.message);
-      throw err.response?.data || { detail: err.message || 'Document upload failed' };
+      throw ApiError.from(err);
     }
   }
 
@@ -72,7 +73,7 @@ class DocumentService {
       return resp.data;
     } catch (err) {
       console.error('Document upload with OCR failed', err.response?.data || err.message);
-      throw err.response?.data || { detail: err.message || 'Document upload failed' };
+      throw ApiError.from(err);
     }
   }
 
@@ -90,7 +91,7 @@ class DocumentService {
       return resp.data;
     } catch (err) {
       console.error('Failed to fetch document', err.response?.data || err.message);
-      throw err.response?.data || { detail: err.message || 'Failed to fetch document' };
+      throw ApiError.from(err);
     }
   }
 
@@ -111,7 +112,7 @@ class DocumentService {
       return resp.data?.data || [];
     } catch (err) {
       console.error('Failed to fetch documents', err.response?.data || err.message);
-      throw err.response?.data || { detail: err.message || 'Failed to fetch documents' };
+      throw ApiError.from(err);
     }
   }
 
@@ -125,7 +126,7 @@ class DocumentService {
       await apiClient.delete(`/api/documents/${documentId}`);
     } catch (err) {
       console.error('Failed to delete document', err.response?.data || err.message);
-      throw err.response?.data || { detail: err.message || 'Failed to delete document' };
+      throw ApiError.from(err);
     }
   }
 

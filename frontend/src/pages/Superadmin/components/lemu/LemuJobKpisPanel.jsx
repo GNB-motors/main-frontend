@@ -41,7 +41,7 @@ const LemuJobKpisPanel = () => {
       const res = await LemuService.getJobKpis(hours);
       setData(res.data || null);
     } catch (err) {
-      setError(err?.message || err?.detail || 'Could not load job KPIs.');
+      setError(err?.message || 'Could not load job KPIs.');
     } finally {
       setLoading(false);
     }

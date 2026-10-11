@@ -39,7 +39,7 @@ const FuelIntegrityLineagePanel = () => {
       const data = await LemuService.getFuelIntegrityLineage({ registrationNumber: reg });
       setResult(data.data || null);
     } catch (e) {
-      setError(e.detail || e.message || 'Failed to load lineage.');
+      setError(e.message || 'Failed to load lineage.');
     } finally {
       setLoading(false);
     }
@@ -56,10 +56,14 @@ const FuelIntegrityLineagePanel = () => {
   const window = result?.window || {};
 
   const inputMap = {};
-  inputs.forEach((input) => { inputMap[input.name] = input; });
+  inputs.forEach((input) => {
+    inputMap[input.name] = input;
+  });
 
   const pathOrder = ['bill', 'tank', 'ecu'];
-  const pathNodes = pathOrder.map((name) => inputMap[name] || { name, source: SOURCE_LABELS[name] || name, status: 'missing' });
+  const pathNodes = pathOrder.map(
+    (name) => inputMap[name] || { name, source: SOURCE_LABELS[name] || name, status: 'missing' },
+  );
 
   return (
     <div className="lemu-lineage">
@@ -72,7 +76,9 @@ const FuelIntegrityLineagePanel = () => {
 
       <form onSubmit={handleSubmit} className="lemu-lineage__search">
         <div className="lemu-search">
-          <span className="lemu-search__icon"><Search size={14} /></span>
+          <span className="lemu-search__icon">
+            <Search size={14} />
+          </span>
           <input
             type="text"
             className="lemu-input"
@@ -82,7 +88,11 @@ const FuelIntegrityLineagePanel = () => {
             aria-label="Registration number"
           />
         </div>
-        <button type="submit" className="lemu-btn lemu-btn--secondary" disabled={loading || !registrationNumber.trim()}>
+        <button
+          type="submit"
+          className="lemu-btn lemu-btn--secondary"
+          disabled={loading || !registrationNumber.trim()}
+        >
           {loading ? 'Loading…' : 'Trace'}
         </button>
       </form>
@@ -95,8 +105,12 @@ const FuelIntegrityLineagePanel = () => {
 
       {!result && !error && !loading && (
         <div className="lemu-state">
-          <div className="lemu-state__icon"><Fuel size={24} /></div>
-          <div className="lemu-state__title">Enter a registration number to trace fuel integrity.</div>
+          <div className="lemu-state__icon">
+            <Fuel size={24} />
+          </div>
+          <div className="lemu-state__title">
+            Enter a registration number to trace fuel integrity.
+          </div>
         </div>
       )}
 
@@ -116,7 +130,9 @@ const FuelIntegrityLineagePanel = () => {
             {window.from && window.to && (
               <div>
                 <span className="lemu-lineage__label">Window</span>
-                <span>{new Date(window.from).toLocaleString()} → {new Date(window.to).toLocaleString()}</span>
+                <span>
+                  {new Date(window.from).toLocaleString()} → {new Date(window.to).toLocaleString()}
+                </span>
               </div>
             )}
             {verdict.computedAt && (
@@ -127,13 +143,22 @@ const FuelIntegrityLineagePanel = () => {
             )}
           </div>
 
-          <div className={`lemu-lineage-verdict lemu-lineage-verdict--${verdict.status || 'unknown'}`}>
-            <div className="lemu-lineage-verdict__title">Verdict: {verdict.status || 'unknown'}</div>
+          <div
+            className={`lemu-lineage-verdict lemu-lineage-verdict--${verdict.status || 'unknown'}`}
+          >
+            <div className="lemu-lineage-verdict__title">
+              Verdict: {verdict.status || 'unknown'}
+            </div>
             <div className="lemu-lineage-verdict__body">
               {verdict.unaccountedLossL !== undefined && (
                 <div className="lemu-lineage-metric">
                   <span>Unaccounted loss</span>
-                  <strong>{verdict.unaccountedLossL.toFixed ? verdict.unaccountedLossL.toFixed(1) : verdict.unaccountedLossL} L</strong>
+                  <strong>
+                    {verdict.unaccountedLossL.toFixed
+                      ? verdict.unaccountedLossL.toFixed(1)
+                      : verdict.unaccountedLossL}{' '}
+                    L
+                  </strong>
                 </div>
               )}
               {verdict.siphonSuspected !== undefined && (
@@ -155,9 +180,13 @@ const FuelIntegrityLineagePanel = () => {
                   <div className={`lemu-lineage-node ${STATUS_CLASSES[status] || ''}`}>
                     <div className="lemu-lineage-node__icon">{icon}</div>
                     <div className="lemu-lineage-node__body">
-                      <div className="lemu-lineage-node__title">{input.source || SOURCE_LABELS[input.name] || input.name}</div>
+                      <div className="lemu-lineage-node__title">
+                        {input.source || SOURCE_LABELS[input.name] || input.name}
+                      </div>
                       <div className="lemu-lineage-node__meta">
-                        {input.valueL !== undefined && input.valueL !== null ? `${input.valueL.toFixed ? input.valueL.toFixed(1) : input.valueL} L` : '—'}
+                        {input.valueL !== undefined && input.valueL !== null
+                          ? `${input.valueL.toFixed ? input.valueL.toFixed(1) : input.valueL} L`
+                          : '—'}
                       </div>
                       <div className="lemu-lineage-node__freshness">
                         <FreshnessBadge at={lastAt} always />
@@ -165,12 +194,16 @@ const FuelIntegrityLineagePanel = () => {
                       {input.note && <div className="lemu-lineage-node__note">{input.note}</div>}
                     </div>
                   </div>
-                  {index < pathNodes.length - 1 && <div className="lemu-lineage-connector" aria-hidden="true" />}
+                  {index < pathNodes.length - 1 && (
+                    <div className="lemu-lineage-connector" aria-hidden="true" />
+                  )}
                 </React.Fragment>
               );
             })}
             <div className="lemu-lineage-connector" aria-hidden="true" />
-            <div className={`lemu-lineage-verdict-dot lemu-lineage-verdict-dot--${verdict.status || 'unknown'}`}>
+            <div
+              className={`lemu-lineage-verdict-dot lemu-lineage-verdict-dot--${verdict.status || 'unknown'}`}
+            >
               <div className="lemu-lineage-verdict-dot__title">Verdict</div>
               <div className="lemu-lineage-verdict-dot__status">{verdict.status || '—'}</div>
             </div>

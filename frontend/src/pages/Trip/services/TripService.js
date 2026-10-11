@@ -1,5 +1,6 @@
 import apiClient from '../../../utils/axiosConfig';
 import { parseSafe } from '../../../schemas/validate.js';
+import ApiError from '../../../errors/ApiError';
 
 class TripService {
   /**
@@ -85,7 +86,7 @@ class TripService {
       return response.data;
     } catch (error) {
       console.error('Failed to submit complete journey:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -100,7 +101,7 @@ class TripService {
       return response.data;
     } catch (error) {
       console.error('Failed to initiate trip:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -124,7 +125,7 @@ class TripService {
       return response.data;
     } catch (error) {
       console.error('Failed to associate document:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
   /**
@@ -161,7 +162,7 @@ class TripService {
         : response.data;
     } catch (error) {
       console.error('Failed to fetch trips:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -179,7 +180,7 @@ class TripService {
       return response.data;
     } catch (error) {
       console.error('Failed to end trip:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -194,7 +195,7 @@ class TripService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch trip:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -213,7 +214,7 @@ class TripService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch trip stats:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -236,7 +237,7 @@ class TripService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch vehicles:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -260,7 +261,7 @@ class TripService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch drivers:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -279,7 +280,7 @@ class TripService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch routes:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -294,7 +295,7 @@ class TripService {
       return response.data;
     } catch (error) {
       console.error('Failed to submit trip:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -309,7 +310,7 @@ class TripService {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch vehicle by ID:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -334,7 +335,7 @@ class TripService {
           },
         };
       }
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 }
@@ -355,7 +356,7 @@ TripService.updateOcrData = async function (tripId, correctionsPayload) {
     return response.data;
   } catch (error) {
     console.error('Failed to update OCR data:', error);
-    throw error.response?.data || error;
+    throw ApiError.from(error);
   }
 };
 
@@ -366,7 +367,7 @@ TripService.assignRoutes = async function (tripId, assignPayload) {
     return response.data;
   } catch (error) {
     console.error('Failed to assign routes:', error);
-    throw error.response?.data || error;
+    throw ApiError.from(error);
   }
 };
 
@@ -377,7 +378,7 @@ TripService.enterRevenue = async function (tripId, revenuePayload) {
     return response.data;
   } catch (error) {
     console.error('Failed to enter revenue:', error);
-    throw error.response?.data || error;
+    throw ApiError.from(error);
   }
 };
 
@@ -388,6 +389,6 @@ TripService.enterExpenses = async function (tripId, expensesPayload) {
     return response.data;
   } catch (error) {
     console.error('Failed to enter expenses:', error);
-    throw error.response?.data || error;
+    throw ApiError.from(error);
   }
 };

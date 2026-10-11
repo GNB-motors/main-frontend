@@ -64,7 +64,7 @@ const VehicleDashboardPage = () => {
       setRows(Array.isArray(data) ? data : []);
     } catch (err) {
       if (myId !== requestIdRef.current) return;
-      toast.error(err?.detail || 'Failed to load vehicle dashboard');
+      toast.error(err?.message || 'Failed to load vehicle dashboard');
     } finally {
       if (myId === requestIdRef.current) setLoading(false);
     }

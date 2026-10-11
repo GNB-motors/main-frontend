@@ -124,8 +124,7 @@ export default function FleetCoveragePage() {
       toast.success(`${row.registrationNumber} added to fleet`);
       refetch();
     } catch (err) {
-      const msg =
-        err?.detail || err?.errors?.[0]?.error || err?.message || 'Could not add this vehicle.';
+      const msg = err?.body?.errors?.[0]?.error || err?.message || 'Could not add this vehicle.';
       toast.error(`${row.registrationNumber}: ${msg}`);
     } finally {
       setAddingKey(null);
@@ -160,7 +159,7 @@ export default function FleetCoveragePage() {
       setSelectedKeys(new Set());
       refetch();
     } catch (err) {
-      toast.error(err?.detail || err?.message || 'Bulk add failed.');
+      toast.error(err?.message || 'Bulk add failed.');
     } finally {
       setBulkAdding(false);
     }

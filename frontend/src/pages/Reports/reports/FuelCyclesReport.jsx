@@ -107,7 +107,7 @@ const FuelCyclesReport = () => {
 
   useEffect(() => {
     if (rowsError) {
-      setError(rowsError.detail || rowsError.message || 'Could not load fuel cycles.');
+      setError(rowsError.message || 'Could not load fuel cycles.');
       setRows([]);
     }
   }, [rowsError]);

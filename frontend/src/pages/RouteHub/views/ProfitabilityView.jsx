@@ -29,7 +29,7 @@ export default function ProfitabilityView({ params, toast, go }) {
     try {
       setData(await RouteHubService.getRouteProfitability({ days: 30 }));
     } catch (e) {
-      setError(e?.detail || e?.message || 'Could not load profitability.');
+      setError(e?.message || 'Could not load profitability.');
     } finally {
       setLoading(false);
     }

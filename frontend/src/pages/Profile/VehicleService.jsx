@@ -2,6 +2,7 @@ import axios from 'axios';
 import apiClient from '../../utils/axiosConfig';
 import { getBranchId } from '../../utils/session.js';
 import { parseSafe } from '../../schemas/validate.js';
+import ApiError from '../../errors/ApiError';
 
 // Get the backend URL from environment variables or default to localhost
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
@@ -64,7 +65,7 @@ const getAllVehicles = async (businessRefId, token, page = 1, limit = 10, branch
 
     return { data: response.data, meta: { total: 0, page: 1, limit: 10, totalPages: 1 } };
   } catch (error) {
-    throw error.response?.data || { detail: error.message || 'Could not fetch vehicles.' };
+    throw ApiError.from(error);
   }
 };
 
@@ -106,7 +107,7 @@ const addVehicle = async (businessRefId, vehicleData, token) => {
 
     return response.data;
   } catch (error) {
-    throw error.response?.data || { detail: error.message || 'Could not add vehicle.' };
+    throw ApiError.from(error);
   }
 };
 
@@ -149,7 +150,7 @@ const addBulkVehicles = async (businessRefId, vehiclesArray, options = {}, token
 
     return response.data;
   } catch (error) {
-    throw error.response?.data || { detail: error.message || 'Could not bulk add vehicles.' };
+    throw ApiError.from(error);
   }
 };
 
@@ -171,7 +172,7 @@ const importVehicle = async (vehicleId, token) => {
     );
     return response.data?.data ?? response.data;
   } catch (error) {
-    throw error.response?.data || { detail: error.message || 'Could not import vehicle.' };
+    throw ApiError.from(error);
   }
 };
 
@@ -184,7 +185,7 @@ const removeVehicle = async (businessRefId, vehicleId, token) => {
     });
     return response.data;
   } catch (error) {
-    throw error.response?.data || { detail: error.message || 'Could not remove vehicle.' };
+    throw ApiError.from(error);
   }
 };
 
@@ -228,7 +229,7 @@ const updateVehicle = async (businessRefId, vehicleId, vehicleData, token) => {
 
     return response.data;
   } catch (error) {
-    throw error.response?.data || { detail: error.message || 'Could not update vehicle.' };
+    throw ApiError.from(error);
   }
 };
 
@@ -248,7 +249,7 @@ const getVehicleCorrectionLogs = async (vehicleId, token) => {
     }
     return response.data;
   } catch (error) {
-    throw error.response?.data || { detail: error.message || 'Could not fetch correction logs.' };
+    throw ApiError.from(error);
   }
 };
 
@@ -273,7 +274,7 @@ const classifyExistingVehicles = async (token) => {
     }
     return response.data;
   } catch (error) {
-    throw error.response?.data || { detail: error.message || 'Could not classify vehicles.' };
+    throw ApiError.from(error);
   }
 };
 
@@ -308,7 +309,7 @@ const uploadVehicleDocument = async (vehicleId, docType, files, token, opts = {}
     return response.data?.data || response.data;
   } catch (error) {
     console.error('API Error uploading vehicle document:', error.response?.data || error.message);
-    throw error.response?.data || { detail: 'Failed to upload document.' };
+    throw ApiError.from(error);
   }
 };
 
@@ -340,7 +341,7 @@ const getFleetDashboard = async (token, search) => {
     return response.data?.data || response.data || [];
   } catch (error) {
     console.error('API Error fetching fleet dashboard:', error.response?.data || error.message);
-    throw error.response?.data || { detail: 'Could not fetch fleet dashboard.' };
+    throw ApiError.from(error);
   }
 };
 
@@ -357,7 +358,7 @@ const deleteVehicleDocument = async (vehicleId, docId, token) => {
     return response.data;
   } catch (error) {
     console.error('API Error deleting vehicle document:', error.response?.data || error.message);
-    throw error.response?.data || { detail: 'Failed to delete document.' };
+    throw ApiError.from(error);
   }
 };
 
@@ -370,7 +371,7 @@ const acknowledgeVehicleDocument = async (vehicleId, docId) => {
       'API Error acknowledging vehicle document:',
       error.response?.data || error.message,
     );
-    throw error.response?.data || { detail: 'Failed to acknowledge document.' };
+    throw ApiError.from(error);
   }
 };
 

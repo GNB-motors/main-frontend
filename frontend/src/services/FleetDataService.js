@@ -1,4 +1,5 @@
 import apiClient from '../utils/axiosConfig';
+import ApiError from '../errors/ApiError';
 
 /**
  * FleetDataService — the Phase-3 read APIs: previously-invisible collections
@@ -12,7 +13,7 @@ const get = async (path, params = {}, signal) => {
   } catch (error) {
     if (error?.code === 'ERR_CANCELED') throw error;
     console.error(`API Error ${path}:`, error.response?.data || error.message);
-    throw error.response?.data || { detail: `Could not fetch ${path}.` };
+    throw ApiError.from(error);
   }
 };
 
@@ -23,7 +24,7 @@ const put = async (path, body = {}, signal) => {
   } catch (error) {
     if (error?.code === 'ERR_CANCELED') throw error;
     console.error(`API Error ${path}:`, error.response?.data || error.message);
-    throw error.response?.data || { detail: `Could not update ${path}.` };
+    throw ApiError.from(error);
   }
 };
 

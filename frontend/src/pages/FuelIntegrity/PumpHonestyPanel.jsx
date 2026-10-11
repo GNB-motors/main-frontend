@@ -81,7 +81,7 @@ export default function PumpHonestyPanel() {
         });
         setPumps(pumpList);
       } catch (err) {
-        if (active) setError(err.message || err.detail || 'Failed to load pump ledger');
+        if (active) setError(err.message || 'Failed to load pump ledger');
       } finally {
         if (active) setLoading(false);
       }

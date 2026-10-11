@@ -1,4 +1,5 @@
 import apiClient from '../../utils/axiosConfig';
+import ApiError from '../../errors/ApiError';
 
 /**
  * Service functions for the Fuel Integrity owner screens.
@@ -15,7 +16,7 @@ export const FuelIntegrityService = {
       return response.data?.data || {};
     } catch (error) {
       console.error('API Error fetching fuel fills:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Could not fetch fuel fill events.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -32,7 +33,7 @@ export const FuelIntegrityService = {
         'API Error fetching fuel integrity windows:',
         error.response?.data || error.message,
       );
-      throw error.response?.data || { detail: 'Could not fetch fuel integrity windows.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -50,7 +51,7 @@ export const FuelIntegrityService = {
         'API Error fetching fuel integrity summary:',
         error.response?.data || error.message,
       );
-      throw error.response?.data || { detail: 'Could not fetch fuel integrity summary.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -65,7 +66,7 @@ export const FuelIntegrityService = {
     } catch (error) {
       if (error?.code === 'ERR_CANCELED') throw error;
       console.error('API Error fetching pump ledger:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Could not fetch the pump ledger.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -83,7 +84,7 @@ export const FuelIntegrityService = {
     } catch (error) {
       if (error?.code === 'ERR_CANCELED') throw error;
       console.error('API Error fetching refuel advisory:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Could not fetch the refuel advisory.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -99,7 +100,7 @@ export const FuelIntegrityService = {
         'API Error triggering fuel integrity sync:',
         error.response?.data || error.message,
       );
-      throw error.response?.data || { detail: 'Could not sync fuel integrity data.' };
+      throw ApiError.from(error);
     }
   },
 };

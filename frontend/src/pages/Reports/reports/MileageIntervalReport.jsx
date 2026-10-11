@@ -89,7 +89,7 @@ const MileageIntervalReport = () => {
 
   useEffect(() => {
     if (rowsError) {
-      setError(rowsError.detail || rowsError.message || 'Could not load mileage report.');
+      setError(rowsError.message || 'Could not load mileage report.');
       setRows([]);
     }
   }, [rowsError]);

@@ -201,11 +201,11 @@ const AddVehiclePage = () => {
     } catch (err) {
       console.error('Add/Edit vehicle error', err);
       // Registration already belongs to a vehicle in this enterprise → offer Import.
-      if (err?.code === 'ALREADY_IN_ENTERPRISE' && err?.data?.vehicle) {
-        setImportCandidate(err.data.vehicle);
+      if (err?.body?.code === 'ALREADY_IN_ENTERPRISE' && err.body.data?.vehicle) {
+        setImportCandidate(err.body.data.vehicle);
         return;
       }
-      const msg = err?.detail || err?.message || 'Failed to create/update vehicle';
+      const msg = err?.message || 'Failed to create/update vehicle';
       toast.error(msg);
     } finally {
       setIsSubmitting(false);
@@ -221,7 +221,7 @@ const AddVehiclePage = () => {
       setImportCandidate(null);
       navigate('/vehicles');
     } catch (err) {
-      toast.error(err?.detail || err?.message || 'Failed to import vehicle');
+      toast.error(err?.message || 'Failed to import vehicle');
     } finally {
       setImporting(false);
     }

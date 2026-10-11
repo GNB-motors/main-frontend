@@ -171,7 +171,7 @@ const AddLocationPage = () => {
       }
       navigate('/locations');
     } catch (error) {
-      const msg = error?.message || error?.detail || 'Failed to save location';
+      const msg = error?.message || 'Failed to save location';
       toast.error(msg);
     } finally {
       setIsSubmitting(false);

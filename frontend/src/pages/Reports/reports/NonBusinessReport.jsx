@@ -64,7 +64,7 @@ const NonBusinessReport = () => {
 
   useEffect(() => {
     if (rowsError) {
-      setError(rowsError.detail || rowsError.message || 'Could not load non-business report.');
+      setError(rowsError.message || 'Could not load non-business report.');
       setRows([]);
     }
   }, [rowsError]);

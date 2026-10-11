@@ -122,7 +122,7 @@ const FuelIntegrityPage = () => {
       setWindows(windowsData.records || []);
       setLastSynced(dayjs());
     } catch (err) {
-      setError(err.detail || 'Could not load fuel integrity data.');
+      setError(err.message || 'Could not load fuel integrity data.');
     } finally {
       setIsLoading(false);
     }
@@ -135,7 +135,7 @@ const FuelIntegrityPage = () => {
       await FuelIntegrityService.triggerSync();
       await fetchData();
     } catch (err) {
-      setError(err.detail || 'Could not reconcile FleetEdge telemetry.');
+      setError(err.message || 'Could not reconcile FleetEdge telemetry.');
     } finally {
       setIsSyncing(false);
     }

@@ -236,11 +236,7 @@ const BulkUploadDriversContent = ({ onCompleted, variant = 'page' }) => {
         toast.error(
           'Payload too large. Please reduce the number of rows or split into multiple uploads.',
         );
-      } else if (
-        error.code === 'ECONNABORTED' ||
-        error.message?.includes('timeout') ||
-        error.detail?.includes('timeout')
-      ) {
+      } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
         toast.error(
           'Request timed out. The upload may still be processing on the server. Please check the employees list or try again with fewer rows.',
         );
@@ -248,7 +244,6 @@ const BulkUploadDriversContent = ({ onCompleted, variant = 'page' }) => {
         const errorMsg =
           error.response?.data?.message ||
           error.response?.data?.detail ||
-          error.detail ||
           error.message ||
           'Upload failed';
         toast.error(errorMsg);

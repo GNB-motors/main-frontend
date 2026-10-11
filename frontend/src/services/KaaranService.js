@@ -8,6 +8,7 @@
  */
 
 import apiClient from '../utils/axiosConfig';
+import ApiError from '../errors/ApiError';
 
 export const KaaranService = {
   // ── Feature #10: Driver Improvement & Consistency ──
@@ -17,7 +18,7 @@ export const KaaranService = {
       return res.data?.data || res.data || [];
     } catch (err) {
       console.error('KaaranService.getDriverTrends error:', err);
-      throw err.response?.data || { message: 'Failed to load driver trends' };
+      throw ApiError.from(err);
     }
   },
 
@@ -27,7 +28,7 @@ export const KaaranService = {
       return res.data?.data || res.data;
     } catch (err) {
       console.error('KaaranService.getDriverTrend error:', err);
-      throw err.response?.data || { message: 'Failed to load driver trend' };
+      throw ApiError.from(err);
     }
   },
 
@@ -37,7 +38,7 @@ export const KaaranService = {
       return res.data;
     } catch (err) {
       console.error('KaaranService.recomputeDriverTrends error:', err);
-      throw err.response?.data || { message: 'Failed to recompute driver trends' };
+      throw ApiError.from(err);
     }
   },
 
@@ -53,7 +54,7 @@ export const KaaranService = {
       return [];
     } catch (err) {
       console.error('KaaranService.getUnknownTerritories error:', err);
-      throw err.response?.data || { message: 'Failed to load unknown territories' };
+      throw ApiError.from(err);
     }
   },
 
@@ -63,7 +64,7 @@ export const KaaranService = {
       return res.data;
     } catch (err) {
       console.error('KaaranService.detectUnknownTerritories error:', err);
-      throw err.response?.data || { message: 'Detection scan failed' };
+      throw ApiError.from(err);
     }
   },
 
@@ -73,7 +74,7 @@ export const KaaranService = {
       return res.data;
     } catch (err) {
       console.error('KaaranService.classifyTerritory error:', err);
-      throw err.response?.data || { message: 'Classification failed' };
+      throw ApiError.from(err);
     }
   },
 
@@ -84,7 +85,7 @@ export const KaaranService = {
       return res.data?.data || res.data || {};
     } catch (err) {
       console.error('KaaranService.getPumpSummary error:', err);
-      throw err.response?.data || { message: 'Failed to load pump summary' };
+      throw ApiError.from(err);
     }
   },
 
@@ -97,7 +98,7 @@ export const KaaranService = {
       return [];
     } catch (err) {
       console.error('KaaranService.getPumpLedger error:', err);
-      throw err.response?.data || { message: 'Failed to load pump ledger' };
+      throw ApiError.from(err);
     }
   },
 };

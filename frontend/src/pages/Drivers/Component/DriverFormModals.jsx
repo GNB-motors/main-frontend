@@ -38,7 +38,7 @@ export const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitt
       // Clear form and close modal on successful submission (handled by parent)
       // No need to clear here if useEffect handles it based on isOpen
     } catch (submitError) {
-      const errorMessage = submitError?.detail || 'Failed to add driver. Please try again.';
+      const errorMessage = submitError?.message || 'Failed to add driver. Please try again.';
       setError(errorMessage);
       toast.error(errorMessage);
     }
@@ -252,7 +252,7 @@ export const EditDriverModal = ({
       await onSubmit(driver.id, updateData); // Pass driver ID and updateData
       // Parent handles closing and state update
     } catch (submitError) {
-      const errorMessage = submitError?.detail || 'Failed to update driver. Please try again.';
+      const errorMessage = submitError?.message || 'Failed to update driver. Please try again.';
       setError(errorMessage);
       toast.error(errorMessage);
     }

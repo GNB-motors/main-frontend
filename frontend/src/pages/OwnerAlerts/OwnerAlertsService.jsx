@@ -1,4 +1,5 @@
 import apiClient from '../../utils/axiosConfig';
+import ApiError from '../../errors/ApiError';
 
 /**
  * Service functions for the unified owner-alert feed (in-app only).
@@ -15,7 +16,7 @@ export const OwnerAlertsService = {
     } catch (error) {
       if (error?.code === 'ERR_CANCELED') throw error;
       console.error('API Error fetching owner alerts:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Could not fetch owner alerts.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -29,7 +30,7 @@ export const OwnerAlertsService = {
       return response.data?.data || {};
     } catch (error) {
       console.error('API Error acknowledging alert:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Could not acknowledge the alert.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -40,7 +41,7 @@ export const OwnerAlertsService = {
       return response.data?.data || {};
     } catch (error) {
       console.error('API Error acknowledging all alerts:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Could not acknowledge alerts.' };
+      throw ApiError.from(error);
     }
   },
 };

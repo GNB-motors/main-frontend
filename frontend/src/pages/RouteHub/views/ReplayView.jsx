@@ -379,14 +379,17 @@ export default function ReplayView({ params, toast }) {
         setTrip(built);
         const startT =
           built && nextRange === 'linked' && linked?.at
-            ? Math.max(0, Math.min(1, (linked.at - built.startAt) / (built.durationMin * 60000 || 1)))
+            ? Math.max(
+                0,
+                Math.min(1, (linked.at - built.startAt) / (built.durationMin * 60000 || 1)),
+              )
             : 0;
         setT(startT);
         setPlaying(false);
         if (!built) setError('No position fixes in this window.');
       } catch (e) {
         setTrip(null);
-        setError(e?.detail || e?.message || 'Could not load the trail.');
+        setError(e?.message || 'Could not load the trail.');
       } finally {
         setLoading(false);
       }

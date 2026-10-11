@@ -131,7 +131,7 @@ const ServiceIntelligencePage = () => {
       setSummary(summaryRes);
     } catch (err) {
       if (myId !== requestIdRef.current) return;
-      toast.error(err?.detail || 'Failed to load records');
+      toast.error(err?.message || 'Failed to load records');
     } finally {
       if (myId === requestIdRef.current) setLoading(false);
     }
@@ -167,7 +167,7 @@ const ServiceIntelligencePage = () => {
       setRows((prev) => prev.filter((r) => r._id !== row._id));
       toast.success('Record deleted');
     } catch (err) {
-      toast.error(err?.detail || 'Failed to delete');
+      toast.error(err?.message || 'Failed to delete');
     }
   };
 
@@ -219,7 +219,7 @@ const ServiceIntelligencePage = () => {
       setSelectedResolveItem(null);
     } catch (err) {
       console.error('Failed to resolve issue', err);
-      toast.error(err?.detail || err?.message || 'Failed to mark issue as resolved');
+      toast.error(err?.message || 'Failed to mark issue as resolved');
     }
   };
 

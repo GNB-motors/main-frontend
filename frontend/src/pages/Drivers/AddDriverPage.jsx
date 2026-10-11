@@ -306,11 +306,11 @@ const AddDriverPage = () => {
       console.error('Add employee error', err);
       // Phone already belongs to someone in the enterprise → offer Import instead
       // of a generic "already exists" error.
-      if (err?.code === 'ALREADY_IN_ENTERPRISE' && err?.data?.employee) {
-        setImportCandidate(err.data.employee);
+      if (err?.body?.code === 'ALREADY_IN_ENTERPRISE' && err.body.data?.employee) {
+        setImportCandidate(err.body.data.employee);
         return;
       }
-      const msg = err?.message || err?.detail || 'Failed to create/update employee';
+      const msg = err?.message || 'Failed to create/update employee';
       toast.error(msg);
     } finally {
       setIsSubmitting(false);
@@ -326,7 +326,7 @@ const AddDriverPage = () => {
       setImportCandidate(null);
       navigate('/drivers');
     } catch (err) {
-      toast.error(err?.message || err?.detail || 'Failed to import employee');
+      toast.error(err?.message || 'Failed to import employee');
     } finally {
       setImporting(false);
     }

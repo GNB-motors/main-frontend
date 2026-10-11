@@ -45,7 +45,7 @@ export default function DeviationView({ params, toast, setBadge, go }) {
       setRecords(rows);
       setBadge('deviation', rows.filter(isOpen).length);
     } catch (e) {
-      setError(e?.detail || e?.message || 'Could not load deviation events.');
+      setError(e?.message || 'Could not load deviation events.');
     } finally {
       setLoading(false);
     }
@@ -174,7 +174,7 @@ export default function DeviationView({ params, toast, setBadge, go }) {
       toast(`${d.registrationNumber} marked reviewed`);
       load();
     } catch (e) {
-      toast(e?.detail || 'Could not update the event');
+      toast(e?.message || 'Could not update the event');
     }
   };
 

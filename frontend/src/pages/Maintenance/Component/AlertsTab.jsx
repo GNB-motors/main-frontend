@@ -59,7 +59,7 @@ const AlertsTab = ({ search = '', refreshKey = 0 }) => {
       setAlerts(data);
     } catch (err) {
       if (myId !== requestIdRef.current) return;
-      toast.error(err?.detail || 'Failed to load alerts');
+      toast.error(err?.message || 'Failed to load alerts');
     } finally {
       if (myId === requestIdRef.current) setLoading(false);
     }
@@ -77,7 +77,7 @@ const AlertsTab = ({ search = '', refreshKey = 0 }) => {
       toast.success('Alert resolved');
       await load();
     } catch (err) {
-      toast.error(err?.detail || 'Failed to resolve alert');
+      toast.error(err?.message || 'Failed to resolve alert');
     } finally {
       setResolvingId(null);
     }

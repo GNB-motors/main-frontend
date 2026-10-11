@@ -112,7 +112,7 @@ const DriversPage = () => {
       }
     } catch (apiError) {
       console.error('Failed to fetch drivers:', apiError);
-      setError(apiError?.detail || 'Could not load drivers list.');
+      setError(apiError?.message || 'Could not load drivers list.');
     } finally {
       setIsLoading(false); // Finish loading drivers
       setHasLoadedOnce(true);

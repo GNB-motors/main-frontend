@@ -1,5 +1,6 @@
 import apiClient from '../../utils/axiosConfig';
 import { parseSafe } from '../../schemas/validate.js';
+import ApiError from '../../errors/ApiError';
 
 /** Normalise a mobile number to E.164 (+91XXXXXXXXXX for Indian numbers). */
 function normaliseMobile(mobile) {
@@ -32,7 +33,7 @@ export const DriverService = {
       return response.data;
     } catch (error) {
       console.error('API Error fetching vehicles:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Network error or server unavailable.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -62,7 +63,7 @@ export const DriverService = {
       return { data: response.data, meta: null };
     } catch (error) {
       console.error('API Error fetching drivers:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Network error or server unavailable.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -105,7 +106,7 @@ export const DriverService = {
       return response.data;
     } catch (error) {
       console.error('API Error adding driver:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Network error or server unavailable.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -140,7 +141,7 @@ export const DriverService = {
         };
       }
 
-      throw error.response?.data || { detail: 'Network error or server unavailable.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -164,7 +165,7 @@ export const DriverService = {
       return response.data;
     } catch (error) {
       console.error('API Error updating driver:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Network error or server unavailable.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -176,7 +177,7 @@ export const DriverService = {
       return response.data?.data ?? response.data;
     } catch (error) {
       console.error('API Error importing employee:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Network error or server unavailable.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -188,7 +189,7 @@ export const DriverService = {
       return response.data?.data ?? response.data;
     } catch (error) {
       console.error('API Error deactivating employee:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Network error or server unavailable.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -201,7 +202,7 @@ export const DriverService = {
       return response.status === 204 || (response.data && response.data.status === 'success');
     } catch (error) {
       console.error('API Error deleting driver:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Network error or server unavailable.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -222,7 +223,7 @@ export const DriverService = {
       return response.data;
     } catch (error) {
       console.error('API Error uploading document:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Failed to upload document.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -244,7 +245,7 @@ export const DriverService = {
       return response.data;
     } catch (error) {
       console.error('API Error deleting document:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Failed to delete document.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -255,7 +256,7 @@ export const DriverService = {
       return response.data?.data || response.data;
     } catch (error) {
       console.error('API Error updating document:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Failed to update document.' };
+      throw ApiError.from(error);
     }
   },
 };

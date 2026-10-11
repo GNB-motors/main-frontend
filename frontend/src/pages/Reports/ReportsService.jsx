@@ -1,4 +1,5 @@
 import apiClient from '../../utils/axiosConfig'; // Use the configured axios instance
+import ApiError from '../../errors/ApiError';
 
 /**
  * Service functions for fetching report data.
@@ -20,11 +21,7 @@ export const ReportsService = {
     } catch (error) {
       if (error?.name === 'CanceledError') throw error;
       console.error('API Error fetching vehicle reports:', error.response?.data || error.message);
-      throw (
-        error.response?.data || {
-          detail: 'Network error or server unavailable while fetching vehicle reports.',
-        }
-      );
+      throw ApiError.from(error);
     }
   },
 
@@ -73,11 +70,7 @@ export const ReportsService = {
         'API Error fetching mileage interval reports:',
         error.response?.data || error.message,
       );
-      throw (
-        error.response?.data || {
-          detail: 'Network error or server unavailable while fetching mileage report.',
-        }
-      );
+      throw ApiError.from(error);
     }
   },
 
@@ -101,11 +94,7 @@ export const ReportsService = {
       };
     } catch (error) {
       console.error(`API Error fetching ${label}:`, error.response?.data || error.message);
-      throw (
-        error.response?.data || {
-          detail: `Network error or server unavailable while fetching ${label}.`,
-        }
-      );
+      throw ApiError.from(error);
     }
   },
 
@@ -135,17 +124,26 @@ export const ReportsService = {
         `API Error exporting report (${endpoint}):`,
         error.response?.data || error.message,
       );
+      // responseType 'blob' delivers the JSON error body as a Blob too.
       const data = error.response?.data;
+      let body = null;
       if (data instanceof Blob) {
         try {
-          const text = await data.text();
-          const parsed = JSON.parse(text);
-          throw parsed;
-        } catch (parseErr) {
-          if (parseErr && (parseErr.detail || parseErr.message)) throw parseErr;
+          body = JSON.parse(await data.text());
+        } catch {
+          // Not a JSON body; the transport error below still says what failed.
         }
       }
-      throw data || { detail: 'Network error or server unavailable while exporting report.' };
+      if (body) {
+        throw new ApiError(body.message || body.detail || 'Export failed', {
+          status: error.response?.status ?? null,
+          requestId: error.response?.headers?.['x-request-id'] ?? null,
+          body,
+          code: error.code ?? null,
+          cause: error,
+        });
+      }
+      throw ApiError.from(error);
     }
   },
 
@@ -165,11 +163,7 @@ export const ReportsService = {
     } catch (error) {
       if (error?.name === 'CanceledError') throw error;
       console.error('API Error fetching driver reports:', error.response?.data || error.message);
-      throw (
-        error.response?.data || {
-          detail: 'Network error or server unavailable while fetching driver reports.',
-        }
-      );
+      throw ApiError.from(error);
     }
   },
 
@@ -192,11 +186,7 @@ export const ReportsService = {
       return response.data?.data || [];
     } catch (error) {
       console.error('API Error fetching employees:', error.response?.data || error.message);
-      throw (
-        error.response?.data || {
-          detail: 'Network error or server unavailable while fetching employees.',
-        }
-      );
+      throw ApiError.from(error);
     }
   },
 
@@ -212,7 +202,7 @@ export const ReportsService = {
       return response.data?.data || response.data || {};
     } catch (error) {
       console.error('API Error fetching extension status:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Network error fetching sync status.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -230,7 +220,7 @@ export const ReportsService = {
       );
     } catch (error) {
       console.error('API Error fetching flagged records:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Network error fetching flagged records.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -248,7 +238,7 @@ export const ReportsService = {
       );
     } catch (error) {
       console.error('API Error fetching comparisons:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Network error fetching comparisons.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -266,7 +256,7 @@ export const ReportsService = {
         'API Error fetching pending review tasks:',
         error.response?.data || error.message,
       );
-      throw error.response?.data || { detail: 'Network error fetching pending review tasks.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -279,7 +269,7 @@ export const ReportsService = {
       return response.data?.data || response.data || {};
     } catch (error) {
       console.error('API Error approving review task:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Network error approving task.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -315,7 +305,7 @@ export const ReportsService = {
       return response.data?.data || response.data || {};
     } catch (error) {
       console.error('API Error triggering pull:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Network error triggering pull.' };
+      throw ApiError.from(error);
     }
   },
 };

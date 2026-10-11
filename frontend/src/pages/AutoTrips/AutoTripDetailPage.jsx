@@ -100,11 +100,11 @@ export default function AutoTripDetailPage() {
         refetch();
         refetchTrack();
       } catch (e) {
-        const raw = `${e?.message || e?.detail || ''} ${e?.code || ''}`;
+        const raw = `${e?.message || ''} ${e?.code || ''}`;
         toast.error(
           /NO_STOP_IN_TRIP/i.test(raw)
             ? 'That place has no stop inside this trip — pick a stop in the timeline instead.'
-            : e?.message || e?.detail || 'Action failed',
+            : e?.message || 'Action failed',
         );
       }
     },

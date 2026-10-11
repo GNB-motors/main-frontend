@@ -1,4 +1,5 @@
 import axios from 'axios';
+import ApiError from '../../errors/ApiError';
 
 // Get the backend URL from environment variables or default to localhost
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:3000';
@@ -14,30 +15,26 @@ const updateOrganization = async (organizationData, token, orgId) => {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-      }
+      },
     );
     return response.data;
   } catch (error) {
-    throw error.response?.data || { detail: error.message || 'Failed to update organization.' };
+    throw ApiError.from(error);
   }
 };
 
 const updateUserProfile = async (profileData, token) => {
   try {
     // PATCH /api/auth/me - Update user profile including theme color
-    const response = await axios.patch(
-      `${API_BASE_URL}/api/auth/me`,
-      profileData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    const response = await axios.patch(`${API_BASE_URL}/api/auth/me`, profileData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
     return response.data;
   } catch (error) {
-    throw error.response?.data || { detail: error.message || 'Failed to update user profile.' };
+    throw ApiError.from(error);
   }
 };
 
@@ -46,27 +43,27 @@ const completeOnboarding = async (onboardingData, token, orgId) => {
   const organizationPayload = {
     companyName: onboardingData.companyName,
   };
-  
+
   // Only include gstin if it's not empty
   if (onboardingData.gstin && onboardingData.gstin.trim()) {
     organizationPayload.gstin = onboardingData.gstin;
   }
-  
+
   await updateOrganization(organizationPayload, token, orgId);
-  
+
   // Step 2: Update user profile with theme color
   const profilePayload = {
     firstName: onboardingData.firstName,
     lastName: onboardingData.lastName,
   };
-  
+
   // Only include primaryThemeColor if provided
   if (onboardingData.primaryThemeColor) {
     profilePayload.primaryThemeColor = onboardingData.primaryThemeColor;
   }
-  
+
   await updateUserProfile(profilePayload, token);
-  
+
   return { success: true, message: 'Onboarding completed successfully' };
 };
 

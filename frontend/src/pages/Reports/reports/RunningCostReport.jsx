@@ -65,7 +65,7 @@ const RunningCostReport = () => {
 
   useEffect(() => {
     if (rowsError) {
-      setError(rowsError.detail || rowsError.message || 'Could not load running-cost report.');
+      setError(rowsError.message || 'Could not load running-cost report.');
       setRows([]);
     }
   }, [rowsError]);

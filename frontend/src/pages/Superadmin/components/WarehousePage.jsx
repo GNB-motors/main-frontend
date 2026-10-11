@@ -212,7 +212,7 @@ const WarehousePage = () => {
       setStatus(json.data || json);
     } catch (err) {
       console.error('[Warehouse] status fetch failed:', err);
-      setError(err.detail || err.message || 'Failed to load warehouse status.');
+      setError(err.message || 'Failed to load warehouse status.');
     } finally {
       setLoading(false);
     }

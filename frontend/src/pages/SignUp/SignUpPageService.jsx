@@ -1,4 +1,5 @@
 import axios from 'axios';
+import ApiError from '../../errors/ApiError';
 
 // Get the backend URL from environment variables or default to localhost
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
@@ -14,7 +15,7 @@ const registerUser = async (userData) => {
   } catch (error) {
     // Rethrow the error so the component can handle it
     // Include the response data if available, as it might contain specific error messages from the backend
-    throw error.response?.data || { detail: error.message || 'An unknown error occurred during registration.' };
+    throw ApiError.from(error);
   }
 };
 

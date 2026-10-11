@@ -115,7 +115,7 @@ const LocationSwitcher = () => {
       toast.success(`Location "${trimmed}" added`);
       if (created?._id) switchTo(String(created._id));
     } catch (err) {
-      toast.error(err?.response?.data?.message || err?.detail || 'Could not add location');
+      toast.error(err?.message || 'Could not add location');
     } finally {
       setSubmitting(false);
     }

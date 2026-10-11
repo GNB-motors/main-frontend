@@ -115,9 +115,7 @@ const FuelComparisonDrawer = ({
       toast.success(`Task for ${vehReg} approved and queued for recalculation`);
       onApproved?.();
     } catch (err) {
-      toast.error(
-        err?.detail || err?.response?.data?.message || err?.message || 'Failed to approve task',
-      );
+      toast.error(err?.message || 'Failed to approve task');
     } finally {
       setSaving(false);
     }

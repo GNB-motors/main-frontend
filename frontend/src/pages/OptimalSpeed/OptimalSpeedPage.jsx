@@ -40,7 +40,7 @@ export default function OptimalSpeedPage() {
             <div className="text-dim p-6 text-sm">Loading optimal-speed profiles…</div>
           ) : error ? (
             <div className="p-6 text-sm" style={{ color: 'var(--critical)' }}>
-              Could not load optimal-speed profiles. {error.detail || error.message || ''}
+              Could not load optimal-speed profiles. {error.message || ''}
             </div>
           ) : (
             <div className="flex flex-col gap-4">

@@ -65,7 +65,7 @@ export function useDriverActions({
       setMovingDriver(null);
       fetchDrivers();
     } catch (err) {
-      toast.error(err?.message || err?.detail || 'Could not activate employee here');
+      toast.error(err?.message || 'Could not activate employee here');
     } finally {
       setIsActionSubmitting(false);
     }
@@ -86,7 +86,7 @@ export function useDriverActions({
       setDeactivatingDriver(null);
       fetchDrivers();
     } catch (err) {
-      toast.error(err?.message || err?.detail || 'Could not deactivate employee');
+      toast.error(err?.message || 'Could not deactivate employee');
     } finally {
       setIsActionSubmitting(false);
     }
@@ -158,7 +158,7 @@ export function useDriverActions({
       }
     } catch (err) {
       console.error('Failed to delete employee:', err);
-      const errorMessage = err.detail || err.message || 'Failed to delete employee.';
+      const errorMessage = err.message || 'Failed to delete employee.';
       setActionError(errorMessage);
       toast.error(errorMessage);
     } finally {

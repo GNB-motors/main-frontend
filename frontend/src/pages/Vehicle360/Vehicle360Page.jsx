@@ -68,7 +68,7 @@ export default function Vehicle360Page() {
     setSearchParams(next, { replace: true });
   };
 
-  if (error?.statusCode === 404 || error?.status === 404) {
+  if (error?.status === 404) {
     return (
       <div className="v360">
         <Breadcrumbs reg={reg} />

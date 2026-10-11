@@ -79,12 +79,7 @@ const ReviewModal = ({ task, onClose, onSave, onApproved }) => {
         onClose();
       }
     } catch (err) {
-      setError(
-        err?.detail ||
-          err?.response?.data?.message ||
-          err?.message ||
-          'Failed to approve review task',
-      );
+      setError(err?.message || 'Failed to approve review task');
     } finally {
       setSaving(false);
     }

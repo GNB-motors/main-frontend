@@ -142,7 +142,7 @@ export async function exportFilteredReportCsv({
   } catch (err) {
     console.error('Filtered report export failed:', err);
     if (showToast) {
-      toast.error(err?.detail || err?.message || errorMessage);
+      toast.error(err?.message || errorMessage);
     }
     throw err;
   }

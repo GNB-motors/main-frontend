@@ -202,7 +202,7 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
         });
       }
     } catch (e) {
-      setError(e?.detail || e?.message || 'Could not run the audit.');
+      setError(e?.message || 'Could not run the audit.');
     } finally {
       setLoading(false);
     }
