@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { GoogleMap, useLoadScript, MarkerF, PolylineF } from '@react-google-maps/api';
-import apiClient from '../../utils/axiosConfig';
+import { getVehicleList } from '../../services/vehicleListService';
 import DriverVehicleAssignmentService from '../../services/DriverVehicleAssignmentService';
 import { useLivePositions } from '../../hooks/useLivePositions';
 import { useFullPageLayout } from '../../hooks/usePageLayout';
@@ -298,8 +298,7 @@ const LiveTrackingPage = () => {
     let cancelled = false;
     const loadMeta = async () => {
       try {
-        const res = await apiClient.get('/api/vehicles', { params: { limit: 500 } });
-        const list = res.data?.data?.records || res.data?.data || [];
+        const list = await getVehicleList();
         if (cancelled) return;
         const metaMap = {};
         list.forEach((v) => {

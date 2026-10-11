@@ -10,7 +10,7 @@ import PageShell from '../../../components/ui/PageShell';
 import FilterBar from '../../../components/ui/FilterBar';
 import DataTable from '../../../components/ui/DataTable';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
-import apiClient from '../../../utils/axiosConfig';
+import { getVehicleList } from '../../../services/vehicleListService';
 import useApi from '../../../hooks/useApi';
 import { ReportsService } from '../ReportsService.jsx';
 import { exportFilteredReportCsv } from '../../../utils/reportCsvExport';
@@ -35,10 +35,7 @@ const NonBusinessReport = () => {
   const [vehicleOptions, setVehicleOptions] = useState([]);
   const [isExporting, setIsExporting] = useState(false);
 
-  const { data: vehiclesRes } = useApi(
-    (signal) => apiClient.get('api/vehicles', { params: { limit: 200 }, signal }),
-    [],
-  );
+  const { data: vehiclesRes } = useApi((signal) => getVehicleList({ signal }), []);
   useEffect(() => {
     if (vehiclesRes) setVehicleOptions(extractVehicleOptions(vehiclesRes));
   }, [vehiclesRes]);

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { TripService } from '../../Trip/services';
+import { getVehicleList } from '../../../services/vehicleListService';
 
 const vehicleLabel = (v) => (v ? `${v.registrationNumber}${v.model ? ` - ${v.model}` : ''}` : '');
 
@@ -18,8 +18,8 @@ const AssignedVehicleField = ({ value, onChange }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    TripService.getVehicles({ limit: 200 })
-      .then((res) => setVehicles(res?.data || []))
+    getVehicleList()
+      .then(setVehicles)
       .catch(() => setVehicles([]))
       .finally(() => setLoading(false));
   }, []);

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Plus, Upload, TrendingUp } from 'lucide-react';
 import './DriversPage.css';
 import { DriverService } from './DriverService.jsx';
+import { getVehicleList } from '../../services/vehicleListService';
 import { useNavigate } from 'react-router-dom';
 import { getThemeCSS } from '../../utils/colorTheme';
 import { getToken, getProfileField } from '../../utils/session.js';
@@ -128,9 +129,7 @@ const DriversPage = () => {
     }
 
     try {
-      const data = await DriverService.getAvailableVehicles(businessRefId, token);
-      // Normalize vehicle shape for the UI
-      const normalized = (data || []).map(normalizeVehicleOption);
+      const normalized = (await getVehicleList()).map(normalizeVehicleOption);
       setAvailableVehicles(normalized);
     } catch (apiError) {
       console.error('Failed to fetch vehicles:', apiError);

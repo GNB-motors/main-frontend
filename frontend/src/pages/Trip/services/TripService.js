@@ -219,29 +219,6 @@ class TripService {
   }
 
   /**
-   * Fetch list of vehicles for trip creation
-   * @param {Object} params - Query parameters
-   * @param {number} params.limit - Number of vehicles to fetch (default: 100)
-   * @param {string} params.status - Filter by status (AVAILABLE, ON_TRIP, MAINTENANCE)
-   * @param {string} params.search - Search term
-   * @returns {Promise} API response with vehicles list
-   */
-  static async getVehicles(params = {}) {
-    try {
-      const queryParams = new URLSearchParams();
-      if (params.limit) queryParams.append('limit', params.limit);
-      if (params.status) queryParams.append('status', params.status);
-      if (params.search) queryParams.append('search', params.search);
-
-      const response = await apiClient.get(`/api/vehicles?${queryParams.toString()}`);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch vehicles:', error);
-      throw ApiError.from(error);
-    }
-  }
-
-  /**
    * Fetch list of drivers for trip creation
    * @param {Object} params - Query parameters
    * @param {number} params.limit - Number of drivers to fetch (default: 100)

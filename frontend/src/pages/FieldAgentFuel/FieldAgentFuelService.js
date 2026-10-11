@@ -1,4 +1,5 @@
 import apiClient from '../../utils/axiosConfig';
+import { getVehicleList } from '../../services/vehicleListService';
 import { getUserRole } from '../../utils/session.js';
 
 const isFieldAgent = () => getUserRole() === 'FIELD_AGENT';
@@ -31,8 +32,7 @@ export const FieldAgentFuelService = {
       const res = await apiClient.get('/api/field-agent/fuel-logs/all-vehicles');
       return unwrapList(res);
     }
-    const res = await apiClient.get('/api/vehicles', { params: { limit: 500 } });
-    return unwrapList(res);
+    return getVehicleList();
   },
 
   /** Drivers for the upload modal. */

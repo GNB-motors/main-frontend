@@ -2,6 +2,7 @@ import apiClient from '../../utils/axiosConfig';
 import { getBranchId } from '../../utils/session.js';
 import { parseSafe } from '../../schemas/validate.js';
 import ApiError from '../../errors/ApiError';
+import { invalidateVehicleList } from '../../services/vehicleListService';
 
 /**
  * Shape the form's expected-mileage input for the API. Returns undefined for an
@@ -77,6 +78,7 @@ const addVehicle = async (businessRefId, vehicleData) => {
     };
 
     const response = await apiClient.post('/api/vehicles', body);
+    invalidateVehicleList();
 
     // Prefer new response shape
     if (response.data && response.data.status === 'success' && response.data.data) {
@@ -119,6 +121,7 @@ const addBulkVehicles = async (businessRefId, vehiclesArray, options = {}) => {
     const response = await apiClient.post('/api/vehicles/bulk', payload, {
       timeout: Math.max(120000, vehicles.length * 200),
     });
+    invalidateVehicleList();
 
     if (response.data && response.data.status === 'success' && response.data.data) {
       return response.data.data;
@@ -135,6 +138,7 @@ const addBulkVehicles = async (businessRefId, vehiclesArray, options = {}) => {
 const importVehicle = async (vehicleId) => {
   try {
     const response = await apiClient.post(`/api/vehicles/${vehicleId}/import`);
+    invalidateVehicleList();
     return response.data?.data ?? response.data;
   } catch (error) {
     throw ApiError.from(error);
@@ -144,6 +148,7 @@ const importVehicle = async (vehicleId) => {
 const removeVehicle = async (vehicleId) => {
   try {
     const response = await apiClient.delete(`/api/vehicles/${vehicleId}`);
+    invalidateVehicleList();
     return response.data;
   } catch (error) {
     throw ApiError.from(error);
@@ -177,6 +182,7 @@ const updateVehicle = async (businessRefId, vehicleId, vehicleData) => {
     if (businessRefId) body.orgId = businessRefId;
 
     const response = await apiClient.patch(`/api/vehicles/${vehicleId}`, body);
+    invalidateVehicleList();
 
     // Prefer new response shape
     if (response.data && response.data.status === 'success' && response.data.data) {

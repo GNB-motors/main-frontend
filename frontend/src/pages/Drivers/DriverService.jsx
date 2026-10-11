@@ -14,29 +14,6 @@ function normaliseMobile(mobile) {
 }
 
 export const DriverService = {
-  // --- Get Available Vehicles ---
-  getAvailableVehicles: async (businessRefId) => {
-    try {
-      // New vehicles endpoint: GET /api/vehicles?orgId=<businessRefId>
-      // Only include orgId param when provided to avoid serializing null/undefined
-      const params = {};
-      if (businessRefId) params.orgId = businessRefId;
-      const response = await apiClient.get(`/api/vehicles`, { params });
-      // Normalize to the expected response shape if necessary in the caller
-      if (
-        response.data &&
-        response.data.status === 'success' &&
-        Array.isArray(response.data.data)
-      ) {
-        return response.data.data;
-      }
-      return response.data;
-    } catch (error) {
-      console.error('API Error fetching vehicles:', error.response?.data || error.message);
-      throw ApiError.from(error);
-    }
-  },
-
   // --- Get Employees (drivers/managers) ---
   getAllDrivers: async (businessRefId, params = {}) => {
     try {

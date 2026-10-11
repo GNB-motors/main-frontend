@@ -8,7 +8,7 @@ import DropZone from '../../components/DropZone/DropZone.jsx';
 import MaintenanceBasicInformationForm from './Component/MaintenanceBasicInformationForm.jsx';
 import AddOptionModal from './Component/AddOptionModal.jsx';
 import { MaintenanceService } from './MaintenanceService.jsx';
-import { VehicleService } from '../Profile/VehicleService.jsx';
+import { getVehicleList } from '../../services/vehicleListService';
 import { DriverService } from '../Drivers/DriverService.jsx';
 import { normalizeDriver } from '../Drivers/driverList.js';
 import { getThemeCSS } from '../../utils/colorTheme';
@@ -75,8 +75,8 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
   }, []);
 
   useEffect(() => {
-    VehicleService.getAllVehicles(null, 1, 1000)
-      .then((res) => setVehicles(Array.isArray(res?.data) ? res.data : []))
+    getVehicleList()
+      .then(setVehicles)
       .catch(() => setVehicles([]));
     DriverService.getAllDrivers(null, { limit: 300 })
       .then((res) => {

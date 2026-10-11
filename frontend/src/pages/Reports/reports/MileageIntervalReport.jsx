@@ -13,7 +13,7 @@ import ReportPagination from './ReportPagination';
 import FilterBar from '../../../components/ui/FilterBar';
 import DataTable from '../../../components/ui/DataTable';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
-import apiClient from '../../../utils/axiosConfig';
+import { getVehicleList } from '../../../services/vehicleListService';
 import useApi from '../../../hooks/useApi';
 import { ReportsService } from '../ReportsService.jsx';
 import { exportFilteredReportCsv } from '../../../utils/reportCsvExport';
@@ -45,10 +45,7 @@ const MileageIntervalReport = () => {
 
   const { data: filterResponse, error: filtersError } = useApi(
     (signal) =>
-      Promise.all([
-        apiClient.get('api/vehicles', { params: { limit: 200 }, signal }),
-        ReportsService.getEmployees({ limit: 200 }),
-      ]),
+      Promise.all([getVehicleList({ signal }), ReportsService.getEmployees({ limit: 200 })]),
     [],
   );
 

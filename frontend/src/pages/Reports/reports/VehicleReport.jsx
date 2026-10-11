@@ -13,7 +13,7 @@ import DataTable from '../../../components/ui/DataTable';
 import ExportButton from '../../../components/ui/ExportButton';
 import KpiCard from '../../../components/ui/KpiCard';
 import ReportDataNotice from '../../../components/ui/ReportDataNotice';
-import apiClient from '../../../utils/axiosConfig';
+import { getVehicleList } from '../../../services/vehicleListService';
 import useApi from '../../../hooks/useApi';
 import { ReportsService } from '../ReportsService.jsx';
 import { formatINR, formatKm, formatLitres, formatNum } from '../../../utils/formatters';
@@ -32,10 +32,7 @@ const VehicleReport = () => {
   const [vehicleId, setVehicleId] = useState('all');
   const [pager, setPager] = useState({ key: '', page: 1 });
 
-  const { data: vehiclesRes } = useApi(
-    (signal) => apiClient.get('api/vehicles', { params: { limit: 1000 }, signal }),
-    [],
-  );
+  const { data: vehiclesRes } = useApi((signal) => getVehicleList({ signal }), []);
   const vehicleOptions = useMemo(() => extractVehicleOptions(vehiclesRes), [vehiclesRes]);
 
   const filters = useMemo(

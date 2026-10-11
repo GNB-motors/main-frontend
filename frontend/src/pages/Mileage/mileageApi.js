@@ -1,4 +1,5 @@
 import apiClient from '../../utils/axiosConfig';
+import { getVehicleList } from '../../services/vehicleListService';
 import { parseSafe } from '../../schemas/validate';
 import { rangeToParams } from './mileageRows';
 
@@ -38,16 +39,7 @@ export const MileageApi = {
     apiClient.put(`/api/mileage/fuel-log/${id}`, body, { signal }).then((res) => res.data),
   deleteBill: (id, { signal } = {}) =>
     apiClient.delete(`/api/mileage/fuel-log/${id}`, { signal }).then((res) => res.data),
-  vehicles: (signal) =>
-    apiClient
-      .get('/api/vehicles', { params: { page: 1, limit: 1000 }, signal })
-      .then((res) =>
-        parseSafe(
-          'vehicleListResponseSchema',
-          () => import('../../schemas/vehicle.schema.js'),
-          res.data ?? null,
-        ),
-      ),
+  vehicles: (signal) => getVehicleList({ signal }),
   expected: (range, vehicleId, signal) =>
     get(
       '/api/fuel-model/expected',

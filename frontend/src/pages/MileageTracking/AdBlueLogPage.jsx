@@ -12,6 +12,7 @@ import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../utils/axiosConfig';
 import { TripService, OCRService } from '../Trip/services';
+import { getVehicleList } from '../../services/vehicleListService';
 import PageShell from '../../components/ui/PageShell';
 import { SlotUpload } from './AdBlueSlotUpload';
 import { SearchableEntityDropdown } from './SearchableEntityDropdown';
@@ -55,10 +56,10 @@ const AdBlueLogPage = () => {
   useEffect(() => {
     const fetchDeps = async () => {
       try {
-        const vehRes = await TripService.getVehicles({ limit: 100 });
+        const vehicleList = await getVehicleList();
         const drvRes = await TripService.getDrivers({ limit: 100 });
         setVehicles(
-          (vehRes?.data || []).map((v) => ({
+          vehicleList.map((v) => ({
             id: v._id,
             name: v.registrationNumber,
             registration: `${v.vehicleType} - ${v.model || 'N/A'}`,

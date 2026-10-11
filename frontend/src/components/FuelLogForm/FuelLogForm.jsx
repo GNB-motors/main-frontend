@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import apiClient from '../../utils/axiosConfig';
 import useApi from '../../hooks/useApi';
 import { TripService, OCRService } from '../../pages/Trip/services';
+import { getVehicleList } from '../../services/vehicleListService';
 import LocationAutocomplete from '../LocationAutocomplete/LocationAutocomplete';
 import DriverVehicleAssignmentService from '../../services/DriverVehicleAssignmentService';
 import '../../pages/MileageTracking/MileageTracking.css';
@@ -275,7 +276,7 @@ const FuelLogForm = ({
     error: depsError,
   } = useApi(async () => {
     const [vehRes, drvRes] = await Promise.all([
-      TripService.getVehicles({ limit: 100 }),
+      getVehicleList(),
       TripService.getDrivers({ limit: 100 }),
     ]);
     return { vehRes, drvRes };
@@ -285,7 +286,7 @@ const FuelLogForm = ({
   useEffect(() => {
     if (!depsResponse) return;
     const { vehRes, drvRes } = depsResponse;
-    const vList = vehRes?.data || [];
+    const vList = vehRes || [];
     setVehicles(
       vList.map((v) => ({
         id: v._id,

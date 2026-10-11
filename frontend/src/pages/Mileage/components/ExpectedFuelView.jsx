@@ -75,7 +75,7 @@ export default function ExpectedFuelView({ range }) {
     { enabled: Boolean(vehicleId) },
   );
 
-  const list = (Array.isArray(vehicles.data?.data) ? vehicles.data.data : [])
+  const list = (Array.isArray(vehicles.data) ? vehicles.data : [])
     .filter((v) => v._id && v.registrationNumber)
     .sort((a, b) => a.registrationNumber.localeCompare(b.registrationNumber));
   const selected = list.find((v) => v._id === vehicleId);
