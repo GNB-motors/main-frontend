@@ -40,3 +40,15 @@ export function Skeleton({ rows = 3 }) {
     </div>
   );
 }
+
+/** A setting that failed to load: say so and offer a retry, never a fake default. */
+export function LoadError({ message, onRetry }) {
+  return (
+    <div className="stx-load-error" role="alert">
+      <span>{message}</span>
+      <button type="button" className="stx-btn" onClick={onRetry}>
+        Try again
+      </button>
+    </div>
+  );
+}

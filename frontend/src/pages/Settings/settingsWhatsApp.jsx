@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'react-toastify';
-import apiClient from '../../utils/axiosConfig';
-import { Card, SectionHead, Skeleton } from './settingsAtoms';
+import useApi from '../../hooks/useApi';
+import { SettingsService } from './SettingsService';
+import { Card, LoadError, SectionHead, Skeleton } from './settingsAtoms';
 
 const MODES = [
   {
@@ -24,35 +25,26 @@ const MODES = [
 
 /** How the odometer is captured when a driver sends a fuel bill on WhatsApp. */
 export function WhatsAppSettings() {
-  const [mode, setMode] = useState(null);
+  const { data, error, refetch } = useApi(
+    (signal) => SettingsService.getWhatsAppSettings({ signal }),
+    [],
+  );
+  // The choice made on this page; until then the loaded setting is the truth.
+  const [chosen, setChosen] = useState(null);
+  const mode = chosen ?? (data ? data.odometerMode || 'INTERACTIVE' : null);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    let live = true;
-    apiClient
-      .get('/api/whatsapp/settings')
-      .then((res) => {
-        if (live) setMode(res.data?.data?.odometerMode || 'INTERACTIVE');
-      })
-      .catch(() => {
-        if (live) setMode('INTERACTIVE');
-      });
-    return () => {
-      live = false;
-    };
-  }, []);
 
   const change = async (next) => {
     if (next === mode || saving) return;
     const prev = mode;
-    setMode(next);
+    setChosen(next);
     setSaving(true);
     try {
-      await apiClient.patch('/api/whatsapp/settings', { odometerMode: next });
+      await SettingsService.updateWhatsAppOdometerMode(next);
       toast.success('Odometer setting saved');
     } catch (err) {
-      setMode(prev);
-      toast.error(err?.response?.data?.message || 'Could not save the odometer setting.');
+      setChosen(prev);
+      toast.error(err?.message || 'Could not save the odometer setting.');
     } finally {
       setSaving(false);
     }
@@ -66,7 +58,9 @@ export function WhatsAppSettings() {
         desc="How the odometer reading is filled in when a driver sends a fuel bill on WhatsApp."
       />
       <Card title="Odometer reading">
-        {mode == null ? (
+        {mode == null && error ? (
+          <LoadError message="Could not load the odometer setting." onRetry={refetch} />
+        ) : mode == null ? (
           <Skeleton rows={3} />
         ) : (
           <div className="stx-options" role="radiogroup" aria-label="Odometer reading">

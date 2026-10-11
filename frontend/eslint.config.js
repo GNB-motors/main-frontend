@@ -131,8 +131,6 @@ export default defineConfig([
       'src/pages/Onboarding/components/LaunchAnimation.jsx',
       'src/pages/Onboarding/OnboardingPage.jsx',
       'src/pages/Reports/reports/AdBlueComparisonReport.jsx',
-      'src/pages/Settings/settingsIdling.jsx',
-      'src/pages/Settings/settingsWhatsApp.jsx',
       'src/pages/Superadmin/components/lemu/LemuFlagsTab.jsx',
       'src/pages/Superadmin/components/OrgFeatureFlagsDetailPage.jsx',
       'src/pages/Superadmin/components/OrgFeatureFlagsPage.jsx',

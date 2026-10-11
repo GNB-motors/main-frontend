@@ -16,7 +16,18 @@ describe('Settings — idle threshold', () => {
   it('shows the org threshold, 20 min by default', async () => {
     render(<IdleThresholdSetting canEdit />);
     expect(await screen.findByDisplayValue('20')).toBeInTheDocument();
-    expect(apiClient.get).toHaveBeenCalledWith('api/fuel-settings');
+    expect(apiClient.get).toHaveBeenCalledWith('api/fuel-settings', expect.any(Object));
+  });
+
+  // It used to sit on the skeleton forever when the load failed.
+  it('says the threshold could not load, and retries', async () => {
+    apiClient.get
+      .mockRejectedValueOnce(new Error('Network Error'))
+      .mockResolvedValueOnce({ data: { data: { idleThresholdMin: 25 } } });
+    render(<IdleThresholdSetting canEdit />);
+    expect(await screen.findByText('Could not load the idle threshold.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByDisplayValue('25')).toBeInTheDocument();
   });
 
   it('an owner or manager saves a new value', async () => {
