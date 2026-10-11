@@ -110,6 +110,7 @@ Where it has drifted — the substance of this audit:
 17. **Settle service/model placement conventions** and codemod to them; add `no-restricted-imports` to ban `apiClient`/`axios` outside the data layer. [04 #4]
 18. **Consolidate the three map stacks** and gate the deck.gl/three 3D truck behind explicit opt-in (multi-MB lazy payload). [08 #3, 09]
 19. **Rethink the branch-switch remount** — react to `branchId` in fetch deps instead of remounting the whole subtree. [01 #4, 03]
+    - *Decision (2026-10-11): keep the remount.* Every apiClient call carries `X-Branch-Id`, so a branch switch must refetch nearly everything either way; dropping the remount saves almost no requests. It would only keep filters/scroll, at the cost of 50 manual fetches in 42 files (plus selected-entity state and the live stream) needing to follow `branchId`, where any miss shows the previous branch's data.
 20. **Evaluate React Compiler** on a branch — it would retire most of the manual-memoization rule surface. [08 #6]
 
 ## 6. Validation strategy (how to prove a fix worked without regressing)
