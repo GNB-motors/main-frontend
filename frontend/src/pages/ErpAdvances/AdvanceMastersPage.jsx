@@ -41,11 +41,14 @@ const AdvanceMastersPage = () => {
     loading,
     error: rowsError,
     refetch: refetchRows,
-  } = useApi(() => {
-    if (tab === 'mileage') return AdvanceService.getMileage({ limit: 200 });
-    if (tab === 'fuel') return AdvanceService.getFuelRates();
-    return AdvanceService.getRouteBudgets({ limit: 200 });
-  }, [JSON.stringify({ tab })]);
+  } = useApi(
+    (signal) => {
+      if (tab === 'mileage') return AdvanceService.getMileage({ limit: 200 }, { signal });
+      if (tab === 'fuel') return AdvanceService.getFuelRates({}, { signal });
+      return AdvanceService.getRouteBudgets({ limit: 200 }, { signal });
+    },
+    [JSON.stringify({ tab })],
+  );
 
   useEffect(() => {
     if (routesResponse) setRoutes(routesResponse.data?.data || []);

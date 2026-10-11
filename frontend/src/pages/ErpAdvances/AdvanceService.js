@@ -99,9 +99,9 @@ const AdvanceService = {
   },
 
   // ─── Advance masters ──────────────────────────────────────────────────────
-  getMileage: async (params = {}) => {
+  getMileage: async (params = {}, { signal } = {}) => {
     try {
-      const response = await apiClient.get(`${MASTERS}/mileage`, { params });
+      const response = await apiClient.get(`${MASTERS}/mileage`, { params, signal });
       return response.data;
     } catch (error) {
       throw unwrapError(error, 'Failed to fetch mileage');
@@ -126,9 +126,9 @@ const AdvanceService = {
     }
   },
 
-  getFuelRates: async (params = {}) => {
+  getFuelRates: async (params = {}, { signal } = {}) => {
     try {
-      const response = await apiClient.get(`${MASTERS}/fuel-rates`, { params });
+      const response = await apiClient.get(`${MASTERS}/fuel-rates`, { params, signal });
       return response.data;
     } catch (error) {
       throw unwrapError(error, 'Failed to fetch fuel rates');
@@ -153,9 +153,9 @@ const AdvanceService = {
     }
   },
 
-  getRouteBudgets: async (params = {}) => {
+  getRouteBudgets: async (params = {}, { signal } = {}) => {
     try {
-      const response = await apiClient.get(`${MASTERS}/route-budgets`, { params });
+      const response = await apiClient.get(`${MASTERS}/route-budgets`, { params, signal });
       return response.data;
     } catch (error) {
       throw unwrapError(error, 'Failed to fetch route budgets');
