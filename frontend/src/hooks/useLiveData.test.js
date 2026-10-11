@@ -134,6 +134,50 @@ describe('useLiveData', () => {
     expect(result.current.status).toBe('ready');
   });
 
+  // The REST read (first load, degraded poll, reconnect resync) used to run
+  // uncancelled, so overlapping reads raced and a slow one could land last.
+  it('passes a signal, cancels a superseded read, and drops its late result', async () => {
+    let releaseFirst;
+    const signals = [];
+    const initialFetch = vi
+      .fn()
+      .mockImplementationOnce((signal) => {
+        signals.push(signal);
+        return new Promise((resolve) => {
+          releaseFirst = () => resolve([{ reg: 'OLD' }]);
+        });
+      })
+      .mockImplementationOnce((signal) => {
+        signals.push(signal);
+        return Promise.resolve([{ reg: 'NEW' }]);
+      });
+    const { result } = renderHook(() => useLiveData('positions', { initialFetch }));
+
+    await act(async () => {
+      result.current.refresh();
+    });
+    await waitFor(() => expect(result.current.data).toEqual([{ reg: 'NEW' }]));
+    expect(signals[0]).toBeInstanceOf(AbortSignal);
+    expect(signals[0].aborted).toBe(true);
+
+    await act(async () => {
+      releaseFirst();
+    });
+    expect(result.current.data).toEqual([{ reg: 'NEW' }]);
+  });
+
+  it('cancels the in-flight read on unmount', async () => {
+    let signal;
+    const initialFetch = vi.fn((s) => {
+      signal = s;
+      return new Promise(() => {});
+    });
+    const { unmount } = renderHook(() => useLiveData('positions', { initialFetch }));
+    await waitFor(() => expect(initialFetch).toHaveBeenCalled());
+    unmount();
+    expect(signal.aborted).toBe(true);
+  });
+
   it('does nothing when disabled', async () => {
     const initialFetch = vi.fn().mockResolvedValue([]);
     const { result } = renderHook(() => useLiveData('positions', { initialFetch, enabled: false }));

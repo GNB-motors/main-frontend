@@ -26,7 +26,7 @@ import { POLL_INTERVAL_MS } from '../pages/LiveTracking/liveTracking.shared.js';
  */
 export function useLivePositions({
   enabled = true,
-  initialFetch = () => LiveTrackingService.getPositions(),
+  initialFetch = (signal) => LiveTrackingService.getPositions({}, { signal }),
   mapStreamRow = (row) => row,
   mergeKey = 'registrationNumber',
   fallbackPollMs = POLL_INTERVAL_MS,

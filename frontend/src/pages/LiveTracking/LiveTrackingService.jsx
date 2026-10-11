@@ -1,5 +1,6 @@
 import apiClient from '../../utils/axiosConfig';
 import ApiError from '../../errors/ApiError';
+import { parseSafe } from '../../schemas/validate.js';
 
 /**
  * Service functions for the Live Tracking map.
@@ -14,10 +15,14 @@ export const LiveTrackingService = {
    *   eventDateTime, latitude, longitude, speed, courseDegrees, ignition,
    *   primaryFuelLevel, status, isStale, pulledAt }
    */
-  getPositions: async (params = {}) => {
+  getPositions: async (params = {}, { signal } = {}) => {
     try {
-      const response = await apiClient.get(`/api/livetracking/positions`, { params });
-      return response.data?.data?.records || [];
+      const response = await apiClient.get(`/api/livetracking/positions`, { params, signal });
+      return parseSafe(
+        'livePositionListSchema',
+        () => import('../../schemas/livePosition.schema.js'),
+        response.data?.data?.records || [],
+      );
     } catch (error) {
       throw ApiError.from(error);
     }
