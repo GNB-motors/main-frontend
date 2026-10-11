@@ -15,7 +15,6 @@ export const OwnerAlertsService = {
       return response.data?.data || {};
     } catch (error) {
       if (error?.code === 'ERR_CANCELED') throw error;
-      console.error('API Error fetching owner alerts:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -29,7 +28,6 @@ export const OwnerAlertsService = {
       const response = await apiClient.put(`/api/owner-alerts/${id}/ack`);
       return response.data?.data || {};
     } catch (error) {
-      console.error('API Error acknowledging alert:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -40,7 +38,6 @@ export const OwnerAlertsService = {
       const response = await apiClient.put(`/api/owner-alerts/ack-all`);
       return response.data?.data || {};
     } catch (error) {
-      console.error('API Error acknowledging all alerts:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },

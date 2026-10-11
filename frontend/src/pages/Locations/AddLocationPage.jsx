@@ -13,6 +13,7 @@ import { extractLocationDetails } from './addLocationLogic';
 import { AddLocationFormFields } from './AddLocationFormFields';
 import { AddLocationMap } from './AddLocationMap';
 import './LocationPage.css';
+import logger from '../../utils/logger';
 
 const GOOGLE_MAPS_LIBRARIES = ['places'];
 
@@ -97,7 +98,10 @@ const AddLocationPage = () => {
           toast.info('Pincode not found for this location. Please enter it manually.');
         }
       } else {
-        console.error('Geocoding failed for place_id:', suggestion.place_id, status);
+        logger.warn('AddLocationPage', 'Geocoding failed for place_id', [
+          suggestion.place_id,
+          status,
+        ]);
         toast.error('Failed to get location details');
       }
     });

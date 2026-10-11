@@ -35,6 +35,7 @@ import {
   employeeExportMeta,
 } from './driverList.js';
 import { useDriverActions } from './useDriverActions.js';
+import logger from '../../utils/logger';
 
 // --- Main DriversPage Component ---
 const DriversPage = () => {
@@ -112,7 +113,7 @@ const DriversPage = () => {
         setTotalPages(Math.ceil(normalizedDrivers.length / itemsPerPage));
       }
     } catch (apiError) {
-      console.error('Failed to fetch drivers:', apiError);
+      logger.warn('DriversPage', 'Failed to fetch drivers', apiError);
       setError(apiError?.message || 'Could not load drivers list.');
     } finally {
       setIsLoading(false); // Finish loading drivers
@@ -124,7 +125,7 @@ const DriversPage = () => {
     // Attempt to fetch vehicles even if businessRefId is not present locally.
     const token = getToken();
     if (!token) {
-      console.warn('No auth token present; skipping vehicles fetch.');
+      logger.warn('DriversPage', 'No auth token present; skipping vehicles fetch.');
       return;
     }
 
@@ -132,7 +133,7 @@ const DriversPage = () => {
       const normalized = (await getVehicleList()).map(normalizeVehicleOption);
       setAvailableVehicles(normalized);
     } catch (apiError) {
-      console.error('Failed to fetch vehicles:', apiError);
+      logger.warn('DriversPage', 'Failed to fetch vehicles', apiError);
       // Don't set error state for vehicles, just log it
     }
   };

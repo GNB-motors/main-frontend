@@ -36,7 +36,6 @@ class DocumentService {
       }
       return resp.data;
     } catch (err) {
-      console.error('Document upload failed', err.response?.data || err.message);
       throw ApiError.from(err);
     }
   }
@@ -72,7 +71,6 @@ class DocumentService {
       }
       return resp.data;
     } catch (err) {
-      console.error('Document upload with OCR failed', err.response?.data || err.message);
       throw ApiError.from(err);
     }
   }
@@ -90,7 +88,6 @@ class DocumentService {
       }
       return resp.data;
     } catch (err) {
-      console.error('Failed to fetch document', err.response?.data || err.message);
       throw ApiError.from(err);
     }
   }
@@ -111,7 +108,6 @@ class DocumentService {
       }
       return resp.data?.data || [];
     } catch (err) {
-      console.error('Failed to fetch documents', err.response?.data || err.message);
       throw ApiError.from(err);
     }
   }
@@ -125,7 +121,6 @@ class DocumentService {
     try {
       await apiClient.delete(`/api/documents/${documentId}`);
     } catch (err) {
-      console.error('Failed to delete document', err.response?.data || err.message);
       throw ApiError.from(err);
     }
   }

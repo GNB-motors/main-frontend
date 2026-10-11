@@ -23,6 +23,7 @@ import {
   AssociatedTripsSection,
   TimelineSection,
 } from './TripDetailSections';
+import logger from '../../utils/logger';
 
 const BackButton = ({ onClick }) => (
   <button
@@ -107,7 +108,7 @@ const TripDetailPage = () => {
       const response = await TripService.getTripById(id);
       setTrip(response.data);
     } catch (err) {
-      console.error('Failed to fetch trip details:', err);
+      logger.warn('TripDetailPage', 'Failed to fetch trip details', err);
       setError('Failed to load trip details');
       toast.error('Failed to load trip details');
     } finally {

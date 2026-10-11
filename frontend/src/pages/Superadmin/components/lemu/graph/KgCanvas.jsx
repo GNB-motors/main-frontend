@@ -20,6 +20,7 @@ import { pickNode, pickHostChip } from './kgPick';
 import { shouldCaptureSpace, isSpaceKey, SPACE_PAN_CURSORS } from './spacePan';
 import { hoverMeta, prepareSimGraph } from './kgPrep';
 import { pullTowardCentre } from './incidentRank';
+import logger from '../../../../../utils/logger';
 
 const HIDE_TIP = { show: false, x: 0, y: 0, color: '#fff', name: '', meta: '' };
 
@@ -392,7 +393,7 @@ const KgCanvas = ({
       } catch (err) {
         if (!loggedRef.current) {
           loggedRef.current = true;
-          console.error(err);
+          logger.error('KgCanvas', err);
         }
       }
       raf = requestAnimationFrame(loop);

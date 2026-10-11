@@ -15,6 +15,7 @@ import { PageHeader } from '../../Drivers/Component';
 import { WarehouseService } from './WarehouseService';
 import { getUserRole } from '../../../utils/session';
 import './WarehousePage.css';
+import logger from '../../../utils/logger';
 
 const CHECK_ICONS = {
   liveness: Activity,
@@ -211,7 +212,7 @@ const WarehousePage = () => {
       const json = await WarehouseService.getStatus();
       setStatus(json.data || json);
     } catch (err) {
-      console.error('[Warehouse] status fetch failed:', err);
+      logger.warn('WarehousePage', '[Warehouse] status fetch failed', err);
       setError(err.message || 'Failed to load warehouse status.');
     } finally {
       setLoading(false);

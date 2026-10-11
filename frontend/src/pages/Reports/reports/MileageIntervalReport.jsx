@@ -24,6 +24,7 @@ import {
   extractVehicleOptions,
   extractDriverOptions,
 } from './mileageIntervalReportUtils.js';
+import logger from '../../../utils/logger';
 
 // Server-side row cap of GET /reports/mileage-intervals/export.
 const MILEAGE_EXPORT_CAP = 5000;
@@ -57,7 +58,8 @@ const MileageIntervalReport = () => {
   }, [filterResponse]);
 
   useEffect(() => {
-    if (filtersError) console.error('Failed to load report filters:', filtersError);
+    if (filtersError)
+      logger.warn('MileageIntervalReport', 'Failed to load report filters', filtersError);
   }, [filtersError]);
 
   const {

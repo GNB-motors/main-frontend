@@ -19,7 +19,6 @@ export const LiveTrackingService = {
       const response = await apiClient.get(`/api/livetracking/positions`, { params });
       return response.data?.data?.records || [];
     } catch (error) {
-      console.error('API Error fetching live positions:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -38,7 +37,6 @@ export const LiveTrackingService = {
       );
       return response.data?.data || {};
     } catch (error) {
-      console.error('API Error fetching vehicle trail:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -55,7 +53,6 @@ export const LiveTrackingService = {
       const data = response.data?.data ?? response.data;
       return Array.isArray(data) ? data : [];
     } catch (error) {
-      console.error('API Error fetching intents:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },

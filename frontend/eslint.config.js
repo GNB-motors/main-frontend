@@ -44,6 +44,8 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // Rule 24: log through utils/logger.js (console in dev only, errors to Sentry).
+      'no-console': 'error',
       // localStorage is touched ONLY by utils/session.js — direct access,
       // including window.localStorage, is a build error.
       'no-restricted-syntax': [
@@ -92,6 +94,7 @@ export default defineConfig([
       'react-refresh/only-export-components': 'off',
       // Tests legitimately exercise raw storage (prototype spies, jsdom resets)
       'no-restricted-syntax': 'off',
+      'no-console': 'off',
     },
   },
 ]);

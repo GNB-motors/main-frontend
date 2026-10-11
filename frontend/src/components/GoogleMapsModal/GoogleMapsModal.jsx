@@ -3,6 +3,7 @@ import { GoogleMap, LoadScript, Marker, useLoadScript } from '@react-google-maps
 import { X, Check } from 'lucide-react';
 import GoogleMapsSearch from './GoogleMapsSearch';
 import './GoogleMapsModal.css';
+import logger from '../../utils/logger';
 
 // Static libraries array to prevent performance warnings
 const GOOGLE_MAPS_LIBRARIES = ['places', 'geometry'];
@@ -39,7 +40,7 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
   // Debug logging
   useEffect(() => {
     if (loadError) {
-      console.error('Google Maps Load Error:', loadError);
+      logger.warn('GoogleMapsModal', 'Google Maps Load Error', loadError);
     }
   }, [loadError]);
 
@@ -166,11 +167,14 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
           setMapCenter({ lat: details.lat, lng: details.lng });
           setSearchValue(suggestion.description);
         } else {
-          console.error('Geocoding failed for place_id:', suggestion.place_id, status);
+          logger.warn('GoogleMapsModal', 'Geocoding failed for place_id', [
+            suggestion.place_id,
+            status,
+          ]);
         }
       });
     } catch (error) {
-      console.error('Error selecting suggestion:', error);
+      logger.warn('GoogleMapsModal', 'Error selecting suggestion', error);
     }
   };
 
@@ -234,7 +238,7 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
         onClose();
         return;
       } catch (err) {
-        console.warn('Geocoding failed during Apply:', err);
+        logger.warn('GoogleMapsModal', 'Geocoding failed during Apply', err);
       }
     }
 
@@ -261,11 +265,11 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
           setMapCenter({ lat: details.lat, lng: details.lng });
           setSearchValue(details.address);
         } else {
-          console.error('Geocoding failed for address:', typedAddress, status);
+          logger.warn('GoogleMapsModal', 'Geocoding failed for address', [typedAddress, status]);
         }
       });
     } catch (error) {
-      console.error('Error geocoding typed address:', error);
+      logger.warn('GoogleMapsModal', 'Error geocoding typed address', error);
     }
   };
 

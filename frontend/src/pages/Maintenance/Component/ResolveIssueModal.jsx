@@ -12,6 +12,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { classifyIssuePriority } from '../serviceIntelligenceLogic';
+import logger from '../../../utils/logger';
 
 export default function ResolveIssueModal({ isOpen, onClose, targetItem, onConfirmResolve }) {
   const [workshop, setWorkshop] = useState('');
@@ -52,7 +53,7 @@ export default function ResolveIssueModal({ isOpen, onClose, targetItem, onConfi
       });
       onClose();
     } catch (err) {
-      console.error('Resolve error', err);
+      logger.warn('ResolveIssueModal', 'Resolve error', err);
     } finally {
       setSubmitting(false);
     }

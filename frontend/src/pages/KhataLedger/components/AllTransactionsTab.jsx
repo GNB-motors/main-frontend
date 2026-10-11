@@ -40,6 +40,7 @@ import {
   getDriverName,
   getVehicleLabel,
 } from '../utils';
+import logger from '../../../utils/logger';
 
 const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drivers }) => {
   const [form, setForm] = useState({
@@ -108,7 +109,8 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
         setDriverAutoFilled(true);
       }
     } catch (err) {
-      if (err?.response?.status !== 404) console.warn('Failed to resolve active assignment', err);
+      if (err?.response?.status !== 404)
+        logger.warn('AllTransactionsTab', 'Failed to resolve active assignment', err);
     }
   };
 

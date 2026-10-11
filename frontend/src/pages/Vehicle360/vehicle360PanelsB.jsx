@@ -21,6 +21,7 @@ import {
   daysSince,
   hasDefLedgerData,
 } from './vehicle360Logic';
+import logger from '../../utils/logger';
 
 function Empty({ title, hint, action }) {
   return (
@@ -278,7 +279,7 @@ export function DocumentsPanel({ vehicleId, documents, onChanged }) {
         await refetchDocs();
         onChanged?.();
       } catch (err) {
-        console.error(`Failed to upload ${meta.backendType}`, err);
+        logger.warn('vehicle360PanelsB', `Failed to upload ${meta.backendType}`, err);
         toast.error(`Failed to upload ${meta.label}`);
       } finally {
         uploadingKeys.current.delete(meta.key);
@@ -292,7 +293,6 @@ export function DocumentsPanel({ vehicleId, documents, onChanged }) {
       await refetchDocs();
       onChanged?.();
     } catch (err) {
-      console.error('Failed to delete document', err);
       toast.error('Failed to delete document');
       throw err;
     }

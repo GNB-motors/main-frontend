@@ -27,6 +27,7 @@ import DateRangeFilter from './DateRangeFilter';
 import { getUserRole } from '../../../utils/session';
 import '../SuperAdminPage.css';
 import './OrgDetailPage.css';
+import logger from '../../../utils/logger';
 
 const OrgDetailPage = () => {
   const navigate = useNavigate();
@@ -65,7 +66,7 @@ const OrgDetailPage = () => {
       const json = await res.json();
       setDetail(json.data);
     } catch (err) {
-      console.error('[OrgDetailPage] organization detail fetch failed:', err);
+      logger.warn('OrgDetailPage', '[OrgDetailPage] organization detail fetch failed', err);
       setError('Failed to load organisation details.');
     } finally {
       setLoading(false);

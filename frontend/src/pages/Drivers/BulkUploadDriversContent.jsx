@@ -19,6 +19,7 @@ import {
   buildCredentialsCsv,
   MAX_ROWS,
 } from './bulkUploadFlow.js';
+import logger from '../../utils/logger';
 
 /**
  * The employee bulk-upload flow (file → map columns → review → submit → results),
@@ -229,7 +230,7 @@ const BulkUploadDriversContent = ({ onCompleted, variant = 'page' }) => {
         `Upload completed: ${totalCreatedCount} created, ${totalUpdatedCount} updated, ${totalErrorCount} error(s)`,
       );
     } catch (error) {
-      console.error('Submission error:', error);
+      logger.warn('BulkUploadDriversContent', 'Submission error', error);
 
       // Handle 413 specifically
       if (error.response?.status === 413) {

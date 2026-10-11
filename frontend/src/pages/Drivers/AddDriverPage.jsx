@@ -22,6 +22,7 @@ import DocumentUpload from './Component/DocumentUpload.jsx';
 import FormFooter from './Component/FormFooter.jsx';
 import NewButton from '@/components/ui/NewButton';
 import './DriversPage.css';
+import logger from '../../utils/logger';
 
 const AddDriverPage = () => {
   const navigate = useNavigate();
@@ -80,7 +81,7 @@ const AddDriverPage = () => {
             driverId: empId,
           });
         } catch (err) {
-          console.error('Failed to load vehicle assignment', err);
+          logger.warn('AddDriverPage', 'Failed to load vehicle assignment', err);
         }
         setCurrentAssignment(assignment);
 
@@ -106,13 +107,13 @@ const AddDriverPage = () => {
           password: '', // Don't prefill password
           vehicleId: assignment ? DriverVehicleAssignmentService.idOf(assignment.vehicleId) : '',
         };
-        console.log('Editing driver:', editing);
-        console.log('Setting form data:', formData);
+        logger.info('AddDriverPage', 'Editing driver', editing);
+        logger.info('AddDriverPage', 'Setting form data', formData);
         setInitialFormData(formData);
 
         try {
           const fetchedDocs = await DriverService.getEmployeeDocuments(empId);
-          console.log('Fetched documents:', fetchedDocs);
+          logger.info('AddDriverPage', 'Fetched documents', fetchedDocs);
           const updatedDocs = {
             driverLicense: {
               file: null,
@@ -151,7 +152,7 @@ const AddDriverPage = () => {
           }
           setDocuments(updatedDocs);
         } catch (err) {
-          console.error('Failed to load documents', err);
+          logger.warn('AddDriverPage', 'Failed to load documents', err);
         }
       } else {
         // Reset to add mode when no editing driver
@@ -238,7 +239,7 @@ const AddDriverPage = () => {
               }
               await DriverService.uploadDocument(entityId, docType, docData.file);
             } catch (docErr) {
-              console.error(`Failed to upload ${docType}`, docErr);
+              logger.warn('AddDriverPage', `Failed to upload ${docType}`, docErr);
               toast.warning(`Failed to upload ${key} document`);
             }
           }
@@ -303,7 +304,7 @@ const AddDriverPage = () => {
         navigate('/drivers');
       }
     } catch (err) {
-      console.error('Add employee error', err);
+      logger.warn('AddDriverPage', 'Add employee error', err);
       // Phone already belongs to someone in the enterprise → offer Import instead
       // of a generic "already exists" error.
       if (err?.body?.code === 'ALREADY_IN_ENTERPRISE' && err.body.data?.employee) {

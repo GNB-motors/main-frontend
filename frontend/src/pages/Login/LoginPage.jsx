@@ -9,6 +9,7 @@ import { LoginPageService } from './LoginPageService.jsx';
 import { resolveLandingRoute } from '../../utils/featureFlagRoutes.js';
 import apiClient from '../../utils/axiosConfig.js';
 import { setSession, setOrgId } from '../../utils/session.js';
+import logger from '../../utils/logger';
 
 // --- Carousel Data ---
 const slideData = [
@@ -118,7 +119,7 @@ const LoginPage = () => {
               setOrgId(orgs[0].orgId);
             }
           } catch (err) {
-            console.error('Failed to fetch orgs for field agent', err);
+            logger.warn('LoginPage', 'Failed to fetch orgs for field agent', err);
           }
           toast.success('Welcome Field Agent! Redirecting to dashboard...');
           setTimeout(() => {

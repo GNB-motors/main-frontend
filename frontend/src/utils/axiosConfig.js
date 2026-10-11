@@ -101,6 +101,8 @@ apiClient.interceptors.response.use(
     // Log X-Request-ID on every error so we can correlate with backend logs
     const requestId = error.response?.headers?.['x-request-id'];
     if (requestId) {
+      // Kept in production on purpose: support asks users for this request id.
+      // eslint-disable-next-line no-console
       console.error(
         `[API Error] status=${error.response?.status} url=${error.config?.url} requestId=${requestId}`,
       );

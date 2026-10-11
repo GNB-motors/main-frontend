@@ -15,7 +15,6 @@ export const FuelIntegrityService = {
       const response = await apiClient.get(`/api/fuel-integrity/fills`, { params });
       return response.data?.data || {};
     } catch (error) {
-      console.error('API Error fetching fuel fills:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -29,10 +28,6 @@ export const FuelIntegrityService = {
       const response = await apiClient.get(`/api/fuel-integrity/windows`, { params });
       return response.data?.data || {};
     } catch (error) {
-      console.error(
-        'API Error fetching fuel integrity windows:',
-        error.response?.data || error.message,
-      );
       throw ApiError.from(error);
     }
   },
@@ -47,10 +42,6 @@ export const FuelIntegrityService = {
       return response.data?.data || {};
     } catch (error) {
       if (error?.code === 'ERR_CANCELED') throw error;
-      console.error(
-        'API Error fetching fuel integrity summary:',
-        error.response?.data || error.message,
-      );
       throw ApiError.from(error);
     }
   },
@@ -65,7 +56,6 @@ export const FuelIntegrityService = {
       return response.data?.data || {};
     } catch (error) {
       if (error?.code === 'ERR_CANCELED') throw error;
-      console.error('API Error fetching pump ledger:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -83,7 +73,6 @@ export const FuelIntegrityService = {
       return response.data?.data || {};
     } catch (error) {
       if (error?.code === 'ERR_CANCELED') throw error;
-      console.error('API Error fetching refuel advisory:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -96,10 +85,6 @@ export const FuelIntegrityService = {
       const response = await apiClient.post(`/api/fuel-integrity/sync`);
       return response.data?.data || {};
     } catch (error) {
-      console.error(
-        'API Error triggering fuel integrity sync:',
-        error.response?.data || error.message,
-      );
       throw ApiError.from(error);
     }
   },

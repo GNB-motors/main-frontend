@@ -19,6 +19,7 @@ import {
   ocrAutofill,
 } from './fuelUploadUtils';
 import '../MileageTracking/MileageTracking.css'; // Reuse existing styles
+import logger from '../../utils/logger';
 
 const FieldAgentFuelUploadPage = () => {
   const navigate = useNavigate();
@@ -78,7 +79,8 @@ const FieldAgentFuelUploadPage = () => {
   }, [odometerResponse]);
 
   useEffect(() => {
-    if (odometerError) console.error('Failed to fetch last odometer', odometerError);
+    if (odometerError)
+      logger.warn('FieldAgentFuelUploadPage', 'Failed to fetch last odometer', odometerError);
   }, [odometerError]);
 
   const { data: depsResponse, error: depsError } = useApi(

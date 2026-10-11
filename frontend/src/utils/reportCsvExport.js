@@ -140,7 +140,6 @@ export async function exportFilteredReportCsv({
     if (showToast) toast.success(successMessage);
     return true;
   } catch (err) {
-    console.error('Filtered report export failed:', err);
     if (showToast) {
       toast.error(err?.message || errorMessage);
     }

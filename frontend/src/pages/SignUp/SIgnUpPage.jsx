@@ -4,6 +4,7 @@ import UkoLogo from '../../assets/uko-logo.png';
 import LottieLoader from '../../components/LottieLoader.jsx';
 import './SignUpPage.css';
 import { SignUpPageService } from './SignUpPageService.jsx';
+import logger from '../../utils/logger';
 
 const SignUpPage = () => {
   // State for form fields
@@ -46,7 +47,7 @@ const SignUpPage = () => {
       setMobileNumber('');
       setGstin('');
     } catch (apiError) {
-      console.error('Failed to add user:', apiError);
+      logger.warn('SIgnUpPage', 'Failed to add user', apiError);
       const errorMessage = apiError?.message || 'Failed to add user. Please try again.';
       toast.error(errorMessage);
     } finally {

@@ -33,6 +33,7 @@ import {
 } from './serviceIntelligenceLogic';
 import '../Profile/VehiclesPage.css';
 import './ServiceIntelligencePage.css';
+import logger from '../../utils/logger';
 
 const TABS = [
   { key: 'SERVICE', label: 'Service History', icon: Wrench },
@@ -213,7 +214,7 @@ const ServiceIntelligencePage = () => {
       setResolveModalOpen(false);
       setSelectedResolveItem(null);
     } catch (err) {
-      console.error('Failed to resolve issue', err);
+      logger.warn('ServiceIntelligencePage', 'Failed to resolve issue', err);
       toast.error(err?.message || 'Failed to mark issue as resolved');
     }
   };

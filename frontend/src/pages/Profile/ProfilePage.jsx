@@ -7,6 +7,7 @@ import { setProfileField, setThemeColor } from '../../utils/session.js';
 import PageShell from '../../components/ui/PageShell';
 import { ProfileCard, ProfileSkeleton } from './profileCard';
 import { DetailsPanel } from './profileDetailsPanel';
+import logger from '../../utils/logger';
 
 const ProfilePage = () => {
   const [userData, setUserData] = useState(null);
@@ -45,7 +46,7 @@ const ProfilePage = () => {
           setProfileField('owner_email', organization.ownerEmail);
         }
       } catch (err) {
-        console.error('Failed to load profile:', err);
+        logger.warn('ProfilePage', 'Failed to load profile', err);
         setError('Failed to load profile information.');
       } finally {
         setIsLoading(false);

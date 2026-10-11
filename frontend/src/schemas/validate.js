@@ -22,6 +22,7 @@
  *   const list = await parseSafe('branchListSchema', () => import('./branch.schema.js'), data);
  */
 import { captureException } from '../utils/sentry.js';
+import logger from '../utils/logger';
 
 const moduleCache = new Map();
 /** One Sentry report per schema per session — drift is constant, not per-row. */
@@ -44,7 +45,8 @@ export async function parseSafe(exportName, importer, data) {
   } catch (error) {
     if (!reported.has(exportName)) {
       reported.add(exportName);
-      console.warn(
+      logger.warn(
+        'validate',
         `[schema] ${exportName} did not match the API response — passing it through unvalidated.`,
         error?.issues ?? error,
       );

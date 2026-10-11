@@ -8,6 +8,7 @@ import { getVehicleList } from '../../services/vehicleListService';
 import LocationAutocomplete from '../LocationAutocomplete/LocationAutocomplete';
 import DriverVehicleAssignmentService from '../../services/DriverVehicleAssignmentService';
 import '../../pages/MileageTracking/MileageTracking.css';
+import logger from '../../utils/logger';
 
 /* ── UI Icons ── */
 const StackedDocIcon = () => (
@@ -258,7 +259,7 @@ const FuelLogForm = ({
     if (!selectedVehicle) setLastOdometer(null);
   }, [selectedVehicle]);
   useEffect(() => {
-    if (odoError) console.error('Failed to fetch last odometer', odoError);
+    if (odoError) logger.warn('FuelLogForm', 'Failed to fetch last odometer', odoError);
   }, [odoError]);
 
   useEffect(() => {
@@ -370,7 +371,8 @@ const FuelLogForm = ({
           setDriverAutoFilled(true);
         }
       } catch (err) {
-        if (err?.response?.status !== 404) console.warn('Failed to resolve active assignment', err);
+        if (err?.response?.status !== 404)
+          logger.warn('FuelLogForm', 'Failed to resolve active assignment', err);
       }
     },
     [lockDriver, driverTouchedByUser, drivers],

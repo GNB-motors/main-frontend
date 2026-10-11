@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { WhatsAppAuditService } from './WhatsAppAuditService';
 import './WhatsAppAuditPage.css';
+import logger from '../../../utils/logger';
 
 const STAGE_LABELS = {
   IDENTITY_AUTH: { label: 'Identity / Auth', color: '#dc2626', icon: ShieldAlert },
@@ -82,7 +83,7 @@ const WhatsAppAuditPage = () => {
   const [requests, setRequests] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 25, total: 0, totalPages: 1 });
   const [organizations, setOrganizations] = useState([]);
-  
+
   // Filters
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [stageFilter, setStageFilter] = useState('ALL');
@@ -128,43 +129,54 @@ const WhatsAppAuditPage = () => {
   }, []);
 
   // Fetch stats and requests
-  const fetchData = useCallback(async (isBackground = false) => {
-    if (!isBackground) setLoading(true);
-    else setRefreshing(true);
-    setError(null);
+  const fetchData = useCallback(
+    async (isBackground = false) => {
+      if (!isBackground) setLoading(true);
+      else setRefreshing(true);
+      setError(null);
 
-    try {
-      const statsParams = {
-        ...dateParams,
-        ...(orgFilter ? { orgId: orgFilter } : {}),
-      };
+      try {
+        const statsParams = {
+          ...dateParams,
+          ...(orgFilter ? { orgId: orgFilter } : {}),
+        };
 
-      const requestsParams = {
-        ...dateParams,
-        ...(orgFilter ? { orgId: orgFilter } : {}),
-        ...(statusFilter !== 'ALL' ? { status: statusFilter } : {}),
-        ...(stageFilter !== 'ALL' ? { stage: stageFilter } : {}),
-        ...(searchQuery.trim() ? { search: searchQuery.trim() } : {}),
-        page: pagination.page,
-        limit: pagination.limit,
-      };
+        const requestsParams = {
+          ...dateParams,
+          ...(orgFilter ? { orgId: orgFilter } : {}),
+          ...(statusFilter !== 'ALL' ? { status: statusFilter } : {}),
+          ...(stageFilter !== 'ALL' ? { stage: stageFilter } : {}),
+          ...(searchQuery.trim() ? { search: searchQuery.trim() } : {}),
+          page: pagination.page,
+          limit: pagination.limit,
+        };
 
-      const [statsRes, reqsRes] = await Promise.all([
-        WhatsAppAuditService.getStats(statsParams),
-        WhatsAppAuditService.getRequests(requestsParams),
-      ]);
+        const [statsRes, reqsRes] = await Promise.all([
+          WhatsAppAuditService.getStats(statsParams),
+          WhatsAppAuditService.getRequests(requestsParams),
+        ]);
 
-      setStats(statsRes);
-      setRequests(reqsRes.items || []);
-      setPagination(reqsRes.pagination || { page: 1, limit: 25, total: 0, totalPages: 1 });
-    } catch (err) {
-      console.error('[WhatsApp Audit] Failed to load data:', err);
-      setError(err.message || 'Failed to load reliability audit data.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [dateParams, orgFilter, statusFilter, stageFilter, searchQuery, pagination.page, pagination.limit]);
+        setStats(statsRes);
+        setRequests(reqsRes.items || []);
+        setPagination(reqsRes.pagination || { page: 1, limit: 25, total: 0, totalPages: 1 });
+      } catch (err) {
+        logger.warn('WhatsAppAuditPage', '[WhatsApp Audit] Failed to load data', err);
+        setError(err.message || 'Failed to load reliability audit data.');
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [
+      dateParams,
+      orgFilter,
+      statusFilter,
+      stageFilter,
+      searchQuery,
+      pagination.page,
+      pagination.limit,
+    ],
+  );
 
   useEffect(() => {
     fetchData();
@@ -187,7 +199,7 @@ const WhatsAppAuditPage = () => {
       const trace = await WhatsAppAuditService.getRequestTrace(id);
       setTraceData(trace);
     } catch (err) {
-      console.error('Failed to load trace:', err);
+      logger.warn('WhatsAppAuditPage', 'Failed to load trace', err);
       setToastMessage({ type: 'error', text: err.message || 'Failed to load request trace.' });
     } finally {
       setTraceLoading(false);
@@ -205,7 +217,10 @@ const WhatsAppAuditPage = () => {
     setReplayingWamid(wamid);
     try {
       await WhatsAppAuditService.replayMessage(wamid);
-      setToastMessage({ type: 'success', text: `Message re-queued successfully (${wamid.slice(-8)})` });
+      setToastMessage({
+        type: 'success',
+        text: `Message re-queued successfully (${wamid.slice(-8)})`,
+      });
       // Refresh requests list after a short delay
       setTimeout(() => fetchData(true), 1500);
       if (selectedRequestId) {
@@ -229,35 +244,72 @@ const WhatsAppAuditPage = () => {
   const renderTypeBadge = (type) => {
     switch (type) {
       case 'image':
-        return <span className="wa-badge wa-badge--neutral"><ImageIcon size={12} /> Photo</span>;
+        return (
+          <span className="wa-badge wa-badge--neutral">
+            <ImageIcon size={12} /> Photo
+          </span>
+        );
       case 'document':
-        return <span className="wa-badge wa-badge--neutral"><FileText size={12} /> Document</span>;
+        return (
+          <span className="wa-badge wa-badge--neutral">
+            <FileText size={12} /> Document
+          </span>
+        );
       case 'interactive':
-        return <span className="wa-badge wa-badge--neutral"><MousePointerClick size={12} /> Interactive</span>;
+        return (
+          <span className="wa-badge wa-badge--neutral">
+            <MousePointerClick size={12} /> Interactive
+          </span>
+        );
       case 'location':
-        return <span className="wa-badge wa-badge--neutral"><MapPin size={12} /> Location</span>;
+        return (
+          <span className="wa-badge wa-badge--neutral">
+            <MapPin size={12} /> Location
+          </span>
+        );
       default:
-        return <span className="wa-badge wa-badge--neutral"><MessageSquare size={12} /> Text</span>;
+        return (
+          <span className="wa-badge wa-badge--neutral">
+            <MessageSquare size={12} /> Text
+          </span>
+        );
     }
   };
 
   // Render request status badge
   const renderStatusBadge = (req) => {
     if (req.status === 'PROCESSED' && !req.isFailed) {
-      return <span className="wa-badge wa-badge--success"><CheckCircle2 size={12} /> Succeeded</span>;
+      return (
+        <span className="wa-badge wa-badge--success">
+          <CheckCircle2 size={12} /> Succeeded
+        </span>
+      );
     }
     if (req.isFailed || req.status === 'FAILED') {
-      return <span className="wa-badge wa-badge--fail"><XCircle size={12} /> Failed</span>;
+      return (
+        <span className="wa-badge wa-badge--fail">
+          <XCircle size={12} /> Failed
+        </span>
+      );
     }
     if (req.status === 'CLAIMED') {
-      return <span className="wa-badge wa-badge--processing"><RefreshCw size={12} className="wa-spin" /> In-Flight</span>;
+      return (
+        <span className="wa-badge wa-badge--processing">
+          <RefreshCw size={12} className="wa-spin" /> In-Flight
+        </span>
+      );
     }
-    return <span className="wa-badge wa-badge--queued"><Clock size={12} /> Queued</span>;
+    return (
+      <span className="wa-badge wa-badge--queued">
+        <Clock size={12} /> Queued
+      </span>
+    );
   };
 
   // Render rich message content inside the trace inspection view
   const renderMessageContentDetail = (req, draft) => {
-    if (!req) return <div style={{ color: 'var(--wa-text-muted)', fontSize: 12 }}>No message content</div>;
+    if (!req)
+      return <div style={{ color: 'var(--wa-text-muted)', fontSize: 12 }}>No message content</div>;
     const type = req.messageType || 'text';
     const payload = req.payload || {};
 
@@ -284,7 +336,11 @@ const WhatsAppAuditPage = () => {
         <div className="wa-chat-bubble">
           {type === 'text' && (
             <div className="wa-chat-bubble__text">
-              {textBody || <span style={{ fontStyle: 'italic', color: 'var(--wa-text-muted)' }}>Empty text message</span>}
+              {textBody || (
+                <span style={{ fontStyle: 'italic', color: 'var(--wa-text-muted)' }}>
+                  Empty text message
+                </span>
+              )}
             </div>
           )}
 
@@ -297,7 +353,9 @@ const WhatsAppAuditPage = () => {
                     <span>Quick Reply Selected</span>
                   </div>
                   <div className="wa-bubble-choice-title">"{buttonReply.title}"</div>
-                  <div className="wa-bubble-choice-id">Button ID: <code>{buttonReply.id}</code></div>
+                  <div className="wa-bubble-choice-id">
+                    Button ID: <code>{buttonReply.id}</code>
+                  </div>
                 </div>
               )}
               {listReply && (
@@ -307,13 +365,21 @@ const WhatsAppAuditPage = () => {
                     <span>List Option Chosen</span>
                   </div>
                   <div className="wa-bubble-choice-title">"{listReply.title}"</div>
-                  {listReply.description && <div className="wa-bubble-choice-desc">{listReply.description}</div>}
-                  <div className="wa-bubble-choice-id">Item ID: <code>{listReply.id}</code></div>
+                  {listReply.description && (
+                    <div className="wa-bubble-choice-desc">{listReply.description}</div>
+                  )}
+                  <div className="wa-bubble-choice-id">
+                    Item ID: <code>{listReply.id}</code>
+                  </div>
                 </div>
               )}
               {!buttonReply && !listReply && (
                 <div className="wa-chat-bubble__text">
-                  Interactive Response ({typeof payload.interactive === 'object' ? JSON.stringify(payload.interactive) : 'Action'})
+                  Interactive Response (
+                  {typeof payload.interactive === 'object'
+                    ? JSON.stringify(payload.interactive)
+                    : 'Action'}
+                  )
                 </div>
               )}
             </div>
@@ -332,9 +398,7 @@ const WhatsAppAuditPage = () => {
                 </div>
               </div>
               {(image?.caption || draft?.extractedText) && (
-                <div className="wa-media-caption">
-                  "{image?.caption || draft?.extractedText}"
-                </div>
+                <div className="wa-media-caption">"{image?.caption || draft?.extractedText}"</div>
               )}
               {draft && (
                 <div className="wa-media-draft-badge">
@@ -353,7 +417,9 @@ const WhatsAppAuditPage = () => {
                 <MapPin size={20} color="#2563eb" />
                 <div>
                   <strong>{location?.name || 'GPS Location Coordinate'}</strong>
-                  <div className="wa-media-sub">{location?.address || 'Geolocation coordinate'}</div>
+                  <div className="wa-media-sub">
+                    {location?.address || 'Geolocation coordinate'}
+                  </div>
                 </div>
               </div>
               {location?.latitude && location?.longitude && (
@@ -373,9 +439,7 @@ const WhatsAppAuditPage = () => {
                   <div className="wa-media-sub">{document?.mime_type || 'application/pdf'}</div>
                 </div>
               </div>
-              {document?.caption && (
-                <div className="wa-media-caption">"{document.caption}"</div>
-              )}
+              {document?.caption && <div className="wa-media-caption">"{document.caption}"</div>}
             </div>
           )}
 
@@ -437,7 +501,13 @@ const WhatsAppAuditPage = () => {
           {toastMessage.text}
           <button
             onClick={() => setToastMessage(null)}
-            style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', marginLeft: 8 }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#fff',
+              cursor: 'pointer',
+              marginLeft: 8,
+            }}
           >
             <X size={14} />
           </button>
@@ -452,7 +522,8 @@ const WhatsAppAuditPage = () => {
             WhatsApp Chat Reliability Audit
           </h1>
           <p>
-            Real-time error tracking, failure root cause analysis, and request delivery observability for every chatbot user.
+            Real-time error tracking, failure root cause analysis, and request delivery
+            observability for every chatbot user.
           </p>
         </div>
 
@@ -519,7 +590,11 @@ const WhatsAppAuditPage = () => {
 
       {/* Error alert banner */}
       {error && (
-        <section aria-label="Error announcement" className="wa-diagnosis-box" style={{ marginBottom: 20 }}>
+        <section
+          aria-label="Error announcement"
+          className="wa-diagnosis-box"
+          style={{ marginBottom: 20 }}
+        >
           <div className="wa-diagnosis-box__head">
             <AlertCircle size={18} />
             <span>Observability Error</span>
@@ -544,8 +619,12 @@ const WhatsAppAuditPage = () => {
           <div className="wa-kpi-card__sub">
             <Clock size={12} />
             <span>
-              Avg {stats?.fuelBills?.avgDurationMs ? `${(stats.fuelBills.avgDurationMs / 1000).toFixed(1)}s` : '—'} • ₹
-              {stats?.fuelBills?.totalAmount?.toLocaleString() || 0} ({stats?.fuelBills?.totalLitres || 0} L)
+              Avg{' '}
+              {stats?.fuelBills?.avgDurationMs
+                ? `${(stats.fuelBills.avgDurationMs / 1000).toFixed(1)}s`
+                : '—'}{' '}
+              • ₹{stats?.fuelBills?.totalAmount?.toLocaleString() || 0} (
+              {stats?.fuelBills?.totalLitres || 0} L)
             </span>
           </div>
         </article>
@@ -632,9 +711,7 @@ const WhatsAppAuditPage = () => {
               <Send size={16} />
             </div>
           </div>
-          <div className="wa-kpi-card__val">
-            {stats ? `${stats.summary?.deliveryRate}%` : '—'}
-          </div>
+          <div className="wa-kpi-card__val">{stats ? `${stats.summary?.deliveryRate}%` : '—'}</div>
           <div className="wa-kpi-card__sub">
             <span>
               {stats?.outbound?.delivered || 0} delivered / {stats?.outbound?.failed || 0} failed
@@ -714,7 +791,11 @@ const WhatsAppAuditPage = () => {
               })
             ) : (
               <div className="wa-empty-state">
-                <CheckCircle2 size={32} color="#16a34a" style={{ margin: '0 auto 8px', display: 'block' }} />
+                <CheckCircle2
+                  size={32}
+                  color="#16a34a"
+                  style={{ margin: '0 auto 8px', display: 'block' }}
+                />
                 No failures or error spikes recorded in this window. Chatbot is healthy!
               </div>
             )}
@@ -764,7 +845,11 @@ const WhatsAppAuditPage = () => {
             </table>
           ) : (
             <div className="wa-empty-state">
-              <CheckCircle2 size={32} color="#16a34a" style={{ margin: '0 auto 8px', display: 'block' }} />
+              <CheckCircle2
+                size={32}
+                color="#16a34a"
+                style={{ margin: '0 auto 8px', display: 'block' }}
+              />
               No recurring error messages detected.
             </div>
           )}
@@ -865,13 +950,24 @@ const WhatsAppAuditPage = () => {
               {loading && requests.length === 0 ? (
                 <tr>
                   <td colSpan={4} style={{ textAlign: 'center', padding: '48px 0' }}>
-                    <RefreshCw size={24} className="wa-spin" style={{ margin: '0 auto 8px', display: 'block', color: 'var(--wa-primary)' }} />
+                    <RefreshCw
+                      size={24}
+                      className="wa-spin"
+                      style={{ margin: '0 auto 8px', display: 'block', color: 'var(--wa-primary)' }}
+                    />
                     Loading WhatsApp interaction stream…
                   </td>
                 </tr>
               ) : requests.length === 0 ? (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: 'center', padding: '48px 0', color: 'var(--wa-text-muted)' }}>
+                  <td
+                    colSpan={4}
+                    style={{
+                      textAlign: 'center',
+                      padding: '48px 0',
+                      color: 'var(--wa-text-muted)',
+                    }}
+                  >
                     No WhatsApp interactions matched the selected filters.
                   </td>
                 </tr>
@@ -888,12 +984,22 @@ const WhatsAppAuditPage = () => {
                           title="Click vehicle number to inspect full trace, time, message content & reliability status"
                         >
                           <Truck size={13} className="wa-vehicle-pill-icon" />
-                          <span className="wa-vehicle-reg-text">{r.vehicleReg || 'Unassigned'}</span>
+                          <span className="wa-vehicle-reg-text">
+                            {r.vehicleReg || 'Unassigned'}
+                          </span>
                           <ExternalLink size={10} className="wa-vehicle-link-icon" />
                         </button>
                         {r.draft && (
-                          <div style={{ fontSize: 11, color: '#16a34a', marginTop: 2, fontWeight: 500 }}>
-                            Fuel Bill: ₹{r.draft.amount?.toLocaleString() || 0} ({r.draft.litres || 0}L)
+                          <div
+                            style={{
+                              fontSize: 11,
+                              color: '#16a34a',
+                              marginTop: 2,
+                              fontWeight: 500,
+                            }}
+                          >
+                            Fuel Bill: ₹{r.draft.amount?.toLocaleString() || 0} (
+                            {r.draft.litres || 0}L)
                           </div>
                         )}
                       </div>
@@ -913,12 +1019,18 @@ const WhatsAppAuditPage = () => {
                             }}
                             title="Copy phone number"
                           >
-                            {copiedId === r.id ? <CheckCircle2 size={12} color="#16a34a" /> : <Copy size={12} />}
+                            {copiedId === r.id ? (
+                              <CheckCircle2 size={12} color="#16a34a" />
+                            ) : (
+                              <Copy size={12} />
+                            )}
                           </button>
                         </div>
                         <div className="wa-user-sub-info">
                           {r.user ? (
-                            <span>{r.user.name} ({r.user.role})</span>
+                            <span>
+                              {r.user.name} ({r.user.role})
+                            </span>
                           ) : (
                             <span style={{ color: '#dc2626' }}>Unlinked Sender</span>
                           )}
@@ -949,7 +1061,12 @@ const WhatsAppAuditPage = () => {
                         {r.isFailed && (
                           <button
                             className="wa-audit-btn"
-                            style={{ height: 32, padding: '0 8px', borderColor: '#fecaca', color: '#991b1b' }}
+                            style={{
+                              height: 32,
+                              padding: '0 8px',
+                              borderColor: '#fecaca',
+                              color: '#991b1b',
+                            }}
                             onClick={() => handleReplay(r.wamid)}
                             disabled={replayingWamid === r.wamid}
                             title="Replay inbound message"
@@ -974,7 +1091,8 @@ const WhatsAppAuditPage = () => {
         <footer className="wa-pagination">
           <div>
             Showing {(pagination.page - 1) * pagination.limit + 1}–
-            {Math.min(pagination.total, pagination.page * pagination.limit)} of {pagination.total} requests
+            {Math.min(pagination.total, pagination.page * pagination.limit)} of {pagination.total}{' '}
+            requests
           </div>
           <div className="wa-pagination__btns">
             <button
@@ -1000,14 +1118,22 @@ const WhatsAppAuditPage = () => {
 
       {/* Slide-Out Request Trace Drawer */}
       {selectedRequestId && (
-        <aside aria-label="Request lifecycle trace details" className="wa-drawer-backdrop" onClick={closeTrace}>
+        <aside
+          aria-label="Request lifecycle trace details"
+          className="wa-drawer-backdrop"
+          onClick={closeTrace}
+        >
           <section className="wa-drawer" onClick={(e) => e.stopPropagation()}>
             <div className="wa-drawer__header">
               <h2>
                 <Truck size={20} color="#4f46e5" />
                 Vehicle &amp; Interaction Audit Trace
               </h2>
-              <button className="wa-drawer__close" onClick={closeTrace} aria-label="Close trace drawer">
+              <button
+                className="wa-drawer__close"
+                onClick={closeTrace}
+                aria-label="Close trace drawer"
+              >
                 <X size={18} />
               </button>
             </div>
@@ -1015,7 +1141,11 @@ const WhatsAppAuditPage = () => {
             <div className="wa-drawer__body">
               {traceLoading ? (
                 <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                  <RefreshCw size={24} className="wa-spin" style={{ margin: '0 auto 12px', display: 'block', color: 'var(--wa-primary)' }} />
+                  <RefreshCw
+                    size={24}
+                    className="wa-spin"
+                    style={{ margin: '0 auto 12px', display: 'block', color: 'var(--wa-primary)' }}
+                  />
                   Retrieving request lifecycle trace…
                 </div>
               ) : traceData ? (
@@ -1026,7 +1156,9 @@ const WhatsAppAuditPage = () => {
                       <div className="wa-plate-box">
                         <span className="wa-plate-ind">IND</span>
                         <span className="wa-plate-number">
-                          {traceData.vehicle?.vehicleReg || traceData.draft?.vehicleReg || 'UNASSIGNED'}
+                          {traceData.vehicle?.vehicleReg ||
+                            traceData.draft?.vehicleReg ||
+                            'UNASSIGNED'}
                         </span>
                       </div>
                       <div className="wa-drawer-status-group">
@@ -1036,10 +1168,13 @@ const WhatsAppAuditPage = () => {
 
                     <div className="wa-drawer-vehicle-banner__grid">
                       <div className="wa-meta-item">
-                        <span className="wa-meta-item__lbl"><User size={11} /> Driver / User</span>
+                        <span className="wa-meta-item__lbl">
+                          <User size={11} /> Driver / User
+                        </span>
                         <strong className="wa-meta-item__val">
                           {traceData.sender.user
-                            ? `${traceData.sender.user.firstName || ''} ${traceData.sender.user.lastName || ''}`.trim() || traceData.sender.user.email
+                            ? `${traceData.sender.user.firstName || ''} ${traceData.sender.user.lastName || ''}`.trim() ||
+                              traceData.sender.user.email
                             : 'Unlinked WhatsApp Sender'}
                         </strong>
                         <div className="wa-phone-row" style={{ marginTop: 2 }}>
@@ -1050,16 +1185,26 @@ const WhatsAppAuditPage = () => {
                             onClick={() => copyToClipboard(traceData.request.waId, 'drawer-phone')}
                             title="Copy phone number"
                           >
-                            {copiedId === 'drawer-phone' ? <CheckCircle2 size={12} color="#16a34a" /> : <Copy size={12} />}
+                            {copiedId === 'drawer-phone' ? (
+                              <CheckCircle2 size={12} color="#16a34a" />
+                            ) : (
+                              <Copy size={12} />
+                            )}
                           </button>
-                          <span className="wa-meta-item__sub" style={{ marginLeft: 4 }}>• {traceData.sender.user?.role || 'Guest'}</span>
+                          <span className="wa-meta-item__sub" style={{ marginLeft: 4 }}>
+                            • {traceData.sender.user?.role || 'Guest'}
+                          </span>
                         </div>
                       </div>
                       <div className="wa-meta-item">
                         <span className="wa-meta-item__lbl">🏢 Organization</span>
-                        <strong className="wa-meta-item__val">{traceData.sender.org?.companyName || 'Unassigned Tenant'}</strong>
+                        <strong className="wa-meta-item__val">
+                          {traceData.sender.org?.companyName || 'Unassigned Tenant'}
+                        </strong>
                         <span className="wa-meta-item__sub">
-                          {traceData.vehicle?.vehicleReg ? `Fleet: ${traceData.vehicle.vehicleReg}` : 'Unassigned Fleet'}
+                          {traceData.vehicle?.vehicleReg
+                            ? `Fleet: ${traceData.vehicle.vehicleReg}`
+                            : 'Unassigned Fleet'}
                         </span>
                       </div>
                     </div>
@@ -1067,44 +1212,142 @@ const WhatsAppAuditPage = () => {
 
                   {/* Fuel Bill Processing Details Card (if draft or OCR details exist) */}
                   {(traceData.draft || traceData.request.messageType === 'image') && (
-                    <div className="wa-panel" style={{ padding: 16, borderColor: '#bbf7d0', background: '#f8fdf9', marginBottom: 16 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                        <h4 style={{ margin: 0, fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, color: '#166534' }}>
+                    <div
+                      className="wa-panel"
+                      style={{
+                        padding: 16,
+                        borderColor: '#bbf7d0',
+                        background: '#f8fdf9',
+                        marginBottom: 16,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginBottom: 12,
+                        }}
+                      >
+                        <h4
+                          style={{
+                            margin: 0,
+                            fontSize: 13,
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            color: '#166534',
+                          }}
+                        >
                           <Receipt size={16} color="#16a34a" />
                           Chat Fuel Bill Processing Details
                         </h4>
                         {traceData.draft?.status && (
-                          <span className="wa-badge wa-badge--success" style={{ textTransform: 'uppercase' }}>
+                          <span
+                            className="wa-badge wa-badge--success"
+                            style={{ textTransform: 'uppercase' }}
+                          >
                             Draft {traceData.draft.status}
                           </span>
                         )}
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, fontSize: 12 }}>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                          gap: 10,
+                          fontSize: 12,
+                        }}
+                      >
                         <div>
-                          <span style={{ color: 'var(--wa-text-muted)', display: 'block', fontSize: 11 }}>Bill Amount</span>
+                          <span
+                            style={{
+                              color: 'var(--wa-text-muted)',
+                              display: 'block',
+                              fontSize: 11,
+                            }}
+                          >
+                            Bill Amount
+                          </span>
                           <strong style={{ fontSize: 15, color: '#166534' }}>
-                            {traceData.draft?.amount ? `₹${traceData.draft.amount.toLocaleString()}` : '—'}
+                            {traceData.draft?.amount
+                              ? `₹${traceData.draft.amount.toLocaleString()}`
+                              : '—'}
                           </strong>
                         </div>
                         <div>
-                          <span style={{ color: 'var(--wa-text-muted)', display: 'block', fontSize: 11 }}>Fuel Litres</span>
-                          <strong>{traceData.draft?.litres ? `${traceData.draft.litres} L` : '—'}</strong>
+                          <span
+                            style={{
+                              color: 'var(--wa-text-muted)',
+                              display: 'block',
+                              fontSize: 11,
+                            }}
+                          >
+                            Fuel Litres
+                          </span>
+                          <strong>
+                            {traceData.draft?.litres ? `${traceData.draft.litres} L` : '—'}
+                          </strong>
                         </div>
                         <div>
-                          <span style={{ color: 'var(--wa-text-muted)', display: 'block', fontSize: 11 }}>Fuel Rate</span>
-                          <strong>{traceData.draft?.rate ? `₹${traceData.draft.rate}/L` : '—'}</strong>
+                          <span
+                            style={{
+                              color: 'var(--wa-text-muted)',
+                              display: 'block',
+                              fontSize: 11,
+                            }}
+                          >
+                            Fuel Rate
+                          </span>
+                          <strong>
+                            {traceData.draft?.rate ? `₹${traceData.draft.rate}/L` : '—'}
+                          </strong>
                         </div>
                         <div>
-                          <span style={{ color: 'var(--wa-text-muted)', display: 'block', fontSize: 11 }}>Fuel Type / Filling</span>
-                          <strong>{traceData.draft?.fuelType || 'DIESEL'} ({traceData.draft?.fillingType || 'FULL_TANK'})</strong>
+                          <span
+                            style={{
+                              color: 'var(--wa-text-muted)',
+                              display: 'block',
+                              fontSize: 11,
+                            }}
+                          >
+                            Fuel Type / Filling
+                          </span>
+                          <strong>
+                            {traceData.draft?.fuelType || 'DIESEL'} (
+                            {traceData.draft?.fillingType || 'FULL_TANK'})
+                          </strong>
                         </div>
                         <div>
-                          <span style={{ color: 'var(--wa-text-muted)', display: 'block', fontSize: 11 }}>Plate on Bill</span>
-                          <strong>{traceData.draft?.plateText || traceData.vehicle?.vehicleReg || '—'}</strong>
+                          <span
+                            style={{
+                              color: 'var(--wa-text-muted)',
+                              display: 'block',
+                              fontSize: 11,
+                            }}
+                          >
+                            Plate on Bill
+                          </span>
+                          <strong>
+                            {traceData.draft?.plateText || traceData.vehicle?.vehicleReg || '—'}
+                          </strong>
                         </div>
                         <div>
-                          <span style={{ color: 'var(--wa-text-muted)', display: 'block', fontSize: 11 }}>Odometer</span>
-                          <strong>{traceData.draft?.odometerReading ? `${traceData.draft.odometerReading} km` : 'Pending'}</strong>
+                          <span
+                            style={{
+                              color: 'var(--wa-text-muted)',
+                              display: 'block',
+                              fontSize: 11,
+                            }}
+                          >
+                            Odometer
+                          </span>
+                          <strong>
+                            {traceData.draft?.odometerReading
+                              ? `${traceData.draft.odometerReading} km`
+                              : 'Pending'}
+                          </strong>
                         </div>
                       </div>
                     </div>
@@ -1112,7 +1355,16 @@ const WhatsAppAuditPage = () => {
 
                   {/* Pipeline Stepper (The Trace) */}
                   <div>
-                    <h4 style={{ margin: '0 0 14px 0', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <h4
+                      style={{
+                        margin: '0 0 14px 0',
+                        fontSize: 14,
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                      }}
+                    >
                       <Activity size={16} color="#4f46e5" />
                       Processing Pipeline Lifecycle
                     </h4>
@@ -1133,12 +1385,23 @@ const WhatsAppAuditPage = () => {
                           <div className="wa-step__marker">
                             {step.status === 'ok' && <CheckCircle2 size={12} />}
                             {step.status === 'failed' && <XCircle size={12} />}
-                            {step.status === 'running' && <RefreshCw size={10} className="wa-spin" />}
+                            {step.status === 'running' && (
+                              <RefreshCw size={10} className="wa-spin" />
+                            )}
                           </div>
                           <div className="wa-step__content">
                             <div className="wa-step__title">
-                              <span>Step {step.step}: {step.name}</span>
-                              <span style={{ fontSize: 11, fontWeight: 500, textTransform: 'uppercase', color: step.status === 'failed' ? '#dc2626' : '#16a34a' }}>
+                              <span>
+                                Step {step.step}: {step.name}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 500,
+                                  textTransform: 'uppercase',
+                                  color: step.status === 'failed' ? '#dc2626' : '#16a34a',
+                                }}
+                              >
                                 {step.status}
                               </span>
                             </div>
@@ -1175,23 +1438,24 @@ const WhatsAppAuditPage = () => {
                               <strong className="wa-time-stat__value">
                                 {formatDate(traceData.request.receivedAt)}
                               </strong>
-                              <span className="wa-time-stat__sub">
-                                Received from Meta Webhook
-                              </span>
+                              <span className="wa-time-stat__sub">Received from Meta Webhook</span>
                             </div>
                             <div className="wa-time-stat">
                               <span className="wa-time-stat__label">Pipeline Latency</span>
                               <strong
                                 className="wa-time-stat__value"
                                 style={{
-                                  color: traceData.request.durationMs > 3000 ? '#dc2626' : '#16a34a',
+                                  color:
+                                    traceData.request.durationMs > 3000 ? '#dc2626' : '#16a34a',
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: 4,
                                 }}
                               >
                                 <Activity size={14} />
-                                {traceData.request.durationMs != null ? `${traceData.request.durationMs}ms` : '—'}
+                                {traceData.request.durationMs != null
+                                  ? `${traceData.request.durationMs}ms`
+                                  : '—'}
                               </strong>
                               <span className="wa-time-stat__sub">
                                 {traceData.request.durationMs != null
@@ -1238,7 +1502,11 @@ const WhatsAppAuditPage = () => {
                           <div className="wa-audit-subcard__head-title">
                             <ShieldAlert
                               size={15}
-                              color={traceData.request.isFailed || traceData.request.status === 'FAILED' ? '#dc2626' : '#16a34a'}
+                              color={
+                                traceData.request.isFailed || traceData.request.status === 'FAILED'
+                                  ? '#dc2626'
+                                  : '#16a34a'
+                              }
                             />
                             <strong>Reliability Status</strong>
                           </div>
@@ -1246,7 +1514,8 @@ const WhatsAppAuditPage = () => {
                             {renderStatusBadge(traceData.request)}
                             {traceData.request.errorStage && (
                               <span className="wa-stage-tag" style={{ margin: 0 }}>
-                                {STAGE_LABELS[traceData.request.errorStage]?.label || traceData.request.errorStage}
+                                {STAGE_LABELS[traceData.request.errorStage]?.label ||
+                                  traceData.request.errorStage}
                               </span>
                             )}
                           </div>
@@ -1258,14 +1527,17 @@ const WhatsAppAuditPage = () => {
                               <div className="wa-diagnosis-box__head">
                                 <AlertCircle size={16} />
                                 <span>
-                                  Failure Identified in {STAGE_LABELS[traceData.diagnosis.stage]?.label || traceData.diagnosis.stage}
+                                  Failure Identified in{' '}
+                                  {STAGE_LABELS[traceData.diagnosis.stage]?.label ||
+                                    traceData.diagnosis.stage}
                                 </span>
                               </div>
                               <div className="wa-diagnosis-box__reason">
                                 <strong>Root Cause:</strong> {traceData.diagnosis.reason}
                               </div>
                               <div className="wa-diagnosis-box__action">
-                                <strong>Suggested Resolution:</strong> {traceData.diagnosis.suggestedAction}
+                                <strong>Suggested Resolution:</strong>{' '}
+                                {traceData.diagnosis.suggestedAction}
                               </div>
                             </div>
                           ) : (
@@ -1275,7 +1547,8 @@ const WhatsAppAuditPage = () => {
                                 <span>All Reliability Checks Passed</span>
                               </div>
                               <div className="wa-success-box__desc">
-                                Inbound request successfully passed Webhook Signature, Identity Verification, OCR &amp; Vehicle Resolution with zero errors.
+                                Inbound request successfully passed Webhook Signature, Identity
+                                Verification, OCR &amp; Vehicle Resolution with zero errors.
                               </div>
                             </div>
                           )}
@@ -1288,16 +1561,25 @@ const WhatsAppAuditPage = () => {
                                 {traceData.request.attempts || 1}
                               </strong>
                               <span className="wa-rel-metric__sub">
-                                {traceData.request.attempts > 1 ? 'Re-queued / Retried' : 'Direct execution'}
+                                {traceData.request.attempts > 1
+                                  ? 'Re-queued / Retried'
+                                  : 'Direct execution'}
                               </span>
                             </div>
                             <div className="wa-rel-metric">
                               <span className="wa-rel-metric__label">Failure Stage</span>
-                              <strong className="wa-rel-metric__value" style={{ color: traceData.request.errorStage ? '#dc2626' : '#16a34a' }}>
+                              <strong
+                                className="wa-rel-metric__value"
+                                style={{
+                                  color: traceData.request.errorStage ? '#dc2626' : '#16a34a',
+                                }}
+                              >
                                 {traceData.request.errorStage || 'NONE (PASSED)'}
                               </strong>
                               <span className="wa-rel-metric__sub">
-                                {traceData.request.errorStage ? 'Requires attention' : 'Healthy flow'}
+                                {traceData.request.errorStage
+                                  ? 'Requires attention'
+                                  : 'Healthy flow'}
                               </span>
                             </div>
                             <div className="wa-rel-metric">
@@ -1389,7 +1671,10 @@ const WhatsAppAuditPage = () => {
                   onClick={() => handleReplay(traceData.request.wamid)}
                   disabled={replayingWamid === traceData.request.wamid}
                 >
-                  <RotateCcw size={14} className={replayingWamid === traceData.request.wamid ? 'wa-spin' : ''} />
+                  <RotateCcw
+                    size={14}
+                    className={replayingWamid === traceData.request.wamid ? 'wa-spin' : ''}
+                  />
                   <span>Replay Message</span>
                 </button>
               )}

@@ -32,6 +32,7 @@ import {
   getUserId,
 } from '../../utils/session';
 import './SuperAdminPage.css';
+import logger from '../../utils/logger';
 
 // ── component ──────────────────────────────────────────────────────────────
 
@@ -87,7 +88,7 @@ const SuperAdminPage = () => {
       const json = await res.json();
       setStats(json.data);
     } catch (err) {
-      console.error('[SuperAdmin] dashboard-stats fetch failed:', err);
+      logger.warn('SuperAdminPage', '[SuperAdmin] dashboard-stats fetch failed', err);
       setStatsError('Failed to load statistics.');
     } finally {
       setStatsLoading(false);
@@ -106,7 +107,7 @@ const SuperAdminPage = () => {
       const json = await res.json();
       setOrgs(json.data || []);
     } catch (err) {
-      console.error('[SuperAdmin] organizations-overview fetch failed:', err);
+      logger.warn('SuperAdminPage', '[SuperAdmin] organizations-overview fetch failed', err);
       setOrgsError('Failed to load organisations.');
     } finally {
       setOrgsLoading(false);
@@ -125,7 +126,7 @@ const SuperAdminPage = () => {
       const json = await res.json();
       setFuelStats(json.data);
     } catch (err) {
-      console.error('[SuperAdmin] platform-fuel-stats fetch failed:', err);
+      logger.warn('SuperAdminPage', '[SuperAdmin] platform-fuel-stats fetch failed', err);
       setFuelError('Failed to load fuel stats.');
     } finally {
       setFuelLoading(false);

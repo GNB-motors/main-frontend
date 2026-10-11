@@ -8,6 +8,7 @@ import { toast } from 'react-toastify';
 import { DriverService } from './DriverService.jsx';
 import { getToken, getBranchId } from '../../utils/session.js';
 import { isCrossBranchMove } from './driverList.js';
+import logger from '../../utils/logger';
 
 export function useDriverActions({
   navigate,
@@ -114,11 +115,8 @@ export function useDriverActions({
       setIsEditModalOpen(false); // Close modal on success
       setEditingDriver(null);
       toast.success(`Employee "${updateData.name}" updated successfully!`);
-    } catch (apiError) {
-      console.error('Failed to update driver:', apiError);
-      // Re-throw error for modal display
-      throw apiError;
     } finally {
+      // Errors propagate to the edit modal, which shows them.
       setIsSubmitting(false);
     }
   };
@@ -157,7 +155,7 @@ export function useDriverActions({
         fetchDrivers();
       }
     } catch (err) {
-      console.error('Failed to delete employee:', err);
+      logger.warn('useDriverActions', 'Failed to delete employee', err);
       const errorMessage = err.message || 'Failed to delete employee.';
       setActionError(errorMessage);
       toast.error(errorMessage);

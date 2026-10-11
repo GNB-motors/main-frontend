@@ -3,6 +3,7 @@ import { getBranchId } from '../../utils/session.js';
 import { parseSafe } from '../../schemas/validate.js';
 import ApiError from '../../errors/ApiError';
 import { invalidateVehicleList } from '../../services/vehicleListService';
+import logger from '../../utils/logger';
 
 /**
  * Shape the form's expected-mileage input for the API. Returns undefined for an
@@ -220,7 +221,6 @@ const uploadVehicleDocument = async (vehicleId, docType, files, opts = {}) => {
     });
     return response.data?.data || response.data;
   } catch (error) {
-    console.error('API Error uploading vehicle document:', error.response?.data || error.message);
     throw ApiError.from(error);
   }
 };
@@ -230,7 +230,11 @@ const getVehicleDocuments = async (vehicleId, { signal } = {}) => {
     const response = await apiClient.get(`/api/vehicles/${vehicleId}/documents`, { signal });
     return response.data?.data || response.data || [];
   } catch (error) {
-    console.error('API Error fetching vehicle documents:', error.response?.data || error.message);
+    logger.warn(
+      'VehicleService',
+      'API Error fetching vehicle documents',
+      error.response?.data || error.message,
+    );
     return [];
   }
 };
@@ -246,7 +250,6 @@ const getFleetDashboard = async ({ search, signal } = {}) => {
     });
     return response.data?.data || response.data || [];
   } catch (error) {
-    console.error('API Error fetching fleet dashboard:', error.response?.data || error.message);
     throw ApiError.from(error);
   }
 };
@@ -256,7 +259,6 @@ const deleteVehicleDocument = async (vehicleId, docId) => {
     const response = await apiClient.delete(`/api/vehicles/${vehicleId}/documents/${docId}`);
     return response.data;
   } catch (error) {
-    console.error('API Error deleting vehicle document:', error.response?.data || error.message);
     throw ApiError.from(error);
   }
 };
@@ -266,10 +268,6 @@ const acknowledgeVehicleDocument = async (vehicleId, docId) => {
     const response = await apiClient.patch(`/api/vehicles/${vehicleId}/documents/${docId}/ack`);
     return response.data?.data || {};
   } catch (error) {
-    console.error(
-      'API Error acknowledging vehicle document:',
-      error.response?.data || error.message,
-    );
     throw ApiError.from(error);
   }
 };

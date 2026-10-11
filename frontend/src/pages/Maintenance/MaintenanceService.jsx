@@ -1,5 +1,6 @@
 import apiClient from '../../utils/axiosConfig';
 import ApiError from '../../errors/ApiError';
+import logger from '../../utils/logger';
 
 const MULTIPART = { headers: { 'Content-Type': 'multipart/form-data' } };
 
@@ -31,7 +32,6 @@ const listRecords = async ({ recordType, vehicleId, search, page = 1, limit = 50
       meta: res.data?.meta || { total: 0, page: 1, limit, totalPages: 1 },
     };
   } catch (err) {
-    console.error('listRecords error', err.response?.data || err.message);
     throw ApiError.from(err);
   }
 };
@@ -45,7 +45,6 @@ const createRecord = async (payload, attachments) => {
     );
     return res.data?.data || res.data;
   } catch (err) {
-    console.error('createRecord error', err.response?.data || err.message);
     throw ApiError.from(err);
   }
 };
@@ -59,7 +58,6 @@ const updateRecord = async (id, payload, attachments) => {
     );
     return res.data?.data || res.data;
   } catch (err) {
-    console.error('updateRecord error', err.response?.data || err.message);
     throw ApiError.from(err);
   }
 };
@@ -69,7 +67,6 @@ const deleteRecord = async (id) => {
     const res = await apiClient.delete(`/api/maintenance/${id}`);
     return res.data;
   } catch (err) {
-    console.error('deleteRecord error', err.response?.data || err.message);
     throw ApiError.from(err);
   }
 };
@@ -80,7 +77,6 @@ const getAlerts = async () => {
     const res = await apiClient.get('/api/maintenance/alerts');
     return Array.isArray(res.data?.data) ? res.data.data : [];
   } catch (err) {
-    console.error('getAlerts error', err.response?.data || err.message);
     throw ApiError.from(err);
   }
 };
@@ -95,7 +91,6 @@ const resolveAlert = async (alertId, { fingerprint, resolutionNote } = {}) => {
     );
     return res.data?.data;
   } catch (err) {
-    console.error('resolveAlert error', err.response?.data || err.message);
     throw ApiError.from(err);
   }
 };
@@ -109,7 +104,6 @@ const getSummary = async ({ recordType, vehicleId, search } = {}) => {
     });
     return res.data?.data || { total: 0, totalAmount: 0, last30: 0 };
   } catch (err) {
-    console.error('getSummary error', err.response?.data || err.message);
     throw ApiError.from(err);
   }
 };
@@ -121,7 +115,7 @@ const getOptions = async () => {
     const res = await apiClient.get('/api/maintenance/options');
     return res.data?.data || { workshops: [], serviceTypes: [], repairTypes: [] };
   } catch (err) {
-    console.error('getOptions error', err.response?.data || err.message);
+    logger.warn('MaintenanceService', 'getOptions error', err.response?.data || err.message);
     return { workshops: [], serviceTypes: [], repairTypes: [] };
   }
 };
@@ -133,7 +127,6 @@ const addOption = async (category, value) => {
     const res = await apiClient.post('/api/maintenance/options', { category, value });
     return res.data?.data || { category, value };
   } catch (err) {
-    console.error('addOption error', err.response?.data || err.message);
     throw ApiError.from(err);
   }
 };

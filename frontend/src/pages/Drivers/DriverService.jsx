@@ -1,6 +1,7 @@
 import apiClient from '../../utils/axiosConfig';
 import { parseSafe } from '../../schemas/validate.js';
 import ApiError from '../../errors/ApiError';
+import logger from '../../utils/logger';
 
 /** Normalise a mobile number to E.164 (+91XXXXXXXXXX for Indian numbers). */
 function normaliseMobile(mobile) {
@@ -39,7 +40,6 @@ export const DriverService = {
       }
       return { data: response.data, meta: null };
     } catch (error) {
-      console.error('API Error fetching drivers:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -82,7 +82,6 @@ export const DriverService = {
         return response.data.data;
       return response.data;
     } catch (error) {
-      console.error('API Error adding driver:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -108,8 +107,6 @@ export const DriverService = {
         return response.data.data;
       return response.data;
     } catch (error) {
-      console.error('API Error bulk adding drivers:', error.response?.data || error.message);
-
       // Handle timeout specifically
       if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
         throw {
@@ -141,7 +138,6 @@ export const DriverService = {
         return response.data.data;
       return response.data;
     } catch (error) {
-      console.error('API Error updating driver:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -153,7 +149,6 @@ export const DriverService = {
       const response = await apiClient.post(`/api/employees/${employeeId}/import`);
       return response.data?.data ?? response.data;
     } catch (error) {
-      console.error('API Error importing employee:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -165,7 +160,6 @@ export const DriverService = {
       const response = await apiClient.post(`/api/employees/${employeeId}/deactivate`);
       return response.data?.data ?? response.data;
     } catch (error) {
-      console.error('API Error deactivating employee:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -178,7 +172,6 @@ export const DriverService = {
       });
       return response.status === 204 || (response.data && response.data.status === 'success');
     } catch (error) {
-      console.error('API Error deleting driver:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -199,7 +192,6 @@ export const DriverService = {
       });
       return response.data;
     } catch (error) {
-      console.error('API Error uploading document:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -210,7 +202,11 @@ export const DriverService = {
       const response = await apiClient.get(`/api/documents?entityType=USER&entityId=${employeeId}`);
       return response.data?.data || response.data || [];
     } catch (error) {
-      console.error('API Error fetching documents:', error.response?.data || error.message);
+      logger.warn(
+        'DriverService',
+        'API Error fetching documents',
+        error.response?.data || error.message,
+      );
       return [];
     }
   },
@@ -221,7 +217,6 @@ export const DriverService = {
       const response = await apiClient.delete(`/api/documents/${documentId}`);
       return response.data;
     } catch (error) {
-      console.error('API Error deleting document:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -232,7 +227,6 @@ export const DriverService = {
       const response = await apiClient.patch(`/api/documents/${documentId}`, updateData);
       return response.data?.data || response.data;
     } catch (error) {
-      console.error('API Error updating document:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },

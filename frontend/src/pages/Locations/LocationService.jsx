@@ -27,7 +27,6 @@ const LocationService = {
       const response = await apiClient.get('/api/locations', { params: filteredParams });
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch locations:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -42,7 +41,6 @@ const LocationService = {
       const response = await apiClient.get(`/api/locations/${id}`);
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch location:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -57,7 +55,6 @@ const LocationService = {
       const response = await apiClient.post('/api/locations', data);
       return response.data;
     } catch (error) {
-      console.error('Failed to create location:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -73,7 +70,6 @@ const LocationService = {
       const response = await apiClient.patch(`/api/locations/${id}`, data);
       return response.data;
     } catch (error) {
-      console.error('Failed to update location:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -88,7 +84,6 @@ const LocationService = {
       const response = await apiClient.delete(`/api/locations/${id}`);
       return response.data;
     } catch (error) {
-      console.error('Failed to delete location:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },

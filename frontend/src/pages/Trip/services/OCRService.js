@@ -4,6 +4,7 @@
  * Standalone OCR endpoints that can be called independently from S3 storage
  */
 import apiClient from '../../../utils/axiosConfig';
+import logger from '../../../utils/logger';
 
 class OCRService {
   /**
@@ -60,7 +61,7 @@ class OCRService {
         data: response.data.data,
       };
     } catch (error) {
-      console.error('OCR preview failed:', error);
+      logger.warn('OCRService', 'OCR preview failed', error);
       return {
         success: false,
         error: error.response?.data?.message || error.message || 'OCR preview failed',
@@ -96,7 +97,7 @@ class OCRService {
         fileInfo: response.data.fileInfo,
       };
     } catch (error) {
-      console.error(`OCR scan failed for ${docType}:`, error);
+      logger.warn('OCRService', `OCR scan failed for ${docType}`, error);
       return {
         success: false,
         error: error.response?.data?.message || error.message || 'OCR scan failed',
@@ -128,7 +129,7 @@ class OCRService {
         parsedFields: response.data.parsedFields,
       };
     } catch (error) {
-      console.error('Odometer OCR scan failed:', error);
+      logger.warn('OCRService', 'Odometer OCR scan failed', error);
       return {
         success: false,
         error: error.response?.data?.message || error.message || 'Odometer scan failed',
@@ -159,7 +160,7 @@ class OCRService {
         parsedFields: response.data.parsedFields,
       };
     } catch (error) {
-      console.error('Fuel receipt OCR scan failed:', error);
+      logger.warn('OCRService', 'Fuel receipt OCR scan failed', error);
       return {
         success: false,
         error: error.response?.data?.message || error.message || 'Receipt scan failed',
@@ -190,7 +191,7 @@ class OCRService {
         parsedFields: response.data.parsedFields,
       };
     } catch (error) {
-      console.error('Weight cert OCR scan failed:', error);
+      logger.warn('OCRService', 'Weight cert OCR scan failed', error);
       return {
         success: false,
         error: error.response?.data?.message || error.message || 'Weight cert scan failed',
@@ -210,7 +211,7 @@ class OCRService {
         types: response.data.data,
       };
     } catch (error) {
-      console.error('Failed to get supported types:', error);
+      logger.warn('OCRService', 'Failed to get supported types', error);
       return {
         success: false,
         error: error.response?.data?.message || error.message,

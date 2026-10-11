@@ -14,7 +14,6 @@ export const WarehouseService = {
       const response = await apiClient.get('/api/warehouse/status');
       return response.data || {};
     } catch (error) {
-      console.error('API Error fetching warehouse status:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },

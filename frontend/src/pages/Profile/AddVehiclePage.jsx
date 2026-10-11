@@ -16,6 +16,7 @@ import { mapFetchedDocsToUiState } from './addVehicleDocMapping';
 import { ImportVehicleDialog } from './ImportVehicleDialog';
 import './VehiclesPage.css';
 import './AddVehiclePage.css';
+import logger from '../../utils/logger';
 
 const formatHSRP = (val) => {
   if (!val) return '';
@@ -106,7 +107,7 @@ const AddVehiclePage = () => {
           const fetchedDocs = await VehicleService.getVehicleDocuments(vId);
           setDocuments(mapFetchedDocsToUiState(fetchedDocs, emptyDocsState));
         } catch (err) {
-          console.error('Failed to load vehicle documents', err);
+          logger.warn('AddVehiclePage', 'Failed to load vehicle documents', err);
         }
       } else {
         setIsEdit(false);
@@ -154,7 +155,7 @@ const AddVehiclePage = () => {
             expiryDate: entry.expiryDate || undefined,
           });
         } catch (docErr) {
-          console.error(`Failed to upload ${meta.backendType}`, docErr);
+          logger.warn('AddVehiclePage', `Failed to upload ${meta.backendType}`, docErr);
           toast.warning(`Failed to upload ${meta.label}`);
         }
       }
@@ -190,7 +191,7 @@ const AddVehiclePage = () => {
         navigate('/vehicles');
       }
     } catch (err) {
-      console.error('Add/Edit vehicle error', err);
+      logger.warn('AddVehiclePage', 'Add/Edit vehicle error', err);
       // Registration already belongs to a vehicle in this enterprise → offer Import.
       if (err?.body?.code === 'ALREADY_IN_ENTERPRISE' && err.body.data?.vehicle) {
         setImportCandidate(err.body.data.vehicle);

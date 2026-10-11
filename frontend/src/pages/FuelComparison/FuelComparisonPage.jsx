@@ -22,6 +22,7 @@ import FuelComparisonDrawer from './FuelComparisonDrawer.jsx';
 import ReviewModal from './ReviewModal.jsx';
 import { IST_ZONE, toIST, fmtDuration, fmtLitres } from './formatIST.js';
 import './FuelComparison.css';
+import logger from '../../utils/logger';
 
 const LIMIT = 20;
 
@@ -218,7 +219,7 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
       setTotal(totalCount);
       setTotalPages(calculatedPages);
     } catch (err) {
-      console.error('Error fetching comparisons:', err);
+      logger.warn('FuelComparisonPage', 'Error fetching comparisons', err);
       toast.error('Failed to load fuel comparisons');
       setRecords([]);
     } finally {

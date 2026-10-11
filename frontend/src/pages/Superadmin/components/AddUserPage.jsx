@@ -4,6 +4,7 @@ import { Mail, Phone, Lock, User, Eye, EyeOff } from 'lucide-react';
 import LottieLoader from '../../../components/LottieLoader.jsx';
 import { getToken } from '../../../utils/session';
 import './AddUserPage.css';
+import logger from '../../../utils/logger';
 
 const AddUserPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -18,9 +19,9 @@ const AddUserPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -36,7 +37,7 @@ const AddUserPage = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(formData),
       });
@@ -57,7 +58,7 @@ const AddUserPage = () => {
         toast.error(data.message || 'Failed to register user');
       }
     } catch (error) {
-      console.error('Registration error:', error);
+      logger.warn('AddUserPage', 'Registration error', error);
       toast.error('An error occurred while registering user');
     } finally {
       setIsLoading(false);
@@ -66,11 +67,7 @@ const AddUserPage = () => {
 
   return (
     <>
-      <LottieLoader 
-        isLoading={isLoading} 
-        size="medium" 
-        message="Registering user..." 
-      />
+      <LottieLoader isLoading={isLoading} size="medium" message="Registering user..." />
 
       <div className="add-user-page">
         <div className="form-container">
@@ -163,36 +160,35 @@ const AddUserPage = () => {
                 <button
                   type="button"
                   className="password-toggle"
-                  onClick={() => setShowPassword(prev => !prev)}
+                  onClick={() => setShowPassword((prev) => !prev)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
               <small className="input-hint">
-                Password must contain at least 8 characters, including uppercase, lowercase, number, and special character
+                Password must contain at least 8 characters, including uppercase, lowercase, number,
+                and special character
               </small>
             </div>
 
             <div className="form-actions">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="btn btn-secondary"
-                onClick={() => setFormData({
-                  email: '',
-                  mobileNumber: '',
-                  password: '',
-                  firstName: '',
-                  lastName: '',
-                })}
+                onClick={() =>
+                  setFormData({
+                    email: '',
+                    mobileNumber: '',
+                    password: '',
+                    firstName: '',
+                    lastName: '',
+                  })
+                }
               >
                 Clear Form
               </button>
-              <button 
-                type="submit" 
-                className="btn btn-primary"
-                disabled={isLoading}
-              >
+              <button type="submit" className="btn btn-primary" disabled={isLoading}>
                 {isLoading ? 'Registering...' : 'Register User'}
               </button>
             </div>

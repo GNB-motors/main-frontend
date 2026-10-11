@@ -14,7 +14,6 @@ export const LemuService = {
       const response = await apiClient.get(`/api/lemu/dashboard`);
       return response.data || {};
     } catch (error) {
-      console.error('API Error fetching LEMU dashboard:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -27,7 +26,6 @@ export const LemuService = {
       const response = await apiClient.get(`/api/lemu/jobs`);
       return response.data || {};
     } catch (error) {
-      console.error('API Error fetching LEMU jobs:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -54,7 +52,6 @@ export const LemuService = {
       const response = await apiClient.get(`/api/lemu/events`, { params });
       return response.data || {};
     } catch (error) {
-      console.error('API Error fetching LEMU events:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -68,10 +65,6 @@ export const LemuService = {
       const response = await apiClient.get(`/api/lemu/errors`, { params });
       return response.data || {};
     } catch (error) {
-      console.error(
-        'API Error fetching LEMU error trackers:',
-        error.response?.data || error.message,
-      );
       throw ApiError.from(error);
     }
   },
@@ -89,10 +82,6 @@ export const LemuService = {
       );
       return response.data || {};
     } catch (error) {
-      console.error(
-        'API Error resolving LEMU error tracker:',
-        error.response?.data || error.message,
-      );
       throw ApiError.from(error);
     }
   },
@@ -105,7 +94,6 @@ export const LemuService = {
       const response = await apiClient.get(`/api/lemu/manifest`);
       return response.data || {};
     } catch (error) {
-      console.error('API Error fetching LEMU manifest:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -119,7 +107,6 @@ export const LemuService = {
       const response = await apiClient.get(`/api/lemu/manifests`, { params });
       return response.data || {};
     } catch (error) {
-      console.error('API Error fetching LEMU manifests:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -133,7 +120,6 @@ export const LemuService = {
       const response = await apiClient.get(`/api/lemu/pulse`, { params });
       return response.data || {};
     } catch (error) {
-      console.error('API Error fetching LEMU pulse:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -148,7 +134,6 @@ export const LemuService = {
       const response = await apiClient.get(`/api/lemu/liveness`, { params });
       return response.data || {};
     } catch (error) {
-      console.error('API Error fetching LEMU liveness:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -161,7 +146,6 @@ export const LemuService = {
       const response = await apiClient.get(`/api/lemu/findings`);
       return response.data || {};
     } catch (error) {
-      console.error('API Error fetching LEMU findings:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -177,10 +161,6 @@ export const LemuService = {
       );
       return response.data || {};
     } catch (error) {
-      console.error(
-        'API Error fetching LEMU manifest diff:',
-        error.response?.data || error.message,
-      );
       throw ApiError.from(error);
     }
   },
@@ -193,7 +173,6 @@ export const LemuService = {
       const response = await apiClient.post(`/api/lemu/manifest/rebuild`);
       return response.data || {};
     } catch (error) {
-      console.error('API Error rebuilding LEMU manifest:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -207,10 +186,6 @@ export const LemuService = {
       const response = await apiClient.get(`/api/lemu/lineage/fuel-integrity`, { params });
       return response.data || {};
     } catch (error) {
-      console.error(
-        'API Error fetching fuel-integrity lineage:',
-        error.response?.data || error.message,
-      );
       throw ApiError.from(error);
     }
   },
@@ -224,7 +199,6 @@ export const LemuService = {
       const response = await apiClient.get(`/api/lemu/topology`);
       return response.data || {};
     } catch (error) {
-      console.error('API Error fetching LEMU topology:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -240,10 +214,6 @@ export const LemuService = {
       const response = await apiClient.get(`/api/lemu/error-attribution`, { params });
       return response.data || {};
     } catch (error) {
-      console.error(
-        'API Error fetching LEMU error attribution:',
-        error.response?.data || error.message,
-      );
       throw ApiError.from(error);
     }
   },
@@ -256,10 +226,6 @@ export const LemuService = {
       const response = await apiClient.get(`/api/lemu/warehouse-freshness`);
       return response.data || {};
     } catch (error) {
-      console.error(
-        'API Error fetching warehouse freshness:',
-        error.response?.data || error.message,
-      );
       throw ApiError.from(error);
     }
   },

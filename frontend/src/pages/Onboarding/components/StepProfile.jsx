@@ -11,6 +11,7 @@ import {
   getUserId,
   getOrgId,
 } from '../../../utils/session.js';
+import logger from '../../../utils/logger';
 
 const StepProfile = ({ onNext, onBack, onDataChange }) => {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ const StepProfile = ({ onNext, onBack, onDataChange }) => {
     // Check if token exists, if not logout
     const token = getToken();
     if (!token) {
-      console.error('No auth token found. Redirecting to login.');
+      logger.warn('StepProfile', 'No auth token found. Redirecting to login.');
       toast.error('Session expired. Please login again.');
       clearAuthData();
       navigate('/login');
@@ -79,7 +80,7 @@ const StepProfile = ({ onNext, onBack, onDataChange }) => {
           toast.warning('Some profile data may be missing');
         }
       } catch (error) {
-        console.error('Could not load user data from session storage:', error);
+        logger.warn('StepProfile', 'Could not load user data from session storage', error);
         toast.error('Failed to load user information. Please log in again.');
       } finally {
         setIsLoading(false);

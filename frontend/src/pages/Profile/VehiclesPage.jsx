@@ -29,6 +29,7 @@ import {
   mapVehicleForExport,
   vehicleExportMeta,
 } from './vehicleList.js';
+import logger from '../../utils/logger';
 
 const VehiclesPage = () => {
   const navigate = useNavigate();
@@ -94,7 +95,7 @@ const VehiclesPage = () => {
         setTotalPages(result.meta.totalPages);
         setTotalVehicles(result.meta.total);
       } catch (apiError) {
-        console.error('Failed to fetch vehicles:', apiError);
+        logger.warn('VehiclesPage', 'Failed to fetch vehicles', apiError);
         setVehicleError(apiError?.message || 'Failed to load vehicles.');
       } finally {
         setIsLoadingVehicles(false);
@@ -129,7 +130,7 @@ const VehiclesPage = () => {
         setRefreshKey((k) => k + 1);
       }
     } catch (apiError) {
-      console.error('Failed to remove vehicle:', apiError);
+      logger.warn('VehiclesPage', 'Failed to remove vehicle', apiError);
       const errorMessage = apiError?.message || 'Could not remove vehicle.';
       setFormError(errorMessage);
       toast.error(errorMessage);

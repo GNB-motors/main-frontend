@@ -3,6 +3,7 @@
  */
 import { clearSession, getToken } from './session.js';
 import { navigateTo, isOnAuthPage } from './navigation.js';
+import logger from './logger';
 
 /**
  * Check if a JWT token is expired
@@ -17,7 +18,7 @@ export const isTokenExpired = (token) => {
     const currentTime = Date.now() / 1000; // Convert to seconds
     return payload.exp < currentTime;
   } catch (error) {
-    console.error('Error parsing token:', error);
+    logger.warn('authUtils', 'Error parsing token', error);
     return true; // If we can't parse it, consider it expired
   }
 };
@@ -34,7 +35,7 @@ export const getTokenExpiration = (token) => {
     const payload = JSON.parse(atob(token.split('.')[1]));
     return new Date(payload.exp * 1000);
   } catch (error) {
-    console.error('Error parsing token expiration:', error);
+    logger.warn('authUtils', 'Error parsing token expiration', error);
     return null;
   }
 };
@@ -44,7 +45,7 @@ export const getTokenExpiration = (token) => {
  */
 export const clearAuthData = () => {
   clearSession();
-  console.log('Auth data cleared - user logged out');
+  logger.info('authUtils', 'Auth data cleared - user logged out');
 };
 
 /**
@@ -132,14 +133,14 @@ export const validateTokenBeforeRequest = (onLogout = null) => {
   const token = getToken();
 
   if (!token) {
-    console.log('No auth token found');
+    logger.info('authUtils', 'No auth token found');
     if (onLogout) onLogout();
     else if (!isOnAuthPage()) navigateTo('/login', { replace: true });
     return false;
   }
 
   if (isTokenExpired(token)) {
-    console.log('Token expired - Auto logging out user');
+    logger.info('authUtils', 'Token expired - Auto logging out user');
     clearAuthData();
     if (onLogout) onLogout();
     else if (!isOnAuthPage())
@@ -172,7 +173,7 @@ export const getTokenTimeRemaining = (token) => {
 
     return { days, hours, minutes, seconds, totalSeconds: remainingSeconds };
   } catch (error) {
-    console.error('Error calculating token time remaining:', error);
+    logger.warn('authUtils', 'Error calculating token time remaining', error);
     return null;
   }
 };

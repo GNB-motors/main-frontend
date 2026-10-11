@@ -23,6 +23,7 @@ import {
 import BulkUploadVehiclesFileStep from './bulkUploadVehiclesFileStep.jsx';
 import BulkUploadVehiclesReviewTable from './bulkUploadVehiclesReviewTable.jsx';
 import BulkUploadVehiclesResultSummary from './bulkUploadVehiclesResultSummary.jsx';
+import logger from '../../utils/logger';
 
 /**
  * The vehicle bulk-upload flow (file → normalize → review → submit → results),
@@ -255,7 +256,7 @@ const BulkUploadVehiclesContent = ({ onCompleted, variant = 'page' }) => {
         setTimeout(() => onCompleted?.(), 2000);
       }
     } catch (error) {
-      console.error('Submission error:', error);
+      logger.warn('BulkUploadVehiclesContent', 'Submission error', error);
       const errorMsg =
         error.response?.data?.message ||
         error.response?.data?.detail ||

@@ -22,6 +22,7 @@ import {
 import { DOC_COLS, bucketFor, daysUntil } from './vehicleDashboardLogic';
 import { VehicleService } from './VehicleService';
 import './VehicleDashboardPage.css';
+import logger from '../../utils/logger';
 
 /**
  * WheelsEye-style slide-over / split panel for Vehicle Dashboard.
@@ -60,7 +61,7 @@ export default function VehicleDashboardPanel({
           setFullDocs(Array.isArray(docs) ? docs : []);
         }
       } catch (err) {
-        console.warn('Could not fetch vehicle document details', err);
+        logger.warn('VehicleDashboardPanel', 'Could not fetch vehicle document details', err);
         if (!isCancelled) setFullDocs([]);
       } finally {
         if (!isCancelled) setLoadingDocs(false);

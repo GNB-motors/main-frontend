@@ -17,7 +17,6 @@ export const KaaranService = {
       const res = await apiClient.get('/api/kaaran/driver-trends', { params });
       return res.data?.data || res.data || [];
     } catch (err) {
-      console.error('KaaranService.getDriverTrends error:', err);
       throw ApiError.from(err);
     }
   },
@@ -27,7 +26,6 @@ export const KaaranService = {
       const res = await apiClient.get(`/api/kaaran/driver-trends/${driverId}`);
       return res.data?.data || res.data;
     } catch (err) {
-      console.error('KaaranService.getDriverTrend error:', err);
       throw ApiError.from(err);
     }
   },
@@ -37,7 +35,6 @@ export const KaaranService = {
       const res = await apiClient.post('/api/kaaran/driver-trends/recompute');
       return res.data;
     } catch (err) {
-      console.error('KaaranService.recomputeDriverTrends error:', err);
       throw ApiError.from(err);
     }
   },
@@ -53,7 +50,6 @@ export const KaaranService = {
       if (Array.isArray(d?.data)) return d.data;
       return [];
     } catch (err) {
-      console.error('KaaranService.getUnknownTerritories error:', err);
       throw ApiError.from(err);
     }
   },
@@ -63,7 +59,6 @@ export const KaaranService = {
       const res = await apiClient.post('/api/kaaran/territory/detect', { lookbackHours });
       return res.data;
     } catch (err) {
-      console.error('KaaranService.detectUnknownTerritories error:', err);
       throw ApiError.from(err);
     }
   },
@@ -73,7 +68,6 @@ export const KaaranService = {
       const res = await apiClient.post(`/api/kaaran/territory/${id}/classify`, data);
       return res.data;
     } catch (err) {
-      console.error('KaaranService.classifyTerritory error:', err);
       throw ApiError.from(err);
     }
   },
@@ -84,7 +78,6 @@ export const KaaranService = {
       const res = await apiClient.get('/api/kaaran/pumps/summary');
       return res.data?.data || res.data || {};
     } catch (err) {
-      console.error('KaaranService.getPumpSummary error:', err);
       throw ApiError.from(err);
     }
   },
@@ -97,7 +90,6 @@ export const KaaranService = {
       if (Array.isArray(d?.pumps)) return d.pumps;
       return [];
     } catch (err) {
-      console.error('KaaranService.getPumpLedger error:', err);
       throw ApiError.from(err);
     }
   },

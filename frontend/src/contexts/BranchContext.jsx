@@ -7,6 +7,7 @@ import {
   setBranchId as persistBranchId,
   getToken,
 } from '../utils/session.js';
+import logger from '../utils/logger';
 
 /**
  * Global "active location" (branch) context.
@@ -64,7 +65,7 @@ export const BranchProvider = ({ children }) => {
         persist(null);
       }
     } catch (err) {
-      console.warn('BranchContext: failed to load locations', err);
+      logger.warn('BranchContext', 'BranchContext: failed to load locations', err);
       setBranches([]);
     } finally {
       setLoading(false);

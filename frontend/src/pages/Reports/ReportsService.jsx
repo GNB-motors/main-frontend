@@ -1,5 +1,6 @@
 import apiClient from '../../utils/axiosConfig'; // Use the configured axios instance
 import ApiError from '../../errors/ApiError';
+import logger from '../../utils/logger';
 
 /**
  * Service functions for fetching report data.
@@ -20,7 +21,6 @@ export const ReportsService = {
       };
     } catch (error) {
       if (error?.name === 'CanceledError') throw error;
-      console.error('API Error fetching vehicle reports:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -66,10 +66,6 @@ export const ReportsService = {
         meta: response.data?.meta || { total: 0, page: 1, limit: 20, totalPages: 0 },
       };
     } catch (error) {
-      console.error(
-        'API Error fetching mileage interval reports:',
-        error.response?.data || error.message,
-      );
       throw ApiError.from(error);
     }
   },
@@ -81,7 +77,7 @@ export const ReportsService = {
    * as `summary` for the footer.
    * @returns {Promise<{ data: Array, total: number, truncated: boolean, summary: Object|null }>}
    */
-  _getTripReport: async (endpoint, params = {}, label = 'report') => {
+  _getTripReport: async (endpoint, params = {}) => {
     try {
       const response = await apiClient.get(endpoint, { params });
       const body = response.data?.data ?? response.data ?? {};
@@ -93,17 +89,15 @@ export const ReportsService = {
         summary: body.totals || null,
       };
     } catch (error) {
-      console.error(`API Error fetching ${label}:`, error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
 
-  getFuelCycles: (params = {}) =>
-    ReportsService._getTripReport('api/reports/fuel-cycles', params, 'fuel cycles'),
+  getFuelCycles: (params = {}) => ReportsService._getTripReport('api/reports/fuel-cycles', params),
   getNonBusiness: (params = {}) =>
-    ReportsService._getTripReport('api/reports/non-business', params, 'non-business report'),
+    ReportsService._getTripReport('api/reports/non-business', params),
   getRunningCost: (params = {}) =>
-    ReportsService._getTripReport('api/reports/running-cost', params, 'running-cost report'),
+    ReportsService._getTripReport('api/reports/running-cost', params),
 
   /**
    * Generic filtered CSV export — call any report `/export` endpoint with the
@@ -120,10 +114,6 @@ export const ReportsService = {
       });
       return response.data;
     } catch (error) {
-      console.error(
-        `API Error exporting report (${endpoint}):`,
-        error.response?.data || error.message,
-      );
       // responseType 'blob' delivers the JSON error body as a Blob too.
       const data = error.response?.data;
       let body = null;
@@ -162,7 +152,6 @@ export const ReportsService = {
       };
     } catch (error) {
       if (error?.name === 'CanceledError') throw error;
-      console.error('API Error fetching driver reports:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -185,7 +174,6 @@ export const ReportsService = {
 
       return response.data?.data || [];
     } catch (error) {
-      console.error('API Error fetching employees:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -201,7 +189,6 @@ export const ReportsService = {
       const response = await apiClient.get(`api/extension/status`);
       return response.data?.data || response.data || {};
     } catch (error) {
-      console.error('API Error fetching extension status:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -219,7 +206,6 @@ export const ReportsService = {
         response.data || { records: [], total: 0, page: 1, limit: 20, totalPages: 0 }
       );
     } catch (error) {
-      console.error('API Error fetching flagged records:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -237,7 +223,6 @@ export const ReportsService = {
         response.data || { records: [], total: 0, page: 1, limit: 20, totalPages: 0 }
       );
     } catch (error) {
-      console.error('API Error fetching comparisons:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -252,10 +237,6 @@ export const ReportsService = {
         response.data || { records: [], total: 0, page: 1, limit: 20, totalPages: 0 }
       );
     } catch (error) {
-      console.error(
-        'API Error fetching pending review tasks:',
-        error.response?.data || error.message,
-      );
       throw ApiError.from(error);
     }
   },
@@ -268,7 +249,6 @@ export const ReportsService = {
       );
       return response.data?.data || response.data || {};
     } catch (error) {
-      console.error('API Error approving review task:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -279,8 +259,9 @@ export const ReportsService = {
       const response = await apiClient.get('api/extension/fleetedge/status');
       return response.data?.data || response.data || { accounts: [], pull: {} };
     } catch (error) {
-      console.error(
-        'API Error fetching FleetEdge connectivity:',
+      logger.warn(
+        'ReportsService',
+        'API Error fetching FleetEdge connectivity',
         error.response?.data || error.message,
       );
       return { accounts: [], pull: {} };
@@ -293,7 +274,11 @@ export const ReportsService = {
       const response = await apiClient.get('api/extension/user-errors');
       return response.data?.data || response.data || [];
     } catch (error) {
-      console.error('API Error fetching user errors:', error.response?.data || error.message);
+      logger.warn(
+        'ReportsService',
+        'API Error fetching user errors',
+        error.response?.data || error.message,
+      );
       return [];
     }
   },
@@ -304,7 +289,6 @@ export const ReportsService = {
       const response = await apiClient.post('api/extension/fleetedge/process-tasks');
       return response.data?.data || response.data || {};
     } catch (error) {
-      console.error('API Error triggering pull:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },

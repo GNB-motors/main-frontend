@@ -15,10 +15,6 @@ export const WhatsAppAuditService = {
       const response = await apiClient.get('/api/whatsapp/admin/audit/stats', { params });
       return response.data?.data || {};
     } catch (error) {
-      console.error(
-        'Error fetching WhatsApp reliability stats:',
-        error.response?.data || error.message,
-      );
       throw ApiError.from(error);
     }
   },
@@ -32,10 +28,6 @@ export const WhatsAppAuditService = {
       const response = await apiClient.get('/api/whatsapp/admin/audit/requests', { params });
       return response.data?.data || { items: [], pagination: { total: 0, page: 1, totalPages: 1 } };
     } catch (error) {
-      console.error(
-        'Error fetching WhatsApp audit requests:',
-        error.response?.data || error.message,
-      );
       throw ApiError.from(error);
     }
   },
@@ -49,7 +41,6 @@ export const WhatsAppAuditService = {
       const response = await apiClient.get(`/api/whatsapp/admin/audit/requests/${id}`);
       return response.data?.data || null;
     } catch (error) {
-      console.error('Error fetching request trace:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },
@@ -65,7 +56,6 @@ export const WhatsAppAuditService = {
       );
       return response.data?.data || {};
     } catch (error) {
-      console.error('Error replaying message:', error.response?.data || error.message);
       throw ApiError.from(error);
     }
   },

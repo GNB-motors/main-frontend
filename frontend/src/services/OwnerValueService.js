@@ -12,7 +12,6 @@ const get = async (path, params = {}, signal) => {
     return response.data?.data || {};
   } catch (error) {
     if (error?.code === 'ERR_CANCELED') throw error;
-    console.error(`API Error ${path}:`, error.response?.data || error.message);
     throw ApiError.from(error);
   }
 };

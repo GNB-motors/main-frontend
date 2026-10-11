@@ -9,6 +9,9 @@ import {
 } from '../authUtils.js';
 import { setSession, getToken } from '../session.js';
 import { setNavigator } from '../navigation.js';
+import logger from '../logger.js';
+
+vi.mock('../logger.js', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 
 const makeToken = (payload) => {
   const b64 = (obj) => btoa(JSON.stringify(obj)).replace(/=+$/, '');
@@ -47,7 +50,11 @@ describe('authUtils.js — JWT helpers', () => {
     it('returns true and logs when the token cannot be parsed', () => {
       expect(isTokenExpired('not-a-jwt')).toBe(true);
       expect(isTokenExpired('a.b')).toBe(true);
-      expect(console.error).toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalledWith(
+        'authUtils',
+        'Error parsing token',
+        expect.anything(),
+      );
     });
   });
 

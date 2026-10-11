@@ -3,29 +3,30 @@
  * Each profile field is stored individually for easier access
  */
 import {
-    getProfileField as sessionGetProfileField,
-    setProfileField,
-    removeProfileField,
-    hasProfileData as sessionHasProfileData,
-    getThemeColor,
-    setThemeColor,
+  getProfileField as sessionGetProfileField,
+  setProfileField,
+  removeProfileField,
+  hasProfileData as sessionHasProfileData,
+  getThemeColor,
+  setThemeColor,
 } from './session.js';
+import logger from './logger';
 
 /**
  * Store individual profile fields in the session store
  * @param {Object} profileData - The profile data to store
  */
 export const storeProfileData = (profileData) => {
-    try {
-        if (profileData._id) setProfileField('id', profileData._id);
-        if (profileData.ownerEmail) setProfileField('owner_email', profileData.ownerEmail);
-        if (profileData.companyName) setProfileField('company_name', profileData.companyName);
-        if (profileData.gstin) setProfileField('gstin', profileData.gstin);
-        // setThemeColor persists the colour AND dispatches 'themeColorChange'.
-        if (profileData.primaryThemeColor) setThemeColor(profileData.primaryThemeColor);
-    } catch (error) {
-        console.error('Failed to store profile data in the session store:', error);
-    }
+  try {
+    if (profileData._id) setProfileField('id', profileData._id);
+    if (profileData.ownerEmail) setProfileField('owner_email', profileData.ownerEmail);
+    if (profileData.companyName) setProfileField('company_name', profileData.companyName);
+    if (profileData.gstin) setProfileField('gstin', profileData.gstin);
+    // setThemeColor persists the colour AND dispatches 'themeColorChange'.
+    if (profileData.primaryThemeColor) setThemeColor(profileData.primaryThemeColor);
+  } catch (error) {
+    logger.warn('profileStorage', 'Failed to store profile data in the session store', error);
+  }
 };
 
 /**
@@ -33,25 +34,25 @@ export const storeProfileData = (profileData) => {
  * @returns {Object|null} - The stored profile data or null if not found
  */
 export const getProfileData = () => {
-    try {
-        const profileData = {
-            _id: getProfileField('id'),
-            ownerEmail: getProfileField('owner_email'),
-            companyName: getProfileField('company_name'),
-            gstin: getProfileField('gstin'),
-            primaryThemeColor: getThemeColor()
-        };
-        
-        // Check if any required field is missing
-        if (!profileData._id) {
-            return null;
-        }
-        
-        return profileData;
-    } catch (error) {
-        console.error('Failed to retrieve profile data from the session store:', error);
-        return null;
+  try {
+    const profileData = {
+      _id: getProfileField('id'),
+      ownerEmail: getProfileField('owner_email'),
+      companyName: getProfileField('company_name'),
+      gstin: getProfileField('gstin'),
+      primaryThemeColor: getThemeColor(),
+    };
+
+    // Check if any required field is missing
+    if (!profileData._id) {
+      return null;
     }
+
+    return profileData;
+  } catch (error) {
+    logger.warn('profileStorage', 'Failed to retrieve profile data from the session store', error);
+    return null;
+  }
 };
 
 /**
@@ -60,27 +61,31 @@ export const getProfileData = () => {
  * @returns {string|null} - The field value or null if not found
  */
 export const getProfileField = (field) => {
-    try {
-        return sessionGetProfileField(field);
-    } catch (error) {
-        console.error(`Failed to retrieve profile field '${field}' from the session store:`, error);
-        return null;
-    }
+  try {
+    return sessionGetProfileField(field);
+  } catch (error) {
+    logger.warn(
+      'profileStorage',
+      `Failed to retrieve profile field '${field}' from the session store`,
+      error,
+    );
+    return null;
+  }
 };
 
 /**
  * Clear all profile data from the session store
  */
 export const clearProfileData = () => {
-    try {
-        removeProfileField('id');
-        removeProfileField('owner_email');
-        removeProfileField('company_name');
-        removeProfileField('gstin');
-        console.log('Profile data cleared from the session store');
-    } catch (error) {
-        console.error('Failed to clear profile data from the session store:', error);
-    }
+  try {
+    removeProfileField('id');
+    removeProfileField('owner_email');
+    removeProfileField('company_name');
+    removeProfileField('gstin');
+    logger.info('profileStorage', 'Profile data cleared from the session store');
+  } catch (error) {
+    logger.warn('profileStorage', 'Failed to clear profile data from the session store', error);
+  }
 };
 
 /**
@@ -88,5 +93,5 @@ export const clearProfileData = () => {
  * @returns {boolean} - True if profile data exists, false otherwise
  */
 export const hasProfileData = () => {
-    return sessionHasProfileData();
+  return sessionHasProfileData();
 };

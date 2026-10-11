@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import apiClient from '../utils/axiosConfig';
 import useApi from '../hooks/useApi';
 import { isAuthenticated } from '../utils/session.js';
+import logger from '../utils/logger';
 
 const FeatureFlagsContext = createContext({
   flags: {},
@@ -52,7 +53,7 @@ export const FeatureFlagsProvider = ({ children }) => {
 
   useEffect(() => {
     if (!meError) return;
-    console.warn('FeatureFlags: failed to fetch', meError);
+    logger.warn('FeatureFlagsContext', 'FeatureFlags: failed to fetch', meError);
     setFlags({});
     setPermissions({});
     setOrganization(null);

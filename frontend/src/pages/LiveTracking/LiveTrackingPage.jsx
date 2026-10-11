@@ -26,6 +26,7 @@ import {
 import AnimatedVehicleMarkers from './AnimatedVehicleMarkers.jsx';
 import DestinationIntentSection from './DestinationIntentSection.jsx';
 import './LiveTracking.css';
+import logger from '../../utils/logger';
 
 const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '')
   .replace(/['"]/g, '')
@@ -312,7 +313,7 @@ const LiveTrackingPage = () => {
         });
         setVehiclesMeta(metaMap);
       } catch (err) {
-        console.warn('Could not load vehicles metadata:', err);
+        logger.warn('LiveTrackingPage', 'Could not load vehicles metadata', err);
       }
     };
     loadMeta();
@@ -345,7 +346,7 @@ const LiveTrackingPage = () => {
         });
         setDriverAssignments(map);
       } catch (err) {
-        console.warn('Could not load driver vehicle assignments:', err);
+        logger.warn('LiveTrackingPage', 'Could not load driver vehicle assignments', err);
       }
     };
     loadAssignments();
