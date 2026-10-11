@@ -54,31 +54,45 @@ export const PlaceHubService = {
     }),
 
   /**
-   * Every confirmed site, the 200 busiest suggestions (and how many there are
-   * in all), the latest places said not to exist, and the review queue's order —
+   * Every confirmed site, the 200 busiest suggestions worth an answer (and how
+   * many there are in all), the 200 busiest set aside as low evidence (and their
+   * total), the latest places said not to exist, and the review queue's order —
    * it puts places trips turn around at first, so those are asked about first.
    */
   loadSites: async ({ signal } = {}) => {
     let proposedTotal = 0;
+    let lowEvidenceTotal = 0;
     const result = await layer(async () => {
-      const page = (status) => (n) =>
-        PlaceIntelligenceService.listSites({ status, limit: 200, page: n }, { signal }).then(
-          (d) => ({
-            rows: d?.records ?? [],
-            total: d?.total || 0,
-            totalPages: Math.ceil((d?.total || 0) / 200),
-          }),
-        );
-      const [confirmed, proposed, rejected, queue] = await Promise.all([
+      const page = (status, evidence) => (n) =>
+        PlaceIntelligenceService.listSites(
+          { status, limit: 200, page: n, ...(evidence && { evidence }) },
+          { signal },
+        ).then((d) => ({
+          rows: d?.records ?? [],
+          total: d?.total || 0,
+          totalPages: Math.ceil((d?.total || 0) / 200),
+        }));
+      const [confirmed, proposed, low, rejected, queue] = await Promise.all([
         allPages(page('CONFIRMED'), MAX_SITE_PAGES),
         page('PROPOSED')(1),
+        // An older backend ignores evidence=low and sends the To review list again;
+        // those rows are told apart by id below, so nothing shows twice.
+        page('PROPOSED', 'low')(1),
         page('REJECTED')(1),
         // The order is a nicety; the suggestions still list without it.
         PlaceIntelligenceService.reviewQueue({ limit: 100 }, { signal }).catch(() => null),
       ]);
       proposedTotal = proposed.total;
+      const reviewIds = new Set(proposed.rows.map((s) => String(s._id)));
+      const lowRows = low.rows
+        .filter((s) => !reviewIds.has(String(s._id)))
+        .map((s) => ({ ...s, lowEvidence: true }));
+      lowEvidenceTotal = lowRows.length ? low.total : 0;
       const byId = new Map(
-        [...confirmed.rows, ...proposed.rows, ...rejected.rows].map((s) => [String(s._id), s]),
+        [...confirmed.rows, ...proposed.rows, ...lowRows, ...rejected.rows].map((s) => [
+          String(s._id),
+          s,
+        ]),
       );
       (queue?.items || []).forEach((item, rank) => {
         if (!item?.site?._id) return;
@@ -92,7 +106,7 @@ export const PlaceHubService = {
       });
       return [...byId.values()];
     });
-    return { ...result, proposedTotal };
+    return { ...result, proposedTotal, lowEvidenceTotal };
   },
 
   /** The full record behind a detected place: evidence, facility, address. */
