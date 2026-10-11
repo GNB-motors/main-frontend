@@ -3,6 +3,7 @@
  */
 import { dropLabel } from '../PlaceHub/intelligence/facilityText';
 import { toLayers, clipLayersAt, positionAt as roadPositionAt } from '../../lib/roadTrail';
+import { formatInIST, istDayString } from '../../utils/dateUtils';
 
 export const FLAG_LABEL = {
   DROP_INFERRED: 'Drop guessed from the turnaround',
@@ -117,53 +118,42 @@ export const STATUS_CLASS = {
 /** The truck has left the plant and not reached a drop yet. */
 export const notReachedYet = (trip) => trip?.status === 'OPEN' && !trip?.drop?.arrivedAt;
 
-// ─── Formatting (local time, the way the trip pages print it) ───────────────
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
 function toDate(v) {
   if (v == null || v === '') return null;
   const d = new Date(v);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+// ─── Formatting (IST, whatever timezone the browser is in) ──────────────────
+
 /** "8:30 pm" */
 export function fmtClock(v) {
-  const d = toDate(v);
-  if (!d) return '—';
-  const h = d.getHours();
-  return `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
+  return formatInIST(v, 'h:mm a') ?? '—';
 }
 
 /** "7 Oct" */
 export function fmtDay(v) {
-  const d = toDate(v);
-  return d ? `${d.getDate()} ${MONTHS[d.getMonth()]}` : '—';
+  return formatInIST(v, 'D MMM') ?? '—';
 }
 
 /** "7 Oct, 8:30 pm" — or "07 Oct, 8:30 pm" with padDay, as in the trip list. */
 export function fmtDayTime(v, { padDay = false } = {}) {
-  const d = toDate(v);
-  if (!d) return '—';
-  const day = padDay ? String(d.getDate()).padStart(2, '0') : String(d.getDate());
-  return `${day} ${MONTHS[d.getMonth()]}, ${fmtClock(d)}`;
+  return formatInIST(v, padDay ? 'DD MMM, h:mm a' : 'D MMM, h:mm a') ?? '—';
 }
-
-const dayText = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 
 /** "7–8 Oct 2026", "30 Sep – 1 Oct 2026", "7 Oct 2026". Empty when neither end is known. */
 export function fmtDateRange(a, b) {
-  const s = toDate(a);
-  const e = toDate(b);
-  if (!s || !e) return s || e ? dayText(s || e) : '';
-  if (s.getFullYear() !== e.getFullYear()) return `${dayText(s)} – ${dayText(e)}`;
-  if (s.getMonth() !== e.getMonth()) {
-    return `${s.getDate()} ${MONTHS[s.getMonth()]} – ${dayText(e)}`;
+  const s = istDayString(a ?? '');
+  const e = istDayString(b ?? '');
+  if (!s || !e) return s || e ? formatInIST(s ? a : b, 'D MMM YYYY') : '';
+  if (s.slice(0, 4) !== e.slice(0, 4)) {
+    return `${formatInIST(a, 'D MMM YYYY')} – ${formatInIST(b, 'D MMM YYYY')}`;
   }
-  if (s.getDate() !== e.getDate()) {
-    return `${s.getDate()}–${e.getDate()} ${MONTHS[e.getMonth()]} ${e.getFullYear()}`;
+  if (s.slice(5, 7) !== e.slice(5, 7)) {
+    return `${formatInIST(a, 'D MMM')} – ${formatInIST(b, 'D MMM YYYY')}`;
   }
-  return dayText(s);
+  if (s !== e) return `${formatInIST(a, 'D')}–${formatInIST(b, 'D MMM YYYY')}`;
+  return formatInIST(a, 'D MMM YYYY');
 }
 
 /** "15 h 3 min", "45 min", "2 h". */

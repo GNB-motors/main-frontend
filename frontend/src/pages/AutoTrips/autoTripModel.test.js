@@ -287,7 +287,9 @@ describe('timelinePlan', () => {
 
 describe('fmtDay', () => {
   it('prints the day and month', () => {
-    expect(fmtDay(new Date(2026, 9, 7, 20, 30))).toBe('7 Oct');
+    expect(fmtDay(new Date('2026-10-07T20:30:00+05:30'))).toBe('7 Oct');
+    // 23:30 UTC on the 7th is already the 8th in India.
+    expect(fmtDay('2026-10-07T23:30:00Z')).toBe('8 Oct');
     expect(fmtDay(null)).toBe('—');
   });
 });
