@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "npm run lint && npm run test && vite build && node scripts/check-bundle.mjs",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 773",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
