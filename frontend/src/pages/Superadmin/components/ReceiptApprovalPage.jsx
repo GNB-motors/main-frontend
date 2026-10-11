@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
@@ -239,9 +239,16 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
     }
   };
 
-  // Main fetch function
+  // Main fetch function. Each call cancels the one before it, so a slow
+  // response for a tab the user already left can't overwrite the current one.
+  const fetchAbortRef = useRef(null);
   const fetchData = useCallback(
     async (isManualRefresh = false) => {
+      fetchAbortRef.current?.abort();
+      const controller = new AbortController();
+      fetchAbortRef.current = controller;
+      const { signal } = controller;
+
       if (isManualRefresh) setRefreshing(true);
       else setLoading(true);
       setError('');
@@ -249,23 +256,31 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
         const [draftsRes, countsRes] = await Promise.all([
           apiClient.get('/api/whatsapp/admin/drafts', {
             params: { status, limit: 200 },
+            signal,
           }),
-          apiClient.get('/api/whatsapp/admin/drafts/counts').catch(() => null),
+          // The tab counts are a badge; the list still renders without them.
+          apiClient.get('/api/whatsapp/admin/drafts/counts', { signal }).catch(() => null),
         ]);
+        if (signal.aborted) return;
         setItems(draftsRes.data?.data?.items ?? []);
         if (countsRes?.data?.data) {
           setCounts(countsRes.data.data);
           onCounts?.(countsRes.data.data);
         }
       } catch (e) {
-        setError(e.response?.data?.message || 'Failed to load receipts');
+        if (signal.aborted) return;
+        setError(e.message || 'Failed to load receipts');
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (fetchAbortRef.current === controller) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
     [status, onCounts],
   );
+
+  useEffect(() => () => fetchAbortRef.current?.abort(), []);
 
   useEffect(() => {
     fetchData();
