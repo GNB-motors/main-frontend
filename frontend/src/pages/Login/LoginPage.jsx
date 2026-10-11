@@ -5,7 +5,7 @@ import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import GNBLogo from '../../assets/animations/logo.png';
 import LottieLoader from '../../components/LottieLoader.jsx';
 import './LoginPage.css';
-import { LoginPageService } from './LoginPageService.jsx';
+import { LoginPageService } from './LoginPageService.js';
 import { resolveLandingRoute } from '../../utils/featureFlagRoutes.js';
 import apiClient from '../../utils/axiosConfig.js';
 import { setSession, setOrgId } from '../../utils/session.js';

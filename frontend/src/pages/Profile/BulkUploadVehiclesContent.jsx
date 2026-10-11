@@ -6,7 +6,7 @@ import { getThemeCSS } from '../../utils/colorTheme.js';
 
 import './BulkUploadVehiclesPage.css';
 import NewButton from '@/components/ui/NewButton';
-import { VehicleService } from './VehicleService.jsx';
+import { VehicleService } from './VehicleService.js';
 import {
   normalizeVehicleDataset,
   validateVehicleRow,

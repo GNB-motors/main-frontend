@@ -4,7 +4,7 @@ import useApi from '../../hooks/useApi';
 import ExportButton from '../../components/ui/ExportButton';
 import OwnerValueService from '../../services/OwnerValueService';
 import FleetDataService from '../../services/FleetDataService';
-import { VehicleService } from '../Profile/VehicleService.jsx';
+import { VehicleService } from '../Profile/VehicleService.js';
 import { OwnerAlertsService } from '../OwnerAlerts/OwnerAlertsService';
 import { FuelIntegrityService } from '../FuelIntegrity/FuelIntegrityService';
 import { morningBriefSchema } from '../../schemas/morningBrief.schema';

@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { ALERT_TYPE_LABELS } from './OwnerAlertsService.jsx';
+import { ALERT_TYPE_LABELS } from './OwnerAlertsService.js';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);

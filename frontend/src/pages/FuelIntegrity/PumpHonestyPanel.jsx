@@ -13,7 +13,7 @@ import {
 import { formatINR, formatLitres } from '../../utils/formatters';
 import { StatusPill } from '../../components/overview.primitives.jsx';
 import TablePager from './TablePager.jsx';
-import { FuelIntegrityService } from './FuelIntegrityService.jsx';
+import { FuelIntegrityService } from './FuelIntegrityService.js';
 import { cleanStationName } from './fiData.js';
 
 const PAGE_SIZE = 10;

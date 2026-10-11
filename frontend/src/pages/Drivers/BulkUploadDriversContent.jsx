@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import { Send } from 'lucide-react';
 import { getThemeCSS } from '../../utils/colorTheme.js';
 import '../Profile/BulkUploadVehiclesPage.css';
-import { DriverService } from './DriverService.jsx';
+import { DriverService } from './DriverService.js';
 import NewButton from '@/components/ui/NewButton';
 import BulkEmployeeMappingSidePanel from './Component/BulkEmployeeMappingSidePanel.jsx';
 import BulkUploadResultsSidePanel from './Component/BulkUploadResultsSidePanel.jsx';

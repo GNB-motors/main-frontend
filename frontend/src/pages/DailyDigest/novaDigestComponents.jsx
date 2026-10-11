@@ -28,7 +28,7 @@ import {
 import { formatINR, formatKm, formatLitres, formatNum } from '../../utils/formatters';
 import { formatDateIST, formatDateTimeIST } from '../../utils/dateUtils';
 import { OwnerAlertsService } from '../OwnerAlerts/OwnerAlertsService';
-import { VehicleService } from '../Profile/VehicleService.jsx';
+import { VehicleService } from '../Profile/VehicleService.js';
 import FleetDataService from '../../services/FleetDataService';
 import { SEV } from './dailyDigestLogic';
 import Leaderboard from '../../components/ui/Leaderboard.jsx';

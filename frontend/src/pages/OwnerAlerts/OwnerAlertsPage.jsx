@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { RefreshCw, AlertTriangle, X, Check, Loader2 } from 'lucide-react';
 import dayjs from 'dayjs';
-import { OwnerAlertsService, ALERT_TYPE_LABELS } from './OwnerAlertsService.jsx';
+import { OwnerAlertsService, ALERT_TYPE_LABELS } from './OwnerAlertsService.js';
 import { LIMIT, CHIPS, SINCE, SORTS, computeView, buildSummary } from './ownerAlertsModel';
 import AlertDetailsDrawer from './AlertDetailsDrawer.jsx';
 import PageShell from '../../components/ui/PageShell';

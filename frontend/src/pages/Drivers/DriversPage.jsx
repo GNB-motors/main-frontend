@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Plus, Upload, TrendingUp } from 'lucide-react';
 import './DriversPage.css';
-import { DriverService } from './DriverService.jsx';
+import { DriverService } from './DriverService.js';
 import { getVehicleList } from '../../services/vehicleListService';
 import { useNavigate } from 'react-router-dom';
 import { getThemeCSS } from '../../utils/colorTheme';

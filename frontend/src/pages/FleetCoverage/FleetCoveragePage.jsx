@@ -4,7 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useApi from '../../hooks/useApi';
 import FleetDataService from '../../services/FleetDataService';
-import { VehicleService } from '../Profile/VehicleService.jsx';
+import { VehicleService } from '../Profile/VehicleService.js';
 import BulkUploadVehiclesResultSummary from '../Profile/bulkUploadVehiclesResultSummary.jsx';
 import EmptyState from '../../components/cluster/EmptyState';
 import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';

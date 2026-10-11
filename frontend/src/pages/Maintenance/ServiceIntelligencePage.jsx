@@ -15,7 +15,7 @@ import {
   CalendarCheck,
   RefreshCw,
 } from 'lucide-react';
-import { MaintenanceService } from './MaintenanceService.jsx';
+import { MaintenanceService } from './MaintenanceService.js';
 import { getThemeCSS } from '../../utils/colorTheme';
 import AlertsTab from './Component/AlertsTab.jsx';
 import ResolveIssueModal from './Component/ResolveIssueModal.jsx';

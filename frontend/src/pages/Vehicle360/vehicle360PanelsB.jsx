@@ -8,7 +8,7 @@ import { formatINR, formatKm, formatLitres, formatNum, timeAgo } from '../../uti
 import { formatDateIST, formatDateTimeIST } from '../../utils/dateUtils';
 import useApi from '../../hooks/useApi';
 import DriverVehicleAssignmentService from '../../services/DriverVehicleAssignmentService';
-import { VehicleService } from '../Profile/VehicleService.jsx';
+import { VehicleService } from '../Profile/VehicleService.js';
 import VehicleDocumentUpload, {
   VEHICLE_DOC_TYPES,
   emptyDocsState,

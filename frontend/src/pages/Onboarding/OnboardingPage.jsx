@@ -10,7 +10,7 @@ import StepProfile from './components/StepProfile.jsx';
 import StepCompanyTheme from './components/StepCompanyTheme.jsx';
 import StepFinish from './components/StepFinish.jsx';
 import LaunchAnimation from './components/LaunchAnimation.jsx';
-import { OnboardingService } from './OnboardingService.jsx';
+import { OnboardingService } from './OnboardingService.js';
 import { clearAuthData } from '../../utils/authUtils';
 import apiClient from '../../utils/axiosConfig';
 import { fetchAndResolveLandingRoute } from '../../utils/featureFlagRoutes.js';

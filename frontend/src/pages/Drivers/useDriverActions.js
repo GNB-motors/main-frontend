@@ -5,7 +5,7 @@
  */
 import { useState } from 'react';
 import { toast } from 'react-toastify';
-import { DriverService } from './DriverService.jsx';
+import { DriverService } from './DriverService.js';
 import { getToken, getBranchId } from '../../utils/session.js';
 import { isCrossBranchMove } from './driverList.js';
 import logger from '../../utils/logger';

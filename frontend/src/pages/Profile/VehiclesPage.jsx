@@ -15,8 +15,8 @@ import DataTable from '../../components/ui/DataTable';
 import ExportButton from '../../components/ui/ExportButton';
 
 // Import the services
-import { VehicleService } from './VehicleService.jsx';
-import { listAccounts } from './FleetEdgeAccountService.jsx';
+import { VehicleService } from './VehicleService.js';
+import { listAccounts } from './FleetEdgeAccountService.js';
 import { getToken, getProfileField } from '../../utils/session.js';
 import { DeleteVehicleModal } from './VehicleModals.jsx';
 import BulkUploadVehiclesPanel from './BulkUploadVehiclesPanel.jsx';

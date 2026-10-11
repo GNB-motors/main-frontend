@@ -3,7 +3,7 @@ import { toast } from 'react-toastify';
 import UkoLogo from '../../assets/uko-logo.png';
 import LottieLoader from '../../components/LottieLoader.jsx';
 import './SignUpPage.css';
-import { SignUpPageService } from './SignUpPageService.jsx';
+import { SignUpPageService } from './SignUpPageService.js';
 import logger from '../../utils/logger';
 
 const SignUpPage = () => {

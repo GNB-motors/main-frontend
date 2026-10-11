@@ -17,7 +17,7 @@ import {
 import dayjs from 'dayjs';
 import PageShell from '../../components/ui/PageShell';
 import ExportButton from '../../components/ui/ExportButton';
-import { FuelIntegrityService } from './FuelIntegrityService.jsx';
+import { FuelIntegrityService } from './FuelIntegrityService.js';
 import { getProfileField, setProfileField } from '../../utils/session.js';
 import EvidenceDrawer from '../../components/cluster/EvidenceDrawer.jsx';
 import EventInvestigationDrawer from './EventInvestigationDrawer.jsx';

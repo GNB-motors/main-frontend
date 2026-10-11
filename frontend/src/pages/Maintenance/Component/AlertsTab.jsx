@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AlertTriangle, Bell, Check, FileWarning, RefreshCw, Wrench } from 'lucide-react';
-import { MaintenanceService } from '../MaintenanceService.jsx';
+import { MaintenanceService } from '../MaintenanceService.js';
 import NewButton from '../../../components/ui/NewButton';
 import KpiCard from '../../../components/ui/KpiCard';
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { DriverService } from './DriverService.jsx';
+import { DriverService } from './DriverService.js';
 import AccessControlApi from '../AccessControl/accessControlService';
 import DriverVehicleAssignmentService from '../../services/DriverVehicleAssignmentService';
 import { useActiveBranch } from '../../contexts/BranchContext';

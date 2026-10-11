@@ -3,9 +3,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import AlertsTab from './AlertsTab.jsx';
-import { MaintenanceService } from '../MaintenanceService.jsx';
+import { MaintenanceService } from '../MaintenanceService.js';
 
-vi.mock('../MaintenanceService.jsx', () => ({
+vi.mock('../MaintenanceService.js', () => ({
   MaintenanceService: {
     getAlerts: vi.fn(),
     resolveAlert: vi.fn(),

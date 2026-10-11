@@ -10,7 +10,7 @@ import {
   FileText,
   Filter,
 } from 'lucide-react';
-import { VehicleService } from './VehicleService.jsx';
+import { VehicleService } from './VehicleService.js';
 import { getThemeCSS } from '../../utils/colorTheme';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
