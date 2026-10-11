@@ -11,6 +11,7 @@ import {
   isImpactGate,
   messageOf,
   effectiveType,
+  labelReviewNote,
   placeState,
   placeTitle,
   placeSubtitle,
@@ -126,6 +127,46 @@ describe('placeIntelligenceModel', () => {
         engine: { siteType: 'UNKNOWN' },
       }).type,
     ).toBe('UNKNOWN');
+  });
+
+  it('draws the label the nightly step settled once it has run', () => {
+    const engine = { siteType: 'UNKNOWN', leaning: 'DHABA', confidence: 0.01 };
+    const at = '2026-10-12T00:00:00Z';
+    // Below the org's floor: no type, the lean kept for the words.
+    expect(
+      effectiveType({
+        status: 'PROPOSED',
+        engine,
+        display: { type: null, source: 'floor', leaning: 'DHABA', computedAt: at },
+      }),
+    ).toEqual({ type: 'UNKNOWN', source: 'floor', leaning: 'DHABA' });
+    // Settled against a heavier neighbour.
+    expect(
+      effectiveType({
+        status: 'PROPOSED',
+        engine: { siteType: 'UNKNOWN', leaning: 'LOADING' },
+        display: { type: null, source: 'neighbour', leaning: 'LOADING', computedAt: at },
+      }).source,
+    ).toBe('neighbour');
+    expect(
+      effectiveType({
+        status: 'PROPOSED',
+        engine,
+        display: { type: 'UNLOADING', source: 'facility', computedAt: at },
+      }),
+    ).toEqual({ type: 'UNLOADING', source: 'facility' });
+    // Not run yet for this place: the raw reading as before.
+    expect(effectiveType({ status: 'PROPOSED', engine, display: { type: null } })).toEqual({
+      type: 'DHABA',
+      source: 'leaning',
+    });
+  });
+
+  it('words an open contradiction, and stays quiet when there is none', () => {
+    const reason = 'Confirmed UNLOADING, but 31 % of its 87 stops are refuels: a fuel pump?';
+    expect(labelReviewNote({ labelReview: { kind: 'EVIDENCE_AGAINST', reason } })).toBe(reason);
+    expect(labelReviewNote({ labelReview: { kind: null, reason: null } })).toBe(null);
+    expect(labelReviewNote({})).toBe(null);
   });
 
   it('names states in plain words with reserved tones', () => {

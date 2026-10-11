@@ -56,6 +56,15 @@ export const orgSiteSchema = z
     engine: engineSchema.nullish(),
     risk: riskSchema.nullish(),
     address: addressSchema.nullish(),
+    // The drawn label the nightly step settled, and an open contradiction (placeLabels).
+    display: z
+      .object({ type: str, source: str, leaning: str, confidence: num, computedAt: str })
+      .passthrough()
+      .nullish(),
+    labelReview: z
+      .object({ kind: str, reason: str, withSiteId: str, at: str })
+      .passthrough()
+      .nullish(),
   })
   .passthrough();
 

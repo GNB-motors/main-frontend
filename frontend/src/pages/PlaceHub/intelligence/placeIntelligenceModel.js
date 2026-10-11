@@ -75,6 +75,8 @@ export const REASON_LABEL = {
   CONFLICT: 'Evidence disagrees',
   AUDIT: 'Spot check',
   TRIP_DROP: 'Trips turned around here',
+  MERGE_CONFLICT: 'Two answers disagree',
+  LABEL_REVIEW: 'The data disagrees with an answer',
 };
 
 /**
@@ -90,6 +92,15 @@ export function tripDropNote(site) {
 }
 
 const MEANINGFUL = (t) => Boolean(t) && t !== 'UNKNOWN' && t !== 'UNEXPLAINED';
+
+/**
+ * Why the system asks about a place a manager already answered: the evidence
+ * disagrees, or two answers can't both hold. Null when nothing is open.
+ */
+export function labelReviewNote(site) {
+  const r = site?.labelReview;
+  return r?.kind && r.reason ? r.reason : null;
+}
 
 /** "a fuel pump", "an unloading point" — the label lower-cased with its article. */
 export function aType(t) {
@@ -127,6 +138,15 @@ export function suggestion(item) {
  */
 export function effectiveType(site) {
   if (!site) return { type: 'UNKNOWN', source: 'none' };
+  // The nightly label step settles this against the neighbours and the org's
+  // learned confidence floor; until it has run, read the raw fields as before.
+  const d = site.display;
+  if (d?.computedAt) {
+    if (MEANINGFUL(d.type)) return { type: d.type, source: d.source };
+    if (d.source === 'floor' || d.source === 'neighbour')
+      return { type: 'UNKNOWN', source: d.source, leaning: d.leaning || null };
+    return { type: 'UNKNOWN', source: 'none' };
+  }
   if (site.status === 'CONFIRMED' && MEANINGFUL(site.siteType))
     return { type: site.siteType, source: 'you' };
   const e = site.engine || {};

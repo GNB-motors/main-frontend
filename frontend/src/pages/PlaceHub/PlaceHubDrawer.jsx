@@ -35,6 +35,7 @@ import {
   placeStats,
   riskSentence,
   tripDropNote,
+  labelReviewNote,
 } from './intelligence/placeIntelligenceModel.js';
 import useSiteAnswer from './intelligence/useSiteAnswer.js';
 import PlaceVerdict from './intelligence/PlaceVerdict.jsx';
@@ -195,8 +196,10 @@ function SiteInsight({ place, canAnswer, onAnswered }) {
   const st = placeStats(site);
   const risk = riskSentence(site.risk, formatDateIST);
   const drops = tripDropNote(site);
+  const contradiction = labelReviewNote(site);
   return (
     <>
+      {contradiction && <Note tone="warn">{contradiction}</Note>}
       {drops && <Note tone="warn">{drops}</Note>}
       <section className="ph-section">
         <h3>What we think</h3>
