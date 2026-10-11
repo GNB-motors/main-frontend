@@ -1,39 +1,15 @@
 /**
- * formatMoney.js
- * Central currency/number formatting for the app.
+ * formatMoney.js — accounting presentation on top of utils/formatters.js.
  *
- * WHY THIS EXISTS:
- * Currency formatting was reimplemented ~8 times across the codebase, each
- * with slightly different fraction-digit and null handling, so the same amount
- * could render three different ways on three screens. All money display goes
- * through this file.
- *
- * The canonical implementations of `inr`/`compactInr`/`num`/`pct` originated in
- * the now-removed CommandCenterPage and were kept verbatim here.
+ * formatters.js owns how a rupee amount is printed (full: formatINR, compact
+ * tiles: formatInrCompact). This module only adds what financial statements
+ * need on top: zero-for-missing totals (inr), em-dash cells (money), signed
+ * deltas (signedInr) and Dr/Cr balances (drCr).
  */
+import { formatINR } from './formatters.js';
 
-/** Full-precision rupees, no paise. e.g. 1200000 → "₹12,00,000" */
-export const inr = (v) =>
-  new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(v || 0);
-
-/**
- * Abbreviated rupees for hero numbers ONLY — KPI tiles, chart axes, bar labels.
- * Full precision must stay available in tooltips, table cells and detail rows,
- * because an accountant needs to read and copy the exact figure.
- * e.g. 42000000 → "₹4.20 Cr"
- */
-export const compactInr = (v) => {
-  const n = Math.abs(v || 0);
-  if (n >= 1e7) return `₹${(v / 1e7).toFixed(2)} Cr`;
-  if (n >= 1e5) return `₹${(v / 1e5).toFixed(2)} L`;
-  if (n >= 1e3) return `₹${(v / 1e3).toFixed(1)}k`;
-  return inr(v);
-};
+/** Full-precision rupees, no paise; a missing value counts as zero. e.g. 1200000 → "₹12,00,000" */
+export const inr = (v) => formatINR(Number(v) || 0);
 
 /** Plain Indian-grouped integer. e.g. 120000 → "1,20,000" */
 export const num = (v) => new Intl.NumberFormat('en-IN').format(v || 0);

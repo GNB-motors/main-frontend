@@ -6,6 +6,7 @@ import TripCloseDrawer from '../../components/Erp/Drawers/TripCloseDrawer';
 import PodDrawer from '../../components/Erp/Drawers/PodDrawer';
 import UnloadingDrawer from '../../components/Erp/Drawers/UnloadingDrawer';
 import { useTheme } from '../../hooks/useTheme.js';
+import { formatInrCompact } from '../../utils/formatters';
 import ErpDashboardService from './ErpDashboardService';
 import CcIcon from './commandCenterIcons';
 import './erpCommandCenter.css';
@@ -33,13 +34,6 @@ const RATE_APPROVALS = new Set([
   'BILLING_RATE_EDIT',
 ]);
 
-const lakh = (n) => {
-  const v = n || 0;
-  if (v >= 10000000) return `₹${(v / 10000000).toFixed(2)}Cr`;
-  if (v >= 100000) return `₹${(v / 100000).toFixed(1)}L`;
-  if (v >= 1000) return `₹${(v / 1000).toFixed(1)}k`;
-  return `₹${Math.round(v)}`;
-};
 const inr = (n) => `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
 const shortDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—';
@@ -97,13 +91,13 @@ function Kpis({ summary, onReviewApprovals }) {
     { label: '0–30 d', value: ageing.d0to30 || 0, color: 'var(--nova-rage-400)' },
     { label: '31–60 d', value: ageing.d31to60 || 0, color: '#F0AA48' },
     { label: '60+ d', value: ageing.over60 || 0, color: '#C2323A' },
-  ].map((p) => ({ ...p, legend: `${p.label} · ${lakh(p.value)}` }));
+  ].map((p) => ({ ...p, legend: `${p.label} · ${formatInrCompact(p.value)}` }));
   const recvTotal = fin.receivablesOutstanding || 0;
 
   const pay = [
     { label: 'Vendors', value: fin.vendorPayables || 0, color: 'var(--nova-rage-400)' },
     { label: 'Suppliers', value: fin.supplierPayables || 0, color: '#6A43D8' },
-  ].map((p) => ({ ...p, legend: `${p.label} · ${lakh(p.value)}` }));
+  ].map((p) => ({ ...p, legend: `${p.label} · ${formatInrCompact(p.value)}` }));
   const payTotal = fin.payablesDue || 0;
 
   return (
@@ -188,11 +182,11 @@ function Kpis({ summary, onReviewApprovals }) {
           <span>Receivables due</span>
         </div>
         <div className="kpi-val" style={{ color: GRN.c }}>
-          {lakh(recvTotal)}
+          {formatInrCompact(recvTotal)}
         </div>
         <div className="kpi-foot">
           <span>
-            <b style={{ color: RED.c }}>{lakh(ageing.over60)}</b> over 60 days
+            <b style={{ color: RED.c }}>{formatInrCompact(ageing.over60)}</b> over 60 days
           </span>
         </div>
         <SegBar parts={recv} total={recvTotal} />
@@ -205,10 +199,10 @@ function Kpis({ summary, onReviewApprovals }) {
           </span>
           <span>Payables due</span>
         </div>
-        <div className="kpi-val">{lakh(payTotal)}</div>
+        <div className="kpi-val">{formatInrCompact(payTotal)}</div>
         <div className="kpi-foot">
           <span>
-            <b>{lakh(fin.payablesDueThisWeek)}</b> due this week
+            <b>{formatInrCompact(fin.payablesDueThisWeek)}</b> due this week
           </span>
         </div>
         <SegBar parts={pay} total={payTotal} />
@@ -236,7 +230,7 @@ function Rail({ pipeline, cur, onPick }) {
         <span className="sp" />
         <span className="hint">
           {plural(trips, 'trip')} · {plural(byKey.do?.count || 0, 'DO')} in pipeline ·{' '}
-          {lakh(freight)} freight
+          {formatInrCompact(freight)} freight
         </span>
       </div>
       <div className="railwrap">
@@ -256,7 +250,7 @@ function Rail({ pipeline, cur, onPick }) {
                 <span className="n">{s.l}</span>
                 <span className="c">{st.count}</span>
                 <span className="v">
-                  {st.count && st.freight ? `${lakh(st.freight)} freight` : '—'}
+                  {st.count && st.freight ? `${formatInrCompact(st.freight)} freight` : '—'}
                 </span>
                 <span className={`late ${st.late ? '' : 'ok'}`}>
                   {st.late ? (

@@ -13,7 +13,8 @@ import { Link } from 'react-router-dom';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import PlaceLabel from '../../components/ui/PlaceLabel';
-import { compactInr, inr, num } from '../../utils/formatMoney.js';
+import { inr, num } from '../../utils/formatMoney.js';
+import { formatInrCompact } from '../../utils/formatters.js';
 import {
   PLACE_GROUPS,
   PROVENANCE_LABEL,
@@ -273,10 +274,14 @@ export function IdlingPanel({
         />
         <Kpi
           label="Burning now"
-          value={compactInr(liveTotals.rupees)}
+          value={formatInrCompact(liveTotals.rupees)}
           tone={liveTotals.excessRupees > 0 ? 'crit' : null}
         />
-        <Kpi label="Excess · 7 days" value={compactInr(historyTotals.excessRupees)} tone="crit" />
+        <Kpi
+          label="Excess · 7 days"
+          value={formatInrCompact(historyTotals.excessRupees)}
+          tone="crit"
+        />
         <Kpi label="Idle hours · 7 days" value={hoursLabel(historyTotals.hours)} />
       </div>
       <div className="ph-filter">
@@ -365,7 +370,7 @@ export function IdlingPanel({
                     </span>
                   </span>
                   <span className="ph-row-end">
-                    <strong>{compactInr(s.rupees)}</strong>
+                    <strong>{formatInrCompact(s.rupees)}</strong>
                     <span className="ph-row-sub">{Math.round(s.excessShare * 100)}% excess</span>
                   </span>
                 </button>
@@ -474,7 +479,7 @@ export function FuelPanel({
         <Kpi label="Network hotspots" value={num(totals.network)} />
         <Kpi
           label="Est. drain"
-          value={compactInr(totals.drainRupees)}
+          value={formatInrCompact(totals.drainRupees)}
           tone={totals.drainRupees ? 'warn' : null}
         />
         <Kpi label="Fuel drops" value={num(totals.drainEvents)} />
@@ -547,7 +552,7 @@ export function FuelPanel({
                     </span>
                   </span>
                   <span className="ph-row-end">
-                    <strong>{compactInr(c.rupees)}</strong>
+                    <strong>{formatInrCompact(c.rupees)}</strong>
                   </span>
                 </button>
               </li>

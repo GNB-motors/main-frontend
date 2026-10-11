@@ -24,7 +24,7 @@ import {
   poiBucket,
 } from './placeHubStyle.js';
 import { durationLabel, hoursLabel } from './placeHubModel.js';
-import { compactInr } from '../../utils/formatMoney.js';
+import { formatInrCompact } from '../../utils/formatters.js';
 
 const MAP_STYLE = { width: '100%', height: '100%' };
 const INDIA = { lat: 22.5, lng: 82 };
@@ -663,7 +663,7 @@ export default function PlaceHubMap({
             lng={s.lng}
             color={IDLE_COLOR[idleTone(s.excessShare)]}
             scale={scaleFor(s.rupees, maxIdle)}
-            title={`${s.events} idles · ${compactInr(s.rupees)} burned`}
+            title={`${s.events} idles · ${formatInrCompact(s.rupees)} burned`}
             selected={s.id === selectedId}
             interactive={interactive}
             onSelect={onSelect}
@@ -705,7 +705,7 @@ export default function PlaceHubMap({
             lng={c.lng}
             color={DRAIN_COLOR}
             scale={scaleFor(c.rupees || c.events, maxDrain)}
-            title={`${c.events} fuel drops · ${compactInr(c.rupees)}`}
+            title={`${c.events} fuel drops · ${formatInrCompact(c.rupees)}`}
             selected={c.id === selectedId}
             interactive={interactive}
             onSelect={onSelect}
