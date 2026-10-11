@@ -22,8 +22,11 @@ import {
   DARK_MAP_STYLE,
   trailArrowIcons,
   computeMapVehicles,
+  countVehiclesByStatus,
 } from './liveTracking.shared.js';
 import AnimatedVehicleMarkers from './AnimatedVehicleMarkers.jsx';
+import LiveClock from './LiveClock.jsx';
+import TelemetryTicker from './TelemetryTicker.jsx';
 import DestinationIntentSection from './DestinationIntentSection.jsx';
 import './LiveTracking.css';
 import logger from '../../utils/logger';
@@ -235,7 +238,6 @@ const LiveTrackingPage = () => {
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedId, setSelectedId] = useState(null);
-  const [clockTime, setClockTime] = useState('—');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [toastMsg, setToastMsg] = useState(null);
 
@@ -277,21 +279,6 @@ const LiveTrackingPage = () => {
     toastTimerRef.current = setTimeout(() => {
       setToastMsg(null);
     }, 2400);
-  }, []);
-
-  // IST Clock interval
-  useEffect(() => {
-    const updateClock = () => {
-      const now = new Date();
-      setClockTime(
-        now
-          .toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
-          .toLowerCase() + ' IST',
-      );
-    };
-    updateClock();
-    const timer = setInterval(updateClock, 15000);
-    return () => clearInterval(timer);
   }, []);
 
   // Fetch Vehicles Master Metadata
@@ -420,23 +407,7 @@ const LiveTrackingPage = () => {
   }, [vehicles]);
 
   // Counts for the connected status bar cards matching WheelsEye standard
-  const counts = useMemo(() => {
-    return {
-      all: vehicles.length,
-      moving: vehicles.filter((v) => v.status === 'moving').length,
-      stopped: vehicles.filter((v) => v.status === 'stopped').length,
-      idling: vehicles.filter((v) => v.status === 'idling').length,
-      offline: vehicles.filter((v) => v.status === 'offline').length,
-      breakdown: vehicles.filter(
-        (v) => v.status === 'breakdown' || v.status === 'workshop' || v.inWorkshop || v.isBreakdown,
-      ).length,
-      faulty: vehicles.filter(
-        (v) => v.status === 'faulty' || v.hasFault || (v.alertsCount && v.alertsCount > 0),
-      ).length,
-      geofence: vehicles.filter((v) => v.status === 'geofence' || v.inGeofenceAlert).length,
-      gps: vehicles.filter((v) => v.live).length,
-    };
-  }, [vehicles]);
+  const counts = useMemo(() => countVehiclesByStatus(vehicles), [vehicles]);
 
   // Filtered vehicles according to the active top status card
   const filteredVehicles = useMemo(() => {
@@ -809,23 +780,6 @@ const LiveTrackingPage = () => {
     return null;
   }, [selectedVehicle, vehiclesMeta, driverAssignments]);
 
-  // Telemetry rotating index
-  const [telemetryIndex, setTelemetryIndex] = useState(0);
-  useEffect(() => {
-    if (!isTelemetryOn) return;
-    const timer = setInterval(() => {
-      setTelemetryIndex((prev) => prev + 1);
-    }, 3200);
-    return () => clearInterval(timer);
-  }, [isTelemetryOn]);
-
-  const telemetryVehicle = useMemo(() => {
-    if (selectedVehicle) return selectedVehicle;
-    const liveList = vehicles.filter((v) => v.live);
-    if (!liveList.length) return null;
-    return liveList[telemetryIndex % liveList.length];
-  }, [selectedVehicle, vehicles, telemetryIndex]);
-
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -1003,7 +957,7 @@ const LiveTrackingPage = () => {
           <div className="tools">
             <span className="clockchip">
               {renderIconSvg('clock', 15)}
-              <span>{clockTime}</span>
+              <LiveClock />
             </span>
 
             <button
@@ -1306,34 +1260,13 @@ const LiveTrackingPage = () => {
               </div>
 
               {/* Live Telemetry Ticker */}
-              {telemetryVehicle && (
-                <div className={`telemetry ${isTelemetryOn && !replayState.on ? 'on' : ''}`}>
-                  <span style={{ color: 'var(--nova-fern-500)', display: 'flex' }}>
-                    {renderIconSvg('radio', 14)}
-                  </span>
-                  <span className="tplate">{telemetryVehicle.plate}</span>
-                  <span className="tsep" />
-                  <span className="tval">
-                    <b>{telemetryVehicle.speed != null ? telemetryVehicle.speed : '—'}</b> km/h
-                  </span>
-                  <span className="tsep" />
-                  <span className="tval">
-                    Fuel <b>{telemetryVehicle.fuel != null ? `${telemetryVehicle.fuel} L` : '—'}</b>
-                  </span>
-                  <span className="tsep" />
-                  <span className="tval">
-                    Ign <b>{telemetryVehicle.ignition}</b>
-                  </span>
-                  <span className="tsep opt1" />
-                  <span className="tval opt1">
-                    GPS <b>{telemetryVehicle.gps}</b>
-                  </span>
-                  <span className="tsep opt2" />
-                  <span className="tval opt2">
-                    {telemetryVehicle.ago != null ? formatAgoText(telemetryVehicle.ago) : '—'}
-                  </span>
-                </div>
-              )}
+              <TelemetryTicker
+                selectedVehicle={selectedVehicle}
+                vehicles={vehicles}
+                rotating={isTelemetryOn}
+                highlighted={isTelemetryOn && !replayState.on}
+                icon={renderIconSvg('radio', 14)}
+              />
             </div>
           </div>
 

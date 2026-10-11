@@ -660,3 +660,31 @@ export const computeMapVehicles = (filteredVehicles = [], selectedVehicle = null
   }
   return filteredVehicles;
 };
+
+/** Counts for the status cards, in one pass over the fleet (it runs on every live tick). */
+export function countVehiclesByStatus(vehicles) {
+  const c = {
+    all: vehicles.length,
+    moving: 0,
+    stopped: 0,
+    idling: 0,
+    offline: 0,
+    breakdown: 0,
+    faulty: 0,
+    geofence: 0,
+    gps: 0,
+  };
+  for (const v of vehicles) {
+    if (v.status === 'moving') c.moving++;
+    if (v.status === 'stopped') c.stopped++;
+    if (v.status === 'idling') c.idling++;
+    if (v.status === 'offline') c.offline++;
+    if (v.status === 'breakdown' || v.status === 'workshop' || v.inWorkshop || v.isBreakdown) {
+      c.breakdown++;
+    }
+    if (v.status === 'faulty' || v.hasFault || (v.alertsCount && v.alertsCount > 0)) c.faulty++;
+    if (v.status === 'geofence' || v.inGeofenceAlert) c.geofence++;
+    if (v.live) c.gps++;
+  }
+  return c;
+}
