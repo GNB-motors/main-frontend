@@ -7,6 +7,7 @@ import apiClient from '../../../utils/axiosConfig';
 import useApi from '../../../hooks/useApi';
 import { getUserRole } from '../../../utils/session';
 import './FeatureFlags.css';
+import { changedFlags } from './changedFlags';
 
 const FEATURE_LABELS = {
   overview: 'Overview',
@@ -117,12 +118,10 @@ const OrgFeatureFlagsDetailPage = () => {
     setSaving(true);
     setError('');
     try {
-      const features = {};
-      knownKeys.forEach((k) => {
-        features[k] = flags?.[k] === true;
-      });
+      const features = changedFlags(knownKeys, original, flags);
+      if (!Object.keys(features).length) return;
       const res = await apiClient.patch(`/api/feature-flags/${orgId}`, { features });
-      const next = res.data?.data?.flags || features;
+      const next = res.data?.data?.flags || { ...original, ...features };
       setFlags(next);
       setOriginal(next);
       toast.success('Feature flags saved');
