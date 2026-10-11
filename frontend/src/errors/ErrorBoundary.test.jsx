@@ -74,6 +74,37 @@ describe('ErrorBoundary', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('clears a caught error when resetKey changes', () => {
+    const { rerender } = render(
+      <ErrorBoundary resetKey="/broken">
+        <Thrower message="page broke" />
+      </ErrorBoundary>,
+    );
+    expect(screen.getByText('page broke')).toBeInTheDocument();
+
+    rerender(
+      <ErrorBoundary resetKey="/fine">
+        <p>next page</p>
+      </ErrorBoundary>,
+    );
+    expect(screen.getByText('next page')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('keeps the error when the resetKey change is what made the child throw', () => {
+    const { rerender } = render(
+      <ErrorBoundary resetKey="/fine">
+        <p>fine page</p>
+      </ErrorBoundary>,
+    );
+    rerender(
+      <ErrorBoundary resetKey="/broken">
+        <Thrower message="broke on arrival" />
+      </ErrorBoundary>,
+    );
+    expect(screen.getByText('broke on arrival')).toBeInTheDocument();
+  });
+
   it('isolates errors per boundary instance', () => {
     render(
       <div>

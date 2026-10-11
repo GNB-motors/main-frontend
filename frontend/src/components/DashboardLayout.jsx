@@ -1,5 +1,6 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
+import ErrorBoundary from '../errors/ErrorBoundary.jsx';
 import Sidebar from './Sidebar.jsx';
 import Navbar from './Navbar.jsx';
 import LottieLoader from './LottieLoader.jsx';
@@ -17,6 +18,7 @@ const DashboardLayoutInner = () => {
   // against the newly selected branch (X-Branch-Id changes in the interceptor).
   const { branchId } = useActiveBranch();
   const { profile, ready } = useFeatureFlags();
+  const { pathname } = useLocation();
 
   React.useEffect(() => {
     // Set all CSS tokens on :root immediately — covers page refresh & login redirect.
@@ -65,7 +67,10 @@ const DashboardLayoutInner = () => {
         <Navbar toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
         <div className="page-content" key={branchId || 'all-locations'}>
           <ConfirmDialogHost>
-            <Outlet />
+            {/* A page crash stays inside the page area; sidebar and navbar survive. */}
+            <ErrorBoundary resetKey={pathname}>
+              <Outlet />
+            </ErrorBoundary>
           </ConfirmDialogHost>
         </div>
       </main>

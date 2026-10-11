@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { lazy, Suspense, useEffect, useLayoutEffect } from 'react';
 import LottieLoader from './components/LottieLoader';
+import RequireAuth from './components/RequireAuth.jsx';
 import { TripCreationProvider } from './contexts/TripCreationContext.jsx';
 import { setNavigator } from './utils/navigation.js';
 
@@ -385,9 +386,11 @@ function App() {
           {/* Protected Routes inside DashboardLayout */}
           <Route
             element={
-              <TripCreationProvider>
-                <DashboardLayout />
-              </TripCreationProvider>
+              <RequireAuth>
+                <TripCreationProvider>
+                  <DashboardLayout />
+                </TripCreationProvider>
+              </RequireAuth>
             }
           >
             <Route path="/digest" element={<DailyDigestPage />} />

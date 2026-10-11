@@ -40,7 +40,6 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
   useEffect(() => {
     if (loadError) {
       console.error('Google Maps Load Error:', loadError);
-      console.log('API Key being used:', GOOGLE_MAPS_API_KEY);
     }
   }, [loadError]);
 

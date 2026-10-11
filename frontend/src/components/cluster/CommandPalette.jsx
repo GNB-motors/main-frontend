@@ -53,10 +53,12 @@ export default function CommandPalette() {
   const { data: healthData, loading: healthLoading } = useApi(
     (signal) => FleetDataService.getFleetHealth(signal),
     [],
+    { enabled: open },
   );
   const { data: fleetDash, loading: fleetLoading } = useApi(
     (signal) => VehicleService.getFleetDashboard(null, '', { signal }),
     [],
+    { enabled: open },
   );
 
   const vehicles = useMemo(() => {
