@@ -13,7 +13,8 @@ import VendorPaymentApi from '../ErpVendorPayments/VendorPaymentService';
 import { SupplierPaymentApi } from '../ErpSupplierPayments/SupplierPaymentService';
 import { getEntityById } from '../../components/Erp/entityLookup.service';
 import { documentPathFor } from './documentRoutes';
-import { inr, num, drCr, pct } from '../../utils/formatMoney';
+import { inr, num, drCr } from '../../utils/formatMoney';
+import { creditUsage, openItemsTotal } from './account360Logic';
 import { formatDateIST } from '../../utils/dateUtils';
 import '../../styles/erp.css';
 
@@ -132,9 +133,7 @@ const Account360Page = () => {
 
   const bal = balance ? drCr(balance.balance) : null;
   const creditLimit = account?.creditLimit ?? 0;
-  const utilisation =
-    creditLimit > 0 && balance ? pct(Math.max(0, balance.balance), creditLimit) : null;
-  const overLimit = creditLimit > 0 && balance && balance.balance > creditLimit;
+  const { utilisation, overLimit, overBy } = creditUsage(creditLimit, balance?.balance);
 
   const statementColumns = useMemo(
     () => [
@@ -325,10 +324,7 @@ const Account360Page = () => {
     return [];
   }, [accountType]);
 
-  const openTotal = useMemo(
-    () => openItems.rows.reduce((s, r) => s + (r.outstandingAmount ?? r.netAmount ?? 0), 0),
-    [openItems.rows],
-  );
+  const openTotal = useMemo(() => openItemsTotal(openItems.rows), [openItems.rows]);
 
   const exportStatement = async () => {
     try {
@@ -450,7 +446,7 @@ const Account360Page = () => {
           <div className="erp-callout danger" style={{ marginTop: 16, marginBottom: 0 }}>
             <AlertTriangle size={15} />
             <span>
-              Over credit limit by <strong>{inr(balance.balance - creditLimit)}</strong>.
+              Over credit limit by <strong>{inr(overBy)}</strong>.
             </span>
           </div>
         )}

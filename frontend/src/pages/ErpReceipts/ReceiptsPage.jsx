@@ -8,21 +8,20 @@ import { toast } from 'react-toastify';
 import ReceiptApi from './ReceiptService';
 import PartyApi from '../ErpMasters/PartyService';
 import PageShell from '../../components/Erp/PageShell';
+import {
+  emptyCnRow,
+  cnLineTotal,
+  draftForBill,
+  toCnAllocations,
+  allocationState,
+  unadjustedTotal,
+} from './receiptAllocation';
 import '../../styles/erp.css';
 
 const money = (n) =>
   typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—';
 
 const todayInput = () => new Date().toISOString().slice(0, 10);
-
-const emptyCnRow = () => ({
-  amountReceived: 0,
-  detentionDeducted: 0,
-  shortageDeducted: 0,
-  othersDeducted: 0,
-  othersLabel: '',
-  remarks: '',
-});
 
 const ReceiptsPage = ({ embedded = false }) => {
   const [tab, setTab] = useState('receipt');
@@ -130,22 +129,8 @@ const ReceiptsPage = ({ embedded = false }) => {
 
   const openBill = (bill) => {
     setSelectedBillId(bill.billId);
-    const draft = {};
-    for (const cn of bill.cns || []) {
-      draft[cn.cnId] = {
-        ...emptyCnRow(),
-        detentionDeducted: cn.detentionAmount || 0,
-        shortageDeducted: cn.shortageAmount || 0,
-      };
-    }
-    setCnDraft(draft);
+    setCnDraft(draftForBill(bill));
   };
-
-  const lineTotal = (row) =>
-    (Number(row.amountReceived) || 0)
-    + (Number(row.detentionDeducted) || 0)
-    + (Number(row.shortageDeducted) || 0)
-    + (Number(row.othersDeducted) || 0);
 
   const submitAdjustment = async () => {
     if (!selectedVoucherId || !selectedBillId || !context) return;
@@ -158,14 +143,7 @@ const ReceiptsPage = ({ embedded = false }) => {
       return;
     }
 
-    const cnAllocations = (bill.cns || []).map((cn) => ({
-      cnId: cn.cnId,
-      ...cnDraft[cn.cnId],
-      amountReceived: Number(cnDraft[cn.cnId]?.amountReceived) || 0,
-      detentionDeducted: Number(cnDraft[cn.cnId]?.detentionDeducted) || 0,
-      shortageDeducted: Number(cnDraft[cn.cnId]?.shortageDeducted) || 0,
-      othersDeducted: Number(cnDraft[cn.cnId]?.othersDeducted) || 0,
-    }));
+    const cnAllocations = toCnAllocations(bill, cnDraft);
 
     setBusy(true);
     try {
@@ -202,24 +180,29 @@ const ReceiptsPage = ({ embedded = false }) => {
 
   // Live allocation math — the "received / applied / remaining" the vision wants,
   // with partial and overpayment (customer-advance) states made explicit.
-  const toAllocateTotal = unadjusted.reduce((s, v) => s + (v.unadjustedAmount || 0), 0);
+  const toAllocateTotal = unadjustedTotal(unadjusted);
   const voucherUnadjusted = context?.voucher?.unadjustedAmount || 0;
-  const allocatingForBill = selectedBill
-    ? (selectedBill.cns || []).reduce((s, cn) => s + lineTotal(cnDraft[cn.cnId] || emptyCnRow()), 0)
-    : 0;
-  const remaining = voucherUnadjusted - allocatingForBill;
-  const overBill = !!selectedBill && allocatingForBill > (selectedBill.outstandingAmount || 0) + 0.001;
-  const overVoucher = remaining < -0.001;
-  const canPost = allocatingForBill > 0.001 && !overBill && !overVoucher;
+  const { allocatingForBill, remaining, overBill, overVoucher, canPost } = allocationState({
+    voucherUnadjusted,
+    bill: selectedBill,
+    cnDraft,
+  });
 
   return (
     <PageShell
       embedded={embedded}
-      title={<><Banknote size={22} /> Receipts &amp; Adjustment</>}
+      title={
+        <>
+          <Banknote size={22} /> Receipts &amp; Adjustment
+        </>
+      }
       subtitle="Record party receipts first, then CN-wise bill allocation when details arrive."
-      breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Billing', to: '/erp/billing' }, { label: 'Receipts' }]}
+      breadcrumbs={[
+        { label: 'ERP', to: '/erp' },
+        { label: 'Billing', to: '/erp/billing' },
+        { label: 'Receipts' },
+      ]}
     >
-
       <div className="erp-buckets">
         <div className="erp-bucket">
           <span className="erp-bucket-count">{money(toAllocateTotal)}</span>
@@ -366,7 +349,11 @@ const ReceiptsPage = ({ embedded = false }) => {
                         <td>{b.billNumber}</td>
                         <td>{money(b.outstandingAmount)}</td>
                         <td>
-                          <button type="button" className="erp-btn small" onClick={() => openBill(b)}>
+                          <button
+                            type="button"
+                            className="erp-btn small"
+                            onClick={() => openBill(b)}
+                          >
                             Allocate
                           </button>
                         </td>
@@ -477,7 +464,7 @@ const ReceiptsPage = ({ embedded = false }) => {
                                   }
                                 />
                               </td>
-                              <td>{money(lineTotal(row))}</td>
+                              <td>{money(cnLineTotal(row))}</td>
                             </tr>
                           );
                         })}
@@ -501,7 +488,8 @@ const ReceiptsPage = ({ embedded = false }) => {
 
                   {overBill && (
                     <p className="erp-alloc-warn">
-                      Allocation exceeds this bill&apos;s outstanding of {money(selectedBill.outstandingAmount)}.
+                      Allocation exceeds this bill&apos;s outstanding of{' '}
+                      {money(selectedBill.outstandingAmount)}.
                     </p>
                   )}
                   {overVoucher && (
@@ -511,7 +499,8 @@ const ReceiptsPage = ({ embedded = false }) => {
                   )}
                   {!overBill && !overVoucher && remaining > 0.001 && (
                     <p className="erp-alloc-note">
-                      {money(remaining)} stays as a customer advance on this receipt — allocate it to another bill later.
+                      {money(remaining)} stays as a customer advance on this receipt — allocate it
+                      to another bill later.
                     </p>
                   )}
 
@@ -524,7 +513,11 @@ const ReceiptsPage = ({ embedded = false }) => {
                     >
                       Post adjustment
                     </button>
-                    <button type="button" className="erp-btn" onClick={() => loadContext(selectedVoucherId)}>
+                    <button
+                      type="button"
+                      className="erp-btn"
+                      onClick={() => loadContext(selectedVoucherId)}
+                    >
                       <RefreshCw size={14} /> Refresh
                     </button>
                   </div>
