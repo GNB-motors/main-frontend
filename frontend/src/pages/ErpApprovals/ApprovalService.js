@@ -25,9 +25,9 @@ const ApprovalService = {
     }
   },
 
-  getSummary: async () => {
+  getSummary: async ({ signal } = {}) => {
     try {
-      const response = await apiClient.get(`${BASE}/summary`);
+      const response = await apiClient.get(`${BASE}/summary`, { signal });
       return response.data;
     } catch (error) {
       throw unwrapError(error, 'Failed to fetch approval summary');

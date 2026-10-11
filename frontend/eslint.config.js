@@ -119,7 +119,6 @@ export default defineConfig([
     files: [
       'src/components/FuelLogForm/FuelLogForm.jsx',
       'src/components/LocationAutocomplete/LocationAutocomplete.jsx',
-      'src/components/Sidebar.jsx',
       'src/contexts/FeatureFlagsContext.jsx',
       'src/pages/Approvals/ApprovalsPage.jsx',
       'src/pages/AutoTrips/MovementApprovalsPage.jsx',
