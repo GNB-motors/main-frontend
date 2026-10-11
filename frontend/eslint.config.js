@@ -122,7 +122,6 @@ export default defineConfig([
       'src/pages/ErpMasters/PartiesPage.jsx',
       'src/pages/ErpMasters/RatesPage.jsx',
       'src/pages/FieldAgentFuel/FieldAgentFuelUploadPage.jsx',
-      'src/pages/Login/LoginPage.jsx',
       'src/pages/Mileage/components/PumpLedgerView.jsx',
       'src/pages/MileageTracking/AdBlueLogPage.jsx',
       'src/pages/MileageTracking/AdBlueTrackingPage.jsx',
