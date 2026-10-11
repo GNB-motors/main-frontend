@@ -8,6 +8,7 @@ import {
   filterPlaces,
   countByGroup,
   placeTotals,
+  reviewNoteFor,
   clusterIdleEvents,
   liveIdleTotals,
   idleHistoryTotals,
@@ -451,5 +452,43 @@ describe('labels', () => {
     expect(durationLabel(45)).toBe('45 min');
     expect(durationLabel(135)).toBe('2h 15m');
     expect(durationLabel(1500)).toBe('1d 1h');
+  });
+});
+
+describe('low-evidence suggestions', () => {
+  const site = (id, extra = {}) => ({
+    _id: id,
+    status: 'PROPOSED',
+    centroidLat: 22.5,
+    centroidLng: 88.3,
+    ...extra,
+  });
+
+  it('sit in their own group, outside All and To review', () => {
+    const places = mergePlaces({
+      sites: [
+        site('a'),
+        site('b', { lowEvidence: true }),
+        site('c', { status: 'CONFIRMED', lowEvidence: true }),
+      ],
+    });
+    const byId = Object.fromEntries(places.map((p) => [p.sourceId, p.group]));
+    expect(byId.a).toBe('review');
+    expect(byId.b).toBe('low');
+    expect(byId.c).not.toBe('low'); // an answered place is never low evidence
+    const counts = countByGroup(places);
+    expect(counts).toMatchObject({ review: 1, low: 1, all: 1 });
+    expect(filterPlaces(places, { group: 'all' }).map((p) => p.sourceId)).toEqual(['c']);
+    expect(filterPlaces(places, { group: 'low' }).map((p) => p.sourceId)).toEqual(['b']);
+  });
+
+  it('the list note says what low evidence means, and how many when only the busiest load', () => {
+    expect(reviewNoteFor('low', { low: [3, 3] })).toMatch(/moves to To review by itself/);
+    expect(reviewNoteFor('low', { low: [200, 537] })).toMatch(/Showing the 200 busiest of 537/);
+    expect(reviewNoteFor('review', { review: [200, 410] })).toBe(
+      'Showing the 200 busiest of 410 suggestions.',
+    );
+    expect(reviewNoteFor('review', { review: [5, 5] })).toBeNull();
+    expect(reviewNoteFor('all', {})).toBeNull();
   });
 });

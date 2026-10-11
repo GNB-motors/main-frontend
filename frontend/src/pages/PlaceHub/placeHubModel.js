@@ -14,6 +14,7 @@ import {
   groupBreaks,
 } from './intelligence/placeIntelligenceModel.js';
 import { provenanceOf } from '../../services/HotspotService.js';
+import { num } from '../../utils/formatMoney.js';
 
 export const EDITOR_ROLES = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
 export const canEditPlaces = (role) => EDITOR_ROLES.includes(String(role || '').toUpperCase());
@@ -57,11 +58,15 @@ export const PLACE_GROUPS = [
   { id: 'other', label: 'Other' },
   { id: 'risk', label: 'Fuel risk' },
   { id: 'review', label: 'To review' },
+  { id: 'low', label: 'Low evidence' },
   { id: 'rejected', label: 'Not a place' },
 ];
 
-/** Groups that sit outside "All places": suggestions, and places said not to exist. */
-const SET_ASIDE = new Set(['review', 'rejected']);
+/**
+ * Groups that sit outside "All places": suggestions, suggestions with too little
+ * evidence to answer yet, and places said not to exist.
+ */
+const SET_ASIDE = new Set(['review', 'low', 'rejected']);
 
 export function groupOfType(type) {
   return GROUP_OF_TYPE[type] || 'other';
@@ -182,7 +187,11 @@ export function fromSite(s) {
     sourceId: String(s._id),
     name: placeTitle(s),
     type,
-    group: SITE_GROUP_OF_STATUS[status] || groupOfType(type),
+    // Low evidence: nothing names the place yet and no trip ends there (backend reviewReady).
+    group:
+      status === 'PROPOSED' && s.lowEvidence
+        ? 'low'
+        : SITE_GROUP_OF_STATUS[status] || groupOfType(type),
     status,
     risk: hasRisk(s),
     reviewRank: Number.isInteger(s.reviewRank) ? s.reviewRank : null,
@@ -273,6 +282,25 @@ export function countByGroup(places) {
     if (inGroup(p, 'risk')) counts.risk += 1;
   }
   return counts;
+}
+
+/**
+ * The line above a suggestion list: what Low evidence means, and when only the
+ * busiest are loaded, how many there are in all. `sizes` maps group → [loaded, total].
+ */
+export function reviewNoteFor(group, sizes = {}) {
+  const [loaded = 0, total = 0] = sizes[group] || [];
+  const more =
+    total > loaded ? `Showing the ${num(loaded)} busiest of ${num(total)} suggestions.` : '';
+  if (group === 'review') return more || null;
+  if (group !== 'low') return null;
+  return [
+    'Nothing names these places yet and no trip ends at them: seen too rarely, or a drop town no truck has stopped at.',
+    'One moves to To review by itself once it can be named or a trip ends there.',
+    more,
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
 export function placeTotals(places) {

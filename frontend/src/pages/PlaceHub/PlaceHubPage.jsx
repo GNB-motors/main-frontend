@@ -48,6 +48,7 @@ import {
   mergePlaces,
   filterPlaces,
   countByGroup,
+  reviewNoteFor,
   placeTotals,
   placeTypeLabel,
   liveIdleTotals,
@@ -312,6 +313,7 @@ export default function PlaceHubPage() {
       zones: z.rows,
       sites: s.rows,
       proposedTotal: s.proposedTotal || 0,
+      lowEvidenceTotal: s.lowEvidenceTotal || 0,
       summary: summary.rows || d.summary,
     }));
     setErrors((e) => ({ ...e, warehouses: w.error, zones: z.error, 'detected places': s.error }));
@@ -446,19 +448,21 @@ export default function PlaceHubPage() {
     () => mergePlaces({ warehouses: data.warehouses, zones: data.zones, sites: data.sites }),
     [data.warehouses, data.zones, data.sites],
   );
-  // Only the 200 busiest suggestions are loaded; the counts use the real total.
-  const counts = useMemo(
-    () => ({
-      ...countByGroup(places),
-      review: Math.max(countByGroup(places).review || 0, data.proposedTotal),
-    }),
-    [places, data.proposedTotal],
-  );
+  // Only the 200 busiest of each kind of suggestion are loaded; the counts use the real totals.
+  const counts = useMemo(() => {
+    const c = countByGroup(places);
+    return {
+      ...c,
+      review: Math.max(c.review || 0, data.proposedTotal),
+      low: Math.max(c.low || 0, data.lowEvidenceTotal || 0),
+    };
+  }, [places, data.proposedTotal, data.lowEvidenceTotal]);
   const totals = useMemo(
     () => ({ ...placeTotals(places), toReview: counts.review }),
     [places, counts.review],
   );
   const reviewLoaded = useMemo(() => places.filter((p) => p.group === 'review').length, [places]);
+  const lowLoaded = useMemo(() => places.filter((p) => p.group === 'low').length, [places]);
   const visiblePlaces = useMemo(
     () => filterPlaces(places, { group, query }),
     [places, group, query],
@@ -900,11 +904,10 @@ export default function PlaceHubPage() {
               }}
               canEdit={canEdit}
               onAdd={() => startAdd('WAREHOUSE')}
-              reviewNote={
-                group === 'review' && counts.review > reviewLoaded
-                  ? `Showing the ${num(reviewLoaded)} busiest of ${num(counts.review)} suggestions.`
-                  : null
-              }
+              reviewNote={reviewNoteFor(group, {
+                review: [reviewLoaded, counts.review],
+                low: [lowLoaded, counts.low],
+              })}
             />
           )}
           {tab === 'idling' && (
