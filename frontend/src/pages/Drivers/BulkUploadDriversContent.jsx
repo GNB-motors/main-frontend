@@ -1,5 +1,4 @@
 import React, { useRef, useState, useEffect } from 'react';
-import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { Send } from 'lucide-react';
 import { getThemeCSS } from '../../utils/colorTheme.js';
@@ -75,8 +74,10 @@ const BulkUploadDriversContent = ({ onCompleted, variant = 'page' }) => {
     setIsParsing(true);
     const reader = new FileReader();
 
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
+        // Loaded on demand: xlsx is large and only needed once a file is picked.
+        const XLSX = await import('xlsx');
         let rawData = [];
         let headers = [];
 

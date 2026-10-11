@@ -1,5 +1,4 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
-import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { Send } from 'lucide-react';
 import { getThemeCSS } from '../../utils/colorTheme.js';
@@ -132,8 +131,10 @@ const BulkUploadVehiclesContent = ({ onCompleted, variant = 'page' }) => {
     setUploadResult(null);
     const isCsv = file.name.toLowerCase().endsWith('.csv');
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
+        // Loaded on demand: xlsx is large and only needed once a file is picked.
+        const XLSX = await import('xlsx');
         // XLSX reads a .csv string and a binary .xlsx/.xls the same way once parsed.
         const workbook = isCsv
           ? XLSX.read(evt.target.result, { type: 'string' })

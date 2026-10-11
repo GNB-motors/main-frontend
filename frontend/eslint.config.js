@@ -54,7 +54,14 @@ export default defineConfig([
       'no-restricted-imports': [
         'error',
         {
-          paths: [{ name: 'axios', message: API_IMPORT_MESSAGE }],
+          paths: [
+            { name: 'axios', message: API_IMPORT_MESSAGE },
+            {
+              name: 'xlsx',
+              message:
+                "xlsx is large; load it where it is used: const XLSX = await import('xlsx').",
+            },
+          ],
           patterns: [
             { group: ['**/axiosConfig', '**/axiosConfig.js'], message: API_IMPORT_MESSAGE },
           ],
