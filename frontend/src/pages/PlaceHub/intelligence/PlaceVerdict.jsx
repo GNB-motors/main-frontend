@@ -15,7 +15,7 @@ import {
  */
 export default function PlaceVerdict({ site }) {
   const e = site.engine || {};
-  const { type, source } = effectiveType(site);
+  const { type, source, leaning } = effectiveType(site);
   const pct = confidencePct(e.confidence);
   const color = typeStyle(type).color;
   if (site.status === 'CONFIRMED' && source === 'you') {
@@ -52,6 +52,26 @@ export default function PlaceVerdict({ site }) {
             <i style={{ width: `${pct}%` }} />
           </div>
         ) : null}
+      </div>
+    );
+  }
+  if (source === 'facility') {
+    return (
+      <div className="pi-verdict" style={{ '--pi-type': color }}>
+        <strong>Looks like {aType(type)}</strong>
+        <span>From the trips, the map and your register</span>
+      </div>
+    );
+  }
+  if ((source === 'floor' || source === 'neighbour') && leaning) {
+    return (
+      <div className="pi-verdict">
+        <strong>Not sure yet — maybe {aType(leaning)}</strong>
+        <span>
+          {source === 'floor'
+            ? 'Too weak a clue to show on the map. Your answer settles it.'
+            : 'A better-known place next to it says otherwise, so the map shows no type. Your answer settles it.'}
+        </span>
       </div>
     );
   }
