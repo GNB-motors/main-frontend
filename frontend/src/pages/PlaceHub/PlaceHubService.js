@@ -75,9 +75,16 @@ export const PlaceHubService = {
       const [confirmed, proposed, low, rejected, queue] = await Promise.all([
         allPages(page('CONFIRMED'), MAX_SITE_PAGES),
         page('PROPOSED')(1),
-        // An older backend ignores evidence=low and sends the To review list again;
-        // those rows are told apart by id below, so nothing shows twice.
-        page('PROPOSED', 'low')(1),
+        // Optional: a backend without evidence=low answers 400, and that must not
+        // take the other lists down with it (prod 2026-10-11, frontend deployed first).
+        // One that ignores it sends To review again; those rows are dropped by id below.
+        page(
+          'PROPOSED',
+          'low',
+        )(1).catch((error) => {
+          if (error?.name === 'CanceledError' || error?.code === 'ERR_CANCELED') throw error;
+          return { rows: [], total: 0 };
+        }),
         page('REJECTED')(1),
         // The order is a nicety; the suggestions still list without it.
         PlaceIntelligenceService.reviewQueue({ limit: 100 }, { signal }).catch(() => null),
