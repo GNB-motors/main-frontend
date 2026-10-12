@@ -3,7 +3,7 @@ import { render, screen, act } from '@testing-library/react';
 import React from 'react';
 import LiveClock from './LiveClock';
 import TelemetryTicker from './TelemetryTicker';
-import { countVehiclesByStatus } from './liveTracking.shared';
+import { countVehiclesByStatus } from './vehicleStatus';
 
 afterEach(() => {
   vi.useRealTimers();

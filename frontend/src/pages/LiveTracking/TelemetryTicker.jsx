@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { formatAgoText } from './liveTracking.shared.js';
+import { formatAgoText } from './minutesAgoFormat.js';
 
 /**
  * Live telemetry strip: the selected vehicle, or a rotation through the live

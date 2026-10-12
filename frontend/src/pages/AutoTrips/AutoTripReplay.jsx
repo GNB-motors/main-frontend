@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { GoogleMap, MarkerF, PolylineF, useLoadScript } from '@react-google-maps/api';
 import { Pause, Play } from 'lucide-react';
-import { createVehicleMarkerIcon } from '../LiveTracking/liveTracking.shared.js';
+import { createVehicleMarkerIcon } from '../LiveTracking/vehicleMarkerIcon.js';
 import { positionAt, toFrames, toLatLngSegments } from '../RouteReplay/routeReplay';
 import RoadTrailLayer from '../../components/map/RoadTrailLayer';
 import {

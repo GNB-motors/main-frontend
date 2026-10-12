@@ -3,15 +3,11 @@ import { useParams } from 'react-router-dom';
 import { GoogleMap, useLoadScript, MarkerF, PolylineF } from '@react-google-maps/api';
 import { ShareService } from '../../services/ShareService';
 import RoadTrailLayer from '../../components/map/RoadTrailLayer';
-import {
-  INDIA_CENTER,
-  POLL_INTERVAL_MS,
-  NOVA_STATUS,
-  LIGHT_MAP_STYLE,
-  plateMarkerIcon,
-  trailArrowIcons,
-  formatAgoText,
-} from '../LiveTracking/liveTracking.shared.js';
+import { INDIA_CENTER, POLL_INTERVAL_MS } from '../LiveTracking/liveTrackingConstants.js';
+import { NOVA_STATUS } from '../LiveTracking/statusPalettes.js';
+import { LIGHT_MAP_STYLE } from '../LiveTracking/mapStyles.js';
+import { plateMarkerIcon, trailArrowIcons } from '../LiveTracking/mapIcons.js';
+import { formatAgoText } from '../LiveTracking/minutesAgoFormat.js';
 import './PublicTracking.css';
 
 const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '')
