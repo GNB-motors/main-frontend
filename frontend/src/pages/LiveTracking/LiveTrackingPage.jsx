@@ -285,13 +285,22 @@ const LiveTrackingPage = () => {
     }, 2400);
   }, []);
 
+  const refreshTimerRef = useRef(null);
+  useEffect(
+    () => () => {
+      clearTimeout(toastTimerRef.current);
+      clearTimeout(refreshTimerRef.current);
+    },
+    [],
+  );
+
   // Fetch Vehicles Master Metadata
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     const loadMeta = async () => {
       try {
-        const list = await getVehicleList();
-        if (cancelled) return;
+        const list = await getVehicleList({ signal: controller.signal });
+        if (controller.signal.aborted) return;
         const metaMap = {};
         list.forEach((v) => {
           if (v.registrationNumber) {
@@ -304,23 +313,26 @@ const LiveTrackingPage = () => {
         });
         setVehiclesMeta(metaMap);
       } catch (err) {
-        logger.warn('LiveTrackingPage', 'Could not load vehicles metadata', err);
+        if (!controller.signal.aborted) {
+          logger.warn('LiveTrackingPage', 'Could not load vehicles metadata', err);
+        }
       }
     };
     loadMeta();
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, []);
 
   // Fetch Active Driver ↔ Vehicle Assignments
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     const loadAssignments = async () => {
       try {
-        const res = await DriverVehicleAssignmentService.getAssignments();
+        const res = await DriverVehicleAssignmentService.getAssignments(
+          {},
+          { signal: controller.signal },
+        );
         const list = Array.isArray(res) ? res : res?.items || res?.records || [];
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         const map = {};
         list.forEach((a) => {
           const vehReg = (a.vehicleId?.registrationNumber || a.registrationNumber || '')
@@ -337,13 +349,13 @@ const LiveTrackingPage = () => {
         });
         setDriverAssignments(map);
       } catch (err) {
-        logger.warn('LiveTrackingPage', 'Could not load driver vehicle assignments', err);
+        if (!controller.signal.aborted) {
+          logger.warn('LiveTrackingPage', 'Could not load driver vehicle assignments', err);
+        }
       }
     };
     loadAssignments();
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, []);
 
   // Build Unified Vehicles List
@@ -809,7 +821,8 @@ const LiveTrackingPage = () => {
     } catch {
       // Ignore
     } finally {
-      setTimeout(() => {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = setTimeout(() => {
         setIsRefreshing(false);
         showToast('Fleet positions refreshed');
       }, 600);

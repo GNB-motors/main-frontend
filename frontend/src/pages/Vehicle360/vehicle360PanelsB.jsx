@@ -525,7 +525,8 @@ export function TelemetryPanel({ health, livePosition, history }) {
  */
 export function DriversPanel({ vehicleId, assignedDriver }) {
   const { data, loading, error } = useApi(
-    () => DriverVehicleAssignmentService.getAssignments({ vehicleId, includePast: true }),
+    (signal) =>
+      DriverVehicleAssignmentService.getAssignments({ vehicleId, includePast: true }, { signal }),
     [vehicleId],
     { enabled: Boolean(vehicleId) },
   );

@@ -8,6 +8,7 @@ const trip = load('trip.schema.js');
 const branch = load('branch.schema.js');
 const erp = load('erp.schema.js');
 const livePosition = load('livePosition.schema.js');
+const assignment = load('driverVehicleAssignment.schema.js');
 
 describe('schemas — async validation via parseWith', () => {
   it('parseWith resolves the schema module via dynamic import', async () => {
@@ -153,6 +154,28 @@ describe('schemas — async validation via parseWith', () => {
       expect(listRes.data).toHaveLength(2);
       const singleRes = await branch('branchResponseSchema', { status: 'ok', data: { _id: 'b1' } });
       expect(singleRes.data._id).toBe('b1');
+    });
+  });
+
+  describe('driverVehicleAssignment.schema.js', () => {
+    it('accepts populated refs, bare ids and null dates', async () => {
+      const rows = [
+        {
+          _id: 'a1',
+          driverId: { _id: 'd1', firstName: 'Ravi', mobileNumber: null },
+          vehicleId: { _id: 'v1', registrationNumber: 'WB01AB1234' },
+          endDate: null,
+          extra: 'kept',
+        },
+        { _id: 'a2', driverId: 'd2', vehicleId: 'v2' },
+      ];
+      expect(await assignment('driverVehicleAssignmentListSchema', rows)).toEqual(rows);
+    });
+
+    it('rejects a row without an id', async () => {
+      await expect(
+        assignment('driverVehicleAssignmentListSchema', [{ driverId: 'd1' }]),
+      ).rejects.toThrow();
     });
   });
 
