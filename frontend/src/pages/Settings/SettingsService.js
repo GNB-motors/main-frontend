@@ -17,16 +17,11 @@ const getFuelSettings = ({ signal } = {}) => call(apiClient.get('api/fuel-settin
 const updateIdleThreshold = (idleThresholdMin) =>
   call(apiClient.patch('api/fuel-settings', { idleThresholdMin }));
 
-/** WhatsApp bill settings: { odometerMode, … }. */
-const getWhatsAppSettings = ({ signal } = {}) =>
-  call(apiClient.get('/api/whatsapp/settings', { signal }));
-
 const updateWhatsAppOdometerMode = (odometerMode) =>
   call(apiClient.patch('/api/whatsapp/settings', { odometerMode }));
 
 export const SettingsService = {
   getFuelSettings,
   updateIdleThreshold,
-  getWhatsAppSettings,
   updateWhatsAppOdometerMode,
 };

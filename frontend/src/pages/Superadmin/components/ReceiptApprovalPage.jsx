@@ -169,10 +169,12 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
   const isSuperadminRoute = location.pathname.startsWith('/superadmin');
   const basePath = isSuperadminRoute ? '/superadmin/receipts' : '/approvals/whatsapp';
 
-  const { organization } = useFeatureFlags();
-  const [odoMode, setOdoMode] = useState(
-    organization?.whatsappSettings?.odometerMode || 'INTERACTIVE',
-  );
+  // /api/auth/me already carries organization.whatsappSettings; the server
+  // treats an unset mode as INTERACTIVE. A choice made here wins until the
+  // context refresh after saving brings it back.
+  const { organization, refresh: refreshOrganization } = useFeatureFlags();
+  const [chosenOdoMode, setChosenOdoMode] = useState(null);
+  const odoMode = chosenOdoMode ?? (organization?.whatsappSettings?.odometerMode || 'INTERACTIVE');
   const [odoPolicyModalOpen, setOdoPolicyModalOpen] = useState(false);
   const [savingPolicy, setSavingPolicy] = useState(false);
 
@@ -208,32 +210,18 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
   const [activeDrawerId, setActiveDrawerId] = useState(null);
   const [previewImage, setPreviewImage] = useState(null); // { url, title }
 
-  // Fetch settings for odometer policy
-  useEffect(() => {
-    let alive = true;
-    apiClient
-      .get('/api/whatsapp/settings')
-      .then((res) => {
-        if (alive && res.data?.data?.odometerMode) setOdoMode(res.data.data.odometerMode);
-      })
-      // On failure the policy seeded from /auth/me (organization.whatsappSettings) stays.
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, []);
-
   const changeOdoMode = async (next) => {
     if (next === odoMode || savingPolicy || !canEditPolicy) return;
     const prev = odoMode;
-    setOdoMode(next);
+    setChosenOdoMode(next);
     setSavingPolicy(true);
     try {
       await apiClient.patch('/api/whatsapp/settings', { odometerMode: next });
       toast.success('Odometer Triple-Check policy updated');
       setOdoPolicyModalOpen(false);
+      refreshOrganization();
     } catch (err) {
-      setOdoMode(prev);
+      setChosenOdoMode(prev);
       toast.error(err.response?.data?.message || 'Failed to update policy');
     } finally {
       setSavingPolicy(false);

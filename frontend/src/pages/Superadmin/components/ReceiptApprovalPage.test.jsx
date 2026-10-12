@@ -9,7 +9,7 @@ vi.mock('../../../utils/axiosConfig', () => ({
   default: { get: vi.fn(), patch: vi.fn(), post: vi.fn() },
 }));
 vi.mock('../../../contexts/FeatureFlagsContext', () => ({
-  useFeatureFlags: () => ({ organization: null }),
+  useFeatureFlags: () => ({ organization: null, refresh: () => {} }),
 }));
 vi.mock('../../../utils/session', () => ({ getUserRole: () => 'OWNER' }));
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
@@ -60,5 +60,17 @@ describe('ReceiptApprovalPage', () => {
 
     expect(screen.queryByText('WB01AA1111')).not.toBeInTheDocument();
     expect(screen.getByText('WB02BB2222')).toBeInTheDocument();
+  });
+
+  // The odometer policy rides on /api/auth/me; the page no longer re-fetches it.
+  it('does not fetch the WhatsApp settings itself', async () => {
+    apiClient.get.mockResolvedValue(draftsOf([]));
+    render(
+      <MemoryRouter>
+        <ReceiptApprovalPage />
+      </MemoryRouter>,
+    );
+    await act(async () => {});
+    expect(apiClient.get.mock.calls.map(([url]) => url)).not.toContain('/api/whatsapp/settings');
   });
 });
