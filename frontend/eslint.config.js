@@ -81,6 +81,15 @@ export default defineConfig([
             "CallExpression[callee.object.object.name='window'][callee.object.property.name='localStorage']",
           message: 'Use utils/session.js instead of direct localStorage access.',
         },
+        {
+          selector: "CallExpression[callee.object.name='sessionStorage']",
+          message: 'Use utils/session.js instead of direct sessionStorage access.',
+        },
+        {
+          selector:
+            "CallExpression[callee.object.object.name='window'][callee.object.property.name='sessionStorage']",
+          message: 'Use utils/session.js instead of direct sessionStorage access.',
+        },
       ],
       // Accessibility violations — Phase 7 remediates these; warn until then
       ...Object.fromEntries(

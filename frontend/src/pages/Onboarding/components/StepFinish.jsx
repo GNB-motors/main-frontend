@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getUserFirstName } from '../../../utils/session.js';
+import { getUserFirstName, getOnboardingDraft } from '../../../utils/session.js';
 
 /**
  * StepFinish
@@ -10,8 +10,7 @@ const StepFinish = ({ onFinish, onBack }) => {
   const [isLaunching, setIsLaunching] = useState(false);
 
   const firstName = getUserFirstName() || '';
-  const companyRaw = sessionStorage.getItem('onboardingCompany');
-  const company = companyRaw ? JSON.parse(companyRaw) : {};
+  const company = getOnboardingDraft('company');
   const companyName = company.companyName || 'your company';
   const themeColor = company.selectedColor || '#1e293b';
 

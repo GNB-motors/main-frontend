@@ -22,6 +22,10 @@ import {
   getUserLastName,
   setSession,
   setThemeColor,
+  getOnboardingStep,
+  setOnboardingStep,
+  getOnboardingDraft,
+  clearOnboardingDraft,
 } from '../../utils/session.js';
 
 const STEPS = [
@@ -57,12 +61,12 @@ const OnboardingPage = () => {
 
   // ── Persist step across refreshes within same session ────────────────────
   useEffect(() => {
-    const saved = sessionStorage.getItem('onboardingStep');
-    if (saved) setCurrentStep(parseInt(saved, 10));
+    const saved = getOnboardingStep();
+    if (saved) setCurrentStep(saved);
   }, []);
 
   useEffect(() => {
-    sessionStorage.setItem('onboardingStep', currentStep.toString());
+    setOnboardingStep(currentStep);
   }, [currentStep]);
 
   // ── Data change handler (steps 3 & 4 still use it) ───────────────────────
@@ -92,10 +96,8 @@ const OnboardingPage = () => {
   const submitOnboarding = async () => {
     try {
       const orgId = getOrgId();
-      const profileRaw = sessionStorage.getItem('onboardingProfile');
-      const companyRaw = sessionStorage.getItem('onboardingCompany');
-      const profile = profileRaw ? JSON.parse(profileRaw) : {};
-      const company = companyRaw ? JSON.parse(companyRaw) : {};
+      const profile = getOnboardingDraft('profile');
+      const company = getOnboardingDraft('company');
 
       const onboardingData = {
         firstName: profile.firstName || getUserFirstName(),
@@ -109,6 +111,7 @@ const OnboardingPage = () => {
 
       // Mark onboarding as complete (setSession writes onboardingCompleted)
       setSession({ organization: { isOnboarded: true } });
+      clearOnboardingDraft();
       if (onboardingData.primaryThemeColor) {
         // setThemeColor dispatches themeColorChange itself
         setThemeColor(onboardingData.primaryThemeColor);

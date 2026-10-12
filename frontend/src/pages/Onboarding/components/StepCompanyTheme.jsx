@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import CompanyLogoUploader from '../../../components/CompanyLogoUploader.jsx';
-import { getOrgId } from '../../../utils/session.js';
+import { getOrgId, getOnboardingDraft, setOnboardingDraft } from '../../../utils/session.js';
 
 const StepCompanyTheme = ({ onNext, onBack, onDataChange }) => {
   const [companyName, setCompanyName] = useState('');
@@ -23,10 +23,8 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange }) => {
   ];
 
   useEffect(() => {
-    // Load from sessionStorage if available
-    const savedData = sessionStorage.getItem('onboardingCompany');
-    if (savedData) {
-      const parsed = JSON.parse(savedData);
+    const parsed = getOnboardingDraft('company');
+    if (Object.keys(parsed).length) {
       setCompanyName(parsed.companyName || '');
       setSelectedColor(parsed.selectedColor || '#2940d3');
       setCustomHex(parsed.selectedColor || '');
@@ -77,9 +75,8 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange }) => {
       }
     }
 
-    // Save to sessionStorage for final submission
-    const companyData = { companyName, selectedColor, gstin };
-    sessionStorage.setItem('onboardingCompany', JSON.stringify(companyData));
+    // Read back by the finish step and the final submission
+    setOnboardingDraft('company', { companyName, selectedColor, gstin });
 
     toast.success('Company details saved', { autoClose: 1500 });
     onNext();

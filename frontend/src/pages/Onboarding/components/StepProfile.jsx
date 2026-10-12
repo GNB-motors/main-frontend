@@ -10,6 +10,8 @@ import {
   getUserMobileNumber,
   getUserId,
   getOrgId,
+  getOnboardingDraft,
+  setOnboardingDraft,
 } from '../../../utils/session.js';
 import logger from '../../../utils/logger';
 
@@ -54,25 +56,7 @@ const StepProfile = ({ onNext, onBack, onDataChange }) => {
         setUserId(userIdValue);
         setOrgId(userOrgId);
 
-        // Load saved GSTIN from sessionStorage if available
-        const savedProfile = sessionStorage.getItem('onboardingProfile');
-        if (savedProfile) {
-          const parsed = JSON.parse(savedProfile);
-          setGstin(parsed.gstin || '');
-        }
-
-        // Store in sessionStorage for later steps
-        sessionStorage.setItem(
-          'onboardingUser',
-          JSON.stringify({
-            id: userIdValue,
-            orgId: userOrgId,
-            firstName: userFirstName,
-            lastName: userLastName,
-            email: userEmail,
-            mobileNumber: userMobile,
-          }),
-        );
+        setGstin(getOnboardingDraft('profile').gstin || '');
 
         if (userFirstName && userEmail) {
           toast.success('Profile loaded successfully');
@@ -122,17 +106,8 @@ const StepProfile = ({ onNext, onBack, onDataChange }) => {
       }
     }
 
-    // Save profile data including GSTIN to sessionStorage
-    const profileData = {
-      firstName,
-      lastName,
-      email,
-      phone,
-      gstin,
-      id: userId,
-      orgId: orgId,
-    };
-    sessionStorage.setItem('onboardingProfile', JSON.stringify(profileData));
+    // Only what the final submit reads; contact details stay in the session store.
+    setOnboardingDraft('profile', { firstName, lastName, gstin });
 
     toast.success('Profile confirmed', { autoClose: 1500 });
     onNext();
