@@ -1,254 +1,36 @@
-import { formatInIST } from '../../utils/dateUtils';
-import { timeAgo } from '../../utils/formatters';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLoadScript } from '@react-google-maps/api';
-import {
-  MapPinned,
-  Hourglass,
-  Flame,
-  RefreshCw,
-  Plus,
-  ChevronDown,
-  Satellite,
-  Map as MapIcon,
-  Maximize2,
-  Warehouse,
-  Hexagon,
-  MousePointerClick,
-  Clock,
-  Route,
-  Factory,
-  Layers,
-  Home,
-  ShieldCheck,
-  Building2,
-} from 'lucide-react';
-import { toast } from 'react-toastify';
-import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
 import { useFullPageLayout } from '../../hooks/usePageLayout';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import { useConfirm } from '../../components/ui/confirmContext';
 import { getUserRole } from '../../utils/session.js';
 import { num } from '../../utils/formatMoney.js';
-import PlaceHubService from './PlaceHubService.js';
 import PlaceHubMap from './PlaceHubMap.jsx';
 import PlaceHubDrawer from './PlaceHubDrawer.jsx';
-import { PlacesPanel, IdlingPanel, FuelPanel, StopsPanel } from './PlaceHubPanels.jsx';
-import LocationSearch from './LocationSearch.jsx';
-import RoutesTab from './intelligence/RoutesTab.jsx';
-import FacilitiesView from './intelligence/FacilitiesView.jsx';
-import RegionsView from './intelligence/RegionsView.jsx';
-import DriverHomesView from './intelligence/DriverHomesView.jsx';
-import ShadowReportTab from './intelligence/ShadowReportTab.jsx';
-import { PURPOSE_LABEL } from './intelligence/placeIntelligenceModel.js';
-import AutoTripCoverage from '../AutoTrips/AutoTripCoverage.jsx';
-import {
-  canEditPlaces,
-  mergePlaces,
-  filterPlaces,
-  countByGroup,
-  reviewNoteFor,
-  placeTotals,
-  placeTypeLabel,
-  liveIdleTotals,
-  clusterIdleEvents,
-  idleHistoryTotals,
-  fromHotspot,
-  drainCellsOf,
-  fuelTotals,
-  KIND_META,
-  newDraft,
-  draftFromPlace,
-  validateDraft,
-  payloadFor,
-  centroidOf,
-  hasPosition,
-  stopGroupsOf,
-} from './placeHubModel.js';
-import {
-  styleOfType,
-  IDLE_COLOR,
-  PROVENANCE_COLOR,
-  DRAIN_COLOR,
-  CONTEXT_COLOR,
-  STOP_COLOR,
-  RISK_COLOR,
-  POI_COLOR,
-  POI_LABEL,
-} from './placeHubStyle.js';
+import { canEditPlaces } from './placeHubModel.js';
+import useHtmlDark from './page/useHtmlDark.js';
+import placeHubTabs from './page/placeHubTabs.js';
+import usePlaceHubData from './page/usePlaceHubData.js';
+import useLiveIdlingRefresh from './page/useLiveIdlingRefresh.js';
+import useLinkedPlace from './page/useLinkedPlace.js';
+import usePlaceHubDerived from './page/usePlaceHubDerived.js';
+import useStopAnswers from './page/useStopAnswers.js';
+import usePlaceEditor from './page/usePlaceEditor.js';
+import PlaceHubHeader from './page/PlaceHubHeader.jsx';
+import PlaceHubTableTab from './page/PlaceHubTableTab.jsx';
+import PlaceHubSideList from './page/PlaceHubSideList.jsx';
+import MapToolbar from './page/MapToolbar.jsx';
+import DraftHint from './page/DraftHint.jsx';
+import Legend from './page/Legend.jsx';
 import './intelligence/placeIntelligence.css';
 import './PlaceHub.css';
 
 // Same libraries as the other place pages, so moving between them does not
 // make @react-google-maps/api tear down and reload the Maps script.
 const GMAPS_LIBS = ['places', 'geometry'];
-const EMPTY_LAYER = { rows: [], error: null };
-const LIVE_REFRESH_MS = 60_000;
-const MAX_IDLE_SPOTS = 150;
-const KIND_ICON = { WAREHOUSE: Warehouse, ZONE: Hexagon, HOTSPOT: Flame };
 /** Tabs drawn on the map; the rest are tables that take the whole body. */
 const MAP_TABS = new Set(['places', 'idling', 'fuel', 'stops']);
-
-function useHtmlDark() {
-  const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
-  useEffect(() => {
-    const observer = new MutationObserver(() =>
-      setDark(document.documentElement.classList.contains('dark')),
-    );
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
-  return dark;
-}
-
-function errorText(err, fallback) {
-  return err?.displayMessage || err?.response?.data?.message || err?.message || fallback;
-}
-
-function AddMenu({ allowHotspot, onAdd }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-  useEffect(() => {
-    if (!open) return undefined;
-    const close = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [open]);
-  const kinds = Object.keys(KIND_META).filter((k) => k !== 'HOTSPOT' || allowHotspot);
-  return (
-    <div className="ph-menu-wrap" ref={ref}>
-      <button
-        type="button"
-        className="ph-btn ph-btn--primary"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-      >
-        <Plus size={15} /> Add place <ChevronDown size={14} />
-      </button>
-      {open && (
-        <div className="ph-menu" role="menu">
-          {kinds.map((k) => {
-            const Icon = KIND_ICON[k];
-            const { color } = styleOfType(k);
-            return (
-              <button
-                key={k}
-                type="button"
-                role="menuitem"
-                className="ph-menu-item"
-                onClick={() => {
-                  setOpen(false);
-                  onAdd(k);
-                }}
-              >
-                <span className="ph-menu-icon" style={{ color, background: `${color}1a` }}>
-                  <Icon size={15} />
-                </span>
-                <span>
-                  <strong>{KIND_META[k].label}</strong>
-                  <small>{KIND_META[k].hint}</small>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PoiKeys() {
-  return Object.keys(POI_COLOR).map((k) => (
-    <span key={k} className="ph-legend-item">
-      <i className="is-square" style={{ background: POI_COLOR[k] }} /> {POI_LABEL[k]}
-    </span>
-  ));
-}
-
-function Legend({ tab, places, showContext, showPoi }) {
-  const poi = showPoi && <PoiKeys />;
-  if (tab === 'places') {
-    const types = [
-      ...new Set(places.filter((p) => p.status === 'CONFIRMED').map((p) => p.type)),
-    ].slice(0, 8);
-    const proposed = places.some((p) => p.status === 'PROPOSED');
-    const risk = places.some((p) => p.risk);
-    if (!types.length && !proposed && !risk && !poi) return null;
-    return (
-      <div className="ph-legend">
-        {types.map((t) => (
-          <span key={t} className="ph-legend-item">
-            <i style={{ background: styleOfType(t).color }} /> {placeTypeLabel(t)}
-          </span>
-        ))}
-        {proposed && (
-          <span className="ph-legend-item">
-            <i className="is-hollow" /> To review
-          </span>
-        )}
-        {risk && (
-          <span className="ph-legend-item">
-            <i className="is-ring" style={{ borderColor: RISK_COLOR }} /> Fuel risk
-          </span>
-        )}
-        {poi}
-      </div>
-    );
-  }
-  const context = showContext && (
-    <span className="ph-legend-item">
-      <i className="is-ring" style={{ borderColor: CONTEXT_COLOR }} /> Your places
-    </span>
-  );
-  if (tab === 'stops') {
-    return (
-      <div className="ph-legend">
-        <span className="ph-legend-item">
-          <i style={{ background: STOP_COLOR }} /> Unexplained stops (size = hours)
-        </span>
-        {context}
-        {poi}
-      </div>
-    );
-  }
-  if (tab === 'idling') {
-    return (
-      <div className="ph-legend">
-        <span className="ph-legend-item">
-          <i className="is-diamond" style={{ background: IDLE_COLOR.excess }} /> Idling now, excess
-        </span>
-        <span className="ph-legend-item">
-          <i className="is-diamond" style={{ background: IDLE_COLOR.legit }} /> Idling now, legit
-        </span>
-        <span className="ph-legend-item">
-          <i style={{ background: IDLE_COLOR.excess }} /> Idle spot (size = ₹)
-        </span>
-        {context}
-        {poi}
-      </div>
-    );
-  }
-  return (
-    <div className="ph-legend">
-      <span className="ph-legend-item">
-        <i className="is-ring" style={{ borderColor: PROVENANCE_COLOR['own-manual'] }} /> Your
-        hotspot
-      </span>
-      <span className="ph-legend-item">
-        <i className="is-ring" style={{ borderColor: PROVENANCE_COLOR.network }} /> Network hotspot
-      </span>
-      <span className="ph-legend-item">
-        <i style={{ background: DRAIN_COLOR }} /> Fuel drops (size = ₹)
-      </span>
-      {context}
-      {poi}
-    </div>
-  );
-}
 
 /**
  * Place Hub — one map for every place a fleet works with: warehouses, zones,
@@ -279,96 +61,8 @@ export default function PlaceHubPage() {
 
   /* ─── Data ────────────────────────────────────────────────────────────── */
 
-  const [data, setData] = useState({
-    warehouses: [],
-    zones: [],
-    sites: [],
-    proposedTotal: 0,
-    hotspots: [],
-    drain: null,
-    live: [],
-    history: [],
-    historyTruncated: false,
-    idleSetting: null,
-    summary: null,
-    breaks: [],
-  });
-  const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState({ places: true, idling: true, fuel: true, stops: true });
-  const [loaded, setLoaded] = useState({ places: false, idling: false, fuel: false, stops: false });
-
-  const loadPlaces = useCallback(async () => {
-    setLoading((l) => ({ ...l, places: true }));
-    const [w, z, s, summary] = await Promise.all([
-      PlaceHubService.loadWarehouses(),
-      allowZones ? PlaceHubService.loadZones() : EMPTY_LAYER,
-      allowSites ? PlaceHubService.loadSites() : EMPTY_LAYER,
-      allowSites ? PlaceHubService.loadSummary() : { rows: null, error: null },
-    ]);
-    setData((d) => ({
-      ...d,
-      warehouses: w.rows,
-      zones: z.rows,
-      sites: s.rows,
-      proposedTotal: s.proposedTotal || 0,
-      lowEvidenceTotal: s.lowEvidenceTotal || 0,
-      summary: summary.rows || d.summary,
-    }));
-    setErrors((e) => ({ ...e, warehouses: w.error, zones: z.error, 'detected places': s.error }));
-    setLoading((l) => ({ ...l, places: false }));
-    setLoaded((l) => ({ ...l, places: true }));
-  }, [allowZones, allowSites]);
-
-  const loadIdling = useCallback(async () => {
-    if (!allowIdling) return;
-    setLoading((l) => ({ ...l, idling: true }));
-    const [live, history, idleSetting] = await Promise.all([
-      PlaceHubService.loadLiveIdling(),
-      PlaceHubService.loadIdleHistory({ days: 7 }),
-      PlaceHubService.loadIdleSetting(),
-    ]);
-    setData((d) => ({
-      ...d,
-      live: live.rows,
-      history: history.rows,
-      historyTruncated: history.truncated,
-      idleSetting,
-    }));
-    setLoading((l) => ({ ...l, idling: false }));
-    setLoaded((l) => ({ ...l, idling: true }));
-  }, [allowIdling]);
-
-  const loadFuel = useCallback(async () => {
-    if (!allowFuel) return;
-    setLoading((l) => ({ ...l, fuel: true }));
-    const [hotspots, drain] = await Promise.all([
-      PlaceHubService.loadHotspots(),
-      PlaceHubService.loadDrainMap(),
-    ]);
-    setData((d) => ({ ...d, hotspots: hotspots.rows, drain: drain.rows }));
-    setLoading((l) => ({ ...l, fuel: false }));
-    setLoaded((l) => ({ ...l, fuel: true }));
-  }, [allowFuel]);
-
-  const loadStops = useCallback(async () => {
-    if (!allowSites) return;
-    setLoading((l) => ({ ...l, stops: true }));
-    const breaks = await PlaceHubService.loadBreaks();
-    setData((d) => ({ ...d, breaks: breaks.rows }));
-    setErrors((e) => ({ ...e, stops: breaks.error }));
-    setLoading((l) => ({ ...l, stops: false }));
-    setLoaded((l) => ({ ...l, stops: true }));
-  }, [allowSites]);
-
-  useEffect(() => {
-    if (ready) loadPlaces();
-  }, [ready, loadPlaces]);
-  useEffect(() => {
-    if (ready) loadIdling();
-  }, [ready, loadIdling]);
-  useEffect(() => {
-    if (ready) loadFuel();
-  }, [ready, loadFuel]);
+  const { data, setData, errors, loading, loaded, loadPlaces, loadIdling, loadFuel, loadStops } =
+    usePlaceHubData({ ready, allowZones, allowSites, allowIdling, allowFuel });
 
   // Bumped after an answer or a refresh so the table tabs refetch with the map.
   const [version, setVersion] = useState(0);
@@ -386,19 +80,7 @@ export default function PlaceHubPage() {
 
   /* ─── Tabs ────────────────────────────────────────────────────────────── */
 
-  // Place Intelligence's views live here too: the map ones first, then its tables.
-  const tabs = [
-    { id: 'places', label: 'Places', Icon: MapPinned },
-    allowIdling && { id: 'idling', label: 'Idling', Icon: Hourglass },
-    allowFuel && { id: 'fuel', label: 'Fuel risk', Icon: Flame },
-    allowSites && { id: 'stops', label: 'Stops', Icon: Clock, title: 'Unexplained stops' },
-    allowSites && { id: 'routes', label: 'Routes', Icon: Route, table: true },
-    allowSites && { id: 'facilities', label: 'Facilities', Icon: Factory, table: true },
-    allowSites && { id: 'regions', label: 'Regions', Icon: Layers, table: true },
-    allowSites && { id: 'homes', label: 'Driver homes', Icon: Home, table: true },
-    allowSites &&
-      isSuperAdmin && { id: 'shadow', label: 'Shadow report', Icon: ShieldCheck, table: true },
-  ].filter(Boolean);
+  const tabs = placeHubTabs({ allowIdling, allowFuel, allowSites, isSuperAdmin });
   const requestedTab = params.get('tab');
   const tab = tabs.some((t) => t.id === requestedTab) ? requestedTab : 'places';
 
@@ -430,106 +112,30 @@ export default function PlaceHubPage() {
     if (tab === 'stops' && !loaded.stops) loadStops();
   }, [tab, loaded.stops, loadStops]);
 
-  // Live idling moves minute to minute; refresh it while someone is watching.
-  useEffect(() => {
-    if (tab !== 'idling' || !allowIdling) return undefined;
-    // Leaving the tab also cancels a refresh still in flight.
-    const controller = new AbortController();
-    const timer = setInterval(async () => {
-      const live = await PlaceHubService.loadLiveIdling({ signal: controller.signal });
-      if (!controller.signal.aborted && !live.error) setData((d) => ({ ...d, live: live.rows }));
-    }, LIVE_REFRESH_MS);
-    return () => {
-      clearInterval(timer);
-      controller.abort();
-    };
-  }, [tab, allowIdling]);
+  useLiveIdlingRefresh({ tab, allowIdling, setData });
 
   /* ─── Derived ─────────────────────────────────────────────────────────── */
 
-  const places = useMemo(
-    () => mergePlaces({ warehouses: data.warehouses, zones: data.zones, sites: data.sites }),
-    [data.warehouses, data.zones, data.sites],
-  );
-  // Only the 200 busiest of each kind of suggestion are loaded; the counts use the real totals.
-  const counts = useMemo(() => {
-    const c = countByGroup(places);
-    return {
-      ...c,
-      review: Math.max(c.review || 0, data.proposedTotal),
-      low: Math.max(c.low || 0, data.lowEvidenceTotal || 0),
-    };
-  }, [places, data.proposedTotal, data.lowEvidenceTotal]);
-  const totals = useMemo(
-    () => ({ ...placeTotals(places), toReview: counts.review }),
-    [places, counts.review],
-  );
-  const reviewLoaded = useMemo(() => places.filter((p) => p.group === 'review').length, [places]);
-  const lowLoaded = useMemo(() => places.filter((p) => p.group === 'low').length, [places]);
-  const visiblePlaces = useMemo(
-    () => filterPlaces(places, { group, query }),
-    [places, group, query],
-  );
-  const contextPlaces = useMemo(
-    () => (showContext ? places.filter((p) => p.status === 'CONFIRMED') : []),
-    [places, showContext],
-  );
-  const sitesById = useMemo(
-    () => new Map(places.filter((p) => p.source === 'site').map((p) => [p.sourceId, p])),
-    [places],
-  );
-  const siteOf = useCallback((id) => (id ? sitesById.get(String(id)) || null : null), [sitesById]);
-  const stopGroups = useMemo(() => stopGroupsOf(data.breaks), [data.breaks]);
-
-  const live = useMemo(
-    () => data.live.filter(hasPosition).sort((a, b) => (b.durationMin || 0) - (a.durationMin || 0)),
-    [data.live],
-  );
-  const liveTotals = useMemo(() => liveIdleTotals(data.live), [data.live]);
-  const idleSpots = useMemo(
-    () => clusterIdleEvents(data.history).slice(0, MAX_IDLE_SPOTS),
-    [data.history],
-  );
-  const historyTotals = useMemo(() => idleHistoryTotals(data.history), [data.history]);
-
-  const hotspots = useMemo(
-    () =>
-      data.hotspots
-        .map(fromHotspot)
-        .filter((h) => Number.isFinite(h.lat) && Number.isFinite(h.lng))
-        .sort((a, b) => Number(b.active) - Number(a.active) || b.incidentCount - a.incidentCount),
-    [data.hotspots],
-  );
-  const drainCells = useMemo(() => drainCellsOf(data.drain), [data.drain]);
-  const fuel = useMemo(() => fuelTotals(hotspots, drainCells), [hotspots, drainCells]);
-
-  const selection = useMemo(() => {
-    if (!selectedId) return null;
-    const [prefix] = selectedId.split(':');
-    if (prefix === 'live')
-      return { kind: 'live', item: live.find((e) => `live:${e._id}` === selectedId) };
-    if (prefix === 'idle')
-      return { kind: 'idleSpot', item: idleSpots.find((s) => s.id === selectedId) };
-    if (prefix === 'hotspot')
-      return { kind: 'hotspot', item: hotspots.find((h) => h.id === selectedId) };
-    if (prefix === 'drain')
-      return { kind: 'drain', item: drainCells.find((c) => c.id === selectedId) };
-    if (prefix === 'stop')
-      return { kind: 'stops', item: stopGroups.find((g) => g.id === selectedId) };
-    return { kind: 'place', item: places.find((p) => p.id === selectedId) };
-  }, [selectedId, live, idleSpots, hotspots, drainCells, stopGroups, places]);
-
-  const fitPoints = useMemo(() => {
-    if (tab === 'places') return visiblePlaces;
-    if (tab === 'stops') return stopGroups.slice(0, 40);
-    if (tab === 'idling')
-      return [
-        ...live.map((e) => ({ lat: Number(e.lat), lng: Number(e.lng) })),
-        ...idleSpots.slice(0, 40),
-      ];
-    // Network hotspots span the country; fitting to them would zoom out to India.
-    return [...hotspots.filter((h) => h.provenance !== 'network'), ...drainCells.slice(0, 40)];
-  }, [tab, visiblePlaces, stopGroups, live, idleSpots, hotspots, drainCells]);
+  const {
+    places,
+    counts,
+    totals,
+    reviewLoaded,
+    lowLoaded,
+    visiblePlaces,
+    contextPlaces,
+    siteOf,
+    stopGroups,
+    live,
+    liveTotals,
+    idleSpots,
+    historyTotals,
+    hotspots,
+    drainCells,
+    fuel,
+    selection,
+    fitPoints,
+  } = usePlaceHubDerived({ data, group, query, showContext, selectedId, tab });
   const subView = { places: group, idling: idleView, fuel: fuelView }[tab] || '';
   const fitKey = `${tab}:${subView}:${loaded[tab] ? 1 : 0}:${fitNonce}`;
 
@@ -572,40 +178,16 @@ export default function PlaceHubPage() {
     [focusOn, pointsById],
   );
 
-  // `?place=<hub id>` opens that place (links from the Mileage refuel feed).
-  // A suggestion outside the busiest 200 loaded is fetched on its own.
-  const linkedPlace = params.get('place');
-  const fetchedLink = useRef(null);
-  useEffect(() => {
-    if (!linkedPlace || !loaded.places) return;
-    const p = places.find((x) => x.id === linkedPlace);
-    if (p) {
-      setGroup(p.group === 'review' || p.group === 'rejected' ? p.group : 'all');
-      pickFromList(p.id, p.lat, p.lng);
-      setParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          next.delete('place');
-          return next;
-        },
-        { replace: true },
-      );
-      return;
-    }
-    const [prefix, sourceId] = linkedPlace.split(':');
-    if (prefix !== 'site' || !sourceId || !allowSites || fetchedLink.current === linkedPlace)
-      return;
-    fetchedLink.current = linkedPlace;
-    PlaceHubService.loadSite(sourceId)
-      .then((site) => {
-        if (!site) return;
-        setData((d) => ({
-          ...d,
-          sites: [...d.sites.filter((s) => String(s._id) !== String(site._id)), site],
-        }));
-      })
-      .catch(() => toast.error('Could not open that place'));
-  }, [linkedPlace, loaded.places, places, allowSites, pickFromList, setParams]);
+  useLinkedPlace({
+    params,
+    setParams,
+    loaded,
+    places,
+    allowSites,
+    pickFromList,
+    setGroup,
+    setData,
+  });
 
   /** Opens a detected place on the Places tab — from a stop, a facility or a link. */
   const openSite = useCallback(
@@ -626,177 +208,25 @@ export default function PlaceHubPage() {
 
   /* ─── Unexplained stops: answers ──────────────────────────────────────── */
 
-  const [stopsBusy, setStopsBusy] = useState(false);
-  const answerStops = async (stops, purpose) => {
-    setStopsBusy(true);
-    try {
-      // One at a time, so a failure part-way says which stops were saved.
-      for (const st of stops) await PlaceHubService.tagStop(st._id, purpose);
-      toast.success(
-        `${stops.length === 1 ? 'Stop' : `${stops.length} stops`} marked as ${PURPOSE_LABEL[purpose].toLowerCase()}`,
-      );
-      await loadStops();
-      loadPlaces();
-    } catch (err) {
-      toast.error(errorText(err, 'Could not save the answer'));
-      loadStops();
-    } finally {
-      setStopsBusy(false);
-    }
-  };
+  const { stopsBusy, answerStops } = useStopAnswers({ loadStops, loadPlaces });
 
   /* ─── Add / edit ──────────────────────────────────────────────────────── */
 
-  const [draft, setDraft] = useState(null);
-  const [showErrors, setShowErrors] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const draftErrors = useMemo(
-    () => (draft && showErrors ? validateDraft(draft) : {}),
-    [draft, showErrors],
-  );
-
-  const startAdd = useCallback(
-    (kind, seed = {}) => {
-      setDraft(newDraft(kind, seed));
-      setShowErrors(false);
-      if (seed.center) focusOn(seed.center.lat, seed.center.lng, 16);
-    },
-    [focusOn],
-  );
-
-  const startEdit = useCallback(
-    (item) => {
-      const next = draftFromPlace(item);
-      if (!next) return;
-      setDraft(next);
-      setShowErrors(false);
-      focusOn(item.lat, item.lng, 15);
-    },
-    [focusOn],
-  );
-
-  const changeDraft = useCallback((patch) => {
-    setDraft((d) => {
-      if (!d) return d;
-      const next = { ...d, ...patch };
-      if (patch.shape === 'circle' && !next.center && d.polygon.length) {
-        next.center = centroidOf(d.polygon);
-      }
-      return next;
-    });
-  }, []);
-
-  // Map drags can overshoot; clamp there so the circle never shows a radius
-  // the store would refuse. Typed values are left alone and validated instead.
-  const changeDraftFromMap = useCallback((patch) => {
-    setDraft((d) => {
-      if (!d) return d;
-      const next = { ...d, ...patch };
-      if (patch.radiusM != null) {
-        const meta = KIND_META[d.kind];
-        next.radiusM = Math.min(meta.maxRadius, Math.max(meta.minRadius, patch.radiusM));
-      }
-      return next;
-    });
-  }, []);
-
-  const changeKind = (kind) => {
-    setDraft((d) => {
-      const center = d.center || (d.polygon.length ? centroidOf(d.polygon) : null);
-      return newDraft(kind, { name: d.name, center });
-    });
-    setShowErrors(false);
-  };
-
-  const cancelDraft = () => {
-    setDraft(null);
-    setShowErrors(false);
-  };
-
-  const save = async () => {
-    setShowErrors(true);
-    if (Object.keys(validateDraft(draft)).length) return;
-    const body = payloadFor(draft);
-    const { kind, mode } = draft;
-    const editing = mode === 'edit';
-    setSaving(true);
-    try {
-      let id = draft.sourceId;
-      if (kind === 'WAREHOUSE') {
-        const res = editing
-          ? await PlaceHubService.updateWarehouse(id, body)
-          : await PlaceHubService.createWarehouse(body);
-        id = id || res?._id;
-      } else if (kind === 'ZONE') {
-        const res = editing
-          ? await PlaceHubService.updateZone(id, body)
-          : await PlaceHubService.createZone(body);
-        id = id || res?._id;
-      } else {
-        const res = editing
-          ? await PlaceHubService.updateHotspot(id, body)
-          : await PlaceHubService.createHotspot(body);
-        id = id || res?._id;
-      }
-      toast.success(editing ? 'Changes saved' : `${KIND_META[kind].label} added`);
-      setDraft(null);
-      setShowErrors(false);
-      if (kind === 'HOTSPOT') {
-        await loadFuel();
-        if (tab !== 'fuel') setTab('fuel');
-        if (id) setSelectedId(`hotspot:${id}`);
-      } else {
-        await loadPlaces();
-        if (tab === 'places' && id)
-          setSelectedId(`${kind === 'WAREHOUSE' ? 'warehouse' : 'zone'}:${id}`);
-        if (tab === 'idling') toast.info('Idling inside this place now counts as legit.');
-      }
-    } catch (err) {
-      toast.error(errorText(err, 'Could not save the place'));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const removePlace = async (place) => {
-    const isWarehouse = place.source === 'warehouse';
-    const ok = await confirm({
-      title: isWarehouse ? `Deactivate ${place.name}?` : `Delete ${place.name}?`,
-      body: isWarehouse
-        ? 'Trips stop anchoring on this yard and its entry/exit tracking stops.'
-        : 'Trucks stop raising entry and exit alerts here, and idling here stops counting as legit.',
-      consequence: isWarehouse
-        ? 'Vehicles based here must be moved to another yard first.'
-        : undefined,
-      confirmLabel: isWarehouse ? 'Deactivate' : 'Delete zone',
-      danger: true,
-    });
-    if (!ok) return;
-    try {
-      if (isWarehouse) await PlaceHubService.deactivateWarehouse(place.sourceId);
-      else await PlaceHubService.deleteZone(place.sourceId);
-      toast.success(isWarehouse ? 'Warehouse deactivated' : 'Zone deleted');
-      setSelectedId(null);
-      await loadPlaces();
-    } catch (err) {
-      toast.error(errorText(err, 'Could not remove the place'));
-    }
-  };
-
-  const toggleHotspot = async (h) => {
-    try {
-      await PlaceHubService.updateHotspot(h.sourceId, { active: !h.active });
-      toast.success(h.active ? 'Hotspot dismissed' : 'Hotspot reactivated');
-      await loadFuel();
-    } catch (err) {
-      toast.error(errorText(err, 'Could not update the hotspot'));
-    }
-  };
-
-  const hiddenPlaceId =
-    draft?.mode === 'edit'
-      ? `${{ WAREHOUSE: 'warehouse', ZONE: 'zone', HOTSPOT: 'hotspot' }[draft.kind]}:${draft.sourceId}`
-      : null;
+  const {
+    draft,
+    draftErrors,
+    saving,
+    startAdd,
+    startEdit,
+    changeDraft,
+    changeDraftFromMap,
+    changeKind,
+    cancelDraft,
+    save,
+    removePlace,
+    toggleHotspot,
+    hiddenPlaceId,
+  } = usePlaceEditor({ confirm, focusOn, tab, setTab, setSelectedId, loadPlaces, loadFuel });
 
   const onMapSearch = (loc) => {
     focusOn(loc.lat, loc.lng, 15);
@@ -818,142 +248,64 @@ export default function PlaceHubPage() {
 
   return (
     <div className="ph-page">
-      <header className="ph-head">
-        <nav className="ph-tabs" aria-label="Place Hub views">
-          {tabs.map((t, i) => {
-            const TabIcon = t.Icon;
-            const firstTable = t.table && !tabs[i - 1]?.table;
-            return (
-              <span key={t.id} className="ph-tab-slot">
-                {firstTable && <span className="ph-tab-sep" aria-hidden="true" />}
-                <button
-                  type="button"
-                  className={`ph-tab${tab === t.id ? ' is-on' : ''}`}
-                  aria-current={tab === t.id ? 'page' : undefined}
-                  title={t.title}
-                  onClick={() => setTab(t.id)}
-                >
-                  <TabIcon size={15} />
-                  {t.label}
-                  {tabBadge[t.id] && <span className="ph-tab-count">{tabBadge[t.id]}</span>}
-                </button>
-              </span>
-            );
-          })}
-        </nav>
-
-        <div className="ph-actions">
-          {lastRunAt && (
-            <span className="ph-fresh" title={formatInIST(lastRunAt, 'D MMM YYYY, h:mm a')}>
-              Learned {timeAgo(lastRunAt)}
-            </span>
-          )}
-          <button
-            type="button"
-            className="ph-icon-btn"
-            onClick={refreshAll}
-            aria-label="Refresh"
-            title="Refresh"
-          >
-            <RefreshCw size={16} className={loading[tab] ? 'ph-spin' : ''} />
-          </button>
-          {canEdit && (
-            <AddMenu
-              allowHotspot={allowFuel}
-              onAdd={(k) => {
-                // Drawing needs the map.
-                if (!isMapTab) setTab('places');
-                startAdd(k);
-              }}
-            />
-          )}
-        </div>
-      </header>
+      <PlaceHubHeader
+        tabs={tabs}
+        tab={tab}
+        tabBadge={tabBadge}
+        setTab={setTab}
+        lastRunAt={lastRunAt}
+        refreshAll={refreshAll}
+        loading={loading}
+        canEdit={canEdit}
+        allowFuel={allowFuel}
+        isMapTab={isMapTab}
+        startAdd={startAdd}
+      />
 
       {!isMapTab && (
-        <section className="ph-insight" aria-label={tabs.find((t) => t.id === tab)?.label}>
-          <PanelErrorBoundary name={`place-hub-${tab}`}>
-            {tab === 'routes' && <RoutesTab version={version} />}
-            {/* Trucks with no trips need their plant marked a pickup — this tab's job. */}
-            {tab === 'facilities' && isEnabled('autoTrips') && <AutoTripCoverage />}
-            {tab === 'facilities' && (
-              <FacilitiesView version={version} onChanged={onLearned} onOpenPlace={openSite} />
-            )}
-            {tab === 'regions' && <RegionsView version={version} onChanged={onLearned} />}
-            {tab === 'homes' && <DriverHomesView version={version} onChanged={onLearned} />}
-            {tab === 'shadow' && <ShadowReportTab />}
-          </PanelErrorBoundary>
-        </section>
+        <PlaceHubTableTab
+          tab={tab}
+          tabs={tabs}
+          version={version}
+          isEnabled={isEnabled}
+          onLearned={onLearned}
+          openSite={openSite}
+        />
       )}
 
       {/* Hidden, not unmounted, on the table tabs: every new map is a billed map load. */}
       <div className={`ph-body${panelOpen ? ' has-panel' : ''}`} hidden={!isMapTab}>
-        <aside className="ph-side" aria-label={`${tab} list`}>
-          {tab === 'places' && (
-            <PlacesPanel
-              loading={loading.places}
-              places={visiblePlaces}
-              counts={counts}
-              group={group}
-              onGroup={setGroup}
-              query={query}
-              onQuery={setQuery}
-              selectedId={selectedId}
-              onPick={(p) => pickFromList(p.id, p.lat, p.lng)}
-              errors={{
-                warehouses: errors.warehouses,
-                zones: errors.zones,
-                'detected places': errors['detected places'],
-              }}
-              canEdit={canEdit}
-              onAdd={() => startAdd('WAREHOUSE')}
-              reviewNote={reviewNoteFor(group, {
-                review: [reviewLoaded, counts.review],
-                low: [lowLoaded, counts.low],
-              })}
-            />
-          )}
-          {tab === 'idling' && (
-            <IdlingPanel
-              loading={loading.idling}
-              view={idleView}
-              onView={setIdleView}
-              live={live}
-              liveTotals={liveTotals}
-              spots={idleSpots}
-              historyTotals={historyTotals}
-              truncated={data.historyTruncated}
-              idleSetting={data.idleSetting}
-              selectedId={selectedId}
-              onPickLive={(e) => pickFromList(`live:${e._id}`, Number(e.lat), Number(e.lng))}
-              onPickSpot={(s) => pickFromList(s.id, s.lat, s.lng)}
-            />
-          )}
-          {tab === 'fuel' && (
-            <FuelPanel
-              loading={loading.fuel}
-              view={fuelView}
-              onView={setFuelView}
-              hotspots={hotspots}
-              cells={drainCells}
-              totals={fuel}
-              disclaimer={data.drain?.disclaimer}
-              selectedId={selectedId}
-              onPickHotspot={(h) => pickFromList(h.id, h.lat, h.lng)}
-              onPickCell={(c) => pickFromList(c.id, c.lat, c.lng)}
-            />
-          )}
-          {tab === 'stops' && (
-            <StopsPanel
-              loading={loading.stops}
-              error={errors.stops}
-              groups={stopGroups}
-              siteOf={siteOf}
-              selectedId={selectedId}
-              onPick={(g) => pickFromList(g.id, g.lat, g.lng)}
-            />
-          )}
-        </aside>
+        <PlaceHubSideList
+          tab={tab}
+          loading={loading}
+          errors={errors}
+          data={data}
+          visiblePlaces={visiblePlaces}
+          counts={counts}
+          group={group}
+          setGroup={setGroup}
+          query={query}
+          setQuery={setQuery}
+          selectedId={selectedId}
+          pickFromList={pickFromList}
+          canEdit={canEdit}
+          startAdd={startAdd}
+          reviewLoaded={reviewLoaded}
+          lowLoaded={lowLoaded}
+          idleView={idleView}
+          setIdleView={setIdleView}
+          live={live}
+          liveTotals={liveTotals}
+          idleSpots={idleSpots}
+          historyTotals={historyTotals}
+          fuelView={fuelView}
+          setFuelView={setFuelView}
+          hotspots={hotspots}
+          drainCells={drainCells}
+          fuel={fuel}
+          stopGroups={stopGroups}
+          siteOf={siteOf}
+        />
 
         <section className="ph-mapwrap" aria-label="Map">
           <PlaceHubMap
@@ -980,69 +332,20 @@ export default function PlaceHubPage() {
             focus={focus}
           />
 
-          <div className="ph-map-top">
-            <div className="ph-map-search">
-              <LocationSearch
-                isLoaded={isLoaded}
-                onPick={onMapSearch}
-                placeholder="Go to a town or address"
-              />
-            </div>
-            <div className="ph-map-tools">
-              {tab !== 'places' && (
-                <button
-                  type="button"
-                  className={`ph-tool${showContext ? ' is-on' : ''}`}
-                  onClick={() => setShowContext((v) => !v)}
-                  aria-pressed={showContext}
-                  title="Show your warehouses and zones"
-                >
-                  <MapPinned size={15} /> Your places
-                </button>
-              )}
-              <button
-                type="button"
-                className={`ph-tool${showPoi ? ' is-on' : ''}`}
-                onClick={() => setShowPoi((v) => !v)}
-                aria-pressed={showPoi}
-                title="Plants, sidings, pumps and dhabas the map data knows about — zoom in to see them"
-              >
-                <Building2 size={15} /> Map data
-              </button>
-              <button
-                type="button"
-                className={`ph-tool${satellite ? ' is-on' : ''}`}
-                onClick={() => setSatellite((v) => !v)}
-                aria-pressed={satellite}
-                title={satellite ? 'Road map' : 'Satellite'}
-              >
-                {satellite ? <MapIcon size={15} /> : <Satellite size={15} />}
-                {satellite ? 'Map' : 'Satellite'}
-              </button>
-              <button
-                type="button"
-                className="ph-tool"
-                onClick={() => setFitNonce((n) => n + 1)}
-                title="Fit everything in view"
-                aria-label="Fit everything in view"
-              >
-                <Maximize2 size={15} />
-              </button>
-            </div>
-          </div>
+          <MapToolbar
+            isLoaded={isLoaded}
+            onMapSearch={onMapSearch}
+            tab={tab}
+            showContext={showContext}
+            setShowContext={setShowContext}
+            showPoi={showPoi}
+            setShowPoi={setShowPoi}
+            satellite={satellite}
+            setSatellite={setSatellite}
+            setFitNonce={setFitNonce}
+          />
 
-          {draft && (
-            <div className="ph-draft-hint" role="status">
-              <MousePointerClick size={15} />
-              {draft.shape === 'polygon'
-                ? draft.polygonDone
-                  ? 'Outline closed. Save, or clear it to redraw.'
-                  : 'Click the map to add corners. Click the first corner to close.'
-                : draft.center
-                  ? 'Drag the pin to move it, drag the circle edge to resize.'
-                  : 'Click the map to drop the pin.'}
-            </div>
-          )}
+          {draft && <DraftHint draft={draft} />}
 
           <Legend
             tab={tab}
