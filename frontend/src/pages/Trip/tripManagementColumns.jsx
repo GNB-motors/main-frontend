@@ -1,5 +1,18 @@
-import { getVehicleRegistration, getDriverName } from '../../utils/dataFormatters';
 import { StatusBadge, DateCell } from './tripManagementCells';
+
+// Trips carry the vehicle and driver either populated or as a bare id.
+const getVehicleRegistration = (vehicle) => {
+  if (!vehicle) return '-';
+  if (typeof vehicle === 'string') return vehicle;
+  return vehicle.registrationNumber || vehicle.vin || vehicle.chassisNumber || '-';
+};
+
+const getDriverName = (driver) => {
+  if (!driver) return '-';
+  if (typeof driver === 'string') return driver;
+  const name = `${driver.firstName || ''} ${driver.lastName || ''}`.trim();
+  return name || driver.mobileNumber || '-';
+};
 
 const weightSlipColumns = [
   {
