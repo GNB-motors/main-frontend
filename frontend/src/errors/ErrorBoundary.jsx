@@ -6,10 +6,14 @@
  * `resetKey`: when it changes, a caught error is cleared. The page-area boundary
  * passes the pathname, so navigating away from a crashed page recovers.
  *
+ * A lazy chunk that fails to load (stale tab after a deploy) reloads the page
+ * once instead of leaving the user on the fallback — see chunkReload.js.
+ *
  * Class component — React requires class components for error boundaries.
  */
 import React from 'react';
 import { captureException } from '../utils/sentry';
+import { isChunkLoadError, reloadForFreshChunks } from './chunkReload';
 import ErrorFallback from './ErrorFallback';
 
 class ErrorBoundary extends React.Component {
@@ -22,7 +26,10 @@ class ErrorBoundary extends React.Component {
     return { error };
   }
 
+  // A chunk that failed to load is cured by fetching the current build, so it
+  // is only worth reporting when that reload already happened and didn't help.
   componentDidCatch(error, errorInfo) {
+    if (isChunkLoadError(error) && reloadForFreshChunks()) return;
     captureException(error, { extra: { componentStack: errorInfo.componentStack } });
   }
 
