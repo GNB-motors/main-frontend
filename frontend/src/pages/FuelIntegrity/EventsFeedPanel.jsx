@@ -368,7 +368,7 @@ export default function EventsFeedPanel({
                         Unaccounted Siphon Loss
                       </span>
                       <span className="text-red-600 dark:text-red-400 font-bold">
-                        {activeEvent.confidence || 'HIGH'} Confidence
+                        {activeEvent.confidence ? `${activeEvent.confidence} Confidence` : 'Confidence not rated'}
                       </span>
                     </div>
 
@@ -543,7 +543,7 @@ export default function EventsFeedPanel({
                       <div className="fi-tele-item">
                         <span className="fi-tele-label">Siphon Confidence</span>
                         <span className="fi-tele-val capitalize">
-                          {activeEvent.confidence || 'HIGH'}
+                          {activeEvent.confidence || 'Not rated'}
                         </span>
                       </div>
                       <div className="fi-tele-item">
