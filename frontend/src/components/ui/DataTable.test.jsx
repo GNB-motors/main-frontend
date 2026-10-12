@@ -18,6 +18,19 @@ function renderTable(extraProps = {}) {
 }
 
 describe('DataTable toolbar', () => {
+  // Read through session.js's getPref, the one sanctioned storage gateway.
+  it('keeps the row density saved in this browser', () => {
+    localStorage.setItem('gnb.table.density', 'compact');
+    try {
+      const { container } = renderTable();
+      expect(container.firstChild).toHaveClass('dt--compact');
+    } finally {
+      localStorage.removeItem('gnb.table.density');
+    }
+    const { container } = renderTable();
+    expect(container.querySelector('.dt')).toHaveClass('dt--comfortable');
+  });
+
   it('has no row-density toggle', () => {
     const { queryByLabelText } = renderTable();
     expect(queryByLabelText('Toggle row density')).toBeNull();

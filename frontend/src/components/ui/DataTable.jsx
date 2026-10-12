@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ArrowUp, ArrowDown, Columns3 } from 'lucide-react';
 import EmptyState from '../cluster/EmptyState';
 import { nextSort, readDensity, visibleColumns, footerSummary } from '../../lib/tableState';
+import { getPref } from '../../utils/session.js';
 
 /**
  * DataTable — the one table every fleet list uses (master plan C.2).
@@ -64,7 +65,7 @@ export default function DataTable({
   toolbarExtra = null,
 }) {
   const [hidden, setHidden] = useState(() => new Set());
-  const density = readDensity(window.localStorage);
+  const density = readDensity({ getItem: getPref });
   const [menuOpen, setMenuOpen] = useState(false);
 
   const cols = useMemo(() => visibleColumns(columns, hidden), [columns, hidden]);
