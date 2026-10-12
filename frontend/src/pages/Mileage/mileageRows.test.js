@@ -319,6 +319,12 @@ describe('rangeToParams', () => {
 });
 
 describe('mapFuelCycleRow', () => {
+  it('keeps the loss check of a round a theft alert was judged on', () => {
+    const lossCheck = { verdict: 'CONFIRMED', lossL: 183, reason: 'r' };
+    expect(mapFuelCycleRow({ _id: 'c', lossCheck }).lossCheck).toEqual(lossCheck);
+    expect(mapFuelCycleRow({ _id: 'c' }).lossCheck).toBeNull();
+  });
+
   it('reads the fuel-cycles fields and turns coverage shares into percents', () => {
     const row = mapFuelCycleRow({
       _id: 'c1',

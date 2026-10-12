@@ -1,6 +1,7 @@
 import { formatInIST } from '../../utils/dateUtils';
 import { timeAgo } from '../../utils/formatters';
 import { ALERT_TYPE_LABELS } from './OwnerAlertsService.js';
+import { billCheckView } from '../../utils/billCheck';
 
 export const LIMIT = 20;
 
@@ -14,6 +15,7 @@ const SEVERITY_BY_TYPE = {
   FLEETEDGE_SUBSCRIPTION_EXPIRED: 'WARNING',
   FLEETEDGE_REAUTH_REQUIRED: 'WARNING',
   ADBLUE_BALANCE_FLAG: 'WARNING',
+  FUEL_DATA_REVIEW: 'WARNING',
   IDLING_BURN_HIGH: 'WARNING',
   EV_LOW_SOC: 'WARNING',
   FLEETEDGE_ALERT_OVERSPEED: 'WARNING',
@@ -34,6 +36,7 @@ const ALERT_TITLE = {
   FLEETEDGE_SUBSCRIPTION_EXPIRING: 'Subscription expiring',
   FLEETEDGE_REAUTH_REQUIRED: 'FleetEdge re-auth needed',
   FUEL_SIPHON_SUSPECTED: 'Fuel loss suspected',
+  FUEL_DATA_REVIEW: 'Fuel data review',
   ADBLUE_BALANCE_FLAG: 'AdBlue balance flag',
   IDLING_BURN_HIGH: 'High idling burn',
   EV_LOW_SOC: 'EV low charge',
@@ -55,6 +58,7 @@ const CATEGORY_BY_TYPE = {
   FLEETEDGE_REAUTH_REQUIRED: 'data',
   REFUEL_ESTIMATED: 'data',
   ADBLUE_BALANCE_FLAG: 'data',
+  FUEL_DATA_REVIEW: 'data',
   RECONCILE_GAP: 'data',
   DEVIATION_DETECTED: 'movement',
   DEVIATION_IN_PROGRESS: 'movement',
@@ -101,6 +105,7 @@ export function computeView(alerts, refine, sort) {
     typeLabel: ALERT_TYPE_LABELS[a.type] || a.type,
     detectedRel: formatRelativeIST(a.at),
     detectedAbs: formatIST(a.at),
+    bill: billCheckView(a.billCheck),
   }));
   if (refine === 'critical') list = list.filter((a) => a.severity === 'CRITICAL');
   else if (refine === 'warning') list = list.filter((a) => a.severity === 'WARNING');

@@ -32,6 +32,7 @@ export const REPORT_GROUPS = [
       { id: 'nonBusiness', label: 'Non-Business', flag: 'autoTrips' },
       { id: 'runningCost', label: 'Running Cost', flag: 'autoTrips' },
       { id: 'registerMatch', label: 'Trip Register Match', flag: 'autoTrips' },
+      { id: 'laneKm', label: 'Lane km vs SAP', flag: 'autoTrips' },
     ],
   },
 ];

@@ -18,6 +18,7 @@ import NonBusinessReport from './reports/NonBusinessReport.jsx';
 import RunningCostReport from './reports/RunningCostReport.jsx';
 import OilAverageReport from './reports/OilAverageReport.jsx';
 import RegisterMatchReport from './reports/RegisterMatchReport.jsx';
+import LaneKmReport from './reports/LaneKmReport.jsx';
 
 const REPORT_COMPONENTS = {
   driver: () => <DriverReport />,
@@ -31,6 +32,7 @@ const REPORT_COMPONENTS = {
   nonBusiness: () => <NonBusinessReport />,
   runningCost: () => <RunningCostReport />,
   registerMatch: () => <RegisterMatchReport />,
+  laneKm: () => <LaneKmReport />,
 };
 
 const ReportsPage = () => {

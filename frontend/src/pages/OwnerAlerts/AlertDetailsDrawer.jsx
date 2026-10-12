@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Truck, Check, Loader2, CheckCircle2 } from 'lucide-react';
 import SlideOver from '../../components/cluster/SlideOver.jsx';
 import { formatINR } from '../../utils/formatters';
+import { StatusPill } from '../../components/overview.primitives.jsx';
 
 /**
  * AlertDetailsDrawer — structured, single-alert investigation panel.
@@ -53,6 +54,21 @@ export default function AlertDetailsDrawer({ open, onClose, alert, onAck, acking
             <div className="fi-detail-cell fi-detail-cell--full">
               <div className="fi-detail-label">Estimated value</div>
               <div className="fi-detail-value" style={{ color }}>{formatINR(alert.inrEstimate)}</div>
+            </div>
+          )}
+          {alert.bill && (
+            <div className="fi-detail-cell fi-detail-cell--full">
+              <div className="fi-detail-label">Checked against the refuel bills</div>
+              <div className="mt-1"><StatusPill tone={alert.bill.tone}>{alert.bill.label}</StatusPill></div>
+              {alert.bill.reason && (
+                <div className="mt-1 text-sm leading-relaxed" style={{ color: 'var(--cluster-text)' }}>{alert.bill.reason}</div>
+              )}
+            </div>
+          )}
+          {alert.resolutionNote && (
+            <div className="fi-detail-cell fi-detail-cell--full">
+              <div className="fi-detail-label">Closed by the system</div>
+              <div className="mt-1 text-sm leading-relaxed" style={{ color: 'var(--cluster-text)' }}>{alert.resolutionNote}</div>
             </div>
           )}
           <div className="fi-detail-cell fi-detail-cell--full">

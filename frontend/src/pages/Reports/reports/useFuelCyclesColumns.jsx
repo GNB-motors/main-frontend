@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { formatDate, formatNumber, formatCurrency, fmtKm, fmtL } from './tripReportsUtils';
 import { StatusChip, FlagChips } from './tripReportCells';
+import { BILL_VERDICT } from '../../../utils/billCheck';
 
 // Columns for GET /api/reports/fuel-cycles (FuelCycle rows).
 export function useFuelCyclesColumns() {
@@ -100,6 +101,15 @@ export function useFuelCyclesColumns() {
         key: 'flags',
         label: 'Flags',
         render: (r) => <FlagChips flags={r.flags} />,
+      },
+      {
+        key: 'lossCheck',
+        label: 'Loss flagged',
+        render: (r) => (
+          <div className="cell-primary" title={r.lossCheck?.reason || undefined}>
+            {r.lossCheck ? BILL_VERDICT[r.lossCheck.verdict]?.label || r.lossCheck.verdict : '—'}
+          </div>
+        ),
       },
     ],
     [],
