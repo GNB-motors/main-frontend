@@ -7,7 +7,7 @@ import LottieLoader from './LottieLoader.jsx';
 import CommandPalette from './cluster/CommandPalette.jsx';
 import { ConfirmDialogHost } from './ui/ConfirmDialog.jsx';
 import { applyThemeToRoot } from '../utils/colorTheme.js';
-import { storeProfileData } from '../utils/profileStorage.js';
+import { storeMeProfile } from '../utils/profileStorage.js';
 import { FeatureFlagsProvider, useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
 import { BranchProvider, useActiveBranch } from '../contexts/BranchContext.jsx';
 import './DashboardLayout.css';
@@ -33,16 +33,13 @@ const DashboardLayoutInner = () => {
   }, []);
 
   // Sync profile (incl. primaryThemeColor) for the entire authenticated
-  // session, regardless of which page the user lands on. storeProfileData
+  // session, regardless of which page the user lands on. Saving the colour
   // dispatches `themeColorChange`, which the listener above translates into
-  // applyThemeToRoot — so every page (Overview, Reports, Trip, …) gets the
-  // user's theme color applied immediately after login. Reads the /api/auth/me
-  // payload FeatureFlagsProvider already fetched instead of firing a second,
-  // redundant request for the same endpoint.
+  // applyThemeToRoot — so a colour changed on another device shows up here on
+  // the next load. Reads the /api/auth/me payload FeatureFlagsProvider already
+  // fetched instead of firing a second request for the same endpoint.
   React.useEffect(() => {
-    if (!profile) return;
-    storeProfileData(profile);
-    if (profile.primaryThemeColor) applyThemeToRoot();
+    if (profile) storeMeProfile(profile);
   }, [profile]);
 
   // Hold the whole shell until the first /api/auth/me has settled: the sidebar

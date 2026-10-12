@@ -30,6 +30,20 @@ export const storeProfileData = (profileData) => {
 };
 
 /**
+ * Store the /api/auth/me payload, which nests the fields under `user` and
+ * `organization` rather than the flat shape storeProfileData takes.
+ * @param {{ user?: Object, organization?: Object }} me
+ */
+export const storeMeProfile = ({ user, organization } = {}) =>
+  storeProfileData({
+    _id: user?.id ?? user?._id,
+    ownerEmail: organization?.ownerEmail ?? user?.email,
+    companyName: organization?.companyName,
+    gstin: organization?.gstin,
+    primaryThemeColor: user?.primaryThemeColor,
+  });
+
+/**
  * Retrieve profile data from the session store as an object
  * @returns {Object|null} - The stored profile data or null if not found
  */

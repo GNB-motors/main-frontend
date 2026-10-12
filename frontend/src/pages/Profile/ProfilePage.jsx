@@ -1,61 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
-import { ProfileService } from './ProfileService';
 import { getThemeCSS } from '../../utils/colorTheme';
-import { useOrganization } from '../../contexts/FeatureFlagsContext.jsx';
-import { setProfileField, setThemeColor } from '../../utils/session.js';
+import { useFeatureFlags } from '../../contexts/FeatureFlagsContext.jsx';
 import PageShell from '../../components/ui/PageShell';
 import { ProfileCard, ProfileSkeleton } from './profileCard';
 import { DetailsPanel } from './profileDetailsPanel';
-import logger from '../../utils/logger';
 
+// The shell's FeatureFlagsProvider already holds the /api/auth/me payload
+// ({ user, organization }), and DashboardLayout copies it into the session.
 const ProfilePage = () => {
-  const [userData, setUserData] = useState(null);
-  const [organizationData, setOrganizationData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { profile, ready, refresh } = useFeatureFlags();
   const [themeColors] = useState(getThemeCSS());
-  const { refresh: refreshOrganization } = useOrganization();
+  // The logo upload answers with the updated organization; show it before the
+  // context refresh lands.
+  const [uploadedOrganization, setUploadedOrganization] = useState(null);
 
-  // Repaint this page from the server response, then re-read the shared
-  // context so the sidebar mark swaps over without a reload.
+  const userData = profile?.user ?? null;
+  const organizationData = uploadedOrganization ?? profile?.organization ?? null;
+
+  // Re-read the shared context too, so the sidebar mark swaps over without a reload.
   const handleLogoChange = (org) => {
-    if (org) setOrganizationData(org);
-    refreshOrganization?.();
+    if (org) setUploadedOrganization(org);
+    refresh();
   };
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const { user, organization } = await ProfileService.getProfile();
-        setUserData(user);
-        setOrganizationData(organization);
-
-        if (user) {
-          setProfileField('id', user.id);
-          setProfileField('owner_email', user.email);
-          // setThemeColor dispatches themeColorChange itself, so
-          // Sidebar/Navbar re-render with the loaded colour in the same tab
-          setThemeColor(user.primaryThemeColor || '#2940d3');
-        }
-        if (organization) {
-          setProfileField('company_name', organization.companyName);
-          setProfileField('gstin', organization.gstin);
-          setProfileField('owner_email', organization.ownerEmail);
-        }
-      } catch (err) {
-        logger.warn('ProfilePage', 'Failed to load profile', err);
-        setError('Failed to load profile information.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchProfile();
-  }, []);
-
-  if (isLoading) {
+  if (!ready) {
     return (
       <PageShell title="Profile">
         <ProfileSkeleton />
@@ -63,13 +32,16 @@ const ProfilePage = () => {
     );
   }
 
-  if (error || !userData) {
+  if (!userData) {
     return (
       <PageShell title="Profile">
         <div className="flex h-full w-full items-center justify-center p-6">
-          <div className="flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-5 py-4 text-sm font-medium text-red-600">
+          <div className="flex items-center gap-3 rounded-xl border border-red-100 bg-red-50 px-5 py-4 text-sm font-medium text-red-600">
             <AlertCircle size={16} />
-            {error || 'Could not load profile data.'}
+            Failed to load profile information.
+            <button type="button" className="underline" onClick={refresh}>
+              Retry
+            </button>
           </div>
         </div>
       </PageShell>

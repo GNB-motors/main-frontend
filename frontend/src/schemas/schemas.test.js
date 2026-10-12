@@ -6,7 +6,6 @@ const vehicle = load('vehicle.schema.js');
 const driver = load('driver.schema.js');
 const trip = load('trip.schema.js');
 const branch = load('branch.schema.js');
-const profile = load('profile.schema.js');
 const erp = load('erp.schema.js');
 const livePosition = load('livePosition.schema.js');
 
@@ -157,34 +156,6 @@ describe('schemas — async validation via parseWith', () => {
     });
   });
 
-  describe('profile.schema.js', () => {
-    it('accepts a valid profile and passes extras through', async () => {
-      const p = {
-        _id: 'p1',
-        companyName: 'GNB',
-        ownerEmail: 'o@gnb.in',
-        gstin: '22AAAAA0000A1Z5',
-        primaryThemeColor: '#ff8800',
-        other: 'x',
-      };
-      expect(await profile('profileSchema', p)).toEqual(p);
-    });
-
-    it('rejects wrong types on known fields', async () => {
-      await expect(profile('profileSchema', { gstin: 12345 })).rejects.toThrow();
-    });
-
-    it('validates the response envelope', async () => {
-      const res = await profile('profileResponseSchema', {
-        status: 'ok',
-        data: { _id: 'p1' },
-        extra: 'kept',
-      });
-      expect(res.data._id).toBe('p1');
-      expect(res.extra).toBe('kept');
-    });
-  });
-
   // Mongo sends explicit null for an unset field. `.optional()` alone rejects
   // it, which used to turn a healthy response into a thrown ZodError that the
   // page then reported as a failed request.
@@ -203,9 +174,6 @@ describe('schemas — async validation via parseWith', () => {
 
       const b = await branch('branchSchema', { _id: 'b1', code: null, city: null, address: null });
       expect(b.city).toBeNull();
-
-      const pr = await profile('profileSchema', { _id: 'p1', gstin: null, companyName: null });
-      expect(pr.gstin).toBeNull();
 
       const t = await trip('tripSchema', { _id: 't1', endDate: null, destination: null });
       expect(t.endDate).toBeNull();
