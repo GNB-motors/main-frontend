@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import PlaceHubPage from './PlaceHubPage.jsx';
 import PlaceHubService from './PlaceHubService.js';
@@ -281,5 +281,25 @@ describe('PlaceHubPage', () => {
     expect(PlaceHubService.loadSites).not.toHaveBeenCalled();
     expect(PlaceHubService.loadLiveIdling).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: /Routes/ })).not.toBeInTheDocument();
+  });
+
+  // A refresh in flight when the user left used to land on an unmounted page.
+  it('cancels a live-idling refresh still in flight on unmount', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const view = renderPage('/place-hub?tab=idling');
+      expect(await screen.findByText('WB11G0962')).toBeInTheDocument();
+      let signal;
+      PlaceHubService.loadLiveIdling.mockImplementation((opts = {}) => {
+        signal = opts.signal;
+        return new Promise(() => {});
+      });
+      await act(() => vi.advanceTimersByTimeAsync(60_000));
+      expect(signal?.aborted).toBe(false);
+      view.unmount();
+      expect(signal.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
