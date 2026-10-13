@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useId } from 'react';
 import {
   Plus,
   Search,
@@ -56,6 +56,7 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
   const [saving, setSaving] = useState(false);
   const [driverAutoFilled, setDriverAutoFilled] = useState(false);
   const [driverTouchedByUser, setDriverTouchedByUser] = useState(false);
+  const uid = useId();
 
   useEffect(() => {
     setDriverAutoFilled(false);
@@ -172,10 +173,15 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label
+              htmlFor={`${uid}-title`}
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
               Title <span className="text-red-500">*</span>
             </label>
             <input
+              id={`${uid}-title`}
+              aria-label="Title"
               className={inputClass}
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -186,10 +192,15 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label
+                htmlFor={`${uid}-amount`}
+                className="mb-1 block text-sm font-medium text-gray-700"
+              >
                 Amount (INR) <span className="text-red-500">*</span>
               </label>
               <input
+                id={`${uid}-amount`}
+                aria-label="Amount (INR)"
                 type="number"
                 className={inputClass}
                 value={form.amount}
@@ -200,8 +211,14 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Category</label>
+              <label
+                htmlFor={`${uid}-category`}
+                className="mb-1 block text-sm font-medium text-gray-700"
+              >
+                Category
+              </label>
               <select
+                id={`${uid}-category`}
                 className={inputClass}
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
@@ -216,8 +233,12 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Expense Date</label>
+            <label htmlFor={`${uid}-date`} className="mb-1 block text-sm font-medium text-gray-700">
+              Expense Date
+            </label>
             <input
+              id={`${uid}-date`}
+              aria-label="Expense Date"
               type="date"
               className={inputClass}
               value={form.expenseDate}
@@ -226,8 +247,15 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Description</label>
+            <label
+              htmlFor={`${uid}-description`}
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              Description
+            </label>
             <textarea
+              id={`${uid}-description`}
+              aria-label="Description"
               className={inputClass}
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -243,8 +271,11 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
             </p>
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs text-gray-600">Vehicle</label>
+                <label htmlFor={`${uid}-vehicle`} className="mb-1 block text-xs text-gray-600">
+                  Vehicle
+                </label>
                 <select
+                  id={`${uid}-vehicle`}
                   className={inputClass}
                   value={form.vehicleId}
                   onChange={(e) => handleVehicleChange(e.target.value)}
@@ -258,8 +289,11 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs text-gray-600">Driver</label>
+                <label htmlFor={`${uid}-driver`} className="mb-1 block text-xs text-gray-600">
+                  Driver
+                </label>
                 <select
+                  id={`${uid}-driver`}
                   className={inputClass}
                   value={form.driverId}
                   onChange={(e) => handleDriverChange(e.target.value)}
@@ -329,6 +363,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const uid = useId();
 
   useEffect(() => {
     const timer = setTimeout(() => setSearch(searchInput), 400);
@@ -505,6 +540,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
               />
               <input
+                aria-label="Search by title"
                 className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:outline-none"
                 style={{ outline: 'none' }}
                 placeholder="Search by title..."
@@ -516,6 +552,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
             <label className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm">
               <input
                 type="checkbox"
+                aria-label="Include Trip Expenses"
                 checked={includeTripExpenses}
                 onChange={(e) => setIncludeTripExpenses(e.target.checked)}
                 className="h-4 w-4 rounded border-gray-300"
@@ -536,8 +573,11 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
           {showFilters && (
             <div className="mt-3 flex flex-wrap items-end gap-3 border-t pt-3">
               <div>
-                <label className="mb-1 block text-xs text-gray-500">Category</label>
+                <label htmlFor={`${uid}-category`} className="mb-1 block text-xs text-gray-500">
+                  Category
+                </label>
                 <select
+                  id={`${uid}-category`}
                   className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
@@ -551,8 +591,12 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs text-gray-500">From</label>
+                <label htmlFor={`${uid}-from`} className="mb-1 block text-xs text-gray-500">
+                  From
+                </label>
                 <input
+                  id={`${uid}-from`}
+                  aria-label="From"
                   type="date"
                   className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
                   value={startDate}
@@ -560,8 +604,12 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-gray-500">To</label>
+                <label htmlFor={`${uid}-to`} className="mb-1 block text-xs text-gray-500">
+                  To
+                </label>
                 <input
+                  id={`${uid}-to`}
+                  aria-label="To"
                   type="date"
                   className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
                   value={endDate}

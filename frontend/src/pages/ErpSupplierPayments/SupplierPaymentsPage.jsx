@@ -226,16 +226,17 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
     }
   };
 
-  const supplierOptions = [...new Map(
-    invoices
-      .filter((i) => i.supplierId?._id || i.supplierId)
-      .map((i) => {
-        const s = i.supplierId;
-        const id = s._id || s;
-        return [String(id), { id, name: s.name || 'Supplier', code: s.code || '' }];
-      }),
-  ).values()];
-
+  const supplierOptions = [
+    ...new Map(
+      invoices
+        .filter((i) => i.supplierId?._id || i.supplierId)
+        .map((i) => {
+          const s = i.supplierId;
+          const id = s._id || s;
+          return [String(id), { id, name: s.name || 'Supplier', code: s.code || '' }];
+        }),
+    ).values(),
+  ];
 
   /** Invoices already committed to an in-flight payment → the payment holding them. */
   const invoicesInFlight = useMemo(() => {
@@ -248,27 +249,39 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
     return m;
   }, [awaitingApproval]);
 
-  const awaitingApprovalTotal = awaitingApproval.reduce(
-    (sum, p) => sum + (p.netPayable || 0),
-    0,
-  );
+  const awaitingApprovalTotal = awaitingApproval.reduce((sum, p) => sum + (p.netPayable || 0), 0);
 
   return (
     <PageShell
       embedded={embedded}
-      title={<><Package size={22} /> Supplier Invoices &amp; Payments</>}
+      title={
+        <>
+          <Package size={22} /> Supplier Invoices &amp; Payments
+        </>
+      }
       subtitle="Manual supplier invoices, then the same approval → release flow as vendor payments."
-      breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Payables', to: '/erp/payables' }, { label: 'Supplier Payments' }]}
+      breadcrumbs={[
+        { label: 'ERP', to: '/erp' },
+        { label: 'Payables', to: '/erp/payables' },
+        { label: 'Supplier Payments' },
+      ]}
     >
-
       <div className="erp-tabs">
         {[
           ['invoices', 'New invoice'],
           ['pay', 'Pay suppliers'],
-          ['approval', `Awaiting approval${awaitingApproval.length ? ` (${awaitingApproval.length})` : ''}`],
+          [
+            'approval',
+            `Awaiting approval${awaitingApproval.length ? ` (${awaitingApproval.length})` : ''}`,
+          ],
           ['release', 'Pending release'],
         ].map(([key, label]) => (
-          <button key={key} type="button" className={`erp-tab ${tab === key ? 'active' : ''}`} onClick={() => setTab(key)}>
+          <button
+            key={key}
+            type="button"
+            className={`erp-tab ${tab === key ? 'active' : ''}`}
+            onClick={() => setTab(key)}
+          >
             {label}
           </button>
         ))}
@@ -280,6 +293,7 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
             <label>
               Supplier ID
               <input
+                aria-label="Supplier ID"
                 required
                 value={invoiceForm.supplierId}
                 onChange={(e) => setInvoiceForm({ ...invoiceForm, supplierId: e.target.value })}
@@ -289,6 +303,7 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
             <label>
               Invoice no
               <input
+                aria-label="Invoice no"
                 required
                 value={invoiceForm.invoiceNumber}
                 onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceNumber: e.target.value })}
@@ -297,6 +312,7 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
             <label>
               Invoice date
               <input
+                aria-label="Invoice date"
                 type="date"
                 required
                 value={invoiceForm.invoiceDate}
@@ -319,6 +335,7 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
             <label>
               Gross amount
               <input
+                aria-label="Gross amount"
                 type="number"
                 min="0.01"
                 step="0.01"
@@ -330,6 +347,7 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
             <label>
               Taxable value
               <input
+                aria-label="Taxable value"
                 type="number"
                 min="0"
                 step="0.01"
@@ -340,6 +358,7 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
             <label>
               GST %
               <input
+                aria-label="GST %"
                 type="number"
                 min="0"
                 value={invoiceForm.gstRate}
@@ -349,6 +368,7 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
             <label>
               TDS %
               <input
+                aria-label="TDS %"
                 type="number"
                 min="0"
                 value={invoiceForm.tdsRate}
@@ -358,6 +378,7 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
             <label>
               Discount
               <input
+                aria-label="Discount"
                 type="number"
                 min="0"
                 value={invoiceForm.discount}
@@ -367,6 +388,7 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
             <label className="full-width">
               Description
               <input
+                aria-label="Description"
                 value={invoiceForm.description}
                 onChange={(e) => setInvoiceForm({ ...invoiceForm, description: e.target.value })}
               />
@@ -395,7 +417,9 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
                 <tbody>
                   {!loading && invoices.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="erp-muted">No supplier invoices yet.</td>
+                      <td colSpan={5} className="erp-muted">
+                        No supplier invoices yet.
+                      </td>
                     </tr>
                   )}
                   {invoices.map((i) => (
@@ -443,7 +467,7 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
                 <table className="erp-table compact">
                   <thead>
                     <tr>
-                      <th />
+                      <th aria-label="Select" />
                       <th>Ref</th>
                       <th>Invoice</th>
                       <th>Gross</th>
@@ -455,34 +479,38 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
                     {selectedSupplier.invoices.map((inv) => {
                       const heldBy = invoicesInFlight.get(String(inv.documentId));
                       return (
-                      <tr key={inv.documentId} className={heldBy ? 'erp-row-muted' : ''}>
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={selectedInvoiceIds.has(inv.documentId)}
-                            onChange={() => toggleInvoice(inv.documentId)}
-                            disabled={Boolean(heldBy)}
-                            title={heldBy ? `Already in payment ${heldBy}` : undefined}
-                          />
-                        </td>
-                        <td>
-                          {inv.refNumber}
-                          {heldBy && (
-                            <div className="erp-cell-muted">In payment {heldBy}</div>
-                          )}
-                        </td>
-                        <td>{inv.invoiceNumber}</td>
-                        <td>{money(inv.grossAmount)}</td>
-                        <td>{money(inv.tdsAmount)}</td>
-                        <td>{money(inv.netAmount)}</td>
-                      </tr>
+                        <tr key={inv.documentId} className={heldBy ? 'erp-row-muted' : ''}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              aria-label={`Select ${inv.refNumber}`}
+                              checked={selectedInvoiceIds.has(inv.documentId)}
+                              onChange={() => toggleInvoice(inv.documentId)}
+                              disabled={Boolean(heldBy)}
+                              title={heldBy ? `Already in payment ${heldBy}` : undefined}
+                            />
+                          </td>
+                          <td>
+                            {inv.refNumber}
+                            {heldBy && <div className="erp-cell-muted">In payment {heldBy}</div>}
+                          </td>
+                          <td>{inv.invoiceNumber}</td>
+                          <td>{money(inv.grossAmount)}</td>
+                          <td>{money(inv.tdsAmount)}</td>
+                          <td>{money(inv.netAmount)}</td>
+                        </tr>
                       );
                     })}
                   </tbody>
                 </table>
               </div>
               <div className="erp-form-actions">
-                <button type="button" className="erp-btn primary" disabled={busy} onClick={preparePayment}>
+                <button
+                  type="button"
+                  className="erp-btn primary"
+                  disabled={busy}
+                  onClick={preparePayment}
+                >
                   <Send size={14} /> Submit for approval
                 </button>
               </div>
@@ -498,8 +526,8 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
           <h3>Submitted — awaiting approval</h3>
           {awaitingApproval.length === 0 ? (
             <p className="erp-muted">
-              Nothing is waiting on approval. Payments appear here between
-              &ldquo;Submit for approval&rdquo; and an approver&rsquo;s decision.
+              Nothing is waiting on approval. Payments appear here between &ldquo;Submit for
+              approval&rdquo; and an approver&rsquo;s decision.
             </p>
           ) : (
             <>
@@ -518,12 +546,12 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
                     {awaitingApproval.map((p) => (
                       <tr key={p._id}>
                         <td className="erp-cell-strong">{p.paymentNumber}</td>
-                        <td className="erp-cell-muted">
-                          {p.paymentDate?.slice?.(0, 10) || '—'}
-                        </td>
+                        <td className="erp-cell-muted">{p.paymentDate?.slice?.(0, 10) || '—'}</td>
                         <td>{p.billAllocations?.length ?? 0}</td>
                         <td>{money(p.netPayable)}</td>
-                        <td><StatusBadge status={p.status} /></td>
+                        <td>
+                          <StatusBadge status={p.status} />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -536,7 +564,9 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
                 </div>
                 <div className="erp-alloc-cell">
                   <span>Decisions are made in</span>
-                  <strong><Link to="/erp/approvals">Approvals</Link></strong>
+                  <strong>
+                    <Link to="/erp/approvals">Approvals</Link>
+                  </strong>
                 </div>
               </div>
             </>
@@ -555,7 +585,11 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
             <ul className="erp-list">
               {pending.map((p) => (
                 <li key={p._id}>
-                  <button type="button" className="erp-link-btn" onClick={() => setReleaseTarget(p)}>
+                  <button
+                    type="button"
+                    className="erp-link-btn"
+                    onClick={() => setReleaseTarget(p)}
+                  >
                     {p.paymentNumber} — {money(p.netPayable)}
                   </button>
                 </li>
@@ -575,6 +609,7 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
                   <label>
                     <input
                       type="checkbox"
+                      aria-label={`${v.voucherNumber} — ${money(v.unadjustedAmount)}`}
                       checked={selectedVoucherIds.has(v.voucherId)}
                       onChange={() =>
                         setSelectedVoucherIds((prev) => {
@@ -594,7 +629,12 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
               <button type="button" className="erp-btn" onClick={() => submitPayment([])}>
                 Skip
               </button>
-              <button type="button" className="erp-btn primary" disabled={busy} onClick={() => submitPayment([...selectedVoucherIds])}>
+              <button
+                type="button"
+                className="erp-btn primary"
+                disabled={busy}
+                onClick={() => submitPayment([...selectedVoucherIds])}
+              >
                 Continue
               </button>
             </div>
@@ -622,6 +662,7 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
             <label>
               Instrument no
               <input
+                aria-label="Instrument no"
                 value={releaseForm.instrumentNo}
                 onChange={(e) => setReleaseForm({ ...releaseForm, instrumentNo: e.target.value })}
               />
@@ -630,7 +671,12 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
               <button type="button" className="erp-btn" onClick={() => setReleaseTarget(null)}>
                 Cancel
               </button>
-              <button type="button" className="erp-btn primary" disabled={busy} onClick={releasePayment}>
+              <button
+                type="button"
+                className="erp-btn primary"
+                disabled={busy}
+                onClick={releasePayment}
+              >
                 Release
               </button>
             </div>
@@ -639,7 +685,9 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
       )}
 
       {supplierOptions.length > 0 && tab === 'invoices' && (
-        <p className="erp-hint">Known suppliers from recent invoices: {supplierOptions.map((s) => s.name).join(', ')}</p>
+        <p className="erp-hint">
+          Known suppliers from recent invoices: {supplierOptions.map((s) => s.name).join(', ')}
+        </p>
       )}
     </PageShell>
   );

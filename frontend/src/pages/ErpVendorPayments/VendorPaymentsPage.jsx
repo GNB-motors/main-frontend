@@ -97,9 +97,7 @@ const VendorPaymentsPage = ({ embedded = false }) => {
         vendorId: group.vendorId,
         includeBills: true,
       });
-      const detail = (res.data || []).find(
-        (g) => String(g.vendorId) === String(group.vendorId),
-      );
+      const detail = (res.data || []).find((g) => String(g.vendorId) === String(group.vendorId));
       setSelectedVendor(detail || { ...group, bills: [] });
     } catch (err) {
       toast.error(err.message);
@@ -187,8 +185,8 @@ const VendorPaymentsPage = ({ embedded = false }) => {
   const awaitingRelease = pending.reduce((s, p) => s + (p.netPayable || 0), 0);
   const selectedTotal = selectedVendor
     ? (selectedVendor.bills || [])
-      .filter((b) => selectedBillIds.has(b.purchaseBillId))
-      .reduce((s, b) => s + (b.netAmount || 0), 0)
+        .filter((b) => selectedBillIds.has(b.purchaseBillId))
+        .reduce((s, b) => s + (b.netAmount || 0), 0)
     : 0;
 
   /**
@@ -207,19 +205,23 @@ const VendorPaymentsPage = ({ embedded = false }) => {
     return m;
   }, [awaitingApproval]);
 
-  const awaitingApprovalTotal = awaitingApproval.reduce(
-    (sum, p) => sum + (p.netPayable || 0),
-    0,
-  );
+  const awaitingApprovalTotal = awaitingApproval.reduce((sum, p) => sum + (p.netPayable || 0), 0);
 
   return (
     <PageShell
       embedded={embedded}
-      title={<><Truck size={22} /> Vendor Payments</>}
+      title={
+        <>
+          <Truck size={22} /> Vendor Payments
+        </>
+      }
       subtitle="Outstanding purchase bills → approval → bank release."
-      breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Payables', to: '/erp/payables' }, { label: 'Vendor Payments' }]}
+      breadcrumbs={[
+        { label: 'ERP', to: '/erp' },
+        { label: 'Payables', to: '/erp/payables' },
+        { label: 'Vendor Payments' },
+      ]}
     >
-
       <div className="erp-buckets">
         <div className="erp-bucket">
           <span className="erp-bucket-count">{money(readyToPay)}</span>
@@ -242,20 +244,21 @@ const VendorPaymentsPage = ({ embedded = false }) => {
       <div className="erp-tabs">
         {[
           ['outstanding', 'Outstanding bills'],
-          ['approval', `Awaiting approval${awaitingApproval.length ? ` (${awaitingApproval.length})` : ''}`],
+          [
+            'approval',
+            `Awaiting approval${awaitingApproval.length ? ` (${awaitingApproval.length})` : ''}`,
+          ],
           ['release', 'Pending release'],
-        ].map(
-          ([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              className={`erp-tab ${tab === key ? 'active' : ''}`}
-              onClick={() => setTab(key)}
-            >
-              {label}
-            </button>
-          ),
-        )}
+        ].map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            className={`erp-tab ${tab === key ? 'active' : ''}`}
+            onClick={() => setTab(key)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {tab === 'outstanding' && (
@@ -288,7 +291,7 @@ const VendorPaymentsPage = ({ embedded = false }) => {
                 <table className="erp-table compact">
                   <thead>
                     <tr>
-                      <th />
+                      <th aria-label="Select" />
                       <th>Bill</th>
                       <th>Trip</th>
                       <th>Route</th>
@@ -301,32 +304,38 @@ const VendorPaymentsPage = ({ embedded = false }) => {
                     {selectedVendor.bills.map((b) => {
                       const heldBy = billsInFlight.get(String(b.purchaseBillId));
                       return (
-                      <tr key={b.purchaseBillId} className={heldBy ? 'erp-row-muted' : ''}>
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={selectedBillIds.has(b.purchaseBillId)}
-                            onChange={() => toggleBill(b.purchaseBillId)}
-                            disabled={Boolean(heldBy)}
-                            title={heldBy ? `Already in payment ${heldBy}` : undefined}
-                          />
-                        </td>
-                        <td>
-                          <div className="erp-cell-strong">{b.billNumber}</div>
-                          <div className="erp-cell-muted">
-                            {heldBy ? `In payment ${heldBy}` : b.vehicleNumber}
-                          </div>
-                        </td>
-                        <td>{b.tripNumber}</td>
-                        <td className="erp-cell-muted">{b.route || '—'}</td>
-                        <td>{money(b.netAmount)}</td>
-                        <td>{b.dueDate?.slice?.(0, 10) || '—'}</td>
-                        <td>
-                          {b.ageingBucket
-                            ? <StatusBadge status={b.ageingBucket} label={`${b.overdueDays ?? 0}d`} />
-                            : '—'}
-                        </td>
-                      </tr>
+                        <tr key={b.purchaseBillId} className={heldBy ? 'erp-row-muted' : ''}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              aria-label={`Select ${b.billNumber}`}
+                              checked={selectedBillIds.has(b.purchaseBillId)}
+                              onChange={() => toggleBill(b.purchaseBillId)}
+                              disabled={Boolean(heldBy)}
+                              title={heldBy ? `Already in payment ${heldBy}` : undefined}
+                            />
+                          </td>
+                          <td>
+                            <div className="erp-cell-strong">{b.billNumber}</div>
+                            <div className="erp-cell-muted">
+                              {heldBy ? `In payment ${heldBy}` : b.vehicleNumber}
+                            </div>
+                          </td>
+                          <td>{b.tripNumber}</td>
+                          <td className="erp-cell-muted">{b.route || '—'}</td>
+                          <td>{money(b.netAmount)}</td>
+                          <td>{b.dueDate?.slice?.(0, 10) || '—'}</td>
+                          <td>
+                            {b.ageingBucket ? (
+                              <StatusBadge
+                                status={b.ageingBucket}
+                                label={`${b.overdueDays ?? 0}d`}
+                              />
+                            ) : (
+                              '—'
+                            )}
+                          </td>
+                        </tr>
                       );
                     })}
                   </tbody>
@@ -353,7 +362,12 @@ const VendorPaymentsPage = ({ embedded = false }) => {
               )}
 
               <div className="erp-form-actions">
-                <button type="button" className="erp-btn primary" disabled={busy || selectedBillIds.size === 0} onClick={prepareSubmit}>
+                <button
+                  type="button"
+                  className="erp-btn primary"
+                  disabled={busy || selectedBillIds.size === 0}
+                  onClick={prepareSubmit}
+                >
                   <Send size={14} /> Submit for approval
                 </button>
               </div>
@@ -370,8 +384,8 @@ const VendorPaymentsPage = ({ embedded = false }) => {
           <h3>Submitted — awaiting approval</h3>
           {awaitingApproval.length === 0 ? (
             <p className="erp-muted">
-              Nothing is waiting on approval. Payments appear here between
-              &ldquo;Submit for approval&rdquo; and an approver&rsquo;s decision.
+              Nothing is waiting on approval. Payments appear here between &ldquo;Submit for
+              approval&rdquo; and an approver&rsquo;s decision.
             </p>
           ) : (
             <>
@@ -390,12 +404,12 @@ const VendorPaymentsPage = ({ embedded = false }) => {
                     {awaitingApproval.map((p) => (
                       <tr key={p._id}>
                         <td className="erp-cell-strong">{p.paymentNumber}</td>
-                        <td className="erp-cell-muted">
-                          {p.paymentDate?.slice?.(0, 10) || '—'}
-                        </td>
+                        <td className="erp-cell-muted">{p.paymentDate?.slice?.(0, 10) || '—'}</td>
                         <td>{p.billAllocations?.length ?? 0}</td>
                         <td>{money(p.netPayable)}</td>
-                        <td><StatusBadge status={p.status} /></td>
+                        <td>
+                          <StatusBadge status={p.status} />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -408,7 +422,9 @@ const VendorPaymentsPage = ({ embedded = false }) => {
                 </div>
                 <div className="erp-alloc-cell">
                   <span>Decisions are made in</span>
-                  <strong><Link to="/erp/approvals">Approvals</Link></strong>
+                  <strong>
+                    <Link to="/erp/approvals">Approvals</Link>
+                  </strong>
                 </div>
               </div>
             </>
@@ -427,8 +443,13 @@ const VendorPaymentsPage = ({ embedded = false }) => {
             <ul className="erp-list">
               {pending.map((p) => (
                 <li key={p._id}>
-                  <button type="button" className="erp-link-btn" onClick={() => setReleaseTarget(p)}>
-                    {p.paymentNumber} — {money(p.netPayable)} net ({p.billAllocations?.length} bills)
+                  <button
+                    type="button"
+                    className="erp-link-btn"
+                    onClick={() => setReleaseTarget(p)}
+                  >
+                    {p.paymentNumber} — {money(p.netPayable)} net ({p.billAllocations?.length}{' '}
+                    bills)
                   </button>
                 </li>
               ))}
@@ -447,6 +468,7 @@ const VendorPaymentsPage = ({ embedded = false }) => {
                   <label>
                     <input
                       type="checkbox"
+                      aria-label={`${v.voucherNumber} — ${money(v.unadjustedAmount)}`}
                       checked={selectedVoucherIds.has(v.voucherId)}
                       onChange={() =>
                         setSelectedVoucherIds((prev) => {
@@ -466,7 +488,12 @@ const VendorPaymentsPage = ({ embedded = false }) => {
               <button type="button" className="erp-btn" onClick={() => submitPayment([])}>
                 Skip on-account
               </button>
-              <button type="button" className="erp-btn primary" disabled={busy} onClick={confirmOnAccount}>
+              <button
+                type="button"
+                className="erp-btn primary"
+                disabled={busy}
+                onClick={confirmOnAccount}
+              >
                 Continue
               </button>
             </div>
@@ -495,6 +522,7 @@ const VendorPaymentsPage = ({ embedded = false }) => {
             <label>
               Instrument no
               <input
+                aria-label="Instrument no"
                 value={releaseForm.instrumentNo}
                 onChange={(e) => setReleaseForm({ ...releaseForm, instrumentNo: e.target.value })}
               />
@@ -502,6 +530,7 @@ const VendorPaymentsPage = ({ embedded = false }) => {
             <label>
               Bank
               <input
+                aria-label="Bank"
                 value={releaseForm.bankName}
                 onChange={(e) => setReleaseForm({ ...releaseForm, bankName: e.target.value })}
               />
@@ -510,7 +539,12 @@ const VendorPaymentsPage = ({ embedded = false }) => {
               <button type="button" className="erp-btn" onClick={() => setReleaseTarget(null)}>
                 Cancel
               </button>
-              <button type="button" className="erp-btn primary" disabled={busy} onClick={releasePayment}>
+              <button
+                type="button"
+                className="erp-btn primary"
+                disabled={busy}
+                onClick={releasePayment}
+              >
                 Release payment
               </button>
             </div>

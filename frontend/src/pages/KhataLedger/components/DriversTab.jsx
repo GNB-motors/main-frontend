@@ -4,7 +4,14 @@ import { Search, User, ChevronLeft, ChevronRight, Eye, Truck, Fuel } from 'lucid
 import { toast } from 'react-toastify';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import DateRangeFilter from '../../Superadmin/components/DateRangeFilter';
 import KhataLedgerService from '../KhataLedgerService';
@@ -53,7 +60,7 @@ const DriversTab = ({ vehicles = [], drivers: allDrivers = [] }) => {
         setLoading(false);
       }
     },
-    [dateRange, search]
+    [dateRange, search],
   );
 
   useEffect(() => {
@@ -79,8 +86,12 @@ const DriversTab = ({ vehicles = [], drivers: allDrivers = [] }) => {
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1" style={{ minWidth: 200 }}>
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
               <input
+                aria-label="Search drivers"
                 className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:outline-none"
                 placeholder="Search drivers..."
                 value={searchInput}
@@ -126,17 +137,25 @@ const DriversTab = ({ vehicles = [], drivers: allDrivers = [] }) => {
                         <span className="font-medium">{driver.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-semibold">{formatCurrency(driver.totalAmount)}</TableCell>
+                    <TableCell className="font-semibold">
+                      {formatCurrency(driver.totalAmount)}
+                    </TableCell>
                     <TableCell>{driver.entryCount ?? driver.count ?? 0}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {toSplitArray(driver.vehicleSplit || driver.byVehicle)
                           .slice(0, 3)
                           .map((split) => {
-                            const vehicle = vehicles.find((v) => v._id === (split.vehicleId || split._id));
+                            const vehicle = vehicles.find(
+                              (v) => v._id === (split.vehicleId || split._id),
+                            );
                             const label = vehicle?.registrationNumber || split.name || 'Unknown';
                             return (
-                              <Badge key={split.vehicleId || split._id || label} variant="outline" className="text-xs">
+                              <Badge
+                                key={split.vehicleId || split._id || label}
+                                variant="outline"
+                                className="text-xs"
+                              >
                                 <Truck size={10} className="mr-1" />
                                 {label}: {formatCurrency(split.amount)}
                               </Badge>

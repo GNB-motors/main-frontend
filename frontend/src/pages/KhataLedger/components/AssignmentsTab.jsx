@@ -157,6 +157,7 @@ const AssignmentsTab = ({ vehicles = [], drivers = [] }) => {
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
               />
               <input
+                aria-label="Search driver or vehicle"
                 className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:outline-none"
                 placeholder="Search driver or vehicle..."
                 value={searchInput}

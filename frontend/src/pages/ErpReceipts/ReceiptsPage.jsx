@@ -251,6 +251,7 @@ const ReceiptsPage = ({ embedded = false }) => {
           <label>
             Amount
             <input
+              aria-label="Amount"
               type="number"
               min="0.01"
               step="0.01"
@@ -262,6 +263,7 @@ const ReceiptsPage = ({ embedded = false }) => {
           <label>
             Receipt date
             <input
+              aria-label="Receipt date"
               type="date"
               required
               value={receiptForm.receiptDate}
@@ -284,6 +286,7 @@ const ReceiptsPage = ({ embedded = false }) => {
           <label>
             Instrument no
             <input
+              aria-label="Instrument no"
               value={receiptForm.instrumentNo}
               onChange={(e) => setReceiptForm({ ...receiptForm, instrumentNo: e.target.value })}
             />
@@ -291,6 +294,7 @@ const ReceiptsPage = ({ embedded = false }) => {
           <label>
             Bank
             <input
+              aria-label="Bank"
               value={receiptForm.bankName}
               onChange={(e) => setReceiptForm({ ...receiptForm, bankName: e.target.value })}
             />
@@ -298,6 +302,7 @@ const ReceiptsPage = ({ embedded = false }) => {
           <label className="full-width">
             Narration
             <input
+              aria-label="Narration"
               value={receiptForm.narration}
               onChange={(e) => setReceiptForm({ ...receiptForm, narration: e.target.value })}
             />
@@ -340,7 +345,7 @@ const ReceiptsPage = ({ embedded = false }) => {
                     <tr>
                       <th>Bill</th>
                       <th>Outstanding</th>
-                      <th />
+                      <th aria-label="Actions" />
                     </tr>
                   </thead>
                   <tbody>
@@ -388,6 +393,7 @@ const ReceiptsPage = ({ embedded = false }) => {
                               <td>{cn.cnNumber}</td>
                               <td>
                                 <input
+                                  aria-label={`Received for ${cn.cnNumber}`}
                                   type="number"
                                   min="0"
                                   step="0.01"
@@ -402,6 +408,7 @@ const ReceiptsPage = ({ embedded = false }) => {
                               </td>
                               <td>
                                 <input
+                                  aria-label={`Shortage for ${cn.cnNumber}`}
                                   type="number"
                                   min="0"
                                   step="0.01"
@@ -416,6 +423,7 @@ const ReceiptsPage = ({ embedded = false }) => {
                               </td>
                               <td>
                                 <input
+                                  aria-label={`Detention for ${cn.cnNumber}`}
                                   type="number"
                                   min="0"
                                   step="0.01"
@@ -430,6 +438,7 @@ const ReceiptsPage = ({ embedded = false }) => {
                               </td>
                               <td>
                                 <input
+                                  aria-label={`Others for ${cn.cnNumber}`}
                                   type="number"
                                   min="0"
                                   step="0.01"
@@ -444,6 +453,7 @@ const ReceiptsPage = ({ embedded = false }) => {
                               </td>
                               <td>
                                 <input
+                                  aria-label={`Label for ${cn.cnNumber}`}
                                   value={row.othersLabel}
                                   onChange={(e) =>
                                     setCnDraft({
@@ -455,6 +465,7 @@ const ReceiptsPage = ({ embedded = false }) => {
                               </td>
                               <td>
                                 <input
+                                  aria-label={`Remarks for ${cn.cnNumber}`}
                                   value={row.remarks}
                                   onChange={(e) =>
                                     setCnDraft({

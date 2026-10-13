@@ -212,18 +212,25 @@ const SaleBillsPage = ({ embedded = false }) => {
 
   const selectedTotal = selectedParty
     ? selectedParty.unloadings
-      .filter((u) => selectedIds.has(u.unloadingId))
-      .reduce((s, u) => s + (u.netReceivable || 0), 0)
+        .filter((u) => selectedIds.has(u.unloadingId))
+        .reduce((s, u) => s + (u.netReceivable || 0), 0)
     : 0;
 
   return (
     <PageShell
       embedded={embedded}
-      title={<><Receipt size={22} /> Sale Bills</>}
+      title={
+        <>
+          <Receipt size={22} /> Sale Bills
+        </>
+      }
       subtitle="Create bills, submit to party, record received date for due date."
-      breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Billing', to: '/erp/billing' }, { label: 'Sale Bills' }]}
+      breadcrumbs={[
+        { label: 'ERP', to: '/erp' },
+        { label: 'Billing', to: '/erp/billing' },
+        { label: 'Sale Bills' },
+      ]}
     >
-
       <div className="erp-tabs">
         {[
           ['pending', 'Pending Billing'],
@@ -263,17 +270,25 @@ const SaleBillsPage = ({ embedded = false }) => {
                             <th>Bill #</th>
                             <th>Date</th>
                             <th>Net</th>
-                            <th />
+                            <th aria-label="Actions" />
                           </tr>
                         </thead>
                         <tbody>
                           {g.notSent.map((b) => (
                             <tr key={b.billId}>
                               <td>{b.billNumber}</td>
-                              <td>{b.billDate ? new Date(b.billDate).toLocaleDateString('en-IN') : '—'}</td>
+                              <td>
+                                {b.billDate
+                                  ? new Date(b.billDate).toLocaleDateString('en-IN')
+                                  : '—'}
+                              </td>
                               <td>{money(b.netAmount)}</td>
                               <td>
-                                <button type="button" className="erp-btn erp-btn-primary" onClick={() => openSubmit(b)}>
+                                <button
+                                  type="button"
+                                  className="erp-btn erp-btn-primary"
+                                  onClick={() => openSubmit(b)}
+                                >
                                   Submit
                                 </button>
                               </td>
@@ -295,18 +310,26 @@ const SaleBillsPage = ({ embedded = false }) => {
                             <th>Submitted</th>
                             <th>Ageing</th>
                             <th>Courier</th>
-                            <th />
+                            <th aria-label="Actions" />
                           </tr>
                         </thead>
                         <tbody>
                           {g.waitingAcknowledgement.map((b) => (
                             <tr key={b.billId}>
                               <td>{b.billNumber}</td>
-                              <td>{b.submittedDate ? new Date(b.submittedDate).toLocaleDateString('en-IN') : '—'}</td>
+                              <td>
+                                {b.submittedDate
+                                  ? new Date(b.submittedDate).toLocaleDateString('en-IN')
+                                  : '—'}
+                              </td>
                               <td>{b.ageingDays ?? 0} days</td>
                               <td>{b.courierDocket || b.deliveryMode || '—'}</td>
                               <td>
-                                <button type="button" className="erp-btn erp-btn-primary" onClick={() => openReceive(b)}>
+                                <button
+                                  type="button"
+                                  className="erp-btn erp-btn-primary"
+                                  onClick={() => openReceive(b)}
+                                >
                                   Mark received
                                 </button>
                               </td>
@@ -328,7 +351,7 @@ const SaleBillsPage = ({ embedded = false }) => {
               <tr>
                 <th>Party</th>
                 <th>Pending trips</th>
-                <th />
+                <th aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
@@ -342,8 +365,7 @@ const SaleBillsPage = ({ embedded = false }) => {
                 pendingGroups.map((g) => (
                   <tr key={g.partyId}>
                     <td>
-                      {g.partyName}{' '}
-                      <span className="erp-muted">({g.partyCode})</span>
+                      {g.partyName} <span className="erp-muted">({g.partyCode})</span>
                     </td>
                     <td>{g.unloadings.length}</td>
                     <td>
@@ -372,7 +394,7 @@ const SaleBillsPage = ({ embedded = false }) => {
                 <th>Lines</th>
                 <th>Net</th>
                 <th>Status</th>
-                <th />
+                <th aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
@@ -390,7 +412,9 @@ const SaleBillsPage = ({ embedded = false }) => {
                     <td>{b.billDate ? new Date(b.billDate).toLocaleDateString('en-IN') : '—'}</td>
                     <td>{b.lines?.length ?? '—'}</td>
                     <td>{money(b.netAmount)}</td>
-                    <td><StatusBadge status={b.status} /></td>
+                    <td>
+                      <StatusBadge status={b.status} />
+                    </td>
                     <td>
                       <button type="button" className="erp-btn" onClick={() => openDetail(b._id)}>
                         View
@@ -428,6 +452,7 @@ const SaleBillsPage = ({ embedded = false }) => {
               <label>
                 Bill date
                 <input
+                  aria-label="Bill date"
                   type="date"
                   required
                   max={todayInput()}
@@ -439,7 +464,7 @@ const SaleBillsPage = ({ embedded = false }) => {
                 <table className="erp-table">
                   <thead>
                     <tr>
-                      <th />
+                      <th aria-label="Select" />
                       <th>CN</th>
                       <th>Trip</th>
                       <th>Qty</th>
@@ -452,6 +477,7 @@ const SaleBillsPage = ({ embedded = false }) => {
                         <td>
                           <input
                             type="checkbox"
+                            aria-label={`Select ${u.cnNumber}`}
                             checked={selectedIds.has(u.unloadingId)}
                             onChange={() => toggleRow(u.unloadingId)}
                           />
@@ -493,6 +519,7 @@ const SaleBillsPage = ({ embedded = false }) => {
               <label>
                 Submit date
                 <input
+                  aria-label="Submit date"
                   type="date"
                   required
                   max={todayInput()}
@@ -516,19 +543,25 @@ const SaleBillsPage = ({ embedded = false }) => {
                   <label>
                     Courier name
                     <input
+                      aria-label="Courier name"
                       type="text"
                       required
                       value={submitForm.courierName}
-                      onChange={(e) => setSubmitForm((f) => ({ ...f, courierName: e.target.value }))}
+                      onChange={(e) =>
+                        setSubmitForm((f) => ({ ...f, courierName: e.target.value }))
+                      }
                     />
                   </label>
                   <label>
                     Docket #
                     <input
+                      aria-label="Docket #"
                       type="text"
                       required
                       value={submitForm.courierDocket}
-                      onChange={(e) => setSubmitForm((f) => ({ ...f, courierDocket: e.target.value }))}
+                      onChange={(e) =>
+                        setSubmitForm((f) => ({ ...f, courierDocket: e.target.value }))
+                      }
                     />
                   </label>
                 </>
@@ -537,10 +570,13 @@ const SaleBillsPage = ({ embedded = false }) => {
                 <label>
                   Handed to
                   <input
+                    aria-label="Handed to"
                     type="text"
                     required
                     value={submitForm.handDeliveredTo}
-                    onChange={(e) => setSubmitForm((f) => ({ ...f, handDeliveredTo: e.target.value }))}
+                    onChange={(e) =>
+                      setSubmitForm((f) => ({ ...f, handDeliveredTo: e.target.value }))
+                    }
                   />
                 </label>
               )}
@@ -570,6 +606,7 @@ const SaleBillsPage = ({ embedded = false }) => {
               <label>
                 Party received date
                 <input
+                  aria-label="Party received date"
                   type="date"
                   required
                   max={todayInput()}
@@ -598,8 +635,8 @@ const SaleBillsPage = ({ embedded = false }) => {
             </div>
             <div className="erp-form">
               <p>
-                Party: {detail.partyId?.name} · Status: <StatusBadge status={detail.status} /> · Net:{' '}
-                {money(detail.netAmount)}
+                Party: {detail.partyId?.name} · Status: <StatusBadge status={detail.status} /> ·
+                Net: {money(detail.netAmount)}
               </p>
               <div className="erp-table-wrap">
                 <table className="erp-table">
