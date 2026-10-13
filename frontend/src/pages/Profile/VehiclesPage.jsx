@@ -20,6 +20,7 @@ import { listAccounts } from './FleetEdgeAccountService.js';
 import { getToken, getProfileField } from '../../utils/session.js';
 import { DeleteVehicleModal } from './VehicleModals.jsx';
 import BulkUploadVehiclesPanel from './BulkUploadVehiclesPanel.jsx';
+import VehiclesPagination from './VehiclesPagination.jsx';
 import { useVehicleColumns } from './useVehicleColumns.jsx';
 import {
   normalizeVehicle,
@@ -199,42 +200,6 @@ const VehiclesPage = () => {
     );
   };
 
-  // Generate page numbers for pagination (similar to DriversPage)
-  const generatePageNumbers = () => {
-    const pages = [];
-    const maxPagesToShow = 7;
-
-    if (totalPages <= maxPagesToShow) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      if (currentPage <= 4) {
-        for (let i = 1; i <= 5; i++) {
-          pages.push(i);
-        }
-        pages.push('...');
-        pages.push(totalPages);
-      } else if (currentPage >= totalPages - 3) {
-        pages.push(1);
-        pages.push('...');
-        for (let i = totalPages - 4; i <= totalPages; i++) {
-          pages.push(i);
-        }
-      } else {
-        pages.push(1);
-        pages.push('...');
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-          pages.push(i);
-        }
-        pages.push('...');
-        pages.push(totalPages);
-      }
-    }
-
-    return pages;
-  };
-
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
@@ -331,51 +296,11 @@ const VehiclesPage = () => {
           paginated={true}
           pagination={
             totalPages > 1 || totalVehicles > 10 ? (
-              <div className="vehicles-pagination-controls">
-                {/* Left Arrow */}
-                <button
-                  className="vehicles-pagination-btn"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1 || totalPages <= 1}
-                  type="button"
-                  title="Previous page"
-                >
-                  <span>←</span>
-                </button>
-
-                {/* Page Numbers */}
-                {generatePageNumbers().map((page, index) => {
-                  if (page === '...') {
-                    return (
-                      <div key={`overflow-${index}`} className="vehicles-page-overflow">
-                        <span>...</span>
-                      </div>
-                    );
-                  }
-                  return (
-                    <button
-                      key={page}
-                      type="button"
-                      className={`vehicles-page-number ${currentPage === page ? 'vehicles-page-number-current' : ''}`}
-                      onClick={() => handlePageChange(page)}
-                      disabled={totalPages <= 1}
-                    >
-                      <span>{page}</span>
-                    </button>
-                  );
-                })}
-
-                {/* Right Arrow */}
-                <button
-                  className="vehicles-pagination-btn"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages || totalPages <= 1}
-                  type="button"
-                  title="Next page"
-                >
-                  <span>→</span>
-                </button>
-              </div>
+              <VehiclesPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                handlePageChange={handlePageChange}
+              />
             ) : null
           }
           emptyTitle={

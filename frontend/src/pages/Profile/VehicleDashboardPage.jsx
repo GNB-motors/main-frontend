@@ -1,15 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  Truck,
-  ShieldCheck,
-  FileText,
-  Filter,
-} from 'lucide-react';
+import { ShieldCheck, Filter } from 'lucide-react';
 import { VehicleService } from './VehicleService.js';
 import { getThemeCSS } from '../../utils/colorTheme';
 import PageShell from '../../components/ui/PageShell';
@@ -22,7 +14,9 @@ import {
   bucketFor,
   EXPIRED_FILTER_PILLS,
 } from './vehicleDashboardLogic';
-import { StatCard, LegendDot } from './vehicleDashboardCells';
+import { LegendDot } from './vehicleDashboardCells';
+import VehicleDashboardDocFilter from './VehicleDashboardDocFilter.jsx';
+import VehicleDashboardKpis from './VehicleDashboardKpis.jsx';
 import { buildVehicleDashboardColumns } from './vehicleDashboardColumns';
 import VehicleDashboardPanel from './VehicleDashboardPanel';
 import ChallanModal from './ChallanModal';
@@ -250,90 +244,16 @@ const VehicleDashboardPage = () => {
           }
         >
           {/* Document Compliance Dropdown Filter Bar */}
-          <div className="v-dash-filter-dropdown-bar" aria-label="Document compliance filters">
-            <div className="v-dash-dropdown-wrapper">
-              <label htmlFor="v-dash-doc-filter" className="v-dash-filter-label">
-                <FileText size={15} color="#2563eb" />
-                <span>Document Filter:</span>
-              </label>
-              <select
-                id="v-dash-doc-filter"
-                className="v-dash-filter-select"
-                value={docFilter}
-                onChange={(e) => setDocFilter(e.target.value)}
-              >
-                <option value="ALL">All Documents (No Filter) — ({rows.length} vehicles)</option>
-                <optgroup label="⚡ Quick Status Filters">
-                  <option value="EXPIRING_SOON">
-                    ⚠️ Expiring Soon (&lt; 30 Days) — (
-                    {filterOptionsWithCounts.anyExpiringSoonCount})
-                  </option>
-                  <option value="EXPIRED_ANY">
-                    🔴 Any Expired Document — ({filterOptionsWithCounts.anyExpiredCount})
-                  </option>
-                  <option value="MISSING_ANY">
-                    ⚪ Missing Documents — ({filterOptionsWithCounts.anyMissingCount})
-                  </option>
-                </optgroup>
-                <optgroup label="⚠️ Expiring Soon by Document (< 30 Days)">
-                  {DOC_COLS.map(({ key, label }) => (
-                    <option key={`soon-${key}`} value={`SOON_${key}`}>
-                      Expiring Soon: {label} — ({filterOptionsWithCounts.soonByDoc[key] || 0})
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="🔴 Expired by Document">
-                  {DOC_COLS.map(({ key, label }) => (
-                    <option key={`exp-${key}`} value={`EXPIRED_${key}`}>
-                      Expired: {label} — ({filterOptionsWithCounts.expiredByDoc[key] || 0})
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
-            </div>
-
-            {docFilter !== 'ALL' && (
-              <button
-                type="button"
-                className="v-dash-filter-reset-btn"
-                onClick={() => setDocFilter('ALL')}
-              >
-                Showing {displayRows.length} of {rows.length} &middot; Clear Filter &times;
-              </button>
-            )}
-          </div>
+          <VehicleDashboardDocFilter
+            docFilter={docFilter}
+            setDocFilter={setDocFilter}
+            rows={rows}
+            displayRows={displayRows}
+            filterOptionsWithCounts={filterOptionsWithCounts}
+          />
 
           {/* Metric Summary Cards */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '14px 0 20px 0' }}>
-            <StatCard
-              title="Total Vehicles"
-              value={kpis.total}
-              subtext={`${kpis.totalDocSlots} document slots`}
-              accent="#3b82f6"
-              icon={<Truck size={20} />}
-            />
-            <StatCard
-              title="Expired / Critical"
-              value={kpis.expired + kpis.critical}
-              subtext={`${kpis.expired} expired · ${kpis.critical} < 15d`}
-              accent="#dc2626"
-              icon={<AlertTriangle size={20} />}
-            />
-            <StatCard
-              title="Expiring 15-30 days"
-              value={kpis.warning}
-              subtext="Plan renewals soon"
-              accent="#f59e0b"
-              icon={<Clock size={20} />}
-            />
-            <StatCard
-              title="Healthy"
-              value={kpis.healthy}
-              subtext={`${kpis.missing} not uploaded yet`}
-              accent="#16a34a"
-              icon={<CheckCircle2 size={20} />}
-            />
-          </div>
+          <VehicleDashboardKpis kpis={kpis} />
 
           {/* WheelsEye-Inspired Split Layout Container */}
           <div className="v-dash-split-container">

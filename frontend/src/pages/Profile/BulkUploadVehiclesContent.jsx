@@ -22,6 +22,9 @@ import {
 import BulkUploadVehiclesFileStep from './bulkUploadVehiclesFileStep.jsx';
 import BulkUploadVehiclesReviewTable from './bulkUploadVehiclesReviewTable.jsx';
 import BulkUploadVehiclesResultSummary from './bulkUploadVehiclesResultSummary.jsx';
+import BulkUploadVehiclesToolbar from './BulkUploadVehiclesToolbar.jsx';
+import BulkUploadVehiclesMapping from './BulkUploadVehiclesMapping.jsx';
+import BulkUploadProgress from '../BulkUpload/BulkUploadProgress.jsx';
 import logger from '../../utils/logger';
 
 /**
@@ -284,45 +287,14 @@ const BulkUploadVehiclesContent = ({ onCompleted, variant = 'page' }) => {
     >
       <form onSubmit={handleSubmit}>
         {/* Options toolbar */}
-        <div className="bulk-upload-toolbar">
-          <div
-            className="bulk-upload-input-group"
-            role="group"
-            aria-labelledby={`${toolbarId}-mode`}
-          >
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- captions the checkbox group (tied via aria-labelledby); the checkbox has its own wrapping label */}
-            <label id={`${toolbarId}-mode`}>Mode</label>
-            <label className="checkbox-card">
-              <input
-                type="checkbox"
-                aria-label="Dry-run only"
-                checked={dryRun}
-                onChange={(e) => setDryRun(e.target.checked)}
-                disabled={isSubmitting}
-              />
-              <span>Dry-run only</span>
-            </label>
-          </div>
-
-          <div
-            className="bulk-upload-input-group"
-            role="group"
-            aria-labelledby={`${toolbarId}-policy`}
-          >
-            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- captions the checkbox group (tied via aria-labelledby); the checkbox has its own wrapping label */}
-            <label id={`${toolbarId}-policy`}>Update Policy</label>
-            <label className="checkbox-card">
-              <input
-                type="checkbox"
-                aria-label="Upsert (Update if exists)"
-                checked={upsert}
-                onChange={(e) => setUpsert(e.target.checked)}
-                disabled={isSubmitting}
-              />
-              <span>Upsert (Update if exists)</span>
-            </label>
-          </div>
-        </div>
+        <BulkUploadVehiclesToolbar
+          toolbarId={toolbarId}
+          dryRun={dryRun}
+          setDryRun={setDryRun}
+          upsert={upsert}
+          setUpsert={setUpsert}
+          isSubmitting={isSubmitting}
+        />
 
         <div className="bulk-upload-card">
           <BulkUploadVehiclesFileStep
@@ -337,34 +309,13 @@ const BulkUploadVehiclesContent = ({ onCompleted, variant = 'page' }) => {
           />
 
           {rawRows.length > 0 && (
-            <div className="bulk-upload-mapping">
-              <div className="bulk-upload-mapping-head">
-                Match your sheet&rsquo;s columns
-                <span>Pick which column in your file holds each field.</span>
-              </div>
-              <div className="bulk-upload-mapping-grid">
-                {columns.map((col) => (
-                  <label key={col.key} className="bulk-upload-map-field">
-                    <span>
-                      {col.label}
-                      {col.required ? <em> *</em> : null}
-                    </span>
-                    <select
-                      value={mapping[col.key] || ''}
-                      onChange={(e) => handleMappingChange(col.key, e.target.value)}
-                      disabled={isSubmitting}
-                    >
-                      <option value="">— Not in file —</option>
-                      {headers.map((h) => (
-                        <option key={h} value={h}>
-                          {h}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ))}
-              </div>
-            </div>
+            <BulkUploadVehiclesMapping
+              columns={columns}
+              headers={headers}
+              mapping={mapping}
+              handleMappingChange={handleMappingChange}
+              isSubmitting={isSubmitting}
+            />
           )}
 
           <BulkUploadVehiclesReviewTable
@@ -401,47 +352,7 @@ const BulkUploadVehiclesContent = ({ onCompleted, variant = 'page' }) => {
             </div>
           )}
 
-          {uploadProgress && (
-            <div
-              className="upload-progress-container"
-              style={{
-                marginTop: '20px',
-                padding: '16px',
-                background: 'var(--surface-color, #fff)',
-                border: '1px solid var(--border-color, #eaeaea)',
-                borderRadius: '8px',
-              }}
-            >
-              <div
-                style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}
-              >
-                <span style={{ fontWeight: '500', color: 'var(--text-color, #333)' }}>
-                  Uploading...
-                </span>
-                <span style={{ color: 'var(--text-secondary, #666)' }}>
-                  {uploadProgress.processed} / {uploadProgress.total}
-                </span>
-              </div>
-              <div
-                style={{
-                  width: '100%',
-                  height: '8px',
-                  background: 'var(--bg-secondary, #f0f0f0)',
-                  borderRadius: '4px',
-                  overflow: 'hidden',
-                }}
-              >
-                <div
-                  style={{
-                    height: '100%',
-                    background: 'var(--primary-color, #0056b3)',
-                    width: `${(uploadProgress.processed / uploadProgress.total) * 100}%`,
-                    transition: 'width 0.3s ease',
-                  }}
-                ></div>
-              </div>
-            </div>
-          )}
+          {uploadProgress && <BulkUploadProgress uploadProgress={uploadProgress} />}
         </div>
       </form>
 

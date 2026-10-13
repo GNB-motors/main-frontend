@@ -7,20 +7,12 @@ import DriverVehicleAssignmentService from '../../services/DriverVehicleAssignme
 import { useActiveBranch } from '../../contexts/BranchContext';
 import { getThemeCSS } from '../../utils/colorTheme';
 import { getProfileField } from '../../utils/session.js';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { UserPlus, Building2 } from 'lucide-react';
 import PageHeader from './Component/PageHeader.jsx';
 import BasicInformationForm from './Component/BasicInformationForm.jsx';
 import DocumentUpload from './Component/DocumentUpload.jsx';
 import FormFooter from './Component/FormFooter.jsx';
-import NewButton from '@/components/ui/NewButton';
+import ImportEmployeeDialog from './ImportEmployeeDialog.jsx';
+import { mapFetchedEmployeeDocs } from './employeeDocMapping.js';
 import './DriversPage.css';
 import logger from '../../utils/logger';
 
@@ -114,42 +106,7 @@ const AddDriverPage = () => {
         try {
           const fetchedDocs = await DriverService.getEmployeeDocuments(empId);
           logger.info('AddDriverPage', 'Fetched documents', fetchedDocs);
-          const updatedDocs = {
-            driverLicense: {
-              file: null,
-              preview: null,
-              imageUrl: null,
-              name: '',
-              documentId: null,
-            },
-            panCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-            aadharCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-          };
-
-          if (Array.isArray(fetchedDocs)) {
-            fetchedDocs.forEach((doc) => {
-              // Map API doc types to our state keys
-              const mappedType = {
-                DRIVER_LICENSE: 'driverLicense',
-                DL: 'driverLicense',
-                LICENSE: 'driverLicense',
-                PAN: 'panCard',
-                AADHAAR: 'aadharCard',
-                AADHAR: 'aadharCard',
-              }[doc.docType];
-
-              if (mappedType) {
-                const url =
-                  doc.publicUrl || doc.file_url || doc.fileUrl || doc.url || doc.documentUrl;
-                if (url) {
-                  updatedDocs[mappedType].preview = url;
-                  updatedDocs[mappedType].imageUrl = url;
-                  updatedDocs[mappedType].name = doc.originalName || doc.docType;
-                  updatedDocs[mappedType].documentId = doc._id || doc.id || null;
-                }
-              }
-            });
-          }
+          const updatedDocs = mapFetchedEmployeeDocs(fetchedDocs);
           setDocuments(updatedDocs);
         } catch (err) {
           logger.warn('AddDriverPage', 'Failed to load documents', err);
@@ -393,70 +350,12 @@ const AddDriverPage = () => {
       />
 
       {/* Import Employee — shown when the phone already exists in the enterprise. */}
-      <Dialog
-        open={!!importCandidate}
-        onOpenChange={(o) => {
-          if (!o && !importing) setImportCandidate(null);
-        }}
-      >
-        <DialogContent className="max-w-md p-0">
-          <DialogHeader>
-            <DialogTitle>Import existing employee</DialogTitle>
-            <DialogDescription>
-              This phone number already belongs to an employee in your enterprise. Import them into
-              the current location instead of creating a duplicate — they become active here and are
-              deactivated in their previous location.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="px-6 py-4">
-            {importCandidate && (
-              <div className="flex items-start gap-3 rounded-lg border bg-muted/40 p-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <UserPlus size={18} />
-                </div>
-                <div className="text-sm">
-                  <div className="font-semibold">
-                    {[importCandidate.firstName, importCandidate.lastName]
-                      .filter(Boolean)
-                      .join(' ') || 'Employee'}
-                  </div>
-                  <div className="text-muted-foreground">{importCandidate.mobileNumber}</div>
-                  <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
-                    <Building2 size={13} />
-                    Home: {importCandidate.homeBranch?.name || 'Enterprise'}
-                  </div>
-                </div>
-              </div>
-            )}
-            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-              Their existing records stay with their previous location (history isn&apos;t moved).
-              They become
-              <strong> active in this location</strong>, and <strong>deactivated</strong> in the
-              previous one — where they can no longer be assigned anything.
-            </p>
-          </div>
-
-          <DialogFooter>
-            <NewButton
-              variant="secondary"
-              size="md"
-              type="button"
-              text="Cancel"
-              onClick={() => setImportCandidate(null)}
-              disabled={importing}
-            />
-            <NewButton
-              variant="primary"
-              size="md"
-              type="button"
-              text="Import to this location"
-              onClick={confirmImport}
-              loading={importing}
-            />
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ImportEmployeeDialog
+        importCandidate={importCandidate}
+        setImportCandidate={setImportCandidate}
+        importing={importing}
+        confirmImport={confirmImport}
+      />
     </div>
   );
 };
