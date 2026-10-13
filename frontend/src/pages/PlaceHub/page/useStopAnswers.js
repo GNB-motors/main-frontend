@@ -11,9 +11,9 @@ export default function useStopAnswers({ loadStops, loadPlaces }) {
     try {
       // One at a time, so a failure part-way says which stops were saved.
       for (const st of stops) await PlaceHubService.tagStop(st._id, purpose);
-      toast.success(
-        `${stops.length === 1 ? 'Stop' : `${stops.length} stops`} marked as ${PURPOSE_LABEL[purpose].toLowerCase()}`,
-      );
+      // A purpose without a label must not turn a saved answer into an error.
+      const label = (PURPOSE_LABEL[purpose] || purpose).toLowerCase();
+      toast.success(`${stops.length === 1 ? 'Stop' : `${stops.length} stops`} marked as ${label}`);
       await loadStops();
       loadPlaces();
     } catch (err) {

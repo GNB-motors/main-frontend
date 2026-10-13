@@ -283,6 +283,24 @@ describe('PlaceHubPage', () => {
     expect(screen.queryByRole('button', { name: /Routes/ })).not.toBeInTheDocument();
   });
 
+  // Idling and fuel layers that failed used to look like "nothing here".
+  it('says when an idling or fuel layer failed to load', async () => {
+    PlaceHubService.loadLiveIdling.mockReturnValue(
+      Promise.resolve({ rows: [], error: new Error('timeout') }),
+    );
+    PlaceHubService.loadDrainMap.mockReturnValue(
+      Promise.resolve({ rows: null, error: new Error('timeout') }),
+    );
+    renderPage('/place-hub?tab=idling');
+    expect(
+      await screen.findByText(/Some idling data could not load \(live idling\)/),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Fuel risk/ }));
+    expect(
+      await screen.findByText(/Some fuel data could not load \(drain map\)/),
+    ).toBeInTheDocument();
+  });
+
   // A refresh in flight when the user left used to land on an unmounted page.
   it('cancels a live-idling refresh still in flight on unmount', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });

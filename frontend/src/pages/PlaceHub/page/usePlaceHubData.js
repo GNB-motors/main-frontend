@@ -59,6 +59,7 @@ export default function usePlaceHubData({ ready, allowZones, allowSites, allowId
       historyTruncated: history.truncated,
       idleSetting,
     }));
+    setErrors((e) => ({ ...e, 'live idling': live.error, 'idle history': history.error }));
     setLoading((l) => ({ ...l, idling: false }));
     setLoaded((l) => ({ ...l, idling: true }));
   }, [allowIdling]);
@@ -71,6 +72,7 @@ export default function usePlaceHubData({ ready, allowZones, allowSites, allowId
       PlaceHubService.loadDrainMap(),
     ]);
     setData((d) => ({ ...d, hotspots: hotspots.rows, drain: drain.rows }));
+    setErrors((e) => ({ ...e, 'fuel hotspots': hotspots.error, 'drain map': drain.error }));
     setLoading((l) => ({ ...l, fuel: false }));
     setLoaded((l) => ({ ...l, fuel: true }));
   }, [allowFuel]);

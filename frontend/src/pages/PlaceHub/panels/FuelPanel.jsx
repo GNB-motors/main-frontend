@@ -7,6 +7,7 @@ import { PROVENANCE_COLOR, DRAIN_COLOR } from '../placeHubStyle.js';
 import { TypeTile } from '../PlaceHubPanels.jsx';
 import Empty from './Empty.jsx';
 import Kpi from './Kpi.jsx';
+import LayerError from './LayerError.jsx';
 import ListSkeleton from './ListSkeleton.jsx';
 import Segmented from './Segmented.jsx';
 
@@ -18,6 +19,7 @@ export default function FuelPanel({
   cells,
   totals,
   disclaimer,
+  errors,
   selectedId,
   onPickHotspot,
   onPickCell,
@@ -49,6 +51,7 @@ export default function FuelPanel({
           ]}
         />
       </div>
+      <LayerError errors={errors} what="fuel data" />
       {loading && !hotspots.length && !cells.length ? (
         <ListSkeleton />
       ) : view === 'hotspots' ? (

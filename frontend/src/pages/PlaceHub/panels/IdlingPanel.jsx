@@ -8,6 +8,7 @@ import { IDLE_COLOR, idleTone } from '../placeHubStyle.js';
 import { TypeTile } from '../PlaceHubPanels.jsx';
 import Empty from './Empty.jsx';
 import Kpi from './Kpi.jsx';
+import LayerError from './LayerError.jsx';
 import ListSkeleton from './ListSkeleton.jsx';
 import Segmented from './Segmented.jsx';
 
@@ -21,6 +22,7 @@ export default function IdlingPanel({
   historyTotals,
   truncated,
   idleSetting,
+  errors,
   selectedId,
   onPickLive,
   onPickSpot,
@@ -67,6 +69,7 @@ export default function IdlingPanel({
           </p>
         ) : null}
       </div>
+      <LayerError errors={errors} what="idling data" />
       {loading && !live.length && !spots.length ? (
         <ListSkeleton />
       ) : view === 'live' ? (

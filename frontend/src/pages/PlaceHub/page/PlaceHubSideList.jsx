@@ -72,6 +72,10 @@ export default function PlaceHubSideList({
           historyTotals={historyTotals}
           truncated={data.historyTruncated}
           idleSetting={data.idleSetting}
+          errors={{
+            'live idling': errors['live idling'],
+            'idle history': errors['idle history'],
+          }}
           selectedId={selectedId}
           onPickLive={(e) => pickFromList(`live:${e._id}`, Number(e.lat), Number(e.lng))}
           onPickSpot={(s) => pickFromList(s.id, s.lat, s.lng)}
@@ -86,6 +90,7 @@ export default function PlaceHubSideList({
           cells={drainCells}
           totals={fuel}
           disclaimer={data.drain?.disclaimer}
+          errors={{ 'fuel hotspots': errors['fuel hotspots'], 'drain map': errors['drain map'] }}
           selectedId={selectedId}
           onPickHotspot={(h) => pickFromList(h.id, h.lat, h.lng)}
           onPickCell={(c) => pickFromList(c.id, c.lat, c.lng)}
