@@ -9,8 +9,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, Building2, X } from 'lucide-react';
 import { toast } from 'react-toastify';
-import apiClient from '../../utils/axiosConfig';
 import PartyService from './PartyService';
+import ErpMasterService from './ErpMasterService';
 import useApi from '../../hooks/useApi';
 import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
@@ -58,14 +58,7 @@ const PartiesPage = () => {
   );
 
   /** KAM dropdown. Only OWNER/MANAGER can read employees, so failure is silent. */
-  const { data: kamsResponse } = useApi(
-    (signal) =>
-      apiClient.get('/api/employees', {
-        params: { role: 'KAM', limit: 200 },
-        signal,
-      }),
-    [],
-  );
+  const { data: kamsResponse } = useApi((signal) => ErpMasterService.getKams({ signal }), []);
 
   useEffect(() => {
     if (partiesResponse) {
@@ -75,7 +68,7 @@ const PartiesPage = () => {
   }, [partiesResponse]);
 
   useEffect(() => {
-    if (kamsResponse) setKams(kamsResponse.data?.data || []);
+    if (kamsResponse) setKams(kamsResponse);
   }, [kamsResponse]);
 
   useEffect(() => {

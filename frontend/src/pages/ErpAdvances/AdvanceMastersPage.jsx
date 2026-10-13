@@ -9,8 +9,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, X, Info, Gauge, Fuel, Receipt } from 'lucide-react';
 import { toast } from 'react-toastify';
-import apiClient from '../../utils/axiosConfig';
 import AdvanceService from './AdvanceService';
+import ErpMasterService from '../ErpMasters/ErpMasterService';
 import useApi from '../../hooks/useApi';
 import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
@@ -31,10 +31,7 @@ const AdvanceMastersPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({});
 
-  const { data: routesResponse } = useApi(
-    (signal) => apiClient.get('/api/routes', { params: { limit: 200 }, signal }),
-    [],
-  );
+  const { data: routesResponse } = useApi((signal) => ErpMasterService.getRoutes({ signal }), []);
 
   const {
     data: rowsResponse,
@@ -51,7 +48,7 @@ const AdvanceMastersPage = () => {
   );
 
   useEffect(() => {
-    if (routesResponse) setRoutes(routesResponse.data?.data || []);
+    if (routesResponse) setRoutes(routesResponse);
   }, [routesResponse]);
 
   useEffect(() => {

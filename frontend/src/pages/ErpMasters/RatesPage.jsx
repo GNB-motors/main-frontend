@@ -9,9 +9,9 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, IndianRupee, Trash2, X, Info } from 'lucide-react';
 import { toast } from 'react-toastify';
-import apiClient from '../../utils/axiosConfig';
 import RateMasterService from './RateMasterService';
 import PartyService from './PartyService';
+import ErpMasterService from './ErpMasterService';
 import useApi from '../../hooks/useApi';
 import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
@@ -66,10 +66,7 @@ const RatesPage = () => {
     [],
   );
 
-  const { data: routesResponse } = useApi(
-    (signal) => apiClient.get('/api/routes', { params: { limit: 200 }, signal }),
-    [],
-  );
+  const { data: routesResponse } = useApi((signal) => ErpMasterService.getRoutes({ signal }), []);
 
   useEffect(() => {
     if (ratesResponse) {
@@ -83,7 +80,7 @@ const RatesPage = () => {
   }, [partiesResponse]);
 
   useEffect(() => {
-    if (routesResponse) setRoutes(routesResponse.data?.data || []);
+    if (routesResponse) setRoutes(routesResponse);
   }, [routesResponse]);
 
   useEffect(() => {

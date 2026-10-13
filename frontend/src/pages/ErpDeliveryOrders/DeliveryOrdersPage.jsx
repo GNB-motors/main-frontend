@@ -18,10 +18,10 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Plus, FileText, Search, PhoneCall } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import apiClient from '../../utils/axiosConfig';
 import StatTile from '../../components/Erp/StatTile';
 import DeliveryOrderService from './DeliveryOrderService';
 import PartyService from '../ErpMasters/PartyService';
+import ErpMasterService from '../ErpMasters/ErpMasterService';
 import ErpCallService from '../ErpCallPlanning/ErpCallService';
 import DeliveryOrderDrawer from './DeliveryOrderDrawer';
 import DeliveryOrderDetailDrawer from './DeliveryOrderDetailDrawer';
@@ -106,8 +106,7 @@ const DeliveryOrdersPage = ({ embedded = false }) => {
       setParties([]);
     }
     try {
-      const res = await apiClient.get('/api/routes', { params: { limit: 200 } });
-      setRoutes(res.data?.data || []);
+      setRoutes(await ErpMasterService.getRoutes());
     } catch {
       setRoutes([]);
     }

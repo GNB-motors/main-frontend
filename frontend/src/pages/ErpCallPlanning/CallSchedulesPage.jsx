@@ -32,7 +32,6 @@ import {
   CircleDot,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import apiClient from '../../utils/axiosConfig';
 import StatTile from '../../components/Erp/StatTile';
 import RowMenu from '../../components/Erp/RowMenu';
 import PageShell from '../../components/Erp/PageShell';
@@ -43,6 +42,7 @@ import ScheduleCalendar from './ScheduleCalendar';
 import { WEEKDAYS } from './erpCall.constants';
 import { kamName, relativeDate, scheduleLabel, shortDate } from './callSchedule.utils';
 import PartyService from '../ErpMasters/PartyService';
+import ErpMasterService from '../ErpMasters/ErpMasterService';
 import '../../styles/erp.css';
 
 const EMPTY_STATS = {
@@ -106,8 +106,7 @@ const CallSchedulesPage = () => {
       setParties([]);
     }
     try {
-      const res = await apiClient.get('/api/employees', { params: { role: 'KAM', limit: 200 } });
-      setKams(res.data?.data || []);
+      setKams(await ErpMasterService.getKams());
     } catch {
       setKams([]);
     }

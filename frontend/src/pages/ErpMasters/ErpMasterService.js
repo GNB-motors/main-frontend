@@ -3,6 +3,7 @@
  */
 
 import apiClient from '../../utils/axiosConfig';
+import ApiError from '../../errors/ApiError';
 
 const BASE = '/api/erp/masters';
 
@@ -109,6 +110,29 @@ const ErpMasterService = {
       return response.data;
     } catch (error) {
       throw unwrapError(error, 'Failed to save settings');
+    }
+  },
+
+  // ─── Pickers (fleet masters the ERP forms choose from) ────────────────────
+  getRoutes: async ({ signal } = {}) => {
+    try {
+      const response = await apiClient.get('/api/routes', { params: { limit: 200 }, signal });
+      return response.data?.data || [];
+    } catch (error) {
+      throw ApiError.from(error);
+    }
+  },
+
+  /** Only OWNER/MANAGER can read employees; callers treat a failure as "no KAMs". */
+  getKams: async ({ signal } = {}) => {
+    try {
+      const response = await apiClient.get('/api/employees', {
+        params: { role: 'KAM', limit: 200 },
+        signal,
+      });
+      return response.data?.data || [];
+    } catch (error) {
+      throw ApiError.from(error);
     }
   },
 };
