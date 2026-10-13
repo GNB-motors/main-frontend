@@ -32,6 +32,9 @@ import {
 } from 'lucide-react';
 import apiClient from '../../../utils/axiosConfig';
 import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
+import EnterprisePagination from '../../../components/ui/EnterprisePagination';
+import { ReceiptApprovalService } from './ReceiptApprovalService';
 import { getUserRole } from '../../../utils/session';
 import ReceiptApprovalDrawer from './ReceiptApprovalDrawer';
 import ImagePreviewModal from '../../Trip/components/ImagePreviewModal';
@@ -42,8 +45,10 @@ import {
   fmtRelativeTime,
   evaluateOcrQuality,
   getOdometerMeta,
-  filterByDatePreset,
   computeReceiptKpis,
+  draftListParams,
+  filterDraftsLocally,
+  kpisFromSummary,
 } from './ReceiptApproval.shared';
 import './ReceiptApproval.css';
 
@@ -199,6 +204,29 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
     setSortDirection((prev) => (prev === 'desc' ? 'asc' : 'desc'));
   };
 
+  // Paging. The server filters, sorts and pages (B4: it used to send 200 rows
+  // and the browser filtered those, hiding everything after them).
+  const [pageSize, setPageSize] = useState(50);
+  const debouncedQuery = useDebouncedValue(query, 350);
+  // Any filter change starts again at page 1: the page is only kept while the
+  // filters it was chosen under are unchanged.
+  const listKey = JSON.stringify([
+    status,
+    debouncedQuery,
+    dateFilter,
+    odoFilter,
+    anomalyFilter,
+    sortDirection,
+    pageSize,
+  ]);
+  const [pageState, setPageState] = useState({ key: listKey, page: 1 });
+  const page = pageState.key === listKey ? pageState.page : 1;
+  const setPage = (next) => setPageState({ key: listKey, page: next });
+  // { total, totalPages, summary } from a paging backend; null before the first
+  // answer or from a backend that predates server-side filtering.
+  const [listMeta, setListMeta] = useState(null);
+  const [legacyBackend, setLegacyBackend] = useState(false);
+
   // Selection
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -242,19 +270,36 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
       else setLoading(true);
       setError('');
       try {
-        const [draftsRes, countsRes] = await Promise.all([
-          apiClient.get('/api/whatsapp/admin/drafts', {
-            params: { status, limit: 200 },
-            signal,
-          }),
+        const [list, countsData] = await Promise.all([
+          ReceiptApprovalService.listDrafts(
+            draftListParams({
+              status,
+              page,
+              // An older backend ignores the filters; fetch its whole window.
+              limit: legacyBackend ? 200 : pageSize,
+              query: debouncedQuery,
+              dateFilter,
+              odoFilter,
+              anomalyFilter,
+              sortDirection,
+            }),
+            { signal },
+          ),
           // The tab counts are a badge; the list still renders without them.
-          apiClient.get('/api/whatsapp/admin/drafts/counts', { signal }).catch(() => null),
+          ReceiptApprovalService.getDraftCounts({ signal }).catch(() => null),
         ]);
         if (signal.aborted) return;
-        setItems(draftsRes.data?.data?.items ?? []);
-        if (countsRes?.data?.data) {
-          setCounts(countsRes.data.data);
-          onCounts?.(countsRes.data.data);
+        const paged = list.totalPages != null;
+        setLegacyBackend(!paged);
+        setItems(list.items ?? []);
+        setListMeta(
+          paged
+            ? { total: list.total ?? 0, totalPages: list.totalPages, summary: list.summary ?? null }
+            : null,
+        );
+        if (countsData) {
+          setCounts(countsData);
+          onCounts?.(countsData);
         }
       } catch (e) {
         if (signal.aborted) return;
@@ -266,7 +311,18 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
         }
       }
     },
-    [status, onCounts],
+    [
+      status,
+      page,
+      pageSize,
+      legacyBackend,
+      debouncedQuery,
+      dateFilter,
+      odoFilter,
+      anomalyFilter,
+      sortDirection,
+      onCounts,
+    ],
   );
 
   useEffect(() => () => fetchAbortRef.current?.abort(), []);
@@ -276,76 +332,22 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
     setSelectedIds(new Set());
   }, [fetchData]);
 
-  // Comprehensive multi-filter
-  const filtered = useMemo(() => {
-    let result = items;
-
-    // Date filter
-    result = filterByDatePreset(result, dateFilter);
-
-    // Odometer filter
-    if (odoFilter === 'MISSING') {
-      result = result.filter(
-        (d) =>
-          d.odometerReading == null || (d.adminNotes && d.adminNotes.includes('MISSING_ODOMETER')),
-      );
-    } else if (odoFilter === 'TELEMATICS') {
-      result = result.filter((d) => (d.odometerSource || '').toUpperCase().includes('FLEETEDGE'));
-    } else if (odoFilter === 'PHOTO') {
-      result = result.filter((d) => d.odometerPhotoProvided || d.odometerSource === 'OCR');
-    }
-
-    // Anomaly filter
-    if (anomalyFilter === 'NEEDS_REVIEW') {
-      result = result.filter((d) => {
-        const ocr = evaluateOcrQuality(d);
-        const odo = getOdometerMeta(d);
-        return ocr.level === 'low' || odo.isMissing || (ocr.math && !ocr.math.isValid);
-      });
-    } else if (anomalyFilter === 'MATH_VERIFIED') {
-      result = result.filter((d) => {
-        const ocr = evaluateOcrQuality(d);
-        return ocr.math?.isValid;
-      });
-    }
-
-    // Text search query
-    const q = query.trim().toLowerCase();
-    if (q) {
-      result = result.filter((d) => {
-        const veh = d.vehicleId?.registrationNumber || d.vehicleReg || '';
-        const org = d.orgId?.companyName || '';
-        const plate = d.plateText || '';
-        const driver = `${d.userId?.firstName || ''} ${d.userId?.lastName || ''}`.trim();
-        const phone = d.phoneE164 || d.waId || '';
-        const station = d.stationName || d.fuelOcr?.data?.location || '';
-        return (
-          veh.toLowerCase().includes(q) ||
-          org.toLowerCase().includes(q) ||
-          plate.toLowerCase().includes(q) ||
-          driver.toLowerCase().includes(q) ||
-          phone.toLowerCase().includes(q) ||
-          station.toLowerCase().includes(q)
-        );
-      });
-    }
-
-    // Sort by Refuel Date (billDatetime), falling back to OCR datetime and createdAt
-    result = [...result].sort((a, b) => {
-      const dateA = new Date(
-        a.billDatetime || a.fuelOcr?.data?.datetime || a.createdAt || 0,
-      ).getTime();
-      const dateB = new Date(
-        b.billDatetime || b.fuelOcr?.data?.datetime || b.createdAt || 0,
-      ).getTime();
-      return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
-    });
-
-    return result;
-  }, [items, query, dateFilter, odoFilter, anomalyFilter, sortDirection]);
+  // The server has already filtered, sorted and paged; only an older backend's
+  // 200-row window still needs filtering here.
+  const filtered = useMemo(
+    () =>
+      legacyBackend
+        ? filterDraftsLocally(items, { query, dateFilter, odoFilter, anomalyFilter, sortDirection })
+        : items,
+    [legacyBackend, items, query, dateFilter, odoFilter, anomalyFilter, sortDirection],
+  );
 
   // Compute KPI stats across loaded list
-  const kpis = useMemo(() => computeReceiptKpis(items), [items]);
+  // KPIs cover the whole tab (server summary), not just the page on screen.
+  const kpis = useMemo(
+    () => (listMeta?.summary ? kpisFromSummary(listMeta.summary) : computeReceiptKpis(items)),
+    [listMeta, items],
+  );
 
   // Selection logic
   const selectableItems = useMemo(() => filtered.filter((d) => d.status === 'READY'), [filtered]);
@@ -1078,6 +1080,17 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
             </tbody>
           </table>
         </div>
+        {listMeta && (
+          <EnterprisePagination
+            page={page}
+            totalPages={listMeta.totalPages}
+            totalItems={listMeta.total}
+            pageSize={pageSize}
+            pageSizeOptions={[25, 50, 100, 200]}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+        )}
       </div>
 
       {/* ── Floating Bulk Action Bar (Both Approve and Reject) ── */}

@@ -10,6 +10,10 @@ import {
   crossVerifyStation,
   filterByDatePreset,
   computeReceiptKpis,
+  datePresetRange,
+  draftListParams,
+  filterDraftsLocally,
+  kpisFromSummary,
 } from './ReceiptApproval.shared';
 
 describe('ReceiptApproval.shared — WhatsApp Fuel Approvals Unit Tests', () => {
@@ -178,6 +182,72 @@ describe('ReceiptApproval.shared — WhatsApp Fuel Approvals Unit Tests', () => 
       expect(resToday).toHaveLength(0); // Not refueled today
       const resAll = filterByDatePreset(items, 'ALL');
       expect(resAll).toHaveLength(1);
+    });
+  });
+
+  describe('server-side inbox params', () => {
+    const now = new Date(2026, 9, 12, 15, 30); // local 12 Oct 2026, 15:30
+
+    it('turns date presets into a from/to window on local day boundaries', () => {
+      const midnight = new Date(2026, 9, 12).getTime();
+      expect(datePresetRange('ALL', now)).toEqual({});
+      expect(datePresetRange('TODAY', now)).toEqual({ from: new Date(midnight).toISOString() });
+      expect(datePresetRange('YESTERDAY', now)).toEqual({
+        from: new Date(midnight - 86400000).toISOString(),
+        to: new Date(midnight).toISOString(),
+      });
+      expect(datePresetRange('7DAYS', now)).toEqual({
+        from: new Date(now.getTime() - 7 * 86400000).toISOString(),
+      });
+    });
+
+    it('sends only the filters that are set', () => {
+      expect(
+        draftListParams(
+          {
+            status: 'READY',
+            page: 2,
+            limit: 50,
+            query: '  WB01 ',
+            dateFilter: 'ALL',
+            odoFilter: 'ALL',
+            anomalyFilter: 'NEEDS_REVIEW',
+            sortDirection: 'asc',
+          },
+          now,
+        ),
+      ).toEqual({
+        status: 'READY',
+        page: 2,
+        limit: 50,
+        order: 'asc',
+        q: 'WB01',
+        review: 'NEEDS_REVIEW',
+      });
+    });
+
+    it('keeps the old browser-side filtering for an older backend', () => {
+      const rows = [
+        { _id: 'a', vehicleReg: 'WB01', odometerReading: null, createdAt: '2026-10-10T00:00:00Z' },
+        { _id: 'b', vehicleReg: 'WB02', odometerReading: 900, createdAt: '2026-10-11T00:00:00Z' },
+      ];
+      const base = { query: '', dateFilter: 'ALL', odoFilter: 'ALL', anomalyFilter: 'ALL' };
+      expect(
+        filterDraftsLocally(rows, { ...base, sortDirection: 'desc' }).map((d) => d._id),
+      ).toEqual(['b', 'a']);
+      expect(
+        filterDraftsLocally(rows, { ...base, odoFilter: 'MISSING' }).map((d) => d._id),
+      ).toEqual(['a']);
+      expect(filterDraftsLocally(rows, { ...base, query: 'wb02' }).map((d) => d._id)).toEqual([
+        'b',
+      ]);
+    });
+
+    it('maps the server summary onto the KPI cards', () => {
+      expect(
+        kpisFromSummary({ totalCount: 2, totalLitres: 150, totalAmount: 14000, pendingCount: 2 }),
+      ).toMatchObject({ totalCount: 2, pendingCount: 2, pendingAmount: 0, avgRate: '93.33' });
+      expect(kpisFromSummary({}).avgRate).toBe('—');
     });
   });
 });
