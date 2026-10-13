@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import useApi from '../../hooks/useApi';
 import ExportButton from '../../components/ui/ExportButton';
 import OwnerValueService from '../../services/OwnerValueService';
@@ -48,22 +48,34 @@ export default function DailyDigestPage() {
   const todayIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
   const from = startOfTodayIST();
 
-  const money$ = useApi((s) => OwnerValueService.getMoney({ from }, s), [from]);
+  // The eight owner-value sections arrive in one request (FRONTEND_AUDIT B1);
+  // each section below reads its slice and shares the request's loading state.
+  const digest$ = useApi(
+    (s) => OwnerValueService.getDigest({ from, efficiencyDays: 7, calendarDays: 14 }, s),
+    [from],
+  );
+  const section = (key, parse = (d) => d) => ({
+    data: digest$.data?.[key] != null ? parse(digest$.data[key]) : null,
+    loading: digest$.loading,
+    refetch: digest$.refetch,
+  });
+  const money$ = section('money');
+  const downtime$ = section('downtimeRisk');
+  const fuelEfficiency$ = section('fuelEfficiency');
+  const refuelling$ = section('refuellingToday');
+  const calendar$ = section('fleetCalendar');
+  const utilization$ = section('utilization');
+  const healthScore$ = section('healthScore');
+  // An unexpected brief shape hides the brief, as a failed request did before.
+  const morningBrief$ = section('morningBrief', (d) => {
+    const parsed = morningBriefSchema.safeParse(d);
+    return parsed.success ? parsed.data : null;
+  });
   const fleetDashboard$ = useApi((signal) => VehicleService.getFleetDashboard({ signal }), []);
-  const downtime$ = useApi((s) => OwnerValueService.getDowntimeRisk(s), []);
   const alerts$ = useApi((s) => OwnerAlertsService.getAlerts({ from, limit: 10 }, s), [from]);
   const fuel$ = useApi((s) => FuelIntegrityService.getSummary({ from }, s), [from]);
   const fleetAlerts$ = useApi((s) => FleetDataService.getFleetAlertSummary({ from }, s), [from]);
-  const fuelEfficiency$ = useApi((s) => OwnerValueService.getFuelEfficiency({ days: 7 }, s), []);
-  const refuelling$ = useApi(() => OwnerValueService.getRefuellingToday(), []);
-  const calendar$ = useApi((s) => OwnerValueService.getFleetCalendar({ days: 14 }, s), []);
-  const utilization$ = useApi((s) => OwnerValueService.getUtilization({ from }, s), [from]);
-  const healthScore$ = useApi((s) => OwnerValueService.getHealthScore(s), []);
   const driverLeaderboard$ = useApi((s) => FleetDataService.getDriverLeaderboard({}, s), []);
-  const morningBrief$ = useApi(
-    (s) => OwnerValueService.getMorningBrief({}, s).then((d) => morningBriefSchema.parse(d)),
-    [],
-  );
 
   const { data: money } = money$;
   const { data: fleetDashboard } = fleetDashboard$;
@@ -117,21 +129,9 @@ export default function DailyDigestPage() {
   }, []);
 
   const handleRefresh = () => {
-    [
-      money$,
-      fleetDashboard$,
-      downtime$,
-      alerts$,
-      fuel$,
-      fleetAlerts$,
-      fuelEfficiency$,
-      refuelling$,
-      calendar$,
-      utilization$,
-      healthScore$,
-      driverLeaderboard$,
-      morningBrief$,
-    ].forEach((h) => h.refetch?.());
+    [digest$, fleetDashboard$, alerts$, fuel$, fleetAlerts$, driverLeaderboard$].forEach((h) =>
+      h.refetch(),
+    );
     setLastUpdated(Date.now());
   };
 

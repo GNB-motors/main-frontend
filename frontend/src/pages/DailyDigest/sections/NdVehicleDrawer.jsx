@@ -20,7 +20,12 @@ export default function NdVehicleDrawer({ vehicle, onClose }) {
 
   return (
     <>
-      <div className={`nd-scrim ${open ? 'nd-on' : ''}`.trim()} onClick={onClose} />
+      {/* Mouse-only affordance: keyboard users close with Escape (listener above). */}
+      <div
+        role="presentation"
+        className={`nd-scrim ${open ? 'nd-on' : ''}`.trim()}
+        onClick={onClose}
+      />
       <aside className={`nd-vdrawer ${open ? 'nd-open' : ''}`.trim()} aria-hidden={!open}>
         {vehicle ? (
           <>
