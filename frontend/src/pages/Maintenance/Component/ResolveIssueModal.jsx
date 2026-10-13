@@ -62,20 +62,20 @@ export default function ResolveIssueModal({ isOpen, onClose, targetItem, onConfi
   return (
     <div
       className="si-modal-overlay"
-      onClick={onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Escape') onClose();
       }}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="resolve-modal-title"
-      tabIndex={-1}
+      role="presentation"
     >
       <div
         className="si-modal-box"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
-        role="document"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="resolve-modal-title"
+        tabIndex={-1}
       >
         {/* Modal Header */}
         <div className="si-modal-header">
@@ -154,6 +154,7 @@ export default function ResolveIssueModal({ isOpen, onClose, targetItem, onConfi
                 </label>
                 <input
                   id="si-workshop-input"
+                  aria-label="Workshop / mechanic name"
                   type="text"
                   className="si-form-input"
                   value={workshop}
@@ -169,6 +170,7 @@ export default function ResolveIssueModal({ isOpen, onClose, targetItem, onConfi
                 </label>
                 <input
                   id="si-cost-input"
+                  aria-label="Final repair cost (₹)"
                   type="number"
                   min="0"
                   step="1"
@@ -190,6 +192,7 @@ export default function ResolveIssueModal({ isOpen, onClose, targetItem, onConfi
             </label>
             <textarea
               id="si-resolution-textarea"
+              aria-label="Resolution summary and parts replaced"
               className="si-form-textarea"
               rows={3}
               value={resolutionNote}
@@ -205,6 +208,7 @@ export default function ResolveIssueModal({ isOpen, onClose, targetItem, onConfi
             </label>
             <input
               id="si-resolve-date-input"
+              aria-label="Resolution date"
               type="date"
               className="si-form-input"
               value={resolveDate}

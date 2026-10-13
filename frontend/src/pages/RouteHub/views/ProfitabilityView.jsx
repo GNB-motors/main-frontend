@@ -297,6 +297,7 @@ export default function ProfitabilityView({ params, toast, go }) {
                       {(r.avgMarginInr || 0) >= 0 ? '+' : ''}
                       {inr(r.avgMarginInr || 0)}
                     </td>
+                    {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table cell, not a control; the rule reads <td> as a gridcell and stops before the margin text inside */}
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span className="mono strong" style={{ color: r.health.c, width: 42 }}>

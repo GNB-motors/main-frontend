@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components -- companion exports alongside the component */
-import React, { useState, useEffect, useMemo, forwardRef } from 'react';
+import React, { useState, useEffect, useMemo, useId, forwardRef } from 'react';
 import { Wrench, Smartphone, Lock } from 'lucide-react';
 import SearchableDropdown from '../../../components/SearchableDropdown/SearchableDropdown.jsx';
 import '../../Drivers/Component/BasicInformationForm.css';
@@ -66,6 +66,7 @@ const MaintenanceBasicInformationForm = forwardRef(
     });
 
     const [customType, setCustomType] = useState('');
+    const fieldId = useId();
 
     useEffect(() => {
       if (initialData && Object.keys(initialData).length > 0) {
@@ -207,7 +208,7 @@ const MaintenanceBasicInformationForm = forwardRef(
               {/* Row 1: Vehicle & Driver */}
               <div className="basic-info-form-row">
                 <div className="basic-info-form-field">
-                  <label className="basic-info-label">Vehicle *</label>
+                  <span className="basic-info-label">Vehicle *</span>
                   <SearchableDropdown
                     options={vehicleOptions}
                     selectedOption={selectedVehicleLabel}
@@ -219,7 +220,7 @@ const MaintenanceBasicInformationForm = forwardRef(
                 <div className="basic-info-form-field">
                   {isDriverAppSource ? (
                     <>
-                      <label className="basic-info-label">Driver (Reported via Driver App)</label>
+                      <span className="basic-info-label">Driver (Reported via Driver App)</span>
                       <div
                         style={{
                           display: 'flex',
@@ -256,7 +257,7 @@ const MaintenanceBasicInformationForm = forwardRef(
                     </>
                   ) : (
                     <>
-                      <label className="basic-info-label">Driver (Assigned / Reported by)</label>
+                      <span className="basic-info-label">Driver (Assigned / Reported by)</span>
                       <SearchableDropdown
                         options={driverOptions}
                         selectedOption={selectedDriverLabel}
@@ -273,10 +274,12 @@ const MaintenanceBasicInformationForm = forwardRef(
               {/* Row 2: Date & Workshop */}
               <div className="basic-info-form-row">
                 <div className="basic-info-form-field">
-                  <label className="basic-info-label">
+                  <label className="basic-info-label" htmlFor={`${fieldId}-date`}>
                     {isService ? 'Service Date *' : 'Repair Date *'}
                   </label>
                   <input
+                    id={`${fieldId}-date`}
+                    aria-label={isService ? 'Service date' : 'Repair date'}
                     type="date"
                     className="basic-info-input"
                     value={formData.date}
@@ -309,8 +312,12 @@ const MaintenanceBasicInformationForm = forwardRef(
               {/* Row 3: Current KM & Amount (mouse wheel disabled) */}
               <div className="basic-info-form-row">
                 <div className="basic-info-form-field">
-                  <label className="basic-info-label">Current KM</label>
+                  <label className="basic-info-label" htmlFor={`${fieldId}-km`}>
+                    Current KM
+                  </label>
                   <input
+                    id={`${fieldId}-km`}
+                    aria-label="Current KM"
                     type="number"
                     min="0"
                     className="basic-info-input"
@@ -322,8 +329,12 @@ const MaintenanceBasicInformationForm = forwardRef(
                   />
                 </div>
                 <div className="basic-info-form-field">
-                  <label className="basic-info-label">Amount (₹) *</label>
+                  <label className="basic-info-label" htmlFor={`${fieldId}-amount`}>
+                    Amount (₹) *
+                  </label>
                   <input
+                    id={`${fieldId}-amount`}
+                    aria-label="Amount (₹)"
                     type="number"
                     min="0"
                     step="0.01"
@@ -361,10 +372,12 @@ const MaintenanceBasicInformationForm = forwardRef(
 
                 {formData.type === 'Others / Miscellaneous' && (
                   <div className="basic-info-form-field">
-                    <label className="basic-info-label">
+                    <label className="basic-info-label" htmlFor={`${fieldId}-custom-type`}>
                       Specify {isService ? 'Service' : 'Repair'} Type *
                     </label>
                     <input
+                      id={`${fieldId}-custom-type`}
+                      aria-label={isService ? 'Specify service type' : 'Specify repair type'}
                       type="text"
                       className="basic-info-input"
                       value={customType}
@@ -384,10 +397,12 @@ const MaintenanceBasicInformationForm = forwardRef(
               {/* Row 5: Notes / Issue Description */}
               <div className="basic-info-form-row">
                 <div className="basic-info-form-field" style={{ gridColumn: '1 / -1' }}>
-                  <label className="basic-info-label">
+                  <label className="basic-info-label" htmlFor={`${fieldId}-notes`}>
                     {isService ? 'Notes' : 'Issue Description'}
                   </label>
                   <textarea
+                    id={`${fieldId}-notes`}
+                    aria-label={isService ? 'Notes' : 'Issue description'}
                     className="basic-info-input"
                     rows={3}
                     value={formData.notes}

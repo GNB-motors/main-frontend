@@ -102,6 +102,7 @@ export default function DriverHomesView({ version, onChanged }) {
                   <td className="pi-num">{pct(h.share)}</td>
                   <td className="pi-num">{h.distinctWeeks ?? '—'}</td>
                   {status === 'PROPOSED' ? (
+                    // eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table cell, not a control; the rule reads <td> as a gridcell and stops before the button text inside
                     <td>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                         <button

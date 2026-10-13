@@ -165,6 +165,7 @@ export default function RegionsView({ version, onChanged }) {
                     {r.poi?.match?.name ? ` · ${r.poi.match.name}` : ''}
                   </td>
                   {tab.actions ? (
+                    // eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table cell, not a control; the rule reads <td> as a gridcell and stops before the button text inside
                     <td>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                         <button

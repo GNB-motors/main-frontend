@@ -109,6 +109,8 @@ const AddOptionModal = ({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder={placeholder}
+            aria-label={title}
+            // eslint-disable-next-line jsx-a11y/no-autofocus -- the modal's only field; the user just opened it to type here
             autoFocus
             style={{
               width: '100%',

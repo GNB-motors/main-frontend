@@ -272,6 +272,7 @@ export default function DeviationView({ params, toast, setBadge, go }) {
           <Ico n="search" />
           <input
             type="search"
+            aria-label="Search vehicle number"
             placeholder="Search vehicle number (e.g. WB25R9540)…"
             value={q}
             onChange={(e) => setQ(e.target.value.trim())}

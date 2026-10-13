@@ -246,6 +246,7 @@ export default function RouteHubPage() {
                 ref={searchInputRef}
                 type="text"
                 className="rh-search-input"
+                aria-label="Search vehicle, trip or corridor"
                 placeholder="Search vehicle, trip #, corridor (Press '/')"
                 value={searchQuery}
                 onFocus={() => setIsSearchOpen(true)}
@@ -281,9 +282,11 @@ export default function RouteHubPage() {
                   <span>Use ↑ ↓ to navigate, Enter to select</span>
                 </div>
                 {suggestions.map((item, idx) => (
-                  <div
+                  <button
+                    type="button"
                     key={item.key}
                     className={`rh-search-item ${idx === selectedResultIdx ? 'selected' : ''}`}
+                    style={{ width: '100%', textAlign: 'inherit' }}
                     onClick={item.action}
                     onMouseEnter={() => setSelectedResultIdx(idx)}
                   >
@@ -297,7 +300,7 @@ export default function RouteHubPage() {
                       </div>
                       <div className="rh-item-sub">{item.sub}</div>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}

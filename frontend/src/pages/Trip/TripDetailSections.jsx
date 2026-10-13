@@ -167,7 +167,7 @@ export function VehicleDriverSection({ trip }) {
         }}
       >
         <div>
-          <label
+          <span
             style={{
               fontSize: '12px',
               color: '#6b7280',
@@ -178,7 +178,7 @@ export function VehicleDriverSection({ trip }) {
             }}
           >
             Vehicle Registration
-          </label>
+          </span>
           <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#1a73e8' }}>
             {trip.vehicleId?.registrationNumber ||
               trip.journeyId?.vehicleId?.registrationNumber ||
@@ -186,7 +186,7 @@ export function VehicleDriverSection({ trip }) {
           </p>
         </div>
         <div>
-          <label
+          <span
             style={{
               fontSize: '12px',
               color: '#6b7280',
@@ -197,13 +197,13 @@ export function VehicleDriverSection({ trip }) {
             }}
           >
             Vehicle Model
-          </label>
+          </span>
           <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
             {trip.vehicleId?.model || trip.journeyId?.vehicleId?.model || '-'}
           </p>
         </div>
         <div>
-          <label
+          <span
             style={{
               fontSize: '12px',
               color: '#6b7280',
@@ -214,7 +214,7 @@ export function VehicleDriverSection({ trip }) {
             }}
           >
             Driver Name
-          </label>
+          </span>
           <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
             {trip.driverId?.firstName && trip.driverId?.lastName
               ? `${trip.driverId.firstName} ${trip.driverId.lastName}`
@@ -224,7 +224,7 @@ export function VehicleDriverSection({ trip }) {
           </p>
         </div>
         <div>
-          <label
+          <span
             style={{
               fontSize: '12px',
               color: '#6b7280',
@@ -235,7 +235,7 @@ export function VehicleDriverSection({ trip }) {
             }}
           >
             Driver Phone
-          </label>
+          </span>
           <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#111827' }}>
             {trip.driverId?.mobileNumber || trip.journeyId?.driverId?.mobileNumber || '-'}
           </p>
@@ -286,7 +286,7 @@ export function MileageSection({ displayMileage }) {
             border: '1px solid #e5e7eb',
           }}
         >
-          <label
+          <span
             style={{
               fontSize: '12px',
               color: '#6b7280',
@@ -295,7 +295,7 @@ export function MileageSection({ displayMileage }) {
             }}
           >
             Start Odometer
-          </label>
+          </span>
           <p style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: '700', color: '#111827' }}>
             {displayMileage.startOdometer ? displayMileage.startOdometer.toLocaleString() : '-'}
           </p>
@@ -309,7 +309,7 @@ export function MileageSection({ displayMileage }) {
             border: '1px solid #e5e7eb',
           }}
         >
-          <label
+          <span
             style={{
               fontSize: '12px',
               color: '#6b7280',
@@ -318,7 +318,7 @@ export function MileageSection({ displayMileage }) {
             }}
           >
             End Odometer
-          </label>
+          </span>
           <p style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: '700', color: '#111827' }}>
             {displayMileage.endOdometer ? displayMileage.endOdometer.toLocaleString() : '-'}
           </p>
@@ -332,7 +332,7 @@ export function MileageSection({ displayMileage }) {
             border: '1px solid #b7e4c7',
           }}
         >
-          <label
+          <span
             style={{
               fontSize: '12px',
               color: '#166534',
@@ -341,7 +341,7 @@ export function MileageSection({ displayMileage }) {
             }}
           >
             Total Distance
-          </label>
+          </span>
           <p style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: '700', color: '#16a34a' }}>
             {displayMileage.totalDistanceKm ? displayMileage.totalDistanceKm.toLocaleString() : '-'}
           </p>
@@ -356,7 +356,7 @@ export function MileageSection({ displayMileage }) {
             border: '1px solid #e5e7eb',
           }}
         >
-          <label
+          <span
             style={{
               fontSize: '12px',
               color: '#6b7280',
@@ -365,7 +365,7 @@ export function MileageSection({ displayMileage }) {
             }}
           >
             Fuel Used
-          </label>
+          </span>
           <p style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: '700', color: '#111827' }}>
             {displayMileage.fuelLitres
               ? Number(displayMileage.fuelLitres).toLocaleString(undefined, {
@@ -383,7 +383,7 @@ export function MileageSection({ displayMileage }) {
             border: '1px solid #e5e7eb',
           }}
         >
-          <label
+          <span
             style={{
               fontSize: '12px',
               color: '#6b7280',
@@ -392,7 +392,7 @@ export function MileageSection({ displayMileage }) {
             }}
           >
             Fuel Mileage
-          </label>
+          </span>
           <p style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: '700', color: '#111827' }}>
             {displayMileage.fuelMileageKmPerL
               ? Number(displayMileage.fuelMileageKmPerL).toFixed(2)
@@ -438,7 +438,7 @@ export function FuelManagementSection({ trip }) {
             border: '1px solid #e5e7eb',
           }}
         >
-          <label
+          <span
             style={{
               fontSize: '12px',
               color: '#6b7280',
@@ -447,7 +447,7 @@ export function FuelManagementSection({ trip }) {
             }}
           >
             Total Liters
-          </label>
+          </span>
           <p style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: '700', color: '#111827' }}>
             {trip.fuelManagement?.totalLiters?.toFixed(2) || '0'}
           </p>
@@ -461,7 +461,7 @@ export function FuelManagementSection({ trip }) {
             border: '1px solid #e5e7eb',
           }}
         >
-          <label
+          <span
             style={{
               fontSize: '12px',
               color: '#6b7280',
@@ -470,7 +470,7 @@ export function FuelManagementSection({ trip }) {
             }}
           >
             Total Cost
-          </label>
+          </span>
           <p style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: '700', color: '#111827' }}>
             {formatTripCurrency(trip.fuelManagement?.totalCost)}
           </p>
@@ -483,7 +483,7 @@ export function FuelManagementSection({ trip }) {
             border: '1px solid #b7e4c7',
           }}
         >
-          <label
+          <span
             style={{
               fontSize: '12px',
               color: '#166534',
@@ -492,7 +492,7 @@ export function FuelManagementSection({ trip }) {
             }}
           >
             Average Rate
-          </label>
+          </span>
           <p style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: '700', color: '#16a34a' }}>
             {formatTripCurrency(trip.fuelManagement?.averageRate)}
           </p>
@@ -527,7 +527,7 @@ export function FinancialSummary({ trip, totalRevenue, totalExpense, netProfit, 
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
-            <label
+            <span
               style={{
                 fontSize: '12px',
                 color: '#6b7280',
@@ -538,13 +538,13 @@ export function FinancialSummary({ trip, totalRevenue, totalExpense, netProfit, 
               }}
             >
               Total Revenue
-            </label>
+            </span>
             <p style={{ margin: 0, fontSize: '24px', fontWeight: '700', color: '#16a34a' }}>
               {formatTripCurrency(totalRevenue)}
             </p>
           </div>
           <div>
-            <label
+            <span
               style={{
                 fontSize: '12px',
                 color: '#6b7280',
@@ -555,7 +555,7 @@ export function FinancialSummary({ trip, totalRevenue, totalExpense, netProfit, 
               }}
             >
               Average per Trip
-            </label>
+            </span>
             <p style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#111827' }}>
               {formatTripCurrency(totalTrips > 0 ? totalRevenue / totalTrips : 0)}
             </p>
@@ -577,7 +577,7 @@ export function FinancialSummary({ trip, totalRevenue, totalExpense, netProfit, 
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
-            <label
+            <span
               style={{
                 fontSize: '12px',
                 color: '#6b7280',
@@ -588,13 +588,13 @@ export function FinancialSummary({ trip, totalRevenue, totalExpense, netProfit, 
               }}
             >
               Total Expense
-            </label>
+            </span>
             <p style={{ margin: 0, fontSize: '24px', fontWeight: '700', color: '#dc2626' }}>
               {formatTripCurrency(totalExpense)}
             </p>
           </div>
           <div>
-            <label
+            <span
               style={{
                 fontSize: '12px',
                 color: '#6b7280',
@@ -605,7 +605,7 @@ export function FinancialSummary({ trip, totalRevenue, totalExpense, netProfit, 
               }}
             >
               Average per Trip
-            </label>
+            </span>
             <p style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#111827' }}>
               {formatTripCurrency(totalTrips > 0 ? totalExpense / totalTrips : 0)}
             </p>
@@ -627,7 +627,7 @@ export function FinancialSummary({ trip, totalRevenue, totalExpense, netProfit, 
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
-            <label
+            <span
               style={{
                 fontSize: '12px',
                 color: '#6b7280',
@@ -638,7 +638,7 @@ export function FinancialSummary({ trip, totalRevenue, totalExpense, netProfit, 
               }}
             >
               Total Profit
-            </label>
+            </span>
             <p
               style={{
                 margin: 0,
@@ -651,7 +651,7 @@ export function FinancialSummary({ trip, totalRevenue, totalExpense, netProfit, 
             </p>
           </div>
           <div>
-            <label
+            <span
               style={{
                 fontSize: '12px',
                 color: '#6b7280',
@@ -662,7 +662,7 @@ export function FinancialSummary({ trip, totalRevenue, totalExpense, netProfit, 
               }}
             >
               Profit Margin
-            </label>
+            </span>
             <p style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#111827' }}>
               {trip.journeyFinancials?.averageProfitMargin?.toFixed(2) ||
                 (totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(2) : '0')}
@@ -879,7 +879,7 @@ export function TimelineSection({ trip }) {
         }}
       >
         <div>
-          <label
+          <span
             style={{
               fontSize: '12px',
               color: '#6b7280',
@@ -890,13 +890,13 @@ export function TimelineSection({ trip }) {
             }}
           >
             Status
-          </label>
+          </span>
           <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#111827' }}>
             {trip.status || '-'}
           </p>
         </div>
         <div>
-          <label
+          <span
             style={{
               fontSize: '12px',
               color: '#6b7280',
@@ -907,13 +907,13 @@ export function TimelineSection({ trip }) {
             }}
           >
             Created At
-          </label>
+          </span>
           <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#111827' }}>
             {formatTripDate(trip.createdAt)}
           </p>
         </div>
         <div>
-          <label
+          <span
             style={{
               fontSize: '12px',
               color: '#6b7280',
@@ -924,13 +924,13 @@ export function TimelineSection({ trip }) {
             }}
           >
             Updated At
-          </label>
+          </span>
           <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#111827' }}>
             {formatTripDate(trip.updatedAt)}
           </p>
         </div>
         <div>
-          <label
+          <span
             style={{
               fontSize: '12px',
               color: '#6b7280',
@@ -941,7 +941,7 @@ export function TimelineSection({ trip }) {
             }}
           >
             Journey ID
-          </label>
+          </span>
           <p
             style={{
               margin: 0,
