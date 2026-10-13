@@ -201,7 +201,7 @@ export default function VehicleDetailPanel({
 
             {/* Deep Details Accordion Sections */}
             <div className="sections">
-              <DestinationIntentSection registrationNumber={selectedVehicle.registrationNumber} />
+              <DestinationIntentSection registrationNumber={selectedVehicle.plate} />
               <RecordedPathSection
                 isTrailVisible={isTrailVisible}
                 trailPoints={trailPoints}
