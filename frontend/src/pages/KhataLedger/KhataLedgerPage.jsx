@@ -91,8 +91,19 @@ const KhataLedgerPage = () => {
           <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-foreground">
             <BookOpen size={24} style={{ color: 'var(--primary-color, #4f46e5)' }} />
             Khata Ledger
+            {activeBranch?.name && (
+              <Badge
+                variant="outline"
+                className="ml-2 inline-flex items-center gap-1 text-xs font-normal"
+              >
+                <Building2 size={12} />
+                {activeBranch.name}
+              </Badge>
+            )}
           </h1>
-          <p className="text-sm text-muted-foreground">Track all expenses by driver, truck, assignment, or as a flat list</p>
+          <p className="text-sm text-muted-foreground">
+            Track all expenses by driver, truck, assignment, or as a flat list
+          </p>
         </div>
         <button
           onClick={() => setFuelModalOpen(true)}
