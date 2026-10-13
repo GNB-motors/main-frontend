@@ -1,4 +1,5 @@
 import renderIconSvg from './renderIconSvg.jsx';
+import copyText from './copyText.js';
 
 export default function TelematicsDiagnosticsSection({ selectedVehicle, showToast }) {
   return (
@@ -129,8 +130,17 @@ export default function TelematicsDiagnosticsSection({ selectedVehicle, showToas
             >
               GPS Coordinates
             </div>
-            <div
+            <button
+              type="button"
               style={{
+                // reset the button chrome so it reads as the value line it replaced
+                display: 'block',
+                width: '100%',
+                padding: 0,
+                border: 0,
+                background: 'none',
+                textAlign: 'left',
+                fontFamily: 'inherit',
                 fontSize: '11px',
                 fontWeight: 500,
                 color: '#38BDF8',
@@ -143,17 +153,17 @@ export default function TelematicsDiagnosticsSection({ selectedVehicle, showToas
               title="Click to copy coordinates"
               onClick={() => {
                 if (selectedVehicle.hasFix) {
-                  navigator.clipboard?.writeText?.(
-                    `${selectedVehicle.lat}, ${selectedVehicle.lng}`,
+                  copyText(`${selectedVehicle.lat}, ${selectedVehicle.lng}`).then(
+                    () => showToast('Coordinates copied to clipboard'),
+                    () => showToast('Could not copy the coordinates'),
                   );
-                  showToast('Coordinates copied to clipboard');
                 }
               }}
             >
               {selectedVehicle.hasFix
                 ? `${selectedVehicle.lat.toFixed(4)}, ${selectedVehicle.lng.toFixed(4)}`
                 : 'No fix'}
-            </div>
+            </button>
           </div>
         </div>
       </div>
