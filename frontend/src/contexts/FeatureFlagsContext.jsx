@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import apiClient from '../utils/axiosConfig';
 import useApi from '../hooks/useApi';
+import AuthService from '../services/AuthService';
 import { isAuthenticated } from '../utils/session.js';
 import logger from '../utils/logger';
 
@@ -32,24 +32,25 @@ export const FeatureFlagsProvider = ({ children }) => {
   // redundant /api/auth/me request on every mount.
   const [profile, setProfile] = useState(null);
 
+  // AuthService.getMe unwraps `data.data ?? data ?? {}`, so a settled read is
+  // always an object and `ready` below can tell it from "not fetched yet".
   const {
-    data: meResponse,
+    data: payload,
     loading,
     error: meError,
     refetch,
-  } = useApi((signal) => apiClient.get('/api/auth/me', { signal }), [], {
+  } = useApi((signal) => AuthService.getMe({ signal }), [], {
     enabled: isAuthenticated(),
   });
 
   useEffect(() => {
-    if (!meResponse) return;
-    const payload = meResponse.data?.data ?? meResponse.data ?? {};
+    if (!payload) return;
     const org = payload?.organization ?? null;
     setOrganization(org);
     setFlags(org?.featureFlags ?? {});
     setPermissions(payload?.permissions ?? {});
     setProfile(payload);
-  }, [meResponse]);
+  }, [payload]);
 
   useEffect(() => {
     if (!meError) return;
@@ -68,7 +69,7 @@ export const FeatureFlagsProvider = ({ children }) => {
   // effect above, one render after `loading` flips false — gating on `loading`
   // alone would let one render through with empty permissions. Later refetches
   // (branch switch) keep the previous profile, so this never flips back.
-  const ready = profile !== null || (!loading && !meResponse);
+  const ready = profile !== null || (!loading && !payload);
 
   // Permissions are resolved per active branch, so re-fetch when the user
   // switches location (BranchContext dispatches `branchChange`).

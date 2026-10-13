@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, MapPin, Loader2, Save, CheckCircle } from 'lucide-react';
 import { useLoadScript } from '@react-google-maps/api';
-import apiClient from '../../utils/axiosConfig';
+import SavedLocationService from '../../services/SavedLocationService';
 import { toast } from 'react-toastify';
 import logger from '../../utils/logger';
 
@@ -69,12 +69,7 @@ const LocationAutocomplete = ({
     debounceRef.current = setTimeout(async () => {
       // 1. Fetch from our backend
       try {
-        const headers = orgId ? { 'X-Org-Id': orgId } : undefined;
-        const res = await apiClient.get('/api/locations', {
-          params: { search, limit: 10 },
-          headers,
-        });
-        setSavedLocations(res.data?.results || []);
+        setSavedLocations(await SavedLocationService.searchLocations({ search, orgId }));
       } catch (err) {
         logger.warn('LocationAutocomplete', 'Failed to fetch saved locations', err);
       } finally {
@@ -148,7 +143,6 @@ const LocationAutocomplete = ({
       }
 
       // 3. Post to our DB
-      const headers = orgId ? { 'X-Org-Id': orgId } : undefined;
       const payload = {
         name: details.name || description,
         address: details.formatted_address || '',
@@ -159,8 +153,7 @@ const LocationAutocomplete = ({
         lng: details.geometry?.location?.lng() || undefined,
       };
 
-      const res = await apiClient.post('/api/locations', payload, { headers });
-      const newLoc = res.data?.data || res.data;
+      const newLoc = await SavedLocationService.createLocation(payload, { orgId });
       toast.success('Location saved successfully!');
 
       // Refresh session token

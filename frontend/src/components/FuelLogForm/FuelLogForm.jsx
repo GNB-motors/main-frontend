@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ChevronDown, Trash2, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
-import apiClient from '../../utils/axiosConfig';
 import useApi from '../../hooks/useApi';
 import { TripService, OCRService } from '../../pages/Trip/services';
 import { getVehicleList } from '../../services/vehicleListService';
 import LocationAutocomplete from '../LocationAutocomplete/LocationAutocomplete';
 import DriverVehicleAssignmentService from '../../services/DriverVehicleAssignmentService';
+import FuelLogService from '../../services/FuelLogService';
 import '../../pages/MileageTracking/MileageTracking.css';
 import logger from '../../utils/logger';
 
@@ -248,12 +248,15 @@ const FuelLogForm = ({
     loading: loadingLastOdometer,
     error: odoError,
   } = useApi(
-    (signal) => apiClient.get(`/api/mileage/last-odometer/${selectedVehicle.id}`, { signal }),
+    // Wrapped so a vehicle with no prior log still yields a truthy result and
+    // clears the previous vehicle's reading below.
+    (signal) =>
+      FuelLogService.getLastOdometer(selectedVehicle.id, { signal }).then((last) => ({ last })),
     [JSON.stringify({ vehicleId: selectedVehicle?.id })],
     { enabled: !!selectedVehicle },
   );
   useEffect(() => {
-    if (odoResponse) setLastOdometer(odoResponse.data?.data || null);
+    if (odoResponse) setLastOdometer(odoResponse.last);
   }, [odoResponse]);
   useEffect(() => {
     if (!selectedVehicle) setLastOdometer(null);
@@ -467,10 +470,7 @@ const FuelLogForm = ({
       if (fixedDocs.fuel.ocrData)
         fuelData.append('ocrData', JSON.stringify(fixedDocs.fuel.ocrData));
 
-      const fuelRes = await apiClient.post('/api/documents', fuelData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 120000,
-      });
+      const fuelDoc = await FuelLogService.uploadDocument(fuelData);
       let odoDocId = '';
       if (fixedDocs.odometer) {
         const odoData = new FormData();
@@ -481,11 +481,8 @@ const FuelLogForm = ({
         if (fixedDocs.odometer.ocrData)
           odoData.append('ocrData', JSON.stringify(fixedDocs.odometer.ocrData));
 
-        const odoRes = await apiClient.post('/api/documents', odoData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          timeout: 120000,
-        });
-        odoDocId = odoRes.data.data?._id || odoRes.data._id || '';
+        const odoDoc = await FuelLogService.uploadDocument(odoData);
+        odoDocId = odoDoc.data?._id || odoDoc._id || '';
       }
       let refuelTimeStr = initialRefuelTime;
       const ocrDatetime =
@@ -502,7 +499,7 @@ const FuelLogForm = ({
         fuelType: 'DIESEL',
         vehicleId: selectedVehicle.id,
         driverId: selectedDriver.id,
-        documentId: fuelRes.data.data?._id || fuelRes.data._id || '',
+        documentId: fuelDoc.data?._id || fuelDoc._id || '',
         ...(odoDocId && { odometerDocId: odoDocId }),
         litres: parseFloat(formData.litres),
         rate: parseFloat(formData.rate),
@@ -514,9 +511,9 @@ const FuelLogForm = ({
         ...(selectedDest && { routeDestination: selectedDest.id }),
         ...(refuelTimeStr && { refuelTime: refuelTimeStr }),
       };
-      const res = await apiClient.post('/api/mileage/fuel-log', payload, { timeout: 60000 });
+      const created = await FuelLogService.createFuelLog(payload);
       toast.success('Mileage log submitted successfully!');
-      onSuccess?.(res.data?.data || res.data);
+      onSuccess?.(created);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to submit log.');
     } finally {
