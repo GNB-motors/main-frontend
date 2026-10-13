@@ -3,6 +3,7 @@ import { motion as Motion } from 'framer-motion';
 import { Check, Clock, Calendar as CalendarIcon } from 'lucide-react';
 import { formatDateIST } from '../../../utils/dateUtils';
 import { DAY_MS, dayOffset } from './digestDates';
+import { EVT_BAR_COLOR } from './calendarEventStyles';
 import NdGantt from './NdGantt.jsx';
 import NdMonth from './NdMonth.jsx';
 
@@ -102,17 +103,17 @@ export default function NdCalendarCard({ vehicles, days = 14, onOpenVehicle, sel
 
       <div className="nd-legend nd-cal-legend">
         <span className="nd-legend-chip">
-          <i style={{ background: '#3b82f6' }} />
+          <i style={{ background: EVT_BAR_COLOR.trip }} />
           <span>Planned trip</span>
           {tripCount > 0 && <b>{tripCount}</b>}
         </span>
         <span className="nd-legend-chip">
-          <i style={{ background: '#2563eb' }} />
+          <i style={{ background: EVT_BAR_COLOR.service }} />
           <span>Service due/overdue</span>
           {serviceCount > 0 && <b>{serviceCount}</b>}
         </span>
         <span className="nd-legend-chip">
-          <i style={{ background: '#ef4444' }} />
+          <i style={{ background: EVT_BAR_COLOR.doc }} />
           <span>Document expiry</span>
           {docCount > 0 && <b>{docCount}</b>}
         </span>

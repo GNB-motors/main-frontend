@@ -62,8 +62,10 @@ export default function NdRefuelCard({ data, onOpenVehicle }) {
                   key={`${f.vehicleId}-${i}`}
                   role="button"
                   tabIndex={0}
-                  onClick={() => onOpenVehicle(f.vehicleId)}
-                  onKeyDown={onRowKeyDown(() => onOpenVehicle(f.vehicleId))}
+                  // The page looks vehicles up by plate; an id only resolves for
+                  // trucks that are on the 14-day calendar.
+                  onClick={() => onOpenVehicle(f.registrationNumber || f.vehicleId)}
+                  onKeyDown={onRowKeyDown(() => onOpenVehicle(f.registrationNumber || f.vehicleId))}
                 >
                   <td>
                     <span className="nd-plate">{f.registrationNumber}</span>
