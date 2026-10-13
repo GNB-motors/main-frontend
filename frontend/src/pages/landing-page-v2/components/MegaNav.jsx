@@ -138,8 +138,6 @@ function MenuRow({ item, onNavigate }) {
   const [hover, setHover] = useState(false);
   const inner = (
     <div
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
       style={{
         display: 'flex',
         alignItems: 'flex-start',
@@ -195,7 +193,13 @@ function MenuRow({ item, onNavigate }) {
   );
   if (item.soon) return inner;
   return (
-    <Link to={item.to} onClick={onNavigate} style={{ textDecoration: 'none', display: 'block' }}>
+    <Link
+      to={item.to}
+      onClick={onNavigate}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{ textDecoration: 'none', display: 'block' }}
+    >
       {inner}
     </Link>
   );
@@ -330,6 +334,7 @@ export default function MegaNav() {
           {!mobile && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 12 }}>
               {MENU.map((group) => (
+                // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- hover-intent wrapper spanning the trigger and its panel; a keyboard path for the dropdown would change how it opens, so it is left as is (reported)
                 <div
                   key={group.label}
                   style={{ position: 'relative' }}

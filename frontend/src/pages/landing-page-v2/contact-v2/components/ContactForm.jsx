@@ -55,25 +55,25 @@ export default function ContactForm() {
                 <span style={{ fontSize: '13px', fontWeight: '600', letterSpacing: '-.1px' }}>
                   Your name
                 </span>
-                <input type="text" placeholder="Full name" />
+                <input type="text" placeholder="Full name" aria-label="Your name" />
               </label>
               <label style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
                 <span style={{ fontSize: '13px', fontWeight: '600', letterSpacing: '-.1px' }}>
                   Company
                 </span>
-                <input type="text" placeholder="Registered business name" />
+                <input type="text" placeholder="Registered business name" aria-label="Company" />
               </label>
               <label style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
                 <span style={{ fontSize: '13px', fontWeight: '600', letterSpacing: '-.1px' }}>
                   Work email
                 </span>
-                <input type="email" placeholder="you@company.com" />
+                <input type="email" placeholder="you@company.com" aria-label="Work email" />
               </label>
               <label style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
                 <span style={{ fontSize: '13px', fontWeight: '600', letterSpacing: '-.1px' }}>
                   Phone
                 </span>
-                <input type="tel" placeholder="+91" />
+                <input type="tel" placeholder="+91" aria-label="Phone" />
               </label>
               <label style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
                 <span style={{ fontSize: '13px', fontWeight: '600', letterSpacing: '-.1px' }}>
@@ -91,7 +91,7 @@ export default function ContactForm() {
                 <span style={{ fontSize: '13px', fontWeight: '600', letterSpacing: '-.1px' }}>
                   Where you operate
                 </span>
-                <input type="text" placeholder="City or states" />
+                <input type="text" placeholder="City or states" aria-label="Where you operate" />
               </label>
             </div>
             <div style={{ marginTop: '28px' }}>
@@ -230,6 +230,7 @@ export default function ContactForm() {
               </span>
               <textarea
                 rows="4"
+                aria-label="Anything we should know"
                 placeholder="What you run today, what is breaking, what you want to fix first"
               />
             </label>

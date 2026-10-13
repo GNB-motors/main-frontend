@@ -71,7 +71,7 @@ export default function FuelVerification() {
                 textWrap: 'pretty',
               }}
             >
-              The system calculates each vehicle's actual mileage using the full-tank-to-full-tank
+              The system calculates each vehicle&apos;s actual mileage using the full-tank-to-full-tank
               method, then compares it against fuel consumption from vehicle hardware and telematics
               to flag unusual usage or potential theft.
             </p>
