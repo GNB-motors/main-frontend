@@ -3,17 +3,19 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Receipt, X, Printer, ExternalLink } from 'lucide-react';
+import { Receipt } from 'lucide-react';
 import { toast } from 'react-toastify';
 import SaleBillApi from './SaleBillService';
 import PageShell from '../../components/Erp/PageShell';
-import StatusBadge from '../../components/Erp/StatusBadge';
+import { todayInput } from './todayInput';
+import SubmissionTab from './sections/SubmissionTab';
+import PendingBillingTable from './sections/PendingBillingTable';
+import SaleBillsTable from './sections/SaleBillsTable';
+import CreateBillModal from './sections/CreateBillModal';
+import SubmitBillModal from './sections/SubmitBillModal';
+import ReceiveBillModal from './sections/ReceiveBillModal';
+import SaleBillDetailModal from './sections/SaleBillDetailModal';
 import '../../styles/erp.css';
-
-const money = (n) =>
-  typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—';
-
-const todayInput = () => new Date().toISOString().slice(0, 10);
 
 const SaleBillsPage = ({ embedded = false }) => {
   const [tab, setTab] = useState('pending');
@@ -251,440 +253,65 @@ const SaleBillsPage = ({ embedded = false }) => {
       {loading ? (
         <p className="erp-muted">Loading…</p>
       ) : tab === 'submitting' ? (
-        <div>
-          {submissionGroups.length === 0 ? (
-            <p className="erp-muted">No approved bills awaiting submission.</p>
-          ) : (
-            submissionGroups.map((g) => (
-              <div key={g.partyId} className="erp-callout" style={{ marginBottom: 16 }}>
-                <h3>
-                  {g.partyName} <span className="erp-muted">({g.partyCode})</span>
-                </h3>
-                {g.notSent?.length > 0 && (
-                  <>
-                    <h4>Not sent yet</h4>
-                    <div className="erp-table-wrap">
-                      <table className="erp-table">
-                        <thead>
-                          <tr>
-                            <th>Bill #</th>
-                            <th>Date</th>
-                            <th>Net</th>
-                            <th aria-label="Actions" />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {g.notSent.map((b) => (
-                            <tr key={b.billId}>
-                              <td>{b.billNumber}</td>
-                              <td>
-                                {b.billDate
-                                  ? new Date(b.billDate).toLocaleDateString('en-IN')
-                                  : '—'}
-                              </td>
-                              <td>{money(b.netAmount)}</td>
-                              <td>
-                                <button
-                                  type="button"
-                                  className="erp-btn erp-btn-primary"
-                                  onClick={() => openSubmit(b)}
-                                >
-                                  Submit
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
-                )}
-                {g.waitingAcknowledgement?.length > 0 && (
-                  <>
-                    <h4>Sent — waiting for party acknowledgement</h4>
-                    <div className="erp-table-wrap">
-                      <table className="erp-table">
-                        <thead>
-                          <tr>
-                            <th>Bill #</th>
-                            <th>Submitted</th>
-                            <th>Ageing</th>
-                            <th>Courier</th>
-                            <th aria-label="Actions" />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {g.waitingAcknowledgement.map((b) => (
-                            <tr key={b.billId}>
-                              <td>{b.billNumber}</td>
-                              <td>
-                                {b.submittedDate
-                                  ? new Date(b.submittedDate).toLocaleDateString('en-IN')
-                                  : '—'}
-                              </td>
-                              <td>{b.ageingDays ?? 0} days</td>
-                              <td>{b.courierDocket || b.deliveryMode || '—'}</td>
-                              <td>
-                                <button
-                                  type="button"
-                                  className="erp-btn erp-btn-primary"
-                                  onClick={() => openReceive(b)}
-                                >
-                                  Mark received
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))
-          )}
-        </div>
+        <SubmissionTab
+          submissionGroups={submissionGroups}
+          openSubmit={openSubmit}
+          openReceive={openReceive}
+        />
       ) : tab === 'pending' ? (
-        <div className="erp-table-wrap">
-          <table className="erp-table">
-            <thead>
-              <tr>
-                <th>Party</th>
-                <th>Pending trips</th>
-                <th aria-label="Actions" />
-              </tr>
-            </thead>
-            <tbody>
-              {pendingGroups.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="erp-muted">
-                    No unbilled unloadings.
-                  </td>
-                </tr>
-              ) : (
-                pendingGroups.map((g) => (
-                  <tr key={g.partyId}>
-                    <td>
-                      {g.partyName} <span className="erp-muted">({g.partyCode})</span>
-                    </td>
-                    <td>{g.unloadings.length}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="erp-btn erp-btn-primary"
-                        onClick={() => openParty(g)}
-                      >
-                        Create bill
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <PendingBillingTable pendingGroups={pendingGroups} openParty={openParty} />
       ) : (
-        <div className="erp-table-wrap">
-          <table className="erp-table">
-            <thead>
-              <tr>
-                <th>Bill #</th>
-                <th>Party</th>
-                <th>Date</th>
-                <th>Lines</th>
-                <th>Net</th>
-                <th>Status</th>
-                <th aria-label="Actions" />
-              </tr>
-            </thead>
-            <tbody>
-              {bills.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="erp-muted">
-                    No sale bills yet.
-                  </td>
-                </tr>
-              ) : (
-                bills.map((b) => (
-                  <tr key={b._id}>
-                    <td>{b.billNumber}</td>
-                    <td>{b.partyId?.name || '—'}</td>
-                    <td>{b.billDate ? new Date(b.billDate).toLocaleDateString('en-IN') : '—'}</td>
-                    <td>{b.lines?.length ?? '—'}</td>
-                    <td>{money(b.netAmount)}</td>
-                    <td>
-                      <StatusBadge status={b.status} />
-                    </td>
-                    <td>
-                      <button type="button" className="erp-btn" onClick={() => openDetail(b._id)}>
-                        View
-                      </button>
-                      {['APPROVED', 'SUBMITTED', 'PARTIALLY_PAID', 'PAID'].includes(b.status) && (
-                        <button
-                          type="button"
-                          className="erp-btn erp-btn-primary"
-                          style={{ marginLeft: 8 }}
-                          onClick={() => handlePrint(b._id)}
-                          disabled={busy}
-                        >
-                          <Printer size={14} /> Print
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <SaleBillsTable
+          bills={bills}
+          openDetail={openDetail}
+          handlePrint={handlePrint}
+          busy={busy}
+        />
       )}
 
       {selectedParty && (
-        <div className="erp-modal-backdrop">
-          <div className="erp-modal" style={{ maxWidth: 640 }}>
-            <div className="erp-modal-header">
-              <h2>Bill — {selectedParty.partyName}</h2>
-              <button type="button" className="erp-icon-btn" onClick={closeModal}>
-                <X size={18} />
-              </button>
-            </div>
-            <form onSubmit={createBill} className="erp-form">
-              <label>
-                Bill date
-                <input
-                  aria-label="Bill date"
-                  type="date"
-                  required
-                  max={todayInput()}
-                  value={billDate}
-                  onChange={(e) => setBillDate(e.target.value)}
-                />
-              </label>
-              <div className="erp-table-wrap">
-                <table className="erp-table">
-                  <thead>
-                    <tr>
-                      <th aria-label="Select" />
-                      <th>CN</th>
-                      <th>Trip</th>
-                      <th>Qty</th>
-                      <th>Net</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedParty.unloadings.map((u) => (
-                      <tr key={u.unloadingId}>
-                        <td>
-                          <input
-                            type="checkbox"
-                            aria-label={`Select ${u.cnNumber}`}
-                            checked={selectedIds.has(u.unloadingId)}
-                            onChange={() => toggleRow(u.unloadingId)}
-                          />
-                        </td>
-                        <td>{u.cnNumber}</td>
-                        <td>{u.tripNumber}</td>
-                        <td>
-                          {u.unloadedQty} {u.qtyUnit}
-                        </td>
-                        <td>{money(u.netReceivable)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p>
-                <strong>Selected total: {money(selectedTotal)}</strong>
-              </p>
-              <div className="erp-modal-actions">
-                <button type="submit" className="erp-btn erp-btn-primary" disabled={busy}>
-                  {busy ? 'Creating…' : 'Create bill'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <CreateBillModal
+          selectedParty={selectedParty}
+          closeModal={closeModal}
+          createBill={createBill}
+          billDate={billDate}
+          setBillDate={setBillDate}
+          selectedIds={selectedIds}
+          toggleRow={toggleRow}
+          selectedTotal={selectedTotal}
+          busy={busy}
+        />
       )}
 
       {submitTarget && (
-        <div className="erp-modal-backdrop">
-          <div className="erp-modal" style={{ maxWidth: 480 }}>
-            <div className="erp-modal-header">
-              <h2>Submit {submitTarget.billNumber}</h2>
-              <button type="button" className="erp-icon-btn" onClick={closeModal}>
-                <X size={18} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="erp-form">
-              <label>
-                Submit date
-                <input
-                  aria-label="Submit date"
-                  type="date"
-                  required
-                  max={todayInput()}
-                  value={submitForm.submittedDate}
-                  onChange={(e) => setSubmitForm((f) => ({ ...f, submittedDate: e.target.value }))}
-                />
-              </label>
-              <label>
-                Delivery mode
-                <select
-                  value={submitForm.deliveryMode}
-                  onChange={(e) => setSubmitForm((f) => ({ ...f, deliveryMode: e.target.value }))}
-                >
-                  <option value="COURIER">Courier</option>
-                  <option value="BY_HAND">By hand</option>
-                  <option value="EMAIL">Email</option>
-                </select>
-              </label>
-              {submitForm.deliveryMode === 'COURIER' && (
-                <>
-                  <label>
-                    Courier name
-                    <input
-                      aria-label="Courier name"
-                      type="text"
-                      required
-                      value={submitForm.courierName}
-                      onChange={(e) =>
-                        setSubmitForm((f) => ({ ...f, courierName: e.target.value }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    Docket #
-                    <input
-                      aria-label="Docket #"
-                      type="text"
-                      required
-                      value={submitForm.courierDocket}
-                      onChange={(e) =>
-                        setSubmitForm((f) => ({ ...f, courierDocket: e.target.value }))
-                      }
-                    />
-                  </label>
-                </>
-              )}
-              {submitForm.deliveryMode === 'BY_HAND' && (
-                <label>
-                  Handed to
-                  <input
-                    aria-label="Handed to"
-                    type="text"
-                    required
-                    value={submitForm.handDeliveredTo}
-                    onChange={(e) =>
-                      setSubmitForm((f) => ({ ...f, handDeliveredTo: e.target.value }))
-                    }
-                  />
-                </label>
-              )}
-              <div className="erp-modal-actions">
-                <button type="submit" className="erp-btn erp-btn-primary" disabled={busy}>
-                  {busy ? 'Saving…' : 'Record submission'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <SubmitBillModal
+          submitTarget={submitTarget}
+          closeModal={closeModal}
+          handleSubmit={handleSubmit}
+          submitForm={submitForm}
+          setSubmitForm={setSubmitForm}
+          busy={busy}
+        />
       )}
 
       {receiveTarget && (
-        <div className="erp-modal-backdrop">
-          <div className="erp-modal" style={{ maxWidth: 420 }}>
-            <div className="erp-modal-header">
-              <h2>Party received — {receiveTarget.billNumber}</h2>
-              <button type="button" className="erp-icon-btn" onClick={closeModal}>
-                <X size={18} />
-              </button>
-            </div>
-            <form onSubmit={handleReceived} className="erp-form">
-              <p className="erp-muted">
-                Due date will be computed from this date + party credit days.
-              </p>
-              <label>
-                Party received date
-                <input
-                  aria-label="Party received date"
-                  type="date"
-                  required
-                  max={todayInput()}
-                  value={receivedDate}
-                  onChange={(e) => setReceivedDate(e.target.value)}
-                />
-              </label>
-              <div className="erp-modal-actions">
-                <button type="submit" className="erp-btn erp-btn-primary" disabled={busy}>
-                  {busy ? 'Saving…' : 'Mark received'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <ReceiveBillModal
+          receiveTarget={receiveTarget}
+          closeModal={closeModal}
+          handleReceived={handleReceived}
+          receivedDate={receivedDate}
+          setReceivedDate={setReceivedDate}
+          busy={busy}
+        />
       )}
 
       {detail && (
-        <div className="erp-modal-backdrop">
-          <div className="erp-modal" style={{ maxWidth: 720 }}>
-            <div className="erp-modal-header">
-              <h2>{detail.billNumber}</h2>
-              <button type="button" className="erp-icon-btn" onClick={closeModal}>
-                <X size={18} />
-              </button>
-            </div>
-            <div className="erp-form">
-              <p>
-                Party: {detail.partyId?.name} · Status: <StatusBadge status={detail.status} /> ·
-                Net: {money(detail.netAmount)}
-              </p>
-              <div className="erp-table-wrap">
-                <table className="erp-table">
-                  <thead>
-                    <tr>
-                      <th>CN</th>
-                      <th>Vehicle</th>
-                      <th>Route</th>
-                      <th>Net</th>
-                      <th>Bilty</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(detail.lines || []).map((line) => (
-                      <tr key={line.cnId || line.unloadingId}>
-                        <td>{line.cnNumber}</td>
-                        <td>{line.vehicleNumber}</td>
-                        <td>
-                          {line.fromLocation} → {line.toLocation}
-                        </td>
-                        <td>{money(line.lineNet)}</td>
-                        <td>
-                          {line.biltyUrl ? (
-                            <a href={line.biltyUrl} target="_blank" rel="noreferrer">
-                              <ExternalLink size={14} /> View
-                            </a>
-                          ) : (
-                            '—'
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {['APPROVED', 'SUBMITTED', 'PARTIALLY_PAID', 'PAID'].includes(detail.status) && (
-                <button
-                  type="button"
-                  className="erp-btn erp-btn-primary"
-                  onClick={() => handlePrint(detail._id)}
-                  disabled={busy}
-                >
-                  <Printer size={14} /> Print
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <SaleBillDetailModal
+          detail={detail}
+          closeModal={closeModal}
+          handlePrint={handlePrint}
+          busy={busy}
+        />
       )}
     </PageShell>
   );

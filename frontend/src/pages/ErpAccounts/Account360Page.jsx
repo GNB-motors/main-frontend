@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
-import { ArrowLeft, Download, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Download } from 'lucide-react';
 import { toast } from 'react-toastify';
 import PageShell from '../../components/Erp/PageShell';
 import ErpTable from '../../components/Erp/ErpTable';
-import StatusBadge from '../../components/Erp/StatusBadge';
 import DateRangeFilter from '../../components/Erp/DateRangeFilter';
 import useErpList from '../../hooks/useErpList';
 import LedgerApi from '../ErpLedger/LedgerService';
@@ -12,10 +11,11 @@ import OutstandingApi from '../ErpOutstanding/OutstandingService';
 import VendorPaymentApi from '../ErpVendorPayments/VendorPaymentService';
 import { SupplierPaymentApi } from '../ErpSupplierPayments/SupplierPaymentService';
 import { getEntityById } from '../../components/Erp/entityLookup.service';
-import { documentPathFor } from './documentRoutes';
 import { inr, num, drCr } from '../../utils/formatMoney';
 import { creditUsage, openItemsTotal } from './account360Logic';
-import { formatDateIST } from '../../utils/dateUtils';
+import { buildStatementColumns } from './account360/statementColumns';
+import { buildOpenItemColumns } from './account360/openItemColumns';
+import AccountHeaderCard from './account360/AccountHeaderCard';
 import '../../styles/erp.css';
 
 /**
@@ -135,194 +135,9 @@ const Account360Page = () => {
   const creditLimit = account?.creditLimit ?? 0;
   const { utilisation, overLimit, overBy } = creditUsage(creditLimit, balance?.balance);
 
-  const statementColumns = useMemo(
-    () => [
-      {
-        header: 'Date',
-        cellStyle: { whiteSpace: 'nowrap' },
-        render: (e) => formatDateIST(e.entryDate),
-      },
-      {
-        header: 'Source',
-        render: (e) => {
-          const to = documentPathFor(e.sourceType, e.sourceId, { tripId: e.tripId });
-          return (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <StatusBadge status={e.sourceType} />
-              {e.sourceLabel &&
-                (to ? (
-                  <Link to={to}>{e.sourceLabel}</Link>
-                ) : (
-                  <span className="erp-muted">{e.sourceLabel}</span>
-                ))}
-              {e.reversedByEntryId && <StatusBadge status="REVERSED" />}
-            </span>
-          );
-        },
-      },
-      {
-        header: 'Narration',
-        render: (e) => (
-          <span
-            style={
-              e.reversedByEntryId ? { textDecoration: 'line-through', color: '#94a3b8' } : undefined
-            }
-          >
-            {e.narration || '—'}
-          </span>
-        ),
-      },
-      {
-        header: 'Debit',
-        headerStyle: { textAlign: 'right' },
-        cellStyle: { textAlign: 'right' },
-        render: (e) =>
-          e.debit ? (
-            <span className="erp-numeric">{inr(e.debit)}</span>
-          ) : (
-            <span className="erp-muted">—</span>
-          ),
-      },
-      {
-        header: 'Credit',
-        headerStyle: { textAlign: 'right' },
-        cellStyle: { textAlign: 'right' },
-        render: (e) =>
-          e.credit ? (
-            <span className="erp-numeric">{inr(e.credit)}</span>
-          ) : (
-            <span className="erp-muted">—</span>
-          ),
-      },
-      {
-        header: 'Balance',
-        headerStyle: { textAlign: 'right' },
-        cellStyle: { textAlign: 'right' },
-        render: (e) => <span className="erp-numeric">{drCr(e.runningBalance).text}</span>,
-      },
-    ],
-    [],
-  );
+  const statementColumns = useMemo(() => buildStatementColumns(), []);
 
-  const openColumns = useMemo(() => {
-    if (accountType === 'PARTY') {
-      return [
-        {
-          header: 'Bill #',
-          render: (r) => {
-            const to = documentPathFor('SALE_BILL', r.billId);
-            return to ? <Link to={to}>{r.billNumber}</Link> : r.billNumber;
-          },
-        },
-        { header: 'Date', render: (r) => formatDateIST(r.billDate) },
-        { header: 'Due', render: (r) => (r.dueDate ? formatDateIST(r.dueDate) : '—') },
-        {
-          header: 'Ageing',
-          render: (r) => (
-            <StatusBadge
-              status={r.ageingBucket}
-              label={r.overdueDays ? `${r.overdueDays}d` : undefined}
-            />
-          ),
-        },
-        {
-          header: 'Bill total',
-          headerStyle: { textAlign: 'right' },
-          cellStyle: { textAlign: 'right' },
-          render: (r) => <span className="erp-numeric">{inr(r.netAmount)}</span>,
-        },
-        {
-          header: 'Outstanding',
-          headerStyle: { textAlign: 'right' },
-          cellStyle: { textAlign: 'right' },
-          render: (r) => (
-            <span className="erp-numeric">
-              <strong>{inr(r.outstandingAmount)}</strong>
-            </span>
-          ),
-        },
-      ];
-    }
-    if (accountType === 'VENDOR') {
-      return [
-        {
-          header: 'Bill #',
-          render: (r) => {
-            const to = documentPathFor('PURCHASE_BILL', r.purchaseBillId);
-            return to ? <Link to={to}>{r.billNumber}</Link> : r.billNumber;
-          },
-        },
-        {
-          header: 'Trip',
-          render: (r) =>
-            r.tripId ? (
-              <Link to={`/erp/trips/${r.tripId}`}>{r.tripNumber || 'View'}</Link>
-            ) : (
-              r.tripNumber || '—'
-            ),
-        },
-        { header: 'Vehicle', render: (r) => r.vehicleNumber || '—' },
-        { header: 'Due', render: (r) => (r.dueDate ? formatDateIST(r.dueDate) : '—') },
-        {
-          header: 'Ageing',
-          render: (r) => (
-            <StatusBadge
-              status={r.ageingBucket}
-              label={r.overdueDays ? `${r.overdueDays}d` : undefined}
-            />
-          ),
-        },
-        {
-          header: 'Net',
-          headerStyle: { textAlign: 'right' },
-          cellStyle: { textAlign: 'right' },
-          render: (r) => (
-            <span className="erp-numeric">
-              <strong>{inr(r.netAmount)}</strong>
-            </span>
-          ),
-        },
-      ];
-    }
-    if (accountType === 'SUPPLIER') {
-      return [
-        {
-          header: 'Ref',
-          render: (r) => {
-            const to = documentPathFor('SUPPLIER_INVOICE', r.supplierInvoiceId);
-            return to ? (
-              <Link to={to}>{r.refNumber || r.invoiceNumber}</Link>
-            ) : (
-              r.refNumber || r.invoiceNumber
-            );
-          },
-        },
-        { header: 'Invoice #', render: (r) => r.invoiceNumber || '—' },
-        { header: 'Type', render: (r) => <StatusBadge status={r.supplyType} /> },
-        { header: 'Due', render: (r) => (r.dueDate ? formatDateIST(r.dueDate) : '—') },
-        {
-          header: 'Ageing',
-          render: (r) => (
-            <StatusBadge
-              status={r.ageingBucket}
-              label={r.overdueDays ? `${r.overdueDays}d` : undefined}
-            />
-          ),
-        },
-        {
-          header: 'Net',
-          headerStyle: { textAlign: 'right' },
-          cellStyle: { textAlign: 'right' },
-          render: (r) => (
-            <span className="erp-numeric">
-              <strong>{inr(r.netAmount)}</strong>
-            </span>
-          ),
-        },
-      ];
-    }
-    return [];
-  }, [accountType]);
+  const openColumns = useMemo(() => buildOpenItemColumns(accountType), [accountType]);
 
   const openTotal = useMemo(() => openItemsTotal(openItems.rows), [openItems.rows]);
 
@@ -381,76 +196,16 @@ const Account360Page = () => {
       }
     >
       {/* Header card — balance as Dr/Cr, credit exposure. */}
-      <div className="erp-card" style={{ padding: '20px', marginBottom: 20 }}>
-        <div style={{ display: 'flex', gap: 40, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          <div>
-            <div className="erp-stat-label">Balance</div>
-            <div
-              className="erp-stat-value"
-              style={{ fontSize: 30, color: bal?.tone === 'credit' ? '#15803d' : '#1a202c' }}
-            >
-              {headLoading ? '…' : bal ? bal.text : '—'}
-            </div>
-            {balance && (
-              <div className="erp-stat-sub">
-                Dr {inr(balance.debit)} · Cr {inr(balance.credit)}
-              </div>
-            )}
-          </div>
-
-          {account?.code && (
-            <div>
-              <div className="erp-stat-label">Code</div>
-              <div style={{ fontSize: 15, fontWeight: 600 }}>{account.code}</div>
-            </div>
-          )}
-
-          {account?.status && (
-            <div>
-              <div className="erp-stat-label">Status</div>
-              <StatusBadge status={account.status} />
-            </div>
-          )}
-
-          {creditLimit > 0 && (
-            <div style={{ minWidth: 200 }}>
-              <div className="erp-stat-label">Credit limit</div>
-              <div style={{ fontSize: 15, fontWeight: 600 }} className="erp-numeric">
-                {inr(creditLimit)}
-              </div>
-              <div
-                style={{
-                  height: 6,
-                  background: '#f1f5f9',
-                  borderRadius: 3,
-                  marginTop: 8,
-                  overflow: 'hidden',
-                }}
-              >
-                <div
-                  style={{
-                    width: `${Math.min(100, utilisation || 0)}%`,
-                    height: '100%',
-                    background: overLimit ? '#dc2626' : '#00c896',
-                  }}
-                />
-              </div>
-              <div className="erp-stat-sub" style={{ marginTop: 6 }}>
-                {utilisation != null ? `${utilisation.toFixed(0)}% used` : '—'}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {overLimit && (
-          <div className="erp-callout danger" style={{ marginTop: 16, marginBottom: 0 }}>
-            <AlertTriangle size={15} />
-            <span>
-              Over credit limit by <strong>{inr(overBy)}</strong>.
-            </span>
-          </div>
-        )}
-      </div>
+      <AccountHeaderCard
+        headLoading={headLoading}
+        bal={bal}
+        balance={balance}
+        account={account}
+        creditLimit={creditLimit}
+        utilisation={utilisation}
+        overLimit={overLimit}
+        overBy={overBy}
+      />
 
       <div className="erp-tabs" style={{ marginBottom: 16 }}>
         {TABS.map((t) => (
