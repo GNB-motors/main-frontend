@@ -45,7 +45,6 @@ import '../../styles/nova/novaDesignSystem.css';
  * never leak into the rest of the app's CSS.
  */
 export default function DailyDigestPage() {
-  const todayIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
   const from = startOfTodayIST();
 
   // The eight owner-value sections arrive in one request (FRONTEND_AUDIT B1);
@@ -225,7 +224,7 @@ export default function DailyDigestPage() {
         <header className="nd-head">
           <div>
             <h1>Daily Digest</h1>
-            <div className="nd-sub">{formatDateLongIST(todayIST)} · Your fleet at a glance</div>
+            <div className="nd-sub">{formatDateLongIST(new Date())} · Your fleet at a glance</div>
           </div>
           <div className="nd-headtools">
             <ExportButton
