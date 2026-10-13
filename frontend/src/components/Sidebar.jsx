@@ -195,6 +195,9 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   };
 
   return (
+    // Hover only tracks whether the pointer is over the rail, so groups the
+    // pointer left can collapse; it activates nothing and has no keyboard analogue.
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- see above
     <aside
       className={`sidebar ${isSidebarOpen ? 'open' : ''} ${isErpRoute ? 'sidebar--erp' : ''}`}
       onMouseEnter={() => setIsSidebarHovered(true)}
@@ -202,6 +205,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     >
       <div className="sidebar-content">
         <div className="sidebar-header">
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- onError swaps in the fallback logo; it is not a user interaction */}
           <img
             src={logoSrc}
             alt={logoAlt}

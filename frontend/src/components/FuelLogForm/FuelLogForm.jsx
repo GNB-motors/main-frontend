@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useId } from 'react';
 import { ChevronDown, Trash2, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useApi from '../../hooks/useApi';
@@ -109,6 +109,7 @@ const SlotUpload = ({
       <input
         type="file"
         id={inputId}
+        aria-label={`Upload ${label}`}
         accept="image/*"
         style={{ display: 'none' }}
         onChange={(e) => {
@@ -218,6 +219,7 @@ const FuelLogForm = ({
   onSuccess,
   onCancel,
 }) => {
+  const uid = useId();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [selectedDriver, setSelectedDriver] = useState(null);
@@ -534,6 +536,7 @@ const FuelLogForm = ({
     return (
       <div className="dropdown-wrapper" style={{ zIndex: showVehicleDropdown ? 200 : undefined }}>
         <button
+          id={`${uid}-vehicle`}
           type="button"
           className={`dropdown-button ${loadingVehicles ? 'disabled' : ''}`}
           onClick={(e) => {
@@ -555,6 +558,7 @@ const FuelLogForm = ({
           <div className="dropdown-menu">
             <input
               type="text"
+              aria-label="Search vehicle"
               placeholder="Search vehicle..."
               className="dropdown-search"
               value={vehicleSearch}
@@ -595,6 +599,7 @@ const FuelLogForm = ({
     return (
       <div className="dropdown-wrapper" style={{ zIndex: showDriverDropdown ? 200 : undefined }}>
         <button
+          id={`${uid}-driver`}
           type="button"
           className={`dropdown-button ${loadingDrivers ? 'disabled' : ''}`}
           onClick={(e) => {
@@ -616,6 +621,7 @@ const FuelLogForm = ({
           <div className="dropdown-menu">
             <input
               type="text"
+              aria-label="Search driver"
               placeholder="Search driver..."
               className="dropdown-search"
               value={driverSearch}
@@ -652,7 +658,7 @@ const FuelLogForm = ({
         {/* Vehicle & Driver */}
         <div className="mileage-form-row">
           <div className="mileage-form-group">
-            <label>Select Vehicle *</label>
+            <label htmlFor={`${uid}-vehicle`}>Select Vehicle *</label>
             {renderVehiclePicker()}
             {selectedVehicle && (
               <div
@@ -686,7 +692,7 @@ const FuelLogForm = ({
             )}
           </div>
           <div className="mileage-form-group">
-            <label>Select Driver *</label>
+            <label htmlFor={`${uid}-driver`}>Select Driver *</label>
             {renderDriverPicker()}
             {driverAutoFilled && !lockDriver && (
               <div style={{ fontSize: '12px', color: '#64748b', marginTop: '6px' }}>
@@ -700,8 +706,9 @@ const FuelLogForm = ({
         {/* Source & Destination */}
         <div className="mileage-form-row">
           <div className="mileage-form-group">
-            <label>Source Location</label>
+            <label htmlFor={`${uid}-source`}>Source Location</label>
             <LocationAutocomplete
+              id={`${uid}-source`}
               value={selectedSource ? selectedSource.name : ''}
               onChange={() => {}}
               onLocationSelect={(loc) =>
@@ -712,8 +719,9 @@ const FuelLogForm = ({
             />
           </div>
           <div className="mileage-form-group">
-            <label>Destination Location</label>
+            <label htmlFor={`${uid}-dest`}>Destination Location</label>
             <LocationAutocomplete
+              id={`${uid}-dest`}
               value={selectedDest ? selectedDest.name : ''}
               onChange={() => {}}
               onLocationSelect={(loc) =>
@@ -728,8 +736,10 @@ const FuelLogForm = ({
         {/* Fuel & Filling Type — diesel only; AdBlue has its own page */}
         <div className="mileage-form-row">
           <div className="mileage-form-group">
-            <label>Fuel Type</label>
+            <label htmlFor={`${uid}-fuel-type`}>Fuel Type</label>
             <input
+              id={`${uid}-fuel-type`}
+              aria-label="Fuel Type"
               type="text"
               value="Diesel"
               readOnly
@@ -738,8 +748,13 @@ const FuelLogForm = ({
             />
           </div>
           <div className="mileage-form-group">
-            <label>Filling Type</label>
-            <select name="fillingType" value={formData.fillingType} onChange={handleFormChange}>
+            <label htmlFor={`${uid}-filling-type`}>Filling Type</label>
+            <select
+              id={`${uid}-filling-type`}
+              name="fillingType"
+              value={formData.fillingType}
+              onChange={handleFormChange}
+            >
               <option value="PARTIAL">Partial Fill</option>
               <option value="FULL_TANK">Full Tank (Closes Mileage Interval)</option>
             </select>
@@ -749,8 +764,10 @@ const FuelLogForm = ({
         {/* Litres & Rate */}
         <div className="mileage-form-row">
           <div className="mileage-form-group">
-            <label>Litres *</label>
+            <label htmlFor={`${uid}-litres`}>Litres *</label>
             <input
+              id={`${uid}-litres`}
+              aria-label="Litres"
               type="number"
               step="any"
               placeholder="0.00"
@@ -761,8 +778,10 @@ const FuelLogForm = ({
             />
           </div>
           <div className="mileage-form-group">
-            <label>Rate Per Litre *</label>
+            <label htmlFor={`${uid}-rate`}>Rate Per Litre *</label>
             <input
+              id={`${uid}-rate`}
+              aria-label="Rate Per Litre"
               type="number"
               step="any"
               placeholder="0.00"
@@ -778,8 +797,10 @@ const FuelLogForm = ({
         <div className="mileage-form-row">
           {formData.fillingType === 'FULL_TANK' && (
             <div className="mileage-form-group">
-              <label>Odometer Reading (KM) (Optional)</label>
+              <label htmlFor={`${uid}-odometer`}>Odometer Reading (KM) (Optional)</label>
               <input
+                id={`${uid}-odometer`}
+                aria-label="Odometer Reading (KM)"
                 type="number"
                 placeholder="105450"
                 name="odometerReading"
@@ -789,8 +810,10 @@ const FuelLogForm = ({
             </div>
           )}
           <div className="mileage-form-group">
-            <label>Pump Location</label>
+            <label htmlFor={`${uid}-location`}>Pump Location</label>
             <input
+              id={`${uid}-location`}
+              aria-label="Pump Location"
               type="text"
               placeholder="E.g. Reliance Pump"
               name="location"
@@ -802,6 +825,7 @@ const FuelLogForm = ({
 
         {/* Documents */}
         <div style={{ marginTop: 8 }}>
+          {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- caption over the upload slots, not a field label; each slot's file input carries its own aria-label */}
           <label
             style={{
               display: 'block',

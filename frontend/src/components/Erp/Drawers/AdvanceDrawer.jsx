@@ -13,13 +13,13 @@ const LEG_LABELS = {
 
 const money = (n) => (typeof n === 'number' ? `₹${n.toLocaleString('en-IN')}` : '—');
 
-const AdvanceDrawer = ({ 
-  isOpen, 
-  onClose, 
+const AdvanceDrawer = ({
+  isOpen,
+  onClose,
   mode = 'RAISE', // 'RAISE' or 'PAY'
-  initialTripId = '', 
-  payTarget = null, 
-  onSuccess 
+  initialTripId = '',
+  payTarget = null,
+  onSuccess,
 }) => {
   // Raise State
   const [tripId, setTripId] = useState(initialTripId);
@@ -138,23 +138,36 @@ const AdvanceDrawer = ({
   };
 
   const title = mode === 'RAISE' ? 'Raise Advance' : `Pay ${payTarget?.advanceNumber || 'Advance'}`;
-  const subtitle = mode === 'RAISE' ? 'Calculate fuel, toll, border, and driver advances' : 'Record payment release details';
+  const subtitle =
+    mode === 'RAISE'
+      ? 'Calculate fuel, toll, border, and driver advances'
+      : 'Record payment release details';
 
-  const footer = mode === 'RAISE' ? (
-    <>
-      <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-      <button type="submit" form="advance-form" className="btn btn-primary" disabled={busy || !costing}>
-        {busy ? 'Raising...' : 'Raise Advance'} <ArrowRight size={16} />
-      </button>
-    </>
-  ) : (
-    <>
-      <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-      <button type="submit" form="pay-advance-form" className="btn btn-primary" disabled={busy}>
-        {busy ? 'Paying...' : 'Record Payment'}
-      </button>
-    </>
-  );
+  const footer =
+    mode === 'RAISE' ? (
+      <>
+        <button type="button" className="btn btn-secondary" onClick={onClose}>
+          Cancel
+        </button>
+        <button
+          type="submit"
+          form="advance-form"
+          className="btn btn-primary"
+          disabled={busy || !costing}
+        >
+          {busy ? 'Raising...' : 'Raise Advance'} <ArrowRight size={16} />
+        </button>
+      </>
+    ) : (
+      <>
+        <button type="button" className="btn btn-secondary" onClick={onClose}>
+          Cancel
+        </button>
+        <button type="submit" form="pay-advance-form" className="btn btn-primary" disabled={busy}>
+          {busy ? 'Paying...' : 'Record Payment'}
+        </button>
+      </>
+    );
 
   return (
     <ErpDrawer isOpen={isOpen} onClose={onClose} title={title} subtitle={subtitle} footer={footer}>
@@ -162,15 +175,30 @@ const AdvanceDrawer = ({
         <form id="advance-form" onSubmit={handleRaise}>
           <div className="erp-form-grid">
             <div className="erp-field full">
-              <label htmlFor="adv-trip">Trip <span className="required">*</span></label>
+              <label htmlFor="adv-trip">
+                Trip <span className="required">*</span>
+              </label>
               {initialTripId ? (
-                <input type="text" disabled value={`Trip Pre-selected`} className="erp-input disabled" style={{ backgroundColor: '#f1f5f9', opacity: 1 }} />
+                <input
+                  aria-label="Trip"
+                  type="text"
+                  disabled
+                  value={`Trip Pre-selected`}
+                  className="erp-input disabled"
+                  style={{ backgroundColor: '#f1f5f9', opacity: 1 }}
+                />
               ) : (
-                <select id="adv-trip" value={tripId} onChange={(e) => setTripId(e.target.value)} required>
+                <select
+                  id="adv-trip"
+                  value={tripId}
+                  onChange={(e) => setTripId(e.target.value)}
+                  required
+                >
                   <option value="">Select a placed trip…</option>
                   {placements.map((p) => (
                     <option key={p._id} value={p.tripId}>
-                      {p.placementNumber} · {p.doId?.doNumber} · {p.vehicleId?.registrationNumber || p.hireVehicleNumber}
+                      {p.placementNumber} · {p.doId?.doNumber} ·{' '}
+                      {p.vehicleId?.registrationNumber || p.hireVehicleNumber}
                     </option>
                   ))}
                 </select>
@@ -178,8 +206,11 @@ const AdvanceDrawer = ({
             </div>
 
             <div className="erp-field full">
-              <label>Legs <span className="required">*</span></label>
-              <div className="erp-weekdays">
+              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- captions a toggle-button group (named via aria-labelledby below); kept a <label> for the .erp-field label styling */}
+              <label id="adv-legs-label">
+                Legs <span className="required">*</span>
+              </label>
+              <div className="erp-weekdays" role="group" aria-labelledby="adv-legs-label">
                 {['EMPTY', 'LOAD', 'REPORT_EMPTY'].map((leg) => (
                   <button
                     type="button"
@@ -195,7 +226,10 @@ const AdvanceDrawer = ({
           </div>
 
           {costingError && (
-            <div className="erp-callout" style={{ background: '#fee2e2', color: '#b91c1c', marginTop: 16 }}>
+            <div
+              className="erp-callout"
+              style={{ background: '#fee2e2', color: '#b91c1c', marginTop: 16 }}
+            >
               <AlertTriangle size={16} />
               <span>{costingError}</span>
             </div>
@@ -216,22 +250,29 @@ const AdvanceDrawer = ({
                     {costing.legs.map((leg) => (
                       <React.Fragment key={leg.legType}>
                         <tr>
-                          <td colSpan={2} className="erp-cell-strong">{LEG_LABELS[leg.legType] || leg.legType}</td>
+                          <td colSpan={2} className="erp-cell-strong">
+                            {LEG_LABELS[leg.legType] || leg.legType}
+                          </td>
                         </tr>
                         {!leg.isFlat && (
                           <>
                             <tr>
                               <td className="erp-cell-muted">
-                                Diesel — {leg.litresRequired} L at {money(Math.round(leg.dieselRatePerL))}/L
+                                Diesel — {leg.litresRequired} L at{' '}
+                                {money(Math.round(leg.dieselRatePerL))}/L
                                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                                   <Fuel size={12} />
-                                  {leg.dieselRateStates?.map((s) => `${s.state} ₹${s.rate}`).join(' · ')}
+                                  {leg.dieselRateStates
+                                    ?.map((s) => `${s.state} ₹${s.rate}`)
+                                    .join(' · ')}
                                 </div>
                               </td>
                               <td className="erp-numeric">{money(leg.dieselAmount)}</td>
                             </tr>
                             <tr>
-                              <td className="erp-cell-muted">Servicing {leg.servicingWaived && '— waived'}</td>
+                              <td className="erp-cell-muted">
+                                Servicing {leg.servicingWaived && '— waived'}
+                              </td>
                               <td className="erp-numeric">{money(leg.servicingAmount)}</td>
                             </tr>
                             <tr>
@@ -253,18 +294,24 @@ const AdvanceDrawer = ({
                     {costing.summary.carriedForwardAmount > 0 && (
                       <tr>
                         <td className="erp-cell-muted">Carried-forward empty running</td>
-                        <td className="erp-numeric">+ {money(costing.summary.carriedForwardAmount)}</td>
+                        <td className="erp-numeric">
+                          + {money(costing.summary.carriedForwardAmount)}
+                        </td>
                       </tr>
                     )}
                     {costing.deductions.map((d, i) => (
                       <tr key={`${d.type}-${i}`}>
-                        <td className="erp-cell-muted">{d.type.replace(/_/g, ' ').toLowerCase()}</td>
+                        <td className="erp-cell-muted">
+                          {d.type.replace(/_/g, ' ').toLowerCase()}
+                        </td>
                         <td className="erp-numeric">− {money(d.amount)}</td>
                       </tr>
                     ))}
                     <tr>
                       <td className="erp-cell-strong">Net payable</td>
-                      <td className="erp-numeric erp-cell-strong">{money(costing.summary.netPayable)}</td>
+                      <td className="erp-numeric erp-cell-strong">
+                        {money(costing.summary.netPayable)}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -276,6 +323,7 @@ const AdvanceDrawer = ({
             <div className="erp-field full" style={{ marginTop: 16 }}>
               <label htmlFor="adv-amount">Amount to pay out (₹)</label>
               <input
+                aria-label="Amount to pay out (₹)"
                 id="adv-amount"
                 type="number"
                 min="0"
@@ -289,9 +337,14 @@ const AdvanceDrawer = ({
           )}
 
           {overBudget && (
-            <div className="erp-callout" style={{ background: '#fef3c7', color: '#b45309', marginTop: 12 }}>
+            <div
+              className="erp-callout"
+              style={{ background: '#fef3c7', color: '#b45309', marginTop: 12 }}
+            >
               <AlertTriangle size={16} />
-              <span>{money(asked - budget)} over budget — this will need approval before it can be paid.</span>
+              <span>
+                {money(asked - budget)} over budget — this will need approval before it can be paid.
+              </span>
             </div>
           )}
         </form>
@@ -299,12 +352,21 @@ const AdvanceDrawer = ({
         <form id="pay-advance-form" onSubmit={handlePay}>
           <div className="erp-callout info">
             <Info size={16} />
-            <span>Paying out <strong>{money(payTarget?.netPayable)}</strong>. Any recovery this advance deducted is settled at the same time.</span>
+            <span>
+              Paying out <strong>{money(payTarget?.netPayable)}</strong>. Any recovery this advance
+              deducted is settled at the same time.
+            </span>
           </div>
           <div className="erp-form-grid">
             <div className="erp-field full">
-              <label htmlFor="pay-mode">Mode <span className="required">*</span></label>
-              <select id="pay-mode" value={paymentMode} onChange={(e) => setPaymentMode(e.target.value)}>
+              <label htmlFor="pay-mode">
+                Mode <span className="required">*</span>
+              </label>
+              <select
+                id="pay-mode"
+                value={paymentMode}
+                onChange={(e) => setPaymentMode(e.target.value)}
+              >
                 <option value="BANK">Bank transfer</option>
                 <option value="CASH">Cash</option>
                 <option value="UPI">UPI</option>
@@ -313,7 +375,13 @@ const AdvanceDrawer = ({
             </div>
             <div className="erp-field full">
               <label htmlFor="pay-ref">Reference</label>
-              <input id="pay-ref" value={paymentRef} onChange={(e) => setPaymentRef(e.target.value)} placeholder="NEFT-001" />
+              <input
+                aria-label="Reference"
+                id="pay-ref"
+                value={paymentRef}
+                onChange={(e) => setPaymentRef(e.target.value)}
+                placeholder="NEFT-001"
+              />
             </div>
           </div>
         </form>

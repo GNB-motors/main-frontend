@@ -45,6 +45,22 @@ describe('ConfirmDialogHost', () => {
     await expect(promise).resolves.toBe(false);
   });
 
+  it('resolves false on Escape', async () => {
+    const holder = setup();
+    const promise = holder.confirm({ title: 'Delete zone?' });
+    fireEvent.keyDown(await screen.findByRole('button', { name: 'Confirm' }), { key: 'Escape' });
+    await expect(promise).resolves.toBe(false);
+  });
+
+  it('a click inside the dialog does not settle it', async () => {
+    const holder = setup();
+    const promise = holder.confirm({ title: 'Delete zone?', body: 'Gone for good.' });
+    fireEvent.click(await screen.findByText('Gone for good.'));
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    await expect(promise).resolves.toBe(true);
+  });
+
   it('uses custom labels and shows the body', async () => {
     const holder = setup();
     const promise = holder.confirm({

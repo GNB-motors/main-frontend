@@ -130,6 +130,7 @@ const Navbar = ({ toggleSidebar }) => {
             <Search size={16} color="#94a3b8" />
             <input
               type="text"
+              aria-label="Search by vehicle or status"
               placeholder="Search by vehicle or status..."
               value={mileageSearch}
               onChange={handleMileageSearch}
@@ -141,6 +142,7 @@ const Navbar = ({ toggleSidebar }) => {
             <Search size={16} color="#94a3b8" />
             <input
               type="text"
+              aria-label="Search trips or refuel journeys"
               placeholder="Search trips or refuel journeys..."
               value={tripSearch}
               onChange={handleTripSearch}

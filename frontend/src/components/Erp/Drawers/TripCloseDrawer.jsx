@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ErpDrawer from '../ErpDrawer';
@@ -8,6 +8,7 @@ import { closeDefaults } from '../../../pages/ErpTrips/gpsDrop';
 const todayInput = () => new Date().toISOString().slice(0, 10);
 
 const TripCloseDrawer = ({ isOpen, onClose, trip = null, onSuccess }) => {
+  const uid = useId();
   const [form, setForm] = useState({
     unloadedAt: todayInput(),
     unloadLocation: '',
@@ -82,10 +83,12 @@ const TripCloseDrawer = ({ isOpen, onClose, trip = null, onSuccess }) => {
       <form id="close-trip-form" onSubmit={handleClose}>
         <div className="erp-form-grid">
           <div className="erp-field">
-            <label>
+            <label htmlFor={`${uid}-unloaded-date`}>
               Unloaded date <span className="required">*</span>
             </label>
             <input
+              id={`${uid}-unloaded-date`}
+              aria-label="Unloaded date"
               type="date"
               required
               value={form.unloadedAt}
@@ -99,10 +102,12 @@ const TripCloseDrawer = ({ isOpen, onClose, trip = null, onSuccess }) => {
           </div>
 
           <div className="erp-field">
-            <label>
+            <label htmlFor={`${uid}-unload-location`}>
               Unload location <span className="required">*</span>
             </label>
             <input
+              id={`${uid}-unload-location`}
+              aria-label="Unload location"
               required
               value={form.unloadLocation}
               onChange={(e) => setForm({ ...form, unloadLocation: e.target.value })}
@@ -110,8 +115,10 @@ const TripCloseDrawer = ({ isOpen, onClose, trip = null, onSuccess }) => {
           </div>
 
           <div className="erp-field full">
-            <label>Closing remarks</label>
+            <label htmlFor={`${uid}-close-remarks`}>Closing remarks</label>
             <textarea
+              id={`${uid}-close-remarks`}
+              aria-label="Closing remarks"
               value={form.closeRemarks}
               onChange={(e) => setForm({ ...form, closeRemarks: e.target.value })}
               placeholder="Optional notes..."
@@ -141,6 +148,7 @@ const TripCloseDrawer = ({ isOpen, onClose, trip = null, onSuccess }) => {
               }}
             >
               <input
+                aria-label="Enable report empty tracking"
                 type="checkbox"
                 checked={form.reportEmptyEnabled}
                 onChange={(e) => setForm({ ...form, reportEmptyEnabled: e.target.checked })}
@@ -152,10 +160,12 @@ const TripCloseDrawer = ({ isOpen, onClose, trip = null, onSuccess }) => {
             {form.reportEmptyEnabled && (
               <div className="erp-form-grid" style={{ marginTop: 16 }}>
                 <div className="erp-field">
-                  <label>
+                  <label htmlFor={`${uid}-report-empty-to`}>
                     Report to location <span className="required">*</span>
                   </label>
                   <input
+                    id={`${uid}-report-empty-to`}
+                    aria-label="Report to location"
                     required={form.reportEmptyEnabled}
                     value={form.reportEmptyTo}
                     onChange={(e) => setForm({ ...form, reportEmptyTo: e.target.value })}
@@ -163,10 +173,12 @@ const TripCloseDrawer = ({ isOpen, onClose, trip = null, onSuccess }) => {
                   />
                 </div>
                 <div className="erp-field">
-                  <label>
+                  <label htmlFor={`${uid}-report-empty-km`}>
                     Distance (km) <span className="required">*</span>
                   </label>
                   <input
+                    id={`${uid}-report-empty-km`}
+                    aria-label="Distance (km)"
                     type="number"
                     min="1"
                     required={form.reportEmptyEnabled}

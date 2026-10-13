@@ -14,6 +14,7 @@ const LocationAutocomplete = ({
   placeholder = 'Search location...',
   orgId,
   allowCustomText = true,
+  id,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -173,7 +174,7 @@ const LocationAutocomplete = ({
 
   return (
     <div className="dropdown-wrapper" ref={wrapperRef} style={{ zIndex: isOpen ? 200 : undefined }}>
-      <button type="button" className="dropdown-button" onClick={() => setIsOpen(!isOpen)}>
+      <button id={id} type="button" className="dropdown-button" onClick={() => setIsOpen(!isOpen)}>
         <span style={{ flex: 1, textAlign: 'left', color: value ? '#1e293b' : '#94a3b8' }}>
           {value || placeholder}
         </span>
@@ -222,6 +223,7 @@ const LocationAutocomplete = ({
           >
             <input
               type="text"
+              aria-label="Search locations"
               placeholder="Search locations..."
               className="dropdown-search"
               style={{
@@ -234,6 +236,7 @@ const LocationAutocomplete = ({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onClick={(e) => e.stopPropagation()}
+              // eslint-disable-next-line jsx-a11y/no-autofocus -- search box of the dropdown the user just opened
               autoFocus
             />
           </div>
@@ -441,7 +444,7 @@ const LocationAutocomplete = ({
                       fontWeight: 600,
                     }}
                   >
-                    Use "{search}" as location
+                    Use &quot;{search}&quot; as location
                   </button>
                 </div>
               )}

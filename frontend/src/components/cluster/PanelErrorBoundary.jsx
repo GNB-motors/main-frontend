@@ -27,7 +27,7 @@ export default class PanelErrorBoundary extends Component {
     if (this.state.error) {
       return (
         <div className="cluster-inset flex flex-col items-center justify-center gap-2 px-6 py-8 text-center">
-          <div className="cluster-title text-sm">This panel couldn't load</div>
+          <div className="cluster-title text-sm">This panel couldn&apos;t load</div>
           <div className="text-dim text-xs">
             {this.props.hint || 'The rest of the page is unaffected.'}
           </div>

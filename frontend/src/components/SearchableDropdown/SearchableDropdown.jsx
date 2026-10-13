@@ -90,6 +90,7 @@ const SearchableDropdown = ({
                     <div className="searchable-remove-tag">
                       <button
                         type="button"
+                        aria-label={`Remove ${getOptionLabel(tag)}`}
                         style={{
                           background: 'none',
                           border: 'none',
@@ -145,6 +146,7 @@ const SearchableDropdown = ({
           <div className="searchable-search-container">
             <input
               type="text"
+              aria-label="Search options"
               placeholder="Search"
               value={searchTerm}
               onChange={(e) => {
@@ -219,6 +221,7 @@ const SearchableDropdown = ({
                       type="button"
                       className="searchable-delete-option"
                       title="Delete location"
+                      aria-label="Delete location"
                       style={{
                         marginLeft: 8,
                         background: 'none',

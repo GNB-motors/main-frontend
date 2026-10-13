@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { toast } from 'react-toastify';
 import ErpDrawer from '../ErpDrawer';
 import UnloadingApi from '../../../pages/ErpUnloading/UnloadingService';
@@ -6,12 +6,8 @@ import UnloadingApi from '../../../pages/ErpUnloading/UnloadingService';
 const money = (n) =>
   typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—';
 
-const UnloadingDrawer = ({ 
-  isOpen, 
-  onClose, 
-  trip = null, 
-  onSuccess 
-}) => {
+const UnloadingDrawer = ({ isOpen, onClose, trip = null, onSuccess }) => {
+  const uid = useId();
   const [form, setForm] = useState({
     unloadedQty: '',
     detentionDays: '0',
@@ -104,10 +100,16 @@ const UnloadingDrawer = ({
       footer={footer}
     >
       <form id="unloading-form" onSubmit={handleSave}>
-        <div className="erp-card" style={{ padding: '16px', background: '#f8fafc', marginBottom: '20px' }}>
+        <div
+          className="erp-card"
+          style={{ padding: '16px', background: '#f8fafc', marginBottom: '20px' }}
+        >
           <h4 style={{ margin: '0 0 8px 0' }}>Loaded Details</h4>
           <p style={{ margin: 0 }}>
-            Qty: <strong>{trip?.loadedQty} {trip?.qtyUnit || 'KL'}</strong>
+            Qty:{' '}
+            <strong>
+              {trip?.loadedQty} {trip?.qtyUnit || 'KL'}
+            </strong>
           </p>
           <p style={{ margin: '4px 0 0 0' }}>
             Rate: <strong>{money(trip?.sbRate || 0)}</strong> ({trip?.sbRateType})
@@ -116,8 +118,12 @@ const UnloadingDrawer = ({
 
         <div className="erp-form-grid">
           <div className="erp-field">
-            <label>Unloaded qty <span className="required">*</span></label>
+            <label htmlFor={`${uid}-unloaded-qty`}>
+              Unloaded qty <span className="required">*</span>
+            </label>
             <input
+              id={`${uid}-unloaded-qty`}
+              aria-label="Unloaded qty"
               type="number"
               step="any"
               min="0"
@@ -128,8 +134,10 @@ const UnloadingDrawer = ({
           </div>
 
           <div className="erp-field">
-            <label>Detention days</label>
+            <label htmlFor={`${uid}-detention-days`}>Detention days</label>
             <input
+              id={`${uid}-detention-days`}
+              aria-label="Detention days"
               type="number"
               min="0"
               value={form.detentionDays}
@@ -138,8 +146,10 @@ const UnloadingDrawer = ({
           </div>
 
           <div className="erp-field">
-            <label>Manual Rate Override</label>
+            <label htmlFor={`${uid}-rate-override`}>Manual Rate Override</label>
             <input
+              id={`${uid}-rate-override`}
+              aria-label="Manual Rate Override"
               type="number"
               step="any"
               min="0"
@@ -150,8 +160,10 @@ const UnloadingDrawer = ({
           </div>
 
           <div className="erp-field full">
-            <label>Rate remarks</label>
+            <label htmlFor={`${uid}-rate-remarks`}>Rate remarks</label>
             <input
+              id={`${uid}-rate-remarks`}
+              aria-label="Rate remarks"
               placeholder="Reason for manual rate..."
               value={form.sbRateRemark}
               onChange={(e) => setForm({ ...form, sbRateRemark: e.target.value })}
@@ -172,25 +184,47 @@ const UnloadingDrawer = ({
 
         {preview && (
           <div className="erp-card" style={{ marginTop: '20px', padding: '20px' }}>
-            <h4 style={{ margin: '0 0 16px 0', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+            <h4
+              style={{
+                margin: '0 0 16px 0',
+                borderBottom: '1px solid #e2e8f0',
+                paddingBottom: '8px',
+              }}
+            >
               Settlement Preview
             </h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px' }}>
               <div className="erp-cell-muted">Gross Freight</div>
               <div className="erp-numeric">{money(preview.grossAmount)}</div>
 
-              <div className="erp-cell-muted">Shortage ({preview.shortageQty} {trip?.qtyUnit || 'KL'})</div>
-              <div className="erp-numeric" style={{ color: preview.shortageDeduction > 0 ? '#dc2626' : 'inherit' }}>
+              <div className="erp-cell-muted">
+                Shortage ({preview.shortageQty} {trip?.qtyUnit || 'KL'})
+              </div>
+              <div
+                className="erp-numeric"
+                style={{ color: preview.shortageDeduction > 0 ? '#dc2626' : 'inherit' }}
+              >
                 {preview.shortageDeduction > 0 ? `− ${money(preview.shortageDeduction)}` : money(0)}
               </div>
 
               <div className="erp-cell-muted">Detention ({preview.detentionDays} days)</div>
-              <div className="erp-numeric" style={{ color: preview.detentionAmount > 0 ? '#16a34a' : 'inherit' }}>
+              <div
+                className="erp-numeric"
+                style={{ color: preview.detentionAmount > 0 ? '#16a34a' : 'inherit' }}
+              >
                 {preview.detentionAmount > 0 ? `+ ${money(preview.detentionAmount)}` : money(0)}
               </div>
 
-              <div className="erp-cell-strong" style={{ paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>Net Freight</div>
-              <div className="erp-numeric erp-cell-strong" style={{ paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
+              <div
+                className="erp-cell-strong"
+                style={{ paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}
+              >
+                Net Freight
+              </div>
+              <div
+                className="erp-numeric erp-cell-strong"
+                style={{ paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}
+              >
                 {money(preview.netAmount)}
               </div>
             </div>
