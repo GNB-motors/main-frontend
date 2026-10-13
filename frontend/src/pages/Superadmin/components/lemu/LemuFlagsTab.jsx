@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, ChevronRight, Inbox, Search, ToggleRight } from 'lucide-react';
-import apiClient from '../../../../utils/axiosConfig';
 import useApi from '../../../../hooks/useApi';
+import { LemuFlagsService } from './LemuFlagsService';
 
 /* Keys of an org's featureFlags map that are explicitly enabled. */
 const enabledFlags = (org) =>
@@ -20,17 +20,18 @@ const LemuFlagsTab = () => {
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
 
-  const { data: orgsResponse, loading, error: orgsError } = useApi(
-    (signal) => apiClient.get('/api/admin/organizations', { signal }),
-    []
-  );
+  const {
+    data: orgsResponse,
+    loading,
+    error: orgsError,
+  } = useApi((signal) => LemuFlagsService.getOrganizations({ signal }), []);
 
   useEffect(() => {
     if (loading) setError('');
   }, [loading]);
 
   useEffect(() => {
-    if (orgsResponse) setOrgs(orgsResponse.data?.data ?? []);
+    if (orgsResponse) setOrgs(orgsResponse);
   }, [orgsResponse]);
 
   useEffect(() => {
@@ -54,18 +55,26 @@ const LemuFlagsTab = () => {
           <ToggleRight size={16} /> Feature Flags
         </h2>
         <span className="lemu-meta">
-          {loading ? 'Loading…' : <><strong>{filtered.length}</strong> organization{filtered.length === 1 ? '' : 's'}</>}
+          {loading ? (
+            'Loading…'
+          ) : (
+            <>
+              <strong>{filtered.length}</strong> organization{filtered.length === 1 ? '' : 's'}
+            </>
+          )}
         </span>
       </div>
 
       <div className="lemu-alert lemu-alert--info" role="note">
-        Per-org on/off toggles — no rollout %, targeting rules, or variants yet.
-        Open an organization to change its flags.
+        Per-org on/off toggles — no rollout %, targeting rules, or variants yet. Open an
+        organization to change its flags.
       </div>
 
       <div className="lemu-filters">
         <div className="lemu-search">
-          <span className="lemu-search__icon"><Search size={16} /></span>
+          <span className="lemu-search__icon">
+            <Search size={16} />
+          </span>
           <input
             type="text"
             placeholder="Search by name, email, GSTIN"
@@ -76,7 +85,9 @@ const LemuFlagsTab = () => {
       </div>
 
       {error && (
-        <div className="lemu-alert lemu-alert--error" role="alert">{error}</div>
+        <div className="lemu-alert lemu-alert--error" role="alert">
+          {error}
+        </div>
       )}
 
       <div className="lemu-card">
@@ -94,67 +105,84 @@ const LemuFlagsTab = () => {
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={6}><div className="lemu-state"><div className="lemu-spinner" /></div></td></tr>
+                <tr>
+                  <td colSpan={6}>
+                    <div className="lemu-state">
+                      <div className="lemu-spinner" />
+                    </div>
+                  </td>
+                </tr>
               )}
               {!loading && filtered.length === 0 && (
                 <tr>
                   <td colSpan={6}>
                     <div className="lemu-state">
-                      <div className="lemu-state__icon"><Inbox size={22} /></div>
+                      <div className="lemu-state__icon">
+                        <Inbox size={22} />
+                      </div>
                       <div className="lemu-state__title">No organizations found</div>
                       <div>Try adjusting your search.</div>
                     </div>
                   </td>
                 </tr>
               )}
-              {!loading && filtered.map((org) => {
-                const enabled = enabledFlags(org);
-                return (
-                  <tr
-                    key={org._id}
-                    className="lemu-clickable"
-                    onClick={() => navigate(`/superadmin/feature-flags/${org._id}`)}
-                  >
-                    <td>
-                      <div className="lemu-org">
-                        <span className="lemu-org__avatar">
-                          <Building2 size={18} />
+              {!loading &&
+                filtered.map((org) => {
+                  const enabled = enabledFlags(org);
+                  return (
+                    <tr
+                      key={org._id}
+                      className="lemu-clickable"
+                      onClick={() => navigate(`/superadmin/feature-flags/${org._id}`)}
+                    >
+                      <td>
+                        <div className="lemu-org">
+                          <span className="lemu-org__avatar">
+                            <Building2 size={18} />
+                          </span>
+                          <span className="lemu-org__name" title={org.companyName || '(unnamed)'}>
+                            {org.companyName || '(unnamed)'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="lemu-muted" title={org.ownerEmail || ''}>
+                        {org.ownerEmail || '—'}
+                      </td>
+                      <td className="lemu-muted">{org.gstin || '—'}</td>
+                      <td className="lemu-center">
+                        {org.isOnboarded ? (
+                          <span className="lemu-pill lemu-pill--ok">
+                            <span className="lemu-pill__dot" /> Yes
+                          </span>
+                        ) : (
+                          <span className="lemu-pill lemu-pill--unmonitored">No</span>
+                        )}
+                      </td>
+                      <td>
+                        {enabled.length === 0 ? (
+                          <span className="lemu-muted">None</span>
+                        ) : (
+                          <span className="lemu-flag-chips">
+                            {enabled.map((key) => (
+                              <span
+                                className="lemu-badge lemu-badge--sev-info"
+                                key={key}
+                                title={key}
+                              >
+                                {key}
+                              </span>
+                            ))}
+                          </span>
+                        )}
+                      </td>
+                      <td className="lemu-right">
+                        <span className="lemu-chevron">
+                          <ChevronRight size={16} />
                         </span>
-                        <span className="lemu-org__name" title={org.companyName || '(unnamed)'}>
-                          {org.companyName || '(unnamed)'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="lemu-muted" title={org.ownerEmail || ''}>{org.ownerEmail || '—'}</td>
-                    <td className="lemu-muted">{org.gstin || '—'}</td>
-                    <td className="lemu-center">
-                      {org.isOnboarded ? (
-                        <span className="lemu-pill lemu-pill--ok">
-                          <span className="lemu-pill__dot" /> Yes
-                        </span>
-                      ) : (
-                        <span className="lemu-pill lemu-pill--unmonitored">No</span>
-                      )}
-                    </td>
-                    <td>
-                      {enabled.length === 0 ? (
-                        <span className="lemu-muted">None</span>
-                      ) : (
-                        <span className="lemu-flag-chips">
-                          {enabled.map((key) => (
-                            <span className="lemu-badge lemu-badge--sev-info" key={key} title={key}>{key}</span>
-                          ))}
-                        </span>
-                      )}
-                    </td>
-                    <td className="lemu-right">
-                      <span className="lemu-chevron">
-                        <ChevronRight size={16} />
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>
