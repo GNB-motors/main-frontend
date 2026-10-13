@@ -1,7 +1,8 @@
 import { CircleCheck, Clock } from 'lucide-react';
 import PlaceLabel from '../../../components/ui/PlaceLabel';
 import { num } from '../../../utils/formatMoney.js';
-import { hoursLabel, stopTotals } from '../placeHubModel.js';
+import { hoursLabel } from '../model/placeLabels.js';
+import { stopTotals } from '../model/stopGroups.js';
 import { STOP_COLOR } from '../placeHubStyle.js';
 import { TypeTile } from '../PlaceHubPanels.jsx';
 import Empty from './Empty.jsx';

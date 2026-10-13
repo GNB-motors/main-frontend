@@ -6,7 +6,7 @@ import { useMutation } from '../../../hooks/useMutation';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
 import PanelLoading from './PanelLoading';
 import EmptyPanel from './EmptyPanel';
-import { messageOf } from './placeIntelligenceModel';
+import { messageOf } from './model/requestOutcome.js';
 
 // SYSTEM-confirmed regions are ones the learned model was sure of; they are
 // re-checked nightly and a person can keep or reject them. Zones are the

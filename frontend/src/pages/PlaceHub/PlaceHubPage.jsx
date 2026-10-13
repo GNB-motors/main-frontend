@@ -8,7 +8,7 @@ import { getUserRole } from '../../utils/session.js';
 import { num } from '../../utils/formatMoney.js';
 import PlaceHubMap from './PlaceHubMap.jsx';
 import PlaceHubDrawer from './PlaceHubDrawer.jsx';
-import { canEditPlaces } from './placeHubModel.js';
+import { canEditPlaces } from './model/placeHubConfig.js';
 import useHtmlDark from './page/useHtmlDark.js';
 import placeHubTabs from './page/placeHubTabs.js';
 import usePlaceHubData from './page/usePlaceHubData.js';

@@ -1,18 +1,10 @@
 import { useCallback, useMemo } from 'react';
-import {
-  mergePlaces,
-  filterPlaces,
-  countByGroup,
-  placeTotals,
-  liveIdleTotals,
-  clusterIdleEvents,
-  idleHistoryTotals,
-  fromHotspot,
-  drainCellsOf,
-  fuelTotals,
-  hasPosition,
-  stopGroupsOf,
-} from '../placeHubModel.js';
+import { fromHotspot, drainCellsOf, fuelTotals } from '../model/fuelRisk.js';
+import { liveIdleTotals, clusterIdleEvents, idleHistoryTotals } from '../model/idleSpots.js';
+import { mergePlaces } from '../model/mergePlaces.js';
+import { filterPlaces, countByGroup, placeTotals } from '../model/placeFilters.js';
+import { hasPosition } from '../model/placeGeometry.js';
+import { stopGroupsOf } from '../model/stopGroups.js';
 
 const MAX_IDLE_SPOTS = 150;
 

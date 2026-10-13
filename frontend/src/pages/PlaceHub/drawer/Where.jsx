@@ -1,7 +1,7 @@
 import { Copy, ExternalLink } from 'lucide-react';
 import { toast } from 'react-toastify';
 import PlaceLabel from '../../../components/ui/PlaceLabel';
-import { coordsLabel } from '../placeHubModel.js';
+import { coordsLabel } from '../model/placeLabels.js';
 
 export default function Where({ lat, lng, shape, address }) {
   const copy = () => {

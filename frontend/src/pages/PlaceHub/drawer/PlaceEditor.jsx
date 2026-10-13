@@ -1,7 +1,8 @@
 import { Flame, Hexagon, Warehouse, BellRing, Undo2, Eraser, Check } from 'lucide-react';
 import LocationSearch from '../LocationSearch.jsx';
 import { TypeTile } from '../PlaceHubPanels.jsx';
-import { KIND_META, coordsLabel, addressParts } from '../placeHubModel.js';
+import { KIND_META, addressParts } from '../model/placeDraft.js';
+import { coordsLabel } from '../model/placeLabels.js';
 import Frame from './Frame.jsx';
 import Field from './Field.jsx';
 import RadiusControl from './RadiusControl.jsx';

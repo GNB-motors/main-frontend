@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import PlaceLabel from '../../../components/ui/PlaceLabel';
 import { inr, num } from '../../../utils/formatMoney.js';
 import { formatInrCompact } from '../../../utils/formatters.js';
-import { durationLabel, hoursLabel } from '../placeHubModel.js';
+import { durationLabel, hoursLabel } from '../model/placeLabels.js';
 import { IDLE_COLOR, idleTone } from '../placeHubStyle.js';
 import { TypeTile } from '../PlaceHubPanels.jsx';
 import Empty from './Empty.jsx';

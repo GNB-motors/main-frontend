@@ -3,13 +3,9 @@ import { toast } from 'react-toastify';
 import { useMutation } from '../../../hooks/useMutation';
 import { useConfirm } from '../../../components/ui/confirmContext';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
-import {
-  impactSummary,
-  isImpactGate,
-  messageOf,
-  placeTitle,
-  typeLabel,
-} from './placeIntelligenceModel';
+import { impactSummary, isImpactGate, messageOf } from './model/requestOutcome.js';
+import { placeTitle } from './model/siteSummary.js';
+import { typeLabel } from './model/siteType.js';
 
 /**
  * A manager's answer about one place. Declaring a warehouse can re-anchor open

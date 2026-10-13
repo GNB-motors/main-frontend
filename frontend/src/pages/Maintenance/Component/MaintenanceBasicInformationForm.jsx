@@ -1,41 +1,13 @@
-/* eslint-disable react-refresh/only-export-components -- companion exports alongside the component */
 import React, { useState, useEffect, useMemo, useId, forwardRef } from 'react';
 import { Wrench, Smartphone, Lock } from 'lucide-react';
 import SearchableDropdown from '../../../components/SearchableDropdown/SearchableDropdown.jsx';
 import '../../Drivers/Component/BasicInformationForm.css';
-
-export const DEFAULT_SERVICE_TYPES = [
-  'Periodic / Scheduled Service',
-  'Engine Oil Change',
-  'Brake Service',
-  'Clutch Service',
-  'Suspension / Steering',
-  'Cooling System (Coolant / Radiator)',
-  'Air Filter / Fuel Filter',
-  'Tyre Rotation / Alignment',
-  'Full Body / Detailing',
-  'Others / Miscellaneous',
-];
-
-export const DEFAULT_REPAIR_TYPES = [
-  'Engine Repair',
-  'Transmission / Gearbox',
-  'Brake System',
-  'Clutch Replacement',
-  'Suspension',
-  'Electrical / Wiring',
-  'Cooling / Radiator',
-  'Body / Dent / Paint',
-  'Tyre / Puncture',
-  'Air Conditioning',
-  'Others / Miscellaneous',
-];
-
-const mergeUnique = (defaults, fromServer) => {
-  const set = new Set(defaults);
-  (fromServer || []).forEach((v) => v && set.add(v));
-  return Array.from(set);
-};
+import {
+  DEFAULT_SERVICE_TYPES,
+  DEFAULT_REPAIR_TYPES,
+  mergeUnique,
+} from './maintenanceTypeOptions.js';
+import toDriverOption from './toDriverOption.js';
 
 const MaintenanceBasicInformationForm = forwardRef(
   (
@@ -119,36 +91,7 @@ const MaintenanceBasicInformationForm = forwardRef(
       vehicleOptions.find((v) => v._id === formData.vehicleId)?.name || '';
 
     // Driver options with robust name and phone number resolution from employee records
-    const driverOptions = useMemo(
-      () =>
-        drivers.map((d) => {
-          const id = d._id || d.id;
-          const firstName = (d.firstName || d.first_name || '').trim();
-          const lastName = (d.lastName || d.last_name || '').trim();
-          const combined = [firstName, lastName].filter(Boolean).join(' ');
-
-          const displayName =
-            (d.name && d.name.trim() !== '' && d.name.trim().toLowerCase() !== 'driver'
-              ? d.name.trim()
-              : '') ||
-            combined ||
-            (d.fullName && d.fullName.trim() !== '' ? d.fullName.trim() : '') ||
-            (d.employeeId ? `Employee ${d.employeeId}` : '') ||
-            (d.name ? d.name.trim() : '') ||
-            'Driver';
-
-          const phone = d.mobileNumber || d.mobile_number || d.mobile || d.phone || '';
-          const roleTag = d.role && d.role !== 'DRIVER' ? ` · ${d.role}` : '';
-          const label = `${displayName}${phone ? ` (${phone})` : ''}${roleTag}`;
-
-          return {
-            _id: id,
-            name: label,
-            rawName: displayName,
-          };
-        }),
-      [drivers],
-    );
+    const driverOptions = useMemo(() => drivers.map(toDriverOption), [drivers]);
 
     const selectedDriverOption = driverOptions.find((d) => d._id === formData.driverId);
     const selectedDriverLabel =

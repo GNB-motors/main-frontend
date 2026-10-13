@@ -7,8 +7,8 @@ import {
   draftFromPlace,
   validateDraft,
   payloadFor,
-  centroidOf,
-} from '../placeHubModel.js';
+} from '../model/placeDraft.js';
+import { centroidOf } from '../model/placeGeometry.js';
 import errorText from './errorText.js';
 
 export default function usePlaceEditor({

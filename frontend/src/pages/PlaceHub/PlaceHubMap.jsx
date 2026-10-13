@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GoogleMap, MarkerClustererF } from '@react-google-maps/api';
-import { boundsOf } from './intelligence/placeIntelligenceModel.js';
+import { boundsOf } from './intelligence/model/mapBounds.js';
 import { LIGHT_MAP_STYLE, DARK_MAP_STYLE } from '../LiveTracking/mapStyles.js';
 import { IDLE_COLOR, idleTone, DRAIN_COLOR, STOP_COLOR } from './placeHubStyle.js';
-import { hoursLabel } from './placeHubModel.js';
+import { hoursLabel } from './model/placeLabels.js';
 import { formatInrCompact } from '../../utils/formatters.js';
 import {
   CLUSTER_STYLES_LIGHT,

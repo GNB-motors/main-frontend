@@ -1,7 +1,7 @@
 import { memo, useCallback, useMemo } from 'react';
 import { MarkerF } from '@react-google-maps/api';
 import { IDLE_COLOR } from '../placeHubStyle.js';
-import { durationLabel } from '../placeHubModel.js';
+import { durationLabel } from '../model/placeLabels.js';
 import { diamondIcon } from './mapIcons.js';
 
 const LiveIdleMarker = memo(function LiveIdleMarker({ event, selected, interactive, onSelect }) {

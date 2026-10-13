@@ -1,5 +1,6 @@
 import typeStyle from './placeTypes';
-import { effectiveType, endpointLabel, placeTitle } from './placeIntelligenceModel';
+import { placeTitle } from './model/siteSummary.js';
+import { effectiveType, endpointLabel } from './model/siteType.js';
 
 /** One end of a leg: the place's readable name with its type icon. */
 export default function LegEnd({ site, fallback }) {

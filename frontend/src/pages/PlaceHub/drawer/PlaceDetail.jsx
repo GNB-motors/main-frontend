@@ -1,7 +1,9 @@
 import { Pencil, Trash2 } from 'lucide-react';
 import { num } from '../../../utils/formatMoney.js';
 import { TypeTile } from '../PlaceHubPanels.jsx';
-import { placeTypeLabel, radiusLabel, alertSummary } from '../placeHubModel.js';
+import { alertSummary } from '../model/mergePlaces.js';
+import { placeTypeLabel } from '../model/placeGroups.js';
+import { radiusLabel } from '../model/placeLabels.js';
 import Frame from './Frame.jsx';
 import Note from './Note.jsx';
 import Stats from './Stats.jsx';

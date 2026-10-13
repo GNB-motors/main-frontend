@@ -1,4 +1,4 @@
-import { placeTypeLabel } from '../placeHubModel.js';
+import { placeTypeLabel } from '../model/placeGroups.js';
 import {
   styleOfType,
   IDLE_COLOR,

@@ -6,7 +6,7 @@ import { useMutation } from '../../../hooks/useMutation';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
 import PanelLoading from './PanelLoading';
 import EmptyPanel from './EmptyPanel';
-import { messageOf } from './placeIntelligenceModel';
+import { messageOf } from './model/requestOutcome.js';
 
 const STATUSES = [
   { key: 'PROPOSED', label: 'To review' },

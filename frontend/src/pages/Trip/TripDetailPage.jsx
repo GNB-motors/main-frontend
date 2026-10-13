@@ -14,15 +14,13 @@ import './TripManagementPage.css';
 import PageShell from '../../components/ui/PageShell';
 import { TripService } from './services';
 import { getTripStatusColor, normalizeTripMileage, computeTripFinancials } from './tripDetail';
-import {
-  SummaryCards,
-  VehicleDriverSection,
-  MileageSection,
-  FuelManagementSection,
-  FinancialSummary,
-  AssociatedTripsSection,
-  TimelineSection,
-} from './TripDetailSections';
+import SummaryCards from './sections/SummaryCards';
+import VehicleDriverSection from './sections/VehicleDriverSection';
+import MileageSection from './sections/MileageSection';
+import FuelManagementSection from './sections/FuelManagementSection';
+import FinancialSummary from './sections/FinancialSummary';
+import AssociatedTripsSection from './sections/AssociatedTripsSection';
+import TimelineSection from './sections/TimelineSection';
 import logger from '../../utils/logger';
 
 const BackButton = ({ onClick }) => (

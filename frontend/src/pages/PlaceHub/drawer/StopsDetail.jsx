@@ -2,9 +2,9 @@ import { Truck, Clock, Coffee, Briefcase, Wrench, ArrowRight } from 'lucide-reac
 import PlaceLabel from '../../../components/ui/PlaceLabel';
 import { num } from '../../../utils/formatMoney.js';
 import { formatInIST } from '../../../utils/dateUtils';
-import { minutesLabel } from '../intelligence/placeIntelligenceModel.js';
+import { minutesLabel } from '../intelligence/model/unitLabels.js';
 import { TypeTile } from '../PlaceHubPanels.jsx';
-import { hoursLabel } from '../placeHubModel.js';
+import { hoursLabel } from '../model/placeLabels.js';
 import { STOP_COLOR } from '../placeHubStyle.js';
 import Frame from './Frame.jsx';
 import Stats from './Stats.jsx';

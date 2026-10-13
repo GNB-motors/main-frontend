@@ -1,6 +1,7 @@
 import { Search, MapPinPlus, ShieldAlert } from 'lucide-react';
 import { num } from '../../../utils/formatMoney.js';
-import { PLACE_GROUPS, placeTypeLabel, radiusLabel } from '../placeHubModel.js';
+import { PLACE_GROUPS, placeTypeLabel } from '../model/placeGroups.js';
+import { radiusLabel } from '../model/placeLabels.js';
 import { TypeTile } from '../PlaceHubPanels.jsx';
 import Empty from './Empty.jsx';
 import LayerError from './LayerError.jsx';

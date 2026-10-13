@@ -2,7 +2,7 @@ import { Truck } from 'lucide-react';
 import { inr } from '../../../utils/formatMoney.js';
 import { formatInIST } from '../../../utils/dateUtils';
 import { TypeTile } from '../PlaceHubPanels.jsx';
-import { durationLabel } from '../placeHubModel.js';
+import { durationLabel } from '../model/placeLabels.js';
 import { IDLE_COLOR } from '../placeHubStyle.js';
 import Frame from './Frame.jsx';
 import Stats from './Stats.jsx';

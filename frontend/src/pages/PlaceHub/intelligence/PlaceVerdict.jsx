@@ -1,13 +1,8 @@
 import { Info } from 'lucide-react';
 import typeStyle from './placeTypes';
-import {
-  EVIDENCE_LABEL,
-  confidencePct,
-  effectiveType,
-  evidenceLines,
-  typeLabel,
-  aType,
-} from './placeIntelligenceModel';
+import { evidenceLines } from './model/siteEvidence.js';
+import { confidencePct, effectiveType, typeLabel, aType } from './model/siteType.js';
+import { EVIDENCE_LABEL } from './model/siteVocabulary.js';
 
 /**
  * The headline answer for a place, worded by whose answer it is: yours, the

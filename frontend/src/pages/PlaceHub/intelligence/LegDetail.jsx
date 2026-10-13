@@ -2,7 +2,8 @@ import useApi from '../../../hooks/useApi';
 import { formatDateTimeIST } from '../../../utils/dateUtils';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
 import PanelLoading from './PanelLoading';
-import { kmLabel, messageOf, minutesLabel } from './placeIntelligenceModel';
+import { messageOf } from './model/requestOutcome.js';
+import { kmLabel, minutesLabel } from './model/unitLabels.js';
 
 /** Recent runs of one leg, each scored against the leg's own history. */
 export default function LegDetail({ id }) {

@@ -1,32 +1,27 @@
 import { describe, it, expect } from 'vitest';
+import { boundsOf, bboxAround } from './model/mapBounds.js';
+import { impactSummary, isImpactGate, messageOf } from './model/requestOutcome.js';
+import { gateRows } from './model/shadowGates.js';
+import { evidenceLines, purposeShares } from './model/siteEvidence.js';
+import { filterPlaces, groupBreaks } from './model/siteLists.js';
 import {
   tripDropNote,
-  typeLabel,
-  suggestion,
-  impactSummary,
-  gateRows,
-  minutesLabel,
-  confidencePct,
-  endpointLabel,
-  isImpactGate,
-  messageOf,
-  effectiveType,
   labelReviewNote,
   placeState,
   placeTitle,
   placeSubtitle,
-  evidenceLines,
-  purposeShares,
   placeStats,
-  filterPlaces,
-  groupBreaks,
-  boundsOf,
-  bboxAround,
-  hoursLabel,
-  kmLabel,
-  aType,
   riskSentence,
-} from './placeIntelligenceModel';
+} from './model/siteSummary.js';
+import {
+  typeLabel,
+  suggestion,
+  confidencePct,
+  endpointLabel,
+  effectiveType,
+  aType,
+} from './model/siteType.js';
+import { minutesLabel, hoursLabel, kmLabel } from './model/unitLabels.js';
 
 describe('placeIntelligenceModel', () => {
   it('labels known and unknown types', () => {

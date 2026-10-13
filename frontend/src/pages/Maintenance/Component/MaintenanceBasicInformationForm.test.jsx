@@ -1,10 +1,8 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import MaintenanceBasicInformationForm, {
-  DEFAULT_SERVICE_TYPES,
-  DEFAULT_REPAIR_TYPES,
-} from './MaintenanceBasicInformationForm.jsx';
+import MaintenanceBasicInformationForm from './MaintenanceBasicInformationForm.jsx';
+import { DEFAULT_SERVICE_TYPES, DEFAULT_REPAIR_TYPES } from './maintenanceTypeOptions.js';
 
 describe('MaintenanceBasicInformationForm', () => {
   const dummyVehicles = [

@@ -1,7 +1,7 @@
 import { Truck } from 'lucide-react';
 import { inr, num } from '../../../utils/formatMoney.js';
 import { TypeTile } from '../PlaceHubPanels.jsx';
-import { hoursLabel } from '../placeHubModel.js';
+import { hoursLabel } from '../model/placeLabels.js';
 import { IDLE_COLOR, idleTone } from '../placeHubStyle.js';
 import Frame from './Frame.jsx';
 import Stats from './Stats.jsx';

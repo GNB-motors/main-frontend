@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import PlaceHubService from '../PlaceHubService.js';
-import { PURPOSE_LABEL } from '../intelligence/placeIntelligenceModel.js';
+import { PURPOSE_LABEL } from '../intelligence/model/siteVocabulary.js';
 import errorText from './errorText.js';
 
 export default function useStopAnswers({ loadStops, loadPlaces }) {

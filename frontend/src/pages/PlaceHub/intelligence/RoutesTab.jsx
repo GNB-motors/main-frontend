@@ -7,7 +7,8 @@ import PanelLoading from './PanelLoading';
 import EmptyPanel from './EmptyPanel';
 import LegDetail from './LegDetail';
 import LegEnd from './LegEnd';
-import { kmLabel, messageOf, minutesLabel } from './placeIntelligenceModel';
+import { messageOf } from './model/requestOutcome.js';
+import { kmLabel, minutesLabel } from './model/unitLabels.js';
 
 /**
  * Every leg the fleet drives between two places, most travelled first, with

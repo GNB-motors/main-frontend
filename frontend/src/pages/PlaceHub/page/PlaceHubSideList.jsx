@@ -1,4 +1,4 @@
-import { reviewNoteFor } from '../placeHubModel.js';
+import { reviewNoteFor } from '../model/placeFilters.js';
 import PlacesPanel from '../panels/PlacesPanel.jsx';
 import IdlingPanel from '../panels/IdlingPanel.jsx';
 import FuelPanel from '../panels/FuelPanel.jsx';

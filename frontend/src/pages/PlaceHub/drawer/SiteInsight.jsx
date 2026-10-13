@@ -2,12 +2,12 @@ import useApi from '../../../hooks/useApi';
 import { num } from '../../../utils/formatMoney.js';
 import { formatDateIST } from '../../../utils/dateUtils';
 import {
-  minutesLabel,
   placeStats,
   riskSentence,
   tripDropNote,
   labelReviewNote,
-} from '../intelligence/placeIntelligenceModel.js';
+} from '../intelligence/model/siteSummary.js';
+import { minutesLabel } from '../intelligence/model/unitLabels.js';
 import useSiteAnswer from '../intelligence/useSiteAnswer.js';
 import PlaceVerdict from '../intelligence/PlaceVerdict.jsx';
 import ReviewActions from '../intelligence/ReviewActions.jsx';

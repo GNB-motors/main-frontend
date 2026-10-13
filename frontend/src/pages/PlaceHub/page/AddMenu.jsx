@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Plus, ChevronDown, Warehouse, Hexagon, Flame } from 'lucide-react';
-import { KIND_META } from '../placeHubModel.js';
+import { KIND_META } from '../model/placeDraft.js';
 import { styleOfType } from '../placeHubStyle.js';
 
 const KIND_ICON = { WAREHOUSE: Warehouse, ZONE: Hexagon, HOTSPOT: Flame };
