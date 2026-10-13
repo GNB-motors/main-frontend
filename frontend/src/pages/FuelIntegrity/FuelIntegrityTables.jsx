@@ -131,6 +131,7 @@ export default function FuelIntegrityTables({
               <input
                 type="text"
                 className="fi-search-input"
+                aria-label="Search vehicle"
                 placeholder="Search vehicle (e.g. WB25R9540)…"
                 value={vehicleQuery}
                 onChange={(e) => onVehicleQueryChange(e.target.value)}

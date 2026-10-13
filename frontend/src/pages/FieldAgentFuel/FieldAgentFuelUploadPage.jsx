@@ -262,7 +262,9 @@ const FieldAgentFuelUploadPage = () => {
         <div className="mileage-form-content">
           {organizations.length > 0 && (
             <div style={{ marginBottom: '24px' }}>
+              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- names the organization button group below (aria-labelledby), which has no single form control to point htmlFor at */}
               <label
+                id="fa-fuel-org-filter-label"
                 style={{
                   display: 'block',
                   marginBottom: 8,
@@ -273,7 +275,11 @@ const FieldAgentFuelUploadPage = () => {
               >
                 Filter by Organization
               </label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              <div
+                role="group"
+                aria-labelledby="fa-fuel-org-filter-label"
+                style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}
+              >
                 <button
                   type="button"
                   onClick={() => setSelectedOrgFilter('')}
@@ -338,15 +344,25 @@ const FieldAgentFuelUploadPage = () => {
             {/* Fuel & Filling Type */}
             <div className="mileage-form-row">
               <div className="mileage-form-group">
-                <label>Fuel Type</label>
-                <select name="fuelType" value={formData.fuelType} onChange={handleFormChange}>
+                <label htmlFor="fa-fuel-type">Fuel Type</label>
+                <select
+                  id="fa-fuel-type"
+                  name="fuelType"
+                  value={formData.fuelType}
+                  onChange={handleFormChange}
+                >
                   <option value="DIESEL">Diesel</option>
                   <option value="ADBLUE">AdBlue</option>
                 </select>
               </div>
               <div className="mileage-form-group">
-                <label>Filling Type</label>
-                <select name="fillingType" value={formData.fillingType} onChange={handleFormChange}>
+                <label htmlFor="fa-fuel-filling-type">Filling Type</label>
+                <select
+                  id="fa-fuel-filling-type"
+                  name="fillingType"
+                  value={formData.fillingType}
+                  onChange={handleFormChange}
+                >
                   <option value="PARTIAL">Partial Fill</option>
                   <option value="FULL_TANK">Full Tank (Closes Mileage Interval)</option>
                 </select>
@@ -356,8 +372,10 @@ const FieldAgentFuelUploadPage = () => {
             {/* Litres & Rate */}
             <div className="mileage-form-row">
               <div className="mileage-form-group">
-                <label>Litres *</label>
+                <label htmlFor="fa-fuel-litres">Litres *</label>
                 <input
+                  id="fa-fuel-litres"
+                  aria-label="Litres"
                   type="number"
                   step="any"
                   placeholder="0.00"
@@ -368,8 +386,10 @@ const FieldAgentFuelUploadPage = () => {
                 />
               </div>
               <div className="mileage-form-group">
-                <label>Rate Per Litre *</label>
+                <label htmlFor="fa-fuel-rate">Rate Per Litre *</label>
                 <input
+                  id="fa-fuel-rate"
+                  aria-label="Rate Per Litre"
                   type="number"
                   step="any"
                   placeholder="0.00"
@@ -385,8 +405,10 @@ const FieldAgentFuelUploadPage = () => {
             <div className="mileage-form-row">
               {formData.fillingType === 'FULL_TANK' && (
                 <div className="mileage-form-group">
-                  <label>Odometer Reading (KM) (Optional)</label>
+                  <label htmlFor="fa-fuel-odometer">Odometer Reading (KM) (Optional)</label>
                   <input
+                    id="fa-fuel-odometer"
+                    aria-label="Odometer Reading (KM)"
                     type="number"
                     placeholder="105450"
                     name="odometerReading"
@@ -396,8 +418,10 @@ const FieldAgentFuelUploadPage = () => {
                 </div>
               )}
               <div className="mileage-form-group">
-                <label>Location</label>
+                <label htmlFor="fa-fuel-location">Location</label>
                 <input
+                  id="fa-fuel-location"
+                  aria-label="Location"
                   type="text"
                   placeholder="E.g. Reliance Pump"
                   name="location"
@@ -409,7 +433,9 @@ const FieldAgentFuelUploadPage = () => {
 
             {/* Documents */}
             <div style={{ marginTop: 8 }}>
+              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- names the upload slots below (aria-labelledby), which have no single form control to point htmlFor at */}
               <label
+                id="fa-fuel-docs-label"
                 style={{
                   display: 'block',
                   marginBottom: 12,
@@ -420,7 +446,7 @@ const FieldAgentFuelUploadPage = () => {
               >
                 Upload Documents
               </label>
-              <div className="mileage-slots-row">
+              <div className="mileage-slots-row" role="group" aria-labelledby="fa-fuel-docs-label">
                 <SlotUpload
                   docType="fuel"
                   title="FUEL RECEIPT"

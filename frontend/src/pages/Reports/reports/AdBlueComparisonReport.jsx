@@ -112,6 +112,7 @@ const AdBlueComparisonReport = () => {
             From
             <input
               type="date"
+              aria-label="From date"
               value={startDate}
               max={endDate}
               onChange={(e) => setStartDate(e.target.value)}
@@ -121,6 +122,7 @@ const AdBlueComparisonReport = () => {
             To
             <input
               type="date"
+              aria-label="To date"
               value={endDate}
               min={startDate}
               onChange={(e) => setEndDate(e.target.value)}
@@ -130,6 +132,7 @@ const AdBlueComparisonReport = () => {
             <Search size={15} />
             <input
               type="text"
+              aria-label="Search vehicle"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search vehicle"

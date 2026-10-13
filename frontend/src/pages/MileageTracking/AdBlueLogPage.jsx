@@ -251,8 +251,10 @@ const AdBlueLogPage = () => {
 
             <div className="mileage-form-row">
               <div className="mileage-form-group">
-                <label>Litres *</label>
+                <label htmlFor="adblue-log-litres">Litres *</label>
                 <input
+                  id="adblue-log-litres"
+                  aria-label="Litres"
                   type="number"
                   step="any"
                   placeholder="0.00"
@@ -263,8 +265,10 @@ const AdBlueLogPage = () => {
                 />
               </div>
               <div className="mileage-form-group">
-                <label>Amount *</label>
+                <label htmlFor="adblue-log-amount">Amount *</label>
                 <input
+                  id="adblue-log-amount"
+                  aria-label="Amount"
                   type="number"
                   step="any"
                   placeholder="0.00"
@@ -278,8 +282,10 @@ const AdBlueLogPage = () => {
 
             <div className="mileage-form-row">
               <div className="mileage-form-group">
-                <label>Place</label>
+                <label htmlFor="adblue-log-place">Place</label>
                 <input
+                  id="adblue-log-place"
+                  aria-label="Place"
                   type="text"
                   placeholder="Where was AdBlue added?"
                   name="place"
@@ -290,7 +296,9 @@ const AdBlueLogPage = () => {
             </div>
 
             <div style={{ marginTop: 8 }}>
+              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- names the upload slot below (aria-labelledby), which has no single form control to point htmlFor at */}
               <label
+                id="adblue-log-proof-label"
                 style={{
                   display: 'block',
                   marginBottom: 12,
@@ -301,7 +309,11 @@ const AdBlueLogPage = () => {
               >
                 Upload Proof / Receipt
               </label>
-              <div className="mileage-slots-row">
+              <div
+                className="mileage-slots-row"
+                role="group"
+                aria-labelledby="adblue-log-proof-label"
+              >
                 <SlotUpload
                   title="ADBLUE RECEIPT"
                   label="AdBlue slip"

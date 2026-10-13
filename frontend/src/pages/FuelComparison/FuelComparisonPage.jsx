@@ -654,6 +654,7 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
               <input
                 type="text"
                 className="fc-search-input"
+                aria-label="Search plate or driver"
                 placeholder="Search plate or driver…"
                 value={searchQuery}
                 onChange={(e) => {

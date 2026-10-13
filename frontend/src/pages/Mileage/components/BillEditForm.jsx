@@ -82,6 +82,7 @@ export default function BillEditForm({ bill, onCancel, onSaved }) {
       <Field id="bill-litres" label="Litres">
         <input
           id="bill-litres"
+          aria-label="Litres"
           className={inputClass}
           type="number"
           min="0"
@@ -93,6 +94,7 @@ export default function BillEditForm({ bill, onCancel, onSaved }) {
       <Field id="bill-rate" label="Rate (₹ a litre)">
         <input
           id="bill-rate"
+          aria-label="Rate (₹ a litre)"
           className={inputClass}
           type="number"
           min="0"
@@ -104,6 +106,7 @@ export default function BillEditForm({ bill, onCancel, onSaved }) {
       <Field id="bill-odo" label="Odometer (km)">
         <input
           id="bill-odo"
+          aria-label="Odometer (km)"
           className={inputClass}
           type="number"
           min="0"
@@ -114,6 +117,7 @@ export default function BillEditForm({ bill, onCancel, onSaved }) {
       <Field id="bill-time" label="Fill time">
         <input
           id="bill-time"
+          aria-label="Fill time"
           className={inputClass}
           type="datetime-local"
           value={form.refuelTime}
@@ -124,6 +128,7 @@ export default function BillEditForm({ bill, onCancel, onSaved }) {
         <Field id="bill-pump" label="Pump">
           <input
             id="bill-pump"
+            aria-label="Pump"
             className={inputClass}
             value={form.location}
             onChange={set('location')}

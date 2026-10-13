@@ -179,6 +179,7 @@ const AdBlueTrackingPage = () => {
             <Search size={16} />
             <input
               type="text"
+              aria-label="Search vehicle, driver, or place"
               placeholder="Search vehicle, driver, or place"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -223,6 +224,7 @@ const AdBlueTrackingPage = () => {
                 </td>
               </tr>
             ) : logs.length === 0 ? (
+              // eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table row, not a control; the rule reads <tr> as an interactive row and stops before the text inside
               <tr>
                 <td colSpan={7} className="refuel-empty-state">
                   <div className="refuel-empty-state-inner">
@@ -349,12 +351,17 @@ const AdBlueTrackingPage = () => {
 
       {editingLog &&
         createPortal(
-          <div className="refuel-modal-overlay" onClick={() => setEditingLog(null)}>
-            <div
-              className="refuel-modal refuel-edit-modal"
-              style={{ maxWidth: 480 }}
-              onClick={(e) => e.stopPropagation()}
-            >
+          <div
+            className="refuel-modal-overlay"
+            role="presentation"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setEditingLog(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setEditingLog(null);
+            }}
+          >
+            <div className="refuel-modal refuel-edit-modal" style={{ maxWidth: 480 }}>
               <div className="refuel-modal-header">
                 <h2>Edit AdBlue Entry</h2>
                 <button
@@ -369,8 +376,10 @@ const AdBlueTrackingPage = () => {
                 <div className="refuel-modal-body">
                   <div className="refuel-form-row">
                     <div className="form-group">
-                      <label>Litres *</label>
+                      <label htmlFor="adblue-edit-litres">Litres *</label>
                       <input
+                        id="adblue-edit-litres"
+                        aria-label="Litres"
                         type="number"
                         step="any"
                         value={editForm.litres}
@@ -379,8 +388,10 @@ const AdBlueTrackingPage = () => {
                       />
                     </div>
                     <div className="form-group">
-                      <label>Amount *</label>
+                      <label htmlFor="adblue-edit-amount">Amount *</label>
                       <input
+                        id="adblue-edit-amount"
+                        aria-label="Amount"
                         type="number"
                         step="any"
                         value={editForm.amount}
@@ -390,8 +401,10 @@ const AdBlueTrackingPage = () => {
                     </div>
                   </div>
                   <div className="form-group">
-                    <label>Place</label>
+                    <label htmlFor="adblue-edit-place">Place</label>
                     <input
+                      id="adblue-edit-place"
+                      aria-label="Place"
                       type="text"
                       value={editForm.place}
                       onChange={(e) => setEditForm({ ...editForm, place: e.target.value })}
@@ -419,12 +432,17 @@ const AdBlueTrackingPage = () => {
 
       {deletingLog &&
         createPortal(
-          <div className="refuel-modal-overlay" onClick={() => setDeletingLog(null)}>
-            <div
-              className="refuel-modal"
-              style={{ maxWidth: 420 }}
-              onClick={(e) => e.stopPropagation()}
-            >
+          <div
+            className="refuel-modal-overlay"
+            role="presentation"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setDeletingLog(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setDeletingLog(null);
+            }}
+          >
+            <div className="refuel-modal" style={{ maxWidth: 420 }}>
               <div className="refuel-modal-header">
                 <h2>Delete AdBlue Entry</h2>
                 <button
@@ -468,12 +486,17 @@ const AdBlueTrackingPage = () => {
 
       {viewImageUrl &&
         createPortal(
-          <div className="refuel-modal-overlay" onClick={() => setViewImageUrl(null)}>
-            <div
-              className="refuel-modal"
-              style={{ maxWidth: 720 }}
-              onClick={(e) => e.stopPropagation()}
-            >
+          <div
+            className="refuel-modal-overlay"
+            role="presentation"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setViewImageUrl(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setViewImageUrl(null);
+            }}
+          >
+            <div className="refuel-modal" style={{ maxWidth: 720 }}>
               <div className="refuel-modal-header">
                 <h2>AdBlue Proof</h2>
                 <button

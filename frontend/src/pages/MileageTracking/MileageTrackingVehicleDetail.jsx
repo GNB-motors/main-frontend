@@ -27,6 +27,7 @@ import PageShell from '../../components/ui/PageShell';
 import DataTable from '../../components/ui/DataTable';
 import ExportButton from '../../components/ui/ExportButton';
 import { MileageTrackingService } from './MileageTrackingService';
+import { onActivateKey } from '../../utils/onActivateKey';
 
 const PAGE_SIZE = 10;
 
@@ -477,7 +478,10 @@ const MileageTrackingVehicleDetail = () => {
           {/* Average Mileage */}
           <div
             className={`mt-kpi-card ${statusTab === 'all' ? 'is-active' : ''}`}
+            role="button"
+            tabIndex={0}
             onClick={() => setStatusTab('all')}
+            onKeyDown={onActivateKey(() => setStatusTab('all'))}
             title="Click to view all intervals"
           >
             <div className="mt-kpi-card__top">
@@ -526,7 +530,12 @@ const MileageTrackingVehicleDetail = () => {
           {/* Flagged Anomalies */}
           <div
             className={`mt-kpi-card ${statusTab === 'flagged' ? 'is-active' : ''}`}
+            role="button"
+            tabIndex={0}
             onClick={() => setStatusTab((t) => (t === 'flagged' ? 'all' : 'flagged'))}
+            onKeyDown={onActivateKey(() =>
+              setStatusTab((t) => (t === 'flagged' ? 'all' : 'flagged')),
+            )}
             title="Filter flagged anomaly intervals"
           >
             <div className="mt-kpi-card__top">
@@ -542,7 +551,12 @@ const MileageTrackingVehicleDetail = () => {
           {/* Pending GPS */}
           <div
             className={`mt-kpi-card ${statusTab === 'pending' ? 'is-active' : ''}`}
+            role="button"
+            tabIndex={0}
             onClick={() => setStatusTab((t) => (t === 'pending' ? 'all' : 'pending'))}
+            onKeyDown={onActivateKey(() =>
+              setStatusTab((t) => (t === 'pending' ? 'all' : 'pending')),
+            )}
             title="Filter pending intervals"
           >
             <div className="mt-kpi-card__top">
@@ -599,6 +613,7 @@ const MileageTrackingVehicleDetail = () => {
               <input
                 type="text"
                 className="mt-search-input"
+                aria-label="Search route or status"
                 placeholder="Search route or status…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

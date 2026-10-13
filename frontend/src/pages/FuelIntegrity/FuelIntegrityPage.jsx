@@ -40,6 +40,7 @@ import {
   buildRiskVehicles,
   buildChipDefs,
 } from './fiData.js';
+import { onActivateKey } from '../../utils/onActivateKey';
 import './FuelIntegrity.css';
 
 const FEED_LIMIT = 100;
@@ -556,9 +557,13 @@ const FuelIntegrityPage = () => {
           </div>
 
           {/* Card 4: DEF / AdBlue Discrepancies */}
+          {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- the card is named by its own text (DEF / AdBlue Ratio, the count, the caption); the rule stops two levels above that text */}
           <div
             className="fi-bento-card fi-bento-card--amber cursor-pointer"
+            role="button"
+            tabIndex={0}
             onClick={() => setChip((c) => (c === 'def' ? 'all' : 'def'))}
+            onKeyDown={onActivateKey(() => setChip((c) => (c === 'def' ? 'all' : 'def')))}
             title="Click to toggle DEF anomaly filter"
           >
             <div className="fi-bento-head">

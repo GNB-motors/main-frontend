@@ -159,6 +159,7 @@ export default function EventsFeedPanel({
                       }`}
                       onClick={() => handleRowClick(ev)}
                     >
+                      {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table cell, not a control; the rule reads <td> as a gridcell and stops before the text inside */}
                       <td className="py-3.5 px-2.5 whitespace-nowrap">
                         <div className="hsrp-plate">
                           <span className="hsrp-ind">

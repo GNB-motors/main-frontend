@@ -216,6 +216,7 @@ export const ReconciliationMatrixTable = ({ interval }) => {
           <tbody>
             {/* Row 1: Distance */}
             <tr>
+              {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table cell, not a control; the rule reads <td> as a gridcell and stops before the text inside */}
               <td>
                 <div className="mt-recon-param">
                   <span className="mt-recon-param__name">Tracked Distance</span>
@@ -269,6 +270,7 @@ export const ReconciliationMatrixTable = ({ interval }) => {
 
             {/* Row 2: Fuel */}
             <tr>
+              {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table cell, not a control; the rule reads <td> as a gridcell and stops before the text inside */}
               <td>
                 <div className="mt-recon-param">
                   <span className="mt-recon-param__name">Fuel Consumed</span>
@@ -323,6 +325,7 @@ export const ReconciliationMatrixTable = ({ interval }) => {
 
             {/* Row 3: Mileage */}
             <tr>
+              {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table cell, not a control; the rule reads <td> as a gridcell and stops before the text inside */}
               <td>
                 <div className="mt-recon-param">
                   <span className="mt-recon-param__name">Effective Mileage</span>
@@ -369,6 +372,7 @@ export const ReconciliationMatrixTable = ({ interval }) => {
 
             {/* Row 4: DEF / AdBlue */}
             <tr>
+              {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table cell, not a control; the rule reads <td> as a gridcell and stops before the text inside */}
               <td>
                 <div className="mt-recon-param">
                   <span className="mt-recon-param__name">DEF / AdBlue</span>
@@ -394,6 +398,7 @@ export const ReconciliationMatrixTable = ({ interval }) => {
 
             {/* Row 5: Reconciliation Time & Sync */}
             <tr>
+              {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table cell, not a control; the rule reads <td> as a gridcell and stops before the text inside */}
               <td>
                 <div className="mt-recon-param">
                   <span className="mt-recon-param__name">Period & Sensor Sync</span>

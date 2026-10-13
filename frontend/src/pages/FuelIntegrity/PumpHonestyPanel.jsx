@@ -165,6 +165,7 @@ export default function PumpHonestyPanel() {
           <input
             type="text"
             className="fi-search-input"
+            aria-label="Search petrol bunk or highway"
             placeholder="Search petrol bunk or highway…"
             value={searchQuery}
             onChange={(e) => {
