@@ -1,6 +1,6 @@
 import { Check } from 'lucide-react';
 import { formatINR, formatKm, formatNum } from '../../../utils/formatters';
-import { onRowKeyDown } from './onRowKeyDown';
+import { onActivateKey } from '../../../utils/onActivateKey';
 
 export default function NdWasteTable({ idlingTop5, detourTop5, onOpenVehicle }) {
   const byVehicle = new Map();
@@ -53,7 +53,7 @@ export default function NdWasteTable({ idlingTop5, detourTop5, onOpenVehicle }) 
                 role="button"
                 tabIndex={0}
                 onClick={() => onOpenVehicle(r.registrationNumber)}
-                onKeyDown={onRowKeyDown(() => onOpenVehicle(r.registrationNumber))}
+                onKeyDown={onActivateKey(() => onOpenVehicle(r.registrationNumber))}
               >
                 <td>
                   <span className="nd-plate">{r.registrationNumber}</span>

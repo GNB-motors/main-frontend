@@ -1,6 +1,6 @@
 import { Check } from 'lucide-react';
 import { formatINR } from '../../../utils/formatters';
-import { onRowKeyDown } from './onRowKeyDown';
+import { onActivateKey } from '../../../utils/onActivateKey';
 import { BRIEF_SECTION, BRIEF_FALLBACK } from './briefSections';
 
 export default function NdBriefCard({ section, onOpenVehicle }) {
@@ -49,7 +49,7 @@ export default function NdBriefCard({ section, onOpenVehicle }) {
                   role="button"
                   tabIndex={0}
                   onClick={() => onOpenVehicle(v.registrationNumber)}
-                  onKeyDown={onRowKeyDown(() => onOpenVehicle(v.registrationNumber))}
+                  onKeyDown={onActivateKey(() => onOpenVehicle(v.registrationNumber))}
                 >
                   <td>
                     <span className="nd-plate">{v.registrationNumber}</span>

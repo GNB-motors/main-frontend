@@ -1,7 +1,7 @@
 import { Check, Fuel as FuelIcon } from 'lucide-react';
 import { formatINR, formatLitres, formatNum } from '../../../utils/formatters';
 import { formatDateTimeIST } from '../../../utils/dateUtils';
-import { onRowKeyDown } from './onRowKeyDown';
+import { onActivateKey } from '../../../utils/onActivateKey';
 
 export default function NdRefuelCard({ data, onOpenVehicle }) {
   const fills = data?.fills || [];
@@ -65,7 +65,9 @@ export default function NdRefuelCard({ data, onOpenVehicle }) {
                   // The page looks vehicles up by plate; an id only resolves for
                   // trucks that are on the 14-day calendar.
                   onClick={() => onOpenVehicle(f.registrationNumber || f.vehicleId)}
-                  onKeyDown={onRowKeyDown(() => onOpenVehicle(f.registrationNumber || f.vehicleId))}
+                  onKeyDown={onActivateKey(() =>
+                    onOpenVehicle(f.registrationNumber || f.vehicleId),
+                  )}
                 >
                   <td>
                     <span className="nd-plate">{f.registrationNumber}</span>
