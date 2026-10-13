@@ -4,12 +4,13 @@ import { X, Check } from 'lucide-react';
 import GoogleMapsSearch from './GoogleMapsSearch';
 import './GoogleMapsModal.css';
 import logger from '../../utils/logger';
+import GOOGLE_MAPS_API_KEY from './googleMapsApiKey';
+import extractLocationDetails from './extractLocationDetails';
+import GoogleMapsLoadError from './GoogleMapsLoadError';
+import GoogleMapsLoading from './GoogleMapsLoading';
 
 // Static libraries array to prevent performance warnings
 const GOOGLE_MAPS_LIBRARIES = ['places', 'geometry'];
-const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '')
-  .replace(/['"]/g, '')
-  .trim();
 
 const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) => {
   const [selectedLocation, setSelectedLocation] = useState(
@@ -121,40 +122,6 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
   const mapContainerStyle = {
     width: '100%',
     height: '100%',
-  };
-
-  // Helper to extract location details including pincode
-  const extractLocationDetails = (result) => {
-    const lat = result.geometry.location.lat();
-    const lng = result.geometry.location.lng();
-    const address = result.formatted_address;
-
-    const addressComponents = result.address_components || [];
-    let city = '';
-    let state = '';
-    let pincode = '';
-
-    addressComponents.forEach((component) => {
-      if (component.types.includes('locality')) {
-        city = component.long_name;
-      }
-      if (component.types.includes('administrative_area_level_1')) {
-        state = component.long_name;
-      }
-      if (component.types.includes('postal_code')) {
-        pincode = component.long_name;
-      }
-    });
-
-    // Fallback: Try regex on formatted address if pincode is still empty
-    if (!pincode && address) {
-      const pinMatch = address.match(/\b\d{6}\b/);
-      if (pinMatch) {
-        pincode = pinMatch[0];
-      }
-    }
-
-    return { lat, lng, address, city, state, pincode, place_id: result.place_id };
   };
 
   const handleSuggestionSelect = async (suggestion) => {
@@ -276,83 +243,11 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
   if (!isOpen) return null;
 
   if (loadError) {
-    return (
-      <div className="google-maps-modal-overlay">
-        <div className="google-maps-modal-content">
-          <div className="google-maps-modal-header">
-            <h2>Error Loading Google Maps</h2>
-            <button
-              className="close-button"
-              onClick={handleClose}
-              type="button"
-              aria-label="Close modal"
-            >
-              <X size={24} />
-            </button>
-          </div>
-          <div className="google-maps-modal-body">
-            <div style={{ padding: '20px', textAlign: 'center' }}>
-              <p>Failed to load Google Maps. Please check your API key configuration.</p>
-              <p>
-                <strong>Error:</strong> {loadError.message}
-              </p>
-              <p>
-                <strong>API Key:</strong> {GOOGLE_MAPS_API_KEY ? 'Set' : 'Not Set'}
-              </p>
-              <p style={{ fontSize: '12px', color: '#666', marginTop: '10px' }}>
-                Make sure the Google Maps JavaScript API is enabled in your Google Cloud Console and
-                the API key has no domain restrictions or the correct domains are allowed.
-              </p>
-            </div>
-          </div>
-          <div className="google-maps-modal-footer">
-            <button className="btn btn-secondary" onClick={handleClose} type="button">
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    return <GoogleMapsLoadError loadError={loadError} handleClose={handleClose} />;
   }
 
   if (!isMapsReady) {
-    return (
-      <div className="google-maps-modal-overlay">
-        <div className="google-maps-modal-content">
-          <div className="google-maps-modal-header">
-            <h2>Select Location</h2>
-            <button
-              className="close-button"
-              onClick={handleClose}
-              type="button"
-              aria-label="Close modal"
-            >
-              <X size={24} />
-            </button>
-          </div>
-          <div
-            className="google-maps-modal-body"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-              <p
-                style={{ fontSize: '16px', color: '#475569', marginBottom: '8px', fontWeight: 500 }}
-              >
-                Loading Google Maps...
-              </p>
-              <p style={{ fontSize: '12px', color: '#94a3b8' }}>
-                Please wait while the map initializes.
-              </p>
-            </div>
-          </div>
-          <div className="google-maps-modal-footer">
-            <button className="btn btn-secondary" onClick={handleClose} type="button">
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    return <GoogleMapsLoading handleClose={handleClose} />;
   }
 
   return (
