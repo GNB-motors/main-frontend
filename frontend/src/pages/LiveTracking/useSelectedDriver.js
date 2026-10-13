@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { formatDayText } from './minutesAgoFormat.js';
+import { formatInIST } from '../../utils/dateUtils';
 
 export default function useSelectedDriver(selectedVehicle, vehiclesMeta, driverAssignments) {
   // Selected vehicle's active driver resolver
@@ -16,10 +16,13 @@ export default function useSelectedDriver(selectedVehicle, vehiclesMeta, driverA
     if (assignment) {
       const d =
         assignment.driverId && typeof assignment.driverId === 'object' ? assignment.driverId : null;
+      // The assignment list populates driverId with firstName/lastName, not name.
+      const fullName = [d?.firstName, d?.lastName].filter(Boolean).join(' ');
       return {
-        name: d?.name || d?.fullName || assignment.driverName || 'Primary Driver',
+        name: d?.name || d?.fullName || fullName || assignment.driverName || 'Primary Driver',
         phone: d?.phone || d?.mobileNumber || assignment.driverPhone || null,
-        since: assignment.startDate ? formatDayText(assignment.startDate) : null,
+        // startDate is an ISO timestamp (formatDayText takes minutes-ago).
+        since: formatInIST(assignment.startDate, 'D MMM YYYY'),
       };
     }
 
