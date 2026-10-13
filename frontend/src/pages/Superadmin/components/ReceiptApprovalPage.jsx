@@ -30,7 +30,6 @@ import {
   ArrowDown,
   ArrowUp,
 } from 'lucide-react';
-import apiClient from '../../../utils/axiosConfig';
 import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import EnterprisePagination from '../../../components/ui/EnterprisePagination';
@@ -244,7 +243,7 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
     setChosenOdoMode(next);
     setSavingPolicy(true);
     try {
-      await apiClient.patch('/api/whatsapp/settings', { odometerMode: next });
+      await ReceiptApprovalService.updateOdometerMode(next);
       toast.success('Odometer Triple-Check policy updated');
       setOdoPolicyModalOpen(false);
       refreshOrganization();
@@ -405,7 +404,7 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
     async (draftId, vehReg, e) => {
       e?.stopPropagation();
       try {
-        await apiClient.post(`/api/whatsapp/admin/drafts/${draftId}/publish`);
+        await ReceiptApprovalService.publishDraft(draftId);
         toast.success(`Published receipt for ${vehReg} to Fuel Ledger`);
         await fetchData();
       } catch (err) {
@@ -421,8 +420,7 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
     setBulkBusy(true);
     try {
       const ids = Array.from(selectedIds);
-      const res = await apiClient.post('/api/whatsapp/admin/drafts/bulk-publish', { ids });
-      const data = res.data?.data || {};
+      const data = await ReceiptApprovalService.bulkPublishDrafts(ids);
       const { successCount = 0, failureCount = 0, failed = [] } = data;
 
       if (failureCount === 0) {
@@ -459,9 +457,7 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
       const ids = Array.from(selectedIds);
       const results = await Promise.allSettled(
         ids.map((id) =>
-          apiClient.post(`/api/whatsapp/admin/drafts/${id}/reject`, {
-            reason: bulkRejectReason.trim() || undefined,
-          }),
+          ReceiptApprovalService.rejectDraft(id, bulkRejectReason.trim() || undefined),
         ),
       );
 

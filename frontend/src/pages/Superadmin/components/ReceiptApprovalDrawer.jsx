@@ -19,8 +19,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import apiClient from '../../../utils/axiosConfig';
 import { toast } from 'react-toastify';
+import { ReceiptApprovalService } from './ReceiptApprovalService';
 import {
   fmtMoney,
   fmtLitres,
@@ -66,8 +66,8 @@ const ReceiptApprovalDrawer = ({
     setZoom(1);
     setRotation(0);
     try {
-      const res = await apiClient.get(`/api/whatsapp/admin/drafts/${draftId}`);
-      setDraft(res.data?.data || null);
+      const data = await ReceiptApprovalService.getDraft(draftId);
+      setDraft(data || null);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to load receipt details');
     } finally {
@@ -98,7 +98,7 @@ const ReceiptApprovalDrawer = ({
     if (!draft?._id || actionBusy) return;
     setActionBusy(true);
     try {
-      await apiClient.post(`/api/whatsapp/admin/drafts/${draft._id}/publish`);
+      await ReceiptApprovalService.publishDraft(draft._id);
       toast.success(`Published receipt for ${draft.vehicleReg || 'vehicle'} to Fuel Ledger`);
       await loadDraft();
       onUpdated?.();
@@ -114,9 +114,7 @@ const ReceiptApprovalDrawer = ({
     if (!draft?._id || actionBusy) return;
     setActionBusy(true);
     try {
-      await apiClient.post(`/api/whatsapp/admin/drafts/${draft._id}/reject`, {
-        reason: rejectReason.trim() || undefined,
-      });
+      await ReceiptApprovalService.rejectDraft(draft._id, rejectReason.trim() || undefined);
       toast.success('Receipt marked as rejected');
       setRejectModalOpen(false);
       setRejectReason('');
@@ -134,9 +132,7 @@ const ReceiptApprovalDrawer = ({
     if (!draft?._id || actionBusy) return;
     setActionBusy(true);
     try {
-      await apiClient.post(`/api/whatsapp/admin/drafts/${draft._id}/clear`, {
-        note: 'Cleared from drawer',
-      });
+      await ReceiptApprovalService.clearDraft(draft._id, 'Cleared from drawer');
       toast.success('Receipt cleared from inbox');
       await loadDraft();
       onUpdated?.();

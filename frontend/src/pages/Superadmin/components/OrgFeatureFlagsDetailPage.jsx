@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Save, RotateCcw, Plus, Trash2, X, AlertTriangle, ToggleRight } from 'lucide-react';
 import { PageHeader } from '../../Drivers/Component';
-import apiClient from '../../../utils/axiosConfig';
+import { OrgFeatureFlagsService } from './OrgFeatureFlagsService';
 import useApi from '../../../hooks/useApi';
 import { getUserRole } from '../../../utils/session';
 import './FeatureFlags.css';
@@ -75,12 +75,12 @@ const OrgFeatureFlagsDetailPage = () => {
   } = useApi(
     async (signal) => {
       if (!orgId) return null;
-      const [flagsRes, orgsRes, registryRes] = await Promise.all([
-        apiClient.get(`/api/feature-flags/${orgId}`, { signal }),
-        apiClient.get('/api/admin/organizations', { signal }),
-        apiClient.get('/api/feature-flags/registry', { signal }),
+      const [payload, orgs, registry] = await Promise.all([
+        OrgFeatureFlagsService.getOrgFlags(orgId, { signal }),
+        OrgFeatureFlagsService.listOrganizations({ signal }),
+        OrgFeatureFlagsService.getFlagRegistry({ signal }),
       ]);
-      return { flagsRes, orgsRes, registryRes };
+      return { payload, orgs, registry };
     },
     [JSON.stringify({ orgId })],
   );
@@ -91,13 +91,13 @@ const OrgFeatureFlagsDetailPage = () => {
 
   useEffect(() => {
     if (!flagsData) return;
-    const payload = flagsData.flagsRes.data?.data ?? {};
+    const { payload } = flagsData;
     setFlags(payload.flags || {});
     setOriginal(payload.flags || {});
     setKnownKeys(payload.knownKeys || []);
-    const registry = flagsData.registryRes.data?.data ?? [];
+    const { registry } = flagsData;
     setRegistryKeys(new Set(registry.map((r) => r.key)));
-    const list = flagsData.orgsRes.data?.data ?? [];
+    const list = flagsData.orgs;
     const me = list.find((o) => o._id === orgId);
     setOrgName(me?.companyName || me?.ownerEmail || orgId);
   }, [flagsData, orgId]);
@@ -120,8 +120,8 @@ const OrgFeatureFlagsDetailPage = () => {
     try {
       const features = changedFlags(knownKeys, original, flags);
       if (!Object.keys(features).length) return;
-      const res = await apiClient.patch(`/api/feature-flags/${orgId}`, { features });
-      const next = res.data?.data?.flags || { ...original, ...features };
+      const saved = await OrgFeatureFlagsService.updateOrgFlags(orgId, features);
+      const next = saved?.flags || { ...original, ...features };
       setFlags(next);
       setOriginal(next);
       toast.success('Feature flags saved');
@@ -158,7 +158,7 @@ const OrgFeatureFlagsDetailPage = () => {
     }
     setAdding(true);
     try {
-      await apiClient.post('/api/feature-flags/registry', {
+      await OrgFeatureFlagsService.registerFlag({
         key: trimmedKey,
         label: trimmedLabel,
         description: newDescription.trim(),
@@ -177,7 +177,7 @@ const OrgFeatureFlagsDetailPage = () => {
     if (!removeTarget) return;
     setRemoving(true);
     try {
-      await apiClient.delete(`/api/feature-flags/registry/${encodeURIComponent(removeTarget)}`);
+      await OrgFeatureFlagsService.removeRegisteredFlag(removeTarget);
       toast.success(`Removed "${removeTarget}"`);
       setRemoveTarget(null);
       refetch();

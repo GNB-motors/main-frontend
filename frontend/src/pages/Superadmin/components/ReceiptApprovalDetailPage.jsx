@@ -22,7 +22,7 @@ import {
   TrendingUp,
   FileCheck,
 } from 'lucide-react';
-import apiClient from '../../../utils/axiosConfig';
+import { ReceiptApprovalService } from './ReceiptApprovalService';
 import ImagePreviewModal from '../../Trip/components/ImagePreviewModal';
 import {
   fmtMoney,
@@ -115,8 +115,7 @@ const ReceiptApprovalDetailPage = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await apiClient.get(`/api/whatsapp/admin/drafts/${id}`);
-      setDraft(res.data?.data ?? null);
+      setDraft(await ReceiptApprovalService.getDraft(id));
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to load receipt');
     } finally {
@@ -132,7 +131,7 @@ const ReceiptApprovalDetailPage = () => {
     setActionBusy(true);
     setError('');
     try {
-      await apiClient.post(`/api/whatsapp/admin/drafts/${id}/publish`);
+      await ReceiptApprovalService.publishDraft(id);
       setBanner('Receipt successfully published to the fleet fuel ledger.');
       toast.success('Receipt published to fuel ledger.');
       await load();
@@ -149,8 +148,8 @@ const ReceiptApprovalDetailPage = () => {
     setActionBusy(true);
     setError('');
     try {
-      const body = kind === 'reject' ? { reason: note } : { note };
-      await apiClient.post(`/api/whatsapp/admin/drafts/${id}/${kind}`, body);
+      if (kind === 'reject') await ReceiptApprovalService.rejectDraft(id, note);
+      else await ReceiptApprovalService.clearDraft(id, note);
       const msg = kind === 'reject' ? 'Receipt rejected.' : 'Receipt cleared from inbox.';
       setBanner(msg);
       toast.success(msg);

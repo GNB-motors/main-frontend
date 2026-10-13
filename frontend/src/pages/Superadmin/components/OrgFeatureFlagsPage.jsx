@@ -11,7 +11,7 @@ import {
   Flame,
 } from 'lucide-react';
 import { PageHeader } from '../../Drivers/Component';
-import apiClient from '../../../utils/axiosConfig';
+import { OrgFeatureFlagsService } from './OrgFeatureFlagsService';
 import useApi from '../../../hooks/useApi';
 import { getUserRole } from '../../../utils/session';
 import './FeatureFlags.css';
@@ -56,11 +56,8 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
     setLoading(true);
     setError('');
     try {
-      const url =
-        mode === 'purge'
-          ? `/api/admin/organizations/${org._id}/purge`
-          : `/api/admin/organizations/${org._id}`;
-      await apiClient.delete(url);
+      if (mode === 'purge') await OrgFeatureFlagsService.purgeOrganization(org._id);
+      else await OrgFeatureFlagsService.deleteOrganization(org._id);
       onConfirmed(org._id);
     } catch (e) {
       setError(e.response?.data?.message || 'Operation failed. Please try again.');
@@ -290,14 +287,14 @@ const OrgFeatureFlagsPage = () => {
     data: orgsResponse,
     loading,
     error: orgsError,
-  } = useApi((signal) => apiClient.get('/api/admin/organizations', { signal }), []);
+  } = useApi((signal) => OrgFeatureFlagsService.listOrganizations({ signal }), []);
 
   useEffect(() => {
     if (loading) setError('');
   }, [loading]);
 
   useEffect(() => {
-    if (orgsResponse) setOrgs(orgsResponse.data?.data ?? []);
+    if (orgsResponse) setOrgs(orgsResponse);
   }, [orgsResponse]);
 
   useEffect(() => {
