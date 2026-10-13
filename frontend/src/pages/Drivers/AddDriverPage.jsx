@@ -430,8 +430,8 @@ const AddDriverPage = () => {
               </div>
             )}
             <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-              Their existing records stay with their previous location (history isn't moved). They
-              become
+              Their existing records stay with their previous location (history isn&apos;t moved).
+              They become
               <strong> active in this location</strong>, and <strong>deactivated</strong> in the
               previous one — where they can no longer be assigned anything.
             </p>

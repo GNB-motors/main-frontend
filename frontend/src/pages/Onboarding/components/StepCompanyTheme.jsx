@@ -97,6 +97,7 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange }) => {
           <input
             type="text"
             id="companyName"
+            aria-label="Company Name"
             className="form-input"
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
@@ -110,6 +111,7 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange }) => {
           <input
             type="text"
             id="gstin"
+            aria-label="GSTIN"
             className="form-input"
             value={gstin}
             onChange={(e) => setGstin(e.target.value.toUpperCase())}
@@ -122,6 +124,7 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange }) => {
         </div>
 
         <div className="form-group">
+          {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- CompanyLogoUploader (components/) renders its own file input with no id prop to point htmlFor at */}
           <label>Company Logo (Optional)</label>
           <CompanyLogoUploader
             orgId={orgId}
@@ -135,11 +138,12 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange }) => {
         </div>
 
         <div className="form-group">
-          <label>
+          {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- captions the swatch button group (tied via aria-labelledby), not a single control */}
+          <label id="ob-theme-color-label">
             Primary Theme Color <span className="required">*</span>
           </label>
 
-          <div className="color-swatches">
+          <div className="color-swatches" role="group" aria-labelledby="ob-theme-color-label">
             {colorSwatches.map((color) => (
               <button
                 key={color.hex}
@@ -166,6 +170,7 @@ const StepCompanyTheme = ({ onNext, onBack, onDataChange }) => {
               <input
                 type="text"
                 id="customHex"
+                aria-label="Custom hex color"
                 className="form-input hex-input"
                 value={customHex}
                 onChange={handleCustomHexChange}

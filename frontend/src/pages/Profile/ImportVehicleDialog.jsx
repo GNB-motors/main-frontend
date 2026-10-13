@@ -52,7 +52,7 @@ export const ImportVehicleDialog = ({ candidate, importing, onCancel, onConfirm 
           </div>
         )}
         <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-          Its existing records stay with its previous location (history isn't moved).
+          Its existing records stay with its previous location (history isn&apos;t moved).
         </p>
       </div>
 

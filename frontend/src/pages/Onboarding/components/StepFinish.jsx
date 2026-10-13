@@ -48,7 +48,7 @@ const StepFinish = ({ onFinish, onBack }) => {
       </div>
 
       <div className="ob-finish-text">
-        <h2>You're all set{firstName ? `, ${firstName}` : ''}!</h2>
+        <h2>You&apos;re all set{firstName ? `, ${firstName}` : ''}!</h2>
         <p>GNB Edge is ready. Launch your dashboard to start exploring fleet insights.</p>
       </div>
 

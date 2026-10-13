@@ -23,8 +23,15 @@ export default function RenameForm({ account, onSuccess, onClose }) {
   return (
     <form onSubmit={submit} className="space-y-4">
       <div>
-        <label className="mb-1 block text-xs font-semibold text-slate-600">Friendly Name</label>
+        <label
+          className="mb-1 block text-xs font-semibold text-slate-600"
+          htmlFor="fleetedge-account-name"
+        >
+          Friendly Name
+        </label>
         <input
+          id="fleetedge-account-name"
+          aria-label="Friendly Name"
           required
           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
           value={name}

@@ -110,9 +110,7 @@ export default function DriverTrendDrawer({ isOpen, onClose }) {
 
   return (
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Performance and Driver Trend Tracking"
+      role="presentation"
       style={{
         position: 'fixed',
         inset: 0,
@@ -148,6 +146,9 @@ export default function DriverTrendDrawer({ isOpen, onClose }) {
 
       <div
         className="trend-drawer-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Performance and Driver Trend Tracking"
         style={{
           width: '100%',
           maxWidth: '780px',

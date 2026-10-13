@@ -19,8 +19,19 @@ const BulkUploadRowErrorModal = ({ selected, onClose }) => {
   const { row, error, index } = selected;
 
   return (
-    <div className="mapping-modal-overlay" onClick={onClose}>
-      <div className="mapping-modal-content" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="mapping-modal-overlay"
+      role="presentation"
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
+    >
+      <div
+        className="mapping-modal-content"
+        role="presentation"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="mapping-modal-header">
           <h3>Row {index + 1} - Validation Errors</h3>
           <button onClick={onClose} className="mapping-close-btn">

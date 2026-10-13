@@ -61,8 +61,19 @@ export const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitt
   if (!isOpen) return null;
 
   return (
-    <div className="drivers-modal-overlay" onClick={onClose}>
-      <div className="drivers-modal-content" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="drivers-modal-overlay"
+      role="presentation"
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
+    >
+      <div
+        className="drivers-modal-content"
+        role="presentation"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="drivers-modal-header">
           <h4>Add New Employee</h4>
           <button onClick={onClose} className="drivers-close-btn">
@@ -74,6 +85,7 @@ export const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitt
             <div className="drivers-form-group">
               <label htmlFor="driverFirstName">First Name *</label>
               <input
+                aria-label="First Name"
                 id="driverFirstName"
                 type="text"
                 value={firstName}
@@ -86,6 +98,7 @@ export const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitt
             <div className="drivers-form-group">
               <label htmlFor="driverLastName">Last Name</label>
               <input
+                aria-label="Last Name"
                 id="driverLastName"
                 type="text"
                 value={lastName}
@@ -99,6 +112,7 @@ export const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitt
             <div className="drivers-form-group">
               <label htmlFor="driverEmail">Email</label>
               <input
+                aria-label="Email"
                 id="driverEmail"
                 type="email"
                 value={email}
@@ -110,6 +124,7 @@ export const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitt
             <div className="drivers-form-group">
               <label htmlFor="driverMobile">Mobile Number</label>
               <input
+                aria-label="Mobile Number"
                 id="driverMobile"
                 type="text"
                 value={mobileNumber}
@@ -123,6 +138,7 @@ export const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitt
             <div className="drivers-form-group">
               <label htmlFor="driverLocation">Location</label>
               <input
+                aria-label="Location"
                 id="driverLocation"
                 type="text"
                 value={location}
@@ -134,6 +150,7 @@ export const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitt
             <div className="drivers-form-group">
               <label htmlFor="driverPassword">Password</label>
               <input
+                aria-label="Password"
                 id="driverPassword"
                 type="password"
                 value={password}
@@ -147,6 +164,7 @@ export const AddDriverModal = ({ isOpen, onClose, onSubmit, isLoading: isSubmitt
             <div className="drivers-form-group">
               <label htmlFor="driverRole">Role</label>
               <input
+                aria-label="Role"
                 id="driverRole"
                 type="text"
                 value={role}
@@ -261,8 +279,19 @@ export const EditDriverModal = ({
   if (!isOpen || !driver) return null;
 
   return (
-    <div className="drivers-modal-overlay" onClick={onClose}>
-      <div className="drivers-modal-content" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="drivers-modal-overlay"
+      role="presentation"
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
+    >
+      <div
+        className="drivers-modal-content"
+        role="presentation"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="drivers-modal-header">
           <h4>
             Edit Employee:{' '}
@@ -277,6 +306,7 @@ export const EditDriverModal = ({
             <div className="drivers-form-group">
               <label htmlFor="editDriverFirstName">First Name *</label>
               <input
+                aria-label="First Name"
                 id="editDriverFirstName"
                 type="text"
                 value={firstName}
@@ -289,6 +319,7 @@ export const EditDriverModal = ({
             <div className="drivers-form-group">
               <label htmlFor="editDriverLastName">Last Name</label>
               <input
+                aria-label="Last Name"
                 id="editDriverLastName"
                 type="text"
                 value={lastName}
@@ -302,6 +333,7 @@ export const EditDriverModal = ({
             <div className="drivers-form-group">
               <label htmlFor="editDriverEmail">Email</label>
               <input
+                aria-label="Email"
                 id="editDriverEmail"
                 type="email"
                 value={email}
@@ -313,6 +345,7 @@ export const EditDriverModal = ({
             <div className="drivers-form-group">
               <label htmlFor="editDriverMobile">Mobile Number</label>
               <input
+                aria-label="Mobile Number"
                 id="editDriverMobile"
                 type="text"
                 value={mobileNumber}
@@ -326,6 +359,7 @@ export const EditDriverModal = ({
             <div className="drivers-form-group">
               <label htmlFor="editDriverLocation">Location</label>
               <input
+                aria-label="Location"
                 id="editDriverLocation"
                 type="text"
                 value={location}
@@ -337,6 +371,7 @@ export const EditDriverModal = ({
             <div className="drivers-form-group">
               <label htmlFor="editDriverRole">Role</label>
               <input
+                aria-label="Role"
                 id="editDriverRole"
                 type="text"
                 value={role}

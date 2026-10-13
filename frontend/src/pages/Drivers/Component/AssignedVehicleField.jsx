@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { getVehicleList } from '../../../services/vehicleListService';
 
 const vehicleLabel = (v) => (v ? `${v.registrationNumber}${v.model ? ` - ${v.model}` : ''}` : '');
@@ -16,6 +16,7 @@ const vehicleLabel = (v) => (v ? `${v.registrationNumber}${v.model ? ` - ${v.mod
 const AssignedVehicleField = ({ value, onChange }) => {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const selectId = useId();
 
   useEffect(() => {
     getVehicleList()
@@ -26,8 +27,11 @@ const AssignedVehicleField = ({ value, onChange }) => {
 
   return (
     <div className="basic-info-form-field">
-      <label className="basic-info-label">Assigned Vehicle</label>
+      <label className="basic-info-label" htmlFor={selectId}>
+        Assigned Vehicle
+      </label>
       <select
+        id={selectId}
         className="basic-info-input"
         value={value}
         onChange={(e) => onChange(e.target.value)}

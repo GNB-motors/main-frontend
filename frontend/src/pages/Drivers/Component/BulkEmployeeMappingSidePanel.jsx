@@ -1,16 +1,36 @@
-import React, { useState, useEffect, useRef } from "react";
-import { X, Check } from "lucide-react";
-import ChevronIcon from "../../Trip/assets/ChevronIcon.jsx";
-import NewButton from "@/components/ui/NewButton";
-import { toast } from "react-toastify";
-import "./BulkEmployeeMappingSidePanel.css";
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Check } from 'lucide-react';
+import ChevronIcon from '../../Trip/assets/ChevronIcon.jsx';
+import NewButton from '@/components/ui/NewButton';
+import { toast } from 'react-toastify';
+import './BulkEmployeeMappingSidePanel.css';
 
 const FIELD_TARGETS = [
-  { key: "name", label: "Name", required: true, description: "Full name (will be split into first/last)" },
-  { key: "phone", label: "Phone Number", required: true, description: "Mobile number (E.164 format)" },
-  { key: "email", label: "Email", required: false, description: "Email address (optional)" },
-  { key: "role", label: "Role", required: false, description: "DRIVER or MANAGER (defaults to DRIVER)" },
-  { key: "location", label: "Location", required: false, description: "Location (defaults to Kolkata)" },
+  {
+    key: 'name',
+    label: 'Name',
+    required: true,
+    description: 'Full name (will be split into first/last)',
+  },
+  {
+    key: 'phone',
+    label: 'Phone Number',
+    required: true,
+    description: 'Mobile number (E.164 format)',
+  },
+  { key: 'email', label: 'Email', required: false, description: 'Email address (optional)' },
+  {
+    key: 'role',
+    label: 'Role',
+    required: false,
+    description: 'DRIVER or MANAGER (defaults to DRIVER)',
+  },
+  {
+    key: 'location',
+    label: 'Location',
+    required: false,
+    description: 'Location (defaults to Kolkata)',
+  },
 ];
 
 const BulkEmployeeMappingSidePanel = ({ isOpen, fileColumns, onSave, onClose }) => {
@@ -34,11 +54,20 @@ const BulkEmployeeMappingSidePanel = ({ isOpen, fileColumns, onSave, onClose }) 
           // Try partial matches
           const partialMatch = fileColumns.find((col) => {
             const lower = col.toLowerCase();
-            if (target.key === "name" && (lower.includes("name") || lower.includes("full"))) return true;
-            if (target.key === "phone" && (lower.includes("phone") || lower.includes("mobile") || lower.includes("contact"))) return true;
-            if (target.key === "email" && lower.includes("email")) return true;
-            if (target.key === "role" && lower.includes("role")) return true;
-            if (target.key === "location" && (lower.includes("location") || lower.includes("city") || lower.includes("base"))) return true;
+            if (target.key === 'name' && (lower.includes('name') || lower.includes('full')))
+              return true;
+            if (
+              target.key === 'phone' &&
+              (lower.includes('phone') || lower.includes('mobile') || lower.includes('contact'))
+            )
+              return true;
+            if (target.key === 'email' && lower.includes('email')) return true;
+            if (target.key === 'role' && lower.includes('role')) return true;
+            if (
+              target.key === 'location' &&
+              (lower.includes('location') || lower.includes('city') || lower.includes('base'))
+            )
+              return true;
             return false;
           });
           if (partialMatch) {
@@ -59,7 +88,7 @@ const BulkEmployeeMappingSidePanel = ({ isOpen, fileColumns, onSave, onClose }) 
     };
     const newSelectedOptions = {
       ...selectedOptions,
-      [targetKey]: fileColumn || "",
+      [targetKey]: fileColumn || '',
     };
 
     setMapping(newMapping);
@@ -74,7 +103,9 @@ const BulkEmployeeMappingSidePanel = ({ isOpen, fileColumns, onSave, onClose }) 
     const missing = requiredFields.filter((f) => !mapping[f.key]);
 
     if (missing.length > 0) {
-      toast.error(`Please map the following required fields: ${missing.map((f) => f.label).join(", ")}`);
+      toast.error(
+        `Please map the following required fields: ${missing.map((f) => f.label).join(', ')}`,
+      );
       return;
     }
 
@@ -114,7 +145,7 @@ const BulkEmployeeMappingSidePanel = ({ isOpen, fileColumns, onSave, onClose }) 
     if (dropdownBottom > visibleBottom) {
       const targetScroll = Math.min(
         dropdownBottom - containerRect.height + padding,
-        container.scrollHeight - containerRect.height
+        container.scrollHeight - containerRect.height,
       );
       container.scrollTop = targetScroll;
     } else if (rowTopRelativeToContainer < visibleTop) {
@@ -123,12 +154,19 @@ const BulkEmployeeMappingSidePanel = ({ isOpen, fileColumns, onSave, onClose }) 
     }
   };
 
-  const MatchDropdown = ({ options, selectedOption, onSelect, disabledOptions = [], placeholder = "Select option", onOpen }) => {
+  const MatchDropdown = ({
+    options,
+    selectedOption,
+    onSelect,
+    disabledOptions = [],
+    placeholder = 'Select option',
+    onOpen,
+  }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
     const handleSelect = (option) => {
-      onSelect(option === "__none__" ? "" : option);
+      onSelect(option === '__none__' ? '' : option);
       setIsOpen(false);
     };
 
@@ -148,41 +186,51 @@ const BulkEmployeeMappingSidePanel = ({ isOpen, fileColumns, onSave, onClose }) 
           setIsOpen(false);
         }
       };
-      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener('mousedown', handleClickOutside);
       return () => {
-        document.removeEventListener("mousedown", handleClickOutside);
+        document.removeEventListener('mousedown', handleClickOutside);
       };
     }, []);
 
     return (
       <div className="bem-dropdown-container" ref={dropdownRef}>
-        <div className="bem-dropdown-header" onClick={handleToggle}>
-          <span className={selectedOption ? "bem-selected-text" : "bem-placeholder"}>
+        <button
+          type="button"
+          className="bem-dropdown-header"
+          style={{ width: '100%', textAlign: 'inherit' }}
+          onClick={handleToggle}
+        >
+          <span className={selectedOption ? 'bem-selected-text' : 'bem-placeholder'}>
             {selectedOption || placeholder}
           </span>
-          <span className={`bem-chevron-icon ${isOpen ? "bem-open" : ""}`}>
+          <span className={`bem-chevron-icon ${isOpen ? 'bem-open' : ''}`}>
             <ChevronIcon size={16} />
           </span>
-        </div>
+        </button>
         {isOpen && (
           <div className="bem-dropdown-list-container">
             <div className="bem-options-list">
-              <div
+              <button
+                type="button"
                 className="bem-dropdown-item bem-none-option"
-                onClick={() => handleSelect("__none__")}
+                style={{ display: 'block', width: '100%', textAlign: 'inherit' }}
+                onClick={() => handleSelect('__none__')}
               >
                 None
-              </div>
+              </button>
               {options.map((option) => {
                 const isDisabled = disabledOptions.includes(option);
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={option}
-                    className={`bem-dropdown-item ${isDisabled ? "bem-disabled-option" : ""}`}
+                    className={`bem-dropdown-item ${isDisabled ? 'bem-disabled-option' : ''}`}
+                    style={{ display: 'block', width: '100%', textAlign: 'inherit' }}
+                    aria-disabled={isDisabled}
                     onClick={() => !isDisabled && handleSelect(option)}
                   >
                     {option}
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -207,9 +255,8 @@ const BulkEmployeeMappingSidePanel = ({ isOpen, fileColumns, onSave, onClose }) 
         <div className="bem-matching-container">
           <div className="bem-matching-header">
             <span className="bem-matching-header-text">
-              Map each column from your uploaded CSV file to the corresponding
-              employee field. This ensures accurate employee import and alignment
-              with your employee system.
+              Map each column from your uploaded CSV file to the corresponding employee field. This
+              ensures accurate employee import and alignment with your employee system.
             </span>
           </div>
 
@@ -228,13 +275,11 @@ const BulkEmployeeMappingSidePanel = ({ isOpen, fileColumns, onSave, onClose }) 
                     {target.required && <span className="bem-required">*</span>}
                   </span>
                 </div>
-                <span className="bem-arrow">
-                  →
-                </span>
+                <span className="bem-arrow">→</span>
                 <div className="bem-csv-column">
                   <MatchDropdown
                     options={fileColumns}
-                    selectedOption={selectedOptions[target.key] || ""}
+                    selectedOption={selectedOptions[target.key] || ''}
                     onSelect={(csvColumn) => handleMappingChange(target.key, csvColumn)}
                     disabledOptions={getDisabledOptions(target.key)}
                     placeholder="Choose column"
@@ -247,13 +292,7 @@ const BulkEmployeeMappingSidePanel = ({ isOpen, fileColumns, onSave, onClose }) 
         </div>
 
         <div className="bem-sidepanel-actions">
-          <NewButton
-            variant="secondary"
-            size="md"
-            type="button"
-            text="Cancel"
-            onClick={onClose}
-          />
+          <NewButton variant="secondary" size="md" type="button" text="Cancel" onClick={onClose} />
           <NewButton
             variant="primary"
             size="md"

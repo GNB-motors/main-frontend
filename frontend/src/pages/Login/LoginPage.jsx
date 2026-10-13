@@ -206,6 +206,7 @@ const LoginPage = () => {
               <div className="form-group">
                 <label htmlFor="emailOrMobile">Email or Mobile Number</label>
                 <input
+                  aria-label="Email or Mobile Number"
                   type="text"
                   id="emailOrMobile"
                   className="form-input"
@@ -219,6 +220,7 @@ const LoginPage = () => {
                 <label htmlFor="password">Password</label>
                 <div className="password-input-container">
                   <input
+                    aria-label="Password"
                     type={showPassword ? 'text' : 'password'}
                     id="password"
                     className="form-input"
@@ -250,7 +252,7 @@ const LoginPage = () => {
             </form>
 
             <div className="signup-link">
-              <span>Don't have an account? </span>
+              <span>Don&apos;t have an account? </span>
               <Link to="/contact">Contact Us</Link>
             </div>
           </div>

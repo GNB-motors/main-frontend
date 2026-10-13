@@ -126,7 +126,7 @@ const StepProfile = ({ onNext, onBack, onDataChange }) => {
     <div className="ob-step-body">
       <div className="ob-step-header">
         <h2>Review Your Profile</h2>
-        <p>Let's confirm your basic information before we continue.</p>
+        <p>Let&apos;s confirm your basic information before we continue.</p>
       </div>
 
       <div className="form-section">
@@ -136,6 +136,7 @@ const StepProfile = ({ onNext, onBack, onDataChange }) => {
             <input
               type="text"
               id="firstName"
+              aria-label="First name"
               className="form-input ob-input--readonly"
               value={firstName}
               readOnly
@@ -148,6 +149,7 @@ const StepProfile = ({ onNext, onBack, onDataChange }) => {
             <input
               type="text"
               id="lastName"
+              aria-label="Last name"
               className="form-input ob-input--readonly"
               value={lastName}
               readOnly
@@ -162,6 +164,7 @@ const StepProfile = ({ onNext, onBack, onDataChange }) => {
           <input
             type="email"
             id="email"
+            aria-label="Email"
             className="form-input ob-input--readonly"
             value={email}
             readOnly
@@ -175,6 +178,7 @@ const StepProfile = ({ onNext, onBack, onDataChange }) => {
           <input
             type="tel"
             id="phone"
+            aria-label="Mobile number"
             className="form-input ob-input--readonly"
             value={phone || 'Not provided'}
             readOnly

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useId, useMemo, useRef, useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { Send } from 'lucide-react';
 import { getThemeCSS } from '../../utils/colorTheme.js';
@@ -52,6 +52,7 @@ const BulkUploadVehiclesContent = ({ onCompleted, variant = 'page' }) => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const fileInputRef = useRef(null);
+  const toolbarId = useId();
 
   const businessRefId = null; // Set to null since profile context was removed
 
@@ -284,11 +285,17 @@ const BulkUploadVehiclesContent = ({ onCompleted, variant = 'page' }) => {
       <form onSubmit={handleSubmit}>
         {/* Options toolbar */}
         <div className="bulk-upload-toolbar">
-          <div className="bulk-upload-input-group">
-            <label>Mode</label>
+          <div
+            className="bulk-upload-input-group"
+            role="group"
+            aria-labelledby={`${toolbarId}-mode`}
+          >
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- captions the checkbox group (tied via aria-labelledby); the checkbox has its own wrapping label */}
+            <label id={`${toolbarId}-mode`}>Mode</label>
             <label className="checkbox-card">
               <input
                 type="checkbox"
+                aria-label="Dry-run only"
                 checked={dryRun}
                 onChange={(e) => setDryRun(e.target.checked)}
                 disabled={isSubmitting}
@@ -297,11 +304,17 @@ const BulkUploadVehiclesContent = ({ onCompleted, variant = 'page' }) => {
             </label>
           </div>
 
-          <div className="bulk-upload-input-group">
-            <label>Update Policy</label>
+          <div
+            className="bulk-upload-input-group"
+            role="group"
+            aria-labelledby={`${toolbarId}-policy`}
+          >
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- captions the checkbox group (tied via aria-labelledby); the checkbox has its own wrapping label */}
+            <label id={`${toolbarId}-policy`}>Update Policy</label>
             <label className="checkbox-card">
               <input
                 type="checkbox"
+                aria-label="Upsert (Update if exists)"
                 checked={upsert}
                 onChange={(e) => setUpsert(e.target.checked)}
                 disabled={isSubmitting}

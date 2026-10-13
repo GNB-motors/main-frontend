@@ -17,8 +17,19 @@ const BulkUploadResultsSidePanel = ({
   const errorCount = uploadResult.errorCount || uploadResult.errors?.length || 0;
 
   return (
-    <div className="bem-sidepanel-overlay" onClick={onClose}>
-      <div className="bem-sidepanel-container" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="bem-sidepanel-overlay"
+      role="presentation"
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
+    >
+      <div
+        className="bem-sidepanel-container"
+        role="presentation"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="bem-sidepanel-header">
           <h3>Upload Results</h3>
           <button onClick={onClose} className="bem-close-btn">

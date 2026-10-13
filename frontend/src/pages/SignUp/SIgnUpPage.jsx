@@ -74,6 +74,7 @@ const SignUpPage = () => {
                 <div className="form-group">
                   <label htmlFor="firstName">First Name</label>
                   <input
+                    aria-label="First Name"
                     type="text"
                     id="firstName"
                     className="form-input"
@@ -86,6 +87,7 @@ const SignUpPage = () => {
                 <div className="form-group">
                   <label htmlFor="lastName">Last Name</label>
                   <input
+                    aria-label="Last Name"
                     type="text"
                     id="lastName"
                     className="form-input"
@@ -100,6 +102,7 @@ const SignUpPage = () => {
                 <div className="form-group">
                   <label htmlFor="email">Email</label>
                   <input
+                    aria-label="Email"
                     type="email"
                     id="email"
                     className="form-input"
@@ -112,6 +115,7 @@ const SignUpPage = () => {
                 <div className="form-group">
                   <label htmlFor="mobileNumber">Mobile Number</label>
                   <input
+                    aria-label="Mobile Number"
                     type="tel"
                     id="mobileNumber"
                     className="form-input"
@@ -125,6 +129,7 @@ const SignUpPage = () => {
                 <div className="form-group">
                   <label htmlFor="location">Location</label>
                   <input
+                    aria-label="Location"
                     type="text"
                     id="location"
                     className="form-input"
@@ -136,6 +141,7 @@ const SignUpPage = () => {
                 <div className="form-group">
                   <label htmlFor="gstin">GSTIN</label>
                   <input
+                    aria-label="GSTIN"
                     type="text"
                     id="gstin"
                     className="form-input"
@@ -148,6 +154,7 @@ const SignUpPage = () => {
               <div className="form-group password-group">
                 <label htmlFor="password">Password</label>
                 <input
+                  aria-label="Password"
                   type="password"
                   id="password"
                   className="form-input"

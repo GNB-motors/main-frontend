@@ -13,8 +13,19 @@ export const DeleteDriverModal = ({
   if (!isOpen || !driver) return null;
 
   return (
-    <div className="drivers-modal-overlay" onClick={onClose}>
-      <div className="drivers-modal-content" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="drivers-modal-overlay"
+      role="presentation"
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
+    >
+      <div
+        className="drivers-modal-content"
+        role="presentation"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="drivers-modal-header">
           <h4>Delete Employee</h4>
           <button onClick={onClose} className="drivers-close-btn">
@@ -73,8 +84,19 @@ export const DeactivateDriverModal = ({ isOpen, onClose, onConfirm, driver, isLo
   if (!isOpen || !driver) return null;
 
   return (
-    <div className="drivers-modal-overlay" onClick={onClose}>
-      <div className="drivers-modal-content" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="drivers-modal-overlay"
+      role="presentation"
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
+    >
+      <div
+        className="drivers-modal-content"
+        role="presentation"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="drivers-modal-header">
           <h4>Deactivate Employee</h4>
           <button onClick={onClose} className="drivers-close-btn">
@@ -86,7 +108,7 @@ export const DeactivateDriverModal = ({ isOpen, onClose, onConfirm, driver, isLo
           <div className="drivers-delete-warning">
             <div className="drivers-warning-icon">⚠️</div>
             <p>
-              This employee will be deactivated and won't be able to log in or be assigned work
+              This employee will be deactivated and won&apos;t be able to log in or be assigned work
               until you reactivate them. You can turn them back on anytime with “Mark as active”.
             </p>
           </div>
@@ -135,8 +157,19 @@ export const MoveEmployeeModal = ({ isOpen, onClose, onConfirm, driver, isLoadin
   const fromBranch = driver.currentBranchName || 'another location';
 
   return (
-    <div className="drivers-modal-overlay" onClick={onClose}>
-      <div className="drivers-modal-content" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="drivers-modal-overlay"
+      role="presentation"
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
+    >
+      <div
+        className="drivers-modal-content"
+        role="presentation"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="drivers-modal-header">
           <h4>Move Employee Here</h4>
           <button onClick={onClose} className="drivers-close-btn">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, forwardRef } from 'react';
+import React, { useState, useEffect, useId, forwardRef } from 'react';
 import UserIcon from '../assets/UserIcon.jsx';
 import { useActiveBranch } from '../../../contexts/BranchContext';
 import AssignedVehicleField from './AssignedVehicleField.jsx';
@@ -20,6 +20,7 @@ const BasicInformationForm = forwardRef(
     // so the free-text Location field is redundant and hidden.
     const { branchId } = useActiveBranch();
     const insideBranch = !!branchId;
+    const fieldId = useId();
     const [formData, setFormData] = useState({
       firstName: initialData.firstName || '',
       lastName: initialData.lastName || '',
@@ -83,8 +84,12 @@ const BasicInformationForm = forwardRef(
               {/* Row 1: First Name, Last Name */}
               <div className="basic-info-form-row">
                 <div className="basic-info-form-field">
-                  <label className="basic-info-label">First Name *</label>
+                  <label className="basic-info-label" htmlFor={`${fieldId}-firstName`}>
+                    First Name *
+                  </label>
                   <input
+                    id={`${fieldId}-firstName`}
+                    aria-label="First name"
                     type="text"
                     className="basic-info-input"
                     value={formData.firstName}
@@ -95,8 +100,12 @@ const BasicInformationForm = forwardRef(
                 </div>
 
                 <div className="basic-info-form-field">
-                  <label className="basic-info-label">Last Name {!isEdit && '*'}</label>
+                  <label className="basic-info-label" htmlFor={`${fieldId}-lastName`}>
+                    Last Name {!isEdit && '*'}
+                  </label>
                   <input
+                    id={`${fieldId}-lastName`}
+                    aria-label="Last name"
                     type="text"
                     className="basic-info-input"
                     value={formData.lastName}
@@ -109,8 +118,12 @@ const BasicInformationForm = forwardRef(
               {/* Row 2: Email, Mobile Number */}
               <div className="basic-info-form-row">
                 <div className="basic-info-form-field">
-                  <label className="basic-info-label">Email</label>
+                  <label className="basic-info-label" htmlFor={`${fieldId}-email`}>
+                    Email
+                  </label>
                   <input
+                    id={`${fieldId}-email`}
+                    aria-label="Email"
                     type="email"
                     className="basic-info-input"
                     value={formData.email}
@@ -120,8 +133,12 @@ const BasicInformationForm = forwardRef(
                 </div>
 
                 <div className="basic-info-form-field">
-                  <label className="basic-info-label">Mobile Number {!isEdit && '*'}</label>
+                  <label className="basic-info-label" htmlFor={`${fieldId}-mobileNumber`}>
+                    Mobile Number {!isEdit && '*'}
+                  </label>
                   <input
+                    id={`${fieldId}-mobileNumber`}
+                    aria-label="Mobile number"
                     type="tel"
                     className="basic-info-input"
                     value={formData.mobileNumber}
@@ -137,8 +154,12 @@ const BasicInformationForm = forwardRef(
               <div className="basic-info-form-row">
                 {!insideBranch && (
                   <div className="basic-info-form-field">
-                    <label className="basic-info-label">Location</label>
+                    <label className="basic-info-label" htmlFor={`${fieldId}-location`}>
+                      Location
+                    </label>
                     <input
+                      id={`${fieldId}-location`}
+                      aria-label="Location"
                       type="text"
                       className="basic-info-input"
                       value={formData.location}
@@ -158,8 +179,12 @@ const BasicInformationForm = forwardRef(
                 directly below the row above. */}
               <div className="basic-info-form-row">
                 <div className="basic-info-form-field">
-                  <label className="basic-info-label">Password {!isEdit && '*'}</label>
+                  <label className="basic-info-label" htmlFor={`${fieldId}-password`}>
+                    Password {!isEdit && '*'}
+                  </label>
                   <input
+                    id={`${fieldId}-password`}
+                    aria-label="Password"
                     type="password"
                     className={`basic-info-input ${isEdit ? 'basic-info-input-disabled' : ''}`}
                     value={formData.password}
@@ -172,8 +197,11 @@ const BasicInformationForm = forwardRef(
 
                 {insideBranch ? (
                   <div className="basic-info-form-field">
-                    <label className="basic-info-label">Branch Role</label>
+                    <label className="basic-info-label" htmlFor={`${fieldId}-branchRoleId`}>
+                      Branch Role
+                    </label>
                     <select
+                      id={`${fieldId}-branchRoleId`}
                       className="basic-info-input"
                       value={formData.branchRoleId}
                       onChange={(e) => handleInputChange('branchRoleId', e.target.value)}
@@ -188,8 +216,11 @@ const BasicInformationForm = forwardRef(
                   </div>
                 ) : (
                   <div className="basic-info-form-field">
-                    <label className="basic-info-label">Enterprise Role</label>
+                    <label className="basic-info-label" htmlFor={`${fieldId}-enterpriseRoleId`}>
+                      Enterprise Role
+                    </label>
                     <select
+                      id={`${fieldId}-enterpriseRoleId`}
                       className="basic-info-input"
                       value={formData.enterpriseRoleId}
                       onChange={(e) => handleInputChange('enterpriseRoleId', e.target.value)}
@@ -216,8 +247,11 @@ const BasicInformationForm = forwardRef(
               {isEdit && (
                 <div className="basic-info-form-row">
                   <div className="basic-info-form-field">
-                    <label className="basic-info-label">Status</label>
+                    <label className="basic-info-label" htmlFor={`${fieldId}-status`}>
+                      Status
+                    </label>
                     <select
+                      id={`${fieldId}-status`}
                       className="basic-info-input"
                       value={formData.status}
                       onChange={(e) => handleInputChange('status', e.target.value)}

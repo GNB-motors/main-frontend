@@ -134,11 +134,13 @@ const RoleFormModal = ({ open, onClose, role = null, onSaved, branchId = null })
             </label>
             <input
               id="ac-role-name"
+              aria-label="Role name"
               className="ff-input"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Branch Accountant"
               maxLength={60}
+              // eslint-disable-next-line jsx-a11y/no-autofocus -- first field of the dialog the user just opened
               autoFocus={!locked}
               disabled={locked}
             />
@@ -153,6 +155,7 @@ const RoleFormModal = ({ open, onClose, role = null, onSaved, branchId = null })
             </label>
             <textarea
               id="ac-role-desc"
+              aria-label="Description"
               className="ff-textarea"
               rows={2}
               value={description}
