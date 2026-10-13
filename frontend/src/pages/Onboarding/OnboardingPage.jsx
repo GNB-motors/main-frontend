@@ -12,8 +12,6 @@ import StepFinish from './components/StepFinish.jsx';
 import LaunchAnimation from './components/LaunchAnimation.jsx';
 import { OnboardingService } from './OnboardingService.js';
 import { clearAuthData } from '../../utils/authUtils';
-import apiClient from '../../utils/axiosConfig';
-import { fetchAndResolveLandingRoute } from '../../utils/featureFlagRoutes.js';
 import {
   getToken,
   getOrgId,
@@ -53,7 +51,7 @@ const OnboardingPage = () => {
     }
     if (isOnboarded()) {
       (async () => {
-        const landing = await fetchAndResolveLandingRoute(apiClient);
+        const landing = await OnboardingService.getLandingRoute();
         navigate(landing);
       })();
     }

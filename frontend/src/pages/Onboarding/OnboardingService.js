@@ -1,5 +1,6 @@
 import apiClient from '../../utils/axiosConfig';
 import ApiError from '../../errors/ApiError';
+import { fetchAndResolveLandingRoute } from '../../utils/featureFlagRoutes.js';
 
 const updateOrganization = async (organizationData, orgId) => {
   try {
@@ -50,8 +51,12 @@ const completeOnboarding = async (onboardingData, orgId) => {
   return { success: true, message: 'Onboarding completed successfully' };
 };
 
+// Never throws: any /auth/me failure resolves to the always-accessible /profile.
+const getLandingRoute = () => fetchAndResolveLandingRoute(apiClient);
+
 export const OnboardingService = {
   completeOnboarding,
   updateOrganization,
   updateUserProfile,
+  getLandingRoute,
 };
