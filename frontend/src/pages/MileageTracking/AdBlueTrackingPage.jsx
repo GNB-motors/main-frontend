@@ -6,29 +6,17 @@ import { toast } from 'react-toastify';
 import '../PageStyles.css';
 import '../Trip/RefuelLogsPage.css';
 import './AdBlueTrackingPage.css';
-import apiClient from '../../utils/axiosConfig';
 import { useApi } from '../../hooks/useApi';
 import DocumentService from '../Trip/services/DocumentService';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
 import DataTable from '../../components/ui/DataTable';
 import ChevronIcon from '../Trip/assets/ChevronIcon.jsx';
-import { mapAdBlueLogResponse } from './adBlueTrackingLogic';
+import { MileageTrackingService } from './MileageTrackingService';
 import { formatDateIST } from '../../utils/dateUtils';
 import AdBlueTrackingModals from './AdBlueTrackingModals';
 
 const PAGE_SIZE = 10;
-
-const fetchAdBlueLogs = async ({ page = 1, limit = PAGE_SIZE, search, signal } = {}) => {
-  const params = { page, limit };
-  if (search) params.search = search;
-  const response = await apiClient.get('/api/adblue-logs', { params, signal });
-  if (response.data.status === 'success') {
-    const mapped = mapAdBlueLogResponse(response.data.data);
-    return { logs: mapped, total: response.data.meta?.total ?? mapped.length };
-  }
-  return { logs: [], total: 0 };
-};
 
 const AdBlueTrackingPage = () => {
   const navigate = useNavigate();
@@ -64,7 +52,7 @@ const AdBlueTrackingPage = () => {
     refetch: refetchLogs,
   } = useApi(
     (signal) =>
-      fetchAdBlueLogs({
+      MileageTrackingService.listAdBlueLogs({
         page: pagination.page,
         limit: pagination.limit,
         search: debouncedSearch,
@@ -132,7 +120,7 @@ const AdBlueTrackingPage = () => {
     if (!editingLog) return;
     setSubmitting(true);
     try {
-      await apiClient.put(`/api/adblue-logs/${editingLog.id}`, {
+      await MileageTrackingService.updateAdBlueLog(editingLog.id, {
         litres: parseFloat(editForm.litres),
         amount: parseFloat(editForm.amount),
         place: editForm.place?.trim() || null,
@@ -151,7 +139,7 @@ const AdBlueTrackingPage = () => {
     if (!deletingLog) return;
     setSubmitting(true);
     try {
-      await apiClient.delete(`/api/adblue-logs/${deletingLog.id}`);
+      await MileageTrackingService.deleteAdBlueLog(deletingLog.id);
       toast.success('AdBlue entry deleted');
       setDeletingLog(null);
       refetchLogs();

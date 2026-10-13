@@ -22,11 +22,11 @@ import {
 import { formatDateIST } from '../../utils/dateUtils';
 import '../PageStyles.css';
 import './MileageTracking.css';
-import apiClient from '../../utils/axiosConfig';
 import { useApi } from '../../hooks/useApi';
 import PageShell from '../../components/ui/PageShell';
 import DataTable from '../../components/ui/DataTable';
 import ExportButton from '../../components/ui/ExportButton';
+import { MileageTrackingService } from './MileageTrackingService';
 
 const PAGE_SIZE = 10;
 
@@ -150,24 +150,24 @@ const MileageTrackingVehicleDetail = () => {
     refetch,
   } = useApi(
     (signal) =>
-      apiClient.get('/api/mileage/intervals', {
-        params: { page: pagination.page, limit: pagination.limit, vehicleId },
-        signal,
-      }),
+      MileageTrackingService.listIntervals(
+        { page: pagination.page, limit: pagination.limit, vehicleId },
+        { signal },
+      ),
     [JSON.stringify({ page: pagination.page, vehicleId })],
   );
 
   useEffect(() => {
     if (intervalsResponse) {
-      const data = intervalsResponse.data?.data || [];
+      const data = intervalsResponse.data || [];
       setIntervals(data);
       if (data.length > 0 && !vehicleInfo) {
         setVehicleInfo(data[0].vehicleId);
       }
       const total =
-        intervalsResponse.data?.pagination?.total ??
-        intervalsResponse.data?.total ??
-        intervalsResponse.data?.meta?.total ??
+        intervalsResponse.pagination?.total ??
+        intervalsResponse.total ??
+        intervalsResponse.meta?.total ??
         0;
       setPagination((p) => ({ ...p, total }));
     }

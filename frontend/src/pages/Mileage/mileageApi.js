@@ -1,4 +1,5 @@
 import apiClient from '../../utils/axiosConfig';
+import ApiError from '../../errors/ApiError';
 import { getVehicleList } from '../../services/vehicleListService';
 import { parseSafe } from '../../schemas/validate';
 import { rangeToParams } from './mileageRows';
@@ -46,5 +47,17 @@ export const MileageApi = {
       { vehicleId, ...rangeToParams(range) },
       signal,
       'expectedFuelSchema',
+    ),
+  pumpLedger: (range, signal) =>
+    apiClient.get('/api/fuel-integrity/pump-ledger', { params: rangeToParams(range), signal }).then(
+      (res) =>
+        parseSafe(
+          'pumpLedgerSchema',
+          () => import('../../schemas/pumpLedger.schema.js'),
+          res.data?.data ?? null,
+        ),
+      (error) => {
+        throw ApiError.from(error);
+      },
     ),
 };

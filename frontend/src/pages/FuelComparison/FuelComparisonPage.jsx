@@ -20,7 +20,7 @@ import {
 import { toast } from 'react-toastify';
 import PageShell from '../../components/ui/PageShell';
 import ExportButton from '../../components/ui/ExportButton';
-import { ReportsService } from '../Reports/ReportsService.jsx';
+import { ReportsService } from '../Reports/ReportsService.js';
 import { getUserRole } from '../../utils/session.js';
 import { getThemeCSS } from '../../utils/colorTheme.js';
 import ComparisonTable from './ComparisonTable.jsx';

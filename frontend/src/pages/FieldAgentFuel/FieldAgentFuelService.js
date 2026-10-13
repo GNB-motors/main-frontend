@@ -1,6 +1,8 @@
 import apiClient from '../../utils/axiosConfig';
+import ApiError from '../../errors/ApiError';
 import { getVehicleList } from '../../services/vehicleListService';
 import { getUserRole } from '../../utils/session.js';
+import { extractDocId } from './fuelUploadUtils';
 
 const isFieldAgent = () => getUserRole() === 'FIELD_AGENT';
 
@@ -83,5 +85,49 @@ export const FieldAgentFuelService = {
       },
     });
     return res.data;
+  },
+
+  /**
+   * The vehicle's last logged odometer, read in the vehicle's org.
+   * @returns {Promise<{ data?: object }>} the response body
+   */
+  getLastOdometer: async (vehicleId, orgId, { signal } = {}) => {
+    try {
+      const res = await apiClient.get(`/api/mileage/last-odometer/${vehicleId}`, {
+        headers: { 'X-Org-Id': orgId },
+        signal,
+      });
+      return res.data;
+    } catch (error) {
+      throw ApiError.from(error);
+    }
+  },
+
+  /** Uploads one slip/odometer photo as a vehicle document in `orgId`; resolves to its id. */
+  uploadDocument: async (formData, orgId) => {
+    try {
+      const res = await apiClient.post('/api/documents', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'X-Org-Id': orgId,
+        },
+        timeout: 120000,
+      });
+      return extractDocId(res);
+    } catch (error) {
+      throw ApiError.from(error);
+    }
+  },
+
+  createFuelLog: async (payload, orgId) => {
+    try {
+      const res = await apiClient.post('/api/mileage/fuel-log', payload, {
+        headers: { 'X-Org-Id': orgId },
+        timeout: 60000,
+      });
+      return res.data;
+    } catch (error) {
+      throw ApiError.from(error);
+    }
   },
 };

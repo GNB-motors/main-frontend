@@ -2,24 +2,12 @@ import React, { useState } from 'react';
 import DataTable from '../../../components/ui/DataTable';
 import EnterprisePagination from '../../../components/ui/EnterprisePagination';
 import StatusChip from '../../../components/ui/StatusChip';
-import apiClient from '../../../utils/axiosConfig';
 import { useApi } from '../../../hooks/useApi';
-import { parseSafe } from '../../../schemas/validate';
 import { toISTDateString } from '../../../utils/dateUtils';
 import { formatINR, formatInrCompact, formatLitres, formatNum } from '../../../utils/formatters';
-import { PUMP_MIN_FILLS, mapPumpRow, pumpLedgerSummary, rangeToParams } from '../mileageRows';
+import { PUMP_MIN_FILLS, mapPumpRow, pumpLedgerSummary } from '../mileageRows';
+import { MileageApi } from '../mileageApi';
 import InfoTip from './InfoTip';
-
-const fetchPumpLedger = (range, signal) =>
-  apiClient
-    .get('/api/fuel-integrity/pump-ledger', { params: rangeToParams(range), signal })
-    .then((res) =>
-      parseSafe(
-        'pumpLedgerSchema',
-        () => import('../../../schemas/pumpLedger.schema.js'),
-        res.data?.data ?? null,
-      ),
-    );
 
 const barColour = (p) =>
   p.status === 'INSUFFICIENT_DATA'
@@ -151,7 +139,7 @@ export default function PumpLedgerView({ range, searchQuery = '' }) {
   }
 
   const { data, loading, error, refetch } = useApi(
-    (signal) => fetchPumpLedger(range, signal),
+    (signal) => MileageApi.pumpLedger(range, signal),
     [range.from, range.to],
   );
 

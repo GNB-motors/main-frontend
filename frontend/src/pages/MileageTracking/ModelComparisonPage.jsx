@@ -8,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import apiClient from '../../utils/axiosConfig';
 import { useApi } from '../../hooks/useApi';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
@@ -23,6 +22,7 @@ import { KpiCard } from './modelComparisonCells';
 import ModelAverageBarChart from './ModelAverageBarChart';
 import VehiclePerformanceChart from './VehiclePerformanceChart';
 import ModelSummaryTable from './ModelSummaryTable';
+import { MileageTrackingService } from './MileageTrackingService';
 import './MileageTracking.css';
 
 const MIN_CYCLE_OPTIONS = [1, 2, 3, 5];
@@ -66,15 +66,15 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
     loading: isLoading,
     error: comparisonError,
   } = useApi(
-    (signal) => apiClient.get('/api/mileage/model-comparison', { params, signal }),
+    (signal) => MileageTrackingService.getModelComparison(params, { signal }),
     [JSON.stringify(params)],
   );
 
   useEffect(() => {
     if (comparisonResponse) {
-      const fetched = comparisonResponse.data?.data || [];
+      const fetched = comparisonResponse.data || [];
       setData(fetched);
-      setMeta(comparisonResponse.data?.meta || null);
+      setMeta(comparisonResponse.meta || null);
       setSelectedModel((current) =>
         fetched.some((d) => d.model === current) ? current : (fetched[0]?.model ?? null),
       );

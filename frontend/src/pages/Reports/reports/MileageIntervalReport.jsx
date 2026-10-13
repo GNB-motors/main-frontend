@@ -15,7 +15,7 @@ import DataTable from '../../../components/ui/DataTable';
 import { CsvIcon, ExcelIcon } from '../../../components/Icons';
 import { getVehicleList } from '../../../services/vehicleListService';
 import useApi from '../../../hooks/useApi';
-import { ReportsService } from '../ReportsService.jsx';
+import { ReportsService } from '../ReportsService.js';
 import { exportFilteredReportCsv } from '../../../utils/reportCsvExport';
 import { useMileageIntervalReportColumns } from './useMileageIntervalReportColumns.jsx';
 import {

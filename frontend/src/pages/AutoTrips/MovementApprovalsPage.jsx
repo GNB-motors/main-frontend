@@ -6,12 +6,12 @@ import PageShell from '../../components/ui/PageShell';
 import DataTable from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
-import apiClient from '../../utils/axiosConfig';
 import { getVehicleList } from '../../services/vehicleListService';
 import { useApi } from '../../hooks/useApi';
 import { useMutation } from '../../hooks/useMutation';
 import MovementApprovalService from '../../services/MovementApprovalService';
 import ApprovalCreateDialog from './ApprovalCreateDialog';
+import { AutoTripsService } from './AutoTripsService';
 
 const PAGE_SIZE = 50;
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -55,13 +55,13 @@ export default function MovementApprovalsPage() {
     (signal) =>
       Promise.all([
         getVehicleList({ signal }),
-        apiClient.get('/api/employees', { params: { limit: 500 }, signal }).catch(() => null),
+        AutoTripsService.listEmployees({ limit: 500 }, { signal }).catch(() => null),
       ]),
     [],
   );
   useEffect(() => {
     if (!refs) return;
-    const [vlist, empRes] = refs;
+    const [vlist, empList] = refs;
     setVehicleOptions(
       vlist
         .map((v) => ({
@@ -70,7 +70,7 @@ export default function MovementApprovalsPage() {
         }))
         .filter((v) => v.id && v.id !== 'undefined'),
     );
-    const elist = Array.isArray(empRes?.data?.data) ? empRes.data.data : empRes?.data || [];
+    const elist = empList || [];
     setDriverOptions(
       (elist || [])
         .filter((d) => !d.role || d.role === 'DRIVER')

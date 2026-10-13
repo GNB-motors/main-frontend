@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Loader2, ArrowLeft, Droplets } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import apiClient from '../../utils/axiosConfig';
 import useApi from '../../hooks/useApi';
 import PageShell from '../../components/ui/PageShell';
 import { OCRService } from '../Trip/services';
@@ -13,7 +12,6 @@ import {
   validateImageFile,
   ocrDocTypeFor,
   extractRefuelTime,
-  extractDocId,
   buildDocumentFormData,
   buildFuelLogPayload,
   ocrAutofill,
@@ -57,10 +55,11 @@ const FieldAgentFuelUploadPage = () => {
     error: odometerError,
   } = useApi(
     (signal) =>
-      apiClient.get(`/api/mileage/last-odometer/${selectedVehicle.id}`, {
-        headers: { 'X-Org-Id': selectedVehicle.orgId?._id || selectedVehicle.orgId },
-        signal,
-      }),
+      FieldAgentFuelService.getLastOdometer(
+        selectedVehicle.id,
+        selectedVehicle.orgId?._id || selectedVehicle.orgId,
+        { signal },
+      ),
     [
       JSON.stringify({
         vehicleId: selectedVehicle?.id,
@@ -75,7 +74,7 @@ const FieldAgentFuelUploadPage = () => {
   }, [selectedVehicle]);
 
   useEffect(() => {
-    if (odometerResponse) setLastOdometer(odometerResponse.data?.data || null);
+    if (odometerResponse) setLastOdometer(odometerResponse.data || null);
   }, [odometerResponse]);
 
   useEffect(() => {
@@ -210,37 +209,25 @@ const FieldAgentFuelUploadPage = () => {
     }
     setIsLoading(true);
     try {
-      const reqConfig = {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'X-Org-Id': targetOrgId,
-        },
-        timeout: 120000,
-      };
-
       const fuelData = buildDocumentFormData(fixedDocs.fuel, 'FUEL_SLIP', selectedVehicle.id);
-      const fuelRes = await apiClient.post('/api/documents', fuelData, reqConfig);
+      const fuelDocId = await FieldAgentFuelService.uploadDocument(fuelData, targetOrgId);
 
       let odoDocId = '';
       if (fixedDocs.odometer) {
         const odoData = buildDocumentFormData(fixedDocs.odometer, 'ODOMETER', selectedVehicle.id);
-        const odoRes = await apiClient.post('/api/documents', odoData, reqConfig);
-        odoDocId = extractDocId(odoRes);
+        odoDocId = await FieldAgentFuelService.uploadDocument(odoData, targetOrgId);
       }
 
       const payload = buildFuelLogPayload({
         formData,
         vehicleId: selectedVehicle.id,
         driverId: selectedDriver.id,
-        documentId: extractDocId(fuelRes),
+        documentId: fuelDocId,
         odometerDocId: odoDocId,
         refuelTime: extractRefuelTime(fixedDocs.fuel?.ocrData),
       });
 
-      await apiClient.post('/api/mileage/fuel-log', payload, {
-        headers: { 'X-Org-Id': targetOrgId },
-        timeout: 60000,
-      });
+      await FieldAgentFuelService.createFuelLog(payload, targetOrgId);
 
       toast.success('Mileage log submitted successfully!');
       navigate('/field-agent-fuel');

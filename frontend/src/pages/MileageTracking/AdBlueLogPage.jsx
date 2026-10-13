@@ -10,13 +10,13 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import apiClient from '../../utils/axiosConfig';
 import { TripService, OCRService } from '../Trip/services';
 import { getVehicleList } from '../../services/vehicleListService';
 import PageShell from '../../components/ui/PageShell';
 import { SlotUpload } from './AdBlueSlotUpload';
 import { SearchableEntityDropdown } from './SearchableEntityDropdown';
 import { validateImageFile } from './adBlueLogUtils';
+import { MileageTrackingService } from './MileageTrackingService';
 import './MileageTracking.css';
 
 const AdBlueLogPage = () => {
@@ -159,11 +159,7 @@ const AdBlueLogPage = () => {
         receiptData.append('entityType', 'VEHICLE');
         receiptData.append('entityId', selectedVehicle.id);
         if (receipt.ocrData) receiptData.append('ocrData', JSON.stringify(receipt.ocrData));
-        const receiptRes = await apiClient.post('/api/documents', receiptData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          timeout: 120000,
-        });
-        documentId = receiptRes.data.data?._id || receiptRes.data._id;
+        documentId = await MileageTrackingService.uploadReceipt(receiptData);
       }
 
       const payload = {
@@ -175,7 +171,7 @@ const AdBlueLogPage = () => {
         ...(documentId && { documentId }),
       };
 
-      await apiClient.post('/api/adblue-logs', payload, { timeout: 60000 });
+      await MileageTrackingService.createAdBlueLog(payload);
       toast.success('AdBlue entry saved');
       navigate('/adblue-tracking');
     } catch (err) {

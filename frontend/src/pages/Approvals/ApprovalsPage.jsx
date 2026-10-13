@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { MessageSquare, ShieldCheck, UserCheck } from 'lucide-react';
-import apiClient from '../../utils/axiosConfig';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import ReceiptApprovalPage from '../Superadmin/components/ReceiptApprovalPage';
 import { FieldAgentFuelService } from '../FieldAgentFuel/FieldAgentFuelService';
 import FieldAgentApprovals from './FieldAgentApprovals';
+import { ApprovalsService } from './ApprovalsService';
 import '../Superadmin/components/ReceiptApproval.css';
 import './Approvals.css';
 
@@ -19,10 +19,7 @@ const APPROVAL_TYPES = [
     label: 'WhatsApp',
     hint: 'Fuel bills drivers send on WhatsApp',
     icon: MessageSquare,
-    pendingCount: async () => {
-      const res = await apiClient.get('/api/whatsapp/admin/drafts/counts');
-      return res.data?.data?.READY ?? 0;
-    },
+    pendingCount: (opts) => ApprovalsService.getWhatsAppPendingCount(opts),
   },
   {
     key: 'field-agent',
@@ -30,7 +27,7 @@ const APPROVAL_TYPES = [
     hint: 'Fuel bills field agents upload',
     icon: UserCheck,
     flag: 'fuelIntegrity',
-    pendingCount: async () => (await FieldAgentFuelService.approvalCounts()).PENDING ?? 0,
+    pendingCount: async (opts) => (await FieldAgentFuelService.approvalCounts(opts)).PENDING ?? 0,
   },
 ];
 
@@ -46,13 +43,15 @@ export default function ApprovalsPage() {
 
   useEffect(() => {
     let alive = true;
+    const controller = new AbortController();
     types.forEach((t) => {
-      t.pendingCount()
+      t.pendingCount({ signal: controller.signal })
         .then((n) => alive && setPending((p) => ({ ...p, [t.key]: n })))
         .catch(() => alive && setPending((p) => ({ ...p, [t.key]: null })));
     });
     return () => {
       alive = false;
+      controller.abort();
     };
   }, [types]);
 

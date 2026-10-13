@@ -13,11 +13,11 @@ import {
 } from 'lucide-react';
 import '../PageStyles.css';
 import './MileageTracking.css';
-import apiClient from '../../utils/axiosConfig';
 import { useApi } from '../../hooks/useApi';
 import PageShell from '../../components/ui/PageShell';
 import ExportButton from '../../components/ui/ExportButton';
 import { fmtDateShort } from './mileageIntervalDetailFormat';
+import { MileageTrackingService } from './MileageTrackingService';
 import {
   SlimAnomalyAlert,
   CompactKpiCard,
@@ -43,7 +43,7 @@ const MileageIntervalDetailPage = () => {
     loading: isLoading,
     error: intervalError,
   } = useApi(
-    (signal) => apiClient.get(`/api/mileage/intervals/${id}`, { signal }),
+    (signal) => MileageTrackingService.getInterval(id, { signal }),
     [JSON.stringify({ id })],
     {
       enabled: !!id,
@@ -52,7 +52,7 @@ const MileageIntervalDetailPage = () => {
 
   useEffect(() => {
     if (intervalResponse) {
-      const data = intervalResponse.data?.data;
+      const data = intervalResponse.data;
       if (data) {
         setInterval(data);
       } else {

@@ -7,9 +7,9 @@ import {
 } from '../../../utils/dateUtils';
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Clock3, Droplets, Gauge, Info, Search } from 'lucide-react';
-import apiClient from '../../../utils/axiosConfig';
 import useApi from '../../../hooks/useApi';
 import ReportDataNotice from '../../../components/ui/ReportDataNotice';
+import { ReportsService } from '../ReportsService.js';
 import './AdBlueComparisonReport.css';
 
 const PAGE_SIZE = 20;
@@ -66,26 +66,26 @@ const AdBlueComparisonReport = () => {
     error: comparisonError,
   } = useApi(
     (signal) =>
-      apiClient.get('/api/adblue-logs/comparison', {
-        params: {
+      ReportsService.getAdBlueComparison(
+        {
           page,
           limit: PAGE_SIZE,
           startDate: istDayStartISO(startDate),
           endDate: istDayEndISO(endDate),
           ...(debouncedSearch && { search: debouncedSearch }),
         },
-        signal,
-      }),
+        { signal },
+      ),
     [JSON.stringify({ page, startDate, endDate, debouncedSearch })],
   );
 
   useEffect(() => {
     if (comparisonResponse) {
       setError('');
-      setRows(comparisonResponse.data?.data || []);
-      setSummary(comparisonResponse.data?.summary || {});
-      setMeta(comparisonResponse.data?.meta || { page: 1, total: 0, totalPages: 1 });
-      setMethodology(comparisonResponse.data?.methodology || {});
+      setRows(comparisonResponse.data || []);
+      setSummary(comparisonResponse.summary || {});
+      setMeta(comparisonResponse.meta || { page: 1, total: 0, totalPages: 1 });
+      setMethodology(comparisonResponse.methodology || {});
     }
   }, [comparisonResponse]);
 

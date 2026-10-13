@@ -15,7 +15,7 @@ import KpiCard from '../../../components/ui/KpiCard';
 import ReportDataNotice from '../../../components/ui/ReportDataNotice';
 import { getVehicleList } from '../../../services/vehicleListService';
 import useApi from '../../../hooks/useApi';
-import { ReportsService } from '../ReportsService.jsx';
+import { ReportsService } from '../ReportsService.js';
 import { formatINR, formatKm, formatLitres, formatNum } from '../../../utils/formatters';
 import { formatDateIST } from '../../../utils/dateUtils';
 import { buildFilterParams, extractVehicleOptions } from './mileageIntervalReportUtils';

@@ -297,6 +297,20 @@ export const ReportsService = {
     }
   },
 
+  /**
+   * AdBlue telemetry comparison: logged top-ups against FleetEdge DEF use and tank level.
+   * @param {object} params - { page, limit, startDate, endDate, search }
+   * @returns {Promise<{ data?: Array, summary?: Object, meta?: Object, methodology?: Object }>} the response body
+   */
+  getAdBlueComparison: async (params = {}, { signal } = {}) => {
+    try {
+      const response = await apiClient.get('/api/adblue-logs/comparison', { params, signal });
+      return response.data;
+    } catch (error) {
+      throw ApiError.from(error);
+    }
+  },
+
   /** POST /api/extension/fleetedge/process-tasks — on-demand pull + backfill */
   triggerPullNow: async () => {
     try {

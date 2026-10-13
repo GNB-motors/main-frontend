@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import PageShell from '../../../components/ui/PageShell';
 import DataTable from '../../../components/ui/DataTable';
 import { KpiTile, StatusPill } from '../../../components/overview.primitives.jsx';
-import { ReportsService } from '../ReportsService.jsx';
+import { ReportsService } from '../ReportsService.js';
 import useApi from '../../../hooks/useApi';
 import { laneRow, filterLanes, LANE_FILTERS } from './laneKmReportUtils';
 

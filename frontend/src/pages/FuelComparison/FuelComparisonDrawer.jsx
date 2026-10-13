@@ -22,7 +22,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { ReportsService } from '../Reports/ReportsService.jsx';
+import { ReportsService } from '../Reports/ReportsService.js';
 import { formatDateTimeIST, fmtLitres, fmtKm, fmtDuration } from './formatIST';
 
 const formatForInput = (iso) => formatInIST(iso, 'YYYY-MM-DDTHH:mm') ?? '';

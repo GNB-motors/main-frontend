@@ -1,7 +1,7 @@
 import { formatInIST, istWallClockToISO } from '../../utils/dateUtils';
 import React, { useState, useEffect } from 'react';
 import { Gauge, X, AlertTriangle, ExternalLink, Loader2, Check } from 'lucide-react';
-import { ReportsService } from '../Reports/ReportsService.jsx';
+import { ReportsService } from '../Reports/ReportsService.js';
 
 const formatForInput = (iso) => formatInIST(iso, 'YYYY-MM-DDTHH:mm') ?? '';
 
