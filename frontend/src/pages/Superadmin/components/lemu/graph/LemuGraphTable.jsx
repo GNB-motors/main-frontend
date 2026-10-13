@@ -177,7 +177,16 @@ const LemuGraphTable = ({
         default:
       }
     },
-    [moveActive, selectRow, activeIndex, selectedNodeId, onFocusSearch, onClear, onHopDepth],
+    [
+      moveActive,
+      selectRow,
+      activeIndex,
+      rows.length,
+      selectedNodeId,
+      onFocusSearch,
+      onClear,
+      onHopDepth,
+    ],
   );
 
   const total = totalCount ?? rows.length;
@@ -200,6 +209,7 @@ const LemuGraphTable = ({
         ref={scrollRef}
         className="lemu-graph3d__table-scroll"
         role="presentation"
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- the scroll wrapper is the table view's keyboard target: arrows, Enter and the shortcuts drive the active row
         tabIndex={0}
         onKeyDown={handleKeyDown}
       >
@@ -259,7 +269,10 @@ const LemuGraphTable = ({
                     aria-hidden="true"
                     style={{ padding: 0, width: 3, background: markerFor(s) }}
                   />
-                  <td style={{ borderBottom: `1px solid ${DARK.l2}` }}>
+                  <td
+                    style={{ borderBottom: `1px solid ${DARK.l2}` }}
+                    aria-label={node.label || node.id}
+                  >
                     <div className="lemu-graph3d__table-node">
                       <span className="lemu-graph3d__table-dot" style={dotFor(node, s, hue)} />
                       <span

@@ -78,6 +78,7 @@ const LemuFlagsTab = () => {
           <input
             type="text"
             placeholder="Search by name, email, GSTIN"
+            aria-label="Search organizations"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -106,7 +107,7 @@ const LemuFlagsTab = () => {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={6} aria-label="Loading organizations">
                     <div className="lemu-state">
                       <div className="lemu-spinner" />
                     </div>
@@ -115,7 +116,7 @@ const LemuFlagsTab = () => {
               )}
               {!loading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={6} aria-label="No organizations found">
                     <div className="lemu-state">
                       <div className="lemu-state__icon">
                         <Inbox size={22} />
@@ -135,7 +136,7 @@ const LemuFlagsTab = () => {
                       className="lemu-clickable"
                       onClick={() => navigate(`/superadmin/feature-flags/${org._id}`)}
                     >
-                      <td>
+                      <td aria-label={org.companyName || '(unnamed)'}>
                         <div className="lemu-org">
                           <span className="lemu-org__avatar">
                             <Building2 size={18} />

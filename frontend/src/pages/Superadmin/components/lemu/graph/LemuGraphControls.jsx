@@ -21,7 +21,8 @@ const LAYERS = [
 
 const HOPS = [1, 2, 3, 4, 'all'];
 
-const segCls = (on) => (on ? 'lemu-graph3d__seg-item lemu-graph3d__seg-item--on' : 'lemu-graph3d__seg-item');
+const segCls = (on) =>
+  on ? 'lemu-graph3d__seg-item lemu-graph3d__seg-item--on' : 'lemu-graph3d__seg-item';
 
 const LemuGraphControls = ({
   /* layer */
@@ -88,7 +89,9 @@ const LemuGraphControls = ({
                 onClick={() => onLayer(t.key)}
               >
                 <span className="lemu-kgrail__tab-label">{t.label}</span>
-                <span className="lemu-kgrail__tab-sub">{nf(c.nodes)} n · {nf(c.edges)} e</span>
+                <span className="lemu-kgrail__tab-sub">
+                  {nf(c.nodes)} n · {nf(c.edges)} e
+                </span>
               </button>
             );
           })}
@@ -96,7 +99,9 @@ const LemuGraphControls = ({
 
         <div className="lemu-kgrail__body">
           <div className="lemu-kgrail__search">
-            <span className="lemu-kgrail__glyph" aria-hidden="true">/</span>
+            <span className="lemu-kgrail__glyph" aria-hidden="true">
+              /
+            </span>
             <input
               ref={searchRef}
               type="text"
@@ -137,7 +142,11 @@ const LemuGraphControls = ({
             <span className="lemu-kgrail__hop-label">HOP DEPTH</span>
             <span className="lemu-kgrail__hop-hint">{hopHint}</span>
           </div>
-          <div className="lemu-kgrail__hop-row" role="group" aria-label="Filter graph to nodes within this many hops of the selected node">
+          <div
+            className="lemu-kgrail__hop-row"
+            role="group"
+            aria-label="Filter graph to nodes within this many hops of the selected node"
+          >
             {HOPS.map((h) => {
               const on = hopLive && hopDepth === h;
               return (
@@ -163,27 +172,55 @@ const LemuGraphControls = ({
         <div className="lemu-kgrail__tools">
           <div className="lemu-kgrail__tools-row">
             <div className="lemu-graph3d__seg" role="group" aria-label="Graph view">
-              {[['graph', 'Graph'], ['table', 'Table']].map(([v, label]) => (
-                <button key={v} type="button" aria-pressed={view === v} className={segCls(view === v)} onClick={() => onView(v)}>
+              {[
+                ['graph', 'Graph'],
+                ['table', 'Table'],
+              ].map(([v, label]) => (
+                <button
+                  key={v}
+                  type="button"
+                  aria-pressed={view === v}
+                  className={segCls(view === v)}
+                  onClick={() => onView(v)}
+                >
                   {label}
                 </button>
               ))}
             </div>
             <div className="lemu-graph3d__seg" role="group" aria-label="Graph render mode">
               {['3d', '2d'].map((m) => (
-                <button key={m} type="button" aria-pressed={mode === m} className={segCls(mode === m)} onClick={() => onMode(m)}>
+                <button
+                  key={m}
+                  type="button"
+                  aria-pressed={mode === m}
+                  className={segCls(mode === m)}
+                  onClick={() => onMode(m)}
+                >
                   {m === '3d' ? '3D' : '2D'}
                 </button>
               ))}
             </div>
             <div className="lemu-graph3d__seg" role="group" aria-label="Graph theme">
-              {[['dark', 'Dark'], ['light', 'Light']].map(([t, label]) => (
-                <button key={t} type="button" aria-pressed={theme === t} className={segCls(theme === t)} onClick={() => onTheme(t)}>
+              {[
+                ['dark', 'Dark'],
+                ['light', 'Light'],
+              ].map(([t, label]) => (
+                <button
+                  key={t}
+                  type="button"
+                  aria-pressed={theme === t}
+                  className={segCls(theme === t)}
+                  onClick={() => onTheme(t)}
+                >
                   {label}
                 </button>
               ))}
             </div>
-            <button type="button" className="lemu-btn lemu-btn--outline lemu-kgrail__fit" onClick={onFit}>
+            <button
+              type="button"
+              className="lemu-btn lemu-btn--outline lemu-kgrail__fit"
+              onClick={onFit}
+            >
               <Crosshair size={14} /> Fit
             </button>
             {showSnapshot && (
@@ -193,16 +230,38 @@ const LemuGraphControls = ({
             )}
           </div>
           <div className="lemu-kgrail__tools-row">
-            <label className="lemu-graph3d__toggle" title="Highlight everything that depends on the selected node, and everything it depends on">
-              <input type="checkbox" checked={blastOn} onChange={(e) => onBlast(e.target.checked)} aria-label="Highlight the blast radius of the selected node" />
+            <label
+              className="lemu-graph3d__toggle"
+              title="Highlight everything that depends on the selected node, and everything it depends on"
+            >
+              <input
+                type="checkbox"
+                checked={blastOn}
+                onChange={(e) => onBlast(e.target.checked)}
+                aria-label="Highlight the blast radius of the selected node"
+              />
               <span>Blast radius</span>
             </label>
-            <label className="lemu-graph3d__toggle" title="Light measured nodes on the source→table data path (reads/mirrors edges); everything else dims">
-              <input type="checkbox" checked={livePathOn} onChange={(e) => onLivePath(e.target.checked)} disabled={layer !== 'infra'} aria-label="Highlight the healthy data path from sources to tables" />
+            <label
+              className="lemu-graph3d__toggle"
+              title="Light measured nodes on the source→table data path (reads/mirrors edges); everything else dims"
+            >
+              <input
+                type="checkbox"
+                checked={livePathOn}
+                onChange={(e) => onLivePath(e.target.checked)}
+                disabled={layer !== 'infra'}
+                aria-label="Highlight the healthy data path from sources to tables"
+              />
               <span>Live path</span>
             </label>
             <label className="lemu-graph3d__toggle">
-              <input type="checkbox" checked={showRoutes} onChange={(e) => onShowRoutes(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={showRoutes}
+                onChange={(e) => onShowRoutes(e.target.checked)}
+                aria-label="Show routes"
+              />
               <span>Routes ({routeCount})</span>
             </label>
           </div>
@@ -212,12 +271,16 @@ const LemuGraphControls = ({
                 <span>Diff</span>
                 <select
                   value={diffVersion ?? ''}
-                  onChange={(e) => onDiffVersion(e.target.value === '' ? null : Number(e.target.value))}
+                  onChange={(e) =>
+                    onDiffVersion(e.target.value === '' ? null : Number(e.target.value))
+                  }
                   aria-label="Compare with an older manifest version"
                 >
                   <option value="">Off</option>
                   {versions.map((v) => (
-                    <option key={v.version} value={v.version}>v{v.version}</option>
+                    <option key={v.version} value={v.version}>
+                      v{v.version}
+                    </option>
                   ))}
                 </select>
               </label>

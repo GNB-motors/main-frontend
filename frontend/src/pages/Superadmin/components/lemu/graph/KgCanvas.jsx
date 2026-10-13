@@ -711,16 +711,19 @@ const KgCanvas = ({
   return (
     /* role=img + the counts label: the canvas is a black box to AT, so it
        announces what it is and points at the table view (spec §4.6). */
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- role=img is deliberate (spec §4.6); onKeyDown carries the canvas keyboard shortcuts
     <div
       ref={wrapRef}
       className="lemu-graph3d__canvas"
       role="img"
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- the canvas must take focus for its keyboard shortcuts; role=img is deliberate (spec §4.6)
       tabIndex={0}
       onKeyDown={handleKeyDown}
       aria-label={`Knowledge graph: ${graph.nodes.length} nodes, ${graph.links.length} edges. Switch to table view for a keyboard-accessible list.`}
     >
       <canvas
         ref={canvasRef}
+        aria-hidden="true"
         style={{ display: 'block', width: '100%', height: '100%' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}

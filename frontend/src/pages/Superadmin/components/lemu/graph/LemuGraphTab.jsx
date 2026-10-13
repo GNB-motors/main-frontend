@@ -30,6 +30,19 @@ import LemuGraphTable from './LemuGraphTable';
 import LemuGraphEmpty from './LemuGraphEmpty';
 import GraphErrorBoundary from './GraphErrorBoundary';
 
+const DRAWER_KINDS = [
+  'module',
+  'model',
+  'job',
+  'host',
+  'store',
+  'collection',
+  'table',
+  'pipe',
+  'source',
+  'surface',
+];
+
 /* 3D knowledge graph tab for the LEMU manifest.
 
    The manifest already ships a real graph — `edges` is a typed adjacency list
@@ -502,18 +515,6 @@ const LemuGraphTab = ({
      and routes have no drawer view, so the canvas focuses the camera instead
      of opening an empty panel (its handleClick does the camera work after
      this fires). */
-  const DRAWER_KINDS = [
-    'module',
-    'model',
-    'job',
-    'host',
-    'store',
-    'collection',
-    'table',
-    'pipe',
-    'source',
-    'surface',
-  ];
   const handleNodeClick = useCallback(
     (node, event) => {
       /* Shift-click sets the path-finding target instead of moving the
