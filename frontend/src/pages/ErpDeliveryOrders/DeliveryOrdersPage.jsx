@@ -307,6 +307,7 @@ const DeliveryOrdersPage = ({ embedded = false }) => {
           <input
             type="search"
             placeholder="Search by DO number…"
+            aria-label="Search delivery orders"
             value={searchTerm}
             onChange={handleSearch}
           />

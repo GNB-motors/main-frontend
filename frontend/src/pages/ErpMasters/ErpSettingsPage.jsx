@@ -140,6 +140,7 @@ const ErpSettingsPage = () => {
                 <label htmlFor={`set-${f.key}`}>{f.label}</label>
                 <input
                   id={`set-${f.key}`}
+                  aria-label={f.label}
                   type="number"
                   min={f.min}
                   max={f.max}

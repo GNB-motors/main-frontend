@@ -208,6 +208,7 @@ const PartiesPage = () => {
           <input
             type="text"
             placeholder="Search by name or code..."
+            aria-label="Search parties"
             value={searchTerm}
             onChange={handleSearch}
           />
@@ -272,6 +273,7 @@ const PartiesPage = () => {
                             className="btn-icon"
                             onClick={() => openEdit(party)}
                             title="Edit party"
+                            aria-label="Edit party"
                           >
                             <Edit2 size={16} />
                           </button>
@@ -280,6 +282,7 @@ const PartiesPage = () => {
                             onClick={() => handleDeactivate(party)}
                             disabled={party.status === 'INACTIVE' || saving}
                             title="Deactivate party"
+                            aria-label="Deactivate party"
                           >
                             <Trash2 size={16} />
                           </button>
@@ -341,6 +344,7 @@ const PartiesPage = () => {
                     </label>
                     <input
                       id="party-name"
+                      aria-label="Party Name"
                       value={form.name}
                       onChange={(e) => setField('name', e.target.value)}
                       placeholder="Berger Paints"
@@ -354,6 +358,7 @@ const PartiesPage = () => {
                     </label>
                     <input
                       id="party-code"
+                      aria-label="Code"
                       value={form.code}
                       onChange={(e) => setField('code', e.target.value.toUpperCase())}
                       placeholder="BERGER"
@@ -366,6 +371,7 @@ const PartiesPage = () => {
                     <label htmlFor="party-credit-limit">Credit Limit (₹)</label>
                     <input
                       id="party-credit-limit"
+                      aria-label="Credit Limit (₹)"
                       type="number"
                       min="0"
                       value={form.creditLimit}
@@ -378,6 +384,7 @@ const PartiesPage = () => {
                     <label htmlFor="party-credit-days">Credit Days</label>
                     <input
                       id="party-credit-days"
+                      aria-label="Credit Days"
                       type="number"
                       min="0"
                       max="365"
@@ -412,6 +419,7 @@ const PartiesPage = () => {
                     <label htmlFor="party-gstin">GSTIN</label>
                     <input
                       id="party-gstin"
+                      aria-label="GSTIN"
                       value={form.gstin}
                       onChange={(e) => setField('gstin', e.target.value.toUpperCase())}
                       placeholder="19AABCB1234C1ZK"
@@ -422,6 +430,7 @@ const PartiesPage = () => {
                     <label htmlFor="party-pan">PAN</label>
                     <input
                       id="party-pan"
+                      aria-label="PAN"
                       value={form.pan}
                       onChange={(e) => setField('pan', e.target.value.toUpperCase())}
                       placeholder="AABCB1234C"
@@ -432,6 +441,7 @@ const PartiesPage = () => {
                     <label htmlFor="party-contact-person">Contact Person</label>
                     <input
                       id="party-contact-person"
+                      aria-label="Contact Person"
                       value={form.contact.person}
                       onChange={(e) => setContact('person', e.target.value)}
                     />
@@ -441,6 +451,7 @@ const PartiesPage = () => {
                     <label htmlFor="party-contact-phone">Contact Phone</label>
                     <input
                       id="party-contact-phone"
+                      aria-label="Contact Phone"
                       value={form.contact.phone}
                       onChange={(e) => setContact('phone', e.target.value)}
                     />
@@ -450,6 +461,7 @@ const PartiesPage = () => {
                     <label htmlFor="party-contact-email">Contact Email</label>
                     <input
                       id="party-contact-email"
+                      aria-label="Contact Email"
                       type="email"
                       value={form.contact.email}
                       onChange={(e) => setContact('email', e.target.value)}

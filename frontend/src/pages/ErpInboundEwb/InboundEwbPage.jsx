@@ -301,8 +301,17 @@ const InboundEwbPage = () => {
       </div>
 
       {active && (
-        <div className="erp-modal-backdrop" onClick={closeReview}>
-          <div className="erp-modal" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeReview();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') closeReview();
+          }}
+        >
+          <div className="erp-modal">
             <div className="erp-modal-header">
               <h2>Confirm {active.ewbNumber}</h2>
               <button className="btn-icon" onClick={closeReview}>
@@ -322,8 +331,13 @@ const InboundEwbPage = () => {
                 </div>
 
                 <div className="erp-field full" style={{ marginBottom: 16 }}>
-                  <label>From the e-Way Bill</label>
-                  <table className="erp-table" style={{ minWidth: 0 }}>
+                  {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- captions the read-only table below (aria-labelledby), not a form control; kept a <label> for the .erp-field label styling */}
+                  <label id="ewb-review-source-label">From the e-Way Bill</label>
+                  <table
+                    className="erp-table"
+                    style={{ minWidth: 0 }}
+                    aria-labelledby="ewb-review-source-label"
+                  >
                     <tbody>
                       <tr>
                         <td className="erp-cell-muted">Vehicle</td>
@@ -388,6 +402,7 @@ const InboundEwbPage = () => {
                   <label htmlFor="ewb-cnno">CN number</label>
                   <input
                     id="ewb-cnno"
+                    aria-label="CN number"
                     value={form.cnNumber || ''}
                     onChange={(e) => setField('cnNumber', e.target.value)}
                     placeholder="Defaults to the invoice / EWB number"
@@ -398,6 +413,7 @@ const InboundEwbPage = () => {
                   <label htmlFor="ewb-cndate">CN date</label>
                   <input
                     id="ewb-cndate"
+                    aria-label="CN date"
                     type="date"
                     value={form.cnDate || ''}
                     onChange={(e) => setField('cnDate', e.target.value)}
@@ -409,6 +425,7 @@ const InboundEwbPage = () => {
                   <label htmlFor="ewb-loaddate">Loading date</label>
                   <input
                     id="ewb-loaddate"
+                    aria-label="Loading date"
                     type="date"
                     value={form.loadingDate || ''}
                     onChange={(e) => setField('loadingDate', e.target.value)}
@@ -420,6 +437,7 @@ const InboundEwbPage = () => {
                   <div style={{ display: 'flex', gap: 8 }}>
                     <input
                       id="ewb-qty"
+                      aria-label="Loaded qty"
                       type="number"
                       min="0"
                       step="any"

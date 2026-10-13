@@ -198,6 +198,7 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
       <label htmlFor="pl-planned-start">Planned start</label>
       <input
         id="pl-planned-start"
+        aria-label="Planned start"
         type="datetime-local"
         value={form.plannedStart || ''}
         onChange={(e) => setField('plannedStart', e.target.value)}
@@ -461,6 +462,7 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
               </label>
               <input
                 id="pl-qty"
+                aria-label={`Quantity (${order.qtyUnit})`}
                 type="number"
                 min="0"
                 step="0.01"
@@ -504,6 +506,7 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
               </label>
               <input
                 id="pl-tanker"
+                aria-label="Tanker number"
                 value={form.hireVehicleNumber || ''}
                 onChange={(e) => setField('hireVehicleNumber', e.target.value.toUpperCase())}
                 placeholder="MH04GH4567"
@@ -518,6 +521,7 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
               </label>
               <input
                 id="pl-qty-h"
+                aria-label={`Quantity (${order.qtyUnit})`}
                 type="number"
                 min="0"
                 step="0.01"
@@ -537,6 +541,7 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
               </label>
               <input
                 id="pl-prev"
+                aria-label="Previous cargo"
                 list="pl-materials"
                 value={form.previousCargo || ''}
                 onChange={(e) => setField('previousCargo', e.target.value.toUpperCase())}
@@ -546,7 +551,7 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
               />
               <datalist id="pl-materials">
                 {knownMaterials.map((m) => (
-                  <option key={m} value={m} />
+                  <option key={m} value={m} aria-label={m} />
                 ))}
               </datalist>
               {/* Not an arbitrary field: a hired tanker has no trip history in
@@ -583,6 +588,7 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
               </label>
               <input
                 id="pl-dname"
+                aria-label="Driver name"
                 value={form.hireDriverName || ''}
                 onChange={(e) => setField('hireDriverName', e.target.value)}
                 autoComplete="off"
@@ -596,6 +602,7 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
               </label>
               <input
                 id="pl-dphone"
+                aria-label="Driver phone"
                 value={form.hireDriverPhone || ''}
                 onChange={(e) => setField('hireDriverPhone', e.target.value)}
                 autoComplete="off"
@@ -610,6 +617,7 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
               </label>
               <input
                 id="pl-pb"
+                aria-label="Purchase rate (₹)"
                 type="number"
                 min="0"
                 step="0.01"
@@ -644,6 +652,7 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
                 </label>
                 <textarea
                   id="pl-pbremark"
+                  aria-label="Reason for the manual rate"
                   value={form.pbRateRemark || ''}
                   onChange={(e) => setField('pbRateRemark', e.target.value)}
                   placeholder="Negotiated for this lot"

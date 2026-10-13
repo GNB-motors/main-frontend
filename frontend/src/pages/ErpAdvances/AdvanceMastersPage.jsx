@@ -272,6 +272,7 @@ const AdvanceMastersPage = () => {
                           onClick={() => handleDelete(r)}
                           disabled={saving}
                           title="Remove"
+                          aria-label="Remove"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -312,6 +313,7 @@ const AdvanceMastersPage = () => {
                         </label>
                         <input
                           id="m-model"
+                          aria-label="Vehicle Model"
                           value={form.vehicleModel || ''}
                           onChange={(e) => setField('vehicleModel', e.target.value)}
                           placeholder="TATA LPT 4923"
@@ -352,6 +354,7 @@ const AdvanceMastersPage = () => {
                         </label>
                         <input
                           id="m-kmpl"
+                          aria-label="km per litre"
                           type="number"
                           min="0.1"
                           max="50"
@@ -373,6 +376,7 @@ const AdvanceMastersPage = () => {
                         </label>
                         <input
                           id="f-state"
+                          aria-label="State"
                           value={form.state || ''}
                           onChange={(e) => setField('state', e.target.value.toUpperCase())}
                           placeholder="WEST BENGAL"
@@ -388,6 +392,7 @@ const AdvanceMastersPage = () => {
                         </label>
                         <input
                           id="f-rate"
+                          aria-label="Diesel Rate (₹/L)"
                           type="number"
                           min="0"
                           step="0.01"
@@ -401,6 +406,7 @@ const AdvanceMastersPage = () => {
                         <label htmlFor="f-date">Effective From</label>
                         <input
                           id="f-date"
+                          aria-label="Effective From"
                           type="date"
                           value={form.effectiveDate || ''}
                           onChange={(e) => setField('effectiveDate', e.target.value)}
@@ -433,6 +439,7 @@ const AdvanceMastersPage = () => {
                         <label htmlFor="b-model">Vehicle Model</label>
                         <input
                           id="b-model"
+                          aria-label="Vehicle Model"
                           value={form.vehicleModel || ''}
                           onChange={(e) => setField('vehicleModel', e.target.value)}
                           placeholder="Blank = applies to every model"
@@ -442,6 +449,7 @@ const AdvanceMastersPage = () => {
                         <label htmlFor="b-serv">Servicing (₹)</label>
                         <input
                           id="b-serv"
+                          aria-label="Servicing (₹)"
                           type="number"
                           min="0"
                           value={form.servicingAmount || ''}
@@ -456,6 +464,7 @@ const AdvanceMastersPage = () => {
                         <label htmlFor="b-border">Borders (₹)</label>
                         <input
                           id="b-border"
+                          aria-label="Borders (₹)"
                           type="number"
                           min="0"
                           value={form.bordersAmount || ''}
@@ -467,6 +476,7 @@ const AdvanceMastersPage = () => {
                         <label htmlFor="b-misc">Miscellaneous (₹)</label>
                         <input
                           id="b-misc"
+                          aria-label="Miscellaneous (₹)"
                           type="number"
                           min="0"
                           value={form.miscAmount || ''}

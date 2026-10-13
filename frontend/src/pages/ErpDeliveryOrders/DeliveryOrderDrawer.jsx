@@ -395,6 +395,7 @@ const DeliveryOrderDrawer = ({
               </label>
               <input
                 id="do-material"
+                aria-label="Material"
                 value={form.material}
                 onChange={(e) => setField('material', e.target.value.toUpperCase())}
                 placeholder="MTO"
@@ -411,6 +412,7 @@ const DeliveryOrderDrawer = ({
               </label>
               <input
                 id="do-date"
+                aria-label="DO date"
                 type="date"
                 value={form.doDate}
                 onChange={(e) => setField('doDate', e.target.value)}
@@ -441,6 +443,7 @@ const DeliveryOrderDrawer = ({
               </label>
               <input
                 id="do-qty"
+                aria-label={`Quantity (${unitFor(form.doType)})`}
                 type="number"
                 min="0"
                 step="0.01"
@@ -471,6 +474,7 @@ const DeliveryOrderDrawer = ({
                 </label>
                 <input
                   id="do-capacity"
+                  aria-label="Capacity per vehicle (KL)"
                   type="number"
                   min="0"
                   step="0.01"
@@ -486,6 +490,7 @@ const DeliveryOrderDrawer = ({
               <label htmlFor="do-expiry">Expiry date</label>
               <input
                 id="do-expiry"
+                aria-label="Expiry date"
                 type="date"
                 value={form.expiryDate}
                 min={form.doDate}
@@ -533,6 +538,7 @@ const DeliveryOrderDrawer = ({
                   </label>
                   <input
                     id="do-rate"
+                    aria-label="Manual rate (₹)"
                     type="number"
                     min="0"
                     step="0.01"
@@ -561,6 +567,7 @@ const DeliveryOrderDrawer = ({
                   </label>
                   <textarea
                     id="do-rate-remark"
+                    aria-label="Reason for the manual rate"
                     value={form.rateRemark}
                     onChange={(e) => setField('rateRemark', e.target.value)}
                     placeholder="Negotiated for this lot"

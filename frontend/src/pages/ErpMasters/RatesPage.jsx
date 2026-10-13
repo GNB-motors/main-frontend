@@ -230,6 +230,7 @@ const RatesPage = () => {
                             onClick={() => handleDeactivate(r)}
                             disabled={r.status === 'INACTIVE' || saving}
                             title="Deactivate rate"
+                            aria-label="Deactivate rate"
                           >
                             <Trash2 size={16} />
                           </button>
@@ -342,6 +343,7 @@ const RatesPage = () => {
                     </label>
                     <input
                       id="rate-material"
+                      aria-label="Material"
                       value={form.material}
                       onChange={(e) => setField('material', e.target.value.toUpperCase())}
                       placeholder="MTO"
@@ -355,6 +357,7 @@ const RatesPage = () => {
                     </label>
                     <input
                       id="rate-effective"
+                      aria-label="Effective From"
                       type="date"
                       value={form.effectiveFrom}
                       onChange={(e) => setField('effectiveFrom', e.target.value)}
@@ -368,6 +371,7 @@ const RatesPage = () => {
                     </label>
                     <input
                       id="rate-amount"
+                      aria-label="Rate (₹)"
                       type="number"
                       min="0"
                       step="0.01"

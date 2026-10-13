@@ -369,6 +369,7 @@ const PlacementBoardPage = ({ embedded = false }) => {
                   value={queueSearch}
                   onChange={(e) => setQueueSearch(e.target.value)}
                   placeholder="Search order, customer or material…"
+                  aria-label="Search orders"
                   style={{ paddingLeft: 14 }}
                 />
               </div>
@@ -722,6 +723,7 @@ const PlacementBoardPage = ({ embedded = false }) => {
                 value={vehicleSearch}
                 onChange={(e) => setVehicleSearch(e.target.value)}
                 placeholder="Search vehicle number…"
+                aria-label="Search vehicles"
               />
             </div>
 

@@ -259,10 +259,11 @@ const CallScheduleDrawer = ({
           )}
 
           <div className="erp-field full">
-            <label>
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- names the pattern button group below (aria-labelledby), which has no single form control to point htmlFor at; kept a <label> for the .erp-field label styling */}
+            <label id="cs-pattern-label">
               Calling pattern <span className="required">*</span>
             </label>
-            <div className="erp-preset-row">
+            <div className="erp-preset-row" role="group" aria-labelledby="cs-pattern-label">
               {PATTERNS.map((p) => (
                 <button
                   type="button"

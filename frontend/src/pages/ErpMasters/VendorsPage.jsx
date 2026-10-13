@@ -199,6 +199,7 @@ const VendorsPage = () => {
           <input
             type="text"
             placeholder="Search by name or code..."
+            aria-label="Search vendors"
             value={searchTerm}
             onChange={handleSearch}
           />
@@ -257,7 +258,12 @@ const VendorsPage = () => {
                     </td>
                     <td>
                       <div className="erp-actions">
-                        <button className="btn-icon" onClick={() => openEdit(v)} title="Edit">
+                        <button
+                          className="btn-icon"
+                          onClick={() => openEdit(v)}
+                          title="Edit"
+                          aria-label="Edit"
+                        >
                           <Edit2 size={16} />
                         </button>
                         <button
@@ -267,6 +273,7 @@ const VendorsPage = () => {
                             setBlacklistReason('');
                           }}
                           title={v.isBlacklisted ? 'Remove from blacklist' : 'Blacklist'}
+                          aria-label={v.isBlacklisted ? 'Remove from blacklist' : 'Blacklist'}
                         >
                           <Ban size={16} />
                         </button>
@@ -305,6 +312,7 @@ const VendorsPage = () => {
                     </label>
                     <input
                       id="v-name"
+                      aria-label="Vendor Name"
                       value={form.name}
                       onChange={(e) => setField('name', e.target.value)}
                       required
@@ -316,6 +324,7 @@ const VendorsPage = () => {
                     </label>
                     <input
                       id="v-code"
+                      aria-label="Code"
                       value={form.code}
                       onChange={(e) => setField('code', e.target.value.toUpperCase())}
                       required
@@ -325,6 +334,7 @@ const VendorsPage = () => {
                     <label htmlFor="v-gstin">GSTIN</label>
                     <input
                       id="v-gstin"
+                      aria-label="GSTIN"
                       value={form.gstin}
                       onChange={(e) => setField('gstin', e.target.value.toUpperCase())}
                     />
@@ -333,6 +343,7 @@ const VendorsPage = () => {
                     <label htmlFor="v-pan">PAN</label>
                     <input
                       id="v-pan"
+                      aria-label="PAN"
                       value={form.pan}
                       onChange={(e) => setField('pan', e.target.value.toUpperCase())}
                     />
@@ -341,6 +352,7 @@ const VendorsPage = () => {
                     <label htmlFor="v-person">Contact Person</label>
                     <input
                       id="v-person"
+                      aria-label="Contact Person"
                       value={form.contact.person}
                       onChange={(e) => setContact('person', e.target.value)}
                     />
@@ -349,6 +361,7 @@ const VendorsPage = () => {
                     <label htmlFor="v-phone">Contact Phone</label>
                     <input
                       id="v-phone"
+                      aria-label="Contact Phone"
                       value={form.contact.phone}
                       onChange={(e) => setContact('phone', e.target.value)}
                     />
@@ -357,6 +370,7 @@ const VendorsPage = () => {
                     <label htmlFor="v-tdssec">TDS Section</label>
                     <input
                       id="v-tdssec"
+                      aria-label="TDS Section"
                       value={form.tdsSection}
                       onChange={(e) => setField('tdsSection', e.target.value)}
                       placeholder="194C"
@@ -366,6 +380,7 @@ const VendorsPage = () => {
                     <label htmlFor="v-tdsrate">TDS Rate (%)</label>
                     <input
                       id="v-tdsrate"
+                      aria-label="TDS Rate (%)"
                       type="number"
                       min="0"
                       max="100"
@@ -378,6 +393,7 @@ const VendorsPage = () => {
                     <label htmlFor="v-tankers">Tankers</label>
                     <textarea
                       id="v-tankers"
+                      aria-label="Tankers"
                       value={form.tankersText}
                       onChange={(e) => setField('tankersText', e.target.value)}
                       placeholder={'WB11AA1111, 30\nWB11BB2222, 34'}
@@ -450,6 +466,7 @@ const VendorsPage = () => {
                       </label>
                       <textarea
                         id="bl-reason"
+                        aria-label="Reason"
                         value={blacklistReason}
                         onChange={(e) => setBlacklistReason(e.target.value)}
                         placeholder="Repeated shortages"

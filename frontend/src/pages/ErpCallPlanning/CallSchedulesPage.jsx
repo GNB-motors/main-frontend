@@ -256,6 +256,7 @@ const CallSchedulesPage = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search account, code or KAM…"
+            aria-label="Search schedules"
           />
         </div>
 
@@ -463,8 +464,17 @@ const CallSchedulesPage = () => {
       )}
 
       {deleteTarget && (
-        <div className="erp-modal-backdrop" onClick={() => setDeleteTarget(null)}>
-          <div className="erp-modal" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+        <div
+          className="erp-modal-backdrop"
+          role="presentation"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDeleteTarget(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setDeleteTarget(null);
+          }}
+        >
+          <div className="erp-modal" style={{ maxWidth: 440 }}>
             <div className="erp-modal-header">
               <h2>Delete schedule</h2>
             </div>

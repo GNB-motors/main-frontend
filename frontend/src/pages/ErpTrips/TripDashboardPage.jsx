@@ -477,6 +477,7 @@ const TripDashboardPage = () => {
           <input
             type="text"
             placeholder="Search trip no, vehicle, route or material…"
+            aria-label="Search trips"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />

@@ -190,7 +190,7 @@ const UnloadingPage = ({ embedded = false, initialTab = null }) => {
                 <th>Vehicle</th>
                 <th>CN</th>
                 <th>Loaded</th>
-                <th />
+                <th aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
@@ -319,6 +319,7 @@ const UnloadingPage = ({ embedded = false, initialTab = null }) => {
                   step="0.001"
                   min="0"
                   required
+                  aria-label={`Unloaded qty (${selected.qtyUnit})`}
                   value={form.unloadedQty}
                   onChange={(e) => setForm((f) => ({ ...f, unloadedQty: e.target.value }))}
                 />
@@ -328,6 +329,7 @@ const UnloadingPage = ({ embedded = false, initialTab = null }) => {
                 <input
                   type="number"
                   min="0"
+                  aria-label="Detention days"
                   value={form.detentionDays}
                   onChange={(e) => setForm((f) => ({ ...f, detentionDays: e.target.value }))}
                 />
@@ -338,6 +340,7 @@ const UnloadingPage = ({ embedded = false, initialTab = null }) => {
                   type="number"
                   min="0"
                   placeholder="Leave blank to use DO rate"
+                  aria-label="Sale rate override (optional)"
                   value={form.sbRateOverride}
                   onChange={(e) => setForm((f) => ({ ...f, sbRateOverride: e.target.value }))}
                 />
@@ -347,6 +350,7 @@ const UnloadingPage = ({ embedded = false, initialTab = null }) => {
                   Rate change remark
                   <input
                     type="text"
+                    aria-label="Rate change remark"
                     value={form.sbRateRemark}
                     onChange={(e) => setForm((f) => ({ ...f, sbRateRemark: e.target.value }))}
                   />

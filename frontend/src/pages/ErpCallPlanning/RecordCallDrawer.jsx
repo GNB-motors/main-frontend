@@ -236,6 +236,7 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
                   </label>
                   <input
                     id="order-material"
+                    aria-label="Material"
                     value={order.material}
                     onChange={(e) => setOrder((p) => ({ ...p, material: e.target.value }))}
                     placeholder="e.g. MTO"
@@ -249,6 +250,7 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
                   </label>
                   <input
                     id="order-qty"
+                    aria-label="Quantity"
                     type="number"
                     min="0"
                     step="any"
@@ -285,6 +287,7 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
               </label>
               <input
                 id="next-date"
+                aria-label="Next call"
                 type="date"
                 value={nextDate}
                 min={toDateInput(new Date(Date.now() + 86400000))}
@@ -306,6 +309,7 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
               </label>
               <textarea
                 id="remarks"
+                aria-label={selected.needsRemark ? 'Reason' : 'Remarks'}
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
                 placeholder={
