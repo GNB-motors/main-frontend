@@ -1,14 +1,20 @@
+import React from 'react';
 import { formatDateIST } from '@/utils/dateUtils';
 import { formatCurrency } from '../utils';
 import {
   LedgerCategoryBadge,
   LedgerSourceBadge,
+  LedgerStatusBadge,
   TxTitleCell,
   EntityRefCell,
+  TripRefCell,
+  ReceiptCell,
 } from './ledgerDetailCells';
 
 /** Column defs for the ledger detail transactions table. */
-export function buildLedgerDetailColumns() {
+export function buildLedgerDetailColumns(handlers = {}) {
+  const { onOpenTrip, onPreviewReceipt, onOpenAnomaly } = handlers;
+
   return [
     {
       key: 'date',
@@ -23,7 +29,12 @@ export function buildLedgerDetailColumns() {
       key: 'title',
       label: 'Title',
       render: (tx) => (
-        <TxTitleCell title={tx.title} description={tx.description} mileageFlag={tx.mileageFlag} />
+        <TxTitleCell
+          title={tx.title}
+          description={tx.description}
+          mileageFlag={tx.mileageFlag}
+          onOpenAnomaly={onOpenAnomaly}
+        />
       ),
     },
     {
@@ -34,7 +45,9 @@ export function buildLedgerDetailColumns() {
     {
       key: 'amount',
       label: 'Amount',
-      render: (tx) => <span className="font-semibold">{formatCurrency(tx.amount)}</span>,
+      render: (tx) => (
+        <span className="font-semibold text-gray-900">{formatCurrency(tx.amount)}</span>
+      ),
     },
     {
       key: 'vehicle',
@@ -46,14 +59,26 @@ export function buildLedgerDetailColumns() {
       label: 'Driver',
       render: (tx) => <EntityRefCell entity={tx.driver} kind="driver" />,
     },
-    { key: 'source', label: 'Source', render: (tx) => <LedgerSourceBadge source={tx.source} /> },
+    {
+      key: 'source',
+      label: 'Source',
+      render: (tx) => <LedgerSourceBadge source={tx.source} />,
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (tx) => <LedgerStatusBadge status={tx.status} />,
+    },
     {
       key: 'trip',
-      label: 'Trip',
+      label: 'ERP Trip',
+      render: (tx) => <TripRefCell trip={tx.trip} onOpenTrip={onOpenTrip} />,
+    },
+    {
+      key: 'receipt',
+      label: 'Receipt',
       render: (tx) => (
-        <span className="text-sm text-muted-foreground">
-          {tx.trip ? tx.trip.tripNumber || tx.trip._id?.slice(-6) : '-'}
-        </span>
+        <ReceiptCell receiptUrl={tx.receiptUrl} onPreviewReceipt={onPreviewReceipt} />
       ),
     },
   ];
