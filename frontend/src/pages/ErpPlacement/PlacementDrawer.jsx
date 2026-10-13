@@ -1,28 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowLeft, ArrowRight, Ban, CheckCircle2, Info } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ErpDrawer from '../../components/Erp/ErpDrawer';
 import ErpMasterService from '../ErpMasters/ErpMasterService';
 import PlacementService from './PlacementService';
-
-const money = (n) => (typeof n === 'number' ? `₹${n.toLocaleString('en-IN')}` : '—');
-
-const dateTimeLabel = (d) =>
-  d
-    ? new Date(d).toLocaleString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : 'an unknown time';
-
-const Row = ({ label, children }) => (
-  <div className="erp-detail-row">
-    <span className="erp-detail-label">{label}</span>
-    <span className="erp-detail-value">{children}</span>
-  </div>
-);
+import Row from './drawer/Row';
+import PlannedStartField from './drawer/PlannedStartField';
+import PlacementVerdict from './drawer/PlacementVerdict';
+import OwnVehicleFields from './drawer/OwnVehicleFields';
+import HireVehicleFields from './drawer/HireVehicleFields';
+import HireTermsFields from './drawer/HireTermsFields';
 
 /**
  * Assign one vehicle — own or hired — to the selected delivery order.
@@ -194,59 +181,7 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
    * acceptable. Left blank the server measures from now.
    */
   const plannedStartField = (
-    <div className="erp-field full">
-      <label htmlFor="pl-planned-start">Planned start</label>
-      <input
-        id="pl-planned-start"
-        aria-label="Planned start"
-        type="datetime-local"
-        value={form.plannedStart || ''}
-        onChange={(e) => setField('plannedStart', e.target.value)}
-      />
-      <div style={{ display: 'flex', gap: 8, marginTop: 6, marginBottom: 4 }}>
-        <button
-          type="button"
-          id="btn-planned-start-now"
-          className="btn btn-secondary btn-sm"
-          onClick={() => {
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            setField('plannedStart', now.toISOString().slice(0, 16));
-          }}
-        >
-          Set to now
-        </button>
-        <button
-          type="button"
-          id="btn-planned-start-later"
-          className="btn btn-secondary btn-sm"
-          onClick={() => {
-            const d = new Date(Date.now() + 3 * 3600 * 1000);
-            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-            setField('plannedStart', d.toISOString().slice(0, 16));
-          }}
-        >
-          +3 hours later
-        </button>
-        <button
-          type="button"
-          id="btn-planned-start-earlier"
-          className="btn btn-secondary btn-sm"
-          onClick={() => {
-            const d = new Date(Date.now() - 3 * 3600 * 1000);
-            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-            setField('plannedStart', d.toISOString().slice(0, 16));
-          }}
-        >
-          -3 hours earlier
-        </button>
-      </div>
-      <span className="erp-field-hint">
-        {turnaround
-          ? `This tanker frees up around ${dateTimeLabel(turnaround.reason?.expectedFreeAt)}. Push the start later to clear the ${turnaround.reason?.limitHours}h turnaround.`
-          : 'Leave blank to start as soon as the tanker is free.'}
-      </span>
-    </div>
+    <PlannedStartField form={form} setField={setField} turnaround={turnaround} />
   );
 
   const handleSubmit = async (e) => {
@@ -302,56 +237,12 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
   if (!target || !order) return null;
 
   const verdict = (
-    <>
-      {checking && (
-        <div className="erp-callout info">
-          <Info size={16} />
-          <span>Checking…</span>
-        </div>
-      )}
-
-      {hardBlocks.map((b) => (
-        <div className="erp-callout danger" key={b.code}>
-          <Ban size={16} />
-          <span>
-            <strong>Blocked:</strong> {b.message}
-          </span>
-        </div>
-      ))}
-
-      {fieldBlocks.map((b) => (
-        <div className="erp-callout info" key={b.code}>
-          <Info size={16} />
-          <span>{b.message}</span>
-        </div>
-      ))}
-
-      {check?.warnings?.map((w) => (
-        <div className="erp-callout warning" key={w.code}>
-          <AlertTriangle size={16} />
-          <span>
-            <strong>
-              {w.code === 'TIGHT_TURNAROUND' ? 'Manager override:' : 'Needs approval:'}
-            </strong>{' '}
-            {w.message}
-          </span>
-        </div>
-      ))}
-
-      {check?.info?.map((i) => (
-        <div className="erp-callout info" key={i.code}>
-          <Info size={16} />
-          <span>{i.message}</span>
-        </div>
-      ))}
-
-      {check?.canPlace && !check.needsApproval && (
-        <div className="erp-callout success">
-          <CheckCircle2 size={16} />
-          <span>Nothing blocking — this will be assigned straight away.</span>
-        </div>
-      )}
-    </>
+    <PlacementVerdict
+      checking={checking}
+      hardBlocks={hardBlocks}
+      fieldBlocks={fieldBlocks}
+      check={check}
+    />
   );
 
   return (
@@ -431,251 +322,34 @@ const PlacementDrawer = ({ target, order, vendors = [], drivers = [], onClose, o
         {(!isHire || step === 1) && verdict}
 
         {!isHire ? (
-          <div className="erp-form-grid">
-            <div className="erp-field full">
-              <label htmlFor="pl-driver">
-                Driver <span className="required">*</span>
-              </label>
-              <select
-                id="pl-driver"
-                value={form.driverId || ''}
-                onChange={(e) => setField('driverId', e.target.value)}
-                required
-              >
-                <option value="">Select a driver</option>
-                {drivers.map((d) => (
-                  <option key={d._id} value={d._id}>
-                    {d.firstName} {d.lastName}
-                  </option>
-                ))}
-              </select>
-              <span className="erp-field-hint">
-                {drivers.length === 0
-                  ? 'No spare drivers at this location — every one is on a live placement.'
-                  : `${drivers.length} driver${drivers.length === 1 ? '' : 's'} free at this location.`}
-              </span>
-            </div>
-
-            <div className="erp-field">
-              <label htmlFor="pl-qty">
-                Quantity ({order.qtyUnit}) <span className="required">*</span>
-              </label>
-              <input
-                id="pl-qty"
-                aria-label={`Quantity (${order.qtyUnit})`}
-                type="number"
-                min="0"
-                step="0.01"
-                max={remaining || undefined}
-                value={form.plannedQty || ''}
-                onChange={(e) => setField('plannedQty', e.target.value)}
-                required
-              />
-              <span className="erp-field-hint">
-                {target.tanker.capacity != null && Number(form.plannedQty) > target.tanker.capacity
-                  ? `Over this tanker's ${target.tanker.capacity} ${target.tanker.capacityUnit || ''} capacity.`
-                  : `Up to ${remaining} ${order.qtyUnit} outstanding. Lower it to split across tankers.`}
-              </span>
-            </div>
-            {plannedStartField}
-          </div>
+          <OwnVehicleFields
+            form={form}
+            setField={setField}
+            drivers={drivers}
+            order={order}
+            remaining={remaining}
+            target={target}
+            plannedStartField={plannedStartField}
+          />
         ) : step === 1 ? (
-          <div className="erp-form-grid">
-            <div className="erp-field full">
-              <label htmlFor="pl-vendor">
-                Vendor <span className="required">*</span>
-              </label>
-              <select
-                id="pl-vendor"
-                value={form.vendorId || ''}
-                onChange={(e) => setField('vendorId', e.target.value)}
-                required
-              >
-                <option value="">Select a vendor</option>
-                {vendors.map((v) => (
-                  <option key={v._id} value={v._id}>
-                    {v.name} {v.code ? `(${v.code})` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="erp-field">
-              <label htmlFor="pl-tanker">
-                Tanker number <span className="required">*</span>
-              </label>
-              <input
-                id="pl-tanker"
-                aria-label="Tanker number"
-                value={form.hireVehicleNumber || ''}
-                onChange={(e) => setField('hireVehicleNumber', e.target.value.toUpperCase())}
-                placeholder="MH04GH4567"
-                autoComplete="off"
-                required
-              />
-            </div>
-
-            <div className="erp-field">
-              <label htmlFor="pl-qty-h">
-                Quantity ({order.qtyUnit}) <span className="required">*</span>
-              </label>
-              <input
-                id="pl-qty-h"
-                aria-label={`Quantity (${order.qtyUnit})`}
-                type="number"
-                min="0"
-                step="0.01"
-                max={remaining || undefined}
-                value={form.plannedQty || ''}
-                onChange={(e) => setField('plannedQty', e.target.value)}
-                required
-              />
-              <span className="erp-field-hint">
-                {remaining} {order.qtyUnit} outstanding.
-              </span>
-            </div>
-
-            <div className="erp-field full">
-              <label htmlFor="pl-prev">
-                Previous cargo <span className="required">*</span>
-              </label>
-              <input
-                id="pl-prev"
-                aria-label="Previous cargo"
-                list="pl-materials"
-                value={form.previousCargo || ''}
-                onChange={(e) => setField('previousCargo', e.target.value.toUpperCase())}
-                placeholder="DIESEL"
-                autoComplete="off"
-                required
-              />
-              <datalist id="pl-materials">
-                {knownMaterials.map((m) => (
-                  <option key={m} value={m} aria-label={m} />
-                ))}
-              </datalist>
-              {/* Not an arbitrary field: a hired tanker has no trip history in
-                  this system, so this is the only input the material-compatibility
-                  check has to work from. */}
-              {compat ? (
-                <span
-                  className={`erp-inline-verdict ${compat.ok ? (compat.warn ? 'is-warn' : 'is-ok') : 'is-no'}`}
-                >
-                  {compat.ok ? (
-                    compat.warn ? (
-                      <AlertTriangle size={13} />
-                    ) : (
-                      <CheckCircle2 size={13} />
-                    )
-                  ) : (
-                    <Ban size={13} />
-                  )}
-                  {compat.text}
-                </span>
-              ) : (
-                <span className="erp-field-hint">
-                  What this tanker last carried. The system has no history for a hired tanker, so
-                  this is what the compatibility check against {order.material} runs on.
-                </span>
-              )}
-            </div>
-          </div>
+          <HireVehicleFields
+            form={form}
+            setField={setField}
+            vendors={vendors}
+            order={order}
+            remaining={remaining}
+            knownMaterials={knownMaterials}
+            compat={compat}
+          />
         ) : (
-          <div className="erp-form-grid">
-            <div className="erp-field">
-              <label htmlFor="pl-dname">
-                Driver name <span className="required">*</span>
-              </label>
-              <input
-                id="pl-dname"
-                aria-label="Driver name"
-                value={form.hireDriverName || ''}
-                onChange={(e) => setField('hireDriverName', e.target.value)}
-                autoComplete="off"
-                required
-              />
-            </div>
-
-            <div className="erp-field">
-              <label htmlFor="pl-dphone">
-                Driver phone <span className="required">*</span>
-              </label>
-              <input
-                id="pl-dphone"
-                aria-label="Driver phone"
-                value={form.hireDriverPhone || ''}
-                onChange={(e) => setField('hireDriverPhone', e.target.value)}
-                autoComplete="off"
-                required
-              />
-            </div>
-
-            <div className="erp-field">
-              <label htmlFor="pl-pb">
-                Purchase rate (₹)
-                {pbRateRequired && <span className="required"> *</span>}
-              </label>
-              <input
-                id="pl-pb"
-                aria-label="Purchase rate (₹)"
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.pbRate || ''}
-                onChange={(e) => setField('pbRate', e.target.value)}
-                required={pbRateRequired}
-              />
-              <span className="erp-field-hint">
-                {pbRateRequired
-                  ? 'No master rate for this vendor, route and material — enter one, with a reason.'
-                  : 'Blank uses the rate master. Entering one needs a remark.'}
-              </span>
-            </div>
-
-            <div className="erp-field">
-              <label htmlFor="pl-pbunit">Rate unit</label>
-              <select
-                id="pl-pbunit"
-                value={form.pbRateUnit || 'PER_KL'}
-                onChange={(e) => setField('pbRateUnit', e.target.value)}
-              >
-                <option value="PER_KL">Per KL</option>
-                <option value="PER_MT">Per MT</option>
-                <option value="PER_TRIP">Per Trip</option>
-              </select>
-            </div>
-
-            {(form.pbRate || pbRateRequired) && (
-              <div className="erp-field full">
-                <label htmlFor="pl-pbremark">
-                  Reason for the manual rate <span className="required">*</span>
-                </label>
-                <textarea
-                  id="pl-pbremark"
-                  aria-label="Reason for the manual rate"
-                  value={form.pbRateRemark || ''}
-                  onChange={(e) => setField('pbRateRemark', e.target.value)}
-                  placeholder="Negotiated for this lot"
-                  required
-                />
-              </div>
-            )}
-
-            <div className="erp-field full">
-              <div className="erp-detail-block" style={{ paddingBottom: 0 }}>
-                <Row label="Vendor">
-                  {vendors.find((v) => v._id === form.vendorId)?.name || '—'}
-                </Row>
-                <Row label="Tanker">{form.hireVehicleNumber || '—'}</Row>
-                <Row label="Quantity">
-                  {form.plannedQty} {order.qtyUnit}
-                </Row>
-                <Row label="Sale rate">{money(order.sbRate)}</Row>
-              </div>
-            </div>
-
-            {verdict}
-          </div>
+          <HireTermsFields
+            form={form}
+            setField={setField}
+            pbRateRequired={pbRateRequired}
+            vendors={vendors}
+            order={order}
+            verdict={verdict}
+          />
         )}
       </form>
     </ErpDrawer>

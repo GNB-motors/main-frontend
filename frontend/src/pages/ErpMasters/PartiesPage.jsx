@@ -7,12 +7,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Building2, X } from 'lucide-react';
+import { Plus, Search, Building2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import PartyService from './PartyService';
 import ErpMasterService from './ErpMasterService';
 import useApi from '../../hooks/useApi';
 import PageShell from '../../components/Erp/PageShell';
+import PartiesTable from './PartiesTable';
+import PartyModal from './PartyModal';
 import '../../styles/erp.css';
 
 const EMPTY_FORM = {
@@ -25,8 +27,6 @@ const EMPTY_FORM = {
   kamId: '',
   contact: { person: '', phone: '', email: '' },
 };
-
-const formatCurrency = (n) => (typeof n === 'number' ? `₹${n.toLocaleString('en-IN')}` : '—');
 
 const PartiesPage = () => {
   const [parties, setParties] = useState([]);
@@ -184,13 +184,6 @@ const PartiesPage = () => {
     }
   };
 
-  const kamName = (party) => {
-    const kam = party.kamId;
-    if (!kam) return '—';
-    if (typeof kam === 'string') return '—';
-    return `${kam.firstName || ''} ${kam.lastName || ''}`.trim() || '—';
-  };
-
   return (
     <PageShell
       title="Party Master"
@@ -236,63 +229,12 @@ const PartiesPage = () => {
           </div>
         ) : (
           <>
-            <div className="erp-table-scroll">
-              <table className="erp-table">
-                <thead>
-                  <tr>
-                    <th>Party</th>
-                    <th>Code</th>
-                    <th>KAM</th>
-                    <th>Credit Limit</th>
-                    <th>Credit Days</th>
-                    <th>Status</th>
-                    <th aria-label="Actions" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {parties.map((party) => (
-                    <tr key={party._id}>
-                      <td>
-                        <div className="erp-cell-strong">{party.name}</div>
-                        {party.contact?.person && (
-                          <div className="erp-cell-muted">{party.contact.person}</div>
-                        )}
-                      </td>
-                      <td className="erp-cell-muted">{party.code}</td>
-                      <td>{kamName(party)}</td>
-                      <td className="erp-numeric">{formatCurrency(party.creditLimit)}</td>
-                      <td className="erp-numeric">{party.creditDays ?? 0}</td>
-                      <td>
-                        <span className={`erp-badge ${party.status?.toLowerCase()}`}>
-                          {party.status}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="erp-actions">
-                          <button
-                            className="btn-icon"
-                            onClick={() => openEdit(party)}
-                            title="Edit party"
-                            aria-label="Edit party"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button
-                            className="btn-icon delete"
-                            onClick={() => handleDeactivate(party)}
-                            disabled={party.status === 'INACTIVE' || saving}
-                            title="Deactivate party"
-                            aria-label="Deactivate party"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <PartiesTable
+              parties={parties}
+              openEdit={openEdit}
+              handleDeactivate={handleDeactivate}
+              saving={saving}
+            />
 
             {meta.totalPages > 1 && (
               <div className="erp-pagination">
@@ -320,171 +262,16 @@ const PartiesPage = () => {
       </div>
 
       {showModal && (
-        <div
-          className="erp-modal-backdrop"
-          role="presentation"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowModal(false);
-          }}
-        >
-          <div className="erp-modal">
-            <div className="erp-modal-header">
-              <h2>{editingId ? 'Edit Party' : 'Add Party'}</h2>
-              <button className="btn-icon" onClick={() => setShowModal(false)}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit}>
-              <div className="erp-modal-body">
-                <div className="erp-form-grid">
-                  <div className="erp-field">
-                    <label htmlFor="party-name">
-                      Party Name <span className="required">*</span>
-                    </label>
-                    <input
-                      id="party-name"
-                      aria-label="Party Name"
-                      value={form.name}
-                      onChange={(e) => setField('name', e.target.value)}
-                      placeholder="Berger Paints"
-                      required
-                    />
-                  </div>
-
-                  <div className="erp-field">
-                    <label htmlFor="party-code">
-                      Code <span className="required">*</span>
-                    </label>
-                    <input
-                      id="party-code"
-                      aria-label="Code"
-                      value={form.code}
-                      onChange={(e) => setField('code', e.target.value.toUpperCase())}
-                      placeholder="BERGER"
-                      required
-                    />
-                    <span className="erp-field-hint">Unique within your organization</span>
-                  </div>
-
-                  <div className="erp-field">
-                    <label htmlFor="party-credit-limit">Credit Limit (₹)</label>
-                    <input
-                      id="party-credit-limit"
-                      aria-label="Credit Limit (₹)"
-                      type="number"
-                      min="0"
-                      value={form.creditLimit}
-                      onChange={(e) => setField('creditLimit', e.target.value)}
-                      placeholder="400000"
-                    />
-                  </div>
-
-                  <div className="erp-field">
-                    <label htmlFor="party-credit-days">Credit Days</label>
-                    <input
-                      id="party-credit-days"
-                      aria-label="Credit Days"
-                      type="number"
-                      min="0"
-                      max="365"
-                      value={form.creditDays}
-                      onChange={(e) => setField('creditDays', e.target.value)}
-                      placeholder="30"
-                    />
-                  </div>
-
-                  <div className="erp-field full">
-                    <label htmlFor="party-kam">Key Account Manager</label>
-                    <select
-                      id="party-kam"
-                      value={form.kamId}
-                      onChange={(e) => setField('kamId', e.target.value)}
-                    >
-                      <option value="">Unassigned</option>
-                      {kams.map((kam) => (
-                        <option key={kam._id} value={kam._id}>
-                          {kam.firstName} {kam.lastName}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="erp-field-hint">
-                      {kams.length === 0
-                        ? 'No users with the KAM role yet — create one under Employees.'
-                        : 'Call schedules can reassign this.'}
-                    </span>
-                  </div>
-
-                  <div className="erp-field">
-                    <label htmlFor="party-gstin">GSTIN</label>
-                    <input
-                      id="party-gstin"
-                      aria-label="GSTIN"
-                      value={form.gstin}
-                      onChange={(e) => setField('gstin', e.target.value.toUpperCase())}
-                      placeholder="19AABCB1234C1ZK"
-                    />
-                  </div>
-
-                  <div className="erp-field">
-                    <label htmlFor="party-pan">PAN</label>
-                    <input
-                      id="party-pan"
-                      aria-label="PAN"
-                      value={form.pan}
-                      onChange={(e) => setField('pan', e.target.value.toUpperCase())}
-                      placeholder="AABCB1234C"
-                    />
-                  </div>
-
-                  <div className="erp-field">
-                    <label htmlFor="party-contact-person">Contact Person</label>
-                    <input
-                      id="party-contact-person"
-                      aria-label="Contact Person"
-                      value={form.contact.person}
-                      onChange={(e) => setContact('person', e.target.value)}
-                    />
-                  </div>
-
-                  <div className="erp-field">
-                    <label htmlFor="party-contact-phone">Contact Phone</label>
-                    <input
-                      id="party-contact-phone"
-                      aria-label="Contact Phone"
-                      value={form.contact.phone}
-                      onChange={(e) => setContact('phone', e.target.value)}
-                    />
-                  </div>
-
-                  <div className="erp-field full">
-                    <label htmlFor="party-contact-email">Contact Email</label>
-                    <input
-                      id="party-contact-email"
-                      aria-label="Contact Email"
-                      type="email"
-                      value={form.contact.email}
-                      onChange={(e) => setContact('email', e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="erp-modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowModal(false)}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? 'Saving...' : editingId ? 'Save Changes' : 'Create Party'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <PartyModal
+          editingId={editingId}
+          setShowModal={setShowModal}
+          handleSubmit={handleSubmit}
+          form={form}
+          setField={setField}
+          setContact={setContact}
+          kams={kams}
+          saving={saving}
+        />
       )}
     </PageShell>
   );

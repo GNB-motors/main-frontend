@@ -1,93 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Search, ArrowRight, AlertTriangle, Clock, LayoutGrid, Rows3 } from 'lucide-react';
+import { Search, LayoutGrid, Rows3 } from 'lucide-react';
 import TripDashboardService from './TripDashboardService';
 import PlacementService from '../ErpPlacement/PlacementService';
 import ErpDashboardService from '../ErpHome/ErpDashboardService';
 import '../../styles/erp.css';
 import './TripPipeline.css';
-
-/**
- * The commercial lifecycle, compressed for the row indicator.
- *
- * Mirrors erpTrip.constants.js: Advance and CN run in parallel, but only the CN
- * gate moves the trip to DISPATCHED — advance settlement never blocks dispatch
- * or close. So the *blocking* spine is DO → Placed → CN → Close → POD → Unload
- * → Bill → Paid, and advance is deliberately not a segment here.
- */
-const LIFECYCLE = ['DO', 'Placed', 'CN', 'Close', 'POD', 'Unload', 'Bill', 'Paid'];
-
-/** Index of the stage the trip is *waiting on*. -1 = cancelled. */
-const stageIndex = (state) => {
-  switch (state) {
-    case 'CANCELLED':
-      return -1;
-    case 'PLANNED':
-      return 1;
-    case 'PLACED':
-    case 'ADVANCE_PENDING':
-    case 'ADVANCE_PAID':
-    case 'CN_PENDING':
-      return 2;
-    case 'CN_UPDATED':
-    case 'DISPATCHED':
-      return 3;
-    case 'TRIP_CLOSED':
-      return 4;
-    case 'POD_RECEIVED':
-      return 5;
-    case 'UNLOADED':
-      return 6;
-    case 'BILLED':
-      return 7;
-    default:
-      return 1;
-  }
-};
-
-/**
- * What the operator has to do next, so nobody has to read two gate columns and
- * infer it. `wait` means the ball is in someone else's court.
- */
-const nextAction = (trip) => {
-  switch (trip.state) {
-    case 'CANCELLED':
-      return null;
-    // Queued behind a laden trip. Starting it is what cuts the previous trip's
-    // telematics window, so it is a deliberate act and not automatic.
-    case 'PLANNED':
-      return { label: 'Start trip', drawer: 'start' };
-    case 'PLACED':
-    case 'ADVANCE_PENDING':
-    case 'ADVANCE_PAID':
-    case 'CN_PENDING':
-      return { label: 'Create CN', drawer: 'cn' };
-    case 'CN_UPDATED':
-    case 'DISPATCHED':
-      return { label: 'Close trip', drawer: 'close' };
-    case 'TRIP_CLOSED':
-      return { label: 'Upload POD', drawer: 'pod' };
-    case 'POD_RECEIVED':
-      return { label: 'Enter unloading', drawer: 'unloading' };
-    case 'UNLOADED':
-      return { label: 'Generate sale bill', drawer: 'salebill' };
-    case 'BILLED':
-      return { label: 'Awaiting payment', drawer: 'receipt', wait: true };
-    default:
-      return null;
-  }
-};
-
-const BOARD_COLUMNS = [
-  { state: 'PLANNED', label: 'Planned' },
-  { state: 'PLACED', label: 'Placed' },
-  { state: 'DISPATCHED', label: 'In transit' },
-  { state: 'TRIP_CLOSED', label: 'Closed' },
-  { state: 'POD_RECEIVED', label: 'POD in' },
-  { state: 'UNLOADED', label: 'Unloaded' },
-  { state: 'BILLED', label: 'Billed' },
-];
+import BOARD_COLUMNS from './dashboard/boardColumns';
+import PendingPlacements from './dashboard/PendingPlacements';
+import TripTable from './dashboard/TripTable';
+import TripBoard from './dashboard/TripBoard';
 
 // Only states the backend actually stores. The previous list omitted
 // DISPATCHED, so the busiest state on the board could not be filtered at all.
@@ -101,85 +24,6 @@ const FILTER_STATES = [
   'BILLED',
   'CANCELLED',
 ];
-
-const badgeClass = (state) => {
-  switch (state) {
-    case 'PLANNED':
-      return 'neutral';
-    case 'PLACED':
-      return 'warning';
-    case 'DISPATCHED':
-    case 'POD_RECEIVED':
-    case 'UNLOADED':
-      return 'info';
-    case 'TRIP_CLOSED':
-    case 'BILLED':
-      return 'success';
-    case 'CANCELLED':
-      return 'danger';
-    default:
-      return 'neutral';
-  }
-};
-
-const day = (d) =>
-  d
-    ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })
-    : '—';
-
-const MiniLifecycle = ({ state }) => {
-  const idx = stageIndex(state);
-  return (
-    <span className="trippipe-mini" title={idx < 0 ? 'Cancelled' : `Waiting on ${LIFECYCLE[idx]}`}>
-      <span className="trippipe-mini-segs">
-        {LIFECYCLE.map((label, i) => (
-          <span
-            key={label}
-            className={`trippipe-mini-seg ${
-              idx < 0 ? 'cancelled' : i < idx ? 'done' : i === idx ? 'current' : ''
-            }`}
-          />
-        ))}
-      </span>
-      {/* Eight dots alone do not say how far along a trip is. */}
-      <span className="trippipe-mini-count">
-        {idx < 0 ? 'cancelled' : `${idx} / ${LIFECYCLE.length}`}
-      </span>
-    </span>
-  );
-};
-
-const NextActionCell = ({ trip }) => {
-  const action = nextAction(trip);
-  if (!action) return <span className="trippipe-action none">—</span>;
-  return (
-    <Link
-      to={`/erp/trips/${trip._id}${action.wait ? '' : `?drawer=${action.drawer}`}`}
-      className={`trippipe-action ${action.wait ? 'wait' : 'act'}`}
-    >
-      {action.label}
-      {!action.wait && <ArrowRight size={13} />}
-    </Link>
-  );
-};
-
-const AgeingFlag = ({ trip }) => {
-  if (trip.ageingFlag) {
-    return (
-      <span className="trippipe-flag">
-        <AlertTriangle size={11} /> {trip.ageingDays}d
-      </span>
-    );
-  }
-  if (trip.ageingDays >= 30) {
-    return (
-      <span className="trippipe-flag warn">
-        <Clock size={11} /> {trip.ageingDays}d
-      </span>
-    );
-  }
-  return null;
-};
 
 const TripDashboardPage = () => {
   const [trips, setTrips] = useState([]);
@@ -412,63 +256,7 @@ const TripDashboardPage = () => {
           A placement waiting on approval has no trip row, so without this the
           operator raises a placement and the pipeline looks unchanged. Kept out
           of `stats` and the stage filters on purpose: these are not trips. */}
-      {pendingPlacements.length > 0 && (
-        <section className="trippipe-pending">
-          <header className="trippipe-pending-head">
-            <Clock size={15} />
-            <div>
-              <strong>
-                {pendingPlacements.length} placement
-                {pendingPlacements.length === 1 ? '' : 's'} awaiting approval
-              </strong>
-              <span className="erp-cell-muted">
-                These have no trip yet — one is created the moment approval clears.
-              </span>
-            </div>
-            <Link to="/erp/approvals" className="trippipe-pending-link">
-              Review approvals
-              <ArrowRight size={14} />
-            </Link>
-          </header>
-
-          <div className="erp-table-scroll">
-            <table className="erp-table compact">
-              <thead>
-                <tr>
-                  <th>Placement</th>
-                  <th>Delivery order</th>
-                  <th>Vehicle / vendor</th>
-                  <th>Planned</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendingPlacements.map((p) => (
-                  <tr key={p._id}>
-                    <td className="erp-cell-strong">{p.placementNumber}</td>
-                    <td>
-                      <div>{p.doId?.doNumber || '—'}</div>
-                      <div className="erp-cell-muted">{p.doId?.material || ''}</div>
-                    </td>
-                    <td className="erp-cell-muted">
-                      {p.vehicleId?.registrationNumber || p.vendorId?.name || '—'}
-                    </td>
-                    <td>
-                      {p.plannedQty ?? '—'} {p.qtyUnit || ''}
-                    </td>
-                    <td>
-                      <span className="erp-badge warning">
-                        <Clock size={11} />
-                        Awaiting approval
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
+      {pendingPlacements.length > 0 && <PendingPlacements pendingPlacements={pendingPlacements} />}
 
       {/* ── Filters ── */}
       <div className="trippipe-toolbar">
@@ -521,118 +309,10 @@ const TripDashboardPage = () => {
       </div>
 
       {/* ── Table view ── */}
-      {view === 'table' && (
-        <div className="trippipe-tablewrap">
-          <table className="trippipe-table">
-            <thead>
-              <tr>
-                <th>Trip</th>
-                <th>Date</th>
-                <th>Progress</th>
-                <th>Stage</th>
-                <th>Next action</th>
-                <th>Vehicle</th>
-                <th>Client</th>
-                <th>Route</th>
-                <th>Qty (P/L)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={9} className="trippipe-empty">
-                    Loading trips…
-                  </td>
-                </tr>
-              ) : trips.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="trippipe-empty">
-                    No trips match these filters.
-                  </td>
-                </tr>
-              ) : (
-                trips.map((t) => (
-                  <tr key={t._id}>
-                    <td>
-                      <Link to={`/erp/trips/${t._id}`} className="trippipe-trip">
-                        {t.tripNumber}
-                      </Link>
-                      {t.cnNumber && <span className="trippipe-sub">CN {t.cnNumber}</span>}
-                    </td>
-                    <td className="trippipe-num">
-                      {day(t.tripDate)}
-                      <AgeingFlag trip={t} />
-                    </td>
-                    <td>
-                      <MiniLifecycle state={t.state} />
-                    </td>
-                    <td>
-                      <span className={`erp-badge ${badgeClass(t.state)}`}>
-                        {t.state?.replace(/_/g, ' ')}
-                      </span>
-                    </td>
-                    <td>
-                      <NextActionCell trip={t} />
-                    </td>
-                    <td className="trippipe-num">{t.vehicleNumber || '—'}</td>
-                    <td>{t.partyId?.name || '—'}</td>
-                    <td className="trippipe-route">
-                      {t.fromLocation ? `${t.fromLocation} → ${t.toLocation}` : '—'}
-                      {t.material && <span className="trippipe-sub">{t.material}</span>}
-                    </td>
-                    <td className="trippipe-num">
-                      {t.plannedQty || 0} / {t.loadedQty ?? '—'}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {view === 'table' && <TripTable trips={trips} loading={loading} />}
 
       {/* ── Board view: the pipeline, literally ── */}
-      {view === 'board' && (
-        <div className="trippipe-board">
-          {BOARD_COLUMNS.map((col) => {
-            const items = grouped[col.state] || [];
-            return (
-              <section key={col.state} className="trippipe-col">
-                <header className="trippipe-col-head">
-                  {col.label}
-                  <span className="trippipe-col-count">{items.length}</span>
-                </header>
-                <div className="trippipe-col-body">
-                  {loading ? (
-                    <p className="trippipe-col-empty">Loading…</p>
-                  ) : items.length === 0 ? (
-                    <p className="trippipe-col-empty">Nothing here.</p>
-                  ) : (
-                    items.map((t) => (
-                      <Link key={t._id} to={`/erp/trips/${t._id}`} className="trippipe-card">
-                        <div className="trippipe-card-top">
-                          <span className="trippipe-card-no">{t.tripNumber}</span>
-                          <span style={{ marginLeft: 'auto' }}>
-                            <AgeingFlag trip={t} />
-                          </span>
-                        </div>
-                        <div className="trippipe-card-meta">
-                          {t.vehicleNumber || '—'} · {t.partyId?.name || '—'}
-                          <br />
-                          {t.fromLocation ? `${t.fromLocation} → ${t.toLocation}` : '—'}
-                        </div>
-                        <div className="trippipe-card-foot">
-                          <NextActionCell trip={t} />
-                        </div>
-                      </Link>
-                    ))
-                  )}
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      )}
+      {view === 'board' && <TripBoard grouped={grouped} loading={loading} />}
 
       {view === 'table' && !loading && meta.totalPages > 1 && (
         <div className="trippipe-pagination">
