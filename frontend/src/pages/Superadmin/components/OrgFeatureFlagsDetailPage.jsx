@@ -259,7 +259,7 @@ const OrgFeatureFlagsDetailPage = () => {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={6} aria-label="Loading feature flags">
                     <div className="ff-state">
                       <div className="ff-spinner" />
                     </div>
@@ -269,7 +269,10 @@ const OrgFeatureFlagsDetailPage = () => {
 
               {!loading && knownKeys.length === 0 && (
                 <tr>
-                  <td colSpan={6}>
+                  <td
+                    colSpan={6}
+                    aria-label="No feature keys yet. Register one with “New flag” to get started."
+                  >
                     <div className="ff-state">
                       <div className="ff-state__icon">
                         <ToggleRight size={22} />
@@ -396,11 +399,13 @@ const OrgFeatureFlagsDetailPage = () => {
                 </label>
                 <input
                   id="ff-new-key"
+                  aria-label="Key (slug)"
                   className="ff-input ff-mono"
                   value={newKey}
                   onChange={(e) => setNewKey(e.target.value)}
                   placeholder="e.g. inventoryTracker"
                   maxLength={64}
+                  // eslint-disable-next-line jsx-a11y/no-autofocus -- first field of the dialog the user just opened
                   autoFocus
                 />
                 <span className="ff-field__help">
@@ -414,6 +419,7 @@ const OrgFeatureFlagsDetailPage = () => {
                 </label>
                 <input
                   id="ff-new-label"
+                  aria-label="Display label"
                   className="ff-input"
                   value={newLabel}
                   onChange={(e) => setNewLabel(e.target.value)}
@@ -428,6 +434,7 @@ const OrgFeatureFlagsDetailPage = () => {
                 </label>
                 <textarea
                   id="ff-new-desc"
+                  aria-label="Description (optional)"
                   className="ff-textarea"
                   rows={2}
                   value={newDescription}

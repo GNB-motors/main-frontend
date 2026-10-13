@@ -435,6 +435,7 @@ const LemuLogsPage = () => {
             className={`lemu-switch${autoRefresh ? ' lemu-switch--on' : ''}`}
             role="switch"
             aria-checked={autoRefresh}
+            aria-label="Auto-refresh every 30s"
             onClick={() => setAutoRefresh((v) => !v)}
             title="Auto-refresh every 30s"
           >

@@ -86,6 +86,7 @@ const ReceiptApprovalDrawer = ({
     const handleKey = (e) => {
       if (!isOpen) return;
       if (e.key === 'Escape' && !rejectModalOpen) onClose();
+      if (e.key === 'Escape' && rejectModalOpen) setRejectModalOpen(false);
       if (e.key === 'ArrowLeft' && hasPrev) onPrev?.();
       if (e.key === 'ArrowRight' && hasNext) onNext?.();
     };
@@ -158,8 +159,8 @@ const ReceiptApprovalDrawer = ({
   const currentImg = activeTab === 'odometer' ? draft?.odometerImageUrl : draft?.fuelImageUrl;
 
   return (
-    <div className="ra-drawer-backdrop" onClick={onClose}>
-      <div className="ra-drawer" onClick={(e) => e.stopPropagation()}>
+    <div className="ra-drawer-backdrop" role="presentation" onClick={onClose}>
+      <div className="ra-drawer" role="presentation" onClick={(e) => e.stopPropagation()}>
         {/* Drawer Header */}
         <div className="ra-drawer__header">
           <div className="ra-drawer__header-left">
@@ -570,8 +571,12 @@ const ReceiptApprovalDrawer = ({
 
         {/* Inline Reject Modal */}
         {rejectModalOpen && (
-          <div className="ra-modal-overlay" onClick={() => setRejectModalOpen(false)}>
-            <div className="ra-modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="ra-modal-overlay"
+            role="presentation"
+            onClick={() => setRejectModalOpen(false)}
+          >
+            <div className="ra-modal" role="presentation" onClick={(e) => e.stopPropagation()}>
               <div className="ra-modal__head">Reject Fuel Receipt</div>
               <div className="ra-modal__body">
                 <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: 'var(--foreground)' }}>

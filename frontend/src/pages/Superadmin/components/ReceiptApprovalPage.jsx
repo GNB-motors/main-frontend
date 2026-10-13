@@ -35,6 +35,7 @@ import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import EnterprisePagination from '../../../components/ui/EnterprisePagination';
 import { ReceiptApprovalService } from './ReceiptApprovalService';
 import { getUserRole } from '../../../utils/session';
+import { onActivateKey } from '../../../utils/onActivateKey';
 import ReceiptApprovalDrawer from './ReceiptApprovalDrawer';
 import ImagePreviewModal from '../../Trip/components/ImagePreviewModal';
 import {
@@ -107,6 +108,7 @@ function ReceiptRowSkeleton() {
       <td className="ra-table__td-slip">
         <Skel w={42} h={42} radius={8} />
       </td>
+      {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- skeleton cell; the whole row is aria-hidden */}
       <td>
         <div className="ra-veh-cell">
           <span className="ra-veh">
@@ -851,6 +853,7 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
                 Array.from({ length: SKEL_ROWS }, (_, i) => <ReceiptRowSkeleton key={i} />)}
 
               {!loading && filtered.length === 0 && (
+                // eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table row, not a control; its cell holds the empty-state text and button
                 <tr>
                   <td colSpan={12}>
                     <div className="ra-state" style={{ padding: '50px 0' }}>
@@ -955,6 +958,7 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
                       </td>
 
                       {/* Driver / Submitter */}
+                      {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a data cell, not a control; its text sits deeper than the rule looks */}
                       <td>
                         <div className="ra-driver-cell">
                           <span className="ra-driver-name">{driverName}</span>
@@ -966,6 +970,7 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
                       </td>
 
                       {/* Fuel Station */}
+                      {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a data cell, not a control; its text sits deeper than the rule looks */}
                       <td>
                         <div className="ra-station-cell" title={stationName}>
                           <span className="ra-station-name">{stationName}</span>
@@ -985,6 +990,7 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
                       </td>
 
                       {/* Odometer */}
+                      {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a data cell, not a control; its text sits deeper than the rule looks */}
                       <td className="ra-center">
                         <div className="ra-odo-cell">
                           <span
@@ -999,6 +1005,7 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
                       </td>
 
                       {/* AI Extraction Confidence */}
+                      {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a data cell, not a control; its text sits deeper than the rule looks */}
                       <td className="ra-center">
                         <div className="ra-ocr-cell">
                           <span className={`ra-ocr-tag ra-ocr-tag--${ocr.level}`}>
@@ -1148,9 +1155,11 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
       {showBulkApproveModal && (
         <div
           className="ra-modal-overlay"
+          role="presentation"
           onClick={() => !bulkBusy && setShowBulkApproveModal(false)}
+          onKeyDown={(e) => e.key === 'Escape' && !bulkBusy && setShowBulkApproveModal(false)}
         >
-          <div className="ra-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="ra-modal" role="presentation" onClick={(e) => e.stopPropagation()}>
             <div className="ra-modal__head">Bulk Publish to Fuel Ledger</div>
             <div className="ra-modal__body">
               <p style={{ margin: 0, fontSize: '14px', color: 'var(--foreground)' }}>
@@ -1201,9 +1210,11 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
       {showBulkRejectModal && (
         <div
           className="ra-modal-overlay"
+          role="presentation"
           onClick={() => !bulkBusy && setShowBulkRejectModal(false)}
+          onKeyDown={(e) => e.key === 'Escape' && !bulkBusy && setShowBulkRejectModal(false)}
         >
-          <div className="ra-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="ra-modal" role="presentation" onClick={(e) => e.stopPropagation()}>
             <div className="ra-modal__head" style={{ color: 'var(--rose-500, #EF4444)' }}>
               Bulk Reject Fuel Receipts
             </div>
@@ -1267,9 +1278,15 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
       {odoPolicyModalOpen && (
         <div
           className="ra-modal-overlay"
+          role="presentation"
           onClick={() => !savingPolicy && setOdoPolicyModalOpen(false)}
+          onKeyDown={(e) => e.key === 'Escape' && !savingPolicy && setOdoPolicyModalOpen(false)}
         >
-          <div className="ra-modal ra-modal--wide" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="ra-modal ra-modal--wide"
+            role="presentation"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="ra-modal__head">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Gauge size={18} color="var(--primary-color)" />
@@ -1297,7 +1314,11 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
                   <div
                     key={m.key}
                     className={`ra-policy-card ${odoMode === m.key ? 'is-selected' : ''}`}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={m.label}
                     onClick={() => canEditPolicy && changeOdoMode(m.key)}
+                    onKeyDown={onActivateKey(() => canEditPolicy && changeOdoMode(m.key))}
                   >
                     <div className="ra-policy-card__radio">
                       <div className={`ra-radio-dot ${odoMode === m.key ? 'is-checked' : ''}`} />
@@ -1317,15 +1338,24 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
                 <SlidersHorizontal size={14} />
                 <span>
                   The same choice lives in{' '}
-                  <strong
-                    style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                  <button
+                    type="button"
+                    style={{
+                      background: 'none',
+                      border: 0,
+                      padding: 0,
+                      font: 'inherit',
+                      color: 'inherit',
+                    }}
                     onClick={() => {
                       setOdoPolicyModalOpen(false);
                       navigate('/settings?section=whatsapp');
                     }}
                   >
-                    Settings › WhatsApp bills
-                  </strong>
+                    <strong style={{ cursor: 'pointer', textDecoration: 'underline' }}>
+                      Settings › WhatsApp bills
+                    </strong>
+                  </button>
                   .
                 </span>
               </div>

@@ -36,6 +36,7 @@ import {
 import { WhatsAppAuditService } from './WhatsAppAuditService';
 import './WhatsAppAuditPage.css';
 import logger from '../../../utils/logger';
+import { onActivateKey } from '../../../utils/onActivateKey';
 
 const STAGE_LABELS = {
   IDENTITY_AUTH: { label: 'Identity / Auth', color: '#dc2626', icon: ShieldAlert },
@@ -352,7 +353,7 @@ const WhatsAppAuditPage = () => {
                     <MousePointerClick size={12} />
                     <span>Quick Reply Selected</span>
                   </div>
-                  <div className="wa-bubble-choice-title">"{buttonReply.title}"</div>
+                  <div className="wa-bubble-choice-title">&quot;{buttonReply.title}&quot;</div>
                   <div className="wa-bubble-choice-id">
                     Button ID: <code>{buttonReply.id}</code>
                   </div>
@@ -364,7 +365,7 @@ const WhatsAppAuditPage = () => {
                     <MousePointerClick size={12} />
                     <span>List Option Chosen</span>
                   </div>
-                  <div className="wa-bubble-choice-title">"{listReply.title}"</div>
+                  <div className="wa-bubble-choice-title">&quot;{listReply.title}&quot;</div>
                   {listReply.description && (
                     <div className="wa-bubble-choice-desc">{listReply.description}</div>
                   )}
@@ -398,7 +399,9 @@ const WhatsAppAuditPage = () => {
                 </div>
               </div>
               {(image?.caption || draft?.extractedText) && (
-                <div className="wa-media-caption">"{image?.caption || draft?.extractedText}"</div>
+                <div className="wa-media-caption">
+                  &quot;{image?.caption || draft?.extractedText}&quot;
+                </div>
               )}
               {draft && (
                 <div className="wa-media-draft-badge">
@@ -439,7 +442,9 @@ const WhatsAppAuditPage = () => {
                   <div className="wa-media-sub">{document?.mime_type || 'application/pdf'}</div>
                 </div>
               </div>
-              {document?.caption && <div className="wa-media-caption">"{document.caption}"</div>}
+              {document?.caption && (
+                <div className="wa-media-caption">&quot;{document.caption}&quot;</div>
+              )}
             </div>
           )}
 
@@ -760,15 +765,20 @@ const WhatsAppAuditPage = () => {
                   icon: AlertCircle,
                 };
                 const Icon = conf.icon;
+                const filterByStage = () => {
+                  setStageFilter(s.stage);
+                  setStatusFilter('FAILED');
+                  setPagination((p) => ({ ...p, page: 1 }));
+                };
                 return (
                   <div
                     key={s.stage}
                     className="wa-stage-item"
-                    onClick={() => {
-                      setStageFilter(s.stage);
-                      setStatusFilter('FAILED');
-                      setPagination((p) => ({ ...p, page: 1 }));
-                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Filter by ${conf.label}: ${s.count} (${s.pct}%)`}
+                    onClick={filterByStage}
+                    onKeyDown={onActivateKey(filterByStage)}
                     title={`Click to filter by ${conf.label}`}
                   >
                     <div className="wa-stage-item__header">
@@ -906,6 +916,7 @@ const WhatsAppAuditPage = () => {
             <input
               type="text"
               placeholder="Search phone, text, WAMID, error…"
+              aria-label="Search phone, text, WAMID, error"
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -1006,6 +1017,7 @@ const WhatsAppAuditPage = () => {
                     </td>
 
                     {/* Driver / User */}
+                    {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a data cell, not a control; its text sits deeper than the rule looks */}
                     <td>
                       <div className="wa-user-cell">
                         <div className="wa-phone-row">
@@ -1118,12 +1130,14 @@ const WhatsAppAuditPage = () => {
 
       {/* Slide-Out Request Trace Drawer */}
       {selectedRequestId && (
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- the backdrop is also the drawer's landmark; outside click closes it, Escape is its keyboard path
         <aside
           aria-label="Request lifecycle trace details"
           className="wa-drawer-backdrop"
           onClick={closeTrace}
+          onKeyDown={(e) => e.key === 'Escape' && closeTrace()}
         >
-          <section className="wa-drawer" onClick={(e) => e.stopPropagation()}>
+          <section className="wa-drawer" role="presentation" onClick={(e) => e.stopPropagation()}>
             <div className="wa-drawer__header">
               <h2>
                 <Truck size={20} color="#4f46e5" />

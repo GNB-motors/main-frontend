@@ -276,7 +276,7 @@ const SuperAdminPage = () => {
       {/* Welcome */}
       <div className="welcome-section">
         <h1>Welcome back, {user.firstName}! 👋</h1>
-        <p>Here's a live snapshot of all organisations on your platform.</p>
+        <p>Here&apos;s a live snapshot of all organisations on your platform.</p>
       </div>
 
       {/* Top stat cards */}
@@ -331,6 +331,7 @@ const SuperAdminPage = () => {
                 type="text"
                 className="orgs-search-input"
                 placeholder="Search by name or email…"
+                aria-label="Search organisations by name or email"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -395,6 +396,7 @@ const SuperAdminPage = () => {
                     onClick={() => navigate(`/superadmin/organizations/${org._id}`)}
                   >
                     {/* Name + email */}
+                    {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a data cell, not a control; its text sits deeper than the rule looks */}
                     <td>
                       <div className="org-name-cell">
                         <span className="org-company-name">

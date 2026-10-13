@@ -56,8 +56,12 @@ const ReasonModal = ({ title, label, confirmLabel, confirmClass, busy, onCancel,
   return (
     <div
       className="ra-modal-overlay"
+      role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget && !busy) onCancel();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape' && !busy) onCancel();
       }}
     >
       <div className="ra-modal">

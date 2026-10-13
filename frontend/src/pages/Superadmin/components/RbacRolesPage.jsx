@@ -480,11 +480,13 @@ const RbacRolesPage = () => {
                 </label>
                 <input
                   id="rbac-new-name"
+                  aria-label="Role name"
                   className="ff-input"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="e.g. Finance Manager"
                   maxLength={60}
+                  // eslint-disable-next-line jsx-a11y/no-autofocus -- first field of the dialog the user just opened
                   autoFocus
                 />
               </div>
@@ -514,6 +516,7 @@ const RbacRolesPage = () => {
                 </label>
                 <textarea
                   id="rbac-new-desc"
+                  aria-label="Description (optional)"
                   className="ff-textarea"
                   rows={2}
                   value={newDescription}

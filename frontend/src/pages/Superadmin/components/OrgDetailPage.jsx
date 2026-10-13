@@ -371,6 +371,7 @@ const OrgDetailPage = () => {
               <tbody>
                 {sortedVehicles.map((v) => (
                   <tr key={v.vehicleId}>
+                    {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a data cell, not a control; its text sits deeper than the rule looks */}
                     <td>
                       <div className="org-name-cell">
                         <span className="org-company-name">{v.registrationNumber}</span>

@@ -116,8 +116,8 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
                 <span>Delete Organisation</span>
               </div>
               <p className="ff-compare__desc">
-                Removes the organisation's operational setup while retaining all historical records
-                for future analytics.
+                Removes the organisation&apos;s operational setup while retaining all historical
+                records for future analytics.
               </p>
               <div className="ff-compare__section ff-compare__section--warn">
                 <strong>Will be deleted:</strong>
@@ -187,6 +187,7 @@ const DeleteConfirmModal = ({ org, onCancel, onConfirmed }) => {
             <input
               ref={inputRef}
               id="del-confirm-input"
+              aria-label={`Type ${displayName} to unlock the action buttons`}
               className="ff-input ff-input--danger"
               type="text"
               value={typedName}
@@ -352,6 +353,7 @@ const OrgFeatureFlagsPage = () => {
           <input
             type="text"
             placeholder="Search by name, email, GSTIN"
+            aria-label="Search by name, email, GSTIN"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -382,7 +384,7 @@ const OrgFeatureFlagsPage = () => {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={7} aria-label="Loading organizations">
                     <div className="ff-state">
                       <div className="ff-spinner" />
                     </div>
@@ -392,7 +394,7 @@ const OrgFeatureFlagsPage = () => {
 
               {!loading && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={7} aria-label="No organizations found. Try adjusting your search.">
                     <div className="ff-state">
                       <div className="ff-state__icon">
                         <Inbox size={22} />
@@ -411,6 +413,7 @@ const OrgFeatureFlagsPage = () => {
                     className="ff-clickable"
                     onClick={() => navigate(`/superadmin/feature-flags/${org._id}`)}
                   >
+                    {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a data cell, not a control; its text sits deeper than the rule looks */}
                     <td>
                       <div className="ff-org">
                         <span className="ff-org__avatar">

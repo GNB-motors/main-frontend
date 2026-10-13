@@ -85,6 +85,7 @@ const AddUserPage = () => {
                 <input
                   type="text"
                   id="firstName"
+                  aria-label="First Name"
                   name="firstName"
                   value={formData.firstName}
                   onChange={handleChange}
@@ -101,6 +102,7 @@ const AddUserPage = () => {
                 <input
                   type="text"
                   id="lastName"
+                  aria-label="Last Name"
                   name="lastName"
                   value={formData.lastName}
                   onChange={handleChange}
@@ -118,6 +120,7 @@ const AddUserPage = () => {
               <input
                 type="email"
                 id="email"
+                aria-label="Email Address"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
@@ -134,6 +137,7 @@ const AddUserPage = () => {
               <input
                 type="tel"
                 id="mobileNumber"
+                aria-label="Mobile Number"
                 name="mobileNumber"
                 value={formData.mobileNumber}
                 onChange={handleChange}
@@ -151,6 +155,7 @@ const AddUserPage = () => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   id="password"
+                  aria-label="Password"
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
