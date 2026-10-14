@@ -58,10 +58,10 @@ describe('ReceiptApprovalPage', () => {
       if (url === '/api/whatsapp/admin/drafts') {
         if (config.params?.status === 'READY') {
           return new Promise((resolve) => {
-            releasePending = () => resolve(draftsOf([draft('a', 'WB01AA1111', 'READY')]));
+            releasePending = () => resolve(pagedOf([draft('a', 'WB01AA1111', 'READY')]));
           });
         }
-        return Promise.resolve(draftsOf([draft('b', 'WB02BB2222', 'PUBLISHED')]));
+        return Promise.resolve(pagedOf([draft('b', 'WB02BB2222', 'PUBLISHED')]));
       }
       return Promise.resolve({ data: { data: {} } });
     });
@@ -168,14 +168,20 @@ describe('ReceiptApprovalPage', () => {
       ]),
     );
     renderPage();
-    expect(await screen.findByText('WB02BB2222')).toBeInTheDocument();
+    // The first answer has no totalPages, so the page re-asks for the whole window.
     await waitFor(() => expect(listParams().at(-1)).toMatchObject({ limit: 200 }));
+    await waitFor(() => expect(screen.getByText('WB02BB2222')).toBeInTheDocument());
+    const requests = listParams().length;
 
     fireEvent.change(screen.getByLabelText('Filter receipts by odometer source'), {
       target: { value: 'MISSING' },
     });
-    await waitFor(() => expect(screen.queryByText('WB02BB2222')).not.toBeInTheDocument());
-    expect(screen.getByText('WB01AA1111')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText('WB02BB2222')).not.toBeInTheDocument();
+      expect(screen.getByText('WB01AA1111')).toBeInTheDocument();
+    });
+    // The old backend ignores filters, so changing one asks it nothing.
+    expect(listParams()).toHaveLength(requests);
     expect(screen.queryByTitle('Next Page')).not.toBeInTheDocument();
   });
 });

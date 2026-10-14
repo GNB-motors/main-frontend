@@ -78,6 +78,8 @@ const useReceiptInbox = ({ onCounts }) => {
   // Main fetch function. Each call cancels the one before it, so a slow
   // response for a tab the user already left can't overwrite the current one.
   const fetchAbortRef = useRef(null);
+  // The tab whose full window an older backend has already sent (see the effect below).
+  const legacyStatusRef = useRef(null);
   const fetchData = useCallback(
     async (isManualRefresh = false) => {
       fetchAbortRef.current?.abort();
@@ -110,6 +112,7 @@ const useReceiptInbox = ({ onCounts }) => {
         if (signal.aborted) return;
         const paged = list.totalPages != null;
         setLegacyBackend(!paged);
+        legacyStatusRef.current = !paged && legacyBackend ? status : null;
         setItems(list.items ?? []);
         setListMeta(
           paged
@@ -147,9 +150,13 @@ const useReceiptInbox = ({ onCounts }) => {
   useEffect(() => () => fetchAbortRef.current?.abort(), []);
 
   useEffect(() => {
-    fetchData();
     setSelectedIds(new Set());
-  }, [fetchData]);
+    // An older backend ignores the filters, which then apply in the browser, so
+    // a filter change there needs no request (and no skeleton flash); only a
+    // new tab does. Mutations and Refresh call fetchData directly and still load.
+    if (legacyBackend && legacyStatusRef.current === status) return;
+    fetchData();
+  }, [fetchData, legacyBackend, status]);
 
   // The server has already filtered, sorted and paged; only an older backend's
   // 200-row window still needs filtering here.
