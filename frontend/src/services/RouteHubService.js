@@ -1,9 +1,5 @@
 import apiClient from '../utils/axiosConfig';
-
-const unwrapList = (res) => {
-  const data = res.data?.data ?? res.data ?? [];
-  return Array.isArray(data) ? data : [];
-};
+import { getVehicleList } from './vehicleListService';
 
 const unwrap = (res) => res.data?.data ?? {};
 
@@ -117,8 +113,7 @@ const RouteHubService = {
   },
 
   /** Vehicle picker rows: { _id, registrationNumber, model, … }. */
-  getVehicles: async (signal) =>
-    unwrapList(await apiClient.get('/api/vehicles', { params: { limit: 500 }, signal })),
+  getVehicles: (signal) => getVehicleList({ signal }),
 
   /**
    * Sustained overspeed for ONE vehicle. `durationSec`, not minutes.

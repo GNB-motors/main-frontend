@@ -5,7 +5,7 @@ import ExportButton from '../../../components/ui/ExportButton';
 import ReportDataNotice from '../../../components/ui/ReportDataNotice';
 import useApi from '../../../hooks/useApi';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
-import { ReportsService } from '../ReportsService.jsx';
+import { ReportsService } from '../ReportsService.js';
 import { formatINR, formatKm, formatLitres, formatNum } from '../../../utils/formatters';
 import { formatDateIST } from '../../../utils/dateUtils';
 import {

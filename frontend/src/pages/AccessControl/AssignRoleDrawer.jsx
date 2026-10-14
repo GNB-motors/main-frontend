@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Info, X } from 'lucide-react';
 import AccessControlApi from './accessControlService';
 
-const fullName = (e) => `${e.firstName || ''} ${e.lastName || ''}`.trim() || e.mobileNumber || e.email || 'Employee';
+const fullName = (e) =>
+  `${e.firstName || ''} ${e.lastName || ''}`.trim() || e.mobileNumber || e.email || 'Employee';
 
 // Owners and platform admins are not governed by role assignment (the API
 // rejects them), so they never appear in the picker.
@@ -14,7 +15,13 @@ const isAssignable = (e) => !['OWNER', 'SUPER_ADMIN'].includes(e.role);
  * Employees are never given raw permissions — only a role + scope.
  */
 const AssignRoleDrawer = ({
-  open, onClose, roles = [], branches = [], employees = null, assignments = [], onAssigned,
+  open,
+  onClose,
+  roles = [],
+  branches = [],
+  employees = null,
+  assignments = [],
+  onAssigned,
 }) => {
   const [fetchedEmployees, setFetchedEmployees] = useState([]);
   const [userId, setUserId] = useState('');
@@ -24,6 +31,7 @@ const AssignRoleDrawer = ({
   const [branchRoles, setBranchRoles] = useState(null); // roles usable at the picked branch
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const fieldId = useId();
 
   useEffect(() => {
     if (!open) return;
@@ -48,13 +56,18 @@ const AssignRoleDrawer = ({
     if (open && scope === 'BRANCH' && branchId) {
       AccessControlApi.getBranchRoles(branchId)
         .then((rows) => {
-          if (!cancelled) setBranchRoles((rows || []).filter((r) => r.enabled !== false).map((r) => r.role));
+          if (!cancelled)
+            setBranchRoles((rows || []).filter((r) => r.enabled !== false).map((r) => r.role));
         })
-        .catch(() => { if (!cancelled) setBranchRoles(null); });
+        .catch(() => {
+          if (!cancelled) setBranchRoles(null);
+        });
     } else {
       setBranchRoles(null);
     }
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [open, scope, branchId]);
 
   const roster = useMemo(
@@ -69,11 +82,13 @@ const AssignRoleDrawer = ({
   // replaces it, so say so before they submit.
   const replaced = useMemo(() => {
     if (!userId) return null;
-    return assignments.find((a) => {
-      if (String(a.userId) !== String(userId) || a.scope !== scope) return false;
-      if (scope === 'BRANCH') return String(a.branchId?._id || a.branchId) === String(branchId);
-      return true;
-    }) || null;
+    return (
+      assignments.find((a) => {
+        if (String(a.userId) !== String(userId) || a.scope !== scope) return false;
+        if (scope === 'BRANCH') return String(a.branchId?._id || a.branchId) === String(branchId);
+        return true;
+      }) || null
+    );
   }, [assignments, userId, scope, branchId]);
 
   useEffect(() => {
@@ -122,25 +137,46 @@ const AssignRoleDrawer = ({
       role="button"
       tabIndex={-1}
       aria-label="Close dialog"
-      onClick={(e) => { if (e.target === e.currentTarget && !submitting) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !submitting) onClose();
+      }}
       onKeyDown={handleOverlayKeyDown}
     >
       <div className="ff-modal" role="dialog" aria-modal="true">
         <div className="ff-modal__header">
           <div>
             <h2 className="ff-modal__title">Assign a role</h2>
-            <p className="ff-modal__subtitle">The employee receives the role — never individual permissions.</p>
+            <p className="ff-modal__subtitle">
+              The employee receives the role — never individual permissions.
+            </p>
           </div>
-          <button type="button" className="ff-icon-btn" onClick={onClose} disabled={submitting} aria-label="Close">
+          <button
+            type="button"
+            className="ff-icon-btn"
+            onClick={onClose}
+            disabled={submitting}
+            aria-label="Close"
+          >
             <X size={20} />
           </button>
         </div>
         <div className="ff-modal__body">
-          {error && <div className="ff-alert ff-alert--error" role="alert">{error}</div>}
+          {error && (
+            <div className="ff-alert ff-alert--error" role="alert">
+              {error}
+            </div>
+          )}
 
           <div className="ff-field">
-            <label className="ff-field__label">Employee</label>
-            <select className="rbac-select" value={userId} onChange={(e) => setUserId(e.target.value)}>
+            <label className="ff-field__label" htmlFor={`${fieldId}-employee`}>
+              Employee
+            </label>
+            <select
+              id={`${fieldId}-employee`}
+              className="rbac-select"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+            >
               <option value="">Select an employee…</option>
               {roster.map((e) => (
                 <option key={e._id || e.id} value={e._id || e.id}>
@@ -151,11 +187,17 @@ const AssignRoleDrawer = ({
           </div>
 
           <div className="ff-field">
-            <label className="ff-field__label">Scope</label>
+            <label className="ff-field__label" htmlFor={`${fieldId}-scope`}>
+              Scope
+            </label>
             <select
+              id={`${fieldId}-scope`}
               className="rbac-select"
               value={scope}
-              onChange={(e) => { setScope(e.target.value); setRoleId(''); }}
+              onChange={(e) => {
+                setScope(e.target.value);
+                setRoleId('');
+              }}
             >
               <option value="ENTERPRISE">Enterprise — when no location is selected</option>
               <option value="BRANCH">A specific location</option>
@@ -164,19 +206,31 @@ const AssignRoleDrawer = ({
 
           {scope === 'BRANCH' && (
             <div className="ff-field">
-              <label className="ff-field__label">Location</label>
-              <select className="rbac-select" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+              <label className="ff-field__label" htmlFor={`${fieldId}-location`}>
+                Location
+              </label>
+              <select
+                id={`${fieldId}-location`}
+                className="rbac-select"
+                value={branchId}
+                onChange={(e) => setBranchId(e.target.value)}
+              >
                 <option value="">Select a location…</option>
                 {branches.map((b) => (
-                  <option key={b._id} value={b._id}>{b.name}</option>
+                  <option key={b._id} value={b._id}>
+                    {b.name}
+                  </option>
                 ))}
               </select>
             </div>
           )}
 
           <div className="ff-field">
-            <label className="ff-field__label">Role</label>
+            <label className="ff-field__label" htmlFor={`${fieldId}-role`}>
+              Role
+            </label>
             <select
+              id={`${fieldId}-role`}
               className="rbac-select"
               value={roleId}
               onChange={(e) => setRoleId(e.target.value)}
@@ -186,11 +240,15 @@ const AssignRoleDrawer = ({
                 {scope === 'BRANCH' && !branchId ? 'Pick a location first…' : 'Select a role…'}
               </option>
               {options.map((r) => (
-                <option key={r._id} value={r._id}>{r.name}</option>
+                <option key={r._id} value={r._id}>
+                  {r.name}
+                </option>
               ))}
             </select>
             {scope === 'BRANCH' && branchId && options.length === 0 && (
-              <span className="ff-field__help">No roles are switched on at this location yet — see Branch Access.</span>
+              <span className="ff-field__help">
+                No roles are switched on at this location yet — see Branch Access.
+              </span>
             )}
           </div>
 
@@ -206,13 +264,26 @@ const AssignRoleDrawer = ({
           {replaced && (
             <div className="ff-alert ac-alert--warn" role="status">
               This employee already holds <strong>{replaced.roleId?.name}</strong>
-              {replaced.scope === 'BRANCH' ? ' at this location' : ' for the enterprise'}. Assigning replaces it.
+              {replaced.scope === 'BRANCH' ? ' at this location' : ' for the enterprise'}. Assigning
+              replaces it.
             </div>
           )}
         </div>
         <div className="ff-modal__footer">
-          <button type="button" className="ff-btn ff-btn--ghost" onClick={onClose} disabled={submitting}>Cancel</button>
-          <button type="button" className="ff-btn ff-btn--primary" onClick={submit} disabled={submitting}>
+          <button
+            type="button"
+            className="ff-btn ff-btn--ghost"
+            onClick={onClose}
+            disabled={submitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="ff-btn ff-btn--primary"
+            onClick={submit}
+            disabled={submitting}
+          >
             {submitting ? 'Assigning…' : 'Assign role'}
           </button>
         </div>

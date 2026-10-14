@@ -3,20 +3,19 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Package, Send } from 'lucide-react';
+import { Package } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { Link } from 'react-router-dom';
 import { SupplierInvoiceApi, SupplierPaymentApi } from './SupplierPaymentService';
 import PageShell from '../../components/Erp/PageShell';
-import StatusBadge from '../../components/Erp/StatusBadge';
+import SupplierInvoicesTab from './sections/SupplierInvoicesTab';
+import SupplierPayTab from './sections/SupplierPayTab';
+import SupplierApprovalTab from './sections/SupplierApprovalTab';
+import SupplierReleaseTab from './sections/SupplierReleaseTab';
+import SupplierOnAccountModal from './sections/SupplierOnAccountModal';
+import SupplierReleaseModal from './sections/SupplierReleaseModal';
 import '../../styles/erp.css';
 
-const money = (n) =>
-  typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—';
-
 const todayInput = () => new Date().toISOString().slice(0, 10);
-
-const SUPPLY_TYPES = ['TYRE', 'SPARE_PARTS', 'DIESEL', 'SERVICE', 'OTHER'];
 
 const SupplierPaymentsPage = ({ embedded = false }) => {
   const [tab, setTab] = useState('invoices');
@@ -226,16 +225,17 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
     }
   };
 
-  const supplierOptions = [...new Map(
-    invoices
-      .filter((i) => i.supplierId?._id || i.supplierId)
-      .map((i) => {
-        const s = i.supplierId;
-        const id = s._id || s;
-        return [String(id), { id, name: s.name || 'Supplier', code: s.code || '' }];
-      }),
-  ).values()];
-
+  const supplierOptions = [
+    ...new Map(
+      invoices
+        .filter((i) => i.supplierId?._id || i.supplierId)
+        .map((i) => {
+          const s = i.supplierId;
+          const id = s._id || s;
+          return [String(id), { id, name: s.name || 'Supplier', code: s.code || '' }];
+        }),
+    ).values(),
+  ];
 
   /** Invoices already committed to an in-flight payment → the payment holding them. */
   const invoicesInFlight = useMemo(() => {
@@ -248,398 +248,111 @@ const SupplierPaymentsPage = ({ embedded = false }) => {
     return m;
   }, [awaitingApproval]);
 
-  const awaitingApprovalTotal = awaitingApproval.reduce(
-    (sum, p) => sum + (p.netPayable || 0),
-    0,
-  );
+  const awaitingApprovalTotal = awaitingApproval.reduce((sum, p) => sum + (p.netPayable || 0), 0);
 
   return (
     <PageShell
       embedded={embedded}
-      title={<><Package size={22} /> Supplier Invoices &amp; Payments</>}
+      title={
+        <>
+          <Package size={22} /> Supplier Invoices &amp; Payments
+        </>
+      }
       subtitle="Manual supplier invoices, then the same approval → release flow as vendor payments."
-      breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Payables', to: '/erp/payables' }, { label: 'Supplier Payments' }]}
+      breadcrumbs={[
+        { label: 'ERP', to: '/erp' },
+        { label: 'Payables', to: '/erp/payables' },
+        { label: 'Supplier Payments' },
+      ]}
     >
-
       <div className="erp-tabs">
         {[
           ['invoices', 'New invoice'],
           ['pay', 'Pay suppliers'],
-          ['approval', `Awaiting approval${awaitingApproval.length ? ` (${awaitingApproval.length})` : ''}`],
+          [
+            'approval',
+            `Awaiting approval${awaitingApproval.length ? ` (${awaitingApproval.length})` : ''}`,
+          ],
           ['release', 'Pending release'],
         ].map(([key, label]) => (
-          <button key={key} type="button" className={`erp-tab ${tab === key ? 'active' : ''}`} onClick={() => setTab(key)}>
+          <button
+            key={key}
+            type="button"
+            className={`erp-tab ${tab === key ? 'active' : ''}`}
+            onClick={() => setTab(key)}
+          >
             {label}
           </button>
         ))}
       </div>
 
       {tab === 'invoices' && (
-        <>
-          <form className="erp-card erp-form-grid" onSubmit={submitInvoice}>
-            <label>
-              Supplier ID
-              <input
-                required
-                value={invoiceForm.supplierId}
-                onChange={(e) => setInvoiceForm({ ...invoiceForm, supplierId: e.target.value })}
-                placeholder="Paste supplier _id from masters"
-              />
-            </label>
-            <label>
-              Invoice no
-              <input
-                required
-                value={invoiceForm.invoiceNumber}
-                onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceNumber: e.target.value })}
-              />
-            </label>
-            <label>
-              Invoice date
-              <input
-                type="date"
-                required
-                value={invoiceForm.invoiceDate}
-                onChange={(e) => setInvoiceForm({ ...invoiceForm, invoiceDate: e.target.value })}
-              />
-            </label>
-            <label>
-              Type
-              <select
-                value={invoiceForm.supplyType}
-                onChange={(e) => setInvoiceForm({ ...invoiceForm, supplyType: e.target.value })}
-              >
-                {SUPPLY_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Gross amount
-              <input
-                type="number"
-                min="0.01"
-                step="0.01"
-                required
-                value={invoiceForm.grossAmount}
-                onChange={(e) => setInvoiceForm({ ...invoiceForm, grossAmount: e.target.value })}
-              />
-            </label>
-            <label>
-              Taxable value
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={invoiceForm.taxableValue}
-                onChange={(e) => setInvoiceForm({ ...invoiceForm, taxableValue: e.target.value })}
-              />
-            </label>
-            <label>
-              GST %
-              <input
-                type="number"
-                min="0"
-                value={invoiceForm.gstRate}
-                onChange={(e) => setInvoiceForm({ ...invoiceForm, gstRate: e.target.value })}
-              />
-            </label>
-            <label>
-              TDS %
-              <input
-                type="number"
-                min="0"
-                value={invoiceForm.tdsRate}
-                onChange={(e) => setInvoiceForm({ ...invoiceForm, tdsRate: e.target.value })}
-              />
-            </label>
-            <label>
-              Discount
-              <input
-                type="number"
-                min="0"
-                value={invoiceForm.discount}
-                onChange={(e) => setInvoiceForm({ ...invoiceForm, discount: e.target.value })}
-              />
-            </label>
-            <label className="full-width">
-              Description
-              <input
-                value={invoiceForm.description}
-                onChange={(e) => setInvoiceForm({ ...invoiceForm, description: e.target.value })}
-              />
-            </label>
-            <div className="erp-form-actions full-width">
-              <button type="submit" className="erp-btn primary" disabled={busy}>
-                Save invoice
-              </button>
-            </div>
-          </form>
-
-          <section className="erp-card" style={{ marginTop: '1rem' }}>
-            <h3>Recent invoices</h3>
-            {loading && <p>Loading…</p>}
-            <div className="erp-table-wrap">
-              <table className="erp-table compact">
-                <thead>
-                  <tr>
-                    <th>Ref</th>
-                    <th>Invoice</th>
-                    <th>Supplier</th>
-                    <th>Net</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {!loading && invoices.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="erp-muted">No supplier invoices yet.</td>
-                    </tr>
-                  )}
-                  {invoices.map((i) => (
-                    <tr key={i._id}>
-                      <td>{i.refNumber}</td>
-                      <td>{i.invoiceNumber}</td>
-                      <td>{i.supplierId?.name || '—'}</td>
-                      <td>{money(i.netAmount)}</td>
-                      <td>{i.status}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </>
+        <SupplierInvoicesTab
+          invoiceForm={invoiceForm}
+          setInvoiceForm={setInvoiceForm}
+          busy={busy}
+          submitInvoice={submitInvoice}
+          loading={loading}
+          invoices={invoices}
+        />
       )}
 
       {tab === 'pay' && (
-        <div className="erp-split">
-          <section className="erp-card">
-            <h3>Suppliers with outstanding</h3>
-            {loading && <p>Loading…</p>}
-            {!loading && groups.length === 0 && (
-              <p className="erp-muted">No outstanding supplier invoices.</p>
-            )}
-            {!loading && groups.length > 0 && (
-              <ul className="erp-list">
-                {groups.map((g) => (
-                  <li key={g.supplierId}>
-                    <button type="button" className="erp-link-btn" onClick={() => openSupplier(g)}>
-                      {g.supplierName} — {money(g.totalOutstanding)} ({g.invoiceCount} inv)
-                      {g.onAccountAvailable > 0 && ` · On-a/c ${money(g.onAccountAvailable)}`}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          {selectedSupplier && (
-            <section className="erp-card">
-              <h3>{selectedSupplier.supplierName}</h3>
-              <div className="erp-table-wrap">
-                <table className="erp-table compact">
-                  <thead>
-                    <tr>
-                      <th />
-                      <th>Ref</th>
-                      <th>Invoice</th>
-                      <th>Gross</th>
-                      <th>TDS</th>
-                      <th>Net</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedSupplier.invoices.map((inv) => {
-                      const heldBy = invoicesInFlight.get(String(inv.documentId));
-                      return (
-                      <tr key={inv.documentId} className={heldBy ? 'erp-row-muted' : ''}>
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={selectedInvoiceIds.has(inv.documentId)}
-                            onChange={() => toggleInvoice(inv.documentId)}
-                            disabled={Boolean(heldBy)}
-                            title={heldBy ? `Already in payment ${heldBy}` : undefined}
-                          />
-                        </td>
-                        <td>
-                          {inv.refNumber}
-                          {heldBy && (
-                            <div className="erp-cell-muted">In payment {heldBy}</div>
-                          )}
-                        </td>
-                        <td>{inv.invoiceNumber}</td>
-                        <td>{money(inv.grossAmount)}</td>
-                        <td>{money(inv.tdsAmount)}</td>
-                        <td>{money(inv.netAmount)}</td>
-                      </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <div className="erp-form-actions">
-                <button type="button" className="erp-btn primary" disabled={busy} onClick={preparePayment}>
-                  <Send size={14} /> Submit for approval
-                </button>
-              </div>
-            </section>
-          )}
-        </div>
+        <SupplierPayTab
+          loading={loading}
+          groups={groups}
+          openSupplier={openSupplier}
+          selectedSupplier={selectedSupplier}
+          invoicesInFlight={invoicesInFlight}
+          selectedInvoiceIds={selectedInvoiceIds}
+          toggleInvoice={toggleInvoice}
+          busy={busy}
+          preparePayment={preparePayment}
+        />
       )}
 
       {/* Raised, not yet approved. Read-only — nothing is releasable until an
           approver decides. */}
       {tab === 'approval' && (
-        <section className="erp-card">
-          <h3>Submitted — awaiting approval</h3>
-          {awaitingApproval.length === 0 ? (
-            <p className="erp-muted">
-              Nothing is waiting on approval. Payments appear here between
-              &ldquo;Submit for approval&rdquo; and an approver&rsquo;s decision.
-            </p>
-          ) : (
-            <>
-              <div className="erp-table-wrap">
-                <table className="erp-table compact">
-                  <thead>
-                    <tr>
-                      <th>Payment</th>
-                      <th>Raised</th>
-                      <th>Invoices</th>
-                      <th>Net payable</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {awaitingApproval.map((p) => (
-                      <tr key={p._id}>
-                        <td className="erp-cell-strong">{p.paymentNumber}</td>
-                        <td className="erp-cell-muted">
-                          {p.paymentDate?.slice?.(0, 10) || '—'}
-                        </td>
-                        <td>{p.billAllocations?.length ?? 0}</td>
-                        <td>{money(p.netPayable)}</td>
-                        <td><StatusBadge status={p.status} /></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="erp-alloc-foot">
-                <div className="erp-alloc-cell">
-                  <span>Awaiting approval</span>
-                  <strong>{money(awaitingApprovalTotal)}</strong>
-                </div>
-                <div className="erp-alloc-cell">
-                  <span>Decisions are made in</span>
-                  <strong><Link to="/erp/approvals">Approvals</Link></strong>
-                </div>
-              </div>
-            </>
-          )}
-        </section>
+        <SupplierApprovalTab
+          awaitingApproval={awaitingApproval}
+          awaitingApprovalTotal={awaitingApprovalTotal}
+        />
       )}
 
       {tab === 'release' && (
-        <section className="erp-card">
-          <h3>Approved supplier payments</h3>
-          {loading && <p>Loading…</p>}
-          {!loading && pending.length === 0 && (
-            <p className="erp-muted">No approved supplier payments awaiting release.</p>
-          )}
-          {!loading && pending.length > 0 && (
-            <ul className="erp-list">
-              {pending.map((p) => (
-                <li key={p._id}>
-                  <button type="button" className="erp-link-btn" onClick={() => setReleaseTarget(p)}>
-                    {p.paymentNumber} — {money(p.netPayable)}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <SupplierReleaseTab
+          loading={loading}
+          pending={pending}
+          setReleaseTarget={setReleaseTarget}
+        />
       )}
 
       {showOnAccountPopup && onAccount && (
-        <div className="erp-modal-backdrop">
-          <div className="erp-modal erp-card">
-            <h3>Apply on-account ({money(onAccount.available)})</h3>
-            <ul className="erp-list">
-              {(onAccount.vouchers || []).map((v) => (
-                <li key={v.voucherId}>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={selectedVoucherIds.has(v.voucherId)}
-                      onChange={() =>
-                        setSelectedVoucherIds((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(v.voucherId)) next.delete(v.voucherId);
-                          else next.add(v.voucherId);
-                          return next;
-                        })
-                      }
-                    />
-                    {v.voucherNumber} — {money(v.unadjustedAmount)}
-                  </label>
-                </li>
-              ))}
-            </ul>
-            <div className="erp-form-actions">
-              <button type="button" className="erp-btn" onClick={() => submitPayment([])}>
-                Skip
-              </button>
-              <button type="button" className="erp-btn primary" disabled={busy} onClick={() => submitPayment([...selectedVoucherIds])}>
-                Continue
-              </button>
-            </div>
-          </div>
-        </div>
+        <SupplierOnAccountModal
+          onAccount={onAccount}
+          selectedVoucherIds={selectedVoucherIds}
+          setSelectedVoucherIds={setSelectedVoucherIds}
+          submitPayment={submitPayment}
+          busy={busy}
+        />
       )}
 
       {releaseTarget && (
-        <div className="erp-modal-backdrop">
-          <div className="erp-modal erp-card">
-            <h3>Release {releaseTarget.paymentNumber}</h3>
-            <label>
-              Mode
-              <select
-                value={releaseForm.paymentMode}
-                onChange={(e) => setReleaseForm({ ...releaseForm, paymentMode: e.target.value })}
-              >
-                {['NEFT', 'RTGS', 'CHEQUE', 'UPI', 'BANK', 'CASH'].map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Instrument no
-              <input
-                value={releaseForm.instrumentNo}
-                onChange={(e) => setReleaseForm({ ...releaseForm, instrumentNo: e.target.value })}
-              />
-            </label>
-            <div className="erp-form-actions">
-              <button type="button" className="erp-btn" onClick={() => setReleaseTarget(null)}>
-                Cancel
-              </button>
-              <button type="button" className="erp-btn primary" disabled={busy} onClick={releasePayment}>
-                Release
-              </button>
-            </div>
-          </div>
-        </div>
+        <SupplierReleaseModal
+          releaseTarget={releaseTarget}
+          releaseForm={releaseForm}
+          setReleaseForm={setReleaseForm}
+          setReleaseTarget={setReleaseTarget}
+          busy={busy}
+          releasePayment={releasePayment}
+        />
       )}
 
       {supplierOptions.length > 0 && tab === 'invoices' && (
-        <p className="erp-hint">Known suppliers from recent invoices: {supplierOptions.map((s) => s.name).join(', ')}</p>
+        <p className="erp-hint">
+          Known suppliers from recent invoices: {supplierOptions.map((s) => s.name).join(', ')}
+        </p>
       )}
     </PageShell>
   );

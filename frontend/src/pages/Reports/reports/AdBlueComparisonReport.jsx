@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
-import dayjs from 'dayjs';
 import { AlertTriangle, CheckCircle2, Clock3, Droplets, Gauge, Info } from 'lucide-react';
-import apiClient from '../../../utils/axiosConfig';
 import useApi from '../../../hooks/useApi';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import DataTable from '../../../components/ui/DataTable';
 import ExportButton from '../../../components/ui/ExportButton';
 import ReportDataNotice from '../../../components/ui/ReportDataNotice';
+import { formatInIST } from '../../../utils/dateUtils';
+import { ReportsService } from '../ReportsService.js';
 import ReportFrame, {
   ReportClear,
   ReportDateRange,
@@ -128,7 +128,7 @@ const COLUMNS = [
     key: 'sync',
     label: 'Last live sync',
     render: (row) =>
-      row.lastSyncedAt ? dayjs(row.lastSyncedAt).format('DD MMM YYYY, hh:mm A') : '—',
+      row.lastSyncedAt ? formatInIST(row.lastSyncedAt, 'DD MMM YYYY, hh:mm A') : '—',
   },
   {
     key: 'status',
@@ -153,8 +153,7 @@ const EXPORT_COLUMNS = [
   { key: 'status', label: 'Status' },
 ];
 
-const fetchComparison = (params, signal) =>
-  apiClient.get('/api/adblue-logs/comparison', { params, signal });
+const fetchComparison = (params, signal) => ReportsService.getAdBlueComparison(params, { signal });
 
 const defaultRange = () => ({ from: istDaysAgo(30), to: istToday() });
 
@@ -187,7 +186,7 @@ const AdBlueComparisonReport = () => {
     [filterKey, page],
   );
 
-  const body = response?.data || {};
+  const body = response || {};
   const rows = body.data || [];
   const summary = body.summary || {};
   const meta = body.meta || { page: 1, total: 0, totalPages: 1 };
@@ -199,8 +198,8 @@ const AdBlueComparisonReport = () => {
     let totalPages = 1;
     do {
       const res = await fetchComparison({ ...filters, page: next, limit: EXPORT_PAGE_SIZE });
-      all.push(...(res.data?.data || []));
-      totalPages = res.data?.meta?.totalPages || 1;
+      all.push(...(res?.data || []));
+      totalPages = res?.meta?.totalPages || 1;
       next += 1;
     } while (next <= totalPages);
     return all;

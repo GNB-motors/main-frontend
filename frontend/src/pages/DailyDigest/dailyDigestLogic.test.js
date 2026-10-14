@@ -7,6 +7,7 @@ import {
   buildUpcomingItems,
   groupUpcomingByDays,
   summarizeActionSeverity,
+  startOfTodayIST,
 } from './dailyDigestLogic';
 
 describe('cleanMsg', () => {
@@ -306,5 +307,16 @@ describe('groupUpcomingByDays', () => {
       },
       { days: 10, items: [{ id: 'a', days: 10 }] },
     ]);
+  });
+});
+
+// Must not depend on the browser's time zone: in an IST browser the old
+// version started "today" at 18:30 IST the day before.
+describe('startOfTodayIST', () => {
+  it('is IST midnight of the IST day, whatever the browser zone', () => {
+    // 01:00 IST on 13 Oct = 19:30 UTC on 12 Oct
+    expect(startOfTodayIST(new Date('2026-10-12T19:30:00.000Z'))).toBe('2026-10-12T18:30:00.000Z');
+    // 23:00 IST on 12 Oct = 17:30 UTC on 12 Oct
+    expect(startOfTodayIST(new Date('2026-10-12T17:30:00.000Z'))).toBe('2026-10-11T18:30:00.000Z');
   });
 });

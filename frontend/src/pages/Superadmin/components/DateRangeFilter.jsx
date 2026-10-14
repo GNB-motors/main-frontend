@@ -1,38 +1,54 @@
 import React, { useState } from 'react';
 import { CalendarDays, ChevronDown } from 'lucide-react';
-import dayjs from 'dayjs';
+import {
+  formatInIST,
+  istDayEndISO,
+  istDayStartISO,
+  istDayString,
+  shiftDay,
+  weekdayOf,
+} from '@/utils/dateUtils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import './DateRangeFilter.css';
 
-// Monday-start of week (weekStartsOn: 1 semantics)
-const startOfWeekMonday = () => dayjs().subtract((dayjs().day() + 6) % 7, 'day').startOf('day');
+// Ranges are IST calendar days ("YYYY-MM-DD"); weeks start on Monday.
+const today = () => istDayString();
+const mondayOf = (day) => shiftDay(day, -((weekdayOf(day) + 6) % 7));
 
 const PRESETS = [
-  { key: 'today', label: 'Today', range: () => ({ from: dayjs().startOf('day'), to: dayjs().endOf('day') }) },
-  { key: 'thisWeek', label: 'This Week', range: () => ({ from: startOfWeekMonday(), to: dayjs().endOf('day') }) },
-  { key: 'thisMonth', label: 'This Month', range: () => ({ from: dayjs().startOf('month'), to: dayjs().endOf('day') }) },
-  { key: 'thisYear', label: 'This Year', range: () => ({ from: dayjs().startOf('year'), to: dayjs().endOf('day') }) },
+  { key: 'today', label: 'Today', range: () => ({ from: today(), to: today() }) },
+  { key: 'thisWeek', label: 'This Week', range: () => ({ from: mondayOf(today()), to: today() }) },
+  {
+    key: 'thisMonth',
+    label: 'This Month',
+    range: () => ({ from: `${today().slice(0, 8)}01`, to: today() }),
+  },
+  {
+    key: 'thisYear',
+    label: 'This Year',
+    range: () => ({ from: `${today().slice(0, 5)}01-01`, to: today() }),
+  },
   { key: 'allTime', label: 'All Time', range: () => null },
 ];
 
+// The calendar hands back local-midnight Dates for the days the user clicked.
+const pickedDay = (date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
 function labelForValue(value) {
   if (!value?.startDate || !value?.endDate) return 'All Time';
-  const start = dayjs(value.startDate);
-  const end = dayjs(value.endDate);
+  const start = istDayString(value.startDate);
+  const end = istDayString(value.endDate);
 
   for (const preset of PRESETS) {
     if (preset.key === 'allTime') continue;
     const presetRange = preset.range();
-    if (
-      presetRange &&
-      presetRange.from.isSame(start, 'day') &&
-      presetRange.to.isSame(end, 'day')
-    ) {
+    if (presetRange && presetRange.from === start && presetRange.to === end) {
       return preset.label;
     }
   }
-  return `${start.format('D MMM YYYY')} – ${end.format('D MMM YYYY')}`;
+  return `${formatInIST(value.startDate, 'D MMM YYYY')} – ${formatInIST(value.endDate, 'D MMM YYYY')}`;
 }
 
 /**
@@ -50,7 +66,7 @@ const DateRangeFilter = ({ value, onChange }) => {
     if (!range) {
       onChange({ startDate: null, endDate: null });
     } else {
-      onChange({ startDate: range.from.toISOString(), endDate: range.to.toISOString() });
+      onChange({ startDate: istDayStartISO(range.from), endDate: istDayEndISO(range.to) });
     }
     setDraftRange(undefined);
     setOpen(false);
@@ -61,7 +77,7 @@ const DateRangeFilter = ({ value, onChange }) => {
   const handleCalendarSelect = (range) => {
     setDraftRange(range);
     if (range?.from && range?.to) {
-      applyRange({ from: dayjs(range.from).startOf('day'), to: dayjs(range.to).endOf('day') });
+      applyRange({ from: pickedDay(range.from), to: pickedDay(range.to) });
     }
   };
 

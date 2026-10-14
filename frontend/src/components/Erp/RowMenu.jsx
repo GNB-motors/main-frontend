@@ -42,10 +42,7 @@ const RowMenu = ({ items = [], label = 'Row actions' }) => {
     const top = below >= h + GAP + MARGIN ? t.bottom + GAP : Math.max(MARGIN, t.top - h - GAP);
 
     // Right-align to the trigger, then clamp inside the viewport.
-    const left = Math.min(
-      Math.max(MARGIN, t.right - w),
-      window.innerWidth - w - MARGIN,
-    );
+    const left = Math.min(Math.max(MARGIN, t.right - w), window.innerWidth - w - MARGIN);
 
     setPos({ top, left });
   }, []);
@@ -99,14 +96,21 @@ const RowMenu = ({ items = [], label = 'Row actions' }) => {
         <MoreVertical size={16} />
       </button>
 
-      {open
-        && createPortal(
+      {open &&
+        createPortal(
+          // The onClick only keeps clicks inside the portal from bubbling through
+          // the React tree to the row; it activates nothing. Items are buttons.
+          // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/interactive-supports-focus -- see above
           <div
             ref={panelRef}
             className="erp-rowmenu-panel"
             role="menu"
             // Hidden until measured, so the first paint is not a flash at 0,0.
-            style={{ top: pos?.top ?? 0, left: pos?.left ?? 0, visibility: pos ? 'visible' : 'hidden' }}
+            style={{
+              top: pos?.top ?? 0,
+              left: pos?.left ?? 0,
+              visibility: pos ? 'visible' : 'hidden',
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             {visible.map((item) => {

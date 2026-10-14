@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { AlertTriangle, MapPinOff, Route, TrendingUp } from 'lucide-react';
 import DataTable from '../../../components/ui/DataTable';
 import { StatusPill } from '../../../components/overview.primitives.jsx';
-import apiClient from '../../../utils/axiosConfig';
+import { ReportsService } from '../ReportsService.js';
 import useApi from '../../../hooks/useApi';
 import { formatNum } from '../../../utils/formatters';
 import { laneRow, filterLanes, LANE_FILTERS } from './laneKmReportUtils';
@@ -135,10 +135,10 @@ export default function LaneKmReport() {
   const [verdict, setVerdict] = useState('all');
   const [search, setSearch] = useState('');
   const { data, loading, error, refetch } = useApi(
-    (signal) => apiClient.get('api/reports/lanes', { signal }),
+    (signal) => ReportsService.getLaneKm({ signal }),
     [],
   );
-  const payload = data?.data?.data || data?.data || {};
+  const payload = data || {};
   const rows = useMemo(() => (payload.rows || []).map(laneRow), [payload.rows]);
   const totals = payload.totals || {};
   const shown = useMemo(() => filterLanes(rows, verdict, search), [rows, verdict, search]);

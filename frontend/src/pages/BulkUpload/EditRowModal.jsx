@@ -1,6 +1,6 @@
-import React from "react";
-import { X, Save, FileText } from "lucide-react";
-import "./EditRowModal.css";
+import React from 'react';
+import { X, Save, FileText } from 'lucide-react';
+import './EditRowModal.css';
 
 const EditRowModal = ({ isOpen, row, columns, onSave, onClose, errors, rawData }) => {
   const [formData, setFormData] = React.useState(row || {});
@@ -33,7 +33,7 @@ const EditRowModal = ({ isOpen, row, columns, onSave, onClose, errors, rawData }
             <X size={20} />
           </button>
         </div>
-        
+
         {errors && errors.length > 0 && (
           <div className="modal-errors">
             <h4>Validation Errors:</h4>
@@ -47,17 +47,11 @@ const EditRowModal = ({ isOpen, row, columns, onSave, onClose, errors, rawData }
 
         {rawData && (
           <div className="raw-data-toggle">
-            <button
-              type="button"
-              className="tertiary"
-              onClick={() => setShowRaw((prev) => !prev)}
-            >
+            <button type="button" className="tertiary" onClick={() => setShowRaw((prev) => !prev)}>
               <FileText size={16} />
-              {showRaw ? "Hide Original File Data" : "Show Original File Data"}
+              {showRaw ? 'Hide Original File Data' : 'Show Original File Data'}
             </button>
-            {showRaw && (
-              <pre className="raw-json">{JSON.stringify(rawData, null, 2)}</pre>
-            )}
+            {showRaw && <pre className="raw-json">{JSON.stringify(rawData, null, 2)}</pre>}
           </div>
         )}
 
@@ -70,14 +64,15 @@ const EditRowModal = ({ isOpen, row, columns, onSave, onClose, errors, rawData }
               </label>
               <input
                 id={col.key}
+                aria-label={col.label}
                 type="text"
-                value={formData[col.key] || ""}
+                value={formData[col.key] || ''}
                 placeholder={col.placeholder}
                 onChange={(e) => handleChange(col.key, e.target.value)}
               />
             </div>
           ))}
-          
+
           <div className="modal-actions">
             <button type="button" onClick={onClose} className="secondary">
               Cancel

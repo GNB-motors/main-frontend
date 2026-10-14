@@ -94,10 +94,11 @@ const CancelPlacementDrawer = ({ placement, qtyUnit = '', onClose, onCancelled }
       <form id="cancel-placement-form" onSubmit={handleSubmit}>
         <div className="erp-form-grid">
           <div className="erp-field full">
-            <label>
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- names the reason button group below (aria-labelledby), which has no single form control to point htmlFor at; kept a <label> for the .erp-field label styling */}
+            <label id="cancel-reason-label">
               Why <span className="required">*</span>
             </label>
-            <div className="erp-outcomes">
+            <div className="erp-outcomes" role="group" aria-labelledby="cancel-reason-label">
               {REASONS.map((r) => (
                 <button
                   type="button"
@@ -119,6 +120,7 @@ const CancelPlacementDrawer = ({ placement, qtyUnit = '', onClose, onCancelled }
             </label>
             <textarea
               id="cancel-remarks"
+              aria-label="Remarks"
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
               placeholder="What happened?"
@@ -131,6 +133,7 @@ const CancelPlacementDrawer = ({ placement, qtyUnit = '', onClose, onCancelled }
               <label htmlFor="cancel-empty">Empty running to carry forward (₹)</label>
               <input
                 id="cancel-empty"
+                aria-label="Empty running to carry forward (₹)"
                 type="number"
                 min="0"
                 step="0.01"

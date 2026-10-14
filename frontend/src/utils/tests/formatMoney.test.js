@@ -1,7 +1,15 @@
-import { inr, compactInr, num, pct, money, signedInr, drCr } from '../formatMoney.js';
+import { inr, num, pct, money, signedInr, drCr } from '../formatMoney.js';
+import { formatINR } from '../formatters.js';
 
 describe('formatMoney.js — central currency formatting', () => {
   describe('inr', () => {
+    // One rupee implementation app-wide: inr is formatINR with missing-as-zero.
+    it('prints exactly what formatINR prints', () => {
+      for (const v of [0, 999, 45300, 1200000, -4200, 12345678.9]) {
+        expect(inr(v)).toBe(formatINR(v));
+      }
+    });
+
     it('formats with Indian grouping, no paise', () => {
       expect(inr(1200000)).toBe('₹12,00,000');
       expect(inr(0)).toBe('₹0');
@@ -14,28 +22,6 @@ describe('formatMoney.js — central currency formatting', () => {
 
     it('rounds away paise', () => {
       expect(inr(1234.6)).toBe('₹1,235');
-    });
-  });
-
-  describe('compactInr', () => {
-    it('uses crore above 1e7', () => {
-      expect(compactInr(42000000)).toBe('₹4.20 Cr');
-    });
-
-    it('uses lakh above 1e5', () => {
-      expect(compactInr(250000)).toBe('₹2.50 L');
-    });
-
-    it('uses k above 1e3', () => {
-      expect(compactInr(45300)).toBe('₹45.3k');
-    });
-
-    it('falls back to full inr below 1e3', () => {
-      expect(compactInr(999)).toBe('₹999');
-    });
-
-    it('is sign-aware via the raw value, not abs', () => {
-      expect(compactInr(-42000000)).toBe('₹-4.20 Cr');
     });
   });
 

@@ -112,16 +112,23 @@ const LedgerPage = ({ embedded = false }) => {
   return (
     <PageShell
       embedded={embedded}
-      title={<><BookOpen size={22} style={{ marginRight: 8 }} /> Ledger</>}
+      title={
+        <>
+          <BookOpen size={22} style={{ marginRight: 8 }} /> Ledger
+        </>
+      }
       subtitle="Party / vendor / supplier / driver accounts. Stages 8–14 post entries here."
-      breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Accounts', to: '/erp/accounts' }, { label: 'Ledger' }]}
-      actions={(
+      breadcrumbs={[
+        { label: 'ERP', to: '/erp' },
+        { label: 'Accounts', to: '/erp/accounts' },
+        { label: 'Ledger' },
+      ]}
+      actions={
         <button type="button" className="btn btn-primary" onClick={() => setShowVoucher(true)}>
           <Plus size={16} /> New voucher
         </button>
-      )}
+      }
     >
-
       <div className="erp-toolbar">
         <div className="erp-tabs">
           <button
@@ -257,7 +264,9 @@ const LedgerPage = ({ embedded = false }) => {
         <div
           className="erp-modal-backdrop"
           role="presentation"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowVoucher(false); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowVoucher(false);
+          }}
         >
           <div className="erp-modal" role="dialog">
             <div className="erp-modal-header">
@@ -305,6 +314,7 @@ const LedgerPage = ({ embedded = false }) => {
                 <label>
                   Amount
                   <input
+                    aria-label="Amount"
                     type="number"
                     min="1"
                     step="any"
@@ -330,6 +340,7 @@ const LedgerPage = ({ embedded = false }) => {
                 <label>
                   Instrument / UTR
                   <input
+                    aria-label="Instrument / UTR"
                     value={voucherForm.instrumentNo}
                     onChange={(e) =>
                       setVoucherForm({ ...voucherForm, instrumentNo: e.target.value })
@@ -339,15 +350,18 @@ const LedgerPage = ({ embedded = false }) => {
                 <label>
                   Narration
                   <input
+                    aria-label="Narration"
                     value={voucherForm.narration}
-                    onChange={(e) =>
-                      setVoucherForm({ ...voucherForm, narration: e.target.value })
-                    }
+                    onChange={(e) => setVoucherForm({ ...voucherForm, narration: e.target.value })}
                   />
                 </label>
               </div>
               <div className="erp-modal-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowVoucher(false)}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowVoucher(false)}
+                >
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={busy}>

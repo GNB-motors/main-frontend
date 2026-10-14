@@ -211,11 +211,12 @@ function mockApi() {
         },
       });
     }
-    if (url === '/api/vehicles') {
+    if (url === '/api/vehicles/options') {
       return Promise.resolve({
         data: {
           status: 'success',
           data: [{ _id: 'v9', registrationNumber: 'WB11J8562', model: 'SIGNA 5530.S 4x2' }],
+          meta: { total: 1, page: 1, limit: 500, totalPages: 1 },
         },
       });
     }

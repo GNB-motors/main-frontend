@@ -38,15 +38,16 @@ describe('mileageIntervalReportUtils', () => {
     it('toStartOfDayIso produces start-of-day ISO', () => {
       expect(toStartOfDayIso('')).toBeUndefined();
       expect(toStartOfDayIso(null)).toBeUndefined();
-      const start = toStartOfDayIso('2026-09-06');
-      expect(new Date(start).getDate()).toBe(6);
+      // The IST day, whatever timezone the browser (or CI) runs in.
+      expect(toStartOfDayIso('2026-09-06')).toBe('2026-09-05T18:30:00.000Z');
+      // An instant is reduced to its IST calendar day first.
+      expect(toStartOfDayIso('2026-09-06T20:00:00Z')).toBe('2026-09-06T18:30:00.000Z');
     });
 
     it('toEndOfDayIso produces end-of-day ISO', () => {
       expect(toEndOfDayIso('')).toBeUndefined();
       expect(toEndOfDayIso(null)).toBeUndefined();
-      const end = toEndOfDayIso('2026-09-06');
-      expect(new Date(end).getDate()).toBe(6);
+      expect(toEndOfDayIso('2026-09-06')).toBe('2026-09-06T18:29:59.999Z');
     });
   });
 });

@@ -11,6 +11,7 @@
  * (+ X-Branch-Id when a branch is active).
  */
 import apiClient from '../utils/axiosConfig';
+import { parseSafe } from '../schemas/validate.js';
 
 const unwrap = (res) => res.data?.data || res.data;
 
@@ -18,9 +19,13 @@ const unwrap = (res) => res.data?.data || res.data;
 const idOf = (refOrId) => (refOrId && typeof refOrId === 'object' ? refOrId._id : refOrId) || '';
 
 const DriverVehicleAssignmentService = {
-  getAssignments: async (params = {}) => {
-    const response = await apiClient.get('/api/driver-vehicle-assignments', { params });
-    return unwrap(response);
+  getAssignments: async (params = {}, { signal } = {}) => {
+    const response = await apiClient.get('/api/driver-vehicle-assignments', { params, signal });
+    return parseSafe(
+      'driverVehicleAssignmentListSchema',
+      () => import('../schemas/driverVehicleAssignment.schema.js'),
+      unwrap(response),
+    );
   },
 
   createAssignment: async (data) => {

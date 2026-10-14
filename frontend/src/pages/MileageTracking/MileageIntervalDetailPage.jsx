@@ -13,17 +13,15 @@ import {
 } from 'lucide-react';
 import '../PageStyles.css';
 import './MileageTracking.css';
-import apiClient from '../../utils/axiosConfig';
 import { useApi } from '../../hooks/useApi';
 import PageShell from '../../components/ui/PageShell';
 import ExportButton from '../../components/ui/ExportButton';
 import { fmtDateShort } from './mileageIntervalDetailFormat';
-import {
-  SlimAnomalyAlert,
-  CompactKpiCard,
-  ReconciliationMatrixTable,
-  RefuelSlipsTable,
-} from './mileageIntervalDetailCells';
+import { MileageTrackingService } from './MileageTrackingService';
+import SlimAnomalyAlert from './intervalDetail/SlimAnomalyAlert';
+import CompactKpiCard from './intervalDetail/CompactKpiCard';
+import ReconciliationMatrixTable from './intervalDetail/ReconciliationMatrixTable';
+import RefuelSlipsTable from './intervalDetail/RefuelSlipsTable';
 
 const MileageIntervalDetailPage = () => {
   const { id } = useParams();
@@ -43,7 +41,7 @@ const MileageIntervalDetailPage = () => {
     loading: isLoading,
     error: intervalError,
   } = useApi(
-    (signal) => apiClient.get(`/api/mileage/intervals/${id}`, { signal }),
+    (signal) => MileageTrackingService.getInterval(id, { signal }),
     [JSON.stringify({ id })],
     {
       enabled: !!id,
@@ -52,7 +50,7 @@ const MileageIntervalDetailPage = () => {
 
   useEffect(() => {
     if (intervalResponse) {
-      const data = intervalResponse.data?.data;
+      const data = intervalResponse.data;
       if (data) {
         setInterval(data);
       } else {

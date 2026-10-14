@@ -5,6 +5,7 @@ import ImageCropper from '../../../components/ImageCropper/ImageCropper';
 import DocumentCard from '../../Drivers/Component/DocumentCard';
 import { toast } from 'react-toastify';
 import '../../Drivers/Component/DocumentUpload.css';
+import logger from '../../../utils/logger';
 
 // Five canonical vehicle document types. RC and National Permit accept two
 // images (front + back) — others are single-page.
@@ -176,7 +177,7 @@ const VehicleDocumentUpload = ({
       try {
         await onDeleteDocument(docId);
       } catch (err) {
-        console.error(`Failed to delete ${docKey} from server:`, err);
+        logger.warn('VehicleDocumentUpload', `Failed to delete ${docKey} from server`, err);
         return;
       }
       // Clear all sides for this docType since the whole subdoc was removed.

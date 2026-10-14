@@ -1,4 +1,5 @@
 import apiClient from '../../utils/axiosConfig';
+import ApiError from '../../errors/ApiError';
 
 /**
  * Service for the Refuel Advisory (feature #16). Same OWNER/MANAGER + per-org
@@ -14,7 +15,7 @@ export const RefuelAdvisoryService = {
       return response.data || {};
     } catch (error) {
       if (error?.code === 'ERR_CANCELED') throw error;
-      throw error.response?.data || { detail: 'Could not fetch refuel advisories.' };
+      throw ApiError.from(error);
     }
   },
 };

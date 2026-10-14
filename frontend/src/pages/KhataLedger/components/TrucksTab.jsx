@@ -4,12 +4,25 @@ import { Search, Truck, ChevronLeft, ChevronRight, Eye, User, Fuel } from 'lucid
 import { toast } from 'react-toastify';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import DateRangeFilter from '../../Superadmin/components/DateRangeFilter';
 import KhataLedgerService from '../KhataLedgerService';
 import AddFuelLogModal from './AddFuelLogModal';
-import { formatCurrency, getDriverName, getVehicleLabel, getInitialDateRange, toSplitArray } from '../utils';
+import {
+  formatCurrency,
+  getDriverName,
+  getVehicleLabel,
+  getInitialDateRange,
+  toSplitArray,
+} from '../utils';
 
 const TrucksTab = ({ vehicles: allVehicles = [], drivers = [] }) => {
   const navigate = useNavigate();
@@ -52,7 +65,7 @@ const TrucksTab = ({ vehicles: allVehicles = [], drivers = [] }) => {
         setLoading(false);
       }
     },
-    [dateRange, search]
+    [dateRange, search],
   );
 
   useEffect(() => {
@@ -61,7 +74,10 @@ const TrucksTab = ({ vehicles: allVehicles = [], drivers = [] }) => {
 
   const enrichedTrucks = trucks.map((t) => {
     const full = allVehicles.find((v) => v._id === (t._id || t.vehicleId));
-    return { ...t, label: getVehicleLabel(full) || t.registrationNumber || t.name || 'Unknown Truck' };
+    return {
+      ...t,
+      label: getVehicleLabel(full) || t.registrationNumber || t.name || 'Unknown Truck',
+    };
   });
 
   return (
@@ -69,7 +85,9 @@ const TrucksTab = ({ vehicles: allVehicles = [], drivers = [] }) => {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold">Trucks</h2>
-          <p className="text-sm text-muted-foreground">Period totals and entry counts per vehicle</p>
+          <p className="text-sm text-muted-foreground">
+            Period totals and entry counts per vehicle
+          </p>
         </div>
         <DateRangeFilter value={dateRange} onChange={setDateRange} />
       </div>
@@ -78,8 +96,12 @@ const TrucksTab = ({ vehicles: allVehicles = [], drivers = [] }) => {
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1" style={{ minWidth: 200 }}>
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
               <input
+                aria-label="Search trucks"
                 className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:outline-none"
                 placeholder="Search trucks..."
                 value={searchInput}
@@ -125,17 +147,26 @@ const TrucksTab = ({ vehicles: allVehicles = [], drivers = [] }) => {
                         <span className="font-medium">{truck.label}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-semibold">{formatCurrency(truck.totalAmount)}</TableCell>
+                    <TableCell className="font-semibold">
+                      {formatCurrency(truck.totalAmount)}
+                    </TableCell>
                     <TableCell>{truck.entryCount ?? truck.count ?? 0}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {toSplitArray(truck.driverSplit || truck.byDriver)
                           .slice(0, 3)
                           .map((split) => {
-                            const driver = drivers.find((d) => d._id === (split.driverId || split._id));
-                            const label = (driver && getDriverName(driver)) || split.name || 'Unknown';
+                            const driver = drivers.find(
+                              (d) => d._id === (split.driverId || split._id),
+                            );
+                            const label =
+                              (driver && getDriverName(driver)) || split.name || 'Unknown';
                             return (
-                              <Badge key={split.driverId || split._id || label} variant="outline" className="text-xs">
+                              <Badge
+                                key={split.driverId || split._id || label}
+                                variant="outline"
+                                className="text-xs"
+                              >
                                 <User size={10} className="mr-1" />
                                 {label}: {formatCurrency(split.amount)}
                               </Badge>

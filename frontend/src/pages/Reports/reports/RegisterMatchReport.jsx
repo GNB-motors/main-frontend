@@ -6,7 +6,7 @@ import useApi from '../../../hooks/useApi';
 import AutoTripService from '../../../services/AutoTripService';
 import { formatNum } from '../../../utils/formatters';
 import { PlantChart } from '../../AutoTrips/RegisterMatchCard';
-import { fmtDateRange } from '../../AutoTrips/autoTripModel';
+import { fmtDateRange } from '../../AutoTrips/autoTripFormat';
 import ReportFrame, { ReportFooter, ReportSearch } from './ReportFrame';
 import { matchesSearch, pageCount, pageSlice, rangeLabel, REPORT_PAGE_SIZE } from './reportFilters';
 import useReportPage from './useReportPage';
@@ -60,7 +60,6 @@ function errorText(error) {
   if (status === 403) return 'You do not have access to the trip register match.';
   return (
     error?.response?.data?.message ||
-    error?.detail ||
     error?.message ||
     'The server did not answer. Check your connection and try again.'
   );

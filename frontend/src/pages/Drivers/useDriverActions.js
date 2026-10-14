@@ -5,9 +5,10 @@
  */
 import { useState } from 'react';
 import { toast } from 'react-toastify';
-import { DriverService } from './DriverService.jsx';
+import { DriverService } from './DriverService.js';
 import { getToken, getBranchId } from '../../utils/session.js';
 import { isCrossBranchMove } from './driverList.js';
+import logger from '../../utils/logger';
 
 export function useDriverActions({
   navigate,
@@ -65,7 +66,7 @@ export function useDriverActions({
       setMovingDriver(null);
       fetchDrivers();
     } catch (err) {
-      toast.error(err?.message || err?.detail || 'Could not activate employee here');
+      toast.error(err?.message || 'Could not activate employee here');
     } finally {
       setIsActionSubmitting(false);
     }
@@ -86,7 +87,7 @@ export function useDriverActions({
       setDeactivatingDriver(null);
       fetchDrivers();
     } catch (err) {
-      toast.error(err?.message || err?.detail || 'Could not deactivate employee');
+      toast.error(err?.message || 'Could not deactivate employee');
     } finally {
       setIsActionSubmitting(false);
     }
@@ -114,11 +115,8 @@ export function useDriverActions({
       setIsEditModalOpen(false); // Close modal on success
       setEditingDriver(null);
       toast.success(`Employee "${updateData.name}" updated successfully!`);
-    } catch (apiError) {
-      console.error('Failed to update driver:', apiError);
-      // Re-throw error for modal display
-      throw apiError;
     } finally {
+      // Errors propagate to the edit modal, which shows them.
       setIsSubmitting(false);
     }
   };
@@ -157,8 +155,8 @@ export function useDriverActions({
         fetchDrivers();
       }
     } catch (err) {
-      console.error('Failed to delete employee:', err);
-      const errorMessage = err.detail || err.message || 'Failed to delete employee.';
+      logger.warn('useDriverActions', 'Failed to delete employee', err);
+      const errorMessage = err.message || 'Failed to delete employee.';
       setActionError(errorMessage);
       toast.error(errorMessage);
     } finally {

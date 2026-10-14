@@ -1,6 +1,5 @@
-import dayjs from 'dayjs';
+import { istDayString } from './dateUtils.js';
 import { toast } from 'react-toastify';
-import * as XLSX from 'xlsx';
 
 /**
  * Shared filtered-report CSV export helpers.
@@ -46,10 +45,13 @@ export function buildCsvString(headers, rowArrays) {
  * dates are never re-read as US mm/dd; plain numbers are turned back into
  * numeric cells so the sheet still sums.
  *
+ * xlsx is loaded on demand: it is large and only needed when someone exports.
+ *
  * @param {string} csvText
- * @returns {ArrayBuffer}
+ * @returns {Promise<ArrayBuffer>}
  */
-export function csvTextToXlsxBuffer(csvText) {
+export async function csvTextToXlsxBuffer(csvText) {
+  const XLSX = await import('xlsx');
   const workbook = XLSX.read(csvText, { type: 'string', raw: true });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   Object.keys(sheet).forEach((addr) => {
@@ -105,7 +107,7 @@ export async function exportFilteredReportCsv({
   }
 
   const mimeType = getReportExportMime(extension);
-  const filename = `${filenamePrefix}_${dayjs().format('YYYY-MM-DD')}.${extension}`;
+  const filename = `${filenamePrefix}_${istDayString()}.${extension}`;
 
   try {
     let content;
@@ -119,7 +121,7 @@ export async function exportFilteredReportCsv({
         // A CSV saved under an .xlsx name opens as a corrupt file, so convert
         // it into a real workbook.
         const text = blob instanceof Blob ? await blob.text() : String(blob);
-        content = new Blob([csvTextToXlsxBuffer(text)], { type: mimeType });
+        content = new Blob([await csvTextToXlsxBuffer(text)], { type: mimeType });
       } else {
         content = blob instanceof Blob ? blob : new Blob([blob], { type: mimeType });
       }
@@ -127,6 +129,7 @@ export async function exportFilteredReportCsv({
       const rowArrays = rows.map((row) => mapRow(row));
 
       if (extension === 'xlsx') {
+        const XLSX = await import('xlsx');
         const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rowArrays]);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Report');
@@ -143,9 +146,8 @@ export async function exportFilteredReportCsv({
     if (showToast) toast.success(successMessage);
     return true;
   } catch (err) {
-    console.error('Filtered report export failed:', err);
     if (showToast) {
-      toast.error(err?.detail || err?.message || errorMessage);
+      toast.error(err?.message || errorMessage);
     }
     throw err;
   }

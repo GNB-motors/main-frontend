@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ArrowUp, ArrowDown, Columns3 } from 'lucide-react';
 import EmptyState from '../cluster/EmptyState';
 import { nextSort, readDensity, visibleColumns, footerSummary } from '../../lib/tableState';
+import { getPref } from '../../utils/session.js';
 
 /**
  * DataTable — the one table every fleet list uses (master plan C.2).
@@ -64,7 +65,7 @@ export default function DataTable({
   toolbarExtra = null,
 }) {
   const [hidden, setHidden] = useState(() => new Set());
-  const density = readDensity(window.localStorage);
+  const density = readDensity({ getItem: getPref });
   const [menuOpen, setMenuOpen] = useState(false);
 
   const cols = useMemo(() => visibleColumns(columns, hidden), [columns, hidden]);
@@ -150,6 +151,7 @@ export default function DataTable({
                   .filter((c) => c.key !== 'actions')
                   .map((c) => (
                     <label key={c.key} className="dt-cols-item">
+                      {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- named by the wrapping <label>'s {c.label} text, which the rule cannot see */}
                       <input
                         type="checkbox"
                         checked={!hidden.has(c.key)}
@@ -219,12 +221,12 @@ export default function DataTable({
               ? Array.from({ length: 6 }).map((_, i) => (
                   <tr key={`skel-${i}`} className="dt-row dt-row--skeleton" aria-hidden>
                     {selectable ? (
-                      <td>
+                      <td aria-hidden="true">
                         <span className="dt-skel" />
                       </td>
                     ) : null}
                     {cols.map((col) => (
-                      <td key={col.key} style={{ textAlign: col.align }}>
+                      <td key={col.key} style={{ textAlign: col.align }} aria-hidden="true">
                         <span className="dt-skel" />
                       </td>
                     ))}

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import PlaceHubPage from './PlaceHubPage.jsx';
 import PlaceHubService from './PlaceHubService.js';
@@ -254,7 +254,11 @@ describe('PlaceHubPage', () => {
 
   it('answers unexplained stops from the stops tab, all at once', async () => {
     renderPage('/place-hub?tab=stops');
-    expect(await screen.findByRole('button', { name: /^Stops/ })).toHaveTextContent('6 h');
+    // The tab renders before the summary that adds its hours arrives; wait for
+    // the hours rather than racing the load (failed on the slower CI runner).
+    await vi.waitFor(() =>
+      expect(screen.getByRole('button', { name: /^Stops/ })).toHaveTextContent('6 h'),
+    );
     fireEvent.click(await screen.findByText(/2 stops/));
     const drawer = screen.getByRole('complementary', { name: 'Unexplained stops' });
     fireEvent.click(within(drawer).getByRole('button', { name: /All 2 were rest/ }));
@@ -281,5 +285,43 @@ describe('PlaceHubPage', () => {
     expect(PlaceHubService.loadSites).not.toHaveBeenCalled();
     expect(PlaceHubService.loadLiveIdling).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: /Routes/ })).not.toBeInTheDocument();
+  });
+
+  // Idling and fuel layers that failed used to look like "nothing here".
+  it('says when an idling or fuel layer failed to load', async () => {
+    PlaceHubService.loadLiveIdling.mockReturnValue(
+      Promise.resolve({ rows: [], error: new Error('timeout') }),
+    );
+    PlaceHubService.loadDrainMap.mockReturnValue(
+      Promise.resolve({ rows: null, error: new Error('timeout') }),
+    );
+    renderPage('/place-hub?tab=idling');
+    expect(
+      await screen.findByText(/Some idling data could not load \(live idling\)/),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Fuel risk/ }));
+    expect(
+      await screen.findByText(/Some fuel data could not load \(drain map\)/),
+    ).toBeInTheDocument();
+  });
+
+  // A refresh in flight when the user left used to land on an unmounted page.
+  it('cancels a live-idling refresh still in flight on unmount', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const view = renderPage('/place-hub?tab=idling');
+      expect(await screen.findByText('WB11G0962')).toBeInTheDocument();
+      let signal;
+      PlaceHubService.loadLiveIdling.mockImplementation((opts = {}) => {
+        signal = opts.signal;
+        return new Promise(() => {});
+      });
+      await act(() => vi.advanceTimersByTimeAsync(60_000));
+      expect(signal?.aborted).toBe(false);
+      view.unmount();
+      expect(signal.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

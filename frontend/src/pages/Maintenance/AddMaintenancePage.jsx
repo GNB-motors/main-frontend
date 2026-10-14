@@ -7,12 +7,11 @@ import FormFooter from '../Drivers/Component/FormFooter.jsx';
 import DropZone from '../../components/DropZone/DropZone.jsx';
 import MaintenanceBasicInformationForm from './Component/MaintenanceBasicInformationForm.jsx';
 import AddOptionModal from './Component/AddOptionModal.jsx';
-import { MaintenanceService } from './MaintenanceService.jsx';
-import { VehicleService } from '../Profile/VehicleService.jsx';
-import { DriverService } from '../Drivers/DriverService.jsx';
+import { MaintenanceService } from './MaintenanceService.js';
+import { getVehicleList } from '../../services/vehicleListService';
+import { DriverService } from '../Drivers/DriverService.js';
 import { normalizeDriver } from '../Drivers/driverList.js';
 import { getThemeCSS } from '../../utils/colorTheme';
-import { getToken } from '../../utils/session.js';
 import '../Profile/VehiclesPage.css';
 
 /**
@@ -76,9 +75,8 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
   }, []);
 
   useEffect(() => {
-    const token = getToken();
-    VehicleService.getAllVehicles(null, token, 1, 1000)
-      .then((res) => setVehicles(Array.isArray(res?.data) ? res.data : []))
+    getVehicleList()
+      .then(setVehicles)
       .catch(() => setVehicles([]));
     DriverService.getAllDrivers(null, { limit: 300 })
       .then((res) => {
@@ -87,8 +85,9 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
         setDrivers(list);
       })
       .catch(() => setDrivers([]));
-    MaintenanceService.getOptions(token)
+    MaintenanceService.getOptions()
       .then((o) => setOptions(o || { workshops: [], serviceTypes: [], repairTypes: [] }))
+      // The modal falls back to its built-in service and repair type lists.
       .catch(() => {});
   }, []);
 
@@ -152,7 +151,6 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
     }
     setIsSubmitting(true);
     try {
-      const token = getToken();
       const payload = {
         vehicleId: formData.vehicleId,
         recordType,
@@ -165,11 +163,11 @@ const AddMaintenancePage = ({ recordType = 'SERVICE' }) => {
       if (formData.driverId) payload.driverId = formData.driverId;
       if (isService && formData.currentKm !== '') payload.currentKm = Number(formData.currentKm);
 
-      await MaintenanceService.createRecord(token, payload, files);
+      await MaintenanceService.createRecord(payload, files);
       toast.success(`${isService ? 'Service' : 'Repair'} record added.`);
       navigate('/vehicles/service-intelligence', { state: { focusTab: recordType } });
     } catch (err) {
-      toast.error(err?.detail || 'Failed to save record');
+      toast.error(err?.message || 'Failed to save record');
     } finally {
       setIsSubmitting(false);
     }

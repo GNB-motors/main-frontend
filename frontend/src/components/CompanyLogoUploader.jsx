@@ -109,7 +109,12 @@ const CompanyLogoUploader = ({ orgId, logoUrl, onChange, compact = false }) => {
 
       <div className="logo-uploader-side">
         <div className="logo-uploader-actions">
-          <button type="button" className="logo-uploader-btn primary" onClick={pick} disabled={busy}>
+          <button
+            type="button"
+            className="logo-uploader-btn primary"
+            onClick={pick}
+            disabled={busy}
+          >
             <Upload size={14} />
             {shown ? 'Replace' : 'Upload logo'}
           </button>
@@ -131,6 +136,7 @@ const CompanyLogoUploader = ({ orgId, logoUrl, onChange, compact = false }) => {
       <input
         ref={inputRef}
         type="file"
+        aria-label="Company logo file"
         accept={LOGO_ACCEPT}
         onChange={handleFile}
         style={{ display: 'none' }}

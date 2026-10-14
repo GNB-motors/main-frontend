@@ -7,10 +7,12 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Edit2, Ban, ShieldCheck, X, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Edit2, Ban, ShieldCheck } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ErpMasterService from './ErpMasterService';
 import PageShell from '../../components/Erp/PageShell';
+import VendorModal from './VendorModal';
+import BlacklistVendorModal from './BlacklistVendorModal';
 import '../../styles/erp.css';
 
 const EMPTY_FORM = {
@@ -199,6 +201,7 @@ const VendorsPage = () => {
           <input
             type="text"
             placeholder="Search by name or code..."
+            aria-label="Search vendors"
             value={searchTerm}
             onChange={handleSearch}
           />
@@ -257,7 +260,12 @@ const VendorsPage = () => {
                     </td>
                     <td>
                       <div className="erp-actions">
-                        <button className="btn-icon" onClick={() => openEdit(v)} title="Edit">
+                        <button
+                          className="btn-icon"
+                          onClick={() => openEdit(v)}
+                          title="Edit"
+                          aria-label="Edit"
+                        >
                           <Edit2 size={16} />
                         </button>
                         <button
@@ -267,6 +275,7 @@ const VendorsPage = () => {
                             setBlacklistReason('');
                           }}
                           title={v.isBlacklisted ? 'Remove from blacklist' : 'Blacklist'}
+                          aria-label={v.isBlacklisted ? 'Remove from blacklist' : 'Blacklist'}
                         >
                           <Ban size={16} />
                         </button>
@@ -281,204 +290,26 @@ const VendorsPage = () => {
       </div>
 
       {showModal && (
-        <div
-          className="erp-modal-backdrop"
-          role="presentation"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowModal(false);
-          }}
-        >
-          <div className="erp-modal">
-            <div className="erp-modal-header">
-              <h2>{editingId ? 'Edit Vendor' : 'Add Vendor'}</h2>
-              <button className="btn-icon" onClick={() => setShowModal(false)}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit}>
-              <div className="erp-modal-body">
-                <div className="erp-form-grid">
-                  <div className="erp-field">
-                    <label htmlFor="v-name">
-                      Vendor Name <span className="required">*</span>
-                    </label>
-                    <input
-                      id="v-name"
-                      value={form.name}
-                      onChange={(e) => setField('name', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="erp-field">
-                    <label htmlFor="v-code">
-                      Code <span className="required">*</span>
-                    </label>
-                    <input
-                      id="v-code"
-                      value={form.code}
-                      onChange={(e) => setField('code', e.target.value.toUpperCase())}
-                      required
-                    />
-                  </div>
-                  <div className="erp-field">
-                    <label htmlFor="v-gstin">GSTIN</label>
-                    <input
-                      id="v-gstin"
-                      value={form.gstin}
-                      onChange={(e) => setField('gstin', e.target.value.toUpperCase())}
-                    />
-                  </div>
-                  <div className="erp-field">
-                    <label htmlFor="v-pan">PAN</label>
-                    <input
-                      id="v-pan"
-                      value={form.pan}
-                      onChange={(e) => setField('pan', e.target.value.toUpperCase())}
-                    />
-                  </div>
-                  <div className="erp-field">
-                    <label htmlFor="v-person">Contact Person</label>
-                    <input
-                      id="v-person"
-                      value={form.contact.person}
-                      onChange={(e) => setContact('person', e.target.value)}
-                    />
-                  </div>
-                  <div className="erp-field">
-                    <label htmlFor="v-phone">Contact Phone</label>
-                    <input
-                      id="v-phone"
-                      value={form.contact.phone}
-                      onChange={(e) => setContact('phone', e.target.value)}
-                    />
-                  </div>
-                  <div className="erp-field">
-                    <label htmlFor="v-tdssec">TDS Section</label>
-                    <input
-                      id="v-tdssec"
-                      value={form.tdsSection}
-                      onChange={(e) => setField('tdsSection', e.target.value)}
-                      placeholder="194C"
-                    />
-                  </div>
-                  <div className="erp-field">
-                    <label htmlFor="v-tdsrate">TDS Rate (%)</label>
-                    <input
-                      id="v-tdsrate"
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      value={form.tdsRate}
-                      onChange={(e) => setField('tdsRate', e.target.value)}
-                    />
-                  </div>
-                  <div className="erp-field full">
-                    <label htmlFor="v-tankers">Tankers</label>
-                    <textarea
-                      id="v-tankers"
-                      value={form.tankersText}
-                      onChange={(e) => setField('tankersText', e.target.value)}
-                      placeholder={'WB11AA1111, 30\nWB11BB2222, 34'}
-                    />
-                    <span className="erp-field-hint">
-                      One per line: registration number, capacity in KL.
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="erp-modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowModal(false)}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? 'Saving...' : editingId ? 'Save Changes' : 'Create Vendor'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <VendorModal
+          editingId={editingId}
+          setShowModal={setShowModal}
+          handleSubmit={handleSubmit}
+          form={form}
+          setField={setField}
+          setContact={setContact}
+          saving={saving}
+        />
       )}
 
       {blacklistTarget && (
-        <div
-          className="erp-modal-backdrop"
-          role="presentation"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setBlacklistTarget(null);
-          }}
-        >
-          <div className="erp-modal" style={{ maxWidth: 460 }}>
-            <div className="erp-modal-header">
-              <h2>
-                {blacklistTarget.isBlacklisted ? 'Remove from blacklist' : 'Blacklist vendor'}
-              </h2>
-              <button className="btn-icon" onClick={() => setBlacklistTarget(null)}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={handleBlacklist}>
-              <div className="erp-modal-body">
-                {blacklistTarget.isBlacklisted ? (
-                  <p style={{ margin: 0 }}>
-                    Allow <strong>{blacklistTarget.name}</strong> to be placed again?
-                    {blacklistTarget.blacklistReason && (
-                      <span className="erp-cell-muted">
-                        {' '}
-                        Blacklisted for: {blacklistTarget.blacklistReason}
-                      </span>
-                    )}
-                  </p>
-                ) : (
-                  <>
-                    <div className="erp-callout info">
-                      <AlertTriangle size={16} />
-                      <span>
-                        A blacklisted vendor cannot be placed at all — not even with an approval.
-                      </span>
-                    </div>
-                    <div className="erp-field full">
-                      <label htmlFor="bl-reason">
-                        Reason <span className="required">*</span>
-                      </label>
-                      <textarea
-                        id="bl-reason"
-                        value={blacklistReason}
-                        onChange={(e) => setBlacklistReason(e.target.value)}
-                        placeholder="Repeated shortages"
-                        required
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="erp-modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setBlacklistTarget(null)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className={`btn ${blacklistTarget.isBlacklisted ? 'btn-primary' : 'btn-danger'}`}
-                  disabled={saving}
-                >
-                  {saving ? 'Saving...' : blacklistTarget.isBlacklisted ? 'Remove' : 'Blacklist'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <BlacklistVendorModal
+          blacklistTarget={blacklistTarget}
+          setBlacklistTarget={setBlacklistTarget}
+          handleBlacklist={handleBlacklist}
+          blacklistReason={blacklistReason}
+          setBlacklistReason={setBlacklistReason}
+          saving={saving}
+        />
       )}
     </PageShell>
   );

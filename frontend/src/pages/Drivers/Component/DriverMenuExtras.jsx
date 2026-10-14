@@ -120,8 +120,12 @@ export const FilterDropdown = ({
 export const DriversTableSkeleton = ({ rows = 8 }) => (
   <>
     {Array.from({ length: rows }).map((_, i) => (
-      <tr key={`skeleton-${i}`} className="drivers-table-row drivers-skeleton-row">
-        <td>
+      <tr
+        key={`skeleton-${i}`}
+        className="drivers-table-row drivers-skeleton-row"
+        aria-hidden="true"
+      >
+        <td aria-hidden="true">
           <div className="drivers-driver-name-cell">
             <div className="drivers-skeleton drivers-skeleton-avatar"></div>
             <div className="drivers-driver-info">
@@ -130,19 +134,19 @@ export const DriversTableSkeleton = ({ rows = 8 }) => (
             </div>
           </div>
         </td>
-        <td>
+        <td aria-hidden="true">
           <span className="drivers-skeleton drivers-skeleton-text"></span>
         </td>
-        <td>
+        <td aria-hidden="true">
           <span className="drivers-skeleton drivers-skeleton-text"></span>
         </td>
-        <td>
+        <td aria-hidden="true">
           <span className="drivers-skeleton drivers-skeleton-text"></span>
         </td>
-        <td>
+        <td aria-hidden="true">
           <span className="drivers-skeleton drivers-skeleton-text drivers-skeleton-text-lg"></span>
         </td>
-        <td>
+        <td aria-hidden="true">
           <span className="drivers-skeleton drivers-skeleton-pill"></span>
         </td>
       </tr>

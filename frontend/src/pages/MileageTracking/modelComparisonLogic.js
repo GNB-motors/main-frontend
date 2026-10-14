@@ -90,3 +90,21 @@ export function modelSummaryExportRows(models) {
     atRisk: countAtRisk(row.vehicles, row.avgMileage),
   }));
 }
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+/** How the averages were computed and what was left out, from the API's `meta`; null without it. */
+export function methodNoteOf(meta) {
+  if (!meta) return null;
+  return [
+    'Distance-weighted: total km ÷ total litres of completed full-tank cycles.',
+    meta.excludedCycleCount
+      ? `${plural(meta.excludedCycleCount, 'cycle')} with no distance or an impossible km/L (${meta.plausibleKmPerL?.min}–${meta.plausibleKmPerL?.max}) left out.`
+      : null,
+    meta.belowMinVehicleCount
+      ? `${plural(meta.belowMinVehicleCount, 'vehicle')} with fewer than ${meta.minCycles} usable cycles hidden.`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}

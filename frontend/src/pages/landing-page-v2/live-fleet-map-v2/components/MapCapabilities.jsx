@@ -378,7 +378,7 @@ export default function MapCapabilities() {
                 textWrap: 'pretty',
               }}
             >
-              Scrub any vehicle's last 90 days minute by minute when a client disputes a delay.
+              Scrub any vehicle&apos;s last 90 days minute by minute when a client disputes a delay.
             </div>
           </div>
         </div>

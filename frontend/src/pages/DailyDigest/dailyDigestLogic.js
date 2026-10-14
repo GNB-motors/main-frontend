@@ -1,7 +1,7 @@
 import { ShieldAlert, FileWarning, Bell, Wrench, Fuel, Timer, Route } from 'lucide-react';
 import { ALERT_TYPE_LABELS } from '../OwnerAlerts/OwnerAlertsService';
 import { formatINR, formatInrCompact, formatNum, formatLitres } from '../../utils/formatters';
-import { formatDateIST } from '../../utils/dateUtils';
+import { formatDateIST, istDayString, istDayStartISO } from '../../utils/dateUtils';
 
 /**
  * Pure "what needs attention today" assembly for the Daily Digest (rule 21).
@@ -11,10 +11,10 @@ import { formatDateIST } from '../../utils/dateUtils';
  */
 
 // Start of today in IST, as an ISO instant for backend windows.
-export function startOfTodayIST() {
-  const istNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-  istNow.setHours(0, 0, 0, 0);
-  return new Date(istNow.getTime() - 5.5 * 3600 * 1000).toISOString();
+// Pinned to IST arithmetic, not the browser's zone: the old version was only
+// right in a UTC browser and started "today" at 18:30 IST yesterday in an IST one.
+export function startOfTodayIST(now = new Date()) {
+  return istDayStartISO(istDayString(now));
 }
 
 // HIGH shares the --caution tone with MEDIUM (not --critical) so red stays

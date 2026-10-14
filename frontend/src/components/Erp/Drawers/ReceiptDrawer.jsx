@@ -1,17 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { toast } from 'react-toastify';
 import ErpDrawer from '../ErpDrawer';
 import ReceiptService from '../../../pages/ErpReceipts/ReceiptService';
 
 const todayInput = () => new Date().toISOString().slice(0, 10);
 
-const ReceiptDrawer = ({
-  isOpen,
-  onClose,
-  bill = null,
-  party = null,
-  onSuccess,
-}) => {
+const ReceiptDrawer = ({ isOpen, onClose, bill = null, party = null, onSuccess }) => {
+  const uid = useId();
   const [receiptDate, setReceiptDate] = useState(todayInput());
   const [paymentMode, setPaymentMode] = useState('BANK');
   const [amount, setAmount] = useState('');
@@ -26,7 +21,9 @@ const ReceiptDrawer = ({
       // SaleBill carries netAmount/outstandingAmount; `netReceivable` belongs to
       // Unloading and `grandTotal` to nothing at all, so the box never filled.
       // Default to what is still owed, not the full invoice.
-      setAmount(bill ? String(bill.outstandingAmount ?? bill.netAmount ?? bill.netReceivable ?? '') : '');
+      setAmount(
+        bill ? String(bill.outstandingAmount ?? bill.netAmount ?? bill.netReceivable ?? '') : '',
+      );
       setReference('');
       setRemarks('');
     }
@@ -65,7 +62,12 @@ const ReceiptDrawer = ({
       <button type="button" className="btn btn-secondary" onClick={onClose}>
         Cancel
       </button>
-      <button type="submit" form="receipt-form" className="btn btn-primary" disabled={busy || !amount}>
+      <button
+        type="submit"
+        form="receipt-form"
+        className="btn btn-primary"
+        disabled={busy || !amount}
+      >
         {busy ? 'Recording…' : 'Record Receipt'}
       </button>
     </>
@@ -82,8 +84,10 @@ const ReceiptDrawer = ({
       <form id="receipt-form" onSubmit={handleRecord}>
         <div className="erp-form-grid">
           <div className="erp-field full">
-            <label>Party</label>
+            <label htmlFor={`${uid}-party`}>Party</label>
             <input
+              id={`${uid}-party`}
+              aria-label="Party"
               disabled
               value={party?.name || bill?.partyId?.name || 'Pre-selected Party'}
               className="disabled"
@@ -91,8 +95,12 @@ const ReceiptDrawer = ({
           </div>
 
           <div className="erp-field">
-            <label>Receipt Date <span className="required">*</span></label>
+            <label htmlFor={`${uid}-receipt-date`}>
+              Receipt Date <span className="required">*</span>
+            </label>
             <input
+              id={`${uid}-receipt-date`}
+              aria-label="Receipt Date"
               type="date"
               required
               value={receiptDate}
@@ -101,8 +109,14 @@ const ReceiptDrawer = ({
           </div>
 
           <div className="erp-field">
-            <label>Payment Mode <span className="required">*</span></label>
-            <select value={paymentMode} onChange={(e) => setPaymentMode(e.target.value)}>
+            <label htmlFor={`${uid}-payment-mode`}>
+              Payment Mode <span className="required">*</span>
+            </label>
+            <select
+              id={`${uid}-payment-mode`}
+              value={paymentMode}
+              onChange={(e) => setPaymentMode(e.target.value)}
+            >
               <option value="BANK">Bank Transfer</option>
               <option value="CHEQUE">Cheque</option>
               <option value="CASH">Cash</option>
@@ -111,8 +125,12 @@ const ReceiptDrawer = ({
           </div>
 
           <div className="erp-field">
-            <label>Amount (₹) <span className="required">*</span></label>
+            <label htmlFor={`${uid}-amount`}>
+              Amount (₹) <span className="required">*</span>
+            </label>
             <input
+              id={`${uid}-amount`}
+              aria-label="Amount (₹)"
               type="number"
               step="any"
               min="1"
@@ -124,8 +142,10 @@ const ReceiptDrawer = ({
           </div>
 
           <div className="erp-field">
-            <label>Reference / UTR No.</label>
+            <label htmlFor={`${uid}-reference`}>Reference / UTR No.</label>
             <input
+              id={`${uid}-reference`}
+              aria-label="Reference / UTR No."
               value={reference}
               onChange={(e) => setReference(e.target.value)}
               placeholder="e.g. UTR12345678"
@@ -133,8 +153,10 @@ const ReceiptDrawer = ({
           </div>
 
           <div className="erp-field full">
-            <label>Remarks</label>
+            <label htmlFor={`${uid}-remarks`}>Remarks</label>
             <textarea
+              id={`${uid}-remarks`}
+              aria-label="Remarks"
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
               placeholder="Optional receipt notes..."

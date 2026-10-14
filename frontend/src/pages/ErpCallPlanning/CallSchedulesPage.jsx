@@ -17,32 +17,20 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Plus,
-  CalendarDays,
-  List as ListIcon,
-  Search,
-  Pencil,
-  Pause,
-  Play,
-  History,
-  Trash2,
-  PhoneCall,
-  CalendarCheck,
-  CircleDot,
-} from 'lucide-react';
+import { Plus, CalendarDays, List as ListIcon, Search } from 'lucide-react';
 import { toast } from 'react-toastify';
-import apiClient from '../../utils/axiosConfig';
-import StatTile from '../../components/Erp/StatTile';
-import RowMenu from '../../components/Erp/RowMenu';
 import PageShell from '../../components/Erp/PageShell';
 import ErpCallService from './ErpCallService';
 import CallScheduleDrawer from './CallScheduleDrawer';
 import ScheduleDetailDrawer from './ScheduleDetailDrawer';
 import ScheduleCalendar from './ScheduleCalendar';
+import ScheduleStatTiles from './ScheduleStatTiles';
+import ScheduleTable from './ScheduleTable';
+import DeleteScheduleModal from './DeleteScheduleModal';
 import { WEEKDAYS } from './erpCall.constants';
-import { kamName, relativeDate, scheduleLabel, shortDate } from './callSchedule.utils';
+import { kamName } from './callSchedule.utils';
 import PartyService from '../ErpMasters/PartyService';
+import ErpMasterService from '../ErpMasters/ErpMasterService';
 import '../../styles/erp.css';
 
 const EMPTY_STATS = {
@@ -106,8 +94,7 @@ const CallSchedulesPage = () => {
       setParties([]);
     }
     try {
-      const res = await apiClient.get('/api/employees', { params: { role: 'KAM', limit: 200 } });
-      setKams(res.data?.data || []);
+      setKams(await ErpMasterService.getKams());
     } catch {
       setKams([]);
     }
@@ -214,40 +201,7 @@ const CallSchedulesPage = () => {
         </button>
       }
     >
-      <div className="erp-stat-grid" style={{ marginTop: 20 }}>
-        <StatTile
-          label="Active accounts"
-          value={stats.activeSchedules}
-          icon={CircleDot}
-          loading={loading}
-          derived
-        />
-        <StatTile
-          label="Calls planned this week"
-          value={stats.callsThisWeek}
-          sublabel="Schedule occurrences, not open tasks"
-          icon={CalendarCheck}
-          loading={loading}
-          derived
-        />
-        <StatTile
-          label="Due today"
-          value={stats.dueToday}
-          sublabel={stats.completedToday ? `${stats.completedToday} already logged` : null}
-          sublabelTone={stats.dueToday > 0 ? 'warning' : null}
-          icon={PhoneCall}
-          to="/erp/call-tasks"
-          cta="Open tasks"
-        />
-        <StatTile
-          label="Paused"
-          value={stats.pausedSchedules}
-          sublabel={stats.pausedSchedules > 0 ? 'Generating no tasks' : null}
-          icon={Pause}
-          loading={loading}
-          derived
-        />
-      </div>
+      <ScheduleStatTiles stats={stats} loading={loading} />
 
       <div className="erp-toolbar">
         <div className="erp-search">
@@ -257,6 +211,7 @@ const CallSchedulesPage = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search account, code or KAM…"
+            aria-label="Search schedules"
           />
         </div>
 
@@ -346,104 +301,13 @@ const CallSchedulesPage = () => {
               )}
             </div>
           ) : (
-            <div className="erp-table-scroll">
-              <table className="erp-table">
-                <thead>
-                  <tr>
-                    <th>Account</th>
-                    <th>KAM</th>
-                    <th>Calling schedule</th>
-                    <th>Next call</th>
-                    <th>Last call</th>
-                    <th>Status</th>
-                    <th aria-label="Actions" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((s) => {
-                    const paused = s.status === 'PAUSED';
-                    return (
-                      <tr key={s._id} className="clickable" onClick={() => setDetail(s)}>
-                        <td>
-                          <div className="erp-cell-strong">{s.partyId?.name || '—'}</div>
-                          {s.partyId?.code && (
-                            <div className="erp-cell-muted">{s.partyId.code}</div>
-                          )}
-                        </td>
-                        <td>{kamName(s.kamId)}</td>
-                        <td>
-                          <div>{scheduleLabel(s.daysOfWeek)}</div>
-                          <div className="erp-cell-muted">{s.daysOfWeek?.length || 0}× / week</div>
-                        </td>
-                        <td>
-                          {s.nextCallDate ? (
-                            relativeDate(s.nextCallDate)
-                          ) : (
-                            <span className="erp-cell-muted">Not scheduled</span>
-                          )}
-                        </td>
-                        <td>
-                          {s.lastCall ? (
-                            <>
-                              <div>{shortDate(s.lastCall.date)}</div>
-                              <div className="erp-cell-muted">
-                                {s.lastCall.outcome?.replace(/_/g, ' ').toLowerCase() || '—'}
-                              </div>
-                            </>
-                          ) : (
-                            <span className="erp-cell-muted">Never called</span>
-                          )}
-                        </td>
-                        <td>
-                          <span className={`erp-badge ${paused ? 'warning' : 'active'}`}>
-                            {paused ? 'Paused' : 'Active'}
-                          </span>
-                          {paused && (
-                            <div className="erp-cell-muted" style={{ marginTop: 2 }}>
-                              {s.pausedUntil
-                                ? `Resumes ${shortDate(s.pausedUntil)}`
-                                : 'Creating no tasks'}
-                            </div>
-                          )}
-                        </td>
-                        <td onClick={(e) => e.stopPropagation()}>
-                          <RowMenu
-                            label={`Actions for ${s.partyId?.name || 'schedule'}`}
-                            items={[
-                              {
-                                key: 'history',
-                                label: 'View call history',
-                                icon: History,
-                                onSelect: () => setDetail(s),
-                              },
-                              {
-                                key: 'edit',
-                                label: 'Edit schedule',
-                                icon: Pencil,
-                                onSelect: () => openEdit(s),
-                              },
-                              {
-                                key: 'status',
-                                label: paused ? 'Resume schedule' : 'Pause schedule',
-                                icon: paused ? Play : Pause,
-                                onSelect: () => handleToggleStatus(s),
-                              },
-                              {
-                                key: 'delete',
-                                label: 'Delete schedule',
-                                icon: Trash2,
-                                tone: 'danger',
-                                onSelect: () => setDeleteTarget(s),
-                              },
-                            ]}
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <ScheduleTable
+              filtered={filtered}
+              setDetail={setDetail}
+              openEdit={openEdit}
+              handleToggleStatus={handleToggleStatus}
+              setDeleteTarget={setDeleteTarget}
+            />
           )}
         </div>
       )}
@@ -464,31 +328,12 @@ const CallSchedulesPage = () => {
       )}
 
       {deleteTarget && (
-        <div className="erp-modal-backdrop" onClick={() => setDeleteTarget(null)}>
-          <div className="erp-modal" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
-            <div className="erp-modal-header">
-              <h2>Delete schedule</h2>
-            </div>
-            <div className="erp-modal-body">
-              <p style={{ margin: 0 }}>
-                Stop generating call tasks for{' '}
-                <strong>{deleteTarget.partyId?.name || 'this account'}</strong>? Tasks already
-                created are kept.
-              </p>
-              <p className="erp-cell-muted" style={{ marginTop: 8 }}>
-                To stop calls temporarily without losing the pattern, pause it instead.
-              </p>
-            </div>
-            <div className="erp-modal-footer">
-              <button className="btn btn-secondary" onClick={() => setDeleteTarget(null)}>
-                Cancel
-              </button>
-              <button className="btn btn-danger" onClick={handleDelete} disabled={saving}>
-                {saving ? 'Deleting…' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <DeleteScheduleModal
+          deleteTarget={deleteTarget}
+          setDeleteTarget={setDeleteTarget}
+          handleDelete={handleDelete}
+          saving={saving}
+        />
       )}
     </PageShell>
   );

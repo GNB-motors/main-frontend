@@ -15,6 +15,7 @@ import { formatINR, formatLitres } from '../../utils/formatters';
 import { StatusPill } from '../../components/overview.primitives.jsx';
 import TablePager from './TablePager.jsx';
 import { RISK_TONE } from './fiData.js';
+import { onActivateKey } from '../../utils/onActivateKey';
 
 const PAGE_SIZE = 12;
 
@@ -118,7 +119,10 @@ export default function VehicleRiskPanel({ isLoading, riskVehicles = [], onDrill
               <div
                 key={v.registrationNumber}
                 className="fi-risk-card"
+                role="button"
+                tabIndex={0}
                 onClick={() => onDrill(v.registrationNumber)}
+                onKeyDown={onActivateKey(() => onDrill(v.registrationNumber))}
               >
                 {/* Header */}
                 <div className="flex items-center justify-between">
@@ -218,6 +222,7 @@ export default function VehicleRiskPanel({ isLoading, riskVehicles = [], onDrill
                   className="fi-row-click"
                   onClick={() => onDrill(v.registrationNumber)}
                 >
+                  {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table cell, not a control; the rule reads <td> as a gridcell and stops before the text inside */}
                   <td>
                     <div className="hsrp-plate">
                       <span className="hsrp-ind">

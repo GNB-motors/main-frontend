@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { BookOpen, Fuel } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import TripService from '../Trip/services/TripService';
+import { getVehicleList } from '../../services/vehicleListService';
 import AllTransactionsTab from './components/AllTransactionsTab';
 import DriversTab from './components/DriversTab';
 import TrucksTab from './components/TrucksTab';
@@ -29,10 +30,10 @@ const KhataLedgerPage = () => {
       setDropdownsLoading(true);
       try {
         const [vRes, dRes] = await Promise.all([
-          TripService.getVehicles({ limit: 200 }),
+          getVehicleList(),
           TripService.getDrivers({ limit: 200 }),
         ]);
-        setVehicles(vRes?.data || vRes?.results || vRes || []);
+        setVehicles(vRes);
         setDrivers(dRes?.data || dRes?.results || dRes || []);
       } catch {
         // Non-critical; child tabs may re-fetch as needed

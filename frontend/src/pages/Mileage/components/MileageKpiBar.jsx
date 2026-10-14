@@ -3,7 +3,7 @@ import StatusChip from '../../../components/ui/StatusChip';
 import { useApi } from '../../../hooks/useApi';
 import { formatInrCompact, formatNum } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
-import { billCoverage, kpisFromSources, mileageBand } from '../mileageRows';
+import { billCoverage, kpisFromSources, mileageBand } from '../cycleRows';
 import InfoTip from './InfoTip';
 
 const Tile = ({ label, explanation, value, valueClass = '', children }) => (

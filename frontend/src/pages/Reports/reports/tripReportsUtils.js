@@ -13,7 +13,7 @@ import {
   istToday,
   rangeLabel,
 } from './reportFilters';
-import { ReportsService } from '../ReportsService.jsx';
+import { ReportsService } from '../ReportsService.js';
 import { exportFilteredReportCsv } from '../../../utils/reportCsvExport';
 
 export { formatNumber, formatCurrency, formatDate };

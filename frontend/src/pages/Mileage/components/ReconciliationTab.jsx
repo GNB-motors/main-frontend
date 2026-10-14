@@ -7,11 +7,8 @@ import { useApi } from '../../../hooks/useApi';
 import { toISTDateString, toISTTimeString } from '../../../utils/dateUtils';
 import { formatLitres } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
-import {
-  RECONCILIATION_RESULT,
-  drawerFromReconciliationRow,
-  reconciliationExplanation,
-} from '../mileageRows';
+import { RECONCILIATION_RESULT, drawerFromReconciliationRow } from '../refuelRows';
+import { reconciliationExplanation } from '../fillExplanations';
 import InfoTip from './InfoTip';
 
 const CHIPS = [

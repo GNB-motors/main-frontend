@@ -1,5 +1,5 @@
 import { formatINR, formatLitres } from '../../utils/formatters';
-import { toIST } from './fiDates';
+import { formatInIST } from '../../utils/dateUtils';
 
 export const RISK_RANK = { Critical: 4, High: 3, Medium: 2, Low: 1, Healthy: 0 };
 export const RISK_TONE = {
@@ -104,10 +104,10 @@ export function eventMatchesFilters(
 export function buildChartData(fills, windows) {
   const buckets = {};
   const b = (ts) => {
-    const k = toIST(ts)?.format('DD MMM');
+    const k = formatInIST(ts, 'DD MMM');
     if (!k) return null;
     if (!buckets[k]) {
-      buckets[k] = { day: k, volume: 0, loss: 0, events: 0, def: 0, _t: toIST(ts).valueOf() };
+      buckets[k] = { day: k, volume: 0, loss: 0, events: 0, def: 0, _t: new Date(ts).getTime() };
     }
     return buckets[k];
   };
@@ -144,7 +144,7 @@ export function buildChartData(fills, windows) {
 export function buildDrillChartData(fills, windows, vehicle) {
   const buckets = {};
   const bucketFor = (ts) => {
-    const k = toIST(ts)?.format('DD MMM');
+    const k = formatInIST(ts, 'DD MMM');
     if (!k) return null;
     if (!buckets[k]) buckets[k] = { day: k, fills: 0, loss: 0 };
     return buckets[k];

@@ -71,6 +71,7 @@ const NewPlaceForm = ({ roleLabel, onSaved, onCancel }) => {
           </label>
           <input
             id={`new-place-name-${roleLabel}`}
+            aria-label="Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Balaji Plant"
@@ -81,6 +82,7 @@ const NewPlaceForm = ({ roleLabel, onSaved, onCancel }) => {
           <label htmlFor={`new-place-radius-${roleLabel}`}>Fence radius (m)</label>
           <input
             id={`new-place-radius-${roleLabel}`}
+            aria-label="Fence radius (m)"
             type="number"
             min={MIN_RADIUS_M}
             max={MAX_RADIUS_M}

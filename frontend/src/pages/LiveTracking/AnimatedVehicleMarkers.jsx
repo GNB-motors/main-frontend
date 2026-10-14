@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useGoogleMap } from '@react-google-maps/api';
-import { createVehicleMarkerIcon } from './liveTracking.shared.js';
+import { createVehicleMarkerIcon } from './vehicleMarkerIcon.js';
 
 /**
  * AnimatedVehicleMarkers — the moving fleet layer for Live Tracking.

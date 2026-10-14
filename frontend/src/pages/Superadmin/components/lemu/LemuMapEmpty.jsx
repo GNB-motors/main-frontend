@@ -15,8 +15,12 @@ const LemuMapEmpty = ({ status, onRebuild }) => {
   if (status === 'error') {
     return (
       <div className="lemu-map-empty lemu-map-empty--error">
-        <div className="lemu-map-empty__icon"><ServerCrash size={24} /></div>
-        <div className="lemu-map-empty__title">/manifest failed (500). This is a fetch error, not an empty system.</div>
+        <div className="lemu-map-empty__icon">
+          <ServerCrash size={24} />
+        </div>
+        <div className="lemu-map-empty__title">
+          /manifest failed (500). This is a fetch error, not an empty system.
+        </div>
         <button type="button" className="lemu-btn lemu-btn--secondary" onClick={onRebuild}>
           <RefreshCw size={14} /> Retry
         </button>
@@ -27,8 +31,12 @@ const LemuMapEmpty = ({ status, onRebuild }) => {
   if (status === 'empty') {
     return (
       <div className="lemu-map-empty lemu-map-empty--empty">
-        <div className="lemu-map-empty__icon"><Inbox size={24} /></div>
-        <div className="lemu-map-empty__title">No manifest yet — the boot introspector hasn't written one.</div>
+        <div className="lemu-map-empty__icon">
+          <Inbox size={24} />
+        </div>
+        <div className="lemu-map-empty__title">
+          No manifest yet — the boot introspector hasn&apos;t written one.
+        </div>
         <button type="button" className="lemu-btn lemu-btn--secondary" onClick={onRebuild}>
           <RefreshCw size={14} /> Rebuild
         </button>
@@ -39,7 +47,9 @@ const LemuMapEmpty = ({ status, onRebuild }) => {
   if (status === 'stale') {
     return (
       <div className="lemu-map-empty lemu-map-empty--stale">
-        <div className="lemu-map-empty__icon"><AlertTriangle size={24} /></div>
+        <div className="lemu-map-empty__icon">
+          <AlertTriangle size={24} />
+        </div>
         <div className="lemu-map-empty__title">
           Structure v— · — ago. Pulse tint frozen — last bucket — ago, flush timer may be off.
         </div>

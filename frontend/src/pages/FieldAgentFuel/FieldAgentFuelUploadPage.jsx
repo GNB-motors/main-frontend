@@ -2,23 +2,24 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Loader2, ArrowLeft, Droplets } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import apiClient from '../../utils/axiosConfig';
 import useApi from '../../hooks/useApi';
 import PageShell from '../../components/ui/PageShell';
 import { OCRService } from '../Trip/services';
 import { FieldAgentFuelService } from './FieldAgentFuelService';
 import SlotUpload from './SlotUpload';
 import VehicleDriverPickers from './VehicleDriverPickers';
+import FuelOrgFilter from './FuelOrgFilter';
+import FuelLogFields from './FuelLogFields';
 import {
   validateImageFile,
   ocrDocTypeFor,
   extractRefuelTime,
-  extractDocId,
   buildDocumentFormData,
   buildFuelLogPayload,
   ocrAutofill,
 } from './fuelUploadUtils';
 import '../MileageTracking/MileageTracking.css'; // Reuse existing styles
+import logger from '../../utils/logger';
 
 const FieldAgentFuelUploadPage = () => {
   const navigate = useNavigate();
@@ -56,10 +57,11 @@ const FieldAgentFuelUploadPage = () => {
     error: odometerError,
   } = useApi(
     (signal) =>
-      apiClient.get(`/api/mileage/last-odometer/${selectedVehicle.id}`, {
-        headers: { 'X-Org-Id': selectedVehicle.orgId?._id || selectedVehicle.orgId },
-        signal,
-      }),
+      FieldAgentFuelService.getLastOdometer(
+        selectedVehicle.id,
+        selectedVehicle.orgId?._id || selectedVehicle.orgId,
+        { signal },
+      ),
     [
       JSON.stringify({
         vehicleId: selectedVehicle?.id,
@@ -74,11 +76,12 @@ const FieldAgentFuelUploadPage = () => {
   }, [selectedVehicle]);
 
   useEffect(() => {
-    if (odometerResponse) setLastOdometer(odometerResponse.data?.data || null);
+    if (odometerResponse) setLastOdometer(odometerResponse.data || null);
   }, [odometerResponse]);
 
   useEffect(() => {
-    if (odometerError) console.error('Failed to fetch last odometer', odometerError);
+    if (odometerError)
+      logger.warn('FieldAgentFuelUploadPage', 'Failed to fetch last odometer', odometerError);
   }, [odometerError]);
 
   const { data: depsResponse, error: depsError } = useApi(
@@ -208,37 +211,25 @@ const FieldAgentFuelUploadPage = () => {
     }
     setIsLoading(true);
     try {
-      const reqConfig = {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'X-Org-Id': targetOrgId,
-        },
-        timeout: 120000,
-      };
-
       const fuelData = buildDocumentFormData(fixedDocs.fuel, 'FUEL_SLIP', selectedVehicle.id);
-      const fuelRes = await apiClient.post('/api/documents', fuelData, reqConfig);
+      const fuelDocId = await FieldAgentFuelService.uploadDocument(fuelData, targetOrgId);
 
       let odoDocId = '';
       if (fixedDocs.odometer) {
         const odoData = buildDocumentFormData(fixedDocs.odometer, 'ODOMETER', selectedVehicle.id);
-        const odoRes = await apiClient.post('/api/documents', odoData, reqConfig);
-        odoDocId = extractDocId(odoRes);
+        odoDocId = await FieldAgentFuelService.uploadDocument(odoData, targetOrgId);
       }
 
       const payload = buildFuelLogPayload({
         formData,
         vehicleId: selectedVehicle.id,
         driverId: selectedDriver.id,
-        documentId: extractDocId(fuelRes),
+        documentId: fuelDocId,
         odometerDocId: odoDocId,
         refuelTime: extractRefuelTime(fixedDocs.fuel?.ocrData),
       });
 
-      await apiClient.post('/api/mileage/fuel-log', payload, {
-        headers: { 'X-Org-Id': targetOrgId },
-        timeout: 60000,
-      });
+      await FieldAgentFuelService.createFuelLog(payload, targetOrgId);
 
       toast.success('Mileage log submitted successfully!');
       navigate('/field-agent-fuel');
@@ -272,58 +263,11 @@ const FieldAgentFuelUploadPage = () => {
       >
         <div className="mileage-form-content">
           {organizations.length > 0 && (
-            <div style={{ marginBottom: '24px' }}>
-              <label
-                style={{
-                  display: 'block',
-                  marginBottom: 8,
-                  color: '#5D5D5E',
-                  fontSize: 13,
-                  fontWeight: 600,
-                }}
-              >
-                Filter by Organization
-              </label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedOrgFilter('')}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: '99px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    border: 'none',
-                    cursor: 'pointer',
-                    backgroundColor: selectedOrgFilter === '' ? '#3b82f6' : '#f1f5f9',
-                    color: selectedOrgFilter === '' ? '#fff' : '#64748b',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  All Organizations
-                </button>
-                {organizations.map((org) => (
-                  <button
-                    key={org}
-                    type="button"
-                    onClick={() => setSelectedOrgFilter(org)}
-                    style={{
-                      padding: '6px 14px',
-                      borderRadius: '99px',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      border: 'none',
-                      cursor: 'pointer',
-                      backgroundColor: selectedOrgFilter === org ? '#3b82f6' : '#f1f5f9',
-                      color: selectedOrgFilter === org ? '#fff' : '#64748b',
-                      transition: 'all 0.2s',
-                    }}
-                  >
-                    {org}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <FuelOrgFilter
+              organizations={organizations}
+              selectedOrgFilter={selectedOrgFilter}
+              setSelectedOrgFilter={setSelectedOrgFilter}
+            />
           )}
 
           <form onSubmit={handleSubmit}>
@@ -346,81 +290,13 @@ const FieldAgentFuelUploadPage = () => {
               loadingLastOdometer={loadingLastOdometer}
             />
 
-            {/* Fuel & Filling Type */}
-            <div className="mileage-form-row">
-              <div className="mileage-form-group">
-                <label>Fuel Type</label>
-                <select name="fuelType" value={formData.fuelType} onChange={handleFormChange}>
-                  <option value="DIESEL">Diesel</option>
-                  <option value="ADBLUE">AdBlue</option>
-                </select>
-              </div>
-              <div className="mileage-form-group">
-                <label>Filling Type</label>
-                <select name="fillingType" value={formData.fillingType} onChange={handleFormChange}>
-                  <option value="PARTIAL">Partial Fill</option>
-                  <option value="FULL_TANK">Full Tank (Closes Mileage Interval)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Litres & Rate */}
-            <div className="mileage-form-row">
-              <div className="mileage-form-group">
-                <label>Litres *</label>
-                <input
-                  type="number"
-                  step="any"
-                  placeholder="0.00"
-                  name="litres"
-                  value={formData.litres}
-                  onChange={handleFormChange}
-                  required
-                />
-              </div>
-              <div className="mileage-form-group">
-                <label>Rate Per Litre *</label>
-                <input
-                  type="number"
-                  step="any"
-                  placeholder="0.00"
-                  name="rate"
-                  value={formData.rate}
-                  onChange={handleFormChange}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Odometer & Location */}
-            <div className="mileage-form-row">
-              {formData.fillingType === 'FULL_TANK' && (
-                <div className="mileage-form-group">
-                  <label>Odometer Reading (KM) (Optional)</label>
-                  <input
-                    type="number"
-                    placeholder="105450"
-                    name="odometerReading"
-                    value={formData.odometerReading}
-                    onChange={handleFormChange}
-                  />
-                </div>
-              )}
-              <div className="mileage-form-group">
-                <label>Location</label>
-                <input
-                  type="text"
-                  placeholder="E.g. Reliance Pump"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleFormChange}
-                />
-              </div>
-            </div>
+            <FuelLogFields formData={formData} handleFormChange={handleFormChange} />
 
             {/* Documents */}
             <div style={{ marginTop: 8 }}>
+              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- names the upload slots below (aria-labelledby), which have no single form control to point htmlFor at */}
               <label
+                id="fa-fuel-docs-label"
                 style={{
                   display: 'block',
                   marginBottom: 12,
@@ -431,7 +307,7 @@ const FieldAgentFuelUploadPage = () => {
               >
                 Upload Documents
               </label>
-              <div className="mileage-slots-row">
+              <div className="mileage-slots-row" role="group" aria-labelledby="fa-fuel-docs-label">
                 <SlotUpload
                   docType="fuel"
                   title="FUEL RECEIPT"

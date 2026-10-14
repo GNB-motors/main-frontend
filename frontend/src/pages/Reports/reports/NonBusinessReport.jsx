@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle2, Route, Waypoints } from 'lucide-react';
 import DataTable from '../../../components/ui/DataTable';
 import ExportButton from '../../../components/ui/ExportButton';
 import useApi from '../../../hooks/useApi';
-import { ReportsService } from '../ReportsService.jsx';
+import { ReportsService } from '../ReportsService.js';
 import { formatINR, formatKm, formatNum } from '../../../utils/formatters';
 import { fuelExtraOf, useNonBusinessColumns } from './useNonBusinessColumns.jsx';
 import ReportFrame, {

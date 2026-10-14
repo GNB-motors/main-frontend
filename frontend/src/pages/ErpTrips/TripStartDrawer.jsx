@@ -82,6 +82,7 @@ const TripStartDrawer = ({ isOpen, onClose, trip, onSuccess }) => {
         <label htmlFor="trip-started-at">Started at</label>
         <input
           id="trip-started-at"
+          aria-label="Started at"
           type="datetime-local"
           value={startedAt}
           onChange={(e) => setStartedAt(e.target.value)}

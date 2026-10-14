@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { toast } from 'react-toastify';
 import ErpDrawer from '../ErpDrawer';
 import SaleBillApi from '../../../pages/ErpSaleBills/SaleBillService';
@@ -12,6 +12,7 @@ const SaleBillDrawer = ({
   party = null,
   onSuccess,
 }) => {
+  const uid = useId();
   const [billDate, setBillDate] = useState(todayInput());
   const [busy, setBusy] = useState(false);
 
@@ -27,7 +28,9 @@ const SaleBillDrawer = ({
     setBusy(true);
     try {
       const partyId = party?._id || party?.partyId || unloading?.partyId?._id || unloading?.partyId;
-      const unloadingIds = unloading ? [unloading._id || unloading.unloadingId] : (party?.unloadings || []).map(u => u.unloadingId || u._id);
+      const unloadingIds = unloading
+        ? [unloading._id || unloading.unloadingId]
+        : (party?.unloadings || []).map((u) => u.unloadingId || u._id);
 
       await SaleBillApi.create({
         partyId,
@@ -67,17 +70,28 @@ const SaleBillDrawer = ({
       <form id="sale-bill-form" onSubmit={handleCreate}>
         <div className="erp-form-grid">
           <div className="erp-field full">
-            <label>Party</label>
+            <label htmlFor={`${uid}-party`}>Party</label>
             <input
+              id={`${uid}-party`}
+              aria-label="Party"
               disabled
-              value={party?.name || unloading?.partyName || unloading?.partyId?.name || 'Pre-selected Party'}
+              value={
+                party?.name ||
+                unloading?.partyName ||
+                unloading?.partyId?.name ||
+                'Pre-selected Party'
+              }
               className="disabled"
             />
           </div>
 
           <div className="erp-field full">
-            <label>Bill Date <span className="required">*</span></label>
+            <label htmlFor={`${uid}-bill-date`}>
+              Bill Date <span className="required">*</span>
+            </label>
             <input
+              id={`${uid}-bill-date`}
+              aria-label="Bill Date"
               type="date"
               required
               value={billDate}
@@ -87,11 +101,20 @@ const SaleBillDrawer = ({
         </div>
 
         {unloading && (
-          <div className="erp-card" style={{ marginTop: '20px', padding: '16px', background: '#f8fafc' }}>
+          <div
+            className="erp-card"
+            style={{ marginTop: '20px', padding: '16px', background: '#f8fafc' }}
+          >
             <h4 style={{ margin: '0 0 8px 0' }}>Unloading Summary</h4>
-            <p style={{ margin: '0 0 4px 0' }}>Trip: <strong>{unloading.tripNumber}</strong></p>
-            <p style={{ margin: '0 0 4px 0' }}>CN: <strong>{unloading.cnNumber || '—'}</strong></p>
-            <p style={{ margin: 0 }}>Unloaded Qty: <strong>{unloading.unloadedQty}</strong></p>
+            <p style={{ margin: '0 0 4px 0' }}>
+              Trip: <strong>{unloading.tripNumber}</strong>
+            </p>
+            <p style={{ margin: '0 0 4px 0' }}>
+              CN: <strong>{unloading.cnNumber || '—'}</strong>
+            </p>
+            <p style={{ margin: 0 }}>
+              Unloaded Qty: <strong>{unloading.unloadedQty}</strong>
+            </p>
           </div>
         )}
       </form>

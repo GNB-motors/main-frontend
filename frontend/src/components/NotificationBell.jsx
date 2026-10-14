@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Bell, ChevronRight, X, CheckCheck } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useFeatureFlags } from '../contexts/FeatureFlagsContext';
-import { OwnerAlertsService, ALERT_TYPE_LABELS } from '../pages/OwnerAlerts/OwnerAlertsService.jsx';
+import { OwnerAlertsService, ALERT_TYPE_LABELS } from '../pages/OwnerAlerts/OwnerAlertsService.js';
 import {
   Sheet,
   SheetTrigger,
@@ -98,6 +98,7 @@ const NotificationBell = () => {
           );
         });
       })
+      // A missed poll is retried on the next tick; nothing to show the user.
       .catch(() => {});
     return () => {
       cancelled = true;

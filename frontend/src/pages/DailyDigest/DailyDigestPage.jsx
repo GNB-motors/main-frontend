@@ -1,16 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, RefreshCw, Truck, Fuel, Calendar, Activity, Droplet } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import useApi from '../../hooks/useApi';
 import ExportButton from '../../components/ui/ExportButton';
 import OwnerValueService from '../../services/OwnerValueService';
 import FleetDataService from '../../services/FleetDataService';
-import { VehicleService } from '../Profile/VehicleService.jsx';
-import { getToken } from '../../utils/session.js';
+import { VehicleService } from '../Profile/VehicleService.js';
 import { OwnerAlertsService } from '../OwnerAlerts/OwnerAlertsService';
 import { FuelIntegrityService } from '../FuelIntegrity/FuelIntegrityService';
 import { morningBriefSchema } from '../../schemas/morningBrief.schema';
 
-import { formatNum } from '../../utils/formatters';
 import { formatDateLongIST } from '../../utils/dateUtils';
 import {
   startOfTodayIST,
@@ -18,50 +16,65 @@ import {
   buildDocumentAlerts,
   buildUpcomingItems,
 } from './dailyDigestLogic';
-import {
-  NdKpiStrip,
-  NdKpiStripSkeleton,
-  NdAttentionCard,
-  NdImpactCard,
-  NdCalendarCard,
-  NdRefuelCard,
-  NdWasteTable,
-  NdUpcomingCard,
-  NdOpsRow,
-  NdOpsRowSkeleton,
-  NdLeaderboardCard,
-  NdMorningBrief,
-  NdMorningBriefSkeleton,
-  NdCardSkeleton,
-  NdVehicleDrawer,
-} from './novaDigestComponents.jsx';
+import { buildDigestKpis } from './digestKpis';
+import { buildDigestExportRows } from './digestExportRows';
+import NdKpiStrip from './sections/NdKpiStrip.jsx';
+import NdKpiStripSkeleton from './sections/NdKpiStripSkeleton.jsx';
+import NdAttentionCard from './sections/NdAttentionCard.jsx';
+import NdImpactCard from './sections/NdImpactCard.jsx';
+import NdCalendarCard from './sections/NdCalendarCard.jsx';
+import NdRefuelCard from './sections/NdRefuelCard.jsx';
+import NdWasteTable from './sections/NdWasteTable.jsx';
+import NdUpcomingCard from './sections/NdUpcomingCard.jsx';
+import NdOpsRow from './sections/NdOpsRow.jsx';
+import NdOpsRowSkeleton from './sections/NdOpsRowSkeleton.jsx';
+import NdLeaderboardCard from './sections/NdLeaderboardCard.jsx';
+import NdMorningBrief from './sections/NdMorningBrief.jsx';
+import NdMorningBriefSkeleton from './sections/NdMorningBriefSkeleton.jsx';
+import NdCardSkeleton from './sections/NdCardSkeleton.jsx';
+import NdVehicleDrawer from './sections/NdVehicleDrawer.jsx';
 import '../../styles/nova/novaDesignSystem.css';
 
 /**
  * DailyDigest — ported pixel-for-pixel from Design/Daily Digest (standalone).html
  * ("Nova Edge Pro"), wired to real endpoints instead of the mockup's random
- * data generator. See novaDigest.css / novaDigestComponents.jsx.
+ * data generator. See novaDigest.css / sections/.
+ *
+ * Every class name in sections/ is `nd-*`, scoped in novaDigest.css under
+ * `.nova-digest` so these otherwise very generic names (.card, .item, .tab…)
+ * never leak into the rest of the app's CSS.
  */
 export default function DailyDigestPage() {
-  const todayIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
   const from = startOfTodayIST();
 
-  const money$ = useApi((s) => OwnerValueService.getMoney({ from }, s), [from]);
-  const fleetDashboard$ = useApi(() => VehicleService.getFleetDashboard(getToken()), []);
-  const downtime$ = useApi((s) => OwnerValueService.getDowntimeRisk(s), []);
+  // The eight owner-value sections arrive in one request (FRONTEND_AUDIT B1);
+  // each section below reads its slice and shares the request's loading state.
+  const digest$ = useApi(
+    (s) => OwnerValueService.getDigest({ from, efficiencyDays: 7, calendarDays: 14 }, s),
+    [from],
+  );
+  const section = (key, parse = (d) => d) => ({
+    data: digest$.data?.[key] != null ? parse(digest$.data[key]) : null,
+    loading: digest$.loading,
+    refetch: digest$.refetch,
+  });
+  const money$ = section('money');
+  const downtime$ = section('downtimeRisk');
+  const fuelEfficiency$ = section('fuelEfficiency');
+  const refuelling$ = section('refuellingToday');
+  const calendar$ = section('fleetCalendar');
+  const utilization$ = section('utilization');
+  const healthScore$ = section('healthScore');
+  // An unexpected brief shape hides the brief, as a failed request did before.
+  const morningBrief$ = section('morningBrief', (d) => {
+    const parsed = morningBriefSchema.safeParse(d);
+    return parsed.success ? parsed.data : null;
+  });
+  const fleetDashboard$ = useApi((signal) => VehicleService.getFleetDashboard({ signal }), []);
   const alerts$ = useApi((s) => OwnerAlertsService.getAlerts({ from, limit: 10 }, s), [from]);
   const fuel$ = useApi((s) => FuelIntegrityService.getSummary({ from }, s), [from]);
   const fleetAlerts$ = useApi((s) => FleetDataService.getFleetAlertSummary({ from }, s), [from]);
-  const fuelEfficiency$ = useApi((s) => OwnerValueService.getFuelEfficiency({ days: 7 }, s), []);
-  const refuelling$ = useApi(() => OwnerValueService.getRefuellingToday(), []);
-  const calendar$ = useApi((s) => OwnerValueService.getFleetCalendar({ days: 14 }, s), []);
-  const utilization$ = useApi((s) => OwnerValueService.getUtilization({ from }, s), [from]);
-  const healthScore$ = useApi((s) => OwnerValueService.getHealthScore(s), []);
   const driverLeaderboard$ = useApi((s) => FleetDataService.getDriverLeaderboard({}, s), []);
-  const morningBrief$ = useApi(
-    (s) => OwnerValueService.getMorningBrief({}, s).then((d) => morningBriefSchema.parse(d)),
-    [],
-  );
 
   const { data: money } = money$;
   const { data: fleetDashboard } = fleetDashboard$;
@@ -115,21 +128,9 @@ export default function DailyDigestPage() {
   }, []);
 
   const handleRefresh = () => {
-    [
-      money$,
-      fleetDashboard$,
-      downtime$,
-      alerts$,
-      fuel$,
-      fleetAlerts$,
-      fuelEfficiency$,
-      refuelling$,
-      calendar$,
-      utilization$,
-      healthScore$,
-      driverLeaderboard$,
-      morningBrief$,
-    ].forEach((h) => h.refetch?.());
+    [digest$, fleetDashboard$, alerts$, fuel$, fleetAlerts$, driverLeaderboard$].forEach((h) =>
+      h.refetch(),
+    );
     setLastUpdated(Date.now());
   };
 
@@ -147,79 +148,7 @@ export default function DailyDigestPage() {
   });
   const upcoming = buildUpcomingItems({ serviceVehicles, documents });
 
-  // Counts fleet-calendar "trip" events that cover today — both ErpTrip rows
-  // (single-day, dated to tripDate) and VehicleTour rows (GPS-detected
-  // warehouse-to-warehouse "automatic" trips; an OPEN tour is dated to when it
-  // started, with `len` spanning through today). A same-day equality check on
-  // `date` alone would miss a multi-day automatic trip that started before
-  // today and is still running — this checks today falls inside [date, date +
-  // len) instead, same span math the Gantt bars use.
-  const DAY_MS = 24 * 60 * 60 * 1000;
-  const dayOffset = (d) => {
-    const day = new Date(d);
-    day.setHours(0, 0, 0, 0);
-    const t = new Date();
-    t.setHours(0, 0, 0, 0);
-    return Math.round((day.getTime() - t.getTime()) / DAY_MS);
-  };
-  const tripsToday = (calendar?.vehicles || []).reduce(
-    (n, v) =>
-      n +
-      (v.events || []).filter((e) => {
-        if (e.type !== 'trip') return false;
-        const start = dayOffset(e.date);
-        return start <= 0 && start + (e.len || 1) > 0;
-      }).length,
-    0,
-  );
-
-  const vehicleCount = fleetDashboard?.length || 0;
-  const activeVehicleCount = (fleetDashboard || []).filter(
-    (v) => v.status !== 'MAINTENANCE',
-  ).length;
-
-  const kpis = [
-    {
-      id: 'active',
-      icon: Truck,
-      label: 'Vehicles active',
-      value: formatNum(activeVehicleCount),
-      unit: `/ ${formatNum(vehicleCount)}`,
-      note: 'not in maintenance',
-      to: '/vehicles/dashboard',
-      accent: true,
-    },
-    {
-      id: 'fuel',
-      icon: Fuel,
-      label: 'Fuel spend',
-      value: `₹${formatNum(m?.fuelCostInr || 0)}`,
-      note: 'today',
-      to: '/refuel-logs',
-    },
-    {
-      id: 'trips',
-      icon: Calendar,
-      label: 'Trips today',
-      value: formatNum(tripsToday),
-      note: 'scheduled today',
-      to: '#nd-calendar',
-    },
-    {
-      id: 'def',
-      icon: Droplet,
-      label: 'AdBlue/DEF spend',
-      value: `₹${formatNum(m?.defCostInr || 0)}`,
-      note: 'today',
-    },
-    {
-      id: 'health',
-      icon: Activity,
-      label: 'Fleet health',
-      value: healthScore ? `Grade ${healthScore.grade}` : '—',
-      note: healthScore ? `${formatNum(healthScore.score)}/100 this week` : 'this week',
-    },
-  ];
+  const kpis = buildDigestKpis({ fleetDashboard, m, calendar, healthScore });
 
   // Fetched only while the drawer is open for a given plate — the digest's
   // own already-loaded datasets below are still used for today-scoped figures
@@ -278,34 +207,7 @@ export default function DailyDigestPage() {
   };
 
   const digestExportRows = useMemo(
-    () => [
-      ...actions.map((a) => ({
-        section: 'Needs Attention',
-        vehicle: a.title,
-        detail: a.desc,
-        amount: a.amt ? a.amt.replace(/[₹,]/g, '') : '',
-      })),
-      ...(money?.idlingTop5 || []).map((r) => ({
-        section: 'Idling',
-        vehicle: r.registrationNumber,
-        detail: `${r.idleMinutes} min`,
-        amount: r.idleCostInr,
-      })),
-      ...(morningBrief?.sections || []).flatMap((sec) =>
-        (sec.vehicles || []).map((v) => ({
-          section: `Morning brief · ${sec.label}`,
-          vehicle: v.registrationNumber,
-          detail: v.durationMin ? `${v.durationMin} min` : v.excessL ? `${v.excessL} L` : '',
-          amount: v.rupees,
-        })),
-      ),
-      ...upcoming.map((u) => ({
-        section: 'Upcoming',
-        vehicle: u.registrationNumber,
-        detail: u.kind,
-        amount: '',
-      })),
-    ],
+    () => buildDigestExportRows({ actions, money, morningBrief, upcoming }),
     [actions, money, morningBrief, upcoming],
   );
 
@@ -322,7 +224,7 @@ export default function DailyDigestPage() {
         <header className="nd-head">
           <div>
             <h1>Daily Digest</h1>
-            <div className="nd-sub">{formatDateLongIST(todayIST)} · Your fleet at a glance</div>
+            <div className="nd-sub">{formatDateLongIST(new Date())} · Your fleet at a glance</div>
           </div>
           <div className="nd-headtools">
             <ExportButton

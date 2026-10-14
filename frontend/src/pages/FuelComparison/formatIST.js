@@ -1,43 +1,17 @@
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-import relativeTime from 'dayjs/plugin/relativeTime';
+import { formatInIST } from '../../utils/dateUtils';
+import { timeAgo } from '../../utils/formatters';
 
-// Extending dayjs is global and idempotent — safe to import from many modules.
-dayjs.extend(utc);
-dayjs.extend(timezone);
-dayjs.extend(relativeTime);
-
-export const IST_ZONE = 'Asia/Kolkata';
-
-export const toIST = (utcStr) => {
-  if (!utcStr) return null;
-  return dayjs.utc(utcStr).tz(IST_ZONE);
-};
-
-export const formatRelativeIST = (utcStr) => {
-  const d = toIST(utcStr);
-  if (!d) return null;
-  return d.fromNow();
-};
+export const formatRelativeIST = (utcStr) => (utcStr ? timeAgo(utcStr) : null);
 
 export const formatDateRange = (from, to) => {
-  const f = from ? dayjs.utc(from).tz(IST_ZONE).format('DD MMM YY') : '—';
-  const t = to ? dayjs.utc(to).tz(IST_ZONE).format('DD MMM YY') : '—';
+  const f = (from && formatInIST(from, 'DD MMM YY')) || '—';
+  const t = (to && formatInIST(to, 'DD MMM YY')) || '—';
   return `${f} → ${t}`;
 };
 
-export const formatClockIST = (iso) => {
-  if (!iso) return null;
-  return dayjs.utc(iso).tz(IST_ZONE).format('HH:mm');
-};
+export const formatClockIST = (iso) => formatInIST(iso, 'HH:mm');
 
-export const formatDateTimeIST = (iso) => {
-  if (!iso) return '—';
-  const d = toIST(iso);
-  if (!d || !d.isValid()) return '—';
-  return d.format('DD MMM YY, hh:mm A');
-};
+export const formatDateTimeIST = (iso) => formatInIST(iso, 'DD MMM YY, hh:mm A') ?? '—';
 
 export const fmtLitres = (n) => {
   if (n == null || isNaN(n)) return '—';
@@ -51,9 +25,7 @@ export const fmtKm = (n) => {
 
 export const fmtDuration = (from, to) => {
   if (!from || !to) return null;
-  const f = dayjs(from);
-  const t = dayjs(to);
-  const diffMs = t.diff(f);
+  const diffMs = new Date(to).getTime() - new Date(from).getTime();
   if (diffMs <= 0 || isNaN(diffMs)) return null;
 
   const totalMins = Math.floor(diffMs / 60000);
@@ -106,8 +78,8 @@ export const exportComparisonToCsv = (records = [], filename = 'fuel-comparison-
     const driverName = r.driverId
       ? `${r.driverId.firstName || ''} ${r.driverId.lastName || ''}`.trim()
       : '';
-    const fromStr = r.fromDate ? toIST(r.fromDate)?.format('YYYY-MM-DD HH:mm') || '' : '';
-    const toStr = r.toDate ? toIST(r.toDate)?.format('YYYY-MM-DD HH:mm') || '' : '';
+    const fromStr = r.fromDate ? formatInIST(r.fromDate, 'YYYY-MM-DD HH:mm') || '' : '';
+    const toStr = r.toDate ? formatInIST(r.toDate, 'YYYY-MM-DD HH:mm') || '' : '';
     const durStr = fmtDuration(r.fromDate, r.toDate) || '';
 
     const varL = r.variance != null ? (-r.variance).toFixed(2) : '';

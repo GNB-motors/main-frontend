@@ -38,7 +38,9 @@ const LemuErrorsInbox = ({
       </div>
     </div>
     {error && (
-      <div className="lemu-alert lemu-alert--error" role="alert">{error}</div>
+      <div className="lemu-alert lemu-alert--error" role="alert">
+        {error}
+      </div>
     )}
     <div className="lemu-card">
       <div className="lemu-table-wrap">
@@ -54,57 +56,83 @@ const LemuErrorsInbox = ({
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={5}><div className="lemu-state"><div className="lemu-spinner" /></div></td></tr>
-            )}
-            {!loading && trackers.length === 0 && (
               <tr>
-                <td colSpan={5}>
+                <td colSpan={5} aria-label="Loading errors">
                   <div className="lemu-state">
-                    <div className="lemu-state__icon"><CheckCircle2 size={22} /></div>
-                    <div className="lemu-state__title">
-                      {resolvedFilter === 'true' ? 'No resolved errors' : 'No unresolved errors'}
-                    </div>
-                    <div>{resolvedFilter === 'true' ? 'Nothing has been resolved yet.' : 'Everything is clean.'}</div>
+                    <div className="lemu-spinner" />
                   </div>
                 </td>
               </tr>
             )}
-            {!loading && trackers.map((t) => {
-              const message = t.message || t.lastMessage || '(no message)';
-              const occurrences = t.occurrences ?? t.count ?? t.totalOccurrences ?? '—';
-              const lastSeen = t.lastSeenAt || t.lastSeen || t.updatedAt;
-              return (
-                <tr key={t.fingerprint}>
-                  <td className="lemu-mono lemu-fp" title={t.fingerprint}>{t.fingerprint}</td>
-                  <td>
-                    <span className="lemu-msg" title={message}>{message}</span>
-                    {t.errorName && <span className="lemu-msg__user">{t.errorName}</span>}
-                  </td>
-                  <td className="lemu-right">
-                    <span className="lemu-badge lemu-badge--sev-warn">{occurrences}</span>
-                  </td>
-                  <td className="lemu-muted lemu-nowrap" title={formatTime(lastSeen)}>
-                    {relativeTime(lastSeen)}
-                  </td>
-                  <td className="lemu-right">
-                    {resolvedFilter !== 'true' && (
-                      <button
-                        type="button"
-                        className="lemu-btn lemu-btn--outline"
-                        disabled={resolvingFp === t.fingerprint}
-                        onClick={() => onResolve(t)}
-                      >
-                        {resolvingFp === t.fingerprint ? (
-                          <><span className="lemu-btn-spinner" /> Resolving…</>
-                        ) : (
-                          <><CheckCircle2 size={14} /> Resolve</>
-                        )}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
+            {!loading && trackers.length === 0 && (
+              <tr>
+                <td
+                  colSpan={5}
+                  aria-label={
+                    resolvedFilter === 'true' ? 'No resolved errors' : 'No unresolved errors'
+                  }
+                >
+                  <div className="lemu-state">
+                    <div className="lemu-state__icon">
+                      <CheckCircle2 size={22} />
+                    </div>
+                    <div className="lemu-state__title">
+                      {resolvedFilter === 'true' ? 'No resolved errors' : 'No unresolved errors'}
+                    </div>
+                    <div>
+                      {resolvedFilter === 'true'
+                        ? 'Nothing has been resolved yet.'
+                        : 'Everything is clean.'}
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            )}
+            {!loading &&
+              trackers.map((t) => {
+                const message = t.message || t.lastMessage || '(no message)';
+                const occurrences = t.occurrences ?? t.count ?? t.totalOccurrences ?? '—';
+                const lastSeen = t.lastSeenAt || t.lastSeen || t.updatedAt;
+                return (
+                  <tr key={t.fingerprint}>
+                    <td className="lemu-mono lemu-fp" title={t.fingerprint}>
+                      {t.fingerprint}
+                    </td>
+                    <td>
+                      <span className="lemu-msg" title={message}>
+                        {message}
+                      </span>
+                      {t.errorName && <span className="lemu-msg__user">{t.errorName}</span>}
+                    </td>
+                    <td className="lemu-right">
+                      <span className="lemu-badge lemu-badge--sev-warn">{occurrences}</span>
+                    </td>
+                    <td className="lemu-muted lemu-nowrap" title={formatTime(lastSeen)}>
+                      {relativeTime(lastSeen)}
+                    </td>
+                    <td className="lemu-right">
+                      {resolvedFilter !== 'true' && (
+                        <button
+                          type="button"
+                          className="lemu-btn lemu-btn--outline"
+                          disabled={resolvingFp === t.fingerprint}
+                          onClick={() => onResolve(t)}
+                        >
+                          {resolvingFp === t.fingerprint ? (
+                            <>
+                              <span className="lemu-btn-spinner" /> Resolving…
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 size={14} /> Resolve
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       </div>

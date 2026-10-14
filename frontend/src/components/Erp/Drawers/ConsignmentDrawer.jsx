@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { Upload, CheckCircle2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ErpDrawer from '../ErpDrawer';
@@ -17,12 +17,8 @@ const EMPTY_FORM = {
   sealNumbers: '',
 };
 
-const ConsignmentDrawer = ({ 
-  isOpen, 
-  onClose, 
-  trip = null, 
-  onSuccess 
-}) => {
+const ConsignmentDrawer = ({ isOpen, onClose, trip = null, onSuccess }) => {
+  const uid = useId();
   const [form, setForm] = useState(EMPTY_FORM);
   const [biltyFile, setBiltyFile] = useState(null);
   const [biltyDocumentId, setBiltyDocumentId] = useState('');
@@ -69,7 +65,10 @@ const ConsignmentDrawer = ({
     setBusy(true);
     try {
       const seals = form.sealNumbers
-        ? form.sealNumbers.split(',').map((s) => s.trim()).filter(Boolean)
+        ? form.sealNumbers
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
         : [];
       await ConsignmentService.saveCn({
         tripId: trip._id,
@@ -120,8 +119,12 @@ const ConsignmentDrawer = ({
       <form id="cn-form" onSubmit={handleSave}>
         <div className="erp-form-grid">
           <div className="erp-field">
-            <label>CN number <span className="required">*</span></label>
+            <label htmlFor={`${uid}-cn-number`}>
+              CN number <span className="required">*</span>
+            </label>
             <input
+              id={`${uid}-cn-number`}
+              aria-label="CN number"
               required
               value={form.cnNumber}
               onChange={(e) => setForm({ ...form, cnNumber: e.target.value })}
@@ -129,8 +132,12 @@ const ConsignmentDrawer = ({
             />
           </div>
           <div className="erp-field">
-            <label>CN date <span className="required">*</span></label>
+            <label htmlFor={`${uid}-cn-date`}>
+              CN date <span className="required">*</span>
+            </label>
             <input
+              id={`${uid}-cn-date`}
+              aria-label="CN date"
               type="date"
               required
               value={form.cnDate}
@@ -138,8 +145,12 @@ const ConsignmentDrawer = ({
             />
           </div>
           <div className="erp-field">
-            <label>Loading date <span className="required">*</span></label>
+            <label htmlFor={`${uid}-loading-date`}>
+              Loading date <span className="required">*</span>
+            </label>
             <input
+              id={`${uid}-loading-date`}
+              aria-label="Loading date"
               type="date"
               required
               value={form.loadingDate}
@@ -147,9 +158,13 @@ const ConsignmentDrawer = ({
             />
           </div>
           <div className="erp-field">
-            <label>Loaded qty <span className="required">*</span></label>
+            <label htmlFor={`${uid}-loaded-qty`}>
+              Loaded qty <span className="required">*</span>
+            </label>
             <div style={{ display: 'flex', gap: '8px' }}>
               <input
+                id={`${uid}-loaded-qty`}
+                aria-label="Loaded qty"
                 type="number"
                 step="any"
                 min="0"
@@ -169,8 +184,10 @@ const ConsignmentDrawer = ({
             </div>
           </div>
           <div className="erp-field full">
-            <label>Seal numbers</label>
+            <label htmlFor={`${uid}-seal-numbers`}>Seal numbers</label>
             <input
+              id={`${uid}-seal-numbers`}
+              aria-label="Seal numbers"
               value={form.sealNumbers}
               onChange={(e) => setForm({ ...form, sealNumbers: e.target.value })}
               placeholder="Comma-separated"
@@ -178,7 +195,10 @@ const ConsignmentDrawer = ({
           </div>
         </div>
 
-        <div className="erp-callout" style={{ marginTop: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+        <div
+          className="erp-callout"
+          style={{ marginTop: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}
+        >
           <Upload size={20} style={{ marginTop: 4 }} />
           <div>
             <strong>Bilty Upload</strong>
@@ -187,6 +207,7 @@ const ConsignmentDrawer = ({
             </p>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <input
+                aria-label="Bilty file"
                 type="file"
                 accept="image/*,application/pdf"
                 onChange={(e) => {
@@ -204,7 +225,10 @@ const ConsignmentDrawer = ({
                 {uploading ? 'Uploading…' : 'Upload bilty'}
               </button>
               {biltyDocumentId && (
-                <span className="erp-badge success" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span
+                  className="erp-badge success"
+                  style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                >
                   <CheckCircle2 size={14} /> Uploaded
                 </span>
               )}

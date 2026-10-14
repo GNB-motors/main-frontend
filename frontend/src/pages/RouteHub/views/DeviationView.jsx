@@ -2,21 +2,12 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import RouteHubService from '../../../services/RouteHubService';
 import Ico from '../routeHubIcons.jsx';
 import { L, useLeafletMap, useLayerGroup, pinIcon } from '../routeHubMap';
-import { KpiRow, RefreshButton, TableEmpty, TableSkeleton } from '../routeHubShared.jsx';
-import { ago, dkey, downloadCsv, fmtDT, inr } from '../routeHubFormat';
-
-const STATUS_FILTERS = [
-  { key: 'all', label: 'All statuses' },
-  { key: 'open', label: 'Please review', ic: 'alert', c: '#C56200' },
-  { key: 'reviewed', label: 'Reviewed', ic: 'check', c: '#187A32' },
-];
-
-const isOpen = (d) => String(d.status || '').toUpperCase() === 'OPEN';
-
-const normalisePlate = (s) =>
-  String(s || '')
-    .replace(/[-\s]/g, '')
-    .toLowerCase();
+import { KpiRow, RefreshButton } from '../routeHubShared.jsx';
+import { dkey, downloadCsv, fmtDT, inr } from '../routeHubFormat';
+import { isOpen, normalisePlate } from './deviation/deviationRules.js';
+import DeviationFilterBar from './deviation/DeviationFilterBar.jsx';
+import DeviationFeed from './deviation/DeviationFeed.jsx';
+import DeviationDetail from './deviation/DeviationDetail.jsx';
 
 export default function DeviationView({ params, toast, setBadge, go }) {
   const [records, setRecords] = useState([]);
@@ -45,7 +36,7 @@ export default function DeviationView({ params, toast, setBadge, go }) {
       setRecords(rows);
       setBadge('deviation', rows.filter(isOpen).length);
     } catch (e) {
-      setError(e?.detail || e?.message || 'Could not load deviation events.');
+      setError(e?.message || 'Could not load deviation events.');
     } finally {
       setLoading(false);
     }
@@ -58,11 +49,6 @@ export default function DeviationView({ params, toast, setBadge, go }) {
   const first = loading && !records.length;
   const open = records.filter(isOpen);
   const reviewed = records.filter((d) => !isOpen(d));
-
-  // Roundabout / Circuitous Detour Detector:
-  // Flags whenever actual path diverged significantly (>= 12 km extra distance or >= 10 km off corridor)
-  const isCircuitousDetour = (d) =>
-    Boolean((d.extraKmEstimate && d.extraKmEstimate >= 12) || (d.maxOffKm && d.maxOffKm >= 10));
 
   const rows = useMemo(
     () =>
@@ -174,7 +160,7 @@ export default function DeviationView({ params, toast, setBadge, go }) {
       toast(`${d.registrationNumber} marked reviewed`);
       load();
     } catch (e) {
-      toast(e?.detail || 'Could not update the event');
+      toast(e?.message || 'Could not update the event');
     }
   };
 
@@ -267,272 +253,31 @@ export default function DeviationView({ params, toast, setBadge, go }) {
 
       <KpiRow items={kpis} loading={first} />
 
-      <div className="fbar">
-        <label className="field grow">
-          <Ico n="search" />
-          <input
-            type="search"
-            placeholder="Search vehicle number (e.g. WB25R9540)…"
-            value={q}
-            onChange={(e) => setQ(e.target.value.trim())}
-          />
-        </label>
-        <label className="field">
-          <input
-            type="date"
-            aria-label="From date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-          />
-        </label>
-        <span style={{ color: 'var(--fg-tertiary)', display: 'flex' }}>
-          <Ico n="arrowR" s={14} />
-        </span>
-        <label className="field">
-          <input
-            type="date"
-            aria-label="To date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-          />
-        </label>
-        <span style={{ flex: 1 }} />
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {STATUS_FILTERS.map((f) => {
-            const n =
-              f.key === 'all' ? records.length : f.key === 'open' ? open.length : reviewed.length;
-            return (
-              <button
-                key={f.key}
-                type="button"
-                className="chip"
-                aria-pressed={status === f.key}
-                onClick={() => setStatus(f.key)}
-              >
-                {f.ic ? (
-                  <span style={{ color: f.c, display: 'flex' }}>
-                    <Ico n={f.ic} s={13} />
-                  </span>
-                ) : null}
-                {f.label}
-                <b>{n}</b>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <DeviationFilterBar
+        q={q}
+        setQ={setQ}
+        from={from}
+        setFrom={setFrom}
+        to={to}
+        setTo={setTo}
+        status={status}
+        setStatus={setStatus}
+        records={records}
+        open={open}
+        reviewed={reviewed}
+      />
 
       <div className="split">
-        <div className="card">
-          <div className="card-head">
-            <span style={{ color: 'var(--nova-rage-600)', display: 'flex' }}>
-              <Ico n="split" />
-            </span>
-            <h3>Corridor deviation feed</h3>
-            <span className="count-pill">{rows.length} shown</span>
-            <span className="sp" />
-            <span className="hint">Select a row to see it on the map</span>
-          </div>
-          <div className="tblwrap">
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Vehicle</th>
-                  <th>Trip ID</th>
-                  <th>Detected at</th>
-                  <th className="num">Max off corridor</th>
-                  <th className="num">Extra km (est.)</th>
-                  <th className="num">Est. cost</th>
-                  <th>Status</th>
-                  <th className="num">Action</th>
-                </tr>
-              </thead>
-              {rows.length ? (
-                <tbody>
-                  {rows.map((d) => {
-                    const at = d.detectedAt ? new Date(d.detectedAt) : null;
-                    const hours = at ? (Date.now() - at.getTime()) / 3600000 : 0;
-                    return (
-                      <tr
-                        key={d._id}
-                        className={`click ${d._id === selId ? 'sel' : ''}`}
-                        onClick={() => setSelId(d._id)}
-                      >
-                        <td>
-                          <span className="plate">{d.registrationNumber}</span>
-                        </td>
-                        <td>
-                          <span className="plate">
-                            {String(d.tripId || '')
-                              .slice(-6)
-                              .padStart(7, '…')}
-                          </span>
-                        </td>
-                        <td>
-                          <span className="mono strong">{at ? fmtDT(at) : '—'}</span>
-                          <div className="muted" style={{ fontSize: 11 }}>
-                            {at ? ago(hours) : ''}
-                          </div>
-                        </td>
-                        <td className="num mono strong">{Number(d.maxOffKm || 0).toFixed(2)} km</td>
-                        <td className="num mono">
-                          +{d.extraKmEstimate ?? '—'} km
-                          {isCircuitousDetour(d) && (
-                            <div style={{ marginTop: 2 }}>
-                              <span
-                                className="pill"
-                                style={{
-                                  '--c': '#9333ea',
-                                  '--tint': 'rgba(147, 51, 234, 0.14)',
-                                  fontSize: 10,
-                                  padding: '1px 6px',
-                                }}
-                                title="Circuitous Detour: vehicle took an unauthorized loop adding significant km"
-                              >
-                                ⚡ Detour
-                              </span>
-                            </div>
-                          )}
-                        </td>
-                        <td className="num strong" style={{ color: '#C2323A' }}>
-                          {inr(d.estimatedExtraCostInr || 0)}
-                        </td>
-                        <td>
-                          {isOpen(d) ? (
-                            <span
-                              className="pill"
-                              style={{ '--c': '#C56200', '--tint': 'rgba(240,170,72,.16)' }}
-                            >
-                              <Ico n="alert" s={11} />
-                              Please review
-                            </span>
-                          ) : (
-                            <span
-                              className="pill"
-                              style={{ '--c': '#187A32', '--tint': 'rgba(37,186,76,.12)' }}
-                            >
-                              <Ico n="check" s={11} />
-                              Reviewed
-                            </span>
-                          )}
-                        </td>
-                        <td className="num">
-                          <button
-                            type="button"
-                            className="btn btn--sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleReview(d);
-                            }}
-                          >
-                            {isOpen(d) ? (
-                              <>
-                                <Ico n="eye" s={14} />
-                                Mark reviewed
-                              </>
-                            ) : (
-                              'Reviewed'
-                            )}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              ) : first ? (
-                <TableSkeleton cols={8} />
-              ) : (
-                <TableEmpty
-                  colSpan={8}
-                  title={error ? 'Feed unavailable' : 'No deviations match'}
-                  sub={error || 'Change the filters or date range.'}
-                  tone={error ? '#C56200' : '#187A32'}
-                  icon={error ? 'alert' : 'check'}
-                />
-              )}
-            </table>
-          </div>
-        </div>
+        <DeviationFeed
+          rows={rows}
+          selId={selId}
+          setSelId={setSelId}
+          first={first}
+          error={error}
+          toggleReview={toggleReview}
+        />
 
-        <div className="card detailmap">
-          <div className="card-head">
-            {selected ? (
-              <>
-                <span className="plate">{selected.registrationNumber}</span>
-                <h3>Deviation detail</h3>
-                <span className="sp" />
-                <button
-                  type="button"
-                  className="btn btn--sm"
-                  onClick={() => go('replay', { v: selected.registrationNumber })}
-                >
-                  <Ico n="play" s={12} />
-                  Replay trip
-                </button>
-              </>
-            ) : (
-              <h3>No trip selected</h3>
-            )}
-          </div>
-          {selected && isCircuitousDetour(selected) && (
-            <div
-              style={{
-                margin: '0 16px 12px 16px',
-                padding: '10px 14px',
-                background: 'rgba(239, 68, 68, 0.08)',
-                border: '1px solid rgba(239, 68, 68, 0.25)',
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                fontSize: 12,
-                color: '#b91c1c',
-              }}
-            >
-              <Ico n="alert" s={16} />
-              <div>
-                <strong>Circuitous Detour Detected:</strong> Asset deviated from corridor adding{' '}
-                <strong>+{selected.extraKmEstimate || 15} km</strong>. Estimated fuel penalty:{' '}
-                <strong>
-                  ~{((selected.extraKmEstimate || 15) / 3.8).toFixed(1)} L (
-                  {inr(selected.estimatedExtraCostInr || 1200)})
-                </strong>
-                .
-              </div>
-            </div>
-          )}
-          <div className="mapbox" style={{ minHeight: 420 }}>
-            <div className="lmap" ref={containerRef} />
-            <div className="ov chipcard legend" style={{ bottom: 14, left: 14 }}>
-              <span>
-                <i style={{ background: '#9A9AA5' }} />
-                Planned corridor
-              </span>
-              <span>
-                <i style={{ background: '#C2323A' }} />
-                Actual path
-              </span>
-            </div>
-          </div>
-          {selected ? (
-            <div className="perkm" style={{ margin: 0 }}>
-              <div>
-                <div className="k">Max off corridor</div>
-                <div className="v">{Number(selected.maxOffKm || 0).toFixed(2)} km</div>
-              </div>
-              <div>
-                <div className="k">Extra distance</div>
-                <div className="v">+{selected.extraKmEstimate ?? '—'} km</div>
-              </div>
-              <div>
-                <div className="k">Est. cost</div>
-                <div className="v" style={{ color: '#C2323A' }}>
-                  {inr(selected.estimatedExtraCostInr || 0)}
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </div>
+        <DeviationDetail selected={selected} go={go} containerRef={containerRef} />
       </div>
     </section>
   );

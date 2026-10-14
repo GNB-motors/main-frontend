@@ -3,9 +3,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import ServiceIntelligencePage from './ServiceIntelligencePage.jsx';
-import { MaintenanceService } from './MaintenanceService.jsx';
+import { MaintenanceService } from './MaintenanceService.js';
 
-vi.mock('./MaintenanceService.jsx', () => ({
+vi.mock('./MaintenanceService.js', () => ({
   MaintenanceService: {
     listRecords: vi.fn(),
     getSummary: vi.fn(),
@@ -17,7 +17,7 @@ vi.mock('./MaintenanceService.jsx', () => ({
 
 vi.mock('../../utils/session.js', async (importOriginal) => {
   const actual = await importOriginal();
-  return { ...actual, getToken: () => 'token', getBranchId: () => null };
+  return { ...actual, getBranchId: () => null };
 });
 
 function makeRecords(total, page, limit) {
@@ -81,7 +81,6 @@ describe('ServiceIntelligencePage — full-fleet pagination + KPI fix', () => {
 
     await waitFor(() =>
       expect(MaintenanceService.listRecords).toHaveBeenLastCalledWith(
-        'token',
         expect.objectContaining({ page: 2, limit: 20 }),
       ),
     );
@@ -217,7 +216,6 @@ describe('ServiceIntelligencePage — full-fleet pagination + KPI fix', () => {
 
     await waitFor(() =>
       expect(MaintenanceService.updateRecord).toHaveBeenCalledWith(
-        'token',
         'rep-101',
         expect.objectContaining({
           notes: expect.stringContaining('[RESOLVED: Replaced axle with OEM part'),

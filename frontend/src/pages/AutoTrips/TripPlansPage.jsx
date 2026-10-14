@@ -8,7 +8,7 @@ import { useMutation } from '../../hooks/useMutation';
 import { useConfirm } from '../../components/ui/confirmContext';
 import TripPlanService from '../../services/TripPlanService';
 import { formatNum } from '../../utils/formatters';
-import { fmtDayTime, fmtKm } from './autoTripModel';
+import { fmtDayTime, fmtKm } from './autoTripFormat';
 import { PLAN_STATUS_CLASS, PLAN_STATUS_LABEL, planEndName, planWarnings } from './tripForms';
 import TripPlanDialog from './TripPlanDialog';
 import LinkTripDialog from './LinkTripDialog';

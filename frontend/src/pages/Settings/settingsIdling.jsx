@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'react-toastify';
-import apiClient from '../../utils/axiosConfig';
-import { Card, SectionHead, Skeleton } from './settingsAtoms';
+import useApi from '../../hooks/useApi';
+import { SettingsService } from './SettingsService';
+import { Card, LoadError, SectionHead, Skeleton } from './settingsAtoms';
 
 const MIN = 1;
 const MAX = 1440;
@@ -14,28 +15,18 @@ const USED_BY = ['Idling console', 'Daily digest', 'Driver scores', 'Mileage Rep
  * driving score and the Mileage Report export all use it.
  */
 export const IdleThresholdSetting = ({ canEdit }) => {
-  const [saved, setSaved] = useState(null);
+  const { data, error, refetch } = useApi(
+    (signal) => SettingsService.getFuelSettings({ signal }),
+    [],
+  );
+  // What the last save returned; until then the loaded settings are the truth.
+  const [savedNow, setSavedNow] = useState(null);
+  const saved = savedNow?.idleThresholdMin ?? data?.idleThresholdMin ?? null;
   // 'DEFAULT' until someone in the org saves a value; older APIs omit it.
-  const [source, setSource] = useState(null);
-  const [value, setValue] = useState('');
+  const source = savedNow ? savedNow.idleThresholdSource : (data?.idleThresholdSource ?? null);
+  const [draft, setDraft] = useState(null);
+  const value = draft ?? (saved == null ? '' : String(saved));
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    let live = true;
-    apiClient
-      .get('api/fuel-settings')
-      .then((res) => {
-        if (!live) return;
-        const v = res.data?.data?.idleThresholdMin;
-        setSaved(v);
-        setSource(res.data?.data?.idleThresholdSource ?? null);
-        setValue(String(v));
-      })
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, []);
 
   const n = Number(value);
   const valid = Number.isInteger(n) && n >= MIN && n <= MAX;
@@ -45,14 +36,13 @@ export const IdleThresholdSetting = ({ canEdit }) => {
     if (!valid || n === saved) return;
     setSaving(true);
     try {
-      const res = await apiClient.patch('api/fuel-settings', { idleThresholdMin: n });
-      const v = res.data?.data?.idleThresholdMin ?? n;
-      setSaved(v);
-      setSource(res.data?.data?.idleThresholdSource ?? 'ORG');
-      setValue(String(v));
+      const res = await SettingsService.updateIdleThreshold(n);
+      const v = res.idleThresholdMin ?? n;
+      setSavedNow({ idleThresholdMin: v, idleThresholdSource: res.idleThresholdSource ?? 'ORG' });
+      setDraft(null);
       toast.success(`Idling now counts after ${v} min`);
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Could not save the idle setting.');
+      toast.error(err?.message || 'Could not save the idle setting.');
     } finally {
       setSaving(false);
     }
@@ -66,7 +56,9 @@ export const IdleThresholdSetting = ({ canEdit }) => {
         desc="A stop with the engine running counts as idling once it lasts this long."
       />
       <Card title="Idle threshold">
-        {saved == null ? (
+        {saved == null && error ? (
+          <LoadError message="Could not load the idle threshold." onRetry={refetch} />
+        ) : saved == null ? (
           <Skeleton rows={1} />
         ) : canEdit ? (
           <form className="stx-inline-form" onSubmit={save}>
@@ -82,7 +74,7 @@ export const IdleThresholdSetting = ({ canEdit }) => {
                 max={MAX}
                 step={1}
                 value={value}
-                onChange={(e) => setValue(e.target.value)}
+                onChange={(e) => setDraft(e.target.value)}
                 className="stx-input stx-input--num"
               />
               <span>min</span>

@@ -639,6 +639,14 @@
   font-size: 13px;
   color: var(--stx-ink-4);
 }
+.stx-load-error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--stx-ink-2);
+}
+
 .stx-readonly {
   margin: 0;
   font-size: 14px;

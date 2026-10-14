@@ -3,7 +3,7 @@ import { AlertTriangle, Receipt, RefreshCcw, Route } from 'lucide-react';
 import DataTable from '../../../components/ui/DataTable';
 import ExportButton from '../../../components/ui/ExportButton';
 import useApi from '../../../hooks/useApi';
-import { ReportsService } from '../ReportsService.jsx';
+import { ReportsService } from '../ReportsService.js';
 import { formatKm, formatLitres, formatNum } from '../../../utils/formatters';
 import { useFuelCyclesColumns } from './useFuelCyclesColumns.jsx';
 import ReportFrame, {

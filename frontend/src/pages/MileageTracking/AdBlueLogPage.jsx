@@ -10,12 +10,13 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import apiClient from '../../utils/axiosConfig';
 import { TripService, OCRService } from '../Trip/services';
+import { getVehicleList } from '../../services/vehicleListService';
 import PageShell from '../../components/ui/PageShell';
 import { SlotUpload } from './AdBlueSlotUpload';
 import { SearchableEntityDropdown } from './SearchableEntityDropdown';
 import { validateImageFile } from './adBlueLogUtils';
+import { MileageTrackingService } from './MileageTrackingService';
 import './MileageTracking.css';
 
 const AdBlueLogPage = () => {
@@ -55,10 +56,10 @@ const AdBlueLogPage = () => {
   useEffect(() => {
     const fetchDeps = async () => {
       try {
-        const vehRes = await TripService.getVehicles({ limit: 100 });
+        const vehicleList = await getVehicleList();
         const drvRes = await TripService.getDrivers({ limit: 100 });
         setVehicles(
-          (vehRes?.data || []).map((v) => ({
+          vehicleList.map((v) => ({
             id: v._id,
             name: v.registrationNumber,
             registration: `${v.vehicleType} - ${v.model || 'N/A'}`,
@@ -158,11 +159,7 @@ const AdBlueLogPage = () => {
         receiptData.append('entityType', 'VEHICLE');
         receiptData.append('entityId', selectedVehicle.id);
         if (receipt.ocrData) receiptData.append('ocrData', JSON.stringify(receipt.ocrData));
-        const receiptRes = await apiClient.post('/api/documents', receiptData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          timeout: 120000,
-        });
-        documentId = receiptRes.data.data?._id || receiptRes.data._id;
+        documentId = await MileageTrackingService.uploadReceipt(receiptData);
       }
 
       const payload = {
@@ -174,7 +171,7 @@ const AdBlueLogPage = () => {
         ...(documentId && { documentId }),
       };
 
-      await apiClient.post('/api/adblue-logs', payload, { timeout: 60000 });
+      await MileageTrackingService.createAdBlueLog(payload);
       toast.success('AdBlue entry saved');
       navigate('/adblue-tracking');
     } catch (err) {
@@ -254,8 +251,10 @@ const AdBlueLogPage = () => {
 
             <div className="mileage-form-row">
               <div className="mileage-form-group">
-                <label>Litres *</label>
+                <label htmlFor="adblue-log-litres">Litres *</label>
                 <input
+                  id="adblue-log-litres"
+                  aria-label="Litres"
                   type="number"
                   step="any"
                   placeholder="0.00"
@@ -266,8 +265,10 @@ const AdBlueLogPage = () => {
                 />
               </div>
               <div className="mileage-form-group">
-                <label>Amount *</label>
+                <label htmlFor="adblue-log-amount">Amount *</label>
                 <input
+                  id="adblue-log-amount"
+                  aria-label="Amount"
                   type="number"
                   step="any"
                   placeholder="0.00"
@@ -281,8 +282,10 @@ const AdBlueLogPage = () => {
 
             <div className="mileage-form-row">
               <div className="mileage-form-group">
-                <label>Place</label>
+                <label htmlFor="adblue-log-place">Place</label>
                 <input
+                  id="adblue-log-place"
+                  aria-label="Place"
                   type="text"
                   placeholder="Where was AdBlue added?"
                   name="place"
@@ -293,7 +296,9 @@ const AdBlueLogPage = () => {
             </div>
 
             <div style={{ marginTop: 8 }}>
+              {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- names the upload slot below (aria-labelledby), which has no single form control to point htmlFor at */}
               <label
+                id="adblue-log-proof-label"
                 style={{
                   display: 'block',
                   marginBottom: 12,
@@ -304,7 +309,11 @@ const AdBlueLogPage = () => {
               >
                 Upload Proof / Receipt
               </label>
-              <div className="mileage-slots-row">
+              <div
+                className="mileage-slots-row"
+                role="group"
+                aria-labelledby="adblue-log-proof-label"
+              >
                 <SlotUpload
                   title="ADBLUE RECEIPT"
                   label="AdBlue slip"

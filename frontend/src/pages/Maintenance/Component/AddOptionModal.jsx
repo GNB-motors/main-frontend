@@ -1,15 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { X } from 'lucide-react';
-import { MaintenanceService } from '../MaintenanceService.jsx';
-import { getToken } from '../../../utils/session.js';
+import { MaintenanceService } from '../MaintenanceService.js';
 
 /**
  * Small modal that lives on top of the Add Service / Add Repair page. Saves a
  * new workshop / service-type / repair-type to the org's options list and
  * returns the saved value via `onSaved(value)` so the parent can select it.
  */
-const AddOptionModal = ({ open, onClose, category, title, placeholder, initialValue = '', onSaved }) => {
+const AddOptionModal = ({
+  open,
+  onClose,
+  category,
+  title,
+  placeholder,
+  initialValue = '',
+  onSaved,
+}) => {
   const [value, setValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -33,13 +40,12 @@ const AddOptionModal = ({ open, onClose, category, title, placeholder, initialVa
     }
     setSubmitting(true);
     try {
-      const token = getToken();
-      await MaintenanceService.addOption(token, category, v);
+      await MaintenanceService.addOption(category, v);
       toast.success('Added');
       onSaved?.(v);
       onClose?.();
     } catch (err) {
-      toast.error(err?.detail || 'Failed to add');
+      toast.error(err?.message || 'Failed to add');
     } finally {
       setSubmitting(false);
     }
@@ -84,7 +90,14 @@ const AddOptionModal = ({ open, onClose, category, title, placeholder, initialVa
           <button
             type="button"
             onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 4, display: 'flex' }}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#64748b',
+              padding: 4,
+              display: 'flex',
+            }}
             aria-label="Close"
           >
             <X size={18} />
@@ -96,6 +109,8 @@ const AddOptionModal = ({ open, onClose, category, title, placeholder, initialVa
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder={placeholder}
+            aria-label={title}
+            // eslint-disable-next-line jsx-a11y/no-autofocus -- the modal's only field; the user just opened it to type here
             autoFocus
             style={{
               width: '100%',

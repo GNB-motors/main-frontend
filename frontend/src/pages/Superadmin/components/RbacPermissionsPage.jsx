@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Plus, RefreshCw, Trash2, X, KeyRound, Inbox } from 'lucide-react';
+import { Plus, RefreshCw, Trash2, KeyRound, Inbox } from 'lucide-react';
 import { PageHeader } from '../../Drivers/Component';
 import RbacApi from './rbacService';
+import NewPermissionModal from './rbac/NewPermissionModal';
 import { getUserRole } from '../../../utils/session';
 import './FeatureFlags.css';
 import './Rbac.css';
@@ -226,122 +227,14 @@ const RbacPermissionsPage = () => {
 
       {/* New permission modal */}
       {addOpen && (
-        <div
-          className="ff-modal-overlay"
-          role="button"
-          tabIndex={-1}
-          aria-label="Close dialog"
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !adding) setAddOpen(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.target !== e.currentTarget) return;
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              if (!adding) setAddOpen(false);
-            }
-          }}
-        >
-          <div className="ff-modal" role="dialog" aria-modal="true">
-            <div className="ff-modal__header">
-              <div>
-                <h2 className="ff-modal__title">New permission</h2>
-                <p className="ff-modal__subtitle">
-                  Custom permissions can be assigned to any global role.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="ff-icon-btn"
-                onClick={() => setAddOpen(false)}
-                disabled={adding}
-                aria-label="Close"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="ff-modal__body">
-              {addError && (
-                <div className="ff-alert ff-alert--error" role="alert">
-                  {addError}
-                </div>
-              )}
-              <div className="ff-field">
-                <label className="ff-field__label">Key</label>
-                <input
-                  className="ff-input ff-mono"
-                  value={form.key}
-                  onChange={(e) => setForm({ ...form, key: e.target.value })}
-                  placeholder="e.g. crm"
-                  maxLength={80}
-                  autoFocus
-                />
-              </div>
-              <div className="ff-field">
-                <label className="ff-field__label">Group</label>
-                <input
-                  className="ff-input"
-                  value={form.group}
-                  onChange={(e) => setForm({ ...form, group: e.target.value })}
-                  placeholder="e.g. CRM"
-                  maxLength={60}
-                />
-              </div>
-              <div className="ff-field">
-                <label className="ff-field__label">Label</label>
-                <input
-                  className="ff-input"
-                  value={form.label}
-                  onChange={(e) => setForm({ ...form, label: e.target.value })}
-                  placeholder="e.g. CRM"
-                  maxLength={120}
-                />
-              </div>
-              <div className="ff-field">
-                <label className="ff-field__label">
-                  Description <span className="ff-muted">(optional)</span>
-                </label>
-                <textarea
-                  className="ff-textarea"
-                  rows={2}
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  maxLength={300}
-                />
-              </div>
-              <div className="ff-field">
-                <label className="ff-field__label">
-                  Feature flag <span className="ff-muted">(optional entitlement gate)</span>
-                </label>
-                <input
-                  className="ff-input ff-mono"
-                  value={form.featureFlag}
-                  onChange={(e) => setForm({ ...form, featureFlag: e.target.value })}
-                  placeholder="e.g. insurance"
-                  maxLength={80}
-                />
-              </div>
-            </div>
-            <div className="ff-modal__footer">
-              <button
-                type="button"
-                className="ff-btn ff-btn--ghost"
-                onClick={() => setAddOpen(false)}
-                disabled={adding}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="ff-btn ff-btn--primary"
-                onClick={submitAdd}
-                disabled={adding}
-              >
-                {adding ? 'Creating…' : 'Create'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <NewPermissionModal
+          form={form}
+          setForm={setForm}
+          addError={addError}
+          adding={adding}
+          setAddOpen={setAddOpen}
+          submitAdd={submitAdd}
+        />
       )}
 
       {/* Remove confirm */}

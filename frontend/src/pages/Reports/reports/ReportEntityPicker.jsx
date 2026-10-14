@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { ChevronDown, Search } from 'lucide-react';
-import apiClient from '../../../utils/axiosConfig';
+import { ReportsService } from '../ReportsService.js';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 
 const RESULT_LIMIT = 20;
@@ -170,35 +170,11 @@ export default function ReportEntityPicker({
   );
 }
 
-const listOf = (res) => (Array.isArray(res?.data?.data) ? res.data.data : []);
+const fetchVehicles = (query, signal) =>
+  ReportsService.searchVehicles(query, { signal, limit: RESULT_LIMIT });
 
-async function fetchVehicles(query, signal) {
-  const res = await apiClient.get('api/vehicles', {
-    params: { limit: RESULT_LIMIT, ...(query ? { search: query } : {}) },
-    signal,
-  });
-  return listOf(res)
-    .map((v) => ({
-      id: String(v._id || v.id),
-      label: v.registrationNumber || v.vehicleNumber || '—',
-      sub: [v.model, v.vehicleType].filter(Boolean).join(' · '),
-    }))
-    .filter((v) => v.id && v.id !== 'undefined');
-}
-
-async function fetchDrivers(query, signal) {
-  const res = await apiClient.get('api/employees', {
-    params: { role: 'DRIVER', limit: RESULT_LIMIT, ...(query ? { search: query } : {}) },
-    signal,
-  });
-  return listOf(res)
-    .map((d) => ({
-      id: String(d._id || d.id),
-      label: `${d.firstName || ''} ${d.lastName || ''}`.trim() || 'Unknown',
-      sub: d.mobileNumber || '',
-    }))
-    .filter((d) => d.id && d.id !== 'undefined');
-}
+const fetchDrivers = (query, signal) =>
+  ReportsService.searchDrivers(query, { signal, limit: RESULT_LIMIT });
 
 export function VehiclePicker({ value, onChange, width = 200 }) {
   return (

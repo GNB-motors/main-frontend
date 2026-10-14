@@ -6,6 +6,9 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
 import { defineConfig, globalIgnores } from 'eslint/config';
 
+const API_IMPORT_MESSAGE =
+  'Call the API from a *Service / *Api module and use useApi or useMutation in the component (rule 8).';
+
 export default defineConfig([
   // Design mockups and handoff notes, not application source — never imported
   // by src/. Their vendored/generated JS (canvas support scripts) isn't meant
@@ -14,7 +17,8 @@ export default defineConfig([
   // outside src/ so Vite never bundles them, and ignored here so dead code can't
   // fail the gate. See quarantine/README.md.
   // public/draco/ is the vendored Draco decoder (served verbatim, never bundled).
-  globalIgnores(['dist', 'Design', 'amitansu-handoff', 'quarantine', 'public/draco']),
+  // coverage/ is the generated `npm run test:coverage` report.
+  globalIgnores(['dist', 'coverage', 'Design', 'amitansu-handoff', 'quarantine', 'public/draco']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -44,6 +48,26 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // Rule 24: log through utils/logger.js (console in dev only, errors to Sentry).
+      'no-console': 'error',
+      // Rule 8: components fetch through a service / api module and useApi or
+      // useMutation, never the HTTP client directly.
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            { name: 'axios', message: API_IMPORT_MESSAGE },
+            {
+              name: 'xlsx',
+              message:
+                "xlsx is large; load it where it is used: const XLSX = await import('xlsx').",
+            },
+          ],
+          patterns: [
+            { group: ['**/axiosConfig', '**/axiosConfig.js'], message: API_IMPORT_MESSAGE },
+          ],
+        },
+      ],
       // localStorage is touched ONLY by utils/session.js — direct access,
       // including window.localStorage, is a build error.
       'no-restricted-syntax': [
@@ -56,6 +80,15 @@ export default defineConfig([
           selector:
             "CallExpression[callee.object.object.name='window'][callee.object.property.name='localStorage']",
           message: 'Use utils/session.js instead of direct localStorage access.',
+        },
+        {
+          selector: "CallExpression[callee.object.name='sessionStorage']",
+          message: 'Use utils/session.js instead of direct sessionStorage access.',
+        },
+        {
+          selector:
+            "CallExpression[callee.object.object.name='window'][callee.object.property.name='sessionStorage']",
+          message: 'Use utils/session.js instead of direct sessionStorage access.',
         },
       ],
       // Accessibility violations — Phase 7 remediates these; warn until then
@@ -79,6 +112,18 @@ export default defineConfig([
     },
   },
   {
+    // The data layer is where the HTTP client belongs.
+    files: [
+      'src/services/**/*.{js,jsx}',
+      'src/**/*Service.{js,jsx}',
+      'src/**/*.service.{js,jsx}',
+      'src/**/*[aA]pi.js',
+      'src/utils/axiosConfig.js',
+      'src/lib/liveStream.js',
+    ],
+    rules: { 'no-restricted-imports': 'off' },
+  },
+  {
     // Test files: vitest globals
     files: ['**/*.test.{js,jsx}', '**/test/setup.{js,jsx}'],
     languageOptions: {
@@ -92,6 +137,8 @@ export default defineConfig([
       'react-refresh/only-export-components': 'off',
       // Tests legitimately exercise raw storage (prototype spies, jsdom resets)
       'no-restricted-syntax': 'off',
+      'no-console': 'off',
+      'no-restricted-imports': 'off',
     },
   },
 ]);

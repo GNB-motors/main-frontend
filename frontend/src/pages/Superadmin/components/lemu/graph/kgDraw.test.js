@@ -1,4 +1,5 @@
-import { draw, drawHosts } from './kgDraw';
+import { draw } from './kgDraw';
+import { drawHosts } from './kgDrawHosts';
 import { kindHue, hexa, CANVAS, OUTLINE_COLOR } from './graphTheme';
 
 /* Recording 2D-context stub. Every method call lands in `calls` with a

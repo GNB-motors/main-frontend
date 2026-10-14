@@ -3,7 +3,7 @@ import { AlertTriangle, Briefcase, CheckCircle2, IndianRupee } from 'lucide-reac
 import DataTable from '../../../components/ui/DataTable';
 import ExportButton from '../../../components/ui/ExportButton';
 import useApi from '../../../hooks/useApi';
-import { ReportsService } from '../ReportsService.jsx';
+import { ReportsService } from '../ReportsService.js';
 import { formatINR } from '../../../utils/formatters';
 import { unattributedKmOf, useRunningCostColumns } from './useRunningCostColumns.jsx';
 import ReportFrame, {

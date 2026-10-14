@@ -234,6 +234,7 @@ const BillApprovalsPage = () => {
               <div className="erp-modal-body">
                 {active.receiptUrl ? (
                   <div className="erp-field full" style={{ marginBottom: 16 }}>
+                    {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- captions the receipt link, not a form control; <label> only for the .erp-field label style */}
                     <label>Receipt</label>
                     <a href={active.receiptUrl} target="_blank" rel="noopener noreferrer">
                       <img
@@ -256,6 +257,7 @@ const BillApprovalsPage = () => {
                 )}
 
                 <div className="erp-field full" style={{ marginBottom: 16 }}>
+                  {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- captions the details table, not a form control; <label> only for the .erp-field label style */}
                   <label>Details</label>
                   <table className="erp-table" style={{ minWidth: 0 }}>
                     <tbody>
@@ -294,6 +296,7 @@ const BillApprovalsPage = () => {
                 {active.status === 'PENDING' ? (
                   <>
                     <div className="erp-field full" style={{ marginBottom: 16 }}>
+                      {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- captions the Confirm/Reject button pair, which a <label> cannot label; kept for the .erp-field label style */}
                       <label>
                         Decision <span className="required">*</span>
                       </label>
@@ -304,7 +307,7 @@ const BillApprovalsPage = () => {
                           onClick={() => setDecision('CONFIRMED')}
                         >
                           <Check size={16} /> Confirm
-                          <small>Credits the driver's wallet</small>
+                          <small>Credits the driver&apos;s wallet</small>
                         </button>
                         <button
                           type="button"
@@ -324,6 +327,7 @@ const BillApprovalsPage = () => {
                       </label>
                       <textarea
                         id="bill-remarks"
+                        aria-label="Reason"
                         value={remarks}
                         onChange={(e) => setRemarks(e.target.value)}
                         placeholder={
@@ -343,6 +347,7 @@ const BillApprovalsPage = () => {
                   </>
                 ) : (
                   <div className="erp-field full">
+                    {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- captions a read-only status badge, not a form control; <label> only for the .erp-field label style */}
                     <label>Decision</label>
                     <p style={{ margin: 0 }}>
                       <span className={`erp-badge ${STATUS_TONE[active.status] || 'neutral'}`}>

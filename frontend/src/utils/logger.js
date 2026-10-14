@@ -10,6 +10,8 @@
 
 import { captureException } from './sentry.js';
 
+/* eslint-disable no-console -- this IS the sanctioned console wrapper */
+
 const IS_DEV = import.meta.env.DEV;
 
 const LEVELS = {

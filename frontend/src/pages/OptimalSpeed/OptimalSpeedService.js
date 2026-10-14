@@ -1,4 +1,5 @@
 import apiClient from '../../utils/axiosConfig';
+import ApiError from '../../errors/ApiError';
 
 /**
  * Service for the Optimal-Speed Advisory (feature #15). Same OWNER/MANAGER +
@@ -14,7 +15,7 @@ export const OptimalSpeedService = {
       return response.data || {};
     } catch (error) {
       if (error?.code === 'ERR_CANCELED') throw error;
-      throw error.response?.data || { detail: 'Could not fetch optimal-speed profiles.' };
+      throw ApiError.from(error);
     }
   },
 };

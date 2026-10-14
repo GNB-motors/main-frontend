@@ -14,7 +14,7 @@ Machine-readable review criteria for every PR. 4 sections, 26 rules.
 
 ## 2. Data & Boundaries (6 rules)
 
-8. All data fetching goes through `useApi` / `useMutation` — no raw `apiClient` calls in components.
+8. All data fetching goes through `useApi` / `useMutation` — no raw `apiClient` calls in components. API calls live in a service next to its feature (`pages/<Feature>/<Feature>Service.js`; shared ones in `src/services/`), as `.js`, not `.jsx`. ESLint's `no-restricted-imports` enforces this, with no per-file exemptions left; don't add one.
 9. Every fetch passes an `AbortSignal`; navigation away aborts the request.
 10. Every API response is parsed with its zod schema (`schemas/`) before use.
 11. `localStorage` is touched only by `utils/session.js` — nothing else calls it directly.
@@ -35,7 +35,7 @@ Machine-readable review criteria for every PR. 4 sections, 26 rules.
 20. `npm run lint` is always 0 errors before committing.
 21. New logic goes in a pure module (`.js`) with unit tests next to it — follow the `lemu/graph/` pattern.
 22. A bugfix starts with a failing test that reproduces the bug.
-23. Comments state invariants and *why*, not *what* — the code says what.
+23. Comments state invariants and _why_, not _what_ — the code says what.
 24. No `console.log` in committed code — use `utils/logger.js` when logging is needed.
 25. Adding a dependency requires justification in the PR (size, license, maintenance).
 26. The bundle budget (`scripts/check-bundle.mjs`) only goes down — never raise it.

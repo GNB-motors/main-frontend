@@ -41,10 +41,10 @@ export default function ChallanModal({ isOpen, onClose, selectedVehicle }) {
       onKeyDown={(e) => {
         if (e.key === 'Escape') onClose();
       }}
-      role="dialog"
-      aria-modal="true"
+      role="presentation"
       tabIndex={-1}
     >
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- onClick only keeps clicks inside the dialog from reaching the backdrop's close; Escape is handled on the backdrop */}
       <div
         className="v-dash-image-modal-inner"
         style={{
@@ -56,7 +56,8 @@ export default function ChallanModal({ isOpen, onClose, selectedVehicle }) {
           color: '#0f172a',
         }}
         onClick={(e) => e.stopPropagation()}
-        role="document"
+        role="dialog"
+        aria-modal="true"
       >
         {/* Header */}
         <div

@@ -2,8 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AlertTriangle, Bell, Check, FileWarning, RefreshCw, Wrench } from 'lucide-react';
-import { MaintenanceService } from '../MaintenanceService.jsx';
-import { getToken } from '../../../utils/session.js';
+import { MaintenanceService } from '../MaintenanceService.js';
 import NewButton from '../../../components/ui/NewButton';
 import KpiCard from '../../../components/ui/KpiCard';
 
@@ -53,13 +52,12 @@ const AlertsTab = ({ search = '', refreshKey = 0 }) => {
     const myId = ++requestIdRef.current;
     setLoading(true);
     try {
-      const token = getToken();
-      const data = await MaintenanceService.getAlerts(token);
+      const data = await MaintenanceService.getAlerts();
       if (myId !== requestIdRef.current) return;
       setAlerts(data);
     } catch (err) {
       if (myId !== requestIdRef.current) return;
-      toast.error(err?.detail || 'Failed to load alerts');
+      toast.error(err?.message || 'Failed to load alerts');
     } finally {
       if (myId === requestIdRef.current) setLoading(false);
     }
@@ -72,12 +70,11 @@ const AlertsTab = ({ search = '', refreshKey = 0 }) => {
   const handleResolve = async (alert) => {
     setResolvingId(alert.id);
     try {
-      const token = getToken();
-      await MaintenanceService.resolveAlert(token, alert.id, { fingerprint: alert.fingerprint });
+      await MaintenanceService.resolveAlert(alert.id, { fingerprint: alert.fingerprint });
       toast.success('Alert resolved');
       await load();
     } catch (err) {
-      toast.error(err?.detail || 'Failed to resolve alert');
+      toast.error(err?.message || 'Failed to resolve alert');
     } finally {
       setResolvingId(null);
     }
