@@ -254,7 +254,11 @@ describe('PlaceHubPage', () => {
 
   it('answers unexplained stops from the stops tab, all at once', async () => {
     renderPage('/place-hub?tab=stops');
-    expect(await screen.findByRole('button', { name: /^Stops/ })).toHaveTextContent('6 h');
+    // The tab renders before the summary that adds its hours arrives; wait for
+    // the hours rather than racing the load (failed on the slower CI runner).
+    await vi.waitFor(() =>
+      expect(screen.getByRole('button', { name: /^Stops/ })).toHaveTextContent('6 h'),
+    );
     fireEvent.click(await screen.findByText(/2 stops/));
     const drawer = screen.getByRole('complementary', { name: 'Unexplained stops' });
     fireEvent.click(within(drawer).getByRole('button', { name: /All 2 were rest/ }));
