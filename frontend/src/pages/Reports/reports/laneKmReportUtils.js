@@ -4,6 +4,8 @@
  * is shown as listed; nothing here averages them.
  */
 
+import { matchesSearch } from './reportFilters';
+
 export const LANE_VERDICT = {
   OVER_SAP: { label: 'Runs over SAP', tone: 'critical' },
   NOT_IN_SAP: { label: 'Not in SAP', tone: 'caution' },
@@ -13,12 +15,10 @@ export const LANE_VERDICT = {
   THIN: { label: 'Too few trips', tone: 'inert' },
 };
 
+/** The verdict filter: every lane, or one verdict (each verdict has an option). */
 export const LANE_FILTERS = [
   { key: 'all', label: 'All lanes' },
-  { key: 'OVER_SAP', label: 'Over SAP' },
-  { key: 'NOT_IN_SAP', label: 'Not in SAP' },
-  { key: 'BETWEEN', label: 'Between values' },
-  { key: 'MATCHES', label: 'Matches' },
+  ...Object.entries(LANE_VERDICT).map(([key, v]) => ({ key, label: v.label })),
 ];
 
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
@@ -51,14 +51,11 @@ export function laneRow(r) {
   };
 }
 
-/** Rows for a verdict filter and a FROM/TO search. */
+/** Rows for a verdict filter and a FROM/TO search (case-insensitive). */
 export function filterLanes(rows, filter, search) {
-  const q = String(search || '')
-    .trim()
-    .toUpperCase();
   return rows.filter(
     (r) =>
       (filter === 'all' || !filter || r.verdict === filter) &&
-      (!q || r.from.includes(q) || r.to.includes(q)),
+      matchesSearch(search, [r.from, r.to]),
   );
 }

@@ -112,9 +112,12 @@ export async function exportFilteredReportCsv({
 
     if (typeof fetchExport === 'function') {
       const blob = await fetchExport(filters || {});
-      if (extension === 'xlsx') {
-        // Export endpoints only produce CSV; a CSV saved under an .xlsx name
-        // opens as a corrupt file, so convert it into a real workbook.
+      if (extension === 'xlsx' && blob instanceof Blob && /spreadsheetml/.test(blob.type)) {
+        // The server built the workbook itself (e.g. the mileage owner workbook).
+        content = blob;
+      } else if (extension === 'xlsx') {
+        // A CSV saved under an .xlsx name opens as a corrupt file, so convert
+        // it into a real workbook.
         const text = blob instanceof Blob ? await blob.text() : String(blob);
         content = new Blob([csvTextToXlsxBuffer(text)], { type: mimeType });
       } else {

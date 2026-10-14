@@ -1,212 +1,220 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import PageShell from '../../../components/ui/PageShell';
-import FilterBar from '../../../components/ui/FilterBar';
+import { useMemo, useState } from 'react';
+import { AlertTriangle, Briefcase, CheckCircle2, IndianRupee } from 'lucide-react';
 import DataTable from '../../../components/ui/DataTable';
-import { CsvIcon, ExcelIcon } from '../../../components/Icons';
-import apiClient from '../../../utils/axiosConfig';
+import ExportButton from '../../../components/ui/ExportButton';
 import useApi from '../../../hooks/useApi';
 import { ReportsService } from '../ReportsService.jsx';
-import { exportFilteredReportCsv } from '../../../utils/reportCsvExport';
-import { useRunningCostColumns } from './useRunningCostColumns.jsx';
-import { buildTripFilterParams, extractVehicleOptions, formatCurrency } from './tripReportsUtils';
+import { formatINR } from '../../../utils/formatters';
+import { unattributedKmOf, useRunningCostColumns } from './useRunningCostColumns.jsx';
+import ReportFrame, {
+  ReportClear,
+  ReportDateRange,
+  ReportFooter,
+  ReportSearch,
+  ReportSelect,
+} from './ReportFrame';
+import { VehiclePicker } from './ReportEntityPicker';
+import { matchesSearch, pageCount, pageSlice } from './reportFilters';
+import useReportPage from './useReportPage';
+import {
+  buildTripFilterParams,
+  defaultTripRange,
+  exportTripReport,
+  newestFirst,
+  rangeFilterCount,
+  tripReportSummary,
+} from './tripReportsUtils';
 
+const DEFAULT_GROUP = 'vehicle';
 const GROUP_OPTIONS = [
-  { value: 'vehicle', label: 'By Vehicle' },
-  { value: 'hub', label: 'By Hub' },
-  { value: 'driver', label: 'By Driver' },
-  { value: 'day', label: 'By Day' },
+  { value: 'vehicle', label: 'By vehicle' },
+  { value: 'hub', label: 'By hub' },
+  { value: 'driver', label: 'By driver' },
+  { value: 'day', label: 'By day' },
+];
+const GROUP_NOUN = { vehicle: 'vehicles', hub: 'hubs', driver: 'drivers', day: 'days' };
+
+// For a searched export, built from the rows on screen (the server's /export
+// cannot apply the search box). Same columns as the server file, plus unattributed km.
+const EXPORT_COLUMNS = [
+  ['Group', (r) => r.label || r.key],
+  ['Trips', (r) => r.trips],
+  ['Approach (Km)', (r) => r.kmApproach],
+  ['Laden (Km)', (r) => r.kmLaden],
+  ['Return (Km)', (r) => r.kmReturn],
+  ['Unattributed (Km)', unattributedKmOf],
+  ['Empty Share (%)', (r) => r.emptySharePct],
+  ['Fuel (L)', (r) => r.fuelL],
+  ['Fuel (Rs)', (r) => r.fuelInr],
+  ['Wear (Rs)', (r) => r.wearInr],
+  ['Business (Rs)', (r) => r.businessCostInr],
+  ['Approved Non-Business (Rs)', (r) => r.nonBusinessCostInr],
+  ['Deviation (Rs)', (r) => r.deviationCostInr],
+  ['Deviation Share (%)', (r) => r.deviationSharePct],
+  ['Total (Rs)', (r) => r.totalCostInr],
 ];
 
+const COST_KEYS = ['totalCostInr', 'businessCostInr', 'nonBusinessCostInr', 'deviationCostInr'];
+
+/** The server's totals, recomputed for a searched subset. */
+function totalsOf(rows) {
+  const totals = Object.fromEntries(COST_KEYS.map((k) => [k, 0]));
+  rows.forEach((r) => {
+    COST_KEYS.forEach((k) => {
+      totals[k] += r[k] || 0;
+    });
+  });
+  return totals;
+}
+
 const RunningCostReport = () => {
-  const [rows, setRows] = useState([]);
-  const [totals, setTotals] = useState(null);
-  const [error, setError] = useState(null);
-
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const [range, setRange] = useState(defaultTripRange);
+  const [search, setSearch] = useState('');
   const [vehicleId, setVehicleId] = useState('all');
-  const [groupBy, setGroupBy] = useState('vehicle');
+  const [groupBy, setGroupBy] = useState(DEFAULT_GROUP);
 
-  const [vehicleOptions, setVehicleOptions] = useState([]);
-  const [isExporting, setIsExporting] = useState(false);
-
-  const { data: vehiclesRes } = useApi(
-    (signal) => apiClient.get('api/vehicles', { params: { limit: 200 }, signal }),
-    [],
+  const params = useMemo(
+    () => buildTripFilterParams({ ...range, vehicleId, groupBy }),
+    [range, vehicleId, groupBy],
   );
-  useEffect(() => {
-    if (vehiclesRes) setVehicleOptions(extractVehicleOptions(vehiclesRes));
-  }, [vehiclesRes]);
-
+  const paramsKey = JSON.stringify(params);
   const {
-    data: rowsResponse,
-    loading: isLoading,
-    error: rowsError,
-    refetch: refetchRows,
-  } = useApi(() => {
-    const params = buildTripFilterParams({ from, to, vehicleId, groupBy });
-    return ReportsService.getRunningCost(params);
-  }, [JSON.stringify({ from, to, vehicleId, groupBy })]);
+    data: response,
+    loading,
+    error,
+    refetch,
+  } = useApi((signal) => ReportsService.getRunningCost(params, signal), [paramsKey]);
 
-  useEffect(() => {
-    if (rowsResponse) {
-      setError(null);
-      setRows(Array.isArray(rowsResponse.data) ? rowsResponse.data : []);
-      setTotals(rowsResponse.summary || null);
-    }
-  }, [rowsResponse]);
-
-  useEffect(() => {
-    if (rowsError) {
-      setError(rowsError.detail || rowsError.message || 'Could not load running-cost report.');
-      setRows([]);
-    }
-  }, [rowsError]);
-
-  const selectedVehicleLabel = useMemo(() => {
-    if (vehicleId === 'all') return 'All Vehicles';
-    return vehicleOptions.find((v) => v.id === vehicleId)?.label || 'All Vehicles';
-  }, [vehicleId, vehicleOptions]);
-
-  const downloadReport = useCallback(
-    async (extension) => {
-      if (isExporting) return;
-      setIsExporting(true);
-      try {
-        await exportFilteredReportCsv({
-          fetchExport: (filters) =>
-            ReportsService.exportReportCsv('api/reports/running-cost/export', filters),
-          filters: buildTripFilterParams({ from, to, vehicleId, groupBy }),
-          filenamePrefix: 'running_cost_report',
-          extension,
-          errorMessage: 'Could not export running-cost report.',
-        });
-      } catch {
-        // toast handled inside exportFilteredReportCsv
-      } finally {
-        setIsExporting(false);
-      }
-    },
-    [isExporting, from, to, vehicleId, groupBy],
+  // Day groups read newest first; the others keep the API's alphabetical order.
+  const rows = useMemo(() => {
+    if (error) return [];
+    const list = response?.data || [];
+    return groupBy === 'day' ? newestFirst(list, (r) => r.key) : list;
+  }, [response, error, groupBy]);
+  const searching = Boolean(search.trim());
+  const filtered = useMemo(
+    () => rows.filter((r) => matchesSearch(search, [r.label, r.key])),
+    [rows, search],
   );
+  const totals = useMemo(
+    () => (!searching && response?.summary ? response.summary : totalsOf(filtered)),
+    [searching, response, filtered],
+  );
+  const columns = useRunningCostColumns(groupBy);
 
-  const clearFilters = () => {
-    setFrom('');
-    setTo('');
-    setVehicleId('all');
-    setGroupBy('vehicle');
-  };
+  const [page, setPage] = useReportPage(`${paramsKey}|${search.trim()}`);
+  const pageRows = pageSlice(filtered, page);
 
-  const activeFiltersCount = (from ? 1 : 0) + (to ? 1 : 0) + (vehicleId !== 'all' ? 1 : 0);
-  const columns = useRunningCostColumns();
+  const defaults = defaultTripRange();
+  const activeFilters =
+    rangeFilterCount(range, defaults) +
+    (search ? 1 : 0) +
+    (vehicleId !== 'all' ? 1 : 0) +
+    (groupBy !== DEFAULT_GROUP ? 1 : 0);
+
+  const kpis = [
+    {
+      label: 'Total cost',
+      value: formatINR(totals.totalCostInr),
+      icon: IndianRupee,
+      hint: 'Business + approved non-business + deviation',
+    },
+    {
+      label: 'Business',
+      value: formatINR(totals.businessCostInr),
+      icon: Briefcase,
+      tone: 'teal',
+      hint: 'Approach, laden and return running of the trips',
+    },
+    {
+      label: 'Non-business',
+      value: formatINR(totals.nonBusinessCostInr),
+      icon: CheckCircle2,
+      tone: 'green',
+      hint: 'Approved non-business movement',
+    },
+    {
+      label: 'Deviation',
+      value: formatINR(totals.deviationCostInr),
+      icon: AlertTriangle,
+      tone: 'red',
+      hint: 'Unapproved deviations',
+    },
+  ];
 
   return (
-    <PageShell
-      className="p-6"
+    <ReportFrame
       title="Running Cost"
-      subtitle="Cost of running the fleet — business, non-business, deviation and overhead, by vehicle / hub / driver / day"
-      count={rows.length}
-      actions={
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => downloadReport('csv')}
-            disabled={isExporting || rows.length === 0}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#ECECEE] bg-[#F8F8FB] transition-colors hover:bg-[#ECECEE] disabled:opacity-40"
-            title="Export rows to CSV"
-          >
-            <CsvIcon width={20} height={20} />
-          </button>
-          <button
-            type="button"
-            onClick={() => downloadReport('xlsx')}
-            disabled={isExporting || rows.length === 0}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#ECECEE] bg-[#F8F8FB] transition-colors hover:bg-[#ECECEE] disabled:opacity-40"
-            title="Export rows to Excel"
-          >
-            <ExcelIcon width={18} height={18} />
-          </button>
-        </div>
-      }
+      subtitle="Cost of running the fleet — business, non-business and deviation, by vehicle / hub / driver / day"
       filters={
-        <FilterBar
-          from={from}
-          to={to}
-          onRangeChange={(patch) => {
-            if ('from' in patch) setFrom(patch.from);
-            if ('to' in patch) setTo(patch.to);
-          }}
-          activeCount={activeFiltersCount}
-          onClear={clearFilters}
-          right={
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="date-input-group">
-                <label htmlFor="rc-group-filter">Group by</label>
-                <Select value={groupBy} onValueChange={setGroupBy}>
-                  <SelectTrigger id="rc-group-filter" className="h-9 w-[160px] text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent align="start">
-                    {GROUP_OPTIONS.map((g) => (
-                      <SelectItem key={g.value} value={g.value}>
-                        {g.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="date-input-group">
-                <label htmlFor="rc-vehicle-filter">Vehicle</label>
-                <Select value={vehicleId} onValueChange={setVehicleId}>
-                  <SelectTrigger id="rc-vehicle-filter" className="h-9 w-[180px] text-sm">
-                    <SelectValue>{selectedVehicleLabel}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent align="start">
-                    <SelectItem value="all">All Vehicles</SelectItem>
-                    {vehicleOptions.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+        <>
+          <ReportDateRange from={range.from} to={range.to} onChange={setRange} />
+          <ReportSearch value={search} onChange={setSearch} placeholder="Search group" />
+          <VehiclePicker value={vehicleId} onChange={setVehicleId} />
+          <ReportSelect
+            label="Group by"
+            value={groupBy}
+            onChange={setGroupBy}
+            options={GROUP_OPTIONS}
+          />
+          <ReportClear
+            active={activeFilters > 0}
+            onClear={() => {
+              setRange(defaultTripRange());
+              setSearch('');
+              setVehicleId('all');
+              setGroupBy(DEFAULT_GROUP);
+            }}
+          />
+        </>
+      }
+      actions={
+        <ExportButton
+          buttonClass="rpt-btn"
+          onExport={(extension) =>
+            exportTripReport({
+              extension,
+              clientRows: searching ? filtered : null,
+              columns: EXPORT_COLUMNS,
+              endpoint: 'api/reports/running-cost/export',
+              params,
+              filenamePrefix: 'running_cost_report',
+              errorMessage: 'Could not export running-cost report.',
+            })
           }
+          disabled={!filtered.length}
         />
       }
+      kpis={response && !error ? kpis : null}
       footer={
-        totals ? (
-          <span className="text-dim text-xs">
-            Total {formatCurrency(totals.totalCostInr)} · Business{' '}
-            {formatCurrency(totals.businessCostInr)} · Non-business{' '}
-            {formatCurrency(totals.nonBusinessCostInr)} · Deviation{' '}
-            {formatCurrency(totals.deviationCostInr)} · Overhead{' '}
-            {formatCurrency(totals.overheadCostInr)}
-          </span>
-        ) : null
+        <ReportFooter
+          summary={tripReportSummary({
+            page,
+            total: filtered.length,
+            noun: GROUP_NOUN[groupBy] || 'groups',
+            truncated: Boolean(response?.truncated),
+            capNoun: 'trips',
+          })}
+          page={page}
+          totalPages={pageCount(filtered.length)}
+          onPage={setPage}
+        />
       }
     >
       <DataTable
         columns={columns}
-        rows={rows}
+        rows={pageRows}
         rowKey={(r) => r.key}
-        loading={isLoading}
+        loading={loading}
         error={error}
-        onRetry={refetchRows}
-        showing={rows.length}
-        total={rows.length}
+        onRetry={refetch}
+        showing={pageRows.length}
+        total={filtered.length}
+        activeFilters={activeFilters}
         emptyTitle="No running-cost rows"
-        emptyHint="Try widening the date range or changing the grouping."
+        emptyHint="Try widening the date range, clearing the search or changing the grouping."
       />
-    </PageShell>
+    </ReportFrame>
   );
 };
 

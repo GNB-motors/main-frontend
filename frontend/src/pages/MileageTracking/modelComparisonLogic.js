@@ -70,3 +70,23 @@ export function defaultVehicleSelection(vehicleChartData) {
 export function countAtRisk(vehicles, modelAvg) {
   return (vehicles ?? []).filter((v) => getVariancePercent(v.avgMileage, modelAvg) < -5).length;
 }
+
+export const MODEL_SUMMARY_EXPORT_COLUMNS = [
+  { key: 'model', label: 'Model' },
+  { key: 'vehicleCount', label: 'Vehicles', type: 'number' },
+  { key: 'recordCount', label: 'Records', type: 'number' },
+  { key: 'avgMileage', label: 'Avg Mileage (km/L)', type: 'number' },
+  { key: 'minMileage', label: 'Min', type: 'number' },
+  { key: 'maxMileage', label: 'Max', type: 'number' },
+  { key: 'totalDistanceKm', label: 'Total Distance (km)', type: 'number' },
+  { key: 'totalFuelL', label: 'Total Fuel (L)', type: 'number' },
+  { key: 'atRisk', label: 'At Risk Vehicles', type: 'number' },
+];
+
+// Model-wise summary rows as exported, with each model's at-risk count.
+export function modelSummaryExportRows(models) {
+  return (models ?? []).map((row) => ({
+    ...row,
+    atRisk: countAtRisk(row.vehicles, row.avgMileage),
+  }));
+}

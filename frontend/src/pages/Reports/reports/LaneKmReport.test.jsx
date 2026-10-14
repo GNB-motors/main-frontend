@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import LaneKmReport from './LaneKmReport.jsx';
 
 vi.mock('../../../utils/axiosConfig', () => ({
@@ -55,14 +55,60 @@ vi.mock('../../../utils/axiosConfig', () => ({
 }));
 
 describe('LaneKmReport', () => {
-  it('shows each lane against SAP and filters by verdict', async () => {
+  it('shows each lane against SAP with the totals as KPI cards', async () => {
     render(<LaneKmReport />);
     expect(await screen.findByText('OCL → TARAKESHWAR')).toBeTruthy();
-    expect(screen.getByText('Runs over SAP')).toBeTruthy();
+    const table = screen.getByRole('table');
+    expect(within(table).getByText('Runs over SAP')).toBeTruthy();
     expect(screen.getByText('FARAKKA → PIRPAINTI')).toBeTruthy();
+    expect(screen.getByText('Extra km over SAP')).toBeTruthy();
     expect(screen.getByText('3,815 km')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Over SAP' }));
+    expect(screen.getByText('1–2 of 2 lanes')).toBeTruthy();
+    expect(screen.getByText('Page 1 of 1')).toBeTruthy();
+  });
+
+  it('filters by verdict, including verdicts with no lanes', async () => {
+    render(<LaneKmReport />);
+    await screen.findByText('OCL → TARAKESHWAR');
+    fireEvent.click(screen.getByRole('button', { name: 'Verdict: All lanes' }));
+    const options = within(screen.getByRole('listbox', { name: 'Verdict' }))
+      .getAllByRole('option')
+      .map((o) => o.textContent);
+    expect(options).toEqual([
+      'All lanes',
+      'Runs over SAP',
+      'Not in SAP',
+      'Between SAP values',
+      'Runs under SAP',
+      'Matches SAP',
+      'Too few trips',
+    ]);
+
+    const pickVerdict = (label) => {
+      fireEvent.mouseDown(screen.getByRole('option', { name: label }));
+    };
+
+    pickVerdict('Runs over SAP');
     expect(screen.queryByText('FARAKKA → PIRPAINTI')).toBeNull();
     expect(screen.getByText('OCL → TARAKESHWAR')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Verdict: Runs over SAP' }));
+    pickVerdict('Runs under SAP');
+    expect(screen.queryByText('OCL → TARAKESHWAR')).toBeNull();
+    expect(screen.getByText('No lane matches these filters')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    expect(screen.getByText('OCL → TARAKESHWAR')).toBeTruthy();
+    expect(screen.getByText('FARAKKA → PIRPAINTI')).toBeTruthy();
+  });
+
+  it('searches plant or town, ignoring case', async () => {
+    render(<LaneKmReport />);
+    await screen.findByText('OCL → TARAKESHWAR');
+    fireEvent.change(screen.getByLabelText('Search plant or town'), {
+      target: { value: 'farakka' },
+    });
+    expect(screen.queryByText('OCL → TARAKESHWAR')).toBeNull();
+    expect(screen.getByText('FARAKKA → PIRPAINTI')).toBeTruthy();
   });
 });

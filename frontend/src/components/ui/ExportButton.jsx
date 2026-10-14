@@ -23,6 +23,9 @@ import NewButton from './NewButton/NewButton';
  *     meta={{ filters: activeFilterMeta }}
  *   />
  *
+ * `onExport(format)` replaces the built-in export for pages whose file comes
+ * from the server; it owns its own success / failure toasts.
+ *
  * `compact` renders the trigger as a small pill matching DataTable's own
  * toolbar (`.dt-tool`) for pages that mount this inside the table instead of
  * a separate filter row.
@@ -32,6 +35,7 @@ export default function ExportButton({
   columns = [],
   filename = 'export',
   fetchAll = null,
+  onExport = null,
   meta = {},
   disabled = false,
   newButtonStyle = false,
@@ -63,6 +67,18 @@ export default function ExportButton({
     setOpen(false);
     if (pending) return;
     setPending(true);
+    if (onExport) {
+      // The caller builds the file (e.g. a server-side export) and reports
+      // the outcome itself.
+      try {
+        await onExport(format);
+      } catch {
+        // the caller's own toast already reported it
+      } finally {
+        setPending(false);
+      }
+      return;
+    }
     try {
       const allRows = fetchAll ? await fetchAll() : rows;
       const safeRows = Array.isArray(allRows) ? allRows : [];

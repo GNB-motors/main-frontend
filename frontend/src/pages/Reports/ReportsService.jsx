@@ -49,26 +49,20 @@ export const ReportsService = {
   },
 
   /**
-   * Flat mileage-interval report across all vehicles.
+   * Flat mileage-interval report across all vehicles (server-paginated).
    * @param {object} params - { page, limit, startDate, endDate, vehicleId, driverId, search, status }
-   * @returns {Promise<{ data: Array, meta: Object }>}
+   * @returns {Promise<{ data: Array, meta: Object, summary: Object|null }>}
    */
-  getMileageIntervalReports: async (params = {}) => {
+  getMileageIntervalReports: async (params = {}, signal) => {
     try {
-      const response = await apiClient.get(`api/reports/mileage-intervals`, { params });
-
-      if (response.data && response.data.status === 'success') {
-        return {
-          data: Array.isArray(response.data.data) ? response.data.data : [],
-          meta: response.data.meta || { total: 0, page: 1, limit: 20, totalPages: 0 },
-        };
-      }
-
+      const response = await apiClient.get(`api/reports/mileage-intervals`, { params, signal });
       return {
-        data: response.data?.data || [],
+        data: Array.isArray(response.data?.data) ? response.data.data : [],
         meta: response.data?.meta || { total: 0, page: 1, limit: 20, totalPages: 0 },
+        summary: response.data?.summary || null,
       };
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       console.error(
         'API Error fetching mileage interval reports:',
         error.response?.data || error.message,
@@ -88,9 +82,9 @@ export const ReportsService = {
    * as `summary` for the footer.
    * @returns {Promise<{ data: Array, total: number, truncated: boolean, summary: Object|null }>}
    */
-  _getTripReport: async (endpoint, params = {}, label = 'report') => {
+  _getTripReport: async (endpoint, params = {}, label = 'report', signal) => {
     try {
-      const response = await apiClient.get(endpoint, { params });
+      const response = await apiClient.get(endpoint, { params, signal });
       const body = response.data?.data ?? response.data ?? {};
       const rows = Array.isArray(body.rows) ? body.rows : Array.isArray(body) ? body : [];
       return {
@@ -100,6 +94,7 @@ export const ReportsService = {
         summary: body.totals || null,
       };
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       console.error(`API Error fetching ${label}:`, error.response?.data || error.message);
       throw (
         error.response?.data || {
@@ -109,12 +104,22 @@ export const ReportsService = {
     }
   },
 
-  getFuelCycles: (params = {}) =>
-    ReportsService._getTripReport('api/reports/fuel-cycles', params, 'fuel cycles'),
-  getNonBusiness: (params = {}) =>
-    ReportsService._getTripReport('api/reports/non-business', params, 'non-business report'),
-  getRunningCost: (params = {}) =>
-    ReportsService._getTripReport('api/reports/running-cost', params, 'running-cost report'),
+  getFuelCycles: (params = {}, signal) =>
+    ReportsService._getTripReport('api/reports/fuel-cycles', params, 'fuel cycles', signal),
+  getNonBusiness: (params = {}, signal) =>
+    ReportsService._getTripReport(
+      'api/reports/non-business',
+      params,
+      'non-business report',
+      signal,
+    ),
+  getRunningCost: (params = {}, signal) =>
+    ReportsService._getTripReport(
+      'api/reports/running-cost',
+      params,
+      'running-cost report',
+      signal,
+    ),
 
   /**
    * Generic filtered CSV export — call any report `/export` endpoint with the
@@ -168,33 +173,6 @@ export const ReportsService = {
       throw (
         error.response?.data || {
           detail: 'Network error or server unavailable while fetching driver reports.',
-        }
-      );
-    }
-  },
-
-  /**
-   * Fetches employees list for dropdowns.
-   * @param {object} params - Optional query parameters { limit }.
-   * @returns {Promise<Array>} - Array of employee data.
-   */
-  getEmployees: async (params = { limit: 100 }) => {
-    try {
-      const response = await apiClient.get(`api/employees`, { params });
-
-      if (response.data && Array.isArray(response.data.data)) {
-        return response.data.data;
-      }
-      if (Array.isArray(response.data)) {
-        return response.data;
-      }
-
-      return response.data?.data || [];
-    } catch (error) {
-      console.error('API Error fetching employees:', error.response?.data || error.message);
-      throw (
-        error.response?.data || {
-          detail: 'Network error or server unavailable while fetching employees.',
         }
       );
     }
