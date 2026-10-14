@@ -16,7 +16,11 @@ function setup() {
   const holder = {};
   render(
     <ConfirmDialogHost>
-      <Probe onReady={(confirm) => { holder.confirm = confirm; }} />
+      <Probe
+        onReady={(confirm) => {
+          holder.confirm = confirm;
+        }}
+      />
     </ConfirmDialogHost>,
   );
   return holder;

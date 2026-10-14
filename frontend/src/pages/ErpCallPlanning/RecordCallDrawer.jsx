@@ -69,24 +69,19 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
     fetchHistory();
   }, [fetchHistory]);
 
-  const selected = useMemo(
-    () => CALL_OUTCOMES.find((o) => o.value === outcome) || null,
-    [outcome],
-  );
+  const selected = useMemo(() => CALL_OUTCOMES.find((o) => o.value === outcome) || null, [outcome]);
 
   const previous = history.find((h) => h._id !== task?._id) || null;
 
   // A sure order is only useful if it says what was sold and how much —
   // operations raises the delivery order off exactly these three values.
-  const orderComplete = Boolean(
-    order.material.trim() && Number(order.qty) > 0 && order.unit,
-  );
+  const orderComplete = Boolean(order.material.trim() && Number(order.qty) > 0 && order.unit);
 
   const valid = Boolean(
-    selected
-      && (!selected.needsRemark || remarks.trim().length >= 3)
-      && (!selected.needsNextDate || nextDate)
-      && (outcome !== 'SURE_ORDER' || orderComplete),
+    selected &&
+    (!selected.needsRemark || remarks.trim().length >= 3) &&
+    (!selected.needsNextDate || nextDate) &&
+    (outcome !== 'SURE_ORDER' || orderComplete),
   );
 
   const handleSubmit = async (e) => {
@@ -197,10 +192,10 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
               <>
                 <strong>Call recorded.</strong>
                 <div style={{ marginTop: 4 }}>
-                  {result.doDraft
-                    && `Order confirmed for ${result.doDraft.partyName}. It is now in the operations team's delivery-order queue.`}
-                  {result.childTask
-                    && `Next call scheduled for ${shortDate(result.childTask.scheduledDate)} — the task is already in ${kamName(task.kamId)}'s list.`}
+                  {result.doDraft &&
+                    `Order confirmed for ${result.doDraft.partyName}. It is now in the operations team's delivery-order queue.`}
+                  {result.childTask &&
+                    `Next call scheduled for ${shortDate(result.childTask.scheduledDate)} — the task is already in ${kamName(task.kamId)}'s list.`}
                   {!result.doDraft && !result.childTask && 'Task closed. No follow-up was needed.'}
                 </div>
               </>
@@ -274,8 +269,8 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
                 </div>
               </div>
               <span className="erp-field-hint">
-                Operations raises the delivery order from these, so they cannot be filled in
-                later by someone who was not on the call.
+                Operations raises the delivery order from these, so they cannot be filled in later
+                by someone who was not on the call.
               </span>
             </div>
           )}
@@ -295,8 +290,8 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
                 required
               />
               <span className="erp-field-hint">
-                <CalendarClock size={12} style={{ verticalAlign: '-2px', marginRight: 4 }} />
-                A task for this account appears on that date automatically.
+                <CalendarClock size={12} style={{ verticalAlign: '-2px', marginRight: 4 }} />A task
+                for this account appears on that date automatically.
               </span>
             </div>
           )}
@@ -312,11 +307,7 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
                 aria-label={selected.needsRemark ? 'Reason' : 'Remarks'}
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
-                placeholder={
-                  selected.needsRemark
-                    ? 'What did the customer say?'
-                    : 'Optional notes'
-                }
+                placeholder={selected.needsRemark ? 'What did the customer say?' : 'Optional notes'}
                 required={selected.needsRemark}
               />
               {selected.needsRemark && remarks.trim().length > 0 && remarks.trim().length < 3 && (
@@ -329,8 +320,8 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
             <div className="erp-callout info" style={{ marginTop: 18, marginBottom: 0 }}>
               <Info size={16} />
               <span>
-                The order goes to the operations team&apos;s delivery-order queue with the
-                material, quantity and this account&apos;s credit terms attached.
+                The order goes to the operations team&apos;s delivery-order queue with the material,
+                quantity and this account&apos;s credit terms attached.
               </span>
             </div>
           )}
@@ -347,9 +338,7 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
                 </span>
               )}
             </Row>
-            <Row label="Remarks">
-              {task.remarks || <span className="erp-cell-muted">—</span>}
-            </Row>
+            <Row label="Remarks">{task.remarks || <span className="erp-cell-muted">—</span>}</Row>
             {task.nextFollowUpDate && (
               <Row label="Next call">{shortDate(task.nextFollowUpDate)}</Row>
             )}

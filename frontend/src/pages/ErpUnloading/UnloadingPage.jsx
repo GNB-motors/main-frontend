@@ -156,11 +156,18 @@ const UnloadingPage = ({ embedded = false, initialTab = null }) => {
   return (
     <PageShell
       embedded={embedded}
-      title={<><Scale size={22} /> Unloading Entry</>}
+      title={
+        <>
+          <Scale size={22} /> Unloading Entry
+        </>
+      }
       subtitle="Shortage, detention and freight settlement after POD."
-      breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Payables', to: '/erp/payables' }, { label: 'Purchase Bills' }]}
+      breadcrumbs={[
+        { label: 'ERP', to: '/erp' },
+        { label: 'Payables', to: '/erp/payables' },
+        { label: 'Purchase Bills' },
+      ]}
     >
-
       <div className="erp-tabs">
         {[
           ['pending', 'Pending'],
@@ -206,15 +213,18 @@ const UnloadingPage = ({ embedded = false, initialTab = null }) => {
                     <td>{row.tripNumber}</td>
                     <td>{row.partyId?.name || '—'}</td>
                     <td>
-                      {row.vehicleNumber}{' '}
-                      <span className="erp-muted">({row.vehicleType})</span>
+                      {row.vehicleNumber} <span className="erp-muted">({row.vehicleType})</span>
                     </td>
                     <td>{row.cnNumber || '—'}</td>
                     <td>
                       {row.loadedQty} {row.qtyUnit}
                     </td>
                     <td>
-                      <button type="button" className="erp-btn erp-btn-primary" onClick={() => openEntry(row)}>
+                      <button
+                        type="button"
+                        className="erp-btn erp-btn-primary"
+                        onClick={() => openEntry(row)}
+                      >
                         Enter
                       </button>
                     </td>
@@ -256,7 +266,9 @@ const UnloadingPage = ({ embedded = false, initialTab = null }) => {
                     <td>{money(row.shortageAmount)}</td>
                     <td>{money(row.detentionAmount)}</td>
                     <td>{money(row.netReceivable)}</td>
-                    <td><StatusBadge status={row.status} /></td>
+                    <td>
+                      <StatusBadge status={row.status} />
+                    </td>
                   </tr>
                 ))
               )}
@@ -293,7 +305,9 @@ const UnloadingPage = ({ embedded = false, initialTab = null }) => {
                     <td>{money(row.shortageAmount)}</td>
                     <td>{money(row.tdsAmount)}</td>
                     <td>{money(row.netAmount)}</td>
-                    <td><StatusBadge status={row.status} /></td>
+                    <td>
+                      <StatusBadge status={row.status} />
+                    </td>
                   </tr>
                 ))
               )}
@@ -359,8 +373,13 @@ const UnloadingPage = ({ embedded = false, initialTab = null }) => {
 
               {preview && (
                 <div className="erp-callout">
-                  <div>Shortage: {preview.shortage?.shortageQty} → {money(preview.shortage?.amount)}</div>
-                  <div>Detention: {preview.detention?.chargeableDays}d → {money(preview.detention?.amount)}</div>
+                  <div>
+                    Shortage: {preview.shortage?.shortageQty} → {money(preview.shortage?.amount)}
+                  </div>
+                  <div>
+                    Detention: {preview.detention?.chargeableDays}d →{' '}
+                    {money(preview.detention?.amount)}
+                  </div>
                   <div>Freight: {money(preview.freightAmount)}</div>
                   <div>
                     <strong>Net receivable: {money(preview.netReceivable)}</strong>

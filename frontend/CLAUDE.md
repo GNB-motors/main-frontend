@@ -14,7 +14,7 @@ Machine-readable review criteria for every PR. 4 sections, 26 rules.
 
 ## 2. Data & Boundaries (6 rules)
 
-8. All data fetching goes through `useApi` / `useMutation` — no raw `apiClient` calls in components. API calls live in a service next to its feature (`pages/<Feature>/<Feature>Service.js`; shared ones in `src/services/`), as `.js`, not `.jsx`. ESLint's `no-restricted-imports` enforces this; its legacy list only shrinks.
+8. All data fetching goes through `useApi` / `useMutation` — no raw `apiClient` calls in components. API calls live in a service next to its feature (`pages/<Feature>/<Feature>Service.js`; shared ones in `src/services/`), as `.js`, not `.jsx`. ESLint's `no-restricted-imports` enforces this, with no per-file exemptions left; don't add one.
 9. Every fetch passes an `AbortSignal`; navigation away aborts the request.
 10. Every API response is parsed with its zod schema (`schemas/`) before use.
 11. `localStorage` is touched only by `utils/session.js` — nothing else calls it directly.

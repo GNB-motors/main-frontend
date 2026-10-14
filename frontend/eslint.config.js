@@ -124,40 +124,6 @@ export default defineConfig([
     rules: { 'no-restricted-imports': 'off' },
   },
   {
-    // Components that still call the API directly (FRONTEND_AUDIT ARCH-8).
-    // Remove a file from this list when its calls move into a service; never add one.
-    files: [
-      'src/components/FuelLogForm/FuelLogForm.jsx',
-      'src/components/LocationAutocomplete/LocationAutocomplete.jsx',
-      'src/contexts/FeatureFlagsContext.jsx',
-      'src/pages/Approvals/ApprovalsPage.jsx',
-      'src/pages/AutoTrips/MovementApprovalsPage.jsx',
-      'src/pages/ErpAdvances/AdvanceMastersPage.jsx',
-      'src/pages/ErpCallPlanning/CallSchedulesPage.jsx',
-      'src/pages/ErpDeliveryOrders/DeliveryOrdersPage.jsx',
-      'src/pages/ErpMasters/PartiesPage.jsx',
-      'src/pages/ErpMasters/RatesPage.jsx',
-      'src/pages/FieldAgentFuel/FieldAgentFuelUploadPage.jsx',
-      'src/pages/Mileage/components/PumpLedgerView.jsx',
-      'src/pages/MileageTracking/AdBlueLogPage.jsx',
-      'src/pages/MileageTracking/AdBlueTrackingPage.jsx',
-      'src/pages/MileageTracking/MileageIntervalDetailPage.jsx',
-      'src/pages/MileageTracking/MileageTrackingVehicleDetail.jsx',
-      'src/pages/MileageTracking/ModelComparisonPage.jsx',
-      'src/pages/Onboarding/components/LaunchAnimation.jsx',
-      'src/pages/Onboarding/OnboardingPage.jsx',
-      'src/pages/Reports/reports/AdBlueComparisonReport.jsx',
-      'src/pages/Superadmin/components/lemu/LemuFlagsTab.jsx',
-      'src/pages/Superadmin/components/OrgFeatureFlagsDetailPage.jsx',
-      'src/pages/Superadmin/components/OrgFeatureFlagsPage.jsx',
-      'src/pages/Superadmin/components/ReceiptApprovalDetailPage.jsx',
-      'src/pages/Superadmin/components/ReceiptApprovalDrawer.jsx',
-      'src/pages/Superadmin/components/ReceiptApprovalPage.jsx',
-      'src/pages/Superadmin/components/SuperAdminLearningPage.jsx',
-    ],
-    rules: { 'no-restricted-imports': 'off' },
-  },
-  {
     // Test files: vitest globals
     files: ['**/*.test.{js,jsx}', '**/test/setup.{js,jsx}'],
     languageOptions: {
