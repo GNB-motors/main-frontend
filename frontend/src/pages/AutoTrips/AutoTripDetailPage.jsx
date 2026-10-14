@@ -10,21 +10,18 @@ import { getUserRole } from '../../utils/session.js';
 import { dropLabel } from '../PlaceHub/intelligence/facilityText';
 import AutoTripReplay from './AutoTripReplay';
 import AutoTripTimeline from './AutoTripTimeline';
+import { FLAG_LABEL, answerPlaceHref, inWindow } from './autoTripPlaces';
+import { LONG_PLANT_MIN, timelinePlan } from './timelineModel';
 import {
-  FLAG_LABEL,
-  LONG_PLANT_MIN,
   STATUS_CLASS,
   STATUS_LABEL,
-  answerPlaceHref,
   fmtDayTime,
   fmtDuration,
   fmtKm,
-  inWindow,
   notReachedYet,
   stopsOnWayText,
-  timelinePlan,
   tripDateRange,
-} from './autoTripModel';
+} from './autoTripFormat';
 import './AutoTrips.css';
 
 /** Confirm, dismiss and drop fixes are owner/manager actions on the server. */

@@ -1,5 +1,5 @@
 import { formatInIST, istWallClockToISO } from '../../utils/dateUtils';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   X,
   ChevronLeft,
@@ -12,18 +12,13 @@ import {
   Gauge,
   Calendar,
   User,
-  ZoomIn,
-  ZoomOut,
-  RotateCw,
-  ExternalLink,
-  Loader2,
-  Check,
-  Maximize2,
   Sparkles,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { ReportsService } from '../Reports/ReportsService.js';
 import { formatDateTimeIST, fmtLitres, fmtKm, fmtDuration } from './formatIST';
+import OdometerPhotoViewer from './OdometerPhotoViewer';
+import DrawerReviewForm from './DrawerReviewForm';
 
 const formatForInput = (iso) => formatInIST(iso, 'YYYY-MM-DDTHH:mm') ?? '';
 
@@ -341,150 +336,28 @@ const FuelComparisonDrawer = ({
 
           {/* Odometer Slip Photo Viewer */}
           {hasPhoto && (
-            <div>
-              <div className="fc-section-title">
-                <Gauge size={14} /> Odometer Slip Photo Proof
-              </div>
-              <div className="fc-photo-box">
-                <div className="fc-photo-tools">
-                  <span className="text-xs font-semibold text-slate-500">Document Image</span>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      className="fc-drawer__icon-btn"
-                      onClick={() => setZoom((z) => Math.max(0.6, z - 0.2))}
-                      title="Zoom Out"
-                      aria-label="Zoom out photo"
-                    >
-                      <ZoomOut size={14} />
-                    </button>
-                    <span className="text-xs fc-mono px-1 font-semibold text-slate-600">
-                      {Math.round(zoom * 100)}%
-                    </span>
-                    <button
-                      type="button"
-                      className="fc-drawer__icon-btn"
-                      onClick={() => setZoom((z) => Math.min(2.5, z + 0.2))}
-                      title="Zoom In"
-                      aria-label="Zoom in photo"
-                    >
-                      <ZoomIn size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      className="fc-drawer__icon-btn"
-                      onClick={() => setRotation((r) => (r + 90) % 360)}
-                      title="Rotate Clockwise"
-                      aria-label="Rotate photo"
-                    >
-                      <RotateCw size={14} />
-                    </button>
-                    <a
-                      href={task.odometerDoc.publicUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="fc-drawer__icon-btn"
-                      title="Open full image in new tab"
-                      aria-label="Open image in new tab"
-                    >
-                      <ExternalLink size={14} />
-                    </a>
-                  </div>
-                </div>
-
-                <div className="fc-photo-canvas">
-                  <img
-                    src={task.odometerDoc.publicUrl}
-                    alt="Odometer verification slip"
-                    style={{
-                      transform: `scale(${zoom}) rotate(${rotation}deg)`,
-                    }}
-                  />
-                </div>
-
-                {task.odometerDoc?.ocrData && (
-                  <div className="fc-photo-meta">
-                    <span>
-                      OCR Status:{' '}
-                      <strong>{task.odometerDoc.ocrData.processingStatus || 'COMPLETED'}</strong>
-                    </span>
-                    {task.odometerDoc.ocrData.confidence != null && (
-                      <span className="fc-mono">
-                        Confidence: <strong>{task.odometerDoc.ocrData.confidence}%</strong>
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+            <OdometerPhotoViewer
+              task={task}
+              zoom={zoom}
+              setZoom={setZoom}
+              rotation={rotation}
+              setRotation={setRotation}
+            />
           )}
 
           {/* Inline Manager Audit / Correction Form for PENDING_REVIEW */}
           {isReview && (
-            <div className="fc-review-card">
-              <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold text-sm">
-                <AlertTriangle size={16} /> Manager Reconciliation
-              </div>
-              <p className="text-xs text-amber-700 dark:text-amber-400">
-                Correct interval boundaries or odometer reading to recalculate consumption:
-              </p>
-              <form onSubmit={handleApproveInline} className="flex flex-col gap-3">
-                <div className="fc-form-group">
-                  <label htmlFor="drawer-from-date">From Timestamp (IST)</label>
-                  <input
-                    id="drawer-from-date"
-                    type="datetime-local"
-                    value={fromDate}
-                    onChange={(e) => setFromDate(e.target.value)}
-                    className="fc-input"
-                    aria-label="From Timestamp (IST)"
-                  />
-                </div>
-                <div className="fc-form-group">
-                  <label htmlFor="drawer-to-date">To Timestamp (IST)</label>
-                  <input
-                    id="drawer-to-date"
-                    type="datetime-local"
-                    value={toDate}
-                    onChange={(e) => setToDate(e.target.value)}
-                    className="fc-input"
-                    aria-label="To Timestamp (IST)"
-                  />
-                </div>
-                <div className="fc-form-group">
-                  <label htmlFor="drawer-odo">Corrected Odometer Reading (km)</label>
-                  <input
-                    id="drawer-odo"
-                    type="number"
-                    step="0.1"
-                    placeholder="Enter verified odometer reading..."
-                    value={odometerReading}
-                    onChange={(e) => setOdometerReading(e.target.value)}
-                    className="fc-input"
-                    aria-label="Corrected Odometer Reading (km)"
-                  />
-                  <span className="text-[11px] text-slate-500">
-                    CAN-bus telematics reported max odometer: {task.maxOdometer ?? '—'} km
-                  </span>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="fc-btn fc-btn--primary justify-center mt-1"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 size={14} className="fc-spin" /> Approving & Recalculating…
-                    </>
-                  ) : (
-                    <>
-                      <Check size={14} /> Approve & Recalculate
-                    </>
-                  )}
-                </button>
-              </form>
-            </div>
+            <DrawerReviewForm
+              task={task}
+              handleApproveInline={handleApproveInline}
+              fromDate={fromDate}
+              setFromDate={setFromDate}
+              toDate={toDate}
+              setToDate={setToDate}
+              odometerReading={odometerReading}
+              setOdometerReading={setOdometerReading}
+              saving={saving}
+            />
           )}
         </div>
 

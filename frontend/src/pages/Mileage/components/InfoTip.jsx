@@ -13,7 +13,7 @@ import ExplanationLines from './ExplanationLines';
 /**
  * ⓘ next to a verdict: rows show the plain-word result; how it was worked out
  * waits here. `explanation` is { title, text, lines: [[label, value]] } from
- * mileageRows. Renders nothing when there is nothing to explain.
+ * fillExplanations. Renders nothing when there is nothing to explain.
  */
 export default function InfoTip({ explanation, label = 'How is this worked out?' }) {
   if (!explanation) return null;

@@ -5,7 +5,7 @@ import StatusChip from '../../../components/ui/StatusChip';
 import { useApi } from '../../../hooks/useApi';
 import { formatKm, formatLitres, formatNum } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
-import { mileageBand, trucksFromModels } from '../mileageRows';
+import { mileageBand, trucksFromModels } from '../cycleRows';
 import InfoTip from './InfoTip';
 
 const compact = (s) =>

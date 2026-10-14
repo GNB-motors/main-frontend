@@ -5,20 +5,20 @@ import {
   canMarkPlace,
   stopLabel,
   answerPlaceHref,
+  inWindow,
+  tripRoadLayers,
+  tripRoadAt,
+} from './autoTripPlaces';
+import {
   fmtDuration,
   fmtKm,
   fmtDateRange,
   tripDateRange,
   stopsOnWayText,
-  stopKind,
-  timelineRows,
-  timelinePlan,
   fmtDay,
-  inWindow,
   notReachedYet,
-  tripRoadLayers,
-  tripRoadAt,
-} from './autoTripModel';
+} from './autoTripFormat';
+import { stopKind, timelineRows, timelinePlan } from './timelineModel';
 import { encodePolyline6 } from '../../lib/polyline6';
 
 const pickup = { lat: 22.5, lng: 88.2, name: 'AMBUJA' };

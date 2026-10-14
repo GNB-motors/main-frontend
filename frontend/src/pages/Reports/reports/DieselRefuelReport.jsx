@@ -6,7 +6,7 @@ import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
 import { getUserRole } from '../../../utils/session.js';
 import LiveRefuelTab from '../../Mileage/components/LiveRefuelTab';
 import RefuelDetailDrawer from '../../Mileage/components/RefuelDetailDrawer';
-import { DEFAULT_PRESET, presetRange } from '../../Mileage/mileageRows';
+import { DEFAULT_PRESET, presetRange } from '../../Mileage/mileageDates';
 import '../../Mileage/MileagePage.css';
 
 /**

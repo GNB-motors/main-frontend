@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { PlusCircle, Search, AlertTriangle, Eye, FileText, Pencil } from 'lucide-react';
+import { PlusCircle, Search, Eye, FileText, Pencil } from 'lucide-react';
 import { toast } from 'react-toastify';
 import '../PageStyles.css';
 import '../Trip/RefuelLogsPage.css';
@@ -349,175 +348,19 @@ const AdBlueTrackingPage = () => {
         </div>
       )}
 
-      {editingLog &&
-        createPortal(
-          <div
-            className="refuel-modal-overlay"
-            role="presentation"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setEditingLog(null);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') setEditingLog(null);
-            }}
-          >
-            <div className="refuel-modal refuel-edit-modal" style={{ maxWidth: 480 }}>
-              <div className="refuel-modal-header">
-                <h2>Edit AdBlue Entry</h2>
-                <button
-                  type="button"
-                  className="refuel-modal-close"
-                  onClick={() => setEditingLog(null)}
-                >
-                  <X size={20} />
-                </button>
-              </div>
-              <form onSubmit={handleEditSubmit}>
-                <div className="refuel-modal-body">
-                  <div className="refuel-form-row">
-                    <div className="form-group">
-                      <label htmlFor="adblue-edit-litres">Litres *</label>
-                      <input
-                        id="adblue-edit-litres"
-                        aria-label="Litres"
-                        type="number"
-                        step="any"
-                        value={editForm.litres}
-                        onChange={(e) => setEditForm({ ...editForm, litres: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="adblue-edit-amount">Amount *</label>
-                      <input
-                        id="adblue-edit-amount"
-                        aria-label="Amount"
-                        type="number"
-                        step="any"
-                        value={editForm.amount}
-                        onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="adblue-edit-place">Place</label>
-                    <input
-                      id="adblue-edit-place"
-                      aria-label="Place"
-                      type="text"
-                      value={editForm.place}
-                      onChange={(e) => setEditForm({ ...editForm, place: e.target.value })}
-                      placeholder="Optional"
-                    />
-                  </div>
-                </div>
-                <div className="refuel-modal-footer">
-                  <button
-                    type="button"
-                    className="refuel-btn-secondary"
-                    onClick={() => setEditingLog(null)}
-                  >
-                    Cancel
-                  </button>
-                  <button type="submit" className="refuel-btn-primary" disabled={submitting}>
-                    {submitting ? 'Saving...' : 'Save'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>,
-          document.body,
-        )}
-
-      {deletingLog &&
-        createPortal(
-          <div
-            className="refuel-modal-overlay"
-            role="presentation"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setDeletingLog(null);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') setDeletingLog(null);
-            }}
-          >
-            <div className="refuel-modal" style={{ maxWidth: 420 }}>
-              <div className="refuel-modal-header">
-                <h2>Delete AdBlue Entry</h2>
-                <button
-                  type="button"
-                  className="refuel-modal-close"
-                  onClick={() => setDeletingLog(null)}
-                >
-                  <X size={20} />
-                </button>
-              </div>
-              <div className="refuel-modal-body">
-                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  <AlertTriangle size={22} color="#dc2626" />
-                  <p style={{ margin: 0, color: '#475569' }}>
-                    Delete AdBlue entry for <strong>{deletingLog.vehicleNo}</strong>? This cannot be
-                    undone.
-                  </p>
-                </div>
-              </div>
-              <div className="refuel-modal-footer">
-                <button
-                  type="button"
-                  className="refuel-btn-secondary"
-                  onClick={() => setDeletingLog(null)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="refuel-btn-danger"
-                  onClick={handleDeleteConfirm}
-                  disabled={submitting}
-                >
-                  {submitting ? 'Deleting...' : 'Delete'}
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
-
-      {viewImageUrl &&
-        createPortal(
-          <div
-            className="refuel-modal-overlay"
-            role="presentation"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setViewImageUrl(null);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') setViewImageUrl(null);
-            }}
-          >
-            <div className="refuel-modal" style={{ maxWidth: 720 }}>
-              <div className="refuel-modal-header">
-                <h2>AdBlue Proof</h2>
-                <button
-                  type="button"
-                  className="refuel-modal-close"
-                  onClick={() => setViewImageUrl(null)}
-                >
-                  <X size={20} />
-                </button>
-              </div>
-              <div className="refuel-modal-body" style={{ textAlign: 'center' }}>
-                <img
-                  src={viewImageUrl}
-                  alt="AdBlue receipt"
-                  style={{ maxWidth: '100%', borderRadius: 8 }}
-                />
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
+      <AdBlueTrackingModals
+        editingLog={editingLog}
+        editForm={editForm}
+        setEditForm={setEditForm}
+        submitting={submitting}
+        onEditClose={() => setEditingLog(null)}
+        onEditSubmit={handleEditSubmit}
+        deletingLog={deletingLog}
+        onDeleteClose={() => setDeletingLog(null)}
+        onDeleteConfirm={handleDeleteConfirm}
+        viewImageUrl={viewImageUrl}
+        onViewImageClose={() => setViewImageUrl(null)}
+      />
     </div>
   );
 };

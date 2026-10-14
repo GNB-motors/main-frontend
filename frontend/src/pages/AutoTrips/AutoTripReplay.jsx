@@ -1,24 +1,18 @@
 import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { GoogleMap, MarkerF, PolylineF, useLoadScript } from '@react-google-maps/api';
-import { Pause, Play } from 'lucide-react';
 import { createVehicleMarkerIcon } from '../LiveTracking/vehicleMarkerIcon.js';
 import { positionAt, toFrames, toLatLngSegments } from '../RouteReplay/routeReplay';
 import RoadTrailLayer from '../../components/map/RoadTrailLayer';
-import {
-  fmtClock,
-  fmtDayTime,
-  routeMapPoints,
-  stopKind,
-  tripRoadAt,
-  tripRoadLayers,
-} from './autoTripModel';
+import { fmtClock, fmtDayTime } from './autoTripFormat';
+import { routeMapPoints, tripRoadAt, tripRoadLayers } from './autoTripPlaces';
+import { stopKind } from './timelineModel';
+import ReplayPlayer from './ReplayPlayer';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const CONTAINER = { width: '100%', height: '100%' };
 const INDIA = { lat: 22.9734, lng: 78.6569 };
 /** At 1× the replay plays one minute of the trip every second; 10× and 50× scale up. */
 const TRIP_MS_PER_MS = 60;
-const SPEEDS = [1, 10, 50];
 /** Heading snapped to 5° so the truck icon is rebuilt only when it visibly turns, not every frame. */
 const HEADING_STEP = 5;
 const MOVING_KMPH = 3;
@@ -372,54 +366,19 @@ export default function AutoTripReplay({
         {chip ? <span className="atx-map-chip">{chip}</span> : null}
       </div>
 
-      <div className="atx-player">
-        <button
-          type="button"
-          className="atx-play"
-          onClick={togglePlay}
-          disabled={!canPlay}
-          aria-label={playing ? 'Pause replay' : 'Play replay'}
-        >
-          {playing ? (
-            <Pause size={16} fill="currentColor" strokeWidth={0} />
-          ) : (
-            <Play size={16} fill="currentColor" strokeWidth={0} />
-          )}
-        </button>
-        <label className="atx-scrub">
-          <span className="atx-sr">Replay position</span>
-          <input
-            type="range"
-            aria-label="Replay position"
-            min={0}
-            max={1000}
-            step={1}
-            value={Math.round(progress * 1000)}
-            disabled={!canPlay}
-            onChange={(e) => {
-              setPlaying(false);
-              seekTo((Number(e.target.value) / 1000) * span);
-            }}
-          />
-          <span className="atx-scrub-labels">
-            <span>{leftLabel}</span>
-            <span>{rightLabel}</span>
-          </span>
-        </label>
-        <div role="group" aria-label="Replay speed" className="atx-speeds">
-          {SPEEDS.map((s) => (
-            <button
-              key={s}
-              type="button"
-              aria-pressed={speed === s}
-              aria-label={`Play at ${s}× speed`}
-              onClick={() => setSpeed(s)}
-            >
-              {s}×
-            </button>
-          ))}
-        </div>
-      </div>
+      <ReplayPlayer
+        togglePlay={togglePlay}
+        canPlay={canPlay}
+        playing={playing}
+        progress={progress}
+        setPlaying={setPlaying}
+        seekTo={seekTo}
+        span={span}
+        leftLabel={leftLabel}
+        rightLabel={rightLabel}
+        speed={speed}
+        setSpeed={setSpeed}
+      />
     </div>
   );
 }

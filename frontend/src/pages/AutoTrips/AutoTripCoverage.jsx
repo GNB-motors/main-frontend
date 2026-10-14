@@ -5,7 +5,7 @@ import { useApi } from '../../hooks/useApi';
 import { getUserRole } from '../../utils/session.js';
 import AutoTripService from '../../services/AutoTripService';
 import { formatNum } from '../../utils/formatters';
-import { COVERAGE_REASON_LABEL, placeHubHref } from './autoTripModel';
+import { COVERAGE_REASON_LABEL, placeHubHref } from './autoTripPlaces';
 import './AutoTrips.css';
 
 const CAN_SEE = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];

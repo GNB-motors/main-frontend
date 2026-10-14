@@ -4,7 +4,7 @@ import { useApi } from '../../hooks/useApi';
 import { getUserRole } from '../../utils/session.js';
 import AutoTripService from '../../services/AutoTripService';
 import { formatNum } from '../../utils/formatters';
-import { fmtDateRange } from './autoTripModel';
+import { fmtDateRange } from './autoTripFormat';
 import './AutoTrips.css';
 
 const CAN_SEE = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];

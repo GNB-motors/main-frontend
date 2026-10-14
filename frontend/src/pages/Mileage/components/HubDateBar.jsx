@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { HUB_DATE_PRESETS, rangeLabel } from '../mileageRows';
+import { HUB_DATE_PRESETS, rangeLabel } from '../mileageDates';
 import SegmentedChips from './SegmentedChips';
 
 const CUSTOM = 'CUSTOM';

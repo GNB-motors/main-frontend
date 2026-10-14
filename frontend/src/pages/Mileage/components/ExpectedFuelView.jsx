@@ -12,7 +12,7 @@ import {
 import { useApi } from '../../../hooks/useApi';
 import { formatKm, formatLitres } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
-import { dailyRollup, dieselUse } from '../mileageRows';
+import { dailyRollup, dieselUse } from '../cycleRows';
 import InfoTip from './InfoTip';
 
 const signed = (v, unit) => (v == null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(1)}${unit}`);

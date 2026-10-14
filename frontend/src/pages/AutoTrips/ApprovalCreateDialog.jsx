@@ -22,6 +22,8 @@ import { useMutation } from '../../hooks/useMutation';
 import MovementApprovalService from '../../services/MovementApprovalService';
 import PlaceIntelligenceService from '../PlaceHub/intelligence/PlaceIntelligenceService';
 import { SITE_TYPE_LABEL } from '../PlaceHub/intelligence/placeIntelligenceModel';
+import ApprovalWhenFields from './ApprovalWhenFields';
+import { labelStyle, rowStyle } from './approvalDialogStyles';
 
 const PLACE_KINDS = [
   { value: 'ANY_WORKSHOP', label: 'Any workshop' },
@@ -35,19 +37,7 @@ const APPROVAL_KINDS = [
   { value: 'STANDING', label: 'Standing rule' },
   { value: 'LATE', label: 'Late (after the fact)' },
 ];
-const WEEKDAYS = [
-  { d: 1, label: 'Mon' },
-  { d: 2, label: 'Tue' },
-  { d: 3, label: 'Wed' },
-  { d: 4, label: 'Thu' },
-  { d: 5, label: 'Fri' },
-  { d: 6, label: 'Sat' },
-  { d: 0, label: 'Sun' },
-];
 const TYPE_OPTIONS = Object.keys(SITE_TYPE_LABEL);
-
-const labelStyle = { fontSize: 12, color: '#666', display: 'block', marginBottom: 4 };
-const rowStyle = { marginBottom: 12 };
 
 export default function ApprovalCreateDialog({
   open,
@@ -265,82 +255,20 @@ export default function ApprovalCreateDialog({
           </div>
         </div>
 
-        <div style={rowStyle}>
-          <span style={labelStyle}>When</span>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-            <Button
-              type="button"
-              size="sm"
-              variant={timeMode === 'window' ? 'default' : 'outline'}
-              onClick={() => setTimeMode('window')}
-            >
-              One-time window
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={timeMode === 'recurrence' ? 'default' : 'outline'}
-              onClick={() => setTimeMode('recurrence')}
-            >
-              Recurring
-            </Button>
-          </div>
-          {timeMode === 'window' ? (
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Input
-                type="date"
-                aria-label="From date"
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-              />
-              <Input
-                type="date"
-                aria-label="To date"
-                value={to}
-                min={from}
-                onChange={(e) => setTo(e.target.value)}
-              />
-            </div>
-          ) : (
-            <div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                {WEEKDAYS.map((w) => (
-                  <Button
-                    key={w.d}
-                    type="button"
-                    size="sm"
-                    variant={weekdays.includes(w.d) ? 'default' : 'outline'}
-                    onClick={() => toggleDay(w.d)}
-                  >
-                    {w.label}
-                  </Button>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span style={{ fontSize: 13 }}>From hour</span>
-                <Input
-                  type="number"
-                  min="0"
-                  max="24"
-                  aria-label="From hour"
-                  value={fromHour}
-                  onChange={(e) => setFromHour(e.target.value)}
-                  style={{ width: 80 }}
-                />
-                <span style={{ fontSize: 13 }}>to</span>
-                <Input
-                  type="number"
-                  min="0"
-                  max="24"
-                  aria-label="To hour"
-                  value={toHour}
-                  onChange={(e) => setToHour(e.target.value)}
-                  style={{ width: 80 }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
+        <ApprovalWhenFields
+          timeMode={timeMode}
+          setTimeMode={setTimeMode}
+          from={from}
+          setFrom={setFrom}
+          to={to}
+          setTo={setTo}
+          weekdays={weekdays}
+          toggleDay={toggleDay}
+          fromHour={fromHour}
+          setFromHour={setFromHour}
+          toHour={toHour}
+          setToHour={setToHour}
+        />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
           <div style={rowStyle}>

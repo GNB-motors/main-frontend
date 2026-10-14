@@ -2,7 +2,7 @@ import apiClient from '../../utils/axiosConfig';
 import ApiError from '../../errors/ApiError';
 import { getVehicleList } from '../../services/vehicleListService';
 import { parseSafe } from '../../schemas/validate';
-import { rangeToParams } from './mileageRows';
+import { rangeToParams } from './mileageDates';
 
 /**
  * The hub's reads. Each takes the hub's calendar range where its endpoint

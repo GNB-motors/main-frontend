@@ -7,7 +7,7 @@ import { useApi } from '../../../hooks/useApi';
 import { toISTDateString } from '../../../utils/dateUtils';
 import { formatINR, formatKm, formatLitres } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
-import { mapIntervalRow, mileageBand } from '../mileageRows';
+import { mapIntervalRow, mileageBand } from '../cycleRows';
 import FuelCyclesList from './FuelCyclesList';
 import InfoTip from './InfoTip';
 

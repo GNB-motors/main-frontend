@@ -17,7 +17,8 @@ import DocumentService from '../../Trip/services/DocumentService';
 import { formatDateTimeIST } from '../../../utils/dateUtils';
 import { formatINR, formatKm, formatLitres } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
-import { ODOMETER_SOURCE, fillVerdict } from '../mileageRows';
+import { ODOMETER_SOURCE } from '../refuelRows';
+import { fillVerdict } from '../fillExplanations';
 import BillEditForm from './BillEditForm';
 import ExplanationLines from './ExplanationLines';
 
@@ -33,7 +34,7 @@ const rateText = (rate) =>
 
 /**
  * One fill: what happened in a sentence, what to do, then the bill and the
- * tank. `detail` comes from mileageRows.drawerFromLiveRow /
+ * tank. `detail` comes from refuelRows.drawerFromLiveRow /
  * drawerFromReconciliationRow, so both lists share this drawer.
  */
 export default function RefuelDetailDrawer({ detail, onClose, canEdit = false, onChanged }) {

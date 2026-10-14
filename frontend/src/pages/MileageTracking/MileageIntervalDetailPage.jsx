@@ -18,12 +18,10 @@ import PageShell from '../../components/ui/PageShell';
 import ExportButton from '../../components/ui/ExportButton';
 import { fmtDateShort } from './mileageIntervalDetailFormat';
 import { MileageTrackingService } from './MileageTrackingService';
-import {
-  SlimAnomalyAlert,
-  CompactKpiCard,
-  ReconciliationMatrixTable,
-  RefuelSlipsTable,
-} from './mileageIntervalDetailCells';
+import SlimAnomalyAlert from './intervalDetail/SlimAnomalyAlert';
+import CompactKpiCard from './intervalDetail/CompactKpiCard';
+import ReconciliationMatrixTable from './intervalDetail/ReconciliationMatrixTable';
+import RefuelSlipsTable from './intervalDetail/RefuelSlipsTable';
 
 const MileageIntervalDetailPage = () => {
   const { id } = useParams();

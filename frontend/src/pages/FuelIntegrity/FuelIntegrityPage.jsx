@@ -5,32 +5,16 @@ import {
   istDayString,
   shiftDay,
 } from '../../utils/dateUtils';
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  AlertTriangle,
-  CheckCircle2,
-  RefreshCw,
-  Fuel,
-  ReceiptText,
-  Droplets,
-  ShieldCheck,
-  ShieldAlert,
-  ArrowRight,
-  TrendingDown,
-  Gauge,
-  Activity,
-  Layers,
-} from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import PageShell from '../../components/ui/PageShell';
-import ExportButton from '../../components/ui/ExportButton';
 import { FuelIntegrityService } from './FuelIntegrityService.js';
 import { getProfileField, setProfileField } from '../../utils/session.js';
 import EvidenceDrawer from '../../components/cluster/EvidenceDrawer.jsx';
 import EventInvestigationDrawer from './EventInvestigationDrawer.jsx';
 import FuelIntegrityTables from './FuelIntegrityTables.jsx';
 import VehicleDrilldownPanel from './VehicleDrilldownPanel.jsx';
-import { formatRelativeIST, formatIST } from './fiDates.js';
-import { formatINR, formatLitres, timeAgo } from '../../utils/formatters';
+import { formatRelativeIST } from './fiDates.js';
 import {
   buildEvents,
   eventMatchesFilters,
@@ -40,7 +24,10 @@ import {
   buildRiskVehicles,
   buildChipDefs,
 } from './fiData.js';
-import { onActivateKey } from '../../utils/onActivateKey';
+import MassBalancePipeline from './integrity/MassBalancePipeline';
+import IntegrityBentoStrip from './integrity/IntegrityBentoStrip';
+import IntegrityHeaderActions from './integrity/IntegrityHeaderActions';
+import useIntegrityExport from './integrity/useIntegrityExport';
 import './FuelIntegrity.css';
 
 const FEED_LIMIT = 100;
@@ -257,43 +244,7 @@ const FuelIntegrityPage = () => {
 
   const chipDefs = useMemo(() => buildChipDefs(events), [events]);
 
-  /* ── Export configuration for Excel (.xlsx) and CSV (.csv) ───────────────── */
-  const exportColumns = useMemo(
-    () => [
-      { key: 'vehicle', label: 'Vehicle Registration', type: 'text' },
-      { key: 'kind', label: 'Event Type', type: 'text' },
-      { key: 'timestampIST', label: 'Timestamp (IST)', type: 'text' },
-      { key: 'litres', label: 'Fuel Volume (L)', type: 'number' },
-      { key: 'inr', label: 'Estimated Value (₹)', type: 'currency' },
-      { key: 'status', label: 'Integrity Status', type: 'text' },
-      { key: 'lat', label: 'Latitude', type: 'number' },
-      { key: 'lng', label: 'Longitude', type: 'number' },
-    ],
-    [],
-  );
-
-  const exportRows = useMemo(
-    () =>
-      filteredEvents.map((ev) => ({
-        vehicle: ev.vehicle || '',
-        kind:
-          ev.kind === 'fill' ? 'Refuel Fill' : ev.kind === 'loss' ? 'Siphon Loss' : 'DEF Anomaly',
-        timestampIST: formatIST(ev.at),
-        litres: ev.litres != null ? Number(Number(ev.litres).toFixed(1)) : null,
-        inr: ev.inr != null ? Number(ev.inr) : null,
-        status:
-          ev.kind === 'fill'
-            ? ev.billFlag
-              ? 'Bill Mismatch'
-              : ev.confirmationStatus || 'Estimated'
-            : ev.kind === 'loss'
-              ? 'Suspected Loss'
-              : `DEF ${ev.defFlag || 'Anomaly'}`,
-        lat: ev.lat != null ? Number(ev.lat) : null,
-        lng: ev.lng != null ? Number(ev.lng) : null,
-      })),
-    [filteredEvents],
-  );
+  const { exportColumns, exportRows } = useIntegrityExport(filteredEvents);
 
   return (
     <PageShell
@@ -312,37 +263,16 @@ const FuelIntegrityPage = () => {
           : `Alert: ${lossL.toFixed(1)} L unexplained siphon loss detected across fleet — review immediately`
       }
       actions={
-        <div className="flex items-center gap-2">
-          {lastSynced && (
-            <span className="text-dim hidden text-xs sm:inline">Synced {timeAgo(lastSynced)}</span>
-          )}
-          <ExportButton
-            rows={exportRows}
-            columns={exportColumns}
-            filename="fuel-integrity-report"
-            disabled={filteredEvents.length === 0}
-          />
-          <button
-            type="button"
-            className="pshell-btn text-indigo-600 dark:text-indigo-400 font-medium"
-            onClick={handleSyncIoT}
-            disabled={isSyncing || isLoading}
-            title="Trigger on-demand reconciliation of recent FleetEdge telemetry"
-          >
-            <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
-            <span>{isSyncing ? 'Reconciling...' : 'Reconcile IoT'}</span>
-          </button>
-          <button
-            type="button"
-            className="pshell-btn"
-            onClick={fetchData}
-            disabled={isLoading || isSyncing}
-            title="Refresh telemetry stream"
-          >
-            <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
-            <span>Refresh</span>
-          </button>
-        </div>
+        <IntegrityHeaderActions
+          exportColumns={exportColumns}
+          exportRows={exportRows}
+          fetchData={fetchData}
+          filteredEvents={filteredEvents}
+          handleSyncIoT={handleSyncIoT}
+          isLoading={isLoading}
+          isSyncing={isSyncing}
+          lastSynced={lastSynced}
+        />
       }
     >
       <div className="fi-page-container">
@@ -360,236 +290,25 @@ const FuelIntegrityPage = () => {
         )}
 
         {/* ── HERO: MASS-BALANCE FLOW RECONCILIATION PIPELINE ──────────────── */}
-        <div className="fi-flow-pipeline">
-          <div className="fi-pipeline-header">
-            <div className="fi-pipeline-title-group">
-              <Layers size={15} className="text-blue-600 dark:text-blue-400" />
-              <span className="fi-pipeline-title">Autonomous Mass-Balance Flow Reconciliation</span>
-              <span className="fi-pipeline-formula">
-                Pump Inflow − Engine Burn − ΔTank Level = Unaccounted Loss
-              </span>
-            </div>
-            <div className="text-xs text-slate-500 font-medium">
-              Window:{' '}
-              <span className="font-semibold text-slate-800 dark:text-slate-200">
-                {windowDays ? `Last ${windowDays} Days` : 'Last 7 Days'}
-              </span>
-            </div>
-          </div>
-
-          <div className="fi-pipeline-steps">
-            {/* Step 1: Dispensed Inflow */}
-            <div className="fi-step-card">
-              <div className="fi-step-head">
-                <span className="fi-step-label">1. Pump Dispensed</span>
-                <Fuel size={14} className="text-blue-500" />
-              </div>
-              <div className="fi-step-val text-blue-600 dark:text-blue-400">
-                +{formatLitres(totalFillsLitres)}
-              </div>
-              <div className="fi-step-sub">
-                ≈ {formatINR(totalFillsLitres * pricePerL)} invoiced
-              </div>
-            </div>
-
-            <div className="fi-step-arrow">
-              <ArrowRight size={16} />
-            </div>
-
-            {/* Step 2: Engine Consumed */}
-            <div className="fi-step-card">
-              <div className="fi-step-head">
-                <span className="fi-step-label">2. Engine Consumed</span>
-                <Activity size={14} className="text-emerald-500" />
-              </div>
-              <div className="fi-step-val text-slate-800 dark:text-slate-100">
-                {formatLitres(totalEngineBurnL)}
-              </div>
-              <div className="fi-step-sub">
-                {totalEngineBurnL > 0 ? 'CAN bus engine burn' : 'Awaiting CAN data'}
-              </div>
-            </div>
-
-            <div className="fi-step-arrow">
-              <ArrowRight size={16} />
-            </div>
-
-            {/* Step 3: Net Tank Delta */}
-            <div className="fi-step-card">
-              <div className="fi-step-head">
-                <span className="fi-step-label">3. Net Tank Reserve</span>
-                <Gauge size={14} className="text-indigo-500" />
-              </div>
-              <div className="fi-step-val text-indigo-600 dark:text-indigo-400">
-                {totalNetTankDeltaL >= 0 ? '+' : ''}
-                {formatLitres(totalNetTankDeltaL)}
-              </div>
-              <div className="fi-step-sub">Fleet tank level balance</div>
-            </div>
-
-            <div className="fi-step-arrow">
-              <ArrowRight size={16} />
-            </div>
-
-            {/* Step 4: Siphon Loss Defense */}
-            <div
-              className="fi-step-card"
-              style={{
-                borderColor: lossL > 0 ? 'rgba(239, 68, 68, 0.5)' : 'rgba(16, 185, 129, 0.4)',
-                background: lossL > 0 ? 'rgba(239, 68, 68, 0.05)' : 'rgba(16, 185, 129, 0.06)',
-              }}
-            >
-              <div className="fi-step-head">
-                <span className="fi-step-label">4. Unaccounted Loss</span>
-                {lossL > 0 ? (
-                  <ShieldAlert size={14} className="text-red-500" />
-                ) : (
-                  <ShieldCheck size={14} className="text-emerald-500" />
-                )}
-              </div>
-              <div
-                className="fi-step-val"
-                style={{
-                  color: lossL > 0 ? 'var(--critical, #dc2626)' : 'var(--ok, #10b981)',
-                }}
-              >
-                {lossL > 0 ? `−${formatLitres(lossL)}` : '0.0 L (₹0)'}
-              </div>
-              <div className="fi-step-sub">
-                {lossL > 0
-                  ? `Leakage: ${formatINR(lossL * pricePerL)}`
-                  : '🛡️ 100% Intact · Zero Theft'}
-              </div>
-            </div>
-          </div>
-        </div>
+        <MassBalancePipeline
+          lossL={lossL}
+          pricePerL={pricePerL}
+          totalEngineBurnL={totalEngineBurnL}
+          totalFillsLitres={totalFillsLitres}
+          totalNetTankDeltaL={totalNetTankDeltaL}
+          windowDays={windowDays}
+        />
 
         {/* ── Executive 4-Card Bento Strip ─────────────────────────────────── */}
-        <div className="fi-bento-grid">
-          {/* Card 1: Audited Dispensed Fuel */}
-          <div className="fi-bento-card fi-bento-card--blue">
-            <div className="fi-bento-head">
-              <span className="fi-bento-label">Audited Volume</span>
-              <div className="fi-bento-icon fi-bento-icon--blue">
-                <Fuel size={16} />
-              </div>
-            </div>
-            <div className="fi-bento-body">
-              <div className="fi-bento-val-row">
-                <span className="fi-bento-val">
-                  {totalFillsLitres.toLocaleString('en-IN', { maximumFractionDigits: 1 })}
-                </span>
-                <span className="fi-bento-unit">L</span>
-              </div>
-            </div>
-            <div className="fi-bento-foot">
-              <span className="fi-bento-sub">
-                {windowDays ? `${windowDays} days` : 'Over 7 days'} · ~
-                {windowDays && totalFillsLitres > 0
-                  ? (totalFillsLitres / windowDays).toFixed(0)
-                  : '0'}{' '}
-                L/day
-              </span>
-              <span className="fi-bento-pill fi-bento-pill--ok">Audited</span>
-            </div>
-          </div>
-
-          {/* Card 2: Unaccounted Fuel Loss */}
-          <div
-            className={`fi-bento-card ${lossL > 0 ? 'fi-bento-card--rose' : 'fi-bento-card--emerald'}`}
-          >
-            <div className="fi-bento-head">
-              <span className="fi-bento-label">Mass-Balance Siphon Loss</span>
-              <div
-                className={`fi-bento-icon ${lossL > 0 ? 'fi-bento-icon--rose' : 'fi-bento-icon--emerald'}`}
-              >
-                {lossL > 0 ? <ShieldAlert size={16} /> : <ShieldCheck size={16} />}
-              </div>
-            </div>
-            <div className="fi-bento-body">
-              <div className="fi-bento-val-row">
-                <span
-                  className="fi-bento-val"
-                  style={{ color: lossL > 0 ? 'var(--critical, #dc2626)' : undefined }}
-                >
-                  {lossL.toFixed(1)}
-                </span>
-                <span className="fi-bento-unit">L</span>
-                <span className="fi-bento-secondary-val">
-                  · ₹{(lossL * pricePerL).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                </span>
-              </div>
-            </div>
-            <div className="fi-bento-foot">
-              <span className="fi-bento-sub">
-                {lossL === 0 ? 'Mass balance physics intact' : 'Siphon suspected in window'}
-              </span>
-              <span
-                className={`fi-bento-pill ${lossL === 0 ? 'fi-bento-pill--ok' : 'fi-bento-pill--crit'}`}
-              >
-                {lossL === 0 ? '100% Retained' : 'Theft Flagged'}
-              </span>
-            </div>
-          </div>
-
-          {/* Card 3: Billed vs Sensor Variance */}
-          <div className="fi-bento-card fi-bento-card--purple">
-            <div className="fi-bento-head">
-              <span className="fi-bento-label">Bill vs Tank Mismatches</span>
-              <div className="fi-bento-icon fi-bento-icon--purple">
-                <ReceiptText size={16} />
-              </div>
-            </div>
-            <div className="fi-bento-body">
-              <div className="fi-bento-val-row">
-                <span className="fi-bento-val">{billCount}</span>
-                <span className="fi-bento-unit">Flags</span>
-              </div>
-            </div>
-            <div className="fi-bento-foot">
-              <span className="fi-bento-sub">Invoices match sensor tank jump</span>
-              <span
-                className={`fi-bento-pill ${billCount === 0 ? 'fi-bento-pill--ok' : 'fi-bento-pill--warn'}`}
-              >
-                {billCount === 0 ? 'Clean Slips' : `${billCount} Flagged`}
-              </span>
-            </div>
-          </div>
-
-          {/* Card 4: DEF / AdBlue Discrepancies */}
-          {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- the card is named by its own text (DEF / AdBlue Ratio, the count, the caption); the rule stops two levels above that text */}
-          <div
-            className="fi-bento-card fi-bento-card--amber cursor-pointer"
-            role="button"
-            tabIndex={0}
-            onClick={() => setChip((c) => (c === 'def' ? 'all' : 'def'))}
-            onKeyDown={onActivateKey(() => setChip((c) => (c === 'def' ? 'all' : 'def')))}
-            title="Click to toggle DEF anomaly filter"
-          >
-            <div className="fi-bento-head">
-              <span className="fi-bento-label">DEF / AdBlue Ratio</span>
-              <div className="fi-bento-icon fi-bento-icon--amber">
-                <Droplets size={16} />
-              </div>
-            </div>
-            <div className="fi-bento-body">
-              <div className="fi-bento-val-row">
-                <span className="fi-bento-val" style={{ color: '#d97706' }}>
-                  {defCount}
-                </span>
-                <span className="fi-bento-unit">Under Review</span>
-              </div>
-            </div>
-            <div className="fi-bento-foot">
-              <span className="fi-bento-sub">AdBlue telemetry anomaly</span>
-              <span
-                className={`fi-bento-pill ${defCount === 0 ? 'fi-bento-pill--ok' : 'fi-bento-pill--warn'}`}
-              >
-                {defCount === 0 ? 'Ratio Normal' : 'Tamper Alert'}
-              </span>
-            </div>
-          </div>
-        </div>
+        <IntegrityBentoStrip
+          billCount={billCount}
+          defCount={defCount}
+          lossL={lossL}
+          pricePerL={pricePerL}
+          setChip={setChip}
+          totalFillsLitres={totalFillsLitres}
+          windowDays={windowDays}
+        />
 
         {/* ── Operational Mission Control Workspace ────────────────────────── */}
         <FuelIntegrityTables
