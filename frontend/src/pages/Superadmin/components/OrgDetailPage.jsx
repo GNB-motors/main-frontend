@@ -6,13 +6,10 @@ import {
   Users,
   IndianRupee,
   TrendingUp,
-  TrendingDown,
   Wallet,
   Fuel,
   Route as RouteIcon,
   Percent,
-  Radar,
-  Satellite,
 } from 'lucide-react';
 import { PageHeader } from '../../Drivers/Component';
 import {
@@ -24,6 +21,7 @@ import {
 } from '../superAdminFormat';
 import { SortIcon } from './SortIcon.jsx';
 import DateRangeFilter from './DateRangeFilter';
+import MileageVarianceSection from './orgDetail/MileageVarianceSection';
 import { getUserRole } from '../../../utils/session';
 import '../SuperAdminPage.css';
 import './OrgDetailPage.css';
@@ -218,82 +216,7 @@ const OrgDetailPage = () => {
       </div>
 
       {/* Mileage variance */}
-      <div className="fuel-stats-section">
-        <h2 className="fuel-stats-title">
-          Mileage Variance <span>vs expected baseline &amp; FleetEdge telemetry</span>
-        </h2>
-        <div className="mileage-variance-grid">
-          <div className="content-card mileage-variance-card">
-            <div className="mileage-variance-card-header">
-              <Radar size={16} />
-              <span>Vs Expected Baseline</span>
-            </div>
-            {loading ? (
-              <p className="mileage-variance-empty">Loading…</p>
-            ) : !baseline || baseline.vehiclesConsidered === 0 ? (
-              <p className="mileage-variance-empty">
-                No completed mileage intervals in this range.
-              </p>
-            ) : (
-              <div className="mileage-variance-body">
-                <div className="mileage-variance-stat positive">
-                  <TrendingUp size={18} />
-                  <div>
-                    <span className="mileage-variance-count">{baseline.positiveCount}</span>
-                    <span className="mileage-variance-label">vehicles above expected</span>
-                  </div>
-                </div>
-                <div className="mileage-variance-stat negative">
-                  <TrendingDown size={18} />
-                  <div>
-                    <span className="mileage-variance-count">{baseline.negativeCount}</span>
-                    <span className="mileage-variance-label">vehicles below expected</span>
-                  </div>
-                </div>
-                <p className="mileage-variance-footnote">
-                  {baseline.vehiclesConsidered} vehicle
-                  {baseline.vehiclesConsidered !== 1 ? 's' : ''} considered
-                  {baseline.neutralCount ? `, ${baseline.neutralCount} exactly at baseline` : ''}.
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="content-card mileage-variance-card">
-            <div className="mileage-variance-card-header">
-              <Satellite size={16} />
-              <span>Vs FleetEdge Telemetry</span>
-            </div>
-            {loading ? (
-              <p className="mileage-variance-empty">Loading…</p>
-            ) : !fleetEdge || fleetEdge.vehiclesConsidered === 0 ? (
-              <p className="mileage-variance-empty">No FleetEdge data for this organisation.</p>
-            ) : (
-              <div className="mileage-variance-body">
-                <div className="mileage-variance-stat positive">
-                  <TrendingUp size={18} />
-                  <div>
-                    <span className="mileage-variance-count">{fleetEdge.positiveCount}</span>
-                    <span className="mileage-variance-label">vehicles above telemetry</span>
-                  </div>
-                </div>
-                <div className="mileage-variance-stat negative">
-                  <TrendingDown size={18} />
-                  <div>
-                    <span className="mileage-variance-count">{fleetEdge.negativeCount}</span>
-                    <span className="mileage-variance-label">vehicles below telemetry</span>
-                  </div>
-                </div>
-                <p className="mileage-variance-footnote">
-                  {fleetEdge.vehiclesConsidered} vehicle
-                  {fleetEdge.vehiclesConsidered !== 1 ? 's' : ''} considered
-                  {fleetEdge.neutralCount ? `, ${fleetEdge.neutralCount} exactly at baseline` : ''}.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      <MileageVarianceSection loading={loading} baseline={baseline} fleetEdge={fleetEdge} />
 
       {/* Financials */}
       <div className="fuel-stats-section">

@@ -1,20 +1,18 @@
 import { describe, it, expect } from 'vitest';
+import { fmtMoney, fmtLitres, fmtDate, fmtRelativeTime } from './receipts/receiptFormat';
 import {
-  fmtMoney,
-  fmtLitres,
-  fmtDate,
-  fmtRelativeTime,
   verifyFuelMath,
   evaluateOcrQuality,
   getOdometerMeta,
   crossVerifyStation,
+} from './receipts/receiptVerification';
+import {
   filterByDatePreset,
-  computeReceiptKpis,
   datePresetRange,
   draftListParams,
   filterDraftsLocally,
-  kpisFromSummary,
-} from './ReceiptApproval.shared';
+} from './receipts/receiptFilters';
+import { computeReceiptKpis, kpisFromSummary } from './receipts/receiptKpis';
 
 describe('ReceiptApproval.shared — WhatsApp Fuel Approvals Unit Tests', () => {
   describe('Formatting Helpers', () => {
