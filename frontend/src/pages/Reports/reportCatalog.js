@@ -26,8 +26,9 @@ export const REPORT_GROUPS = [
     id: 'tripEconomics',
     label: 'TRIP ECONOMICS',
     children: [
-      // Its API (/api/auto-trips/oil-average) is open to every org, so no sub-flag.
-      { id: 'oilAverage', label: 'Oil & Average Report' },
+      // Its API (/api/auto-trips/oil-average) sits on the Auto Trips router, which is
+      // gated by requireFeature('autoTrips') like the rest of this group.
+      { id: 'oilAverage', label: 'Oil & Average Report', flag: 'autoTrips' },
       { id: 'fuelCycles', label: 'Fuel Cycles', flag: 'autoTrips' },
       { id: 'nonBusiness', label: 'Non-Business', flag: 'autoTrips' },
       { id: 'runningCost', label: 'Running Cost', flag: 'autoTrips' },

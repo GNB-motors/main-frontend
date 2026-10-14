@@ -1,24 +1,33 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import PageShell from '../../../components/ui/PageShell';
-import FilterBar from '../../../components/ui/FilterBar';
+import { useMemo, useState } from 'react';
+import { AlertTriangle, Receipt, RefreshCcw, Route } from 'lucide-react';
 import DataTable from '../../../components/ui/DataTable';
-import { CsvIcon, ExcelIcon } from '../../../components/Icons';
-import { getVehicleList } from '../../../services/vehicleListService';
+import ExportButton from '../../../components/ui/ExportButton';
 import useApi from '../../../hooks/useApi';
 import { ReportsService } from '../ReportsService.js';
-import { exportFilteredReportCsv } from '../../../utils/reportCsvExport';
+import { formatKm, formatLitres, formatNum } from '../../../utils/formatters';
 import { useFuelCyclesColumns } from './useFuelCyclesColumns.jsx';
-import { buildTripFilterParams, extractVehicleOptions } from './tripReportsUtils';
+import ReportFrame, {
+  ReportClear,
+  ReportDateRange,
+  ReportFooter,
+  ReportSearch,
+  ReportSelect,
+} from './ReportFrame';
+import { VehiclePicker } from './ReportEntityPicker';
+import { matchesSearch, pageCount, pageSlice } from './reportFilters';
+import useReportPage from './useReportPage';
+import {
+  EMPTY_RANGE,
+  buildTripFilterParams,
+  exportTripReport,
+  newestFirst,
+  rangeFilterCount,
+  sumOf,
+  tripReportSummary,
+} from './tripReportsUtils';
 
 const STATUS_OPTIONS = [
-  { value: 'all', label: 'All Statuses' },
+  { value: 'all', label: 'All statuses' },
   { value: 'OPEN', label: 'Open' },
   { value: 'CLOSED', label: 'Closed' },
   { value: 'RECONCILED', label: 'Reconciled' },
@@ -30,231 +39,178 @@ const STATUS_OPTIONS = [
 // came back, and exported from them.
 const CLIENT_ONLY_STATUS = 'UNRECONCILED_NO_LEDGER';
 
-const EXPORT_HEADERS = [
-  'Open',
-  'Close',
-  'Vehicle',
-  'Start Odo',
-  'End Odo',
-  'Distance (km)',
-  'Bills (L)',
-  'ECU (L)',
-  'Unaccounted (L)',
-  'Mileage T2T (km/L)',
-  'Cost (INR)',
-  'Status',
-  'Flags',
+const EXPORT_COLUMNS = [
+  ['Open', (r) => r.open?.at],
+  ['Close', (r) => r.close?.at],
+  ['Vehicle', (r) => r.registrationNumber],
+  ['Start Odo', (r) => r.open?.odo],
+  ['End Odo', (r) => r.close?.odo],
+  ['Distance (km)', (r) => r.km?.sumBest],
+  ['Bills (L)', (r) => r.fuel?.bills],
+  ['ECU (L)', (r) => r.fuel?.ecu],
+  ['Unaccounted (L)', (r) => r.fuel?.unaccounted],
+  ['Mileage T2T (km/L)', (r) => r.mileage?.tankToTank],
+  ['Cost (INR)', (r) => r.cost?.total],
+  ['Status', (r) => r.status],
+  ['Flags', (r) => (r.flags || []).join(' ')],
 ];
 
-const exportRowOf = (r) => [
-  r.open?.at ?? '',
-  r.close?.at ?? '',
-  r.registrationNumber ?? '',
-  r.open?.odo ?? '',
-  r.close?.odo ?? '',
-  r.km?.sumBest ?? '',
-  r.fuel?.bills ?? '',
-  r.fuel?.ecu ?? '',
-  r.fuel?.unaccounted ?? '',
-  r.mileage?.tankToTank ?? '',
-  r.cost?.total ?? '',
-  r.status ?? '',
-  (r.flags || []).join(' '),
-];
+function cycleKpis(rows) {
+  return [
+    { label: 'Cycles', value: formatNum(rows.length), icon: RefreshCcw },
+    {
+      label: 'Distance',
+      value: formatKm(sumOf(rows, (r) => r.km?.sumBest)),
+      icon: Route,
+      tone: 'teal',
+    },
+    {
+      label: 'Bills',
+      value: formatLitres(
+        sumOf(rows, (r) => r.fuel?.bills),
+        { decimals: 0 },
+      ),
+      icon: Receipt,
+      tone: 'violet',
+      hint: 'Litres on the fuel bills inside these cycles',
+    },
+    {
+      label: 'Unaccounted',
+      value: formatLitres(
+        sumOf(rows, (r) => r.fuel?.unaccounted),
+        { decimals: 0 },
+      ),
+      icon: AlertTriangle,
+      tone: 'orange',
+      hint: 'Billed litres the engine (ECU) does not account for',
+    },
+  ];
+}
 
 const FuelCyclesReport = () => {
-  const [rows, setRows] = useState([]);
-  const [truncated, setTruncated] = useState(false);
-  const [error, setError] = useState(null);
-
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const [range, setRange] = useState(EMPTY_RANGE);
+  const [search, setSearch] = useState('');
   const [vehicleId, setVehicleId] = useState('all');
   const [status, setStatus] = useState('all');
   const serverStatus = status === CLIENT_ONLY_STATUS ? 'all' : status;
 
-  const [vehicleOptions, setVehicleOptions] = useState([]);
-  const [isExporting, setIsExporting] = useState(false);
-
-  const { data: vehiclesRes } = useApi((signal) => getVehicleList({ signal }), []);
-  useEffect(() => {
-    if (vehiclesRes) setVehicleOptions(extractVehicleOptions(vehiclesRes));
-  }, [vehiclesRes]);
-
+  const params = useMemo(
+    () => buildTripFilterParams({ ...range, vehicleId, status: serverStatus }),
+    [range, vehicleId, serverStatus],
+  );
+  const paramsKey = JSON.stringify(params);
   const {
-    data: rowsResponse,
-    loading: isLoading,
-    error: rowsError,
-    refetch: refetchRows,
-  } = useApi(
+    data: response,
+    loading,
+    error,
+    refetch,
+  } = useApi((signal) => ReportsService.getFuelCycles(params, signal), [paramsKey]);
+
+  const rows = useMemo(
+    () => (error ? [] : newestFirst(response?.data || [], (r) => r.open?.at)),
+    [response, error],
+  );
+  const filtered = useMemo(
     () =>
-      ReportsService.getFuelCycles(
-        buildTripFilterParams({ from, to, vehicleId, status: serverStatus }),
+      rows.filter(
+        (r) =>
+          (status !== CLIENT_ONLY_STATUS || r.status === status) &&
+          matchesSearch(search, [r.registrationNumber]),
       ),
-    [JSON.stringify({ from, to, vehicleId, serverStatus })],
+    [rows, status, search],
   );
+  const kpis = useMemo(() => cycleKpis(filtered), [filtered]);
 
-  useEffect(() => {
-    if (rowsResponse) {
-      setError(null);
-      setRows(Array.isArray(rowsResponse.data) ? rowsResponse.data : []);
-      setTruncated(Boolean(rowsResponse.truncated));
-    }
-  }, [rowsResponse]);
+  const [page, setPage] = useReportPage(`${paramsKey}|${status}|${search.trim()}`);
+  const pageRows = pageSlice(filtered, page);
 
-  useEffect(() => {
-    if (rowsError) {
-      setError(rowsError.message || 'Could not load fuel cycles.');
-      setRows([]);
-    }
-  }, [rowsError]);
+  // The export endpoint applies vehicle and status but not from/to, so a dated
+  // or searched export is built from the rows on screen instead.
+  const exportFromRows =
+    status === CLIENT_ONLY_STATUS || Boolean(search.trim()) || Boolean(range.from || range.to);
 
-  const visibleRows = useMemo(
-    () => (status === CLIENT_ONLY_STATUS ? rows.filter((r) => r.status === status) : rows),
-    [rows, status],
-  );
-
-  const selectedVehicleLabel = useMemo(() => {
-    if (vehicleId === 'all') return 'All Vehicles';
-    return vehicleOptions.find((v) => v.id === vehicleId)?.label || 'All Vehicles';
-  }, [vehicleId, vehicleOptions]);
-
-  const downloadReport = useCallback(
-    async (extension) => {
-      if (isExporting) return;
-      setIsExporting(true);
-      try {
-        await exportFilteredReportCsv({
-          ...(status === CLIENT_ONLY_STATUS
-            ? { headers: EXPORT_HEADERS, rows: visibleRows, mapRow: exportRowOf }
-            : {
-                fetchExport: (filters) =>
-                  ReportsService.exportReportCsv('api/reports/fuel-cycles/export', filters),
-                filters: buildTripFilterParams({ from, to, vehicleId, status: serverStatus }),
-              }),
-          filenamePrefix: 'fuel_cycles_report',
-          extension,
-          errorMessage: 'Could not export fuel cycles report.',
-        });
-      } catch {
-        // toast handled inside exportFilteredReportCsv
-      } finally {
-        setIsExporting(false);
-      }
-    },
-    [isExporting, from, to, vehicleId, status, serverStatus, visibleRows],
-  );
-
-  const clearFilters = () => {
-    setFrom('');
-    setTo('');
-    setVehicleId('all');
-    setStatus('all');
-  };
-
-  const activeFiltersCount =
-    (from ? 1 : 0) + (to ? 1 : 0) + (vehicleId !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0);
+  const activeFilters =
+    rangeFilterCount(range) +
+    (search ? 1 : 0) +
+    (vehicleId !== 'all' ? 1 : 0) +
+    (status !== 'all' ? 1 : 0);
 
   const columns = useFuelCyclesColumns();
 
   return (
-    <PageShell
-      className="p-6"
+    <ReportFrame
       title="Fuel Cycles"
       subtitle="Full-tank to full-tank cycles — distance, fuel reconciliation and cost per cycle"
-      count={visibleRows.length}
-      actions={
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => downloadReport('csv')}
-            disabled={isExporting || visibleRows.length === 0}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#ECECEE] bg-[#F8F8FB] transition-colors hover:bg-[#ECECEE] disabled:opacity-40"
-            title="Export filtered rows to CSV"
-          >
-            <CsvIcon width={20} height={20} />
-          </button>
-          <button
-            type="button"
-            onClick={() => downloadReport('xlsx')}
-            disabled={isExporting || visibleRows.length === 0}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#ECECEE] bg-[#F8F8FB] transition-colors hover:bg-[#ECECEE] disabled:opacity-40"
-            title="Export filtered rows to Excel"
-          >
-            <ExcelIcon width={18} height={18} />
-          </button>
-        </div>
-      }
       filters={
-        <FilterBar
-          from={from}
-          to={to}
-          onRangeChange={(patch) => {
-            if ('from' in patch) setFrom(patch.from);
-            if ('to' in patch) setTo(patch.to);
-          }}
-          activeCount={activeFiltersCount}
-          onClear={clearFilters}
-          right={
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="date-input-group">
-                <label htmlFor="fc-vehicle-filter">Vehicle</label>
-                <Select value={vehicleId} onValueChange={setVehicleId}>
-                  <SelectTrigger id="fc-vehicle-filter" className="h-9 w-[180px] text-sm">
-                    <SelectValue>{selectedVehicleLabel}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent align="start">
-                    <SelectItem value="all">All Vehicles</SelectItem>
-                    {vehicleOptions.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="date-input-group">
-                <label htmlFor="fc-status-filter">Status</label>
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger id="fc-status-filter" className="h-9 w-[200px] text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent align="start">
-                    {STATUS_OPTIONS.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+        <>
+          <ReportDateRange from={range.from} to={range.to} onChange={setRange} />
+          <ReportSearch value={search} onChange={setSearch} placeholder="Search vehicle" />
+          <VehiclePicker value={vehicleId} onChange={setVehicleId} />
+          <ReportSelect
+            label="Status"
+            value={status}
+            onChange={setStatus}
+            options={STATUS_OPTIONS}
+            width={190}
+          />
+          <ReportClear
+            active={activeFilters > 0}
+            onClear={() => {
+              setRange(EMPTY_RANGE);
+              setSearch('');
+              setVehicleId('all');
+              setStatus('all');
+            }}
+          />
+        </>
+      }
+      actions={
+        <ExportButton
+          buttonClass="rpt-btn"
+          onExport={(extension) =>
+            exportTripReport({
+              extension,
+              clientRows: exportFromRows ? filtered : null,
+              columns: EXPORT_COLUMNS,
+              endpoint: 'api/reports/fuel-cycles/export',
+              params,
+              filenamePrefix: 'fuel_cycles_report',
+              errorMessage: 'Could not export fuel cycles report.',
+            })
           }
+          disabled={!filtered.length}
         />
       }
+      kpis={response && !error ? kpis : null}
       footer={
-        truncated ? (
-          <span className="text-dim text-xs">
-            First {visibleRows.length} cycles only — narrow the dates to see the rest.
-          </span>
-        ) : (
-          <span className="text-dim text-xs">{visibleRows.length} cycles</span>
-        )
+        <ReportFooter
+          summary={tripReportSummary({
+            page,
+            total: filtered.length,
+            noun: 'cycles',
+            truncated: Boolean(response?.truncated),
+            capNoun: 'cycles',
+          })}
+          page={page}
+          totalPages={pageCount(filtered.length)}
+          onPage={setPage}
+        />
       }
     >
       <DataTable
         columns={columns}
-        rows={visibleRows}
+        rows={pageRows}
         rowKey={(r) => r._id}
-        loading={isLoading}
+        loading={loading}
         error={error}
-        onRetry={refetchRows}
-        showing={visibleRows.length}
-        total={visibleRows.length}
+        onRetry={refetch}
+        showing={pageRows.length}
+        total={filtered.length}
+        activeFilters={activeFilters}
         emptyTitle="No fuel cycles found"
-        emptyHint="Try widening the date range or clearing the vehicle and status filters."
+        emptyHint="Try widening the date range or clearing the search, vehicle and status filters."
       />
-    </PageShell>
+    </ReportFrame>
   );
 };
 

@@ -127,6 +127,15 @@
   font-weight: 500;
 }
 
+/* Reports: mark the open report clearly, not by weight alone. */
+.ssn--reports .ssn-child.active,
+.ssn--reports .ssn-child.active:hover {
+  background-color: #eff4ff;
+  color: #1d4ed8;
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 #2563eb;
+}
+
 /* ── Flat row (top-level item with no children) ────────────────── */
 .ssn-flat-wrap {
   list-style: none;

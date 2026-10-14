@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpDown } from 'lucide-react';
 import DataTable from '../../../components/ui/DataTable';
@@ -161,7 +161,9 @@ export default function LiveRefuelTab({
   range,
   searchQuery = '',
   fuelType = null,
+  vehicleId = null,
   onOpenDrawer,
+  onMeta = null,
   refreshKey = 0,
 }) {
   const [page, setPage] = useState(1);
@@ -169,9 +171,9 @@ export default function LiveRefuelTab({
   const [newestFirst, setNewestFirst] = useState(true);
   const [status, setStatus] = useState('all');
 
-  // A new search or range is a new result set: back to page 1 in the same render.
-  const [queryKey, setQueryKey] = useState(`${searchQuery}|${range.from}|${range.to}`);
-  const nextKey = `${searchQuery}|${range.from}|${range.to}`;
+  // A new search, vehicle or range is a new result set: back to page 1 in the same render.
+  const nextKey = `${searchQuery}|${vehicleId || ''}|${range.from}|${range.to}`;
+  const [queryKey, setQueryKey] = useState(nextKey);
   if (queryKey !== nextKey) {
     setQueryKey(nextKey);
     setPage(1);
@@ -186,17 +188,34 @@ export default function LiveRefuelTab({
           limit: pageSize,
           search: searchQuery || undefined,
           fuelType: fuelType || undefined,
+          vehicleId: vehicleId || undefined,
           status: status !== 'all' ? status : undefined,
           // desc is the API default; only the non-default goes on the wire.
           sort: newestFirst ? undefined : 'asc',
         },
         signal,
       ),
-    [range.from, range.to, page, pageSize, searchQuery, fuelType, status, newestFirst, refreshKey],
+    [
+      range.from,
+      range.to,
+      page,
+      pageSize,
+      searchQuery,
+      fuelType,
+      vehicleId,
+      status,
+      newestFirst,
+      refreshKey,
+    ],
   );
 
   const rows = (data?.data || []).map(mapUnifiedRow);
   const meta = data?.meta || null;
+
+  useEffect(() => {
+    onMeta?.(meta);
+  }, [meta, onMeta]);
+
   const counts = meta
     ? {
         verified: meta.verified || 0,

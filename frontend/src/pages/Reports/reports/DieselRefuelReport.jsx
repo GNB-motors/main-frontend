@@ -1,13 +1,49 @@
-import React, { useDeferredValue, useState } from 'react';
-import { Search, X } from 'lucide-react';
-import PageShell from '../../../components/ui/PageShell';
-import HubDateBar from '../../Mileage/components/HubDateBar';
+import React, { useState } from 'react';
+import { AlertTriangle, Fuel, IndianRupee, ReceiptText } from 'lucide-react';
 import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { getUserRole } from '../../../utils/session.js';
+import { formatINR, formatNum } from '../../../utils/formatters';
 import LiveRefuelTab from '../../Mileage/components/LiveRefuelTab';
 import RefuelDetailDrawer from '../../Mileage/components/RefuelDetailDrawer';
-import { DEFAULT_PRESET, presetRange } from '../../Mileage/mileageDates';
+import ReportFrame, { ReportClear, ReportDateRange, ReportSearch } from './ReportFrame';
+import { VehiclePicker } from './ReportEntityPicker';
+import { istDaysAgo, istToday } from './reportFilters';
 import '../../Mileage/MileagePage.css';
+
+// The last 30 IST days, today included — the hub's default window.
+const defaultRange = () => ({ from: istDaysAgo(29), to: istToday() });
+
+function feedKpis(meta) {
+  if (!meta) return null;
+  const verified = meta.verified || 0;
+  const flagged = meta.flagged || 0;
+  const unverified = meta.unverified || 0;
+  const fills = verified + flagged + unverified + (meta.slipOnly || 0);
+  return [
+    {
+      label: 'Fills',
+      value: formatNum(fills),
+      icon: Fuel,
+      hint: `${formatNum(verified)} with a bill that matches the tank`,
+    },
+    { label: 'Fuel spend', value: formatINR(meta.totalSpendInr), icon: IndianRupee, tone: 'teal' },
+    {
+      label: 'Bills to check',
+      value: formatNum(flagged),
+      icon: AlertTriangle,
+      tone: 'orange',
+      hint: 'The bill and the tank reading disagree',
+    },
+    {
+      label: 'Bills missing',
+      value: formatNum(unverified),
+      icon: ReceiptText,
+      tone: 'red',
+      hint: 'The tank rose but no bill was logged',
+    },
+  ];
+}
 
 /**
  * Reports → Diesel Report: the Diesel & Mileage hub's fill list with fuelType
@@ -17,60 +53,53 @@ import '../../Mileage/MileagePage.css';
 export default function DieselRefuelReport() {
   const { canAccess } = useFeatureFlags();
   const manages = ['OWNER', 'MANAGER'].includes(getUserRole());
+  const [range, setRange] = useState(defaultRange);
   const [search, setSearch] = useState('');
-  const deferredSearch = useDeferredValue(search);
-  const [preset, setPreset] = useState(DEFAULT_PRESET);
-  const [range, setRange] = useState(() => presetRange(DEFAULT_PRESET));
+  const debouncedSearch = useDebouncedValue(search.trim(), 300);
+  const [vehicleId, setVehicleId] = useState('all');
+  const [feedMeta, setFeedMeta] = useState(null);
   const [drawerDetail, setDrawerDetail] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  const defaults = defaultRange();
+  const activeFilters =
+    (range.from !== defaults.from ? 1 : 0) +
+    (range.to !== defaults.to ? 1 : 0) +
+    (search ? 1 : 0) +
+    (vehicleId !== 'all' ? 1 : 0);
+
   return (
-    <PageShell
+    <ReportFrame
+      layout="inline"
       title="Diesel Report"
       subtitle="Every diesel fill: the bill, what reached the tank, and whether they match."
-      actions={
-        <div className="mhub-top-actions">
-          <label className="mhub-search">
-            <Search size={15} className="mhub-search-icon" aria-hidden />
-            <input
-              type="search"
-              aria-label="Truck number, driver, phone or pump"
-              placeholder="Truck number, driver, phone or pump"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            {search ? (
-              <button
-                type="button"
-                className="mhub-search-clear"
-                onClick={() => setSearch('')}
-                aria-label="Clear search"
-              >
-                <X size={13} aria-hidden />
-              </button>
-            ) : null}
-          </label>
-        </div>
-      }
       filters={
-        <HubDateBar
-          preset={preset}
-          range={range}
-          onPreset={(key) => {
-            setPreset(key);
-            setRange(presetRange(key));
-          }}
-          onRange={(next) => {
-            setPreset(null);
-            setRange(next);
-          }}
-        />
+        <>
+          <ReportDateRange from={range.from} to={range.to} onChange={setRange} />
+          <ReportSearch
+            value={search}
+            onChange={setSearch}
+            placeholder="Search truck, driver or pump"
+          />
+          <VehiclePicker value={vehicleId} onChange={setVehicleId} />
+          <ReportClear
+            active={activeFilters > 0}
+            onClear={() => {
+              setRange(defaultRange());
+              setSearch('');
+              setVehicleId('all');
+            }}
+          />
+        </>
       }
+      kpis={feedKpis(feedMeta)}
     >
       <LiveRefuelTab
         range={range}
-        searchQuery={deferredSearch}
+        searchQuery={debouncedSearch}
         fuelType="DIESEL"
+        vehicleId={vehicleId === 'all' ? null : vehicleId}
+        onMeta={setFeedMeta}
         onOpenDrawer={setDrawerDetail}
         refreshKey={refreshKey}
       />
@@ -83,6 +112,6 @@ export default function DieselRefuelReport() {
           setRefreshKey((k) => k + 1);
         }}
       />
-    </PageShell>
+    </ReportFrame>
   );
 }

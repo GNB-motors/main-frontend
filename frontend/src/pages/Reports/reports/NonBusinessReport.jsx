@@ -1,187 +1,194 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import PageShell from '../../../components/ui/PageShell';
-import FilterBar from '../../../components/ui/FilterBar';
+import { useMemo, useState } from 'react';
+import { AlertTriangle, CheckCircle2, Route, Waypoints } from 'lucide-react';
 import DataTable from '../../../components/ui/DataTable';
-import { CsvIcon, ExcelIcon } from '../../../components/Icons';
-import { getVehicleList } from '../../../services/vehicleListService';
+import ExportButton from '../../../components/ui/ExportButton';
 import useApi from '../../../hooks/useApi';
 import { ReportsService } from '../ReportsService.js';
-import { exportFilteredReportCsv } from '../../../utils/reportCsvExport';
-import { useNonBusinessColumns } from './useNonBusinessColumns.jsx';
+import { formatINR, formatKm, formatNum } from '../../../utils/formatters';
+import { fuelExtraOf, useNonBusinessColumns } from './useNonBusinessColumns.jsx';
+import ReportFrame, {
+  ReportClear,
+  ReportDateRange,
+  ReportFooter,
+  ReportSearch,
+} from './ReportFrame';
+import { VehiclePicker } from './ReportEntityPicker';
+import { matchesSearch, pageCount, pageSlice } from './reportFilters';
+import useReportPage from './useReportPage';
 import {
   buildTripFilterParams,
-  extractVehicleOptions,
-  formatCurrency,
-  fmtKm,
+  defaultTripRange,
+  exportTripReport,
+  newestFirst,
+  rangeFilterCount,
+  tripReportSummary,
 } from './tripReportsUtils';
 
-const NonBusinessReport = () => {
-  const [rows, setRows] = useState([]);
-  const [truncated, setTruncated] = useState(false);
-  const [totals, setTotals] = useState(null);
-  const [error, setError] = useState(null);
+// For a searched export, built from the rows on screen (the server's /export
+// cannot apply the search box). Same columns as the server file, plus purpose.
+const EXPORT_COLUMNS = [
+  ['Date', (r) => r.date],
+  ['Vehicle No', (r) => r.vehicleNumber],
+  ['Status', (r) => r.status],
+  ['Place Kind', (r) => r.placeKind],
+  ['Purpose', (r) => r.purpose],
+  ['Extra (Km)', (r) => r.kmExtra],
+  ['Total (Km)', (r) => r.kmTotal],
+  ['Fuel Extra (L)', fuelExtraOf],
+  ['Fuel (Rs)', (r) => r.fuelInr],
+  ['Wear (Rs)', (r) => r.wearInr],
+  ['Total (Rs)', (r) => r.totalInr],
+  ['Dwell (Min)', (r) => r.dwellMin],
+];
 
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+/** The server's totals, recomputed for a searched subset (same rule: DEVIATION vs approved). */
+function totalsOf(rows) {
+  return rows.reduce(
+    (a, r) => {
+      a.kmExtra += r.kmExtra || 0;
+      if (r.status === 'DEVIATION') a.deviationCostInr += r.totalInr || 0;
+      else a.approvedCostInr += r.totalInr || 0;
+      return a;
+    },
+    { kmExtra: 0, deviationCostInr: 0, approvedCostInr: 0 },
+  );
+}
+
+const NonBusinessReport = () => {
+  const [range, setRange] = useState(defaultTripRange);
+  const [search, setSearch] = useState('');
   const [vehicleId, setVehicleId] = useState('all');
 
-  const [vehicleOptions, setVehicleOptions] = useState([]);
-  const [isExporting, setIsExporting] = useState(false);
-
-  const { data: vehiclesRes } = useApi((signal) => getVehicleList({ signal }), []);
-  useEffect(() => {
-    if (vehiclesRes) setVehicleOptions(extractVehicleOptions(vehiclesRes));
-  }, [vehiclesRes]);
-
+  const params = useMemo(() => buildTripFilterParams({ ...range, vehicleId }), [range, vehicleId]);
+  const paramsKey = JSON.stringify(params);
   const {
-    data: rowsResponse,
-    loading: isLoading,
-    error: rowsError,
-    refetch: refetchRows,
-  } = useApi(
-    () => ReportsService.getNonBusiness(buildTripFilterParams({ from, to, vehicleId })),
-    [JSON.stringify({ from, to, vehicleId })],
+    data: response,
+    loading,
+    error,
+    refetch,
+  } = useApi((signal) => ReportsService.getNonBusiness(params, signal), [paramsKey]);
+
+  const rows = useMemo(
+    () => (error ? [] : newestFirst(response?.data || [], (r) => r.date)),
+    [response, error],
   );
+  const searching = Boolean(search.trim());
+  const filtered = useMemo(
+    () =>
+      rows.filter((r) =>
+        matchesSearch(search, [r.vehicleNumber, r.placeKind, r.purpose, r.status]),
+      ),
+    [rows, search],
+  );
+  const totals = useMemo(
+    () => (!searching && response?.summary ? response.summary : totalsOf(filtered)),
+    [searching, response, filtered],
+  );
+  const showKmApproved = rows.some((r) => typeof r.kmApproved === 'number');
+  const columns = useNonBusinessColumns({ showKmApproved });
 
-  useEffect(() => {
-    if (rowsResponse) {
-      setError(null);
-      setRows(Array.isArray(rowsResponse.data) ? rowsResponse.data : []);
-      setTruncated(Boolean(rowsResponse.truncated));
-      setTotals(rowsResponse.summary || null);
-    }
-  }, [rowsResponse]);
+  const [page, setPage] = useReportPage(`${paramsKey}|${search.trim()}`);
+  const pageRows = pageSlice(filtered, page);
 
-  useEffect(() => {
-    if (rowsError) {
-      setError(rowsError.message || 'Could not load non-business report.');
-      setRows([]);
-    }
-  }, [rowsError]);
+  const defaults = defaultTripRange();
+  const activeFilters =
+    rangeFilterCount(range, defaults) + (search ? 1 : 0) + (vehicleId !== 'all' ? 1 : 0);
 
-  const selectedVehicleLabel = useMemo(() => {
-    if (vehicleId === 'all') return 'All Vehicles';
-    return vehicleOptions.find((v) => v.id === vehicleId)?.label || 'All Vehicles';
-  }, [vehicleId, vehicleOptions]);
-
-  const downloadReport = useCallback(
-    async (extension) => {
-      if (isExporting) return;
-      setIsExporting(true);
-      try {
-        await exportFilteredReportCsv({
-          fetchExport: (filters) =>
-            ReportsService.exportReportCsv('api/reports/non-business/export', filters),
-          filters: buildTripFilterParams({ from, to, vehicleId }),
-          filenamePrefix: 'non_business_report',
-          extension,
-          errorMessage: 'Could not export non-business report.',
-        });
-      } catch {
-        // toast handled inside exportFilteredReportCsv
-      } finally {
-        setIsExporting(false);
-      }
+  const kpis = [
+    { label: 'Excursions', value: formatNum(filtered.length), icon: Waypoints },
+    {
+      label: 'Extra km',
+      value: formatKm(totals.kmExtra),
+      icon: Route,
+      tone: 'violet',
+      hint: 'Km driven beyond the direct route',
     },
-    [isExporting, from, to, vehicleId],
-  );
-
-  const clearFilters = () => {
-    setFrom('');
-    setTo('');
-    setVehicleId('all');
-  };
-
-  const activeFiltersCount = (from ? 1 : 0) + (to ? 1 : 0) + (vehicleId !== 'all' ? 1 : 0);
-  const columns = useNonBusinessColumns();
+    {
+      label: 'Deviation cost',
+      value: formatINR(totals.deviationCostInr),
+      icon: AlertTriangle,
+      tone: 'red',
+      hint: 'Fuel and wear of the unapproved deviations',
+    },
+    {
+      label: 'Approved cost',
+      value: formatINR(totals.approvedCostInr),
+      icon: CheckCircle2,
+      tone: 'green',
+      hint: 'Fuel and wear of approved non-business movement',
+    },
+  ];
 
   return (
-    <PageShell
-      className="p-6"
+    <ReportFrame
       title="Non-Business Running"
-      subtitle="Deviations and non-business movement — extra km, approved km and the cost of each"
-      count={rows.length}
-      actions={
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => downloadReport('csv')}
-            disabled={isExporting || rows.length === 0}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#ECECEE] bg-[#F8F8FB] transition-colors hover:bg-[#ECECEE] disabled:opacity-40"
-            title="Export filtered rows to CSV"
-          >
-            <CsvIcon width={20} height={20} />
-          </button>
-          <button
-            type="button"
-            onClick={() => downloadReport('xlsx')}
-            disabled={isExporting || rows.length === 0}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#ECECEE] bg-[#F8F8FB] transition-colors hover:bg-[#ECECEE] disabled:opacity-40"
-            title="Export filtered rows to Excel"
-          >
-            <ExcelIcon width={18} height={18} />
-          </button>
-        </div>
-      }
+      subtitle="Deviations and non-business movement — extra km and the cost of each"
       filters={
-        <FilterBar
-          from={from}
-          to={to}
-          onRangeChange={(patch) => {
-            if ('from' in patch) setFrom(patch.from);
-            if ('to' in patch) setTo(patch.to);
-          }}
-          activeCount={activeFiltersCount}
-          onClear={clearFilters}
-          right={
-            <div className="date-input-group">
-              <label htmlFor="nb-vehicle-filter">Vehicle</label>
-              <Select value={vehicleId} onValueChange={setVehicleId}>
-                <SelectTrigger id="nb-vehicle-filter" className="h-9 w-[180px] text-sm">
-                  <SelectValue>{selectedVehicleLabel}</SelectValue>
-                </SelectTrigger>
-                <SelectContent align="start">
-                  <SelectItem value="all">All Vehicles</SelectItem>
-                  {vehicleOptions.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {v.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <>
+          <ReportDateRange from={range.from} to={range.to} onChange={setRange} />
+          <ReportSearch
+            value={search}
+            onChange={setSearch}
+            placeholder="Search vehicle, place, purpose"
+          />
+          <VehiclePicker value={vehicleId} onChange={setVehicleId} />
+          <ReportClear
+            active={activeFilters > 0}
+            onClear={() => {
+              setRange(defaultTripRange());
+              setSearch('');
+              setVehicleId('all');
+            }}
+          />
+        </>
+      }
+      actions={
+        <ExportButton
+          buttonClass="rpt-btn"
+          onExport={(extension) =>
+            exportTripReport({
+              extension,
+              clientRows: searching ? filtered : null,
+              columns: EXPORT_COLUMNS,
+              endpoint: 'api/reports/non-business/export',
+              params,
+              filenamePrefix: 'non_business_report',
+              errorMessage: 'Could not export non-business report.',
+            })
           }
+          disabled={!filtered.length}
         />
       }
+      kpis={response && !error ? kpis : null}
       footer={
-        <span className="text-dim text-xs">
-          {totals
-            ? `Extra ${fmtKm(totals.kmExtra)} · Deviation ${formatCurrency(totals.deviationCostInr)} · Approved ${formatCurrency(totals.approvedCostInr)}`
-            : `${rows.length} rows`}
-          {truncated ? ' · first rows only — narrow the dates' : ''}
-        </span>
+        <ReportFooter
+          summary={tripReportSummary({
+            page,
+            total: filtered.length,
+            noun: 'excursions',
+            truncated: Boolean(response?.truncated),
+            capNoun: 'excursions',
+          })}
+          page={page}
+          totalPages={pageCount(filtered.length)}
+          onPage={setPage}
+        />
       }
     >
       <DataTable
         columns={columns}
-        rows={rows}
+        rows={pageRows}
         rowKey={(r) => r.excursionId || r.key}
-        loading={isLoading}
+        loading={loading}
         error={error}
-        onRetry={refetchRows}
-        showing={rows.length}
-        total={rows.length}
+        onRetry={refetch}
+        showing={pageRows.length}
+        total={filtered.length}
+        activeFilters={activeFilters}
         emptyTitle="No non-business movement found"
-        emptyHint="Try widening the date range or clearing the vehicle filter."
+        emptyHint="Try widening the date range or clearing the search and vehicle filter."
       />
-    </PageShell>
+    </ReportFrame>
   );
 };
 

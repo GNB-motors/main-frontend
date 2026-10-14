@@ -60,26 +60,20 @@ export const ReportsService = {
   },
 
   /**
-   * Flat mileage-interval report across all vehicles.
+   * Flat mileage-interval report across all vehicles (server-paginated).
    * @param {object} params - { page, limit, startDate, endDate, vehicleId, driverId, search, status }
-   * @returns {Promise<{ data: Array, meta: Object }>}
+   * @returns {Promise<{ data: Array, meta: Object, summary: Object|null }>}
    */
-  getMileageIntervalReports: async (params = {}) => {
+  getMileageIntervalReports: async (params = {}, signal) => {
     try {
-      const response = await apiClient.get(`api/reports/mileage-intervals`, { params });
-
-      if (response.data && response.data.status === 'success') {
-        return {
-          data: Array.isArray(response.data.data) ? response.data.data : [],
-          meta: response.data.meta || { total: 0, page: 1, limit: 20, totalPages: 0 },
-        };
-      }
-
+      const response = await apiClient.get(`api/reports/mileage-intervals`, { params, signal });
       return {
-        data: response.data?.data || [],
+        data: Array.isArray(response.data?.data) ? response.data.data : [],
         meta: response.data?.meta || { total: 0, page: 1, limit: 20, totalPages: 0 },
+        summary: response.data?.summary || null,
       };
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -91,9 +85,9 @@ export const ReportsService = {
    * as `summary` for the footer.
    * @returns {Promise<{ data: Array, total: number, truncated: boolean, summary: Object|null }>}
    */
-  _getTripReport: async (endpoint, params = {}) => {
+  _getTripReport: async (endpoint, params = {}, signal) => {
     try {
-      const response = await apiClient.get(endpoint, { params });
+      const response = await apiClient.get(endpoint, { params, signal });
       const body = response.data?.data ?? response.data ?? {};
       const rows = Array.isArray(body.rows) ? body.rows : Array.isArray(body) ? body : [];
       return {
@@ -103,15 +97,17 @@ export const ReportsService = {
         summary: body.totals || null,
       };
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
 
-  getFuelCycles: (params = {}) => ReportsService._getTripReport('api/reports/fuel-cycles', params),
-  getNonBusiness: (params = {}) =>
-    ReportsService._getTripReport('api/reports/non-business', params),
-  getRunningCost: (params = {}) =>
-    ReportsService._getTripReport('api/reports/running-cost', params),
+  getFuelCycles: (params = {}, signal) =>
+    ReportsService._getTripReport('api/reports/fuel-cycles', params, signal),
+  getNonBusiness: (params = {}, signal) =>
+    ReportsService._getTripReport('api/reports/non-business', params, signal),
+  getRunningCost: (params = {}, signal) =>
+    ReportsService._getTripReport('api/reports/running-cost', params, signal),
 
   /**
    * Generic filtered CSV export — call any report `/export` endpoint with the
@@ -171,23 +167,50 @@ export const ReportsService = {
   },
 
   /**
-   * Fetches employees list for dropdowns.
-   * @param {object} params - Optional query parameters { limit }.
-   * @returns {Promise<Array>} - Array of employee data.
+   * Vehicles matching `query` (registration or chassis), for the Reports
+   * vehicle picker. Server-searched, so a fleet of any size is reachable.
+   * @returns {Promise<Array<{ id: string, label: string, sub: string }>>}
    */
-  getEmployees: async (params = { limit: 100 }) => {
+  searchVehicles: async (query, { signal, limit = 20 } = {}) => {
     try {
-      const response = await apiClient.get(`api/employees`, { params });
-
-      if (response.data && Array.isArray(response.data.data)) {
-        return response.data.data;
-      }
-      if (Array.isArray(response.data)) {
-        return response.data;
-      }
-
-      return response.data?.data || [];
+      const response = await apiClient.get('api/vehicles', {
+        params: { limit, ...(query ? { search: query } : {}) },
+        signal,
+      });
+      const list = Array.isArray(response.data?.data) ? response.data.data : [];
+      return list
+        .map((v) => ({
+          id: String(v._id || v.id),
+          label: v.registrationNumber || v.vehicleNumber || '—',
+          sub: [v.model, v.vehicleType].filter(Boolean).join(' · '),
+        }))
+        .filter((v) => v.id && v.id !== 'undefined');
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+      throw ApiError.from(error);
+    }
+  },
+
+  /**
+   * Drivers matching `query` (name or phone), for the Reports driver picker.
+   * @returns {Promise<Array<{ id: string, label: string, sub: string }>>}
+   */
+  searchDrivers: async (query, { signal, limit = 20 } = {}) => {
+    try {
+      const response = await apiClient.get('api/employees', {
+        params: { role: 'DRIVER', limit, ...(query ? { search: query } : {}) },
+        signal,
+      });
+      const list = Array.isArray(response.data?.data) ? response.data.data : [];
+      return list
+        .map((d) => ({
+          id: String(d._id || d.id),
+          label: `${d.firstName || ''} ${d.lastName || ''}`.trim() || 'Unknown',
+          sub: d.mobileNumber || '',
+        }))
+        .filter((d) => d.id && d.id !== 'undefined');
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },

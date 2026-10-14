@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  methodNoteOf,
   getVariancePercent,
   getPerformanceStatus,
   getPerformanceColor,
@@ -89,5 +90,30 @@ describe('countAtRisk', () => {
 
   it('is 0 for a missing vehicle list', () => {
     expect(countAtRisk(undefined, 10)).toBe(0);
+  });
+});
+
+describe('methodNoteOf', () => {
+  it('is null without meta', () => {
+    expect(methodNoteOf(null)).toBeNull();
+  });
+
+  it('states the method and what was left out', () => {
+    expect(
+      methodNoteOf({
+        excludedCycleCount: 1,
+        plausibleKmPerL: { min: 1, max: 8 },
+        belowMinVehicleCount: 2,
+        minCycles: 3,
+      }),
+    ).toBe(
+      'Distance-weighted: total km ÷ total litres of completed full-tank cycles. 1 cycle with no distance or an impossible km/L (1–8) left out. 2 vehicles with fewer than 3 usable cycles hidden.',
+    );
+  });
+
+  it('says only the method when nothing was left out', () => {
+    expect(methodNoteOf({ excludedCycleCount: 0, belowMinVehicleCount: 0 })).toBe(
+      'Distance-weighted: total km ÷ total litres of completed full-tank cycles.',
+    );
   });
 });

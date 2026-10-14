@@ -70,3 +70,41 @@ export function defaultVehicleSelection(vehicleChartData) {
 export function countAtRisk(vehicles, modelAvg) {
   return (vehicles ?? []).filter((v) => getVariancePercent(v.avgMileage, modelAvg) < -5).length;
 }
+
+export const MODEL_SUMMARY_EXPORT_COLUMNS = [
+  { key: 'model', label: 'Model' },
+  { key: 'vehicleCount', label: 'Vehicles', type: 'number' },
+  { key: 'recordCount', label: 'Records', type: 'number' },
+  { key: 'avgMileage', label: 'Avg Mileage (km/L)', type: 'number' },
+  { key: 'minMileage', label: 'Min', type: 'number' },
+  { key: 'maxMileage', label: 'Max', type: 'number' },
+  { key: 'totalDistanceKm', label: 'Total Distance (km)', type: 'number' },
+  { key: 'totalFuelL', label: 'Total Fuel (L)', type: 'number' },
+  { key: 'atRisk', label: 'At Risk Vehicles', type: 'number' },
+];
+
+// Model-wise summary rows as exported, with each model's at-risk count.
+export function modelSummaryExportRows(models) {
+  return (models ?? []).map((row) => ({
+    ...row,
+    atRisk: countAtRisk(row.vehicles, row.avgMileage),
+  }));
+}
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+/** How the averages were computed and what was left out, from the API's `meta`; null without it. */
+export function methodNoteOf(meta) {
+  if (!meta) return null;
+  return [
+    'Distance-weighted: total km ÷ total litres of completed full-tank cycles.',
+    meta.excludedCycleCount
+      ? `${plural(meta.excludedCycleCount, 'cycle')} with no distance or an impossible km/L (${meta.plausibleKmPerL?.min}–${meta.plausibleKmPerL?.max}) left out.`
+      : null,
+    meta.belowMinVehicleCount
+      ? `${plural(meta.belowMinVehicleCount, 'vehicle')} with fewer than ${meta.minCycles} usable cycles hidden.`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { laneRow, filterLanes, LANE_VERDICT } from './laneKmReportUtils';
+import { laneRow, filterLanes, LANE_FILTERS, LANE_VERDICT } from './laneKmReportUtils';
 
 describe('laneKmReportUtils', () => {
   const over = {
@@ -74,5 +74,16 @@ describe('laneKmReportUtils', () => {
       expect(v.label).toBeTruthy();
       expect(['critical', 'caution', 'ok', 'inert']).toContain(v.tone);
     }
+  });
+
+  it('offers a filter for every verdict, after All lanes', () => {
+    expect(LANE_FILTERS[0].key).toBe('all');
+    expect(LANE_FILTERS.slice(1).map((f) => f.key)).toEqual(Object.keys(LANE_VERDICT));
+  });
+
+  it('search tolerates a lane with a missing label', () => {
+    const rows = [laneRow({ fromLabel: null, toLabel: 'AMTA', sapValues: [] })];
+    expect(filterLanes(rows, 'all', 'amta')).toHaveLength(1);
+    expect(filterLanes(rows, 'all', 'ocl')).toHaveLength(0);
   });
 });

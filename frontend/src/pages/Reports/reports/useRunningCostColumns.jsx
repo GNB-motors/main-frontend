@@ -1,13 +1,25 @@
 import { useMemo } from 'react';
 import { formatCurrency, fmtKm, fmtL, fmtPct } from './tripReportsUtils';
 
-// Columns for GET /api/reports/running-cost (RunningCostRow rows).
-export function useRunningCostColumns() {
+const GROUP_LABEL = { vehicle: 'Vehicle', hub: 'Hub', driver: 'Driver', day: 'Day' };
+
+/**
+ * Km of ledger drives no trip role explains — the data-gap bucket. The API row
+ * calls it unAttributedKm; kmUnattributed is the contract name.
+ */
+export const unattributedKmOf = (r) => r.kmUnattributed ?? r.unAttributedKm ?? null;
+
+/**
+ * Columns for GET /api/reports/running-cost (RunningCostRow rows). The API
+ * has no reposition km (allocations are not persisted, so it would always be
+ * 0) and no overhead cost, so neither has a column.
+ */
+export function useRunningCostColumns(groupBy = 'vehicle') {
   return useMemo(
     () => [
       {
         key: 'label',
-        label: 'Group',
+        label: GROUP_LABEL[groupBy] || 'Group',
         render: (r) => <div className="cell-primary font-medium">{r.label || r.key || '—'}</div>,
       },
       {
@@ -37,16 +49,10 @@ export function useRunningCostColumns() {
         render: (r) => <div className="cell-primary">{fmtKm(r.kmReturn)}</div>,
       },
       {
-        key: 'kmReposition',
-        label: 'Km Reposition',
-        align: 'right',
-        render: (r) => <div className="cell-primary">{fmtKm(r.kmReposition)}</div>,
-      },
-      {
         key: 'kmUnattributed',
         label: 'Km Unattributed',
         align: 'right',
-        render: (r) => <div className="cell-primary">{fmtKm(r.kmUnattributed)}</div>,
+        render: (r) => <div className="cell-primary">{fmtKm(unattributedKmOf(r))}</div>,
       },
       {
         key: 'fuelL',
@@ -73,12 +79,6 @@ export function useRunningCostColumns() {
         render: (r) => <div className="cell-primary">{formatCurrency(r.deviationCostInr)}</div>,
       },
       {
-        key: 'overheadCostInr',
-        label: 'Overhead ₹',
-        align: 'right',
-        render: (r) => <div className="cell-primary">{formatCurrency(r.overheadCostInr)}</div>,
-      },
-      {
         key: 'totalCostInr',
         label: 'Total ₹',
         align: 'right',
@@ -101,6 +101,6 @@ export function useRunningCostColumns() {
         render: (r) => <div className="cell-primary">{fmtPct(r.deviationSharePct)}</div>,
       },
     ],
-    [],
+    [groupBy],
   );
 }
