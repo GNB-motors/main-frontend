@@ -1,9 +1,9 @@
 /**
  * FleetEdge link health, as the header icon, the vehicles table, Vehicle 360,
- * Settings and the relink panel read it. Every role in the dashboard sees it. Pure: every
- * surface derives its copy from the one `/api/fleetedge/accounts/link-health`
- * payload through these functions, so the icon and the table can never
- * disagree about an account.
+ * Settings and the relink panel read it; every role in the dashboard sees it.
+ * Pure: every surface derives its copy from the one
+ * `/api/fleetedge/accounts/link-health` payload through these functions, so
+ * the icon and the table can never disagree about an account.
  */
 
 /** States the customer has to act on, worst first. */
