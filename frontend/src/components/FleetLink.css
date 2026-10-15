@@ -30,8 +30,13 @@
   width: 9px;
   height: 9px;
   border-radius: 999px;
-  background: var(--ds-warn);
   box-shadow: 0 0 0 2px #fff;
+}
+.fleet-link-dot--warn {
+  background: var(--ds-warn);
+}
+.fleet-link-dot--ok {
+  background: var(--ds-ok);
 }
 
 @keyframes fleet-link-pulse {
@@ -144,6 +149,16 @@
 .fleet-link-chip:hover {
   filter: brightness(0.96);
   text-decoration: underline;
+}
+.fleet-link-chip--ok {
+  color: var(--ds-ok-ink);
+  background: var(--ds-ok-tint);
+  border-color: color-mix(in srgb, var(--ds-ok) 40%, transparent);
+}
+.fleet-link-chip--info {
+  color: var(--ds-neutral-ink);
+  background: var(--ds-neutral-tint);
+  border-color: var(--ds-line);
 }
 span.fleet-link-chip {
   cursor: default;

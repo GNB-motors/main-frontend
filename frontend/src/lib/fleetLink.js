@@ -94,26 +94,34 @@ export function linkReason(account) {
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 /**
- * Header icon model. Hidden unless some account needs the customer.
- * count is the number of disconnected accounts (expiring ones show a dot only).
+ * Header icon model. The icon is always shown to roles that can re-link, so
+ * the customer always has one place to check FleetEdge:
+ *   crit — accounts disconnected (red, count = how many)
+ *   warn — accounts expiring soon (amber dot)
+ *   ok   — every account connected (green dot)
+ *   idle — still loading, the check failed, or no account linked yet
  */
 export function indicatorModel(data) {
   const s = data?.summary;
-  if (!s || data.severity === 'none') return { visible: false };
+  if (!s) return { tone: 'idle', count: 0, label: 'FleetEdge connection' };
   if (s.needsRelink > 0) {
     return {
-      visible: true,
       tone: 'crit',
       count: s.needsRelink,
       label: `FleetEdge: ${plural(s.needsRelink, 'account needs', 'accounts need')} reconnecting`,
     };
   }
-  return {
-    visible: true,
-    tone: 'warn',
-    count: 0,
-    label: `FleetEdge: ${plural(s.expiring, 'account expires', 'accounts expire')} soon`,
-  };
+  if (s.expiring > 0) {
+    return {
+      tone: 'warn',
+      count: 0,
+      label: `FleetEdge: ${plural(s.expiring, 'account expires', 'accounts expire')} soon`,
+    };
+  }
+  if (!(data.accounts || []).length) {
+    return { tone: 'idle', count: 0, label: 'FleetEdge: no account connected yet' };
+  }
+  return { tone: 'ok', count: 0, label: 'FleetEdge: all accounts connected' };
 }
 
 /**

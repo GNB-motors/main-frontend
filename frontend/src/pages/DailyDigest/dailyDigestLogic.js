@@ -38,6 +38,7 @@ export const ALERT_META = {
   FLEETEDGE_ALERT_FUEL_DRAIN: { sev: 'CRITICAL', title: 'Fuel drain', icon: ShieldAlert },
   FLEETEDGE_SUBSCRIPTION_EXPIRED: { sev: 'HIGH', title: 'Plan expired', icon: ShieldAlert },
   FLEETEDGE_REAUTH_REQUIRED: { sev: 'HIGH', title: 'FleetEdge re-auth needed', icon: ShieldAlert },
+  FLEETEDGE_RELINK_DUE: { sev: 'MEDIUM', title: 'FleetEdge re-link due', icon: Bell },
   FLEETEDGE_SUBSCRIPTION_EXPIRING: { sev: 'MEDIUM', title: 'Plan expiring', icon: Bell },
   ADBLUE_BALANCE_FLAG: { sev: 'MEDIUM', title: 'AdBlue balance flag', icon: Bell },
   IDLING_BURN_HIGH: { sev: 'MEDIUM', title: 'High idling burn', icon: Fuel },

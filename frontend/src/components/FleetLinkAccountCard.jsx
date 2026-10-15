@@ -22,6 +22,10 @@ export default function FleetLinkAccountCard({ account, highlighted, onNavigate 
     when = `Data paused since ${formatDateTimeIST(account.dataPausedSince)} (${timeAgo(account.dataPausedSince)})`;
   } else if (account.state === 'EXPIRING' && account.deadline) {
     when = `Auto-sync stops on ${formatDateTimeIST(account.deadline)}. Reconnect before then.`;
+  } else if (account.state === 'RECOVERING') {
+    when = 'Renewing its sign-in automatically — nothing to do.';
+  } else if (account.state === 'HEALTHY' && account.deadline) {
+    when = `Syncs on its own until ${formatDateTimeIST(account.deadline)}.`;
   }
 
   return (

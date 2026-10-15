@@ -83,25 +83,39 @@ describe('linkStatus / linkReason', () => {
 });
 
 describe('indicatorModel', () => {
-  it('is hidden when nothing needs the customer', () => {
+  it('stays visible as a neutral icon before data arrives', () => {
+    expect(indicatorModel(null)).toEqual({ tone: 'idle', count: 0, label: 'FleetEdge connection' });
+  });
+
+  it('is green when every account is connected', () => {
     expect(indicatorModel(payload([healthy], { needsRelink: 0, expiring: 0 }, 'none'))).toEqual({
-      visible: false,
+      tone: 'ok',
+      count: 0,
+      label: 'FleetEdge: all accounts connected',
     });
-    expect(indicatorModel(null)).toEqual({ visible: false });
+  });
+
+  it('is neutral when the org has no FleetEdge account yet', () => {
+    expect(indicatorModel(payload([], { needsRelink: 0, expiring: 0 }, 'none'))).toMatchObject({
+      tone: 'idle',
+      label: 'FleetEdge: no account connected yet',
+    });
   });
 
   it('counts disconnected accounts in red', () => {
     const m = indicatorModel(
       payload([broken, expiring], { needsRelink: 1, expiring: 1 }, 'critical'),
     );
-    expect(m).toMatchObject({ visible: true, tone: 'crit', count: 1 });
-    expect(m.label).toBe('FleetEdge: 1 account needs reconnecting');
+    expect(m).toEqual({
+      tone: 'crit',
+      count: 1,
+      label: 'FleetEdge: 1 account needs reconnecting',
+    });
   });
 
   it('shows an amber dot without a count when accounts are only expiring', () => {
     const m = indicatorModel(payload([expiring], { needsRelink: 0, expiring: 2 }, 'warning'));
-    expect(m).toMatchObject({ visible: true, tone: 'warn', count: 0 });
-    expect(m.label).toBe('FleetEdge: 2 accounts expire soon');
+    expect(m).toEqual({ tone: 'warn', count: 0, label: 'FleetEdge: 2 accounts expire soon' });
   });
 });
 

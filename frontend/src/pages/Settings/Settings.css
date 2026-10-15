@@ -454,6 +454,19 @@
   background: var(--stx-red-bg);
   color: var(--stx-red);
 }
+.stx-status--warn {
+  background: var(--stx-amber-bg);
+  color: var(--stx-amber);
+}
+/* A status that is also the way to fix it (FleetEdge "Reconnect"). */
+button.stx-status {
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+button.stx-status:hover {
+  text-decoration: underline;
+}
 
 /* ─── Lists (locations, accounts) ────────────────────────────────────── */
 

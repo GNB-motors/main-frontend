@@ -8,11 +8,11 @@ const linkClass =
  * How to re-link, in the order the customer does it. The extension reads the
  * FleetEdge sign-in from an open FleetEdge tab, so FleetEdge comes first.
  */
-export default function FleetLinkSteps({ fleetIds, extension, desktop }) {
+export default function FleetLinkSteps({ fleetIds, extension, desktop, title }) {
   const fleets = fleetIds.length ? fleetIds.join(', ') : null;
   return (
     <section className="rounded-[var(--ds-radius-md)] bg-[var(--ds-sunk)] p-4">
-      <h3 className="text-sm font-semibold">How to reconnect (about 2 minutes)</h3>
+      <h3 className="text-sm font-semibold">{title || 'How to reconnect (about 2 minutes)'}</h3>
       {!desktop ? (
         <p className="mt-2 flex items-start gap-2 rounded-[var(--ds-radius-sm)] bg-[var(--ds-warn-tint)] p-2 text-xs text-[var(--ds-warn-ink)]">
           <Laptop size={14} className="mt-0.5 shrink-0" />

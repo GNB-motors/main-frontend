@@ -53,7 +53,8 @@ export default function FleetLinkSheet({ open, focusAccountId, onOpenChange }) {
   const actionable = accounts
     .filter(needsAction)
     .sort((a, b) => (b.accountId === focusAccountId) - (a.accountId === focusAccountId));
-  const recovering = accounts.filter((a) => a.state === 'RECOVERING');
+  const connected = accounts.filter((a) => !needsAction(a));
+  const noAccounts = Boolean(data) && accounts.length === 0;
   const summary = data?.summary ? summaryLine(data.summary) : null;
   const close = () => onOpenChange(false);
 
@@ -88,8 +89,18 @@ export default function FleetLinkSheet({ open, focusAccountId, onOpenChange }) {
               Couldn&apos;t check FleetEdge right now. Press Check again in a moment.
             </p>
           ) : null}
+          {!data && !error ? (
+            <p className="text-sm text-muted-foreground">Checking your FleetEdge accounts…</p>
+          ) : null}
 
-          {data && actionable.length === 0 ? (
+          {noAccounts ? (
+            <p className="rounded-[var(--ds-radius-sm)] bg-[var(--ds-sunk)] px-3 py-2 text-sm font-semibold">
+              No FleetEdge account is connected yet. Connect one from the GNB Edge extension to
+              start receiving live vehicle data.
+            </p>
+          ) : null}
+
+          {data && !noAccounts && actionable.length === 0 ? (
             <p className="flex items-center gap-2 rounded-[var(--ds-radius-sm)] bg-[var(--ds-ok-tint)] px-3 py-2 text-sm font-semibold text-[var(--ds-ok-ink)]">
               <CheckCircle2 size={16} /> Every FleetEdge account is connected.
             </p>
@@ -104,18 +115,21 @@ export default function FleetLinkSheet({ open, focusAccountId, onOpenChange }) {
             />
           ))}
 
-          {recovering.length ? (
-            <p className="text-xs text-muted-foreground">
-              {recovering.map((a) => a.friendlyName || a.fleetId).join(', ')}: renewing
-              automatically, nothing to do.
-            </p>
+          {actionable.length && connected.length ? (
+            <h3 className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Working fine
+            </h3>
           ) : null}
+          {connected.map((account) => (
+            <FleetLinkAccountCard key={account.accountId} account={account} onNavigate={close} />
+          ))}
 
-          {actionable.length ? (
+          {actionable.length || noAccounts ? (
             <FleetLinkSteps
               fleetIds={actionable.map((a) => a.fleetId).filter(Boolean)}
               extension={extension}
               desktop={isDesktopChrome()}
+              title={noAccounts ? 'How to connect FleetEdge (about 2 minutes)' : null}
             />
           ) : null}
         </div>
