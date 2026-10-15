@@ -1,13 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
-  canRelink,
   indexLinkHealth,
   linkForAccount,
   linkForReg,
   linkStatus,
   linkReason,
   indicatorModel,
-  bannerModel,
+  vehiclesNeedingAction,
   recoveredAccounts,
   linkedByText,
 } from './fleetLink';
@@ -36,16 +35,6 @@ const expiring = {
 const healthy = { accountId: 'a3', state: 'HEALTHY', vehicles: [] };
 
 const payload = (accounts, summary, severity) => ({ accounts, summary, severity });
-
-describe('canRelink', () => {
-  it('lets only the roles that can sign in to the extension re-link', () => {
-    expect(canRelink('OWNER')).toBe(true);
-    expect(canRelink('manager')).toBe(true);
-    expect(canRelink('SUPER_ADMIN')).toBe(true);
-    expect(canRelink('OPS_EXECUTIVE')).toBe(false);
-    expect(canRelink(null)).toBe(false);
-  });
-});
 
 describe('indexLinkHealth', () => {
   it('finds an account by id and by plate, ignoring separators', () => {
@@ -119,31 +108,18 @@ describe('indicatorModel', () => {
   });
 });
 
-describe('bannerModel', () => {
-  it('names a single disconnected account and the vehicles it paused', () => {
-    const b = bannerModel(payload([broken], { affectedVehicles: 18 }, 'critical'));
-    expect(b).toEqual({
-      tone: 'crit',
-      text: 'FleetEdge account Sharma Logistics is disconnected — live data for 18 vehicles is paused.',
-      signature: 'crit:a1',
-    });
+describe('vehiclesNeedingAction', () => {
+  it('counts vehicles on accounts that are disconnected or expiring, fleet-wide', () => {
+    expect(
+      vehiclesNeedingAction(
+        payload([{ ...broken, vehicleCount: 12 }, expiring, { ...healthy, vehicleCount: 40 }]),
+      ),
+    ).toBe(13);
   });
 
-  it('counts several disconnected accounts', () => {
-    const b = bannerModel(
-      payload([broken, { ...broken, accountId: 'a0' }], { affectedVehicles: 1 }, 'critical'),
-    );
-    expect(b.text).toBe(
-      '2 FleetEdge accounts are disconnected — live data for 1 vehicle is paused.',
-    );
-    expect(b.signature).toBe('crit:a0,a1');
-  });
-
-  it('warns only once an expiring account is within two days', () => {
-    expect(bannerModel(payload([expiring], {}, 'warning'))).toBeNull();
-    const b = bannerModel(payload([{ ...expiring, daysLeft: 1.2, urgent: true }], {}, 'warning'));
-    expect(b).toMatchObject({ tone: 'warn', signature: 'warn:a2' });
-    expect(b.text).toBe('FleetEdge account Patil Transport stops syncing in 1 day.');
+  it('is zero with no data or when every account is connected', () => {
+    expect(vehiclesNeedingAction(null)).toBe(0);
+    expect(vehiclesNeedingAction(payload([healthy]))).toBe(0);
   });
 });
 

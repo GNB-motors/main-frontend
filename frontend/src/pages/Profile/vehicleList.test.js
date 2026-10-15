@@ -141,7 +141,7 @@ describe('describeFleetEdgeAccount', () => {
     expect(a.isDisabled).toBe(true);
   });
 
-  it('carries the link verdict for accounts that need re-linking', () => {
+  it('carries the link state of every account link health covers', () => {
     const linkIndex = indexLinkHealth({
       accounts: [
         { accountId: 'acc-9', state: 'EXPIRING', daysLeft: 3, urgent: false, vehicles: [] },
@@ -149,9 +149,20 @@ describe('describeFleetEdgeAccount', () => {
       ],
     });
     const expiring = describeFleetEdgeAccount({ fleetEdgeAccountId: 'acc-9' }, map, linkIndex);
-    expect(expiring.link).toEqual({ accountId: 'acc-9', tone: 'warn', label: 'Expires in 3 days' });
+    expect(expiring.link).toEqual({
+      accountId: 'acc-9',
+      needsAction: true,
+      tone: 'warn',
+      label: 'Expires in 3 days',
+    });
+    expect(describeFleetEdgeAccount({ fleetEdgeAccountId: 'acc-7' }, map, linkIndex).link).toEqual({
+      accountId: 'acc-7',
+      needsAction: false,
+      tone: 'ok',
+      label: 'Connected',
+    });
     expect(
-      describeFleetEdgeAccount({ fleetEdgeAccountId: 'acc-7' }, map, linkIndex).link,
+      describeFleetEdgeAccount({ fleetEdgeAccountId: 'acc-1' }, map, linkIndex).link,
     ).toBeNull();
     expect(vehicleNeedsRelink({ fleetEdgeAccountId: 'acc-9' }, linkIndex)).toBe(true);
     expect(vehicleNeedsRelink({ fleetEdgeAccountId: 'acc-7' }, linkIndex)).toBe(false);
@@ -201,7 +212,7 @@ describe('vehicle export', () => {
       vehicleCategory: 'HEAVY',
       chassis_number: 'N/A',
       fleetEdgeAccount: 'Hub A',
-      fleetEdgeLink: '—',
+      fleetEdgeLink: 'Not connected',
     });
   });
 
@@ -216,7 +227,7 @@ describe('vehicle export', () => {
     expect(mapVehicleForExport({ fleetEdgeAccountId: 'acc-9' }, map, linkIndex).fleetEdgeLink).toBe(
       'Disconnected',
     );
-    // Without link data (a role that cannot re-link) the stored status still shows.
+    // Without link data (the check failed or is unavailable) the stored status still shows.
     expect(mapVehicleForExport({ fleetEdgeAccountId: 'acc-5' }, map).fleetEdgeLink).toBe(
       'Login failed',
     );

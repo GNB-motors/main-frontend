@@ -3,8 +3,7 @@ import { toast } from 'react-toastify';
 import FleetLinkContext from './fleetLinkContext';
 import { useActiveBranch } from './BranchContext.jsx';
 import useFleetLinkHealth from '../hooks/useFleetLinkHealth';
-import { canRelink, indexLinkHealth } from '../lib/fleetLink';
-import { getUserRole } from '../utils/session.js';
+import { indexLinkHealth } from '../lib/fleetLink';
 
 const FleetLinkSheet = lazy(() => import('../components/FleetLinkSheet.jsx'));
 
@@ -15,13 +14,13 @@ const announceRecovered = (accounts) => {
 
 /**
  * Holds FleetEdge link health for the dashboard shell and renders the relink
- * panel, so the header icon, banner, vehicles table and Vehicle 360 all read
- * one payload and open one panel. Only roles that can sign in to the GNB Edge
- * extension fetch anything — nobody else can act on it.
+ * panel, so the header icon, vehicles table, Vehicle 360 and Settings all read
+ * one payload and open one panel. Every role sees the link state, whoever can
+ * act on it.
  */
 export default function FleetLinkProvider({ children }) {
   const { branchId } = useActiveBranch();
-  const enabled = canRelink(getUserRole());
+  const enabled = true;
   const health = useFleetLinkHealth(enabled, branchId, { onRecovered: announceRecovered });
   // The panel stays mounted after its first open so it can animate closed.
   const [panel, setPanel] = useState({ mounted: false, open: false, accountId: null });

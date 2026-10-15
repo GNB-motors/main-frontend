@@ -1,4 +1,4 @@
-/* FleetEdge relink surfaces: header icon, banner, table / Vehicle 360 chips.
+/* FleetEdge relink surfaces: header icon, table / Vehicle 360 / Settings chips.
    Colours come from the --ds-* status palette (index.css). */
 
 /* Header icon — shares .navbar-bell's box, only the tone changes. */
@@ -50,76 +50,6 @@
 @media (prefers-reduced-motion: reduce) {
   .navbar-bell.fleet-link-btn--crit {
     animation: none;
-  }
-}
-
-/* Banner under the navbar. */
-.fleet-link-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-  padding: 10px 24px;
-  border-style: solid;
-  border-width: 0 0 1px 4px;
-  border-color: var(--ds-line);
-  font-size: 13px;
-  line-height: 1.4;
-}
-.fleet-link-banner--crit {
-  background: var(--ds-crit-tint);
-  border-left-color: var(--ds-crit-solid);
-  color: var(--ds-crit-ink);
-}
-.fleet-link-banner--warn {
-  background: var(--ds-warn-tint);
-  border-left-color: var(--ds-warn);
-  color: var(--ds-warn-ink);
-}
-.fleet-link-banner-text {
-  flex: 1;
-  min-width: 0;
-  font-weight: 600;
-}
-.fleet-link-banner-cta {
-  flex-shrink: 0;
-  padding: 6px 12px;
-  border-radius: var(--ds-radius-sm);
-  font-size: 12px;
-  font-weight: 700;
-  color: #fff;
-  background: var(--ds-crit-solid);
-  border: 0;
-  cursor: pointer;
-}
-.fleet-link-banner--warn .fleet-link-banner-cta {
-  background: var(--ds-warn-ink);
-}
-.fleet-link-banner-cta:hover {
-  filter: brightness(0.92);
-}
-.fleet-link-banner-close {
-  flex-shrink: 0;
-  display: inline-flex;
-  padding: 4px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  opacity: 0.7;
-}
-.fleet-link-banner-close:hover {
-  opacity: 1;
-  background: color-mix(in srgb, currentColor 10%, transparent);
-}
-@media (max-width: 640px) {
-  .fleet-link-banner {
-    padding: 10px 12px;
-    flex-wrap: wrap;
-  }
-  .fleet-link-banner-text {
-    flex-basis: calc(100% - 60px);
   }
 }
 

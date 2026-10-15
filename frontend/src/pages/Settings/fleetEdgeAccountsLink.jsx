@@ -1,28 +1,58 @@
-import { Unplug } from 'lucide-react';
+import { Plug, Unplug } from 'lucide-react';
 import { useFleetLink } from '../../contexts/fleetLinkContext';
 import { linkForAccount, linkReason, linkStatus, needsAction } from '../../lib/fleetLink';
 import { formatDateIST } from '../../utils/dateUtils';
 import '../../components/FleetLink.css';
 
 /**
- * Link verdict on one account card: a Reconnect call to action when the
- * account needs the customer, otherwise how long it keeps syncing on its own.
+ * Link verdict on every account card: a Reconnect call to action when the
+ * account needs the customer, otherwise its link state and how long it keeps
+ * syncing on its own.
  */
-export default function FleetEdgeAccountLink({ accountId }) {
-  const { enabled, index, openPanel } = useFleetLink();
-  const link = enabled ? linkForAccount(index, accountId) : null;
-  if (!link) return null;
+export default function FleetEdgeAccountLink({ accountId, status: accountStatus }) {
+  const { enabled, data, error, index, openPanel } = useFleetLink();
+  if (!enabled) return null;
+  const link = linkForAccount(index, accountId);
 
-  if (!needsAction(link)) {
-    if (!link.deadline) return null;
+  if (!link) {
+    if (!data && !error) {
+      return <p className="mt-2 text-xs text-slate-400">Checking the link…</p>;
+    }
+    // No link verdict (disabled, not an extension link, or the check failed).
     return (
-      <p className="mt-2 text-xs text-slate-400">
-        Syncs on its own until {formatDateIST(link.deadline)}
-      </p>
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+        <button
+          type="button"
+          className="fleet-link-chip fleet-link-chip--crit"
+          onClick={() => openPanel(accountId)}
+          title="See how to connect this FleetEdge account"
+        >
+          <Unplug size={11} aria-hidden="true" />
+          Not connected
+        </button>
+        {accountStatus === 'DISABLED' ? <span>Disabled — no data is pulled.</span> : null}
+      </div>
     );
   }
 
   const status = linkStatus(link);
+  if (!needsAction(link)) {
+    return (
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+        <button
+          type="button"
+          className={`fleet-link-chip fleet-link-chip--${status.tone}`}
+          onClick={() => openPanel(accountId)}
+          title="FleetEdge connection details"
+        >
+          <Plug size={11} aria-hidden="true" />
+          {status.label}
+        </button>
+        {link.deadline ? <span>Syncs on its own until {formatDateIST(link.deadline)}</span> : null}
+      </div>
+    );
+  }
+
   return (
     <div
       className={`mt-3 flex flex-wrap items-center gap-2 rounded-xl px-3 py-2 text-xs ${

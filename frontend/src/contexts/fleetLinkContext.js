@@ -3,8 +3,9 @@ import { indexLinkHealth } from '../lib/fleetLink';
 
 /**
  * fleetLinkContext — shared by FleetLinkProvider (host) and the header icon,
- * banner, vehicles table and relink panel. Lives in its own module so the
- * provider file keeps a single export (react-refresh/only-export-components).
+ * vehicles table, Vehicle 360, Settings and relink panel. Lives in its own
+ * module so the provider file keeps a single export
+ * (react-refresh/only-export-components).
  */
 const FleetLinkContext = createContext(null);
 

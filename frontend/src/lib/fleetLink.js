@@ -1,14 +1,10 @@
 /**
- * FleetEdge link health, as the header icon, the banner, the vehicles table and
- * the relink panel read it. Pure: every surface derives its copy from the one
- * `/api/fleetedge/accounts/link-health` payload through these functions, so the
- * icon and the table can never disagree about an account.
+ * FleetEdge link health, as the header icon, the vehicles table, Vehicle 360,
+ * Settings and the relink panel read it. Every role in the dashboard sees it. Pure: every
+ * surface derives its copy from the one `/api/fleetedge/accounts/link-health`
+ * payload through these functions, so the icon and the table can never
+ * disagree about an account.
  */
-
-/** Only these roles can sign in to the GNB Edge extension, so only they can re-link. */
-export const RELINK_ROLES = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
-
-export const canRelink = (role) => RELINK_ROLES.includes(String(role || '').toUpperCase());
 
 /** States the customer has to act on, worst first. */
 export const ACTION_STATES = ['NEEDS_RELINK', 'EXPIRING'];
@@ -41,6 +37,12 @@ export const linkForAccount = (index, accountId) =>
 export const linkForReg = (index, reg) => index?.byReg.get(regKey(reg)) || null;
 
 export const needsAction = (account) => ACTION_STATES.includes(account?.state);
+
+/** Vehicles across the fleet whose FleetEdge account needs re-linking (now or soon). */
+export const vehiclesNeedingAction = (data) =>
+  (data?.accounts || [])
+    .filter(needsAction)
+    .reduce((n, a) => n + (a.vehicleCount ?? (a.vehicles || []).length), 0);
 
 const days = (n) => {
   const whole = Math.max(0, Math.floor(n ?? 0));
@@ -94,8 +96,8 @@ export function linkReason(account) {
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 /**
- * Header icon model. The icon is always shown to roles that can re-link, so
- * the customer always has one place to check FleetEdge:
+ * Header icon model. The icon is always shown, so everyone has one place to
+ * check FleetEdge:
  *   crit — accounts disconnected (red, count = how many)
  *   warn — accounts expiring soon (amber dot)
  *   ok   — every account connected (green dot)
@@ -122,50 +124,6 @@ export function indicatorModel(data) {
     return { tone: 'idle', count: 0, label: 'FleetEdge: no account connected yet' };
   }
   return { tone: 'ok', count: 0, label: 'FleetEdge: all accounts connected' };
-}
-
-/**
- * Strip under the navbar: every disconnected account, or an expiring one within
- * two days. `signature` changes when a different set of accounts is affected,
- * so a dismissal never hides a new problem.
- */
-export function bannerModel(data) {
-  const accounts = data?.accounts || [];
-  const broken = accounts.filter((a) => a.state === 'NEEDS_RELINK');
-  if (broken.length) {
-    const vehicles = data.summary?.affectedVehicles ?? 0;
-    const name = broken.length === 1 ? broken[0].friendlyName || broken[0].fleetId : null;
-    const who = name
-      ? `FleetEdge account ${name} is disconnected`
-      : `${broken.length} FleetEdge accounts are disconnected`;
-    return {
-      tone: 'crit',
-      text: vehicles
-        ? `${who} — live data for ${plural(vehicles, 'vehicle', 'vehicles')} is paused.`
-        : `${who}.`,
-      signature: `crit:${broken
-        .map((a) => a.accountId)
-        .sort()
-        .join(',')}`,
-    };
-  }
-  const soon = accounts.filter((a) => a.state === 'EXPIRING' && a.urgent);
-  if (soon.length) {
-    const first = soon[0];
-    const text =
-      soon.length === 1
-        ? `FleetEdge account ${first.friendlyName || first.fleetId} stops syncing ${days(first.daysLeft)}.`
-        : `${soon.length} FleetEdge accounts stop syncing within 2 days.`;
-    return {
-      tone: 'warn',
-      text,
-      signature: `warn:${soon
-        .map((a) => a.accountId)
-        .sort()
-        .join(',')}`,
-    };
-  }
-  return null;
 }
 
 /** Accounts that stopped needing action between two payloads — for the "reconnected" toast. */

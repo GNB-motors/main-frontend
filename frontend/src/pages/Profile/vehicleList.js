@@ -67,7 +67,8 @@ export function vehicleNeedsRelink(vehicle, linkIndex) {
 
 /**
  * Resolve the FleetEdge account badge model for a vehicle row. `linkIndex`
- * (from lib/fleetLink) adds the link verdict when the viewer can see it.
+ * (from lib/fleetLink) adds the account's link state — connected, expiring or
+ * disconnected — whenever link health covers it.
  */
 export function describeFleetEdgeAccount(vehicle, accountMap = {}, linkIndex = null) {
   if (!vehicle?.fleetEdgeAccountId) return { tagged: false };
@@ -85,18 +86,20 @@ export function describeFleetEdgeAccount(vehicle, accountMap = {}, linkIndex = n
     tip,
     isDisabled: acct?.status === 'DISABLED',
     isAuthFailed: acct?.status === 'AUTH_FAILED',
-    link: needsAction(linkAccount)
-      ? { accountId: linkAccount.accountId, ...linkStatus(linkAccount) }
+    link: linkAccount
+      ? {
+          accountId: linkAccount.accountId,
+          needsAction: needsAction(linkAccount),
+          ...linkStatus(linkAccount),
+        }
       : null,
-    linkKnown: Boolean(linkAccount),
   };
 }
 
 function linkExportText(acct) {
   if (!acct.tagged) return '—';
   if (acct.link) return acct.link.label;
-  if (acct.linkKnown) return 'Connected';
-  return acct.isAuthFailed ? 'Login failed' : '—';
+  return acct.isAuthFailed ? 'Login failed' : 'Not connected';
 }
 
 export const VEHICLE_EXPORT_COLUMNS = [

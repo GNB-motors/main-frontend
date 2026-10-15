@@ -32,6 +32,7 @@ import {
   vehicleNeedsRelink,
 } from './vehicleList.js';
 import { useFleetLink } from '../../contexts/fleetLinkContext';
+import { vehiclesNeedingAction } from '../../lib/fleetLink';
 import logger from '../../utils/logger';
 
 const VehiclesPage = () => {
@@ -164,8 +165,14 @@ const VehiclesPage = () => {
 
   // Build a map from accountId → account for fast lookup
   const accountMap = useMemo(() => buildAccountMap(fleetEdgeAccounts), [fleetEdgeAccounts]);
-  const { index: linkIndex, data: linkData, openPanel: openRelinkPanel } = useFleetLink();
-  const showRelinkChip = Boolean(linkData && linkData.severity !== 'none');
+  const {
+    index: linkIndex,
+    data: linkData,
+    error: linkError,
+    openPanel: openRelinkPanel,
+  } = useFleetLink();
+  // Fleet-wide, not just this page of the table.
+  const relinkCount = vehiclesNeedingAction(linkData);
 
   const [statusFilter, setStatusFilter] = useState('ALL');
 
@@ -222,6 +229,7 @@ const VehiclesPage = () => {
   const columns = useVehicleColumns({
     accountMap,
     linkIndex,
+    linkLoading: !linkData && !linkError,
     onReconnect: openRelinkPanel,
     isSubmitting,
     onEdit: (vehicle) => navigate('/vehicles/add', { state: { editingVehicle: vehicle } }),
@@ -241,17 +249,15 @@ const VehiclesPage = () => {
             searchValue={searchVehicleNo}
             onSearchChange={setSearchVehicleNo}
             searchPlaceholder="Search by vehicle registration number"
-            filterChips={[
-              { id: 'ALL', label: 'All', count: totalVehicles },
-              { id: 'ACTIVE', label: 'Active Fleet' },
-              { id: 'UNASSIGNED', label: 'Unassigned' },
-              { id: 'FLEETEDGE', label: 'FleetEdge Linked' },
-              ...(showRelinkChip || statusFilter === 'RELINK'
-                ? [{ id: 'RELINK', label: 'Needs reconnect' }]
-                : []),
+            chips={[
+              { key: 'ALL', label: 'All', count: totalVehicles },
+              { key: 'ACTIVE', label: 'Active Fleet' },
+              { key: 'UNASSIGNED', label: 'Unassigned' },
+              { key: 'FLEETEDGE', label: 'FleetEdge Linked' },
+              { key: 'RELINK', label: 'Needs reconnect', count: relinkCount },
             ]}
-            activeChip={statusFilter}
-            onChipSelect={setStatusFilter}
+            selectedKeys={[statusFilter]}
+            onToggleChip={(key) => setStatusFilter((cur) => (cur === key ? 'ALL' : key))}
           />
         }
         actions={

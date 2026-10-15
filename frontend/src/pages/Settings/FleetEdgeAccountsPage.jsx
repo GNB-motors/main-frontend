@@ -169,9 +169,7 @@ export default function FleetEdgeAccountsPage() {
                         </span>
                       )}
                     </div>
-                    {account.status !== 'DISABLED' && account.source === 'EXTENSION' ? (
-                      <FleetEdgeAccountLink accountId={account._id} />
-                    ) : null}
+                    <FleetEdgeAccountLink accountId={account._id} status={account.status} />
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <button
