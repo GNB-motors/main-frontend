@@ -205,7 +205,17 @@ export const clearOnboardingDraft = () => {
   removeTab('onboardingUser');
 };
 
+// --- FleetEdge relink banner ---
+// Tab-scoped: a dismissal lasts until the tab closes. The value is the banner's
+// signature (which accounts it is about), so a new problem is never hidden.
+
+const FLEET_LINK_BANNER_KEY = 'fleetLinkBannerDismissed';
+
+export const getDismissedFleetLinkBanner = () => getTab(FLEET_LINK_BANNER_KEY);
+export const dismissFleetLinkBanner = (signature) => setTab(FLEET_LINK_BANNER_KEY, signature);
+
 export const clearSession = () => {
   Object.values(KEYS).forEach(remove);
   clearOnboardingDraft();
+  removeTab(FLEET_LINK_BANNER_KEY);
 };

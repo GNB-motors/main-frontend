@@ -4,6 +4,7 @@ import { Plus, Menu, Search } from 'lucide-react';
 import { applyThemeToRoot } from '../utils/colorTheme';
 import LocationSwitcher from './LocationSwitcher.jsx';
 import NotificationBell from './NotificationBell.jsx';
+import FleetLinkIndicator from './FleetLinkIndicator.jsx';
 import './Navbar.css';
 
 const Navbar = ({ toggleSidebar }) => {
@@ -124,6 +125,7 @@ const Navbar = ({ toggleSidebar }) => {
         {/* Active location switcher — always first in the action bar.
                     Renders only when the business has more than one location. */}
         <LocationSwitcher />
+        <FleetLinkIndicator />
         <NotificationBell />
         {isMileageListPage && (
           <div className="navbar-search">

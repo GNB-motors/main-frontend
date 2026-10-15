@@ -10,6 +10,8 @@ import { applyThemeToRoot } from '../utils/colorTheme.js';
 import { storeMeProfile } from '../utils/profileStorage.js';
 import { FeatureFlagsProvider, useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
 import { BranchProvider, useActiveBranch } from '../contexts/BranchContext.jsx';
+import FleetLinkProvider from '../contexts/FleetLinkProvider.jsx';
+import FleetLinkBanner from './FleetLinkBanner.jsx';
 import './DashboardLayout.css';
 
 const DashboardLayoutInner = () => {
@@ -62,6 +64,7 @@ const DashboardLayoutInner = () => {
         className={`main-content ${isSidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}
       >
         <Navbar toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
+        <FleetLinkBanner />
         <div className="page-content" key={branchId || 'all-locations'}>
           <ConfirmDialogHost>
             {/* A page crash stays inside the page area; sidebar and navbar survive. */}
@@ -79,7 +82,9 @@ const DashboardLayoutInner = () => {
 const DashboardLayout = () => (
   <FeatureFlagsProvider>
     <BranchProvider>
-      <DashboardLayoutInner />
+      <FleetLinkProvider>
+        <DashboardLayoutInner />
+      </FleetLinkProvider>
     </BranchProvider>
   </FeatureFlagsProvider>
 );

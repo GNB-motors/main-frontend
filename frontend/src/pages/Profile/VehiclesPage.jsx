@@ -29,7 +29,9 @@ import {
   VEHICLE_EXPORT_COLUMNS,
   mapVehicleForExport,
   vehicleExportMeta,
+  vehicleNeedsRelink,
 } from './vehicleList.js';
+import { useFleetLink } from '../../contexts/fleetLinkContext';
 import logger from '../../utils/logger';
 
 const VehiclesPage = () => {
@@ -162,6 +164,8 @@ const VehiclesPage = () => {
 
   // Build a map from accountId → account for fast lookup
   const accountMap = useMemo(() => buildAccountMap(fleetEdgeAccounts), [fleetEdgeAccounts]);
+  const { index: linkIndex, data: linkData, openPanel: openRelinkPanel } = useFleetLink();
+  const showRelinkChip = Boolean(linkData && linkData.severity !== 'none');
 
   const [statusFilter, setStatusFilter] = useState('ALL');
 
@@ -174,13 +178,15 @@ const VehiclesPage = () => {
       list = list.filter((v) => !v.assignedDriver && !v.driver_id && !v.assigned_driver_id);
     } else if (statusFilter === 'FLEETEDGE') {
       list = list.filter((v) => Boolean(v.fleetEdgeAccountId || v.fleet_edge_vehicle_id));
+    } else if (statusFilter === 'RELINK') {
+      list = list.filter((v) => vehicleNeedsRelink(v, linkIndex));
     }
     return list;
-  }, [vehicles, searchVehicleNo, statusFilter]);
+  }, [vehicles, searchVehicleNo, statusFilter, linkIndex]);
 
   const exportRows = useMemo(
-    () => filteredVehicles.map((v) => mapVehicleForExport(v, accountMap)),
-    [filteredVehicles, accountMap],
+    () => filteredVehicles.map((v) => mapVehicleForExport(v, accountMap, linkIndex)),
+    [filteredVehicles, accountMap, linkIndex],
   );
 
   // Export must cover every matching vehicle, not just the currently-loaded
@@ -196,7 +202,7 @@ const VehiclesPage = () => {
       all.push(...(next.data || []).map(normalizeVehicle));
     }
     return filterVehicles(all, { search: searchVehicleNo }).map((v) =>
-      mapVehicleForExport(v, accountMap),
+      mapVehicleForExport(v, accountMap, linkIndex),
     );
   };
 
@@ -215,6 +221,8 @@ const VehiclesPage = () => {
 
   const columns = useVehicleColumns({
     accountMap,
+    linkIndex,
+    onReconnect: openRelinkPanel,
     isSubmitting,
     onEdit: (vehicle) => navigate('/vehicles/add', { state: { editingVehicle: vehicle } }),
     onDelete: handleOpenDeleteModal,
@@ -238,6 +246,9 @@ const VehiclesPage = () => {
               { id: 'ACTIVE', label: 'Active Fleet' },
               { id: 'UNASSIGNED', label: 'Unassigned' },
               { id: 'FLEETEDGE', label: 'FleetEdge Linked' },
+              ...(showRelinkChip || statusFilter === 'RELINK'
+                ? [{ id: 'RELINK', label: 'Needs reconnect' }]
+                : []),
             ]}
             activeChip={statusFilter}
             onChipSelect={setStatusFilter}

@@ -3,8 +3,9 @@
 // Extracted from VehiclesPage.jsx (WS0.7) to keep the page under the file-size rule;
 // cell markup preserved byte-identically.
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, Pencil, Trash2, ToggleRight } from 'lucide-react';
+import { Eye, Pencil, Trash2, ToggleRight, Unplug } from 'lucide-react';
 import { describeFleetEdgeAccount } from './vehicleList.js';
+import '../../components/FleetLink.css';
 
 /**
  * VehicleInlineActions
@@ -86,7 +87,15 @@ function VehicleInlineActions({ vehicle, isSubmitting, onEdit, onDelete, onActiv
   );
 }
 
-export function useVehicleColumns({ accountMap, isSubmitting, onEdit, onDelete, onActivateHere }) {
+export function useVehicleColumns({
+  accountMap,
+  linkIndex,
+  onReconnect,
+  isSubmitting,
+  onEdit,
+  onDelete,
+  onActivateHere,
+}) {
   return [
     {
       key: 'registration_no',
@@ -160,11 +169,36 @@ export function useVehicleColumns({ accountMap, isSubmitting, onEdit, onDelete, 
       key: 'fleetEdgeAccountId',
       label: 'FleetEdge Account',
       render: (vehicle) => {
-        const acct = describeFleetEdgeAccount(vehicle, accountMap);
+        const acct = describeFleetEdgeAccount(vehicle, accountMap, linkIndex);
         if (!acct.tagged) {
           return <span style={{ fontStyle: 'italic', color: '#aaa', fontSize: 12 }}>untagged</span>;
         }
-        return (
+        // Data for this truck is paused (or about to be) until the account is re-linked.
+        let linkChip = null;
+        if (acct.link) {
+          linkChip = (
+            <button
+              type="button"
+              className={`fleet-link-chip fleet-link-chip--${acct.link.tone}`}
+              title="See how to reconnect this FleetEdge account"
+              onClick={(e) => {
+                e.stopPropagation();
+                onReconnect?.(acct.link.accountId);
+              }}
+            >
+              <Unplug size={11} aria-hidden="true" />
+              {acct.link.label} · Reconnect
+            </button>
+          );
+        } else if (!acct.linkKnown && acct.isAuthFailed) {
+          linkChip = (
+            <span className="fleet-link-chip fleet-link-chip--crit">
+              <Unplug size={11} aria-hidden="true" />
+              Login failed
+            </span>
+          );
+        }
+        const badge = (
           <span
             title={acct.tip}
             className="vehicle-badge"
@@ -190,6 +224,20 @@ export function useVehicleColumns({ accountMap, isSubmitting, onEdit, onDelete, 
               />
             )}
             {acct.label}
+          </span>
+        );
+        if (!linkChip) return badge;
+        return (
+          <span
+            style={{
+              display: 'inline-flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: 4,
+            }}
+          >
+            {badge}
+            {linkChip}
           </span>
         );
       },

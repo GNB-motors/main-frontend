@@ -10,6 +10,7 @@ import StatusBadge from './fleetEdgeAccountsStatus';
 import Modal from './fleetEdgeAccountsModal';
 import RenameForm from './fleetEdgeAccountsRenameForm';
 import DriftTab from './fleetEdgeAccountsDrift';
+import FleetEdgeAccountLink from './fleetEdgeAccountsLink';
 
 export default function FleetEdgeAccountsPage() {
   const navigate = useNavigate();
@@ -168,6 +169,9 @@ export default function FleetEdgeAccountsPage() {
                         </span>
                       )}
                     </div>
+                    {account.status !== 'DISABLED' && account.source === 'EXTENSION' ? (
+                      <FleetEdgeAccountLink accountId={account._id} />
+                    ) : null}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <button

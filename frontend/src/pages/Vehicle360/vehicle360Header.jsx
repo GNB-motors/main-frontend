@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import { formatKm, formatNum, timeAgo } from '../../utils/formatters';
 import { formatDateIST } from '../../utils/dateUtils';
+import FleetLinkVehicleNotice from '../../components/FleetLinkVehicleNotice.jsx';
 import {
   statusChips,
   serviceState,
@@ -115,6 +116,7 @@ export function IdentityStrip({ reg, fleetMaster, fleetEdge, livePosition, predi
       ) : null}
 
       <div className="v360-idactions">
+        <FleetLinkVehicleNotice reg={reg} />
         {svc.level === 'critical' || svc.level === 'warn' ? (
           <Link
             to="/vehicles/service-intelligence/add-service"
