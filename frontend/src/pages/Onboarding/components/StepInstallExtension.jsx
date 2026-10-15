@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ExtensionBrowserMockup from './ExtensionBrowserMockup.jsx';
+import { EXTENSION_ID, STORE_URL } from '../../../lib/gnbEdgeExtension';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EXTENSION DETECTION — HONEST ANALYSIS
@@ -29,9 +30,6 @@ import ExtensionBrowserMockup from './ExtensionBrowserMockup.jsx';
 //   "web_accessible_resources": [{ "resources": ["icons/icon16.png"], "matches": ["<all_urls>"] }]
 //   OR "externally_connectable": { "matches": ["https://app.gnbedge.in/*"] }
 // ─────────────────────────────────────────────────────────────────────────────
-
-const EXTENSION_ID = 'nkcdcfebmemgkjkgbdiioalkpgejanln';
-const STORE_URL = `https://chromewebstore.google.com/detail/gnbedge/${EXTENSION_ID}`;
 
 // Probe timeout: how long to wait before giving up on programmatic detection.
 const PROBE_TIMEOUT_MS = 3000;

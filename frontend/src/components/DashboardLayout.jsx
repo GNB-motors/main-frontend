@@ -10,6 +10,7 @@ import { applyThemeToRoot } from '../utils/colorTheme.js';
 import { storeMeProfile } from '../utils/profileStorage.js';
 import { FeatureFlagsProvider, useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
 import { BranchProvider, useActiveBranch } from '../contexts/BranchContext.jsx';
+import FleetLinkProvider from '../contexts/FleetLinkProvider.jsx';
 import './DashboardLayout.css';
 
 const DashboardLayoutInner = () => {
@@ -79,7 +80,9 @@ const DashboardLayoutInner = () => {
 const DashboardLayout = () => (
   <FeatureFlagsProvider>
     <BranchProvider>
-      <DashboardLayoutInner />
+      <FleetLinkProvider>
+        <DashboardLayoutInner />
+      </FleetLinkProvider>
     </BranchProvider>
   </FeatureFlagsProvider>
 );

@@ -3,6 +3,7 @@
  * filtering, FleetEdge account lookup, and typed export column config.
  * Kept framework-free so it is unit-testable (rule 21).
  */
+import { linkForAccount, linkStatus, needsAction } from '../../lib/fleetLink';
 
 /** Normalize the camelCase API vehicle shape to the snake_case UI shape. */
 export function normalizeVehicle(v) {
@@ -59,9 +60,19 @@ export function filterVehicles(vehicles, { search = '', accountFilter = 'all' } 
   });
 }
 
-/** Resolve the FleetEdge account badge model for a vehicle row. */
-export function describeFleetEdgeAccount(vehicle, accountMap = {}) {
+/** True when the vehicle's FleetEdge account must be re-linked (now, or before it expires). */
+export function vehicleNeedsRelink(vehicle, linkIndex) {
+  return needsAction(linkForAccount(linkIndex, vehicle?.fleetEdgeAccountId));
+}
+
+/**
+ * Resolve the FleetEdge account badge model for a vehicle row. `linkIndex`
+ * (from lib/fleetLink) adds the account's link state — connected, expiring or
+ * disconnected — whenever link health covers it.
+ */
+export function describeFleetEdgeAccount(vehicle, accountMap = {}, linkIndex = null) {
   if (!vehicle?.fleetEdgeAccountId) return { tagged: false };
+  const linkAccount = linkForAccount(linkIndex, vehicle.fleetEdgeAccountId);
   const acct = accountMap[String(vehicle.fleetEdgeAccountId)];
   const label = acct
     ? acct.friendlyName || acct.externalAccountId
@@ -69,7 +80,26 @@ export function describeFleetEdgeAccount(vehicle, accountMap = {}) {
   const tip = acct
     ? `${acct.source} · ${acct.externalAccountId}${acct.lastSeenAt ? ' · seen ' + new Date(acct.lastSeenAt).toLocaleDateString() : ''}`
     : '';
-  return { tagged: true, label, tip, isDisabled: acct?.status === 'DISABLED' };
+  return {
+    tagged: true,
+    label,
+    tip,
+    isDisabled: acct?.status === 'DISABLED',
+    isAuthFailed: acct?.status === 'AUTH_FAILED',
+    link: linkAccount
+      ? {
+          accountId: linkAccount.accountId,
+          needsAction: needsAction(linkAccount),
+          ...linkStatus(linkAccount),
+        }
+      : null,
+  };
+}
+
+function linkExportText(acct) {
+  if (!acct.tagged) return '—';
+  if (acct.link) return acct.link.label;
+  return acct.isAuthFailed ? 'Login failed' : 'Not connected';
 }
 
 export const VEHICLE_EXPORT_COLUMNS = [
@@ -79,10 +109,11 @@ export const VEHICLE_EXPORT_COLUMNS = [
   { key: 'vehicleCategory', label: 'Category' },
   { key: 'chassis_number', label: 'Chassis No' },
   { key: 'fleetEdgeAccount', label: 'FleetEdge Account' },
+  { key: 'fleetEdgeLink', label: 'FleetEdge Link' },
 ];
 
-export function mapVehicleForExport(vehicle, accountMap = {}) {
-  const acct = describeFleetEdgeAccount(vehicle, accountMap);
+export function mapVehicleForExport(vehicle, accountMap = {}, linkIndex = null) {
+  const acct = describeFleetEdgeAccount(vehicle, accountMap, linkIndex);
   return {
     registration_no: vehicle.registration_no || '',
     model: vehicle.model || 'N/A',
@@ -94,6 +125,7 @@ export function mapVehicleForExport(vehicle, accountMap = {}) {
         : '—',
     chassis_number: vehicle.chassis_number || 'N/A',
     fleetEdgeAccount: acct.tagged ? acct.label : 'untagged',
+    fleetEdgeLink: linkExportText(acct),
   };
 }
 
