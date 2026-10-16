@@ -21,27 +21,6 @@ export default function useStatusCards(counts) {
         stripe: '#9CA3AF',
         countColor: null,
       },
-      {
-        k: 'breakdown',
-        label: 'Breakdown',
-        count: counts.breakdown,
-        stripe: '#EF4444',
-        countColor: '#EF4444',
-      },
-      {
-        k: 'faulty',
-        label: 'Faulty',
-        count: counts.faulty,
-        stripe: '#84CC16',
-        countColor: '#84CC16',
-      },
-      {
-        k: 'geofence',
-        label: 'Geofence',
-        count: counts.geofence,
-        stripe: '#3B82F6',
-        countColor: null,
-      },
     ],
     [counts],
   );
