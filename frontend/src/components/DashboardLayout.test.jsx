@@ -30,6 +30,10 @@ vi.mock('../contexts/BranchContext.jsx', () => ({
   useActiveBranch: () => ({ branchId: null }),
 }));
 
+vi.mock('../contexts/SupportPortalProvider.jsx', () => ({
+  default: ({ children }) => children,
+}));
+
 vi.mock('../utils/sentry', () => ({
   captureException: vi.fn(),
 }));

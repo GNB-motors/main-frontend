@@ -11,6 +11,7 @@ import { storeMeProfile } from '../utils/profileStorage.js';
 import { FeatureFlagsProvider, useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
 import { BranchProvider, useActiveBranch } from '../contexts/BranchContext.jsx';
 import FleetLinkProvider from '../contexts/FleetLinkProvider.jsx';
+import SupportPortalProvider from '../contexts/SupportPortalProvider.jsx';
 import './DashboardLayout.css';
 
 const DashboardLayoutInner = () => {
@@ -81,7 +82,9 @@ const DashboardLayout = () => (
   <FeatureFlagsProvider>
     <BranchProvider>
       <FleetLinkProvider>
-        <DashboardLayoutInner />
+        <SupportPortalProvider>
+          <DashboardLayoutInner />
+        </SupportPortalProvider>
       </FleetLinkProvider>
     </BranchProvider>
   </FeatureFlagsProvider>

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import UkoLogo from '../../../assets/uko-logo.png';
 import { clearSession } from '../../../utils/session';
+import SupportTicketsNavLink from './supportTickets/SupportTicketsNavLink';
 import './SuperAdminSidebar.css';
 
 const SuperAdminSidebar = ({ setSidebarOpen }) => {
@@ -141,6 +142,8 @@ const SuperAdminSidebar = ({ setSidebarOpen }) => {
             <Satellite size={20} />
             <span>Fleet Data Health</span>
           </NavLink>
+
+          <SupportTicketsNavLink onNavigate={closeSidebarOnMobile} />
         </nav>
       </div>
 

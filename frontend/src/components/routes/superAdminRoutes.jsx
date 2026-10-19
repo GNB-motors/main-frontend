@@ -39,6 +39,12 @@ const ReceiptApprovalPage = lazy(
   () => import('../../pages/Superadmin/components/ReceiptApprovalPage.jsx'),
 );
 const AuditTrailPage = lazy(() => import('../../pages/AuditTrail/AuditTrailPage.jsx'));
+const SupportTicketsPage = lazy(
+  () => import('../../pages/Superadmin/components/supportTickets/SupportTicketsPage.jsx'),
+);
+const SupportTicketDetailPage = lazy(
+  () => import('../../pages/Superadmin/components/supportTickets/SupportTicketDetailPage.jsx'),
+);
 
 const superAdminRoutes = (
   <>
@@ -187,6 +193,22 @@ const superAdminRoutes = (
         element={
           <Suspense fallback={null}>
             <ReceiptApprovalDetailPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="support-tickets"
+        element={
+          <Suspense fallback={null}>
+            <SupportTicketsPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="support-tickets/:id"
+        element={
+          <Suspense fallback={null}>
+            <SupportTicketDetailPage />
           </Suspense>
         }
       />

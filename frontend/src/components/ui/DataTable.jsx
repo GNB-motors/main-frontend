@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowUp, ArrowDown, Columns3 } from 'lucide-react';
 import EmptyState from '../cluster/EmptyState';
 import { nextSort, readDensity, visibleColumns, footerSummary } from '../../lib/tableState';
@@ -67,6 +67,24 @@ export default function DataTable({
   const [hidden, setHidden] = useState(() => new Set());
   const density = readDensity({ getItem: getPref });
   const [menuOpen, setMenuOpen] = useState(false);
+  const colsRef = useRef(null);
+
+  // The column menu closes on a press outside it or on Escape, like every other popover.
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onPointerDown = (e) => {
+      if (colsRef.current && !colsRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [menuOpen]);
 
   const cols = useMemo(() => visibleColumns(columns, hidden), [columns, hidden]);
 
@@ -135,7 +153,7 @@ export default function DataTable({
         </span>
         <div className="dt-tools-right">
           {toolbarExtra}
-          <div className="dt-cols">
+          <div className="dt-cols" ref={colsRef}>
             <button
               type="button"
               className="dt-tool"

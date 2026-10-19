@@ -5,6 +5,7 @@ import { applyThemeToRoot } from '../utils/colorTheme';
 import LocationSwitcher from './LocationSwitcher.jsx';
 import NotificationBell from './NotificationBell.jsx';
 import FleetLinkIndicator from './FleetLinkIndicator.jsx';
+import SupportButton from './SupportButton.jsx';
 import './Navbar.css';
 
 const Navbar = ({ toggleSidebar }) => {
@@ -127,6 +128,7 @@ const Navbar = ({ toggleSidebar }) => {
         <LocationSwitcher />
         <FleetLinkIndicator />
         <NotificationBell />
+        <SupportButton />
         {isMileageListPage && (
           <div className="navbar-search">
             <Search size={16} color="#94a3b8" />

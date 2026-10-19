@@ -7,218 +7,245 @@
 */
 
 .superadmin-sidebar {
-    width: 100px;
-    background-color: #ffffff;
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid #e5e7eb;
-    flex-shrink: 0;
-    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-                padding 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-                margin-left 0.3s ease;
-    position: fixed;
-    height: 100vh;
-    height: 100dvh; /* survive mobile browser chrome collapsing */
-    top: 0;
-    left: 0;
-    z-index: 1000;
-    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-    overflow: hidden; /* the nav scrolls, the shell never does */
+  width: 100px;
+  background-color: #ffffff;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  transition:
+    width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    margin-left 0.3s ease;
+  position: fixed;
+  height: 100vh;
+  height: 100dvh; /* survive mobile browser chrome collapsing */
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden; /* the nav scrolls, the shell never does */
 }
 
 .superadmin-sidebar:hover {
-    width: 260px;
+  width: 260px;
 }
 
 .superadmin-sidebar-content {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-    /* Without min-height:0 a flex item refuses to shrink below its content
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  /* Without min-height:0 a flex item refuses to shrink below its content
        height, so overflow-y never engages and the tail of the nav is unreachable. */
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    overscroll-behavior: contain;
-    scrollbar-width: thin;
-    scrollbar-color: transparent transparent;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
 }
 
 .sidebar:hover .sidebar-content {
-    scrollbar-color: #e5e7eb transparent;
+  scrollbar-color: #e5e7eb transparent;
 }
 
 .sidebar-content::-webkit-scrollbar {
-    width: 6px;
+  width: 6px;
 }
 
 .sidebar-content::-webkit-scrollbar-track {
-    background: transparent;
+  background: transparent;
 }
 
 .sidebar-content::-webkit-scrollbar-thumb {
-    background: transparent;
-    border-radius: 3px;
-    transition: background 0.2s ease;
+  background: transparent;
+  border-radius: 3px;
+  transition: background 0.2s ease;
 }
 
 .sidebar:hover .sidebar-content::-webkit-scrollbar-thumb {
-    background: #e5e7eb;
+  background: #e5e7eb;
 }
 
 .superadmin-sidebar-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 32px;
-    overflow: hidden;
-    height: 40px;
-    flex-shrink: 0;
-    transition: justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 32px;
+  overflow: hidden;
+  height: 40px;
+  flex-shrink: 0;
+  transition: justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .superadmin-logo-img {
-    flex-shrink: 0;
-    height: 64px;
-    transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-                width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-                margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  height: 64px;
+  transition:
+    height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .superadmin-sidebar:not(:hover) .superadmin-logo-img {
-    height: 40px;
-    margin-left: -8px;
+  height: 40px;
+  margin-left: -8px;
 }
 
 .superadmin-logo-text {
-    font-size: 20px;
-    font-weight: 700;
-    margin: 0;
-    color: #1f2937;
-    white-space: nowrap;
-    opacity: 0;
-    visibility: hidden;
-    width: 0;
-    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: #1f2937;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  width: 0;
+  transition:
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .superadmin-sidebar:hover .superadmin-logo-text {
-    opacity: 1;
-    visibility: visible;
-    width: auto;
+  opacity: 1;
+  visibility: visible;
+  width: auto;
 }
 
 .superadmin-sidebar-nav {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    flex-shrink: 0; /* keep natural height so the container scrolls instead of squashing links */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0; /* keep natural height so the container scrolls instead of squashing links */
 }
 
 .superadmin-nav-link {
-    display: flex;
-    align-items: center;
-    padding: 12px;
-    border-radius: 8px;
-    color: #6b7280;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    transition: gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                background-color 0.2s ease,
-                color 0.2s ease;
-    border: none;
-    background: none;
-    cursor: pointer;
-    width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  color: #6b7280;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  transition:
+    gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.2s ease,
+    color 0.2s ease;
+  border: none;
+  background: none;
+  cursor: pointer;
+  width: 100%;
 }
 
 .superadmin-sidebar:hover .superadmin-nav-link {
-    gap: 12px;
+  gap: 12px;
 }
 
 .superadmin-sidebar:not(:hover) .superadmin-nav-link {
-    justify-content: center;
+  justify-content: center;
 }
 
 .superadmin-nav-link span {
-    opacity: 0;
-    visibility: hidden;
-    width: 0;
-    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+  visibility: hidden;
+  width: 0;
+  transition:
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .superadmin-sidebar:hover .superadmin-nav-link span {
-    opacity: 1;
-    visibility: visible;
-    width: auto;
+  opacity: 1;
+  visibility: visible;
+  width: auto;
 }
 
 .superadmin-nav-link svg {
-    color: inherit;
-    flex-shrink: 0;
-    transition: color 0.2s ease;
+  color: inherit;
+  flex-shrink: 0;
+  transition: color 0.2s ease;
 }
 
 .superadmin-nav-link:hover {
-    background-color: #eff6ff;
-    color: #3b82f6;
+  background-color: #eff6ff;
+  color: #3b82f6;
 }
 
 .superadmin-nav-link.active {
-    background-color: #dbeafe;
-    color: #2563eb;
+  background-color: #dbeafe;
+  color: #2563eb;
 }
 
 .superadmin-sidebar-footer {
-    margin-top: auto;
-    padding-top: 16px;
-    border-top: 1px solid #e5e7eb;
-    flex-shrink: 0; /* stays pinned; never squeezed by a tall nav */
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0; /* stays pinned; never squeezed by a tall nav */
 }
 
 .superadmin-logout-btn {
-    color: #ef4444;
+  color: #ef4444;
 }
 
 .superadmin-logout-btn:hover {
-    background-color: #fee2e2;
-    color: #dc2626;
+  background-color: #fee2e2;
+  color: #dc2626;
 }
 
 /* Mobile styles */
 @media (max-width: 992px) {
-    .superadmin-sidebar {
-        transform: translateX(-100%);
-        width: 260px;
-    }
+  .superadmin-sidebar {
+    transform: translateX(-100%);
+    width: 260px;
+  }
 
-    .superadmin-sidebar.open {
-        transform: translateX(0);
-    }
+  .superadmin-sidebar.open {
+    transform: translateX(0);
+  }
 
-    .superadmin-sidebar:not(:hover) .superadmin-logo-img {
-        height: 64px;
-        margin-left: 0;
-    }
+  .superadmin-sidebar:not(:hover) .superadmin-logo-img {
+    height: 64px;
+    margin-left: 0;
+  }
 
-    .superadmin-logo-text,
-    .superadmin-nav-link span {
-        opacity: 1;
-        visibility: visible;
-        width: auto;
-    }
+  .superadmin-logo-text,
+  .superadmin-nav-link span {
+    opacity: 1;
+    visibility: visible;
+    width: auto;
+  }
 
-    .superadmin-nav-link {
-        gap: 12px;
-        justify-content: flex-start;
-    }
+  .superadmin-nav-link {
+    gap: 12px;
+    justify-content: flex-start;
+  }
+}
+
+/* Support Tickets unread badge (SupportTicketsNavLink). Divs, not spans:
+   collapsed nav links hide every span. */
+.sat-nav-icon {
+  position: relative;
+  display: inline-flex;
+}
+.sat-nav-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
 }
