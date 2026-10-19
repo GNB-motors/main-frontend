@@ -5,7 +5,7 @@ import {
   istDayString,
   shiftDay,
 } from '../../utils/dateUtils';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import PageShell from '../../components/ui/PageShell';
 import { FuelIntegrityService } from './FuelIntegrityService.js';
@@ -32,6 +32,13 @@ import './FuelIntegrity.css';
 
 const FEED_LIMIT = 100;
 const PAGE_SIZE = 12;
+// The fuel sweep recomputes these hourly, so a 45 s poll only repeated the same
+// three reads (the busiest routes on the server). Poll every 5 min while the tab
+// is visible, and catch up when it is shown again after a missed poll.
+const POLL_MS = 5 * 60 * 1000;
+// The windows feed's largest page. A busy fleet has ~900 windows a week; past
+// this the page says how many it is not showing instead of dropping them quietly.
+const WINDOWS_LIMIT = 1000;
 
 const FuelIntegrityPage = () => {
   // Backend Filters
@@ -47,6 +54,7 @@ const FuelIntegrityPage = () => {
   const [summary, setSummary] = useState(null);
   const [fills, setFills] = useState([]);
   const [windows, setWindows] = useState([]);
+  const [windowsTotal, setWindowsTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState(null);
@@ -101,26 +109,46 @@ const FuelIntegrityPage = () => {
     return params;
   }, [vehicle, fromDate, toDate]);
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const params = buildParams();
-      const [summaryData, fillsData, windowsData] = await Promise.all([
-        FuelIntegrityService.getSummary(params),
-        FuelIntegrityService.getFills({ ...params, page: 1, limit: FEED_LIMIT }),
-        FuelIntegrityService.getWindows(params),
-      ]);
-      setSummary(summaryData);
-      setFills(fillsData.records || []);
-      setWindows(windowsData.records || []);
-      setLastSynced(new Date());
-    } catch (err) {
-      setError(err.message || 'Could not load fuel integrity data.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [buildParams]);
+  const controllerRef = useRef(null);
+  const lastFetchRef = useRef(0);
+
+  // A background poll ({ silent: true }) keeps the page as it is while it loads.
+  // Each fetch aborts the one still in flight, so polls never overlap.
+  const fetchData = useCallback(
+    async ({ silent = false } = {}) => {
+      controllerRef.current?.abort();
+      const controller = new AbortController();
+      controllerRef.current = controller;
+      const { signal } = controller;
+      lastFetchRef.current = Date.now();
+      if (!silent) {
+        setIsLoading(true);
+        setError(null);
+      }
+      try {
+        const params = buildParams();
+        const [summaryData, fillsData, windowsData] = await Promise.all([
+          FuelIntegrityService.getSummary(params, signal),
+          FuelIntegrityService.getFills({ ...params, page: 1, limit: FEED_LIMIT }, signal),
+          FuelIntegrityService.getWindows({ ...params, limit: WINDOWS_LIMIT }, signal),
+        ]);
+        if (signal.aborted) return;
+        setSummary(summaryData);
+        setFills(fillsData.records || []);
+        setWindows(windowsData.records || []);
+        setWindowsTotal(windowsData.total ?? (windowsData.records || []).length);
+        setLastSynced(new Date());
+        setError(null);
+      } catch (err) {
+        if (signal.aborted || err?.code === 'ERR_CANCELED') return;
+        setError(err.message || 'Could not load fuel integrity data.');
+      } finally {
+        // The newest fetch ends the loading state, whichever one started it.
+        if (controllerRef.current === controller) setIsLoading(false);
+      }
+    },
+    [buildParams],
+  );
 
   const handleSyncIoT = useCallback(async () => {
     setIsSyncing(true);
@@ -137,9 +165,20 @@ const FuelIntegrityPage = () => {
 
   useEffect(() => {
     fetchData();
-    // Auto-refresh every 45 seconds for live telemetry sync
-    const pollInterval = setInterval(fetchData, 45000);
-    return () => clearInterval(pollInterval);
+    const pollInterval = setInterval(() => {
+      if (!document.hidden) fetchData({ silent: true });
+    }, POLL_MS);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && Date.now() - lastFetchRef.current >= POLL_MS) {
+        fetchData({ silent: true });
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(pollInterval);
+      document.removeEventListener('visibilitychange', onVisible);
+      controllerRef.current?.abort();
+    };
   }, [fetchData]);
 
   useEffect(() => {
@@ -285,6 +324,23 @@ const FuelIntegrityPage = () => {
             <div>
               <div className="fi-banner-title">Could not refresh telemetry</div>
               <p className="text-xs text-slate-500">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {windowsTotal > windows.length && (
+          <div className="fi-banner fi-banner--warn">
+            <span className="fi-banner-icon bg-amber-100 dark:bg-amber-950 text-amber-600">
+              <AlertTriangle size={18} />
+            </span>
+            <div>
+              <div className="fi-banner-title">
+                Showing the newest {windows.length.toLocaleString('en-IN')} of{' '}
+                {windowsTotal.toLocaleString('en-IN')} fuel windows
+              </div>
+              <p className="text-xs text-slate-500">
+                Narrow the date range or pick a vehicle to see the rest.
+              </p>
             </div>
           </div>
         )}

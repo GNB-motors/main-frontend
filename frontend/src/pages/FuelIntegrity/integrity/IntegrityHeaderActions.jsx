@@ -36,7 +36,7 @@ const IntegrityHeaderActions = ({
     <button
       type="button"
       className="pshell-btn"
-      onClick={fetchData}
+      onClick={() => fetchData()}
       disabled={isLoading || isSyncing}
       title="Refresh telemetry stream"
     >

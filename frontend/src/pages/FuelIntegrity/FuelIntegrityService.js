@@ -10,11 +10,12 @@ export const FuelIntegrityService = {
    * Paginated detected-fill feed.
    * @param {object} params - { vehicle, from, to, page, limit }
    */
-  getFills: async (params = {}) => {
+  getFills: async (params = {}, signal) => {
     try {
-      const response = await apiClient.get(`/api/fuel-integrity/fills`, { params });
+      const response = await apiClient.get(`/api/fuel-integrity/fills`, { params, signal });
       return response.data?.data || {};
     } catch (error) {
+      if (error?.code === 'ERR_CANCELED') throw error;
       throw ApiError.from(error);
     }
   },
@@ -23,11 +24,12 @@ export const FuelIntegrityService = {
    * Mass-balance window feed (siphon suspects + DEF ratio).
    * @param {object} params - { vehicle, from, to }
    */
-  getWindows: async (params = {}) => {
+  getWindows: async (params = {}, signal) => {
     try {
-      const response = await apiClient.get(`/api/fuel-integrity/windows`, { params });
+      const response = await apiClient.get(`/api/fuel-integrity/windows`, { params, signal });
       return response.data?.data || {};
     } catch (error) {
+      if (error?.code === 'ERR_CANCELED') throw error;
       throw ApiError.from(error);
     }
   },

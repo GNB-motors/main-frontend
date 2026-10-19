@@ -52,6 +52,7 @@ export default function PlaceHubSideList({
             warehouses: errors.warehouses,
             zones: errors.zones,
             'detected places': errors['detected places'],
+            'rejected places': errors['rejected places'],
           }}
           canEdit={canEdit}
           onAdd={() => startAdd('WAREHOUSE')}
@@ -63,7 +64,7 @@ export default function PlaceHubSideList({
       )}
       {tab === 'idling' && (
         <IdlingPanel
-          loading={loading.idling}
+          loading={loading.idling || loading.idleHistory}
           view={idleView}
           onView={setIdleView}
           live={live}
@@ -83,7 +84,7 @@ export default function PlaceHubSideList({
       )}
       {tab === 'fuel' && (
         <FuelPanel
-          loading={loading.fuel}
+          loading={loading.fuel || loading.drain}
           view={fuelView}
           onView={setFuelView}
           hotspots={hotspots}

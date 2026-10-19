@@ -20,8 +20,10 @@ export default function usePlaceHubDerived({ data, group, query, showContext, se
       ...c,
       review: Math.max(c.review || 0, data.proposedTotal),
       low: Math.max(c.low || 0, data.lowEvidenceTotal || 0),
+      // The "Not a place" list loads when its chip opens; the summary counts it before.
+      rejected: Math.max(c.rejected || 0, data.summary?.places?.rejected || 0),
     };
-  }, [places, data.proposedTotal, data.lowEvidenceTotal]);
+  }, [places, data.proposedTotal, data.lowEvidenceTotal, data.summary]);
   const totals = useMemo(
     () => ({ ...placeTotals(places), toReview: counts.review }),
     [places, counts.review],
