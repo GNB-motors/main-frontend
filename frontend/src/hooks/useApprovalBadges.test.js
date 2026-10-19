@@ -54,6 +54,36 @@ describe('useApprovalBadges', () => {
     expect(ApprovalService.getSummary).not.toHaveBeenCalled();
   });
 
+  // A tab opened before the module was switched off used to poll a 404 every 30 s.
+  it('stops polling a feed that answers 404 and zeroes its badge', async () => {
+    vi.useFakeTimers();
+    const gone = Object.assign(new Error('Not Found'), { status: 404 });
+    ApprovalService.getSummary.mockRejectedValue(gone);
+    const { result } = renderHook(() => useApprovalBadges(true));
+    await act(async () => {});
+    expect(result.current).toEqual({ approvals: 0, bills: 7 });
+
+    await act(async () => {
+      vi.advanceTimersByTime(60000);
+    });
+    expect(ApprovalService.getSummary).toHaveBeenCalledTimes(1);
+    expect(BillApprovalsService.list).toHaveBeenCalledTimes(3);
+  });
+
+  it('stops the timer once both feeds are gone', async () => {
+    vi.useFakeTimers();
+    const gone = Object.assign(new Error('Not Found'), { status: 404 });
+    ApprovalService.getSummary.mockRejectedValue(gone);
+    BillApprovalsService.list.mockRejectedValue(gone);
+    renderHook(() => useApprovalBadges(true));
+    await act(async () => {});
+    await act(async () => {
+      vi.advanceTimersByTime(90000);
+    });
+    expect(ApprovalService.getSummary).toHaveBeenCalledTimes(1);
+    expect(BillApprovalsService.list).toHaveBeenCalledTimes(1);
+  });
+
   it('aborts the in-flight poll on unmount', async () => {
     let signal;
     ApprovalService.getSummary.mockImplementation((opts) => {

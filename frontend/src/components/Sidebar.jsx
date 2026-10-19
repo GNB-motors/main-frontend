@@ -7,6 +7,7 @@ import { applyThemeToRoot } from '../utils/colorTheme';
 import { clearAuthData } from '../utils/authUtils';
 import { useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
 import useApprovalBadges from '../hooks/useApprovalBadges';
+import { getUserRole } from '../utils/session';
 import { useOrganization } from '../contexts/FeatureFlagsContext.jsx';
 import {
   SIDE_NAV_GROUPS,
@@ -45,8 +46,9 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   // erpApprovals entitlement that nav group is hidden AND the backend routes
   // answer 404 (requireFeature hides disabled modules), so only poll when the
   // Approval Center is actually accessible.
+  // A SUPER_ADMIN on a dashboard page has no org, so there is nothing to count.
   const { approvals: approvalsCount, bills: billApprovalsCount } = useApprovalBadges(
-    canAccess('erpApprovals'),
+    canAccess('erpApprovals') && getUserRole() !== 'SUPER_ADMIN',
   );
 
   // Defensive: ensure :root has the current theme CSS variables on mount and
