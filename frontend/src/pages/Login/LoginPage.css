@@ -158,7 +158,7 @@
   font-weight: 500;
 }
 .forgot-password:hover {
-  color: var(--color-primary-500);
+  color: #385c96;
 }
 
 .signin-button {
@@ -196,7 +196,7 @@
   font-weight: 600;
 }
 .signup-link a:hover {
-  color: var(--color-primary-500);
+  color: #385c96;
 }
 
 /* Toggle Switch */

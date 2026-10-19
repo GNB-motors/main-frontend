@@ -241,7 +241,7 @@ const LoginPage = () => {
               </div>
 
               <div className="form-options">
-                <Link to="#" className="forgot-password">
+                <Link to="/forgot-password" className="forgot-password">
                   Forgot Password?
                 </Link>
               </div>

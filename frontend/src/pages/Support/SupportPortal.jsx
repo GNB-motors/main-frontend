@@ -4,10 +4,8 @@ import { Dialog, DialogClose, DialogContent, DialogTitle } from '../../component
 import SupportRequestsView from './SupportRequestsView';
 import TicketThread from './TicketThread';
 import NewRequestDialog from './NewRequestDialog';
+import { SUPPORT_EMAIL, SUPPORT_PHONE } from './supportContact';
 import './SupportPortal.css';
-
-const SUPPORT_PHONE = '8319353177';
-const SUPPORT_EMAIL = 'gnbmotors60@gmail.com';
 
 /**
  * Full-screen Support Portal, opened from the headset icon in the header.

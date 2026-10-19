@@ -32,6 +32,7 @@ const ContactV2 = lazy(() => import('../../pages/landing-page-v2/contact-v2/Cont
 const LoginPage = lazy(() => import('../../pages/Login/LoginPage.jsx'));
 const SignUpPage = lazy(() => import('../../pages/SignUp/SIgnUpPage.jsx'));
 const ContactPage = lazy(() => import('../../pages/Contact/ContactPage.jsx'));
+const ForgotPasswordPage = lazy(() => import('../../pages/ForgotPassword/ForgotPasswordPage.jsx'));
 const OnboardingPage = lazy(() => import('../../pages/Onboarding/OnboardingPage.jsx'));
 const PublicTrackingPage = lazy(() => import('../../pages/PublicTracking/PublicTrackingPage.jsx'));
 
@@ -51,6 +52,7 @@ const publicRoutes = (
     <Route path="/contact-us" element={<ContactV2 />} />
     <Route path="/login" element={<LoginPage />} />
     <Route path="/contact" element={<ContactPage />} />
+    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
     <Route path="/admin/new-user" element={<SignUpPage />} />
     <Route path="/onboarding" element={<OnboardingPage />} />
     {/* Public share link — anyone with the token sees only this one vehicle */}
