@@ -1,7 +1,19 @@
 import apiClient from '../utils/axiosConfig';
-import { getVehicleList } from './vehicleListService';
+import { getOrgId, getBranchId } from '../utils/session.js';
+import { getVehicleList, detachOnAbort } from './vehicleListService';
 
 const unwrap = (res) => res.data?.data ?? {};
+
+// Overview and the Overspeed audit open on the same fleet window. Floored to
+// the minute, both ask the same question, and the answer is shared for that
+// minute instead of computed twice.
+const FLEET_OVERSPEED_TTL_MS = 60 * 1000;
+const fleetOverspeedCache = new Map();
+
+const toMinute = (iso) => {
+  const ms = new Date(iso).getTime();
+  return iso && Number.isFinite(ms) ? new Date(Math.floor(ms / 60000) * 60000).toISOString() : iso;
+};
 
 /** Google encoded polyline (precision 5) → [[lat, lng], …]. */
 function decodePolyline(encoded) {
@@ -129,14 +141,26 @@ const RouteHubService = {
     ),
 
   /** Fleet-wide overspeed rollup: per-vehicle ranking rows + fleet totals. */
-  getFleetOverspeed: async ({ from, to, speedKmh, durationSec }, signal) => {
-    const data = unwrap(
-      await apiClient.get('/api/overspeed/fleet', {
-        params: { from, to, speedKmh, durationSec },
-        signal,
-      }),
-    );
-    return { ...data, totals: data.fleet || {} };
+  getFleetOverspeed: ({ from, to, speedKmh, durationSec }, signal) => {
+    const params = { from: toMinute(from), to: toMinute(to), speedKmh, durationSec };
+    const key = JSON.stringify([getOrgId(), getBranchId(), params]);
+    const now = Date.now();
+    for (const [k, entry] of fleetOverspeedCache) {
+      if (now - entry.at >= FLEET_OVERSPEED_TTL_MS) fleetOverspeedCache.delete(k);
+    }
+    let entry = fleetOverspeedCache.get(key);
+    if (!entry) {
+      const promise = apiClient.get('/api/overspeed/fleet', { params }).then((res) => {
+        const data = unwrap(res);
+        return { ...data, totals: data.fleet || {} };
+      });
+      promise.catch(() => {
+        if (fleetOverspeedCache.get(key)?.promise === promise) fleetOverspeedCache.delete(key);
+      });
+      entry = { at: now, promise };
+      fleetOverspeedCache.set(key, entry);
+    }
+    return detachOnAbort(entry.promise, signal);
   },
 
   /** Ordered breadcrumb trail for the replay canvas. */

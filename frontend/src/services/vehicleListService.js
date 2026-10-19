@@ -62,7 +62,7 @@ const canceled = () =>
   Object.assign(new Error('canceled'), { name: 'CanceledError', code: 'ERR_CANCELED' });
 
 // The shared request outlives any one screen, so an abort only detaches its caller.
-const detachOnAbort = (promise, signal) => {
+export const detachOnAbort = (promise, signal) => {
   if (!signal) return promise;
   if (signal.aborted) return Promise.reject(canceled());
   return new Promise((resolve, reject) => {

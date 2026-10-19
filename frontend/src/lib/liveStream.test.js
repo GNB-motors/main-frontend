@@ -7,6 +7,7 @@ import {
   GRACE_PERIOD_MS,
   HIDDEN_CLOSE_MS,
   MISSING_ENDPOINT_RETRY_MS,
+  BUSY_RETRY_MS,
 } from './liveStream';
 
 /** Minimal EventSource double: records listeners, lets a test drive open/error/named events. */
@@ -167,6 +168,52 @@ describe('createLiveStream', () => {
     await vi.advanceTimersByTimeAsync(1);
     expect(deps.requestTicket).toHaveBeenCalledTimes(2);
     expect(states).not.toContain('reconnecting');
+    stream.dispose();
+  });
+
+  it('a 429 (other tabs hold every stream) waits 2 minutes instead of retrying in seconds', async () => {
+    const busy = Object.assign(new Error('Too Many Requests'), { response: { status: 429 } });
+    const deps = makeDeps({ requestTicket: vi.fn().mockRejectedValue(busy) });
+    const stream = createLiveStream(deps);
+    stream.subscribe('positions', () => {});
+    await flushConnect();
+
+    expect(stream.getState()).toBe('closed');
+    await vi.advanceTimersByTimeAsync(BUSY_RETRY_MS - 1);
+    expect(deps.requestTicket).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(deps.requestTicket).toHaveBeenCalledTimes(2);
+    stream.dispose();
+  });
+
+  it('a hidden tab whose stream drops does not retry until it is shown', async () => {
+    const visibility = {
+      visibilityState: 'visible',
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+    let onVisibility;
+    visibility.addEventListener.mockImplementation((type, handler) => {
+      if (type === 'visibilitychange') onVisibility = handler;
+    });
+    const deps = makeDeps({ visibility });
+    const stream = createLiveStream(deps);
+    stream.subscribe('positions', () => {});
+    await flushConnect();
+    FakeEventSource.instances[0].simulateOpen();
+
+    visibility.visibilityState = 'hidden';
+    onVisibility();
+    FakeEventSource.instances[0].simulateError();
+    expect(stream.getState()).toBe('closed');
+    await vi.advanceTimersByTimeAsync(HIDDEN_CLOSE_MS * 3);
+    expect(deps.requestTicket).toHaveBeenCalledTimes(1);
+
+    visibility.visibilityState = 'visible';
+    onVisibility();
+    await flushConnect();
+    expect(deps.requestTicket).toHaveBeenCalledTimes(2);
+    expect(FakeEventSource.instances.length).toBe(2);
     stream.dispose();
   });
 

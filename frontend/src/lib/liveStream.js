@@ -17,11 +17,14 @@ import apiClient from '../utils/axiosConfig';
  * exponential backoff 1 s → 30 s with full jitter, and the ticket is re-minted
  * per attempt (tickets are single-use). While the document is hidden for more
  * than 5 minutes the connection is closed and reopened on visibility so a
- * backgrounded tab does not hold a server slot all night.
+ * backgrounded tab does not hold a server slot all night; a hidden tab whose
+ * stream drops waits to be shown before it retries.
  *
  * Degradation contract: if the ticket endpoint does not exist yet (404), the
  * client settles into 'closed' and only retries every 5 minutes while it still
  * has subscribers — a page mounted for hours must not hammer a missing route.
+ * A 429 (the user's other tabs hold every stream allowed) settles the same way
+ * and retries every 2 minutes.
  * All transport failures are expressed through connectionState, never thrown
  * at subscribers.
  */
@@ -32,6 +35,8 @@ export const BACKOFF_FULL_JITTER = true;
 export const GRACE_PERIOD_MS = 30 * 1000;
 export const HIDDEN_CLOSE_MS = 5 * 60 * 1000;
 export const MISSING_ENDPOINT_RETRY_MS = 5 * 60 * 1000;
+// The user already has the most streams the server allows (other tabs).
+export const BUSY_RETRY_MS = 2 * 60 * 1000;
 
 const MAX_ATTEMPT_BEFORE_CAP = Math.floor(Math.log2(BACKOFF_MAX_MS / BACKOFF_MIN_MS));
 
@@ -63,7 +68,7 @@ export function createLiveStream(deps = {}) {
   let reconnectTimer = null;
   let graceTimer = null;
   let hiddenTimer = null;
-  let missingEndpointTimer = null;
+  let cooldownTimer = null;
   let attempt = 0;
 
   const emitState = (next) => {
@@ -74,13 +79,15 @@ export function createLiveStream(deps = {}) {
 
   const getState = () => state;
 
+  const isHidden = () => Boolean(visibility) && visibility.visibilityState === 'hidden';
+
   const hasSubscribers = () => [...handlers.values()].some((set) => set.size > 0);
 
   const clearTimers = () => {
-    [reconnectTimer, graceTimer, hiddenTimer, missingEndpointTimer].forEach((t) => {
+    [reconnectTimer, graceTimer, hiddenTimer, cooldownTimer].forEach((t) => {
       if (t) clearTimeout(t);
     });
-    reconnectTimer = graceTimer = hiddenTimer = missingEndpointTimer = null;
+    reconnectTimer = graceTimer = hiddenTimer = cooldownTimer = null;
   };
 
   const closeSource = () => {
@@ -164,14 +171,25 @@ export function createLiveStream(deps = {}) {
       emitState('closed');
       return;
     }
-    if (err && (err?.response?.status === 404 || err?.status === 404)) {
-      // The backend stream module is not deployed yet. Settle into 'closed'
-      // and probe again only after a long cooldown — never a tight retry loop.
+    const status = err?.response?.status ?? err?.status;
+    if (status === 404 || status === 429) {
+      // 404: the backend stream module is not deployed yet. 429: this user's
+      // other tabs already hold every stream the server allows. Settle into
+      // 'closed' and probe again only after a long cooldown — never a tight
+      // retry loop (a tab over the cap used to mint a ticket every few seconds).
       emitState('closed');
-      missingEndpointTimer = setTimeout(() => {
-        missingEndpointTimer = null;
-        if (hasSubscribers()) connect();
-      }, MISSING_ENDPOINT_RETRY_MS);
+      cooldownTimer = setTimeout(
+        () => {
+          cooldownTimer = null;
+          if (hasSubscribers() && !isHidden()) connect();
+        },
+        status === 404 ? MISSING_ENDPOINT_RETRY_MS : BUSY_RETRY_MS,
+      );
+      return;
+    }
+    if (isHidden()) {
+      // A hidden tab does not retry; it reconnects when shown again.
+      emitState('closed');
       return;
     }
     emitState('reconnecting');
@@ -187,18 +205,21 @@ export function createLiveStream(deps = {}) {
     if (!visibility) return;
     if (visibility.visibilityState === 'hidden') {
       // Don't close immediately — a quick tab switch must not drop the stream.
+      // Also when the stream is down and waiting to retry: a hidden tab must
+      // stop minting tickets, not only drop an open connection.
       hiddenTimer = setTimeout(() => {
         hiddenTimer = null;
-        if (source) disconnect('closed');
+        if (source || reconnectTimer) disconnect('closed');
       }, HIDDEN_CLOSE_MS);
       return;
     }
     if (hiddenTimer) {
       clearTimeout(hiddenTimer);
       hiddenTimer = null;
-      return;
     }
-    if (!source && hasSubscribers() && state === 'closed') connect();
+    if (!source && !reconnectTimer && !cooldownTimer && hasSubscribers() && state === 'closed') {
+      connect();
+    }
   };
 
   if (visibility) {
@@ -215,7 +236,7 @@ export function createLiveStream(deps = {}) {
       clearTimeout(graceTimer);
       graceTimer = null;
     }
-    if (!source && !reconnectTimer && !missingEndpointTimer) connect();
+    if (!source && !reconnectTimer && !cooldownTimer) connect();
     return () => {
       const set = handlers.get(eventType);
       if (!set) return;

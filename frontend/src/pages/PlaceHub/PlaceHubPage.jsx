@@ -61,8 +61,20 @@ export default function PlaceHubPage() {
 
   /* ─── Data ────────────────────────────────────────────────────────────── */
 
-  const { data, setData, errors, loading, loaded, loadPlaces, loadIdling, loadFuel, loadStops } =
-    usePlaceHubData({ ready, allowZones, allowSites, allowIdling, allowFuel });
+  const {
+    data,
+    setData,
+    errors,
+    loading,
+    loaded,
+    loadPlaces,
+    loadRejected,
+    loadIdling,
+    loadIdleHistory,
+    loadFuel,
+    loadDrain,
+    loadStops,
+  } = usePlaceHubData({ ready, allowZones, allowSites, allowIdling, allowFuel });
 
   // Bumped after an answer or a refresh so the table tabs refetch with the map.
   const [version, setVersion] = useState(0);
@@ -70,6 +82,8 @@ export default function PlaceHubPage() {
     loadPlaces();
     loadIdling();
     loadFuel();
+    if (loaded.idleHistory) loadIdleHistory();
+    if (loaded.drain) loadDrain();
     if (loaded.stops) loadStops();
     setVersion((v) => v + 1);
   };
@@ -108,9 +122,19 @@ export default function PlaceHubPage() {
     );
   };
 
+  // Each tab's own data loads the first time it is opened.
   useEffect(() => {
     if (tab === 'stops' && !loaded.stops) loadStops();
   }, [tab, loaded.stops, loadStops]);
+  useEffect(() => {
+    if (tab === 'idling' && !loaded.idleHistory) loadIdleHistory();
+  }, [tab, loaded.idleHistory, loadIdleHistory]);
+  useEffect(() => {
+    if (tab === 'fuel' && !loaded.drain) loadDrain();
+  }, [tab, loaded.drain, loadDrain]);
+  useEffect(() => {
+    if (group === 'rejected' && !loaded.rejected) loadRejected();
+  }, [group, loaded.rejected, loadRejected]);
 
   useLiveIdlingRefresh({ tab, allowIdling, setData });
 
