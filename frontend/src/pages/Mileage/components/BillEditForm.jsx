@@ -12,10 +12,10 @@ const toDatetimeLocal = (iso) => {
 const numberOrUndefined = (v) => (v === '' || v == null ? undefined : Number(v));
 
 const inputClass =
-  'w-full rounded-md border border-[var(--ds-line2)] bg-white px-2 py-1.5 text-[13px] text-[var(--ds-ink)]';
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition';
 
 const Field = ({ id, label, children }) => (
-  <label htmlFor={id} className="flex flex-col gap-1 text-[12px] font-medium text-[var(--ds-ink3)]">
+  <label htmlFor={id} className="flex flex-col gap-1.5 text-xs font-semibold text-slate-600">
     {label}
     {children}
   </label>

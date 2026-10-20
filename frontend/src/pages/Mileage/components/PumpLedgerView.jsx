@@ -11,12 +11,12 @@ import InfoTip from './InfoTip';
 
 const barColour = (p) =>
   p.status === 'INSUFFICIENT_DATA'
-    ? 'var(--inert)'
+    ? '#94a3b8'
     : p.shortfallPct > 6
-      ? 'var(--critical)'
+      ? '#ef4444'
       : p.shortfallPct > 1
-        ? 'var(--caution)'
-        : 'var(--ok)';
+        ? '#f59e0b'
+        : '#10b981';
 
 const explainPump = (p, price) => ({
   title: p.station.displayName,
@@ -95,7 +95,7 @@ const columns = (price) => [
     render: (p) => (
       <span
         className="num"
-        style={{ color: p.lossInr > 0 ? 'var(--critical)' : undefined, fontWeight: 600 }}
+        style={{ color: p.lossInr > 0 ? '#ef4444' : undefined, fontWeight: 600 }}
       >
         {formatINR(p.lossInr)}
       </span>

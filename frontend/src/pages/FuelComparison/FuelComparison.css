@@ -60,6 +60,17 @@
   min-height: 100vh;
 }
 
+.fc-page-wrapper:has(.pshell--embedded) {
+  min-height: auto;
+}
+
+.fc-page-wrapper .pshell--embedded {
+  padding: 0 !important;
+  background: transparent !important;
+  min-height: auto !important;
+  gap: 16px !important;
+}
+
 .dark .fc-page-wrapper .pshell-title {
   color: #f8fafc;
 }
