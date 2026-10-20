@@ -27,6 +27,7 @@ import StatTile from './StatTile.jsx';
 import CoverageTabs from './CoverageTabs.jsx';
 import EdgeOnlyPanel from './EdgeOnlyPanel.jsx';
 import MasterOnlyPanel from './MasterOnlyPanel.jsx';
+import IalertOnlyPanel from './IalertOnlyPanel.jsx';
 
 export default function FleetCoveragePage() {
   const navigate = useNavigate();
@@ -55,6 +56,10 @@ export default function FleetCoveragePage() {
   const onlyEdge = useMemo(() => data?.onlyInFleetEdge || [], [data]);
   const onlyMaster = useMemo(() => data?.onlyInFleetMaster || [], [data]);
   const linkedCount = summary.linked ?? (data?.linked || []).length;
+  const onlyIalert = useMemo(() => data?.onlyInIalert || [], [data]);
+  const staleIalert = useMemo(() => data?.staleInIalert || [], [data]);
+  const inIalertCount = summary.inIalert ?? onlyIalert.length + linkedCount;
+  const onlyIalertCount = summary.onlyIalert ?? onlyIalert.length;
 
   // Both lists are fully loaded in one payload, so the search is client-side
   // and applies to both tables at once.
@@ -187,6 +192,26 @@ export default function FleetCoveragePage() {
     [onlyMasterFiltered],
   );
 
+  const onlyIalertFiltered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return onlyIalert;
+    return onlyIalert.filter((v) =>
+      [v.registrationNumber, v.vin, v.vehicleType, v.ialertAccountId].some(
+        (value) => value != null && String(value).toLowerCase().includes(needle),
+      ),
+    );
+  }, [onlyIalert, q]);
+
+  const staleIalertFiltered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return staleIalert;
+    return staleIalert.filter((v) =>
+      [v.registrationNumber, v.vin, v.vehicleType, v.ialertAccountId].some(
+        (value) => value != null && String(value).toLowerCase().includes(needle),
+      ),
+    );
+  }, [staleIalert, q]);
+
   const coveragePct =
     summary.inFleetEdge > 0 ? (100 * (summary.linked ?? 0)) / summary.inFleetEdge : null;
   const noDirectory = !loading && !error && data && summary.inFleetEdge === 0;
@@ -263,6 +288,16 @@ export default function FleetCoveragePage() {
           <>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <StatTile label="Linked" value={formatNum(linkedCount)} tone="var(--ok)" />
+              {inIalertCount > 0 ? (
+                <StatTile label="In iALERT" value={formatNum(inIalertCount)} tone="var(--ok)" />
+              ) : null}
+              {onlyIalertCount > 0 ? (
+                <StatTile
+                  label="Only in iALERT"
+                  value={formatNum(onlyIalertCount)}
+                  tone="var(--caution)"
+                />
+              ) : null}
               <StatTile
                 label="Only in FleetEdge"
                 value={formatNum(summary.onlyFleetEdge ?? onlyEdge.length)}
@@ -286,9 +321,18 @@ export default function FleetCoveragePage() {
                 setActiveTab={setActiveTab}
                 onlyEdgeFiltered={onlyEdgeFiltered}
                 onlyMasterFiltered={onlyMasterFiltered}
+                onlyIalertFiltered={onlyIalertFiltered}
+                staleIalertFiltered={staleIalertFiltered}
               />
 
-              {activeTab === 'edge' ? (
+              {activeTab === 'ialert' ? (
+                <IalertOnlyPanel
+                  q={q}
+                  searching={searching}
+                  onlyIalert={onlyIalert}
+                  staleIalert={staleIalert}
+                />
+              ) : activeTab === 'edge' ? (
                 <EdgeOnlyPanel
                   q={q}
                   searching={searching}

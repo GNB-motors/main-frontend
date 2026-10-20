@@ -6,6 +6,7 @@ import { formatNum, formatPct } from '../../utils/formatters';
 import { Card, SectionHead, Skeleton } from './settingsAtoms';
 import { useFleetLink } from '../../contexts/fleetLinkContext';
 import { linkForAccount, linkStatus, needsAction } from '../../lib/fleetLink';
+import { IalertAccountsCard } from './settingsIalert.jsx';
 
 const STATUS = {
   ACTIVE: { label: 'Active', tone: 'ok' },
@@ -177,6 +178,7 @@ export function FleetDataSettings({ showAccounts, coverage }) {
         desc="Where your trucks' GPS and engine data comes from, and which trucks it covers."
       />
       {showAccounts ? <FleetEdgeAccounts /> : null}
+      {showAccounts ? <IalertAccountsCard /> : null}
       {coverage ? <Coverage coverage={coverage} /> : null}
     </>
   );

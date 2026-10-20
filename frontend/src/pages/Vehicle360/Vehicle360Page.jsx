@@ -1,7 +1,8 @@
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import useApi from '../../hooks/useApi';
 import FleetDataService from '../../services/FleetDataService';
-import { Breadcrumbs, IdentityStrip, HeroRow, Tabs } from './vehicle360Header';
+import { Breadcrumbs, IdentityStrip, HeroRow } from './vehicle360Header';
+import { Tabs } from './vehicle360Tabs';
 import OverviewPanel from './panels/OverviewPanel';
 import ServicePanel from './panels/ServicePanel';
 import FuelPanel from './panels/FuelPanel';
@@ -112,6 +113,7 @@ export default function Vehicle360Page() {
         fleetEdge={p.fleetEdge}
         livePosition={p.livePosition}
         prediction={p.prediction}
+        telematicsProvider={p.telematicsProvider}
       />
 
       <HeroRow
@@ -123,6 +125,8 @@ export default function Vehicle360Page() {
         prediction={p.prediction}
         coverage={p.coverage}
         history={history}
+        ialert={p.ialert}
+        telematicsProvider={p.telematicsProvider}
       />
 
       <Tabs tabs={TABS} active={active} onChange={setActive} />
