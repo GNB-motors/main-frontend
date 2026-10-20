@@ -228,8 +228,8 @@
   }
 }
 
-/* Support Tickets unread badge (SupportTicketsNavLink). Divs, not spans:
-   collapsed nav links hide every span. */
+/* Count badge on Support Tickets / Enquiries (CountBadgeNavLink). Divs, not
+   spans: collapsed nav links hide every span. */
 .sat-nav-icon {
   position: relative;
   display: inline-flex;

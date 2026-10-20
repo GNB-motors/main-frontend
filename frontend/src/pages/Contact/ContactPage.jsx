@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Mail, Phone } from 'lucide-react';
 import AuthHelpLayout from '../../components/auth/AuthHelpLayout.jsx';
-
-const CONTACT_EMAIL = 'gnbmotors60@gmail.com';
-const CONTACT_PHONE = '9831208946';
+import {
+  SALES_PHONE as CONTACT_PHONE,
+  SUPPORT_EMAIL as CONTACT_EMAIL,
+} from '../Support/supportContact.js';
 
 const ContactPage = () => (
   <AuthHelpLayout title="Contact us" subtitle="Get in touch with us. We're here to help!">

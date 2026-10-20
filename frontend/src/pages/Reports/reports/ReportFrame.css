@@ -582,3 +582,173 @@
     align-items: flex-start;
   }
 }
+
+/* Fuel Cycles: trips drop-down under a cycle row */
+.rpt-trips-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--rpt-control-edge);
+  border-radius: 999px;
+  background: var(--rpt-surface);
+  color: var(--rpt-ink);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.rpt-trips-toggle:hover,
+.rpt-trips-toggle[aria-expanded='true'] {
+  border-color: var(--rpt-accent);
+  color: var(--rpt-accent);
+}
+
+.rpt .dt .dt-row-detail > td {
+  padding: 0;
+  background: var(--rpt-head-bg);
+}
+
+.rpt-cycle-trips {
+  padding: 12px 16px 16px 40px;
+  font-size: 13px;
+}
+
+.rpt-cycle-trips--note {
+  padding: 12px 16px 12px 40px;
+  color: var(--rpt-muted);
+}
+
+.rpt-cycle-trips-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  margin-bottom: 10px;
+  color: var(--rpt-muted);
+}
+
+.rpt-cycle-trips-summary strong {
+  color: var(--rpt-ink-strong);
+}
+
+.rpt-cycle-trips-alert {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rpt-cycle-trips-alert--red {
+  background: #fce9e9;
+  color: #b42318;
+}
+
+.rpt-cycle-trips-alert--amber {
+  background: #fdf3e2;
+  color: #a66300;
+}
+
+.rpt-cycle-trips-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--rpt-surface);
+  border: 1px solid var(--rpt-divider);
+  border-radius: 8px;
+}
+
+.rpt-cycle-trips-table th,
+.rpt-cycle-trips-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--rpt-divider);
+  text-align: left;
+  vertical-align: top;
+}
+
+.rpt-cycle-trips-table th {
+  color: var(--rpt-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.rpt-cycle-trips-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rpt-cycle-trips-sub,
+.rpt-cycle-trips-notes {
+  color: var(--rpt-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .rpt-cycle-trips,
+  .rpt-cycle-trips--note {
+    padding-left: 12px;
+    overflow-x: auto;
+  }
+}
+
+/* Fuel Cycles drop-down: the cycle's fuel slips above its trips */
+.rpt-cycle-slips {
+  margin-bottom: 16px;
+}
+
+.rpt-cycle-slips-title {
+  color: var(--rpt-ink-strong);
+}
+
+.rpt-cycle-trips-summary--trips {
+  margin-top: 4px;
+}
+
+.rpt-cycle-slips-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--rpt-accent);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.rpt-cycle-slips-link:hover {
+  text-decoration: underline;
+}
+
+.rpt-slip-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.rpt-slip-tag--full {
+  background: #e7f6ec;
+  color: #1b7f3b;
+}
+
+.rpt-slip-tag--partial {
+  background: #fdf3e2;
+  color: #a66300;
+}
+
+.dark .rpt-slip-tag--full {
+  background: rgba(27, 127, 59, 0.2);
+  color: #7ad69a;
+}
+
+.dark .rpt-slip-tag--partial {
+  background: rgba(166, 99, 0, 0.22);
+  color: #f2c26b;
+}
