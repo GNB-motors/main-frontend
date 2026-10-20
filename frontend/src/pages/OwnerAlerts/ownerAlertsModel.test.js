@@ -33,18 +33,33 @@ describe('ownerAlertsModel', () => {
       expect(sevOf('FLEETEDGE_SUBSCRIPTION_EXPIRED')).toBe('WARNING');
       expect(sevOf('FLEETEDGE_ALERT_REFUEL')).toBe('INFO');
       expect(sevOf('UNKNOWN_ALERT_TYPE')).toBe('WARNING');
+      // iALERT codes
+      expect(sevOf('IALERT_REAUTH_REQUIRED')).toBe('WARNING');
+      expect(sevOf('IALERT_RELINK_DUE')).toBe('WARNING');
+      expect(sevOf('IALERT_SUBSCRIPTION_EXPIRED')).toBe('WARNING');
+      expect(sevOf('IALERT_SUBSCRIPTION_EXPIRING')).toBe('INFO');
     });
 
     it('catOf categorizes alert types', () => {
       expect(catOf('FLEETEDGE_SUBSCRIPTION_EXPIRED')).toBe('subscription');
       expect(catOf('FLEETEDGE_REAUTH_REQUIRED')).toBe('data');
       expect(catOf('FUEL_SIPHON_SUSPECTED')).toBe('other');
+      // iALERT codes
+      expect(catOf('IALERT_REAUTH_REQUIRED')).toBe('data');
+      expect(catOf('IALERT_RELINK_DUE')).toBe('data');
+      expect(catOf('IALERT_SUBSCRIPTION_EXPIRED')).toBe('subscription');
+      expect(catOf('IALERT_SUBSCRIPTION_EXPIRING')).toBe('subscription');
     });
 
     it('titleOf resolves alert titles or falls back to label/type', () => {
       expect(titleOf('FLEETEDGE_SUBSCRIPTION_EXPIRED')).toBe('Subscription expired');
       expect(titleOf('FUEL_SIPHON_SUSPECTED')).toBe('Fuel loss suspected');
       expect(titleOf('CUSTOM_NEW_TYPE')).toBe('CUSTOM_NEW_TYPE');
+      // iALERT codes
+      expect(titleOf('IALERT_REAUTH_REQUIRED')).toBe('iALERT re-connect needed');
+      expect(titleOf('IALERT_RELINK_DUE')).toBe('iALERT re-link due');
+      expect(titleOf('IALERT_SUBSCRIPTION_EXPIRED')).toBe('iALERT plan expired');
+      expect(titleOf('IALERT_SUBSCRIPTION_EXPIRING')).toBe('iALERT plan expiring');
     });
 
     it('cleanMsg strips leading "Please review:"', () => {

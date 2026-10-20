@@ -7,6 +7,8 @@ import { useFleetLink } from '../../contexts/fleetLinkContext';
 
 // Account-level FleetEdge alerts: the fix is a re-link, not a vehicle to look at.
 const RELINK_TYPES = ['FLEETEDGE_REAUTH_REQUIRED', 'FLEETEDGE_RELINK_DUE'];
+// iALERT account alerts: also not a vehicle — the re-link happens in the GNB extension.
+const IALERT_ACCOUNT_TYPES = ['IALERT_REAUTH_REQUIRED', 'IALERT_RELINK_DUE'];
 
 /**
  * AlertDetailsDrawer — structured, single-alert investigation panel.
@@ -20,9 +22,12 @@ export default function AlertDetailsDrawer({ open, onClose, alert, onAck, acking
   const sev = alert.severity || 'WARNING';
   const color =
     sev === 'CRITICAL' ? 'var(--critical)' : sev === 'INFO' ? 'var(--gnb-400)' : 'var(--caution)';
-  const source = String(alert.type || '').startsWith('FLEETEDGE')
-    ? 'FleetEdge'
-    : 'FleetEdge telemetry';
+  const type = String(alert.type || '');
+  const source = type.startsWith('IALERT')
+    ? 'iALERT'
+    : type.startsWith('FLEETEDGE')
+      ? 'FleetEdge'
+      : 'FleetEdge telemetry';
 
   return (
     <SlideOver
@@ -138,6 +143,14 @@ export default function AlertDetailsDrawer({ open, onClose, alert, onAck, acking
             >
               <Unplug size={15} /> Reconnect
             </button>
+          ) : IALERT_ACCOUNT_TYPES.includes(alert.type) ? (
+            <Link
+              to="/settings/ialert-accounts"
+              className="ov-btn justify-center"
+              onClick={onClose}
+            >
+              <Unplug size={15} /> iALERT accounts
+            </Link>
           ) : (
             <span />
           )}

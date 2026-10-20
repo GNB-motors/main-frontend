@@ -3,7 +3,10 @@ export default function CoverageTabs({
   setActiveTab,
   onlyEdgeFiltered,
   onlyMasterFiltered,
+  onlyIalertFiltered,
+  staleIalertFiltered,
 }) {
+  const ialertCount = (onlyIalertFiltered?.length ?? 0) + (staleIalertFiltered?.length ?? 0);
   return (
     <div className="flex items-center gap-2 border-b border-slate-200">
       <button
@@ -42,6 +45,26 @@ export default function CoverageTabs({
           {onlyMasterFiltered.length}
         </span>
       </button>
+      {ialertCount > 0 && (
+        <button
+          type="button"
+          className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-colors ${
+            activeTab === 'ialert'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+          onClick={() => setActiveTab('ialert')}
+        >
+          <span>Only in iALERT</span>
+          <span
+            className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+              activeTab === 'ialert' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
+            }`}
+          >
+            {ialertCount}
+          </span>
+        </button>
+      )}
     </div>
   );
 }

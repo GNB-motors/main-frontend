@@ -3,6 +3,8 @@ import { Suspense, lazy } from 'react';
 import { formatKm, formatNum, timeAgo } from '../../utils/formatters';
 import { formatDateIST } from '../../utils/dateUtils';
 import FleetLinkVehicleNotice from '../../components/FleetLinkVehicleNotice.jsx';
+import EmissionNorm from './EmissionNorm.jsx';
+import { isBs6Vehicle, providerLabel, providerPill } from './vehicle360Provider.js';
 import {
   statusChips,
   serviceState,
@@ -65,8 +67,18 @@ function descriptorOf(fleetMaster, fleetEdge) {
 }
 
 /** Identity strip: who this is, what state it's in, what you can do about it. */
-export function IdentityStrip({ reg, fleetMaster, fleetEdge, livePosition, prediction }) {
-  const chips = statusChips({ fleetMaster, livePosition, prediction });
+export function IdentityStrip({
+  reg,
+  fleetMaster,
+  fleetEdge,
+  livePosition,
+  prediction,
+  telematicsProvider,
+}) {
+  const chips = [
+    providerPill(telematicsProvider),
+    ...statusChips({ fleetMaster, livePosition, prediction }),
+  ].filter(Boolean);
   const descriptor = descriptorOf(fleetMaster, fleetEdge);
   const svc = serviceState(prediction);
 
@@ -226,8 +238,11 @@ export function HeroRow({
   prediction,
   coverage,
   history,
+  ialert,
+  telematicsProvider,
 }) {
   const svc = serviceState(prediction);
+  const bs6 = isBs6Vehicle(ialert, fleetEdge);
   const fuel = fuelReading(health);
   const def = defReading(health);
   const telemetryAge = daysSince(health?.pulledAt);
@@ -260,9 +275,14 @@ export function HeroRow({
     ['Model', fleetEdge?.vehicleModel || fleetMaster?.model, false],
     ['Category', fleetMaster?.vehicleCategory || fleetEdge?.vehicleType, false],
     ['Line of business', fleetEdge?.lobName, false],
-    ['Emission norm', fleetEdge?.emissionNorm, false],
+    [
+      'Emission norm',
+      (fleetEdge?.emissionNorm || bs6) && <EmissionNorm norm={fleetEdge?.emissionNorm} bs6={bs6} />,
+      false,
+    ],
     ['VIN / chassis', fleetEdge?.vin || fleetMaster?.chassisNumber, true],
     ['Engine number', fleetEdge?.engineNumber, true],
+    ['Provider', providerLabel(telematicsProvider), false],
     ['Known to', coverageSources(coverage).join(' · '), false],
   ].filter(([, v]) => v);
 
@@ -377,25 +397,5 @@ function RegistryRow({ k, v, code }) {
       <dt>{k}</dt>
       <dd className={code ? 'is-code' : undefined}>{v}</dd>
     </>
-  );
-}
-
-export function Tabs({ tabs, active, onChange }) {
-  return (
-    <div className="v360-tabs" role="tablist" aria-label="Vehicle sections">
-      {tabs.map((t) => (
-        <button
-          key={t.id}
-          type="button"
-          role="tab"
-          aria-selected={active === t.id}
-          className={`v360-tab ${active === t.id ? 'v360-tab--on' : ''}`.trim()}
-          onClick={() => onChange(t.id)}
-        >
-          {t.label}
-          {t.count != null ? <span className="v360-tab-count">{t.count}</span> : null}
-        </button>
-      ))}
-    </div>
   );
 }
