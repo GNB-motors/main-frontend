@@ -30,14 +30,24 @@ export const TripPlanService = {
       await apiClient.post(`${BASE}/${id}/cancel`, reason ? { reason } : {}, { signal }),
     ),
 
-  link: async ({ id, autoTripId }, { signal } = {}) =>
+  link: async ({ id, autoTripId, reason }, { signal } = {}) =>
     parsed(
       'tripPlanSchema',
-      await apiClient.post(`${BASE}/${id}/link`, { autoTripId }, { signal }),
+      await apiClient.post(
+        `${BASE}/${id}/link`,
+        { autoTripId, ...(reason ? { reason } : {}) },
+        { signal },
+      ),
     ),
 
-  unlink: async ({ id }, { signal } = {}) =>
-    parsed('tripPlanSchema', await apiClient.post(`${BASE}/${id}/unlink`, {}, { signal })),
+  unlink: async ({ id, reason }, { signal } = {}) =>
+    parsed(
+      'tripPlanSchema',
+      await apiClient.post(`${BASE}/${id}/unlink`, reason ? { reason } : {}, { signal }),
+    ),
+
+  resumeAutoMatch: async ({ id }, { signal } = {}) =>
+    parsed('tripPlanSchema', await apiClient.post(`${BASE}/${id}/auto-match`, {}, { signal })),
 
   /** Trips no plan links to — what a person links a plan to by hand. */
   unplannedTrips: async (params = {}, { signal } = {}) =>

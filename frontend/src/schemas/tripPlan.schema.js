@@ -11,6 +11,16 @@ const planEnd = z.object({ orgSiteId: str, name: str, lat: num, lng: num }).pass
 export const tripPlanSchema = z
   .object({
     _id: str,
+    source: str,
+    erpTripId: str,
+    erpTripNumber: str,
+    erpState: str,
+    matchAnchorAt: str,
+    matchAnchorSource: str,
+    matchState: str,
+    trackingReason: str,
+    expectedFreeAt: str,
+    reconciledAt: str,
     vehicleId: ref,
     registrationNumber: str,
     driverId: ref,

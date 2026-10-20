@@ -2,6 +2,7 @@ import { placeMapUrl } from '../../ErpDeliveryOrders/doPlaces';
 import Facts from './Facts';
 import TelematicsPanel from './TelematicsPanel';
 import { stamp } from './tripFormat';
+import GpsTripPanel from './GpsTripPanel';
 
 const TripRail = ({ data, handleRecomputeTelematics, recomputing }) => (
   <aside className="trip360-rail">
@@ -72,6 +73,7 @@ const TripRail = ({ data, handleRecomputeTelematics, recomputing }) => (
       </div>
     </section>
 
+    <GpsTripPanel plan={data.plan} autoTrip={data.autoTrip} error={data.gpsLinkError} />
     <TelematicsPanel
       telematics={data.telematics}
       plannedKm={data.totalKm}

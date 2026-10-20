@@ -1,4 +1,5 @@
 import { toast } from 'react-toastify';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -18,7 +19,8 @@ const DAY_MS = 86400000;
 /** Pick the trip that ran a plan, from the truck's trips no plan links to (±3 days). */
 export default function LinkTripDialog({ plan, onOpenChange, onLinked }) {
   const open = Boolean(plan);
-  const startMs = plan ? new Date(plan.plannedStartAt).getTime() : 0;
+  const startMs = plan ? new Date(plan.matchAnchorAt || plan.plannedStartAt).getTime() : 0;
+  const [reason, setReason] = useState('');
   const vehicleId = plan ? String(plan.vehicleId?._id || plan.vehicleId) : '';
   const { data, loading, error } = useApi(
     (signal) =>
@@ -38,7 +40,11 @@ export default function LinkTripDialog({ plan, onOpenChange, onLinked }) {
 
   const link = async (trip) => {
     try {
-      await linkM.mutate({ id: plan._id, autoTripId: trip._id });
+      await linkM.mutate({
+        id: plan._id,
+        autoTripId: trip._id,
+        reason: reason.trim() || undefined,
+      });
       toast.success('Trip linked to the plan');
       onLinked?.();
       onOpenChange(false);
@@ -53,9 +59,20 @@ export default function LinkTripDialog({ plan, onOpenChange, onLinked }) {
         <DialogHeader>
           <DialogTitle>Link the trip that ran this plan</DialogTitle>
           <DialogDescription>
-            {plan?.registrationNumber}: trips within 3 days of the planned start that no plan has.
+            {plan?.registrationNumber}: unlinked trips within 3 days of{' '}
+            {plan?.source === 'ERP' ? 'the expected GPS departure' : 'the planned start'}.
           </DialogDescription>
         </DialogHeader>
+        <label>
+          Reason for this association (optional)
+          <input
+            aria-label="Reason for this association"
+            className="atx-input"
+            value={reason}
+            maxLength={500}
+            onChange={(e) => setReason(e.target.value)}
+          />
+        </label>
         {loading ? <div className="atx-state">Loading trips…</div> : null}
         {error ? <div className="atx-state">Could not load the trips.</div> : null}
         {!loading && !error && !trips.length ? (
