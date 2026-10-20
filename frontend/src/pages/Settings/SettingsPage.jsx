@@ -10,6 +10,7 @@ import { groupSections, settingsAccess, visibleSections } from './settingsSectio
 import { LocationsManager } from './settingsLocations';
 import { FleetDataSettings } from './settingsFleetData';
 import { IdleThresholdSetting } from './settingsIdling';
+import { NetFuelSetting } from './settingsNetFuel';
 import { WhatsAppSettings } from './settingsWhatsApp';
 import './Settings.css';
 
@@ -97,7 +98,12 @@ export default function SettingsPage() {
                 coverage={access.coverage ? coverage : null}
               />
             ) : null}
-            {active.key === 'idling' ? <IdleThresholdSetting canEdit={access.editIdling} /> : null}
+            {active.key === 'idling' ? (
+              <>
+                <IdleThresholdSetting canEdit={access.editIdling} />
+                <NetFuelSetting canEdit={access.editIdling} />
+              </>
+            ) : null}
             {active.key === 'whatsapp' ? <WhatsAppSettings /> : null}
           </section>
         </div>
