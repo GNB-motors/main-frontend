@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { formatDate, formatNumber, formatCurrency, fmtKm, fmtL } from './tripReportsUtils';
 import { StatusChip, FlagChips } from './tripReportCells';
 import { BILL_VERDICT } from '../../../utils/billCheck';
+import { notInTripsAlert } from './cycleTrips';
 
 // Columns for GET /api/reports/fuel-cycles (FuelCycle rows).
 export function useFuelCyclesColumns() {
@@ -53,6 +54,33 @@ export function useFuelCyclesColumns() {
         label: 'Residue',
         align: 'right',
         render: (r) => <div className="cell-primary">{fmtKm(r.km?.residue)}</div>,
+      },
+      {
+        key: 'tripLaden',
+        label: 'Laden in trips',
+        align: 'right',
+        render: (r) => <div className="cell-primary">{fmtKm(r.tripSummary?.ladenKm)}</div>,
+      },
+      {
+        key: 'notInTrips',
+        label: 'Not in trips',
+        align: 'right',
+        render: (r) => {
+          const alert = notInTripsAlert(r.tripSummary);
+          return (
+            <div
+              className="cell-primary"
+              title={alert?.label || 'Empty running, detours and yard moves between these fills'}
+              style={
+                alert
+                  ? { color: alert.tone === 'red' ? '#B42318' : '#A66300', fontWeight: 600 }
+                  : undefined
+              }
+            >
+              {fmtKm(r.tripSummary?.otherKm)}
+            </div>
+          );
+        },
       },
       {
         key: 'bills',

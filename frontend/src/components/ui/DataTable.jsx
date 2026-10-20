@@ -27,6 +27,7 @@ import { getPref } from '../../utils/session.js';
  *     onRowMouseEnter={(row) => setHoveredId(row._id)}
  *     onRowMouseLeave={() => setHoveredId(null)}
  *     rowClassName={(row) => row._id === selectedId ? 'dt-row--selected' : ''}
+ *     expandedKeys={openIds} renderExpanded={(row) => <RowDetail row={row} />}
  *     emptyTitle="No trips in this window" emptyHint="Widen the date range." emptyAction={...}
  *   />
  */
@@ -63,6 +64,10 @@ export default function DataTable({
   // and default-off so existing callers that render their own filter row above
   // the table are untouched.
   toolbarExtra = null,
+  // Drop-down detail under a row: rows whose key is in `expandedKeys` get a
+  // full-width row from `renderExpanded(row)`. Default-off.
+  expandedKeys = null,
+  renderExpanded = null,
 }) {
   const [hidden, setHidden] = useState(() => new Set());
   const density = readDensity({ getItem: getPref });
@@ -254,32 +259,41 @@ export default function DataTable({
                   const extra = rowClassName ? rowClassName(row, i) : '';
                   const key = rowKey(row, i);
                   const rowSelectable = selectable && (!isRowSelectable || isRowSelectable(row));
+                  const expanded = Boolean(renderExpanded && expandedKeys?.has(key));
                   return (
-                    <tr
-                      key={key}
-                      className={`dt-row${extra ? ` ${extra}` : ''}`}
-                      onClick={onRowClick ? () => onRowClick(row, i) : undefined}
-                      onMouseEnter={onRowMouseEnter ? () => onRowMouseEnter(row, i) : undefined}
-                      onMouseLeave={onRowMouseLeave ? () => onRowMouseLeave(row, i) : undefined}
-                      style={onRowClick ? { cursor: 'pointer' } : undefined}
-                    >
-                      {selectable ? (
-                        <td className="dt-td-select" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            aria-label={`Select row ${i + 1}`}
-                            checked={selectedSet.has(key)}
-                            disabled={!rowSelectable}
-                            onChange={() => toggleRow(key)}
-                          />
-                        </td>
+                    <React.Fragment key={key}>
+                      <tr
+                        className={`dt-row${extra ? ` ${extra}` : ''}${expanded ? ' dt-row--expanded' : ''}`}
+                        onClick={onRowClick ? () => onRowClick(row, i) : undefined}
+                        onMouseEnter={onRowMouseEnter ? () => onRowMouseEnter(row, i) : undefined}
+                        onMouseLeave={onRowMouseLeave ? () => onRowMouseLeave(row, i) : undefined}
+                        style={onRowClick ? { cursor: 'pointer' } : undefined}
+                      >
+                        {selectable ? (
+                          <td className="dt-td-select" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              aria-label={`Select row ${i + 1}`}
+                              checked={selectedSet.has(key)}
+                              disabled={!rowSelectable}
+                              onChange={() => toggleRow(key)}
+                            />
+                          </td>
+                        ) : null}
+                        {cols.map((col) => (
+                          <td key={col.key} style={{ textAlign: col.align }} data-label={col.label}>
+                            {col.render ? col.render(row, i) : (row?.[col.key] ?? '—')}
+                          </td>
+                        ))}
+                      </tr>
+                      {expanded ? (
+                        <tr className="dt-row-detail">
+                          <td colSpan={cols.length + (selectable ? 1 : 0)}>
+                            {renderExpanded(row, i)}
+                          </td>
+                        </tr>
                       ) : null}
-                      {cols.map((col) => (
-                        <td key={col.key} style={{ textAlign: col.align }} data-label={col.label}>
-                          {col.render ? col.render(row, i) : (row?.[col.key] ?? '—')}
-                        </td>
-                      ))}
-                    </tr>
+                    </React.Fragment>
                   );
                 })}
           </tbody>

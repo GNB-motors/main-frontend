@@ -1,6 +1,9 @@
 import apiClient from '../../utils/axiosConfig'; // Use the configured axios instance
 import ApiError from '../../errors/ApiError';
 import logger from '../../utils/logger';
+import { parseSafe } from '../../schemas/validate';
+
+const hubSchemas = () => import('../../schemas/mileageHub.schema.js');
 
 /**
  * Service functions for fetching report data.
@@ -104,6 +107,28 @@ export const ReportsService = {
 
   getFuelCycles: (params = {}, signal) =>
     ReportsService._getTripReport('api/reports/fuel-cycles', params, signal),
+  /**
+   * One fuel cycle's trips (drop-down under a Fuel Cycles row).
+   * @returns {Promise<{ cycle: Object, summary: Object|null, trips: Array }>}
+   */
+  getFuelCycleTrips: async (cycleId, signal) => {
+    try {
+      const response = await apiClient.get(
+        `api/reports/fuel-cycles/${encodeURIComponent(cycleId)}/trips`,
+        { signal },
+      );
+      const body = await parseSafe('fuelCycleTripsSchema', hubSchemas, response.data ?? null);
+      const data = body?.data ?? {};
+      return {
+        cycle: data.cycle || null,
+        summary: data.summary || null,
+        trips: Array.isArray(data.trips) ? data.trips : [],
+      };
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+      throw ApiError.from(error);
+    }
+  },
   getNonBusiness: (params = {}, signal) =>
     ReportsService._getTripReport('api/reports/non-business', params, signal),
   getRunningCost: (params = {}, signal) =>

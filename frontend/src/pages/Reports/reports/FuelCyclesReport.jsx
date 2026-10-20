@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
-import { AlertTriangle, Receipt, RefreshCcw, Route } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronRight, Receipt, RefreshCcw, Route } from 'lucide-react';
 import DataTable from '../../../components/ui/DataTable';
 import ExportButton from '../../../components/ui/ExportButton';
 import useApi from '../../../hooks/useApi';
 import { ReportsService } from '../ReportsService.js';
 import { formatKm, formatLitres, formatNum } from '../../../utils/formatters';
 import { useFuelCyclesColumns } from './useFuelCyclesColumns.jsx';
+import CycleTripsPanel from './CycleTripsPanel';
+import { tripCountLabel } from './cycleTrips';
 import ReportFrame, {
   ReportClear,
   ReportDateRange,
@@ -34,6 +36,13 @@ const STATUS_OPTIONS = [
   { value: 'UNRECONCILED_NO_LEDGER', label: 'Unreconciled (no ledger)' },
 ];
 
+// Uploaded slips open and close a cycle on a FULL_TANK fill; register cycles
+// carry no fill type. Full → full is what the owner reconciles, so it is the default.
+const FILL_OPTIONS = [
+  { value: 'full', label: 'Full tank → full tank' },
+  { value: 'all', label: 'All cycles' },
+];
+
 // The fuel-cycles validator accepts OPEN · CLOSED · RECONCILED only (400 on
 // anything else), so the no-ledger status is narrowed here on the rows that
 // came back, and exported from them.
@@ -51,6 +60,9 @@ const EXPORT_COLUMNS = [
   ['Unaccounted (L)', (r) => r.fuel?.unaccounted],
   ['Mileage T2T (km/L)', (r) => r.mileage?.tankToTank],
   ['Cost (INR)', (r) => r.cost?.total],
+  ['Trips', (r) => r.tripSummary?.count],
+  ['Laden in trips (km)', (r) => r.tripSummary?.ladenKm],
+  ['Not in trips (km)', (r) => r.tripSummary?.otherKm],
   ['Status', (r) => r.status],
   ['Flags', (r) => (r.flags || []).join(' ')],
 ];
@@ -92,11 +104,16 @@ const FuelCyclesReport = () => {
   const [search, setSearch] = useState('');
   const [vehicleId, setVehicleId] = useState('all');
   const [status, setStatus] = useState('all');
+  const [fills, setFills] = useState('full');
+  const [openIds, setOpenIds] = useState(() => new Set());
   const serverStatus = status === CLIENT_ONLY_STATUS ? 'all' : status;
 
   const params = useMemo(
-    () => buildTripFilterParams({ ...range, vehicleId, status: serverStatus }),
-    [range, vehicleId, serverStatus],
+    () => ({
+      ...buildTripFilterParams({ ...range, vehicleId, status: serverStatus }),
+      ...(fills === 'full' ? { fullToFull: true } : {}),
+    }),
+    [range, vehicleId, serverStatus, fills],
   );
   const paramsKey = JSON.stringify(params);
   const {
@@ -124,28 +141,70 @@ const FuelCyclesReport = () => {
   const [page, setPage] = useReportPage(`${paramsKey}|${status}|${search.trim()}`);
   const pageRows = pageSlice(filtered, page);
 
-  // The export endpoint applies vehicle and status but not from/to, so a dated
-  // or searched export is built from the rows on screen instead.
-  const exportFromRows =
-    status === CLIENT_ONLY_STATUS || Boolean(search.trim()) || Boolean(range.from || range.to);
+  // The export endpoint applies dates, vehicle, status and fills (and its XLSX
+  // adds a trips sheet); only the client-side status and search are rebuilt
+  // from the rows on screen.
+  const exportFromRows = status === CLIENT_ONLY_STATUS || Boolean(search.trim());
 
   const activeFilters =
     rangeFilterCount(range) +
     (search ? 1 : 0) +
     (vehicleId !== 'all' ? 1 : 0) +
-    (status !== 'all' ? 1 : 0);
+    (status !== 'all' ? 1 : 0) +
+    (fills !== 'full' ? 1 : 0);
 
-  const columns = useFuelCyclesColumns();
+  const toggleTrips = (id) =>
+    setOpenIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const baseColumns = useFuelCyclesColumns();
+  const columns = [
+    {
+      key: 'trips',
+      label: 'Trips',
+      render: (r) => {
+        const open = openIds.has(r._id);
+        const Icon = open ? ChevronDown : ChevronRight;
+        return (
+          <button
+            type="button"
+            className="rpt-trips-toggle"
+            aria-expanded={open}
+            aria-label={`${open ? 'Hide' : 'Show'} trips in this cycle`}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleTrips(r._id);
+            }}
+          >
+            <Icon size={13} aria-hidden="true" />
+            {tripCountLabel(r.tripSummary)}
+          </button>
+        );
+      },
+    },
+    ...baseColumns,
+  ];
 
   return (
     <ReportFrame
       title="Fuel Cycles"
-      subtitle="Full-tank to full-tank cycles — distance, fuel reconciliation and cost per cycle"
+      subtitle="Full-tank to full-tank cycles from the fuel slips — distance, fuel, cost, and every trip run between the two fills"
       filters={
         <>
           <ReportDateRange from={range.from} to={range.to} onChange={setRange} />
           <ReportSearch value={search} onChange={setSearch} placeholder="Search vehicle" />
           <VehiclePicker value={vehicleId} onChange={setVehicleId} />
+          <ReportSelect
+            label="Fills"
+            value={fills}
+            onChange={setFills}
+            options={FILL_OPTIONS}
+            width={200}
+          />
           <ReportSelect
             label="Status"
             value={status}
@@ -160,6 +219,7 @@ const FuelCyclesReport = () => {
               setSearch('');
               setVehicleId('all');
               setStatus('all');
+              setFills('full');
             }}
           />
         </>
@@ -201,6 +261,9 @@ const FuelCyclesReport = () => {
         columns={columns}
         rows={pageRows}
         rowKey={(r) => r._id}
+        onRowClick={(r) => toggleTrips(r._id)}
+        expandedKeys={openIds}
+        renderExpanded={(r) => <CycleTripsPanel cycleId={r._id} />}
         loading={loading}
         error={error}
         onRetry={refetch}
