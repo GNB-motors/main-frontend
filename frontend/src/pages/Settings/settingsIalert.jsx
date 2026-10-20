@@ -18,20 +18,29 @@ export function IalertAccountsCard() {
   const vehicles = rows.reduce((n, r) => n + (r.vehicleCount || 0), 0);
   return (
     <Card
-      title="iALERT accounts"
+      title="iALERT"
       aside={
-        <Link to="/settings/ialert-accounts" className="stx-link">
-          View accounts
+        <Link to="/ialert/vehicles" className="stx-link">
+          Live vehicle status
           <ArrowRight size={14} aria-hidden="true" />
         </Link>
       }
     >
-      <p className="text-sm text-slate-600">
-        {rows.length} connected · {formatNum(vehicles)} vehicles synced
-        {needsAction ? (
-          <span className="ml-2 font-semibold text-red-600">· {needsAction} need reconnecting</span>
-        ) : null}
+      <p className="stx-card-lead">
+        {formatNum(rows.length)} {rows.length === 1 ? 'account' : 'accounts'} connected ·{' '}
+        {formatNum(vehicles)} {vehicles === 1 ? 'vehicle' : 'vehicles'} syncing.{' '}
+        <Link to="/settings/ialert-accounts" className="stx-link">
+          Manage accounts
+        </Link>
       </p>
+      {needsAction ? (
+        <p className="stx-callout stx-callout--warn">
+          <strong>
+            {needsAction} {needsAction === 1 ? 'account needs' : 'accounts need'} reconnecting.
+          </strong>{' '}
+          Sign in to iALERT again with the GNB extension open.
+        </p>
+      ) : null}
     </Card>
   );
 }

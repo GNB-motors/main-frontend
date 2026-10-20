@@ -11,6 +11,7 @@ const ProfilePage = lazy(() => import('../../pages/Profile/ProfilePage.jsx'));
 const SettingsPage = lazy(() => import('../../pages/Settings/SettingsPage.jsx'));
 const FleetEdgeAccountsPage = lazy(() => import('../../pages/Settings/FleetEdgeAccountsPage.jsx'));
 const IalertAccountsPage = lazy(() => import('../../pages/Settings/IalertAccountsPage.jsx'));
+const IalertFleetPage = lazy(() => import('../../pages/IalertFleet/IalertFleetPage.jsx'));
 const DriversPage = lazy(() => import('../../pages/Drivers/DriversPage.jsx'));
 const AddDriverPage = lazy(() => import('../../pages/Drivers/AddDriverPage.jsx'));
 const BulkUploadDriversPage = lazy(() => import('../../pages/Drivers/BulkUploadDriversPage.jsx'));
@@ -217,6 +218,7 @@ const dashboardRoutes = (
     <Route path="/settings" element={<SettingsPage />} />
     <Route path="/settings/fleetedge-accounts" element={<FleetEdgeAccountsPage />} />
     <Route path="/settings/ialert-accounts" element={<IalertAccountsPage />} />
+    <Route path="/ialert/vehicles" element={<IalertFleetPage />} />
   </>
 );
 
