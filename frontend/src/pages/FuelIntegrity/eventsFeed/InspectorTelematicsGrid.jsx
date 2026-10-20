@@ -66,7 +66,7 @@ const InspectorTelematicsGrid = ({ activeCtx, activeEvent, isDef, isFill, isLoss
         </div>
         <div className="fi-tele-item">
           <span className="fi-tele-label">Siphon Confidence</span>
-          <span className="fi-tele-val capitalize">{activeEvent.confidence || 'HIGH'}</span>
+          <span className="fi-tele-val capitalize">{activeEvent.confidence || 'Not rated'}</span>
         </div>
         <div className="fi-tele-item">
           <span className="fi-tele-label">Engine Burn (CAN)</span>

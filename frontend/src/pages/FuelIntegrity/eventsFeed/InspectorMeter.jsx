@@ -40,7 +40,7 @@ const InspectorMeter = ({ activeEvent, isDef, isFill, isLoss }) => (
         <div className="flex items-center justify-between text-xs font-semibold">
           <span className="text-slate-700 dark:text-slate-300">Unaccounted Siphon Loss</span>
           <span className="text-red-600 dark:text-red-400 font-bold">
-            {activeEvent.confidence || 'HIGH'} Confidence
+            {activeEvent.confidence ? `${activeEvent.confidence} Confidence` : 'Confidence not rated'}
           </span>
         </div>
 
