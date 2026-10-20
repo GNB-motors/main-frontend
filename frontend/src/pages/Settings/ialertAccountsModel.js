@@ -47,6 +47,22 @@ export function planPhrases(plan) {
   return out;
 }
 
+/** Same roles the backend's /extension/ialert routes allow. */
+const VIEW_ROLES = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
+export function canViewIalertAccounts(role) {
+  return VIEW_ROLES.includes(String(role || '').toUpperCase());
+}
+
+/**
+ * A fixed line for a row whose last sync failed. The raw `lastErrorMessage`
+ * is vendor/server text and is never rendered.
+ */
+export function syncErrorText(row) {
+  return row?.lastErrorMessage
+    ? 'The last sync failed. If this continues, reconnect iALERT from the GNB extension.'
+    : null;
+}
+
 /** Total vehicles iALERT reports for the fleet, or null. */
 export function planFleetTotal(plan) {
   const total = plan?.fleetCount?.total;

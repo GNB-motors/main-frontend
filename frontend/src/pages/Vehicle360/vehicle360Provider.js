@@ -6,11 +6,16 @@
  * customer's iALERT directory. A dual-reported truck stays 'FLEETEDGE'.
  */
 
-const BS6_NORM = /BS[\s-]?(VI|6)\b/i;
+// Exact allowlist after dropping case, spaces and hyphens — a vendor string
+// that merely contains "BS6" (e.g. "BS6-ready") is not a positive signal.
+const BS6_NORMS = new Set(['BS6', 'BSVI']);
 
 /** True only on a positive signal: iALERT says BS-VI, or the FleetEdge norm names it. */
 export function isBs6Vehicle(ialert, fleetEdge) {
-  return ialert?.isBs6 === true || BS6_NORM.test(fleetEdge?.emissionNorm || '');
+  const norm = String(fleetEdge?.emissionNorm || '')
+    .toUpperCase()
+    .replace(/[\s-]/g, '');
+  return ialert?.isBs6 === true || BS6_NORMS.has(norm);
 }
 
 const PROVIDER_LABEL = { FLEETEDGE: 'FleetEdge', IALERT: 'iALERT' };

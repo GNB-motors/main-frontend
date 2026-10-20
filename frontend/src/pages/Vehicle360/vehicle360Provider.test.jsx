@@ -12,7 +12,7 @@ describe('vehicle360Provider', () => {
     for (const norm of ['BS6', 'BS-VI', 'BSVI', 'bs vi', 'BS-6']) {
       expect(isBs6Vehicle(null, { emissionNorm: norm })).toBe(true);
     }
-    for (const norm of ['BS4', 'BS-IV', 'BSIII', '']) {
+    for (const norm of ['BS4', 'BS-IV', 'BSIII', '', 'BS6-ready', 'not BS6', 'BS-VII']) {
       expect(isBs6Vehicle(null, { emissionNorm: norm })).toBe(false);
     }
   });

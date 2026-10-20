@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { connectionBadge, planFleetTotal, planPhrases, statusRows } from './ialertAccountsModel.js';
+import {
+  canViewIalertAccounts,
+  connectionBadge,
+  planFleetTotal,
+  planPhrases,
+  statusRows,
+  syncErrorText,
+} from './ialertAccountsModel.js';
 
 describe('ialertAccountsModel', () => {
   it('unwraps the API envelope', () => {
@@ -40,6 +47,21 @@ describe('ialertAccountsModel', () => {
     ]);
     expect(planPhrases({ expired: null, next15: null, next30: null })).toEqual([]);
     expect(planPhrases(null)).toEqual([]);
+  });
+
+  it('mirrors the backend role gate', () => {
+    expect(canViewIalertAccounts('OWNER')).toBe(true);
+    expect(canViewIalertAccounts('manager')).toBe(true);
+    expect(canViewIalertAccounts('SUPER_ADMIN')).toBe(true);
+    expect(canViewIalertAccounts('DRIVER')).toBe(false);
+    expect(canViewIalertAccounts(null)).toBe(false);
+  });
+
+  it('never surfaces the raw error text', () => {
+    const raw = '<script>x</script> upstream 500 at /apiv1/list/vehicle';
+    expect(syncErrorText({ lastErrorMessage: raw })).not.toContain('apiv1');
+    expect(syncErrorText({ lastErrorMessage: raw })).toMatch(/last sync failed/i);
+    expect(syncErrorText({ lastErrorMessage: null })).toBeNull();
   });
 
   it('takes the fleet total from the fleetCount object', () => {

@@ -5,7 +5,14 @@ import PageShell from '../../components/ui/PageShell';
 import { useApi } from '../../hooks/useApi';
 import { formatNum } from '../../utils/formatters';
 import { formatDateIST } from '../../utils/dateUtils';
-import { connectionBadge, planFleetTotal, planPhrases } from './ialertAccountsModel.js';
+import { getUserRole } from '../../utils/session.js';
+import {
+  canViewIalertAccounts,
+  connectionBadge,
+  planFleetTotal,
+  planPhrases,
+  syncErrorText,
+} from './ialertAccountsModel.js';
 import { fetchIalertStatus } from './ialertStatusApi.js';
 
 // Read-only: linking and unlinking happen in the GNB extension (iALERT F1).
@@ -56,8 +63,8 @@ function AccountCard({ account }) {
           ))}
         </ul>
       ) : null}
-      {account.lastErrorMessage ? (
-        <p className="mt-2 text-xs text-red-500">{account.lastErrorMessage.slice(0, 160)}</p>
+      {syncErrorText(account) ? (
+        <p className="mt-2 text-xs text-red-500">{syncErrorText(account)}</p>
       ) : null}
     </div>
   );
@@ -65,7 +72,11 @@ function AccountCard({ account }) {
 
 export default function IalertAccountsPage() {
   const navigate = useNavigate();
-  const { data, loading, error, refetch } = useApi((signal) => fetchIalertStatus(signal), []);
+  const allowed = canViewIalertAccounts(getUserRole());
+  const { data, loading, error, refetch } = useApi(
+    (signal) => (allowed ? fetchIalertStatus(signal) : Promise.resolve([])),
+    [allowed],
+  );
   const accounts = data || [];
 
   // PageShell owns its padding
@@ -96,7 +107,11 @@ export default function IalertAccountsPage() {
       subtitle="iALERT accounts you connected from the GNB extension"
       count={accounts.length || null}
     >
-      {loading && !data ? (
+      {!allowed ? (
+        <p className="py-12 text-center text-sm text-slate-400">
+          Only owners and managers can view iALERT accounts.
+        </p>
+      ) : loading && !data ? (
         <p className="py-12 text-center text-sm text-slate-400">Loading…</p>
       ) : error && !data ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 py-8 text-center">
