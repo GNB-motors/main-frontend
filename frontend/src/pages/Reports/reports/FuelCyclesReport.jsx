@@ -43,30 +43,6 @@ const FILL_OPTIONS = [
   { value: 'all', label: 'All cycles' },
 ];
 
-// The fuel-cycles validator accepts OPEN · CLOSED · RECONCILED only (400 on
-// anything else), so the no-ledger status is narrowed here on the rows that
-// came back, and exported from them.
-const CLIENT_ONLY_STATUS = 'UNRECONCILED_NO_LEDGER';
-
-const EXPORT_COLUMNS = [
-  ['Open', (r) => r.open?.at],
-  ['Close', (r) => r.close?.at],
-  ['Vehicle', (r) => r.registrationNumber],
-  ['Start Odo', (r) => r.open?.odo],
-  ['End Odo', (r) => r.close?.odo],
-  ['Distance (km)', (r) => r.km?.sumBest],
-  ['Bills (L)', (r) => r.fuel?.bills],
-  ['ECU (L)', (r) => r.fuel?.ecu],
-  ['Unaccounted (L)', (r) => r.fuel?.unaccounted],
-  ['Mileage T2T (km/L)', (r) => r.mileage?.tankToTank],
-  ['Cost (INR)', (r) => r.cost?.total],
-  ['Trips', (r) => r.tripSummary?.count],
-  ['Laden in trips (km)', (r) => r.tripSummary?.ladenKm],
-  ['Not in trips (km)', (r) => r.tripSummary?.otherKm],
-  ['Status', (r) => r.status],
-  ['Flags', (r) => (r.flags || []).join(' ')],
-];
-
 function cycleKpis(rows) {
   return [
     { label: 'Cycles', value: formatNum(rows.length), icon: RefreshCcw },
@@ -106,14 +82,13 @@ const FuelCyclesReport = () => {
   const [status, setStatus] = useState('all');
   const [fills, setFills] = useState('full');
   const [openIds, setOpenIds] = useState(() => new Set());
-  const serverStatus = status === CLIENT_ONLY_STATUS ? 'all' : status;
 
   const params = useMemo(
     () => ({
-      ...buildTripFilterParams({ ...range, vehicleId, status: serverStatus }),
+      ...buildTripFilterParams({ ...range, vehicleId, status }),
       ...(fills === 'full' ? { fullToFull: true } : {}),
     }),
-    [range, vehicleId, serverStatus, fills],
+    [range, vehicleId, status, fills],
   );
   const paramsKey = JSON.stringify(params);
   const {
@@ -128,23 +103,13 @@ const FuelCyclesReport = () => {
     [response, error],
   );
   const filtered = useMemo(
-    () =>
-      rows.filter(
-        (r) =>
-          (status !== CLIENT_ONLY_STATUS || r.status === status) &&
-          matchesSearch(search, [r.registrationNumber]),
-      ),
-    [rows, status, search],
+    () => rows.filter((r) => matchesSearch(search, [r.registrationNumber])),
+    [rows, search],
   );
   const kpis = useMemo(() => cycleKpis(filtered), [filtered]);
 
   const [page, setPage] = useReportPage(`${paramsKey}|${status}|${search.trim()}`);
   const pageRows = pageSlice(filtered, page);
-
-  // The export endpoint applies dates, vehicle, status and fills (and its XLSX
-  // adds a trips sheet); only the client-side status and search are rebuilt
-  // from the rows on screen.
-  const exportFromRows = status === CLIENT_ONLY_STATUS || Boolean(search.trim());
 
   const activeFilters =
     rangeFilterCount(range) +
@@ -228,14 +193,19 @@ const FuelCyclesReport = () => {
         <ExportButton
           buttonClass="rpt-btn"
           onExport={(extension) =>
+            // Always the server's export: its Excel is the OIL REPORT layout (one row
+            // per trip, grouped by refill, live formulas), which a client-built sheet
+            // cannot reproduce. It applies every filter on screen, search included.
             exportTripReport({
               extension,
-              clientRows: exportFromRows ? filtered : null,
-              columns: EXPORT_COLUMNS,
               endpoint: 'api/reports/fuel-cycles/export',
-              params,
-              filenamePrefix: 'fuel_cycles_report',
-              errorMessage: 'Could not export fuel cycles report.',
+              params: {
+                ...params,
+                ...(search.trim() ? { search: search.trim() } : {}),
+                format: extension,
+              },
+              filenamePrefix: 'oil_report',
+              errorMessage: 'Could not export the oil report.',
             })
           }
           disabled={!filtered.length}
