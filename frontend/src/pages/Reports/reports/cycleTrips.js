@@ -48,6 +48,46 @@ export function tripNotes(trip) {
   return notes;
 }
 
+export const SLIP_ROLE_LABEL = {
+  FULL_TANK_START: 'Full tank (start)',
+  PARTIAL: 'Partial top-up',
+  FULL_TANK_END: 'Full tank (end)',
+};
+
+/**
+ * Litres and ₹ across a cycle's slips. The opening full tank fills the tank
+ * for this cycle's running, so only the top-ups and the closing fill count as
+ * the diesel the cycle burned (the same rule as the cycle's mileage).
+ */
+export function slipsTotals(slips) {
+  const burned = (slips || []).filter((s) => s.role !== 'FULL_TANK_START');
+  const sum = (key) =>
+    burned.some((s) => typeof s[key] === 'number')
+      ? Math.round(burned.reduce((t, s) => t + (s[key] || 0), 0) * 100) / 100
+      : null;
+  return { litres: sum('litres'), amount: sum('amount') };
+}
+
+/**
+ * A cycle's distance as the Mileage page shows it: the slips' odometer pair,
+ * else the GPS km while the slips lack an odometer.
+ */
+export function cycleDistance(row) {
+  const odo = row?.km?.odo;
+  if (typeof odo === 'number') {
+    return { km: odo, basis: 'ODO', title: 'Closing slip odometer minus opening slip odometer' };
+  }
+  const gps = row?.km?.sumBest;
+  return typeof gps === 'number'
+    ? { km: gps, basis: 'GPS', title: 'GPS km — the slips have no odometer pair yet' }
+    : { km: null, basis: null, title: undefined };
+}
+
+/** The live Mileage page for a slip cycle; null for a register cycle (no slips). */
+export function slipsHref(row) {
+  return row?.live && row.intervalId ? `/mileage-tracking/${row.intervalId}` : null;
+}
+
 /** "4 trips" / "1 trip" / "—" for the cycle row's drop-down toggle. */
 export function tripCountLabel(summary) {
   if (!summary) return '—';

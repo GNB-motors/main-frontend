@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { ExternalLink } from 'lucide-react';
 import { formatDate, formatNumber, formatCurrency, fmtKm, fmtL } from './tripReportsUtils';
 import { StatusChip, FlagChips } from './tripReportCells';
 import { BILL_VERDICT } from '../../../utils/billCheck';
-import { notInTripsAlert } from './cycleTrips';
+import { cycleDistance, notInTripsAlert, slipsHref } from './cycleTrips';
 
 // Columns for GET /api/reports/fuel-cycles (FuelCycle rows).
 export function useFuelCyclesColumns() {
@@ -28,6 +30,27 @@ export function useFuelCyclesColumns() {
         ),
       },
       {
+        key: 'slips',
+        label: 'Fuel slips',
+        render: (r) => {
+          const href = slipsHref(r);
+          return href ? (
+            <Link
+              to={href}
+              className="rpt-cycle-slips-link"
+              onClick={(e) => e.stopPropagation()}
+              title="Open this cycle's fuel slips on the Mileage page"
+            >
+              View slips <ExternalLink size={12} aria-hidden="true" />
+            </Link>
+          ) : (
+            <span className="rpt-cycle-trips-sub" title="From the uploaded oil register">
+              Register
+            </span>
+          );
+        },
+      },
+      {
         key: 'startOdo',
         label: 'Start Odo',
         align: 'right',
@@ -47,7 +70,17 @@ export function useFuelCyclesColumns() {
         key: 'distance',
         label: 'Distance',
         align: 'right',
-        render: (r) => <div className="cell-primary">{fmtKm(r.km?.sumBest)}</div>,
+        render: (r) => {
+          const d = cycleDistance(r);
+          return (
+            <div className="cell-primary" title={d.title}>
+              {fmtKm(d.km)}
+              {d.basis === 'GPS' && d.km != null ? (
+                <div className="rpt-cycle-trips-sub">GPS</div>
+              ) : null}
+            </div>
+          );
+        },
       },
       {
         key: 'residue',

@@ -4,6 +4,7 @@ import { ReportsService } from '../ReportsService.js';
 import { fmtKm, formatNumber } from './tripReportsUtils';
 import { StatusChip } from './tripReportCells';
 import { TRIP_SOURCE_LABEL, notInTripsAlert, tripNotes, tripRoute } from './cycleTrips';
+import CycleSlipsTable from './CycleSlipsTable';
 
 const odoRange = (t) =>
   t.odoStart != null || t.odoEnd != null
@@ -36,7 +37,11 @@ export default function CycleTripsPanel({ cycleId }) {
 
   return (
     <div className="rpt-cycle-trips">
-      <div className="rpt-cycle-trips-summary">
+      <CycleSlipsTable
+        slips={data?.slips || []}
+        cycle={{ live: true, intervalId: data?.cycle?.intervalId }}
+      />
+      <div className="rpt-cycle-trips-summary rpt-cycle-trips-summary--trips">
         <span>
           Cycle <strong>{fmtKm(summary?.cycleKm)}</strong>
           {summary?.cycleKmBasis === 'GPS' ? ' (GPS — slip odometer missing)' : ''}

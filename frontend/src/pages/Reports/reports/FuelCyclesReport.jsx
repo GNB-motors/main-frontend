@@ -7,7 +7,7 @@ import { ReportsService } from '../ReportsService.js';
 import { formatKm, formatLitres, formatNum } from '../../../utils/formatters';
 import { useFuelCyclesColumns } from './useFuelCyclesColumns.jsx';
 import CycleTripsPanel from './CycleTripsPanel';
-import { tripCountLabel } from './cycleTrips';
+import { cycleDistance, tripCountLabel } from './cycleTrips';
 import ReportFrame, {
   ReportClear,
   ReportDateRange,
@@ -48,7 +48,7 @@ function cycleKpis(rows) {
     { label: 'Cycles', value: formatNum(rows.length), icon: RefreshCcw },
     {
       label: 'Distance',
-      value: formatKm(sumOf(rows, (r) => r.km?.sumBest)),
+      value: formatKm(sumOf(rows, (r) => cycleDistance(r).km)),
       icon: Route,
       tone: 'teal',
     },

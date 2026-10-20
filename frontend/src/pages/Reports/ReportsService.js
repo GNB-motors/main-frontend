@@ -108,8 +108,8 @@ export const ReportsService = {
   getFuelCycles: (params = {}, signal) =>
     ReportsService._getTripReport('api/reports/fuel-cycles', params, signal),
   /**
-   * One fuel cycle's trips (drop-down under a Fuel Cycles row).
-   * @returns {Promise<{ cycle: Object, summary: Object|null, trips: Array }>}
+   * One fuel cycle's trips and fuel slips (drop-down under a Fuel Cycles row).
+   * @returns {Promise<{ cycle: Object, summary: Object|null, trips: Array, slips: Array }>}
    */
   getFuelCycleTrips: async (cycleId, signal) => {
     try {
@@ -123,6 +123,7 @@ export const ReportsService = {
         cycle: data.cycle || null,
         summary: data.summary || null,
         trips: Array.isArray(data.trips) ? data.trips : [],
+        slips: Array.isArray(data.slips) ? data.slips : [],
       };
     } catch (error) {
       if (error?.name === 'CanceledError') throw error;

@@ -123,6 +123,23 @@ export const fuelCycleTripsSchema = z
               .passthrough(),
           )
           .nullish(),
+        cycle: z.object({ intervalId: str }).passthrough().nullish(),
+        slips: z
+          .array(
+            z
+              .object({
+                id: str,
+                role: z.enum(['FULL_TANK_START', 'PARTIAL', 'FULL_TANK_END']),
+                refuelTime: str,
+                station: str,
+                odometer: num,
+                litres: num,
+                rate: num,
+                amount: num,
+              })
+              .passthrough(),
+          )
+          .nullish(),
       })
       .passthrough()
       .nullish(),

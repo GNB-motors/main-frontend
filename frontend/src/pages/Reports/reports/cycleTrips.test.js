@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { notInTripsAlert, tripRoute, tripNotes, tripCountLabel } from './cycleTrips';
+import {
+  cycleDistance,
+  notInTripsAlert,
+  slipsHref,
+  slipsTotals,
+  tripRoute,
+  tripNotes,
+  tripCountLabel,
+} from './cycleTrips';
 
 describe('notInTripsAlert', () => {
   it('stays quiet for ordinary empty running', () => {
@@ -45,5 +53,35 @@ describe('trip display', () => {
     expect(tripCountLabel({ count: 1 })).toBe('1 trip');
     expect(tripCountLabel({ count: 4 })).toBe('4 trips');
     expect(tripCountLabel(null)).toBe('—');
+  });
+});
+
+describe('fuel slips', () => {
+  it('counts the top-ups and the closing fill as the diesel used, not the opening fill', () => {
+    const slips = [
+      { role: 'FULL_TANK_START', litres: 30.04, amount: 2974 },
+      { role: 'PARTIAL', litres: 10, amount: 990 },
+      { role: 'FULL_TANK_END', litres: 160, amount: 15840 },
+    ];
+    expect(slipsTotals(slips)).toEqual({ litres: 170, amount: 16830 });
+    expect(slipsTotals([])).toEqual({ litres: null, amount: null });
+  });
+
+  it('links slip cycles to the Mileage page, never register cycles', () => {
+    expect(slipsHref({ live: true, intervalId: 'iv1' })).toBe('/mileage-tracking/iv1');
+    expect(slipsHref({ live: false, intervalId: 'reg-entry' })).toBeNull();
+    expect(slipsHref({ live: true, intervalId: null })).toBeNull();
+  });
+
+  it('shows the odometer distance, falling back to GPS', () => {
+    expect(cycleDistance({ km: { odo: 59, sumBest: 951.7 } })).toMatchObject({
+      km: 59,
+      basis: 'ODO',
+    });
+    expect(cycleDistance({ km: { odo: null, sumBest: 951.7 } })).toMatchObject({
+      km: 951.7,
+      basis: 'GPS',
+    });
+    expect(cycleDistance({})).toMatchObject({ km: null, basis: null });
   });
 });
