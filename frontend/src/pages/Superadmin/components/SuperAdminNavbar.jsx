@@ -14,6 +14,8 @@ const SuperAdminNavbar = ({ toggleSidebar }) => {
       return 'Add New User';
     } else if (location.pathname.startsWith('/superadmin/support-tickets')) {
       return 'Support Tickets';
+    } else if (location.pathname.startsWith('/superadmin/enquiries')) {
+      return 'Enquiries';
     }
     return 'Super Admin';
   };

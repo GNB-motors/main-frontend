@@ -1,0 +1,158 @@
+/* Enquiry inbox. Layout, KPI, toolbar and row styles come from SupportTickets.css. */
+
+.enq-kpis {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.enq-kpi--new .sat-kpi-value {
+  color: var(--orange);
+}
+
+.enq-contact {
+  min-width: 160px;
+}
+.enq-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 280px;
+}
+.enq-topic {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ds-sunk);
+  color: var(--ds-ink2);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Drawer */
+.enq-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #dce1e8;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ds-ink2);
+  cursor: pointer;
+}
+.enq-icon-btn:hover {
+  background: var(--ds-sunk);
+}
+.enq-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.enq-action {
+  display: inline-flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #dce1e8;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ds-ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.enq-action:hover {
+  background: var(--ds-sunk);
+}
+.enq-action--primary {
+  border-color: var(--ds-ink);
+  background: var(--ds-ink);
+  color: #fff;
+}
+.enq-action--primary:hover {
+  background: color-mix(in srgb, var(--ds-ink) 88%, #fff);
+}
+.enq-section-title {
+  margin-bottom: 8px;
+  color: var(--ds-ink3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.enq-status {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--ds-sunk);
+}
+.enq-status button {
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ds-ink2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.enq-status button.is-active {
+  background: #fff;
+  color: var(--ds-ink);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+.enq-status button:disabled {
+  cursor: progress;
+}
+.enq-status-meta {
+  margin-top: 6px;
+}
+.enq-error {
+  margin-top: 8px;
+  color: var(--ds-crit-ink, #b91c1c);
+  font-size: 13px;
+}
+.enq-details {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  border: 1px solid #dce1e8;
+  border-radius: 10px;
+}
+.enq-row {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+.enq-row + .enq-row {
+  border-top: 1px solid #e9edf2;
+}
+.enq-row dt {
+  color: var(--ds-ink3);
+}
+.enq-row dd {
+  margin: 0;
+  color: var(--ds-ink);
+  overflow-wrap: anywhere;
+}
+.enq-message {
+  margin: 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--ds-sunk);
+  color: var(--ds-ink);
+  font-size: 13.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .enq-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

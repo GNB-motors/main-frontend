@@ -1,3 +1,7 @@
+import { SALES_PHONE, SUPPORT_EMAIL, SUPPORT_PHONE } from '../../../../Support/supportContact.js';
+
+const displayPhone = (digits) => `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+
 export default function ContactChannels() {
   return (
     <div data-reveal-group style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -49,14 +53,17 @@ export default function ContactChannels() {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '16px' }}>
           <a
-            href="mailto:gnbmotors60@gmail.com"
+            href={`mailto:${SUPPORT_EMAIL}`}
             style={{ fontFamily: 'var(--font-mono)', fontSize: '13px' }}
           >
-            gnbmotors60@gmail.com
+            {SUPPORT_EMAIL}
           </a>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: '#5D5D5E' }}>
-            +91 00000 00000
-          </span>
+          <a
+            href={`tel:+91${SALES_PHONE}`}
+            style={{ fontFamily: 'var(--font-mono)', fontSize: '13px' }}
+          >
+            {displayPhone(SALES_PHONE)}
+          </a>
         </div>
       </div>
       <div
@@ -107,10 +114,16 @@ export default function ContactChannels() {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '16px' }}>
           <a
-            href="mailto:gnbmotors60@gmail.com"
+            href={`mailto:${SUPPORT_EMAIL}`}
             style={{ fontFamily: 'var(--font-mono)', fontSize: '13px' }}
           >
-            gnbmotors60@gmail.com
+            {SUPPORT_EMAIL}
+          </a>
+          <a
+            href={`tel:+91${SUPPORT_PHONE}`}
+            style={{ fontFamily: 'var(--font-mono)', fontSize: '13px' }}
+          >
+            {displayPhone(SUPPORT_PHONE)}
           </a>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: '#5D5D5E' }}>
             Mon–Sat · 08:00–21:00
@@ -161,7 +174,7 @@ export default function ContactChannels() {
           </div>
         </div>
         <div style={{ fontSize: '15px', lineHeight: '24px', color: '#5D5D5E' }}>
-          Kolkata · add your registered address here
+          Kolkata, West Bengal
         </div>
         <div
           style={{
@@ -200,10 +213,11 @@ export default function ContactChannels() {
             marginTop: '10px',
           }}
         >
-          Raise a ticket from inside the platform and it lands with your named implementation lead.
+          Sign in and raise a ticket from the headset icon at the top. It goes straight to the GNB
+          support team.
         </div>
         <a
-          href="/"
+          href="/login"
           style={{
             display: 'inline-block',
             marginTop: '18px',
@@ -212,7 +226,7 @@ export default function ContactChannels() {
             color: '#FFFFFF',
           }}
         >
-          Open the portal →
+          Sign in to GNB →
         </a>
       </div>
     </div>

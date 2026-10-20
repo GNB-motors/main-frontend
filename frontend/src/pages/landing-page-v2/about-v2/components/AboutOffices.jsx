@@ -100,7 +100,7 @@ export default function AboutOffices() {
               maxWidth: '360px',
             }}
           >
-            Add your registered address here
+            West Bengal, India
           </div>
           <div
             style={{

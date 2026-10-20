@@ -7,6 +7,12 @@
   gap: 20px;
   padding: 24px;
 }
+/* PageHeader centres itself at form width (920px); inbox pages are full width,
+   so the title lines up with the KPI cards and table below it. */
+.sat-page .page-header-container {
+  max-width: none;
+  margin: 0;
+}
 
 .sat-kpis {
   display: grid;

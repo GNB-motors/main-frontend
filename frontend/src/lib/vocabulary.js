@@ -136,6 +136,12 @@ export const LABELS = {
     DATA_ISSUE: 'Wrong or missing data',
     OTHER: 'Something else',
   },
+  // Contact-page enquiries in the super-admin inbox.
+  enquiryStatus: {
+    NEW: 'New',
+    CONTACTED: 'Contacted',
+    CLOSED: 'Closed',
+  },
 };
 
 /**
