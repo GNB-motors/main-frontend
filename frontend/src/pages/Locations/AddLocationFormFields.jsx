@@ -23,6 +23,7 @@ export const AddLocationFormFields = (props) => {
     <div className="location-form-panel">
       <form onSubmit={onSubmit}>
         <div className="form-group" style={{ marginBottom: '20px' }}>
+          {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- GoogleMapsSearch (components/) renders its own input with no id prop to point htmlFor at */}
           <label style={labelStyle}>Address</label>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
             <div style={{ flex: 1 }}>
@@ -39,8 +40,12 @@ export const AddLocationFormFields = (props) => {
         </div>
 
         <div className="form-group" style={{ marginBottom: '20px' }}>
-          <label style={labelStyle}>Location Name</label>
+          <label style={labelStyle} htmlFor="add-location-name">
+            Location Name
+          </label>
           <input
+            id="add-location-name"
+            aria-label="Location Name"
             type="text"
             name="name"
             value={formData.name}
@@ -60,8 +65,12 @@ export const AddLocationFormFields = (props) => {
           }}
         >
           <div className="form-group">
-            <label style={labelStyle}>City</label>
+            <label style={labelStyle} htmlFor="add-location-city">
+              City
+            </label>
             <input
+              id="add-location-city"
+              aria-label="City"
               type="text"
               name="city"
               value={formData.city}
@@ -71,8 +80,12 @@ export const AddLocationFormFields = (props) => {
             />
           </div>
           <div className="form-group">
-            <label style={labelStyle}>State</label>
+            <label style={labelStyle} htmlFor="add-location-state">
+              State
+            </label>
             <input
+              id="add-location-state"
+              aria-label="State"
               type="text"
               name="state"
               value={formData.state}
@@ -84,8 +97,12 @@ export const AddLocationFormFields = (props) => {
         </div>
 
         <div className="form-group" style={{ marginBottom: '20px' }}>
-          <label style={labelStyle}>Pincode</label>
+          <label style={labelStyle} htmlFor="add-location-pincode">
+            Pincode
+          </label>
           <input
+            id="add-location-pincode"
+            aria-label="Pincode"
             type="text"
             name="pincode"
             value={formData.pincode}

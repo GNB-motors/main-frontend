@@ -18,6 +18,12 @@ const timeIST = (v) => {
 
 const LOAD_LABEL = { LADEN: 'Laden', EMPTY: 'Empty', UNKNOWN: 'Unknown' };
 
+// Plates are stored as each fleet typed them, with or without spaces.
+const plateKey = (reg) =>
+  String(reg || '')
+    .toUpperCase()
+    .replace(/\s+/g, '');
+
 function candidateLabel(c) {
   if (!c) return null;
   const ref = c.ref;
@@ -37,7 +43,10 @@ export default function DestinationIntentSection({ registrationNumber }) {
     (signal) => LiveTrackingService.getIntents({ signal }),
     [],
   );
-  const intent = (data || []).find((i) => i.registrationNumber === registrationNumber);
+  const wanted = plateKey(registrationNumber);
+  const intent = wanted
+    ? (data || []).find((i) => plateKey(i.registrationNumber) === wanted)
+    : undefined;
 
   const top = intent && Array.isArray(intent.candidates) ? intent.candidates[0] : null;
   const eta = timeIST(intent?.eta?.etaAt);

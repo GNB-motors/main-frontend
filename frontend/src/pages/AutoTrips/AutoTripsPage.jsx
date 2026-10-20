@@ -9,7 +9,7 @@ import { dropLabel } from '../PlaceHub/intelligence/facilityText';
 import ManualTripDialog from './ManualTripDialog';
 import TripPlanDialog from './TripPlanDialog';
 import TripRangePicker from './TripRangePicker';
-import { STATUS_CLASS, STATUS_LABEL, fmtDayTime, fmtKm, notReachedYet } from './autoTripModel';
+import { STATUS_CLASS, STATUS_LABEL, fmtDayTime, fmtKm, notReachedYet } from './autoTripFormat';
 import { rangeToParams, readRange, writeRange } from './tripRange';
 import './AutoTrips.css';
 

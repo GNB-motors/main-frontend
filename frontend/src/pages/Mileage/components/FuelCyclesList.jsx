@@ -6,7 +6,7 @@ import { useApi } from '../../../hooks/useApi';
 import { toISTDateString } from '../../../utils/dateUtils';
 import { formatKm, formatLitres } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
-import { mapFuelCycleRow, mileageBand } from '../mileageRows';
+import { mapFuelCycleRow, mileageBand } from '../cycleRows';
 import InfoTip from './InfoTip';
 import { StatusPill } from '../../../components/overview.primitives.jsx';
 import { billCheckView } from '../../../utils/billCheck';

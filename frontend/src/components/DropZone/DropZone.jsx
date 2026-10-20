@@ -1,6 +1,6 @@
 /**
  * DropZone Component
- * 
+ *
  * Reusable drag-and-drop component for file uploads
  * Provides visual feedback during drag operations
  */
@@ -16,7 +16,7 @@ const DropZone = ({
   maxFiles = 1,
   multiple = false,
   label = 'Drop files here',
-  isCompact = false
+  isCompact = false,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
@@ -33,29 +33,11 @@ const DropZone = ({
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) {
-      handleFiles(files);
-    }
-  }, []);
-
-  const handleFileInputChange = useCallback((e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
-      handleFiles(files);
-    }
-  }, []);
-
   const handleFiles = useCallback(
     (files) => {
       // Filter files by accepted formats
-      const validFiles = files.filter(file => {
-        return acceptedFormats.some(format => {
+      const validFiles = files.filter((file) => {
+        return acceptedFormats.some((format) => {
           if (format === 'image/*') {
             return file.type.startsWith('image/');
           }
@@ -75,7 +57,31 @@ const DropZone = ({
 
       onDrop(validFiles);
     },
-    [acceptedFormats, maxFiles, multiple, onDrop]
+    [acceptedFormats, maxFiles, multiple, onDrop],
+  );
+
+  const handleDrop = useCallback(
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length > 0) {
+        handleFiles(files);
+      }
+    },
+    [handleFiles],
+  );
+
+  const handleFileInputChange = useCallback(
+    (e) => {
+      const files = Array.from(e.target.files || []);
+      if (files.length > 0) {
+        handleFiles(files);
+      }
+    },
+    [handleFiles],
   );
 
   const handleClick = useCallback(() => {
@@ -101,6 +107,7 @@ const DropZone = ({
       <input
         ref={fileInputRef}
         type="file"
+        aria-label={label}
         multiple={multiple}
         onChange={handleFileInputChange}
         accept={acceptedFormats.join(',')}

@@ -1,14 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import {
-  NOVA_STATUS,
-  haversineKm,
-  bearingDegrees,
-  formatAgoText,
-  formatHrsText,
-  resolveVehicleStatus,
-  computeMapVehicles,
-  createVehicleMarkerIcon,
-} from './liveTracking.shared.js';
+import { NOVA_STATUS } from './statusPalettes.js';
+import { haversineKm, bearingDegrees } from './geoMath.js';
+import { formatAgoText, formatHrsText } from './minutesAgoFormat.js';
+import { resolveVehicleStatus } from './vehicleStatus.js';
+import { computeMapVehicles } from './mapPlotting.js';
+import { createVehicleMarkerIcon } from './vehicleMarkerIcon.js';
 
 describe('Nova Edge Pro Live Tracking Helpers', () => {
   it('correctly resolves vehicle statuses', () => {

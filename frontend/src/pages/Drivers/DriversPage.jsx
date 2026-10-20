@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Plus, Upload, TrendingUp } from 'lucide-react';
 import './DriversPage.css';
-import { DriverService } from './DriverService.jsx';
+import { DriverService } from './DriverService.js';
+import { getVehicleList } from '../../services/vehicleListService';
 import { useNavigate } from 'react-router-dom';
 import { getThemeCSS } from '../../utils/colorTheme';
 import { getToken, getProfileField } from '../../utils/session.js';
@@ -12,7 +13,7 @@ import DataTable from '../../components/ui/DataTable';
 import ExportButton from '../../components/ui/ExportButton';
 import { useDriverColumns } from './useDriverColumns.jsx';
 import { getInitials, formatRole } from './Component/driverPresenters.js';
-import { EditDriverModal } from './Component/DriverFormModals.jsx';
+import { EditDriverModal } from './Component/EditDriverModal.jsx';
 import {
   DeleteDriverModal,
   DeactivateDriverModal,
@@ -26,14 +27,13 @@ import BulkUploadDriversPanel from './BulkUploadDriversPanel.jsx';
 import {
   normalizeDriver,
   normalizeVehicleOption,
-  filterAndSortDrivers,
-  countActiveDrivers,
   countActiveFilters,
   EMPLOYEE_EXPORT_COLUMNS,
-  mapDriverForExport,
   employeeExportMeta,
 } from './driverList.js';
 import { useDriverActions } from './useDriverActions.js';
+import { useDriverListControls } from './useDriverListControls.js';
+import logger from '../../utils/logger';
 
 // --- Main DriversPage Component ---
 const DriversPage = () => {
@@ -111,8 +111,8 @@ const DriversPage = () => {
         setTotalPages(Math.ceil(normalizedDrivers.length / itemsPerPage));
       }
     } catch (apiError) {
-      console.error('Failed to fetch drivers:', apiError);
-      setError(apiError?.detail || 'Could not load drivers list.');
+      logger.warn('DriversPage', 'Failed to fetch drivers', apiError);
+      setError(apiError?.message || 'Could not load drivers list.');
     } finally {
       setIsLoading(false); // Finish loading drivers
       setHasLoadedOnce(true);
@@ -123,17 +123,15 @@ const DriversPage = () => {
     // Attempt to fetch vehicles even if businessRefId is not present locally.
     const token = getToken();
     if (!token) {
-      console.warn('No auth token present; skipping vehicles fetch.');
+      logger.warn('DriversPage', 'No auth token present; skipping vehicles fetch.');
       return;
     }
 
     try {
-      const data = await DriverService.getAvailableVehicles(businessRefId, token);
-      // Normalize vehicle shape for the UI
-      const normalized = (data || []).map(normalizeVehicleOption);
+      const normalized = (await getVehicleList()).map(normalizeVehicleOption);
       setAvailableVehicles(normalized);
     } catch (apiError) {
-      console.error('Failed to fetch vehicles:', apiError);
+      logger.warn('DriversPage', 'Failed to fetch vehicles', apiError);
       // Don't set error state for vehicles, just log it
     }
   };
@@ -200,102 +198,31 @@ const DriversPage = () => {
     isSubmitting: isSubmitting || isActionSubmitting,
   });
 
-  const handleSearchChange = (event) => {
-    setSearchInput(event.target.value);
-  };
-
-  // Filter handlers
-  const handleFilterChange = (filterType, value) => {
-    setTempFilters((prev) => ({
-      ...prev,
-      [filterType]: value,
-    }));
-  };
-
-  const handleApplyFilters = () => {
-    setFilters(tempFilters);
-    setIsFilterDropdownOpen(false);
-  };
-
-  const handleClearFilters = () => {
-    const clearedFilters = {
-      role: '',
-      vehicleAssignment: '',
-    };
-    setTempFilters(clearedFilters);
-    setFilters(clearedFilters);
-    setIsFilterDropdownOpen(false);
-  };
-
-  const toggleFilterDropdown = (e) => {
-    if (e && e.preventDefault) e.preventDefault();
-    setIsFilterDropdownOpen((prev) => {
-      if (!prev) {
-        // When opening dropdown, sync temp filters with current filters
-        setTempFilters(filters);
-      }
-      return !prev;
-    });
-  };
-
-  // Client-side filtering with search and filters
-  const filteredDrivers = useMemo(
-    () => filterAndSortDrivers(drivers, filters.vehicleAssignment),
-    [drivers, filters.vehicleAssignment],
-  );
-
-  // The header count reflects only active employees (deactivated are excluded).
-  const activeCount = useMemo(() => countActiveDrivers(filteredDrivers), [filteredDrivers]);
-
-  const exportRows = useMemo(() => filteredDrivers.map(mapDriverForExport), [filteredDrivers]);
-
-  // Export must cover every matching employee, not just the currently-loaded
-  // page — pull all pages from the API (capped at the backend's max `limit`
-  // of 1000 per request) before applying the same client-side filter as the table.
-  const fetchAllEmployeesForExport = async () => {
-    const EXPORT_PAGE_LIMIT = 1000;
-    const baseParams = { limit: EXPORT_PAGE_LIMIT };
-    if (searchTerm) baseParams.search = searchTerm;
-    if (filters.role) baseParams.role = filters.role;
-
-    const first = await DriverService.getAllDrivers(businessRefId, { ...baseParams, page: 1 });
-    const all = (first.data || []).map(normalizeDriver);
-    const exportTotalPages = first.meta?.totalPages || 1;
-    for (let page = 2; page <= exportTotalPages; page += 1) {
-      const next = await DriverService.getAllDrivers(businessRefId, { ...baseParams, page });
-      all.push(...(next.data || []).map(normalizeDriver));
-    }
-    return filterAndSortDrivers(all, filters.vehicleAssignment).map(mapDriverForExport);
-  };
-
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, filters]);
-
-  const paginatedDrivers = filteredDrivers;
-
-  const handlePageChange = (page) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
-
-  // Close filter dropdown if clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!event.target || typeof event.target.closest !== 'function') return;
-
-      // Check if the click is outside the filter dropdown
-      if (isFilterDropdownOpen && !event.target.closest('.drivers-filter-container')) {
-        setIsFilterDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isFilterDropdownOpen]);
+  const {
+    handleSearchChange,
+    handleFilterChange,
+    handleApplyFilters,
+    handleClearFilters,
+    toggleFilterDropdown,
+    activeCount,
+    exportRows,
+    fetchAllEmployeesForExport,
+    paginatedDrivers,
+    handlePageChange,
+  } = useDriverListControls({
+    drivers,
+    filters,
+    tempFilters,
+    setTempFilters,
+    setFilters,
+    searchTerm,
+    setSearchInput,
+    isFilterDropdownOpen,
+    setIsFilterDropdownOpen,
+    businessRefId,
+    totalPages,
+    setCurrentPage,
+  });
 
   // Show general page error first
   if (error && !hasLoadedOnce) {

@@ -23,10 +23,15 @@ export function useShareLink() {
     try {
       const link = await ShareService.createShareLink(params);
       const url = link?.url || '';
+      let copied = false;
       if (copy && url && navigator.clipboard) {
-        await navigator.clipboard.writeText(url).catch(() => {});
+        // The browser may refuse clipboard access; the caller still gets the URL to show.
+        copied = await navigator.clipboard.writeText(url).then(
+          () => true,
+          () => false,
+        );
       }
-      onDone?.(url, link);
+      onDone?.(url, link, { copied });
       return link;
     } catch (err) {
       logger.error('useShareLink', 'failed to create share link', err);

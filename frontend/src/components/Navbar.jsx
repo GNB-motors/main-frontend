@@ -2,15 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Menu, Search } from 'lucide-react';
 import { applyThemeToRoot } from '../utils/colorTheme';
-import { useTripCreationContext } from '../contexts/TripCreationContext';
 import LocationSwitcher from './LocationSwitcher.jsx';
 import NotificationBell from './NotificationBell.jsx';
+import FleetLinkIndicator from './FleetLinkIndicator.jsx';
+import SupportButton from './SupportButton.jsx';
 import './Navbar.css';
 
 const Navbar = ({ toggleSidebar }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { stepName } = useTripCreationContext();
   const [activeTripsCount, setActiveTripsCount] = useState(0);
   const [mileageCount, setMileageCount] = useState(0);
   const [mileageSearch, setMileageSearch] = useState('');
@@ -71,9 +71,6 @@ const Navbar = ({ toggleSidebar }) => {
   };
 
   const getPageTitle = () => {
-    // If stepName is provided (trip creation flow), display it
-    if (stepName) return stepName;
-
     // Handle trip detail pages
     if (location.pathname.match(/^\/trip-management\/trip\/[a-f0-9]+$/)) {
       return '';
@@ -129,12 +126,15 @@ const Navbar = ({ toggleSidebar }) => {
         {/* Active location switcher — always first in the action bar.
                     Renders only when the business has more than one location. */}
         <LocationSwitcher />
+        <FleetLinkIndicator />
         <NotificationBell />
+        <SupportButton />
         {isMileageListPage && (
           <div className="navbar-search">
             <Search size={16} color="#94a3b8" />
             <input
               type="text"
+              aria-label="Search by vehicle or status"
               placeholder="Search by vehicle or status..."
               value={mileageSearch}
               onChange={handleMileageSearch}
@@ -146,6 +146,7 @@ const Navbar = ({ toggleSidebar }) => {
             <Search size={16} color="#94a3b8" />
             <input
               type="text"
+              aria-label="Search trips or refuel journeys"
               placeholder="Search trips or refuel journeys..."
               value={tripSearch}
               onChange={handleTripSearch}

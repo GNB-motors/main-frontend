@@ -1,12 +1,11 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react';
-import * as XLSX from 'xlsx';
+import React, { useId, useMemo, useRef, useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { Send } from 'lucide-react';
 import { getThemeCSS } from '../../utils/colorTheme.js';
 
 import './BulkUploadVehiclesPage.css';
 import NewButton from '@/components/ui/NewButton';
-import { VehicleService } from './VehicleService.jsx';
+import { VehicleService } from './VehicleService.js';
 import {
   normalizeVehicleDataset,
   validateVehicleRow,
@@ -14,7 +13,6 @@ import {
   detectColumnMappings,
 } from '../../utils/bulkNormalization';
 import EditRowModal from '../BulkUpload/EditRowModal';
-import { getToken } from '../../utils/session.js';
 import { VEHICLE_COLUMNS } from './bulkUploadVehiclesColumns.js';
 import {
   filterRowsByStatus,
@@ -24,6 +22,10 @@ import {
 import BulkUploadVehiclesFileStep from './bulkUploadVehiclesFileStep.jsx';
 import BulkUploadVehiclesReviewTable from './bulkUploadVehiclesReviewTable.jsx';
 import BulkUploadVehiclesResultSummary from './bulkUploadVehiclesResultSummary.jsx';
+import BulkUploadVehiclesToolbar from './BulkUploadVehiclesToolbar.jsx';
+import BulkUploadVehiclesMapping from './BulkUploadVehiclesMapping.jsx';
+import BulkUploadProgress from '../BulkUpload/BulkUploadProgress.jsx';
+import logger from '../../utils/logger';
 
 /**
  * The vehicle bulk-upload flow (file → normalize → review → submit → results),
@@ -53,6 +55,7 @@ const BulkUploadVehiclesContent = ({ onCompleted, variant = 'page' }) => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const fileInputRef = useRef(null);
+  const toolbarId = useId();
 
   const businessRefId = null; // Set to null since profile context was removed
 
@@ -132,8 +135,10 @@ const BulkUploadVehiclesContent = ({ onCompleted, variant = 'page' }) => {
     setUploadResult(null);
     const isCsv = file.name.toLowerCase().endsWith('.csv');
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
+        // Loaded on demand: xlsx is large and only needed once a file is picked.
+        const XLSX = await import('xlsx');
         // XLSX reads a .csv string and a binary .xlsx/.xls the same way once parsed.
         const workbook = isCsv
           ? XLSX.read(evt.target.result, { type: 'string' })
@@ -219,7 +224,6 @@ const BulkUploadVehiclesContent = ({ onCompleted, variant = 'page' }) => {
     setUploadResult(null);
 
     try {
-      const token = getToken();
       const options = { dry_run: dryRun, upsert };
       const chunkSize = 50;
 
@@ -229,7 +233,7 @@ const BulkUploadVehiclesContent = ({ onCompleted, variant = 'page' }) => {
       let totalUpdated = 0;
       for (let i = 0; i < rows.length; i += chunkSize) {
         const chunk = rows.slice(i, i + chunkSize);
-        const resp = await VehicleService.addBulkVehicles(businessRefId, chunk, options, token);
+        const resp = await VehicleService.addBulkVehicles(businessRefId, chunk, options);
         const respData = resp && resp.data ? resp.data : resp;
 
         totalCreated +=
@@ -257,7 +261,7 @@ const BulkUploadVehiclesContent = ({ onCompleted, variant = 'page' }) => {
         setTimeout(() => onCompleted?.(), 2000);
       }
     } catch (error) {
-      console.error('Submission error:', error);
+      logger.warn('BulkUploadVehiclesContent', 'Submission error', error);
       const errorMsg =
         error.response?.data?.message ||
         error.response?.data?.detail ||
@@ -283,33 +287,14 @@ const BulkUploadVehiclesContent = ({ onCompleted, variant = 'page' }) => {
     >
       <form onSubmit={handleSubmit}>
         {/* Options toolbar */}
-        <div className="bulk-upload-toolbar">
-          <div className="bulk-upload-input-group">
-            <label>Mode</label>
-            <label className="checkbox-card">
-              <input
-                type="checkbox"
-                checked={dryRun}
-                onChange={(e) => setDryRun(e.target.checked)}
-                disabled={isSubmitting}
-              />
-              <span>Dry-run only</span>
-            </label>
-          </div>
-
-          <div className="bulk-upload-input-group">
-            <label>Update Policy</label>
-            <label className="checkbox-card">
-              <input
-                type="checkbox"
-                checked={upsert}
-                onChange={(e) => setUpsert(e.target.checked)}
-                disabled={isSubmitting}
-              />
-              <span>Upsert (Update if exists)</span>
-            </label>
-          </div>
-        </div>
+        <BulkUploadVehiclesToolbar
+          toolbarId={toolbarId}
+          dryRun={dryRun}
+          setDryRun={setDryRun}
+          upsert={upsert}
+          setUpsert={setUpsert}
+          isSubmitting={isSubmitting}
+        />
 
         <div className="bulk-upload-card">
           <BulkUploadVehiclesFileStep
@@ -324,34 +309,13 @@ const BulkUploadVehiclesContent = ({ onCompleted, variant = 'page' }) => {
           />
 
           {rawRows.length > 0 && (
-            <div className="bulk-upload-mapping">
-              <div className="bulk-upload-mapping-head">
-                Match your sheet&rsquo;s columns
-                <span>Pick which column in your file holds each field.</span>
-              </div>
-              <div className="bulk-upload-mapping-grid">
-                {columns.map((col) => (
-                  <label key={col.key} className="bulk-upload-map-field">
-                    <span>
-                      {col.label}
-                      {col.required ? <em> *</em> : null}
-                    </span>
-                    <select
-                      value={mapping[col.key] || ''}
-                      onChange={(e) => handleMappingChange(col.key, e.target.value)}
-                      disabled={isSubmitting}
-                    >
-                      <option value="">— Not in file —</option>
-                      {headers.map((h) => (
-                        <option key={h} value={h}>
-                          {h}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ))}
-              </div>
-            </div>
+            <BulkUploadVehiclesMapping
+              columns={columns}
+              headers={headers}
+              mapping={mapping}
+              handleMappingChange={handleMappingChange}
+              isSubmitting={isSubmitting}
+            />
           )}
 
           <BulkUploadVehiclesReviewTable
@@ -388,47 +352,7 @@ const BulkUploadVehiclesContent = ({ onCompleted, variant = 'page' }) => {
             </div>
           )}
 
-          {uploadProgress && (
-            <div
-              className="upload-progress-container"
-              style={{
-                marginTop: '20px',
-                padding: '16px',
-                background: 'var(--surface-color, #fff)',
-                border: '1px solid var(--border-color, #eaeaea)',
-                borderRadius: '8px',
-              }}
-            >
-              <div
-                style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}
-              >
-                <span style={{ fontWeight: '500', color: 'var(--text-color, #333)' }}>
-                  Uploading...
-                </span>
-                <span style={{ color: 'var(--text-secondary, #666)' }}>
-                  {uploadProgress.processed} / {uploadProgress.total}
-                </span>
-              </div>
-              <div
-                style={{
-                  width: '100%',
-                  height: '8px',
-                  background: 'var(--bg-secondary, #f0f0f0)',
-                  borderRadius: '4px',
-                  overflow: 'hidden',
-                }}
-              >
-                <div
-                  style={{
-                    height: '100%',
-                    background: 'var(--primary-color, #0056b3)',
-                    width: `${(uploadProgress.processed / uploadProgress.total) * 100}%`,
-                    transition: 'width 0.3s ease',
-                  }}
-                ></div>
-              </div>
-            </div>
-          )}
+          {uploadProgress && <BulkUploadProgress uploadProgress={uploadProgress} />}
         </div>
       </form>
 

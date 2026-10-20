@@ -1,5 +1,6 @@
 import apiClient from '../utils/axiosConfig';
 import { fleetEdgeHealthSchema, orgListSchema } from '../schemas/fleetEdgeHealth.schema';
+import ApiError from '../errors/ApiError';
 
 /**
  * FleetEdgeHealthService — superadmin data-flow health audit APIs.
@@ -15,7 +16,7 @@ const get = async (path, schema, signal) => {
     return parsed.success ? parsed.data : data;
   } catch (error) {
     if (error?.code === 'ERR_CANCELED') throw error;
-    throw error.response?.data || { detail: `Could not fetch ${path}.` };
+    throw ApiError.from(error);
   }
 };
 

@@ -46,7 +46,13 @@ const LemuLogsExplorer = ({
         <ScrollText size={16} /> Logs Explorer
       </h2>
       <span className="lemu-meta">
-        {loading ? 'Loading…' : <><strong>{pagination.total}</strong> event{pagination.total === 1 ? '' : 's'}</>}
+        {loading ? (
+          'Loading…'
+        ) : (
+          <>
+            <strong>{pagination.total}</strong> event{pagination.total === 1 ? '' : 's'}
+          </>
+        )}
       </span>
     </div>
 
@@ -58,7 +64,11 @@ const LemuLogsExplorer = ({
         aria-label="Filter by severity"
       >
         <option value="">All severities</option>
-        {SEVERITIES.map((s) => <option key={s} value={s}>{s}</option>)}
+        {SEVERITIES.map((s) => (
+          <option key={s} value={s}>
+            {s}
+          </option>
+        ))}
       </select>
       <select
         className="lemu-select"
@@ -67,20 +77,28 @@ const LemuLogsExplorer = ({
         aria-label="Filter by source"
       >
         <option value="">All sources</option>
-        {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
+        {SOURCES.map((s) => (
+          <option key={s} value={s}>
+            {s}
+          </option>
+        ))}
       </select>
       <input
         className="lemu-input"
         type="text"
         placeholder="Service (e.g. FleetGuardian)"
+        aria-label="Filter by service"
         value={service}
         onChange={onServiceChange}
       />
       <div className="lemu-search">
-        <span className="lemu-search__icon"><Search size={16} /></span>
+        <span className="lemu-search__icon">
+          <Search size={16} />
+        </span>
         <input
           type="text"
           placeholder="Search messages…"
+          aria-label="Search messages"
           value={search}
           onChange={onSearchChange}
         />
@@ -88,7 +106,9 @@ const LemuLogsExplorer = ({
     </div>
 
     {error && (
-      <div className="lemu-alert lemu-alert--error" role="alert">{error}</div>
+      <div className="lemu-alert lemu-alert--error" role="alert">
+        {error}
+      </div>
     )}
 
     <div className="lemu-card">
@@ -106,78 +126,91 @@ const LemuLogsExplorer = ({
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={6}><div className="lemu-state"><div className="lemu-spinner" /></div></td></tr>
+              <tr>
+                <td colSpan={6} aria-label="Loading events">
+                  <div className="lemu-state">
+                    <div className="lemu-spinner" />
+                  </div>
+                </td>
+              </tr>
             )}
             {!loading && events.length === 0 && (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={6} aria-label="No events found">
                   <div className="lemu-state">
-                    <div className="lemu-state__icon"><Inbox size={22} /></div>
+                    <div className="lemu-state__icon">
+                      <Inbox size={22} />
+                    </div>
                     <div className="lemu-state__title">No events found</div>
                     <div>Try widening the filters or time range.</div>
                   </div>
                 </td>
               </tr>
             )}
-            {!loading && events.map((ev) => {
-              const id = ev.eventId || `${ev.timestamp}-${ev.message}`;
-              const expanded = expandedIds.has(id);
-              return (
-                <React.Fragment key={id}>
-                  <tr className="lemu-clickable" onClick={() => onToggleExpanded(id)}>
-                    <td className="lemu-muted lemu-nowrap" title={formatTime(ev.timestamp)}>
-                      {relativeTime(ev.timestamp)}
-                    </td>
-                    <td><SeverityBadge severity={ev.severity} /></td>
-                    <td className="lemu-muted">{ev.source || '—'}</td>
-                    <td className="lemu-muted">{ev.service || '—'}</td>
-                    <td>
-                      <span className="lemu-msg" title={ev.message}>{ev.message}</span>
-                      {ev.userEmail && <span className="lemu-msg__user">{ev.userEmail}</span>}
-                    </td>
-                    <td className="lemu-right">
-                      <span className="lemu-chevron">
-                        {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      </span>
-                    </td>
-                  </tr>
-                  {expanded && (
-                    <tr className="lemu-detail-row">
-                      <td colSpan={6}>
-                        <div className="lemu-detail">
-                          <div className="lemu-detail__grid">
-                            <span className="lemu-detail__label">Event ID</span>
-                            <span className="lemu-mono">{ev.eventId || '—'}</span>
-                            <span className="lemu-detail__label">Timestamp</span>
-                            <span className="lemu-mono">{formatTime(ev.timestamp)}</span>
-                            <span className="lemu-detail__label">Layer</span>
-                            <span>{ev.layer || '—'}</span>
-                            <span className="lemu-detail__label">Fingerprint</span>
-                            <span className="lemu-mono">{ev.fingerprint || '—'}</span>
-                            <span className="lemu-detail__label">Extension Ver.</span>
-                            <span className="lemu-mono">{ev.extensionVersion || '—'}</span>
-                            <span className="lemu-detail__label">User</span>
-                            <span>{ev.userEmail || '—'}</span>
-                          </div>
-                          <div className="lemu-detail__message">{ev.message}</div>
-                          {ev.errorName && (
-                            <div className="lemu-detail__error-name">{ev.errorName}</div>
-                          )}
-                          {ev.stack && (
-                            <pre className="lemu-detail__stack">{ev.stack}</pre>
-                          )}
-                          {ev.extra && (
-                            <pre className="lemu-detail__stack">
-                              {typeof ev.extra === 'string' ? ev.extra : JSON.stringify(ev.extra, null, 2)}
-                            </pre>
-                          )}
-                        </div>
+            {!loading &&
+              events.map((ev) => {
+                const id = ev.eventId || `${ev.timestamp}-${ev.message}`;
+                const expanded = expandedIds.has(id);
+                return (
+                  <React.Fragment key={id}>
+                    <tr className="lemu-clickable" onClick={() => onToggleExpanded(id)}>
+                      <td className="lemu-muted lemu-nowrap" title={formatTime(ev.timestamp)}>
+                        {relativeTime(ev.timestamp)}
+                      </td>
+                      <td>
+                        <SeverityBadge severity={ev.severity} />
+                      </td>
+                      <td className="lemu-muted">{ev.source || '—'}</td>
+                      <td className="lemu-muted">{ev.service || '—'}</td>
+                      <td>
+                        <span className="lemu-msg" title={ev.message}>
+                          {ev.message}
+                        </span>
+                        {ev.userEmail && <span className="lemu-msg__user">{ev.userEmail}</span>}
+                      </td>
+                      <td className="lemu-right">
+                        <span className="lemu-chevron">
+                          {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </span>
                       </td>
                     </tr>
-                  )}
-                </React.Fragment>
-              );
-            })}
+                    {expanded && (
+                      <tr className="lemu-detail-row" aria-label="Event details">
+                        <td colSpan={6}>
+                          <div className="lemu-detail">
+                            <div className="lemu-detail__grid">
+                              <span className="lemu-detail__label">Event ID</span>
+                              <span className="lemu-mono">{ev.eventId || '—'}</span>
+                              <span className="lemu-detail__label">Timestamp</span>
+                              <span className="lemu-mono">{formatTime(ev.timestamp)}</span>
+                              <span className="lemu-detail__label">Layer</span>
+                              <span>{ev.layer || '—'}</span>
+                              <span className="lemu-detail__label">Fingerprint</span>
+                              <span className="lemu-mono">{ev.fingerprint || '—'}</span>
+                              <span className="lemu-detail__label">Extension Ver.</span>
+                              <span className="lemu-mono">{ev.extensionVersion || '—'}</span>
+                              <span className="lemu-detail__label">User</span>
+                              <span>{ev.userEmail || '—'}</span>
+                            </div>
+                            <div className="lemu-detail__message">{ev.message}</div>
+                            {ev.errorName && (
+                              <div className="lemu-detail__error-name">{ev.errorName}</div>
+                            )}
+                            {ev.stack && <pre className="lemu-detail__stack">{ev.stack}</pre>}
+                            {ev.extra && (
+                              <pre className="lemu-detail__stack">
+                                {typeof ev.extra === 'string'
+                                  ? ev.extra
+                                  : JSON.stringify(ev.extra, null, 2)}
+                              </pre>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
           </tbody>
         </table>
       </div>

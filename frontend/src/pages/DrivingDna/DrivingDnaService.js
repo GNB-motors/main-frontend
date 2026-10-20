@@ -1,4 +1,5 @@
 import apiClient from '../../utils/axiosConfig';
+import ApiError from '../../errors/ApiError';
 
 /**
  * Service for the Driving DNA (mini) surface (feature #3). Same OWNER/MANAGER +
@@ -14,7 +15,7 @@ export const DrivingDnaService = {
       return response.data || {};
     } catch (error) {
       if (error?.code === 'ERR_CANCELED') throw error;
-      throw error.response?.data || { detail: 'Could not fetch driving-DNA profiles.' };
+      throw ApiError.from(error);
     }
   },
 };

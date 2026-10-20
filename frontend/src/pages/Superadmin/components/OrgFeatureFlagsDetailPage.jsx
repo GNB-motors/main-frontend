@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Save, RotateCcw, Plus, Trash2, X, AlertTriangle, ToggleRight } from 'lucide-react';
+import { Save, RotateCcw, Plus, Trash2, ToggleRight } from 'lucide-react';
 import { PageHeader } from '../../Drivers/Component';
-import apiClient from '../../../utils/axiosConfig';
+import { OrgFeatureFlagsService } from './OrgFeatureFlagsService';
 import useApi from '../../../hooks/useApi';
 import { getUserRole } from '../../../utils/session';
 import './FeatureFlags.css';
 import { changedFlags } from './changedFlags';
+import Toggle from './featureFlags/Toggle';
+import RegisterFlagModal from './featureFlags/RegisterFlagModal';
+import RemoveFlagModal from './featureFlags/RemoveFlagModal';
 
 const FEATURE_LABELS = {
   overview: 'Overview',
@@ -21,21 +24,6 @@ const FEATURE_LABELS = {
   dailyMileageReport: 'Daily Mileage Report Email',
   geofence: 'Geofence',
 };
-
-/* Accessible pill toggle that matches the app's indigo brand. */
-const Toggle = ({ checked, onChange, disabled = false, label }) => (
-  <button
-    type="button"
-    role="switch"
-    aria-checked={checked}
-    aria-label={label}
-    disabled={disabled}
-    className="ff-switch"
-    onClick={onChange}
-  >
-    <span className="ff-switch__thumb" />
-  </button>
-);
 
 const OrgFeatureFlagsDetailPage = () => {
   const navigate = useNavigate();
@@ -75,12 +63,12 @@ const OrgFeatureFlagsDetailPage = () => {
   } = useApi(
     async (signal) => {
       if (!orgId) return null;
-      const [flagsRes, orgsRes, registryRes] = await Promise.all([
-        apiClient.get(`/api/feature-flags/${orgId}`, { signal }),
-        apiClient.get('/api/admin/organizations', { signal }),
-        apiClient.get('/api/feature-flags/registry', { signal }),
+      const [payload, orgs, registry] = await Promise.all([
+        OrgFeatureFlagsService.getOrgFlags(orgId, { signal }),
+        OrgFeatureFlagsService.listOrganizations({ signal }),
+        OrgFeatureFlagsService.getFlagRegistry({ signal }),
       ]);
-      return { flagsRes, orgsRes, registryRes };
+      return { payload, orgs, registry };
     },
     [JSON.stringify({ orgId })],
   );
@@ -91,13 +79,13 @@ const OrgFeatureFlagsDetailPage = () => {
 
   useEffect(() => {
     if (!flagsData) return;
-    const payload = flagsData.flagsRes.data?.data ?? {};
+    const { payload } = flagsData;
     setFlags(payload.flags || {});
     setOriginal(payload.flags || {});
     setKnownKeys(payload.knownKeys || []);
-    const registry = flagsData.registryRes.data?.data ?? [];
+    const { registry } = flagsData;
     setRegistryKeys(new Set(registry.map((r) => r.key)));
-    const list = flagsData.orgsRes.data?.data ?? [];
+    const list = flagsData.orgs;
     const me = list.find((o) => o._id === orgId);
     setOrgName(me?.companyName || me?.ownerEmail || orgId);
   }, [flagsData, orgId]);
@@ -120,8 +108,8 @@ const OrgFeatureFlagsDetailPage = () => {
     try {
       const features = changedFlags(knownKeys, original, flags);
       if (!Object.keys(features).length) return;
-      const res = await apiClient.patch(`/api/feature-flags/${orgId}`, { features });
-      const next = res.data?.data?.flags || { ...original, ...features };
+      const saved = await OrgFeatureFlagsService.updateOrgFlags(orgId, features);
+      const next = saved?.flags || { ...original, ...features };
       setFlags(next);
       setOriginal(next);
       toast.success('Feature flags saved');
@@ -158,7 +146,7 @@ const OrgFeatureFlagsDetailPage = () => {
     }
     setAdding(true);
     try {
-      await apiClient.post('/api/feature-flags/registry', {
+      await OrgFeatureFlagsService.registerFlag({
         key: trimmedKey,
         label: trimmedLabel,
         description: newDescription.trim(),
@@ -177,7 +165,7 @@ const OrgFeatureFlagsDetailPage = () => {
     if (!removeTarget) return;
     setRemoving(true);
     try {
-      await apiClient.delete(`/api/feature-flags/registry/${encodeURIComponent(removeTarget)}`);
+      await OrgFeatureFlagsService.removeRegisteredFlag(removeTarget);
       toast.success(`Removed "${removeTarget}"`);
       setRemoveTarget(null);
       refetch();
@@ -259,7 +247,7 @@ const OrgFeatureFlagsDetailPage = () => {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={6} aria-label="Loading feature flags">
                     <div className="ff-state">
                       <div className="ff-spinner" />
                     </div>
@@ -269,7 +257,10 @@ const OrgFeatureFlagsDetailPage = () => {
 
               {!loading && knownKeys.length === 0 && (
                 <tr>
-                  <td colSpan={6}>
+                  <td
+                    colSpan={6}
+                    aria-label="No feature keys yet. Register one with “New flag” to get started."
+                  >
                     <div className="ff-state">
                       <div className="ff-state__icon">
                         <ToggleRight size={22} />
@@ -345,180 +336,28 @@ const OrgFeatureFlagsDetailPage = () => {
 
       {/* Register new flag modal */}
       {addOpen && (
-        <div
-          className="ff-modal-overlay"
-          role="button"
-          tabIndex={-1}
-          aria-label="Close dialog"
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !adding) setAddOpen(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.target !== e.currentTarget) return;
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              if (!adding) setAddOpen(false);
-            }
-          }}
-        >
-          <div className="ff-modal" role="dialog" aria-modal="true" aria-labelledby="ff-add-title">
-            <div className="ff-modal__header">
-              <div>
-                <h2 className="ff-modal__title" id="ff-add-title">
-                  Register a new feature flag
-                </h2>
-                <p className="ff-modal__subtitle">
-                  New flags become available to all organizations. Each one starts denied — flip the
-                  toggle to enable it.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="ff-icon-btn"
-                onClick={() => setAddOpen(false)}
-                disabled={adding}
-                aria-label="Close"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="ff-modal__body">
-              {addError && (
-                <div className="ff-alert ff-alert--error" role="alert">
-                  {addError}
-                </div>
-              )}
-
-              <div className="ff-field">
-                <label className="ff-field__label" htmlFor="ff-new-key">
-                  Key (slug)
-                </label>
-                <input
-                  id="ff-new-key"
-                  className="ff-input ff-mono"
-                  value={newKey}
-                  onChange={(e) => setNewKey(e.target.value)}
-                  placeholder="e.g. inventoryTracker"
-                  maxLength={64}
-                  autoFocus
-                />
-                <span className="ff-field__help">
-                  Start with a letter. Letters, digits, _, - only. Max 64 chars.
-                </span>
-              </div>
-
-              <div className="ff-field">
-                <label className="ff-field__label" htmlFor="ff-new-label">
-                  Display label
-                </label>
-                <input
-                  id="ff-new-label"
-                  className="ff-input"
-                  value={newLabel}
-                  onChange={(e) => setNewLabel(e.target.value)}
-                  placeholder="e.g. Inventory Tracker"
-                  maxLength={120}
-                />
-              </div>
-
-              <div className="ff-field">
-                <label className="ff-field__label" htmlFor="ff-new-desc">
-                  Description <span className="ff-muted">(optional)</span>
-                </label>
-                <textarea
-                  id="ff-new-desc"
-                  className="ff-textarea"
-                  rows={2}
-                  value={newDescription}
-                  onChange={(e) => setNewDescription(e.target.value)}
-                  maxLength={500}
-                />
-              </div>
-            </div>
-
-            <div className="ff-modal__footer">
-              <button
-                type="button"
-                className="ff-btn ff-btn--ghost"
-                onClick={() => setAddOpen(false)}
-                disabled={adding}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="ff-btn ff-btn--primary"
-                onClick={submitAdd}
-                disabled={adding}
-              >
-                {adding ? 'Registering…' : 'Register'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <RegisterFlagModal
+          newKey={newKey}
+          setNewKey={setNewKey}
+          newLabel={newLabel}
+          setNewLabel={setNewLabel}
+          newDescription={newDescription}
+          setNewDescription={setNewDescription}
+          addError={addError}
+          adding={adding}
+          setAddOpen={setAddOpen}
+          submitAdd={submitAdd}
+        />
       )}
 
       {/* Remove flag confirm modal */}
       {removeTarget && (
-        <div
-          className="ff-modal-overlay"
-          role="button"
-          tabIndex={-1}
-          aria-label="Close dialog"
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !removing) setRemoveTarget(null);
-          }}
-          onKeyDown={(e) => {
-            if (e.target !== e.currentTarget) return;
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              if (!removing) setRemoveTarget(null);
-            }
-          }}
-        >
-          <div
-            className="ff-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="ff-remove-title"
-          >
-            <div className="ff-modal__header">
-              <div style={{ display: 'flex', gap: 14 }}>
-                <span className="ff-confirm__icon">
-                  <AlertTriangle size={22} />
-                </span>
-                <div>
-                  <h2 className="ff-modal__title" id="ff-remove-title">
-                    Remove “{removeTarget}”?
-                  </h2>
-                  <p className="ff-modal__subtitle">
-                    It stops appearing here for all organizations. Each org keeps its stored value,
-                    so re-registering the key restores it.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="ff-modal__footer">
-              <button
-                type="button"
-                className="ff-btn ff-btn--ghost"
-                onClick={() => setRemoveTarget(null)}
-                disabled={removing}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="ff-btn ff-btn--danger"
-                onClick={confirmRemove}
-                disabled={removing}
-              >
-                {removing ? 'Removing…' : 'Remove'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <RemoveFlagModal
+          removeTarget={removeTarget}
+          setRemoveTarget={setRemoveTarget}
+          removing={removing}
+          confirmRemove={confirmRemove}
+        />
       )}
     </div>
   );

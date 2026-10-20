@@ -1,14 +1,17 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
+import ErrorBoundary from '../errors/ErrorBoundary.jsx';
 import Sidebar from './Sidebar.jsx';
 import Navbar from './Navbar.jsx';
 import LottieLoader from './LottieLoader.jsx';
 import CommandPalette from './cluster/CommandPalette.jsx';
 import { ConfirmDialogHost } from './ui/ConfirmDialog.jsx';
 import { applyThemeToRoot } from '../utils/colorTheme.js';
-import { storeProfileData } from '../utils/profileStorage.js';
+import { storeMeProfile } from '../utils/profileStorage.js';
 import { FeatureFlagsProvider, useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
 import { BranchProvider, useActiveBranch } from '../contexts/BranchContext.jsx';
+import FleetLinkProvider from '../contexts/FleetLinkProvider.jsx';
+import SupportPortalProvider from '../contexts/SupportPortalProvider.jsx';
 import './DashboardLayout.css';
 
 const DashboardLayoutInner = () => {
@@ -17,6 +20,7 @@ const DashboardLayoutInner = () => {
   // against the newly selected branch (X-Branch-Id changes in the interceptor).
   const { branchId } = useActiveBranch();
   const { profile, ready } = useFeatureFlags();
+  const { pathname } = useLocation();
 
   React.useEffect(() => {
     // Set all CSS tokens on :root immediately — covers page refresh & login redirect.
@@ -31,16 +35,13 @@ const DashboardLayoutInner = () => {
   }, []);
 
   // Sync profile (incl. primaryThemeColor) for the entire authenticated
-  // session, regardless of which page the user lands on. storeProfileData
+  // session, regardless of which page the user lands on. Saving the colour
   // dispatches `themeColorChange`, which the listener above translates into
-  // applyThemeToRoot — so every page (Overview, Reports, Trip, …) gets the
-  // user's theme color applied immediately after login. Reads the /api/auth/me
-  // payload FeatureFlagsProvider already fetched instead of firing a second,
-  // redundant request for the same endpoint.
+  // applyThemeToRoot — so a colour changed on another device shows up here on
+  // the next load. Reads the /api/auth/me payload FeatureFlagsProvider already
+  // fetched instead of firing a second request for the same endpoint.
   React.useEffect(() => {
-    if (!profile) return;
-    storeProfileData(profile);
-    if (profile.primaryThemeColor) applyThemeToRoot();
+    if (profile) storeMeProfile(profile);
   }, [profile]);
 
   // Hold the whole shell until the first /api/auth/me has settled: the sidebar
@@ -65,7 +66,10 @@ const DashboardLayoutInner = () => {
         <Navbar toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
         <div className="page-content" key={branchId || 'all-locations'}>
           <ConfirmDialogHost>
-            <Outlet />
+            {/* A page crash stays inside the page area; sidebar and navbar survive. */}
+            <ErrorBoundary resetKey={pathname}>
+              <Outlet />
+            </ErrorBoundary>
           </ConfirmDialogHost>
         </div>
       </main>
@@ -77,7 +81,11 @@ const DashboardLayoutInner = () => {
 const DashboardLayout = () => (
   <FeatureFlagsProvider>
     <BranchProvider>
-      <DashboardLayoutInner />
+      <FleetLinkProvider>
+        <SupportPortalProvider>
+          <DashboardLayoutInner />
+        </SupportPortalProvider>
+      </FleetLinkProvider>
     </BranchProvider>
   </FeatureFlagsProvider>
 );

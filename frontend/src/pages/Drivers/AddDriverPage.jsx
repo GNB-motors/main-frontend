@@ -1,27 +1,20 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { DriverService } from './DriverService.jsx';
+import { DriverService } from './DriverService.js';
 import AccessControlApi from '../AccessControl/accessControlService';
 import DriverVehicleAssignmentService from '../../services/DriverVehicleAssignmentService';
 import { useActiveBranch } from '../../contexts/BranchContext';
 import { getThemeCSS } from '../../utils/colorTheme';
 import { getProfileField } from '../../utils/session.js';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { UserPlus, Building2 } from 'lucide-react';
 import PageHeader from './Component/PageHeader.jsx';
 import BasicInformationForm from './Component/BasicInformationForm.jsx';
 import DocumentUpload from './Component/DocumentUpload.jsx';
 import FormFooter from './Component/FormFooter.jsx';
-import NewButton from '@/components/ui/NewButton';
+import ImportEmployeeDialog from './ImportEmployeeDialog.jsx';
+import { mapFetchedEmployeeDocs } from './employeeDocMapping.js';
 import './DriversPage.css';
+import logger from '../../utils/logger';
 
 const AddDriverPage = () => {
   const navigate = useNavigate();
@@ -80,7 +73,7 @@ const AddDriverPage = () => {
             driverId: empId,
           });
         } catch (err) {
-          console.error('Failed to load vehicle assignment', err);
+          logger.warn('AddDriverPage', 'Failed to load vehicle assignment', err);
         }
         setCurrentAssignment(assignment);
 
@@ -106,52 +99,17 @@ const AddDriverPage = () => {
           password: '', // Don't prefill password
           vehicleId: assignment ? DriverVehicleAssignmentService.idOf(assignment.vehicleId) : '',
         };
-        console.log('Editing driver:', editing);
-        console.log('Setting form data:', formData);
+        logger.info('AddDriverPage', 'Editing driver', editing);
+        logger.info('AddDriverPage', 'Setting form data', formData);
         setInitialFormData(formData);
 
         try {
           const fetchedDocs = await DriverService.getEmployeeDocuments(empId);
-          console.log('Fetched documents:', fetchedDocs);
-          const updatedDocs = {
-            driverLicense: {
-              file: null,
-              preview: null,
-              imageUrl: null,
-              name: '',
-              documentId: null,
-            },
-            panCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-            aadharCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-          };
-
-          if (Array.isArray(fetchedDocs)) {
-            fetchedDocs.forEach((doc) => {
-              // Map API doc types to our state keys
-              const mappedType = {
-                DRIVER_LICENSE: 'driverLicense',
-                DL: 'driverLicense',
-                LICENSE: 'driverLicense',
-                PAN: 'panCard',
-                AADHAAR: 'aadharCard',
-                AADHAR: 'aadharCard',
-              }[doc.docType];
-
-              if (mappedType) {
-                const url =
-                  doc.publicUrl || doc.file_url || doc.fileUrl || doc.url || doc.documentUrl;
-                if (url) {
-                  updatedDocs[mappedType].preview = url;
-                  updatedDocs[mappedType].imageUrl = url;
-                  updatedDocs[mappedType].name = doc.originalName || doc.docType;
-                  updatedDocs[mappedType].documentId = doc._id || doc.id || null;
-                }
-              }
-            });
-          }
+          logger.info('AddDriverPage', 'Fetched documents', fetchedDocs);
+          const updatedDocs = mapFetchedEmployeeDocs(fetchedDocs);
           setDocuments(updatedDocs);
         } catch (err) {
-          console.error('Failed to load documents', err);
+          logger.warn('AddDriverPage', 'Failed to load documents', err);
         }
       } else {
         // Reset to add mode when no editing driver
@@ -238,7 +196,7 @@ const AddDriverPage = () => {
               }
               await DriverService.uploadDocument(entityId, docType, docData.file);
             } catch (docErr) {
-              console.error(`Failed to upload ${docType}`, docErr);
+              logger.warn('AddDriverPage', `Failed to upload ${docType}`, docErr);
               toast.warning(`Failed to upload ${key} document`);
             }
           }
@@ -303,14 +261,14 @@ const AddDriverPage = () => {
         navigate('/drivers');
       }
     } catch (err) {
-      console.error('Add employee error', err);
+      logger.warn('AddDriverPage', 'Add employee error', err);
       // Phone already belongs to someone in the enterprise → offer Import instead
       // of a generic "already exists" error.
-      if (err?.code === 'ALREADY_IN_ENTERPRISE' && err?.data?.employee) {
-        setImportCandidate(err.data.employee);
+      if (err?.body?.code === 'ALREADY_IN_ENTERPRISE' && err.body.data?.employee) {
+        setImportCandidate(err.body.data.employee);
         return;
       }
-      const msg = err?.message || err?.detail || 'Failed to create/update employee';
+      const msg = err?.message || 'Failed to create/update employee';
       toast.error(msg);
     } finally {
       setIsSubmitting(false);
@@ -326,7 +284,7 @@ const AddDriverPage = () => {
       setImportCandidate(null);
       navigate('/drivers');
     } catch (err) {
-      toast.error(err?.message || err?.detail || 'Failed to import employee');
+      toast.error(err?.message || 'Failed to import employee');
     } finally {
       setImporting(false);
     }
@@ -392,70 +350,12 @@ const AddDriverPage = () => {
       />
 
       {/* Import Employee — shown when the phone already exists in the enterprise. */}
-      <Dialog
-        open={!!importCandidate}
-        onOpenChange={(o) => {
-          if (!o && !importing) setImportCandidate(null);
-        }}
-      >
-        <DialogContent className="max-w-md p-0">
-          <DialogHeader>
-            <DialogTitle>Import existing employee</DialogTitle>
-            <DialogDescription>
-              This phone number already belongs to an employee in your enterprise. Import them into
-              the current location instead of creating a duplicate — they become active here and are
-              deactivated in their previous location.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="px-6 py-4">
-            {importCandidate && (
-              <div className="flex items-start gap-3 rounded-lg border bg-muted/40 p-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <UserPlus size={18} />
-                </div>
-                <div className="text-sm">
-                  <div className="font-semibold">
-                    {[importCandidate.firstName, importCandidate.lastName]
-                      .filter(Boolean)
-                      .join(' ') || 'Employee'}
-                  </div>
-                  <div className="text-muted-foreground">{importCandidate.mobileNumber}</div>
-                  <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
-                    <Building2 size={13} />
-                    Home: {importCandidate.homeBranch?.name || 'Enterprise'}
-                  </div>
-                </div>
-              </div>
-            )}
-            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-              Their existing records stay with their previous location (history isn't moved). They
-              become
-              <strong> active in this location</strong>, and <strong>deactivated</strong> in the
-              previous one — where they can no longer be assigned anything.
-            </p>
-          </div>
-
-          <DialogFooter>
-            <NewButton
-              variant="secondary"
-              size="md"
-              type="button"
-              text="Cancel"
-              onClick={() => setImportCandidate(null)}
-              disabled={importing}
-            />
-            <NewButton
-              variant="primary"
-              size="md"
-              type="button"
-              text="Import to this location"
-              onClick={confirmImport}
-              loading={importing}
-            />
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ImportEmployeeDialog
+        importCandidate={importCandidate}
+        setImportCandidate={setImportCandidate}
+        importing={importing}
+        confirmImport={confirmImport}
+      />
     </div>
   );
 };

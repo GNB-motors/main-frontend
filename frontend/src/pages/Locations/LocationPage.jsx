@@ -13,6 +13,7 @@ import FilterBar from '../../components/ui/FilterBar';
 import DataTable from '../../components/ui/DataTable';
 import { useConfirm } from '../../components/ui/confirmContext';
 import './LocationPage.css';
+import logger from '../../utils/logger';
 
 const LocationPage = () => {
   const [locations, setLocations] = useState([]);
@@ -44,7 +45,7 @@ const LocationPage = () => {
     } catch (error) {
       const errorMsg = error?.message || 'Failed to fetch locations';
       toast.error(errorMsg);
-      console.error('Fetch locations error:', error);
+      logger.warn('LocationPage', 'Fetch locations error', error);
     } finally {
       setLoading(false);
     }

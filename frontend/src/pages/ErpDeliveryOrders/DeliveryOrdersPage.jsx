@@ -18,14 +18,16 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Plus, FileText, Search, PhoneCall } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
-import apiClient from '../../utils/axiosConfig';
 import StatTile from '../../components/Erp/StatTile';
 import DeliveryOrderService from './DeliveryOrderService';
 import PartyService from '../ErpMasters/PartyService';
+import ErpMasterService from '../ErpMasters/ErpMasterService';
 import ErpCallService from '../ErpCallPlanning/ErpCallService';
 import DeliveryOrderDrawer from './DeliveryOrderDrawer';
 import DeliveryOrderDetailDrawer from './DeliveryOrderDetailDrawer';
-import { EMPTY_FORM, formFromCall, money, stageOf } from './deliveryOrder.constants';
+import { EMPTY_FORM, formFromCall } from './deliveryOrder.constants';
+import PendingCallsQueue from './sections/PendingCallsQueue';
+import DeliveryOrderTable from './sections/DeliveryOrderTable';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import PageShell from '../../components/Erp/PageShell';
 import '../../styles/erp.css';
@@ -106,8 +108,7 @@ const DeliveryOrdersPage = ({ embedded = false }) => {
       setParties([]);
     }
     try {
-      const res = await apiClient.get('/api/routes', { params: { limit: 200 } });
-      setRoutes(res.data?.data || []);
+      setRoutes(await ErpMasterService.getRoutes());
     } catch {
       setRoutes([]);
     }
@@ -229,75 +230,12 @@ const DeliveryOrdersPage = ({ embedded = false }) => {
           than an alert: an alert says "something is wrong", but a confirmed order
           waiting for release is the normal state of this page. */}
       {pendingCalls.length > 0 && (
-        <section className="erp-queue">
-          <div className="erp-queue-head">
-            <PhoneCall size={16} />
-            <div>
-              <strong>
-                {pendingCalls.length} confirmed order
-                {pendingCalls.length === 1 ? '' : 's'} ready to release
-              </strong>
-            </div>
-          </div>
-
-          <div className="erp-table-scroll">
-            <table className="erp-table">
-              <thead>
-                <tr>
-                  <th>Account</th>
-                  <th>Material</th>
-                  <th>Quantity</th>
-                  <th>Confirmed by</th>
-                  <th>Waiting</th>
-                  <th aria-label="Actions" />
-                </tr>
-              </thead>
-              <tbody>
-                {pendingCalls.map((task) => {
-                  const days = waitingDays(task);
-                  return (
-                    <tr key={task._id}>
-                      <td>
-                        <div className="erp-cell-strong">{task.partyId?.name || '—'}</div>
-                        {task.partyId?.code && (
-                          <div className="erp-cell-muted">{task.partyId.code}</div>
-                        )}
-                        {task.remarks && (
-                          <div className="erp-cell-muted erp-queue-note">{task.remarks}</div>
-                        )}
-                      </td>
-                      <td>{task.orderMaterial || <span className="erp-cell-muted">—</span>}</td>
-                      <td className="erp-numeric">
-                        {task.orderQty != null ? (
-                          `${task.orderQty} ${task.orderQtyUnit || ''}`
-                        ) : (
-                          <span className="erp-cell-muted">not captured</span>
-                        )}
-                      </td>
-                      <td>{kamName(task.kamId)}</td>
-                      <td>
-                        <span
-                          className={`erp-badge ${days >= 2 ? 'danger' : days >= 1 ? 'warning' : 'success'}`}
-                        >
-                          {days === 0 ? 'Today' : `${days}d`}
-                        </span>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="btn btn-primary"
-                          onClick={() => openFromCall(task)}
-                        >
-                          Create DO
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <PendingCallsQueue
+          pendingCalls={pendingCalls}
+          waitingDays={waitingDays}
+          kamName={kamName}
+          openFromCall={openFromCall}
+        />
       )}
 
       <h2 className="erp-section-heading">All delivery orders</h2>
@@ -308,6 +246,7 @@ const DeliveryOrdersPage = ({ embedded = false }) => {
           <input
             type="search"
             placeholder="Search by DO number…"
+            aria-label="Search delivery orders"
             value={searchTerm}
             onChange={handleSearch}
           />
@@ -351,58 +290,7 @@ const DeliveryOrdersPage = ({ embedded = false }) => {
           </div>
         ) : (
           <>
-            <div className="erp-table-scroll">
-              <table className="erp-table">
-                <thead>
-                  <tr>
-                    <th>DO No.</th>
-                    <th>Account</th>
-                    <th>Route</th>
-                    <th>Material</th>
-                    <th>Quantity</th>
-                    <th>Rate</th>
-                    <th>Stage</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.map((o) => {
-                    const stage = stageOf(o);
-                    return (
-                      <tr key={o._id} className="clickable" onClick={() => setDetail(o)}>
-                        <td className="erp-cell-strong">{o.doNumber}</td>
-                        <td>
-                          <div>{o.partyId?.name || '—'}</div>
-                          <div className="erp-cell-muted">
-                            {new Date(o.doDate).toLocaleDateString('en-IN')}
-                          </div>
-                        </td>
-                        <td className="erp-cell-muted">
-                          {o.fromLocation} → {o.toLocation}
-                        </td>
-                        <td>{o.material}</td>
-                        <td className="erp-numeric">
-                          <div>
-                            {o.qty} {o.qtyUnit}
-                          </div>
-                          {o.liftedQty > 0 && (
-                            <div className="erp-cell-muted">{o.balanceQty} left</div>
-                          )}
-                        </td>
-                        <td className="erp-numeric">
-                          {money(o.sbRate)}
-                          {o.rateSource === 'MANUAL' && (
-                            <div className="erp-cell-muted">manual</div>
-                          )}
-                        </td>
-                        <td>
-                          <span className={`erp-badge ${stage.tone}`}>{stage.label}</span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <DeliveryOrderTable orders={orders} setDetail={setDetail} />
 
             {meta.totalPages > 1 && (
               <div className="erp-pagination">

@@ -3,7 +3,8 @@ import useApi from '../../../hooks/useApi';
 import EmptyState from '../../../components/cluster/EmptyState';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
 import PanelLoading from './PanelLoading';
-import { gateRows, messageOf } from './placeIntelligenceModel';
+import { messageOf } from './model/requestOutcome.js';
+import { gateRows } from './model/shadowGates.js';
 
 const CHIP =
   'inline-flex items-center rounded-md px-2 py-0.5 text-[10px] uppercase tracking-wide border';

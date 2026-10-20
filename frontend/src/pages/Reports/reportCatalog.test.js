@@ -26,6 +26,7 @@ describe('visibleReportGroups', () => {
 
   it('hides the Trip Economics reports for an org without autoTrips', () => {
     const visible = ids(visibleReportGroups(flags(['vehicleActivity', 'fuelIntegrity'])));
+    expect(visible).not.toContain('oilAverage');
     expect(visible).not.toContain('fuelCycles');
     expect(visible).not.toContain('nonBusiness');
     expect(visible).not.toContain('runningCost');
@@ -33,9 +34,10 @@ describe('visibleReportGroups', () => {
     expect(visible).not.toContain('laneKm');
   });
 
-  it('keeps the Oil & Average report for every org (its API has no sub-flag)', () => {
-    expect(ids(visibleReportGroups(flags([])))).toContain('oilAverage');
-    expect(resolveReport('oilAverage', flags([]))).toBe('oilAverage');
+  it('hides the Oil & Average report without autoTrips (its API router is gated)', () => {
+    expect(ids(visibleReportGroups(flags([])))).not.toContain('oilAverage');
+    expect(resolveReport('oilAverage', flags([]))).toBe(DEFAULT_REPORT);
+    expect(resolveReport('oilAverage', flags(['autoTrips']))).toBe('oilAverage');
   });
 
   it('hides AdBlue for an org without fuelIntegrity (its API would 404)', () => {

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Trash2, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { onActivateKey } from '../../utils/onActivateKey';
 
 const StackedDocIcon = () => (
   <svg width="46" height="42" viewBox="0 0 56 52" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -82,6 +83,7 @@ export const SlotUpload = (props) => {
       <input
         type="file"
         id={inputId}
+        aria-label={`Upload ${label}`}
         accept="image/*"
         style={{ display: 'none' }}
         onChange={(e) => {
@@ -94,6 +96,9 @@ export const SlotUpload = (props) => {
       {!doc ? (
         <div
           className={`slot-dropzone ${isDragging ? 'dragging' : ''}`}
+          role="button"
+          tabIndex={0}
+          onKeyDown={onActivateKey(() => document.getElementById(inputId)?.click())}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}

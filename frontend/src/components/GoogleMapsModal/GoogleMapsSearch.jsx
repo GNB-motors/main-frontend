@@ -3,7 +3,14 @@ import { Search } from 'lucide-react';
 
 // Added onEnter prop: called when the user presses Enter without choosing
 // a dropdown suggestion. Parent can geocode the typed text and confirm selection.
-const GoogleMapsSearch = ({ isLoaded, searchValue, setSearchValue, onSuggestionSelect, onEnter, className }) => {
+const GoogleMapsSearch = ({
+  isLoaded,
+  searchValue,
+  setSearchValue,
+  onSuggestionSelect,
+  onEnter,
+  className,
+}) => {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -60,7 +67,7 @@ const GoogleMapsSearch = ({ isLoaded, searchValue, setSearchValue, onSuggestionS
           } else {
             setSuggestions([]);
           }
-        }
+        },
       );
     }, 300);
 
@@ -97,6 +104,7 @@ const GoogleMapsSearch = ({ isLoaded, searchValue, setSearchValue, onSuggestionS
       <Search size={20} className="search-icon" />
       <input
         type="text"
+        aria-label="Search for a location"
         placeholder="Search for a location..."
         value={searchValue}
         onChange={(e) => {
@@ -115,7 +123,15 @@ const GoogleMapsSearch = ({ isLoaded, searchValue, setSearchValue, onSuggestionS
               type="button"
               key={suggestion.place_id || index}
               className="suggestion-item"
-              style={{ background: 'none', border: 'none', padding: '12px 16px', font: 'inherit', cursor: 'pointer', textAlign: 'left', width: '100%' }}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '12px 16px',
+                font: 'inherit',
+                cursor: 'pointer',
+                textAlign: 'left',
+                width: '100%',
+              }}
               onClick={() => handleSuggestionClick(suggestion)}
             >
               {suggestion.description}

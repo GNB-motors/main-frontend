@@ -5,35 +5,39 @@ import { getUserFirstName, getUserLastName } from '../../../utils/session';
 import './SuperAdminNavbar.css';
 
 const SuperAdminNavbar = ({ toggleSidebar }) => {
-    const location = useLocation();
-    
-    const getPageTitle = () => {
-        if (location.pathname === '/superadmin') {
-            return 'Dashboard';
-        } else if (location.pathname.includes('/add-user')) {
-            return 'Add New User';
-        }
-        return 'Super Admin';
-    };
+  const location = useLocation();
 
-    return (
-        <header className="superadmin-navbar">
-            <div className="superadmin-navbar-left">
-                <button className="superadmin-menu-toggle" onClick={toggleSidebar}>
-                    <Menu />
-                </button>
-                <h2>{getPageTitle()}</h2>
-            </div>
-            <div className="superadmin-navbar-right">
-                <div className="superadmin-user-info">
-                    <span className="superadmin-user-name">
-                        {getUserFirstName()} {getUserLastName()}
-                    </span>
-                    <span className="superadmin-user-role">Super Admin</span>
-                </div>
-            </div>
-        </header>
-    );
+  const getPageTitle = () => {
+    if (location.pathname === '/superadmin') {
+      return 'Dashboard';
+    } else if (location.pathname.includes('/add-user')) {
+      return 'Add New User';
+    } else if (location.pathname.startsWith('/superadmin/support-tickets')) {
+      return 'Support Tickets';
+    } else if (location.pathname.startsWith('/superadmin/enquiries')) {
+      return 'Enquiries';
+    }
+    return 'Super Admin';
+  };
+
+  return (
+    <header className="superadmin-navbar">
+      <div className="superadmin-navbar-left">
+        <button className="superadmin-menu-toggle" onClick={toggleSidebar}>
+          <Menu />
+        </button>
+        <h2>{getPageTitle()}</h2>
+      </div>
+      <div className="superadmin-navbar-right">
+        <div className="superadmin-user-info">
+          <span className="superadmin-user-name">
+            {getUserFirstName()} {getUserLastName()}
+          </span>
+          <span className="superadmin-user-role">Super Admin</span>
+        </div>
+      </div>
+    </header>
+  );
 };
 
 export default SuperAdminNavbar;

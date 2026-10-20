@@ -1,5 +1,6 @@
 import {
   storeProfileData,
+  storeMeProfile,
   getProfileData,
   getProfileField,
   clearProfileData,
@@ -53,6 +54,35 @@ describe('profileStorage.js — profile data in the session store', () => {
     it('returns null when no profile id is stored', () => {
       storeProfileData({ companyName: 'Orphan' });
       expect(getProfileData()).toBeNull();
+    });
+  });
+
+  // /api/auth/me nests the fields; passing it to storeProfileData as-is stored nothing.
+  describe('storeMeProfile', () => {
+    it('stores the nested /api/auth/me payload', () => {
+      storeMeProfile({
+        user: { id: 'u1', email: 'user@gnb.in', primaryThemeColor: '#ff8800' },
+        organization: {
+          companyName: 'GNB Motors',
+          gstin: '22AAAAA0000A1Z5',
+          ownerEmail: 'owner@gnb.in',
+        },
+        permissions: {},
+      });
+      expect(getProfileData()).toEqual({
+        _id: 'u1',
+        ownerEmail: 'owner@gnb.in',
+        companyName: 'GNB Motors',
+        gstin: '22AAAAA0000A1Z5',
+        primaryThemeColor: '#ff8800',
+      });
+    });
+
+    it('falls back to the user email and keeps the colour when the user has none', () => {
+      storeMeProfile({ user: { _id: 'u2', email: 'user@gnb.in', primaryThemeColor: '#123456' } });
+      storeMeProfile({ user: { _id: 'u2', email: 'user@gnb.in' }, organization: null });
+      expect(getProfileData().ownerEmail).toBe('user@gnb.in');
+      expect(getThemeColor()).toBe('#123456');
     });
   });
 

@@ -1,19 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import {
-  Plus,
-  Save,
-  RotateCcw,
-  ChevronDown,
-  ChevronRight,
-  Shield,
-  Lock,
-  X,
-  ShieldCheck,
-} from 'lucide-react';
+import { Save, RotateCcw, Shield, Lock, ShieldCheck } from 'lucide-react';
 import { PageHeader } from '../../Drivers/Component';
 import RbacApi from './rbacService';
+import keysOfRole from './rbac/keysOfRole';
+import RoleList from './rbac/RoleList';
+import PermissionGroups from './rbac/PermissionGroups';
+import CreateRoleModal from './rbac/CreateRoleModal';
 import { getUserRole } from '../../../utils/session';
 import './FeatureFlags.css';
 import './Rbac.css';
@@ -39,51 +33,6 @@ const GROUP_ORDER = [
   'Khata Ledger',
   'Reports',
 ];
-const BASE_ROLE_OPTIONS = ['MANAGER', 'DRIVER', 'FIELD_AGENT'];
-
-/* Binary pill toggle (reuses the FeatureFlags switch styling). */
-const Toggle = ({ checked, onChange, disabled = false, label }) => (
-  <button
-    type="button"
-    role="switch"
-    aria-checked={checked}
-    aria-label={label}
-    disabled={disabled}
-    className="ff-switch"
-    onClick={onChange}
-  >
-    <span className="ff-switch__thumb" />
-  </button>
-);
-
-/* Group-level tri-state checkbox: all / none / mixed. */
-const GroupCheck = ({ state, onToggle, disabled }) => {
-  const ref = useRef(null);
-  useEffect(() => {
-    if (ref.current) ref.current.indeterminate = state === 'mixed';
-  }, [state]);
-  return (
-    <input
-      ref={ref}
-      type="checkbox"
-      className="rbac-group__check"
-      checked={state === 'all'}
-      disabled={disabled}
-      onChange={onToggle}
-      onClick={(e) => e.stopPropagation()}
-      aria-label="Toggle all permissions in this group"
-    />
-  );
-};
-
-const keysOfRole = (role) => {
-  if (!role) return [];
-  if (Array.isArray(role.permissionKeys)) return role.permissionKeys;
-  // Fallback for roles stored only as a { key: bool } map.
-  return Object.entries(role.permissions || {})
-    .filter(([, v]) => v === true)
-    .map(([k]) => k);
-};
 
 const RbacRolesPage = () => {
   const navigate = useNavigate();
@@ -280,42 +229,14 @@ const RbacRolesPage = () => {
 
       <div className="rbac-layout">
         {/* ── Master: role list ── */}
-        <div className="rbac-master">
-          {loading && (
-            <div className="ff-state">
-              <div className="ff-spinner" />
-            </div>
-          )}
-          {!loading &&
-            roles.map((role) => (
-              <button
-                key={role._id}
-                type="button"
-                className={`rbac-role ${role._id === selectedId ? 'rbac-role--active' : ''}`}
-                onClick={() => selectRole(role)}
-              >
-                <span className="rbac-role__name">
-                  {role.baseRole === 'OWNER' ? <ShieldCheck size={15} /> : <Shield size={15} />}
-                  {role.name}
-                  {role.isImmutable && <Lock size={12} style={{ color: '#a2a8bd' }} />}
-                </span>
-                <span className="rbac-role__meta">
-                  {role.baseRole}
-                  {role.isSystem ? ' · system' : role.isImmutable ? ' · built-in' : ' · custom'}
-                </span>
-              </button>
-            ))}
-          <button
-            type="button"
-            className="rbac-fab"
-            onClick={() => {
-              setAddError('');
-              setAddOpen(true);
-            }}
-          >
-            <Plus size={16} /> Add role
-          </button>
-        </div>
+        <RoleList
+          loading={loading}
+          roles={roles}
+          selectedId={selectedId}
+          selectRole={selectRole}
+          setAddError={setAddError}
+          setAddOpen={setAddOpen}
+        />
 
         {/* ── Detail: permission tree ── */}
         <div className="rbac-detail">
@@ -355,57 +276,16 @@ const RbacRolesPage = () => {
                     )}
                   </div>
 
-                  {groups.map(({ group, items }) => {
-                    const isCollapsed = collapsed.has(group);
-                    const state = groupState(items);
-                    const onCount = items.filter((p) => granted.has(p.key)).length;
-                    return (
-                      <div className="rbac-group" key={group}>
-                        <div
-                          className="rbac-group__head"
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => toggleCollapse(group)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              toggleCollapse(group);
-                            }
-                          }}
-                        >
-                          <span className="rbac-group__title">
-                            {isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
-                            {group}
-                            <span className="rbac-group__count">
-                              {onCount}/{items.length}
-                            </span>
-                          </span>
-                          <GroupCheck
-                            state={state}
-                            onToggle={() => toggleGroup(items)}
-                            disabled={readOnly}
-                          />
-                        </div>
-                        {!isCollapsed &&
-                          items.map((p) => (
-                            <div className="rbac-perm" key={p.key}>
-                              <div>
-                                <div className="rbac-perm__label">{p.label || p.key}</div>
-                                <div className="rbac-perm__desc">
-                                  {p.description || <span className="rbac-perm__key">{p.key}</span>}
-                                </div>
-                              </div>
-                              <Toggle
-                                checked={granted.has(p.key)}
-                                onChange={() => toggleKey(p.key)}
-                                disabled={readOnly}
-                                label={`Toggle ${p.label || p.key}`}
-                              />
-                            </div>
-                          ))}
-                      </div>
-                    );
-                  })}
+                  <PermissionGroups
+                    groups={groups}
+                    collapsed={collapsed}
+                    groupState={groupState}
+                    granted={granted}
+                    toggleCollapse={toggleCollapse}
+                    toggleGroup={toggleGroup}
+                    toggleKey={toggleKey}
+                    readOnly={readOnly}
+                  />
 
                   <div className="rbac-detail__footer">
                     <button
@@ -434,114 +314,18 @@ const RbacRolesPage = () => {
 
       {/* Create-role modal */}
       {addOpen && (
-        <div
-          className="ff-modal-overlay"
-          role="button"
-          tabIndex={-1}
-          aria-label="Close dialog"
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !adding) setAddOpen(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.target !== e.currentTarget) return;
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              if (!adding) setAddOpen(false);
-            }
-          }}
-        >
-          <div className="ff-modal" role="dialog" aria-modal="true">
-            <div className="ff-modal__header">
-              <div>
-                <h2 className="ff-modal__title">Create a global role</h2>
-                <p className="ff-modal__subtitle">
-                  Reusable across all enterprises. Assign permissions after creating it.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="ff-icon-btn"
-                onClick={() => setAddOpen(false)}
-                disabled={adding}
-                aria-label="Close"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="ff-modal__body">
-              {addError && (
-                <div className="ff-alert ff-alert--error" role="alert">
-                  {addError}
-                </div>
-              )}
-              <div className="ff-field">
-                <label className="ff-field__label" htmlFor="rbac-new-name">
-                  Role name
-                </label>
-                <input
-                  id="rbac-new-name"
-                  className="ff-input"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="e.g. Finance Manager"
-                  maxLength={60}
-                  autoFocus
-                />
-              </div>
-              <div className="ff-field">
-                <label className="ff-field__label" htmlFor="rbac-new-base">
-                  Base role (compatibility)
-                </label>
-                <select
-                  id="rbac-new-base"
-                  className="rbac-select"
-                  value={newBaseRole}
-                  onChange={(e) => setNewBaseRole(e.target.value)}
-                >
-                  {BASE_ROLE_OPTIONS.map((b) => (
-                    <option key={b} value={b}>
-                      {b}
-                    </option>
-                  ))}
-                </select>
-                <span className="ff-field__help">
-                  Maps this role onto an existing access tier so legacy route guards keep working.
-                </span>
-              </div>
-              <div className="ff-field">
-                <label className="ff-field__label" htmlFor="rbac-new-desc">
-                  Description <span className="ff-muted">(optional)</span>
-                </label>
-                <textarea
-                  id="rbac-new-desc"
-                  className="ff-textarea"
-                  rows={2}
-                  value={newDescription}
-                  onChange={(e) => setNewDescription(e.target.value)}
-                  maxLength={300}
-                />
-              </div>
-            </div>
-            <div className="ff-modal__footer">
-              <button
-                type="button"
-                className="ff-btn ff-btn--ghost"
-                onClick={() => setAddOpen(false)}
-                disabled={adding}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="ff-btn ff-btn--primary"
-                onClick={submitAdd}
-                disabled={adding}
-              >
-                {adding ? 'Creating…' : 'Create role'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <CreateRoleModal
+          newName={newName}
+          setNewName={setNewName}
+          newBaseRole={newBaseRole}
+          setNewBaseRole={setNewBaseRole}
+          newDescription={newDescription}
+          setNewDescription={setNewDescription}
+          addError={addError}
+          adding={adding}
+          setAddOpen={setAddOpen}
+          submitAdd={submitAdd}
+        />
       )}
     </div>
   );

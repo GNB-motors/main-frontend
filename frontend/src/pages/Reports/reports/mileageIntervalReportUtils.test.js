@@ -5,9 +5,6 @@ import {
   formatDate,
   toStartOfDayIso,
   toEndOfDayIso,
-  buildFilterParams,
-  extractVehicleOptions,
-  extractDriverOptions,
 } from './mileageIntervalReportUtils';
 
 describe('mileageIntervalReportUtils', () => {
@@ -41,58 +38,16 @@ describe('mileageIntervalReportUtils', () => {
     it('toStartOfDayIso produces start-of-day ISO', () => {
       expect(toStartOfDayIso('')).toBeUndefined();
       expect(toStartOfDayIso(null)).toBeUndefined();
-      const start = toStartOfDayIso('2026-09-06');
-      expect(new Date(start).getDate()).toBe(6);
+      // The IST day, whatever timezone the browser (or CI) runs in.
+      expect(toStartOfDayIso('2026-09-06')).toBe('2026-09-05T18:30:00.000Z');
+      // An instant is reduced to its IST calendar day first.
+      expect(toStartOfDayIso('2026-09-06T20:00:00Z')).toBe('2026-09-06T18:30:00.000Z');
     });
 
     it('toEndOfDayIso produces end-of-day ISO', () => {
       expect(toEndOfDayIso('')).toBeUndefined();
       expect(toEndOfDayIso(null)).toBeUndefined();
-      const end = toEndOfDayIso('2026-09-06');
-      expect(new Date(end).getDate()).toBe(6);
-    });
-  });
-
-  describe('buildFilterParams', () => {
-    it('builds query params omitting "all" and empty values', () => {
-      const params = buildFilterParams({
-        startDate: '2026-09-01',
-        endDate: '2026-09-05',
-        vehicleId: 'veh-123',
-        driverId: 'all',
-      });
-      expect(new Date(params.startDate).getDate()).toBe(1);
-      expect(new Date(params.endDate).getDate()).toBe(5);
-      expect(params.vehicleId).toBe('veh-123');
-      expect(params.driverId).toBeUndefined();
-    });
-  });
-
-  describe('options extractors', () => {
-    it('extractVehicleOptions handles array responses and extracts id + label', () => {
-      const vehicles = [
-        { _id: 'v1', registrationNumber: 'KA01AB1234' },
-        { id: 'v2', vehicleNumber: 'MH02CD5678' },
-        { id: undefined },
-      ];
-      const opts = extractVehicleOptions(vehicles);
-      expect(opts).toEqual([
-        { id: 'v1', label: 'KA01AB1234' },
-        { id: 'v2', label: 'MH02CD5678' },
-      ]);
-    });
-
-    it('extractDriverOptions filters for DRIVER role and formats name', () => {
-      const employees = [
-        { _id: 'd1', firstName: 'Raj', lastName: 'Kumar', role: 'DRIVER' },
-        { _id: 'd2', firstName: 'Amit', role: 'MANAGER' },
-        { _id: 'd3', firstName: 'Vikram', lastName: 'Singh' },
-      ];
-      const opts = extractDriverOptions(employees);
-      expect(opts).toEqual([
-        { id: 'd1', label: 'Raj Kumar' },
-        { id: 'd3', label: 'Vikram Singh' },
-      ]);
+      expect(toEndOfDayIso('2026-09-06')).toBe('2026-09-06T18:29:59.999Z');
     });
   });
 });

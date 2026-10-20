@@ -58,6 +58,7 @@ const BulkUploadFileStep = ({
       <input
         ref={fileInputRef}
         type="file"
+        aria-label="Upload spreadsheet"
         accept=".xlsx,.xls,.csv"
         onChange={onFileChange}
         style={{ display: 'none' }}

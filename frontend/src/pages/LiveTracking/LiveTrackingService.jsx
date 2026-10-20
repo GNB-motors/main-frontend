@@ -1,4 +1,6 @@
 import apiClient from '../../utils/axiosConfig';
+import ApiError from '../../errors/ApiError';
+import { parseSafe } from '../../schemas/validate.js';
 
 /**
  * Service functions for the Live Tracking map.
@@ -13,13 +15,16 @@ export const LiveTrackingService = {
    *   eventDateTime, latitude, longitude, speed, courseDegrees, ignition,
    *   primaryFuelLevel, status, isStale, pulledAt }
    */
-  getPositions: async (params = {}) => {
+  getPositions: async (params = {}, { signal } = {}) => {
     try {
-      const response = await apiClient.get(`/api/livetracking/positions`, { params });
-      return response.data?.data?.records || [];
+      const response = await apiClient.get(`/api/livetracking/positions`, { params, signal });
+      return parseSafe(
+        'livePositionListSchema',
+        () => import('../../schemas/livePosition.schema.js'),
+        response.data?.data?.records || [],
+      );
     } catch (error) {
-      console.error('API Error fetching live positions:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Could not fetch live positions.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -37,8 +42,7 @@ export const LiveTrackingService = {
       );
       return response.data?.data || {};
     } catch (error) {
-      console.error('API Error fetching vehicle trail:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Could not fetch the vehicle trail.' };
+      throw ApiError.from(error);
     }
   },
 
@@ -54,8 +58,7 @@ export const LiveTrackingService = {
       const data = response.data?.data ?? response.data;
       return Array.isArray(data) ? data : [];
     } catch (error) {
-      console.error('API Error fetching intents:', error.response?.data || error.message);
-      throw error.response?.data || { detail: 'Could not fetch destination intents.' };
+      throw ApiError.from(error);
     }
   },
 };

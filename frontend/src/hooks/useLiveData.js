@@ -56,17 +56,25 @@ export function useLiveData(eventType, { initialFetch, applyDiff, enabled = true
   fetchRef.current = initialFetch;
   applyRef.current = applyDiff;
 
+  // The first load, the degraded poll and the reconnect resync can overlap; the
+  // newest read wins and cancels the rest.
+  const abortRef = useRef(null);
   const runFetch = useCallback(async ({ initial = false } = {}) => {
     const fetcher = fetchRef.current;
     if (!fetcher) return;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     if (initial) setStatus('loading');
     try {
-      const rows = await fetcher();
+      const rows = await fetcher(controller.signal);
+      if (controller.signal.aborted) return;
       setData(rows);
       setError(null);
       setLastEventAt(new Date());
       setStatus('ready');
     } catch (err) {
+      if (controller.signal.aborted) return;
       setError(err);
       // A failed refresh must not blank a previously good dataset.
       setStatus((prev) => (prev === 'ready' ? 'ready' : 'error'));
@@ -105,6 +113,7 @@ export function useLiveData(eventType, { initialFetch, applyDiff, enabled = true
 
     return () => {
       cancelled = true;
+      abortRef.current?.abort();
       if (unsubscribe) unsubscribe();
       if (unsubscribeState) unsubscribeState();
     };

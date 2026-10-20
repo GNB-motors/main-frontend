@@ -1,0 +1,278 @@
+/* Shared support-ticket pieces: thread, attachments, composer, purge notice.
+   Used by the org Support Portal and the super-admin ticket page. */
+
+.sp-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sp-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: min(640px, 88%);
+}
+.sp-msg--mine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+.sp-msg--theirs {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.sp-msg-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ds-ink3);
+}
+.sp-msg-author {
+  font-weight: 600;
+  color: var(--ds-ink2);
+}
+
+.sp-msg-body {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--ds-ink);
+}
+.sp-msg--theirs .sp-msg-body {
+  background: #fff;
+  border: 1px solid #dce1e8;
+  border-top-left-radius: 4px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.sp-msg--mine .sp-msg-body {
+  background: var(--orange-tint);
+  border: 1px solid color-mix(in srgb, var(--orange) 18%, transparent);
+  border-top-right-radius: 4px;
+}
+
+.sp-system-line {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--ds-sunk);
+  font-size: 12px;
+  color: var(--ds-ink2);
+  text-align: center;
+}
+
+.sp-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sp-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 240px;
+  padding: 6px 10px 6px 6px;
+  border: 1px solid #dce1e8;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 12px;
+  color: var(--ds-ink);
+  text-decoration: none;
+  transition: border-color 0.15s;
+}
+a.sp-attachment:hover {
+  border-color: var(--orange);
+}
+.sp-attachment-thumb {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--ds-sunk);
+}
+.sp-attachment-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background: var(--ds-sunk);
+  color: var(--ds-ink2);
+}
+.sp-attachment-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.sp-attachment-size {
+  color: var(--ds-ink3);
+}
+
+/* Picker */
+.sp-drop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 18px 12px;
+  border: 1.5px dashed #c7cfdb;
+  border-radius: 10px;
+  background: var(--ds-sunk);
+  font-size: 13px;
+  color: var(--ds-ink2);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.sp-drop:hover,
+.sp-drop--active {
+  border-color: var(--orange);
+  background: var(--orange-tint);
+}
+.sp-drop:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.sp-drop-cta {
+  font-weight: 600;
+  color: var(--orange);
+}
+.sp-picked {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.sp-picked-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 260px;
+  padding: 4px 6px 4px 10px;
+  border: 1px solid #dce1e8;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12px;
+}
+.sp-picked-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sp-picked-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ds-ink3);
+  cursor: pointer;
+}
+.sp-picked-remove:hover {
+  background: var(--ds-sunk);
+  color: var(--ds-ink);
+}
+.sp-field-errors {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--ds-crit-ink);
+}
+
+/* Composer */
+.sp-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #dce1e8;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+.sp-composer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Purge notice */
+.sp-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.sp-notice--scheduled {
+  background: var(--ds-warn-tint);
+  color: var(--ds-warn-ink);
+}
+.sp-notice--purged {
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 16px;
+  border: 1px dashed #c7cfdb;
+  background: var(--ds-sunk);
+  color: var(--ds-ink2);
+  text-align: center;
+}
+.sp-notice-title {
+  font-weight: 600;
+  color: var(--ds-ink);
+}
+
+/* Vehicle picker: EntityPicker ships its search box styles in the ERP sheet,
+   which the support pages don't load, so the icon and input stack otherwise. */
+.sp-vehicle-picker .erp-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.sp-vehicle-picker .erp-search .search-icon {
+  position: absolute;
+  left: 10px;
+  color: var(--ds-ink3);
+  pointer-events: none;
+}
+.sp-vehicle-picker .erp-search input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px 0 34px;
+  border: 1px solid var(--ds-line2);
+  border-radius: var(--ds-radius-sm);
+  background: #fff;
+  font-size: 14px;
+  color: var(--ds-ink);
+}
+.sp-vehicle-picker .erp-search input::placeholder {
+  color: var(--ds-disabled-ink);
+}
+.sp-vehicle-picker .erp-search input:focus {
+  outline: none;
+  border-color: var(--ds-focus);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ds-focus) 25%, transparent);
+}

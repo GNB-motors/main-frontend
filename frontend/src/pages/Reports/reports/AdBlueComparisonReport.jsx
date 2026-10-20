@@ -1,12 +1,34 @@
-import React, { useEffect, useState } from 'react';
-import dayjs from 'dayjs';
-import { AlertTriangle, CheckCircle2, Clock3, Droplets, Gauge, Info, Search } from 'lucide-react';
-import apiClient from '../../../utils/axiosConfig';
+import { useMemo, useState } from 'react';
+import { AlertTriangle, CheckCircle2, Clock3, Droplets, Gauge, Info } from 'lucide-react';
 import useApi from '../../../hooks/useApi';
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
+import DataTable from '../../../components/ui/DataTable';
+import ExportButton from '../../../components/ui/ExportButton';
 import ReportDataNotice from '../../../components/ui/ReportDataNotice';
+import { formatInIST } from '../../../utils/dateUtils';
+import { ReportsService } from '../ReportsService.js';
+import ReportFrame, {
+  ReportClear,
+  ReportDateRange,
+  ReportFooter,
+  ReportSearch,
+} from './ReportFrame';
+import { VehiclePicker } from './ReportEntityPicker';
+import { exportFilterMeta } from './fleetReportUtils';
+import {
+  compactParams,
+  istDayEnd,
+  istDayStart,
+  istDaysAgo,
+  istToday,
+  rangeLabel,
+} from './reportFilters';
+import useReportPage from './useReportPage';
 import './AdBlueComparisonReport.css';
 
 const PAGE_SIZE = 20;
+// The comparison endpoint's largest page.
+const EXPORT_PAGE_SIZE = 100;
 
 const number = (value, digits = 1) =>
   typeof value === 'number'
@@ -18,13 +40,15 @@ const currency = (value) =>
     ? `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
     : '—';
 
+const STATUS = {
+  OK: { icon: CheckCircle2, label: 'OK', className: 'ok' },
+  REVIEW: { icon: AlertTriangle, label: 'Review', className: 'review' },
+  STALE: { icon: Clock3, label: 'Stale feed', className: 'stale' },
+  NO_DATA: { icon: Info, label: 'No data', className: 'no-data' },
+};
+
 const StatusBadge = ({ status, reason }) => {
-  const config = {
-    OK: { icon: CheckCircle2, label: 'OK', className: 'ok' },
-    REVIEW: { icon: AlertTriangle, label: 'Review', className: 'review' },
-    STALE: { icon: Clock3, label: 'Stale feed', className: 'stale' },
-    NO_DATA: { icon: Info, label: 'No data', className: 'no-data' },
-  }[status] || { icon: Info, label: status, className: 'no-data' };
+  const config = STATUS[status] || { icon: Info, label: status, className: 'no-data' };
   const Icon = config.icon;
   return (
     <span className={`adblue-status ${config.className}`} title={reason}>
@@ -33,270 +57,255 @@ const StatusBadge = ({ status, reason }) => {
   );
 };
 
+const COLUMNS = [
+  {
+    key: 'vehicle',
+    label: 'Vehicle',
+    render: (row) => (
+      <>
+        <div className="cell-primary">{row.registrationNumber}</div>
+        <div className="cell-secondary">
+          {row.vehicleType}
+          {row.model !== '-' ? ` · ${row.model}` : ''}
+        </div>
+      </>
+    ),
+  },
+  {
+    key: 'recorded',
+    label: 'Recorded added',
+    render: (row) => (
+      <>
+        <div className="cell-primary">{number(row.recordedLitres)} L</div>
+        <div className="cell-secondary">
+          {row.additionCount} top-up{row.additionCount === 1 ? '' : 's'}
+        </div>
+      </>
+    ),
+  },
+  { key: 'amount', label: 'Amount', render: (row) => currency(row.recordedAmount) },
+  {
+    key: 'consumed',
+    label: 'FleetEdge consumed',
+    render: (row) => (
+      <>
+        <div className="cell-primary">
+          {row.telemetryConsumedLitres == null ? '—' : `${number(row.telemetryConsumedLitres)} L`}
+        </div>
+        <div className="cell-secondary">
+          {row.telemetryHours ? `${row.telemetryHours} h of data` : 'No DEF data'}
+        </div>
+      </>
+    ),
+  },
+  {
+    key: 'variance',
+    label: 'Unreconciled',
+    render: (row) => (
+      <span
+        className={row.varianceLitres != null && row.varianceLitres > 0 ? 'variance-positive' : ''}
+      >
+        {row.varianceLitres == null ? '—' : `${number(row.varianceLitres)} L`}
+      </span>
+    ),
+  },
+  {
+    key: 'def',
+    label: 'Current DEF',
+    render: (row) => (
+      <>
+        <div className="cell-primary">
+          {row.currentDefLevel == null ? '—' : `${number(row.currentDefLevel)}%`}
+        </div>
+        <div className="cell-secondary">
+          {row.currentDefLitres != null ? `${number(row.currentDefLitres)} L · ` : ''}
+          {row.currentDefLevel == null ? 'No level' : row.isFresh ? 'Fresh' : 'Not fresh'}
+        </div>
+      </>
+    ),
+  },
+  {
+    key: 'sync',
+    label: 'Last live sync',
+    render: (row) =>
+      row.lastSyncedAt ? formatInIST(row.lastSyncedAt, 'DD MMM YYYY, hh:mm A') : '—',
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    render: (row) => <StatusBadge status={row.status} reason={row.statusReason} />,
+  },
+];
+
+const EXPORT_COLUMNS = [
+  { key: 'registrationNumber', label: 'Vehicle' },
+  { key: 'vehicleType', label: 'Type' },
+  { key: 'model', label: 'Model' },
+  { key: 'recordedLitres', label: 'Recorded added (L)', type: 'number' },
+  { key: 'additionCount', label: 'Top-ups', type: 'number' },
+  { key: 'recordedAmount', label: 'Amount (₹)', type: 'currency' },
+  { key: 'telemetryConsumedLitres', label: 'FleetEdge consumed (L)', type: 'number' },
+  { key: 'telemetryHours', label: 'Hours of DEF data', type: 'number' },
+  { key: 'varianceLitres', label: 'Unreconciled (L)', type: 'number' },
+  { key: 'currentDefLevel', label: 'Current DEF (%)', type: 'number' },
+  { key: 'currentDefLitres', label: 'Current DEF (L)', type: 'number' },
+  { key: 'lastSyncedAt', label: 'Last live sync', type: 'date' },
+  { key: 'status', label: 'Status' },
+];
+
+const fetchComparison = (params, signal) => ReportsService.getAdBlueComparison(params, { signal });
+
+const defaultRange = () => ({ from: istDaysAgo(30), to: istToday() });
+
 const AdBlueComparisonReport = () => {
-  const [rows, setRows] = useState([]);
-  const [summary, setSummary] = useState({});
-  const [methodology, setMethodology] = useState({});
-  const [meta, setMeta] = useState({ page: 1, total: 0, totalPages: 1 });
-  const [startDate, setStartDate] = useState(dayjs().subtract(30, 'day').format('YYYY-MM-DD'));
-  const [endDate, setEndDate] = useState(dayjs().format('YYYY-MM-DD'));
+  const [range, setRange] = useState(defaultRange);
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [error, setError] = useState('');
+  const debouncedSearch = useDebouncedValue(search.trim(), 300);
+  const [vehicleId, setVehicleId] = useState('all');
 
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [startDate, endDate, debouncedSearch]);
+  const filters = useMemo(
+    () =>
+      compactParams({
+        startDate: istDayStart(range.from),
+        endDate: istDayEnd(range.to),
+        search: debouncedSearch,
+        vehicleId,
+      }),
+    [range, debouncedSearch, vehicleId],
+  );
+  const filterKey = JSON.stringify(filters);
+  const [page, setPage] = useReportPage(filterKey);
 
   const {
-    data: comparisonResponse,
+    data: response,
     loading,
-    error: comparisonError,
+    error,
+    refetch,
   } = useApi(
-    (signal) =>
-      apiClient.get('/api/adblue-logs/comparison', {
-        params: {
-          page,
-          limit: PAGE_SIZE,
-          startDate: dayjs(startDate).startOf('day').toISOString(),
-          endDate: dayjs(endDate).endOf('day').toISOString(),
-          ...(debouncedSearch && { search: debouncedSearch }),
-        },
-        signal,
-      }),
-    [JSON.stringify({ page, startDate, endDate, debouncedSearch })],
+    (signal) => fetchComparison({ ...filters, page, limit: PAGE_SIZE }, signal),
+    [filterKey, page],
   );
 
-  useEffect(() => {
-    if (comparisonResponse) {
-      setError('');
-      setRows(comparisonResponse.data?.data || []);
-      setSummary(comparisonResponse.data?.summary || {});
-      setMeta(comparisonResponse.data?.meta || { page: 1, total: 0, totalPages: 1 });
-      setMethodology(comparisonResponse.data?.methodology || {});
-    }
-  }, [comparisonResponse]);
+  const body = response || {};
+  const rows = body.data || [];
+  const summary = body.summary || {};
+  const meta = body.meta || { page: 1, total: 0, totalPages: 1 };
+  const methodology = body.methodology || {};
 
-  useEffect(() => {
-    if (comparisonError) {
-      setError(
-        comparisonError.response?.data?.message || 'Failed to load AdBlue telemetry comparison',
-      );
-      setRows([]);
-    }
-  }, [comparisonError]);
+  const fetchAll = async () => {
+    const all = [];
+    let next = 1;
+    let totalPages = 1;
+    do {
+      const res = await fetchComparison({ ...filters, page: next, limit: EXPORT_PAGE_SIZE });
+      all.push(...(res?.data || []));
+      totalPages = res?.meta?.totalPages || 1;
+      next += 1;
+    } while (next <= totalPages);
+    return all;
+  };
+
+  const defaults = defaultRange();
+  const activeFilters =
+    (range.from !== defaults.from ? 1 : 0) +
+    (range.to !== defaults.to ? 1 : 0) +
+    (search ? 1 : 0) +
+    (vehicleId !== 'all' ? 1 : 0);
 
   return (
-    <div className="adblue-comparison-report">
-      <div className="adblue-report-header">
-        <div>
-          <h2>AdBlue Telemetry Comparison</h2>
-          <p>
-            Logged AdBlue top-ups compared with FleetEdge DEF consumption and the live tank level.
-          </p>
-        </div>
-        <div className="adblue-report-filters">
-          <label>
-            From
-            <input
-              type="date"
-              value={startDate}
-              max={endDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </label>
-          <label>
-            To
-            <input
-              type="date"
-              value={endDate}
-              min={startDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </label>
-          <div className="adblue-report-search">
-            <Search size={15} />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search vehicle"
-            />
-          </div>
-        </div>
-      </div>
-
-      {comparisonResponse && 'dataAsOf' in meta ? (
-        <div style={{ marginBottom: 12 }}>
+    <ReportFrame
+      title="AdBlue Telemetry Comparison"
+      subtitle="Logged AdBlue top-ups compared with FleetEdge DEF consumption and the live tank level."
+      filters={
+        <>
+          <ReportDateRange from={range.from} to={range.to} onChange={setRange} />
+          <ReportSearch value={search} onChange={setSearch} placeholder="Search vehicle" />
+          <VehiclePicker value={vehicleId} onChange={setVehicleId} />
+          <ReportClear
+            active={activeFilters > 0}
+            onClear={() => {
+              setRange(defaultRange());
+              setSearch('');
+              setVehicleId('all');
+            }}
+          />
+        </>
+      }
+      actions={
+        <ExportButton
+          rows={rows}
+          columns={EXPORT_COLUMNS}
+          filename="adblue-comparison"
+          buttonClass="rpt-btn"
+          fetchAll={fetchAll}
+          meta={{
+            filters: exportFilterMeta({
+              ...range,
+              entityLabel: debouncedSearch ? `“${debouncedSearch}”` : null,
+            }),
+          }}
+          disabled={!rows.length}
+        />
+      }
+      notice={
+        response && 'dataAsOf' in meta ? (
           <ReportDataNotice
             dataAsOf={meta.dataAsOf}
             label="Latest DEF telemetry"
             emptyText="No FleetEdge DEF telemetry for these vehicles in this period."
             staleHint="The FleetEdge feed has not reported since — reconnect the account if this persists."
           />
-        </div>
-      ) : null}
-
-      <div className="adblue-kpi-grid">
-        <div className="adblue-kpi-card">
-          <Droplets size={19} />
-          <div>
-            <span>Recorded additions</span>
-            <strong>{number(summary.totalRecordedLitres)} L</strong>
-          </div>
-        </div>
-        <div className="adblue-kpi-card">
-          <Gauge size={19} />
-          <div>
-            <span>FleetEdge consumed</span>
-            <strong>{number(summary.totalTelemetryConsumedLitres)} L</strong>
-          </div>
-        </div>
-        <div className="adblue-kpi-card">
-          <Droplets size={19} />
-          <div>
-            <span>Average current DEF</span>
-            <strong>{number(summary.averageCurrentDefLevel)}%</strong>
-          </div>
-        </div>
-        <div className="adblue-kpi-card review">
-          <AlertTriangle size={19} />
-          <div>
-            <span>Vehicles to review</span>
-            <strong>{summary.reviewCount ?? 0}</strong>
-          </div>
-        </div>
-      </div>
-
-      <div className="adblue-comparison-table-wrap">
-        <table className="adblue-comparison-table">
-          <thead>
-            <tr>
-              <th>Vehicle</th>
-              <th>Recorded Added</th>
-              <th>Amount</th>
-              <th>FleetEdge Consumed</th>
-              <th>Unreconciled</th>
-              <th>Current DEF</th>
-              <th>Last Live Sync</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={8} className="adblue-report-empty">
-                  Loading telemetry comparison…
-                </td>
-              </tr>
-            ) : error ? (
-              <tr>
-                <td colSpan={8} className="adblue-report-empty error">
-                  {error}
-                </td>
-              </tr>
-            ) : rows.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="adblue-report-empty">
-                  No AdBlue or FleetEdge DEF data for this period.
-                </td>
-              </tr>
-            ) : (
-              rows.map((row) => (
-                <tr key={row.vehicleId}>
-                  <td>
-                    <strong>{row.registrationNumber}</strong>
-                    <span>
-                      {row.vehicleType}
-                      {row.model !== '-' ? ` · ${row.model}` : ''}
-                    </span>
-                  </td>
-                  <td>
-                    <strong>{number(row.recordedLitres)} L</strong>
-                    <span>
-                      {row.additionCount} top-up{row.additionCount === 1 ? '' : 's'}
-                    </span>
-                  </td>
-                  <td>{currency(row.recordedAmount)}</td>
-                  <td>
-                    {row.telemetryConsumedLitres == null
-                      ? '—'
-                      : `${number(row.telemetryConsumedLitres)} L`}
-                    <span>
-                      {row.telemetryHours ? `${row.telemetryHours} h of data` : 'No DEF data'}
-                    </span>
-                  </td>
-                  <td
-                    className={
-                      row.varianceLitres != null && row.varianceLitres > 0
-                        ? 'variance-positive'
-                        : ''
-                    }
-                  >
-                    {row.varianceLitres == null ? '—' : `${number(row.varianceLitres)} L`}
-                  </td>
-                  <td>
-                    <strong>
-                      {row.currentDefLevel == null ? '—' : `${number(row.currentDefLevel)}%`}
-                    </strong>
-                    <span>
-                      {row.currentDefLitres != null ? `${number(row.currentDefLitres)} L · ` : ''}
-                      {row.currentDefLevel == null
-                        ? 'No level'
-                        : row.isFresh
-                          ? 'Fresh'
-                          : 'Not fresh'}
-                    </span>
-                  </td>
-                  <td>
-                    {row.lastSyncedAt
-                      ? dayjs(row.lastSyncedAt).format('DD MMM YYYY, hh:mm A')
-                      : '—'}
-                  </td>
-                  <td>
-                    <StatusBadge status={row.status} reason={row.statusReason} />
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {methodology.warning ? (
-        <p style={{ margin: '10px 2px 0', fontSize: 12, color: '#6b7280' }}>
-          {methodology.warning}
-        </p>
-      ) : null}
-
-      <div className="adblue-report-footer">
-        <span>
-          {meta.total || 0} vehicles · Live feed fresh for {summary.freshLiveVehicleCount || 0}
-          {methodology.freshnessHours ? ` (≤ ${methodology.freshnessHours}h)` : ''}
-        </span>
-        <div>
-          <button type="button" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>
-            Previous
-          </button>
-          <span>
-            Page {meta.page || 1} of {meta.totalPages || 1}
-          </span>
-          <button
-            type="button"
-            disabled={page >= (meta.totalPages || 1)}
-            onClick={() => setPage((value) => value + 1)}
-          >
-            Next
-          </button>
-        </div>
-      </div>
-    </div>
+        ) : null
+      }
+      kpis={[
+        {
+          label: 'Recorded additions',
+          value: `${number(summary.totalRecordedLitres)} L`,
+          icon: Droplets,
+        },
+        {
+          label: 'FleetEdge consumed',
+          value: `${number(summary.totalTelemetryConsumedLitres)} L`,
+          icon: Gauge,
+        },
+        {
+          label: 'Average current DEF',
+          value: `${number(summary.averageCurrentDefLevel)}%`,
+          icon: Droplets,
+        },
+        {
+          label: 'Vehicles to review',
+          value: summary.reviewCount ?? 0,
+          icon: AlertTriangle,
+          tone: 'orange',
+        },
+      ]}
+      footer={
+        <ReportFooter
+          summary={`${rangeLabel(page, PAGE_SIZE, meta.total || 0)} vehicles · Live feed fresh for ${
+            summary.freshLiveVehicleCount || 0
+          }${methodology.freshnessHours ? ` (≤ ${methodology.freshnessHours}h)` : ''}`}
+          page={page}
+          totalPages={meta.totalPages}
+          onPage={setPage}
+        />
+      }
+    >
+      <DataTable
+        columns={COLUMNS}
+        rows={rows}
+        rowKey={(row) => row.vehicleId}
+        loading={loading}
+        error={error}
+        onRetry={refetch}
+        showing={rows.length}
+        total={meta.total}
+        activeFilters={activeFilters}
+        emptyTitle="No AdBlue or FleetEdge DEF data"
+        emptyHint="Try widening the date range or clearing the search."
+      />
+      {methodology.warning ? <p className="adblue-method-note">{methodology.warning}</p> : null}
+    </ReportFrame>
   );
 };
 

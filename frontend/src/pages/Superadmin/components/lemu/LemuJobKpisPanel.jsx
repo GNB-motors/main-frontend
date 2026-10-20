@@ -41,7 +41,7 @@ const LemuJobKpisPanel = () => {
       const res = await LemuService.getJobKpis(hours);
       setData(res.data || null);
     } catch (err) {
-      setError(err?.message || err?.detail || 'Could not load job KPIs.');
+      setError(err?.message || 'Could not load job KPIs.');
     } finally {
       setLoading(false);
     }
@@ -158,7 +158,7 @@ const LemuJobKpisPanel = () => {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={11}>
+                  <td colSpan={11} aria-label="Loading job runs">
                     <div className="lemu-state">
                       <div className="lemu-spinner" />
                     </div>
@@ -167,7 +167,7 @@ const LemuJobKpisPanel = () => {
               )}
               {!loading && jobs.length === 0 && (
                 <tr>
-                  <td colSpan={11}>
+                  <td colSpan={11} aria-label="No job runs in this window">
                     <div className="lemu-state">
                       <div className="lemu-state__icon">
                         <Inbox size={22} />

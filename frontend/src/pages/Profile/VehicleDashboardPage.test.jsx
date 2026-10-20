@@ -3,9 +3,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import VehicleDashboardPage from './VehicleDashboardPage.jsx';
-import { VehicleService } from './VehicleService.jsx';
+import { VehicleService } from './VehicleService.js';
 
-vi.mock('./VehicleService.jsx', () => ({
+vi.mock('./VehicleService.js', () => ({
   VehicleService: {
     getFleetDashboard: vi.fn(),
     getVehicleDocuments: vi.fn(),

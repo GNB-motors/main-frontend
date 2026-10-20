@@ -2,19 +2,11 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import RouteHubService from '../../../services/RouteHubService';
 import Ico from '../routeHubIcons.jsx';
 import { L, useLeafletMap, useLayerGroup, cityLayer } from '../routeHubMap';
-import { KpiRow, RefreshButton, Skel, TableEmpty, TableSkeleton } from '../routeHubShared.jsx';
-import { HEALTH, downloadCsv, inr, inrK } from '../routeHubFormat';
-
-/** Cost-slice colours, in the design's order. */
-const SLICE = {
-  diesel: { label: 'Diesel', color: '#2F58EE' },
-  tolls: { label: 'Fastag tolls', color: '#6A43D8' },
-  driver: { label: 'Driver allowance', color: '#C56200' },
-  adblue: { label: 'AdBlue', color: '#1C9AA8' },
-  wear: { label: 'Wear & tyres', color: '#9A9AA5' },
-};
-/** The bars and the margin meter are drawn against a fixed 35% ceiling. */
-const SCALE_PCT = 35;
+import { KpiRow, RefreshButton, Skel } from '../routeHubShared.jsx';
+import { HEALTH, downloadCsv, inrK } from '../routeHubFormat';
+import MarginEquation from './profitability/MarginEquation.jsx';
+import ProfitabilityTable from './profitability/ProfitabilityTable.jsx';
+import RouteCostCard from './profitability/RouteCostCard.jsx';
 
 export default function ProfitabilityView({ params, toast, go }) {
   const [data, setData] = useState(null);
@@ -29,7 +21,7 @@ export default function ProfitabilityView({ params, toast, go }) {
     try {
       setData(await RouteHubService.getRouteProfitability({ days: 30 }));
     } catch (e) {
-      setError(e?.detail || e?.message || 'Could not load profitability.');
+      setError(e?.message || 'Could not load profitability.');
     } finally {
       setLoading(false);
     }
@@ -183,161 +175,16 @@ export default function ProfitabilityView({ params, toast, go }) {
 
       <KpiRow items={kpis} loading={first} />
 
-      <div className="card">
-        <div className="card-head">
-          <span style={{ color: 'var(--nova-rage-600)', display: 'flex' }}>
-            <Ico n="layers" />
-          </span>
-          <h3>How margin is calculated</h3>
-          <span className="hint">Last 30 days · all routes</span>
-        </div>
-        <div className="equation">
-          <div className="eqbox" style={{ '--c': 'var(--nova-rage-600)' }}>
-            <div className="h">
-              <Ico n="ledger" s={16} />
-              Commercial revenue (ERP)
-            </div>
-            <div className="v">
-              {first ? (
-                <Skel w={96} h={24} />
-              ) : totals.revenueInr != null ? (
-                inrK(totals.revenueInr)
-              ) : (
-                '—'
-              )}
-            </div>
-            <div className="d">
-              Contracted freight rates, billed invoices, detention charges and loading manifests.
-            </div>
-          </div>
-          <span className="op">−</span>
-          <div className="eqbox" style={{ '--c': '#C56200' }}>
-            <div className="h">
-              <Ico n="fuel" s={16} />
-              Telematics &amp; direct cost
-            </div>
-            <div className="v">
-              {first ? <Skel w={96} h={24} /> : totals.costInr != null ? inrK(totals.costInr) : '—'}
-            </div>
-            <div className="d">
-              GPS odometer km, diesel refuels, AdBlue top-ups, Fastag toll debits and trip
-              allowances.
-            </div>
-          </div>
-          <span className="op">=</span>
-          <div className="eqbox res" style={{ '--c': '#187A32' }}>
-            <div className="h">
-              <Ico n="trend" s={16} />
-              Net margin per route
-            </div>
-            <div className="v" style={{ color: '#187A32' }}>
-              {first ? <Skel w={120} h={24} /> : null}
-              {first ? null : totals.marginInr != null ? inrK(totals.marginInr) : '—'}
-              {totals.marginPct != null ? (
-                <span style={{ fontSize: 'var(--type-s)' }}>
-                  {' '}
-                  · {Number(totals.marginPct).toFixed(1)}%
-                </span>
-              ) : null}
-            </div>
-            <div className="d">
-              Routes ranked by earnings, with unbilled km, diesel siphoning and rate undercutting
-              flagged.
-            </div>
-          </div>
-        </div>
-      </div>
+      <MarginEquation first={first} totals={totals} />
 
-      <div className="card">
-        <div className="card-head">
-          <span style={{ color: 'var(--nova-rage-600)', display: 'flex' }}>
-            <Ico n="split" />
-          </span>
-          <h3>Route profitability benchmark</h3>
-          <span className="hint">Per trip averages · select a route for its cost breakdown</span>
-        </div>
-        <div className="tblwrap">
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Route</th>
-                <th className="num">Distance</th>
-                <th className="num">Trips</th>
-                <th className="num">Avg invoiced rev</th>
-                <th className="num">Avg running cost</th>
-                <th className="num">Est. margin</th>
-                <th>Margin %</th>
-                <th>Health</th>
-              </tr>
-            </thead>
-            {routes.length ? (
-              <tbody>
-                {routes.map((r, i) => (
-                  <tr
-                    key={r.routeId}
-                    className={`click ${selected && r.routeId === selected.routeId ? 'sel' : ''}`}
-                    onClick={() => setSelId(r.routeId)}
-                  >
-                    <td>
-                      <span className="plate">#{i + 1}</span>
-                    </td>
-                    <td className="strong">
-                      {r.originCity || '—'} <span style={{ color: 'var(--fg-tertiary)' }}>→</span>{' '}
-                      {r.destCity || '—'}
-                    </td>
-                    <td className="num mono">{r.distanceKm ?? '—'} km</td>
-                    <td className="num mono">{r.tripCount ?? 0}</td>
-                    <td className="num mono strong">{inr(r.avgRevenueInr || 0)}</td>
-                    <td className="num mono">{inr(r.avgCostInr || 0)}</td>
-                    <td
-                      className="num mono strong"
-                      style={{ color: (r.avgMarginInr || 0) >= 0 ? '#187A32' : '#C2323A' }}
-                    >
-                      {(r.avgMarginInr || 0) >= 0 ? '+' : ''}
-                      {inr(r.avgMarginInr || 0)}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span className="mono strong" style={{ color: r.health.c, width: 42 }}>
-                          {Number(r.marginPct ?? 0).toFixed(1)}%
-                        </span>
-                        <span className="mbar" style={{ '--c': r.health.c }}>
-                          <span
-                            className="f"
-                            style={{
-                              width: `${Math.max(0, Math.min(100, ((r.marginPct ?? 0) / SCALE_PCT) * 100))}%`,
-                            }}
-                          />
-                          <span
-                            className="tick"
-                            style={{ left: `${(target / SCALE_PCT) * 100}%` }}
-                          />
-                        </span>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="pill" style={{ '--c': r.health.c, '--tint': r.health.tint }}>
-                        {r.health.l}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            ) : first ? (
-              <TableSkeleton cols={9} />
-            ) : (
-              <TableEmpty
-                colSpan={9}
-                title={error ? 'Profitability unavailable' : 'No billed routes yet'}
-                sub={error || 'No ERP trips with billing in the last 30 days.'}
-                tone={error ? '#C56200' : '#187A32'}
-                icon={error ? 'alert' : 'check'}
-              />
-            )}
-          </table>
-        </div>
-      </div>
+      <ProfitabilityTable
+        routes={routes}
+        selected={selected}
+        setSelId={setSelId}
+        target={target}
+        first={first}
+        error={error}
+      />
 
       <div className="bento">
         <div className="card s7" style={{ minHeight: 420 }}>
@@ -367,135 +214,14 @@ export default function ProfitabilityView({ params, toast, go }) {
           </div>
         </div>
 
-        <div className="card s5">
-          {selected ? (
-            <>
-              <div className="card-head">
-                <h3>Cost per trip</h3>
-                <span className="sp" />
-                <span className="mono strong">{inr(selected.avgCostInr || 0)}</span>
-              </div>
-              <div className="stackbar">
-                {slices.map((s) => (
-                  <span
-                    key={s.key}
-                    title={SLICE[s.key]?.label || s.key}
-                    style={{
-                      width: `${((s.amountInr || 0) / costTotal) * 100}%`,
-                      background: SLICE[s.key]?.color || '#9A9AA5',
-                    }}
-                  />
-                ))}
-              </div>
-              <div className="costlist">
-                {slices.map((s) => (
-                  <div className="r" key={s.key}>
-                    <i style={{ background: SLICE[s.key]?.color || '#9A9AA5' }} />
-                    <span>
-                      {SLICE[s.key]?.label || s.key}
-                      {s.assumed ? (
-                        <span
-                          className="hint"
-                          style={{ marginLeft: 6, fontSize: 10 }}
-                          title="Not measured — derived from a configured per-trip assumption"
-                        >
-                          assumed
-                        </span>
-                      ) : null}
-                    </span>
-                    <span className="sp" />
-                    <b>{inr(s.amountInr || 0)}</b>
-                    <span className="pc">
-                      {(((s.amountInr || 0) / costTotal) * 100).toFixed(0)}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div className="perkm">
-                <div>
-                  <div className="k">Revenue / km</div>
-                  <div className="v">₹{Math.round(selected.revenuePerKm ?? 0)}</div>
-                </div>
-                <div>
-                  <div className="k">Cost / km</div>
-                  <div className="v">₹{Math.round(selected.costPerKm ?? 0)}</div>
-                </div>
-                <div>
-                  <div className="k">Margin / km</div>
-                  <div className="v" style={{ color: selected.health.c }}>
-                    ₹{Math.round((selected.revenuePerKm ?? 0) - (selected.costPerKm ?? 0))}
-                  </div>
-                </div>
-              </div>
-              <div
-                style={{
-                  padding: '14px 16px',
-                  fontSize: 'var(--type-2xs)',
-                  color: 'var(--fg-secondary)',
-                  lineHeight: '19px',
-                }}
-              >
-                {(selected.marginPct ?? 0) >= target ? (
-                  <>
-                    Beating the {target}% target by{' '}
-                    <b style={{ color: 'var(--fg-primary)' }}>
-                      {((selected.marginPct ?? 0) - target).toFixed(1)} pts
-                    </b>
-                    . Running cost could rise to{' '}
-                    {inr((selected.avgRevenueInr || 0) * (1 - target / 100))} per trip before it
-                    misses target.
-                  </>
-                ) : (
-                  <>
-                    To reach {target}%, cut running cost by{' '}
-                    <b style={{ color: '#C2323A' }}>
-                      {inr(
-                        (selected.avgCostInr || 0) -
-                          (selected.avgRevenueInr || 0) * (1 - target / 100),
-                      )}
-                    </b>{' '}
-                    per trip or raise the rate to{' '}
-                    <b style={{ color: 'var(--fg-primary)' }}>
-                      {inr((selected.avgCostInr || 0) / (1 - target / 100))}
-                    </b>
-                    .
-                  </>
-                )}
-              </div>
-              {data?.disclaimer ? (
-                <div
-                  style={{
-                    padding: '0 16px 14px',
-                    fontSize: 11,
-                    color: 'var(--fg-tertiary)',
-                    lineHeight: '17px',
-                  }}
-                >
-                  {data.disclaimer}
-                </div>
-              ) : null}
-            </>
-          ) : first ? (
-            <div aria-busy="true">
-              <div className="card-head">
-                <Skel w={120} h={16} />
-                <span className="sp" />
-                <Skel w={70} h={14} />
-              </div>
-              <div style={{ display: 'grid', gap: 12, padding: '4px 16px 18px' }}>
-                <Skel h={10} r={999} />
-                {['72%', '58%', '66%', '44%', '52%'].map((w) => (
-                  <Skel key={w} w={w} h={12} />
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="empty">
-              <b>No route selected</b>
-              <span>Pick a route from the benchmark table.</span>
-            </div>
-          )}
-        </div>
+        <RouteCostCard
+          selected={selected}
+          slices={slices}
+          costTotal={costTotal}
+          target={target}
+          data={data}
+          first={first}
+        />
       </div>
     </section>
   );

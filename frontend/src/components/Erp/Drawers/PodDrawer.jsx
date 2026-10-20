@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { Upload, CheckCircle2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ErpDrawer from '../ErpDrawer';
@@ -15,12 +15,8 @@ const EMPTY_FORM = {
   remarks: '',
 };
 
-const PodDrawer = ({ 
-  isOpen, 
-  onClose, 
-  trip = null, 
-  onSuccess 
-}) => {
+const PodDrawer = ({ isOpen, onClose, trip = null, onSuccess }) => {
+  const uid = useId();
   const [form, setForm] = useState(EMPTY_FORM);
   const [file, setFile] = useState(null);
   const [documentId, setDocumentId] = useState('');
@@ -85,12 +81,7 @@ const PodDrawer = ({
       <button type="button" className="btn btn-secondary" onClick={onClose}>
         Cancel
       </button>
-      <button
-        type="submit"
-        form="pod-form"
-        className="btn btn-primary"
-        disabled={busy}
-      >
+      <button type="submit" form="pod-form" className="btn btn-primary" disabled={busy}>
         {busy ? 'Recording…' : 'Record POD'}
       </button>
     </>
@@ -107,8 +98,12 @@ const PodDrawer = ({
       <form id="pod-form" onSubmit={handleRecord}>
         <div className="erp-form-grid">
           <div className="erp-field">
-            <label>Received date <span className="required">*</span></label>
+            <label htmlFor={`${uid}-received-date`}>
+              Received date <span className="required">*</span>
+            </label>
             <input
+              id={`${uid}-received-date`}
+              aria-label="Received date"
               type="date"
               required
               max={todayInput()}
@@ -118,8 +113,11 @@ const PodDrawer = ({
           </div>
 
           <div className="erp-field">
-            <label>Copy type <span className="required">*</span></label>
+            <label htmlFor={`${uid}-copy-type`}>
+              Copy type <span className="required">*</span>
+            </label>
             <select
+              id={`${uid}-copy-type`}
               value={form.copyType}
               onChange={(e) => setForm({ ...form, copyType: e.target.value })}
             >
@@ -129,8 +127,11 @@ const PodDrawer = ({
           </div>
 
           <div className="erp-field">
-            <label>Received via <span className="required">*</span></label>
+            <label htmlFor={`${uid}-received-via`}>
+              Received via <span className="required">*</span>
+            </label>
             <select
+              id={`${uid}-received-via`}
               value={form.receivedVia}
               onChange={(e) => setForm({ ...form, receivedVia: e.target.value })}
             >
@@ -144,15 +145,19 @@ const PodDrawer = ({
           {form.receivedVia === 'COURIER' && (
             <>
               <div className="erp-field">
-                <label>Courier name</label>
+                <label htmlFor={`${uid}-courier-name`}>Courier name</label>
                 <input
+                  id={`${uid}-courier-name`}
+                  aria-label="Courier name"
                   value={form.courierName}
                   onChange={(e) => setForm({ ...form, courierName: e.target.value })}
                 />
               </div>
               <div className="erp-field">
-                <label>Docket number</label>
+                <label htmlFor={`${uid}-docket-number`}>Docket number</label>
                 <input
+                  id={`${uid}-docket-number`}
+                  aria-label="Docket number"
                   value={form.courierDocket}
                   onChange={(e) => setForm({ ...form, courierDocket: e.target.value })}
                 />
@@ -161,8 +166,10 @@ const PodDrawer = ({
           )}
 
           <div className="erp-field full">
-            <label>Remarks</label>
+            <label htmlFor={`${uid}-remarks`}>Remarks</label>
             <textarea
+              id={`${uid}-remarks`}
+              aria-label="Remarks"
               value={form.remarks}
               onChange={(e) => setForm({ ...form, remarks: e.target.value })}
               placeholder="E.g., Missing one stamp..."
@@ -170,7 +177,10 @@ const PodDrawer = ({
           </div>
         </div>
 
-        <div className="erp-callout" style={{ marginTop: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+        <div
+          className="erp-callout"
+          style={{ marginTop: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start' }}
+        >
           <Upload size={20} style={{ marginTop: 4 }} />
           <div>
             <strong>Challan Upload</strong>
@@ -179,6 +189,7 @@ const PodDrawer = ({
             </p>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <input
+                aria-label="Challan scan"
                 type="file"
                 accept="image/*,application/pdf"
                 onChange={(e) => {
@@ -196,7 +207,10 @@ const PodDrawer = ({
                 {uploading ? 'Uploading…' : 'Upload scan'}
               </button>
               {documentId && (
-                <span className="erp-badge success" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span
+                  className="erp-badge success"
+                  style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                >
                   <CheckCircle2 size={14} /> Uploaded
                 </span>
               )}

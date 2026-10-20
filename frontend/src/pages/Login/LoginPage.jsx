@@ -5,10 +5,9 @@ import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import GNBLogo from '../../assets/animations/logo.png';
 import LottieLoader from '../../components/LottieLoader.jsx';
 import './LoginPage.css';
-import { LoginPageService } from './LoginPageService.jsx';
+import { LoginPageService } from './LoginPageService.js';
 import { resolveLandingRoute } from '../../utils/featureFlagRoutes.js';
-import apiClient from '../../utils/axiosConfig.js';
-import { setSession, setOrgId } from '../../utils/session.js';
+import { setSession, setOrgId, getOrgId, clearSession } from '../../utils/session.js';
 
 // --- Carousel Data ---
 const slideData = [
@@ -111,15 +110,18 @@ const LoginPage = () => {
         const isOnboarded = organization?.isOnboarded === true;
 
         if (user.role === 'FIELD_AGENT') {
-          try {
-            const orgsRes = await apiClient.get('/api/me/orgs');
-            const orgs = orgsRes.data?.data || [];
-            if (orgs.length > 0) {
-              setOrgId(orgs[0].orgId);
-            }
-          } catch (err) {
-            console.error('Failed to fetch orgs for field agent', err);
+          const { orgId, failed } = await LoginPageService.resolveFieldAgentOrgId(getOrgId());
+          if (!orgId) {
+            // Without an org every page would fail; don't leave a half-signed-in session.
+            clearSession();
+            toast.error(
+              failed
+                ? 'Could not load your organisation. Check your connection and sign in again.'
+                : 'This account is not linked to an organisation yet. Ask your admin to add you.',
+            );
+            return;
           }
+          setOrgId(orgId);
           toast.success('Welcome Field Agent! Redirecting to dashboard...');
           setTimeout(() => {
             navigate('/field-agent-fuel');
@@ -142,7 +144,6 @@ const LoginPage = () => {
       const errorMessage =
         loginApiError?.userMessage ||
         loginApiError?.response?.data?.message ||
-        loginApiError?.detail ||
         loginApiError?.message ||
         'Login failed. Please check your credentials.';
       const isRateLimit = errorMessage?.toLowerCase().includes('too many');
@@ -205,6 +206,7 @@ const LoginPage = () => {
               <div className="form-group">
                 <label htmlFor="emailOrMobile">Email or Mobile Number</label>
                 <input
+                  aria-label="Email or Mobile Number"
                   type="text"
                   id="emailOrMobile"
                   className="form-input"
@@ -218,6 +220,7 @@ const LoginPage = () => {
                 <label htmlFor="password">Password</label>
                 <div className="password-input-container">
                   <input
+                    aria-label="Password"
                     type={showPassword ? 'text' : 'password'}
                     id="password"
                     className="form-input"
@@ -238,7 +241,7 @@ const LoginPage = () => {
               </div>
 
               <div className="form-options">
-                <Link to="#" className="forgot-password">
+                <Link to="/forgot-password" className="forgot-password">
                   Forgot Password?
                 </Link>
               </div>
@@ -249,7 +252,7 @@ const LoginPage = () => {
             </form>
 
             <div className="signup-link">
-              <span>Don't have an account? </span>
+              <span>Don&apos;t have an account? </span>
               <Link to="/contact">Contact Us</Link>
             </div>
           </div>

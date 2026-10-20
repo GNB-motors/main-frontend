@@ -1,41 +1,13 @@
-/* eslint-disable react-refresh/only-export-components -- companion exports alongside the component */
-import React, { useState, useEffect, useMemo, forwardRef } from 'react';
+import React, { useState, useEffect, useMemo, useId, forwardRef } from 'react';
 import { Wrench, Smartphone, Lock } from 'lucide-react';
 import SearchableDropdown from '../../../components/SearchableDropdown/SearchableDropdown.jsx';
 import '../../Drivers/Component/BasicInformationForm.css';
-
-export const DEFAULT_SERVICE_TYPES = [
-  'Periodic / Scheduled Service',
-  'Engine Oil Change',
-  'Brake Service',
-  'Clutch Service',
-  'Suspension / Steering',
-  'Cooling System (Coolant / Radiator)',
-  'Air Filter / Fuel Filter',
-  'Tyre Rotation / Alignment',
-  'Full Body / Detailing',
-  'Others / Miscellaneous',
-];
-
-export const DEFAULT_REPAIR_TYPES = [
-  'Engine Repair',
-  'Transmission / Gearbox',
-  'Brake System',
-  'Clutch Replacement',
-  'Suspension',
-  'Electrical / Wiring',
-  'Cooling / Radiator',
-  'Body / Dent / Paint',
-  'Tyre / Puncture',
-  'Air Conditioning',
-  'Others / Miscellaneous',
-];
-
-const mergeUnique = (defaults, fromServer) => {
-  const set = new Set(defaults);
-  (fromServer || []).forEach((v) => v && set.add(v));
-  return Array.from(set);
-};
+import {
+  DEFAULT_SERVICE_TYPES,
+  DEFAULT_REPAIR_TYPES,
+  mergeUnique,
+} from './maintenanceTypeOptions.js';
+import toDriverOption from './toDriverOption.js';
 
 const MaintenanceBasicInformationForm = forwardRef(
   (
@@ -66,6 +38,7 @@ const MaintenanceBasicInformationForm = forwardRef(
     });
 
     const [customType, setCustomType] = useState('');
+    const fieldId = useId();
 
     useEffect(() => {
       if (initialData && Object.keys(initialData).length > 0) {
@@ -118,36 +91,7 @@ const MaintenanceBasicInformationForm = forwardRef(
       vehicleOptions.find((v) => v._id === formData.vehicleId)?.name || '';
 
     // Driver options with robust name and phone number resolution from employee records
-    const driverOptions = useMemo(
-      () =>
-        drivers.map((d) => {
-          const id = d._id || d.id;
-          const firstName = (d.firstName || d.first_name || '').trim();
-          const lastName = (d.lastName || d.last_name || '').trim();
-          const combined = [firstName, lastName].filter(Boolean).join(' ');
-
-          const displayName =
-            (d.name && d.name.trim() !== '' && d.name.trim().toLowerCase() !== 'driver'
-              ? d.name.trim()
-              : '') ||
-            combined ||
-            (d.fullName && d.fullName.trim() !== '' ? d.fullName.trim() : '') ||
-            (d.employeeId ? `Employee ${d.employeeId}` : '') ||
-            (d.name ? d.name.trim() : '') ||
-            'Driver';
-
-          const phone = d.mobileNumber || d.mobile_number || d.mobile || d.phone || '';
-          const roleTag = d.role && d.role !== 'DRIVER' ? ` · ${d.role}` : '';
-          const label = `${displayName}${phone ? ` (${phone})` : ''}${roleTag}`;
-
-          return {
-            _id: id,
-            name: label,
-            rawName: displayName,
-          };
-        }),
-      [drivers],
-    );
+    const driverOptions = useMemo(() => drivers.map(toDriverOption), [drivers]);
 
     const selectedDriverOption = driverOptions.find((d) => d._id === formData.driverId);
     const selectedDriverLabel =
@@ -207,7 +151,7 @@ const MaintenanceBasicInformationForm = forwardRef(
               {/* Row 1: Vehicle & Driver */}
               <div className="basic-info-form-row">
                 <div className="basic-info-form-field">
-                  <label className="basic-info-label">Vehicle *</label>
+                  <span className="basic-info-label">Vehicle *</span>
                   <SearchableDropdown
                     options={vehicleOptions}
                     selectedOption={selectedVehicleLabel}
@@ -219,7 +163,7 @@ const MaintenanceBasicInformationForm = forwardRef(
                 <div className="basic-info-form-field">
                   {isDriverAppSource ? (
                     <>
-                      <label className="basic-info-label">Driver (Reported via Driver App)</label>
+                      <span className="basic-info-label">Driver (Reported via Driver App)</span>
                       <div
                         style={{
                           display: 'flex',
@@ -256,7 +200,7 @@ const MaintenanceBasicInformationForm = forwardRef(
                     </>
                   ) : (
                     <>
-                      <label className="basic-info-label">Driver (Assigned / Reported by)</label>
+                      <span className="basic-info-label">Driver (Assigned / Reported by)</span>
                       <SearchableDropdown
                         options={driverOptions}
                         selectedOption={selectedDriverLabel}
@@ -273,10 +217,12 @@ const MaintenanceBasicInformationForm = forwardRef(
               {/* Row 2: Date & Workshop */}
               <div className="basic-info-form-row">
                 <div className="basic-info-form-field">
-                  <label className="basic-info-label">
+                  <label className="basic-info-label" htmlFor={`${fieldId}-date`}>
                     {isService ? 'Service Date *' : 'Repair Date *'}
                   </label>
                   <input
+                    id={`${fieldId}-date`}
+                    aria-label={isService ? 'Service date' : 'Repair date'}
                     type="date"
                     className="basic-info-input"
                     value={formData.date}
@@ -309,8 +255,12 @@ const MaintenanceBasicInformationForm = forwardRef(
               {/* Row 3: Current KM & Amount (mouse wheel disabled) */}
               <div className="basic-info-form-row">
                 <div className="basic-info-form-field">
-                  <label className="basic-info-label">Current KM</label>
+                  <label className="basic-info-label" htmlFor={`${fieldId}-km`}>
+                    Current KM
+                  </label>
                   <input
+                    id={`${fieldId}-km`}
+                    aria-label="Current KM"
                     type="number"
                     min="0"
                     className="basic-info-input"
@@ -322,8 +272,12 @@ const MaintenanceBasicInformationForm = forwardRef(
                   />
                 </div>
                 <div className="basic-info-form-field">
-                  <label className="basic-info-label">Amount (₹) *</label>
+                  <label className="basic-info-label" htmlFor={`${fieldId}-amount`}>
+                    Amount (₹) *
+                  </label>
                   <input
+                    id={`${fieldId}-amount`}
+                    aria-label="Amount (₹)"
                     type="number"
                     min="0"
                     step="0.01"
@@ -361,10 +315,12 @@ const MaintenanceBasicInformationForm = forwardRef(
 
                 {formData.type === 'Others / Miscellaneous' && (
                   <div className="basic-info-form-field">
-                    <label className="basic-info-label">
+                    <label className="basic-info-label" htmlFor={`${fieldId}-custom-type`}>
                       Specify {isService ? 'Service' : 'Repair'} Type *
                     </label>
                     <input
+                      id={`${fieldId}-custom-type`}
+                      aria-label={isService ? 'Specify service type' : 'Specify repair type'}
                       type="text"
                       className="basic-info-input"
                       value={customType}
@@ -384,10 +340,12 @@ const MaintenanceBasicInformationForm = forwardRef(
               {/* Row 5: Notes / Issue Description */}
               <div className="basic-info-form-row">
                 <div className="basic-info-form-field" style={{ gridColumn: '1 / -1' }}>
-                  <label className="basic-info-label">
+                  <label className="basic-info-label" htmlFor={`${fieldId}-notes`}>
                     {isService ? 'Notes' : 'Issue Description'}
                   </label>
                   <textarea
+                    id={`${fieldId}-notes`}
+                    aria-label={isService ? 'Notes' : 'Issue description'}
                     className="basic-info-input"
                     rows={3}
                     value={formData.notes}

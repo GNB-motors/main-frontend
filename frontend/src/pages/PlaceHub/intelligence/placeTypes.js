@@ -18,7 +18,7 @@ import {
  * cards, the legend and the answer chips, so a pump looks like a pump
  * everywhere. The colours avoid the status tones: green/amber/red stay
  * reserved for confirmed / needs an answer / risk. Labels live in
- * placeIntelligenceModel so they stay testable without React.
+ * model/siteVocabulary.js so they stay testable without React.
  */
 const TYPE_STYLE = {
   FUEL_PUMP: { Icon: Fuel, color: '#d97706' },

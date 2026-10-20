@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { money, compactInr, drCr } from '../../utils/formatMoney';
+import { money, drCr } from '../../utils/formatMoney';
+import { formatInrCompact } from '../../utils/formatters';
 
 /**
  * MoneyCell — every money figure inside a table.
@@ -30,16 +31,26 @@ const MoneyCell = ({
     text = b.text;
     if (!toneClass && b.tone === 'credit') toneClass = 'credit';
   } else {
-    text = value === null || value === undefined || value === '' ? '—' : (compact ? compactInr(value) : money(value));
+    text =
+      value === null || value === undefined || value === ''
+        ? '—'
+        : compact
+          ? formatInrCompact(value)
+          : money(value);
   }
 
   const style = {
     fontWeight: bold ? 600 : undefined,
-    color: toneClass === 'danger' ? '#b91c1c'
-      : toneClass === 'warning' ? '#b45309'
-        : toneClass === 'success' ? '#15803d'
-          : toneClass === 'muted' ? '#64748b'
-            : undefined,
+    color:
+      toneClass === 'danger'
+        ? '#b91c1c'
+        : toneClass === 'warning'
+          ? '#b45309'
+          : toneClass === 'success'
+            ? '#15803d'
+            : toneClass === 'muted'
+              ? '#64748b'
+              : undefined,
   };
 
   const content = (
@@ -55,7 +66,9 @@ const MoneyCell = ({
         <Link to={to} className="erp-money-link">
           {content}
         </Link>
-      ) : content}
+      ) : (
+        content
+      )}
     </span>
   );
 };

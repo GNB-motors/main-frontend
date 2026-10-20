@@ -1,0 +1,99 @@
+/* FleetEdge relink surfaces: header icon, table / Vehicle 360 / Settings chips.
+   Colours come from the --ds-* status palette (index.css). */
+
+/* Header icon — shares .navbar-bell's box, only the tone changes. */
+.navbar-bell.fleet-link-btn--crit {
+  color: var(--ds-crit-ink);
+  background: var(--ds-crit-tint);
+  border-color: color-mix(in srgb, var(--ds-crit) 45%, transparent);
+  animation: fleet-link-pulse 1.6s ease-out 2;
+}
+.navbar-bell.fleet-link-btn--crit:hover {
+  background: color-mix(in srgb, var(--ds-crit) 18%, white);
+  color: var(--ds-crit-ink);
+  border-color: var(--ds-crit);
+}
+.navbar-bell.fleet-link-btn--warn {
+  color: var(--ds-warn-ink);
+  background: var(--ds-warn-tint);
+  border-color: color-mix(in srgb, var(--ds-warn) 45%, transparent);
+}
+.navbar-bell.fleet-link-btn--warn:hover {
+  background: color-mix(in srgb, var(--ds-warn) 18%, white);
+  color: var(--ds-warn-ink);
+  border-color: var(--ds-warn);
+}
+.fleet-link-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px #fff;
+}
+.fleet-link-dot--warn {
+  background: var(--ds-warn);
+}
+.fleet-link-dot--ok {
+  background: var(--ds-ok);
+}
+
+@keyframes fleet-link-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ds-crit) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .navbar-bell.fleet-link-btn--crit {
+    animation: none;
+  }
+}
+
+/* Status chip with a Reconnect action — vehicles table and Vehicle 360. */
+.fleet-link-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.fleet-link-chip--crit {
+  color: var(--ds-crit-ink);
+  background: var(--ds-crit-tint);
+  border-color: color-mix(in srgb, var(--ds-crit) 40%, transparent);
+}
+.fleet-link-chip--warn {
+  color: var(--ds-warn-ink);
+  background: var(--ds-warn-tint);
+  border-color: color-mix(in srgb, var(--ds-warn) 40%, transparent);
+}
+.fleet-link-chip:hover {
+  filter: brightness(0.96);
+  text-decoration: underline;
+}
+.fleet-link-chip--ok {
+  color: var(--ds-ok-ink);
+  background: var(--ds-ok-tint);
+  border-color: color-mix(in srgb, var(--ds-ok) 40%, transparent);
+}
+.fleet-link-chip--info {
+  color: var(--ds-neutral-ink);
+  background: var(--ds-neutral-tint);
+  border-color: var(--ds-line);
+}
+span.fleet-link-chip {
+  cursor: default;
+}
+span.fleet-link-chip:hover {
+  filter: none;
+  text-decoration: none;
+}

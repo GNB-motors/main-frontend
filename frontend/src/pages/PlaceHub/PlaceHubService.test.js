@@ -41,4 +41,26 @@ describe('PlaceHubService.loadSites', () => {
     expect(res.rows.find((s) => s._id === 'l').lowEvidence).toBe(true);
     expect(res).toMatchObject({ proposedTotal: 178, lowEvidenceTotal: 537 });
   });
+
+  it('asks for slim list rows and leaves places said not to exist to their chip', async () => {
+    PlaceIntelligenceService.listSites.mockClear();
+    PlaceIntelligenceService.listSites.mockResolvedValue({ records: [], total: 0 });
+    PlaceIntelligenceService.reviewQueue.mockResolvedValue({ items: [] });
+
+    await PlaceHubService.loadSites();
+    const asked = PlaceIntelligenceService.listSites.mock.calls.map(([params]) => params);
+    expect(asked.every((p) => p.fields === 'list')).toBe(true);
+    expect(asked.some((p) => p.status === 'REJECTED')).toBe(false);
+
+    PlaceIntelligenceService.listSites.mockResolvedValueOnce({
+      records: [site('r', 'REJECTED')],
+      total: 1,
+    });
+    const rejected = await PlaceHubService.loadRejectedSites();
+    expect(rejected.rows.map((s) => s._id)).toEqual(['r']);
+    expect(PlaceIntelligenceService.listSites).toHaveBeenLastCalledWith(
+      { status: 'REJECTED', limit: 200, page: 1, fields: 'list' },
+      { signal: undefined },
+    );
+  });
 });

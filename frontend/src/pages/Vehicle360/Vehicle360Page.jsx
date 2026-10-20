@@ -2,15 +2,13 @@ import { useParams, useSearchParams, Link } from 'react-router-dom';
 import useApi from '../../hooks/useApi';
 import FleetDataService from '../../services/FleetDataService';
 import { Breadcrumbs, IdentityStrip, HeroRow, Tabs } from './vehicle360Header';
-import { OverviewPanel } from './vehicle360PanelsA';
-import {
-  ServicePanel,
-  FuelPanel,
-  DocumentsPanel,
-  TelemetryPanel,
-  TripsPanel,
-  DriversPanel,
-} from './vehicle360PanelsB';
+import OverviewPanel from './panels/OverviewPanel';
+import ServicePanel from './panels/ServicePanel';
+import FuelPanel from './panels/FuelPanel';
+import DocumentsPanel from './panels/DocumentsPanel';
+import TelemetryPanel from './panels/TelemetryPanel';
+import TripsPanel from './panels/TripsPanel';
+import DriversPanel from './panels/DriversPanel';
 import './vehicle360.css';
 
 /**
@@ -68,7 +66,7 @@ export default function Vehicle360Page() {
     setSearchParams(next, { replace: true });
   };
 
-  if (error?.statusCode === 404 || error?.status === 404) {
+  if (error?.status === 404) {
     return (
       <div className="v360">
         <Breadcrumbs reg={reg} />

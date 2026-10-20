@@ -1,4 +1,5 @@
 import apiClient from '../utils/axiosConfig';
+import { getVehicleList } from './vehicleListService';
 import { parseSafe } from '../schemas/validate.js';
 import PlaceIntelligenceService from '../pages/PlaceHub/intelligence/PlaceIntelligenceService';
 
@@ -48,7 +49,7 @@ export const TripPlanService = {
   /** Trucks, drivers and confirmed places for the trip forms. Drivers are best-effort. */
   pickLists: async ({ signal } = {}) => {
     const [vehicles, employees, sites] = await Promise.all([
-      apiClient.get('/api/vehicles', { params: { limit: 500 }, signal }).then(asList),
+      getVehicleList({ signal }),
       apiClient
         .get('/api/employees', { params: { limit: 1000 }, signal })
         .then(asList)

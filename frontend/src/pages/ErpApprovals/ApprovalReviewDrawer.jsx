@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  AlertTriangle, Check, Info, Truck, X,
-} from 'lucide-react';
+import { AlertTriangle, Check, Info, Truck, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import ErpDrawer from '../../components/Erp/ErpDrawer';
@@ -21,11 +19,10 @@ const Row = ({ label, children }) => (
   </div>
 );
 
-const personName = (u) =>
-  u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() || '—' : '—';
+const personName = (u) => (u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() || '—' : '—');
 
 const money = (n) =>
-  (typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : null);
+  typeof n === 'number' ? `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : null;
 
 /**
  * One approval request, from why it fired to the decision.
@@ -52,10 +49,14 @@ const ApprovalReviewDrawer = ({ approval, onClose, onDecided }) => {
     if (!approval?._id) return undefined;
     let active = true;
     ApprovalService.getById(approval._id)
-      .then((res) => { if (active) setFull(res?.data || null); })
+      .then((res) => {
+        if (active) setFull(res?.data || null);
+      })
       // The snapshot is optional context; the list row already has the essentials.
       .catch(() => {});
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [approval]);
 
   if (!approval) return null;
@@ -68,9 +69,7 @@ const ApprovalReviewDrawer = ({ approval, onClose, onDecided }) => {
   // requestPayload comes from the lazy-loaded full record (stripped from the list).
   const snapshotRows = formatReason((full || approval).requestPayload);
 
-  const valid = Boolean(
-    decision && (decision !== 'REJECTED' || remarks.trim().length >= 3),
-  );
+  const valid = Boolean(decision && (decision !== 'REJECTED' || remarks.trim().length >= 3));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -125,8 +124,8 @@ const ApprovalReviewDrawer = ({ approval, onClose, onDecided }) => {
         <div className="erp-callout info">
           <Info size={16} />
           <span>
-            {entityName} <strong>{approval.entityLabel}</strong> is held until every request
-            on it clears. Rejecting cancels it and closes any sibling requests.
+            {entityName} <strong>{approval.entityLabel}</strong> is held until every request on it
+            clears. Rejecting cancels it and closes any sibling requests.
           </span>
         </div>
       )}
@@ -227,6 +226,7 @@ const ApprovalReviewDrawer = ({ approval, onClose, onDecided }) => {
             </label>
             <textarea
               id="approval-remarks"
+              aria-label="Remarks"
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
               placeholder={decision === 'REJECTED' ? 'Why? (required)' : 'Optional notes'}

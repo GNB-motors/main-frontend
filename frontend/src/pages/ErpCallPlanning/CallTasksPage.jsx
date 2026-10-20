@@ -199,6 +199,7 @@ const CallTasksPage = () => {
         <div
           className="erp-progress-track"
           role="progressbar"
+          aria-label="Calls recorded"
           aria-valuenow={pct}
           aria-valuemin={0}
           aria-valuemax={100}
@@ -232,6 +233,7 @@ const CallTasksPage = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search account, code or KAM…"
+            aria-label="Search call tasks"
           />
         </div>
 

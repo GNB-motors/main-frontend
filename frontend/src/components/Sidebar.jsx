@@ -5,9 +5,9 @@ import ChevronIcon from '../pages/Trip/assets/ChevronIcon';
 import UkoLogo from '../assets/uko-logo.png';
 import { applyThemeToRoot } from '../utils/colorTheme';
 import { clearAuthData } from '../utils/authUtils';
-import { getToken, getOrgId } from '../utils/session.js';
-import apiClient from '../utils/axiosConfig';
 import { useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
+import useApprovalBadges from '../hooks/useApprovalBadges';
+import { getUserRole } from '../utils/session';
 import { useOrganization } from '../contexts/FeatureFlagsContext.jsx';
 import {
   SIDE_NAV_GROUPS,
@@ -24,8 +24,6 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   // Accordion: at most one group open at a time, keyed by getNavGroupId().
   const [openGroupId, setOpenGroupId] = useState(null);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
-  const [approvalsCount, setApprovalsCount] = useState(0);
-  const [billApprovalsCount, setBillApprovalsCount] = useState(0);
   // A broken/expired logo URL must not leave an empty header, so a load error
   // falls back to the default mark exactly like "no logo uploaded" does.
   const [logoFailed, setLogoFailed] = useState(false);
@@ -44,65 +42,14 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
 
   const navItems = useMemo(() => getVisibleNavItems(canAccess), [canAccess]);
 
-  useEffect(() => {
-    // Approval badges belong to the ERP "Approval Center". For an org without
-    // the erpApprovals entitlement that nav group is hidden AND the backend
-    // routes answer 404 (requireFeature hides disabled modules), so polling
-    // them just spams 404s every 30s on every page — including Live Tracking.
-    // Only poll when the Approval Center is actually accessible.
-    if (!canAccess('erpApprovals')) {
-      setApprovalsCount(0);
-      setBillApprovalsCount(0);
-      return undefined;
-    }
-
-    const authHeaders = () => {
-      const token = getToken();
-      if (!token) return null;
-      const headers = { Authorization: `Bearer ${token}` };
-      const orgId = getOrgId();
-      if (orgId) headers['X-Org-Id'] = orgId;
-      return headers;
-    };
-
-    const fetchApprovalsCount = async () => {
-      try {
-        const headers = authHeaders();
-        if (!headers) return;
-        // The service returns { status: 'success', data: { total, byType } } —
-        // the old guard (data.success) and field (pendingCount) meant this
-        // badge could never light up. apiClient carries the API base URL,
-        // which a bare relative fetch loses outside the Docker nginx shape.
-        const { data } = await apiClient.get('/api/erp/approvals/summary', { headers });
-        if (data?.status === 'success') {
-          setApprovalsCount(data.data?.total || 0);
-        }
-      } catch {
-        // ignore network error silently
-      }
-    };
-
-    // Pending driver-bill count for the "Bill Approvals" badge (same endpoint the app uses).
-    const fetchBillApprovalsCount = async () => {
-      try {
-        const headers = authHeaders();
-        if (!headers) return;
-        const res = await fetch('/api/app/v1/bills?status=PENDING&limit=1', { headers });
-        const data = await res.json();
-        setBillApprovalsCount(data?.data?.total || 0);
-      } catch {
-        // ignore network error silently
-      }
-    };
-
-    fetchApprovalsCount();
-    fetchBillApprovalsCount();
-    const interval = setInterval(() => {
-      fetchApprovalsCount();
-      fetchBillApprovalsCount();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [canAccess]);
+  // Approval badges belong to the ERP "Approval Center". For an org without the
+  // erpApprovals entitlement that nav group is hidden AND the backend routes
+  // answer 404 (requireFeature hides disabled modules), so only poll when the
+  // Approval Center is actually accessible.
+  // A SUPER_ADMIN on a dashboard page has no org, so there is nothing to count.
+  const { approvals: approvalsCount, bills: billApprovalsCount } = useApprovalBadges(
+    canAccess('erpApprovals') && getUserRole() !== 'SUPER_ADMIN',
+  );
 
   // Defensive: ensure :root has the current theme CSS variables on mount and
   // whenever the theme color changes. The Sidebar previously kept a LOCAL
@@ -250,6 +197,9 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   };
 
   return (
+    // Hover only tracks whether the pointer is over the rail, so groups the
+    // pointer left can collapse; it activates nothing and has no keyboard analogue.
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- see above
     <aside
       className={`sidebar ${isSidebarOpen ? 'open' : ''} ${isErpRoute ? 'sidebar--erp' : ''}`}
       onMouseEnter={() => setIsSidebarHovered(true)}
@@ -257,6 +207,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     >
       <div className="sidebar-content">
         <div className="sidebar-header">
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- onError swaps in the fallback logo; it is not a user interaction */}
           <img
             src={logoSrc}
             alt={logoAlt}

@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { GoogleMap, useLoadScript, MarkerF } from '@react-google-maps/api';
-import { INDIA_CENTER, getStateMeta, pinIcon } from '../LiveTracking/liveTracking.shared.js';
+import { INDIA_CENTER } from '../LiveTracking/liveTrackingConstants.js';
+import { getStateMeta } from '../LiveTracking/statusPalettes.js';
+import { pinIcon } from '../LiveTracking/mapIcons.js';
 import { timeAgo } from '../../utils/formatters';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
@@ -9,7 +11,7 @@ const MAP_CONTAINER_STYLE = { width: '100%', height: '100%', borderRadius: 'inhe
 /**
  * Small single-vehicle map for the hero card — same marker styling as the
  * full Live Tracking page and the org-wide dashboard mini-map
- * (`liveTracking.shared.js`), so a pin means the same thing everywhere.
+ * (`LiveTracking/mapIcons.js`), so a pin means the same thing everywhere.
  *
  * `livePosition` arrives once with the rest of the vehicle profile fetch; this
  * widget does not poll on its own, and it never reverse-geocodes the pin (see

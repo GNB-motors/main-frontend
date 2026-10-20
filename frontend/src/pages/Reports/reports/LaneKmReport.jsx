@@ -1,10 +1,14 @@
 import { useMemo, useState } from 'react';
-import PageShell from '../../../components/ui/PageShell';
+import { AlertTriangle, MapPinOff, Route, TrendingUp } from 'lucide-react';
 import DataTable from '../../../components/ui/DataTable';
-import { KpiTile, StatusPill } from '../../../components/overview.primitives.jsx';
-import apiClient from '../../../utils/axiosConfig';
+import { StatusPill } from '../../../components/overview.primitives.jsx';
+import { ReportsService } from '../ReportsService.js';
 import useApi from '../../../hooks/useApi';
+import { formatNum } from '../../../utils/formatters';
 import { laneRow, filterLanes, LANE_FILTERS } from './laneKmReportUtils';
+import ReportFrame, { ReportClear, ReportFooter, ReportSearch, ReportSelect } from './ReportFrame';
+import { pageCount, pageSlice, rangeLabel, REPORT_PAGE_SIZE } from './reportFilters';
+import useReportPage from './useReportPage';
 
 const km = (v) => (v == null ? '—' : `${Math.round(v).toLocaleString('en-IN')} km`);
 
@@ -86,80 +90,114 @@ const COLUMNS = [
   },
 ];
 
+const VERDICT_OPTIONS = LANE_FILTERS.map((f) => ({ value: f.key, label: f.label }));
+
+const count = (v) => (v == null ? '—' : formatNum(v));
+
+function laneKpis(totals) {
+  return [
+    {
+      label: 'Lanes',
+      value: count(totals.lanes),
+      icon: Route,
+      hint: `${formatNum(totals.fromRegister ?? 0)} not in the sheet`,
+    },
+    {
+      label: 'Run over SAP',
+      value: count(totals.overSap),
+      icon: AlertTriangle,
+      tone: 'red',
+      hint: 'Beyond their own trip-to-trip spread',
+    },
+    {
+      label: 'Extra km over SAP',
+      value: km(totals.extraKm),
+      icon: TrendingUp,
+      tone: 'orange',
+      hint: 'Across the register',
+    },
+    {
+      label: 'Not in SAP',
+      value: count(totals.notInSap),
+      icon: MapPinOff,
+      tone: 'violet',
+      hint: 'Measured km is our proposed distance',
+    },
+  ];
+}
+
 /**
  * GET /api/reports/lanes — every lane of the owner's SAP sheet with the km the
  * register's one-drop trips actually run, measured every night. SAP stays the
  * billing reference; this is the check.
  */
 export default function LaneKmReport() {
-  const [filter, setFilter] = useState('all');
+  const [verdict, setVerdict] = useState('all');
   const [search, setSearch] = useState('');
   const { data, loading, error, refetch } = useApi(
-    (signal) => apiClient.get('api/reports/lanes', { signal }),
+    (signal) => ReportsService.getLaneKm({ signal }),
     [],
   );
-  const payload = data?.data?.data || data?.data || {};
+  const payload = data || {};
   const rows = useMemo(() => (payload.rows || []).map(laneRow), [payload.rows]);
   const totals = payload.totals || {};
-  const shown = filterLanes(rows, filter, search);
+  const shown = useMemo(() => filterLanes(rows, verdict, search), [rows, verdict, search]);
+
+  const [page, setPage] = useReportPage(`${verdict}|${search.trim()}`);
+  const pageRows = pageSlice(shown, page);
+  const activeFilters = (verdict !== 'all' ? 1 : 0) + (search ? 1 : 0);
 
   return (
-    <PageShell
-      className="p-6"
+    <ReportFrame
+      layout="inline"
       title="Lane km vs SAP"
       subtitle="Each lane's SAP distance beside the km your trucks actually run on it, from the trip register — measured every night"
+      filters={
+        <>
+          <ReportSearch value={search} onChange={setSearch} placeholder="Search plant or town" />
+          <ReportSelect
+            label="Verdict"
+            value={verdict}
+            onChange={setVerdict}
+            options={VERDICT_OPTIONS}
+            width={180}
+          />
+          <ReportClear
+            active={activeFilters > 0}
+            onClear={() => {
+              setVerdict('all');
+              setSearch('');
+            }}
+          />
+        </>
+      }
+      kpis={data && !error ? laneKpis(totals) : null}
+      footer={
+        <ReportFooter
+          summary={`${rangeLabel(page, REPORT_PAGE_SIZE, shown.length)} lanes`}
+          page={page}
+          totalPages={pageCount(shown.length)}
+          onPage={setPage}
+        />
+      }
     >
-      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <KpiTile
-          label="Lanes"
-          value={totals.lanes ?? '—'}
-          sub={`${totals.fromRegister ?? 0} not in the sheet`}
-        />
-        <KpiTile
-          label="Run over SAP"
-          value={totals.overSap ?? '—'}
-          sub="beyond their own trip-to-trip spread"
-        />
-        <KpiTile label="Extra km over SAP" value={km(totals.extraKm)} sub="across the register" />
-        <KpiTile
-          label="Not in SAP"
-          value={totals.notInSap ?? '—'}
-          sub="measured km is our proposed distance"
-        />
-      </div>
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        {LANE_FILTERS.map((f) => (
-          <button
-            key={f.key}
-            type="button"
-            className={`ov-btn ${filter === f.key ? 'ov-btn--primary' : ''}`}
-            style={{ padding: '4px 12px', fontSize: 12 }}
-            onClick={() => setFilter(f.key)}
-          >
-            {f.label}
-          </button>
-        ))}
-        <input
-          type="search"
-          className="ml-auto rounded border border-slate-300 px-2 py-1 text-sm"
-          placeholder="Search plant or town"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          aria-label="Search lanes"
-        />
-      </div>
       <DataTable
         columns={COLUMNS}
-        rows={shown}
+        rows={error ? [] : pageRows}
         rowKey={(r) => r.id}
         loading={loading && !data}
         error={error}
         onRetry={refetch}
-        showing={shown.length}
-        total={rows.length}
-        emptyTitle="No lanes yet"
-        emptyHint="This fills in once the lane sheet (FROM, TO, SAP km) is imported; lanes are measured from the trip register every night."
+        showing={pageRows.length}
+        total={shown.length}
+        activeFilters={activeFilters}
+        emptyTitle={activeFilters ? 'No lane matches these filters' : 'No lanes yet'}
+        emptyHint={
+          activeFilters
+            ? 'Clear the search or choose All lanes.'
+            : 'This fills in once the lane sheet (FROM, TO, SAP km) is imported; lanes are measured from the trip register every night.'
+        }
       />
-    </PageShell>
+    </ReportFrame>
   );
 }

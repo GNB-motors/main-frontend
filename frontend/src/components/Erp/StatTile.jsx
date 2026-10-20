@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import logger from '../../utils/logger';
 
 /**
  * StatTile — a headline number on a dashboard.
@@ -38,9 +39,10 @@ const StatTile = ({
   if (import.meta.env.DEV && !interactive && !derived) {
     const looksLikeMoney = typeof value === 'string' && value.includes('₹');
     if (looksLikeMoney) {
-      console.warn(
-        `[StatTile] "${label}" shows money but has no \`to\`/\`onClick\`. `
-        + 'Give it a destination, or pass `derived` if it genuinely has no underlying list.',
+      logger.warn(
+        'StatTile',
+        `"${label}" shows money but has no \`to\`/\`onClick\`. ` +
+          'Give it a destination, or pass `derived` if it genuinely has no underlying list.',
       );
     }
   }
@@ -93,7 +95,12 @@ const StatTile = ({
 
   if (onClick) {
     return (
-      <button type="button" className={className} onClick={onClick} style={{ textAlign: 'left', width: '100%' }}>
+      <button
+        type="button"
+        className={className}
+        onClick={onClick}
+        style={{ textAlign: 'left', width: '100%' }}
+      >
         {body}
       </button>
     );

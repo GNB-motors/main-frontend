@@ -1,20 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toIST, formatIST, formatRelativeIST, mapsLink, IST_ZONE } from './fiDates';
-
-describe('toIST', () => {
-  it('returns null for empty input', () => {
-    expect(toIST(null)).toBeNull();
-    expect(toIST('')).toBeNull();
-    expect(toIST(undefined)).toBeNull();
-  });
-
-  it('converts a UTC instant into the IST zone', () => {
-    const d = toIST('2026-08-15T00:00:00Z');
-    expect(d.format('YYYY-MM-DD HH:mm')).toBe('2026-08-15 05:30');
-    expect(d.format('Z')).toBe('+05:30');
-    expect(IST_ZONE).toBe('Asia/Kolkata');
-  });
-});
+import { formatIST, formatRelativeIST, mapsLink } from './fiDates';
 
 describe('formatIST', () => {
   it('renders an em-dash for missing input', () => {
@@ -31,7 +16,7 @@ describe('formatRelativeIST', () => {
     expect(formatRelativeIST(null)).toBeNull();
   });
 
-  it('returns a dayjs relative string for a timestamp', () => {
+  it('returns a relative string for a timestamp', () => {
     const out = formatRelativeIST('2020-01-01T00:00:00Z');
     expect(typeof out).toBe('string');
     expect(out.length).toBeGreaterThan(0);

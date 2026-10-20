@@ -100,6 +100,7 @@ export default function EnterprisePagination({
           <span>Page</span>
           <input
             type="number"
+            aria-label="Jump to page"
             min={1}
             max={totalPages}
             value={jumpInput}

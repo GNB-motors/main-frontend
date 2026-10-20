@@ -42,7 +42,7 @@ const BulkUploadVehiclesReviewTable = ({
                   fontWeight: '500',
                 }}
               >
-                Some rows have errors. Click 'View/Edit' to correct them.
+                Some rows have errors. Click &apos;View/Edit&apos; to correct them.
               </div>
               <div
                 style={{

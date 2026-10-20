@@ -18,10 +18,15 @@ import { useConfirm } from '../../../../../components/ui/confirmContext';
    SUPER_ADMIN only, a write — so it asks first). SCANNER LOG and the
    "est. 6–9 min" estimate do not exist and are dropped. */
 
-const BODY_COPY = 'Nothing here is healthy or unhealthy — it is simply unmeasured. No inferred topology is drawn.';
+const BODY_COPY =
+  'Nothing here is healthy or unhealthy — it is simply unmeasured. No inferred topology is drawn.';
 
 const isSuperAdmin = () => {
-  try { return getUserRole() === 'SUPER_ADMIN'; } catch { return false; }
+  try {
+    return getUserRole() === 'SUPER_ADMIN';
+  } catch {
+    return false;
+  }
 };
 
 const LemuGraphEmpty = ({ generatedAt = null, degraded = [] }) => {
@@ -45,7 +50,7 @@ const LemuGraphEmpty = ({ generatedAt = null, degraded = [] }) => {
       await LemuService.rebuildManifest();
       setPhase('done');
     } catch (e) {
-      setError(e?.detail || e?.message || 'Rebuild failed.');
+      setError(e?.message || 'Rebuild failed.');
       setPhase('error');
     }
   };
@@ -57,7 +62,9 @@ const LemuGraphEmpty = ({ generatedAt = null, degraded = [] }) => {
     <div
       className="lemu-graph3d__empty"
       role="status"
-      style={{ background: `radial-gradient(70% 60% at 50% 45%, ${DARK.emptyIn}, ${DARK.emptyOut})` }}
+      style={{
+        background: `radial-gradient(70% 60% at 50% 45%, ${DARK.emptyIn}, ${DARK.emptyOut})`,
+      }}
     >
       <div
         className="lemu-graph3d__empty-card"
@@ -88,14 +95,8 @@ const LemuGraphEmpty = ({ generatedAt = null, degraded = [] }) => {
           {BODY_COPY}
         </p>
 
-        <div
-          className="lemu-graph3d__empty-detail"
-          style={{ border: `1px solid ${DARK.l7}` }}
-        >
-          <div
-            className="lemu-graph3d__empty-row"
-            style={{ borderBottom: `1px solid ${DARK.l3}` }}
-          >
+        <div className="lemu-graph3d__empty-detail" style={{ border: `1px solid ${DARK.l7}` }}>
+          <div className="lemu-graph3d__empty-row" style={{ borderBottom: `1px solid ${DARK.l3}` }}>
             <span style={{ ...mono, color: DARK.t5 }}>last attempt</span>
             <span style={{ ...mono, color: DARK.t3, fontVariantNumeric: 'tabular-nums' }}>
               {attempt ? `${attempt} UTC` : '—'}
@@ -109,7 +110,8 @@ const LemuGraphEmpty = ({ generatedAt = null, degraded = [] }) => {
             >
               <span style={{ ...mono, color: DARK.t5 }}>{d.step}</span>
               <span style={{ ...mono, color: DARK.faultT }}>
-                {d.reason}{d.affects?.length ? ` (affects ${d.affects.length})` : ''}
+                {d.reason}
+                {d.affects?.length ? ` (affects ${d.affects.length})` : ''}
               </span>
             </div>
           ))}
@@ -132,7 +134,11 @@ const LemuGraphEmpty = ({ generatedAt = null, degraded = [] }) => {
             </button>
           )}
           <div className="lemu-graph3d__empty-status" style={{ ...mono }}>
-            {phase === 'done' && <span style={{ color: DARK.okT }}>rebuild requested — the board refreshes with the next data poll</span>}
+            {phase === 'done' && (
+              <span style={{ color: DARK.okT }}>
+                rebuild requested — the board refreshes with the next data poll
+              </span>
+            )}
             {phase === 'error' && <span style={{ color: DARK.faultT }}>{error}</span>}
           </div>
         </div>

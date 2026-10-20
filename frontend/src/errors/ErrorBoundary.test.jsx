@@ -7,8 +7,16 @@ import ErrorFallback from './ErrorFallback';
 vi.mock('../utils/sentry', () => ({
   captureException: vi.fn(),
 }));
+vi.mock('./chunkReload', async (importOriginal) => ({
+  ...(await importOriginal()),
+  reloadForFreshChunks: vi.fn(() => false),
+}));
 
 import { captureException } from '../utils/sentry';
+import { reloadForFreshChunks } from './chunkReload';
+
+const CHUNK_MESSAGE =
+  'Failed to fetch dynamically imported module: http://localhost:5173/src/components/DashboardLayout.jsx?t=1';
 
 const Thrower = ({ message }) => {
   throw new Error(message);
@@ -72,6 +80,71 @@ describe('ErrorBoundary', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(screen.getByText('recovered')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('clears a caught error when resetKey changes', () => {
+    const { rerender } = render(
+      <ErrorBoundary resetKey="/broken">
+        <Thrower message="page broke" />
+      </ErrorBoundary>,
+    );
+    expect(screen.getByText('page broke')).toBeInTheDocument();
+
+    rerender(
+      <ErrorBoundary resetKey="/fine">
+        <p>next page</p>
+      </ErrorBoundary>,
+    );
+    expect(screen.getByText('next page')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('keeps the error when the resetKey change is what made the child throw', () => {
+    const { rerender } = render(
+      <ErrorBoundary resetKey="/fine">
+        <p>fine page</p>
+      </ErrorBoundary>,
+    );
+    rerender(
+      <ErrorBoundary resetKey="/broken">
+        <Thrower message="broke on arrival" />
+      </ErrorBoundary>,
+    );
+    expect(screen.getByText('broke on arrival')).toBeInTheDocument();
+  });
+
+  // A stale tab after a deploy: reload once rather than strand the user.
+  it('reloads instead of reporting when a chunk fails to load', () => {
+    reloadForFreshChunks.mockReturnValueOnce(true);
+    render(
+      <ErrorBoundary>
+        <Thrower message={CHUNK_MESSAGE} />
+      </ErrorBoundary>,
+    );
+    expect(reloadForFreshChunks).toHaveBeenCalledTimes(1);
+    expect(captureException).not.toHaveBeenCalled();
+  });
+
+  it('reports a chunk failure the reload did not cure, and offers no Try again', () => {
+    render(
+      <ErrorBoundary>
+        <Thrower message={CHUNK_MESSAGE} />
+      </ErrorBoundary>,
+    );
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("This page didn't load")).toBeInTheDocument();
+    expect(screen.queryByText(CHUNK_MESSAGE)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reload' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument();
+  });
+
+  it('does not try a reload for an ordinary render error', () => {
+    render(
+      <ErrorBoundary>
+        <Thrower message="kaboom" />
+      </ErrorBoundary>,
+    );
+    expect(reloadForFreshChunks).not.toHaveBeenCalled();
   });
 
   it('isolates errors per boundary instance', () => {

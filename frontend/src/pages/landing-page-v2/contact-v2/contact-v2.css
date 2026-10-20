@@ -1,5 +1,5 @@
 /* GNB Edge — contact-v2 (scoped tokens + animations, generated from the design) */
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&family=Caveat:wght@400;600&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&family=Caveat:wght@400;600&display=swap');
 
 .gnb-edge-v2 {
   /* ================================================================
@@ -10,277 +10,675 @@
      ================================================================ */
 
   /* NOVA RAGE — primary indigo-blue family */
-  --nova-rage-100: #829BF5;
-  --nova-rage-200: #6D8AF3;
-  --nova-rage-300: #5979F1;
-  --nova-rage-400: #4469F0;  /* brand primary */
-  --nova-rage-500: #2F58EE;  /* alpha base */
-  --nova-rage-600: #2A4FD6;  /* focused input border */
-  --nova-rage-700: #2646BE;  /* primary hover */
-  --nova-rage-800: #213EA7;  /* primary pressed / border */
-  --nova-rage-900: #1C358F;
-  --nova-rage-a05:  rgba(47, 88, 238, 0.05);
-  --nova-rage-a10:  rgba(47, 88, 238, 0.10);
-  --nova-rage-a20:  rgba(47, 88, 238, 0.20);
-  --nova-rage-a40:  rgba(47, 88, 238, 0.40);
-  --nova-rage-a60:  rgba(47, 88, 238, 0.60);
+  --nova-rage-100: #829bf5;
+  --nova-rage-200: #6d8af3;
+  --nova-rage-300: #5979f1;
+  --nova-rage-400: #4469f0; /* brand primary */
+  --nova-rage-500: #2f58ee; /* alpha base */
+  --nova-rage-600: #2a4fd6; /* focused input border */
+  --nova-rage-700: #2646be; /* primary hover */
+  --nova-rage-800: #213ea7; /* primary pressed / border */
+  --nova-rage-900: #1c358f;
+  --nova-rage-a05: rgba(47, 88, 238, 0.05);
+  --nova-rage-a10: rgba(47, 88, 238, 0.1);
+  --nova-rage-a20: rgba(47, 88, 238, 0.2);
+  --nova-rage-a40: rgba(47, 88, 238, 0.4);
+  --nova-rage-a60: rgba(47, 88, 238, 0.6);
 
   /* MIDNIGHT NAVY — dark theme canvas family */
   --midnight-navy-900: #050816;
-  --midnight-navy-800: #0C1020;   /* app canvas on dark */
-  --midnight-navy-700: #121428;   /* elevated surface */
-  --midnight-navy-600: #1E2238;   /* input bg dark */
-  --midnight-navy-500: #2A3350;
-  --midnight-navy-400: #404A6A;
-  --midnight-navy-300: #5B6486;
-  --midnight-navy-200: #828BAE;
+  --midnight-navy-800: #0c1020; /* app canvas on dark */
+  --midnight-navy-700: #121428; /* elevated surface */
+  --midnight-navy-600: #1e2238; /* input bg dark */
+  --midnight-navy-500: #2a3350;
+  --midnight-navy-400: #404a6a;
+  --midnight-navy-300: #5b6486;
+  --midnight-navy-200: #828bae;
 
   /* MIDNIGHT BLACK — neutral dark text / ink */
-  --midnight-black-900: #121214;  /* primary text on light */
-  --midnight-black-800: #1E1E20;
-  --midnight-black-700: #2E2E30;
+  --midnight-black-900: #121214; /* primary text on light */
+  --midnight-black-800: #1e1e20;
+  --midnight-black-700: #2e2e30;
   --midnight-black-600: #454547;
-  --midnight-black-500: #5D5D5E;  /* secondary text */
+  --midnight-black-500: #5d5d5e; /* secondary text */
   --midnight-black-400: #747476;
-  --midnight-black-300: #8B8B8C;
+  --midnight-black-300: #8b8b8c;
 
   /* MORNING FOG — cool neutral greys */
-  --morning-fog-900: #F8F8FB;    /* off-white surface */
-  --morning-fog-800: #F3F3F6;    /* canvas (light) */
-  --morning-fog-700: #ECECEE;    /* subtle border */
-  --morning-fog-600: #DFDFE2;    /* filled input border */
-  --morning-fog-500: #C6C6C9;    /* default border */
-  --morning-fog-400: #B9B9BA;
-  --morning-fog-300: #93939A;
-  --morning-fog-200: #82808D;
-  --morning-fog-100: #5D5D5E;
+  --morning-fog-900: #f8f8fb; /* off-white surface */
+  --morning-fog-800: #f3f3f6; /* canvas (light) */
+  --morning-fog-700: #ececee; /* subtle border */
+  --morning-fog-600: #dfdfe2; /* filled input border */
+  --morning-fog-500: #c6c6c9; /* default border */
+  --morning-fog-400: #b9b9ba;
+  --morning-fog-300: #93939a;
+  --morning-fog-200: #82808d;
+  --morning-fog-100: #5d5d5e;
 
   /* NOVA BLUSH — warm coral */
-  --nova-blush-500: #E5686C;
-  --nova-blush-400: #E5686B;
-  --nova-blush-300: #FEACAD;
+  --nova-blush-500: #e5686c;
+  --nova-blush-400: #e5686b;
+  --nova-blush-300: #feacad;
 
   /* LILAC HAZE — pale violet accent */
-  --lilac-haze-500: #D8D8FF;
-  --lilac-haze-400: #F8F7FF;
+  --lilac-haze-500: #d8d8ff;
+  --lilac-haze-400: #f8f7ff;
 
   /* Named spot colors (from semantic token refs) */
-  --nova-gold-500:   #FBBF23;
-  --nova-gold-400:   #EFBF41;
-  --nova-gold-300:   #EECF7F;
-  --nova-bronze-600: #C56200;  /* warning text */
-  --nova-fern-600:   #187A32;  /* success text */
-  --nova-fern-500:   #25BA4C;
-  --nova-fern-400:   #3FC261;
-  --nova-fern-300:   #59CB77;
-  --nova-fern-700:   #21A744;
-  --nova-fern-800:   #1C8B39;
-  --nova-blaze-700:  #BB2626;  /* danger text */
-  --nova-blaze-500:  #DD3030;  /* error fill */
-  --nova-blaze-300:  #941E1E;
-  --nova-nebula-500: #6A43D8;  /* special / AI */
-  --nova-sky-500:    #2E81ED;  /* info */
-  --nova-sky-600:    #2666B8;
-  --nova-leaf-500:   #F0AA48;  /* orange warn */
-  --nova-splash-500: #36D7A6;  /* fresh mint */
-  --nova-splash-600: #2BAC85;
-  --nova-deep-600:   #984647;
+  --nova-gold-500: #fbbf23;
+  --nova-gold-400: #efbf41;
+  --nova-gold-300: #eecf7f;
+  --nova-bronze-600: #c56200; /* warning text */
+  --nova-fern-600: #187a32; /* success text */
+  --nova-fern-500: #25ba4c;
+  --nova-fern-400: #3fc261;
+  --nova-fern-300: #59cb77;
+  --nova-fern-700: #21a744;
+  --nova-fern-800: #1c8b39;
+  --nova-blaze-700: #bb2626; /* danger text */
+  --nova-blaze-500: #dd3030; /* error fill */
+  --nova-blaze-300: #941e1e;
+  --nova-nebula-500: #6a43d8; /* special / AI */
+  --nova-sky-500: #2e81ed; /* info */
+  --nova-sky-600: #2666b8;
+  --nova-leaf-500: #f0aa48; /* orange warn */
+  --nova-splash-500: #36d7a6; /* fresh mint */
+  --nova-splash-600: #2bac85;
+  --nova-deep-600: #984647;
 
   /* BRAND GRADIENTS */
-  --nova-gradient-light: linear-gradient(135deg, #F9A061 0%, #E5686C 100%);
-  --nova-gradient-dark:  linear-gradient(135deg, #E5686C 0%, #6366F1 100%);
-  --nova-gradient-rage:  linear-gradient(180deg, #213EA7 0%, #2F58EE 100%);
+  --nova-gradient-light: linear-gradient(135deg, #f9a061 0%, #e5686c 100%);
+  --nova-gradient-dark: linear-gradient(135deg, #e5686c 0%, #6366f1 100%);
+  --nova-gradient-rage: linear-gradient(180deg, #213ea7 0%, #2f58ee 100%);
 
   /* ================================================================
      SEMANTIC TOKENS — LIGHT THEME (Midnight-black)
      ================================================================ */
 
   /* Background */
-  --bg-app:         #FFFFFF;
-  --bg-canvas:      var(--morning-fog-800);
-  --bg-surface:     #FFFFFF;
-  --bg-elevated:    #FFFFFF;
-  --bg-subtle:      var(--morning-fog-900);
-  --bg-input:       #FFFFFF;
+  --bg-app: #ffffff;
+  --bg-canvas: var(--morning-fog-800);
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-subtle: var(--morning-fog-900);
+  --bg-input: #ffffff;
   --bg-input-disabled: var(--morning-fog-700);
-  --bg-scrim:       rgba(18, 18, 20, 0.48);
+  --bg-scrim: rgba(18, 18, 20, 0.48);
 
   /* Foreground */
-  --fg-primary:     var(--midnight-black-900);  /* headings / bold text */
-  --fg-secondary:   var(--midnight-black-500);  /* body / meta */
-  --fg-tertiary:    var(--morning-fog-300);     /* quiet / disabled */
-  --fg-inverse:     #FFFFFF;
-  --fg-brand:       var(--nova-rage-600);
-  --fg-on-brand:    #FFFFFF;
-  --fg-success:     var(--nova-fern-600);
-  --fg-warning:     var(--nova-bronze-600);
-  --fg-danger:      var(--nova-blaze-700);
-  --fg-info:        var(--nova-sky-600);
+  --fg-primary: var(--midnight-black-900); /* headings / bold text */
+  --fg-secondary: var(--midnight-black-500); /* body / meta */
+  --fg-tertiary: var(--morning-fog-300); /* quiet / disabled */
+  --fg-inverse: #ffffff;
+  --fg-brand: var(--nova-rage-600);
+  --fg-on-brand: #ffffff;
+  --fg-success: var(--nova-fern-600);
+  --fg-warning: var(--nova-bronze-600);
+  --fg-danger: var(--nova-blaze-700);
+  --fg-info: var(--nova-sky-600);
 
   /* Borders */
-  --border-subtle:   rgba(5, 8, 22, 0.05);
-  --border-default:  rgba(5, 8, 22, 0.10);
-  --border-strong:   var(--morning-fog-500);
-  --border-input:    var(--morning-fog-600);
-  --border-focus:    var(--nova-rage-600);
+  --border-subtle: rgba(5, 8, 22, 0.05);
+  --border-default: rgba(5, 8, 22, 0.1);
+  --border-strong: var(--morning-fog-500);
+  --border-input: var(--morning-fog-600);
+  --border-focus: var(--nova-rage-600);
 
   /* Action — PRIMARY */
-  --action-primary-bg:          var(--nova-rage-400);
-  --action-primary-bg-hover:    var(--nova-rage-700);
-  --action-primary-bg-pressed:  var(--nova-rage-800);
+  --action-primary-bg: var(--nova-rage-400);
+  --action-primary-bg-hover: var(--nova-rage-700);
+  --action-primary-bg-pressed: var(--nova-rage-800);
   --action-primary-bg-disabled: var(--nova-rage-300);
-  --action-primary-fg:          #FFFFFF;
-  --action-primary-border:      var(--nova-rage-800);
+  --action-primary-fg: #ffffff;
+  --action-primary-border: var(--nova-rage-800);
 
   /* Action — SECONDARY (ghost) */
-  --action-secondary-bg:          var(--nova-rage-a10);
-  --action-secondary-bg-hover:    var(--nova-rage-a20);
-  --action-secondary-bg-pressed:  var(--nova-rage-a40);
+  --action-secondary-bg: var(--nova-rage-a10);
+  --action-secondary-bg-hover: var(--nova-rage-a20);
+  --action-secondary-bg-pressed: var(--nova-rage-a40);
   --action-secondary-bg-disabled: var(--nova-rage-a05);
-  --action-secondary-fg:          var(--nova-rage-700);
-  --action-secondary-border:      var(--nova-rage-a20);
+  --action-secondary-fg: var(--nova-rage-700);
+  --action-secondary-border: var(--nova-rage-a20);
 
   /* Action — TERTIARY (text) */
-  --action-tertiary-fg:         var(--nova-rage-700);
-  --action-tertiary-fg-hover:   var(--nova-rage-800);
+  --action-tertiary-fg: var(--nova-rage-700);
+  --action-tertiary-fg-hover: var(--nova-rage-800);
   --action-tertiary-fg-pressed: var(--nova-rage-900);
 
   /* Shadows — navy-tinted on light */
   --shadow-xs: 0 1px 2px 0 rgba(30, 34, 56, 0.06);
-  --shadow-sm: 0 2px 4px 0 rgba(30, 34, 56, 0.08),
-               0 1px 2px 0 rgba(30, 34, 56, 0.04);
-  --shadow-md: 0 4px 12px 0 rgba(30, 34, 56, 0.10),
-               0 1px 2px 0 rgba(30, 34, 56, 0.06);
-  --shadow-lg: 0 12px 32px 0 rgba(30, 34, 56, 0.14),
-               0 2px 6px 0 rgba(30, 34, 56, 0.08);
-  --shadow-inset-soft: inset 0.75px 0.75px 3px 0 rgba(255, 255, 255, 1),
-                      0 6px 6px 0 rgba(18, 18, 20, 0.02);
+  --shadow-sm: 0 2px 4px 0 rgba(30, 34, 56, 0.08), 0 1px 2px 0 rgba(30, 34, 56, 0.04);
+  --shadow-md: 0 4px 12px 0 rgba(30, 34, 56, 0.1), 0 1px 2px 0 rgba(30, 34, 56, 0.06);
+  --shadow-lg: 0 12px 32px 0 rgba(30, 34, 56, 0.14), 0 2px 6px 0 rgba(30, 34, 56, 0.08);
+  --shadow-inset-soft:
+    inset 0.75px 0.75px 3px 0 rgba(255, 255, 255, 1), 0 6px 6px 0 rgba(18, 18, 20, 0.02);
   --ring-focus: 0 0 0 3px var(--nova-rage-a20);
 
   /* ================================================================
      SPACING (spacekit)
      ================================================================ */
-  --space-0:   0px;
+  --space-0: 0px;
   --space-half: 2px;
-  --space-1:   4px;   /* baseline */
-  --space-1h:  6px;
-  --space-2:   8px;
-  --space-2h:  10px;
-  --space-3:   12px;
-  --space-4:   16px;
-  --space-5:   20px;
-  --space-6:   24px;
-  --space-7:   28px;
-  --space-8:   32px;
-  --space-9:   36px;
-  --space-10:  40px;
-  --space-11:  44px;
-  --space-12:  48px;
-  --space-14:  56px;
-  --space-16:  64px;
-  --space-18:  72px;
-  --space-20:  80px;
-  --space-24:  96px;
-  --space-28:  112px;
-  --space-30:  120px;
+  --space-1: 4px; /* baseline */
+  --space-1h: 6px;
+  --space-2: 8px;
+  --space-2h: 10px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-9: 36px;
+  --space-10: 40px;
+  --space-11: 44px;
+  --space-12: 48px;
+  --space-14: 56px;
+  --space-16: 64px;
+  --space-18: 72px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-28: 112px;
+  --space-30: 120px;
 
   /* ================================================================
      RADII (spacekit)
      ================================================================ */
-  --radius-hard:         0;
-  --radius-baseline:     4px;
-  --radius-m:            8px;
-  --radius-md:           10px;
-  --radius-l:            12px;
-  --radius-xl:           16px;
-  --radius-soft:         24px;
-  --radius-xtra-soft:    32px;
-  --radius-ultra-soft:   44px;
-  --radius-super-soft:   64px;
-  --radius-full:         999px;
+  --radius-hard: 0;
+  --radius-baseline: 4px;
+  --radius-m: 8px;
+  --radius-md: 10px;
+  --radius-l: 12px;
+  --radius-xl: 16px;
+  --radius-soft: 24px;
+  --radius-xtra-soft: 32px;
+  --radius-ultra-soft: 44px;
+  --radius-super-soft: 64px;
+  --radius-full: 999px;
 
   /* ================================================================
      TYPOGRAPHY
      ================================================================ */
-  --font-ui:      "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-display: "DM Sans", "Inter", sans-serif;
-  --font-mono:    "DM Mono", "SF Mono", Menlo, monospace;
-  --font-eyebrow: "Helvetica Neue", Helvetica, Arial, sans-serif; /* SUBSTITUTED */
-  --font-script:  "Caveat", cursive;
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'DM Sans', 'Inter', sans-serif;
+  --font-mono: 'DM Mono', 'SF Mono', Menlo, monospace;
+  --font-eyebrow: 'Helvetica Neue', Helvetica, Arial, sans-serif; /* SUBSTITUTED */
+  --font-script: 'Caveat', cursive;
 
   /* size scale */
-  --type-xxs:  8px;
-  --type-3xs:  10px;
-  --type-2xs:  12px;
-  --type-xs:   14px;
-  --type-s:    16px;
-  --type-m:    18px;
-  --type-l:    20px;
-  --type-xl:   24px;
-  --type-2xl:  28px;
-  --type-3xl:  32px;
-  --type-4xl:  36px;
-  --type-5xl:  40px;
-  --type-6xl:  48px;
-  --type-7xl:  64px;
+  --type-xxs: 8px;
+  --type-3xs: 10px;
+  --type-2xs: 12px;
+  --type-xs: 14px;
+  --type-s: 16px;
+  --type-m: 18px;
+  --type-l: 20px;
+  --type-xl: 24px;
+  --type-2xl: 28px;
+  --type-3xl: 32px;
+  --type-4xl: 36px;
+  --type-5xl: 40px;
+  --type-6xl: 48px;
+  --type-7xl: 64px;
 
   /* line heights */
-  --lh-tight:   1.1;
-  --lh-snug:    1.25;
-  --lh-normal:  1.45;
+  --lh-tight: 1.1;
+  --lh-snug: 1.25;
+  --lh-normal: 1.45;
   --lh-relaxed: 1.6;
 
   /* tracking */
   --tracking-ultra-compact: -0.025em;
-  --tracking-compact:       -0.015em;
-  --tracking-concise:       -0.005em;
-  --tracking-default:        0.005em;
-  --tracking-comfortable:    0.025em;
-  --tracking-relaxed:        0.05em;
-  --tracking-ultra-lounge:   0.2em;
-  --tracking-eyebrow:        0.44em;
+  --tracking-compact: -0.015em;
+  --tracking-concise: -0.005em;
+  --tracking-default: 0.005em;
+  --tracking-comfortable: 0.025em;
+  --tracking-relaxed: 0.05em;
+  --tracking-ultra-lounge: 0.2em;
+  --tracking-eyebrow: 0.44em;
 
   /* motion */
-  --ease-standard:   cubic-bezier(0.2, 0, 0, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
   --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
-  --duration-micro:  120ms;
-  --duration-fast:   200ms;
+  --duration-micro: 120ms;
+  --duration-fast: 200ms;
   --duration-medium: 320ms;
 }
-.gnb-edge-v2[data-theme="dark"] {
-  --bg-app:         var(--midnight-navy-800);
-  --bg-canvas:      var(--midnight-navy-900);
-  --bg-surface:     var(--midnight-navy-700);
-  --bg-elevated:    var(--midnight-navy-600);
-  --bg-subtle:      var(--midnight-navy-700);
-  --bg-input:       var(--midnight-navy-600);
+.gnb-edge-v2[data-theme='dark'] {
+  --bg-app: var(--midnight-navy-800);
+  --bg-canvas: var(--midnight-navy-900);
+  --bg-surface: var(--midnight-navy-700);
+  --bg-elevated: var(--midnight-navy-600);
+  --bg-subtle: var(--midnight-navy-700);
+  --bg-input: var(--midnight-navy-600);
   --bg-input-disabled: var(--midnight-navy-700);
-  --bg-scrim:       rgba(5, 8, 22, 0.72);
+  --bg-scrim: rgba(5, 8, 22, 0.72);
 
-  --fg-primary:     #F8F8FB;
-  --fg-secondary:   #B9B9C3;
-  --fg-tertiary:    #6D7299;
-  --fg-inverse:     var(--midnight-navy-900);
-  --fg-brand:       var(--nova-rage-300);
-  --fg-on-brand:    #FFFFFF;
+  --fg-primary: #f8f8fb;
+  --fg-secondary: #b9b9c3;
+  --fg-tertiary: #6d7299;
+  --fg-inverse: var(--midnight-navy-900);
+  --fg-brand: var(--nova-rage-300);
+  --fg-on-brand: #ffffff;
 
-  --border-subtle:  rgba(248, 248, 251, 0.05);
-  --border-default: rgba(248, 248, 251, 0.10);
-  --border-strong:  var(--midnight-navy-400);
-  --border-input:   var(--midnight-navy-500);
+  --border-subtle: rgba(248, 248, 251, 0.05);
+  --border-default: rgba(248, 248, 251, 0.1);
+  --border-strong: var(--midnight-navy-400);
+  --border-input: var(--midnight-navy-500);
 
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.30);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-sm: 0 2px 4px 0 rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 4px 16px 0 rgba(0, 0, 0, 0.40);
+  --shadow-md: 0 4px 16px 0 rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 16px 40px 0 rgba(0, 0, 0, 0.48);
 }
 
-.gnb-edge-v2 { overflow-x:clip; -webkit-font-smoothing:antialiased; background:#F4F5FA; color:#050816; font-family:var(--font-ui); }
-.gnb-edge-v2 a { color: var(--nova-rage-600); text-decoration:none; }
-.gnb-edge-v2 a:hover { color: var(--nova-rage-700); }
+.gnb-edge-v2 {
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+  background: #f4f5fa;
+  color: #050816;
+  font-family: var(--font-ui);
+}
+.gnb-edge-v2 a {
+  color: var(--nova-rage-600);
+  text-decoration: none;
+}
+.gnb-edge-v2 a:hover {
+  color: var(--nova-rage-700);
+}
 @media (prefers-reduced-motion: reduce) {
-  .gnb-edge-v2 *, .gnb-edge-v2 *::before, .gnb-edge-v2 *::after { animation: none !important; transition-duration:.001ms !important; }
+  .gnb-edge-v2 *,
+  .gnb-edge-v2 *::before,
+  .gnb-edge-v2 *::after {
+    animation: none !important;
+    transition-duration: 0.001ms !important;
+  }
 }
 
-@keyframes step-line { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes step-line {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* ── Contact form (ContactForm.jsx) ─────────────────────────────── */
+.gnb-edge-v2 .cf-card {
+  display: flex;
+  flex-direction: column;
+  padding: 40px;
+  background: #ffffff;
+  border: 1px solid rgba(5, 8, 22, 0.08);
+  border-radius: var(--radius-xtra-soft);
+  box-shadow: var(--shadow-lg);
+  box-sizing: border-box;
+}
+.gnb-edge-v2 .cf-title {
+  margin-bottom: 8px;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.9px;
+}
+.gnb-edge-v2 .cf-intro {
+  margin-bottom: 32px;
+  color: #5d5d5e;
+  font-size: 15px;
+  line-height: 24px;
+}
+.gnb-edge-v2 .cf-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 18px;
+}
+.gnb-edge-v2 .cf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.gnb-edge-v2 .cf-label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: #050816;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.1px;
+}
+.gnb-edge-v2 .cf-optional {
+  color: #93939a;
+  font-size: 12px;
+  font-weight: 400;
+}
+.gnb-edge-v2 .cf-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--border-input);
+  border-radius: 12px;
+  background: #ffffff;
+  color: #050816;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  box-sizing: border-box;
+  transition:
+    border-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+.gnb-edge-v2 .cf-input::placeholder {
+  color: #93939a;
+}
+.gnb-edge-v2 .cf-input:hover {
+  border-color: var(--morning-fog-500);
+}
+.gnb-edge-v2 .cf-input:focus,
+.gnb-edge-v2 .cf-input:focus-visible {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: var(--ring-focus);
+}
+.gnb-edge-v2 .cf-input[aria-invalid='true'] {
+  border-color: var(--nova-blaze-500);
+}
+.gnb-edge-v2 .cf-input[aria-invalid='true']:focus {
+  box-shadow: 0 0 0 3px rgba(221, 48, 48, 0.15);
+}
+.gnb-edge-v2 textarea.cf-input {
+  height: auto;
+  min-height: 120px;
+  padding: 12px 14px;
+  line-height: 1.5;
+  resize: vertical;
+}
+.gnb-edge-v2 .cf-select {
+  padding-right: 40px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235D5D5E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-position: right 14px center;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+.gnb-edge-v2 .cf-select:has(option[value='']:checked) {
+  color: #93939a;
+}
+.gnb-edge-v2 .cf-error {
+  color: var(--fg-danger);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.gnb-edge-v2 .cf-topics {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  margin-top: 28px;
+}
+.gnb-edge-v2 .cf-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.gnb-edge-v2 .cf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 17px;
+  border: 1px solid rgba(5, 8, 22, 0.14);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #5d5d5e;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.1px;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+.gnb-edge-v2 .cf-chip:hover {
+  border-color: rgba(5, 8, 22, 0.28);
+  color: #050816;
+}
+.gnb-edge-v2 .cf-chip[aria-pressed='true'] {
+  border-color: var(--nova-rage-400);
+  background: var(--nova-rage-a10);
+  color: var(--nova-rage-700);
+}
+.gnb-edge-v2 .cf-chip:focus-visible,
+.gnb-edge-v2 .cf-again:focus-visible {
+  outline: 3px solid var(--nova-rage-a40);
+  outline-offset: 2px;
+}
+.gnb-edge-v2 .cf-message {
+  margin-top: 28px;
+}
+
+/* Off-screen rather than display:none, which some bots skip. */
+.gnb-edge-v2 .cf-trap {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.gnb-edge-v2 .cf-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  margin-top: 32px;
+}
+.gnb-edge-v2 .cf-privacy {
+  max-width: 280px;
+  color: #93939a;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+/* Send button: the paper plane takes off and loops while the request is in flight. */
+.gnb-edge-v2 .cf-send {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 196px;
+  justify-content: center;
+  padding: 17px 34px;
+  overflow: hidden;
+  border: 1px solid var(--nova-rage-800);
+  border-radius: 999px;
+  background: var(--nova-rage-400);
+  color: #ffffff;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-standard),
+    transform var(--duration-micro) var(--ease-standard);
+}
+.gnb-edge-v2 .cf-send:hover {
+  background: var(--nova-rage-700);
+}
+.gnb-edge-v2 .cf-send:active {
+  transform: scale(0.98);
+}
+.gnb-edge-v2 .cf-send:focus-visible {
+  outline: 3px solid var(--nova-rage-a40);
+  outline-offset: 3px;
+}
+.gnb-edge-v2 .cf-send-plane {
+  display: inline-flex;
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+.gnb-edge-v2 .cf-send:hover .cf-send-plane {
+  transform: translate(2px, -2px);
+}
+.gnb-edge-v2 .cf-send[data-phase='sending'] {
+  background: var(--nova-rage-700);
+  cursor: progress;
+}
+.gnb-edge-v2 .cf-send[data-phase='sending'] .cf-send-plane {
+  animation: cf-plane-fly 1.1s var(--ease-accelerate) infinite;
+}
+.gnb-edge-v2 .cf-send[data-phase='sending']::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.22) 50%,
+    transparent 70%
+  );
+  transform: translateX(-100%);
+  animation: cf-sweep 1.1s var(--ease-standard) infinite;
+}
+@keyframes cf-plane-fly {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  45% {
+    transform: translate(34px, -26px) scale(0.75);
+    opacity: 0;
+  }
+  46% {
+    transform: translate(-30px, 18px) scale(0.75);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+}
+@keyframes cf-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+.gnb-edge-v2 .cf-send-error {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(221, 48, 48, 0.25);
+  border-radius: 12px;
+  background: rgba(221, 48, 48, 0.06);
+  color: var(--fg-danger);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+/* Thank-you state, shown in the same card once the enquiry lands. */
+.gnb-edge-v2 .cf-sent {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 12px;
+  text-align: center;
+  animation: cf-fade-up 420ms var(--ease-decelerate) both;
+}
+.gnb-edge-v2 .cf-sent-badge {
+  display: grid;
+  place-items: center;
+  width: 80px;
+  height: 80px;
+  margin-bottom: 24px;
+  border-radius: 50%;
+  background: var(--nova-rage-a10);
+  animation: cf-pop 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.gnb-edge-v2 .cf-sent-badge svg {
+  width: 52px;
+  height: 52px;
+  fill: none;
+  stroke: var(--nova-rage-400);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.gnb-edge-v2 .cf-sent-ring {
+  stroke-dasharray: 151;
+  stroke-dashoffset: 151;
+  animation: cf-draw 600ms var(--ease-standard) 150ms forwards;
+}
+.gnb-edge-v2 .cf-sent-tick {
+  stroke-dasharray: 32;
+  stroke-dashoffset: 32;
+  animation: cf-draw 360ms var(--ease-standard) 650ms forwards;
+}
+.gnb-edge-v2 .cf-sent-text {
+  max-width: 400px;
+  margin: 4px 0 28px;
+  color: #5d5d5e;
+  font-size: 15px;
+  line-height: 24px;
+}
+.gnb-edge-v2 .cf-sent-text strong {
+  color: #050816;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.gnb-edge-v2 .cf-again {
+  padding: 12px 22px;
+  border: 1px solid var(--action-secondary-border);
+  border-radius: 999px;
+  background: var(--action-secondary-bg);
+  color: var(--action-secondary-fg);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+.gnb-edge-v2 .cf-again:hover {
+  background: var(--action-secondary-bg-hover);
+}
+@keyframes cf-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes cf-pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes cf-fade-up {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+/* The global reduced-motion rule kills animations, which would leave the tick undrawn. */
+@media (prefers-reduced-motion: reduce) {
+  .gnb-edge-v2 .cf-sent-ring,
+  .gnb-edge-v2 .cf-sent-tick {
+    stroke-dashoffset: 0;
+  }
+}
+@media (max-width: 560px) {
+  .gnb-edge-v2 .cf-card {
+    padding: 28px 22px;
+  }
+  .gnb-edge-v2 .cf-send {
+    width: 100%;
+  }
+}

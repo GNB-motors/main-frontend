@@ -7,7 +7,9 @@ import {
   VEHICLE_EXPORT_COLUMNS,
   mapVehicleForExport,
   vehicleExportMeta,
+  vehicleNeedsRelink,
 } from './vehicleList';
+import { indexLinkHealth } from '../../lib/fleetLink';
 
 const apiVehicle = {
   _id: 'veh-1',
@@ -139,6 +141,34 @@ describe('describeFleetEdgeAccount', () => {
     expect(a.isDisabled).toBe(true);
   });
 
+  it('carries the link state of every account link health covers', () => {
+    const linkIndex = indexLinkHealth({
+      accounts: [
+        { accountId: 'acc-9', state: 'EXPIRING', daysLeft: 3, urgent: false, vehicles: [] },
+        { accountId: 'acc-7', state: 'HEALTHY', vehicles: [] },
+      ],
+    });
+    const expiring = describeFleetEdgeAccount({ fleetEdgeAccountId: 'acc-9' }, map, linkIndex);
+    expect(expiring.link).toEqual({
+      accountId: 'acc-9',
+      needsAction: true,
+      tone: 'warn',
+      label: 'Expires in 3 days',
+    });
+    expect(describeFleetEdgeAccount({ fleetEdgeAccountId: 'acc-7' }, map, linkIndex).link).toEqual({
+      accountId: 'acc-7',
+      needsAction: false,
+      tone: 'ok',
+      label: 'Connected',
+    });
+    expect(
+      describeFleetEdgeAccount({ fleetEdgeAccountId: 'acc-1' }, map, linkIndex).link,
+    ).toBeNull();
+    expect(vehicleNeedsRelink({ fleetEdgeAccountId: 'acc-9' }, linkIndex)).toBe(true);
+    expect(vehicleNeedsRelink({ fleetEdgeAccountId: 'acc-7' }, linkIndex)).toBe(false);
+    expect(vehicleNeedsRelink({ fleetEdgeAccountId: null }, linkIndex)).toBe(false);
+  });
+
   it('falls back to id tail for unknown accounts', () => {
     const a = describeFleetEdgeAccount({ fleetEdgeAccountId: 'acc-unknown-123456' }, map);
     expect(a.label).toBe('123456');
@@ -156,6 +186,7 @@ describe('vehicle export', () => {
       'vehicleCategory',
       'chassis_number',
       'fleetEdgeAccount',
+      'fleetEdgeLink',
     ]);
   });
 
@@ -181,7 +212,25 @@ describe('vehicle export', () => {
       vehicleCategory: 'HEAVY',
       chassis_number: 'N/A',
       fleetEdgeAccount: 'Hub A',
+      fleetEdgeLink: 'Not connected',
     });
+  });
+
+  it('exports the FleetEdge link verdict when it is known', () => {
+    const map = buildAccountMap([
+      { _id: 'acc-9', friendlyName: 'Hub A', externalAccountId: 'EXT-1', status: 'ACTIVE' },
+      { _id: 'acc-5', externalAccountId: 'EXT-5', status: 'AUTH_FAILED' },
+    ]);
+    const linkIndex = indexLinkHealth({
+      accounts: [{ accountId: 'acc-9', state: 'NEEDS_RELINK', reason: 'REJECTED', vehicles: [] }],
+    });
+    expect(mapVehicleForExport({ fleetEdgeAccountId: 'acc-9' }, map, linkIndex).fleetEdgeLink).toBe(
+      'Disconnected',
+    );
+    // Without link data (the check failed or is unavailable) the stored status still shows.
+    expect(mapVehicleForExport({ fleetEdgeAccountId: 'acc-5' }, map).fleetEdgeLink).toBe(
+      'Login failed',
+    );
   });
 
   it('marks untagged vehicles in exports', () => {

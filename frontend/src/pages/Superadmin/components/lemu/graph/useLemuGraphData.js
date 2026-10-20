@@ -162,15 +162,19 @@ export const useLemuGraphData = () => {
       setJobs(data.data || []);
       setJobsCheckedAt(data.checkedAt || null);
     } catch (e) {
-      setJobsError(e.detail || e.message || 'Failed to load job health');
+      setJobsError(e.message || 'Failed to load job health');
     } finally {
       setJobsLoading(false);
     }
   }, []);
 
   /* Initial loads */
-  useEffect(() => { loadManifest(); }, [loadManifest]);
-  useEffect(() => { loadPulse(); }, [loadPulse]);
+  useEffect(() => {
+    loadManifest();
+  }, [loadManifest]);
+  useEffect(() => {
+    loadPulse();
+  }, [loadPulse]);
   useEffect(() => {
     loadLiveness();
     loadTopology();
@@ -196,9 +200,15 @@ export const useLemuGraphData = () => {
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [loadLiveness, loadJobs, loadTopology, loadErrorAttribution]);
-  useEffect(() => { loadFindings(); }, [loadFindings]);
-  useEffect(() => { loadManifests(); }, [loadManifests]);
-  useEffect(() => { loadJobs(); }, [loadJobs]);
+  useEffect(() => {
+    loadFindings();
+  }, [loadFindings]);
+  useEffect(() => {
+    loadManifests();
+  }, [loadManifests]);
+  useEffect(() => {
+    loadJobs();
+  }, [loadJobs]);
 
   /* Manifest-derived state (freshness ribbon counts for the drawer). */
   const findingIds = useMemo(() => {
@@ -212,12 +222,15 @@ export const useLemuGraphData = () => {
 
   /* Silent refresh of the slow-moving Layer-3 payloads (auto-refresh /
      Refresh button). */
-  const refreshLayer3 = useCallback((silent = true) => {
-    loadManifest(silent);
-    loadPulse(silent);
-    loadFindings(silent);
-    loadManifests(silent);
-  }, [loadManifest, loadPulse, loadFindings, loadManifests]);
+  const refreshLayer3 = useCallback(
+    (silent = true) => {
+      loadManifest(silent);
+      loadPulse(silent);
+      loadFindings(silent);
+      loadManifests(silent);
+    },
+    [loadManifest, loadPulse, loadFindings, loadManifests],
+  );
 
   return {
     manifest,
@@ -255,7 +268,9 @@ export const useLemuGraphData = () => {
 export const useLemuSelectedNode = ({ selectedNodeId, manifest, pulse, jobs, topology }) => {
   const functionsByName = useMemo(() => {
     const map = {};
-    (manifest?.functions || []).forEach((fn) => { map[fn.functionName] = fn; });
+    (manifest?.functions || []).forEach((fn) => {
+      map[fn.functionName] = fn;
+    });
     return map;
   }, [manifest]);
 
@@ -276,7 +291,15 @@ export const useLemuSelectedNode = ({ selectedNodeId, manifest, pulse, jobs, top
           const r = (b.routes || []).find((x) => x.key === routePulseKey(route));
           return r || { n: 0, err: 0 };
         });
-        return { kind: 'route', node: { ...route, _id: selectedNodeId, _module: deriveRouteModule(route, functionsByName) }, pulseSeries };
+        return {
+          kind: 'route',
+          node: {
+            ...route,
+            _id: selectedNodeId,
+            _module: deriveRouteModule(route, functionsByName),
+          },
+          pulseSeries,
+        };
       }
     }
 
@@ -296,16 +319,26 @@ export const useLemuSelectedNode = ({ selectedNodeId, manifest, pulse, jobs, top
       if (job) {
         const health = (jobs || []).find((j) => j.job === job.name) || {};
         const topoJob = (topology?.nodes || []).find((n) => n.id === selectedNodeId);
-        return { kind: 'job', node: { ...job, _id: selectedNodeId, _topo: topoJob }, pulseSeries: { _health: health } };
+        return {
+          kind: 'job',
+          node: { ...job, _id: selectedNodeId, _topo: topoJob },
+          pulseSeries: { _health: health },
+        };
       }
     }
 
     if (kind === 'module') {
       const module = (manifest.modules || []).find((m) => nodeId.module(m) === selectedNodeId);
       if (module) {
-        const routes = (manifest.routes || []).filter((r) => deriveRouteModule(r, functionsByName) === module.name);
+        const routes = (manifest.routes || []).filter(
+          (r) => deriveRouteModule(r, functionsByName) === module.name,
+        );
         const funcs = (manifest.functions || []).filter((f) => f.module === module.name);
-        return { kind: 'module', node: { ...module, _id: selectedNodeId, _routes: routes, _functions: funcs }, pulseSeries: [] };
+        return {
+          kind: 'module',
+          node: { ...module, _id: selectedNodeId, _routes: routes, _functions: funcs },
+          pulseSeries: [],
+        };
       }
     }
 
@@ -314,7 +347,15 @@ export const useLemuSelectedNode = ({ selectedNodeId, manifest, pulse, jobs, top
        here. INFRA kinds keep the null above: their absence means the topology
        has no such node. */
     if (['model', 'job', 'module', 'route'].includes(kind)) {
-      return { kind, node: { _id: selectedNodeId, label: selectedNodeId.slice(kind.length + 1), _unresolved: true }, pulseSeries: null };
+      return {
+        kind,
+        node: {
+          _id: selectedNodeId,
+          label: selectedNodeId.slice(kind.length + 1),
+          _unresolved: true,
+        },
+        pulseSeries: null,
+      };
     }
 
     return null;

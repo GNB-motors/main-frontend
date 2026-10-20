@@ -8,9 +8,9 @@ import {
 } from '@/components/ui/select';
 import DataTable from '../../../components/ui/DataTable';
 import { Button } from '../../../components/ui/button';
-import apiClient from '../../../utils/axiosConfig';
 import useApi from '../../../hooks/useApi';
 import { LearningService } from '../../../services/LearningService';
+import { SuperAdminLearningService } from './SuperAdminLearningService';
 
 const TABS = [
   { key: 'audit', label: 'Audit queue' },
@@ -31,11 +31,11 @@ export default function SuperAdminLearningPage() {
   const [tab, setTab] = useState('audit');
 
   const { data: orgsData } = useApi(
-    (signal) => apiClient.get('/api/admin/organizations', { signal }),
+    (signal) => SuperAdminLearningService.listOrganizations({ signal }),
     [],
   );
   const orgs = useMemo(() => {
-    const raw = orgsData?.data?.data ?? orgsData?.data ?? [];
+    const raw = orgsData ?? [];
     return (Array.isArray(raw) ? raw : [])
       .map((o) => ({
         id: String(o._id || o.id),

@@ -4,7 +4,7 @@ import { useApi } from '../../hooks/useApi';
 import { getUserRole } from '../../utils/session.js';
 import AutoTripService from '../../services/AutoTripService';
 import { formatNum } from '../../utils/formatters';
-import { fmtDateRange } from './autoTripModel';
+import { fmtDateRange } from './autoTripFormat';
 import './AutoTrips.css';
 
 const CAN_SEE = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
@@ -80,8 +80,12 @@ export default function RegisterMatchCard({ defaultOpen = false, empty = null })
   );
 }
 
-function PlantChart({ plants }) {
-  const max = Math.max(...plants.map(([, b]) => b.cycles ?? 0), 1);
+/**
+ * Plant-wise bars. `plants` is [[label, bucket]]; `max` fixes the bar scale so
+ * a paged list keeps one scale across pages (defaults to the largest shown).
+ */
+export function PlantChart({ plants, max: scaleMax = null }) {
+  const max = scaleMax ?? Math.max(...plants.map(([, b]) => b.cycles ?? 0), 1);
 
   return (
     <div className="atx-banner-more atx-rm">
