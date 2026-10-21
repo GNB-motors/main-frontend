@@ -4,13 +4,11 @@ import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath, URL } from 'node:url';
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, '.', '');
-  // The SSE client opens a same-origin /api/live/stream URL. In dev there is no
-  // frontend nginx to proxy it, so forward it to the API from .env the way axios
-  // reaches it: under the base URL's path. With VITE_API_BASE_URL=https://host/v1,
-  // /api/live/stream → https://host/v1/api/live/stream (the gateway strips /v1);
-  // proxying to the bare origin hits an unrouted path and every stream 404s.
+  // In dev, proxy API calls (including SSE) through Vite. The production API
+  // does not allow local browser origins. Preserve the configured base path:
+  // /api/auth/login → https://host/v1/api/auth/login when the base ends in /v1.
   let apiOrigin = null;
   let apiBasePath = '';
   try {
@@ -25,6 +23,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
+    ...(command === 'serve' && apiOrigin
+      ? { define: { 'import.meta.env.VITE_API_BASE_URL': JSON.stringify('') } }
+      : {}),
     esbuild: {
       // Strips console.log/warn/info/debug calls at BUILD TIME in production.
       // console.error is intentionally kept — real runtime errors should still surface.
@@ -41,18 +42,23 @@ export default defineConfig(({ mode }) => {
     server: apiOrigin
       ? {
           proxy: {
-            '/api/live': {
+            '/api': {
               target: apiOrigin,
               changeOrigin: true,
               secure: true,
               rewrite: (path) => `${apiBasePath}${path}`,
               configure: (proxy) => {
+                // This is a server-to-server request; the upstream must not
+                // receive the browser's local Origin and reject it via CORS.
+                proxy.on('proxyReq', (proxyReq) => {
+                  proxyReq.removeHeader('origin');
+                });
                 proxy.on('error', (_err, _req, res) => {
                   if (res && !res.headersSent && res.writeHead) {
                     res.writeHead(502, { 'Content-Type': 'application/json' });
                   }
                   if (res && res.end) {
-                    res.end(JSON.stringify({ error: 'Live stream temporarily unavailable' }));
+                    res.end(JSON.stringify({ error: 'API temporarily unavailable' }));
                   }
                 });
               },
