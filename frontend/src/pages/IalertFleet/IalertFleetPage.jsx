@@ -201,7 +201,7 @@ export default function IalertFleetPage() {
           <FilterBar
             searchValue={q}
             onSearchChange={setQ}
-            searchPlaceholder="Search by registration, VIN or account…"
+            searchPlaceholder="Search plate, VIN or account"
             chips={chips}
             selectedKeys={statuses}
             onToggleChip={toggleStatus}
@@ -261,7 +261,9 @@ export default function IalertFleetPage() {
         emptyHint={
           activeFilters
             ? 'Clear a filter or try another registration.'
-            : 'Connect iALERT from the GNB browser extension. Vehicles appear here within a few minutes.'
+            : firstPullPending
+              ? 'Your iALERT account is connected. Vehicles appear here after the first update, usually within a few minutes.'
+              : 'Connect iALERT from the GNB browser extension. Vehicles appear here within a few minutes.'
         }
         emptyAction={
           activeFilters ? null : (

@@ -1079,6 +1079,10 @@ a.ov-kpi:hover {
 .place-label--pending {
   color: var(--inert);
 }
+.place-label--pending .place-label-main {
+  color: inherit;
+  font-weight: 500;
+}
 .place-label-icon {
   color: var(--inert);
   flex: 0 0 auto;

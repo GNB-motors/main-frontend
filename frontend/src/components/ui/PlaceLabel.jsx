@@ -21,27 +21,32 @@ const KIND_ICON = {
 };
 
 export default function PlaceLabel({ lat, lng, place = null, showMap = true, className = '' }) {
-  const [resolved, setResolved] = useState(place);
+  const key = lat == null || lng == null ? null : `${lat},${lng}`;
+  // { key, place } of the last lookup; `place: null` = the lookup failed or found nothing.
+  const [lookup, setLookup] = useState(null);
 
   useEffect(() => {
-    if (place || lat == null || lng == null) return undefined;
+    if (place || key == null) return undefined;
     let alive = true;
     resolvePlace(lat, lng).then((p) => {
-      if (alive) setResolved(p);
+      if (alive) setLookup({ key, place: p ?? null });
     });
     return () => {
       alive = false;
     };
-  }, [place, lat, lng]);
+  }, [place, key, lat, lng]);
 
-  if (lat == null || lng == null) return <span className="text-dim">—</span>;
+  if (key == null) return <span className="text-dim">—</span>;
 
   const numLat = Number(lat);
   const numLng = Number(lng);
   const tooltip = `${numLat.toFixed(5)}, ${numLng.toFixed(5)}`;
   const mapUrl = `https://www.google.com/maps?q=${numLat},${numLng}`;
+  const resolved = place || (lookup?.key === key ? lookup.place : undefined);
 
   if (!resolved) {
+    // undefined = still looking up; null = no name (PlaceService negative-caches failures).
+    const text = resolved === undefined ? 'Finding location…' : 'View on map';
     return showMap ? (
       <a
         href={mapUrl}
@@ -51,11 +56,11 @@ export default function PlaceLabel({ lat, lng, place = null, showMap = true, cla
         title={tooltip}
       >
         <MapPin size={12} />
-        <span className="place-label-main">Finding location…</span>
+        <span className="place-label-main">{text}</span>
       </a>
     ) : (
       <span className="text-dim" title={tooltip}>
-        …
+        {resolved === undefined ? '…' : '—'}
       </span>
     );
   }
