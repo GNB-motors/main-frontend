@@ -11,7 +11,9 @@ import { useApi } from '../../hooks/useApi';
 import { formatNum, timeAgo } from '../../utils/formatters';
 import { formatDateTimeIST } from '../../utils/dateUtils';
 import { fetchIalertVehicles } from './ialertFleetApi.js';
+import { fetchIalertStatus } from '../Settings/ialertStatusApi.js';
 import {
+  connectionNotice,
   exportRows,
   filterVehicles,
   newestPull,
@@ -86,6 +88,7 @@ const EXPORT_COLUMNS = [
 export default function IalertFleetPage() {
   const navigate = useNavigate();
   const { data, loading, error, refetch } = useApi((signal) => fetchIalertVehicles(signal), []);
+  const link = useApi((signal) => fetchIalertStatus(signal), []);
   const [q, setQ] = useState('');
   const [statuses, setStatuses] = useState([]);
   const [now, setNow] = useState(() => Date.now());
@@ -94,9 +97,10 @@ export default function IalertFleetPage() {
     const id = setInterval(() => {
       setNow(Date.now());
       refetch();
+      link.refetch();
     }, REFRESH_MS);
     return () => clearInterval(id);
-  }, [refetch]);
+  }, [refetch, link.refetch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // PageShell owns its padding.
   useEffect(() => {
@@ -166,11 +170,12 @@ export default function IalertFleetPage() {
   ];
 
   const firstPullPending = data?.firstPullPending;
+  const notice = connectionNotice(link.data);
 
   return (
     <PageShell
       title="iALERT vehicles"
-      subtitle="Live status from your Ashok Leyland iALERT account, refreshed every minute."
+      subtitle="Live status from your Ashok Leyland iALERT account. New data arrives about every 5 minutes while the account is connected."
       count={vehicles.length || null}
       freshnessAt={newestPull(vehicles)}
       actions={
@@ -219,6 +224,32 @@ export default function IalertFleetPage() {
           : null
       }
     >
+      {notice ? (
+        <div className={`iaf-callout iaf-callout--${notice.tone}`} role={notice.tone === 'info' ? 'status' : 'alert'}>
+          <span>
+            {notice.tone === 'info' ? (
+              <>
+                <strong>iALERT is reconnecting.</strong> Data resumes on its own; nothing to do.
+              </>
+            ) : (
+              <>
+                <strong>
+                  {notice.tone === 'crit'
+                    ? 'iALERT stopped sending data'
+                    : `${formatNum(notice.stopped)} of ${formatNum(notice.total)} iALERT accounts stopped sending data`}
+                  {notice.since ? ` ${timeAgo(notice.since)} (${formatDateTimeIST(notice.since)})` : ''}.
+                </strong>{' '}
+                The positions below are the last ones received. Sign in to iALERT again in Chrome with the
+                GNB Edge extension installed; data resumes within about 5 minutes.
+              </>
+            )}
+          </span>
+          <Link to="/settings/ialert-accounts" className="iaf-callout-link">
+            iALERT accounts <ArrowRight size={14} aria-hidden="true" />
+          </Link>
+        </div>
+      ) : null}
+
       {notInFleet > 0 ? (
         <div className="iaf-callout" role="note">
           <span>

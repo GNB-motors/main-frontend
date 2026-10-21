@@ -19,6 +19,7 @@ import { getProfileField, getUserRole } from '../../utils/session.js';
 import {
   ADD_TO_FLEET_ROLES,
   isAddableRegistration,
+  displayValue,
   toVehiclePayload,
   edgeRowKey,
   selectedRowsFrom,
@@ -131,14 +132,23 @@ export default function FleetCoveragePage() {
     {
       key: 'registrationNumber',
       label: 'Vehicle',
-      render: (v) => <span className="reg-plate">{v.registrationNumber || 'NA'}</span>,
+      render: (v) =>
+        isAddableRegistration(v.registrationNumber) ? (
+          <span className="reg-plate">{v.registrationNumber}</span>
+        ) : (
+          // A placeholder plate ("NA", "TEMP") identifies nothing; the VIN does.
+          <span className="flex flex-col">
+            <span className="text-dim text-xs font-semibold">No registration</span>
+            {v.vin ? <span className="font-mono text-xs">{v.vin}</span> : null}
+          </span>
+        ),
     },
-    { key: 'vehicleModel', label: 'Model', render: (v) => v.vehicleModel || '—' },
-    { key: 'manufacturer', label: 'Manufacturer', render: (v) => v.manufacturer || '—' },
-    { key: 'fuelType', label: 'Fuel', render: (v) => v.fuelType || '—' },
-    { key: 'emissionNorm', label: 'Emission', render: (v) => v.emissionNorm || '—' },
-    { key: 'lobName', label: 'LOB', render: (v) => v.lobName || '—' },
-    { key: 'accountName', label: 'Account', render: (v) => v.accountName || '—' },
+    { key: 'vehicleModel', label: 'Model', render: (v) => displayValue(v.vehicleModel) },
+    { key: 'manufacturer', label: 'Manufacturer', render: (v) => displayValue(v.manufacturer) },
+    { key: 'fuelType', label: 'Fuel', render: (v) => displayValue(v.fuelType) },
+    { key: 'emissionNorm', label: 'Emission', render: (v) => displayValue(v.emissionNorm) },
+    { key: 'lobName', label: 'LOB', render: (v) => displayValue(v.lobName) },
+    { key: 'accountName', label: 'Account', render: (v) => displayValue(v.accountName) },
     {
       key: 'lastSeenAt',
       label: 'Last seen',
@@ -150,24 +160,23 @@ export default function FleetCoveragePage() {
           {
             key: '_add',
             label: '',
-            render: (v, i) => {
-              const addable = isAddableRegistration(v.registrationNumber);
-              return (
+            render: (v, i) =>
+              isAddableRegistration(v.registrationNumber) ? (
                 <NewButton
                   variant="tertiary"
                   size="xs"
                   text="Add to fleet"
-                  disabled={!addable}
                   loading={addingKey === edgeRowKey(v, i)}
-                  title={
-                    addable
-                      ? undefined
-                      : 'FleetEdge reported no registration number for this vehicle'
-                  }
                   onClick={() => handleAddOne(v)}
                 />
-              );
-            },
+              ) : (
+                <span
+                  className="text-dim text-xs"
+                  title="Registration numbers are unique; add the real plate in FleetEdge first and it can be added here."
+                >
+                  Needs a registration in FleetEdge
+                </span>
+              ),
           },
         ]
       : []),
@@ -241,10 +250,10 @@ export default function FleetCoveragePage() {
           >
             <ArrowLeft size={16} />
           </button>
-          <span>FleetEdge Coverage</span>
+          <span>Fleet coverage</span>
         </span>
       }
-      subtitle="Vehicles your FleetEdge account reports vs vehicles in your fleet master."
+      subtitle="Vehicles your Tata FleetEdge and Ashok Leyland iALERT accounts report, compared with your fleet master."
       filters={
         <FilterBar
           searchValue={q}
@@ -255,16 +264,16 @@ export default function FleetCoveragePage() {
         />
       }
       footer={`${footerSummary({
-        showing: onlyEdgeFiltered.length + onlyMasterFiltered.length,
-        total: onlyEdge.length + onlyMaster.length,
+        showing: onlyEdgeFiltered.length + onlyMasterFiltered.length + onlyIalertFiltered.length,
+        total: onlyEdge.length + onlyMaster.length + onlyIalert.length,
         activeFilters: activeFilterCount({ q }),
-      })} · search filters both lists`}
+      })} · search covers every list`}
     >
       <PanelErrorBoundary name="fleet-coverage">
         {loading && !data ? (
           <>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              {[...Array(4)].map((_, i) => (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+              {[...Array(6)].map((_, i) => (
                 <div key={i} className="cluster-inset h-20 animate-pulse" />
               ))}
             </div>
@@ -286,7 +295,7 @@ export default function FleetCoveragePage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
               <StatTile label="Linked" value={formatNum(linkedCount)} tone="var(--ok)" />
               {inIalertCount > 0 ? (
                 <StatTile label="In iALERT" value={formatNum(inIalertCount)} tone="var(--ok)" />

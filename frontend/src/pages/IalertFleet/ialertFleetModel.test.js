@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  connectionNotice,
   exportRows,
   filterVehicles,
   formatDuration,
@@ -108,5 +109,38 @@ describe('newestPull / exportRows', () => {
       bs6: 'Yes',
       inFleet: 'Yes',
     });
+  });
+});
+
+describe('connectionNotice', () => {
+  const live = { accountStatus: 'ACTIVE', status: 'ACTIVE', expiresAt: '2026-10-21T20:30:00Z' };
+  const stopped = {
+    accountStatus: 'ACTIVE',
+    status: 'NEEDS_REAUTH',
+    canSelfRenew: false,
+    expiresAt: '2026-10-21T19:51:48Z',
+  };
+
+  it('stays quiet while every link is live, or when there is no link', () => {
+    expect(connectionNotice([live])).toBeNull();
+    expect(connectionNotice([])).toBeNull();
+    expect(connectionNotice(null)).toBeNull();
+  });
+
+  it('says data stopped, and since when, when the only link needs a new sign-in', () => {
+    expect(connectionNotice([stopped])).toEqual({
+      tone: 'crit',
+      stopped: 1,
+      total: 1,
+      since: '2026-10-21T19:51:48Z',
+    });
+  });
+
+  it('is a warning when only some links stopped', () => {
+    expect(connectionNotice([live, stopped])).toMatchObject({ tone: 'warn', stopped: 1, total: 2 });
+  });
+
+  it('reports a link that is renewing on its own as info', () => {
+    expect(connectionNotice([{ ...stopped, canSelfRenew: true }])).toMatchObject({ tone: 'info' });
   });
 });
