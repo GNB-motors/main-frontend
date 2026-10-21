@@ -340,6 +340,8 @@ export default function FleetCoveragePage() {
                   searching={searching}
                   onlyIalert={onlyIalert}
                   staleIalert={staleIalert}
+                  canAddVehicles={canAddVehicles}
+                  onAdded={() => refetch()}
                 />
               ) : activeTab === 'edge' ? (
                 <EdgeOnlyPanel
