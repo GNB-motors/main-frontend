@@ -94,7 +94,13 @@ export default function PlaceHubPage() {
 
   /* ─── Tabs ────────────────────────────────────────────────────────────── */
 
-  const tabs = placeHubTabs({ allowIdling, allowFuel, allowSites, isSuperAdmin });
+  const tabs = placeHubTabs({
+    allowIdling,
+    allowFuel,
+    allowSites,
+    isSuperAdmin,
+    allowHygiene: allowSites && isEnabled('placesHygiene'),
+  });
   const requestedTab = params.get('tab');
   const tab = tabs.some((t) => t.id === requestedTab) ? requestedTab : 'places';
 

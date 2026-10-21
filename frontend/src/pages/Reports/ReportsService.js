@@ -1,4 +1,5 @@
 import apiClient from '../../utils/axiosConfig'; // Use the configured axios instance
+import SapService from '../../services/SapService';
 import ApiError from '../../errors/ApiError';
 import logger from '../../utils/logger';
 import { parseSafe } from '../../schemas/validate';
@@ -32,10 +33,39 @@ export const ReportsService = {
    * Lane km vs SAP: every lane of the owner's SAP sheet with the km trips run on it.
    * @returns {Promise<{ rows?: Array, totals?: Object }>}
    */
-  getLaneKm: async ({ signal } = {}) => {
+  getLaneKm: async ({ signal, preferSap = true } = {}) => {
     try {
-      const response = await apiClient.get('api/reports/lanes', { signal });
-      return response.data?.data || response.data || {};
+      const legacy = async () => {
+        const response = await apiClient.get('api/reports/lanes', { signal });
+        return { ...(response.data?.data || response.data || {}), legacy: true };
+      };
+      if (!preferSap) return await legacy();
+      try {
+        const [first, settings] = await Promise.all([
+          SapService.lanes({ page: 1, limit: 100 }, { signal }),
+          SapService.settings({ signal }),
+        ]);
+        const rows = [...(first.rows || [])];
+        const total = first.total ?? rows.length;
+        for (let page = 2; rows.length < total; page += 1) {
+          const next = await SapService.lanes({ page, limit: 100 }, { signal });
+          if (!next.rows?.length) break;
+          rows.push(...next.rows);
+        }
+        return {
+          ...first,
+          rows: rows.map((row) => ({
+            ...row,
+            tolerancePct: settings.tolerancePct,
+            multiValuePolicy: settings.multiValuePolicy,
+            minKmForVerdict: settings.minKmForVerdict,
+          })),
+          settings,
+        };
+      } catch (error) {
+        if ((error.status ?? error.response?.status) !== 404) throw error;
+        return await legacy();
+      }
     } catch (error) {
       if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);

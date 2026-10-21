@@ -1,5 +1,6 @@
-import { Fragment, useState } from 'react';
+import { Fragment, lazy, Suspense, useState } from 'react';
 import { ChevronDown, ChevronRight, ArrowRight, Route } from 'lucide-react';
+import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
 import useApi from '../../../hooks/useApi';
 import { formatNum } from '../../../utils/formatters';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
@@ -8,6 +9,7 @@ import EmptyPanel from './EmptyPanel';
 import LegDetail from './LegDetail';
 import LegEnd from './LegEnd';
 import { messageOf } from './model/requestOutcome.js';
+import '../../Sap/Sap.css';
 import { kmLabel, minutesLabel } from './model/unitLabels.js';
 
 /**
@@ -15,7 +17,7 @@ import { kmLabel, minutesLabel } from './model/unitLabels.js';
  * what a normal run costs in time, km and fuel. Open a leg to see each run
  * scored against that leg's own history.
  */
-export default function RoutesTab({ version }) {
+function AllMovements({ version }) {
   const { data, loading, error } = useApi(
     (signal) => PlaceIntelligenceService.listLegs({ limit: 100 }, { signal }),
     [version],
@@ -109,6 +111,42 @@ export default function RoutesTab({ version }) {
           })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+const DeliveryRoutes = lazy(() => import('./DeliveryRoutes'));
+export default function RoutesTab({ version }) {
+  const { isEnabled } = useFeatureFlags();
+  const deliveries = isEnabled('routesV2');
+  const [mode, setMode] = useState('deliveries');
+  return (
+    <div className="sap-stack">
+      {deliveries && (
+        <div className="sap-row" aria-label="Route views">
+          {[
+            ['deliveries', 'Deliveries'],
+            ['all', 'All movements'],
+          ].map(([id, label]) => (
+            <button
+              className="sap-btn"
+              type="button"
+              key={id}
+              aria-pressed={mode === id}
+              onClick={() => setMode(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+      {deliveries && mode === 'deliveries' ? (
+        <Suspense fallback={<PanelLoading />}>
+          <DeliveryRoutes version={version} />
+        </Suspense>
+      ) : (
+        <AllMovements version={version} />
+      )}
     </div>
   );
 }

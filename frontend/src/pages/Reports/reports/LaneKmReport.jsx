@@ -1,4 +1,7 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { canEditSap } from '../../Sap/sapModel';
+import { getUserRole } from '../../../utils/session';
 import { AlertTriangle, MapPinOff, Route, TrendingUp } from 'lucide-react';
 import DataTable from '../../../components/ui/DataTable';
 import { StatusPill } from '../../../components/overview.primitives.jsx';
@@ -9,6 +12,10 @@ import { laneRow, filterLanes, LANE_FILTERS } from './laneKmReportUtils';
 import ReportFrame, { ReportClear, ReportFooter, ReportSearch, ReportSelect } from './ReportFrame';
 import { pageCount, pageSlice, rangeLabel, REPORT_PAGE_SIZE } from './reportFilters';
 import useReportPage from './useReportPage';
+import '../../Sap/Sap.css';
+
+const SapSettings = lazy(() => import('../../Sap/SapSettings'));
+const SapMatchReview = lazy(() => import('../../Sap/SapMatchReview'));
 
 const km = (v) => (v == null ? '—' : `${Math.round(v).toLocaleString('en-IN')} km`);
 
@@ -21,6 +28,11 @@ const COLUMNS = [
         <div className="cell-primary font-medium">
           {r.from} → {r.to}
         </div>
+        {(r.fromName || r.toName) && (
+          <div className="text-xs text-slate-500">
+            {r.fromName || '—'} → {r.toName || '—'}
+          </div>
+        )}
         {r.fromRegister && (
           <div className="text-xs text-slate-500">
             Not in the sheet{r.possibly ? ` — possibly the sheet’s ${r.possibly}` : ''}
@@ -43,8 +55,18 @@ const COLUMNS = [
     ),
   },
   {
+    key: 'gps',
+    label: 'GPS loaded km',
+    align: 'right',
+    render: (r) => (
+      <div>
+        {km(r.gpsKm)} <span className="text-xs text-slate-500">({r.gpsTrips ?? 0} trips)</span>
+      </div>
+    ),
+  },
+  {
     key: 'measured',
-    label: 'Measured km',
+    label: 'Refuel-cycle km (register)',
     align: 'right',
     render: (r) => (
       <div className="cell-primary">
@@ -94,7 +116,7 @@ const VERDICT_OPTIONS = LANE_FILTERS.map((f) => ({ value: f.key, label: f.label 
 
 const count = (v) => (v == null ? '—' : formatNum(v));
 
-function laneKpis(totals) {
+function laneKpis(totals, legacy) {
   return [
     {
       label: 'Lanes',
@@ -104,24 +126,26 @@ function laneKpis(totals) {
     },
     {
       label: 'Run over SAP',
-      value: count(totals.overSap),
+      value: count(totals.overSap ?? totals.over),
       icon: AlertTriangle,
       tone: 'red',
-      hint: 'Beyond their own trip-to-trip spread',
+      hint: legacy
+        ? 'Refuel-cycle distance beyond its usual spread'
+        : 'GPS loaded distance beyond SAP tolerance',
     },
     {
       label: 'Extra km over SAP',
       value: km(totals.extraKm),
       icon: TrendingUp,
       tone: 'orange',
-      hint: 'Across the register',
+      hint: legacy ? 'Across register trips' : 'Across GPS trips',
     },
     {
       label: 'Not in SAP',
-      value: count(totals.notInSap),
+      value: count(totals.notInSap ?? totals.noSap),
       icon: MapPinOff,
       tone: 'violet',
-      hint: 'Measured km is our proposed distance',
+      hint: 'Routes without a sheet distance',
     },
   ];
 }
@@ -131,11 +155,11 @@ function laneKpis(totals) {
  * register's one-drop trips actually run, measured every night. SAP stays the
  * billing reference; this is the check.
  */
-export default function LaneKmReport() {
+function LaneKmTable() {
   const [verdict, setVerdict] = useState('all');
   const [search, setSearch] = useState('');
   const { data, loading, error, refetch } = useApi(
-    (signal) => ReportsService.getLaneKm({ signal }),
+    (signal) => ReportsService.getLaneKm({ signal, preferSap: canEditSap(getUserRole()) }),
     [],
   );
   const payload = data || {};
@@ -151,7 +175,7 @@ export default function LaneKmReport() {
     <ReportFrame
       layout="inline"
       title="Lane km vs SAP"
-      subtitle="Each lane's SAP distance beside the km your trucks actually run on it, from the trip register — measured every night"
+      subtitle="Refuel-cycle km is odometer between two refuels from your oil report, and usually covers more than one leg. GPS loaded km is plant → drop on this trip."
       filters={
         <>
           <ReportSearch value={search} onChange={setSearch} placeholder="Search plant or town" />
@@ -171,7 +195,7 @@ export default function LaneKmReport() {
           />
         </>
       }
-      kpis={data && !error ? laneKpis(totals) : null}
+      kpis={data && !error ? laneKpis(totals, payload.legacy) : null}
       footer={
         <ReportFooter
           summary={`${rangeLabel(page, REPORT_PAGE_SIZE, shown.length)} lanes`}
@@ -181,23 +205,74 @@ export default function LaneKmReport() {
         />
       }
     >
-      <DataTable
-        columns={COLUMNS}
-        rows={error ? [] : pageRows}
-        rowKey={(r) => r.id}
-        loading={loading && !data}
-        error={error}
-        onRetry={refetch}
-        showing={pageRows.length}
-        total={shown.length}
-        activeFilters={activeFilters}
-        emptyTitle={activeFilters ? 'No lane matches these filters' : 'No lanes yet'}
-        emptyHint={
-          activeFilters
-            ? 'Clear the search or choose All lanes.'
-            : 'This fills in once the lane sheet (FROM, TO, SAP km) is imported; lanes are measured from the trip register every night.'
-        }
-      />
+      <>
+        {payload.legacy && (
+          <p className="sap-muted">
+            Showing refuel-cycle data. GPS comparisons are unavailable in this view.
+          </p>
+        )}
+        <DataTable
+          columns={COLUMNS}
+          rows={error ? [] : pageRows}
+          rowKey={(r) => r.id}
+          loading={loading && !data}
+          error={error}
+          onRetry={refetch}
+          showing={pageRows.length}
+          total={shown.length}
+          activeFilters={activeFilters}
+          emptyTitle={activeFilters ? 'No lane matches these filters' : 'No lanes yet'}
+          emptyHint={
+            activeFilters
+              ? 'Clear the search or choose All lanes.'
+              : 'This fills in once the lane sheet (FROM, TO, SAP km) is imported; lanes are measured from the trip register every night.'
+          }
+        />
+      </>
     </ReportFrame>
+  );
+}
+
+export default function LaneKmReport() {
+  const [params, setParams] = useSearchParams();
+  const canEdit = canEditSap(getUserRole());
+  const requested = params.get('sapTab');
+  const tab = canEdit && ['settings', 'review'].includes(requested) ? requested : 'lanes';
+  return (
+    <div>
+      {canEdit && (
+        <nav className="sap-panel sap-row" aria-label="SAP views">
+          {[
+            ['lanes', 'Lane km'],
+            ['settings', 'Settings & upload'],
+            ['review', 'Link SAP sheet to places'],
+          ].map(([id, label]) => (
+            <button
+              className="sap-btn"
+              aria-pressed={tab === id}
+              type="button"
+              key={id}
+              onClick={() => {
+                const next = new URLSearchParams(params);
+                if (id === 'lanes') next.delete('sapTab');
+                else next.set('sapTab', id);
+                setParams(next, { replace: true });
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+      )}
+      <Suspense fallback={<p className="sap-panel">Loading…</p>}>
+        {tab === 'settings' ? (
+          <SapSettings />
+        ) : tab === 'review' ? (
+          <SapMatchReview />
+        ) : (
+          <LaneKmTable />
+        )}
+      </Suspense>
+    </div>
   );
 }

@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { CalendarClock, FileText, Plus, ShieldCheck, TriangleAlert } from 'lucide-react';
+import SapPill from '../Sap/SapPill';
+import { FLAG_LABEL } from './autoTripPlaces';
 import DataTable from '../../components/ui/DataTable';
 import { useApi } from '../../hooks/useApi';
 import AutoTripService from '../../services/AutoTripService';
@@ -66,9 +68,11 @@ export default function AutoTripsPage() {
       page,
       limit: PAGE_SIZE,
       ...(statusTab ? { status: statusTab } : {}),
+      ...(searchParams.get('sapVerdict') ? { sapVerdict: searchParams.get('sapVerdict') } : {}),
+      ...(searchParams.get('dropSiteId') ? { dropSiteId: searchParams.get('dropSiteId') } : {}),
       ...rangeToParams({ range: rangeKind, from: rangeFrom, to: rangeTo }),
     }),
-    [page, statusTab, rangeKind, rangeFrom, rangeTo],
+    [page, statusTab, rangeKind, rangeFrom, rangeTo, searchParams],
   );
 
   const { data, loading, error, refetch } = useApi(
@@ -116,6 +120,32 @@ export default function AutoTripsPage() {
         align: 'right',
         render: (r) =>
           r.km?.laden == null ? <span className="atx-muted">—</span> : fmtKm(r.km.laden),
+      },
+      {
+        key: 'sap',
+        label: 'SAP km',
+        render: (r) => (
+          <div className="sap-stack">
+            <span>
+              {r.sap?.status === 'MATCHED'
+                ? r.sap.multipleSap
+                  ? r.sap.values?.join(' / ')
+                  : r.sap.sapKm
+                : '—'}
+            </span>
+            {r.sap ? <SapPill sap={r.sap} /> : <span className="sap-muted">Not computed yet</span>}
+          </div>
+        ),
+      },
+      {
+        key: 'flags',
+        label: 'Checks',
+        render: (r) =>
+          (r.flags || []).map((f) => (
+            <span className="atx-chip" key={f}>
+              {FLAG_LABEL[f] || f}
+            </span>
+          )),
       },
       { key: 'status', label: 'Status', render: (r) => <StatusPill status={r.status} /> },
       {
@@ -239,9 +269,47 @@ export default function AutoTripsPage() {
               </button>
             ))}
           </div>
+          <label className="sap-row">
+            SAP
+            <select
+              className="sap-filter"
+              value={searchParams.get('sapVerdict') || ''}
+              onChange={(e) => {
+                const next = new URLSearchParams(searchParams);
+                if (e.target.value) next.set('sapVerdict', e.target.value);
+                else next.delete('sapVerdict');
+                setSearchParams(next, { replace: true });
+                setPage(1);
+              }}
+            >
+              <option value="">All</option>
+              <option value="OVER">Over SAP</option>
+              <option value="UNDER">Under SAP</option>
+              <option value="WITHIN">Within</option>
+              <option value="NO_SAP">No SAP</option>
+            </select>
+          </label>
           <TripRangePicker value={range} onChange={changeRange} />
         </div>
 
+        {searchParams.get('dropSiteId') && (
+          <div className="sap-row">
+            <span>Drop: {searchParams.get('dropName') || 'Selected place'}</span>
+            <button
+              type="button"
+              className="atx-btn atx-btn--sm"
+              onClick={() => {
+                const next = new URLSearchParams(searchParams);
+                next.delete('dropSiteId');
+                next.delete('dropName');
+                setSearchParams(next, { replace: true });
+                setPage(1);
+              }}
+            >
+              Show all drops
+            </button>
+          </div>
+        )}
         <DataTable
           columns={columns}
           rows={items}
