@@ -1,4 +1,5 @@
 import { label } from '../../lib/vocabulary';
+import { connectionBadge } from '../Settings/ialertAccountsModel.js';
 
 /** A reading older than this is shown as "not reporting", whatever iALERT's status says. */
 export const NOT_REPORTING_AFTER_MS = 6 * 60 * 60 * 1000;
@@ -119,4 +120,33 @@ export function exportRows(vehicles, now = Date.now()) {
     account: v.accountName || '',
     inFleet: v.vehicleId ? 'Yes' : 'No',
   }));
+}
+
+/**
+ * Whether iALERT data is still arriving, from the link status rows
+ * (GET api/extension/ialert/status). The vehicle list alone can't tell: a
+ * stopped link keeps showing the last positions it pulled, which looks live.
+ * @param {object[]|null} rows status rows
+ * @returns {null | { tone: 'crit'|'warn'|'info', stopped: number, total: number, since: string|null }}
+ */
+export function connectionNotice(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  if (!list.length) return null;
+  const tones = list.map((r) => connectionBadge(r).tone);
+  const stoppedRows = list.filter((_, i) => tones[i] === 'crit');
+  const renewing = tones.includes('warn');
+  if (stoppedRows.length) {
+    const since = stoppedRows
+      .map((r) => r.expiresAt)
+      .filter(Boolean)
+      .sort()[0] || null;
+    return {
+      tone: stoppedRows.length === list.length ? 'crit' : 'warn',
+      stopped: stoppedRows.length,
+      total: list.length,
+      since,
+    };
+  }
+  if (renewing) return { tone: 'info', stopped: 0, total: list.length, since: null };
+  return null;
 }
