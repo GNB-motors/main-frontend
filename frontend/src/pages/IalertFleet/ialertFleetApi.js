@@ -10,3 +10,13 @@ export async function fetchIalertVehicles(signal) {
     vehicles: Array.isArray(data.vehicles) ? data.vehicles : [],
   };
 }
+
+/**
+ * POST api/extension/ialert/add-to-fleet — create (or tag) the fleet Vehicle for
+ * one iALERT master row, keyed by VIN. Idempotent: an already-linked vehicle
+ * comes back with { status: 'skipped', reason: 'already_tagged' }.
+ */
+export async function addIalertVehicleToFleet(vin) {
+  const res = await apiClient.post('api/extension/ialert/add-to-fleet', { vin });
+  return res.data?.data || {};
+}

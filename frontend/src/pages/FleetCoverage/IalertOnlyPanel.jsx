@@ -1,11 +1,16 @@
+import { useState } from 'react';
+import { toast } from 'react-toastify';
 import EmptyState from '../../components/cluster/EmptyState';
 import DataTable from '../../components/ui/DataTable';
 import ExportButton from '../../components/ui/ExportButton';
+import NewButton from '../../components/ui/NewButton';
 import { activeFilterCount } from '../../lib/tableState';
+import { isAddableRegistration } from './fleetCoverageActions.js';
+import { addIalertVehicleToFleet } from '../IalertFleet/ialertFleetApi.js';
 import TableShell from './TableShell.jsx';
 import { formatDateIST } from '../../utils/dateUtils';
 
-const IALERT_COLUMNS = [
+const IALERT_COLUMNS_BASE = [
   { key: 'registrationNumber', label: 'Reg. No.' },
   { key: 'vin', label: 'VIN' },
   { key: 'isBs6', label: 'BS-VI', render: (row) => (row.isBs6 === true ? '✓' : '—') }, // render gets the ROW
@@ -47,12 +52,66 @@ function filterIalert(rows, q) {
   );
 }
 
-export default function IalertOnlyPanel({ q, searching, onlyIalert, staleIalert }) {
+export default function IalertOnlyPanel({
+  q,
+  searching,
+  onlyIalert,
+  staleIalert,
+  canAddVehicles = false,
+  onAdded = null,
+}) {
   const onlyIalertFiltered = filterIalert(onlyIalert, q);
   const staleFiltered = filterIalert(staleIalert, q);
   const totalIalert = onlyIalert.length + staleIalert.length;
   const hasOnly = onlyIalertFiltered.length > 0;
   const hasStale = staleFiltered.length > 0;
+  const [addingVin, setAddingVin] = useState(null);
+
+  const handleAddOne = async (row) => {
+    setAddingVin(row.vin);
+    try {
+      const result = await addIalertVehicleToFleet(row.vin);
+      const reg = row.registrationNumber || row.vin;
+      if (result?.status === 'created') {
+        toast.success(`${reg} added to fleet`);
+      } else {
+        toast.success(`${reg} is already linked to your fleet`);
+      }
+      onAdded?.(row);
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'Could not add this vehicle.';
+      toast.error(`${row.registrationNumber || row.vin}: ${msg}`);
+    } finally {
+      setAddingVin(null);
+    }
+  };
+
+  const onlyColumns = canAddVehicles
+    ? [
+        ...IALERT_COLUMNS_BASE,
+        {
+          key: '_add',
+          label: '',
+          render: (row) =>
+            isAddableRegistration(row.registrationNumber) ? (
+              <NewButton
+                variant="tertiary"
+                size="xs"
+                text="Add to fleet"
+                loading={addingVin === row.vin}
+                onClick={() => handleAddOne(row)}
+              />
+            ) : (
+              <span
+                className="text-dim text-xs"
+                title="Registration numbers are unique; add the real plate in iALERT first and it can be added here."
+              >
+                Needs a registration in iALERT
+              </span>
+            ),
+        },
+      ]
+    : IALERT_COLUMNS_BASE;
 
   if (totalIalert === 0) {
     return null;
@@ -80,7 +139,7 @@ export default function IalertOnlyPanel({ q, searching, onlyIalert, staleIalert 
           }
         >
           <DataTable
-            columns={IALERT_COLUMNS}
+            columns={onlyColumns}
             rows={onlyIalertFiltered}
             rowKey={ialertRowKey}
             showing={onlyIalertFiltered.length}
@@ -112,7 +171,7 @@ export default function IalertOnlyPanel({ q, searching, onlyIalert, staleIalert 
           }
         >
           <DataTable
-            columns={IALERT_COLUMNS}
+            columns={IALERT_COLUMNS_BASE}
             rows={staleFiltered}
             rowKey={(row, idx) => `stale-${ialertRowKey(row, idx)}`}
             showing={staleFiltered.length}
