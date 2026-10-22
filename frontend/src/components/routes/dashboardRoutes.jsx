@@ -26,6 +26,7 @@ const ServiceIntelligencePage = lazy(
   () => import('../../pages/Maintenance/ServiceIntelligencePage.jsx'),
 );
 const AddMaintenancePage = lazy(() => import('../../pages/Maintenance/AddMaintenancePage.jsx'));
+const ServiceBillsPage = lazy(() => import('../../pages/ServiceBills/ServiceBillsPage.jsx'));
 const MileagePage = lazy(() => import('../../pages/Mileage/MileagePage.jsx'));
 const MileageTrackingVehicleDetail = lazy(
   () => import('../../pages/MileageTracking/MileageTrackingVehicleDetail.jsx'),
@@ -195,6 +196,7 @@ const dashboardRoutes = (
       element={<AddMaintenancePage recordType="REPAIR" />}
     />
     <Route path="/vehicles/add" element={<AddVehiclePage />} />
+    <Route path="/service-bills" element={<ServiceBillsPage />} />
     <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />
     <Route path="/warehouses" element={<Navigate to="/auto-trips" replace />} />
     <Route path="/auto-trips" element={<AutoTripsPage />} />
