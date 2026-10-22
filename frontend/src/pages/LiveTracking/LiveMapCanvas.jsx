@@ -2,6 +2,7 @@ import { GoogleMap, MarkerF, PolylineF } from '@react-google-maps/api';
 import RoadTrailLayer from '../../components/map/RoadTrailLayer';
 import { trailArrowIcons } from './mapIcons.js';
 import { createReplayTruckIcon, createTrailEndpointIcon } from './trailMarkerIcons.js';
+import { createHabitualHaltIcon } from './trailMarkerIcons.js';
 import AnimatedVehicleMarkers from './AnimatedVehicleMarkers.jsx';
 
 const INDIA_CENTER = { lat: 22.5937, lng: 78.9629 };
@@ -27,7 +28,19 @@ export default function LiveMapCanvas({
   replayRunPath,
   replayCurrentPos,
   replayBearing,
+  trailSegments,
+  fallbackSingleColor,
+  habitualHalts,
+  isHabitualHaltsVisible,
+  segmentByTrip,
 }) {
+  /* When the user disables per-trip segmentation we fall back to a single
+     polyline (visual continuity with the legacy behavior). The fallback
+     color is palette slot 0 — distinct from the selected status color so
+     the user can still see the breadcrumb while a heavy trail is up. */
+  const showSegments =
+    isTrailVisible && trailCoords.length > 1 && segmentByTrip && trailSegments && trailSegments.length > 0;
+  const showSingleTrail = isTrailVisible && trailCoords.length > 1 && (!segmentByTrip || !trailSegments || trailSegments.length === 0);
   return (
     <div id="map" className="gmap-host">
       {!isLoaded ? (
@@ -65,22 +78,45 @@ export default function LiveMapCanvas({
             }}
           />
 
-          {/* Breadcrumb Trail (real recorded path from the trail API) */}
-          {isTrailVisible && trailCoords.length > 1 && (
-            <>
-              {roadTrail && roadTrail.mode === 'MATCHED' ? (
-                <RoadTrailLayer trail={roadTrail} color={selectedStatusColor} />
-              ) : (
+          {/* Breadcrumb Trail — split per trip when the trail endpoint
+              gave us trip ids, otherwise fall back to a single polyline.
+              Trip segments inherit each trip's deterministic color so the
+              legend swatch and the polyline match. */}
+          {showSegments &&
+            (roadTrail && roadTrail.mode === 'MATCHED' ? (
+              <RoadTrailLayer trail={roadTrail} color={selectedStatusColor} />
+            ) : (
+              trailSegments.map((seg, i) => (
                 <PolylineF
-                  path={trailCoords}
+                  key={`trip-seg-${seg.tripId ?? 'none'}-${i}`}
+                  path={seg.coords}
                   options={{
-                    strokeColor: selectedStatusColor,
-                    strokeOpacity: 0.9,
+                    strokeColor: seg.color,
+                    strokeOpacity: 0.95,
                     strokeWeight: 4,
-                    icons: trailArrowIcons(selectedStatusColor),
+                    icons: trailArrowIcons(seg.color),
                   }}
                 />
-              )}
+              ))
+            ))}
+
+          {showSingleTrail &&
+            (roadTrail && roadTrail.mode === 'MATCHED' ? (
+              <RoadTrailLayer trail={roadTrail} color={selectedStatusColor} />
+            ) : (
+              <PolylineF
+                path={trailCoords}
+                options={{
+                  strokeColor: fallbackSingleColor || selectedStatusColor,
+                  strokeOpacity: 0.9,
+                  strokeWeight: 4,
+                  icons: trailArrowIcons(fallbackSingleColor || selectedStatusColor),
+                }}
+              />
+            ))}
+
+          {isTrailVisible && trailCoords.length > 1 && (
+            <>
               <MarkerF
                 position={trailCoords[0]}
                 icon={createTrailEndpointIcon('S', selectedStatusColor)}
@@ -91,6 +127,23 @@ export default function LiveMapCanvas({
               />
             </>
           )}
+
+          {/* Habitual-halts (places/hub) layer — recurring stops where the
+              selected vehicle regularly dwells. Independent of the trail so
+              we render it on top, behind nothing. */}
+          {isHabitualHaltsVisible &&
+            Array.isArray(habitualHalts) &&
+            habitualHalts.map((h, i) => {
+              if (h.lat == null || h.lng == null) return null;
+              return (
+                <MarkerF
+                  key={`halt-${h.lat.toFixed(5)}-${h.lng.toFixed(5)}-${i}`}
+                  position={{ lat: h.lat, lng: h.lng }}
+                  icon={createHabitualHaltIcon(h.occurrences || 1)}
+                  zIndex={900}
+                />
+              );
+            })}
 
           {/* Trip Replay */}
           {replayState.on && replayPtsCoords.length > 1 && (

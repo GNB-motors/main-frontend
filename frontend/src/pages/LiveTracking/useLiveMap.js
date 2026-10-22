@@ -21,7 +21,26 @@ export default function useLiveMap({
   const [trailLoading, setTrailLoading] = useState(false);
   const [isTrailVisible, setIsTrailVisible] = useState(false);
   const [trailPoints, setTrailPoints] = useState([]);
+  // Raw trail payload, kept so useTrailGeometry can split per trip / recognise breaks.
+  const [rawTrailPoints, setRawTrailPoints] = useState([]);
+  // Trip metadata from the trail endpoint (tripId -> { number, origin, destination, distance }).
+  const [trips, setTrips] = useState([]);
+  // Plan stops (origin / destination) lifted from the trail response.
+  const [planStops, setPlanStops] = useState([]);
   const [roadTrail, setRoadTrail] = useState(null); // road geometry from our engine (plan P4.10)
+
+  // Habitual halts (places/hub) layer state — server-side aggregated halt
+  // clusters. Independent of the trail so the user can keep it on while
+  // replaying a different vehicle.
+  const [habitualHalts, setHabitualHalts] = useState([]);
+  const [habitualHaltsLoading, setHabitualHaltsLoading] = useState(false);
+  const [isHabitualHaltsVisible, setIsHabitualHaltsVisible] = useState(false);
+  const [habitualHaltsLoadedFor, setHabitualHaltsLoadedFor] = useState(null);
+  // Trip-breaks toggle (defaults on so the per-trip polyline split is
+  // visible — flipping it off is for power users who want the legacy
+  // single polyline).
+  const [segmentByTrip, setSegmentByTrip] = useState(true);
+
   const [replayState, setReplayState] = useState({
     on: false,
     playing: false,
@@ -139,11 +158,14 @@ export default function useLiveMap({
     selectedStatusColor,
     trailCoords,
     trailKm,
+    trailSegments,
+    tripLegend,
+    fallbackSingleColor,
     replayPtsCoords,
     replayCurrentPos,
     replayRunPath,
     replayBearing,
-  } = useTrailGeometry({ selectedVehicle, trailPoints, replayState });
+  } = useTrailGeometry({ selectedVehicle, trailPoints, rawTrailPoints, replayState });
 
   // Replay animation frame ticker (decoupled from replayState.t so 60fps loop runs smoothly without tearing down)
   useEffect(() => {
@@ -181,12 +203,59 @@ export default function useLiveMap({
     };
   }, [replayState.on, replayState.playing, replayState.speed, replayState.pts]);
 
+  /* Load the habitual-halts (places/hub layer) for a vehicle. Safe to call
+     repeatedly — a cache-key check inside short-circuits when the same plate
+     was already loaded. */
+  const loadHabitualHalts = useCallback(
+    async (plate) => {
+      if (!plate) return;
+      if (habitualHaltsLoadedFor === plate && habitualHalts.length > 0) return;
+      setHabitualHaltsLoading(true);
+      try {
+        const data = await LiveTrackingService.getHabitualHalts(plate);
+        const records = data?.records ?? data?.data?.records ?? [];
+        setHabitualHalts(Array.isArray(records) ? records : []);
+        setHabitualHaltsLoadedFor(plate);
+      } catch {
+        setHabitualHalts([]);
+        setHabitualHaltsLoadedFor(plate);
+      } finally {
+        setHabitualHaltsLoading(false);
+      }
+    },
+    [habitualHaltsLoadedFor, habitualHalts.length],
+  );
+
+  /* Clear the halts cache when the user picks a different vehicle, so the
+     next toggle re-fetches the right plate. */
+  useEffect(() => {
+    setHabitualHaltsLoadedFor(null);
+    setHabitualHalts([]);
+    setIsHabitualHaltsVisible(false);
+  }, [selectedId]);
+
+  const toggleHabitualHalts = useCallback(
+    async (v) => {
+      if (isHabitualHaltsVisible) {
+        setIsHabitualHaltsVisible(false);
+        return;
+      }
+      if (!v?.plate) return;
+      await loadHabitualHalts(v.plate);
+      setIsHabitualHaltsVisible(true);
+    },
+    [isHabitualHaltsVisible, loadHabitualHalts],
+  );
+
   // Toggle breadcrumb trail
   const toggleTrail = useCallback(
     async (v) => {
       if (isTrailVisible && !replayState.on) {
         setIsTrailVisible(false);
         setTrailPoints([]);
+        setRawTrailPoints([]);
+        setTrips([]);
+        setPlanStops([]);
         setRoadTrail(null);
         return;
       }
@@ -197,13 +266,19 @@ export default function useLiveMap({
 
       setTrailLoading(true);
       let points = [];
+      let raw = [];
+      let metaTrips = [];
+      let metaStops = [];
 
       try {
         const trailData = await LiveTrackingService.getTrail(v.plate);
         if (trailData?.points?.length > 1) {
-          points = trailData.points
-            .filter((p) => p.latitude != null && p.longitude != null)
-            .map((p) => [p.latitude, p.longitude]);
+          raw = trailData.points.filter(
+            (p) => p.latitude != null && p.longitude != null,
+          );
+          points = raw.map((p) => [p.latitude, p.longitude]);
+          metaTrips = Array.isArray(trailData.trips) ? trailData.trips : [];
+          metaStops = Array.isArray(trailData.planStops) ? trailData.planStops : [];
         }
       } catch {
         // Trail is optional; empty-state handled below.
@@ -223,6 +298,9 @@ export default function useLiveMap({
       });
       setRoadTrail(road);
       setTrailPoints(points);
+      setRawTrailPoints(raw);
+      setTrips(metaTrips);
+      setPlanStops(metaStops);
       setIsTrailVisible(true);
 
       if (mapRef.current && window.google) {
@@ -231,10 +309,12 @@ export default function useLiveMap({
         mapRef.current.fitBounds(bounds, { top: 70, right: 70, bottom: 70, left: 70 });
       }
       const roadSummary = summaryOf(road);
+      const tripCount = metaTrips.length || new Set(raw.map((p) => p.tripId).filter(Boolean)).size;
+      const tripSuffix = tripCount > 0 ? ` · ${tripCount} trip${tripCount === 1 ? '' : 's'}` : '';
       showToast(
-        roadSummary
+        (roadSummary
           ? `Trail · ${roadSummary.km.toFixed(1)} km ${roadSummary.label} · ${points.length} points`
-          : `Trail · ${trailDistanceKm(points).toFixed(1)} km straight-line estimate · ${points.length} points`,
+          : `Trail · ${trailDistanceKm(points).toFixed(1)} km straight-line estimate · ${points.length} points`) + tripSuffix,
       );
     },
     [isTrailVisible, replayState.on, showToast],
@@ -244,12 +324,17 @@ export default function useLiveMap({
   const enterReplay = useCallback(
     async (v) => {
       let points = [];
+      let raw = [];
       try {
         const trailData = await LiveTrackingService.getTrail(v.plate);
         if (trailData?.points?.length > 1) {
-          points = trailData.points
-            .filter((p) => p.latitude != null && p.longitude != null)
-            .map((p) => [p.latitude, p.longitude]);
+          raw = trailData.points.filter(
+            (p) => p.latitude != null && p.longitude != null,
+          );
+          points = raw.map((p) => [p.latitude, p.longitude]);
+          setRawTrailPoints(raw);
+          setTrips(Array.isArray(trailData.trips) ? trailData.trips : []);
+          setPlanStops(Array.isArray(trailData.planStops) ? trailData.planStops : []);
         }
       } catch {
         // Trail is optional; empty-state handled below.
@@ -296,7 +381,6 @@ export default function useLiveMap({
   const handleZoomIn = useCallback(() => {
     if (mapRef.current) mapRef.current.setZoom((mapRef.current.getZoom() || 5) + 1);
   }, []);
-
   const handleZoomOut = useCallback(() => {
     if (mapRef.current) mapRef.current.setZoom((mapRef.current.getZoom() || 5) - 1);
   }, []);
@@ -316,6 +400,12 @@ export default function useLiveMap({
     trailLoading,
     isTrailVisible,
     trailPoints,
+    rawTrailPoints,
+    trips,
+    planStops,
+    trailSegments,
+    tripLegend,
+    fallbackSingleColor,
     roadTrail,
     replayState,
     setReplayState,
@@ -332,5 +422,11 @@ export default function useLiveMap({
     handleZoomIn,
     handleZoomOut,
     triggerMapResize,
+    habitualHalts,
+    habitualHaltsLoading,
+    isHabitualHaltsVisible,
+    toggleHabitualHalts,
+    segmentByTrip,
+    setSegmentByTrip,
   };
 }
