@@ -1,5 +1,6 @@
 import { GoogleMap, MarkerF, PolylineF } from '@react-google-maps/api';
 import RoadTrailLayer from '../../components/map/RoadTrailLayer';
+import CongestionLayer from '../../components/map/CongestionLayer';
 import { trailArrowIcons } from './mapIcons.js';
 import { createReplayTruckIcon, createTrailEndpointIcon } from './trailMarkerIcons.js';
 import { createHabitualHaltIcon } from './trailMarkerIcons.js';
@@ -32,6 +33,8 @@ export default function LiveMapCanvas({
   fallbackSingleColor,
   habitualHalts,
   isHabitualHaltsVisible,
+  isCongestionVisible,
+  congestionRows,
   segmentByTrip,
 }) {
   /* When the user disables per-trip segmentation we fall back to a single
@@ -66,6 +69,13 @@ export default function LiveMapCanvas({
           }}
           options={mapOptions}
         >
+          {/* Congestion layer (00_PLAN.md item 5) — this org's OWN road-matched
+              edges, drawn FIRST so it sits under the fleet, the trail and the
+              replay: a vehicle is never hidden by its own road. Edges the
+              backend could not rate are not in `rows`; nothing here invents
+              geometry for a gap. */}
+          {isCongestionVisible && <CongestionLayer rows={congestionRows} />}
+
           {/* Fleet Vehicle Markers — imperative markers that glide between
               SSE fixes instead of teleporting (see AnimatedVehicleMarkers). */}
           <AnimatedVehicleMarkers

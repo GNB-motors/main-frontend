@@ -14,6 +14,7 @@ import renderIconSvg from './renderIconSvg.jsx';
 import LiveTopbar from './LiveTopbar.jsx';
 import LiveMapCanvas from './LiveMapCanvas.jsx';
 import LiveLayerToggles from './LiveLayerToggles.jsx';
+import CongestionPanel from './CongestionPanel.jsx';
 import MapOverlayControls from './MapOverlayControls.jsx';
 import ReplayBar from './ReplayBar.jsx';
 import TelemetryTicker from './TelemetryTicker.jsx';
@@ -104,6 +105,11 @@ const LiveTrackingPage = () => {
     habitualHaltsLoading,
     isHabitualHaltsVisible,
     toggleHabitualHalts,
+    congestion,
+    congestionLoading,
+    congestionNotice,
+    isCongestionVisible,
+    toggleCongestion,
     segmentByTrip,
     setSegmentByTrip,
     toggleTrail,
@@ -190,6 +196,8 @@ const LiveTrackingPage = () => {
               fallbackSingleColor={fallbackSingleColor}
               habitualHalts={habitualHalts}
               isHabitualHaltsVisible={isHabitualHaltsVisible}
+              isCongestionVisible={isCongestionVisible}
+              congestionRows={congestion?.rows || []}
               segmentByTrip={segmentByTrip}
             />
 
@@ -242,7 +250,14 @@ const LiveTrackingPage = () => {
               habitualHaltsLoading={habitualHaltsLoading}
               toggleHabitualHalts={toggleHabitualHalts}
               habitualHalts={habitualHalts}
+              isCongestionVisible={isCongestionVisible}
+              congestionLoading={congestionLoading}
+              congestionCount={congestion?.rows?.length || 0}
+              toggleCongestion={toggleCongestion}
             />
+            {/* What the congestion colours actually mean — the learned quantile,
+                the evidence behind it, and the edges that were left undrawn. */}
+            {isCongestionVisible && <CongestionPanel congestion={congestion} notice={congestionNotice} />}
 
             {/* Primary Fleet List View */}
             <FleetListView

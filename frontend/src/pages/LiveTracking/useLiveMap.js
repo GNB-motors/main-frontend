@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LiveTrackingService } from './LiveTrackingService.jsx';
 import RoadService from '../../services/RoadService';
 import { summaryOf } from '../../lib/roadTrail';
+import { decodePolyline6 } from '../../lib/polyline6';
 import { LIGHT_MAP_STYLE, DARK_MAP_STYLE } from './mapStyles.js';
 import trailDistanceKm from './trailDistanceKm.js';
 import useTrailGeometry from './useTrailGeometry.js';
@@ -40,6 +41,62 @@ export default function useLiveMap({
   // visible — flipping it off is for power users who want the legacy
   // single polyline).
   const [segmentByTrip, setSegmentByTrip] = useState(true);
+
+  // Congestion layer (00_PLAN.md item 5): this org's OWN road-matched edges,
+  // coloured against the boundary the nightly job learned for each road class,
+  // region and IST hour. Not the pooled list — that one needs three contributing
+  // orgs to publish and stays empty on a single-org deployment. Independent of the
+  // trail, so it can stay on while a different vehicle is replayed.
+  const [congestion, setCongestion] = useState(null);
+  const [congestionLoading, setCongestionLoading] = useState(false);
+  const [isCongestionVisible, setIsCongestionVisible] = useState(false);
+  const [congestionNotice, setCongestionNotice] = useState('');
+
+  const toggleCongestion = useCallback(
+    async (v = true) => {
+      if (isCongestionVisible && v !== true) {
+        setIsCongestionVisible(false);
+        return;
+      }
+      if (congestion) {
+        setIsCongestionVisible(true);
+        return;
+      }
+      setCongestionLoading(true);
+      try {
+        const data = await RoadService.getOrgCongestionIfEnabled({ live: true, limit: 400 });
+        if (!data) {
+          setCongestionNotice('The road engine is off, so there is no road-matched traffic to draw.');
+          setCongestion({ rows: [], coverage: null });
+          setIsCongestionVisible(true);
+          return;
+        }
+        setCongestion({ rows: data.rows || [], coverage: data.coverage || null });
+        setIsCongestionVisible(true);
+        const live = data.coverage?.live;
+        if (live) {
+          setCongestionNotice(
+            `Live crossings in the last ${live.windowMin} min: ${live.crossings} on ${live.edgesLive} shown edge(s).`,
+          );
+        }
+        fitToCongestion(data.rows || []);
+      } finally {
+        setCongestionLoading(false);
+      }
+    },
+    [congestion, isCongestionVisible],
+  );
+
+  /* Frame the layer once, when it first has geometry. Declared before the return
+     so the toggle callback above can call it. */
+  function fitToCongestion(rows) {
+    if (!mapRef.current || !window.google) return;
+    const withGeom = rows.filter((r) => r.geom).slice(0, 400);
+    if (!withGeom.length) return;
+    const bounds = new window.google.maps.LatLngBounds();
+    withGeom.forEach((r) => decodePolyline6(r.geom).forEach((p) => bounds.extend(p)));
+    mapRef.current.fitBounds(bounds, { top: 70, right: 70, bottom: 70, left: 70 });
+  }
 
   const [replayState, setReplayState] = useState({
     on: false,
@@ -426,6 +483,11 @@ export default function useLiveMap({
     habitualHaltsLoading,
     isHabitualHaltsVisible,
     toggleHabitualHalts,
+    congestion,
+    congestionLoading,
+    congestionNotice,
+    isCongestionVisible,
+    toggleCongestion,
     segmentByTrip,
     setSegmentByTrip,
   };
