@@ -13,9 +13,9 @@ import {
   SIDE_NAV_GROUPS,
   isGroupActive,
   getNavGroupId,
-  getVisibleNavChildren,
   getVisibleNavItems,
 } from '../utils/sideNavUtils.js';
+import { useUsageAnalytics } from '../contexts/UsageAnalyticsContext.js';
 import './Sidebar.css';
 
 const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
@@ -32,6 +32,10 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   // role e.g. CRM/insurance makes it visible to that user automatically.
   const { canAccess } = useFeatureFlags();
   const { organization } = useOrganization();
+  // The org's OWN measured usage. null => nothing is folded and the menu is
+  // whole; that is the designed state for every org until it has been measured.
+  const { profile: usageProfile } = useUsageAnalytics();
+  const role = getUserRole();
 
   const logoSrc = !logoFailed && organization?.logoUrl ? organization.logoUrl : UkoLogo;
   const logoAlt = organization?.companyName || 'Company logo';
@@ -40,7 +44,10 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     setLogoFailed(false);
   }, [organization?.logoUrl]);
 
-  const navItems = useMemo(() => getVisibleNavItems(canAccess), [canAccess]);
+  const navItems = useMemo(
+    () => getVisibleNavItems(canAccess, role, usageProfile),
+    [canAccess, role, usageProfile],
+  );
 
   // Approval badges belong to the ERP "Approval Center". For an org without the
   // erpApprovals entitlement that nav group is hidden AND the backend routes
@@ -156,7 +163,9 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     }
 
     // type === 'group' (collapsible dropdown)
-    const visibleChildren = getVisibleNavChildren(item, canAccess);
+    // Children are already flag-, module-, role- and usage-filtered by
+    // getVisibleNavItems(); re-filtering here would undo the cut.
+    const visibleChildren = item.children || [];
     const groupId = getNavGroupId(item);
     const isOpen = openGroupId === groupId;
     return (

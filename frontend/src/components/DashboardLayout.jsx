@@ -12,6 +12,7 @@ import { FeatureFlagsProvider, useFeatureFlags } from '../contexts/FeatureFlagsC
 import { BranchProvider, useActiveBranch } from '../contexts/BranchContext.jsx';
 import FleetLinkProvider from '../contexts/FleetLinkProvider.jsx';
 import SupportPortalProvider from '../contexts/SupportPortalProvider.jsx';
+import UsageAnalyticsProvider from '../contexts/UsageAnalyticsProvider.jsx';
 import './DashboardLayout.css';
 
 const DashboardLayoutInner = () => {
@@ -83,7 +84,11 @@ const DashboardLayout = () => (
     <BranchProvider>
       <FleetLinkProvider>
         <SupportPortalProvider>
-          <DashboardLayoutInner />
+          {/* Records what gets opened and feeds the sidebar its evidence-based
+              cut. A failure here degrades to a whole menu, never a broken one. */}
+          <UsageAnalyticsProvider>
+            <DashboardLayoutInner />
+          </UsageAnalyticsProvider>
         </SupportPortalProvider>
       </FleetLinkProvider>
     </BranchProvider>

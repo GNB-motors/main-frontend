@@ -49,6 +49,9 @@ const MovementApprovalsPage = lazy(() => import('../../pages/AutoTrips/MovementA
 const PlaceHubPage = lazy(() => import('../../pages/PlaceHub/PlaceHubPage.jsx'));
 const LiveTrackingPage = lazy(() => import('../../pages/LiveTracking/LiveTrackingPage.jsx'));
 const OwnerAlertsPage = lazy(() => import('../../pages/OwnerAlerts/OwnerAlertsPage.jsx'));
+// Item 26 — the one alert inbox and the usage numbers behind the nav cut.
+const AlertInboxPage = lazy(() => import('../../pages/AlertInbox/AlertInboxPage.jsx'));
+const UsageAnalyticsPage = lazy(() => import('../../pages/UsageAnalytics/UsageAnalyticsPage.jsx'));
 const FieldAgentFuelPage = lazy(() => import('../../pages/FieldAgentFuel/FieldAgentFuelPage.jsx'));
 const FieldAgentFuelUploadPage = lazy(
   () => import('../../pages/FieldAgentFuel/FieldAgentFuelUploadPage.jsx'),
@@ -129,6 +132,13 @@ const dashboardRoutes = (
     <Route path="/place-hub" element={<PlaceHubPage />} />
     <Route path="/live-tracking" element={<LiveTrackingPage />} />
     <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
+    {/* Item 26.5: ONE inbox over the scattered alert sources. The pages it reads
+        from are all still mounted below and keep working unchanged. */}
+    <Route path="/alert-inbox" element={<AlertInboxPage />} />
+    {/* Item 26.1: what this org opens, and the numbers the menu cut is argued
+        from. The endpoint authorizes OWNER/MANAGER; the nav entry is gated to
+        the same two roles. */}
+    <Route path="/usage" element={<UsageAnalyticsPage />} />
     <Route path="/geofence" element={<Navigate to="/live-tracking" replace />} />
     <Route path="/geofence/zones" element={<Navigate to="/live-tracking" replace />} />
     <Route path="/geofence-zones" element={<Navigate to="/live-tracking" replace />} />
