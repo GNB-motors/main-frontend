@@ -81,6 +81,7 @@ export const SIDE_NAV_ITEMS = [
       { to: '/vehicles', label: 'All Vehicles', end: true },
       { to: '/vehicles/dashboard', label: 'Vehicle Dashboard' },
       { to: '/vehicles/service-intelligence', label: 'Service Intelligence' },
+      { to: '/vehicles/service-bills', label: 'Service Bills' },
     ],
     matchRoutes: [
       '/vehicles',
@@ -90,6 +91,7 @@ export const SIDE_NAV_ITEMS = [
       '/vehicles/service-intelligence',
       '/vehicles/service-intelligence/add-service',
       '/vehicles/service-intelligence/add-repair',
+      '/vehicles/service-bills',
     ],
   },
   // Workforce mirrors the Vehicles group: the employee directory and the RBAC
