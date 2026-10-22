@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronRight, ArrowLeft, Truck, Sparkles, Check } from 'lucide-react';
+import { ChevronRight, ArrowLeft, Truck } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { VehicleService } from './VehicleService.js';
 import { listAccounts, reassignVehicleAccount } from './FleetEdgeAccountService.js';
@@ -11,24 +11,14 @@ import VehicleDocumentUpload, {
   VEHICLE_DOC_TYPES,
   emptyDocsState,
 } from './Component/VehicleDocumentUpload.jsx';
-import { getToken, getProfileField } from '../../utils/session.js';
+import { getToken, getProfileField, getUserRole } from '../../utils/session.js';
 import { mapFetchedDocsToUiState } from './addVehicleDocMapping';
 import { ImportVehicleDialog } from './ImportVehicleDialog';
 import './VehiclesPage.css';
 import './AddVehiclePage.css';
 import logger from '../../utils/logger';
-
-const formatHSRP = (val) => {
-  if (!val) return '';
-  const clean = val.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-  if (clean.length > 4) {
-    const state = clean.slice(0, 2);
-    const rto = clean.slice(2, 4);
-    const rest = clean.slice(4);
-    return `${state} ${rto} ${rest}`;
-  }
-  return clean;
-};
+import useVehicleManufacturers from './useVehicleManufacturers.js';
+import { eligibleAccounts, canonicalManufacturer } from './vehicleManufacturerOptions.js';
 
 const AddVehiclePage = () => {
   const navigate = useNavigate();
@@ -46,6 +36,21 @@ const AddVehiclePage = () => {
   const businessRefId = getProfileField('business_ref_id') || null;
   const [fleetEdgeAccounts, setFleetEdgeAccounts] = useState([]);
   const [selectedAccountId, setSelectedAccountId] = useState('');
+  const [liveManufacturer, setLiveManufacturer] = useState('');
+  const [accountsLoading, setAccountsLoading] = useState(false);
+  const [accountsError, setAccountsError] = useState(false);
+  const [accountsAttempt, setAccountsAttempt] = useState(0);
+  const [accountNotice, setAccountNotice] = useState('');
+  const [saveMessage, setSaveMessage] = useState('');
+  const [saveBlocked, setSaveBlocked] = useState(false);
+  const [createdVehicleId, setCreatedVehicleId] = useState(null);
+  const savingRef = useRef(false);
+  const completedUploads = useRef(new Map());
+  const assignedAccountRef = useRef('');
+  const originalManufacturerRef = useRef('');
+  const canAssignAccount = ['OWNER', 'SUPER_ADMIN'].includes(getUserRole());
+  const { manufacturers, metadataError, retryMetadata } = useVehicleManufacturers();
+  const compatibleAccounts = eligibleAccounts(fleetEdgeAccounts, liveManufacturer);
 
   // Owning location (branch) for the new vehicle. Defaults to the active location.
   const { branchId: activeBranchId, branches, activeBranch } = useActiveBranch();
@@ -71,26 +76,66 @@ const AddVehiclePage = () => {
   }, []);
 
   useEffect(() => {
-    const token = getToken();
-    if (!token) return;
-    listAccounts()
+    if (!getToken() || !canAssignAccount) return undefined;
+    const controller = new AbortController();
+    setAccountsLoading(true);
+    setAccountsError(false);
+    listAccounts({ signal: controller.signal })
       .then((accounts) => {
-        const active = (accounts || []).filter((a) => a.status === 'ACTIVE');
-        setFleetEdgeAccounts(active);
-        if (active.length === 1) setSelectedAccountId(String(active[0]._id));
+        if (!controller.signal.aborted) setFleetEdgeAccounts(accounts || []);
       })
-      // The FleetEdge account picker is optional; the vehicle saves without it.
-      .catch((err) => logger.warn('AddVehiclePage', 'Could not load FleetEdge accounts', err));
-  }, []);
+      .catch(() => {
+        if (!controller.signal.aborted) setAccountsError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setAccountsLoading(false);
+      });
+    return () => controller.abort();
+  }, [canAssignAccount, accountsAttempt]);
+
+  useEffect(() => {
+    if (!canAssignAccount || accountsLoading || accountsError || !liveManufacturer) return;
+    // Opening an existing vehicle must not silently remove its saved account.
+    if (
+      selectedAccountId === assignedAccountRef.current &&
+      liveManufacturer === originalManufacturerRef.current
+    )
+      return;
+    if (
+      selectedAccountId &&
+      !eligibleAccounts(fleetEdgeAccounts, liveManufacturer).some(
+        (account) => String(account._id) === selectedAccountId,
+      )
+    ) {
+      setSelectedAccountId('');
+      setAccountNotice(
+        'Account cleared because it is unavailable or incompatible with this manufacturer.',
+      );
+    }
+  }, [
+    canAssignAccount,
+    liveManufacturer,
+    selectedAccountId,
+    fleetEdgeAccounts,
+    accountsLoading,
+    accountsError,
+  ]);
 
   // If navigated here for editing, prefill form from location.state.editingVehicle
   useEffect(() => {
     const loadVehicleData = async () => {
+      setCreatedVehicleId(null);
+      setSaveMessage('');
+      completedUploads.current.clear();
       const editing = location?.state?.editingVehicle;
       if (editing) {
         setIsEdit(true);
         const vId = editing.id || editing._id;
         setVehicleId(vId);
+        const existingAccount = String(editing.fleetEdgeAccountId || '');
+        setSelectedAccountId(existingAccount);
+        assignedAccountRef.current = existingAccount;
+        originalManufacturerRef.current = canonicalManufacturer(editing.manufacturer);
 
         const regNo = editing.registration_no || editing.registrationNumber || '';
         setLiveRegNumber(regNo);
@@ -99,6 +144,7 @@ const AddVehiclePage = () => {
           registration_no: regNo,
           chassis_number: editing.chassis_number || editing.chassisNumber || '',
           model: editing.model || '',
+          manufacturer: editing.manufacturer || '',
           // Absent for orgs without Mileage Integrity — the API projects it out.
           expected_mileage: editing.expectedMileage?.kmPerL ?? '',
         });
@@ -116,6 +162,9 @@ const AddVehiclePage = () => {
         setInitialFormData({});
         setDocuments(emptyDocsState());
         setLiveRegNumber('');
+        setSelectedAccountId('');
+        assignedAccountRef.current = '';
+        originalManufacturerRef.current = '';
       }
     };
 
@@ -123,13 +172,11 @@ const AddVehiclePage = () => {
   }, [location?.state?.editingVehicle]);
 
   const handleSubmit = async (formData) => {
+    if (savingRef.current || saveBlocked) return;
+    savingRef.current = true;
     setIsSubmitting(true);
-    const token = getToken();
-
-    if (!token) {
-      toast.warn('No auth token found. Request may fail.');
-    }
-
+    setSaveMessage('');
+    const failures = [];
     // For each docType, collect the new files the user attached (skip slots
     // that hold an existing preview URL with no fresh file). Backend replaces
     // the whole subdoc when same docType is uploaded again.
@@ -150,47 +197,67 @@ const AddVehiclePage = () => {
 
         if (filesInOrder.length === 0) continue;
 
+        const prior = completedUploads.current.get(meta.key);
+        if (
+          prior &&
+          prior.expiryDate === entry.expiryDate &&
+          prior.files.length === filesInOrder.length &&
+          prior.files.every((file, index) => file === filesInOrder[index])
+        )
+          continue;
         try {
           await VehicleService.uploadVehicleDocument(entityId, meta.backendType, filesInOrder, {
             sides: sidesInOrder,
             expiryDate: entry.expiryDate || undefined,
           });
+          completedUploads.current.set(meta.key, {
+            files: filesInOrder,
+            expiryDate: entry.expiryDate,
+          });
         } catch (docErr) {
           logger.warn('AddVehiclePage', `Failed to upload ${meta.backendType}`, docErr);
-          toast.warning(`Failed to upload ${meta.label}`);
+          failures.push(`${meta.label} upload failed`);
         }
       }
     };
 
     try {
-      if (isEdit) {
-        await VehicleService.updateVehicle(
-          businessRefId,
-          vehicleId || formData.registration_no,
-          formData,
-        );
-        await uploadDocuments(vehicleId);
-        toast.success(`Vehicle "${formData.registration_no}" updated successfully`);
-        navigate('/vehicles');
+      let savedId = vehicleId || createdVehicleId;
+      if (isEdit || createdVehicleId) {
+        await VehicleService.updateVehicle(businessRefId, savedId, formData);
       } else {
         const savedVehicle = await VehicleService.addVehicle(businessRefId, {
           ...formData,
           branchId: selectedBranchId,
         });
-        const newVehicleId = savedVehicle._id || savedVehicle.id;
-        if (newVehicleId) {
-          await uploadDocuments(newVehicleId);
-          if (selectedAccountId) {
-            try {
-              await reassignVehicleAccount(newVehicleId, selectedAccountId);
-            } catch {
-              /* non-fatal — resolver will tag on next ingestion */
-            }
-          }
+        savedId = savedVehicle._id || savedVehicle.id;
+        if (!savedId) {
+          setSaveBlocked(true);
+          throw new Error(
+            'Vehicle saved, but its ID was not returned. Reload the vehicle list before retrying.',
+          );
         }
-        toast.success(`Vehicle "${formData.registration_no}" created successfully`);
-        navigate('/vehicles');
+        setCreatedVehicleId(savedId);
       }
+      await uploadDocuments(savedId);
+      if (canAssignAccount && selectedAccountId !== assignedAccountRef.current) {
+        try {
+          await reassignVehicleAccount(savedId, selectedAccountId || null);
+          assignedAccountRef.current = selectedAccountId;
+        } catch (error) {
+          failures.push(error?.message || 'Account assignment failed');
+        }
+      }
+      if (failures.length) {
+        setSaveMessage(
+          `Vehicle saved. ${failures.join('. ')}. Retry save to finish; the vehicle will not be created again.`,
+        );
+        return;
+      }
+      toast.success(
+        `Vehicle "${formData.registration_no}" ${isEdit ? 'updated' : 'added'} successfully`,
+      );
+      navigate('/vehicles');
     } catch (err) {
       logger.warn('AddVehiclePage', 'Add/Edit vehicle error', err);
       // Registration already belongs to a vehicle in this enterprise → offer Import.
@@ -199,8 +266,10 @@ const AddVehiclePage = () => {
         return;
       }
       const msg = err?.message || 'Failed to create/update vehicle';
+      setSaveMessage(msg);
       toast.error(msg);
     } finally {
+      savingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -228,13 +297,18 @@ const AddVehiclePage = () => {
   const handleFooterSubmit = (e) => {
     e.preventDefault();
     if (formRef.current) {
-      formRef.current.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      formRef.current.requestSubmit();
     }
   };
 
   return (
     <div className="vehicles-page-container add-vehicle-page" style={themeColors}>
       <div className="add-vehicle-container">
+        {saveMessage && (
+          <div className="vehicle-save-message" role="alert">
+            {saveMessage}
+          </div>
+        )}
         {/* Elevated Hero Header */}
         <div className="add-vehicle-hero">
           {/* Breadcrumb Navigation & Mode Pill */}
@@ -270,11 +344,6 @@ const AddVehiclePage = () => {
                   : 'Add Vehicle'}
               </span>
             </div>
-
-            <div className={`add-vehicle-mode-badge ${isEdit ? 'edit' : 'create'}`}>
-              <Sparkles size={13} />
-              <span>{isEdit ? 'Editing Asset' : 'New Fleet Asset'}</span>
-            </div>
           </div>
 
           {/* Title & Authentic Live HSRP Plate */}
@@ -286,19 +355,8 @@ const AddVehiclePage = () => {
               <p className="add-vehicle-subtext">
                 {isEdit
                   ? 'Update registration details, chassis number, vehicle model, and compliance documentation.'
-                  : 'Configure essential vehicle specifications, telemetry link, terminal assignment, and compliance files.'}
+                  : 'Enter vehicle details, choose a manufacturer and optionally assign an account.'}
               </p>
-            </div>
-
-            {/* Live Indian HSRP License Plate Preview */}
-            <div className="hsrp-plate-hero" title="Live High Security Registration Plate preview">
-              <div className="hsrp-blue-band">
-                <span className="hsrp-chakra-symbol">⎈</span>
-                <span className="hsrp-ind-text">IND</span>
-              </div>
-              <div className={`hsrp-number-display ${!liveRegNumber ? 'placeholder' : ''}`}>
-                {liveRegNumber ? formatHSRP(liveRegNumber) : 'MH 04 AB 1234'}
-              </div>
             </div>
           </div>
         </div>
@@ -309,13 +367,23 @@ const AddVehiclePage = () => {
           initialData={initialFormData}
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
-          isEdit={isEdit}
+          isEdit={isEdit || Boolean(createdVehicleId)}
           activeBranchId={activeBranchId}
           activeBranch={activeBranch}
           branches={branches}
           selectedBranchId={selectedBranchId}
           onBranchChange={setSelectedBranchId}
-          fleetEdgeAccounts={fleetEdgeAccounts}
+          fleetEdgeAccounts={compatibleAccounts}
+          manufacturers={manufacturers}
+          metadataError={metadataError}
+          onRetryMetadata={retryMetadata}
+          manufacturer={liveManufacturer}
+          onManufacturerChange={setLiveManufacturer}
+          accountsLoading={accountsLoading}
+          accountsError={accountsError}
+          onRetryAccounts={() => setAccountsAttempt((value) => value + 1)}
+          canAssignAccount={canAssignAccount}
+          accountNotice={accountNotice}
           selectedAccountId={selectedAccountId}
           onAccountChange={setSelectedAccountId}
           onRegistrationChange={setLiveRegNumber}
@@ -346,14 +414,16 @@ const AddVehiclePage = () => {
               type="button"
               className="add-vehicle-btn-primary"
               onClick={handleFooterSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || saveBlocked}
             >
               {isSubmitting ? (
                 <span>Saving...</span>
               ) : (
                 <>
                   <Truck size={16} />
-                  <span>{isEdit ? 'Update Vehicle' : 'Add Vehicle to Fleet'}</span>
+                  <span>
+                    {createdVehicleId ? 'Retry save' : isEdit ? 'Update vehicle' : 'Add vehicle'}
+                  </span>
                 </>
               )}
             </button>

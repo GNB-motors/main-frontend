@@ -25,6 +25,20 @@ describe('fleetCoverageActions', () => {
       expect(isAddableRegistration('  Na  ')).toBe(false);
     });
 
+    // FleetEdge also fills placeholders like "TEMP" for trucks still on a
+    // temporary number; two of them would collide on the unique registration.
+    it('rejects FleetEdge placeholders: TEMP, NIL, NULL, NONE, dashes, zeros', () => {
+      for (const reg of ['TEMP', 'temp', 'TEMP-1', 'NIL', 'NULL', 'NONE', '-', '--', '0', '000']) {
+        expect(isAddableRegistration(reg)).toBe(false);
+      }
+    });
+
+    it('still accepts real plates that merely contain those letters', () => {
+      for (const reg of ['WB11T0662', 'MH12NA1234', 'KA01TE1234']) {
+        expect(isAddableRegistration(reg)).toBe(true);
+      }
+    });
+
     it('rejects "N/A"', () => {
       expect(isAddableRegistration('N/A')).toBe(false);
     });
@@ -99,5 +113,16 @@ describe('fleetCoverageActions', () => {
       const selected = selectedRowsFrom(rows, new Set(['MH12CD5678', 'MH12AB1234']));
       expect(selected.map((r) => r.registrationNumber)).toEqual(['MH12AB1234', 'MH12CD5678']);
     });
+  });
+});
+
+describe('displayValue', () => {
+  it('shows the literal NA and blanks as an em dash', async () => {
+    const { displayValue } = await import('./fleetCoverageActions');
+    expect(displayValue('NA')).toBe('—');
+    expect(displayValue(' n/a ')).toBe('—');
+    expect(displayValue('')).toBe('—');
+    expect(displayValue(null)).toBe('—');
+    expect(displayValue('TATA')).toBe('TATA');
   });
 });

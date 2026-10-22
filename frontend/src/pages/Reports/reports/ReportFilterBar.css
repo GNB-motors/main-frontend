@@ -1,0 +1,67 @@
+/* The shared report filter bar — one filter row for every consolidated report,
+   plus a thin footer that says how many filters are applied and offers the
+   reset. Tokens come from ReportFrame.css, which the bar's controls reuse. */
+
+.rpt-bar {
+  display: grid;
+  gap: 8px;
+  /* ReportFrame hands the bar a flex slot; take the whole row so the presets,
+     dates and pickers sit side by side instead of right-aligned. */
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rpt-bar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.rpt-bar-count {
+  color: var(--rpt-muted);
+  font-size: 12px;
+}
+
+.rpt-bar-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 30px;
+}
+
+.rpt-presets {
+  display: flex;
+  gap: 4px;
+}
+
+.rpt-preset {
+  height: 38px;
+  box-sizing: border-box;
+  padding: 0 11px;
+  border: 1px solid var(--rpt-control-edge);
+  border-radius: 8px;
+  background: var(--rpt-surface);
+  color: var(--rpt-muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.rpt-preset:hover {
+  color: var(--rpt-ink);
+}
+
+.rpt-preset.is-active {
+  border-color: var(--rpt-accent);
+  background: color-mix(in srgb, var(--rpt-accent) 12%, transparent);
+  color: var(--rpt-accent);
+}
+
+.rpt-preset:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--rpt-accent) 35%, transparent);
+  outline-offset: 1px;
+}

@@ -244,7 +244,7 @@ describe('vehicleExportMeta', () => {
     const meta = vehicleExportMeta({ search: 'KA', accountFilter: 'untagged' });
     expect(meta.filters).toEqual([
       { label: 'Search', value: 'KA' },
-      { label: 'FleetEdge account', value: 'Untagged' },
+      { label: 'Account', value: 'Untagged' },
     ]);
     expect(meta.generatedAt).toBeInstanceOf(Date);
   });
@@ -252,7 +252,7 @@ describe('vehicleExportMeta', () => {
   it('resolves account names and omits empty filters', () => {
     const map = buildAccountMap([{ _id: 'a1', friendlyName: 'Hub A' }]);
     const meta = vehicleExportMeta({ search: '', accountFilter: 'a1', accountMap: map });
-    expect(meta.filters).toEqual([{ label: 'FleetEdge account', value: 'Hub A' }]);
+    expect(meta.filters).toEqual([{ label: 'Account', value: 'Hub A' }]);
     expect(vehicleExportMeta({}).filters).toEqual([]);
   });
 });

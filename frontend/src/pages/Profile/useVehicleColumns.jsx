@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, Pencil, Plug, Trash2, ToggleRight, Unplug } from 'lucide-react';
 import { describeFleetEdgeAccount } from './vehicleList.js';
 import '../../components/FleetLink.css';
+import { manufacturerLabel } from './vehicleManufacturerOptions.js';
 
 /**
  * VehicleInlineActions
@@ -89,6 +90,7 @@ function VehicleInlineActions({ vehicle, isSubmitting, onEdit, onDelete, onActiv
 
 export function useVehicleColumns({
   accountMap,
+  manufacturers,
   linkIndex,
   linkLoading = false,
   onReconnect,
@@ -130,7 +132,6 @@ export function useVehicleColumns({
         </>
       ),
     },
-    { key: 'model', label: 'Model', render: (vehicle) => vehicle.model || 'N/A' },
     {
       key: 'manufacturer',
       label: 'Manufacturer',
@@ -139,12 +140,13 @@ export function useVehicleColumns({
           <span
             className={`vehicle-badge manufacturer-${vehicle.manufacturer?.toLowerCase().replace(/\s+/g, '-')}`}
           >
-            {vehicle.manufacturer}
+            {manufacturerLabel(vehicle.manufacturer, manufacturers)}
           </span>
         ) : (
-          <span className="vehicle-badge vehicle-badge-unknown">—</span>
+          <span className="vehicle-badge vehicle-badge-unknown">Unclassified</span>
         ),
     },
+    { key: 'model', label: 'Model', render: (vehicle) => vehicle.model || 'N/A' },
     {
       key: 'vehicleCategory',
       label: 'Category',
@@ -168,11 +170,13 @@ export function useVehicleColumns({
     },
     {
       key: 'fleetEdgeAccountId',
-      label: 'FleetEdge Account',
+      label: 'Account',
       render: (vehicle) => {
         const acct = describeFleetEdgeAccount(vehicle, accountMap, linkIndex);
         if (!acct.tagged) {
-          return <span style={{ fontStyle: 'italic', color: '#aaa', fontSize: 12 }}>untagged</span>;
+          return (
+            <span style={{ fontStyle: 'italic', color: '#aaa', fontSize: 12 }}>Not assigned</span>
+          );
         }
         // The account's link state on every row; a Reconnect action while the
         // truck's data is paused (or about to be).
@@ -185,8 +189,8 @@ export function useVehicleColumns({
               className={`fleet-link-chip fleet-link-chip--${acct.link.tone}`}
               title={
                 acct.link.needsAction
-                  ? 'See how to reconnect this FleetEdge account'
-                  : 'FleetEdge connection details'
+                  ? 'See how to reconnect this account'
+                  : 'Account connection details'
               }
               onClick={(e) => {
                 e.stopPropagation();
@@ -204,6 +208,8 @@ export function useVehicleColumns({
               Login failed
             </span>
           );
+        } else if (accountMap[String(vehicle.fleetEdgeAccountId)]?.source === 'IALERT_PORTAL') {
+          linkChip = null;
         } else if (linkLoading) {
           linkChip = (
             <span className="fleet-link-chip fleet-link-chip--info">
@@ -218,7 +224,7 @@ export function useVehicleColumns({
             <button
               type="button"
               className="fleet-link-chip fleet-link-chip--crit"
-              title="See how to connect this FleetEdge account"
+              title="See how to connect this account"
               onClick={(e) => {
                 e.stopPropagation();
                 onReconnect?.(vehicle.fleetEdgeAccountId);

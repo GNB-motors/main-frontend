@@ -25,7 +25,6 @@ import { useVehicleColumns } from './useVehicleColumns.jsx';
 import {
   normalizeVehicle,
   buildAccountMap,
-  filterVehicles,
   VEHICLE_EXPORT_COLUMNS,
   mapVehicleForExport,
   vehicleExportMeta,
@@ -34,6 +33,7 @@ import {
 import { useFleetLink } from '../../contexts/fleetLinkContext';
 import { vehiclesNeedingAction } from '../../lib/fleetLink';
 import logger from '../../utils/logger';
+import useVehicleManufacturers from './useVehicleManufacturers.js';
 
 const VehiclesPage = () => {
   const navigate = useNavigate();
@@ -48,6 +48,8 @@ const VehiclesPage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingVehicle, setDeletingVehicle] = useState(null);
   const [searchVehicleNo, setSearchVehicleNo] = useState('');
+  const [manufacturerFilter, setManufacturerFilter] = useState('');
+  const { manufacturers, metadataError, retryMetadata } = useVehicleManufacturers();
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -76,6 +78,7 @@ const VehiclesPage = () => {
 
   // --- Fetch Vehicles ---
   useEffect(() => {
+    const controller = new AbortController();
     const fetchVehicles = async () => {
       setIsLoadingVehicles(true);
       setVehicleError(null);
@@ -84,29 +87,34 @@ const VehiclesPage = () => {
           businessRefId,
           currentPage,
           itemsPerPage,
+          { signal: controller.signal, manufacturer: manufacturerFilter, search: searchVehicleNo },
         );
+        if (controller.signal.aborted) return;
         // Normalize API vehicle shape (camelCase) to UI expected snake_case
         const normalized = (result.data || []).map(normalizeVehicle);
 
         // Fetch FleetEdge accounts for the column (fire-and-forget, don't block vehicle render)
         try {
-          const accounts = await listAccounts();
-          setFleetEdgeAccounts(accounts || []);
+          const accounts = await listAccounts({ signal: controller.signal });
+          if (!controller.signal.aborted) setFleetEdgeAccounts(accounts || []);
         } catch {
           /* non-fatal */
         }
+        if (controller.signal.aborted) return;
         setVehicles(normalized);
         setTotalPages(result.meta.totalPages);
         setTotalVehicles(result.meta.total);
       } catch (apiError) {
+        if (controller.signal.aborted) return;
         logger.warn('VehiclesPage', 'Failed to fetch vehicles', apiError);
         setVehicleError(apiError?.message || 'Failed to load vehicles.');
       } finally {
-        setIsLoadingVehicles(false);
+        if (!controller.signal.aborted) setIsLoadingVehicles(false);
       }
     };
     fetchVehicles();
-  }, [businessRefId, currentPage, itemsPerPage, refreshKey]);
+    return () => controller.abort();
+  }, [businessRefId, currentPage, itemsPerPage, refreshKey, manufacturerFilter, searchVehicleNo]);
 
   // --- Remove Vehicle ---
   const handleRemoveVehicle = async (vehicleIdToRemove) => {
@@ -178,7 +186,7 @@ const VehiclesPage = () => {
 
   // --- Filter vehicles by registration number and status ---
   const filteredVehicles = useMemo(() => {
-    let list = filterVehicles(vehicles, { search: searchVehicleNo });
+    let list = vehicles;
     if (statusFilter === 'ACTIVE') {
       list = list.filter((v) => v.status === 'ACTIVE' || v.isActive);
     } else if (statusFilter === 'UNASSIGNED') {
@@ -189,7 +197,7 @@ const VehiclesPage = () => {
       list = list.filter((v) => vehicleNeedsRelink(v, linkIndex));
     }
     return list;
-  }, [vehicles, searchVehicleNo, statusFilter, linkIndex]);
+  }, [vehicles, statusFilter, linkIndex]);
 
   const exportRows = useMemo(
     () => filteredVehicles.map((v) => mapVehicleForExport(v, accountMap, linkIndex)),
@@ -201,16 +209,20 @@ const VehiclesPage = () => {
   // of 1000 per request) before applying the same search filter as the table.
   const fetchAllVehiclesForExport = async () => {
     const EXPORT_PAGE_LIMIT = 1000;
-    const first = await VehicleService.getAllVehicles(businessRefId, 1, EXPORT_PAGE_LIMIT);
+    const first = await VehicleService.getAllVehicles(businessRefId, 1, EXPORT_PAGE_LIMIT, {
+      manufacturer: manufacturerFilter,
+      search: searchVehicleNo,
+    });
     const all = (first.data || []).map(normalizeVehicle);
     const totalPages = first.meta?.totalPages || 1;
     for (let page = 2; page <= totalPages; page += 1) {
-      const next = await VehicleService.getAllVehicles(businessRefId, page, EXPORT_PAGE_LIMIT);
+      const next = await VehicleService.getAllVehicles(businessRefId, page, EXPORT_PAGE_LIMIT, {
+        manufacturer: manufacturerFilter,
+        search: searchVehicleNo,
+      });
       all.push(...(next.data || []).map(normalizeVehicle));
     }
-    return filterVehicles(all, { search: searchVehicleNo }).map((v) =>
-      mapVehicleForExport(v, accountMap, linkIndex),
-    );
+    return all.map((v) => mapVehicleForExport(v, accountMap, linkIndex));
   };
 
   const handlePageChange = (page) => {
@@ -219,15 +231,12 @@ const VehiclesPage = () => {
     }
   };
 
-  // Reset to page 1 when search changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchVehicleNo]);
-
-  const activeFilterCount = searchVehicleNo.trim() ? 1 : 0;
+  const activeFilterCount =
+    Number(Boolean(searchVehicleNo.trim())) + Number(Boolean(manufacturerFilter));
 
   const columns = useVehicleColumns({
     accountMap,
+    manufacturers,
     linkIndex,
     linkLoading: !linkData && !linkError,
     onReconnect: openRelinkPanel,
@@ -247,13 +256,49 @@ const VehiclesPage = () => {
         filters={
           <FilterBar
             searchValue={searchVehicleNo}
-            onSearchChange={setSearchVehicleNo}
-            searchPlaceholder="Search by vehicle registration number"
+            onSearchChange={(value) => {
+              setSearchVehicleNo(value);
+              setCurrentPage(1);
+            }}
+            activeCount={activeFilterCount}
+            onClear={() => {
+              setSearchVehicleNo('');
+              setManufacturerFilter('');
+              setCurrentPage(1);
+              setStatusFilter('ALL');
+            }}
+            right={
+              <div className="vehicle-table-manufacturer-filter">
+                <label htmlFor="vehicle-table-manufacturer">Manufacturer</label>
+                <select
+                  id="vehicle-table-manufacturer"
+                  value={manufacturerFilter}
+                  onChange={(event) => {
+                    setManufacturerFilter(event.target.value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="">All manufacturers</option>
+                  {manufacturers.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                  <option value="UNKNOWN">Unclassified</option>
+                </select>
+                {metadataError && (
+                  <button type="button" onClick={retryMetadata}>
+                    Retry manufacturers
+                  </button>
+                )}
+              </div>
+            }
+            searchPlaceholder="Search registration or chassis number"
             chips={[
               { key: 'ALL', label: 'All', count: totalVehicles },
               { key: 'ACTIVE', label: 'Active Fleet' },
               { key: 'UNASSIGNED', label: 'Unassigned' },
-              { key: 'FLEETEDGE', label: 'FleetEdge Linked' },
+              { key: 'FLEETEDGE', label: 'Account linked' },
               { key: 'RELINK', label: 'Needs reconnect', count: relinkCount },
             ]}
             selectedKeys={[statusFilter]}
@@ -266,7 +311,11 @@ const VehiclesPage = () => {
               fetchAll={fetchAllVehiclesForExport}
               columns={VEHICLE_EXPORT_COLUMNS}
               filename="vehicles"
-              meta={vehicleExportMeta({ search: searchVehicleNo, accountMap })}
+              meta={vehicleExportMeta({
+                search: searchVehicleNo,
+                manufacturer: manufacturerFilter,
+                accountMap,
+              })}
               disabled={!exportRows.length}
               newButtonStyle
               align="left"
@@ -321,10 +370,12 @@ const VehiclesPage = () => {
             ) : null
           }
           emptyTitle={
-            vehicles.length === 0 ? 'No vehicles added yet' : 'No vehicles match your search'
+            !activeFilterCount && vehicles.length === 0
+              ? 'No vehicles added yet'
+              : 'No vehicles match your filters'
           }
           emptyHint={
-            vehicles.length === 0
+            !activeFilterCount && vehicles.length === 0
               ? 'Click "Add Vehicle" to start.'
               : 'Try a different registration number.'
           }

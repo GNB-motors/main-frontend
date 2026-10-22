@@ -1295,3 +1295,25 @@
   font-family: 'Inter', sans-serif;
   font-weight: 500;
 }
+
+.vehicle-table-manufacturer-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.vehicle-table-manufacturer-filter select {
+  min-height: 36px;
+  max-width: 100%;
+  border: 1px solid var(--border-default, #cbd5e1);
+  border-radius: 7px;
+  padding: 6px 10px;
+  background: var(--bg-surface, #fff);
+  color: var(--fg-primary, #0f172a);
+  font: inherit;
+}
+.vehicle-table-manufacturer-filter select:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}

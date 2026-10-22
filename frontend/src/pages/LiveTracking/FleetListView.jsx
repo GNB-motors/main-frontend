@@ -76,7 +76,7 @@ export default function FleetListView({
               : 'No vehicles match this filter.'}
           </div>
         ) : (
-          filteredVehicles.slice(0, 120).map((v) => {
+          filteredVehicles.map((v) => {
             const s = NOVA_STATUS[v.status] || NOVA_STATUS.offline;
             const isSel = v.id === selectedId;
 
@@ -97,15 +97,15 @@ export default function FleetListView({
               >
                 <div className="vc-top">
                   <div className="vc-id">
-                    <div className="vc-plate">
-                      {v.plate}
-                      <span className="vc-model">{v.model}</span>
+                    <div className="vc-plate">{v.plate}</div>
+                    <div className="vc-vin">
+                      {[v.manufacturer, v.model].filter(Boolean).join(' · ') ||
+                        'Manufacturer unknown'}
                     </div>
-                    <div className="vc-vin">{v.vin ? `#${v.vin}` : '—'}</div>
                   </div>
                   <span className="vc-state">
                     <i />
-                    {s.trip}
+                    {s.label}
                   </span>
                 </div>
 

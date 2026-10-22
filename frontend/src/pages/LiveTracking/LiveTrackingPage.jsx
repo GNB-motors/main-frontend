@@ -13,6 +13,7 @@ import useStatusCards from './useStatusCards.js';
 import renderIconSvg from './renderIconSvg.jsx';
 import LiveTopbar from './LiveTopbar.jsx';
 import LiveMapCanvas from './LiveMapCanvas.jsx';
+import LiveLayerToggles from './LiveLayerToggles.jsx';
 import MapOverlayControls from './MapOverlayControls.jsx';
 import ReplayBar from './ReplayBar.jsx';
 import TelemetryTicker from './TelemetryTicker.jsx';
@@ -33,6 +34,8 @@ const LiveTrackingPage = () => {
     positions: rawPositions,
     isLoading: isLiveLoading,
     refresh: refreshLivePositions,
+    lastEventAt,
+    error: positionsError,
   } = useLivePositions();
 
   // Layout & Theme hooks
@@ -44,6 +47,7 @@ const LiveTrackingPage = () => {
 
   // Filters & selection
   const [filter, setFilter] = useState('all');
+  const [selectedManufacturers, setSelectedManufacturers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedId, setSelectedId] = useState(null);
 
@@ -60,13 +64,19 @@ const LiveTrackingPage = () => {
 
   const { vehiclesMeta, driverAssignments } = useFleetMasterData();
 
-  const { vehicles, counts, filteredVehicles, selectedVehicle, mapVehicles } = useFleetVehicles({
-    rawPositions,
-    vehiclesMeta,
-    filter,
-    searchQuery,
-    selectedId,
-  });
+  const { vehicles, counts, filteredVehicles, selectedVehicle, mapVehicles, manufacturers } =
+    useFleetVehicles({
+      rawPositions,
+      vehiclesMeta,
+      selectedManufacturers,
+      filter,
+      searchQuery,
+      selectedId,
+    });
+
+  useEffect(() => {
+    if (selectedId && !selectedVehicle) setSelectedId(null);
+  }, [selectedId, selectedVehicle]);
 
   const {
     mapRef,
@@ -87,6 +97,15 @@ const LiveTrackingPage = () => {
     replayCurrentPos,
     replayRunPath,
     replayBearing,
+    trailSegments,
+    tripLegend,
+    fallbackSingleColor,
+    habitualHalts,
+    habitualHaltsLoading,
+    isHabitualHaltsVisible,
+    toggleHabitualHalts,
+    segmentByTrip,
+    setSegmentByTrip,
     toggleTrail,
     enterReplay,
     exitReplay,
@@ -132,6 +151,13 @@ const LiveTrackingPage = () => {
           setFilter={setFilter}
           handleRefresh={handleRefresh}
           isRefreshing={isRefreshing}
+          manufacturers={manufacturers}
+          selectedManufacturers={selectedManufacturers}
+          setSelectedManufacturers={setSelectedManufacturers}
+          lastEventAt={lastEventAt}
+          positionsError={positionsError}
+          onMapCount={mapVehicles.length}
+          unclassifiedCount={vehicles.filter((v) => !v.manufacturer).length}
         />
 
         {/* Stage Area: Map + Docked Fleet Rail */}
@@ -159,6 +185,12 @@ const LiveTrackingPage = () => {
               replayRunPath={replayRunPath}
               replayCurrentPos={replayCurrentPos}
               replayBearing={replayBearing}
+              trailSegments={trailSegments}
+              tripLegend={tripLegend}
+              fallbackSingleColor={fallbackSingleColor}
+              habitualHalts={habitualHalts}
+              isHabitualHaltsVisible={isHabitualHaltsVisible}
+              segmentByTrip={segmentByTrip}
             />
 
             <MapOverlayControls
@@ -198,6 +230,20 @@ const LiveTrackingPage = () => {
 
           {/* Right Rail: Fleet List & Vehicle Detail View */}
           <aside className="rail">
+            {/* Layer toggles for the unified Live page (Task 4): trip
+                segments + habitual-halts surfaces. Sits above the fleet list
+                so users discover the new layers without scrolling. */}
+            <LiveLayerToggles
+              selectedVehicle={selectedVehicle}
+              isTrailVisible={isTrailVisible}
+              segmentByTrip={segmentByTrip}
+              setSegmentByTrip={setSegmentByTrip}
+              isHabitualHaltsVisible={isHabitualHaltsVisible}
+              habitualHaltsLoading={habitualHaltsLoading}
+              toggleHabitualHalts={toggleHabitualHalts}
+              habitualHalts={habitualHalts}
+            />
+
             {/* Primary Fleet List View */}
             <FleetListView
               isLiveLoading={isLiveLoading}
@@ -230,6 +276,9 @@ const LiveTrackingPage = () => {
               trailPoints={trailPoints}
               trailKm={trailKm}
               selectedDriver={selectedDriver}
+              tripLegend={tripLegend}
+              habitualHalts={habitualHalts}
+              isHabitualHaltsVisible={isHabitualHaltsVisible}
             />
           </aside>
         </div>

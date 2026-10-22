@@ -1,6 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import IalertOnlyPanel from './IalertOnlyPanel.jsx';
+
+vi.mock('../IalertFleet/ialertFleetApi.js', () => ({
+  addIalertVehicleToFleet: vi.fn(),
+}));
 
 describe('IalertOnlyPanel', () => {
   const mockOnlyIalert = [
@@ -75,5 +79,40 @@ describe('IalertOnlyPanel', () => {
       mockOnlyIalert.filter((v) => v.isBs6 === true).length,
     );
     expect(mockOnlyIalert.filter((v) => v.isBs6 === true)).toHaveLength(1);
+  });
+
+  it('shows an Add to fleet button per row when the user can add vehicles', () => {
+    render(
+      <IalertOnlyPanel
+        q=""
+        searching={false}
+        onlyIalert={mockOnlyIalert}
+        staleIalert={[]}
+        canAddVehicles
+      />,
+    );
+
+    expect(screen.getAllByText('Add to fleet')).toHaveLength(mockOnlyIalert.length);
+  });
+
+  it('shows no action column when the user cannot add vehicles', () => {
+    render(<IalertOnlyPanel q="" searching={false} onlyIalert={mockOnlyIalert} staleIalert={[]} />);
+
+    expect(screen.queryByText('Add to fleet')).not.toBeInTheDocument();
+  });
+
+  it('blocks placeholder plates (NA / TEMP) from being added', () => {
+    const rows = [
+      { registrationNumber: 'NA', vin: 'MA000000000000001', ialertAccountId: 'acc-1' },
+      { registrationNumber: 'TEMP-12', vin: 'MA000000000000002', ialertAccountId: 'acc-1' },
+      { registrationNumber: 'KA05EF1111', vin: 'MA000000000000003', ialertAccountId: 'acc-1' },
+    ];
+    render(
+      <IalertOnlyPanel q="" searching={false} onlyIalert={rows} staleIalert={[]} canAddVehicles />,
+    );
+
+    // Only the real plate is addable; the placeholders explain why they are not.
+    expect(screen.getAllByText('Add to fleet')).toHaveLength(1);
+    expect(screen.getAllByText('Needs a registration in iALERT')).toHaveLength(2);
   });
 });

@@ -23,6 +23,9 @@ export default function VehicleDetailPanel({
   trailPoints,
   trailKm,
   selectedDriver,
+  tripLegend,
+  habitualHalts,
+  isHabitualHaltsVisible,
 }) {
   return (
     <div
@@ -206,6 +209,9 @@ export default function VehicleDetailPanel({
                 isTrailVisible={isTrailVisible}
                 trailPoints={trailPoints}
                 trailKm={trailKm}
+                tripLegend={tripLegend}
+                habitualHalts={habitualHalts}
+                isHabitualHaltsVisible={isHabitualHaltsVisible}
               />
               <VehicleInfoSection selectedVehicle={selectedVehicle} />
               <DriverAssignmentSection selectedDriver={selectedDriver} />

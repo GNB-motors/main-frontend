@@ -12,11 +12,25 @@ export const ADD_TO_FLEET_ROLES = ['OWNER', 'MANAGER'];
  * can't be added: registrationNumber is globally unique on Vehicle, so a
  * second blank/"NA" row would 409 against whichever one got created first.
  */
+const PLACEHOLDER_REGS = new Set(['NA', 'N/A', 'NIL', 'NULL', 'NONE']);
+
 export const isAddableRegistration = (reg) => {
   const r = String(reg || '')
     .trim()
     .toUpperCase();
-  return r !== '' && r !== 'NA' && r !== 'N/A';
+  if (r === '' || PLACEHOLDER_REGS.has(r)) return false;
+  // "TEMP", "TEMP-1": a truck still on a temporary number.
+  if (r.startsWith('TEMP')) return false;
+  // "-", "--", "0", "000": filler, not a plate.
+  if (/^[-0]+$/.test(r)) return false;
+  return true;
+};
+
+/** FleetEdge writes a literal "NA" (or nothing) for unknown fields; show a dash. */
+export const displayValue = (value) => {
+  const s = String(value ?? '').trim();
+  if (s === '' || ['NA', 'N/A'].includes(s.toUpperCase())) return '—';
+  return s;
 };
 
 /**

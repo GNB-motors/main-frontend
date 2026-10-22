@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { formatDateTimeIST } from '../utils/dateUtils';
 import { timeAgo } from '../utils/formatters';
 import { linkStatus, linkReason, linkedByText } from '../lib/fleetLink';
+import { fleetEdgeAccountTitle } from '../lib/fleetConnections';
 import './FleetLink.css';
 
 const PREVIEW_VEHICLES = 6;
@@ -30,37 +31,35 @@ export default function FleetLinkAccountCard({ account, highlighted, onNavigate 
 
   return (
     <article
-      className={`rounded-[var(--ds-radius-md)] border bg-card p-4 ${
+      className={`fleet-account ${
         highlighted
-          ? 'border-[var(--ds-focus)] ring-2 ring-[var(--ds-info-tint)]'
-          : 'border-[var(--ds-line)]'
+          ? 'fleet-account--focus'
+          : ''
       }`}
     >
-      <header className="flex items-start justify-between gap-3">
+      <header className="fleet-account-head">
         <div className="min-w-0">
-          <h3 className="truncate text-sm font-semibold">
-            {account.friendlyName || `Fleet ${account.fleetId}`}
-          </h3>
-          <p className="text-xs text-muted-foreground">Fleet ID {account.fleetId || '—'}</p>
+          <h4 className="fleet-account-name">{fleetEdgeAccountTitle(account)}</h4>
+          <p className="fleet-account-sub truncate" title={account.fleetId || undefined}>
+            Fleet ID <span className="font-mono">{account.fleetId || '—'}</span>
+          </p>
         </div>
         <span className={`fleet-link-chip fleet-link-chip--${status.tone}`}>{status.label}</span>
       </header>
 
-      {reason ? <p className="mt-2 text-xs text-[var(--ds-ink2)]">{reason}</p> : null}
-      {when ? <p className="mt-1 text-xs font-medium text-[var(--ds-ink2)]">{when}</p> : null}
+      {reason ? <p className="fleet-account-note">{reason}</p> : null}
+      {when ? <p className="fleet-account-note">{when}</p> : null}
 
       {vehicles.length ? (
-        <div className="mt-3">
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Vehicles ({account.vehicleCount ?? vehicles.length})
-          </p>
-          <div className="flex flex-wrap gap-1.5">
+        <div className="fleet-vehicles">
+          <p className="fleet-vehicles-label">Vehicles ({account.vehicleCount ?? vehicles.length})</p>
+          <div className="fleet-vehicles-list">
             {shown.map((v) => (
               <Link
                 key={v.id || v.registrationNumber}
                 to={`/vehicles/${encodeURIComponent(v.registrationNumber)}`}
                 onClick={onNavigate}
-                className="rounded-md border border-[var(--ds-line)] px-1.5 py-0.5 font-mono text-[11px] hover:bg-[var(--ds-sunk)]"
+                className="fleet-vehicle"
               >
                 {v.registrationNumber}
               </Link>
@@ -69,7 +68,7 @@ export default function FleetLinkAccountCard({ account, highlighted, onNavigate 
               <button
                 type="button"
                 onClick={() => setShowAll(true)}
-                className="rounded-md px-1.5 py-0.5 text-[11px] font-semibold text-[var(--ds-focus)] hover:underline"
+                className="fleet-vehicle fleet-vehicle--more"
               >
                 +{hidden} more
               </button>

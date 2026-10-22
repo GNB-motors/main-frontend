@@ -103,6 +103,14 @@
   line-height: 1.5;
   color: var(--cluster-text);
 }
+.iaf-callout--crit {
+  border-color: color-mix(in srgb, var(--critical) 40%, transparent);
+  background: color-mix(in srgb, var(--critical) 8%, var(--cluster-panel));
+}
+.iaf-callout--info {
+  border-color: color-mix(in srgb, var(--accent-ink) 30%, transparent);
+  background: color-mix(in srgb, var(--accent-ink) 6%, var(--cluster-panel));
+}
 .iaf-callout-link {
   display: inline-flex;
   align-items: center;

@@ -10,6 +10,7 @@ const DocumentUpload = ({
   onDocumentsChange = () => {},
   onDeleteDocument = null,
   isSubmitting = false,
+  digilockerStatus = undefined,
 }) => {
   const [documents, setDocuments] = useState({
     driverLicense: {
@@ -199,6 +200,7 @@ const DocumentUpload = ({
               onSelect={() => handleDocumentSelect('driverLicense')}
               onRemove={() => handleRemoveDocument('driverLicense')}
               isDisabled={isSubmitting}
+              digilockerStatus={digilockerStatus}
             />
 
             <DocumentCard

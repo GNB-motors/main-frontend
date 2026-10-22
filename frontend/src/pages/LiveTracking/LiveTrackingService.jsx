@@ -61,4 +61,24 @@ export const LiveTrackingService = {
       throw ApiError.from(error);
     }
   },
+
+  /**
+   * Recurring stationary clusters (depots / regular halts) over a window.
+   * Surfaces the "places / hub" layer that the unified Live page overlays
+   * alongside the live breadcrumb trail.
+   * @param {string} reg - vehicle registration number
+   * @param {object} params - { days }
+   * @returns {Promise<object>} { records, totalCount, truncated, coveredFrom, coveredTo }
+   */
+  getHabitualHalts: async (reg, params = {}, { signal } = {}) => {
+    try {
+      const response = await apiClient.get(
+        `/api/livetracking/positions/${encodeURIComponent(reg)}/habitual-halts`,
+        { params, signal },
+      );
+      return response.data?.data || { records: [] };
+    } catch (error) {
+      throw ApiError.from(error);
+    }
+  },
 };

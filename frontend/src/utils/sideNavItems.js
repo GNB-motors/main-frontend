@@ -219,7 +219,7 @@ export const SIDE_NAV_ITEMS = [
     access: 'fleet',
     hoistWhenSole: 'fleet',
     to: '/live-tracking',
-    label: 'Track',
+    label: 'Live',
     icon: Radar,
   },
   {
