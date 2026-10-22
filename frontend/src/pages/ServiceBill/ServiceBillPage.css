@@ -1,0 +1,164 @@
+/* Service Bill page — the layout only; every colour that carries meaning is
+   set inline from STATE_STYLE so the state and its colour cannot drift apart. */
+
+.sbp-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sbp-chip {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12.5px;
+  cursor: pointer;
+  color: #374151;
+}
+
+.sbp-chip--on {
+  background: #111827;
+  border-color: #111827;
+  color: #fff;
+}
+
+.sbp-window {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: #6b7280;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sbp-signals {
+  margin: 6px 0;
+  font-size: 12.5px;
+  color: #6b7280;
+}
+
+.sbp-signal {
+  margin-left: 10px;
+}
+
+.sbp-empty {
+  padding: 24px 0;
+  color: #6b7280;
+}
+
+.sbp-row {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: #fff;
+}
+
+.sbp-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sbp-when {
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.sbp-state {
+  border: 1px solid;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sbp-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin: 12px 0 8px;
+}
+
+.sbp-figures > div {
+  min-width: 180px;
+}
+
+.sbp-figures dt {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+
+.sbp-figures dd {
+  margin: 2px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.sbp-figures dd small {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: #6b7280;
+}
+
+.sbp-figures--mismatch dd {
+  color: #b45309;
+}
+
+.sbp-lag,
+.sbp-estimate,
+.sbp-doc,
+.sbp-closed,
+.sbp-hint {
+  margin: 6px 0;
+  font-size: 12.5px;
+  color: #6b7280;
+}
+
+.sbp-closed {
+  color: #15803d;
+}
+
+.sbp-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.sbp-btn {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.sbp-btn--primary {
+  background: #111827;
+  border-color: #111827;
+  color: #fff;
+}
+
+.sbp-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.sbp-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 12px 0;
+  font-size: 13px;
+}

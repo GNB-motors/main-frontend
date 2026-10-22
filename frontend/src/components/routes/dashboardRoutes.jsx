@@ -26,6 +26,7 @@ const ServiceIntelligencePage = lazy(
   () => import('../../pages/Maintenance/ServiceIntelligencePage.jsx'),
 );
 const AddMaintenancePage = lazy(() => import('../../pages/Maintenance/AddMaintenancePage.jsx'));
+const ServiceBillPage = lazy(() => import('../../pages/ServiceBill/ServiceBillPage.jsx'));
 const MileagePage = lazy(() => import('../../pages/Mileage/MileagePage.jsx'));
 const MileageTrackingVehicleDetail = lazy(
   () => import('../../pages/MileageTracking/MileageTrackingVehicleDetail.jsx'),
@@ -186,6 +187,8 @@ const dashboardRoutes = (
     <Route path="/vehicles" element={<VehiclesPage />} />
     <Route path="/vehicles/dashboard" element={<VehicleDashboardPage />} />
     <Route path="/vehicles/service-intelligence" element={<ServiceIntelligencePage />} />
+    {/* D3 (00_PLAN item 19) — service done, where's the bill? */}
+    <Route path="/vehicles/service-bills" element={<ServiceBillPage />} />
     <Route
       path="/vehicles/service-intelligence/add-service"
       element={<AddMaintenancePage recordType="SERVICE" />}
