@@ -2484,3 +2484,135 @@ html.dark .vcard:hover,
 .lp-layer-toggles__btn:hover { background: var(--bg-hover, rgba(0,0,0,0.05)); }
 .lp-halts-empty { font-size: var(--type-2xs); color: var(--fg-secondary); margin-top: 6px; padding: 6px; border: 1px dashed var(--border-subtle); border-radius: 6px; }
 
+/* Tracking toolbar: growing manufacturer choices and pinned refresh tools. */
+.gnb-lt-page .lt-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px 16px;
+}
+.lt-command-row,
+.lt-status-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.lt-manufacturers {
+  display: flex;
+  gap: 8px;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 3px 2px 7px;
+  scrollbar-width: thin;
+}
+.lt-make {
+  flex: none;
+  white-space: nowrap;
+  min-height: 36px;
+  padding: 7px 13px;
+  border-radius: 7px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  color: var(--fg-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+.lt-make[aria-pressed='true'] {
+  background: var(--bg-active, #eff6ff);
+  border-color: #2563eb;
+  color: var(--fg-primary);
+  font-weight: 600;
+}
+.lt-command-row .tools {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.lt-update-age,
+.lt-map-count {
+  color: var(--fg-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.lt-refresh-error {
+  color: var(--fg-primary);
+  font-size: 12px;
+}
+.lt-map-count {
+  margin-left: auto;
+}
+.lt-toolbar .gnb-status-bar {
+  max-width: none;
+  flex: 0 1 auto;
+  gap: 8px;
+  padding: 2px;
+}
+.lt-toolbar .gnb-status-card {
+  flex: none;
+  min-width: auto;
+  flex-direction: row;
+  gap: 8px;
+  padding: 9px 13px;
+  box-shadow: none;
+}
+.lt-toolbar .gnb-status-card-label {
+  margin: 0;
+  color: var(--fg-secondary);
+}
+.lt-toolbar .gnb-status-card-count {
+  font-size: 15px;
+  color: var(--fg-primary);
+}
+.lt-toolbar .gnb-status-card--active {
+  background: var(--bg-active, #eff6ff) !important;
+  border-color: #2563eb !important;
+}
+.lt-toolbar .gnb-status-card--active .gnb-status-card-label,
+.lt-toolbar .gnb-status-card--active .gnb-status-card-count {
+  color: var(--fg-primary) !important;
+}
+.lt-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+.lt-toolbar button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+.lt-toolbar button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+@media (max-width: 1100px) {
+  .lt-command-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .lt-manufacturers {
+    flex-basis: 100%;
+  }
+  .lt-command-row .tools {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 600px) {
+  .gnb-lt-page .lt-toolbar {
+    padding: 8px;
+  }
+  .lt-command-row .tools {
+    gap: 8px;
+  }
+  .lt-status-row {
+    gap: 8px;
+  }
+  .lt-toolbar .gnb-status-card {
+    padding: 8px;
+  }
+}

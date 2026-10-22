@@ -34,6 +34,8 @@ const LiveTrackingPage = () => {
     positions: rawPositions,
     isLoading: isLiveLoading,
     refresh: refreshLivePositions,
+    lastEventAt,
+    error: positionsError,
   } = useLivePositions();
 
   // Layout & Theme hooks
@@ -45,6 +47,7 @@ const LiveTrackingPage = () => {
 
   // Filters & selection
   const [filter, setFilter] = useState('all');
+  const [selectedManufacturers, setSelectedManufacturers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedId, setSelectedId] = useState(null);
 
@@ -61,13 +64,19 @@ const LiveTrackingPage = () => {
 
   const { vehiclesMeta, driverAssignments } = useFleetMasterData();
 
-  const { vehicles, counts, filteredVehicles, selectedVehicle, mapVehicles } = useFleetVehicles({
-    rawPositions,
-    vehiclesMeta,
-    filter,
-    searchQuery,
-    selectedId,
-  });
+  const { vehicles, counts, filteredVehicles, selectedVehicle, mapVehicles, manufacturers } =
+    useFleetVehicles({
+      rawPositions,
+      vehiclesMeta,
+      selectedManufacturers,
+      filter,
+      searchQuery,
+      selectedId,
+    });
+
+  useEffect(() => {
+    if (selectedId && !selectedVehicle) setSelectedId(null);
+  }, [selectedId, selectedVehicle]);
 
   const {
     mapRef,
@@ -142,6 +151,13 @@ const LiveTrackingPage = () => {
           setFilter={setFilter}
           handleRefresh={handleRefresh}
           isRefreshing={isRefreshing}
+          manufacturers={manufacturers}
+          selectedManufacturers={selectedManufacturers}
+          setSelectedManufacturers={setSelectedManufacturers}
+          lastEventAt={lastEventAt}
+          positionsError={positionsError}
+          onMapCount={mapVehicles.length}
+          unclassifiedCount={vehicles.filter((v) => !v.manufacturer).length}
         />
 
         {/* Stage Area: Map + Docked Fleet Rail */}
