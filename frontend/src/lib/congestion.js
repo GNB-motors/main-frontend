@@ -15,10 +15,11 @@
  */
 import { decodePolyline6 } from './polyline6';
 
-/* Label colours. Congested is the alarming one; TYPICAL is deliberately quiet; LIVE is the R22 live probe
-   layer, which only ever reaches trunk roads because of cadence, so it gets its own colour rather than
-   borrowing "congested". */
-export const CONGESTED_COLOR = '#e11d48';
+/* Label colours. SLOWEST_SLICE is a RANK (the slowest (1 − q) of this org's roads of the same class, region
+   and hour, which exists every hour by construction), so it is never called "congested". TYPICAL is
+   deliberately quiet; LIVE is the R22 live probe layer, which only ever reaches trunk roads because of
+   cadence, so it gets its own colour. */
+export const SLOWEST_SLICE_COLOR = '#e11d48';
 export const TYPICAL_COLOR = '#0ea5e9';
 export const LIVE_COLOR = '#f59e0b';
 
@@ -40,7 +41,7 @@ export function hourLabel(how) {
 
 export function colorFor(row) {
   if (row?.layer === 'LIVE') return LIVE_COLOR;
-  return row?.label === 'CONGESTED' ? CONGESTED_COLOR : TYPICAL_COLOR;
+  return row?.label === 'SLOWEST_SLICE' ? SLOWEST_SLICE_COLOR : TYPICAL_COLOR;
 }
 
 /** The sample behind the number, in the same sentence as the number. */
@@ -71,7 +72,7 @@ export function segmentsFrom(rows = []) {
     .map((r) => {
       const path = decodePolyline6(r.geom);
       if (path.length < 2) return null;
-      const congested = r.label === 'CONGESTED';
+      const slowest = r.label === 'SLOWEST_SLICE';
       const live = r.layer === 'LIVE';
       return {
         key: r.edgeKey,
@@ -79,9 +80,9 @@ export function segmentsFrom(rows = []) {
         title: titleFor(r),
         options: {
           strokeColor: colorFor(r),
-          strokeOpacity: congested ? 0.9 : 0.5,
-          strokeWeight: congested || live ? 5 : 3,
-          zIndex: live ? 950 : congested ? 900 : 500,
+          strokeOpacity: slowest ? 0.9 : 0.5,
+          strokeWeight: slowest || live ? 5 : 3,
+          zIndex: live ? 950 : slowest ? 900 : 500,
           title: titleFor(r),
         },
       };
@@ -112,9 +113,9 @@ export function legendOf(coverage) {
         : '');
   const items = [
     {
-      color: CONGESTED_COLOR,
-      label: 'Congested for a road like this',
-      detail: `at or above the boundary our own trucks learned: ${base}`,
+      color: SLOWEST_SLICE_COLOR,
+      label: pct != null ? `Slowest ${pct}% of your roads like this` : 'Slowest of your roads like this',
+      detail: `a rank, not a jam: every hour some roads are in it. At or above the boundary our own trucks learned: ${base}`,
     },
     { color: TYPICAL_COLOR, label: 'Typical for a road like this', detail: 'below that boundary' },
   ];

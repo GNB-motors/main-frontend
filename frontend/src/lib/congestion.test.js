@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  CONGESTED_COLOR,
+  SLOWEST_SLICE_COLOR,
   TYPICAL_COLOR,
   LIVE_COLOR,
   colorFor,
@@ -30,7 +30,7 @@ const row = (over = {}) => ({
   roadClass: 'motorway',
   region: '03123',
   geom,
-  label: 'CONGESTED',
+  label: 'SLOWEST_SLICE',
   layer: 'TYPICAL',
   index: 1.8,
   band: 1.5,
@@ -77,7 +77,7 @@ describe('hourLabel', () => {
 
 describe('colorFor', () => {
   it('labels, not speeds, decide the colour', () => {
-    expect(colorFor(row())).toBe(CONGESTED_COLOR);
+    expect(colorFor(row())).toBe(SLOWEST_SLICE_COLOR);
     expect(colorFor(row({ label: 'TYPICAL' }))).toBe(TYPICAL_COLOR);
   });
 
@@ -129,6 +129,13 @@ describe('legendOf — the legend states the rule, not a speed', () => {
     expect(head.detail).toContain('Tue 10:00 IST');
     expect(head.detail).toContain('9 class×hour bins');
     expect(JSON.stringify(legendOf(coverage()))).not.toMatch(/\d+\s*km\/h/);
+  });
+
+  it('labels the slice as a rank and never as "congested"', () => {
+    const [head] = legendOf(coverage());
+    expect(head.label).toBe('Slowest 10% of your roads like this');
+    expect(head.detail).toContain('a rank, not a jam');
+    expect(JSON.stringify(legendOf(coverage()))).not.toMatch(/congested/i);
   });
 
   it('adds the live row only when the backend sent live coverage', () => {
