@@ -1,13 +1,9 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi, it, expect, beforeEach } from 'vitest';
-import RoutesTab from './RoutesTab';
+import DeliveryRoutes from './DeliveryRoutes';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
 import { getUserRole } from '../../../utils/session';
-const flags = vi.hoisted(() => ({ enabled: false }));
-vi.mock('../../../contexts/FeatureFlagsContext', () => ({
-  useFeatureFlags: () => ({ isEnabled: () => flags.enabled }),
-}));
 vi.mock('../../../utils/session', () => ({ getUserRole: vi.fn() }));
 vi.mock('./PlaceIntelligenceService', () => ({
   default: {
@@ -30,7 +26,6 @@ const leg = {
 };
 beforeEach(() => {
   vi.clearAllMocks();
-  flags.enabled = false;
   getUserRole.mockReturnValue('OWNER');
   PlaceIntelligenceService.listLegs.mockResolvedValue({ records: [] });
   PlaceIntelligenceService.listSites.mockResolvedValue({ records: [] });
@@ -41,20 +36,13 @@ beforeEach(() => {
   });
   PlaceIntelligenceService.reviewDeliveryLeg.mockResolvedValue({ ok: true });
 });
-const mount = (url = '/place-hub?tab=routes') =>
+const mount = (url = '/place-hub?tab=deliveries') =>
   render(
     <MemoryRouter initialEntries={[url]}>
-      <RoutesTab version={1} />
+      <DeliveryRoutes version={1} />
     </MemoryRouter>,
   );
-it('keeps old routes and never requests deliveries when the flag is off', async () => {
-  mount();
-  await screen.findByText('No routes learned yet');
-  expect(PlaceIntelligenceService.listDeliveryLegs).not.toHaveBeenCalled();
-  expect(screen.queryByRole('button', { name: 'Deliveries' })).toBeNull();
-});
-it('defaults to deliveries, filters and resets pagination, and preserves all movements', async () => {
-  flags.enabled = true;
+it('filters deliveries and resets pagination', async () => {
   mount();
   await screen.findByRole('button', { name: 'Plant → Town' });
   expect(screen.getByText('Within 10%')).toBeTruthy();
@@ -73,13 +61,9 @@ it('defaults to deliveries, filters and resets pagination, and preserves all mov
       expect.anything(),
     ),
   );
-  fireEvent.click(screen.getByRole('button', { name: 'All movements' }));
-  await screen.findByText('No routes learned yet');
-  expect(PlaceIntelligenceService.listLegs).toHaveBeenCalled();
 });
 it('opens linked leg samples and submits review with an optional note', async () => {
-  flags.enabled = true;
-  mount('/place-hub?tab=routes&leg=leg1');
+  mount('/place-hub?tab=deliveries&leg=leg1');
   expect((await screen.findByRole('link', { name: 'TRUCK1' })).getAttribute('href')).toBe(
     '/auto-trips/trip1',
   );
@@ -95,7 +79,6 @@ it('opens linked leg samples and submits review with an optional note', async ()
   );
 });
 it('uses the server SAP verdict at a decimal tolerance boundary', async () => {
-  flags.enabled = true;
   PlaceIntelligenceService.listDeliveryLegs.mockResolvedValue({
     rows: [
       {

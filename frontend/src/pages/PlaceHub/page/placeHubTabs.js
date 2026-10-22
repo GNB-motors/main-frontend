@@ -17,6 +17,7 @@ export default function placeHubTabs({
   allowSites,
   isSuperAdmin,
   allowHygiene,
+  allowDeliveries,
 }) {
   return [
     { id: 'places', label: 'Places', Icon: MapPinned },
@@ -24,7 +25,9 @@ export default function placeHubTabs({
     allowFuel && { id: 'fuel', label: 'Fuel risk', Icon: Flame },
     allowSites && { id: 'stops', label: 'Stops', Icon: Clock, title: 'Unexplained stops' },
     allowHygiene && { id: 'duplicates', label: 'Same place?', Icon: Layers, table: true },
-    allowSites && { id: 'routes', label: 'Routes', Icon: Route, table: true },
+    allowSites && { id: 'routes', label: 'Routes', Icon: Route },
+    allowSites &&
+      allowDeliveries && { id: 'deliveries', label: 'Deliveries', Icon: Route, table: true },
     allowSites && { id: 'facilities', label: 'Facilities', Icon: Factory, table: true },
     allowSites && { id: 'regions', label: 'Regions', Icon: Layers, table: true },
     allowSites && { id: 'homes', label: 'Driver homes', Icon: Home, table: true },

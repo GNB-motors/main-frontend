@@ -9,9 +9,32 @@ import {
   RISK_COLOR,
 } from '../placeHubStyle.js';
 import PoiKeys from './PoiKeys.jsx';
+import { RUN_COLORS } from '../model/routes.js';
 
-export default function Legend({ tab, places, showContext, showPoi }) {
+export default function Legend({ tab, places, showContext, showPoi, isDark }) {
   const poi = showPoi && <PoiKeys />;
+  if (tab === 'routes')
+    return (
+      <div className="ph-legend ph-route-legend">
+        <span>Width and blue shade = runs</span>
+        <span className="ph-route-widths">
+          {[2, 10, 40].map((n) => (
+            <span key={n}>
+              <i style={{ borderTopWidth: 2 + Math.sqrt(n / 40) * 6 }} />
+              {n}
+            </span>
+          ))}
+        </span>
+        <span className="ph-route-ramp" aria-label="Runs: 2–3, 4–6, 7–12, 13–24, 25 or more">
+          {RUN_COLORS[isDark ? 'dark' : 'light'].map((color) => (
+            <i key={color} style={{ background: color }} />
+          ))}
+        </span>
+        <span>━ Road our trucks drove</span>
+        <span>┄ Likely road (engine)</span>
+        <span>··· Straight-line link</span>
+      </div>
+    );
   if (tab === 'places') {
     const types = [
       ...new Set(places.filter((p) => p.status === 'CONFIRMED').map((p) => p.type)),

@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useGoogleMap, GoogleMapsMarkerClusterer } from '@react-google-maps/api';
-import { createLiveClusterAlgorithm, createClusterRenderer } from './vehicleClustering.js';
+import { useGoogleMap } from '@react-google-maps/api';
 import { createVehicleMarkerIcon } from './vehicleMarkerIcon.js';
 
 /**
@@ -44,25 +43,15 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
   const map = useGoogleMap();
   // id -> { marker, from, to, start, dur, iconSig }
   const markersRef = useRef(new Map());
-  const clustererRef = useRef(null);
   // Keep click handler current without re-binding the per-marker listener.
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
 
-  // The selected truck stays individually visible while the rest are clustered.
+  // Every vehicle stays visible as a truck at every zoom level.
   useEffect(() => {
     if (!map || !window.google) return undefined;
-    const clusterer = new GoogleMapsMarkerClusterer.MarkerClusterer({
-      map,
-      algorithm: createLiveClusterAlgorithm(),
-      renderer: createClusterRenderer(),
-    });
-    clustererRef.current = clusterer;
     const markers = markersRef.current;
     return () => {
-      clusterer.clearMarkers();
-      clusterer.setMap(null);
-      clustererRef.current = null;
       for (const rec of markers.values()) {
         window.google.maps.event.clearInstanceListeners(rec.marker);
         rec.marker.setMap(null);
@@ -78,9 +67,6 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
     const g = window.google.maps;
     const markers = markersRef.current;
     const seen = new Set();
-    const clusterer = clustererRef.current;
-    const added = [];
-    const removed = [];
 
     for (const v of vehicles) {
       if (!v.hasFix || v.lat == null || v.lng == null) continue;
@@ -92,7 +78,7 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
       let rec = markers.get(v.id);
       if (!rec) {
         const marker = new g.Marker({
-          map: isSelected ? map : null,
+          map,
           title: v.plate,
           position: target,
           icon: createVehicleMarkerIcon(v, isSelected, false, mapZoom),
@@ -106,16 +92,8 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
           start: 0,
           dur: 0,
           iconSig,
-          clustered: !isSelected,
         });
-        if (!isSelected) added.push(marker);
         continue;
-      }
-
-      if (rec.clustered === isSelected) {
-        if (isSelected) removed.push(rec.marker);
-        else added.push(rec.marker);
-        rec.clustered = !isSelected;
       }
 
       if (rec.iconSig !== iconSig) {
@@ -143,17 +121,11 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
 
     for (const [id, rec] of markers) {
       if (!seen.has(id)) {
-        if (rec.clustered) removed.push(rec.marker);
         window.google.maps.event.clearInstanceListeners(rec.marker);
         rec.marker.setMap(null);
         markers.delete(id);
       }
     }
-    clusterer?.removeMarkers(removed, true);
-    clusterer?.addMarkers(added, true);
-    clusterer?.render();
-    // Removing a selected truck from a cluster detaches it; restore after render.
-    if (selectedId) markers.get(selectedId)?.marker.setMap(map);
   }, [map, vehicles, selectedId, mapZoom]);
 
   // One rAF loop drives every active glide; markers at rest cost nothing.
@@ -161,7 +133,6 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
     if (!map) return undefined;
     let raf;
     const tick = (now) => {
-      let settled = false;
       for (const rec of markersRef.current.values()) {
         if (rec.dur > 0) {
           const t = Math.min(1, (now - rec.start) / rec.dur);
@@ -173,11 +144,9 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
           if (t >= 1) {
             rec.dur = 0;
             rec.from = rec.to;
-            settled = true;
           }
         }
       }
-      if (settled) clustererRef.current?.render();
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);

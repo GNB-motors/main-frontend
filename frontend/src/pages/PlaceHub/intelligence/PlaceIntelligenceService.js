@@ -86,6 +86,9 @@ export const PlaceIntelligenceService = {
   tagStop: async ({ id, purpose }, { signal } = {}) =>
     unwrap(await apiClient.post(`${BASE}/stops/${id}/reason`, { purpose }, { signal })),
 
+  routesMap: async (params = {}, { signal } = {}) =>
+    parsed('routesMapSchema', await apiClient.get(`${BASE}/routes/map`, { params, signal })),
+
   listLegs: async (params = {}, { signal } = {}) =>
     parsed('legListSchema', await apiClient.get(`${BASE}/routes/legs`, { params, signal })),
 

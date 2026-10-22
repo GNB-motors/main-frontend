@@ -200,7 +200,7 @@ export default function RouteSapCard({ trip }) {
         </div>
       </SapRequestState>
       {isEnabled('routesV2') && trip.routeLeg && (
-        <Link className="sap-link" to={`/place-hub?tab=routes&leg=${trip.routeLeg._id}`}>
+        <Link className="sap-link" to={`/place-hub?tab=deliveries&leg=${trip.routeLeg._id}`}>
           Usual for this route: {kmText(trip.routeLeg.km?.p50)} ({trip.routeLeg.n} trips)
         </Link>
       )}

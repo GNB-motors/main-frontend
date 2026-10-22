@@ -80,25 +80,32 @@ const vehicles = [
 ];
 
 describe('live marker clustering', () => {
-  it('excludes the selected truck, updates membership on filters, and cleans up', () => {
+  it('shows every vehicle as a truck at overview zoom, updates selection and filters, and cleans up', () => {
     setupGoogle();
     const select = vi.fn();
-    const view = renderComponent(<AnimatedVehicleMarkers vehicles={vehicles} onSelect={select} />);
-    const clusterer = state.clusters[0];
-    expect(clusterer.members.size).toBe(2);
+    const view = renderComponent(
+      <AnimatedVehicleMarkers vehicles={vehicles} mapZoom={7} onSelect={select} />,
+    );
+    expect(state.clusters).toHaveLength(0);
+    expect(state.markers).toHaveLength(2);
     const [a, b] = state.markers;
+    expect(a.options.map).toBe(state.map);
+    expect(b.options.map).toBe(state.map);
+    expect(a.options.label).toBeUndefined();
     act(() => a.addListener.mock.calls[0][1]());
     expect(select).toHaveBeenCalledWith('a');
-    view.rerender(<AnimatedVehicleMarkers vehicles={vehicles} selectedId="a" onSelect={select} />);
-    expect([...clusterer.members]).toEqual([b]);
-    expect(a.setMap).toHaveBeenLastCalledWith(state.map);
-    view.rerender(<AnimatedVehicleMarkers vehicles={[vehicles[0]]} onSelect={select} />);
-    expect([...clusterer.members]).toEqual([a]);
+    view.rerender(
+      <AnimatedVehicleMarkers vehicles={vehicles} selectedId="a" mapZoom={7} onSelect={select} />,
+    );
+    expect(state.markers).toHaveLength(2);
+    expect(a.setZIndex).toHaveBeenLastCalledWith(1000);
+    view.rerender(
+      <AnimatedVehicleMarkers vehicles={[vehicles[0]]} mapZoom={7} onSelect={select} />,
+    );
     expect(b.setMap).toHaveBeenLastCalledWith(null);
     view.unmount();
-    expect(clusterer.clearMarkers).toHaveBeenCalled();
-    expect(clusterer.setMap).toHaveBeenCalledWith(null);
     expect(a.setMap).toHaveBeenLastCalledWith(null);
+    expect(window.google.maps.event.clearInstanceListeners).toHaveBeenCalledWith(a);
   });
   it('invalidates the spatial index when the same marker moves, not on every render', () => {
     setupGoogle();

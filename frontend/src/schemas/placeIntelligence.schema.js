@@ -318,3 +318,53 @@ export const homeListSchema = z
     limit: num,
   })
   .passthrough();
+
+const routePathSchema = z
+  .object({
+    source: z.enum(['DRIVEN', 'ENGINE', 'NONE']),
+    overviewSegments: z.array(z.string()).default([]),
+    geomSegments: z.array(z.string()).optional(),
+    km: num,
+    agreement: num,
+  })
+  .passthrough();
+export const routesMapSchema = z
+  .object({
+    legs: z.array(
+      legSchema.extend({
+        fromSiteId: z.string(),
+        toSiteId: z.string(),
+        pairKey: z.string(),
+        sameRoadAsReverse: z.boolean(),
+        inPlant: z.boolean(),
+        path: routePathSchema,
+        latestRunMinutes: num,
+        detourKm: num,
+        engine: z.object({ km: num, minutes: num }).passthrough().nullish(),
+      }),
+    ),
+    sites: z.array(
+      z
+        .object({
+          _id: z.string(),
+          lat: num,
+          lng: num,
+          name: str,
+          siteType: str,
+          address: addressSchema.nullish(),
+          runs: num,
+        })
+        .passthrough(),
+    ),
+    totals: z.object({
+      legs: z.number(),
+      inPlant: z.number(),
+      runs: z.number(),
+      places: z.number(),
+    }),
+    fleetMedianFuelPerKm: num,
+    truncated: z.boolean().optional(),
+    total: num,
+    generatedAt: z.string(),
+  })
+  .passthrough();

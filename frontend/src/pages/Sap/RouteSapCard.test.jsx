@@ -82,7 +82,7 @@ it('saves manual SAP with site IDs and refetches the card', async () => {
   );
   await waitFor(() => expect(SapService.trip).toHaveBeenCalledTimes(2));
   expect(screen.getByRole('link', { name: /Usual for this route/ }).getAttribute('href')).toBe(
-    '/place-hub?tab=routes&leg=leg1',
+    '/place-hub?tab=deliveries&leg=leg1',
   );
 });
 it('rejects a suggestion and removes a manual override', async () => {

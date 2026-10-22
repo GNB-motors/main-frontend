@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import PlaceHubService from '../PlaceHubService.js';
+import PlaceIntelligenceService from '../intelligence/PlaceIntelligenceService.js';
+import errorText from './errorText.js';
 
 const EMPTY_LAYER = { rows: [], error: null };
 
@@ -174,6 +176,23 @@ export default function usePlaceHubData({ ready, allowZones, allowSites, allowId
     }
   }, [allowSites, begin, finish]);
 
+  const loadRoutes = useCallback(async () => {
+    if (!allowSites) return;
+    const signal = begin('routes');
+    try {
+      const routes = await PlaceIntelligenceService.routesMap({}, { signal });
+      if (signal.aborted) return;
+      setData((d) => ({ ...d, routes }));
+      setErrors((e) => ({ ...e, routes: null }));
+      finish('routes');
+    } catch (error) {
+      if (signal.aborted || isCanceled(error)) return;
+      setData((d) => ({ ...d, routes: null }));
+      setErrors((e) => ({ ...e, routes: errorText(error, 'Could not load routes') }));
+      finish('routes');
+    }
+  }, [allowSites, begin, finish]);
+
   useEffect(() => {
     if (ready) loadPlaces();
   }, [ready, loadPlaces]);
@@ -197,5 +216,6 @@ export default function usePlaceHubData({ ready, allowZones, allowSites, allowId
     loadFuel,
     loadDrain,
     loadStops,
+    loadRoutes,
   };
 }
