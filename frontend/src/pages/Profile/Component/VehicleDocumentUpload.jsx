@@ -244,7 +244,6 @@ const VehicleDocumentUpload = ({
                 </>
               )}
             </div>
-            <div className="card-step-badge">Step 2 of 2</div>
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 /** Normalize known makes without guessing manufacturer from model or registration. */
 export function normalizeManufacturer(value) {
   const name = typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
+  if (!name || name.toUpperCase() === 'UNKNOWN') return '';
   if (/^tata(?: motors)?$/i.test(name)) return 'Tata';
   if (/^ashok[\s-]*leyland$/i.test(name)) return 'Ashok Leyland';
   return name;

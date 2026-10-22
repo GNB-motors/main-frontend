@@ -108,8 +108,8 @@ export const VEHICLE_EXPORT_COLUMNS = [
   { key: 'manufacturer', label: 'Manufacturer' },
   { key: 'vehicleCategory', label: 'Category' },
   { key: 'chassis_number', label: 'Chassis No' },
-  { key: 'fleetEdgeAccount', label: 'FleetEdge Account' },
-  { key: 'fleetEdgeLink', label: 'FleetEdge Link' },
+  { key: 'fleetEdgeAccount', label: 'Account' },
+  { key: 'fleetEdgeLink', label: 'Account connection' },
 ];
 
 export function mapVehicleForExport(vehicle, accountMap = {}, linkIndex = null) {
@@ -129,14 +129,20 @@ export function mapVehicleForExport(vehicle, accountMap = {}, linkIndex = null) 
   };
 }
 
-export function vehicleExportMeta({ search = '', accountFilter = 'all', accountMap = {} } = {}) {
+export function vehicleExportMeta({
+  search = '',
+  accountFilter = 'all',
+  accountMap = {},
+  manufacturer = '',
+} = {}) {
   const filters = [];
+  if (manufacturer) filters.push({ label: 'Manufacturer', value: manufacturer });
   if (search.trim()) filters.push({ label: 'Search', value: search.trim() });
-  if (accountFilter === 'untagged') filters.push({ label: 'FleetEdge account', value: 'Untagged' });
+  if (accountFilter === 'untagged') filters.push({ label: 'Account', value: 'Untagged' });
   else if (accountFilter !== 'all') {
     const acct = accountMap[accountFilter];
     filters.push({
-      label: 'FleetEdge account',
+      label: 'Account',
       value: acct ? acct.friendlyName || acct.externalAccountId : accountFilter,
     });
   }
