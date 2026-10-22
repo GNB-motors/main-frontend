@@ -2,7 +2,7 @@ import React from 'react';
 import PageShell from '../../components/ui/PageShell.jsx';
 import EmptyState from '../../components/cluster/EmptyState.jsx';
 import KpiCard from '../../components/ui/KpiCard.jsx';
-import Button from '../../components/ui/button.jsx';
+import { Button } from '../../components/ui/button.jsx';
 import { getInbox, acknowledgeItem, acknowledgeAll } from '../../services/AlertInboxService.js';
 import {
   groupByCondition,

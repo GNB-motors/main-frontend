@@ -33,7 +33,15 @@ export const getVisibleNavChildren = (group, isEnabled, access = null) =>
  * `usageProfile` is GET /api/usage/nav-profile for this org. Pass nothing and
  * the menu is whole: absence of measurement never removes anything.
  */
-export const getVisibleNavItems = (isEnabled, role = null, usageProfile = null) => {
+export const getVisibleNavItems = (isEnabled, role = null, usageProfile = null) =>
+  computeVisibleNav(isEnabled, role, usageProfile).items;
+
+/**
+ * The menu PLUS what the usage cut folded. A folded entry never vanishes: it
+ * comes back here with its route, its job and the sentence the server wrote,
+ * so the sidebar can still offer it under "More".
+ */
+export const computeVisibleNav = (isEnabled, role = null, usageProfile = null) => {
   const access = { erp: hasErpAccess(isEnabled), fleet: hasFleetAccess(isEnabled) };
 
   const soleModule =
@@ -72,11 +80,13 @@ export const getVisibleNavItems = (isEnabled, role = null, usageProfile = null) 
   // Last, and only with the org's own measured numbers behind it.
   const cut = applyUsageCut(gated, usageProfile);
 
-  return cut.items.filter((item, i) => {
+  const prunedItems = cut.items.filter((item, i) => {
     if (item.type !== 'section') return true;
     const next = cut.items[i + 1];
     return !!next && next.type !== 'section';
   });
+
+  return { items: prunedItems, folded: cut.folded, foldedByJob: cut.foldedByJob, cutApplied: cut.applied, cutWhy: cut.why };
 };
 
 /** Pehla navigable route jispe current org ke flags ke hisaab se user ki access hai. */
