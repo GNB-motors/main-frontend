@@ -146,3 +146,36 @@ export function filterItems(rows, filter) {
   if (filter === 'MISMATCH') return rows.filter((r) => r.comparison?.verdict === 'DISAGREES');
   return rows.filter((r) => r.state === filter);
 }
+
+/**
+ * What the workshop bill itself reads (D4's OCR, `row.billReading`), as a figure
+ * and a note. Only a reviewed reading is a number; an unreviewed one is shown as
+ * what the OCR read, labelled as not trusted yet. Never ₹0 for unknown.
+ * @returns {{figure: string, note: string}|null}
+ */
+export function readingText(reading) {
+  if (!reading) return null;
+  const conf = Number.isFinite(Number(reading.ocrConfidence))
+    ? ` · ${Math.round(Number(reading.ocrConfidence))}% OCR confidence`
+    : '';
+  if (Number.isFinite(Number(reading.amount)) && reading.amount !== null) {
+    if (reading.kind === 'CORRECTED') {
+      const ocr = Number.isFinite(Number(reading.ocrValue)) && reading.ocrValue !== null ? ` (OCR read ${formatMoney(reading.ocrValue)})` : '';
+      return { figure: formatMoney(reading.amount), note: `Corrected by a reviewer${ocr}` };
+    }
+    return { figure: formatMoney(reading.amount), note: `Read off the workshop bill and reviewed${conf}` };
+  }
+  if (reading.missing === 'NOT_REVIEWED') {
+    return {
+      figure: 'Awaiting review',
+      note: `OCR read ${formatMoney(reading.proposal)}${conf} — not trusted until someone reviews it`,
+    };
+  }
+  if (reading.missing === 'REVIEWER_KEPT_RECORD') {
+    return {
+      figure: 'Record kept',
+      note: `The bill read ${formatMoney(reading.disagreesWithRecord)}; the reviewer kept the record's figure`,
+    };
+  }
+  return { figure: 'Not read', note: `No total read off the bill (${reading.missing || 'unknown reason'})` };
+}

@@ -162,3 +162,10 @@
   padding: 12px 0;
   font-size: 13px;
 }
+
+/* The two views of the page: services joined to bills, and the OCR bill review queue (D4). */
+.sbp-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px 0;
+}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import PageShell from '../../components/ui/PageShell';
 import { ServiceBillService } from '../../services/ServiceBillService';
@@ -12,6 +12,7 @@ import {
   provenanceText,
   deltaText,
   lagText,
+  readingText,
 } from './serviceBillLogic';
 import './ServiceBillPage.css';
 
@@ -27,7 +28,7 @@ import './ServiceBillPage.css';
  * No cell renders a missing number as ₹0 and no cell says "paid": an Expense
  * says who submitted a bill and who accepted it, not that money left a bank.
  */
-const ServiceBillPage = () => {
+const ServicesView = () => {
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ total: 0, page: 1, totalPages: 1, summary: {} });
   const [loading, setLoading] = useState(false);
@@ -216,6 +217,24 @@ const ServiceBillPage = () => {
                   </small>
                 </dd>
               </div>
+              {row.billReading ? (
+                <div>
+                  <dt>Workshop bill reads</dt>
+                  <dd>
+                    {readingText(row.billReading).figure}
+                    <small>{readingText(row.billReading).note}</small>
+                  </dd>
+                </div>
+              ) : null}
+              {row.readingComparison && row.readingComparison.verdict === 'DISAGREES' ? (
+                <div className="sbp-figures--mismatch">
+                  <dt>Bill and record disagree</dt>
+                  <dd>
+                    {deltaText(row.readingComparison)}
+                    <small>Both figures stand. Nothing was averaged.</small>
+                  </dd>
+                </div>
+              ) : null}
               {row.comparison && row.comparison.verdict === 'DISAGREES' ? (
                 <div className="sbp-figures--mismatch">
                   <dt>They disagree</dt>
@@ -301,6 +320,44 @@ const ServiceBillPage = () => {
         </div>
       ) : null}
     </PageShell>
+  );
+};
+
+// D4's OCR review queue: what each workshop bill says, before anyone trusts it.
+// One page, one nav entry, two views of the same question.
+const BillReviewQueue = lazy(() => import('../ServiceBills/ServiceBillsPage.jsx'));
+
+const TABS = [
+  { key: 'services', label: 'Services and their bills' },
+  { key: 'review', label: 'Bill review (OCR)' },
+];
+
+const ServiceBillPage = () => {
+  const [tab, setTab] = useState('services');
+  return (
+    <>
+      <div className="sbp-tabs" role="tablist" aria-label="Service bills views">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.key}
+            className={`sbp-chip${tab === t.key ? ' sbp-chip--on' : ''}`}
+            onClick={() => setTab(t.key)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {tab === 'services' ? (
+        <ServicesView />
+      ) : (
+        <Suspense fallback={<p className="sbp-loading">Loading the bill review queue…</p>}>
+          <BillReviewQueue />
+        </Suspense>
+      )}
+    </>
   );
 };
 

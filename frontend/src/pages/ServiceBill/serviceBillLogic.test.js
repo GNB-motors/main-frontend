@@ -8,6 +8,7 @@ import {
   lagText,
   STATE_STYLE,
   filterItems,
+  readingText,
 } from './serviceBillLogic';
 
 describe('an absent number is never a zero', () => {
@@ -143,5 +144,25 @@ describe('the list filters to what a manager is chasing', () => {
       expect(STATE_STYLE[s]).toBeTruthy();
       expect(STATE_STYLE[s].label).not.toMatch(/paid/i);
     });
+  });
+});
+
+describe('readingText: what the workshop bill reads (D4 OCR)', () => {
+  it('a reviewed reading is a number with its confidence', () => {
+    const t = readingText({ amount: 18000, kind: 'EXTRACTED', ocrConfidence: 88 });
+    expect(t.figure).toBe('₹18,000');
+    expect(t.note).toContain('88% OCR confidence');
+  });
+  it('a corrected reading keeps the OCR value beside it', () => {
+    expect(readingText({ amount: 18500, kind: 'CORRECTED', ocrValue: 18000 }).note).toContain('OCR read ₹18,000');
+  });
+  it('an unreviewed reading is never the figure', () => {
+    const t = readingText({ amount: null, missing: 'NOT_REVIEWED', proposal: 9100 });
+    expect(t.figure).toBe('Awaiting review');
+    expect(t.note).toContain('not trusted');
+  });
+  it('unknown is never ₹0', () => {
+    expect(readingText({ amount: null, missing: 'BELOW_ORG_CONFIDENCE_FLOOR' }).figure).toBe('Not read');
+    expect(readingText(null)).toBeNull();
   });
 });
