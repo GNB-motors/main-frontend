@@ -56,58 +56,7 @@ export const REPORT_GROUPS = [
       { id: 'nonBusiness', label: 'Non-Business', flag: 'autoTrips' },
       { id: 'runningCost', label: 'Running Cost', flag: 'autoTrips' },
       { id: 'registerMatch', label: 'Trip Register Match', flag: 'autoTrips' },
-      { id: 'laneKm', label: 'Lane km vs SAP', flag: 'autoTrips' },
-      { id: 'autoTrips', label: 'Auto Trips', to: '/auto-trips', flag: 'autoTrips' },
-      { id: 'routeProfitability', label: 'Route Profitability', to: '/route-hub?tab=profitability' },
-      { id: 'routeDeviation', label: 'Route Deviation', to: '/route-hub?tab=deviation' },
-      { id: 'routeOverspeed', label: 'Overspeed Audit', to: '/route-hub?tab=overspeed' },
-    ],
-  },
-  {
-    // Reserved for the toll ledger surface. Nothing exports tolls today, so the
-    // group stays empty and visibleReportGroups() drops it until it lands.
-    id: 'tolls',
-    label: 'TOLLS',
-    children: [],
-  },
-  {
-    id: 'compliance',
-    label: 'COMPLIANCE',
-    children: [
-      { id: 'defLedger', label: 'DEF Ledger', to: '/def-ledger' },
-      { id: 'fleetCoverage', label: 'Fleet Coverage', to: '/fleet-coverage' },
-      { id: 'ialertFleet', label: 'iALERT Fleet', to: '/ialert/vehicles' },
-      { id: 'fleetAlerts', label: 'Fleet Alerts', to: '/fleet-alerts' },
-      { id: 'fleetedgeAccounts', label: 'FleetEdge Link Health', to: '/settings/fleetedge-accounts' },
-      {
-        id: 'assignedEmployees',
-        label: 'Assigned Employees',
-        to: '/access-control/assigned-employees',
-      },
-    ],
-  },
-  {
-    id: 'finance',
-    label: 'FINANCE',
-    children: [
-      { id: 'erpHome', label: 'ERP Overview', to: '/erp' },
-      { id: 'erpReceipts', label: 'Receipts', to: '/erp/billing?tab=receipts' },
-      { id: 'erpOutstanding', label: 'Outstanding', to: '/erp/billing?tab=outstanding' },
-      { id: 'erpSaleBills', label: 'Sale Bills', to: '/erp/billing?tab=bills' },
-      { id: 'erpDayBook', label: 'Day Book', to: '/erp/accounts?tab=daybook' },
-      { id: 'erpLedger', label: 'Ledger', to: '/erp/accounts?tab=ledger' },
-      { id: 'erpRegisters', label: 'Registers', to: '/erp/accounts?tab=registers' },
-      { id: 'erpVendorPayments', label: 'Vendor Payments', to: '/erp/payables?tab=vendor' },
-      { id: 'erpSupplierPayments', label: 'Supplier Payments', to: '/erp/payables?tab=supplier' },
-    ],
-  },
-  {
-    id: 'fleetOps',
-    label: 'FLEET & OPERATIONS',
-    children: [
-      { id: 'vehicles', label: 'Vehicles', to: '/vehicles' },
-      { id: 'employees', label: 'Drivers', to: '/drivers' },
-      { id: 'dailyDigest', label: 'Daily Digest', to: '/digest' },
+      { id: 'laneKm', label: 'Lane km vs SAP' },
     ],
   },
 ];

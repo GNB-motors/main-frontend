@@ -5,6 +5,7 @@
  */
 import { z } from 'zod';
 import { str, num } from './primitives.js';
+import { tripSapSchema } from './sap.schema';
 
 const point = z
   .object({
@@ -34,7 +35,11 @@ export const autoTripSchema = z
     pickup: point.nullish(),
     drop: drop.nullish(),
     extraDrops: z.array(drop).nullish(),
-    km: z.object({ approach: num, laden: num, fuelDetour: num }).passthrough().nullish(),
+    sap: tripSapSchema.nullish(),
+    km: z
+      .object({ approach: num, laden: num, return: num, fuelDetour: num })
+      .passthrough()
+      .nullish(),
     durations: z
       .object({ approachMin: num, plantMin: num, transitMin: num, dropMin: num })
       .passthrough()

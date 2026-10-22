@@ -54,14 +54,15 @@ describe('visibleReportGroups', () => {
     ]);
   });
 
-  it('hides the Trip Economics reports for an org without autoTrips', () => {
+  it('keeps SAP visible and hides the other Trip Economics reports without autoTrips', () => {
     const visible = ids(visibleReportGroups(flags(['vehicleActivity', 'fuelIntegrity'])));
     expect(visible).not.toContain('oilAverage');
     expect(visible).not.toContain('fuelCycles');
     expect(visible).not.toContain('nonBusiness');
     expect(visible).not.toContain('runningCost');
     expect(visible).not.toContain('registerMatch');
-    expect(visible).not.toContain('laneKm');
+    expect(visible).toContain('laneKm');
+    expect(resolveReport('laneKm', flags([]))).toBe('laneKm');
   });
 
   it('hides the Oil & Average report without autoTrips (its API router is gated)', () => {
