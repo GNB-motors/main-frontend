@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import ServiceBillService from '../../services/ServiceBillService';
+import BillExtractionService from '../../services/BillExtractionService';
 import {
   buildFieldRows,
   buildReviewPayload,
@@ -32,7 +32,7 @@ const BillReviewModal = ({ billId, onClose, onReviewed }) => {
 
   useEffect(() => {
     let mounted = true;
-    ServiceBillService.getBill(billId)
+    BillExtractionService.getBill(billId)
       .then((data) => {
         if (mounted && data) setExtraction(data);
       })
@@ -63,7 +63,7 @@ const BillReviewModal = ({ billId, onClose, onReviewed }) => {
         decision.action === 'CORRECT' ? { ...decision, value: edits[field] } : decision;
     }
     try {
-      await ServiceBillService.reviewBill(billId, buildReviewPayload(withValues));
+      await BillExtractionService.reviewBill(billId, buildReviewPayload(withValues));
       onReviewed();
     } catch (err) {
       setError(err?.message || 'Could not save the review');

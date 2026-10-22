@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import PageShell from '../../components/ui/PageShell';
 import EmptyState from '../../components/cluster/EmptyState';
-import ServiceBillService from '../../services/ServiceBillService';
+import BillExtractionService from '../../services/BillExtractionService';
 import BillReviewModal from './BillReviewModal.jsx';
 import {
   buildQueueRows,
@@ -35,8 +35,8 @@ const ServiceBillsPage = () => {
     setError(null);
     try {
       const [list, settings] = await Promise.all([
-        ServiceBillService.listBills({ reviewed: showReviewed ? 'true' : 'false', limit: 50 }),
-        ServiceBillService.getBillSettings(),
+        BillExtractionService.listBills({ reviewed: showReviewed ? 'true' : 'false', limit: 50 }),
+        BillExtractionService.getBillSettings(),
       ]);
       setBills(list.data);
       setMeta(list.meta);
