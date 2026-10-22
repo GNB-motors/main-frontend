@@ -9,8 +9,8 @@
  * the toll ledger, and a link that quietly vanished when a flag was off would be
  * the same kind of lie as a toll that vanished.
  */
-import apiClient from '../../utils/axiosConfig';
-import ApiError from '../../errors/ApiError';
+import apiClient from '../utils/axiosConfig';
+import ApiError from '../errors/ApiError';
 
 async function get(path, params, signal) {
   try {
