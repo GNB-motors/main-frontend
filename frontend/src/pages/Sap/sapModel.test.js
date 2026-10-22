@@ -1,18 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { compareSap, verdictView, canEditSap, sheetCsv } from './sapModel';
-import { laneRow } from '../Reports/reports/laneKmReportUtils';
+import { verdictView, canEditSap, sheetCsv, hintText, SAP_REASONS } from './sapModel';
 import { autoTripSchema } from '../../schemas/autoTrip.schema';
-describe('SAP comparisons', () => {
-  it('uses inclusive tolerance boundaries and distinguishes missing km from under SAP', () => {
-    expect(compareSap(110, 100).verdict).toBe('WITHIN');
-    expect(compareSap(90, 100).verdict).toBe('WITHIN');
-    expect(compareSap(111, 100)).toMatchObject({ verdict: 'OVER', deltaPct: 11, deltaKm: 11 });
-    expect(compareSap(88, 100).verdict).toBe('UNDER');
-    for (const actual of [null, undefined, 0, 9])
-      expect(compareSap(actual, 100).verdict).toBe('NO_KM');
-    expect(compareSap(100, null).verdict).toBe('NO_KM');
+describe('SAP model', () => {
+  it('turns a verdict into a pill', () => {
     expect(verdictView({ verdict: 'WITHIN' }, 15).text).toBe('Within 15%');
     expect(verdictView({ verdict: 'UNDER', deltaPct: -12 }).text).toBe('−12%');
+    expect(verdictView({ verdict: 'OVER', deltaPct: 7.5 })).toEqual({
+      tone: 'over',
+      text: '+7.5%',
+    });
+    expect(verdictView({ verdict: 'NO_KM' }).tone).toBe('none');
   });
   it('allows only the two SAP editor roles', () => {
     expect(canEditSap('OWNER')).toBe(true);
@@ -20,47 +17,45 @@ describe('SAP comparisons', () => {
     for (const role of ['SUPER_ADMIN', 'USER', 'DRIVER', undefined])
       expect(canEditSap(role)).toBe(false);
   });
-  it('compares GPS rather than refuel cycles and obeys server verdict and policy', () => {
-    const row = {
-      id: 'lane',
-      fromLabel: 'OCL',
-      toLabel: 'TOWN',
-      sapValues: [100, 200],
-      gps: { medianLadenKm: 105, n: 10, trucks: 3 },
-      register: { medianKm: 400, n: 50 },
-      verdict: 'WITHIN',
-    };
-    expect(laneRow(row)).toMatchObject({
-      id: 'lane',
-      gpsKm: 105,
-      measuredKm: 400,
-      trips: 10,
-      trucks: 3,
-      verdict: 'MATCHES',
-      extraTotal: 0,
-    });
-    expect(laneRow({ ...row, multiValuePolicy: 'MAX', verdict: 'UNDER' })).toMatchObject({
-      verdict: 'UNDER_SAP',
-      extraTotal: 0,
-    });
-    expect(
-      laneRow({ ...row, gps: { medianLadenKm: null, n: 0 }, verdict: 'NO_GPS' }),
-    ).toMatchObject({ verdict: 'THIN', extraTotal: null });
+  it('explains every no-SAP reason, old snapshots included', () => {
+    for (const s of ['NO_DROP', 'NO_PLACE', 'NO_ROUTE_SAP', 'NO_LANE', 'DROP_UNNAMED'])
+      expect(SAP_REASONS[s]).toBeTruthy();
   });
-  it('accepts old trips and retains SAP, return and v5 economics', () => {
-    expect(autoTripSchema.safeParse({ _id: 'old' }).success).toBe(true);
+  it('words the road hint, and says nothing without a road', () => {
+    expect(hintText(null, 212)).toBeNull();
+    expect(hintText({ shortestOneWayKm: null }, 212)).toBeNull();
+    expect(hintText({ shortestOneWayKm: 207 }, null)).toBe('Shortest truck road: 207 km one way.');
+    expect(hintText({ shortestOneWayKm: 207, suggestion: { basis: 'ONE_WAY' } }, 212)).toBe(
+      'Shortest truck road: 207 km one way. 212 km looks like one way.',
+    );
+    expect(
+      hintText(
+        {
+          shortestOneWayKm: 150,
+          suggestion: { basis: 'ROUND_TRIP', belowShortest: true, shortfallKm: 20 },
+        },
+        280,
+      ),
+    ).toContain('20 km below the shortest road');
+    expect(hintText({ shortestOneWayKm: 207, suggestion: { basis: 'UNKNOWN' } }, 300)).toContain(
+      'neither close to one way nor to round trip',
+    );
+  });
+  it('accepts old trips and the route-based SAP snapshot', () => {
+    expect(autoTripSchema.safeParse({ _id: 'old', sap: { status: 'NO_LANE' } }).success).toBe(true);
     expect(
       autoTripSchema.parse({
         _id: 'new',
         km: { return: 80 },
-        sap: { status: 'MATCHED', sapKm: 100, oneWay: { verdict: 'WITHIN' } },
-        roleEconomics: { return: { km: 80 } },
+        sap: {
+          status: 'MATCHED',
+          sapKm: 100,
+          basis: 'ROUND_TRIP',
+          comparison: { verdict: 'WITHIN' },
+          verdict: 'WITHIN',
+        },
       }),
-    ).toMatchObject({
-      km: { return: 80 },
-      sap: { sapKm: 100 },
-      roleEconomics: { return: { km: 80 } },
-    });
+    ).toMatchObject({ km: { return: 80 }, sap: { sapKm: 100, basis: 'ROUND_TRIP' } });
   });
   it('reads CSV text and converts only the first workbook sheet', async () => {
     expect(
@@ -81,7 +76,6 @@ describe('SAP comparisons', () => {
       name: 'sheet.xlsx',
       arrayBuffer: async () => XLSX.write(book, { type: 'array', bookType: 'xlsx' }),
     });
-    expect(csv).toContain('FROM,TO,SAP');
     expect(csv).toContain('A,B,20');
     expect(csv).not.toContain('WRONG');
     await expect(sheetCsv({ name: 'bad.pdf' })).rejects.toThrow('CSV or XLSX');

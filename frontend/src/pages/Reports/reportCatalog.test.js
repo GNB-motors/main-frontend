@@ -8,7 +8,7 @@ import {
   visibleReportGroups,
 } from './reportCatalog';
 
-const ALL_FLAGS = ['vehicleActivity', 'fuelIntegrity', 'autoTrips'];
+const ALL_FLAGS = ['vehicleActivity', 'fuelIntegrity', 'autoTrips', 'sapV2'];
 const flags = (on) => (key) => on.includes(key);
 const ids = (groups) => groups.flatMap((g) => g.children.map((c) => c.id));
 
@@ -54,15 +54,17 @@ describe('visibleReportGroups', () => {
     ]);
   });
 
-  it('keeps SAP visible and hides the other Trip Economics reports without autoTrips', () => {
-    const visible = ids(visibleReportGroups(flags(['vehicleActivity', 'fuelIntegrity'])));
+  it('shows SAP routes on sapV2 alone, and hides the other Trip Economics reports without autoTrips', () => {
+    const visible = ids(visibleReportGroups(flags(['vehicleActivity', 'fuelIntegrity', 'sapV2'])));
     expect(visible).not.toContain('oilAverage');
     expect(visible).not.toContain('fuelCycles');
     expect(visible).not.toContain('nonBusiness');
     expect(visible).not.toContain('runningCost');
     expect(visible).not.toContain('registerMatch');
     expect(visible).toContain('laneKm');
-    expect(resolveReport('laneKm', flags([]))).toBe('laneKm');
+    expect(resolveReport('laneKm', flags(['sapV2']))).toBe('laneKm');
+    expect(ids(visibleReportGroups(flags(['autoTrips'])))).not.toContain('laneKm');
+    expect(resolveReport('laneKm', flags([]))).toBe(DEFAULT_REPORT);
   });
 
   it('hides the Oil & Average report without autoTrips (its API router is gated)', () => {

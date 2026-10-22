@@ -4,10 +4,12 @@ import { toast } from 'react-toastify';
 import { Button } from '../../components/ui/button';
 import useMutation from '../../hooks/useMutation';
 import SapService from '../../services/SapService';
+import { BASIS_POLICY_LABEL, DIRECTION_LABEL } from './sapModel';
 export default function SapSettingsForm({ settings, onSaved, canEdit }) {
   const [form, setForm] = useState({
     tolerancePct: settings.tolerancePct ?? 10,
-    multiValuePolicy: settings.multiValuePolicy ?? 'NEAREST',
+    directionPolicy: settings.directionPolicy ?? 'DIRECTED',
+    basisPolicy: settings.basisPolicy ?? 'DECLARED',
     minKmForVerdict: settings.minKmForVerdict ?? 10,
   });
   const m = useMutation(SapService.saveSettings);
@@ -32,7 +34,7 @@ export default function SapSettingsForm({ settings, onSaved, canEdit }) {
         <SlidersHorizontal aria-hidden="true" />
         <div>
           <h2>Comparison settings</h2>
-          <p>Choose how GPS distance is compared with your SAP reference.</p>
+          <p>How a route&apos;s GPS distance is compared with its SAP.</p>
         </div>
       </div>
       <label>
@@ -51,20 +53,34 @@ export default function SapSettingsForm({ settings, onSaved, canEdit }) {
         <span className="sap-field-hint">Trips within this percentage are marked within SAP.</span>
       </label>
       <label>
-        Several SAP values
+        Routes
         <select
-          aria-label="Several SAP values"
+          aria-label="Routes"
           disabled={!canEdit || m.loading}
-          value={form.multiValuePolicy}
-          onChange={(e) => setForm({ ...form, multiValuePolicy: e.target.value })}
+          value={form.directionPolicy}
+          onChange={(e) => setForm({ ...form, directionPolicy: e.target.value })}
         >
-          <option value="NEAREST">Nearest to actual distance</option>
-          <option value="MAX">Maximum SAP value</option>
-          <option value="MIN">Minimum SAP value</option>
+          {Object.entries(DIRECTION_LABEL).map(([v, l]) => (
+            <option key={v} value={v}>
+              {l}
+            </option>
+          ))}
         </select>
-        <span className="sap-field-hint">
-          Used when the sheet lists more than one distance for a lane.
-        </span>
+      </label>
+      <label>
+        One way or round trip
+        <select
+          aria-label="One way or round trip"
+          disabled={!canEdit || m.loading}
+          value={form.basisPolicy}
+          onChange={(e) => setForm({ ...form, basisPolicy: e.target.value })}
+        >
+          {Object.entries(BASIS_POLICY_LABEL).map(([v, l]) => (
+            <option key={v} value={v}>
+              {l}
+            </option>
+          ))}
+        </select>
       </label>
       <label>
         Minimum trip km for a verdict

@@ -1,141 +1,151 @@
 import { z } from 'zod';
 import { str, num } from './primitives';
+
+/** One comparison: the SAP km against the trip's (or route's) km on the SAP's basis. */
 export const sapComparisonSchema = z
   .object({ actualKm: num, sapKm: num, deltaKm: num, deltaPct: num, verdict: str })
   .passthrough();
+
+/** A trip's SAP snapshot: its route and that route's SAP (also a delivery route's `sap`). */
 export const tripSapSchema = z
   .object({
     status: str,
+    routeKey: str,
+    fromSiteId: str,
+    toSiteId: str,
+    routeSapId: str,
     sapKm: num,
-    values: z.array(num).nullish(),
-    multipleSap: z.boolean().nullish(),
+    basis: str,
+    basisSource: str,
     source: str,
-    fromLabel: str,
-    toLabel: str,
+    comparison: sapComparisonSchema.nullish(),
+    verdict: str,
     tolerancePct: num,
     computedAt: str,
-    oneWay: sapComparisonSchema.nullish(),
-    roundTrip: sapComparisonSchema.nullish(),
   })
   .passthrough();
 
 export const sapSettingsSchema = z
   .object({
     tolerancePct: num,
-    multiValuePolicy: str,
     minKmForVerdict: num,
+    directionPolicy: str,
+    basisPolicy: str,
   })
   .passthrough();
 
-export const sapRouteKmSchema = z
+/** A route's SAP entry, as a person (or a confirmed import) set it. */
+export const sapRouteEntrySchema = z
   .object({
     _id: str,
     fromSiteId: str,
     toSiteId: str,
     sapKm: num,
+    basis: str,
+    basisSource: str,
+    source: str,
+    importRef: str,
     note: str,
+    updatedAt: str,
+    supersededAt: str,
   })
   .passthrough();
 
-export const sapAliasSchema = z
-  .object({
-    _id: str,
-    kind: str,
-    label: str,
-    orgSiteId: str,
-    status: str,
-    score: num,
-  })
-  .passthrough();
+const policySchema = z.object({ direction: str, basis: str }).passthrough();
 
 export const sapTripDetailSchema = z
   .object({
     trip: z.object({ _id: str }).passthrough(),
     sap: tripSapSchema,
-    routeKm: sapRouteKmSchema.nullish(),
-    candidates: z
-      .object({
-        plantLabels: z.array(z.string()).nullish(),
-        dropLabels: z.array(z.string()).nullish(),
-        suggestions: z.array(sapAliasSchema).nullish(),
-      })
+    route: z
+      .object({ key: str, fromSiteId: str, toSiteId: str, fromName: str, toName: str })
       .passthrough()
       .nullish(),
+    routeSap: sapRouteEntrySchema.nullish(),
+    history: z.array(sapRouteEntrySchema).nullish(),
+    policy: policySchema.nullish(),
   })
   .passthrough();
 
-export const sapLaneListSchema = z
+const kmStat = z.object({ p50: num, p90: num }).passthrough();
+export const sapRouteListSchema = z
   .object({
     rows: z.array(
       z
         .object({
-          id: str,
-          source: str,
-          fromLabel: str,
-          toLabel: str,
+          key: str,
+          fromSiteId: str,
+          toSiteId: str,
+          fromName: str,
+          toName: str,
+          trips: num,
+          trucks: num,
+          ladenKm: kmStat.nullish(),
+          roundTripKm: kmStat.nullish(),
+          shortestOneWayKm: num,
+          lastTripAt: str,
+          sap: sapRouteEntrySchema.nullish(),
+          comparison: sapComparisonSchema.nullish(),
           verdict: str,
-          sapValues: z.array(z.number()).nullish(),
-          gps: z
-            .object({ medianLadenKm: num, p90: num, n: num, trucks: num })
-            .passthrough()
-            .nullish(),
-          register: z.object({ medianKm: num, spreadKm: num, n: num }).passthrough().nullish(),
         })
         .passthrough(),
     ),
     total: num,
     page: num,
     limit: num,
-    totals: z.object({ lanes: num, over: num, noSap: num, extraKm: num }).passthrough().nullish(),
+    totals: z
+      .object({ routes: num, withSap: num, withoutSap: num, over: num, extraKm: num })
+      .passthrough()
+      .nullish(),
+    settings: sapSettingsSchema.nullish(),
+    policy: policySchema.nullish(),
   })
   .passthrough();
 
-const matchSite = z.object({ orgSiteId: str, name: str }).passthrough();
-export const sapMatchReviewSchema = z
+export const sapHintSchema = z
   .object({
-    plants: z.array(
-      z
-        .object({
-          label: str,
-          laneCount: num,
-          sites: z.array(matchSite).nullish(),
-          suggestions: z.array(matchSite).nullish(),
-        })
-        .passthrough(),
-    ),
-    drops: z.array(
-      z
-        .object({
-          orgSiteId: str,
-          name: str,
-          label: str,
-          tripCount: num,
-          matched: z.boolean().nullish(),
-          suggestions: z.array(sapAliasSchema).nullish(),
-        })
-        .passthrough(),
-    ),
-    unnamedDrops: z
+    routeKey: str,
+    shortestOneWayKm: num,
+    suggestion: z
       .object({
-        count: num,
-        top: z.array(z.object({ lat: num, lng: num, tripCount: num }).passthrough()).nullish(),
+        basis: str,
+        basisSource: str,
+        belowShortest: z.boolean().nullish(),
+        shortfallKm: num,
       })
       .passthrough()
       .nullish(),
-    unusedLabels: num,
   })
   .passthrough();
 
-export const sapImportSchema = z
+const candidateSchema = z.object({ siteId: str, name: str, via: str }).passthrough();
+const endSchema = z
+  .object({ siteId: str, candidates: z.array(candidateSchema).nullish() })
+  .passthrough();
+export const sapImportPreviewSchema = z
   .object({
-    dryRun: z.boolean().nullish(),
-    rows: num,
-    lanes: num,
-    written: num,
+    proposals: z.array(
+      z
+        .object({
+          ref: str,
+          fromLabel: str,
+          toLabel: str,
+          sapValues: z.array(num).nullish(),
+          from: endSchema,
+          to: endSchema,
+          ready: z.boolean().nullish(),
+          existing: sapRouteEntrySchema.nullish(),
+        })
+        .passthrough(),
+    ),
     skipped: z.array(z.unknown()).nullish(),
-    rejectedNumericLabels: z.array(z.unknown()).nullish(),
-    possibleDuplicates: z.array(z.unknown()).nullish(),
+    totals: z
+      .object({ lanes: num, ready: num, needPlaces: num, alreadySet: num })
+      .passthrough()
+      .nullish(),
   })
   .passthrough();
+
+export const sapImportApplySchema = z.object({ created: num, unchanged: num }).passthrough();
 
 export const sapDeleteSchema = z.object({ ok: z.boolean() }).passthrough();
