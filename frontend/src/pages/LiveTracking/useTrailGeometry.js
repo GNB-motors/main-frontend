@@ -50,7 +50,7 @@ function buildTrailSegments(rawTrailPoints) {
   return { segments, tripIds };
 }
 
-export default function useTrailGeometry({ selectedVehicle, trailPoints, rawTrailPoints, replayState }) {
+export default function useTrailGeometry({ selectedVehicle, trailPoints, rawTrailPoints, trips = [], replayState }) {
   const selectedStatusColor = useMemo(() => {
     if (!selectedVehicle) return '#187A32';
     return (NOVA_STATUS[selectedVehicle.status] || NOVA_STATUS.moving).c;
@@ -69,14 +69,17 @@ export default function useTrailGeometry({ selectedVehicle, trailPoints, rawTrai
     const { segments, tripIds } = buildTrailSegments(rawTrailPoints);
     const legend = tripIds.map((tid, idx) => {
       const seg = segments.find((s) => s.tripId === tid);
-      const meta = (rawTrailPoints || []).find((p) => String(p.tripId) === tid);
+      // A point's tripId is the ERP trip's _id; the trail response's trips[]
+      // carries the names (fromLocation / toLocation / tripNumber) for it.
+      const meta = (Array.isArray(trips) ? trips : []).find((t) => String(t.tripId) === tid);
       return {
         tripId: tid,
+        tripNumber: meta?.tripNumber || null,
         index: idx,
         color: tripColorForId(tid, idx),
         coords: seg ? seg.coords.length : 0,
-        startName: meta?.origin || (seg && seg.coords[0] ? 'Trip start' : null),
-        endName: meta?.destination || null,
+        startName: meta?.fromLocation || null,
+        endName: meta?.toLocation || null,
       };
     });
     // Color each segment deterministically by tripId via tripColorForId
@@ -85,7 +88,7 @@ export default function useTrailGeometry({ selectedVehicle, trailPoints, rawTrai
       color: tripColorForId(s.tripId, i),
     }));
     return { trailSegments: colored, tripLegend: legend };
-  }, [rawTrailPoints]);
+  }, [rawTrailPoints, trips]);
 
   /* When the trail response has exactly one trip we still want the segment
      polyline to draw, even if no tripId was attached. Fall back to the

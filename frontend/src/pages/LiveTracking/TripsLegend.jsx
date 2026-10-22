@@ -32,7 +32,9 @@ export default function TripsLegend({ tripLegend = [], totalKm = 0 }) {
           const labelParts = [];
           if (t.startName) labelParts.push(t.startName);
           if (t.endName) labelParts.push(t.endName);
-          const label = labelParts.length ? labelParts.join(' → ') : single ? 'Single trip' : `Trip ${t.tripId}`;
+          // Never fall back to the raw ObjectId — name the trip by its number or position.
+          const fallback = t.tripNumber ? `Trip ${t.tripNumber}` : single ? 'Single trip' : `Trip ${t.index + 1}`;
+          const label = labelParts.length ? labelParts.join(' → ') : fallback;
           return (
             <li key={`legend-${t.tripId}-${t.index}`} className="trips-legend__row">
               <span

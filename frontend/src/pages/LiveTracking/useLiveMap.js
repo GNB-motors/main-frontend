@@ -165,7 +165,7 @@ export default function useLiveMap({
     replayCurrentPos,
     replayRunPath,
     replayBearing,
-  } = useTrailGeometry({ selectedVehicle, trailPoints, rawTrailPoints, replayState });
+  } = useTrailGeometry({ selectedVehicle, trailPoints, rawTrailPoints, trips, replayState });
 
   // Replay animation frame ticker (decoupled from replayState.t so 60fps loop runs smoothly without tearing down)
   useEffect(() => {
