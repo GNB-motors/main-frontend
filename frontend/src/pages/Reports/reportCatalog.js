@@ -56,7 +56,9 @@ export const REPORT_GROUPS = [
       { id: 'nonBusiness', label: 'Non-Business', flag: 'autoTrips' },
       { id: 'runningCost', label: 'Running Cost', flag: 'autoTrips' },
       { id: 'registerMatch', label: 'Trip Register Match', flag: 'autoTrips' },
-      { id: 'laneKm', label: 'Lane km vs SAP' },
+      // SAP per route (/api/sap is gated by requireFeature('sapV2')). The id stays laneKm so
+      // existing links keep working.
+      { id: 'laneKm', label: 'SAP routes', flag: 'sapV2' },
       { id: 'autoTrips', label: 'Auto Trips', to: '/auto-trips', flag: 'autoTrips' },
       {
         id: 'routeProfitability',

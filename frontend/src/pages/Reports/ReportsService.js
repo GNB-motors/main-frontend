@@ -29,20 +29,6 @@ export const ReportsService = {
   },
 
   /**
-   * Lane km vs SAP: every lane of the owner's SAP sheet with the km trips run on it.
-   * @returns {Promise<{ rows?: Array, totals?: Object }>}
-   */
-  getLaneKm: async ({ signal } = {}) => {
-    try {
-      const response = await apiClient.get('api/reports/lanes', { signal });
-      return response.data?.data || response.data || {};
-    } catch (error) {
-      if (error?.name === 'CanceledError') throw error;
-      throw ApiError.from(error);
-    }
-  },
-
-  /**
    * Every row of a server-paginated report, for exports. Walks pages at the
    * API's max page size until `meta.totalPages` is reached.
    * @param {(params: object) => Promise<{ data: Array, meta: Object }>} fetchPage

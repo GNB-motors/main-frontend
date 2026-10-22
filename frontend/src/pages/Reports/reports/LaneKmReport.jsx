@@ -1,10 +1,8 @@
 import { createElement, lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Route, Settings2, Gauge } from 'lucide-react';
-import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
+import { Route, Settings2, Lock } from 'lucide-react';
 import { canEditSap } from '../../Sap/sapModel';
 import { getUserRole } from '../../../utils/session';
-import LaneKmTable from './LaneKmTable';
 import '../../Sap/Sap.css';
 
 const SapRoutes = lazy(() => import('../../Sap/SapRoutes'));
@@ -13,19 +11,21 @@ const SapSettings = lazy(() => import('../../Sap/SapSettings'));
 const TABS = [
   ['routes', 'SAP routes', Route],
   ['settings', 'Settings & import', Settings2],
-  ['register', 'Refuel register lanes', Gauge],
 ];
 
 /**
- * SAP lives on routes (pickup place → drop place). Owners and managers of an org with SAP
- * (`sapV2`) set it here; everyone else, and every org without it, sees the refuel-register
- * lane table as before.
+ * SAP lives on routes (pickup place → drop place); owners and managers set it here. The
+ * catalog shows this report only to orgs with `sapV2`.
  */
 export default function LaneKmReport() {
   const [params, setParams] = useSearchParams();
-  const { isEnabled } = useFeatureFlags();
-  const sap = canEditSap(getUserRole()) && isEnabled('sapV2');
-  if (!sap) return <LaneKmTable />;
+  if (!canEditSap(getUserRole()))
+    return (
+      <div className="sap-card sap-empty" role="status">
+        <Lock size={24} aria-hidden="true" />
+        <strong>SAP routes are managed by owners and managers</strong>
+      </div>
+    );
   const requested = params.get('sapTab');
   const tab = TABS.some(([id]) => id === requested) ? requested : 'routes';
   return (
@@ -50,13 +50,7 @@ export default function LaneKmReport() {
         ))}
       </nav>
       <Suspense fallback={<p className="sap-panel">Loading…</p>}>
-        {tab === 'settings' ? (
-          <SapSettings />
-        ) : tab === 'register' ? (
-          <LaneKmTable />
-        ) : (
-          <SapRoutes />
-        )}
+        {tab === 'settings' ? <SapSettings /> : <SapRoutes />}
       </Suspense>
     </div>
   );
