@@ -75,7 +75,12 @@ export default function RouteSapCard({ trip }) {
             <Button
               variant="outline"
               size="sm"
-              disabled={!current.pickup?.orgSiteId || !current.drop?.orgSiteId || mutation.loading}
+              disabled={
+                !q.data ||
+                !current.pickup?.orgSiteId ||
+                !current.drop?.orgSiteId ||
+                mutation.loading
+              }
               onClick={() => setEditing(true)}
             >
               <Pencil size={13} />
