@@ -45,6 +45,7 @@ const ICONS = {
   trip: '<path d="M4 19V6a2 2 0 0 1 2-2h8l6 6v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M8 12h8"/><path d="M8 16h5"/>',
   box: '<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/>',
   flag: '<path d="M5 21V4"/><path d="M5 4.5h11l-2 3.5 2 3.5H5"/>',
+  road: '<path d="M4 21 8 3"/><path d="M20 21 16 3"/><path d="M12 4.5V7"/><path d="M12 11v2.5"/><path d="M12 17.5V20"/>',
 };
 
 const renderIconSvg = (name, size = 16, className = '') => {

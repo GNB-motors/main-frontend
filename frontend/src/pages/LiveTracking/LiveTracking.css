@@ -2484,6 +2484,25 @@ html.dark .vcard:hover,
 .lp-layer-toggles__btn:hover { background: var(--bg-hover, rgba(0,0,0,0.05)); }
 .lp-halts-empty { font-size: var(--type-2xs); color: var(--fg-secondary); margin-top: 6px; padding: 6px; border: 1px dashed var(--border-subtle); border-radius: 6px; }
 
+/* Congestion coverage panel (00_PLAN.md item 5). It exists to keep the map's
+   colours honest: the learned quantile, the evidence behind it, and the edges
+   we refused to colour. Deliberately plain — it is a caption, not a dashboard. */
+.lp-congestion { margin-top: 8px; padding: 8px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-subtle); font-size: var(--type-3xs); color: var(--fg-secondary); }
+.lp-congestion__summary { margin: 0 0 6px; font-weight: 600; color: var(--fg-primary); }
+.lp-congestion__warn { margin: 0 0 6px; color: var(--nova-rage-700); font-weight: 600; }
+.lp-congestion__legend { list-style: none; margin: 0 0 6px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.lp-congestion__legend li { display: flex; gap: 6px; align-items: flex-start; }
+.lp-congestion__swatch { flex: 0 0 auto; width: 14px; height: 4px; margin-top: 5px; border-radius: 2px; }
+.lp-congestion__gaps { margin: 0 0 6px; padding: 6px; border: 1px dashed var(--border-subtle); border-radius: 6px; }
+.lp-congestion__gaps ul { margin: 4px 0 0; padding-left: 16px; }
+.lp-congestion__table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+.lp-congestion__table th { text-align: left; font-weight: 600; color: var(--fg-primary); padding: 2px 4px 2px 0; }
+.lp-congestion__table td { padding: 2px 4px 2px 0; vertical-align: top; }
+.lp-congestion__dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+.lp-congestion__band { color: var(--fg-tertiary); }
+.lp-congestion__evidence { white-space: nowrap; }
+.lp-congestion__foot, .lp-congestion__note { margin: 6px 0 0; color: var(--fg-tertiary); }
+
 /* Tracking toolbar: growing manufacturer choices and pinned refresh tools. */
 .gnb-lt-page .lt-toolbar {
   display: flex;
