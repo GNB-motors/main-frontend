@@ -93,6 +93,84 @@ export const PlaceIntelligenceService = {
 
   decideHome: async ({ id, decision }, { signal } = {}) =>
     unwrap(await apiClient.post(`${BASE}/homes/${id}/decide`, { decision }, { signal })),
+
+  // ─── Task 11 — duplicate merges, confidence, ranked suggestions ─────────────
+  /**
+   * Duplicate groups the server found within the merge radius. `radiusM` is the
+   * same knob the confidence score uses; leave it off to get the configured
+   * default (100 m unless PLACE_MERGE_RADIUS_M says otherwise).
+   */
+  previewMerges: async ({ radiusM } = {}, { signal } = {}) =>
+    parsed(
+      'mergePreviewSchema',
+      await apiClient.get(`${BASE}/merges/preview`, {
+        params: radiusM ? { radiusM } : undefined,
+        signal,
+      }),
+    ),
+
+  /** What a merge will do — the richer record and how many stoppages move. */
+  previewMergeApply: async ({ survivorId, memberIds }, { signal } = {}) =>
+    parsed(
+      'mergeApplyPreviewSchema',
+      await apiClient.post(
+        `${BASE}/merges/preview-apply`,
+        { survivorId, memberIds },
+        { signal },
+      ),
+    ),
+
+  applyMerge: async ({ survivorId, memberIds }, { signal } = {}) =>
+    unwrap(await apiClient.post(`${BASE}/merges/apply`, { survivorId, memberIds }, { signal })),
+
+  /** Rescore confidence for one site, or for the whole org when siteId is omitted. */
+  recomputeConfidence: async ({ siteId, radiusM, threshold, minSamples } = {}, { signal } = {}) =>
+    unwrap(
+      await apiClient.post(
+        `${BASE}/confidence/recompute`,
+        {
+          ...(siteId ? { siteId } : {}),
+          ...(radiusM ? { radiusM } : {}),
+          ...(threshold != null ? { threshold } : {}),
+          ...(minSamples != null ? { minSamples } : {}),
+        },
+        { signal },
+      ),
+    ),
+
+  /**
+   * Ranked place picker. The server ranks by exact-prefix name match, then
+   * distance to `viewport` (the map centre), then stoppage frequency, then
+   * confidence — and hides low-confidence places unless asked.
+   */
+  suggestSites: async (
+    { q = '', viewport = null, role, status, includeLowConfidence = false, limit = 20 } = {},
+    { signal } = {},
+  ) =>
+    parsed(
+      'siteSuggestionListSchema',
+      await apiClient.get(`${BASE}/sites/suggestions`, {
+        params: {
+          q,
+          ...(viewport ? { viewport: JSON.stringify(viewport) } : {}),
+          ...(role ? { role } : {}),
+          ...(status ? { status } : {}),
+          includeLowConfidence,
+          limit,
+        },
+        signal,
+      }),
+    ),
+
+  /** Pin-drop check: places within the merge radius of a point. */
+  nearbySites: async ({ lat, lng, radiusM, limit = 5 } = {}, { signal } = {}) =>
+    parsed(
+      'nearbySitesSchema',
+      await apiClient.get(`${BASE}/sites/nearby`, {
+        params: { lat, lng, ...(radiusM ? { radiusM } : {}), limit },
+        signal,
+      }),
+    ),
 };
 
 export default PlaceIntelligenceService;

@@ -65,6 +65,15 @@ export const orgSiteSchema = z
       .object({ kind: str, reason: str, withSiteId: str, at: str })
       .passthrough()
       .nullish(),
+    // Task 11 — auto-confidence = fraction of the place's own stoppages that
+    // fall inside `confidenceRadiusM` of the centroid. `lowConfidence` hides
+    // the place from the suggestion picker unless it is opted in.
+    confidence: num.nullish(),
+    stoppageCount: num.nullish(),
+    confidentStoppageCount: num.nullish(),
+    lowConfidence: z.boolean().nullish(),
+    confidenceComputedAt: str.nullish(),
+    confidenceRadiusM: num.nullish(),
   })
   .passthrough();
 
@@ -99,6 +108,98 @@ export const globalPlaceListSchema = z.array(
 
 export const siteListSchema = z
   .object({ records: z.array(orgSiteSchema), total: num, page: num, limit: num })
+  .passthrough();
+
+// Task 11 — ranked place picker. The server does the ranking; the picker only
+// has to render the order it was given.
+export const siteSuggestionSchema = z
+  .object({
+    id: str,
+    name: str,
+    siteType: str,
+    status: str,
+    origins: z.array(z.string()).nullish(),
+    erpRoles: z.array(z.string()).nullish(),
+    centroidLat: num,
+    centroidLng: num,
+    visitCount: num,
+    confidence: num.nullish(),
+    lowConfidence: z.boolean().nullish(),
+    stoppageCount: num.nullish(),
+    confidenceRadiusM: num.nullish(),
+    prefixMatch: z.boolean().nullish(),
+    rank: z.record(z.number()).nullish(),
+  })
+  .passthrough();
+
+export const siteSuggestionListSchema = z
+  .object({
+    records: z.array(siteSuggestionSchema),
+    total: num,
+    query: z.record(z.any()).nullish(),
+  })
+  .passthrough();
+
+/** Pin-drop duplicate check: places within the merge radius of a point. */
+export const nearbySitesSchema = z
+  .object({
+    items: z.array(
+      z
+        .object({
+          id: str,
+          name: str,
+          siteType: str,
+          status: str,
+          centroidLat: num,
+          centroidLng: num,
+          visitCount: num,
+          confidence: num.nullish(),
+          lowConfidence: z.boolean().nullish(),
+          distanceM: num,
+        })
+        .passthrough(),
+    ),
+    radiusM: num.nullish(),
+  })
+  .passthrough();
+
+/** One duplicate group as the merge preview returns it. */
+export const mergePreviewGroupSchema = z
+  .object({
+    survivor: orgSiteSchema,
+    memberIds: z.array(str),
+    maxDistanceM: num,
+    memberSummaries: z.array(z.any()).nullish(),
+    richerRecord: z
+      .object({
+        survivorId: str,
+        name: str,
+        erpAddress: str.nullish(),
+        centroidLat: num,
+        centroidLng: num,
+        radiusM: num,
+        origins: z.array(z.string()).nullish(),
+        erpRoles: z.array(z.string()).nullish(),
+        confidence: num.nullish(),
+        fromCount: num,
+      })
+      .passthrough()
+      .nullish(),
+  })
+  .passthrough();
+
+export const mergePreviewSchema = z
+  .object({ groups: z.array(mergePreviewGroupSchema), total: num, radiusM: num })
+  .passthrough();
+
+/** What a merge will do, shown before the manager commits to it. */
+export const mergeApplyPreviewSchema = z
+  .object({
+    richer: z.any().nullish(),
+    survivor: z.any().nullish(),
+    members: z.array(z.any()).nullish(),
+    stoppageRepointCount: num,
+  })
   .passthrough();
 
 export const reviewQueueSchema = z

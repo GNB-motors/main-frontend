@@ -1496,6 +1496,33 @@
 .atx-form-grid .atx-place-pick {
   gap: 8px;
 }
+/* Task 11 — confidence line under the place picker. Tones match the review
+   queue: amber means a person should look, green means the stops agree. */
+.atx-place-confidence {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--ds-ink3);
+}
+.atx-place-confidence__why {
+  color: var(--ds-ink3);
+}
+.atx-place-confidence__detail {
+  display: block;
+  color: var(--ds-ink4);
+}
+.atx-place-confidence--good strong {
+  color: var(--atx-green-ink, var(--ds-ink2));
+}
+.atx-place-confidence--fair strong {
+  color: var(--atx-amber-ink);
+}
+.atx-place-confidence--low strong {
+  color: var(--atx-amber-ink);
+}
+.atx-place-confidence--unknown {
+  color: var(--ds-ink4);
+}
 .atx-field--wide {
   grid-column: 1 / -1;
 }
