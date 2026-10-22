@@ -19,6 +19,7 @@ import {
   Radar,
   Warehouse,
   Route,
+  Milestone,
 } from 'lucide-react';
 
 /**
@@ -293,6 +294,17 @@ export const SIDE_NAV_ITEMS = [
     to: '/route-hub',
     label: 'Route Hub',
     icon: Route,
+  },
+  // Tolls — per-vehicle toll spend plus the plaza master. `key: null` like
+  // Place Hub: the page answers 404 when the org's `tolls` flag is off, so the
+  // link itself is always shown and the page explains why.
+  {
+    type: 'link',
+    key: null,
+    access: 'fleet',
+    to: '/tolls',
+    label: 'Tolls',
+    icon: Milestone,
   },
   /*
   // Fleet Intelligence surfaces (commented out: Idling Console and Hotspots removed; Route Hub displayed directly)

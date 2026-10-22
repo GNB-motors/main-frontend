@@ -47,6 +47,10 @@ const ExcursionsPage = lazy(() => import('../../pages/AutoTrips/ExcursionsPage.j
 const ExcursionDetailPage = lazy(() => import('../../pages/AutoTrips/ExcursionDetailPage.jsx'));
 const MovementApprovalsPage = lazy(() => import('../../pages/AutoTrips/MovementApprovalsPage.jsx'));
 const PlaceHubPage = lazy(() => import('../../pages/PlaceHub/PlaceHubPage.jsx'));
+// Tolls — toll-plaza master + monthly spend / return-rule analytics. The page
+// reads the signed-in role itself to hide the master-editing affordances; the
+// API is the real gate.
+const TollsPage = lazy(() => import('../../pages/Tolls/TollsPage.jsx'));
 const LiveTrackingPage = lazy(() => import('../../pages/LiveTracking/LiveTrackingPage.jsx'));
 const OwnerAlertsPage = lazy(() => import('../../pages/OwnerAlerts/OwnerAlertsPage.jsx'));
 const FieldAgentFuelPage = lazy(() => import('../../pages/FieldAgentFuel/FieldAgentFuelPage.jsx'));
@@ -127,6 +131,7 @@ const dashboardRoutes = (
     <Route path="/idling-console" element={<Navigate to="/route-hub" replace />} />
     <Route path="/places" element={<PlacesRedirect />} />
     <Route path="/place-hub" element={<PlaceHubPage />} />
+    <Route path="/tolls" element={<TollsPage />} />
     <Route path="/live-tracking" element={<LiveTrackingPage />} />
     <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
     <Route path="/geofence" element={<Navigate to="/live-tracking" replace />} />

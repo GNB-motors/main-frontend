@@ -1,0 +1,190 @@
+/* Toll plaza master — editor form, bulk upload, and the small affordances that
+   have no shared component yet. Deliberately plain: PageShell/DataTable carry
+   the layout, this file only dresses the tolls-specific parts. */
+
+.tpl-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: #475569;
+}
+
+.tpl-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.tpl-badge--global {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.tpl-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.tpl-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+}
+
+.tpl-icon-btn:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.tpl-icon-btn--danger:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.tpl-filters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.tpl-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #64748b;
+}
+
+.tpl-search input {
+  border: 0;
+  outline: 0;
+  font-size: 13px;
+  min-width: 240px;
+  background: transparent;
+}
+
+.tpl-editor,
+.tpl-bulk {
+  margin: 0 0 18px;
+  padding: 16px 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.tpl-editor h3,
+.tpl-bulk h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tpl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.tpl-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.tpl-grid--wide {
+  grid-column: 1 / -1;
+}
+
+.tpl-grid input,
+.tpl-grid select,
+.tpl-bulk textarea {
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  color: #0f172a;
+  outline: none;
+}
+
+.tpl-grid input:focus,
+.tpl-grid select:focus,
+.tpl-bulk textarea:focus {
+  border-color: #6366f1;
+}
+
+.tpl-check {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+}
+
+.tpl-error {
+  margin: 12px 0 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 12px;
+}
+
+.tpl-editor-actions,
+.tpl-bulk-actions {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.tpl-hint {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.tpl-bulk textarea {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  resize: vertical;
+}
+
+.tpl-bulk-result {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-size: 12px;
+  color: #334155;
+}
+
+.tpl-bulk-result ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #b91c1c;
+}
