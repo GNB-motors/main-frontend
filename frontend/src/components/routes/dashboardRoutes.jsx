@@ -72,6 +72,8 @@ const AccessControlPage = lazy(() => import('../../pages/AccessControl/AccessCon
 const AssignedEmployeesPage = lazy(
   () => import('../../pages/AccessControl/AssignedEmployeesPage.jsx'),
 );
+// Compliance / Docs — e-challan ledger (Task 5, plan T5.4).
+const ChallansPage = lazy(() => import('../../pages/Compliance/ChallansPage.jsx'));
 
 // Children of the authenticated DashboardLayout route (App.jsx).
 const dashboardRoutes = (
@@ -81,6 +83,9 @@ const dashboardRoutes = (
     <Route path="/idling-console" element={<Navigate to="/route-hub" replace />} />
     <Route path="/daily-brief" element={<Navigate to="/digest" replace />} />
     <Route path="/def-ledger" element={<DefLedgerPage />} />
+    <Route path="/challans" element={<ChallansPage />} />
+    {/* Legacy deep link — the challan ledger lives under Compliance / Docs. */}
+    <Route path="/vehicle-challans" element={<Navigate to="/challans" replace />} />
     <Route path="/fleet-coverage" element={<FleetCoveragePage />} />
     <Route path="/route-hub" element={<RouteHubPage />} />
     <Route

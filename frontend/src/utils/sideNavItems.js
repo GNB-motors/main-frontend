@@ -19,6 +19,7 @@ import {
   Radar,
   Warehouse,
   Route,
+  Gavel,
 } from 'lucide-react';
 
 /**
@@ -293,6 +294,18 @@ export const SIDE_NAV_ITEMS = [
     to: '/route-hub',
     label: 'Route Hub',
     icon: Route,
+  },
+  // ─── Compliance / Docs ──────────────────────────────────────────────────────
+  // `key: null` — not gated on a feature flag, for the same reason as
+  // Warehouses/Trip/Place Hub: manual challan entry works with or without a
+  // provider configured, so hiding the page would only hide the fallback.
+  {
+    type: 'link',
+    key: null,
+    access: 'fleet',
+    to: '/challans',
+    label: 'Challans',
+    icon: Gavel,
   },
   /*
   // Fleet Intelligence surfaces (commented out: Idling Console and Hotspots removed; Route Hub displayed directly)
