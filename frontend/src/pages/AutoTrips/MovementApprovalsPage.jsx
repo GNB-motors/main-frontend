@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { ArrowLeft, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import PageShell from '../../components/ui/PageShell';
+import EnterprisePagination from '../../components/ui/EnterprisePagination';
+import './TripsWorkspace.css';
 import DataTable from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -164,7 +166,8 @@ export default function MovementApprovalsPage() {
 
   return (
     <PageShell
-      title="Movement Approvals"
+      className="trip-workspace"
+      title="Movement approvals"
       count={total}
       subtitle="Pre-authorise a vehicle or driver to visit a place, so a detour there is not charged as a deviation."
       actions={
@@ -178,7 +181,7 @@ export default function MovementApprovalsPage() {
         </div>
       }
     >
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+      <div className="trip-workspace-tabs" aria-label="Approval status">
         {[
           { key: '', label: 'All' },
           { key: 'ACTIVE', label: 'Active' },
@@ -188,7 +191,8 @@ export default function MovementApprovalsPage() {
             key={t.key || 'all'}
             type="button"
             size="sm"
-            variant={status === t.key ? 'default' : 'outline'}
+            variant="ghost"
+            aria-pressed={status === t.key}
             onClick={() => {
               setStatus(t.key);
               setPage(1);
@@ -202,6 +206,16 @@ export default function MovementApprovalsPage() {
       <DataTable
         columns={columns}
         rows={items}
+        total={total}
+        pagination={
+          <EnterprisePagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={total || null}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+          />
+        }
         rowKey={(r) => r._id}
         loading={loading}
         error={error}
@@ -209,38 +223,6 @@ export default function MovementApprovalsPage() {
         emptyTitle="No approvals yet"
         emptyHint="Create one to pre-authorise a known detour (a workshop, a driver's home, a regular stop)."
       />
-
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-          gap: 12,
-          marginTop: 12,
-        }}
-      >
-        <span style={{ fontSize: 13, color: 'var(--muted-foreground, #666)' }}>
-          Page {page} / {totalPages}
-        </span>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={page <= 1 || loading}
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-        >
-          <ChevronLeft size={16} /> Prev
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={page >= totalPages || loading}
-          onClick={() => setPage((p) => p + 1)}
-        >
-          Next <ChevronRight size={16} />
-        </Button>
-      </div>
 
       <ApprovalCreateDialog
         open={dialogOpen}

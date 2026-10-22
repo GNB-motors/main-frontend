@@ -14,7 +14,7 @@ import SecondarySideNav from './SecondarySideNav';
 import { useFeatureFlags } from '../contexts/FeatureFlagsContext';
 import { reportDestination, visibleReportGroups } from '../pages/Reports/reportCatalog';
 
-const ReportsSidebar = ({ isOpen, selectedReport, setSelectedReport }) => {
+const ReportsSidebar = ({ isOpen, selectedReport, setSelectedReport, mobileOpen = false }) => {
   const { isEnabled } = useFeatureFlags();
   const navigate = useNavigate();
 
@@ -29,6 +29,7 @@ const ReportsSidebar = ({ isOpen, selectedReport, setSelectedReport }) => {
   return ReactDOM.createPortal(
     <SecondarySideNav
       variant="reports"
+      className={mobileOpen ? 'reports-sidebar--mobile-open' : ''}
       scrollId="report-side-nav"
       items={visibleReportGroups(isEnabled)}
       activeOption={selectedReport}

@@ -1,130 +1,216 @@
+import { useDeferredValue, useState } from 'react';
+import revealReview from './revealReview';
 import { Link } from 'react-router-dom';
+import { Search, ArrowUpRight } from 'lucide-react';
 import { toast } from 'react-toastify';
+import PageShell from '../../components/ui/PageShell';
+import DataTable from '../../components/ui/DataTable';
+import EnterprisePagination from '../../components/ui/EnterprisePagination';
+import { Button } from '../../components/ui/button';
 import useApi from '../../hooks/useApi';
 import useMutation from '../../hooks/useMutation';
 import SapService from '../../services/SapService';
-import PlacePicker from './PlacePicker';
 import SapRequestState from './SapRequestState';
-import SapLabelPicker from './SapLabelPicker';
+import SapReviewDetail from './SapReviewDetail';
+import { reviewRows, reviewKey } from './sapReviewModel';
 import { canEditSap } from './sapModel';
 import { getUserRole } from '../../utils/session';
-function PlantLink({ plant, disabled, onLink }) {
-  return (
-    <div className="sap-stack">
-      {(plant.suggestions || []).map((s) => (
-        <div className="sap-row" key={s.orgSiteId || s._id}>
-          <span>{s.name || s.label}</span>
-          <button
-            type="button"
-            className="sap-btn"
-            disabled={disabled}
-            onClick={() => onLink(s.orgSiteId || s._id)}
-          >
-            Confirm suggested place
-          </button>
-        </div>
-      ))}
-      <PlacePicker label="Search a plant place" disabled={disabled} onChoose={onLink} />
-    </div>
-  );
-}
+const PAGE_SIZE = 12;
 export default function SapMatchReview() {
   const q = useApi((signal) => SapService.matchReview({ signal }), []);
   const m = useMutation(SapService.alias);
   const canEdit = canEditSap(getUserRole());
-  const alias = async (kind, label, orgSiteId, status = 'CONFIRMED') => {
+  const [kind, setKind] = useState('DROP');
+  const [search, setSearch] = useState('');
+  const [scope, setScope] = useState('pending');
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState(null);
+  const term = useDeferredValue(search);
+  const rows = reviewRows(q.data, kind, term, scope);
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(rows.length / PAGE_SIZE)));
+  const visible = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const current = visible.find((r) => reviewKey(r, kind) === selected) || visible[0];
+  const alias = async (aliasKind, label, orgSiteId, status = 'CONFIRMED') => {
     try {
-      await m.mutate({ kind, label, orgSiteId, status });
+      await m.mutate({ kind: aliasKind, label, orgSiteId, status });
       q.refetch();
       toast.success('SAP updated — trips refresh shortly');
     } catch (e) {
       toast.error(e?.message || 'Could not link place');
     }
   };
+  const plant = kind === 'PLANT';
+  const columns = [
+    {
+      key: 'place',
+      label: plant ? 'Sheet plant' : 'Drop place',
+      render: (r) => (
+        <>
+          <span className="sap-cell-title">{r.name || r.label || 'Unnamed drop'}</span>
+          <span className="sap-cell-sub">
+            {plant
+              ? (r.sites || []).map((s) => s.name).join(', ') || 'No place linked'
+              : r.label || 'No sheet label linked'}
+          </span>
+        </>
+      ),
+    },
+    {
+      key: 'impact',
+      label: plant ? 'Lanes' : 'Trips affected',
+      align: 'right',
+      render: (r) => (plant ? (r.laneCount ?? 0) : (r.tripCount ?? 0)),
+    },
+    {
+      key: 'actions',
+      label: '',
+      align: 'right',
+      render: (r) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-pressed={reviewKey(r, kind) === reviewKey(current || {}, kind)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelected(reviewKey(r, kind));
+            revealReview('sap-review-detail');
+          }}
+        >
+          Review
+        </Button>
+      ),
+    },
+  ];
   return (
-    <section className="sap-panel">
-      <h2>Link SAP sheet to places</h2>
-      <SapRequestState query={q}>
-        <div className="sap-stack">
-          <h3>Sheet plants</h3>
-          {(q.data?.plants || []).map((p) => (
-            <article className="sap-box" key={p.label}>
-              <strong>
-                {p.label} · {p.laneCount} lanes
-              </strong>
-              <p>Linked to: {(p.sites || []).map((s) => s.name).join(', ') || 'No place yet'}</p>
-              {canEdit && (
-                <PlantLink
-                  plant={p}
-                  disabled={m.loading}
-                  onLink={(id) => alias('PLANT', p.label, id)}
-                />
-              )}
-            </article>
+    <PageShell
+      className="sap-panel sap-page"
+      title="Link SAP sheet to places"
+      subtitle="Connect sheet labels to the places your trucks visit. Start with the drops affecting the most trips."
+    >
+      <div className="sap-toolbar">
+        <div className="sap-tabs" aria-label="Place category">
+          {[
+            ['DROP', 'Drop places', q.data?.drops?.length],
+            ['PLANT', 'Sheet plants', q.data?.plants?.length],
+            ['UNNAMED', 'Unnamed drops', q.data?.unnamedDrops?.count],
+          ].map(([id, label, count]) => (
+            <button
+              className="sap-tab"
+              type="button"
+              key={id}
+              aria-pressed={kind === id}
+              onClick={() => {
+                setKind(id);
+                setSelected(null);
+                setPage(1);
+                setSearch('');
+              }}
+            >
+              {label}
+              <span className="sap-tab-count">{count ?? '—'}</span>
+            </button>
           ))}
-          <h3>Drops, by trips affected</h3>
-          {!(q.data?.drops || []).length && <p>No drops waiting for a link.</p>}
-          {(q.data?.drops || []).map((d) => (
-            <article className="sap-box" key={d.orgSiteId}>
-              <strong>
-                {d.name || 'Unnamed drop'} · {d.tripCount} trips
-              </strong>
-              <p>Sheet label: {d.label || 'Not linked'}</p>
-              {canEdit && (
-                <>
-                  {(d.suggestions || []).map((s) => (
-                    <div className="sap-row" key={s.label}>
-                      <span>
-                        {s.label} · {Math.round(s.score * 100)}% · {(s.sapValues || []).join(' / ')}{' '}
-                        km
-                      </span>
-                      <button
-                        className="sap-btn"
-                        type="button"
-                        disabled={m.loading}
-                        onClick={() => alias('DROP', s.label, d.orgSiteId)}
-                      >
-                        Confirm
-                      </button>
-                      <button
-                        className="sap-btn"
-                        type="button"
-                        disabled={m.loading}
-                        onClick={() => alias('DROP', s.label, d.orgSiteId, 'REJECTED')}
-                      >
-                        Not this one
-                      </button>
-                    </div>
-                  ))}
-                  <SapLabelPicker
-                    kind="DROP"
-                    disabled={m.loading}
-                    onChoose={(label) => alias('DROP', label, d.orgSiteId)}
-                  />
-                  <Link
-                    className="sap-link"
-                    to={`/auto-trips?dropSiteId=${encodeURIComponent(d.orgSiteId)}&dropName=${encodeURIComponent(d.name || 'Unnamed drop')}&range=all`}
-                  >
-                    Set SAP km manually on a trip →
-                  </Link>
-                </>
-              )}
-            </article>
-          ))}
-          <div className="sap-box">
-            <h3>Unnamed drops: {q.data?.unnamedDrops?.count ?? 0}</h3>
-            <Link className="sap-link" to="/place-hub">
-              Name places in Place Hub
-            </Link>
-            {(q.data?.unnamedDrops?.top || []).map((d, i) => (
-              <p key={i}>
-                {d.lat}, {d.lng} · {d.tripCount} trips
-              </p>
-            ))}
-            <p>Unused sheet labels: {q.data?.unusedLabels ?? 0}</p>
-          </div>
         </div>
+        <span className="sap-muted">{q.data?.unusedLabels ?? 0} unused sheet labels</span>
+      </div>
+      <SapRequestState query={q}>
+        {kind === 'UNNAMED' ? (
+          <section className="sap-card">
+            <div className="sap-toolbar">
+              <div className="sap-stack">
+                <h2>Give these drops a name</h2>
+                <p className="sap-muted">Name the place before linking it to a SAP destination.</p>
+              </div>
+              <Link className="sap-link" to="/place-hub">
+                Open Place Hub <ArrowUpRight size={14} />
+              </Link>
+            </div>
+            <DataTable
+              className="sap-table"
+              columns={[
+                { key: 'coordinates', label: 'Coordinates', render: (r) => `${r.lat}, ${r.lng}` },
+                {
+                  key: 'trips',
+                  label: 'Trips affected',
+                  align: 'right',
+                  render: (r) => r.tripCount,
+                },
+              ]}
+              rows={q.data?.unnamedDrops?.top || []}
+              rowKey={(r) => `${r.lat}:${r.lng}`}
+              emptyTitle="No unnamed drops waiting for review"
+            />
+          </section>
+        ) : (
+          <>
+            <div className="sap-toolbar">
+              <div className="sap-search">
+                <Search size={16} aria-hidden="true" />
+                <input
+                  type="search"
+                  aria-label="Search SAP links"
+                  placeholder={plant ? 'Search sheet plants…' : 'Search drop places…'}
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                />
+              </div>
+              <label className="sap-row">
+                Show
+                <select
+                  aria-label="Link status"
+                  value={scope}
+                  onChange={(e) => {
+                    setScope(e.target.value);
+                    setPage(1);
+                  }}
+                >
+                  <option value="pending">Needs linking</option>
+                  <option value="all">All places</option>
+                </select>
+              </label>
+            </div>
+            <div className="sap-review-layout">
+              <DataTable
+                className="sap-table"
+                columns={columns}
+                rows={visible}
+                total={rows.length}
+                rowKey={(r) => reviewKey(r, kind)}
+                onRowClick={(r) => {
+                  setSelected(reviewKey(r, kind));
+                  revealReview('sap-review-detail');
+                }}
+                rowClassName={(r) => (r === current ? 'dt-row--selected' : '')}
+                emptyTitle="No places in this view"
+                emptyHint="Try another search or show all places."
+                pagination={
+                  <EnterprisePagination
+                    page={currentPage}
+                    totalPages={Math.max(1, Math.ceil(rows.length / PAGE_SIZE))}
+                    totalItems={rows.length || null}
+                    pageSize={PAGE_SIZE}
+                    onPageChange={(next) => {
+                      setPage(next);
+                      setSelected(null);
+                    }}
+                  />
+                }
+              />
+              <SapReviewDetail
+                key={`${kind}:${reviewKey(current || {}, kind)}`}
+                row={current}
+                kind={kind}
+                canEdit={canEdit}
+                busy={m.loading}
+                onAlias={alias}
+              />
+            </div>
+          </>
+        )}
       </SapRequestState>
-    </section>
+    </PageShell>
   );
 }

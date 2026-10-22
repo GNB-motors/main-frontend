@@ -7,7 +7,7 @@ import placeHubTabs from '../page/placeHubTabs';
 const a = { _id: 'aaaaaaaaaaaaaaaaaaaaaaaa', name: 'Plant A', visits: 10, siteType: 'PLANT' };
 const b = { _id: 'bbbbbbbbbbbbbbbbbbbbbbbb', name: 'Plant B', visits: 20, siteType: 'PLANT' };
 vi.mock('./DuplicateMap', () => ({ default: () => <div>Pair map</div> }));
-vi.mock('../../../utils/session', () => ({ getUserRole: () => 'OWNER' }));
+vi.mock('../../../utils/session', () => ({ getUserRole: () => 'OWNER', getPref: () => null }));
 vi.mock('../../../components/ui/confirmContext', () => ({ useConfirm: () => async () => true }));
 vi.mock('./PlaceIntelligenceService', () => ({
   default: {
@@ -43,7 +43,7 @@ it('defaults the survivor to most visits, merges and supports undo', async () =>
       <DuplicatesTab />
     </MemoryRouter>,
   );
-  expect((await screen.findByLabelText('Keep this place')).value).toBe(b._id);
+  expect(await screen.findByRole('radio', { name: 'Plant B (20 visits)' })).toBeChecked();
   fireEvent.click(screen.getByRole('button', { name: 'Merge' }));
   await waitFor(() =>
     expect(PlaceIntelligenceService.mergeSites).toHaveBeenCalledWith(
@@ -51,6 +51,7 @@ it('defaults the survivor to most visits, merges and supports undo', async () =>
       expect.anything(),
     ),
   );
+  fireEvent.click(screen.getByText('Merge history and undo'));
   fireEvent.click(await screen.findByRole('button', { name: 'Undo merge' }));
   await waitFor(() =>
     expect(PlaceIntelligenceService.undoMerge).toHaveBeenCalledWith('merge1', expect.anything()),

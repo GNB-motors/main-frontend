@@ -1,162 +1,27 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import { useDeferredValue, useState } from 'react';
+import revealReview from '../../Sap/revealReview';
+import { Search, MapPinned } from 'lucide-react';
+import PageShell from '../../../components/ui/PageShell';
+import DataTable from '../../../components/ui/DataTable';
+import EnterprisePagination from '../../../components/ui/EnterprisePagination';
+import { Button } from '../../../components/ui/button';
 import useApi from '../../../hooks/useApi';
-import useMutation from '../../../hooks/useMutation';
-import { getUserRole } from '../../../utils/session';
-import { useConfirm } from '../../../components/ui/confirmContext';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
 import SapRequestState from '../../Sap/SapRequestState';
-import { canEditSap, kmText } from '../../Sap/sapModel';
 import PlacePicker from '../../Sap/PlacePicker';
-import DuplicateMap from './DuplicateMap';
+import DuplicatePair from './DuplicatePair';
+import MergeHistory from './MergeHistory';
 import '../../Sap/Sap.css';
-function MergeHistory({ survivorId, version, onChanged }) {
-  const q = useApi(
-    (signal) => PlaceIntelligenceService.listMerges(survivorId, { signal }),
-    [survivorId, version],
-  );
-  const m = useMutation(PlaceIntelligenceService.undoMerge);
-  const undo = async (id) => {
-    try {
-      await m.mutate(id);
-      toast.success('Merge undone');
-      q.refetch();
-      onChanged();
-    } catch (err) {
-      toast.error(err?.message || 'Could not undo merge');
-    }
-  };
-  const rows = Array.isArray(q.data) ? q.data : q.data?.records || [];
-  return (
-    <SapRequestState query={q}>
-      <div className="sap-stack">
-        {!rows.length && <p>No merge history for this place.</p>}
-        {rows.map((r) => (
-          <div className="sap-row" key={r._id}>
-            <span>
-              {(r.members || []).map((s) => s.name || s.siteId).join(', ') ||
-                `${r.memberIds?.length || 0} places`}{' '}
-              · {r.undoneAt ? 'Undone' : 'Merged'}
-            </span>
-            {canEditSap(getUserRole()) && !r.undoneAt && (
-              <button
-                className="sap-btn"
-                type="button"
-                disabled={m.loading}
-                onClick={() => undo(r._id)}
-              >
-                Undo merge
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-    </SapRequestState>
-  );
-}
-function DuplicatePair({ pair, onChanged }) {
-  const { a, b } = pair;
-  const [survivorId, setSurvivorId] = useState((a.visits ?? 0) >= (b.visits ?? 0) ? a._id : b._id);
-  const m = useMutation(({ action, body }, options) =>
-    PlaceIntelligenceService[action](body, options),
-  );
-  const confirm = useConfirm();
-  const canEdit = canEditSap(getUserRole());
-  const act = async (action, body) => {
-    if (
-      action === 'mergeSites' &&
-      !(await confirm({
-        title: 'Merge these places?',
-        body: 'The selected survivor keeps the combined place history. You can undo this in Merge history.',
-        confirmLabel: 'Merge places',
-      }))
-    )
-      return;
-    try {
-      await m.mutate({ action, body });
-      toast.success(action === 'mergeSites' ? 'Places merged' : 'Marked as different places');
-      onChanged(survivorId);
-    } catch (err) {
-      toast.error(err?.message || 'Could not review places');
-    }
-  };
-  return (
-    <article className="sap-box">
-      <div className="sap-row">
-        <strong>
-          {pair.verdict === 'LIKELY_SAME' ? 'Likely the same place' : 'Check these places'}
-        </strong>
-        <span>
-          {pair.tripsAffected} trips affected ·{' '}
-          {pair.distanceM == null ? '—' : `${Math.round(pair.distanceM)} m apart`} · Road:{' '}
-          {kmText(pair.roadKm)}
-        </span>
-      </div>
-      <div className="sap-row">
-        {[a, b].map((s, i) => (
-          <div key={s._id}>
-            <Link
-              className="sap-link"
-              to={`/place-hub?place=${encodeURIComponent(`site:${s._id}`)}`}
-            >
-              {i ? 'B' : 'A'}: {s.name || 'Unnamed place'}
-            </Link>
-            <p>
-              {s.siteType} · {s.status} · {s.visits ?? 0} visits
-            </p>
-          </div>
-        ))}
-      </div>
-      <DuplicateMap a={a} b={b} />
-      <p>
-        Nearby mapped places: {pair.gem?.a?.name || 'Unknown'} ({pair.gem?.a?.m ?? '—'} m) /{' '}
-        {pair.gem?.b?.name || 'Unknown'} ({pair.gem?.b?.m ?? '—'} m)
-        {pair.gem?.sameGem ? ' · Same mapped place' : ''}
-      </p>
-      {canEdit && (
-        <div className="sap-row">
-          <label>
-            Keep this place
-            <select
-              value={survivorId}
-              onChange={(e) => setSurvivorId(e.target.value)}
-              disabled={m.loading}
-            >
-              {[a, b].map((s) => (
-                <option key={s._id} value={s._id}>
-                  {s.name || s._id} ({s.visits ?? 0} visits)
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            className="sap-btn"
-            type="button"
-            disabled={m.loading}
-            onClick={() =>
-              act('mergeSites', { survivorId, memberIds: [survivorId === a._id ? b._id : a._id] })
-            }
-          >
-            Merge
-          </button>
-          <button
-            className="sap-btn"
-            type="button"
-            disabled={m.loading}
-            onClick={() => act('distinctSites', { id: a._id, otherId: b._id })}
-          >
-            Different places
-          </button>
-        </div>
-      )}
-    </article>
-  );
-}
+const keyOf = (pair) => `${pair.a._id}:${pair.b._id}`;
+const PAGE_SIZE = 12;
 export default function DuplicatesTab({ version, onChanged }) {
   const q = useApi((signal) => PlaceIntelligenceService.duplicates({ signal }), [version]);
   const [survivorId, setSurvivorId] = useState('');
   const [historyVersion, setHistoryVersion] = useState(0);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState(null);
+  const term = useDeferredValue(search).trim().toLocaleLowerCase();
   const changed = (id) => {
     if (id) setSurvivorId(id);
     setHistoryVersion((v) => v + 1);
@@ -164,29 +29,133 @@ export default function DuplicatesTab({ version, onChanged }) {
     onChanged?.();
   };
   const pairs = Array.isArray(q.data) ? q.data : q.data?.pairs || q.data?.records || [];
+  const rows = pairs.filter(
+    (p) => !term || `${p.a.name || ''} ${p.b.name || ''}`.toLocaleLowerCase().includes(term),
+  );
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(rows.length / PAGE_SIZE)));
+  const visible = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const current = visible.find((p) => keyOf(p) === selected) || visible[0];
+  const columns = [
+    {
+      key: 'places',
+      label: 'Possible duplicate',
+      render: (p) => (
+        <>
+          <span className="sap-cell-title">{p.a.name || 'Unnamed place'}</span>
+          <span className="sap-cell-sub">{p.b.name || 'Unnamed place'}</span>
+        </>
+      ),
+    },
+    {
+      key: 'distance',
+      label: 'Apart',
+      align: 'right',
+      render: (p) => (p.distanceM == null ? '—' : `${Math.round(p.distanceM)} m`),
+    },
+    { key: 'impact', label: 'Trips', align: 'right', render: (p) => p.tripsAffected ?? '—' },
+    {
+      key: 'actions',
+      label: '',
+      align: 'right',
+      render: (p) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-pressed={p === current}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelected(keyOf(p));
+            revealReview('duplicate-review-detail');
+          }}
+        >
+          Review
+        </Button>
+      ),
+    },
+  ];
   return (
-    <section className="sap-panel">
-      <h2>Same place?</h2>
-      <p>Review nearby places using their visits, route distance and mapped-place evidence.</p>
+    <PageShell
+      className="sap-panel sap-page"
+      title="Same place?"
+      count={q.data ? pairs.length : null}
+      subtitle="Review nearby places using their visits, route distance and mapped-place evidence."
+    >
+      <div className="sap-toolbar">
+        <div className="sap-search">
+          <Search size={16} aria-hidden="true" />
+          <input
+            type="search"
+            aria-label="Search possible duplicates"
+            placeholder="Search place names…"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+          />
+        </div>
+        <span className="sap-muted">Select a pair to compare and review</span>
+      </div>
       <SapRequestState query={q}>
-        <div className="sap-stack">
-          {!pairs.length && <p>No possible duplicates waiting for review.</p>}
-          {pairs.map((pair) => (
-            <DuplicatePair key={`${pair.a._id}:${pair.b._id}`} pair={pair} onChanged={changed} />
-          ))}
+        <div className="sap-review-layout">
+          <DataTable
+            className="sap-table"
+            columns={columns}
+            rows={visible}
+            total={rows.length}
+            rowKey={keyOf}
+            rowClassName={(p) => (p === current ? 'dt-row--selected' : '')}
+            onRowClick={(p) => {
+              setSelected(keyOf(p));
+              revealReview('duplicate-review-detail');
+            }}
+            emptyTitle={
+              search ? 'No places match your search' : 'No possible duplicates waiting for review'
+            }
+            emptyHint={
+              search
+                ? 'Try another place name.'
+                : 'New candidates appear here when nearby places need a check.'
+            }
+            pagination={
+              <EnterprisePagination
+                page={currentPage}
+                totalPages={Math.max(1, Math.ceil(rows.length / PAGE_SIZE))}
+                totalItems={rows.length || null}
+                pageSize={PAGE_SIZE}
+                onPageChange={(next) => {
+                  setPage(next);
+                  setSelected(null);
+                }}
+              />
+            }
+          />
+          {current ? (
+            <DuplicatePair key={keyOf(current)} pair={current} onChanged={changed} />
+          ) : (
+            <aside className="sap-card sap-empty">
+              <MapPinned size={28} />
+              <p>Select a place pair to compare its map and visit history.</p>
+            </aside>
+          )}
         </div>
       </SapRequestState>
-      <details className="sap-box">
+      <details className="sap-disclosure sap-history">
         <summary>Merge history and undo</summary>
-        <PlacePicker label="Find the surviving place" onChoose={setSurvivorId} />
-        {/^[a-f0-9]{24}$/i.test(survivorId) && (
-          <MergeHistory
-            survivorId={survivorId}
-            version={historyVersion}
-            onChanged={() => changed()}
-          />
-        )}
+        <div className="sap-stack">
+          <p className="sap-muted">
+            Find the place you kept to review or undo its previous merges.
+          </p>
+          <PlacePicker label="Find the surviving place" onChoose={setSurvivorId} />
+          {/^[a-f0-9]{24}$/i.test(survivorId) && (
+            <MergeHistory
+              survivorId={survivorId}
+              version={historyVersion}
+              onChanged={() => changed()}
+            />
+          )}
+        </div>
       </details>
-    </section>
+    </PageShell>
   );
 }

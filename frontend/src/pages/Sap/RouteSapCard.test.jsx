@@ -109,7 +109,8 @@ it('shows snapshots for readers without protected requests or edit controls', ()
 it('disables manual SAP when the trip has no saved drop', async () => {
   SapService.trip.mockResolvedValue({ ...response(), trip: { ...trip, drop: null } });
   mount();
-  expect(await screen.findByRole('button', { name: 'Set SAP km' })).toBeDisabled();
+  await screen.findByText('Save a drop place before setting SAP for this route.');
+  expect(screen.getByRole('button', { name: 'Set SAP km' })).toBeDisabled();
 });
 it('offers retry when the new endpoint is not deployed', async () => {
   SapService.trip.mockRejectedValueOnce({ status: 404 });

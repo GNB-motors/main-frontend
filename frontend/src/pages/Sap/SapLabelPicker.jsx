@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useDeferredValue, useState } from 'react';
 import useApi from '../../hooks/useApi';
 import SapService from '../../services/SapService';
 import { laneLabels } from './sapModel';
 export default function SapLabelPicker({ kind, disabled, onChoose }) {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState('');
+  const term = useDeferredValue(search);
   const q = useApi(
-    (signal) => SapService.lanes({ search, page: 1, limit: 100 }, { signal }),
-    [search],
-    { enabled: search.trim().length > 0 },
+    (signal) => SapService.lanes({ search: term, page: 1, limit: 100 }, { signal }),
+    [term],
+    { enabled: term.trim().length > 0 },
   );
   return (
     <div className="sap-stack">
@@ -53,7 +54,7 @@ export default function SapLabelPicker({ kind, disabled, onChoose }) {
           <button
             className="sap-btn"
             type="button"
-            disabled={disabled || !selected || q.loading || !!q.error}
+            disabled={disabled || search !== term || !selected || q.loading || !!q.error}
             onClick={() => onChoose(selected)}
           >
             Link selected label

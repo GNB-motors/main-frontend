@@ -24,6 +24,7 @@ import {
   tripDateRange,
 } from './autoTripFormat';
 import './AutoTrips.css';
+import './TripsWorkspace.css';
 
 /** Confirm, dismiss and drop fixes are owner/manager actions on the server. */
 const CAN_EDIT = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
@@ -209,7 +210,6 @@ export default function AutoTripDetailPage() {
         </div>
 
         <div className="atx-grid">
-          <RouteSapCard key={id} trip={trip} />
           <div className="atx-card atx-card--clip atx-span-2">
             <AutoTripReplay
               ref={replayRef}
@@ -271,6 +271,7 @@ export default function AutoTripDetailPage() {
               </div>
             ) : null}
           </div>
+          <RouteSapCard key={id} trip={trip} />
         </div>
 
         <AutoTripTimeline

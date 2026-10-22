@@ -184,7 +184,7 @@
   height: 40px;
   padding: 0 12px;
   border-radius: 8px;
-  border: 1px solid #ECECEE;
+  border: 1px solid #ececee;
   background: #fff;
   font-size: 13px;
   color: #111827;
@@ -521,29 +521,29 @@
 }
 
 /* Ensure alignment works correctly within cells */
-.MuiDataGrid-cell[data-field="avgVariance"],
-.MuiDataGrid-cell[data-field="diffKms"],
-.MuiDataGrid-cell[data-field="financialImpact"] {
+.MuiDataGrid-cell[data-field='avgVariance'],
+.MuiDataGrid-cell[data-field='diffKms'],
+.MuiDataGrid-cell[data-field='financialImpact'] {
   justify-content: flex-end !important;
 }
 
 /* Alignment for outlier columns */
-.MuiDataGrid-cell[data-field="fleetEdgeMileage"],
-.MuiDataGrid-cell[data-field="billMileage"],
-.MuiDataGrid-cell[data-field="variance"] {
+.MuiDataGrid-cell[data-field='fleetEdgeMileage'],
+.MuiDataGrid-cell[data-field='billMileage'],
+.MuiDataGrid-cell[data-field='variance'] {
   justify-content: flex-end !important;
 }
 
 /* Alignment for driver/vehicle report columns */
-.MuiDataGrid-cell[data-field="totalKms"],
-.MuiDataGrid-cell[data-field="instances"],
-.MuiDataGrid-cell[data-field="outliers"],
-.MuiDataGrid-cell[data-field="rating"] {
+.MuiDataGrid-cell[data-field='totalKms'],
+.MuiDataGrid-cell[data-field='instances'],
+.MuiDataGrid-cell[data-field='outliers'],
+.MuiDataGrid-cell[data-field='rating'] {
   justify-content: flex-end !important;
 }
 
 /* Alignment for trip report columns */
-.MuiDataGrid-cell[data-field="kmsDriven"] {
+.MuiDataGrid-cell[data-field='kmsDriven'] {
   justify-content: flex-end !important;
 }
 
@@ -640,10 +640,15 @@
   flex: 1;
   height: 80px;
   padding: 12px 16px;
-  background: linear-gradient(134deg, rgba(223, 223, 226, 0.40) 0%, rgba(255, 255, 255, 0.40) 43%, rgba(223, 223, 226, 0.40) 100%);
-  box-shadow: 1px 1px 6px rgba(18, 18, 20, 0.10) inset;
+  background: linear-gradient(
+    134deg,
+    rgba(223, 223, 226, 0.4) 0%,
+    rgba(255, 255, 255, 0.4) 43%,
+    rgba(223, 223, 226, 0.4) 100%
+  );
+  box-shadow: 1px 1px 6px rgba(18, 18, 20, 0.1) inset;
   border-radius: 16px;
-  outline: 2px #F8F8FB solid;
+  outline: 2px #f8f8fb solid;
   outline-offset: -2px;
   display: flex;
   align-items: center;
@@ -653,8 +658,8 @@
 .trip-ledger-kpi-icon {
   width: 48px;
   height: 48px;
-  background: rgba(47, 88, 238, 0.10);
-  box-shadow: 1px 1px 2px #ECECEE inset;
+  background: rgba(47, 88, 238, 0.1);
+  box-shadow: 1px 1px 2px #ececee inset;
   border-radius: 999px;
   display: flex;
   justify-content: center;
@@ -669,7 +674,7 @@
 }
 
 .trip-ledger-kpi-label {
-  color: #5D5D5E;
+  color: #5d5d5e;
   font-size: 14px;
   font-weight: 400;
   line-height: 20px;
@@ -789,11 +794,11 @@
 }
 
 .detail-info-value.positive {
-  color: #2ECC71;
+  color: #2ecc71;
 }
 
 .detail-info-value.negative {
-  color: #E74C3C;
+  color: #e74c3c;
 }
 
 .detail-certificate-image {
@@ -821,11 +826,11 @@
 
 /* Positive/Negative cell values */
 .cell-primary.positive {
-  color: #2ECC71;
+  color: #2ecc71;
 }
 
 .cell-primary.negative {
-  color: #E74C3C;
+  color: #e74c3c;
 }
 
 /* Pagination */
@@ -873,7 +878,7 @@
 }
 
 .pagination-btn.active {
-  background: var(--primary-color, #4f46e5); 
+  background: var(--primary-color, #4f46e5);
   border-color: var(--primary-color, #4f46e5);
   color: #ffffff;
 }
@@ -893,9 +898,9 @@
   width: 44px;
   height: 44px;
   padding: 6px 8px;
-  background: #F8F8FB;
+  background: #f8f8fb;
   border-radius: 8px;
-  border: 1px solid #ECECEE;
+  border: 1px solid #ececee;
   cursor: pointer;
   display: flex;
   justify-content: center;
@@ -904,7 +909,7 @@
 }
 
 .export-btn:hover {
-  background: #ECECEE;
+  background: #ececee;
 }
 
 /* === Trip Ledger Drawer Styles === */
@@ -988,11 +993,11 @@
 }
 
 .drawer-info-value.positive {
-  color: #2ECC71;
+  color: #2ecc71;
 }
 
 .drawer-info-value.negative {
-  color: #E74C3C;
+  color: #e74c3c;
 }
 
 .status-badge {
@@ -1006,17 +1011,17 @@
 
 .status-badge.submitted {
   background: rgba(46, 204, 113, 0.1);
-  color: #2ECC71;
+  color: #2ecc71;
 }
 
 .status-badge.pending {
   background: rgba(243, 156, 18, 0.1);
-  color: #F39C12;
+  color: #f39c12;
 }
 
 .status-badge.cancelled {
   background: rgba(231, 76, 60, 0.1);
-  color: #E74C3C;
+  color: #e74c3c;
 }
 
 /* Weight Certificate Image */
@@ -1134,12 +1139,12 @@
 
 .fuel-sync-ok {
   background: rgba(46, 204, 113, 0.12);
-  color: #27AE60;
+  color: #27ae60;
 }
 
 .fuel-sync-pending {
   background: rgba(243, 156, 18, 0.12);
-  color: #D68910;
+  color: #d68910;
 }
 
 .fuel-last-sync {
@@ -1213,11 +1218,11 @@
   background: #ffffff;
   color: #121214;
   font-weight: 600;
-  box-shadow: 0 1px 4px rgba(18, 18, 20, 0.10);
+  box-shadow: 0 1px 4px rgba(18, 18, 20, 0.1);
 }
 
 .fuel-tab-flagged-active {
-  color: #E67E22;
+  color: #e67e22;
 }
 
 .fuel-tab-count {
@@ -1236,7 +1241,7 @@
 
 .fuel-tab-count-flagged {
   background: rgba(230, 126, 34, 0.15);
-  color: #C0392B;
+  color: #c0392b;
 }
 
 /* -- Flagged Alert Banner -- */
@@ -1246,9 +1251,9 @@
   gap: 10px;
   padding: 10px 16px;
   background: rgba(230, 126, 34, 0.08);
-  border: 1px solid rgba(230, 126, 34, 0.30);
+  border: 1px solid rgba(230, 126, 34, 0.3);
   border-radius: 8px;
-  color: #8B4513;
+  color: #8b4513;
   font-size: 13px;
   margin-bottom: 16px;
 }
@@ -1256,7 +1261,7 @@
 .fuel-flagged-alert-link {
   background: none;
   border: none;
-  color: #E67E22;
+  color: #e67e22;
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
@@ -1344,22 +1349,22 @@
 }
 
 .fuel-variance-over .fuel-variance-abs {
-  color: #C0392B;
+  color: #c0392b;
   font-weight: 600;
 }
 
 .fuel-variance-over .fuel-variance-pct {
-  color: #C0392B;
+  color: #c0392b;
   font-size: 11px;
 }
 
 .fuel-variance-ok .fuel-variance-abs {
-  color: #27AE60;
+  color: #27ae60;
   font-weight: 600;
 }
 
 .fuel-variance-ok .fuel-variance-pct {
-  color: #27AE60;
+  color: #27ae60;
   font-size: 11px;
 }
 
@@ -1377,15 +1382,50 @@
 
 .fuel-badge-flagged {
   background: rgba(230, 126, 34, 0.15);
-  color: #C0392B;
+  color: #c0392b;
 }
 
 .fuel-badge-ok {
   background: rgba(46, 204, 113, 0.15);
-  color: #27AE60;
+  color: #27ae60;
 }
 
 /* -- Date Range cell -- */
 .fuel-date-range {
   white-space: nowrap;
+}
+.reports-mobile-nav {
+  display: none;
+}
+@media (max-width: 992px) {
+  .reports-mobile-nav {
+    display: flex;
+    flex-shrink: 0;
+    padding: 8px 14px;
+    min-height: 48px;
+    border-bottom: 1px solid var(--ds-line);
+    background: var(--card);
+  }
+  .reports-mobile-nav button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 550;
+    color: var(--accent-ink);
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+  .reports-mobile-nav button:focus-visible {
+    outline: 2px solid var(--ds-focus);
+    outline-offset: 3px;
+  }
+  .secondary-side-nav.ssn--reports {
+    top: calc(var(--navbar-height, 64px) + 48px);
+    height: calc(100dvh - var(--navbar-height, 64px) - 48px);
+  }
+  .secondary-side-nav.ssn--reports:not(.reports-sidebar--mobile-open) {
+    display: none;
+  }
 }

@@ -4,7 +4,7 @@ import { vi, it, expect, beforeEach } from 'vitest';
 import DeliveryRoutes from './DeliveryRoutes';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
 import { getUserRole } from '../../../utils/session';
-vi.mock('../../../utils/session', () => ({ getUserRole: vi.fn() }));
+vi.mock('../../../utils/session', () => ({ getUserRole: vi.fn(), getPref: () => null }));
 vi.mock('./PlaceIntelligenceService', () => ({
   default: {
     listLegs: vi.fn(),
@@ -47,7 +47,7 @@ it('filters deliveries and resets pagination', async () => {
   await screen.findByRole('button', { name: 'Plant → Town' });
   expect(screen.getByText('Within 10%')).toBeTruthy();
   expect(PlaceIntelligenceService.listLegs).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Next Page' }));
   await waitFor(() =>
     expect(PlaceIntelligenceService.listDeliveryLegs).toHaveBeenLastCalledWith(
       expect.objectContaining({ page: 2 }),

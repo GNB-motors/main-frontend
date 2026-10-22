@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ListFilter, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import ReportsSidebar from '../../components/ReportsSidebar';
 import '../PageStyles.css';
@@ -36,6 +37,7 @@ const REPORT_COMPONENTS = {
 };
 
 const ReportsPage = () => {
+  const [reportNavOpen, setReportNavOpen] = useState(false);
   const [isMainSidebarCollapsed, setIsMainSidebarCollapsed] = useState(false);
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [searchParams, setSearchParams] = useSearchParams();
@@ -49,6 +51,7 @@ const ReportsPage = () => {
   const requested = searchParams.get('report') || DEFAULT_REPORT;
   const selectedReport = flagsLoading ? requested : resolveReport(requested, isEnabled);
   const setSelectedReport = (id) => {
+    setReportNavOpen(false);
     const next = new URLSearchParams(searchParams);
     next.set('report', id);
     setSearchParams(next, { replace: true });
@@ -93,12 +96,28 @@ const ReportsPage = () => {
     <div className="reports-page-container" style={themeColors}>
       <ReportsSidebar
         isOpen
+        mobileOpen={reportNavOpen}
         selectedReport={selectedReport}
         setSelectedReport={setSelectedReport}
       />
       <div
         className={`reports-content with-sidebar ${isMainSidebarCollapsed ? 'main-sidebar-collapsed' : ''}`}
       >
+        <div className="reports-mobile-nav">
+          <button
+            type="button"
+            aria-expanded={reportNavOpen}
+            aria-controls="report-side-nav"
+            onClick={() => setReportNavOpen((open) => !open)}
+          >
+            {reportNavOpen ? (
+              <X size={16} aria-hidden="true" />
+            ) : (
+              <ListFilter size={16} aria-hidden="true" />
+            )}
+            {reportNavOpen ? 'Close reports' : 'Browse reports'}
+          </button>
+        </div>
         <div className="reports-main-content">{renderReport()}</div>
       </div>
     </div>

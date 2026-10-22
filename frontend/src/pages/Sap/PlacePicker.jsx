@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useDeferredValue, useState } from 'react';
 import useApi from '../../hooks/useApi';
 import PlaceIntelligenceService from '../PlaceHub/intelligence/PlaceIntelligenceService';
 export default function PlacePicker({ label = 'Search a place', disabled, onChoose }) {
   const [search, setSearch] = useState('');
   const [siteId, setSiteId] = useState('');
+  const term = useDeferredValue(search);
   const q = useApi(
-    (signal) => PlaceIntelligenceService.listSites({ q: search, limit: 50 }, { signal }),
-    [search],
-    { enabled: search.trim().length > 0 },
+    (signal) => PlaceIntelligenceService.listSites({ q: term, limit: 50 }, { signal }),
+    [term],
+    { enabled: term.trim().length > 0 },
   );
   return (
     <div className="sap-stack">
@@ -52,7 +53,7 @@ export default function PlacePicker({ label = 'Search a place', disabled, onChoo
           <button
             type="button"
             className="sap-btn"
-            disabled={disabled || !siteId || q.loading || !!q.error}
+            disabled={disabled || search !== term || !siteId || q.loading || !!q.error}
             onClick={() => onChoose(siteId)}
           >
             Choose place
