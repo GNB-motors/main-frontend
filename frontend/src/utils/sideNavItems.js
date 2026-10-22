@@ -21,6 +21,7 @@ import {
   Route,
   Bell,
   BarChart3,
+  Milestone,
 } from 'lucide-react';
 
 /**
@@ -334,6 +335,18 @@ export const SIDE_NAV_ITEMS = [
     label: 'Route Hub',
     icon: Route,
     job: 'REPORTS',
+  },
+  // Tolls — the plaza master, the crossings found on the road-matched path, and
+  // the estimate against what drivers actually paid. `key: null` like Route Hub:
+  // the link is always shown and the API is the real gate, because a toll page
+  // that disappears with a flag is how you end up believing a toll was zero.
+  {
+    type: 'link',
+    key: null,
+    access: 'fleet',
+    to: '/tolls',
+    label: 'Tolls',
+    icon: Milestone,
   },
   /*
   // Fleet Intelligence surfaces (commented out: Idling Console and Hotspots removed; Route Hub displayed directly)
