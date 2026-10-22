@@ -1,11 +1,26 @@
 import React from 'react';
 import './DocumentCard.css';
+import DigiLockerBadge from './DigiLockerBadge';
 
 // Force refresh: 2026-02-14
-const DocumentCard = ({ label, preview, onSelect, onRemove, isDisabled = false }) => {
+//
+// `digilockerStatus` is the GET /digilocker/status payload for the driver this
+// card belongs to. Pass `undefined` and the badge renders nothing, so callers
+// that don't fetch status are unaffected.
+const DocumentCard = ({
+  label,
+  preview,
+  onSelect,
+  onRemove,
+  isDisabled = false,
+  digilockerStatus,
+}) => {
   return (
     <div className="document-card-wrapper">
-      <div className="document-card-label">{label}</div>
+      <div className="document-card-label-row">
+        <div className="document-card-label">{label}</div>
+        <DigiLockerBadge status={digilockerStatus} />
+      </div>
       <div className="document-card">
         {preview ? (
           <div className="document-card-preview">
