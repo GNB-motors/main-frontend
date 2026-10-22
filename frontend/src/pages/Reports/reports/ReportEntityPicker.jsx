@@ -14,10 +14,15 @@ const ALL = 'all';
  * `fetchOptions(query, signal)` resolves to [{ id, label, sub? }]. `value` is
  * an id or 'all'; `onChange(id, row)` receives ('all', null) for the "All …"
  * row, and the chosen { id, label, sub } otherwise.
+ *
+ * `valueLabel` is the picked row's text, kept by the caller. The options are
+ * only fetched while the panel is open, so without it a value restored from a
+ * shared link would show the "All …" text while filtering to one entity.
  */
 export default function ReportEntityPicker({
   label,
   value,
+  valueLabel = '',
   onChange,
   fetchOptions,
   allLabel,
@@ -37,6 +42,7 @@ export default function ReportEntityPicker({
 
   const isAll = !value || value === ALL;
   const shownSelected = !isAll && selected?.id === value ? selected : null;
+  const triggerLabel = shownSelected ? shownSelected.label : isAll ? allLabel : valueLabel;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -100,13 +106,13 @@ export default function ReportEntityPicker({
       {label}
       <button
         type="button"
-        className={`rpt-picker-trigger${shownSelected ? '' : ' is-placeholder'}`}
+        className={`rpt-picker-trigger${triggerLabel === allLabel ? ' is-placeholder' : ''}`}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
         onClick={() => setOpen((o) => !o)}
       >
-        <span>{shownSelected ? shownSelected.label : allLabel}</span>
+        <span>{triggerLabel}</span>
         <ChevronDown size={15} aria-hidden="true" />
       </button>
       {open ? (
@@ -176,11 +182,12 @@ const fetchVehicles = (query, signal) =>
 const fetchDrivers = (query, signal) =>
   ReportsService.searchDrivers(query, { signal, limit: RESULT_LIMIT });
 
-export function VehiclePicker({ value, onChange, width = 200 }) {
+export function VehiclePicker({ value, valueLabel, onChange, width = 200 }) {
   return (
     <ReportEntityPicker
       label="Vehicle"
       value={value}
+      valueLabel={valueLabel}
       onChange={onChange}
       fetchOptions={fetchVehicles}
       allLabel="All vehicles"
@@ -190,11 +197,12 @@ export function VehiclePicker({ value, onChange, width = 200 }) {
   );
 }
 
-export function DriverPicker({ value, onChange, width = 200 }) {
+export function DriverPicker({ value, valueLabel, onChange, width = 200 }) {
   return (
     <ReportEntityPicker
       label="Driver"
       value={value}
+      valueLabel={valueLabel}
       onChange={onChange}
       fetchOptions={fetchDrivers}
       allLabel="All drivers"
