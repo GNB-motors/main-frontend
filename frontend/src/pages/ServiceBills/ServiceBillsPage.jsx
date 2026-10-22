@@ -69,6 +69,7 @@ const ServiceBillsPage = () => {
           <label className="sbills-toggle">
             <input
               type="checkbox"
+              aria-label="Show already reviewed"
               checked={showReviewed}
               onChange={(e) => setShowReviewed(e.target.checked)}
             />
@@ -118,7 +119,7 @@ const ServiceBillsPage = () => {
               <th>Workshop</th>
               <th>Bill total</th>
               <th>Status</th>
-              <th />
+              <th aria-label="Actions" />
             </tr>
           </thead>
           <tbody>
