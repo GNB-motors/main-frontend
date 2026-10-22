@@ -44,9 +44,15 @@ const ReportsPage = () => {
   // The selected report lives in the URL (?report=vehicle) so a refresh or a
   // shared link opens the same report. Until flags load, trust the URL; after,
   // fall back to the default if this org cannot open the requested report.
+  // Switching reports keeps the shared filter params (?dates, ?vehicle, …) so
+  // the same slice of the business can be compared across two reports.
   const requested = searchParams.get('report') || DEFAULT_REPORT;
   const selectedReport = flagsLoading ? requested : resolveReport(requested, isEnabled);
-  const setSelectedReport = (id) => setSearchParams({ report: id }, { replace: true });
+  const setSelectedReport = (id) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('report', id);
+    setSearchParams(next, { replace: true });
+  };
 
   useEffect(() => {
     setThemeColors(getThemeCSS());

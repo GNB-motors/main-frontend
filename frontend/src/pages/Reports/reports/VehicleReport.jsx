@@ -1,10 +1,8 @@
-import { useMemo, useState } from 'react';
 import { Fuel, Gauge, IndianRupee, Route } from 'lucide-react';
 import DataTable from '../../../components/ui/DataTable';
 import ExportButton from '../../../components/ui/ExportButton';
 import ReportDataNotice from '../../../components/ui/ReportDataNotice';
 import useApi from '../../../hooks/useApi';
-import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { ReportsService } from '../ReportsService.js';
 import { formatINR, formatKm, formatLitres, formatNum } from '../../../utils/formatters';
 import { formatDateIST } from '../../../utils/dateUtils';
@@ -14,33 +12,17 @@ import {
   exportFilterMeta,
 } from './fleetReportUtils';
 import { KmplCell, NameCell } from './fleetReportCells';
-import ReportFrame, {
-  ReportClear,
-  ReportDateRange,
-  ReportFooter,
-  ReportSearch,
-} from './ReportFrame';
-import { VehiclePicker } from './ReportEntityPicker';
-import { compactParams, istDayEnd, istDayStart, rangeLabel } from './reportFilters';
+import ReportFrame, { ReportFooter } from './ReportFrame';
+import ReportFilterBar from './ReportFilterBar';
+import { rangeLabel } from './reportFilters';
+import useReportFilterParams from './useReportFilterParams';
 import useReportPage from './useReportPage';
 
 const VehicleReport = () => {
-  const [range, setRange] = useState({ from: '', to: '' });
-  const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search.trim(), 300);
-  const [vehicleId, setVehicleId] = useState('all');
-
-  const filters = useMemo(
-    () =>
-      compactParams({
-        startDate: istDayStart(range.from),
-        endDate: istDayEnd(range.to),
-        vehicleId,
-        search: debouncedSearch,
-      }),
-    [range, vehicleId, debouncedSearch],
-  );
-  const filterKey = JSON.stringify(filters);
+  // Filters live in the URL (see <ReportFilterBar/>), so this report keeps no
+  // filter state and a filtered view can be shared as a link.
+  const { filters, range, requestParams, activeCount } = useReportFilterParams();
+  const filterKey = JSON.stringify(requestParams);
   const [page, setPage] = useReportPage(filterKey);
 
   const {
@@ -50,7 +32,10 @@ const VehicleReport = () => {
     refetch,
   } = useApi(
     (signal) =>
-      ReportsService.getVehicleReports({ ...filters, page, limit: FLEET_REPORT_PAGE_SIZE }, signal),
+      ReportsService.getVehicleReports(
+        { ...requestParams, page, limit: FLEET_REPORT_PAGE_SIZE },
+        signal,
+      ),
     [filterKey, page],
   );
 
@@ -144,9 +129,8 @@ const VehicleReport = () => {
     },
   ];
 
-  const activeFilters =
-    (range.from ? 1 : 0) + (range.to ? 1 : 0) + (vehicleId !== 'all' ? 1 : 0) + (search ? 1 : 0);
-  const selectedVehicleLabel = vehicleId !== 'all' && rows[0] ? rows[0].registrationNumber : null;
+  const selectedVehicleLabel =
+    filters.vehicle !== 'all' && rows[0] ? rows[0].registrationNumber : null;
 
   const kpis = summary
     ? [
@@ -179,21 +163,7 @@ const VehicleReport = () => {
     <ReportFrame
       title="Vehicle Report"
       subtitle="Fuel billed per vehicle, and mileage over completed full-tank cycles"
-      filters={
-        <>
-          <ReportDateRange from={range.from} to={range.to} onChange={setRange} />
-          <ReportSearch value={search} onChange={setSearch} placeholder="Search vehicle or model" />
-          <VehiclePicker value={vehicleId} onChange={setVehicleId} />
-          <ReportClear
-            active={activeFilters > 0}
-            onClear={() => {
-              setRange({ from: '', to: '' });
-              setSearch('');
-              setVehicleId('all');
-            }}
-          />
-        </>
-      }
+      filters={<ReportFilterBar searchPlaceholder="Search vehicle or model" showDriver={false} />}
       actions={
         <ExportButton
           rows={rows}
@@ -201,13 +171,14 @@ const VehicleReport = () => {
           filename="vehicle-report"
           buttonClass="rpt-btn"
           fetchAll={() =>
-            ReportsService.fetchAllReportRows(ReportsService.getVehicleReports, filters)
+            ReportsService.fetchAllReportRows(ReportsService.getVehicleReports, requestParams)
           }
           meta={{
             filters: exportFilterMeta({
-              ...range,
+              from: range.from,
+              to: range.to,
               entityLabel:
-                selectedVehicleLabel || (debouncedSearch ? `“${debouncedSearch}”` : null),
+                selectedVehicleLabel || (requestParams.search ? `“${requestParams.search}”` : null),
             }),
           }}
           disabled={!rows.length}
@@ -242,7 +213,7 @@ const VehicleReport = () => {
         onRetry={refetch}
         showing={rows.length}
         total={meta.total}
-        activeFilters={activeFilters}
+        activeFilters={activeCount}
         emptyTitle="No vehicle fuel data"
         emptyHint="Try widening the date range, clearing the search or choosing All vehicles."
       />
