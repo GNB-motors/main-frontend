@@ -15,7 +15,7 @@ export default function LiveTopbar({
     <div className="topbar">
       <div className="brandmark">
         <span className="dot-live">{renderIconSvg('radio', 16)}</span>
-        <strong>Live Tracking</strong>
+        <strong>Live</strong>
       </div>
 
       <span className="livepill">
