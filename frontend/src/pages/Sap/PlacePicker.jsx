@@ -54,7 +54,12 @@ export default function PlacePicker({ label = 'Search a place', disabled, onChoo
             type="button"
             className="sap-btn"
             disabled={disabled || search !== term || !siteId || q.loading || !!q.error}
-            onClick={() => onChoose(siteId)}
+            onClick={() =>
+              onChoose(
+                siteId,
+                (q.data?.records || []).find((r) => r._id === siteId),
+              )
+            }
           >
             Choose place
           </button>

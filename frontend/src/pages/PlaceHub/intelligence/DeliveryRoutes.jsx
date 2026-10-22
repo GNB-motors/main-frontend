@@ -7,7 +7,7 @@ import EnterprisePagination from '../../../components/ui/EnterprisePagination';
 import useApi from '../../../hooks/useApi';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
 import SapPill from '../../Sap/SapPill';
-import { compareSap, kmText } from '../../Sap/sapModel';
+import { BASIS_LABEL, kmText } from '../../Sap/sapModel';
 import { minutesLabel } from './model/unitLabels';
 import useReportPage from '../../Reports/reports/useReportPage';
 import DeliveryRouteDetail from './DeliveryRouteDetail';
@@ -86,13 +86,11 @@ export default function DeliveryRoutes({ version }) {
       label: 'SAP comparison',
       render: (r) => (
         <div className="sap-stack">
-          <span>{kmText(r.sap?.sapKm)}</span>
-          <SapPill
-            comparison={
-              r.sap?.oneWay ?? compareSap(r.km?.p50, r.sap?.sapKm, r.sap?.tolerancePct ?? 10)
-            }
-            tolerance={r.sap?.tolerancePct ?? 10}
-          />
+          <span>
+            {kmText(r.sap?.sapKm)}
+            {r.sap?.basis ? ` · ${BASIS_LABEL[r.sap.basis]?.toLowerCase()}` : ''}
+          </span>
+          {r.sap && <SapPill comparison={r.sap.comparison} tolerance={r.sap.tolerancePct ?? 10} />}
         </div>
       ),
     },

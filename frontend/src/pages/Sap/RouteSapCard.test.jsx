@@ -4,19 +4,13 @@ import { vi, it, expect, beforeEach } from 'vitest';
 import RouteSapCard from './RouteSapCard';
 import SapService from '../../services/SapService';
 import { getUserRole } from '../../utils/session';
-const flags = vi.hoisted(() => ({ routes: false }));
+const flags = vi.hoisted(() => ({ on: new Set(['sapV2']) }));
 vi.mock('../../contexts/FeatureFlagsContext', () => ({
-  useFeatureFlags: () => ({ isEnabled: () => flags.routes }),
+  useFeatureFlags: () => ({ isEnabled: (k) => flags.on.has(k) }),
 }));
 vi.mock('../../utils/session', () => ({ getUserRole: vi.fn() }));
 vi.mock('../../services/SapService', () => ({
-  default: {
-    trip: vi.fn(),
-    setRouteKm: vi.fn(),
-    removeRouteKm: vi.fn(),
-    alias: vi.fn(),
-    lanes: vi.fn(),
-  },
+  default: { trip: vi.fn(), setRoute: vi.fn(), removeRoute: vi.fn(), hint: vi.fn() },
 }));
 const trip = {
   _id: 't1',
@@ -24,110 +18,107 @@ const trip = {
   drop: { name: 'Town', orgSiteId: 'd1' },
   routeLeg: { _id: 'leg1', n: 4, km: { p50: 105 } },
 };
+const route = {
+  key: 'p1>d1',
+  fromSiteId: 'p1',
+  toSiteId: 'd1',
+  fromName: 'DALMIA OCL',
+  toName: 'AMTA',
+};
 const sap = {
   status: 'MATCHED',
   sapKm: 100,
-  values: [100, 200],
-  multipleSap: true,
-  source: 'SHEET',
-  fromLabel: 'OCL',
-  toLabel: 'TOWN',
+  basis: 'ONE_WAY',
+  source: 'MANUAL',
   tolerancePct: 10,
-  oneWay: { actualKm: 105, deltaKm: 5, deltaPct: 5, verdict: 'WITHIN' },
-  roundTrip: { sapKm: 200, actualKm: 240, deltaKm: 40, deltaPct: 20, verdict: 'OVER' },
+  comparison: { sapKm: 100, actualKm: 105, deltaKm: 5, deltaPct: 5, verdict: 'WITHIN' },
+  verdict: 'WITHIN',
 };
-const response = () => ({
+const response = (over = {}) => ({
   trip,
   sap,
-  candidates: { suggestions: [{ kind: 'DROP', label: 'TOWN', score: 0.9, sapValues: [100] }] },
-  routeKm: { _id: 'manual1' },
+  route,
+  routeSap: { _id: 'rs1', sapKm: 100, basis: 'ONE_WAY', source: 'MANUAL', note: 'rate card' },
+  history: [
+    { _id: 'h1', sapKm: 90, basis: 'ONE_WAY', source: 'IMPORTED', supersededAt: '2026-10-01' },
+  ],
+  ...over,
 });
-const mount = (t = trip) =>
+const mount = () =>
   render(
     <MemoryRouter>
-      <RouteSapCard trip={t} />
+      <RouteSapCard trip={trip} />
     </MemoryRouter>,
   );
 beforeEach(() => {
   vi.clearAllMocks();
-  flags.routes = false;
+  flags.on = new Set(['sapV2']);
   getUserRole.mockReturnValue('OWNER');
   SapService.trip.mockResolvedValue(response());
-  SapService.setRouteKm.mockResolvedValue({ ok: true });
-  SapService.alias.mockResolvedValue({ ok: true });
-  SapService.removeRouteKm.mockResolvedValue({ ok: true });
+  SapService.setRoute.mockResolvedValue({ _id: 'rs2' });
+  SapService.removeRoute.mockResolvedValue({ ok: true });
+  SapService.hint.mockResolvedValue({ shortestOneWayKm: 98, suggestion: { basis: 'ONE_WAY' } });
 });
-it('shows one-way and round-trip values and gates the usual-route link', async () => {
+
+it("shows the route's SAP compared on its basis, its source, and its history", async () => {
   mount();
-  await screen.findByText('Within 10%');
-  expect(screen.getAllByText('+20%')).toHaveLength(2);
-  expect(screen.getByText('200 km')).toBeTruthy();
-  expect(screen.queryByText(/Usual for this route/)).toBeNull();
+  const card = await screen.findByRole('region', { name: 'Route SAP' });
+  expect(await within(card).findByText('Within 10%')).toBeTruthy();
+  expect(within(card).getByText(/DALMIA OCL → AMTA/)).toBeTruthy();
+  expect(within(card).getByText(/Compared with loaded km/i)).toBeTruthy();
+  expect(within(card).getByText(/Entered by a person · rate card/)).toBeTruthy();
+  expect(within(card).getByText(/90 km one way · Imported from a sheet/)).toBeTruthy();
+  expect(within(card).queryByText(/Usual for this route/)).toBeNull();
 });
-it('saves manual SAP with site IDs and refetches the card', async () => {
-  flags.routes = true;
+
+it('is hidden from other roles and from orgs without SAP, and asks nothing of the API', () => {
+  getUserRole.mockReturnValue('DRIVER');
+  const { container, unmount } = mount();
+  expect(container.innerHTML).toBe('');
+  unmount();
+  getUserRole.mockReturnValue('OWNER');
+  flags.on = new Set();
+  expect(mount().container.innerHTML).toBe('');
+  expect(SapService.trip).not.toHaveBeenCalled();
+});
+
+it('sets the route SAP with the chosen basis and shows the road hint', async () => {
   mount();
-  fireEvent.click(await screen.findByRole('button', { name: 'Set SAP km' }));
-  const dialog = screen.getByRole('dialog');
-  fireEvent.change(within(dialog).getByLabelText('SAP km'), { target: { value: '123' } });
-  fireEvent.change(within(dialog).getByLabelText('Note (optional)'), {
-    target: { value: 'Agreed lane' },
-  });
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Save SAP' }));
+  fireEvent.click(await screen.findByRole('button', { name: /Change SAP/ }));
+  const km = await screen.findByLabelText('SAP km');
+  expect(km.value).toBe('100');
+  fireEvent.change(km, { target: { value: '200' } });
+  fireEvent.click(screen.getByLabelText(/Round trip/));
+  expect(await screen.findByText(/Shortest truck road: 98 km one way/)).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Save SAP' }));
   await waitFor(() =>
-    expect(SapService.setRouteKm).toHaveBeenCalledWith(
-      { fromSiteId: 'p1', toSiteId: 'd1', sapKm: 123, note: 'Agreed lane' },
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    ),
-  );
-  await waitFor(() => expect(SapService.trip).toHaveBeenCalledTimes(2));
-  expect(screen.getByRole('link', { name: /Usual for this route/ }).getAttribute('href')).toBe(
-    '/place-hub?tab=deliveries&leg=leg1',
-  );
-});
-it('rejects a suggestion and removes a manual override', async () => {
-  mount();
-  fireEvent.click(await screen.findByRole('button', { name: 'Not this one' }));
-  await waitFor(() =>
-    expect(SapService.alias).toHaveBeenCalledWith(
-      { kind: 'DROP', label: 'TOWN', orgSiteId: 'd1', status: 'REJECTED' },
+    expect(SapService.setRoute).toHaveBeenCalledWith(
+      { fromSiteId: 'p1', toSiteId: 'd1', sapKm: 200, basis: 'ROUND_TRIP', note: 'rate card' },
       expect.anything(),
     ),
   );
-  fireEvent.click(screen.getByRole('button', { name: 'Remove manual SAP' }));
-  await waitFor(() =>
-    expect(SapService.removeRouteKm).toHaveBeenCalledWith('manual1', expect.anything()),
-  );
-});
-it('shows snapshots for readers without protected requests or edit controls', () => {
-  getUserRole.mockReturnValue('USER');
-  mount({ ...trip, sap });
-  expect(screen.getByText('Within 10%')).toBeTruthy();
-  expect(SapService.trip).not.toHaveBeenCalled();
-  expect(screen.queryByRole('button', { name: 'Set SAP km' })).toBeNull();
-});
-it('disables manual SAP when the trip has no saved drop', async () => {
-  SapService.trip.mockResolvedValue({ ...response(), trip: { ...trip, drop: null } });
-  mount();
-  await screen.findByText('Save a drop place before setting SAP for this route.');
-  expect(screen.getByRole('button', { name: 'Set SAP km' })).toBeDisabled();
-});
-it('offers retry when the new endpoint is not deployed', async () => {
-  SapService.trip.mockRejectedValueOnce({ status: 404 });
-  mount();
-  fireEvent.click(await screen.findByRole('button', { name: 'Try again' }));
-  expect(await screen.findByText('Within 10%')).toBeTruthy();
-});
-it('refreshes SAP when the drop is corrected on the same trip', async () => {
-  const view = mount();
-  await screen.findByText('Within 10%');
-  const corrected = { ...trip, drop: { orgSiteId: 'd2', name: 'Corrected town' } };
-  SapService.trip.mockResolvedValue({ ...response(), trip: corrected });
-  view.rerender(
-    <MemoryRouter>
-      <RouteSapCard trip={corrected} />
-    </MemoryRouter>,
-  );
   await waitFor(() => expect(SapService.trip).toHaveBeenCalledTimes(2));
-  expect(await screen.findByText('Plant → Corrected town')).toBeTruthy();
+});
+
+it('removes the route SAP', async () => {
+  mount();
+  fireEvent.click(await screen.findByRole('button', { name: 'Remove route SAP' }));
+  await waitFor(() =>
+    expect(SapService.removeRoute).toHaveBeenCalledWith('rs1', expect.anything()),
+  );
+});
+
+it('a trip whose ends are not places explains why, and offers no SAP to set', async () => {
+  SapService.trip.mockResolvedValue(
+    response({ sap: { status: 'NO_PLACE' }, route: null, routeSap: null, history: [] }),
+  );
+  mount();
+  expect(await screen.findByText('Plant or drop is not a saved place')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Set SAP/ })).toBeNull();
+});
+
+it('links to the usual route when delivery routes are on', async () => {
+  flags.on = new Set(['sapV2', 'routesV2']);
+  mount();
+  expect(await screen.findByText(/Usual for this route: 105 km \(4 trips\)/)).toBeTruthy();
 });

@@ -1,68 +1,85 @@
 import { useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import { Upload, FileSpreadsheet, Info } from 'lucide-react';
 import useApi from '../../hooks/useApi';
 import useMutation from '../../hooks/useMutation';
 import SapService from '../../services/SapService';
-import SapRequestState from './SapRequestState';
-import { canEditSap, sheetCsv } from './sapModel';
-import { getUserRole } from '../../utils/session';
-import { Upload, FileSpreadsheet, Info } from 'lucide-react';
 import PageShell from '../../components/ui/PageShell';
 import { Button } from '../../components/ui/button';
+import SapRequestState from './SapRequestState';
 import SapSettingsForm from './SapSettingsForm';
 import SapImportPreview from './SapImportPreview';
+import { canEditSap, sheetCsv } from './sapModel';
+import { entriesToApply, initialChoices } from './sapImportModel';
+import { getUserRole } from '../../utils/session';
 import './Sap.css';
+
+/**
+ * SAP settings, and the sheet import. A sheet never becomes SAP by itself: it is read into
+ * proposed route SAPs, the person checks the places and values, and only what they apply is saved.
+ */
 export default function SapSettings() {
   const q = useApi((signal) => SapService.settings({ signal }), []);
   const canEdit = canEditSap(getUserRole());
-  const [csv, setCsv] = useState(null);
-  const [preview, setPreview] = useState(null);
+  // { preview, choices } once a sheet has been read; null before.
+  const [draft, setDraft] = useState(null);
   const [reading, setReading] = useState(false);
   const [fileName, setFileName] = useState('');
   const sequence = useRef(0);
   const fileInput = useRef(null);
-  const m = useMutation(SapService.importSheet);
-  const busy = reading || m.loading;
+  const preview = useMutation(SapService.importPreview);
+  const apply = useMutation(SapService.importApply);
+  const busy = reading || preview.loading || apply.loading;
+
+  const propose = async (body) => {
+    try {
+      const result = await preview.mutate(body);
+      setDraft({ preview: result, choices: initialChoices(result.proposals) });
+    } catch (err) {
+      setDraft(null);
+      toast.error(err?.message || 'Could not read the sheet');
+    }
+  };
   const choose = async (file) => {
     const seq = ++sequence.current;
-    setCsv(null);
-    setPreview(null);
+    setDraft(null);
     setFileName(file?.name || '');
     if (!file) return;
     setReading(true);
     try {
-      const text = await sheetCsv(file);
-      if (text.length > 900000)
+      const csv = await sheetCsv(file);
+      if (csv.length > 900000)
         throw new Error('The sheet is too large. Choose a CSV under 900,000 characters.');
-      if (seq === sequence.current) setCsv(text);
+      if (seq === sequence.current) await propose({ csv });
     } catch (err) {
       toast.error(err?.message || 'Could not read sheet');
     } finally {
       if (seq === sequence.current) setReading(false);
     }
   };
-  const upload = async (dryRun) => {
-    if (!canEdit || busy || !csv || (!dryRun && !preview)) return;
+  const entries = draft ? entriesToApply(draft.preview.proposals, draft.choices) : [];
+  const save = async () => {
+    if (!entries.length || busy) return;
     try {
-      const result = await m.mutate({ csv, dryRun });
-      if (dryRun) setPreview(result);
-      else {
-        toast.success('SAP updated — trips refresh shortly');
-        setCsv(null);
-        setPreview(null);
-        setFileName('');
-        if (fileInput.current) fileInput.current.value = '';
-      }
+      const res = await apply.mutate({ entries });
+      toast.success(
+        `${res.created} route SAPs saved${res.unchanged ? `, ${res.unchanged} already set` : ''} — trips refresh shortly`,
+      );
+      setDraft(null);
+      setFileName('');
+      if (fileInput.current) fileInput.current.value = '';
     } catch (err) {
-      setPreview(null);
-      toast.error(err?.message || 'Could not import sheet');
+      toast.error(err?.message || 'Could not save the route SAPs');
     }
   };
+  const change = (ref, patch) =>
+    setDraft((d) => ({ ...d, choices: { ...d.choices, [ref]: { ...d.choices[ref], ...patch } } }));
+
   return (
     <PageShell
       className="sap-panel sap-page"
       title="SAP settings"
-      subtitle="Manage your distance reference, comparison rules and sheet imports."
+      subtitle="How trips are compared with their route's SAP, and importing SAP from a sheet."
     >
       <div className="sap-settings-grid">
         <SapRequestState query={q}>
@@ -80,14 +97,17 @@ export default function SapSettings() {
             <div className="sap-card-heading">
               <FileSpreadsheet aria-hidden="true" />
               <div>
-                <h2>Upload SAP sheet</h2>
-                <p>Choose a sheet, review the changes, then apply the import.</p>
+                <h2>Import SAP from a sheet</h2>
+                <p>
+                  Each sheet lane becomes a proposed route SAP. Check its places and values, then
+                  save the ones you want.
+                </p>
               </div>
             </div>
             <label className="sap-upload-zone">
               <Upload size={26} aria-hidden="true" />
               <strong>{fileName || 'Choose a CSV or Excel file'}</strong>
-              <span>Headers: FROM, TO, SAP · CSV or XLSX</span>
+              <span>Headers: FROM, TO, SAP · CSV or XLSX (first sheet)</span>
               <input
                 type="file"
                 aria-label="Sheet file"
@@ -97,42 +117,40 @@ export default function SapSettings() {
                 onChange={(e) => choose(e.target.files?.[0])}
               />
             </label>
-            <p className="sap-muted">
-              Only the first worksheet is imported. Upload a new file to replace the current
-              preview.
-            </p>
-            {reading && (
+            <Button
+              variant="outline"
+              type="button"
+              disabled={busy}
+              onClick={() => propose({ fromStoredSheet: true })}
+            >
+              Use the lane sheet already uploaded
+            </Button>
+            {busy && !draft && (
               <p role="status" className="sap-muted">
-                Reading your sheet…
+                Reading the sheet…
               </p>
             )}
-            {preview && (
+            {draft && (
               <>
-                <SapImportPreview result={preview} />
-                <div className="sap-notice sap-notice--warning">
+                <SapImportPreview
+                  preview={draft.preview}
+                  choices={draft.choices}
+                  onChange={change}
+                />
+                <div className="sap-notice">
                   <Info size={16} aria-hidden="true" />
                   <span>
-                    Confirming applies this sheet, including replaced lanes and lanes removed from
-                    the sheet. Review the counts above before importing.
+                    Saving replaces the SAP of each selected route. Earlier values stay in its
+                    history.
                   </span>
+                </div>
+                <div className="sap-card-footer">
+                  <Button type="button" disabled={busy || !entries.length} onClick={save}>
+                    {apply.loading ? 'Saving…' : `Save ${entries.length} route SAPs`}
+                  </Button>
                 </div>
               </>
             )}
-            <div className="sap-card-footer">
-              <Button
-                variant="outline"
-                type="button"
-                disabled={busy || !csv}
-                onClick={() => upload(true)}
-              >
-                {busy ? 'Working…' : preview ? 'Refresh preview' : 'Preview import'}
-              </Button>
-              {preview && (
-                <Button type="button" disabled={busy || !csv} onClick={() => upload(false)}>
-                  Confirm import
-                </Button>
-              )}
-            </div>
           </section>
         )}
       </div>

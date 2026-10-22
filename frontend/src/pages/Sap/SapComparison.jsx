@@ -1,28 +1,29 @@
 import SapPill from './SapPill';
-import { kmText, signed } from './sapModel';
-export default function SapComparison({ label, reference, comparison, tolerance }) {
+import { BASIS_LABEL, COMPARED_WITH, kmText, signed } from './sapModel';
+/** A route SAP against the km it pays for: loaded km (one way) or loaded + return (round trip). */
+export default function SapComparison({ basis = 'ONE_WAY', sapKm, comparison, tolerance }) {
   return (
-    <section className="sap-comparison" aria-label={`${label} SAP comparison`}>
+    <section className="sap-comparison" aria-label="SAP comparison">
       <div className="sap-comparison-title">
         <div>
-          <h3>{label}</h3>
+          <h3>{BASIS_LABEL[basis] || BASIS_LABEL.ONE_WAY}</h3>
           <span className="sap-muted">
-            {label === 'One-way' ? 'Loaded distance' : 'Loaded + return distance'}
+            Compared with {COMPARED_WITH[basis] || COMPARED_WITH.ONE_WAY}
           </span>
         </div>
         <SapPill comparison={comparison} tolerance={tolerance} />
       </div>
       <dl className="sap-comparison-metrics">
         <div>
-          <dt>SAP reference</dt>
-          <dd>{kmText(reference)}</dd>
+          <dt>SAP</dt>
+          <dd>{kmText(sapKm)}</dd>
         </div>
         <div>
           <dt>Actual GPS</dt>
           <dd>{kmText(comparison?.actualKm)}</dd>
         </div>
         <div>
-          <dt>Difference (km)</dt>
+          <dt>Difference</dt>
           <dd>
             {signed(comparison?.deltaKm)}
             <small>{signed(comparison?.deltaPct, '%')}</small>

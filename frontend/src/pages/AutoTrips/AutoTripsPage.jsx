@@ -10,6 +10,9 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import SapPill from '../Sap/SapPill';
+import { BASIS_LABEL, canEditSap } from '../Sap/sapModel';
+import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
+import { getUserRole } from '../../utils/session';
 import { FLAG_LABEL } from './autoTripPlaces';
 import DataTable from '../../components/ui/DataTable';
 import EnterprisePagination from '../../components/ui/EnterprisePagination';
@@ -99,89 +102,93 @@ export default function AutoTripsPage() {
   const countFor = (key) => (key === '' ? allCount : (tabCounts[key] ?? 0));
   const tabs = TABS.filter((t) => !t.hideWhenEmpty || countFor(t.key) > 0 || statusTab === t.key);
 
+  const { isEnabled } = useFeatureFlags();
+  // SAP is contract data: owners and managers of an org with SAP only.
+  const showSap = canEditSap(getUserRole()) && isEnabled('sapV2');
   const columns = useMemo(
-    () => [
-      {
-        key: 'registrationNumber',
-        width: 115,
-        label: 'Truck',
-        render: (r) => <span className="atx-plate">{r.registrationNumber || '—'}</span>,
-      },
-      {
-        key: 'route',
-        width: 230,
-        label: 'Route',
-        render: (r) => (
-          <span className="atx-route-cell">
-            <strong>{r.pickup?.name || '—'}</strong>
-            <span>
-              →{' '}
-              {notReachedYet(r) ? (
-                <span className="atx-muted">not reached yet</span>
+    () =>
+      [
+        {
+          key: 'registrationNumber',
+          width: 115,
+          label: 'Truck',
+          render: (r) => <span className="atx-plate">{r.registrationNumber || '—'}</span>,
+        },
+        {
+          key: 'route',
+          width: 230,
+          label: 'Route',
+          render: (r) => (
+            <span className="atx-route-cell">
+              <strong>{r.pickup?.name || '—'}</strong>
+              <span>
+                →{' '}
+                {notReachedYet(r) ? (
+                  <span className="atx-muted">not reached yet</span>
+                ) : (
+                  dropLabel(r.drop)
+                )}
+              </span>
+            </span>
+          ),
+        },
+        {
+          key: 'departedAt',
+          width: 125,
+          label: 'Left plant',
+          render: (r) => fmtDayTime(r.pickup?.departedAt, { padDay: true }),
+        },
+        {
+          key: 'laden',
+          label: 'Loaded km',
+          align: 'right',
+          render: (r) =>
+            r.km?.laden == null ? <span className="atx-muted">—</span> : fmtKm(r.km.laden),
+        },
+        {
+          key: 'sap',
+          label: 'SAP km',
+          render: (r) => (
+            <div className="sap-stack">
+              <span title={r.sap?.basis ? BASIS_LABEL[r.sap.basis] : undefined}>
+                {r.sap?.status === 'MATCHED' ? `${r.sap.sapKm} km` : '—'}
+              </span>
+              {r.sap ? (
+                <SapPill sap={r.sap} />
               ) : (
-                dropLabel(r.drop)
+                <span className="sap-muted">Not computed yet</span>
               )}
-            </span>
-          </span>
-        ),
-      },
-      {
-        key: 'departedAt',
-        width: 125,
-        label: 'Left plant',
-        render: (r) => fmtDayTime(r.pickup?.departedAt, { padDay: true }),
-      },
-      {
-        key: 'laden',
-        label: 'Loaded km',
-        align: 'right',
-        render: (r) =>
-          r.km?.laden == null ? <span className="atx-muted">—</span> : fmtKm(r.km.laden),
-      },
-      {
-        key: 'sap',
-        label: 'SAP km',
-        render: (r) => (
-          <div className="sap-stack">
-            <span
-              title={
-                r.sap?.multipleSap ? `Sheet values: ${r.sap.values?.join(' / ')} km` : undefined
-              }
+            </div>
+          ),
+        },
+        {
+          key: 'flags',
+          width: 190,
+          label: 'Checks',
+          render: (r) =>
+            (r.flags || []).map((f) => (
+              <span className="atx-chip" key={f}>
+                {FLAG_LABEL[f] || f}
+              </span>
+            )),
+        },
+        { key: 'status', label: 'Status', render: (r) => <StatusPill status={r.status} /> },
+        {
+          key: 'actions',
+          label: '',
+          align: 'right',
+          render: (r) => (
+            <Link
+              to={`/auto-trips/${r._id}?play=1`}
+              className="atx-replay-link"
+              onClick={(e) => e.stopPropagation()}
             >
-              {r.sap?.status === 'MATCHED' ? `${r.sap.sapKm} km` : '—'}
-            </span>
-            {r.sap ? <SapPill sap={r.sap} /> : <span className="sap-muted">Not computed yet</span>}
-          </div>
-        ),
-      },
-      {
-        key: 'flags',
-        width: 190,
-        label: 'Checks',
-        render: (r) =>
-          (r.flags || []).map((f) => (
-            <span className="atx-chip" key={f}>
-              {FLAG_LABEL[f] || f}
-            </span>
-          )),
-      },
-      { key: 'status', label: 'Status', render: (r) => <StatusPill status={r.status} /> },
-      {
-        key: 'actions',
-        label: '',
-        align: 'right',
-        render: (r) => (
-          <Link
-            to={`/auto-trips/${r._id}?play=1`}
-            className="atx-replay-link"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Play size={12} aria-hidden="true" /> Replay
-          </Link>
-        ),
-      },
-    ],
-    [],
+              <Play size={12} aria-hidden="true" /> Replay
+            </Link>
+          ),
+        },
+      ].filter((c) => showSap || c.key !== 'sap'),
+    [showSap],
   );
 
   const changeTab = (key) => {
@@ -260,27 +267,29 @@ export default function AutoTripsPage() {
             ))}
           </div>
           <div className="atx-filter-row">
-            <label className="sap-row">
-              SAP
-              <select
-                className="sap-filter"
-                aria-label="SAP"
-                value={searchParams.get('sapVerdict') || ''}
-                onChange={(e) => {
-                  const next = new URLSearchParams(searchParams);
-                  if (e.target.value) next.set('sapVerdict', e.target.value);
-                  else next.delete('sapVerdict');
-                  setSearchParams(next, { replace: true });
-                  setPage(1);
-                }}
-              >
-                <option value="">All</option>
-                <option value="OVER">Over SAP</option>
-                <option value="UNDER">Under SAP</option>
-                <option value="WITHIN">Within</option>
-                <option value="NO_SAP">No SAP</option>
-              </select>
-            </label>
+            {showSap && (
+              <label className="sap-row">
+                SAP
+                <select
+                  className="sap-filter"
+                  aria-label="SAP"
+                  value={searchParams.get('sapVerdict') || ''}
+                  onChange={(e) => {
+                    const next = new URLSearchParams(searchParams);
+                    if (e.target.value) next.set('sapVerdict', e.target.value);
+                    else next.delete('sapVerdict');
+                    setSearchParams(next, { replace: true });
+                    setPage(1);
+                  }}
+                >
+                  <option value="">All</option>
+                  <option value="OVER">Over SAP</option>
+                  <option value="UNDER">Under SAP</option>
+                  <option value="WITHIN">Within</option>
+                  <option value="NO_SAP">No SAP</option>
+                </select>
+              </label>
+            )}
             <TripRangePicker value={range} onChange={changeRange} />
           </div>
         </div>

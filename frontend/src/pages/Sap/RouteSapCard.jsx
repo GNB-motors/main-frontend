@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Route, Link2, Pencil, ArrowUpRight } from 'lucide-react';
+import { Route, Pencil, ArrowUpRight, History } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Button } from '../../components/ui/button';
 import useApi from '../../hooks/useApi';
@@ -11,49 +11,42 @@ import SapService from '../../services/SapService';
 import SapPill from './SapPill';
 import SapComparison from './SapComparison';
 import SapRequestState from './SapRequestState';
-import SapLabelPicker from './SapLabelPicker';
 import SetSapDialog from './SetSapDialog';
-import { canEditSap, kmText } from './sapModel';
-import { uniqueSuggestions } from './sapReviewModel';
+import { BASIS_LABEL, SOURCE_LABEL, canEditSap, kmText } from './sapModel';
+
+/**
+ * The trip's route and that route's SAP. SAP belongs to the route (pickup place → drop place),
+ * so setting it here sets it for every trip on the route. Owners and managers of an org with
+ * SAP (`sapV2`) only.
+ */
 export default function RouteSapCard({ trip }) {
-  const canEdit = canEditSap(getUserRole());
+  const { isEnabled } = useFeatureFlags();
+  const visible = canEditSap(getUserRole()) && isEnabled('sapV2');
   const q = useApi(
     (signal) => SapService.trip(trip._id, { signal }),
-    [
-      trip._id,
-      trip.updatedAt,
-      trip.drop?.orgSiteId,
-      trip.drop?.arrivedAt,
-      trip.km?.laden,
-      trip.km?.return,
-    ],
-    { enabled: canEdit },
+    [trip._id, trip.updatedAt, trip.drop?.orgSiteId, trip.km?.laden, trip.km?.return],
+    { enabled: visible },
   );
-  const viewQuery = canEdit ? q : { data: { trip, sap: trip.sap } };
-  const { isEnabled } = useFeatureFlags();
-  const mutation = useMutation(({ action, body }, options) => SapService[action](body, options));
+  const remove = useMutation(SapService.removeRoute);
   const [editing, setEditing] = useState(false);
-  const current = q.data?.trip || trip;
-  const sap = q.data?.sap ?? trip.sap;
+  if (!visible) return null;
+
+  const route = q.data?.route;
+  const sap = q.data?.sap;
+  const entry = q.data?.routeSap;
   const saved = () => {
     q.refetch();
-    toast.success('SAP updated — trips refresh shortly');
+    toast.success('Route SAP saved — its trips refresh shortly');
   };
-  const act = async (action, body) => {
+  const removeSap = async () => {
     try {
-      await mutation.mutate({ action, body });
-      saved();
+      await remove.mutate(entry._id);
+      q.refetch();
+      toast.success('Route SAP removed');
     } catch (e) {
-      toast.error(e?.message || 'Could not update SAP');
+      toast.error(e?.message || 'Could not remove SAP');
     }
   };
-  const alias = (kind, label, status = 'CONFIRMED') =>
-    act('alias', {
-      kind,
-      label,
-      orgSiteId: (kind === 'PLANT' ? current.pickup : current.drop)?.orgSiteId,
-      status,
-    });
   return (
     <section className="atx-card sap-panel sap-route-card atx-span-2" aria-label="Route SAP">
       <div className="sap-route-header">
@@ -63,130 +56,75 @@ export default function RouteSapCard({ trip }) {
             Route SAP
           </h2>
           <p className="sap-muted">
-            {current.pickup?.name || 'Plant'} → {current.drop?.name || 'Drop not known'}
+            {route?.fromName || trip.pickup?.name || 'Plant'} →{' '}
+            {route?.toName || trip.drop?.name || 'Drop not known'}
           </p>
         </div>
-        {canEdit && (
-          <div className="sap-row">
-            <Link className="sap-link" to="/reports?report=laneKm&sapTab=review">
-              <Link2 size={14} />
-              Link SAP sheet to places
-            </Link>
+        <div className="sap-row">
+          <Link className="sap-link" to="/reports?report=laneKm">
+            All SAP routes
+            <ArrowUpRight size={14} />
+          </Link>
+          {route && (
             <Button
               variant="outline"
               size="sm"
-              disabled={
-                !q.data ||
-                !current.pickup?.orgSiteId ||
-                !current.drop?.orgSiteId ||
-                mutation.loading
-              }
+              disabled={remove.loading}
               onClick={() => setEditing(true)}
             >
               <Pencil size={13} />
-              Set SAP km
+              {entry ? 'Change SAP' : 'Set SAP'}
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-      <SapRequestState query={viewQuery}>
+      <SapRequestState query={q}>
         <div className="sap-stack">
-          <div className="sap-route-labels">
-            <strong>
-              {sap?.fromLabel || current.pickup?.name || 'Plant'} →{' '}
-              {sap?.toLabel || current.drop?.name || 'Drop not known'}
-            </strong>
-            {sap?.status === 'MATCHED' && (
-              <span className="sap-source">
-                {sap.source === 'MANUAL' ? 'Manual reference' : 'SAP sheet'}
-              </span>
-            )}
-          </div>
           {sap?.status === 'MATCHED' ? (
             <>
-              <div className="sap-comparison-grid">
-                <SapComparison
-                  label="One-way"
-                  reference={sap.sapKm}
-                  comparison={sap.oneWay}
-                  tolerance={sap.tolerancePct}
-                />
-                <SapComparison
-                  label="Round trip"
-                  reference={sap.roundTrip?.sapKm}
-                  comparison={sap.roundTrip}
-                  tolerance={sap.tolerancePct}
-                />
-              </div>
+              <SapComparison
+                basis={sap.basis}
+                sapKm={sap.sapKm}
+                comparison={sap.comparison}
+                tolerance={sap.tolerancePct}
+              />
               <p className="sap-muted">
-                Tolerance: {sap.tolerancePct ?? 10}%
-                {sap.multipleSap
-                  ? ` · Sheet values: ${(sap.values || []).join(' / ')} km. The selected reference is ${sap.sapKm} km.`
-                  : ''}
+                {kmText(entry?.sapKm ?? sap.sapKm)} {BASIS_LABEL[sap.basis]?.toLowerCase()} ·{' '}
+                {SOURCE_LABEL[sap.source] || SOURCE_LABEL.MANUAL}
+                {entry?.note ? ` · ${entry.note}` : ''} · Tolerance {sap.tolerancePct ?? 10}%
               </p>
             </>
           ) : (
             <div className="sap-notice">
               {sap ? <SapPill sap={sap} /> : <span>SAP not computed yet</span>}
+              {!route && (
+                <span className="sap-muted">
+                  Save the plant and drop as places to set SAP for this route.
+                </span>
+              )}
             </div>
           )}
-          {canEdit && (
-            <>
-              {!current.drop?.orgSiteId && (
-                <p className="sap-muted">Save a drop place before setting SAP for this route.</p>
-              )}
-              <div className="sap-link-grid">
-                {['DROP', 'PLANT'].map((kind) => {
-                  const site = kind === 'DROP' ? current.drop : current.pickup;
-                  return site?.orgSiteId ? (
-                    <details className="sap-disclosure" key={kind}>
-                      <summary>This {kind.toLowerCase()} is … in the SAP sheet</summary>
-                      <div className="sap-stack">
-                        {uniqueSuggestions(
-                          (q.data?.candidates?.suggestions || []).filter((s) => s.kind === kind),
-                          'DROP',
-                        ).map((s) => (
-                          <div className="sap-suggestion" key={s.label}>
-                            <strong>{s.label}</strong>
-                            <span className="sap-muted">
-                              {Math.round(s.score * 100)}% match · {(s.sapValues || []).join(' / ')}{' '}
-                              km
-                            </span>
-                            <div className="sap-row">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={mutation.loading}
-                                onClick={() => alias(kind, s.label)}
-                              >
-                                Confirm
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                disabled={mutation.loading}
-                                onClick={() => alias(kind, s.label, 'REJECTED')}
-                              >
-                                Not this one
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                        <SapLabelPicker
-                          kind={kind}
-                          disabled={mutation.loading}
-                          onChoose={(label) => alias(kind, label)}
-                        />
-                      </div>
-                    </details>
-                  ) : null;
-                })}
-              </div>
-            </>
+          {(q.data?.history || []).length > 0 && (
+            <details className="sap-disclosure">
+              <summary>
+                <History size={13} aria-hidden="true" /> Earlier SAP on this route
+              </summary>
+              <ul>
+                {q.data.history.map((h) => (
+                  <li key={h._id}>
+                    {kmText(h.sapKm)} {BASIS_LABEL[h.basis]?.toLowerCase()} ·{' '}
+                    {SOURCE_LABEL[h.source] || SOURCE_LABEL.MANUAL}
+                    {h.supersededAt
+                      ? ` · replaced ${new Date(h.supersededAt).toLocaleDateString('en-IN')}`
+                      : ''}
+                  </li>
+                ))}
+              </ul>
+            </details>
           )}
         </div>
       </SapRequestState>
-      {(q.data?.routeKm || (isEnabled('routesV2') && trip.routeLeg)) && (
+      {(entry || (isEnabled('routesV2') && trip.routeLeg)) && (
         <div className="sap-route-footer">
           {isEnabled('routesV2') && trip.routeLeg && (
             <Link className="sap-link" to={`/place-hub?tab=deliveries&leg=${trip.routeLeg._id}`}>
@@ -194,19 +132,22 @@ export default function RouteSapCard({ trip }) {
               <ArrowUpRight size={14} />
             </Link>
           )}
-          {canEdit && q.data?.routeKm && (
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={mutation.loading}
-              onClick={() => act('removeRouteKm', q.data.routeKm._id)}
-            >
-              Remove manual SAP
+          {entry && (
+            <Button variant="ghost" size="sm" disabled={remove.loading} onClick={removeSap}>
+              Remove route SAP
             </Button>
           )}
         </div>
       )}
-      {editing && <SetSapDialog trip={current} onClose={() => setEditing(false)} onSaved={saved} />}
+      {editing && route && (
+        <SetSapDialog
+          from={{ id: route.fromSiteId, name: route.fromName || trip.pickup?.name }}
+          to={{ id: route.toSiteId, name: route.toName || trip.drop?.name }}
+          current={entry}
+          onClose={() => setEditing(false)}
+          onSaved={saved}
+        />
+      )}
     </section>
   );
 }

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import LaneKmReport from './LaneKmReport.jsx';
+import LaneKmReport from './LaneKmTable.jsx';
 
 vi.mock('../../../utils/axiosConfig', () => ({
   default: {
@@ -57,11 +56,7 @@ vi.mock('../../../utils/axiosConfig', () => ({
 
 describe('LaneKmReport', () => {
   it('shows each lane against SAP with the totals as KPI cards', async () => {
-    render(
-      <MemoryRouter>
-        <LaneKmReport />
-      </MemoryRouter>,
-    );
+    render(<LaneKmReport />);
     expect(await screen.findByText('OCL → TARAKESHWAR')).toBeTruthy();
     const table = screen.getByRole('table');
     expect(within(table).getByText('Runs over SAP')).toBeTruthy();
@@ -73,11 +68,7 @@ describe('LaneKmReport', () => {
   });
 
   it('filters by verdict, including verdicts with no lanes', async () => {
-    render(
-      <MemoryRouter>
-        <LaneKmReport />
-      </MemoryRouter>,
-    );
+    render(<LaneKmReport />);
     await screen.findByText('OCL → TARAKESHWAR');
     fireEvent.click(screen.getByRole('button', { name: 'Verdict: All lanes' }));
     const options = within(screen.getByRole('listbox', { name: 'Verdict' }))
@@ -112,11 +103,7 @@ describe('LaneKmReport', () => {
   });
 
   it('searches plant or town, ignoring case', async () => {
-    render(
-      <MemoryRouter>
-        <LaneKmReport />
-      </MemoryRouter>,
-    );
+    render(<LaneKmReport />);
     await screen.findByText('OCL → TARAKESHWAR');
     fireEvent.change(screen.getByLabelText('Search plant or town'), {
       target: { value: 'farakka' },

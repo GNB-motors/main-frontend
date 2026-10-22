@@ -21,7 +21,12 @@ const leg = {
   n: 4,
   trucks: 2,
   km: { p50: 105, p90: 115 },
-  sap: { sapKm: 100 },
+  sap: {
+    sapKm: 100,
+    basis: 'ONE_WAY',
+    tolerancePct: 10,
+    comparison: { sapKm: 100, actualKm: 105, deltaPct: 5, verdict: 'WITHIN' },
+  },
   review: 'NEEDS_REVIEW',
 };
 beforeEach(() => {
@@ -78,13 +83,18 @@ it('opens linked leg samples and submits review with an optional note', async ()
     ),
   );
 });
-it('uses the server SAP verdict at a decimal tolerance boundary', async () => {
+it("uses the route's own SAP verdict, at a decimal tolerance boundary too", async () => {
   PlaceIntelligenceService.listDeliveryLegs.mockResolvedValue({
     rows: [
       {
         ...leg,
         km: { p50: 110.00000000000001 },
-        sap: { sapKm: 100, tolerancePct: 10, oneWay: { verdict: 'WITHIN', actualKm: 110 } },
+        sap: {
+          sapKm: 100,
+          basis: 'ONE_WAY',
+          tolerancePct: 10,
+          comparison: { verdict: 'WITHIN', actualKm: 110 },
+        },
       },
     ],
     total: 1,
