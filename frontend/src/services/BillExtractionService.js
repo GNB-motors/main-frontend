@@ -2,7 +2,7 @@ import apiClient from '../utils/axiosConfig';
 import ApiError from '../errors/ApiError';
 
 /**
- * ServiceBillService — workshop bills read by OCR.
+ * BillExtractionService — workshop bills read by OCR.
  *
  * Every value these endpoints return is a CLAIM: it comes off a photo and has a
  * confidence attached. Nothing here applies anything to a maintenance record —
@@ -81,7 +81,7 @@ const setBillSettings = async (payload) => {
   }
 };
 
-const ServiceBillService = {
+const BillExtractionService = {
   scanBill,
   listBills,
   getBill,
@@ -90,4 +90,4 @@ const ServiceBillService = {
   setBillSettings,
 };
 
-export default ServiceBillService;
+export default BillExtractionService;
