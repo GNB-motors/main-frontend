@@ -94,7 +94,7 @@ export default function EnterprisePagination({
       </div>
 
       {/* Right: Navigation Controls & Direct Jump */}
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
         {/* Direct Jump Input */}
         <form onSubmit={handleJumpSubmit} className="flex items-center gap-1 mr-2">
           <span>Page</span>
@@ -133,7 +133,7 @@ export default function EnterprisePagination({
         </button>
 
         {/* Page Buttons */}
-        <div className="flex items-center gap-1">
+        <div className="hidden items-center gap-1 sm:flex">
           {pages.map((p, idx) => {
             if (p === '...') {
               return (
@@ -149,6 +149,7 @@ export default function EnterprisePagination({
             return (
               <button
                 key={`page-${p}`}
+                aria-current={isActive ? 'page' : undefined}
                 type="button"
                 onClick={() => onPageChange?.(p)}
                 className={`min-w-7 h-7 px-1.5 text-xs font-mono font-medium rounded transition select-none ${

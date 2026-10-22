@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Info } from 'lucide-react';
+import { Button } from '../../components/ui/button';
 import { toast } from 'react-toastify';
 import {
   Dialog,
@@ -46,8 +48,8 @@ export default function SetSapDialog({ trip, onClose, onSaved }) {
             {trip.pickup?.name || 'Plant'} → {trip.drop?.name || 'Drop'}
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={submit}>
-          <div className="sap-panel">
+        <form className="sap-panel" onSubmit={submit}>
+          <div className="sap-dialog-body">
             <label>
               SAP km
               <input
@@ -61,6 +63,9 @@ export default function SetSapDialog({ trip, onClose, onSaved }) {
                 onChange={(e) => setKm(e.target.value)}
               />
             </label>
+            <p className="sap-muted">
+              Enter the one-way reference distance for this plant and drop.
+            </p>
             <label>
               Note (optional)
               <textarea
@@ -70,18 +75,18 @@ export default function SetSapDialog({ trip, onClose, onSaved }) {
                 onChange={(e) => setNote(e.target.value)}
               />
             </label>
+            <div className="sap-notice">
+              <Info size={16} aria-hidden="true" />
+              <span>This manual reference takes priority over the SAP sheet for this route.</span>
+            </div>
           </div>
           <DialogFooter>
-            <button className="sap-btn" type="button" disabled={mutation.loading} onClick={onClose}>
+            <Button variant="outline" type="button" disabled={mutation.loading} onClick={onClose}>
               Cancel
-            </button>
-            <button
-              className="sap-btn sap-btn--primary"
-              disabled={!valid || mutation.loading}
-              type="submit"
-            >
+            </Button>
+            <Button disabled={!valid || mutation.loading} type="submit">
               {mutation.loading ? 'Saving…' : 'Save SAP'}
-            </button>
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -1,9 +1,19 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { CalendarClock, FileText, Plus, ShieldCheck, TriangleAlert } from 'lucide-react';
+import {
+  CalendarClock,
+  FileText,
+  Plus,
+  ShieldCheck,
+  TriangleAlert,
+  Play,
+  ClipboardList,
+} from 'lucide-react';
 import SapPill from '../Sap/SapPill';
 import { FLAG_LABEL } from './autoTripPlaces';
 import DataTable from '../../components/ui/DataTable';
+import EnterprisePagination from '../../components/ui/EnterprisePagination';
+import { Button } from '../../components/ui/button';
 import { useApi } from '../../hooks/useApi';
 import AutoTripService from '../../services/AutoTripService';
 import { formatNum } from '../../utils/formatters';
@@ -14,6 +24,7 @@ import TripRangePicker from './TripRangePicker';
 import { STATUS_CLASS, STATUS_LABEL, fmtDayTime, fmtKm, notReachedYet } from './autoTripFormat';
 import { rangeToParams, readRange, writeRange } from './tripRange';
 import './AutoTrips.css';
+import './TripsWorkspace.css';
 
 const TABS = [
   { key: '', label: 'All' },
@@ -92,25 +103,31 @@ export default function AutoTripsPage() {
     () => [
       {
         key: 'registrationNumber',
+        width: 115,
         label: 'Truck',
         render: (r) => <span className="atx-plate">{r.registrationNumber || '—'}</span>,
       },
       {
         key: 'route',
-        label: 'Loaded at → Unloaded at',
+        width: 230,
+        label: 'Route',
         render: (r) => (
-          <>
-            {r.pickup?.name || '—'} →{' '}
-            {notReachedYet(r) ? (
-              <span className="atx-muted">not reached yet</span>
-            ) : (
-              dropLabel(r.drop)
-            )}
-          </>
+          <span className="atx-route-cell">
+            <strong>{r.pickup?.name || '—'}</strong>
+            <span>
+              →{' '}
+              {notReachedYet(r) ? (
+                <span className="atx-muted">not reached yet</span>
+              ) : (
+                dropLabel(r.drop)
+              )}
+            </span>
+          </span>
         ),
       },
       {
         key: 'departedAt',
+        width: 125,
         label: 'Left plant',
         render: (r) => fmtDayTime(r.pickup?.departedAt, { padDay: true }),
       },
@@ -126,12 +143,12 @@ export default function AutoTripsPage() {
         label: 'SAP km',
         render: (r) => (
           <div className="sap-stack">
-            <span>
-              {r.sap?.status === 'MATCHED'
-                ? r.sap.multipleSap
-                  ? r.sap.values?.join(' / ')
-                  : r.sap.sapKm
-                : '—'}
+            <span
+              title={
+                r.sap?.multipleSap ? `Sheet values: ${r.sap.values?.join(' / ')} km` : undefined
+              }
+            >
+              {r.sap?.status === 'MATCHED' ? `${r.sap.sapKm} km` : '—'}
             </span>
             {r.sap ? <SapPill sap={r.sap} /> : <span className="sap-muted">Not computed yet</span>}
           </div>
@@ -139,6 +156,7 @@ export default function AutoTripsPage() {
       },
       {
         key: 'flags',
+        width: 190,
         label: 'Checks',
         render: (r) =>
           (r.flags || []).map((f) => (
@@ -158,7 +176,7 @@ export default function AutoTripsPage() {
             className="atx-replay-link"
             onClick={(e) => e.stopPropagation()}
           >
-            ▶ Replay
+            <Play size={12} aria-hidden="true" /> Replay
           </Link>
         ),
       },
@@ -171,30 +189,15 @@ export default function AutoTripsPage() {
     setPage(1);
   };
 
-  const pagination =
-    totalPages > 1 ? (
-      <div className="atx-pager">
-        <span>
-          Page {page} of {totalPages}
-        </span>
-        <button
-          type="button"
-          className="atx-btn atx-btn--sm"
-          disabled={page <= 1 || loading}
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-        >
-          Previous
-        </button>
-        <button
-          type="button"
-          className="atx-btn atx-btn--sm"
-          disabled={page >= totalPages || loading}
-          onClick={() => setPage((p) => p + 1)}
-        >
-          Next
-        </button>
-      </div>
-    ) : null;
+  const pagination = (
+    <EnterprisePagination
+      page={page}
+      totalPages={totalPages}
+      totalItems={total || null}
+      pageSize={PAGE_SIZE}
+      onPageChange={setPage}
+    />
+  );
 
   return (
     <div className="atx-page atx-list">
@@ -202,56 +205,43 @@ export default function AutoTripsPage() {
         <div className="atx-head">
           <div className="atx-head-main">
             <div className="atx-title-row">
-              <h1 className="atx-title">Trip</h1>
+              <h1 className="atx-title">Trips</h1>
               <span className="atx-count">{formatNum(allCount)} trips</span>
             </div>
             <p className="atx-sub">
-              Every trip rebuilt from GPS — where the truck loaded, where it unloaded, and how long
-              each part took. No ERP needed.
+              Track trips from pickup to delivery. Review GPS distance, SAP comparisons and
+              exceptions.
             </p>
           </div>
           <div className="atx-actions">
-            <button
-              type="button"
-              className="atx-btn atx-btn--primary"
-              onClick={() => setDialog({ kind: 'manual' })}
-            >
-              <Plus size={16} strokeWidth={2} aria-hidden="true" />
+            <Button onClick={() => setDialog({ kind: 'manual' })}>
+              <Plus size={15} aria-hidden="true" />
               Add missed trip
-            </button>
-            <button type="button" className="atx-btn" onClick={() => setDialog({ kind: 'plan' })}>
-              <CalendarClock size={16} strokeWidth={2} aria-hidden="true" />
+            </Button>
+            <Button variant="outline" onClick={() => setDialog({ kind: 'plan' })}>
+              <CalendarClock size={15} aria-hidden="true" />
               Schedule trip
-            </button>
-            <button type="button" className="atx-btn" onClick={() => navigate('/auto-trips/plans')}>
-              Planned trips
-            </button>
-            <button
-              type="button"
-              className="atx-btn"
-              onClick={() => navigate('/auto-trips/excursions')}
-            >
-              <TriangleAlert size={16} strokeWidth={2} aria-hidden="true" />
-              Route deviations
-            </button>
-            <button
-              type="button"
-              className="atx-btn"
-              onClick={() => navigate('/auto-trips/approvals')}
-            >
-              <ShieldCheck size={16} strokeWidth={2} aria-hidden="true" />
-              Pending approvals
-            </button>
-            <button
-              type="button"
-              className="atx-btn"
-              onClick={() => navigate('/reports?report=oilAverage')}
-            >
-              <FileText size={16} strokeWidth={2} aria-hidden="true" />
-              Fuel &amp; mileage report
-            </button>
+            </Button>
           </div>
         </div>
+        <nav className="atx-shortcuts" aria-label="Trip tools">
+          <Link to="/auto-trips/plans">
+            <ClipboardList size={14} />
+            Planned trips
+          </Link>
+          <Link to="/auto-trips/excursions">
+            <TriangleAlert size={14} />
+            Route deviations
+          </Link>
+          <Link to="/auto-trips/approvals">
+            <ShieldCheck size={14} />
+            Pending approvals
+          </Link>
+          <Link to="/reports?report=oilAverage">
+            <FileText size={14} />
+            Fuel &amp; mileage report
+          </Link>
+        </nav>
 
         <div className="atx-toolbar">
           <div role="tablist" aria-label="Filter trips" className="atx-tabs">
@@ -269,27 +259,30 @@ export default function AutoTripsPage() {
               </button>
             ))}
           </div>
-          <label className="sap-row">
-            SAP
-            <select
-              className="sap-filter"
-              value={searchParams.get('sapVerdict') || ''}
-              onChange={(e) => {
-                const next = new URLSearchParams(searchParams);
-                if (e.target.value) next.set('sapVerdict', e.target.value);
-                else next.delete('sapVerdict');
-                setSearchParams(next, { replace: true });
-                setPage(1);
-              }}
-            >
-              <option value="">All</option>
-              <option value="OVER">Over SAP</option>
-              <option value="UNDER">Under SAP</option>
-              <option value="WITHIN">Within</option>
-              <option value="NO_SAP">No SAP</option>
-            </select>
-          </label>
-          <TripRangePicker value={range} onChange={changeRange} />
+          <div className="atx-filter-row">
+            <label className="sap-row">
+              SAP
+              <select
+                className="sap-filter"
+                aria-label="SAP"
+                value={searchParams.get('sapVerdict') || ''}
+                onChange={(e) => {
+                  const next = new URLSearchParams(searchParams);
+                  if (e.target.value) next.set('sapVerdict', e.target.value);
+                  else next.delete('sapVerdict');
+                  setSearchParams(next, { replace: true });
+                  setPage(1);
+                }}
+              >
+                <option value="">All</option>
+                <option value="OVER">Over SAP</option>
+                <option value="UNDER">Under SAP</option>
+                <option value="WITHIN">Within</option>
+                <option value="NO_SAP">No SAP</option>
+              </select>
+            </label>
+            <TripRangePicker value={range} onChange={changeRange} />
+          </div>
         </div>
 
         {searchParams.get('dropSiteId') && (

@@ -1,3 +1,5 @@
+import { CloudOff } from 'lucide-react';
+import { Button } from '../../../components/ui/button';
 import { placeTitle } from '../intelligence/model/siteSummary.js';
 import { kmLabel, minutesLabel } from '../intelligence/model/unitLabels.js';
 import LegEnd from '../intelligence/LegEnd.jsx';
@@ -25,7 +27,7 @@ export default function RoutesPanel({
   onPick,
   onRetry,
 }) {
-  const totalRuns = data?.totals?.runs || 0;
+  const totalRuns = data?.totals?.runs ?? null;
   const topRuns = [...(data?.legs || [])]
     .sort((a, b) => b.traversals - a.traversals)
     .slice(0, 10)
@@ -35,7 +37,7 @@ export default function RoutesPanel({
     <aside className="ph-side" aria-label="routes list">
       <div className="ph-route-kpis">
         <Kpi label="Legs" value={data?.totals?.legs ?? '—'} />
-        <Kpi label="Runs" value={totalRuns} />
+        <Kpi label="Runs" value={totalRuns ?? '—'} />
         <Kpi label="Places" value={data?.totals?.places ?? '—'} />
         <Kpi
           label="Top 10 share"
@@ -80,11 +82,14 @@ export default function RoutesPanel({
       </div>
       {loading && <ListSkeleton />}
       {error && (
-        <div className="ph-layer-error" role="alert">
-          {error}{' '}
-          <button type="button" onClick={onRetry}>
+        <div className="ph-route-error" role="alert">
+          <CloudOff size={24} aria-hidden="true" />
+          <strong>Routes are temporarily unavailable</strong>
+          <p>Refresh this view to try again.</p>
+          <span className="ph-muted">{error}</span>
+          <Button variant="outline" size="sm" onClick={onRetry}>
             Retry
-          </button>
+          </Button>
         </div>
       )}
       {data?.truncated && (

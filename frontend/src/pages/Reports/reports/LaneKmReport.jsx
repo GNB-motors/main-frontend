@@ -1,8 +1,8 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { createElement, lazy, Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { canEditSap } from '../../Sap/sapModel';
 import { getUserRole } from '../../../utils/session';
-import { AlertTriangle, MapPinOff, Route, TrendingUp } from 'lucide-react';
+import { AlertTriangle, MapPinOff, Route, TrendingUp, Settings2, Link2 } from 'lucide-react';
 import DataTable from '../../../components/ui/DataTable';
 import { StatusPill } from '../../../components/overview.primitives.jsx';
 import { ReportsService } from '../ReportsService.js';
@@ -241,14 +241,14 @@ export default function LaneKmReport() {
   return (
     <div>
       {canEdit && (
-        <nav className="sap-panel sap-row" aria-label="SAP views">
+        <nav className="sap-view-nav" aria-label="SAP views">
           {[
-            ['lanes', 'Lane km'],
-            ['settings', 'Settings & upload'],
-            ['review', 'Link SAP sheet to places'],
-          ].map(([id, label]) => (
+            ['lanes', 'Lane km', Route],
+            ['settings', 'Settings & upload', Settings2],
+            ['review', 'Link SAP sheet to places', Link2],
+          ].map(([id, label, icon]) => (
             <button
-              className="sap-btn"
+              className="sap-view-tab"
               aria-pressed={tab === id}
               type="button"
               key={id}
@@ -259,6 +259,7 @@ export default function LaneKmReport() {
                 setParams(next, { replace: true });
               }}
             >
+              {createElement(icon, { size: 15, 'aria-hidden': true })}
               {label}
             </button>
           ))}

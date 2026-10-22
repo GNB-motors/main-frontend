@@ -1,0 +1,334 @@
+/* Trips use the shared application palette and density. Replay and timeline retain their own evidence colours. */
+.atx-page,
+.dark .atx-page {
+  --atx-bg: var(--background);
+  --atx-surface: var(--card);
+  --atx-ink: var(--ds-ink);
+  --atx-ink-2: var(--ds-ink2);
+  --atx-ink-3: var(--ds-ink3);
+  --atx-ink-4: var(--ds-ink3);
+  --atx-line: var(--ds-line);
+  --atx-line-2: var(--ds-line);
+  --atx-line-3: var(--ds-line);
+  --atx-hover: var(--ds-sunk);
+  --atx-chip: var(--ds-sunk);
+  --atx-blue: var(--orange-solid);
+  --atx-blue-hover: var(--orange-hover);
+  --atx-blue-bg: var(--orange-tint);
+  --atx-blue-line: var(--ds-line);
+  --atx-green: var(--ds-ok-ink);
+  --atx-green-bg: var(--ds-ok-tint);
+  --atx-amber: var(--ds-warn-ink);
+  --atx-amber-bg: var(--ds-warn-tint);
+  --atx-red: var(--ds-crit-ink);
+  --atx-red-bg: var(--ds-crit-tint);
+  padding: 24px;
+  font-family: inherit;
+}
+.atx-page .atx-wrap {
+  max-width: none;
+  gap: 20px;
+  min-width: 0;
+}
+.atx-page .atx-title {
+  font-size: 24px;
+  font-weight: 650;
+  letter-spacing: -0.5px;
+}
+.atx-page .atx-count {
+  font-family: inherit;
+  font-size: 11px;
+  padding: 4px 8px;
+  border: 1px solid var(--ds-line);
+  border-radius: 6px;
+  background: var(--card);
+}
+.atx-page .atx-sub {
+  max-width: 660px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ds-ink3);
+}
+.atx-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  padding: 0 0 16px;
+  border-bottom: 1px solid var(--ds-line);
+}
+.atx-shortcuts a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--ds-ink3);
+  text-decoration: none;
+}
+.atx-shortcuts a:hover {
+  color: var(--accent-ink);
+}
+.atx-page .atx-toolbar {
+  display: grid;
+  gap: 16px;
+  align-items: start;
+}
+.atx-page .atx-tabs {
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  flex-wrap: wrap;
+}
+.atx-page .atx-tab {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 12px;
+  min-height: 38px;
+  padding: 8px 12px;
+  font-weight: 550;
+}
+.atx-page .atx-tab[aria-selected='true'] {
+  color: var(--accent-ink);
+  background: var(--orange-tint);
+  border-color: var(--ds-line);
+}
+.atx-page .atx-tab-count {
+  font: inherit;
+  font-size: 10px;
+  border-radius: 5px;
+  padding: 2px 5px;
+  background: var(--ds-sunk);
+}
+.atx-page .atx-tab[aria-selected='true'] .atx-tab-count {
+  color: var(--accent-ink);
+  background: var(--card);
+}
+.atx-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+.atx-filter-row > label {
+  font-size: 12px;
+  color: var(--ds-ink3);
+}
+.atx-filter-row .sap-filter {
+  width: 160px;
+  font-size: 12px;
+}
+.atx-page .dt {
+  border-radius: 12px;
+  border-color: var(--ds-line);
+}
+.atx-page .dt .dt-table {
+  font-size: 12px;
+}
+.atx-list .dt .dt-table {
+  min-width: 1100px;
+}
+.atx-page .dt :is(th, td) {
+  padding: 14px 12px;
+  vertical-align: middle;
+}
+.atx-page .dt th {
+  font-size: 11px;
+  font-weight: 550;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.atx-page .atx-plate {
+  font-size: 12px;
+  font-weight: 600;
+}
+.atx-route-cell {
+  display: grid;
+  gap: 5px;
+  max-width: 240px;
+  white-space: normal;
+  line-height: 1.5;
+}
+.atx-route-cell strong {
+  font-weight: 550;
+}
+.atx-route-cell > span {
+  font-size: 11px;
+  color: var(--ds-ink3);
+}
+.atx-page .atx-status {
+  font-size: 10px;
+  border-radius: 5px;
+  padding: 4px 7px;
+  font-weight: 550;
+}
+.atx-page .atx-chip {
+  font-size: 10px;
+  border-radius: 5px;
+  padding: 3px 6px;
+  line-height: 1.5;
+  margin: 2px;
+}
+.atx-page .atx-replay-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent-ink);
+  font-size: 11px;
+}
+.atx-page .sap-stack {
+  gap: 6px;
+}
+.atx-page .sap-pill {
+  font-size: 10px;
+}
+.atx-page .atx-grid {
+  gap: 20px;
+}
+.atx-page .atx-card {
+  border-radius: 12px;
+  border-color: var(--ds-line);
+}
+.atx-page .atx-card-title {
+  font-size: 15px;
+  font-weight: 650;
+}
+.atx-page .atx-plate-title {
+  font-size: 24px;
+  font-weight: 650;
+}
+.atx-page .atx-route-sub {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.atx-page .atx-back {
+  font-size: 12px;
+}
+.atx-page .atx-btn {
+  min-height: 34px;
+  height: auto;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 550;
+}
+.atx-page .atx-field-label {
+  font-size: 11px;
+}
+.atx-page .atx-field-value {
+  font-size: 13px;
+}
+.atx-page .sap-panel {
+  gap: 18px;
+}
+.atx-page .sap-comparison-metrics dd {
+  font-size: 18px;
+}
+@media (max-width: 640px) {
+  .atx-page,
+  .dark .atx-page {
+    padding: 18px 14px;
+  }
+  .atx-page .atx-actions {
+    width: 100%;
+    gap: 8px;
+  }
+  .atx-list .atx-actions > button {
+    flex: 1;
+  }
+  .atx-shortcuts {
+    gap: 14px 20px;
+  }
+  .atx-page .atx-tab {
+    padding: 7px 8px;
+    font-size: 11px;
+  }
+  .atx-filter-row {
+    align-items: stretch;
+  }
+  .atx-filter-row > label {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+.atx-page .atx-toolbar {
+  justify-content: stretch;
+}
+.atx-page .atx-filter-row {
+  width: 100%;
+}
+.atx-page .dt .dt-tools {
+  padding: 12px 16px;
+}
+.atx-page .dt .dt-summary {
+  font-size: 12px;
+}
+.atx-page .dt .dt-table thead th {
+  padding: 12px;
+  font-size: 11px;
+}
+.atx-page .dt .dt-table tbody td {
+  padding: 13px 12px;
+  font-size: 12px;
+}
+.atx-page .sap-route-card {
+  grid-column: 1 / -1;
+  align-content: start;
+}
+.sap-panel,
+.atx-page {
+  --primary: var(--orange-solid);
+  --primary-foreground: #fff;
+}
+.trip-workspace {
+  --primary: var(--orange-solid);
+  --primary-foreground: #fff;
+  padding: 24px;
+}
+.trip-workspace .pshell-title {
+  color: var(--ds-ink);
+}
+.trip-workspace .dt {
+  border-radius: 12px;
+  overflow: hidden;
+}
+.trip-workspace-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-self: flex-start;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--ds-line);
+  border-radius: 10px;
+  background: var(--ds-sunk);
+}
+.trip-workspace-tabs button {
+  font-size: 12px;
+}
+.trip-workspace-tabs button[aria-pressed='true'] {
+  color: var(--accent-ink);
+  background: var(--card);
+  box-shadow: 0 1px 3px #0000000a;
+}
+@media (max-width: 640px) {
+  .trip-workspace {
+    padding: 18px 14px;
+  }
+}
+.dark :is(.atx-page, .trip-workspace) {
+  --ds-ink: var(--foreground);
+  --ds-ink2: #cbd5e1;
+  --ds-ink3: #94a3b8;
+  --ds-line: #334155;
+  --ds-line2: #475569;
+  --ds-sunk: #1e293b;
+  --canvas: var(--background);
+  --orange-tint: #1e2948;
+  --accent-ink: #a5b4fc;
+  --ds-ok-ink: #86efac;
+  --ds-ok-tint: #143326;
+  --ds-warn-ink: #fcd34d;
+  --ds-warn-tint: #352b18;
+  --ds-crit-ink: #fca5a5;
+  --ds-crit-tint: #3f2029;
+}
