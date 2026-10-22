@@ -16,6 +16,7 @@ const DriversPage = lazy(() => import('../../pages/Drivers/DriversPage.jsx'));
 const AddDriverPage = lazy(() => import('../../pages/Drivers/AddDriverPage.jsx'));
 const BulkUploadDriversPage = lazy(() => import('../../pages/Drivers/BulkUploadDriversPage.jsx'));
 const BulkUploadVehiclesPage = lazy(() => import('../../pages/Profile/BulkUploadVehiclesPage.jsx'));
+const DataImportsPage = lazy(() => import('../../pages/DataImports/DataImportsPage.jsx'));
 const TripManagementPage = lazy(() => import('../../pages/Trip/TripManagementPage.jsx'));
 const TripDetailPage = lazy(() => import('../../pages/Trip/TripDetailPage.jsx'));
 const FleetApprovalsPage = lazy(() => import('../../pages/Approvals/ApprovalsPage.jsx'));
@@ -209,6 +210,9 @@ const dashboardRoutes = (
     />
     <Route path="/vehicles/add" element={<AddVehiclePage />} />
     <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />
+    {/* CSV bulk import for drivers, driver↔vehicle assignments and vehicle
+        master fields (plan item 16). Dry run first; /apply is explicit. */}
+    <Route path="/data-imports" element={<DataImportsPage />} />
     <Route path="/warehouses" element={<Navigate to="/auto-trips" replace />} />
     <Route path="/auto-trips" element={<AutoTripsPage />} />
     {/* The Oil & Average report lives on the Reports page now. */}
