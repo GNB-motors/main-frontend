@@ -8,6 +8,11 @@ import ActivityCard from './overview/ActivityCard';
 import InfoCard from './overview/InfoCard';
 import AttributionPanel from './AttributionPanel';
 import DriverAttributionPanel from './DriverAttributionPanel';
+import { getUserRole } from '../../../utils/session';
+
+// The card API is OWNER/MANAGER only (it grades people). Mounting the panels
+// for anyone else would fetch a 403 on every Vehicle360 open.
+const canReadAttribution = () => ['OWNER', 'MANAGER'].includes(getUserRole());
 
 /**
  * Overview panel — "can this truck earn today, and what is stopping it".
@@ -31,12 +36,16 @@ export default function OverviewPanel({
   return (
     <PanelErrorBoundary name="vehicle-overview">
       <div className="v360-panel">
-        <AttributionPanel vehicleId={vehicleId} />
-        {/* The driver's own card, so the truck card's "driver" verdict can be
-            read against the driver's own view of the same history. */}
-        <DriverAttributionPanel
-          driverId={assignedDriver?.id || assignedDriver?._id || assignedDriver?.driverId}
-        />
+        {canReadAttribution() ? (
+          <>
+            <AttributionPanel vehicleId={vehicleId} />
+            {/* The driver's own card, so the truck card's "driver" verdict can be
+                read against the driver's own view of the same history. */}
+            <DriverAttributionPanel
+              driverId={assignedDriver?.id || assignedDriver?._id || assignedDriver?.driverId}
+            />
+          </>
+        ) : null}
         <UtilisationCard history={history} health={health} onGoTrips={() => onGoTab('trips')} />
         <WhatIsDueCard
           prediction={prediction}
