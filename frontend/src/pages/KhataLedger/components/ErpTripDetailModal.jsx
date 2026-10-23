@@ -24,6 +24,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import KhataLedgerService from '../KhataLedgerService';
 import ReceiptPreviewModal from './ReceiptPreviewModal';
 import {
+import logger from '../../../utils/logger.js';
   formatCurrency,
   formatDate,
   formatKm,
@@ -68,7 +69,7 @@ const ErpTripDetailModal = ({ isOpen, onClose, tripId, initialTripData = null })
           setTransactions(txRes?.results || txRes?.data || txRes || []);
         }
       } catch (err) {
-        console.error('Failed to load ERP Trip financial details:', err);
+        logger.error('Failed to load ERP Trip financial details:', err);
       } finally {
         if (isMounted) setLoading(false);
       }

@@ -29,6 +29,7 @@ import KhataLedgerService from '../KhataLedgerService';
 import ErpTripDetailModal from './ErpTripDetailModal';
 import { useActiveBranch } from '../../../contexts/BranchContext';
 import {
+import logger from '../../../utils/logger.js';
   formatCurrency,
   formatDate,
   formatKm,
@@ -111,7 +112,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
         );
         setTripFinances(finances);
       } catch (err) {
-        console.error('Failed to load ERP Trips:', err);
+        logger.error('Failed to load ERP Trips:', err);
         setTrips([]);
       } finally {
         setLoading(false);

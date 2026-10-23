@@ -6,6 +6,7 @@ import { captureException } from './sentry';
 import { handleAuthError } from './authUtils';
 import { getToken, getOrgId, getBranchId } from './session';
 import ApiError from '../errors/ApiError';
+import logger from '../utils/logger.js';
 
 /**
  * Default request budget. Was 10s, which aborted perfectly healthy analytics
@@ -103,7 +104,7 @@ apiClient.interceptors.response.use(
     if (requestId) {
       // Kept in production on purpose: support asks users for this request id.
       // eslint-disable-next-line no-console
-      console.error(
+      logger.error(
         `[API Error] status=${error.response?.status} url=${error.config?.url} requestId=${requestId}`,
       );
     }

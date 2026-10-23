@@ -28,6 +28,7 @@ import KhataLedgerService from '../KhataLedgerService';
 import exportTable from '../../../lib/exportTable';
 import { useActiveBranch } from '../../../contexts/BranchContext';
 import {
+import logger from '../../../utils/logger.js';
   formatCurrency,
   formatDate,
   CATEGORIES,
@@ -131,7 +132,7 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
       );
       setTripFinances(finances);
     } catch (err) {
-      console.error('Failed to load report data:', err);
+      logger.error('Failed to load report data:', err);
       toast.error('Failed to load report data');
     } finally {
       setLoading(false);
@@ -385,7 +386,7 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
       });
       toast.success(`Exported ${format.toUpperCase()} successfully`);
     } catch (err) {
-      console.error('Export failed:', err);
+      logger.error('Export failed:', err);
       toast.error('Export failed');
     } finally {
       setExporting(false);
