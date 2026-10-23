@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ArrowLeft, CalendarPlus } from 'lucide-react';
 import DataTable from '../../components/ui/DataTable';
@@ -14,6 +14,7 @@ import { fmtDayTime, fmtKm } from './autoTripFormat';
 import { PLAN_STATUS_CLASS, PLAN_STATUS_LABEL, planEndName, planWarnings } from './tripForms';
 import TripPlanDialog from './TripPlanDialog';
 import LinkTripDialog from './LinkTripDialog';
+import { erpPlanTracking } from './erpPlanTracking';
 import './AutoTrips.css';
 import './TripsWorkspace.css';
 
@@ -42,6 +43,7 @@ export default function TripPlansPage() {
   );
   const cancelM = useMutation(TripPlanService.cancel);
   const unlinkM = useMutation(TripPlanService.unlink);
+  const resumeM = useMutation(TripPlanService.resumeAutoMatch);
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
@@ -65,14 +67,27 @@ export default function TripPlansPage() {
     {
       key: 'truck',
       label: 'Truck',
-      render: (p) => <span className="atx-plate">{p.registrationNumber || '—'}</span>,
+      render: (p) => (
+        <>
+          <span className="atx-plate">{p.registrationNumber || '—'}</span>
+          {p.source === 'ERP' ? (
+            <Link
+              className="atx-chip"
+              to={`/erp/trips/${p.erpTripId}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              ERP · {p.erpTripNumber}
+            </Link>
+          ) : null}
+        </>
+      ),
     },
     {
       key: 'route',
       label: 'Planned route',
       render: (p) => `${planEndName(p.pickup)} → ${planEndName(p.drop)}`,
     },
-    { key: 'planned', label: 'Planned start', render: (p) => fmtDayTime(p.plannedStartAt) },
+    { key: 'planned', label: 'Planned / ERP start', render: (p) => fmtDayTime(p.plannedStartAt) },
     {
       key: 'actual',
       label: 'Actual',
@@ -84,7 +99,9 @@ export default function TripPlansPage() {
             {p.actual.km != null ? ` · ${fmtKm(p.actual.km)}` : ''}
           </>
         ) : (
-          <span className="atx-muted">not started</span>
+          <span className="atx-muted">
+            {p.source === 'ERP' ? 'GPS evidence pending' : 'not started'}
+          </span>
         ),
     },
     {
@@ -95,6 +112,7 @@ export default function TripPlansPage() {
           <span className={`atx-status ${PLAN_STATUS_CLASS[p.status] || 'atx-status--open'}`}>
             {PLAN_STATUS_LABEL[p.status] || p.status}
           </span>
+          {p.source === 'ERP' ? <span className="atx-muted">{erpPlanTracking(p)}</span> : null}
           {planWarnings(p).map((w) => (
             <span key={w} className="atx-chip atx-chip--warn">
               {w}
@@ -109,6 +127,24 @@ export default function TripPlansPage() {
       align: 'right',
       render: (p) => (
         <span className="atx-row-actions">
+          {p.autoMatch === false && p.status === 'PLANNED' && !p.autoTripId ? (
+            <button
+              type="button"
+              className="atx-btn atx-btn--sm"
+              disabled={resumeM.loading}
+              onClick={(e) => {
+                e.stopPropagation();
+                act(
+                  resumeM,
+                  { id: p._id },
+                  'Resume automatic GPS linking?',
+                  'Automatic linking resumed',
+                );
+              }}
+            >
+              Resume auto-link
+            </button>
+          ) : null}
           {p.status !== 'CANCELLED' ? (
             <button
               type="button"
@@ -121,7 +157,7 @@ export default function TripPlansPage() {
               {p.autoTripId ? 'Change trip' : 'Link trip'}
             </button>
           ) : null}
-          {p.autoTripId ? (
+          {p.autoTripId && p.status !== 'CANCELLED' ? (
             <button
               type="button"
               className="atx-btn atx-btn--sm"
@@ -134,7 +170,7 @@ export default function TripPlansPage() {
               Unlink
             </button>
           ) : null}
-          {p.status === 'PLANNED' || p.status === 'IN_PROGRESS' ? (
+          {p.source !== 'ERP' && (p.status === 'PLANNED' || p.status === 'IN_PROGRESS') ? (
             <button
               type="button"
               className="atx-btn atx-btn--sm"
