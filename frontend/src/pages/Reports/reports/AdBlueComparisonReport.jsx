@@ -1,3 +1,5 @@
+import ManufacturerFilter from '../../../components/filters/ManufacturerFilter';
+import useManufacturerFilter from '../../../hooks/useManufacturerFilter';
 import { useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Clock3, Droplets, Gauge, Info } from 'lucide-react';
 import useApi from '../../../hooks/useApi';
@@ -158,6 +160,7 @@ const fetchComparison = (params, signal) => ReportsService.getAdBlueComparison(p
 const defaultRange = () => ({ from: istDaysAgo(30), to: istToday() });
 
 const AdBlueComparisonReport = () => {
+  const { manufacturer, setManufacturer } = useManufacturerFilter();
   const [range, setRange] = useState(defaultRange);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search.trim(), 300);
@@ -166,12 +169,13 @@ const AdBlueComparisonReport = () => {
   const filters = useMemo(
     () =>
       compactParams({
+        ...(manufacturer ? { manufacturer } : {}),
         startDate: istDayStart(range.from),
         endDate: istDayEnd(range.to),
         search: debouncedSearch,
         vehicleId,
       }),
-    [range, debouncedSearch, vehicleId],
+    [range, manufacturer, debouncedSearch, vehicleId],
   );
   const filterKey = JSON.stringify(filters);
   const [page, setPage] = useReportPage(filterKey);
@@ -184,6 +188,7 @@ const AdBlueComparisonReport = () => {
   } = useApi(
     (signal) => fetchComparison({ ...filters, page, limit: PAGE_SIZE }, signal),
     [filterKey, page],
+    { scopeKey: manufacturer },
   );
 
   const body = response || {};
@@ -207,6 +212,7 @@ const AdBlueComparisonReport = () => {
 
   const defaults = defaultRange();
   const activeFilters =
+    (manufacturer ? 1 : 0) +
     (range.from !== defaults.from ? 1 : 0) +
     (range.to !== defaults.to ? 1 : 0) +
     (search ? 1 : 0) +
@@ -219,13 +225,15 @@ const AdBlueComparisonReport = () => {
       filters={
         <>
           <ReportDateRange from={range.from} to={range.to} onChange={setRange} />
-          <ReportSearch value={search} onChange={setSearch} placeholder="Search vehicle" />
+          <ManufacturerFilter value={manufacturer} onChange={setManufacturer} />
           <VehiclePicker value={vehicleId} onChange={setVehicleId} />
+          <ReportSearch value={search} onChange={setSearch} placeholder="Search vehicle" />
           <ReportClear
             active={activeFilters > 0}
             onClear={() => {
               setRange(defaultRange());
               setSearch('');
+              setManufacturer('');
               setVehicleId('all');
             }}
           />

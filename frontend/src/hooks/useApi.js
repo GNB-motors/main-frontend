@@ -12,8 +12,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
  * - keeps last good data while refetching (no flash-to-skeleton)
  * - error is the thrown payload (response.data) or a shaped fallback
  */
-export function useApi(fetcher, deps = [], { enabled = true } = {}) {
+export function useApi(fetcher, deps = [], { enabled = true, scopeKey = null } = {}) {
   const [data, setData] = useState(null);
+  const [dataScope, setDataScope] = useState(scopeKey);
   const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState(null);
   const fetcherRef = useRef(fetcher);
@@ -27,25 +28,37 @@ export function useApi(fetcher, deps = [], { enabled = true } = {}) {
     fetcherRef
       .current(controller.signal)
       .then((result) => {
-        if (!controller.signal.aborted) setData(result);
+        if (!controller.signal.aborted) {
+          setData(result);
+          setDataScope(scopeKey);
+        }
       })
       .catch((err) => {
         if (controller.signal.aborted) return;
         if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') return;
         setError(err);
+        if (scopeKey !== dataScope) {
+          setData(null);
+          setDataScope(scopeKey);
+        }
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
       });
     return controller;
-  }, [enabled, ...deps]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [enabled, scopeKey, ...deps]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const controller = run();
     return () => controller?.abort();
   }, [run]);
 
-  return { data, loading, error, refetch: run };
+  return {
+    data: dataScope === scopeKey ? data : null,
+    loading: loading || dataScope !== scopeKey,
+    error,
+    refetch: run,
+  };
 }
 
 export default useApi;

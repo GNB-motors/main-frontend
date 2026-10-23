@@ -43,6 +43,7 @@ const MileageIntervalReport = () => {
         signal,
       ),
     [filterKey, page],
+    { scopeKey: requestParams.manufacturer },
   );
 
   const rows = response?.data || [];
@@ -61,8 +62,7 @@ const MileageIntervalReport = () => {
     // went, idling, missing bills, every cycle); CSV: the flat rows.
     await exportFilteredReportCsv({
       fetchExport: (f) => ReportsService.exportReportCsv('api/reports/mileage-intervals/export', f),
-      filters:
-        format === 'xlsx' ? { ...requestParams, format: 'xlsx' } : requestParams,
+      filters: format === 'xlsx' ? { ...requestParams, format: 'xlsx' } : requestParams,
       filenamePrefix: format === 'xlsx' ? 'mileage_report' : 'mileage_interval_report',
       extension: format,
       errorMessage: 'Could not export mileage report.',

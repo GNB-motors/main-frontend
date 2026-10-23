@@ -43,6 +43,7 @@ export const REPORT_RANGE_PRESETS = HUB_DATE_PRESETS;
 
 /** Every param the shared bar owns. */
 export const REPORT_FILTER_PARAMS = [
+  'manufacturer',
   'loc',
   'dates',
   'from',
@@ -56,6 +57,7 @@ export const REPORT_FILTER_PARAMS = [
 ];
 
 export const EMPTY_FILTERS = {
+  manufacturer: '',
   loc: '',
   dates: '',
   from: '',
@@ -82,6 +84,7 @@ const isPreset = (key) => REPORT_RANGE_PRESETS.some((preset) => preset.key === k
 export function readFilterParams(search) {
   const params = asParams(search);
   return {
+    manufacturer: params.get('manufacturer') || '',
     loc: params.get('loc') || '',
     dates: isPreset(params.get('dates')) ? params.get('dates') : '',
     from: readDay(params.get('from')),
@@ -147,9 +150,10 @@ export function activePresetId(filters) {
 
 /** How many filters are narrowing the result — drives the "N filters" badge. */
 export function countActiveFilters(filters, now = new Date()) {
-  const { search, status, vehicle, driver } = filters || {};
+  const { search, status, vehicle, driver, manufacturer } = filters || {};
   const range = resolveRange(filters, now);
   return (
+    (manufacturer ? 1 : 0) +
     (range.from ? 1 : 0) +
     (search ? 1 : 0) +
     (status ? 1 : 0) +
@@ -164,9 +168,10 @@ export function countActiveFilters(filters, now = new Date()) {
  * to what a report built by hand would have sent.
  */
 export function toRequestParams(filters, now = new Date()) {
-  const { search, vehicle, driver, status } = filters || {};
+  const { search, vehicle, driver, status, manufacturer } = filters || {};
   const { from, to } = resolveRange(filters, now);
   return compactParams({
+    manufacturer: manufacturer || undefined,
     startDate: from ? `${from}T00:00:00.000+05:30` : undefined,
     endDate: to ? `${to}T23:59:59.999+05:30` : undefined,
     search: search || undefined,

@@ -76,7 +76,12 @@ export default function ExpectedFuelView({ range }) {
   );
 
   const list = (Array.isArray(vehicles.data) ? vehicles.data : [])
-    .filter((v) => v._id && v.registrationNumber)
+    .filter(
+      (v) =>
+        v._id &&
+        v.registrationNumber &&
+        (!range.manufacturer || (v.manufacturer || 'UNKNOWN') === range.manufacturer),
+    )
     .sort((a, b) => a.registrationNumber.localeCompare(b.registrationNumber));
   const selected = list.find((v) => v._id === vehicleId);
   const days = vehicleId ? dailyRollup(result.data?.windows || []) : [];

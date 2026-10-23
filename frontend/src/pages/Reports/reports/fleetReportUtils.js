@@ -23,8 +23,11 @@ export function excludedCycleHint(plausible) {
 }
 
 /** Filter labels written into the exported sheet's preamble. */
-export function exportFilterMeta({ from, to, entityLabel }) {
+export function exportFilterMeta({ from, to, entityLabel, manufacturer }) {
   return [
+    manufacturer
+      ? { label: 'Manufacturer', value: manufacturer === 'UNKNOWN' ? 'Unclassified' : manufacturer }
+      : null,
     from || to ? { label: 'Period', value: `${from || '…'} → ${to || '…'}` } : null,
     entityLabel ? { label: 'Filter', value: entityLabel } : null,
   ].filter(Boolean);

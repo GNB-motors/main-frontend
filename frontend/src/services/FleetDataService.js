@@ -41,7 +41,7 @@ export const FleetDataService = {
   getFleetAlertSummary: (params = {}, signal) => get('/api/fleet-alerts/summary', params, signal),
 
   /** AdBlue/DEF claimed-vs-consumed ledger per vehicle. */
-  getDefLedger: (signal) => get('/api/def-ledger', {}, signal),
+  getDefLedger: (signal, params = {}) => get('/api/def-ledger', params, signal),
 
   /** FleetEdge directory vs fleet master join (the onboarding gap). */
   getFleetCoverage: (signal) => get('/api/fleet-coverage', {}, signal),

@@ -63,8 +63,8 @@ export function rangeLabel({ from, to }) {
 }
 
 /** Calendar range → API params: start and end of the IST day, as ISO. */
-export function rangeToParams({ from, to }) {
-  const params = {};
+export function rangeToParams({ from, to, manufacturer }) {
+  const params = manufacturer ? { manufacturer } : {};
   if (from) params.from = new Date(`${from}T00:00:00.000+05:30`).toISOString();
   if (to) params.to = new Date(`${to}T23:59:59.999+05:30`).toISOString();
   return params;

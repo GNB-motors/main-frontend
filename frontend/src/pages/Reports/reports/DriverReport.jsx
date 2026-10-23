@@ -32,8 +32,12 @@ const DriverReport = () => {
     refetch,
   } = useApi(
     (signal) =>
-      ReportsService.getDriverReports({ ...requestParams, page, limit: FLEET_REPORT_PAGE_SIZE }, signal),
+      ReportsService.getDriverReports(
+        { ...requestParams, page, limit: FLEET_REPORT_PAGE_SIZE },
+        signal,
+      ),
     [filterKey, page],
+    { scopeKey: filters.manufacturer },
   );
 
   const rows = response?.data || [];
@@ -161,6 +165,7 @@ const DriverReport = () => {
           }
           meta={{
             filters: exportFilterMeta({
+              manufacturer: filters.manufacturer,
               from: range.from,
               to: range.to,
               entityLabel: exportEntityLabel,

@@ -24,8 +24,22 @@ export const fmtPct = (v) => (typeof v === 'number' ? `${v.toFixed(1)}%` : '—'
 
 export const numOrNull = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
-export const buildTripFilterParams = ({ from, to, vehicleId, status, groupBy } = {}) =>
-  compactParams({ from: istDayStart(from), to: istDayEnd(to), vehicleId, status, groupBy });
+export const buildTripFilterParams = ({
+  from,
+  to,
+  vehicleId,
+  status,
+  groupBy,
+  manufacturer,
+} = {}) =>
+  compactParams({
+    from: istDayStart(from),
+    to: istDayEnd(to),
+    vehicleId,
+    status,
+    groupBy,
+    manufacturer,
+  });
 
 export const EMPTY_RANGE = { from: '', to: '' };
 

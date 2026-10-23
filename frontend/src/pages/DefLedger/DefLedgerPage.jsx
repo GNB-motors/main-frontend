@@ -1,4 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import ManufacturerFilter from '../../components/filters/ManufacturerFilter';
+import useManufacturerFilter from '../../hooks/useManufacturerFilter';
+import React, { useEffect, useMemo, useState } from 'react';
 import { RotateCw, Search } from 'lucide-react';
 import useApi from '../../hooks/useApi';
 import FleetDataService from '../../services/FleetDataService';
@@ -47,13 +49,22 @@ const EXPORT_COLUMNS = [
 const SKEL_ROWS = 8;
 
 export default function DefLedgerPage() {
+  const { manufacturer, setManufacturer } = useManufacturerFilter();
   const [selectedVehicle, setSelectedVehicle] = useState(null);
+  useEffect(() => {
+    setSelectedVehicle(null);
+    setPage(1);
+  }, [manufacturer]);
   const [search, setSearch] = useState('');
   const [chipId, setChipId] = useState('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
-  const { data, loading, refetch } = useApi((signal) => FleetDataService.getDefLedger(signal), []);
+  const { data, loading, refetch } = useApi(
+    (signal) => FleetDataService.getDefLedger(signal, manufacturer ? { manufacturer } : {}),
+    [manufacturer],
+    { scopeKey: manufacturer },
+  );
   // Only the first load shows placeholders; a refresh keeps the numbers on screen.
   const firstLoad = loading && !data;
 
@@ -122,6 +133,16 @@ export default function DefLedgerPage() {
         </div>
       </div>
 
+      <div className="manufacturer-scope-row mb-6">
+        <ManufacturerFilter
+          value={manufacturer}
+          onChange={(value) => {
+            setSelectedVehicle(null);
+            setPage(1);
+            setManufacturer(value);
+          }}
+        />
+      </div>
       {/* ── KPI Tiles ──────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KpiTile

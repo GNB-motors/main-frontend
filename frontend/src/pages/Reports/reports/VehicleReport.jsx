@@ -37,6 +37,7 @@ const VehicleReport = () => {
         signal,
       ),
     [filterKey, page],
+    { scopeKey: filters.manufacturer },
   );
 
   const rows = response?.data || [];
@@ -175,6 +176,7 @@ const VehicleReport = () => {
           }
           meta={{
             filters: exportFilterMeta({
+              manufacturer: filters.manufacturer,
               from: range.from,
               to: range.to,
               entityLabel:

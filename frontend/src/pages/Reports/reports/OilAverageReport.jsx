@@ -1,3 +1,5 @@
+import ManufacturerFilter from '../../../components/filters/ManufacturerFilter';
+import useManufacturerFilter from '../../../hooks/useManufacturerFilter';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Fuel, Gauge, IndianRupee, Route, Truck } from 'lucide-react';
@@ -184,15 +186,20 @@ function oilKpis(rows) {
 /** Trip-wise Oil & Average report, shown on the Reports page (?report=oilAverage). */
 export default function OilAverageReport() {
   const navigate = useNavigate();
+  const { manufacturer, setManufacturer } = useManufacturerFilter();
   const [range, setRange] = useState(defaultTripRange);
   const [search, setSearch] = useState('');
   const [vehicleId, setVehicleId] = useState('all');
 
-  const params = useMemo(() => buildTripFilterParams({ ...range, vehicleId }), [range, vehicleId]);
+  const params = useMemo(
+    () => buildTripFilterParams({ ...range, manufacturer, vehicleId }),
+    [range, manufacturer, vehicleId],
+  );
   const paramsKey = JSON.stringify(params);
   const { data, loading, error, refetch } = useApi(
     (signal) => AutoTripService.oilAverage(params, { signal }),
     [paramsKey],
+    { scopeKey: manufacturer },
   );
 
   const rows = useMemo(
@@ -219,7 +226,10 @@ export default function OilAverageReport() {
 
   const defaults = defaultTripRange();
   const activeFilters =
-    rangeFilterCount(range, defaults) + (search ? 1 : 0) + (vehicleId !== 'all' ? 1 : 0);
+    (manufacturer ? 1 : 0) +
+    rangeFilterCount(range, defaults) +
+    (search ? 1 : 0) +
+    (vehicleId !== 'all' ? 1 : 0);
   const vehicleLabel = vehicleId !== 'all' && rows[0] ? rows[0].vehicleNumber : null;
   const searchLabel = search.trim() ? `“${search.trim()}”` : null;
 
@@ -230,17 +240,19 @@ export default function OilAverageReport() {
       filters={
         <>
           <ReportDateRange from={range.from} to={range.to} onChange={setRange} />
+          <ManufacturerFilter value={manufacturer} onChange={setManufacturer} />
+          <VehiclePicker value={vehicleId} onChange={setVehicleId} />
           <ReportSearch
             value={search}
             onChange={setSearch}
             placeholder="Search vehicle, driver, place"
           />
-          <VehiclePicker value={vehicleId} onChange={setVehicleId} />
           <ReportClear
             active={activeFilters > 0}
             onClear={() => {
               setRange(defaultTripRange());
               setSearch('');
+              setManufacturer('');
               setVehicleId('all');
             }}
           />
