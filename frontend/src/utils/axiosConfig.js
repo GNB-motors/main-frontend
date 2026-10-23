@@ -103,7 +103,6 @@ apiClient.interceptors.response.use(
     const requestId = error.response?.headers?.['x-request-id'];
     if (requestId) {
       // Kept in production on purpose: support asks users for this request id.
-      // eslint-disable-next-line no-console
       logger.error(
         `[API Error] status=${error.response?.status} url=${error.config?.url} requestId=${requestId}`,
       );

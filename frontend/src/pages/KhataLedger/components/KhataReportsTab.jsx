@@ -465,8 +465,12 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
         <CardContent className="p-3.5">
           <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 text-xs">
             <div>
-              <label className="block text-gray-500 font-medium mb-1">From Date</label>
+              <label htmlFor="krt-filter-from" className="block text-gray-500 font-medium mb-1">
+                From Date
+              </label>
               <input
+                id="krt-filter-from"
+                aria-label="From date"
                 type="date"
                 className="w-full rounded-md border border-gray-300 px-2 py-1.5 bg-white"
                 value={dateRange.startDate ? dateRange.startDate.split('T')[0] : ''}
@@ -479,8 +483,12 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
               />
             </div>
             <div>
-              <label className="block text-gray-500 font-medium mb-1">To Date</label>
+              <label htmlFor="krt-filter-to" className="block text-gray-500 font-medium mb-1">
+                To Date
+              </label>
               <input
+                id="krt-filter-to"
+                aria-label="To date"
                 type="date"
                 className="w-full rounded-md border border-gray-300 px-2 py-1.5 bg-white"
                 value={dateRange.endDate ? dateRange.endDate.split('T')[0] : ''}
@@ -495,8 +503,11 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
               />
             </div>
             <div>
-              <label className="block text-gray-500 font-medium mb-1">Vehicle</label>
+              <label htmlFor="krt-filter-vehicle" className="block text-gray-500 font-medium mb-1">
+                Vehicle
+              </label>
               <select
+                id="krt-filter-vehicle"
                 className="w-full rounded-md border border-gray-300 px-2 py-1.5 bg-white"
                 value={vehicleId}
                 onChange={(e) => setVehicleId(e.target.value)}
@@ -510,8 +521,11 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
               </select>
             </div>
             <div>
-              <label className="block text-gray-500 font-medium mb-1">Driver</label>
+              <label htmlFor="krt-filter-driver" className="block text-gray-500 font-medium mb-1">
+                Driver
+              </label>
               <select
+                id="krt-filter-driver"
                 className="w-full rounded-md border border-gray-300 px-2 py-1.5 bg-white"
                 value={driverId}
                 onChange={(e) => setDriverId(e.target.value)}
@@ -525,8 +539,11 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
               </select>
             </div>
             <div>
-              <label className="block text-gray-500 font-medium mb-1">Category</label>
+              <label htmlFor="krt-filter-category" className="block text-gray-500 font-medium mb-1">
+                Category
+              </label>
               <select
+                id="krt-filter-category"
                 className="w-full rounded-md border border-gray-300 px-2 py-1.5 bg-white"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}

@@ -355,8 +355,15 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
           <div className="mt-4 pt-3 border-t border-indigo-100/80 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 text-xs">
             {/* Start Date */}
             <div>
-              <label className="block text-[11px] font-medium text-gray-600 mb-1">From Date</label>
+              <label
+                htmlFor="kdt-filter-from"
+                className="block text-[11px] font-medium text-gray-600 mb-1"
+              >
+                From Date
+              </label>
               <input
+                id="kdt-filter-from"
+                aria-label="From date"
                 type="date"
                 className="w-full rounded-md border border-gray-300 px-2 py-1 bg-white text-xs"
                 value={dateRange.startDate ? dateRange.startDate.split('T')[0] : ''}
@@ -371,8 +378,15 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
 
             {/* End Date */}
             <div>
-              <label className="block text-[11px] font-medium text-gray-600 mb-1">To Date</label>
+              <label
+                htmlFor="kdt-filter-to"
+                className="block text-[11px] font-medium text-gray-600 mb-1"
+              >
+                To Date
+              </label>
               <input
+                id="kdt-filter-to"
+                aria-label="To date"
                 type="date"
                 className="w-full rounded-md border border-gray-300 px-2 py-1 bg-white text-xs"
                 value={dateRange.endDate ? dateRange.endDate.split('T')[0] : ''}
@@ -389,8 +403,14 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
 
             {/* Vehicle */}
             <div>
-              <label className="block text-[11px] font-medium text-gray-600 mb-1">Vehicle</label>
+              <label
+                htmlFor="kdt-filter-vehicle"
+                className="block text-[11px] font-medium text-gray-600 mb-1"
+              >
+                Vehicle
+              </label>
               <select
+                id="kdt-filter-vehicle"
                 className="w-full rounded-md border border-gray-300 px-2 py-1 bg-white text-xs"
                 value={vehicleId}
                 onChange={(e) => setVehicleId(e.target.value)}
@@ -406,8 +426,14 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
 
             {/* Driver */}
             <div>
-              <label className="block text-[11px] font-medium text-gray-600 mb-1">Driver</label>
+              <label
+                htmlFor="kdt-filter-driver"
+                className="block text-[11px] font-medium text-gray-600 mb-1"
+              >
+                Driver
+              </label>
               <select
+                id="kdt-filter-driver"
                 className="w-full rounded-md border border-gray-300 px-2 py-1 bg-white text-xs"
                 value={driverId}
                 onChange={(e) => setDriverId(e.target.value)}
@@ -423,8 +449,14 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
 
             {/* Category */}
             <div>
-              <label className="block text-[11px] font-medium text-gray-600 mb-1">Category</label>
+              <label
+                htmlFor="kdt-filter-category"
+                className="block text-[11px] font-medium text-gray-600 mb-1"
+              >
+                Category
+              </label>
               <select
+                id="kdt-filter-category"
                 className="w-full rounded-md border border-gray-300 px-2 py-1 bg-white text-xs"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
@@ -440,8 +472,14 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
 
             {/* Source */}
             <div>
-              <label className="block text-[11px] font-medium text-gray-600 mb-1">Source</label>
+              <label
+                htmlFor="kdt-filter-source"
+                className="block text-[11px] font-medium text-gray-600 mb-1"
+              >
+                Source
+              </label>
               <select
+                id="kdt-filter-source"
                 className="w-full rounded-md border border-gray-300 px-2 py-1 bg-white text-xs"
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
@@ -456,8 +494,14 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
 
             {/* Status */}
             <div>
-              <label className="block text-[11px] font-medium text-gray-600 mb-1">Status</label>
+              <label
+                htmlFor="kdt-filter-status"
+                className="block text-[11px] font-medium text-gray-600 mb-1"
+              >
+                Status
+              </label>
               <select
+                id="kdt-filter-status"
                 className="w-full rounded-md border border-gray-300 px-2 py-1 bg-white text-xs"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}

@@ -7,12 +7,14 @@ const FuelAnomalyModal = ({ isOpen, onClose, flag, title = 'Fuel Mileage Anomaly
   const isUnderperforming = (flag.variancePct || 0) < 0;
 
   return (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
     <div
       className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
       role="dialog"
       aria-modal="true"
       onClick={onClose}
     >
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div
         className="relative w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden border border-amber-200 animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}

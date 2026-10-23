@@ -328,10 +328,15 @@ const ExpenseModal = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-700">
+            <label
+              htmlFor="atx-form-title"
+              className="mb-1 block text-xs font-medium text-gray-700"
+            >
               Title <span className="text-red-500">*</span>
             </label>
             <input
+              id="atx-form-title"
+              aria-label="Transaction title"
               className={inputClass}
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -343,10 +348,15 @@ const ExpenseModal = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700">
+              <label
+                htmlFor="atx-form-amount"
+                className="mb-1 block text-xs font-medium text-gray-700"
+              >
                 Amount (INR) <span className="text-red-500">*</span>
               </label>
               <input
+                id="atx-form-amount"
+                aria-label="Amount in INR"
                 type="number"
                 className={inputClass}
                 value={form.amount}
@@ -358,8 +368,14 @@ const ExpenseModal = ({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700">Category</label>
+              <label
+                htmlFor="atx-form-category"
+                className="mb-1 block text-xs font-medium text-gray-700"
+              >
+                Category
+              </label>
               <select
+                id="atx-form-category"
                 className={inputClass}
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
@@ -374,8 +390,12 @@ const ExpenseModal = ({
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-700">Expense Date</label>
+            <label htmlFor="atx-form-date" className="mb-1 block text-xs font-medium text-gray-700">
+              Expense Date
+            </label>
             <input
+              id="atx-form-date"
+              aria-label="Expense date"
               type="date"
               className={inputClass}
               value={form.expenseDate}
@@ -384,10 +404,12 @@ const ExpenseModal = ({
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-700">
+            <label htmlFor="atx-form-desc" className="mb-1 block text-xs font-medium text-gray-700">
               Description / Notes
             </label>
             <textarea
+              id="atx-form-desc"
+              aria-label="Description or notes"
               className={inputClass}
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -438,8 +460,14 @@ const ExpenseModal = ({
             <div className="grid grid-cols-2 gap-3">
               {/* Vehicle */}
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-700">Vehicle</label>
+                <label
+                  htmlFor="atx-form-vehicle"
+                  className="mb-1 block text-xs font-medium text-gray-700"
+                >
+                  Vehicle
+                </label>
                 <select
+                  id="atx-form-vehicle"
                   className={inputClass}
                   value={form.vehicleId}
                   onChange={(e) => handleVehicleChange(e.target.value)}
@@ -455,8 +483,14 @@ const ExpenseModal = ({
 
               {/* Driver */}
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-700">Driver</label>
+                <label
+                  htmlFor="atx-form-driver"
+                  className="mb-1 block text-xs font-medium text-gray-700"
+                >
+                  Driver
+                </label>
                 <select
+                  id="atx-form-driver"
                   className={inputClass}
                   value={form.driverId}
                   onChange={(e) => handleDriverChange(e.target.value)}
@@ -744,6 +778,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
               />
               <input
+                aria-label="Search transactions"
                 className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-600"
                 placeholder="Search transactions by title or description..."
                 value={searchInput}
@@ -754,6 +789,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
             <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 bg-white">
               <input
                 type="checkbox"
+                aria-label="Include Auto Refuels and Trip Costs"
                 checked={includeTripExpenses}
                 onChange={(e) => setIncludeTripExpenses(e.target.checked)}
                 className="h-4 w-4 rounded border-gray-300 accent-indigo-600"
@@ -784,8 +820,14 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
           {showFilters && (
             <div className="pt-3 border-t grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2.5 text-xs">
               <div>
-                <label className="block text-gray-500 font-medium mb-1">Category</label>
+                <label
+                  htmlFor="atx-filter-category"
+                  className="block text-gray-500 font-medium mb-1"
+                >
+                  Category
+                </label>
                 <select
+                  id="atx-filter-category"
                   className="w-full rounded-lg border border-gray-300 px-2 py-1.5 bg-white text-xs"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
@@ -800,8 +842,11 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
               </div>
 
               <div>
-                <label className="block text-gray-500 font-medium mb-1">Source</label>
+                <label htmlFor="atx-filter-source" className="block text-gray-500 font-medium mb-1">
+                  Source
+                </label>
                 <select
+                  id="atx-filter-source"
                   className="w-full rounded-lg border border-gray-300 px-2 py-1.5 bg-white text-xs"
                   value={source}
                   onChange={(e) => setSource(e.target.value)}
@@ -816,8 +861,11 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
               </div>
 
               <div>
-                <label className="block text-gray-500 font-medium mb-1">Status</label>
+                <label htmlFor="atx-filter-status" className="block text-gray-500 font-medium mb-1">
+                  Status
+                </label>
                 <select
+                  id="atx-filter-status"
                   className="w-full rounded-lg border border-gray-300 px-2 py-1.5 bg-white text-xs"
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
@@ -830,8 +878,14 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
               </div>
 
               <div>
-                <label className="block text-gray-500 font-medium mb-1">Vehicle</label>
+                <label
+                  htmlFor="atx-filter-vehicle"
+                  className="block text-gray-500 font-medium mb-1"
+                >
+                  Vehicle
+                </label>
                 <select
+                  id="atx-filter-vehicle"
                   className="w-full rounded-lg border border-gray-300 px-2 py-1.5 bg-white text-xs"
                   value={vehicleId}
                   onChange={(e) => setVehicleId(e.target.value)}
@@ -846,8 +900,12 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
               </div>
 
               <div>
-                <label className="block text-gray-500 font-medium mb-1">From Date</label>
+                <label htmlFor="atx-filter-from" className="block text-gray-500 font-medium mb-1">
+                  From Date
+                </label>
                 <input
+                  id="atx-filter-from"
+                  aria-label="From date"
                   type="date"
                   className="w-full rounded-lg border border-gray-300 px-2 py-1.5 bg-white text-xs"
                   value={startDate}
@@ -856,8 +914,12 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
               </div>
 
               <div>
-                <label className="block text-gray-500 font-medium mb-1">To Date</label>
+                <label htmlFor="atx-filter-to" className="block text-gray-500 font-medium mb-1">
+                  To Date
+                </label>
                 <input
+                  id="atx-filter-to"
+                  aria-label="To date"
                   type="date"
                   className="w-full rounded-lg border border-gray-300 px-2 py-1.5 bg-white text-xs"
                   value={endDate}

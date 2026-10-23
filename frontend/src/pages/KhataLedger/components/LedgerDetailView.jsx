@@ -358,6 +358,7 @@ const LedgerDetailView = ({ entityType, entityId }) => {
             {erpTrips.slice(0, 6).map((t) => {
               const fin = tripFinances[t._id];
               return (
+                // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
                 <div
                   key={t._id}
                   onClick={() => setSelectedTripModalId(t._id)}

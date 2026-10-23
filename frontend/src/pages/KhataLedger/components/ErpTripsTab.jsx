@@ -335,6 +335,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
               />
               <input
+                aria-label="Search trips"
                 className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 placeholder="Search by trip number, vehicle, driver, route..."
                 value={searchInput}
@@ -346,6 +347,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
             <div className="flex items-center gap-2">
               <ArrowUpDown size={15} className="text-gray-400" />
               <select
+                aria-label="Sort trips"
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 bg-white"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
@@ -380,8 +382,14 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
           {showFilters && (
             <div className="pt-3 border-t grid grid-cols-1 sm:grid-cols-4 gap-3 text-sm">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Trip Status</label>
+                <label
+                  htmlFor="erp-filter-status"
+                  className="block text-xs font-medium text-gray-600 mb-1"
+                >
+                  Trip Status
+                </label>
                 <select
+                  id="erp-filter-status"
                   className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs bg-white"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
@@ -396,10 +404,14 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
+                <label
+                  htmlFor="erp-filter-profitability"
+                  className="block text-xs font-medium text-gray-600 mb-1"
+                >
                   Profitability
                 </label>
                 <select
+                  id="erp-filter-profitability"
                   className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs bg-white"
                   value={profitabilityFilter}
                   onChange={(e) => setProfitabilityFilter(e.target.value)}
@@ -412,8 +424,14 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Vehicle</label>
+                <label
+                  htmlFor="erp-filter-vehicle"
+                  className="block text-xs font-medium text-gray-600 mb-1"
+                >
+                  Vehicle
+                </label>
                 <select
+                  id="erp-filter-vehicle"
                   className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs bg-white"
                   value={vehicleFilter}
                   onChange={(e) => setVehicleFilter(e.target.value)}
@@ -428,8 +446,14 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Driver</label>
+                <label
+                  htmlFor="erp-filter-driver"
+                  className="block text-xs font-medium text-gray-600 mb-1"
+                >
+                  Driver
+                </label>
                 <select
+                  id="erp-filter-driver"
                   className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs bg-white"
                   value={driverFilter}
                   onChange={(e) => setDriverFilter(e.target.value)}
