@@ -41,6 +41,7 @@ import KhataLedgerService from '../KhataLedgerService';
 import ErpTripDetailModal from './ErpTripDetailModal';
 import { useActiveBranch } from '../../../contexts/BranchContext';
 import {
+import logger from '../../../utils/logger.js';
   formatCurrency,
   formatDate,
   formatCostPerKm,
@@ -132,7 +133,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
       );
       setTripFinances(finances);
     } catch (err) {
-      console.error('Failed to load dashboard data:', err);
+      logger.error('Failed to load dashboard data:', err);
     } finally {
       setLoading(false);
     }
