@@ -1,4 +1,7 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { getVehicleList } from '../../../services/vehicleListService';
+import { toast } from 'react-toastify';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import useManufacturerFilter from '../../../hooks/useManufacturerFilter';
 import { ChevronDown, Search } from 'lucide-react';
 import { ReportsService } from '../ReportsService.js';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
@@ -14,15 +17,21 @@ const ALL = 'all';
  * `fetchOptions(query, signal)` resolves to [{ id, label, sub? }]. `value` is
  * an id or 'all'; `onChange(id, row)` receives ('all', null) for the "All …"
  * row, and the chosen { id, label, sub } otherwise.
+ *
+ * `valueLabel` is the picked row's text, kept by the caller. The options are
+ * only fetched while the panel is open, so without it a value restored from a
+ * shared link would show the "All …" text while filtering to one entity.
  */
 export default function ReportEntityPicker({
   label,
   value,
+  valueLabel = '',
   onChange,
   fetchOptions,
   allLabel,
   searchPlaceholder,
   width = 200,
+  scopeKey = '',
 }) {
   const listId = useId();
   const rootRef = useRef(null);
@@ -37,6 +46,7 @@ export default function ReportEntityPicker({
 
   const isAll = !value || value === ALL;
   const shownSelected = !isAll && selected?.id === value ? selected : null;
+  const triggerLabel = shownSelected ? shownSelected.label : isAll ? allLabel : valueLabel;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -60,7 +70,7 @@ export default function ReportEntityPicker({
     return () => controller.abort();
     // fetchOptions is a stable module-level function in every caller.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, debouncedQuery]);
+  }, [open, debouncedQuery, scopeKey]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -100,13 +110,13 @@ export default function ReportEntityPicker({
       {label}
       <button
         type="button"
-        className={`rpt-picker-trigger${shownSelected ? '' : ' is-placeholder'}`}
+        className={`rpt-picker-trigger${triggerLabel === allLabel ? ' is-placeholder' : ''}`}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
         onClick={() => setOpen((o) => !o)}
       >
-        <span>{shownSelected ? shownSelected.label : allLabel}</span>
+        <span>{triggerLabel}</span>
         <ChevronDown size={15} aria-hidden="true" />
       </button>
       {open ? (
@@ -176,13 +186,45 @@ const fetchVehicles = (query, signal) =>
 const fetchDrivers = (query, signal) =>
   ReportsService.searchDrivers(query, { signal, limit: RESULT_LIMIT });
 
-export function VehiclePicker({ value, onChange, width = 200 }) {
+export function VehiclePicker({ value, valueLabel, onChange, width = 200, manufacturer: make }) {
+  const { manufacturer: urlMake } = useManufacturerFilter();
+  const manufacturer = make ?? urlMake;
+  const fetchScopedVehicles = useCallback(
+    (query, signal) =>
+      manufacturer
+        ? ReportsService.searchVehicles(query, { signal, limit: RESULT_LIMIT, manufacturer })
+        : fetchVehicles(query, signal),
+    [manufacturer],
+  );
+  const previousMake = useRef(manufacturer);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  useEffect(() => {
+    if (previousMake.current === manufacturer) return undefined;
+    previousMake.current = manufacturer;
+    if (!manufacturer || !value || value === ALL) return undefined;
+    const controller = new AbortController();
+    getVehicleList({ signal: controller.signal })
+      .then((vehicles) => {
+        const selectedVehicle = vehicles.find((v) => String(v._id || v.id) === String(value));
+        if (selectedVehicle && (selectedVehicle.manufacturer || 'UNKNOWN') === manufacturer) return;
+        if (controller.signal.aborted) return;
+        onChangeRef.current(ALL, null);
+        toast.info('Vehicle selection cleared for the selected manufacturer.');
+      })
+      .catch(() => {
+        /* Backend still intersects a conflicting selection. */
+      });
+    return () => controller.abort();
+  }, [manufacturer, value]);
   return (
     <ReportEntityPicker
       label="Vehicle"
       value={value}
+      valueLabel={valueLabel}
       onChange={onChange}
-      fetchOptions={fetchVehicles}
+      fetchOptions={fetchScopedVehicles}
+      scopeKey={manufacturer}
       allLabel="All vehicles"
       searchPlaceholder="Search vehicle number"
       width={width}
@@ -190,11 +232,12 @@ export function VehiclePicker({ value, onChange, width = 200 }) {
   );
 }
 
-export function DriverPicker({ value, onChange, width = 200 }) {
+export function DriverPicker({ value, valueLabel, onChange, width = 200 }) {
   return (
     <ReportEntityPicker
       label="Driver"
       value={value}
+      valueLabel={valueLabel}
       onChange={onChange}
       fetchOptions={fetchDrivers}
       allLabel="All drivers"

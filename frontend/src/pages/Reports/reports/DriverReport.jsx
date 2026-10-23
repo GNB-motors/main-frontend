@@ -1,10 +1,8 @@
-import { useMemo, useState } from 'react';
 import { Fuel, Gauge, IndianRupee, Route } from 'lucide-react';
 import DataTable from '../../../components/ui/DataTable';
 import ExportButton from '../../../components/ui/ExportButton';
 import ReportDataNotice from '../../../components/ui/ReportDataNotice';
 import useApi from '../../../hooks/useApi';
-import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { ReportsService } from '../ReportsService.js';
 import { formatINR, formatKm, formatLitres, formatNum } from '../../../utils/formatters';
 import { formatDateIST } from '../../../utils/dateUtils';
@@ -14,35 +12,17 @@ import {
   exportFilterMeta,
 } from './fleetReportUtils';
 import { KmplCell, NameCell } from './fleetReportCells';
-import ReportFrame, {
-  ReportClear,
-  ReportDateRange,
-  ReportFooter,
-  ReportSearch,
-} from './ReportFrame';
-import { DriverPicker, VehiclePicker } from './ReportEntityPicker';
-import { compactParams, istDayEnd, istDayStart, rangeLabel } from './reportFilters';
+import ReportFrame, { ReportFooter } from './ReportFrame';
+import ReportFilterBar from './ReportFilterBar';
+import { rangeLabel } from './reportFilters';
+import useReportFilterParams from './useReportFilterParams';
 import useReportPage from './useReportPage';
 
 const DriverReport = () => {
-  const [range, setRange] = useState({ from: '', to: '' });
-  const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search.trim(), 300);
-  const [vehicleId, setVehicleId] = useState('all');
-  const [driverId, setDriverId] = useState('all');
-
-  const filters = useMemo(
-    () =>
-      compactParams({
-        startDate: istDayStart(range.from),
-        endDate: istDayEnd(range.to),
-        search: debouncedSearch,
-        vehicleId,
-        driverId,
-      }),
-    [range, debouncedSearch, vehicleId, driverId],
-  );
-  const filterKey = JSON.stringify(filters);
+  // Filters live in the URL (see <ReportFilterBar/>), so this report keeps no
+  // filter state and a filtered view can be shared as a link.
+  const { filters, range, requestParams, activeCount } = useReportFilterParams();
+  const filterKey = JSON.stringify(requestParams);
   const [page, setPage] = useReportPage(filterKey);
 
   const {
@@ -52,8 +32,12 @@ const DriverReport = () => {
     refetch,
   } = useApi(
     (signal) =>
-      ReportsService.getDriverReports({ ...filters, page, limit: FLEET_REPORT_PAGE_SIZE }, signal),
+      ReportsService.getDriverReports(
+        { ...requestParams, page, limit: FLEET_REPORT_PAGE_SIZE },
+        signal,
+      ),
     [filterKey, page],
+    { scopeKey: filters.manufacturer },
   );
 
   const rows = response?.data || [];
@@ -132,15 +116,9 @@ const DriverReport = () => {
     },
   ];
 
-  const activeFilters =
-    (range.from ? 1 : 0) +
-    (range.to ? 1 : 0) +
-    (search ? 1 : 0) +
-    (vehicleId !== 'all' ? 1 : 0) +
-    (driverId !== 'all' ? 1 : 0);
-  const selectedDriverLabel = driverId !== 'all' && rows[0] ? rows[0].driverName : null;
+  const selectedDriverLabel = filters.driver !== 'all' && rows[0] ? rows[0].driverName : null;
   const exportEntityLabel =
-    [selectedDriverLabel, debouncedSearch ? `“${debouncedSearch}”` : null]
+    [selectedDriverLabel, requestParams.search ? `“${requestParams.search}”` : null]
       .filter(Boolean)
       .join(' · ') || null;
 
@@ -175,23 +153,7 @@ const DriverReport = () => {
     <ReportFrame
       title="Driver Report"
       subtitle="Fuel billed by each driver, and mileage over the full-tank cycles they opened"
-      filters={
-        <>
-          <ReportDateRange from={range.from} to={range.to} onChange={setRange} />
-          <ReportSearch value={search} onChange={setSearch} placeholder="Search driver or phone" />
-          <VehiclePicker value={vehicleId} onChange={setVehicleId} />
-          <DriverPicker value={driverId} onChange={setDriverId} />
-          <ReportClear
-            active={activeFilters > 0}
-            onClear={() => {
-              setRange({ from: '', to: '' });
-              setSearch('');
-              setVehicleId('all');
-              setDriverId('all');
-            }}
-          />
-        </>
-      }
+      filters={<ReportFilterBar searchPlaceholder="Search driver or phone" />}
       actions={
         <ExportButton
           rows={rows}
@@ -199,9 +161,16 @@ const DriverReport = () => {
           filename="driver-report"
           buttonClass="rpt-btn"
           fetchAll={() =>
-            ReportsService.fetchAllReportRows(ReportsService.getDriverReports, filters)
+            ReportsService.fetchAllReportRows(ReportsService.getDriverReports, requestParams)
           }
-          meta={{ filters: exportFilterMeta({ ...range, entityLabel: exportEntityLabel }) }}
+          meta={{
+            filters: exportFilterMeta({
+              manufacturer: filters.manufacturer,
+              from: range.from,
+              to: range.to,
+              entityLabel: exportEntityLabel,
+            }),
+          }}
           disabled={!rows.length}
         />
       }
@@ -234,7 +203,7 @@ const DriverReport = () => {
         onRetry={refetch}
         showing={rows.length}
         total={meta.total}
-        activeFilters={activeFilters}
+        activeFilters={activeCount}
         emptyTitle="No driver fuel data"
         emptyHint="Try widening the date range, clearing the search or choosing All vehicles and All drivers."
       />

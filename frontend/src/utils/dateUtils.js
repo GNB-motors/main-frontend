@@ -69,7 +69,7 @@ export const formatDateTimeIST = (dateStr) => {
 /**
  * Format a UTC timestamp to IST date + time with long month.
  * e.g. "January 15, 2024 at 03:30 PM"
- * Used in TripDetailPage / WeightSlipTripDetailPage.
+ * Used in TripDetailPage.
  */
 export const formatDateTimeLongIST = (dateStr) => {
   if (!dateStr) return '-';

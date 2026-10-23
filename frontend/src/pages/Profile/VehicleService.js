@@ -29,10 +29,15 @@ const resolveVehicleBranchId = (vehicleData) => {
   return getBranchId() || null;
 };
 
-const getAllVehicles = async (businessRefId, page = 1, limit = 10, { signal } = {}) => {
+const getAllVehicles = async (
+  businessRefId,
+  page = 1,
+  limit = 10,
+  { signal, manufacturer, search } = {},
+) => {
   try {
     const response = await apiClient.get('/api/vehicles', {
-      params: { page, limit, orgId: businessRefId || undefined },
+      params: { page, limit, manufacturer: manufacturer || undefined, search: search || undefined },
       signal,
     });
 
@@ -64,8 +69,6 @@ const addVehicle = async (businessRefId, vehicleData) => {
       model: vehicleData.model || null,
       // Ensure inventory is always an array (backend validation requires an array)
       inventory: vehicleData.inventory || [],
-      // include orgId in body for servers that expect org context in payload
-      orgId: businessRefId || undefined,
       // Owning location. The form's explicit choice wins: a real id, or null for
       // "Enterprise (no location)" — which must override the active-location header.
       // If a caller doesn't specify branchId at all, use the active location.
@@ -179,8 +182,6 @@ const updateVehicle = async (businessRefId, vehicleId, vehicleData) => {
     if (vehicleData.expected_mileage !== undefined) {
       body.expectedMileage = toExpectedMileage(vehicleData.expected_mileage) || { kmPerL: null };
     }
-    // Include orgId when provided by caller (some servers expect it)
-    if (businessRefId) body.orgId = businessRefId;
 
     const response = await apiClient.patch(`/api/vehicles/${vehicleId}`, body);
     invalidateVehicleList();
@@ -273,6 +274,10 @@ const acknowledgeVehicleDocument = async (vehicleId, docId) => {
 };
 
 export const VehicleService = {
+  getManufacturerOptions: async ({ signal } = {}) => {
+    const response = await apiClient.get('/api/vehicles/metadata', { signal });
+    return response.data.data.manufacturers;
+  },
   getAllVehicles,
   addVehicle,
   addBulkVehicles,

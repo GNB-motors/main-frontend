@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import PageShell from '../../components/ui/PageShell';
+import EnterprisePagination from '../../components/ui/EnterprisePagination';
+import './TripsWorkspace.css';
 import DataTable from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -101,7 +103,8 @@ export default function ExcursionsPage() {
 
   return (
     <PageShell
-      title="Deviations"
+      className="trip-workspace"
+      title="Route deviations"
       count={total}
       subtitle="Non-business detours detected from trips — review each as approved or not a deviation, or give it a reason."
       actions={
@@ -110,13 +113,14 @@ export default function ExcursionsPage() {
         </Button>
       }
     >
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+      <div className="trip-workspace-tabs" aria-label="Deviation status">
         {TABS.map((t) => (
           <Button
             key={t.key || 'all'}
             type="button"
             size="sm"
-            variant={statusTab === t.key ? 'default' : 'outline'}
+            variant="ghost"
+            aria-pressed={statusTab === t.key}
             onClick={() => changeTab(t.key)}
           >
             {t.label}
@@ -127,6 +131,16 @@ export default function ExcursionsPage() {
       <DataTable
         columns={columns}
         rows={items}
+        total={total}
+        pagination={
+          <EnterprisePagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={total || null}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+          />
+        }
         rowKey={(r) => r._id}
         loading={loading}
         error={error}
@@ -135,38 +149,6 @@ export default function ExcursionsPage() {
         emptyTitle="No deviations here"
         emptyHint="Deviations appear when a truck takes a non-business detour on a trip."
       />
-
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-          gap: 12,
-          marginTop: 12,
-        }}
-      >
-        <span style={{ fontSize: 13, color: 'var(--muted-foreground, #666)' }}>
-          Page {page} / {totalPages}
-        </span>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={page <= 1 || loading}
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-        >
-          <ChevronLeft size={16} /> Prev
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={page >= totalPages || loading}
-          onClick={() => setPage((p) => p + 1)}
-        >
-          Next <ChevronRight size={16} />
-        </Button>
-      </div>
     </PageShell>
   );
 }

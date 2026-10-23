@@ -16,6 +16,7 @@ const DriversPage = lazy(() => import('../../pages/Drivers/DriversPage.jsx'));
 const AddDriverPage = lazy(() => import('../../pages/Drivers/AddDriverPage.jsx'));
 const BulkUploadDriversPage = lazy(() => import('../../pages/Drivers/BulkUploadDriversPage.jsx'));
 const BulkUploadVehiclesPage = lazy(() => import('../../pages/Profile/BulkUploadVehiclesPage.jsx'));
+const DataImportsPage = lazy(() => import('../../pages/DataImports/DataImportsPage.jsx'));
 const TripManagementPage = lazy(() => import('../../pages/Trip/TripManagementPage.jsx'));
 const TripDetailPage = lazy(() => import('../../pages/Trip/TripDetailPage.jsx'));
 const FleetApprovalsPage = lazy(() => import('../../pages/Approvals/ApprovalsPage.jsx'));
@@ -26,6 +27,7 @@ const ServiceIntelligencePage = lazy(
   () => import('../../pages/Maintenance/ServiceIntelligencePage.jsx'),
 );
 const AddMaintenancePage = lazy(() => import('../../pages/Maintenance/AddMaintenancePage.jsx'));
+const ServiceBillPage = lazy(() => import('../../pages/ServiceBill/ServiceBillPage.jsx'));
 const MileagePage = lazy(() => import('../../pages/Mileage/MileagePage.jsx'));
 const MileageTrackingVehicleDetail = lazy(
   () => import('../../pages/MileageTracking/MileageTrackingVehicleDetail.jsx'),
@@ -47,8 +49,14 @@ const ExcursionsPage = lazy(() => import('../../pages/AutoTrips/ExcursionsPage.j
 const ExcursionDetailPage = lazy(() => import('../../pages/AutoTrips/ExcursionDetailPage.jsx'));
 const MovementApprovalsPage = lazy(() => import('../../pages/AutoTrips/MovementApprovalsPage.jsx'));
 const PlaceHubPage = lazy(() => import('../../pages/PlaceHub/PlaceHubPage.jsx'));
+// Tolls — plaza gates on the road network, crossings found on the road-matched
+// path, and the estimate-vs-driver-bill cross-check. The API is the role gate.
+const TollsPage = lazy(() => import('../../pages/Tolls/TollsPage.jsx'));
 const LiveTrackingPage = lazy(() => import('../../pages/LiveTracking/LiveTrackingPage.jsx'));
 const OwnerAlertsPage = lazy(() => import('../../pages/OwnerAlerts/OwnerAlertsPage.jsx'));
+// Item 26 — the one alert inbox and the usage numbers behind the nav cut.
+const AlertInboxPage = lazy(() => import('../../pages/AlertInbox/AlertInboxPage.jsx'));
+const UsageAnalyticsPage = lazy(() => import('../../pages/UsageAnalytics/UsageAnalyticsPage.jsx'));
 const FieldAgentFuelPage = lazy(() => import('../../pages/FieldAgentFuel/FieldAgentFuelPage.jsx'));
 const FieldAgentFuelUploadPage = lazy(
   () => import('../../pages/FieldAgentFuel/FieldAgentFuelUploadPage.jsx'),
@@ -132,8 +140,16 @@ const dashboardRoutes = (
     <Route path="/idling-console" element={<Navigate to="/route-hub" replace />} />
     <Route path="/places" element={<PlacesRedirect />} />
     <Route path="/place-hub" element={<PlaceHubPage />} />
+    <Route path="/tolls" element={<TollsPage />} />
     <Route path="/live-tracking" element={<LiveTrackingPage />} />
     <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
+    {/* Item 26.5: ONE inbox over the scattered alert sources. The pages it reads
+        from are all still mounted below and keep working unchanged. */}
+    <Route path="/alert-inbox" element={<AlertInboxPage />} />
+    {/* Item 26.1: what this org opens, and the numbers the menu cut is argued
+        from. The endpoint authorizes OWNER/MANAGER; the nav entry is gated to
+        the same two roles. */}
+    <Route path="/usage" element={<UsageAnalyticsPage />} />
     <Route path="/geofence" element={<Navigate to="/live-tracking" replace />} />
     <Route path="/geofence/zones" element={<Navigate to="/live-tracking" replace />} />
     <Route path="/geofence-zones" element={<Navigate to="/live-tracking" replace />} />
@@ -191,6 +207,8 @@ const dashboardRoutes = (
     <Route path="/vehicles" element={<VehiclesPage />} />
     <Route path="/vehicles/dashboard" element={<VehicleDashboardPage />} />
     <Route path="/vehicles/service-intelligence" element={<ServiceIntelligencePage />} />
+    {/* D3 (00_PLAN item 19) — service done, where's the bill? */}
+    <Route path="/vehicles/service-bills" element={<ServiceBillPage />} />
     <Route
       path="/vehicles/service-intelligence/add-service"
       element={<AddMaintenancePage recordType="SERVICE" />}
@@ -201,6 +219,9 @@ const dashboardRoutes = (
     />
     <Route path="/vehicles/add" element={<AddVehiclePage />} />
     <Route path="/vehicles/bulk-upload" element={<BulkUploadVehiclesPage />} />
+    {/* CSV bulk import for drivers, driver↔vehicle assignments and vehicle
+        master fields (plan item 16). Dry run first; /apply is explicit. */}
+    <Route path="/data-imports" element={<DataImportsPage />} />
     <Route path="/warehouses" element={<Navigate to="/auto-trips" replace />} />
     <Route path="/auto-trips" element={<AutoTripsPage />} />
     {/* The Oil & Average report lives on the Reports page now. */}

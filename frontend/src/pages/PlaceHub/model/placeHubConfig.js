@@ -7,6 +7,7 @@ export const TAB_IDS = [
   'fuel',
   'stops',
   'routes',
+  'duplicates',
   'facilities',
   'regions',
   'homes',

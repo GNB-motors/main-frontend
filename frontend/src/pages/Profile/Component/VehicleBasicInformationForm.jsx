@@ -1,12 +1,15 @@
-import React, { useState, useEffect, forwardRef } from 'react';
-import { Truck, Hash, Gauge, Building2, Radio, Layers } from 'lucide-react';
+import { useState, useEffect, forwardRef } from 'react';
+import { Truck, Building2 } from 'lucide-react';
 import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
+import { PRIMARY_MANUFACTURERS, canonicalManufacturer } from '../vehicleManufacturerOptions.js';
 import '../../Drivers/Component/BasicInformationForm.css';
+
+const EMPTY_INITIAL_DATA = {};
 
 const VehicleBasicInformationForm = forwardRef(
   (
     {
-      initialData = {},
+      initialData = EMPTY_INITIAL_DATA,
       onSubmit,
       isSubmitting = false,
       isEdit = false,
@@ -18,300 +21,326 @@ const VehicleBasicInformationForm = forwardRef(
       fleetEdgeAccounts = [],
       selectedAccountId = '',
       onAccountChange = () => {},
-      onRegistrationChange = () => {},
+      onRegistrationChange,
+      onManufacturerChange,
+      manufacturers = PRIMARY_MANUFACTURERS,
+      metadataError = false,
+      onRetryMetadata,
+      accountsLoading = false,
+      accountsError = false,
+      onRetryAccounts,
+      canAssignAccount = false,
+      manufacturer = '',
+      accountNotice = '',
     },
     ref,
   ) => {
     const { isEnabled } = useFeatureFlags();
     const showExpectedMileage = isEnabled('mileageIntegrity');
-
     const [formData, setFormData] = useState({
-      registration_no: initialData.registration_no || '',
-      chassis_number: initialData.chassis_number || '',
-      model: initialData.model || '',
-      expected_mileage: initialData.expected_mileage ?? '',
+      registration_no: '',
+      chassis_number: '',
+      model: '',
+      manufacturer: '',
+      expected_mileage: '',
     });
-
-    // Update form data when initialData changes (for edit mode)
     useEffect(() => {
-      if (initialData && Object.keys(initialData).length > 0) {
-        const reg = initialData.registration_no || '';
-        setFormData({
-          registration_no: reg,
-          chassis_number: initialData.chassis_number || '',
-          model: initialData.model || '',
-          expected_mileage: initialData.expected_mileage ?? '',
-        });
-        if (onRegistrationChange) onRegistrationChange(reg);
-      }
-    }, [initialData, onRegistrationChange]);
+      const next = {
+        registration_no: initialData.registration_no || '',
+        chassis_number: initialData.chassis_number || '',
+        model: initialData.model || '',
+        manufacturer:
+          initialData.manufacturer === 'UNKNOWN'
+            ? ''
+            : canonicalManufacturer(initialData.manufacturer),
+        expected_mileage: initialData.expected_mileage ?? '',
+      };
+      setFormData(next);
+      onRegistrationChange?.(next.registration_no);
+      onManufacturerChange?.(next.manufacturer);
+    }, [initialData, onRegistrationChange, onManufacturerChange]);
 
-    const handleInputChange = (field, value) => {
-      let finalValue = value;
-      if (field === 'registration_no') {
-        finalValue = value.toUpperCase();
-        if (onRegistrationChange) onRegistrationChange(finalValue);
-      } else if (field === 'chassis_number') {
-        finalValue = value.toUpperCase();
-      }
-
-      setFormData((prev) => ({
-        ...prev,
-        [field]: finalValue,
-      }));
+    const change = (field, value) => {
+      const next = ['registration_no', 'chassis_number'].includes(field)
+        ? value.toUpperCase()
+        : value;
+      setFormData((current) => ({ ...current, [field]: next }));
+      if (field === 'registration_no') onRegistrationChange?.(next);
+      if (field === 'manufacturer') onManufacturerChange?.(next);
     };
-
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      // The API rejects expectedMileage outright unless the org owns the feature,
-      // so never let a stale value ride along when the flag is off.
-      if (!showExpectedMileage) {
-        const { expected_mileage: _omit, ...rest } = formData;
-        onSubmit(rest);
-        return;
-      }
-      onSubmit(formData);
+    const submit = (event) => {
+      event.preventDefault();
+      if (isSubmitting) return;
+      const { expected_mileage, ...rest } = formData;
+      onSubmit(showExpectedMileage ? { ...rest, expected_mileage } : rest);
     };
+    const otherManufacturers = manufacturers.filter(
+      (item) => !PRIMARY_MANUFACTURERS.some((primary) => primary.value === item.value),
+    );
+    const primarySelected = PRIMARY_MANUFACTURERS.some(
+      (item) => item.value === formData.manufacturer,
+    );
+    const legacyMake =
+      formData.manufacturer && !manufacturers.some((item) => item.value === formData.manufacturer);
 
     return (
       <div className="basic-info-wrapper">
         <div className="basic-info-outer-container">
-          {/* Header Section */}
           <div className="basic-info-header">
             <div className="basic-info-header-content">
               <div className="card-icon-pill blue">
                 <Truck size={20} />
               </div>
               <div className="card-title-block">
-                <span className="card-title-text">Basic Information & Telematics</span>
-                <span className="card-subtitle-text">
-                  Configure essential vehicle identity, chassis, operating location, and telemetry
-                </span>
+                <h2 className="card-title-text">Vehicle details</h2>
+                <span className="card-subtitle-text">Manufacturer, registration and model</span>
               </div>
             </div>
-            <div className="card-step-badge">Step 1 of 2</div>
           </div>
-
-          {/* Form Container */}
           <div className="basic-info-container">
-            <form ref={ref} onSubmit={handleSubmit} className="basic-info-form">
-              {/* Row 1: Registration Number, Chassis Number */}
+            <form ref={ref} onSubmit={submit} className="basic-info-form">
+              <fieldset className="vehicle-manufacturer-field" disabled={isSubmitting}>
+                <legend className="basic-info-label">
+                  Manufacturer <span aria-hidden="true">*</span>
+                </legend>
+                <div className="vehicle-manufacturer-options">
+                  {PRIMARY_MANUFACTURERS.map((item) => (
+                    <label
+                      key={item.value}
+                      className={`vehicle-make-choice ${formData.manufacturer === item.value ? 'is-selected' : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name="vehicle-manufacturer"
+                        aria-label={item.label}
+                        value={item.value}
+                        checked={formData.manufacturer === item.value}
+                        onChange={() => change('manufacturer', item.value)}
+                      />
+                      {item.label}
+                    </label>
+                  ))}
+                  <div className="vehicle-more-makes">
+                    <label className="sr-only" htmlFor="vehicle-more-makes">
+                      More manufacturers
+                    </label>
+                    <select
+                      id="vehicle-more-makes"
+                      aria-label="More manufacturers"
+                      className="basic-info-input"
+                      value={primarySelected ? '' : formData.manufacturer}
+                      required={!primarySelected}
+                      onChange={(event) => change('manufacturer', event.target.value)}
+                    >
+                      <option value="">More manufacturers…</option>
+                      {otherManufacturers.map((item) => (
+                        <option key={item.value} value={item.value}>
+                          {item.label}
+                        </option>
+                      ))}
+                      {legacyMake && (
+                        <option value={formData.manufacturer}>
+                          {formData.manufacturer === 'UNKNOWN'
+                            ? 'Unclassified — choose manufacturer'
+                            : formData.manufacturer}
+                        </option>
+                      )}
+                    </select>
+                  </div>
+                </div>
+                {metadataError && (
+                  <p className="vehicle-inline-message">
+                    More manufacturers could not be loaded.{' '}
+                    <button type="button" onClick={onRetryMetadata}>
+                      Retry
+                    </button>
+                  </p>
+                )}
+              </fieldset>
               <div className="basic-info-form-row">
                 <div className="basic-info-form-field">
                   <label htmlFor="vehicle-reg-input" className="basic-info-label">
-                    Registration Number *
+                    Registration number *
                   </label>
-                  <div className="input-with-icon-wrapper">
-                    <Truck size={17} className="input-lead-icon" />
-                    <input
-                      id="vehicle-reg-input"
-                      type="text"
-                      className="basic-info-input monospace-input"
-                      value={formData.registration_no}
-                      onChange={(e) => handleInputChange('registration_no', e.target.value)}
-                      required
-                      placeholder="e.g., WB11F7262"
-                      disabled={isSubmitting}
-                      autoComplete="off"
-                      aria-label="Registration Number"
-                    />
-                  </div>
-                  <p className="field-hint-text">
-                    Official High Security Registration Plate (HSRP) number
-                  </p>
+                  <input
+                    id="vehicle-reg-input"
+                    aria-label="Registration number"
+                    className="basic-info-input monospace-input"
+                    value={formData.registration_no}
+                    onChange={(event) => change('registration_no', event.target.value)}
+                    required
+                    pattern=".*\S.*"
+                    placeholder="e.g. WB11F7262"
+                    disabled={isSubmitting}
+                    autoComplete="off"
+                  />
                 </div>
-
                 <div className="basic-info-form-field">
                   <label htmlFor="vehicle-chassis-input" className="basic-info-label">
-                    Chassis Number (VIN) *
+                    Chassis / VIN *
                   </label>
-                  <div className="input-with-icon-wrapper">
-                    <Hash size={17} className="input-lead-icon" />
-                    <input
-                      id="vehicle-chassis-input"
-                      type="text"
-                      className="basic-info-input monospace-input"
-                      value={formData.chassis_number}
-                      onChange={(e) => handleInputChange('chassis_number', e.target.value)}
-                      required
-                      placeholder="e.g., MAT828113S2C05629"
-                      disabled={isSubmitting}
-                      autoComplete="off"
-                      aria-label="Chassis Number (VIN)"
-                    />
-                  </div>
-                  <p className="field-hint-text">
-                    17-character vehicle identification number stamped on the chassis
-                  </p>
+                  <input
+                    id="vehicle-chassis-input"
+                    aria-label="Chassis / VIN"
+                    className="basic-info-input monospace-input"
+                    value={formData.chassis_number}
+                    onChange={(event) => change('chassis_number', event.target.value)}
+                    required
+                    pattern=".*\S.*"
+                    placeholder="Enter chassis number"
+                    disabled={isSubmitting}
+                    autoComplete="off"
+                  />
                 </div>
               </div>
-
-              {/* Row 2: Model & Expected Mileage (if flag active) */}
               <div className="basic-info-form-row">
                 <div className="basic-info-form-field">
                   <label htmlFor="vehicle-model-input" className="basic-info-label">
                     Model *
                   </label>
-                  <div className="input-with-icon-wrapper">
-                    <Layers size={17} className="input-lead-icon" />
-                    <input
-                      id="vehicle-model-input"
-                      type="text"
-                      className="basic-info-input"
-                      value={formData.model}
-                      onChange={(e) => handleInputChange('model', e.target.value)}
-                      required
-                      placeholder="e.g., 4830TC, LPT 4830, Signa 2823.K"
-                      disabled={isSubmitting}
-                      aria-label="Vehicle Model"
-                    />
-                  </div>
-                  <p className="field-hint-text">
-                    Commercial vehicle chassis make and model designation
-                  </p>
+                  <input
+                    id="vehicle-model-input"
+                    aria-label="Model"
+                    className="basic-info-input"
+                    value={formData.model}
+                    onChange={(event) => change('model', event.target.value)}
+                    required
+                    pattern=".*\S.*"
+                    placeholder={
+                      formData.manufacturer === 'ASHOK LEYLAND'
+                        ? 'e.g. AVTR, Ecomet'
+                        : 'e.g. Signa 2823.K, LPT 4830'
+                    }
+                    disabled={isSubmitting}
+                  />
+                  <p className="field-hint-text">Enter the model shown on the vehicle documents.</p>
                 </div>
-
-                {showExpectedMileage ? (
+                {showExpectedMileage && (
                   <div className="basic-info-form-field">
                     <label htmlFor="vehicle-mileage-input" className="basic-info-label">
-                      Expected Mileage (km/L)
-                      <span className="field-badge-optional">Optional</span>
+                      Expected mileage (km/L) <span className="field-badge-optional">Optional</span>
                     </label>
-                    <div className="input-with-icon-wrapper">
-                      <Gauge size={17} className="input-lead-icon" />
-                      <input
-                        id="vehicle-mileage-input"
-                        type="number"
-                        className="basic-info-input"
-                        value={formData.expected_mileage}
-                        onChange={(e) => handleInputChange('expected_mileage', e.target.value)}
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        placeholder="e.g., 4.2"
-                        disabled={isSubmitting}
-                        aria-label="Expected Mileage (km/L)"
-                      />
-                    </div>
-                    <p className="field-hint-text">
-                      Fuel cycles falling below this threshold are flagged for review. Leave blank
-                      for model average.
-                    </p>
+                    <input
+                      id="vehicle-mileage-input"
+                      aria-label="Expected mileage (km/L)"
+                      type="number"
+                      className="basic-info-input"
+                      value={formData.expected_mileage}
+                      onChange={(event) => change('expected_mileage', event.target.value)}
+                      min="0.1"
+                      max="100"
+                      step="0.1"
+                      disabled={isSubmitting}
+                      placeholder="e.g. 4.2"
+                    />
+                    <p className="field-hint-text">Leave blank to use the model average.</p>
                   </div>
-                ) : null}
+                )}
               </div>
-
-              {/* Section 2: Operations & Telematics Assignment (Seamlessly Integrated) */}
-              {!isEdit && (
-                <div className="telematics-assignment-section">
-                  <div className="telematics-section-header">
-                    <div className="telematics-header-icon">
-                      <Radio size={16} />
-                    </div>
-                    <div className="telematics-header-text">
-                      <span className="telematics-header-title">
-                        Operations & Telematics Assignment
-                      </span>
-                      <span className="telematics-header-desc">
-                        Assign vehicle operating terminal and link live FleetEdge telematics engine
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="basic-info-form-row">
-                    {/* Operating Location */}
-                    <div className="basic-info-form-field">
-                      <label htmlFor="vehicle-branch-select" className="basic-info-label">
-                        Operating Location
-                        {activeBranchId ? (
-                          <span className="field-badge-locked">Current Branch</span>
-                        ) : (
-                          <span className="field-badge-optional">Terminal Scope</span>
-                        )}
-                      </label>
-
-                      {activeBranchId ? (
-                        <div className="location-locked-card">
-                          <div className="location-locked-icon">
-                            <Building2 size={18} />
-                          </div>
-                          <div className="location-locked-info">
-                            <span className="location-locked-title">
-                              {activeBranch?.name ||
-                                branches.find((b) => String(b._id) === String(activeBranchId))
-                                  ?.name ||
-                                'Current Location'}
-                            </span>
-                            <span className="location-locked-sub">
-                              Locked to active workspace branch terminal
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="custom-select-wrapper select-with-lead-icon">
-                          <Building2 size={16} className="input-lead-icon" />
-                          <select
-                            id="vehicle-branch-select"
-                            value={selectedBranchId}
-                            onChange={(e) => onBranchChange(e.target.value)}
-                            className="basic-info-input select-with-lead-icon"
-                            disabled={isSubmitting}
-                            aria-label="Operating Location"
-                          >
-                            <option value="">Enterprise (Fleet-wide / All Locations)</option>
-                            {branches.map((b) => (
-                              <option key={b._id} value={String(b._id)}>
-                                {b.name}
-                                {b.isDefault ? ' (Default Terminal)' : ''}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-                      <p className="field-hint-text">
-                        {activeBranchId
-                          ? 'This vehicle belongs to the active branch terminal.'
-                          : 'Enterprise-level vehicles show in the all-locations overview.'}
-                      </p>
-                    </div>
-
-                    {/* FleetEdge Account */}
-                    <div className="basic-info-form-field">
-                      <label htmlFor="vehicle-fleetedge-select" className="basic-info-label">
-                        FleetEdge Telemetry Account
-                        <span className="field-badge-optional">Optional</span>
-                      </label>
-
-                      <div className="custom-select-wrapper select-with-telemetry-badge">
-                        <div className="telemetry-lead-badge">
-                          <Radio size={15} />
-                          <span className="telemetry-beacon-dot" />
-                        </div>
-                        <select
-                          id="vehicle-fleetedge-select"
-                          value={selectedAccountId}
-                          onChange={(e) => onAccountChange(e.target.value)}
-                          className="basic-info-input select-with-telemetry-badge"
-                          disabled={isSubmitting}
-                          aria-label="FleetEdge Telemetry Account"
-                        >
-                          <option value="">
-                            — Unassigned (Auto-tag on first telemetry packet) —
-                          </option>
-                          {fleetEdgeAccounts.map((a) => (
-                            <option key={a._id} value={String(a._id)}>
-                              {a.friendlyName || a.externalAccountId}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <p className="field-hint-text">
-                        Assign to stream live GPS, odometer, fuel telemetry, and speed diagnostics.
-                      </p>
-                    </div>
+              <section
+                className="telematics-assignment-section"
+                aria-labelledby="vehicle-assignment-title"
+              >
+                <div className="telematics-section-header">
+                  <Building2 size={18} />
+                  <div>
+                    <h2 id="vehicle-assignment-title" className="telematics-header-title">
+                      Assignment
+                    </h2>
+                    <p className="field-hint-text">Choose the operating location and account.</p>
                   </div>
                 </div>
-              )}
+                <div className="basic-info-form-row">
+                  <div className="basic-info-form-field">
+                    <label htmlFor="vehicle-branch-select" className="basic-info-label">
+                      Operating location
+                    </label>
+                    {isEdit || activeBranchId ? (
+                      <div className="location-locked-card">
+                        {isEdit
+                          ? 'Existing location (unchanged)'
+                          : activeBranch?.name ||
+                            branches.find((branch) => String(branch._id) === String(activeBranchId))
+                              ?.name ||
+                            'Current location'}
+                      </div>
+                    ) : (
+                      <select
+                        id="vehicle-branch-select"
+                        className="basic-info-input"
+                        value={selectedBranchId}
+                        onChange={(event) => onBranchChange(event.target.value)}
+                        disabled={isSubmitting}
+                      >
+                        <option value="">Enterprise (all locations)</option>
+                        {branches.map((branch) => (
+                          <option key={branch._id} value={String(branch._id)}>
+                            {branch.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                  <div className="basic-info-form-field">
+                    <label htmlFor="vehicle-account-select" className="basic-info-label">
+                      Account <span className="field-badge-optional">Optional</span>
+                    </label>
+                    <select
+                      id="vehicle-account-select"
+                      className="basic-info-input"
+                      value={selectedAccountId}
+                      onChange={(event) => onAccountChange(event.target.value)}
+                      disabled={
+                        isSubmitting ||
+                        !canAssignAccount ||
+                        accountsLoading ||
+                        accountsError ||
+                        !manufacturer
+                      }
+                    >
+                      <option value="">
+                        {accountsLoading
+                          ? 'Loading accounts…'
+                          : !manufacturer
+                            ? 'Choose manufacturer first'
+                            : 'No account — assign later'}
+                      </option>
+                      {selectedAccountId &&
+                        !fleetEdgeAccounts.some(
+                          (account) => String(account._id) === selectedAccountId,
+                        ) && <option value={selectedAccountId}>Current account (unchanged)</option>}
+                      {fleetEdgeAccounts.map((account) => (
+                        <option key={account._id} value={String(account._id)}>
+                          {account.friendlyName || account.externalAccountId}
+                        </option>
+                      ))}
+                    </select>
+                    {!canAssignAccount ? (
+                      <p className="field-hint-text">
+                        An owner manages account assignments. Existing assignments are preserved.
+                      </p>
+                    ) : accountsError ? (
+                      <p className="vehicle-inline-message">
+                        Accounts could not be loaded.{' '}
+                        <button type="button" onClick={onRetryAccounts}>
+                          Retry
+                        </button>
+                      </p>
+                    ) : (
+                      <p className="field-hint-text">
+                        {manufacturer && !accountsLoading && fleetEdgeAccounts.length === 0
+                          ? 'No compatible accounts connected. You can save and assign one later.'
+                          : 'Optional. Select a connected account or assign one later.'}
+                      </p>
+                    )}
+                    {accountNotice && (
+                      <p className="vehicle-inline-message" role="status">
+                        {accountNotice}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </section>
             </form>
           </div>
         </div>
@@ -319,7 +348,5 @@ const VehicleBasicInformationForm = forwardRef(
     );
   },
 );
-
 VehicleBasicInformationForm.displayName = 'VehicleBasicInformationForm';
-
 export default VehicleBasicInformationForm;

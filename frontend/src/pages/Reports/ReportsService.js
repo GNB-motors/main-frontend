@@ -29,20 +29,6 @@ export const ReportsService = {
   },
 
   /**
-   * Lane km vs SAP: every lane of the owner's SAP sheet with the km trips run on it.
-   * @returns {Promise<{ rows?: Array, totals?: Object }>}
-   */
-  getLaneKm: async ({ signal } = {}) => {
-    try {
-      const response = await apiClient.get('api/reports/lanes', { signal });
-      return response.data?.data || response.data || {};
-    } catch (error) {
-      if (error?.name === 'CanceledError') throw error;
-      throw ApiError.from(error);
-    }
-  },
-
-  /**
    * Every row of a server-paginated report, for exports. Walks pages at the
    * API's max page size until `meta.totalPages` is reached.
    * @param {(params: object) => Promise<{ data: Array, meta: Object }>} fetchPage
@@ -197,10 +183,14 @@ export const ReportsService = {
    * vehicle picker. Server-searched, so a fleet of any size is reachable.
    * @returns {Promise<Array<{ id: string, label: string, sub: string }>>}
    */
-  searchVehicles: async (query, { signal, limit = 20 } = {}) => {
+  searchVehicles: async (query, { signal, limit = 20, manufacturer } = {}) => {
     try {
       const response = await apiClient.get('api/vehicles', {
-        params: { limit, ...(query ? { search: query } : {}) },
+        params: {
+          limit,
+          ...(manufacturer ? { manufacturer } : {}),
+          ...(query ? { search: query } : {}),
+        },
         signal,
       });
       const list = Array.isArray(response.data?.data) ? response.data.data : [];
@@ -247,9 +237,9 @@ export const ReportsService = {
    * Fetches the current fuel comparison sync status.
    * @returns {Promise<Object>} - { pending, inProgress, completed, failed, flagged, total, lastSyncAt, isUpToDate }
    */
-  getExtensionStatus: async () => {
+  getExtensionStatus: async (params = {}) => {
     try {
-      const response = await apiClient.get(`api/extension/status`);
+      const response = await apiClient.get(`api/extension/status`, { params });
       return response.data?.data || response.data || {};
     } catch (error) {
       throw ApiError.from(error);

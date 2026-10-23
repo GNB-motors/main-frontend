@@ -5,6 +5,8 @@ import { toLayers, clipLayersAt, positionAt as roadPositionAt } from '../../lib/
 import { toDate } from './autoTripFormat';
 
 export const FLAG_LABEL = {
+  SHORT_HAUL: 'Short hop (<10 km) — check',
+  DROP_AMBIGUOUS: 'Two possible drops — check',
   DROP_INFERRED: 'Drop guessed from the turnaround',
   DROP_UNKNOWN: 'Drop not found',
   PICKUP_TO_PICKUP: 'Loaded again without a known drop',

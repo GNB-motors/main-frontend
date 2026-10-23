@@ -1,0 +1,239 @@
+/* AttributionCard — uses the existing cluster tokens so it reads as part of
+   the same surface as EvidenceDrawer and the Vehicle360 cards. No new palette. */
+
+.attr-card {
+  background: var(--cluster-panel, var(--surface, #fff));
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  padding: 1rem 1.125rem;
+}
+
+.attr-card--empty {
+  padding: 1.25rem;
+  text-align: left;
+}
+
+.attr-card__emptyTitle {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--cluster-text, inherit);
+  margin: 0 0 0.375rem;
+}
+
+.attr-card__emptyHint {
+  font-size: 0.8125rem;
+  color: var(--cluster-text-dim, #666);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.attr-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.875rem;
+}
+
+.attr-card__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--cluster-text, inherit);
+  margin: 0 0 0.25rem;
+}
+
+.attr-card__headline {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--cluster-text-dim, #666);
+  margin: 0;
+}
+
+.attr-icon--caution { color: var(--signal-caution, #b45309); }
+.attr-icon--ok { color: var(--signal-ok, #15803d); }
+.attr-icon--muted { color: var(--cluster-text-dim, #888); }
+
+.attr-card__gap {
+  text-align: right;
+}
+
+.attr-card__gapValue {
+  display: block;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--cluster-text, inherit);
+}
+
+.attr-card__gapDetail {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--cluster-text-dim, #666);
+}
+
+.attr-card__coverage {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--cluster-text-dim, #666);
+  background: rgba(127, 127, 127, 0.08);
+  border-radius: 8px;
+  padding: 0.5rem 0.625rem;
+  margin: 0 0 0.75rem;
+}
+
+.attr-parts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.attr-part {
+  display: flex;
+  gap: 0.625rem;
+  padding: 0.75rem 0;
+  border-top: 1px dashed var(--hairline);
+}
+
+.attr-part:first-child { border-top: none; padding-top: 0.25rem; }
+
+.attr-part__icon {
+  flex: none;
+  padding-top: 0.125rem;
+  color: var(--cluster-text-dim, #888);
+}
+
+.attr-part--caution .attr-part__icon { color: var(--signal-caution, #b45309); }
+.attr-part--ok .attr-part__icon { color: var(--signal-ok, #15803d); }
+.attr-part--muted .attr-part__icon { color: var(--cluster-text-dim, #999); }
+
+.attr-part__body { min-width: 0; flex: 1; }
+
+.attr-part__top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.attr-part__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cluster-text, inherit);
+}
+
+.attr-chip {
+  font-size: 0.6875rem;
+  padding: 0.0625rem 0.4375rem;
+  border-radius: 999px;
+  border: 1px solid var(--hairline);
+  color: var(--cluster-text-dim, #666);
+  white-space: nowrap;
+}
+
+.attr-chip--caution {
+  border-color: var(--signal-caution, #b45309);
+  color: var(--signal-caution, #b45309);
+}
+
+.attr-chip--ok {
+  border-color: var(--signal-ok, #15803d);
+  color: var(--signal-ok, #15803d);
+}
+
+.attr-part__why {
+  font-size: 0.8125rem;
+  color: var(--cluster-text-dim, #666);
+  margin: 0.3125rem 0 0;
+  line-height: 1.5;
+}
+
+.attr-part__meta {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--cluster-text-dim, #777);
+}
+
+.attr-part__excess {
+  font-family: var(--font-mono, monospace);
+  font-variant-numeric: tabular-nums;
+}
+
+.attr-part__more {
+  margin-top: 0.4375rem;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.75rem;
+  color: var(--cluster-link, #2563eb);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.attr-card__overAttributed {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4375rem;
+  font-size: 0.75rem;
+  color: var(--signal-caution, #b45309);
+  background: var(--signal-bg-caution, rgba(180, 83, 9, 0.08));
+  border-radius: 8px;
+  padding: 0.5rem 0.625rem;
+  margin: 0.75rem 0 0;
+  line-height: 1.5;
+}
+
+.attr-card__learned {
+  margin-top: 0.875rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--hairline);
+}
+
+.attr-card__learnedTitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cluster-text-dim, #777);
+  margin: 0 0 0.5rem;
+}
+
+.attr-card__learnedGrid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.375rem 1rem;
+}
+
+.attr-card__learnedRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  border-bottom: 1px dotted var(--hairline);
+  padding-bottom: 0.25rem;
+}
+
+.attr-card__learnedRow dt { color: var(--cluster-text-dim, #666); margin: 0; }
+.attr-card__learnedRow dd {
+  margin: 0;
+  font-family: var(--font-mono, monospace);
+  font-variant-numeric: tabular-nums;
+  color: var(--cluster-text, inherit);
+}
+
+.attr-card__learnedNote {
+  font-size: 0.6875rem;
+  color: var(--cluster-text-dim, #888);
+  margin: 0.5rem 0 0;
+  line-height: 1.5;
+}
+
+.attr-card__learnedNote--warn { color: var(--signal-caution, #b45309); }

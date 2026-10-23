@@ -1,6 +1,22 @@
 import renderIconSvg from './renderIconSvg.jsx';
+import TripsLegend from './TripsLegend.jsx';
 
-export default function RecordedPathSection({ isTrailVisible, trailPoints, trailKm }) {
+/* RecordedPathSection — explains what's currently on the map's trail layer.
+
+   Before the live-page merge this slot called itself a placeholder
+   ("telematics doesn't provide trip data"). It does — the trail endpoint
+   returns points[].tripId, points[].break, and trips[] in every response,
+   we just weren't wiring any of it to the UI. Now the legend lists actual
+   trips when the response carries them and explains what's missing in the
+   empty case instead of implying the data doesn't exist. */
+export default function RecordedPathSection({
+  isTrailVisible,
+  trailPoints,
+  trailKm,
+  tripLegend,
+  habitualHalts = [],
+  isHabitualHaltsVisible = false,
+}) {
   return (
     <details className="sec" open>
       <summary>
@@ -19,12 +35,19 @@ export default function RecordedPathSection({ isTrailVisible, trailPoints, trail
               <span className="k">GPS points</span>
               <span className="v">{trailPoints.length}</span>
             </div>
+            {isHabitualHaltsVisible && (
+              <div className="kv">
+                <span className="k">Habitual halts shown</span>
+                <span className="v">{habitualHalts.length}</span>
+              </div>
+            )}
+            <TripsLegend tripLegend={tripLegend} totalKm={trailKm} />
           </>
         ) : (
           <div className="secnote">
-            Trip/dispatch data (origin, destination, ETA, planned route) is not provided by
-            telematics. Use <b>Trail</b> or <b>Replay</b> to load this vehicle&apos;s recorded GPS
-            path.
+            Trail, trip segments, and habitual-halts surfaces come from telematics. Use the
+            <b> Trail</b> button below or the <b>Replay</b> action in the rail to load this
+            vehicle&apos;s recorded GPS path.
           </div>
         )}
       </div>

@@ -8,6 +8,7 @@ import AutoTripService from '../../services/AutoTripService';
 import RoadService from '../../services/RoadService';
 import { getUserRole } from '../../utils/session.js';
 import { dropLabel } from '../PlaceHub/intelligence/facilityText';
+import RouteSapCard from '../Sap/RouteSapCard';
 import AutoTripReplay from './AutoTripReplay';
 import AutoTripTimeline from './AutoTripTimeline';
 import { FLAG_LABEL, answerPlaceHref, inWindow } from './autoTripPlaces';
@@ -23,6 +24,7 @@ import {
   tripDateRange,
 } from './autoTripFormat';
 import './AutoTrips.css';
+import './TripsWorkspace.css';
 
 /** Confirm, dismiss and drop fixes are owner/manager actions on the server. */
 const CAN_EDIT = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
@@ -236,6 +238,9 @@ export default function AutoTripDetailPage() {
               <Field mono label="Empty run to plant">
                 {fmtKm(trip.km?.approach)}
               </Field>
+              <Field mono label="Return to plant">
+                {fmtKm(trip.km?.return)}
+              </Field>
               <Field mono label="Extra km for fuel">
                 {fmtKm(trip.km?.fuelDetour)}
               </Field>
@@ -266,6 +271,7 @@ export default function AutoTripDetailPage() {
               </div>
             ) : null}
           </div>
+          <RouteSapCard key={id} trip={trip} />
         </div>
 
         <AutoTripTimeline

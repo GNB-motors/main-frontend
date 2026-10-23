@@ -23,7 +23,7 @@ export default function MapToolbar({
         />
       </div>
       <div className="ph-map-tools">
-        {tab !== 'places' && (
+        {tab !== 'places' && tab !== 'routes' && (
           <button
             type="button"
             className={`ph-tool${showContext ? ' is-on' : ''}`}

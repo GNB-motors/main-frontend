@@ -1,3 +1,5 @@
+import ManufacturerFilter from '../../../components/filters/ManufacturerFilter';
+import useManufacturerFilter from '../../../hooks/useManufacturerFilter';
 import { useMemo, useState } from 'react';
 import { AlertTriangle, ChevronDown, ChevronRight, Receipt, RefreshCcw, Route } from 'lucide-react';
 import DataTable from '../../../components/ui/DataTable';
@@ -76,6 +78,7 @@ function cycleKpis(rows) {
 }
 
 const FuelCyclesReport = () => {
+  const { manufacturer, setManufacturer } = useManufacturerFilter();
   const [range, setRange] = useState(EMPTY_RANGE);
   const [search, setSearch] = useState('');
   const [vehicleId, setVehicleId] = useState('all');
@@ -85,10 +88,10 @@ const FuelCyclesReport = () => {
 
   const params = useMemo(
     () => ({
-      ...buildTripFilterParams({ ...range, vehicleId, status }),
+      ...buildTripFilterParams({ ...range, manufacturer, vehicleId, status }),
       ...(fills === 'full' ? { fullToFull: true } : {}),
     }),
-    [range, vehicleId, status, fills],
+    [range, manufacturer, vehicleId, status, fills],
   );
   const paramsKey = JSON.stringify(params);
   const {
@@ -96,7 +99,9 @@ const FuelCyclesReport = () => {
     loading,
     error,
     refetch,
-  } = useApi((signal) => ReportsService.getFuelCycles(params, signal), [paramsKey]);
+  } = useApi((signal) => ReportsService.getFuelCycles(params, signal), [paramsKey], {
+    scopeKey: manufacturer,
+  });
 
   const rows = useMemo(
     () => (error ? [] : newestFirst(response?.data || [], (r) => r.open?.at)),
@@ -112,6 +117,7 @@ const FuelCyclesReport = () => {
   const pageRows = pageSlice(filtered, page);
 
   const activeFilters =
+    (manufacturer ? 1 : 0) +
     rangeFilterCount(range) +
     (search ? 1 : 0) +
     (vehicleId !== 'all' ? 1 : 0) +
@@ -161,8 +167,9 @@ const FuelCyclesReport = () => {
       filters={
         <>
           <ReportDateRange from={range.from} to={range.to} onChange={setRange} />
-          <ReportSearch value={search} onChange={setSearch} placeholder="Search vehicle" />
+          <ManufacturerFilter value={manufacturer} onChange={setManufacturer} />
           <VehiclePicker value={vehicleId} onChange={setVehicleId} />
+          <ReportSearch value={search} onChange={setSearch} placeholder="Search vehicle" />
           <ReportSelect
             label="Fills"
             value={fills}
@@ -182,6 +189,7 @@ const FuelCyclesReport = () => {
             onClear={() => {
               setRange(EMPTY_RANGE);
               setSearch('');
+              setManufacturer('');
               setVehicleId('all');
               setStatus('all');
               setFills('full');

@@ -21,6 +21,7 @@ import HotspotShape from './map/HotspotShape.jsx';
 import DraftLayer from './map/DraftLayer.jsx';
 import usePoiLayer from './map/usePoiLayer.js';
 import PoiLayer from './map/PoiLayer.jsx';
+import RouteLayer from './map/RouteLayer.jsx';
 
 const MAP_STYLE = { width: '100%', height: '100%' };
 const INDIA = { lat: 22.5, lng: 82 };
@@ -60,6 +61,7 @@ export default function PlaceHubMap({
   onSelect,
   draft,
   onDraftChange,
+  routes,
   fitPoints,
   fitKey,
   focus,
@@ -156,6 +158,9 @@ export default function PlaceHubMap({
       onClick={onMapClick}
     >
       {showPoi && <PoiLayer pois={pois} />}
+      {tab === 'routes' && routes && (
+        <RouteLayer map={map} {...routes} isDark={isDark || satellite} zoom={zoom} />
+      )}
 
       {tab === 'places' &&
         places.map((p) =>
@@ -203,6 +208,7 @@ export default function PlaceHubMap({
       )}
 
       {tab !== 'places' &&
+        tab !== 'routes' &&
         contextPlaces.map((p) => (
           <ContextShape key={`c-${p.id}`} place={p} showCircle={showCircles} />
         ))}

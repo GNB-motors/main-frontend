@@ -1286,7 +1286,17 @@ a.ov-kpi:hover {
 /* Standalone search: when FilterBar contains only a search input (no chips, date ranges, or right controls),
    drop the full-width white card container and let the search pill sit clean and self-contained. */
 .fbar--search-only,
-.fbar:not(:has(.fbar-range, .fbar-chips, .fbar-clear, .fbar-select, .fbar-field, .fbar-right > *)) {
+.fbar:not(
+  :has(
+    .fbar-scope,
+    .fbar-range,
+    .fbar-chips,
+    .fbar-clear,
+    .fbar-select,
+    .fbar-field,
+    .fbar-right > *
+  )
+) {
   background: transparent;
   border: none;
   box-shadow: none;
@@ -1358,7 +1368,17 @@ a.ov-kpi:hover {
 
 /* In standalone search-only mode, give it a slightly wider presence and clear spacing */
 .fbar--search-only .fbar-search,
-.fbar:not(:has(.fbar-range, .fbar-chips, .fbar-clear, .fbar-select, .fbar-field, .fbar-right > *))
+.fbar:not(
+    :has(
+      .fbar-scope,
+      .fbar-range,
+      .fbar-chips,
+      .fbar-clear,
+      .fbar-select,
+      .fbar-field,
+      .fbar-right > *
+    )
+  )
   .fbar-search {
   width: 320px;
   height: 40px;
@@ -1366,7 +1386,17 @@ a.ov-kpi:hover {
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 .fbar--search-only .fbar-search:focus-within,
-.fbar:not(:has(.fbar-range, .fbar-chips, .fbar-clear, .fbar-select, .fbar-field, .fbar-right > *))
+.fbar:not(
+    :has(
+      .fbar-scope,
+      .fbar-range,
+      .fbar-chips,
+      .fbar-clear,
+      .fbar-select,
+      .fbar-field,
+      .fbar-right > *
+    )
+  )
   .fbar-search:focus-within {
   width: 380px;
 }
@@ -3431,4 +3461,9 @@ a.ov-action:hover {
 }
 .osc-compare--disagree svg {
   color: var(--caution);
+}
+
+.fbar-scope {
+  flex: 1 0 100%;
+  width: 100%;
 }

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { resolveVehicleStatus, countVehiclesByStatus } from './vehicleStatus.js';
-import { computeMapVehicles } from './mapPlotting.js';
+import { normalizeManufacturer } from './manufacturerFilters.js';
 
 export default function useFleetVehicles({
   rawPositions,
@@ -8,6 +8,7 @@ export default function useFleetVehicles({
   filter,
   searchQuery,
   selectedId,
+  selectedManufacturers = [],
 }) {
   // Build Unified Vehicles List
   const vehicles = useMemo(() => {
@@ -36,7 +37,8 @@ export default function useFleetVehicles({
         return {
           id: `live-${cleanReg}`,
           plate: reg,
-          model: meta.model || meta.manufacturer || null,
+          manufacturer: normalizeManufacturer(meta.manufacturer || meta.make),
+          model: meta.model || null,
           vin: meta.chassisNumber || p.vin || null,
           status: st,
           live: isLive,
@@ -73,13 +75,32 @@ export default function useFleetVehicles({
     return map;
   }, [vehicles]);
 
+  const manufacturers = useMemo(() => {
+    const names = new Set(['Tata', 'Ashok Leyland']);
+    Object.values(vehiclesMeta).forEach((meta) => {
+      const name = normalizeManufacturer(meta.manufacturer || meta.make);
+      if (name) names.add(name);
+    });
+    return [...names];
+  }, [vehiclesMeta]);
+
+  const scopedVehicles = useMemo(
+    () =>
+      vehicles.filter(
+        (v) =>
+          selectedManufacturers.length === 0 ||
+          selectedManufacturers.includes(v.manufacturer || 'Unclassified'),
+      ),
+    [vehicles, selectedManufacturers],
+  );
+
   // Counts for the connected status bar cards matching WheelsEye standard
-  const counts = useMemo(() => countVehiclesByStatus(vehicles), [vehicles]);
+  const counts = useMemo(() => countVehiclesByStatus(scopedVehicles), [scopedVehicles]);
 
   // Filtered vehicles according to the active top status card
   const filteredVehicles = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return vehicles.filter((v) => {
+    return scopedVehicles.filter((v) => {
       let matchesFilter = true;
       if (filter === 'all') {
         matchesFilter = true;
@@ -107,21 +128,28 @@ export default function useFleetVehicles({
       return (
         v.plate.toLowerCase().includes(q) ||
         (v.model || '').toLowerCase().includes(q) ||
+        (v.manufacturer || '').toLowerCase().includes(q) ||
         (v.vin || '').toLowerCase().includes(q) ||
         (v.area || '').toLowerCase().includes(q)
       );
     });
-  }, [vehicles, filter, searchQuery]);
+  }, [scopedVehicles, filter, searchQuery]);
 
-  // Selected vehicle object
-  const selectedVehicle = selectedId ? byId[selectedId] : null;
+  // A selection outside the visible scope must not keep an unexplained map marker.
+  const selectedVehicle =
+    selectedId && filteredVehicles.some((v) => v.id === selectedId) ? byId[selectedId] : null;
+  const mapVehicles = useMemo(
+    () =>
+      filteredVehicles.filter(
+        (v) =>
+          v.hasFix &&
+          Number.isFinite(v.lat) &&
+          Number.isFinite(v.lng) &&
+          Math.abs(v.lat) <= 90 &&
+          Math.abs(v.lng) <= 180,
+      ),
+    [filteredVehicles],
+  );
 
-  // Vehicles plotted on the Google Map:
-  // Guarantees that if a vehicle is selected, it NEVER vanishes from the map even when
-  // switching filter tabs (e.g. from moving to stopped) or when changing statuses.
-  const mapVehicles = useMemo(() => {
-    return computeMapVehicles(filteredVehicles, selectedVehicle);
-  }, [filteredVehicles, selectedVehicle]);
-
-  return { vehicles, counts, filteredVehicles, selectedVehicle, mapVehicles };
+  return { vehicles, counts, filteredVehicles, selectedVehicle, mapVehicles, manufacturers };
 }

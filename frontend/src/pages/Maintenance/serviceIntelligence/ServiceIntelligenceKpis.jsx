@@ -26,7 +26,7 @@ const ServiceIntelligenceKpis = ({ isService, summary, filterCounts }) => (
         />
         <KpiCard
           title="Average Service Cost"
-          value={formatCurrencyINR(summary.total > 0 ? summary.totalAmount / summary.total : 0)}
+          value={formatCurrencyINR(summary.total > 0 ? summary.totalAmount / summary.total : null)}
           accent="#0284c7"
           icon={<Droplets size={18} />}
         />

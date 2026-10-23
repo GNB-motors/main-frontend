@@ -1,0 +1,226 @@
+/* Service bills — the queue and the review modal.
+   The visual job here is to make an extracted figure look different from a
+   typed one, and to make a disagreement impossible to miss. */
+
+.sbills-filters {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.sbills-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ds-ink2);
+  cursor: pointer;
+}
+
+.sbills-floor {
+  font-size: 12px;
+  color: var(--ds-ink2);
+}
+
+.sbills-loading {
+  padding: 24px;
+  font-size: 13px;
+  color: var(--ds-ink2);
+}
+
+.sbills-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.sbills-table th,
+.sbills-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ds-line);
+  vertical-align: top;
+}
+
+.sbills-row--open td {
+  background: color-mix(in srgb, var(--ds-accent) 6%, transparent);
+}
+
+.sbills-muted {
+  color: var(--ds-ink3);
+}
+
+/* An extracted figure: the confidence sits under it, always. */
+.sbills-amount {
+  display: inline-flex;
+  flex-direction: column;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--ds-ink);
+}
+
+.sbills-amount--low {
+  color: var(--ds-warn);
+}
+
+.sbills-amount--medium {
+  color: var(--ds-ink);
+}
+
+.sbills-confidence,
+.sbills-source {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ds-ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sbills-blank {
+  display: inline-block;
+  font-size: 12px;
+  color: var(--ds-ink2);
+  border: 1px dashed var(--ds-line);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+/* The record's own figure — never styled like the extracted one. */
+.sbills-recorded {
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-ink);
+}
+
+.sbills-recorded--differs {
+  color: var(--ds-danger);
+  font-weight: 600;
+}
+
+.sbills-field--differs {
+  background: color-mix(in srgb, var(--ds-danger) 7%, transparent);
+}
+
+.sbills-decision-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sbills-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 24px;
+}
+
+.sbills-modal-panel {
+  background: var(--ds-surface);
+  border-radius: 10px;
+  width: min(1100px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sbills-modal-head,
+.sbills-modal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--ds-line);
+}
+
+.sbills-modal-foot {
+  border-bottom: none;
+  border-top: 1px solid var(--ds-line);
+}
+
+.sbills-modal-head h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.sbills-modal-sub {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--ds-ink2);
+}
+
+.sbills-modal-body {
+  display: flex;
+  gap: 18px;
+  padding: 18px;
+  overflow: auto;
+}
+
+.sbills-photo {
+  flex: 0 0 320px;
+}
+
+.sbills-photo img {
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid var(--ds-line);
+}
+
+.sbills-counts {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--ds-ink2);
+  display: grid;
+  gap: 2px;
+}
+
+.sbills-fields {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sbills-fields-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.sbills-fields-table th,
+.sbills-fields-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ds-line);
+  vertical-align: top;
+}
+
+.sbills-lines ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.sbills-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px dotted var(--ds-line);
+  padding: 4px 0;
+}
+
+.sbills-error {
+  margin: 12px 18px 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ds-danger) 12%, transparent);
+  color: var(--ds-danger);
+  font-size: 13px;
+}

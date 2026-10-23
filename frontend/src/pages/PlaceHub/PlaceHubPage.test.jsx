@@ -3,9 +3,13 @@ import { render, screen, fireEvent, within, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import PlaceHubPage from './PlaceHubPage.jsx';
 import PlaceHubService from './PlaceHubService.js';
+import PlaceIntelligenceService from './intelligence/PlaceIntelligenceService.js';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import { getUserRole } from '../../utils/session.js';
 
+vi.mock('./intelligence/PlaceIntelligenceService.js', () => ({
+  default: { routesMap: vi.fn(), getLeg: vi.fn() },
+}));
 vi.mock('@react-google-maps/api', () => ({
   useLoadScript: () => ({ isLoaded: false, loadError: null }),
 }));
@@ -45,6 +49,32 @@ vi.mock('./PlaceHubService.js', () => {
 const ok = (rows) => Promise.resolve({ rows, error: null });
 
 function seed() {
+  PlaceIntelligenceService.routesMap.mockResolvedValue({
+    legs: [
+      {
+        _id: 'leg1',
+        fromSiteId: 'a',
+        toSiteId: 'b',
+        pairKey: 'a|b',
+        traversals: 5,
+        inPlant: false,
+        path: { source: 'NONE' },
+        stats: { minutes: { p50: 100 } },
+      },
+    ],
+    sites: [
+      { _id: 'a', name: 'Bokaro plant', lat: 23, lng: 86 },
+      { _id: 'b', name: 'Town yard', lat: 24, lng: 87 },
+    ],
+    totals: { legs: 1, places: 2, runs: 5, inPlant: 0 },
+    generatedAt: '2026-10-22T00:00:00Z',
+  });
+  PlaceIntelligenceService.getLeg.mockResolvedValue({
+    _id: 'leg1',
+    traversals: [],
+    path: { source: 'NONE' },
+  });
+
   PlaceHubService.loadWarehouses.mockReturnValue(
     ok([
       {
@@ -274,6 +304,47 @@ describe('PlaceHubPage', () => {
       expect(screen.getByRole('button', { name: new RegExp(name) })).toBeInTheDocument();
     }
     expect(screen.queryByRole('button', { name: /Shadow report/ })).not.toBeInTheDocument();
+  });
+
+  it('opens routes on the same map and resolves a leg deep link', async () => {
+    const { container } = renderPage('/place-hub?tab=routes&leg=leg1');
+    const drawer = await screen.findByRole('complementary', { name: 'Route leg details' });
+    expect(within(drawer).getByText('Bokaro plant')).toBeInTheDocument();
+    const map = container.querySelector('.ph-mapwrap');
+    expect(container.querySelector('.ph-body')).not.toHaveAttribute('hidden');
+    fireEvent.click(screen.getByRole('button', { name: /^Places/ }));
+    expect(container.querySelector('.ph-mapwrap')).toBe(map);
+    fireEvent.click(screen.getByRole('button', { name: /^Routes/ }));
+    expect(container.querySelector('.ph-mapwrap')).toBe(map);
+    expect(PlaceIntelligenceService.routesMap).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps route place links in spider mode and Escape closes a leg', async () => {
+    renderPage('/place-hub?tab=routes&place=site:a&leg=leg1');
+    await screen.findByRole('complementary', { name: 'Route leg details' });
+    expect(
+      screen.getByRole('button', { name: /Showing legs from Bokaro plant/ }),
+    ).toBeInTheDocument();
+    expect(PlaceHubService.loadSite).not.toHaveBeenCalled();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(
+      screen.queryByRole('complementary', { name: 'Route leg details' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('reports routes errors and retries the map request', async () => {
+    PlaceIntelligenceService.routesMap.mockRejectedValueOnce(new Error('Routes unavailable'));
+    renderPage('/place-hub?tab=routes');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Routes unavailable');
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText('Bokaro plant')).toBeInTheDocument();
+  });
+
+  it('only exposes the delivery tab with its existing feature flag', async () => {
+    useFeatureFlags.mockReturnValue({ isEnabled: (flag) => flag !== 'routesV2', ready: true });
+    renderPage('/place-hub?tab=routes');
+    await screen.findByText('Bokaro plant');
+    expect(screen.queryByRole('button', { name: /^Deliveries/ })).not.toBeInTheDocument();
   });
 
   it('keeps manager-only views and editing away from other roles', async () => {

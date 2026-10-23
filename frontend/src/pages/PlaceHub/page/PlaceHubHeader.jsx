@@ -61,7 +61,7 @@ export default function PlaceHubHeader({
             allowHotspot={allowFuel}
             onAdd={(k) => {
               // Drawing needs the map.
-              if (!isMapTab) setTab('places');
+              if (!isMapTab || tab === 'routes') setTab('places');
               startAdd(k);
             }}
           />

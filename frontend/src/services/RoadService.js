@@ -47,6 +47,31 @@ const RoadService = {
   getCongestion: async ({ how, limit } = {}, signal) =>
     unwrap(await apiClient.get('/api/road/congestion', { params: { how, limit }, signal })),
 
+  /**
+   * THIS organisation's own congestion on road-matched edges (00_PLAN.md item 5) — not the pooled list
+   * above, which needs three contributing orgs and therefore stays nearly empty on a single-org deployment.
+   * The response carries its own coverage block (the learned quantile, how many edges the boundary came
+   * from, and the gaps); this layer does not re-derive any of it.
+   */
+  getOrgCongestion: async ({ how, limit, live, windowMin } = {}, signal) =>
+    unwrap(
+      await apiClient.get('/api/road/congestion/org', {
+        params: { how, limit, live: live ? 'true' : undefined, windowMin },
+        signal,
+      }),
+    ),
+
+  /** Never throws: an empty map is better than a broken page. */
+  getOrgCongestionIfEnabled: async (params = {}, signal) => {
+    try {
+      const status = await RoadService.getEngineStatus();
+      if (!status || !status.enabled) return null;
+      return await RoadService.getOrgCongestion(params, signal);
+    } catch {
+      return null;
+    }
+  },
+
   /** Test hook: forget the cached engine status. */
   _resetStatus: () => {
     statusPromise = null;

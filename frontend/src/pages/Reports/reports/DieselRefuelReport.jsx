@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import ManufacturerFilter from '../../../components/filters/ManufacturerFilter';
+import useManufacturerFilter from '../../../hooks/useManufacturerFilter';
+import React, { useEffect, useState } from 'react';
 import { AlertTriangle, Fuel, IndianRupee, ReceiptText } from 'lucide-react';
 import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
@@ -53,6 +55,7 @@ function feedKpis(meta) {
 export default function DieselRefuelReport() {
   const { canAccess } = useFeatureFlags();
   const manages = ['OWNER', 'MANAGER'].includes(getUserRole());
+  const { manufacturer, setManufacturer } = useManufacturerFilter();
   const [range, setRange] = useState(defaultRange);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search.trim(), 300);
@@ -60,9 +63,14 @@ export default function DieselRefuelReport() {
   const [feedMeta, setFeedMeta] = useState(null);
   const [drawerDetail, setDrawerDetail] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  useEffect(() => {
+    setFeedMeta(null);
+    setDrawerDetail(null);
+  }, [manufacturer]);
 
   const defaults = defaultRange();
   const activeFilters =
+    (manufacturer ? 1 : 0) +
     (range.from !== defaults.from ? 1 : 0) +
     (range.to !== defaults.to ? 1 : 0) +
     (search ? 1 : 0) +
@@ -70,23 +78,25 @@ export default function DieselRefuelReport() {
 
   return (
     <ReportFrame
-      layout="inline"
+      layout="stacked"
       title="Diesel Report"
       subtitle="Every diesel fill: the bill, what reached the tank, and whether they match."
       filters={
         <>
           <ReportDateRange from={range.from} to={range.to} onChange={setRange} />
+          <ManufacturerFilter value={manufacturer} onChange={setManufacturer} />
+          <VehiclePicker value={vehicleId} onChange={setVehicleId} />
           <ReportSearch
             value={search}
             onChange={setSearch}
             placeholder="Search truck, driver or pump"
           />
-          <VehiclePicker value={vehicleId} onChange={setVehicleId} />
           <ReportClear
             active={activeFilters > 0}
             onClear={() => {
               setRange(defaultRange());
               setSearch('');
+              setManufacturer('');
               setVehicleId('all');
             }}
           />
@@ -95,7 +105,8 @@ export default function DieselRefuelReport() {
       kpis={feedKpis(feedMeta)}
     >
       <LiveRefuelTab
-        range={range}
+        key={manufacturer}
+        range={{ ...range, manufacturer }}
         searchQuery={debouncedSearch}
         fuelType="DIESEL"
         vehicleId={vehicleId === 'all' ? null : vehicleId}

@@ -1,0 +1,98 @@
+/* DigiLocker verification badge — driver profile / admin roster.
+   Tones map to the app's existing severity palette (see DocumentCard.css). */
+
+.dl-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 7px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+  cursor: default;
+  border: 1px solid transparent;
+}
+
+.dl-badge__label {
+  letter-spacing: 0.1px;
+}
+
+/* Verified — issuer-side consent confirmed. */
+.dl-badge--verified {
+  color: #0b6b4f;
+  background: #e6f6ef;
+  border-color: #b9e3d1;
+}
+
+/* Partial — at least one doc still outstanding. */
+.dl-badge--partial {
+  color: #8a5a00;
+  background: #fdf3e0;
+  border-color: #f0d9a8;
+}
+
+/* None — nothing verified yet. */
+.dl-badge--none {
+  color: #5c5f66;
+  background: #f2f3f5;
+  border-color: #dfe1e6;
+}
+
+/* Hover/focus detail popover. */
+.dl-badge__detail {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 40;
+  display: none;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 220px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: #121214;
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 16px;
+  box-shadow: 0 8px 22px rgba(18, 18, 20, 0.22);
+  white-space: normal;
+}
+
+.dl-badge:hover .dl-badge__detail,
+.dl-badge:focus-visible .dl-badge__detail {
+  display: flex;
+}
+
+.dl-badge__doc {
+  color: #e6e6ea;
+}
+
+.dl-badge__doc strong {
+  color: #ffffff;
+}
+
+.dl-badge__doc--expired {
+  color: #ff9d94;
+}
+
+.dl-badge__doc--expiring {
+  color: #ffc978;
+}
+
+.dl-badge__sandbox {
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  color: #ffc978;
+  font-style: italic;
+}
+
+.dl-badge:focus-visible {
+  outline: 2px solid var(--alias-border-focus, #3b82f6);
+  outline-offset: 2px;
+}

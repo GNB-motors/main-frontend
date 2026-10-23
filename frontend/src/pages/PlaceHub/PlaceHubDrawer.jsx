@@ -1,3 +1,4 @@
+import LegDetail from './drawer/LegDetail.jsx';
 import PlaceDetail from './drawer/PlaceDetail.jsx';
 import StopsDetail from './drawer/StopsDetail.jsx';
 import LiveIdleDetail from './drawer/LiveIdleDetail.jsx';
@@ -11,6 +12,20 @@ export default function PlaceHubDrawer({ selection, draft, ...props }) {
   if (!selection?.item) return null;
   const { item, kind } = selection;
   const common = { canEdit: props.canEdit, onClose: props.onClose };
+  if (kind === 'leg')
+    return (
+      <LegDetail
+        key={item._id}
+        leg={item}
+        sites={props.routeSites}
+        onClose={props.onClose}
+        onPick={props.onPickRoute}
+        onDetail={props.onRouteDetail}
+        showEngine={props.showRouteEngine}
+        onShowEngine={props.onShowRouteEngine}
+        version={props.version}
+      />
+    );
   if (kind === 'place')
     return (
       <PlaceDetail

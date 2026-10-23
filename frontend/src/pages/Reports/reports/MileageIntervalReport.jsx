@@ -1,25 +1,18 @@
-import { useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Fuel, Gauge, IndianRupee, ListChecks, Route } from 'lucide-react';
 import DataTable from '../../../components/ui/DataTable';
 import ExportButton from '../../../components/ui/ExportButton';
 import ReportDataNotice from '../../../components/ui/ReportDataNotice';
 import useApi from '../../../hooks/useApi';
-import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { ReportsService } from '../ReportsService.js';
 import { exportFilteredReportCsv } from '../../../utils/reportCsvExport';
 import { formatINR, formatKm, formatLitres, formatNum } from '../../../utils/formatters';
 import { useMileageIntervalReportColumns } from './useMileageIntervalReportColumns.jsx';
 import { PAGE_SIZE } from './mileageIntervalReportUtils.js';
-import ReportFrame, {
-  ReportClear,
-  ReportDateRange,
-  ReportFooter,
-  ReportSearch,
-  ReportSelect,
-} from './ReportFrame';
-import { DriverPicker, VehiclePicker } from './ReportEntityPicker';
-import { compactParams, istDayEnd, istDayStart, rangeLabel } from './reportFilters';
+import ReportFrame, { ReportFooter, ReportSelect } from './ReportFrame';
+import ReportFilterBar from './ReportFilterBar';
+import { rangeLabel } from './reportFilters';
+import useReportFilterParams from './useReportFilterParams';
 import useReportPage from './useReportPage';
 
 // Server-side row cap of GET /reports/mileage-intervals/export.
@@ -32,27 +25,10 @@ const STATUS_OPTIONS = [
 ];
 
 const MileageIntervalReport = () => {
-  const [range, setRange] = useState({ from: '', to: '' });
-  const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search.trim(), 300);
-  const [vehicleId, setVehicleId] = useState('all');
-  const [driverId, setDriverId] = useState('all');
-  const [status, setStatus] = useState('ALL');
-
-  const filters = useMemo(
-    () =>
-      compactParams({
-        startDate: istDayStart(range.from),
-        endDate: istDayEnd(range.to),
-        search: debouncedSearch,
-        vehicleId,
-        driverId,
-        // ALL is the API default; only a narrowed status goes on the wire.
-        status: status === 'ALL' ? null : status,
-      }),
-    [range, debouncedSearch, vehicleId, driverId, status],
-  );
-  const filterKey = JSON.stringify(filters);
+  // Filters live in the URL (see <ReportFilterBar/>), so this report keeps no
+  // filter state and a filtered view can be shared as a link.
+  const { requestParams, activeCount } = useReportFilterParams();
+  const filterKey = JSON.stringify(requestParams);
   const [page, setPage] = useReportPage(filterKey);
 
   const {
@@ -62,8 +38,12 @@ const MileageIntervalReport = () => {
     refetch,
   } = useApi(
     (signal) =>
-      ReportsService.getMileageIntervalReports({ ...filters, page, limit: PAGE_SIZE }, signal),
+      ReportsService.getMileageIntervalReports(
+        { ...requestParams, page, limit: PAGE_SIZE },
+        signal,
+      ),
     [filterKey, page],
+    { scopeKey: requestParams.manufacturer },
   );
 
   const rows = response?.data || [];
@@ -82,20 +62,12 @@ const MileageIntervalReport = () => {
     // went, idling, missing bills, every cycle); CSV: the flat rows.
     await exportFilteredReportCsv({
       fetchExport: (f) => ReportsService.exportReportCsv('api/reports/mileage-intervals/export', f),
-      filters: format === 'xlsx' ? { ...filters, format: 'xlsx' } : filters,
+      filters: format === 'xlsx' ? { ...requestParams, format: 'xlsx' } : requestParams,
       filenamePrefix: format === 'xlsx' ? 'mileage_report' : 'mileage_interval_report',
       extension: format,
       errorMessage: 'Could not export mileage report.',
     });
   };
-
-  const activeFilters =
-    (range.from ? 1 : 0) +
-    (range.to ? 1 : 0) +
-    (search ? 1 : 0) +
-    (vehicleId !== 'all' ? 1 : 0) +
-    (driverId !== 'all' ? 1 : 0) +
-    (status !== 'ALL' ? 1 : 0);
 
   const kpis = summary
     ? [
@@ -137,28 +109,17 @@ const MileageIntervalReport = () => {
       title="Mileage Report"
       subtitle="Detailed vehicle mileage intervals, fuel consumption, distance, and alert status"
       filters={
-        <>
-          <ReportDateRange from={range.from} to={range.to} onChange={setRange} />
-          <ReportSearch value={search} onChange={setSearch} placeholder="Search vehicle number" />
-          <VehiclePicker value={vehicleId} onChange={setVehicleId} />
-          <DriverPicker value={driverId} onChange={setDriverId} />
-          <ReportSelect
-            label="Status"
-            value={status}
-            onChange={setStatus}
-            options={STATUS_OPTIONS}
-          />
-          <ReportClear
-            active={activeFilters > 0}
-            onClear={() => {
-              setRange({ from: '', to: '' });
-              setSearch('');
-              setVehicleId('all');
-              setDriverId('all');
-              setStatus('ALL');
-            }}
-          />
-        </>
+        <ReportFilterBar
+          searchPlaceholder="Search vehicle number"
+          extra={({ filters: current, setFilter }) => (
+            <ReportSelect
+              label="Status"
+              value={current.status || 'ALL'}
+              onChange={(value) => setFilter('status', value === 'ALL' ? '' : value)}
+              options={STATUS_OPTIONS}
+            />
+          )}
+        />
       }
       actions={<ExportButton buttonClass="rpt-btn" onExport={exportMileage} disabled={!response} />}
       notice={
@@ -190,7 +151,7 @@ const MileageIntervalReport = () => {
         onRetry={refetch}
         showing={rows.length}
         total={meta.total}
-        activeFilters={activeFilters}
+        activeFilters={activeCount}
         emptyTitle="No mileage records found"
         emptyHint="Try widening the date range, clearing the search or choosing All vehicles, All drivers and All cycles."
       />

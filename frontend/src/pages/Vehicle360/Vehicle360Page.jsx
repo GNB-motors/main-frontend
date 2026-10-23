@@ -141,6 +141,7 @@ export default function Vehicle360Page() {
 
       {active === 'overview' ? (
         <OverviewPanel
+          vehicleId={p.fleetMaster?.id}
           history={history}
           health={p.health}
           livePosition={p.livePosition}

@@ -1,3 +1,5 @@
+import ManufacturerFilter from '../../components/filters/ManufacturerFilter';
+import useManufacturerFilter from '../../hooks/useManufacturerFilter';
 import { useState, useEffect, useMemo } from 'react';
 import { Car, FileText, Gauge, Fuel } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -52,6 +54,8 @@ const MIN_CYCLE_SELECT_OPTIONS = MIN_CYCLE_OPTIONS.map((n) => ({
  * shared ReportFrame layout.
  */
 const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
+  const { manufacturer: urlManufacturer, setManufacturer } = useManufacturerFilter();
+  const manufacturer = hubRange?.manufacturer ?? urlManufacturer;
   const [data, setData] = useState([]);
   const [meta, setMeta] = useState(null);
   const [selectedModel, setSelectedModel] = useState(null);
@@ -68,10 +72,11 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
     // The hub's range is local calendar days; the report sends whole IST days.
     const from = embedded ? toStartOfDayIso(range.from) : istDayStart(range.from);
     const to = embedded ? toEndOfDayIso(range.to) : istDayEnd(range.to);
+    if (manufacturer) p.manufacturer = manufacturer;
     if (from) p.from = from;
     if (to) p.to = to;
     return p;
-  }, [range, minCycles, embedded]);
+  }, [range, minCycles, embedded, manufacturer]);
 
   const {
     data: comparisonResponse,
@@ -80,9 +85,14 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
   } = useApi(
     (signal) => MileageTrackingService.getModelComparison(params, { signal }),
     [JSON.stringify(params)],
+    { scopeKey: manufacturer },
   );
 
   useEffect(() => {
+    if (!comparisonResponse) {
+      setData([]);
+      setMeta(null);
+    }
     if (comparisonResponse) {
       const fetched = comparisonResponse.data || [];
       setData(fetched);
@@ -145,7 +155,11 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
     ? minCycles > 1
       ? 1
       : 0
-    : (range.from ? 1 : 0) + (range.to ? 1 : 0) + (minCycles > 1 ? 1 : 0) + (query ? 1 : 0);
+    : (manufacturer ? 1 : 0) +
+      (range.from ? 1 : 0) +
+      (range.to ? 1 : 0) +
+      (minCycles > 1 ? 1 : 0) +
+      (query ? 1 : 0);
 
   const methodNote = methodNoteOf(meta);
 
@@ -232,6 +246,7 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
         filters={
           <>
             <ReportDateRange from={ownRange.from} to={ownRange.to} onChange={setRange} />
+            <ManufacturerFilter value={manufacturer} onChange={setManufacturer} />
             <ReportSearch value={search} onChange={setSearch} placeholder="Search model" />
             <ReportSelect
               label="Min cycles"
@@ -244,6 +259,7 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
               onClear={() => {
                 setRange({ from: '', to: '' });
                 setSearch('');
+                setManufacturer('');
                 setMinCycles(1);
               }}
             />
@@ -258,6 +274,7 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
             meta={{
               filters: [
                 ...exportFilterMeta({
+                  manufacturer,
                   ...ownRange,
                   entityLabel: query ? `“${query}”` : null,
                 }),

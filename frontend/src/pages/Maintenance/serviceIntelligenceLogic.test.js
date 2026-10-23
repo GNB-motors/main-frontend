@@ -86,6 +86,6 @@ describe('formatCurrencyINR', () => {
   it('formats numbers to rupee strings', () => {
     expect(formatCurrencyINR(50000)).toBe('₹50,000');
     expect(formatCurrencyINR(0)).toBe('₹0');
-    expect(formatCurrencyINR(null)).toBe('₹0');
+    expect(formatCurrencyINR(null)).toBe('Not recorded');
   });
 });

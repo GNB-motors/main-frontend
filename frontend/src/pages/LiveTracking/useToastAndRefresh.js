@@ -14,28 +14,21 @@ export default function useToastAndRefresh(refreshLivePositions) {
     }, 2400);
   }, []);
 
-  const refreshTimerRef = useRef(null);
-  useEffect(
-    () => () => {
-      clearTimeout(toastTimerRef.current);
-      clearTimeout(refreshTimerRef.current);
-    },
-    [],
-  );
+  const refreshingRef = useRef(false);
+  useEffect(() => () => clearTimeout(toastTimerRef.current), []);
 
-  // Refresh handler
   const handleRefresh = useCallback(async () => {
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
     setIsRefreshing(true);
     try {
       await refreshLivePositions();
+      // The data hook owns success/error state and the last successful timestamp.
     } catch {
-      // Ignore
+      showToast('Unable to refresh fleet positions');
     } finally {
-      clearTimeout(refreshTimerRef.current);
-      refreshTimerRef.current = setTimeout(() => {
-        setIsRefreshing(false);
-        showToast('Fleet positions refreshed');
-      }, 600);
+      refreshingRef.current = false;
+      setIsRefreshing(false);
     }
   }, [refreshLivePositions, showToast]);
 

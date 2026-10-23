@@ -15,6 +15,40 @@ const parsed = async (name, response) => parseSafe(name, schemas, unwrap(respons
  * until resent with `confirmImpact: true` — see isImpactGate in the model.
  */
 export const PlaceIntelligenceService = {
+  listDeliveryLegs: async (params = {}, { signal } = {}) =>
+    parsed(
+      'deliveryLegListSchema',
+      await apiClient.get(`${BASE}/routes/delivery-legs`, { params, signal }),
+    ),
+  getDeliveryLeg: async (id, { signal } = {}) =>
+    parsed(
+      'deliveryLegSchema',
+      await apiClient.get(`${BASE}/routes/delivery-legs/${id}`, { signal }),
+    ),
+  reviewDeliveryLeg: async ({ id, ...body }, { signal } = {}) =>
+    parsed(
+      'deliveryLegSchema',
+      await apiClient.post(`${BASE}/routes/delivery-legs/${id}/review`, body, { signal }),
+    ),
+  duplicates: async ({ signal } = {}) =>
+    parsed('duplicateListSchema', await apiClient.get(`${BASE}/duplicates`, { signal })),
+  mergeSites: async (body, { signal } = {}) =>
+    parsed('placeMutationSchema', await apiClient.post(`${BASE}/sites/merge`, body, { signal })),
+  distinctSites: async ({ id, otherId }, { signal } = {}) =>
+    parsed(
+      'placeMutationSchema',
+      await apiClient.post(`${BASE}/sites/${id}/distinct`, { otherId }, { signal }),
+    ),
+  listMerges: async (survivorId, { signal } = {}) =>
+    parsed(
+      'mergeHistorySchema',
+      await apiClient.get(`${BASE}/sites/merges`, { params: { survivorId }, signal }),
+    ),
+  undoMerge: async (id, { signal } = {}) =>
+    parsed(
+      'placeMutationSchema',
+      await apiClient.post(`${BASE}/sites/merges/${id}/undo`, {}, { signal }),
+    ),
   summary: async ({ signal } = {}) =>
     parsed('summarySchema', await apiClient.get(`${BASE}/summary`, { signal })),
 
@@ -51,6 +85,9 @@ export const PlaceIntelligenceService = {
 
   tagStop: async ({ id, purpose }, { signal } = {}) =>
     unwrap(await apiClient.post(`${BASE}/stops/${id}/reason`, { purpose }, { signal })),
+
+  routesMap: async (params = {}, { signal } = {}) =>
+    parsed('routesMapSchema', await apiClient.get(`${BASE}/routes/map`, { params, signal })),
 
   listLegs: async (params = {}, { signal } = {}) =>
     parsed('legListSchema', await apiClient.get(`${BASE}/routes/legs`, { params, signal })),
