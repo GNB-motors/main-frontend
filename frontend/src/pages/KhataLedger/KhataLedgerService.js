@@ -71,6 +71,61 @@ const KhataLedgerService = {
   endAssignment: DriverVehicleAssignmentService.endAssignment,
   deleteAssignment: DriverVehicleAssignmentService.deleteAssignment,
   getActiveAssignment: DriverVehicleAssignmentService.getActiveAssignment,
+
+  // ERP Trip integration endpoints
+  getErpTrips: async (params = {}) => {
+    try {
+      const response = await apiClient.get('/api/erp/trips', { params });
+      return response.data || { data: [], meta: { total: 0 } };
+    } catch (err) {
+      if (err?.response?.status === 404) return { data: [], meta: { total: 0 } };
+      throw err;
+    }
+  },
+
+  getErpTripById: async (id) => {
+    const response = await apiClient.get(`/api/erp/trips/${id}`);
+    return unwrap(response);
+  },
+
+  getErpTripFinance: async (id) => {
+    try {
+      const response = await apiClient.get(`/api/erp/trips/${id}/finance`);
+      return unwrap(response);
+    } catch (err) {
+      if (err?.response?.status === 404 || err?.response?.status === 403) return null;
+      throw err;
+    }
+  },
+
+  getTripExpenses: async (tripId, params = {}) => {
+    const response = await apiClient.get('/api/expenses', {
+      params: { ...params, tripId, includeTripExpenses: true, limit: 100 },
+    });
+    return unwrap(response);
+  },
+
+  getDriverTrips: async (driverId, params = {}) => {
+    try {
+      const response = await apiClient.get('/api/erp/trips', {
+        params: { ...params, driverId, limit: params.limit || 50 },
+      });
+      return response.data?.data || response.data?.results || response.data || [];
+    } catch {
+      return [];
+    }
+  },
+
+  getVehicleTrips: async (vehicleId, params = {}) => {
+    try {
+      const response = await apiClient.get('/api/erp/trips', {
+        params: { ...params, vehicleId, limit: params.limit || 50 },
+      });
+      return response.data?.data || response.data?.results || response.data || [];
+    } catch {
+      return [];
+    }
+  },
 };
 
 export default KhataLedgerService;

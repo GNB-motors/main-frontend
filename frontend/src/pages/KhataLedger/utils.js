@@ -50,16 +50,50 @@ export const CATEGORY_COLORS = {
 
 export const SOURCE_LABELS = {
   MANUAL: 'Manual',
+  DRIVER_BILL: 'Driver Bill',
   TRIP: 'Trip',
   FUEL: 'Fuel',
   MAINTENANCE: 'Maintenance',
 };
 
 export const SOURCE_COLORS = {
-  MANUAL: 'border-blue-300 text-blue-600',
-  TRIP: 'border-violet-300 text-violet-600',
-  FUEL: 'border-orange-300 text-orange-600',
-  MAINTENANCE: 'border-purple-300 text-purple-600',
+  MANUAL: 'border-blue-300 text-blue-600 bg-blue-50/50',
+  DRIVER_BILL: 'border-cyan-300 text-cyan-700 bg-cyan-50/50',
+  TRIP: 'border-violet-300 text-violet-600 bg-violet-50/50',
+  FUEL: 'border-orange-300 text-orange-600 bg-orange-50/50',
+  MAINTENANCE: 'border-purple-300 text-purple-600 bg-purple-50/50',
+};
+
+export const STATUS_LABELS = {
+  PENDING: 'Pending',
+  CONFIRMED: 'Confirmed',
+  APPROVED: 'Approved',
+  REJECTED: 'Rejected',
+};
+
+export const STATUS_COLORS = {
+  PENDING: 'bg-amber-100 text-amber-800 border border-amber-200',
+  CONFIRMED: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
+  APPROVED: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
+  REJECTED: 'bg-rose-100 text-rose-800 border border-rose-200',
+};
+
+export const TRIP_STATE_LABELS = {
+  PLANNED: 'Planned',
+  PLACED: 'Placed',
+  DISPATCHED: 'Dispatched',
+  DELIVERED: 'Delivered',
+  CLOSED: 'Closed',
+  CANCELLED: 'Cancelled',
+};
+
+export const TRIP_STATE_COLORS = {
+  PLANNED: 'bg-slate-100 text-slate-700 border-slate-200',
+  PLACED: 'bg-blue-100 text-blue-700 border-blue-200',
+  DISPATCHED: 'bg-amber-100 text-amber-800 border-amber-200',
+  DELIVERED: 'bg-teal-100 text-teal-800 border-teal-200',
+  CLOSED: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  CANCELLED: 'bg-rose-100 text-rose-800 border-rose-200',
 };
 
 export const formatCurrency = (v) =>
@@ -78,6 +112,58 @@ export const formatDate = (d) =>
         year: 'numeric',
       })
     : '-';
+
+export const formatKm = (km) => {
+  if (km == null || isNaN(km)) return 'N/A';
+  return `${Math.round(km).toLocaleString('en-IN')} km`;
+};
+
+export const formatCostPerKm = (cost, km) => {
+  const numCost = Number(cost);
+  const numKm = Number(km);
+  if (!numKm || numKm <= 0 || isNaN(numCost) || isNaN(numKm)) {
+    return null;
+  }
+  const perKm = numCost / numKm;
+  return `₹${perKm.toFixed(2)}/km`;
+};
+
+export const getProfitabilityStatus = (revenue, cost) => {
+  const rev = Number(revenue) || 0;
+  const cst = Number(cost) || 0;
+  const profit = rev - cst;
+
+  if (rev === 0 && cst === 0) {
+    return {
+      status: 'BREAK_EVEN',
+      label: 'Break-even',
+      color: 'bg-gray-100 text-gray-700 border-gray-200',
+      profit: 0,
+    };
+  }
+  if (profit > 0) {
+    return {
+      status: 'PROFITABLE',
+      label: 'Profitable',
+      color: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      profit,
+    };
+  }
+  if (profit === 0) {
+    return {
+      status: 'BREAK_EVEN',
+      label: 'Break-even',
+      color: 'bg-slate-100 text-slate-700 border-slate-200',
+      profit: 0,
+    };
+  }
+  return {
+    status: 'LOSS_MAKING',
+    label: 'Loss-making',
+    color: 'bg-rose-100 text-rose-800 border-rose-200',
+    profit,
+  };
+};
 
 export const getDriverName = (driver) => {
   if (!driver) return '-';
