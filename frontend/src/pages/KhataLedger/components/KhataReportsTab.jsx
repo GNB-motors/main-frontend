@@ -27,8 +27,8 @@ import { toast } from 'react-toastify';
 import KhataLedgerService from '../KhataLedgerService';
 import exportTable from '../../../lib/exportTable';
 import { useActiveBranch } from '../../../contexts/BranchContext';
-import {
 import logger from '../../../utils/logger.js';
+import {
   formatCurrency,
   formatDate,
   CATEGORIES,
