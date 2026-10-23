@@ -10,6 +10,7 @@ import DocumentsPanel from './panels/DocumentsPanel';
 import TelemetryPanel from './panels/TelemetryPanel';
 import TripsPanel from './panels/TripsPanel';
 import DriversPanel from './panels/DriversPanel';
+import OpenChallanBadge from '../Compliance/OpenChallanBadge';
 import './vehicle360.css';
 
 /**
@@ -115,6 +116,13 @@ export default function Vehicle360Page() {
         prediction={p.prediction}
         telematicsProvider={p.telematicsProvider}
       />
+
+      {/* Compliance: open e-challans block registration, so they belong on
+          the vehicle header rather than behind a tab. Renders nothing when
+          the vehicle is clean. */}
+      <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+        <OpenChallanBadge vehicleNumber={reg} />
+      </div>
 
       <HeroRow
         reg={reg}

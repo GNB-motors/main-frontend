@@ -19,9 +19,7 @@ import {
   Radar,
   Warehouse,
   Route,
-  Bell,
-  BarChart3,
-  Milestone,
+  Gavel,
 } from 'lucide-react';
 
 /**
@@ -53,17 +51,6 @@ import {
  * `access`   -> module gate: 'erp' | 'fleet' | 'both'. Item's apna feature-flag
  *               `key` iske upar bhi lagta hai. moduleAccess.js dekho.
  *
- * `job`      -> the job this destination belongs to, from navJobs.js. A nav entry
- *               with NO job is never folded by the usage cut — Profile and
- *               Settings are the guaranteed fallback, and the ERP workspaces are
- *               cut by role rather than by frequency.
- *
- * `roles`    -> role gate. An item with this only shows for those roles.
- *
- * `mergeInto`-> groupId of a group that, when visible, absorbs this entry. This
- *               is how the two Approvals entries became one without either
- *               route being removed (item 26.2).
- *
  * `hoistWhenSole` -> 'erp' | 'fleet'. Agar org ke paas sirf yahi ek module hai,
  *               to ye item apne section se nikal kar sabse upar chala jaata hai
  *               (shared Vehicles/Employees ke bhi upar) — kyunki tab wahi is
@@ -72,13 +59,6 @@ import {
  * Order matters: ERP/CRM sabse upar hai kyunki wahi ab primary workflow hai.
  */
 export const SIDE_NAV_ITEMS = [
-  // ─── Item 26: the one inbox, and the numbers the nav cut is argued from ────
-  // Both are ungated on a feature flag on purpose — an org must be able to
-  // reach the alert inbox and to see WHY its menu looks the way it does.
-  // Usage is role-scoped (OWNER/MANAGER) because the endpoint authorizes those
-  // roles; a driver has no business seeing how often their org opens reports.
-  { type: 'link', key: null, to: '/alert-inbox', label: 'Alert Inbox', icon: Bell },
-
   // Fleet-wide daily digest (added by live-map-refresh branch).
   {
     type: 'link',
@@ -87,7 +67,6 @@ export const SIDE_NAV_ITEMS = [
     to: '/digest',
     label: 'Daily Digest',
     icon: CalendarClock,
-    job: 'TODAY',
   },
 
   // ─── Shared master data ────────────────────────────────────────────────────
@@ -99,12 +78,10 @@ export const SIDE_NAV_ITEMS = [
     key: 'vehicles',
     label: 'Vehicles',
     icon: Truck,
-    job: 'VEHICLES',
     children: [
       { to: '/vehicles', label: 'All Vehicles', end: true },
       { to: '/vehicles/dashboard', label: 'Vehicle Dashboard' },
       { to: '/vehicles/service-intelligence', label: 'Service Intelligence' },
-      { to: '/vehicles/service-bills', label: 'Service Bills' },
     ],
     matchRoutes: [
       '/vehicles',
@@ -114,7 +91,6 @@ export const SIDE_NAV_ITEMS = [
       '/vehicles/service-intelligence',
       '/vehicles/service-intelligence/add-service',
       '/vehicles/service-intelligence/add-repair',
-      '/vehicles/service-bills',
     ],
   },
   // Workforce mirrors the Vehicles group: the employee directory and the RBAC
@@ -125,7 +101,6 @@ export const SIDE_NAV_ITEMS = [
     key: 'drivers',
     label: 'Workforce',
     icon: Users,
-    job: 'DRIVERS',
     children: [
       { to: '/drivers', label: 'Employee', end: true },
       { to: '/access-control', label: 'User Management' },
@@ -204,23 +179,17 @@ export const SIDE_NAV_ITEMS = [
   {
     type: 'group',
     groupId: 'erpApprovals',
-    // 'both': the ERP Approval Center now also carries the fleet Approvals
-    // queue, which is item 26.2's "merge the two Approvals entries". The fleet
-    // link below is marked `mergeInto: 'erpApprovals'`, so an org with both
-    // modules sees ONE Approvals entry and an ERP-only org still sees its own.
-    // Neither route, page nor permission was removed.
-    access: 'both',
+    access: 'erp',
     label: 'Approval Center',
     icon: FileCheck,
     // Group parent par combined badge — pehle dono queues alag links thi aur
     // dono apna count dikhati thi; collapse hone par wo count gayab na ho.
     badgeKey: 'approvalsTotal',
     children: [
-      { to: '/erp/approvals', label: 'Approvals', key: 'erpApprovals', access: 'erp' },
-      { to: '/erp/bill-approvals', label: 'Bill Approvals', key: 'erpApprovals', access: 'erp' },
-      { to: '/approvals', label: 'Fleet Approvals', access: 'fleet' },
+      { to: '/erp/approvals', label: 'Approvals', key: 'erpApprovals' },
+      { to: '/erp/bill-approvals', label: 'Bill Approvals', key: 'erpApprovals' },
     ],
-    matchRoutes: ['/erp/approvals', '/erp/bill-approvals', '/approvals'],
+    matchRoutes: ['/erp/approvals', '/erp/bill-approvals'],
   },
   {
     type: 'group',
@@ -251,9 +220,8 @@ export const SIDE_NAV_ITEMS = [
     access: 'fleet',
     hoistWhenSole: 'fleet',
     to: '/live-tracking',
-    label: 'Live',
+    label: 'Track',
     icon: Radar,
-    job: 'LIVE',
   },
   {
     type: 'link',
@@ -262,7 +230,6 @@ export const SIDE_NAV_ITEMS = [
     to: '/auto-trips',
     label: 'Trip',
     icon: Navigation,
-    job: 'TRIPS',
   },
   // One map for every place: warehouses, zones, loading points, idling, fuel risk.
   // `key: null` like Warehouses — the page hides the tabs an org isn't entitled to.
@@ -273,7 +240,6 @@ export const SIDE_NAV_ITEMS = [
     to: '/place-hub',
     label: 'Place Hub',
     icon: MapIcon,
-    job: 'TRIPS',
   },
   // Yards trips start and end at. Hidden from sidebar per request.
   /*
@@ -292,11 +258,6 @@ export const SIDE_NAV_ITEMS = [
     to: '/approvals',
     label: 'Approvals',
     icon: ReceiptText,
-    job: 'MONEY',
-    // Shown as its own entry only when the ERP Approval Center is NOT on
-    // screen. With both modules the group above already carries this queue as
-    // its "Fleet Approvals" child, so the org sees one Approvals entry, not two.
-    mergeInto: 'erpApprovals',
   },
   {
     type: 'group',
@@ -304,7 +265,6 @@ export const SIDE_NAV_ITEMS = [
     access: 'fleet',
     label: 'Fuel Management',
     icon: Fuel,
-    job: 'FUEL',
     children: [
       // Merges Refuel Logs, Mileage Tracking and Fuel Comparison, so any of their
       // flags opens it; the hub hides the views an org isn't entitled to.
@@ -334,19 +294,18 @@ export const SIDE_NAV_ITEMS = [
     to: '/route-hub',
     label: 'Route Hub',
     icon: Route,
-    job: 'REPORTS',
   },
-  // Tolls — the plaza master, the crossings found on the road-matched path, and
-  // the estimate against what drivers actually paid. `key: null` like Route Hub:
-  // the link is always shown and the API is the real gate, because a toll page
-  // that disappears with a flag is how you end up believing a toll was zero.
+  // ─── Compliance / Docs ──────────────────────────────────────────────────────
+  // `key: null` — not gated on a feature flag, for the same reason as
+  // Warehouses/Trip/Place Hub: manual challan entry works with or without a
+  // provider configured, so hiding the page would only hide the fallback.
   {
     type: 'link',
     key: null,
     access: 'fleet',
-    to: '/tolls',
-    label: 'Tolls',
-    icon: Milestone,
+    to: '/challans',
+    label: 'Challans',
+    icon: Gavel,
   },
   /*
   // Fleet Intelligence surfaces (commented out: Idling Console and Hotspots removed; Route Hub displayed directly)
@@ -385,26 +344,8 @@ export const SIDE_NAV_ITEMS = [
 
   // ─── Reporting / account (low-frequency, so it sits at the bottom) ──────────
   { type: 'section', label: 'Insights' },
-  {
-    type: 'link',
-    key: 'khataLedger',
-    to: '/khata-ledger',
-    label: 'Khata Ledger',
-    icon: BookOpen,
-    job: 'MONEY',
-  },
-  { type: 'link', key: 'reports', to: '/reports', label: 'Reports', icon: FileText, job: 'REPORTS' },
-  // Item 26.1: which screens this org opens, and WHY its menu looks like this.
-  // The endpoint authorizes OWNER/MANAGER, so the entry is role-gated to the
-  // same two. No `job` — the page about the menu is never folded out of it.
-  {
-    type: 'link',
-    key: null,
-    roles: ['OWNER', 'MANAGER'],
-    to: '/usage',
-    label: 'Screen Usage',
-    icon: BarChart3,
-  },
+  { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
+  { type: 'link', key: 'reports', to: '/reports', label: 'Reports', icon: FileText },
 
   { type: 'section', label: 'Account' },
   // Settings hub for fleet and vehicle configs
@@ -412,7 +353,5 @@ export const SIDE_NAV_ITEMS = [
   // Always visible (no feature flag) — guaranteed fallback page. Profile must
   // stay reachable for every authenticated user regardless of plan; gating it
   // can lock users out with no recovery path, so `key` stays null on purpose.
-  // No `job` either: this is the one route a usage cut must never be able to
-  // fold away, because it is the recovery path when something else is hidden.
   { type: 'link', key: null, to: '/profile', label: 'Profile', icon: User },
 ];
