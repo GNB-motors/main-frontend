@@ -14,19 +14,19 @@ import {
   EMPTY_SUMMARY,
   VALID_TABS,
 } from './serviceIntelligence/serviceIntelligenceConstants.js';
-import {
-  countFilterPills,
-  filterDisplayedRows,
-} from './serviceIntelligence/serviceIntelligenceFilters.js';
-import ServiceIntelligenceActions from './serviceIntelligence/ServiceIntelligenceActions.jsx';
-import ServiceIntelligenceTabBar from './serviceIntelligence/ServiceIntelligenceTabBar.jsx';
-import ServiceIntelligenceKpis from './serviceIntelligence/ServiceIntelligenceKpis.jsx';
-import ServiceFilterPills from './serviceIntelligence/ServiceFilterPills.jsx';
-import RepairFilterPills from './serviceIntelligence/RepairFilterPills.jsx';
-import ServiceIntelligenceTable from './serviceIntelligence/ServiceIntelligenceTable.jsx';
-import '../Profile/VehiclesPage.css';
-import './ServiceIntelligencePage.css';
 import logger from '../../utils/logger';
+import './ServiceIntelligencePage.css';
+import '../Profile/VehiclesPage.css';
+import ServiceIntelligenceTable from './serviceIntelligence/ServiceIntelligenceTable.jsx';
+import RepairFilterPills from './serviceIntelligence/RepairFilterPills.jsx';
+import ServiceFilterPills from './serviceIntelligence/ServiceFilterPills.jsx';
+import ServiceIntelligenceKpis from './serviceIntelligence/ServiceIntelligenceKpis.jsx';
+import ServiceIntelligenceTabBar from './serviceIntelligence/ServiceIntelligenceTabBar.jsx';
+import ServiceIntelligenceActions from './serviceIntelligence/ServiceIntelligenceActions.jsx';
+} from './serviceIntelligence/serviceIntelligenceFilters.js';
+  filterDisplayedRows,
+  countFilterPills,
+import {
 
 const ServiceIntelligencePage = () => {
   const navigate = useNavigate();

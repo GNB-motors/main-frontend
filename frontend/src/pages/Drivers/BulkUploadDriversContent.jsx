@@ -11,15 +11,15 @@ import BulkUploadFileStep from './Component/BulkUploadFileStep.jsx';
 import BulkUploadReviewTable from './Component/BulkUploadReviewTable.jsx';
 import BulkUploadRowErrorModal from './Component/BulkUploadRowErrorModal.jsx';
 import BulkUploadProgress from '../BulkUpload/BulkUploadProgress.jsx';
-import {
-  applyColumnMapping,
-  filterRowsByStatus,
-  summarizeRowErrors,
-  buildEmployeesPayload,
-  buildCredentialsCsv,
-  MAX_ROWS,
-} from './bulkUploadFlow.js';
 import logger from '../../utils/logger';
+} from './bulkUploadFlow.js';
+  MAX_ROWS,
+  buildCredentialsCsv,
+  buildEmployeesPayload,
+  summarizeRowErrors,
+  filterRowsByStatus,
+  applyColumnMapping,
+import {
 
 /**
  * The employee bulk-upload flow (file → map columns → review → submit → results),

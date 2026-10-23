@@ -1,15 +1,15 @@
-import {
-  isTokenExpired,
-  getTokenExpiration,
-  clearAuthData,
-  handleAuthError,
-  isSessionInvalid401,
-  validateTokenBeforeRequest,
-  getTokenTimeRemaining,
-} from '../authUtils.js';
-import { setSession, getToken } from '../session.js';
-import { setNavigator } from '../navigation.js';
 import logger from '../logger.js';
+import { setNavigator } from '../navigation.js';
+import { setSession, getToken } from '../session.js';
+} from '../authUtils.js';
+  getTokenTimeRemaining,
+  validateTokenBeforeRequest,
+  isSessionInvalid401,
+  handleAuthError,
+  clearAuthData,
+  getTokenExpiration,
+  isTokenExpired,
+import {
 
 vi.mock('../logger.js', () => ({ default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() } }));
 

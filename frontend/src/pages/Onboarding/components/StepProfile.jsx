@@ -2,18 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { clearAuthData } from '../../../utils/authUtils';
-import {
-  getToken,
-  getUserFirstName,
-  getUserLastName,
-  getUserEmail,
-  getUserMobileNumber,
-  getUserId,
-  getOrgId,
-  getOnboardingDraft,
-  setOnboardingDraft,
-} from '../../../utils/session.js';
 import logger from '../../../utils/logger';
+} from '../../../utils/session.js';
+  setOnboardingDraft,
+  getOnboardingDraft,
+  getOrgId,
+  getUserId,
+  getUserMobileNumber,
+  getUserEmail,
+  getUserLastName,
+  getUserFirstName,
+  getToken,
+import {
 
 const StepProfile = ({ onNext, onBack, onDataChange }) => {
   const navigate = useNavigate();

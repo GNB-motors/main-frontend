@@ -2,15 +2,15 @@
  * Utility functions for managing profile data in the session store
  * Each profile field is stored individually for easier access
  */
-import {
-  getProfileField as sessionGetProfileField,
-  setProfileField,
-  removeProfileField,
-  hasProfileData as sessionHasProfileData,
-  getThemeColor,
-  setThemeColor,
-} from './session.js';
 import logger from './logger';
+} from './session.js';
+  setThemeColor,
+  getThemeColor,
+  hasProfileData as sessionHasProfileData,
+  removeProfileField,
+  setProfileField,
+  getProfileField as sessionGetProfileField,
+import {
 
 /**
  * Store individual profile fields in the session store

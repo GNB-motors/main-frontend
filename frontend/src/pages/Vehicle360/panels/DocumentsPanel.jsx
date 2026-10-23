@@ -4,13 +4,13 @@ import PanelErrorBoundary from '../../../components/cluster/PanelErrorBoundary';
 import { formatDateIST } from '../../../utils/dateUtils';
 import useApi from '../../../hooks/useApi';
 import { VehicleService } from '../../Profile/VehicleService.js';
-import VehicleDocumentUpload, {
-  VEHICLE_DOC_TYPES,
-  emptyDocsState,
-} from '../../Profile/Component/VehicleDocumentUpload.jsx';
-import { mapFetchedDocsToUiState } from '../../Profile/addVehicleDocMapping.js';
-import { documentSummary } from '../vehicle360Logic';
 import logger from '../../../utils/logger';
+import { documentSummary } from '../vehicle360Logic';
+import { mapFetchedDocsToUiState } from '../../Profile/addVehicleDocMapping.js';
+} from '../../Profile/Component/VehicleDocumentUpload.jsx';
+  emptyDocsState,
+  VEHICLE_DOC_TYPES,
+import VehicleDocumentUpload, {
 import Empty from './Empty';
 
 /**

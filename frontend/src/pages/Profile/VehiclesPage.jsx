@@ -22,17 +22,17 @@ import { DeleteVehicleModal } from './VehicleModals.jsx';
 import BulkUploadVehiclesPanel from './BulkUploadVehiclesPanel.jsx';
 import VehiclesPagination from './VehiclesPagination.jsx';
 import { useVehicleColumns } from './useVehicleColumns.jsx';
-import {
-  normalizeVehicle,
-  buildAccountMap,
-  VEHICLE_EXPORT_COLUMNS,
-  mapVehicleForExport,
-  vehicleExportMeta,
-  vehicleNeedsRelink,
-} from './vehicleList.js';
-import { useFleetLink } from '../../contexts/fleetLinkContext';
-import { vehiclesNeedingAction } from '../../lib/fleetLink';
 import logger from '../../utils/logger';
+import { vehiclesNeedingAction } from '../../lib/fleetLink';
+import { useFleetLink } from '../../contexts/fleetLinkContext';
+} from './vehicleList.js';
+  vehicleNeedsRelink,
+  vehicleExportMeta,
+  mapVehicleForExport,
+  VEHICLE_EXPORT_COLUMNS,
+  buildAccountMap,
+  normalizeVehicle,
+import {
 import useVehicleManufacturers from './useVehicleManufacturers.js';
 
 const VehiclesPage = () => {

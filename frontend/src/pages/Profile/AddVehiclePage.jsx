@@ -7,16 +7,16 @@ import { listAccounts, reassignVehicleAccount } from './FleetEdgeAccountService.
 import { useActiveBranch } from '../../contexts/BranchContext.jsx';
 import { getThemeCSS } from '../../utils/colorTheme';
 import VehicleBasicInformationForm from './Component/VehicleBasicInformationForm.jsx';
-import VehicleDocumentUpload, {
-  VEHICLE_DOC_TYPES,
-  emptyDocsState,
-} from './Component/VehicleDocumentUpload.jsx';
-import { getToken, getProfileField, getUserRole } from '../../utils/session.js';
-import { mapFetchedDocsToUiState } from './addVehicleDocMapping';
-import { ImportVehicleDialog } from './ImportVehicleDialog';
-import './VehiclesPage.css';
-import './AddVehiclePage.css';
 import logger from '../../utils/logger';
+import './AddVehiclePage.css';
+import './VehiclesPage.css';
+import { ImportVehicleDialog } from './ImportVehicleDialog';
+import { mapFetchedDocsToUiState } from './addVehicleDocMapping';
+import { getToken, getProfileField, getUserRole } from '../../utils/session.js';
+} from './Component/VehicleDocumentUpload.jsx';
+  emptyDocsState,
+  VEHICLE_DOC_TYPES,
+import VehicleDocumentUpload, {
 import useVehicleManufacturers from './useVehicleManufacturers.js';
 import { eligibleAccounts, canonicalManufacturer } from './vehicleManufacturerOptions.js';
 

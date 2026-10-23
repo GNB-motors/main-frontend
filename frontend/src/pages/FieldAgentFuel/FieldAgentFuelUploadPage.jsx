@@ -10,16 +10,16 @@ import SlotUpload from './SlotUpload';
 import VehicleDriverPickers from './VehicleDriverPickers';
 import FuelOrgFilter from './FuelOrgFilter';
 import FuelLogFields from './FuelLogFields';
-import {
-  validateImageFile,
-  ocrDocTypeFor,
-  extractRefuelTime,
-  buildDocumentFormData,
-  buildFuelLogPayload,
-  ocrAutofill,
-} from './fuelUploadUtils';
-import '../MileageTracking/MileageTracking.css'; // Reuse existing styles
 import logger from '../../utils/logger';
+import '../MileageTracking/MileageTracking.css'; // Reuse existing styles
+} from './fuelUploadUtils';
+  ocrAutofill,
+  buildFuelLogPayload,
+  buildDocumentFormData,
+  extractRefuelTime,
+  ocrDocTypeFor,
+  validateImageFile,
+import {
 
 const FieldAgentFuelUploadPage = () => {
   const navigate = useNavigate();

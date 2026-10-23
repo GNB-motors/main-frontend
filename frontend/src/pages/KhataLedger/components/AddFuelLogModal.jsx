@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import FuelLogForm from '@/components/FuelLogForm/FuelLogForm';
-import DriverVehicleAssignmentService from '../../../services/DriverVehicleAssignmentService';
 import logger from '../../../utils/logger';
+import DriverVehicleAssignmentService from '../../../services/DriverVehicleAssignmentService';
+import FuelLogForm from '@/components/FuelLogForm/FuelLogForm';
+} from '@/components/ui/dialog';
+  DialogDescription,
+  DialogTitle,
+  DialogHeader,
+  DialogContent,
+  Dialog,
+import {
 
 const AddFuelLogModal = ({ open, onClose, driverId, vehicleId, onAdded }) => {
   const [resolvedDriverId, setResolvedDriverId] = useState(driverId || '');

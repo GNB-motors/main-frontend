@@ -14,18 +14,18 @@ import {
 } from '../../utils/bulkNormalization';
 import EditRowModal from '../BulkUpload/EditRowModal';
 import { VEHICLE_COLUMNS } from './bulkUploadVehiclesColumns.js';
-import {
-  filterRowsByStatus,
-  summarizeRowErrors,
-  VEHICLE_DEDUPE_KEY,
-} from './bulkUploadVehiclesFlow.js';
-import BulkUploadVehiclesFileStep from './bulkUploadVehiclesFileStep.jsx';
-import BulkUploadVehiclesReviewTable from './bulkUploadVehiclesReviewTable.jsx';
-import BulkUploadVehiclesResultSummary from './bulkUploadVehiclesResultSummary.jsx';
-import BulkUploadVehiclesToolbar from './BulkUploadVehiclesToolbar.jsx';
-import BulkUploadVehiclesMapping from './BulkUploadVehiclesMapping.jsx';
-import BulkUploadProgress from '../BulkUpload/BulkUploadProgress.jsx';
 import logger from '../../utils/logger';
+import BulkUploadProgress from '../BulkUpload/BulkUploadProgress.jsx';
+import BulkUploadVehiclesMapping from './BulkUploadVehiclesMapping.jsx';
+import BulkUploadVehiclesToolbar from './BulkUploadVehiclesToolbar.jsx';
+import BulkUploadVehiclesResultSummary from './bulkUploadVehiclesResultSummary.jsx';
+import BulkUploadVehiclesReviewTable from './bulkUploadVehiclesReviewTable.jsx';
+import BulkUploadVehiclesFileStep from './bulkUploadVehiclesFileStep.jsx';
+} from './bulkUploadVehiclesFlow.js';
+  VEHICLE_DEDUPE_KEY,
+  summarizeRowErrors,
+  filterRowsByStatus,
+import {
 
 /**
  * The vehicle bulk-upload flow (file → normalize → review → submit → results),

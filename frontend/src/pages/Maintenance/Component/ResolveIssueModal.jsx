@@ -1,18 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import {
-  X,
-  CheckCircle2,
-  AlertOctagon,
-  AlertTriangle,
-  Wrench,
-  Truck,
-  Calendar,
-  DollarSign,
-  FileText,
-  UserCheck,
-} from 'lucide-react';
-import { classifyIssuePriority } from '../serviceIntelligenceLogic';
 import logger from '../../../utils/logger';
+import { classifyIssuePriority } from '../serviceIntelligenceLogic';
+} from 'lucide-react';
+  UserCheck,
+  FileText,
+  DollarSign,
+  Calendar,
+  Truck,
+  Wrench,
+  AlertTriangle,
+  AlertOctagon,
+  CheckCircle2,
+  X,
+import {
 
 export default function ResolveIssueModal({ isOpen, onClose, targetItem, onConfirmResolve }) {
   const [workshop, setWorkshop] = useState('');
