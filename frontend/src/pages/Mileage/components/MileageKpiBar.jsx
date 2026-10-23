@@ -3,7 +3,7 @@ import StatusChip from '../../../components/ui/StatusChip';
 import { useApi } from '../../../hooks/useApi';
 import { formatInrCompact, formatNum } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
-import { billCoverage, kpisFromSources, mileageBand } from '../mileageRows';
+import { billCoverage, kpisFromSources, mileageBand } from '../cycleRows';
 import InfoTip from './InfoTip';
 
 const Tile = ({ label, explanation, value, valueClass = '', children }) => (
@@ -26,11 +26,11 @@ const Tile = ({ label, explanation, value, valueClass = '', children }) => (
 export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 }) {
   const feed = useApi(
     (signal) => MileageApi.unifiedFeed(range, { fuelType: 'DIESEL', limit: 1 }, signal),
-    [range.from, range.to, refreshKey],
+    [range.manufacturer, range.from, range.to, refreshKey],
   );
   const models = useApi(
     (signal) => MileageApi.modelComparison(range, signal),
-    [range.from, range.to, refreshKey],
+    [range.manufacturer, range.from, range.to, refreshKey],
     { enabled: showFleetMileage },
   );
 

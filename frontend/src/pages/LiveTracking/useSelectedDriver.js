@@ -1,0 +1,50 @@
+import { useMemo } from 'react';
+import { formatInIST } from '../../utils/dateUtils';
+
+export default function useSelectedDriver(selectedVehicle, vehiclesMeta, driverAssignments) {
+  // Selected vehicle's active driver resolver
+  const selectedDriver = useMemo(() => {
+    if (!selectedVehicle) return null;
+    const cleanPlate = (selectedVehicle.plate || '').toUpperCase().replace(/\s+/g, '');
+    const meta = vehiclesMeta[cleanPlate] || vehiclesMeta[selectedVehicle.plate] || {};
+
+    const assignment =
+      driverAssignments[cleanPlate] ||
+      driverAssignments[selectedVehicle.plate] ||
+      (meta._id ? driverAssignments[meta._id] : null);
+
+    if (assignment) {
+      const d =
+        assignment.driverId && typeof assignment.driverId === 'object' ? assignment.driverId : null;
+      // The assignment list populates driverId with firstName/lastName, not name.
+      const fullName = [d?.firstName, d?.lastName].filter(Boolean).join(' ');
+      return {
+        name: d?.name || d?.fullName || fullName || assignment.driverName || 'Primary Driver',
+        phone: d?.phone || d?.mobileNumber || assignment.driverPhone || null,
+        // startDate is an ISO timestamp (formatDayText takes minutes-ago).
+        since: formatInIST(assignment.startDate, 'D MMM YYYY'),
+      };
+    }
+
+    if (meta.assignedDriver) {
+      if (typeof meta.assignedDriver === 'object') {
+        return {
+          name: meta.assignedDriver.name || meta.assignedDriver.fullName || 'Assigned Driver',
+          phone: meta.assignedDriver.phone || meta.assignedDriver.mobileNumber || null,
+        };
+      }
+    }
+
+    if (meta.driverName || meta.driver) {
+      const d = typeof meta.driver === 'object' ? meta.driver : null;
+      return {
+        name: meta.driverName || d?.name || d?.fullName || 'Assigned Driver',
+        phone: meta.driverPhone || meta.driverMobile || d?.phone || null,
+      };
+    }
+
+    return null;
+  }, [selectedVehicle, vehiclesMeta, driverAssignments]);
+
+  return selectedDriver;
+}

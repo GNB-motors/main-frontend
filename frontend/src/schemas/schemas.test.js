@@ -6,8 +6,9 @@ const vehicle = load('vehicle.schema.js');
 const driver = load('driver.schema.js');
 const trip = load('trip.schema.js');
 const branch = load('branch.schema.js');
-const profile = load('profile.schema.js');
 const erp = load('erp.schema.js');
+const livePosition = load('livePosition.schema.js');
+const assignment = load('driverVehicleAssignment.schema.js');
 
 describe('schemas — async validation via parseWith', () => {
   it('parseWith resolves the schema module via dynamic import', async () => {
@@ -156,31 +157,25 @@ describe('schemas — async validation via parseWith', () => {
     });
   });
 
-  describe('profile.schema.js', () => {
-    it('accepts a valid profile and passes extras through', async () => {
-      const p = {
-        _id: 'p1',
-        companyName: 'GNB',
-        ownerEmail: 'o@gnb.in',
-        gstin: '22AAAAA0000A1Z5',
-        primaryThemeColor: '#ff8800',
-        other: 'x',
-      };
-      expect(await profile('profileSchema', p)).toEqual(p);
+  describe('driverVehicleAssignment.schema.js', () => {
+    it('accepts populated refs, bare ids and null dates', async () => {
+      const rows = [
+        {
+          _id: 'a1',
+          driverId: { _id: 'd1', firstName: 'Ravi', mobileNumber: null },
+          vehicleId: { _id: 'v1', registrationNumber: 'WB01AB1234' },
+          endDate: null,
+          extra: 'kept',
+        },
+        { _id: 'a2', driverId: 'd2', vehicleId: 'v2' },
+      ];
+      expect(await assignment('driverVehicleAssignmentListSchema', rows)).toEqual(rows);
     });
 
-    it('rejects wrong types on known fields', async () => {
-      await expect(profile('profileSchema', { gstin: 12345 })).rejects.toThrow();
-    });
-
-    it('validates the response envelope', async () => {
-      const res = await profile('profileResponseSchema', {
-        status: 'ok',
-        data: { _id: 'p1' },
-        extra: 'kept',
-      });
-      expect(res.data._id).toBe('p1');
-      expect(res.extra).toBe('kept');
+    it('rejects a row without an id', async () => {
+      await expect(
+        assignment('driverVehicleAssignmentListSchema', [{ driverId: 'd1' }]),
+      ).rejects.toThrow();
     });
   });
 
@@ -202,9 +197,6 @@ describe('schemas — async validation via parseWith', () => {
 
       const b = await branch('branchSchema', { _id: 'b1', code: null, city: null, address: null });
       expect(b.city).toBeNull();
-
-      const pr = await profile('profileSchema', { _id: 'p1', gstin: null, companyName: null });
-      expect(pr.gstin).toBeNull();
 
       const t = await trip('tripSchema', { _id: 't1', endDate: null, destination: null });
       expect(t.endDate).toBeNull();
@@ -270,6 +262,32 @@ describe('schemas — async validation via parseWith', () => {
           meta: { total: 'two' },
         }),
       ).rejects.toThrow();
+    });
+  });
+
+  describe('livePosition.schema.js', () => {
+    it('accepts a live position, including nulls for a truck with no fix', async () => {
+      const rows = [
+        {
+          registrationNumber: 'WB25V8040',
+          state: 'ACTIVE',
+          latitude: 22.5,
+          longitude: 88.3,
+          speed: 41,
+        },
+        {
+          registrationNumber: 'WB11A1111',
+          state: 'OFFLINE',
+          latitude: null,
+          longitude: null,
+          isStale: true,
+        },
+      ];
+      expect(await livePosition('livePositionListSchema', rows)).toEqual(rows);
+    });
+
+    it('rejects a row with no registration number', async () => {
+      await expect(livePosition('livePositionListSchema', [{ state: 'ACTIVE' }])).rejects.toThrow();
     });
   });
 });

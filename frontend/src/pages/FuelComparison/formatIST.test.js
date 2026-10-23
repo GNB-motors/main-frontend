@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-  toIST,
   formatRelativeIST,
   formatDateRange,
   formatClockIST,
@@ -8,30 +7,14 @@ import {
   fmtLitres,
   fmtKm,
   fmtDuration,
-  IST_ZONE,
 } from './formatIST';
-
-describe('toIST', () => {
-  it('returns null for empty input', () => {
-    expect(toIST(null)).toBeNull();
-    expect(toIST('')).toBeNull();
-    expect(toIST(undefined)).toBeNull();
-  });
-
-  it('converts a UTC instant into the IST zone', () => {
-    const d = toIST('2026-08-15T00:00:00Z');
-    expect(d.format('YYYY-MM-DD HH:mm')).toBe('2026-08-15 05:30');
-    expect(d.format('Z')).toBe('+05:30');
-    expect(IST_ZONE).toBe('Asia/Kolkata');
-  });
-});
 
 describe('formatRelativeIST', () => {
   it('returns null when there is no timestamp', () => {
     expect(formatRelativeIST(null)).toBeNull();
   });
 
-  it('returns a dayjs relative string for a timestamp', () => {
+  it('returns a relative string for a timestamp', () => {
     const out = formatRelativeIST('2020-01-01T00:00:00Z');
     expect(typeof out).toBe('string');
     expect(out.length).toBeGreaterThan(0);

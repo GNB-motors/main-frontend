@@ -115,7 +115,7 @@ const LocationSwitcher = () => {
       toast.success(`Location "${trimmed}" added`);
       if (created?._id) switchTo(String(created._id));
     } catch (err) {
-      toast.error(err?.response?.data?.message || err?.detail || 'Could not add location');
+      toast.error(err?.message || 'Could not add location');
     } finally {
       setSubmitting(false);
     }
@@ -150,7 +150,9 @@ const LocationSwitcher = () => {
             <input
               className="ls-search__input"
               type="text"
+              aria-label="Search locations"
               value={query}
+              // eslint-disable-next-line jsx-a11y/no-autofocus -- search box of the menu the user just opened
               autoFocus
               placeholder="Search here..."
               onChange={(e) => setQuery(e.target.value)}
@@ -234,8 +236,10 @@ const LocationSwitcher = () => {
               <input
                 id="new-location-name"
                 type="text"
+                aria-label="Location name"
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 value={name}
+                // eslint-disable-next-line jsx-a11y/no-autofocus -- first field of the Add location dialog the user just opened
                 autoFocus
                 maxLength={80}
                 placeholder="e.g. Chennai"

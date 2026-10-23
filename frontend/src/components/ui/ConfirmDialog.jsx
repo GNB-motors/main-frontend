@@ -62,14 +62,23 @@ function ConfirmDialog({ options, onSettle }) {
   } = options;
 
   return (
-    <div className="cdlg-overlay" role="presentation" onClick={() => onSettle(false)}>
-      <div
-        className="cdlg"
-        role="alertdialog"
-        aria-modal="true"
-        aria-label={title}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div
+      className="cdlg-overlay"
+      role="presentation"
+      // Only a click on the backdrop itself cancels; clicks inside the dialog
+      // stop here, as they did when the dialog stopped them one level down.
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onSettle(false);
+        else e.stopPropagation();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          e.stopPropagation();
+          onSettle(false);
+        }
+      }}
+    >
+      <div className="cdlg" role="alertdialog" aria-modal="true" aria-label={title}>
         <div className="cdlg-head">
           {danger && <AlertTriangle size={18} className="cdlg-warn" aria-hidden="true" />}
           <h2 className="cdlg-title">{title}</h2>
@@ -84,6 +93,7 @@ function ConfirmDialog({ options, onSettle }) {
             type="button"
             className={`pshell-btn ${danger ? 'cdlg-confirm--danger' : 'pshell-btn--primary'}`}
             onClick={() => onSettle(true)}
+            // eslint-disable-next-line jsx-a11y/no-autofocus -- the alertdialog just opened; focus must move into it so Enter/Escape act on it
             autoFocus
           >
             {confirmLabel}

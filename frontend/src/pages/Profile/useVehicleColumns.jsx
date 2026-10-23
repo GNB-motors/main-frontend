@@ -3,8 +3,10 @@
 // Extracted from VehiclesPage.jsx (WS0.7) to keep the page under the file-size rule;
 // cell markup preserved byte-identically.
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, Pencil, Trash2, ToggleRight } from 'lucide-react';
+import { Eye, Pencil, Plug, Trash2, ToggleRight, Unplug } from 'lucide-react';
 import { describeFleetEdgeAccount } from './vehicleList.js';
+import '../../components/FleetLink.css';
+import { manufacturerLabel } from './vehicleManufacturerOptions.js';
 
 /**
  * VehicleInlineActions
@@ -86,7 +88,17 @@ function VehicleInlineActions({ vehicle, isSubmitting, onEdit, onDelete, onActiv
   );
 }
 
-export function useVehicleColumns({ accountMap, isSubmitting, onEdit, onDelete, onActivateHere }) {
+export function useVehicleColumns({
+  accountMap,
+  manufacturers,
+  linkIndex,
+  linkLoading = false,
+  onReconnect,
+  isSubmitting,
+  onEdit,
+  onDelete,
+  onActivateHere,
+}) {
   return [
     {
       key: 'registration_no',
@@ -120,7 +132,6 @@ export function useVehicleColumns({ accountMap, isSubmitting, onEdit, onDelete, 
         </>
       ),
     },
-    { key: 'model', label: 'Model', render: (vehicle) => vehicle.model || 'N/A' },
     {
       key: 'manufacturer',
       label: 'Manufacturer',
@@ -129,12 +140,13 @@ export function useVehicleColumns({ accountMap, isSubmitting, onEdit, onDelete, 
           <span
             className={`vehicle-badge manufacturer-${vehicle.manufacturer?.toLowerCase().replace(/\s+/g, '-')}`}
           >
-            {vehicle.manufacturer}
+            {manufacturerLabel(vehicle.manufacturer, manufacturers)}
           </span>
         ) : (
-          <span className="vehicle-badge vehicle-badge-unknown">—</span>
+          <span className="vehicle-badge vehicle-badge-unknown">Unclassified</span>
         ),
     },
+    { key: 'model', label: 'Model', render: (vehicle) => vehicle.model || 'N/A' },
     {
       key: 'vehicleCategory',
       label: 'Category',
@@ -158,13 +170,72 @@ export function useVehicleColumns({ accountMap, isSubmitting, onEdit, onDelete, 
     },
     {
       key: 'fleetEdgeAccountId',
-      label: 'FleetEdge Account',
+      label: 'Account',
       render: (vehicle) => {
-        const acct = describeFleetEdgeAccount(vehicle, accountMap);
+        const acct = describeFleetEdgeAccount(vehicle, accountMap, linkIndex);
         if (!acct.tagged) {
-          return <span style={{ fontStyle: 'italic', color: '#aaa', fontSize: 12 }}>untagged</span>;
+          return (
+            <span style={{ fontStyle: 'italic', color: '#aaa', fontSize: 12 }}>Not assigned</span>
+          );
         }
-        return (
+        // The account's link state on every row; a Reconnect action while the
+        // truck's data is paused (or about to be).
+        let linkChip = null;
+        if (acct.link) {
+          const Icon = acct.link.needsAction ? Unplug : Plug;
+          linkChip = (
+            <button
+              type="button"
+              className={`fleet-link-chip fleet-link-chip--${acct.link.tone}`}
+              title={
+                acct.link.needsAction
+                  ? 'See how to reconnect this account'
+                  : 'Account connection details'
+              }
+              onClick={(e) => {
+                e.stopPropagation();
+                onReconnect?.(acct.link.accountId);
+              }}
+            >
+              <Icon size={11} aria-hidden="true" />
+              {acct.link.needsAction ? `${acct.link.label} · Reconnect` : acct.link.label}
+            </button>
+          );
+        } else if (acct.isAuthFailed) {
+          linkChip = (
+            <span className="fleet-link-chip fleet-link-chip--crit">
+              <Unplug size={11} aria-hidden="true" />
+              Login failed
+            </span>
+          );
+        } else if (accountMap[String(vehicle.fleetEdgeAccountId)]?.source === 'IALERT_PORTAL') {
+          linkChip = null;
+        } else if (linkLoading) {
+          linkChip = (
+            <span className="fleet-link-chip fleet-link-chip--info">
+              <Plug size={11} aria-hidden="true" />
+              Checking…
+            </span>
+          );
+        } else {
+          // No link verdict for this account (disabled, or the check is
+          // unavailable): treat it as not connected rather than show nothing.
+          linkChip = (
+            <button
+              type="button"
+              className="fleet-link-chip fleet-link-chip--crit"
+              title="See how to connect this account"
+              onClick={(e) => {
+                e.stopPropagation();
+                onReconnect?.(vehicle.fleetEdgeAccountId);
+              }}
+            >
+              <Unplug size={11} aria-hidden="true" />
+              Not connected
+            </button>
+          );
+        }
+        const badge = (
           <span
             title={acct.tip}
             className="vehicle-badge"
@@ -190,6 +261,20 @@ export function useVehicleColumns({ accountMap, isSubmitting, onEdit, onDelete, 
               />
             )}
             {acct.label}
+          </span>
+        );
+        if (!linkChip) return badge;
+        return (
+          <span
+            style={{
+              display: 'inline-flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: 4,
+            }}
+          >
+            {badge}
+            {linkChip}
           </span>
         );
       },

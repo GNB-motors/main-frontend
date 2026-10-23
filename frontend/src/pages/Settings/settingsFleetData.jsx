@@ -2,9 +2,11 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Radio } from 'lucide-react';
 import useApi from '../../hooks/useApi';
 import { listAccounts } from '../Profile/FleetEdgeAccountService';
-import { getToken } from '../../utils/session.js';
 import { formatNum, formatPct } from '../../utils/formatters';
 import { Card, SectionHead, Skeleton } from './settingsAtoms';
+import { useFleetLink } from '../../contexts/fleetLinkContext';
+import { linkForAccount, linkStatus, needsAction } from '../../lib/fleetLink';
+import { IalertAccountsCard } from './settingsIalert.jsx';
 
 const STATUS = {
   ACTIVE: { label: 'Active', tone: 'ok' },
@@ -18,7 +20,8 @@ const NO_FEED_HINT =
   'Connect FleetEdge from the GNB Edge Chrome extension and its vehicles appear here.';
 
 function FleetEdgeAccounts() {
-  const { data, loading, error } = useApi(() => listAccounts(getToken()), []);
+  const { data, loading, error } = useApi((signal) => listAccounts({ signal }), []);
+  const { index: linkIndex, openPanel } = useFleetLink();
   const accounts = data || [];
 
   return (
@@ -46,6 +49,7 @@ function FleetEdgeAccounts() {
         <ul className="stx-rows">
           {accounts.map((a) => {
             const st = STATUS[a.status] || STATUS.DISABLED;
+            const link = linkForAccount(linkIndex, a._id);
             return (
               <li key={a._id} className="stx-row">
                 <span className="stx-row-icon" aria-hidden="true">
@@ -62,7 +66,18 @@ function FleetEdgeAccounts() {
                     ) : null}
                   </p>
                 </div>
-                <span className={`stx-status stx-status--${st.tone}`}>{st.label}</span>
+                {needsAction(link) ? (
+                  <button
+                    type="button"
+                    className={`stx-status stx-status--${linkStatus(link).tone === 'crit' ? 'bad' : 'warn'}`}
+                    title="See how to reconnect this FleetEdge account"
+                    onClick={() => openPanel(a._id)}
+                  >
+                    {linkStatus(link).label} · Reconnect
+                  </button>
+                ) : (
+                  <span className={`stx-status stx-status--${st.tone}`}>{st.label}</span>
+                )}
               </li>
             );
           })}
@@ -163,6 +178,7 @@ export function FleetDataSettings({ showAccounts, coverage }) {
         desc="Where your trucks' GPS and engine data comes from, and which trucks it covers."
       />
       {showAccounts ? <FleetEdgeAccounts /> : null}
+      {showAccounts ? <IalertAccountsCard /> : null}
       {coverage ? <Coverage coverage={coverage} /> : null}
     </>
   );

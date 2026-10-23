@@ -11,7 +11,7 @@ import { useApi } from '../../hooks/useApi';
 import { useMutation } from '../../hooks/useMutation';
 import TripPlanService from '../../services/TripPlanService';
 import { dropLabel } from '../PlaceHub/intelligence/facilityText';
-import { fmtDayTime, fmtKm } from './autoTripModel';
+import { fmtDayTime, fmtKm } from './autoTripFormat';
 
 const DAY_MS = 86400000;
 

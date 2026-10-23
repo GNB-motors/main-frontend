@@ -1,0 +1,114 @@
+.sap-route-card {
+  padding: 20px;
+}
+.sap-route-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.sap-route-header h2 {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.sap-route-labels {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.sap-source {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: var(--orange-tint);
+  color: var(--accent-ink);
+}
+.sap-comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.sap-comparison {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--ds-line);
+  border-radius: 10px;
+}
+.sap-comparison-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.sap-comparison-title h3 {
+  font-size: 13px;
+}
+.sap-comparison-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+.sap-comparison-metrics dt {
+  color: var(--ds-ink3);
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+.sap-comparison-metrics dd {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.sap-comparison-metrics dd small {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ds-ink3);
+}
+.sap-route-footer {
+  border-top: 1px solid var(--ds-line);
+  padding-top: 14px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.sap-link-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.sap-sample-detail {
+  padding: 20px;
+  display: grid;
+  gap: 18px;
+  background: var(--ds-sunk);
+  border-block: 1px solid var(--ds-line);
+}
+.sap-sample-detail table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.sap-sample-detail :is(th, td) {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ds-line);
+}
+.sap-sample-detail th {
+  color: var(--ds-ink3);
+  font-weight: 500;
+}
+.sap-scroll {
+  overflow: auto;
+}

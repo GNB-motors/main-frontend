@@ -26,13 +26,15 @@ export default function FilterBar({
   activeCount = 0,
   onClear = null,
   right = null,
+  scope = null,
 }) {
   const hasExtras = Boolean(
-    onRangeChange || (chips && chips.length > 0) || (activeCount > 0 && onClear) || right,
+    scope || onRangeChange || (chips && chips.length > 0) || (activeCount > 0 && onClear) || right,
   );
 
   return (
     <div className={`fbar${!hasExtras ? ' fbar--search-only' : ''}`}>
+      {scope ? <div className="fbar-scope manufacturer-scope-row">{scope}</div> : null}
       {onSearchChange ? (
         <label className="fbar-search">
           <Search size={14} className="fbar-search-icon" aria-hidden />

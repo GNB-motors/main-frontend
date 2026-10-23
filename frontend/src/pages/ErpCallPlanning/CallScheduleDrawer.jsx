@@ -108,9 +108,10 @@ const CallScheduleDrawer = ({
     if (p.picker === 'single') {
       setForm((prev) => ({
         ...prev,
-        daysOfWeek: prev.daysOfWeek.length === 1 ? prev.daysOfWeek : [
-          WEEKDAYS.find((w) => prev.daysOfWeek.includes(w.value))?.value ?? 1,
-        ],
+        daysOfWeek:
+          prev.daysOfWeek.length === 1
+            ? prev.daysOfWeek
+            : [WEEKDAYS.find((w) => prev.daysOfWeek.includes(w.value))?.value ?? 1],
       }));
     }
   };
@@ -142,9 +143,7 @@ const CallScheduleDrawer = ({
       onClose={onClose}
       title={isEditing ? 'Edit calling schedule' : 'Create calling schedule'}
       subtitle={
-        isEditing
-          ? party?.name || schedule?.partyId?.name
-          : 'Recurring follow-ups for one account'
+        isEditing ? party?.name || schedule?.partyId?.name : 'Recurring follow-ups for one account'
       }
       maxWidth="560px"
       footer={
@@ -251,18 +250,19 @@ const CallScheduleDrawer = ({
                 <strong>{party?.name}&apos;s account manager will change too.</strong>
                 <div style={{ marginTop: 4 }}>
                   Saving sets {kamName(kam)} as the KAM on the {party?.name} account master,
-                  replacing {kamName(party?.kamId)}. Every other account either of them manages
-                  is untouched — a KAM can hold as many accounts as you like.
+                  replacing {kamName(party?.kamId)}. Every other account either of them manages is
+                  untouched — a KAM can hold as many accounts as you like.
                 </div>
               </div>
             </div>
           )}
 
           <div className="erp-field full">
-            <label>
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- names the pattern button group below (aria-labelledby), which has no single form control to point htmlFor at; kept a <label> for the .erp-field label styling */}
+            <label id="cs-pattern-label">
               Calling pattern <span className="required">*</span>
             </label>
-            <div className="erp-preset-row">
+            <div className="erp-preset-row" role="group" aria-labelledby="cs-pattern-label">
               {PATTERNS.map((p) => (
                 <button
                   type="button"
@@ -319,8 +319,8 @@ const CallScheduleDrawer = ({
           <div className="erp-callout info full">
             <Info size={16} />
             <span>
-              Call tasks are created automatically for the KAM on each selected day, starting
-              from the next one.
+              Call tasks are created automatically for the KAM on each selected day, starting from
+              the next one.
             </span>
           </div>
         </div>

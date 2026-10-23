@@ -1,16 +1,16 @@
 import React, { useRef, useState, useEffect } from 'react';
-import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { Send } from 'lucide-react';
 import { getThemeCSS } from '../../utils/colorTheme.js';
 import '../Profile/BulkUploadVehiclesPage.css';
-import { DriverService } from './DriverService.jsx';
+import { DriverService } from './DriverService.js';
 import NewButton from '@/components/ui/NewButton';
 import BulkEmployeeMappingSidePanel from './Component/BulkEmployeeMappingSidePanel.jsx';
 import BulkUploadResultsSidePanel from './Component/BulkUploadResultsSidePanel.jsx';
 import BulkUploadFileStep from './Component/BulkUploadFileStep.jsx';
 import BulkUploadReviewTable from './Component/BulkUploadReviewTable.jsx';
 import BulkUploadRowErrorModal from './Component/BulkUploadRowErrorModal.jsx';
+import BulkUploadProgress from '../BulkUpload/BulkUploadProgress.jsx';
 import {
   applyColumnMapping,
   filterRowsByStatus,
@@ -19,6 +19,7 @@ import {
   buildCredentialsCsv,
   MAX_ROWS,
 } from './bulkUploadFlow.js';
+import logger from '../../utils/logger';
 
 /**
  * The employee bulk-upload flow (file → map columns → review → submit → results),
@@ -74,8 +75,10 @@ const BulkUploadDriversContent = ({ onCompleted, variant = 'page' }) => {
     setIsParsing(true);
     const reader = new FileReader();
 
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
+        // Loaded on demand: xlsx is large and only needed once a file is picked.
+        const XLSX = await import('xlsx');
         let rawData = [];
         let headers = [];
 
@@ -229,18 +232,14 @@ const BulkUploadDriversContent = ({ onCompleted, variant = 'page' }) => {
         `Upload completed: ${totalCreatedCount} created, ${totalUpdatedCount} updated, ${totalErrorCount} error(s)`,
       );
     } catch (error) {
-      console.error('Submission error:', error);
+      logger.warn('BulkUploadDriversContent', 'Submission error', error);
 
       // Handle 413 specifically
       if (error.response?.status === 413) {
         toast.error(
           'Payload too large. Please reduce the number of rows or split into multiple uploads.',
         );
-      } else if (
-        error.code === 'ECONNABORTED' ||
-        error.message?.includes('timeout') ||
-        error.detail?.includes('timeout')
-      ) {
+      } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
         toast.error(
           'Request timed out. The upload may still be processing on the server. Please check the employees list or try again with fewer rows.',
         );
@@ -248,7 +247,6 @@ const BulkUploadDriversContent = ({ onCompleted, variant = 'page' }) => {
         const errorMsg =
           error.response?.data?.message ||
           error.response?.data?.detail ||
-          error.detail ||
           error.message ||
           'Upload failed';
         toast.error(errorMsg);
@@ -342,47 +340,7 @@ const BulkUploadDriversContent = ({ onCompleted, variant = 'page' }) => {
             </div>
           )}
 
-          {uploadProgress && (
-            <div
-              className="upload-progress-container"
-              style={{
-                marginTop: '20px',
-                padding: '16px',
-                background: 'var(--surface-color, #fff)',
-                border: '1px solid var(--border-color, #eaeaea)',
-                borderRadius: '8px',
-              }}
-            >
-              <div
-                style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}
-              >
-                <span style={{ fontWeight: '500', color: 'var(--text-color, #333)' }}>
-                  Uploading...
-                </span>
-                <span style={{ color: 'var(--text-secondary, #666)' }}>
-                  {uploadProgress.processed} / {uploadProgress.total}
-                </span>
-              </div>
-              <div
-                style={{
-                  width: '100%',
-                  height: '8px',
-                  background: 'var(--bg-secondary, #f0f0f0)',
-                  borderRadius: '4px',
-                  overflow: 'hidden',
-                }}
-              >
-                <div
-                  style={{
-                    height: '100%',
-                    background: 'var(--primary-color, #0056b3)',
-                    width: `${(uploadProgress.processed / uploadProgress.total) * 100}%`,
-                    transition: 'width 0.3s ease',
-                  }}
-                ></div>
-              </div>
-            </div>
-          )}
+          {uploadProgress && <BulkUploadProgress uploadProgress={uploadProgress} />}
         </div>
       </form>
 

@@ -1,8 +1,14 @@
 import { Link } from 'react-router-dom';
-import { Truck, Check, Loader2, CheckCircle2 } from 'lucide-react';
+import { Truck, Check, Loader2, CheckCircle2, Unplug } from 'lucide-react';
 import SlideOver from '../../components/cluster/SlideOver.jsx';
 import { formatINR } from '../../utils/formatters';
 import { StatusPill } from '../../components/overview.primitives.jsx';
+import { useFleetLink } from '../../contexts/fleetLinkContext';
+
+// Account-level FleetEdge alerts: the fix is a re-link, not a vehicle to look at.
+const RELINK_TYPES = ['FLEETEDGE_REAUTH_REQUIRED', 'FLEETEDGE_RELINK_DUE'];
+// iALERT account alerts: also not a vehicle — the re-link happens in the GNB extension.
+const IALERT_ACCOUNT_TYPES = ['IALERT_REAUTH_REQUIRED', 'IALERT_RELINK_DUE'];
 
 /**
  * AlertDetailsDrawer — structured, single-alert investigation panel.
@@ -10,16 +16,35 @@ import { StatusPill } from '../../components/overview.primitives.jsx';
  * IMPACT so nothing is lost while the header stays scannable.
  */
 export default function AlertDetailsDrawer({ open, onClose, alert, onAck, acking }) {
+  const { enabled: canRelink, openPanel } = useFleetLink();
   if (!alert) return null;
+  const relinkable = canRelink && RELINK_TYPES.includes(alert.type);
   const sev = alert.severity || 'WARNING';
-  const color = sev === 'CRITICAL' ? 'var(--critical)' : sev === 'INFO' ? 'var(--gnb-400)' : 'var(--caution)';
-  const source = String(alert.type || '').startsWith('FLEETEDGE') ? 'FleetEdge' : 'FleetEdge telemetry';
+  const color =
+    sev === 'CRITICAL' ? 'var(--critical)' : sev === 'INFO' ? 'var(--gnb-400)' : 'var(--caution)';
+  const type = String(alert.type || '');
+  const source = type.startsWith('IALERT')
+    ? 'iALERT'
+    : type.startsWith('FLEETEDGE')
+      ? 'FleetEdge'
+      : 'FleetEdge telemetry';
 
   return (
-    <SlideOver open={open} onClose={onClose} title="Alert details" subtitle={alert.detectedRel || ''} width={460}>
+    <SlideOver
+      open={open}
+      onClose={onClose}
+      title="Alert details"
+      subtitle={alert.detectedRel || ''}
+      width={460}
+    >
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <span className="ov-pill" style={{ color, background: `color-mix(in srgb, ${color} 12%, transparent)` }}>{sev}</span>
+          <span
+            className="ov-pill"
+            style={{ color, background: `color-mix(in srgb, ${color} 12%, transparent)` }}
+          >
+            {sev}
+          </span>
           {alert.acknowledged ? (
             <span className="ov-pill ov-pill--inert">Acknowledged</span>
           ) : (
@@ -28,7 +53,9 @@ export default function AlertDetailsDrawer({ open, onClose, alert, onAck, acking
         </div>
 
         <div>
-          <h3 className="cluster-title text-lg" style={{ color }}>{alert.title}</h3>
+          <h3 className="cluster-title text-lg" style={{ color }}>
+            {alert.title}
+          </h3>
           {alert.vehicleNumber ? (
             <span className="reg-plate mt-2 inline-block">{alert.vehicleNumber}</span>
           ) : (
@@ -44,43 +71,85 @@ export default function AlertDetailsDrawer({ open, onClose, alert, onAck, acking
           </div>
           <div className="fi-detail-cell">
             <div className="fi-detail-label">Alert type</div>
-            <div className="fi-detail-value" style={{ fontSize: 13 }}>{alert.typeLabel}</div>
+            <div className="fi-detail-value" style={{ fontSize: 13 }}>
+              {alert.typeLabel}
+            </div>
           </div>
           <div className="fi-detail-cell">
             <div className="fi-detail-label">Source</div>
-            <div className="fi-detail-value" style={{ fontSize: 13 }}>{source}</div>
+            <div className="fi-detail-value" style={{ fontSize: 13 }}>
+              {source}
+            </div>
           </div>
           {alert.inrEstimate != null && (
             <div className="fi-detail-cell fi-detail-cell--full">
               <div className="fi-detail-label">Estimated value</div>
-              <div className="fi-detail-value" style={{ color }}>{formatINR(alert.inrEstimate)}</div>
+              <div className="fi-detail-value" style={{ color }}>
+                {formatINR(alert.inrEstimate)}
+              </div>
             </div>
           )}
           {alert.bill && (
             <div className="fi-detail-cell fi-detail-cell--full">
               <div className="fi-detail-label">Checked against the refuel bills</div>
-              <div className="mt-1"><StatusPill tone={alert.bill.tone}>{alert.bill.label}</StatusPill></div>
+              <div className="mt-1">
+                <StatusPill tone={alert.bill.tone}>{alert.bill.label}</StatusPill>
+              </div>
               {alert.bill.reason && (
-                <div className="mt-1 text-sm leading-relaxed" style={{ color: 'var(--cluster-text)' }}>{alert.bill.reason}</div>
+                <div
+                  className="mt-1 text-sm leading-relaxed"
+                  style={{ color: 'var(--cluster-text)' }}
+                >
+                  {alert.bill.reason}
+                </div>
               )}
             </div>
           )}
           {alert.resolutionNote && (
             <div className="fi-detail-cell fi-detail-cell--full">
               <div className="fi-detail-label">Closed by the system</div>
-              <div className="mt-1 text-sm leading-relaxed" style={{ color: 'var(--cluster-text)' }}>{alert.resolutionNote}</div>
+              <div
+                className="mt-1 text-sm leading-relaxed"
+                style={{ color: 'var(--cluster-text)' }}
+              >
+                {alert.resolutionNote}
+              </div>
             </div>
           )}
           <div className="fi-detail-cell fi-detail-cell--full">
             <div className="fi-detail-label">Impact</div>
-            <div className="mt-1 text-sm leading-relaxed" style={{ color: 'var(--cluster-text)' }}>{alert.message}</div>
+            <div className="mt-1 text-sm leading-relaxed" style={{ color: 'var(--cluster-text)' }}>
+              {alert.message}
+            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
           {alert.vehicleNumber ? (
-            <Link to={`/vehicles/${encodeURIComponent(alert.vehicleNumber)}`} className="ov-btn justify-center">
+            <Link
+              to={`/vehicles/${encodeURIComponent(alert.vehicleNumber)}`}
+              className="ov-btn justify-center"
+            >
               <Truck size={15} /> View vehicle
+            </Link>
+          ) : relinkable ? (
+            <button
+              type="button"
+              className="ov-btn justify-center"
+              onClick={() => {
+                onClose?.();
+                openPanel(alert.fleetEdgeAccountId || null);
+              }}
+            >
+              <Unplug size={15} /> Reconnect
+            </button>
+          ) : IALERT_ACCOUNT_TYPES.includes(alert.type) ? (
+            <Link
+              to="/settings/ialert-accounts"
+              className="ov-btn justify-center"
+              onClick={onClose}
+            >
+              <Unplug size={15} /> iALERT accounts
             </Link>
           ) : (
             <span />
@@ -90,14 +159,21 @@ export default function AlertDetailsDrawer({ open, onClose, alert, onAck, acking
               <CheckCircle2 size={15} /> Acknowledged
             </button>
           ) : (
-            <button type="button" className="ov-btn ov-btn--primary justify-center" disabled={acking} onClick={() => onAck?.(alert.id)}>
-              {acking ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />} Acknowledge
+            <button
+              type="button"
+              className="ov-btn ov-btn--primary justify-center"
+              disabled={acking}
+              onClick={() => onAck?.(alert.id)}
+            >
+              {acking ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}{' '}
+              Acknowledge
             </button>
           )}
         </div>
 
         <p className="text-dim text-[11px] leading-relaxed">
-          Alerts mean “please review”, never an accusation. Acknowledging records that you’ve seen it.
+          Alerts mean “please review”, never an accusation. Acknowledging records that you’ve seen
+          it.
         </p>
       </div>
     </SlideOver>

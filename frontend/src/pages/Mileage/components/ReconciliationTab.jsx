@@ -7,11 +7,8 @@ import { useApi } from '../../../hooks/useApi';
 import { toISTDateString, toISTTimeString } from '../../../utils/dateUtils';
 import { formatLitres } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
-import {
-  RECONCILIATION_RESULT,
-  drawerFromReconciliationRow,
-  reconciliationExplanation,
-} from '../mileageRows';
+import { RECONCILIATION_RESULT, drawerFromReconciliationRow } from '../refuelRows';
+import { reconciliationExplanation } from '../fillExplanations';
 import InfoTip from './InfoTip';
 
 const CHIPS = [
@@ -98,8 +95,10 @@ export default function ReconciliationTab({ range, searchQuery = '', onOpenDrawe
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const [queryKey, setQueryKey] = useState(`${searchQuery}|${range.from}|${range.to}`);
-  const nextKey = `${searchQuery}|${range.from}|${range.to}`;
+  const [queryKey, setQueryKey] = useState(
+    `${searchQuery}|${range.manufacturer || ''}|${range.from}|${range.to}`,
+  );
+  const nextKey = `${searchQuery}|${range.manufacturer || ''}|${range.from}|${range.to}`;
   if (queryKey !== nextKey) {
     setQueryKey(nextKey);
     setPage(1);
@@ -117,7 +116,7 @@ export default function ReconciliationTab({ range, searchQuery = '', onOpenDrawe
         },
         signal,
       ),
-    [range.from, range.to, page, pageSize, searchQuery, status],
+    [range.manufacturer, range.from, range.to, page, pageSize, searchQuery, status],
   );
   const rows = data?.data?.records || [];
   const total = data?.meta?.total ?? rows.length;

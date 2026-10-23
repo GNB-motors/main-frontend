@@ -1,7 +1,7 @@
+import { istDayString, istDayStartISO, shiftDay } from '../../utils/dateUtils';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { RefreshCw, AlertTriangle, X, Check, Loader2 } from 'lucide-react';
-import dayjs from 'dayjs';
-import { OwnerAlertsService, ALERT_TYPE_LABELS } from './OwnerAlertsService.jsx';
+import { OwnerAlertsService, ALERT_TYPE_LABELS } from './OwnerAlertsService.js';
 import { LIMIT, CHIPS, SINCE, SORTS, computeView, buildSummary } from './ownerAlertsModel';
 import AlertDetailsDrawer from './AlertDetailsDrawer.jsx';
 import PageShell from '../../components/ui/PageShell';
@@ -44,7 +44,7 @@ const OwnerAlertsPage = () => {
       if (type) params.type = type;
       if (ackFilter !== 'all') params.acknowledged = ackFilter === 'acknowledged';
       if (since !== 'all') {
-        params.from = dayjs().subtract(Number(since), 'day').startOf('day').utc().toISOString();
+        params.from = istDayStartISO(shiftDay(istDayString(), -Number(since)));
       }
       const data = await OwnerAlertsService.getAlerts(params);
       setAlerts(data.records || []);
@@ -52,7 +52,7 @@ const OwnerAlertsPage = () => {
       setUnacknowledgedCount(data.unacknowledgedCount || 0);
       setTotalPages(data.totalPages || 0);
     } catch (err) {
-      setError(err.detail || 'Could not load alerts.');
+      setError(err.message || 'Could not load alerts.');
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +89,7 @@ const OwnerAlertsPage = () => {
       await fetchData();
       setDetail((d) => (d && d.id === id ? { ...d, acknowledged: true } : d));
     } catch (err) {
-      setError(err.detail || 'Could not acknowledge the alert.');
+      setError(err.message || 'Could not acknowledge the alert.');
     } finally {
       setAckingId(null);
     }
@@ -104,7 +104,7 @@ const OwnerAlertsPage = () => {
       await fetchData();
       setSelected(new Set());
     } catch (err) {
-      setError(err.detail || 'Could not acknowledge the selected alerts.');
+      setError(err.message || 'Could not acknowledge the selected alerts.');
     } finally {
       setBulkAcking(false);
     }

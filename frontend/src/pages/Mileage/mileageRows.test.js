@@ -1,30 +1,24 @@
 import { describe, it, expect } from 'vitest';
-import dayjs from 'dayjs';
 import {
   REFUEL_CHIPS,
-  billCoverage,
-  cleanStationName,
-  dailyRollup,
-  dieselUse,
   drawerFromLiveRow,
   drawerFromReconciliationRow,
-  fillExplanation,
-  fillVerdict,
-  hubRangeFromParams,
+  mapUnifiedRow,
+  refuelResult,
+} from './refuelRows';
+import {
+  billCoverage,
+  dailyRollup,
+  dieselUse,
   kpisFromSources,
   mapFuelCycleRow,
   mapIntervalRow,
-  mapPumpRow,
-  mapUnifiedRow,
   mileageBand,
-  presetRange,
-  pumpHonestyStatus,
-  pumpLedgerSummary,
-  rangeLabel,
-  rangeToParams,
-  refuelResult,
   trucksFromModels,
-} from './mileageRows';
+} from './cycleRows';
+import { cleanStationName, mapPumpRow, pumpHonestyStatus, pumpLedgerSummary } from './pumpRows';
+import { fillExplanation, fillVerdict } from './fillExplanations';
+import { hubRangeFromParams, presetRange, rangeLabel, rangeToParams } from './mileageDates';
 import { LABELS } from '../../lib/vocabulary';
 
 const slipRow = {
@@ -198,7 +192,7 @@ describe('mapIntervalRow', () => {
 });
 
 describe('presetRange', () => {
-  const now = dayjs('2026-10-08T12:00:00');
+  const now = new Date('2026-10-08T12:00:00+05:30');
   it('defaults to the last 30 days inclusive', () => {
     expect(presetRange('30DAYS', now)).toEqual({ from: '2026-09-09', to: '2026-10-08' });
   });
@@ -484,7 +478,7 @@ describe('pump honesty', () => {
 });
 
 describe('hub dates', () => {
-  const now = dayjs('2026-10-09T12:00:00');
+  const now = new Date('2026-10-09T12:00:00+05:30');
   const at = (qs) => hubRangeFromParams(new URLSearchParams(qs), now);
 
   it('defaults to the last 30 days', () => {

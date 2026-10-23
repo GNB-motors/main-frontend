@@ -6,7 +6,7 @@ import { useMutation } from '../../../hooks/useMutation';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
 import PanelLoading from './PanelLoading';
 import EmptyPanel from './EmptyPanel';
-import { messageOf } from './placeIntelligenceModel';
+import { messageOf } from './model/requestOutcome.js';
 
 // SYSTEM-confirmed regions are ones the learned model was sure of; they are
 // re-checked nightly and a person can keep or reject them. Zones are the
@@ -165,6 +165,7 @@ export default function RegionsView({ version, onChanged }) {
                     {r.poi?.match?.name ? ` · ${r.poi.match.name}` : ''}
                   </td>
                   {tab.actions ? (
+                    // eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table cell, not a control; the rule reads <td> as a gridcell and stops before the button text inside
                     <td>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                         <button

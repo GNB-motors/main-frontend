@@ -144,6 +144,17 @@ function mockApi() {
   vi.clearAllMocks();
   getUserRole.mockReturnValue('OWNER');
   apiClient.get.mockImplementation((url) => {
+    if (url === '/api/vehicles/metadata')
+      return Promise.resolve({
+        data: {
+          data: {
+            manufacturers: [
+              { value: 'TATA', label: 'Tata' },
+              { value: 'ASHOK LEYLAND', label: 'Ashok Leyland' },
+            ],
+          },
+        },
+      });
     if (url === '/api/fuel-logs/unified') return Promise.resolve({ data: feed });
     if (url === '/api/mileage/model-comparison') return Promise.resolve({ data: models });
     if (url === '/api/mileage/fleet-overview') {
@@ -211,11 +222,12 @@ function mockApi() {
         },
       });
     }
-    if (url === '/api/vehicles') {
+    if (url === '/api/vehicles/options') {
       return Promise.resolve({
         data: {
           status: 'success',
           data: [{ _id: 'v9', registrationNumber: 'WB11J8562', model: 'SIGNA 5530.S 4x2' }],
+          meta: { total: 1, page: 1, limit: 500, totalPages: 1 },
         },
       });
     }
@@ -571,5 +583,49 @@ describe('Reports → Diesel Report', () => {
     expect(feedCalls()[0][1].params.fuelType).toBe('DIESEL');
     expect(daysBetween(feedCalls()[0][1].params)).toBe(30);
     expect(apiClient.get).not.toHaveBeenCalledWith('api/fuel-logs', expect.anything());
+  });
+});
+
+describe('manufacturer scope in the mileage hub', () => {
+  beforeEach(() => {
+    mockApi();
+    useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity', 'autoTrips', 'fuelIntegrity']));
+  });
+  it('scopes the feed and both KPI sources, survives tabs, and clears back to All', async () => {
+    renderAt('/mileage?dates=7DAYS');
+    const select = await screen.findByRole('combobox', { name: 'Manufacturer' });
+    await waitFor(() =>
+      expect(within(select).getByRole('option', { name: 'Tata' })).toBeInTheDocument(),
+    );
+    fireEvent.change(select, { target: { value: 'TATA' } });
+    await waitFor(() => expect(feedCalls().at(-1)[1].params.manufacturer).toBe('TATA'));
+    const kpi = apiClient.get.mock.calls.filter(
+      ([url, options]) => url === '/api/fuel-logs/unified' && options.params.limit === 1,
+    );
+    expect(kpi.at(-1)[1].params.manufacturer).toBe('TATA');
+    const modelsCalls = apiClient.get.mock.calls.filter(
+      ([url]) => url === '/api/mileage/model-comparison',
+    );
+    expect(modelsCalls.at(-1)[1].params.manufacturer).toBe('TATA');
+    fireEvent.click(screen.getByRole('tab', { name: /Mileage/ }));
+    expect(select.value).toBe('TATA');
+    expect(screen.getAllByRole('combobox', { name: 'Manufacturer' })).toHaveLength(1);
+    fireEvent.change(select, { target: { value: '' } });
+    await waitFor(() => {
+      const calls = apiClient.get.mock.calls.filter(
+        ([url]) => url === '/api/mileage/model-comparison',
+      );
+      expect(calls.at(-1)[1].params).not.toHaveProperty('manufacturer');
+    });
+  });
+  it('restores a deep-linked maker in the interval fallback', async () => {
+    renderAt('/mileage?subtab=completed&manufacturer=ASHOK+LEYLAND');
+    await waitFor(() => {
+      const calls = apiClient.get.mock.calls.filter(([url]) => url === '/api/mileage/intervals');
+      expect(calls.length).toBeGreaterThan(0);
+      expect(calls.every(([, options]) => options.params.manufacturer === 'ASHOK LEYLAND')).toBe(
+        true,
+      );
+    });
   });
 });

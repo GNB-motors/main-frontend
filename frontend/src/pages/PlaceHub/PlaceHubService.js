@@ -56,8 +56,10 @@ export const PlaceHubService = {
   /**
    * Every confirmed site, the 200 busiest suggestions worth an answer (and how
    * many there are in all), the 200 busiest set aside as low evidence (and their
-   * total), the latest places said not to exist, and the review queue's order —
-   * it puts places trips turn around at first, so those are asked about first.
+   * total), and the review queue's order — it puts places trips turn around at
+   * first, so those are asked about first. Places said not to exist load only
+   * when their chip is opened (loadRejectedSites). Rows come slim (fields=list);
+   * the drawer fetches the full record.
    */
   loadSites: async ({ signal } = {}) => {
     let proposedTotal = 0;
@@ -65,14 +67,14 @@ export const PlaceHubService = {
     const result = await layer(async () => {
       const page = (status, evidence) => (n) =>
         PlaceIntelligenceService.listSites(
-          { status, limit: 200, page: n, ...(evidence && { evidence }) },
+          { status, limit: 200, page: n, fields: 'list', ...(evidence && { evidence }) },
           { signal },
         ).then((d) => ({
           rows: d?.records ?? [],
           total: d?.total || 0,
           totalPages: Math.ceil((d?.total || 0) / 200),
         }));
-      const [confirmed, proposed, low, rejected, queue] = await Promise.all([
+      const [confirmed, proposed, low, queue] = await Promise.all([
         allPages(page('CONFIRMED'), MAX_SITE_PAGES),
         page('PROPOSED')(1),
         // Optional: a backend without evidence=low answers 400, and that must not
@@ -85,7 +87,6 @@ export const PlaceHubService = {
           if (error?.name === 'CanceledError' || error?.code === 'ERR_CANCELED') throw error;
           return { rows: [], total: 0 };
         }),
-        page('REJECTED')(1),
         // The order is a nicety; the suggestions still list without it.
         PlaceIntelligenceService.reviewQueue({ limit: 100 }, { signal }).catch(() => null),
       ]);
@@ -96,10 +97,7 @@ export const PlaceHubService = {
         .map((s) => ({ ...s, lowEvidence: true }));
       lowEvidenceTotal = lowRows.length ? low.total : 0;
       const byId = new Map(
-        [...confirmed.rows, ...proposed.rows, ...lowRows, ...rejected.rows].map((s) => [
-          String(s._id),
-          s,
-        ]),
+        [...confirmed.rows, ...proposed.rows, ...lowRows].map((s) => [String(s._id), s]),
       );
       (queue?.items || []).forEach((item, rank) => {
         if (!item?.site?._id) return;
@@ -115,6 +113,18 @@ export const PlaceHubService = {
     });
     return { ...result, proposedTotal, lowEvidenceTotal };
   },
+
+  /** The latest 200 places said not to exist, for the "Not a place" chip. */
+  loadRejectedSites: ({ signal } = {}) =>
+    layer(
+      async () =>
+        (
+          await PlaceIntelligenceService.listSites(
+            { status: 'REJECTED', limit: 200, page: 1, fields: 'list' },
+            { signal },
+          )
+        )?.records ?? [],
+    ),
 
   /** The full record behind a detected place: evidence, facility, address. */
   siteDetail: (id, { signal } = {}) =>

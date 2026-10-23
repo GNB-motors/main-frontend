@@ -26,16 +26,24 @@ function DialogOverlay({ className, ...props }) {
   );
 }
 
-function DialogContent({ className, children, ...props }) {
+// `forceBackdrop` gives a dialog opened inside another dialog its own scrim, one
+// layer above the parent. Base UI skips the backdrop for nested dialogs, and a modal
+// dialog only closes on a press on its own backdrop, so without one an outside
+// click does nothing.
+function DialogContent({ className, children, forceBackdrop = false, ...props }) {
   return (
     <DialogPortal>
-      <DialogOverlay />
+      <DialogOverlay
+        forceRender={forceBackdrop || undefined}
+        className={forceBackdrop ? 'z-[10052]' : undefined}
+      />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
           'fixed left-1/2 top-1/2 z-[10051] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-[var(--ds-radius-md)] border border-[var(--ds-line2)] bg-card p-0 text-card-foreground shadow-[var(--ds-shadow-lg)]',
           'data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[starting-style]:scale-95',
           'transition-all duration-100',
+          forceBackdrop && 'z-[10053]',
           className,
         )}
         {...props}

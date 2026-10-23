@@ -7,7 +7,7 @@ import { useApi } from '../../../hooks/useApi';
 import { toISTDateString } from '../../../utils/dateUtils';
 import { formatINR, formatKm, formatLitres } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
-import { mapIntervalRow, mileageBand } from '../mileageRows';
+import { mapIntervalRow, mileageBand } from '../cycleRows';
 import FuelCyclesList from './FuelCyclesList';
 import InfoTip from './InfoTip';
 
@@ -77,7 +77,7 @@ const COLUMNS = [
   },
 ];
 
-function IntervalCycles({ searchQuery = '' }) {
+function IntervalCycles({ searchQuery = '', manufacturer }) {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -91,10 +91,16 @@ function IntervalCycles({ searchQuery = '' }) {
   const { data, loading, error, refetch } = useApi(
     (signal) =>
       MileageApi.intervals(
-        { page, limit: pageSize, status: 'COMPLETED', search: searchQuery || undefined },
+        {
+          ...(manufacturer ? { manufacturer } : {}),
+          page,
+          limit: pageSize,
+          status: 'COMPLETED',
+          search: searchQuery || undefined,
+        },
         signal,
       ),
-    [page, pageSize, searchQuery],
+    [manufacturer, page, pageSize, searchQuery],
   );
   const rows = (data?.data || []).map(mapIntervalRow);
   const total = data?.meta?.total ?? rows.length;
@@ -143,8 +149,17 @@ export default function CompletedCyclesSubtab({
   fuelCyclesAllowed = false,
 }) {
   const probe = useApi(
-    (signal) => MileageApi.intervals({ page: 1, limit: 1, status: 'COMPLETED' }, signal),
-    [],
+    (signal) =>
+      MileageApi.intervals(
+        {
+          ...(range.manufacturer ? { manufacturer: range.manufacturer } : {}),
+          page: 1,
+          limit: 1,
+          status: 'COMPLETED',
+        },
+        signal,
+      ),
+    [range.manufacturer],
     { enabled: fuelCyclesAllowed },
   );
   let source = 'intervals';
@@ -157,6 +172,6 @@ export default function CompletedCyclesSubtab({
   return source === 'fuelCycles' ? (
     <FuelCyclesList range={range} searchQuery={searchQuery} />
   ) : (
-    <IntervalCycles searchQuery={searchQuery} />
+    <IntervalCycles manufacturer={range.manufacturer} searchQuery={searchQuery} />
   );
 }

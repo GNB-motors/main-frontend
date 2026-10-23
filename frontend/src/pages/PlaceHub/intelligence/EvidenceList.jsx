@@ -1,5 +1,5 @@
 import { Gauge, FileText, Clock, Map as MapIcon, CircleHelp } from 'lucide-react';
-import { evidenceLines } from './placeIntelligenceModel';
+import { evidenceLines } from './model/siteEvidence.js';
 
 const KIND_ICON = {
   sensor: Gauge,

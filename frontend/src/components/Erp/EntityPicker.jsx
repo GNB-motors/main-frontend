@@ -42,12 +42,17 @@ const EntityPicker = ({
   // Hydrate an incoming id (edit forms, deep links) into a readable label.
   useEffect(() => {
     let active = true;
-    if (!value) { setSelected(null); return undefined; }
+    if (!value) {
+      setSelected(null);
+      return undefined;
+    }
     if (selected?.id === value) return undefined;
     getEntityById(type, value).then((row) => {
       if (active) setSelected(row || { id: value, name: value, code: '' });
     });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, type]);
 
@@ -70,7 +75,10 @@ const EntityPicker = ({
         })
         .finally(() => setLoading(false));
     }, 300);
-    return () => { clearTimeout(timer); controller.abort(); };
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [query, open, type]);
 
   useEffect(() => {
@@ -82,12 +90,15 @@ const EntityPicker = ({
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [open]);
 
-  const choose = useCallback((row) => {
-    setSelected(row);
-    onChange(row.id, row);
-    setOpen(false);
-    setQuery('');
-  }, [onChange]);
+  const choose = useCallback(
+    (row) => {
+      setSelected(row);
+      onChange(row.id, row);
+      setOpen(false);
+      setQuery('');
+    },
+    [onChange],
+  );
 
   const clear = () => {
     setSelected(null);
@@ -104,7 +115,10 @@ const EntityPicker = ({
       e.preventDefault();
       setHighlight((h) => Math.max(h - 1, 0));
     } else if (e.key === 'Enter') {
-      if (open && options[highlight]) { e.preventDefault(); choose(options[highlight]); }
+      if (open && options[highlight]) {
+        e.preventDefault();
+        choose(options[highlight]);
+      }
     } else if (e.key === 'Escape') {
       setOpen(false);
     }
@@ -117,6 +131,7 @@ const EntityPicker = ({
       <div>
         <input
           type="text"
+          aria-label={`${label} ID`}
           value={value}
           onChange={(e) => onChange(e.target.value, null)}
           placeholder={`Paste ${label} ID`}
@@ -125,7 +140,9 @@ const EntityPicker = ({
         />
         <div className="erp-callout warning" style={{ marginTop: '8px', marginBottom: 0 }}>
           <AlertTriangle size={14} />
-          <span>Masters module is not enabled for this organisation, so {label} search is unavailable.</span>
+          <span>
+            Masters module is not enabled for this organisation, so {label} search is unavailable.
+          </span>
         </div>
       </div>
     );
@@ -136,25 +153,45 @@ const EntityPicker = ({
       {selected && !open ? (
         <div
           style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            border: '1px solid #e2e8f0', borderRadius: '8px',
-            padding: '8px 10px', background: disabled ? '#f8fafc' : '#fff',
-            cursor: disabled ? 'not-allowed' : 'pointer', minHeight: '38px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            padding: '8px 10px',
+            background: disabled ? '#f8fafc' : '#fff',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            minHeight: '38px',
           }}
-          onClick={() => { if (!disabled) { setOpen(true); setTimeout(() => inputRef.current?.focus(), 0); } }}
+          onClick={() => {
+            if (!disabled) {
+              setOpen(true);
+              setTimeout(() => inputRef.current?.focus(), 0);
+            }
+          }}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(true); } }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setOpen(true);
+            }
+          }}
         >
           <span style={{ flex: 1, fontSize: '14px', color: '#1a202c' }}>
             {selected.name}
-            {selected.code && <span style={{ color: '#94a3b8', marginLeft: '6px' }}>({selected.code})</span>}
+            {selected.code && (
+              <span style={{ color: '#94a3b8', marginLeft: '6px' }}>({selected.code})</span>
+            )}
           </span>
           {allowClear && !disabled && (
             <button
               type="button"
               className="btn-icon"
-              onClick={(e) => { e.stopPropagation(); clear(); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                clear();
+              }}
               aria-label={`Clear selected ${label}`}
             >
               <X size={14} />
@@ -169,16 +206,23 @@ const EntityPicker = ({
             ref={inputRef}
             type="text"
             role="combobox"
+            aria-label={`Search ${label}`}
             aria-expanded={open}
             aria-controls={listboxId}
             aria-autocomplete="list"
-            aria-activedescendant={open && options[highlight] ? `${listboxId}-${highlight}` : undefined}
+            aria-activedescendant={
+              open && options[highlight] ? `${listboxId}-${highlight}` : undefined
+            }
             value={query}
             disabled={disabled}
+            // eslint-disable-next-line jsx-a11y/no-autofocus -- off by default; a caller opts in only when the picker is the first field of a form the user just opened
             autoFocus={autoFocus}
             placeholder={placeholder || `Search ${label} by name or code…`}
             onFocus={() => setOpen(true)}
-            onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+            }}
             onKeyDown={onKeyDown}
           />
         </div>
@@ -189,42 +233,62 @@ const EntityPicker = ({
           id={listboxId}
           role="listbox"
           style={{
-            position: 'absolute', zIndex: 30, top: 'calc(100% + 4px)', left: 0, right: 0,
-            maxHeight: '260px', overflowY: 'auto', margin: 0, padding: '4px',
-            listStyle: 'none', background: '#fff', border: '1px solid #e2e8f0',
-            borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
+            position: 'absolute',
+            zIndex: 30,
+            top: 'calc(100% + 4px)',
+            left: 0,
+            right: 0,
+            maxHeight: '260px',
+            overflowY: 'auto',
+            margin: 0,
+            padding: '4px',
+            listStyle: 'none',
+            background: '#fff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
           }}
         >
           {loading && (
-            <div style={{ padding: '10px 12px', fontSize: '13px', color: '#64748b' }}>Searching…</div>
+            <div style={{ padding: '10px 12px', fontSize: '13px', color: '#64748b' }}>
+              Searching…
+            </div>
           )}
           {!loading && options.length === 0 && (
             <div style={{ padding: '10px 12px', fontSize: '13px', color: '#64748b' }}>
               {query ? `No ${label} matches “${query}”` : `No ${label} records yet`}
             </div>
           )}
-          {!loading && options.map((row, idx) => (
-            <div
-              key={row.id}
-              id={`${listboxId}-${idx}`}
-              role="option"
-              tabIndex={-1}
-              aria-selected={idx === highlight}
-              onMouseEnter={() => setHighlight(idx)}
-              onMouseDown={(e) => { e.preventDefault(); choose(row); }}
-              style={{
-                padding: '8px 12px', borderRadius: '6px', cursor: 'pointer',
-                background: idx === highlight ? '#f0fdfa' : 'transparent',
-              }}
-            >
-              <div style={{ fontSize: '14px', color: '#1a202c', fontWeight: 500 }}>{row.name}</div>
-              {(row.code || row.meta) && (
-                <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                  {[row.code, row.meta].filter(Boolean).join(' · ')}
+          {!loading &&
+            options.map((row, idx) => (
+              <div
+                key={row.id}
+                id={`${listboxId}-${idx}`}
+                role="option"
+                tabIndex={-1}
+                aria-selected={idx === highlight}
+                onMouseEnter={() => setHighlight(idx)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  choose(row);
+                }}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  background: idx === highlight ? '#f0fdfa' : 'transparent',
+                }}
+              >
+                <div style={{ fontSize: '14px', color: '#1a202c', fontWeight: 500 }}>
+                  {row.name}
                 </div>
-              )}
-            </div>
-          ))}
+                {(row.code || row.meta) && (
+                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                    {[row.code, row.meta].filter(Boolean).join(' · ')}
+                  </div>
+                )}
+              </div>
+            ))}
         </div>
       )}
     </div>

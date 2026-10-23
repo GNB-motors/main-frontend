@@ -1,58 +1,30 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  Fuel,
-  Radio,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  RefreshCw,
-  Download,
-  Search,
-  X,
-} from 'lucide-react';
+import { istDayEndISO, istDayStartISO, istDayString, shiftDay } from '../../utils/dateUtils';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'react-toastify';
-import dayjs from 'dayjs';
 import PageShell from '../../components/ui/PageShell';
-import ExportButton from '../../components/ui/ExportButton';
-import { ReportsService } from '../Reports/ReportsService.jsx';
+import { ReportsService } from '../Reports/ReportsService.js';
 import { getUserRole } from '../../utils/session.js';
 import { getThemeCSS } from '../../utils/colorTheme.js';
 import ComparisonTable from './ComparisonTable.jsx';
 import FuelComparisonDrawer from './FuelComparisonDrawer.jsx';
 import ReviewModal from './ReviewModal.jsx';
-import { IST_ZONE, toIST, fmtDuration, fmtLitres } from './formatIST.js';
+import ComparisonKpiStrip from './ComparisonKpiStrip.jsx';
+import ComparisonToolbar from './ComparisonToolbar.jsx';
+import ComparisonHeaderActions from './ComparisonHeaderActions.jsx';
+import useComparisonExport from './useComparisonExport.js';
+import useComparisonMetrics from './useComparisonMetrics.js';
+import useDrawerNavigation from './useDrawerNavigation.js';
 import './FuelComparison.css';
+import logger from '../../utils/logger';
 
 const LIMIT = 20;
-
-const STATUS_TABS = [
-  { key: 'all', label: 'All' },
-  { key: 'flagged', label: 'Flagged' },
-  { key: 'review', label: 'Needs Review' },
-  { key: 'clean', label: 'Verified Clean' },
-];
-
-const DATE_PRESETS = [
-  { key: 'ALL', label: 'All Dates' },
-  { key: 'TODAY', label: 'Today' },
-  { key: 'YESTERDAY', label: 'Yesterday' },
-  { key: '7DAYS', label: 'Last 7 Days' },
-  { key: '30DAYS', label: 'Last 30 Days' },
-  { key: 'CUSTOM', label: 'Custom Range' },
-];
-
-const VARIANCE_OPTIONS = [
-  { key: 'ALL', label: 'All Variances' },
-  { key: 'OVERBILLED', label: 'Flagged Overbilling' },
-  { key: 'CLEAN', label: 'Within Tolerance' },
-  { key: 'NO_DATA', label: 'No Telematics' },
-];
 
 /**
  * `range` ({ from, to } calendar days): the /mileage hub's shared dates. When
  * given, the page follows it and hides its own date controls.
  */
 const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
+  const manufacturer = hubRange?.manufacturer || '';
   const role = getUserRole();
   const themeColors = useMemo(() => getThemeCSS(role), [role]);
 
@@ -108,23 +80,23 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
     setDatePreset(presetKey);
     setPage(1);
 
-    const now = dayjs().tz(IST_ZONE);
+    const today = istDayString();
     if (presetKey === 'ALL') {
       setInputFromDate('');
       setInputToDate('');
     } else if (presetKey === 'TODAY') {
-      setInputFromDate(now.startOf('day').toISOString());
-      setInputToDate(now.endOf('day').toISOString());
+      setInputFromDate(istDayStartISO(today));
+      setInputToDate(istDayEndISO(today));
     } else if (presetKey === 'YESTERDAY') {
-      const y = now.subtract(1, 'day');
-      setInputFromDate(y.startOf('day').toISOString());
-      setInputToDate(y.endOf('day').toISOString());
+      const y = shiftDay(today, -1);
+      setInputFromDate(istDayStartISO(y));
+      setInputToDate(istDayEndISO(y));
     } else if (presetKey === '7DAYS') {
-      setInputFromDate(now.subtract(6, 'day').startOf('day').toISOString());
-      setInputToDate(now.endOf('day').toISOString());
+      setInputFromDate(istDayStartISO(shiftDay(today, -6)));
+      setInputToDate(istDayEndISO(today));
     } else if (presetKey === '30DAYS') {
-      setInputFromDate(now.subtract(29, 'day').startOf('day').toISOString());
-      setInputToDate(now.endOf('day').toISOString());
+      setInputFromDate(istDayStartISO(shiftDay(today, -29)));
+      setInputToDate(istDayEndISO(today));
     }
   };
 
@@ -141,20 +113,21 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
   // Fetch Summary Status
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await ReportsService.getExtensionStatus();
+      const res = await ReportsService.getExtensionStatus(manufacturer ? { manufacturer } : {});
       if (res && res.success !== false) {
         setStatus(res);
       }
     } catch {
       // Non-blocking
     }
-  }, []);
+  }, [manufacturer]);
 
   // Fetch Comparison Records
   const fetchComparisons = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = {
+        ...(manufacturer ? { manufacturer } : {}),
         page,
         limit: LIMIT,
       };
@@ -179,7 +152,11 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
       let calculatedPages = 1;
 
       if (activeTab === 'review') {
-        const res = await ReportsService.getPendingReviewTasks({ page, limit: LIMIT });
+        const res = await ReportsService.getPendingReviewTasks({
+          page,
+          limit: LIMIT,
+          ...(manufacturer ? { manufacturer } : {}),
+        });
         if (res) {
           fetchedTasks = res.records || res.tasks || [];
           totalCount = res.total ?? fetchedTasks.length;
@@ -218,13 +195,13 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
       setTotal(totalCount);
       setTotalPages(calculatedPages);
     } catch (err) {
-      console.error('Error fetching comparisons:', err);
+      logger.warn('FuelComparisonPage', 'Error fetching comparisons', err);
       toast.error('Failed to load fuel comparisons');
       setRecords([]);
     } finally {
       setIsLoading(false);
     }
-  }, [page, activeTab, searchQuery, fromDate, toDate, varianceFilter]);
+  }, [manufacturer, page, activeTab, searchQuery, fromDate, toDate, varianceFilter]);
 
   // Initial and reactive data loads
   useEffect(() => {
@@ -256,81 +233,7 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
     }
   };
 
-  // Export configuration for Excel (.xlsx) and CSV (.csv)
-  const exportColumns = useMemo(
-    () => [
-      { key: 'taskId', label: 'Task ID', type: 'text' },
-      { key: 'vehicle', label: 'Vehicle Registration', type: 'text' },
-      { key: 'driver', label: 'Driver Name', type: 'text' },
-      { key: 'fromDate', label: 'From Date (IST)', type: 'text' },
-      { key: 'toDate', label: 'To Date (IST)', type: 'text' },
-      { key: 'duration', label: 'Duration', type: 'text' },
-      { key: 'billedFuel', label: 'Billed Fuel (L)', type: 'number' },
-      { key: 'telematicsFuel', label: 'Telematics Fuel (L)', type: 'number' },
-      { key: 'varianceL', label: 'Variance (L)', type: 'number' },
-      { key: 'variancePct', label: 'Variance (%)', type: 'number' },
-      { key: 'auditStatus', label: 'Audit Status', type: 'text' },
-      { key: 'flagReason', label: 'Flag Reason', type: 'text' },
-      { key: 'odoStatus', label: 'Odometer Status', type: 'text' },
-      { key: 'distanceKm', label: 'Distance (km)', type: 'number' },
-      { key: 'minOdo', label: 'Min Odometer', type: 'number' },
-      { key: 'maxOdo', label: 'Max Odometer', type: 'number' },
-      { key: 'mileage', label: 'Mileage (km/L)', type: 'number' },
-      { key: 'defConsumed', label: 'DEF Consumed (L)', type: 'number' },
-    ],
-    [],
-  );
-
-  const exportRows = useMemo(
-    () =>
-      records.map((r) => {
-        const driverName = r.driverId
-          ? `${r.driverId.firstName || ''} ${r.driverId.lastName || ''}`.trim()
-          : '';
-        const fromStr = r.fromDate ? toIST(r.fromDate)?.format('YYYY-MM-DD HH:mm') || '' : '';
-        const toStr = r.toDate ? toIST(r.toDate)?.format('YYYY-MM-DD HH:mm') || '' : '';
-        const durStr = fmtDuration(r.fromDate, r.toDate) || '';
-        const varL = r.variance != null ? -r.variance : null;
-        const varPct = r.variancePercent != null ? -r.variancePercent : null;
-        const auditStatus = r.isFlagged
-          ? 'FLAGGED'
-          : r.status === 'PENDING_REVIEW'
-            ? 'PENDING_REVIEW'
-            : r.status === 'NO_DATA'
-              ? 'NO_DATA'
-              : 'MATCHED';
-        const odoStatus = r.isOdometerFlagged
-          ? 'MISMATCH'
-          : r.status === 'PENDING_REVIEW'
-            ? 'REVIEW_NEEDED'
-            : r.ocrOdometerReading != null
-              ? 'VERIFIED'
-              : 'NOT_RECORDED';
-
-        return {
-          taskId: r._id,
-          vehicle: r.vehicleId?.registrationNumber || r.vehicleNumber || '',
-          driver: driverName,
-          fromDate: fromStr,
-          toDate: toStr,
-          duration: durStr,
-          billedFuel: r.billFuelConsumed != null ? Number(r.billFuelConsumed.toFixed(2)) : null,
-          telematicsFuel:
-            r.fleetEdgeFuelConsumed != null ? Number(r.fleetEdgeFuelConsumed.toFixed(2)) : null,
-          varianceL: varL != null ? Number(varL.toFixed(2)) : null,
-          variancePct: varPct != null ? Number(varPct.toFixed(1)) : null,
-          auditStatus,
-          flagReason: r.flagReason || '',
-          odoStatus,
-          distanceKm: r.distanceTravelled != null ? Number(r.distanceTravelled.toFixed(1)) : null,
-          minOdo: r.minOdometer != null ? Number(r.minOdometer.toFixed(1)) : null,
-          maxOdo: r.maxOdometer != null ? Number(r.maxOdometer.toFixed(1)) : null,
-          mileage: r.fuelEfficiency != null ? Number(r.fuelEfficiency.toFixed(2)) : null,
-          defConsumed: r.defConsumed != null ? Number(r.defConsumed.toFixed(2)) : null,
-        };
-      }),
-    [records],
-  );
+  const { exportColumns, exportRows } = useComparisonExport(records);
 
   // Drawer & Modal interactions
   const handleOpenDrawer = (record) => {
@@ -370,73 +273,19 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
         throw new Error(errorMsg);
       }
     } catch (err) {
-      const msg =
-        err?.detail ||
-        err?.response?.data?.message ||
-        err?.message ||
-        'An error occurred during task reconciliation';
+      const msg = err?.message || 'An error occurred during task reconciliation';
       toast.error(msg);
       throw err;
     }
   };
 
-  // Aggregate KPI Metrics
-  const kpiMetrics = useMemo(() => {
-    let totalBilled = 0;
-    let totalTelematics = 0;
-    let flaggedCount = status?.flagged ?? 0;
-    let cleanCount =
-      status?.completed != null && status?.flagged != null
-        ? Math.max(0, status.completed - status.flagged)
-        : 0;
-    let pendingCount = status?.needsAction ?? 0;
+  const { kpiMetrics, tabCounts } = useComparisonMetrics(records, status, total);
 
-    records.forEach((r) => {
-      totalBilled += r.billFuelConsumed || 0;
-      totalTelematics += r.fleetEdgeFuelConsumed || 0;
-      if (!r.isFlagged && r.status === 'COMPLETED') cleanCount += 1;
-    });
-
-    return {
-      totalBilled,
-      totalTelematics,
-      flaggedCount,
-      cleanCount,
-      pendingCount,
-    };
-  }, [records, status]);
-
-  // Tab counts
-  const tabCounts = useMemo(
-    () => ({
-      all: status?.total ?? total,
-      flagged: status?.flagged ?? 0,
-      review: status?.needsAction ?? 0,
-      clean:
-        status?.completed != null && status?.flagged != null
-          ? Math.max(0, status.completed - status.flagged)
-          : null,
-    }),
-    [status, total],
+  const { currentDrawerIndex, handlePrevDrawer, handleNextDrawer } = useDrawerNavigation(
+    records,
+    activeDrawerTask,
+    setActiveDrawerTask,
   );
-
-  // Drawer Next / Prev Navigation
-  const currentDrawerIndex = useMemo(() => {
-    if (!activeDrawerTask) return -1;
-    return records.findIndex((r) => r._id === activeDrawerTask._id);
-  }, [activeDrawerTask, records]);
-
-  const handlePrevDrawer = () => {
-    if (currentDrawerIndex > 0) {
-      setActiveDrawerTask(records[currentDrawerIndex - 1]);
-    }
-  };
-
-  const handleNextDrawer = () => {
-    if (currentDrawerIndex >= 0 && currentDrawerIndex < records.length - 1) {
-      setActiveDrawerTask(records[currentDrawerIndex + 1]);
-    }
-  };
 
   return (
     <div className="fc-page-wrapper" style={themeColors}>
@@ -446,243 +295,43 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
         subtitle="CAN-bus telematics audit reconciling driver fuel bills against engine consumption"
         count={tabCounts.all ?? total}
         actions={
-          <div className="fc-header-actions">
-            <button
-              type="button"
-              className="pshell-btn"
-              onClick={handleSyncPipeline}
-              disabled={isSyncing}
-              title="Refresh comparisons and run on-demand backend audit"
-              aria-label="Sync comparisons"
-            >
-              <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
-              <span>{isSyncing ? 'Auditing…' : 'Sync Live'}</span>
-            </button>
-
-            <ExportButton
-              rows={exportRows}
-              columns={exportColumns}
-              filename={`fuel-comparison-audit-${activeTab !== 'all' ? activeTab : 'all'}`}
-              disabled={records.length === 0}
-              buttonClass="pshell-btn pshell-btn--primary"
-            />
-          </div>
+          <ComparisonHeaderActions
+            handleSyncPipeline={handleSyncPipeline}
+            isSyncing={isSyncing}
+            exportRows={exportRows}
+            exportColumns={exportColumns}
+            activeTab={activeTab}
+            records={records}
+          />
         }
       >
         {/* Compact KPI Strip */}
-        <div className="fc-kpi-grid">
-          {/* Total Billed */}
-          <div className="fc-kpi-card">
-            <div className="fc-kpi-card__head">
-              <span className="fc-kpi-card__title">Total Billed</span>
-              <div className="fc-kpi-card__icon fc-kpi-card__icon--blue">
-                <Fuel size={16} />
-              </div>
-            </div>
-            <div className="fc-kpi-card__val fc-mono">{fmtLitres(kpiMetrics.totalBilled)}</div>
-          </div>
-
-          {/* CAN-bus Telematics */}
-          <div className="fc-kpi-card">
-            <div className="fc-kpi-card__head">
-              <span className="fc-kpi-card__title">CAN-bus Telematics</span>
-              <div className="fc-kpi-card__icon fc-kpi-card__icon--purple">
-                <Radio size={16} />
-              </div>
-            </div>
-            <div className="fc-kpi-card__val fc-mono">{fmtLitres(kpiMetrics.totalTelematics)}</div>
-          </div>
-
-          {/* Flagged Divergence (Filterable) */}
-          <button
-            type="button"
-            className={`fc-kpi-card fc-kpi-card--interactive ${
-              kpiMetrics.flaggedCount > 0 ? 'fc-kpi-card--alert' : ''
-            } ${activeTab === 'flagged' ? 'is-active' : ''}`}
-            onClick={() => setActiveTab(activeTab === 'flagged' ? 'all' : 'flagged')}
-            title="Click to toggle flagged discrepancies"
-          >
-            <div className="fc-kpi-card__head">
-              <span className="fc-kpi-card__title">Flagged Divergence</span>
-              <div className="fc-kpi-card__icon fc-kpi-card__icon--red">
-                <AlertTriangle size={16} />
-              </div>
-            </div>
-            <div className="fc-kpi-card__val fc-mono text-red-600 dark:text-red-400">
-              {kpiMetrics.flaggedCount}
-            </div>
-          </button>
-
-          {/* Verified Clean (Filterable) */}
-          <button
-            type="button"
-            className={`fc-kpi-card fc-kpi-card--interactive ${
-              activeTab === 'clean' ? 'is-active' : ''
-            }`}
-            onClick={() => setActiveTab(activeTab === 'clean' ? 'all' : 'clean')}
-            title="Click to toggle verified clean records"
-          >
-            <div className="fc-kpi-card__head">
-              <span className="fc-kpi-card__title">Verified Clean</span>
-              <div className="fc-kpi-card__icon fc-kpi-card__icon--green">
-                <CheckCircle2 size={16} />
-              </div>
-            </div>
-            <div className="fc-kpi-card__val fc-mono text-emerald-600 dark:text-emerald-400">
-              {kpiMetrics.cleanCount}
-            </div>
-          </button>
-
-          {/* Needs Review (Filterable) */}
-          <button
-            type="button"
-            className={`fc-kpi-card fc-kpi-card--interactive ${
-              kpiMetrics.pendingCount > 0 ? 'fc-kpi-card--warn' : ''
-            } ${activeTab === 'review' ? 'is-active' : ''}`}
-            onClick={() => setActiveTab(activeTab === 'review' ? 'all' : 'review')}
-            title="Click to toggle pending review records"
-          >
-            <div className="fc-kpi-card__head">
-              <span className="fc-kpi-card__title">Needs Review</span>
-              <div className="fc-kpi-card__icon fc-kpi-card__icon--amber">
-                <Clock size={16} />
-              </div>
-            </div>
-            <div className="fc-kpi-card__val fc-mono text-amber-600 dark:text-amber-400">
-              {kpiMetrics.pendingCount}
-            </div>
-          </button>
-        </div>
+        <ComparisonKpiStrip
+          kpiMetrics={kpiMetrics}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+        />
 
         {/* Unified Toolbar: Status Tabs + Inline Filters */}
-        <div className="fc-toolbar">
-          {/* Status Tabs */}
-          <div className="fc-tabs" role="tablist">
-            {STATUS_TABS.map((t) => (
-              <button
-                key={t.key}
-                role="tab"
-                aria-selected={activeTab === t.key}
-                className={`fc-tab ${activeTab === t.key ? 'is-active' : ''}`}
-                onClick={() => {
-                  setActiveTab(t.key);
-                  setPage(1);
-                }}
-              >
-                <span>{t.label}</span>
-                {tabCounts[t.key] != null && (
-                  <span
-                    className={`fc-tab__count ${
-                      (t.key === 'flagged' || t.key === 'review') && tabCounts[t.key] > 0
-                        ? 'fc-tab__count--alert'
-                        : ''
-                    }`}
-                  >
-                    {tabCounts[t.key]}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-
-          {/* Inline Filter Controls */}
-          <div className="fc-filters-row">
-            {/* Date Preset (the /mileage hub supplies its own dates) */}
-            {!hubRange && (
-              <div className="fc-select-wrap">
-                <select
-                  value={datePreset}
-                  onChange={(e) => handlePresetChange(e.target.value)}
-                  className="fc-select fc-select--compact"
-                  aria-label="Filter by date range"
-                >
-                  {DATE_PRESETS.map((p) => (
-                    <option key={p.key} value={p.key}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Custom Dates */}
-            {!hubRange && datePreset === 'CUSTOM' && (
-              <div className="fc-custom-dates">
-                <input
-                  type="date"
-                  className="fc-date-input"
-                  value={inputFromDate}
-                  onChange={(e) => setInputFromDate(e.target.value)}
-                  aria-label="From date"
-                />
-                <span className="fc-date-sep">→</span>
-                <input
-                  type="date"
-                  className="fc-date-input"
-                  value={inputToDate}
-                  onChange={(e) => setInputToDate(e.target.value)}
-                  aria-label="To date"
-                />
-              </div>
-            )}
-
-            {/* Variance Severity */}
-            <div className="fc-select-wrap">
-              <select
-                value={varianceFilter}
-                onChange={(e) => {
-                  setVarianceFilter(e.target.value);
-                  setPage(1);
-                }}
-                className="fc-select fc-select--compact"
-                aria-label="Filter by variance severity"
-              >
-                {VARIANCE_OPTIONS.map((o) => (
-                  <option key={o.key} value={o.key}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Search Box */}
-            <div className="fc-search-box">
-              <Search size={13} className="fc-search-icon" />
-              <input
-                type="text"
-                className="fc-search-input"
-                placeholder="Search plate or driver…"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setPage(1);
-                }}
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  className="fc-search-clear"
-                  onClick={() => setSearchQuery('')}
-                  aria-label="Clear search"
-                >
-                  <X size={12} />
-                </button>
-              )}
-            </div>
-
-            {/* Reset Filters */}
-            {activeFilterCount > 0 && (
-              <button
-                type="button"
-                className="fc-btn-reset"
-                onClick={handleResetFilters}
-                title="Reset all filters"
-              >
-                Reset
-              </button>
-            )}
-          </div>
-        </div>
+        <ComparisonToolbar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          setPage={setPage}
+          tabCounts={tabCounts}
+          hubRange={hubRange}
+          datePreset={datePreset}
+          handlePresetChange={handlePresetChange}
+          inputFromDate={inputFromDate}
+          setInputFromDate={setInputFromDate}
+          inputToDate={inputToDate}
+          setInputToDate={setInputToDate}
+          varianceFilter={varianceFilter}
+          setVarianceFilter={setVarianceFilter}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          activeFilterCount={activeFilterCount}
+          handleResetFilters={handleResetFilters}
+        />
 
         {/* Compact Table (NO horizontal scroll, NO checkboxes) */}
         <ComparisonTable

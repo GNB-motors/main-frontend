@@ -3,6 +3,7 @@
  * Handles direct file uploads to S3 storage
  */
 import apiClient from '../../../utils/axiosConfig';
+import logger from '../../../utils/logger';
 
 class StorageService {
   /**
@@ -31,7 +32,7 @@ class StorageService {
         publicUrl: response.data.data.publicUrl,
       };
     } catch (error) {
-      console.error('File upload failed:', error);
+      logger.warn('StorageService', 'File upload failed', error);
       return {
         success: false,
         error: error.response?.data?.message || error.message || 'File upload failed',
@@ -66,7 +67,7 @@ class StorageService {
         files: response.data.data.files,
       };
     } catch (error) {
-      console.error('Bulk upload failed:', error);
+      logger.warn('StorageService', 'Bulk upload failed', error);
       return {
         success: false,
         error: error.response?.data?.message || error.message || 'Bulk upload failed',

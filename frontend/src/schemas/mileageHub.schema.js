@@ -91,6 +91,61 @@ export const fuelCyclesSchema = z
   })
   .passthrough();
 
+/** GET /api/reports/fuel-cycles/:id/trips (one cycle's drill-down) */
+export const fuelCycleTripsSchema = z
+  .object({
+    data: z
+      .object({
+        summary: z
+          .object({ count: num, ladenKm: num, otherKm: num, cycleKm: num, cycleKmBasis: str })
+          .passthrough()
+          .nullish(),
+        trips: z
+          .array(
+            z
+              .object({
+                kind: z.enum(['AUTO', 'ERP']),
+                id: str,
+                status: str,
+                erpTripNumber: str,
+                pickupName: str,
+                dropName: str,
+                startAt: str,
+                endAt: str,
+                odoStart: num,
+                odoEnd: num,
+                inCycleKm: num,
+                share: num,
+                partial: z.boolean().nullish(),
+                basis: str,
+                flags: z.array(z.string()).nullish(),
+              })
+              .passthrough(),
+          )
+          .nullish(),
+        cycle: z.object({ intervalId: str }).passthrough().nullish(),
+        slips: z
+          .array(
+            z
+              .object({
+                id: str,
+                role: z.enum(['FULL_TANK_START', 'PARTIAL', 'FULL_TANK_END']),
+                refuelTime: str,
+                station: str,
+                odometer: num,
+                litres: num,
+                rate: num,
+                amount: num,
+              })
+              .passthrough(),
+          )
+          .nullish(),
+      })
+      .passthrough()
+      .nullish(),
+  })
+  .passthrough();
+
 /** GET /api/fuel-comparison/records (rows under `data.records`) */
 export const billVsTankSchema = z
   .object({

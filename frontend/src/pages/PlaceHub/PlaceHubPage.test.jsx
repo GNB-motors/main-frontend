@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import PlaceHubPage from './PlaceHubPage.jsx';
 import PlaceHubService from './PlaceHubService.js';
+import PlaceIntelligenceService from './intelligence/PlaceIntelligenceService.js';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import { getUserRole } from '../../utils/session.js';
 
+vi.mock('./intelligence/PlaceIntelligenceService.js', () => ({
+  default: { routesMap: vi.fn(), getLeg: vi.fn() },
+}));
 vi.mock('@react-google-maps/api', () => ({
   useLoadScript: () => ({ isLoaded: false, loadError: null }),
 }));
@@ -45,6 +49,32 @@ vi.mock('./PlaceHubService.js', () => {
 const ok = (rows) => Promise.resolve({ rows, error: null });
 
 function seed() {
+  PlaceIntelligenceService.routesMap.mockResolvedValue({
+    legs: [
+      {
+        _id: 'leg1',
+        fromSiteId: 'a',
+        toSiteId: 'b',
+        pairKey: 'a|b',
+        traversals: 5,
+        inPlant: false,
+        path: { source: 'NONE' },
+        stats: { minutes: { p50: 100 } },
+      },
+    ],
+    sites: [
+      { _id: 'a', name: 'Bokaro plant', lat: 23, lng: 86 },
+      { _id: 'b', name: 'Town yard', lat: 24, lng: 87 },
+    ],
+    totals: { legs: 1, places: 2, runs: 5, inPlant: 0 },
+    generatedAt: '2026-10-22T00:00:00Z',
+  });
+  PlaceIntelligenceService.getLeg.mockResolvedValue({
+    _id: 'leg1',
+    traversals: [],
+    path: { source: 'NONE' },
+  });
+
   PlaceHubService.loadWarehouses.mockReturnValue(
     ok([
       {
@@ -254,7 +284,11 @@ describe('PlaceHubPage', () => {
 
   it('answers unexplained stops from the stops tab, all at once', async () => {
     renderPage('/place-hub?tab=stops');
-    expect(await screen.findByRole('button', { name: /^Stops/ })).toHaveTextContent('6 h');
+    // The tab renders before the summary that adds its hours arrives; wait for
+    // the hours rather than racing the load (failed on the slower CI runner).
+    await vi.waitFor(() =>
+      expect(screen.getByRole('button', { name: /^Stops/ })).toHaveTextContent('6 h'),
+    );
     fireEvent.click(await screen.findByText(/2 stops/));
     const drawer = screen.getByRole('complementary', { name: 'Unexplained stops' });
     fireEvent.click(within(drawer).getByRole('button', { name: /All 2 were rest/ }));
@@ -272,6 +306,47 @@ describe('PlaceHubPage', () => {
     expect(screen.queryByRole('button', { name: /Shadow report/ })).not.toBeInTheDocument();
   });
 
+  it('opens routes on the same map and resolves a leg deep link', async () => {
+    const { container } = renderPage('/place-hub?tab=routes&leg=leg1');
+    const drawer = await screen.findByRole('complementary', { name: 'Route leg details' });
+    expect(within(drawer).getByText('Bokaro plant')).toBeInTheDocument();
+    const map = container.querySelector('.ph-mapwrap');
+    expect(container.querySelector('.ph-body')).not.toHaveAttribute('hidden');
+    fireEvent.click(screen.getByRole('button', { name: /^Places/ }));
+    expect(container.querySelector('.ph-mapwrap')).toBe(map);
+    fireEvent.click(screen.getByRole('button', { name: /^Routes/ }));
+    expect(container.querySelector('.ph-mapwrap')).toBe(map);
+    expect(PlaceIntelligenceService.routesMap).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps route place links in spider mode and Escape closes a leg', async () => {
+    renderPage('/place-hub?tab=routes&place=site:a&leg=leg1');
+    await screen.findByRole('complementary', { name: 'Route leg details' });
+    expect(
+      screen.getByRole('button', { name: /Showing legs from Bokaro plant/ }),
+    ).toBeInTheDocument();
+    expect(PlaceHubService.loadSite).not.toHaveBeenCalled();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(
+      screen.queryByRole('complementary', { name: 'Route leg details' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('reports routes errors and retries the map request', async () => {
+    PlaceIntelligenceService.routesMap.mockRejectedValueOnce(new Error('Routes unavailable'));
+    renderPage('/place-hub?tab=routes');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Routes unavailable');
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText('Bokaro plant')).toBeInTheDocument();
+  });
+
+  it('only exposes the delivery tab with its existing feature flag', async () => {
+    useFeatureFlags.mockReturnValue({ isEnabled: (flag) => flag !== 'routesV2', ready: true });
+    renderPage('/place-hub?tab=routes');
+    await screen.findByText('Bokaro plant');
+    expect(screen.queryByRole('button', { name: /^Deliveries/ })).not.toBeInTheDocument();
+  });
+
   it('keeps manager-only views and editing away from other roles', async () => {
     getUserRole.mockReturnValue('DRIVER');
     renderPage('/place-hub?tab=idling');
@@ -281,5 +356,43 @@ describe('PlaceHubPage', () => {
     expect(PlaceHubService.loadSites).not.toHaveBeenCalled();
     expect(PlaceHubService.loadLiveIdling).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: /Routes/ })).not.toBeInTheDocument();
+  });
+
+  // Idling and fuel layers that failed used to look like "nothing here".
+  it('says when an idling or fuel layer failed to load', async () => {
+    PlaceHubService.loadLiveIdling.mockReturnValue(
+      Promise.resolve({ rows: [], error: new Error('timeout') }),
+    );
+    PlaceHubService.loadDrainMap.mockReturnValue(
+      Promise.resolve({ rows: null, error: new Error('timeout') }),
+    );
+    renderPage('/place-hub?tab=idling');
+    expect(
+      await screen.findByText(/Some idling data could not load \(live idling\)/),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Fuel risk/ }));
+    expect(
+      await screen.findByText(/Some fuel data could not load \(drain map\)/),
+    ).toBeInTheDocument();
+  });
+
+  // A refresh in flight when the user left used to land on an unmounted page.
+  it('cancels a live-idling refresh still in flight on unmount', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const view = renderPage('/place-hub?tab=idling');
+      expect(await screen.findByText('WB11G0962')).toBeInTheDocument();
+      let signal;
+      PlaceHubService.loadLiveIdling.mockImplementation((opts = {}) => {
+        signal = opts.signal;
+        return new Promise(() => {});
+      });
+      await act(() => vi.advanceTimersByTimeAsync(60_000));
+      expect(signal?.aborted).toBe(false);
+      view.unmount();
+      expect(signal.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

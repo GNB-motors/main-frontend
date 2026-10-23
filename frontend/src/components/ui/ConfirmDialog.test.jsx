@@ -16,7 +16,11 @@ function setup() {
   const holder = {};
   render(
     <ConfirmDialogHost>
-      <Probe onReady={(confirm) => { holder.confirm = confirm; }} />
+      <Probe
+        onReady={(confirm) => {
+          holder.confirm = confirm;
+        }}
+      />
     </ConfirmDialogHost>,
   );
   return holder;
@@ -43,6 +47,22 @@ describe('ConfirmDialogHost', () => {
     const dialog = await screen.findByRole('alertdialog');
     fireEvent.click(dialog.parentElement);
     await expect(promise).resolves.toBe(false);
+  });
+
+  it('resolves false on Escape', async () => {
+    const holder = setup();
+    const promise = holder.confirm({ title: 'Delete zone?' });
+    fireEvent.keyDown(await screen.findByRole('button', { name: 'Confirm' }), { key: 'Escape' });
+    await expect(promise).resolves.toBe(false);
+  });
+
+  it('a click inside the dialog does not settle it', async () => {
+    const holder = setup();
+    const promise = holder.confirm({ title: 'Delete zone?', body: 'Gone for good.' });
+    fireEvent.click(await screen.findByText('Gone for good.'));
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    await expect(promise).resolves.toBe(true);
   });
 
   it('uses custom labels and shows the body', async () => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import KhataLedgerService from '../KhataLedgerService';
@@ -21,6 +21,7 @@ const AssignmentFormModal = ({
     notes: '',
   });
   const [saving, setSaving] = useState(false);
+  const uid = useId();
 
   useEffect(() => {
     if (editingAssignment) {
@@ -108,10 +109,14 @@ const AssignmentFormModal = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label
+                htmlFor={`${uid}-driver`}
+                className="mb-1 block text-sm font-medium text-gray-700"
+              >
                 Driver <span className="text-red-500">*</span>
               </label>
               <select
+                id={`${uid}-driver`}
                 className={inputClass}
                 value={form.driverId}
                 onChange={(e) => setForm({ ...form, driverId: e.target.value })}
@@ -125,10 +130,14 @@ const AssignmentFormModal = ({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label
+                htmlFor={`${uid}-vehicle`}
+                className="mb-1 block text-sm font-medium text-gray-700"
+              >
                 Vehicle <span className="text-red-500">*</span>
               </label>
               <select
+                id={`${uid}-vehicle`}
                 className={inputClass}
                 value={form.vehicleId}
                 onChange={(e) => setForm({ ...form, vehicleId: e.target.value })}
@@ -145,10 +154,15 @@ const AssignmentFormModal = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label
+                htmlFor={`${uid}-from`}
+                className="mb-1 block text-sm font-medium text-gray-700"
+              >
                 Effective From <span className="text-red-500">*</span>
               </label>
               <input
+                id={`${uid}-from`}
+                aria-label="Effective From"
                 type="date"
                 className={inputClass}
                 value={form.startDate}
@@ -156,8 +170,12 @@ const AssignmentFormModal = ({
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Effective To</label>
+              <label htmlFor={`${uid}-to`} className="mb-1 block text-sm font-medium text-gray-700">
+                Effective To
+              </label>
               <input
+                id={`${uid}-to`}
+                aria-label="Effective To"
                 type="date"
                 className={inputClass}
                 value={form.endDate}
@@ -167,8 +185,14 @@ const AssignmentFormModal = ({
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Status</label>
+            <label
+              htmlFor={`${uid}-status`}
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              Status
+            </label>
             <select
+              id={`${uid}-status`}
               className={inputClass}
               value={form.status}
               onChange={(e) => setForm({ ...form, status: e.target.value })}
@@ -179,8 +203,15 @@ const AssignmentFormModal = ({
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Notes</label>
+            <label
+              htmlFor={`${uid}-notes`}
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              Notes
+            </label>
             <textarea
+              id={`${uid}-notes`}
+              aria-label="Notes"
               className={inputClass}
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}

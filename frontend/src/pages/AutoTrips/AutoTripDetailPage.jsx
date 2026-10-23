@@ -8,24 +8,23 @@ import AutoTripService from '../../services/AutoTripService';
 import RoadService from '../../services/RoadService';
 import { getUserRole } from '../../utils/session.js';
 import { dropLabel } from '../PlaceHub/intelligence/facilityText';
+import RouteSapCard from '../Sap/RouteSapCard';
 import AutoTripReplay from './AutoTripReplay';
 import AutoTripTimeline from './AutoTripTimeline';
+import { FLAG_LABEL, answerPlaceHref, inWindow } from './autoTripPlaces';
+import { LONG_PLANT_MIN, timelinePlan } from './timelineModel';
 import {
-  FLAG_LABEL,
-  LONG_PLANT_MIN,
   STATUS_CLASS,
   STATUS_LABEL,
-  answerPlaceHref,
   fmtDayTime,
   fmtDuration,
   fmtKm,
-  inWindow,
   notReachedYet,
   stopsOnWayText,
-  timelinePlan,
   tripDateRange,
-} from './autoTripModel';
+} from './autoTripFormat';
 import './AutoTrips.css';
+import './TripsWorkspace.css';
 
 /** Confirm, dismiss and drop fixes are owner/manager actions on the server. */
 const CAN_EDIT = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
@@ -100,11 +99,11 @@ export default function AutoTripDetailPage() {
         refetch();
         refetchTrack();
       } catch (e) {
-        const raw = `${e?.message || e?.detail || ''} ${e?.code || ''}`;
+        const raw = `${e?.message || ''} ${e?.code || ''}`;
         toast.error(
           /NO_STOP_IN_TRIP/i.test(raw)
             ? 'That place has no stop inside this trip — pick a stop in the timeline instead.'
-            : e?.message || e?.detail || 'Action failed',
+            : e?.message || 'Action failed',
         );
       }
     },
@@ -239,6 +238,9 @@ export default function AutoTripDetailPage() {
               <Field mono label="Empty run to plant">
                 {fmtKm(trip.km?.approach)}
               </Field>
+              <Field mono label="Return to plant">
+                {fmtKm(trip.km?.return)}
+              </Field>
               <Field mono label="Extra km for fuel">
                 {fmtKm(trip.km?.fuelDetour)}
               </Field>
@@ -269,6 +271,7 @@ export default function AutoTripDetailPage() {
               </div>
             ) : null}
           </div>
+          <RouteSapCard key={id} trip={trip} />
         </div>
 
         <AutoTripTimeline

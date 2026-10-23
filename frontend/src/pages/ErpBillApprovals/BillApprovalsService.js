@@ -23,9 +23,9 @@ const inner = (res) => res.data?.data ?? res.data;
 
 const BillApprovalsService = {
   /** @param {Object} params - { status, page, limit, driverId } */
-  list: async (params = {}) => {
+  list: async (params = {}, { signal } = {}) => {
     try {
-      const res = await apiClient.get(BASE, { params });
+      const res = await apiClient.get(BASE, { params, signal });
       return inner(res);
     } catch (error) {
       throw unwrapError(error, 'Failed to fetch bills');

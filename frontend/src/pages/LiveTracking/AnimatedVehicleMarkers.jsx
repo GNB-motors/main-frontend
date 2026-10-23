@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useGoogleMap } from '@react-google-maps/api';
-import { createVehicleMarkerIcon } from './liveTracking.shared.js';
+import { createVehicleMarkerIcon } from './vehicleMarkerIcon.js';
 
 /**
  * AnimatedVehicleMarkers — the moving fleet layer for Live Tracking.
@@ -47,6 +47,19 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
 
+  // Every vehicle stays visible as a truck at every zoom level.
+  useEffect(() => {
+    if (!map || !window.google) return undefined;
+    const markers = markersRef.current;
+    return () => {
+      for (const rec of markers.values()) {
+        window.google.maps.event.clearInstanceListeners(rec.marker);
+        rec.marker.setMap(null);
+      }
+      markers.clear();
+    };
+  }, [map]);
+
   // Reconcile markers with the latest vehicle set: add/remove, refresh icons,
   // and arm a glide when a vehicle's target position moves.
   useEffect(() => {
@@ -66,12 +79,20 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
       if (!rec) {
         const marker = new g.Marker({
           map,
+          title: v.plate,
           position: target,
           icon: createVehicleMarkerIcon(v, isSelected, false, mapZoom),
           zIndex: zIndexFor(v, isSelected),
         });
         marker.addListener('click', () => onSelectRef.current && onSelectRef.current(v.id));
-        markers.set(v.id, { marker, from: target, to: target, start: 0, dur: 0, iconSig });
+        markers.set(v.id, {
+          marker,
+          from: target,
+          to: target,
+          start: 0,
+          dur: 0,
+          iconSig,
+        });
         continue;
       }
 
@@ -100,6 +121,7 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
 
     for (const [id, rec] of markers) {
       if (!seen.has(id)) {
+        window.google.maps.event.clearInstanceListeners(rec.marker);
         rec.marker.setMap(null);
         markers.delete(id);
       }
@@ -130,15 +152,6 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [map]);
-
-  // Drop every marker on unmount so leaving the page leaves no orphans.
-  useEffect(() => {
-    const markers = markersRef.current;
-    return () => {
-      for (const rec of markers.values()) rec.marker.setMap(null);
-      markers.clear();
-    };
-  }, []);
 
   return null;
 };

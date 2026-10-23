@@ -22,6 +22,18 @@ export const LABELS = {
     OFFLINE: 'No signal',
     IDLE: 'Idling',
   },
+  // iALERT's own vehicle_status values (Ashok Leyland portal).
+  ialertStatus: {
+    RUNNING: 'Moving',
+    IDLING: 'Idling',
+    STOPPED: 'Stopped',
+    TOWED: 'Being towed',
+    NOGPS: 'No GPS fix',
+    DISCONNECTED: 'Device disconnected',
+    // GNB's own buckets for a reading that is too old / not there yet.
+    NOT_REPORTING: 'Not reporting',
+    NO_DATA: 'Waiting for first update',
+  },
   telematics: {
     INSUFFICIENT_DATA: 'Not enough GPS data',
     NO_TELEMATICS: 'This truck has no tracking device',
@@ -107,6 +119,41 @@ export const LABELS = {
     ALL_CLEAR: 'All clear',
     NEEDS_A_LOOK: 'Needs a look',
   },
+  // Support tickets as the org reads them: "awaiting" means support waits on you.
+  supportStatus: {
+    OPEN: 'Open',
+    AWAITING_CUSTOMER: 'Awaiting your reply',
+    SOLVED: 'Solved',
+  },
+  // The same statuses from the support desk's side.
+  supportStatusAdmin: {
+    OPEN: 'Open',
+    AWAITING_CUSTOMER: 'Awaiting customer',
+    SOLVED: 'Solved',
+  },
+  supportPriority: {
+    LOW: 'Low',
+    MEDIUM: 'Medium',
+    HIGH: 'High',
+    URGENT: 'Urgent',
+  },
+  supportCategory: {
+    FUEL: 'Fuel',
+    TRIPS: 'Trips',
+    VEHICLES: 'Vehicles',
+    DRIVERS: 'Drivers',
+    ERP_BILLING: 'ERP & billing',
+    REPORTS: 'Reports',
+    ACCOUNT_ACCESS: 'Account & access',
+    DATA_ISSUE: 'Wrong or missing data',
+    OTHER: 'Something else',
+  },
+  // Contact-page enquiries in the super-admin inbox.
+  enquiryStatus: {
+    NEW: 'New',
+    CONTACTED: 'Contacted',
+    CLOSED: 'Closed',
+  },
 };
 
 /**
@@ -144,6 +191,14 @@ export const TONES = {
   FAILED: 'critical',
   BLACKLISTED: 'critical',
   IDLE: 'caution',
+  RUNNING: 'ok',
+  IDLING: 'caution',
+  STOPPED: 'inert',
+  TOWED: 'critical',
+  NOGPS: 'caution',
+  DISCONNECTED: 'critical',
+  NOT_REPORTING: 'critical',
+  NO_DATA: 'inert',
   LEGIT: 'ok',
   EXCESS: 'caution',
   BILL_MATCHES: 'ok',

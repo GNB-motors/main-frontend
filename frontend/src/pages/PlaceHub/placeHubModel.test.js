@@ -1,28 +1,18 @@
 import { describe, it, expect } from 'vitest';
+import { fromHotspot, drainCellsOf, fuelTotals } from './model/fuelRisk.js';
+import { clusterIdleEvents, liveIdleTotals, idleHistoryTotals } from './model/idleSpots.js';
+import { mergePlaces } from './model/mergePlaces.js';
 import {
-  canEditPlaces,
-  hasPosition,
-  ringOf,
-  centroidOf,
-  mergePlaces,
-  filterPlaces,
-  countByGroup,
-  placeTotals,
-  reviewNoteFor,
-  clusterIdleEvents,
-  liveIdleTotals,
-  idleHistoryTotals,
-  fromHotspot,
-  drainCellsOf,
-  fuelTotals,
   newDraft,
   draftFromPlace,
   validateDraft,
   payloadFor,
   addressParts,
-  radiusLabel,
-  durationLabel,
-} from './placeHubModel.js';
+} from './model/placeDraft.js';
+import { filterPlaces, countByGroup, placeTotals, reviewNoteFor } from './model/placeFilters.js';
+import { hasPosition, ringOf, centroidOf } from './model/placeGeometry.js';
+import { canEditPlaces } from './model/placeHubConfig.js';
+import { radiusLabel, durationLabel } from './model/placeLabels.js';
 
 const warehouse = {
   _id: 'w1',

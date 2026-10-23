@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ListFilter, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import ReportsSidebar from '../../components/ReportsSidebar';
 import '../PageStyles.css';
@@ -36,6 +37,8 @@ const REPORT_COMPONENTS = {
 };
 
 const ReportsPage = () => {
+  const [reportNavOpen, setReportNavOpen] = useState(false);
+  const [scopeNotice, setScopeNotice] = useState('');
   const [isMainSidebarCollapsed, setIsMainSidebarCollapsed] = useState(false);
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [searchParams, setSearchParams] = useSearchParams();
@@ -44,9 +47,27 @@ const ReportsPage = () => {
   // The selected report lives in the URL (?report=vehicle) so a refresh or a
   // shared link opens the same report. Until flags load, trust the URL; after,
   // fall back to the default if this org cannot open the requested report.
+  // Switching reports keeps the shared filter params (?dates, ?vehicle, …) so
+  // the same slice of the business can be compared across two reports.
   const requested = searchParams.get('report') || DEFAULT_REPORT;
   const selectedReport = flagsLoading ? requested : resolveReport(requested, isEnabled);
-  const setSelectedReport = (id) => setSearchParams({ report: id }, { replace: true });
+  const unsupportedManufacturer = ['registerMatch', 'laneKm'].includes(selectedReport);
+  useEffect(() => {
+    if (!unsupportedManufacturer || !searchParams.has('manufacturer')) return;
+    setScopeNotice(
+      'Manufacturer filter cleared: this report uses reference or snapshot data that cannot be filtered by manufacturer.',
+    );
+    const next = new URLSearchParams(searchParams);
+    next.delete('manufacturer');
+    setSearchParams(next, { replace: true });
+  }, [unsupportedManufacturer, searchParams, setSearchParams]);
+  const setSelectedReport = (id) => {
+    setReportNavOpen(false);
+    if (!['registerMatch', 'laneKm'].includes(id)) setScopeNotice('');
+    const next = new URLSearchParams(searchParams);
+    next.set('report', id);
+    setSearchParams(next, { replace: true });
+  };
 
   useEffect(() => {
     setThemeColors(getThemeCSS());
@@ -87,13 +108,36 @@ const ReportsPage = () => {
     <div className="reports-page-container" style={themeColors}>
       <ReportsSidebar
         isOpen
+        mobileOpen={reportNavOpen}
         selectedReport={selectedReport}
         setSelectedReport={setSelectedReport}
       />
       <div
         className={`reports-content with-sidebar ${isMainSidebarCollapsed ? 'main-sidebar-collapsed' : ''}`}
       >
-        <div className="reports-main-content">{renderReport()}</div>
+        <div className="reports-mobile-nav">
+          <button
+            type="button"
+            aria-expanded={reportNavOpen}
+            aria-controls="report-side-nav"
+            onClick={() => setReportNavOpen((open) => !open)}
+          >
+            {reportNavOpen ? (
+              <X size={16} aria-hidden="true" />
+            ) : (
+              <ListFilter size={16} aria-hidden="true" />
+            )}
+            {reportNavOpen ? 'Close reports' : 'Browse reports'}
+          </button>
+        </div>
+        <div className="reports-main-content">
+          {scopeNotice ? (
+            <p role="status" className="p-3 text-sm">
+              {scopeNotice}
+            </p>
+          ) : null}
+          {renderReport()}
+        </div>
       </div>
     </div>
   );

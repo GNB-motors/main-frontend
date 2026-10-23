@@ -1,4 +1,5 @@
-import { PURPOSE_COLOR, purposeShares } from './placeIntelligenceModel';
+import { purposeShares } from './model/siteEvidence.js';
+import { PURPOSE_COLOR } from './model/siteVocabulary.js';
 
 /** What trucks do at this place, as one stacked bar of their stops. */
 export default function PurposeBar({ engine }) {

@@ -1,26 +1,12 @@
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import { ALERT_TYPE_LABELS } from './OwnerAlertsService.jsx';
+import { formatInIST } from '../../utils/dateUtils';
+import { timeAgo } from '../../utils/formatters';
+import { ALERT_TYPE_LABELS } from './OwnerAlertsService.js';
 import { billCheckView } from '../../utils/billCheck';
 
-dayjs.extend(utc);
-dayjs.extend(timezone);
-dayjs.extend(relativeTime);
-
-export const IST_ZONE = 'Asia/Kolkata';
 export const LIMIT = 20;
 
-export const toIST = (s) => (s ? dayjs.utc(s).tz(IST_ZONE) : null);
-export const formatIST = (s) => {
-  const d = toIST(s);
-  return d ? d.format('DD MMM YYYY, hh:mm A [IST]') : '—';
-};
-export const formatRelativeIST = (s) => {
-  const d = toIST(s);
-  return d ? d.fromNow() : null;
-};
+export const formatIST = (s) => formatInIST(s, 'DD MMM YYYY, hh:mm A [IST]') ?? '—';
+export const formatRelativeIST = (s) => (s ? timeAgo(s) : null);
 
 // Severity / title / category derived from the alert type.
 const SEVERITY_BY_TYPE = {
@@ -28,12 +14,17 @@ const SEVERITY_BY_TYPE = {
   FLEETEDGE_ALERT_FUEL_DRAIN: 'CRITICAL',
   FLEETEDGE_SUBSCRIPTION_EXPIRED: 'WARNING',
   FLEETEDGE_REAUTH_REQUIRED: 'WARNING',
+  FLEETEDGE_RELINK_DUE: 'WARNING',
   ADBLUE_BALANCE_FLAG: 'WARNING',
   FUEL_DATA_REVIEW: 'WARNING',
   IDLING_BURN_HIGH: 'WARNING',
   EV_LOW_SOC: 'WARNING',
   FLEETEDGE_ALERT_OVERSPEED: 'WARNING',
   FLEETEDGE_SUBSCRIPTION_EXPIRING: 'INFO',
+  IALERT_REAUTH_REQUIRED: 'WARNING',
+  IALERT_RELINK_DUE: 'WARNING',
+  IALERT_SUBSCRIPTION_EXPIRED: 'WARNING',
+  IALERT_SUBSCRIPTION_EXPIRING: 'INFO',
   REFUEL_ESTIMATED: 'INFO',
   FLEETEDGE_ALERT_REFUEL: 'INFO',
   FLEETEDGE_ALERT_GEOFENCE_ENTERED: 'INFO',
@@ -49,6 +40,7 @@ const ALERT_TITLE = {
   FLEETEDGE_SUBSCRIPTION_EXPIRED: 'Subscription expired',
   FLEETEDGE_SUBSCRIPTION_EXPIRING: 'Subscription expiring',
   FLEETEDGE_REAUTH_REQUIRED: 'FleetEdge re-auth needed',
+  FLEETEDGE_RELINK_DUE: 'FleetEdge re-link due',
   FUEL_SIPHON_SUSPECTED: 'Fuel loss suspected',
   FUEL_DATA_REVIEW: 'Fuel data review',
   ADBLUE_BALANCE_FLAG: 'AdBlue balance flag',
@@ -60,6 +52,10 @@ const ALERT_TITLE = {
   FLEETEDGE_ALERT_GEOFENCE_ENTERED: 'Geofence entered',
   FLEETEDGE_ALERT_GEOFENCE_EXITED: 'Geofence exited',
   FLEETEDGE_ALERT_OVERSPEED: 'Overspeed alert',
+  IALERT_REAUTH_REQUIRED: 'iALERT re-connect needed',
+  IALERT_RELINK_DUE: 'iALERT re-link due',
+  IALERT_SUBSCRIPTION_EXPIRED: 'iALERT plan expired',
+  IALERT_SUBSCRIPTION_EXPIRING: 'iALERT plan expiring',
   DEVIATION_DETECTED: 'Deviation detected',
   DEVIATION_IN_PROGRESS: 'Deviation in progress',
   UNAPPROVED_SERVICE_VISIT: 'Unapproved service visit',
@@ -70,6 +66,11 @@ const CATEGORY_BY_TYPE = {
   FLEETEDGE_SUBSCRIPTION_EXPIRED: 'subscription',
   FLEETEDGE_SUBSCRIPTION_EXPIRING: 'subscription',
   FLEETEDGE_REAUTH_REQUIRED: 'data',
+  FLEETEDGE_RELINK_DUE: 'data',
+  IALERT_REAUTH_REQUIRED: 'data',
+  IALERT_RELINK_DUE: 'data',
+  IALERT_SUBSCRIPTION_EXPIRED: 'subscription',
+  IALERT_SUBSCRIPTION_EXPIRING: 'subscription',
   REFUEL_ESTIMATED: 'data',
   ADBLUE_BALANCE_FLAG: 'data',
   FUEL_DATA_REVIEW: 'data',

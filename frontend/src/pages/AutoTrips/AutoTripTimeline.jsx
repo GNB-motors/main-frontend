@@ -1,12 +1,7 @@
 import { Play, Truck } from 'lucide-react';
-import {
-  LONG_PLANT_MIN,
-  canMarkPlace,
-  fmtClock,
-  fmtDay,
-  fmtDayTime,
-  fmtDuration,
-} from './autoTripModel';
+import { LONG_PLANT_MIN } from './timelineModel';
+import { canMarkPlace } from './autoTripPlaces';
+import { fmtClock, fmtDay, fmtDayTime, fmtDuration } from './autoTripFormat';
 
 const TITLE = { loading: 'Loading at plant', drop: 'Unloading at drop', unknown: 'Unknown stop' };
 /** "drop place" only repeats the title; a guessed or hand-set drop is worth saying. */

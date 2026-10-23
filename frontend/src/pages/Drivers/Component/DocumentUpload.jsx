@@ -3,12 +3,14 @@ import ImageCropper from '../../../components/ImageCropper/ImageCropper';
 import DocumentCard from './DocumentCard';
 import { toast } from 'react-toastify';
 import './DocumentUpload.css';
+import logger from '../../../utils/logger';
 
 const DocumentUpload = ({
   initialData = {},
   onDocumentsChange = () => {},
   onDeleteDocument = null,
-  isSubmitting = false
+  isSubmitting = false,
+  digilockerStatus = undefined,
 }) => {
   const [documents, setDocuments] = useState({
     driverLicense: {
@@ -37,10 +39,23 @@ const DocumentUpload = ({
   // Sync internal state if initialData changes (e.g. loaded asynchronously)
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
-      setDocuments(prev => ({
-        driverLicense: { ...prev.driverLicense, ...initialData.driverLicense, documentId: initialData.driverLicense?.documentId || prev.driverLicense?.documentId || null },
-        panCard: { ...prev.panCard, ...initialData.panCard, documentId: initialData.panCard?.documentId || prev.panCard?.documentId || null },
-        aadharCard: { ...prev.aadharCard, ...initialData.aadharCard, documentId: initialData.aadharCard?.documentId || prev.aadharCard?.documentId || null }
+      setDocuments((prev) => ({
+        driverLicense: {
+          ...prev.driverLicense,
+          ...initialData.driverLicense,
+          documentId:
+            initialData.driverLicense?.documentId || prev.driverLicense?.documentId || null,
+        },
+        panCard: {
+          ...prev.panCard,
+          ...initialData.panCard,
+          documentId: initialData.panCard?.documentId || prev.panCard?.documentId || null,
+        },
+        aadharCard: {
+          ...prev.aadharCard,
+          ...initialData.aadharCard,
+          documentId: initialData.aadharCard?.documentId || prev.aadharCard?.documentId || null,
+        },
       }));
     }
   }, [initialData]);
@@ -98,7 +113,7 @@ const DocumentUpload = ({
       _previousDocumentId: oldDocId || null, // Track old doc for deletion on save
     };
 
-    setDocuments(prev => ({
+    setDocuments((prev) => ({
       ...prev,
       [currentDocument]: updated,
     }));
@@ -125,7 +140,7 @@ const DocumentUpload = ({
       try {
         await onDeleteDocument(docId);
       } catch (err) {
-        console.error(`Failed to delete ${documentType} from server:`, err);
+        logger.warn('DocumentUpload', `Failed to delete ${documentType} from server`, err);
         return; // Don't clear local state if server delete failed
       }
     }
@@ -138,7 +153,7 @@ const DocumentUpload = ({
       documentId: null,
     };
 
-    setDocuments(prev => ({
+    setDocuments((prev) => ({
       ...prev,
       [documentType]: cleared,
     }));
@@ -157,11 +172,17 @@ const DocumentUpload = ({
           <div className="document-upload-header-content">
             <div className="document-upload-icon-wrapper">
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M14 2H6C5.44772 2 5 2.44772 5 3V17C5 17.5523 5.44772 18 6 18H14C14.5523 18 15 17.5523 15 17V3C15 2.44772 14.5523 2 14 2Z" 
-                      stroke="#454547" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                <path d="M8 6H12" stroke="#454547" strokeWidth="1.5" strokeLinecap="round"/>
-                <path d="M8 10H12" stroke="#454547" strokeWidth="1.5" strokeLinecap="round"/>
-                <path d="M8 14H11" stroke="#454547" strokeWidth="1.5" strokeLinecap="round"/>
+                <path
+                  d="M14 2H6C5.44772 2 5 2.44772 5 3V17C5 17.5523 5.44772 18 6 18H14C14.5523 18 15 17.5523 15 17V3C15 2.44772 14.5523 2 14 2Z"
+                  stroke="#454547"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+                <path d="M8 6H12" stroke="#454547" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M8 10H12" stroke="#454547" strokeWidth="1.5" strokeLinecap="round" />
+                <path d="M8 14H11" stroke="#454547" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
             </div>
             <div className="document-upload-title">Documents</div>
@@ -179,8 +200,9 @@ const DocumentUpload = ({
               onSelect={() => handleDocumentSelect('driverLicense')}
               onRemove={() => handleRemoveDocument('driverLicense')}
               isDisabled={isSubmitting}
+              digilockerStatus={digilockerStatus}
             />
-            
+
             <DocumentCard
               documentType="panCard"
               label="PAN Card"
@@ -190,7 +212,7 @@ const DocumentUpload = ({
               onRemove={() => handleRemoveDocument('panCard')}
               isDisabled={isSubmitting}
             />
-            
+
             <DocumentCard
               documentType="aadharCard"
               label="Aadhar Card"
@@ -209,17 +231,19 @@ const DocumentUpload = ({
         src={cropperState.imageSrc}
         isOpen={cropperState.isOpen}
         onCropComplete={handleCropComplete}
-        onCancel={() => setCropperState({
-          isOpen: false,
-          currentDocument: null,
-          imageSrc: null,
-        })}
+        onCancel={() =>
+          setCropperState({
+            isOpen: false,
+            currentDocument: null,
+            imageSrc: null,
+          })
+        }
         title={
           cropperState.currentDocument === 'driverLicense'
             ? 'Crop Driver License'
             : cropperState.currentDocument === 'panCard'
-            ? 'Crop PAN Card'
-            : 'Crop Aadhar Card'
+              ? 'Crop PAN Card'
+              : 'Crop Aadhar Card'
         }
         aspectRatio={NaN}
         circularCrop={false}

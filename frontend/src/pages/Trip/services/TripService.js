@@ -1,94 +1,8 @@
 import apiClient from '../../../utils/axiosConfig';
 import { parseSafe } from '../../../schemas/validate.js';
+import ApiError from '../../../errors/ApiError';
 
 class TripService {
-  /**
-   * Submit complete journey with all data at once (New single submission pattern)
-   * @param {Object} journeyData - Complete journey data
-   * @param {Object} files - Files object with file references
-   * @returns {Promise} API response with created journey
-   */
-  static async submitCompleteJourney(journeyData, files) {
-    try {
-      const formData = new FormData();
-
-      // Add journeyData as JSON string
-      formData.append('journeyData', JSON.stringify(journeyData));
-      console.log('📦 Journey data appended to FormData');
-
-      // Track files added
-      let fileCount = 0;
-
-      // Add odometer image
-      if (files.odometer_image) {
-        formData.append('odometer_image', files.odometer_image);
-        console.log(
-          '✅ Added odometer_image to FormData:',
-          files.odometer_image.name || 'unnamed file',
-        );
-        fileCount++;
-      }
-
-      // Add fuel slip files (using tempId as field name)
-      if (journeyData.fuelLogs) {
-        journeyData.fuelLogs.forEach((fuelLog) => {
-          if (fuelLog.tempId && files[fuelLog.tempId]) {
-            formData.append(fuelLog.tempId, files[fuelLog.tempId]);
-            console.log(
-              '✅ Added fuel file to FormData:',
-              fuelLog.tempId,
-              files[fuelLog.tempId].name || 'unnamed',
-            );
-            fileCount++;
-          } else {
-            console.log(
-              '⚠️ No file found for fuel tempId:',
-              fuelLog.tempId,
-              'available keys:',
-              Object.keys(files),
-            );
-          }
-        });
-      }
-
-      // Add weight certificate files (using tempId as field name)
-      if (journeyData.weightSlipTrips) {
-        journeyData.weightSlipTrips.forEach((trip) => {
-          if (trip.tempId && files[trip.tempId]) {
-            formData.append(trip.tempId, files[trip.tempId]);
-            console.log(
-              '✅ Added weight cert file to FormData:',
-              trip.tempId,
-              files[trip.tempId].name || 'unnamed',
-            );
-            fileCount++;
-          } else {
-            console.log(
-              '⚠️ No file found for weight slip tempId:',
-              trip.tempId,
-              'available keys:',
-              Object.keys(files),
-            );
-          }
-        });
-      }
-
-      console.log('📤 Total files in FormData:', fileCount);
-
-      const response = await apiClient.post('/api/trips/submit-complete-journey', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        timeout: 180000, // 3 minutes for complete submission
-      });
-
-      return response.data;
-    } catch (error) {
-      console.error('Failed to submit complete journey:', error);
-      throw error.response?.data || error;
-    }
-  }
-
   /**
    * Initiate a new trip (PLANNED) - Legacy method, kept for backward compatibility
    * @param {Object} data - { vehicleId, driverId }
@@ -99,8 +13,7 @@ class TripService {
       const response = await apiClient.post('/api/trips/initiate', { vehicleId, driverId });
       return response.data;
     } catch (error) {
-      console.error('Failed to initiate trip:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -123,8 +36,7 @@ class TripService {
       const response = await apiClient.post(`/api/trips/${tripId}/upload-documents`, body);
       return response.data;
     } catch (error) {
-      console.error('Failed to associate document:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
   /**
@@ -160,8 +72,7 @@ class TripService {
           )
         : response.data;
     } catch (error) {
-      console.error('Failed to fetch trips:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -178,8 +89,7 @@ class TripService {
       const response = await apiClient.post(`/api/trips/${tripId}/end`, endData);
       return response.data;
     } catch (error) {
-      console.error('Failed to end trip:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -193,8 +103,7 @@ class TripService {
       const response = await apiClient.get(`/api/trips/${tripId}`);
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch trip:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -212,31 +121,7 @@ class TripService {
       const response = await apiClient.get(`/api/trips/stats?${queryParams.toString()}`);
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch trip stats:', error);
-      throw error.response?.data || error;
-    }
-  }
-
-  /**
-   * Fetch list of vehicles for trip creation
-   * @param {Object} params - Query parameters
-   * @param {number} params.limit - Number of vehicles to fetch (default: 100)
-   * @param {string} params.status - Filter by status (AVAILABLE, ON_TRIP, MAINTENANCE)
-   * @param {string} params.search - Search term
-   * @returns {Promise} API response with vehicles list
-   */
-  static async getVehicles(params = {}) {
-    try {
-      const queryParams = new URLSearchParams();
-      if (params.limit) queryParams.append('limit', params.limit);
-      if (params.status) queryParams.append('status', params.status);
-      if (params.search) queryParams.append('search', params.search);
-
-      const response = await apiClient.get(`/api/vehicles?${queryParams.toString()}`);
-      return response.data;
-    } catch (error) {
-      console.error('Failed to fetch vehicles:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -259,8 +144,7 @@ class TripService {
       const response = await apiClient.get(`/api/employees?${queryParams.toString()}`);
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch drivers:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -278,8 +162,7 @@ class TripService {
       const response = await apiClient.get(`/api/routes?${queryParams.toString()}`);
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch routes:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -293,8 +176,7 @@ class TripService {
       const response = await apiClient.post(`/api/trips/${tripId}/submit`, finalData);
       return response.data;
     } catch (error) {
-      console.error('Failed to submit trip:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -308,8 +190,7 @@ class TripService {
       const response = await apiClient.get(`/api/vehicles/${vehicleId}`);
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch vehicle by ID:', error);
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 
@@ -323,7 +204,6 @@ class TripService {
       const response = await apiClient.get(`/api/trips/vehicle/${vehicleId}/last-fuel-log`);
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch vehicle last fuel log:', error);
       // Return default data if no fuel log found
       if (error.response?.status === 404) {
         return {
@@ -334,7 +214,7 @@ class TripService {
           },
         };
       }
-      throw error.response?.data || error;
+      throw ApiError.from(error);
     }
   }
 }
@@ -354,8 +234,7 @@ TripService.updateOcrData = async function (tripId, correctionsPayload) {
     );
     return response.data;
   } catch (error) {
-    console.error('Failed to update OCR data:', error);
-    throw error.response?.data || error;
+    throw ApiError.from(error);
   }
 };
 
@@ -365,8 +244,7 @@ TripService.assignRoutes = async function (tripId, assignPayload) {
     const response = await apiClient.post(`/api/trips/${tripId}/assign-routes`, assignPayload);
     return response.data;
   } catch (error) {
-    console.error('Failed to assign routes:', error);
-    throw error.response?.data || error;
+    throw ApiError.from(error);
   }
 };
 
@@ -376,8 +254,7 @@ TripService.enterRevenue = async function (tripId, revenuePayload) {
     const response = await apiClient.patch(`/api/trips/${tripId}/enter-revenue`, revenuePayload);
     return response.data;
   } catch (error) {
-    console.error('Failed to enter revenue:', error);
-    throw error.response?.data || error;
+    throw ApiError.from(error);
   }
 };
 
@@ -387,7 +264,6 @@ TripService.enterExpenses = async function (tripId, expensesPayload) {
     const response = await apiClient.patch(`/api/trips/${tripId}/enter-expenses`, expensesPayload);
     return response.data;
   } catch (error) {
-    console.error('Failed to enter expenses:', error);
-    throw error.response?.data || error;
+    throw ApiError.from(error);
   }
 };

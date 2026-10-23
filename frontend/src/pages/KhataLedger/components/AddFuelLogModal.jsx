@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import FuelLogForm from '@/components/FuelLogForm/FuelLogForm';
 import DriverVehicleAssignmentService from '../../../services/DriverVehicleAssignmentService';
+import logger from '../../../utils/logger';
 
 const AddFuelLogModal = ({ open, onClose, driverId, vehicleId, onAdded }) => {
   const [resolvedDriverId, setResolvedDriverId] = useState(driverId || '');
@@ -46,7 +47,7 @@ const AddFuelLogModal = ({ open, onClose, driverId, vehicleId, onAdded }) => {
         }
       } catch (err) {
         if (err?.response?.status !== 404) {
-          console.warn('Failed to resolve active assignment', err);
+          logger.warn('AddFuelLogModal', 'Failed to resolve active assignment', err);
         }
       }
     };

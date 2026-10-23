@@ -94,9 +94,7 @@ export const LocationsManager = ({ canManage }) => {
       closeModal();
     } catch (err) {
       const actionName = modal?.kind === 'edit' ? 'update' : 'add';
-      toast.error(
-        err?.response?.data?.message || err?.detail || `Could not ${actionName} location`,
-      );
+      toast.error(err?.message || `Could not ${actionName} location`);
     } finally {
       setSubmitting(false);
     }
@@ -117,7 +115,7 @@ export const LocationsManager = ({ canManage }) => {
       toast.success(`Location "${branchToDelete.name}" deleted successfully`);
       closeModal();
     } catch (err) {
-      toast.error(err?.response?.data?.message || err?.detail || 'Could not delete location');
+      toast.error(err?.message || 'Could not delete location');
     } finally {
       setSubmitting(false);
     }

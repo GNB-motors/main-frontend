@@ -55,6 +55,7 @@ const ComparisonTable = ({
           <tbody>
             {isLoading && (
               <tr>
+                {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table cell, not a control; the rule reads <td> as a gridcell and stops before the text inside */}
                 <td colSpan={7}>
                   <div className="fc-state">
                     <div className="fc-spinner" />
@@ -70,6 +71,7 @@ const ComparisonTable = ({
             )}
 
             {!isLoading && records.length === 0 && (
+              // eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table row, not a control; the rule reads <tr> as an interactive row and stops before the text inside
               <tr>
                 <td colSpan={7}>
                   <div className="fc-state">
@@ -126,6 +128,7 @@ const ComparisonTable = ({
                 return (
                   <tr key={rec._id} className="fc-table__row" onClick={() => onSelectRow?.(rec)}>
                     {/* Vehicle & Driver */}
+                    {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table cell, not a control; the rule reads <td> as a gridcell and stops before the text inside */}
                     <td>
                       <div className="fc-veh-cell">
                         <span className="fc-plate-badge fc-mono">{reg}</span>
@@ -169,6 +172,7 @@ const ComparisonTable = ({
                     </td>
 
                     {/* Variance */}
+                    {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table cell, not a control; the rule reads <td> as a gridcell and stops before the text inside */}
                     <td className="fc-center">
                       <div className={`fc-variance-chip ${varianceTone}`}>
                         <span className="fc-variance-val fc-mono">

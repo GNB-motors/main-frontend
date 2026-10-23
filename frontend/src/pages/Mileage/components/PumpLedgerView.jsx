@@ -2,33 +2,21 @@ import React, { useState } from 'react';
 import DataTable from '../../../components/ui/DataTable';
 import EnterprisePagination from '../../../components/ui/EnterprisePagination';
 import StatusChip from '../../../components/ui/StatusChip';
-import apiClient from '../../../utils/axiosConfig';
 import { useApi } from '../../../hooks/useApi';
-import { parseSafe } from '../../../schemas/validate';
 import { toISTDateString } from '../../../utils/dateUtils';
 import { formatINR, formatInrCompact, formatLitres, formatNum } from '../../../utils/formatters';
-import { PUMP_MIN_FILLS, mapPumpRow, pumpLedgerSummary, rangeToParams } from '../mileageRows';
+import { PUMP_MIN_FILLS, mapPumpRow, pumpLedgerSummary } from '../pumpRows';
+import { MileageApi } from '../mileageApi';
 import InfoTip from './InfoTip';
-
-const fetchPumpLedger = (range, signal) =>
-  apiClient
-    .get('/api/fuel-integrity/pump-ledger', { params: rangeToParams(range), signal })
-    .then((res) =>
-      parseSafe(
-        'pumpLedgerSchema',
-        () => import('../../../schemas/pumpLedger.schema.js'),
-        res.data?.data ?? null,
-      ),
-    );
 
 const barColour = (p) =>
   p.status === 'INSUFFICIENT_DATA'
-    ? 'var(--inert)'
+    ? '#94a3b8'
     : p.shortfallPct > 6
-      ? 'var(--critical)'
+      ? '#ef4444'
       : p.shortfallPct > 1
-        ? 'var(--caution)'
-        : 'var(--ok)';
+        ? '#f59e0b'
+        : '#10b981';
 
 const explainPump = (p, price) => ({
   title: p.station.displayName,
@@ -107,7 +95,7 @@ const columns = (price) => [
     render: (p) => (
       <span
         className="num"
-        style={{ color: p.lossInr > 0 ? 'var(--critical)' : undefined, fontWeight: 600 }}
+        style={{ color: p.lossInr > 0 ? '#ef4444' : undefined, fontWeight: 600 }}
       >
         {formatINR(p.lossInr)}
       </span>
@@ -143,16 +131,18 @@ export default function PumpLedgerView({ range, searchQuery = '' }) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const [queryKey, setQueryKey] = useState(`${searchQuery}|${range.from}|${range.to}`);
-  const nextKey = `${searchQuery}|${range.from}|${range.to}`;
+  const [queryKey, setQueryKey] = useState(
+    `${searchQuery}|${range.manufacturer || ''}|${range.from}|${range.to}`,
+  );
+  const nextKey = `${searchQuery}|${range.manufacturer || ''}|${range.from}|${range.to}`;
   if (queryKey !== nextKey) {
     setQueryKey(nextKey);
     setPage(1);
   }
 
   const { data, loading, error, refetch } = useApi(
-    (signal) => fetchPumpLedger(range, signal),
-    [range.from, range.to],
+    (signal) => MileageApi.pumpLedger(range, signal),
+    [range.manufacturer, range.from, range.to],
   );
 
   const rows = (data?.pumps || []).map(mapPumpRow);

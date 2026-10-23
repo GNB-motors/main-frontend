@@ -92,14 +92,29 @@ const FinancePage = ({ embedded = false }) => {
   return (
     <PageShell
       embedded={embedded}
-      title={<><Landmark size={22} /> Finance</>}
+      title={
+        <>
+          <Landmark size={22} /> Finance
+        </>
+      }
       subtitle="Fleet expense (labour/parts split), others vouchers, prepaid &amp; EMI — phase 1."
-      breadcrumbs={[{ label: 'ERP', to: '/erp' }, { label: 'Accounts', to: '/erp/accounts' }, { label: 'Finance' }]}
+      breadcrumbs={[
+        { label: 'ERP', to: '/erp' },
+        { label: 'Accounts', to: '/erp/accounts' },
+        { label: 'Finance' },
+      ]}
     >
-
       <div className="erp-tabs">
-        {[['fleet', 'Fleet expense'], ['others', 'Others voucher']].map(([key, label]) => (
-          <button key={key} type="button" className={`erp-tab ${tab === key ? 'active' : ''}`} onClick={() => setTab(key)}>
+        {[
+          ['fleet', 'Fleet expense'],
+          ['others', 'Others voucher'],
+        ].map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            className={`erp-tab ${tab === key ? 'active' : ''}`}
+            onClick={() => setTab(key)}
+          >
             {label}
           </button>
         ))}
@@ -110,6 +125,7 @@ const FinancePage = ({ embedded = false }) => {
           <label>
             Supplier ID
             <input
+              aria-label="Supplier ID"
               value={fleetForm.supplierId}
               onChange={(e) => setFleetForm({ ...fleetForm, supplierId: e.target.value })}
             />
@@ -117,6 +133,7 @@ const FinancePage = ({ embedded = false }) => {
           <label>
             Date
             <input
+              aria-label="Date"
               type="date"
               value={fleetForm.expenseDate}
               onChange={(e) => setFleetForm({ ...fleetForm, expenseDate: e.target.value })}
@@ -125,6 +142,7 @@ const FinancePage = ({ embedded = false }) => {
           <label>
             Vehicle 1 ID
             <input
+              aria-label="Vehicle 1 ID"
               required
               value={fleetForm.vehicleId1}
               onChange={(e) => setFleetForm({ ...fleetForm, vehicleId1: e.target.value })}
@@ -133,6 +151,7 @@ const FinancePage = ({ embedded = false }) => {
           <label>
             Labour 1
             <input
+              aria-label="Labour 1"
               type="number"
               min="0"
               value={fleetForm.labour1}
@@ -142,6 +161,7 @@ const FinancePage = ({ embedded = false }) => {
           <label>
             Parts 1
             <input
+              aria-label="Parts 1"
               type="number"
               min="0"
               value={fleetForm.parts1}
@@ -151,6 +171,7 @@ const FinancePage = ({ embedded = false }) => {
           <label>
             Vehicle 2 ID (multi)
             <input
+              aria-label="Vehicle 2 ID (multi)"
               value={fleetForm.vehicleId2}
               onChange={(e) => setFleetForm({ ...fleetForm, vehicleId2: e.target.value })}
             />
@@ -158,6 +179,7 @@ const FinancePage = ({ embedded = false }) => {
           <label>
             Labour 2
             <input
+              aria-label="Labour 2"
               type="number"
               min="0"
               value={fleetForm.labour2}
@@ -167,6 +189,7 @@ const FinancePage = ({ embedded = false }) => {
           <label>
             Parts 2
             <input
+              aria-label="Parts 2"
               type="number"
               min="0"
               value={fleetForm.parts2}
@@ -176,6 +199,7 @@ const FinancePage = ({ embedded = false }) => {
           <label>
             TDS % (labour only)
             <input
+              aria-label="TDS % (labour only)"
               type="number"
               min="0"
               value={fleetForm.tdsRate}
@@ -195,6 +219,7 @@ const FinancePage = ({ embedded = false }) => {
           <label>
             Supplier ID
             <input
+              aria-label="Supplier ID"
               required
               value={othersForm.partyId}
               onChange={(e) => setOthersForm({ ...othersForm, partyId: e.target.value })}
@@ -203,6 +228,7 @@ const FinancePage = ({ embedded = false }) => {
           <label>
             Gross amount
             <input
+              aria-label="Gross amount"
               type="number"
               min="0.01"
               required
@@ -213,6 +239,7 @@ const FinancePage = ({ embedded = false }) => {
           <label>
             Taxable value
             <input
+              aria-label="Taxable value"
               type="number"
               min="0"
               value={othersForm.taxableValue}
@@ -222,6 +249,7 @@ const FinancePage = ({ embedded = false }) => {
           <label>
             TDS %
             <input
+              aria-label="TDS %"
               type="number"
               min="0"
               value={othersForm.tdsRate}
@@ -231,6 +259,7 @@ const FinancePage = ({ embedded = false }) => {
           <label className="full-width">
             Narration
             <input
+              aria-label="Narration"
               value={othersForm.narration}
               onChange={(e) => setOthersForm({ ...othersForm, narration: e.target.value })}
             />

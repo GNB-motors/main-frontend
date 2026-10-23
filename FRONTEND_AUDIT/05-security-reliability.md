@@ -29,6 +29,7 @@ Scope: token/session handling, multi-tenant scoping, secret/PII exposure, XSS, p
 - **Root cause:** Bearer token + all user/profile PII live in `localStorage`, readable by any JS on the origin; CSP is not enforcing.
 - **Impact:** Today's in-app XSS surface is low (the 4 `dangerouslySetInnerHTML` are static; no `eval`). But localStorage storage means *any* future XSS — a vulnerable dependency, one reflected value — exfiltrates the JWT and every PII field instantly. An `httpOnly` cookie would make the token unreadable to JS.
 - **Fix:** Prefer `httpOnly; Secure; SameSite` cookie for the JWT (backend-coordinated; add CSRF protection if adopting cookies). If localStorage stays, promote CSP from Report-Only to enforced (at the hosting/CDN layer) and add `Referrer-Policy: strict-origin-when-cross-origin`. Defense-in-depth, since one XSS otherwise fully compromises sessions.
+- *Decision (2026-10-12): accepted as is.* The JWT stays in `localStorage` and the CSP stays Report-Only; neither the cookie move nor CSP enforcement is planned. `Referrer-Policy: strict-origin-when-cross-origin` is already set in `vercel.json` and `nginx.conf`.
 
 ---
 

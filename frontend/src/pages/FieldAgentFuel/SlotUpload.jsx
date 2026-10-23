@@ -39,6 +39,7 @@ const SlotUpload = ({
       <input
         type="file"
         id={inputId}
+        aria-label={`Upload ${label}`}
         accept="image/*"
         style={{ display: 'none' }}
         onChange={(e) => {

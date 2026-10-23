@@ -1,6 +1,8 @@
 import apiClient from '../../utils/axiosConfig';
+import ApiError from '../../errors/ApiError';
+import { getVehicleList } from '../../services/vehicleListService';
 import { parseSafe } from '../../schemas/validate';
-import { rangeToParams } from './mileageRows';
+import { rangeToParams } from './mileageDates';
 
 /**
  * The hub's reads. Each takes the hub's calendar range where its endpoint
@@ -38,21 +40,24 @@ export const MileageApi = {
     apiClient.put(`/api/mileage/fuel-log/${id}`, body, { signal }).then((res) => res.data),
   deleteBill: (id, { signal } = {}) =>
     apiClient.delete(`/api/mileage/fuel-log/${id}`, { signal }).then((res) => res.data),
-  vehicles: (signal) =>
-    apiClient
-      .get('/api/vehicles', { params: { page: 1, limit: 1000 }, signal })
-      .then((res) =>
-        parseSafe(
-          'vehicleListResponseSchema',
-          () => import('../../schemas/vehicle.schema.js'),
-          res.data ?? null,
-        ),
-      ),
+  vehicles: (signal) => getVehicleList({ signal }),
   expected: (range, vehicleId, signal) =>
     get(
       '/api/fuel-model/expected',
-      { vehicleId, ...rangeToParams(range) },
+      { vehicleId, ...rangeToParams({ from: range.from, to: range.to }) },
       signal,
       'expectedFuelSchema',
+    ),
+  pumpLedger: (range, signal) =>
+    apiClient.get('/api/fuel-integrity/pump-ledger', { params: rangeToParams(range), signal }).then(
+      (res) =>
+        parseSafe(
+          'pumpLedgerSchema',
+          () => import('../../schemas/pumpLedger.schema.js'),
+          res.data?.data ?? null,
+        ),
+      (error) => {
+        throw ApiError.from(error);
+      },
     ),
 };

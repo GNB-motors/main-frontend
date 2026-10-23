@@ -3,16 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ArrowLeft, CalendarPlus } from 'lucide-react';
 import DataTable from '../../components/ui/DataTable';
+import EnterprisePagination from '../../components/ui/EnterprisePagination';
+import { Button } from '../../components/ui/button';
 import { useApi } from '../../hooks/useApi';
 import { useMutation } from '../../hooks/useMutation';
 import { useConfirm } from '../../components/ui/confirmContext';
 import TripPlanService from '../../services/TripPlanService';
 import { formatNum } from '../../utils/formatters';
-import { fmtDayTime, fmtKm } from './autoTripModel';
+import { fmtDayTime, fmtKm } from './autoTripFormat';
 import { PLAN_STATUS_CLASS, PLAN_STATUS_LABEL, planEndName, planWarnings } from './tripForms';
 import TripPlanDialog from './TripPlanDialog';
 import LinkTripDialog from './LinkTripDialog';
 import './AutoTrips.css';
+import './TripsWorkspace.css';
 
 const TABS = [
   { key: '', label: 'All' },
@@ -149,30 +152,15 @@ export default function TripPlansPage() {
     },
   ];
 
-  const pagination =
-    totalPages > 1 ? (
-      <div className="atx-pager">
-        <span>
-          Page {page} of {totalPages}
-        </span>
-        <button
-          type="button"
-          className="atx-btn atx-btn--sm"
-          disabled={page <= 1 || loading}
-          onClick={() => setPage((n) => Math.max(1, n - 1))}
-        >
-          Previous
-        </button>
-        <button
-          type="button"
-          className="atx-btn atx-btn--sm"
-          disabled={page >= totalPages || loading}
-          onClick={() => setPage((n) => n + 1)}
-        >
-          Next
-        </button>
-      </div>
-    ) : null;
+  const pagination = (
+    <EnterprisePagination
+      page={page}
+      totalPages={totalPages}
+      totalItems={total || null}
+      pageSize={PAGE_SIZE}
+      onPageChange={setPage}
+    />
+  );
 
   return (
     <div className="atx-page atx-list">
@@ -187,23 +175,19 @@ export default function TripPlansPage() {
               </span>
             </div>
             <p className="atx-sub">
-              Each plan is matched to the trip the truck actually ran, from its GPS — so you see
-              late starts and drops somewhere else.
+              Compare scheduled trips with actual GPS activity, late starts and changed
+              destinations.
             </p>
           </div>
           <div className="atx-actions">
-            <button type="button" className="atx-btn" onClick={() => navigate('/auto-trips')}>
+            <Button variant="outline" onClick={() => navigate('/auto-trips')}>
               <ArrowLeft size={16} strokeWidth={2} aria-hidden="true" />
               All trips
-            </button>
-            <button
-              type="button"
-              className="atx-btn atx-btn--primary"
-              onClick={() => setDialog({ kind: 'create' })}
-            >
+            </Button>
+            <Button onClick={() => setDialog({ kind: 'create' })}>
               <CalendarPlus size={16} strokeWidth={2} aria-hidden="true" />
               Schedule trip
-            </button>
+            </Button>
           </div>
         </div>
 

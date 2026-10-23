@@ -876,3 +876,131 @@
     justify-content: center;
   }
 }
+
+/* A compact vehicle form with the same hierarchy in create and edit mode. */
+.add-vehicle-page .add-vehicle-container {
+  max-width: 1120px;
+  gap: 20px;
+  padding-top: 20px;
+}
+.add-vehicle-page .add-vehicle-hero {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  gap: 12px;
+}
+.add-vehicle-page .add-vehicle-heading {
+  font-size: 26px;
+  margin: 0;
+}
+.add-vehicle-page .add-vehicle-subtext {
+  font-size: 14px;
+  margin: 8px 0 0;
+}
+.add-vehicle-page .basic-info-outer-container,
+.add-vehicle-page .document-upload-outer-container {
+  border-radius: 12px;
+  box-shadow: none;
+}
+.add-vehicle-page .card-title-text {
+  margin: 0;
+  font-size: 16px;
+}
+.add-vehicle-page .basic-info-form-row {
+  align-items: start;
+}
+.add-vehicle-page .basic-info-form-row > * {
+  min-width: 0;
+}
+.vehicle-manufacturer-field {
+  border: 0;
+  padding: 0;
+  margin: 0 0 8px;
+  min-width: 0;
+}
+.vehicle-manufacturer-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.vehicle-make-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid var(--color-border, #cbd5e1);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.vehicle-make-choice.is-selected {
+  border-color: #2563eb;
+  background: var(--color-bg-subtle, #eff6ff);
+  font-weight: 600;
+}
+.vehicle-make-choice input {
+  accent-color: #2563eb;
+}
+.vehicle-more-makes {
+  flex: 0 1 240px;
+  min-width: 160px;
+}
+.vehicle-more-makes select {
+  width: 100%;
+}
+.vehicle-save-message {
+  border: 1px solid #d97706;
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: var(--color-text-primary, #92400e);
+  background: var(--color-bg-subtle, #fffbeb);
+  line-height: 1.5;
+}
+.vehicle-inline-message {
+  font-size: 13px;
+  margin: 8px 0 0;
+  color: var(--color-text-secondary, #64748b);
+}
+.vehicle-inline-message button {
+  color: inherit;
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 4px;
+  font: inherit;
+}
+.add-vehicle-page .telematics-header-title {
+  margin: 0;
+}
+.add-vehicle-page .basic-info-input:focus-visible,
+.vehicle-make-choice:focus-within {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+.add-vehicle-page .add-vehicle-footer-bar {
+  backdrop-filter: none;
+  background: var(--color-bg-primary, #fff);
+}
+.add-vehicle-page .add-vehicle-btn-primary {
+  background: #2563eb;
+  box-shadow: none;
+}
+@media (max-width: 640px) {
+  .vehicle-manufacturer-options {
+    align-items: stretch;
+  }
+  .vehicle-more-makes {
+    flex-basis: 100%;
+  }
+  .add-vehicle-page .add-vehicle-container {
+    padding: 16px 12px 140px;
+  }
+  .add-vehicle-page .basic-info-container {
+    padding: 16px;
+  }
+}

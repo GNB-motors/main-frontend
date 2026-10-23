@@ -53,10 +53,12 @@ export default function CommandPalette() {
   const { data: healthData, loading: healthLoading } = useApi(
     (signal) => FleetDataService.getFleetHealth(signal),
     [],
+    { enabled: open },
   );
   const { data: fleetDash, loading: fleetLoading } = useApi(
-    (signal) => VehicleService.getFleetDashboard(null, '', { signal }),
+    (signal) => VehicleService.getFleetDashboard({ signal }),
     [],
+    { enabled: open },
   );
 
   const vehicles = useMemo(() => {
@@ -217,6 +219,7 @@ export default function CommandPalette() {
           <input
             ref={inputRef}
             type="text"
+            aria-label="Search vehicles, drivers, trips"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search vehicles, drivers, trips…"
@@ -274,6 +277,7 @@ export default function CommandPalette() {
               const active = i === index;
               const Icon = TYPE_ICON[item.type] || Truck;
               return (
+                // eslint-disable-next-line jsx-a11y/control-has-associated-label -- named by its item.title / sub text, nested deeper than the rule inspects
                 <button
                   key={item.key}
                   type="button"

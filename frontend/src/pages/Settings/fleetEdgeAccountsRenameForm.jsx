@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { updateAccount } from '../Profile/FleetEdgeAccountService';
-import { getToken } from '../../utils/session.js';
 
 export default function RenameForm({ account, onSuccess, onClose }) {
   const [name, setName] = useState(account.friendlyName || '');
@@ -11,8 +10,7 @@ export default function RenameForm({ account, onSuccess, onClose }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const token = getToken();
-      await updateAccount(token, account._id, { friendlyName: name.trim() });
+      await updateAccount(account._id, { friendlyName: name.trim() });
       toast.success('Name updated');
       onSuccess();
     } catch (err) {
@@ -25,8 +23,15 @@ export default function RenameForm({ account, onSuccess, onClose }) {
   return (
     <form onSubmit={submit} className="space-y-4">
       <div>
-        <label className="mb-1 block text-xs font-semibold text-slate-600">Friendly Name</label>
+        <label
+          className="mb-1 block text-xs font-semibold text-slate-600"
+          htmlFor="fleetedge-account-name"
+        >
+          Friendly Name
+        </label>
         <input
+          id="fleetedge-account-name"
+          aria-label="Friendly Name"
           required
           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none"
           value={name}

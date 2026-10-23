@@ -12,10 +12,10 @@ const toDatetimeLocal = (iso) => {
 const numberOrUndefined = (v) => (v === '' || v == null ? undefined : Number(v));
 
 const inputClass =
-  'w-full rounded-md border border-[var(--ds-line2)] bg-white px-2 py-1.5 text-[13px] text-[var(--ds-ink)]';
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition';
 
 const Field = ({ id, label, children }) => (
-  <label htmlFor={id} className="flex flex-col gap-1 text-[12px] font-medium text-[var(--ds-ink3)]">
+  <label htmlFor={id} className="flex flex-col gap-1.5 text-xs font-semibold text-slate-600">
     {label}
     {children}
   </label>
@@ -82,6 +82,7 @@ export default function BillEditForm({ bill, onCancel, onSaved }) {
       <Field id="bill-litres" label="Litres">
         <input
           id="bill-litres"
+          aria-label="Litres"
           className={inputClass}
           type="number"
           min="0"
@@ -93,6 +94,7 @@ export default function BillEditForm({ bill, onCancel, onSaved }) {
       <Field id="bill-rate" label="Rate (₹ a litre)">
         <input
           id="bill-rate"
+          aria-label="Rate (₹ a litre)"
           className={inputClass}
           type="number"
           min="0"
@@ -104,6 +106,7 @@ export default function BillEditForm({ bill, onCancel, onSaved }) {
       <Field id="bill-odo" label="Odometer (km)">
         <input
           id="bill-odo"
+          aria-label="Odometer (km)"
           className={inputClass}
           type="number"
           min="0"
@@ -114,6 +117,7 @@ export default function BillEditForm({ bill, onCancel, onSaved }) {
       <Field id="bill-time" label="Fill time">
         <input
           id="bill-time"
+          aria-label="Fill time"
           className={inputClass}
           type="datetime-local"
           value={form.refuelTime}
@@ -124,6 +128,7 @@ export default function BillEditForm({ bill, onCancel, onSaved }) {
         <Field id="bill-pump" label="Pump">
           <input
             id="bill-pump"
+            aria-label="Pump"
             className={inputClass}
             value={form.location}
             onChange={set('location')}

@@ -41,6 +41,7 @@ export const SearchableEntityDropdown = (props) => {
           <div className="dropdown-menu">
             <input
               type="text"
+              aria-label={searchPlaceholder}
               placeholder={searchPlaceholder}
               className="dropdown-search"
               value={searchValue}

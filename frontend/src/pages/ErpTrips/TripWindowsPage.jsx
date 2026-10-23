@@ -1,6 +1,6 @@
+import { formatInIST, istDayStartISO, istDayEndISO } from '../../utils/dateUtils';
 import { useMemo, useState } from 'react';
 import { RefreshCw, AlertTriangle } from 'lucide-react';
-import dayjs from 'dayjs';
 import PageShell from '../../components/ui/PageShell';
 import DataTable from '../../components/ui/DataTable';
 import FilterBar from '../../components/ui/FilterBar';
@@ -43,8 +43,8 @@ export default function TripWindowsPage() {
 
   const params = useMemo(() => {
     const p = {};
-    if (applied.from) p.from = dayjs(applied.from).startOf('day').toISOString();
-    if (applied.to) p.to = dayjs(applied.to).endOf('day').toISOString();
+    if (applied.from) p.from = istDayStartISO(applied.from);
+    if (applied.to) p.to = istDayEndISO(applied.to);
     return p;
   }, [applied]);
 
@@ -67,7 +67,7 @@ export default function TripWindowsPage() {
         <div>
           <div className="font-semibold text-slate-800">{w.tripNumber}</div>
           <div className="text-dim text-xs">
-            {w.tripDate ? dayjs(w.tripDate).format('DD MMM YYYY') : '—'}
+            {w.tripDate ? formatInIST(w.tripDate, 'DD MMM YYYY') : '—'}
           </div>
         </div>
       ),

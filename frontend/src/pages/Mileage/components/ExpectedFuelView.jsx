@@ -12,7 +12,7 @@ import {
 import { useApi } from '../../../hooks/useApi';
 import { formatKm, formatLitres } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
-import { dailyRollup, dieselUse } from '../mileageRows';
+import { dailyRollup, dieselUse } from '../cycleRows';
 import InfoTip from './InfoTip';
 
 const signed = (v, unit) => (v == null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(1)}${unit}`);
@@ -75,8 +75,13 @@ export default function ExpectedFuelView({ range }) {
     { enabled: Boolean(vehicleId) },
   );
 
-  const list = (Array.isArray(vehicles.data?.data) ? vehicles.data.data : [])
-    .filter((v) => v._id && v.registrationNumber)
+  const list = (Array.isArray(vehicles.data) ? vehicles.data : [])
+    .filter(
+      (v) =>
+        v._id &&
+        v.registrationNumber &&
+        (!range.manufacturer || (v.manufacturer || 'UNKNOWN') === range.manufacturer),
+    )
     .sort((a, b) => a.registrationNumber.localeCompare(b.registrationNumber));
   const selected = list.find((v) => v._id === vehicleId);
   const days = vehicleId ? dailyRollup(result.data?.windows || []) : [];

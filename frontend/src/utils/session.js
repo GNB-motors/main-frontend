@@ -1,10 +1,11 @@
 /**
- * THE single gateway to localStorage. Nothing outside this module may touch
- * localStorage directly — enforced by the `no-restricted-syntax` ESLint rule.
+ * THE single gateway to localStorage (and to sessionStorage for the onboarding
+ * draft). Nothing outside this module may call either directly — enforced by
+ * the `no-restricted-syntax` ESLint rule.
  *
  * All reads are null-safe (storage failures return null, never throw).
  */
-/* eslint-disable no-restricted-syntax -- this IS the sanctioned localStorage module */
+/* eslint-disable no-restricted-syntax -- this IS the sanctioned storage module */
 
 const KEYS = {
   token: 'authToken',
@@ -147,6 +148,64 @@ export const hasProfileData = () => get(KEYS.profileId) !== null;
 // --- Teardown ---
 
 /** Clear auth + user + profile. Leaves theme color untouched. */
+// --- Onboarding draft ---
+// Tab-scoped (sessionStorage): the wizard's answers survive a refresh but never
+// outlive the tab, and are dropped on finish and on logout.
+
+const ONBOARDING_KEYS = {
+  step: 'onboardingStep',
+  profile: 'onboardingProfile',
+  company: 'onboardingCompany',
+};
+
+function getTab(key) {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function setTab(key, value) {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    // storage unavailable — the wizard just restarts on refresh
+  }
+}
+
+function removeTab(key) {
+  try {
+    sessionStorage.removeItem(key);
+  } catch {
+    // ignore
+  }
+}
+
+export const getOnboardingStep = () => {
+  const step = parseInt(getTab(ONBOARDING_KEYS.step), 10);
+  return Number.isFinite(step) ? step : null;
+};
+export const setOnboardingStep = (step) => setTab(ONBOARDING_KEYS.step, String(step));
+
+/** @param {'profile'|'company'} part @returns {Object} the saved answers, or {} */
+export const getOnboardingDraft = (part) => {
+  try {
+    return JSON.parse(getTab(ONBOARDING_KEYS[part])) ?? {};
+  } catch {
+    return {};
+  }
+};
+export const setOnboardingDraft = (part, data) =>
+  setTab(ONBOARDING_KEYS[part], JSON.stringify(data));
+
+export const clearOnboardingDraft = () => {
+  Object.values(ONBOARDING_KEYS).forEach(removeTab);
+  // Written by older builds (the user's contact details), never read.
+  removeTab('onboardingUser');
+};
+
 export const clearSession = () => {
   Object.values(KEYS).forEach(remove);
+  clearOnboardingDraft();
 };

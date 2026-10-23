@@ -60,7 +60,7 @@ export default function AuditTrailPage() {
     setPage(1);
   };
 
-  const forbidden = error?.statusCode === 403;
+  const forbidden = error?.status === 403;
 
   const exportRows = useMemo(
     () =>

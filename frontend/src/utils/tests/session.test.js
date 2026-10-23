@@ -18,6 +18,11 @@ import {
   setOrgId,
   getThemeColor,
   setThemeColor,
+  getOnboardingStep,
+  setOnboardingStep,
+  getOnboardingDraft,
+  setOnboardingDraft,
+  clearOnboardingDraft,
   getUiTheme,
   setUiTheme,
   getPref,
@@ -244,6 +249,43 @@ describe('session.js — the sole localStorage gateway', () => {
       // primaryThemeColor is part of KEYS, so clearSession removes it too
       // (the "leaves theme color untouched" docstring is stale).
       expect(getThemeColor()).toBeNull();
+    });
+  });
+
+  describe('onboarding draft', () => {
+    beforeEach(() => {
+      sessionStorage.clear();
+    });
+
+    it('round-trips the step and each part of the draft', () => {
+      setOnboardingStep(3);
+      setOnboardingDraft('company', { companyName: 'GNB Motors', gstin: '22AAAAA0000A1Z5' });
+      expect(getOnboardingStep()).toBe(3);
+      expect(getOnboardingDraft('company')).toEqual({
+        companyName: 'GNB Motors',
+        gstin: '22AAAAA0000A1Z5',
+      });
+      expect(getOnboardingDraft('profile')).toEqual({});
+    });
+
+    it('treats a missing or corrupt value as empty', () => {
+      sessionStorage.setItem('onboardingStep', 'abc');
+      sessionStorage.setItem('onboardingProfile', '{not json');
+      expect(getOnboardingStep()).toBeNull();
+      expect(getOnboardingDraft('profile')).toEqual({});
+    });
+
+    // The draft holds GSTIN and the company name; it used to outlive logout.
+    it('is dropped on finish and by clearSession', () => {
+      setOnboardingDraft('profile', { firstName: 'Asha', gstin: '22AAAAA0000A1Z5' });
+      sessionStorage.setItem('onboardingUser', '{"email":"a@b.in"}');
+      clearOnboardingDraft();
+      expect(sessionStorage.length).toBe(0);
+
+      setOnboardingStep(2);
+      setOnboardingDraft('company', { companyName: 'GNB Motors' });
+      clearSession();
+      expect(sessionStorage.length).toBe(0);
     });
   });
 });

@@ -1,367 +1,6 @@
-import {
-  FileText,
-  Users,
-  User,
-  Truck,
-  Map as MapIcon,
-  Fuel,
-  BookOpen,
-  Navigation,
-  PhoneCall,
-  ClipboardList,
-  Landmark,
-  Settings,
-  LayoutDashboard,
-  FileCheck,
-  ShieldAlert,
-  CalendarClock,
-  ReceiptText,
-  Radar,
-  Warehouse,
-  Route,
-} from 'lucide-react';
-
 import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js';
-
-/**
- * Single source of truth for the dashboard sidebar.
- *
- * Har item ke saath uski feature-flag `key` yahin define hoti hai. Sidebar.jsx
- * sirf is list ko map karke render karta hai — naya link add karna ho to bas
- * yahan ek entry add karo (aur `key` do). Sidebar code chedne ki zarurat nahi.
- *
- * `key`      -> feature-flag key. Sidebar isEnabled(key) === true hone par hi item
- *               dikhata hai. `key: null` ka matlab "hamesha dikhao" (no gating).
- * `groupId`  -> collapsible group open/close state (defaults to `key` when set).
- *
- * type 'link'    -> single NavLink.
- *                   fields: { key, to, label, icon, end? }
- * type 'group'   -> collapsible dropdown.
- *                   fields: { key?, groupId?, label, icon, children[], matchRoutes[] }
- *                   children:    [{ to, label, end?, key?, anyKey? }]
- *                   child `key` array = saare flags chahiye (AND); `anyKey` array =
- *                   koi ek flag kaafi hai (OR) — jab ek page kai purane pages ko
- *                   merge karta hai, har purane page ka flag usse khol de.
- *                   matchRoutes: routes jinpe hone par group apne aap expand rahe
- *                                (chhupe/deep routes bhi include karo).
- * type 'section' -> non-clickable heading jo neeche wale items ko group karta hai.
- *                   fields: { label }
- *                   Agar uske neeche ka koi bhi item visible nahi hai to heading
- *                   apne aap hat jaati hai (getVisibleNavItems dekho).
- *
- * `access`   -> module gate: 'erp' | 'fleet' | 'both'. Item's apna feature-flag
- *               `key` iske upar bhi lagta hai. moduleAccess.js dekho.
- *
- * `hoistWhenSole` -> 'erp' | 'fleet'. Agar org ke paas sirf yahi ek module hai,
- *               to ye item apne section se nikal kar sabse upar chala jaata hai
- *               (shared Vehicles/Employees ke bhi upar) — kyunki tab wahi is
- *               org ka landing page hai. Dono module hone par ye hilta nahi.
- *
- * Order matters: ERP/CRM sabse upar hai kyunki wahi ab primary workflow hai.
- */
-export const SIDE_NAV_ITEMS = [
-  // Fleet-wide daily digest (added by live-map-refresh branch).
-  {
-    type: 'link',
-    key: 'fleetIntelligence',
-    access: 'fleet',
-    to: '/digest',
-    label: 'Daily Digest',
-    icon: CalendarClock,
-  },
-
-  // ─── Shared master data ────────────────────────────────────────────────────
-  // Vehicles aur Employees dono module use karte hain, isliye ye kisi ek section
-  // ke andar nahi hain — top par rehte hain aur module gate nahi lagta (sirf
-  // apni feature-flag key). moduleAccess.js ka SHARED_FLAG_KEYS dekho.
-  {
-    type: 'group',
-    key: 'vehicles',
-    label: 'Vehicles',
-    icon: Truck,
-    children: [
-      { to: '/vehicles', label: 'All Vehicles', end: true },
-      { to: '/vehicles/dashboard', label: 'Vehicle Dashboard' },
-      { to: '/vehicles/service-intelligence', label: 'Service Intelligence' },
-    ],
-    matchRoutes: [
-      '/vehicles',
-      '/vehicles/dashboard',
-      '/vehicles/add',
-      '/vehicles/bulk-upload',
-      '/vehicles/service-intelligence',
-      '/vehicles/service-intelligence/add-service',
-      '/vehicles/service-intelligence/add-repair',
-    ],
-  },
-  // Workforce mirrors the Vehicles group: the employee directory and the RBAC
-  // (User Management) screen live under one collapsible parent. Whole group is
-  // gated by the `drivers` feature flag (same as both children were).
-  {
-    type: 'group',
-    key: 'drivers',
-    label: 'Workforce',
-    icon: Users,
-    children: [
-      { to: '/drivers', label: 'Employee', end: true },
-      { to: '/access-control', label: 'User Management' },
-    ],
-    matchRoutes: ['/drivers', '/drivers/add', '/drivers/bulk-upload', '/access-control'],
-  },
-
-  // ─── ISOCL ERP / CRM — five workspaces ─────────────────────────────────────
-  // Ye list ab role ke hisaab se bani hai, feature ke hisaab se nahi: ERP ko
-  // chaar log chalate hain (planning, operations, accounts, approve karne wala
-  // owner) aur unme se har ek sirf apne workspace me rehta hai. Pehle yahan 11
-  // top-level entries thi, jinme se har user ke liye 8 shor thi.
-  //
-  // Ye sirf navigation ka regroup hai — na koi route badla hai, na koi page.
-  { type: 'section', label: 'ERP & CRM', access: 'erp' },
-  // `end` so ERP Home is active only on exactly /erp — without it the NavLink
-  // matches every /erp/* route and stays highlighted alongside the open group.
-  {
-    type: 'link',
-    key: 'erpOperations',
-    access: 'erp',
-    hoistWhenSole: 'erp',
-    to: '/erp',
-    label: 'ERP Home',
-    icon: LayoutDashboard,
-    end: true,
-  },
-  // CRM — the customer-facing workspace. "Accounts" used to mean both customer
-  // accounts AND accounting, which was the core sidebar confusion; the customer
-  // side now lives here (Customers = the party master) and the money side lives
-  // under "Finance" below.
-  {
-    type: 'group',
-    groupId: 'erpCrm',
-    access: 'erp',
-    label: 'CRM',
-    icon: PhoneCall,
-    children: [
-      { to: '/erp/parties', label: 'Customers', key: 'erpMasters' },
-      { to: '/erp/call-tasks', label: 'Call Tasks', key: 'erpCallPlanning' },
-      { to: '/erp/call-schedules', label: 'Call Schedules', key: 'erpCallPlanning' },
-    ],
-    matchRoutes: ['/erp/parties', '/erp/call-tasks', '/erp/call-schedules'],
-  },
-  // Operations — the trip pipeline (Delivery Orders / Placement / Trips are its
-  // tabs) plus inbound e-Way bills, which is a CN-updation / operations task.
-  {
-    type: 'group',
-    groupId: 'erpOperations',
-    access: 'erp',
-    label: 'Operations',
-    icon: ClipboardList,
-    children: [
-      { to: '/erp/pipeline', label: 'Trip Pipeline', key: 'erpOperations' },
-      { to: '/erp/inbound-ewb', label: 'Inbound e-Way Bills', key: 'erpCnUpdation' },
-      { to: '/erp/trip-windows', label: 'Trip Windows', key: ['erpOperations', 'erpTripClose'] },
-    ],
-    matchRoutes: ['/erp/pipeline', '/erp/inbound-ewb', '/erp/trip-windows'],
-  },
-  // Finance — the accounting side. Renamed from the ambiguous "Accounts".
-  {
-    type: 'group',
-    groupId: 'erpAccounts',
-    access: 'erp',
-    label: 'Finance',
-    icon: Landmark,
-    children: [
-      { to: '/erp/billing', label: 'Billing & Receivables', key: 'erpBilling' },
-      { to: '/erp/payables', label: 'Payables', key: 'erpAccounts' },
-      { to: '/erp/accounts', label: 'Ledger', key: 'erpAccounts' },
-    ],
-    // `/erp/accounts` bina slash ke Account 360 aur voucher detail dono ko cover
-    // kar leta hai (isGroupActive prefix match karta hai).
-    matchRoutes: ['/erp/billing', '/erp/payables', '/erp/accounts'],
-  },
-  {
-    type: 'group',
-    groupId: 'erpApprovals',
-    access: 'erp',
-    label: 'Approval Center',
-    icon: FileCheck,
-    // Group parent par combined badge — pehle dono queues alag links thi aur
-    // dono apna count dikhati thi; collapse hone par wo count gayab na ho.
-    badgeKey: 'approvalsTotal',
-    children: [
-      { to: '/erp/approvals', label: 'Approvals', key: 'erpApprovals' },
-      { to: '/erp/bill-approvals', label: 'Bill Approvals', key: 'erpApprovals' },
-    ],
-    matchRoutes: ['/erp/approvals', '/erp/bill-approvals'],
-  },
-  {
-    type: 'group',
-    groupId: 'erpMasters',
-    access: 'erp',
-    label: 'Master Setting',
-    icon: Settings,
-    children: [
-      { to: '/erp/rates', label: 'Rate Master', key: 'erpMasters' },
-      { to: '/erp/vendors', label: 'Vendor Master', key: 'erpMasters' },
-      { to: '/erp/material-compatibility', label: 'Material Compatibility', key: 'erpMasters' },
-      { to: '/erp/advance-masters', label: 'Advance Masters', key: 'erpAdvances' },
-      { to: '/erp/settings', label: 'ERP Settings', key: 'erpMasters' },
-    ],
-    matchRoutes: [
-      '/erp/rates',
-      '/erp/vendors',
-      '/erp/material-compatibility',
-      '/erp/advance-masters',
-      '/erp/settings',
-    ],
-  },
-
-  // ─── Fleet operations ───────────────────────────────────────────────────────
-  { type: 'section', label: 'Fleet', access: 'fleet' },
-  {
-    type: 'link',
-    access: 'fleet',
-    hoistWhenSole: 'fleet',
-    to: '/live-tracking',
-    label: 'Track',
-    icon: Radar,
-  },
-  {
-    type: 'link',
-    key: null,
-    access: 'fleet',
-    to: '/auto-trips',
-    label: 'Trip',
-    icon: Navigation,
-  },
-  // One map for every place: warehouses, zones, loading points, idling, fuel risk.
-  // `key: null` like Warehouses — the page hides the tabs an org isn't entitled to.
-  {
-    type: 'link',
-    key: null,
-    access: 'fleet',
-    to: '/place-hub',
-    label: 'Place Hub',
-    icon: MapIcon,
-  },
-  // Yards trips start and end at. Hidden from sidebar per request.
-  /*
-  {
-    type: 'link',
-    key: null,
-    access: 'fleet',
-    to: '/warehouses',
-    label: 'Warehouses',
-    icon: Warehouse,
-  },
-  */
-  {
-    type: 'link',
-    access: 'fleet',
-    to: '/approvals',
-    label: 'Approvals',
-    icon: ReceiptText,
-  },
-  {
-    type: 'group',
-    groupId: 'fuelManagement',
-    access: 'fleet',
-    label: 'Fuel Management',
-    icon: Fuel,
-    children: [
-      // Merges Refuel Logs, Mileage Tracking and Fuel Comparison, so any of their
-      // flags opens it; the hub hides the views an org isn't entitled to.
-      {
-        to: '/mileage',
-        label: 'Mileage',
-        anyKey: ['fuelIntegrity', 'vehicleActivity', 'fuelComparison'],
-      },
-      { to: '/fuel-integrity', label: 'Fuel Integrity', key: 'fuelIntegrity' },
-      { to: '/def-ledger', label: 'DEF Ledger', key: 'fuelIntegrity' },
-    ],
-    matchRoutes: [
-      '/mileage',
-      '/refuel-logs',
-      '/mileage-tracking',
-      '/fuel-comparison',
-      '/fuel-integrity',
-      '/def-ledger',
-      '/trip-management',
-    ],
-  },
-  // Route Hub — direct link (replaces the Fleet Intelligence dropdown)
-  {
-    type: 'link',
-    key: null,
-    access: 'fleet',
-    to: '/route-hub',
-    label: 'Route Hub',
-    icon: Route,
-  },
-  /*
-  // Fleet Intelligence surfaces (commented out: Idling Console and Hotspots removed; Route Hub displayed directly)
-  {
-    type: 'group',
-    groupId: 'fleetIntelligence',
-    key: null,
-    access: 'fleet',
-    label: 'Fleet Intelligence',
-    icon: ShieldAlert,
-    children: [
-      // Dark-launch: gated on its own key, not fleetIntelligence, so it can be
-      // toggled on per org independently of the rest of this group.
-      { to: '/idling-console', label: 'Idling Console', key: 'idlingConsole' },
-      { to: '/optimal-speed', label: 'Optimal Speed', key: 'optimalSpeed' },
-      { to: '/refuel-advisory', label: 'Refuel Advisory', key: 'refuelAdvisory' },
-      { to: '/driving-dna', label: 'Driving DNA', key: 'drivingDna' },
-      // Route Intelligence, Deviation, Replay, Profitability and Overspeed
-      // used to be five separate entries — now one card-based hub page.
-      { to: '/route-hub', label: 'Route Hub', key: 'fleetIntelligence' },
-      { to: '/hotspots', label: 'Fuel Risk Hotspots', key: 'fleetIntelligence' },
-    ],
-    matchRoutes: [
-      '/idling-console',
-      '/optimal-speed',
-      '/refuel-advisory',
-      '/driving-dna',
-      '/route-hub',
-      '/route-intelligence',
-      '/route-deviation',
-      '/route-replay',
-      '/route-profitability',
-      '/overspeed',
-      '/hotspots',
-    ],
-  },
-  */
-  // Geofence group (commented out per request)
-  /*
-  {
-    type: 'group',
-    groupId: 'geofence',
-    key: null,
-    access: 'fleet',
-    label: 'Geofence',
-    icon: Navigation,
-    children: [
-      { to: '/geofence', label: 'Anomalies' },
-      { to: '/geofence/zones', label: 'Zones & Alerts' },
-    ],
-    matchRoutes: ['/geofence', '/geofence/zones'],
-  },
-  */
-
-  // ─── Reporting / account (low-frequency, so it sits at the bottom) ──────────
-  { type: 'section', label: 'Insights' },
-  { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
-  { type: 'link', key: 'reports', to: '/reports', label: 'Reports', icon: FileText },
-
-  { type: 'section', label: 'Account' },
-  // Settings hub for fleet and vehicle configs
-  { type: 'link', key: null, to: '/settings', label: 'Settings', icon: Settings },
-  // Always visible (no feature flag) — guaranteed fallback page. Profile must
-  // stay reachable for every authenticated user regardless of plan; gating it
-  // can lock users out with no recovery path, so `key` stays null on purpose.
-  { type: 'link', key: null, to: '/profile', label: 'Profile', icon: User },
-];
+import { SIDE_NAV_ITEMS } from './sideNavItems.js';
+import { applyUsageCut, surfaceKeysFromNav } from './navCut.js';
 
 /** Saare dropdown groups (open/close state isi se chalti hai). */
 export const SIDE_NAV_GROUPS = SIDE_NAV_ITEMS.filter((item) => item.type === 'group');
@@ -370,8 +9,9 @@ export const SIDE_NAV_GROUPS = SIDE_NAV_ITEMS.filter((item) => item.type === 'gr
 export const getNavGroupId = (group) => group.groupId || group.key;
 
 /** Children visible for the current org's feature flags. */
-export const getVisibleNavChildren = (group, isEnabled) =>
+export const getVisibleNavChildren = (group, isEnabled, access = null) =>
   (group.children || []).filter((child) => {
+    if (access && !satisfiesAccess(child.access, access)) return false;
     if (child.anyKey) return child.anyKey.some((k) => isEnabled(k));
     if (!child.key) return true;
     if (Array.isArray(child.key)) return child.key.every((k) => isEnabled(k));
@@ -381,13 +21,27 @@ export const getVisibleNavChildren = (group, isEnabled) =>
 /**
  * Top-level items visible for the current org's feature flags.
  *
- * Teen pass hote hain:
- *  1. flag/module se gated items hatao,
- *  2. single-module org ke liye uska home top par hoist karo,
- *  3. woh section headings hatao jinke neeche kuch bacha hi nahi (hoisting ke
- *     baad ek section khaali ho sakta hai, isliye ye pass last me chalta hai).
+ * Paanch pass hote hain:
+ *  1. flag/module/role se gated items hatao,
+ *  2. `mergeInto` se duplicate entries hatao — an item that a surviving group
+ *     already carries (item 26.2's two Approvals entries),
+ *  3. single-module org ke liye uska home top par hoist karo,
+ *  4. is org ke APNE recorded usage se fold karo (navCut) — nothing is cut
+ *     without a measured verdict,
+ *  5. woh section headings hatao jinke neeche kuch bacha hi nahi.
+ *
+ * `usageProfile` is GET /api/usage/nav-profile for this org. Pass nothing and
+ * the menu is whole: absence of measurement never removes anything.
  */
-export const getVisibleNavItems = (isEnabled) => {
+export const getVisibleNavItems = (isEnabled, role = null, usageProfile = null) =>
+  computeVisibleNav(isEnabled, role, usageProfile).items;
+
+/**
+ * The menu PLUS what the usage cut folded. A folded entry never vanishes: it
+ * comes back here with its route, its job and the sentence the server wrote,
+ * so the sidebar can still offer it under "More".
+ */
+export const computeVisibleNav = (isEnabled, role = null, usageProfile = null) => {
   const access = { erp: hasErpAccess(isEnabled), fleet: hasFleetAccess(isEnabled) };
 
   const soleModule =
@@ -397,30 +51,45 @@ export const getVisibleNavItems = (isEnabled) => {
     if (!satisfiesAccess(item.access, access)) return false;
     if (item.type === 'section') return true;
     if (item.key && !isEnabled(item.key)) return false;
-    if (item.type === 'group') return getVisibleNavChildren(item, isEnabled).length > 0;
+    if (item.roles && role && !item.roles.includes(role)) return false;
+    if (item.type === 'group') return getVisibleNavChildren(item, isEnabled, access).length > 0;
     return true;
   });
+
+  // item 26.2: the fleet Approvals link disappears when the ERP Approval Center
+  // is on screen carrying it, so an org with both modules has ONE Approvals
+  // entry. Nothing is deleted — /approvals is a child of the group either way.
+  const survivingGroups = new Set(
+    items.filter((i) => i.type === 'group').map((i) => getNavGroupId(i)),
+  );
+  items = items.filter((item) => !item.mergeInto || !survivingGroups.has(item.mergeInto));
 
   if (soleModule) {
     const i = items.findIndex((item) => item.hoistWhenSole === soleModule);
     if (i > -1) items = [items[i], ...items.slice(0, i), ...items.slice(i + 1)];
   }
 
-  return items.filter((item, i) => {
+  const gated = items
+    .map((item) =>
+      item.type === 'group'
+        ? { ...item, children: getVisibleNavChildren(item, isEnabled, access) }
+        : item,
+    )
+    .filter((item) => item.type !== 'group' || item.children.length > 0);
+
+  // Last, and only with the org's own measured numbers behind it.
+  const cut = applyUsageCut(gated, usageProfile);
+
+  const prunedItems = cut.items.filter((item, i) => {
     if (item.type !== 'section') return true;
-    const next = items[i + 1];
+    const next = cut.items[i + 1];
     return !!next && next.type !== 'section';
   });
+
+  return { items: prunedItems, folded: cut.folded, foldedByJob: cut.foldedByJob, cutApplied: cut.applied, cutWhy: cut.why };
 };
 
-/**
- * Pehla navigable route jispe current org ke flags ke hisaab se user ki access hai.
- *
- * Sidebar ke visible items ko order me dekhta hai: pehla `link` uska `to`, ya
- * pehla `group` ka pehla visible child. Location switch ke baad user ko yahin
- * land karaya jaata hai (LocationSwitcher). `/profile` hamesha visible hai isliye
- * guaranteed fallback ke roop me kaam karta hai.
- */
+/** Pehla navigable route jispe current org ke flags ke hisaab se user ki access hai. */
 export const getFirstNavPath = (isEnabled) => {
   const items = getVisibleNavItems(isEnabled);
   for (const item of items) {
@@ -439,3 +108,5 @@ export const getFirstNavPath = (isEnabled) => {
  */
 export const isGroupActive = (group, pathname) =>
   (group.matchRoutes || []).some((r) => pathname === r || pathname.startsWith(`${r}/`));
+
+export { applyUsageCut, surfaceKeysFromNav };

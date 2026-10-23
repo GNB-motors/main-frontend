@@ -3,36 +3,29 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
   ArrowLeft,
-  Receipt,
   CheckCircle2,
   XCircle,
   Archive,
   Gauge,
-  MapPin,
-  Clock,
-  User,
   ShieldCheck,
   AlertTriangle,
-  ZoomIn,
-  ZoomOut,
-  RotateCw,
-  Maximize2,
-  Phone,
   Fuel,
   TrendingUp,
   FileCheck,
 } from 'lucide-react';
-import apiClient from '../../../utils/axiosConfig';
+import { ReceiptApprovalService } from './ReceiptApprovalService';
+import Field from './receipts/Field';
+import ReasonModal from './receipts/ReasonModal';
+import DetailInspectionPanel from './receipts/DetailInspectionPanel';
+import DetailStationCard from './receipts/DetailStationCard';
+import DetailAuditCard from './receipts/DetailAuditCard';
 import ImagePreviewModal from '../../Trip/components/ImagePreviewModal';
+import { fmtMoney, fmtLitres, fmtDate, fmtRelativeTime } from './receipts/receiptFormat';
 import {
-  fmtMoney,
-  fmtLitres,
-  fmtDate,
-  fmtRelativeTime,
   evaluateOcrQuality,
   getOdometerMeta,
   crossVerifyStation,
-} from './ReceiptApproval.shared';
+} from './receipts/receiptVerification';
 import './ReceiptApproval.css';
 
 const STATUS_BADGE = {
@@ -40,57 +33,6 @@ const STATUS_BADGE = {
   PUBLISHED: 'ra-badge--published',
   REJECTED: 'ra-badge--rejected',
   CLEARED: 'ra-badge--cleared',
-};
-
-const Field = ({ label, value, full, highlight, mono }) => (
-  <div
-    className={`ra-field ${full ? 'ra-field--full' : ''} ${highlight ? 'ra-field--highlight' : ''}`}
-  >
-    <div className="ra-field__label">{label}</div>
-    <div className={`ra-field__value ${mono ? 'font-mono' : ''}`}>{value || '—'}</div>
-  </div>
-);
-
-const ReasonModal = ({ title, label, confirmLabel, confirmClass, busy, onCancel, onConfirm }) => {
-  const [text, setText] = useState('');
-  return (
-    <div
-      className="ra-modal-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !busy) onCancel();
-      }}
-    >
-      <div className="ra-modal">
-        <div className="ra-modal__head">{title}</div>
-        <div className="ra-modal__body">
-          <div className="ra-field__label" style={{ marginBottom: 8 }}>
-            {label}
-          </div>
-          <textarea
-            rows={3}
-            className="ra-modal__textarea"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="State your reason for audit logs and driver notification…"
-            aria-label="Reason for audit log and driver notification"
-          />
-        </div>
-        <div className="ra-modal__foot">
-          <button type="button" className="ra-btn ra-btn--ghost" onClick={onCancel} disabled={busy}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            className={`ra-btn ${confirmClass}`}
-            onClick={() => onConfirm(text.trim())}
-            disabled={busy}
-          >
-            {busy ? 'Working…' : confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 };
 
 const ReceiptApprovalDetailPage = () => {
@@ -115,8 +57,7 @@ const ReceiptApprovalDetailPage = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await apiClient.get(`/api/whatsapp/admin/drafts/${id}`);
-      setDraft(res.data?.data ?? null);
+      setDraft(await ReceiptApprovalService.getDraft(id));
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to load receipt');
     } finally {
@@ -132,7 +73,7 @@ const ReceiptApprovalDetailPage = () => {
     setActionBusy(true);
     setError('');
     try {
-      await apiClient.post(`/api/whatsapp/admin/drafts/${id}/publish`);
+      await ReceiptApprovalService.publishDraft(id);
       setBanner('Receipt successfully published to the fleet fuel ledger.');
       toast.success('Receipt published to fuel ledger.');
       await load();
@@ -149,8 +90,8 @@ const ReceiptApprovalDetailPage = () => {
     setActionBusy(true);
     setError('');
     try {
-      const body = kind === 'reject' ? { reason: note } : { note };
-      await apiClient.post(`/api/whatsapp/admin/drafts/${id}/${kind}`, body);
+      if (kind === 'reject') await ReceiptApprovalService.rejectDraft(id, note);
+      else await ReceiptApprovalService.clearDraft(id, note);
       const msg = kind === 'reject' ? 'Receipt rejected.' : 'Receipt cleared from inbox.';
       setBanner(msg);
       toast.success(msg);
@@ -271,105 +212,17 @@ const ReceiptApprovalDetailPage = () => {
 
       <div className="ra-detail-grid">
         {/* ── Left Column: Interactive Receipt & Odometer Image Stage ── */}
-        <div className="ra-panel">
-          <div className="ra-panel__head" style={{ justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Receipt size={16} />
-              <span>Inspection Stage</span>
-            </div>
-
-            <div className="ra-drawer__tab-strip" style={{ margin: 0 }}>
-              <button
-                type="button"
-                className={`ra-drawer__tab ${activeTab === 'bill' ? 'is-active' : ''}`}
-                onClick={() => {
-                  setActiveTab('bill');
-                  setZoom(1);
-                  setRotation(0);
-                }}
-              >
-                Fuel Bill Slip
-              </button>
-              {draft?.odometerImageUrl && (
-                <button
-                  type="button"
-                  className={`ra-drawer__tab ${activeTab === 'odometer' ? 'is-active' : ''}`}
-                  onClick={() => {
-                    setActiveTab('odometer');
-                    setZoom(1);
-                    setRotation(0);
-                  }}
-                >
-                  Odometer Photo
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="ra-panel__body">
-            <div className="ra-drawer__canvas" style={{ minHeight: '440px' }}>
-              {currentImg ? (
-                <img
-                  src={currentImg}
-                  alt="Bill inspection"
-                  className="ra-drawer__img"
-                  style={{ transform: `scale(${zoom}) rotate(${rotation}deg)` }}
-                  draggable={false}
-                />
-              ) : (
-                <div className="ra-image-empty">
-                  <Receipt size={36} />
-                  <div>No receipt image available for this draft</div>
-                </div>
-              )}
-            </div>
-
-            {/* Stage Controls */}
-            {currentImg && (
-              <div className="ra-drawer__img-tools" style={{ marginTop: 12 }}>
-                <button
-                  type="button"
-                  onClick={() => setZoom((z) => Math.max(z - 0.25, 0.5))}
-                  title="Zoom Out"
-                >
-                  <ZoomOut size={15} />
-                </button>
-                <span className="ra-drawer__zoom-pct">{Math.round(zoom * 100)}%</span>
-                <button
-                  type="button"
-                  onClick={() => setZoom((z) => Math.min(z + 0.25, 3.5))}
-                  title="Zoom In"
-                >
-                  <ZoomIn size={15} />
-                </button>
-                <div className="ra-drawer__tool-divider" />
-                <button
-                  type="button"
-                  onClick={() => setRotation((r) => (r + 90) % 360)}
-                  title="Rotate 90°"
-                >
-                  <RotateCw size={15} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setZoom(1);
-                    setRotation(0);
-                  }}
-                >
-                  Reset
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLightboxOpen(true)}
-                  className="ra-drawer__full-link"
-                >
-                  <Maximize2 size={13} /> Fullscreen Lightbox
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        <DetailInspectionPanel
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          setZoom={setZoom}
+          setRotation={setRotation}
+          draft={draft}
+          currentImg={currentImg}
+          zoom={zoom}
+          rotation={rotation}
+          setLightboxOpen={setLightboxOpen}
+        />
 
         {/* ── Right Column: Extracted Values, Telematics & Verification ── */}
         <div className="ra-panel">
@@ -424,105 +277,10 @@ const ReceiptApprovalDetailPage = () => {
             </div>
 
             {/* Triple-Check Telematics & Station Card */}
-            <div className="ra-section-card" style={{ marginTop: 20 }}>
-              <div className="ra-section-card__title">
-                <MapPin size={15} /> Fuel Station &amp; Telematics Cross-Verification
-              </div>
-              <div className="ra-grid-props">
-                <div className="ra-prop ra-prop--full">
-                  <span className="ra-prop__label">Station Name / Location</span>
-                  <span className="ra-prop__val font-mono">{stationInfo.stationName}</span>
-                </div>
-                <div className="ra-prop">
-                  <span className="ra-prop__label">Station GPS Location</span>
-                  <span className="ra-prop__val font-mono">{stationInfo.coordinates}</span>
-                </div>
-                <div className="ra-prop">
-                  <span className="ra-prop__label">Vehicle Halt Duration</span>
-                  <span className="ra-prop__val" style={{ color: 'var(--emerald-500, #10B981)' }}>
-                    <Clock size={13} style={{ display: 'inline', marginRight: 4 }} />
-                    {stationInfo.haltTime}
-                  </span>
-                </div>
-                <div className="ra-prop">
-                  <span className="ra-prop__label">Regional Benchmark Diesel Rate</span>
-                  <span className="ra-prop__val">₹{stationInfo.benchmarkRate} / L</span>
-                </div>
-                <div className="ra-prop">
-                  <span className="ra-prop__label">Rate Discrepancy</span>
-                  <span
-                    className="ra-prop__val"
-                    style={{
-                      color: stationInfo.isRateNormal
-                        ? 'var(--emerald-500, #10B981)'
-                        : 'var(--amber-500, #F59E0B)',
-                    }}
-                  >
-                    {stationInfo.rateDiff != null
-                      ? `${stationInfo.rateDiff > 0 ? '+' : ''}${stationInfo.rateDiff} ₹/L (${
-                          stationInfo.isRateNormal ? 'Within normal range' : 'Rate anomaly'
-                        })`
-                      : '—'}
-                  </span>
-                </div>
-              </div>
-            </div>
+            <DetailStationCard stationInfo={stationInfo} />
 
             {/* Submitter & Audit History */}
-            <div className="ra-section-card" style={{ marginTop: 16 }}>
-              <div className="ra-section-card__title">
-                <User size={15} /> Submitter &amp; Audit Trail
-              </div>
-              <div className="ra-grid-props">
-                <div className="ra-prop">
-                  <span className="ra-prop__label">Submitted by (Driver)</span>
-                  <span className="ra-prop__val">{submitter}</span>
-                </div>
-                <div className="ra-prop">
-                  <span className="ra-prop__label">WhatsApp Contact</span>
-                  <span className="ra-prop__val font-mono">
-                    <Phone size={11} style={{ marginRight: 3, display: 'inline' }} />
-                    {draft?.phoneE164 || draft?.waId || '—'}
-                  </span>
-                </div>
-                <div className="ra-prop">
-                  <span className="ra-prop__label">Submission Received</span>
-                  <span className="ra-prop__val">
-                    {fmtDate(draft?.createdAt)} ({fmtRelativeTime(draft?.createdAt)})
-                  </span>
-                </div>
-                <div className="ra-prop">
-                  <span className="ra-prop__label">Organization</span>
-                  <span className="ra-prop__val">{draft?.orgId?.companyName || '—'}</span>
-                </div>
-                {draft?.status === 'PUBLISHED' && (
-                  <div className="ra-prop ra-prop--full">
-                    <span className="ra-prop__label">Audit: Published by</span>
-                    <span className="ra-prop__val" style={{ color: 'var(--emerald-500, #10B981)' }}>
-                      {[draft?.publishedBy?.firstName, draft?.publishedBy?.lastName]
-                        .filter(Boolean)
-                        .join(' ') || 'Admin'}{' '}
-                      on {fmtDate(draft?.publishedAt)}. Log ID:{' '}
-                      {draft?.publishedFuelLogId || 'Created'}
-                    </span>
-                  </div>
-                )}
-                {draft?.status === 'REJECTED' && (
-                  <div className="ra-prop ra-prop--full">
-                    <span className="ra-prop__label">Audit: Rejection Reason</span>
-                    <span className="ra-prop__val" style={{ color: 'var(--rose-500, #EF4444)' }}>
-                      {draft?.rejectReason || 'No reason specified'}
-                    </span>
-                  </div>
-                )}
-                {draft?.status === 'CLEARED' && (
-                  <div className="ra-prop ra-prop--full">
-                    <span className="ra-prop__label">Audit: Cleared Note</span>
-                    <span className="ra-prop__val">{draft?.clearNote || 'Cleared from inbox'}</span>
-                  </div>
-                )}
-              </div>
-            </div>
+            <DetailAuditCard submitter={submitter} draft={draft} />
 
             {/* Bottom Actions for READY status */}
             {isReady && (

@@ -56,6 +56,7 @@ const DriverTable = ({
                   onClick={() => onRowClick(driver)}
                   style={{ cursor: 'pointer' }}
                 >
+                  {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a data cell, not a control (no grid role); its text (the name) sits deeper than the rule scans */}
                   <td>
                     <div className="drivers-driver-name-cell">
                       <div className="drivers-driver-initials">{getInitials(driver.name)}</div>

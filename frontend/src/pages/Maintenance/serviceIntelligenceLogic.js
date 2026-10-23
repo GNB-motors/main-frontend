@@ -130,6 +130,7 @@ export function getResolutionDetails(record) {
  * Format currency in Indian format (₹45,000)
  */
 export function formatCurrencyINR(amount) {
-  if (amount == null || Number.isNaN(Number(amount))) return '₹0';
+  // Unknown is not zero: a missing amount says so instead of reading as a free service.
+  if (amount == null || Number.isNaN(Number(amount))) return 'Not recorded';
   return `₹${Math.round(Number(amount)).toLocaleString('en-IN')}`;
 }

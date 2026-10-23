@@ -99,13 +99,15 @@ const VehicleDriverPickers = ({
   return (
     <div className="mileage-form-row">
       <div className="mileage-form-group">
-        <label>Select Vehicle *</label>
+        <label htmlFor="fa-fuel-vehicle-search">Select Vehicle *</label>
         <div className="dropdown-wrapper">
           <div
             className={`dropdown-button ${loadingVehicles ? 'disabled' : ''}`}
             style={{ padding: 0, display: 'flex', alignItems: 'center' }}
           >
             <input
+              id="fa-fuel-vehicle-search"
+              aria-label="Select Vehicle"
               type="text"
               placeholder={
                 selectedVehicle
@@ -257,13 +259,15 @@ const VehicleDriverPickers = ({
         )}
       </div>
       <div className="mileage-form-group">
-        <label>Select Driver *</label>
+        <label htmlFor="fa-fuel-driver-search">Select Driver *</label>
         <div className="dropdown-wrapper">
           <div
             className={`dropdown-button ${loadingDrivers ? 'disabled' : ''}`}
             style={{ padding: 0, display: 'flex', alignItems: 'center' }}
           >
             <input
+              id="fa-fuel-driver-search"
+              aria-label="Select Driver"
               type="text"
               placeholder={
                 selectedDriver

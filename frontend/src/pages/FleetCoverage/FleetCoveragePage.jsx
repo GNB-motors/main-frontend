@@ -4,71 +4,31 @@ import { ArrowLeft } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useApi from '../../hooks/useApi';
 import FleetDataService from '../../services/FleetDataService';
-import { VehicleService } from '../Profile/VehicleService.jsx';
-import BulkUploadVehiclesResultSummary from '../Profile/bulkUploadVehiclesResultSummary.jsx';
+import { VehicleService } from '../Profile/VehicleService.js';
 import EmptyState from '../../components/cluster/EmptyState';
 import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
-import DataTable from '../../components/ui/DataTable';
-import ExportButton from '../../components/ui/ExportButton';
 import NewButton from '../../components/ui/NewButton';
 import { useConfirm } from '../../components/ui/confirmContext';
 import { activeFilterCount, footerSummary } from '../../lib/tableState';
 import { humanise } from '../../lib/vocabulary';
 import { formatNum, formatPct } from '../../utils/formatters';
 import { formatDateIST } from '../../utils/dateUtils';
-import { getToken, getProfileField, getUserRole } from '../../utils/session.js';
+import { getProfileField, getUserRole } from '../../utils/session.js';
 import {
   ADD_TO_FLEET_ROLES,
   isAddableRegistration,
+  displayValue,
   toVehiclePayload,
   edgeRowKey,
   selectedRowsFrom,
 } from './fleetCoverageActions.js';
-
-function StatTile({ label, value, tone }) {
-  return (
-    <div className="cluster-inset flex flex-col gap-1 p-4">
-      <span className="cluster-eyebrow">{label}</span>
-      <span className="num text-xl font-bold" style={{ color: tone }}>
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function TableShell({ title, caption, actions = null, children }) {
-  return (
-    <div className="cluster-panel overflow-hidden">
-      <div className="flex items-start justify-between gap-4 px-4 pt-4 pb-2">
-        <div className="min-w-0">
-          <h2 className="cluster-title text-sm">{title}</h2>
-          {caption ? <p className="text-dim mt-1 text-xs leading-relaxed">{caption}</p> : null}
-        </div>
-        {actions}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-// Column defs — key matches the row field for both display and export.
-const masterColumns = [
-  {
-    key: 'registrationNumber',
-    label: 'Vehicle',
-    render: (v) => <span className="reg-plate">{v.registrationNumber}</span>,
-  },
-  { key: 'model', label: 'Model', render: (v) => v.model || '—' },
-  { key: 'manufacturer', label: 'Manufacturer', render: (v) => v.manufacturer || '—' },
-  { key: 'statusLabel', label: 'Status', render: (v) => v.statusLabel },
-  {
-    key: 'fleetEdgeRegistration',
-    label: 'FleetEdge reg.',
-    render: (v) => v.fleetEdgeRegistration || '—',
-  },
-];
+import StatTile from './StatTile.jsx';
+import CoverageTabs from './CoverageTabs.jsx';
+import EdgeOnlyPanel from './EdgeOnlyPanel.jsx';
+import MasterOnlyPanel from './MasterOnlyPanel.jsx';
+import IalertOnlyPanel from './IalertOnlyPanel.jsx';
 
 export default function FleetCoveragePage() {
   const navigate = useNavigate();
@@ -97,6 +57,10 @@ export default function FleetCoveragePage() {
   const onlyEdge = useMemo(() => data?.onlyInFleetEdge || [], [data]);
   const onlyMaster = useMemo(() => data?.onlyInFleetMaster || [], [data]);
   const linkedCount = summary.linked ?? (data?.linked || []).length;
+  const onlyIalert = useMemo(() => data?.onlyInIalert || [], [data]);
+  const staleIalert = useMemo(() => data?.staleInIalert || [], [data]);
+  const inIalertCount = summary.inIalert ?? onlyIalert.length + linkedCount;
+  const onlyIalertCount = summary.onlyIalert ?? onlyIalert.length;
 
   // Both lists are fully loaded in one payload, so the search is client-side
   // and applies to both tables at once.
@@ -120,12 +84,11 @@ export default function FleetCoveragePage() {
     const key = edgeRowKey(row, onlyEdgeFiltered.indexOf(row));
     setAddingKey(key);
     try {
-      await VehicleService.addVehicle(businessRefId, toVehiclePayload(row), getToken());
+      await VehicleService.addVehicle(businessRefId, toVehiclePayload(row));
       toast.success(`${row.registrationNumber} added to fleet`);
       refetch();
     } catch (err) {
-      const msg =
-        err?.detail || err?.errors?.[0]?.error || err?.message || 'Could not add this vehicle.';
+      const msg = err?.body?.errors?.[0]?.error || err?.message || 'Could not add this vehicle.';
       toast.error(`${row.registrationNumber}: ${msg}`);
     } finally {
       setAddingKey(null);
@@ -150,7 +113,6 @@ export default function FleetCoveragePage() {
         businessRefId,
         rowsToAdd.map(toVehiclePayload),
         {},
-        getToken(),
       );
       const result = resp?.data ?? resp;
       setBulkResult(result);
@@ -160,7 +122,7 @@ export default function FleetCoveragePage() {
       setSelectedKeys(new Set());
       refetch();
     } catch (err) {
-      toast.error(err?.detail || err?.message || 'Bulk add failed.');
+      toast.error(err?.message || 'Bulk add failed.');
     } finally {
       setBulkAdding(false);
     }
@@ -170,14 +132,23 @@ export default function FleetCoveragePage() {
     {
       key: 'registrationNumber',
       label: 'Vehicle',
-      render: (v) => <span className="reg-plate">{v.registrationNumber || 'NA'}</span>,
+      render: (v) =>
+        isAddableRegistration(v.registrationNumber) ? (
+          <span className="reg-plate">{v.registrationNumber}</span>
+        ) : (
+          // A placeholder plate ("NA", "TEMP") identifies nothing; the VIN does.
+          <span className="flex flex-col">
+            <span className="text-dim text-xs font-semibold">No registration</span>
+            {v.vin ? <span className="font-mono text-xs">{v.vin}</span> : null}
+          </span>
+        ),
     },
-    { key: 'vehicleModel', label: 'Model', render: (v) => v.vehicleModel || '—' },
-    { key: 'manufacturer', label: 'Manufacturer', render: (v) => v.manufacturer || '—' },
-    { key: 'fuelType', label: 'Fuel', render: (v) => v.fuelType || '—' },
-    { key: 'emissionNorm', label: 'Emission', render: (v) => v.emissionNorm || '—' },
-    { key: 'lobName', label: 'LOB', render: (v) => v.lobName || '—' },
-    { key: 'accountName', label: 'Account', render: (v) => v.accountName || '—' },
+    { key: 'vehicleModel', label: 'Model', render: (v) => displayValue(v.vehicleModel) },
+    { key: 'manufacturer', label: 'Manufacturer', render: (v) => displayValue(v.manufacturer) },
+    { key: 'fuelType', label: 'Fuel', render: (v) => displayValue(v.fuelType) },
+    { key: 'emissionNorm', label: 'Emission', render: (v) => displayValue(v.emissionNorm) },
+    { key: 'lobName', label: 'LOB', render: (v) => displayValue(v.lobName) },
+    { key: 'accountName', label: 'Account', render: (v) => displayValue(v.accountName) },
     {
       key: 'lastSeenAt',
       label: 'Last seen',
@@ -189,24 +160,23 @@ export default function FleetCoveragePage() {
           {
             key: '_add',
             label: '',
-            render: (v, i) => {
-              const addable = isAddableRegistration(v.registrationNumber);
-              return (
+            render: (v, i) =>
+              isAddableRegistration(v.registrationNumber) ? (
                 <NewButton
                   variant="tertiary"
                   size="xs"
                   text="Add to fleet"
-                  disabled={!addable}
                   loading={addingKey === edgeRowKey(v, i)}
-                  title={
-                    addable
-                      ? undefined
-                      : 'FleetEdge reported no registration number for this vehicle'
-                  }
                   onClick={() => handleAddOne(v)}
                 />
-              );
-            },
+              ) : (
+                <span
+                  className="text-dim text-xs"
+                  title="Registration numbers are unique; add the real plate in FleetEdge first and it can be added here."
+                >
+                  Needs a registration in FleetEdge
+                </span>
+              ),
           },
         ]
       : []),
@@ -230,6 +200,26 @@ export default function FleetCoveragePage() {
     () => onlyMasterFiltered.map((v) => ({ ...v, statusLabel: humanise(v.status) || '—' })),
     [onlyMasterFiltered],
   );
+
+  const onlyIalertFiltered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return onlyIalert;
+    return onlyIalert.filter((v) =>
+      [v.registrationNumber, v.vin, v.vehicleType, v.ialertAccountId].some(
+        (value) => value != null && String(value).toLowerCase().includes(needle),
+      ),
+    );
+  }, [onlyIalert, q]);
+
+  const staleIalertFiltered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return staleIalert;
+    return staleIalert.filter((v) =>
+      [v.registrationNumber, v.vin, v.vehicleType, v.ialertAccountId].some(
+        (value) => value != null && String(value).toLowerCase().includes(needle),
+      ),
+    );
+  }, [staleIalert, q]);
 
   const coveragePct =
     summary.inFleetEdge > 0 ? (100 * (summary.linked ?? 0)) / summary.inFleetEdge : null;
@@ -260,10 +250,10 @@ export default function FleetCoveragePage() {
           >
             <ArrowLeft size={16} />
           </button>
-          <span>FleetEdge Coverage</span>
+          <span>Fleet coverage</span>
         </span>
       }
-      subtitle="Vehicles your FleetEdge account reports vs vehicles in your fleet master."
+      subtitle="Vehicles your Tata FleetEdge and Ashok Leyland iALERT accounts report, compared with your fleet master."
       filters={
         <FilterBar
           searchValue={q}
@@ -274,16 +264,16 @@ export default function FleetCoveragePage() {
         />
       }
       footer={`${footerSummary({
-        showing: onlyEdgeFiltered.length + onlyMasterFiltered.length,
-        total: onlyEdge.length + onlyMaster.length,
+        showing: onlyEdgeFiltered.length + onlyMasterFiltered.length + onlyIalertFiltered.length,
+        total: onlyEdge.length + onlyMaster.length + onlyIalert.length,
         activeFilters: activeFilterCount({ q }),
-      })} · search filters both lists`}
+      })} · search covers every list`}
     >
       <PanelErrorBoundary name="fleet-coverage">
         {loading && !data ? (
           <>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              {[...Array(4)].map((_, i) => (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+              {[...Array(6)].map((_, i) => (
                 <div key={i} className="cluster-inset h-20 animate-pulse" />
               ))}
             </div>
@@ -305,8 +295,18 @@ export default function FleetCoveragePage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
               <StatTile label="Linked" value={formatNum(linkedCount)} tone="var(--ok)" />
+              {inIalertCount > 0 ? (
+                <StatTile label="In iALERT" value={formatNum(inIalertCount)} tone="var(--ok)" />
+              ) : null}
+              {onlyIalertCount > 0 ? (
+                <StatTile
+                  label="Only in iALERT"
+                  value={formatNum(onlyIalertCount)}
+                  tone="var(--caution)"
+                />
+              ) : null}
               <StatTile
                 label="Only in FleetEdge"
                 value={formatNum(summary.onlyFleetEdge ?? onlyEdge.length)}
@@ -325,160 +325,48 @@ export default function FleetCoveragePage() {
             </div>
 
             <div className="mt-6 space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-200">
-                <button
-                  type="button"
-                  className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-colors ${
-                    activeTab === 'edge'
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-slate-500 hover:text-slate-800'
-                  }`}
-                  onClick={() => setActiveTab('edge')}
-                >
-                  <span>On FleetEdge, not in fleet</span>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                      activeTab === 'edge'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-slate-100 text-slate-600'
-                    }`}
-                  >
-                    {onlyEdgeFiltered.length}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className={`flex items-center gap-2 pb-3 px-3 text-sm font-semibold border-b-2 transition-colors ${
-                    activeTab === 'master'
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-slate-500 hover:text-slate-800'
-                  }`}
-                  onClick={() => setActiveTab('master')}
-                >
-                  <span>In fleet master, not on FleetEdge</span>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                      activeTab === 'master'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-slate-100 text-slate-600'
-                    }`}
-                  >
-                    {onlyMasterFiltered.length}
-                  </span>
-                </button>
-              </div>
+              <CoverageTabs
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                onlyEdgeFiltered={onlyEdgeFiltered}
+                onlyMasterFiltered={onlyMasterFiltered}
+                onlyIalertFiltered={onlyIalertFiltered}
+                staleIalertFiltered={staleIalertFiltered}
+              />
 
-              {activeTab === 'edge' ? (
-                <TableShell
-                  title="On FleetEdge, not in your fleet"
-                  caption="These vehicles stream data to your FleetEdge account, but they are invisible to mileage, trips and alerts until you add them to your fleet."
-                  actions={
-                    <div className="flex items-center gap-2">
-                      {canAddVehicles && selectedKeys.size > 0 ? (
-                        <NewButton
-                          variant="primary"
-                          size="sm"
-                          text={`Add ${selectedKeys.size} to fleet`}
-                          loading={bulkAdding}
-                          onClick={handleAddSelected}
-                        />
-                      ) : null}
-                      <ExportButton
-                        rows={onlyEdgeFiltered}
-                        columns={EDGE_EXPORT_COLUMNS}
-                        filename="fleet-coverage-fleetedge-only"
-                        meta={{
-                          filters: [
-                            { label: 'Search', value: q.trim() || '—' },
-                            { label: 'List', value: 'On FleetEdge, not in your fleet' },
-                          ],
-                          generatedAt: new Date(),
-                        }}
-                      />
-                    </div>
-                  }
-                >
-                  {onlyEdgeFiltered.length === 0 ? (
-                    <div className="px-4 pb-4">
-                      <EmptyState
-                        title={searching ? 'No vehicles match your search' : 'No gap here'}
-                        hint={
-                          searching
-                            ? 'Try a different registration number, model or manufacturer.'
-                            : 'Every vehicle on your FleetEdge account is already in your fleet master.'
-                        }
-                      />
-                    </div>
-                  ) : (
-                    <DataTable
-                      columns={edgeColumns}
-                      rows={onlyEdgeFiltered}
-                      rowKey={edgeRowKey}
-                      showing={onlyEdgeFiltered.length}
-                      total={onlyEdge.length}
-                      activeFilters={activeFilterCount({ q })}
-                      emptyTitle="No vehicles match your search"
-                      selectable={canAddVehicles}
-                      selectedKeys={selectedKeys}
-                      onSelectionChange={setSelectedKeys}
-                      isRowSelectable={(v) => isAddableRegistration(v.registrationNumber)}
-                    />
-                  )}
-                  {bulkResult ? (
-                    <div className="px-4 pb-4">
-                      <BulkUploadVehiclesResultSummary result={bulkResult} />
-                      <button
-                        type="button"
-                        className="text-dim mt-2 text-xs underline"
-                        onClick={() => setBulkResult(null)}
-                      >
-                        Dismiss
-                      </button>
-                    </div>
-                  ) : null}
-                </TableShell>
+              {activeTab === 'ialert' ? (
+                <IalertOnlyPanel
+                  q={q}
+                  searching={searching}
+                  onlyIalert={onlyIalert}
+                  staleIalert={staleIalert}
+                  canAddVehicles={canAddVehicles}
+                  onAdded={() => refetch()}
+                />
+              ) : activeTab === 'edge' ? (
+                <EdgeOnlyPanel
+                  q={q}
+                  searching={searching}
+                  canAddVehicles={canAddVehicles}
+                  selectedKeys={selectedKeys}
+                  setSelectedKeys={setSelectedKeys}
+                  bulkAdding={bulkAdding}
+                  handleAddSelected={handleAddSelected}
+                  bulkResult={bulkResult}
+                  setBulkResult={setBulkResult}
+                  onlyEdge={onlyEdge}
+                  onlyEdgeFiltered={onlyEdgeFiltered}
+                  edgeColumns={edgeColumns}
+                  EDGE_EXPORT_COLUMNS={EDGE_EXPORT_COLUMNS}
+                />
               ) : (
-                <TableShell
-                  title="In fleet master, not on FleetEdge"
-                  caption="These vehicles exist in your fleet master but your FleetEdge account doesn't report them. Check the registration number or the device mapping."
-                  actions={
-                    <ExportButton
-                      rows={onlyMasterRows}
-                      columns={masterColumns}
-                      filename="fleet-coverage-master-only"
-                      meta={{
-                        filters: [
-                          { label: 'Search', value: q.trim() || '—' },
-                          { label: 'List', value: 'In fleet master, not on FleetEdge' },
-                        ],
-                        generatedAt: new Date(),
-                      }}
-                    />
-                  }
-                >
-                  {onlyMasterFiltered.length === 0 ? (
-                    <div className="px-4 pb-4">
-                      <EmptyState
-                        title={searching ? 'No vehicles match your search' : 'No gap here'}
-                        hint={
-                          searching
-                            ? 'Try a different registration number, model or manufacturer.'
-                            : 'Every vehicle in your fleet master is reporting through FleetEdge.'
-                        }
-                      />
-                    </div>
-                  ) : (
-                    <DataTable
-                      columns={masterColumns}
-                      rows={onlyMasterRows}
-                      rowKey={(v) => v.registrationNumber}
-                      showing={onlyMasterRows.length}
-                      total={onlyMaster.length}
-                      activeFilters={activeFilterCount({ q })}
-                      emptyTitle="No vehicles match your search"
-                    />
-                  )}
-                </TableShell>
+                <MasterOnlyPanel
+                  q={q}
+                  searching={searching}
+                  onlyMaster={onlyMaster}
+                  onlyMasterFiltered={onlyMasterFiltered}
+                  onlyMasterRows={onlyMasterRows}
+                />
               )}
 
               <p className="text-dim text-xs">

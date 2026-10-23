@@ -13,7 +13,7 @@ import {
 import { formatINR, formatLitres } from '../../utils/formatters';
 import { StatusPill } from '../../components/overview.primitives.jsx';
 import TablePager from './TablePager.jsx';
-import { FuelIntegrityService } from './FuelIntegrityService.jsx';
+import { FuelIntegrityService } from './FuelIntegrityService.js';
 import { cleanStationName } from './fiData.js';
 
 const PAGE_SIZE = 10;
@@ -81,7 +81,7 @@ export default function PumpHonestyPanel() {
         });
         setPumps(pumpList);
       } catch (err) {
-        if (active) setError(err.message || err.detail || 'Failed to load pump ledger');
+        if (active) setError(err.message || 'Failed to load pump ledger');
       } finally {
         if (active) setLoading(false);
       }
@@ -165,6 +165,7 @@ export default function PumpHonestyPanel() {
           <input
             type="text"
             className="fi-search-input"
+            aria-label="Search petrol bunk or highway"
             placeholder="Search petrol bunk or highway…"
             value={searchQuery}
             onChange={(e) => {

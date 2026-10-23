@@ -1,4 +1,5 @@
 import apiClient from '../utils/axiosConfig';
+import ApiError from '../errors/ApiError';
 
 /**
  * FleetDataService — the Phase-3 read APIs: previously-invisible collections
@@ -11,8 +12,7 @@ const get = async (path, params = {}, signal) => {
     return response.data?.data || {};
   } catch (error) {
     if (error?.code === 'ERR_CANCELED') throw error;
-    console.error(`API Error ${path}:`, error.response?.data || error.message);
-    throw error.response?.data || { detail: `Could not fetch ${path}.` };
+    throw ApiError.from(error);
   }
 };
 
@@ -22,8 +22,7 @@ const put = async (path, body = {}, signal) => {
     return response.data?.data || {};
   } catch (error) {
     if (error?.code === 'ERR_CANCELED') throw error;
-    console.error(`API Error ${path}:`, error.response?.data || error.message);
-    throw error.response?.data || { detail: `Could not update ${path}.` };
+    throw ApiError.from(error);
   }
 };
 
@@ -42,7 +41,7 @@ export const FleetDataService = {
   getFleetAlertSummary: (params = {}, signal) => get('/api/fleet-alerts/summary', params, signal),
 
   /** AdBlue/DEF claimed-vs-consumed ledger per vehicle. */
-  getDefLedger: (signal) => get('/api/def-ledger', {}, signal),
+  getDefLedger: (signal, params = {}) => get('/api/def-ledger', params, signal),
 
   /** FleetEdge directory vs fleet master join (the onboarding gap). */
   getFleetCoverage: (signal) => get('/api/fleet-coverage', {}, signal),

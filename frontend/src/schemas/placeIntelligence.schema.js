@@ -5,6 +5,88 @@
  */
 import { z } from 'zod';
 import { str, num, ref } from './primitives.js';
+import { tripSapSchema } from './sap.schema.js';
+
+const routeStatSchema = z.object({ p50: num, p90: num, n: num }).passthrough();
+export const deliveryLegSchema = z
+  .object({
+    _id: str,
+    fromSiteId: str,
+    toSiteId: str,
+    fromName: str,
+    toName: str,
+    n: num,
+    trucks: num,
+    review: str,
+    shortHop: z.boolean().nullish(),
+    km: routeStatSchema.nullish(),
+    minutes: routeStatSchema.nullish(),
+    fuelPerKm: routeStatSchema.nullish(),
+    sap: tripSapSchema.nullish(),
+    samples: z
+      .array(
+        z
+          .object({
+            autoTripId: str,
+            registrationNumber: str,
+            departedAt: str,
+            arrivedAt: str,
+            km: num,
+            minutes: num,
+            fuelL: num,
+          })
+          .passthrough(),
+      )
+      .nullish(),
+  })
+  .passthrough();
+export const deliveryLegListSchema = z
+  .object({
+    rows: z.array(deliveryLegSchema),
+    total: num,
+    page: num,
+    limit: num,
+  })
+  .passthrough();
+
+const duplicateSiteSchema = z
+  .object({
+    _id: str,
+    name: str,
+    siteType: str,
+    status: str,
+    visits: num,
+    lat: num,
+    lng: num,
+  })
+  .passthrough();
+export const duplicateListSchema = z
+  .object({
+    pairs: z.array(
+      z
+        .object({
+          a: duplicateSiteSchema,
+          b: duplicateSiteSchema,
+          verdict: str,
+          distanceM: num,
+          roadKm: num,
+          tripsAffected: num,
+        })
+        .passthrough(),
+    ),
+  })
+  .passthrough();
+export const mergeHistorySchema = z.array(
+  z
+    .object({
+      _id: str,
+      survivorId: str,
+      memberIds: z.array(z.string()).nullish(),
+      undoneAt: str,
+    })
+    .passthrough(),
+);
+export const placeMutationSchema = z.object({}).passthrough();
 
 const engineSchema = z
   .object({
@@ -234,5 +316,55 @@ export const homeListSchema = z
     total: num,
     page: num,
     limit: num,
+  })
+  .passthrough();
+
+const routePathSchema = z
+  .object({
+    source: z.enum(['DRIVEN', 'ENGINE', 'NONE']),
+    overviewSegments: z.array(z.string()).default([]),
+    geomSegments: z.array(z.string()).optional(),
+    km: num,
+    agreement: num,
+  })
+  .passthrough();
+export const routesMapSchema = z
+  .object({
+    legs: z.array(
+      legSchema.extend({
+        fromSiteId: z.string(),
+        toSiteId: z.string(),
+        pairKey: z.string(),
+        sameRoadAsReverse: z.boolean(),
+        inPlant: z.boolean(),
+        path: routePathSchema,
+        latestRunMinutes: num,
+        detourKm: num,
+        engine: z.object({ km: num, minutes: num }).passthrough().nullish(),
+      }),
+    ),
+    sites: z.array(
+      z
+        .object({
+          _id: z.string(),
+          lat: num,
+          lng: num,
+          name: str,
+          siteType: str,
+          address: addressSchema.nullish(),
+          runs: num,
+        })
+        .passthrough(),
+    ),
+    totals: z.object({
+      legs: z.number(),
+      inPlant: z.number(),
+      runs: z.number(),
+      places: z.number(),
+    }),
+    fleetMedianFuelPerKm: num,
+    truncated: z.boolean().optional(),
+    total: num,
+    generatedAt: z.string(),
   })
   .passthrough();

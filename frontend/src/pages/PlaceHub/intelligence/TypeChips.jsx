@@ -1,5 +1,6 @@
 import typeStyle from './placeTypes';
-import { ANSWER_TYPES, typeLabel } from './placeIntelligenceModel';
+import { typeLabel } from './model/siteType.js';
+import { ANSWER_TYPES } from './model/siteVocabulary.js';
 
 /** Every answer as a one-click chip, in the colour the map uses for it. */
 export default function TypeChips({ current, disabled, onPick }) {

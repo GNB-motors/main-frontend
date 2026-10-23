@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Check, X, Pencil, Loader2 } from 'lucide-react';
 import TypeChips from './TypeChips';
-import { aType, effectiveType, suggestion, typeLabel } from './placeIntelligenceModel';
+import { aType, effectiveType, suggestion, typeLabel } from './model/siteType.js';
 
 /**
  * The manager's answer, shaped by what we already know:

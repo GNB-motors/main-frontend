@@ -1,0 +1,124 @@
+/* iALERT vehicles — built on the cluster tokens (index.css), like every fleet list. */
+
+.iaf-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.iaf-spin {
+  animation: iaf-spin 0.9s linear infinite;
+}
+@keyframes iaf-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .iaf-spin {
+    animation: none;
+  }
+}
+
+.iaf-vehicle,
+.iaf-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+}
+
+.iaf-plate {
+  font-weight: 650;
+  color: var(--cluster-text);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.iaf-sub {
+  font-size: 12px;
+  color: var(--cluster-text-dim);
+  white-space: nowrap;
+}
+
+.iaf-ign {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--cluster-text-dim);
+}
+.iaf-ign-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--inert);
+}
+.iaf-ign--on {
+  color: var(--cluster-text);
+  font-weight: 600;
+}
+.iaf-ign--on .iaf-ign-dot {
+  background: var(--ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 18%, transparent);
+}
+
+.iaf-when {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--cluster-text);
+}
+
+.iaf-fleet {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--caution);
+  background: color-mix(in srgb, var(--caution) 12%, transparent);
+}
+.iaf-fleet--in {
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 12%, transparent);
+}
+
+.iaf-row--link {
+  cursor: pointer;
+}
+
+.iaf-callout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--caution) 35%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--caution) 8%, var(--cluster-panel));
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--cluster-text);
+}
+.iaf-callout--crit {
+  border-color: color-mix(in srgb, var(--critical) 40%, transparent);
+  background: color-mix(in srgb, var(--critical) 8%, var(--cluster-panel));
+}
+.iaf-callout--info {
+  border-color: color-mix(in srgb, var(--accent-ink) 30%, transparent);
+  background: color-mix(in srgb, var(--accent-ink) 6%, var(--cluster-panel));
+}
+.iaf-callout-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: var(--accent-ink);
+  white-space: nowrap;
+}
+.iaf-callout-link:hover {
+  text-decoration: underline;
+}

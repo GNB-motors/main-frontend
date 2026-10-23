@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import DateRangeFilter from '../../Superadmin/components/DateRangeFilter';
 import KhataLedgerService from '../KhataLedgerService';
 import TripService from '../../Trip/services/TripService';
+import { getVehicleList } from '../../../services/vehicleListService';
 import PageShell from '@/components/ui/PageShell';
 import FilterBar from '@/components/ui/FilterBar';
 import DataTable from '@/components/ui/DataTable';
@@ -104,12 +105,12 @@ const LedgerDetailView = ({ entityType, entityId }) => {
     const loadFilterOptions = async () => {
       try {
         const [vRes, dRes] = await Promise.all([
-          TripService.getVehicles({ limit: 200 }),
+          getVehicleList(),
           TripService.getDrivers({ limit: 200 }),
         ]);
         const drivers = dRes?.data || dRes?.results || dRes || [];
         setFilterOptions({
-          vehicles: vRes?.data || vRes?.results || vRes || [],
+          vehicles: vRes,
           drivers,
         });
         return Array.isArray(drivers) ? drivers : [];

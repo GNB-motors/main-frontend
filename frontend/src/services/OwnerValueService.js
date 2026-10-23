@@ -1,4 +1,5 @@
 import apiClient from '../utils/axiosConfig';
+import ApiError from '../errors/ApiError';
 
 /**
  * OwnerValueService — the ₹ layer. All six owner-value endpoints are
@@ -11,12 +12,56 @@ const get = async (path, params = {}, signal) => {
     return response.data?.data || {};
   } catch (error) {
     if (error?.code === 'ERR_CANCELED') throw error;
-    console.error(`API Error ${path}:`, error.response?.data || error.message);
-    throw error.response?.data || { detail: `Could not fetch ${path}.` };
+    throw ApiError.from(error);
   }
 };
 
+const DIGEST_SECTIONS = {
+  money: (p, signal) => get('/api/owner-value/money', { from: p.from }, signal),
+  healthScore: (p, signal) => get('/api/owner-value/health-score', {}, signal),
+  utilization: (p, signal) => get('/api/owner-value/utilization', { from: p.from }, signal),
+  downtimeRisk: (p, signal) => get('/api/owner-value/downtime-risk', {}, signal),
+  fuelEfficiency: (p, signal) =>
+    get('/api/owner-value/fuel-efficiency', { days: p.efficiencyDays }, signal),
+  refuellingToday: (p, signal) => get('/api/owner-value/refuelling-today', {}, signal),
+  fleetCalendar: (p, signal) =>
+    get('/api/owner-value/fleet-calendar', { days: p.calendarDays }, signal),
+  morningBrief: (p, signal) => get('/api/owner-value/morning-brief', {}, signal),
+};
+
+/** The digest's shape built from the eight section endpoints, for a backend without /digest. */
+const digestFromSections = async (params, signal) => {
+  const keys = Object.keys(DIGEST_SECTIONS);
+  const settled = await Promise.allSettled(keys.map((k) => DIGEST_SECTIONS[k](params, signal)));
+  const digest = { errors: {} };
+  settled.forEach((r, i) => {
+    digest[keys[i]] = r.status === 'fulfilled' ? r.value : null;
+    if (r.status === 'rejected') digest.errors[keys[i]] = r.reason?.message || 'Failed to load';
+  });
+  if (signal?.aborted) throw Object.assign(new Error('canceled'), { code: 'ERR_CANCELED' });
+  return digest;
+};
+
 export const OwnerValueService = {
+  /**
+   * Everything the Daily Digest reads from owner-value, in one request:
+   * { money, healthScore, utilization, downtimeRisk, fuelEfficiency,
+   *   refuellingToday, fleetCalendar, morningBrief, errors }. A section that
+   * failed is null. A backend without /digest (404) is served from the eight
+   * section endpoints instead; drop that once every environment has it.
+   */
+  getDigest: async (params = {}, signal) => {
+    const p = { efficiencyDays: 7, calendarDays: 14, ...params };
+    try {
+      const response = await apiClient.get('/api/owner-value/digest', { params: p, signal });
+      return response.data?.data || {};
+    } catch (error) {
+      if (error?.code === 'ERR_CANCELED') throw error;
+      if ((error?.status ?? error?.response?.status) !== 404) throw ApiError.from(error);
+    }
+    return digestFromSections(p, signal);
+  },
+
   /** Fleet-wide ₹ rollup: theft/bill-fraud/idling/detour/DEF/fuel + top-5 waste vehicles. */
   getMoney: (params = {}, signal) => get('/api/owner-value/money', params, signal),
 

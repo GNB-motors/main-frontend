@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { onActivateKey } from '../../../utils/onActivateKey';
 import './PageHeader.css';
 
 /**
@@ -51,6 +52,7 @@ const PageHeader = ({
           <div
             className="page-header-back-button"
             onClick={handleBackClick}
+            onKeyDown={onActivateKey(handleBackClick)}
             role="button"
             tabIndex={0}
             aria-label="Go back"
@@ -80,6 +82,7 @@ const PageHeader = ({
             <div
               className="page-header-breadcrumb-item page-header-breadcrumb-previous"
               onClick={handleBackLabelClick}
+              onKeyDown={onActivateKey(handleBackLabelClick)}
               role="button"
               tabIndex={0}
             >

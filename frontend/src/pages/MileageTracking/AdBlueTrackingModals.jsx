@@ -21,12 +21,17 @@ const AdBlueTrackingModals = (props) => {
     <>
       {editingLog &&
         createPortal(
-          <div className="refuel-modal-overlay" onClick={onEditClose}>
-            <div
-              className="refuel-modal refuel-edit-modal"
-              style={{ maxWidth: 480 }}
-              onClick={(e) => e.stopPropagation()}
-            >
+          <div
+            className="refuel-modal-overlay"
+            role="presentation"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) onEditClose();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') onEditClose();
+            }}
+          >
+            <div className="refuel-modal refuel-edit-modal" style={{ maxWidth: 480 }}>
               <div className="refuel-modal-header">
                 <h2>Edit AdBlue Entry</h2>
                 <button type="button" className="refuel-modal-close" onClick={onEditClose}>
@@ -37,8 +42,10 @@ const AdBlueTrackingModals = (props) => {
                 <div className="refuel-modal-body">
                   <div className="refuel-form-row">
                     <div className="form-group">
-                      <label>Litres *</label>
+                      <label htmlFor="adblue-edit-litres">Litres *</label>
                       <input
+                        id="adblue-edit-litres"
+                        aria-label="Litres"
                         type="number"
                         step="any"
                         value={editForm.litres}
@@ -47,8 +54,10 @@ const AdBlueTrackingModals = (props) => {
                       />
                     </div>
                     <div className="form-group">
-                      <label>Amount *</label>
+                      <label htmlFor="adblue-edit-amount">Amount *</label>
                       <input
+                        id="adblue-edit-amount"
+                        aria-label="Amount"
                         type="number"
                         step="any"
                         value={editForm.amount}
@@ -58,8 +67,10 @@ const AdBlueTrackingModals = (props) => {
                     </div>
                   </div>
                   <div className="form-group">
-                    <label>Place</label>
+                    <label htmlFor="adblue-edit-place">Place</label>
                     <input
+                      id="adblue-edit-place"
+                      aria-label="Place"
                       type="text"
                       value={editForm.place}
                       onChange={(e) => setEditForm({ ...editForm, place: e.target.value })}
@@ -83,12 +94,17 @@ const AdBlueTrackingModals = (props) => {
 
       {deletingLog &&
         createPortal(
-          <div className="refuel-modal-overlay" onClick={onDeleteClose}>
-            <div
-              className="refuel-modal"
-              style={{ maxWidth: 420 }}
-              onClick={(e) => e.stopPropagation()}
-            >
+          <div
+            className="refuel-modal-overlay"
+            role="presentation"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) onDeleteClose();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') onDeleteClose();
+            }}
+          >
+            <div className="refuel-modal" style={{ maxWidth: 420 }}>
               <div className="refuel-modal-header">
                 <h2>Delete AdBlue Entry</h2>
                 <button type="button" className="refuel-modal-close" onClick={onDeleteClose}>
@@ -124,12 +140,17 @@ const AdBlueTrackingModals = (props) => {
 
       {viewImageUrl &&
         createPortal(
-          <div className="refuel-modal-overlay" onClick={onViewImageClose}>
-            <div
-              className="refuel-modal"
-              style={{ maxWidth: 720 }}
-              onClick={(e) => e.stopPropagation()}
-            >
+          <div
+            className="refuel-modal-overlay"
+            role="presentation"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) onViewImageClose();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') onViewImageClose();
+            }}
+          >
+            <div className="refuel-modal" style={{ maxWidth: 720 }}>
               <div className="refuel-modal-header">
                 <h2>AdBlue Proof</h2>
                 <button type="button" className="refuel-modal-close" onClick={onViewImageClose}>

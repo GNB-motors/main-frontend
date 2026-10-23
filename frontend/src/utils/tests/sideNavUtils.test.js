@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { getVisibleNavItems, getVisibleNavChildren, SIDE_NAV_ITEMS } from '../sideNavUtils';
+import { getVisibleNavItems, getVisibleNavChildren, computeVisibleNav } from '../sideNavUtils';
+import { SIDE_NAV_ITEMS } from '../sideNavItems';
 
 const flags = (on) => (key) => on.includes(key);
 const shows = (items, to) => items.some((item) => item.to === to);
@@ -104,5 +105,32 @@ describe('Fleet Coverage nav access', () => {
     expect(hasAnywhere(flags(['fleetIntelligence', 'vehicleActivity']), '/fleet-coverage')).toBe(
       false,
     );
+  });
+});
+
+describe('computeVisibleNav — the cut reports what it folded', () => {
+  // Same shape the Sidebar renders from: the menu plus the folded entries,
+  // each with its route and reason, so nothing is ever cut with no way back.
+  const LEARNED = {
+    state: 'LEARNED',
+    learned: { engagementFloor: 10 },
+    surfaces: [{ surfaceKey: '/digest', disposition: 'NEVER_OPENED', reason: 'not opened once' }],
+  };
+  const isEnabled = (key) => ['fleetIntelligence', 'vehicleActivity'].includes(key);
+
+  it('folded entries come back grouped by job, with route and reason intact', () => {
+    const { items, folded, foldedByJob } = computeVisibleNav(isEnabled, 'OWNER', LEARNED);
+    expect(items.some((i) => i.to === '/digest')).toBe(false);
+    expect(folded).toHaveLength(1);
+    expect(folded[0].to).toBe('/digest');
+    expect(folded[0].reason).toMatch(/not opened once/i);
+    expect(Object.values(foldedByJob).flat()).toHaveLength(folded.length);
+  });
+
+  it('with no profile nothing folds and the folded lists are empty', () => {
+    const { folded, foldedByJob, cutApplied } = computeVisibleNav(isEnabled, 'OWNER', null);
+    expect(cutApplied).toBe(false);
+    expect(folded).toHaveLength(0);
+    expect(Object.keys(foldedByJob)).toHaveLength(0);
   });
 });

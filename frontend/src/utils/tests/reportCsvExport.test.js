@@ -13,26 +13,26 @@ describe('csvTextToXlsxBuffer', () => {
     "08/07/2026,OD02K5567,896,21214,'=1+1",
   ].join('\n');
 
-  it('produces a real workbook, not CSV bytes', () => {
-    const sheet = readBack(csvTextToXlsxBuffer(csv));
+  it('produces a real workbook, not CSV bytes', async () => {
+    const sheet = readBack(await csvTextToXlsxBuffer(csv));
     expect(sheet.A1.v).toBe('Start Date');
     expect(sheet.D1.v).toBe('Cost (₹)');
   });
 
-  it('keeps dd/mm/yyyy dates as text so they are never read as mm/dd', () => {
-    const sheet = readBack(csvTextToXlsxBuffer(csv));
+  it('keeps dd/mm/yyyy dates as text so they are never read as mm/dd', async () => {
+    const sheet = readBack(await csvTextToXlsxBuffer(csv));
     expect(sheet.A2.t).toBe('s');
     expect(sheet.A2.v).toBe('08/07/2026');
   });
 
-  it('turns plain numbers back into numeric cells', () => {
-    const sheet = readBack(csvTextToXlsxBuffer(csv));
+  it('turns plain numbers back into numeric cells', async () => {
+    const sheet = readBack(await csvTextToXlsxBuffer(csv));
     expect(sheet.C2).toMatchObject({ t: 'n', v: 896 });
     expect(sheet.D2).toMatchObject({ t: 'n', v: 21214 });
   });
 
-  it('leaves the server formula-injection guard intact', () => {
-    const sheet = readBack(csvTextToXlsxBuffer(csv));
+  it('leaves the server formula-injection guard intact', async () => {
+    const sheet = readBack(await csvTextToXlsxBuffer(csv));
     expect(sheet.E2.t).toBe('s');
     expect(sheet.E2.v).toBe("'=1+1");
   });

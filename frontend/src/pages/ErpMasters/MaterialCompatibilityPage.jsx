@@ -210,6 +210,7 @@ const MaterialCompatibilityPage = () => {
                           className="btn-icon delete"
                           onClick={() => setDeleteTarget(r)}
                           title="Delete rule"
+                          aria-label="Delete rule"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -256,6 +257,7 @@ const MaterialCompatibilityPage = () => {
                     </label>
                     <input
                       id="mc-prev"
+                      aria-label="Previous Material"
                       value={form.previousMaterial}
                       onChange={(e) =>
                         setForm((p) => ({ ...p, previousMaterial: e.target.value.toUpperCase() }))
@@ -269,6 +271,7 @@ const MaterialCompatibilityPage = () => {
                     <label htmlFor="mc-allowed">Allowed Next</label>
                     <textarea
                       id="mc-allowed"
+                      aria-label="Allowed Next"
                       value={form.allowedText}
                       onChange={(e) => setForm((p) => ({ ...p, allowedText: e.target.value }))}
                       placeholder="MTO, SKO, HSD"
@@ -280,6 +283,7 @@ const MaterialCompatibilityPage = () => {
                     <label htmlFor="mc-clean">Allowed After Cleaning</label>
                     <textarea
                       id="mc-clean"
+                      aria-label="Allowed After Cleaning"
                       value={form.cleaningText}
                       onChange={(e) => setForm((p) => ({ ...p, cleaningText: e.target.value }))}
                       placeholder="BITUMEN"
@@ -293,6 +297,7 @@ const MaterialCompatibilityPage = () => {
                     <label htmlFor="mc-notes">Notes</label>
                     <input
                       id="mc-notes"
+                      aria-label="Notes"
                       value={form.notes}
                       onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
                     />
