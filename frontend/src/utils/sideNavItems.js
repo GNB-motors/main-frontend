@@ -20,6 +20,8 @@ import {
   Warehouse,
   Route,
   Gavel,
+  Bell,
+  Activity,
 } from 'lucide-react';
 
 /**
@@ -260,6 +262,14 @@ export const SIDE_NAV_ITEMS = [
     icon: ReceiptText,
   },
   {
+    type: 'link',
+    key: null,
+    access: 'fleet',
+    to: '/alert-inbox',
+    label: 'Alert Inbox',
+    icon: Bell,
+  },
+  {
     type: 'group',
     groupId: 'fuelManagement',
     access: 'fleet',
@@ -348,6 +358,7 @@ export const SIDE_NAV_ITEMS = [
   { type: 'link', key: 'reports', to: '/reports', label: 'Reports', icon: FileText },
 
   { type: 'section', label: 'Account' },
+  { type: 'link', key: null, to: '/usage', label: 'Usage', icon: Activity },
   // Settings hub for fleet and vehicle configs
   { type: 'link', key: null, to: '/settings', label: 'Settings', icon: Settings },
   // Always visible (no feature flag) — guaranteed fallback page. Profile must
