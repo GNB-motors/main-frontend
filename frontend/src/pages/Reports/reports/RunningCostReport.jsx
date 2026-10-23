@@ -1,3 +1,5 @@
+import ManufacturerFilter from '../../../components/filters/ManufacturerFilter';
+import useManufacturerFilter from '../../../hooks/useManufacturerFilter';
 import { useMemo, useState } from 'react';
 import { AlertTriangle, Briefcase, CheckCircle2, IndianRupee } from 'lucide-react';
 import DataTable from '../../../components/ui/DataTable';
@@ -68,14 +70,15 @@ function totalsOf(rows) {
 }
 
 const RunningCostReport = () => {
+  const { manufacturer, setManufacturer } = useManufacturerFilter();
   const [range, setRange] = useState(defaultTripRange);
   const [search, setSearch] = useState('');
   const [vehicleId, setVehicleId] = useState('all');
   const [groupBy, setGroupBy] = useState(DEFAULT_GROUP);
 
   const params = useMemo(
-    () => buildTripFilterParams({ ...range, vehicleId, groupBy }),
-    [range, vehicleId, groupBy],
+    () => buildTripFilterParams({ ...range, manufacturer, vehicleId, groupBy }),
+    [range, manufacturer, vehicleId, groupBy],
   );
   const paramsKey = JSON.stringify(params);
   const {
@@ -83,7 +86,9 @@ const RunningCostReport = () => {
     loading,
     error,
     refetch,
-  } = useApi((signal) => ReportsService.getRunningCost(params, signal), [paramsKey]);
+  } = useApi((signal) => ReportsService.getRunningCost(params, signal), [paramsKey], {
+    scopeKey: manufacturer,
+  });
 
   // Day groups read newest first; the others keep the API's alphabetical order.
   const rows = useMemo(() => {
@@ -107,6 +112,7 @@ const RunningCostReport = () => {
 
   const defaults = defaultTripRange();
   const activeFilters =
+    (manufacturer ? 1 : 0) +
     rangeFilterCount(range, defaults) +
     (search ? 1 : 0) +
     (vehicleId !== 'all' ? 1 : 0) +
@@ -149,8 +155,9 @@ const RunningCostReport = () => {
       filters={
         <>
           <ReportDateRange from={range.from} to={range.to} onChange={setRange} />
-          <ReportSearch value={search} onChange={setSearch} placeholder="Search group" />
+          <ManufacturerFilter value={manufacturer} onChange={setManufacturer} />
           <VehiclePicker value={vehicleId} onChange={setVehicleId} />
+          <ReportSearch value={search} onChange={setSearch} placeholder="Search group" />
           <ReportSelect
             label="Group by"
             value={groupBy}
@@ -162,6 +169,7 @@ const RunningCostReport = () => {
             onClear={() => {
               setRange(defaultTripRange());
               setSearch('');
+              setManufacturer('');
               setVehicleId('all');
               setGroupBy(DEFAULT_GROUP);
             }}

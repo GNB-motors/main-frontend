@@ -1,3 +1,5 @@
+import ManufacturerFilter from '../../components/filters/ManufacturerFilter';
+import useManufacturerFilter from '../../hooks/useManufacturerFilter';
 import {
   daysBetween,
   istDayEndISO,
@@ -41,6 +43,7 @@ const POLL_MS = 5 * 60 * 1000;
 const WINDOWS_LIMIT = 1000;
 
 const FuelIntegrityPage = () => {
+  const { manufacturer, setManufacturer } = useManufacturerFilter();
   // Backend Filters
   const [vehicleQuery, setVehicleQuery] = useState('');
   const [inputFromDate, setInputFromDate] = useState('');
@@ -102,12 +105,12 @@ const FuelIntegrityPage = () => {
   }, []);
 
   const buildParams = useCallback(() => {
-    const params = {};
+    const params = manufacturer ? { manufacturer } : {};
     if (vehicle) params.vehicle = vehicle;
     if (fromDate) params.from = istDayStartISO(fromDate);
     if (toDate) params.to = istDayEndISO(toDate);
     return params;
-  }, [vehicle, fromDate, toDate]);
+  }, [manufacturer, vehicle, fromDate, toDate]);
 
   const controllerRef = useRef(null);
   const lastFetchRef = useRef(0);
@@ -164,6 +167,15 @@ const FuelIntegrityPage = () => {
   }, [fetchData]);
 
   useEffect(() => {
+    setSummary(null);
+    setFills([]);
+    setWindows([]);
+    setWindowsTotal(0);
+    setDrillVehicle(null);
+    setEvidenceWindow(null);
+    setInvestigateEvent(null);
+    setSelectedEventId(null);
+    setPage(1);
     fetchData();
     const pollInterval = setInterval(() => {
       if (!document.hidden) fetchData({ silent: true });
@@ -203,6 +215,7 @@ const FuelIntegrityPage = () => {
   };
 
   const resetFilters = () => {
+    setManufacturer('');
     setVehicleQuery('');
     setInputFromDate('');
     setInputToDate('');
@@ -300,6 +313,11 @@ const FuelIntegrityPage = () => {
         lossL === 0
           ? 'Autonomous mass-balance reconciled: 0 L unexplained loss · 100% fuel retained across fleet'
           : `Alert: ${lossL.toFixed(1)} L unexplained siphon loss detected across fleet — review immediately`
+      }
+      filters={
+        <div className="manufacturer-scope-row">
+          <ManufacturerFilter value={manufacturer} onChange={setManufacturer} />
+        </div>
       }
       actions={
         <IntegrityHeaderActions

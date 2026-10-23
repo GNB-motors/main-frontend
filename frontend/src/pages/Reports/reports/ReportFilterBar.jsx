@@ -1,3 +1,4 @@
+import ManufacturerFilter from '../../../components/filters/ManufacturerFilter';
 import { RotateCcw } from 'lucide-react';
 import { useActiveBranch } from '../../../contexts/BranchContext';
 import { ReportDateRange, ReportSearch, ReportSelect } from './ReportFrame';
@@ -71,16 +72,14 @@ export default function ReportFilterBar({
 
         <ReportDateRange from={range.from} to={range.to} onChange={setFilters} />
 
-        {showSearch ? (
-          <ReportSearch
-            value={filters.search}
-            onChange={(value) => setFilter('search', value)}
-            placeholder={searchPlaceholder}
-          />
-        ) : null}
+        <ManufacturerFilter
+          value={filters.manufacturer}
+          onChange={(manufacturer) => setFilter('manufacturer', manufacturer)}
+        />
 
         {showVehicle ? (
           <VehiclePicker
+            manufacturer={filters.manufacturer}
             value={filters.vehicle}
             valueLabel={filters.vehicleLabel}
             onChange={(id, row) => setFilters({ vehicle: id, vehicleLabel: row?.label || '' })}
@@ -92,6 +91,14 @@ export default function ReportFilterBar({
             value={filters.driver}
             valueLabel={filters.driverLabel}
             onChange={(id, row) => setFilters({ driver: id, driverLabel: row?.label || '' })}
+          />
+        ) : null}
+
+        {showSearch ? (
+          <ReportSearch
+            value={filters.search}
+            onChange={(value) => setFilter('search', value)}
+            placeholder={searchPlaceholder}
           />
         ) : null}
 

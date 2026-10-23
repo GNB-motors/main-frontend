@@ -131,8 +131,10 @@ export default function PumpLedgerView({ range, searchQuery = '' }) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const [queryKey, setQueryKey] = useState(`${searchQuery}|${range.from}|${range.to}`);
-  const nextKey = `${searchQuery}|${range.from}|${range.to}`;
+  const [queryKey, setQueryKey] = useState(
+    `${searchQuery}|${range.manufacturer || ''}|${range.from}|${range.to}`,
+  );
+  const nextKey = `${searchQuery}|${range.manufacturer || ''}|${range.from}|${range.to}`;
   if (queryKey !== nextKey) {
     setQueryKey(nextKey);
     setPage(1);
@@ -140,7 +142,7 @@ export default function PumpLedgerView({ range, searchQuery = '' }) {
 
   const { data, loading, error, refetch } = useApi(
     (signal) => MileageApi.pumpLedger(range, signal),
-    [range.from, range.to],
+    [range.manufacturer, range.from, range.to],
   );
 
   const rows = (data?.pumps || []).map(mapPumpRow);

@@ -24,6 +24,7 @@ const LIMIT = 20;
  * given, the page follows it and hides its own date controls.
  */
 const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
+  const manufacturer = hubRange?.manufacturer || '';
   const role = getUserRole();
   const themeColors = useMemo(() => getThemeCSS(role), [role]);
 
@@ -112,20 +113,21 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
   // Fetch Summary Status
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await ReportsService.getExtensionStatus();
+      const res = await ReportsService.getExtensionStatus(manufacturer ? { manufacturer } : {});
       if (res && res.success !== false) {
         setStatus(res);
       }
     } catch {
       // Non-blocking
     }
-  }, []);
+  }, [manufacturer]);
 
   // Fetch Comparison Records
   const fetchComparisons = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = {
+        ...(manufacturer ? { manufacturer } : {}),
         page,
         limit: LIMIT,
       };
@@ -150,7 +152,11 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
       let calculatedPages = 1;
 
       if (activeTab === 'review') {
-        const res = await ReportsService.getPendingReviewTasks({ page, limit: LIMIT });
+        const res = await ReportsService.getPendingReviewTasks({
+          page,
+          limit: LIMIT,
+          ...(manufacturer ? { manufacturer } : {}),
+        });
         if (res) {
           fetchedTasks = res.records || res.tasks || [];
           totalCount = res.total ?? fetchedTasks.length;
@@ -195,7 +201,7 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [page, activeTab, searchQuery, fromDate, toDate, varianceFilter]);
+  }, [manufacturer, page, activeTab, searchQuery, fromDate, toDate, varianceFilter]);
 
   // Initial and reactive data loads
   useEffect(() => {

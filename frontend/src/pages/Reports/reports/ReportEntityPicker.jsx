@@ -1,4 +1,7 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { getVehicleList } from '../../../services/vehicleListService';
+import { toast } from 'react-toastify';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import useManufacturerFilter from '../../../hooks/useManufacturerFilter';
 import { ChevronDown, Search } from 'lucide-react';
 import { ReportsService } from '../ReportsService.js';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
@@ -28,6 +31,7 @@ export default function ReportEntityPicker({
   allLabel,
   searchPlaceholder,
   width = 200,
+  scopeKey = '',
 }) {
   const listId = useId();
   const rootRef = useRef(null);
@@ -66,7 +70,7 @@ export default function ReportEntityPicker({
     return () => controller.abort();
     // fetchOptions is a stable module-level function in every caller.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, debouncedQuery]);
+  }, [open, debouncedQuery, scopeKey]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -182,14 +186,45 @@ const fetchVehicles = (query, signal) =>
 const fetchDrivers = (query, signal) =>
   ReportsService.searchDrivers(query, { signal, limit: RESULT_LIMIT });
 
-export function VehiclePicker({ value, valueLabel, onChange, width = 200 }) {
+export function VehiclePicker({ value, valueLabel, onChange, width = 200, manufacturer: make }) {
+  const { manufacturer: urlMake } = useManufacturerFilter();
+  const manufacturer = make ?? urlMake;
+  const fetchScopedVehicles = useCallback(
+    (query, signal) =>
+      manufacturer
+        ? ReportsService.searchVehicles(query, { signal, limit: RESULT_LIMIT, manufacturer })
+        : fetchVehicles(query, signal),
+    [manufacturer],
+  );
+  const previousMake = useRef(manufacturer);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  useEffect(() => {
+    if (previousMake.current === manufacturer) return undefined;
+    previousMake.current = manufacturer;
+    if (!manufacturer || !value || value === ALL) return undefined;
+    const controller = new AbortController();
+    getVehicleList({ signal: controller.signal })
+      .then((vehicles) => {
+        const selectedVehicle = vehicles.find((v) => String(v._id || v.id) === String(value));
+        if (selectedVehicle && (selectedVehicle.manufacturer || 'UNKNOWN') === manufacturer) return;
+        if (controller.signal.aborted) return;
+        onChangeRef.current(ALL, null);
+        toast.info('Vehicle selection cleared for the selected manufacturer.');
+      })
+      .catch(() => {
+        /* Backend still intersects a conflicting selection. */
+      });
+    return () => controller.abort();
+  }, [manufacturer, value]);
   return (
     <ReportEntityPicker
       label="Vehicle"
       value={value}
       valueLabel={valueLabel}
       onChange={onChange}
-      fetchOptions={fetchVehicles}
+      fetchOptions={fetchScopedVehicles}
+      scopeKey={manufacturer}
       allLabel="All vehicles"
       searchPlaceholder="Search vehicle number"
       width={width}

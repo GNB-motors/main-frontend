@@ -29,6 +29,7 @@ describe('readFilterParams', () => {
         'loc=loc_1&dates=30DAYS&search=WB25&vehicle=v1&vehicleLabel=WB25R9540&driver=d1&driverLabel=Ram&status=ONGOING',
       ),
     ).toEqual({
+      manufacturer: '',
       loc: 'loc_1',
       dates: '30DAYS',
       from: '',
@@ -133,9 +134,9 @@ describe('countActiveFilters', () => {
   });
 
   it('counts each narrowing control', () => {
-    expect(countActiveFilters(at('dates=7DAYS&search=WB&vehicle=v1&driver=d1&status=ONGOING'), NOW)).toBe(
-      5,
-    );
+    expect(
+      countActiveFilters(at('dates=7DAYS&search=WB&vehicle=v1&driver=d1&status=ONGOING'), NOW),
+    ).toBe(5);
   });
 });
 
@@ -162,5 +163,26 @@ describe('toRequestParams', () => {
 
   it('never sends the unset entity sentinel', () => {
     expect(toRequestParams(at('vehicle=all&driver=all'), NOW)).toEqual({});
+  });
+});
+
+describe('manufacturer URL contract', () => {
+  it('preserves the maker across report switches and sends one scalar parameter', () => {
+    const params = writeFilterParams('report=vehicle&manufacturer=ASHOK+LEYLAND', {
+      search: 'WB11',
+    });
+    params.set('report', 'driver');
+    const filters = readFilterParams(params);
+    expect(filters.manufacturer).toBe('ASHOK LEYLAND');
+    expect(toRequestParams(filters, NOW)).toMatchObject({
+      manufacturer: 'ASHOK LEYLAND',
+      search: 'WB11',
+    });
+    expect(countActiveFilters(filters, NOW)).toBe(2);
+  });
+  it('reset removes the manufacturer without removing the chosen report', () => {
+    const next = writeFilterParams('report=mileageIntervals&manufacturer=TATA', EMPTY_FILTERS);
+    expect(next.toString()).toBe('report=mileageIntervals');
+    expect(toRequestParams(readFilterParams(next), NOW)).not.toHaveProperty('manufacturer');
   });
 });

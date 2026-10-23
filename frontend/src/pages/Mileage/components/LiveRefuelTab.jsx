@@ -172,7 +172,7 @@ export default function LiveRefuelTab({
   const [status, setStatus] = useState('all');
 
   // A new search, vehicle or range is a new result set: back to page 1 in the same render.
-  const nextKey = `${searchQuery}|${vehicleId || ''}|${range.from}|${range.to}`;
+  const nextKey = `${searchQuery}|${vehicleId || ''}|${range.manufacturer || ''}|${range.from}|${range.to}`;
   const [queryKey, setQueryKey] = useState(nextKey);
   if (queryKey !== nextKey) {
     setQueryKey(nextKey);
@@ -196,6 +196,7 @@ export default function LiveRefuelTab({
         signal,
       ),
     [
+      range.manufacturer,
       range.from,
       range.to,
       page,

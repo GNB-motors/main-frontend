@@ -1,4 +1,6 @@
-import React, { Suspense, lazy, useDeferredValue, useState } from 'react';
+import ManufacturerFilter from '../../components/filters/ManufacturerFilter';
+import useManufacturerFilter from '../../hooks/useManufacturerFilter';
+import React, { Suspense, lazy, useDeferredValue, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Search, X } from 'lucide-react';
 import PageShell from '../../components/ui/PageShell';
@@ -121,11 +123,14 @@ export default function MileagePage() {
   const activeSubview = active?.key;
 
   // One range and one search for every tab; both live in the URL.
-  const { preset, range } = hubRangeFromParams(searchParams);
+  const { manufacturer, setManufacturer } = useManufacturerFilter();
+  const { preset, range: dateRange } = hubRangeFromParams(searchParams);
+  const range = { ...dateRange, manufacturer };
   const search = searchParams.get('search') || '';
   const deferredSearch = useDeferredValue(search);
 
   const [drawerDetail, setDrawerDetail] = useState(null);
+  useEffect(() => setDrawerDetail(null), [manufacturer]);
   // Bumped after a bill is edited or deleted so the list and tiles refetch.
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -190,11 +195,20 @@ export default function MileagePage() {
         </div>
       }
       filters={
-        <HubDateBar preset={preset} range={range} onPreset={choosePreset} onRange={changeRange} />
+        <div className="manufacturer-scope-row">
+          <HubDateBar preset={preset} range={range} onPreset={choosePreset} onRange={changeRange} />
+          <ManufacturerFilter
+            value={manufacturer}
+            onChange={(value) => {
+              setDrawerDetail(null);
+              setManufacturer(value);
+            }}
+          />
+        </div>
       }
     >
       {ready && (
-        <div className="mhub">
+        <div className="mhub" key={manufacturer}>
           <MileageKpiBar
             range={range}
             showFleetMileage={access.fleetMileage}

@@ -76,7 +76,7 @@ export default function TruckMileageView({ range, searchQuery = '' }) {
   const navigate = useNavigate();
   const { data, loading, error, refetch } = useApi(
     (signal) => MileageApi.modelComparison(range, signal),
-    [range.from, range.to],
+    [range.manufacturer, range.from, range.to],
   );
   const trucks = trucksFromModels(data?.data);
   const needle = compact(searchQuery);

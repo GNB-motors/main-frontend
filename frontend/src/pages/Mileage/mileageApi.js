@@ -44,7 +44,7 @@ export const MileageApi = {
   expected: (range, vehicleId, signal) =>
     get(
       '/api/fuel-model/expected',
-      { vehicleId, ...rangeToParams(range) },
+      { vehicleId, ...rangeToParams({ from: range.from, to: range.to }) },
       signal,
       'expectedFuelSchema',
     ),

@@ -166,3 +166,29 @@ describe('useApi', () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 });
+
+it('hides data from a previous scope immediately and remains retryable after failure', async () => {
+  const pending = deferred();
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(['tata'])
+    .mockImplementationOnce(() => pending.promise)
+    .mockResolvedValueOnce(['ashok']);
+  const { result, rerender } = renderHook(({ scopeKey }) => useApi(fetcher, [], { scopeKey }), {
+    initialProps: { scopeKey: 'TATA' },
+  });
+  await waitFor(() => expect(result.current.data).toEqual(['tata']));
+  rerender({ scopeKey: 'ASHOK LEYLAND' });
+  expect(result.current.data).toBeNull();
+  expect(result.current.loading).toBe(true);
+  await act(async () => {
+    pending.reject(new Error('offline'));
+    await pending.promise.catch(() => {});
+  });
+  expect(result.current.loading).toBe(false);
+  expect(result.current.data).toBeNull();
+  act(() => {
+    result.current.refetch();
+  });
+  await waitFor(() => expect(result.current.data).toEqual(['ashok']));
+});
