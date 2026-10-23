@@ -260,6 +260,7 @@ const ImageCropper = ({
         }
       }, 200);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSrc, circularCrop]);
 
   if (!isOpen) return null;

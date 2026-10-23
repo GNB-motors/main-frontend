@@ -205,7 +205,7 @@ const PodsPage = () => {
                 <th>Vehicle</th>
                 <th>Unloaded</th>
                 <th>Ageing</th>
-                <th />
+                <th aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
@@ -319,18 +319,21 @@ const PodsPage = () => {
         <div
           className="erp-modal-backdrop"
           role="presentation"
-          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeModal();
+          }}
         >
-          <div
-            className="erp-modal"
-            role="dialog"
-            aria-modal="true"
-          >
+          <div className="erp-modal" role="dialog" aria-modal="true">
             <div className="erp-modal-header">
               <h2>
                 <PackageCheck size={18} /> POD for {selected.tripNumber}
               </h2>
-              <button type="button" className="erp-icon-btn" onClick={closeModal} aria-label="Close">
+              <button
+                type="button"
+                className="erp-icon-btn"
+                onClick={closeModal}
+                aria-label="Close"
+              >
                 <X size={18} />
               </button>
             </div>
@@ -352,6 +355,7 @@ const PodsPage = () => {
                 <label>
                   Received date
                   <input
+                    aria-label="Received date"
                     type="date"
                     required
                     value={form.receivedDate}
@@ -384,6 +388,7 @@ const PodsPage = () => {
                 <label>
                   Remarks
                   <input
+                    aria-label="Remarks"
                     value={form.remarks}
                     onChange={(e) => setForm({ ...form, remarks: e.target.value })}
                   />
@@ -395,6 +400,7 @@ const PodsPage = () => {
                   <label>
                     Courier name
                     <input
+                      aria-label="Courier name"
                       required
                       value={form.courierName}
                       onChange={(e) => setForm({ ...form, courierName: e.target.value })}
@@ -403,6 +409,7 @@ const PodsPage = () => {
                   <label>
                     Docket no.
                     <input
+                      aria-label="Docket number"
                       required
                       value={form.courierDocket}
                       onChange={(e) => setForm({ ...form, courierDocket: e.target.value })}
@@ -417,6 +424,7 @@ const PodsPage = () => {
                   <strong>Challan scan (optional)</strong>
                   <div className="erp-inline" style={{ marginTop: 8, gap: 8 }}>
                     <input
+                      aria-label="Upload challan scan"
                       type="file"
                       accept="image/*,application/pdf"
                       onChange={(e) => {

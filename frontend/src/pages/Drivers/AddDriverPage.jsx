@@ -126,6 +126,7 @@ const AddDriverPage = () => {
     };
 
     loadDriverData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.state?.editingDriver]);
 
   const handleSubmit = async (formData) => {

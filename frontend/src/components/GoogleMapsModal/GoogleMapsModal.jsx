@@ -117,6 +117,7 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
         markerRef.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLocation]);
 
   const mapContainerStyle = {

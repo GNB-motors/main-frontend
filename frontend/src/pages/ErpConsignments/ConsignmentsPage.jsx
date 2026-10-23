@@ -129,7 +129,10 @@ const ConsignmentsPage = () => {
     setBusy(true);
     try {
       const seals = form.sealNumbers
-        ? form.sealNumbers.split(',').map((s) => s.trim()).filter(Boolean)
+        ? form.sealNumbers
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
         : [];
       await ConsignmentService.saveCn({
         tripId: selectedTrip._id,
@@ -206,7 +209,7 @@ const ConsignmentsPage = () => {
                 <th>Material</th>
                 <th>Planned qty</th>
                 <th>Ageing</th>
-                <th />
+                <th aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
@@ -252,7 +255,7 @@ const ConsignmentsPage = () => {
                 <th>Loaded</th>
                 <th>Variance</th>
                 <th>Status</th>
-                <th />
+                <th aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
@@ -274,7 +277,9 @@ const ConsignmentsPage = () => {
                     </td>
                     <td>{cn.qtyVariance}</td>
                     <td>
-                      <span className={`erp-badge ${cn.status === 'LOCKED' ? 'danger' : 'success'}`}>
+                      <span
+                        className={`erp-badge ${cn.status === 'LOCKED' ? 'danger' : 'success'}`}
+                      >
                         {cn.status}
                       </span>
                     </td>
@@ -299,13 +304,11 @@ const ConsignmentsPage = () => {
         <div
           className="erp-modal-backdrop"
           role="presentation"
-          onClick={(e) => { if (e.target === e.currentTarget) closeSave(); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeSave();
+          }}
         >
-          <div
-            className="erp-modal"
-            role="dialog"
-            aria-modal="true"
-          >
+          <div className="erp-modal" role="dialog" aria-modal="true">
             <div className="erp-modal-header">
               <h2>
                 <FileText size={18} /> CN for {selectedTrip.tripNumber}
@@ -320,6 +323,7 @@ const ConsignmentsPage = () => {
                 <label>
                   CN number
                   <input
+                    aria-label="CN number"
                     required
                     value={form.cnNumber}
                     onChange={(e) => setForm({ ...form, cnNumber: e.target.value })}
@@ -329,6 +333,7 @@ const ConsignmentsPage = () => {
                 <label>
                   CN date
                   <input
+                    aria-label="CN date"
                     type="date"
                     required
                     value={form.cnDate}
@@ -338,6 +343,7 @@ const ConsignmentsPage = () => {
                 <label>
                   Loading date
                   <input
+                    aria-label="Loading date"
                     type="date"
                     required
                     value={form.loadingDate}
@@ -347,6 +353,7 @@ const ConsignmentsPage = () => {
                 <label>
                   Loaded qty
                   <input
+                    aria-label="Loaded quantity"
                     type="number"
                     step="any"
                     min="0"
@@ -368,6 +375,7 @@ const ConsignmentsPage = () => {
                 <label>
                   Seal numbers
                   <input
+                    aria-label="Seal numbers"
                     value={form.sealNumbers}
                     onChange={(e) => setForm({ ...form, sealNumbers: e.target.value })}
                     placeholder="Comma-separated"
@@ -380,11 +388,12 @@ const ConsignmentsPage = () => {
                 <div>
                   <strong>Bilty Upload (Optional)</strong>
                   <p className="erp-muted">
-                    Upload the LR / consignment note before saving. OCR is best-effort and will
-                    not block the save.
+                    Upload the LR / consignment note before saving. OCR is best-effort and will not
+                    block the save.
                   </p>
                   <div className="erp-inline" style={{ marginTop: 8, gap: 8 }}>
                     <input
+                      aria-label="Upload bilty"
                       type="file"
                       accept="image/*,application/pdf"
                       onChange={(e) => {

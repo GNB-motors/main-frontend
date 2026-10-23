@@ -8,15 +8,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import {
-  Wallet,
-  X,
-  Info,
-  AlertTriangle,
-  CheckCircle2,
-  Fuel,
-  ArrowRight,
-} from 'lucide-react';
+import { Wallet, X, Info, AlertTriangle, CheckCircle2, Fuel, ArrowRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 import AdvanceService from './AdvanceService';
 import PlacementService from '../ErpPlacement/PlacementService';
@@ -327,7 +319,9 @@ const AdvancesPage = () => {
         <div
           className="erp-modal-backdrop"
           role="presentation"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowRaise(false); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowRaise(false);
+          }}
         >
           <div className="erp-modal">
             <div className="erp-modal-header">
@@ -366,9 +360,9 @@ const AdvancesPage = () => {
                   </div>
 
                   <div className="erp-field full">
-                    <label>
+                    <p className="erp-field-label">
                       Legs <span className="required">*</span>
-                    </label>
+                    </p>
                     <div className="erp-weekdays">
                       {['EMPTY', 'LOAD', 'REPORT_EMPTY'].map((leg) => (
                         <button
@@ -512,6 +506,7 @@ const AdvancesPage = () => {
                     <label htmlFor="adv-amount">Amount to pay out (₹)</label>
                     <input
                       id="adv-amount"
+                      aria-label="Amount to pay out"
                       type="number"
                       min="0"
                       step="0.01"
@@ -532,8 +527,8 @@ const AdvancesPage = () => {
                   >
                     <AlertTriangle size={16} />
                     <span>
-                      {money(asked - budget)} over budget — this will need approval before it can
-                      be paid.
+                      {money(asked - budget)} over budget — this will need approval before it can be
+                      paid.
                     </span>
                   </div>
                 )}
@@ -582,12 +577,11 @@ const AdvancesPage = () => {
         <div
           className="erp-modal-backdrop"
           role="presentation"
-          onClick={(e) => { if (e.target === e.currentTarget) setPayTarget(null); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPayTarget(null);
+          }}
         >
-          <div
-            className="erp-modal"
-            style={{ maxWidth: 460 }}
-          >
+          <div className="erp-modal" style={{ maxWidth: 460 }}>
             <div className="erp-modal-header">
               <h2>Pay {payTarget.advanceNumber}</h2>
               <button className="btn-icon" onClick={() => setPayTarget(null)}>
@@ -625,6 +619,7 @@ const AdvancesPage = () => {
                     <label htmlFor="pay-ref">Reference</label>
                     <input
                       id="pay-ref"
+                      aria-label="Reference"
                       value={paymentRef}
                       onChange={(e) => setPaymentRef(e.target.value)}
                       placeholder="NEFT-001"

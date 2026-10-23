@@ -174,7 +174,7 @@ const TripClosePage = () => {
                 <th>Party</th>
                 <th>Vehicle</th>
                 <th>Ageing</th>
-                <th />
+                <th aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
@@ -221,7 +221,7 @@ const TripClosePage = () => {
                 <th>Location</th>
                 <th>Vehicle</th>
                 <th>Report empty</th>
-                <th />
+                <th aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
@@ -344,6 +344,7 @@ const TripClosePage = () => {
                 <label>
                   Unloading date
                   <input
+                    aria-label="Unloading date"
                     type="date"
                     required
                     value={form.unloadedAt}
@@ -353,6 +354,7 @@ const TripClosePage = () => {
                 <label>
                   Unload location
                   <input
+                    aria-label="Unload location"
                     value={form.unloadLocation}
                     onChange={(e) => setForm({ ...form, unloadLocation: e.target.value })}
                     placeholder="Optional"
@@ -361,6 +363,7 @@ const TripClosePage = () => {
                 <label style={{ gridColumn: '1 / -1' }}>
                   Remarks
                   <input
+                    aria-label="Remarks"
                     value={form.closeRemarks}
                     onChange={(e) => setForm({ ...form, closeRemarks: e.target.value })}
                   />
@@ -369,6 +372,7 @@ const TripClosePage = () => {
 
               <label className="erp-inline" style={{ gap: 8, marginTop: 12 }}>
                 <input
+                  aria-label="Add report-empty point"
                   type="checkbox"
                   checked={form.reportEmptyEnabled}
                   onChange={(e) => setForm({ ...form, reportEmptyEnabled: e.target.checked })}
@@ -381,6 +385,7 @@ const TripClosePage = () => {
                   <label>
                     Report empty to
                     <input
+                      aria-label="Report empty to"
                       required
                       value={form.reportEmptyTo}
                       onChange={(e) => setForm({ ...form, reportEmptyTo: e.target.value })}
@@ -389,6 +394,7 @@ const TripClosePage = () => {
                   <label>
                     Distance (km)
                     <input
+                      aria-label="Distance in km"
                       type="number"
                       min="1"
                       step="any"

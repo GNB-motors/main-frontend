@@ -84,6 +84,7 @@ const FuelLogForm = ({
     if (initialLitres != null && initialLitres !== '' && !formData.litres) {
       setFormData((prev) => ({ ...prev, litres: String(initialLitres) }));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialLitres]);
 
   useEffect(() => {

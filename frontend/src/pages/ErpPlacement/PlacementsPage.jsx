@@ -111,9 +111,7 @@ const PlacementsPage = () => {
   };
 
   const vehicleLabel = (p) =>
-    p.vehicleType === 'OWN'
-      ? p.vehicleId?.registrationNumber || '—'
-      : p.hireVehicleNumber || '—';
+    p.vehicleType === 'OWN' ? p.vehicleId?.registrationNumber || '—' : p.hireVehicleNumber || '—';
 
   return (
     <div className="erp-page">
@@ -128,9 +126,8 @@ const PlacementsPage = () => {
         <div className="erp-callout info" style={{ marginTop: 20 }}>
           <Info size={16} />
           <span>
-            {money(pendingLegs.meta.totalAmount)} of empty running across{' '}
-            {pendingLegs.data.length} leg{pendingLegs.data.length === 1 ? '' : 's'} is waiting to
-            be charged to a loaded trip.
+            {money(pendingLegs.meta.totalAmount)} of empty running across {pendingLegs.data.length}{' '}
+            leg{pendingLegs.data.length === 1 ? '' : 's'} is waiting to be charged to a loaded trip.
           </span>
         </div>
       )}
@@ -157,9 +154,7 @@ const PlacementsPage = () => {
           <div className="erp-state">
             <Truck size={48} />
             <p>No placements yet</p>
-            <span className="erp-cell-muted">
-              Assign a tanker from the Placement Board.
-            </span>
+            <span className="erp-cell-muted">Assign a tanker from the Placement Board.</span>
           </div>
         ) : (
           <>
@@ -253,7 +248,9 @@ const PlacementsPage = () => {
         <div
           className="erp-modal-backdrop"
           role="presentation"
-          onClick={(e) => { if (e.target === e.currentTarget) setTarget(null); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setTarget(null);
+          }}
         >
           <div className="erp-modal">
             <div className="erp-modal-header">
@@ -268,8 +265,8 @@ const PlacementsPage = () => {
                 <div className="erp-callout info">
                   <AlertTriangle size={16} />
                   <span>
-                    {target.plannedQty} goes back to {target.doId?.doNumber}. Any empty running
-                    you record here is charged to this tanker&apos;s next loaded trip.
+                    {target.plannedQty} goes back to {target.doId?.doNumber}. Any empty running you
+                    record here is charged to this tanker&apos;s next loaded trip.
                   </span>
                 </div>
 
@@ -295,6 +292,7 @@ const PlacementsPage = () => {
                     <label htmlFor="del-budget">Empty running to carry forward (₹)</label>
                     <input
                       id="del-budget"
+                      aria-label="Empty running to carry forward"
                       type="number"
                       min="0"
                       step="0.01"
@@ -313,6 +311,7 @@ const PlacementsPage = () => {
                     </label>
                     <textarea
                       id="del-remarks"
+                      aria-label="Remarks"
                       value={remarks}
                       onChange={(e) => setRemarks(e.target.value)}
                       placeholder="No load at Kharagpur"
@@ -323,11 +322,7 @@ const PlacementsPage = () => {
               </div>
 
               <div className="erp-modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setTarget(null)}
-                >
+                <button type="button" className="btn btn-secondary" onClick={() => setTarget(null)}>
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-danger" disabled={saving}>
