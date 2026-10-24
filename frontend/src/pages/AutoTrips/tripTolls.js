@@ -20,9 +20,17 @@ export const passId = (p) => `toll-${p.placeId || `${p.lat},${p.lng}`}-${ms(p.at
 export const passName = (p) => p.name || 'Toll booth';
 
 export function fareText(p) {
-  if (p.fareInr != null) return inr(p.fareInr);
+  if (p.fareInr != null) return `${inr(p.fareInr)}${p.fareBasis === 'RETURN' ? ' return' : ''}`;
   return p.unknownReason ? 'fare unknown' : null;
 }
+
+/** What saw a pass, when that is less than the matched road. */
+const EVIDENCE_NOTE = {
+  INFERRED_ROAD: 'time estimated across a GPS gap',
+  STOP: 'stopped at the plaza',
+  GPS: 'from GPS — road not matched yet',
+};
+export const evidenceNote = (p) => EVIDENCE_NOTE[p.evidence] || null;
 
 const GROUP_LABEL = {
   lcv: 'LCV',
@@ -50,10 +58,10 @@ export function tollSummary(tolls) {
   if (!n) return null;
   const head = `${n} toll plaza${n === 1 ? '' : 's'}`;
   const t = tolls.total;
-  if (!t) return head;
   const parts = [head];
-  if (t.priced) parts.push(inr(t.inr));
-  if (t.unknown) parts.push(`${t.unknown} unpriced`);
+  if (t?.priced) parts.push(inr(t.inr));
+  if (t?.unknown) parts.push(`${t.unknown} unpriced`);
+  if (tolls.status === 'FALLBACK') parts.push('road not matched yet');
   return parts.join(' · ');
 }
 
@@ -110,9 +118,7 @@ export function tollMarks(passes, cursorAt) {
     at: { lat: p.lat, lng: p.lng },
     name: passName(p),
     passed: now != null && ms(p.at) <= now,
-    title: [passName(p), fareText(p), p.inferred ? 'time estimated across a GPS gap' : null]
-      .filter(Boolean)
-      .join(' · '),
+    title: [passName(p), fareText(p), evidenceNote(p)].filter(Boolean).join(' · '),
   }));
 }
 

@@ -1,10 +1,10 @@
 import { Play } from 'lucide-react';
 import { fmtClock, fmtDay } from './autoTripFormat';
-import { fareText, passName } from './tripTolls';
+import { evidenceNote, fareText, passName } from './tripTolls';
 
 /**
  * A toll plaza the truck drove through without stopping, as its own row between the stops it happened
- * between. A pass across a GPS gap says its time is estimated.
+ * between. A pass not read off the matched road says what it came from.
  */
 export default function TollTimelineRow({ item, playable, onPlay }) {
   const { pass } = item;
@@ -26,7 +26,7 @@ export default function TollTimelineRow({ item, playable, onPlay }) {
         </div>
         <p className="atx-tl-place">
           {passName(pass)}
-          {pass.inferred ? ' · time estimated across a GPS gap' : ''}
+          {evidenceNote(pass) ? ` · ${evidenceNote(pass)}` : ''}
         </p>
       </div>
       {playable(item.playAt) ? (

@@ -144,7 +144,12 @@ export default function AutoTripDetailPage() {
   const playable = (at) => hasTrack && inWindow(at, track);
   const playFrom = (at) => replayRef.current?.playFrom(at);
   const tollText =
-    tollSummary(tolls) || (tolls?.status === 'OK' ? 'No toll plazas on this run' : null);
+    tollSummary(tolls) ||
+    (tolls?.status === 'OK'
+      ? 'No toll plazas on this run'
+      : tolls?.status === 'FALLBACK'
+        ? 'None found yet — road not matched'
+        : null);
 
   const setDrop = (stop, markPlaceAsDrop) =>
     act(

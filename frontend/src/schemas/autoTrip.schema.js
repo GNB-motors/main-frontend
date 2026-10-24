@@ -194,12 +194,14 @@ export default autoTripListSchema;
 const tollPass = z
   .object({
     at: str,
+    evidence: str, // ROAD | INFERRED_ROAD | STOP | GPS
     inferred: z.boolean().nullish(),
     lat: num,
     lng: num,
     placeId: str,
     name: str,
     fareInr: num,
+    fareBasis: str, // SINGLE | RETURN (the rest of a return ticket within 24 h)
     unknownReason: str,
   })
   .passthrough();
@@ -208,7 +210,7 @@ const tollPass = z
 export const autoTripTollsSchema = z
   .object({
     tripId: str,
-    status: str, // OK | STALE | NOT_MATCHED | NO_WINDOW | ROAD_ENGINE_DISABLED | FAILED
+    status: str, // OK | FALLBACK (stops and GPS; road not matched) | STALE | NO_WINDOW | FAILED
     from: str,
     to: str,
     // The tariff group the truck pays in and what it was read from (null group = not priced).

@@ -83,10 +83,14 @@ describe('tollSummary and fareText', () => {
       '3 toll plazas · ₹825 · 1 unpriced',
     );
     expect(tollSummary({ passes: [{}], total: null })).toBe('1 toll plaza');
+    expect(tollSummary({ status: 'FALLBACK', passes: [{}], total: { inr: 590, priced: 1 } })).toBe(
+      '1 toll plaza · ₹590 · road not matched yet',
+    );
     expect(tollSummary({ passes: [] })).toBeNull();
   });
   it('an unpriced pass says so instead of ₹0', () => {
     expect(fareText({ fareInr: 410 })).toBe('₹410');
+    expect(fareText({ fareInr: 205, fareBasis: 'RETURN' })).toBe('₹205 return');
     expect(fareText({ fareInr: null, unknownReason: 'NO_TOLL_PLACE' })).toBe('fare unknown');
     expect(fareText({})).toBeNull();
   });
@@ -97,12 +101,12 @@ describe('tollMarks', () => {
     const marks = tollMarks(
       [
         pass('2026-10-20T08:30:00Z'),
-        pass('2026-10-20T09:00:00Z', { name: null, inferred: true, fareInr: null }),
+        pass('2026-10-20T09:00:00Z', { name: null, evidence: 'GPS', fareInr: null }),
       ],
       '2026-10-20T08:45:00Z',
     );
     expect(marks.map((m) => m.passed)).toEqual([true, false]);
-    expect(marks[1].title).toBe('Toll booth · time estimated across a GPS gap');
+    expect(marks[1].title).toBe('Toll booth · from GPS — road not matched yet');
     expect(new Set(marks.map((m) => m.id)).size).toBe(2);
   });
 });
