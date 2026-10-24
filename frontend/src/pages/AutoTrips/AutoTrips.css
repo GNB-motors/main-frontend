@@ -1307,6 +1307,16 @@
   border-width: 2px;
   border-color: var(--atx-tl-stop);
 }
+/* A toll plaza driven through: a small amber square, like its marker on the replay map. */
+.atx-tl-step--toll .atx-tl-mark--toll {
+  width: 11px;
+  height: 11px;
+  margin-top: 10px;
+  border: 2px solid var(--atx-amber);
+  border-radius: 2px;
+  background: var(--atx-amber-bg);
+  box-shadow: none;
+}
 
 .atx-tl-body {
   min-width: 0;
@@ -1366,6 +1376,10 @@
 .atx-tl-pill--drop {
   background: var(--atx-green-soft);
   color: var(--atx-green-ink);
+}
+.atx-tl-pill--toll {
+  background: var(--atx-amber-bg);
+  color: var(--atx-amber);
 }
 .atx-tl-actions {
   display: flex;

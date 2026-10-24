@@ -117,6 +117,7 @@ export default function PlaceHubPage() {
   const [fuelView, setFuelView] = useState('hotspots');
   const [satellite, setSatellite] = useState(false);
   const [showPoi, setShowPoi] = useState(false);
+  const [showAllTolls, setShowAllTolls] = useState(false);
   const [showContext, setShowContext] = useState(true);
   const [fitNonce, setFitNonce] = useState(0);
   const [routeChip, setRouteChip] = useState('all');
@@ -477,6 +478,7 @@ export default function PlaceHubPage() {
             drainCells={drainCells}
             stopGroups={stopGroups}
             showPoi={showPoi}
+            showAllTolls={showAllTolls}
             hiddenPlaceId={hiddenPlaceId}
             selectedId={selectedId}
             onSelect={pickFromMap}
@@ -512,6 +514,8 @@ export default function PlaceHubPage() {
             setShowContext={setShowContext}
             showPoi={showPoi}
             setShowPoi={setShowPoi}
+            showAllTolls={showAllTolls}
+            setShowAllTolls={setShowAllTolls}
             satellite={satellite}
             setSatellite={setSatellite}
             setFitNonce={setFitNonce}
@@ -525,6 +529,7 @@ export default function PlaceHubPage() {
             places={visiblePlaces}
             showContext={showContext && tab !== 'places'}
             showPoi={showPoi}
+            showAllTolls={showAllTolls}
           />
         </section>
 

@@ -35,6 +35,9 @@ export const AutoTripService = {
   /** GPS track to replay a trip: left plant → last drop (next pickup / now while open). */
   track: async (id, { signal } = {}) =>
     parsed('autoTripTrackSchema', await apiClient.get(`${BASE}/${id}/track`, { signal })),
+  /** Toll plazas the truck drove through on the replay window, with when (fares for managers). */
+  tolls: async (id, { signal } = {}) =>
+    parsed('autoTripTollsSchema', await apiClient.get(`${BASE}/${id}/tolls`, { signal })),
 
   /** Add a trip the detector missed; the server builds it from the truck's GPS in the window. */
   addManual: async (body, { signal } = {}) =>

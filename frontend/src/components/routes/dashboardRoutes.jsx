@@ -49,9 +49,6 @@ const ExcursionsPage = lazy(() => import('../../pages/AutoTrips/ExcursionsPage.j
 const ExcursionDetailPage = lazy(() => import('../../pages/AutoTrips/ExcursionDetailPage.jsx'));
 const MovementApprovalsPage = lazy(() => import('../../pages/AutoTrips/MovementApprovalsPage.jsx'));
 const PlaceHubPage = lazy(() => import('../../pages/PlaceHub/PlaceHubPage.jsx'));
-// Tolls — plaza gates on the road network, crossings found on the road-matched
-// path, and the estimate-vs-driver-bill cross-check. The API is the role gate.
-const TollsPage = lazy(() => import('../../pages/Tolls/TollsPage.jsx'));
 const LiveTrackingPage = lazy(() => import('../../pages/LiveTracking/LiveTrackingPage.jsx'));
 const OwnerAlertsPage = lazy(() => import('../../pages/OwnerAlerts/OwnerAlertsPage.jsx'));
 // Item 26 — the one alert inbox and the usage numbers behind the nav cut.
@@ -140,7 +137,6 @@ const dashboardRoutes = (
     <Route path="/idling-console" element={<Navigate to="/route-hub" replace />} />
     <Route path="/places" element={<PlacesRedirect />} />
     <Route path="/place-hub" element={<PlaceHubPage />} />
-    <Route path="/tolls" element={<TollsPage />} />
     <Route path="/live-tracking" element={<LiveTrackingPage />} />
     <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
     {/* Item 26.5: ONE inbox over the scattered alert sources. The pages it reads

@@ -1,4 +1,11 @@
-import { MapPinned, Satellite, Map as MapIcon, Maximize2, Building2 } from 'lucide-react';
+import {
+  MapPinned,
+  Satellite,
+  Map as MapIcon,
+  Maximize2,
+  Building2,
+  BadgeIndianRupee,
+} from 'lucide-react';
 import LocationSearch from '../LocationSearch.jsx';
 
 export default function MapToolbar({
@@ -9,6 +16,8 @@ export default function MapToolbar({
   setShowContext,
   showPoi,
   setShowPoi,
+  showAllTolls,
+  setShowAllTolls,
   satellite,
   setSatellite,
   setFitNonce,
@@ -42,6 +51,15 @@ export default function MapToolbar({
           title="Plants, sidings, pumps and dhabas the map data knows about — zoom in to see them"
         >
           <Building2 size={15} /> Map data
+        </button>
+        <button
+          type="button"
+          className={`ph-tool${showAllTolls ? ' is-on' : ''}`}
+          onClick={() => setShowAllTolls((v) => !v)}
+          aria-pressed={showAllTolls}
+          title="Toll plazas your trucks have used are always shown; this adds every other plaza in view — zoom in to see them"
+        >
+          <BadgeIndianRupee size={15} /> All tolls
         </button>
         <button
           type="button"
