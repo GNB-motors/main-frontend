@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   DEFAULT_REPORT,
   REPORT_GROUPS,
+  activeReportId,
   isInlineReport,
   reportDestination,
   resolveReport,
@@ -39,18 +40,16 @@ describe('visibleReportGroups', () => {
     );
   });
 
-  it('drops the empty Tolls group until a toll surface exists', () => {
+  it('no longer carries the empty Tolls group', () => {
+    expect(REPORT_GROUPS.map((g) => g.id)).not.toContain('tolls');
     expect(visibleReportGroups(flags(ALL_FLAGS)).map((g) => g.id)).not.toContain('tolls');
-    expect(REPORT_GROUPS.find((g) => g.id === 'tolls').children).toEqual([]);
   });
 
-  it('groups the business the way an owner reads it', () => {
+  it('keeps only the genuine-report groups (module deep-links removed)', () => {
     expect(visibleReportGroups(flags(ALL_FLAGS)).map((g) => g.id)).toEqual([
       'fuel',
       'trips',
       'compliance',
-      'finance',
-      'fleetOps',
     ]);
   });
 
@@ -90,19 +89,38 @@ describe('reportDestination', () => {
     expect(isInlineReport('driver')).toBe(true);
   });
 
-  it('returns the screen a consolidated row already owns', () => {
+  it('returns the screen a dedicated report row owns', () => {
     expect(reportDestination('defLedger')).toBe('/def-ledger');
-    expect(reportDestination('erpDayBook')).toBe('/erp/accounts?tab=daybook');
+    expect(reportDestination('fuelIntegrity')).toBe('/fuel-integrity');
     expect(isInlineReport('defLedger')).toBe(false);
   });
 
-  it('keeps deep links into an embedded tab of a host page', () => {
+  it('keeps the Fuel vs FleetEdge reconciliation deep link', () => {
     expect(reportDestination('fuelComparison')).toBe('/mileage?tab=reconciliation&view=ecu');
-    expect(reportDestination('routeDeviation')).toBe('/route-hub?tab=deviation');
   });
 
-  it('is null for a row that is not in the catalog', () => {
+  it('is null for a removed module link or a row not in the catalog', () => {
+    expect(reportDestination('erpDayBook')).toBeNull();
+    expect(reportDestination('routeDeviation')).toBeNull();
     expect(reportDestination('nope')).toBeNull();
+  });
+});
+
+describe('activeReportId', () => {
+  it('reads ?report= on the Reports hub, defaulting when absent', () => {
+    expect(activeReportId('/reports', '?report=vehicle')).toBe('vehicle');
+    expect(activeReportId('/reports', '')).toBe(DEFAULT_REPORT);
+  });
+
+  it('matches a dedicated report screen by its path, ignoring query', () => {
+    expect(activeReportId('/fuel-integrity', '')).toBe('fuelIntegrity');
+    expect(activeReportId('/def-ledger', '')).toBe('defLedger');
+    expect(activeReportId('/mileage', '?tab=reconciliation&view=ecu')).toBe('fuelComparison');
+  });
+
+  it('is null away from any report screen', () => {
+    expect(activeReportId('/vehicles', '')).toBeNull();
+    expect(activeReportId('/erp', '')).toBeNull();
   });
 });
 
@@ -118,7 +136,7 @@ describe('resolveReport', () => {
   });
 
   it('falls back for a row that links out — it has no table on this page', () => {
-    expect(resolveReport('erpReceipts', flags([]))).toBe(DEFAULT_REPORT);
+    expect(resolveReport('fuelComparison', flags(ALL_FLAGS))).toBe(DEFAULT_REPORT);
     expect(resolveReport('defLedger', flags([]))).toBe(DEFAULT_REPORT);
   });
 });
