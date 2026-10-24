@@ -50,7 +50,13 @@ function buildTrailSegments(rawTrailPoints) {
   return { segments, tripIds };
 }
 
-export default function useTrailGeometry({ selectedVehicle, trailPoints, rawTrailPoints, trips = [], replayState }) {
+export default function useTrailGeometry({
+  selectedVehicle,
+  trailPoints,
+  rawTrailPoints,
+  trips = [],
+  replayState,
+}) {
   const selectedStatusColor = useMemo(() => {
     if (!selectedVehicle) return '#187A32';
     return (NOVA_STATUS[selectedVehicle.status] || NOVA_STATUS.moving).c;
@@ -122,6 +128,16 @@ export default function useTrailGeometry({ selectedVehicle, trailPoints, rawTrai
     return { replayCurrentPos: cur, replayRunPath: pathSlice, replayBearing: brg };
   }, [replayState.on, replayState.pts, replayState.t]);
 
+  // The historical timestamp at the current replay position, taken from the raw
+  // trail fix nearest the scrub point, so weather is read for the hour the trip
+  // actually happened rather than for "now".
+  const replayCurrentTs = useMemo(() => {
+    if (!replayState.on || !Array.isArray(rawTrailPoints) || rawTrailPoints.length < 2) return null;
+    const t = Math.max(0, Math.min(1, replayState.t));
+    const i = Math.min(rawTrailPoints.length - 1, Math.round(t * (rawTrailPoints.length - 1)));
+    return rawTrailPoints[i]?.eventDateTime || null;
+  }, [replayState.on, rawTrailPoints, replayState.t]);
+
   return {
     selectedStatusColor,
     trailCoords,
@@ -133,5 +149,6 @@ export default function useTrailGeometry({ selectedVehicle, trailPoints, rawTrai
     replayCurrentPos,
     replayRunPath,
     replayBearing,
+    replayCurrentTs,
   };
 }
