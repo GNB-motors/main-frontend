@@ -39,7 +39,13 @@ export default function SupportPortalProvider({ children }) {
   const value = {
     enabled,
     unread: unread ?? 0,
-    openPortal: () => setPanel((p) => ({ mounted: true, open: true, session: p.session + 1 })),
+    openPortal: (ticketId = null) =>
+      setPanel((p) => ({
+        mounted: true,
+        open: true,
+        ticketId: typeof ticketId === 'string' ? ticketId : null,
+        session: p.session + 1,
+      })),
     refreshUnread: refetch,
   };
 
@@ -51,6 +57,7 @@ export default function SupportPortalProvider({ children }) {
           <SupportPortal
             key={panel.session}
             open={panel.open}
+            initialTicketId={panel.ticketId}
             onOpenChange={(open) => {
               setPanel((p) => ({ ...p, open }));
               if (!open) refetch();

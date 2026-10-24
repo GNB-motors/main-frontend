@@ -19,6 +19,12 @@
 
 export const DEFAULT_REPORT = 'driver';
 
+// Only genuine reports live here. Entries that merely deep-linked into other
+// modules (ERP, Vehicles, Drivers, Settings, Route Hub, Auto Trips, Daily
+// Digest, iALERT, Fleet Alerts, …) were removed: clicking them left the Reports
+// hub entirely, which is not what a report row should do. What remains is either
+// a report rendered in-page (`id`) or a dedicated report SCREEN that keeps the
+// reports rail when opened (`to` → /fuel-integrity, /def-ledger, /mileage).
 export const REPORT_GROUPS = [
   {
     id: 'fuel',
@@ -42,7 +48,6 @@ export const REPORT_GROUPS = [
         to: '/mileage?tab=reconciliation&view=ecu',
         flag: 'fuelIntegrity',
       },
-      { id: 'mileageHub', label: 'Fuel & Mileage Hub', to: '/mileage' },
     ],
   },
   {
@@ -59,66 +64,12 @@ export const REPORT_GROUPS = [
       // SAP per route (/api/sap is gated by requireFeature('sapV2')). The id stays laneKm so
       // existing links keep working.
       { id: 'laneKm', label: 'SAP routes', flag: 'sapV2' },
-      { id: 'autoTrips', label: 'Auto Trips', to: '/auto-trips', flag: 'autoTrips' },
-      {
-        id: 'routeProfitability',
-        label: 'Route Profitability',
-        to: '/route-hub?tab=profitability',
-      },
-      { id: 'routeDeviation', label: 'Route Deviation', to: '/route-hub?tab=deviation' },
-      { id: 'routeOverspeed', label: 'Overspeed Audit', to: '/route-hub?tab=overspeed' },
     ],
-  },
-  {
-    // Reserved for the toll ledger surface. Nothing exports tolls today, so the
-    // group stays empty and visibleReportGroups() drops it until it lands.
-    id: 'tolls',
-    label: 'TOLLS',
-    children: [],
   },
   {
     id: 'compliance',
     label: 'COMPLIANCE',
-    children: [
-      { id: 'defLedger', label: 'DEF Ledger', to: '/def-ledger' },
-      { id: 'fleetCoverage', label: 'Fleet Coverage', to: '/fleet-coverage' },
-      { id: 'ialertFleet', label: 'iALERT Fleet', to: '/ialert/vehicles' },
-      { id: 'fleetAlerts', label: 'Fleet Alerts', to: '/fleet-alerts' },
-      {
-        id: 'fleetedgeAccounts',
-        label: 'FleetEdge Link Health',
-        to: '/settings/fleetedge-accounts',
-      },
-      {
-        id: 'assignedEmployees',
-        label: 'Assigned Employees',
-        to: '/access-control/assigned-employees',
-      },
-    ],
-  },
-  {
-    id: 'finance',
-    label: 'FINANCE',
-    children: [
-      { id: 'erpHome', label: 'ERP Overview', to: '/erp' },
-      { id: 'erpReceipts', label: 'Receipts', to: '/erp/billing?tab=receipts' },
-      { id: 'erpOutstanding', label: 'Outstanding', to: '/erp/billing?tab=outstanding' },
-      { id: 'erpSaleBills', label: 'Sale Bills', to: '/erp/billing?tab=bills' },
-      { id: 'erpDayBook', label: 'Day Book', to: '/erp/accounts?tab=daybook' },
-      { id: 'erpLedger', label: 'Ledger', to: '/erp/accounts?tab=ledger' },
-      { id: 'erpRegisters', label: 'Registers', to: '/erp/accounts?tab=registers' },
-      { id: 'erpVendorPayments', label: 'Vendor Payments', to: '/erp/payables?tab=vendor' },
-      { id: 'erpSupplierPayments', label: 'Supplier Payments', to: '/erp/payables?tab=supplier' },
-    ],
-  },
-  {
-    id: 'fleetOps',
-    label: 'FLEET & OPERATIONS',
-    children: [
-      { id: 'vehicles', label: 'Vehicles', to: '/vehicles' },
-      { id: 'employees', label: 'Drivers', to: '/drivers' },
-      { id: 'dailyDigest', label: 'Daily Digest', to: '/digest' },
-    ],
+    children: [{ id: 'defLedger', label: 'DEF Ledger', to: '/def-ledger' }],
   },
 ];
 
@@ -136,6 +87,22 @@ export function visibleReportGroups(isEnabled, groups = REPORT_GROUPS) {
 export function reportDestination(id, groups = REPORT_GROUPS) {
   const entry = groups.flatMap((group) => group.children).find((report) => report.id === id);
   return entry?.to || null;
+}
+
+/**
+ * The report a given location is showing, so the rail highlights the right row
+ * on every report screen — the in-page reports read `?report=`, the dedicated
+ * screens are matched by their `to` path (ignoring query). null when the current
+ * route is not a report screen.
+ */
+export function activeReportId(pathname, search, groups = REPORT_GROUPS) {
+  if (pathname === '/reports') {
+    return new URLSearchParams(search || '').get('report') || DEFAULT_REPORT;
+  }
+  const entry = groups
+    .flatMap((group) => group.children)
+    .find((report) => report.to && report.to.split('?')[0] === pathname);
+  return entry?.id || null;
 }
 
 /** True when the row renders inside this page instead of linking out. */

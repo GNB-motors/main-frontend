@@ -10,7 +10,11 @@ import apiClient from '../utils/axiosConfig';
  */
 export async function getInbox({ status = 'OPEN', signal } = {}) {
   const response = await apiClient.get('/api/alert-inbox', { params: { status }, signal });
-  return response.data?.data ?? { items: [], openCount: 0, byCondition: {}, sources: {} };
+  const data = response.data?.data;
+  if (!data || !Array.isArray(data.items)) {
+    throw new Error('Could not read the inbox response. Please try again.');
+  }
+  return data;
 }
 
 export async function acknowledgeItem(id) {

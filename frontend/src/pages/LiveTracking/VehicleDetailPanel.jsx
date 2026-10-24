@@ -6,6 +6,7 @@ import RecordedPathSection from './RecordedPathSection.jsx';
 import VehicleInfoSection from './VehicleInfoSection.jsx';
 import DriverAssignmentSection from './DriverAssignmentSection.jsx';
 import TelematicsDiagnosticsSection from './TelematicsDiagnosticsSection.jsx';
+import WeatherSection from './WeatherSection.jsx';
 
 export default function VehicleDetailPanel({
   selectedVehicle,
@@ -26,6 +27,9 @@ export default function VehicleDetailPanel({
   tripLegend,
   habitualHalts,
   isHabitualHaltsVisible,
+  weather,
+  weatherLoading,
+  weatherContext,
 }) {
   return (
     <div
@@ -204,6 +208,11 @@ export default function VehicleDetailPanel({
 
             {/* Deep Details Accordion Sections */}
             <div className="sections">
+              <WeatherSection
+                weather={weather}
+                loading={weatherLoading}
+                contextLabel={weatherContext}
+              />
               <DestinationIntentSection registrationNumber={selectedVehicle.plate} />
               <RecordedPathSection
                 isTrailVisible={isTrailVisible}

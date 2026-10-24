@@ -29,7 +29,14 @@ export async function getNavProfile({ surfaces = [], signal } = {}) {
 }
 
 /** The Usage page: the same profile with the daily series behind it. */
-export async function getUsageSummary({ signal } = {}) {
-  const response = await apiClient.get('/api/usage/summary', { signal });
-  return response.data?.data ?? null;
+export async function getUsageSummary({ surfaces = [], signal } = {}) {
+  const response = await apiClient.get('/api/usage/summary', {
+    params: surfaces.length ? { surfaces: surfaces.join(',') } : {},
+    signal,
+  });
+  const data = response.data?.data;
+  if (!data || !Array.isArray(data.surfaces) || !Array.isArray(data.daily)) {
+    throw new Error('Could not read app usage. Please try again.');
+  }
+  return data;
 }

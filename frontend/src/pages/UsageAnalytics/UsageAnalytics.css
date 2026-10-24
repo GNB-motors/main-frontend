@@ -1,0 +1,315 @@
+.usage-page {
+  --usage-line: var(--border, #e2e8f0);
+  --usage-muted: var(--muted-foreground, #64748b);
+  --usage-surface: var(--card, #fff);
+}
+.usage-scope {
+  color: var(--usage-muted);
+  font-size: 12px;
+  margin: 0 0 20px;
+  line-height: 1.7;
+}
+.usage-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.usage-stat {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--usage-line);
+  background: var(--usage-surface);
+  border-radius: 12px;
+}
+.usage-stat-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  flex-shrink: 0;
+}
+.usage-stat div > span {
+  font-size: 12px;
+  color: var(--usage-muted);
+}
+.usage-stat strong {
+  display: block;
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+}
+.usage-explanation {
+  margin: 20px 0;
+  padding: 16px 20px;
+  border: 1px solid var(--usage-line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--primary, #2563eb) 4%, var(--usage-surface));
+  font-size: 13px;
+  line-height: 1.7;
+}
+.usage-explanation p {
+  margin: 4px 0;
+}
+.usage-explanation small {
+  color: var(--usage-muted);
+}
+.usage-panel {
+  border: 1px solid var(--usage-line);
+  background: var(--usage-surface);
+  border-radius: 12px;
+  margin: 20px 0;
+  overflow: hidden;
+}
+.usage-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+}
+.usage-panel h2 {
+  font-size: 14px;
+  font-weight: 650;
+  margin: 0;
+}
+.usage-panel-head p {
+  color: var(--usage-muted);
+  font-size: 12px;
+  margin: 4px 0 0;
+}
+.usage-page select {
+  border: 1px solid var(--usage-line);
+  background: var(--usage-surface);
+  color: inherit;
+  border-radius: 7px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.usage-chart {
+  display: flex;
+  height: 205px;
+  padding: 12px 20px 0;
+  gap: 12px;
+}
+.usage-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--usage-muted);
+  padding-bottom: 25px;
+}
+.usage-bars {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+.usage-day {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.usage-bar-space {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  border-bottom: 1px solid var(--usage-line);
+  background: linear-gradient(to top, transparent 49%, var(--usage-line) 50%, transparent 51%);
+}
+.usage-bar {
+  display: block;
+  width: 100%;
+  background: var(--primary, #2563eb);
+  border-radius: 4px 4px 0 0;
+}
+.usage-tick {
+  height: 25px;
+  padding-top: 6px;
+  font-size: 9px;
+  color: var(--usage-muted);
+  white-space: nowrap;
+}
+.usage-daily-data {
+  padding: 14px 20px;
+  color: var(--usage-muted);
+  font-size: 12px;
+}
+.usage-page summary {
+  cursor: pointer;
+}
+.usage-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--usage-line);
+  border-bottom: 1px solid var(--usage-line);
+}
+.usage-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--usage-line);
+  border-radius: 7px;
+  margin-right: auto;
+}
+.usage-search input {
+  width: 190px;
+  max-width: 100%;
+  background: transparent;
+  color: inherit;
+  border: 0;
+  font-size: 13px;
+}
+.usage-table-scroll {
+  overflow-x: auto;
+}
+.usage-panel table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+.usage-panel th,
+.usage-panel td {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--usage-line);
+  vertical-align: top;
+}
+.usage-panel thead th {
+  color: var(--usage-muted);
+  font-size: 11px;
+  font-weight: 550;
+  white-space: nowrap;
+}
+.usage-panel tbody td {
+  font-variant-numeric: tabular-nums;
+}
+.usage-panel tbody th {
+  min-width: 180px;
+  font-weight: 550;
+}
+.usage-panel tbody th > small {
+  display: block;
+  margin-top: 4px;
+  font-weight: 400;
+  color: var(--usage-muted);
+  overflow-wrap: anywhere;
+}
+.usage-panel th a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: inherit;
+  text-decoration: none;
+}
+.usage-panel th a:hover {
+  text-decoration: underline;
+}
+.usage-row-detail {
+  margin-top: 8px;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--usage-muted);
+}
+.usage-badge {
+  display: inline-block;
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: color-mix(in srgb, currentColor 7%, transparent);
+  white-space: nowrap;
+  font-size: 11px;
+}
+.usage-badge--AT_OR_ABOVE_FLOOR {
+  color: #15803d;
+  background: #f0fdf4;
+}
+.usage-badge--BELOW_ORG_FLOOR {
+  color: #92400e;
+  background: #fffbeb;
+}
+.usage-count,
+.usage-footer {
+  font-size: 11px;
+  color: var(--usage-muted);
+}
+.usage-footer {
+  padding: 14px 20px;
+  line-height: 1.7;
+}
+.usage-empty,
+.usage-loading {
+  padding: 42px 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--usage-muted);
+}
+.usage-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.usage-empty h3 {
+  color: var(--foreground);
+  font-size: 15px;
+}
+.usage-error {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  background: #fef2f2;
+  color: #b91c1c;
+  border-radius: 8px;
+  font-size: 13px;
+}
+@media (max-width: 1100px) {
+  .usage-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .usage-stats {
+    gap: 8px;
+  }
+  .usage-stat {
+    padding: 12px;
+    gap: 8px;
+  }
+  .usage-stat-icon {
+    width: 30px;
+    height: 30px;
+  }
+  .usage-stat strong {
+    font-size: 22px;
+  }
+  .usage-panel-head,
+  .usage-toolbar {
+    padding: 14px;
+  }
+  .usage-search {
+    width: 100%;
+  }
+  .usage-search input {
+    width: 100%;
+  }
+  .usage-bars {
+    gap: 3px;
+  }
+  .usage-chart {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .usage-panel th,
+  .usage-panel td {
+    padding: 12px;
+  }
+}

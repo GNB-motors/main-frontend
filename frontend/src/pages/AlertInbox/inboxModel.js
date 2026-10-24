@@ -17,7 +17,7 @@ export const SEVERITY_COPY = Object.freeze({
 export function emptyInboxCopy() {
   return {
     title: 'Nothing needs doing',
-    hint: 'Every alert this organization has raised has been looked at. When a fuel loss, a link expiry, a tyre or a support reply needs you, it will appear here with the action spelled out.',
+    hint: 'No open items in this inbox. Source feeds update periodically; continue to check urgent alerts in their dedicated pages.',
   };
 }
 
@@ -72,4 +72,48 @@ export function sinceLabel(iso) {
   const days = Math.round(hours / 24);
   if (days < 30) return `${days} d ago`;
   return new Date(iso).toISOString().slice(0, 10);
+}
+export const SOURCE_LABELS = Object.freeze({
+  ownerAlerts: 'Owner alerts',
+  fleetAlerts: 'Fleet alerts',
+  hotspotWatch: 'Fuel hotspots',
+  supportTicket: 'Support',
+});
+
+// Only known internal destinations are used; API text never becomes a URL.
+export function reviewTarget(item) {
+  const ticket = item.sources?.find((s) => s.source === 'supportTicket' && s.refId);
+  if (ticket) return { ticketId: ticket.refId, label: 'Open ticket' };
+  if (item.condition === 'HOTSPOT_REVIEW') {
+    const hotspot = item.sources?.find((s) => s.source === 'hotspotWatch' && s.refId);
+    return {
+      to: `/place-hub?tab=fuel${hotspot ? `&hotspot=${encodeURIComponent(hotspot.refId)}` : ''}`,
+      label: 'Review hotspot',
+    };
+  }
+  const vehicle =
+    item.subjectKey && !item.subjectKey.includes(':') && item.subjectKey !== 'ORG'
+      ? `?vehicle=${encodeURIComponent(item.subjectKey)}`
+      : '';
+  const owner = item.sources?.some((s) => s.source === 'ownerAlerts');
+  return { to: `${owner ? '/owner-alerts' : '/fleet-alerts'}${vehicle}`, label: 'Review alert' };
+}
+
+export function filterInbox(
+  items,
+  { status = 'OPEN', query = '', severity = '', source = '' } = {},
+) {
+  const needle = query.trim().toLowerCase();
+  return items.filter(
+    (item) =>
+      item.status === status &&
+      (!severity || item.severity === severity) &&
+      (!source || item.sources?.some((s) => s.source === source)) &&
+      (!needle ||
+        [item.subjectLabel, item.subjectKey, item.label, item.wants].some((value) =>
+          String(value || '')
+            .toLowerCase()
+            .includes(needle),
+        )),
+  );
 }
