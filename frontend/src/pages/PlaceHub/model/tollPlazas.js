@@ -12,6 +12,13 @@ const SIGNAL_TEXT = {
   ROUTE: 'on a route the fleet drives',
   SITE: 'one of your places',
 };
+/** Where a plaza is known from. TOLLGURU: found by asking TollGuru, on no map or list. */
+const SOURCE_LABEL = {
+  NHAI: 'NHAI',
+  STATE: 'State list',
+  OSM: 'OpenStreetMap only',
+  TOLLGURU: 'Found via TollGuru',
+};
 const FARE_LABEL = [
   ['multiaxle', '3-axle'],
   ['axle_4_6', '4–6 axle'],
@@ -42,12 +49,15 @@ export function tollPopupLines(p) {
   }
   const where = [p.nhNo ? `NH ${p.nhNo}` : null, p.state].filter(Boolean).join(' · ');
   if (where) lines.push(['Road', where]);
-  const source =
-    p.source === 'OSM' ? 'OpenStreetMap only' : `${p.source === 'STATE' ? 'State list' : 'NHAI'}`;
+  const source = SOURCE_LABEL[p.source] || 'NHAI';
   lines.push(['Source', p.corroborated ? `${source} · gate confirmed on the map` : source]);
   const fares = FARE_LABEL.filter(([k]) => p.fares && p.fares[k] != null).map(
     ([k, label]) => `${label} ${inr(p.fares[k])}`,
   );
-  lines.push(['One way', fares.length ? fares.join(' · ') : 'no published fare']);
+  const quoted = p.fares && p.fares.source === 'TOLLGURU';
+  lines.push([
+    quoted ? 'One way (quote)' : 'One way',
+    fares.length ? fares.join(' · ') : 'no fare yet',
+  ]);
   return lines;
 }

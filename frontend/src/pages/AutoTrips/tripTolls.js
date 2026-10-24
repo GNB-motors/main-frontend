@@ -19,9 +19,15 @@ export const passId = (p) => `toll-${p.placeId || `${p.lat},${p.lng}`}-${ms(p.at
 /** "Dankuni Toll Plaza", or what we know when no toll Place covers the booth yet. */
 export const passName = (p) => p.name || 'Toll booth';
 
+/**
+ * The pass's fare as people read it. A closed expressway's entry pays nothing ("charged at exit"); its
+ * exit pays the stretch. A fare from TollGuru rather than a published tariff says "quote".
+ */
 export function fareText(p) {
-  if (p.fareInr != null) return `${inr(p.fareInr)}${p.fareBasis === 'RETURN' ? ' return' : ''}`;
-  return p.unknownReason ? 'fare unknown' : null;
+  if (p.fareBasis === 'ENTRY') return 'charged at exit';
+  if (p.fareInr == null) return p.unknownReason ? 'fare unknown' : null;
+  const suffix = { RETURN: ' return', SEGMENT: ' for the stretch' }[p.fareBasis] || '';
+  return `${inr(p.fareInr)}${suffix}${p.fareSource === 'TOLLGURU' ? ' (quote)' : ''}`;
 }
 
 /** What saw a pass, when that is less than the matched road. */

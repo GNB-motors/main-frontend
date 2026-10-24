@@ -45,7 +45,29 @@ describe('tollPopupLines', () => {
     expect(lines).toEqual({
       'Your trucks': 'not visited yet',
       Source: 'OpenStreetMap only',
-      'One way': 'no published fare',
+      'One way': 'no fare yet',
     });
+  });
+});
+
+describe('a fare TollGuru quoted', () => {
+  it('is labelled a quote, never passed off as the published tariff', () => {
+    const lines = Object.fromEntries(
+      tollPopupLines(
+        plaza('q', {
+          source: 'OSM',
+          fares: { multiaxle: null, axle_4_6: 610, source: 'TOLLGURU' },
+        }),
+      ),
+    );
+    expect(lines['One way (quote)']).toBe('4–6 axle ₹610');
+  });
+});
+
+describe('a plaza only TollGuru knows', () => {
+  it('says where it was found', () => {
+    expect(Object.fromEntries(tollPopupLines(plaza('t', { source: 'TOLLGURU' }))).Source).toBe(
+      'Found via TollGuru',
+    );
   });
 });

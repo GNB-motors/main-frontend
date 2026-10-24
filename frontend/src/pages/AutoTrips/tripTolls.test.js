@@ -91,6 +91,12 @@ describe('tollSummary and fareText', () => {
   it('an unpriced pass says so instead of ₹0', () => {
     expect(fareText({ fareInr: 410 })).toBe('₹410');
     expect(fareText({ fareInr: 205, fareBasis: 'RETURN' })).toBe('₹205 return');
+    expect(fareText({ fareInr: 0, fareBasis: 'ENTRY', fareSource: 'TOLLGURU' })).toBe(
+      'charged at exit',
+    );
+    expect(fareText({ fareInr: 1200, fareBasis: 'SEGMENT', fareSource: 'TOLLGURU' })).toBe(
+      '₹1,200 for the stretch (quote)',
+    );
     expect(fareText({ fareInr: null, unknownReason: 'NO_TOLL_PLACE' })).toBe('fare unknown');
     expect(fareText({})).toBeNull();
   });

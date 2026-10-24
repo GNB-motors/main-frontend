@@ -201,7 +201,8 @@ const tollPass = z
     placeId: str,
     name: str,
     fareInr: num,
-    fareBasis: str, // SINGLE | RETURN (the rest of a return ticket within 24 h)
+    fareBasis: str, // SINGLE | RETURN (24 h return) | ENTRY / SEGMENT (closed expressway)
+    fareSource: str, // PUBLISHED (NHAI / state tariff) | TOLLGURU (quote)
     unknownReason: str,
   })
   .passthrough();

@@ -471,7 +471,14 @@ export const routesMapSchema = z
   .passthrough();
 
 const tollFares = z
-  .object({ lcv: num, bus: num, multiaxle: num, axle_4_6: num, axle_7_plus: num })
+  .object({
+    lcv: num,
+    bus: num,
+    multiaxle: num,
+    axle_4_6: num,
+    axle_7_plus: num,
+    source: z.string().nullish(),
+  })
   .passthrough();
 
 /** GET /place-intelligence/toll-plazas — toll plazas, marked visited by this org's trucks. */
