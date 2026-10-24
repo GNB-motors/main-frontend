@@ -11,8 +11,23 @@ import {
 import PoiKeys from './PoiKeys.jsx';
 import { RUN_COLORS } from '../model/routes.js';
 
-export default function Legend({ tab, places, showContext, showPoi, isDark }) {
+const TOLL = '#0891b2';
+
+export default function Legend({ tab, places, showContext, showPoi, showAllTolls, isDark }) {
   const poi = showPoi && <PoiKeys />;
+  // Visited toll plazas are on every tab, so their key is too.
+  const tolls = (
+    <>
+      <span className="ph-legend-item">
+        <i className="is-square" style={{ background: TOLL, borderColor: TOLL }} /> Toll plaza used
+      </span>
+      {showAllTolls && (
+        <span className="ph-legend-item">
+          <i className="is-square is-hollow" style={{ borderColor: TOLL }} /> Other toll plaza
+        </span>
+      )}
+    </>
+  );
   if (tab === 'routes')
     return (
       <div className="ph-legend ph-route-legend">
@@ -33,6 +48,7 @@ export default function Legend({ tab, places, showContext, showPoi, isDark }) {
         <span>━ Road our trucks drove</span>
         <span>┄ Likely road (engine)</span>
         <span>··· Straight-line link</span>
+        {tolls}
       </div>
     );
   if (tab === 'places') {
@@ -41,7 +57,6 @@ export default function Legend({ tab, places, showContext, showPoi, isDark }) {
     ].slice(0, 8);
     const proposed = places.some((p) => p.status === 'PROPOSED');
     const risk = places.some((p) => p.risk);
-    if (!types.length && !proposed && !risk && !poi) return null;
     return (
       <div className="ph-legend">
         {types.map((t) => (
@@ -60,6 +75,7 @@ export default function Legend({ tab, places, showContext, showPoi, isDark }) {
           </span>
         )}
         {poi}
+        {tolls}
       </div>
     );
   }
@@ -76,6 +92,7 @@ export default function Legend({ tab, places, showContext, showPoi, isDark }) {
         </span>
         {context}
         {poi}
+        {tolls}
       </div>
     );
   }
@@ -93,6 +110,7 @@ export default function Legend({ tab, places, showContext, showPoi, isDark }) {
         </span>
         {context}
         {poi}
+        {tolls}
       </div>
     );
   }
@@ -110,6 +128,7 @@ export default function Legend({ tab, places, showContext, showPoi, isDark }) {
       </span>
       {context}
       {poi}
+      {tolls}
     </div>
   );
 }

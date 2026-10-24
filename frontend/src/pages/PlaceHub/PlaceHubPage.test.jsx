@@ -33,6 +33,7 @@ vi.mock('./PlaceHubService.js', () => {
     loadSummary: vi.fn(),
     loadBreaks: vi.fn(),
     loadPoi: vi.fn(),
+    loadTollPlazas: vi.fn(),
     tagStop: vi.fn(),
     loadHotspots: vi.fn(),
     loadDrainMap: vi.fn(),
@@ -175,6 +176,7 @@ function seed() {
     ]),
   );
   PlaceHubService.tagStop.mockResolvedValue({});
+  PlaceHubService.loadTollPlazas.mockResolvedValue([]);
 }
 
 function renderPage(path = '/place-hub') {
@@ -193,6 +195,22 @@ beforeEach(() => {
 });
 
 describe('PlaceHubPage', () => {
+  it('always loads the toll plazas the fleet used; every other plaza waits for the toggle', async () => {
+    renderPage();
+    const toggle = await screen.findByRole('button', { name: /all tolls/i });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(PlaceHubService.loadTollPlazas).toHaveBeenCalledWith(
+      { scope: 'visited' },
+      expect.objectContaining({ signal: expect.anything() }),
+    );
+    expect(PlaceHubService.loadTollPlazas).not.toHaveBeenCalledWith(
+      expect.objectContaining({ scope: 'all' }),
+      expect.anything(),
+    );
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('lists every place once — the warehouse mirror zone is folded away', async () => {
     renderPage();
     const list = await screen.findByRole('list');

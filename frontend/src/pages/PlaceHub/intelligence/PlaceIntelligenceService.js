@@ -112,6 +112,16 @@ export const PlaceIntelligenceService = {
   listFacilities: async (params = {}, { signal } = {}) =>
     unwrap(await apiClient.get(`${BASE}/facilities`, { params, signal })),
 
+  /** Toll plazas: every one this org's trucks visited, or (scope 'all') every one in a box. */
+  listTollPlazas: async ({ scope, south, west, north, east }, { signal } = {}) =>
+    parsed(
+      'tollPlazaListSchema',
+      await apiClient.get(`${BASE}/toll-plazas`, {
+        params: scope === 'all' ? { scope, south, west, north, east } : { scope },
+        signal,
+      }),
+    ),
+
   // ─── Map knowledge (plants, pumps, sidings, towns …) learned from OSM/Google
   listPoi: async ({ south, west, north, east, categories }, { signal } = {}) =>
     unwrap(
@@ -150,11 +160,7 @@ export const PlaceIntelligenceService = {
   previewMergeApply: async ({ survivorId, memberIds }, { signal } = {}) =>
     parsed(
       'mergeApplyPreviewSchema',
-      await apiClient.post(
-        `${BASE}/merges/preview-apply`,
-        { survivorId, memberIds },
-        { signal },
-      ),
+      await apiClient.post(`${BASE}/merges/preview-apply`, { survivorId, memberIds }, { signal }),
     ),
 
   applyMerge: async ({ survivorId, memberIds }, { signal } = {}) =>
