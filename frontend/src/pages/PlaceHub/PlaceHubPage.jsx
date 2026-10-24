@@ -265,6 +265,22 @@ export default function PlaceHubPage() {
     [focusOn],
   );
 
+  const linkedHotspot = params.get('hotspot');
+  useEffect(() => {
+    if (tab !== 'fuel' || !linkedHotspot) return;
+    const hotspot = hotspots.find((item) => item.sourceId === linkedHotspot);
+    if (!hotspot) return;
+    pickFromList(hotspot.id, hotspot.lat, hotspot.lng);
+    setParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        next.delete('hotspot');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [tab, linkedHotspot, hotspots, pickFromList, setParams]);
+
   // Opening the detail column narrows the map, so a marker clicked near the
   // right edge would slide out of view — re-centre on it, without zooming.
   const pointsById = useMemo(

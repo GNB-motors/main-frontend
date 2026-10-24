@@ -1,169 +1,344 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { Bell, ShieldAlert, Truck, RefreshCw, Search, ArrowUpRight, Check, X } from 'lucide-react';
 import PageShell from '../../components/ui/PageShell.jsx';
-import EmptyState from '../../components/cluster/EmptyState.jsx';
-import KpiCard from '../../components/ui/KpiCard.jsx';
 import { Button } from '../../components/ui/button.jsx';
-import { getInbox, acknowledgeItem, acknowledgeAll } from '../../services/AlertInboxService.js';
-import {
-  groupByCondition,
-  emptyInboxCopy,
-  sourcesLine,
-  sinceLabel,
-  SEVERITY_COPY,
-} from './inboxModel.js';
+import { Dialog, DialogContent, DialogTitle, DialogClose } from '../../components/ui/dialog.jsx';
+import { useSupportPortal } from '../../contexts/supportPortalContext';
+import { getInbox, acknowledgeItem } from '../../services/AlertInboxService.js';
+import { SOURCE_LABELS, sinceLabel, reviewTarget, filterInbox } from './inboxModel.js';
+import './AlertInbox.css';
 
-/**
- * Alert Inbox — item 26.5, one feed over the alerts that used to be separate.
- *
- * NOTHING HERE HIDES A SCREEN. Owner alerts, FleetEdge alerts, learned hotspots
- * and support tickets each keep their own page and their own endpoint; this is
- * the same rows folded so that one condition is one thing to do.
- *
- * The three properties the page is built to guarantee:
- *  - every row leads with WHAT IT WANTS DONE, and a row without an ask is
- *    filtered out with a console warning rather than shown blank;
- *  - a condition reported by three modules is ONE row with three sources, and
- *    the row says how many;
- *  - the empty inbox is a real, celebrated state: "Nothing needs doing".
- */
 export default function AlertInboxPage() {
   const [data, setData] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
-  const [showDone, setShowDone] = React.useState(false);
-  const [busy, setBusy] = React.useState(false);
+  const [actionError, setActionError] = React.useState(null);
+  const [pending, setPending] = React.useState(new Set());
+  const [status, setStatus] = React.useState('OPEN');
+  const [query, setQuery] = React.useState('');
+  const [severity, setSeverity] = React.useState('');
+  const [source, setSource] = React.useState('');
+  const [detailId, setDetailId] = React.useState(null);
+  const [announcement, setAnnouncement] = React.useState('');
+  const request = React.useRef(null);
+  const mounted = React.useRef(true);
+  const support = useSupportPortal();
 
-  const load = React.useCallback(
-    (status = 'OPEN') =>
-      getInbox({ status })
-        .then(setData)
-        .catch((err) => setError(err?.message || 'Could not load the inbox'))
-        .finally(() => setLoading(false)),
-    [],
-  );
+  const load = React.useCallback(async () => {
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await getInbox({ status: 'ALL', signal: controller.signal });
+      if (!controller.signal.aborted) setData(result);
+    } catch (err) {
+      if (!controller.signal.aborted) setError(err?.message || 'Could not load alerts. Try again.');
+    } finally {
+      if (!controller.signal.aborted) setLoading(false);
+    }
+  }, []);
 
   React.useEffect(() => {
-    load(showDone ? 'ALL' : 'OPEN');
-  }, [load, showDone]);
-
-  const all = data?.items || [];
-  // A row with no ask is a server bug, not a rendering problem. Never render
-  // one, and never let it empty the list — the rest of the inbox still stands.
-  const items = all.filter((item) => item.wants && String(item.wants).trim());
-  const withheld = all.length - items.length;
-  const groups = groupByCondition(items);
-  const openCount = items.filter((i) => i.status === 'OPEN').length;
+    mounted.current = true;
+    load();
+    return () => {
+      mounted.current = false;
+      request.current?.abort();
+    };
+  }, [load]);
 
   const ack = async (id) => {
-    setBusy(true);
+    setPending((current) => new Set(current).add(id));
+    setActionError(null);
     try {
-      await acknowledgeItem(id);
-      await load(showDone ? 'ALL' : 'OPEN');
+      const updated = await acknowledgeItem(id);
+      if (!mounted.current) return;
+      // Cancel older reads so they cannot restore an acknowledged row.
+      request.current?.abort();
+      setLoading(false);
+      setData((current) => ({
+        ...current,
+        items: current.items.map((item) =>
+          item.id === id ? { ...item, ...updated, status: 'ACKNOWLEDGED' } : item,
+        ),
+      }));
+      setAnnouncement('Alert acknowledged. The underlying issue remains available for review.');
     } catch (err) {
-      setError(err?.message || 'Could not deal with that item');
+      if (mounted.current)
+        setActionError(err?.message || 'Could not acknowledge this alert. Try again.');
     } finally {
-      setBusy(false);
+      if (mounted.current)
+        setPending((current) => {
+          const next = new Set(current);
+          next.delete(id);
+          return next;
+        });
     }
   };
 
-  const ackAll = async () => {
-    setBusy(true);
-    try {
-      await acknowledgeAll();
-      await load(showDone ? 'ALL' : 'OPEN');
-    } catch (err) {
-      setError(err?.message || 'Could not clear the inbox');
-    } finally {
-      setBusy(false);
-    }
+  const all = data?.items || [];
+  const open = all.filter((item) => item.status === 'OPEN');
+  const items = filterInbox(all, { status, query, severity, source });
+  const detail = all.find((item) => item.id === detailId);
+  const vehicleCount = new Set(
+    open
+      .filter(
+        (item) => item.subjectKey && item.subjectKey !== 'ORG' && !item.subjectKey.includes(':'),
+      )
+      .map((item) => item.subjectKey),
+  ).size;
+  const reviewAction = (item) => {
+    const target = reviewTarget(item);
+    return target.ticketId ? (
+      <Button
+        size="sm"
+        variant="secondary"
+        disabled={!support.enabled}
+        onClick={() => {
+          setDetailId(null);
+          support.openPortal(target.ticketId);
+        }}
+      >
+        {target.label}
+        <ArrowUpRight size={14} aria-hidden="true" />
+      </Button>
+    ) : (
+      <Link className="ai-review" to={target.to}>
+        {target.label}
+        <ArrowUpRight size={14} aria-hidden="true" />
+      </Link>
+    );
   };
 
   return (
     <PageShell
       title="Alert Inbox"
-      subtitle="Everything that wants something from your team, in one list"
-      count={openCount || null}
+      count={open.length}
+      subtitle="Review fleet issues and follow up in one place."
+      className="alert-inbox"
+      actions={
+        <Button variant="secondary" size="sm" onClick={load} disabled={loading || pending.size > 0}>
+          <RefreshCw size={14} aria-hidden="true" className={loading ? 'animate-spin' : ''} />
+          {loading ? 'Refreshing…' : 'Refresh'}
+        </Button>
+      }
     >
-      {loading ? <p className="text-[13px]">Checking what needs doing…</p> : null}
-      {error ? <p className="text-[13px]">{error}</p> : null}
-
-      {!loading && !error ? (
-        <>
-          <div className="flex flex-wrap gap-3 mt-3">
-            <KpiCard title="Waiting on someone" value={openCount} accent="#dc2626" />
-            <KpiCard
-              title="Conditions raised"
-              value={Object.keys(data?.byCondition || {}).length}
-              accent="#2563eb"
-            />
-            <Button variant="ghost" size="sm" onClick={() => setShowDone((v) => !v)}>
-              {showDone ? 'Hide what is dealt with' : 'Show what is dealt with'}
-            </Button>
-            {openCount > 0 ? (
-              <Button variant="ghost" size="sm" disabled={busy} onClick={ackAll}>
-                Deal with everything
-              </Button>
-            ) : null}
+      <div className="ai-notice">
+        Feeds update periodically. For urgent incidents, check the dedicated alert pages.
+      </div>
+      <div className="ai-summary">
+        {[
+          { label: 'Open alerts', value: open.length, Icon: Bell },
+          {
+            label: 'Critical',
+            value: open.filter((item) => item.severity === 'critical').length,
+            Icon: ShieldAlert,
+          },
+          { label: 'Vehicles affected', value: vehicleCount, Icon: Truck },
+        ].map(({ label, value, Icon }) => (
+          <div className="ai-stat" key={label}>
+            <span className="ai-stat-icon">
+              {React.createElement(Icon, { size: 19, 'aria-hidden': true })}
+            </span>
+            <div>
+              <span>{label}</span>
+              <strong>{data ? value : '—'}</strong>
+            </div>
           </div>
-
-          {items.length === 0 ? (
-            <EmptyState title={emptyInboxCopy().title} hint={emptyInboxCopy().hint} />
-          ) : (
-            groups.map((group) => (
-              <section key={group.condition} className="mt-5">
-                <h2 className="text-[14px] font-semibold">
-                  {group.label}
-                  <span className="text-[12px] ml-2" style={{ color: 'var(--ds-ink2)' }}>
-                    {SEVERITY_COPY[group.items[0]?.severity]?.label}
-                  </span>
-                </h2>
-                <ul style={{ listStyle: 'none', padding: 0 }} className="mt-2">
-                  {group.items.map((item) => (
-                    <li
-                      key={item.id}
-                      className="py-2"
-                      style={{ borderTop: '1px solid var(--ds-line, #eee)' }}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div style={{ minWidth: 0 }}>
-                          <p className="text-[13px] font-semibold">
-                            {item.subjectLabel || 'Your organisation'}
-                          </p>
-                          {/* THE ask. First thing anyone reads. */}
-                          <p className="text-[13px]">{item.wants}</p>
-                          <p className="text-[12px]" style={{ color: 'var(--ds-ink2)' }}>
-                            {sourcesLine(item)}
-                            {item.sourceCount > 1 ? ` (${item.sourceCount} reports)` : ''}
-                            {item.status === 'ACKNOWLEDGED'
-                              ? ' · dealt with'
-                              : ` · last ${sinceLabel(item.lastSeenAt)}`}
-                          </p>
-                        </div>
-                        {item.status === 'OPEN' ? (
-                          <Button size="sm" variant="secondary" disabled={busy} onClick={() => ack(item.id)}>
-                            Done
-                          </Button>
-                        ) : null}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))
-          )}
-
-          <p className="text-[12px] mt-6 max-w-[70ch]" style={{ color: 'var(--ds-ink2)' }}>
-            {withheld > 0
-              ? `${withheld} row(s) arrived without an action attached and were withheld rather than shown blank — that is a bug, not a filter. `
-              : ''}
-            This inbox does not replace anything. Owner alerts, FleetEdge alerts, learned hotspots and
-            support tickets each keep their own page —{' '}
-            {Object.entries(data?.sources || {})
-              .map(([name, note]) => `${name}: ${note}`)
-              .join(' · ')}
-          </p>
-        </>
-      ) : null}
+        ))}
+      </div>
+      <section className="ai-panel" aria-label="Fleet alert queue" aria-busy={loading}>
+        <div className="ai-toolbar">
+          <div className="ai-tabs" role="group" aria-label="Alert status">
+            {['OPEN', 'ACKNOWLEDGED'].map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={status === value}
+                onClick={() => setStatus(value)}
+              >
+                {value === 'OPEN' ? 'Open' : 'Acknowledged'}{' '}
+                <span>{all.filter((item) => item.status === value).length}</span>
+              </button>
+            ))}
+          </div>
+          <label className="ai-search">
+            <Search size={16} aria-hidden="true" />
+            <input
+              aria-label="Search alerts"
+              placeholder="Search vehicle or issue"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+          <select
+            aria-label="Severity"
+            value={severity}
+            onChange={(event) => setSeverity(event.target.value)}
+          >
+            <option value="">All priorities</option>
+            <option value="critical">Critical</option>
+            <option value="caution">Needs review</option>
+            <option value="info">Information</option>
+          </select>
+          <select
+            aria-label="Source"
+            value={source}
+            onChange={(event) => setSource(event.target.value)}
+          >
+            <option value="">All sources</option>
+            {Object.entries(SOURCE_LABELS).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+        {error || actionError ? (
+          <div role="alert" className="ai-error">
+            {error || actionError}{' '}
+            {error && (
+              <button type="button" onClick={load}>
+                Retry
+              </button>
+            )}
+          </div>
+        ) : null}
+        {!data && loading ? (
+          <div role="status" className="ai-empty">
+            Loading your fleet alerts…
+          </div>
+        ) : null}
+        {!loading && !error && items.length === 0 ? (
+          <div className="ai-empty">
+            <Bell size={28} aria-hidden="true" />
+            <h2>
+              {query || severity || source
+                ? 'No matching alerts'
+                : status === 'OPEN'
+                  ? 'No open inbox alerts'
+                  : 'No acknowledged alerts'}
+            </h2>
+            <p>
+              {query || severity || source
+                ? 'Try another search or clear your filters.'
+                : 'Source feeds update periodically. Review urgent incidents in their dedicated pages.'}
+            </p>
+            {(query || severity || source) && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setQuery('');
+                  setSeverity('');
+                  setSource('');
+                }}
+              >
+                Clear filters
+              </Button>
+            )}
+          </div>
+        ) : null}
+        <ul className="ai-list">
+          {items.map((item) => (
+            <li key={item.id} className="ai-row">
+              <span className={`ai-priority ai-priority--${item.severity}`}>
+                {item.severity === 'critical'
+                  ? 'Critical'
+                  : item.severity === 'caution'
+                    ? 'Needs review'
+                    : 'Info'}
+              </span>
+              <div className="ai-row-main">
+                <button className="ai-subject" type="button" onClick={() => setDetailId(item.id)}>
+                  {item.subjectLabel || 'Your organisation'}
+                </button>
+                <h2>{item.label}</h2>
+                <p className="ai-ask">
+                  {item.wants || 'Open the source alert to review this issue.'}
+                </p>
+                <div className="ai-meta">
+                  {[
+                    ...new Set(
+                      (item.sources || []).map((s) => SOURCE_LABELS[s.source] || 'Other source'),
+                    ),
+                  ].join(' · ')}
+                  <span>Updated {sinceLabel(item.lastSeenAt)}</span>
+                  {item.status === 'ACKNOWLEDGED' && (
+                    <span>Acknowledged {sinceLabel(item.acknowledgedAt)}</span>
+                  )}
+                </div>
+              </div>
+              <div className="ai-row-actions">
+                <Button variant="ghost" size="sm" onClick={() => setDetailId(item.id)}>
+                  Details
+                </Button>
+                {reviewAction(item)}
+                {item.status === 'OPEN' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={pending.has(item.id)}
+                    onClick={() => ack(item.id)}
+                  >
+                    <Check size={14} aria-hidden="true" />
+                    {pending.has(item.id) ? 'Saving…' : 'Acknowledge'}
+                  </Button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+        {data && (
+          <div className="ai-footer">
+            Showing {items.length} of {all.filter((item) => item.status === status).length}{' '}
+            {status === 'OPEN' ? 'open' : 'acknowledged'} alerts. Acknowledging records your review;
+            it does not resolve the source issue.
+          </div>
+        )}
+      </section>
+      <p className="sr-only" role="status">
+        {announcement}
+      </p>
+      <Dialog
+        open={!!detail}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setDetailId(null);
+        }}
+      >
+        {detail && (
+          <DialogContent className="ai-detail">
+            <header>
+              <div>
+                <DialogTitle>{detail.subjectLabel || 'Your organisation'}</DialogTitle>
+                <p>{detail.label}</p>
+              </div>
+              <DialogClose aria-label="Close alert details">
+                <X size={18} />
+              </DialogClose>
+            </header>
+            <div className="ai-detail-body">
+              <h3>Recommended action</h3>
+              <p>{detail.wants || 'Open the source alert to review this issue.'}</p>
+              <h3>Evidence · {detail.sources?.length || 0} reports</h3>
+              {(detail.sources || []).map((evidence, index) => (
+                <article key={`${evidence.source}-${evidence.refId || index}-${evidence.at}`}>
+                  <strong>{SOURCE_LABELS[evidence.source] || 'Other source'}</strong>
+                  <p>{evidence.detail || 'Open the source page for more information.'}</p>
+                  <small>{sinceLabel(evidence.at)}</small>
+                </article>
+              ))}
+              <p className="ai-meta">
+                First reported {sinceLabel(detail.firstSeenAt)} · Last activity{' '}
+                {sinceLabel(detail.lastSeenAt)}
+              </p>
+              {reviewAction(detail)}
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
     </PageShell>
   );
 }

@@ -267,6 +267,11 @@ describe('PlaceHubPage', () => {
     expect(PlaceHubService.createZone).not.toHaveBeenCalled();
   });
 
+  it('opens the hotspot linked from the alert inbox', async () => {
+    renderPage('/place-hub?tab=fuel&hotspot=h1');
+    expect(await screen.findByRole('complementary', { name: 'NH16 lay-by' })).toBeInTheDocument();
+  });
+
   it('shows live idling and fuel hotspots on their tabs', async () => {
     renderPage('/place-hub?tab=idling');
     expect(await screen.findByText('WB11G0962')).toBeInTheDocument();
