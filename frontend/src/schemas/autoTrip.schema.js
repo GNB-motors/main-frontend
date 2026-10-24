@@ -211,8 +211,11 @@ export const autoTripTollsSchema = z
     status: str, // OK | STALE | NOT_MATCHED | NO_WINDOW | ROAD_ENGINE_DISABLED | FAILED
     from: str,
     to: str,
-    vehicleClass: str,
-    vehicleGroup: str,
+    // The tariff group the truck pays in and what it was read from (null group = not priced).
+    vehicleGroup: z
+      .object({ group: str, source: str, basis: str }) // source: AXLE_CLASS | MODEL_GVW
+      .passthrough()
+      .nullish(),
     passes: z.array(tollPass).nullish(),
     total: z
       .object({ inr: num, priced: num, unknown: num, complete: z.boolean().nullish() })

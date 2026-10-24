@@ -13,7 +13,7 @@ import AutoTripReplay from './AutoTripReplay';
 import AutoTripTimeline from './AutoTripTimeline';
 import { FLAG_LABEL, answerPlaceHref, inWindow } from './autoTripPlaces';
 import { LONG_PLANT_MIN, timelinePlan } from './timelineModel';
-import { tollSummary, withTollPasses } from './tripTolls';
+import { tollClassText, tollSummary, withTollPasses } from './tripTolls';
 import {
   STATUS_CLASS,
   STATUS_LABEL,
@@ -264,6 +264,7 @@ export default function AutoTripDetailPage() {
             <div className="atx-rule" />
             <Field label="Stops on the way">{stopsOnWayText(trip.stopsSummary)}</Field>
             {tollText ? <Field label="Tolls on the way">{tollText}</Field> : null}
+            {tollClassText(tolls) ? <Field label="Toll class">{tollClassText(tolls)}</Field> : null}
             {trip.extraDrops?.length || trip.erpTripId ? (
               <div className="atx-fields">
                 {trip.extraDrops?.length ? (

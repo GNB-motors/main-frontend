@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { fareText, justPassed, tollMarks, tollSummary, withTollPasses } from './tripTolls';
+import {
+  fareText,
+  justPassed,
+  tollClassText,
+  tollMarks,
+  tollSummary,
+  withTollPasses,
+} from './tripTolls';
 
 const pass = (iso, extra = {}) => ({
   at: iso,
@@ -106,5 +113,22 @@ describe('justPassed', () => {
     expect(justPassed(passes, '2026-10-20T08:32:00Z')).toBe('Dankuni Toll Plaza');
     expect(justPassed(passes, '2026-10-20T08:29:00Z')).toBeNull();
     expect(justPassed(passes, '2026-10-20T08:40:00Z')).toBeNull();
+  });
+});
+
+describe('tollClassText', () => {
+  const tolls = (vehicleGroup) => ({ passes: [{}], total: { inr: 590 }, vehicleGroup });
+  it('says what the truck was priced as and where that came from', () => {
+    expect(
+      tollClassText(tolls({ group: 'axle_4_6', source: 'MODEL_GVW', basis: 'LPT 4830 (48 t)' })),
+    ).toBe('priced as 4–6 axle (LPT 4830 (48 t))');
+  });
+  it('asks for the axle class when nothing on the vehicle places it', () => {
+    expect(tollClassText(tolls({ group: null, source: null, basis: 'TATA ACE' }))).toBe(
+      'not priced: set this truck’s axle class or model',
+    );
+  });
+  it('says nothing to a driver, who gets no fares', () => {
+    expect(tollClassText({ passes: [{}], total: null })).toBeNull();
   });
 });

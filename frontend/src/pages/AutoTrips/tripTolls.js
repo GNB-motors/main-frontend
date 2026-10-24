@@ -24,6 +24,26 @@ export function fareText(p) {
   return p.unknownReason ? 'fare unknown' : null;
 }
 
+const GROUP_LABEL = {
+  lcv: 'LCV',
+  bus: '2-axle truck',
+  multiaxle: '3-axle',
+  axle_4_6: '4–6 axle',
+  axle_7_plus: '7+ axle',
+};
+
+/**
+ * How the truck was priced: "priced as 4–6 axle (LPT 4830 (48 t))", or, when nothing on the vehicle
+ * says its axles, what to fill in. Null for drivers (no fares) or with no passes.
+ */
+export function tollClassText(tolls) {
+  if (!tolls?.total || !tolls.passes?.length) return null;
+  const g = tolls.vehicleGroup;
+  if (g?.group)
+    return `priced as ${GROUP_LABEL[g.group] || g.group}${g.basis ? ` (${g.basis})` : ''}`;
+  return 'not priced: set this truck’s axle class or model';
+}
+
 /** "3 toll plazas · ₹1,185" (+ "· 1 unpriced"), "2 toll plazas" for drivers, null with none. */
 export function tollSummary(tolls) {
   const n = tolls?.passes?.length || 0;
