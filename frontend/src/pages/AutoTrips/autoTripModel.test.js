@@ -152,6 +152,14 @@ describe('stopKind', () => {
     expect(stopKind({ purpose: { top: 'FUEL' } })).toBe('FUEL');
     expect(stopKind({})).toBe('UNKNOWN');
   });
+  it('an unexplained stop inside a toll plaza is a toll stop; a person’s answer still wins', () => {
+    const atPlaza = { place: { name: 'Dankuni Toll Plaza', siteType: 'TOLL' } };
+    expect(stopKind({ ...atPlaza, purpose: { top: 'UNEXPLAINED' } })).toBe('TOLL');
+    expect(stopKind({ ...atPlaza, purpose: { top: 'OVERNIGHT' } })).toBe('OVERNIGHT');
+    expect(
+      stopKind({ ...atPlaza, purpose: { top: 'UNEXPLAINED' }, humanReason: { purpose: 'rest' } }),
+    ).toBe('REST');
+  });
 });
 
 describe('timelineRows', () => {
