@@ -126,6 +126,7 @@ const models = {
 const flagsFor = (on) => ({
   ready: true,
   canAccess: (key) => on.includes(key),
+  isEnabled: (key) => on.includes(key),
 });
 
 const renderAt = (url) =>

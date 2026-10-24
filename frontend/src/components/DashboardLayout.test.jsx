@@ -22,7 +22,14 @@ vi.mock('./cluster/CommandPalette.jsx', () => ({
 
 vi.mock('../contexts/FeatureFlagsContext.jsx', () => ({
   FeatureFlagsProvider: ({ children }) => children,
-  useFeatureFlags: () => ({ profile: null, ready: true }),
+  // UsageAnalyticsProvider (rendered by the real layout) reads canAccess and the
+  // nav helpers read isEnabled, so both must be callable — not just profile/ready.
+  useFeatureFlags: () => ({
+    profile: null,
+    ready: true,
+    canAccess: () => false,
+    isEnabled: () => false,
+  }),
 }));
 
 vi.mock('../contexts/BranchContext.jsx', () => ({
