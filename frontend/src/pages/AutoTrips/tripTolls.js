@@ -1,0 +1,111 @@
+/**
+ * Toll plazas a trip drove through (GET /auto-trips/:id/tolls) placed on the trip page — pure.
+ *
+ * A pass that happened while the truck stood at a stop (a toll queue) belongs to that stop, so the stop
+ * and the crossing read as one event. Every other pass is its own timeline row between the stops it
+ * happened between. Rupees are shown only when the server sent them (owners and managers).
+ */
+import { inr } from '../../utils/formatMoney';
+import { toDate } from './autoTripFormat';
+
+/** A pass this close to a stop's span is that stop: the booth and the queue are one place. */
+const STOP_SLACK_MS = 5 * 60000;
+const STOP_KINDS = new Set(['stop', 'unknown']);
+
+const ms = (v) => toDate(v)?.getTime() ?? null;
+
+export const passId = (p) => `toll-${p.placeId || `${p.lat},${p.lng}`}-${ms(p.at)}`;
+
+/** "Dankuni Toll Plaza", or what we know when no toll Place covers the booth yet. */
+export const passName = (p) => p.name || 'Toll booth';
+
+export function fareText(p) {
+  if (p.fareInr != null) return inr(p.fareInr);
+  return p.unknownReason ? 'fare unknown' : null;
+}
+
+/** "3 toll plazas · ₹1,185" (+ "· 1 unpriced"), "2 toll plazas" for drivers, null with none. */
+export function tollSummary(tolls) {
+  const n = tolls?.passes?.length || 0;
+  if (!n) return null;
+  const head = `${n} toll plaza${n === 1 ? '' : 's'}`;
+  const t = tolls.total;
+  if (!t) return head;
+  const parts = [head];
+  if (t.priced) parts.push(inr(t.inr));
+  if (t.unknown) parts.push(`${t.unknown} unpriced`);
+  return parts.join(' · ');
+}
+
+function stopOf(steps, at) {
+  return steps.find((s) => {
+    if (!STOP_KINDS.has(s.kind)) return false;
+    const from = ms(s.at);
+    const to = ms(s.leftAt) ?? from;
+    return from != null && at >= from - STOP_SLACK_MS && at <= to + STOP_SLACK_MS;
+  });
+}
+
+/**
+ * The timeline plan with the trip's toll passes in it: a pass inside a stop sets that step's
+ * `tollPass`; any other pass becomes a `{ type: 'toll' }` item right before the first step after it.
+ */
+export function withTollPasses(plan, passes) {
+  if (!plan || !passes?.length) return plan;
+  const steps = plan.items.filter((it) => it.type === 'step');
+  const onStep = new Map();
+  const loose = [];
+  [...passes]
+    .sort((a, b) => ms(a.at) - ms(b.at))
+    .forEach((p) => {
+      const step = stopOf(steps, ms(p.at));
+      if (step && !onStep.has(step.id)) onStep.set(step.id, p);
+      else loose.push(p);
+    });
+
+  const items = [];
+  let k = 0;
+  const flushBefore = (limit) => {
+    while (k < loose.length && (limit == null || ms(loose[k].at) < limit)) {
+      items.push({ type: 'toll', id: passId(loose[k]), pass: loose[k], playAt: loose[k].at });
+      k += 1;
+    }
+  };
+  plan.items.forEach((it) => {
+    if (it.type === 'step') {
+      // The pass goes between the drive and the step it happened before.
+      flushBefore(ms(it.at));
+      items.push(onStep.has(it.id) ? { ...it, tollPass: onStep.get(it.id) } : it);
+    } else items.push(it);
+  });
+  flushBefore(null);
+  return { ...plan, items };
+}
+
+/** Markers for the replay map; `passed` is relative to the replay's current instant. */
+export function tollMarks(passes, cursorAt) {
+  const now = ms(cursorAt);
+  return (passes || []).map((p) => ({
+    id: passId(p),
+    at: { lat: p.lat, lng: p.lng },
+    name: passName(p),
+    passed: now != null && ms(p.at) <= now,
+    title: [passName(p), fareText(p), p.inferred ? 'time estimated across a GPS gap' : null]
+      .filter(Boolean)
+      .join(' · '),
+  }));
+}
+
+/** For this long after a pass the replay says which plaza the truck just crossed. */
+const JUST_PASSED_MS = 5 * 60000;
+
+/** The plaza the replay crossed in the last few minutes before `cursorAt`, or null. */
+export function justPassed(passes, cursorAt) {
+  const now = ms(cursorAt);
+  if (now == null) return null;
+  const recent = (passes || []).filter((p) => {
+    const at = ms(p.at);
+    return at != null && at <= now && now - at <= JUST_PASSED_MS;
+  });
+  return recent.length ? passName(recent[recent.length - 1]) : null;
+}

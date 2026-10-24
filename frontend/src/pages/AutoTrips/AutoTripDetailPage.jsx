@@ -13,6 +13,7 @@ import AutoTripReplay from './AutoTripReplay';
 import AutoTripTimeline from './AutoTripTimeline';
 import { FLAG_LABEL, answerPlaceHref, inWindow } from './autoTripPlaces';
 import { LONG_PLANT_MIN, timelinePlan } from './timelineModel';
+import { tollSummary, withTollPasses } from './tripTolls';
 import {
   STATUS_CLASS,
   STATUS_LABEL,
@@ -84,6 +85,9 @@ export default function AutoTripDetailPage() {
     { enabled: Boolean(track?.registrationNumber && track?.from && track?.to) },
   );
 
+  // Toll plazas the truck drove through. Optional: the page works the same without them.
+  const { data: tolls } = useApi((signal) => AutoTripService.tolls(id, { signal }), [id]);
+
   const confirmM = useMutation(AutoTripService.confirm);
   const dropM = useMutation(AutoTripService.drop);
   const dismissM = useMutation(AutoTripService.dismiss);
@@ -110,7 +114,7 @@ export default function AutoTripDetailPage() {
     [refetch, refetchTrack],
   );
 
-  const plan = useMemo(() => timelinePlan(trip), [trip]);
+  const plan = useMemo(() => withTollPasses(timelinePlan(trip), tolls?.passes), [trip, tolls]);
 
   if (loading && !trip) {
     return (
@@ -139,6 +143,8 @@ export default function AutoTripDetailPage() {
   const hasTrack = (track?.points?.length || 0) > 1;
   const playable = (at) => hasTrack && inWindow(at, track);
   const playFrom = (at) => replayRef.current?.playFrom(at);
+  const tollText =
+    tollSummary(tolls) || (tolls?.status === 'OK' ? 'No toll plazas on this run' : null);
 
   const setDrop = (stop, markPlaceAsDrop) =>
     act(
@@ -216,6 +222,7 @@ export default function AutoTripDetailPage() {
               trip={trip}
               track={track}
               roadTrail={roadTrail}
+              tolls={tolls}
               loading={trackLoading}
               error={trackError}
               autoPlay={autoPlay}
@@ -256,6 +263,7 @@ export default function AutoTripDetailPage() {
             </div>
             <div className="atx-rule" />
             <Field label="Stops on the way">{stopsOnWayText(trip.stopsSummary)}</Field>
+            {tollText ? <Field label="Tolls on the way">{tollText}</Field> : null}
             {trip.extraDrops?.length || trip.erpTripId ? (
               <div className="atx-fields">
                 {trip.extraDrops?.length ? (

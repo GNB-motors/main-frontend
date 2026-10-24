@@ -190,3 +190,33 @@ export const autoTripCoverageSchema = z
   .passthrough();
 
 export default autoTripListSchema;
+
+const tollPass = z
+  .object({
+    at: str,
+    inferred: z.boolean().nullish(),
+    lat: num,
+    lng: num,
+    placeId: str,
+    name: str,
+    fareInr: num,
+    unknownReason: str,
+  })
+  .passthrough();
+
+/** GET /auto-trips/:id/tolls — toll plazas the truck drove through. `total` is null for drivers. */
+export const autoTripTollsSchema = z
+  .object({
+    tripId: str,
+    status: str, // OK | STALE | NOT_MATCHED | NO_WINDOW | ROAD_ENGINE_DISABLED | FAILED
+    from: str,
+    to: str,
+    vehicleClass: str,
+    vehicleGroup: str,
+    passes: z.array(tollPass).nullish(),
+    total: z
+      .object({ inr: num, priced: num, unknown: num, complete: z.boolean().nullish() })
+      .passthrough()
+      .nullish(),
+  })
+  .passthrough();
