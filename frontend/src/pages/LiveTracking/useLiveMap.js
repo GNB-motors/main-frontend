@@ -66,7 +66,9 @@ export default function useLiveMap({
       try {
         const data = await RoadService.getOrgCongestionIfEnabled({ live: true, limit: 400 });
         if (!data) {
-          setCongestionNotice('The road engine is off, so there is no road-matched traffic to draw.');
+          setCongestionNotice(
+            'The road engine is off, so there is no road-matched traffic to draw.',
+          );
           setCongestion({ rows: [], coverage: null });
           setIsCongestionVisible(true);
           return;
@@ -222,6 +224,7 @@ export default function useLiveMap({
     replayCurrentPos,
     replayRunPath,
     replayBearing,
+    replayCurrentTs,
   } = useTrailGeometry({ selectedVehicle, trailPoints, rawTrailPoints, trips, replayState });
 
   // Replay animation frame ticker (decoupled from replayState.t so 60fps loop runs smoothly without tearing down)
@@ -330,9 +333,7 @@ export default function useLiveMap({
       try {
         const trailData = await LiveTrackingService.getTrail(v.plate);
         if (trailData?.points?.length > 1) {
-          raw = trailData.points.filter(
-            (p) => p.latitude != null && p.longitude != null,
-          );
+          raw = trailData.points.filter((p) => p.latitude != null && p.longitude != null);
           points = raw.map((p) => [p.latitude, p.longitude]);
           metaTrips = Array.isArray(trailData.trips) ? trailData.trips : [];
           metaStops = Array.isArray(trailData.planStops) ? trailData.planStops : [];
@@ -371,7 +372,8 @@ export default function useLiveMap({
       showToast(
         (roadSummary
           ? `Trail · ${roadSummary.km.toFixed(1)} km ${roadSummary.label} · ${points.length} points`
-          : `Trail · ${trailDistanceKm(points).toFixed(1)} km straight-line estimate · ${points.length} points`) + tripSuffix,
+          : `Trail · ${trailDistanceKm(points).toFixed(1)} km straight-line estimate · ${points.length} points`) +
+          tripSuffix,
       );
     },
     [isTrailVisible, replayState.on, showToast],
@@ -385,9 +387,7 @@ export default function useLiveMap({
       try {
         const trailData = await LiveTrackingService.getTrail(v.plate);
         if (trailData?.points?.length > 1) {
-          raw = trailData.points.filter(
-            (p) => p.latitude != null && p.longitude != null,
-          );
+          raw = trailData.points.filter((p) => p.latitude != null && p.longitude != null);
           points = raw.map((p) => [p.latitude, p.longitude]);
           setRawTrailPoints(raw);
           setTrips(Array.isArray(trailData.trips) ? trailData.trips : []);
@@ -473,6 +473,7 @@ export default function useLiveMap({
     replayCurrentPos,
     replayRunPath,
     replayBearing,
+    replayCurrentTs,
     toggleTrail,
     enterReplay,
     exitReplay,

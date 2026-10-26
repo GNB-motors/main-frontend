@@ -1,6 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import './SecondarySideNav.css';
+
+// Navigating between report screens remounts this rail (each page portals its
+// own). Keep each rail's scroll position (keyed by scrollId) across those
+// remounts so the row the user just clicked stays where it was instead of the
+// list snapping back to the top.
+const scrollPositions = new Map();
 
 /**
  * SecondarySideNav — a persistent, always-expanded inner rail that lists the
@@ -39,14 +45,18 @@ const SecondarySideNav = ({
   // Selection is external (activeOption) but mirrored locally so deep links and
   // back/forward highlight the right row the instant they change.
   const [selected, setSelected] = useState(activeOption);
-  useEffect(() => { setSelected(activeOption); }, [activeOption]);
+  useEffect(() => {
+    setSelected(activeOption);
+  }, [activeOption]);
 
   // Each group tracks its OWN open state, defaults open, toggles independently.
   const [openGroups, setOpenGroups] = useState({});
   useEffect(() => {
     setOpenGroups((prev) => {
       const next = { ...prev };
-      items.forEach((n) => { if (isGroup(n) && next[n.id] === undefined) next[n.id] = true; });
+      items.forEach((n) => {
+        if (isGroup(n) && next[n.id] === undefined) next[n.id] = true;
+      });
       return next;
     });
   }, [items]);
@@ -67,6 +77,19 @@ const SecondarySideNav = ({
       select(g.children[0].id);
     }
   };
+
+  // Restore the saved scroll position before paint (no visible jump) and keep it
+  // current as the user scrolls.
+  const scrollRef = useRef(null);
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return undefined;
+    const saved = scrollPositions.get(scrollId);
+    if (saved != null) el.scrollTop = saved;
+    const onScroll = () => scrollPositions.set(scrollId, el.scrollTop);
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [scrollId]);
 
   const firstGroupId = items.find((n) => isGroup(n))?.id;
 
@@ -137,7 +160,7 @@ const SecondarySideNav = ({
       className={`secondary-side-nav ${variant ? `ssn--${variant}` : ''} ${className}`.trim()}
       style={style}
     >
-      <div id={scrollId} className="ssn-scroll">
+      <div id={scrollId} className="ssn-scroll" ref={scrollRef}>
         {listBody}
       </div>
     </aside>

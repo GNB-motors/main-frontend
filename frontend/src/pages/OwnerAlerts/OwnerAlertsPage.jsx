@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom';
 import { istDayString, istDayStartISO, shiftDay } from '../../utils/dateUtils';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { RefreshCw, AlertTriangle, X, Check, Loader2 } from 'lucide-react';
@@ -11,9 +12,10 @@ import OwnerAlertsTable from './ownerAlertsTable.jsx';
 import './OwnerAlerts.css';
 
 const OwnerAlertsPage = () => {
+  const [params] = useSearchParams();
   // Filters
-  const [vehicleQuery, setVehicleQuery] = useState('');
-  const [vehicle, setVehicle] = useState('');
+  const [vehicleQuery, setVehicleQuery] = useState(params.get('vehicle') || '');
+  const [vehicle, setVehicle] = useState(params.get('vehicle') || '');
   const [type, setType] = useState('');
   const [ackFilter, setAckFilter] = useState('unacknowledged');
   const [since, setSince] = useState('all');

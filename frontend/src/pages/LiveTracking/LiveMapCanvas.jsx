@@ -5,6 +5,8 @@ import { trailArrowIcons } from './mapIcons.js';
 import { createReplayTruckIcon, createTrailEndpointIcon } from './trailMarkerIcons.js';
 import { createHabitualHaltIcon } from './trailMarkerIcons.js';
 import AnimatedVehicleMarkers from './AnimatedVehicleMarkers.jsx';
+import WeatherBubble from './WeatherBubble.jsx';
+import FleetWeatherMarkers from './FleetWeatherMarkers.jsx';
 
 const INDIA_CENTER = { lat: 22.5937, lng: 78.9629 };
 
@@ -36,14 +38,24 @@ export default function LiveMapCanvas({
   isCongestionVisible,
   congestionRows,
   segmentByTrip,
+  weather,
+  weatherBubblePosition,
+  fleetWeather,
 }) {
   /* When the user disables per-trip segmentation we fall back to a single
      polyline (visual continuity with the legacy behavior). The fallback
      color is palette slot 0 — distinct from the selected status color so
      the user can still see the breadcrumb while a heavy trail is up. */
   const showSegments =
-    isTrailVisible && trailCoords.length > 1 && segmentByTrip && trailSegments && trailSegments.length > 0;
-  const showSingleTrail = isTrailVisible && trailCoords.length > 1 && (!segmentByTrip || !trailSegments || trailSegments.length === 0);
+    isTrailVisible &&
+    trailCoords.length > 1 &&
+    segmentByTrip &&
+    trailSegments &&
+    trailSegments.length > 0;
+  const showSingleTrail =
+    isTrailVisible &&
+    trailCoords.length > 1 &&
+    (!segmentByTrip || !trailSegments || trailSegments.length === 0);
   return (
     <div id="map" className="gmap-host">
       {!isLoaded ? (
@@ -87,6 +99,23 @@ export default function LiveMapCanvas({
               setIsRailOpen(true);
             }}
           />
+
+          {/* Fleet weather — compact chips over UNselected trucks in adverse
+              weather (rain/thunder/snow), zoom-gated so a wide view stays clean.
+              Rendered before the selected bubble so that bubble sits on top. */}
+          <FleetWeatherMarkers
+            vehicles={mapVehicles}
+            fleetWeather={fleetWeather}
+            selectedId={selectedId}
+          />
+
+          {/* Weather — an animated condition bubble floating above the active
+              truck: the selected vehicle live, or the moving marker during
+              replay (then showing the trip's own hour). Provider credit travels
+              with it; the full clickable attribution is in the detail panel. */}
+          {weatherBubblePosition && weather && (
+            <WeatherBubble position={weatherBubblePosition} weather={weather} />
+          )}
 
           {/* Breadcrumb Trail — split per trip when the trail endpoint
               gave us trip ids, otherwise fall back to a single polyline.

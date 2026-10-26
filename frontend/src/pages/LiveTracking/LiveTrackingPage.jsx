@@ -7,6 +7,8 @@ import useToastAndRefresh from './useToastAndRefresh.js';
 import useFleetMasterData from './useFleetMasterData.js';
 import useFleetVehicles from './useFleetVehicles.js';
 import useLiveMap from './useLiveMap.js';
+import useVehicleWeather from './useVehicleWeather.js';
+import useFleetWeather from './useFleetWeather.js';
 import useSelectedDriver from './useSelectedDriver.js';
 import useVehicleShareDialog from './useVehicleShareDialog.js';
 import useStatusCards from './useStatusCards.js';
@@ -98,6 +100,7 @@ const LiveTrackingPage = () => {
     replayCurrentPos,
     replayRunPath,
     replayBearing,
+    replayCurrentTs,
     trailSegments,
     tripLegend,
     fallbackSingleColor,
@@ -121,6 +124,36 @@ const LiveTrackingPage = () => {
   } = useLiveMap({ theme, mapMode, vehicles, selectedId, selectedVehicle, showToast });
 
   const selectedDriver = useSelectedDriver(selectedVehicle, vehiclesMeta, driverAssignments);
+
+  // Weather for the "active" context: the moving marker during replay (at the
+  // trip's own hour), otherwise the selected live vehicle (now). One fetch feeds
+  // both the floating map bubble and the detail-panel weather section.
+  const isReplaying = replayState.on && !!replayCurrentPos;
+  const weatherTarget = isReplaying
+    ? { lat: replayCurrentPos.lat, lng: replayCurrentPos.lng, at: replayCurrentTs }
+    : selectedVehicle?.hasFix
+      ? { lat: selectedVehicle.lat, lng: selectedVehicle.lng, at: null }
+      : { lat: null, lng: null, at: null };
+  const { weather: activeWeather, loading: weatherLoading } = useVehicleWeather({
+    lat: weatherTarget.lat,
+    lng: weatherTarget.lng,
+    at: weatherTarget.at,
+    enabled: !!selectedVehicle,
+  });
+  const weatherBubblePosition = isReplaying
+    ? replayCurrentPos
+    : selectedVehicle?.hasFix
+      ? { lat: selectedVehicle.lat, lng: selectedVehicle.lng }
+      : null;
+
+  // Fleet-wide weather for UNselected trucks (rain only, zoom-gated). Off during
+  // replay so the replay view stays focused on the one trip.
+  const fleetWeather = useFleetWeather({
+    vehicles: mapVehicles,
+    mapRef,
+    mapZoom,
+    enabled: !replayState.on,
+  });
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -199,6 +232,9 @@ const LiveTrackingPage = () => {
               isCongestionVisible={isCongestionVisible}
               congestionRows={congestion?.rows || []}
               segmentByTrip={segmentByTrip}
+              weather={activeWeather}
+              weatherBubblePosition={weatherBubblePosition}
+              fleetWeather={fleetWeather}
             />
 
             <MapOverlayControls
@@ -257,7 +293,9 @@ const LiveTrackingPage = () => {
             />
             {/* What the congestion colours actually mean — the learned quantile,
                 the evidence behind it, and the edges that were left undrawn. */}
-            {isCongestionVisible && <CongestionPanel congestion={congestion} notice={congestionNotice} />}
+            {isCongestionVisible && (
+              <CongestionPanel congestion={congestion} notice={congestionNotice} />
+            )}
 
             {/* Primary Fleet List View */}
             <FleetListView
@@ -294,6 +332,9 @@ const LiveTrackingPage = () => {
               tripLegend={tripLegend}
               habitualHalts={habitualHalts}
               isHabitualHaltsVisible={isHabitualHaltsVisible}
+              weather={activeWeather}
+              weatherLoading={weatherLoading}
+              weatherContext={isReplaying ? 'At this point in the replay' : 'Now, at this location'}
             />
           </aside>
         </div>

@@ -16,6 +16,7 @@ import PumpLedgerView from './components/PumpLedgerView';
 import ExpectedFuelView from './components/ExpectedFuelView';
 import TruckMileageView from './components/TruckMileageView';
 import { hubRangeFromParams } from './mileageDates';
+import ReportsRail from '../../components/ReportsRail';
 import './MileagePage.css';
 
 // The pre-hub pages, mounted as hub views rather than re-implemented.
@@ -159,152 +160,160 @@ export default function MileagePage() {
         : 'Truck number';
 
   return (
-    <PageShell
-      title="Diesel & Mileage"
-      subtitle="Every diesel fill, whether its bill is right, and how far each truck goes on a litre."
-      actions={
-        <div className="mhub-top-actions">
-          <label className="mhub-search">
-            <Search size={15} className="mhub-search-icon" aria-hidden />
-            <input
-              type="search"
-              aria-label={searchHint}
-              placeholder={searchHint}
-              value={search}
-              onChange={(e) => updateParams({ search: e.target.value }, { replace: true })}
-            />
-            {search ? (
-              <button
-                type="button"
-                className="mhub-search-clear"
-                onClick={() => updateParams({ search: '' }, { replace: true })}
-                aria-label="Clear search"
+    <>
+      <ReportsRail />
+      <PageShell
+        title="Diesel & Mileage"
+        subtitle="Every diesel fill, whether its bill is right, and how far each truck goes on a litre."
+        actions={
+          <div className="mhub-top-actions">
+            <label className="mhub-search">
+              <Search size={15} className="mhub-search-icon" aria-hidden />
+              <input
+                type="search"
+                aria-label={searchHint}
+                placeholder={searchHint}
+                value={search}
+                onChange={(e) => updateParams({ search: e.target.value }, { replace: true })}
+              />
+              {search ? (
+                <button
+                  type="button"
+                  className="mhub-search-clear"
+                  onClick={() => updateParams({ search: '' }, { replace: true })}
+                  aria-label="Clear search"
+                >
+                  <X size={13} aria-hidden />
+                </button>
+              ) : null}
+            </label>
+            {ready && access.fleetMileage ? (
+              <Link
+                to="/mileage-tracking/new"
+                className="pshell-btn pshell-btn--primary mhub-add-btn"
               >
-                <X size={13} aria-hidden />
-              </button>
+                <Plus size={15} aria-hidden /> Add diesel bill
+              </Link>
             ) : null}
-          </label>
-          {ready && access.fleetMileage ? (
-            <Link
-              to="/mileage-tracking/new"
-              className="pshell-btn pshell-btn--primary mhub-add-btn"
-            >
-              <Plus size={15} aria-hidden /> Add diesel bill
-            </Link>
-          ) : null}
-        </div>
-      }
-      filters={
-        <div className="manufacturer-scope-row">
-          <HubDateBar preset={preset} range={range} onPreset={choosePreset} onRange={changeRange} />
-          <ManufacturerFilter
-            value={manufacturer}
-            onChange={(value) => {
-              setDrawerDetail(null);
-              setManufacturer(value);
-            }}
-          />
-        </div>
-      }
-    >
-      {ready && (
-        <div className="mhub" key={manufacturer}>
-          <MileageKpiBar
-            range={range}
-            showFleetMileage={access.fleetMileage}
-            refreshKey={refreshKey}
-          />
-
-          <div className="mhub-tabs" role="tablist" aria-label="Section">
-            {TABS.filter((t) => access.tabs[t.key]).map((t) => (
-              <button
-                key={t.key}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === t.key}
-                className="mhub-tab"
-                onClick={() => updateParams({ tab: t.key, subtab: null, view: null })}
-              >
-                {t.label}
-                <span className="mhub-tab-hint" aria-hidden>
-                  {t.hint}
-                </span>
-              </button>
-            ))}
           </div>
-
-          <div className="mhub-subrow">
-            {allowedSubviews.length > 1 && (
-              <div className="mhub-views" role="tablist" aria-label="View">
-                {allowedSubviews.map((o) => (
-                  <button
-                    key={o.key}
-                    type="button"
-                    role="tab"
-                    aria-selected={activeSubview === o.key}
-                    className="mhub-view"
-                    onClick={() => updateParams({ [subview.param]: o.key })}
-                  >
-                    {o.label}
-                  </button>
-                ))}
-              </div>
-            )}
-            {active && <p className="mhub-note">{active.note}</p>}
-          </div>
-
-          {activeTab === 'live' && activeSubview === 'stream' && (
-            <LiveRefuelTab
+        }
+        filters={
+          <div className="manufacturer-scope-row">
+            <HubDateBar
+              preset={preset}
               range={range}
-              searchQuery={deferredSearch}
-              onOpenDrawer={setDrawerDetail}
+              onPreset={choosePreset}
+              onRange={changeRange}
+            />
+            <ManufacturerFilter
+              value={manufacturer}
+              onChange={(value) => {
+                setDrawerDetail(null);
+                setManufacturer(value);
+              }}
+            />
+          </div>
+        }
+      >
+        {ready && (
+          <div className="mhub" key={manufacturer}>
+            <MileageKpiBar
+              range={range}
+              showFleetMileage={access.fleetMileage}
               refreshKey={refreshKey}
             />
-          )}
-          {activeTab === 'live' && activeSubview === 'completed' && (
-            <CompletedCyclesSubtab
-              range={range}
-              searchQuery={deferredSearch}
-              fuelCyclesAllowed={access.fuelCycles}
-            />
-          )}
-          {activeTab === 'reconciliation' && activeSubview === 'tank' && (
-            <ReconciliationTab
-              range={range}
-              searchQuery={deferredSearch}
-              onOpenDrawer={setDrawerDetail}
-            />
-          )}
-          {activeTab === 'reconciliation' && activeSubview === 'pumps' && (
-            <PumpLedgerView range={range} searchQuery={deferredSearch} />
-          )}
-          {activeTab === 'performance' && activeSubview === 'vehicles' && (
-            <TruckMileageView range={range} searchQuery={deferredSearch} />
-          )}
-          {activeTab === 'performance' && activeSubview === 'expected' && (
-            <ExpectedFuelView range={range} />
-          )}
 
-          <Suspense fallback={<EmbeddedFallback />}>
-            {activeTab === 'reconciliation' && activeSubview === 'ecu' && (
-              <FuelComparisonPage embedded range={range} />
-            )}
-            {activeTab === 'performance' && activeSubview === 'models' && (
-              <ModelComparisonPage embedded range={range} />
-            )}
-          </Suspense>
-        </div>
-      )}
+            <div className="mhub-tabs" role="tablist" aria-label="Section">
+              {TABS.filter((t) => access.tabs[t.key]).map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === t.key}
+                  className="mhub-tab"
+                  onClick={() => updateParams({ tab: t.key, subtab: null, view: null })}
+                >
+                  {t.label}
+                  <span className="mhub-tab-hint" aria-hidden>
+                    {t.hint}
+                  </span>
+                </button>
+              ))}
+            </div>
 
-      <RefuelDetailDrawer
-        detail={drawerDetail}
-        onClose={() => setDrawerDetail(null)}
-        canEdit={access.editBills}
-        onChanged={() => {
-          setDrawerDetail(null);
-          setRefreshKey((k) => k + 1);
-        }}
-      />
-    </PageShell>
+            <div className="mhub-subrow">
+              {allowedSubviews.length > 1 && (
+                <div className="mhub-views" role="tablist" aria-label="View">
+                  {allowedSubviews.map((o) => (
+                    <button
+                      key={o.key}
+                      type="button"
+                      role="tab"
+                      aria-selected={activeSubview === o.key}
+                      className="mhub-view"
+                      onClick={() => updateParams({ [subview.param]: o.key })}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {active && <p className="mhub-note">{active.note}</p>}
+            </div>
+
+            {activeTab === 'live' && activeSubview === 'stream' && (
+              <LiveRefuelTab
+                range={range}
+                searchQuery={deferredSearch}
+                onOpenDrawer={setDrawerDetail}
+                refreshKey={refreshKey}
+              />
+            )}
+            {activeTab === 'live' && activeSubview === 'completed' && (
+              <CompletedCyclesSubtab
+                range={range}
+                searchQuery={deferredSearch}
+                fuelCyclesAllowed={access.fuelCycles}
+              />
+            )}
+            {activeTab === 'reconciliation' && activeSubview === 'tank' && (
+              <ReconciliationTab
+                range={range}
+                searchQuery={deferredSearch}
+                onOpenDrawer={setDrawerDetail}
+              />
+            )}
+            {activeTab === 'reconciliation' && activeSubview === 'pumps' && (
+              <PumpLedgerView range={range} searchQuery={deferredSearch} />
+            )}
+            {activeTab === 'performance' && activeSubview === 'vehicles' && (
+              <TruckMileageView range={range} searchQuery={deferredSearch} />
+            )}
+            {activeTab === 'performance' && activeSubview === 'expected' && (
+              <ExpectedFuelView range={range} />
+            )}
+
+            <Suspense fallback={<EmbeddedFallback />}>
+              {activeTab === 'reconciliation' && activeSubview === 'ecu' && (
+                <FuelComparisonPage embedded range={range} />
+              )}
+              {activeTab === 'performance' && activeSubview === 'models' && (
+                <ModelComparisonPage embedded range={range} />
+              )}
+            </Suspense>
+          </div>
+        )}
+
+        <RefuelDetailDrawer
+          detail={drawerDetail}
+          onClose={() => setDrawerDetail(null)}
+          canEdit={access.editBills}
+          onChanged={() => {
+            setDrawerDetail(null);
+            setRefreshKey((k) => k + 1);
+          }}
+        />
+      </PageShell>
+    </>
   );
 }

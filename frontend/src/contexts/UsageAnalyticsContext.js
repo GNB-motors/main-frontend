@@ -14,7 +14,13 @@ import React from 'react';
  * measured, and also for every org whose request failed. In both cases the menu
  * is whole.
  */
-export const UsageAnalyticsContext = React.createContext({ profile: null, ready: false });
+export const UsageAnalyticsContext = React.createContext({
+  profile: null,
+  ready: false,
+  catalog: [],
+  surfaces: [],
+  updateProfile: () => {},
+});
 
 export const useUsageAnalytics = () => React.useContext(UsageAnalyticsContext);
 

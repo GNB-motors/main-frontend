@@ -1,133 +1,354 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import {
+  Activity,
+  ArrowUpRight,
+  LayoutGrid,
+  RefreshCw,
+  Search,
+  Users,
+  PanelLeft,
+} from 'lucide-react';
 import PageShell from '../../components/ui/PageShell.jsx';
-import EmptyState from '../../components/cluster/EmptyState.jsx';
-import KpiCard from '../../components/ui/KpiCard.jsx';
+import { Button } from '../../components/ui/button.jsx';
 import { getUsageSummary } from '../../services/UsageAnalyticsService.js';
-import { summarize, buildSurfaceRows, measurementNote, recentDays, pathLabel } from './usageModel.js';
+import { useUsageAnalytics } from '../../contexts/UsageAnalyticsContext';
+import { applyUsageCut } from '../../utils/navCut';
+import { calendarTrend, navLabels, visibleUsageRows } from './usageModel.js';
+import './UsageAnalytics.css';
 
-/**
- * Screen Usage — item 26.1, the page that makes the navigation cut arguable.
- *
- * It shows the org's OWN numbers and the sentence the server wrote for each
- * verdict. It does not show a percentage of anything, because every boundary
- * here is a self-learned median of this org's own behaviour and a percentage
- * built on one reads as an accuracy claim when it is only a description.
- *
- * It also shows nothing about individuals. The data behind these rows is
- * per-surface and per-role; there is no per-person number to display because
- * there is no endpoint that would return one.
- */
+const STATUS_COPY = {
+  AT_OR_ABOVE_FLOOR: 'Frequently opened',
+  BELOW_ORG_FLOOR: 'Less used',
+  NEVER_OPENED: 'Not opened',
+  NOT_MEASURED: 'Collecting history',
+};
+const number = (value) => Number(value || 0).toLocaleString('en-IN');
+
 export default function UsageAnalyticsPage() {
+  const { catalog, surfaces, updateProfile } = useUsageAnalytics();
   const [data, setData] = React.useState(null);
   const [error, setError] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
-
+  const [revision, setRevision] = React.useState(0);
+  const [query, setQuery] = React.useState('');
+  const [disposition, setDisposition] = React.useState('');
+  const [sort, setSort] = React.useState('views');
+  const [period, setPeriod] = React.useState(14);
   React.useEffect(() => {
-    let cancelled = false;
-    getUsageSummary()
-      .then((res) => {
-        if (!cancelled) setData(res);
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+    getUsageSummary({ surfaces, signal: controller.signal })
+      .then((result) => {
+        if (controller.signal.aborted) return;
+        setData(result);
+        updateProfile(result);
       })
       .catch((err) => {
-        if (!cancelled) setError(err?.message || 'Could not load usage');
+        if (!controller.signal.aborted)
+          setError(err?.userMessage || err?.message || 'Could not load app usage.');
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    return () => controller.abort();
+  }, [surfaces, updateProfile, revision]);
 
-  const view = summarize(data);
-  const rows = buildSurfaceRows(data?.surfaces || []);
-  const days = recentDays(data?.daily || []);
+  const labels = React.useMemo(() => navLabels(catalog), [catalog]);
+  const rows = visibleUsageRows(data?.surfaces || [], labels, { query, disposition, sort });
+  const cut = applyUsageCut(catalog, data);
+  const moved = new Set(cut.folded.map((entry) => entry.to));
+  const days = calendarTrend(data?.daily, data?.window?.to, period);
+  const maxViews = Math.max(1, ...days.map((day) => day.views));
+  const activeScreens = (data?.surfaces || []).filter((row) => row.evidence?.views > 0).length;
+  const refresh = () => setRevision((value) => value + 1);
 
   return (
     <PageShell
-      title="Screen Usage"
-      subtitle="Which screens your organization opens — the evidence behind the menu"
-      count={rows.length || null}
-      freshnessAt={data?.computedAt || null}
+      title="App Usage"
+      subtitle="Understand which screens your team opens and how your menu is organized."
+      freshnessAt={data?.computedAt}
+      className="usage-page"
+      actions={
+        <Button size="sm" variant="secondary" onClick={refresh} disabled={loading}>
+          <RefreshCw size={14} aria-hidden="true" className={loading ? 'animate-spin' : ''} />
+          {loading ? 'Refreshing…' : 'Refresh'}
+        </Button>
+      }
     >
-      {loading ? <p className="text-[13px]">Reading your usage…</p> : null}
-
-      {error ? (
-        <EmptyState
-          title="Usage could not be loaded"
-          hint="Nothing has been hidden from the menu because of this — a missing number is never a reason to remove a screen. Try again once the service answers."
-        />
-      ) : null}
-
-      {!loading && !error ? (
+      <p className="usage-scope">
+        Organization-wide · Updated nightly at 2:13 AM IST
+        {data?.window?.to ? ` · Data through ${data.window.to}` : ''}. Today’s activity appears
+        after the next rollup.
+      </p>
+      {error && (
+        <div className="usage-error" role="alert">
+          {error}
+          <Button size="sm" variant="ghost" onClick={refresh}>
+            Retry
+          </Button>
+        </div>
+      )}
+      {!data && loading && (
+        <div role="status" className="usage-loading">
+          Loading app usage…
+        </div>
+      )}
+      {data && (
         <>
-          <p className="text-[13px] max-w-[70ch]" style={{ color: 'var(--ds-ink2)' }}>
-            {measurementNote(data)}
-          </p>
-
-          <div className="grid gap-3 mt-4" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))' }}>
-            <KpiCard title="Opens recorded" value={view.totalViews} accent="#2563eb" />
-            <KpiCard title="User-days" value={view.userDays} accent="#0891b2" />
-            <KpiCard title="Screens kept in the menu" value={view.usedCount} accent="#16a34a" />
-            <KpiCard title="Screens folded into a job" value={view.foldedCount} accent="#ea580c" />
+          <div className="usage-stats">
+            {[
+              { label: 'Page opens', value: data.learned?.totalViews, Icon: Activity },
+              { label: 'Active screens', value: activeScreens, Icon: LayoutGrid },
+              { label: 'User-days', value: data.learned?.userDays, Icon: Users },
+              { label: 'Links in More', value: cut.folded.length, Icon: PanelLeft },
+            ].map(({ label, value, Icon }) => (
+              <div className="usage-stat" key={label}>
+                <span className="usage-stat-icon">
+                  {React.createElement(Icon, { size: 19, 'aria-hidden': true })}
+                </span>
+                <div>
+                  <span>{label}</span>
+                  <strong>{number(value)}</strong>
+                </div>
+              </div>
+            ))}
           </div>
-
-          {days.length ? (
-            <section className="mt-5">
-              <h2 className="text-[14px] font-semibold">Last {days.length} recorded days</h2>
-              <ul className="mt-2 flex items-end gap-1" style={{ listStyle: 'none', padding: 0 }}>
-                {days.map((d) => (
-                  <li
-                    key={d.day}
-                    title={`${d.day}: ${d.views} opens, ${d.followOn} led somewhere else`}
-                    style={{
-                      height: `${Math.max(4, Math.min(64, (d.views / Math.max(1, ...days.map((x) => x.views))) * 64))}px`,
-                      width: 18,
-                      background: 'var(--ds-accent, #f97316)',
-                      borderRadius: 3,
-                    }}
-                  />
-                ))}
-              </ul>
-              <p className="text-[12px]" style={{ color: 'var(--ds-ink2)' }}>
-                {days[0].day} → {days[days.length - 1].day}
+          <div className="usage-explanation">
+            <strong>
+              {data.state === 'LEARNED'
+                ? 'Your menu reflects recorded usage'
+                : 'Collecting history'}
+            </strong>
+            <p>
+              {data.state === 'LEARNED'
+                ? `${number(cut.folded.length)} eligible links are grouped under “More inside this job”. Less-used screens are compared with your organization’s median of ${number(data.learned?.engagementFloor)} opens. Every page remains available.`
+                : 'Your menu stays intact until there is enough history across multiple screens and completed days to compare usage.'}
+            </p>
+            <small>
+              A user-day counts one person once per day across all screens. Navigation transitions
+              count moves between screens; they do not indicate completed work.
+            </small>
+          </div>
+          <section className="usage-panel" aria-labelledby="usage-trend-title">
+            <header className="usage-panel-head">
+              <div>
+                <h2 id="usage-trend-title">Daily page opens</h2>
+                <p>
+                  Last {period} calendar days ending {data.window?.to || 'at the next rollup'}
+                </p>
+              </div>
+              <select
+                aria-label="Chart period"
+                value={period}
+                onChange={(event) => setPeriod(Number(event.target.value))}
+              >
+                <option value={14}>14 days</option>
+                <option value={30}>30 days</option>
+              </select>
+            </header>
+            {days.length ? (
+              <>
+                <div
+                  className="usage-chart"
+                  role="img"
+                  aria-label={`Daily page opens for ${days[0].day} through ${days[days.length - 1].day}. Exact values are in the daily data table below.`}
+                >
+                  <div className="usage-axis">
+                    <span>{number(maxViews)}</span>
+                    <span>0</span>
+                  </div>
+                  <div className="usage-bars">
+                    {days.map((day, index) => (
+                      <div className="usage-day" key={day.day}>
+                        <div className="usage-bar-space">
+                          <span
+                            className="usage-bar"
+                            style={{ height: `${(day.views / maxViews) * 100}%` }}
+                            title={`${day.day}: ${number(day.views)} opens`}
+                          />
+                        </div>
+                        <span className="usage-tick">
+                          {index === 0 ||
+                          index === days.length - 1 ||
+                          index % (period === 14 ? 3 : 7) === 0
+                            ? day.day.slice(5)
+                            : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <details className="usage-daily-data">
+                  <summary>View daily data</summary>
+                  <div className="usage-table-scroll">
+                    <table>
+                      <caption className="sr-only">Daily usage counts</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Date</th>
+                          <th scope="col">Page opens</th>
+                          <th scope="col">Navigation transitions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {days.map((day) => (
+                          <tr key={day.day}>
+                            <th scope="row">{day.day}</th>
+                            <td>{number(day.views)}</td>
+                            <td>{number(day.followOn)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              </>
+            ) : (
+              <p className="usage-empty">
+                Daily activity appears after your first completed rollup.
               </p>
-            </section>
-          ) : null}
-
-          {rows.length ? (
-            <table className="mt-5 w-full text-[13px]">
-              <thead>
-                <tr className="text-left">
-                  <th className="py-1">Screen</th>
-                  <th>Opens</th>
-                  <th>User-days</th>
-                  <th>Led somewhere else</th>
-                  <th>Verdict</th>
-                  <th>Why</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.surfaceKey} style={{ borderTop: '1px solid var(--ds-line, #eee)' }}>
-                    <td className="py-1 pr-2">{row.label}</td>
-                    <td className="num">{row.evidence.views ?? 0}</td>
-                    <td className="num">{row.evidence.userDays ?? 0}</td>
-                    <td className="num">{row.evidence.followOn ?? 0}</td>
-                    <td>{row.dispositionCopy.label}</td>
-                    <td style={{ color: 'var(--ds-ink2)' }}>{row.reason || pathLabel(row.surfaceKey)}</td>
-                  </tr>
+            )}
+          </section>
+          <section
+            className="usage-panel"
+            aria-labelledby="usage-screens-title"
+            aria-busy={loading}
+          >
+            <header className="usage-panel-head">
+              <div>
+                <h2 id="usage-screens-title">Screen activity</h2>
+                <p>
+                  {data.window?.from && data.window?.to
+                    ? `${data.window.from} – ${data.window.to} · All recorded history`
+                    : 'All recorded history'}
+                </p>
+              </div>
+              <span className="usage-count">{rows.length} screens</span>
+            </header>
+            <div className="usage-toolbar">
+              <label className="usage-search">
+                <Search size={16} aria-hidden="true" />
+                <input
+                  aria-label="Search screens"
+                  placeholder="Search screens"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+              </label>
+              <select
+                aria-label="Usage category"
+                value={disposition}
+                onChange={(event) => setDisposition(event.target.value)}
+              >
+                <option value="">All usage categories</option>
+                {Object.entries(STATUS_COPY).map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
                 ))}
-              </tbody>
-            </table>
-          ) : (
-            <EmptyState
-              title="No usage recorded yet"
-              hint="This page fills in as your team opens screens. Until then it has nothing to say and the menu stays exactly as it was — an empty measurement is never a reason to hide a screen."
-            />
-          )}
+              </select>
+              <select
+                aria-label="Sort screens"
+                value={sort}
+                onChange={(event) => setSort(event.target.value)}
+              >
+                <option value="views">Most opened</option>
+                <option value="recent">Recently opened</option>
+                <option value="name">Screen name</option>
+              </select>
+            </div>
+            {rows.length ? (
+              <div className="usage-table-scroll">
+                <table>
+                  <caption className="sr-only">Usage by screen over all recorded history</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Screen</th>
+                      <th scope="col">Page opens</th>
+                      <th scope="col">Active days</th>
+                      <th scope="col">Transitions</th>
+                      <th scope="col">Usage</th>
+                      <th scope="col">Menu location</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <tr key={row.surfaceKey}>
+                        <th scope="row">
+                          {row.canOpen ? (
+                            <Link to={row.surfaceKey}>
+                              {row.label}
+                              <ArrowUpRight size={13} aria-hidden="true" />
+                            </Link>
+                          ) : (
+                            row.label
+                          )}
+                          <small>{row.surfaceKey}</small>
+                          <details className="usage-row-detail">
+                            <summary>View breakdown</summary>
+                            <p>
+                              {row.evidence.lastViewedAt
+                                ? `Last opened ${new Date(row.evidence.lastViewedAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}`
+                                : 'No recorded opens'}
+                            </p>
+                            {Object.entries(row.evidence.viewsByRole || {}).map(([role, count]) => (
+                              <p key={role}>
+                                {role.replaceAll('_', ' ')}: {number(count)} opens
+                              </p>
+                            ))}
+                          </details>
+                        </th>
+                        <td>{number(row.evidence.views)}</td>
+                        <td>{number(row.evidence.activeDays)}</td>
+                        <td>{number(row.evidence.followOn)}</td>
+                        <td>
+                          <span className={`usage-badge usage-badge--${row.disposition}`}>
+                            {STATUS_COPY[row.disposition] || 'Collecting history'}
+                          </span>
+                        </td>
+                        <td>
+                          {moved.has(row.surfaceKey)
+                            ? 'More inside this job'
+                            : row.canOpen
+                              ? 'Main menu'
+                              : 'Outside your menu'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="usage-empty">
+                <LayoutGrid size={26} aria-hidden="true" />
+                <h3>{query || disposition ? 'No matching screens' : 'No screen history yet'}</h3>
+                <p>
+                  {query || disposition
+                    ? 'Try another search or clear the filters.'
+                    : 'As your team opens screens, their activity will appear after the nightly rollup.'}
+                </p>
+                {(query || disposition) && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setQuery('');
+                      setDisposition('');
+                    }}
+                  >
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+            )}
+            <footer className="usage-footer">
+              Counts are aggregated across your organization. No individual activity profiles are
+              shown.
+            </footer>
+          </section>
         </>
-      ) : null}
+      )}
     </PageShell>
   );
 }

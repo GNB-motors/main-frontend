@@ -1,8 +1,10 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { recordView, getNavProfile } from '../services/UsageAnalyticsService.js';
-import { SIDE_NAV_ITEMS } from '../utils/sideNavItems.js';
-import { surfaceKeysFromNav } from '../utils/navCut.js';
+import { computeVisibleNav } from '../utils/sideNavUtils.js';
+import { useFeatureFlags } from './FeatureFlagsContext';
+import { getUserRole } from '../utils/session';
+
 import { UsageAnalyticsContext } from './UsageAnalyticsContext.js';
 
 /**
@@ -24,40 +26,57 @@ import { UsageAnalyticsContext } from './UsageAnalyticsContext.js';
  * of it.
  */
 
-/** Every path the menu offers, computed once — the menu does not change at runtime. */
-const MENU_PATHS = surfaceKeysFromNav(SIDE_NAV_ITEMS);
+/** Use the same entitlement and role gates as the sidebar, before usage folding. */
 
 export default function UsageAnalyticsProvider({ children }) {
   const [profile, setProfile] = React.useState(null);
+  const { canAccess, ready: flagsReady } = useFeatureFlags();
+  const role = getUserRole();
+  const enabled = flagsReady && role !== 'SUPER_ADMIN';
+  const catalog = React.useMemo(() => computeVisibleNav(canAccess, role).items, [canAccess, role]);
+  const surfaces = React.useMemo(
+    () => [
+      ...new Set(
+        catalog
+          .flatMap((item) => (item.type === 'group' ? item.children || [] : [item]))
+          .map((item) => item.to)
+          .filter((path) => path && !path.includes(':')),
+      ),
+    ],
+    [catalog],
+  );
   const { pathname } = useLocation();
   const lastRecorded = React.useRef(null);
 
   // RECORD — once per navigation to a DIFFERENT surface. A re-render or a filter
   // change is not an open, and neither is going back to a page already counted.
   React.useEffect(() => {
-    if (!pathname || pathname === lastRecorded.current) return;
+    if (!enabled || !pathname || pathname === lastRecorded.current) return;
     lastRecorded.current = pathname;
     recordView(pathname).catch(() => {
       /* usage tracking is allowed to fail silently — never at the user's cost */
     });
-  }, [pathname]);
+  }, [pathname, enabled]);
 
   // READ — the org's own profile, once per session. It is per org, not per page,
   // so navigation does not refetch it.
   React.useEffect(() => {
-    let cancelled = false;
-    getNavProfile({ surfaces: MENU_PATHS })
+    if (!enabled) return undefined;
+    const controller = new AbortController();
+    setProfile(null);
+    getNavProfile({ surfaces, signal: controller.signal })
       .then((data) => {
-        if (!cancelled) setProfile(data);
+        if (!controller.signal.aborted) setProfile(data);
       })
       .catch(() => {
-        /* no profile -> the sidebar shows everything */
+        /* No profile leaves the full menu available. */
       });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    return () => controller.abort();
+  }, [surfaces, enabled]);
 
-  const value = React.useMemo(() => ({ profile, ready: Boolean(profile) }), [profile]);
+  const value = React.useMemo(
+    () => ({ profile, ready: Boolean(profile), catalog, surfaces, updateProfile: setProfile }),
+    [profile, catalog, surfaces],
+  );
   return <UsageAnalyticsContext.Provider value={value}>{children}</UsageAnalyticsContext.Provider>;
 }

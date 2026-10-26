@@ -9,21 +9,34 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import SecondarySideNav from './SecondarySideNav';
 import { useFeatureFlags } from '../contexts/FeatureFlagsContext';
-import { reportDestination, visibleReportGroups } from '../pages/Reports/reportCatalog';
+import {
+  activeReportId,
+  reportDestination,
+  visibleReportGroups,
+} from '../pages/Reports/reportCatalog';
 
+// `selectedReport` / `setSelectedReport` are optional. The Reports page passes
+// them (it owns the in-page report state); on a dedicated report screen the rail
+// renders standalone and falls back to the URL for the active row and to a
+// navigate for in-page reports — so the same rail works everywhere.
 const ReportsSidebar = ({ isOpen, selectedReport, setSelectedReport, mobileOpen = false }) => {
   const { isEnabled } = useFeatureFlags();
   const navigate = useNavigate();
+  const location = useLocation();
 
   if (!isOpen) return null;
+
+  const active =
+    selectedReport != null ? selectedReport : activeReportId(location.pathname, location.search);
 
   const onSelect = (id) => {
     const destination = reportDestination(id);
     if (destination) navigate(destination);
-    else setSelectedReport(id);
+    else if (setSelectedReport) setSelectedReport(id);
+    else navigate(`/reports?report=${id}`);
   };
 
   return ReactDOM.createPortal(
@@ -32,7 +45,7 @@ const ReportsSidebar = ({ isOpen, selectedReport, setSelectedReport, mobileOpen 
       className={mobileOpen ? 'reports-sidebar--mobile-open' : ''}
       scrollId="report-side-nav"
       items={visibleReportGroups(isEnabled)}
-      activeOption={selectedReport}
+      activeOption={active}
       onSelect={onSelect}
     />,
     document.body,

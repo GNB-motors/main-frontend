@@ -30,6 +30,7 @@ import MassBalancePipeline from './integrity/MassBalancePipeline';
 import IntegrityBentoStrip from './integrity/IntegrityBentoStrip';
 import IntegrityHeaderActions from './integrity/IntegrityHeaderActions';
 import useIntegrityExport from './integrity/useIntegrityExport';
+import ReportsRail from '../../components/ReportsRail';
 import './FuelIntegrity.css';
 
 const FEED_LIMIT = 100;
@@ -299,162 +300,165 @@ const FuelIntegrityPage = () => {
   const { exportColumns, exportRows } = useIntegrityExport(filteredEvents);
 
   return (
-    <PageShell
-      title={
-        <div className="flex items-center gap-3">
-          <span>Fuel Integrity & Anti-Theft AI</span>
-          <span className="fi-live-badge">
-            <span className="fi-live-dot" />
-            <span>AI Telemetry Active</span>
-          </span>
-        </div>
-      }
-      subtitle={
-        lossL === 0
-          ? 'Autonomous mass-balance reconciled: 0 L unexplained loss · 100% fuel retained across fleet'
-          : `Alert: ${lossL.toFixed(1)} L unexplained siphon loss detected across fleet — review immediately`
-      }
-      filters={
-        <div className="manufacturer-scope-row">
-          <ManufacturerFilter value={manufacturer} onChange={setManufacturer} />
-        </div>
-      }
-      actions={
-        <IntegrityHeaderActions
-          exportColumns={exportColumns}
-          exportRows={exportRows}
-          fetchData={fetchData}
-          filteredEvents={filteredEvents}
-          handleSyncIoT={handleSyncIoT}
-          isLoading={isLoading}
-          isSyncing={isSyncing}
-          lastSynced={lastSynced}
-        />
-      }
-    >
-      <div className="fi-page-container">
-        {/* Error Alert */}
-        {error && (
-          <div className="fi-banner fi-banner--crit">
-            <span className="fi-banner-icon bg-red-100 dark:bg-red-950 text-red-600">
-              <AlertTriangle size={18} />
+    <>
+      <ReportsRail />
+      <PageShell
+        title={
+          <div className="flex items-center gap-3">
+            <span>Fuel Integrity & Anti-Theft AI</span>
+            <span className="fi-live-badge">
+              <span className="fi-live-dot" />
+              <span>AI Telemetry Active</span>
             </span>
-            <div>
-              <div className="fi-banner-title">Could not refresh telemetry</div>
-              <p className="text-xs text-slate-500">{error}</p>
-            </div>
           </div>
-        )}
-
-        {windowsTotal > windows.length && (
-          <div className="fi-banner fi-banner--warn">
-            <span className="fi-banner-icon bg-amber-100 dark:bg-amber-950 text-amber-600">
-              <AlertTriangle size={18} />
-            </span>
-            <div>
-              <div className="fi-banner-title">
-                Showing the newest {windows.length.toLocaleString('en-IN')} of{' '}
-                {windowsTotal.toLocaleString('en-IN')} fuel windows
-              </div>
-              <p className="text-xs text-slate-500">
-                Narrow the date range or pick a vehicle to see the rest.
-              </p>
-            </div>
+        }
+        subtitle={
+          lossL === 0
+            ? 'Autonomous mass-balance reconciled: 0 L unexplained loss · 100% fuel retained across fleet'
+            : `Alert: ${lossL.toFixed(1)} L unexplained siphon loss detected across fleet — review immediately`
+        }
+        filters={
+          <div className="manufacturer-scope-row">
+            <ManufacturerFilter value={manufacturer} onChange={setManufacturer} />
           </div>
-        )}
-
-        {/* ── HERO: MASS-BALANCE FLOW RECONCILIATION PIPELINE ──────────────── */}
-        <MassBalancePipeline
-          lossL={lossL}
-          pricePerL={pricePerL}
-          totalEngineBurnL={totalEngineBurnL}
-          totalFillsLitres={totalFillsLitres}
-          totalNetTankDeltaL={totalNetTankDeltaL}
-          windowDays={windowDays}
-        />
-
-        {/* ── Executive 4-Card Bento Strip ─────────────────────────────────── */}
-        <IntegrityBentoStrip
-          billCount={billCount}
-          defCount={defCount}
-          lossL={lossL}
-          pricePerL={pricePerL}
-          setChip={setChip}
-          totalFillsLitres={totalFillsLitres}
-          windowDays={windowDays}
-        />
-
-        {/* ── Operational Mission Control Workspace ────────────────────────── */}
-        <FuelIntegrityTables
-          isLoading={isLoading}
-          filteredCount={filteredEvents.length}
-          pageEvents={pageEvents}
-          page={page}
-          totalPages={totalPages}
-          reviewed={reviewed}
-          onOpenEvent={openEvent}
-          onPageChange={setPage}
-          riskVehicles={riskVehicles}
-          onDrill={setDrillVehicle}
-          vehicle={vehicle}
-          // Analytics & trends
-          chartData={chartData}
-          chartMetric={chartMetric}
-          onMetricChange={setChartMetric}
-          rangeDays={rangeDays}
-          onRangeChange={applyRange}
-          defCount={defCount}
-          billCount={billCount}
-          lossL={lossL}
-          affected={affected}
-          // Embedded search and filters
-          chip={chip}
-          onChipChange={setChip}
-          chipDefs={chipDefs}
-          vehicleQuery={vehicleQuery}
-          onVehicleQueryChange={setVehicleQuery}
-          eventType={eventType}
-          onEventTypeChange={setEventType}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-          onApplyFilter={applyFilter}
-          onResetFilters={resetFilters}
-          // Split Inspector Controls
-          selectedEventId={selectedEventId}
-          onSelectEvent={setSelectedEventId}
-          onMarkReviewed={markReviewed}
-          pricePerL={pricePerL}
-          fills={fills}
-        />
-
-        {/* ── Modal / Slideover Drawers ────────────────────────────────────── */}
-        {drillVehicle && !isLoading && (
-          <VehicleDrilldownPanel
-            vehicle={drillVehicle}
-            chartData={drillChartData}
-            windows={drillWindows}
-            onClose={() => setDrillVehicle(null)}
-            onShowWorking={setEvidenceWindow}
+        }
+        actions={
+          <IntegrityHeaderActions
+            exportColumns={exportColumns}
+            exportRows={exportRows}
+            fetchData={fetchData}
+            filteredEvents={filteredEvents}
+            handleSyncIoT={handleSyncIoT}
+            isLoading={isLoading}
+            isSyncing={isSyncing}
+            lastSynced={lastSynced}
           />
-        )}
+        }
+      >
+        <div className="fi-page-container">
+          {/* Error Alert */}
+          {error && (
+            <div className="fi-banner fi-banner--crit">
+              <span className="fi-banner-icon bg-red-100 dark:bg-red-950 text-red-600">
+                <AlertTriangle size={18} />
+              </span>
+              <div>
+                <div className="fi-banner-title">Could not refresh telemetry</div>
+                <p className="text-xs text-slate-500">{error}</p>
+              </div>
+            </div>
+          )}
 
-        <EvidenceDrawer
-          open={!!evidenceWindow}
-          onClose={() => setEvidenceWindow(null)}
-          window={evidenceWindow}
-          context={{ fuelPriceInrPerL: pricePerL }}
-        />
+          {windowsTotal > windows.length && (
+            <div className="fi-banner fi-banner--warn">
+              <span className="fi-banner-icon bg-amber-100 dark:bg-amber-950 text-amber-600">
+                <AlertTriangle size={18} />
+              </span>
+              <div>
+                <div className="fi-banner-title">
+                  Showing the newest {windows.length.toLocaleString('en-IN')} of{' '}
+                  {windowsTotal.toLocaleString('en-IN')} fuel windows
+                </div>
+                <p className="text-xs text-slate-500">
+                  Narrow the date range or pick a vehicle to see the rest.
+                </p>
+              </div>
+            </div>
+          )}
 
-        <EventInvestigationDrawer
-          open={!!investigateEvent}
-          onClose={() => setInvestigateEvent(null)}
-          event={investigateEvent}
-          context={investigateEvent?._ctx}
-          reviewed={investigateEvent ? reviewed.has(investigateEvent.id) : false}
-          onMarkReviewed={markReviewed}
-        />
-      </div>
-    </PageShell>
+          {/* ── HERO: MASS-BALANCE FLOW RECONCILIATION PIPELINE ──────────────── */}
+          <MassBalancePipeline
+            lossL={lossL}
+            pricePerL={pricePerL}
+            totalEngineBurnL={totalEngineBurnL}
+            totalFillsLitres={totalFillsLitres}
+            totalNetTankDeltaL={totalNetTankDeltaL}
+            windowDays={windowDays}
+          />
+
+          {/* ── Executive 4-Card Bento Strip ─────────────────────────────────── */}
+          <IntegrityBentoStrip
+            billCount={billCount}
+            defCount={defCount}
+            lossL={lossL}
+            pricePerL={pricePerL}
+            setChip={setChip}
+            totalFillsLitres={totalFillsLitres}
+            windowDays={windowDays}
+          />
+
+          {/* ── Operational Mission Control Workspace ────────────────────────── */}
+          <FuelIntegrityTables
+            isLoading={isLoading}
+            filteredCount={filteredEvents.length}
+            pageEvents={pageEvents}
+            page={page}
+            totalPages={totalPages}
+            reviewed={reviewed}
+            onOpenEvent={openEvent}
+            onPageChange={setPage}
+            riskVehicles={riskVehicles}
+            onDrill={setDrillVehicle}
+            vehicle={vehicle}
+            // Analytics & trends
+            chartData={chartData}
+            chartMetric={chartMetric}
+            onMetricChange={setChartMetric}
+            rangeDays={rangeDays}
+            onRangeChange={applyRange}
+            defCount={defCount}
+            billCount={billCount}
+            lossL={lossL}
+            affected={affected}
+            // Embedded search and filters
+            chip={chip}
+            onChipChange={setChip}
+            chipDefs={chipDefs}
+            vehicleQuery={vehicleQuery}
+            onVehicleQueryChange={setVehicleQuery}
+            eventType={eventType}
+            onEventTypeChange={setEventType}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            onApplyFilter={applyFilter}
+            onResetFilters={resetFilters}
+            // Split Inspector Controls
+            selectedEventId={selectedEventId}
+            onSelectEvent={setSelectedEventId}
+            onMarkReviewed={markReviewed}
+            pricePerL={pricePerL}
+            fills={fills}
+          />
+
+          {/* ── Modal / Slideover Drawers ────────────────────────────────────── */}
+          {drillVehicle && !isLoading && (
+            <VehicleDrilldownPanel
+              vehicle={drillVehicle}
+              chartData={drillChartData}
+              windows={drillWindows}
+              onClose={() => setDrillVehicle(null)}
+              onShowWorking={setEvidenceWindow}
+            />
+          )}
+
+          <EvidenceDrawer
+            open={!!evidenceWindow}
+            onClose={() => setEvidenceWindow(null)}
+            window={evidenceWindow}
+            context={{ fuelPriceInrPerL: pricePerL }}
+          />
+
+          <EventInvestigationDrawer
+            open={!!investigateEvent}
+            onClose={() => setInvestigateEvent(null)}
+            event={investigateEvent}
+            context={investigateEvent?._ctx}
+            reviewed={investigateEvent ? reviewed.has(investigateEvent.id) : false}
+            onMarkReviewed={markReviewed}
+          />
+        </div>
+      </PageShell>
+    </>
   );
 };
 

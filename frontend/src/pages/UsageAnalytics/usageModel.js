@@ -116,3 +116,52 @@ export function bySeverityThenRecency(a, b) {
   if (sev !== 0) return sev;
   return new Date(b.lastSeenAt || 0).getTime() - new Date(a.lastSeenAt || 0).getTime();
 }
+/** Calendar days through the last completed rollup; missing days have zero opens. */
+export function calendarTrend(daily = [], endDay, count = 14) {
+  if (!endDay || !/^\d{4}-\d{2}-\d{2}$/.test(endDay)) return [];
+  const end = new Date(`${endDay}T00:00:00Z`);
+  if (!Number.isFinite(end.getTime())) return [];
+  const byDay = new Map(daily.map((day) => [day.day, day]));
+  return Array.from({ length: count }, (_, index) => {
+    const day = new Date(end.getTime() - (count - index - 1) * 86400000).toISOString().slice(0, 10);
+    return { day, views: byDay.get(day)?.views || 0, followOn: byDay.get(day)?.followOn || 0 };
+  });
+}
+
+export function navLabels(catalog = []) {
+  return new Map(
+    catalog
+      .flatMap((item) => (item.type === 'group' ? item.children || [] : [item]))
+      .filter((item) => item.to)
+      .map((item) => [item.to, item.label]),
+  );
+}
+
+export function visibleUsageRows(
+  surfaces,
+  labels,
+  { query = '', disposition = '', sort = 'views' } = {},
+) {
+  const needle = query.trim().toLowerCase();
+  return buildSurfaceRows(surfaces)
+    .map((row) => ({
+      ...row,
+      label: labels.get(row.surfaceKey) || row.label,
+      canOpen:
+        labels.has(row.surfaceKey) &&
+        row.surfaceKey.startsWith('/') &&
+        !row.surfaceKey.startsWith('//'),
+    }))
+    .filter(
+      (row) =>
+        (!disposition || row.disposition === disposition) &&
+        (!needle || `${row.label} ${row.surfaceKey}`.toLowerCase().includes(needle)),
+    )
+    .sort((a, b) =>
+      sort === 'name'
+        ? a.label.localeCompare(b.label)
+        : sort === 'recent'
+          ? new Date(b.evidence.lastViewedAt || 0) - new Date(a.evidence.lastViewedAt || 0)
+          : (b.evidence.views || 0) - (a.evidence.views || 0) || a.label.localeCompare(b.label),
+    );
+}

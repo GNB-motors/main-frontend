@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Download } from 'lucide-react';
 import FleetDataService from '../../services/FleetDataService';
 import useApi from '../../hooks/useApi';
@@ -24,10 +24,11 @@ const SEVERITY_COLOR = {
 
 export default function FleetAlertsPage() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const [type, setType] = useState('');
   const [page, setPage] = useState(1);
-  const [vehicleInput, setVehicleInput] = useState('');
-  const [vehicle, setVehicle] = useState('');
+  const [vehicleInput, setVehicleInput] = useState(params.get('vehicle') || '');
+  const [vehicle, setVehicle] = useState(params.get('vehicle') || '');
 
   /* Debounce the vehicle filter; uppercase to match registration numbers. */
   useEffect(() => {
