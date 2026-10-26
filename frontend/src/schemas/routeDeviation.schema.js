@@ -11,16 +11,13 @@ const tripLink = z
   .object({
     autoTripId: ref,
     erpTripId: ref,
-    leg: str, // LADEN | APPROACH
+    leg: str, // LADEN (left plant → last drop) | RETURN (last drop → next plant)
     pickupName: str,
     dropName: str,
     extraDropCount: num,
     tripStatus: str,
-    tripStartAt: str,
-    tripEndAt: str,
     tripOpen: z.boolean().nullish(),
-    costPerKmInr: num,
-    linkedAt: str,
+    ladenFrom: str, // when the trip left the plant
   })
   .passthrough()
   .nullish();
@@ -40,6 +37,8 @@ export const deviationEventSchema = z
     extraKmEstimate: num,
     estimatedExtraCostInr: num,
     costBasis: str, // TRIP | CONFIG
+    costPerKmInr: num, // detail only: the trip's own rate for that leg
+    extraKmBasis: str, // ROUTE (vs the usual route) | CHORD (vs a straight line)
     status: str, // OPEN | REVIEWED
     trip: tripLink,
     reviewedAt: str,
@@ -58,7 +57,7 @@ export const deviationListSchema = z
         openCostInr: num,
         extraKm: num,
         trips: num,
-        byLeg: z.object({ LADEN: num, APPROACH: num, NONE: num }).passthrough().nullish(),
+        byLeg: z.object({ LADEN: num, RETURN: num, NONE: num }).passthrough().nullish(),
       })
       .passthrough()
       .nullish(),
@@ -92,6 +91,7 @@ export const deviationDetailSchema = z
         bufferKm: num,
         sampleCount: num,
         band: z.array(z.object({ lat: num, lng: num, n: num }).passthrough()).nullish(),
+        bandTruncated: z.boolean().nullish(), // a long corridor's band, sampled evenly
         line: z.array(z.object({ lat: num, lng: num }).passthrough()).nullish(),
       })
       .passthrough()
@@ -103,6 +103,10 @@ export const deviationDetailSchema = z
         erpTripId: ref,
         pickup: place,
         drops: z.array(place).nullish(),
+        // The trip's own stretches: left the plant → last drop → the next plant.
+        ladenFrom: str,
+        ladenTo: str,
+        returnTo: str,
       })
       .passthrough()
       .nullish(),

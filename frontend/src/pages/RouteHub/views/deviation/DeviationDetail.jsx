@@ -67,7 +67,7 @@ export default function DeviationDetail({
           <h3>{trip ? tripLabel(trip) : 'Outside any trip'}</h3>
           <span className="muted">
             {trip
-              ? `${legLabel(trip)} · trip started ${trip.tripStartAt ? fmtDT(new Date(trip.tripStartAt)) : '—'}`
+              ? `${legLabel(trip)} · left the plant ${trip.ladenFrom ? fmtDT(new Date(trip.ladenFrom)) : '—'}`
               : row.corridorLabel || 'No trip was running when this happened'}
           </span>
         </div>
@@ -115,6 +115,7 @@ export default function DeviationDetail({
             <i className="dot" style={{ background: '#8B8B8C' }} />
             Usual route
             {detail?.corridor?.sampleCount ? ` (from ${detail.corridor.sampleCount} trips)` : ''}
+            {detail?.corridor?.bandTruncated ? ' · band sampled' : ''}
           </span>
           {trip ? (
             <span>

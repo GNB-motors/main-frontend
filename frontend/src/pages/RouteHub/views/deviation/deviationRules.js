@@ -8,7 +8,7 @@ export const STATUS_FILTERS = [
 export const LEG_FILTERS = [
   { key: 'all', label: 'Any leg' },
   { key: 'LADEN', label: 'Loaded' },
-  { key: 'APPROACH', label: 'Empty, going to load' },
+  { key: 'RETURN', label: 'Empty, driving back' },
   { key: 'NONE', label: 'Outside any trip' },
 ];
 
@@ -23,12 +23,15 @@ export const REVIEW_REASONS = [
 
 export const reasonLabel = (key) => REVIEW_REASONS.find((r) => r.key === key)?.label || null;
 
-/** How a detour's ₹ was worked out: the trip's own cost per km, or the standard rate. */
+/**
+ * How a detour's ₹ was worked out: the trip's own cost per km (the number only on the detail, which
+ * reads it from the trip), or the standard rate.
+ */
 export function costBasisLabel(d) {
-  if (d.costBasis === 'TRIP' && d.trip?.costPerKmInr != null) {
-    return `at this trip's ₹${Math.round(d.trip.costPerKmInr)}/km`;
-  }
-  return 'at the standard rate';
+  if (d.costBasis !== 'TRIP') return 'at the standard rate';
+  return d.costPerKmInr != null
+    ? `at this trip's ₹${Math.round(d.costPerKmInr)}/km`
+    : "at this trip's own cost per km";
 }
 
 export const isOpen = (d) => String(d.status || '').toUpperCase() === 'OPEN';
@@ -41,7 +44,7 @@ export const normalisePlate = (s) =>
 export function legLabel(trip) {
   if (!trip) return 'Outside any trip';
   if (trip.leg === 'LADEN') return 'Loaded';
-  if (trip.leg === 'APPROACH') return 'Empty, going to load';
+  if (trip.leg === 'RETURN') return 'Empty, driving back';
   return 'On trip';
 }
 

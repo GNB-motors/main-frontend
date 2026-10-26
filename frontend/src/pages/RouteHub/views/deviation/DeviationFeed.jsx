@@ -12,7 +12,7 @@ import {
 
 const LEG_TONE = {
   LADEN: ['#C2323A', 'rgba(229,104,107,.14)'],
-  APPROACH: ['#5D5D5E', 'rgba(93,93,94,.12)'],
+  RETURN: ['#5D5D5E', 'rgba(93,93,94,.12)'],
   NONE: ['#5D5D5E', 'rgba(93,93,94,.08)'],
 };
 
@@ -55,7 +55,7 @@ export default function DeviationFeed({ groups, selId, onSelect, first, error, p
             <b>{g.trip ? tripLabel(g.trip) : 'Outside any trip'}</b>
             <span className="muted">
               {g.trip
-                ? `Trip of ${shortDay(g.trip.tripStartAt)}`
+                ? `Trip of ${shortDay(g.trip.ladenFrom)}`
                 : g.events[0].corridorLabel || 'Between two known places'}
             </span>
           </div>

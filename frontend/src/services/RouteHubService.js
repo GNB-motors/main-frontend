@@ -177,7 +177,7 @@ const RouteHubService = {
   /**
    * Paginated route-deviation events (OPEN first). `limit` is capped at 100.
    * `summary` counts the whole filtered set; each record's `trip` names the
-   * AutoTrip and leg (LADEN / APPROACH) the detour happened on, or is null.
+   * AutoTrip and leg (LADEN / RETURN) the detour happened on, or is null.
    */
   getDeviationEvents: async (
     { vehicle, from, to, status, leg, linked, autoTripId, minExtraKm, page, limit } = {},

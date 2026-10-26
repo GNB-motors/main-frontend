@@ -45,7 +45,7 @@ describe('tripLabel / legLabel', () => {
 
   it('says which part of the trip it was', () => {
     expect(legLabel({ leg: 'LADEN' })).toBe('Loaded');
-    expect(legLabel({ leg: 'APPROACH' })).toBe('Empty, going to load');
+    expect(legLabel({ leg: 'RETURN' })).toBe('Empty, driving back');
     expect(legLabel(null)).toBe('Outside any trip');
   });
 });
@@ -86,9 +86,9 @@ describe('runWindow', () => {
 
 describe('costBasisLabel', () => {
   it('says when the trip’s own cost per km priced it', () => {
-    expect(costBasisLabel({ costBasis: 'TRIP', trip: { costPerKmInr: 34.6 } })).toBe(
-      "at this trip's ₹35/km",
-    );
+    expect(costBasisLabel({ costBasis: 'TRIP', costPerKmInr: 34.6 })).toBe("at this trip's ₹35/km");
+    // The feed has no rate on the row: it still says whose rate priced it.
+    expect(costBasisLabel({ costBasis: 'TRIP' })).toBe("at this trip's own cost per km");
     expect(costBasisLabel({ costBasis: 'CONFIG', trip: null })).toBe('at the standard rate');
     expect(costBasisLabel({})).toBe('at the standard rate');
   });
