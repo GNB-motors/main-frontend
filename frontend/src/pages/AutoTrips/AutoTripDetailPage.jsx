@@ -269,8 +269,8 @@ export default function AutoTripDetailPage() {
             <div className="atx-rule" />
             <Field label="Stops on the way">{stopsOnWayText(trip.stopsSummary)}</Field>
             {tollText ? <Field label="Tolls on the way">{tollText}</Field> : null}
-            {tollSummary(tolls, 'APPROACH') ? (
-              <Field label="Tolls before loading">{tollSummary(tolls, 'APPROACH')}</Field>
+            {tollSummary(tolls, 'RETURN') ? (
+              <Field label="Tolls on the way back">{tollSummary(tolls, 'RETURN')}</Field>
             ) : null}
             {tollClassText(tolls) ? <Field label="Toll class">{tollClassText(tolls)}</Field> : null}
             {trip.extraDrops?.length || trip.erpTripId ? (

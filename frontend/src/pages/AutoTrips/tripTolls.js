@@ -5,9 +5,9 @@
  * and the crossing read as one event. Every other pass is its own timeline row between the stops it
  * happened between. Rupees are shown only when the server sent them (owners and managers).
  *
- * A trip owns two legs, the same cut as route deviations: APPROACH, the empty drive from the previous
- * trip's last drop to this pickup, and LADEN, the run the replay plays. Only laden passes go on the
- * timeline and the replay map; approach passes happen before the replay starts.
+ * A trip owns two legs, SAP's cut (the same as route deviations): LADEN, the run the replay plays, and
+ * RETURN, the empty drive home from the last drop to the truck's next plant. Only laden passes go on the
+ * timeline and the replay map; return passes happen after the replay ends.
  */
 import { inr } from '../../utils/formatMoney';
 import { toDate } from './autoTripFormat';
@@ -21,7 +21,7 @@ const ms = (v) => toDate(v)?.getTime() ?? null;
 /** A pass with no leg comes from a server before legs existed: it was on the laden run. */
 const legOf = (p) => p.leg || 'LADEN';
 
-/** The passes of one leg (APPROACH | LADEN). */
+/** The passes of one leg (LADEN | RETURN). */
 export const passesOf = (passes, leg) => (passes || []).filter((p) => legOf(p) === leg);
 
 export const passId = (p) => `toll-${p.placeId || `${p.lat},${p.lng}`}-${ms(p.at)}`;
