@@ -4,6 +4,10 @@
  * A pass that happened while the truck stood at a stop (a toll queue) belongs to that stop, so the stop
  * and the crossing read as one event. Every other pass is its own timeline row between the stops it
  * happened between. Rupees are shown only when the server sent them (owners and managers).
+ *
+ * A trip owns two legs, the same cut as route deviations: APPROACH, the empty drive from the previous
+ * trip's last drop to this pickup, and LADEN, the run the replay plays. Only laden passes go on the
+ * timeline and the replay map; approach passes happen before the replay starts.
  */
 import { inr } from '../../utils/formatMoney';
 import { toDate } from './autoTripFormat';
@@ -13,6 +17,12 @@ const STOP_SLACK_MS = 5 * 60000;
 const STOP_KINDS = new Set(['stop', 'unknown']);
 
 const ms = (v) => toDate(v)?.getTime() ?? null;
+
+/** A pass with no leg comes from a server before legs existed: it was on the laden run. */
+const legOf = (p) => p.leg || 'LADEN';
+
+/** The passes of one leg (APPROACH | LADEN). */
+export const passesOf = (passes, leg) => (passes || []).filter((p) => legOf(p) === leg);
 
 export const passId = (p) => `toll-${p.placeId || `${p.lat},${p.lng}`}-${ms(p.at)}`;
 
@@ -58,12 +68,16 @@ export function tollClassText(tolls) {
   return 'not priced: set this truck’s axle class or model';
 }
 
-/** "3 toll plazas · ₹1,185" (+ "· 1 unpriced"), "2 toll plazas" for drivers, null with none. */
-export function tollSummary(tolls) {
-  const n = tolls?.passes?.length || 0;
+/**
+ * One leg's tolls: "3 toll plazas · ₹1,185" (+ "· 1 unpriced"), "2 toll plazas" for drivers, null with
+ * none. Rupees come from the server's per-leg total (owners and managers only).
+ */
+export function tollSummary(tolls, leg = 'LADEN') {
+  const own = passesOf(tolls?.passes, leg);
+  const n = own.length;
   if (!n) return null;
   const head = `${n} toll plaza${n === 1 ? '' : 's'}`;
-  const t = tolls.total;
+  const t = tolls.total?.byLeg?.[leg] || (leg === 'LADEN' ? tolls.total : null);
   const parts = [head];
   if (t?.priced) parts.push(inr(t.inr));
   if (t?.unknown) parts.push(`${t.unknown} unpriced`);
@@ -85,11 +99,12 @@ function stopOf(steps, at) {
  * `tollPass`; any other pass becomes a `{ type: 'toll' }` item right before the first step after it.
  */
 export function withTollPasses(plan, passes) {
-  if (!plan || !passes?.length) return plan;
+  const laden = passesOf(passes, 'LADEN');
+  if (!plan || !laden.length) return plan;
   const steps = plan.items.filter((it) => it.type === 'step');
   const onStep = new Map();
   const loose = [];
-  [...passes]
+  [...laden]
     .sort((a, b) => ms(a.at) - ms(b.at))
     .forEach((p) => {
       const step = stopOf(steps, ms(p.at));
@@ -119,7 +134,7 @@ export function withTollPasses(plan, passes) {
 /** Markers for the replay map; `passed` is relative to the replay's current instant. */
 export function tollMarks(passes, cursorAt) {
   const now = ms(cursorAt);
-  return (passes || []).map((p) => ({
+  return passesOf(passes, 'LADEN').map((p) => ({
     id: passId(p),
     at: { lat: p.lat, lng: p.lng },
     name: passName(p),
@@ -135,7 +150,7 @@ const JUST_PASSED_MS = 5 * 60000;
 export function justPassed(passes, cursorAt) {
   const now = ms(cursorAt);
   if (now == null) return null;
-  const recent = (passes || []).filter((p) => {
+  const recent = passesOf(passes, 'LADEN').filter((p) => {
     const at = ms(p.at);
     return at != null && at <= now && now - at <= JUST_PASSED_MS;
   });

@@ -194,6 +194,7 @@ export default autoTripListSchema;
 const tollPass = z
   .object({
     at: str,
+    leg: str, // APPROACH (previous drop → this pickup) | LADEN (the replay window)
     evidence: str, // ROAD | INFERRED_ROAD | STOP | GPS
     inferred: z.boolean().nullish(),
     lat: num,
@@ -212,8 +213,10 @@ export const autoTripTollsSchema = z
   .object({
     tripId: str,
     status: str, // OK | FALLBACK (stops and GPS; road not matched) | STALE | NO_WINDOW | FAILED
-    from: str,
+    from: str, // the approach start when there is one, else the laden start
     to: str,
+    approachFrom: str,
+    ladenFrom: str,
     // The tariff group the truck pays in and what it was read from (null group = not priced).
     vehicleGroup: z
       .object({ group: str, source: str, basis: str }) // source: AXLE_CLASS | MODEL_GVW
@@ -221,7 +224,13 @@ export const autoTripTollsSchema = z
       .nullish(),
     passes: z.array(tollPass).nullish(),
     total: z
-      .object({ inr: num, priced: num, unknown: num, complete: z.boolean().nullish() })
+      .object({
+        inr: num,
+        priced: num,
+        unknown: num,
+        complete: z.boolean().nullish(),
+        byLeg: z.record(z.object({ inr: num, priced: num, unknown: num }).passthrough()).nullish(),
+      })
       .passthrough()
       .nullish(),
   })

@@ -72,6 +72,13 @@ describe('withTollPasses', () => {
     expect(out.items.find((it) => it.id === 'd').tollPass).toBeUndefined();
   });
 
+  it('leaves approach passes off the timeline: they happen before the replay starts', () => {
+    const plan = { items: [{ type: 'step', id: 's1', kind: 'plant', at: '2026-10-20T04:00:00Z' }] };
+    expect(withTollPasses(plan, [{ leg: 'APPROACH', at: '2026-10-20T01:00:00Z' }])).toBe(plan);
+    expect(
+      tollMarks([{ leg: 'APPROACH', at: '2026-10-20T01:00:00Z', lat: 1, lng: 2 }], null),
+    ).toEqual([]);
+  });
   it('leaves the plan untouched with no passes', () => {
     expect(withTollPasses(plan, [])).toBe(plan);
   });
@@ -87,6 +94,23 @@ describe('tollSummary and fareText', () => {
       '1 toll plaza · ₹590 · road not matched yet',
     );
     expect(tollSummary({ passes: [] })).toBeNull();
+  });
+  it('splits the drive back to the plant (approach) from the loaded run', () => {
+    const tolls = {
+      passes: [{ leg: 'APPROACH' }, { leg: 'APPROACH' }, { leg: 'LADEN' }],
+      total: {
+        inr: 1475,
+        priced: 3,
+        unknown: 0,
+        byLeg: {
+          APPROACH: { inr: 885, priced: 2, unknown: 0 },
+          LADEN: { inr: 590, priced: 1, unknown: 0 },
+        },
+      },
+    };
+    expect(tollSummary(tolls)).toBe('1 toll plaza · ₹590');
+    expect(tollSummary(tolls, 'APPROACH')).toBe('2 toll plazas · ₹885');
+    expect(tollSummary({ passes: [{ leg: 'LADEN' }], total: null }, 'APPROACH')).toBeNull();
   });
   it('an unpriced pass says so instead of ₹0', () => {
     expect(fareText({ fareInr: 410 })).toBe('₹410');
