@@ -1,200 +1,143 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useReducer, useState } from 'react';
 import RouteHubService from '../../../services/RouteHubService';
+import { useApi } from '../../../hooks/useApi';
+import { useMutation } from '../../../hooks/useMutation';
 import Ico from '../routeHubIcons.jsx';
-import { L, useLeafletMap, useLayerGroup, pinIcon } from '../routeHubMap';
 import { KpiRow, RefreshButton } from '../routeHubShared.jsx';
-import { dkey, downloadCsv, fmtDT, inr } from '../routeHubFormat';
-import { isOpen, normalisePlate } from './deviation/deviationRules.js';
+import { downloadCsv, fmtDT, inr } from '../routeHubFormat';
+import {
+  dayRange,
+  groupByTrip,
+  legLabel,
+  matchesSearch,
+  normalisePlate,
+  tripLabel,
+} from './deviation/deviationRules.js';
 import DeviationFilterBar from './deviation/DeviationFilterBar.jsx';
 import DeviationFeed from './deviation/DeviationFeed.jsx';
 import DeviationDetail from './deviation/DeviationDetail.jsx';
 
-export default function DeviationView({ params, toast, setBadge, go }) {
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [status, setStatus] = useState('all');
-  const [q, setQ] = useState(params.get('q') || '');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-  const [selId, setSelId] = useState(params.get('d') || null);
-  const [detail, setDetail] = useState(null);
+const PAGE_SIZE = 100;
+// A full Indian plate goes to the server as an exact vehicle filter; anything
+// else (a partial plate, a place name) filters the loaded page.
+const FULL_PLATE = /^[a-z]{2}\d{1,2}[a-z]{0,3}\d{3,4}$/;
 
-  useEffect(() => {
-    const paramQ = params.get('q');
-    if (paramQ !== null && paramQ !== undefined) {
-      setQ(paramQ);
-    }
-  }, [params]);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await RouteHubService.getDeviationEvents({ limit: 200 });
-      const rows = data.records || [];
-      setRecords(rows);
-      setBadge('deviation', rows.filter(isOpen).length);
-    } catch (e) {
-      setError(e?.message || 'Could not load deviation events.');
-    } finally {
-      setLoading(false);
-    }
-  }, [setBadge]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const first = loading && !records.length;
-  const open = records.filter(isOpen);
-  const reviewed = records.filter((d) => !isOpen(d));
-
-  const rows = useMemo(
-    () =>
-      records.filter((d) => {
-        if (status === 'open' && !isOpen(d)) return false;
-        if (status === 'reviewed' && isOpen(d)) return false;
-        if (q) {
-          const matchPlate = normalisePlate(d.registrationNumber).includes(normalisePlate(q));
-          const matchTrip = String(d.tripId || '')
-            .toLowerCase()
-            .includes(q.toLowerCase());
-          const matchCorridor = String(d.corridorName || '')
-            .toLowerCase()
-            .includes(q.toLowerCase());
-          if (!matchPlate && !matchTrip && !matchCorridor) return false;
-        }
-        const day = d.detectedAt ? dkey(d.detectedAt) : null;
-        if (from && (!day || day < from)) return false;
-        if (to && (!day || day > to)) return false;
-        return true;
-      }),
-    [records, status, q, from, to],
-  );
-
-  const selected = rows.find((d) => d._id === selId) || rows[0] || null;
-
-  useEffect(() => {
-    if (selected && selected._id !== selId) setSelId(selected._id);
-  }, [selected, selId]);
-
-  // The planned corridor and the driven path live in two different places, so
-  // the detail panel assembles them per selection rather than with the feed.
-  useEffect(() => {
-    let cancelled = false;
-    setDetail(null);
-    if (!selected) return undefined;
-    (async () => {
-      const [corridor, trail] = await Promise.all([
-        selected.corridorId
-          ? RouteHubService.getCorridor(selected.corridorId).catch(() => null)
-          : Promise.resolve(null),
-        selected.registrationNumber && (selected.startedAt || selected.detectedAt)
-          ? RouteHubService.getTrail(selected.registrationNumber, {
-              from: new Date(
-                new Date(selected.startedAt || selected.detectedAt).getTime() - 30 * 60000,
-              ).toISOString(),
-              to: new Date(
-                new Date(selected.endedAt || selected.detectedAt).getTime() + 30 * 60000,
-              ).toISOString(),
-              limit: 2000,
-            }).catch(() => null)
-          : Promise.resolve(null),
-      ]);
-      if (cancelled) return;
-      setDetail({
-        planned: (corridor?.points || corridor?.path || [])
-          .map((p) => (Array.isArray(p) ? p : [p.lat ?? p.latitude, p.lng ?? p.longitude]))
-          .filter((p) => p[0] != null && p[1] != null),
-        actual: (trail?.points || [])
-          .filter((p) => p.latitude != null && p.longitude != null)
-          .map((p) => [p.latitude, p.longitude]),
-      });
-    })();
-    return () => {
-      cancelled = true;
+function filtersReducer(state, action) {
+  if (action.type === 'set') {
+    // Any filter change starts again from the first page.
+    return {
+      ...state,
+      [action.field]: action.value,
+      page: action.field === 'page' ? action.value : 1,
     };
-  }, [selected]);
+  }
+  return state;
+}
 
-  const { containerRef, mapRef } = useLeafletMap({});
+export default function DeviationView({ params, toast, setBadge, go }) {
+  const [filters, dispatch] = useReducer(filtersReducer, {
+    q: params.get('q') || '',
+    from: '',
+    to: '',
+    status: 'all',
+    leg: 'all',
+    page: 1,
+  });
+  const [selId, setSelId] = useState(params.get('d') || null);
+  const q = useDeferredValue(filters.q.trim());
+  const plate = FULL_PLATE.test(normalisePlate(q)) ? normalisePlate(q).toUpperCase() : null;
+  const unfiltered =
+    !filters.from && !filters.to && filters.status === 'all' && filters.leg === 'all' && !plate;
 
-  useLayerGroup(
-    mapRef,
-    (group, map) => {
-      if (!detail) return;
-      const { planned, actual } = detail;
-      if (planned.length) {
-        L.polyline(planned, {
-          color: '#9A9AA5',
-          weight: 4,
-          opacity: 0.8,
-          dashArray: '2 8',
-          lineCap: 'round',
-        }).addTo(group);
-      }
-      if (actual.length) {
-        L.polyline(actual, { color: '#C2323A', weight: 12, opacity: 0.14 }).addTo(group);
-        L.polyline(actual, {
-          color: '#C2323A',
-          weight: 4,
-          opacity: 0.95,
-          lineCap: 'round',
-        }).addTo(group);
-        L.marker(actual[0], { icon: pinIcon('#1E1E20', 'truck', 22) }).addTo(group);
-        L.marker(actual[actual.length - 1], { icon: pinIcon('#1E1E20', 'pin', 22) }).addTo(group);
-      }
-      const all = planned.concat(actual);
-      if (all.length) map.flyToBounds(L.latLngBounds(all), { padding: [60, 60], duration: 0.6 });
-    },
-    [detail],
+  const list = useApi(
+    (signal) =>
+      RouteHubService.getDeviationEvents(
+        {
+          vehicle: plate || undefined,
+          ...dayRange(filters.from, filters.to),
+          status: filters.status === 'all' ? undefined : filters.status,
+          leg: filters.leg === 'all' ? undefined : filters.leg,
+          page: filters.page,
+          limit: PAGE_SIZE,
+        },
+        signal,
+      ).then((data) => {
+        if (unfiltered) setBadge('deviation', data.summary?.open ?? data.openCount ?? 0);
+        return data;
+      }),
+    [plate, filters.from, filters.to, filters.status, filters.leg, filters.page],
   );
 
-  const toggleReview = async (d) => {
-    if (!isOpen(d)) {
-      toast('Reopening is not supported by the API yet');
-      return;
-    }
+  const records = list.data?.records || [];
+  const summary = list.data?.summary || null;
+  const rows = plate ? records : records.filter((d) => matchesSearch(d, q));
+  const groups = groupByTrip(rows);
+  const selected = rows.find((d) => d._id === selId) || rows[0] || null;
+  const selectedId = selected?._id || null;
+  const siblings = selected?.trip?.autoTripId
+    ? rows.filter((d) => String(d.trip?.autoTripId) === String(selected.trip.autoTripId))
+    : [];
+
+  const detail = useApi(
+    (signal) => RouteHubService.getDeviationEvent(selectedId, signal),
+    [selectedId],
+    {
+      enabled: Boolean(selectedId),
+      scopeKey: selectedId,
+    },
+  );
+
+  const review = useMutation((payload, { signal }) =>
+    RouteHubService.reviewDeviationEvent(payload, { signal }),
+  );
+
+  const onReview = async (body) => {
     try {
-      await RouteHubService.reviewDeviationEvent(d._id);
-      toast(`${d.registrationNumber} marked reviewed`);
-      load();
+      await review.mutate({ id: selectedId, ...body });
+      toast(
+        body.status === 'OPEN'
+          ? `${selected.registrationNumber} reopened`
+          : `${selected.registrationNumber} marked reviewed`,
+      );
+      list.refetch();
+      detail.refetch();
     } catch (e) {
-      toast(e?.message || 'Could not update the event');
+      toast(e?.response?.data?.message || 'Could not update the deviation');
     }
   };
 
+  const first = list.loading && !list.data;
   const kpis = [
     {
       ic: 'alert',
       l: 'Open — please review',
-      v: open.length,
-      s: 'trips pending triage',
+      v: summary?.open ?? 0,
+      s: 'detours nobody has looked at yet',
       c: '#C56200',
       tint: 'rgba(240,170,72,.16)',
       vc: '#C56200',
     },
     {
       ic: 'split',
-      l: 'Events in window',
-      v: records.length,
-      s: 'corridor detours detected',
+      l: 'Detours',
+      v: summary?.total ?? 0,
+      s: summary ? `on ${summary.trips} trip${summary.trips === 1 ? '' : 's'}` : 'in this period',
       c: 'var(--nova-rage-600)',
       tint: 'var(--nova-rage-a10)',
     },
     {
-      ic: 'check',
-      l: 'Reviewed',
-      v: reviewed.length,
-      s: 'triaged and confirmed',
-      c: '#187A32',
-      tint: 'rgba(37,186,76,.12)',
+      ic: 'truck',
+      l: 'While loaded',
+      v: summary?.byLeg?.LADEN ?? 0,
+      s: 'detours with goods on board',
+      c: '#C2323A',
+      tint: 'rgba(229,104,107,.14)',
     },
     {
       ic: 'rupee',
       l: 'Est. detour cost',
-      v: inr(open.reduce((a, d) => a + (d.estimatedExtraCostInr || 0), 0)),
-      s: 'estimated fuel and wear impact · open',
+      v: inr(summary?.openCostInr || 0),
+      s: 'estimated fuel and wear · open only',
       c: '#C2323A',
       tint: 'rgba(229,104,107,.14)',
       vc: '#C2323A',
@@ -203,21 +146,65 @@ export default function DeviationView({ params, toast, setBadge, go }) {
 
   const exportCsv = () => {
     const out = [
-      ['vehicle', 'trip_id', 'detected_at', 'max_off_km', 'extra_km', 'est_cost_inr', 'status'],
+      [
+        'vehicle',
+        'trip',
+        'leg',
+        'left_usual_route',
+        'back_on_route',
+        'minutes',
+        'max_off_km',
+        'extra_km',
+        'est_cost_inr',
+        'status',
+        'review_reason',
+      ],
     ].concat(
-      records.map((d) => [
+      rows.map((d) => [
         d.registrationNumber,
-        d.tripId,
-        d.detectedAt ? fmtDT(new Date(d.detectedAt)) : '',
+        tripLabel(d.trip) || d.corridorLabel || '',
+        legLabel(d.trip),
+        d.startedAt ? fmtDT(new Date(d.startedAt)) : '',
+        d.endedAt ? fmtDT(new Date(d.endedAt)) : '',
+        d.durationMin ?? '',
         d.maxOffKm,
         d.extraKmEstimate,
         d.estimatedExtraCostInr,
         d.status,
+        d.reviewReason || '',
       ]),
     );
     downloadCsv('route-deviation', out);
     toast(`${out.length - 1} rows exported`);
   };
+
+  const totalPages = list.data?.totalPages || 0;
+  const pager =
+    totalPages > 1 ? (
+      <div className="dev-pager">
+        <button
+          type="button"
+          className="btn btn--sm"
+          disabled={filters.page <= 1 || list.loading}
+          onClick={() => dispatch({ type: 'set', field: 'page', value: filters.page - 1 })}
+        >
+          <Ico n="arrowL" s={12} />
+          Newer
+        </button>
+        <span className="muted">
+          Page {filters.page} of {totalPages} · {summary?.total ?? 0} detours
+        </span>
+        <button
+          type="button"
+          className="btn btn--sm"
+          disabled={filters.page >= totalPages || list.loading}
+          onClick={() => dispatch({ type: 'set', field: 'page', value: filters.page + 1 })}
+        >
+          Older
+          <Ico n="arrowR" s={12} />
+        </button>
+      </div>
+    ) : null;
 
   return (
     <section className="view">
@@ -235,16 +222,16 @@ export default function DeviationView({ params, toast, setBadge, go }) {
             Route hub
           </a>
           <h2>
-            Route deviation <span className="count-pill">{open.length}</span>
+            Route deviation <span className="count-pill">{summary?.open ?? 0}</span>
           </h2>
           <p>
-            Trips that left their designated corridor. Cost figures are estimates; flags mark trips
-            that need review.
+            Trucks that left the route they usually take between two places, shown on the trip they
+            happened on. Costs are estimates; a flag means “please look”, not a verdict.
           </p>
         </div>
         <div className="tools">
-          <RefreshButton onClick={load} busy={loading} />
-          <button type="button" className="btn" onClick={exportCsv}>
+          <RefreshButton onClick={list.refetch} busy={list.loading} />
+          <button type="button" className="btn" onClick={exportCsv} disabled={!rows.length}>
             <Ico n="download" />
             Export
           </button>
@@ -254,30 +241,31 @@ export default function DeviationView({ params, toast, setBadge, go }) {
       <KpiRow items={kpis} loading={first} />
 
       <DeviationFilterBar
-        q={q}
-        setQ={setQ}
-        from={from}
-        setFrom={setFrom}
-        to={to}
-        setTo={setTo}
-        status={status}
-        setStatus={setStatus}
-        records={records}
-        open={open}
-        reviewed={reviewed}
+        filters={filters}
+        dispatch={dispatch}
+        legCounts={filters.leg === 'all' && summary ? { all: summary.total, ...summary.byLeg } : {}}
       />
 
       <div className="split">
         <DeviationFeed
-          rows={rows}
-          selId={selId}
-          setSelId={setSelId}
+          groups={groups}
+          selId={selectedId}
+          onSelect={setSelId}
           first={first}
-          error={error}
-          toggleReview={toggleReview}
+          error={list.error ? list.error?.message || 'Could not load deviation events.' : null}
+          pager={pager}
         />
-
-        <DeviationDetail selected={selected} go={go} containerRef={containerRef} />
+        <DeviationDetail
+          row={selected}
+          detail={detail.data}
+          loading={detail.loading}
+          error={detail.error}
+          siblings={siblings}
+          onSelect={setSelId}
+          onReview={onReview}
+          reviewBusy={review.loading}
+          go={go}
+        />
       </div>
     </section>
   );

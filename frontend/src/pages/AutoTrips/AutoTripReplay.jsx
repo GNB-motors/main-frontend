@@ -19,6 +19,7 @@ const MOVING_KMPH = 3;
 const COLOR = {
   trail: '#CBD5E1',
   run: '#1D4ED8',
+  detour: '#C2323A',
   plant: '#0F172A',
   drop: '#15803D',
   unknown: '#B45309',
@@ -68,12 +69,14 @@ function placeLabel(text, color) {
  * (`roadTrail`), the route is the road itself and a GPS gap follows the road the fleet
  * drives; otherwise the GPS line, held at the last fix across a gap. Playback
  * interpolates on time, so a parked truck stays parked.
+ * `detours` ([{ id, path }]) are stretches that left the usual route, drawn red on top.
  * The parent jumps the replay with `ref.current.playFrom(time)`.
  */
 export default function AutoTripReplay({
   trip,
   track,
   roadTrail = null,
+  detours = null,
   loading,
   error,
   autoPlay = false,
@@ -314,6 +317,9 @@ export default function AutoTripReplay({
                   <PolylineF key={`run-${i}`} path={seg} options={LINE(COLOR.run, 2)} />
                 ) : null,
               )}
+            {(detours || []).map((d) => (
+              <PolylineF key={`detour-${d.id}`} path={d.path} options={LINE(COLOR.detour, 3)} />
+            ))}
             {icons &&
               stopMarks.map((m) => (
                 <MarkerF

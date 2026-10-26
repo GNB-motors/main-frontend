@@ -976,6 +976,61 @@
   color: var(--atx-ink);
 }
 
+/* route deviations on the trip */
+.atx-dev-card {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.atx-dev-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.atx-dev-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--atx-line-2);
+  border-left: 3px solid #c2323a;
+  border-radius: 10px;
+}
+.atx-dev-item.is-focus {
+  background: var(--atx-hover);
+  box-shadow: 0 0 0 2px rgba(194, 50, 58, 0.25);
+}
+.atx-dev-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--atx-ink);
+}
+.atx-dev-nums {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--atx-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.atx-dev-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.atx-dev-none {
+  margin: 0;
+  font-size: 13px;
+  color: var(--atx-ink-4);
+}
+
 /* replay */
 .atx-replay {
   flex: 1;

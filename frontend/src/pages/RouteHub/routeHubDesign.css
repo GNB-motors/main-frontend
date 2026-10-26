@@ -1345,6 +1345,174 @@ html.dark .nova-rh {
   position: sticky;
   top: 80px;
 }
+.nova-rh .dev-feed {
+  display: flex;
+  flex-direction: column;
+  max-height: 760px;
+  overflow-y: auto;
+}
+.nova-rh .dev-group {
+  border-top: 1px solid var(--border-subtle);
+}
+.nova-rh .dev-group-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px 6px;
+}
+.nova-rh .dev-group-t,
+.nova-rh .dev-head-t {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.nova-rh .dev-group-t b {
+  font-size: var(--type-s, 13px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nova-rh .dev-group-t .muted,
+.nova-rh .dev-head-t .muted,
+.nova-rh .dev-group-sum {
+  font-size: 11px;
+}
+.nova-rh .dev-head-t h3 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nova-rh .dev-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 1.4fr) auto repeat(3, minmax(64px, 0.8fr)) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 16px 8px 28px;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.nova-rh .dev-row:hover {
+  background: var(--nova-rage-a05);
+}
+.nova-rh .dev-row.sel {
+  background: var(--nova-rage-a10);
+  border-left-color: var(--nova-rage-500);
+}
+.nova-rh .dev-row-when,
+.nova-rh .dev-row-num {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.nova-rh .dev-row-when .muted,
+.nova-rh .dev-row-num .muted {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+.nova-rh .dev-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 12px;
+}
+.nova-rh .dev-facts {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.nova-rh .dev-review {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  font-size: 12px;
+}
+.nova-rh .dev-review select {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+}
+.nova-rh .dev-tl {
+  padding: 12px 16px 4px;
+}
+.nova-rh .dev-tl-bar {
+  position: relative;
+  height: 14px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--border-subtle);
+}
+.nova-rh .dev-tl-leg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+.nova-rh .dev-tl-leg.approach,
+.nova-rh .dev-tl-key i.approach {
+  background: #c9cde0;
+}
+.nova-rh .dev-tl-leg.laden,
+.nova-rh .dev-tl-key i.laden {
+  background: var(--nova-rage-a40);
+}
+.nova-rh .dev-tl-leg.neutral {
+  background: var(--nova-rage-a20);
+}
+.nova-rh .dev-tl-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  padding: 0;
+  border: 0;
+  background: rgba(194, 50, 58, 0.45);
+  cursor: pointer;
+}
+.nova-rh .dev-tl-band.current,
+.nova-rh .dev-tl-key i.band {
+  background: #c2323a;
+}
+.nova-rh .dev-tl-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--fg-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.nova-rh .dev-tl-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.nova-rh .dev-tl-key i {
+  display: inline-block;
+  width: 12px;
+  height: 6px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
+@media (max-width: 640px) {
+  .nova-rh .dev-row {
+    grid-template-columns: 1fr 1fr;
+    padding-left: 16px;
+  }
+  .nova-rh .dev-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 
 /* ---------- replay ---------- */
 .nova-rh .rtool {

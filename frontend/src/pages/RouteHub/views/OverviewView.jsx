@@ -17,6 +17,7 @@ export default function OverviewView({ go, toast, setBadge }) {
   // Skeletons only on the first load; a refresh keeps the numbers on screen.
   const [ready, setReady] = useState(false);
   const [deviation, setDeviation] = useState([]);
+  const [deviationSummary, setDeviationSummary] = useState(null);
   const [overspeed, setOverspeed] = useState(null);
   const [profit, setProfit] = useState(null);
   const [utilization, setUtilization] = useState(null);
@@ -33,7 +34,7 @@ export default function OverviewView({ go, toast, setBadge }) {
 
     // Each panel degrades on its own — one dead endpoint shouldn't blank the page.
     const [dev, os, pf, util, veh] = await Promise.all([
-      RouteHubService.getDeviationEvents({ limit: 200 }).catch(() => null),
+      RouteHubService.getDeviationEvents({ status: 'OPEN', limit: 100 }).catch(() => null),
       RouteHubService.getFleetOverspeed({
         from: osFrom.toISOString(),
         to: iso.to,
@@ -46,13 +47,15 @@ export default function OverviewView({ go, toast, setBadge }) {
     ]);
 
     setDeviation(dev?.records || []);
+    setDeviationSummary(dev?.summary || null);
     setOverspeed(os);
     setProfit(pf);
     setUtilization(util);
     setVehicles(veh || []);
     setBadge(
       'deviation',
-      (dev?.records || []).filter((d) => String(d.status).toUpperCase() === 'OPEN').length,
+      dev?.summary?.open ??
+        (dev?.records || []).filter((d) => String(d.status).toUpperCase() === 'OPEN').length,
     );
     setBadge('overspeed', os?.totals?.eventCount ?? 0);
     setLoading(false);
@@ -90,8 +93,8 @@ export default function OverviewView({ go, toast, setBadge }) {
     {
       ic: 'split',
       l: 'Open deviations',
-      v: openDev.length,
-      s: `${inr(openDev.reduce((a, d) => a + (d.estimatedExtraCostInr || 0), 0))} est. detour cost`,
+      v: deviationSummary?.open ?? openDev.length,
+      s: `${inr(deviationSummary?.openCostInr ?? openDev.reduce((a, d) => a + (d.estimatedExtraCostInr || 0), 0))} est. detour cost`,
       c: '#C2323A',
       tint: 'rgba(229,104,107,.14)',
       vc: '#C2323A',
@@ -246,7 +249,7 @@ export default function OverviewView({ go, toast, setBadge }) {
         </div>
 
         <div className="stack s4">
-          <DeviationModule go={go} first={first} openDev={openDev} />
+          <DeviationModule go={go} first={first} openDev={openDev} summary={deviationSummary} />
 
           <OverspeedModule
             go={go}
