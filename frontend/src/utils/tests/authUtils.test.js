@@ -159,6 +159,7 @@ describe('authUtils.js — JWT helpers', () => {
       'Authentication failed',
       'Authentication required',
       'User not found',
+      'Session revoked. Please sign in again.',
     ])('treats %s as a session-level 401', (message) => {
       setSession({ token: validToken() });
       expect(isSessionInvalid401({ response: { status: 401, data: { message } } })).toBe(true);
