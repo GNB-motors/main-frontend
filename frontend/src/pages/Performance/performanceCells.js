@@ -68,7 +68,9 @@ export const formatCellValue = (cell, decimals = 1) => {
 /** The uncertainty an estimated cell carries, or null when there is none. */
 export const cellUncertainty = (cell) => {
   if (cellSource(cell) !== 'estimated') return null;
-  const u = Number(cell?.uncertainty);
+  // No uncertainty reported is not an uncertainty of zero.
+  if (cell?.uncertainty == null || cell.uncertainty === '') return null;
+  const u = Number(cell.uncertainty);
   return Number.isFinite(u) ? u : null;
 };
 

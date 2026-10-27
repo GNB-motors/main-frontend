@@ -134,3 +134,31 @@ describe('computeVisibleNav — the cut reports what it folded', () => {
     expect(Object.keys(foldedByJob)).toHaveLength(0);
   });
 });
+
+describe('Performance nav access', () => {
+  it('is hidden while the performanceSection flag is off', () => {
+    expect(hasAnywhere(flags(['fleetIntelligence', 'vehicleActivity']), '/performance')).toBe(
+      false,
+    );
+  });
+
+  it('shows when the performanceSection flag is on', () => {
+    const { items } = computeVisibleNav(
+      flags(['fleetIntelligence', 'vehicleActivity']),
+      'OWNER',
+      null,
+      (key) => key === 'performanceSection',
+    );
+    expect(shows(items, '/performance')).toBe(true);
+  });
+
+  it('is gated on the org flag alone, not on an RBAC permission', () => {
+    const { items } = computeVisibleNav(
+      () => false,
+      'OWNER',
+      null,
+      (key) => key === 'performanceSection',
+    );
+    expect(shows(items, '/performance')).toBe(true);
+  });
+});
