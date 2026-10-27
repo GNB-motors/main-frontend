@@ -64,6 +64,8 @@ const SESSION_INVALID_MESSAGES = new Set([
   'authentication failed',
   'authentication required',
   'user not found',
+  // App logout used to revoke web sessions too; any revoked session must go back to login.
+  'session revoked. please sign in again.',
 ]);
 
 const statusOf = (error) => error?.status ?? error?.response?.status ?? null;
