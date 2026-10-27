@@ -8,6 +8,12 @@ import SourceCell from './SourceCell';
 import SourceLegend from './SourceLegend';
 import { cellNumber, formatCellNumber, isKnownSource } from './performanceCells';
 
+/**
+ * A row's identity: `vehicleKey` (also set for iALERT-only trucks, which have no
+ * platform vehicle id), or the platform id from an older server.
+ */
+const keyOf = (v) => v.vehicleKey || v.vehicleId || null;
+
 const COLUMNS = [
   {
     key: 'vehicle',
@@ -90,7 +96,7 @@ export default function VehiclesTab() {
       if (selectedId) setSelectedId(null);
       return;
     }
-    if (!vehicles.some((v) => v.vehicleId === selectedId)) setSelectedId(vehicles[0].vehicleId);
+    if (!vehicles.some((v) => keyOf(v) === selectedId)) setSelectedId(keyOf(vehicles[0]));
   }, [vehicles, selectedId]);
 
   const detail = useApi((signal) => PerformanceApi.vehicle(selectedId, {}, signal), [selectedId], {
@@ -121,14 +127,14 @@ export default function VehiclesTab() {
         <DataTable
           columns={COLUMNS}
           rows={vehicles}
-          rowKey={(v) => v.vehicleId}
+          rowKey={keyOf}
           loading={loading && !data}
           error={error}
           onRetry={refetch}
           showing={vehicles.length}
           total={vehicles.length}
-          onRowClick={(v) => setSelectedId(v.vehicleId)}
-          rowClassName={(v) => (v.vehicleId === selectedId ? 'dt-row--selected' : '')}
+          onRowClick={(v) => setSelectedId(keyOf(v))}
+          rowClassName={(v) => (keyOf(v) === selectedId ? 'dt-row--selected' : '')}
           emptyTitle="No vehicles in this window"
           emptyHint="A truck shows up once the server has a reading for it in the last 30 days."
         />

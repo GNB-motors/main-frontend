@@ -76,6 +76,38 @@ describe('Performance page', () => {
     expect(screen.getByText('no comparable segment')).toBeInTheDocument();
   });
 
+  it('opens an iALERT-only truck, which has no platform vehicle id, by its vehicleKey', async () => {
+    PerformanceApi.vehicles.mockResolvedValue({
+      vehicles: [
+        {
+          vehicleKey: 'ialert:abc123',
+          vehicleId: null,
+          registration: 'SCRUBPL00002',
+          provider: 'IALERT',
+          kmPerL: cell({ value: 3.1, unit: 'km/L' }),
+          idlePct: cell({ value: 12, unit: '%' }),
+          topGearPct: cell({ value: 40, unit: '%' }),
+          overRevPct: cell({ value: 0, unit: '%' }),
+          healthFindings: 0,
+        },
+      ],
+    });
+    PerformanceApi.vehicle.mockResolvedValue({
+      vehicle: { vehicleKey: 'ialert:abc123', vehicleId: null, registration: 'SCRUBPL00002' },
+      gearRpm: null,
+      health: [],
+      efficiencyDrift: null,
+      harshEvents: [],
+    });
+
+    renderAt('/performance?tab=vehicles');
+
+    expect(await screen.findAllByText('SCRUBPL00002')).not.toHaveLength(0);
+    await waitFor(() =>
+      expect(PerformanceApi.vehicle).toHaveBeenCalledWith('ialert:abc123', {}, expect.anything()),
+    );
+  });
+
   it('shows an empty fleet as a directive, not as a fake zero', async () => {
     renderAt('/performance?tab=vehicles');
     expect(await screen.findByText('No vehicles in this window')).toBeInTheDocument();

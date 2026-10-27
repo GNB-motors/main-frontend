@@ -26,7 +26,7 @@ const get = async (path, params = {}, signal) => {
 };
 
 export const PerformanceApi = {
-  /** { window, vehicles: [{ vehicleId, registration, provider, kmPerL, idlePct, topGearPct, overRevPct, healthFindings }] } */
+  /** { window, vehicles: [{ vehicleKey, vehicleId, registration, provider, kmPerL, idlePct, topGearPct, overRevPct, healthFindings }] } */
   vehicles: (params = {}, signal) => get('/vehicles', params, signal),
   /** { vehicle, gearRpm, health, efficiencyDrift, harshEvents } */
   vehicle: (vehicleId, params = {}, signal) =>
