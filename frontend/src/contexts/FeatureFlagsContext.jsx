@@ -18,6 +18,15 @@ const FeatureFlagsContext = createContext({
   refresh: async () => {},
 });
 
+/**
+ * Flags the frontend knows about before an org has been granted them.
+ *
+ * A missing flag is never ON: every key starts OFF and only the server
+ * (/api/auth/me -> organization.featureFlags) can turn one on.
+ * `performanceSection` is wave 5's Performance section — OFF by default.
+ */
+export const DEFAULT_FEATURE_FLAGS = Object.freeze({ performanceSection: false });
+
 export const FeatureFlagsProvider = ({ children }) => {
   const [flags, setFlags] = useState({});
   // The user's RBAC permissions for the ACTIVE branch (resolved server-side and
@@ -47,7 +56,7 @@ export const FeatureFlagsProvider = ({ children }) => {
     if (!payload) return;
     const org = payload?.organization ?? null;
     setOrganization(org);
-    setFlags(org?.featureFlags ?? {});
+    setFlags({ ...DEFAULT_FEATURE_FLAGS, ...(org?.featureFlags ?? {}) });
     setPermissions(payload?.permissions ?? {});
     setProfile(payload);
   }, [payload]);
@@ -55,7 +64,7 @@ export const FeatureFlagsProvider = ({ children }) => {
   useEffect(() => {
     if (!meError) return;
     logger.warn('FeatureFlagsContext', 'FeatureFlags: failed to fetch', meError);
-    setFlags({});
+    setFlags({ ...DEFAULT_FEATURE_FLAGS });
     setPermissions({});
     setOrganization(null);
     setProfile(null);

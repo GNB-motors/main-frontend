@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react';
 import RedirectWithState from './RedirectWithState';
 import PlacesRedirect from './PlacesRedirect';
 import LegacyReceiptRedirect from './LegacyReceiptRedirect';
+import PerformanceRedirect from './PerformanceRedirect';
 import ReceiptApprovalDetailPage from './lazyReceiptApprovalDetailPage';
 import erpRoutes from './erpRoutes';
 
@@ -73,6 +74,10 @@ const FleetAlertsPage = lazy(() => import('../../pages/FleetAlerts/FleetAlertsPa
 const OptimalSpeedPage = lazy(() => import('../../pages/OptimalSpeed/OptimalSpeedPage.jsx'));
 const RefuelAdvisoryPage = lazy(() => import('../../pages/RefuelAdvisory/RefuelAdvisoryPage.jsx'));
 const DrivingDnaPage = lazy(() => import('../../pages/DrivingDna/DrivingDnaPage.jsx'));
+// Wave 5 — one section that folds in Driving DNA, the Mileage performance tab,
+// Leaderboards and Vehicle360's telemetry panels. Only orgs whose
+// `performanceSection` flag is on see it; every old route keeps working.
+const PerformancePage = lazy(() => import('../../pages/Performance/PerformancePage.jsx'));
 const DefLedgerPage = lazy(() => import('../../pages/DefLedger/DefLedgerPage.jsx'));
 const FleetCoveragePage = lazy(() => import('../../pages/FleetCoverage/FleetCoveragePage.jsx'));
 const Vehicle360Page = lazy(() => import('../../pages/Vehicle360/Vehicle360Page.jsx'));
@@ -102,7 +107,18 @@ const dashboardRoutes = (
     />
     <Route path="/optimal-speed" element={<OptimalSpeedPage />} />
     <Route path="/refuel-advisory" element={<RefuelAdvisoryPage />} />
-    <Route path="/driving-dna" element={<DrivingDnaPage />} />
+    {/* Wave 5 — with `performanceSection` on, the old pages forward to the new
+        section; with the flag off they render exactly as they did today.
+        Nothing is deleted: every old URL still lands somewhere. */}
+    <Route
+      path="/driving-dna"
+      element={
+        <PerformanceRedirect to="/performance?tab=drivers">
+          <DrivingDnaPage />
+        </PerformanceRedirect>
+      }
+    />
+    <Route path="/performance" element={<PerformancePage />} />
     <Route path="/vehicles/:registrationNumber" element={<Vehicle360Page />} />
     <Route path="/reports" element={<ReportsPage />} />
     <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
@@ -176,7 +192,17 @@ const dashboardRoutes = (
     <Route path="/trip/new" element={<Navigate to="/auto-trips?new=manual" replace />} />
     <Route path="/trip/:tripId" element={<TripManagementPage />} />
     {/* Fuel Management Routes */}
-    <Route path="/mileage" element={<MileagePage />} />
+    <Route
+      path="/mileage"
+      element={
+        <PerformanceRedirect
+          to="/performance?tab=vehicles"
+          when={(params) => params.get('tab') === 'performance'}
+        >
+          <MileagePage />
+        </PerformanceRedirect>
+      }
+    />
     <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
     <Route path="/def-ledger" element={<DefLedgerPage />} />
     {/* Backward-compatibility redirects for unified Mileage */}

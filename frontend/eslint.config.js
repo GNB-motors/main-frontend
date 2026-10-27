@@ -118,6 +118,7 @@ export default defineConfig([
       'src/**/*Service.{js,jsx}',
       'src/**/*.service.{js,jsx}',
       'src/**/*[aA]pi.js',
+      'src/api/**/*.{js,jsx}',
       'src/utils/axiosConfig.js',
       'src/lib/liveStream.js',
     ],
