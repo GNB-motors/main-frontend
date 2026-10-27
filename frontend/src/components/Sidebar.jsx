@@ -30,7 +30,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   // `canAccess` = org-entitled (feature flag) AND role-permitted (RBAC). A
   // module only appears when the user's assigned role grants it — so granting a
   // role e.g. CRM/insurance makes it visible to that user automatically.
-  const { canAccess } = useFeatureFlags();
+  const { canAccess, isEnabled } = useFeatureFlags();
   const { organization } = useOrganization();
   // The org's OWN measured usage. null => nothing is folded and the menu is
   // whole; that is the designed state for every org until it has been measured.
@@ -44,9 +44,13 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     setLogoFailed(false);
   }, [organization?.logoUrl]);
 
-  const { items: navItems, folded, foldedByJob } = useMemo(
-    () => computeVisibleNav(canAccess, role, usageProfile),
-    [canAccess, role, usageProfile],
+  const {
+    items: navItems,
+    folded,
+    foldedByJob,
+  } = useMemo(
+    () => computeVisibleNav(canAccess, role, usageProfile, isEnabled),
+    [canAccess, role, usageProfile, isEnabled],
   );
   // Entries the org's own numbers folded. They are NOT gone: each keeps its
   // route and the sentence the server wrote, and lives under "More" so a cut

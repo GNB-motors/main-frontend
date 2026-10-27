@@ -73,6 +73,10 @@ const FleetAlertsPage = lazy(() => import('../../pages/FleetAlerts/FleetAlertsPa
 const OptimalSpeedPage = lazy(() => import('../../pages/OptimalSpeed/OptimalSpeedPage.jsx'));
 const RefuelAdvisoryPage = lazy(() => import('../../pages/RefuelAdvisory/RefuelAdvisoryPage.jsx'));
 const DrivingDnaPage = lazy(() => import('../../pages/DrivingDna/DrivingDnaPage.jsx'));
+// Wave 5 — one section that folds in Driving DNA, the Mileage performance tab,
+// Leaderboards and Vehicle360's telemetry panels. Only orgs whose
+// `performanceSection` flag is on see it; every old route keeps working.
+const PerformancePage = lazy(() => import('../../pages/Performance/PerformancePage.jsx'));
 const DefLedgerPage = lazy(() => import('../../pages/DefLedger/DefLedgerPage.jsx'));
 const FleetCoveragePage = lazy(() => import('../../pages/FleetCoverage/FleetCoveragePage.jsx'));
 const Vehicle360Page = lazy(() => import('../../pages/Vehicle360/Vehicle360Page.jsx'));
@@ -103,6 +107,7 @@ const dashboardRoutes = (
     <Route path="/optimal-speed" element={<OptimalSpeedPage />} />
     <Route path="/refuel-advisory" element={<RefuelAdvisoryPage />} />
     <Route path="/driving-dna" element={<DrivingDnaPage />} />
+    <Route path="/performance" element={<PerformancePage />} />
     <Route path="/vehicles/:registrationNumber" element={<Vehicle360Page />} />
     <Route path="/reports" element={<ReportsPage />} />
     <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />

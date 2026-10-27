@@ -41,8 +41,22 @@ export const getVisibleNavItems = (isEnabled, role = null, usageProfile = null) 
  * comes back here with its route, its job and the sentence the server wrote,
  * so the sidebar can still offer it under "More".
  */
-export const computeVisibleNav = (isEnabled, role = null, usageProfile = null) => {
+export const computeVisibleNav = (
+  isEnabled,
+  role = null,
+  usageProfile = null,
+  flagOnlyEnabled = isEnabled,
+) => {
   const access = { erp: hasErpAccess(isEnabled), fleet: hasFleetAccess(isEnabled) };
+
+  // A `flagOnly` entry is gated on the ORG's feature flag alone. It is a
+  // brand-new surface with no RBAC permission yet, so the usual canAccess
+  // (flag AND permission) would keep it hidden for good.
+  const navItemEnabled = (item) => {
+    if (!item.key) return true;
+    if (item.flagOnly) return flagOnlyEnabled(item.key) === true;
+    return isEnabled(item.key) === true;
+  };
 
   const soleModule =
     access.erp && !access.fleet ? 'erp' : access.fleet && !access.erp ? 'fleet' : null;
@@ -50,7 +64,7 @@ export const computeVisibleNav = (isEnabled, role = null, usageProfile = null) =
   let items = SIDE_NAV_ITEMS.filter((item) => {
     if (!satisfiesAccess(item.access, access)) return false;
     if (item.type === 'section') return true;
-    if (item.key && !isEnabled(item.key)) return false;
+    if (!navItemEnabled(item)) return false;
     if (item.roles && role && !item.roles.includes(role)) return false;
     if (item.type === 'group') return getVisibleNavChildren(item, isEnabled, access).length > 0;
     return true;
@@ -86,7 +100,13 @@ export const computeVisibleNav = (isEnabled, role = null, usageProfile = null) =
     return !!next && next.type !== 'section';
   });
 
-  return { items: prunedItems, folded: cut.folded, foldedByJob: cut.foldedByJob, cutApplied: cut.applied, cutWhy: cut.why };
+  return {
+    items: prunedItems,
+    folded: cut.folded,
+    foldedByJob: cut.foldedByJob,
+    cutApplied: cut.applied,
+    cutWhy: cut.why,
+  };
 };
 
 /** Pehla navigable route jispe current org ke flags ke hisaab se user ki access hai. */
