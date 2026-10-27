@@ -5,33 +5,11 @@ import { useApi } from '../../hooks/useApi';
 import { DrivingDnaService } from './DrivingDnaService';
 import { drivingDnaResponseSchema } from '../../schemas/drivingDna.schema';
 import { formatInrCompact, formatNum } from '../../utils/formatters';
+import { GradePill } from './GradePill';
 
 const CARD_BORDER = '1px solid color-mix(in srgb, var(--cluster-text) 16%, transparent)';
 
-const GRADE_COLOR = {
-  A: 'var(--ok)',
-  B: '#65a30d',
-  C: '#d97706',
-  D: 'var(--critical)',
-};
-
-function GradePill({ grade, score }) {
-  const color = GRADE_COLOR[grade] || 'var(--cluster-text-dim)';
-  return (
-    <span className="inline-flex items-center gap-2">
-      <span
-        className="ov-pill"
-        style={{ color, border: `1px solid ${color}`, background: 'transparent' }}
-      >
-        {grade || '—'}
-      </span>
-      <span className="num font-semibold" style={{ color }}>
-        {score != null ? formatNum(score) : '—'}
-      </span>
-    </span>
-  );
-}
-
+/** A DNA sub-score: a number, or an honest dash when there is none. */
 function scoreCell(score) {
   return score != null ? formatNum(score) : '—';
 }
