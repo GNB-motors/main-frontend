@@ -31,6 +31,8 @@ const CHIPS = [
     label: 'Dosing out of band',
     match: (v) => v.status === 'LOW_DOSING' || v.status === 'HIGH_DOSING',
   },
+  { id: 'notAssessed', label: 'Not assessed', match: (v) => v.status === 'NOT_ASSESSED' },
+  { id: 'notApplicable', label: 'Not applicable', match: (v) => v.status === 'NOT_APPLICABLE' },
   { id: 'compliant', label: 'In band', match: (v) => v.status === 'COMPLIANT' },
   { id: 'notReported', label: 'DEF not reported', match: (v) => v.status === 'NOT_REPORTED' },
   { id: 'noData', label: 'No telemetry', match: (v) => v.status === 'NO_DATA' },
@@ -177,7 +179,7 @@ export default function DefLedgerPage() {
             valueClass="text-emerald-600 dark:text-emerald-400"
             note={
               totals.dosingRatioPct != null
-                ? `Fleet dosing ${formatPct(totals.dosingRatioPct, { decimals: 1 })} of diesel (normal ${data?.defBand?.min}–${data?.defBand?.max}%)`
+                ? `Fleet dosing ${formatPct(totals.dosingRatioPct, { decimals: 1 })} of diesel${data?.defBand ? ` (normal ${data.defBand.min}–${data.defBand.max}%)` : ' · mixed or unassessed bands'}`
                 : 'Fleet dosing —'
             }
             noteClass="text-emerald-600 dark:text-emerald-400 font-semibold"
