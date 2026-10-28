@@ -128,6 +128,36 @@ export function calendarTrend(daily = [], endDay, count = 14) {
   });
 }
 
+export const formatCount = (value) => Number(value || 0).toLocaleString('en-IN');
+
+/** "27 Oct" for a YYYY-MM-DD rollup day, read as UTC so the label never shifts a day. */
+export function formatDay(day, { year = false, weekday = false } = {}) {
+  const date = new Date(`${day}T00:00:00Z`);
+  if (!Number.isFinite(date.getTime())) return day || '';
+  return date.toLocaleDateString('en-IN', {
+    timeZone: 'UTC',
+    day: 'numeric',
+    month: 'short',
+    ...(year ? { year: 'numeric' } : {}),
+    ...(weekday ? { weekday: 'short' } : {}),
+  });
+}
+
+export function trendSummary(days = []) {
+  const total = days.reduce((sum, day) => sum + day.views, 0);
+  const peak = days.reduce((best, day) => (day.views > (best?.views ?? 0) ? day : best), null);
+  return { total, average: days.length ? Math.round(total / days.length) : 0, peak };
+}
+
+/** A round axis top with whole-number ticks from 0, so the tallest bar never sits on an odd value. */
+export function niceAxis(maxValue, tickCount = 4) {
+  const rawStep = Math.max(1, (maxValue || 0) / tickCount);
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const step = [1, 2, 5, 10].map((m) => m * magnitude).find((s) => s >= rawStep);
+  const max = Math.ceil((maxValue || 0) / step) * step || step;
+  return { max, ticks: Array.from({ length: max / step + 1 }, (_, i) => i * step) };
+}
+
 export function navLabels(catalog = []) {
   return new Map(
     catalog
