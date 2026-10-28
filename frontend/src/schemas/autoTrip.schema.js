@@ -190,3 +190,55 @@ export const autoTripCoverageSchema = z
   .passthrough();
 
 export default autoTripListSchema;
+
+const tollPass = z
+  .object({
+    at: str,
+    leg: str, // LADEN (the replay window) | RETURN (last drop → the truck's next plant)
+    evidence: str, // ROAD | INFERRED_ROAD | STOP | GPS
+    inferred: z.boolean().nullish(),
+    lat: num,
+    lng: num,
+    placeId: str,
+    name: str,
+    fareInr: num,
+    fareBasis: str, // SINGLE | RETURN (24 h return) | ENTRY / SEGMENT (closed expressway)
+    fareSource: str, // PUBLISHED (NHAI / state tariff) | TOLLGURU (quote)
+    unknownReason: str,
+  })
+  .passthrough();
+
+/** GET /auto-trips/:id/tolls — toll plazas the truck drove through. `total` is null for drivers. */
+export const autoTripTollsSchema = z
+  .object({
+    tripId: str,
+    status: str, // OK | FALLBACK (stops and GPS; road not matched) | STALE | NO_WINDOW | FAILED
+    from: str, // the laden start
+    to: str, // the return end, else the laden end
+    ladenFrom: str,
+    ladenTo: str,
+    returnTo: str, // null while the trip is still on the road
+    // The tariff group the truck pays in and what it was read from (null group = not priced).
+    vehicleGroup: z
+      .object({ group: str, source: str, basis: str }) // source: AXLE_CLASS | MODEL_GVW
+      .passthrough()
+      .nullish(),
+    passes: z.array(tollPass).nullish(),
+    ledger: z
+      .object({ totalInr: num, charges: num, unknownCount: num, complete: z.boolean().nullish() })
+      .passthrough()
+      .nullish(),
+    total: z
+      .object({
+        inr: num,
+        priced: num,
+        unknown: num,
+        complete: z.boolean().nullish(),
+        byLeg: z
+          .record(z.string(), z.object({ inr: num, priced: num, unknown: num }).passthrough())
+          .nullish(),
+      })
+      .passthrough()
+      .nullish(),
+  })
+  .passthrough();

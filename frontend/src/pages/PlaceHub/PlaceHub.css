@@ -1943,3 +1943,31 @@
   color: var(--ph-text);
   font-weight: 550;
 }
+
+/* ─── Toll plaza popup (map/TollLayer) ── */
+.ph-toll-pop {
+  max-width: 280px;
+  font-size: 13px;
+  color: #0f172a;
+}
+.ph-toll-pop-title {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+.ph-toll-pop-lines {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+.ph-toll-pop-line {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: 8px;
+}
+.ph-toll-pop-line dt {
+  color: #64748b;
+}
+.ph-toll-pop-line dd {
+  margin: 0;
+}
