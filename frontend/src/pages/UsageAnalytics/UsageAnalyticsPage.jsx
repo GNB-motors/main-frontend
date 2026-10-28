@@ -58,7 +58,6 @@ export default function UsageAnalyticsPage() {
   const labels = React.useMemo(() => navLabels(catalog), [catalog]);
   const rows = visibleUsageRows(data?.surfaces || [], labels, { query, disposition, sort });
   const cut = applyUsageCut(catalog, data);
-  const moved = new Set(cut.folded.map((entry) => entry.to));
   const days = calendarTrend(data?.daily, data?.window?.to, period);
   const maxViews = Math.max(1, ...days.map((day) => day.views));
   const activeScreens = (data?.surfaces || []).filter((row) => row.evidence?.views > 0).length;
@@ -102,7 +101,7 @@ export default function UsageAnalyticsPage() {
               { label: 'Page opens', value: data.learned?.totalViews, Icon: Activity },
               { label: 'Active screens', value: activeScreens, Icon: LayoutGrid },
               { label: 'User-days', value: data.learned?.userDays, Icon: Users },
-              { label: 'Links in More', value: cut.folded.length, Icon: PanelLeft },
+              { label: 'Less-used screens', value: cut.folded.length, Icon: PanelLeft },
             ].map(({ label, value, Icon }) => (
               <div className="usage-stat" key={label}>
                 <span className="usage-stat-icon">
@@ -117,14 +116,12 @@ export default function UsageAnalyticsPage() {
           </div>
           <div className="usage-explanation">
             <strong>
-              {data.state === 'LEARNED'
-                ? 'Your menu reflects recorded usage'
-                : 'Collecting history'}
+              {data.state === 'LEARNED' ? 'Compared with your own usage' : 'Collecting history'}
             </strong>
             <p>
               {data.state === 'LEARNED'
-                ? `${number(cut.folded.length)} eligible links are grouped under “More inside this job”. Less-used screens are compared with your organization’s median of ${number(data.learned?.engagementFloor)} opens. Every page remains available.`
-                : 'Your menu stays intact until there is enough history across multiple screens and completed days to compare usage.'}
+                ? `${number(cut.folded.length)} screens are opened less than your organization’s median of ${number(data.learned?.engagementFloor)} opens, or not at all. They stay in your menu.`
+                : 'Less-used screens are flagged once there is enough history across multiple screens and completed days to compare usage.'}
             </p>
             <small>
               A user-day counts one person once per day across all screens. Navigation transitions
@@ -308,13 +305,7 @@ export default function UsageAnalyticsPage() {
                             {STATUS_COPY[row.disposition] || 'Collecting history'}
                           </span>
                         </td>
-                        <td>
-                          {moved.has(row.surfaceKey)
-                            ? 'More inside this job'
-                            : row.canOpen
-                              ? 'Main menu'
-                              : 'Outside your menu'}
-                        </td>
+                        <td>{row.canOpen ? 'Main menu' : 'Outside your menu'}</td>
                       </tr>
                     ))}
                   </tbody>
