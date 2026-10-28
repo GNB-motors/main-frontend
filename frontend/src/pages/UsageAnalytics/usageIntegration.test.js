@@ -1,5 +1,30 @@
 import { expect, it } from 'vitest';
-import { calendarTrend, navLabels, visibleUsageRows } from './usageModel';
+import {
+  calendarTrend,
+  formatDay,
+  navLabels,
+  niceAxis,
+  trendSummary,
+  visibleUsageRows,
+} from './usageModel';
+it('rounds the chart axis up to whole, evenly spaced ticks', () => {
+  expect(niceAxis(347)).toEqual({ max: 400, ticks: [0, 100, 200, 300, 400] });
+  expect(niceAxis(3)).toEqual({ max: 3, ticks: [0, 1, 2, 3] });
+  expect(niceAxis(0)).toEqual({ max: 1, ticks: [0, 1] });
+});
+it('summarises the period and labels rollup days without shifting them', () => {
+  const days = calendarTrend(
+    [
+      { day: '2026-10-26', views: 30 },
+      { day: '2026-10-27', views: 12 },
+    ],
+    '2026-10-27',
+    3,
+  );
+  expect(trendSummary(days)).toEqual({ total: 42, average: 14, peak: days[1] });
+  expect(trendSummary(calendarTrend([], '2026-10-27', 2)).peak).toBeNull();
+  expect(formatDay('2026-10-27')).toBe('27 Oct');
+});
 it('fills calendar gaps rather than displaying distant active days as consecutive days', () => {
   const days = calendarTrend(
     [

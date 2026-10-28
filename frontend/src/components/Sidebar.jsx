@@ -15,7 +15,6 @@ import {
   getNavGroupId,
   computeVisibleNav,
 } from '../utils/sideNavUtils.js';
-import { useUsageAnalytics } from '../contexts/UsageAnalyticsContext.js';
 import './Sidebar.css';
 
 const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
@@ -30,11 +29,8 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   // `canAccess` = org-entitled (feature flag) AND role-permitted (RBAC). A
   // module only appears when the user's assigned role grants it — so granting a
   // role e.g. CRM/insurance makes it visible to that user automatically.
-  const { canAccess } = useFeatureFlags();
+  const { canAccess, isEnabled } = useFeatureFlags();
   const { organization } = useOrganization();
-  // The org's OWN measured usage. null => nothing is folded and the menu is
-  // whole; that is the designed state for every org until it has been measured.
-  const { profile: usageProfile } = useUsageAnalytics();
   const role = getUserRole();
 
   const logoSrc = !logoFailed && organization?.logoUrl ? organization.logoUrl : UkoLogo;
@@ -44,16 +40,12 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     setLogoFailed(false);
   }, [organization?.logoUrl]);
 
-  const { items: navItems, folded, foldedByJob } = useMemo(
-    () => computeVisibleNav(canAccess, role, usageProfile),
-    [canAccess, role, usageProfile],
+  // No usage profile: the menu is never folded by usage, every entry stays in
+  // its own section. /usage still reports which screens are less used.
+  const { items: navItems } = useMemo(
+    () => computeVisibleNav(canAccess, role, null, isEnabled),
+    [canAccess, role, isEnabled],
   );
-  // Entries the org's own numbers folded. They are NOT gone: each keeps its
-  // route and the sentence the server wrote, and lives under "More" so a cut
-  // never hides a screen with no way back to it.
-  const [moreOpen, setMoreOpen] = useState(false);
-  const foldedJobs = Object.keys(foldedByJob || {}).sort();
-  const onFoldedRoute = (folded || []).some((f) => location.pathname === f.to);
 
   // Approval badges belong to the ERP "Approval Center". For an org without the
   // erpApprovals entitlement that nav group is hidden AND the backend routes
@@ -169,8 +161,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     }
 
     // type === 'group' (collapsible dropdown)
-    // Children are already flag-, module-, role- and usage-filtered by
-    // getVisibleNavItems(); re-filtering here would undo the cut.
+    // Children are already flag-, module- and role-filtered by computeVisibleNav().
     const visibleChildren = item.children || [];
     const groupId = getNavGroupId(item);
     const isOpen = openGroupId === groupId;
@@ -232,44 +223,6 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
         </div>
         <nav className="sidebar-nav" aria-label="Main navigation">
           {navItems.map(renderNavItem)}
-          {foldedJobs.length > 0 && (
-            <div className="nav-section nav-more" key="nav-more">
-              <button
-                className={`nav-link nav-parent ${moreOpen || onFoldedRoute ? 'active-parent' : ''}`}
-                onClick={() => setMoreOpen((prev) => !prev)}
-                aria-expanded={moreOpen}
-              >
-                <div className="nav-parent-left">
-                  <span>More</span>
-                  <span className="erp-badge" style={{ fontSize: '11px', padding: '2px 7px' }}>
-                    {folded.length}
-                  </span>
-                </div>
-                <ChevronIcon size={16} className={`chevron-icon ${moreOpen ? 'rotated' : ''}`} />
-              </button>
-              <div className={`nav-children ${moreOpen ? 'open' : ''}`}>
-                <div className="nav-children-inner">
-                  {foldedJobs.map((job) => (
-                    <div key={`more-${job}`} className="nav-more-group">
-                      <div className="nav-more-job">{foldedByJob[job][0].jobLabel}</div>
-                      {foldedByJob[job].map((entry) => (
-                        <NavLink
-                          key={`${entry.to}-folded`}
-                          to={entry.to}
-                          end
-                          className="nav-link nav-child nav-more-link"
-                          title={entry.reason || 'Folded on this org’s own usage numbers'}
-                          onClick={closeSidebarOnMobile}
-                        >
-                          <span>{entry.label}</span>
-                        </NavLink>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
         </nav>
       </div>
 

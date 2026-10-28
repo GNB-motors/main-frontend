@@ -22,6 +22,7 @@ import {
   Gavel,
   Bell,
   Activity,
+  Gauge,
 } from 'lucide-react';
 
 /**
@@ -304,6 +305,21 @@ export const SIDE_NAV_ITEMS = [
     to: '/route-hub',
     label: 'Route Hub',
     icon: Route,
+  },
+  // ─── Performance (wave 5) ───────────────────────────────────────────────────
+  // One section that folds in Driving DNA, the Mileage performance tab,
+  // Leaderboards and Vehicle360's telemetry panels. Dark launch: the entry
+  // appears ONLY for orgs whose `performanceSection` flag is on.
+  // `flagOnly` reads the ORG's flag alone — this brand-new surface has no RBAC
+  // permission yet, and `canAccess` (flag AND permission) would hide it for
+  // good. Nothing else about the nav changes.
+  {
+    type: 'link',
+    key: 'performanceSection',
+    flagOnly: true,
+    to: '/performance',
+    label: 'Performance',
+    icon: Gauge,
   },
   // ─── Compliance / Docs ──────────────────────────────────────────────────────
   // `key: null` — not gated on a feature flag, for the same reason as

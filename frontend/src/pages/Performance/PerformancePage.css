@@ -1,0 +1,369 @@
+/* Performance — wave 5.
+   The mockup's rules, in CSS: every number carries a source badge, an
+   estimated number carries its uncertainty, and an unknown number is struck
+   through with a reason — never a zero. */
+
+/* ── tabs ─────────────────────────────────────────────── */
+.pf-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 18px;
+}
+.pf-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--cluster-text-dim);
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 9px 14px;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+.pf-tab:hover {
+  color: var(--cluster-text);
+}
+.pf-tab--active {
+  color: var(--cluster-text);
+  border-bottom-color: var(--ok);
+}
+
+/* ── layout ───────────────────────────────────────────── */
+.pf-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.pf-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+@media (max-width: 900px) {
+  .pf-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.pf-card {
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+.pf-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.pf-card-title {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--cluster-text);
+}
+.pf-hint {
+  font-size: 12px;
+  color: var(--cluster-text-dim);
+}
+.pf-sub-title {
+  margin: 14px 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--cluster-text-dim);
+  font-weight: 600;
+}
+.pf-note {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  color: var(--cluster-text-dim);
+}
+.pf-retry {
+  margin-left: 10px;
+  border: 1px solid var(--hairline);
+  background: transparent;
+  border-radius: 6px;
+  padding: 3px 9px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* ── legend ───────────────────────────────────────────── */
+.pf-legend {
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+.pf-legend-title {
+  margin: 0 0 10px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cluster-text-dim);
+  font-weight: 600;
+}
+.pf-legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 26px;
+}
+.pf-legend-item {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  max-width: 42ch;
+}
+.pf-legend-item p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--cluster-text-dim);
+}
+.pf-legend-item strong {
+  display: block;
+  font-size: 12px;
+  color: var(--cluster-text);
+  font-weight: 600;
+}
+
+/* ── the cell ─────────────────────────────────────────── */
+.psrc {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.psrc-value {
+  font-variant-numeric: tabular-nums;
+  color: var(--cluster-text);
+}
+.psrc-uncertainty {
+  margin-left: 3px;
+  color: var(--cluster-text-dim);
+}
+.psrc-unit {
+  color: var(--cluster-text-dim);
+  font-size: 0.9em;
+}
+.psrc-reason {
+  flex-basis: 100%;
+  font-size: 11.5px;
+  color: var(--cluster-text-dim);
+}
+.psrc-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+.psrc-badge--measured {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.14);
+}
+.psrc-badge--vendor {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.16);
+}
+.psrc-badge--estimated {
+  color: #1d4ed8;
+  background: rgba(59, 130, 246, 0.12);
+}
+.psrc-badge--not_comparable {
+  color: var(--cluster-text-dim);
+  background: rgba(11, 18, 32, 0.07);
+  text-decoration: line-through;
+}
+.psrc-badge--insufficient_data {
+  color: var(--cluster-text-dim);
+  background: rgba(11, 18, 32, 0.07);
+}
+
+/* ── tables ───────────────────────────────────────────── */
+.pf-veh {
+  font-weight: 600;
+  color: var(--cluster-text);
+}
+.pf-sub {
+  display: block;
+  font-size: 11.5px;
+  color: var(--cluster-text-dim);
+}
+.pf-prov {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid var(--hairline);
+  border-radius: 5px;
+  padding: 1px 5px;
+  color: var(--cluster-text-dim);
+}
+.pf-prov--ialert {
+  color: #0f766e;
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.07);
+}
+
+/* ── key/value list ───────────────────────────────────── */
+.pf-kv {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px 22px;
+}
+.pf-kv-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.pf-kv dt {
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--cluster-text-dim);
+  font-weight: 600;
+}
+.pf-kv dd {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--cluster-text);
+}
+
+/* ── bars ─────────────────────────────────────────────── */
+.pf-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pf-bar {
+  display: grid;
+  grid-template-columns: 132px 1fr 150px;
+  gap: 12px;
+  align-items: center;
+  padding: 5px 0;
+}
+.pf-bar-label {
+  font-size: 13px;
+  color: var(--cluster-text-dim);
+}
+.pf-bar-track {
+  height: 15px;
+  background: rgba(11, 18, 32, 0.055);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.pf-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--ok);
+  border-radius: 6px;
+}
+.pf-bar-value {
+  justify-self: end;
+}
+.pf-edges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: var(--cluster-text-dim);
+}
+
+/* ── findings, harsh events, DNA ──────────────────────── */
+.pf-findings,
+.pf-harsh,
+.pf-unknown-days,
+.pf-dna-text {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pf-finding,
+.pf-harsh-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.pf-finding:last-child,
+.pf-harsh-row:last-child {
+  border-bottom: 0;
+}
+.pf-finding-title,
+.pf-harsh-type {
+  font-weight: 600;
+  color: var(--cluster-text);
+}
+.pf-finding-detail,
+.pf-harsh-threshold,
+.pf-harsh-at {
+  font-size: 11.5px;
+  color: var(--cluster-text-dim);
+}
+.pf-harsh-value {
+  color: var(--cluster-text);
+}
+.pf-finding-meta {
+  font-size: 11.5px;
+  color: var(--cluster-text-dim);
+}
+.pf-status {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(11, 18, 32, 0.06);
+  color: var(--cluster-text-dim);
+}
+.pf-status--finding {
+  color: #be123c;
+  background: rgba(244, 63, 94, 0.12);
+}
+.pf-status--watch {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.16);
+}
+.pf-status--ok {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.14);
+}
+.pf-unknown-days li,
+.pf-dna-text li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 12px;
+  color: var(--cluster-text-dim);
+}
+
+/* The Vehicle360 empty state, reused here — scoped so Vehicle360's own
+   styles are never touched. */
+.pf-card .v360-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 4px;
+}
+.pf-card .v360-empty-title {
+  font-weight: 600;
+  color: var(--cluster-text);
+}
+.pf-card .v360-empty-hint {
+  font-size: 12px;
+  color: var(--cluster-text-dim);
+}

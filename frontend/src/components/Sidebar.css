@@ -688,17 +688,3 @@
 .sidebar--erp .nav-parent.active-parent {
   box-shadow: inset 3px 0 0 var(--erp);
 }
-
-/* Folded-by-usage entries: never deleted, always reachable. Grouped by job
-   under "More", each link carries the server's reason as its title. */
-.nav-more-job {
-  padding: 6px 12px 2px;
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  opacity: 0.6;
-}
-
-.nav-more-link span {
-  opacity: 0.85;
-}
