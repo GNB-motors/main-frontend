@@ -224,13 +224,19 @@ export const autoTripTollsSchema = z
       .passthrough()
       .nullish(),
     passes: z.array(tollPass).nullish(),
+    ledger: z
+      .object({ totalInr: num, charges: num, unknownCount: num, complete: z.boolean().nullish() })
+      .passthrough()
+      .nullish(),
     total: z
       .object({
         inr: num,
         priced: num,
         unknown: num,
         complete: z.boolean().nullish(),
-        byLeg: z.record(z.object({ inr: num, priced: num, unknown: num }).passthrough()).nullish(),
+        byLeg: z
+          .record(z.string(), z.object({ inr: num, priced: num, unknown: num }).passthrough())
+          .nullish(),
       })
       .passthrough()
       .nullish(),

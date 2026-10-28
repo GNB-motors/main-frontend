@@ -5,6 +5,7 @@ import {
   tollClassText,
   tollMarks,
   tollSummary,
+  tollLedgerText,
   withTollPasses,
 } from './tripTolls';
 
@@ -87,11 +88,11 @@ describe('withTollPasses', () => {
 describe('tollSummary and fareText', () => {
   it('counts plazas, the known rupees and the unpriced ones', () => {
     expect(tollSummary({ passes: [{}, {}, {}], total: { inr: 825, priced: 2, unknown: 1 } })).toBe(
-      '3 toll plazas · ₹825 · 1 unpriced',
+      '3 toll plazas · ₹825 estimated · 1 unpriced',
     );
     expect(tollSummary({ passes: [{}], total: null })).toBe('1 toll plaza');
     expect(tollSummary({ status: 'FALLBACK', passes: [{}], total: { inr: 590, priced: 1 } })).toBe(
-      '1 toll plaza · ₹590 · road not matched yet',
+      '1 toll plaza · ₹590 estimated · road not matched yet',
     );
     expect(tollSummary({ passes: [] })).toBeNull();
   });
@@ -108,8 +109,8 @@ describe('tollSummary and fareText', () => {
         },
       },
     };
-    expect(tollSummary(tolls)).toBe('1 toll plaza · ₹590');
-    expect(tollSummary(tolls, 'RETURN')).toBe('2 toll plazas · ₹885');
+    expect(tollSummary(tolls)).toBe('1 toll plaza · ₹590 estimated');
+    expect(tollSummary(tolls, 'RETURN')).toBe('2 toll plazas · ₹885 estimated');
     expect(tollSummary({ passes: [{ leg: 'LADEN' }], total: null }, 'RETURN')).toBeNull();
   });
   it('an unpriced pass says so instead of ₹0', () => {
@@ -165,4 +166,28 @@ describe('tollClassText', () => {
   it('says nothing to a driver, who gets no fares', () => {
     expect(tollClassText({ passes: [{}], total: null })).toBeNull();
   });
+});
+
+describe('ledger and tariff estimates', () => {
+  it('labels crossing totals as estimates and exposes incomplete return history', () => {
+    expect(
+      tollSummary({
+        passes: [{}],
+        total: { inr: 590, priced: 1, notes: ['RETURN_HISTORY_PENDING'] },
+      }),
+    ).toBe('1 toll plaza · ₹590 estimated · return history pending');
+  });
+});
+
+it('shows the reconciled ledger amount separately from crossing estimates', () => {
+  expect(
+    tollLedgerText({
+      ledger: { totalInr: 895, unknownCount: 0, complete: true },
+      total: { inr: 885 },
+    }),
+  ).toBe('₹895');
+  expect(tollLedgerText({ ledger: { totalInr: null, unknownCount: 2, complete: false } })).toBe(
+    'Amount unknown · 2 unpriced · incomplete',
+  );
+  expect(tollLedgerText({ total: null })).toBeNull();
 });

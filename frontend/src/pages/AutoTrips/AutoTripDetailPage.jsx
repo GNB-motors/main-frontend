@@ -13,7 +13,7 @@ import AutoTripReplay from './AutoTripReplay';
 import AutoTripTimeline from './AutoTripTimeline';
 import { FLAG_LABEL, answerPlaceHref, inWindow } from './autoTripPlaces';
 import { LONG_PLANT_MIN, timelinePlan } from './timelineModel';
-import { tollClassText, tollSummary, withTollPasses } from './tripTolls';
+import { tollClassText, tollSummary, tollLedgerText, withTollPasses } from './tripTolls';
 import {
   STATUS_CLASS,
   STATUS_LABEL,
@@ -271,6 +271,9 @@ export default function AutoTripDetailPage() {
             {tollText ? <Field label="Tolls on the way">{tollText}</Field> : null}
             {tollSummary(tolls, 'RETURN') ? (
               <Field label="Tolls on the way back">{tollSummary(tolls, 'RETURN')}</Field>
+            ) : null}
+            {tollLedgerText(tolls) ? (
+              <Field label="Toll ledger (after bill reconciliation)">{tollLedgerText(tolls)}</Field>
             ) : null}
             {tollClassText(tolls) ? <Field label="Toll class">{tollClassText(tolls)}</Field> : null}
             {trip.extraDrops?.length || trip.erpTripId ? (

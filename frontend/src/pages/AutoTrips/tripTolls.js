@@ -79,9 +79,21 @@ export function tollSummary(tolls, leg = 'LADEN') {
   const head = `${n} toll plaza${n === 1 ? '' : 's'}`;
   const t = tolls.total?.byLeg?.[leg] || (leg === 'LADEN' ? tolls.total : null);
   const parts = [head];
-  if (t?.priced) parts.push(inr(t.inr));
+  if (t?.priced) parts.push(`${inr(t.inr)} estimated`);
   if (t?.unknown) parts.push(`${t.unknown} unpriced`);
+  if (tolls.total?.notes?.includes('RETURN_HISTORY_PENDING')) parts.push('return history pending');
+  if (tolls.status === 'STALE') parts.push('refresh pending');
   if (tolls.status === 'FALLBACK') parts.push('road not matched yet');
+  return parts.join(' · ');
+}
+
+/** Reconciled money comes from Expense; crossing fares above remain tariff estimates. */
+export function tollLedgerText(tolls) {
+  const ledger = tolls?.ledger;
+  if (!ledger) return null;
+  const parts = [ledger.totalInr == null ? 'Amount unknown' : inr(ledger.totalInr)];
+  if (ledger.unknownCount) parts.push(`${ledger.unknownCount} unpriced`);
+  if (ledger.complete === false) parts.push('incomplete');
   return parts.join(' · ');
 }
 
