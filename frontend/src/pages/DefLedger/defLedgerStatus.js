@@ -9,6 +9,8 @@ export const TONE = {
 
 // Mirrors defLedger.service statusOf(), most urgent first.
 export const STATUS = {
+  NOT_ASSESSED: { label: 'Not assessed', tone: 'muted', Icon: Info },
+  NOT_APPLICABLE: { label: 'Not applicable', tone: 'muted', Icon: Info },
   FLAGGED: { label: 'Needs review', tone: 'bad', Icon: AlertTriangle },
   DEFICIT: { label: 'Unlogged burn', tone: 'warn', Icon: AlertTriangle },
   LOW_DOSING: { label: 'Low dosing', tone: 'warn', Icon: TrendingDown },
@@ -19,6 +21,8 @@ export const STATUS = {
 };
 
 export const STATUS_NOTE = {
+  NOT_ASSESSED: 'Dosing is shown without a calibrated assessment band for this vehicle.',
+  NOT_APPLICABLE: 'Vehicle data explicitly identifies that SCR dosing is not required.',
   FLAGGED:
     'The CAN DEF level dropped by more than the engine burned, or a logged fill is larger than the tank. Check the tank, cap and lines, and the logged fills.',
   DEFICIT:
@@ -31,4 +35,10 @@ export const STATUS_NOTE = {
   NOT_REPORTED:
     "This truck's telematics sends 0 DEF on every hour despite real diesel burn, so dosing cannot be judged from it.",
   NO_DATA: 'No hourly FleetEdge telemetry has arrived for this vehicle yet.',
+};
+
+export const SENSOR_FAULT_LABEL = {
+  VENDOR_SENTINEL: 'Sensor tank capacity is not configured',
+  INVALID_TANK_CAPACITY: 'Sensor reported an implausible tank capacity',
+  CHANGE_EXCEEDS_TANK: 'Sensor change exceeds the tank capacity',
 };
