@@ -1,8 +1,10 @@
 import apiClient from '../utils/axiosConfig';
 import { getOrgId, getBranchId } from '../utils/session.js';
 import { getVehicleList, detachOnAbort } from './vehicleListService';
+import { parseSafe } from '../schemas/validate.js';
 
 const unwrap = (res) => res.data?.data ?? {};
+const deviationSchemas = () => import('../schemas/routeDeviation.schema.js');
 
 // Overview and the Overspeed audit open on the same fleet window. Floored to
 // the minute, both ask the same question, and the answer is shared for that
@@ -172,43 +174,62 @@ const RouteHubService = {
       ),
     ),
 
-  /** Paginated route-deviation events (OPEN first). `limit` is capped at 100. */
-  getDeviationEvents: async ({ vehicle, from, to, page, limit } = {}, signal) =>
-    unwrap(
-      await apiClient.get('/api/route-deviation/events', {
-        params: {
-          ...(vehicle ? { vehicle } : {}),
-          ...(from ? { from } : {}),
-          ...(to ? { to } : {}),
-          ...(page ? { page } : {}),
-          limit: Math.min(limit || 100, 100),
-        },
-        signal,
-      }),
+  /**
+   * Paginated route-deviation events (OPEN first). `limit` is capped at 100.
+   * `summary` counts the whole filtered set; each record's `trip` names the
+   * AutoTrip and leg (LADEN / RETURN) the detour happened on, or is null.
+   */
+  getDeviationEvents: async (
+    { vehicle, from, to, status, leg, linked, autoTripId, minExtraKm, page, limit } = {},
+    signal,
+  ) =>
+    parseSafe(
+      'deviationListSchema',
+      deviationSchemas,
+      unwrap(
+        await apiClient.get('/api/route-deviation/events', {
+          params: {
+            ...(vehicle ? { vehicle } : {}),
+            ...(from ? { from } : {}),
+            ...(to ? { to } : {}),
+            ...(status ? { status } : {}),
+            ...(leg ? { leg } : {}),
+            ...(linked != null ? { linked } : {}),
+            ...(autoTripId ? { autoTripId } : {}),
+            ...(minExtraKm ? { minExtraKm } : {}),
+            ...(page ? { page } : {}),
+            limit: Math.min(limit || 100, 100),
+          },
+          signal,
+        }),
+      ),
     ),
 
-  /** Mark one deviation event reviewed. */
-  reviewDeviationEvent: async (id) =>
-    unwrap(await apiClient.put(`/api/route-deviation/events/${id}/review`)),
+  /**
+   * One deviation with everything its map draws: the detour (exit, farthest
+   * point, rejoin, path), the trip it happened on, the usual-route band and the
+   * track over the whole trip.
+   */
+  getDeviationEvent: async (id, signal) =>
+    parseSafe(
+      'deviationDetailSchema',
+      deviationSchemas,
+      unwrap(await apiClient.get(`/api/route-deviation/events/${id}`, { signal })),
+    ),
+
+  /** Mark a deviation reviewed (optional reason + note), or reopen it with status OPEN. */
+  reviewDeviationEvent: async ({ id, status = 'REVIEWED', reason, note }, { signal } = {}) =>
+    unwrap(
+      await apiClient.put(
+        `/api/route-deviation/events/${id}/review`,
+        { status, ...(reason ? { reason } : {}), ...(note ? { note } : {}) },
+        { signal },
+      ),
+    ),
 
   /** Learned corridors (Route Intelligence) — geometry + traversal stats. */
   getCorridors: async (params = {}, signal) =>
     unwrap(await apiClient.get('/api/route-intelligence/corridors', { params, signal })),
-
-  /**
-   * One learned corridor, for drawing a planned path against an actual one.
-   * There is no /corridors/:id route, so this filters the (small) list.
-   */
-  getCorridor: async (id, signal) => {
-    const data = unwrap(
-      await apiClient.get('/api/route-intelligence/corridors', {
-        params: { limit: 100 },
-        signal,
-      }),
-    );
-    const list = data.records || data.corridors || [];
-    return list.find((c) => String(c._id) === String(id)) || null;
-  },
 
   /**
    * Per-route commercial profitability (revenue vs. measured + assumed cost).

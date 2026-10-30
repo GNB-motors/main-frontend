@@ -9,6 +9,9 @@ import RoadService from '../../services/RoadService';
 import { getUserRole } from '../../utils/session.js';
 import { dropLabel } from '../PlaceHub/intelligence/facilityText';
 import RouteSapCard from '../Sap/RouteSapCard';
+import RouteHubService from '../../services/RouteHubService';
+import TripDeviationsCard from './TripDeviationsCard';
+import { detourSegments, deviationWindow } from './tripDeviations';
 import AutoTripReplay from './AutoTripReplay';
 import AutoTripTimeline from './AutoTripTimeline';
 import { FLAG_LABEL, answerPlaceHref, inWindow } from './autoTripPlaces';
@@ -57,6 +60,7 @@ export default function AutoTripDetailPage() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const autoPlay = searchParams.get('play') === '1';
+  const focusDeviation = searchParams.get('deviation');
   const replayRef = useRef(null);
   const canEdit = CAN_EDIT.includes(getUserRole());
 
@@ -83,6 +87,17 @@ export default function AutoTripDetailPage() {
     [track?.registrationNumber, track?.from, track?.to],
     { enabled: Boolean(track?.registrationNumber && track?.from && track?.to) },
   );
+
+  // Route deviations are an owner/manager feed behind fleetIntelligence; any
+  // failure (flag off, no access) just leaves the card out.
+  const devWindow = deviationWindow(trip);
+  const { data: deviationData, loading: deviationsLoading } = useApi(
+    (signal) =>
+      RouteHubService.getDeviationEvents({ autoTripId: id, ...devWindow, limit: 100 }, signal),
+    [id, devWindow?.from, devWindow?.to],
+    { enabled: canEdit && Boolean(devWindow) },
+  );
+  const deviations = deviationData?.records || null;
 
   const confirmM = useMutation(AutoTripService.confirm);
   const dropM = useMutation(AutoTripService.drop);
@@ -216,6 +231,7 @@ export default function AutoTripDetailPage() {
               trip={trip}
               track={track}
               roadTrail={roadTrail}
+              detours={detourSegments(track?.points, deviations)}
               loading={trackLoading}
               error={trackError}
               autoPlay={autoPlay}
@@ -272,6 +288,15 @@ export default function AutoTripDetailPage() {
             ) : null}
           </div>
           <RouteSapCard key={id} trip={trip} />
+          {canEdit ? (
+            <TripDeviationsCard
+              deviations={deviations}
+              loading={deviationsLoading}
+              playable={playable}
+              onPlay={playFrom}
+              focusId={focusDeviation}
+            />
+          ) : null}
         </div>
 
         <AutoTripTimeline
