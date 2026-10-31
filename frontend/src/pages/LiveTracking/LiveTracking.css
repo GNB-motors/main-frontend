@@ -2901,10 +2901,28 @@ html.dark .vcard:hover,
   stroke-width: 3;
   stroke-linecap: round;
 }
+/* Moon crescent: SVG mask punches out the cutout, no bg colour needed */
+.wx-icon .wx-moon circle {
+  fill: #c8d6f0;
+}
+.wx-icon .wx-star {
+  fill: #c8d6f0;
+  opacity: 0.75;
+}
 :root[data-theme='dark'] .wx-icon .wx-cloud,
 html.dark .wx-icon .wx-cloud,
 .theme-dark .wx-icon .wx-cloud {
   fill: #b8c4d6;
+}
+:root[data-theme='dark'] .wx-icon .wx-moon circle,
+html.dark .wx-icon .wx-moon circle,
+.theme-dark .wx-icon .wx-moon circle {
+  fill: #dce8ff;
+}
+:root[data-theme='dark'] .wx-icon .wx-star,
+html.dark .wx-icon .wx-star,
+.theme-dark .wx-icon .wx-star {
+  fill: #dce8ff;
 }
 
 .wx-animated .wx-rays {

@@ -1,5 +1,5 @@
 import WeatherIcon from './WeatherIcon.jsx';
-import { categoryOf, labelOf, num } from './weatherGlyph.js';
+import { categoryOf, isDayAt, labelOf, num } from './weatherGlyph.js';
 
 /**
  * Weather section for the vehicle detail panel. Shows the measured conditions at
@@ -15,6 +15,7 @@ export default function WeatherSection({
   const state = weather?.state;
   const c = weather?.conditions || {};
   const category = categoryOf(c);
+  const isDay = isDayAt(weather?.hour ?? Date.now());
   const attr = weather?.attribution;
 
   const rows = [
@@ -33,6 +34,7 @@ export default function WeatherSection({
             category={state === 'OK' ? category : 'cloudy'}
             size={18}
             animated={state === 'OK'}
+            isDay={isDay}
           />
         </span>
         Weather
