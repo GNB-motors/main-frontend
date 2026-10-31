@@ -65,6 +65,27 @@ const DriverVehicleAssignmentService = {
     return Array.isArray(list) && list.length ? list[0] : null;
   },
 
+  /** Every assignment active right now, across all pages (backend caps limit at 200). */
+  getAllActiveAssignments: async ({ signal } = {}) => {
+    const params = { activeOn: new Date().toISOString(), limit: 200 };
+    const all = [];
+    for (let page = 1, totalPages = 1; page <= totalPages; page += 1) {
+      const response = await apiClient.get('/api/driver-vehicle-assignments', {
+        params: { ...params, page },
+        signal,
+      });
+      totalPages = response.data?.meta?.totalPages || 1;
+      all.push(
+        ...(await parseSafe(
+          'driverVehicleAssignmentListSchema',
+          () => import('../schemas/driverVehicleAssignment.schema.js'),
+          unwrap(response),
+        )),
+      );
+    }
+    return all;
+  },
+
   idOf,
 };
 

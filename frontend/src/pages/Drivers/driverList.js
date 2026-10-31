@@ -29,6 +29,25 @@ export function normalizeDriver(d) {
   };
 }
 
+/**
+ * The employee API carries no vehicle — assignments live in the separate
+ * DriverVehicleAssignment ledger (the same record the edit form writes).
+ * `assignments` arrive sorted newest-first, so the first row per driver wins.
+ */
+export function attachAssignedVehicles(drivers, assignments) {
+  const refId = (ref) => (ref && typeof ref === 'object' ? ref._id : ref);
+  const byDriver = new Map();
+  for (const a of assignments || []) {
+    const driverId = refId(a.driverId);
+    const reg = a.vehicleId?.registrationNumber;
+    if (driverId && reg && !byDriver.has(String(driverId))) byDriver.set(String(driverId), reg);
+  }
+  return (drivers || []).map((d) => {
+    const reg = byDriver.get(String(d.id));
+    return reg ? { ...d, assignedVehicle: reg, vehicle_registration_no: reg } : d;
+  });
+}
+
 /** Normalize the lightweight vehicle shape used by the edit-modal dropdown. */
 export function normalizeVehicleOption(v) {
   return {

@@ -7,6 +7,7 @@ import {
   isCrossBranchMove,
   countActiveFilters,
   generatePageNumbers,
+  attachAssignedVehicles,
 } from './driverList';
 
 describe('normalizeDriver', () => {
@@ -134,5 +135,30 @@ describe('generatePageNumbers', () => {
     expect(generatePageNumbers(1, 10)).toEqual([1, 2, '...', 10]);
     expect(generatePageNumbers(10, 10)).toEqual([1, '...', 9, 10]);
     expect(generatePageNumbers(5, 10)).toEqual([1, '...', 4, 5, 6, '...', 10]);
+  });
+});
+
+describe('attachAssignedVehicles', () => {
+  it('shows the vehicle from the active DriverVehicleAssignment ledger row', () => {
+    const drivers = [{ id: 'd1' }, { id: 'd2' }];
+    const assignments = [
+      { driverId: { _id: 'd1' }, vehicleId: { _id: 'v1', registrationNumber: 'BR44GB1162' } },
+    ];
+    const out = attachAssignedVehicles(drivers, assignments);
+    expect(out[0].assignedVehicle).toBe('BR44GB1162');
+    expect(out[0].vehicle_registration_no).toBe('BR44GB1162');
+    expect(out[1].assignedVehicle).toBeUndefined();
+    expect(filterAndSortDrivers(out, 'assigned').map((d) => d.id)).toEqual(['d1']);
+  });
+
+  it('accepts bare-id refs and keeps the most recent assignment per driver', () => {
+    const out = attachAssignedVehicles(
+      [{ id: 'd1' }],
+      [
+        { driverId: 'd1', vehicleId: { registrationNumber: 'NEWER' } },
+        { driverId: 'd1', vehicleId: { registrationNumber: 'OLDER' } },
+      ],
+    );
+    expect(out[0].assignedVehicle).toBe('NEWER');
   });
 });
