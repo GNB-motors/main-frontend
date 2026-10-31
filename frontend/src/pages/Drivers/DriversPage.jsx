@@ -103,7 +103,9 @@ const DriversPage = () => {
       const { data: items, meta } = result;
 
       // Normalize drivers to include a `name` convenience field used across the UI
-      const normalizedDrivers = (items || []).map(normalizeDriver);
+      const normalizedDrivers = await DriverService.withAssignedVehicles(
+        (items || []).map(normalizeDriver),
+      );
       setDrivers(normalizedDrivers);
       if (meta) {
         setTotalPages(meta.totalPages);
