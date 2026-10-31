@@ -1,6 +1,48 @@
-.khata-ledger {
-  padding: 0;
+.pshell.khata-ledger {
+  width: 100%;
+  max-width: 1600px;
+  margin-inline: auto;
+  padding: 24px 32px 40px;
+  box-sizing: border-box;
   background: transparent;
+}
+
+.khata-ledger > .pshell-body,
+.khata-ledger > .pshell-body > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.khata-ledger .pshell-actions {
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.khata-ledger .pshell-head {
+  align-items: center;
+}
+
+/* Keep section typography independent of other pages' global heading rules. */
+.khata-ledger .khata-chart-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--ds-ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.khata-ledger .khata-chart-title svg {
+  flex-shrink: 0;
+}
+
+.khata-ledger .khata-chart-description {
+  margin: 4px 0 0;
+  color: var(--ds-ink3);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 /* CardContent owns the spacing; avoid stacking its padding with Card's. */
@@ -22,6 +64,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+  line-height: 1.3;
 }
 
 .khata-scope {
@@ -139,5 +182,11 @@
 @media (max-width: 479px) {
   .khata-kpis {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .pshell.khata-ledger {
+    padding: 20px 16px 32px;
   }
 }

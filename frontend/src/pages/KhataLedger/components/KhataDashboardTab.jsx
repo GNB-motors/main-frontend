@@ -601,11 +601,11 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <h3 className="khata-chart-title">
                   <PieChartIcon size={16} className="text-muted-foreground" />
                   Expense Distribution by Category
                 </h3>
-                <p className="text-xs text-gray-500">
+                <p className="khata-chart-description">
                   Breakdown of total spending across categories
                 </p>
               </div>
@@ -649,11 +649,11 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <h3 className="khata-chart-title">
                   <BarChart3 size={16} className="text-muted-foreground" />
                   Cost by Transaction Source
                 </h3>
-                <p className="text-xs text-gray-500">
+                <p className="khata-chart-description">
                   Manual vs automated fuel and maintenance logs
                 </p>
               </div>
@@ -694,11 +694,11 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <h3 className="khata-chart-title">
                   <Truck size={16} className="text-muted-foreground" />
                   Vehicle Cost Comparison (Top 6)
                 </h3>
-                <p className="text-xs text-gray-500">
+                <p className="khata-chart-description">
                   Highest expenditure vehicles in the selected period
                 </p>
               </div>
@@ -740,11 +740,11 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <h3 className="khata-chart-title">
                   <Route size={16} className="text-muted-foreground" />
                   Trip Financial Intelligence (Revenue vs Cost)
                 </h3>
-                <p className="text-xs text-gray-500">Real ERP Trip margin comparison</p>
+                <p className="khata-chart-description">Real ERP Trip margin comparison</p>
               </div>
             </div>
 
