@@ -30,7 +30,6 @@ import MassBalancePipeline from './integrity/MassBalancePipeline';
 import IntegrityBentoStrip from './integrity/IntegrityBentoStrip';
 import IntegrityHeaderActions from './integrity/IntegrityHeaderActions';
 import useIntegrityExport from './integrity/useIntegrityExport';
-import ReportsRail from '../../components/ReportsRail';
 import './FuelIntegrity.css';
 
 const FEED_LIMIT = 100;
@@ -301,7 +300,6 @@ const FuelIntegrityPage = () => {
 
   return (
     <>
-      <ReportsRail />
       <PageShell
         title={
           <div className="flex items-center gap-3">

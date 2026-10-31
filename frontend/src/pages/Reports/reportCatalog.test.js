@@ -46,11 +46,7 @@ describe('visibleReportGroups', () => {
   });
 
   it('keeps only the genuine-report groups (module deep-links removed)', () => {
-    expect(visibleReportGroups(flags(ALL_FLAGS)).map((g) => g.id)).toEqual([
-      'fuel',
-      'trips',
-      'compliance',
-    ]);
+    expect(visibleReportGroups(flags(ALL_FLAGS)).map((g) => g.id)).toEqual(['fuel', 'trips']);
   });
 
   it('shows SAP routes on sapV2 alone, and hides the other Trip Economics reports without autoTrips', () => {
@@ -89,15 +85,15 @@ describe('reportDestination', () => {
     expect(isInlineReport('driver')).toBe(true);
   });
 
-  it('returns the screen a dedicated report row owns', () => {
-    expect(reportDestination('defLedger')).toBe('/def-ledger');
-    expect(reportDestination('fuelIntegrity')).toBe('/fuel-integrity');
-    expect(isInlineReport('defLedger')).toBe(false);
-  });
-
-  it('keeps the Fuel vs FleetEdge reconciliation deep link', () => {
-    expect(reportDestination('fuelComparison')).toBe('/mileage?tab=reconciliation&view=ecu');
-  });
+  it.each(['fuelIntegrity', 'fuelComparison', 'defLedger'])(
+    'excludes the standalone Fuel Management page %s from Reports',
+    (id) => {
+      expect(ids(visibleReportGroups(flags(ALL_FLAGS)))).not.toContain(id);
+      expect(reportDestination(id)).toBeNull();
+      expect(isInlineReport(id)).toBe(false);
+      expect(resolveReport(id, flags(ALL_FLAGS))).toBe(DEFAULT_REPORT);
+    },
+  );
 
   it('is null for a removed module link or a row not in the catalog', () => {
     expect(reportDestination('erpDayBook')).toBeNull();
@@ -112,11 +108,12 @@ describe('activeReportId', () => {
     expect(activeReportId('/reports', '')).toBe(DEFAULT_REPORT);
   });
 
-  it('matches a dedicated report screen by its path, ignoring query', () => {
-    expect(activeReportId('/fuel-integrity', '')).toBe('fuelIntegrity');
-    expect(activeReportId('/def-ledger', '')).toBe('defLedger');
-    expect(activeReportId('/mileage', '?tab=reconciliation&view=ecu')).toBe('fuelComparison');
-  });
+  it.each(['/fuel-integrity', '/def-ledger', '/mileage'])(
+    'does not treat %s as a report screen',
+    (pathname) => {
+      expect(activeReportId(pathname, '?tab=reconciliation&view=ecu')).toBeNull();
+    },
+  );
 
   it('is null away from any report screen', () => {
     expect(activeReportId('/vehicles', '')).toBeNull();
@@ -135,7 +132,7 @@ describe('resolveReport', () => {
     expect(resolveReport(null, flags([]))).toBe(DEFAULT_REPORT);
   });
 
-  it('falls back for a row that links out — it has no table on this page', () => {
+  it('falls back for a standalone module removed from Reports', () => {
     expect(resolveReport('fuelComparison', flags(ALL_FLAGS))).toBe(DEFAULT_REPORT);
     expect(resolveReport('defLedger', flags([]))).toBe(DEFAULT_REPORT);
   });

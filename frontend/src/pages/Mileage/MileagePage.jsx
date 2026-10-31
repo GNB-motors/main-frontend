@@ -16,7 +16,6 @@ import PumpLedgerView from './components/PumpLedgerView';
 import ExpectedFuelView from './components/ExpectedFuelView';
 import TruckMileageView from './components/TruckMileageView';
 import { hubRangeFromParams } from './mileageDates';
-import ReportsRail from '../../components/ReportsRail';
 import './MileagePage.css';
 
 // The pre-hub pages, mounted as hub views rather than re-implemented.
@@ -161,7 +160,6 @@ export default function MileagePage() {
 
   return (
     <>
-      <ReportsRail />
       <PageShell
         title="Diesel & Mileage"
         subtitle="Every diesel fill, whether its bill is right, and how far each truck goes on a litre."

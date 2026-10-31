@@ -87,6 +87,19 @@ describe('Trip Windows nav access', () => {
   });
 });
 
+describe('Fuel Management standalone navigation', () => {
+  it('keeps all three pages directly accessible without Reports access', () => {
+    const items = getVisibleNavItems(flags(['fuelIntegrity', 'vehicleActivity']));
+    const fuel = items.find((item) => item.groupId === 'fuelManagement');
+    expect(fuel.children.map((child) => child.to)).toEqual([
+      '/mileage',
+      '/fuel-integrity',
+      '/def-ledger',
+    ]);
+    expect(shows(items, '/reports')).toBe(false);
+  });
+});
+
 describe('Mileage hub nav access', () => {
   it.each(['fuelIntegrity', 'vehicleActivity', 'fuelComparison'])(
     'shows with only %s, the flag of one of the pages it replaced',

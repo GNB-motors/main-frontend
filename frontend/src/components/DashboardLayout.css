@@ -70,21 +70,6 @@
   padding: 0 !important;
 }
 
-/* A dedicated report screen (Fuel Integrity, DEF Ledger, Fuel vs FleetEdge) that
-   renders <ReportsRail/>: reserve the 246px the fixed reports rail occupies so
-   the page content clears it. The `.main-content` prefix lifts specificity to
-   match the `:has(> .pshell)` no-padding rule above (both !important) so this
-   wins on source order for the full-bleed PageShell pages too. On narrow screens
-   the rail becomes a top drawer, so no gap is needed. */
-.main-content .page-content.reports-rail-pad {
-  padding-left: calc(var(--spacing-lg) + 246px) !important;
-}
-@media (max-width: 992px) {
-  .main-content .page-content.reports-rail-pad {
-    padding-left: var(--spacing-lg) !important;
-  }
-}
-
 /* Loading content styles */
 .dashboard-loading-content {
   position: relative;

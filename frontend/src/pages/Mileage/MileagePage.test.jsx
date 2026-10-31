@@ -272,6 +272,7 @@ describe('MileagePage', () => {
     await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));
 
     expect(screen.getByRole('heading', { name: 'Diesel & Mileage' })).toBeInTheDocument();
+    expect(document.getElementById('report-side-nav')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Average mileage')).toHaveTextContent('3.80km/L');
     // (18 + 1) of (18 + 1 + 1) tank rises have a bill — meta counts as sent
     expect(screen.getByLabelText('Fills with a bill')).toHaveTextContent('19of 20');

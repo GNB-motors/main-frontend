@@ -1,30 +1,12 @@
 /**
- * The Reports hub catalog — one rail listing every report and every export
- * surface the product has, grouped the way an owner thinks about the business
- * rather than by which screen it grew on.
- *
- * Two kinds of entry:
- * - `id`  — a report rendered inside this page (the table swaps in place).
- * - `to`  — a report that already works on its own screen. Listed here as a
- *           link so it is findable from one place; the page it lives on is not
- *           rewritten and keeps its own filters and exporter.
- *
- * The page itself needs `reports`; a report whose own flag the org lacks answers
- * 404 (requireFeature), so it is hidden rather than shown as a tab that can
- * only error. Entries that link out carry the same flag when the screen behind
- * them is gated.
- *
- * Pure: unit tests live next to it.
+ * Reports rendered inside the Reports hub. Fuel Management owns its standalone
+ * Mileage, Fuel Integrity and DEF Ledger pages; they do not belong in this catalog.
+ * Entries retain their feature flags so reports with gated APIs stay hidden
+ * when the organization cannot open them.
  */
 
 export const DEFAULT_REPORT = 'driver';
 
-// Only genuine reports live here. Entries that merely deep-linked into other
-// modules (ERP, Vehicles, Drivers, Settings, Route Hub, Auto Trips, Daily
-// Digest, iALERT, Fleet Alerts, …) were removed: clicking them left the Reports
-// hub entirely, which is not what a report row should do. What remains is either
-// a report rendered in-page (`id`) or a dedicated report SCREEN that keeps the
-// reports rail when opened (`to` → /fuel-integrity, /def-ledger, /mileage).
 export const REPORT_GROUPS = [
   {
     id: 'fuel',
@@ -36,18 +18,6 @@ export const REPORT_GROUPS = [
       { id: 'modelComparison', label: 'Model Comparison', flag: 'vehicleActivity' },
       { id: 'dieselReport', label: 'Diesel Report' },
       { id: 'adblueReport', label: 'AdBlue Report', flag: 'fuelIntegrity' },
-      {
-        id: 'fuelIntegrity',
-        label: 'Fuel Integrity',
-        to: '/fuel-integrity',
-        flag: 'fuelIntegrity',
-      },
-      {
-        id: 'fuelComparison',
-        label: 'Fuel vs FleetEdge',
-        to: '/mileage?tab=reconciliation&view=ecu',
-        flag: 'fuelIntegrity',
-      },
     ],
   },
   {
@@ -65,11 +35,6 @@ export const REPORT_GROUPS = [
       // existing links keep working.
       { id: 'laneKm', label: 'SAP routes', flag: 'sapV2' },
     ],
-  },
-  {
-    id: 'compliance',
-    label: 'COMPLIANCE',
-    children: [{ id: 'defLedger', label: 'DEF Ledger', to: '/def-ledger' }],
   },
 ];
 
@@ -91,9 +56,8 @@ export function reportDestination(id, groups = REPORT_GROUPS) {
 
 /**
  * The report a given location is showing, so the rail highlights the right row
- * on every report screen — the in-page reports read `?report=`, the dedicated
- * screens are matched by their `to` path (ignoring query). null when the current
- * route is not a report screen.
+ * in the Reports hub (`?report=`). Standalone Fuel Management routes are not
+ * report screens and have no active report.
  */
 export function activeReportId(pathname, search, groups = REPORT_GROUPS) {
   if (pathname === '/reports') {

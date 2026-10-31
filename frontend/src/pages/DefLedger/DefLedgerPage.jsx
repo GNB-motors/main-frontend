@@ -15,7 +15,6 @@ import StatusBadge from './StatusBadge';
 import DosingBadge from './DosingBadge';
 import DefDetailDrawer from './DefDetailDrawer';
 import KpiTile from './KpiTile';
-import ReportsRail from '../../components/ReportsRail';
 
 const CHIPS = [
   { id: 'all', label: 'All vehicles', match: () => true },
@@ -103,7 +102,6 @@ export default function DefLedgerPage() {
 
   return (
     <>
-      <ReportsRail />
       <div className="p-6 md:p-8 bg-slate-50 dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-100">
         {/* ── Page Header ────────────────────────────────────────────── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
