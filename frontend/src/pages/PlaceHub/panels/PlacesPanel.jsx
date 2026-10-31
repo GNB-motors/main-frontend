@@ -76,24 +76,46 @@ export default function PlacesPanel({
       setSearchResults(null);
       return undefined;
     }
-    const timer = setTimeout(async () => {
+    const timer = setTimeout(() => {
+      // Vehicle dropdown — independent abort so a failing place search never kills it
       if (ctrlRef.current) ctrlRef.current.abort();
       ctrlRef.current = new AbortController();
+      PlaceHubService.searchVehicles(q, { limit: 5, signal: ctrlRef.current.signal })
+        .then((rows) => {
+          setVehicleSuggestions(rows);
+          setVehicleSugActive(-1);
+        })
+        .catch(() => {});
+
+      // Place + vehicle-reg results in the main list
       if (placeCtrlRef.current) placeCtrlRef.current.abort();
       placeCtrlRef.current = new AbortController();
-      try {
-        const [vehicleRows, placeRows] = await Promise.all([
-          PlaceHubService.searchVehicles(q, { limit: 5, signal: ctrlRef.current.signal }),
-          PlaceHubService.searchPlaces(q, { limit: 20, signal: placeCtrlRef.current.signal }),
-        ]);
-        setVehicleSuggestions(vehicleRows);
-        setVehicleSugActive(-1);
-        setSearchResults(
-          placeRows.map((r) => (r._type === 'warehouse' ? fromWarehouse(r) : fromZone(r))),
-        );
-      } catch {
-        // aborted or network — ignore
-      }
+      PlaceHubService.searchPlaces(q, { limit: 20, signal: placeCtrlRef.current.signal })
+        .then((rows) => {
+          setSearchResults(
+            rows.map((r) => {
+              if (r._type === 'warehouse') return fromWarehouse(r);
+              if (r._type === 'zone') return fromZone(r);
+              // vehicle result — shape it as a lightweight place entry for the list
+              return {
+                id: `vehicle:${r._id}`,
+                source: 'vehicle',
+                sourceId: String(r._id),
+                name: r.registrationNumber,
+                type: 'VEHICLE',
+                group: 'vehicle',
+                status: 'CONFIRMED',
+                lat: null,
+                lng: null,
+                radiusM: null,
+                polygon: null,
+                subtitle: [r.manufacturer, r.model].filter(Boolean).join(' ') || 'Vehicle',
+                raw: r,
+              };
+            }),
+          );
+        })
+        .catch(() => {});
     }, 300);
     return () => clearTimeout(timer);
   }, [query, vehicleLabel]);
@@ -246,29 +268,44 @@ export default function PlacesPanel({
         <ul className="ph-list">
           {(searchResults ?? places).map((p) => (
             <li key={p.id}>
-              <button
-                type="button"
-                className={`ph-row${p.id === selectedId ? ' is-selected' : ''}`}
-                onClick={() => onPick(p)}
-              >
-                <TypeTile type={p.type} />
-                <span className="ph-row-main">
-                  <span className="ph-row-title">{p.name}</span>
-                  <span className="ph-row-sub">
-                    {placeTypeLabel(p.type)}
-                    {' · '}
-                    {p.polygon ? 'Outline' : radiusLabel(p.radiusM)}
-                    {p.subtitle ? ` · ${p.subtitle}` : ''}
+              {p.source === 'vehicle' ? (
+                <button type="button" className="ph-row" onClick={() => onVehiclePick(p.raw)}>
+                  <span
+                    className="ph-halt-dot"
+                    style={{ background: '#6b7280' }}
+                    aria-hidden="true"
+                  />
+                  <span className="ph-row-main">
+                    <span className="ph-row-title">{p.name}</span>
+                    <span className="ph-row-sub">{p.subtitle}</span>
                   </span>
-                  {p.raw?.tripDrops?.trips ? (
-                    <span className="ph-row-flag">
-                      {num(p.raw.tripDrops.trips)} trip
-                      {p.raw.tripDrops.trips === 1 ? '' : 's'} turned around here
+                  <Truck size={14} style={{ color: '#6b7280', flexShrink: 0 }} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={`ph-row${p.id === selectedId ? ' is-selected' : ''}`}
+                  onClick={() => onPick(p)}
+                >
+                  <TypeTile type={p.type} />
+                  <span className="ph-row-main">
+                    <span className="ph-row-title">{p.name}</span>
+                    <span className="ph-row-sub">
+                      {placeTypeLabel(p.type)}
+                      {' · '}
+                      {p.polygon ? 'Outline' : radiusLabel(p.radiusM)}
+                      {p.subtitle ? ` · ${p.subtitle}` : ''}
                     </span>
-                  ) : null}
-                </span>
-                {placeMeta(p)}
-              </button>
+                    {p.raw?.tripDrops?.trips ? (
+                      <span className="ph-row-flag">
+                        {num(p.raw.tripDrops.trips)} trip
+                        {p.raw.tripDrops.trips === 1 ? '' : 's'} turned around here
+                      </span>
+                    ) : null}
+                  </span>
+                  {placeMeta(p)}
+                </button>
+              )}
             </li>
           ))}
         </ul>
