@@ -937,13 +937,6 @@
 .vehicle-make-choice input {
   accent-color: #2563eb;
 }
-.vehicle-more-makes {
-  flex: 0 1 240px;
-  min-width: 160px;
-}
-.vehicle-more-makes select {
-  width: 100%;
-}
 .vehicle-save-message {
   border: 1px solid #d97706;
   border-radius: 8px;
@@ -985,9 +978,6 @@
 @media (max-width: 640px) {
   .vehicle-manufacturer-options {
     align-items: stretch;
-  }
-  .vehicle-more-makes {
-    flex-basis: 100%;
   }
   .add-vehicle-page .basic-info-container {
     padding: 16px;

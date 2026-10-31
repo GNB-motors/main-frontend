@@ -33,17 +33,16 @@ export default function ManufacturerFilter({ value = '', onChange }) {
           aria-busy={state === 'loading'}
         >
           <option value="">All manufacturers</option>
-          {value && value !== 'UNKNOWN' && !options.some((item) => item.value === value) ? (
-            <option value={value}>{value}</option>
+          {value && !options.some((item) => item.value === value) ? (
+            <option value={value} hidden>
+              {value === 'UNKNOWN' ? 'Unclassified (current filter)' : value}
+            </option>
           ) : null}
-          <option value="UNKNOWN">Unclassified</option>
-          {options
-            .filter((item) => item.value !== 'UNKNOWN')
-            .map((item) => (
-              <option key={item.value} value={item.value}>
-                {item.value === 'UNKNOWN' ? 'Unclassified' : item.label}
-              </option>
-            ))}
+          {options.map((item) => (
+            <option key={item.value} value={item.value}>
+              {item.label}
+            </option>
+          ))}
         </select>
       </label>
       {state === 'loading' ? <small role="status">Loading manufacturers…</small> : null}

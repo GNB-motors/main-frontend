@@ -5,7 +5,7 @@ import { getManufacturerCatalog } from '../../services/manufacturerService';
 vi.mock('../../services/manufacturerService', () => ({ getManufacturerCatalog: vi.fn() }));
 
 describe('ManufacturerFilter', () => {
-  it('preserves an active scope when metadata fails and offers retry and Unclassified', async () => {
+  it('preserves an active scope on failure and loads only backend choices on retry', async () => {
     getManufacturerCatalog.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce([
       { value: 'TATA', label: 'Tata' },
       { value: 'ASHOK LEYLAND', label: 'Ashok Leyland' },
@@ -20,8 +20,13 @@ describe('ManufacturerFilter', () => {
       expect(screen.getByRole('option', { name: 'Ashok Leyland' })).toBeInTheDocument(),
     );
     fireEvent.change(screen.getByRole('combobox', { name: 'Manufacturer' }), {
-      target: { value: 'UNKNOWN' },
+      target: { value: 'ASHOK LEYLAND' },
     });
-    expect(change).toHaveBeenCalledWith('UNKNOWN');
+    expect(change).toHaveBeenCalledWith('ASHOK LEYLAND');
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'All manufacturers',
+      'Tata',
+      'Ashok Leyland',
+    ]);
   });
 });

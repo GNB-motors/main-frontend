@@ -284,7 +284,6 @@ const VehiclesPage = () => {
                       {item.label}
                     </option>
                   ))}
-                  <option value="UNKNOWN">Unclassified</option>
                 </select>
                 {metadataError && (
                   <button type="button" onClick={retryMetadata}>

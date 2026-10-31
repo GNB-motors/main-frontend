@@ -1,7 +1,7 @@
 import { useState, useEffect, forwardRef } from 'react';
 import { Truck, Building2 } from 'lucide-react';
 import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
-import { PRIMARY_MANUFACTURERS, canonicalManufacturer } from '../vehicleManufacturerOptions.js';
+import { canonicalManufacturer } from '../vehicleManufacturerOptions.js';
 import '../../Drivers/Component/BasicInformationForm.css';
 
 const EMPTY_INITIAL_DATA = {};
@@ -23,7 +23,8 @@ const VehicleBasicInformationForm = forwardRef(
       onAccountChange = () => {},
       onRegistrationChange,
       onManufacturerChange,
-      manufacturers = PRIMARY_MANUFACTURERS,
+      manufacturers = [],
+      metadataLoading = false,
       metadataError = false,
       onRetryMetadata,
       accountsLoading = false,
@@ -71,15 +72,15 @@ const VehicleBasicInformationForm = forwardRef(
     const submit = (event) => {
       event.preventDefault();
       if (isSubmitting) return;
+      const selectable = manufacturers.some((item) => item.value === formData.manufacturer);
+      const unchanged =
+        isEdit &&
+        formData.manufacturer &&
+        formData.manufacturer === canonicalManufacturer(initialData.manufacturer);
+      if (!selectable && !unchanged) return;
       const { expected_mileage, ...rest } = formData;
       onSubmit(showExpectedMileage ? { ...rest, expected_mileage } : rest);
     };
-    const otherManufacturers = manufacturers.filter(
-      (item) => !PRIMARY_MANUFACTURERS.some((primary) => primary.value === item.value),
-    );
-    const primarySelected = PRIMARY_MANUFACTURERS.some(
-      (item) => item.value === formData.manufacturer,
-    );
     const legacyMake =
       formData.manufacturer && !manufacturers.some((item) => item.value === formData.manufacturer);
 
@@ -104,13 +105,14 @@ const VehicleBasicInformationForm = forwardRef(
                   Manufacturer <span aria-hidden="true">*</span>
                 </legend>
                 <div className="vehicle-manufacturer-options">
-                  {PRIMARY_MANUFACTURERS.map((item) => (
+                  {manufacturers.map((item) => (
                     <label
                       key={item.value}
                       className={`vehicle-make-choice ${formData.manufacturer === item.value ? 'is-selected' : ''}`}
                     >
                       <input
                         type="radio"
+                        required={!isEdit || !legacyMake}
                         name="vehicle-manufacturer"
                         aria-label={item.label}
                         value={item.value}
@@ -120,37 +122,21 @@ const VehicleBasicInformationForm = forwardRef(
                       {item.label}
                     </label>
                   ))}
-                  <div className="vehicle-more-makes">
-                    <label className="sr-only" htmlFor="vehicle-more-makes">
-                      More manufacturers
-                    </label>
-                    <select
-                      id="vehicle-more-makes"
-                      aria-label="More manufacturers"
-                      className="basic-info-input"
-                      value={primarySelected ? '' : formData.manufacturer}
-                      required={!primarySelected}
-                      onChange={(event) => change('manufacturer', event.target.value)}
-                    >
-                      <option value="">More manufacturers…</option>
-                      {otherManufacturers.map((item) => (
-                        <option key={item.value} value={item.value}>
-                          {item.label}
-                        </option>
-                      ))}
-                      {legacyMake && (
-                        <option value={formData.manufacturer}>
-                          {formData.manufacturer === 'UNKNOWN'
-                            ? 'Unclassified — choose manufacturer'
-                            : formData.manufacturer}
-                        </option>
-                      )}
-                    </select>
-                  </div>
                 </div>
+                {metadataLoading && (
+                  <p className="vehicle-inline-message" role="status">
+                    Loading manufacturers…
+                  </p>
+                )}
+                {legacyMake && !metadataLoading && !metadataError && (
+                  <p className="vehicle-inline-message">
+                    Current manufacturer: {formData.manufacturer}. Select an available manufacturer
+                    to change it.
+                  </p>
+                )}
                 {metadataError && (
                   <p className="vehicle-inline-message">
-                    More manufacturers could not be loaded.{' '}
+                    Manufacturers could not be loaded.{' '}
                     <button type="button" onClick={onRetryMetadata}>
                       Retry
                     </button>

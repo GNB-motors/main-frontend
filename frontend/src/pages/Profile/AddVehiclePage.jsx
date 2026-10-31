@@ -50,7 +50,8 @@ const AddVehiclePage = () => {
   const assignedAccountRef = useRef('');
   const originalManufacturerRef = useRef('');
   const canAssignAccount = ['OWNER', 'SUPER_ADMIN'].includes(getUserRole());
-  const { manufacturers, metadataError, retryMetadata } = useVehicleManufacturers();
+  const { manufacturers, metadataError, metadataLoading, retryMetadata } =
+    useVehicleManufacturers();
   const compatibleAccounts = eligibleAccounts(fleetEdgeAccounts, liveManufacturer);
 
   // Owning location (branch) for the new vehicle. Defaults to the active location.
@@ -377,6 +378,7 @@ const AddVehiclePage = () => {
           fleetEdgeAccounts={compatibleAccounts}
           manufacturers={manufacturers}
           metadataError={metadataError}
+          metadataLoading={metadataLoading}
           onRetryMetadata={retryMetadata}
           manufacturer={liveManufacturer}
           onManufacturerChange={setLiveManufacturer}

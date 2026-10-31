@@ -61,8 +61,8 @@ beforeEach(() => {
   VehicleService.updateVehicle.mockResolvedValue({ _id: 'vehicle1' });
   VehicleService.uploadVehicleDocument.mockResolvedValue({});
 });
-function fillForm() {
-  fireEvent.click(screen.getByRole('radio', { name: 'Tata' }));
+async function fillForm() {
+  fireEvent.click(await screen.findByRole('radio', { name: 'Tata' }));
   fireEvent.change(screen.getByLabelText('Registration number'), {
     target: { value: 'WB11F1234' },
   });
@@ -81,7 +81,7 @@ describe('Add Vehicle save flow', () => {
         <AddVehiclePage />
       </MemoryRouter>,
     );
-    fillForm();
+    await fillForm();
     await screen.findByRole('option', { name: 'Main account' });
     fireEvent.change(screen.getByLabelText(/Account/), { target: { value: 'account1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add vehicle' }));
@@ -102,7 +102,7 @@ describe('Add Vehicle save flow', () => {
         <AddVehiclePage />
       </MemoryRouter>,
     );
-    fillForm();
+    await fillForm();
     await screen.findByRole('option', { name: 'Main account' });
     fireEvent.change(screen.getByLabelText(/Account/), { target: { value: 'account1' } });
     fireEvent.click(screen.getByRole('radio', { name: 'Ashok Leyland' }));
@@ -120,7 +120,7 @@ it('retains files on an upload failure and retries without creating another vehi
       <AddVehiclePage />
     </MemoryRouter>,
   );
-  fillForm();
+  await fillForm();
   fireEvent.change(screen.getByLabelText('RC file'), {
     target: { files: [new File(['RC'], 'rc.pdf', { type: 'application/pdf' })] },
   });
