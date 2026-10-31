@@ -3,7 +3,32 @@ import DriverVehicleAssignmentService from '../../services/DriverVehicleAssignme
 
 const unwrap = (res) => res.data?.data || res.data;
 
+// Chart aggregates need the complete filtered set; the API caps each page at 100.
+const getDashboardPages = async (path, params, { signal } = {}) => {
+  const all = [];
+  for (let page = 1, totalPages = 1; page <= totalPages; page += 1) {
+    const response = await apiClient.get(path, { params: { ...params, page, limit: 100 }, signal });
+    const payload = unwrap(response);
+    const rows = Array.isArray(payload) ? payload : payload?.results || payload?.data;
+    if (!Array.isArray(rows)) throw new Error('Could not read dashboard records');
+    const meta = Array.isArray(payload) ? response.data?.meta : payload?.meta || payload;
+    totalPages = Math.max(1, Number(meta?.totalPages) || 1);
+    if (!rows.length && page < totalPages) throw new Error('Dashboard records are incomplete');
+    all.push(...rows);
+  }
+  return all;
+};
+
 const KhataLedgerService = {
+  getDashboardExpenses: (params, options) => getDashboardPages('/api/expenses', params, options),
+  getDashboardTrips: async (params, options) => {
+    try {
+      return await getDashboardPages('/api/erp/trips', params, options);
+    } catch (err) {
+      if ((err?.status ?? err?.response?.status) === 404) return [];
+      throw err;
+    }
+  },
   // Existing /api/expenses endpoints (All Transactions tab)
   getExpenses: async (params = {}) => {
     const response = await apiClient.get('/api/expenses', { params });
@@ -89,9 +114,9 @@ const KhataLedgerService = {
     return unwrap(response);
   },
 
-  getErpTripFinance: async (id) => {
+  getErpTripFinance: async (id, { signal } = {}) => {
     try {
-      const response = await apiClient.get(`/api/erp/trips/${id}/finance`);
+      const response = await apiClient.get(`/api/erp/trips/${id}/finance`, { signal });
       return unwrap(response);
     } catch (err) {
       if (err?.response?.status === 404 || err?.response?.status === 403) return null;

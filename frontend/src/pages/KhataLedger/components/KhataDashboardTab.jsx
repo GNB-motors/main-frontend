@@ -2,7 +2,9 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   TrendingUp,
   TrendingDown,
-  DollarSign,
+  IndianRupee,
+  AlertCircle,
+  RefreshCw,
   Fuel,
   Wrench,
   Receipt,
@@ -12,30 +14,12 @@ import {
   Filter,
   RotateCcw,
   Calendar,
-  Truck,
-  PieChart as PieChartIcon,
-  BarChart3,
-  Layers,
 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from 'recharts';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import KhataLedgerService from '../KhataLedgerService';
+import { Badge } from '@/components/ui/badge';
 import ErpTripDetailModal from './ErpTripDetailModal';
 import KhataKpiGrid from './KhataKpiGrid';
+import KhataDashboardCharts from './KhataDashboardCharts';
 import NewButton from '@/components/ui/NewButton';
 import { useActiveBranch } from '../../../contexts/BranchContext';
 import logger from '../../../utils/logger.js';
@@ -47,21 +31,11 @@ import {
   getProfitabilityStatus,
   CATEGORIES,
   CATEGORY_LABELS,
+  SOURCE_LABELS,
   getInitialDateRange,
   getVehicleLabel,
   getDriverName,
 } from '../utils';
-
-const PIE_COLORS = [
-  '#3b82f6',
-  '#f59e0b',
-  '#8b5cf6',
-  '#ef4444',
-  '#10b981',
-  '#ec4899',
-  '#06b6d4',
-  '#84cc16',
-];
 
 const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
   const { branchId, activeBranch } = useActiveBranch();
@@ -78,76 +52,86 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
 
   // Data states
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [expenses, setExpenses] = useState([]);
   const [erpTrips, setErpTrips] = useState([]);
   const [tripFinances, setTripFinances] = useState({});
   const [selectedTrip, setSelectedTrip] = useState(null);
 
-  const fetchDashboardData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const expenseParams = {
-        includeTripExpenses: true,
-        limit: 1000,
-      };
-      if (branchId) expenseParams.branchId = branchId;
-      if (dateRange.startDate) expenseParams.startDate = dateRange.startDate;
-      if (dateRange.endDate) expenseParams.endDate = dateRange.endDate;
-      if (vehicleId) expenseParams.vehicleId = vehicleId;
-      if (driverId) expenseParams.driverId = driverId;
-      if (category) expenseParams.category = category;
-      if (tripId) expenseParams.tripId = tripId;
+  const fetchDashboardData = useCallback(
+    async (signal) => {
+      setLoading(true);
+      setLoadError(null);
+      try {
+        const expenseParams = {
+          includeTripExpenses: true,
+        };
+        if (branchId) expenseParams.branchId = branchId;
+        if (dateRange.startDate) expenseParams.startDate = dateRange.startDate;
+        if (dateRange.endDate) expenseParams.endDate = dateRange.endDate;
+        if (vehicleId) expenseParams.vehicleId = vehicleId;
+        if (driverId) expenseParams.driverId = driverId;
+        if (category) expenseParams.category = category;
+        if (tripId) expenseParams.tripId = tripId;
+        if (source) expenseParams.source = source;
+        if (status) expenseParams.status = status;
 
-      const tripParams = {
-        limit: 100,
-      };
-      if (branchId) tripParams.branchId = branchId;
-      if (vehicleId) tripParams.vehicleId = vehicleId;
-      if (driverId) tripParams.driverId = driverId;
+        // The shared client supplies X-Branch-Id. The trip list does not accept
+        // branchId/driverId query fields, so apply its driver filter after paging.
+        const tripParams = {};
+        if (vehicleId) tripParams.vehicleId = vehicleId;
 
-      const [expRes, tripRes] = await Promise.all([
-        KhataLedgerService.getExpenses(expenseParams).catch(() => ({ results: [] })),
-        KhataLedgerService.getErpTrips(tripParams).catch(() => ({ data: [] })),
-      ]);
+        const [loadedExpenses, allTrips] = await Promise.all([
+          KhataLedgerService.getDashboardExpenses(expenseParams, { signal }),
+          KhataLedgerService.getDashboardTrips(tripParams, { signal }),
+        ]);
+        if (signal.aborted) return;
+        const loadedTrips = allTrips.filter((trip) => {
+          if (driverId && String(trip.driverId?._id || trip.driverId) !== driverId) return false;
+          const date = new Date(trip.tripDate || trip.createdAt).getTime();
+          return (
+            Number.isFinite(date) &&
+            (!dateRange.startDate || date >= new Date(dateRange.startDate).getTime()) &&
+            (!dateRange.endDate || date <= new Date(dateRange.endDate).getTime())
+          );
+        });
 
-      const loadedExpenses = expRes.results || expRes.data || (Array.isArray(expRes) ? expRes : []);
-      const loadedTrips =
-        tripRes.data || tripRes.results || (Array.isArray(tripRes) ? tripRes : []);
+        setExpenses(loadedExpenses);
+        setErpTrips(loadedTrips);
 
-      setExpenses(loadedExpenses);
-      setErpTrips(loadedTrips);
-
-      // Fetch financial summaries for top trips
-      const finances = {};
-      await Promise.allSettled(
-        loadedTrips.slice(0, 30).map(async (t) => {
-          try {
-            const fin = await KhataLedgerService.getErpTripFinance(t._id);
-            if (fin?.margin) finances[t._id] = fin.margin;
-          } catch {
-            // gracefully ignore
-          }
-        }),
-      );
-      setTripFinances(finances);
-    } catch (err) {
-      logger.error('Failed to load dashboard data:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [branchId, dateRange, vehicleId, driverId, category, tripId]);
+        // Fetch financial summaries for top trips
+        const finances = {};
+        await Promise.allSettled(
+          loadedTrips.slice(0, 30).map(async (t) => {
+            try {
+              const fin = await KhataLedgerService.getErpTripFinance(t._id, { signal });
+              if (fin?.margin) finances[t._id] = fin.margin;
+            } catch {
+              // gracefully ignore
+            }
+          }),
+        );
+        if (!signal.aborted) setTripFinances(finances);
+      } catch (err) {
+        if (!signal.aborted) {
+          logger.error('Failed to load dashboard data:', err);
+          setLoadError('Could not load the financial overview. Please try again.');
+        }
+      } finally {
+        if (!signal.aborted) setLoading(false);
+      }
+    },
+    [branchId, dateRange, vehicleId, driverId, category, tripId, source, status],
+  );
 
   useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+    const controller = new AbortController();
+    fetchDashboardData(controller.signal);
+    return () => controller.abort();
+  }, [fetchDashboardData, refreshKey]);
 
-  // Filter expenses by source & status client-side if selected
-  const filteredExpenses = useMemo(() => {
-    let result = [...expenses];
-    if (source) result = result.filter((e) => e.source === source);
-    if (status) result = result.filter((e) => (e.status || 'CONFIRMED') === status);
-    return result;
-  }, [expenses, source, status]);
+  const filteredExpenses = expenses;
 
   // Aggregate Real KPIs
   const kpis = useMemo(() => {
@@ -218,7 +202,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
   const categoryChartData = useMemo(() => {
     const map = {};
     filteredExpenses.forEach((e) => {
-      const cat = e.category || 'MISCELLANEOUS';
+      const cat = e.category === 'FUEL_EXPENSE' ? 'FUEL' : e.category || 'MISCELLANEOUS';
       map[cat] = (map[cat] || 0) + (Number(e.amount) || 0);
     });
 
@@ -227,23 +211,17 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
         name: CATEGORY_LABELS[cat] || cat,
         value,
       }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 6);
+      .sort((a, b) => b.value - a.value);
   }, [filteredExpenses]);
 
   // 2. Source Breakdown Data
   const sourceChartData = useMemo(() => {
-    const map = {
-      Manual: 0,
-      Fuel: 0,
-      Maintenance: 0,
-      Trip: 0,
-    };
-    filteredExpenses.forEach((e) => {
-      if (e.source === 'FUEL') map.Fuel += Number(e.amount) || 0;
-      else if (e.source === 'MAINTENANCE') map.Maintenance += Number(e.amount) || 0;
-      else if (e.source === 'TRIP') map.Trip += Number(e.amount) || 0;
-      else map.Manual += Number(e.amount) || 0;
+    const map = {};
+    filteredExpenses.forEach((expense) => {
+      const name =
+        SOURCE_LABELS[expense.source] ||
+        (expense.source === 'DETECTED_CROSSING' ? 'Detected tolls' : 'Other');
+      map[name] = (map[name] || 0) + (Number(expense.amount) || 0);
     });
 
     return Object.entries(map).map(([name, cost]) => ({ name, cost }));
@@ -299,6 +277,9 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
     setStatus('');
     setTripId('');
   };
+
+  const financeCount = Object.keys(tripFinances).length;
+  const completeFinances = financeCount === erpTrips.length;
 
   return (
     <div className="space-y-4">
@@ -517,269 +498,129 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
         )}
       </div>
 
-      <KhataKpiGrid
-        loading={loading}
-        columns={3}
-        items={[
-          {
-            label: 'Total Cost',
-            icon: DollarSign,
-            value: formatCurrency(kpis.totalCost),
-            sub: 'All counted fleet expenditures',
-          },
-          {
-            label: 'Total Revenue',
-            icon: TrendingUp,
-            value: formatCurrency(kpis.totalRevenue),
-            sub: 'Commercial customer billings',
-          },
-          {
-            label: 'Net Profit',
-            icon: kpis.totalProfit < 0 ? TrendingDown : TrendingUp,
-            value: formatCurrency(kpis.totalProfit),
-            sub: 'Revenue minus all expenses',
-            status: kpis.profitStatus.label,
-            tone: kpis.totalProfit < 0 ? 'critical' : kpis.totalProfit > 0 ? 'ok' : 'neutral',
-          },
-        ]}
-      />
-      <KhataKpiGrid
-        loading={loading}
-        columns={3}
-        items={[
-          {
-            label: 'Fuel Cost',
-            icon: Fuel,
-            value: formatCurrency(kpis.fuelCost),
-            sub:
-              kpis.totalCost > 0
-                ? `${((kpis.fuelCost / kpis.totalCost) * 100).toFixed(0)}% of total expenditure`
-                : 'Direct fuel refills',
-          },
-          {
-            label: 'Maintenance',
-            icon: Wrench,
-            value: formatCurrency(kpis.maintenanceCost),
-            sub: 'Repairs, servicing & tyres',
-          },
-          {
-            label: 'Other Expenses',
-            icon: Receipt,
-            value: formatCurrency(kpis.otherExpenses),
-            sub: 'Tolls, driver food, fines, permits',
-          },
-          {
-            label: 'ERP Trip Costs',
-            icon: Route,
-            value: formatCurrency(kpis.tripExpenses),
-            sub: 'Advances and trip charges',
-          },
-          {
-            label: 'Pending Review',
-            icon: Clock,
-            value: formatCurrency(kpis.pendingExpenses),
-            sub: 'Awaiting approval before ledger',
-            status: kpis.pendingExpenses > 0 ? 'Needs review' : null,
-            tone: 'warning',
-          },
-          {
-            label: 'Fleet Cost / KM',
-            icon: Gauge,
-            value: kpis.costPerKmText || 'Unavailable',
-            sub:
-              kpis.totalDistanceKm > 0
-                ? `Logged distance: ${formatKm(kpis.totalDistanceKm)}`
-                : 'No distance recorded',
-          },
-        ]}
-      />
-
-      {/* Analytics & Charts Section (Prompt Section 18) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Chart 1: Category Distribution */}
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-4">
+      {loadError ? (
+        <div className="khata-dashboard-error" role="alert">
+          <AlertCircle size={22} aria-hidden="true" />
+          <div>
+            <strong>Financial overview unavailable</strong>
+            <p>{loadError}</p>
+          </div>
+          <NewButton
+            variant="secondary"
+            size="sm"
+            prependIcon={<RefreshCw size={14} />}
+            onClick={() => setRefreshKey((key) => key + 1)}
+          >
+            Try again
+          </NewButton>
+        </div>
+      ) : (
+        <>
+          <KhataKpiGrid
+            headline
+            loading={loading}
+            columns={3}
+            items={[
+              {
+                label: 'Total Cost',
+                icon: IndianRupee,
+                value: formatCurrency(kpis.totalCost),
+                sub: 'All counted fleet expenditures',
+              },
+              {
+                label: 'Trip Revenue',
+                icon: TrendingUp,
+                value:
+                  financeCount || erpTrips.length === 0
+                    ? formatCurrency(kpis.totalRevenue)
+                    : 'Unavailable',
+                sub: `Finances available for ${financeCount} of ${erpTrips.length} trips`,
+              },
+              {
+                label: 'Net Profit',
+                icon: kpis.totalProfit < 0 ? TrendingDown : TrendingUp,
+                value: completeFinances ? formatCurrency(kpis.totalProfit) : 'Unavailable',
+                sub: completeFinances
+                  ? 'Revenue minus all expenses'
+                  : 'Some trip finances are unavailable',
+                status: completeFinances ? kpis.profitStatus.label : 'Partial data',
+                tone:
+                  completeFinances && kpis.totalProfit < 0
+                    ? 'critical'
+                    : completeFinances && kpis.totalProfit > 0
+                      ? 'ok'
+                      : 'neutral',
+              },
+            ]}
+          />
+          <section aria-labelledby="khata-breakdown-heading">
+            <div className="khata-section-heading">
               <div>
-                <h3 className="khata-chart-title">
-                  <PieChartIcon size={16} className="text-muted-foreground" />
-                  Expense Distribution by Category
-                </h3>
-                <p className="khata-chart-description">
-                  Breakdown of total spending across categories
-                </p>
+                <h2 id="khata-breakdown-heading">Expense breakdown</h2>
+                <p>Operating costs and entries awaiting review for the selected period.</p>
               </div>
             </div>
+            <KhataKpiGrid
+              loading={loading}
+              columns={3}
+              items={[
+                {
+                  label: 'Fuel Cost',
+                  icon: Fuel,
+                  value: formatCurrency(kpis.fuelCost),
+                  sub:
+                    kpis.totalCost > 0
+                      ? `${((kpis.fuelCost / kpis.totalCost) * 100).toFixed(0)}% of total expenditure`
+                      : 'Direct fuel refills',
+                },
+                {
+                  label: 'Maintenance',
+                  icon: Wrench,
+                  value: formatCurrency(kpis.maintenanceCost),
+                  sub: 'Repairs, servicing & tyres',
+                },
+                {
+                  label: 'Other Expenses',
+                  icon: Receipt,
+                  value: formatCurrency(kpis.otherExpenses),
+                  sub: 'Tolls, driver food, fines, permits',
+                },
+                {
+                  label: 'ERP Trip Costs',
+                  icon: Route,
+                  value: formatCurrency(kpis.tripExpenses),
+                  sub: 'Advances and trip charges',
+                },
+                {
+                  label: 'Pending Review',
+                  icon: Clock,
+                  value: formatCurrency(kpis.pendingExpenses),
+                  sub: 'Awaiting approval before ledger',
+                  status: kpis.pendingExpenses > 0 ? 'Needs review' : null,
+                  tone: 'warning',
+                },
+                {
+                  label: 'Fleet Cost / KM',
+                  icon: Gauge,
+                  value: kpis.costPerKmText || 'Unavailable',
+                  sub:
+                    kpis.totalDistanceKm > 0
+                      ? `Logged distance: ${formatKm(kpis.totalDistanceKm)}`
+                      : 'No distance recorded',
+                },
+              ]}
+            />
+          </section>
 
-            {loading ? (
-              <Skeleton className="h-64 w-full rounded-xl" />
-            ) : categoryChartData.length === 0 ? (
-              <div className="h-64 flex flex-col items-center justify-center text-gray-400 text-xs">
-                <Layers size={32} className="opacity-30 mb-1" />
-                No data available for selected filters
-              </div>
-            ) : (
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={categoryChartData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={55}
-                      outerRadius={85}
-                      paddingAngle={4}
-                      dataKey="value"
-                    >
-                      {categoryChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => formatCurrency(value)} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Chart 2: Source Breakdown */}
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="khata-chart-title">
-                  <BarChart3 size={16} className="text-muted-foreground" />
-                  Cost by Transaction Source
-                </h3>
-                <p className="khata-chart-description">
-                  Manual vs automated fuel and maintenance logs
-                </p>
-              </div>
-            </div>
-
-            {loading ? (
-              <Skeleton className="h-64 w-full rounded-xl" />
-            ) : sourceChartData.every((d) => d.cost === 0) ? (
-              <div className="h-64 flex flex-col items-center justify-center text-gray-400 text-xs">
-                <Layers size={32} className="opacity-30 mb-1" />
-                No data available for selected filters
-              </div>
-            ) : (
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={sourceChartData}
-                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                    <XAxis dataKey="name" fontSize={12} tickLine={false} />
-                    <YAxis
-                      fontSize={11}
-                      tickFormatter={(v) => (v >= 1000 ? `₹${(v / 1000).toFixed(0)}k` : `₹${v}`)}
-                      tickLine={false}
-                    />
-                    <Tooltip formatter={(v) => [formatCurrency(v), 'Cost']} />
-                    <Bar dataKey="cost" fill="#4f46e5" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Chart 3: Top Cost Vehicles */}
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="khata-chart-title">
-                  <Truck size={16} className="text-muted-foreground" />
-                  Vehicle Cost Comparison (Top 6)
-                </h3>
-                <p className="khata-chart-description">
-                  Highest expenditure vehicles in the selected period
-                </p>
-              </div>
-            </div>
-
-            {loading ? (
-              <Skeleton className="h-64 w-full rounded-xl" />
-            ) : vehicleChartData.length === 0 ? (
-              <div className="h-64 flex flex-col items-center justify-center text-gray-400 text-xs">
-                <Layers size={32} className="opacity-30 mb-1" />
-                No data available for selected filters
-              </div>
-            ) : (
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={vehicleChartData}
-                    layout="vertical"
-                    margin={{ top: 5, right: 20, left: 40, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.3} />
-                    <XAxis
-                      type="number"
-                      fontSize={11}
-                      tickFormatter={(v) => (v >= 1000 ? `₹${(v / 1000).toFixed(0)}k` : `₹${v}`)}
-                    />
-                    <YAxis type="category" dataKey="name" fontSize={11} tickLine={false} />
-                    <Tooltip formatter={(v) => [formatCurrency(v), 'Total Spend']} />
-                    <Bar dataKey="cost" fill="#f59e0b" radius={[0, 6, 6, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Chart 4: Trip Profitability (Revenue vs Cost) */}
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="khata-chart-title">
-                  <Route size={16} className="text-muted-foreground" />
-                  Trip Financial Intelligence (Revenue vs Cost)
-                </h3>
-                <p className="khata-chart-description">Real ERP Trip margin comparison</p>
-              </div>
-            </div>
-
-            {loading ? (
-              <Skeleton className="h-64 w-full rounded-xl" />
-            ) : tripProfitData.length === 0 ? (
-              <div className="h-64 flex flex-col items-center justify-center text-gray-400 text-xs">
-                <Layers size={32} className="opacity-30 mb-1" />
-                No trip financial data available for selected filters
-              </div>
-            ) : (
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={tripProfitData}
-                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                    <XAxis dataKey="name" fontSize={11} tickLine={false} />
-                    <YAxis
-                      fontSize={11}
-                      tickFormatter={(v) => (v >= 1000 ? `₹${(v / 1000).toFixed(0)}k` : `₹${v}`)}
-                      tickLine={false}
-                    />
-                    <Tooltip formatter={(v) => formatCurrency(v)} />
-                    <Legend />
-                    <Bar dataKey="Revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Cost" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          <KhataDashboardCharts
+            loading={loading}
+            categoryData={categoryChartData}
+            sourceData={sourceChartData}
+            vehicleData={vehicleChartData}
+            tripData={tripProfitData}
+          />
+        </>
+      )}
 
       {/* Selected Trip Details Modal */}
       {selectedTrip && (

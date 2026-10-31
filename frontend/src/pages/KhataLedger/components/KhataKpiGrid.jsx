@@ -3,9 +3,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import '../KhataLedger.css';
 
 /** One card treatment for the dashboard, tabs, and individual ledgers. */
-export default function KhataKpiGrid({ items, loading = false, columns = 4 }) {
+export default function KhataKpiGrid({ items, loading = false, columns = 4, headline = false }) {
   return (
-    <div className="khata-kpis" style={{ '--khata-kpi-columns': columns }} aria-busy={loading}>
+    <div
+      className={`khata-kpis${headline ? ' khata-kpis--headline' : ''}`}
+      style={{ '--khata-kpi-columns': columns }}
+      aria-busy={loading}
+    >
       {items.map(({ label, icon: Icon, value, sub, status, tone }) => (
         <KpiTile
           key={label}
