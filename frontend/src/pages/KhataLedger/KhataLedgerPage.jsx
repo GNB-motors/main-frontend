@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  BookOpen,
   Fuel,
   LayoutDashboard,
   Users,
@@ -14,6 +13,8 @@ import {
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import PageShell from '@/components/ui/PageShell';
+import NewButton from '@/components/ui/NewButton';
 import TripService from '../Trip/services/TripService';
 import KhataDashboardTab from './components/KhataDashboardTab';
 import DriversTab from './components/DriversTab';
@@ -24,6 +25,7 @@ import AllTransactionsTab from './components/AllTransactionsTab';
 import KhataReportsTab from './components/KhataReportsTab';
 import AddFuelLogModal from './components/AddFuelLogModal';
 import { useActiveBranch } from '../../contexts/BranchContext';
+import './KhataLedger.css';
 
 const TAB_KEYS = {
   dashboard: 'dashboard',
@@ -84,87 +86,62 @@ const KhataLedgerPage = () => {
   };
 
   return (
-    <div className="space-y-5 p-1">
-      {/* Header with Title and Branch Indicator */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-foreground">
-            <BookOpen size={24} style={{ color: 'var(--primary-color, #4f46e5)' }} />
-            Khata Ledger
-            {activeBranch?.name && (
-              <Badge
-                variant="outline"
-                className="ml-2 inline-flex items-center gap-1 text-xs font-normal"
-              >
-                <Building2 size={12} />
-                {activeBranch.name}
-              </Badge>
-            )}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Track all expenses by driver, truck, assignment, or as a flat list
-          </p>
-        </div>
-        <button
+    <PageShell
+      className="khata-ledger"
+      title={
+        <>
+          Khata Ledger
+          {activeBranch?.name && (
+            <Badge
+              variant="outline"
+              className="ml-2 inline-flex items-center gap-1 text-xs font-normal"
+            >
+              <Building2 size={12} />
+              {activeBranch.name}
+            </Badge>
+          )}
+        </>
+      }
+      subtitle="Track expenses by driver, vehicle, assignment, or transaction."
+      actions={
+        <NewButton
+          size="md"
+          prependIcon={<Fuel size={16} />}
           onClick={() => setFuelModalOpen(true)}
-          className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-sm"
-          style={{ backgroundColor: 'var(--primary-color, #4f46e5)' }}
         >
-          <Fuel size={18} />
           Add Fuel
-        </button>
-      </div>
-
+        </NewButton>
+      }
+    >
       {/* Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <div className="overflow-x-auto pb-1">
-          <TabsList className="inline-flex h-10 items-center justify-start rounded-lg bg-muted p-1 text-muted-foreground">
-            <TabsTrigger
-              value={TAB_KEYS.dashboard}
-              className="flex items-center gap-1.5 px-3 text-xs font-medium"
-            >
+          <TabsList aria-label="Khata ledger views">
+            <TabsTrigger value={TAB_KEYS.dashboard} className="gap-1.5">
               <LayoutDashboard size={14} />
               Dashboard
             </TabsTrigger>
-            <TabsTrigger
-              value={TAB_KEYS.drivers}
-              className="flex items-center gap-1.5 px-3 text-xs font-medium"
-            >
+            <TabsTrigger value={TAB_KEYS.drivers} className="gap-1.5">
               <Users size={14} />
               Drivers
             </TabsTrigger>
-            <TabsTrigger
-              value={TAB_KEYS.trucks}
-              className="flex items-center gap-1.5 px-3 text-xs font-medium"
-            >
+            <TabsTrigger value={TAB_KEYS.trucks} className="gap-1.5">
               <Truck size={14} />
               Vehicles
             </TabsTrigger>
-            <TabsTrigger
-              value={TAB_KEYS.trips}
-              className="flex items-center gap-1.5 px-3 text-xs font-medium"
-            >
+            <TabsTrigger value={TAB_KEYS.trips} className="gap-1.5">
               <Route size={14} />
               ERP Trips
             </TabsTrigger>
-            <TabsTrigger
-              value={TAB_KEYS.assignments}
-              className="flex items-center gap-1.5 px-3 text-xs font-medium"
-            >
+            <TabsTrigger value={TAB_KEYS.assignments} className="gap-1.5">
               <ClipboardList size={14} />
               Assignments
             </TabsTrigger>
-            <TabsTrigger
-              value={TAB_KEYS.all}
-              className="flex items-center gap-1.5 px-3 text-xs font-medium"
-            >
+            <TabsTrigger value={TAB_KEYS.all} className="gap-1.5">
               <Receipt size={14} />
               Transactions
             </TabsTrigger>
-            <TabsTrigger
-              value={TAB_KEYS.reports}
-              className="flex items-center gap-1.5 px-3 text-xs font-medium"
-            >
+            <TabsTrigger value={TAB_KEYS.reports} className="gap-1.5">
               <FileSpreadsheet size={14} />
               Reports
             </TabsTrigger>
@@ -203,7 +180,7 @@ const KhataLedgerPage = () => {
 
       {/* Quick Add Fuel Modal */}
       <AddFuelLogModal open={fuelModalOpen} onClose={() => setFuelModalOpen(false)} />
-    </div>
+    </PageShell>
   );
 };
 

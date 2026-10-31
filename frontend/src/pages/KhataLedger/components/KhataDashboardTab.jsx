@@ -13,16 +13,12 @@ import {
   RotateCcw,
   Calendar,
   Truck,
-  User,
-  ExternalLink,
   PieChart as PieChartIcon,
   BarChart3,
   Layers,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
-  AreaChart,
-  Area,
   BarChart,
   Bar,
   PieChart,
@@ -39,6 +35,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import KhataLedgerService from '../KhataLedgerService';
 import ErpTripDetailModal from './ErpTripDetailModal';
+import KhataKpiGrid from './KhataKpiGrid';
+import NewButton from '@/components/ui/NewButton';
 import { useActiveBranch } from '../../../contexts/BranchContext';
 import logger from '../../../utils/logger.js';
 import {
@@ -303,22 +301,19 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Location & Period Scope Banner */}
-      <div className="rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50/70 via-white to-purple-50/60 p-4 shadow-sm">
+      <div className="khata-scope">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
-              <BarChart3 size={20} />
-            </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-gray-900">Financial Control Center</h2>
-                <Badge className="bg-indigo-600 text-white text-[11px] font-medium">
+              <div className="khata-scope-heading">
+                <h2>Financial overview</h2>
+                <Badge variant="outline" className="text-[11px] font-medium">
                   {activeBranch ? activeBranch.name : 'Enterprise (All Locations)'}
                 </Badge>
               </div>
-              <p className="text-xs text-gray-600 flex items-center gap-1.5 mt-0.5">
+              <p className="khata-scope-period">
                 <Calendar size={13} className="text-gray-400" />
                 <span>
                   Period: <strong>{periodLabel}</strong>
@@ -328,31 +323,37 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
+            <NewButton
+              variant="secondary"
+              size="sm"
+              prependIcon={<Filter size={14} />}
+              selected={Boolean(
+                showFilters || vehicleId || driverId || category || source || status || tripId,
+              )}
+              aria-expanded={showFilters}
+              aria-controls="khata-dashboard-filters"
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                showFilters || vehicleId || driverId || category || source || status
-                  ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}
             >
-              <Filter size={14} />
               Filter Scope
-            </button>
-            <button
+            </NewButton>
+            <NewButton
+              variant="ghost"
+              size="sm"
+              prependIcon={<RotateCcw size={13} />}
               onClick={handleResetFilters}
-              className="flex items-center gap-1 rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
               title="Reset all filters"
             >
-              <RotateCcw size={13} />
               Reset
-            </button>
+            </NewButton>
           </div>
         </div>
 
         {/* Filter Bar */}
         {showFilters && (
-          <div className="mt-4 pt-3 border-t border-indigo-100/80 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 text-xs">
+          <div
+            id="khata-dashboard-filters"
+            className="khata-filter-fields grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs"
+          >
             {/* Start Date */}
             <div>
               <label
@@ -516,167 +517,82 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
         )}
       </div>
 
-      {/* 9 Professional Financial KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
-        {/* 1. Total Cost */}
-        <Card className="border-red-100 bg-gradient-to-br from-red-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-red-700 mb-1">
-              <span>Total Cost</span>
-              <DollarSign size={16} className="text-red-500" />
-            </div>
-            <div className="text-2xl font-bold text-red-950">
-              {loading ? <Skeleton className="h-8 w-24" /> : formatCurrency(kpis.totalCost)}
-            </div>
-            <p className="text-[11px] text-red-700/80 mt-1">All counted fleet expenditures</p>
-          </CardContent>
-        </Card>
-
-        {/* 2. Fuel Cost */}
-        <Card className="border-orange-100 bg-gradient-to-br from-orange-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-orange-700 mb-1">
-              <span>Fuel Cost</span>
-              <Fuel size={16} className="text-orange-500" />
-            </div>
-            <div className="text-2xl font-bold text-orange-950">
-              {loading ? <Skeleton className="h-8 w-24" /> : formatCurrency(kpis.fuelCost)}
-            </div>
-            <p className="text-[11px] text-orange-700/80 mt-1">
-              {kpis.totalCost > 0
+      <KhataKpiGrid
+        loading={loading}
+        columns={3}
+        items={[
+          {
+            label: 'Total Cost',
+            icon: DollarSign,
+            value: formatCurrency(kpis.totalCost),
+            sub: 'All counted fleet expenditures',
+          },
+          {
+            label: 'Total Revenue',
+            icon: TrendingUp,
+            value: formatCurrency(kpis.totalRevenue),
+            sub: 'Commercial customer billings',
+          },
+          {
+            label: 'Net Profit',
+            icon: kpis.totalProfit < 0 ? TrendingDown : TrendingUp,
+            value: formatCurrency(kpis.totalProfit),
+            sub: 'Revenue minus all expenses',
+            status: kpis.profitStatus.label,
+            tone: kpis.totalProfit < 0 ? 'critical' : kpis.totalProfit > 0 ? 'ok' : 'neutral',
+          },
+        ]}
+      />
+      <KhataKpiGrid
+        loading={loading}
+        columns={3}
+        items={[
+          {
+            label: 'Fuel Cost',
+            icon: Fuel,
+            value: formatCurrency(kpis.fuelCost),
+            sub:
+              kpis.totalCost > 0
                 ? `${((kpis.fuelCost / kpis.totalCost) * 100).toFixed(0)}% of total expenditure`
-                : 'Direct fuel refills'}
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* 3. Maintenance Cost */}
-        <Card className="border-purple-100 bg-gradient-to-br from-purple-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-purple-700 mb-1">
-              <span>Maintenance</span>
-              <Wrench size={16} className="text-purple-500" />
-            </div>
-            <div className="text-2xl font-bold text-purple-950">
-              {loading ? <Skeleton className="h-8 w-24" /> : formatCurrency(kpis.maintenanceCost)}
-            </div>
-            <p className="text-[11px] text-purple-700/80 mt-1">Repairs, servicing & tyres</p>
-          </CardContent>
-        </Card>
-
-        {/* 4. Other Expenses */}
-        <Card className="border-blue-100 bg-gradient-to-br from-blue-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-blue-700 mb-1">
-              <span>Other Expenses</span>
-              <Receipt size={16} className="text-blue-500" />
-            </div>
-            <div className="text-2xl font-bold text-blue-950">
-              {loading ? <Skeleton className="h-8 w-24" /> : formatCurrency(kpis.otherExpenses)}
-            </div>
-            <p className="text-[11px] text-blue-700/80 mt-1">Tolls, driver food, fines, permits</p>
-          </CardContent>
-        </Card>
-
-        {/* 5. ERP Trip Expenses */}
-        <Card className="border-violet-100 bg-gradient-to-br from-violet-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-violet-700 mb-1">
-              <span>ERP Trip Costs</span>
-              <Route size={16} className="text-violet-500" />
-            </div>
-            <div className="text-2xl font-bold text-violet-950">
-              {loading ? <Skeleton className="h-8 w-24" /> : formatCurrency(kpis.tripExpenses)}
-            </div>
-            <p className="text-[11px] text-violet-700/80 mt-1">Advances and trip charges</p>
-          </CardContent>
-        </Card>
-
-        {/* 6. Pending Expenses */}
-        <Card className="border-amber-100 bg-gradient-to-br from-amber-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-amber-700 mb-1">
-              <span>Pending Review</span>
-              <Clock size={16} className="text-amber-500" />
-            </div>
-            <div className="text-2xl font-bold text-amber-950">
-              {loading ? <Skeleton className="h-8 w-24" /> : formatCurrency(kpis.pendingExpenses)}
-            </div>
-            <p className="text-[11px] text-amber-700/80 mt-1">Awaiting approval before ledger</p>
-          </CardContent>
-        </Card>
-
-        {/* 7. Total Revenue */}
-        <Card className="border-teal-100 bg-gradient-to-br from-teal-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-teal-700 mb-1">
-              <span>Total Revenue</span>
-              <TrendingUp size={16} className="text-teal-500" />
-            </div>
-            <div className="text-2xl font-bold text-teal-950">
-              {loading ? <Skeleton className="h-8 w-24" /> : formatCurrency(kpis.totalRevenue)}
-            </div>
-            <p className="text-[11px] text-teal-700/80 mt-1">Commercial customer billings</p>
-          </CardContent>
-        </Card>
-
-        {/* 8. Total Profit */}
-        <Card
-          className={`shadow-sm bg-gradient-to-br to-white ${
-            kpis.totalProfit >= 0
-              ? 'border-emerald-200 from-emerald-50/40'
-              : 'border-rose-200 from-rose-50/40'
-          }`}
-        >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider mb-1">
-              <span className={kpis.totalProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'}>
-                Net Profit
-              </span>
-              <Badge className={`text-[10px] px-1 py-0 ${kpis.profitStatus.color}`}>
-                {kpis.profitStatus.label}
-              </Badge>
-            </div>
-            <div
-              className={`text-2xl font-bold flex items-center gap-1 ${
-                kpis.totalProfit >= 0 ? 'text-emerald-950' : 'text-rose-950'
-              }`}
-            >
-              {loading ? (
-                <Skeleton className="h-8 w-24" />
-              ) : (
-                <>
-                  {kpis.totalProfit >= 0 ? (
-                    <TrendingUp size={20} className="text-emerald-600" />
-                  ) : (
-                    <TrendingDown size={20} className="text-rose-600" />
-                  )}
-                  {formatCurrency(Math.abs(kpis.totalProfit))}
-                </>
-              )}
-            </div>
-            <p className="text-[11px] text-gray-500 mt-1">Revenue minus all expenses</p>
-          </CardContent>
-        </Card>
-
-        {/* 9. Cost / KM */}
-        <Card className="border-indigo-100 bg-gradient-to-br from-indigo-50/40 to-white shadow-sm sm:col-span-2 lg:col-span-1">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-indigo-700 mb-1">
-              <span>Fleet Cost / KM</span>
-              <Gauge size={16} className="text-indigo-500" />
-            </div>
-            <div className="text-2xl font-bold text-indigo-950">
-              {loading ? <Skeleton className="h-8 w-24" /> : kpis.costPerKmText || 'Unavailable'}
-            </div>
-            <p className="text-[11px] text-indigo-700/80 mt-1">
-              {kpis.totalDistanceKm > 0
+                : 'Direct fuel refills',
+          },
+          {
+            label: 'Maintenance',
+            icon: Wrench,
+            value: formatCurrency(kpis.maintenanceCost),
+            sub: 'Repairs, servicing & tyres',
+          },
+          {
+            label: 'Other Expenses',
+            icon: Receipt,
+            value: formatCurrency(kpis.otherExpenses),
+            sub: 'Tolls, driver food, fines, permits',
+          },
+          {
+            label: 'ERP Trip Costs',
+            icon: Route,
+            value: formatCurrency(kpis.tripExpenses),
+            sub: 'Advances and trip charges',
+          },
+          {
+            label: 'Pending Review',
+            icon: Clock,
+            value: formatCurrency(kpis.pendingExpenses),
+            sub: 'Awaiting approval before ledger',
+            status: kpis.pendingExpenses > 0 ? 'Needs review' : null,
+            tone: 'warning',
+          },
+          {
+            label: 'Fleet Cost / KM',
+            icon: Gauge,
+            value: kpis.costPerKmText || 'Unavailable',
+            sub:
+              kpis.totalDistanceKm > 0
                 ? `Logged distance: ${formatKm(kpis.totalDistanceKm)}`
-                : 'Cost/KM unavailable (no distance recorded)'}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+                : 'No distance recorded',
+          },
+        ]}
+      />
 
       {/* Analytics & Charts Section (Prompt Section 18) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -686,7 +602,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                  <PieChartIcon size={16} className="text-indigo-600" />
+                  <PieChartIcon size={16} className="text-muted-foreground" />
                   Expense Distribution by Category
                 </h3>
                 <p className="text-xs text-gray-500">
@@ -734,7 +650,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                  <BarChart3 size={16} className="text-indigo-600" />
+                  <BarChart3 size={16} className="text-muted-foreground" />
                   Cost by Transaction Source
                 </h3>
                 <p className="text-xs text-gray-500">
@@ -779,7 +695,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                  <Truck size={16} className="text-indigo-600" />
+                  <Truck size={16} className="text-muted-foreground" />
                   Vehicle Cost Comparison (Top 6)
                 </h3>
                 <p className="text-xs text-gray-500">
@@ -825,7 +741,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                  <Route size={16} className="text-indigo-600" />
+                  <Route size={16} className="text-muted-foreground" />
                   Trip Financial Intelligence (Revenue vs Cost)
                 </h3>
                 <p className="text-xs text-gray-500">Real ERP Trip margin comparison</p>

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import KhataKpiGrid from './KhataKpiGrid';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -245,84 +246,42 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
         </button>
       </div>
 
-      {/* KPI Cards Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className="border-blue-200 bg-gradient-to-br from-blue-50/50 to-white">
-          <CardContent className="p-4">
-            <span className="text-xs font-semibold uppercase tracking-wider text-blue-700 block mb-1">
-              Trip Revenue
-            </span>
-            <div className="text-2xl font-bold text-blue-950">
-              {formatCurrency(pageTotals.totalRevenue)}
-            </div>
-            <p className="text-[11px] text-blue-600/80 mt-1">Sale bills for shown trips</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-amber-200 bg-gradient-to-br from-amber-50/50 to-white">
-          <CardContent className="p-4">
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-700 block mb-1">
-              Trip Expenses
-            </span>
-            <div className="text-2xl font-bold text-amber-950">
-              {formatCurrency(pageTotals.totalCost)}
-            </div>
-            <p className="text-[11px] text-amber-700/80 mt-1">Advances, fuel & hire costs</p>
-          </CardContent>
-        </Card>
-
-        <Card
-          className={`bg-gradient-to-br to-white ${
-            pageTotals.netProfit >= 0
-              ? 'border-emerald-200 from-emerald-50/50'
-              : 'border-rose-200 from-rose-50/50'
-          }`}
-        >
-          <CardContent className="p-4">
-            <span
-              className={`text-xs font-semibold uppercase tracking-wider block mb-1 ${
-                pageTotals.netProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'
-              }`}
-            >
-              Net Margin
-            </span>
-            <div
-              className={`text-2xl font-bold flex items-center gap-1.5 ${
-                pageTotals.netProfit >= 0 ? 'text-emerald-950' : 'text-rose-950'
-              }`}
-            >
-              {pageTotals.netProfit >= 0 ? (
-                <TrendingUp size={22} className="text-emerald-600" />
-              ) : (
-                <TrendingDown size={22} className="text-rose-600" />
-              )}
-              {formatCurrency(Math.abs(pageTotals.netProfit))}
-            </div>
-            <p className="text-[11px] text-gray-500 mt-1">Revenue minus costs</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-purple-200 bg-gradient-to-br from-purple-50/50 to-white">
-          <CardContent className="p-4">
-            <span className="text-xs font-semibold uppercase tracking-wider text-purple-700 block mb-1">
-              Trip Health
-            </span>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge className="bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold">
-                {pageTotals.profitableCount} Profitable
-              </Badge>
-              {pageTotals.lossCount > 0 && (
-                <Badge className="bg-rose-100 text-rose-800 border border-rose-200 text-xs font-semibold">
-                  {pageTotals.lossCount} Loss-making
-                </Badge>
-              )}
-            </div>
-            <p className="text-[11px] text-purple-700/80 mt-2">
-              {processedTrips.length} trips loaded
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <KhataKpiGrid
+        loading={loading}
+        items={[
+          {
+            label: 'Trip Revenue',
+            value: formatCurrency(pageTotals.totalRevenue),
+            sub: 'Sale bills for shown trips',
+          },
+          {
+            label: 'Trip Expenses',
+            value: formatCurrency(pageTotals.totalCost),
+            sub: 'Advances, fuel & hire costs',
+          },
+          {
+            label: 'Net Margin',
+            icon: pageTotals.netProfit < 0 ? TrendingDown : TrendingUp,
+            value: formatCurrency(pageTotals.netProfit),
+            sub: 'Revenue minus costs',
+            status:
+              pageTotals.netProfit < 0
+                ? 'Loss-making'
+                : pageTotals.netProfit > 0
+                  ? 'Profitable'
+                  : 'Break-even',
+            tone:
+              pageTotals.netProfit < 0 ? 'critical' : pageTotals.netProfit > 0 ? 'ok' : 'neutral',
+          },
+          {
+            label: 'Trip Health',
+            value: `${pageTotals.profitableCount} profitable`,
+            sub: `${processedTrips.length} trips loaded`,
+            status: pageTotals.lossCount > 0 ? `${pageTotals.lossCount} loss-making` : null,
+            tone: 'critical',
+          },
+        ]}
+      />
 
       {/* Search & Filter Bar */}
       <Card>

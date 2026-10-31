@@ -5,7 +5,6 @@ import {
   Trash2,
   Edit2,
   BookOpen,
-  IndianRupee,
   Filter,
   X,
   ChevronLeft,
@@ -13,7 +12,6 @@ import {
   Truck,
   User,
   Route,
-  Fuel,
   Receipt,
   Eye,
   AlertTriangle,
@@ -36,6 +34,8 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import KhataLedgerService from '../KhataLedgerService';
+import TransactionSummaryCards from './TransactionSummaryCards';
+import NewButton from '@/components/ui/NewButton';
 import DriverVehicleAssignmentService from '../../../services/DriverVehicleAssignmentService';
 import ReceiptPreviewModal from './ReceiptPreviewModal';
 import FuelAnomalyModal from './FuelAnomalyModal';
@@ -693,80 +693,24 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
             previews
           </p>
         </div>
-        <button
+        <NewButton
+          size="md"
+          prependIcon={<Plus size={16} />}
           onClick={() => {
             setEditingExpense(null);
             setModalOpen(true);
           }}
-          className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors"
         >
-          <Plus size={18} />
           Add Expense
-        </button>
+        </NewButton>
       </div>
 
-      {/* Summary KPI Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
-              <IndianRupee size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Total Expenses
-              </p>
-              <p className="mt-0.5 text-xl font-bold">{formatCurrency(summary.totalAmount)}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
-              <BookOpen size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Manual Entries
-              </p>
-              <p className="mt-0.5 text-xl font-bold">{meta.totalManual}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 text-orange-600 border border-orange-100">
-              <Fuel size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Fuel Refills
-              </p>
-              <p className="mt-0.5 text-xl font-bold">
-                {includeTripExpenses ? meta.totalFuel : 'Filtered'}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-violet-600 border border-violet-100">
-              <Route size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Trip Generated
-              </p>
-              <p className="mt-0.5 text-xl font-bold">
-                {includeTripExpenses ? meta.totalTrip : 'Filtered'}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <TransactionSummaryCards
+        summary={summary}
+        meta={meta}
+        includeTripExpenses={includeTripExpenses}
+        loading={loading}
+      />
 
       {/* Filter and Search Bar */}
       <Card>

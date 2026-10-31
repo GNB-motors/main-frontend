@@ -15,6 +15,7 @@ import {
 import { toast } from 'react-toastify';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import KhataKpiGrid from './KhataKpiGrid';
 import {
   Table,
   TableHeader,
@@ -131,64 +132,37 @@ const DriversTab = ({ vehicles = [], drivers: allDrivers = [] }) => {
         <DateRangeFilter value={dateRange} onChange={setDateRange} />
       </div>
 
-      {/* Driver Summary KPI Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
-        <Card className="border-indigo-100 bg-gradient-to-br from-indigo-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-indigo-700 mb-1">
-              <span>Total Driver Spend</span>
-              <DollarSign size={16} className="text-indigo-600" />
-            </div>
-            <p className="text-2xl font-bold text-indigo-950">
-              {formatCurrency(driverKpis.totalSpend)}
-            </p>
-            <p className="text-[11px] text-gray-500 mt-1">
-              {driverKpis.totalEntries} entries recorded
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-teal-100 bg-gradient-to-br from-teal-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-teal-700 mb-1">
-              <span>Active Drivers</span>
-              <Users size={16} className="text-teal-600" />
-            </div>
-            <p className="text-2xl font-bold text-teal-950">
-              {meta.totalResults || enrichedDrivers.length}
-            </p>
-            <p className="text-[11px] text-gray-500 mt-1">Drivers with active logs</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-purple-100 bg-gradient-to-br from-purple-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-purple-700 mb-1">
-              <span>Avg Spend / Driver</span>
-              <User size={16} className="text-purple-600" />
-            </div>
-            <p className="text-2xl font-bold text-purple-950">
-              {formatCurrency(driverKpis.avgPerDriver)}
-            </p>
-            <p className="text-[11px] text-gray-500 mt-1">For selected date period</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-amber-100 bg-gradient-to-br from-amber-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-amber-700 mb-1">
-              <span>Highest Contributor</span>
-              <Award size={16} className="text-amber-600" />
-            </div>
-            <p className="text-base font-bold text-amber-950 truncate">
-              {driverKpis.topSpender?.name || '—'}
-            </p>
-            <p className="text-[11px] text-amber-800 mt-1 font-semibold">
-              {driverKpis.topSpender ? formatCurrency(driverKpis.topSpender.totalAmount) : ''}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <KhataKpiGrid
+        loading={loading}
+        items={[
+          {
+            label: 'Total Driver Spend',
+            icon: DollarSign,
+            value: formatCurrency(driverKpis.totalSpend),
+            sub: `${driverKpis.totalEntries} entries recorded`,
+          },
+          {
+            label: 'Active Drivers',
+            icon: Users,
+            value: meta.totalResults || enrichedDrivers.length,
+            sub: 'Drivers with active logs',
+          },
+          {
+            label: 'Avg Spend / Driver',
+            icon: User,
+            value: formatCurrency(driverKpis.avgPerDriver),
+            sub: 'For selected date period',
+          },
+          {
+            label: 'Highest Contributor',
+            icon: Award,
+            value: driverKpis.topSpender?.name || '—',
+            sub: driverKpis.topSpender
+              ? formatCurrency(driverKpis.topSpender.totalAmount)
+              : 'No spending recorded',
+          },
+        ]}
+      />
 
       {/* Search Input */}
       <Card>

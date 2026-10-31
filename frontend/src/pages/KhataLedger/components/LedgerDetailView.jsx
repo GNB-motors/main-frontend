@@ -239,6 +239,7 @@ const LedgerDetailView = ({ entityType, entityId }) => {
 
   return (
     <PageShell
+      className="khata-ledger"
       title={entityLoading ? (isDriver ? 'Driver Ledger' : 'Truck Ledger') : entityName}
       subtitle={`${isDriver ? 'Driver' : 'Truck'} financial ledger — operational trips, transactions & cost per KM`}
       count={meta.totalResults}
