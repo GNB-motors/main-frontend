@@ -3,6 +3,8 @@ import { GoogleMap, MarkerClustererF } from '@react-google-maps/api';
 import { boundsOf } from './intelligence/model/mapBounds.js';
 import { LIGHT_MAP_STYLE, DARK_MAP_STYLE } from '../LiveTracking/mapStyles.js';
 import { IDLE_COLOR, idleTone, DRAIN_COLOR, STOP_COLOR } from './placeHubStyle.js';
+
+const VEHICLE_HALT_COLOR = '#2563eb';
 import { hoursLabel } from './model/placeLabels.js';
 import { formatInrCompact } from '../../utils/formatters.js';
 import {
@@ -55,6 +57,7 @@ export default function PlaceHubMap({
   hotspots,
   drainCells,
   stopGroups = [],
+  vehicleHalts = [],
   showPoi = false,
   hiddenPlaceId,
   selectedId,
@@ -144,6 +147,7 @@ export default function PlaceHubMap({
   const maxIdle = Math.max(0, ...idleSpots.map((s) => s.rupees));
   const maxDrain = Math.max(0, ...drainCells.map((c) => c.rupees || c.events));
   const maxStop = Math.max(0, ...stopGroups.map((g) => g.minutes));
+  const maxHalt = Math.max(0, ...vehicleHalts.map((h) => h.occurrences || 1));
 
   return (
     <GoogleMap
@@ -282,6 +286,21 @@ export default function PlaceHubMap({
             />
           ),
         )}
+
+      {vehicleHalts.map((h, i) => (
+        <ScaledDot
+          key={`vh-${i}`}
+          id={`vh-${i}`}
+          lat={h.lat}
+          lng={h.lng}
+          color={VEHICLE_HALT_COLOR}
+          scale={scaleFor(h.occurrences || 1, maxHalt, 8, 22)}
+          title={`${h.occurrences || 1} visit${h.occurrences !== 1 ? 's' : ''}${h.medianDwellMs ? ` · ${hoursLabel(h.medianDwellMs / 3600000)} median dwell` : ''}`}
+          selected={false}
+          interactive={false}
+          onSelect={() => {}}
+        />
+      ))}
 
       {draft && <DraftLayer draft={draft} onDraftChange={onDraftChange} />}
     </GoogleMap>

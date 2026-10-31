@@ -361,6 +361,35 @@ export default function PlaceHubPage() {
     if (draft && draft.shape === 'circle') changeDraft({ center: { lat: loc.lat, lng: loc.lng } });
   };
 
+  const [vehicleHalts, setVehicleHalts] = useState([]);
+  const [vehicleLabel, setVehicleLabel] = useState(null);
+
+  const onVehiclePick = async (row) => {
+    const reg = row.registrationNumber;
+    setVehicleLabel(reg);
+    setVehicleHalts([]);
+    try {
+      const { LiveTrackingService } = await import('../LiveTracking/LiveTrackingService.jsx');
+      const res = await LiveTrackingService.getHabitualHalts(reg, { days: 30 });
+      const records = res.records || [];
+      setVehicleHalts(records);
+      if (records.length) {
+        const lats = records.map((r) => r.lat);
+        const lngs = records.map((r) => r.lng);
+        const midLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+        const midLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+        focusOn(midLat, midLng, 11);
+      }
+    } catch {
+      // habitual halts unavailable — still show the label
+    }
+  };
+
+  const onVehicleClear = () => {
+    setVehicleLabel(null);
+    setVehicleHalts([]);
+  };
+
   const unexplainedHours = data.summary?.unproductive?.hours;
   const tabBadge = {
     places: loaded.places ? num(totals.places) : null,
@@ -440,6 +469,11 @@ export default function PlaceHubPage() {
             setGroup={setGroup}
             query={query}
             setQuery={setQuery}
+            vehicleLabel={vehicleLabel}
+            vehicleHalts={vehicleHalts}
+            onVehiclePick={onVehiclePick}
+            onVehicleClear={onVehicleClear}
+            onPickVehicleHalt={(h) => focusOn(h.lat, h.lng, 14)}
             selectedId={selectedId}
             pickFromList={pickFromList}
             canEdit={canEdit}
@@ -476,6 +510,7 @@ export default function PlaceHubPage() {
             hotspots={hotspots}
             drainCells={drainCells}
             stopGroups={stopGroups}
+            vehicleHalts={vehicleHalts}
             showPoi={showPoi}
             hiddenPlaceId={hiddenPlaceId}
             selectedId={selectedId}

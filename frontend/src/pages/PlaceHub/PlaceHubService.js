@@ -199,6 +199,20 @@ export const PlaceHubService = {
 
   createHotspot: (body) => apiClient.post('/api/hotspots', body).then(unwrap),
   updateHotspot: (id, body) => apiClient.put(`/api/hotspots/${id}`, body).then(unwrap),
+
+  /** Vehicle registration autocomplete — backend search, up to `limit` rows. */
+  searchVehicles: (q, { limit = 8, signal } = {}) =>
+    apiClient.get('/api/vehicles/options', { params: { search: q, limit }, signal }).then((res) => {
+      const rows = res.data?.data ?? [];
+      return Array.isArray(rows) ? rows : [];
+    }),
+
+  /** Place name search — warehouses + custom zones, backend-powered. */
+  searchPlaces: (q, { limit = 20, signal } = {}) =>
+    apiClient.get('/api/places/search', { params: { q, limit }, signal }).then((res) => {
+      const rows = res.data?.data?.results ?? [];
+      return Array.isArray(rows) ? rows : [];
+    }),
 };
 
 export default PlaceHubService;

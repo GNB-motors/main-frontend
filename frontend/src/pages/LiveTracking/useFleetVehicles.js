@@ -58,7 +58,7 @@ export default function useFleetVehicles({
           ago: minutesAgo,
           eventDateTime: p.eventDateTime || null,
           courseDegrees: p.courseDegrees != null ? p.courseDegrees : null,
-          odo: meta.odometer != null ? meta.odometer : null,
+          odo: p.odometer != null ? p.odometer : meta.odometer != null ? meta.odometer : null,
           regYear: meta.manufacturingYear != null ? meta.manufacturingYear : null,
         };
       })
