@@ -29,7 +29,7 @@ export default function TelematicsDiagnosticsSection({ selectedVehicle, showToas
             <div
               style={{
                 fontSize: '10px',
-                color: '#94A3B8',
+                color: 'var(--fg-secondary)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
               }}
@@ -40,7 +40,7 @@ export default function TelematicsDiagnosticsSection({ selectedVehicle, showToas
               style={{
                 fontSize: '13px',
                 fontWeight: 600,
-                color: '#F1F5F9',
+                color: 'var(--fg-primary)',
                 marginTop: '2px',
               }}
             >
@@ -61,7 +61,7 @@ export default function TelematicsDiagnosticsSection({ selectedVehicle, showToas
             <div
               style={{
                 fontSize: '10px',
-                color: '#94A3B8',
+                color: 'var(--fg-secondary)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
               }}
@@ -72,7 +72,7 @@ export default function TelematicsDiagnosticsSection({ selectedVehicle, showToas
               style={{
                 fontSize: '13px',
                 fontWeight: 600,
-                color: '#F1F5F9',
+                color: 'var(--fg-primary)',
                 marginTop: '2px',
               }}
             >
@@ -93,7 +93,7 @@ export default function TelematicsDiagnosticsSection({ selectedVehicle, showToas
             <div
               style={{
                 fontSize: '10px',
-                color: '#94A3B8',
+                color: 'var(--fg-secondary)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
               }}
@@ -104,7 +104,7 @@ export default function TelematicsDiagnosticsSection({ selectedVehicle, showToas
               style={{
                 fontSize: '13px',
                 fontWeight: 600,
-                color: selectedVehicle.live ? '#4ADE80' : '#94A3B8',
+                color: selectedVehicle.live ? '#4ADE80' : 'var(--fg-secondary)',
                 marginTop: '2px',
               }}
             >
@@ -123,7 +123,7 @@ export default function TelematicsDiagnosticsSection({ selectedVehicle, showToas
             <div
               style={{
                 fontSize: '10px',
-                color: '#94A3B8',
+                color: 'var(--fg-secondary)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
               }}
@@ -143,7 +143,7 @@ export default function TelematicsDiagnosticsSection({ selectedVehicle, showToas
                 fontFamily: 'inherit',
                 fontSize: '11px',
                 fontWeight: 500,
-                color: '#38BDF8',
+                color: 'var(--fg-brand)',
                 marginTop: '3px',
                 cursor: 'pointer',
                 overflow: 'hidden',
