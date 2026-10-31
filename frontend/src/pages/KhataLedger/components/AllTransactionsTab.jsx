@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Plus,
   Search,
@@ -546,6 +546,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
     totalFuel: 0,
   });
   const [summary, setSummary] = useState({ totalAmount: 0, count: 0 });
+  const requestVersion = useRef(0);
 
   // Filters
   const [searchInput, setSearchInput] = useState('');
@@ -577,29 +578,32 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
 
   const fetchExpenses = useCallback(
     async (page = 1) => {
+      const version = ++requestVersion.current;
       setLoading(true);
       try {
         const params = { page, limit: 20, includeTripExpenses };
         if (search) params.search = search;
         if (category) params.category = category;
+        if (source) params.source = source;
+        if (status) params.status = status;
         if (vehicleId) params.vehicleId = vehicleId;
         if (driverId) params.driverId = driverId;
         if (tripId) params.tripId = tripId;
         if (startDate) params.startDate = new Date(startDate).toISOString();
         if (endDate) params.endDate = new Date(endDate).toISOString();
 
-        const [data, summaryData] = await Promise.all([
+        let [data, summaryData] = await Promise.all([
           KhataLedgerService.getExpenses(params),
-          KhataLedgerService.getSummary({
-            ...(startDate && { startDate: new Date(startDate).toISOString() }),
-            ...(endDate && { endDate: new Date(endDate).toISOString() }),
-          }),
+          KhataLedgerService.getSummary(params),
         ]);
+        if (version !== requestVersion.current) return;
+        const lastPage = Math.max(1, data.totalPages || 1);
+        if (page > lastPage) {
+          data = await KhataLedgerService.getExpenses({ ...params, page: lastPage });
+          if (version !== requestVersion.current) return;
+        }
 
-        let loaded = data.results || data.data || [];
-        // Apply client-side filters if needed (source / status)
-        if (source) loaded = loaded.filter((e) => e.source === source);
-        if (status) loaded = loaded.filter((e) => (e.status || 'CONFIRMED') === status);
+        const loaded = data.results || data.data || [];
 
         setExpenses(loaded);
         setMeta({
@@ -612,9 +616,11 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
         });
         setSummary(summaryData);
       } catch (err) {
-        toast.error(err?.response?.data?.message || err?.message || 'Failed to load expenses');
+        if (version === requestVersion.current) {
+          toast.error(err?.response?.data?.message || err?.message || 'Failed to load expenses');
+        }
       } finally {
-        setLoading(false);
+        if (version === requestVersion.current) setLoading(false);
       }
     },
     [
@@ -633,6 +639,9 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
 
   useEffect(() => {
     fetchExpenses(1);
+    return () => {
+      requestVersion.current += 1;
+    };
   }, [fetchExpenses]);
 
   const handleSave = async (payload) => {
@@ -1101,7 +1110,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
               </p>
               <div className="flex gap-1">
                 <button
-                  disabled={meta.page <= 1}
+                  disabled={loading || meta.page <= 1}
                   onClick={() => fetchExpenses(meta.page - 1)}
                   className="rounded-lg border bg-white p-2 text-sm disabled:opacity-40"
                   aria-label="Previous Page"
@@ -1109,7 +1118,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
                   <ChevronLeft size={16} />
                 </button>
                 <button
-                  disabled={meta.page >= meta.totalPages}
+                  disabled={loading || meta.page >= meta.totalPages}
                   onClick={() => fetchExpenses(meta.page + 1)}
                   className="rounded-lg border bg-white p-2 text-sm disabled:opacity-40"
                   aria-label="Next Page"

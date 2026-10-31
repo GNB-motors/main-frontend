@@ -19,6 +19,19 @@ const unwrap = (res) => res.data?.data || res.data;
 const idOf = (refOrId) => (refOrId && typeof refOrId === 'object' ? refOrId._id : refOrId) || '';
 
 const DriverVehicleAssignmentService = {
+  getAssignmentPage: async (params = {}, { signal } = {}) => {
+    const response = await apiClient.get('/api/driver-vehicle-assignments', { params, signal });
+    const results = await parseSafe(
+      'driverVehicleAssignmentListSchema',
+      () => import('../schemas/driverVehicleAssignment.schema.js'),
+      unwrap(response),
+    );
+    return {
+      results,
+      meta: response.data?.meta || { page: 1, totalPages: 1, total: results.length },
+    };
+  },
+
   getAssignments: async (params = {}, { signal } = {}) => {
     const response = await apiClient.get('/api/driver-vehicle-assignments', { params, signal });
     return parseSafe(

@@ -35,4 +35,19 @@ describe('DriverVehicleAssignmentService.getAssignments', () => {
     const rows = await DriverVehicleAssignmentService.getAssignments();
     expect(rows).toEqual([populated, bare]);
   });
+
+  it('keeps backend page totals for the assignment table', async () => {
+    const meta = { page: 2, limit: 20, total: 41, totalPages: 3 };
+    apiClient.get.mockResolvedValue({ data: { data: [populated], meta } });
+    const { signal } = new AbortController();
+    const page = await DriverVehicleAssignmentService.getAssignmentPage(
+      { page: 2, limit: 20, search: 'Ravi' },
+      { signal },
+    );
+    expect(page).toEqual({ results: [populated], meta });
+    expect(apiClient.get).toHaveBeenCalledWith('/api/driver-vehicle-assignments', {
+      params: { page: 2, limit: 20, search: 'Ravi' },
+      signal,
+    });
+  });
 });

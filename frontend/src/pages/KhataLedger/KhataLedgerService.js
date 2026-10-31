@@ -66,6 +66,7 @@ const KhataLedgerService = {
   // DriverVehicleAssignmentService (also used by the Employee page); kept
   // re-exported here so existing Khata Ledger call sites are unaffected.
   getAssignments: DriverVehicleAssignmentService.getAssignments,
+  getAssignmentPage: DriverVehicleAssignmentService.getAssignmentPage,
   createAssignment: DriverVehicleAssignmentService.createAssignment,
   updateAssignment: DriverVehicleAssignmentService.updateAssignment,
   endAssignment: DriverVehicleAssignmentService.endAssignment,
