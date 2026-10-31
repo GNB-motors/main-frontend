@@ -12,12 +12,10 @@
   flex-direction: column;
 }
 
-/* Centered High-Capacity Workspace Container (Replaces cramped 920px max-width) */
+/* Form geometry is shared with Add Employee in EntityFormLayout.css. */
 .add-vehicle-container {
-  max-width: 1240px;
   width: 100%;
   margin: 0 auto;
-  padding: 24px 32px 140px;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -258,10 +256,10 @@
 
 .add-vehicle-page .basic-info-outer-container,
 .add-vehicle-page .document-upload-outer-container {
-  background: transparent !important;
-  border: none !important;
-  border-radius: 20px !important;
-  box-shadow: none !important;
+  background: var(--card, #fff) !important;
+  border: 1px solid var(--ds-line, #cbd5e1) !important;
+  border-radius: var(--ds-radius-md, 12px) !important;
+  box-shadow: var(--ds-shadow, 0 1px 2px rgb(15 23 42 / 5%)) !important;
   padding: 8px !important;
   outline: none !important;
   transition: all 0.2s ease;
@@ -834,10 +832,6 @@
    ========================================================================== */
 
 @media (max-width: 960px) {
-  .add-vehicle-container {
-    padding: 20px 20px 140px;
-  }
-
   .add-vehicle-footer-inner {
     padding: 0 20px;
   }
@@ -879,9 +873,7 @@
 
 /* A compact vehicle form with the same hierarchy in create and edit mode. */
 .add-vehicle-page .add-vehicle-container {
-  max-width: 1120px;
   gap: 20px;
-  padding-top: 20px;
 }
 .add-vehicle-page .add-vehicle-hero {
   background: transparent;
@@ -996,9 +988,6 @@
   }
   .vehicle-more-makes {
     flex-basis: 100%;
-  }
-  .add-vehicle-page .add-vehicle-container {
-    padding: 16px 12px 140px;
   }
   .add-vehicle-page .basic-info-container {
     padding: 16px;

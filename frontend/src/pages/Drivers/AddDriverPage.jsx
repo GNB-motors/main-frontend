@@ -14,6 +14,7 @@ import FormFooter from './Component/FormFooter.jsx';
 import ImportEmployeeDialog from './ImportEmployeeDialog.jsx';
 import { mapFetchedEmployeeDocs } from './employeeDocMapping.js';
 import './DriversPage.css';
+import '../../components/EntityFormLayout.css';
 import logger from '../../utils/logger';
 
 const AddDriverPage = () => {
@@ -303,8 +304,8 @@ const AddDriverPage = () => {
   };
 
   return (
-    <div className="drivers-page" style={themeColors}>
-      <div className="drivers-content-wrapper" style={{ paddingBottom: '80px' }}>
+    <div className="drivers-page add-employee-page entity-form-page" style={themeColors}>
+      <div className="drivers-content-wrapper entity-form-content">
         <PageHeader
           backLabel="Employees"
           backPath="/drivers"

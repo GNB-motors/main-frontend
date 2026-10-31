@@ -1,0 +1,118 @@
+/* Add/edit forms own their gutters so shell padding is not applied twice. */
+.page-content:has(.entity-form-page) {
+  padding: 0;
+}
+
+.entity-form-page {
+  --entity-form-gutter: 32px;
+  width: 100%;
+  min-width: 0;
+}
+
+.entity-form-page .entity-form-content {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+  padding: 24px var(--entity-form-gutter) 112px;
+  box-sizing: border-box;
+}
+
+/* Keep the docked actions inside the workspace and aligned with its cards. */
+.entity-form-page .form-footer,
+.entity-form-page .add-vehicle-footer-bar {
+  left: 100px;
+  right: 0;
+  width: auto;
+  padding: 12px var(--entity-form-gutter);
+}
+
+.entity-form-page .form-footer-content,
+.entity-form-page .add-vehicle-footer-inner {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+}
+
+/* Shared employee components also appear in modals; widen only this page. */
+.add-employee-page .page-header-container,
+.add-employee-page .basic-info-outer-container,
+.add-employee-page .document-upload-outer-container {
+  width: 100%;
+  max-width: none;
+}
+
+.add-employee-page .basic-info-outer-container,
+.add-employee-page .document-upload-outer-container {
+  padding: 0;
+  gap: 0;
+  border: 1px solid var(--ds-line, #cbd5e1);
+  border-radius: var(--ds-radius-md, 12px);
+  outline: none;
+  background: var(--card, #fff);
+  box-shadow: var(--ds-shadow, 0 1px 2px rgb(15 23 42 / 5%));
+}
+
+.add-employee-page .basic-info-header,
+.add-employee-page .document-upload-header {
+  height: auto;
+  min-height: 64px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--ds-line, #cbd5e1);
+}
+
+.add-employee-page .basic-info-container,
+.add-employee-page .document-upload-container {
+  border-radius: 0;
+  background: transparent;
+}
+
+.add-employee-page .basic-info-title,
+.add-employee-page .document-upload-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.add-employee-page .basic-info-form-row,
+.add-employee-page .document-cards-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.add-employee-page .basic-info-form-field,
+.add-employee-page .document-card-wrapper {
+  min-width: 0;
+  max-width: none;
+}
+
+.add-employee-page .page-header-breadcrumb-items {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+@media (min-width: 1200px) {
+  .add-employee-page .document-cards-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 992px) {
+  .entity-form-page .form-footer,
+  .entity-form-page .add-vehicle-footer-bar {
+    left: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .entity-form-page {
+    --entity-form-gutter: 16px;
+  }
+
+  .entity-form-page .entity-form-content {
+    padding-top: 20px;
+  }
+
+  .add-employee-page .basic-info-form-row,
+  .add-employee-page .document-cards-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

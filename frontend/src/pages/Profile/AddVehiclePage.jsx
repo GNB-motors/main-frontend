@@ -16,6 +16,7 @@ import { mapFetchedDocsToUiState } from './addVehicleDocMapping';
 import { ImportVehicleDialog } from './ImportVehicleDialog';
 import './VehiclesPage.css';
 import './AddVehiclePage.css';
+import '../../components/EntityFormLayout.css';
 import logger from '../../utils/logger';
 import useVehicleManufacturers from './useVehicleManufacturers.js';
 import { eligibleAccounts, canonicalManufacturer } from './vehicleManufacturerOptions.js';
@@ -302,8 +303,8 @@ const AddVehiclePage = () => {
   };
 
   return (
-    <div className="vehicles-page-container add-vehicle-page" style={themeColors}>
-      <div className="add-vehicle-container">
+    <div className="vehicles-page-container add-vehicle-page entity-form-page" style={themeColors}>
+      <div className="add-vehicle-container entity-form-content">
         {saveMessage && (
           <div className="vehicle-save-message" role="alert">
             {saveMessage}
