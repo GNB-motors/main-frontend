@@ -2975,11 +2975,12 @@
   background: var(--mt-card-bg);
   color: var(--mt-text-primary);
   outline: none;
-  transition: all 0.15s;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .mt-search-input:focus {
-  width: 240px;
   border-color: var(--mt-primary);
 }
 

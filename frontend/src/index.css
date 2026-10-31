@@ -48,6 +48,29 @@ textarea:focus-visible {
   box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
 }
 
+/* Compound search controls draw focus on their outer, rounded container.
+   The global input ring above would otherwise add a second rectangular ring. */
+:is(
+    .fbar-search,
+    .dt-search,
+    .navbar-search,
+    .fsearch,
+    .mhub-search,
+    .rpt-search,
+    .rpt-picker-search,
+    .fi-field,
+    .search-bar,
+    .refuel-search,
+    .rh-search-bar,
+    .ph-search,
+    .sp-search,
+    .sat-search,
+    .nova-cc .search
+  )
+  input:focus {
+  box-shadow: none;
+}
+
 /* ── Animations ──────────────────────────────────────────── */
 @keyframes fadeSlideUp {
   from {
@@ -1320,18 +1343,13 @@ a.ov-kpi:hover {
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
   transition:
     border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    width 0.2s ease;
+    box-shadow 0.15s ease;
 }
 .fbar-search:hover {
   border-color: #cbd5e1;
 }
-.fbar-search:focus-within {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
-  width: 340px;
-}
 .fbar-search input {
+  min-width: 0;
   border: 0;
   outline: 0;
   background: transparent;
@@ -1385,20 +1403,10 @@ a.ov-kpi:hover {
   padding: 0 16px 0 14px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
-.fbar--search-only .fbar-search:focus-within,
-.fbar:not(
-    :has(
-      .fbar-scope,
-      .fbar-range,
-      .fbar-chips,
-      .fbar-clear,
-      .fbar-select,
-      .fbar-field,
-      .fbar-right > *
-    )
-  )
-  .fbar-search:focus-within {
-  width: 380px;
+.fbar-search:focus-within,
+.fbar .fbar-search:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ds-focus, #2563eb) 18%, transparent);
 }
 .fbar-range {
   display: inline-flex;
@@ -1611,18 +1619,17 @@ a.ov-kpi:hover {
   flex: 0 0 auto;
   transition:
     border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    width 0.2s ease;
+    box-shadow 0.15s ease;
 }
 .dt-search:hover {
   border-color: #cbd5e1;
 }
 .dt-search:focus-within {
   border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
-  width: 260px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ds-focus, #2563eb) 18%, transparent);
 }
 .dt-search input {
+  min-width: 0;
   border: 0;
   outline: 0;
   background: transparent;

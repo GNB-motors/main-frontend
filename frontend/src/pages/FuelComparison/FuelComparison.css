@@ -414,11 +414,12 @@
   background: var(--fc-card-bg);
   color: var(--fc-text-primary);
   outline: none;
-  transition: all 0.15s;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .fc-search-input:focus {
-  width: 230px;
   border-color: var(--fc-primary);
 }
 
