@@ -17,6 +17,8 @@ import ReplayPerspectiveBar from './replay/ReplayPerspectiveBar.jsx';
 import ReplayHud from './replay/ReplayHud.jsx';
 import ReplayPlayer from './replay/ReplayPlayer.jsx';
 import TripLog from './replay/TripLog.jsx';
+import useNavigationHistory from '../navigation/useNavigationHistory';
+import NavigationHistoryPanel from '../navigation/NavigationHistoryPanel';
 
 export default function ReplayView({ params, toast }) {
   // Opened from the overspeed audit (?from&to&at&limit&dur): that window, at that event.
@@ -31,6 +33,8 @@ export default function ReplayView({ params, toast }) {
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [navigationContext, setNavigationContext] = useState(null);
+  const navigation = useNavigationHistory(navigationContext || {});
 
   // ERP trips for the selected vehicle. Picking one switches the replay from
   // "whatever fell inside these dates" to the real trip: its window comes from the
@@ -82,6 +86,11 @@ export default function ReplayView({ params, toast }) {
           ? { from: linked.from, to: linked.to }
           : windowForRange(nextRange, from, to);
       setLoading(true);
+      setNavigationContext({
+        vehicleId: vehicle?._id,
+        from: win.from.toISOString(),
+        to: win.to.toISOString(),
+      });
       setError(null);
       try {
         const trail = await RouteHubService.getTrail(nextReg, {
@@ -187,6 +196,20 @@ export default function ReplayView({ params, toast }) {
   };
 
   useReplayLayers({ mapRef, trip, limitKmh, runRef, truckRef, setPlaying, setT });
+
+  useEffect(() => {
+    if (!mapRef.current || navigation.path.length < 2) return undefined;
+    const layer = L.polyline(
+      navigation.path.map((point) => [point.lat, point.lng]),
+      {
+        color: '#7C3AED',
+        weight: 4,
+        opacity: 0.8,
+        dashArray: '8 5',
+      },
+    ).addTo(mapRef.current);
+    return () => layer.remove();
+  }, [mapRef, navigation.path]);
 
   const frame = trip ? sampleAt(trip, t) : null;
 
@@ -322,6 +345,7 @@ export default function ReplayView({ params, toast }) {
           />
         </div>
       </div>
+      <NavigationHistoryPanel history={navigation} />
     </section>
   );
 }

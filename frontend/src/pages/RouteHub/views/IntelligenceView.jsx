@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import RoadService from '../../../services/RoadService';
 import { RefreshButton, Empty, TableSkeleton } from '../routeHubShared.jsx';
 import { istHourOfWeek, howLabel } from '../intelligenceFormat.js';
+import NavigationCorridorsPanel from '../navigation/NavigationCorridorsPanel';
 
 /**
  * Route Hub "Intelligence" tab (ROAD_INTELLIGENCE plan Task P5.6): the road edges our own trucks proved
@@ -141,6 +142,7 @@ export default function IntelligenceView() {
         Pooled across organisations under the sharing rule; edges with few past trips never appear
         here.
       </p>
+      <NavigationCorridorsPanel />
     </section>
   );
 }
