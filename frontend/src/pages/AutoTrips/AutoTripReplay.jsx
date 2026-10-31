@@ -7,6 +7,8 @@ import { fmtClock, fmtDayTime } from './autoTripFormat';
 import { routeMapPoints, tripRoadAt, tripRoadLayers } from './autoTripPlaces';
 import { stopKind } from './timelineModel';
 import ReplayPlayer from './ReplayPlayer';
+import useNavigationHistory from '../RouteHub/navigation/useNavigationHistory';
+import NavigationHistoryPanel from '../RouteHub/navigation/NavigationHistoryPanel';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const CONTAINER = { width: '100%', height: '100%' };
@@ -85,6 +87,12 @@ export default function AutoTripReplay({
   const { isLoaded } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
   const mapRef = useRef(null);
   const wrapRef = useRef(null);
+  const navigation = useNavigationHistory({
+    autoTripId: trip?._id || trip?.id,
+    vehicleId: trip?.vehicleId?._id || trip?.vehicleId,
+    from: track?.from,
+    to: track?.to,
+  });
 
   const frames = useMemo(() => toFrames(track?.points), [track]);
   const start = frames.length ? frames[0].at : 0;
@@ -298,6 +306,17 @@ export default function AutoTripReplay({
               styles: MAP_THEME,
             }}
           >
+            {navigation.path.length > 1 && (
+              <PolylineF
+                path={navigation.path}
+                options={{
+                  strokeColor: '#7C3AED',
+                  strokeOpacity: 0.8,
+                  strokeWeight: 4,
+                  zIndex: 1,
+                }}
+              />
+            )}
             {roadLayers && <RoadTrailLayer layers={roadLayers} color={COLOR.trail} />}
             {roadLayers && onRoad && <RoadTrailLayer layers={onRoad.run} color={COLOR.run} />}
             {roadLayers
@@ -385,6 +404,7 @@ export default function AutoTripReplay({
         speed={speed}
         setSpeed={setSpeed}
       />
+      <NavigationHistoryPanel history={navigation} linkedToTrip />
     </div>
   );
 }
