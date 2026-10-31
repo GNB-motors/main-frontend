@@ -225,189 +225,215 @@ export default function ChallansPage() {
   const exportColumns = view === 'vehicles' ? VEHICLE_EXPORT_COLUMNS : CHALLAN_EXPORT_COLUMNS;
 
   return (
-    <div className="p-6 md:p-8 bg-slate-50 dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-100">
-      {/* ── Page Header ────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Challans
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Traffic challans across your fleet — what is still open, what it costs, and how long it
-            has been sitting.
+    <div className="relative">
+      {/* ── Coming Soon overlay ─────────────────────────────────────── */}
+      <div
+        className="absolute inset-0 z-40 bg-slate-100/60 dark:bg-slate-950/60 backdrop-blur-[2px]"
+        aria-hidden="true"
+      />
+      <div
+        className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Coming soon"
+      >
+        <div className="pointer-events-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl px-10 py-9 flex flex-col items-center gap-3 max-w-xs text-center">
+          <span className="text-3xl" aria-hidden="true">
+            🚧
+          </span>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+            Coming Soon
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+            Challan tracking is on its way. You&apos;ll be able to view, manage and sync traffic
+            challans across your fleet from this page.
           </p>
         </div>
-
-        <div className="flex items-center gap-2">
-          <ExportButton
-            rows={exportRows}
-            columns={exportColumns}
-            filename={view === 'vehicles' ? 'challans-by-vehicle' : 'challans'}
-            disabled={!exportRows.length}
-          />
-          <Button variant="outline" size="sm" onClick={onSync} disabled={syncing || refreshing}>
-            <RefreshCw className={syncing ? 'animate-spin' : ''} aria-hidden="true" />
-            {syncing ? 'Pulling…' : 'Pull from provider'}
-          </Button>
-          <button
-            type="button"
-            onClick={load}
-            className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition"
-            title="Refresh Challans"
-            aria-label="Refresh challans"
-          >
-            <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          </button>
-          <Button
-            size="sm"
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-          >
-            <Plus aria-hidden="true" />
-            Add challan
-          </Button>
-        </div>
       </div>
+      <div className="p-6 md:p-8 bg-slate-50 dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-100">
+        {/* ── Page Header ────────────────────────────────────────────── */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Challans
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Traffic challans across your fleet — what is still open, what it costs, and how long
+              it has been sitting.
+            </p>
+          </div>
 
-      {/* ── KPI tiles: open vs paid ────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <KpiTile
-          label="Open challans"
-          loading={firstLoad}
-          value={formatNum(open.count)}
-          valueClass={TONE_TEXT.rose}
-          note={`${formatINR(open.amount || 0)} outstanding`}
-        />
-        <KpiTile
-          label="Paid challans"
-          loading={firstLoad}
-          value={formatNum(paid.count)}
-          valueClass={TONE_TEXT.emerald}
-          note={`${formatINR(paid.amount || 0)} settled`}
-        />
-        <KpiTile
-          label="Vehicles affected"
-          loading={firstLoad}
-          value={formatNum(vehicles.filter((v) => v.open > 0).length)}
-          valueClass="text-slate-900 dark:text-white"
-          note={`of ${formatNum(vehicles.length)} with any challan`}
-        />
-        <KpiTile
-          label="Oldest open"
-          loading={firstLoad}
-          value={<OldestOpenTile vehicles={filteredVehicles} />}
-          valueClass="text-slate-900 dark:text-white"
-          note="across the vehicles in view"
-        />
-      </div>
-
-      {/* ── Filters ────────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 mb-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-          {[
-            { id: 'vehicles', label: 'By vehicle' },
-            { id: 'all', label: 'All challans' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => {
-                setView(tab.id);
-                setPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
-                view === tab.id
-                  ? 'bg-slate-900 text-white dark:bg-indigo-600'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-          <span className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" />
-          {STATUS_FILTERS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => {
-                setStatusId(f.id);
-                setPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
-                statusId === f.id
-                  ? 'bg-slate-900 text-white dark:bg-indigo-600'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="relative w-full sm:w-64">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-          <input
-            type="text"
-            placeholder="Search vehicle plate..."
-            aria-label="Search vehicle plate"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500"
-          />
-        </div>
-      </div>
-
-      {/* ── Table ──────────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          {view === 'vehicles' ? (
-            <VehicleTable
-              rows={paginatedVehicles}
-              firstLoad={firstLoad}
-              hasAny={vehicles.length > 0}
-              onPick={(plate) => {
-                setSearch(plate);
-                setView('all');
-                setPage(1);
-              }}
+          <div className="flex items-center gap-2">
+            <ExportButton
+              rows={exportRows}
+              columns={exportColumns}
+              filename={view === 'vehicles' ? 'challans-by-vehicle' : 'challans'}
+              disabled={!exportRows.length}
             />
-          ) : (
-            <ChallanTable
-              rows={paginatedRows}
-              firstLoad={firstLoad}
-              hasAny={rows.length > 0}
-              onEdit={(row) => {
-                setEditing(row);
+            <Button variant="outline" size="sm" onClick={onSync} disabled={syncing || refreshing}>
+              <RefreshCw className={syncing ? 'animate-spin' : ''} aria-hidden="true" />
+              {syncing ? 'Pulling…' : 'Pull from provider'}
+            </Button>
+            <button
+              type="button"
+              onClick={load}
+              className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition"
+              title="Refresh Challans"
+              aria-label="Refresh challans"
+            >
+              <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditing(null);
                 setFormOpen(true);
               }}
-              onDelete={onDelete}
-            />
-          )}
+            >
+              <Plus aria-hidden="true" />
+              Add challan
+            </Button>
+          </div>
         </div>
 
-        <EnterprisePagination
-          page={page}
-          totalPages={totalPages}
-          totalItems={totalItems}
-          pageSize={PAGE_SIZE}
-          onPageChange={setPage}
+        {/* ── KPI tiles: open vs paid ────────────────────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <KpiTile
+            label="Open challans"
+            loading={firstLoad}
+            value={formatNum(open.count)}
+            valueClass={TONE_TEXT.rose}
+            note={`${formatINR(open.amount || 0)} outstanding`}
+          />
+          <KpiTile
+            label="Paid challans"
+            loading={firstLoad}
+            value={formatNum(paid.count)}
+            valueClass={TONE_TEXT.emerald}
+            note={`${formatINR(paid.amount || 0)} settled`}
+          />
+          <KpiTile
+            label="Vehicles affected"
+            loading={firstLoad}
+            value={formatNum(vehicles.filter((v) => v.open > 0).length)}
+            valueClass="text-slate-900 dark:text-white"
+            note={`of ${formatNum(vehicles.length)} with any challan`}
+          />
+          <KpiTile
+            label="Oldest open"
+            loading={firstLoad}
+            value={<OldestOpenTile vehicles={filteredVehicles} />}
+            valueClass="text-slate-900 dark:text-white"
+            note="across the vehicles in view"
+          />
+        </div>
+
+        {/* ── Filters ────────────────────────────────────────────────── */}
+        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 mb-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+            {[
+              { id: 'vehicles', label: 'By vehicle' },
+              { id: 'all', label: 'All challans' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setView(tab.id);
+                  setPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+                  view === tab.id
+                    ? 'bg-slate-900 text-white dark:bg-indigo-600'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+            <span className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" />
+            {STATUS_FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => {
+                  setStatusId(f.id);
+                  setPage(1);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+                  statusId === f.id
+                    ? 'bg-slate-900 text-white dark:bg-indigo-600'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="relative w-full sm:w-64">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Search vehicle plate..."
+              aria-label="Search vehicle plate"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500"
+            />
+          </div>
+        </div>
+
+        {/* ── Table ──────────────────────────────────────────────────── */}
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
+          <div className="overflow-x-auto">
+            {view === 'vehicles' ? (
+              <VehicleTable
+                rows={paginatedVehicles}
+                firstLoad={firstLoad}
+                hasAny={vehicles.length > 0}
+                onPick={(plate) => {
+                  setSearch(plate);
+                  setView('all');
+                  setPage(1);
+                }}
+              />
+            ) : (
+              <ChallanTable
+                rows={paginatedRows}
+                firstLoad={firstLoad}
+                hasAny={rows.length > 0}
+                onEdit={(row) => {
+                  setEditing(row);
+                  setFormOpen(true);
+                }}
+                onDelete={onDelete}
+              />
+            )}
+          </div>
+
+          <EnterprisePagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+          />
+        </div>
+
+        <ChallanFormDialog
+          open={formOpen}
+          challan={editing}
+          onClose={() => {
+            setFormOpen(false);
+            setEditing(null);
+          }}
+          onSaved={load}
         />
       </div>
-
-      <ChallanFormDialog
-        open={formOpen}
-        challan={editing}
-        onClose={() => {
-          setFormOpen(false);
-          setEditing(null);
-        }}
-        onSaved={load}
-      />
     </div>
   );
 }
