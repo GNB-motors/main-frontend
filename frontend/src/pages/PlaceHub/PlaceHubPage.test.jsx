@@ -150,7 +150,11 @@ function seed() {
   PlaceHubService.warehouseRoster.mockResolvedValue({ inside: [] });
   PlaceHubService.siteDetail.mockResolvedValue(null);
   PlaceHubService.loadSummary.mockReturnValue(
-    ok({ unproductive: { hours: 6, stops: 2, trucks: 1 }, lastRunAt: '2026-10-09T02:00:00Z' }),
+    ok({
+      unproductive: { hours: 6, stops: 2, trucks: 1 },
+      homes: 1,
+      lastRunAt: '2026-10-09T02:00:00Z',
+    }),
   );
   PlaceHubService.loadBreaks.mockReturnValue(
     ok([
@@ -305,9 +309,11 @@ describe('PlaceHubPage', () => {
   it('shows Place Intelligence’s table views as tabs', async () => {
     renderPage();
     await screen.findByText('Dankuni yard');
-    for (const name of ['Routes', 'Facilities', 'Regions', 'Driver homes']) {
+    for (const name of ['Routes', 'Facilities', 'Regions']) {
       expect(screen.getByRole('button', { name: new RegExp(name) })).toBeInTheDocument();
     }
+    // Driver homes is gated on the summary's homes count, which loads async.
+    expect(await screen.findByRole('button', { name: /Driver homes/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Shadow report/ })).not.toBeInTheDocument();
   });
 

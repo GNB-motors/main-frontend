@@ -71,6 +71,7 @@ const Navbar = ({ toggleSidebar }) => {
   };
 
   const getPageTitle = () => {
+    if (location.pathname === '/mileage-tracking/new') return 'Add diesel fill';
     // Handle trip detail pages
     if (location.pathname.match(/^\/trip-management\/trip\/[a-f0-9]+$/)) {
       return '';
@@ -108,7 +109,6 @@ const Navbar = ({ toggleSidebar }) => {
   };
 
   const isTripsPage = location.pathname.includes('/trips') || location.pathname.includes('/trip');
-  const isMileagePage = location.pathname.startsWith('/mileage-tracking');
   const isMileageListPage = location.pathname === '/mileage-tracking';
   const isAdBlueListPage = location.pathname === '/adblue-tracking';
   const isTripListPage = location.pathname === '/trip-management';
@@ -186,7 +186,7 @@ const Navbar = ({ toggleSidebar }) => {
             </button>
           </>
         )}
-        {isMileagePage && (
+        {isMileageListPage && (
           <button
             className="btn btn-primary trip-action-btn"
             onClick={() => navigate('/mileage-tracking/new')}

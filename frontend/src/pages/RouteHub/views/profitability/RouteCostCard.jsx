@@ -18,7 +18,7 @@ export default function RouteCostCard({ selected, slices, costTotal, target, dat
                 key={s.key}
                 title={SLICE[s.key]?.label || s.key}
                 style={{
-                  width: `${((s.amountInr || 0) / costTotal) * 100}%`,
+                  width: `${((s.perTripInr || 0) / costTotal) * 100}%`,
                   background: SLICE[s.key]?.color || '#9A9AA5',
                 }}
               />
@@ -41,8 +41,8 @@ export default function RouteCostCard({ selected, slices, costTotal, target, dat
                   ) : null}
                 </span>
                 <span className="sp" />
-                <b>{inr(s.amountInr || 0)}</b>
-                <span className="pc">{(((s.amountInr || 0) / costTotal) * 100).toFixed(0)}%</span>
+                <b>{inr(s.perTripInr || 0)}</b>
+                <span className="pc">{(((s.perTripInr || 0) / costTotal) * 100).toFixed(0)}%</span>
               </div>
             ))}
           </div>

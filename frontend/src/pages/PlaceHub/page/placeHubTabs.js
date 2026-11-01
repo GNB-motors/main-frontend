@@ -18,6 +18,7 @@ export default function placeHubTabs({
   isSuperAdmin,
   allowHygiene,
   allowDeliveries,
+  hasHomes,
 }) {
   return [
     { id: 'places', label: 'Places', Icon: MapPinned },
@@ -30,7 +31,9 @@ export default function placeHubTabs({
       allowDeliveries && { id: 'deliveries', label: 'Deliveries', Icon: Route, table: true },
     allowSites && { id: 'facilities', label: 'Facilities', Icon: Factory, table: true },
     allowSites && { id: 'regions', label: 'Regions', Icon: Layers, table: true },
-    allowSites && { id: 'homes', label: 'Driver homes', Icon: Home, table: true },
+    // Hidden until the inference has at least one proposal — it stays empty
+    // until driver↔vehicle attribution covers a fleet's night halts.
+    allowSites && hasHomes && { id: 'homes', label: 'Driver homes', Icon: Home, table: true },
     allowSites &&
       isSuperAdmin && { id: 'shadow', label: 'Shadow report', Icon: ShieldCheck, table: true },
   ].filter(Boolean);

@@ -141,7 +141,10 @@ export default function ProfitabilityView({ params, toast, go }) {
   };
 
   const slices = selected?.costBreakdown || [];
-  const costTotal = slices.reduce((a, s) => a + (s.amountInr || 0), 0) || 1;
+  // The card header is "Cost per trip", so the breakdown must use the per-trip
+  // slice (perTripInr), not the window group total (amountInr) — otherwise the
+  // slices never sum to the header figure.
+  const costTotal = slices.reduce((a, s) => a + (s.perTripInr || 0), 0) || 1;
 
   return (
     <section className="view">

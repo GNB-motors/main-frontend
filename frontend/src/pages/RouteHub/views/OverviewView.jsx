@@ -78,7 +78,10 @@ export default function OverviewView({ go, toast, setBadge }) {
     [profit],
   );
 
-  const distanceKm = utilization?.totals?.totalKm ?? utilization?.totalKm ?? null;
+  // /api/owner-value/utilization returns the distance under fleet.totalKm; the
+  // older totals/top-level keys are kept as fallbacks only.
+  const distanceKm =
+    utilization?.fleet?.totalKm ?? utilization?.totals?.totalKm ?? utilization?.totalKm ?? null;
   const activeVehicles = utilization?.vehicles?.length ?? vehicles.length;
 
   const kpis = [

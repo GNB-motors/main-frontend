@@ -123,6 +123,8 @@ const SlotUpload = ({
                   Replace
                 </label>
                 <button
+                  type="button"
+                  aria-label={`Remove ${label}`}
                   className="slot-action-btn delete"
                   onClick={(e) => {
                     e.preventDefault();
