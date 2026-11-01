@@ -84,8 +84,7 @@ const DashboardLayout = () => (
     <BranchProvider>
       <FleetLinkProvider>
         <SupportPortalProvider>
-          {/* Records what gets opened and feeds the sidebar its evidence-based
-              cut. A failure here degrades to a whole menu, never a broken one. */}
+          {/* Usage analytics remain independent of sidebar visibility. */}
           <UsageAnalyticsProvider>
             <DashboardLayoutInner />
           </UsageAnalyticsProvider>

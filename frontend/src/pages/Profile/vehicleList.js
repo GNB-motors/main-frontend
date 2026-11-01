@@ -7,6 +7,16 @@ import { linkForAccount, linkStatus, needsAction } from '../../lib/fleetLink';
 
 /** Normalize the camelCase API vehicle shape to the snake_case UI shape. */
 export function normalizeVehicle(v) {
+  const efficiency = v.kmPerLitre;
+  const rawMileage = Object.hasOwn(v, 'kmPerLitre')
+    ? efficiency?.published === false
+      ? null
+      : efficiency?.kmPerL
+    : (v.averageMileage ?? v.avgMileage ?? v.mileage);
+  const numericMileage =
+    typeof rawMileage === 'number' || typeof rawMileage === 'string' ? Number(rawMileage) : NaN;
+  const averageMileage =
+    Number.isFinite(numericMileage) && numericMileage > 0 ? numericMileage : null;
   return {
     id: v._id || v.id || v._id, // keep id if present
     registration_no: v.registrationNumber || v.registration_no || v.registrationNumber,
@@ -26,7 +36,14 @@ export function normalizeVehicle(v) {
     // Branch membership state (present only in a branch view).
     branchStatus: v.branchStatus,
     isImported: v.isImported,
-    averageMileage: v.averageMileage ?? v.avgMileage ?? v.mileage ?? null,
+    averageMileage,
+    mileageWithheld:
+      averageMileage == null &&
+      (efficiency?.published === false || Boolean(efficiency?.withheldReason)),
+    mileageUnavailableReason:
+      averageMileage != null
+        ? null
+        : efficiency?.withheldReason || 'No calculated mileage available yet.',
   };
 }
 

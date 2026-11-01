@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { CalendarDays, Check, ChevronDown, ChevronLeft } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -20,10 +20,13 @@ export default function TripRangePicker({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState('presets');
   const [draft, setDraft] = useState(undefined);
+  const [boundary, setBoundary] = useState(undefined);
+  const triggerRef = useRef(null);
 
   const openChange = (next) => {
     setOpen(next);
     if (next) {
+      setBoundary(triggerRef.current?.closest('.atx-page') || undefined);
       setView(value.range === 'custom' ? 'custom' : 'presets');
       setDraft(
         value.range === 'custom' ? { from: dateOf(value.from), to: dateOf(value.to) } : undefined,
@@ -56,6 +59,7 @@ export default function TripRangePicker({ value, onChange }) {
   return (
     <Popover open={open} onOpenChange={openChange}>
       <PopoverTrigger
+        ref={triggerRef}
         className={`atx-range-trigger${filtered ? ' atx-range-trigger--on' : ''}`}
         aria-label={`Trips in: ${rangeLabel(value)}`}
       >
@@ -63,7 +67,13 @@ export default function TripRangePicker({ value, onChange }) {
         <span>{rangeLabel(value)}</span>
         <ChevronDown size={15} strokeWidth={2} aria-hidden="true" className="atx-range-chev" />
       </PopoverTrigger>
-      <PopoverContent align="end" className="atx-scope atx-range-pop w-auto p-0">
+      <PopoverContent
+        align="start"
+        collisionBoundary={boundary}
+        collisionPadding={8}
+        collisionAvoidance={{ side: 'flip', align: 'shift' }}
+        className="atx-scope atx-range-pop w-auto p-0"
+      >
         {view === 'presets' ? (
           <div className="atx-range-list" role="listbox" aria-label="Date range">
             {RANGE_PRESETS.map((p) => {

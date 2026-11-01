@@ -714,6 +714,9 @@
 }
 
 .atx-range-pop {
+  max-width: var(--available-width, calc(100vw - 24px));
+  max-height: var(--available-height);
+  overflow: auto;
   border-radius: 12px;
   background: var(--atx-surface);
   border-color: var(--atx-line-2);

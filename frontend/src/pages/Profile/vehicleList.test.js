@@ -29,6 +29,43 @@ const apiVehicle = {
 };
 
 describe('normalizeVehicle', () => {
+  it('uses the published km/L block instead of the legacy km/day object', () => {
+    const vehicle = normalizeVehicle({
+      ...apiVehicle,
+      kmPerLitre: { kmPerL: 4.26, published: true },
+      mileage: { ours: { kmPerDay: 88 } },
+    });
+    expect(vehicle.averageMileage).toBe(4.26);
+    expect(vehicle.mileageUnavailableReason).toBeNull();
+  });
+
+  it('preserves a withheld reason and never substitutes another mileage', () => {
+    const vehicle = normalizeVehicle({
+      kmPerLitre: { kmPerL: null, published: false, withheldReason: 'Only one completed cycle.' },
+      averageMileage: 4.5,
+    });
+    expect(vehicle.averageMileage).toBeNull();
+    expect(vehicle.mileageUnavailableReason).toBe('Only one completed cycle.');
+    expect(vehicle.mileageWithheld).toBe(true);
+  });
+
+  it('treats an explicit missing rollup as unavailable instead of using a stale value', () => {
+    const vehicle = normalizeVehicle({ kmPerLitre: null, averageMileage: 4.5 });
+    expect(vehicle.averageMileage).toBeNull();
+    expect(vehicle.mileageUnavailableReason).toBeTruthy();
+  });
+
+  it('still accepts numeric mileage from older API responses', () => {
+    expect(normalizeVehicle({ avgMileage: '4.10' }).averageMileage).toBe(4.1);
+  });
+
+  it.each([{}, { ours: { kmPerDay: 88 } }, '', 0, -1, Infinity, 'invalid'])(
+    'never treats an invalid or legacy object as km/L (%j)',
+    (mileage) => {
+      expect(normalizeVehicle({ mileage }).averageMileage).toBeNull();
+    },
+  );
+
   it('maps camelCase API fields to snake_case UI shape', () => {
     const v = normalizeVehicle(apiVehicle);
     expect(v.id).toBe('veh-1');

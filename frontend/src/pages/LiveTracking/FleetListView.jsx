@@ -3,6 +3,7 @@ import VehicleCardSkeleton from './VehicleCardSkeleton.jsx';
 import renderIconSvg from './renderIconSvg.jsx';
 import { NOVA_STATUS } from './statusPalettes.js';
 import { formatAgoText } from './minutesAgoFormat.js';
+import VehicleLocation from './VehicleLocation.jsx';
 
 const SKEL_CARD_COUNT = 6;
 
@@ -62,7 +63,6 @@ export default function FleetListView({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <kbd>/</kbd>
       </div>
 
       {/* Cards List */}
@@ -99,9 +99,9 @@ export default function FleetListView({
                   <div className="vc-id">
                     <div className="vc-plate">{v.plate}</div>
                     <div className="vc-vin">
-                      {[v.manufacturer, v.model].filter(Boolean).join(' · ') ||
-                        'Manufacturer unknown'}
+                      {v.manufacturer || 'Manufacturer unknown'} · Model: {v.model || '—'}
                     </div>
+                    <div className="vc-vin">VIN: {v.vin || '—'}</div>
                   </div>
                   <span className="vc-state">
                     <i />
@@ -111,8 +111,7 @@ export default function FleetListView({
 
                 {/* Current location (real position) */}
                 <div className="vc-loc">
-                  {renderIconSvg('pin', 13)}
-                  <span>{v.area || 'No location fix'}</span>
+                  <VehicleLocation vehicle={v} />
                 </div>
 
                 {/* Card Meta Footer */}

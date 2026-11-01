@@ -7,13 +7,18 @@ import VehicleInfoSection from './VehicleInfoSection.jsx';
 import DriverAssignmentSection from './DriverAssignmentSection.jsx';
 import TelematicsDiagnosticsSection from './TelematicsDiagnosticsSection.jsx';
 import WeatherSection from './WeatherSection.jsx';
+import VehicleLocation from './VehicleLocation.jsx';
+import VehicleMetricTiles from './VehicleMetricTiles.jsx';
+import useApi from '../../hooks/useApi.js';
+import { getUserRole } from '../../utils/session.js';
+import TrackTelemetryService from './TrackTelemetryService.js';
+import vehicleMetricReadings from './vehicleMetricReadings.js';
 
 export default function VehicleDetailPanel({
   selectedVehicle,
   setSelectedId,
   exitReplay,
   showToast,
-  mapRef,
   isTrailVisible,
   replayState,
   trailLoading,
@@ -31,6 +36,14 @@ export default function VehicleDetailPanel({
   weatherLoading,
   weatherContext,
 }) {
+  const reg = selectedVehicle?.plate;
+  const canReadHealth = ['OWNER', 'MANAGER'].includes(getUserRole());
+  const { data: health } = useApi((signal) => TrackTelemetryService.getLatest(reg, signal), [reg], {
+    enabled: Boolean(reg) && canReadHealth,
+    scopeKey: reg,
+  });
+  const readings = vehicleMetricReadings(selectedVehicle || {}, health);
+
   return (
     <div
       className={`railview railview--detail ${selectedVehicle ? 'open' : ''}`}
@@ -43,7 +56,18 @@ export default function VehicleDetailPanel({
               {renderIconSvg('chevLeft', 16)}
               Fleet
             </button>
-            <span style={{ flex: 1 }} />
+            <div className="dtop-statuses">
+              <span className={`gps-status ${selectedVehicle.gps === 'Active' ? 'is-active' : ''}`}>
+                {renderIconSvg('nav', 13)}
+                {selectedVehicle.gps === 'Active' ? 'GPS active' : 'No GPS fix'}
+              </span>
+              <span
+                className={`ignition-status ${selectedVehicle.ignition === 'ON' ? 'is-active' : ''}`}
+              >
+                {renderIconSvg('zap', 13)}
+                Ignition {selectedVehicle.ignition || '—'}
+              </span>
+            </div>
             <button
               className="dclose"
               aria-label="Close"
@@ -63,13 +87,10 @@ export default function VehicleDetailPanel({
               <div className="dtitle">
                 <div className="plate">{selectedVehicle.plate}</div>
                 <div className="model">
-                  {selectedVehicle.model || 'Model n/a'}
-                  {selectedVehicle.vin ? (
-                    <>
-                      {' · '}
-                      <code>#{selectedVehicle.vin}</code>
-                    </>
-                  ) : null}
+                  <span>Model:</span> {selectedVehicle.model || '—'}
+                </div>
+                <div className="model">
+                  <span>VIN:</span> <code>{selectedVehicle.vin || '—'}</code>
                 </div>
               </div>
             </div>
@@ -87,57 +108,13 @@ export default function VehicleDetailPanel({
             </div>
 
             {/* Metric Tiles */}
-            <div className="metrics">
-              <div className="metric">
-                {renderIconSvg('fuel', 18)}
-                <div>
-                  <div className="k">Fuel</div>
-                  <div className="v">
-                    {selectedVehicle.fuel != null ? `${selectedVehicle.fuel} L` : '—'}
-                  </div>
-                </div>
-              </div>
-
-              <div className="metric">
-                {renderIconSvg('zap', 18)}
-                <div>
-                  <div className="k">Ignition</div>
-                  <div className={`v ${selectedVehicle.ignition === 'ON' ? 'ok' : 'off'}`}>
-                    {selectedVehicle.ignition}
-                  </div>
-                </div>
-              </div>
-
-              <div className="metric">
-                {renderIconSvg('nav', 18)}
-                <div>
-                  <div className="k">GPS</div>
-                  <div className={`v ${selectedVehicle.gps === 'Active' ? 'ok' : 'off'}`}>
-                    {selectedVehicle.gps}
-                  </div>
-                </div>
-              </div>
-
-              <div className="metric">
-                {renderIconSvg('gauge', 18)}
-                <div>
-                  <div className="k">Speed</div>
-                  <div className="v">
-                    {selectedVehicle.speed != null ? `${selectedVehicle.speed} km/h` : '—'}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <VehicleMetricTiles vehicle={selectedVehicle} readings={readings} />
 
             {/* Location and Last Update Lines */}
             <div className="dlist">
               <div className="dline">
-                {renderIconSvg('pin', 18)}
                 <div>
-                  <b>{selectedVehicle.area || 'No location fix'}</b>
-                  {selectedVehicle.hasFix
-                    ? `${selectedVehicle.lat.toFixed(4)}, ${selectedVehicle.lng.toFixed(4)}`
-                    : 'GPS position unavailable'}
+                  <VehicleLocation vehicle={selectedVehicle} showMap />
                 </div>
               </div>
 
@@ -159,26 +136,6 @@ export default function VehicleDetailPanel({
             <div className="dactions">
               <button
                 className="act"
-                disabled={!selectedVehicle.hasFix}
-                onClick={() => {
-                  if (!selectedVehicle.hasFix) {
-                    showToast(`No GPS fix for ${selectedVehicle.plate}`);
-                    return;
-                  }
-                  mapRef.current?.panTo({
-                    lat: selectedVehicle.lat,
-                    lng: selectedVehicle.lng,
-                  });
-                  mapRef.current?.setZoom(14);
-                  showToast(`Focused on ${selectedVehicle.plate}`);
-                }}
-              >
-                {renderIconSvg('pin', 18)}
-                Focus
-              </button>
-
-              <button
-                className="act"
                 aria-pressed={isTrailVisible && !replayState.on}
                 disabled={trailLoading}
                 onClick={() => toggleTrail(selectedVehicle)}
@@ -190,6 +147,7 @@ export default function VehicleDetailPanel({
               <button
                 className="act"
                 aria-pressed={replayState.on}
+                disabled={trailLoading}
                 onClick={() => enterReplay(selectedVehicle)}
               >
                 {renderIconSvg('play', 18)}
@@ -222,11 +180,12 @@ export default function VehicleDetailPanel({
                 habitualHalts={habitualHalts}
                 isHabitualHaltsVisible={isHabitualHaltsVisible}
               />
-              <VehicleInfoSection selectedVehicle={selectedVehicle} />
+              <VehicleInfoSection selectedVehicle={selectedVehicle} odometer={readings.odometer} />
               <DriverAssignmentSection selectedDriver={selectedDriver} />
               <TelematicsDiagnosticsSection
                 selectedVehicle={selectedVehicle}
                 showToast={showToast}
+                odometer={readings.odometer}
               />
             </div>
           </div>

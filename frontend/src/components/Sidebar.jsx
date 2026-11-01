@@ -161,7 +161,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     }
 
     // type === 'group' (collapsible dropdown)
-    // Children are already flag-, module- and role-filtered by computeVisibleNav().
+    // Children already satisfy the feature, module and role access checks.
     const visibleChildren = item.children || [];
     const groupId = getNavGroupId(item);
     const isOpen = openGroupId === groupId;

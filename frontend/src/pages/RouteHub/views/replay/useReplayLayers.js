@@ -4,6 +4,7 @@ import { addRoadLayers } from '../../../../lib/roadTrailLeaflet';
 import { overspeedStretches } from '../../overspeedReplay';
 import { EVC, OVERSPEED_STRETCH } from './replayConstants.js';
 import sampleAt from './sampleAt.js';
+import replayAppearance from '../../../../components/map/replayAppearance.js';
 
 export default function useReplayLayers({
   mapRef,
@@ -21,13 +22,7 @@ export default function useReplayLayers({
       if (trip.roadLayers.length) {
         addRoadLayers(L, group, trip.roadLayers, { color: '#9A9AA5', fleetColor: '#c4b5fd' });
       } else {
-        L.polyline(trip.path, {
-          color: '#9A9AA5',
-          weight: 4,
-          opacity: 0.6,
-          dashArray: '2 8',
-          lineCap: 'round',
-        }).addTo(group);
+        L.polyline(trip.path, replayAppearance.route).addTo(group);
       }
       // Over the limit: the stretch itself, along the road, so the map shows where.
       overspeedStretches(trip, trip.overspeed).forEach(({ event, onRoad, paths }) => {
@@ -52,12 +47,7 @@ export default function useReplayLayers({
           .addTo(group);
       });
 
-      runRef.current = L.polyline([trip.path[0]], {
-        color: '#2F58EE',
-        weight: 5,
-        opacity: 0.95,
-        lineCap: 'round',
-      }).addTo(group);
+      runRef.current = L.polyline([trip.path[0]], replayAppearance.travelled).addTo(group);
 
       trip.events.forEach((e) => {
         const at = sampleAt(trip, e.t).ll;

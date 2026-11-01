@@ -1634,24 +1634,6 @@ html.dark .nova-rh {
   margin-top: 2px;
   letter-spacing: -0.3px;
 }
-.rh-truck {
-  width: 38px;
-  height: 38px;
-}
-.rh-truck div {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: #4469f0;
-  border: 3px solid #fff;
-  box-shadow: 0 6px 16px rgba(30, 34, 56, 0.32);
-  display: grid;
-  place-items: center;
-  color: #fff;
-}
-.rh-truck.fast div {
-  background: #c2323a;
-}
 .nova-rh .player {
   display: flex;
   align-items: center;

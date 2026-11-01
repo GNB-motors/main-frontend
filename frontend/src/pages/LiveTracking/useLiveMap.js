@@ -1,15 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LiveTrackingService } from './LiveTrackingService.jsx';
 import RoadService from '../../services/RoadService';
-import { summaryOf } from '../../lib/roadTrail';
 import { decodePolyline6 } from '../../lib/polyline6';
 import { LIGHT_MAP_STYLE, DARK_MAP_STYLE } from './mapStyles.js';
-import trailDistanceKm from './trailDistanceKm.js';
 import useTrailGeometry from './useTrailGeometry.js';
+import useTrackReplay from './useTrackReplay.js';
+import useTrailHistory from './useTrailHistory.js';
 
-/* Everything that drives the map instance: viewport fitting/zoom, the breadcrumb
-   trail and trip replay. Kept in one hook because they all share mapRef and the
-   trail/replay setters. */
+/* Map viewport, trail layers and replay share the same map instance. */
 export default function useLiveMap({
   theme,
   mapMode,
@@ -30,23 +28,15 @@ export default function useLiveMap({
   const [planStops, setPlanStops] = useState([]);
   const [roadTrail, setRoadTrail] = useState(null); // road geometry from our engine (plan P4.10)
 
-  // Habitual halts (places/hub) layer state — server-side aggregated halt
-  // clusters. Independent of the trail so the user can keep it on while
-  // replaying a different vehicle.
+  // Habitual halts are independent of the current trail.
   const [habitualHalts, setHabitualHalts] = useState([]);
   const [habitualHaltsLoading, setHabitualHaltsLoading] = useState(false);
   const [isHabitualHaltsVisible, setIsHabitualHaltsVisible] = useState(false);
   const [habitualHaltsLoadedFor, setHabitualHaltsLoadedFor] = useState(null);
-  // Trip-breaks toggle (defaults on so the per-trip polyline split is
-  // visible — flipping it off is for power users who want the legacy
-  // single polyline).
+  // Per-trip colours are enabled by default.
   const [segmentByTrip, setSegmentByTrip] = useState(true);
 
-  // Congestion layer (00_PLAN.md item 5): this org's OWN road-matched edges,
-  // coloured against the boundary the nightly job learned for each road class,
-  // region and IST hour. Not the pooled list — that one needs three contributing
-  // orgs to publish and stays empty on a single-org deployment. Independent of the
-  // trail, so it can stay on while a different vehicle is replayed.
+  // Use this org's road edges; pooled congestion needs three contributing orgs.
   const [congestion, setCongestion] = useState(null);
   const [congestionLoading, setCongestionLoading] = useState(false);
   const [isCongestionVisible, setIsCongestionVisible] = useState(false);
@@ -89,8 +79,7 @@ export default function useLiveMap({
     [congestion, isCongestionVisible],
   );
 
-  /* Frame the layer once, when it first has geometry. Declared before the return
-     so the toggle callback above can call it. */
+  // Frame congestion when its geometry first arrives.
   function fitToCongestion(rows) {
     if (!mapRef.current || !window.google) return;
     const withGeom = rows.filter((r) => r.geom).slice(0, 400);
@@ -100,22 +89,39 @@ export default function useLiveMap({
     mapRef.current.fitBounds(bounds, { top: 70, right: 70, bottom: 70, left: 70 });
   }
 
-  const [replayState, setReplayState] = useState({
-    on: false,
-    playing: false,
-    t: 0,
-    speed: 4,
-    pts: null,
-  });
   const [mapZoom, setMapZoom] = useState(12);
 
   // Map & interaction refs
   const mapRef = useRef(null);
   const didAutoFitRef = useRef(false);
-  // Tracks the last vehicle we zoomed to, so the gentle select-zoom fires once
-  // per new pick — not on every live position update of the followed vehicle.
+  // Zoom once per selection, so live updates preserve the user's zoom.
   const zoomedSelectionRef = useRef(null);
-  const lastReplayTimeRef = useRef(0);
+  const trailHistory = useTrailHistory({
+    selectedId,
+    mapRef,
+    showToast,
+    setTrailLoading,
+    setTrailPoints,
+    setRawTrailPoints,
+    setTrips,
+    setPlanStops,
+    setRoadTrail,
+    setIsTrailVisible,
+  });
+  const { replayState, setReplayState, enterReplay, exitReplay } = useTrackReplay({
+    trailSelection: trailHistory.selection,
+    beforeLoad: trailHistory.cancel,
+    selectedId,
+    mapRef,
+    showToast,
+    setTrailLoading,
+    setTrailPoints,
+    setRawTrailPoints,
+    setTrips,
+    setPlanStops,
+    setRoadTrail,
+    setIsTrailVisible,
+  });
 
   /* ---------------- Google Map Configuration & State ---------------- */
   const mapOptions = useMemo(
@@ -139,10 +145,7 @@ export default function useLiveMap({
     }
   }, [mapMode]);
 
-  // Callback when Google Map mounts
-  // Fit the viewport to the GPS-live vehicles (those with a fix). Clamps the
-  // zoom afterwards so a single live vehicle only zooms in "a little" rather
-  // than to street level. Returns true if it had something to fit.
+  // Fit GPS-live vehicles, with a zoom cap for tightly clustered fleets.
   const fitToLiveVehicles = useCallback(
     (map) => {
       if (!map || !window.google) return false;
@@ -184,8 +187,7 @@ export default function useLiveMap({
     [fitToLiveVehicles],
   );
 
-  // One-time auto-fit to GPS-live vehicles once positions first arrive, so
-  // landing on the page frames the moving fleet instead of all of India.
+  // Frame the live fleet once its first positions arrive.
   useEffect(() => {
     if (didAutoFitRef.current || !mapRef.current || selectedId) return;
     if (fitToLiveVehicles(mapRef.current)) {
@@ -195,7 +197,14 @@ export default function useLiveMap({
 
   // Pan / focus when selected vehicle changes
   useEffect(() => {
-    if (!selectedVehicle || !selectedVehicle.hasFix || !mapRef.current) return;
+    if (
+      replayState.on ||
+      isTrailVisible ||
+      !selectedVehicle ||
+      !selectedVehicle.hasFix ||
+      !mapRef.current
+    )
+      return;
     const map = mapRef.current;
     map.panTo({ lat: selectedVehicle.lat, lng: selectedVehicle.lng });
     // Gentle zoom-in only when a NEW vehicle is picked — not on every live
@@ -205,7 +214,7 @@ export default function useLiveMap({
       if ((map.getZoom() || 5) < 14) map.setZoom(14);
       zoomedSelectionRef.current = selectedVehicle.id;
     }
-  }, [selectedVehicle]);
+  }, [selectedVehicle, replayState.on, isTrailVisible]);
 
   // Clearing the selection re-arms the gentle zoom, so re-picking the same
   // vehicle later zooms in again.
@@ -222,50 +231,21 @@ export default function useLiveMap({
     fallbackSingleColor,
     replayPtsCoords,
     replayCurrentPos,
-    replayRunPath,
-    replayBearing,
     replayCurrentTs,
-  } = useTrailGeometry({ selectedVehicle, trailPoints, rawTrailPoints, trips, replayState });
+    replayRunPaths,
+    replayRoadLayers,
+    replayBaseLayers,
+    replaySpeed,
+  } = useTrailGeometry({
+    selectedVehicle,
+    trailPoints,
+    rawTrailPoints,
+    trips,
+    replayState,
+    roadTrail,
+  });
 
-  // Replay animation frame ticker (decoupled from replayState.t so 60fps loop runs smoothly without tearing down)
-  useEffect(() => {
-    if (!replayState.on || !replayState.playing || !replayState.pts || replayState.pts.length < 2) {
-      lastReplayTimeRef.current = 0;
-      return;
-    }
-
-    let animId;
-    const speed = replayState.speed || 1;
-    const duration = 24 / speed;
-
-    const step = (ts) => {
-      if (!lastReplayTimeRef.current) {
-        lastReplayTimeRef.current = ts;
-      }
-      const dt = (ts - lastReplayTimeRef.current) / 1000;
-      lastReplayTimeRef.current = ts;
-
-      setReplayState((prev) => {
-        if (!prev.playing) return prev;
-        const nextT = prev.t + dt / duration;
-        if (nextT >= 1) {
-          return { ...prev, t: 1, playing: false };
-        }
-        return { ...prev, t: nextT };
-      });
-
-      animId = requestAnimationFrame(step);
-    };
-
-    animId = requestAnimationFrame(step);
-    return () => {
-      cancelAnimationFrame(animId);
-    };
-  }, [replayState.on, replayState.playing, replayState.speed, replayState.pts]);
-
-  /* Load the habitual-halts (places/hub layer) for a vehicle. Safe to call
-     repeatedly — a cache-key check inside short-circuits when the same plate
-     was already loaded. */
+  // Cache habitual halts for the selected plate.
   const loadHabitualHalts = useCallback(
     async (plate) => {
       if (!plate) return;
@@ -286,8 +266,7 @@ export default function useLiveMap({
     [habitualHaltsLoadedFor, habitualHalts.length],
   );
 
-  /* Clear the halts cache when the user picks a different vehicle, so the
-     next toggle re-fetches the right plate. */
+  // A different vehicle needs its own halts.
   useEffect(() => {
     setHabitualHaltsLoadedFor(null);
     setHabitualHalts([]);
@@ -307,132 +286,17 @@ export default function useLiveMap({
     [isHabitualHaltsVisible, loadHabitualHalts],
   );
 
-  // Toggle breadcrumb trail
   const toggleTrail = useCallback(
-    async (v) => {
+    async (vehicle) => {
       if (isTrailVisible && !replayState.on) {
-        setIsTrailVisible(false);
-        setTrailPoints([]);
-        setRawTrailPoints([]);
-        setTrips([]);
-        setPlanStops([]);
-        setRoadTrail(null);
+        trailHistory.hide();
         return;
       }
-
-      if (replayState.on) {
-        setReplayState((prev) => ({ ...prev, on: false, playing: false }));
-      }
-
-      setTrailLoading(true);
-      let points = [];
-      let raw = [];
-      let metaTrips = [];
-      let metaStops = [];
-
-      try {
-        const trailData = await LiveTrackingService.getTrail(v.plate);
-        if (trailData?.points?.length > 1) {
-          raw = trailData.points.filter((p) => p.latitude != null && p.longitude != null);
-          points = raw.map((p) => [p.latitude, p.longitude]);
-          metaTrips = Array.isArray(trailData.trips) ? trailData.trips : [];
-          metaStops = Array.isArray(trailData.planStops) ? trailData.planStops : [];
-        }
-      } catch {
-        // Trail is optional; empty-state handled below.
-      } finally {
-        setTrailLoading(false);
-      }
-
-      if (!points || points.length < 2) {
-        showToast(`No recorded trail for ${v.plate}`);
-        return;
-      }
-
-      // Road geometry for the same 24 h window the raw trail uses (backend trailDefaultHours = 24).
-      const road = await RoadService.getRoadTrailIfEnabled(v.plate, {
-        from: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-        to: new Date().toISOString(),
-      });
-      setRoadTrail(road);
-      setTrailPoints(points);
-      setRawTrailPoints(raw);
-      setTrips(metaTrips);
-      setPlanStops(metaStops);
-      setIsTrailVisible(true);
-
-      if (mapRef.current && window.google) {
-        const bounds = new window.google.maps.LatLngBounds();
-        points.forEach(([lat, lng]) => bounds.extend({ lat, lng }));
-        mapRef.current.fitBounds(bounds, { top: 70, right: 70, bottom: 70, left: 70 });
-      }
-      const roadSummary = summaryOf(road);
-      const tripCount = metaTrips.length || new Set(raw.map((p) => p.tripId).filter(Boolean)).size;
-      const tripSuffix = tripCount > 0 ? ` · ${tripCount} trip${tripCount === 1 ? '' : 's'}` : '';
-      showToast(
-        (roadSummary
-          ? `Trail · ${roadSummary.km.toFixed(1)} km ${roadSummary.label} · ${points.length} points`
-          : `Trail · ${trailDistanceKm(points).toFixed(1)} km straight-line estimate · ${points.length} points`) +
-          tripSuffix,
-      );
+      if (replayState.on) exitReplay();
+      await trailHistory.load(vehicle);
     },
-    [isTrailVisible, replayState.on, showToast],
+    [isTrailVisible, replayState.on, exitReplay, trailHistory],
   );
-
-  // Enter Replay
-  const enterReplay = useCallback(
-    async (v) => {
-      let points = [];
-      let raw = [];
-      try {
-        const trailData = await LiveTrackingService.getTrail(v.plate);
-        if (trailData?.points?.length > 1) {
-          raw = trailData.points.filter((p) => p.latitude != null && p.longitude != null);
-          points = raw.map((p) => [p.latitude, p.longitude]);
-          setRawTrailPoints(raw);
-          setTrips(Array.isArray(trailData.trips) ? trailData.trips : []);
-          setPlanStops(Array.isArray(trailData.planStops) ? trailData.planStops : []);
-        }
-      } catch {
-        // Trail is optional; empty-state handled below.
-      }
-
-      if (!points || points.length < 2) {
-        showToast('No recorded trail to replay for this vehicle');
-        return;
-      }
-
-      setRoadTrail(
-        await RoadService.getRoadTrailIfEnabled(v.plate, {
-          from: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-          to: new Date().toISOString(),
-        }),
-      );
-      setTrailPoints(points);
-      setReplayState({
-        on: true,
-        playing: true,
-        t: 0,
-        speed: 4,
-        pts: points,
-      });
-      setIsTrailVisible(true);
-
-      if (mapRef.current && window.google) {
-        const bounds = new window.google.maps.LatLngBounds();
-        points.forEach(([lat, lng]) => bounds.extend({ lat, lng }));
-        mapRef.current.fitBounds(bounds, { top: 70, right: 70, bottom: 170, left: 70 });
-      }
-    },
-    [showToast],
-  );
-
-  // Exit Replay
-  const exitReplay = useCallback(() => {
-    setReplayState({ on: false, playing: false, t: 0, speed: 4, pts: null });
-    setIsTrailVisible(false);
-    setRoadTrail(null);
-  }, []);
 
   // Zoom In / Out
   const handleZoomIn = useCallback(() => {
@@ -471,10 +335,15 @@ export default function useLiveMap({
     trailKm,
     replayPtsCoords,
     replayCurrentPos,
-    replayRunPath,
-    replayBearing,
     replayCurrentTs,
+    replayRunPaths,
+    replayRoadLayers,
+    replayBaseLayers,
+    replaySpeed,
     toggleTrail,
+    trailSelection: trailHistory.selection,
+    trailNotice: trailHistory.notice,
+    loadTrail: trailHistory.load,
     enterReplay,
     exitReplay,
     handleZoomIn,

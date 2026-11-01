@@ -7,6 +7,7 @@ export default function ReplayBar({
   selectedVehicle,
   trailKm,
   exitReplay,
+  dateLabel,
 }) {
   return (
     <div className={`replay ${replayState.on ? 'on' : ''}`}>
@@ -16,7 +17,10 @@ export default function ReplayBar({
             <span className="rp-badge">{renderIconSvg('route', 15)}</span>
             <span className="rp-plate">{selectedVehicle.plate}</span>
             <span className="rp-date">
-              {selectedVehicle.ago != null ? formatDayText(selectedVehicle.ago) : 'Recorded trail'}
+              {dateLabel ||
+                (selectedVehicle.ago != null
+                  ? formatDayText(selectedVehicle.ago)
+                  : 'Recorded trail')}
             </span>
             <div className="rp-stats">
               <div className="rp-stat">

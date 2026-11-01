@@ -2119,6 +2119,12 @@ html.dark .nd-dg-count {
   flex-direction: column;
   gap: 8px;
   min-width: 0;
+  /* Every due item is listed (no top-N cap), so the lane scrolls when a bucket
+     holds more than fits. */
+  max-height: 440px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding-right: 2px;
 }
 
 /* Individual upcoming item micro-card */
