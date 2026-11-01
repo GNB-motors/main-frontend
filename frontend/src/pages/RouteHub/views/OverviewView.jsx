@@ -83,6 +83,10 @@ export default function OverviewView({ go, toast, setBadge }) {
   const distanceKm =
     utilization?.fleet?.totalKm ?? utilization?.totals?.totalKm ?? utilization?.totalKm ?? null;
   const activeVehicles = utilization?.vehicles?.length ?? vehicles.length;
+  // The cards do not share one timeframe: distance follows the window selector,
+  // overspeed is clamped to OS_MAX_HOURS, deviations are the currently-open set,
+  // and margin/trips are a 30-day roll-up. Each card states its own period.
+  const osHours = Math.min(hours, OS_MAX_HOURS);
 
   const kpis = [
     {
@@ -91,13 +95,13 @@ export default function OverviewView({ go, toast, setBadge }) {
       l: 'Distance covered',
       v: distanceKm != null ? Math.round(distanceKm).toLocaleString('en-IN') : '—',
       u: 'km',
-      s: `${activeVehicles} vehicles on ${routes.length} routes`,
+      s: `${activeVehicles} vehicles on ${routes.length} routes · last ${hours}h`,
     },
     {
       ic: 'split',
       l: 'Open deviations',
       v: deviationSummary?.open ?? openDev.length,
-      s: `${inr(deviationSummary?.openCostInr ?? openDev.reduce((a, d) => a + (d.estimatedExtraCostInr || 0), 0))} est. detour cost`,
+      s: `${inr(deviationSummary?.openCostInr ?? openDev.reduce((a, d) => a + (d.estimatedExtraCostInr || 0), 0))} est. detour cost · currently open`,
       c: '#C2323A',
       tint: 'rgba(229,104,107,.14)',
       vc: '#C2323A',
@@ -106,7 +110,7 @@ export default function OverviewView({ go, toast, setBadge }) {
       ic: 'gauge',
       l: 'Sustained overspeed',
       v: osTotals.eventCount ?? 0,
-      s: `events over ${OS_THRESHOLD} km/h for ${OS_MIN_MIN}+ min`,
+      s: `over ${OS_THRESHOLD} km/h for ${OS_MIN_MIN}+ min · last ${osHours}h`,
       c: '#C56200',
       tint: 'rgba(240,170,72,.16)',
       vc: '#C56200',

@@ -10,7 +10,12 @@ export default function ReplayHud({ frame, limitKmh, erpTripId }) {
         </div>
       </div>
       <div>
-        <div className="k">Speed</div>
+        <div
+          className="k"
+          title="The vehicle's own speedometer reading on this fix. Overspeed events use computed ground speed, so the two can differ."
+        >
+          Speed · device
+        </div>
         <div
           className="v"
           style={{ color: (frame?.speed || 0) > limitKmh ? '#C2323A' : 'inherit' }}

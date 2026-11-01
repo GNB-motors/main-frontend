@@ -33,7 +33,12 @@ export default function buildTrip(
   let acc = 0;
   fixes.forEach((f, i) => {
     if (timeline) acc = (distanceAtTime(timeline, f.at.getTime()) - base) / 1000;
-    else if (i > 0) acc += haversineKm(fixes[i - 1].ll, f.ll);
+    // Straight-line fallback: never chord across a classified signal-loss
+    // silence. The leg into an `inter_trip` break (two trips in the window) or a
+    // `moving` gap (the vehicle drove through a reporting silence, real path
+    // unknown) is a guess, not observed road — summing it inflates the distance.
+    else if (i > 0 && f.gapType !== 'inter_trip' && f.gapType !== 'moving')
+      acc += haversineKm(fixes[i - 1].ll, f.ll);
     f.km = acc;
   });
 

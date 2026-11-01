@@ -5,14 +5,22 @@ const unwrap = (res) => res?.data?.data ?? null;
 let statusPromise = null;
 
 const RoadService = {
-  /** Cached for the browser session; any failure means "engine off" (pages fall back to raw trails). */
+  /**
+   * A SUCCESSFUL status is cached for the browser session; a failure reports
+   * "engine off" for this call only (pages fall back to raw trails) but is NOT
+   * cached — otherwise one transient network error would pin the engine "off"
+   * for the whole session even after it recovers. The next call retries.
+   */
   getEngineStatus: () => {
     if (!statusPromise) {
       statusPromise = apiClient
         .get('/api/road/engine-status')
         .then(unwrap)
         .then((d) => d || { enabled: false })
-        .catch(() => ({ enabled: false }));
+        .catch(() => {
+          statusPromise = null;
+          return { enabled: false };
+        });
     }
     return statusPromise;
   },
