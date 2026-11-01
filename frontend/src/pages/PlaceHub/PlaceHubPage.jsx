@@ -105,6 +105,7 @@ export default function PlaceHubPage() {
     isSuperAdmin,
     allowHygiene: allowSites && isEnabled('placesHygiene'),
     allowDeliveries: allowSites && isEnabled('routesV2'),
+    hasHomes: (data?.summary?.homes || 0) > 0,
   });
   const requestedTab = params.get('tab');
   const tab = tabs.some((t) => t.id === requestedTab) ? requestedTab : 'places';

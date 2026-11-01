@@ -331,8 +331,8 @@ export default function DailyDigestPage() {
             />
           ) : (
             <NdWasteTable
-              idlingTop5={m?.idlingTop5}
-              detourTop5={m?.detourTop5}
+              idlingTop5={money?.idlingTop5}
+              detourTop5={money?.detourTop5}
               onOpenVehicle={openVehicle}
             />
           )}

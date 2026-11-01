@@ -51,17 +51,19 @@ async function flush() {
   const pending = dedupePoints(batch.map((b) => ({ key: b.key, lat: b.lat, lng: b.lng }))).filter(
     (p) => !cache.has(p.key),
   );
-  if (pending.length > 0) {
+  // The fleet can render hundreds of labels together; the resolver accepts at most 200.
+  for (let i = 0; i < pending.length; i += 200) {
+    const chunk = pending.slice(i, i + 200);
     try {
-      const response = await apiClient.post('api/places/resolve', { points: pending });
+      const response = await apiClient.post('api/places/resolve', { points: chunk });
       const places = response.data?.data?.places ?? response.data?.places ?? {};
-      for (const p of pending) {
+      for (const p of chunk) {
         setCached(p.key, places[p.key] ?? null);
       }
     } catch {
       // Negative-cache so a table doesn't retry-storm; PlaceLabel renders
       // the unavailable state, never the coordinate.
-      for (const p of pending) setCached(p.key, null);
+      for (const p of chunk) setCached(p.key, null);
     }
   }
   for (const b of batch) b.resolve(cache.get(b.key) ?? null);

@@ -75,13 +75,14 @@ class OCRService {
    * @param {string} docType - Document type (ODOMETER, FUEL_RECEIPT, WEIGH_IN, etc.)
    * @returns {Promise<Object>} OCR scan result with extracted data
    */
-  static async scan(file, docType) {
+  static async scan(file, docType, { signal } = {}) {
     try {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('docType', docType);
 
       const response = await apiClient.post('/api/ocr/scan', formData, {
+        signal,
         headers: {
           'Content-Type': 'multipart/form-data',
         },

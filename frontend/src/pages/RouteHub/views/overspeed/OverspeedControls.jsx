@@ -55,9 +55,9 @@ export default function OverspeedControls({
             aria-label="Minimum duration in minutes"
             type="number"
             min="1"
-            max="30"
+            max="10"
             value={dur}
-            onChange={(e) => setDur(Number(e.target.value) || 3)}
+            onChange={(e) => setDur(Math.min(10, Number(e.target.value) || 3))}
           />
         </span>
       </label>

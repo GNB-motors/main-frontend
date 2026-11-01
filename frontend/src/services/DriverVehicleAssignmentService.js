@@ -66,13 +66,13 @@ const DriverVehicleAssignmentService = {
    * (defaults to now). Returns null if none (or more than one — ambiguous
    * periods resolve to "no suggestion" rather than guessing).
    */
-  getActiveAssignment: async ({ driverId, vehicleId, activeOn } = {}) => {
+  getActiveAssignment: async ({ driverId, vehicleId, activeOn } = {}, { signal } = {}) => {
     const params = {
       activeOn: activeOn ? new Date(activeOn).toISOString() : new Date().toISOString(),
     };
     if (driverId) params.driverId = driverId;
     if (vehicleId) params.vehicleId = vehicleId;
-    const response = await apiClient.get('/api/driver-vehicle-assignments', { params });
+    const response = await apiClient.get('/api/driver-vehicle-assignments', { params, signal });
     const data = unwrap(response);
     const list = data?.results || data?.items || data || [];
     return Array.isArray(list) && list.length ? list[0] : null;

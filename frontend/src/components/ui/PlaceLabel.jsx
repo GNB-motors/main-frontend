@@ -7,6 +7,7 @@ import { resolvePlace } from '../../services/PlaceService';
  * Renders kind icon + bold label + muted sub, with a map affordance.
  * Coordinates appear only in the hover tooltip (or the map link), never
  * as the visible label.
+ * `fallbackLinkLabel` opts into a map link when no place name is available.
  *
  *   <PlaceLabel lat={site.centroidLat} lng={site.centroidLng} />
  *   <PlaceLabel place={alreadyResolvedPlace} />
@@ -20,7 +21,14 @@ const KIND_ICON = {
   HIGHWAY: Route,
 };
 
-export default function PlaceLabel({ lat, lng, place = null, showMap = true, className = '' }) {
+export default function PlaceLabel({
+  lat,
+  lng,
+  place = null,
+  showMap = true,
+  className = '',
+  fallbackLinkLabel = null,
+}) {
   const key = lat == null || lng == null ? null : `${lat},${lng}`;
   // { key, place } of the last lookup; `place: null` = the lookup failed or found nothing.
   const [lookup, setLookup] = useState(null);
@@ -44,16 +52,18 @@ export default function PlaceLabel({ lat, lng, place = null, showMap = true, cla
   const mapUrl = `https://www.google.com/maps?q=${numLat},${numLng}`;
   const resolved = place || (lookup?.key === key ? lookup.place : undefined);
 
-  if (!resolved) {
+  if (!resolved || (fallbackLinkLabel && resolved.source === 'UNMAPPED')) {
     // undefined = still looking up; null = no name (PlaceService negative-caches failures).
-    const text = resolved === undefined ? 'Finding location…' : 'View on map';
-    return showMap ? (
+    const text = resolved === undefined ? 'Finding location…' : fallbackLinkLabel || 'View on map';
+    return showMap || fallbackLinkLabel ? (
       <a
         href={mapUrl}
         target="_blank"
         rel="noreferrer"
         className={`place-label place-label--pending ${className}`.trim()}
         title={tooltip}
+        onClick={fallbackLinkLabel ? (event) => event.stopPropagation() : undefined}
+        onKeyDown={fallbackLinkLabel ? (event) => event.stopPropagation() : undefined}
       >
         <MapPin size={12} />
         <span className="place-label-main">{text}</span>

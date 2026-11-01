@@ -782,3 +782,14 @@
   border-radius: 9999px;
   border: 1px solid #bbf7d0;
 }
+
+/* Upcoming Service tab — risk pill on each prediction card */
+.si-up-risk-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}

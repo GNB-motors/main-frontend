@@ -9,6 +9,7 @@ import useFleetVehicles from './useFleetVehicles.js';
 import useLiveMap from './useLiveMap.js';
 import useVehicleWeather from './useVehicleWeather.js';
 import useFleetWeather from './useFleetWeather.js';
+import trailDateWindow from './trailDateWindow.js';
 import useSelectedDriver from './useSelectedDriver.js';
 import useVehicleShareDialog from './useVehicleShareDialog.js';
 import useStatusCards from './useStatusCards.js';
@@ -88,6 +89,9 @@ const LiveTrackingPage = () => {
     mapOptions,
     onMapLoad,
     trailLoading,
+    trailSelection,
+    trailNotice,
+    loadTrail,
     isTrailVisible,
     trailPoints,
     roadTrail,
@@ -98,8 +102,10 @@ const LiveTrackingPage = () => {
     trailKm,
     replayPtsCoords,
     replayCurrentPos,
-    replayRunPath,
-    replayBearing,
+    replayRunPaths,
+    replayRoadLayers,
+    replayBaseLayers,
+    replaySpeed,
     replayCurrentTs,
     trailSegments,
     tripLegend,
@@ -221,9 +227,11 @@ const LiveTrackingPage = () => {
               selectedStatusColor={selectedStatusColor}
               replayState={replayState}
               replayPtsCoords={replayPtsCoords}
-              replayRunPath={replayRunPath}
+              replayRunPaths={replayRunPaths}
+              replayRoadLayers={replayRoadLayers}
+              replayBaseLayers={replayBaseLayers}
               replayCurrentPos={replayCurrentPos}
-              replayBearing={replayBearing}
+              replaySpeed={replaySpeed}
               trailSegments={trailSegments}
               tripLegend={tripLegend}
               fallbackSingleColor={fallbackSingleColor}
@@ -238,6 +246,12 @@ const LiveTrackingPage = () => {
             />
 
             <MapOverlayControls
+              selectedVehicle={selectedVehicle}
+              replayState={replayState}
+              trailSelection={trailSelection}
+              trailNotice={trailNotice}
+              trailLoading={trailLoading}
+              loadTrail={loadTrail}
               isTelemetryOn={isTelemetryOn}
               setIsTelemetryOn={setIsTelemetryOn}
               setIsRailOpen={setIsRailOpen}
@@ -259,6 +273,7 @@ const LiveTrackingPage = () => {
                 selectedVehicle={selectedVehicle}
                 trailKm={trailKm}
                 exitReplay={exitReplay}
+                dateLabel={trailDateWindow.label(trailSelection)}
               />
 
               {/* Live Telemetry Ticker */}
@@ -318,7 +333,6 @@ const LiveTrackingPage = () => {
               setSelectedId={setSelectedId}
               exitReplay={exitReplay}
               showToast={showToast}
-              mapRef={mapRef}
               isTrailVisible={isTrailVisible}
               replayState={replayState}
               trailLoading={trailLoading}

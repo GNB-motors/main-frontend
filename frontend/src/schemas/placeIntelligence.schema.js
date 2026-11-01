@@ -170,6 +170,7 @@ export const summarySchema = z
     riskPlaces: num,
     unproductive: z.object({ stops: num, hours: num, trucks: num }).passthrough().nullish(),
     darkZones: num,
+    homes: num.nullish(),
     lastRunAt: str,
   })
   .passthrough();

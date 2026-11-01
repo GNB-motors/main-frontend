@@ -298,7 +298,15 @@ export function buildDocumentAlerts(vehicles, windowDays = 15) {
 
 export function buildUpcomingItems({ serviceVehicles, documents }) {
   const upcoming = [];
-  for (const v of (serviceVehicles || []).filter((x) => x.risk !== 'OVERDUE').slice(0, 4)) {
+  // Soonest first, and no cap — the Upcoming card scrolls, so every service due
+  // in the window is shown. The old `.slice(0, 4)` hid the nearest services:
+  // serviceVehicles comes from downtime.vehicles, ranked by ₹ exposure, which
+  // for DUE_SOON grows with days-until-due (farther = higher), so the top 4 were
+  // the farthest-out services and the soonest ones fell off the list.
+  const upcomingServices = (serviceVehicles || [])
+    .filter((x) => x.risk !== 'OVERDUE')
+    .sort((a, b) => (a.daysUntilDue ?? 0) - (b.daysUntilDue ?? 0));
+  for (const v of upcomingServices) {
     upcoming.push({
       id: `up-svc-${v.registrationNumber}`,
       icon: Wrench,
@@ -313,7 +321,10 @@ export function buildUpcomingItems({ serviceVehicles, documents }) {
       to: `/vehicles/${encodeURIComponent(v.registrationNumber)}`,
     });
   }
-  for (const d of (documents || []).filter((x) => x.daysLeft >= 0).slice(0, 4)) {
+  const upcomingDocs = (documents || [])
+    .filter((x) => x.daysLeft >= 0)
+    .sort((a, b) => a.daysLeft - b.daysLeft);
+  for (const d of upcomingDocs) {
     upcoming.push({
       id: `up-doc-${d.registrationNumber}-${d.docType}`,
       icon: FileWarning,

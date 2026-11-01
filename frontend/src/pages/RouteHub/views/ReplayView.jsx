@@ -31,6 +31,9 @@ export default function ReplayView({ params, toast }) {
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // Set when the server capped the window (returned only the newest points), so
+  // the replay can say the trail is partial instead of silently showing a slice.
+  const [trailMeta, setTrailMeta] = useState(null);
 
   // ERP trips for the selected vehicle. Picking one switches the replay from
   // "whatever fell inside these dates" to the real trip: its window comes from the
@@ -83,12 +86,24 @@ export default function ReplayView({ params, toast }) {
           : windowForRange(nextRange, from, to);
       setLoading(true);
       setError(null);
+      setTrailMeta(null);
       try {
         const trail = await RouteHubService.getTrail(nextReg, {
           from: win.from.toISOString(),
           to: win.to.toISOString(),
           limit: 5000,
         });
+        setTrailMeta(
+          trail?.truncated
+            ? {
+                truncated: true,
+                totalCount: trail.totalCount ?? null,
+                shown: (trail.points || []).length,
+                actualFrom: trail.actualFrom || null,
+                actualTo: trail.actualTo || null,
+              }
+            : null,
+        );
         // Overspeed is a separate recompute; a failure there shouldn't cost
         // the whole replay, so it degrades to "no markers".
         let os = [];
@@ -286,6 +301,30 @@ export default function ReplayView({ params, toast }) {
         loading={loading}
         toast={toast}
       />
+
+      {trailMeta?.truncated ? (
+        <div
+          role="status"
+          style={{
+            margin: '0 0 10px',
+            padding: '8px 12px',
+            borderRadius: 8,
+            background: 'rgba(245, 158, 11, 0.12)',
+            border: '1px solid rgba(245, 158, 11, 0.35)',
+            color: '#92400e',
+            fontSize: 12,
+            fontWeight: 500,
+          }}
+        >
+          ⚠️ Showing the newest {trailMeta.shown.toLocaleString('en-IN')}
+          {trailMeta.totalCount ? ` of ${trailMeta.totalCount.toLocaleString('en-IN')}` : ''}{' '}
+          position fixes — this window was truncated by the server cap
+          {trailMeta.actualFrom
+            ? `, so the replay starts at ${new Date(trailMeta.actualFrom).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
+            : ''}
+          . Narrow the date range to see the full trail.
+        </div>
+      ) : null}
 
       <div className="card">
         <ReplayStatsHead vehicle={vehicle} trip={trip} loading={loading} stats={stats} />

@@ -13,7 +13,6 @@ const VehiclePicker = ({
   setVehicleSearch,
   filteredVehicles,
   setSelectedVehicle,
-  suggestDriverForVehicle,
 }) => {
   if (lockVehicle) {
     return (
@@ -63,7 +62,6 @@ const VehiclePicker = ({
                 onClick={() => {
                   setSelectedVehicle(v);
                   setShowVehicleDropdown(false);
-                  suggestDriverForVehicle(v.id);
                 }}
               >
                 <div className="item-main">{v.name}</div>

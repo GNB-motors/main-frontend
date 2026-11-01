@@ -121,30 +121,38 @@ describe('Fleet Coverage nav access', () => {
   });
 });
 
-describe('computeVisibleNav — the cut reports what it folded', () => {
-  // Same shape the Sidebar renders from: the menu plus the folded entries,
-  // each with its route and reason, so nothing is ever cut with no way back.
+describe('sidebar destinations stay in their original groups regardless of usage', () => {
   const LEARNED = {
     state: 'LEARNED',
     learned: { engagementFloor: 10 },
-    surfaces: [{ surfaceKey: '/digest', disposition: 'NEVER_OPENED', reason: 'not opened once' }],
+    surfaces: [
+      { surfaceKey: '/digest', disposition: 'NEVER_OPENED' },
+      { surfaceKey: '/vehicles/service-intelligence', disposition: 'NEVER_OPENED' },
+      { surfaceKey: '/access-control', disposition: 'BELOW_ORG_FLOOR' },
+    ],
   };
-  const isEnabled = (key) => ['fleetIntelligence', 'vehicleActivity'].includes(key);
+  const isEnabled = flags(['fleetIntelligence', 'vehicleActivity', 'vehicles', 'drivers']);
 
-  it('folded entries come back grouped by job, with route and reason intact', () => {
-    const { items, folded, foldedByJob } = computeVisibleNav(isEnabled, 'OWNER', LEARNED);
-    expect(items.some((i) => i.to === '/digest')).toBe(false);
-    expect(folded).toHaveLength(1);
-    expect(folded[0].to).toBe('/digest');
-    expect(folded[0].reason).toMatch(/not opened once/i);
-    expect(Object.values(foldedByJob).flat()).toHaveLength(folded.length);
+  it('keeps Service Intelligence in Vehicles and User Management in Workforce', () => {
+    const { items } = computeVisibleNav(isEnabled, 'OWNER', LEARNED);
+    expect(items.find((item) => item.label === 'Vehicles')?.children).toEqual(
+      expect.arrayContaining([expect.objectContaining({ to: '/vehicles/service-intelligence' })]),
+    );
+    expect(items.find((item) => item.label === 'Workforce')?.children).toEqual(
+      expect.arrayContaining([expect.objectContaining({ to: '/access-control' })]),
+    );
   });
 
-  it('with no profile nothing folds and the folded lists are empty', () => {
-    const { folded, foldedByJob, cutApplied } = computeVisibleNav(isEnabled, 'OWNER', null);
-    expect(cutApplied).toBe(false);
-    expect(folded).toHaveLength(0);
-    expect(Object.keys(foldedByJob)).toHaveLength(0);
+  it('keeps the whole permitted menu stable even with an old usage profile', () => {
+    expect(getVisibleNavItems(isEnabled, 'OWNER', LEARNED)).toEqual(
+      getVisibleNavItems(isEnabled, 'OWNER'),
+    );
+  });
+
+  it('still hides groups when feature or role access is missing', () => {
+    const items = getVisibleNavItems(flags(['vehicleActivity']), 'OWNER', LEARNED);
+    expect(items.some((item) => item.label === 'Vehicles')).toBe(false);
+    expect(items.some((item) => item.label === 'Workforce')).toBe(false);
   });
 });
 

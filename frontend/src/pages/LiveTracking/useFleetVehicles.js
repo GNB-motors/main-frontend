@@ -45,20 +45,19 @@ export default function useFleetVehicles({
           hasFix,
           lat,
           lng,
-          area:
-            meta.currentLocation ||
-            meta.branch ||
-            p.address ||
-            (hasFix ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : null),
+          // A vehicle's assigned branch is not its current GPS location.
+          area: typeof p.address === 'string' ? p.address.trim() || null : null,
           speed,
           fuel,
           fuelUnit: p.fuelLevelUnit || null,
+          defLevel: p.defLevel ?? null,
+          defUnit: p.defLevelUnit || null,
           ignition,
           gps: isLive ? 'Active' : 'No fix',
           ago: minutesAgo,
           eventDateTime: p.eventDateTime || null,
           courseDegrees: p.courseDegrees != null ? p.courseDegrees : null,
-          odo: p.odometer != null ? p.odometer : meta.odometer != null ? meta.odometer : null,
+          odo: p.odometer ?? meta.odometer ?? null,
           regYear: meta.manufacturingYear != null ? meta.manufacturingYear : null,
         };
       })

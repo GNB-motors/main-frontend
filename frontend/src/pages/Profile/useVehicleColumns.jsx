@@ -303,8 +303,15 @@ export function useVehicleColumns({
       label: 'Avg Mileage',
       render: (vehicle) => {
         const val = vehicle.averageMileage != null ? Number(vehicle.averageMileage) : null;
-        if (val == null || isNaN(val) || val <= 0) {
-          return <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: 12 }}>—</span>;
+        if (val == null || !Number.isFinite(val) || val <= 0) {
+          return (
+            <span
+              title={vehicle.mileageUnavailableReason || 'No calculated mileage available yet.'}
+              style={{ color: 'var(--fg-secondary)', fontSize: 12 }}
+            >
+              {vehicle.mileageWithheld ? 'Insufficient data' : 'Not available'}
+            </span>
+          );
         }
         const isGood = val >= 4.0;
         const isFair = val >= 3.5 && val < 4.0;

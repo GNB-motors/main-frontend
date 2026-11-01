@@ -13,8 +13,6 @@ const DriverPicker = ({
   setDriverSearch,
   filteredDrivers,
   setSelectedDriver,
-  setDriverTouchedByUser,
-  setDriverAutoFilled,
 }) => {
   if (lockDriver) {
     return (
@@ -63,8 +61,6 @@ const DriverPicker = ({
                 className={`dropdown-item ${selectedDriver?.id === d.id ? 'selected' : ''}`}
                 onClick={() => {
                   setSelectedDriver(d);
-                  setDriverTouchedByUser(true);
-                  setDriverAutoFilled(false);
                   setShowDriverDropdown(false);
                 }}
               >

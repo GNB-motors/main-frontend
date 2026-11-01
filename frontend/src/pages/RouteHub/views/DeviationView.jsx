@@ -210,17 +210,6 @@ export default function DeviationView({ params, toast, setBadge, go }) {
     <section className="view">
       <div className="phead">
         <div className="t">
-          <a
-            className="crumb"
-            href="?tab=overview"
-            onClick={(e) => {
-              e.preventDefault();
-              go('overview');
-            }}
-          >
-            <Ico n="arrowL" s={14} />
-            Route hub
-          </a>
           <h2>
             Route deviation <span className="count-pill">{summary?.open ?? 0}</span>
           </h2>

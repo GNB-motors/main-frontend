@@ -34,11 +34,11 @@ export const LiveTrackingService = {
    * @param {object} params - { from, to, limit }
    * @returns {Promise<object>} { registrationNumber, from, to, points }
    */
-  getTrail: async (reg, params = {}) => {
+  getTrail: async (reg, params = {}, { signal } = {}) => {
     try {
       const response = await apiClient.get(
         `/api/livetracking/positions/${encodeURIComponent(reg)}/trail`,
-        { params },
+        { params, signal },
       );
       return response.data?.data || {};
     } catch (error) {

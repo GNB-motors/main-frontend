@@ -2,11 +2,15 @@ import { GoogleMap, MarkerF, PolylineF } from '@react-google-maps/api';
 import RoadTrailLayer from '../../components/map/RoadTrailLayer';
 import CongestionLayer from '../../components/map/CongestionLayer';
 import { trailArrowIcons } from './mapIcons.js';
-import { createReplayTruckIcon, createTrailEndpointIcon } from './trailMarkerIcons.js';
+import { createTrailEndpointIcon } from './trailMarkerIcons.js';
 import { createHabitualHaltIcon } from './trailMarkerIcons.js';
 import AnimatedVehicleMarkers from './AnimatedVehicleMarkers.jsx';
 import WeatherBubble from './WeatherBubble.jsx';
 import FleetWeatherMarkers from './FleetWeatherMarkers.jsx';
+import ReplayTruckMarker from './ReplayTruckMarker.jsx';
+import ReplayRouteLayer from './ReplayRouteLayer.jsx';
+import replayAppearance from '../../components/map/replayAppearance.js';
+import { DEFAULT_LIMIT_KMH } from '../RouteHub/views/replay/replayConstants.js';
 
 const INDIA_CENTER = { lat: 22.5937, lng: 78.9629 };
 
@@ -28,9 +32,11 @@ export default function LiveMapCanvas({
   selectedStatusColor,
   replayState,
   replayPtsCoords,
-  replayRunPath,
+  replayRunPaths,
+  replayRoadLayers,
+  replayBaseLayers,
   replayCurrentPos,
-  replayBearing,
+  replaySpeed,
   trailSegments,
   fallbackSingleColor,
   habitualHalts,
@@ -47,12 +53,14 @@ export default function LiveMapCanvas({
      color is palette slot 0 — distinct from the selected status color so
      the user can still see the breadcrumb while a heavy trail is up. */
   const showSegments =
+    !replayState.on &&
     isTrailVisible &&
     trailCoords.length > 1 &&
     segmentByTrip &&
     trailSegments &&
     trailSegments.length > 0;
   const showSingleTrail =
+    !replayState.on &&
     isTrailVisible &&
     trailCoords.length > 1 &&
     (!segmentByTrip || !trailSegments || trailSegments.length === 0);
@@ -91,7 +99,7 @@ export default function LiveMapCanvas({
           {/* Fleet Vehicle Markers — imperative markers that glide between
               SSE fixes instead of teleporting (see AnimatedVehicleMarkers). */}
           <AnimatedVehicleMarkers
-            vehicles={mapVehicles}
+            vehicles={replayState.on ? mapVehicles.filter((v) => v.id !== selectedId) : mapVehicles}
             selectedId={selectedId}
             mapZoom={mapZoom}
             onSelect={(id) => {
@@ -154,7 +162,7 @@ export default function LiveMapCanvas({
               />
             ))}
 
-          {isTrailVisible && trailCoords.length > 1 && (
+          {!replayState.on && isTrailVisible && trailCoords.length > 1 && (
             <>
               <MarkerF
                 position={trailCoords[0]}
@@ -187,26 +195,22 @@ export default function LiveMapCanvas({
           {/* Trip Replay */}
           {replayState.on && replayPtsCoords.length > 1 && (
             <>
-              {roadTrail && roadTrail.mode === 'MATCHED' ? (
-                <RoadTrailLayer trail={roadTrail} color="#9A9AA5" fleetColor="#c4b5fd" />
-              ) : (
-                <PolylineF
-                  path={replayPtsCoords}
-                  options={{
-                    strokeColor: '#9A9AA5',
-                    strokeOpacity: 0.45,
-                    strokeWeight: 4,
-                  }}
-                />
-              )}
-              <PolylineF
-                path={replayRunPath}
-                options={{
-                  strokeColor: selectedStatusColor,
-                  strokeOpacity: 0.95,
-                  strokeWeight: 5,
-                }}
-              />
+              <ReplayRouteLayer layers={replayBaseLayers} points={replayPtsCoords} />
+              {replayBaseLayers.length
+                ? replayRoadLayers.map((layer) => (
+                    <PolylineF
+                      key={`replay-road-${layer.kind}-${layer.t0}`}
+                      path={layer.path}
+                      options={replayAppearance.googleTravelled}
+                    />
+                  ))
+                : replayRunPaths.map(({ key, path }) => (
+                    <PolylineF
+                      key={`replay-run-${key}`}
+                      path={path}
+                      options={replayAppearance.googleTravelled}
+                    />
+                  ))}
               <MarkerF
                 position={replayPtsCoords[0]}
                 icon={createTrailEndpointIcon('S', selectedStatusColor)}
@@ -216,11 +220,9 @@ export default function LiveMapCanvas({
                 icon={createTrailEndpointIcon('E', selectedStatusColor)}
               />
               {replayCurrentPos && (
-                <MarkerF
-                  key={`replay-${Math.round(mapZoom * 2) / 2}`}
+                <ReplayTruckMarker
                   position={replayCurrentPos}
-                  icon={createReplayTruckIcon(replayBearing, mapZoom)}
-                  zIndex={1200}
+                  fast={replaySpeed > DEFAULT_LIMIT_KMH}
                 />
               )}
             </>

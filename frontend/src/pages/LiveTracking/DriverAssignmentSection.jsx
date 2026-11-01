@@ -16,9 +16,9 @@ export default function DriverAssignmentSection({ selectedDriver }) {
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '10px 12px',
-              background: 'rgba(255, 255, 255, 0.04)',
+              background: 'var(--bg-subtle)',
               borderRadius: '12px',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              border: '1px solid var(--border-subtle)',
               gap: '10px',
             }}
           >

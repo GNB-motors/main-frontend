@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- The table's scroll region needs keyboard focus for arrow-key scrolling. */
+import React, { useEffect, useState } from 'react';
 import RoadService from '../../../services/RoadService';
 import { RefreshButton, Empty, TableSkeleton } from '../routeHubShared.jsx';
 import { istHourOfWeek, howLabel } from '../intelligenceFormat.js';
@@ -9,57 +10,71 @@ import { istHourOfWeek, howLabel } from '../intelligenceFormat.js';
  * the old corridor-time page, which bucketed hours in UTC (maths R6 warning) on a different pipeline.
  */
 const CONGESTION_COLUMNS = [
-  'Road class',
-  'Region',
-  'Congestion',
-  'Typical speed',
-  'Free flow',
-  'Evidence (rows)',
+  { label: 'Road class' },
+  {
+    label: 'Area reference',
+    hint: 'Area references group nearby road segments; they are not place names.',
+  },
+  { label: 'Slowdown', numeric: true, hint: 'Travel time compared with free-flow conditions.' },
+  { label: 'Typical speed', numeric: true },
+  { label: 'Free-flow speed', numeric: true },
+  {
+    label: 'Baseline samples',
+    numeric: true,
+    hint: 'Historical night-time observations supporting the free-flow estimate.',
+  },
 ];
 
 export default function IntelligenceView() {
   const [how, setHow] = useState(() => istHourOfWeek());
   const [rows, setRows] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [state, setState] = useState('loading'); // loading | ok | off | error
-
-  const load = useCallback(async (hour) => {
-    setLoading(true);
-    try {
-      const status = await RoadService.getEngineStatus();
-      if (!status || !status.enabled) {
-        setState('off');
-        setRows(null);
-        return;
-      }
-      const data = await RoadService.getCongestion({ how: hour, limit: 50 });
-      setRows(data?.rows ?? []);
-      setState('ok');
-    } catch {
-      setState('error');
-      setRows(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    load(how);
-  }, [how, load]);
+    const controller = new AbortController();
+    const { signal } = controller;
+    setLoading(true);
+    setState('loading');
+    setRows(null);
+    const load = async () => {
+      try {
+        const status = await RoadService.getEngineStatus();
+        if (signal.aborted) return;
+        if (!status?.enabled) {
+          setState('off');
+          return;
+        }
+        const data = await RoadService.getCongestion({ how, limit: 50 }, signal);
+        if (signal.aborted) return;
+        setRows(data?.rows ?? []);
+        setState('ok');
+      } catch {
+        if (signal.aborted) return;
+        setState('error');
+        setRows(null);
+      } finally {
+        if (!signal.aborted) setLoading(false);
+      }
+    };
+    load();
+    return () => controller.abort();
+  }, [how, refreshKey]);
 
   return (
-    <section className="view" data-testid="intelligence-view">
+    <section className="view intelligence-view" data-testid="intelligence-view">
       <div className="phead">
         <div className="t">
           <h2>Congestion intelligence</h2>
-          <p>Where our own trucks slow down, hour by hour — no third-party traffic feed.</p>
+          <p>Typical road slowdowns from recorded fleet journeys, by hour of the week.</p>
         </div>
         <div className="tools">
-          <RefreshButton onClick={() => load(how)} busy={loading} />
+          <RefreshButton onClick={() => setRefreshKey((key) => key + 1)} busy={loading} />
         </div>
       </div>
 
-      <div className="ctrlbar">
+      <div className="ctrlbar intelligence-controls">
         <label className="flabel">
           <span>Hour (IST)</span>
           <span className="field">
@@ -76,11 +91,23 @@ export default function IntelligenceView() {
             </select>
           </span>
         </label>
+        <p className="intelligence-context">
+          Compare typical travel speeds with free-flow conditions for the selected hour.
+        </p>
       </div>
 
       <div className="card">
         <div className="card-head">
-          <h3>{howLabel(how)}</h3>
+          <div className="intelligence-heading">
+            <h3>Congested road segments</h3>
+            <span className="hint">{howLabel(how)} · Highest slowdown first</span>
+          </div>
+          <span className="sp" />
+          {state === 'ok' && rows && (
+            <span className="intelligence-count">
+              {rows.length} segment{rows.length === 1 ? '' : 's'}
+            </span>
+          )}
         </div>
         {state === 'off' ? (
           <Empty
@@ -96,50 +123,73 @@ export default function IntelligenceView() {
             title="Unavailable"
             sub="Could not load congestion data."
           />
-        ) : state === 'loading' || rows === null ? (
-          <table aria-label="Loading congestion">
-            <thead>
-              <tr>
-                {CONGESTION_COLUMNS.map((c) => (
-                  <th key={c}>{c}</th>
-                ))}
-              </tr>
-            </thead>
-            <TableSkeleton cols={CONGESTION_COLUMNS.length} rows={5} />
-          </table>
-        ) : rows.length === 0 ? (
+        ) : state === 'ok' && rows?.length === 0 ? (
           <Empty
             title="Typical for this hour"
             sub="Nothing congested at this hour with enough evidence."
           />
         ) : (
-          <table>
-            <thead>
-              <tr>
-                {CONGESTION_COLUMNS.map((c) => (
-                  <th key={c}>{c}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.edgeKey} data-testid="congestion-row">
-                  <td>{r.roadClass}</td>
-                  <td>{r.region}</td>
-                  <td>{r.congestionIndex}× slower</td>
-                  <td>{r.speedKmhNow} km/h</td>
-                  <td>{r.speedKmhFreeFlow} km/h</td>
-                  <td>{r.evidenceRows}</td>
+          <div
+            className="tblwrap intelligence-table-scroll"
+            role="region"
+            aria-label="Congestion road segments"
+            tabIndex={0}
+            aria-busy={loading}
+          >
+            <table className="tbl intelligence-table" aria-label={`Congestion at ${howLabel(how)}`}>
+              <thead>
+                <tr>
+                  {CONGESTION_COLUMNS.map((c) => (
+                    <th
+                      key={c.label}
+                      scope="col"
+                      className={c.numeric ? 'num' : undefined}
+                      title={c.hint}
+                    >
+                      {c.label}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              {loading || rows === null ? (
+                <TableSkeleton cols={CONGESTION_COLUMNS.length} rows={6} />
+              ) : (
+                <tbody>
+                  {rows.map((r) => (
+                    <tr key={r.edgeKey} data-testid="congestion-row">
+                      <td className="intelligence-road-class">
+                        {r.roadClass?.replaceAll('_', ' ') || 'Unclassified'}
+                      </td>
+                      <td className="mono muted">{r.region || '—'}</td>
+                      <td className="num">
+                        <span className="intelligence-slowdown">
+                          {r.congestionIndex != null ? `${r.congestionIndex}× slower` : '—'}
+                        </span>
+                      </td>
+                      <td className="num strong">
+                        {r.speedKmhNow != null ? `${r.speedKmhNow} km/h` : '—'}
+                      </td>
+                      <td className="num muted">
+                        {r.speedKmhFreeFlow != null ? `${r.speedKmhFreeFlow} km/h` : '—'}
+                      </td>
+                      <td className="num">{r.evidenceRows?.toLocaleString('en-IN') ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              )}
+            </table>
+          </div>
+        )}
+        {state === 'ok' && rows?.length > 0 && (
+          <div className="intelligence-table-footer">
+            Showing up to 50 road segments. Each row is one segment; area references can repeat.
+          </div>
         )}
       </div>
 
-      <p className="dim" style={{ marginTop: 10, fontSize: 12, color: '#6B7280' }}>
-        Pooled across organisations under the sharing rule; edges with few past trips never appear
-        here.
+      <p className="intelligence-note">
+        Based on shared fleet observations with sufficient evidence. These are typical patterns for
+        the selected hour, not live traffic readings.
       </p>
     </section>
   );

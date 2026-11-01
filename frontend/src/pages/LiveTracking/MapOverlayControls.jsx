@@ -1,6 +1,7 @@
 import RoadTrailLegend from '../../components/map/RoadTrailLegend';
 import { toLayers, summaryOf } from '../../lib/roadTrail';
 import renderIconSvg from './renderIconSvg.jsx';
+import TrailDateFilter from './TrailDateFilter.jsx';
 
 export default function MapOverlayControls({
   isTelemetryOn,
@@ -13,6 +14,12 @@ export default function MapOverlayControls({
   roadTrail,
   mapMode,
   setMapMode,
+  selectedVehicle,
+  replayState,
+  trailSelection,
+  trailLoading,
+  trailNotice,
+  loadTrail,
 }) {
   return (
     <>
@@ -27,6 +34,17 @@ export default function MapOverlayControls({
           <span className="eyebrow-mini">Live telemetry</span>
         </button>
       </div>
+
+      {selectedVehicle && isTrailVisible && !replayState.on && (
+        <div className="ov ov--trail-dates">
+          <TrailDateFilter
+            selection={trailSelection}
+            loading={trailLoading}
+            notice={trailNotice}
+            onSelect={(selection) => loadTrail(selectedVehicle, selection)}
+          />
+        </div>
+      )}
 
       {/* Overlay Top-Right: Fleet List Re-opener */}
       <div className="ov ov--tr">

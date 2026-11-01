@@ -4,13 +4,15 @@ import NewButton from '../../../components/ui/NewButton';
 
 const ServiceIntelligenceActions = ({
   isAlerts,
+  isUpcoming,
   isService,
   alertsRefreshing,
   setAlertsRefreshing,
   setAlertsRefreshKey,
   goToAdd,
 }) =>
-  isAlerts ? (
+  // Upcoming is a read-only predictions view with its own in-tab refresh.
+  isUpcoming ? null : isAlerts ? (
     <NewButton
       variant="secondary"
       type="button"

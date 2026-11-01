@@ -35,4 +35,15 @@ describe('RoadService (plan P4.8)', () => {
     apiClient.get.mockRejectedValue(new Error('network'));
     expect(await RoadService.getRoadTrailIfEnabled('WB1')).toBeNull();
   });
+
+  it('does not cache a transient engine-status failure — the next call retries', async () => {
+    apiClient.get.mockRejectedValueOnce(new Error('network'));
+    expect(await RoadService.getEngineStatus()).toEqual({ enabled: false });
+    // Engine recovers: the next call must re-hit the endpoint, not reuse the
+    // cached failure (which used to pin "off" for the whole session).
+    apiClient.get.mockResolvedValueOnce({ data: { data: { enabled: true } } });
+    expect(await RoadService.getEngineStatus()).toEqual({ enabled: true });
+    const statusCalls = apiClient.get.mock.calls.filter((c) => c[0] === '/api/road/engine-status');
+    expect(statusCalls).toHaveLength(2);
+  });
 });

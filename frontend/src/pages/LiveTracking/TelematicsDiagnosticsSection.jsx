@@ -1,155 +1,44 @@
 import renderIconSvg from './renderIconSvg.jsx';
 import copyText from './copyText.js';
+import vehicleMetricReadings from './vehicleMetricReadings.js';
 
-export default function TelematicsDiagnosticsSection({ selectedVehicle, showToast }) {
+export default function TelematicsDiagnosticsSection({ selectedVehicle, showToast, odometer }) {
   return (
-    <details className="sec" open>
+    <details className="sec lt-diagnostics" open>
       <summary>
         {renderIconSvg('zap', 16)}
         Live Telematics &amp; Diagnostics
         <span className="chev">{renderIconSvg('chevDown', 16)}</span>
       </summary>
       <div className="secbody">
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '8px',
-            width: '100%',
-          }}
-        >
-          <div
-            style={{
-              padding: '10px 12px',
-              background: 'rgba(255, 255, 255, 0.04)',
-              borderRadius: '10px',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '10px',
-                color: 'var(--fg-secondary)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-              }}
-            >
-              Odometer
-            </div>
-            <div
-              style={{
-                fontSize: '13px',
-                fontWeight: 600,
-                color: 'var(--fg-primary)',
-                marginTop: '2px',
-              }}
-            >
-              {selectedVehicle.odo != null
-                ? `${Number(selectedVehicle.odo).toLocaleString('en-IN')} km`
-                : 'Odo N/A'}
+        <div className="lt-diagnostics-grid">
+          <div className="lt-diagnostic">
+            <div className="lt-diagnostic-label">Odometer</div>
+            <div className="lt-diagnostic-value">
+              {odometer ?? vehicleMetricReadings(selectedVehicle).odometer}
             </div>
           </div>
-
-          <div
-            style={{
-              padding: '10px 12px',
-              background: 'rgba(255, 255, 255, 0.04)',
-              borderRadius: '10px',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '10px',
-                color: 'var(--fg-secondary)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-              }}
-            >
-              Heading / Course
-            </div>
-            <div
-              style={{
-                fontSize: '13px',
-                fontWeight: 600,
-                color: 'var(--fg-primary)',
-                marginTop: '2px',
-              }}
-            >
+          <div className="lt-diagnostic">
+            <div className="lt-diagnostic-label">Heading / Course</div>
+            <div className="lt-diagnostic-value">
               {selectedVehicle.courseDegrees != null
                 ? `${Math.round(selectedVehicle.courseDegrees)}°`
-                : '0° N'}
+                : '—'}
             </div>
           </div>
-
-          <div
-            style={{
-              padding: '10px 12px',
-              background: 'rgba(255, 255, 255, 0.04)',
-              borderRadius: '10px',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '10px',
-                color: 'var(--fg-secondary)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-              }}
-            >
-              Telematics State
-            </div>
-            <div
-              style={{
-                fontSize: '13px',
-                fontWeight: 600,
-                color: selectedVehicle.live ? '#4ADE80' : 'var(--fg-secondary)',
-                marginTop: '2px',
-              }}
-            >
-              {selectedVehicle.live ? '● Connected' : '○ Standby'}
+          <div className="lt-diagnostic">
+            <div className="lt-diagnostic-label">Telematics State</div>
+            <div className="lt-diagnostic-value lt-diagnostic-state">
+              <i className={selectedVehicle.live ? 'is-live' : ''} aria-hidden="true" />
+              {selectedVehicle.live ? 'Connected' : 'Standby'}
             </div>
           </div>
-
-          <div
-            style={{
-              padding: '10px 12px',
-              background: 'rgba(255, 255, 255, 0.04)',
-              borderRadius: '10px',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '10px',
-                color: 'var(--fg-secondary)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-              }}
-            >
-              GPS Coordinates
-            </div>
+          <div className="lt-diagnostic">
+            <div className="lt-diagnostic-label">GPS Coordinates</div>
             <button
               type="button"
-              style={{
-                // reset the button chrome so it reads as the value line it replaced
-                display: 'block',
-                width: '100%',
-                padding: 0,
-                border: 0,
-                background: 'none',
-                textAlign: 'left',
-                fontFamily: 'inherit',
-                fontSize: '11px',
-                fontWeight: 500,
-                color: 'var(--fg-brand)',
-                marginTop: '3px',
-                cursor: 'pointer',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
+              className="lt-diagnostic-value lt-diagnostic-coords"
+              disabled={!selectedVehicle.hasFix}
               title="Click to copy coordinates"
               onClick={() => {
                 if (selectedVehicle.hasFix) {
