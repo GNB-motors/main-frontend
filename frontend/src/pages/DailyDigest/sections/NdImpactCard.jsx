@@ -36,7 +36,7 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
     },
     {
       key: 'siphon',
-      label: 'Fuel siphon loss',
+      label: 'Fuel down while parked',
       v: money?.theftLossInr ?? null,
       c: '#C2323A',
       tint: 'rgba(194, 50, 58, 0.12)',

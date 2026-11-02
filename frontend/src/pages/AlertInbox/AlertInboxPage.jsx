@@ -6,7 +6,10 @@ import { Button } from '../../components/ui/button.jsx';
 import { Dialog, DialogContent, DialogTitle, DialogClose } from '../../components/ui/dialog.jsx';
 import { useSupportPortal } from '../../contexts/supportPortalContext';
 import { getInbox, acknowledgeItem } from '../../services/AlertInboxService.js';
+import { fleetViewService } from '../../services/fleetViewService';
+import useApi from '../../hooks/useApi';
 import { SOURCE_LABELS, sinceLabel, reviewTarget, filterInbox } from './inboxModel.js';
+import AccountLinkBanner from './AccountLinkBanner.jsx';
 import './AlertInbox.css';
 
 export default function AlertInboxPage() {
@@ -24,6 +27,14 @@ export default function AlertInboxPage() {
   const request = React.useRef(null);
   const mounted = React.useRef(true);
   const support = useSupportPortal();
+
+  // The state of the vendor accounts. A 404 means the endpoint is not
+  // deployed yet, and then no banner is shown at all.
+  const { data: linkStateData } = useApi(
+    (signal) => fleetViewService.getAccountsLinkState({ signal }),
+    [],
+  );
+  const linkState = Array.isArray(linkStateData?.items) ? linkStateData.items : [];
 
   const load = React.useCallback(async () => {
     request.current?.abort();
@@ -129,6 +140,15 @@ export default function AlertInboxPage() {
       <div className="ai-notice">
         Feeds update periodically. For urgent incidents, check the dedicated alert pages.
       </div>
+
+      {/* A vendor account that stopped sending data explains why the trucks
+          went quiet, and carries the one button that fixes it (F6). */}
+      {linkState
+        .filter((account) => account.state === 'NEEDS_RELINK' || account.state === 'EXPIRING')
+        .map((account) => (
+          <AccountLinkBanner key={account.accountId} account={account} />
+        ))}
+
       <div className="ai-summary">
         {[
           { label: 'Open alerts', value: open.length, Icon: Bell },

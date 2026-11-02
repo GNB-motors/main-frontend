@@ -1,408 +1,161 @@
-import { useEffect, useMemo, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import useApi from '../../hooks/useApi';
-import ExportButton from '../../components/ui/ExportButton';
-import OwnerValueService from '../../services/OwnerValueService';
-import FleetDataService from '../../services/FleetDataService';
-import { VehicleService } from '../Profile/VehicleService.js';
-import { OwnerAlertsService } from '../OwnerAlerts/OwnerAlertsService';
-import { FuelIntegrityService } from '../FuelIntegrity/FuelIntegrityService';
-import { AutoTripService } from '../../services/AutoTripService';
-import PerformanceApi from '../../api/performance';
-import { rangeToParams } from '../AutoTrips/tripRange';
-import { morningBriefSchema } from '../../schemas/morningBrief.schema';
-
-import { formatDateLongIST } from '../../utils/dateUtils';
-import {
-  startOfTodayIST,
-  buildActionItems,
-  buildDocumentAlerts,
-  buildUpcomingItems,
-} from './dailyDigestLogic';
-import { buildDigestKpis } from './digestKpis';
-import { buildDigestExportRows } from './digestExportRows';
-import NdKpiStrip from './sections/NdKpiStrip.jsx';
-import NdKpiStripSkeleton from './sections/NdKpiStripSkeleton.jsx';
-import NdAttentionCard from './sections/NdAttentionCard.jsx';
-import NdImpactCard from './sections/NdImpactCard.jsx';
-import NdCalendarCard from './sections/NdCalendarCard.jsx';
-import NdRefuelCard from './sections/NdRefuelCard.jsx';
-import NdWasteTable from './sections/NdWasteTable.jsx';
-import NdUpcomingCard from './sections/NdUpcomingCard.jsx';
-import NdOpsRow from './sections/NdOpsRow.jsx';
-import NdOpsRowSkeleton from './sections/NdOpsRowSkeleton.jsx';
-import NdLeaderboardCard from './sections/NdLeaderboardCard.jsx';
-import NdMorningBrief from './sections/NdMorningBrief.jsx';
-import NdMorningBriefSkeleton from './sections/NdMorningBriefSkeleton.jsx';
-import NdCardSkeleton from './sections/NdCardSkeleton.jsx';
-import NdVehicleDrawer from './sections/NdVehicleDrawer.jsx';
-import '../../styles/nova/novaDesignSystem.css';
+import { fleetViewService } from '../../services/fleetViewService';
+import { formatIstDate } from '../../utils/redesign/format';
+import { intelligenceLink } from '../../utils/redesign/links';
+import DigestStoryCard from './DigestStoryCard';
+import DigestReconnectBanner from './DigestReconnectBanner';
+import DigestReportCardTile from './DigestReportCardTile';
+import ReleaseDigest from './ReleaseDigest';
 
 /**
- * DailyDigest — ported pixel-for-pixel from Design/Daily Digest (standalone).html
- * ("Nova Edge Pro"), wired to real endpoints instead of the mockup's random
- * data generator. See novaDigest.css / sections/.
+ * DailyDigest — the day's story.
  *
- * Every class name in sections/ is `nd-*`, scoped in novaDigest.css under
- * `.nova-digest` so these otherwise very generic names (.card, .item, .tab…)
- * never leak into the rest of the app's CSS.
+ * It is the first thing the owner sees, so it reads like a person wrote
+ * it: what ran, what was empty, who drove well, who needs a word, and what
+ * is waiting for an answer. Every number carries the API's own sentence.
+ *
+ * The new endpoint is not on prod yet. While it answers 404 the release's
+ * digest is shown unchanged, so the page is never empty and never broken.
  */
 export default function DailyDigestPage() {
-  const from = startOfTodayIST();
+  const [date, setDate] = useState(() => new Date());
+  const dateParam = useMemo(() => date.toISOString().slice(0, 10), [date]);
 
-  // The eight owner-value sections arrive in one request (FRONTEND_AUDIT B1);
-  // each section below reads its slice and shares the request's loading state.
-  const digest$ = useApi(
-    (s) => OwnerValueService.getDigest({ from, efficiencyDays: 7, calendarDays: 14 }, s),
-    [from],
-  );
-  const section = (key, parse = (d) => d) => ({
-    data: digest$.data?.[key] != null ? parse(digest$.data[key]) : null,
-    loading: digest$.loading,
-    refetch: digest$.refetch,
-  });
-  const money$ = section('money');
-  const downtime$ = section('downtimeRisk');
-  const fuelEfficiency$ = section('fuelEfficiency');
-  const refuelling$ = section('refuellingToday');
-  const calendar$ = section('fleetCalendar');
-  const utilization$ = section('utilization');
-  const healthScore$ = section('healthScore');
-  // An unexpected brief shape hides the brief, as a failed request did before.
-  const morningBrief$ = section('morningBrief', (d) => {
-    const parsed = morningBriefSchema.safeParse(d);
-    return parsed.success ? parsed.data : null;
-  });
-  const fleetDashboard$ = useApi((signal) => VehicleService.getFleetDashboard({ signal }), []);
-  const alerts$ = useApi((s) => OwnerAlertsService.getAlerts({ from, limit: 10 }, s), [from]);
-  const fuel$ = useApi((s) => FuelIntegrityService.getSummary({ from }, s), [from]);
-  const fleetAlerts$ = useApi((s) => FleetDataService.getFleetAlertSummary({ from }, s), [from]);
-  // The Performance page's leaderboards (vs expected, within duty) — the retired
-  // /driver-leaderboard read empty collections and ranked raw km/L (audit DD-05).
-  const driverLeaderboard$ = useApi((s) => PerformanceApi.leaderboards({}, s), []);
-  // Trips today = the Trip page's own trips that left a pickup today (IST), not
-  // the legacy VehicleTour rows the calendar holds (audit DD-02).
-  const tripsToday$ = useApi(
-    (s) => AutoTripService.list({ ...rangeToParams({ range: 'today' }), limit: 1 }, { signal: s }),
-    [],
+  const { data, loading, error, refetch } = useApi(
+    (signal) => fleetViewService.getDigest({ date: dateParam, signal }),
+    [dateParam],
   );
 
-  const { data: money } = money$;
-  const { data: fleetDashboard } = fleetDashboard$;
-  const { data: downtime } = downtime$;
-  const { data: alerts } = alerts$;
-  const { data: fuelSummary } = fuel$;
-  const { data: fleetAlertSummary } = fleetAlerts$;
-  const { data: fuelEfficiency } = fuelEfficiency$;
-  const { data: refuelling } = refuelling$;
-  const { data: calendar } = calendar$;
-  const { data: utilization } = utilization$;
-  const { data: healthScore } = healthScore$;
-  const { data: driverLeaderboard } = driverLeaderboard$;
-  const { data: morningBrief } = morningBrief$;
+  // The release digest, kept for the 404 case.
+  if (error?.status === 404) {
+    return <ReleaseDigest />;
+  }
 
-  const loading =
-    money$.loading ||
-    fleetDashboard$.loading ||
-    downtime$.loading ||
-    alerts$.loading ||
-    fuel$.loading ||
-    healthScore$.loading ||
-    calendar$.loading;
+  const story = Array.isArray(data?.story) ? data.story : [];
+  const reconnect = Array.isArray(data?.reconnect) ? data.reconnect : [];
+  const goodDrivers = Array.isArray(data?.goodDrivers) ? data.goodDrivers : [];
+  const needsAttention = Array.isArray(data?.needsAttention) ? data.needsAttention : [];
 
-  // Per-section gates so each card shows its own skeleton only until its
-  // own source data has loaded once — mirrors useApi's "no flash on
-  // refetch" behaviour instead of hiding the whole page behind one flag.
-  const attnLoading = (loading || fleetAlerts$.loading) && !money;
-  const impactLoading =
-    (money$.loading && !money) ||
-    (utilization$.loading && !utilization) ||
-    (downtime$.loading && !downtime);
-  const calendarLoading = calendar$.loading && !calendar;
-  const refuelLoading = refuelling$.loading && !refuelling;
-  const wasteLoading = money$.loading && !money;
-  const upcomingLoading =
-    (downtime$.loading && !downtime) || (fleetDashboard$.loading && !fleetDashboard);
-  const opsLoading = (money$.loading && !money) || (fuelEfficiency$.loading && !fuelEfficiency);
-  const leaderboardLoading = driverLeaderboard$.loading && !driverLeaderboard;
-  const briefLoading = morningBrief$.loading && !morningBrief;
-
-  const [lastUpdated, setLastUpdated] = useState(() => Date.now());
-  const [, forceTick] = useState(0);
-  const [selectedReg, setSelectedReg] = useState(null);
-  useEffect(() => {
-    if (!loading) setLastUpdated(Date.now());
-  }, [loading]);
-  useEffect(() => {
-    const id = setInterval(() => forceTick((n) => n + 1), 60000);
-    return () => clearInterval(id);
-  }, []);
-
-  const handleRefresh = () => {
-    [digest$, fleetDashboard$, alerts$, fuel$, fleetAlerts$, driverLeaderboard$].forEach((h) =>
-      h.refetch(),
-    );
-    setLastUpdated(Date.now());
+  const shiftDate = (days) => {
+    const next = new Date(date.getTime());
+    next.setDate(next.getDate() + days);
+    setDate(next);
   };
 
-  const m = money?.money;
-  const documents = buildDocumentAlerts(fleetDashboard, 15);
-  const serviceVehicles = downtime?.vehicles || [];
-
-  const actions = buildActionItems({
-    totals: fuelSummary?.totals,
-    m,
-    alerts,
-    fleetAlertSummary,
-    documents,
-    serviceVehicles,
-  });
-  const upcoming = buildUpcomingItems({ serviceVehicles, documents });
-
-  const kpis = buildDigestKpis({
-    fleetDashboard,
-    m,
-    calendar,
-    healthScore,
-    tripsToday: tripsToday$.data?.total ?? null,
-  });
-
-  // Fetched only while the drawer is open for a given plate — the digest's
-  // own already-loaded datasets below are still used for today-scoped figures
-  // (idling/detour/kmpl/fuel-in-tank/events) that have no equivalent in the
-  // vehicle-profile aggregate, since those are today's-digest-window specific.
-  const vehicleProfile$ = useApi(
-    (s) => FleetDataService.getVehicleProfile(selectedReg, s),
-    [selectedReg],
-    { enabled: Boolean(selectedReg) },
-  );
-  const { data: vehicleProfile, loading: vehicleProfileLoading } = vehicleProfile$;
-
-  const selectedVehicle = useMemo(() => {
-    if (!selectedReg) return null;
-    const idlingRow = money?.idlingTop5?.find((r) => r.registrationNumber === selectedReg);
-    const detourRow = money?.detourTop5?.find((r) => r.registrationNumber === selectedReg);
-    const effRow = fuelEfficiency?.worst?.find((r) => r.registrationNumber === selectedReg);
-    const fill = refuelling?.fills?.find((f) => f.registrationNumber === selectedReg);
-    const calVeh = calendar?.vehicles?.find((v) => v.registrationNumber === selectedReg);
-    const lowTank = refuelling?.lowTankBeforeTrip?.find(
-      (v) => v.registrationNumber === selectedReg,
-    );
-    const profile = vehicleProfile?.registrationNumber === selectedReg ? vehicleProfile : null;
-    return {
-      registrationNumber: selectedReg,
-      model:
-        profile?.fleetMaster?.model ||
-        profile?.fleetEdge?.vehicleModel ||
-        calVeh?.model ||
-        effRow?.model ||
-        null,
-      idleMinutes: idlingRow?.idleMinutes ?? null,
-      detourKm: detourRow?.detourKm ?? null,
-      kmpl: effRow?.kmpl ?? null,
-      fuelLevelL: lowTank?.fuelLevelL ?? null,
-      fill,
-      events: calVeh?.events || [],
-      profile,
-      profileLoading: vehicleProfileLoading && !profile,
-    };
-  }, [
-    selectedReg,
-    money,
-    fuelEfficiency,
-    refuelling,
-    calendar,
-    vehicleProfile,
-    vehicleProfileLoading,
-  ]);
-
-  const openVehicle = (regOrId) => {
-    // Table rows key by registrationNumber already; calendar/gantt rows key
-    // by vehicleId — resolve the id case against the calendar list once.
-    const byId = calendar?.vehicles?.find((v) => v.vehicleId === regOrId);
-    setSelectedReg(byId ? byId.registrationNumber : regOrId);
-  };
-
-  const digestExportRows = useMemo(
-    () => buildDigestExportRows({ actions, money, morningBrief, upcoming }),
-    [actions, money, morningBrief, upcoming],
-  );
-
-  const digestExportColumns = [
-    { key: 'section', label: 'Section' },
-    { key: 'vehicle', label: 'Vehicle / Item' },
-    { key: 'detail', label: 'Details' },
-    { key: 'amount', label: 'Amount (₹)' },
-  ];
+  const isToday = dateParam === new Date().toISOString().slice(0, 10);
 
   return (
-    <div className="nova-digest">
-      <div className="nd-page">
-        <header className="nd-head">
-          <div>
-            <h1>Daily Digest</h1>
-            <div className="nd-sub">{formatDateLongIST(new Date())} · Your fleet at a glance</div>
+    <div className="mx-auto w-full max-w-[1280px] px-4 py-5">
+      <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="m-0 text-[20px] font-semibold text-[var(--rd-ink)]">
+            {isToday ? 'Good morning' : 'Daily Digest'}
+          </h1>
+          <p className="m-0 mt-0.5 text-[13px] text-[var(--rd-ink-2)]">
+            {formatIstDate(date)}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => shiftDate(-1)}
+            aria-label="Previous day"
+            className="flex size-8 items-center justify-center rounded-[var(--rd-radius-sm)] border border-[var(--rd-line)] text-[var(--rd-ink-2)] transition-colors hover:border-[var(--rd-line-strong)]"
+          >
+            <ChevronLeft size={16} aria-hidden="true" />
+          </button>
+          <input
+            type="date"
+            value={dateParam}
+            onChange={(event) => {
+              const next = new Date(event.target.value);
+              if (!Number.isNaN(next.getTime())) setDate(next);
+            }}
+            aria-label="Digest date"
+            className="rounded-[var(--rd-radius-sm)] border border-[var(--rd-line)] bg-[var(--rd-card)] px-2 py-1.5 text-[13px] text-[var(--rd-ink)]"
+          />
+          <button
+            type="button"
+            onClick={() => shiftDate(1)}
+            disabled={isToday}
+            aria-label="Next day"
+            className="flex size-8 items-center justify-center rounded-[var(--rd-radius-sm)] border border-[var(--rd-line)] text-[var(--rd-ink-2)] transition-colors hover:border-[var(--rd-line-strong)] disabled:opacity-40"
+          >
+            <ChevronRight size={16} aria-hidden="true" />
+          </button>
+        </div>
+      </header>
+
+      {loading && !data ? (
+        <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">Writing the day&apos;s story…</p>
+      ) : error ? (
+        <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">
+          We could not load today&apos;s digest.
+        </p>
+      ) : (
+        <>
+          {data?.headline ? (
+            <p className="mb-4 text-[20px] leading-7 font-semibold text-[var(--rd-ink)]">
+              {data.headline}
+            </p>
+          ) : null}
+
+          {reconnect.map((item) => (
+            <DigestReconnectBanner key={item.accountName} item={item} />
+          ))}
+
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 min-[1200px]:grid-cols-3">
+            {story.map((card) => (
+              <DigestStoryCard key={card.key} card={card}>
+                {card.key === 'goodDrivers' && goodDrivers.length ? (
+                  <div className="mt-2 flex flex-col gap-1">
+                    {goodDrivers.map((driver) => (
+                      <DigestReportCardTile
+                        key={`good-${driver.id}`}
+                        card={driver}
+                        linkTo={intelligenceLink({ tab: 'drivers', driver: driver.id })}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+                {card.key === 'needsWord' && needsAttention.length ? (
+                  <div className="mt-2 flex flex-col gap-1">
+                    {needsAttention.map((subject) => (
+                      <DigestReportCardTile
+                        key={`needs-${subject.id}`}
+                        card={subject}
+                        linkTo={intelligenceLink({
+                          tab: subject.subject === 'driver' ? 'drivers' : 'vehicles',
+                          vehicle: subject.subject === 'vehicle' ? subject.id : null,
+                          driver: subject.subject === 'driver' ? subject.id : null,
+                        })}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+              </DigestStoryCard>
+            ))}
           </div>
-          <div className="nd-headtools">
-            <ExportButton
-              rows={digestExportRows}
-              columns={digestExportColumns}
-              filename={`daily-digest-${new Date().toISOString().slice(0, 10)}`}
-              disabled={loading || !digestExportRows.length}
-            />
+
+          {story.length === 0 ? (
+            <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">
+              Nothing happened on this day that we can report yet.
+            </p>
+          ) : null}
+
+          <div className="mt-4">
             <button
               type="button"
-              className="nd-btn nd-btn--refresh"
-              onClick={handleRefresh}
-              disabled={loading}
-              title={
-                lastUpdated
-                  ? `Last updated: ${new Date(lastUpdated).toLocaleTimeString()}`
-                  : 'Refresh'
-              }
+              onClick={refetch}
+              className="rounded-[var(--rd-radius-sm)] border border-[var(--rd-line)] px-3 py-1.5 text-[13px] font-medium text-[var(--rd-ink-2)] transition-colors hover:border-[var(--rd-line-strong)]"
             >
-              <span className={loading ? 'nd-spin' : ''}>
-                <RefreshCw size={15} />
-              </span>
-              <span>{loading ? 'Refreshing…' : 'Refresh'}</span>
+              Refresh
             </button>
           </div>
-        </header>
-
-        <section>
-          <div className="nd-eyebrow" style={{ marginBottom: 10 }}>
-            Today at a glance
-          </div>
-          {loading && !money ? <NdKpiStripSkeleton items={kpis} /> : <NdKpiStrip items={kpis} />}
-        </section>
-
-        <section className="nd-cols" id="nd-attn">
-          {attnLoading ? (
-            <NdCardSkeleton title="Needs your attention" pill tabs={3} rows={4} rowHeight={64} />
-          ) : (
-            <NdAttentionCard
-              actions={actions}
-              onOpenVehicle={openVehicle}
-              onResolved={(ackType) => {
-                if (ackType === 'maintenance') downtime$.refetch?.();
-                else if (ackType === 'docExpiry') fleetDashboard$.refetch?.();
-                else alerts$.refetch?.();
-              }}
-            />
-          )}
-          <div className="nd-rightcol">
-            {impactLoading ? (
-              <NdCardSkeleton
-                title={'Today\u2019s \u20b9 impact'}
-                hint="Estimated"
-                rows={11}
-                rowHeight={40}
-                big
-              />
-            ) : (
-              <NdImpactCard
-                money={m}
-                atRisk={money?.atRisk}
-                utilization={utilization}
-                downtime={downtime}
-              />
-            )}
-          </div>
-        </section>
-
-        {briefLoading ? (
-          <NdMorningBriefSkeleton />
-        ) : (
-          <NdMorningBrief
-            brief={morningBrief}
-            onOpenVehicle={openVehicle}
-            onRetry={morningBrief$.refetch}
-          />
-        )}
-
-        {calendarLoading ? (
-          <NdCardSkeleton title="Fleet calendar" tabs={2} rows={6} rowHeight={40} />
-        ) : (
-          <NdCalendarCard
-            vehicles={calendar?.vehicles}
-            days={14}
-            onOpenVehicle={openVehicle}
-            selectedVehicleId={
-              calendar?.vehicles?.find((v) => v.registrationNumber === selectedReg)?.vehicleId
-            }
-          />
-        )}
-
-        <section className="nd-cols nd-cols--half">
-          {refuelLoading ? (
-            <NdCardSkeleton title="Refuelling today" pill rows={4} rowHeight={44} />
-          ) : (
-            <NdRefuelCard data={refuelling} onOpenVehicle={openVehicle} />
-          )}
-          {wasteLoading ? (
-            <NdCardSkeleton
-              title={'Idling & detour waste'}
-              hint={'Today \u00b7 top 5 vehicles'}
-              rows={5}
-              rowHeight={40}
-            />
-          ) : (
-            <NdWasteTable
-              idlingTop5={money?.idlingTop5}
-              detourTop5={money?.detourTop5}
-              onOpenVehicle={openVehicle}
-            />
-          )}
-        </section>
-
-        <section
-          className="nd-cols"
-          id="nd-upcoming"
-          style={{ gridTemplateColumns: 'minmax(0,1fr)' }}
-        >
-          {upcomingLoading ? (
-            <NdCardSkeleton
-              title="Upcoming"
-              pill
-              hint={'Next 14 days \u00b7 service and documents'}
-              rows={4}
-              rowHeight={36}
-            />
-          ) : (
-            <NdUpcomingCard upcoming={upcoming} onOpenVehicle={openVehicle} />
-          )}
-        </section>
-
-        {opsLoading ? (
-          <NdOpsRowSkeleton />
-        ) : (
-          <NdOpsRow
-            money={m}
-            idlingTop5={money?.idlingTop5}
-            detourTop5={money?.detourTop5}
-            fuelEfficiency={fuelEfficiency}
-            onOpenVehicle={openVehicle}
-          />
-        )}
-
-        {leaderboardLoading ? (
-          <NdCardSkeleton
-            title="Driver fuel efficiency"
-            hint="Last computed window · km/L"
-            rows={5}
-            rowHeight={36}
-          />
-        ) : (
-          <NdLeaderboardCard leaderboard={driverLeaderboard} />
-        )}
-
-        <p className="nd-foot">
-          {m?.disclaimer ||
-            'Money figures are estimates generated from FleetEdge telemetry and the fuel, AdBlue and labour prices configured for your account. Idling, detour and siphoning values assume the configured price per litre at the time of the event. Treat them as directional, not as accounting entries.'}
-        </p>
-      </div>
-
-      <NdVehicleDrawer vehicle={selectedVehicle} onClose={() => setSelectedReg(null)} />
+        </>
+      )}
     </div>
   );
 }

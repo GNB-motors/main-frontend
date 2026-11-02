@@ -29,7 +29,7 @@
     {
       "key": "goodDrivers",
       "tone": "good",
-      "title": "Good drivers",
+      "title": "Who drove well",
       "big": "3 drivers stood out",
       "text": "These drivers saved diesel against your own fleet average over the last 30 days.",
       "items": [
@@ -38,9 +38,9 @@
       "link": { "label": "See all drivers", "to": "/intelligence?tab=drivers" }
     },
     {
-      "key": "issues",
+      "key": "needsWord",
       "tone": "act",
-      "title": "Needs you",
+      "title": "Who needs a word",
       "big": "3 trucks need you",
       "text": "One account stopped sending data and two GPS units are going quiet on the same road.",
       "items": [
@@ -50,6 +50,17 @@
           "tone": "act",
           "link": { "label": "Open the issue", "to": "/intelligence?tab=issues&vehicle=WB11F0162" }
         }
+      ],
+      "link": { "label": "See all issues", "to": "/intelligence?tab=issues" }
+    },
+    {
+      "key": "issues",
+      "tone": "watch",
+      "title": "Truck issues",
+      "big": "2 trucks with a quiet GPS",
+      "text": "These GPS units stopped reporting for a while. The truck may still be moving.",
+      "items": [
+        { "label": "WB11F0162", "value": "last seen 18 min ago", "tone": "watch", "link": null }
       ],
       "link": { "label": "See all issues", "to": "/intelligence?tab=issues" }
     }
