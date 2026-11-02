@@ -1,0 +1,103 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+
+const { getWhereNext } = vi.hoisted(() => ({ getWhereNext: vi.fn() }));
+
+vi.mock('../../services/fleetViewService', () => ({
+  fleetViewService: { getWhereNext },
+}));
+
+import WhereNextSection from './WhereNextSection';
+
+const destination = {
+  place: { id: 'site-dankuni', kind: 'SITE', name: 'DANKUNI SIDING', category: 'PLANT', lat: 22.6, lng: 88.3, radiusM: 500 },
+  probability: 0.75,
+  reason: 'Usually goes here after JK BUXAR (18 of 24 times)',
+  eta: {
+    at: '2026-11-02T19:10:00Z',
+    earliestAt: '2026-11-02T18:40:00Z',
+    latestAt: '2026-11-02T20:00:00Z',
+    driveMin: 200,
+    breakMin: 40,
+    congestion: 'HEAVY',
+    congestionWhy: 'Usual for Monday 18:00 on this road',
+  },
+  route: { polyline: [], km: 412, viaNames: ['NH19', 'Mohania'], usedTimes: 18 },
+  breakHabit: {
+    probability: 0.62,
+    usualPlace: null,
+    usualMin: 40,
+    text: 'Usually stops 40 min at Mohania dhaba',
+  },
+  overspeedRisk: { probability: 0.4, place: null, text: 'Has gone over 60 km/h near Sasaram 3 times this month' },
+};
+
+describe('WhereNextSection', () => {
+  beforeEach(() => {
+    getWhereNext.mockReset();
+  });
+
+  it('asks for the prediction once, for the truck on screen', async () => {
+    getWhereNext.mockResolvedValue({ destinations: [destination], basis: null, computedAt: null });
+    render(<WhereNextSection registrationNumber="WB11L8862" />);
+    await waitFor(() => expect(getWhereNext).toHaveBeenCalledTimes(1));
+    expect(getWhereNext.mock.calls[0][0]).toBe('WB11L8862');
+  });  it('shows the top guess in the collapsed header once it knows it', async () => {
+    getWhereNext.mockResolvedValue({ destinations: [destination], basis: null, computedAt: null });
+    render(<WhereNextSection registrationNumber="WB11L8862" />);
+    await waitFor(() =>
+      expect(screen.getByText(/Likely → DANKUNI SIDING/)).toBeInTheDocument(),
+    );
+  });
+
+  it('prints the reason the API gave, in words', async () => {
+    getWhereNext.mockResolvedValue({ destinations: [destination], basis: null, computedAt: null });
+    render(<WhereNextSection registrationNumber="WB11L8862" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    await waitFor(() =>
+      expect(screen.getByText('Usually goes here after JK BUXAR (18 of 24 times)')).toBeInTheDocument(),
+    );
+  });
+
+  it('never shows a raw probability', async () => {
+    getWhereNext.mockResolvedValue({ destinations: [destination], basis: null, computedAt: null });
+    render(<WhereNextSection registrationNumber="WB11L8862" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    await waitFor(() => expect(screen.getAllByText(/18 of 24 times/).length).toBeGreaterThan(0));
+    expect(screen.queryByText(/0\.75/)).not.toBeInTheDocument();
+    expect(screen.queryByText('75%')).not.toBeInTheDocument();
+  });
+
+  it('says the answer is not ready when the backend holds it', async () => {
+    getWhereNext.mockResolvedValue({
+      held: true,
+      why: { text: 'Still being checked.', basis: '122 of 196 rows' },
+    });
+    render(<WhereNextSection registrationNumber="WB11L8862" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    await waitFor(() => expect(screen.getByText('Not shown yet')).toBeInTheDocument());
+  });
+
+  it('says it could not work it out when the request fails', async () => {
+    getWhereNext.mockRejectedValue(new Error('boom'));
+    render(<WhereNextSection registrationNumber="WB11L8862" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    await waitFor(() =>
+      expect(screen.getByText(/could not work out where this truck is going/i)).toBeInTheDocument(),
+    );
+  });
+
+  it('says there is not enough history when there are no destinations', async () => {
+    getWhereNext.mockResolvedValue({
+      destinations: [],
+      basis: null,
+      computedAt: null,
+      noPredictionWhy: { text: 'We do not have enough of this truck’s history to guess.' },
+    });
+    render(<WhereNextSection registrationNumber="WB11L8862" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    await waitFor(() =>
+      expect(screen.getByText(/do not have enough of this truck/)).toBeInTheDocument(),
+    );
+  });
+});

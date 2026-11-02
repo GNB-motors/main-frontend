@@ -187,8 +187,6 @@ const LiveTrackingPage = () => {
     toggleHabitualHalts,
     segmentByTrip,
     setSegmentByTrip,
-    toggleTrail,
-    enterReplay,
     exitReplay,
     handleZoomIn,
     handleZoomOut,
@@ -483,12 +481,7 @@ const LiveTrackingPage = () => {
                     selectedVehicle={selectedVehicle}
                     setSelectedId={setSelectedId}
                     exitReplay={exitReplay}
-                    showToast={showToast}
                     isTrailVisible={isTrailVisible}
-                    replayState={replayState}
-                    trailLoading={trailLoading}
-                    toggleTrail={toggleTrail}
-                    enterReplay={enterReplay}
                     shareCreating={shareCreating}
                     handleShareVehicle={handleShareVehicle}
                     selectedDriver={selectedDriver}

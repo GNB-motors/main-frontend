@@ -1,99 +1,120 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
-import React from 'react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import VehicleDetailPanel from './VehicleDetailPanel';
 
-vi.mock('./DestinationIntentSection.jsx', () => ({
-  default: ({ registrationNumber }) => <p>intent for {String(registrationNumber)}</p>,
-}));
-vi.mock('./VehicleInfoSection.jsx', () => ({ default: () => null }));
-vi.mock('./DriverAssignmentSection.jsx', () => ({ default: () => null }));
-vi.mock('./TelematicsDiagnosticsSection.jsx', () => ({ default: () => null }));
-vi.mock('../../services/PlaceService', () => ({
-  resolvePlace: vi.fn().mockResolvedValue({ label: 'Near Dankuni', sub: 'West Bengal' }),
+const { getVehicleNow, getWhereNext } = vi.hoisted(() => ({
+  getVehicleNow: vi.fn(),
+  getWhereNext: vi.fn(),
 }));
 
-describe('VehicleDetailPanel', () => {
-  // The rows built for Live Tracking have `plate`, not `registrationNumber`, so the
-  // destination prediction used to be looked up for `undefined`.
-  it('asks for the selected vehicle’s destination by its plate', async () => {
-    render(
+vi.mock('../../services/fleetViewService', () => ({
+  fleetViewService: { getVehicleNow, getWhereNext },
+}));
+
+vi.mock('./VehicleLayerToggles.jsx', () => ({ default: () => null }));
+
+const releaseVehicle = {
+  id: 'live-WB01AB1234',
+  plate: 'WB 01 AB 1234',
+  status: 'moving',
+  ago: 2,
+  manufacturer: 'Tata',
+  model: 'Signa 5530',
+  vin: 'MAT123456789',
+  hasFix: true,
+  hasGpsFix: true,
+  ignition: 'ON',
+  odo: 123456,
+  fuel: 32,
+  defLevel: 80,
+  lat: 22.67,
+  lng: 88.3,
+};
+
+function renderPanel(vehicle = releaseVehicle) {
+  return render(
+    <MemoryRouter>
       <VehicleDetailPanel
-        selectedVehicle={{
-          id: 'live-WB01AB1234',
-          plate: 'WB 01 AB 1234',
-          status: 'moving',
-          ago: 2,
-          model: 'Signa 5530',
-          vin: 'MAT123456789',
-          hasFix: true,
-          lat: 22.67,
-          lng: 88.3,
-        }}
+        selectedVehicle={vehicle}
         setSelectedId={() => {}}
         exitReplay={() => {}}
-        showToast={() => {}}
-        mapRef={{ current: null }}
         isTrailVisible={false}
-        replayState={{ on: false }}
-        trailLoading={false}
-        toggleTrail={() => {}}
-        enterReplay={() => {}}
         shareCreating={false}
         handleShareVehicle={() => {}}
         selectedDriver={null}
-      />,
-    );
-    expect(screen.getByText('intent for WB 01 AB 1234')).toBeInTheDocument();
-    expect(await screen.findByText('Near Dankuni')).toBeInTheDocument();
+      />
+    </MemoryRouter>,
+  );
+}
+
+describe('VehicleDetailPanel', () => {
+  beforeEach(() => {
+    getVehicleNow.mockReset();
+    getWhereNext.mockReset();
+    // The new endpoint is not on prod yet, so the panel falls back to the
+    // release's position row.
+    getVehicleNow.mockRejectedValue(Object.assign(new Error('Not found'), { status: 404 }));
+    getWhereNext.mockRejectedValue(Object.assign(new Error('Not found'), { status: 404 }));
   });
 
-  it('labels the vehicle identifiers, resolves the location and omits Focus', async () => {
-    render(
-      <VehicleDetailPanel
-        selectedVehicle={{
-          plate: 'WB01',
-          model: 'Signa',
-          vin: 'MAT123',
-          hasFix: true,
-          lat: 22.67,
-          lng: 88.3,
-        }}
-        replayState={{ on: false }}
-      />,
-    );
-    expect(screen.getByText('Model:')).toBeInTheDocument();
-    expect(screen.getByText('VIN:')).toBeInTheDocument();
-    expect(await screen.findByText('Near Dankuni')).toBeInTheDocument();
-    expect(screen.queryByText('22.6700, 88.3000')).not.toBeInTheDocument();
+  it('shows the truck and what it is doing now', () => {
+    renderPanel();
+    expect(screen.getByText('WB 01 AB 1234')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Now' })).toBeInTheDocument();
+  });
+
+  it('labels the vehicle identifiers in the details card', () => {
+    renderPanel();
+    expect(screen.getByText('Model')).toBeInTheDocument();
+    expect(screen.getByText('Signa 5530')).toBeInTheDocument();
+    expect(screen.getByText('VIN')).toBeInTheDocument();
+    // The VIN is in the header too, so it can be copied without scrolling.
+    expect(screen.getAllByText('MAT123456789').length).toBeGreaterThan(0);
+  });
+
+  it('shows the fuel, DEF, odometer and speed, each with its own reading', () => {
+    renderPanel();
+    expect(screen.getByText('Fuel')).toBeInTheDocument();
+    expect(screen.getByText('32 L')).toBeInTheDocument();
+    expect(screen.getByText('DEF')).toBeInTheDocument();
+    expect(screen.getByText('80%')).toBeInTheDocument();
+    expect(screen.getByText('Odometer')).toBeInTheDocument();
+    expect(screen.getByText('1,23,456 km')).toBeInTheDocument();
+    expect(screen.getByText('Speed')).toBeInTheDocument();
+  });
+
+  it('says the GPS is off when there is no fix', () => {
+    renderPanel({ ...releaseVehicle, hasGpsFix: false, hasFix: false });
+    expect(screen.getByText('No GPS position')).toBeInTheDocument();
+  });
+
+  it('says the engine state when it is known', () => {
+    renderPanel();
+    expect(screen.getByText('Engine on')).toBeInTheDocument();
+  });
+
+  it('never shows a zero for a value it does not have', () => {
+    renderPanel({ ...releaseVehicle, fuel: null, defLevel: null, odo: null });
+    expect(screen.getAllByText('Not received').length).toBeGreaterThanOrEqual(3);
+    expect(screen.queryByText('0 L')).not.toBeInTheDocument();
+  });
+
+  it('has no Focus button', () => {
+    renderPanel();
     expect(screen.queryByRole('button', { name: 'Focus' })).not.toBeInTheDocument();
   });
 
-  it('shows GPS and ignition in the header, with DEF and Odometer in the metric grid', () => {
-    const { container } = render(
-      <VehicleDetailPanel
-        selectedVehicle={{
-          plate: 'BR44GB1162',
-          hasFix: true,
-          hasGpsFix: true,
-          ignition: 'ON',
-          odo: 123456,
-          fuel: 32,
-          fuelUnit: 'litres',
-          defLevel: 80,
-          defUnit: 'percent',
-        }}
-        replayState={{ on: false }}
-      />,
-    );
-    expect(within(container.querySelector('.dtop')).getByText('GPS fix')).toBeInTheDocument();
-    expect(within(container.querySelector('.dtop')).getByText('Ignition ON')).toBeInTheDocument();
-    const metrics = within(container.querySelector('.metrics'));
-    expect(metrics.getByText('Odometer')).toBeInTheDocument();
-    expect(metrics.getByText('1,23,456 km')).toBeInTheDocument();
-    expect(metrics.getByText('DEF')).toBeInTheDocument();
-    expect(metrics.getByText('80%')).toBeInTheDocument();
-    expect(metrics.queryByText('GPS')).not.toBeInTheDocument();
-    expect(metrics.queryByText('Ignition')).not.toBeInTheDocument();
+  it('offers Track and Share', () => {
+    renderPanel();
+    expect(screen.getByRole('link', { name: /Track/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Share/ })).toBeInTheDocument();
+  });
+
+  it('links Track at the truck’s own history', () => {
+    renderPanel();
+    const link = screen.getByRole('link', { name: /Track/ });
+    expect(link.getAttribute('href')).toContain('v=WB+01+AB+1234');
+    expect(link.getAttribute('href')).toContain('from=');
   });
 });

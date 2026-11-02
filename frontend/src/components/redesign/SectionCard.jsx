@@ -14,6 +14,7 @@ export default function SectionCard({
   title = '',
   info = null,
   action = null,
+  meta = null,
   children = null,
   className = '',
 }) {
@@ -36,6 +37,7 @@ export default function SectionCard({
           {title}
         </h3>
         {info ? <InfoTip text={info.text} basis={info.basis} /> : null}
+        {meta ? <div className="shrink-0 text-[13px] text-[var(--rd-ink-2)]">{meta}</div> : null}
         {action ? <div className="shrink-0">{action}</div> : null}
       </header>
       <div className="px-4 pt-0 pb-4">{children}</div>
