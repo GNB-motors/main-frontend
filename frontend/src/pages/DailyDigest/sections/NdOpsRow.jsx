@@ -1,11 +1,15 @@
 import { Check, Fuel as FuelIcon } from 'lucide-react';
-import { formatINR } from '../../../utils/formatters';
+import { formatINR, formatNum } from '../../../utils/formatters';
 
-export default function NdOpsRow({ money, fuelEfficiency, onOpenVehicle }) {
-  const idlingTop5 = money?.idlingTop5 || [];
-  const detourTop5 = money?.detourTop5 || [];
-  const idleMinutesTotal = idlingTop5.reduce((s, r) => s + (r.idleMinutes || 0), 0);
-  const detourKmTotal = detourTop5.reduce((s, r) => s + (r.detourKm || 0), 0);
+export default function NdOpsRow({ money, idlingTop5, detourTop5, fuelEfficiency, onOpenVehicle }) {
+  // idlingTop5/detourTop5 live at the top level of the money slice, as siblings
+  // of `money` (the inner totals object) — not inside it. `money` here is that
+  // inner object (idlingWasteInr etc.), so the per-vehicle arrays must be passed
+  // in separately or the card shows a ₹ total over "0 min across 0 vehicles".
+  const idling = idlingTop5 || [];
+  const detour = detourTop5 || [];
+  const idleMinutesTotal = idling.reduce((s, r) => s + (r.idleMinutes || 0), 0);
+  const detourKmTotal = detour.reduce((s, r) => s + (r.detourKm || 0), 0);
   const worst = fuelEfficiency?.worst || [];
   const best = Math.max(1, ...worst.map((v) => v.kmpl));
 
@@ -22,7 +26,7 @@ export default function NdOpsRow({ money, fuelEfficiency, onOpenVehicle }) {
               {formatINR(money.idlingWasteInr)}
             </span>
             <span className="nd-u">
-              {idleMinutesTotal} min idling across the top {idlingTop5.length} vehicles
+              Top {idling.length} vehicles idled {formatNum(idleMinutesTotal)} min today
             </span>
           </div>
         ) : (
@@ -45,7 +49,9 @@ export default function NdOpsRow({ money, fuelEfficiency, onOpenVehicle }) {
             <span className="nd-v" style={{ color: '#2F58EE' }}>
               {formatINR(money.detourWasteInr)}
             </span>
-            <span className="nd-u">{detourKmTotal.toFixed(0)} km driven off the planned route</span>
+            <span className="nd-u">
+              Top {detour.length} vehicles drove {detourKmTotal.toFixed(0)} km off-route
+            </span>
           </div>
         ) : (
           <div className="nd-empty">
