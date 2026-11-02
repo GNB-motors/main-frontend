@@ -2,13 +2,13 @@ import renderIconSvg from './renderIconSvg.jsx';
 import { NOVA_STATUS } from './statusPalettes.js';
 import { formatAgoText, formatFullStamp } from './minutesAgoFormat.js';
 import DestinationIntentSection from './DestinationIntentSection.jsx';
-import RecordedPathSection from './RecordedPathSection.jsx';
 import VehicleInfoSection from './VehicleInfoSection.jsx';
 import DriverAssignmentSection from './DriverAssignmentSection.jsx';
 import TelematicsDiagnosticsSection from './TelematicsDiagnosticsSection.jsx';
 import WeatherSection from './WeatherSection.jsx';
 import VehicleLocation from './VehicleLocation.jsx';
 import VehicleMetricTiles from './VehicleMetricTiles.jsx';
+import VehicleLayerToggles from './VehicleLayerToggles.jsx';
 import useApi from '../../hooks/useApi.js';
 import { getUserRole } from '../../utils/session.js';
 import TrackTelemetryService from './TrackTelemetryService.js';
@@ -26,15 +26,16 @@ export default function VehicleDetailPanel({
   enterReplay,
   shareCreating,
   handleShareVehicle,
-  trailPoints,
-  trailKm,
   selectedDriver,
-  tripLegend,
-  habitualHalts,
-  isHabitualHaltsVisible,
   weather,
   weatherLoading,
   weatherContext,
+  segmentByTrip = true,
+  setSegmentByTrip,
+  isHabitualHaltsVisible = false,
+  habitualHaltsLoading = false,
+  toggleHabitualHalts,
+  habitualHalts = [],
 }) {
   const reg = selectedVehicle?.plate;
   const canReadHealth = ['OWNER', 'MANAGER'].includes(getUserRole());
@@ -164,6 +165,19 @@ export default function VehicleDetailPanel({
               </button>
             </div>
 
+            {setSegmentByTrip && toggleHabitualHalts && (
+              <VehicleLayerToggles
+                selectedVehicle={selectedVehicle}
+                isTrailVisible={isTrailVisible}
+                segmentByTrip={segmentByTrip}
+                setSegmentByTrip={setSegmentByTrip}
+                isHabitualHaltsVisible={isHabitualHaltsVisible}
+                habitualHaltsLoading={habitualHaltsLoading}
+                toggleHabitualHalts={toggleHabitualHalts}
+                habitualHalts={habitualHalts}
+              />
+            )}
+
             {/* Deep Details Accordion Sections */}
             <div className="sections">
               <WeatherSection
@@ -172,14 +186,6 @@ export default function VehicleDetailPanel({
                 contextLabel={weatherContext}
               />
               <DestinationIntentSection registrationNumber={selectedVehicle.plate} />
-              <RecordedPathSection
-                isTrailVisible={isTrailVisible}
-                trailPoints={trailPoints}
-                trailKm={trailKm}
-                tripLegend={tripLegend}
-                habitualHalts={habitualHalts}
-                isHabitualHaltsVisible={isHabitualHaltsVisible}
-              />
               <VehicleInfoSection selectedVehicle={selectedVehicle} odometer={readings.odometer} />
               <DriverAssignmentSection selectedDriver={selectedDriver} />
               <TelematicsDiagnosticsSection

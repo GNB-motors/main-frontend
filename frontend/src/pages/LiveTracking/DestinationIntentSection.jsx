@@ -34,9 +34,8 @@ function candidateLabel(c) {
 
 /**
  * Predicted destination for the selected vehicle (Trip Economics intents). Lives
- * in the Live Tracking detail rail; it fills the gap the "Recorded path" note
- * calls out (telematics has no destination/ETA). Read-only, best-effort: shows
- * nothing if the vehicle has no recent prediction.
+ * in the Live Tracking detail rail (telematics itself has no destination/ETA).
+ * Read-only, best-effort: shows nothing if the vehicle has no recent prediction.
  */
 export default function DestinationIntentSection({ registrationNumber }) {
   const { data, loading, error } = useApi(

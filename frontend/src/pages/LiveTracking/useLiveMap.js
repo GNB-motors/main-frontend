@@ -206,13 +206,23 @@ export default function useLiveMap({
     )
       return;
     const map = mapRef.current;
-    map.panTo({ lat: selectedVehicle.lat, lng: selectedVehicle.lng });
-    // Gentle zoom-in only when a NEW vehicle is picked — not on every live
-    // update of the one we're already following (that would fight the user's
-    // own zoom/pan). Never zoom back out if they're already closer in.
-    if (zoomedSelectionRef.current !== selectedVehicle.id) {
-      if ((map.getZoom() || 5) < 14) map.setZoom(14);
-      zoomedSelectionRef.current = selectedVehicle.id;
+    const center = { lat: selectedVehicle.lat, lng: selectedVehicle.lng };
+    if (zoomedSelectionRef.current === selectedVehicle.id) {
+      // Live update of the truck we're already following: glide along.
+      map.panTo(center);
+      return;
+    }
+    // A NEW vehicle was picked: recenter on it in one camera move. panTo +
+    // setZoom must not be paired here — setZoom cancels panTo's animation, so
+    // the map zoomed in on the previous spot and seemed to "stay there".
+    // Never zoom back out if the user is already closer in.
+    zoomedSelectionRef.current = selectedVehicle.id;
+    const zoom = Math.max(map.getZoom() || 5, 14);
+    if (typeof map.moveCamera === 'function') {
+      map.moveCamera({ center, zoom });
+    } else {
+      map.setCenter(center);
+      map.setZoom(zoom);
     }
   }, [selectedVehicle, replayState.on, isTrailVisible]);
 
