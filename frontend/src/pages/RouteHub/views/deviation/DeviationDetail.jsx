@@ -146,7 +146,11 @@ export default function DeviationDetail({
         <Fact k="Left usual route" v={exitAt ? clock(exitAt) : '—'} />
         <Fact k="Back on usual route" v={rejoinAt ? clock(rejoinAt) : 'Not seen'} />
         <Fact k="Off route for" v={event.durationMin != null ? `${event.durationMin} min` : '—'} />
-        <Fact k="Farthest off" v={km(event.maxOffKm)} />
+        {event.offRouteKm != null ? (
+          <Fact k="Driven off usual road" v={km(event.offRouteKm)} />
+        ) : (
+          <Fact k="Farthest off" v={km(event.maxOffKm)} />
+        )}
         <Fact
           k="Extra distance (est.)"
           v={event.extraKmEstimate != null ? `+${km(event.extraKmEstimate)}` : '—'}
