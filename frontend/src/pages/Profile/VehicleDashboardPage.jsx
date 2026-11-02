@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { ShieldCheck, Filter } from 'lucide-react';
 import { VehicleService } from './VehicleService.js';
 import { getThemeCSS } from '../../utils/colorTheme';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
 import DataTable from '../../components/ui/DataTable';
-import NewButton from '@/components/ui/NewButton';
 import {
   computeVehicleDashboardKpis,
   DOC_COLS,
@@ -15,6 +13,7 @@ import {
   EXPIRED_FILTER_PILLS,
 } from './vehicleDashboardLogic';
 import { LegendDot } from './vehicleDashboardCells';
+import { normalizeVehicleDashboardRow } from './vehicleDocNormalization';
 import VehicleDashboardDocFilter from './VehicleDashboardDocFilter.jsx';
 import VehicleDashboardKpis from './VehicleDashboardKpis.jsx';
 import { buildVehicleDashboardColumns } from './vehicleDashboardColumns';
@@ -53,7 +52,9 @@ const VehicleDashboardPage = () => {
     try {
       const data = await VehicleService.getFleetDashboard({ search: q || undefined });
       if (myId !== requestIdRef.current) return;
-      setRows(Array.isArray(data) ? data : []);
+      const rawList = Array.isArray(data) ? data : [];
+      const normalized = rawList.map(normalizeVehicleDashboardRow);
+      setRows(normalized);
     } catch (err) {
       if (myId !== requestIdRef.current) return;
       toast.error(err?.message || 'Failed to load vehicle dashboard');
@@ -222,14 +223,6 @@ const VehicleDashboardPage = () => {
         <PageShell
           title="Vehicle Compliance & Documents"
           subtitle="Fleet-wide document compliance and live expiry tracking. Badges update automatically."
-          actions={
-            <NewButton
-              variant="primary"
-              text="Check & Pay Challans"
-              prependIcon={<ShieldCheck size={16} />}
-              onClick={() => setChallanModalOpen(true)}
-            />
-          }
           filters={
             <FilterBar
               searchValue={search}

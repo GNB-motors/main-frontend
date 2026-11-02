@@ -108,6 +108,9 @@ const AddDriverPage = () => {
           const fetchedDocs = await DriverService.getEmployeeDocuments(empId);
           logger.info('AddDriverPage', 'Fetched documents', fetchedDocs);
           const updatedDocs = mapFetchedEmployeeDocs(fetchedDocs);
+          if (editing.licenseNumber && !updatedDocs.driverLicense.licenseNumber) {
+            updatedDocs.driverLicense.licenseNumber = editing.licenseNumber;
+          }
           setDocuments(updatedDocs);
         } catch (err) {
           logger.warn('AddDriverPage', 'Failed to load documents', err);
@@ -119,9 +122,34 @@ const AddDriverPage = () => {
         setInitialFormData({});
         setCurrentAssignment(null);
         setDocuments({
-          driverLicense: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-          panCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-          aadharCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
+          driverLicense: {
+            file: null,
+            preview: null,
+            imageUrl: null,
+            name: '',
+            documentId: null,
+            isUploaded: false,
+            isVerified: false,
+            licenseNumber: null,
+          },
+          panCard: {
+            file: null,
+            preview: null,
+            imageUrl: null,
+            name: '',
+            documentId: null,
+            isUploaded: false,
+            isVerified: false,
+          },
+          aadharCard: {
+            file: null,
+            preview: null,
+            imageUrl: null,
+            name: '',
+            documentId: null,
+            isUploaded: false,
+            isVerified: false,
+          },
         });
       }
     };
@@ -196,7 +224,21 @@ const AddDriverPage = () => {
                   /* best effort */
                 }
               }
-              await DriverService.uploadDocument(entityId, docType, docData.file);
+              const uploadRes = await DriverService.uploadDocument(entityId, docType, docData.file);
+              // If OCR extracted a licence number, sync it without overwriting with empty
+              if (docType === 'DRIVER_LICENSE') {
+                const { extractLicenseNumber } = await import('./employeeDocMapping.js');
+                const extracted = extractLicenseNumber(uploadRes?.data || uploadRes);
+                if (extracted) {
+                  try {
+                    await DriverService.updateDriver(businessRefId, entityId, {
+                      licenseNumber: extracted,
+                    });
+                  } catch {
+                    /* best effort */
+                  }
+                }
+              }
             } catch (docErr) {
               logger.warn('AddDriverPage', `Failed to upload ${docType}`, docErr);
               toast.warning(`Failed to upload ${key} document`);
@@ -221,6 +263,8 @@ const AddDriverPage = () => {
           updatePayload.role = formData.role;
         }
         if (formData.status !== undefined) updatePayload.status = formData.status;
+        if (documents.driverLicense?.licenseNumber)
+          updatePayload.licenseNumber = documents.driverLicense.licenseNumber;
 
         await DriverService.updateDriver(businessRefId, driverId, updatePayload);
         await uploadDocuments(driverId);
@@ -238,6 +282,9 @@ const AddDriverPage = () => {
           lastName: formData.lastName || null,
           email: formData.email || null,
           mobileNumber: formData.mobileNumber || null,
+          ...(documents.driverLicense?.licenseNumber
+            ? { licenseNumber: documents.driverLicense.licenseNumber }
+            : {}),
           // Location is a free-text field only shown at the enterprise scope; inside
           // a branch it's implied by the active location, so omit it when empty
           // rather than sending null (the create validator wants a string or nothing).

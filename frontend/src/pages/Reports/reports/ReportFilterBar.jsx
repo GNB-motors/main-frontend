@@ -3,7 +3,6 @@ import { RotateCcw } from 'lucide-react';
 import { useActiveBranch } from '../../../contexts/BranchContext';
 import { ReportDateRange, ReportSearch, ReportSelect } from './ReportFrame';
 import { DriverPicker, VehiclePicker } from './ReportEntityPicker';
-import { REPORT_RANGE_PRESETS, activePresetId } from './reportFilterParams';
 import useReportFilterParams from './useReportFilterParams';
 import './ReportFilterBar.css';
 
@@ -30,7 +29,7 @@ export default function ReportFilterBar({
   showDriver = true,
   extra = null,
 }) {
-  const { filters, range, activeCount, setFilter, setFilters, applyRangePreset, clearFilters } =
+  const { filters, range, activeCount, setFilter, setFilters, clearFilters } =
     useReportFilterParams();
   const { branches } = useActiveBranch();
 
@@ -38,7 +37,6 @@ export default function ReportFilterBar({
     { value: '', label: 'All locations' },
     ...branches.map((b) => ({ value: String(b._id), label: b.name })),
   ];
-  const preset = activePresetId(filters);
 
   return (
     <div className="rpt-bar">
@@ -53,24 +51,12 @@ export default function ReportFilterBar({
           />
         ) : null}
 
-        <div className="rpt-field">
-          Quick range
-          <div className="rpt-presets" role="group" aria-label="Quick date range">
-            {REPORT_RANGE_PRESETS.map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                className={`rpt-preset${preset === option.key ? ' is-active' : ''}`}
-                aria-pressed={preset === option.key}
-                onClick={() => applyRangePreset(option.key)}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <ReportDateRange from={range.from} to={range.to} onChange={setFilters} />
+        <ReportDateRange
+          from={range.from}
+          to={range.to}
+          dates={filters.dates}
+          onChange={setFilters}
+        />
 
         <ManufacturerFilter
           value={filters.manufacturer}

@@ -2,6 +2,7 @@ import Ico from '../../routeHubIcons.jsx';
 import { Seg } from '../../routeHubShared.jsx';
 import { dkey } from '../../routeHubFormat';
 import { RANGES } from './replayConstants.js';
+import VehicleSearchBar from './VehicleSearchBar.jsx';
 
 export default function ReplayToolbar({
   reg,
@@ -23,12 +24,13 @@ export default function ReplayToolbar({
   toast,
 }) {
   return (
-    <div className="card">
+    <div className="card rtool-card" style={{ overflow: 'visible' }}>
       <div className="rtool">
         <span className="lbl">Vehicle</span>
         <label className="field">
           <select
             value={reg}
+            disabled={loading}
             onChange={(e) => {
               setReg(e.target.value);
               setTrip(null);
@@ -39,7 +41,7 @@ export default function ReplayToolbar({
             }}
           >
             {vehicles.map((v) => (
-              <option key={v._id} value={v.registrationNumber}>
+              <option key={v._id || v.registrationNumber} value={v.registrationNumber}>
                 {v.registrationNumber}
                 {v.model ? ` · ${v.model}` : ''}
               </option>
@@ -101,6 +103,20 @@ export default function ReplayToolbar({
             onChange={(e) => setTo(e.target.value)}
           />
         </label>
+
+        {/* Dedicated Vehicle Search feature positioned right after the date controls */}
+        <span className="lbl">Search</span>
+        <VehicleSearchBar
+          vehicles={vehicles}
+          selectedReg={reg}
+          disabled={loading}
+          onSelect={(newReg) => {
+            setReg(newReg);
+            setTrip(null);
+            setErpTripId('');
+            load(newReg, range, '', null);
+          }}
+        />
         <span style={{ flex: 1 }} />
         <button
           type="button"

@@ -22,6 +22,9 @@ export function normalizeDriver(d) {
     // normalize contact fields used in UI
     mobileNumber: d.mobileNumber || d.mobile_number || d.mobile || '',
     email: d.email || d.email_address || '',
+    licenseNumber: d.licenseNumber || d.license_number || '',
+    hasLicenseDoc: d.hasLicenseDoc ?? Boolean(d.licenseDoc),
+    isLicenseVerified: d.isLicenseVerified ?? Boolean(d.licenseDoc?.isVerified),
     // Legacy cross-org field agents carry a per-org membershipStatus; show
     // that. New branch-scoped field agents (and every other role) show their
     // real account status — membershipStatus is absent so this falls through.
@@ -159,7 +162,8 @@ export function mapDriverForExport(driver) {
       driver.assignedVehicle && driver.assignedVehicle !== 'Unassigned'
         ? driver.assignedVehicle
         : 'Unassigned',
-    licenseNumber: driver.licenseNumber || '',
+    licenseNumber:
+      driver.licenseNumber || (driver.hasLicenseDoc ? 'Not extracted' : 'Not uploaded'),
     status: driver.branchStatus === 'DEACTIVATED' ? 'Deactivated' : driver.status || 'PENDING',
   };
 }

@@ -9,7 +9,7 @@ export const LEG_FILTERS = [
   { key: 'all', label: 'Any leg' },
   { key: 'LADEN', label: 'Loaded' },
   { key: 'RETURN', label: 'Empty, driving back' },
-  { key: 'NONE', label: 'Outside any trip' },
+  { key: 'NONE', label: 'Unscheduled / Off-trip' },
 ];
 
 export const REVIEW_REASONS = [
@@ -42,7 +42,7 @@ export const normalisePlate = (s) =>
     .toLowerCase();
 
 export function legLabel(trip) {
-  if (!trip) return 'Outside any trip';
+  if (!trip) return 'Unscheduled Run';
   if (trip.leg === 'LADEN') return 'Loaded';
   if (trip.leg === 'RETURN') return 'Empty, driving back';
   return 'On trip';
@@ -57,6 +57,43 @@ export function tripLabel(trip) {
     ? ` (+${trip.extraDropCount} drop${trip.extraDropCount > 1 ? 's' : ''})`
     : '';
   return `${from} → ${to}${extra}`;
+}
+
+/**
+ * Meaningful title for a deviation group or event:
+ * 1. Trip route label if on an ERP trip (e.g. "Plant A → Durgapur Site")
+ * 2. Learned corridor name if known (e.g. "NH19 Corridor Transit")
+ * 3. Quantified detour distance (e.g. "Unscheduled Transit · +19.0 km")
+ * 4. Fallback: "Unscheduled Fleet Transit"
+ */
+export function deviationGroupTitle(g) {
+  if (g?.trip) return tripLabel(g.trip);
+  const firstEv = g?.events ? g.events[0] : g;
+  if (firstEv?.corridorLabel) return firstEv.corridorLabel;
+  const extra = g?.extraKm ?? firstEv?.extraKmEstimate;
+  if (extra != null && Number(extra) > 0) {
+    return `Unscheduled Transit · +${Number(extra).toFixed(1)} km`;
+  }
+  const maxOff = firstEv?.maxOffKm;
+  if (maxOff != null && Number(maxOff) > 0) {
+    return `Unscheduled Detour · ${Number(maxOff).toFixed(1)} km off-route`;
+  }
+  return 'Unscheduled Fleet Transit';
+}
+
+/**
+ * Meaningful subtitle providing date/time/corridor context instead of "Between two known places".
+ */
+export function deviationGroupSubtitle(g) {
+  if (g?.trip) return `Trip of ${shortDay(g.trip.ladenFrom)}`;
+  const firstEv = g?.events ? g.events[0] : g;
+  const day = shortDay(firstEv?.startedAt || firstEv?.detectedAt);
+  const windowStr = runWindow(firstEv);
+  const timeContext = windowStr ? `${day} · ${windowStr}` : day;
+  if (firstEv?.corridorLabel) {
+    return `Corridor deviation · ${timeContext}`;
+  }
+  return `No active ERP trip · ${timeContext}`;
 }
 
 /** Plate, trip places and the route label all match a search. */

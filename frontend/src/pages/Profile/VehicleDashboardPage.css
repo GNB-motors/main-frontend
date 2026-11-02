@@ -524,6 +524,18 @@
   border-color: #cbd5e1;
 }
 
+/* Pending Verification / OCR Processing (Blue/Info) */
+.v-dash-badge--pending {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+
+.v-dash-badge--pending:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
 /* Selected badge highlight */
 .v-dash-badge--selected {
   outline: 2px solid #2563eb;
@@ -968,6 +980,10 @@
   color: #64748b;
 }
 
+.v-dash-card-status--pending {
+  color: #2563eb;
+}
+
 .v-dash-doc-card-title {
   font-size: 13px;
   font-weight: 700;
@@ -1045,6 +1061,12 @@
   background: #f8fafc;
   color: #64748b;
   border: 1px solid #e2e8f0;
+}
+
+.v-dash-status-pill--pending {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
 }
 
 /* Scanned Document Viewer Card — Rigid 280px Frame to Prevent Flex Shrinking */

@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   costBasisLabel,
   dayRange,
+  deviationGroupSubtitle,
+  deviationGroupTitle,
   groupByTrip,
   legLabel,
   matchesSearch,
@@ -46,7 +48,24 @@ describe('tripLabel / legLabel', () => {
   it('says which part of the trip it was', () => {
     expect(legLabel({ leg: 'LADEN' })).toBe('Loaded');
     expect(legLabel({ leg: 'RETURN' })).toBe('Empty, driving back');
-    expect(legLabel(null)).toBe('Outside any trip');
+    expect(legLabel(null)).toBe('Unscheduled Run');
+  });
+
+  it('creates informative titles and subtitles for unscheduled runs', () => {
+    const unlinkedWithExtra = {
+      trip: null,
+      extraKm: 19,
+      events: [{ startedAt: at(16, 23), endedAt: at(16, 38), extraKmEstimate: 19 }],
+    };
+    expect(deviationGroupTitle(unlinkedWithExtra)).toBe('Unscheduled Transit · +19.0 km');
+    expect(deviationGroupSubtitle(unlinkedWithExtra)).toContain('No active ERP trip');
+
+    const withCorridor = {
+      trip: null,
+      events: [{ corridorLabel: 'NH19 Route Corridor', startedAt: at(10) }],
+    };
+    expect(deviationGroupTitle(withCorridor)).toBe('NH19 Route Corridor');
+    expect(deviationGroupSubtitle(withCorridor)).toContain('Corridor deviation');
   });
 });
 
