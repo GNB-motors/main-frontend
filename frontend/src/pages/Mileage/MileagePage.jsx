@@ -14,7 +14,9 @@ import MileageKpiBar from './components/MileageKpiBar';
 import RefuelDetailDrawer from './components/RefuelDetailDrawer';
 import PumpLedgerView from './components/PumpLedgerView';
 import ExpectedFuelView from './components/ExpectedFuelView';
-import TruckMileageView from './components/TruckMileageView';
+import ByTruckMileageView from './components/ByTruckMileageView';
+import FillToFillView from './components/FillToFillView';
+import MileageCyclesDrawer from './components/MileageCyclesDrawer';
 import { hubRangeFromParams } from './mileageDates';
 import './MileagePage.css';
 
@@ -40,9 +42,12 @@ function hubAccess(canAccess, role) {
     },
     views: {
       reconciliation: [integrity && 'tank', integrity && 'pumps', ecu && 'ecu'].filter(Boolean),
-      performance: ['vehicles', 'models', canAccess('fuelModel') && manages && 'expected'].filter(
-        Boolean,
-      ),
+      performance: [
+        'vehicles',
+        'cycles',
+        'models',
+        canAccess('fuelModel') && manages && 'expected',
+      ].filter(Boolean),
     },
     fleetMileage: mileage,
     fuelCycles: canAccess('autoTrips') && manages, // /api/reports/fuel-cycles
@@ -92,7 +97,16 @@ const SUBVIEWS = {
   performance: {
     param: 'view',
     options: [
-      { key: 'vehicles', label: 'By truck', note: 'Average km per litre for each truck.' },
+      {
+        key: 'vehicles',
+        label: 'By truck',
+        note: 'km per litre and DEF for every truck in these dates.',
+      },
+      {
+        key: 'cycles',
+        label: 'Fill to fill (reconciled)',
+        note: 'Cycles checked against your oil report.',
+      },
       { key: 'models', label: 'By model', note: 'Which truck model gives the best mileage.' },
       {
         key: 'expected',
@@ -131,6 +145,8 @@ export default function MileagePage() {
 
   const [drawerDetail, setDrawerDetail] = useState(null);
   useEffect(() => setDrawerDetail(null), [manufacturer]);
+  // The truck whose fill-to-fill cycles the drawer is showing.
+  const [cyclesTruck, setCyclesTruck] = useState(null);
   // Bumped after a bill is edited or deleted so the list and tiles refetch.
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -285,7 +301,18 @@ export default function MileagePage() {
               <PumpLedgerView range={range} searchQuery={deferredSearch} />
             )}
             {activeTab === 'performance' && activeSubview === 'vehicles' && (
-              <TruckMileageView range={range} searchQuery={deferredSearch} />
+              <ByTruckMileageView
+                range={range}
+                searchQuery={deferredSearch}
+                onOpenCycles={setCyclesTruck}
+              />
+            )}
+            {activeTab === 'performance' && activeSubview === 'cycles' && (
+              <FillToFillView
+                range={range}
+                searchQuery={deferredSearch}
+                onOpenCycles={setCyclesTruck}
+              />
             )}
             {activeTab === 'performance' && activeSubview === 'expected' && (
               <ExpectedFuelView range={range} />
@@ -310,6 +337,12 @@ export default function MileagePage() {
             setDrawerDetail(null);
             setRefreshKey((k) => k + 1);
           }}
+        />
+
+        <MileageCyclesDrawer
+          truck={cyclesTruck}
+          range={range}
+          onClose={() => setCyclesTruck(null)}
         />
       </PageShell>
     </>

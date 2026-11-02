@@ -1,5 +1,10 @@
 import apiClient from '../../utils/axiosConfig';
 import ApiError from '../../errors/ApiError';
+import { parseSafe } from '../../schemas/validate.js';
+import { normaliseWindowsPayload } from './fuelWindows.js';
+
+/** The schema module is loaded on demand so zod stays out of the main chunk. */
+const importFuelIntegrityV2 = () => import('../../schemas/mileageV2.schema.js');
 
 /**
  * Service functions for the Fuel Integrity owner screens.
@@ -21,13 +26,17 @@ export const FuelIntegrityService = {
   },
 
   /**
-   * Mass-balance window feed (siphon suspects + DEF ratio).
+   * Mass-balance window feed (one row per window, with its check).
+   *
+   * The contract re-shaped this endpoint, so the answer is parsed with the
+   * contract schema and mapped onto the envelope the page already reads.
    * @param {object} params - { vehicle, from, to }
    */
   getWindows: async (params = {}, signal) => {
     try {
       const response = await apiClient.get(`/api/fuel-integrity/windows`, { params, signal });
-      return response.data?.data || {};
+      const body = normaliseWindowsPayload(response.data?.data || {});
+      return await parseSafe('FuelIntegrityResponseSchema', importFuelIntegrityV2, body);
     } catch (error) {
       if (error?.code === 'ERR_CANCELED') throw error;
       throw ApiError.from(error);

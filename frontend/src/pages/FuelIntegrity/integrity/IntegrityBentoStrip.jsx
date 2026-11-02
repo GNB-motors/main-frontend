@@ -1,7 +1,7 @@
 import { Fuel, ReceiptText, Droplets, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { onActivateKey } from '../../../utils/onActivateKey';
 
-/** The four summary cards: dispensed fuel, unaccounted loss, bill variance and DEF; the DEF card toggles the DEF filter. */
+/** The four summary cards: dispensed fuel, fuel down while parked, bill variance and DEF; the DEF card toggles the DEF filter. */
 const IntegrityBentoStrip = ({
   billCount,
   defCount,
@@ -40,14 +40,14 @@ const IntegrityBentoStrip = ({
       </div>
     </div>
 
-    {/* Card 2: Unaccounted Fuel Loss */}
+    {/* Card 2: the fuel that went down while parked */}
     <div
       className={`fi-bento-card ${lossL > 0 ? 'fi-bento-card--rose' : 'fi-bento-card--emerald'}`}
     >
       <div className="fi-bento-head">
-        {/* "Please review", never an accusation: an unexplained loss can be sensor
-            drift, a missed fill or a unit error as well as theft (audit FI-03/04). */}
-        <span className="fi-bento-label">Unexplained fuel</span>
+        {/* "Needs review", never an accusation: fuel can go down while parked for
+            reasons other than a person taking it (audit FI-03/04). */}
+        <span className="fi-bento-label">Fuel down while parked</span>
         <div
           className={`fi-bento-icon ${lossL > 0 ? 'fi-bento-icon--rose' : 'fi-bento-icon--emerald'}`}
         >
@@ -60,34 +60,38 @@ const IntegrityBentoStrip = ({
             className="fi-bento-val"
             style={{ color: lossL > 0 ? 'var(--critical, #dc2626)' : undefined }}
           >
-            {lossL.toFixed(1)}
+            {lossL == null ? '—' : lossL.toFixed(1)}
           </span>
-          <span className="fi-bento-unit">L</span>
+          {lossL == null ? null : <span className="fi-bento-unit">L</span>}
           {lossSigmaL != null && lossL > 0 ? (
             <span className="fi-bento-secondary-val">± {lossSigmaL.toFixed(1)} L</span>
           ) : null}
-          <span
-            className="fi-bento-secondary-val"
-            title={
-              priceSource === 'BILLS'
-                ? `At ₹${pricePerL}/L, your last 30 days of diesel bills`
-                : `At ₹${pricePerL}/L (configured price — not enough recent bills)`
-            }
-          >
-            · ≈₹{(lossL * pricePerL).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-          </span>
+          {lossL == null ? null : (
+            <span
+              className="fi-bento-secondary-val"
+              title={
+                priceSource === 'BILLS'
+                  ? `At ₹${pricePerL}/L, your last 30 days of diesel bills`
+                  : `At ₹${pricePerL}/L (configured price — not enough recent bills)`
+              }
+            >
+              · ≈₹{(lossL * pricePerL).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            </span>
+          )}
         </div>
       </div>
       <div className="fi-bento-foot">
         <span className="fi-bento-sub">
-          {lossL === 0
-            ? 'Fills, burn and tank level agree'
-            : 'Fills, burn and tank level do not add up'}
+          {lossL == null
+            ? 'Not measured yet'
+            : lossL === 0
+              ? 'Fills, burn and tank level agree'
+              : 'Fills, burn and tank level do not add up'}
         </span>
         <span
           className={`fi-bento-pill ${lossL === 0 ? 'fi-bento-pill--ok' : 'fi-bento-pill--crit'}`}
         >
-          {lossL === 0 ? 'Balanced' : 'Needs review'}
+          {lossL == null ? 'Not measured' : lossL === 0 ? 'Balanced' : 'Needs review'}
         </span>
       </div>
     </div>

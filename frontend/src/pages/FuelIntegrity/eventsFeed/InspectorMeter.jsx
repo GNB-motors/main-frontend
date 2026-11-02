@@ -38,7 +38,7 @@ const InspectorMeter = ({ activeEvent, isDef, isFill, isLoss }) => (
     {isLoss && (
       <div className="fi-reconciliation-meter bg-red-50/60 dark:bg-red-950/20 border-red-200/80 dark:border-red-800/60">
         <div className="flex items-center justify-between text-xs font-semibold">
-          <span className="text-slate-700 dark:text-slate-300">Unaccounted Siphon Loss</span>
+          <span className="text-slate-700 dark:text-slate-300">Fuel went down while parked</span>
           <span className="text-red-600 dark:text-red-400 font-bold">
             {activeEvent.confidence ? `${activeEvent.confidence} Confidence` : 'Confidence not rated'}
           </span>

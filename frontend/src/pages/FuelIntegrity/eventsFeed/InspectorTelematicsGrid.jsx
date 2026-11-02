@@ -50,7 +50,7 @@ const InspectorTelematicsGrid = ({ activeCtx, activeEvent, isDef, isFill, isLoss
       <>
         <div className="fi-tele-item">
           <span className="fi-tele-label">Event Nature</span>
-          <span className="fi-tele-val text-red-600 dark:text-red-400">Siphon Loss</span>
+          <span className="fi-tele-val text-red-600 dark:text-red-400">Fuel went down while parked</span>
         </div>
         <div className="fi-tele-item">
           <span className="fi-tele-label">Est. Financial Loss</span>
@@ -65,7 +65,7 @@ const InspectorTelematicsGrid = ({ activeCtx, activeEvent, isDef, isFill, isLoss
           </span>
         </div>
         <div className="fi-tele-item">
-          <span className="fi-tele-label">Siphon Confidence</span>
+          <span className="fi-tele-label">Check confidence</span>
           <span className="fi-tele-val capitalize">{activeEvent.confidence || 'Not rated'}</span>
         </div>
         <div className="fi-tele-item">

@@ -158,6 +158,10 @@ function mockApi() {
       });
     if (url === '/api/fuel-logs/unified') return Promise.resolve({ data: feed });
     if (url === '/api/mileage/model-comparison') return Promise.resolve({ data: models });
+    if (url === '/api/fleet-view/mileage')
+      return Promise.resolve({
+        data: { status: 'success', data: { items: [], totals: {} } },
+      });
     if (url === '/api/mileage/fleet-overview') {
       return Promise.resolve({
         data: {
@@ -538,19 +542,101 @@ describe('MileagePage', () => {
     expect(daysBetween(call[1].params)).toBe(7);
   });
 
-  it('By truck reads each truck’s mileage for the hub’s dates', async () => {
+  it('By truck reads each truck’s mileage and DEF for the hub’s dates', async () => {
     useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
+    apiClient.get.mockImplementation((url, opts) => {
+      if (url === '/api/fleet-view/mileage') {
+        if (opts?.params?.groupBy === 'truck') {
+          return Promise.resolve({
+            data: {
+              status: 'success',
+              data: {
+                items: [
+                  {
+                    registrationNumber: 'KA01AB1234',
+                    driverName: 'Ramesh Yadav',
+                    from: '2026-10-02T00:00:00Z',
+                    to: '2026-10-19T00:00:00Z',
+                    km: 4820,
+                    dieselL: 1420,
+                    kmPerL: 3.4,
+                    usualKmPerL: 3.2,
+                    defL: 61,
+                    defPctOfDiesel: 4.3,
+                    defBand: { min: 3, max: 6 },
+                    verdict: 'ADDS_UP',
+                    verdictWhy: {
+                      text: 'The diesel used matches the km driven at this truck’s usual km/L.',
+                      basis: '4,820 km at 3.2 km/L',
+                    },
+                    source: 'RECONCILED_REGISTER',
+                  },
+                ],
+                totals: { km: 4820, dieselL: 1420, defL: 61, kmPerL: 3.4 },
+              },
+            },
+          });
+        }
+        return Promise.resolve({
+          data: { status: 'success', data: { items: [], totals: {} } },
+        });
+      }
+      return Promise.resolve({ data: { status: 'success', data: [], meta: {} } });
+    });
     renderAt('/mileage?tab=performance');
 
     expect(await screen.findByText('KA01AB1234')).toBeInTheDocument();
-    expect(within(rowOf('KA01AB1234')).getByText('3.90 km/L')).toBeInTheDocument();
-    expect(within(rowOf('KA01AB1234')).getByText('Average')).toBeInTheDocument();
+    expect(within(rowOf('KA01AB1234')).getByText('3.40 km/L')).toBeInTheDocument();
+    expect(within(rowOf('KA01AB1234')).getByText('Adds up')).toBeInTheDocument();
+    expect(within(rowOf('KA01AB1234')).getByText('4.3%')).toBeInTheDocument();
     expect(apiClient.get).not.toHaveBeenCalledWith(
       '/api/mileage/fleet-overview',
       expect.anything(),
     );
+    const call = apiClient.get.mock.calls.find(([u]) => u === '/api/fleet-view/mileage');
+    expect(call[1].params.groupBy).toBe('truck');
+    expect(daysBetween(call[1].params)).toBe(30);
     expect(screen.getByRole('tab', { name: 'By model' })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Used vs should use' })).not.toBeInTheDocument();
+  });
+
+  it('offers the reconciled fill-to-fill cycles under Mileage', async () => {
+    useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
+    apiClient.get.mockImplementation((url, opts) => {
+      if (url === '/api/fleet-view/mileage' && opts?.params?.groupBy === 'cycle') {
+        return Promise.resolve({
+          data: {
+            status: 'success',
+            data: {
+              items: [
+                {
+                  registrationNumber: 'KA01AB1234',
+                  from: '2026-10-02T00:00:00Z',
+                  to: '2026-10-19T00:00:00Z',
+                  km: 4820,
+                  dieselL: 1420,
+                  kmPerL: 3.4,
+                  usualKmPerL: 3.2,
+                  defL: 61,
+                  defPctOfDiesel: 4.3,
+                  verdict: 'ADDS_UP',
+                  source: 'RECONCILED_REGISTER',
+                },
+              ],
+              totals: {},
+            },
+          },
+        });
+      }
+      return Promise.resolve({ data: { status: 'success', data: { items: [], totals: {} } } });
+    });
+    renderAt('/mileage?tab=performance&view=cycles');
+
+    expect(
+      await screen.findByRole('tab', { name: 'Fill to fill (reconciled)' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('KA01AB1234')).toBeInTheDocument();
+    expect(screen.getByText('From your oil report')).toBeInTheDocument();
   });
 });
 
