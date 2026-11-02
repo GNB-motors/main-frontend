@@ -80,8 +80,10 @@ export default function DeviationFeed({ groups, selId, onSelect, first, error, p
             </span>
             <LegPill trip={d.trip} />
             <span className="dev-row-num">
-              <span className="muted">Farthest</span>
-              <span className="mono strong">{Number(d.maxOffKm || 0).toFixed(1)} km</span>
+              <span className="muted">{d.offRouteKm != null ? 'Off usual road' : 'Farthest'}</span>
+              <span className="mono strong">
+                {Number(d.offRouteKm != null ? d.offRouteKm : d.maxOffKm || 0).toFixed(1)} km
+              </span>
             </span>
             <span className="dev-row-num">
               <span className="muted">Extra</span>
