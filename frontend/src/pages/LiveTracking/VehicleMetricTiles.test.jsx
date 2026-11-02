@@ -7,7 +7,6 @@ import VehicleDetailPanel from './VehicleDetailPanel.jsx';
 vi.mock('../../utils/session.js', () => ({ getUserRole: vi.fn() }));
 vi.mock('./TrackTelemetryService.js', () => ({ default: { getLatest: vi.fn() } }));
 vi.mock('./DestinationIntentSection.jsx', () => ({ default: () => null }));
-vi.mock('./RecordedPathSection.jsx', () => ({ default: () => null }));
 vi.mock('./DriverAssignmentSection.jsx', () => ({ default: () => null }));
 vi.mock('./VehicleLocation.jsx', () => ({ default: () => null }));
 beforeEach(() => {

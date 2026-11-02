@@ -3289,3 +3289,205 @@ html.dark .wx-icon .wx-star,
   font-weight: 700;
   color: var(--nova-sky-500, #2e81ed);
 }
+
+/* Map layer pills (Places, Congestion) — in the top bar beside the status cards. */
+.lt-layer-pills {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+.lt-layer-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.lt-layer-pill-wrap {
+  position: relative;
+  display: flex;
+  gap: 4px;
+}
+.lt-layer-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 9px;
+}
+.lt-layer-info[aria-expanded='true'] {
+  border-color: #2563eb;
+  color: var(--fg-primary);
+}
+/* Congestion explanation, on demand: drops under its pill, scrolls inside
+   itself, and closes on an outside click or Esc. */
+.lt-layer-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 1100;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  max-height: 60vh;
+  overflow: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-lg);
+}
+.lt-layer-popover .lp-congestion {
+  margin: 0;
+  border: none;
+}
+
+/* Right rail: Fleet | Places tabs above the list. The list views stay
+   absolutely positioned, but inside .rail-body now, so they can never cover
+   the tab row. */
+.rail-tabs {
+  flex: none;
+  display: flex;
+  border-bottom: 1px solid var(--border-default);
+}
+.rail-tab {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--fg-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.rail-tab[aria-selected='true'] {
+  color: var(--fg-primary);
+  border-bottom-color: #2563eb;
+}
+.rail-tab__count {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg-subtle);
+  color: var(--fg-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.rail-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Vehicle layer toggles inside the vehicle panel, under Trail / Replay / Share. */
+.dbody > .lp-layer-toggles {
+  padding: 0 var(--space-4) var(--space-2);
+  margin-top: 0;
+}
+
+/* Places tab. */
+.pl-filter {
+  flex: none;
+  padding: 0 var(--space-3) var(--space-2) var(--space-4);
+}
+.pl-filter .lp-places {
+  margin-top: 0;
+}
+.lp-places {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.lp-places-note {
+  font-size: var(--type-2xs);
+  color: var(--fg-secondary);
+  margin-top: 6px;
+  width: 100%;
+}
+.lp-places-retry {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--nova-rage-500);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pcard {
+  width: 100%;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-l);
+  background: var(--bg-subtle);
+  color: var(--fg-primary);
+  font: inherit;
+  cursor: pointer;
+}
+.pcard:hover {
+  border-color: #2563eb;
+}
+.pcard__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+.pcard__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pcard__main b {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pcard__main span {
+  font-size: 11px;
+  color: var(--fg-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pcard__here {
+  flex: none;
+  font-size: 11px;
+  color: var(--fg-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.pcard__here.is-busy {
+  color: #187a32;
+  font-weight: 600;
+}
+.pl-vehicle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-subtle);
+  color: var(--fg-primary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.pl-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--nova-rage-500);
+  text-decoration: none;
+}

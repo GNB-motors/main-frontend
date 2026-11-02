@@ -39,6 +39,7 @@ export default function LiveTopbar({
   positionsError,
   onMapCount = 0,
   unclassifiedCount = 0,
+  layerPills = null,
 }) {
   return (
     <div className="topbar lt-toolbar">
@@ -122,6 +123,7 @@ export default function LiveTopbar({
             </button>
           ))}
         </div>
+        {layerPills}
         <span className="lt-map-count">On map: {isLiveLoading ? '…' : onMapCount}</span>
       </div>
     </div>

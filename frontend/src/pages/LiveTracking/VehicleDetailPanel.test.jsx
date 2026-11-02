@@ -6,7 +6,6 @@ import VehicleDetailPanel from './VehicleDetailPanel';
 vi.mock('./DestinationIntentSection.jsx', () => ({
   default: ({ registrationNumber }) => <p>intent for {String(registrationNumber)}</p>,
 }));
-vi.mock('./RecordedPathSection.jsx', () => ({ default: () => null }));
 vi.mock('./VehicleInfoSection.jsx', () => ({ default: () => null }));
 vi.mock('./DriverAssignmentSection.jsx', () => ({ default: () => null }));
 vi.mock('./TelematicsDiagnosticsSection.jsx', () => ({ default: () => null }));
@@ -42,8 +41,6 @@ describe('VehicleDetailPanel', () => {
         enterReplay={() => {}}
         shareCreating={false}
         handleShareVehicle={() => {}}
-        trailPoints={[]}
-        trailKm={0}
         selectedDriver={null}
       />,
     );
