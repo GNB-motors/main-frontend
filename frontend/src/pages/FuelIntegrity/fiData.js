@@ -224,9 +224,9 @@ export function buildChipDefs(events) {
 export function buildBanner(lossL, billCount, pricePerL) {
   if (lossL > 0) {
     return {
-      state: 'crit',
-      title: 'Fuel integrity — critical',
-      msg: `${formatLitres(lossL)} unexplained loss (~${formatINR(lossL * pricePerL)}) — investigate now.`,
+      state: 'warn',
+      title: 'Fuel integrity — needs review',
+      msg: `${formatLitres(lossL)} of fuel the data does not explain (≈${formatINR(lossL * pricePerL)}). Review the evidence before acting — it can be a sensor or a missed fill as well as theft.`,
     };
   }
   if (billCount > 0) {

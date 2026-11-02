@@ -229,8 +229,10 @@ const FuelIntegrityPage = () => {
   };
 
   const pricePerL = summary?.fuelPriceInrPerL ?? 95;
+  const priceSource = summary?.fuelPriceSource ?? 'CONFIG';
   const totals = summary?.totals;
   const lossL = totals?.siphonSuspectedLossL || 0;
+  const lossSigmaL = totals?.siphonSuspectedLossSigmaL ?? null;
   const billCount = totals?.billFlagCount || 0;
   const defCount = totals?.defFlagCount || 0;
   const windowDays = summary ? daysBetween(summary.window?.from, summary.window?.to) : null;
@@ -312,8 +314,8 @@ const FuelIntegrityPage = () => {
         }
         subtitle={
           lossL === 0
-            ? 'Autonomous mass-balance reconciled: 0 L unexplained loss · 100% fuel retained across fleet'
-            : `Alert: ${lossL.toFixed(1)} L unexplained siphon loss detected across fleet — review immediately`
+            ? 'Fills, engine burn and tank level agree across the fleet in this period'
+            : `${lossL.toFixed(1)} L of fuel the data does not explain — review the windows below. This is not a finding of theft.`
         }
         filters={
           <div className="manufacturer-scope-row">
@@ -379,6 +381,8 @@ const FuelIntegrityPage = () => {
             billCount={billCount}
             defCount={defCount}
             lossL={lossL}
+            lossSigmaL={lossSigmaL}
+            priceSource={priceSource}
             pricePerL={pricePerL}
             setChip={setChip}
             totalFillsLitres={totalFillsLitres}
