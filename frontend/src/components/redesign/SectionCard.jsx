@@ -1,5 +1,5 @@
 import { toneStyles } from '@/utils/redesign/tone';
-import { InfoTip } from './InfoTip';
+import InfoTip from './InfoTip';
 
 /**
  * SectionCard — the standard card of the redesign.

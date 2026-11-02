@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { NotYetAvailable } from '@/components/redesign/NotYetAvailable';
+import NotYetAvailable from '@/components/redesign/NotYetAvailable';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { INTELLIGENCE_TABS, resolveIntelligenceTab } from './intelligenceTabs';
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLoadScript } from '@react-google-maps/api';
 import { useLivePositions } from '../../hooks/useLivePositions';
 import { useFullPageLayout } from '../../hooks/usePageLayout';
@@ -12,12 +12,8 @@ import useFleetWeather from './useFleetWeather.js';
 import trailDateWindow from './trailDateWindow.js';
 import useSelectedDriver from './useSelectedDriver.js';
 import useVehicleShareDialog from './useVehicleShareDialog.js';
-import useStatusCards from './useStatusCards.js';
 import renderIconSvg from './renderIconSvg.jsx';
-import LiveTopbar from './LiveTopbar.jsx';
 import LiveMapCanvas from './LiveMapCanvas.jsx';
-import MapLayerPills from './MapLayerPills.jsx';
-import CongestionPanel from './CongestionPanel.jsx';
 import MapOverlayControls from './MapOverlayControls.jsx';
 import ReplayBar from './ReplayBar.jsx';
 import TelemetryTicker from './TelemetryTicker.jsx';
@@ -27,6 +23,23 @@ import ShareLinkDialog from './ShareLinkDialog.jsx';
 import useTrackPlaces from './useTrackPlaces.js';
 import PlacesListView from './PlacesListView.jsx';
 import PlaceDetailPanel from './PlaceDetailPanel.jsx';
+import TrackLegend from './TrackLegend.jsx';
+import MapSearchBox from './MapSearchBox.jsx';
+import TrafficToggle from './TrafficToggle.jsx';
+import useMapPlaces from './useMapPlaces.js';
+import {
+  defaultStatusSelection,
+  legendMakeRows,
+  legendStatusRows,
+  selectOnly,
+  toggleSelection,
+} from './trackLegendModel.js';
+import {
+  readLayerSelection,
+  readTrafficOn,
+  writeLayerSelection,
+  writeTrafficOn,
+} from './trackLegendPrefs.js';
 import './LiveTracking.css';
 
 const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '')
@@ -42,7 +55,6 @@ const LiveTrackingPage = () => {
     isLoading: isLiveLoading,
     refresh: refreshLivePositions,
     lastEventAt,
-    error: positionsError,
   } = useLivePositions();
 
   // Layout & Theme hooks
@@ -53,10 +65,16 @@ const LiveTrackingPage = () => {
   const [isTelemetryOn, setIsTelemetryOn] = useState(true);
 
   // Filters & selection
-  const [filter, setFilter] = useState('all');
-  const [selectedManufacturers, setSelectedManufacturers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedId, setSelectedId] = useState(null);
+
+  // The floating legend IS the filter (F1.4). The status set starts with all
+  // four on; the make set stores only what the owner turned OFF, so a make
+  // the fleet gains later is on without anybody having to touch it.
+  const [statusSelection, setStatusSelection] = useState(() => defaultStatusSelection());
+  const [makeSelection, setMakeSelection] = useState({});
+  const [layerSelection, setLayerSelection] = useState(() => readLayerSelection());
+  const [isTrafficOn, setIsTrafficOn] = useState(() => readTrafficOn());
 
   // Google Maps Load Script
   const { isLoaded, loadError } = useLoadScript({
@@ -71,24 +89,75 @@ const LiveTrackingPage = () => {
 
   const { vehiclesMeta, driverAssignments } = useFleetMasterData();
 
-  const { vehicles, counts, filteredVehicles, selectedVehicle, mapVehicles, manufacturers } =
-    useFleetVehicles({
-      rawPositions,
-      vehiclesMeta,
-      selectedManufacturers,
-      filter,
-      searchQuery,
-      selectedId,
-    });
+  const {
+    vehicles,
+    counts,
+    fleetCounts,
+    filteredVehicles,
+    selectedVehicle,
+    mapVehicles,
+    manufacturers,
+  } = useFleetVehicles({
+    rawPositions,
+    vehiclesMeta,
+    filter: 'all',
+    searchQuery,
+    selectedId,
+    statusSelection,
+    makeSelection,
+  });
 
   useEffect(() => {
     if (selectedId && !selectedVehicle) setSelectedId(null);
   }, [selectedId, selectedVehicle]);
 
+  // The legend's rows. The status counts are the FULL fleet counts, so a
+  // filter never changes the number the owner sees beside a status.
+  const statusRows = useMemo(() => legendStatusRows(fleetCounts), [fleetCounts]);
+  const makeRows = useMemo(() => legendMakeRows(manufacturers, vehicles), [manufacturers, vehicles]);
+  const effectiveMakeSelection = useMemo(() => {
+    const merged = {};
+    makeRows.forEach((row) => {
+      merged[row.key] = makeSelection[row.key] ?? true;
+    });
+    return merged;
+  }, [makeRows, makeSelection]);
+
+  const handleToggleStatus = (key) => setStatusSelection((prev) => toggleSelection(prev, key));
+  const handleOnlyStatus = (key) => setStatusSelection((prev) => selectOnly(prev, key));
+  const handleAllStatus = () => setStatusSelection(defaultStatusSelection());
+  const handleToggleMake = (key) =>
+    setMakeSelection((prev) => ({ ...prev, [key]: !(prev[key] ?? true) }));
+  const handleOnlyMake = (key) =>
+    setMakeSelection(
+      Object.fromEntries(makeRows.map((row) => [row.key, row.key === key])),
+    );
+  const handleAllMake = () => setMakeSelection({});
+  const handleToggleLayer = (key) => {
+    // "Our places" is the fleet's own confirmed places, which the Track page
+    // already has; the rest come from the map places endpoint.
+    if (key === 'ourPlaces') {
+      trackPlaces.toggle();
+      return;
+    }
+    setLayerSelection((prev) => {
+      const next = toggleSelection(prev, key);
+      writeLayerSelection(next);
+      return next;
+    });
+  };
+  const handleToggleTraffic = () =>
+    setIsTrafficOn((prev) => {
+      writeTrafficOn(!prev);
+      return !prev;
+    });
+
   const {
     mapRef,
     mapZoom,
     setMapZoom,
+    mapBounds,
+    onMapIdle,
     mapOptions,
     onMapLoad,
     trailLoading,
@@ -116,11 +185,6 @@ const LiveTrackingPage = () => {
     habitualHaltsLoading,
     isHabitualHaltsVisible,
     toggleHabitualHalts,
-    congestion,
-    congestionLoading,
-    congestionNotice,
-    isCongestionVisible,
-    toggleCongestion,
     segmentByTrip,
     setSegmentByTrip,
     toggleTrail,
@@ -136,6 +200,15 @@ const LiveTrackingPage = () => {
   // Places layer (Place Hub's confirmed places) — off until the user turns it on.
   const trackPlaces = useTrackPlaces();
   const [railTab, setRailTab] = useState('fleet'); // 'fleet' | 'places'
+
+  // The extra place layers (pumps, dhabas, hospitals…) come from the
+  // fleet-view map endpoint, asked only for the visible map box and only
+  // once the map has settled.
+  const mapPlaces = useMapPlaces({
+    bbox: mapBounds,
+    zoom: mapZoom,
+    layers: layerSelection,
+  });
   // Picking a vehicle anywhere (map, list, a place's "vehicles here") shows its details.
   useEffect(() => {
     if (selectedId) setRailTab('fleet');
@@ -182,9 +255,9 @@ const LiveTrackingPage = () => {
   const pickVehicleFromPlace = (id) => {
     // "Vehicles here now" is fleet-wide; a truck hidden by a filter clears it to be shown.
     if (!filteredVehicles.some((v) => v.id === id)) {
-      setFilter('all');
+      setStatusSelection(defaultStatusSelection());
       setSearchQuery('');
-      setSelectedManufacturers([]);
+      setMakeSelection({});
     }
     setSelectedId(id);
     setRailTab('fleet');
@@ -241,47 +314,10 @@ const LiveTrackingPage = () => {
   const { shareDialog, setShareDialog, shareCreating, handleShareVehicle, submitShareLink } =
     useVehicleShareDialog(showToast);
 
-  const STATUS_CARDS = useStatusCards(counts);
-
   return (
     <div className="gnb-lt-page">
       {/* Main Console Container */}
       <main className="console">
-        {/* Topbar Command Strip */}
-        <LiveTopbar
-          isLiveLoading={isLiveLoading}
-          counts={counts}
-          statusCards={STATUS_CARDS}
-          filter={filter}
-          setFilter={setFilter}
-          handleRefresh={handleRefresh}
-          isRefreshing={isRefreshing}
-          manufacturers={manufacturers}
-          selectedManufacturers={selectedManufacturers}
-          setSelectedManufacturers={setSelectedManufacturers}
-          lastEventAt={lastEventAt}
-          positionsError={positionsError}
-          onMapCount={mapVehicles.length}
-          unclassifiedCount={vehicles.filter((v) => !v.manufacturer).length}
-          layerPills={
-            <MapLayerPills
-              isPlacesVisible={trackPlaces.visible}
-              placesLoading={trackPlaces.loading}
-              placesCount={trackPlaces.shownPlaces.length}
-              togglePlaces={trackPlaces.toggle}
-              isCongestionVisible={isCongestionVisible}
-              congestionLoading={congestionLoading}
-              congestionCount={congestion?.rows?.length || 0}
-              toggleCongestion={toggleCongestion}
-              congestionDetails={
-                congestion ? (
-                  <CongestionPanel congestion={congestion} notice={congestionNotice} />
-                ) : null
-              }
-            />
-          }
-        />
-
         {/* Stage Area: Map + Docked Fleet Rail */}
         <div className={`stage ${!isRailOpen ? 'railoff' : ''}`}>
           {/* Map Column */}
@@ -292,6 +328,7 @@ const LiveTrackingPage = () => {
               mapZoom={mapZoom}
               setMapZoom={setMapZoom}
               onMapLoad={onMapLoad}
+              onMapIdle={onMapIdle}
               mapRef={mapRef}
               mapOptions={mapOptions}
               mapVehicles={mapVehicles}
@@ -314,16 +351,48 @@ const LiveTrackingPage = () => {
               fallbackSingleColor={fallbackSingleColor}
               habitualHalts={habitualHalts}
               isHabitualHaltsVisible={isHabitualHaltsVisible}
-              isCongestionVisible={isCongestionVisible}
-              congestionRows={congestion?.rows || []}
               segmentByTrip={segmentByTrip}
               weather={activeWeather}
               weatherBubblePosition={weatherBubblePosition}
               fleetWeather={fleetWeather}
               places={trackPlaces.shownPlaces}
+              extraPlaces={mapPlaces.items}
               selectedPlaceId={trackPlaces.selectedPlace?.id ?? null}
               onSelectPlace={selectPlaceFromMap}
               placesDark={theme === 'dark' && mapMode !== 'sat'}
+              isTrafficOn={isTrafficOn}
+              map={mapRef.current}
+            />
+
+            {/* Floating controls: search at the top-left, traffic at the
+                top-right, and the legend — which IS the filter — at the
+                bottom-left. The old top bar is gone (F1.3). */}
+            <MapSearchBox
+              value={searchQuery}
+              onChange={setSearchQuery}
+              inputRef={searchInputRef}
+            />
+            <TrafficToggle on={isTrafficOn} onToggle={handleToggleTraffic} />
+            <TrackLegend
+              statusRows={statusRows}
+              makeRows={makeRows}
+              statusSelection={statusSelection}
+              makeSelection={effectiveMakeSelection}
+              layerSelection={layerSelection}
+              onToggleStatus={handleToggleStatus}
+              onOnlyStatus={handleOnlyStatus}
+              onAllStatus={handleAllStatus}
+              onToggleMake={handleToggleMake}
+              onOnlyMake={handleOnlyMake}
+              onAllMake={handleAllMake}
+              onToggleLayer={handleToggleLayer}
+              lastEventAt={lastEventAt}
+              onRefresh={handleRefresh}
+              isRefreshing={isRefreshing}
+              zoom={mapZoom}
+              placesNotAvailable={mapPlaces.notAvailable}
+              placesTruncated={mapPlaces.truncated}
+              placesCount={mapPlaces.items.length}
             />
 
             <MapOverlayControls
@@ -405,9 +474,6 @@ const LiveTrackingPage = () => {
                     counts={counts}
                     setIsRailOpen={setIsRailOpen}
                     triggerMapResize={triggerMapResize}
-                    searchInputRef={searchInputRef}
-                    searchQuery={searchQuery}
-                    setSearchQuery={setSearchQuery}
                     selectedId={selectedId}
                     setSelectedId={setSelectedId}
                   />
@@ -446,6 +512,7 @@ const LiveTrackingPage = () => {
                   <PlacesListView
                     trackPlaces={trackPlaces}
                     vehicles={vehicles}
+                    query={searchQuery}
                     onPick={pickPlace}
                     onHide={() => {
                       setIsRailOpen(false);

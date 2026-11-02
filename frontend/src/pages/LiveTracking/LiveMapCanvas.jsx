@@ -1,16 +1,17 @@
 import { GoogleMap, MarkerF, PolylineF } from '@react-google-maps/api';
 import RoadTrailLayer from '../../components/map/RoadTrailLayer';
-import CongestionLayer from '../../components/map/CongestionLayer';
 import { trailArrowIcons } from './mapIcons.js';
 import { createTrailEndpointIcon } from './trailMarkerIcons.js';
 import { createHabitualHaltIcon } from './trailMarkerIcons.js';
 import AnimatedVehicleMarkers from './AnimatedVehicleMarkers.jsx';
 import focusedMapVehicles from './focusedMapVehicles.js';
 import TrackPlacesLayer from './TrackPlacesLayer.jsx';
+import MapPlacesLayer from './MapPlacesLayer.jsx';
 import WeatherBubble from './WeatherBubble.jsx';
 import FleetWeatherMarkers from './FleetWeatherMarkers.jsx';
 import ReplayTruckMarker from './ReplayTruckMarker.jsx';
 import ReplayRouteLayer from './ReplayRouteLayer.jsx';
+import TrafficLayer from './TrafficLayer.jsx';
 import replayAppearance from '../../components/map/replayAppearance.js';
 import { DEFAULT_LIMIT_KMH } from '../RouteHub/views/replay/replayConstants.js';
 
@@ -22,6 +23,7 @@ export default function LiveMapCanvas({
   mapZoom,
   setMapZoom,
   onMapLoad,
+  onMapIdle,
   mapRef,
   mapOptions,
   mapVehicles,
@@ -43,16 +45,17 @@ export default function LiveMapCanvas({
   fallbackSingleColor,
   habitualHalts,
   isHabitualHaltsVisible,
-  isCongestionVisible,
-  congestionRows,
   segmentByTrip,
   weather,
   weatherBubblePosition,
   fleetWeather,
   places = [],
+  extraPlaces = [],
   selectedPlaceId = null,
   onSelectPlace,
   placesDark = false,
+  isTrafficOn = false,
+  map = null,
 }) {
   /* When the user disables per-trip segmentation we fall back to a single
      polyline (visual continuity with the legacy behavior). The fallback
@@ -92,6 +95,7 @@ export default function LiveMapCanvas({
           center={INDIA_CENTER}
           zoom={mapZoom}
           onLoad={onMapLoad}
+          onIdle={onMapIdle}
           onZoomChanged={() => {
             if (mapRef.current) {
               const z = mapRef.current.getZoom();
@@ -100,12 +104,10 @@ export default function LiveMapCanvas({
           }}
           options={mapOptions}
         >
-          {/* Congestion layer (00_PLAN.md item 5) — this org's OWN road-matched
-              edges, drawn FIRST so it sits under the fleet, the trail and the
-              replay: a vehicle is never hidden by its own road. Edges the
-              backend could not rate are not in `rows`; nothing here invents
-              geometry for a gap. */}
-          {isCongestionVisible && <CongestionLayer rows={congestionRows} />}
+          {/* Google's live traffic, as a display layer only. The owner acts
+              on the congestion in the vehicle panel's ETA, which comes from
+              our own road network, not from this layer. */}
+          <TrafficLayer map={map} enabled={isTrafficOn} />
 
           {/* Places (Place Hub's confirmed places) — under the fleet, never hiding a truck. */}
           <TrackPlacesLayer
@@ -114,6 +116,15 @@ export default function LiveMapCanvas({
             onSelect={onSelectPlace}
             zoom={mapZoom}
             dark={placesDark}
+          />
+
+          {/* The landmark layers (pumps, dhabas, hospitals…) — under the
+              fleet too, so a truck is never hidden by a pin. */}
+          <MapPlacesLayer
+            places={extraPlaces}
+            selectedId={selectedPlaceId}
+            onSelect={onSelectPlace}
+            zoom={mapZoom}
           />
 
           {/* Fleet Vehicle Markers — imperative markers that glide between

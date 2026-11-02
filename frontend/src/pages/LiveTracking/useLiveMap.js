@@ -36,6 +36,11 @@ export default function useLiveMap({
   // Per-trip colours are enabled by default.
   const [segmentByTrip, setSegmentByTrip] = useState(true);
 
+  // The visible map box, updated only when the map goes idle. Panning does
+  // not fire a request per frame — the places endpoint is asked once the
+  // map settles (F1.4).
+  const [mapBounds, setMapBounds] = useState(null);
+
   // Use this org's road edges; pooled congestion needs three contributing orgs.
   const [congestion, setCongestion] = useState(null);
   const [congestionLoading, setCongestionLoading] = useState(false);
@@ -190,6 +195,21 @@ export default function useLiveMap({
     [fitToLiveVehicles],
   );
 
+  /**
+   * The visible map box, read only when the map goes idle.
+   * Panning fires many change events; asking for places on each one would
+   * flood the endpoint, so the box is sampled once the map settles.
+   */
+  const onMapIdle = useCallback(() => {
+    const map = mapRef.current;
+    if (!map || !window.google) return;
+    const bounds = map.getBounds();
+    if (!bounds) return;
+    const ne = bounds.getNorthEast();
+    const sw = bounds.getSouthWest();
+    setMapBounds([sw.lat(), sw.lng(), ne.lat(), ne.lng()]);
+  }, []);
+
   // Frame the live fleet once its first positions arrive.
   useEffect(() => {
     if (didAutoFitRef.current || !mapRef.current || selectedId) return;
@@ -329,6 +349,8 @@ export default function useLiveMap({
     mapRef,
     mapZoom,
     setMapZoom,
+    mapBounds,
+    onMapIdle,
     mapOptions,
     onMapLoad,
     trailLoading,

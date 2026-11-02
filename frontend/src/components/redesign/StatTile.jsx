@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { InfoTip } from './InfoTip';
+import InfoTip from './InfoTip';
 
 /**
  * StatTile — one number, with its meaning and its evidence.

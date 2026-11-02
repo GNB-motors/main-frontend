@@ -15,9 +15,6 @@ export default function FleetListView({
   counts,
   setIsRailOpen,
   triggerMapResize,
-  searchInputRef,
-  searchQuery,
-  setSearchQuery,
   selectedId,
   setSelectedId,
 }) {
@@ -52,21 +49,8 @@ export default function FleetListView({
         </button>
       </div>
 
-      {/* Live Search Bar */}
-      <div className="fsearch">
-        {renderIconSvg('search', 16)}
-        <input
-          ref={searchInputRef}
-          type="search"
-          placeholder="Search plate, chassis, model…"
-          autoComplete="off"
-          aria-label="Search fleet"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
-
-      {/* Cards List */}
+      {/* Cards List. The search box lives on the map now (F1.3), so the list
+          starts straight at the trucks. */}
       <div className="flist" aria-busy={isLiveLoading}>
         {isLiveLoading ? (
           Array.from({ length: SKEL_CARD_COUNT }, (_, i) => <VehicleCardSkeleton key={i} />)

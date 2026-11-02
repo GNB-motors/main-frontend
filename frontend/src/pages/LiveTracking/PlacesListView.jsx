@@ -7,14 +7,20 @@ import { vehicleCountsByPlace } from './trackPlaces.js';
 
 /* The Places tab: the same confirmed places as the map layer, searchable,
    with how many trucks are inside each one right now. Places with trucks in
-   them come first. */
-export default function PlacesListView({ trackPlaces, vehicles, onPick, onHide }) {
-  const { listPlaces, places, loading, loaded, query, setQuery } = trackPlaces;
+   them come first. The search box now lives on the map (F1.3), so this list
+   is filtered by that one search. */
+export default function PlacesListView({ trackPlaces, vehicles, onPick, onHide, query = '' }) {
+  const { listPlaces, places, loading, loaded } = trackPlaces;
   const here = useMemo(() => vehicleCountsByPlace(listPlaces, vehicles), [listPlaces, vehicles]);
-  const rows = useMemo(
-    () => [...listPlaces].sort((a, b) => (here.get(b.id) || 0) - (here.get(a.id) || 0)),
-    [listPlaces, here],
-  );
+  const rows = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const matching = q
+      ? listPlaces.filter((p) =>
+          [p.name, p.type, p.subtitle].filter(Boolean).join(' ').toLowerCase().includes(q),
+        )
+      : listPlaces;
+    return [...matching].sort((a, b) => (here.get(b.id) || 0) - (here.get(a.id) || 0));
+  }, [listPlaces, here, query]);
 
   return (
     <div className="railview">
@@ -37,18 +43,6 @@ export default function PlacesListView({ trackPlaces, vehicles, onPick, onHide }
         >
           {renderIconSvg('chevRight', 16)}
         </button>
-      </div>
-
-      <div className="fsearch">
-        {renderIconSvg('search', 16)}
-        <input
-          type="search"
-          placeholder="Search place, type, area…"
-          autoComplete="off"
-          aria-label="Search places"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
       </div>
 
       <div className="pl-filter">

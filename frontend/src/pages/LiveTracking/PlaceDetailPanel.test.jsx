@@ -33,9 +33,8 @@ describe('Place detail in the Places tab', () => {
     expect(screen.getByText(/Vehicles here now · 1/)).toBeTruthy();
     fireEvent.click(screen.getByText('WB01AB1234'));
     expect(onPick).toHaveBeenCalledWith('v1');
-    expect(screen.getByText('Open in Place Hub').getAttribute('href')).toBe(
-      '/place-hub?place=site%3As1',
-    );
+    // The redesign moves place editing behind one plain link (F1.7).
+    expect(screen.getByText('Manage places →').getAttribute('href')).toBe('/place-hub');
   });
 
   it('renders nothing open when no place is picked', () => {
