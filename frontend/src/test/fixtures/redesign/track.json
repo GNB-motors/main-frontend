@@ -17,7 +17,8 @@
   "segments": [
     { "fromT": "2026-11-01T13:00:00Z", "toT": "2026-11-01T15:05:00Z", "kind": "LADEN", "km": 48.2 },
     { "fromT": "2026-11-01T15:05:00Z", "toT": "2026-11-01T15:45:00Z", "kind": "UNKNOWN", "km": 0 },
-    { "fromT": "2026-11-01T15:45:00Z", "toT": "2026-11-01T19:30:00Z", "kind": "LADEN", "km": 312.6 },
+    { "fromT": "2026-11-01T15:45:00Z", "toT": "2026-11-01T16:20:00Z", "kind": "EMPTY", "km": 41.8 },
+    { "fromT": "2026-11-01T16:20:00Z", "toT": "2026-11-01T19:30:00Z", "kind": "LADEN", "km": 312.6 },
     { "fromT": "2026-11-01T18:10:00Z", "toT": "2026-11-01T19:00:00Z", "kind": "GAP", "km": null }
   ],
   "stops": [
@@ -86,6 +87,14 @@
       "text": "No signal for 1 h",
       "lat": 23.4512,
       "lng": 85.6731
+    },
+    {
+      "at": "2026-11-01T15:50:00Z",
+      "endAt": "2026-11-01T16:05:00Z",
+      "kind": "FUEL_DROP",
+      "text": "Fuel went down 42 L while parked",
+      "lat": 24.3771,
+      "lng": 84.9812
     }
   ],
   "landmarks": [

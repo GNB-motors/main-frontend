@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useLoadScript } from '@react-google-maps/api';
 import { useLivePositions } from '../../hooks/useLivePositions';
 import { useFullPageLayout } from '../../hooks/usePageLayout';
@@ -9,13 +10,11 @@ import useFleetVehicles from './useFleetVehicles.js';
 import useLiveMap from './useLiveMap.js';
 import useVehicleWeather from './useVehicleWeather.js';
 import useFleetWeather from './useFleetWeather.js';
-import trailDateWindow from './trailDateWindow.js';
 import useSelectedDriver from './useSelectedDriver.js';
 import useVehicleShareDialog from './useVehicleShareDialog.js';
 import renderIconSvg from './renderIconSvg.jsx';
 import LiveMapCanvas from './LiveMapCanvas.jsx';
 import MapOverlayControls from './MapOverlayControls.jsx';
-import ReplayBar from './ReplayBar.jsx';
 import TelemetryTicker from './TelemetryTicker.jsx';
 import FleetListView from './FleetListView.jsx';
 import VehicleDetailPanel from './VehicleDetailPanel.jsx';
@@ -27,6 +26,11 @@ import TrackLegend from './TrackLegend.jsx';
 import MapSearchBox from './MapSearchBox.jsx';
 import TrafficToggle from './TrafficToggle.jsx';
 import useMapPlaces from './useMapPlaces.js';
+import useTrackMode from './useTrackMode.js';
+import TrackTimeline from './TrackTimeline.jsx';
+import TrackLog from './TrackLog.jsx';
+import TrackRangePicker from './TrackRangePicker.jsx';
+import { nextEventAt, previousEventAt } from './trackPlayback.js';
 import {
   defaultStatusSelection,
   legendMakeRows,
@@ -75,6 +79,12 @@ const LiveTrackingPage = () => {
   const [makeSelection, setMakeSelection] = useState({});
   const [layerSelection, setLayerSelection] = useState(() => readLayerSelection());
   const [isTrafficOn, setIsTrafficOn] = useState(() => readTrafficOn());
+
+  // Track mode lives in the URL, so every link in the product can open one
+  // truck's history on a given range (F3.2).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const trackMode = useTrackMode({ searchParams, setSearchParams });
+  const isTrackMode = trackMode.isTrackMode;
 
   // Google Maps Load Script
   const { isLoaded, loadError } = useLoadScript({
@@ -167,10 +177,8 @@ const LiveTrackingPage = () => {
     isTrailVisible,
     roadTrail,
     replayState,
-    setReplayState,
     selectedStatusColor,
     trailCoords,
-    trailKm,
     replayPtsCoords,
     replayCurrentPos,
     replayRunPaths,
@@ -299,6 +307,29 @@ const LiveTrackingPage = () => {
         e.preventDefault();
         setIsRailOpen(true);
         searchInputRef.current?.focus();
+        return;
+      }
+      // In Track mode the keyboard drives the drive: Space plays and pauses,
+      // the arrows jump between events, Esc leaves.
+      if (isTrackMode) {
+        if (e.key === ' ') {
+          e.preventDefault();
+          trackMode.setIsPlaying((playing) => !playing);
+          return;
+        }
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          const events = trackMode.track?.events ?? [];
+          const at = e.key === 'ArrowRight'
+            ? nextEventAt(events, trackMode.playheadTime)
+            : previousEventAt(events, trackMode.playheadTime);
+          if (at) trackMode.seekToTime(at);
+          return;
+        }
+        if (e.key === 'Escape') {
+          trackMode.exitTrackMode();
+          return;
+        }
       }
       if (e.key === 'Escape') {
         if (replayState.on) exitReplay();
@@ -307,10 +338,19 @@ const LiveTrackingPage = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [replayState.on, exitReplay]);
+  }, [replayState.on, exitReplay, isTrackMode, trackMode]);
 
   const { shareDialog, setShareDialog, shareCreating, handleShareVehicle, submitShareLink } =
     useVehicleShareDialog(showToast);
+
+  // In Track mode the truck is the one in the URL, not the one the owner
+  // happened to click.
+  const trackVehicle = useMemo(
+    () => (trackMode.reg ? (vehicles.find((v) => v.plate === trackMode.reg) ?? null) : null),
+    [trackMode.reg, vehicles],
+  );
+  const activeVehicle = isTrackMode ? trackVehicle : selectedVehicle;
+  const activeSelectedId = isTrackMode ? (trackVehicle?.id ?? null) : selectedId;
 
   return (
     <div className="gnb-lt-page">
@@ -330,7 +370,7 @@ const LiveTrackingPage = () => {
               mapRef={mapRef}
               mapOptions={mapOptions}
               mapVehicles={mapVehicles}
-              selectedId={selectedId}
+              selectedId={activeSelectedId}
               setSelectedId={setSelectedId}
               setIsRailOpen={setIsRailOpen}
               isTrailVisible={isTrailVisible}
@@ -360,6 +400,8 @@ const LiveTrackingPage = () => {
               placesDark={theme === 'dark' && mapMode !== 'sat'}
               isTrafficOn={isTrafficOn}
               map={mapRef.current}
+              track={isTrackMode ? trackMode.track : null}
+              trackPlayheadTime={isTrackMode ? trackMode.playheadTime : null}
             />
 
             {/* Floating controls: search at the top-left, traffic at the
@@ -414,15 +456,7 @@ const LiveTrackingPage = () => {
 
             {/* Overlay Bottom-Center: Replay Bar & Telemetry Ticker */}
             <div className="ov ov--bc">
-              {/* Trip Replay Controller */}
-              <ReplayBar
-                replayState={replayState}
-                setReplayState={setReplayState}
-                selectedVehicle={selectedVehicle}
-                trailKm={trailKm}
-                exitReplay={exitReplay}
-                dateLabel={trailDateWindow.label(trailSelection)}
-              />
+
 
               {/* Live Telemetry Ticker */}
               <TelemetryTicker
@@ -433,10 +467,57 @@ const LiveTrackingPage = () => {
                 icon={renderIconSvg('radio', 14)}
               />
             </div>
+
+            {/* Track mode: the timeline at the bottom of the map. */}
+            {isTrackMode ? (
+              <TrackTimeline
+                track={trackMode.track}
+                points={trackMode.points}
+                playheadIndex={trackMode.playheadIndex}
+                isPlaying={trackMode.isPlaying}
+                speed={trackMode.speed}
+                onTogglePlay={() => trackMode.setIsPlaying((playing) => !playing)}
+                onSpeedChange={trackMode.setSpeed}
+                onSeek={(percent) => {
+                  const index = Math.round((percent / 100) * Math.max(1, trackMode.points.length - 1));
+                  trackMode.seekToIndex(index);
+                }}
+                onExit={trackMode.exitTrackMode}
+                onApplyRange={(range) => trackMode.applyRange(range)}
+                from={trackMode.from}
+                to={trackMode.to}
+              />
+            ) : null}
           </div>
 
-          {/* Right Rail: Fleet and Places tabs */}
+          {/* Right Rail: the trip log in Track mode, the fleet and places otherwise */}
           <aside className="rail">
+            {isTrackMode ? (
+              <>
+                <div className="rail-tabs">
+                  <button type="button" className="rail-tab" aria-selected="true" role="tab">
+                    Track mode
+                  </button>
+                </div>
+                <div className="rail-body">
+                  {trackMode.notDeployed ? (
+                    <p className="m-0 px-3 py-4 text-[13px] text-[var(--rd-ink-3)]">
+                      Stops and landmarks will appear here soon.
+                    </p>
+                  ) : trackMode.loading ? (
+                    <p className="m-0 px-3 py-4 text-[13px] text-[var(--rd-ink-3)]">
+                      Loading the drive…
+                    </p>
+                  ) : (
+                    <TrackLog
+                      track={trackMode.track}
+                      onSeek={(at) => trackMode.seekToTime(new Date(at))}
+                    />
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
             <div className="rail-tabs" role="tablist" aria-label="Fleet and places">
               <button
                 type="button"
@@ -478,7 +559,7 @@ const LiveTrackingPage = () => {
 
                   {/* Vehicle Detail Slide-in Drawer */}
                   <VehicleDetailPanel
-                    selectedVehicle={selectedVehicle}
+                    selectedVehicle={activeVehicle}
                     setSelectedId={setSelectedId}
                     exitReplay={exitReplay}
                     isTrailVisible={isTrailVisible}
@@ -521,6 +602,8 @@ const LiveTrackingPage = () => {
                 </>
               )}
             </div>
+              </>
+            )}
           </aside>
         </div>
       </main>

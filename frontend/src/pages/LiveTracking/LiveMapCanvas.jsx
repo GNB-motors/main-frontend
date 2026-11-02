@@ -12,6 +12,7 @@ import FleetWeatherMarkers from './FleetWeatherMarkers.jsx';
 import ReplayTruckMarker from './ReplayTruckMarker.jsx';
 import ReplayRouteLayer from './ReplayRouteLayer.jsx';
 import TrafficLayer from './TrafficLayer.jsx';
+import TrackMapLayers from './TrackMapLayers.jsx';
 import replayAppearance from '../../components/map/replayAppearance.js';
 import { DEFAULT_LIMIT_KMH } from '../RouteHub/views/replay/replayConstants.js';
 
@@ -56,6 +57,8 @@ export default function LiveMapCanvas({
   placesDark = false,
   isTrafficOn = false,
   map = null,
+  track = null,
+  trackPlayheadTime = null,
 }) {
   /* When the user disables per-trip segmentation we fall back to a single
      polyline (visual continuity with the legacy behavior). The fallback
@@ -108,6 +111,15 @@ export default function LiveMapCanvas({
               on the congestion in the vehicle panel's ETA, which comes from
               our own road network, not from this layer. */}
           <TrafficLayer map={map} enabled={isTrafficOn} />
+
+          {/* Track mode: one truck's history, drawn over the live map. */}
+          {track ? (
+            <TrackMapLayers
+              track={track}
+              zoom={mapZoom}
+              playheadTime={trackPlayheadTime}
+            />
+          ) : null}
 
           {/* Places (Place Hub's confirmed places) — under the fleet, never hiding a truck. */}
           <TrackPlacesLayer
