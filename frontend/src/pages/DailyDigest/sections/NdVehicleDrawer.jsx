@@ -63,7 +63,7 @@ export default function NdVehicleDrawer({ vehicle, onClose }) {
                     </div>
                   </div>
                   <div className="nd-vd-stat">
-                    <div className="nd-k">Fuel in tank</div>
+                    <div className="nd-k">Tank (low-fuel check, L)</div>
                     <div className="nd-v">
                       {vehicle.fuelLevelL != null ? `${vehicle.fuelLevelL} L` : '—'}
                     </div>
@@ -102,10 +102,10 @@ export default function NdVehicleDrawer({ vehicle, onClose }) {
                 ) : vehicle.profile?.health ? (
                   <div className="nd-vd-grid">
                     <div className="nd-vd-stat">
-                      <div className="nd-k">Fuel</div>
+                      <div className="nd-k">Sensor level (%)</div>
                       <div className="nd-v">
                         {vehicle.profile.health.primaryFuelLevel != null
-                          ? `${vehicle.profile.health.primaryFuelLevel}%`
+                          ? `${vehicle.profile.health.primaryFuelLevel}%${vehicle.profile.health.isStale ? ' · old reading' : ''}`
                           : '—'}
                       </div>
                     </div>
