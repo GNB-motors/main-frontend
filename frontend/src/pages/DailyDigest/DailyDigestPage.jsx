@@ -376,7 +376,13 @@ export default function DailyDigestPage() {
         {opsLoading ? (
           <NdOpsRowSkeleton />
         ) : (
-          <NdOpsRow money={m} fuelEfficiency={fuelEfficiency} onOpenVehicle={openVehicle} />
+          <NdOpsRow
+            money={m}
+            idlingTop5={money?.idlingTop5}
+            detourTop5={money?.detourTop5}
+            fuelEfficiency={fuelEfficiency}
+            onOpenVehicle={openVehicle}
+          />
         )}
 
         {leaderboardLoading ? (
