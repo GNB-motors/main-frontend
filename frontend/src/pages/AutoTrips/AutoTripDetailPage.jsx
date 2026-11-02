@@ -13,6 +13,8 @@ import RouteHubService from '../../services/RouteHubService';
 import TripDeviationsCard from './TripDeviationsCard';
 import { detourSegments, deviationWindow } from './tripDeviations';
 import AutoTripReplay from './AutoTripReplay';
+import TripLegBar from './TripLegBar';
+import TripStopList from './TripStopList';
 import AutoTripTimeline from './AutoTripTimeline';
 import TripDriver from './TripDriver';
 import TripBackButton from './TripBackButton';
@@ -258,6 +260,14 @@ export default function AutoTripDetailPage() {
             </div>
             <div className="atx-rule" />
             <div className="atx-fields">
+              {/* The legs, as a bar in the leg colours (F8.5). */}
+              <div className="atx-field">
+                <div className="atx-field-label">Distance by leg</div>
+                <TripLegBar trip={trip} />
+              </div>
+            </div>
+            <div className="atx-rule" />
+            <div className="atx-fields">
               <Field mono label="Loaded run">
                 {fmtKm(trip.km?.ladenOdo ?? trip.km?.laden)}
                 <span className="atx-muted">
@@ -296,6 +306,12 @@ export default function AutoTripDetailPage() {
             </div>
             <div className="atx-rule" />
             <Field label="Stops on the way">{stopsOnWayText(trip.stopsSummary)}</Field>
+            {/* Every stop, with the reason it stopped (F8.5). Clicking a row
+                opens Track at that stop. */}
+            <div className="atx-field">
+              <div className="atx-field-label">Stops on this trip</div>
+              <TripStopList stops={trip.stops} registrationNumber={trip.registrationNumber} />
+            </div>
             {trip.extraDrops?.length || trip.erpTripId ? (
               <div className="atx-fields">
                 {trip.extraDrops?.length ? (
