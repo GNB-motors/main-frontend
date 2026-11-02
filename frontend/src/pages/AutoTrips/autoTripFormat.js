@@ -5,8 +5,9 @@ import { formatInIST, istDayString } from '../../utils/dateUtils';
 
 // ─── Status ──────────────────────────────────────────────────────────────────
 
+// COMPLETE means GPS reached a drop place — not a POD-confirmed delivery (audit TR-05).
 export const STATUS_LABEL = {
-  COMPLETE: 'Delivered',
+  COMPLETE: 'Reached drop',
   CONFIRMED: 'Confirmed',
   NEEDS_REVIEW: 'Needs a check',
   OPEN: 'On the road',

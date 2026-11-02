@@ -31,7 +31,7 @@ import './TripsWorkspace.css';
 
 const TABS = [
   { key: '', label: 'All' },
-  { key: 'COMPLETE', label: 'Delivered' },
+  { key: 'COMPLETE', label: 'Reached drop' },
   { key: 'NEEDS_REVIEW', label: 'Needs a check' },
   { key: 'OPEN', label: 'On the road' },
   // Only a person moves a trip here (Confirm trip / Not a real trip on the trip page),
@@ -133,6 +133,17 @@ export default function AutoTripsPage() {
           ),
         },
         {
+          key: 'driver',
+          width: 130,
+          label: 'Driver',
+          render: (r) =>
+            r.driver?.name ? (
+              <span>{r.driver.name}</span>
+            ) : (
+              <span className="atx-muted">{r.driver ? 'Name not recorded' : '—'}</span>
+            ),
+        },
+        {
           key: 'departedAt',
           width: 125,
           label: 'Left plant',
@@ -143,7 +154,13 @@ export default function AutoTripsPage() {
           label: 'Loaded km',
           align: 'right',
           render: (r) =>
-            r.km?.laden == null ? <span className="atx-muted">—</span> : fmtKm(r.km.laden),
+            r.km?.laden == null ? (
+              <span className="atx-muted">—</span>
+            ) : (
+              <span title={r.km?.ladenOdo != null ? 'From the truck’s odometer' : 'GPS path'}>
+                {fmtKm(r.km?.ladenOdo ?? r.km.laden)}
+              </span>
+            ),
         },
         {
           key: 'sap',
