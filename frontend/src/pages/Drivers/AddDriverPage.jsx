@@ -27,9 +27,6 @@ const AddDriverPage = () => {
   const [driverId, setDriverId] = useState(null);
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [initialFormData, setInitialFormData] = useState({});
-  // The driver's current active vehicle assignment (edit mode), if any — used
-  // to diff against the form's vehicleId on save and to end/replace it correctly.
-  const [currentAssignment, setCurrentAssignment] = useState(null);
   // RBAC roles available to this enterprise — dynamic source for the role
   // selectors (Enterprise Role / Branch Role). New roles show up automatically.
   const [roles, setRoles] = useState([]);
@@ -76,7 +73,6 @@ const AddDriverPage = () => {
         } catch (err) {
           logger.warn('AddDriverPage', 'Failed to load vehicle assignment', err);
         }
-        setCurrentAssignment(assignment);
 
         // Map existing role to an enterprise/branch role option if available
         let matchedRoleId = editing.enterpriseRoleId || editing.branchRoleId || '';
@@ -120,7 +116,6 @@ const AddDriverPage = () => {
         setIsEdit(false);
         setDriverId(null);
         setInitialFormData({});
-        setCurrentAssignment(null);
         setDocuments({
           driverLicense: {
             file: null,
@@ -188,25 +183,24 @@ const AddDriverPage = () => {
       // as part of this same save — end-then-create (not an in-place edit) so
       // the per-vehicle history stays intact. No-op if nothing changed.
       const syncVehicleAssignment = async (entityId, vehicleId) => {
+        // A previous save may have ended the old allocation before creation failed.
+        // Re-read the ledger so retrying never repeats a stale end/create decision.
+        const currentAssignment = await DriverVehicleAssignmentService.getActiveAssignment({
+          driverId: entityId,
+        });
         const currentVehicleId = currentAssignment
           ? DriverVehicleAssignmentService.idOf(currentAssignment.vehicleId)
           : '';
         if ((vehicleId || '') === currentVehicleId) return;
-        try {
-          if (currentAssignment) {
-            await DriverVehicleAssignmentService.endAssignment(currentAssignment._id);
-          }
-          if (vehicleId) {
-            await DriverVehicleAssignmentService.createAssignment({
-              driverId: entityId,
-              vehicleId,
-              startDate: new Date().toISOString(),
-            });
-          }
-        } catch (err) {
-          toast.error(
-            err?.response?.data?.message || err?.message || 'Failed to update vehicle assignment',
-          );
+        if (currentAssignment) {
+          await DriverVehicleAssignmentService.endAssignment(currentAssignment._id);
+        }
+        if (vehicleId) {
+          await DriverVehicleAssignmentService.createAssignment({
+            driverId: entityId,
+            vehicleId,
+            startDate: new Date().toISOString(),
+          });
         }
       };
 
@@ -303,6 +297,10 @@ const AddDriverPage = () => {
         const savedEmployee = await DriverService.addDriver(businessRefId, payload);
         // All roles (including field agents, now branch-scoped) return { id, status }.
         const empId = savedEmployee._id || savedEmployee.id || savedEmployee.user?._id;
+        // Retain the saved identity even when a later assignment or upload fails.
+        setDriverId(empId);
+        setIsEdit(true);
+        setInitialFormData({ ...formData, password: '' });
         await uploadDocuments(empId);
         await syncVehicleAssignment(empId, formData.vehicleId);
 

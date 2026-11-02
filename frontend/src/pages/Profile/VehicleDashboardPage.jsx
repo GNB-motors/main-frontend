@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { VehicleService } from './VehicleService.js';
 import { getThemeCSS } from '../../utils/colorTheme';
@@ -221,30 +222,36 @@ const VehicleDashboardPage = () => {
         style={{ paddingBottom: 48, alignItems: 'stretch' }}
       >
         <PageShell
-          title="Vehicle Compliance & Documents"
+          title="Vehicle Documents"
           subtitle="Fleet-wide document compliance and live expiry tracking. Badges update automatically."
-          filters={
-            <FilterBar
-              searchValue={search}
-              onSearchChange={setSearch}
-              searchPlaceholder="Search vehicle"
-              right={
-                loading && rows.length > 0 ? (
-                  <span style={{ fontSize: 12, color: '#94a3b8' }}>Updating…</span>
-                ) : null
-              }
-            />
+          leading={
+            <button
+              className="v-dash-back"
+              type="button"
+              aria-label="Back to Vehicles"
+              title="Back to Vehicles"
+              onClick={() => navigate('/vehicles')}
+            >
+              <ArrowLeft size={18} aria-hidden="true" />
+            </button>
+          }
+          actions={
+            <div className="v-dash-header-tools" aria-busy={loading}>
+              <VehicleDashboardDocFilter
+                docFilter={docFilter}
+                setDocFilter={setDocFilter}
+                rows={rows}
+                displayRows={displayRows}
+                filterOptionsWithCounts={filterOptionsWithCounts}
+              />
+              <FilterBar
+                searchValue={search}
+                onSearchChange={setSearch}
+                searchPlaceholder="Search vehicle"
+              />
+            </div>
           }
         >
-          {/* Document Compliance Dropdown Filter Bar */}
-          <VehicleDashboardDocFilter
-            docFilter={docFilter}
-            setDocFilter={setDocFilter}
-            rows={rows}
-            displayRows={displayRows}
-            filterOptionsWithCounts={filterOptionsWithCounts}
-          />
-
           {/* Metric Summary Cards */}
           <VehicleDashboardKpis kpis={kpis} />
 

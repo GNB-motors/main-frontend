@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { X } from 'lucide-react';
+import { FileSpreadsheet, Upload, X } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import AssignmentService from '@/services/DriverVehicleAssignmentService';
 import { assignmentTable, assignmentRows } from './bulkAssignmentFile';
+import './BulkAssignVehiclesPanel.css';
 
 export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
   const [table, setTable] = useState(null);
@@ -32,6 +33,7 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
     if (!file) return;
     invalidate();
     setTable(null);
+    setFileName('');
     setEmployeeColumn('');
     setVehicleColumn('');
     setBusy(true);
@@ -104,32 +106,41 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
         if (!open && !busy) onClose();
       }}
     >
-      <SheetContent className="w-full !max-w-[min(960px,96vw)] gap-0 p-0">
-        <SheetHeader>
-          <div>
+      <SheetContent className="bulk-assign-panel">
+        <SheetHeader className="bulk-assign-header">
+          <div className="bulk-assign-heading">
             <SheetTitle>Bulk Assign Vehicles</SheetTitle>
-            <SheetDescription className="mt-2">
+            <SheetDescription>
               Assign existing employees to existing vehicles from Excel or CSV.
             </SheetDescription>
           </div>
           <button
             type="button"
-            aria-label="Close"
+            aria-label="Close bulk assignment"
             disabled={busy}
             onClick={onClose}
-            className="rounded p-2"
+            className="bulk-assign-close"
           >
             <X size={18} />
           </button>
         </SheetHeader>
-        <div className="flex-1 overflow-y-auto space-y-5 p-6">
-          <p className="text-sm text-muted-foreground">
-            Use the first sheet, with column headings in the first row. Map employee mobile number
-            and vehicle registration; all other columns are ignored. Maximum 500 rows. Assignments
-            start at the preview time. Existing allocations are preserved.
-          </p>
-          <label className="block space-y-2 text-sm font-medium">
-            <span>Excel or CSV file</span>
+        <div className="bulk-assign-body" aria-busy={busy}>
+          <section className="bulk-assign-section" aria-labelledby="bulk-assign-upload-title">
+            <div className="bulk-assign-section-heading">
+              <h3 id="bulk-assign-upload-title">1. Upload spreadsheet</h3>
+              <p>Use the first sheet, with column headings in the first row. Maximum 500 rows.</p>
+            </div>
+            <div className="bulk-assign-upload">
+              <FileSpreadsheet size={32} aria-hidden="true" />
+              <p className="bulk-assign-file-name">
+                {table ? `${fileName} · ${table.rows.length} rows` : 'Choose an Excel or CSV file'}
+              </p>
+              <p className="bulk-assign-hint">Supports .xlsx, .xls and .csv · Up to 10 MB</p>
+              <Button variant="outline" disabled={busy} onClick={() => fileInput.current?.click()}>
+                <Upload size={16} aria-hidden="true" />
+                {table ? 'Change file' : 'Choose file'}
+              </Button>
+            </div>
             <input
               ref={fileInput}
               type="file"
@@ -137,19 +148,23 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
               accept=".xlsx,.xls,.csv"
               disabled={busy}
               onChange={readFile}
-              className="block w-full rounded border p-3"
+              className="bulk-assign-file-input"
+              tabIndex={-1}
             />
-          </label>
+          </section>
           {table && (
-            <>
-              <p className="text-sm">
-                {fileName} · {table.rows.length} rows
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="space-y-2 text-sm font-medium">
+            <section className="bulk-assign-section" aria-labelledby="bulk-assign-mapping-title">
+              <div className="bulk-assign-section-heading">
+                <h3 id="bulk-assign-mapping-title">2. Map columns</h3>
+                <p>
+                  Choose the employee mobile and vehicle registration columns. Other columns are
+                  ignored.
+                </p>
+              </div>
+              <div className="bulk-assign-mapping">
+                <label className="bulk-assign-field">
                   <span>Employee mobile number *</span>
                   <select
-                    className="block w-full rounded border p-2"
                     value={employeeColumn}
                     disabled={busy}
                     onChange={(e) => {
@@ -169,10 +184,9 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
                     ))}
                   </select>
                 </label>
-                <label className="space-y-2 text-sm font-medium">
+                <label className="bulk-assign-field">
                   <span>Vehicle registration *</span>
                   <select
-                    className="block w-full rounded border p-2"
                     value={vehicleColumn}
                     disabled={busy}
                     onChange={(e) => {
@@ -193,7 +207,7 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
                   </select>
                 </label>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="bulk-assign-hint">
                 Use the employee’s registered mobile number (10-digit Indian or international
                 format). Names alone cannot identify employees reliably.
               </p>
@@ -208,33 +222,44 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
               >
                 {busy ? 'Processing…' : 'Preview assignments'}
               </Button>
-            </>
+            </section>
           )}
           {error && (
-            <p
-              role="alert"
-              className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-            >
+            <p role="alert" className="bulk-assign-error">
               {error}
             </p>
           )}
           {report && (
-            <div className="space-y-4" aria-live="polite">
-              <p className="text-sm font-medium">
-                {report.dryRun ? 'Preview' : 'Upload results'}: {report.counts.ready} ready ·{' '}
-                {report.counts.assigned} assigned · {report.counts.skipped} skipped ·{' '}
-                {report.counts.error} errors
-              </p>
-              <p className="text-sm">
+            <section
+              className="bulk-assign-section"
+              aria-live="polite"
+              aria-labelledby="bulk-assign-results-title"
+            >
+              <div className="bulk-assign-section-heading">
+                <h3 id="bulk-assign-results-title">
+                  {report.dryRun ? '3. Preview assignments' : 'Assignment results'}
+                </h3>
+                <p>
+                  {report.counts.ready} ready · {report.counts.assigned} assigned ·{' '}
+                  {report.counts.skipped} skipped · {report.counts.error} errors
+                </p>
+              </div>
+              <p className="bulk-assign-hint">
                 Effective from {new Date(report.effectiveAt).toLocaleString()}. Conflicting rows
                 must be corrected before they can be assigned.
               </p>
-              <div className="overflow-x-auto rounded border">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-muted">
+              {/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- Keyboard users need focus to scroll wide results. */}
+              <div
+                className="bulk-assign-table-scroll"
+                role="region"
+                aria-label="Assignment results"
+                tabIndex={0}
+              >
+                <table className="bulk-assign-table">
+                  <thead>
                     <tr>
                       {['Row', 'Employee', 'Vehicle', 'Status', 'Details'].map((h) => (
-                        <th key={h} scope="col" className="p-3">
+                        <th key={h} scope="col">
                           {h}
                         </th>
                       ))}
@@ -242,30 +267,43 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
                   </thead>
                   <tbody>
                     {report.rows.map((row) => (
-                      <tr key={row.rowNumber} className="border-t">
-                        <td className="p-3">{row.rowNumber}</td>
-                        <td className="p-3">
+                      <tr key={row.rowNumber}>
+                        <td>{row.rowNumber}</td>
+                        <td>
                           {row.employeeName || row.employee}
-                          <div className="text-xs text-muted-foreground">
+                          <div className="bulk-assign-employee-mobile">
                             {row.employeeName ? row.employee : ''}
                           </div>
                         </td>
-                        <td className="p-3">{row.registrationNumber || row.vehicle}</td>
-                        <td className="p-3 capitalize">{row.status}</td>
-                        <td className="p-3">{row.message}</td>
+                        <td>{row.registrationNumber || row.vehicle}</td>
+                        <td>
+                          <span className="bulk-assign-status" data-status={row.status}>
+                            {row.status}
+                          </span>
+                        </td>
+                        <td>{row.message}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              {report.dryRun && payload && report.counts.ready > 0 && (
-                <Button disabled={busy} onClick={apply}>
-                  {busy ? 'Assigning…' : `Assign ${report.counts.ready} valid rows`}
-                </Button>
-              )}
-            </div>
+              {/* eslint-enable jsx-a11y/no-noninteractive-tabindex */}
+            </section>
           )}
         </div>
+        <footer className="bulk-assign-footer">
+          <p>Assignments start at the preview time. Existing allocations are preserved.</p>
+          <div className="bulk-assign-actions">
+            <Button variant="outline" disabled={busy} onClick={onClose}>
+              Close
+            </Button>
+            {report?.dryRun && payload && report.counts.ready > 0 && (
+              <Button disabled={busy} onClick={apply}>
+                {busy ? 'Assigning…' : `Assign ${report.counts.ready} valid rows`}
+              </Button>
+            )}
+          </div>
+        </footer>
       </SheetContent>
     </Sheet>
   );

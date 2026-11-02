@@ -14,6 +14,8 @@ import TripDeviationsCard from './TripDeviationsCard';
 import { detourSegments, deviationWindow } from './tripDeviations';
 import AutoTripReplay from './AutoTripReplay';
 import AutoTripTimeline from './AutoTripTimeline';
+import TripDriver from './TripDriver';
+import TripBackButton from './TripBackButton';
 import { FLAG_LABEL, answerPlaceHref, inWindow } from './autoTripPlaces';
 import { LONG_PLANT_MIN, timelinePlan } from './timelineModel';
 import {
@@ -47,9 +49,7 @@ function Shell({ children }) {
   return (
     <div className="atx-page atx-page--detail">
       <div className="atx-wrap">
-        <Link to="/auto-trips" className="atx-back">
-          ← All trips
-        </Link>
+        <TripBackButton />
         {children}
       </div>
     </div>
@@ -166,35 +166,35 @@ export default function AutoTripDetailPage() {
     <div className="atx-page atx-page--detail">
       <div className="atx-wrap">
         <div className="atx-head">
-          <div className="atx-head-main">
-            <Link to="/auto-trips" className="atx-back">
-              ← All trips
-            </Link>
-            <div className="atx-plate-row">
-              <h1 className="atx-plate-title">{trip.registrationNumber || 'Trip'}</h1>
-              <span
-                className={`atx-status atx-status--strong ${STATUS_CLASS[trip.status] || 'atx-status--open'}`}
-              >
-                {STATUS_LABEL[trip.status] || trip.status}
-              </span>
-              {frozen && trip.status !== 'CONFIRMED' && trip.status !== 'DISMISSED' ? (
-                <span className="atx-chip">Locked</span>
-              ) : null}
-              {(trip.flags || []).map((f) => (
-                <span key={f} className="atx-chip">
-                  {FLAG_LABEL[f] || f}
+          <div className="atx-detail-heading">
+            <TripBackButton />
+            <div className="atx-head-main">
+              <div className="atx-plate-row">
+                <h1 className="atx-plate-title">{trip.registrationNumber || 'Trip'}</h1>
+                <span
+                  className={`atx-status atx-status--strong ${STATUS_CLASS[trip.status] || 'atx-status--open'}`}
+                >
+                  {STATUS_LABEL[trip.status] || trip.status}
                 </span>
-              ))}
+                {frozen && trip.status !== 'CONFIRMED' && trip.status !== 'DISMISSED' ? (
+                  <span className="atx-chip">Locked</span>
+                ) : null}
+                {(trip.flags || []).map((f) => (
+                  <span key={f} className="atx-chip">
+                    {FLAG_LABEL[f] || f}
+                  </span>
+                ))}
+              </div>
+              <p className="atx-route-sub">
+                {trip.pickup?.name || 'Pickup'} → {open ? 'not reached yet' : dropLabel(trip.drop)}{' '}
+                · {tripDateRange(trip)}
+              </p>
+              {answerHref && !frozen ? (
+                <Link to={answerHref} className="atx-answer">
+                  Is this place a drop? Answer it on the Places page →
+                </Link>
+              ) : null}
             </div>
-            <p className="atx-route-sub">
-              {trip.pickup?.name || 'Pickup'} → {open ? 'not reached yet' : dropLabel(trip.drop)} ·{' '}
-              {tripDateRange(trip)}
-            </p>
-            {answerHref && !frozen ? (
-              <Link to={answerHref} className="atx-answer">
-                Is this place a drop? Answer it on the Places page →
-              </Link>
-            ) : null}
           </div>
 
           {canEdit && !frozen ? (
@@ -253,7 +253,7 @@ export default function AutoTripDetailPage() {
                 </Field>
               ) : null}
               <Field label="Driver">
-                {trip.driver?.name || (trip.driver ? 'Name not recorded' : '—')}
+                <TripDriver trip={trip} onRetry={refetch} />
               </Field>
             </div>
             <div className="atx-rule" />
