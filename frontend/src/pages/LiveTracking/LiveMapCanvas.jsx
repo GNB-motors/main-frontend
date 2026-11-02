@@ -5,6 +5,8 @@ import { trailArrowIcons } from './mapIcons.js';
 import { createTrailEndpointIcon } from './trailMarkerIcons.js';
 import { createHabitualHaltIcon } from './trailMarkerIcons.js';
 import AnimatedVehicleMarkers from './AnimatedVehicleMarkers.jsx';
+import focusedMapVehicles from './focusedMapVehicles.js';
+import TrackPlacesLayer from './TrackPlacesLayer.jsx';
 import WeatherBubble from './WeatherBubble.jsx';
 import FleetWeatherMarkers from './FleetWeatherMarkers.jsx';
 import ReplayTruckMarker from './ReplayTruckMarker.jsx';
@@ -47,6 +49,10 @@ export default function LiveMapCanvas({
   weather,
   weatherBubblePosition,
   fleetWeather,
+  places = [],
+  selectedPlaceId = null,
+  onSelectPlace,
+  placesDark = false,
 }) {
   /* When the user disables per-trip segmentation we fall back to a single
      polyline (visual continuity with the legacy behavior). The fallback
@@ -64,6 +70,11 @@ export default function LiveMapCanvas({
     isTrailVisible &&
     trailCoords.length > 1 &&
     (!segmentByTrip || !trailSegments || trailSegments.length === 0);
+  const fleetOnMap = focusedMapVehicles(mapVehicles, {
+    selectedId,
+    isTrailVisible,
+    replayOn: replayState.on,
+  });
   return (
     <div id="map" className="gmap-host">
       {!isLoaded ? (
@@ -96,10 +107,20 @@ export default function LiveMapCanvas({
               geometry for a gap. */}
           {isCongestionVisible && <CongestionLayer rows={congestionRows} />}
 
+          {/* Places (Place Hub's confirmed places) — under the fleet, never hiding a truck. */}
+          <TrackPlacesLayer
+            places={places}
+            selectedId={selectedPlaceId}
+            onSelect={onSelectPlace}
+            zoom={mapZoom}
+            dark={placesDark}
+          />
+
           {/* Fleet Vehicle Markers — imperative markers that glide between
-              SSE fixes instead of teleporting (see AnimatedVehicleMarkers). */}
+              SSE fixes instead of teleporting (see AnimatedVehicleMarkers).
+              Only the selected truck while its Trail or Replay is up. */}
           <AnimatedVehicleMarkers
-            vehicles={replayState.on ? mapVehicles.filter((v) => v.id !== selectedId) : mapVehicles}
+            vehicles={fleetOnMap}
             selectedId={selectedId}
             mapZoom={mapZoom}
             onSelect={(id) => {
@@ -112,7 +133,7 @@ export default function LiveMapCanvas({
               weather (rain/thunder/snow), zoom-gated so a wide view stays clean.
               Rendered before the selected bubble so that bubble sits on top. */}
           <FleetWeatherMarkers
-            vehicles={mapVehicles}
+            vehicles={fleetOnMap}
             fleetWeather={fleetWeather}
             selectedId={selectedId}
           />

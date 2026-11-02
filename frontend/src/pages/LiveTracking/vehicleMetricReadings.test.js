@@ -2,15 +2,19 @@ import { describe, expect, it } from 'vitest';
 import vehicleMetricReadings from './vehicleMetricReadings.js';
 
 describe('Track metric readings', () => {
-  it('prefers live readings and preserves valid zero values', () => {
+  it('prefers live fuel/DEF, keeps valid zeros, and reads the CAN odometer first (DC-20)', () => {
     expect(
       vehicleMetricReadings(
         { fuel: 0, fuelUnit: 'litres', defLevel: 0, defUnit: 'percent', odo: 0 },
         { primaryFuelLevel: 80, defLevel: 50, canOdo: 999 },
       ),
-    ).toMatchObject({ fuel: '0 L', def: '0%', odometer: '0 km' });
+    ).toMatchObject({ fuel: '0 L', def: '0%', odometer: '999 km', odometerSource: 'CAN' });
+    expect(vehicleMetricReadings({ odo: 0 }, null)).toMatchObject({
+      odometer: '0 km',
+      odometerSource: 'LIVE',
+    });
   });
-  it('uses the reported health units for DEF and fuel fallback', () => {
+  it('labels a Vehicle Health fallback older than 6 h (DC-15)', () => {
     expect(
       vehicleMetricReadings(
         {},
@@ -24,14 +28,14 @@ describe('Track metric readings', () => {
         },
       ),
     ).toMatchObject({
-      fuel: '32%',
-      def: '70%',
-      odometer: '1,23,456 km',
+      fuel: '32% · old reading',
+      def: '70% · old reading',
+      odometer: '1,23,456 km · old reading',
     });
   });
-  it('does not invent readings or litres when units are unverified', () => {
+  it('says the unit is unknown instead of inventing litres (DC-18)', () => {
     expect(vehicleMetricReadings({ fuel: 32, fuelUnit: 'unverified' })).toMatchObject({
-      fuel: '32',
+      fuel: '32 (unit unknown)',
       def: '—',
       odometer: '—',
     });

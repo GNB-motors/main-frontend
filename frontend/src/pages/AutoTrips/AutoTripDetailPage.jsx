@@ -244,12 +244,29 @@ export default function AutoTripDetailPage() {
               <Field label="Loaded at">{trip.pickup?.name || '—'}</Field>
               <Field label="Unloaded at">{open ? 'Not reached yet' : dropLabel(trip.drop)}</Field>
               <Field label="Left plant">{fmtDayTime(trip.pickup?.departedAt)}</Field>
-              <Field label="Reached drop">{open ? '—' : fmtDayTime(trip.drop?.arrivedAt)}</Field>
+              <Field label={trip.extraDrops?.length ? 'First drop at' : 'Reached drop'}>
+                {open ? '—' : fmtDayTime(trip.drop?.arrivedAt)}
+              </Field>
+              {trip.extraDrops?.length ? (
+                <Field label="Last drop at">
+                  {fmtDayTime(trip.extraDrops[trip.extraDrops.length - 1]?.arrivedAt)}
+                </Field>
+              ) : null}
+              <Field label="Driver">
+                {trip.driver?.name || (trip.driver ? 'Name not recorded' : '—')}
+              </Field>
             </div>
             <div className="atx-rule" />
             <div className="atx-fields">
               <Field mono label="Loaded run">
-                {fmtKm(trip.km?.laden)}
+                {fmtKm(trip.km?.ladenOdo ?? trip.km?.laden)}
+                <span className="atx-muted">
+                  {trip.km?.ladenOdo != null
+                    ? ' · odometer'
+                    : trip.km?.laden != null
+                      ? ' · GPS path'
+                      : ''}
+                </span>
               </Field>
               <Field mono label="Empty run to plant">
                 {fmtKm(trip.km?.approach)}
@@ -260,9 +277,16 @@ export default function AutoTripDetailPage() {
               <Field mono label="Extra km for fuel">
                 {fmtKm(trip.km?.fuelDetour)}
               </Field>
-              <Field mono label="Driving time">
-                {fmtDuration(trip.durations?.transitMin)}
+              {/* The loaded run covers every drop, so its time must too (audit TR-01):
+                  transitMin stops at the FIRST drop. */}
+              <Field mono label="Loaded running time">
+                {fmtDuration(trip.durations?.ladenMin ?? trip.durations?.transitMin)}
               </Field>
+              {trip.extraDrops?.length && trip.durations?.transitMin != null ? (
+                <Field mono label="To first drop">
+                  {fmtDuration(trip.durations.transitMin)}
+                </Field>
+              ) : null}
               <Field mono label="Empty before loading">
                 {fmtDuration(trip.durations?.approachMin)}
               </Field>

@@ -7,6 +7,9 @@ import FleetDataService from '../../services/FleetDataService';
 import { VehicleService } from '../Profile/VehicleService.js';
 import { OwnerAlertsService } from '../OwnerAlerts/OwnerAlertsService';
 import { FuelIntegrityService } from '../FuelIntegrity/FuelIntegrityService';
+import { AutoTripService } from '../../services/AutoTripService';
+import PerformanceApi from '../../api/performance';
+import { rangeToParams } from '../AutoTrips/tripRange';
 import { morningBriefSchema } from '../../schemas/morningBrief.schema';
 
 import { formatDateLongIST } from '../../utils/dateUtils';
@@ -74,7 +77,15 @@ export default function DailyDigestPage() {
   const alerts$ = useApi((s) => OwnerAlertsService.getAlerts({ from, limit: 10 }, s), [from]);
   const fuel$ = useApi((s) => FuelIntegrityService.getSummary({ from }, s), [from]);
   const fleetAlerts$ = useApi((s) => FleetDataService.getFleetAlertSummary({ from }, s), [from]);
-  const driverLeaderboard$ = useApi((s) => FleetDataService.getDriverLeaderboard({}, s), []);
+  // The Performance page's leaderboards (vs expected, within duty) — the retired
+  // /driver-leaderboard read empty collections and ranked raw km/L (audit DD-05).
+  const driverLeaderboard$ = useApi((s) => PerformanceApi.leaderboards({}, s), []);
+  // Trips today = the Trip page's own trips that left a pickup today (IST), not
+  // the legacy VehicleTour rows the calendar holds (audit DD-02).
+  const tripsToday$ = useApi(
+    (s) => AutoTripService.list({ ...rangeToParams({ range: 'today' }), limit: 1 }, { signal: s }),
+    [],
+  );
 
   const { data: money } = money$;
   const { data: fleetDashboard } = fleetDashboard$;
@@ -148,7 +159,13 @@ export default function DailyDigestPage() {
   });
   const upcoming = buildUpcomingItems({ serviceVehicles, documents });
 
-  const kpis = buildDigestKpis({ fleetDashboard, m, calendar, healthScore });
+  const kpis = buildDigestKpis({
+    fleetDashboard,
+    m,
+    calendar,
+    healthScore,
+    tripsToday: tripsToday$.data?.total ?? null,
+  });
 
   // Fetched only while the drawer is open for a given plate — the digest's
   // own already-loaded datasets below are still used for today-scoped figures

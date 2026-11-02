@@ -9,7 +9,12 @@ export default function DriverAssignmentSection({ selectedDriver }) {
         <span className="chev">{renderIconSvg('chevDown', 16)}</span>
       </summary>
       <div className="secbody">
-        {selectedDriver ? (
+        {selectedDriver?.unclear ? (
+          <div className="secnote">
+            Two drivers are assigned to this vehicle right now, so the driver is unclear. Fix the
+            overlap in Drivers.
+          </div>
+        ) : selectedDriver ? (
           <div
             style={{
               display: 'flex',
@@ -37,7 +42,7 @@ export default function DriverAssignmentSection({ selectedDriver }) {
                   fontSize: '14px',
                 }}
               >
-                {selectedDriver.name.charAt(0).toUpperCase()}
+                {(selectedDriver.name || '?').charAt(0).toUpperCase()}
               </div>
               <div>
                 <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--fg-primary)' }}>

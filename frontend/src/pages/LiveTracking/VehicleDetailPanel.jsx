@@ -1,14 +1,14 @@
 import renderIconSvg from './renderIconSvg.jsx';
 import { NOVA_STATUS } from './statusPalettes.js';
-import { formatAgoText, formatFullStamp } from './minutesAgoFormat.js';
+import { formatAgoText, formatFixTime } from './minutesAgoFormat.js';
 import DestinationIntentSection from './DestinationIntentSection.jsx';
-import RecordedPathSection from './RecordedPathSection.jsx';
 import VehicleInfoSection from './VehicleInfoSection.jsx';
 import DriverAssignmentSection from './DriverAssignmentSection.jsx';
 import TelematicsDiagnosticsSection from './TelematicsDiagnosticsSection.jsx';
 import WeatherSection from './WeatherSection.jsx';
 import VehicleLocation from './VehicleLocation.jsx';
 import VehicleMetricTiles from './VehicleMetricTiles.jsx';
+import VehicleLayerToggles from './VehicleLayerToggles.jsx';
 import useApi from '../../hooks/useApi.js';
 import { getUserRole } from '../../utils/session.js';
 import TrackTelemetryService from './TrackTelemetryService.js';
@@ -26,15 +26,16 @@ export default function VehicleDetailPanel({
   enterReplay,
   shareCreating,
   handleShareVehicle,
-  trailPoints,
-  trailKm,
   selectedDriver,
-  tripLegend,
-  habitualHalts,
-  isHabitualHaltsVisible,
   weather,
   weatherLoading,
   weatherContext,
+  segmentByTrip = true,
+  setSegmentByTrip,
+  isHabitualHaltsVisible = false,
+  habitualHaltsLoading = false,
+  toggleHabitualHalts,
+  habitualHalts = [],
 }) {
   const reg = selectedVehicle?.plate;
   const canReadHealth = ['OWNER', 'MANAGER'].includes(getUserRole());
@@ -57,9 +58,13 @@ export default function VehicleDetailPanel({
               Fleet
             </button>
             <div className="dtop-statuses">
-              <span className={`gps-status ${selectedVehicle.gps === 'Active' ? 'is-active' : ''}`}>
+              <span className={`gps-status ${selectedVehicle.hasGpsFix ? 'is-active' : ''}`}>
                 {renderIconSvg('nav', 13)}
-                {selectedVehicle.gps === 'Active' ? 'GPS active' : 'No GPS fix'}
+                {selectedVehicle.hasGpsFix
+                  ? 'GPS fix'
+                  : selectedVehicle.hasFix
+                    ? 'Last known position'
+                    : 'No GPS position'}
               </span>
               <span
                 className={`ignition-status ${selectedVehicle.ignition === 'ON' ? 'is-active' : ''}`}
@@ -101,7 +106,7 @@ export default function VehicleDetailPanel({
                 return (
                   <span className="status" style={{ '--tint': s.tint, '--c': s.c }}>
                     <i />
-                    {s.label} · {s.trip}
+                    {s.label}
                   </span>
                 );
               })()}
@@ -122,8 +127,8 @@ export default function VehicleDetailPanel({
                 {renderIconSvg('clock', 18)}
                 <div>
                   <b>
-                    {selectedVehicle.ago != null
-                      ? formatFullStamp(selectedVehicle.ago)
+                    {selectedVehicle.lastFixAt
+                      ? formatFixTime(selectedVehicle.lastFixAt)
                       : 'No recent report'}
                   </b>
                   Last update ·{' '}
@@ -164,6 +169,19 @@ export default function VehicleDetailPanel({
               </button>
             </div>
 
+            {setSegmentByTrip && toggleHabitualHalts && (
+              <VehicleLayerToggles
+                selectedVehicle={selectedVehicle}
+                isTrailVisible={isTrailVisible}
+                segmentByTrip={segmentByTrip}
+                setSegmentByTrip={setSegmentByTrip}
+                isHabitualHaltsVisible={isHabitualHaltsVisible}
+                habitualHaltsLoading={habitualHaltsLoading}
+                toggleHabitualHalts={toggleHabitualHalts}
+                habitualHalts={habitualHalts}
+              />
+            )}
+
             {/* Deep Details Accordion Sections */}
             <div className="sections">
               <WeatherSection
@@ -172,14 +190,6 @@ export default function VehicleDetailPanel({
                 contextLabel={weatherContext}
               />
               <DestinationIntentSection registrationNumber={selectedVehicle.plate} />
-              <RecordedPathSection
-                isTrailVisible={isTrailVisible}
-                trailPoints={trailPoints}
-                trailKm={trailKm}
-                tripLegend={tripLegend}
-                habitualHalts={habitualHalts}
-                isHabitualHaltsVisible={isHabitualHaltsVisible}
-              />
               <VehicleInfoSection selectedVehicle={selectedVehicle} odometer={readings.odometer} />
               <DriverAssignmentSection selectedDriver={selectedDriver} />
               <TelematicsDiagnosticsSection

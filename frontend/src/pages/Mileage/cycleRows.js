@@ -7,10 +7,23 @@ import { num } from './mileageNumbers';
  * null and the UI shows "—".
  */
 
+/**
+ * The plausible km/L band — the same one the backend's model comparison uses to
+ * leave a round out of the average (config reports.plausibleKmPerL). A round
+ * outside it is shown as excluded, never as "low mileage" (audit ML-02).
+ */
+export const PLAUSIBLE_KMPL = Object.freeze({ min: 0.8, max: 8 });
+
+export function isPlausibleKmPerL(kmPerL) {
+  const k = num(kmPerL);
+  return k != null && k >= PLAUSIBLE_KMPL.min && k <= PLAUSIBLE_KMPL.max;
+}
+
 /** km/L → band. The same cut-offs the old Completed-cycles colouring used. */
 export function mileageBand(kmPerL) {
   const k = num(kmPerL);
   if (k == null) return null;
+  if (!isPlausibleKmPerL(k)) return null;
   if (k >= 4) return 'MILEAGE_GOOD';
   if (k >= 3.5) return 'MILEAGE_AVERAGE';
   return 'MILEAGE_LOW';

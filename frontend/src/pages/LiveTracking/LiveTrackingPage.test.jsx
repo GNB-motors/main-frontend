@@ -32,7 +32,7 @@ vi.mock('../../services/vehicleListService', () => ({
 }));
 vi.mock('../../services/DriverVehicleAssignmentService', () => ({
   default: {
-    getAssignments: vi.fn((_params, { signal } = {}) => {
+    getAllActiveAssignments: vi.fn(({ signal } = {}) => {
       seen.signals.assignments = signal;
       return pending();
     }),

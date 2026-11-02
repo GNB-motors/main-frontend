@@ -239,11 +239,13 @@ describe('buildChipDefs', () => {
 });
 
 describe('buildBanner', () => {
-  it('is critical when there is unexplained loss', () => {
+  it('asks for review, never alleges theft, when fuel is unexplained (audit FI-04)', () => {
     const b = buildBanner(12, 3, 95);
-    expect(b.state).toBe('crit');
+    expect(b.state).toBe('warn');
+    expect(b.title).toContain('needs review');
     expect(b.msg).toContain('12 L');
     expect(b.msg).toContain('₹1,140');
+    expect(b.msg).not.toMatch(/theft detected|investigate now/i);
   });
 
   it('warns on bill mismatches when there is no loss', () => {

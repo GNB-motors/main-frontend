@@ -1,3 +1,5 @@
+import { viewOf } from '../../utils/liveView.js';
+import { formatInIST } from '../../utils/dateUtils';
 /** Pure display logic for the Vehicle 360 profile (rule 21). */
 
 export function riskLamp(risk) {
@@ -141,13 +143,19 @@ export function statusChips({ fleetMaster, livePosition, prediction } = {}) {
     });
   }
 
-  if (livePosition?.speed != null) {
-    const moving = Number(livePosition.speed) > 0;
-    chips.push({
-      id: 'motion',
-      tone: 'neutral',
-      label: moving ? `moving · ${Math.round(livePosition.speed)} km/h` : 'parked',
-    });
+  // The same live view Track and the share link read (audit DC-07/10): status
+  // from the backend's rule, offline once the fix is old, and no speed then.
+  if (livePosition) {
+    const v = viewOf(livePosition);
+    const label =
+      v.status === 'moving'
+        ? `moving · ${v.speedKmh} km/h`
+        : v.status === 'offline'
+          ? v.lastFixAt
+            ? `offline · last report ${formatInIST(v.lastFixAt, 'D MMM, h:mm a')}`
+            : 'offline'
+          : v.status;
+    chips.push({ id: 'motion', tone: v.status === 'offline' ? 'warn' : 'neutral', label });
   }
 
   return chips;

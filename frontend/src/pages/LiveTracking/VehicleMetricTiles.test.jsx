@@ -7,7 +7,6 @@ import VehicleDetailPanel from './VehicleDetailPanel.jsx';
 vi.mock('../../utils/session.js', () => ({ getUserRole: vi.fn() }));
 vi.mock('./TrackTelemetryService.js', () => ({ default: { getLatest: vi.fn() } }));
 vi.mock('./DestinationIntentSection.jsx', () => ({ default: () => null }));
-vi.mock('./RecordedPathSection.jsx', () => ({ default: () => null }));
 vi.mock('./DriverAssignmentSection.jsx', () => ({ default: () => null }));
 vi.mock('./VehicleLocation.jsx', () => ({ default: () => null }));
 beforeEach(() => {
@@ -36,9 +35,11 @@ describe('Track selected-vehicle health', () => {
     );
     await waitFor(() => expect(screen.getAllByText('1,23,456 km')).toHaveLength(3));
     expect(screen.queryByText('Odo N/A')).not.toBeInTheDocument();
+    // The CAN odometer is the canonical one (audit DC-20): a different live
+    // status-details value does not replace it.
     rerender(panel({ plate: 'BR44GB1162', odo: 123457 }));
-    expect(screen.getAllByText('1,23,457 km')).toHaveLength(3);
-    expect(screen.queryByText('1,23,456 km')).not.toBeInTheDocument();
+    expect(screen.getAllByText('1,23,456 km')).toHaveLength(3);
+    expect(screen.queryByText('1,23,457 km')).not.toBeInTheDocument();
     expect(TrackTelemetryService.getLatest).toHaveBeenCalledTimes(1);
   });
   it('loads DEF for the selection and aborts when the panel closes', async () => {

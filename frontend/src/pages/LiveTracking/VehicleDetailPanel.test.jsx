@@ -6,7 +6,6 @@ import VehicleDetailPanel from './VehicleDetailPanel';
 vi.mock('./DestinationIntentSection.jsx', () => ({
   default: ({ registrationNumber }) => <p>intent for {String(registrationNumber)}</p>,
 }));
-vi.mock('./RecordedPathSection.jsx', () => ({ default: () => null }));
 vi.mock('./VehicleInfoSection.jsx', () => ({ default: () => null }));
 vi.mock('./DriverAssignmentSection.jsx', () => ({ default: () => null }));
 vi.mock('./TelematicsDiagnosticsSection.jsx', () => ({ default: () => null }));
@@ -42,8 +41,6 @@ describe('VehicleDetailPanel', () => {
         enterReplay={() => {}}
         shareCreating={false}
         handleShareVehicle={() => {}}
-        trailPoints={[]}
-        trailKm={0}
         selectedDriver={null}
       />,
     );
@@ -77,7 +74,8 @@ describe('VehicleDetailPanel', () => {
       <VehicleDetailPanel
         selectedVehicle={{
           plate: 'BR44GB1162',
-          gps: 'Active',
+          hasFix: true,
+          hasGpsFix: true,
           ignition: 'ON',
           odo: 123456,
           fuel: 32,
@@ -88,7 +86,7 @@ describe('VehicleDetailPanel', () => {
         replayState={{ on: false }}
       />,
     );
-    expect(within(container.querySelector('.dtop')).getByText('GPS active')).toBeInTheDocument();
+    expect(within(container.querySelector('.dtop')).getByText('GPS fix')).toBeInTheDocument();
     expect(within(container.querySelector('.dtop')).getByText('Ignition ON')).toBeInTheDocument();
     const metrics = within(container.querySelector('.metrics'));
     expect(metrics.getByText('Odometer')).toBeInTheDocument();

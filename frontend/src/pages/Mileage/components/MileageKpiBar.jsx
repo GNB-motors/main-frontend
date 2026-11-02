@@ -46,7 +46,7 @@ export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 
     <div className="mhub-kpis">
       {showFleetMileage && (
         <Tile
-          label="Average mileage"
+          label="Fill-to-fill km/L"
           value={
             k.fleetKmPerL != null ? (
               <>
@@ -60,8 +60,8 @@ export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 
             )
           }
           explanation={{
-            title: 'How average mileage is worked out',
-            text: 'All km driven divided by all diesel, over every full-tank-to-full-tank round that ended in these dates. Long rounds count more than short ones.',
+            title: 'How fill-to-fill km/L is worked out',
+            text: 'All km driven divided by all diesel, over every full-tank-to-full-tank round that ended in these dates — loaded and empty running together. Long rounds count more than short ones. The Trip page’s Oil & Average report shows a different figure on purpose: loaded running only, which burns more.',
             lines: [
               ['Trucks', k.vehicleCount != null ? formatNum(k.vehicleCount) : '—'],
               [

@@ -273,7 +273,7 @@ describe('MileagePage', () => {
 
     expect(screen.getByRole('heading', { name: 'Diesel & Mileage' })).toBeInTheDocument();
     expect(document.getElementById('report-side-nav')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Average mileage')).toHaveTextContent('3.80km/L');
+    expect(screen.getByLabelText('Fill-to-fill km/L')).toHaveTextContent('3.80km/L');
     // (18 + 1) of (18 + 1 + 1) tank rises have a bill — meta counts as sent
     expect(screen.getByLabelText('Fills with a bill')).toHaveTextContent('19of 20');
     expect(screen.getByText('Bills up to date')).toBeInTheDocument();
@@ -454,7 +454,7 @@ describe('MileagePage', () => {
 
     await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));
     expect(screen.queryByRole('tab', { name: 'Mileage' })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Average mileage')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Fill-to-fill km/L')).not.toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Bill check' })).toBeInTheDocument();
     expect(apiClient.get).not.toHaveBeenCalledWith(
       '/api/mileage/model-comparison',
