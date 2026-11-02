@@ -11,6 +11,7 @@ import ToneBadge from '../../components/redesign/ToneBadge';
 import PlaceStatRow from './PlaceStatRow';
 import PlaceLandmarkActions from './PlaceLandmarkActions';
 import PlaceRecentVisits from './PlaceRecentVisits';
+import PlaceCampusList from './PlaceCampusList';
 import { formatDuration } from '../../utils/redesign/format';
 
 /**
@@ -100,6 +101,9 @@ export default function PlaceDetailPanel({ place, vehicles, onBack, onPickVehicl
 
           {/* Only our own places have a visit history worth listing */}
           {isOurPlace ? <PlaceRecentVisits place={place} /> : null}
+
+          {/* A plant is a campus: its gates, siding, parking and weighbridge */}
+          <PlaceCampusList place={place} />
 
           <details className="sec" open>
             <summary>

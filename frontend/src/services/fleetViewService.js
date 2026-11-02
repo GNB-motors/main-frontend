@@ -98,9 +98,9 @@ export const getNearbyHelp = ({ lat, lng, signal } = {}) =>
 /* ── §7 Trips and places ──────────────────────────────────────────────── */
 
 /** GET /api/fleet-view/trips/history */
-export const getTripsHistory = ({ site, vehicle, limit, signal } = {}) =>
+export const getTripsHistory = ({ site, vehicle, from, to, limit, signal } = {}) =>
   get('/api/fleet-view/trips/history', {
-    params: { site, vehicle, limit },
+    params: { site, vehicle, from, to, limit },
     signal,
     schema: 'TripsHistoryResponseSchema',
     importer: () => import('../schemas/tripsHistory.schema.js'),
@@ -131,16 +131,18 @@ export const answerPlaceQuestion = async (id, answer, { signal } = {}) => {
 /* ── §8 Fuel and mileage ──────────────────────────────────────────────── */
 
 /** GET /api/fleet-view/mileage */
-export const getMileage = ({ signal } = {}) =>
+export const getMileage = ({ groupBy, from, to, vehicle, signal } = {}) =>
   get('/api/fleet-view/mileage', {
+    params: { groupBy, from, to, vehicle },
     signal,
     schema: 'MileageResponseSchema',
     importer: () => import('../schemas/mileageV2.schema.js'),
   });
 
 /** GET /api/fuel-integrity/windows */
-export const getFuelIntegrityWindows = ({ signal } = {}) =>
+export const getFuelIntegrityWindows = ({ vehicle, from, to, signal } = {}) =>
   get('/api/fuel-integrity/windows', {
+    params: { vehicle, from, to },
     signal,
     schema: 'FuelIntegrityResponseSchema',
     importer: () => import('../schemas/mileageV2.schema.js'),
@@ -190,18 +192,18 @@ export const getIntelligenceIssues = ({ from, to, signal } = {}) =>
   });
 
 /** GET /api/intelligence/report-cards */
-export const getReportCards = ({ from, to, signal } = {}) =>
+export const getReportCards = ({ subject, page, limit, from, to, signal } = {}) =>
   get('/api/intelligence/report-cards', {
-    params: { from, to },
+    params: { subject, page, limit, from, to },
     signal,
     schema: 'ReportCardsResponseSchema',
     importer: importIntelligence,
   });
 
 /** GET /api/intelligence/instances */
-export const getInstances = ({ kind, from, to, vehicle, driver, signal } = {}) =>
+export const getInstances = ({ kind, page, limit, from, to, vehicle, driver, signal } = {}) =>
   get('/api/intelligence/instances', {
-    params: { kind, from, to, vehicle, driver },
+    params: { kind, page, limit, from, to, vehicle, driver },
     signal,
     schema: 'InstancesResponseSchema',
     importer: importIntelligence,

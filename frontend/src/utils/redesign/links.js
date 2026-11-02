@@ -85,6 +85,14 @@ export function tripsHistoryLink({ site, vehicle } = {}) {
   return `/auto-trips?${params.toString()}`;
 }
 
+/** `/mileage?tab=mileage` — the km/L and DEF page. */
+export function mileageLink({ tab = 'mileage', vehicle } = {}) {
+  const params = new URLSearchParams();
+  params.set('tab', tab);
+  if (vehicle) params.set('vehicle', vehicle);
+  return `/mileage?${params.toString()}`;
+}
+
 /**
  * `useNavigate` wrapper: a component that must navigate to a link object
  * gets one call instead of building a router hook and the href itself.

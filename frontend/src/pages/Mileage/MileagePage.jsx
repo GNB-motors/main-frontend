@@ -2,7 +2,7 @@ import ManufacturerFilter from '../../components/filters/ManufacturerFilter';
 import useManufacturerFilter from '../../hooks/useManufacturerFilter';
 import React, { Suspense, lazy, useDeferredValue, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, Search, X } from 'lucide-react';
+import { Camera, Search, X } from 'lucide-react';
 import PageShell from '../../components/ui/PageShell';
 import HubDateBar from './components/HubDateBar';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
@@ -17,6 +17,7 @@ import ExpectedFuelView from './components/ExpectedFuelView';
 import ByTruckMileageView from './components/ByTruckMileageView';
 import FillToFillView from './components/FillToFillView';
 import MileageCyclesDrawer from './components/MileageCyclesDrawer';
+import AddBillPhotoDialog from './AddBillPhotoDialog';
 import { hubRangeFromParams } from './mileageDates';
 import './MileagePage.css';
 
@@ -149,6 +150,8 @@ export default function MileagePage() {
   const [cyclesTruck, setCyclesTruck] = useState(null);
   // Bumped after a bill is edited or deleted so the list and tiles refetch.
   const [refreshKey, setRefreshKey] = useState(0);
+  // The photo bill dialog (F11). The by-hand form is still there.
+  const [billPhotoOpen, setBillPhotoOpen] = useState(false);
 
   const updateParams = (patch, { replace = false } = {}) => {
     const next = new URLSearchParams(searchParams);
@@ -202,12 +205,19 @@ export default function MileagePage() {
               ) : null}
             </label>
             {ready && access.fleetMileage ? (
-              <Link
-                to="/mileage-tracking/new"
-                className="pshell-btn pshell-btn--primary mhub-add-btn"
-              >
-                <Plus size={15} aria-hidden /> Add diesel bill
-              </Link>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBillPhotoOpen(true)}
+                  className="pshell-btn pshell-btn--primary mhub-add-btn"
+                >
+                  <Camera size={15} aria-hidden /> Add bill photo
+                </button>
+                {/* The by-hand form stays reachable: a route is never deleted. */}
+                <Link to="/mileage-tracking/new" className="text-[12px] text-[var(--rd-ink-2)] underline-offset-4 hover:underline">
+                  Enter by hand instead
+                </Link>
+              </div>
             ) : null}
           </div>
         }
@@ -343,6 +353,12 @@ export default function MileagePage() {
           truck={cyclesTruck}
           range={range}
           onClose={() => setCyclesTruck(null)}
+        />
+
+        <AddBillPhotoDialog
+          open={billPhotoOpen}
+          onOpenChange={setBillPhotoOpen}
+          onConfirmed={() => setRefreshKey((key) => key + 1)}
         />
       </PageShell>
     </>

@@ -98,8 +98,7 @@ export function placeLayerColor(layer) {
 }
 
 /**
- * The category of a place, when it is one of ours, maps to a layer colour.
- * A landmark with no known category gets the site grey.
+ * The colour of a place, or the site grey as a fallback.
  */
 export function placeCategoryColor(category) {
   const key = String(category || '').toLowerCase();
@@ -118,4 +117,19 @@ export function placeCategoryColor(category) {
   if (key.includes('atm')) return PLACE_LAYER.atms;
   if (key.includes('liquor')) return PLACE_LAYER.liquor;
   return PLACE_LAYER.sites;
+}
+
+/**
+ * A design token's value, read from the document.
+ *
+ * Some drawing libraries (Leaflet's SVG paths, for one) take a colour
+ * string rather than a class name, so they cannot use `var(--rd-…)` in a
+ * style attribute. Reading the token keeps the stylesheet the single
+ * source of truth, and the fallback keeps a server render or a missing
+ * token from producing an invisible line.
+ */
+export function cssToken(name, fallback) {
+  if (typeof window === 'undefined' || !window.getComputedStyle) return fallback;
+  const value = window.getComputedStyle(document.documentElement).getPropertyValue(name);
+  return value && value.trim() ? value.trim() : fallback;
 }
