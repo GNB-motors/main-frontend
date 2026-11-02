@@ -19,6 +19,18 @@ const unwrap = (res) => res.data?.data || res.data;
 const idOf = (refOrId) => (refOrId && typeof refOrId === 'object' ? refOrId._id : refOrId) || '';
 
 const DriverVehicleAssignmentService = {
+  previewBulk: async (payload) => {
+    const response = await apiClient.post('/api/driver-vehicle-assignments/bulk/preview', payload, {
+      timeout: 200000,
+    });
+    return response.data.data;
+  },
+  applyBulk: async (payload) => {
+    const response = await apiClient.post('/api/driver-vehicle-assignments/bulk/apply', payload, {
+      timeout: 200000,
+    });
+    return response.data.data;
+  },
   getAssignmentPage: async (params = {}, { signal } = {}) => {
     const response = await apiClient.get('/api/driver-vehicle-assignments', { params, signal });
     const results = await parseSafe(
