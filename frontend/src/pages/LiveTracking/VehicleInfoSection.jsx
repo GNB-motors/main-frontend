@@ -23,8 +23,8 @@ export default function VehicleInfoSection({ selectedVehicle, odometer }) {
           <span className="v">{odometer ?? vehicleMetricReadings(selectedVehicle).odometer}</span>
         </div>
         <div className="kv">
-          <span className="k">Registered</span>
-          <span className="v">{selectedVehicle.regYear || '—'}</span>
+          <span className="k">Manufactured</span>
+          <span className="v">{selectedVehicle.manufactureYear || '—'}</span>
         </div>
       </div>
     </details>

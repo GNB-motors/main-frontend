@@ -286,7 +286,11 @@ describe('Track replay lifecycle', () => {
     const { result } = setup();
     await act(() => result.current.enterReplay(vehicle));
     const window = LiveTrackingService.getTrail.mock.calls[0][1];
-    expect(window).toMatchObject({ from: expect.any(String), to: expect.any(String), limit: 5000 });
+    expect(window).toMatchObject({
+      from: expect.any(String),
+      to: expect.any(String),
+      limit: 10000,
+    });
     expect(RoadService.getRoadTrailIfEnabled.mock.calls[0][1]).toMatchObject({
       from: window.from,
       to: window.to,

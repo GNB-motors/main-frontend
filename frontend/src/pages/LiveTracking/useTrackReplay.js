@@ -87,7 +87,8 @@ export default function useTrackReplay({
         const trailWindow = trailDateWindow.resolve(trailSelection);
         const trail = await LiveTrackingService.getTrail(
           vehicle.plate,
-          { ...trailWindow, limit: 5000 },
+          // Same cap as Trail, so Trail and Replay of one day show the same path (DC-24).
+          { ...trailWindow, limit: 10000 },
           { signal },
         );
         if (signal.aborted) return;
@@ -104,7 +105,15 @@ export default function useTrackReplay({
         setPlanStops(Array.isArray(trail.planStops) ? trail.planStops : []);
         setRoadTrail(road);
         setIsTrailVisible(true);
-        setReplayState({ on: true, playing: true, t: 0, speed: 4, pts: model.pts });
+        setReplayState({
+          on: true,
+          playing: true,
+          t: 0,
+          speed: 4,
+          pts: model.pts,
+          truncated: Boolean(trail.truncated),
+          totalCount: trail.totalCount ?? null,
+        });
         if (mapRef.current && window.google) {
           const bounds = new window.google.maps.LatLngBounds();
           model.pts.forEach(([lat, lng]) => bounds.extend({ lat, lng }));
