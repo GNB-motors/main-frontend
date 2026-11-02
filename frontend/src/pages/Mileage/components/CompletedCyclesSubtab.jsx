@@ -7,7 +7,7 @@ import { useApi } from '../../../hooks/useApi';
 import { toISTDateString } from '../../../utils/dateUtils';
 import { formatINR, formatKm, formatLitres } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
-import { mapIntervalRow, mileageBand } from '../cycleRows';
+import { mapIntervalRow, mileageBand, isPlausibleKmPerL } from '../cycleRows';
 import FuelCyclesList from './FuelCyclesList';
 import InfoTip from './InfoTip';
 
@@ -49,7 +49,16 @@ const COLUMNS = [
         <span className="mhub-litres">
           {r.kmPerL != null ? `${r.kmPerL.toFixed(2)} km/L` : '—'}
         </span>
-        <StatusChip group="mileageBand" value={mileageBand(r.kmPerL)} fallback="" />
+        {r.kmPerL != null && !isPlausibleKmPerL(r.kmPerL) ? (
+          <span
+            className="mhub-excluded"
+            title="Outside 0.8–8 km/L, so this round is left out of the average. Usually a wrong odometer on a bill or a fill marked full that was not."
+          >
+            Excluded · check the bill
+          </span>
+        ) : (
+          <StatusChip group="mileageBand" value={mileageBand(r.kmPerL)} fallback="" />
+        )}
         <InfoTip
           explanation={{
             title: 'Mileage for this round',
