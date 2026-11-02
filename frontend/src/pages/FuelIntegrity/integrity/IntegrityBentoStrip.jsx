@@ -6,7 +6,9 @@ const IntegrityBentoStrip = ({
   billCount,
   defCount,
   lossL,
+  lossSigmaL = null,
   pricePerL,
+  priceSource = 'CONFIG',
   setChip,
   totalFillsLitres,
   windowDays,
@@ -43,7 +45,9 @@ const IntegrityBentoStrip = ({
       className={`fi-bento-card ${lossL > 0 ? 'fi-bento-card--rose' : 'fi-bento-card--emerald'}`}
     >
       <div className="fi-bento-head">
-        <span className="fi-bento-label">Mass-Balance Siphon Loss</span>
+        {/* "Please review", never an accusation: an unexplained loss can be sensor
+            drift, a missed fill or a unit error as well as theft (audit FI-03/04). */}
+        <span className="fi-bento-label">Unexplained fuel</span>
         <div
           className={`fi-bento-icon ${lossL > 0 ? 'fi-bento-icon--rose' : 'fi-bento-icon--emerald'}`}
         >
@@ -59,19 +63,31 @@ const IntegrityBentoStrip = ({
             {lossL.toFixed(1)}
           </span>
           <span className="fi-bento-unit">L</span>
-          <span className="fi-bento-secondary-val">
-            · ₹{(lossL * pricePerL).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+          {lossSigmaL != null && lossL > 0 ? (
+            <span className="fi-bento-secondary-val">± {lossSigmaL.toFixed(1)} L</span>
+          ) : null}
+          <span
+            className="fi-bento-secondary-val"
+            title={
+              priceSource === 'BILLS'
+                ? `At ₹${pricePerL}/L, your last 30 days of diesel bills`
+                : `At ₹${pricePerL}/L (configured price — not enough recent bills)`
+            }
+          >
+            · ≈₹{(lossL * pricePerL).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
           </span>
         </div>
       </div>
       <div className="fi-bento-foot">
         <span className="fi-bento-sub">
-          {lossL === 0 ? 'Mass balance physics intact' : 'Siphon suspected in window'}
+          {lossL === 0
+            ? 'Fills, burn and tank level agree'
+            : 'Fills, burn and tank level do not add up'}
         </span>
         <span
           className={`fi-bento-pill ${lossL === 0 ? 'fi-bento-pill--ok' : 'fi-bento-pill--crit'}`}
         >
-          {lossL === 0 ? '100% Retained' : 'Theft Flagged'}
+          {lossL === 0 ? 'Balanced' : 'Needs review'}
         </span>
       </div>
     </div>
