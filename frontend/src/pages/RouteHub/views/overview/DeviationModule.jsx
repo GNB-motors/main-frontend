@@ -82,7 +82,9 @@ export default function DeviationModule({ go, first, openDev, summary }) {
             </span>
             <span className="sp" />
             <b style={{ fontVariantNumeric: 'tabular-nums' }}>
-              {d.offRouteKm != null ? `${d.offRouteKm} km off road` : `+${d.extraKmEstimate ?? 0} km`}
+              {d.offRouteKm != null
+                ? `${d.offRouteKm} km off road`
+                : `+${d.extraKmEstimate ?? 0} km`}
             </b>
             <b style={{ color: '#C2323A', width: 44, textAlign: 'right' }}>
               {d.estimatedExtraCostInr != null ? inr(d.estimatedExtraCostInr) : '—'}
