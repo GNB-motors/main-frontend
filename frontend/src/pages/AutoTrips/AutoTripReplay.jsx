@@ -7,6 +7,7 @@ import { fmtClock, fmtDayTime } from './autoTripFormat';
 import { routeMapPoints, tripRoadAt, tripRoadLayers } from './autoTripPlaces';
 import { stopKind } from './timelineModel';
 import ReplayPlayer from './ReplayPlayer';
+import { POI_LABEL_STYLES } from '../../utils/mapLabelStyles';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const CONTAINER = { width: '100%', height: '100%' };
@@ -31,7 +32,7 @@ const MAP_THEME = [
   { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
   { elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
   { elementType: 'labels.text.stroke', stylers: [{ color: '#f7f8fa' }] },
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  ...POI_LABEL_STYLES,
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
   { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
   { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#f1f5f9' }] },

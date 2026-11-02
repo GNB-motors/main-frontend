@@ -24,6 +24,7 @@ import DraftLayer from './map/DraftLayer.jsx';
 import usePoiLayer from './map/usePoiLayer.js';
 import PoiLayer from './map/PoiLayer.jsx';
 import RouteLayer from './map/RouteLayer.jsx';
+import { POI_LABEL_STYLES } from '../../utils/mapLabelStyles';
 
 const MAP_STYLE = { width: '100%', height: '100%' };
 const INDIA = { lat: 22.5, lng: 82 };
@@ -32,7 +33,7 @@ const SHAPE_MIN_ZOOM = 11;
 
 // Satellite keeps its own colours; only the clutter goes.
 const SATELLITE_STYLES = [
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  ...POI_LABEL_STYLES,
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
 ];
 

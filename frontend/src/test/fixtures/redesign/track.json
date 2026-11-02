@@ -1,0 +1,110 @@
+{
+  "from": "2026-10-27T18:30:00Z",
+  "to": "2026-11-02T18:30:00Z",
+  "points": [
+    { "t": "2026-11-01T13:00:00Z", "lat": 25.5647, "lng": 83.9754, "speedKmh": 0, "ign": false },
+    { "t": "2026-11-01T13:30:00Z", "lat": 25.5001, "lng": 83.9612, "speedKmh": 52, "ign": true },
+    { "t": "2026-11-01T14:15:00Z", "lat": 25.1002, "lng": 84.0211, "speedKmh": 58, "ign": true },
+    { "t": "2026-11-01T15:05:00Z", "lat": 24.3771, "lng": 84.9812, "speedKmh": 0, "ign": true },
+    { "t": "2026-11-01T15:45:00Z", "lat": 24.3771, "lng": 84.9812, "speedKmh": 0, "ign": true },
+    { "t": "2026-11-01T16:20:00Z", "lat": 24.0102, "lng": 85.4412, "speedKmh": 61, "ign": true },
+    { "t": "2026-11-01T17:40:00Z", "lat": 23.4512, "lng": 85.6731, "speedKmh": 0, "ign": false },
+    { "t": "2026-11-01T18:10:00Z", "lat": 23.4512, "lng": 85.6731, "speedKmh": 0, "ign": false },
+    { "t": "2026-11-01T19:30:00Z", "lat": 22.6116, "lng": 88.3545, "speedKmh": 0, "ign": false }
+  ],
+  "downsampled": false,
+  "rawCount": 9,
+  "segments": [
+    { "fromT": "2026-11-01T13:00:00Z", "toT": "2026-11-01T15:05:00Z", "kind": "LADEN", "km": 48.2 },
+    { "fromT": "2026-11-01T15:05:00Z", "toT": "2026-11-01T15:45:00Z", "kind": "UNKNOWN", "km": 0 },
+    { "fromT": "2026-11-01T15:45:00Z", "toT": "2026-11-01T19:30:00Z", "kind": "LADEN", "km": 312.6 },
+    { "fromT": "2026-11-01T18:10:00Z", "toT": "2026-11-01T19:00:00Z", "kind": "GAP", "km": null }
+  ],
+  "stops": [
+    {
+      "startAt": "2026-11-01T13:00:00Z",
+      "endAt": "2026-11-01T13:30:00Z",
+      "durationMin": 30,
+      "place": {
+        "id": "site-jk-buxar",
+        "kind": "SITE",
+        "name": "JK BUXAR",
+        "category": "PLANT",
+        "lat": 25.5647,
+        "lng": 83.9754,
+        "radiusM": 600
+      },
+      "reason": "LOADING",
+      "reasonWhy": "Stopped inside a plant gate."
+    },
+    {
+      "startAt": "2026-11-01T15:05:00Z",
+      "endAt": "2026-11-01T15:45:00Z",
+      "durationMin": 40,
+      "place": {
+        "id": "poi-202",
+        "kind": "POI",
+        "name": "Mohania Dhaba",
+        "category": "DHABA",
+        "lat": 24.3771,
+        "lng": 84.9812,
+        "radiusM": null
+      },
+      "reason": "REST",
+      "reasonWhy": "Stopped 12 m from a dhaba with the engine running."
+    },
+    {
+      "startAt": "2026-11-01T17:40:00Z",
+      "endAt": "2026-11-01T18:10:00Z",
+      "durationMin": 30,
+      "place": null,
+      "reason": "UNEXPLAINED",
+      "reasonWhy": "Stopped on the road with no named place within 500 m."
+    }
+  ],
+  "events": [
+    {
+      "at": "2026-11-01T14:02:00Z",
+      "endAt": "2026-11-01T14:09:00Z",
+      "kind": "OVERSPEED",
+      "text": "Over 60 km/h for 7 min, top 74 km/h",
+      "lat": 25.3201,
+      "lng": 83.9902
+    },
+    {
+      "at": "2026-11-01T16:50:00Z",
+      "endAt": "2026-11-01T17:20:00Z",
+      "kind": "DETOUR",
+      "text": "Drove off the usual road for 6.8 km",
+      "lat": 23.9001,
+      "lng": 85.2201
+    },
+    {
+      "at": "2026-11-01T18:30:00Z",
+      "endAt": "2026-11-01T19:30:00Z",
+      "kind": "GPS_GAP",
+      "text": "No signal for 1 h",
+      "lat": 23.4512,
+      "lng": 85.6731
+    }
+  ],
+  "landmarks": [
+    {
+      "id": "poi-202",
+      "kind": "POI",
+      "name": "Mohania Dhaba",
+      "category": "DHABA",
+      "lat": 24.3771,
+      "lng": 84.9812,
+      "radiusM": null,
+      "distanceFromPathM": 12
+    }
+  ],
+  "summary": {
+    "km": 360.8,
+    "driveMin": 312,
+    "stopMin": 100,
+    "avgKmh": 52.4,
+    "maxKmh": 74
+  }
+}

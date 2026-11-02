@@ -1,0 +1,96 @@
+{
+  "date": "2026-11-02",
+  "headline": "A good day: 41 loaded trips, 3 trucks need you.",
+  "story": [
+    {
+      "key": "loaded",
+      "tone": "good",
+      "title": "Loaded runs",
+      "big": "41 trips · 4,820 km",
+      "text": "Most of your distance today carried cement and clinker to customers. Plant-to-plant runs are normal for your business and are not counted as empty.",
+      "items": [
+        { "label": "Tata 4830TC", "value": "18 trips", "tone": "good", "link": null },
+        { "label": "Dalmia OCL", "value": "11 trips", "tone": "good", "link": null },
+        { "label": "DANKUNI SIDING", "value": "9 trips", "tone": "info", "link": null }
+      ],
+      "link": { "label": "See all in Intelligence", "to": "/intelligence?tab=runs" }
+    },
+    {
+      "key": "empty",
+      "tone": "watch",
+      "title": "Empty runs",
+      "big": "12 trips · 1,240 km",
+      "text": "Trucks drove back to the plants without load. This is normal for a return leg, but it is worth a look if it keeps growing.",
+      "items": [
+        { "label": "Empty share of distance", "value": "20.4%", "tone": "watch", "link": null }
+      ],
+      "link": { "label": "See the empty runs", "to": "/intelligence?tab=runs" }
+    },
+    {
+      "key": "goodDrivers",
+      "tone": "good",
+      "title": "Good drivers",
+      "big": "3 drivers stood out",
+      "text": "These drivers saved diesel against your own fleet average over the last 30 days.",
+      "items": [
+        { "label": "Ramesh Yadav", "value": "3.9 km/L", "tone": "good", "link": null }
+      ],
+      "link": { "label": "See all drivers", "to": "/intelligence?tab=drivers" }
+    },
+    {
+      "key": "issues",
+      "tone": "act",
+      "title": "Needs you",
+      "big": "3 trucks need you",
+      "text": "One account stopped sending data and two GPS units are going quiet on the same road.",
+      "items": [
+        {
+          "label": "WB11F0162 · GPS freezes",
+          "value": "3 times",
+          "tone": "act",
+          "link": { "label": "Open the issue", "to": "/intelligence?tab=issues&vehicle=WB11F0162" }
+        }
+      ],
+      "link": { "label": "See all issues", "to": "/intelligence?tab=issues" }
+    }
+  ],
+  "reconnect": [
+    {
+      "accountName": "GNB Buxar Fleet",
+      "state": "NEEDS_RELINK",
+      "since": "2026-11-01T09:00:00Z",
+      "trucksAffected": 4,
+      "action": { "label": "Reconnect", "to": "/settings/fleetedge-accounts" }
+    }
+  ],
+  "goodDrivers": [
+    {
+      "subject": "driver",
+      "id": "drv-441",
+      "name": "Ramesh Yadav",
+      "grade": "EXCELLENT",
+      "trend": "UP",
+      "score": 92,
+      "headline": "Best km/L in the fleet this month",
+      "strengths": [],
+      "problems": [],
+      "kmInPeriod": 1240,
+      "basis": { "text": "From 1,240 km and 9 trips", "basis": "1,240 km · 9 trips" }
+    }
+  ],
+  "needsAttention": [
+    {
+      "subject": "vehicle",
+      "id": "WB11F0162",
+      "name": "WB11F0162",
+      "grade": "FALLING",
+      "trend": "DOWN",
+      "score": 41,
+      "headline": "GPS goes quiet on NH19",
+      "strengths": [],
+      "problems": [],
+      "kmInPeriod": 880,
+      "basis": { "text": "From 880 km and 6 trips", "basis": "880 km · 6 trips" }
+    }
+  ]
+}

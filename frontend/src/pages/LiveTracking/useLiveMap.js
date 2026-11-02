@@ -134,6 +134,9 @@ export default function useLiveMap({
       styles: theme === 'dark' ? DARK_MAP_STYLE : LIGHT_MAP_STYLE,
       mapTypeId: mapMode === 'sat' ? 'satellite' : 'roadmap',
       gestureHandling: 'greedy',
+      // Google's own place labels are on (F0.5); clicking one must not open
+      // Google's info window over our own panels.
+      clickableIcons: false,
     }),
     [theme, mapMode],
   );

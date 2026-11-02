@@ -1,0 +1,94 @@
+/* ─────────────────────────────────────────────────────────
+   redesign/tokens.css
+   The only colours new redesign code may use. Old screens keep
+   the --ds-* tokens; nothing here changes them.
+   Imported once from main.jsx after index.css.
+   ───────────────────────────────────────────────────────── */
+
+:root {
+  /* surfaces */
+  --rd-bg: #f6f7fb; /* page background, a cool off-white so white cards lift */
+  --rd-card: #ffffff;
+  --rd-card-2: #f9fafc; /* nested card / table header */
+  --rd-line: #e3e7ef;
+  --rd-line-strong: #c9d0dc;
+  --rd-ink: #111827; /* primary text */
+  --rd-ink-2: #4b5563; /* secondary */
+  --rd-ink-3: #8a93a3; /* tertiary, captions */
+
+  /* brand */
+  --rd-brand: #1f3fbf; /* GNB blue (logo) */
+  --rd-brand-2: #3557e6;
+  --rd-brand-tint: #eaf0ff;
+  --rd-accent: #f26b1d; /* GNB orange: primary actions only */
+  --rd-accent-tint: #fff1e8;
+
+  /* tones (Severity) */
+  --rd-good: #12a150;
+  --rd-good-ink: #0b6b35;
+  --rd-good-tint: #e7f7ee;
+  --rd-info: #2f6fde;
+  --rd-info-ink: #1d4fa8;
+  --rd-info-tint: #eaf2ff;
+  --rd-watch: #e59a0b;
+  --rd-watch-ink: #8a5800;
+  --rd-watch-tint: #fff5e0;
+  --rd-act: #e0413a;
+  --rd-act-ink: #a3221c;
+  --rd-act-tint: #fdecea;
+
+  /* vehicle status (map markers, chips; keep in sync with NOVA_STATUS hues) */
+  --rd-moving: #16a34a;
+  --rd-idling: #f59e0b;
+  --rd-stopped: #7c3aed;
+  --rd-offline: #94a3b8;
+
+  /* trip legs on the map */
+  --rd-leg-loaded: #2563eb; /* solid */
+  --rd-leg-empty: #64748b; /* dashed 6/6 */
+  --rd-leg-reposition: #0d9488; /* dashed 2/6 (dotted look) */
+  --rd-leg-unknown: #a3a3a3;
+  --rd-overspeed: #f97316; /* orange markers / halo, NEVER a red line */
+  --rd-detour: #dc2626; /* red: ONLY the off-route part of a detour */
+  --rd-usual-road: #9ca3af; /* grey, width 8, under the driven line */
+
+  /* place layers */
+  --rd-pl-plant: #1f3fbf;
+  --rd-pl-site: #475569;
+  --rd-pl-pump: #0ea5e9;
+  --rd-pl-dhaba: #d97706;
+  --rd-pl-hospital: #e11d48;
+  --rd-pl-police: #1e40af;
+  --rd-pl-workshop: #7c3aed;
+  --rd-pl-dealer: #0f766e;
+  --rd-pl-tyre: #374151;
+  --rd-pl-parking: #2563eb;
+  --rd-pl-toll: #6b7280;
+  --rd-pl-weighbridge: #92400e;
+  --rd-pl-school: #ca8a04;
+  --rd-pl-atm: #15803d;
+  --rd-pl-liquor: #9f1239;
+
+  --rd-radius: 14px;
+  --rd-radius-sm: 10px;
+  --rd-radius-xs: 6px;
+  --rd-shadow: 0 1px 2px rgba(17, 24, 39, 0.06), 0 4px 16px -8px rgba(17, 24, 39, 0.12);
+  --rd-shadow-float: 0 12px 32px -12px rgba(17, 24, 39, 0.35);
+}
+
+:root[data-theme='dark'] {
+  --rd-bg: #0d1117;
+  --rd-card: #151b23;
+  --rd-card-2: #1b222c;
+  --rd-line: #263040;
+  --rd-line-strong: #34405a;
+  --rd-ink: #e8edf5;
+  --rd-ink-2: #aeb8c8;
+  --rd-ink-3: #7c879a;
+  --rd-brand-tint: #17224a;
+  --rd-accent-tint: #3a1f10;
+  --rd-good-tint: #0f2a1c;
+  --rd-info-tint: #13233f;
+  --rd-watch-tint: #33260c;
+  --rd-act-tint: #3a1414;
+}

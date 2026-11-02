@@ -1,0 +1,42 @@
+{
+  "items": [
+    {
+      "id": "iss-77",
+      "kind": "GPS_FROZEN",
+      "severity": "watch",
+      "registrationNumber": "WB11F0162",
+      "accountName": null,
+      "title": "GPS freezes on WB11F0162",
+      "detail": "The position stopped changing for 24 minutes while the truck was moving on NH19.",
+      "advice": "Check the GPS antenna cable; if it continues, the dealer can replace the module.",
+      "firstSeenAt": "2026-10-28T05:00:00Z",
+      "lastSeenAt": "2026-11-01T09:30:00Z",
+      "occurrences": 3,
+      "evidence": [
+        { "at": "2026-11-01T09:30:00Z", "text": "Position unchanged for 24 min on NH19", "link": null }
+      ],
+      "action": null
+    },
+    {
+      "id": "iss-81",
+      "kind": "ACCOUNT_DISCONNECTED",
+      "severity": "act",
+      "registrationNumber": null,
+      "accountName": "GNB Buxar Fleet",
+      "title": "FleetEdge account stopped sending data",
+      "detail": "No report from 4 trucks on this account since 1 Nov, 9:00 am.",
+      "advice": "Re-link the account so live data comes back.",
+      "firstSeenAt": "2026-11-01T09:00:00Z",
+      "lastSeenAt": "2026-11-02T18:30:00Z",
+      "occurrences": 1,
+      "evidence": [],
+      "action": {
+        "kind": "RECONNECT",
+        "label": "Reconnect account",
+        "to": "/settings/fleetedge-accounts"
+      }
+    }
+  ],
+  "total": 2,
+  "counts": { "good": 0, "info": 0, "watch": 1, "act": 1 }
+}

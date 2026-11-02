@@ -1,0 +1,51 @@
+{
+  "period": { "from": "2026-10-27T18:30:00Z", "to": "2026-11-02T18:30:00Z" },
+  "fleet": { "trucks": 124, "reporting": 118, "disconnected": 6 },
+  "runs": {
+    "loadedKm": 42180,
+    "emptyKm": 8420,
+    "repositionKm": 12600,
+    "loadedTrips": 268,
+    "plantToPlant": 966,
+    "emptySharePct": 13.3,
+    "why": {
+      "text": "Plants work like warehouses, so a truck going from one plant to another is a normal run and is not counted as empty.",
+      "basis": "From 268 loaded trips and 966 plant-to-plant runs since 15 Sep"
+    }
+  },
+  "tiles": [
+    {
+      "key": "idling",
+      "label": "Idling",
+      "value": "112 h",
+      "severity": "watch",
+      "why": {
+        "text": "Engine on, not moving, for 112 hours across the fleet this week.",
+        "basis": "From 118 reporting trucks"
+      },
+      "link": { "label": "See the idles", "to": "/intelligence?tab=idling" }
+    },
+    {
+      "key": "overspeed",
+      "label": "Overspeed",
+      "value": "38 times",
+      "severity": "watch",
+      "why": {
+        "text": "Every time a truck stayed over the limit for more than a minute.",
+        "basis": "From 118 reporting trucks"
+      },
+      "link": { "label": "See the overspeeds", "to": "/intelligence?tab=overspeed" }
+    },
+    {
+      "key": "mileage",
+      "label": "Best km/L",
+      "value": "3.9 km/L",
+      "severity": "good",
+      "why": {
+        "text": "The best truck in your fleet this week.",
+        "basis": "From 9 fill-to-fill cycles"
+      },
+      "link": { "label": "See the mileage", "to": "/intelligence?tab=mileage" }
+    }
+  ]
+}

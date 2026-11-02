@@ -50,6 +50,9 @@ const ExcursionsPage = lazy(() => import('../../pages/AutoTrips/ExcursionsPage.j
 const ExcursionDetailPage = lazy(() => import('../../pages/AutoTrips/ExcursionDetailPage.jsx'));
 const MovementApprovalsPage = lazy(() => import('../../pages/AutoTrips/MovementApprovalsPage.jsx'));
 const PlaceHubPage = lazy(() => import('../../pages/PlaceHub/PlaceHubPage.jsx'));
+// Intelligence — what we worked out about the fleet, good and bad, with the
+// reason for every claim. Same guard as /route-hub.
+const IntelligencePage = lazy(() => import('../../pages/Intelligence/IntelligencePage.jsx'));
 // Tolls — plaza gates on the road network, crossings found on the road-matched
 // path, and the estimate-vs-driver-bill cross-check. The API is the role gate.
 const TollsPage = lazy(() => import('../../pages/Tolls/TollsPage.jsx'));
@@ -101,6 +104,7 @@ const dashboardRoutes = (
     <Route path="/vehicle-challans" element={<Navigate to="/challans" replace />} />
     <Route path="/fleet-coverage" element={<FleetCoveragePage />} />
     <Route path="/route-hub" element={<RouteHubPage />} />
+    <Route path="/intelligence" element={<IntelligencePage />} />
     <Route
       path="/route-intelligence"
       element={<RedirectWithState to="/route-hub?tab=intelligence" />}
