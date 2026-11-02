@@ -157,17 +157,95 @@ export function useDriverColumns({
     {
       key: 'licenseNumber',
       label: 'License / Docs',
-      render: (driver) => (
-        <span
-          style={{
-            fontFamily: 'var(--font-mono, monospace)',
-            fontSize: '12px',
-            color: 'var(--ds-ink2, #475569)',
-          }}
-        >
-          {driver.licenseNumber || '-'}
-        </span>
-      ),
+      render: (driver) => {
+        const hasDoc = Boolean(
+          driver.hasLicenseDoc ||
+          driver.licenseDoc ||
+          driver.licenseUploadStatus === 'Uploaded' ||
+          (driver.licenseNumber && driver.licenseNumber !== '-'),
+        );
+        const isVerified = Boolean(driver.isLicenseVerified || driver.licenseDoc?.isVerified);
+        const licNum =
+          driver.licenseNumber && driver.licenseNumber !== '-' ? driver.licenseNumber : null;
+
+        if (!hasDoc) {
+          return (
+            <span
+              style={{
+                display: 'inline-block',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 500,
+                background: 'var(--ds-surface-subtle, #f1f5f9)',
+                color: 'var(--ds-ink3, #64748b)',
+                border: '1px solid var(--ds-border, #e2e8f0)',
+              }}
+            >
+              Not uploaded
+            </span>
+          );
+        }
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div>
+              {licNum ? (
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono, monospace)',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: 'var(--ds-ink, #0f172a)',
+                  }}
+                >
+                  {licNum}
+                </span>
+              ) : (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    color: '#b45309',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  Not extracted
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span
+                style={{
+                  display: 'inline-block',
+                  padding: '1px 5px',
+                  borderRadius: '4px',
+                  fontSize: '10px',
+                  fontWeight: 500,
+                  background: '#dbeafe',
+                  color: '#1e40af',
+                  border: '1px solid #bfdbfe',
+                }}
+              >
+                Uploaded
+              </span>
+              <span
+                style={{
+                  display: 'inline-block',
+                  padding: '1px 5px',
+                  borderRadius: '4px',
+                  fontSize: '10px',
+                  fontWeight: 500,
+                  background: isVerified ? '#dcfce7' : '#fef3c7',
+                  color: isVerified ? '#166534' : '#92400e',
+                  border: `1px solid ${isVerified ? '#bbf7d0' : '#fde68a'}`,
+                }}
+              >
+                {isVerified ? 'Verified' : 'Unverified'}
+              </span>
+            </div>
+          </div>
+        );
+      },
     },
     {
       key: 'status',

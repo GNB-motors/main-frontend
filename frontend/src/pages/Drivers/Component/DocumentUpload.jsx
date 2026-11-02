@@ -19,6 +19,10 @@ const DocumentUpload = ({
       preview: initialData.driverLicense?.preview || null,
       name: initialData.driverLicense?.name || '',
       documentId: initialData.driverLicense?.documentId || null,
+      isUploaded: initialData.driverLicense?.isUploaded || false,
+      isVerified: initialData.driverLicense?.isVerified || false,
+      licenseNumber: initialData.driverLicense?.licenseNumber || null,
+      ocrStatus: initialData.driverLicense?.ocrStatus || null,
     },
     panCard: {
       file: initialData.panCard?.file || null,
@@ -26,6 +30,8 @@ const DocumentUpload = ({
       preview: initialData.panCard?.preview || null,
       name: initialData.panCard?.name || '',
       documentId: initialData.panCard?.documentId || null,
+      isUploaded: initialData.panCard?.isUploaded || false,
+      isVerified: initialData.panCard?.isVerified || false,
     },
     aadharCard: {
       file: initialData.aadharCard?.file || null,
@@ -33,6 +39,8 @@ const DocumentUpload = ({
       preview: initialData.aadharCard?.preview || null,
       name: initialData.aadharCard?.name || '',
       documentId: initialData.aadharCard?.documentId || null,
+      isUploaded: initialData.aadharCard?.isUploaded || false,
+      isVerified: initialData.aadharCard?.isVerified || false,
     },
   });
 
@@ -45,16 +53,46 @@ const DocumentUpload = ({
           ...initialData.driverLicense,
           documentId:
             initialData.driverLicense?.documentId || prev.driverLicense?.documentId || null,
+          isUploaded:
+            initialData.driverLicense?.isUploaded ??
+            Boolean(
+              initialData.driverLicense?.preview ||
+              initialData.driverLicense?.documentId ||
+              prev.driverLicense?.isUploaded,
+            ),
+          isVerified:
+            initialData.driverLicense?.isVerified ?? prev.driverLicense?.isVerified ?? false,
+          licenseNumber:
+            initialData.driverLicense?.licenseNumber ?? prev.driverLicense?.licenseNumber ?? null,
+          name: initialData.driverLicense?.name || prev.driverLicense?.name || '',
         },
         panCard: {
           ...prev.panCard,
           ...initialData.panCard,
           documentId: initialData.panCard?.documentId || prev.panCard?.documentId || null,
+          isUploaded:
+            initialData.panCard?.isUploaded ??
+            Boolean(
+              initialData.panCard?.preview ||
+              initialData.panCard?.documentId ||
+              prev.panCard?.isUploaded,
+            ),
+          isVerified: initialData.panCard?.isVerified ?? prev.panCard?.isVerified ?? false,
+          name: initialData.panCard?.name || prev.panCard?.name || '',
         },
         aadharCard: {
           ...prev.aadharCard,
           ...initialData.aadharCard,
           documentId: initialData.aadharCard?.documentId || prev.aadharCard?.documentId || null,
+          isUploaded:
+            initialData.aadharCard?.isUploaded ??
+            Boolean(
+              initialData.aadharCard?.preview ||
+              initialData.aadharCard?.documentId ||
+              prev.aadharCard?.isUploaded,
+            ),
+          isVerified: initialData.aadharCard?.isVerified ?? prev.aadharCard?.isVerified ?? false,
+          name: initialData.aadharCard?.name || prev.aadharCard?.name || '',
         },
       }));
     }
@@ -108,9 +146,12 @@ const DocumentUpload = ({
       file: croppedBlob,
       preview: preview,
       imageUrl: preview,
-      name: `${currentDocument}-${Date.now()}`,
+      name: `${currentDocument}-${Date.now()}.jpg`,
       documentId: null, // New file replaces old; will get new ID after upload
       _previousDocumentId: oldDocId || null, // Track old doc for deletion on save
+      isUploaded: true,
+      isVerified: false, // New upload is unverified
+      licenseNumber: documents[currentDocument]?.licenseNumber || null,
     };
 
     setDocuments((prev) => ({
@@ -151,6 +192,9 @@ const DocumentUpload = ({
       preview: null,
       name: '',
       documentId: null,
+      isUploaded: false,
+      isVerified: false,
+      licenseNumber: null,
     };
 
     setDocuments((prev) => ({
@@ -197,8 +241,21 @@ const DocumentUpload = ({
               label="Driver License"
               description="Upload a clear image of your driver license"
               preview={documents.driverLicense.preview}
+              fileName={documents.driverLicense.name}
+              isUploaded={
+                documents.driverLicense.isUploaded ||
+                Boolean(documents.driverLicense.preview || documents.driverLicense.documentId)
+              }
+              isVerified={documents.driverLicense.isVerified}
+              licenseNumber={documents.driverLicense.licenseNumber}
+              ocrStatus={documents.driverLicense.ocrStatus}
               onSelect={() => handleDocumentSelect('driverLicense')}
               onRemove={() => handleRemoveDocument('driverLicense')}
+              onView={() => {
+                if (documents.driverLicense.preview) {
+                  window.open(documents.driverLicense.preview, '_blank', 'noopener,noreferrer');
+                }
+              }}
               isDisabled={isSubmitting}
               digilockerStatus={digilockerStatus}
             />
@@ -208,8 +265,19 @@ const DocumentUpload = ({
               label="PAN Card"
               description="Upload a clear image of your PAN card"
               preview={documents.panCard.preview}
+              fileName={documents.panCard.name}
+              isUploaded={
+                documents.panCard.isUploaded ||
+                Boolean(documents.panCard.preview || documents.panCard.documentId)
+              }
+              isVerified={documents.panCard.isVerified}
               onSelect={() => handleDocumentSelect('panCard')}
               onRemove={() => handleRemoveDocument('panCard')}
+              onView={() => {
+                if (documents.panCard.preview) {
+                  window.open(documents.panCard.preview, '_blank', 'noopener,noreferrer');
+                }
+              }}
               isDisabled={isSubmitting}
             />
 
@@ -218,8 +286,19 @@ const DocumentUpload = ({
               label="Aadhar Card"
               description="Upload a clear image of your Aadhar card"
               preview={documents.aadharCard.preview}
+              fileName={documents.aadharCard.name}
+              isUploaded={
+                documents.aadharCard.isUploaded ||
+                Boolean(documents.aadharCard.preview || documents.aadharCard.documentId)
+              }
+              isVerified={documents.aadharCard.isVerified}
               onSelect={() => handleDocumentSelect('aadharCard')}
               onRemove={() => handleRemoveDocument('aadharCard')}
+              onView={() => {
+                if (documents.aadharCard.preview) {
+                  window.open(documents.aadharCard.preview, '_blank', 'noopener,noreferrer');
+                }
+              }}
               isDisabled={isSubmitting}
             />
           </div>

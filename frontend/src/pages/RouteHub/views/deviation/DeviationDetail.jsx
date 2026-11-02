@@ -3,7 +3,13 @@ import { Link } from 'react-router-dom';
 import Ico from '../../routeHubIcons.jsx';
 import { Empty, Seg, Skel } from '../../routeHubShared.jsx';
 import { fmtDT, inr } from '../../routeHubFormat';
-import { clock, costBasisLabel, legLabel, tripLabel } from './deviationRules.js';
+import {
+  clock,
+  costBasisLabel,
+  deviationGroupSubtitle,
+  deviationGroupTitle,
+  legLabel,
+} from './deviationRules.js';
 import { timelineModel } from './deviationMapModel.js';
 import DeviationMap from './DeviationMap.jsx';
 import DeviationTimeline from './DeviationTimeline.jsx';
@@ -64,11 +70,11 @@ export default function DeviationDetail({
       <div className="card-head dev-head">
         <span className="plate">{row.registrationNumber}</span>
         <div className="dev-head-t">
-          <h3>{trip ? tripLabel(trip) : 'Outside any trip'}</h3>
+          <h3>{deviationGroupTitle(row)}</h3>
           <span className="muted">
             {trip
               ? `${legLabel(trip)} · left the plant ${trip.ladenFrom ? fmtDT(new Date(trip.ladenFrom)) : '—'}`
-              : row.corridorLabel || 'No trip was running when this happened'}
+              : deviationGroupSubtitle(row)}
           </span>
         </div>
         <span className="sp" />

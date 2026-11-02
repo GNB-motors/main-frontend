@@ -32,8 +32,8 @@ describe('bucketFor', () => {
     expect(bucketFor({ uploaded: false }, NOW)).toBe('missing');
   });
 
-  it('is "missing" when uploaded but expiry is not yet known (OCR pending)', () => {
-    expect(bucketFor({ uploaded: true, expiryDate: null }, NOW)).toBe('missing');
+  it('is "pending" when uploaded but expiry is not yet known (OCR pending)', () => {
+    expect(bucketFor({ uploaded: true, expiryDate: null }, NOW)).toBe('pending');
   });
 
   it('is "expired" once past the expiry date', () => {
@@ -55,6 +55,7 @@ describe('computeVehicleDashboardKpis', () => {
       critical: 0,
       warning: 0,
       healthy: 0,
+      pending: 0,
       missing: 0,
       totalDocSlots: 0,
     });
@@ -71,12 +72,14 @@ describe('computeVehicleDashboardKpis', () => {
     const rows = [
       { documents: { RC: { uploaded: true, expiryDate: '2026-05-01' } } }, // healthy
       { documents: { RC: { uploaded: true, expiryDate: '2026-03-01' } } }, // expired
+      { documents: { RC: { uploaded: true, expiryDate: null } } }, // pending
     ];
     const kpis = computeVehicleDashboardKpis(rows, NOW);
-    expect(kpis.total).toBe(2);
+    expect(kpis.total).toBe(3);
     expect(kpis.healthy).toBe(1);
     expect(kpis.expired).toBe(1);
-    // every other doc slot across both rows (4 columns × 2 rows) has no entry at all → missing
+    expect(kpis.pending).toBe(1);
+    // every other doc slot across all 3 rows (6 columns × 3 rows) has no entry at all → missing
     expect(kpis.missing).toBe(rows.length * (DOC_COLS.length - 1));
   });
 });

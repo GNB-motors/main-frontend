@@ -240,6 +240,8 @@ const getVehicleDocuments = async (vehicleId, { signal } = {}) => {
   }
 };
 
+import { normalizeVehicleDashboardRow } from './vehicleDocNormalization';
+
 // Fleet-wide dashboard: every vehicle + a per-docType expiry digest. Backend
 // derives the owner name from RC OCR. Returns plain array, badges are computed
 // client-side from expiryDate.
@@ -249,7 +251,8 @@ const getFleetDashboard = async ({ search, signal } = {}) => {
       params: { search: search || undefined },
       signal,
     });
-    return response.data?.data || response.data || [];
+    const list = response.data?.data || response.data || [];
+    return Array.isArray(list) ? list.map(normalizeVehicleDashboardRow) : [];
   } catch (error) {
     throw ApiError.from(error);
   }

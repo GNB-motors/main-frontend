@@ -3,11 +3,12 @@ import { Empty, RowsSkeleton } from '../../routeHubShared.jsx';
 import { inr } from '../../routeHubFormat';
 import {
   costBasisLabel,
+  deviationGroupSubtitle,
+  deviationGroupTitle,
   isOpen,
   legLabel,
   runWindow,
   shortDay,
-  tripLabel,
 } from './deviationRules.js';
 
 const LEG_TONE = {
@@ -52,12 +53,8 @@ export default function DeviationFeed({ groups, selId, onSelect, first, error, p
         <div className="dev-group-head">
           <span className="plate">{g.registrationNumber}</span>
           <div className="dev-group-t">
-            <b>{g.trip ? tripLabel(g.trip) : 'Outside any trip'}</b>
-            <span className="muted">
-              {g.trip
-                ? `Trip of ${shortDay(g.trip.ladenFrom)}`
-                : g.events[0].corridorLabel || 'Between two known places'}
-            </span>
+            <b>{deviationGroupTitle(g)}</b>
+            <span className="muted">{deviationGroupSubtitle(g)}</span>
           </div>
           <span className="sp" />
           {g.events.length > 1 ? (
