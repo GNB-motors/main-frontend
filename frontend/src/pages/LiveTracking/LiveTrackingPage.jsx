@@ -429,7 +429,9 @@ const LiveTrackingPage = () => {
                     weather={activeWeather}
                     weatherLoading={weatherLoading}
                     weatherContext={
-                      isReplaying ? 'At this point in the replay' : 'Now, at this location'
+                      isReplaying
+                        ? 'Forecast model, at this point in the replay'
+                        : 'Forecast model for this hour, around this location'
                     }
                     segmentByTrip={segmentByTrip}
                     setSegmentByTrip={setSegmentByTrip}

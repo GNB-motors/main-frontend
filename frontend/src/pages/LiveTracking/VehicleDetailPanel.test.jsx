@@ -74,7 +74,8 @@ describe('VehicleDetailPanel', () => {
       <VehicleDetailPanel
         selectedVehicle={{
           plate: 'BR44GB1162',
-          gps: 'Active',
+          hasFix: true,
+          hasGpsFix: true,
           ignition: 'ON',
           odo: 123456,
           fuel: 32,
@@ -85,7 +86,7 @@ describe('VehicleDetailPanel', () => {
         replayState={{ on: false }}
       />,
     );
-    expect(within(container.querySelector('.dtop')).getByText('GPS active')).toBeInTheDocument();
+    expect(within(container.querySelector('.dtop')).getByText('GPS fix')).toBeInTheDocument();
     expect(within(container.querySelector('.dtop')).getByText('Ignition ON')).toBeInTheDocument();
     const metrics = within(container.querySelector('.metrics'));
     expect(metrics.getByText('Odometer')).toBeInTheDocument();

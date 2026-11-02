@@ -52,9 +52,12 @@ export const LiveTrackingService = {
    * the caller picks the one for the selected vehicle.
    * @returns {Promise<Array>} VehicleIntent rows
    */
-  getIntents: async ({ signal } = {}) => {
+  getIntents: async ({ signal, registrationNumber } = {}) => {
     try {
-      const response = await apiClient.get(`/api/live/intents`, { signal });
+      const response = await apiClient.get(`/api/live/intents`, {
+        signal,
+        params: registrationNumber ? { registrationNumber } : undefined,
+      });
       const data = response.data?.data ?? response.data;
       return Array.isArray(data) ? data : [];
     } catch (error) {

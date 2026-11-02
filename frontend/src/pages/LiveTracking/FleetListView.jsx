@@ -4,6 +4,7 @@ import renderIconSvg from './renderIconSvg.jsx';
 import { NOVA_STATUS } from './statusPalettes.js';
 import { formatAgoText } from './minutesAgoFormat.js';
 import VehicleLocation from './VehicleLocation.jsx';
+import { formatFuel } from '../../utils/liveView.js';
 
 const SKEL_CARD_COUNT = 6;
 
@@ -118,7 +119,7 @@ export default function FleetListView({
                 <div className="vc-meta">
                   <span>
                     {renderIconSvg('fuel', 13)}
-                    <b>{v.fuel != null ? `${v.fuel} L` : '—'}</b>
+                    <b>{formatFuel(v.fuelReading)}</b>
                   </span>
                   <span>
                     {renderIconSvg('zap', 13)}

@@ -2,17 +2,45 @@ import { describe, it, expect } from 'vitest';
 import { NOVA_STATUS } from './statusPalettes.js';
 import { haversineKm, bearingDegrees } from './geoMath.js';
 import { formatAgoText, formatHrsText } from './minutesAgoFormat.js';
-import { resolveVehicleStatus } from './vehicleStatus.js';
+import { viewOf } from '../../utils/liveView.js';
 import { computeMapVehicles } from './mapPlotting.js';
 import { createVehicleMarkerIcon } from './vehicleMarkerIcon.js';
 
 describe('Nova Edge Pro Live Tracking Helpers', () => {
-  it('correctly resolves vehicle statuses', () => {
-    expect(resolveVehicleStatus({ speed: 45, ignition: true })).toBe('Moving');
-    expect(resolveVehicleStatus({ speed: 0, ignition: 'ON' })).toBe('Idling');
-    expect(resolveVehicleStatus({ speed: 0, ignition: false })).toBe('Stopped');
-    expect(resolveVehicleStatus({ isStale: true })).toBe('Offline');
-    expect(resolveVehicleStatus({ state: 'OFFLINE' })).toBe('Offline');
+  it('reads one status rule, offline decided by the fix age (audit DC-07/08)', () => {
+    const now = Date.parse('2026-11-02T10:00:00Z');
+    const at = (min) => new Date(now - min * 60000).toISOString();
+    const row = (o) => ({ latitude: 22.5, longitude: 88.3, eventDateTime: at(5), ...o });
+    expect(viewOf(row({ speed: 45, ignition: true }), now).status).toBe('moving');
+    expect(viewOf(row({ speed: 0, ignition: 'ON' }), now).status).toBe('idling');
+    expect(viewOf(row({ speed: 0, ignition: false }), now).status).toBe('stopped');
+    // FleetEdge free text never decides status
+    expect(viewOf(row({ speed: 0, ignition: false, status: 'Moving' }), now).status).toBe(
+      'stopped',
+    );
+    // a fix hours old is offline, with no speed and no GPS fix
+    const old = viewOf(
+      row({ speed: 60, ignition: true, state: 'ACTIVE', eventDateTime: at(180) }),
+      now,
+    );
+    expect(old).toMatchObject({
+      status: 'offline',
+      speedKmh: null,
+      hasGpsFix: false,
+      hasPosition: true,
+    });
+    // a backend view that was live ages into offline on the client
+    const served = {
+      ...row({}),
+      view: {
+        status: 'moving',
+        isOffline: false,
+        offlineAfterMin: 60,
+        lastFixAt: at(90),
+        speedKmh: 40,
+      },
+    };
+    expect(viewOf(served, now)).toMatchObject({ status: 'offline', speedKmh: null });
   });
 
   it('computes haversine distance between two coordinates', () => {

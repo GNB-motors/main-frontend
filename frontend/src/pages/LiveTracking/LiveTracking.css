@@ -3491,3 +3491,10 @@ html.dark .wx-icon .wx-star,
   color: var(--nova-rage-500);
   text-decoration: none;
 }
+
+/* Replay: an evenly thinned long day says so (audit DC-24/27). */
+.rp-note {
+  font-size: 11px;
+  color: var(--fg-secondary);
+  white-space: nowrap;
+}
