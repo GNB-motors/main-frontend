@@ -17,16 +17,22 @@ function mergeRows(current, pushed) {
   if (!Array.isArray(rows)) return current;
   const next = current.slice();
   const index = new Map(next.map((row, i) => [keyOf(row), i]));
+  const ended = new Set();
   for (const row of rows) {
     const key = keyOf(row);
     if (key == null) continue;
+    // A pushed row whose stop has ended is no longer idling: drop it.
+    if (row.endAt) {
+      ended.add(key);
+      continue;
+    }
     if (index.has(key)) next[index.get(key)] = row;
     else {
       index.set(key, next.length);
       next.push(row);
     }
   }
-  return next;
+  return ended.size ? next.filter((row) => !ended.has(keyOf(row))) : next;
 }
 
 /**
