@@ -193,7 +193,6 @@ export default function LiveMapCanvas({
           <MapPlacesLayer
             places={extraPlaces}
             selectedId={selectedPlaceId}
-            onSelect={onSelectPlace}
             zoom={mapZoom}
           />
 

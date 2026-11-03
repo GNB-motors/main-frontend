@@ -1,5 +1,6 @@
 import { CircleF, MarkerF } from '@react-google-maps/api';
 import { colorForPlace, mapPlaceIcon } from './mapPlaceIcon.js';
+import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
 
 /** Below this zoom a few-hundred-metre circle is a speck; draw the pin only. */
 const SHAPE_MIN_ZOOM = 13;
@@ -12,8 +13,11 @@ const SHAPE_MIN_ZOOM = 13;
  * layer has its own colour, and the colour is the same one the legend dot
  * uses, so the owner learns the key once.
  */
-export default function MapPlacesLayer({ places = [], zoom = 0, selectedId = null, onSelect }) {
+export default function MapPlacesLayer({ places = [], zoom = 0, selectedId = null }) {
   if (!places.length) return null;
+
+  const open = (place) =>
+    openInGoogleMaps({ lat: place.lat, lng: place.lng, name: place.name });
 
   return (
     <>
@@ -35,7 +39,7 @@ export default function MapPlacesLayer({ places = [], zoom = 0, selectedId = nul
                   fillOpacity: 0.08,
                   clickable: true,
                 }}
-                onClick={() => onSelect?.(place.id)}
+                onClick={() => open(place)}
               />
             ) : null}
             <MarkerF
@@ -44,7 +48,7 @@ export default function MapPlacesLayer({ places = [], zoom = 0, selectedId = nul
               title={place.name}
               clickable
               zIndex={selected ? 900 : 20}
-              onClick={() => onSelect?.(place.id)}
+              onClick={() => open(place)}
             />
           </span>
         );

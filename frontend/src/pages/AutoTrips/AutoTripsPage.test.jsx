@@ -28,9 +28,9 @@ vi.mock('./LinkTripDialog', () => ({ default: () => null }));
 function Location() {
   return <output aria-label="Current location">{useLocation().pathname}</output>;
 }
-function open() {
+function open(entry = '/auto-trips?range=7d') {
   render(
-    <MemoryRouter initialEntries={['/auto-trips?range=7d']}>
+    <MemoryRouter initialEntries={[entry]}>
       <AutoTripsPage />
       <Location />
     </MemoryRouter>,
@@ -47,10 +47,11 @@ beforeEach(() => {
   TripPlanService.list.mockResolvedValue({ items: [], total: 0, tabCounts: { PLANNED: 0 } });
 });
 it('shows a planned tab with zero and its empty table on the same page', async () => {
-  open();
-  const tab = await screen.findByRole('tab', { name: 'Planned trips 0' });
+  // "Planned trips" lives in the More menu; with a zero count it is only
+  // visible once it is the active tab.
+  open('/auto-trips?range=7d&status=PLANNED');
+  const tab = await screen.findByRole('tab', { name: 'Planned trips' });
   expect(screen.queryByRole('link', { name: 'Planned trips' })).not.toBeInTheDocument();
-  fireEvent.click(tab);
   await screen.findByText('No planned trips here');
   expect(screen.getByLabelText('Current location')).toHaveTextContent('/auto-trips');
   expect(tab).toHaveAttribute('aria-selected', 'true');
@@ -72,8 +73,8 @@ it('uses the backend count, page and date filters and returns to detected trips'
     tabCounts: { PLANNED: 126 },
   }));
   open();
-  const tab = await screen.findByRole('tab', { name: 'Planned trips 126' });
-  fireEvent.click(tab);
+  fireEvent.click(await screen.findByRole('tab', { name: /More/ }));
+  fireEvent.click(await screen.findByRole('menuitem', { name: 'Planned trips 126' }));
   await screen.findByText('WB-PLAN-1');
   await waitFor(() =>
     expect(TripPlanService.list).toHaveBeenCalledWith(
@@ -101,7 +102,7 @@ it('shows newly scheduled plans in the inline tab instead of navigating away', a
   fireEvent.click(screen.getByRole('button', { name: 'Schedule trip' }));
   fireEvent.click(await screen.findByRole('button', { name: 'Finish scheduling' }));
   await screen.findByText('No planned trips here');
-  expect(screen.getByRole('tab', { name: 'Planned trips 0' })).toHaveAttribute(
+  expect(screen.getByRole('tab', { name: 'Planned trips' })).toHaveAttribute(
     'aria-selected',
     'true',
   );
