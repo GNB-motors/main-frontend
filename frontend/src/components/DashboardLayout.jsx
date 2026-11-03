@@ -7,6 +7,7 @@ import LottieLoader from './LottieLoader.jsx';
 import CommandPalette from './cluster/CommandPalette.jsx';
 import { ConfirmDialogHost } from './ui/ConfirmDialog.jsx';
 import { applyThemeToRoot } from '../utils/colorTheme.js';
+import { usePageHeading } from '../hooks/usePageHeading.js';
 import { storeMeProfile } from '../utils/profileStorage.js';
 import { FeatureFlagsProvider, useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
 import { BranchProvider, useActiveBranch } from '../contexts/BranchContext.jsx';
@@ -26,6 +27,9 @@ const DashboardLayoutInner = () => {
   const { branchId } = useActiveBranch();
   const { profile, ready } = useFeatureFlags();
   const { pathname } = useLocation();
+  // The top bar shows the heading the page itself renders, so a page is never
+  // named twice in two different ways.
+  const pageTitle = usePageHeading();
 
   React.useEffect(() => {
     // Set all CSS tokens on :root immediately — covers page refresh & login redirect.
@@ -68,7 +72,7 @@ const DashboardLayoutInner = () => {
         id="main-content"
         className={`main-content ${isSidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}
       >
-        <Navbar toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
+        <Navbar toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} pageTitle={pageTitle} />
         <div className="page-content" key={branchId || 'all-locations'}>
           <ConfirmDialogHost>
             {/* A page crash stays inside the page area; sidebar and navbar survive. */}

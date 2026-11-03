@@ -43,7 +43,9 @@ export default function MapOverlayControls({
             onClick={() => setIsTelemetryOn?.((prev) => !prev)}
           >
             <span className="led" />
-            <span className="eyebrow-mini">Live telemetry</span>
+            <span className="eyebrow-mini">
+              Live<span className="ov-telemetry-more"> telemetry</span>
+            </span>
           </button>
         </div>
         {legend}

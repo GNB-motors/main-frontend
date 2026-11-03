@@ -8,7 +8,7 @@ import FleetLinkIndicator from './FleetLinkIndicator.jsx';
 import SupportButton from './SupportButton.jsx';
 import './Navbar.css';
 
-const Navbar = ({ toggleSidebar }) => {
+const Navbar = ({ toggleSidebar, pageTitle = null }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [activeTripsCount, setActiveTripsCount] = useState(0);
@@ -119,7 +119,9 @@ const Navbar = ({ toggleSidebar }) => {
         <button className="menu-toggle" onClick={toggleSidebar}>
           <Menu />
         </button>
-        <h2>{getPageTitle()}</h2>
+        {/* A page with its own H1 already names itself; the top bar repeating it
+            (in other words) read as two titles. Only H1-less pages get one here. */}
+        {!pageTitle && <h2>{getPageTitle()}</h2>}
         {isMileageListPage && <span className="navbar-count-badge">{mileageCount}</span>}
       </div>
       <div className="navbar-right">

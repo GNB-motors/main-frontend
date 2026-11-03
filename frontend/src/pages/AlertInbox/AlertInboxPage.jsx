@@ -8,7 +8,7 @@ import { useSupportPortal } from '../../contexts/supportPortalContext';
 import { getInbox, acknowledgeItem } from '../../services/AlertInboxService.js';
 import { fleetViewService } from '../../services/fleetViewService';
 import useApi from '../../hooks/useApi';
-import { SOURCE_LABELS, sinceLabel, reviewTarget, filterInbox } from './inboxModel.js';
+import { SOURCE_LABELS, sinceLabel, reviewTarget, filterInbox, subjectTitle } from './inboxModel.js';
 import AccountLinkBanner from './AccountLinkBanner.jsx';
 import './AlertInbox.css';
 
@@ -273,7 +273,7 @@ export default function AlertInboxPage() {
               </span>
               <div className="ai-row-main">
                 <button className="ai-subject" type="button" onClick={() => setDetailId(item.id)}>
-                  {item.subjectLabel || 'Your organisation'}
+                  {subjectTitle(item.subjectLabel)}
                 </button>
                 <h2>{item.label}</h2>
                 <p className="ai-ask">
@@ -332,7 +332,7 @@ export default function AlertInboxPage() {
           <DialogContent className="ai-detail">
             <header>
               <div>
-                <DialogTitle>{detail.subjectLabel || 'Your organisation'}</DialogTitle>
+                <DialogTitle>{subjectTitle(detail.subjectLabel)}</DialogTitle>
                 <p>{detail.label}</p>
               </div>
               <DialogClose aria-label="Close alert details">

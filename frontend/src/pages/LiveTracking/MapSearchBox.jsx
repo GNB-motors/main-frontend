@@ -1,4 +1,5 @@
 import { Search, X } from 'lucide-react';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 /**
  * MapSearchBox — the floating search field at the top-left of the map.
@@ -14,6 +15,8 @@ export default function MapSearchBox({
   placeholder = 'Search truck or place',
   compact = false,
 }) {
+  // On a phone the field is narrow, so the placeholder is shortened to fit.
+  const isPhone = useMediaQuery('(max-width: 600px)');
   return (
     <div
       className={`ov-search flex h-10 items-center gap-2 rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] px-3 shadow-[var(--rd-shadow-float)] ${
@@ -26,7 +29,7 @@ export default function MapSearchBox({
         type="search"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
+        placeholder={isPhone ? 'Search' : placeholder}
         autoComplete="off"
         aria-label="Search truck or place"
         className={`min-w-0 flex-1 bg-transparent text-[13px] text-[var(--rd-ink)] outline-hidden placeholder:text-[var(--rd-ink-3)] ${

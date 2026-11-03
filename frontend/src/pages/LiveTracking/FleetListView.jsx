@@ -38,7 +38,7 @@ export default function FleetListView({
         </div>
 
         <button
-          className="btn btn--sm btn--icon"
+          className="btn btn--sm gap-1.5"
           title="Hide list"
           aria-label="Hide list"
           onClick={() => {
@@ -47,6 +47,7 @@ export default function FleetListView({
           }}
         >
           {renderIconSvg('chevRight', 16)}
+          <span>Hide</span>
         </button>
       </div>
 

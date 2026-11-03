@@ -3087,6 +3087,62 @@ html.dark .vcard:hover,
   }
 }
 
+/* On a phone the map's own overlays share one short row, so the map keeps
+   its room instead of giving a third of it to the search, the telemetry
+   pill and the filter bar. */
+@media (max-width: 600px) {
+  .ov--left {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 6px;
+    width: auto;
+    max-width: calc(100% - 24px - 88px);
+  }
+  .ov-left-row {
+    flex-wrap: nowrap;
+    width: auto;
+    max-width: 100%;
+    gap: 6px;
+  }
+  .ov-search:not(.ov-search--compact) {
+    width: 96px;
+    height: 32px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .ov-search input {
+    font-size: 12px;
+  }
+  .ov-telemetry {
+    height: 32px;
+    padding: 0 8px;
+    gap: 5px;
+  }
+  .ov-telemetry .eyebrow-mini {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+  .ov-telemetry-more {
+    display: none;
+  }
+  .ov-legend {
+    width: auto;
+    min-width: 0;
+  }
+  .ov-legend-bar {
+    height: 32px;
+    gap: 5px;
+    padding-left: 6px;
+    padding-right: 6px;
+    font-size: 12px;
+  }
+  /* The count stays; the word that goes with it does not fit. */
+  .ov-legend-word {
+    display: none;
+  }
+}
+
 /* ================================================================
    WEATHER OVERLAY — animated condition bubble over the active truck
    + the detail-panel weather section. Colours use the shared tokens

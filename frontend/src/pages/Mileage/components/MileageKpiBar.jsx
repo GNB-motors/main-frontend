@@ -21,9 +21,16 @@ const Tile = ({ label, explanation, value, valueClass = '', children }) => (
  * Four plain-word figures for the hub's dates. Reconciliation figures come
  * from the fill list's counts (diesel only, the tank sensor sees diesel);
  * average mileage is the model comparison's distance-weighted total, which
- * needs the vehicleActivity module.
+ * needs the vehicleActivity module. That read is slow, so it is asked for
+ * only when the tile itself is on screen (the performance tab).
  */
-export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 }) {
+export default function MileageKpiBar({
+  range,
+  showFleetKmL,
+  showFleetKmLHint = false,
+  onOpenPerformance,
+  refreshKey = 0,
+}) {
   const feed = useApi(
     (signal) => MileageApi.unifiedFeed(range, { fuelType: 'DIESEL', limit: 1 }, signal),
     [range.manufacturer, range.from, range.to, refreshKey],
@@ -31,12 +38,12 @@ export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 
   const models = useApi(
     (signal) => MileageApi.modelComparison(range, signal),
     [range.manufacturer, range.from, range.to, refreshKey],
-    { enabled: showFleetMileage },
+    { enabled: showFleetKmL },
   );
 
   const k = kpisFromSources({
     feedMeta: feed.data?.meta || null,
-    modelData: showFleetMileage ? models.data?.data || null : null,
+    modelData: showFleetKmL ? models.data?.data || null : null,
   });
   const pending = feed.loading ? '…' : '—';
   const coveragePct = k.sensorFills ? (k.matched / k.sensorFills) * 100 : null;
@@ -44,7 +51,7 @@ export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 
 
   return (
     <div className="mhub-kpis">
-      {showFleetMileage && (
+      {showFleetKmL && (
         <Tile
           label="Fill-to-fill km/L"
           value={
@@ -77,6 +84,22 @@ export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 
           <span>
             {k.vehicleCount ? `${k.vehicleCount} trucks` : 'No full-tank rounds in these dates'}
           </span>
+        </Tile>
+      )}
+
+      {showFleetKmLHint && (
+        <Tile
+          label="Fill-to-fill km/L"
+          value="—"
+          explanation={{
+            title: 'Fill-to-fill km/L',
+            text: 'This figure is worked out from the model comparison. It is read on the Mileage tab, so the hub opens without waiting for it.',
+            lines: [],
+          }}
+        >
+          <button type="button" className="mhub-kpi-open" onClick={onOpenPerformance}>
+            Open Mileage
+          </button>
         </Tile>
       )}
 

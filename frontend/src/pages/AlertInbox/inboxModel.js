@@ -59,6 +59,17 @@ export function sourcesLine(item) {
   return `Reported by ${names.length} modules: ${names.join(', ')}.`;
 }
 
+/**
+ * The card title of an org-level alert. The feed sends it in lower case
+ * ("your organisation"), so the first letter is capitalised here rather than
+ * being shown as it arrived.
+ */
+export function subjectTitle(label) {
+  const text = String(label ?? '').trim();
+  if (!text) return 'Your organisation';
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 /** Relative time without pulling in a date library, for the list subtitle. */
 export function sinceLabel(iso) {
   if (!iso) return 'unknown';

@@ -110,15 +110,15 @@ export default function TrackLegend({
           type="button"
           onClick={toggleOpen}
           aria-expanded={false}
-          className="flex h-10 w-full items-center gap-2 rounded-[var(--rd-radius)] px-3 text-[13px] font-medium text-[var(--rd-ink)]"
+          className="ov-legend-bar flex h-10 w-full items-center gap-2 rounded-[var(--rd-radius)] px-3 text-[13px] font-medium text-[var(--rd-ink)]"
         >
           <span
             aria-hidden="true"
             className="size-2 rounded-full"
             style={{ backgroundColor: 'var(--rd-moving)' }}
           />
-          <span className="tabular-nums">{movingCount}</span>
-          <span className="text-[var(--rd-ink-2)]">moving</span>
+          <span className="tabular-nums ov-legend-count">{movingCount}</span>
+          <span className="text-[var(--rd-ink-2)] ov-legend-word">moving</span>
           <span className="ml-auto text-[var(--rd-ink-3)]">Filters</span>
           <ChevronUp size={15} aria-hidden="true" />
         </button>
