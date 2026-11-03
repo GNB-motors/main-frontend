@@ -154,6 +154,12 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3, arg4) => {
   );
   const shortPlate = plateText.length > 12 ? plateText.slice(-10) : plateText;
   const labelFontSize = effectiveZoom >= 16 ? 16 : effectiveZoom >= 13 ? 15 : 14;
+  // The chip is 90 wide; a 10-character plate in heavy type is wider than
+  // that and was cut at both ends. Squeeze the text to fit when it would not.
+  const LABEL_MAX_W = 82;
+  const estLabelW = shortPlate.length * labelFontSize * 0.66;
+  const labelFit =
+    estLabelW > LABEL_MAX_W ? ` textLength="${LABEL_MAX_W}" lengthAdjust="spacingAndGlyphs"` : '';
 
   // ViewBox: 96x96 base (or 96x124 with label plate)
   const vbW = 96;
@@ -221,9 +227,7 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3, arg4) => {
       <!-- High-contrast crisp prominent number plate chip -->
       <g transform="translate(48, 108)">
         <rect x="-45" y="-12" width="90" height="24" rx="6" fill="#0C1020" stroke="${isSelected ? '#38BDF8' : '#94A3B8'}" stroke-width="${isSelected ? 2.5 : 1.5}"/>
-        <text x="0" y="5" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif" font-size="${labelFontSize}" font-weight="900" text-anchor="middle" letter-spacing="0.5">
-          ${shortPlate}
-        </text>
+        <text x="0" y="5" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif" font-size="${labelFontSize}" font-weight="900" text-anchor="middle" letter-spacing="0.5"${labelFit}>${shortPlate}</text>
       </g>
     `
         : ''

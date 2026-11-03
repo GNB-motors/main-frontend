@@ -13,7 +13,7 @@ const IntegrityHeaderActions = ({
   isSyncing,
   lastSynced,
 }) => (
-  <div className="flex items-center gap-2">
+  <div className="flex flex-wrap items-center gap-2">
     {lastSynced && (
       <span className="text-dim hidden text-xs sm:inline">Synced {timeAgo(lastSynced)}</span>
     )}

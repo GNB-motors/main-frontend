@@ -1,0 +1,158 @@
+/* Trip hierarchy and surfaces are scoped so map and legacy trip screens keep their layout. */
+.atx-list .atx-head {
+  align-items: center;
+}
+.atx-list .atx-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  background: var(--atx-surface);
+  padding: 12px 16px;
+  border: 1px solid var(--atx-line);
+  border-radius: 12px;
+}
+.atx-list .atx-tabs {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.atx-list .atx-toolbar-start {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.atx-list .atx-toolbar-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--atx-line);
+  border-radius: 8px;
+  color: var(--atx-ink-2);
+  font-size: 12px;
+  font-weight: 550;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.atx-list .atx-toolbar-link:hover {
+  color: var(--atx-blue);
+  background: var(--atx-blue-bg);
+}
+.atx-list .atx-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--atx-line);
+  border-radius: 8px;
+  color: var(--atx-ink-2);
+  background: var(--card);
+}
+.atx-list .atx-search:focus-within {
+  border-color: var(--atx-blue-line);
+}
+.atx-list .atx-search-input {
+  width: 170px;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+}
+.atx-list .atx-search-input::placeholder {
+  color: var(--ds-ink3);
+}
+.atx-list .atx-filter-row {
+  width: auto;
+  margin-left: auto;
+  justify-content: flex-end;
+}
+.atx-list .atx-tab[aria-selected='true'] {
+  background: var(--atx-blue-bg);
+  border-color: var(--atx-blue-line);
+  font-weight: 650;
+}
+.atx-list .dt .dt-table {
+  min-width: 1030px;
+}
+.atx-list .dt .dt-table thead th {
+  background: var(--ds-sunk);
+  color: var(--atx-ink-2);
+  font-size: 12px;
+  font-weight: 650;
+  padding: 14px 16px;
+}
+.atx-list .dt .dt-table tbody td {
+  font-size: 13px;
+  padding: 18px 16px;
+  border-bottom-color: var(--atx-line);
+}
+.atx-list .dt .dt-row:hover td {
+  background: var(--atx-blue-bg);
+}
+.atx-vehicle-link {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--atx-ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.atx-vehicle-link:hover {
+  color: var(--atx-blue);
+  text-decoration: underline;
+}
+.atx-list .atx-route-cell {
+  gap: 4px;
+}
+.atx-list .atx-route-cell strong {
+  font-weight: 600;
+}
+.atx-list .atx-route-cell > span {
+  font-size: 12px;
+  color: var(--atx-ink-2);
+}
+.atx-cell-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  line-height: 1.5;
+}
+.atx-cell-stack small {
+  font-size: 11px;
+  color: var(--atx-ink-3);
+  white-space: normal;
+}
+.atx-cell-stack .atx-check-label {
+  color: var(--atx-amber);
+}
+.atx-list .atx-status {
+  font-size: 11px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  width: fit-content;
+}
+.atx-view-link,
+.atx-text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: var(--atx-blue);
+  font-size: 12px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.atx-view-link:hover,
+.atx-text-link:hover {
+  text-decoration: underline;
+}
+
+.atx-list .dt td[style*='right'] .atx-cell-stack {
+  align-items: flex-end;
+}

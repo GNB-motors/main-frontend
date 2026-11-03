@@ -10,7 +10,8 @@ function UpdateAge({ at }) {
     const timer = setInterval(() => setNow(Date.now()), 10000);
     return () => clearInterval(timer);
   }, []);
-  if (!at) return <span>Awaiting update</span>;
+  // The age of the last live-feed MESSAGE, not of the data inside it (audit DC-14).
+  if (!at) return <span>Awaiting live feed</span>;
   const seconds = Math.max(0, Math.floor((now - new Date(at).getTime()) / 1000));
   const age =
     seconds < 60
@@ -19,8 +20,10 @@ function UpdateAge({ at }) {
         ? `${Math.floor(seconds / 60)}m`
         : `${Math.floor(seconds / 3600)}h`;
   return (
-    <span title={new Date(at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}>
-      Updated {age} ago
+    <span
+      title={`Last live-feed message ${new Date(at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}. Each truck's own last report is on its card.`}
+    >
+      Feed message {age} ago
     </span>
   );
 }
@@ -39,6 +42,7 @@ export default function LiveTopbar({
   positionsError,
   onMapCount = 0,
   unclassifiedCount = 0,
+  layerPills = null,
 }) {
   return (
     <div className="topbar lt-toolbar">
@@ -112,6 +116,7 @@ export default function LiveTopbar({
               type="button"
               className={`gnb-status-card ${filter === card.k ? 'gnb-status-card--active' : ''}`}
               aria-pressed={filter === card.k}
+              title={card.title}
               onClick={() => setFilter(card.k)}
             >
               <span className="lt-status-dot" style={{ backgroundColor: card.stripe }} />
@@ -122,6 +127,7 @@ export default function LiveTopbar({
             </button>
           ))}
         </div>
+        {layerPills}
         <span className="lt-map-count">On map: {isLiveLoading ? '…' : onMapCount}</span>
       </div>
     </div>

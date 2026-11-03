@@ -30,8 +30,16 @@ export function presetRange(key, now = new Date()) {
     }
     case '7DAYS':
       return { from: shiftDay(to, -6), to };
+    case '15DAYS':
+      return { from: shiftDay(to, -14), to };
     case 'MONTH':
+    case 'THIS_MONTH':
       return { from: `${to.slice(0, 8)}01`, to };
+    case 'LAST_MONTH': {
+      const lastDayOfPrevMonth = shiftDay(`${to.slice(0, 7)}-01`, -1);
+      const firstDayOfPrevMonth = `${lastDayOfPrevMonth.slice(0, 7)}-01`;
+      return { from: firstDayOfPrevMonth, to: lastDayOfPrevMonth };
+    }
     case '90DAYS':
       return { from: shiftDay(to, -89), to };
     case '30DAYS':

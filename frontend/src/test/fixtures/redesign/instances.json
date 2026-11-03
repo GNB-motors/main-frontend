@@ -1,0 +1,41 @@
+{
+  "kind": "idle",
+  "summary": {
+    "count": 12,
+    "totalMin": 126,
+    "totalL": null,
+    "totalInr": null,
+    "why": {
+      "text": "Engine on, not moving, for more than 15 minutes.",
+      "basis": "From 1,240 km of driving this week"
+    }
+  },
+  "items": [
+    {
+      "id": "inst-1",
+      "registrationNumber": "WB11L8862",
+      "driverName": "Ramesh Yadav",
+      "startAt": "2026-11-01T15:05:00Z",
+      "endAt": "2026-11-01T15:45:00Z",
+      "durationMin": 40,
+      "place": {
+        "id": "poi-202",
+        "kind": "POI",
+        "name": "Mohania Dhaba",
+        "category": "DHABA",
+        "lat": 24.3771,
+        "lng": 84.9812,
+        "radiusM": null
+      },
+      "value": 40,
+      "unit": "min",
+      "text": "Idled 40 min with engine on at Mohania dhaba",
+      "replay": {
+        "label": "Watch it",
+        "to": "/live-tracking?v=WB11L8862&from=2026-11-01T20:35:00%2B05:30&to=2026-11-01T21:15:00%2B05:30"
+      },
+      "trip": null
+    }
+  ],
+  "total": 12
+}

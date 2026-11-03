@@ -141,6 +141,36 @@ describe('Track trail dates', () => {
   });
 });
 
+describe('Track selection recentering', () => {
+  it('recenters on a newly picked vehicle in one camera move, then follows with panTo', () => {
+    const { result, rerender } = setup();
+    const map = { panTo: vi.fn(), getZoom: () => 9, setZoom: vi.fn(), moveCamera: vi.fn() };
+    result.current.mapRef.current = map;
+    const other = { id: 'v2', plate: 'WB02', hasFix: true, lat: 26, lng: 91 };
+    rerender({ v: other });
+    expect(map.moveCamera).toHaveBeenCalledWith({ center: { lat: 26, lng: 91 }, zoom: 14 });
+    expect(map.panTo).not.toHaveBeenCalled();
+    expect(map.setZoom).not.toHaveBeenCalled();
+    rerender({ v: { ...other, lat: 26.01 } });
+    expect(map.panTo).toHaveBeenCalledWith({ lat: 26.01, lng: 91 });
+    expect(map.moveCamera).toHaveBeenCalledTimes(1);
+  });
+
+  it('recenters on the new vehicle after the previous one had its Trail open', async () => {
+    LiveTrackingService.getTrail.mockResolvedValue({ points });
+    RoadService.getRoadTrailIfEnabled.mockResolvedValue(null);
+    const { result, rerender } = setup();
+    await act(() => result.current.toggleTrail(vehicle));
+    expect(result.current.isTrailVisible).toBe(true);
+    const map = { panTo: vi.fn(), getZoom: () => 16, setZoom: vi.fn(), moveCamera: vi.fn() };
+    result.current.mapRef.current = map;
+    rerender({ v: { id: 'v2', plate: 'WB02', hasFix: true, lat: 26, lng: 91 } });
+    expect(result.current.isTrailVisible).toBe(false);
+    // Already closer than 14: keep the user's zoom.
+    expect(map.moveCamera).toHaveBeenCalledWith({ center: { lat: 26, lng: 91 }, zoom: 16 });
+  });
+});
+
 describe('Track replay lifecycle', () => {
   it('keeps the active replay and viewport when Replay is clicked again', async () => {
     vi.stubGlobal(
@@ -256,7 +286,11 @@ describe('Track replay lifecycle', () => {
     const { result } = setup();
     await act(() => result.current.enterReplay(vehicle));
     const window = LiveTrackingService.getTrail.mock.calls[0][1];
-    expect(window).toMatchObject({ from: expect.any(String), to: expect.any(String), limit: 5000 });
+    expect(window).toMatchObject({
+      from: expect.any(String),
+      to: expect.any(String),
+      limit: 10000,
+    });
     expect(RoadService.getRoadTrailIfEnabled.mock.calls[0][1]).toMatchObject({
       from: window.from,
       to: window.to,

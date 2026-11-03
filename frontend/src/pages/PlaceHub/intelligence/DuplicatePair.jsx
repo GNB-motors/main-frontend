@@ -9,6 +9,7 @@ import { useConfirm } from '../../../components/ui/confirmContext';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
 import { canEditSap, kmText } from '../../Sap/sapModel';
 import DuplicateMap from './DuplicateMap';
+import { samePlaceSentence } from './duplicatePairModel';
 export default function DuplicatePair({ pair, onChanged }) {
   const { a, b } = pair;
   const [survivorId, setSurvivorId] = useState((a.visits ?? 0) >= (b.visits ?? 0) ? a._id : b._id);
@@ -43,6 +44,7 @@ export default function DuplicatePair({ pair, onChanged }) {
     >
       <div className="sap-stack">
         <h2>{pair.verdict === 'LIKELY_SAME' ? 'Likely the same place' : 'Compare these places'}</h2>
+        <p className="sap-muted">{samePlaceSentence(pair)}</p>
         <p className="sap-muted">Check the map and visit history before deciding.</p>
       </div>
       {[a, b].map((s) => (

@@ -10,13 +10,9 @@ import { formatNum } from '../../utils/formatters';
 // len) instead, same span math the Gantt bars use.
 function countTripsToday(calendar) {
   const DAY_MS = 24 * 60 * 60 * 1000;
-  const dayOffset = (d) => {
-    const day = new Date(d);
-    day.setHours(0, 0, 0, 0);
-    const t = new Date();
-    t.setHours(0, 0, 0, 0);
-    return Math.round((day.getTime() - t.getTime()) / DAY_MS);
-  };
+  // IST days, whatever timezone the browser is in (audit DD-07).
+  const istDay = (d) => Math.floor((new Date(d).getTime() + 330 * 60000) / DAY_MS);
+  const dayOffset = (d) => istDay(d) - istDay(new Date());
   return (calendar?.vehicles || []).reduce(
     (n, v) =>
       n +
@@ -29,8 +25,15 @@ function countTripsToday(calendar) {
   );
 }
 
-export function buildDigestKpis({ fleetDashboard, m, calendar, healthScore }) {
-  const tripsToday = countTripsToday(calendar);
+export function buildDigestKpis({
+  fleetDashboard,
+  m,
+  calendar,
+  healthScore,
+  tripsToday: autoTrips,
+}) {
+  // The Trip page's own count when it loaded; the calendar's older count only as a fallback.
+  const tripsToday = autoTrips != null ? autoTrips : countTripsToday(calendar);
 
   const vehicleCount = fleetDashboard?.length || 0;
   const activeVehicleCount = (fleetDashboard || []).filter(
@@ -41,7 +44,8 @@ export function buildDigestKpis({ fleetDashboard, m, calendar, healthScore }) {
     {
       id: 'active',
       icon: Truck,
-      label: 'Vehicles active',
+      // Not telematics activity: the fleet master's "not in maintenance" (audit DD-01).
+      label: 'Available',
       value: formatNum(activeVehicleCount),
       unit: `/ ${formatNum(vehicleCount)}`,
       note: 'not in maintenance',
@@ -51,9 +55,10 @@ export function buildDigestKpis({ fleetDashboard, m, calendar, healthScore }) {
     {
       id: 'fuel',
       icon: Fuel,
-      label: 'Fuel spend',
+      // Telemetry burn × diesel price — an estimate, not money paid (audit DD-04).
+      label: 'Fuel burned (est.)',
       value: `₹${formatNum(m?.fuelCostInr || 0)}`,
-      note: 'today',
+      note: 'today · from telemetry',
       to: '/refuel-logs',
     },
     {
@@ -61,8 +66,8 @@ export function buildDigestKpis({ fleetDashboard, m, calendar, healthScore }) {
       icon: Calendar,
       label: 'Trips today',
       value: formatNum(tripsToday),
-      note: 'scheduled today',
-      to: '#nd-calendar',
+      note: 'left a pickup today',
+      to: autoTrips != null ? '/auto-trips?range=today' : '#nd-calendar',
     },
     {
       id: 'def',

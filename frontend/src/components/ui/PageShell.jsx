@@ -24,6 +24,7 @@ export default function PageShell({
   subtitle,
   count = null,
   freshnessAt = null,
+  leading = null,
   actions = null,
   filters = null,
   footer = null,
@@ -37,6 +38,7 @@ export default function PageShell({
     >
       {!embedded || actions ? (
         <header className="pshell-head">
+          {!embedded && leading}
           {!embedded && (
             <div className="pshell-head-main">
               <div className="pshell-title-row">

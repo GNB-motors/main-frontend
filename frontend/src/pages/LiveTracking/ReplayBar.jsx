@@ -23,8 +23,11 @@ export default function ReplayBar({
                   : 'Recorded trail')}
             </span>
             <div className="rp-stats">
-              <div className="rp-stat">
-                <div className="k">Distance</div>
+              <div
+                className="rp-stat"
+                title="Sum of the GPS path between fixes. Distance driven during GPS gaps is not included; the odometer is the measure for distance driven."
+              >
+                <div className="k">GPS path</div>
                 <div className="v">{trailKm.toFixed(1)} km</div>
               </div>
               <div className="rp-stat">
@@ -32,6 +35,12 @@ export default function ReplayBar({
                 <div className="v">{replayState.pts ? replayState.pts.length : 0}</div>
               </div>
             </div>
+            {replayState.truncated ? (
+              <span className="rp-note" role="status">
+                Long day — evenly thinned to {replayState.pts ? replayState.pts.length : 0} of{' '}
+                {replayState.totalCount} pings
+              </span>
+            ) : null}
             <button
               className="btn btn--sm btn--icon rp-x"
               aria-label="Exit replay"

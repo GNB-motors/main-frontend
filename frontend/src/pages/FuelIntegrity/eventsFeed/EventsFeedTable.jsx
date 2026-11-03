@@ -66,7 +66,7 @@ const EventsFeedTable = ({
                   )}
                   {isRowLoss && (
                     <span className="inline-flex items-center gap-1 text-xs text-red-600 dark:text-red-400 font-semibold">
-                      <TrendingDown size={12} /> Siphon Loss
+                      <TrendingDown size={12} /> Fuel went down while parked
                     </span>
                   )}
                   {isRowDef && (
@@ -128,7 +128,7 @@ const EventsFeedTable = ({
                       <StatusPill tone="caution">Estimated</StatusPill>
                     )
                   ) : isRowLoss ? (
-                    <StatusPill tone="critical">Suspected</StatusPill>
+                    <StatusPill tone="critical">Review</StatusPill>
                   ) : (
                     <StatusPill tone="caution">DEF flag</StatusPill>
                   )}

@@ -36,6 +36,11 @@ export default function useLiveMap({
   // Per-trip colours are enabled by default.
   const [segmentByTrip, setSegmentByTrip] = useState(true);
 
+  // The visible map box, updated only when the map goes idle. Panning does
+  // not fire a request per frame — the places endpoint is asked once the
+  // map settles (F1.4).
+  const [mapBounds, setMapBounds] = useState(null);
+
   // Use this org's road edges; pooled congestion needs three contributing orgs.
   const [congestion, setCongestion] = useState(null);
   const [congestionLoading, setCongestionLoading] = useState(false);
@@ -134,6 +139,9 @@ export default function useLiveMap({
       styles: theme === 'dark' ? DARK_MAP_STYLE : LIGHT_MAP_STYLE,
       mapTypeId: mapMode === 'sat' ? 'satellite' : 'roadmap',
       gestureHandling: 'greedy',
+      // Google's own place labels are on (F0.5); clicking one must not open
+      // Google's info window over our own panels.
+      clickableIcons: false,
     }),
     [theme, mapMode],
   );
@@ -187,6 +195,21 @@ export default function useLiveMap({
     [fitToLiveVehicles],
   );
 
+  /**
+   * The visible map box, read only when the map goes idle.
+   * Panning fires many change events; asking for places on each one would
+   * flood the endpoint, so the box is sampled once the map settles.
+   */
+  const onMapIdle = useCallback(() => {
+    const map = mapRef.current;
+    if (!map || !window.google) return;
+    const bounds = map.getBounds();
+    if (!bounds) return;
+    const ne = bounds.getNorthEast();
+    const sw = bounds.getSouthWest();
+    setMapBounds([sw.lat(), sw.lng(), ne.lat(), ne.lng()]);
+  }, []);
+
   // Frame the live fleet once its first positions arrive.
   useEffect(() => {
     if (didAutoFitRef.current || !mapRef.current || selectedId) return;
@@ -206,13 +229,23 @@ export default function useLiveMap({
     )
       return;
     const map = mapRef.current;
-    map.panTo({ lat: selectedVehicle.lat, lng: selectedVehicle.lng });
-    // Gentle zoom-in only when a NEW vehicle is picked — not on every live
-    // update of the one we're already following (that would fight the user's
-    // own zoom/pan). Never zoom back out if they're already closer in.
-    if (zoomedSelectionRef.current !== selectedVehicle.id) {
-      if ((map.getZoom() || 5) < 14) map.setZoom(14);
-      zoomedSelectionRef.current = selectedVehicle.id;
+    const center = { lat: selectedVehicle.lat, lng: selectedVehicle.lng };
+    if (zoomedSelectionRef.current === selectedVehicle.id) {
+      // Live update of the truck we're already following: glide along.
+      map.panTo(center);
+      return;
+    }
+    // A NEW vehicle was picked: recenter on it in one camera move. panTo +
+    // setZoom must not be paired here — setZoom cancels panTo's animation, so
+    // the map zoomed in on the previous spot and seemed to "stay there".
+    // Never zoom back out if the user is already closer in.
+    zoomedSelectionRef.current = selectedVehicle.id;
+    const zoom = Math.max(map.getZoom() || 5, 14);
+    if (typeof map.moveCamera === 'function') {
+      map.moveCamera({ center, zoom });
+    } else {
+      map.setCenter(center);
+      map.setZoom(zoom);
     }
   }, [selectedVehicle, replayState.on, isTrailVisible]);
 
@@ -316,6 +349,8 @@ export default function useLiveMap({
     mapRef,
     mapZoom,
     setMapZoom,
+    mapBounds,
+    onMapIdle,
     mapOptions,
     onMapLoad,
     trailLoading,

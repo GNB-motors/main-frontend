@@ -21,9 +21,16 @@ const Tile = ({ label, explanation, value, valueClass = '', children }) => (
  * Four plain-word figures for the hub's dates. Reconciliation figures come
  * from the fill list's counts (diesel only, the tank sensor sees diesel);
  * average mileage is the model comparison's distance-weighted total, which
- * needs the vehicleActivity module.
+ * needs the vehicleActivity module. That read is slow, so it is asked for
+ * only when the tile itself is on screen (the performance tab).
  */
-export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 }) {
+export default function MileageKpiBar({
+  range,
+  showFleetKmL,
+  showFleetKmLHint = false,
+  onOpenPerformance,
+  refreshKey = 0,
+}) {
   const feed = useApi(
     (signal) => MileageApi.unifiedFeed(range, { fuelType: 'DIESEL', limit: 1 }, signal),
     [range.manufacturer, range.from, range.to, refreshKey],
@@ -31,12 +38,12 @@ export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 
   const models = useApi(
     (signal) => MileageApi.modelComparison(range, signal),
     [range.manufacturer, range.from, range.to, refreshKey],
-    { enabled: showFleetMileage },
+    { enabled: showFleetKmL },
   );
 
   const k = kpisFromSources({
     feedMeta: feed.data?.meta || null,
-    modelData: showFleetMileage ? models.data?.data || null : null,
+    modelData: showFleetKmL ? models.data?.data || null : null,
   });
   const pending = feed.loading ? '…' : '—';
   const coveragePct = k.sensorFills ? (k.matched / k.sensorFills) * 100 : null;
@@ -44,9 +51,9 @@ export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 
 
   return (
     <div className="mhub-kpis">
-      {showFleetMileage && (
+      {showFleetKmL && (
         <Tile
-          label="Average mileage"
+          label="Fill-to-fill km/L"
           value={
             k.fleetKmPerL != null ? (
               <>
@@ -60,8 +67,8 @@ export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 
             )
           }
           explanation={{
-            title: 'How average mileage is worked out',
-            text: 'All km driven divided by all diesel, over every full-tank-to-full-tank round that ended in these dates. Long rounds count more than short ones.',
+            title: 'How fill-to-fill km/L is worked out',
+            text: 'All km driven divided by all diesel, over every full-tank-to-full-tank round that ended in these dates — loaded and empty running together. Long rounds count more than short ones. The Trip page’s Oil & Average report shows a different figure on purpose: loaded running only, which burns more.',
             lines: [
               ['Trucks', k.vehicleCount != null ? formatNum(k.vehicleCount) : '—'],
               [
@@ -77,6 +84,22 @@ export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 
           <span>
             {k.vehicleCount ? `${k.vehicleCount} trucks` : 'No full-tank rounds in these dates'}
           </span>
+        </Tile>
+      )}
+
+      {showFleetKmLHint && (
+        <Tile
+          label="Fill-to-fill km/L"
+          value="—"
+          explanation={{
+            title: 'Fill-to-fill km/L',
+            text: 'This figure is worked out from the model comparison. It is read on the Mileage tab, so the hub opens without waiting for it.',
+            lines: [],
+          }}
+        >
+          <button type="button" className="mhub-kpi-open" onClick={onOpenPerformance}>
+            Open Mileage
+          </button>
         </Tile>
       )}
 
@@ -129,8 +152,12 @@ export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 
           lines: [],
         }}
       >
-        {k.flagged != null ? (
+        {/* "All clear" needs bills to have been checked: with none uploaded it
+            would contradict "Many bills missing" next to it. */}
+        {k.flagged != null && (k.flagged > 0 || k.bills !== 0) ? (
           <StatusChip group="billsToCheck" value={k.flagged > 0 ? 'NEEDS_A_LOOK' : 'ALL_CLEAR'} />
+        ) : k.flagged != null ? (
+          <span>No bills to check yet</span>
         ) : null}
       </Tile>
     </div>

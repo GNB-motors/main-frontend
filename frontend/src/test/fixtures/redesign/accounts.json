@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "accountId": "acc-gnb-buxar",
+      "vendor": "FLEETEDGE",
+      "accountName": "GNB Buxar Fleet",
+      "state": "NEEDS_RELINK",
+      "lastDataAt": "2026-11-01T09:00:00Z",
+      "trucks": 4,
+      "action": { "label": "Reconnect", "to": "/settings/fleetedge-accounts" }
+    },
+    {
+      "accountId": "acc-gnb-dhanbad",
+      "vendor": "FLEETEDGE",
+      "accountName": "GNB Dhanbad Fleet",
+      "state": "HEALTHY",
+      "lastDataAt": "2026-11-02T20:48:00Z",
+      "trucks": 38,
+      "action": null
+    }
+  ]
+}

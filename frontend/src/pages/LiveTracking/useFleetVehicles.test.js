@@ -3,7 +3,7 @@ import { renderHook } from '@testing-library/react';
 import useFleetVehicles from './useFleetVehicles.js';
 
 describe('Track telemetry mapping', () => {
-  it('uses the live odometer before the older fleet-master value, including zero', () => {
+  it('uses the live odometer including zero, and never a master value that the list does not carry', () => {
     const { result, rerender } = renderHook(
       ({ odometer }) =>
         useFleetVehicles({
@@ -21,6 +21,57 @@ describe('Track telemetry mapping', () => {
     rerender({ odometer: 0 });
     expect(result.current.selectedVehicle.odo).toBe(0);
     rerender({ odometer: null });
-    expect(result.current.selectedVehicle.odo).toBe(1000);
+    expect(result.current.selectedVehicle.odo).toBe(null);
+  });
+
+  it('reads master fields and the driver from the row, and decides offline by fix age', () => {
+    const recent = new Date(Date.now() - 5 * 60000).toISOString();
+    const { result } = renderHook(() =>
+      useFleetVehicles({
+        rawPositions: [
+          {
+            registrationNumber: 'WB11F4762',
+            latitude: 22.5,
+            longitude: 88.3,
+            speed: 35,
+            ignition: true,
+            eventDateTime: recent,
+            vehicle: {
+              vehicleId: 'v1',
+              model: 'Signa',
+              manufacturer: 'Tata',
+              chassisNumber: 'MAT1',
+              manufactureYear: 2021,
+            },
+            driver: { state: 'ASSIGNED', name: 'Ravi Kumar' },
+            fuel: { value: 245, unit: null },
+          },
+          {
+            registrationNumber: 'WB11F6262',
+            latitude: 22.5,
+            longitude: 88.3,
+            speed: 60,
+            state: 'ACTIVE',
+            eventDateTime: new Date(Date.now() - 5 * 3600000).toISOString(),
+          },
+        ],
+        vehiclesMeta: {},
+        filter: 'all',
+        searchQuery: '',
+        selectedId: null,
+      }),
+    );
+    const [a, b] = result.current.vehicles;
+    expect(a).toMatchObject({
+      status: 'moving',
+      model: 'Signa',
+      manufactureYear: 2021,
+      vin: 'MAT1',
+      hasGpsFix: true,
+    });
+    expect(a.driver.name).toBe('Ravi Kumar');
+    expect(a.fuelReading).toEqual({ value: 245, unit: null });
+    expect(b).toMatchObject({ status: 'offline', speed: null, hasGpsFix: false, hasFix: true });
+    expect(result.current.manufacturers).toEqual(['Tata']);
   });
 });

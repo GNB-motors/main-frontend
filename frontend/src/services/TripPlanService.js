@@ -65,7 +65,7 @@ export const TripPlanService = {
         .then(asList)
         // A manager without employee access still schedules trips, just without a driver list.
         .catch(() => []),
-      PlaceIntelligenceService.listSites({ status: 'CONFIRMED', limit: 500 }, { signal }),
+      PlaceIntelligenceService.listAllSites({ status: 'CONFIRMED' }, { signal }),
     ]);
     return { vehicles, employees, sites: sites?.records || [] };
   },

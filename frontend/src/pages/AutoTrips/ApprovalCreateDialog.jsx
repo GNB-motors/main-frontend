@@ -64,13 +64,12 @@ export default function ApprovalCreateDialog({
   const [note, setNote] = useState('');
 
   const sitesQ = useApi(
-    (signal) => PlaceIntelligenceService.listSites({ status: 'CONFIRMED', limit: 500 }, { signal }),
+    (signal) => PlaceIntelligenceService.listAllSites({ status: 'CONFIRMED' }, { signal }),
     [],
     { enabled: open && placeKind === 'SITE' },
   );
   const regionsQ = useApi(
-    (signal) =>
-      PlaceIntelligenceService.listRegions({ status: 'CONFIRMED', limit: 500 }, { signal }),
+    (signal) => PlaceIntelligenceService.listAllRegions({ status: 'CONFIRMED' }, { signal }),
     [],
     { enabled: open && placeKind === 'REGION' },
   );

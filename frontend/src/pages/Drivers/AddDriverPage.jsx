@@ -27,9 +27,6 @@ const AddDriverPage = () => {
   const [driverId, setDriverId] = useState(null);
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [initialFormData, setInitialFormData] = useState({});
-  // The driver's current active vehicle assignment (edit mode), if any — used
-  // to diff against the form's vehicleId on save and to end/replace it correctly.
-  const [currentAssignment, setCurrentAssignment] = useState(null);
   // RBAC roles available to this enterprise — dynamic source for the role
   // selectors (Enterprise Role / Branch Role). New roles show up automatically.
   const [roles, setRoles] = useState([]);
@@ -76,7 +73,6 @@ const AddDriverPage = () => {
         } catch (err) {
           logger.warn('AddDriverPage', 'Failed to load vehicle assignment', err);
         }
-        setCurrentAssignment(assignment);
 
         // Map existing role to an enterprise/branch role option if available
         let matchedRoleId = editing.enterpriseRoleId || editing.branchRoleId || '';
@@ -108,6 +104,9 @@ const AddDriverPage = () => {
           const fetchedDocs = await DriverService.getEmployeeDocuments(empId);
           logger.info('AddDriverPage', 'Fetched documents', fetchedDocs);
           const updatedDocs = mapFetchedEmployeeDocs(fetchedDocs);
+          if (editing.licenseNumber && !updatedDocs.driverLicense.licenseNumber) {
+            updatedDocs.driverLicense.licenseNumber = editing.licenseNumber;
+          }
           setDocuments(updatedDocs);
         } catch (err) {
           logger.warn('AddDriverPage', 'Failed to load documents', err);
@@ -117,11 +116,35 @@ const AddDriverPage = () => {
         setIsEdit(false);
         setDriverId(null);
         setInitialFormData({});
-        setCurrentAssignment(null);
         setDocuments({
-          driverLicense: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-          panCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-          aadharCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
+          driverLicense: {
+            file: null,
+            preview: null,
+            imageUrl: null,
+            name: '',
+            documentId: null,
+            isUploaded: false,
+            isVerified: false,
+            licenseNumber: null,
+          },
+          panCard: {
+            file: null,
+            preview: null,
+            imageUrl: null,
+            name: '',
+            documentId: null,
+            isUploaded: false,
+            isVerified: false,
+          },
+          aadharCard: {
+            file: null,
+            preview: null,
+            imageUrl: null,
+            name: '',
+            documentId: null,
+            isUploaded: false,
+            isVerified: false,
+          },
         });
       }
     };
@@ -160,25 +183,24 @@ const AddDriverPage = () => {
       // as part of this same save — end-then-create (not an in-place edit) so
       // the per-vehicle history stays intact. No-op if nothing changed.
       const syncVehicleAssignment = async (entityId, vehicleId) => {
+        // A previous save may have ended the old allocation before creation failed.
+        // Re-read the ledger so retrying never repeats a stale end/create decision.
+        const currentAssignment = await DriverVehicleAssignmentService.getActiveAssignment({
+          driverId: entityId,
+        });
         const currentVehicleId = currentAssignment
           ? DriverVehicleAssignmentService.idOf(currentAssignment.vehicleId)
           : '';
         if ((vehicleId || '') === currentVehicleId) return;
-        try {
-          if (currentAssignment) {
-            await DriverVehicleAssignmentService.endAssignment(currentAssignment._id);
-          }
-          if (vehicleId) {
-            await DriverVehicleAssignmentService.createAssignment({
-              driverId: entityId,
-              vehicleId,
-              startDate: new Date().toISOString(),
-            });
-          }
-        } catch (err) {
-          toast.error(
-            err?.response?.data?.message || err?.message || 'Failed to update vehicle assignment',
-          );
+        if (currentAssignment) {
+          await DriverVehicleAssignmentService.endAssignment(currentAssignment._id);
+        }
+        if (vehicleId) {
+          await DriverVehicleAssignmentService.createAssignment({
+            driverId: entityId,
+            vehicleId,
+            startDate: new Date().toISOString(),
+          });
         }
       };
 
@@ -196,7 +218,21 @@ const AddDriverPage = () => {
                   /* best effort */
                 }
               }
-              await DriverService.uploadDocument(entityId, docType, docData.file);
+              const uploadRes = await DriverService.uploadDocument(entityId, docType, docData.file);
+              // If OCR extracted a licence number, sync it without overwriting with empty
+              if (docType === 'DRIVER_LICENSE') {
+                const { extractLicenseNumber } = await import('./employeeDocMapping.js');
+                const extracted = extractLicenseNumber(uploadRes?.data || uploadRes);
+                if (extracted) {
+                  try {
+                    await DriverService.updateDriver(businessRefId, entityId, {
+                      licenseNumber: extracted,
+                    });
+                  } catch {
+                    /* best effort */
+                  }
+                }
+              }
             } catch (docErr) {
               logger.warn('AddDriverPage', `Failed to upload ${docType}`, docErr);
               toast.warning(`Failed to upload ${key} document`);
@@ -221,6 +257,8 @@ const AddDriverPage = () => {
           updatePayload.role = formData.role;
         }
         if (formData.status !== undefined) updatePayload.status = formData.status;
+        if (documents.driverLicense?.licenseNumber)
+          updatePayload.licenseNumber = documents.driverLicense.licenseNumber;
 
         await DriverService.updateDriver(businessRefId, driverId, updatePayload);
         await uploadDocuments(driverId);
@@ -238,6 +276,9 @@ const AddDriverPage = () => {
           lastName: formData.lastName || null,
           email: formData.email || null,
           mobileNumber: formData.mobileNumber || null,
+          ...(documents.driverLicense?.licenseNumber
+            ? { licenseNumber: documents.driverLicense.licenseNumber }
+            : {}),
           // Location is a free-text field only shown at the enterprise scope; inside
           // a branch it's implied by the active location, so omit it when empty
           // rather than sending null (the create validator wants a string or nothing).
@@ -256,6 +297,10 @@ const AddDriverPage = () => {
         const savedEmployee = await DriverService.addDriver(businessRefId, payload);
         // All roles (including field agents, now branch-scoped) return { id, status }.
         const empId = savedEmployee._id || savedEmployee.id || savedEmployee.user?._id;
+        // Retain the saved identity even when a later assignment or upload fails.
+        setDriverId(empId);
+        setIsEdit(true);
+        setInitialFormData({ ...formData, password: '' });
         await uploadDocuments(empId);
         await syncVehicleAssignment(empId, formData.vehicleId);
 

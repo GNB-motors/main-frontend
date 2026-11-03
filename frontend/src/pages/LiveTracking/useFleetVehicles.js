@@ -1,6 +1,8 @@
-import { useMemo } from 'react';
-import { resolveVehicleStatus, countVehiclesByStatus } from './vehicleStatus.js';
+import { useEffect, useMemo, useState } from 'react';
+import { countVehiclesByStatus } from './vehicleStatus.js';
+import { viewOf } from '../../utils/liveView.js';
 import { normalizeManufacturer } from './manufacturerFilters.js';
+import { filterBySelection } from './trackLegendModel.js';
 
 export default function useFleetVehicles({
   rawPositions,
@@ -9,7 +11,17 @@ export default function useFleetVehicles({
   searchQuery,
   selectedId,
   selectedManufacturers = [],
+  statusSelection = null,
+  makeSelection = null,
 }) {
+  // A fix ages into "offline" without a new row arriving, so re-read the view
+  // once a minute (the rule itself lives in the backend's liveVehicleView).
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNowMs(Date.now()), 60000);
+    return () => clearInterval(t);
+  }, []);
+
   // Build Unified Vehicles List
   const vehicles = useMemo(() => {
     if (!Array.isArray(rawPositions) || rawPositions.length === 0) return [];
@@ -19,50 +31,62 @@ export default function useFleetVehicles({
         const reg = (p.registrationNumber || '').toUpperCase().trim();
         if (!reg) return null;
         const cleanReg = reg.replace(/\s+/g, '');
-        const meta = vehiclesMeta[cleanReg] || vehiclesMeta[reg] || {};
-        const st = resolveVehicleStatus(p).toLowerCase();
-        const hasFix = p.latitude != null && p.longitude != null;
-        const lat = hasFix ? Number(p.latitude) : null;
-        const lng = hasFix ? Number(p.longitude) : null;
-        const speed = p.speed != null ? Math.round(p.speed) : null;
+        // Master fields come joined on the row (backend positionsMaster); the
+        // picker list is only a fallback for an older backend.
+        const master = p.vehicle || null;
+        const meta = master ? {} : vehiclesMeta[cleanReg] || vehiclesMeta[reg] || {};
+        const view = viewOf(p, nowMs);
+        const lat = view.hasPosition ? Number(p.latitude) : null;
+        const lng = view.hasPosition ? Number(p.longitude) : null;
         const fuel =
-          p.primaryFuelLevel != null ? Number(Number(p.primaryFuelLevel).toFixed(1)) : null;
-        const ignition = p.ignition === true || p.ignition === 'ON' ? 'ON' : 'OFF';
-        const isLive = st !== 'offline' && !p.isStale;
-
-        const minutesAgo = p.eventDateTime
-          ? Math.max(0, Math.round((Date.now() - new Date(p.eventDateTime).getTime()) / 60000))
-          : null;
+          p.fuel ||
+          (p.primaryFuelLevel != null
+            ? {
+                value: Number(Number(p.primaryFuelLevel).toFixed(1)),
+                unit: p.fuelLevelUnit === 'litres' ? 'L' : null,
+              }
+            : null);
+        const ago = view.ageMin == null ? null : Math.round(view.ageMin);
 
         return {
           id: `live-${cleanReg}`,
           plate: reg,
-          manufacturer: normalizeManufacturer(meta.manufacturer || meta.make),
-          model: meta.model || null,
-          vin: meta.chassisNumber || p.vin || null,
-          status: st,
-          live: isLive,
-          hasFix,
+          vehicleId: master?.vehicleId || meta._id || null,
+          manufacturer: normalizeManufacturer(
+            master ? master.manufacturer : meta.manufacturer || meta.make,
+          ),
+          model: (master ? master.model : meta.model) || null,
+          vin: (master ? master.chassisNumber : meta.chassisNumber) || p.vin || null,
+          manufactureYear: master ? master.manufactureYear : (meta.manufactureYear ?? null),
+          driver: p.driver || null,
+          status: view.status,
+          freshness: view.freshness,
+          live: !view.isOffline,
+          // "has a position" draws the marker; "GPS fix" means a CURRENT one (DC-11).
+          hasFix: view.hasPosition,
+          hasGpsFix: view.hasGpsFix,
           lat,
           lng,
           // A vehicle's assigned branch is not its current GPS location.
           area: typeof p.address === 'string' ? p.address.trim() || null : null,
-          speed,
-          fuel,
-          fuelUnit: p.fuelLevelUnit || null,
+          // An old fix's speed and ignition are not facts about now (DC-10).
+          speed: view.speedKmh,
+          fuel: fuel ? fuel.value : null,
+          fuelReading: fuel,
+          fuelUnit: fuel ? fuel.unit : null,
           defLevel: p.defLevel ?? null,
           defUnit: p.defLevelUnit || null,
-          ignition,
-          gps: isLive ? 'Active' : 'No fix',
-          ago: minutesAgo,
+          ignition: view.ignition === true ? 'ON' : view.ignition === false ? 'OFF' : '—',
+          gps: view.hasGpsFix ? 'Fix' : view.hasPosition ? 'Last known' : 'No fix',
+          ago,
+          lastFixAt: view.lastFixAt,
           eventDateTime: p.eventDateTime || null,
           courseDegrees: p.courseDegrees != null ? p.courseDegrees : null,
-          odo: p.odometer ?? meta.odometer ?? null,
-          regYear: meta.manufacturingYear != null ? meta.manufacturingYear : null,
+          odo: p.odometer ?? null,
         };
       })
       .filter(Boolean);
-  }, [rawPositions, vehiclesMeta]);
+  }, [rawPositions, vehiclesMeta, nowMs]);
 
   // Vehicle by ID map
   const byId = useMemo(() => {
@@ -74,65 +98,57 @@ export default function useFleetVehicles({
     return map;
   }, [vehicles]);
 
+  // Only the makes this fleet actually has (audit DC-06).
   const manufacturers = useMemo(() => {
-    const names = new Set(['Tata', 'Ashok Leyland']);
+    const names = new Set();
+    vehicles.forEach((v) => {
+      if (v.manufacturer) names.add(v.manufacturer);
+    });
     Object.values(vehiclesMeta).forEach((meta) => {
       const name = normalizeManufacturer(meta.manufacturer || meta.make);
       if (name) names.add(name);
     });
     return [...names];
-  }, [vehiclesMeta]);
+  }, [vehicles, vehiclesMeta]);
 
-  const scopedVehicles = useMemo(
-    () =>
-      vehicles.filter(
-        (v) =>
-          selectedManufacturers.length === 0 ||
-          selectedManufacturers.includes(v.manufacturer || 'Unclassified'),
-      ),
-    [vehicles, selectedManufacturers],
-  );
+  // The legend filters by a SET of makes and a SET of statuses. The old
+  // single-value filters are still honoured when no set is given.
+  const scopedVehicles = useMemo(() => {
+    if (makeSelection) {
+      return filterBySelection(vehicles, makeSelection, (v) => v.manufacturer || 'Unclassified');
+    }
+    return vehicles.filter(
+      (v) =>
+        selectedManufacturers.length === 0 ||
+        selectedManufacturers.includes(v.manufacturer || 'Unclassified'),
+    );
+  }, [vehicles, selectedManufacturers, makeSelection]);
 
   // Counts for the connected status bar cards matching WheelsEye standard
   const counts = useMemo(() => countVehiclesByStatus(scopedVehicles), [scopedVehicles]);
 
+  // The legend always shows the WHOLE fleet, so a count never changes just
+  // because a filter is on. (audit: the legend must not lie about fleet size)
+  const fleetCounts = useMemo(() => countVehiclesByStatus(vehicles), [vehicles]);
+
   // Filtered vehicles according to the active top status card
   const filteredVehicles = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return scopedVehicles.filter((v) => {
-      let matchesFilter = true;
-      if (filter === 'all') {
-        matchesFilter = true;
-      } else if (filter === 'moving') {
-        matchesFilter = v.status === 'moving';
-      } else if (filter === 'stopped') {
-        matchesFilter = v.status === 'stopped';
-      } else if (filter === 'idling') {
-        matchesFilter = v.status === 'idling';
-      } else if (filter === 'offline') {
-        matchesFilter = v.status === 'offline';
-      } else if (filter === 'breakdown') {
-        matchesFilter =
-          v.status === 'breakdown' || v.status === 'workshop' || v.inWorkshop || v.isBreakdown;
-      } else if (filter === 'faulty') {
-        matchesFilter = v.status === 'faulty' || v.hasFault || (v.alertsCount && v.alertsCount > 0);
-      } else if (filter === 'geofence') {
-        matchesFilter = v.status === 'geofence' || v.inGeofenceAlert;
-      } else if (filter === 'gps') {
-        matchesFilter = v.live;
-      }
-
-      if (!matchesFilter) return false;
-      if (!q) return true;
-      return (
+    const byStatus = statusSelection
+      ? filterBySelection(scopedVehicles, statusSelection, (v) => v.status)
+      : scopedVehicles.filter((v) =>
+          filter === 'all' ? true : filter === 'gps' ? v.live : v.status === filter,
+        );
+    if (!q) return byStatus;
+    return byStatus.filter(
+      (v) =>
         v.plate.toLowerCase().includes(q) ||
         (v.model || '').toLowerCase().includes(q) ||
         (v.manufacturer || '').toLowerCase().includes(q) ||
         (v.vin || '').toLowerCase().includes(q) ||
-        (v.area || '').toLowerCase().includes(q)
-      );
-    });
-  }, [scopedVehicles, filter, searchQuery]);
+        (v.area || '').toLowerCase().includes(q),
+    );
+  }, [scopedVehicles, filter, searchQuery, statusSelection]);
 
   // A selection outside the visible scope must not keep an unexplained map marker.
   const selectedVehicle =
@@ -150,5 +166,13 @@ export default function useFleetVehicles({
     [filteredVehicles],
   );
 
-  return { vehicles, counts, filteredVehicles, selectedVehicle, mapVehicles, manufacturers };
+  return {
+    vehicles,
+    counts,
+    fleetCounts,
+    filteredVehicles,
+    selectedVehicle,
+    mapVehicles,
+    manufacturers,
+  };
 }

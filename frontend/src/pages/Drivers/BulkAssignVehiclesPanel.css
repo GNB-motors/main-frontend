@@ -1,0 +1,286 @@
+/* Sheet portals sit outside the Employees page. Keep typography and spacing
+   scoped here so global page heading/paragraph rules cannot change the drawer. */
+.bulk-assign-panel {
+  width: 100%;
+  max-width: min(860px, 100vw);
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  gap: 0;
+  font-family: 'Inter', sans-serif;
+  color: var(--ds-ink);
+}
+
+.bulk-assign-header {
+  flex-shrink: 0;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 24px;
+}
+
+.bulk-assign-heading {
+  min-width: 0;
+}
+
+.bulk-assign-heading [data-slot='sheet-title'] {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 26px;
+  color: var(--ds-ink);
+}
+
+.bulk-assign-heading [data-slot='sheet-description'] {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--ds-ink3);
+}
+
+.bulk-assign-close {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--ds-radius-sm);
+  color: var(--ds-ink3);
+  cursor: pointer;
+}
+
+.bulk-assign-close:hover {
+  background: var(--ds-sunk);
+  color: var(--ds-ink);
+}
+
+.bulk-assign-close:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.bulk-assign-close:focus-visible,
+.bulk-assign-table-scroll:focus-visible {
+  outline: 2px solid var(--ds-focus);
+  outline-offset: 2px;
+}
+
+.bulk-assign-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.bulk-assign-section {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.bulk-assign-section-heading h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 22px;
+  color: var(--ds-ink);
+}
+
+.bulk-assign-section-heading p,
+.bulk-assign-panel .bulk-assign-hint,
+.bulk-assign-footer p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--ds-ink3);
+}
+
+.bulk-assign-section-heading p {
+  margin-top: 4px;
+}
+
+.bulk-assign-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 28px 20px;
+  border: 1px dashed var(--ds-line2);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-sunk);
+  text-align: center;
+}
+
+.bulk-assign-upload > svg {
+  color: var(--accent-ink);
+}
+
+.bulk-assign-upload .bulk-assign-file-name {
+  max-width: 100%;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 22px;
+  color: var(--ds-ink);
+}
+
+.bulk-assign-file-input {
+  display: none;
+}
+
+.bulk-assign-mapping {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.bulk-assign-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.bulk-assign-field select {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--ds-line2);
+  border-radius: var(--ds-radius-sm);
+  background: var(--card);
+  color: var(--ds-ink);
+  font: inherit;
+}
+
+.bulk-assign-section > [data-slot='button'] {
+  align-self: flex-start;
+}
+
+.bulk-assign-panel .bulk-assign-error {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--ds-crit);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-crit-tint);
+  color: var(--ds-crit-ink);
+  font-size: 13px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.bulk-assign-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--ds-line);
+  border-radius: var(--ds-radius-sm);
+}
+
+.bulk-assign-table {
+  width: 100%;
+  min-width: 640px;
+  table-layout: fixed;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.bulk-assign-table th,
+.bulk-assign-table td {
+  padding: 12px;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.bulk-assign-table th {
+  background: var(--ds-sunk);
+  color: var(--ds-ink2);
+  font-weight: 600;
+}
+
+.bulk-assign-table th:first-child {
+  width: 56px;
+}
+
+.bulk-assign-table th:last-child {
+  width: 30%;
+}
+
+.bulk-assign-table td {
+  border-top: 1px solid var(--ds-line);
+}
+
+.bulk-assign-employee-mobile {
+  font-size: 12px;
+  color: var(--ds-ink3);
+}
+
+.bulk-assign-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--ds-neutral-tint);
+  color: var(--ds-neutral-ink);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.bulk-assign-status[data-status='ready'],
+.bulk-assign-status[data-status='assigned'] {
+  background: var(--ds-ok-tint);
+  color: var(--ds-ok-ink);
+}
+
+.bulk-assign-status[data-status='error'] {
+  background: var(--ds-crit-tint);
+  color: var(--ds-crit-ink);
+}
+
+.bulk-assign-footer {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--ds-line);
+  background: var(--card);
+}
+
+.bulk-assign-footer p {
+  flex: 1 1 240px;
+}
+
+.bulk-assign-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+
+@media (max-width: 600px) {
+  .bulk-assign-header,
+  .bulk-assign-body,
+  .bulk-assign-footer {
+    padding: 16px;
+  }
+
+  .bulk-assign-mapping {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,0 +1,230 @@
+{
+  "registrationNumber": "WB11L8862",
+  "identity": {
+    "make": "TATA",
+    "model": "4830TC",
+    "modelLine": "LPT 4830",
+    "vin": "MAT566011S3E16394",
+    "year": 2021,
+    "service": {
+      "lastAt": "2026-10-02T04:10:00Z",
+      "lastKm": 392100,
+      "nextKm": 395000,
+      "nextDueAt": "2026-11-20T00:00:00Z",
+      "dueInKm": 2410
+    }
+  },
+  "view": {
+    "status": "MOVING",
+    "isOffline": false,
+    "freshness": "live",
+    "lastFixAt": "2026-11-02T20:48:00Z",
+    "ageMin": 0.4,
+    "hasPosition": true,
+    "hasGpsFix": true,
+    "speedKmh": 26,
+    "ignition": "ON",
+    "offlineAfterMin": 90,
+    "movingSpeedKmh": 3,
+    "rule": "moving-speed-3kmh"
+  },
+  "readings": {
+    "fuel": {
+      "litres": {
+        "value": 356.5,
+        "at": "2026-11-02T20:48:00Z",
+        "ageMin": 0.4,
+        "freshness": "live",
+        "source": "FLEETEDGE"
+      },
+      "pct": {
+        "value": 98,
+        "at": "2026-11-02T20:48:00Z",
+        "ageMin": 0.4,
+        "freshness": "live",
+        "source": "FLEETEDGE"
+      },
+      "tankL": 365
+    },
+    "def": {
+      "pct": {
+        "value": 60.8,
+        "at": "2026-11-02T20:48:00Z",
+        "ageMin": 0.4,
+        "freshness": "live",
+        "source": "FLEETEDGE"
+      },
+      "litres": {
+        "value": 14.6,
+        "at": "2026-11-02T20:48:00Z",
+        "ageMin": 0.4,
+        "freshness": "live",
+        "source": "FLEETEDGE"
+      },
+      "tankL": 24,
+      "tankSource": "VENDOR"
+    },
+    "odometerKm": {
+      "value": 43478,
+      "at": "2026-11-02T20:48:00Z",
+      "ageMin": 0.4,
+      "freshness": "live",
+      "source": "FLEETEDGE"
+    },
+    "ignition": {
+      "value": true,
+      "at": "2026-11-02T20:48:00Z",
+      "ageMin": 0.4,
+      "freshness": "live",
+      "source": "FLEETEDGE"
+    },
+    "gps": {
+      "at": "2026-11-02T20:48:00Z",
+      "ageMin": 0.4,
+      "freshness": "live",
+      "satellites": 9
+    }
+  },
+  "headingDeg": 118,
+  "place": {
+    "at": {
+      "id": "site-jk-buxar",
+      "kind": "SITE",
+      "name": "JK BUXAR",
+      "category": "PLANT",
+      "lat": 25.5647,
+      "lng": 83.9754,
+      "radiusM": 600
+    },
+    "inside": true,
+    "sinceAt": "2026-11-02T18:38:00Z",
+    "dwellMin": 130,
+    "usualDwellMin": 185,
+    "truckVisits": 14,
+    "fleetVisits": 268,
+    "why": {
+      "text": "Trucks wait here for the next load. This truck has been here 14 times since April.",
+      "basis": "268 visits by 31 trucks since 1 Apr"
+    }
+  },
+  "activity": {
+    "kind": "LOADING",
+    "label": "Loading at JK BUXAR",
+    "sinceAt": "2026-11-02T18:38:00Z",
+    "durationMin": 130,
+    "vsUsual": {
+      "usualMin": 185,
+      "diffMin": -55
+    },
+    "why": {
+      "text": "The truck is stopped inside the plant gate with the engine off.",
+      "basis": "Speed 0 km/h for 2 h 10 min"
+    }
+  },
+  "trip": {
+    "autoTripId": "trip-88213",
+    "leg": "LADEN",
+    "pickup": {
+      "id": "site-jk-buxar",
+      "kind": "SITE",
+      "name": "JK BUXAR",
+      "category": "PLANT",
+      "lat": 25.5647,
+      "lng": 83.9754,
+      "radiusM": 600,
+      "departedAt": null
+    },
+    "drop": {
+      "id": "site-dankuni",
+      "kind": "SITE",
+      "name": "DANKUNI SIDING",
+      "category": "PLANT",
+      "lat": 22.6116,
+      "lng": 88.3545,
+      "radiusM": 500,
+      "arrivedAt": null
+    },
+    "material": "Cement or clinker",
+    "materialSource": "PLANT_TYPE",
+    "tonnage": null,
+    "tonnageSource": null,
+    "kmSoFar": 214,
+    "link": {
+      "label": "Open trip",
+      "to": "/auto-trips/trip-88213"
+    }
+  },
+  "driver": {
+    "driverId": "drv-441",
+    "name": "Ramesh Yadav",
+    "phone": "9876543210",
+    "source": "MANUAL",
+    "since": "2026-10-31T00:00:00Z"
+  },
+  "chips": [
+    {
+      "key": "CRUISE",
+      "tone": "good",
+      "label": "Steady cruise",
+      "why": {
+        "text": "This truck held 60 km/h for 6 h a day this week.",
+        "basis": "From 1,240 km"
+      },
+      "link": {
+        "label": "See the 6 times",
+        "to": "/intelligence?tab=cruise&vehicle=WB11L8862"
+      }
+    },
+    {
+      "key": "IDLE",
+      "tone": "bad",
+      "label": "Idles 2.1 h/day",
+      "why": {
+        "text": "Engine on, not moving, for 2.1 h a day this week.",
+        "basis": "From 1,240 km"
+      },
+      "link": {
+        "label": "See the 12 times",
+        "to": "/intelligence?tab=idling&vehicle=WB11L8862"
+      }
+    }
+  ],
+  "nearbyHelp": [
+    {
+      "id": "poi-101",
+      "kind": "POI",
+      "name": "Buxar Service Centre",
+      "category": "HOSPITAL",
+      "lat": 25.571,
+      "lng": 83.9812,
+      "radiusM": null,
+      "layer": "hospitals",
+      "phone": "0612422001",
+      "distanceKm": 4.2,
+      "brand": null
+    }
+  ],
+  "issues": [
+    {
+      "id": "iss-77",
+      "kind": "GPS_FROZEN",
+      "severity": "watch",
+      "registrationNumber": "WB11L8862",
+      "accountName": null,
+      "title": "GPS freezes on WB11L8862",
+      "detail": "The position stopped changing for 24 minutes while the truck was moving.",
+      "advice": "Check the GPS antenna cable; if it continues, the dealer can replace the module.",
+      "firstSeenAt": "2026-10-28T05:00:00Z",
+      "lastSeenAt": "2026-11-01T09:30:00Z",
+      "occurrences": 3,
+      "evidence": [
+        {
+          "at": "2026-11-01T09:30:00Z",
+          "text": "Position unchanged for 24 min on NH19",
+          "link": null
+        }
+      ],
+      "action": null
+    }
+  ]
+}
