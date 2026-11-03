@@ -331,6 +331,10 @@ html.dark,
 /* ================================================================
    BASE + SEMANTIC TYPE
    ================================================================ */
+/* These element rules sit in the base layer so that Tailwind utilities on
+   the redesign components (text-[13px] on an h2/h3, a link colour) win.
+   Unlayered, they overrode every redesign heading on the page. */
+@layer base {
 html {
   font-family: var(--font-ui);
   color: var(--fg-primary);
@@ -493,6 +497,7 @@ a:hover {
   color: var(--action-tertiary-fg-hover);
   text-decoration: underline;
   text-underline-offset: 3px;
+}
 }
 
 /* ---------- App Layout Adaptations ---------- */
@@ -862,26 +867,86 @@ a:hover {
   position: absolute;
   z-index: 1000;
 }
-.ov--tl {
+/* The four corners of the map. Each corner holds one stack, so overlays can
+   never be drawn on top of each other. The left column stops above
+   Map/Satellite; the right column leaves the zoom room at the bottom-right. */
+.ov--left {
   top: var(--space-3);
   left: var(--space-3);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  max-width: calc(100% - 24px);
   gap: var(--space-2);
-  flex-wrap: wrap;
+  width: 280px;
+  max-width: calc(100% - 24px - 160px);
+  max-height: calc(100% - 24px - 52px);
+  pointer-events: none;
 }
-.ov--tr {
+.ov--left > * {
+  pointer-events: auto;
+}
+.ov-left-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  pointer-events: none;
+  width: max-content;
+  max-width: calc(100vw - 48px);
+}
+.ov-left-row > * {
+  pointer-events: auto;
+}
+.ov-search {
+  width: 280px;
+  max-width: 100%;
+}
+.ov-search--compact {
+  width: 44px;
+}
+.ov-legend {
+  width: 280px;
+  max-width: 100%;
+  min-height: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+}
+.ov--right {
   top: var(--space-3);
   right: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  max-width: calc(100% - 24px);
+  max-height: calc(100% - 24px - 110px);
+  pointer-events: none;
+}
+.ov--right > * {
+  pointer-events: auto;
+}
+.ov-right-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.ov-trail-dates {
+  width: 320px;
+  max-width: 100%;
+}
+.ov--right .ov-fleet-reopen {
   display: none;
 }
-.ov--trail-dates {
-  top: var(--space-3);
-  right: var(--space-3);
-  width: 320px;
-  max-width: calc(100% - 24px);
+.stage.railoff .ov--right .ov-fleet-reopen {
+  display: inline-flex;
+}
+.ov--right .road-legend-card {
+  max-width: 260px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-md);
+  overflow: auto;
 }
 .lt-trail-date-filter {
   max-width: 100%;
@@ -960,8 +1025,8 @@ a:hover {
 }
 .ov--lc {
   top: auto;
-  bottom: 72px;
-  left: var(--space-3);
+  bottom: 36px;
+  right: var(--space-3);
   transform: none;
   display: flex;
   flex-direction: column;
@@ -978,7 +1043,7 @@ a:hover {
 .ov--bc {
   bottom: var(--space-3);
   left: 172px;
-  right: var(--space-3);
+  right: 64px;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -1105,8 +1170,26 @@ a:hover {
 .telemetry .tval {
   color: rgba(255, 255, 255, 0.72);
   white-space: nowrap;
+  flex: none;
 }
-@media (max-width: 1240px) {
+/* A narrow map shortens the fuel value with an ellipsis instead of cutting
+   the strip off mid-word at the map's edge. */
+.telemetry .tfuel {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.telemetry .tplate,
+.telemetry > span:first-child {
+  flex: none;
+}
+@media (max-width: 600px) {
+  .telemetry .opt0 {
+    display: none;
+  }
+}
+@media (max-width: 1366px) {
   .telemetry .opt2 {
     display: none;
   }
@@ -1537,12 +1620,7 @@ a:hover {
   width: 0;
   border-left: none;
 }
-.stage.railoff .ov--tr {
-  display: block;
-}
-.stage.railoff .ov--trail-dates {
-  top: 60px;
-}
+
 
 .railview {
   position: absolute;
@@ -1704,6 +1782,9 @@ a:hover {
   font-size: 11px;
   color: var(--fg-tertiary);
   margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .vc-state {
   display: inline-flex;
@@ -1841,6 +1922,12 @@ a:hover {
   margin-top: 8px;
   color: var(--fg-secondary);
   font-size: 12px;
+  min-width: 0;
+  overflow: hidden;
+}
+.vc-loc > * {
+  min-width: 0;
+  max-width: 100%;
 }
 .vc-loc svg {
   color: var(--fg-tertiary);
@@ -1866,6 +1953,12 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  min-width: 0;
+}
+.vc-meta b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .vc-meta b {
   color: var(--fg-primary);
@@ -1952,6 +2045,16 @@ a:hover {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
+  /* The redesign sections are plain cards; the panel gives them the gutter
+     and the gap, so nothing touches the rail's edges. */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px 24px;
+}
+.dbody > * {
+  min-width: 0;
+  flex: none;
 }
 
 .dhead {
@@ -2419,29 +2522,47 @@ html.dark .vcard:hover,
     width: auto;
     border-top: none;
   }
+  /* Phone: search (and live telemetry under it) on the left, traffic on
+     the right, the ticker across the bottom with Map/Satellite and the zoom
+     sitting above it. */
   .ov--bc {
     left: var(--space-3);
     right: var(--space-3);
   }
   .ov--bl {
-    bottom: 58px;
+    bottom: 60px;
   }
   .ov--lc {
-    top: var(--space-3);
-    bottom: auto;
-    transform: none;
+    bottom: 60px;
     flex-direction: row;
   }
   .ctrl {
     border-bottom: none;
     border-right: 1px solid var(--border-subtle);
   }
-  .ov--tl {
-    top: 64px;
+  .ov--left {
+    width: auto;
+    max-width: calc(100% - 24px - 120px);
+    max-height: calc(100% - 24px - 100px);
   }
-  .ov--trail-dates,
-  .stage.railoff .ov--trail-dates {
-    top: 108px;
+  .ov-left-row {
+    width: auto;
+    max-width: 100%;
+  }
+  .ov-search {
+    width: 100%;
+  }
+  .ov-legend {
+    width: 100%;
+    min-width: 200px;
+  }
+  .ov--right {
+    max-height: calc(100% - 24px - 100px);
+  }
+  /* With the trail dates open there is no room for the filters as well. */
+  .stage.has-trail-dates .ov-legend,
+  .stage.has-trail-dates .ov-telemetry {
+    display: none;
   }
 }
 
@@ -2966,6 +3087,62 @@ html.dark .vcard:hover,
   }
 }
 
+/* On a phone the map's own overlays share one short row, so the map keeps
+   its room instead of giving a third of it to the search, the telemetry
+   pill and the filter bar. */
+@media (max-width: 600px) {
+  .ov--left {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 6px;
+    width: auto;
+    max-width: calc(100% - 24px - 88px);
+  }
+  .ov-left-row {
+    flex-wrap: nowrap;
+    width: auto;
+    max-width: 100%;
+    gap: 6px;
+  }
+  .ov-search:not(.ov-search--compact) {
+    width: 96px;
+    height: 32px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .ov-search input {
+    font-size: 12px;
+  }
+  .ov-telemetry {
+    height: 32px;
+    padding: 0 8px;
+    gap: 5px;
+  }
+  .ov-telemetry .eyebrow-mini {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+  .ov-telemetry-more {
+    display: none;
+  }
+  .ov-legend {
+    width: auto;
+    min-width: 0;
+  }
+  .ov-legend-bar {
+    height: 32px;
+    gap: 5px;
+    padding-left: 6px;
+    padding-right: 6px;
+    font-size: 12px;
+  }
+  /* The count stays; the word that goes with it does not fit. */
+  .ov-legend-word {
+    display: none;
+  }
+}
+
 /* ================================================================
    WEATHER OVERLAY — animated condition bubble over the active truck
    + the detail-panel weather section. Colours use the shared tokens
@@ -3288,4 +3465,213 @@ html.dark .wx-icon .wx-star,
   font-size: 11px;
   font-weight: 700;
   color: var(--nova-sky-500, #2e81ed);
+}
+
+/* Map layer pills (Places, Congestion) — in the top bar beside the status cards. */
+.lt-layer-pills {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+.lt-layer-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.lt-layer-pill-wrap {
+  position: relative;
+  display: flex;
+  gap: 4px;
+}
+.lt-layer-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 9px;
+}
+.lt-layer-info[aria-expanded='true'] {
+  border-color: #2563eb;
+  color: var(--fg-primary);
+}
+/* Congestion explanation, on demand: drops under its pill, scrolls inside
+   itself, and closes on an outside click or Esc. */
+.lt-layer-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 1100;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  max-height: 60vh;
+  overflow: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-lg);
+}
+.lt-layer-popover .lp-congestion {
+  margin: 0;
+  border: none;
+}
+
+/* Right rail: Fleet | Places tabs above the list. The list views stay
+   absolutely positioned, but inside .rail-body now, so they can never cover
+   the tab row. */
+.rail-tabs {
+  flex: none;
+  display: flex;
+  border-bottom: 1px solid var(--border-default);
+}
+.rail-tab {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--fg-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.rail-tab[aria-selected='true'] {
+  color: var(--fg-primary);
+  border-bottom-color: #2563eb;
+}
+.rail-tab__count {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg-subtle);
+  color: var(--fg-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.rail-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Vehicle layer toggles inside the vehicle panel, under Trail / Replay / Share. */
+.dbody > .lp-layer-toggles {
+  padding: 0 var(--space-4) var(--space-2);
+  margin-top: 0;
+}
+
+/* Places tab. */
+.pl-filter {
+  flex: none;
+  padding: 0 var(--space-3) var(--space-2) var(--space-4);
+}
+.pl-filter .lp-places {
+  margin-top: 0;
+}
+.lp-places {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.lp-places-note {
+  font-size: var(--type-2xs);
+  color: var(--fg-secondary);
+  margin-top: 6px;
+  width: 100%;
+}
+.lp-places-retry {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--nova-rage-500);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pcard {
+  width: 100%;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-l);
+  background: var(--bg-subtle);
+  color: var(--fg-primary);
+  font: inherit;
+  cursor: pointer;
+}
+.pcard:hover {
+  border-color: #2563eb;
+}
+.pcard__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+.pcard__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pcard__main b {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pcard__main span {
+  font-size: 11px;
+  color: var(--fg-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pcard__here {
+  flex: none;
+  font-size: 11px;
+  color: var(--fg-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.pcard__here.is-busy {
+  color: #187a32;
+  font-weight: 600;
+}
+.pl-vehicle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-subtle);
+  color: var(--fg-primary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.pl-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--nova-rage-500);
+  text-decoration: none;
+}
+
+/* Replay: an evenly thinned long day says so (audit DC-24/27). */
+.rp-note {
+  font-size: 11px;
+  color: var(--fg-secondary);
+  white-space: nowrap;
 }

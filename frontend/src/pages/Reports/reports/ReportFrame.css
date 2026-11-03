@@ -143,6 +143,39 @@
   padding: 0 10px;
 }
 
+.rpt-date-range-group {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rpt-date-display {
+  display: grid;
+  gap: 5px;
+}
+
+.rpt-date-range-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px solid var(--rpt-control-edge);
+  border-radius: 8px;
+  background: var(--rpt-head-bg);
+  color: var(--rpt-ink-strong);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rpt-date-range-badge svg {
+  flex-shrink: 0;
+  color: var(--rpt-accent);
+}
+
 .rpt-field > input:focus,
 .rpt-search:focus-within,
 .rpt-picker-trigger:focus-visible,

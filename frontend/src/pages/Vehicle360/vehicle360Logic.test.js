@@ -187,18 +187,34 @@ describe('statusChips', () => {
   it('leads with service severity, then availability, then motion', () => {
     const chips = statusChips({
       fleetMaster: { status: 'AVAILABLE' },
-      livePosition: { speed: 0 },
+      livePosition: { speed: 0, ignition: false, eventDateTime: new Date().toISOString() },
       prediction: { risk: 'OVERDUE', kmUntilDue: -3353 },
     });
     expect(chips.map((c) => c.id)).toEqual(['service', 'availability', 'motion']);
     expect(chips[0]).toMatchObject({ tone: 'crit', label: 'Service overdue' });
     expect(chips[1].label).toBe('available');
-    expect(chips[2].label).toBe('parked');
+    expect(chips[2].label).toBe('stopped');
   });
 
   it('shows speed when the vehicle is moving', () => {
-    const chips = statusChips({ livePosition: { speed: 41.6 } });
+    const chips = statusChips({
+      livePosition: { speed: 41.6, eventDateTime: new Date().toISOString() },
+    });
     expect(chips.find((c) => c.id === 'motion').label).toBe('moving · 42 km/h');
+  });
+
+  it('never shows an old fix as moving (audit DC-07/10)', () => {
+    const chips = statusChips({
+      livePosition: {
+        speed: 62,
+        ignition: true,
+        state: 'ACTIVE',
+        eventDateTime: new Date(Date.now() - 5 * 3600e3).toISOString(),
+      },
+    });
+    const motion = chips.find((c) => c.id === 'motion');
+    expect(motion.label).toMatch(/^offline · last report /);
+    expect(motion.tone).toBe('warn');
   });
 
   it('omits chips it has no data for, and skips service when on schedule', () => {

@@ -44,7 +44,7 @@ describe('tracking toolbar', () => {
         handleRefresh={refresh}
       />,
     );
-    expect(screen.getByText(/Updated .* ago/)).toBeInTheDocument();
+    expect(screen.getByText(/Feed message .* ago/)).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('Update failed');
     fireEvent.click(screen.getByRole('button', { name: 'Refresh positions' }));
     expect(refresh).not.toHaveBeenCalled();

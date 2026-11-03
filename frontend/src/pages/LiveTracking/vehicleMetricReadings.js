@@ -1,3 +1,5 @@
+import { formatFuel } from '../../utils/liveView.js';
+
 function numeric(value) {
   if (
     value == null ||
@@ -19,19 +21,44 @@ function level(value, unit) {
   return format(n);
 }
 
+/**
+ * The Track tiles' fuel / DEF / odometer, read the way every page reads them:
+ * fuel through the shared formatFuel (a unit only when proven, DC-18), the
+ * odometer CAN-first then the live feed (DC-20), and a Vehicle Health reading
+ * older than its 6 h freshness says so (DC-15).
+ */
 export default function vehicleMetricReadings(vehicle, health = null) {
-  const liveFuel = numeric(vehicle.fuel);
+  const old = health?.isStale ? ' · old reading' : '';
+  const liveFuel =
+    vehicle.fuelReading ||
+    (numeric(vehicle.fuel) != null
+      ? {
+          value: numeric(vehicle.fuel),
+          unit: vehicle.fuelUnit === 'L' || vehicle.fuelUnit === 'litres' ? 'L' : null,
+        }
+      : null);
+  const canFuel = numeric(health?.primaryFuelLevel);
   const liveDef = numeric(vehicle.defLevel);
-  const odo = numeric(vehicle.odo) ?? numeric(health?.canOdo);
+  const canOdo = numeric(health?.canOdo);
+  const liveOdo = numeric(vehicle.odo);
   return {
-    fuel:
-      liveFuel != null
-        ? level(liveFuel, vehicle.fuelUnit)
-        : level(health?.primaryFuelLevel, health?.fuelLevelUnit),
+    fuel: liveFuel
+      ? formatFuel(liveFuel)
+      : canFuel != null && canFuel <= 100
+        ? `${formatFuel({ value: canFuel, unit: '%' })}${old}`
+        : '—',
     def:
       liveDef != null
         ? level(liveDef, vehicle.defUnit)
-        : level(health?.defLevel, health?.defLevelUnit),
-    odometer: odo == null ? '—' : `${format(odo)} km`,
+        : health?.defLevel != null
+          ? `${level(health.defLevel, health.defLevelUnit)}${old}`
+          : '—',
+    odometer:
+      canOdo != null
+        ? `${format(canOdo)} km${old}`
+        : liveOdo != null
+          ? `${format(liveOdo)} km`
+          : '—',
+    odometerSource: canOdo != null ? 'CAN' : liveOdo != null ? 'LIVE' : null,
   };
 }

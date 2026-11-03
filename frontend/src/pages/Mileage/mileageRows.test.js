@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { mileageBand as bandOf, isPlausibleKmPerL } from './cycleRows';
 import {
   REFUEL_CHIPS,
   drawerFromLiveRow,
@@ -558,5 +559,15 @@ describe('trucksFromModels', () => {
       ['WB1', 'Signa', 3.1, 4],
     ]);
     expect(trucksFromModels(null)).toEqual([]);
+  });
+});
+
+describe('implausible rounds (audit ML-02)', () => {
+  it('never bands a round the average leaves out', () => {
+    expect(isPlausibleKmPerL(0.49)).toBe(false);
+    expect(isPlausibleKmPerL(9.2)).toBe(false);
+    expect(bandOf(0.49)).toBeNull();
+    expect(bandOf(3.2)).toBe('MILEAGE_LOW');
+    expect(bandOf(4.1)).toBe('MILEAGE_GOOD');
   });
 });

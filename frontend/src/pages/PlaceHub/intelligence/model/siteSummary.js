@@ -66,7 +66,8 @@ export function riskSentence(risk, formatDate = (d) => d) {
   const refuel = risk?.unauthRefuelIncidents || 0;
   if (!theft && !refuel) return null;
   const parts = [];
-  if (theft) parts.push(`${theft} fuel theft report${theft === 1 ? '' : 's'}`);
+  // A report is a report. It is not proof, and we do not accuse.
+  if (theft) parts.push(`${theft} fuel-loss report${theft === 1 ? '' : 's'}`);
   if (refuel) parts.push(`${refuel} unauthorised refuel${refuel === 1 ? '' : 's'}`);
   const last = risk.lastIncidentAt ? `, last on ${formatDate(risk.lastIncidentAt)}` : '';
   return `${parts.join(' and ')} here${last}. Watch fills and night halts at this spot.`;

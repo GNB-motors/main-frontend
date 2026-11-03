@@ -304,10 +304,15 @@ describe('placeIntelligenceModel', () => {
 
   it('words fuel risk with correct plurals', () => {
     expect(riskSentence({})).toBeNull();
-    expect(riskSentence({ theftIncidents: 1 })).toMatch(/^1 fuel theft report here\./);
+    expect(riskSentence({ theftIncidents: 1 })).toMatch(/^1 fuel-loss report here\./);
     expect(
       riskSentence({ theftIncidents: 3, unauthRefuelIncidents: 2, lastIncidentAt: 'D' }),
-    ).toMatch(/^3 fuel theft reports and 2 unauthorised refuels here, last on D\./);
+    ).toMatch(/^3 fuel-loss reports and 2 unauthorised refuels here, last on D\./);
+  });
+
+  it('never accuses anyone of stealing', () => {
+    const sentence = riskSentence({ theftIncidents: 3, unauthRefuelIncidents: 1 });
+    expect(sentence).not.toMatch(/theft|stolen|stole|siphon/i);
   });
 
   it('puts the right article before a type', () => {

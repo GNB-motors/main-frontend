@@ -9,6 +9,8 @@ import { useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
 import useApprovalBadges from '../hooks/useApprovalBadges';
 import { getUserRole } from '../utils/session';
 import { useOrganization } from '../contexts/FeatureFlagsContext.jsx';
+import NavHint from './redesign/NavHint';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import {
   SIDE_NAV_GROUPS,
   isGroupActive,
@@ -32,6 +34,10 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   const { canAccess, isEnabled } = useFeatureFlags();
   const { organization } = useOrganization();
   const role = getUserRole();
+  // On desktop the rail collapses to icons until the pointer comes near it.
+  // The hover help then repeats the label, because the label itself is hidden.
+  const isDesktop = useMediaQuery('(min-width: 993px)');
+  const isRailCollapsed = isDesktop && !isSidebarHovered;
 
   const logoSrc = !logoFailed && organization?.logoUrl ? organization.logoUrl : UkoLogo;
   const logoAlt = organization?.companyName || 'Company logo';
@@ -131,32 +137,38 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
 
     if (item.type === 'link') {
       return (
-        <NavLink
+        <NavHint
           key={item.to}
-          to={item.to}
-          end={item.end}
-          className="nav-link"
-          onClick={closeSidebarOnMobile}
+          hint={item.hint}
+          label={item.label}
+          collapsed={isRailCollapsed}
         >
-          <Icon size={20} />
-          <span>{item.label}</span>
-          {item.badgeKey === 'approvalsCount' && approvalsCount > 0 && (
-            <span
-              className="erp-badge warning"
-              style={{ marginLeft: 'auto', fontSize: '11px', padding: '2px 7px' }}
-            >
-              {approvalsCount}
-            </span>
-          )}
-          {item.badgeKey === 'billApprovalsCount' && billApprovalsCount > 0 && (
-            <span
-              className="erp-badge warning"
-              style={{ marginLeft: 'auto', fontSize: '11px', padding: '2px 7px' }}
-            >
-              {billApprovalsCount}
-            </span>
-          )}
-        </NavLink>
+          <NavLink
+            to={item.to}
+            end={item.end}
+            className="nav-link"
+            onClick={closeSidebarOnMobile}
+          >
+            <Icon size={20} />
+            <span>{item.label}</span>
+            {item.badgeKey === 'approvalsCount' && approvalsCount > 0 && (
+              <span
+                className="erp-badge warning"
+                style={{ marginLeft: 'auto', fontSize: '11px', padding: '2px 7px' }}
+              >
+                {approvalsCount}
+              </span>
+            )}
+            {item.badgeKey === 'billApprovalsCount' && billApprovalsCount > 0 && (
+              <span
+                className="erp-badge warning"
+                style={{ marginLeft: 'auto', fontSize: '11px', padding: '2px 7px' }}
+              >
+                {billApprovalsCount}
+              </span>
+            )}
+          </NavLink>
+        </NavHint>
       );
     }
 
@@ -167,34 +179,42 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const isOpen = openGroupId === groupId;
     return (
       <div className="nav-section" key={groupId}>
-        <button
-          className={`nav-link nav-parent ${isOpen ? 'active-parent' : ''}`}
-          onClick={() => toggleGroup(groupId)}
-          aria-expanded={isOpen}
-        >
-          <div className="nav-parent-left">
-            <Icon size={20} />
-            <span>{item.label}</span>
-            {item.badgeKey === 'approvalsTotal' && approvalsCount + billApprovalsCount > 0 && (
-              <span className="erp-badge warning" style={{ fontSize: '11px', padding: '2px 7px' }}>
-                {approvalsCount + billApprovalsCount}
-              </span>
-            )}
-          </div>
-          <ChevronIcon size={16} className={`chevron-icon ${isOpen ? 'rotated' : ''}`} />
-        </button>
+        <NavHint hint={item.hint} label={item.label} collapsed={isRailCollapsed}>
+          <button
+            className={`nav-link nav-parent ${isOpen ? 'active-parent' : ''}`}
+            onClick={() => toggleGroup(groupId)}
+            aria-expanded={isOpen}
+          >
+            <div className="nav-parent-left">
+              <Icon size={20} />
+              <span>{item.label}</span>
+              {item.badgeKey === 'approvalsTotal' && approvalsCount + billApprovalsCount > 0 && (
+                <span className="erp-badge warning" style={{ fontSize: '11px', padding: '2px 7px' }}>
+                  {approvalsCount + billApprovalsCount}
+                </span>
+              )}
+            </div>
+            <ChevronIcon size={16} className={`chevron-icon ${isOpen ? 'rotated' : ''}`} />
+          </button>
+        </NavHint>
         <div className={`nav-children ${isOpen ? 'open' : ''}`}>
           <div className="nav-children-inner">
             {visibleChildren.map((child) => (
-              <NavLink
+              <NavHint
                 key={`${child.to}-${child.label}`}
-                to={child.to}
-                end={child.end}
-                className="nav-link nav-child"
-                onClick={closeSidebarOnMobile}
+                hint={child.hint}
+                label={child.label}
+                collapsed={isRailCollapsed}
               >
-                <span>{child.label}</span>
-              </NavLink>
+                <NavLink
+                  to={child.to}
+                  end={child.end}
+                  className="nav-link nav-child"
+                  onClick={closeSidebarOnMobile}
+                >
+                  <span>{child.label}</span>
+                </NavLink>
+              </NavHint>
             ))}
           </div>
         </div>

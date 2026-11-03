@@ -35,6 +35,9 @@ vi.mock('../../components/ui/DataTable', () => ({
 }));
 vi.mock('./BulkUploadVehiclesPanel.jsx', () => ({ default: () => null }));
 vi.mock('../../components/ui/ExportButton', () => ({ default: () => null }));
+vi.mock('@/components/ui/popover', () =>
+  import('../../test/baseUiStubs.jsx').then((module) => module.popover),
+);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -51,6 +54,7 @@ it('filters manufacturer on the server and resets pagination without stale rows'
       <VehiclesPage />
     </MemoryRouter>,
   );
+  fireEvent.click(screen.getByRole('button', { name: 'Vehicle filters' }));
   await screen.findByRole('option', { name: 'Ashok Leyland' });
   await waitFor(() => expect(VehicleService.getAllVehicles).toHaveBeenCalled());
   expect(screen.getByText('Account')).toBeInTheDocument();

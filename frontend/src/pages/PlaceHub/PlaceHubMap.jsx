@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
 import { GoogleMap, MarkerClustererF } from '@react-google-maps/api';
 import { boundsOf } from './intelligence/model/mapBounds.js';
 import { LIGHT_MAP_STYLE, DARK_MAP_STYLE } from '../LiveTracking/mapStyles.js';
@@ -23,7 +24,10 @@ import HotspotShape from './map/HotspotShape.jsx';
 import DraftLayer from './map/DraftLayer.jsx';
 import usePoiLayer from './map/usePoiLayer.js';
 import PoiLayer from './map/PoiLayer.jsx';
+import useTollLayer from './map/useTollLayer.js';
+import TollLayer from './map/TollLayer.jsx';
 import RouteLayer from './map/RouteLayer.jsx';
+import { POI_LABEL_STYLES } from '../../utils/mapLabelStyles';
 
 const MAP_STYLE = { width: '100%', height: '100%' };
 const INDIA = { lat: 22.5, lng: 82 };
@@ -32,7 +36,7 @@ const SHAPE_MIN_ZOOM = 11;
 
 // Satellite keeps its own colours; only the clutter goes.
 const SATELLITE_STYLES = [
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  ...POI_LABEL_STYLES,
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
 ];
 
@@ -59,6 +63,7 @@ export default function PlaceHubMap({
   stopGroups = [],
   vehicleHalts = [],
   showPoi = false,
+  showAllTolls = false,
   hiddenPlaceId,
   selectedId,
   onSelect,
@@ -74,6 +79,11 @@ export default function PlaceHubMap({
   const lastFitKey = useRef(null);
   const drafting = Boolean(draft);
   const { pois, load: loadPois } = usePoiLayer(map, showPoi);
+  const { plazas: tollPlazas, load: loadTolls } = useTollLayer(map, showAllTolls);
+  const onIdle = useCallback(() => {
+    loadPois();
+    loadTolls();
+  }, [loadPois, loadTolls]);
 
   const options = useMemo(
     () => ({
@@ -81,13 +91,25 @@ export default function PlaceHubMap({
       mapTypeControl: false,
       fullscreenControl: false,
       zoomControl: true,
-      clickableIcons: false,
+      clickableIcons: true,
       gestureHandling: 'greedy',
       styles: satellite ? SATELLITE_STYLES : isDark ? DARK_MAP_STYLE : LIGHT_MAP_STYLE,
       draggableCursor: drafting ? 'crosshair' : undefined,
     }),
     [isDark, satellite, drafting],
   );
+
+  useEffect(() => {
+    if (!map) return undefined;
+    // Clicking one of Google's own POIs opens it in Google Maps instead of
+    // Google's info window.
+    const listener = map.addListener('click', (e) => {
+      if (!e.placeId) return;
+      e.stop();
+      openInGoogleMaps({ lat: e.latLng.lat(), lng: e.latLng.lng(), placeId: e.placeId });
+    });
+    return () => listener.remove();
+  }, [map]);
 
   useEffect(() => {
     if (map) map.setMapTypeId(satellite ? 'hybrid' : 'roadmap');
@@ -158,10 +180,11 @@ export default function PlaceHubMap({
       onLoad={setMap}
       onUnmount={() => setMap(null)}
       onZoomChanged={() => map && setZoom(map.getZoom() || 5)}
-      onIdle={loadPois}
+      onIdle={onIdle}
       onClick={onMapClick}
     >
       {showPoi && <PoiLayer pois={pois} />}
+      <TollLayer plazas={tollPlazas} interactive={interactive} />
       {tab === 'routes' && routes && (
         <RouteLayer map={map} {...routes} isDark={isDark || satellite} zoom={zoom} />
       )}

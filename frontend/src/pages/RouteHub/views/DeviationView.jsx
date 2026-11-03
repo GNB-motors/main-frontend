@@ -121,7 +121,11 @@ export default function DeviationView({ params, toast, setBadge, go }) {
       ic: 'split',
       l: 'Detours',
       v: summary?.total ?? 0,
-      s: summary ? `on ${summary.trips} trip${summary.trips === 1 ? '' : 's'}` : 'in this period',
+      s: !summary
+        ? 'in this period'
+        : summary.trips
+          ? `on ${summary.trips} trip${summary.trips === 1 ? '' : 's'}`
+          : 'none on a recorded trip',
       c: 'var(--nova-rage-600)',
       tint: 'var(--nova-rage-a10)',
     },
@@ -211,7 +215,8 @@ export default function DeviationView({ params, toast, setBadge, go }) {
       <div className="phead">
         <div className="t">
           <h2>
-            Route deviation <span className="count-pill">{summary?.open ?? 0}</span>
+            Route deviation{' '}
+            {summary?.open ? <span className="count-pill">{summary.open}</span> : null}
           </h2>
           <p>
             Trucks that left the route they usually take between two places, shown on the trip they

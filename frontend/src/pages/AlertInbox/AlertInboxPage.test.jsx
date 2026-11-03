@@ -3,11 +3,15 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AlertInboxPage from './AlertInboxPage';
 import { getInbox, acknowledgeItem } from '../../services/AlertInboxService';
+import { fleetViewService } from '../../services/fleetViewService';
 import SupportPortalContext from '../../contexts/supportPortalContext';
 
 vi.mock('../../services/AlertInboxService', () => ({
   getInbox: vi.fn(),
   acknowledgeItem: vi.fn(),
+}));
+vi.mock('../../services/fleetViewService', () => ({
+  fleetViewService: { getAccountsLinkState: vi.fn() },
 }));
 const fuel = {
   id: 'fuel',
@@ -45,6 +49,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   getInbox.mockResolvedValue({ items: [fuel, ticket] });
   acknowledgeItem.mockResolvedValue({ ...fuel, status: 'ACKNOWLEDGED' });
+  // The account endpoint is not on prod yet; the inbox works without it.
+  fleetViewService.getAccountsLinkState.mockRejectedValue(
+    Object.assign(new Error('Not found'), { status: 404 }),
+  );
 });
 describe('Alert Inbox integration', () => {
   it('links to vehicle alerts and opens the exact support ticket', async () => {
@@ -92,5 +100,30 @@ describe('Alert Inbox integration', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Acknowledge' })[0]);
     expect(await screen.findByRole('alert')).toHaveTextContent('Cannot acknowledge');
     expect(screen.getByText('Fuel loss')).toBeInTheDocument();
+  });
+  it('shows a reconnect banner for a disconnected account', async () => {
+    fleetViewService.getAccountsLinkState.mockResolvedValue({
+      items: [
+        {
+          accountId: 'acc-1',
+          vendor: 'FLEETEDGE',
+          accountName: 'GNB Buxar Fleet',
+          state: 'NEEDS_RELINK',
+          lastDataAt: null,
+          trucks: 4,
+          action: { label: 'Reconnect', to: '/settings/fleetedge-accounts' },
+        },
+      ],
+    });
+    mount();
+    expect(await screen.findByText(/account disconnected/)).toBeInTheDocument();
+    const link = screen.getByRole('link', { name: 'Reconnect' });
+    expect(link.getAttribute('href')).toBe('/settings/fleetedge-accounts');
+  });
+  it('shows no banner when the account endpoint is not deployed', async () => {
+    mount();
+    await screen.findByText('Fuel loss');
+    expect(screen.queryByText(/account disconnected/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/link expires soon/)).not.toBeInTheDocument();
   });
 });

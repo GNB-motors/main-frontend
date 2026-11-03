@@ -160,7 +160,7 @@ export default function FuelIntegrityTables({
             >
               <option value="all">All Event Types</option>
               <option value="fill">Refuel Fills</option>
-              <option value="loss">Siphon Losses</option>
+              <option value="loss">Fuel down while parked</option>
               <option value="def">DEF / AdBlue Anomalies</option>
             </select>
 

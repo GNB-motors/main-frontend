@@ -1,4 +1,5 @@
 import { VEHICLE_DOC_TYPES } from './Component/VehicleDocumentUpload.jsx';
+import { normalizeDocType } from './vehicleDocNormalization';
 
 // Backend docType → UI slot key, and UI slot key → its full metadata entry.
 export const BACKEND_TO_UI = VEHICLE_DOC_TYPES.reduce((acc, d) => {
@@ -22,7 +23,8 @@ export function mapFetchedDocsToUiState(fetchedDocs, emptyDocsState) {
   if (!Array.isArray(fetchedDocs)) return updatedDocs;
 
   fetchedDocs.forEach((doc) => {
-    const uiKey = BACKEND_TO_UI[doc.docType];
+    const canonical = normalizeDocType(doc.docType) || doc.docType;
+    const uiKey = BACKEND_TO_UI[canonical];
     if (!uiKey) return;
     const meta = META_BY_KEY[uiKey];
 

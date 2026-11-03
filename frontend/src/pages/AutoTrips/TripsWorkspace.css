@@ -25,6 +25,10 @@
   padding: 24px;
   font-family: inherit;
 }
+.atx-list,
+.atx-page--detail {
+  background: var(--canvas, var(--background));
+}
 .atx-page .atx-wrap {
   max-width: none;
   gap: 20px;
@@ -77,7 +81,9 @@
   padding: 0;
   border: 0;
   background: transparent;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 .atx-page .atx-tab {
   border: 1px solid transparent;
@@ -218,6 +224,18 @@
 .atx-page .atx-field-value {
   font-size: 13px;
 }
+.atx-driver-state {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  color: var(--ds-ink3);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.atx-driver-state .atx-link {
+  font-size: 12px;
+}
 .atx-page .sap-panel {
   gap: 18px;
 }
@@ -287,6 +305,40 @@
 }
 .trip-workspace .pshell-title {
   color: var(--ds-ink);
+}
+.movement-approvals .pshell-head-main {
+  flex: 1;
+  min-width: 0;
+}
+.movement-approvals .pshell-actions {
+  margin-left: auto;
+}
+.atx-page--detail .atx-detail-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+.trip-back-circle {
+  display: inline-flex;
+  flex: 0 0 36px;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--ds-line);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--ds-ink2);
+  text-decoration: none;
+}
+.trip-back-circle:hover {
+  background: var(--ds-sunk);
+  color: var(--ds-ink);
+}
+.trip-back-circle:focus-visible {
+  outline: 2px solid var(--ds-focus);
+  outline-offset: 2px;
 }
 .trip-workspace .dt {
   border-radius: 12px;

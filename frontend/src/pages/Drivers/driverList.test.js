@@ -8,6 +8,7 @@ import {
   countActiveFilters,
   generatePageNumbers,
   attachAssignedVehicles,
+  mapDriverForExport,
 } from './driverList';
 
 describe('normalizeDriver', () => {
@@ -46,6 +47,30 @@ describe('normalizeDriver', () => {
     expect(
       normalizeDriver({ role: 'DRIVER', membershipStatus: 'INVITED', status: 'ACTIVE' }).status,
     ).toBe('ACTIVE');
+  });
+
+  it('normalizes licenseNumber, hasLicenseDoc, and isLicenseVerified', () => {
+    const d1 = normalizeDriver({
+      id: 'd1',
+      licenseNumber: 'DL-01-2020-001',
+      hasLicenseDoc: true,
+      isLicenseVerified: true,
+    });
+    expect(d1.licenseNumber).toBe('DL-01-2020-001');
+    expect(d1.hasLicenseDoc).toBe(true);
+    expect(d1.isLicenseVerified).toBe(true);
+
+    const d2 = normalizeDriver({
+      id: 'd2',
+      licenseDoc: { isVerified: false },
+    });
+    expect(d2.hasLicenseDoc).toBe(true);
+    expect(d2.isLicenseVerified).toBe(false);
+
+    const d3 = normalizeDriver({ id: 'd3' });
+    expect(d3.licenseNumber).toBe('');
+    expect(d3.hasLicenseDoc).toBe(false);
+    expect(d3.isLicenseVerified).toBe(false);
   });
 });
 
@@ -160,5 +185,33 @@ describe('attachAssignedVehicles', () => {
       ],
     );
     expect(out[0].assignedVehicle).toBe('NEWER');
+  });
+});
+
+describe('mapDriverForExport', () => {
+  it('formats licenseNumber accurately depending on document presence', () => {
+    const withExtracted = mapDriverForExport({
+      name: 'John Doe',
+      role: 'DRIVER',
+      licenseNumber: 'KA-01-2023-1234567',
+      hasLicenseDoc: true,
+    });
+    expect(withExtracted.licenseNumber).toBe('KA-01-2023-1234567');
+
+    const withDocNotExtracted = mapDriverForExport({
+      name: 'Jane Doe',
+      role: 'DRIVER',
+      licenseNumber: '',
+      hasLicenseDoc: true,
+    });
+    expect(withDocNotExtracted.licenseNumber).toBe('Not extracted');
+
+    const withoutDoc = mapDriverForExport({
+      name: 'Bob',
+      role: 'DRIVER',
+      licenseNumber: '',
+      hasLicenseDoc: false,
+    });
+    expect(withoutDoc.licenseNumber).toBe('Not uploaded');
   });
 });

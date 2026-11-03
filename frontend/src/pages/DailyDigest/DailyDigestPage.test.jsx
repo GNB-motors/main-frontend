@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import OwnerValueService from '../../services/OwnerValueService';
-import DailyDigestPage from './DailyDigestPage';
+import ReleaseDigest from './ReleaseDigest';
 
 vi.mock('../../services/OwnerValueService', () => {
   const svc = { getDigest: vi.fn() };
@@ -40,11 +40,13 @@ const digest = {
 const renderPage = () =>
   render(
     <MemoryRouter>
-      <DailyDigestPage />
+      <ReleaseDigest />
     </MemoryRouter>,
   );
 
-describe('DailyDigestPage', () => {
+// The release digest is the fallback the new page shows while
+// /api/fleet-view/digest is not on prod. It keeps its own honest labels.
+describe('ReleaseDigest (the fallback)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     OwnerValueService.getDigest.mockResolvedValue(digest);

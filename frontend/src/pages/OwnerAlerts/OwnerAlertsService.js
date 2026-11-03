@@ -20,6 +20,52 @@ export const OwnerAlertsService = {
   },
 
   /**
+   * The feed for one view. The server filters by `severity` once B0b is
+   * deployed; the server before it rejects the parameter with a 400, so the
+   * request is repeated without it and the answer is marked `legacy: true` —
+   * the page then shows every open alert and claims no severity counts.
+   */
+  getAlertsForView: async (params = {}, signal) => {
+    if (!params.severity) {
+      const data = await OwnerAlertsService.getAlerts(params, signal);
+      return { ...data, legacy: !data?.meta?.counts };
+    }
+    try {
+      const data = await OwnerAlertsService.getAlerts(params, signal);
+      return { ...data, legacy: !data?.meta?.counts };
+    } catch (error) {
+      if (error?.status !== 400) throw error;
+      const rest = { ...params };
+      delete rest.severity;
+      const data = await OwnerAlertsService.getAlerts(rest, signal);
+      return { ...data, legacy: true };
+    }
+  },
+
+  /**
+   * Open critical alerts for the bell: `{ count, records }`. `count` is the
+   * server's count, or null when the server cannot tell critical apart yet
+   * (then the bell shows no number). `records` seed the live-stream dedupe.
+   */
+  getCriticalUnread: async (signal) => {
+    try {
+      const data = await OwnerAlertsService.getAlerts(
+        { acknowledged: false, severity: 'critical', limit: 50 },
+        signal,
+      );
+      const critical = data?.meta?.counts?.critical;
+      const count =
+        critical !== null && critical !== undefined && Number.isFinite(Number(critical))
+          ? Number(critical)
+          : null;
+      return { count, records: count == null ? [] : data.records || [] };
+    } catch (error) {
+      if (error?.status === 400) return { count: null, records: [] };
+      throw error;
+    }
+  },
+
+  /**
    * Acknowledge an alert.
    * @param {string} id - alert id
    */
@@ -45,7 +91,7 @@ export const OwnerAlertsService = {
 
 export const ALERT_TYPE_LABELS = {
   FUEL_SIPHON_SUSPECTED: 'Fuel loss — please review',
-  FUEL_DATA_REVIEW: 'Fuel data review — not theft',
+  FUEL_DATA_REVIEW: 'Fuel data review',
   REFUEL_ESTIMATED: 'Refuel estimated',
   ADBLUE_BALANCE_FLAG: 'AdBlue balance — please review',
   IDLING_BURN_HIGH: 'High idling burn',

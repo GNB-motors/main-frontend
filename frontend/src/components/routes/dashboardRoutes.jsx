@@ -4,6 +4,7 @@ import RedirectWithState from './RedirectWithState';
 import PlacesRedirect from './PlacesRedirect';
 import LegacyReceiptRedirect from './LegacyReceiptRedirect';
 import PerformanceRedirect from './PerformanceRedirect';
+import FeatureGate from './FeatureGate';
 import ReceiptApprovalDetailPage from './lazyReceiptApprovalDetailPage';
 import erpRoutes from './erpRoutes';
 
@@ -50,6 +51,9 @@ const ExcursionsPage = lazy(() => import('../../pages/AutoTrips/ExcursionsPage.j
 const ExcursionDetailPage = lazy(() => import('../../pages/AutoTrips/ExcursionDetailPage.jsx'));
 const MovementApprovalsPage = lazy(() => import('../../pages/AutoTrips/MovementApprovalsPage.jsx'));
 const PlaceHubPage = lazy(() => import('../../pages/PlaceHub/PlaceHubPage.jsx'));
+// Intelligence — what we worked out about the fleet, good and bad, with the
+// reason for every claim. Same guard as /route-hub.
+const IntelligencePage = lazy(() => import('../../pages/Intelligence/IntelligencePage.jsx'));
 // Tolls — plaza gates on the road network, crossings found on the road-matched
 // path, and the estimate-vs-driver-bill cross-check. The API is the role gate.
 const TollsPage = lazy(() => import('../../pages/Tolls/TollsPage.jsx'));
@@ -101,6 +105,7 @@ const dashboardRoutes = (
     <Route path="/vehicle-challans" element={<Navigate to="/challans" replace />} />
     <Route path="/fleet-coverage" element={<FleetCoveragePage />} />
     <Route path="/route-hub" element={<RouteHubPage />} />
+    <Route path="/intelligence" element={<IntelligencePage />} />
     <Route
       path="/route-intelligence"
       element={<RedirectWithState to="/route-hub?tab=intelligence" />}
@@ -118,7 +123,14 @@ const dashboardRoutes = (
         </PerformanceRedirect>
       }
     />
-    <Route path="/performance" element={<PerformancePage />} />
+    <Route
+      path="/performance"
+      element={
+        <FeatureGate flag="performanceSection" name="Performance">
+          <PerformancePage />
+        </FeatureGate>
+      }
+    />
     <Route path="/vehicles/:registrationNumber" element={<Vehicle360Page />} />
     <Route path="/reports" element={<ReportsPage />} />
     <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
@@ -156,7 +168,14 @@ const dashboardRoutes = (
     <Route path="/idling-console" element={<Navigate to="/route-hub" replace />} />
     <Route path="/places" element={<PlacesRedirect />} />
     <Route path="/place-hub" element={<PlaceHubPage />} />
-    <Route path="/tolls" element={<TollsPage />} />
+    <Route
+      path="/tolls"
+      element={
+        <FeatureGate flag="tolls" name="Tolls">
+          <TollsPage />
+        </FeatureGate>
+      }
+    />
     <Route path="/live-tracking" element={<LiveTrackingPage />} />
     <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
     {/* Item 26.5: ONE inbox over the scattered alert sources. The pages it reads

@@ -3,6 +3,28 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { fileURLToPath, URL } from 'node:url';
 
+// three's DRACOLoader builds its default decoder URLs with
+// `new URL('../libs/draco/...', import.meta.url)`. Vite turns each of those
+// into an emitted asset - about 837 kB of JS (draco_decoder.js plus two
+// draco_wasm_wrapper.js copies) - that this app never fetches: Vehicle360
+// calls dracoLoader.setDecoderPath('/draco/') and ships its own decoder in
+// public/draco/. Point the defaults at /draco/ so the assets are not emitted
+// and the bundle budget measures the code the browser can actually run.
+function dracoDecoderPaths() {
+  return {
+    name: 'draco-decoder-paths',
+    enforce: 'pre',
+    transform(code, id) {
+      if (!id.replace(/\\/g, '/').includes('three/examples/jsm/loaders/DRACOLoader.js')) return null;
+      const patched = code.replace(
+        /new URL\(\s*'\.\.\/libs\/draco\/(?:gltf\/)?([^']+)'\s*,\s*import\.meta\.url\s*\)\.toString\(\)/g,
+        (_match, file) => `'/draco/${file}'`,
+      );
+      return patched === code ? null : { code: patched, map: null };
+    },
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, '.', '');
@@ -22,7 +44,7 @@ export default defineConfig(({ mode, command }) => {
   }
 
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), dracoDecoderPaths()],
     ...(command === 'serve' && apiOrigin
       ? { define: { 'import.meta.env.VITE_API_BASE_URL': JSON.stringify('') } }
       : {}),

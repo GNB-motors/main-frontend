@@ -34,3 +34,16 @@ if (
     });
   }
 }
+
+// floating-ui (inside Base UI popovers) asks every ancestor whether it
+// `matches(':popover-open')` or `matches(':modal')` on each position update.
+// jsdom's selector engine does not know those pseudo-classes and recompiles
+// them on every call, so opening one dropdown took ~35 s in tests. Nothing in
+// jsdom is ever in the top layer, so the answer is always false.
+if (typeof Element !== 'undefined') {
+  const nativeMatches = Element.prototype.matches;
+  Element.prototype.matches = function matches(selector) {
+    if (selector === ':popover-open' || selector === ':modal') return false;
+    return nativeMatches.call(this, selector);
+  };
+}

@@ -2,6 +2,7 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { PolylineF } from '@react-google-maps/api';
 import LiveMapCanvas from './LiveMapCanvas.jsx';
+import focusedMapVehicles from './focusedMapVehicles.js';
 
 const { map, overlays } = vi.hoisted(() => ({ map: {}, overlays: [] }));
 vi.mock('@react-google-maps/api', () => ({
@@ -125,5 +126,24 @@ describe('Track replay presentation', () => {
     expect(PolylineF.mock.calls.filter(([p]) => p.path === props.replayPtsCoords)).toHaveLength(1);
     unmount();
     expect(overlays[0].setMap).toHaveBeenLastCalledWith(null);
+  });
+});
+
+describe('Fleet markers while focused on one truck', () => {
+  const fleet = [{ id: 'v1' }, { id: 'v2' }, { id: 'v3' }];
+  it('shows the whole fleet when neither Trail nor Replay is up', () => {
+    expect(
+      focusedMapVehicles(fleet, { selectedId: 'v1', isTrailVisible: false, replayOn: false }),
+    ).toEqual(fleet);
+  });
+  it('shows only the selected truck while its Trail is up', () => {
+    expect(
+      focusedMapVehicles(fleet, { selectedId: 'v2', isTrailVisible: true, replayOn: false }),
+    ).toEqual([{ id: 'v2' }]);
+  });
+  it('hides every live marker during Replay (the replay truck stands in)', () => {
+    expect(
+      focusedMapVehicles(fleet, { selectedId: 'v2', isTrailVisible: true, replayOn: true }),
+    ).toEqual([]);
   });
 });

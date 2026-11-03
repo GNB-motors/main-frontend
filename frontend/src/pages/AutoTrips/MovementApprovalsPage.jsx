@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import PageShell from '../../components/ui/PageShell';
 import EnterprisePagination from '../../components/ui/EnterprisePagination';
 import './TripsWorkspace.css';
@@ -13,6 +12,7 @@ import { useApi } from '../../hooks/useApi';
 import { useMutation } from '../../hooks/useMutation';
 import MovementApprovalService from '../../services/MovementApprovalService';
 import ApprovalCreateDialog from './ApprovalCreateDialog';
+import TripBackButton from './TripBackButton';
 import { AutoTripsService } from './AutoTripsService';
 
 const PAGE_SIZE = 50;
@@ -45,7 +45,6 @@ function placeLabel(a) {
 }
 
 export default function MovementApprovalsPage() {
-  const navigate = useNavigate();
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -166,19 +165,15 @@ export default function MovementApprovalsPage() {
 
   return (
     <PageShell
-      className="trip-workspace"
+      className="trip-workspace movement-approvals"
       title="Movement approvals"
       count={total}
       subtitle="Pre-authorise a vehicle or driver to visit a place, so a detour there is not charged as a deviation."
+      leading={<TripBackButton />}
       actions={
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Button variant="outline" size="sm" onClick={() => navigate('/auto-trips')}>
-            <ArrowLeft size={16} /> Trips
-          </Button>
-          <Button size="sm" onClick={() => setDialogOpen(true)}>
-            <Plus size={16} /> New approval
-          </Button>
-        </div>
+        <Button size="sm" onClick={() => setDialogOpen(true)}>
+          <Plus size={16} /> New approval
+        </Button>
       }
     >
       <div className="trip-workspace-tabs" aria-label="Approval status">

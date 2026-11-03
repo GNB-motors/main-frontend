@@ -2540,6 +2540,18 @@ html.dark .nova-digest .nd-item:hover {
   .nd-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  /* Two tiles a row on a phone: the big numbers must fit their tile
+     (₹1,59,295 was cut off at the edge, "Grade D" broke over two lines). */
+  .nd-kpi-val {
+    font-size: var(--type-xl);
+    line-height: 30px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .nd-card-head {
+    flex-wrap: wrap;
+  }
   .nd-head h1 {
     font-size: var(--type-2xl);
   }

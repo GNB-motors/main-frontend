@@ -21,7 +21,7 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
     {
       key: 'idling',
       label: 'Idling cost',
-      v: money?.idlingWasteInr || 0,
+      v: money?.idlingWasteInr ?? null,
       c: '#C56200',
       tint: 'rgba(197, 98, 0, 0.12)',
       icon: Clock,
@@ -29,15 +29,15 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
     {
       key: 'detour',
       label: 'Detour cost',
-      v: money?.detourWasteInr || 0,
+      v: money?.detourWasteInr ?? null,
       c: '#2F58EE',
       tint: 'rgba(47, 88, 238, 0.12)',
       icon: RouteIcon,
     },
     {
       key: 'siphon',
-      label: 'Fuel siphon loss',
-      v: money?.theftLossInr || 0,
+      label: 'Fuel down while parked',
+      v: money?.theftLossInr ?? null,
       c: '#C2323A',
       tint: 'rgba(194, 50, 58, 0.12)',
       icon: FuelIcon,
@@ -45,7 +45,7 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
     {
       key: 'mismatch',
       label: 'Bill mismatch',
-      v: money?.billFraudSuspectInr || 0,
+      v: money?.billFraudSuspectInr ?? null,
       c: '#6A43D8',
       tint: 'rgba(106, 67, 216, 0.12)',
       icon: FileWarning,
@@ -53,7 +53,7 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
     {
       key: 'empty',
       label: 'Empty-running waste',
-      v: utilization?.fleet?.emptyKmWasteInr || 0,
+      v: utilization?.fleet?.emptyKmWasteInr ?? null,
       c: '#0D9488',
       tint: 'rgba(13, 148, 136, 0.12)',
       icon: Gauge,
@@ -61,7 +61,7 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
     {
       key: 'speed',
       label: 'Off-optimal speed',
-      v: money?.speedingLossInr || 0,
+      v: money?.speedingLossInr ?? null,
       c: '#B45309',
       tint: 'rgba(180, 83, 9, 0.12)',
       icon: Zap,
@@ -69,7 +69,7 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
     {
       key: 'mileage',
       label: 'Low-mileage loss',
-      v: money?.lowMileageLossInr || 0,
+      v: money?.lowMileageLossInr ?? null,
       c: '#9333EA',
       tint: 'rgba(147, 51, 234, 0.12)',
       icon: Droplet,
@@ -81,7 +81,7 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
     {
       key: 'downtime',
       label: 'Service downtime',
-      v: downtime?.totalExposureInr || 0,
+      v: downtime?.totalExposureInr ?? null,
       c: '#C56200',
       tint: 'rgba(197, 98, 0, 0.12)',
       icon: Wrench,
@@ -91,7 +91,7 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
       label: atRisk?.expiredDocCount
         ? `Document fines (${atRisk.expiredDocCount} expired)`
         : 'Document fines',
-      v: atRisk?.complianceFineInr || 0,
+      v: atRisk?.complianceFineInr ?? null,
       c: '#C2323A',
       tint: 'rgba(194, 50, 58, 0.12)',
       icon: FileText,
@@ -99,7 +99,7 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
     {
       key: 'adblue',
       label: 'AdBlue unreconciled',
-      v: atRisk?.adblueUnreconciledInr || 0,
+      v: atRisk?.adblueUnreconciledInr ?? null,
       c: '#0D9488',
       tint: 'rgba(13, 148, 136, 0.12)',
       icon: Droplets,
@@ -107,14 +107,17 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
     {
       key: 'offpump',
       label: 'Off-pump refuels',
-      v: atRisk?.offPumpRefuelInr || 0,
+      v: atRisk?.offPumpRefuelInr ?? null,
       c: '#2F58EE',
       tint: 'rgba(47, 88, 238, 0.12)',
       icon: MapPinOff,
     },
   ];
-  const total = lost.reduce((s, r) => s + r.v, 0);
-  const riskTotal = risk.reduce((s, r) => s + r.v, 0);
+  // A channel with no measurable baseline comes back null ("not measured"), not
+  // 0 — it must not read as "no waste", and it must not drag the totals. Null
+  // contributes nothing to the sums and is never an "active" category.
+  const total = lost.reduce((s, r) => s + (r.v || 0), 0);
+  const riskTotal = risk.reduce((s, r) => s + (r.v || 0), 0);
   const activeCount = lost.filter((r) => r.v > 0).length;
 
   return (

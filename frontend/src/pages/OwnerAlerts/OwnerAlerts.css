@@ -191,3 +191,30 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* F13: nothing critical — calm, with the way to the warnings. */
+.oa-torev--calm {
+  background: var(--rd-good-tint, #ecfdf5);
+  color: var(--rd-good-ink, #047857);
+  border-color: transparent;
+}
+.oa-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--rd-brand-2, #2563eb);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+/* Before the server sends severity: say why there are no severity totals. */
+.oa-legacy-note {
+  padding: 10px 14px;
+  border: 1px dashed var(--rd-line-strong, #cbd5e1);
+  border-radius: 10px;
+  background: var(--rd-card, #fff);
+  color: var(--rd-ink-2, #475569);
+  font-size: 13px;
+}

@@ -3,7 +3,7 @@ import SlideOver from '../../components/cluster/SlideOver';
 import { formatLitres, formatPct } from '../../utils/formatters';
 import { formatDateTimeIST, formatDateIST } from '../../utils/dateUtils';
 import StatusBadge from './StatusBadge';
-import { STATUS_NOTE } from './defLedgerStatus';
+import { STATUS_NOTE, SENSOR_FAULT_LABEL } from './defLedgerStatus';
 import { humanizeFlagType, signedLitres } from './defLedgerFormat';
 
 function DefDetailDrawer({ vehicle, claimsTracked, onClose }) {
@@ -37,14 +37,31 @@ function DefDetailDrawer({ vehicle, claimsTracked, onClose }) {
       subtitle={coverage ? `Telemetry ${coverage}` : 'No telemetry yet'}
     >
       <div className="flex flex-col gap-5 p-1">
+        {(vehicle.sensorFaults || []).length > 0 && (
+          <div className="rounded-lg border border-slate-200 p-3 text-xs text-slate-600">
+            <p className="font-semibold">Sensor observations</p>
+            {(vehicle.sensorFaults || []).map((fault, index) => (
+              <p key={`${fault.reason}-${index}`}>
+                {SENSOR_FAULT_LABEL[fault.reason] || 'Sensor reading needs review'}
+                {' · '}
+                {fault.count || 1} readings
+                {fault.lastAt || fault.at
+                  ? ` · last ${formatDateTimeIST(fault.lastAt || fault.at)}`
+                  : ''}
+              </p>
+            ))}
+          </div>
+        )}
         <div className="bg-slate-50 dark:bg-slate-800/80 rounded-xl p-4 border border-slate-200 dark:border-slate-700 flex flex-col gap-3">
           <div className="flex items-center justify-between gap-2">
             <StatusBadge status={vehicle.status} />
             {vehicle.dosingRatioPct != null && (
               <span className="text-xs text-slate-500 dark:text-slate-400">
                 DEF {formatPct(vehicle.dosingRatioPct, { decimals: 1 })} of{' '}
-                {formatLitres(vehicle.fuelUsedL, { decimals: 0 })} diesel · normal {band.min}–
-                {band.max}%
+                {formatLitres(vehicle.fuelUsedL, { decimals: 0 })} diesel
+                {Number.isFinite(band.min) && Number.isFinite(band.max)
+                  ? ` · normal ${band.min}–${band.max}%`
+                  : ' · not assessed'}
               </span>
             )}
           </div>

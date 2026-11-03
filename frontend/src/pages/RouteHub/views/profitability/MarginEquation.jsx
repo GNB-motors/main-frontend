@@ -61,8 +61,8 @@ export default function MarginEquation({ first, totals }) {
             ) : null}
           </div>
           <div className="d">
-            Routes ranked by earnings, with unbilled km, diesel siphoning and rate undercutting
-            flagged.
+            Routes ranked by earnings, with unbilled km, fuel down while parked and rate
+            undercutting flagged.
           </div>
         </div>
       </div>

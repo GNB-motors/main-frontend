@@ -7,6 +7,10 @@ import { fmtClock, fmtDayTime } from './autoTripFormat';
 import { routeMapPoints, tripRoadAt, tripRoadLayers } from './autoTripPlaces';
 import { stopKind } from './timelineModel';
 import ReplayPlayer from './ReplayPlayer';
+import { POI_LABEL_STYLES } from '../../utils/mapLabelStyles';
+import TollMarkers from './TollMarkers';
+import { justPassed, tollMarks } from './tripTolls';
+import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const CONTAINER = { width: '100%', height: '100%' };
@@ -31,7 +35,7 @@ const MAP_THEME = [
   { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
   { elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
   { elementType: 'labels.text.stroke', stylers: [{ color: '#f7f8fa' }] },
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  ...POI_LABEL_STYLES,
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
   { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
   { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#f1f5f9' }] },
@@ -77,6 +81,7 @@ export default function AutoTripReplay({
   track,
   roadTrail = null,
   detours = null,
+  tolls = null,
   loading,
   error,
   autoPlay = false,
@@ -84,6 +89,7 @@ export default function AutoTripReplay({
 }) {
   const { isLoaded } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
   const mapRef = useRef(null);
+  const poiClickRef = useRef(null);
   const wrapRef = useRef(null);
 
   const frames = useMemo(() => toFrames(track?.points), [track]);
@@ -175,6 +181,7 @@ export default function AutoTripReplay({
   const truckAt = onRoad?.truckAt || head;
 
   const pts = useMemo(() => routeMapPoints(trip || {}), [trip]);
+  const marks = tollMarks(tolls?.passes, head?.at);
   const windowEnd = track?.to ? new Date(track.to).getTime() : null;
   const stopMarks = useMemo(() => {
     const byId = new Map((trip?.routeStops || []).map((s) => [String(s._id), s]));
@@ -257,7 +264,10 @@ export default function AutoTripReplay({
     if (loading && !track) chip = 'Loading GPS track…';
     else if (error && !track) chip = 'Could not load the GPS track';
     else if (!frames.length) chip = 'No GPS track for this trip';
-    else chip = `${fmtDayTime(head?.at)} · ${speedText(head)}`;
+    else {
+      const crossed = justPassed(tolls?.passes, head?.at);
+      chip = `${fmtDayTime(head?.at)} · ${speedText(head)}${crossed ? ` · ${crossed}` : ''}`;
+    }
   }
 
   const lastAt = frames.length ? frames[frames.length - 1].at : null;
@@ -281,9 +291,19 @@ export default function AutoTripReplay({
             zoom={9}
             onLoad={(map) => {
               mapRef.current = map;
+              // Clicking one of Google's own POIs opens it in Google Maps
+              // instead of Google's info window.
+              poiClickRef.current?.remove();
+              poiClickRef.current = map.addListener('click', (e) => {
+                if (!e.placeId) return;
+                e.stop();
+                openInGoogleMaps({ lat: e.latLng.lat(), lng: e.latLng.lng(), placeId: e.placeId });
+              });
               fit(map);
             }}
             onUnmount={() => {
+              poiClickRef.current?.remove();
+              poiClickRef.current = null;
               mapRef.current = null;
             }}
             onZoomChanged={() => {
@@ -294,7 +314,7 @@ export default function AutoTripReplay({
               disableDefaultUI: true,
               zoomControl: true,
               gestureHandling: 'cooperative',
-              clickableIcons: false,
+              clickableIcons: true,
               styles: MAP_THEME,
             }}
           >
@@ -359,6 +379,7 @@ export default function AutoTripReplay({
                   zIndex={4}
                 />
               ))}
+            <TollMarkers marks={marks} />
             {truckIcon && head ? (
               <MarkerF
                 position={{ lat: truckAt.lat, lng: truckAt.lng }}
