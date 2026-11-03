@@ -1,5 +1,4 @@
 import { Search, X } from 'lucide-react';
-import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 /**
  * MapSearchBox — the floating search field at the top-left of the map.
@@ -16,7 +15,10 @@ export default function MapSearchBox({
   compact = false,
 }) {
   // On a phone the field is narrow, so the placeholder is shortened to fit.
-  const isPhone = useMediaQuery('(max-width: 600px)');
+  // A one-off read, not a subscribed hook: the map remounts this box on its
+  // own updates, and a hook setting state on every mount looped the page.
+  const isPhone =
+    typeof window !== 'undefined' && window.matchMedia?.('(max-width: 600px)').matches;
   return (
     <div
       className={`ov-search flex h-10 items-center gap-2 rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] px-3 shadow-[var(--rd-shadow-float)] ${

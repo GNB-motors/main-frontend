@@ -49,7 +49,10 @@ export const toVehiclePayload = (row) => ({
  * registrationNumber can be null/blank — fall back to the row's position so
  * every row still gets a stable, unique DataTable/selection key.
  */
-export const edgeRowKey = (row, i) => row.registrationNumber || `_no-reg-${i}`;
+// A real plate is unique; placeholder plates ("NA") repeat across trucks and
+// can never be added, so they key by position like a missing plate does.
+export const edgeRowKey = (row, i) =>
+  isAddableRegistration(row.registrationNumber) ? row.registrationNumber : `_no-reg-${i}`;
 
 /** Which rows a selection Set (of edgeRowKey values) resolves to, in order. */
 export const selectedRowsFrom = (rows, selectedKeys) =>

@@ -3,6 +3,7 @@ import ApiError from '../../errors/ApiError';
 import { getVehicleList } from '../../services/vehicleListService';
 import { parseSafe } from '../../schemas/validate';
 import { rangeToParams } from './mileageDates';
+import { MileageTrackingService } from '../MileageTracking/MileageTrackingService';
 
 /**
  * The hub's reads. Each takes the hub's calendar range where its endpoint
@@ -23,8 +24,12 @@ export const MileageApi = {
       signal,
       'unifiedFeedSchema',
     ),
-  modelComparison: (range, signal) =>
-    get('/api/mileage/model-comparison', rangeToParams(range), signal, 'modelComparisonSchema'),
+  // Shares the By-model view's call (see MileageTrackingService), so the hub
+  // never runs this slow read twice at once.
+  modelComparison: (range) =>
+    MileageTrackingService.getModelComparison(rangeToParams(range)).then((data) =>
+      parseSafe('modelComparisonSchema', hubSchemas, data ?? null),
+    ),
   // The intervals list cannot be narrowed by date on the server yet.
   intervals: (params, signal) => get('/api/mileage/intervals', params, signal, 'intervalsSchema'),
   fuelCycles: (range, signal) =>
