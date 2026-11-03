@@ -120,6 +120,43 @@ describe('ReportCardsTab', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('Driver scores need to know who drove which truck.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Driver scores need to know who drove which truck.'),
+    ).toBeInTheDocument();
+  });
+  it('shows ungraded trucks and scopes the table to the selected vehicle', async () => {
+    IntelligenceService.getReportCards.mockResolvedValue({
+      items: [
+        ...cards.items,
+        {
+          id: 'BR44GB1162',
+          name: 'BR44GB1162',
+          subject: 'vehicle',
+          grade: 'NOT_ENOUGH_DATA',
+          strengths: [],
+          problems: [],
+        },
+      ],
+    });
+    render(
+      <MemoryRouter>
+        <ReportCardsTab subject="vehicle" vehicle="BR44GB1162" />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('BR44GB1162')).toBeInTheDocument();
+    expect(screen.getByText('Insufficient data (1)')).toBeInTheDocument();
+    expect(screen.queryByText('WB11F6762')).not.toBeInTheDocument();
+  });
+
+  it('does not present an unscored driver as good', async () => {
+    IntelligenceService.getReportCards.mockResolvedValue(cards);
+    render(
+      <MemoryRouter>
+        <ReportCardsTab subject="driver" />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('Ramesh Yadav')).toBeInTheDocument();
+    expect(screen.getByText('Insufficient data (1)')).toBeInTheDocument();
+    expect(screen.getByText('Good (0)')).toBeInTheDocument();
   });
 });

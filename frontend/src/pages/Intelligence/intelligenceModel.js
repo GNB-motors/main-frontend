@@ -34,7 +34,11 @@ export const ISSUE_GROUPS = [
       text: 'We compare each truck with your other trucks on the same road. If others keep reporting where this one goes silent or freezes, the problem is likely this truck’s GPS unit.',
     },
   },
-  { id: 'fuel_sensor', label: 'Fuel sensor', kinds: ['FUEL_SENSOR_NOISY', 'FUEL_SENSOR_CALIBRATION'] },
+  {
+    id: 'fuel_sensor',
+    label: 'Fuel sensor',
+    kinds: ['FUEL_SENSOR_NOISY', 'FUEL_SENSOR_CALIBRATION'],
+  },
   { id: 'def_sensor', label: 'DEF sensor', kinds: ['DEF_SENSOR'] },
   { id: 'account', label: 'Account', kinds: ['ACCOUNT_DISCONNECTED', 'ACCOUNT_EXPIRING'] },
   { id: 'engine_lamp', label: 'Engine lamps', kinds: ['WARNING_LAMP'] },
@@ -54,6 +58,7 @@ export const REPORT_CARD_BUCKETS = [
   { id: 'good', label: 'Good', grades: ['GOOD'], tone: 'info' },
   { id: 'fair', label: 'Fair', grades: ['FAIR'], tone: 'info' },
   { id: 'falling', label: 'Falling off', grades: ['FALLING'], tone: 'watch' },
+  { id: 'ungraded', label: 'Insufficient data', grades: ['NOT_ENOUGH_DATA'], tone: 'info' },
 ];
 
 /** The honest empty sentence for each kind of instance (spec F4.7). */
@@ -192,7 +197,9 @@ export function issueCounts(items = []) {
 
 /** The report cards of each column, and the cards that fell out of a filter. */
 export function bucketReportCards(items = [], { query = '', grade = 'all', make = 'all' } = {}) {
-  const needle = String(query ?? '').trim().toLowerCase();
+  const needle = String(query ?? '')
+    .trim()
+    .toLowerCase();
   const filtered = items.filter((card) => {
     if (grade !== 'all' && card?.grade !== grade) return false;
     if (make !== 'all' && String(card?.make ?? '') !== make) return false;
@@ -312,7 +319,9 @@ export function runBarsByTruck(trips = [], { limit = 20 } = {}) {
   });
 
   return [...byTruck.values()]
-    .sort((a, b) => b.totalKm - a.totalKm || a.registrationNumber.localeCompare(b.registrationNumber))
+    .sort(
+      (a, b) => b.totalKm - a.totalKm || a.registrationNumber.localeCompare(b.registrationNumber),
+    )
     .slice(0, limit);
 }
 

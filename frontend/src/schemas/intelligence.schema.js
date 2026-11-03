@@ -85,7 +85,7 @@ export const ReportCardSchema = z
     subject: z.enum(['vehicle', 'driver']),
     id: z.string(),
     name: z.string(),
-    grade: z.enum(['EXCELLENT', 'GOOD', 'FAIR', 'FALLING']),
+    grade: z.enum(['EXCELLENT', 'GOOD', 'FAIR', 'FALLING', 'NOT_ENOUGH_DATA']),
     trend: z.enum(['UP', 'FLAT', 'DOWN']).nullable(),
     score: z.number().nullable(),
     headline: z.string(),

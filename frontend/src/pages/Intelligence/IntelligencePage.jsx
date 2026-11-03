@@ -8,6 +8,7 @@ import { useFullPageLayout } from '@/hooks/usePageLayout';
 import IntelligencePeriodPicker from './IntelligencePeriodPicker';
 import IntelligenceFilters from './IntelligenceFilters';
 import IntelligenceSummaryTiles from './IntelligenceSummaryTiles';
+import IntelligenceOverview from './IntelligenceOverview';
 import IntelligenceDataState from './IntelligenceDataState';
 import IntelligenceService from './IntelligenceService';
 import { INTELLIGENCE_TABS, INSTANCE_TABS, resolveIntelligenceTab } from './intelligenceTabs';
@@ -39,6 +40,7 @@ export default function IntelligencePage() {
   const requested = searchParams.get('tab');
   const vehicle = searchParams.get('vehicle') ?? '';
   const driver = searchParams.get('driver') ?? '';
+  const kind = searchParams.get('kind') ?? '';
   const period = resolvePeriod({ from: searchParams.get('from'), to: searchParams.get('to') });
   const { from, to } = period;
 
@@ -88,12 +90,19 @@ export default function IntelligencePage() {
 
       <div className="mb-4">
         <IntelligenceFilters
+          showVehicle={!['drivers', 'runs', 'places'].includes(active)}
+          showDriver={active === 'drivers' || Object.hasOwn(INSTANCE_TABS, active)}
           vehicle={vehicle}
           driver={driver}
           onChange={(next) => updateParams({ vehicle: next.vehicle, driver: next.driver })}
         />
       </div>
 
+      {['runs', 'places'].includes(active) ? (
+        <p className="intelligence-scope-note">
+          This tab covers the whole fleet. Truck and driver filters apply on their supported tabs.
+        </p>
+      ) : null}
       {/* The summary endpoint not shipped yet (404) means nothing to show:
           no box at all, rather than a dashed "being built" panel above a
           second one in the tab. */}
@@ -108,7 +117,13 @@ export default function IntelligencePage() {
             what="The summary of this period"
             onRetry={refetchSummary}
           >
-            <IntelligenceSummaryTiles tiles={summary?.tiles ?? []} />
+            <IntelligenceOverview summary={summary} issues={issues} />
+            {summary?.tiles?.length ? (
+              <details className="intelligence-insight-details">
+                <summary>Period insights and explanations</summary>
+                <IntelligenceSummaryTiles tiles={summary.tiles} />
+              </details>
+            ) : null}
           </IntelligenceDataState>
         </div>
       )}
@@ -141,19 +156,37 @@ export default function IntelligencePage() {
 
         <TabsContent value="issues">
           <Suspense fallback={<IntelligenceSkeleton />}>
-            <IssuesTab from={from} to={to} />
+            <IssuesTab
+              key={`${from}:${to}:${vehicle}:${kind}`}
+              from={from}
+              to={to}
+              vehicle={vehicle}
+              kind={kind}
+            />
           </Suspense>
         </TabsContent>
 
         <TabsContent value="vehicles">
           <Suspense fallback={<IntelligenceSkeleton variant="cards" />}>
-            <ReportCardsTab subject="vehicle" from={from} to={to} />
+            <ReportCardsTab
+              key={`vehicles:${from}:${to}:${vehicle}`}
+              subject="vehicle"
+              from={from}
+              to={to}
+              vehicle={vehicle}
+            />
           </Suspense>
         </TabsContent>
 
         <TabsContent value="drivers">
           <Suspense fallback={<IntelligenceSkeleton variant="cards" />}>
-            <ReportCardsTab subject="driver" from={from} to={to} />
+            <ReportCardsTab
+              key={`drivers:${from}:${to}:${driver}`}
+              subject="driver"
+              from={from}
+              to={to}
+              driver={driver}
+            />
           </Suspense>
         </TabsContent>
 

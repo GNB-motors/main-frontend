@@ -394,6 +394,7 @@ const LiveTrackingPage = () => {
               map={mapRef.current}
               track={isTrackMode ? trackMode.track : null}
               trackPlayheadTime={isTrackMode ? trackMode.playheadTime : null}
+              trackRoad={isTrackMode ? trackMode.roadTrail : null}
             />
 
             {/* Floating controls: the search, live telemetry and the legend

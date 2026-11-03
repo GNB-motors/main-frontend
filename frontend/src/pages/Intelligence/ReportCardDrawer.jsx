@@ -18,9 +18,16 @@ const GRADE_LABEL = {
   GOOD: 'Good',
   FAIR: 'Fair',
   FALLING: 'Falling off',
+  NOT_ENOUGH_DATA: 'Insufficient data',
 };
 
-const GRADE_TONE = { EXCELLENT: 'good', GOOD: 'info', FAIR: 'info', FALLING: 'watch' };
+const GRADE_TONE = {
+  EXCELLENT: 'good',
+  GOOD: 'info',
+  FAIR: 'info',
+  FALLING: 'watch',
+  NOT_ENOUGH_DATA: 'info',
+};
 
 /**
  * ReportCardDrawer — the whole card, with the moments behind it.

@@ -36,7 +36,7 @@ export default function RunsTab({ from, to }) {
       IntelligenceService.getAutoTrips({
         from: rangeReady ? istDayStart(from).toISOString() : undefined,
         to: rangeReady ? istDayEnd(to).toISOString() : undefined,
-        limit: 500,
+        limit: 200,
         signal,
       }),
     [from, to],

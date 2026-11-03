@@ -138,9 +138,21 @@ describe('bucketReportCards', () => {
 
   it('puts every grade in its own column', () => {
     const { buckets } = bucketReportCards(cards);
-    expect(buckets.map((bucket) => bucket.id)).toEqual(['excellent', 'good', 'fair', 'falling']);
+    expect(buckets.map((bucket) => bucket.id)).toEqual([
+      'excellent',
+      'good',
+      'fair',
+      'falling',
+      'ungraded',
+    ]);
     expect(buckets[0].cards.map((card) => card.id)).toEqual(['v1']);
     expect(buckets[3].cards.map((card) => card.id)).toEqual(['v4']);
+  });
+
+  it('keeps trucks without enough data visible', () => {
+    const { buckets, total } = bucketReportCards([{ id: 'unknown', grade: 'NOT_ENOUGH_DATA' }]);
+    expect(total).toBe(1);
+    expect(buckets[4].cards[0].id).toBe('unknown');
   });
 
   it('filters by grade', () => {

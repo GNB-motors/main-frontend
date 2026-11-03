@@ -47,6 +47,25 @@ const importAutoTrips = () => import('../../schemas/autoTrip.schema.js');
 const SHARED_TTL_MS = 30 * 1000;
 const issueCalls = new Map();
 
+// The API caps pages at 200. Fetch every page before applying local groups,
+// so counts and filtering never describe only the first 50 records.
+async function readAllPages(fetchPage, signal) {
+  const first = await fetchPage(1, 200);
+  if (first?.held) return first;
+  const items = [...(first?.items || [])];
+  const total = first?.total ?? items.length;
+  let page = 2;
+  while (items.length < total) {
+    if (signal?.aborted) throw Object.assign(new Error('Canceled'), { code: 'ERR_CANCELED' });
+    const next = await fetchPage(page, 200);
+    if (next?.held || !next?.items?.length)
+      throw new Error('The complete list could not be loaded. Please retry.');
+    items.push(...next.items);
+    page += 1;
+  }
+  return { ...first, items, total };
+}
+
 const IntelligenceService = {
   /** GET /api/intelligence/summary — the tiles and the run numbers. */
   getSummary: ({ from, to, signal } = {}) =>
@@ -61,7 +80,9 @@ const IntelligenceService = {
     const key = `${getUserId() || ''}:${getOrgId() || ''}:${getBranchId() || 'all'}:${from}:${to}`;
     const hit = issueCalls.get(key);
     if (hit && Date.now() - hit.at < SHARED_TTL_MS) return hit.promise;
-    const promise = fleetViewService.getIntelligenceIssues({ from, to });
+    const promise = readAllPages((page, limit) =>
+      fleetViewService.getIntelligenceIssues({ from, to, page, limit }),
+    );
     issueCalls.set(key, { at: Date.now(), promise });
     promise.catch(() => issueCalls.delete(key));
     return promise;
@@ -107,13 +128,17 @@ const IntelligenceService = {
     }),
 
   /** GET /api/auto-trips — the trips of the period, with their legs. */
-  getAutoTrips: ({ from, to, vehicle, limit, signal } = {}) =>
-    get('/api/auto-trips', {
-      params: { from, to, vehicle, limit },
+  getAutoTrips: ({ from, to, signal } = {}) =>
+    readAllPages(
+      (page, limit) =>
+        get('/api/auto-trips', {
+          params: { from, to, page, limit },
+          signal,
+          schema: 'autoTripListSchema',
+          importer: importAutoTrips,
+        }),
       signal,
-      schema: 'autoTripListSchema',
-      importer: importAutoTrips,
-    }),
+    ),
 };
 
 export default IntelligenceService;

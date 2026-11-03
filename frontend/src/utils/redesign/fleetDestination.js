@@ -87,7 +87,16 @@ export function fleetDestination(to) {
   } else url.pathname = path;
 
   if (url.pathname === '/intelligence') {
-    if (url.searchParams.get('tab') === 'report-cards') url.searchParams.set('tab', 'vehicles');
+    const tabAliases = {
+      'report-cards': 'vehicles',
+      kmperl: 'mileage',
+      idlehperday: 'idling',
+      overspeedmin: 'overspeed',
+      cruisesharepct: 'cruise',
+      detourcount: 'detours',
+    };
+    const tab = url.searchParams.get('tab');
+    if (tabAliases[tab]) url.searchParams.set('tab', tabAliases[tab]);
     if (!url.searchParams.has('tab') && url.searchParams.has('kind'))
       url.searchParams.set('tab', 'issues');
   }

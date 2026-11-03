@@ -39,14 +39,19 @@ describe('IntelligenceService', () => {
     expect(fleetViewService.getIntelligenceIssues).toHaveBeenCalledWith({
       from: '2026-10-27',
       to: '2026-11-02',
-      signal: undefined,
+      page: 1,
+      limit: 200,
     });
   });
 
   it('asks the API for the report cards of one subject', async () => {
     apiClient.get.mockResolvedValue({ data: { items: [] } });
 
-    await IntelligenceService.getReportCards({ subject: 'driver', from: '2026-10-27', to: '2026-11-02' });
+    await IntelligenceService.getReportCards({
+      subject: 'driver',
+      from: '2026-10-27',
+      to: '2026-11-02',
+    });
 
     expect(apiClient.get).toHaveBeenCalledWith(
       '/api/intelligence/report-cards',
@@ -103,7 +108,9 @@ describe('IntelligenceService', () => {
 
     expect(apiClient.get).toHaveBeenCalledWith(
       '/api/fleet-view/trips/history',
-      expect.objectContaining({ params: expect.objectContaining({ from: '2026-10-27', to: '2026-11-02' }) }),
+      expect.objectContaining({
+        params: expect.objectContaining({ from: '2026-10-27', to: '2026-11-02' }),
+      }),
     );
   });
 
@@ -125,5 +132,38 @@ describe('IntelligenceService', () => {
     await expect(IntelligenceService.getAutoTrips({ from: 'a', to: 'b' })).rejects.toMatchObject({
       status: 404,
     });
+  });
+  it('loads every issue page before returning counts and groups', async () => {
+    fleetViewService.getIntelligenceIssues
+      .mockResolvedValueOnce({
+        items: Array.from({ length: 200 }, (_, id) => ({ id })),
+        total: 201,
+      })
+      .mockResolvedValueOnce({ items: [{ id: 'last-page' }], total: 201 });
+    const result = await IntelligenceService.getIssues({ from: '2026-09-01', to: '2026-09-07' });
+    expect(result.items).toHaveLength(201);
+    expect(result.items[200].id).toBe('last-page');
+    expect(fleetViewService.getIntelligenceIssues).toHaveBeenLastCalledWith({
+      from: '2026-09-01',
+      to: '2026-09-07',
+      page: 2,
+      limit: 200,
+    });
+  });
+
+  it('loads trips beyond the first page without exceeding the API limit', async () => {
+    apiClient.get
+      .mockResolvedValueOnce({
+        data: { items: Array.from({ length: 200 }, (_, id) => ({ id })), total: 201 },
+      })
+      .mockResolvedValueOnce({ data: { items: [{ id: 'last-trip' }], total: 201 } });
+    const result = await IntelligenceService.getAutoTrips({ from: 'a', to: 'b' });
+    expect(result.items).toHaveLength(201);
+    expect(apiClient.get).toHaveBeenLastCalledWith(
+      '/api/auto-trips',
+      expect.objectContaining({
+        params: { from: 'a', to: 'b', page: 2, limit: 200 },
+      }),
+    );
   });
 });

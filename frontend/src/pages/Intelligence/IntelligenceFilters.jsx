@@ -12,11 +12,20 @@ import { driverOptions } from './intelligenceModel';
  * way. When a filter is on, a chip says what is being looked at and how to
  * let it go again.
  */
-export default function IntelligenceFilters({ vehicle = '', driver = '', onChange }) {
-  const { data: vehicles } = useApi((signal) => getVehicleList({ signal }), []);
+export default function IntelligenceFilters({
+  vehicle = '',
+  driver = '',
+  onChange,
+  showVehicle = true,
+  showDriver = true,
+}) {
+  const { data: vehicles } = useApi((signal) => getVehicleList({ signal }), [], {
+    enabled: showVehicle,
+  });
   const { data: assignments } = useApi(
     (signal) => DriverVehicleAssignmentService.getAllActiveAssignments({ signal }),
     [],
+    { enabled: showDriver },
   );
 
   const drivers = driverOptions(assignments ?? []);
@@ -30,43 +39,47 @@ export default function IntelligenceFilters({ vehicle = '', driver = '', onChang
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="w-full sm:w-[260px]">
-          <SearchableSelect
-            value={vehicle}
-            aria-label="Filter by truck"
-            placeholder="All trucks"
-            className="intelligence-filter-select"
-            onValueChange={(value) => onChange({ vehicle: value, driver })}
-          >
-            <option value="">All trucks</option>
-            {vehicleOptions.map((reg) => (
-              <option key={reg} value={reg}>
-                {reg}
-              </option>
-            ))}
-          </SearchableSelect>
-        </div>
-        <div className="w-full sm:w-[260px]">
-          <SearchableSelect
-            value={driver}
-            aria-label="Filter by driver"
-            placeholder="All drivers"
-            className="intelligence-filter-select"
-            onValueChange={(value) => onChange({ vehicle, driver: value })}
-          >
-            <option value="">All drivers</option>
-            {drivers.map((entry) => (
-              <option key={entry.id} value={entry.id}>
-                {entry.name}
-              </option>
-            ))}
-          </SearchableSelect>
-        </div>
+        {showVehicle ? (
+          <div className="w-full sm:w-[260px]">
+            <SearchableSelect
+              value={vehicle}
+              aria-label="Filter by truck"
+              placeholder="All trucks"
+              className="intelligence-filter-select"
+              onValueChange={(value) => onChange({ vehicle: value, driver })}
+            >
+              <option value="">All trucks</option>
+              {vehicleOptions.map((reg) => (
+                <option key={reg} value={reg}>
+                  {reg}
+                </option>
+              ))}
+            </SearchableSelect>
+          </div>
+        ) : null}
+        {showDriver ? (
+          <div className="w-full sm:w-[260px]">
+            <SearchableSelect
+              value={driver}
+              aria-label="Filter by driver"
+              placeholder="All drivers"
+              className="intelligence-filter-select"
+              onValueChange={(value) => onChange({ vehicle, driver: value })}
+            >
+              <option value="">All drivers</option>
+              {drivers.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.name}
+                </option>
+              ))}
+            </SearchableSelect>
+          </div>
+        ) : null}
       </div>
 
-      {vehicle || driver ? (
+      {(showVehicle && vehicle) || (showDriver && driver) ? (
         <div className="flex flex-wrap items-center gap-2">
-          {vehicle ? (
+          {showVehicle && vehicle ? (
             <button
               type="button"
               onClick={() => onChange({ vehicle: '', driver })}
@@ -77,7 +90,7 @@ export default function IntelligenceFilters({ vehicle = '', driver = '', onChang
               <X size={12} aria-hidden="true" />
             </button>
           ) : null}
-          {driver ? (
+          {showDriver && driver ? (
             <button
               type="button"
               onClick={() => onChange({ vehicle, driver: '' })}

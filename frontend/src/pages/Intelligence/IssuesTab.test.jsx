@@ -97,7 +97,11 @@ describe('IssuesTab', () => {
   });
 
   it('says everything is fine when there is nothing wrong', async () => {
-    IntelligenceService.getIssues.mockResolvedValue({ items: [], total: 0, counts: { act: 0, watch: 0 } });
+    IntelligenceService.getIssues.mockResolvedValue({
+      items: [],
+      total: 0,
+      counts: { act: 0, watch: 0 },
+    });
 
     render(
       <MemoryRouter>
@@ -106,7 +110,7 @@ describe('IssuesTab', () => {
     );
 
     expect(
-      await screen.findByText(/No open issues\. All trucks are reporting/),
+      await screen.findByText(/No open issues returned for this selection/),
     ).toBeInTheDocument();
   });
 

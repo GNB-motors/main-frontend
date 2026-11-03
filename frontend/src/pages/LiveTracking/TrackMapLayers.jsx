@@ -3,6 +3,7 @@ import { MarkerF, PolylineF } from '@react-google-maps/api';
 import { buildTrackLayers, playheadAt } from './trackLayersModel';
 import { createVehicleMarkerIcon } from './vehicleMarkerIcon.js';
 import { cssToken } from '../../utils/redesign/tone';
+import { toLayers } from '../../lib/roadTrail';
 
 /**
  * Google Maps draws on its own canvas and cannot read CSS variables, so a
@@ -27,11 +28,22 @@ export default function TrackMapLayers({
   zoom = 0,
   playheadTime = null,
   showOverspeed = true,
+  roadTrail = null,
 }) {
   const layers = useMemo(() => buildTrackLayers(track, { zoom }), [track, zoom]);
 
   // One plain colour for the whole route (Google Maps needs a resolved hex).
   const routeColor = cssToken('--rd-leg-loaded', '#2563eb');
+
+  // When the road engine matched these days, draw the route along real roads
+  // (it even bridges GPS gaps along the road); otherwise fall back to the raw
+  // point line below.
+  const roadPaths = useMemo(() => {
+    if (roadTrail?.mode !== 'MATCHED') return [];
+    return toLayers(roadTrail)
+      .filter((layer) => Array.isArray(layer.path) && layer.path.length > 1)
+      .map((layer) => ({ key: `road-${layer.kind}-${layer.t0}`, path: layer.path }));
+  }, [roadTrail]);
 
   const playhead = useMemo(
     () => (playheadTime ? playheadAt(track?.points ?? [], playheadTime) : null),
@@ -55,21 +67,35 @@ export default function TrackMapLayers({
 
   return (
     <>
-      {/* 1. The path as one plain line. */}
-      {layers.segments.map((segment) =>
-        segment.path.length > 1 ? (
-          <PolylineF
-            key={segment.key}
-            path={segment.path}
-            options={{
-              strokeColor: routeColor,
-              strokeWeight: 4,
-              strokeOpacity: 1,
-              zIndex: 20,
-            }}
-          />
-        ) : null,
-      )}
+      {/* 1. The path as one plain line — snapped to roads when the engine has a
+            match, otherwise the raw-point line. */}
+      {roadPaths.length > 0
+        ? roadPaths.map((road) => (
+            <PolylineF
+              key={road.key}
+              path={road.path}
+              options={{
+                strokeColor: routeColor,
+                strokeWeight: 4,
+                strokeOpacity: 1,
+                zIndex: 20,
+              }}
+            />
+          ))
+        : layers.segments.map((segment) =>
+            segment.path.length > 1 ? (
+              <PolylineF
+                key={segment.key}
+                path={segment.path}
+                options={{
+                  strokeColor: routeColor,
+                  strokeWeight: 4,
+                  strokeOpacity: 1,
+                  zIndex: 20,
+                }}
+              />
+            ) : null,
+          )}
 
       {/* 2. Overspeed: orange circles, never a red line. */}
       {showOverspeed

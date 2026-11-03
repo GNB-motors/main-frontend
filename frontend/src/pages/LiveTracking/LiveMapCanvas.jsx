@@ -61,6 +61,7 @@ export default function LiveMapCanvas({
   map = null,
   track = null,
   trackPlayheadTime = null,
+  trackRoad = null,
 }) {
   /* When the user disables per-trip segmentation we fall back to a single
      polyline (visual continuity with the legacy behavior). The fallback
@@ -164,7 +165,12 @@ export default function LiveMapCanvas({
 
           {/* Track mode: one truck's history, drawn over the live map. */}
           {track ? (
-            <TrackMapLayers track={track} zoom={mapZoom} playheadTime={trackPlayheadTime} />
+            <TrackMapLayers
+              track={track}
+              zoom={mapZoom}
+              playheadTime={trackPlayheadTime}
+              roadTrail={trackRoad}
+            />
           ) : null}
 
           {/* Places (Place Hub's confirmed places) — under the fleet, never hiding a truck. */}

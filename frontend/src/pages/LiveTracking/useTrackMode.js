@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { fleetViewService } from '../../services/fleetViewService';
+import RoadService from '../../services/RoadService';
 import { buildTrackUrl, parseTrackParams, toIso } from './trackUrlModel';
 import { MS_PER_TRACK_MINUTE, indexAtTime, timeAtIndex } from './trackPlayback';
 
@@ -29,6 +30,23 @@ export default function useTrackMode({ searchParams, setSearchParams }) {
 
   const track = data?.held === true ? null : (data ?? null);
   const points = useMemo(() => (Array.isArray(track?.points) ? track.points : []), [track]);
+
+  // The road-matched route from our self-hosted engine. When it is on and the
+  // days are matched, the route follows real roads instead of cutting straight
+  // across GPS gaps; a null (engine off, or no match yet) falls back to the
+  // raw-point line. A map must never break on it — the service returns null on
+  // any error.
+  const { data: roadData } = useApi(
+    (signal) =>
+      RoadService.getRoadTrailIfEnabled(
+        state.reg,
+        { from: toIso(state.from), to: toIso(state.to) },
+        signal,
+      ),
+    [state.reg, state.from?.getTime(), state.to?.getTime()],
+    { enabled: isTrackMode },
+  );
+  const roadTrail = roadData ?? null;
 
   // The playhead. It starts where the URL says, or at the start of the range.
   const [playheadTime, setPlayheadTime] = useState(() => state.at);
@@ -78,7 +96,10 @@ export default function useTrackMode({ searchParams, setSearchParams }) {
       const trackMs = (Date.now() - startedAt) * speed * MS_PER_TRACK_MINUTE;
       const absoluteMs = fromMs + trackMs;
       if (absoluteMs >= lastMs) {
-        setPlayheadTime(new Date(lastMs));
+        // The drive is over: rewind the playhead to the start so the marker is
+        // ready at the beginning. Pressing play then runs forward smoothly
+        // instead of teleporting from the last point to the first.
+        setPlayheadTime(new Date(firstMs));
         setIsPlaying(false);
         return;
       }
@@ -140,6 +161,7 @@ export default function useTrackMode({ searchParams, setSearchParams }) {
     correctedRange: state.correctedRange,
     track,
     points,
+    roadTrail,
     loading,
     error,
     notDeployed: error?.status === 404,

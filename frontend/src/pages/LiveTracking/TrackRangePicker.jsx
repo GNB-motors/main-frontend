@@ -21,7 +21,21 @@ export default function TrackRangePicker({
   const [customFrom, setCustomFrom] = useState(() => toLocalInput(from));
   const [customTo, setCustomTo] = useState(() => toLocalInput(to));
 
-  const presets = rangePresets({ now: to ?? new Date(), trip });
+  // Presets are always relative to the real clock, never to the current range —
+  // otherwise picking "Yesterday" would move the clock back and the next
+  // "Yesterday" would mean the day before. (bug: presets must not drift)
+  const presets = rangePresets({ now: new Date(), trip });
+
+  // Which preset the current range matches, so it can read as selected.
+  const activeId =
+    (from &&
+      to &&
+      presets.find(
+        (p) =>
+          Math.abs(p.from.getTime() - from.getTime()) < 60000 &&
+          Math.abs(p.to.getTime() - to.getTime()) < 60000,
+      )?.id) ||
+    null;
 
   const applyPreset = (preset) => {
     onApply?.({ from: preset.from, to: preset.to });
@@ -60,7 +74,12 @@ export default function TrackRangePicker({
                   key={preset.id}
                   type="button"
                   onClick={() => applyPreset(preset)}
-                  className="rounded-[var(--rd-radius-sm)] border border-[var(--rd-line)] px-2.5 py-1 text-[12px] font-medium text-[var(--rd-ink-2)] transition-colors hover:border-[var(--rd-line-strong)] hover:text-[var(--rd-ink)]"
+                  aria-pressed={activeId === preset.id}
+                  className={`rounded-[var(--rd-radius-sm)] border px-2.5 py-1 text-[12px] transition-colors ${
+                    activeId === preset.id
+                      ? 'border-[#2563eb] font-semibold text-[#2563eb]'
+                      : 'border-[var(--rd-line)] font-medium text-[var(--rd-ink-2)] hover:border-[var(--rd-line-strong)] hover:text-[var(--rd-ink)]'
+                  }`}
                 >
                   {preset.label}
                 </button>
@@ -78,7 +97,9 @@ export default function TrackRangePicker({
                 type="date"
                 aria-label="From date"
                 value={customFrom.date}
-                onChange={(event) => setCustomFrom((prev) => ({ ...prev, date: event.target.value }))}
+                onChange={(event) =>
+                  setCustomFrom((prev) => ({ ...prev, date: event.target.value }))
+                }
                 className="rounded-[var(--rd-radius-xs)] border border-[var(--rd-line)] bg-[var(--rd-card)] px-1.5 py-1 text-[12px] text-[var(--rd-ink)]"
               />
               <input
@@ -86,7 +107,9 @@ export default function TrackRangePicker({
                 step="60"
                 aria-label="From time"
                 value={customFrom.time}
-                onChange={(event) => setCustomFrom((prev) => ({ ...prev, time: event.target.value }))}
+                onChange={(event) =>
+                  setCustomFrom((prev) => ({ ...prev, time: event.target.value }))
+                }
                 className="rounded-[var(--rd-radius-xs)] border border-[var(--rd-line)] bg-[var(--rd-card)] px-1.5 py-1 text-[12px] text-[var(--rd-ink)]"
               />
             </label>
