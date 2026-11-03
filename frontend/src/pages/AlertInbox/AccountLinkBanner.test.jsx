@@ -26,6 +26,20 @@ describe('AccountLinkBanner', () => {
     expect(screen.getByText(/4 trucks have no live data/)).toBeInTheDocument();
   });
 
+  it('does not print 0 trucks when the count is unknown', () => {
+    renderBanner({
+      accountId: 'acc-2',
+      accountName: 'FL-9',
+      state: 'NEEDS_RELINK',
+      lastDataAt: null,
+      trucks: null,
+      action: null,
+    });
+
+    expect(screen.getByText(/Its trucks have no live data/)).toBeInTheDocument();
+    expect(screen.queryByText(/0 trucks/)).not.toBeInTheDocument();
+  });
+
   it('carries the one button that fixes it', () => {
     renderBanner({
       accountId: 'acc-1',

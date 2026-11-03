@@ -18,7 +18,7 @@ export default function AccountLinkBanner({ account }) {
   if (!isDisconnected && !isExpiring) return null;
 
   const tone = isDisconnected ? 'act' : 'watch';
-  const trucks = account.trucks ?? 0;
+  const trucks = Number.isFinite(account.trucks) ? account.trucks : null;
   const since = account.lastDataAt ? formatAgo(account.lastDataAt) : null;
 
   return (
@@ -42,8 +42,11 @@ export default function AccountLinkBanner({ account }) {
         <strong>{account.accountName}</strong>:{' '}
         {isDisconnected ? (
           <>
-            account disconnected. {trucks} {trucks === 1 ? 'truck has' : 'trucks have'} no live
-            data {since ? `since ${since}` : ''}.
+            account disconnected.{' '}
+            {trucks == null
+              ? 'Its trucks have'
+              : `${trucks} ${trucks === 1 ? 'truck has' : 'trucks have'}`}{' '}
+            no live data{since ? ` since ${since}` : ''}.
           </>
         ) : (
           <>link expires soon; reconnect to avoid a gap.</>

@@ -1,6 +1,7 @@
 import apiClient from '../utils/axiosConfig';
 import ApiError from '../errors/ApiError';
 import { parseSafe } from '../schemas/validate.js';
+import { linkStateItems } from '../lib/fleetLink.js';
 
 /**
  * fleetViewService — every endpoint of the 3 Nov 2026 fleet-view API.
@@ -161,13 +162,19 @@ export const getDigest = ({ date, signal } = {}) =>
 
 /* ── §11 The vendor accounts ──────────────────────────────────────────── */
 
-/** GET /api/fleet-view/accounts/link-state */
-export const getAccountsLinkState = ({ signal } = {}) =>
-  get('/api/fleet-view/accounts/link-state', {
+/**
+ * The vendor accounts, as { items } of AccountLinkStateSchema rows. Contract §11's
+ * /fleet-view/accounts/link-state was never built; the FleetEdge link-health
+ * endpoint (the one the header icon and Settings read) carries the same facts.
+ */
+export const getAccountsLinkState = async ({ signal } = {}) => {
+  const data = await get('/api/fleetedge/accounts/link-health', {
     signal,
-    schema: 'AccountsLinkStateResponseSchema',
-    importer: () => import('../schemas/accounts.schema.js'),
+    schema: 'fleetLinkHealthSchema',
+    importer: () => import('../schemas/fleetLinkHealth.schema.js'),
   });
+  return { items: linkStateItems(data) };
+};
 
 /* ── §4 Intelligence ──────────────────────────────────────────────────── */
 

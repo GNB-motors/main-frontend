@@ -38,6 +38,22 @@ export const linkForReg = (index, reg) => index?.byReg.get(regKey(reg)) || null;
 
 export const needsAction = (account) => ACTION_STATES.includes(account?.state);
 
+/**
+ * link-health accounts as the Alert inbox banner reads them. The truck count is
+ * null when the payload does not say, never 0.
+ */
+export function linkStateItems(data) {
+  return (data?.accounts || []).map((a) => ({
+    accountId: String(a.accountId),
+    vendor: 'FLEETEDGE',
+    accountName: a.friendlyName || a.fleetId || 'FleetEdge account',
+    state: a.state,
+    lastDataAt: a.dataPausedSince ?? null,
+    trucks: a.vehicleCount ?? (Array.isArray(a.vehicles) && a.vehicles.length ? a.vehicles.length : null),
+    action: { label: 'Reconnect', to: '/settings/fleetedge-accounts' },
+  }));
+}
+
 /** Vehicles across the fleet whose FleetEdge account needs re-linking (now or soon). */
 export const vehiclesNeedingAction = (data) =>
   (data?.accounts || [])
