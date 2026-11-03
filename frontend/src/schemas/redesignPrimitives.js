@@ -13,7 +13,9 @@
 import { z } from 'zod';
 
 /** live = ≤ 5 min old; recent = older but inside the truck's own limit; stale = older. */
-export const FreshnessSchema = z.enum(['live', 'recent', 'stale', 'never']);
+// 'not_learned': the backend has no learned silence cut-off for this truck or its org yet;
+// the badge then shows the plain age, never a guessed 'recent' or 'stale'.
+export const FreshnessSchema = z.enum(['live', 'recent', 'stale', 'never', 'not_learned']);
 
 /** Where a value comes from. */
 export const SourceSchema = z.enum(['FLEETEDGE', 'IALERT', 'SINK', 'LEARNED', 'MANUAL']).nullable();
