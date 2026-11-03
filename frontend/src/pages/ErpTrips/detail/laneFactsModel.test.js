@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, test } from 'vitest';
 import { laneTimeLabel, tollQuoteLabel } from './laneFactsModel';
 
 describe('usual time on a lane', () => {
@@ -34,3 +34,17 @@ describe('toll quote', () => {
     expect(tollQuoteLabel({ totals: {} })).toBeNull();
   });
 });
+
+describe('review fixes', () => {
+  test('the corridor p75 (the API has no p90) gives the slow-side line', () => {
+    expect(laneTimeLabel({ stats: { median: 38.5, p75: 41, sampleSize: 23 } })).toBe(
+      'Usual on this lane: 38.5 h (3 in 4 trips under 41.0 h)',
+    );
+  });
+  test('a quote with no priced booth is unavailable, never ₹0', () => {
+    expect(
+      tollQuoteLabel({ boothCount: 3, totals: { multiaxle: { singleInr: 0, priced: 0, unknown: 3 } } }),
+    ).toBeNull();
+  });
+});
+

@@ -47,8 +47,15 @@ export function laneTimeLabel(payload) {
   const p50 = numberOrNull(row.p50 ?? row.median);
   if (p50 === null) return null;
   const label = `Usual on this lane: ${p50.toFixed(1)} h`;
+  // /api/corridor-eta/stats sends min, p25, median, p75, max (hours); no p90.
   const p90 = numberOrNull(row.p90);
-  const withP90 = p90 === null ? label : `${label} (slow days ${p90.toFixed(1)} h)`;
+  const p75 = numberOrNull(row.p75);
+  const withP90 =
+    p90 !== null
+      ? `${label} (slow days ${p90.toFixed(1)} h)`
+      : p75 !== null
+        ? `${label} (3 in 4 trips under ${p75.toFixed(1)} h)`
+        : label;
   const sampleSize = numberOrNull(row.sampleSize);
   if (sampleSize !== null && sampleSize > 0 && sampleSize < 5) {
     return `${withP90} · only ${sampleSize} trip${sampleSize === 1 ? '' : 's'} on this lane`;
@@ -67,7 +74,10 @@ export function tollQuoteLabel(payload, { group = TOLL_GROUP } = {}) {
   const entry = totals[group];
   if (!entry) return null;
   const amount = numberOrNull(entry.singleInr);
-  if (amount === null) return null;
+  // singleInr stays 0 when no booth on the route has a known fare: that is
+  // "we do not know", never a free route.
+  const priced = numberOrNull(entry.priced);
+  if (amount === null || (priced !== null && priced <= 0)) return null;
   const booths = numberOrNull(data?.boothCount);
   const plazaText =
     booths === null ? '' : ` across ${booths} plaza${booths === 1 ? '' : 's'}`;
