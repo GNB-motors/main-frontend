@@ -25,9 +25,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * poll or by push.
  */
 
-/** Merge streamed diff rows into the current dataset by a stable key. Rows whose key is not present yet are appended (a diff may reference a vehicle the base fetch missed). */
+/**
+ * Merge streamed diff rows into the current dataset by a stable key. Rows whose
+ * key is not present yet are appended (a diff may reference a vehicle the base
+ * fetch missed).
+ *
+ * When the base has not landed yet there is nothing to merge into: a diff on
+ * its own is a PARTIAL fleet, and half a fleet is worse than none. The base is
+ * left alone and the caller refetches it instead.
+ */
 export function mergeByKey(current, changed, key) {
-  if (!Array.isArray(current) || !Array.isArray(changed)) return changed;
+  if (!Array.isArray(current)) return current ?? null;
+  if (!Array.isArray(changed)) return current;
   const index = new Map(current.map((row, i) => [row?.[key], i]));
   const next = current.slice();
   for (const row of changed) {
@@ -59,6 +68,10 @@ export function useLiveData(eventType, { initialFetch, applyDiff, enabled = true
   // The first load, the degraded poll and the reconnect resync can overlap; the
   // newest read wins and cancels the rest.
   const abortRef = useRef(null);
+  // True once the base dataset has landed. A stream diff that arrives before
+  // that is only a few trucks — merging it would show a partial fleet.
+  const baseReadyRef = useRef(false);
+  const refetchingRef = useRef(false);
   const runFetch = useCallback(async ({ initial = false } = {}) => {
     const fetcher = fetchRef.current;
     if (!fetcher) return;
@@ -70,6 +83,7 @@ export function useLiveData(eventType, { initialFetch, applyDiff, enabled = true
       const rows = await fetcher(controller.signal);
       if (controller.signal.aborted) return;
       setData(rows);
+      baseReadyRef.current = true;
       setError(null);
       setLastEventAt(new Date());
       setStatus('ready');
@@ -95,6 +109,17 @@ export function useLiveData(eventType, { initialFetch, applyDiff, enabled = true
         if (cancelled) return;
         const stream = getLiveStream();
         unsubscribe = stream.subscribe(eventType, (payload) => {
+          if (!baseReadyRef.current) {
+            // The base fetch has not landed (or failed). A diff on its own is a
+            // partial fleet, so refetch the base instead of showing one.
+            if (!refetchingRef.current) {
+              refetchingRef.current = true;
+              Promise.resolve(runFetch()).finally(() => {
+                refetchingRef.current = false;
+              });
+            }
+            return;
+          }
           setData((current) => (applyRef.current ? applyRef.current(current, payload) : payload));
           setLastEventAt(new Date());
           setStatus((prev) => (prev === 'loading' ? 'ready' : prev));

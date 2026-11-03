@@ -46,9 +46,6 @@ export const TripPlanService = {
       await apiClient.post(`${BASE}/${id}/unlink`, reason ? { reason } : {}, { signal }),
     ),
 
-  resumeAutoMatch: async ({ id }, { signal } = {}) =>
-    parsed('tripPlanSchema', await apiClient.post(`${BASE}/${id}/auto-match`, {}, { signal })),
-
   /** Trips no plan links to — what a person links a plan to by hand. */
   unplannedTrips: async (params = {}, { signal } = {}) =>
     parsed(

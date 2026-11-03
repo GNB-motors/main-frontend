@@ -35,6 +35,13 @@ import Skel from '../DefLedger/Skel';
  * columns definition, same file shape) — no second CSV writer here.
  */
 
+/**
+ * The page is behind a "Coming Soon" overlay. While that is up there is
+ * nothing to look at, so the page must not ask the server for anything
+ * either — a hidden page that still polls the API is a cost with no owner.
+ */
+const COMING_SOON = true;
+
 const STATUS_FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'OPEN', label: 'Open' },
@@ -107,13 +114,17 @@ export default function ChallansPage() {
   const [vehicles, setVehicles] = useState([]);
   const [rows, setRows] = useState([]);
   const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
 
   const load = useCallback(async () => {
+    // The page sits behind a "Coming Soon" overlay — there is nothing on it
+    // to read, so there is nothing to ask the server for either. The reads
+    // start when the page actually opens.
+    if (COMING_SOON) return;
     setRefreshing(true);
     try {
       const [perVehicle, sum] = await Promise.all([

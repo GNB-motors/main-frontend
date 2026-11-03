@@ -39,14 +39,6 @@ async function get(path, { params, signal, schema, importer }) {
 
 const importFleetView = () => import('../schemas/fleetView.schema.js');
 
-/** GET /api/fleet-view/vehicles/:reg/now */
-export const getVehicleNow = (reg, { signal } = {}) =>
-  get(`/api/fleet-view/vehicles/${encodeURIComponent(reg)}/now`, {
-    signal,
-    schema: 'VehicleNowResponseSchema',
-    importer: importFleetView,
-  });
-
 /** GET /api/fleet-view/vehicles/:reg/where-next */
 export const getWhereNext = (reg, { signal } = {}) =>
   get(`/api/fleet-view/vehicles/${encodeURIComponent(reg)}/where-next`, {
@@ -115,11 +107,11 @@ export const getPlaceQuestions = ({ signal } = {}) =>
     importer: () => import('../schemas/tripsHistory.schema.js'),
   });
 
-/** POST /api/fleet-view/places/questions/:id — name the place. */
+/** POST /api/fleet-view/places/questions/:id/answer — name the place. */
 export const answerPlaceQuestion = async (id, answer, { signal } = {}) => {
   try {
     const res = await apiClient.post(
-      `/api/fleet-view/places/questions/${encodeURIComponent(id)}`,
+      `/api/fleet-view/places/questions/${encodeURIComponent(id)}/answer`,
       answer,
       { signal },
     );
@@ -224,7 +216,6 @@ export const getVehicleTolls = (reg, { from, to, signal } = {}) =>
   });
 
 export const fleetViewService = {
-  getVehicleNow,
   getWhereNext,
   getVehicleTrack,
   getVehicleTolls,

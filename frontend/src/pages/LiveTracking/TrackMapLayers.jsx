@@ -3,6 +3,7 @@ import { MarkerF, PolylineF } from '@react-google-maps/api';
 import { buildTrackLayers, playheadAt } from './trackLayersModel';
 import { createVehicleMarkerIcon } from './vehicleMarkerIcon.js';
 import { cssToken } from '../../utils/redesign/tone';
+import { resolveMapColor } from './mapColor.js';
 import { toLayers } from '../../lib/roadTrail';
 
 /**
@@ -11,9 +12,7 @@ import { toLayers } from '../../lib/roadTrail';
  * computed hex before handing any colour to the map.
  */
 function resolveColor(color) {
-  if (typeof color !== 'string' || !color.startsWith('var(')) return color;
-  const name = color.slice(4, -1).trim();
-  return cssToken(name, '#8a93a3');
+  return resolveMapColor(color);
 }
 
 /**

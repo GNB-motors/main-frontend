@@ -116,9 +116,16 @@ const LiveTrackingPage = () => {
 
   const handleToggleLayer = (key) => {
     // "Our places" is the fleet's own confirmed places, which the Track page
-    // already has; the rest come from the map places endpoint.
+    // already has; the rest come from the map places endpoint. It is a real
+    // layer like any other, so it also flips in `layerSelection` — otherwise the
+    // layer says one thing and the map does another.
     if (key === 'ourPlaces') {
       trackPlaces.toggle();
+      setLayerSelection((prev) => {
+        const next = toggleSelection(prev, key);
+        writeLayerSelection(next);
+        return next;
+      });
       return;
     }
     setLayerSelection((prev) => {
@@ -434,6 +441,8 @@ const LiveTrackingPage = () => {
                   placesNotAvailable={mapPlaces.notAvailable}
                   placesTruncated={mapPlaces.truncated}
                   placesCount={mapPlaces.items.length}
+                  error={positionsError}
+                  onRetry={handleRefresh}
                 />
               }
               selectedVehicle={selectedVehicle}
@@ -567,6 +576,8 @@ const LiveTrackingPage = () => {
                         triggerMapResize={triggerMapResize}
                         selectedId={selectedId}
                         setSelectedId={setSelectedId}
+                        error={positionsError}
+                        onRetry={handleRefresh}
                       />
 
                       {/* Vehicle Detail Slide-in Drawer */}

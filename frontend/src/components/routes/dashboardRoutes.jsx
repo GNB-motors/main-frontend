@@ -97,7 +97,7 @@ const dashboardRoutes = (
   <>
     <Route path="/digest" element={<DailyDigestPage />} />
     <Route path="/fleet-alerts" element={<FleetAlertsPage />} />
-    <Route path="/idling-console" element={<Navigate to="/route-hub" replace />} />
+    <Route path="/idling-console" element={<Navigate to="/place-hub?tab=idling" replace />} />
     <Route path="/daily-brief" element={<Navigate to="/digest" replace />} />
     <Route path="/def-ledger" element={<DefLedgerPage />} />
     <Route path="/challans" element={<ChallansPage />} />
@@ -164,8 +164,8 @@ const dashboardRoutes = (
     />
     <Route path="/overspeed" element={<RedirectWithState to="/route-hub?tab=overspeed" />} />
     {/* Deprecated / hidden routes redirect cleanly so no blank screens appear */}
-    <Route path="/hotspots" element={<Navigate to="/route-hub" replace />} />
-    <Route path="/idling-console" element={<Navigate to="/route-hub" replace />} />
+    <Route path="/hotspots" element={<Navigate to="/place-hub?tab=fuel" replace />} />
+    <Route path="/idling-console" element={<Navigate to="/place-hub?tab=idling" replace />} />
     <Route path="/places" element={<PlacesRedirect />} />
     <Route path="/place-hub" element={<PlaceHubPage />} />
     <Route

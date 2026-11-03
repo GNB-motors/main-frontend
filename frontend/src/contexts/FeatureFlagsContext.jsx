@@ -1,5 +1,13 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from 'react';
 import useApi from '../hooks/useApi';
 import AuthService from '../services/AuthService';
 import { isAuthenticated } from '../utils/session.js';
@@ -12,11 +20,19 @@ const FeatureFlagsContext = createContext({
   profile: null,
   loading: true,
   ready: false,
+  failed: false,
   isEnabled: () => false,
   hasPermission: () => false,
   canAccess: () => false,
   refresh: async () => {},
+  retry: async () => {},
 });
+
+/**
+ * The backoff ladder for a failed /api/auth/me: 1 s, 2 s, 4 s, 8 s, then it
+ * stops and waits for a person (the banner's Retry button).
+ */
+export const FLAGS_RETRY_BACKOFF_MS = Object.freeze([1000, 2000, 4000, 8000]);
 
 /**
  * Flags the frontend knows about before an org has been granted them.
@@ -52,6 +68,15 @@ export const FeatureFlagsProvider = ({ children }) => {
     enabled: isAuthenticated(),
   });
 
+  // A failed /auth/me does NOT mean "no flags": it means we do not know yet.
+  // The last good flags stay on screen (an empty flags object collapses the
+  // whole sidebar), and the read is retried with a backoff.
+  const [failed, setFailed] = useState(false);
+  const attemptRef = useRef(0);
+  const retryTimerRef = useRef(null);
+  const refetchRef = useRef(refetch);
+  refetchRef.current = refetch;
+
   useEffect(() => {
     if (!payload) return;
     const org = payload?.organization ?? null;
@@ -59,18 +84,35 @@ export const FeatureFlagsProvider = ({ children }) => {
     setFlags({ ...DEFAULT_FEATURE_FLAGS, ...(org?.featureFlags ?? {}) });
     setPermissions(payload?.permissions ?? {});
     setProfile(payload);
+    // A good read resets the ladder, so the next failure starts at 1 s again.
+    attemptRef.current = 0;
+    setFailed(false);
   }, [payload]);
 
   useEffect(() => {
-    if (!meError) return;
+    if (!meError) return undefined;
     logger.warn('FeatureFlagsContext', 'FeatureFlags: failed to fetch', meError);
-    setFlags({ ...DEFAULT_FEATURE_FLAGS });
-    setPermissions({});
-    setOrganization(null);
-    setProfile(null);
+    setFailed(true);
+    // The last good flags, permissions and organisation stay: a failed read is
+    // not a fact about the account.
+    const delay = FLAGS_RETRY_BACKOFF_MS[attemptRef.current];
+    if (delay === undefined) return undefined; // the ladder is done; wait for a person
+    attemptRef.current += 1;
+    retryTimerRef.current = setTimeout(() => {
+      retryTimerRef.current = null;
+      refetchRef.current();
+    }, delay);
+    return () => clearTimeout(retryTimerRef.current);
   }, [meError]);
 
   const refresh = useCallback(() => refetch(), [refetch]);
+
+  /** The banner's Retry button: try again now, and start the ladder over. */
+  const retry = useCallback(() => {
+    attemptRef.current = 0;
+    setFailed(true);
+    refetchRef.current();
+  }, []);
 
   // True once the FIRST /api/auth/me has settled and its payload is in state
   // (or it failed, or the user isn't authenticated so it never runs). Checking
@@ -105,10 +147,12 @@ export const FeatureFlagsProvider = ({ children }) => {
       profile,
       loading,
       ready,
+      failed,
       isEnabled,
       hasPermission,
       canAccess,
       refresh,
+      retry,
     }),
     [
       flags,
@@ -117,10 +161,12 @@ export const FeatureFlagsProvider = ({ children }) => {
       profile,
       loading,
       ready,
+      failed,
       isEnabled,
       hasPermission,
       canAccess,
       refresh,
+      retry,
     ],
   );
 

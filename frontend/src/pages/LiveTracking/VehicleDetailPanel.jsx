@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import renderIconSvg from './renderIconSvg.jsx';
 import VehiclePanelHeader from './VehiclePanelHeader.jsx';
 import VehicleReadingTiles from './VehicleReadingTiles.jsx';
@@ -13,8 +12,6 @@ import VehicleAccountBanner from './VehicleAccountBanner.jsx';
 import VehiclePanelActions from './VehiclePanelActions.jsx';
 import WeatherSection from './WeatherSection.jsx';
 import VehicleLayerToggles from './VehicleLayerToggles.jsx';
-import useApi from '../../hooks/useApi.js';
-import { fleetViewService } from '../../services/fleetViewService';
 import { fallbackNow } from './vehiclePanelModel';
 
 /**
@@ -24,9 +21,8 @@ import { fallbackNow } from './vehiclePanelModel';
  * is the data live; what is it doing now; where is it going; is it doing
  * well; who is driving; who can help.
  *
- * The data comes from `/now`. That endpoint is not on prod yet, so until it
- * is, the panel reads the release's position row through the same view
- * model — every section then shows its own honest empty state.
+ * The data comes from the live stream row for the truck, mapped into the
+ * panel's view model — every section then shows its own honest empty state.
  */
 export default function VehicleDetailPanel({
   selectedVehicle,
@@ -48,24 +44,9 @@ export default function VehicleDetailPanel({
 }) {
   const reg = selectedVehicle?.plate ?? null;
 
-  const { data, error, refetch } = useApi(
-    (signal) => fleetViewService.getVehicleNow(reg, { signal }),
-    [reg],
-    { enabled: Boolean(reg), scopeKey: reg },
-  );
-
-  // The panel refreshes itself every minute while it is open, so a truck
-  // that just moved does not look frozen.
-  useEffect(() => {
-    if (!reg) return undefined;
-    const timer = setInterval(refetch, 60000);
-    return () => clearInterval(timer);
-  }, [reg, refetch]);
-
-  // Until the new endpoint is deployed, the release's position row is the
-  // fallback — mapped into the very same view model.
-  const notDeployed = error?.status === 404;
-  const now = data?.held === true ? null : (data ?? fallbackNow(selectedVehicle, selectedDriver));
+  // The live stream already carries the position row, so the panel reads it
+  // straight from there — no second endpoint to keep alive.
+  const now = fallbackNow(selectedVehicle, selectedDriver);
 
   return (
     <div
@@ -88,7 +69,7 @@ export default function VehicleDetailPanel({
           </div>
 
           <div className="dbody">
-            <VehicleAccountBanner account={notDeployed ? null : (now?.account ?? null)} />
+            <VehicleAccountBanner account={now?.account ?? null} />
 
             <VehiclePanelHeader now={now} account={now?.account ?? null} />
 

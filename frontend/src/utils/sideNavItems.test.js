@@ -35,6 +35,24 @@ describe('side nav hints', () => {
     expect(fleetItems.map((item) => item.label)).not.toContain('Place Hub');
   });
 
+  it('offers Places & Routes, pointing at Place Hub', () => {
+    const item = fleetItems.find((i) => i.to === '/place-hub');
+    expect(item).toBeTruthy();
+    expect(item.label).toBe('Places & Routes');
+    expect(item.access).toBe('fleet');
+  });
+
+  it('keeps Challans out of the sidebar (the route stays)', () => {
+    expect(fleetItems.map((item) => item.to)).not.toContain('/challans');
+  });
+
+  it('gates Tolls behind the tolls flag, like the page itself', () => {
+    const tolls = fleetItems.find((item) => item.to === '/tolls');
+    expect(tolls).toBeTruthy();
+    expect(tolls.key).toBe('tolls');
+    expect(tolls.access).toBe('fleet');
+  });
+
   it('writes hints in the owner’s words, not in developer words', () => {
     fleetItems.forEach((item) => {
       expect(item.hint).not.toMatch(/API|endpoint|schema|query param/i);

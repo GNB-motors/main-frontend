@@ -18,11 +18,12 @@ import {
   Radar,
   Warehouse,
   Route,
-  Gavel,
   Bell,
   Activity,
   Gauge,
   Sparkles,
+  MapPinned,
+  Receipt,
 } from 'lucide-react';
 
 /**
@@ -314,6 +315,18 @@ export const SIDE_NAV_ITEMS = [
     icon: Route,
     hint: 'Detours, overspeed and route profit.',
   },
+  // Places & Routes — the two questions a fleet owner asks about a trip:
+  // "where did it go" and "what did it cost to get there". One entry, because
+  // the answers live on the same tabs of the same page.
+  {
+    type: 'link',
+    key: null,
+    access: 'fleet',
+    to: '/place-hub',
+    label: 'Places & Routes',
+    icon: MapPinned,
+    hint: 'Your plants, yards and zones, with idling, fuel and route questions.',
+  },
   // ─── Performance (wave 5) ───────────────────────────────────────────────────
   // One section that folds in Driving DNA, the Mileage performance tab,
   // Leaderboards and Vehicle360's telemetry panels. Dark launch: the entry
@@ -331,18 +344,21 @@ export const SIDE_NAV_ITEMS = [
     hint: 'Truck and driver performance tables.',
   },
   // ─── Compliance / Docs ──────────────────────────────────────────────────────
-  // `key: null` — not gated on a feature flag, for the same reason as
-  // Warehouses/Trip/Place Hub: manual challan entry works with or without a
-  // provider configured, so hiding the page would only hide the fallback.
+  // Tolls — the spend that nobody planned for. Gated on the org's `tolls`
+  // flag (same gate as the page itself), and fleet-only like the other
+  // fleet-money entries.
   {
     type: 'link',
-    key: null,
+    key: 'tolls',
     access: 'fleet',
-    to: '/challans',
-    label: 'Challans',
-    icon: Gavel,
-    hint: 'Traffic challans on your trucks.',
+    to: '/tolls',
+    label: 'Tolls',
+    icon: Receipt,
+    hint: 'Toll crossings, what was estimated and what was billed.',
   },
+  // Challans stays reachable at /challans — the page is the manual-entry
+  // fallback when no provider is configured — but it is no longer an item
+  // in the sidebar.
   {
     type: 'link',
     access: 'fleet',

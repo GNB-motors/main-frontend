@@ -16,7 +16,6 @@ export default function TripPlansTable({ data, loading, error, refetch, paginati
   const [dialog, setDialog] = useState(null);
   const cancelM = useMutation(TripPlanService.cancel);
   const unlinkM = useMutation(TripPlanService.unlink);
-  const resumeM = useMutation(TripPlanService.resumeAutoMatch);
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
   const act = async (mutation, payload, question, okMsg) => {
@@ -94,24 +93,6 @@ export default function TripPlansTable({ data, loading, error, refetch, paginati
       align: 'right',
       render: (p) => (
         <span className="atx-row-actions">
-          {p.autoMatch === false && p.status === 'PLANNED' && !p.autoTripId ? (
-            <button
-              type="button"
-              className="atx-btn atx-btn--sm"
-              disabled={resumeM.loading}
-              onClick={(e) => {
-                e.stopPropagation();
-                act(
-                  resumeM,
-                  { id: p._id },
-                  'Resume automatic GPS linking?',
-                  'Automatic linking resumed',
-                );
-              }}
-            >
-              Resume auto-link
-            </button>
-          ) : null}
           {p.status !== 'CANCELLED' ? (
             <button
               type="button"

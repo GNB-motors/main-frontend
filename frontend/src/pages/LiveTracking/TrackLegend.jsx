@@ -78,6 +78,8 @@ export default function TrackLegend({
   placesNotAvailable = false,
   placesTruncated = false,
   placesCount = 0,
+  error = null,
+  onRetry = null,
 }) {
   const [isOpen, setIsOpen] = useState(() => readLegendOpen());
 
@@ -254,14 +256,29 @@ export default function TrackLegend({
 
           {/* Footer */}
           <div className="flex items-center gap-2 border-t border-[var(--rd-line)] px-3 py-2">
-            <span className="flex-1 text-[11px] text-[var(--rd-ink-3)]">
-              {lastEventAt ? `Updated ${formatAgo(lastEventAt)}` : 'Waiting for data'}
-            </span>
+            {error ? (
+              <span className="flex min-w-0 flex-1 items-center gap-1 text-[11px] text-[var(--rd-ink-2)]">
+                <span className="truncate">Couldn&apos;t load your fleet</span>
+                {onRetry ? (
+                  <button
+                    type="button"
+                    onClick={onRetry}
+                    className="shrink-0 rounded-md border border-[var(--rd-line)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--rd-ink-2)]"
+                  >
+                    Retry
+                  </button>
+                ) : null}
+              </span>
+            ) : (
+              <span className="flex-1 text-[11px] text-[var(--rd-ink-3)]">
+                {lastEventAt ? `Updated ${formatAgo(lastEventAt)}` : 'Waiting for data'}
+              </span>
+            )}
             <button
               type="button"
               onClick={onRefresh}
-              aria-label="Refresh fleet data"
-              title="Refresh fleet data"
+              aria-label={error ? 'Retry fleet data' : 'Refresh fleet data'}
+              title={error ? 'Retry fleet data' : 'Refresh fleet data'}
               className="rounded-md p-1 text-[var(--rd-ink-3)] transition-colors hover:bg-[var(--rd-card-2)] hover:text-[var(--rd-ink-2)]"
             >
               <RotateCw
