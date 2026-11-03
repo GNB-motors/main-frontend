@@ -12,7 +12,7 @@ import { AlertTriangle } from 'lucide-react';
 import PageShell from '../../components/ui/PageShell';
 import { FuelIntegrityService } from './FuelIntegrityService.js';
 import { getProfileField, setProfileField } from '../../utils/session.js';
-import EvidenceDrawer from '../../components/cluster/EvidenceDrawer.jsx';
+import FuelWindowDrilldown from './FuelWindowDrilldown.jsx';
 import EventInvestigationDrawer from './EventInvestigationDrawer.jsx';
 import FuelIntegrityTables from './FuelIntegrityTables.jsx';
 import VehicleDrilldownPanel from './VehicleDrilldownPanel.jsx';
@@ -231,7 +231,9 @@ const FuelIntegrityPage = () => {
   const pricePerL = summary?.fuelPriceInrPerL ?? 95;
   const priceSource = summary?.fuelPriceSource ?? 'CONFIG';
   const totals = summary?.totals;
-  const lossL = totals?.siphonSuspectedLossL || 0;
+  // The fuel that went down while parked. Null when the backend has not
+  // measured it — the page then says so instead of writing a zero.
+  const lossL = totals?.siphonSuspectedLossL ?? null;
   const lossSigmaL = totals?.siphonSuspectedLossSigmaL ?? null;
   const billCount = totals?.billFlagCount || 0;
   const defCount = totals?.defFlagCount || 0;
@@ -305,17 +307,19 @@ const FuelIntegrityPage = () => {
       <PageShell
         title={
           <div className="flex items-center gap-3">
-            <span>Fuel Integrity & Anti-Theft AI</span>
+            <span>Fuel Integrity</span>
             <span className="fi-live-badge">
               <span className="fi-live-dot" />
-              <span>AI Telemetry Active</span>
+              <span>Telemetry checks on</span>
             </span>
           </div>
         }
         subtitle={
-          lossL === 0
-            ? 'Fills, engine burn and tank level agree across the fleet in this period'
-            : `${lossL.toFixed(1)} L of fuel the data does not explain — review the windows below. This is not a finding of theft.`
+          lossL == null
+            ? 'We could not measure whether any fuel went down while parked in this period'
+            : lossL === 0
+              ? 'No fuel went down while a truck was parked in this period'
+              : `${lossL.toFixed(1)} L of fuel went down while parked — review the windows below. This is a measurement, not a conclusion.`
         }
         filters={
           <div className="manufacturer-scope-row">
@@ -443,11 +447,10 @@ const FuelIntegrityPage = () => {
             />
           )}
 
-          <EvidenceDrawer
+          <FuelWindowDrilldown
             open={!!evidenceWindow}
             onClose={() => setEvidenceWindow(null)}
-            window={evidenceWindow}
-            context={{ fuelPriceInrPerL: pricePerL }}
+            fuelWindow={evidenceWindow}
           />
 
           <EventInvestigationDrawer

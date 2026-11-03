@@ -13,7 +13,7 @@ import PlaceHubService from '../PlaceHubService.js';
 function placeMeta(p) {
   if (p.risk && p.status !== 'REJECTED')
     return (
-      <span className="ph-pill ph-pill--crit" title="Theft or unauthorised refuelling reported">
+      <span className="ph-pill ph-pill--crit" title="Fuel loss or unauthorised refuelling reported here">
         <ShieldAlert size={11} /> Fuel risk
       </span>
     );

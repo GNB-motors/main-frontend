@@ -6,7 +6,10 @@ import { Button } from '../../components/ui/button.jsx';
 import { Dialog, DialogContent, DialogTitle, DialogClose } from '../../components/ui/dialog.jsx';
 import { useSupportPortal } from '../../contexts/supportPortalContext';
 import { getInbox, acknowledgeItem } from '../../services/AlertInboxService.js';
-import { SOURCE_LABELS, sinceLabel, reviewTarget, filterInbox } from './inboxModel.js';
+import { fleetViewService } from '../../services/fleetViewService';
+import useApi from '../../hooks/useApi';
+import { SOURCE_LABELS, sinceLabel, reviewTarget, filterInbox, subjectTitle } from './inboxModel.js';
+import AccountLinkBanner from './AccountLinkBanner.jsx';
 import './AlertInbox.css';
 
 export default function AlertInboxPage() {
@@ -24,6 +27,14 @@ export default function AlertInboxPage() {
   const request = React.useRef(null);
   const mounted = React.useRef(true);
   const support = useSupportPortal();
+
+  // The state of the vendor accounts. A 404 means the endpoint is not
+  // deployed yet, and then no banner is shown at all.
+  const { data: linkStateData } = useApi(
+    (signal) => fleetViewService.getAccountsLinkState({ signal }),
+    [],
+  );
+  const linkState = Array.isArray(linkStateData?.items) ? linkStateData.items : [];
 
   const load = React.useCallback(async () => {
     request.current?.abort();
@@ -129,6 +140,15 @@ export default function AlertInboxPage() {
       <div className="ai-notice">
         Feeds update periodically. For urgent incidents, check the dedicated alert pages.
       </div>
+
+      {/* A vendor account that stopped sending data explains why the trucks
+          went quiet, and carries the one button that fixes it (F6). */}
+      {linkState
+        .filter((account) => account.state === 'NEEDS_RELINK' || account.state === 'EXPIRING')
+        .map((account) => (
+          <AccountLinkBanner key={account.accountId} account={account} />
+        ))}
+
       <div className="ai-summary">
         {[
           { label: 'Open alerts', value: open.length, Icon: Bell },
@@ -253,7 +273,7 @@ export default function AlertInboxPage() {
               </span>
               <div className="ai-row-main">
                 <button className="ai-subject" type="button" onClick={() => setDetailId(item.id)}>
-                  {item.subjectLabel || 'Your organisation'}
+                  {subjectTitle(item.subjectLabel)}
                 </button>
                 <h2>{item.label}</h2>
                 <p className="ai-ask">
@@ -312,7 +332,7 @@ export default function AlertInboxPage() {
           <DialogContent className="ai-detail">
             <header>
               <div>
-                <DialogTitle>{detail.subjectLabel || 'Your organisation'}</DialogTitle>
+                <DialogTitle>{subjectTitle(detail.subjectLabel)}</DialogTitle>
                 <p>{detail.label}</p>
               </div>
               <DialogClose aria-label="Close alert details">

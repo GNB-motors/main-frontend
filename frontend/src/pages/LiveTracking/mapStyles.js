@@ -1,5 +1,7 @@
 /* Muted map styles shared by the internal live map and the public share page,
    so both render the same understated cartography (light + dark variants). */
+import { POI_LABEL_STYLES } from '../../utils/mapLabelStyles';
+
 export const LIGHT_MAP_STYLE = [
   { elementType: 'geometry', stylers: [{ color: '#f0f3f6' }] },
   {
@@ -42,7 +44,7 @@ export const LIGHT_MAP_STYLE = [
     elementType: 'labels.text.stroke',
     stylers: [{ visibility: 'on' }, { color: '#ffffff' }, { weight: 2 }],
   },
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  ...POI_LABEL_STYLES,
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
   { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
   {
@@ -103,7 +105,7 @@ export const DARK_MAP_STYLE = [
     elementType: 'labels.text.stroke',
     stylers: [{ visibility: 'on' }, { color: '#090d18' }, { weight: 2 }],
   },
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  ...POI_LABEL_STYLES,
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
   { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#161b2e' }] },
   { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#101524' }] },

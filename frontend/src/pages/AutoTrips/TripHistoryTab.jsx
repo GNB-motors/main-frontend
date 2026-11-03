@@ -1,0 +1,127 @@
+import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { useApi } from '../../hooks/useApi';
+import { fleetViewService } from '../../services/fleetViewService';
+import { formatDuration, formatIst } from '../../utils/redesign/format';
+import { tripsHistoryLink } from '../../utils/redesign/links';
+import ToneBadge from '../../components/redesign/ToneBadge';
+import NotYetAvailable from '../../components/redesign/NotYetAvailable';
+
+/**
+ * TripHistoryTab — where has this truck been, and when.
+ *
+ * It answers the question an owner actually has: "when was WB11F6762 last
+ * at DALMIA OCL?". The rows are facts — a visit, a date, how long the
+ * truck was there. The register rows come from the oil report, so they are
+ * badged so nobody mistakes them for GPS.
+ */
+export default function TripHistoryTab({ vehicle = null, site = null, from = null, to = null }) {
+  const { data, loading, error } = useApi(
+    (signal) => fleetViewService.getTripsHistory({ site, vehicle, from, to, limit: 200, signal }),
+    [vehicle, site, from, to],
+  );
+
+  const items = useMemo(() => (Array.isArray(data?.items) ? data.items : []), [data]);
+  const countsByPlace = useMemo(
+    () => (Array.isArray(data?.countsByPlace) ? data.countsByPlace : []),
+    [data],
+  );
+
+  // The count for the place we are looking at.
+  const placeCount = useMemo(() => {
+    if (!site) return null;
+    const found = countsByPlace.find((entry) => entry.place?.id === site);
+    return found?.visits ?? null;
+  }, [countsByPlace, site]);
+
+  if (error?.status === 404) {
+    return <NotYetAvailable what="Trip history" />;
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {vehicle && site ? (
+        <p className="m-0 text-[14px] text-[var(--rd-ink)]">
+          {vehicle}
+          {placeCount !== null ? ` visited this place ${placeCount} times` : ' visited this place'}
+          {from && to ? ` between ${from} and ${to}` : ''}.
+        </p>
+      ) : null}
+
+      {loading ? (
+        <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">Loading the history…</p>
+      ) : error ? (
+        <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">
+          We could not load the history for this place.
+        </p>
+      ) : items.length === 0 ? (
+        <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">
+          No visits found. History is kept from 15 Sep (GPS) and 1 Apr (your oil report).
+        </p>
+      ) : (
+        <ul className="m-0 flex list-none flex-col gap-1 p-0">
+          {items.map((item) => (
+            <li
+              key={`${item.kind}-${item.registrationNumber}-${item.arrivedAt ?? item.register?.date}`}
+              className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-[var(--rd-line)] py-2 last:border-b-0"
+            >
+              <span className="w-[130px] shrink-0 text-[12px] text-[var(--rd-ink-3)] tabular-nums">
+                {item.arrivedAt ? formatIst(item.arrivedAt, { withDate: true }) : item.register?.date}
+              </span>
+              <span className="w-[130px] shrink-0 text-[13px] font-medium text-[var(--rd-ink)]">
+                {item.registrationNumber}
+              </span>
+              <span className="min-w-[160px] flex-1 text-[13px] text-[var(--rd-ink)]">
+                {item.kind === 'REGISTER_TRIP' ? (
+                  <>
+                    {item.register?.from ?? '—'} → {(item.register?.to ?? []).join(', ') || '—'}
+                    {item.register?.driver ? ` · ${item.register.driver}` : ''}
+                  </>
+                ) : (
+                  item.place?.name ?? 'Place not known'
+                )}
+              </span>
+              <span className="w-[110px] shrink-0 text-[12px] text-[var(--rd-ink-2)] tabular-nums">
+                {item.dwellMin === null || item.dwellMin === undefined
+                  ? '—'
+                  : formatDuration(item.dwellMin)}
+              </span>
+              {item.kind === 'REGISTER_TRIP' ? (
+                <ToneBadge tone="info">From oil report</ToneBadge>
+              ) : item.purpose ? (
+                <ToneBadge tone="info">{item.purpose}</ToneBadge>
+              ) : null}
+              <span className="flex shrink-0 items-center gap-2">
+                {item.replay?.to ? (
+                  <Link
+                    to={item.replay.to}
+                    className="text-[13px] font-semibold text-[var(--rd-brand-2)] underline-offset-4 hover:underline"
+                  >
+                    See on map →
+                  </Link>
+                ) : null}
+                {item.trip?.to ? (
+                  <Link
+                    to={item.trip.to}
+                    className="text-[13px] font-semibold text-[var(--rd-brand-2)] underline-offset-4 hover:underline"
+                  >
+                    Trip →
+                  </Link>
+                ) : null}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {site ? (
+        <Link
+          to={tripsHistoryLink({ site, vehicle })}
+          className="w-fit text-[13px] font-semibold text-[var(--rd-brand-2)] underline-offset-4 hover:underline"
+        >
+          See all visits to this place →
+        </Link>
+      ) : null}
+    </div>
+  );
+}

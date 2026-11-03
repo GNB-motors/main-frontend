@@ -22,7 +22,9 @@ export default function EventsFeedPanel({
   onMarkReviewed,
   fills = [],
 }) {
-  const [isInspectorOpen, setIsInspectorOpen] = useState(true);
+  // Closed until a row is picked: open on load it squeezed the table until
+  // its last column was cut off.
+  const [isInspectorOpen, setIsInspectorOpen] = useState(false);
 
   // Determine the active event for the sticky forensic inspector
   const activeEvent = useMemo(() => {
@@ -136,7 +138,7 @@ export default function EventsFeedPanel({
                         {isFill
                           ? 'Refuel Inflow Telematics'
                           : isLoss
-                            ? 'Siphon Loss Telematics'
+                            ? 'Fuel down while parked — telematics'
                             : 'DEF Dosing Telematics'}
                       </span>
                     </div>

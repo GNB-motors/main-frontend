@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { MessageSquare, ShieldCheck, UserCheck } from 'lucide-react';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
+import { useFullPageLayout } from '../../hooks/usePageLayout';
 import ReceiptApprovalPage from '../Superadmin/components/ReceiptApprovalPage';
 import { FieldAgentFuelService } from '../FieldAgentFuel/FieldAgentFuelService';
 import FieldAgentApprovals from './FieldAgentApprovals';
@@ -32,6 +33,7 @@ const APPROVAL_TYPES = [
 ];
 
 export default function ApprovalsPage() {
+  useFullPageLayout();
   const { isEnabled } = useFeatureFlags();
   const types = useMemo(
     () => APPROVAL_TYPES.filter((t) => !t.flag || isEnabled(t.flag)),
@@ -65,7 +67,7 @@ export default function ApprovalsPage() {
   );
 
   return (
-    <div className="ra-page">
+    <div className="ra-page apv-page">
       <div className="ra-header">
         <div className="ra-header__bar">
           <div className="ra-header__icon">

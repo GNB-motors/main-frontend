@@ -11,7 +11,10 @@ import {
 } from 'recharts';
 import { Panel, StatusPill } from '../../components/overview.primitives.jsx';
 import { formatInIST } from '../../utils/dateUtils';
+import { formatLitres } from '../../utils/formatters';
 import { billCheckView } from '../../utils/billCheck';
+import FuelVerdictBadge from './FuelVerdictBadge';
+import { drivingUseSentence, parkedDropL } from './fuelVerdicts';
 
 export default function VehicleDrilldownPanel({
   vehicle,
@@ -23,7 +26,7 @@ export default function VehicleDrilldownPanel({
   return (
     <Panel
       eyebrow={`${vehicle} — fuel timeline`}
-      question="Daily fills vs suspected losses"
+      question="Daily fills vs fuel that went down while parked"
       action={
         <button className="ov-btn" onClick={onClose}>
           <ArrowLeft size={14} /> Close
@@ -46,10 +49,10 @@ export default function VehicleDrilldownPanel({
                 }}
                 formatter={(value, name) => [
                   `${value} L`,
-                  name === 'fills' ? 'Fills ▲' : 'Suspected loss ▼',
+                  name === 'fills' ? 'Fills ▲' : 'Went down while parked ▼',
                 ]}
               />
-              <Legend formatter={(value) => (value === 'fills' ? 'Fills ▲' : 'Suspected loss ▼')} />
+              <Legend formatter={(value) => (value === 'fills' ? 'Fills ▲' : 'Went down while parked ▼')} />
               <Bar dataKey="fills" fill="var(--ok)" radius={[4, 4, 0, 0]} />
               <Bar dataKey="loss" fill="var(--critical)" radius={[4, 4, 0, 0]} />
             </BarChart>
@@ -73,9 +76,9 @@ export default function VehicleDrilldownPanel({
                 <th className="text-right">Fills</th>
                 <th className="text-right">Engine burn</th>
                 <th className="text-right">Tank Δ</th>
-                <th className="text-right">Unaccounted</th>
-                <th>Review</th>
-                <th className="text-right">DEF %</th>
+                <th className="text-right">Fuel down while parked</th>
+                <th>Check</th>
+                <th className="text-right">DEF used, % of diesel</th>
                 <th aria-label="Working" />
               </tr>
             </thead>
@@ -92,22 +95,17 @@ export default function VehicleDrilldownPanel({
                   <td
                     className="num text-right"
                     style={{
-                      color: w.unaccountedLossL > 0 ? 'var(--critical)' : 'var(--cluster-text-dim)',
+                      color:
+                        parkedDropL(w) != null ? 'var(--critical)' : 'var(--cluster-text-dim)',
                     }}
                   >
-                    {w.unaccountedLossL ?? '—'}
-                    {w.unaccountedLossPct != null && (
-                      <span className="text-dim"> ({w.unaccountedLossPct}%)</span>
-                    )}
+                    {formatLitres(parkedDropL(w))}
                   </td>
                   <td>
-                    {w.siphonSuspected ? (
-                      <StatusPill tone="caution">
-                        Review · {(w.siphonConfidence || 'low').toLowerCase()}
-                      </StatusPill>
-                    ) : (
-                      <StatusPill tone="ok">OK</StatusPill>
-                    )}
+                    <FuelVerdictBadge fuelWindow={w} />
+                    {drivingUseSentence(w) ? (
+                      <div className="text-dim mt-1 text-xs">{drivingUseSentence(w)}</div>
+                    ) : null}
                     {billCheckView(w.billCheck) && (
                       <div className="mt-1" title={w.billCheck.reason || undefined}>
                         <StatusPill tone={billCheckView(w.billCheck).tone}>

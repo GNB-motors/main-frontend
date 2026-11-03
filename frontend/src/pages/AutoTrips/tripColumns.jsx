@@ -5,6 +5,9 @@ import { BASIS_LABEL } from '../Sap/sapModel';
 import { FLAG_LABEL } from './autoTripPlaces';
 import TripDriver from './TripDriver';
 import TripStatus from './TripStatus';
+import ToneBadge from '../../components/redesign/ToneBadge';
+import InfoTip from '../../components/redesign/InfoTip';
+import { REPOSITION_INFO } from './tripLegModel';
 import { dropLabel } from '../PlaceHub/intelligence/facilityText';
 import { fmtDayTime, fmtKm, fmtDuration, notReachedYet } from './autoTripFormat';
 import { tripDetailHref } from './tripWorkspace';
@@ -40,6 +43,14 @@ export default function tripColumns({ showSap, refetch, searchParams }) {
               dropLabel(r.drop)
             )}
           </span>
+          {/* A plant-to-plant run is normal: plants work like warehouses.
+              It is badged, never flagged. */}
+          {r.leg === 'REPOSITION' ? (
+            <span className="mt-1 flex items-center gap-1.5">
+              <ToneBadge tone="info">Plant to plant</ToneBadge>
+              <InfoTip text={REPOSITION_INFO} basis={null} />
+            </span>
+          ) : null}
         </span>
       ),
     },
@@ -68,7 +79,15 @@ export default function tripColumns({ showSap, refetch, searchParams }) {
       align: 'right',
       render: (r) =>
         r.km?.ladenOdo == null && r.km?.laden == null ? (
-          <span className="atx-muted">Not recorded</span>
+          // A trip still on the road has no loaded run yet; "Not recorded" on
+          // every live row read like missing data.
+          r.drop?.arrivedAt ? (
+            <span className="atx-muted">Not recorded</span>
+          ) : (
+            <span className="atx-muted" title="Counted when the truck reaches the drop">
+              —
+            </span>
+          )
         ) : (
           <span
             className="atx-cell-stack"

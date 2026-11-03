@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from '@/components/redesign/FleetLink';
 import Leaderboard from '../../../components/ui/Leaderboard.jsx';
 import { cellNumber } from '../../Performance/performanceCells';
 

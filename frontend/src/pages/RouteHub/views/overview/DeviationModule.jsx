@@ -81,9 +81,13 @@ export default function DeviationModule({ go, first, openDev, summary }) {
               {d.trip ? tripLabel(d.trip) : legLabel(null)}
             </span>
             <span className="sp" />
-            <b style={{ fontVariantNumeric: 'tabular-nums' }}>+{d.extraKmEstimate ?? 0} km</b>
+            <b style={{ fontVariantNumeric: 'tabular-nums' }}>
+              {d.offRouteKm != null
+                ? `${d.offRouteKm} km off road`
+                : `+${d.extraKmEstimate ?? 0} km`}
+            </b>
             <b style={{ color: '#C2323A', width: 44, textAlign: 'right' }}>
-              {inr(d.estimatedExtraCostInr || 0)}
+              {d.estimatedExtraCostInr != null ? inr(d.estimatedExtraCostInr) : '—'}
             </b>
           </button>
         ))}

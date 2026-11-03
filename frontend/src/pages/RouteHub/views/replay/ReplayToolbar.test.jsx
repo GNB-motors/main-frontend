@@ -44,7 +44,7 @@ it('uses one searchable vehicle dropdown and resets the old trip before loading 
   fireEvent.click(screen.getByRole('button', { name: 'WB11T0662 · 4932TC' }));
   const search = screen.getByRole('textbox', { name: 'Search options' });
   fireEvent.change(search, { target: { value: 'CHASSIS02' } });
-  fireEvent.click(screen.getByRole('button', { name: 'WB11S1962 · 2820' }));
+  fireEvent.click(screen.getByRole('option', { name: 'WB11S1962 · 2820' }));
   expect(p.setReg).toHaveBeenCalledWith('WB11S1962');
   expect(p.setTrip).toHaveBeenCalledWith(null);
   expect(p.setErpTripId).toHaveBeenCalledWith('');

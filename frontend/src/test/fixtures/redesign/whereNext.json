@@ -1,0 +1,95 @@
+{
+  "computedAt": "2026-11-02T20:50:00Z",
+  "basis": {
+    "text": "From 41 of this truck's trips and 2,310 fleet trips since 15 Sep.",
+    "basis": "41 truck trips · 2,310 fleet trips"
+  },
+  "destinations": [
+    {
+      "place": {
+        "id": "site-dankuni",
+        "kind": "SITE",
+        "name": "DANKUNI SIDING",
+        "category": "PLANT",
+        "lat": 22.6116,
+        "lng": 88.3545,
+        "radiusM": 500
+      },
+      "probability": 0.75,
+      "reason": "Usually goes here after JK BUXAR (18 of 24 times)",
+      "eta": {
+        "at": "2026-11-02T19:10:00Z",
+        "earliestAt": "2026-11-02T18:40:00Z",
+        "latestAt": "2026-11-02T20:00:00Z",
+        "driveMin": 200,
+        "breakMin": 40,
+        "congestion": "HEAVY",
+        "congestionWhy": "Usual for Monday 18:00 on this road"
+      },
+      "route": {
+        "polyline": [
+          [25.5647, 83.9754],
+          [25.1002, 84.0211],
+          [23.4512, 85.6731],
+          [22.6116, 88.3545]
+        ],
+        "km": 412,
+        "viaNames": ["NH19", "Mohania"],
+        "usedTimes": 18
+      },
+      "breakHabit": {
+        "probability": 0.62,
+        "usualPlace": {
+          "id": "poi-202",
+          "kind": "POI",
+          "name": "Mohania Dhaba",
+          "category": "DHABA",
+          "lat": 24.3771,
+          "lng": 84.9812,
+          "radiusM": null
+        },
+        "usualMin": 40,
+        "text": "Usually stops 40 min at Mohania dhaba"
+      },
+      "overspeedRisk": {
+        "probability": 0.4,
+        "place": {
+          "id": "poi-303",
+          "kind": "POI",
+          "name": "Sasaram",
+          "category": "SITE",
+          "lat": 25.0567,
+          "lng": 84.0139,
+          "radiusM": null
+        },
+        "text": "Has gone over 60 km/h near Sasaram 3 times this month"
+      }
+    },
+    {
+      "place": {
+        "id": "site-dalmia",
+        "kind": "SITE",
+        "name": "DALMIA OCL",
+        "category": "PLANT",
+        "lat": 25.3541,
+        "lng": 84.9812,
+        "radiusM": 700
+      },
+      "probability": 0.18,
+      "reason": "Sometimes goes here after JK BUXAR (2 of 24 times)",
+      "eta": {
+        "at": "2026-11-02T19:50:00Z",
+        "earliestAt": "2026-11-02T19:30:00Z",
+        "latestAt": "2026-11-02T20:30:00Z",
+        "driveMin": 120,
+        "breakMin": 20,
+        "congestion": "USUAL",
+        "congestionWhy": "Usual for Monday 18:00 on this road"
+      },
+      "route": null,
+      "breakHabit": null,
+      "overspeedRisk": null
+    }
+  ],
+  "noPredictionWhy": null
+}

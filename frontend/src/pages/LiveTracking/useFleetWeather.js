@@ -12,6 +12,12 @@ const CELL = 0.25;
 const MAX_CELLS = 40;
 const roundCell = (n) => Math.round(n / CELL) * CELL;
 
+const sameWeather = (a, b) => {
+  if (a.size !== b.size) return false;
+  for (const [id, w] of b) if (a.get(id) !== w) return false;
+  return true;
+};
+
 /**
  * Weather for the whole visible fleet, not just the selected truck. Only active
  * when zoomed in past WEATHER_FLEET_MIN_ZOOM, and only reads cells for vehicles
@@ -57,7 +63,10 @@ export default function useFleetWeather({ vehicles, mapRef, mapZoom, enabled = t
         const w = cache.get(`${ck}|${hour}`);
         if (w) for (const id of b.ids) next.set(id, w);
       }
-      setFleetWeather(next);
+      // Same weather for the same trucks keeps the same Map: `vehicles` is a
+      // new array on every render, so a fresh Map here re-ran this effect and
+      // looped the page (Maximum update depth on Track).
+      setFleetWeather((prev) => (sameWeather(prev, next) ? prev : next));
     };
 
     const toFetch = [...buckets.entries()]

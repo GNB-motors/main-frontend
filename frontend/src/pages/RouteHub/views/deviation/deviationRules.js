@@ -74,6 +74,11 @@ export function deviationGroupTitle(g) {
   if (extra != null && Number(extra) > 0) {
     return `Unscheduled Transit · +${Number(extra).toFixed(1)} km`;
   }
+  // A road-engine detour carries km driven off the usual road (#150), not a farthest-off point.
+  const offRoad = firstEv?.offRouteKm;
+  if (offRoad != null && Number(offRoad) > 0) {
+    return `Unscheduled Detour · ${Number(offRoad).toFixed(1)} km off the usual road`;
+  }
   const maxOff = firstEv?.maxOffKm;
   if (maxOff != null && Number(maxOff) > 0) {
     return `Unscheduled Detour · ${Number(maxOff).toFixed(1)} km off-route`;

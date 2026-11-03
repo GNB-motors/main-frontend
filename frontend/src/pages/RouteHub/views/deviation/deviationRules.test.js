@@ -66,6 +66,10 @@ describe('tripLabel / legLabel', () => {
     };
     expect(deviationGroupTitle(withCorridor)).toBe('NH19 Route Corridor');
     expect(deviationGroupSubtitle(withCorridor)).toContain('Corridor deviation');
+
+    // a road-engine detour (#150): km off the usual road, never a farthest-off figure
+    const roadEngine = { trip: null, events: [{ offRouteKm: 6.4, startedAt: at(9) }] };
+    expect(deviationGroupTitle(roadEngine)).toBe('Unscheduled Detour · 6.4 km off the usual road');
   });
 });
 

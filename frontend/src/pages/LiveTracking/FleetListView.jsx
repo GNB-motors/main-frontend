@@ -5,6 +5,7 @@ import { NOVA_STATUS } from './statusPalettes.js';
 import { formatAgoText } from './minutesAgoFormat.js';
 import VehicleLocation from './VehicleLocation.jsx';
 import { formatFuel } from '../../utils/liveView.js';
+import { modelLabel } from './vehiclePanelModel';
 
 const SKEL_CARD_COUNT = 6;
 
@@ -15,9 +16,6 @@ export default function FleetListView({
   counts,
   setIsRailOpen,
   triggerMapResize,
-  searchInputRef,
-  searchQuery,
-  setSearchQuery,
   selectedId,
   setSelectedId,
 }) {
@@ -40,7 +38,7 @@ export default function FleetListView({
         </div>
 
         <button
-          className="btn btn--sm btn--icon"
+          className="btn btn--sm gap-1.5"
           title="Hide list"
           aria-label="Hide list"
           onClick={() => {
@@ -49,24 +47,12 @@ export default function FleetListView({
           }}
         >
           {renderIconSvg('chevRight', 16)}
+          <span>Hide</span>
         </button>
       </div>
 
-      {/* Live Search Bar */}
-      <div className="fsearch">
-        {renderIconSvg('search', 16)}
-        <input
-          ref={searchInputRef}
-          type="search"
-          placeholder="Search plate, chassis, model…"
-          autoComplete="off"
-          aria-label="Search fleet"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
-
-      {/* Cards List */}
+      {/* Cards List. The search box lives on the map now (F1.3), so the list
+          starts straight at the trucks. */}
       <div className="flist" aria-busy={isLiveLoading}>
         {isLiveLoading ? (
           Array.from({ length: SKEL_CARD_COUNT }, (_, i) => <VehicleCardSkeleton key={i} />)
@@ -100,7 +86,8 @@ export default function FleetListView({
                   <div className="vc-id">
                     <div className="vc-plate">{v.plate}</div>
                     <div className="vc-vin">
-                      {v.manufacturer || 'Manufacturer unknown'} · Model: {v.model || '—'}
+                      {v.manufacturer || 'Manufacturer unknown'}
+                      {modelLabel(v.model) ? ` · ${modelLabel(v.model)}` : ''}
                     </div>
                     <div className="vc-vin">VIN: {v.vin || '—'}</div>
                   </div>
@@ -119,7 +106,7 @@ export default function FleetListView({
                 <div className="vc-meta">
                   <span>
                     {renderIconSvg('fuel', 13)}
-                    <b>{formatFuel(v.fuelReading)}</b>
+                    <b title={`Fuel ${formatFuel(v.fuelReading)}`}>{formatFuel(v.fuelReading)}</b>
                   </span>
                   <span>
                     {renderIconSvg('zap', 13)}

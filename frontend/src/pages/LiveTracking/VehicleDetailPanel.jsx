@@ -1,29 +1,38 @@
+import { useEffect } from 'react';
 import renderIconSvg from './renderIconSvg.jsx';
-import { NOVA_STATUS } from './statusPalettes.js';
-import { formatAgoText, formatFixTime } from './minutesAgoFormat.js';
-import DestinationIntentSection from './DestinationIntentSection.jsx';
-import VehicleInfoSection from './VehicleInfoSection.jsx';
-import DriverAssignmentSection from './DriverAssignmentSection.jsx';
-import TelematicsDiagnosticsSection from './TelematicsDiagnosticsSection.jsx';
+import VehiclePanelHeader from './VehiclePanelHeader.jsx';
+import VehicleReadingTiles from './VehicleReadingTiles.jsx';
+import VehicleNowCard from './VehicleNowCard.jsx';
+import WhereNextSection from './WhereNextSection.jsx';
+import InsightChipsSection from './InsightChipsSection.jsx';
+import VehicleIssuesSection from './VehicleIssuesSection.jsx';
+import VehicleDriverSection from './VehicleDriverSection.jsx';
+import HelpNearbySection from './HelpNearbySection.jsx';
+import VehicleDetailsCard from './VehicleDetailsCard.jsx';
+import VehicleAccountBanner from './VehicleAccountBanner.jsx';
+import VehiclePanelActions from './VehiclePanelActions.jsx';
 import WeatherSection from './WeatherSection.jsx';
-import VehicleLocation from './VehicleLocation.jsx';
-import VehicleMetricTiles from './VehicleMetricTiles.jsx';
 import VehicleLayerToggles from './VehicleLayerToggles.jsx';
 import useApi from '../../hooks/useApi.js';
-import { getUserRole } from '../../utils/session.js';
-import TrackTelemetryService from './TrackTelemetryService.js';
-import vehicleMetricReadings from './vehicleMetricReadings.js';
+import { fleetViewService } from '../../services/fleetViewService';
+import { fallbackNow } from './vehiclePanelModel';
 
+/**
+ * VehicleDetailPanel — what the owner needs to know about one truck.
+ *
+ * The order is the order of the owner's questions: what truck is this and
+ * is the data live; what is it doing now; where is it going; is it doing
+ * well; who is driving; who can help.
+ *
+ * The data comes from `/now`. That endpoint is not on prod yet, so until it
+ * is, the panel reads the release's position row through the same view
+ * model — every section then shows its own honest empty state.
+ */
 export default function VehicleDetailPanel({
   selectedVehicle,
   setSelectedId,
   exitReplay,
-  showToast,
   isTrailVisible,
-  replayState,
-  trailLoading,
-  toggleTrail,
-  enterReplay,
   shareCreating,
   handleShareVehicle,
   selectedDriver,
@@ -37,13 +46,26 @@ export default function VehicleDetailPanel({
   toggleHabitualHalts,
   habitualHalts = [],
 }) {
-  const reg = selectedVehicle?.plate;
-  const canReadHealth = ['OWNER', 'MANAGER'].includes(getUserRole());
-  const { data: health } = useApi((signal) => TrackTelemetryService.getLatest(reg, signal), [reg], {
-    enabled: Boolean(reg) && canReadHealth,
-    scopeKey: reg,
-  });
-  const readings = vehicleMetricReadings(selectedVehicle || {}, health);
+  const reg = selectedVehicle?.plate ?? null;
+
+  const { data, error, refetch } = useApi(
+    (signal) => fleetViewService.getVehicleNow(reg, { signal }),
+    [reg],
+    { enabled: Boolean(reg), scopeKey: reg },
+  );
+
+  // The panel refreshes itself every minute while it is open, so a truck
+  // that just moved does not look frozen.
+  useEffect(() => {
+    if (!reg) return undefined;
+    const timer = setInterval(refetch, 60000);
+    return () => clearInterval(timer);
+  }, [reg, refetch]);
+
+  // Until the new endpoint is deployed, the release's position row is the
+  // fallback — mapped into the very same view model.
+  const notDeployed = error?.status === 404;
+  const now = data?.held === true ? null : (data ?? fallbackNow(selectedVehicle, selectedDriver));
 
   return (
     <div
@@ -53,123 +75,54 @@ export default function VehicleDetailPanel({
       {selectedVehicle && (
         <>
           <div className="dtop">
-            <button className="backbtn" onClick={() => setSelectedId(null)}>
-              {renderIconSvg('chevLeft', 16)}
-              Fleet
-            </button>
-            <div className="dtop-statuses">
-              <span className={`gps-status ${selectedVehicle.hasGpsFix ? 'is-active' : ''}`}>
-                {renderIconSvg('nav', 13)}
-                {selectedVehicle.hasGpsFix
-                  ? 'GPS fix'
-                  : selectedVehicle.hasFix
-                    ? 'Last known position'
-                    : 'No GPS position'}
-              </span>
-              <span
-                className={`ignition-status ${selectedVehicle.ignition === 'ON' ? 'is-active' : ''}`}
-              >
-                {renderIconSvg('zap', 13)}
-                Ignition {selectedVehicle.ignition || '—'}
-              </span>
-            </div>
             <button
-              className="dclose"
-              aria-label="Close"
+              className="backbtn"
               onClick={() => {
                 setSelectedId(null);
                 exitReplay();
               }}
             >
-              {renderIconSvg('x', 16)}
+              {renderIconSvg('chevLeft', 16)}
+              Fleet
             </button>
           </div>
 
           <div className="dbody">
-            {/* Vehicle Hero Header */}
-            <div className="dhead">
-              <div className="dtile">{renderIconSvg('truck', 22)}</div>
-              <div className="dtitle">
-                <div className="plate">{selectedVehicle.plate}</div>
-                <div className="model">
-                  <span>Model:</span> {selectedVehicle.model || '—'}
-                </div>
-                <div className="model">
-                  <span>VIN:</span> <code>{selectedVehicle.vin || '—'}</code>
-                </div>
-              </div>
+            <VehicleAccountBanner account={notDeployed ? null : (now?.account ?? null)} />
+
+            <VehiclePanelHeader now={now} account={now?.account ?? null} />
+
+            <VehicleReadingTiles now={now} />
+
+            <VehiclePanelActions
+              registrationNumber={reg}
+              onShare={() => handleShareVehicle(selectedVehicle)}
+              shareCreating={shareCreating}
+            />
+
+            <VehicleNowCard now={now} vehicle={selectedVehicle} />
+
+            <WhereNextSection registrationNumber={reg} />
+
+            <InsightChipsSection chips={now?.chips ?? []} registrationNumber={reg} />
+
+            <VehicleIssuesSection issues={now?.issues ?? []} registrationNumber={reg} />
+
+            <VehicleDriverSection driver={now?.driver ?? null} />
+
+            <HelpNearbySection nearbyHelp={now?.nearbyHelp ?? []} />
+
+            <VehicleDetailsCard now={now} />
+
+            <div className="sections">
+              <WeatherSection
+                weather={weather}
+                loading={weatherLoading}
+                contextLabel={weatherContext}
+              />
             </div>
 
-            <div className="statusrow">
-              {(() => {
-                const s = NOVA_STATUS[selectedVehicle.status] || NOVA_STATUS.offline;
-                return (
-                  <span className="status" style={{ '--tint': s.tint, '--c': s.c }}>
-                    <i />
-                    {s.label}
-                  </span>
-                );
-              })()}
-            </div>
-
-            {/* Metric Tiles */}
-            <VehicleMetricTiles vehicle={selectedVehicle} readings={readings} />
-
-            {/* Location and Last Update Lines */}
-            <div className="dlist">
-              <div className="dline">
-                <div>
-                  <VehicleLocation vehicle={selectedVehicle} showMap />
-                </div>
-              </div>
-
-              <div className="dline">
-                {renderIconSvg('clock', 18)}
-                <div>
-                  <b>
-                    {selectedVehicle.lastFixAt
-                      ? formatFixTime(selectedVehicle.lastFixAt)
-                      : 'No recent report'}
-                  </b>
-                  Last update ·{' '}
-                  {selectedVehicle.ago != null ? formatAgoText(selectedVehicle.ago) : '—'}
-                </div>
-              </div>
-            </div>
-
-            {/* Actions Toolbar */}
-            <div className="dactions">
-              <button
-                className="act"
-                aria-pressed={isTrailVisible && !replayState.on}
-                disabled={trailLoading}
-                onClick={() => toggleTrail(selectedVehicle)}
-              >
-                {renderIconSvg('route', 18)}
-                Trail
-              </button>
-
-              <button
-                className="act"
-                aria-pressed={replayState.on}
-                disabled={trailLoading}
-                onClick={() => enterReplay(selectedVehicle)}
-              >
-                {renderIconSvg('play', 18)}
-                Replay
-              </button>
-
-              <button
-                className="act"
-                disabled={shareCreating}
-                onClick={() => handleShareVehicle(selectedVehicle)}
-              >
-                {renderIconSvg('share', 18)}
-                Share
-              </button>
-            </div>
-
-            {setSegmentByTrip && toggleHabitualHalts && (
+            {setSegmentByTrip && toggleHabitualHalts ? (
               <VehicleLayerToggles
                 selectedVehicle={selectedVehicle}
                 isTrailVisible={isTrailVisible}
@@ -180,24 +133,7 @@ export default function VehicleDetailPanel({
                 toggleHabitualHalts={toggleHabitualHalts}
                 habitualHalts={habitualHalts}
               />
-            )}
-
-            {/* Deep Details Accordion Sections */}
-            <div className="sections">
-              <WeatherSection
-                weather={weather}
-                loading={weatherLoading}
-                contextLabel={weatherContext}
-              />
-              <DestinationIntentSection registrationNumber={selectedVehicle.plate} />
-              <VehicleInfoSection selectedVehicle={selectedVehicle} odometer={readings.odometer} />
-              <DriverAssignmentSection selectedDriver={selectedDriver} />
-              <TelematicsDiagnosticsSection
-                selectedVehicle={selectedVehicle}
-                showToast={showToast}
-                odometer={readings.odometer}
-              />
-            </div>
+            ) : null}
           </div>
         </>
       )}

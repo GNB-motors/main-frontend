@@ -23,7 +23,11 @@ const useIntegrityExport = (filteredEvents) => {
       filteredEvents.map((ev) => ({
         vehicle: ev.vehicle || '',
         kind:
-          ev.kind === 'fill' ? 'Refuel Fill' : ev.kind === 'loss' ? 'Siphon Loss' : 'DEF Anomaly',
+          ev.kind === 'fill'
+            ? 'Refuel Fill'
+            : ev.kind === 'loss'
+              ? 'Fuel went down while parked'
+              : 'DEF Anomaly',
         timestampIST: formatIST(ev.at),
         litres: ev.litres != null ? Number(Number(ev.litres).toFixed(1)) : null,
         inr: ev.inr != null ? Number(ev.inr) : null,
@@ -33,7 +37,7 @@ const useIntegrityExport = (filteredEvents) => {
               ? 'Bill Mismatch'
               : ev.confirmationStatus || 'Estimated'
             : ev.kind === 'loss'
-              ? 'Suspected Loss'
+              ? 'Fuel went down while parked'
               : `DEF ${ev.defFlag || 'Anomaly'}`,
         lat: ev.lat != null ? Number(ev.lat) : null,
         lng: ev.lng != null ? Number(ev.lng) : null,

@@ -18,6 +18,8 @@ import TripRangePicker from './TripRangePicker';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { tripDetailHref } from './tripWorkspace';
 import tripColumns from './tripColumns';
+import TripHistoryTab from './TripHistoryTab';
+import PlaceQuestionsTab from './PlaceQuestionsTab';
 import { rangeToParams, readRange, writeRange } from './tripRange';
 import './AutoTrips.css';
 import './TripsWorkspace.css';
@@ -25,14 +27,27 @@ import './TripList.css';
 
 const TABS = [
   { key: '', label: 'All' },
-  { key: 'COMPLETE', label: 'Reached drop' },
-  { key: 'NEEDS_REVIEW', label: 'Needs a check' },
+  { key: 'COMPLETE', label: 'Delivered' },
   { key: 'OPEN', label: 'On the road' },
+  // A plant-to-plant run is normal: plants work like warehouses. It is its
+  // own tab so the owner can see those runs, not so they can worry about
+  // them (F8.1).
+  { key: 'REPOSITION', label: 'Plant to plant', leg: 'REPOSITION' },
+  // Only real questions belong here. If the backend still counts
+  // PICKUP_TO_PICKUP in here, that is the backend's job (B4); we show what
+  // it sends.
+  { key: 'NEEDS_REVIEW', label: 'Needs your answer' },
   { key: 'PLANNED', label: 'Planned trips' },
   // Only a person moves a trip here (Confirm trip / Not a real trip on the trip page),
   // so these stay hidden until someone has.
   { key: 'CONFIRMED', label: 'Confirmed', hideWhenEmpty: true },
   { key: 'DISMISSED', label: 'Rejected', hideWhenEmpty: true },
+];
+
+/** The two views that are not a filter on the trip list. */
+const VIEWS = [
+  { key: 'history', label: 'History' },
+  { key: 'questions', label: 'Questions' },
 ];
 
 const PAGE_SIZE = 50;
@@ -46,7 +61,13 @@ export default function AutoTripsPage() {
   const statusTab = TABS.some((tab) => tab.key === searchParams.get('status'))
     ? searchParams.get('status') || ''
     : '';
+  // History and Questions are their own views, not a filter on the list.
+  const viewTab = VIEWS.some((view) => view.key === searchParams.get('tab'))
+    ? searchParams.get('tab')
+    : '';
   const planned = statusTab === 'PLANNED';
+  // A plant-to-plant run is its own filter on the backend: leg=REPOSITION.
+  const legFilter = TABS.find((tab) => tab.key === statusTab)?.leg ?? null;
   const page = Math.max(1, Number.parseInt(searchParams.get('page'), 10) || 1);
   const setPage = (value) =>
     setSearchParams((current) => {
@@ -99,6 +120,7 @@ export default function AutoTripsPage() {
     page: planned ? 1 : page,
     limit: planned ? 1 : PAGE_SIZE,
     ...(statusTab && !planned ? { status: statusTab } : {}),
+    ...(legFilter && !planned ? { leg: legFilter } : {}),
     ...(searchParams.get('vehicleId') ? { vehicleId: searchParams.get('vehicleId') } : {}),
     ...(searchParams.get('sapVerdict') ? { sapVerdict: searchParams.get('sapVerdict') } : {}),
     ...(searchParams.get('dropSiteId') ? { dropSiteId: searchParams.get('dropSiteId') } : {}),
@@ -147,6 +169,15 @@ export default function AutoTripsPage() {
     setSearchParams(next);
   };
 
+  const changeView = (key) => {
+    const next = new URLSearchParams(searchParams);
+    if (key) next.set('tab', key);
+    else next.delete('tab');
+    next.delete('status');
+    next.delete('page');
+    setSearchParams(next);
+  };
+
   const pagination = (
     <EnterprisePagination
       page={page}
@@ -189,12 +220,27 @@ export default function AutoTripsPage() {
                   key={t.key || 'all'}
                   type="button"
                   role="tab"
-                  aria-selected={statusTab === t.key}
+                  aria-selected={statusTab === t.key && !viewTab}
                   className="atx-tab"
-                  onClick={() => changeTab(t.key)}
+                  onClick={() => {
+                    changeView('');
+                    changeTab(t.key);
+                  }}
                 >
                   {t.label}
                   <span className="atx-tab-count">{formatNum(countFor(t.key))}</span>
+                </button>
+              ))}
+              {VIEWS.map((view) => (
+                <button
+                  key={view.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={viewTab === view.key}
+                  className="atx-tab"
+                  onClick={() => changeView(view.key)}
+                >
+                  {view.label}
                 </button>
               ))}
             </div>
@@ -262,7 +308,16 @@ export default function AutoTripsPage() {
             </button>
           </div>
         )}
-        {planned ? (
+        {viewTab === 'history' ? (
+          <TripHistoryTab
+            vehicle={searchParams.get('vehicle')}
+            site={searchParams.get('site')}
+            from={searchParams.get('from')}
+            to={searchParams.get('to')}
+          />
+        ) : viewTab === 'questions' ? (
+          <PlaceQuestionsTab />
+        ) : planned ? (
           <TripPlansTable
             data={plans.data}
             loading={plans.loading}

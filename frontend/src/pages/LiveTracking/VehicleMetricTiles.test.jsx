@@ -1,95 +1,99 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen, waitFor } from '@testing-library/react';
-import { getUserRole } from '../../utils/session.js';
-import TrackTelemetryService from './TrackTelemetryService.js';
-import VehicleDetailPanel from './VehicleDetailPanel.jsx';
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import VehicleReadingTiles from './VehicleReadingTiles';
 
-vi.mock('../../utils/session.js', () => ({ getUserRole: vi.fn() }));
-vi.mock('./TrackTelemetryService.js', () => ({ default: { getLatest: vi.fn() } }));
-vi.mock('./DestinationIntentSection.jsx', () => ({ default: () => null }));
-vi.mock('./DriverAssignmentSection.jsx', () => ({ default: () => null }));
-vi.mock('./VehicleLocation.jsx', () => ({ default: () => null }));
-beforeEach(() => {
-  getUserRole.mockReturnValue('OWNER');
-});
-afterEach(() => {
-  vi.resetAllMocks();
-});
+/**
+ * The reading tiles are where the redesign's hardest promise lives: a value
+ * from September must never look like a value from now, and a value we do
+ * not have must never look like zero.
+ */
+const now = {
+  registrationNumber: 'WB11L8862',
+  view: { speedKmh: 26, freshness: 'live', lastFixAt: '2026-11-02T20:48:00Z' },
+  readings: {
+    fuel: {
+      litres: { value: 356.5, at: '2026-11-02T20:48:00Z', ageMin: 0, freshness: 'live' },
+      pct: { value: 98, at: '2026-11-02T20:48:00Z', ageMin: 0, freshness: 'live' },
+      tankL: 365,
+    },
+    def: {
+      pct: { value: 60.8, at: '2026-11-02T20:48:00Z', ageMin: 0, freshness: 'live' },
+      litres: { value: 14.6, at: '2026-11-02T20:48:00Z', ageMin: 0, freshness: 'live' },
+      tankL: 24,
+      tankSource: 'VENDOR',
+    },
+    odometerKm: { value: 43478, at: '2026-11-02T20:48:00Z', ageMin: 0, freshness: 'live' },
+  },
+};
 
-const panel = (vehicle) => (
-  <VehicleDetailPanel selectedVehicle={vehicle} replayState={{ on: false }} />
-);
+describe('VehicleReadingTiles', () => {
+  it('shows fuel in litres with the tank underneath', () => {
+    render(<VehicleReadingTiles now={now} />);
+    expect(screen.getByText('356.5 L')).toBeInTheDocument();
+    expect(screen.getByText('of 365 L · 98%')).toBeInTheDocument();
+  });
 
-describe('Track selected-vehicle health', () => {
-  it('uses the same CAN fallback in the top tile, vehicle information and diagnostics', async () => {
-    TrackTelemetryService.getLatest.mockResolvedValue({
-      canOdo: 123456,
-      defLevel: 80,
-      defLevelUnit: 'percent',
-    });
-    const { rerender } = render(
-      <VehicleDetailPanel
-        selectedVehicle={{ plate: 'BR44GB1162', odo: null }}
-        replayState={{ on: false }}
-      />,
-    );
-    await waitFor(() => expect(screen.getAllByText('1,23,456 km')).toHaveLength(3));
-    expect(screen.queryByText('Odo N/A')).not.toBeInTheDocument();
-    // The CAN odometer is the canonical one (audit DC-20): a different live
-    // status-details value does not replace it.
-    rerender(panel({ plate: 'BR44GB1162', odo: 123457 }));
-    expect(screen.getAllByText('1,23,456 km')).toHaveLength(3);
-    expect(screen.queryByText('1,23,457 km')).not.toBeInTheDocument();
-    expect(TrackTelemetryService.getLatest).toHaveBeenCalledTimes(1);
+  it('shows DEF as a percentage with the litres underneath', () => {
+    render(<VehicleReadingTiles now={now} />);
+    expect(screen.getByText('60.8%')).toBeInTheDocument();
+    expect(screen.getByText('14.6 L of 24 L')).toBeInTheDocument();
   });
-  it('loads DEF for the selection and aborts when the panel closes', async () => {
-    TrackTelemetryService.getLatest.mockResolvedValue({
-      defLevel: 80,
-      defLevelUnit: 'percent',
-      canOdo: 123456,
-    });
-    const { unmount } = render(panel({ plate: 'BR44GB1162', fuel: 32, fuelUnit: 'litres' }));
-    expect(await screen.findByText('80%')).toBeInTheDocument();
-    expect(screen.getAllByText('1,23,456 km')).toHaveLength(3);
-    expect(screen.getByText('32 L')).toBeInTheDocument();
-    const [reg, signal] = TrackTelemetryService.getLatest.mock.calls[0];
-    expect(reg).toBe('BR44GB1162');
-    expect(signal.aborted).toBe(false);
-    unmount();
-    expect(signal.aborted).toBe(true);
+
+  it('shows the odometer', () => {
+    render(<VehicleReadingTiles now={now} />);
+    expect(screen.getByText('43,478 km')).toBeInTheDocument();
   });
-  it('does not show the previous vehicle’s DEF while another vehicle loads', async () => {
-    let resolve;
-    TrackTelemetryService.getLatest
-      .mockResolvedValueOnce({ defLevel: 80, defLevelUnit: 'percent' })
-      .mockImplementationOnce(
-        () =>
-          new Promise((r) => {
-            resolve = r;
-          }),
-      );
-    const { rerender } = render(panel({ plate: 'BR44GB1162' }));
-    expect(await screen.findByText('80%')).toBeInTheDocument();
-    rerender(panel({ plate: 'BR44GB1163' }));
-    expect(screen.queryByText('80%')).not.toBeInTheDocument();
-    await act(async () => {
-      resolve({ defLevel: 25, defLevelUnit: 'percent' });
-    });
-    expect(screen.getByText('25%')).toBeInTheDocument();
+
+  it('shows the speed', () => {
+    render(<VehicleReadingTiles now={now} />);
+    expect(screen.getByText('26 km/h')).toBeInTheDocument();
   });
-  it('keeps live metrics available when the optional health reading is missing', async () => {
-    TrackTelemetryService.getLatest.mockRejectedValue(
-      Object.assign(new Error('No data'), { status: 404 }),
-    );
-    render(panel({ plate: 'BR44GB1162', fuel: 32, fuelUnit: 'litres', odo: 123456 }));
-    await waitFor(() => expect(TrackTelemetryService.getLatest).toHaveBeenCalled());
-    expect(screen.getByText('32 L')).toBeInTheDocument();
-    expect(screen.getAllByText('1,23,456 km')).toHaveLength(3);
-    expect(screen.getByText('DEF')).toBeInTheDocument();
+
+  it('says a value it never received was not received', () => {
+    const without = {
+      ...now,
+      readings: {
+        ...now.readings,
+        fuel: { litres: null, pct: null, tankL: null },
+        def: { pct: null, litres: null, tankL: null, tankSource: null },
+        odometerKm: null,
+      },
+    };
+    render(<VehicleReadingTiles now={without} />);
+    expect(screen.getAllByText('Not received').length).toBe(3);
   });
-  it('avoids the manager-only health request for other roles', () => {
-    getUserRole.mockReturnValue('DRIVER');
-    render(panel({ plate: 'BR44GB1162' }));
-    expect(TrackTelemetryService.getLatest).not.toHaveBeenCalled();
+
+  it('dates a stale value instead of showing it as live', () => {
+    const stale = {
+      ...now,
+      readings: {
+        ...now.readings,
+        def: {
+          pct: { value: 60.8, at: '2026-09-09T03:40:00Z', ageMin: 50000, freshness: 'stale' },
+          litres: null,
+          tankL: null,
+          tankSource: null,
+        },
+      },
+    };
+    render(<VehicleReadingTiles now={stale} />);
+    expect(screen.getByText('last known 9 Sep, 9:10 am')).toBeInTheDocument();
+  });
+
+  it('says when the DEF litres are learned rather than reported', () => {
+    const learned = {
+      ...now,
+      readings: {
+        ...now.readings,
+        def: {
+          pct: { value: 60.8, at: '2026-11-02T20:48:00Z', ageMin: 0, freshness: 'live' },
+          litres: { value: 14.6, at: '2026-11-02T20:48:00Z', ageMin: 0, freshness: 'live' },
+          tankL: null,
+          tankSource: 'LEARNED',
+        },
+      },
+    };
+    render(<VehicleReadingTiles now={learned} />);
+    expect(screen.getByText('Litres after the first DEF top-up')).toBeInTheDocument();
   });
 });

@@ -1,0 +1,50 @@
+{
+  "items": [
+    {
+      "id": "site-jk-buxar",
+      "kind": "SITE",
+      "name": "JK BUXAR",
+      "category": "PLANT",
+      "lat": 25.5647,
+      "lng": 83.9754,
+      "radiusM": 600,
+      "layer": "plants",
+      "phone": null,
+      "openingHours": null,
+      "brand": null,
+      "visits": 268,
+      "usualDwellMin": 185
+    },
+    {
+      "id": "poi-202",
+      "kind": "POI",
+      "name": "Mohania Dhaba",
+      "category": "DHABA",
+      "lat": 24.3771,
+      "lng": 84.9812,
+      "radiusM": null,
+      "layer": "dhabas",
+      "phone": "0612422001",
+      "openingHours": "6:00 am – 11:00 pm",
+      "brand": null,
+      "visits": 42,
+      "usualDwellMin": 40
+    },
+    {
+      "id": "poi-303",
+      "kind": "POI",
+      "name": "Buxar Service Centre",
+      "category": "HOSPITAL",
+      "lat": 25.571,
+      "lng": 83.9812,
+      "radiusM": null,
+      "layer": "hospitals",
+      "phone": "0612422002",
+      "openingHours": "24 hours",
+      "brand": null,
+      "visits": 0,
+      "usualDwellMin": null
+    }
+  ],
+  "truncated": false
+}

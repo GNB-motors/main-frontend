@@ -45,6 +45,16 @@ function StatusPill({ d }) {
  * and day, each detour under it says when, on which leg, how far off and what
  * it cost. A detour outside any trip says so instead of showing a blank id.
  */
+/**
+ * Whether the extra distance is a measurement. A truck 9.9 km off its road
+ * with "+0.0 km extra" means there was no usual road to compare against
+ * (fewer than two of the fleet's own trips used it), so we show a dash.
+ */
+function extraKnown(d) {
+  if (d.extraKmEstimate == null) return false;
+  return !(Number(d.extraKmEstimate) === 0 && Number(d.maxOffKm || 0) >= 1);
+}
+
 export default function DeviationFeed({ groups, selId, onSelect, first, error, pager }) {
   let body;
   if (groups.length) {
@@ -77,19 +87,29 @@ export default function DeviationFeed({ groups, selId, onSelect, first, error, p
             </span>
             <LegPill trip={d.trip} />
             <span className="dev-row-num">
-              <span className="muted">Farthest</span>
-              <span className="mono strong">{Number(d.maxOffKm || 0).toFixed(1)} km</span>
+              <span className="muted">{d.offRouteKm != null ? 'Off usual road' : 'Farthest'}</span>
+              <span className="mono strong">
+                {(d.offRouteKm ?? d.maxOffKm) != null
+                  ? `${Number(d.offRouteKm ?? d.maxOffKm).toFixed(1)} km`
+                  : '—'}
+              </span>
             </span>
             <span className="dev-row-num">
               <span className="muted">Extra</span>
               <span className="mono">
-                {d.extraKmEstimate != null ? `+${Number(d.extraKmEstimate).toFixed(1)} km` : '—'}
+                {extraKnown(d) ? `+${Number(d.extraKmEstimate).toFixed(1)} km` : '—'}
               </span>
             </span>
             <span className="dev-row-num">
               <span className="muted">Cost (est.)</span>
-              <span className="strong" style={{ color: '#C2323A' }} title={costBasisLabel(d)}>
-                {d.estimatedExtraCostInr != null ? inr(d.estimatedExtraCostInr) : '—'}
+              <span
+                className="strong"
+                style={{ color: extraKnown(d) ? '#C2323A' : 'var(--fg-tertiary)' }}
+                title={costBasisLabel(d)}
+              >
+                {extraKnown(d) && d.estimatedExtraCostInr != null
+                  ? inr(d.estimatedExtraCostInr)
+                  : '—'}
               </span>
             </span>
             <StatusPill d={d} />

@@ -2,6 +2,8 @@ import { Play, Truck } from 'lucide-react';
 import { LONG_PLANT_MIN } from './timelineModel';
 import { canMarkPlace } from './autoTripPlaces';
 import { fmtClock, fmtDay, fmtDayTime, fmtDuration } from './autoTripFormat';
+import { fareText } from './tripTolls';
+import TollTimelineRow from './TollTimelineRow';
 
 const TITLE = { loading: 'Loading at plant', drop: 'Unloading at drop', unknown: 'Unknown stop' };
 /** "drop place" only repeats the title; a guessed or hand-set drop is worth saying. */
@@ -92,6 +94,9 @@ export default function AutoTripTimeline({ plan, canEdit, busy, playable, onPlay
       {plan.items.length ? (
         <ol className="atx-tl-list">
           {plan.items.map((it, i) => {
+            if (it.type === 'toll') {
+              return <TollTimelineRow key={it.id} item={it} playable={playable} onPlay={onPlay} />;
+            }
             if (it.type === 'leg') {
               const prev = plan.items[i - 1];
               const next = plan.items[i + 1];
@@ -134,6 +139,11 @@ export default function AutoTripTimeline({ plan, canEdit, busy, playable, onPlay
                   <div className="atx-tl-title-row">
                     <h3 className="atx-tl-title">{title}</h3>
                     <StayPill step={it} />
+                    {it.tollPass ? (
+                      <span className="atx-tl-pill atx-tl-pill--toll">
+                        {fareText(it.tollPass) ? `Toll ${fareText(it.tollPass)}` : 'Toll'}
+                      </span>
+                    ) : null}
                   </div>
                   <p className="atx-tl-place">{placeText(it, fixable && it.kind === 'unknown')}</p>
                   {fixable ? (

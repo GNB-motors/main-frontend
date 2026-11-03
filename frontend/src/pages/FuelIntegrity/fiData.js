@@ -1,5 +1,6 @@
 import { formatINR, formatLitres } from '../../utils/formatters';
 import { formatInIST } from '../../utils/dateUtils';
+import { isParkedDrop, parkedDropL } from './fuelVerdicts';
 
 export const RISK_RANK = { Critical: 4, High: 3, Medium: 2, Low: 1, Healthy: 0 };
 export const RISK_TONE = {
@@ -18,8 +19,8 @@ export function computeRisk(v) {
   return 'Healthy';
 }
 
-// Merged events feed: fills + siphon-suspected losses + DEF-flag windows,
-// newest first.
+// Merged events feed: fills + fuel that went down while parked + DEF-flag
+// windows, newest first.
 export function buildEvents(fills, windows, pricePerL) {
   const fillEvents = fills.map((f) => ({
     id: `fill-${f._id}`,
@@ -37,14 +38,17 @@ export function buildEvents(fills, windows, pricePerL) {
     odometer: f.odometer,
     claimedLitres: f.claimedLitres,
   }));
+  // Only a window the backend judged as a parked drop becomes a loss event.
+  // The old flag is not a fallback: it fired on trucks that were parked with
+  // the engine off, which is how the page used to cry wolf.
   const lossEvents = windows
-    .filter((w) => w.siphonSuspected)
+    .filter((w) => isParkedDrop(w))
     .map((w) => ({
       id: `loss-${w._id}`,
       kind: 'loss',
       vehicle: w.registrationNumber,
-      litres: w.unaccountedLossL,
-      inr: w.unaccountedLossL != null ? Math.max(0, w.unaccountedLossL) * pricePerL : null,
+      litres: parkedDropL(w),
+      inr: parkedDropL(w) != null ? Math.max(0, parkedDropL(w)) * pricePerL : null,
       at: w.windowTo,
       windowFrom: w.windowFrom,
       windowTo: w.windowTo,
@@ -119,10 +123,10 @@ export function buildChartData(fills, windows) {
     }
   });
   windows.forEach((w) => {
-    if (w.siphonSuspected) {
+    if (isParkedDrop(w)) {
       const x = b(w.windowTo);
       if (x) {
-        x.loss += Math.max(0, w.unaccountedLossL || 0);
+        x.loss += Math.max(0, parkedDropL(w) ?? 0);
         x.events += 1;
       }
     }
@@ -140,7 +144,8 @@ export function buildChartData(fills, windows) {
     }));
 }
 
-// Daily fills vs suspected losses for one vehicle's drill-down.
+// Daily fills vs fuel that went down while parked, for one vehicle's
+// drill-down.
 export function buildDrillChartData(fills, windows, vehicle) {
   const buckets = {};
   const bucketFor = (ts) => {
@@ -158,9 +163,9 @@ export function buildDrillChartData(fills, windows, vehicle) {
   windows
     .filter((w) => w.registrationNumber === vehicle)
     .forEach((w) => {
-      if (!w.siphonSuspected) return;
+      if (!isParkedDrop(w)) return;
       const x = bucketFor(w.windowTo);
-      if (x) x.loss += Math.max(0, w.unaccountedLossL || 0);
+      if (x) x.loss += Math.max(0, parkedDropL(w) ?? 0);
     });
   return Object.values(buckets).map((x) => ({
     ...x,
@@ -213,20 +218,27 @@ export function buildChipDefs(events) {
     { key: 'bill', label: 'Bill mismatch', count: events.filter((e) => e.billFlag).length },
     {
       key: 'loss',
-      label: 'Unexplained loss',
+      label: 'Fuel down while parked',
       count: events.filter((e) => e.kind === 'loss').length,
     },
   ];
 }
 
-// Fleet integrity status banner — severity derived from unexplained loss first,
-// then bill mismatches.
+// Fleet integrity status banner — severity derived from the fuel that went
+// down while parked first, then bill mismatches.
 export function buildBanner(lossL, billCount, pricePerL) {
+  if (lossL == null) {
+    return {
+      state: 'warn',
+      title: 'Fuel integrity — not measured yet',
+      msg: 'We could not measure whether any fuel went down while parked in this period.',
+    };
+  }
   if (lossL > 0) {
     return {
       state: 'warn',
       title: 'Fuel integrity — needs review',
-      msg: `${formatLitres(lossL)} of fuel the data does not explain (≈${formatINR(lossL * pricePerL)}). Review the evidence before acting — it can be a sensor or a missed fill as well as theft.`,
+      msg: `${formatLitres(lossL)} of fuel went down while parked (≈${formatINR(lossL * pricePerL)}). Review the windows below before you act — a sensor, a missed fill or a parked truck with the engine off can look the same.`,
     };
   }
   if (billCount > 0) {
@@ -239,7 +251,7 @@ export function buildBanner(lossL, billCount, pricePerL) {
   return {
     state: 'ok',
     title: 'Fuel integrity healthy',
-    msg: 'No unexplained fuel loss detected in the selected period.',
+    msg: 'Every litre in the selected period is explained by the driving.',
   };
 }
 

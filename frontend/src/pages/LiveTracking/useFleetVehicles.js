@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { countVehiclesByStatus } from './vehicleStatus.js';
 import { viewOf } from '../../utils/liveView.js';
 import { normalizeManufacturer } from './manufacturerFilters.js';
+import { filterBySelection } from './trackLegendModel.js';
 
 export default function useFleetVehicles({
   rawPositions,
@@ -10,6 +11,8 @@ export default function useFleetVehicles({
   searchQuery,
   selectedId,
   selectedManufacturers = [],
+  statusSelection = null,
+  makeSelection = null,
 }) {
   // A fix ages into "offline" without a new row arriving, so re-read the view
   // once a minute (the rule itself lives in the backend's liveVehicleView).
@@ -108,36 +111,44 @@ export default function useFleetVehicles({
     return [...names];
   }, [vehicles, vehiclesMeta]);
 
-  const scopedVehicles = useMemo(
-    () =>
-      vehicles.filter(
-        (v) =>
-          selectedManufacturers.length === 0 ||
-          selectedManufacturers.includes(v.manufacturer || 'Unclassified'),
-      ),
-    [vehicles, selectedManufacturers],
-  );
+  // The legend filters by a SET of makes and a SET of statuses. The old
+  // single-value filters are still honoured when no set is given.
+  const scopedVehicles = useMemo(() => {
+    if (makeSelection) {
+      return filterBySelection(vehicles, makeSelection, (v) => v.manufacturer || 'Unclassified');
+    }
+    return vehicles.filter(
+      (v) =>
+        selectedManufacturers.length === 0 ||
+        selectedManufacturers.includes(v.manufacturer || 'Unclassified'),
+    );
+  }, [vehicles, selectedManufacturers, makeSelection]);
 
   // Counts for the connected status bar cards matching WheelsEye standard
   const counts = useMemo(() => countVehiclesByStatus(scopedVehicles), [scopedVehicles]);
 
+  // The legend always shows the WHOLE fleet, so a count never changes just
+  // because a filter is on. (audit: the legend must not lie about fleet size)
+  const fleetCounts = useMemo(() => countVehiclesByStatus(vehicles), [vehicles]);
+
   // Filtered vehicles according to the active top status card
   const filteredVehicles = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return scopedVehicles.filter((v) => {
-      const matchesFilter =
-        filter === 'all' ? true : filter === 'gps' ? v.live : v.status === filter;
-      if (!matchesFilter) return false;
-      if (!q) return true;
-      return (
+    const byStatus = statusSelection
+      ? filterBySelection(scopedVehicles, statusSelection, (v) => v.status)
+      : scopedVehicles.filter((v) =>
+          filter === 'all' ? true : filter === 'gps' ? v.live : v.status === filter,
+        );
+    if (!q) return byStatus;
+    return byStatus.filter(
+      (v) =>
         v.plate.toLowerCase().includes(q) ||
         (v.model || '').toLowerCase().includes(q) ||
         (v.manufacturer || '').toLowerCase().includes(q) ||
         (v.vin || '').toLowerCase().includes(q) ||
-        (v.area || '').toLowerCase().includes(q)
-      );
-    });
-  }, [scopedVehicles, filter, searchQuery]);
+        (v.area || '').toLowerCase().includes(q),
+    );
+  }, [scopedVehicles, filter, searchQuery, statusSelection]);
 
   // A selection outside the visible scope must not keep an unexplained map marker.
   const selectedVehicle =
@@ -155,5 +166,13 @@ export default function useFleetVehicles({
     [filteredVehicles],
   );
 
-  return { vehicles, counts, filteredVehicles, selectedVehicle, mapVehicles, manufacturers };
+  return {
+    vehicles,
+    counts,
+    fleetCounts,
+    filteredVehicles,
+    selectedVehicle,
+    mapVehicles,
+    manufacturers,
+  };
 }

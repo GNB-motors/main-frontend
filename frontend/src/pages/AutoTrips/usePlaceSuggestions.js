@@ -38,29 +38,32 @@ export default function usePlaceSuggestions({
       return undefined;
     }
     const controller = new AbortController();
-    const timer = setTimeout(() => {
-      setLoading(true);
-      setError(null);
-      PlaceIntelligenceService.suggestSites(
-        { q, viewport, role, includeLowConfidence, limit },
-        { signal: controller.signal },
-      )
-        .then((res) => {
-          if (controller.signal.aborted) return;
-          setData(res?.records || []);
-        })
-        .catch((err) => {
-          if (controller.signal.aborted) return;
-          if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') return;
-          // A picker that cannot reach the suggestions endpoint must still
-          // work — fall back to an empty list and let the person type a name.
-          setError(err);
-          setData([]);
-        })
-        .finally(() => {
-          if (!controller.signal.aborted) setLoading(false);
-        });
-    }, q ? debounceMs : 0);
+    const timer = setTimeout(
+      () => {
+        setLoading(true);
+        setError(null);
+        PlaceIntelligenceService.suggestSites(
+          { q, viewport, role, includeLowConfidence, limit },
+          { signal: controller.signal },
+        )
+          .then((res) => {
+            if (controller.signal.aborted) return;
+            setData(res?.records || []);
+          })
+          .catch((err) => {
+            if (controller.signal.aborted) return;
+            if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') return;
+            // A picker that cannot reach the suggestions endpoint must still
+            // work — fall back to an empty list and let the person type a name.
+            setError(err);
+            setData([]);
+          })
+          .finally(() => {
+            if (!controller.signal.aborted) setLoading(false);
+          });
+      },
+      q ? debounceMs : 0,
+    );
 
     return () => {
       clearTimeout(timer);

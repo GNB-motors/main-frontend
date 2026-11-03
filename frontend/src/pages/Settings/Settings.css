@@ -32,8 +32,11 @@
   --stx-red-bg: #fef2f2;
   --stx-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
+  width: 100%;
+  min-width: 0;
   min-height: 100%;
-  padding: 12px 8px 16px;
+  padding: 24px 32px;
+  box-sizing: border-box;
   color: var(--stx-ink);
   font-family:
     'Plus Jakarta Sans',
@@ -73,8 +76,10 @@
 }
 
 .stx-wrap {
-  max-width: 1220px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
 }
 
 .stx-title {
@@ -864,6 +869,10 @@ button.stx-status:hover {
   }
 }
 @media (max-width: 640px) {
+  .stx-page {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
   .stx-title {
     font-size: 24px;
     margin-bottom: 16px;

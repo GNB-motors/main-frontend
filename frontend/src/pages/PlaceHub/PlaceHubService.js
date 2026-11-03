@@ -144,6 +144,9 @@ export const PlaceHubService = {
   loadPoi: (box, { signal } = {}) =>
     PlaceIntelligenceService.listPoi(box, { signal }).then((d) => d?.items || []),
 
+  loadTollPlazas: (query, { signal } = {}) =>
+    PlaceIntelligenceService.listTollPlazas(query, { signal }).then((d) => d?.items || []),
+
   tagStop: (id, purpose) => PlaceIntelligenceService.tagStop({ id, purpose }),
 
   /** One site by id: a suggestion outside the 200 busiest that a link opens. */

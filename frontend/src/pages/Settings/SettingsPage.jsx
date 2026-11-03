@@ -2,6 +2,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext.jsx';
 import { useActiveBranch } from '../../contexts/BranchContext.jsx';
 import useApi from '../../hooks/useApi';
+import { useFullPageLayout } from '../../hooks/usePageLayout';
 import FleetDataService from '../../services/FleetDataService';
 import { hasFleetAccess } from '../../utils/moduleAccess';
 import { getUserRole } from '../../utils/session.js';
@@ -20,6 +21,7 @@ import './Settings.css';
  * other pages can link straight to it.
  */
 export default function SettingsPage() {
+  useFullPageLayout();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isEnabled, canAccess } = useFeatureFlags();
   const { branches } = useActiveBranch();

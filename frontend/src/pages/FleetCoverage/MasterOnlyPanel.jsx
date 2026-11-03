@@ -46,7 +46,7 @@ export default function MasterOnlyPanel({
         <DataTable
           columns={masterColumns}
           rows={onlyMasterRows}
-          rowKey={(v) => v.registrationNumber}
+          rowKey={(v, i) => v._id || `${v.registrationNumber}|${i}`}
           showing={onlyMasterRows.length}
           total={onlyMaster.length}
           activeFilters={activeFilterCount({ q })}
