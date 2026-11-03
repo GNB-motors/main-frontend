@@ -79,7 +79,15 @@ export default function tripColumns({ showSap, refetch, searchParams }) {
       align: 'right',
       render: (r) =>
         r.km?.ladenOdo == null && r.km?.laden == null ? (
-          <span className="atx-muted">Not recorded</span>
+          // A trip still on the road has no loaded run yet; "Not recorded" on
+          // every live row read like missing data.
+          r.drop?.arrivedAt ? (
+            <span className="atx-muted">Not recorded</span>
+          ) : (
+            <span className="atx-muted" title="Counted when the truck reaches the drop">
+              —
+            </span>
+          )
         ) : (
           <span
             className="atx-cell-stack"
