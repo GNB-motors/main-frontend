@@ -121,7 +121,9 @@ export default function DeviationMap({ detail, zoom }) {
           fillOpacity: 1,
         })
           .bindTooltip(
-            `${stop.placeName ?? 'Stopped'}${stop.durationMin != null ? ` · ${stop.durationMin} min` : ''}`,
+            textTip(
+              `${stop.placeName ?? 'Stopped'}${stop.durationMin != null ? ` · ${stop.durationMin} min` : ''}`,
+            ),
             { direction: 'top', offset: [0, -10] },
           )
           .addTo(group);
@@ -130,7 +132,7 @@ export default function DeviationMap({ detail, zoom }) {
       model.markers.forEach((m) => {
         const [color, glyph, size] = MARKER[m.kind];
         L.marker(m.at, { icon: pinIcon(color, glyph, size), title: m.label })
-          .bindTooltip(m.label, { direction: 'top', offset: [0, -10] })
+          .bindTooltip(textTip(m.label), { direction: 'top', offset: [0, -10] })
           .addTo(group);
       });
     },
@@ -148,6 +150,13 @@ export default function DeviationMap({ detail, zoom }) {
 }
 
 /** The time of day, for the exit and rejoin labels. */
+// Place names come from data: set them as text so the tooltip never parses them as HTML.
+function textTip(label) {
+  const el = document.createElement('span');
+  el.textContent = label == null ? '' : String(label);
+  return el;
+}
+
 function clockLabel(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
