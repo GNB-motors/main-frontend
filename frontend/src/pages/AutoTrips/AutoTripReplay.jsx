@@ -10,6 +10,7 @@ import ReplayPlayer from './ReplayPlayer';
 import { POI_LABEL_STYLES } from '../../utils/mapLabelStyles';
 import TollMarkers from './TollMarkers';
 import { justPassed, tollMarks } from './tripTolls';
+import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const CONTAINER = { width: '100%', height: '100%' };
@@ -88,6 +89,7 @@ export default function AutoTripReplay({
 }) {
   const { isLoaded } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
   const mapRef = useRef(null);
+  const poiClickRef = useRef(null);
   const wrapRef = useRef(null);
 
   const frames = useMemo(() => toFrames(track?.points), [track]);
@@ -289,9 +291,19 @@ export default function AutoTripReplay({
             zoom={9}
             onLoad={(map) => {
               mapRef.current = map;
+              // Clicking one of Google's own POIs opens it in Google Maps
+              // instead of Google's info window.
+              poiClickRef.current?.remove();
+              poiClickRef.current = map.addListener('click', (e) => {
+                if (!e.placeId) return;
+                e.stop();
+                openInGoogleMaps({ lat: e.latLng.lat(), lng: e.latLng.lng(), placeId: e.placeId });
+              });
               fit(map);
             }}
             onUnmount={() => {
+              poiClickRef.current?.remove();
+              poiClickRef.current = null;
               mapRef.current = null;
             }}
             onZoomChanged={() => {
@@ -302,7 +314,7 @@ export default function AutoTripReplay({
               disableDefaultUI: true,
               zoomControl: true,
               gestureHandling: 'cooperative',
-              clickableIcons: false,
+              clickableIcons: true,
               styles: MAP_THEME,
             }}
           >

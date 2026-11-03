@@ -6,6 +6,7 @@ import { useApi } from '../../hooks/useApi';
 import { useMutation } from '../../hooks/useMutation';
 import AutoTripService from '../../services/AutoTripService';
 import RoadService from '../../services/RoadService';
+import { getWhereNext } from '../../services/fleetViewService.js';
 import { getUserRole } from '../../utils/session.js';
 import { dropLabel } from '../PlaceHub/intelligence/facilityText';
 import RouteSapCard from '../Sap/RouteSapCard';
@@ -20,6 +21,7 @@ import TripDriver from './TripDriver';
 import TripBackButton from './TripBackButton';
 import { FLAG_LABEL, answerPlaceHref, inWindow } from './autoTripPlaces';
 import { LONG_PLANT_MIN, timelinePlan } from './timelineModel';
+import { legBarSegments } from './tripLegModel.js';
 import { tollClassText, tollSummary, tollLedgerText, withTollPasses } from './tripTolls';
 import {
   STATUS_CLASS,
@@ -91,6 +93,15 @@ export default function AutoTripDetailPage() {
     { enabled: Boolean(track?.registrationNumber && track?.from && track?.to) },
   );
 
+  // While the truck is still on the road, ask where it is most likely
+  // heading; failure just leaves the line out.
+  const tripIsOpen = Boolean(trip) && notReachedYet(trip);
+  const { data: whereNext } = useApi(
+    (signal) => getWhereNext(trip?.registrationNumber, { signal }),
+    [tripIsOpen ? trip?.registrationNumber : null],
+    { enabled: tripIsOpen && Boolean(trip?.registrationNumber) },
+  );
+
   // Route deviations are an owner/manager feed behind fleetIntelligence; any
   // failure (flag off, no access) just leaves the card out.
   const devWindow = deviationWindow(trip);
@@ -154,8 +165,36 @@ export default function AutoTripDetailPage() {
 
   const frozen = Boolean(trip.frozenAt);
   const open = notReachedYet(trip);
+  // "Heading to <place> · ~<km> km · ETA <time>" — parts the prediction lacks
+  // are omitted; nothing renders without a candidate place.
+  const nextDest = open ? (whereNext?.destinations?.[0] ?? null) : null;
+  const nextLine = nextDest?.place?.name
+    ? [
+        `Heading to ${nextDest.place.name}`,
+        nextDest?.route?.km != null ? `~${Math.round(Number(nextDest.route.km))} km` : null,
+        // An ETA already in the past is a prediction from stale data, not a time to show.
+        nextDest?.eta?.at && new Date(nextDest.eta.at).getTime() > Date.now()
+          ? `ETA ${fmtDayTime(nextDest.eta.at)}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : null;
   const answerHref = answerPlaceHref(trip);
   const plantMin = trip.durations?.plantMin;
+  // A summary group is only worth a divider when at least one of its rows has
+  // a real value — never render an empty row.
+  const runKm = trip.km?.ladenOdo ?? trip.km?.laden;
+  const runTime = trip.durations?.ladenMin ?? trip.durations?.transitMin;
+  const hasRunGroup =
+    runKm != null ||
+    trip.km?.approach != null ||
+    trip.km?.return != null ||
+    trip.km?.fuelDetour != null ||
+    runTime != null ||
+    (trip.extraDrops?.length && trip.durations?.transitMin != null) ||
+    trip.durations?.approachMin != null ||
+    plantMin != null;
   const hasTrack = (track?.points?.length || 0) > 1;
   const playable = (at) => hasTrack && inWindow(at, track);
   const playFrom = (at) => replayRef.current?.playFrom(at);
@@ -254,75 +293,106 @@ export default function AutoTripDetailPage() {
           <div className="atx-card atx-summary">
             <h2 className="atx-card-title">Trip summary</h2>
             <div className="atx-fields">
-              <Field label="Loaded at">{trip.pickup?.name || '—'}</Field>
+              {trip.pickup?.name ? <Field label="Loaded at">{trip.pickup.name}</Field> : null}
               <Field label="Unloaded at">{open ? 'Not reached yet' : dropLabel(trip.drop)}</Field>
-              <Field label="Left plant">{fmtDayTime(trip.pickup?.departedAt)}</Field>
-              <Field label={trip.extraDrops?.length ? 'First drop at' : 'Reached drop'}>
-                {open ? '—' : fmtDayTime(trip.drop?.arrivedAt)}
-              </Field>
-              {trip.extraDrops?.length ? (
+              {nextLine ? <Field label="Where next">{nextLine}</Field> : null}
+              {trip.pickup?.departedAt ? (
+                <Field label="Left plant">{fmtDayTime(trip.pickup.departedAt)}</Field>
+              ) : null}
+              {!open && trip.drop?.arrivedAt ? (
+                <Field label={trip.extraDrops?.length ? 'First drop at' : 'Reached drop'}>
+                  {fmtDayTime(trip.drop.arrivedAt)}
+                </Field>
+              ) : null}
+              {trip.extraDrops?.length && trip.extraDrops[trip.extraDrops.length - 1]?.arrivedAt ? (
                 <Field label="Last drop at">
-                  {fmtDayTime(trip.extraDrops[trip.extraDrops.length - 1]?.arrivedAt)}
+                  {fmtDayTime(trip.extraDrops[trip.extraDrops.length - 1].arrivedAt)}
                 </Field>
               ) : null}
               <Field label="Driver">
                 <TripDriver trip={trip} onRetry={refetch} />
               </Field>
             </div>
+            {legBarSegments(trip).length ? (
+              <>
+                <div className="atx-rule" />
+                <div className="atx-fields">
+                  {/* The legs, as a bar in the leg colours (F8.5). */}
+                  <div className="atx-field">
+                    <div className="atx-field-label">Distance by leg</div>
+                    <TripLegBar trip={trip} />
+                  </div>
+                </div>
+              </>
+            ) : null}
+            {hasRunGroup ? (
+              <>
+                <div className="atx-rule" />
+                <div className="atx-fields">
+                  {runKm != null ? (
+                    <Field mono label="Loaded run">
+                      {fmtKm(trip.km?.ladenOdo ?? trip.km?.laden)}
+                      <span className="atx-muted">
+                        {trip.km?.ladenOdo != null
+                          ? ' · odometer'
+                          : trip.km?.laden != null
+                            ? ' · GPS path'
+                            : ''}
+                      </span>
+                    </Field>
+                  ) : null}
+                  {trip.km?.approach != null ? (
+                    <Field mono label="Empty run to plant">
+                      {fmtKm(trip.km.approach)}
+                    </Field>
+                  ) : null}
+                  {trip.km?.return != null ? (
+                    <Field mono label="Return to plant">
+                      {fmtKm(trip.km.return)}
+                    </Field>
+                  ) : null}
+                  {trip.km?.fuelDetour != null ? (
+                    <Field mono label="Extra km for fuel">
+                      {fmtKm(trip.km.fuelDetour)}
+                    </Field>
+                  ) : null}
+                  {/* The loaded run covers every drop, so its time must too (audit TR-01):
+                      transitMin stops at the FIRST drop. */}
+                  {runTime != null ? (
+                    <Field mono label="Loaded running time">
+                      {fmtDuration(trip.durations?.ladenMin ?? trip.durations?.transitMin)}
+                    </Field>
+                  ) : null}
+                  {trip.extraDrops?.length && trip.durations?.transitMin != null ? (
+                    <Field mono label="To first drop">
+                      {fmtDuration(trip.durations.transitMin)}
+                    </Field>
+                  ) : null}
+                  {trip.durations?.approachMin != null ? (
+                    <Field mono label="Empty before loading">
+                      {fmtDuration(trip.durations.approachMin)}
+                    </Field>
+                  ) : null}
+                  {plantMin != null ? (
+                    <Field mono warn={plantMin > LONG_PLANT_MIN} label="Time at plant">
+                      {fmtDuration(plantMin)}
+                    </Field>
+                  ) : null}
+                </div>
+              </>
+            ) : null}
             <div className="atx-rule" />
-            <div className="atx-fields">
-              {/* The legs, as a bar in the leg colours (F8.5). */}
-              <div className="atx-field">
-                <div className="atx-field-label">Distance by leg</div>
-                <TripLegBar trip={trip} />
-              </div>
-            </div>
-            <div className="atx-rule" />
-            <div className="atx-fields">
-              <Field mono label="Loaded run">
-                {fmtKm(trip.km?.ladenOdo ?? trip.km?.laden)}
-                <span className="atx-muted">
-                  {trip.km?.ladenOdo != null
-                    ? ' · odometer'
-                    : trip.km?.laden != null
-                      ? ' · GPS path'
-                      : ''}
-                </span>
-              </Field>
-              <Field mono label="Empty run to plant">
-                {fmtKm(trip.km?.approach)}
-              </Field>
-              <Field mono label="Return to plant">
-                {fmtKm(trip.km?.return)}
-              </Field>
-              <Field mono label="Extra km for fuel">
-                {fmtKm(trip.km?.fuelDetour)}
-              </Field>
-              {/* The loaded run covers every drop, so its time must too (audit TR-01):
-                  transitMin stops at the FIRST drop. */}
-              <Field mono label="Loaded running time">
-                {fmtDuration(trip.durations?.ladenMin ?? trip.durations?.transitMin)}
-              </Field>
-              {trip.extraDrops?.length && trip.durations?.transitMin != null ? (
-                <Field mono label="To first drop">
-                  {fmtDuration(trip.durations.transitMin)}
-                </Field>
-              ) : null}
-              <Field mono label="Empty before loading">
-                {fmtDuration(trip.durations?.approachMin)}
-              </Field>
-              <Field mono warn={(plantMin ?? 0) > LONG_PLANT_MIN} label="Time at plant">
-                {fmtDuration(plantMin)}
-              </Field>
-            </div>
-            <div className="atx-rule" />
-            <Field label="Stops on the way">{stopsOnWayText(trip.stopsSummary)}</Field>
+            {trip.stopsSummary ? (
+              <Field label="Stops on the way">{stopsOnWayText(trip.stopsSummary)}</Field>
+            ) : null}
             {/* Every stop, with the reason it stopped (F8.5). Clicking a row
                 opens Track at that stop. */}
-            <div className="atx-field">
-              <div className="atx-field-label">Stops on this trip</div>
-              <TripStopList stops={trip.stops} registrationNumber={trip.registrationNumber} />
-            </div>
+            {trip.stops?.length ? (
+              <div className="atx-field">
+                <div className="atx-field-label">Stops on this trip</div>
+                <TripStopList stops={trip.stops} registrationNumber={trip.registrationNumber} />
+              </div>
+            ) : null}
             {tollText ? <Field label="Tolls on the way">{tollText}</Field> : null}
             {tollSummary(tolls, 'RETURN') ? (
               <Field label="Tolls on the way back">{tollSummary(tolls, 'RETURN')}</Field>

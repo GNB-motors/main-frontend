@@ -6,6 +6,7 @@ import { LIGHT_MAP_STYLE, DARK_MAP_STYLE } from './mapStyles.js';
 import useTrailGeometry from './useTrailGeometry.js';
 import useTrackReplay from './useTrackReplay.js';
 import useTrailHistory from './useTrailHistory.js';
+import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
 
 /* Map viewport, trail layers and replay share the same map instance. */
 export default function useLiveMap({
@@ -139,9 +140,9 @@ export default function useLiveMap({
       styles: theme === 'dark' ? DARK_MAP_STYLE : LIGHT_MAP_STYLE,
       mapTypeId: mapMode === 'sat' ? 'satellite' : 'roadmap',
       gestureHandling: 'greedy',
-      // Google's own place labels are on (F0.5); clicking one must not open
-      // Google's info window over our own panels.
-      clickableIcons: false,
+      // Google's own POIs are clickable: a click opens them in Google Maps
+      // instead of Google's info window (handled by the map click listener).
+      clickableIcons: true,
     }),
     [theme, mapMode],
   );
@@ -180,6 +181,14 @@ export default function useLiveMap({
       if (typeof initialZ === 'number') {
         setMapZoom(initialZ);
       }
+      // Clicking one of Google's own POIs (shops, plants, hotels) opens it in
+      // Google Maps instead of Google's info window over our panels.
+      poiClickRef.current?.remove();
+      poiClickRef.current = map.addListener('click', (e) => {
+        if (!e.placeId) return;
+        e.stop();
+        openInGoogleMaps({ lat: e.latLng.lat(), lng: e.latLng.lng(), placeId: e.placeId });
+      });
       map.addListener('zoom_changed', () => {
         const z = map.getZoom();
         if (typeof z === 'number') {
@@ -200,6 +209,10 @@ export default function useLiveMap({
    * Panning fires many change events; asking for places on each one would
    * flood the endpoint, so the box is sampled once the map settles.
    */
+  // Detach the POI click listener with the map.
+  const poiClickRef = useRef(null);
+  useEffect(() => () => poiClickRef.current?.remove(), []);
+
   const onMapIdle = useCallback(() => {
     const map = mapRef.current;
     if (!map || !window.google) return;

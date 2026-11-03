@@ -156,3 +156,119 @@
 .atx-list .dt td[style*='right'] .atx-cell-stack {
   align-items: flex-end;
 }
+
+/* One-row toolbar: the tab strip never wraps; the filters sit on the same row. */
+.atx-list .atx-toolbar {
+  flex-wrap: nowrap;
+}
+.atx-list .atx-toolbar-start {
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+.atx-list .atx-tabs {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  min-width: 0;
+}
+.atx-list .atx-tabs::-webkit-scrollbar {
+  display: none;
+}
+.atx-list .atx-tab,
+.atx-list .atx-tab--more {
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.atx-list .atx-tab--more {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.atx-list .atx-filter-row {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  margin-left: auto;
+  gap: 8px;
+}
+.atx-list .atx-search,
+.atx-list .atx-toolbar-link,
+.atx-list .sap-row {
+  white-space: nowrap;
+}
+
+/* The "More" menu at the end of the tab strip. */
+.atx-more {
+  position: relative;
+  flex: 0 0 auto;
+}
+.atx-more-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 30;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--card);
+  border: 1px solid var(--atx-line);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+}
+.atx-more-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--atx-ink-2);
+  font-size: 12px;
+  font-weight: 550;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.atx-more-item:hover {
+  background: var(--atx-blue-bg);
+  color: var(--atx-blue);
+}
+.atx-more-item--active,
+.atx-more-item--active:hover {
+  color: var(--atx-blue);
+  background: var(--atx-blue-bg);
+  font-weight: 650;
+}
+.atx-tab--active-more {
+  color: var(--atx-blue);
+  background: var(--atx-blue-bg);
+  border-color: var(--atx-blue-line);
+}
+
+/* Under 900 px the filters drop to a second row as one tidy line. */
+@media (max-width: 900px) {
+  .atx-list .atx-toolbar {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+  .atx-list .atx-filter-row {
+    flex: 1 0 100%;
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+  .atx-list .atx-search {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .atx-list .atx-search-input {
+    width: 100%;
+  }
+}

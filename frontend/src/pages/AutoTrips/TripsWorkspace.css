@@ -81,7 +81,9 @@
   padding: 0;
   border: 0;
   background: transparent;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 .atx-page .atx-tab {
   border: 1px solid transparent;

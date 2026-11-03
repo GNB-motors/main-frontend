@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
 import { GoogleMap, MarkerClustererF } from '@react-google-maps/api';
 import { boundsOf } from './intelligence/model/mapBounds.js';
 import { LIGHT_MAP_STYLE, DARK_MAP_STYLE } from '../LiveTracking/mapStyles.js';
@@ -90,13 +91,25 @@ export default function PlaceHubMap({
       mapTypeControl: false,
       fullscreenControl: false,
       zoomControl: true,
-      clickableIcons: false,
+      clickableIcons: true,
       gestureHandling: 'greedy',
       styles: satellite ? SATELLITE_STYLES : isDark ? DARK_MAP_STYLE : LIGHT_MAP_STYLE,
       draggableCursor: drafting ? 'crosshair' : undefined,
     }),
     [isDark, satellite, drafting],
   );
+
+  useEffect(() => {
+    if (!map) return undefined;
+    // Clicking one of Google's own POIs opens it in Google Maps instead of
+    // Google's info window.
+    const listener = map.addListener('click', (e) => {
+      if (!e.placeId) return;
+      e.stop();
+      openInGoogleMaps({ lat: e.latLng.lat(), lng: e.latLng.lng(), placeId: e.placeId });
+    });
+    return () => listener.remove();
+  }, [map]);
 
   useEffect(() => {
     if (map) map.setMapTypeId(satellite ? 'hybrid' : 'roadmap');

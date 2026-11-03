@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { ExternalLink } from 'lucide-react';
+import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
 import renderIconSvg from './renderIconSvg.jsx';
 import { styleOfType } from '../PlaceHub/placeHubStyle.js';
 import { placeTypeLabel } from '../PlaceHub/model/placeGroups.js';
@@ -127,6 +129,15 @@ export default function PlaceDetailPanel({ place, vehicles, onBack, onPickVehicl
               <Link className="pl-link" to="/place-hub">
                 Manage places →
               </Link>
+              <button
+                type="button"
+                className="pl-link"
+                style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}
+                onClick={() => openInGoogleMaps({ lat: place.lat, lng: place.lng, name: place.name })}
+              >
+                <ExternalLink size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />
+                Open in Google Maps
+              </button>
             </div>
           </details>
         </div>
