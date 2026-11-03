@@ -47,7 +47,7 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', ignoreRestSiblings: true }],
       // Rule 24: log through utils/logger.js (console in dev only, errors to Sentry).
       'no-console': 'error',
       // Rule 8: components fetch through a service / api module and useApi or
