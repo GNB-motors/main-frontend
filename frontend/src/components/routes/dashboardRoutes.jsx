@@ -4,6 +4,7 @@ import RedirectWithState from './RedirectWithState';
 import PlacesRedirect from './PlacesRedirect';
 import LegacyReceiptRedirect from './LegacyReceiptRedirect';
 import PerformanceRedirect from './PerformanceRedirect';
+import FeatureGate from './FeatureGate';
 import ReceiptApprovalDetailPage from './lazyReceiptApprovalDetailPage';
 import erpRoutes from './erpRoutes';
 
@@ -122,7 +123,14 @@ const dashboardRoutes = (
         </PerformanceRedirect>
       }
     />
-    <Route path="/performance" element={<PerformancePage />} />
+    <Route
+      path="/performance"
+      element={
+        <FeatureGate flag="performanceSection" name="Performance">
+          <PerformancePage />
+        </FeatureGate>
+      }
+    />
     <Route path="/vehicles/:registrationNumber" element={<Vehicle360Page />} />
     <Route path="/reports" element={<ReportsPage />} />
     <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
@@ -160,7 +168,14 @@ const dashboardRoutes = (
     <Route path="/idling-console" element={<Navigate to="/route-hub" replace />} />
     <Route path="/places" element={<PlacesRedirect />} />
     <Route path="/place-hub" element={<PlaceHubPage />} />
-    <Route path="/tolls" element={<TollsPage />} />
+    <Route
+      path="/tolls"
+      element={
+        <FeatureGate flag="tolls" name="Tolls">
+          <TollsPage />
+        </FeatureGate>
+      }
+    />
     <Route path="/live-tracking" element={<LiveTrackingPage />} />
     <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
     {/* Item 26.5: ONE inbox over the scattered alert sources. The pages it reads
