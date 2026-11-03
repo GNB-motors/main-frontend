@@ -17,7 +17,7 @@ const IntegrityBentoStrip = ({
     {/* Card 1: Audited Dispensed Fuel */}
     <div className="fi-bento-card fi-bento-card--blue">
       <div className="fi-bento-head">
-        <span className="fi-bento-label">Audited Volume</span>
+        <span className="fi-bento-label">Fuel in (tank sensor)</span>
         <div className="fi-bento-icon fi-bento-icon--blue">
           <Fuel size={16} />
         </div>
@@ -36,7 +36,7 @@ const IntegrityBentoStrip = ({
           {windowDays && totalFillsLitres > 0 ? (totalFillsLitres / windowDays).toFixed(0) : '0'}{' '}
           L/day
         </span>
-        <span className="fi-bento-pill fi-bento-pill--ok">Audited</span>
+        <span className="fi-bento-pill fi-bento-pill--ok">Tank sensor</span>
       </div>
     </div>
 
@@ -85,8 +85,8 @@ const IntegrityBentoStrip = ({
           {lossL == null
             ? 'Not measured yet'
             : lossL === 0
-              ? 'No drop found in parked windows'
-              : 'Drops found in parked windows'}
+              ? 'Parked windows checked'
+              : 'In parked windows'}
         </span>
         <span
           className={`fi-bento-pill ${lossL === 0 ? 'fi-bento-pill--ok' : 'fi-bento-pill--crit'}`}
@@ -111,7 +111,7 @@ const IntegrityBentoStrip = ({
         </div>
       </div>
       <div className="fi-bento-foot">
-        <span className="fi-bento-sub">Bill litres that disagree with the tank rise</span>
+        <span className="fi-bento-sub">Bill vs tank rise</span>
         <span
           className={`fi-bento-pill ${billCount === 0 ? 'fi-bento-pill--ok' : 'fi-bento-pill--warn'}`}
         >
@@ -145,7 +145,7 @@ const IntegrityBentoStrip = ({
         </div>
       </div>
       <div className="fi-bento-foot">
-        <span className="fi-bento-sub">AdBlue telemetry anomaly</span>
+        <span className="fi-bento-sub">AdBlue readings</span>
         <span
           className={`fi-bento-pill ${defCount === 0 ? 'fi-bento-pill--ok' : 'fi-bento-pill--warn'}`}
         >

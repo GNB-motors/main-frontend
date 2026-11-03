@@ -102,7 +102,11 @@ export default function DeviationFeed({ groups, selId, onSelect, first, error, p
             </span>
             <span className="dev-row-num">
               <span className="muted">Cost (est.)</span>
-              <span className="strong" style={{ color: '#C2323A' }} title={costBasisLabel(d)}>
+              <span
+                className="strong"
+                style={{ color: extraKnown(d) ? '#C2323A' : 'var(--fg-tertiary)' }}
+                title={costBasisLabel(d)}
+              >
                 {extraKnown(d) && d.estimatedExtraCostInr != null
                   ? inr(d.estimatedExtraCostInr)
                   : '—'}
