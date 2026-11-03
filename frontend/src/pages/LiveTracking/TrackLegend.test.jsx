@@ -118,4 +118,19 @@ describe('TrackLegend', () => {
     renderLegend();
     expect(screen.getByRole('button', { name: /20\s*moving/ })).toBeInTheDocument();
   });
+
+  // The top toolbar owns Trucks and Make now; the legend keeps only Places.
+  it('is a Places-only panel when given no status or make rows', () => {
+    renderLegend({ statusRows: [], makeRows: [] });
+    expect(screen.queryByText('Trucks')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Places' })).toBeInTheDocument();
+  });
+
+  it('collapses to a Places pill, not a moving count, in Places-only mode', () => {
+    localStorage.setItem('track.legend.open', 'false');
+    renderLegend({ statusRows: [], makeRows: [] });
+    const pill = screen.getByRole('button', { name: /Places/ });
+    expect(pill).toBeInTheDocument();
+    expect(pill).not.toHaveTextContent('moving');
+  });
 });

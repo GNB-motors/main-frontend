@@ -2,6 +2,7 @@ import RoadTrailLegend from '../../components/map/RoadTrailLegend';
 import { toLayers, summaryOf } from '../../lib/roadTrail';
 import renderIconSvg from './renderIconSvg.jsx';
 import TrailDateFilter from './TrailDateFilter.jsx';
+import TrackRangePicker from './TrackRangePicker.jsx';
 
 export default function MapOverlayControls({
   isTelemetryOn,
@@ -23,6 +24,10 @@ export default function MapOverlayControls({
   searchBox = null,
   legend = null,
   trafficToggle = null,
+  isTrackMode = false,
+  trackFrom = null,
+  trackTo = null,
+  onApplyTrackRange = null,
 }) {
   const showTrailDates = Boolean(selectedVehicle && isTrailVisible && !replayState?.on);
   const showRoadLegend = Boolean(isTrailVisible && roadTrail);
@@ -64,6 +69,19 @@ export default function MapOverlayControls({
             {renderIconSvg('list', 15)}
             Fleet list
           </button>
+          {isTrackMode ? (
+            <TrackRangePicker
+              from={trackFrom}
+              to={trackTo}
+              onApply={onApplyTrackRange}
+              trigger={
+                <button type="button" className="mbtn" aria-label="Change the date range">
+                  {renderIconSvg('clock', 15)}
+                  Range
+                </button>
+              }
+            />
+          ) : null}
           {trafficToggle}
         </div>
 

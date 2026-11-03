@@ -5,7 +5,13 @@ import { useApi } from '@/hooks/useApi';
 import SectionCard from '@/components/redesign/SectionCard';
 import PlaceName from '@/components/redesign/PlaceName';
 import DataTable from '@/components/ui/DataTable';
-import { formatDuration, formatInr, formatIst, formatL, formatNumber } from '@/utils/redesign/format';
+import {
+  formatDuration,
+  formatInr,
+  formatIst,
+  formatL,
+  formatNumber,
+} from '@/utils/redesign/format';
 import IntelligenceDataState from './IntelligenceDataState';
 import IntelligenceService from './IntelligenceService';
 import { INSTANCE_EMPTY_COPY } from './intelligenceModel';
@@ -124,6 +130,7 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
 
       <IntelligenceDataState
         loading={loading}
+        loadingVariant="table"
         error={error}
         held={held}
         what="This list of moments"
@@ -132,7 +139,9 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
         <SectionCard
           tone="info"
           title="What the system saw"
-          info={{ text: 'Every number here comes from the truck’s own reports, and every row opens the map at that moment.' }}
+          info={{
+            text: 'Every number here comes from the truck’s own reports, and every row opens the map at that moment.',
+          }}
         >
           <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
             <span className="text-[28px] font-[650] text-[var(--rd-ink)] tabular-nums">
@@ -146,14 +155,18 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
               <span className="text-[13px] text-[var(--rd-ink-2)]">{formatL(summary.totalL)}</span>
             ) : null}
             {summary?.totalInr !== null && summary?.totalInr !== undefined ? (
-              <span className="text-[13px] text-[var(--rd-ink-2)]">{formatInr(summary.totalInr)}</span>
+              <span className="text-[13px] text-[var(--rd-ink-2)]">
+                {formatInr(summary.totalInr)}
+              </span>
             ) : null}
           </div>
           {summary?.why?.text ? (
             <p className="mt-1.5 mb-0 text-[13px] leading-relaxed text-[var(--rd-ink-2)]">
               {summary.why.text}
               {summary.why.basis ? (
-                <span className="block text-[12px] text-[var(--rd-ink-3)]">{summary.why.basis}</span>
+                <span className="block text-[12px] text-[var(--rd-ink-3)]">
+                  {summary.why.basis}
+                </span>
               ) : null}
             </p>
           ) : null}

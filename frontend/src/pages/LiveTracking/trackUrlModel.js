@@ -92,10 +92,18 @@ export function resolveRange({ from, to, now = new Date() } = {}) {
     };
   }
   if (start && !end) {
-    return { from: start, to: new Date(start.getTime() + DEFAULT_RANGE_HOURS * 3600 * 1000), isDefault: false };
+    return {
+      from: start,
+      to: new Date(start.getTime() + DEFAULT_RANGE_HOURS * 3600 * 1000),
+      isDefault: false,
+    };
   }
   if (!start && end) {
-    return { from: new Date(end.getTime() - DEFAULT_RANGE_HOURS * 3600 * 1000), to: end, isDefault: false };
+    return {
+      from: new Date(end.getTime() - DEFAULT_RANGE_HOURS * 3600 * 1000),
+      to: end,
+      isDefault: false,
+    };
   }
   if (end.getTime() <= start.getTime()) {
     return {
@@ -127,7 +135,9 @@ export function parseTrackParams(searchParams, { now = new Date() } = {}) {
     reg: reg || null,
     from: range.from,
     to: range.to,
-    at: at || range.to,
+    // The playhead starts at the beginning of the range, so pressing play
+    // runs the drive forward from the start instead of jumping there.
+    at: at || range.from,
     isDefaultRange: range.isDefault,
     correctedRange: Boolean(range.corrected),
   };
@@ -156,10 +166,25 @@ export function buildTrackUrl({ reg, from, to, at } = {}) {
  */
 export function rangePresets({ now = new Date(), trip = null } = {}) {
   const presets = [
-    { id: 'last24h', label: 'Last 24 h', from: new Date(now.getTime() - DEFAULT_RANGE_HOURS * 3600 * 1000), to: now },
+    {
+      id: 'last24h',
+      label: 'Last 24 h',
+      from: new Date(now.getTime() - DEFAULT_RANGE_HOURS * 3600 * 1000),
+      to: now,
+    },
     { id: 'today', label: 'Today', from: startOfIstDay(now), to: now },
-    { id: 'yesterday', label: 'Yesterday', from: startOfIstDay(new Date(now.getTime() - DAY_MIN * 60000)), to: endOfIstDay(new Date(now.getTime() - DAY_MIN * 60000)) },
-    { id: 'last7d', label: 'Last 7 days', from: new Date(now.getTime() - 7 * DAY_MIN * 60000), to: now },
+    {
+      id: 'yesterday',
+      label: 'Yesterday',
+      from: startOfIstDay(new Date(now.getTime() - DAY_MIN * 60000)),
+      to: endOfIstDay(new Date(now.getTime() - DAY_MIN * 60000)),
+    },
+    {
+      id: 'last7d',
+      label: 'Last 7 days',
+      from: new Date(now.getTime() - 7 * DAY_MIN * 60000),
+      to: now,
+    },
   ];
 
   // "This trip" only exists when there is a trip to show.

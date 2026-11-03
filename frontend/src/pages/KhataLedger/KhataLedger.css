@@ -1,7 +1,7 @@
 .pshell.khata-ledger {
   width: 100%;
-  max-width: 1600px;
-  margin-inline: auto;
+  max-width: none;
+  margin-inline: 0;
   padding: 24px 32px 40px;
   box-sizing: border-box;
   background: transparent;

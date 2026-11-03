@@ -1,5 +1,21 @@
 /* Approvals hub: one tab per kind of approval, above that kind's own page. */
 
+.ra-page.apv-page {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+  padding: 24px 32px 60px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 639px) {
+  .ra-page.apv-page {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+}
+
 .apv-types {
   display: flex;
   gap: 4px;

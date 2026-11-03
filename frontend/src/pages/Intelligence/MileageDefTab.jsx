@@ -46,6 +46,8 @@ export default function MileageDefTab({ from, to, vehicle = '' }) {
     <div className="flex flex-col gap-3">
       <IntelligenceDataState
         loading={loading}
+        loadingVariant="cards"
+        loadingCount={2}
         error={error}
         held={held}
         isEmpty={items.length === 0}
@@ -57,7 +59,10 @@ export default function MileageDefTab({ from, to, vehicle = '' }) {
           <SectionCard icon={TrendingUp} tone="good" title="Best km/L">
             <div className="flex flex-col gap-2">
               {best.map((item) => (
-                <div key={item.registrationNumber} className="flex items-center justify-between gap-3">
+                <div
+                  key={item.registrationNumber}
+                  className="flex items-center justify-between gap-3"
+                >
                   <span className="text-[13px] font-medium text-[var(--rd-ink)]">
                     {item.registrationNumber}
                   </span>
@@ -72,7 +77,9 @@ export default function MileageDefTab({ from, to, vehicle = '' }) {
                 </div>
               ))}
               {!best.length ? (
-                <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">No truck had enough fuel data.</p>
+                <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">
+                  No truck had enough fuel data.
+                </p>
               ) : null}
             </div>
           </SectionCard>
@@ -80,7 +87,10 @@ export default function MileageDefTab({ from, to, vehicle = '' }) {
           <SectionCard icon={TrendingDown} tone="watch" title="Lowest km/L">
             <div className="flex flex-col gap-2">
               {worst.map((item) => (
-                <div key={item.registrationNumber} className="flex items-center justify-between gap-3">
+                <div
+                  key={item.registrationNumber}
+                  className="flex items-center justify-between gap-3"
+                >
                   <span className="text-[13px] font-medium text-[var(--rd-ink)]">
                     {item.registrationNumber}
                   </span>
@@ -95,7 +105,9 @@ export default function MileageDefTab({ from, to, vehicle = '' }) {
                 </div>
               ))}
               {!worst.length ? (
-                <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">No truck had enough fuel data.</p>
+                <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">
+                  No truck had enough fuel data.
+                </p>
               ) : null}
             </div>
           </SectionCard>
@@ -114,9 +126,7 @@ export default function MileageDefTab({ from, to, vehicle = '' }) {
                 <span className="text-[13px] font-medium text-[var(--rd-ink)]">
                   {item.registrationNumber}
                 </span>
-                <ToneBadge tone="watch">
-                  {`${formatPct(item.defPctOfDiesel)} of diesel`}
-                </ToneBadge>
+                <ToneBadge tone="watch">{`${formatPct(item.defPctOfDiesel)} of diesel`}</ToneBadge>
                 {item.defBand ? (
                   <span className="text-[12px] text-[var(--rd-ink-3)]">
                     {`normal ${formatPct(item.defBand.min)}–${formatPct(item.defBand.max)}`}

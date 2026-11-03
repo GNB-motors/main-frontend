@@ -269,9 +269,9 @@ html.dark .nova-rh {
   background: transparent;
 }
 .nova-rh .appbar-in {
-  max-width: 1480px;
-  margin: 0 auto;
-  padding: 0 var(--space-6);
+  max-width: none;
+  margin: 0;
+  padding: 0 var(--space-8);
   height: 60px;
   display: flex;
   align-items: center;
@@ -477,9 +477,9 @@ html.dark .nova-rh {
 }
 
 .nova-rh .page {
-  max-width: 1480px;
-  margin: 0 auto;
-  padding: var(--space-5) var(--space-6) 64px;
+  max-width: none;
+  margin: 0;
+  padding: var(--space-5) var(--space-8) 64px;
 }
 .nova-rh .view {
   display: flex;

@@ -3,7 +3,6 @@ import { Pause, Play, X } from 'lucide-react';
 import { formatDuration, formatIst } from '../../utils/redesign/format';
 import { PLAYBACK_SPEEDS } from './trackPlayback';
 import { isLongRange } from './trackUrlModel';
-import TrackRangePicker from './TrackRangePicker.jsx';
 
 /**
  * TrackTimeline — the bar at the bottom of the map in Track mode.
@@ -24,7 +23,6 @@ export default function TrackTimeline({
   onTogglePlay,
   onSpeedChange,
   onSeek,
-  onApplyRange = null,
   onExit,
   from = null,
   to = null,
@@ -75,12 +73,32 @@ export default function TrackTimeline({
     [stops, firstTime, span],
   );
 
-  const playheadPercent = points.length ? (playheadIndex / Math.max(1, points.length - 1)) * 100 : 0;
+  const playheadPercent = points.length
+    ? (playheadIndex / Math.max(1, points.length - 1)) * 100
+    : 0;
 
   const long = isLongRange({ from, to });
 
+  // Click anywhere on the bar to send the truck to that moment.
+  const handleScrubClick = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (!rect.width) return;
+    const fraction = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+    onSeek?.(fraction * 100);
+  };
+
+  // The arrows step one point at a time, for a keyboard.
+  const handleScrubKey = (event) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    const last = Math.max(0, points.length - 1);
+    const step = event.key === 'ArrowRight' ? 1 : -1;
+    const next = Math.min(last, Math.max(0, playheadIndex + step));
+    onSeek?.((next / Math.max(1, last)) * 100);
+  };
+
   return (
-    <div className="absolute right-4 bottom-4 left-4 z-[600] flex flex-col gap-2 rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] p-3 shadow-[var(--rd-shadow-float)]">
+    <div className="ov-track-bar flex flex-col gap-2 rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] p-3 shadow-[var(--rd-shadow-float)]">
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
@@ -143,42 +161,55 @@ export default function TrackTimeline({
             />
           ))}
 
-          <div className="relative h-2 overflow-hidden rounded-full bg-[var(--rd-card-2)]">
-            {strips.map((strip) => (
+          <div
+            role="slider"
+            tabIndex={0}
+            aria-label="Position in the drive"
+            aria-valuemin={0}
+            aria-valuemax={Math.max(0, points.length - 1)}
+            aria-valuenow={playheadIndex}
+            onClick={handleScrubClick}
+            onKeyDown={handleScrubKey}
+            className="relative h-3.5 w-full cursor-pointer"
+          >
+            <div className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 overflow-hidden rounded-full bg-[var(--rd-card-2)]">
+              {strips.map((strip) => (
+                <span
+                  key={strip.key}
+                  className="absolute top-0 h-full"
+                  style={{
+                    left: `${strip.left}%`,
+                    width: `${strip.width}%`,
+                    backgroundColor:
+                      strip.kind === 'LADEN'
+                        ? 'var(--rd-leg-loaded)'
+                        : strip.kind === 'EMPTY'
+                          ? 'var(--rd-leg-empty)'
+                          : strip.kind === 'REPOSITION'
+                            ? 'var(--rd-leg-reposition)'
+                            : 'var(--rd-leg-unknown)',
+                    opacity: strip.kind === 'GAP' ? 0.5 : 1,
+                  }}
+                />
+              ))}
+              {/* How far the playhead has travelled, so the bar reads as progress. */}
               <span
-                key={strip.key}
-                className="absolute top-0 h-full"
+                aria-hidden="true"
+                className="absolute inset-y-0 left-0"
                 style={{
-                  left: `${strip.left}%`,
-                  width: `${strip.width}%`,
-                  backgroundColor:
-                    strip.kind === 'LADEN'
-                      ? 'var(--rd-leg-loaded)'
-                      : strip.kind === 'EMPTY'
-                        ? 'var(--rd-leg-empty)'
-                        : strip.kind === 'REPOSITION'
-                          ? 'var(--rd-leg-reposition)'
-                          : 'var(--rd-leg-unknown)',
-                  opacity: strip.kind === 'GAP' ? 0.5 : 1,
+                  width: `${playheadPercent}%`,
+                  background: 'var(--rd-accent)',
+                  opacity: 0.22,
                 }}
               />
-            ))}
+            </div>
+            {/* The handle. A ringed dot so it reads as a scrubber, not a scrollbar. */}
             <span
               aria-hidden="true"
-              className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--rd-ink)]"
+              className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--rd-card)] bg-[var(--rd-accent)] shadow"
               style={{ left: `${playheadPercent}%` }}
             />
           </div>
-
-          <input
-            type="range"
-            min={0}
-            max={Math.max(0, points.length - 1)}
-            value={playheadIndex}
-            onChange={(event) => onSeek?.((Number(event.target.value) / Math.max(1, points.length - 1)) * 100)}
-            aria-label="Position in the drive"
-            className="sr-only"
-          />
 
           {stopBlocks.map((block) => (
             <span
@@ -194,19 +225,6 @@ export default function TrackTimeline({
           {points.length ? formatIst(points[points.length - 1].t) : '—'}
         </span>
 
-        <TrackRangePicker
-          from={from}
-          to={to}
-          onApply={onApplyRange}
-          trigger={
-            <button
-              type="button"
-              className="shrink-0 rounded-[var(--rd-radius-sm)] border border-[var(--rd-line)] px-2.5 py-1 text-[12px] font-semibold text-[var(--rd-ink-2)] transition-colors hover:border-[var(--rd-line-strong)]"
-            >
-              Range
-            </button>
-          }
-        />
         <button
           type="button"
           onClick={onExit}

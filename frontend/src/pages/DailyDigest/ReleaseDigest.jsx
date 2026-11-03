@@ -54,7 +54,7 @@ import '../../styles/nova/novaDesignSystem.css';
  * `.nova-digest` so these otherwise very generic names (.card, .item, .tab…)
  * never leak into the rest of the app's CSS.
  */
-export default function ReleaseDigest() {
+export default function ReleaseDigest({ renderOverview = null }) {
   const from = startOfTodayIST();
 
   // The eight owner-value sections arrive in one request (FRONTEND_AUDIT B1);
@@ -134,22 +134,27 @@ export default function ReleaseDigest() {
   const leaderboardLoading = driverLeaderboard$.loading && !driverLeaderboard;
   const briefLoading = morningBrief$.loading && !morningBrief;
 
-  const [lastUpdated, setLastUpdated] = useState(() => Date.now());
+  const [lastUpdated, setLastUpdated] = useState(null);
   const [, forceTick] = useState(0);
   const [selectedReg, setSelectedReg] = useState(null);
   useEffect(() => {
-    if (!loading) setLastUpdated(Date.now());
-  }, [loading]);
+    if (!loading && digest$.data && !digest$.error) setLastUpdated(Date.now());
+  }, [loading, digest$.data, digest$.error]);
   useEffect(() => {
     const id = setInterval(() => forceTick((n) => n + 1), 60000);
     return () => clearInterval(id);
   }, []);
 
   const handleRefresh = () => {
-    [digest$, fleetDashboard$, alerts$, fuel$, fleetAlerts$, driverLeaderboard$].forEach((h) =>
-      h.refetch(),
-    );
-    setLastUpdated(Date.now());
+    [
+      digest$,
+      fleetDashboard$,
+      alerts$,
+      fuel$,
+      fleetAlerts$,
+      driverLeaderboard$,
+      tripsToday$,
+    ].forEach((h) => h.refetch());
   };
 
   const m = money?.money;
@@ -242,46 +247,50 @@ export default function ReleaseDigest() {
     { key: 'amount', label: 'Amount (₹)' },
   ];
 
-  return (
+  const reports = (
     <div className="nova-digest">
       <div className="nd-page">
-        <header className="nd-head">
-          <div>
-            <h1>Daily Digest</h1>
-            <div className="nd-sub">{formatDateLongIST(new Date())} · Your fleet at a glance</div>
-          </div>
-          <div className="nd-headtools">
-            <ExportButton
-              rows={digestExportRows}
-              columns={digestExportColumns}
-              filename={`daily-digest-${new Date().toISOString().slice(0, 10)}`}
-              disabled={loading || !digestExportRows.length}
-            />
-            <button
-              type="button"
-              className="nd-btn nd-btn--refresh"
-              onClick={handleRefresh}
-              disabled={loading}
-              title={
-                lastUpdated
-                  ? `Last updated: ${new Date(lastUpdated).toLocaleTimeString()}`
-                  : 'Refresh'
-              }
-            >
-              <span className={loading ? 'nd-spin' : ''}>
-                <RefreshCw size={15} />
-              </span>
-              <span>{loading ? 'Refreshing…' : 'Refresh'}</span>
-            </button>
-          </div>
-        </header>
+        {!renderOverview ? (
+          <header className="nd-head">
+            <div>
+              <h1>Daily Digest</h1>
+              <div className="nd-sub">{formatDateLongIST(new Date())} · Your fleet at a glance</div>
+            </div>
+            <div className="nd-headtools">
+              <ExportButton
+                rows={digestExportRows}
+                columns={digestExportColumns}
+                filename={`daily-digest-${new Date().toISOString().slice(0, 10)}`}
+                disabled={loading || !digestExportRows.length}
+              />
+              <button
+                type="button"
+                className="nd-btn nd-btn--refresh"
+                onClick={handleRefresh}
+                disabled={loading}
+                title={
+                  lastUpdated
+                    ? `Last updated: ${new Date(lastUpdated).toLocaleTimeString()}`
+                    : 'Refresh'
+                }
+              >
+                <span className={loading ? 'nd-spin' : ''}>
+                  <RefreshCw size={15} />
+                </span>
+                <span>{loading ? 'Refreshing…' : 'Refresh'}</span>
+              </button>
+            </div>
+          </header>
+        ) : null}
 
-        <section>
-          <div className="nd-eyebrow" style={{ marginBottom: 10 }}>
-            Today at a glance
-          </div>
-          {loading && !money ? <NdKpiStripSkeleton items={kpis} /> : <NdKpiStrip items={kpis} />}
-        </section>
+        {!renderOverview ? (
+          <section>
+            <div className="nd-eyebrow" style={{ marginBottom: 10 }}>
+              Today at a glance
+            </div>
+            {loading && !money ? <NdKpiStripSkeleton items={kpis} /> : <NdKpiStrip items={kpis} />}
+          </section>
+        ) : null}
 
         <section className="nd-cols" id="nd-attn">
           {attnLoading ? (
@@ -412,4 +421,30 @@ export default function ReleaseDigest() {
       <NdVehicleDrawer vehicle={selectedVehicle} onClose={() => setSelectedReg(null)} />
     </div>
   );
+  return renderOverview
+    ? renderOverview({
+        actions,
+        utilization,
+        driverLeaderboard,
+        loading,
+        lastUpdated,
+        error:
+          digest$.error ||
+          alerts$.error ||
+          fuel$.error ||
+          fleetAlerts$.error ||
+          fleetDashboard$.error ||
+          Object.keys(digest$.data?.errors || {}).length > 0,
+        refresh: handleRefresh,
+        reports,
+        exportAction: (
+          <ExportButton
+            rows={digestExportRows}
+            columns={digestExportColumns}
+            filename={`daily-digest-${new Date().toISOString().slice(0, 10)}`}
+            disabled={loading || !digestExportRows.length}
+          />
+        ),
+      })
+    : reports;
 }

@@ -3,7 +3,14 @@ import { MapPin } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
 import SectionCard from '@/components/redesign/SectionCard';
 import PlaceName from '@/components/redesign/PlaceName';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import IntelligenceDataState from './IntelligenceDataState';
 import PlaceQuestionCard from './PlaceQuestionCard';
 import IntelligenceService from './IntelligenceService';
@@ -33,7 +40,10 @@ export default function PlacesTab({ from, to }) {
     loading: historyLoading,
     error: historyError,
     refetch: refetchHistory,
-  } = useApi((signal) => IntelligenceService.getTripsHistory({ from, to, limit: 200, signal }), [from, to]);
+  } = useApi(
+    (signal) => IntelligenceService.getTripsHistory({ from, to, limit: 200, signal }),
+    [from, to],
+  );
 
   const questionItems = questions?.items ?? [];
   const questionTotal = questions?.total ?? questionItems.length;
@@ -82,6 +92,7 @@ export default function PlacesTab({ from, to }) {
       >
         <IntelligenceDataState
           loading={historyLoading}
+          loadingVariant="table"
           error={historyError}
           isEmpty={places.length === 0}
           emptyMessage="No visits were recorded in this period."
@@ -105,10 +116,14 @@ export default function PlacesTab({ from, to }) {
                   </TableCell>
                   <TableCell className="tabular-nums">{formatNumber(row?.visits)}</TableCell>
                   <TableCell className="tabular-nums">
-                    {row?.trucks === null || row?.trucks === undefined ? '—' : formatNumber(row.trucks)}
+                    {row?.trucks === null || row?.trucks === undefined
+                      ? '—'
+                      : formatNumber(row.trucks)}
                   </TableCell>
                   <TableCell className="tabular-nums">
-                    {row?.usualMin === null || row?.usualMin === undefined ? '—' : formatDuration(row.usualMin)}
+                    {row?.usualMin === null || row?.usualMin === undefined
+                      ? '—'
+                      : formatDuration(row.usualMin)}
                   </TableCell>
                 </TableRow>
               ))}

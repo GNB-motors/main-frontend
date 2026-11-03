@@ -2,8 +2,9 @@ import { lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Skeleton } from '@/components/ui/skeleton';
+import IntelligenceSkeleton from './IntelligenceSkeleton';
 import { useApi } from '@/hooks/useApi';
+import { useFullPageLayout } from '@/hooks/usePageLayout';
 import IntelligencePeriodPicker from './IntelligencePeriodPicker';
 import IntelligenceFilters from './IntelligenceFilters';
 import IntelligenceSummaryTiles from './IntelligenceSummaryTiles';
@@ -11,6 +12,7 @@ import IntelligenceDataState from './IntelligenceDataState';
 import IntelligenceService from './IntelligenceService';
 import { INTELLIGENCE_TABS, INSTANCE_TABS, resolveIntelligenceTab } from './intelligenceTabs';
 import { periodDates, resolvePeriod } from './intelligenceModel';
+import './IntelligencePage.css';
 
 const IssuesTab = lazy(() => import('./IssuesTab'));
 const ReportCardsTab = lazy(() => import('./ReportCardsTab'));
@@ -20,12 +22,7 @@ const MileageDefTab = lazy(() => import('./MileageDefTab'));
 const PlacesTab = lazy(() => import('./PlacesTab'));
 
 /** The shape of a tab while its code is still being fetched. */
-const TAB_FALLBACK = (
-  <div className="mt-4 flex flex-col gap-3" aria-hidden="true">
-    <Skeleton className="h-20 w-full rounded-[var(--rd-radius)]" />
-    <Skeleton className="h-14 w-full rounded-[var(--rd-radius)]" />
-  </div>
-);
+const TAB_FALLBACK = <IntelligenceSkeleton variant="table" />;
 
 /**
  * Intelligence — what we worked out about the fleet, good and bad, with the
@@ -36,6 +33,7 @@ const TAB_FALLBACK = (
  * it.
  */
 export default function IntelligencePage() {
+  useFullPageLayout();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const requested = searchParams.get('tab');
@@ -69,7 +67,7 @@ export default function IntelligencePage() {
   const active = resolveIntelligenceTab(requested, actCount);
 
   return (
-    <div className="mx-auto w-full max-w-[1280px] bg-[var(--rd-bg)] px-4 py-5">
+    <div className="intelligence-page min-w-0 w-full bg-[var(--rd-bg)] px-4 py-6 sm:px-8">
       <header className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex flex-col gap-1">
           <h1 className="m-0 text-[20px] font-semibold text-[var(--rd-ink)]">Intelligence</h1>
@@ -103,6 +101,8 @@ export default function IntelligencePage() {
         <div className="mb-4">
           <IntelligenceDataState
             loading={summaryLoading}
+            loadingVariant="metrics"
+            loadingCount={summary?.tiles?.length || 4}
             error={summaryError}
             held={summary?.held ? summary.why : null}
             what="The summary of this period"
@@ -114,49 +114,51 @@ export default function IntelligencePage() {
       )}
 
       <Tabs value={active} onValueChange={(value) => updateParams({ tab: value })}>
-        <TabsList className="flex-wrap">
-          {INTELLIGENCE_TABS.map((tab) => (
-            <Tooltip key={tab.id} delay={300}>
-              <TooltipTrigger
-                render={
-                  <TabsTrigger value={tab.id} className="normal-case">
-                    <span className="inline-flex items-center gap-1.5">
-                      <tab.icon size={14} aria-hidden="true" />
-                      {tab.label}
-                      {tab.id === 'issues' && actCount ? (
-                        <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--rd-act)] px-1 text-[10px] font-bold text-white">
-                          {actCount}
-                        </span>
-                      ) : null}
-                    </span>
-                  </TabsTrigger>
-                }
-              />
-              <TooltipContent side="top">{tab.hint}</TooltipContent>
-            </Tooltip>
-          ))}
-        </TabsList>
+        <div className="intelligence-tabs-scroll">
+          <TabsList className="intelligence-tabs-list" aria-label="Intelligence views">
+            {INTELLIGENCE_TABS.map((tab) => (
+              <Tooltip key={tab.id} delay={300}>
+                <TooltipTrigger
+                  render={
+                    <TabsTrigger value={tab.id} className="intelligence-tab normal-case">
+                      <span className="inline-flex items-center gap-1.5">
+                        <tab.icon size={14} aria-hidden="true" />
+                        {tab.label}
+                        {tab.id === 'issues' && actCount ? (
+                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--rd-act)] px-1 text-[10px] font-bold text-white">
+                            {actCount}
+                          </span>
+                        ) : null}
+                      </span>
+                    </TabsTrigger>
+                  }
+                />
+                <TooltipContent side="top">{tab.hint}</TooltipContent>
+              </Tooltip>
+            ))}
+          </TabsList>
+        </div>
 
         <TabsContent value="issues">
-          <Suspense fallback={TAB_FALLBACK}>
+          <Suspense fallback={<IntelligenceSkeleton />}>
             <IssuesTab from={from} to={to} />
           </Suspense>
         </TabsContent>
 
         <TabsContent value="vehicles">
-          <Suspense fallback={TAB_FALLBACK}>
+          <Suspense fallback={<IntelligenceSkeleton variant="cards" />}>
             <ReportCardsTab subject="vehicle" from={from} to={to} />
           </Suspense>
         </TabsContent>
 
         <TabsContent value="drivers">
-          <Suspense fallback={TAB_FALLBACK}>
+          <Suspense fallback={<IntelligenceSkeleton variant="cards" />}>
             <ReportCardsTab subject="driver" from={from} to={to} />
           </Suspense>
         </TabsContent>
 
         <TabsContent value="runs">
-          <Suspense fallback={TAB_FALLBACK}>
+          <Suspense fallback={<IntelligenceSkeleton variant="metrics" count={3} />}>
             <RunsTab from={from} to={to} />
           </Suspense>
         </TabsContent>
@@ -227,7 +229,7 @@ export default function IntelligencePage() {
         </TabsContent>
 
         <TabsContent value="mileage">
-          <Suspense fallback={TAB_FALLBACK}>
+          <Suspense fallback={<IntelligenceSkeleton variant="cards" count={2} />}>
             <MileageDefTab from={from} to={to} vehicle={vehicle} />
           </Suspense>
         </TabsContent>

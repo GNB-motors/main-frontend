@@ -31,10 +31,10 @@ describe('TrackTimeline', () => {
   });
 
   it('offers the four speeds and says which one is on', () => {
-    const props = renderTimeline({ speed: 4 });
-    fireEvent.click(screen.getByRole('button', { name: '8×' }));
-    expect(props.onSpeedChange).toHaveBeenCalledWith(8);
-    expect(screen.getByRole('button', { name: '4×' })).toHaveAttribute('aria-pressed', 'true');
+    const props = renderTimeline({ speed: 10 });
+    fireEvent.click(screen.getByRole('button', { name: '40×' }));
+    expect(props.onSpeedChange).toHaveBeenCalledWith(40);
+    expect(screen.getByRole('button', { name: '10×' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('shows the summary of the drive', () => {

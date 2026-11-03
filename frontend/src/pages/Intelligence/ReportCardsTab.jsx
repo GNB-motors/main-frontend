@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import { Search, Trophy, TrendingDown } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import SectionCard from '@/components/redesign/SectionCard';
 import IntelligenceDataState from './IntelligenceDataState';
 import ReportCardTile from './ReportCardTile';
@@ -93,6 +99,7 @@ export default function ReportCardsTab({ subject = 'vehicle', from, to }) {
 
       <IntelligenceDataState
         loading={loading}
+        loadingVariant="cards"
         error={error}
         held={held}
         isEmpty={total === 0}
@@ -108,7 +115,9 @@ export default function ReportCardsTab({ subject = 'vehicle', from, to }) {
           {shown.map((bucket) => (
             <SectionCard
               key={bucket.id}
-              icon={bucket.id === 'excellent' ? Trophy : bucket.id === 'falling' ? TrendingDown : Trophy}
+              icon={
+                bucket.id === 'excellent' ? Trophy : bucket.id === 'falling' ? TrendingDown : Trophy
+              }
               tone={bucket.tone}
               title={`${bucket.label} (${bucket.cards.length})`}
               info={{

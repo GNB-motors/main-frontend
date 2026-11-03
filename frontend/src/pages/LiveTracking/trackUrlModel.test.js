@@ -100,12 +100,14 @@ describe('parseTrackParams', () => {
     expect(state.isDefaultRange).toBe(true);
   });
 
-  it('puts the playhead at the end of the range when the URL does not say', () => {
+  it('puts the playhead at the start of the range when the URL does not say', () => {
     const state = parseTrackParams(
-      new URLSearchParams('v=WB11J7062&from=2026-11-01T18%3A30%3A00%2B05%3A30&to=2026-11-01T20%3A15%3A00%2B05%3A30'),
+      new URLSearchParams(
+        'v=WB11J7062&from=2026-11-01T18%3A30%3A00%2B05%3A30&to=2026-11-01T20%3A15%3A00%2B05%3A30',
+      ),
       { now: NOW },
     );
-    expect(toIso(state.at)).toBe('2026-11-01T20:15:00+05:30');
+    expect(toIso(state.at)).toBe('2026-11-01T18:30:00+05:30');
   });
 });
 
@@ -142,7 +144,10 @@ describe('rangePresets', () => {
   });
 
   it('offers This trip only when there is a trip', () => {
-    const presets = rangePresets({ now: NOW, trip: { from: '2026-11-01T13:00:00Z', to: '2026-11-01T14:00:00Z' } });
+    const presets = rangePresets({
+      now: NOW,
+      trip: { from: '2026-11-01T13:00:00Z', to: '2026-11-01T14:00:00Z' },
+    });
     expect(presets.map((p) => p.label)).toContain('This trip');
   });
 });

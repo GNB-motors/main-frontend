@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { fleetViewService } from '../../services/fleetViewService';
 import { buildTrackUrl, parseTrackParams, toIso } from './trackUrlModel';
-import { indexAtTime, playbackPosition, timeAtIndex } from './trackPlayback';
+import { MS_PER_TRACK_MINUTE, indexAtTime, timeAtIndex } from './trackPlayback';
 
 /**
  * useTrackMode — the state of Track mode.
@@ -30,10 +30,10 @@ export default function useTrackMode({ searchParams, setSearchParams }) {
   const track = data?.held === true ? null : (data ?? null);
   const points = useMemo(() => (Array.isArray(track?.points) ? track.points : []), [track]);
 
-  // The playhead. It starts where the URL says, or at the end of the range.
+  // The playhead. It starts where the URL says, or at the start of the range.
   const [playheadTime, setPlayheadTime] = useState(() => state.at);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1);
+  const [speed, setSpeed] = useState(10);
 
   // A new truck or a new range puts the playhead back where the URL says.
   const urlAt = state.at;
@@ -46,8 +46,13 @@ export default function useTrackMode({ searchParams, setSearchParams }) {
   // The animation. requestAnimationFrame, paused when the tab is hidden —
   // a background tab must not burn the owner's battery.
   const frameRef = useRef(null);
-  const startedAtRef = useRef(null);
-  const startPlayheadRef = useRef(null);
+  // The live playhead, read by the loop without putting it in the effect deps:
+  // if it were a dependency the loop would tear down and restart every frame
+  // (which froze the truck), so instead the loop captures it once at play.
+  const playheadRef = useRef(playheadTime);
+  useEffect(() => {
+    playheadRef.current = playheadTime;
+  }, [playheadTime]);
 
   useEffect(() => {
     if (!isPlaying || !points.length) return undefined;
@@ -59,22 +64,25 @@ export default function useTrackMode({ searchParams, setSearchParams }) {
     };
     document.addEventListener('visibilitychange', onVisibility);
 
-    startedAtRef.current = Date.now();
-    startPlayheadRef.current = playheadTime;
+    const firstMs = new Date(points[0].t).getTime();
+    const lastMs = new Date(points[points.length - 1].t).getTime();
+    // Play from where the playhead sits; if it is at (or past) the end, the
+    // owner pressed play on a finished drive, so start the replay over.
+    let fromMs = playheadRef.current ? playheadRef.current.getTime() : firstMs;
+    if (!(fromMs >= firstMs && fromMs < lastMs)) fromMs = firstMs;
+
+    const startedAt = Date.now();
 
     const tick = () => {
-      const elapsed = Date.now() - startedAtRef.current;
-      const position = playbackPosition(points, elapsed, speed);
-      if (!position) {
+      // 1× means one real minute of the drive plays in one second.
+      const trackMs = (Date.now() - startedAt) * speed * MS_PER_TRACK_MINUTE;
+      const absoluteMs = fromMs + trackMs;
+      if (absoluteMs >= lastMs) {
+        setPlayheadTime(new Date(lastMs));
         setIsPlaying(false);
         return;
       }
-      const absolute = new Date(startPlayheadRef.current.getTime() + (position.at.getTime() - new Date(points[0].t).getTime()));
-      setPlayheadTime(absolute);
-      if (position.finished) {
-        setIsPlaying(false);
-        return;
-      }
+      setPlayheadTime(new Date(absoluteMs));
       frameRef.current = requestAnimationFrame(tick);
     };
 
@@ -83,7 +91,7 @@ export default function useTrackMode({ searchParams, setSearchParams }) {
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [isPlaying, points, speed, playheadTime]);
+  }, [isPlaying, points, speed]);
 
   const seekToTime = useCallback((time) => {
     setIsPlaying(false);

@@ -12,8 +12,12 @@
 /** One real minute plays in one second, at 1×. */
 export const MS_PER_TRACK_MINUTE = 60;
 
-/** The speeds the timeline offers. */
-export const PLAYBACK_SPEEDS = [1, 2, 4, 8];
+/**
+ * The speeds the timeline offers, as multiples of 1× (one real minute per
+ * second). A full day's drive is hours long, so the fast ends matter: 120×
+ * replays two hours of driving every second.
+ */
+export const PLAYBACK_SPEEDS = [2, 10, 40, 120];
 
 /**
  * The index of the last point at or before the given time.

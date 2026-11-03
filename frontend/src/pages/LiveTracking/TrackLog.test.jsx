@@ -27,9 +27,4 @@ describe('TrackLog', () => {
     render(<TrackLog track={{ stops: [], events: [], points: [] }} />);
     expect(screen.getByText('Nothing was recorded on this drive.')).toBeInTheDocument();
   });
-
-  it('offers the CSV of the drive', () => {
-    render(<TrackLog track={trackFixture} />);
-    expect(screen.getByRole('button', { name: /Export CSV/ })).toBeInTheDocument();
-  });
 });

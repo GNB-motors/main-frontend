@@ -83,6 +83,11 @@ export default function TrackLegend({
 
   const movingCount = statusRows.find((row) => row.key === 'moving')?.count ?? 0;
   const zoomedIn = Number(zoom) >= LAYER_MIN_ZOOM;
+  // Trucks and Make now live in the top toolbar; when the page hands the legend
+  // no status/make rows it is a Places-only panel, so the header and the
+  // collapsed pill drop the fleet language.
+  const hasStatus = statusRows.length > 0;
+  const hasFilterRows = hasStatus || makeRows.length > 0;
 
   const statusAllOn = useMemo(
     () => statusRows.every((row) => statusSelection[row.key]),
@@ -112,20 +117,36 @@ export default function TrackLegend({
           aria-expanded={false}
           className="ov-legend-bar flex h-10 w-full items-center gap-2 rounded-[var(--rd-radius)] px-3 text-[13px] font-medium text-[var(--rd-ink)]"
         >
-          <span
-            aria-hidden="true"
-            className="size-2 rounded-full"
-            style={{ backgroundColor: 'var(--rd-moving)' }}
-          />
-          <span className="tabular-nums ov-legend-count">{movingCount}</span>
-          <span className="text-[var(--rd-ink-2)] ov-legend-word">moving</span>
-          <span className="ml-auto text-[var(--rd-ink-3)]">Filters</span>
+          {hasStatus ? (
+            <>
+              <span
+                aria-hidden="true"
+                className="size-2 rounded-full"
+                style={{ backgroundColor: 'var(--rd-moving)' }}
+              />
+              <span className="tabular-nums ov-legend-count">{movingCount}</span>
+              <span className="text-[var(--rd-ink-2)] ov-legend-word">moving</span>
+              <span className="ml-auto text-[var(--rd-ink-3)]">Filters</span>
+            </>
+          ) : (
+            <>
+              <Landmark
+                size={15}
+                aria-hidden="true"
+                style={{ color: placeLayerColor('ourPlaces') }}
+              />
+              <span className="text-[var(--rd-ink-2)] ov-legend-word">Places</span>
+              <span className="ml-auto text-[var(--rd-ink-3)]">Layers</span>
+            </>
+          )}
           <ChevronUp size={15} aria-hidden="true" />
         </button>
       ) : (
         <>
           <div className="flex items-center gap-2 px-3 pt-3 pb-1">
-            <h2 className="m-0 flex-1 text-[13px] font-semibold text-[var(--rd-ink)]">Filters</h2>
+            <h2 className="m-0 flex-1 text-[13px] font-semibold text-[var(--rd-ink)]">
+              {hasFilterRows ? 'Filters' : 'Places'}
+            </h2>
             <button
               type="button"
               onClick={toggleOpen}
@@ -139,27 +160,29 @@ export default function TrackLegend({
 
           <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-2">
             {/* Block 1 — Trucks */}
-            <LegendBlock
-              title="Trucks"
-              info={{
-                text: 'Moving means over 3 km/h. Idling means the engine is on and the truck is not moving.',
-                basis: null,
-              }}
-              showAll={!statusAllOn}
-              onAll={onAllStatus}
-            >
-              {statusRows.map((row) => (
-                <LegendToggle
-                  key={row.key}
-                  label={row.label}
-                  count={row.count}
-                  color={row.color}
-                  on={Boolean(statusSelection[row.key])}
-                  onToggle={() => onToggleStatus(row.key)}
-                  onOnly={() => onOnlyStatus(row.key)}
-                />
-              ))}
-            </LegendBlock>
+            {hasStatus ? (
+              <LegendBlock
+                title="Trucks"
+                info={{
+                  text: 'Moving means over 3 km/h. Idling means the engine is on and the truck is not moving.',
+                  basis: null,
+                }}
+                showAll={!statusAllOn}
+                onAll={onAllStatus}
+              >
+                {statusRows.map((row) => (
+                  <LegendToggle
+                    key={row.key}
+                    label={row.label}
+                    count={row.count}
+                    color={row.color}
+                    on={Boolean(statusSelection[row.key])}
+                    onToggle={() => onToggleStatus(row.key)}
+                    onOnly={() => onOnlyStatus(row.key)}
+                  />
+                ))}
+              </LegendBlock>
+            ) : null}
 
             {/* Block 2 — Make */}
             {makeRows.length > 0 ? (

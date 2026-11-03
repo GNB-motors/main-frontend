@@ -13,6 +13,8 @@ import useFleetWeather from './useFleetWeather.js';
 import useSelectedDriver from './useSelectedDriver.js';
 import useVehicleShareDialog from './useVehicleShareDialog.js';
 import renderIconSvg from './renderIconSvg.jsx';
+import LiveTopbar from './LiveTopbar.jsx';
+import useStatusCards from './useStatusCards.js';
 import LiveMapCanvas from './LiveMapCanvas.jsx';
 import MapOverlayControls from './MapOverlayControls.jsx';
 import TelemetryTicker from './TelemetryTicker.jsx';
@@ -31,13 +33,7 @@ import TrackTimeline from './TrackTimeline.jsx';
 import TrackLog from './TrackLog.jsx';
 import TrackRangePicker from './TrackRangePicker.jsx';
 import { nextEventAt, previousEventAt } from './trackPlayback.js';
-import {
-  defaultStatusSelection,
-  legendMakeRows,
-  legendStatusRows,
-  selectOnly,
-  toggleSelection,
-} from './trackLegendModel.js';
+import { toggleSelection } from './trackLegendModel.js';
 import {
   readLayerSelection,
   readTrafficOn,
@@ -59,6 +55,7 @@ const LiveTrackingPage = () => {
     isLoading: isLiveLoading,
     refresh: refreshLivePositions,
     lastEventAt,
+    error: positionsError,
   } = useLivePositions();
 
   // Layout & Theme hooks
@@ -72,11 +69,10 @@ const LiveTrackingPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedId, setSelectedId] = useState(null);
 
-  // The floating legend IS the filter (F1.4). The status set starts with all
-  // four on; the make set stores only what the owner turned OFF, so a make
-  // the fleet gains later is on without anybody having to touch it.
-  const [statusSelection, setStatusSelection] = useState(() => defaultStatusSelection());
-  const [makeSelection, setMakeSelection] = useState({});
+  // The top toolbar is the filter: one status at a time, and a set of makes
+  // (empty means every make). The floating legend keeps only the Places layers.
+  const [filter, setFilter] = useState('all');
+  const [selectedManufacturers, setSelectedManufacturers] = useState([]);
   const [layerSelection, setLayerSelection] = useState(() => readLayerSelection());
   const [isTrafficOn, setIsTrafficOn] = useState(() => readTrafficOn());
 
@@ -99,51 +95,24 @@ const LiveTrackingPage = () => {
 
   const { vehiclesMeta, driverAssignments } = useFleetMasterData();
 
-  const {
-    vehicles,
-    counts,
-    fleetCounts,
-    filteredVehicles,
-    selectedVehicle,
-    mapVehicles,
-    manufacturers,
-  } = useFleetVehicles({
-    rawPositions,
-    vehiclesMeta,
-    filter: 'all',
-    searchQuery,
-    selectedId,
-    statusSelection,
-    makeSelection,
-  });
+  const { vehicles, counts, filteredVehicles, selectedVehicle, mapVehicles, manufacturers } =
+    useFleetVehicles({
+      rawPositions,
+      vehiclesMeta,
+      filter,
+      searchQuery,
+      selectedId,
+      selectedManufacturers,
+    });
 
   useEffect(() => {
     if (selectedId && !selectedVehicle) setSelectedId(null);
   }, [selectedId, selectedVehicle]);
 
-  // The legend's rows. The status counts are the FULL fleet counts, so a
-  // filter never changes the number the owner sees beside a status.
-  const statusRows = useMemo(() => legendStatusRows(fleetCounts), [fleetCounts]);
-  const makeRows = useMemo(
-    () => legendMakeRows(manufacturers, vehicles),
-    [manufacturers, vehicles],
-  );
-  const effectiveMakeSelection = useMemo(() => {
-    const merged = {};
-    makeRows.forEach((row) => {
-      merged[row.key] = makeSelection[row.key] ?? true;
-    });
-    return merged;
-  }, [makeRows, makeSelection]);
+  // The toolbar's status cards. Counts follow the make filter so the numbers
+  // match the list the owner is looking at.
+  const statusCards = useStatusCards(counts);
 
-  const handleToggleStatus = (key) => setStatusSelection((prev) => toggleSelection(prev, key));
-  const handleOnlyStatus = (key) => setStatusSelection((prev) => selectOnly(prev, key));
-  const handleAllStatus = () => setStatusSelection(defaultStatusSelection());
-  const handleToggleMake = (key) =>
-    setMakeSelection((prev) => ({ ...prev, [key]: !(prev[key] ?? true) }));
-  const handleOnlyMake = (key) =>
-    setMakeSelection(Object.fromEntries(makeRows.map((row) => [row.key, row.key === key])));
-  const handleAllMake = () => setMakeSelection({});
   const handleToggleLayer = (key) => {
     // "Our places" is the fleet's own confirmed places, which the Track page
     // already has; the rest come from the map places endpoint.
@@ -262,9 +231,9 @@ const LiveTrackingPage = () => {
   const pickVehicleFromPlace = (id) => {
     // "Vehicles here now" is fleet-wide; a truck hidden by a filter clears it to be shown.
     if (!filteredVehicles.some((v) => v.id === id)) {
-      setStatusSelection(defaultStatusSelection());
+      setFilter('all');
       setSearchQuery('');
-      setMakeSelection({});
+      setSelectedManufacturers([]);
     }
     setSelectedId(id);
     setRailTab('fleet');
@@ -358,6 +327,23 @@ const LiveTrackingPage = () => {
     <div className="gnb-lt-page">
       {/* Main Console Container */}
       <main className="console">
+        {/* Top toolbar: manufacturer + status filters (Places stay on the map legend) */}
+        <LiveTopbar
+          isLiveLoading={isLiveLoading}
+          statusCards={statusCards}
+          filter={filter}
+          setFilter={setFilter}
+          handleRefresh={handleRefresh}
+          isRefreshing={isRefreshing}
+          manufacturers={manufacturers}
+          selectedManufacturers={selectedManufacturers}
+          setSelectedManufacturers={setSelectedManufacturers}
+          lastEventAt={lastEventAt}
+          positionsError={positionsError}
+          onMapCount={mapVehicles.length}
+          unclassifiedCount={vehicles.filter((v) => !v.manufacturer).length}
+        />
+
         {/* Stage Area: Map + Docked Fleet Rail */}
         <div
           className={`stage ${!isRailOpen ? 'railoff' : ''} ${
@@ -424,17 +410,7 @@ const LiveTrackingPage = () => {
               trafficToggle={<TrafficToggle on={isTrafficOn} onToggle={handleToggleTraffic} />}
               legend={
                 <TrackLegend
-                  statusRows={statusRows}
-                  makeRows={makeRows}
-                  statusSelection={statusSelection}
-                  makeSelection={effectiveMakeSelection}
                   layerSelection={layerSelection}
-                  onToggleStatus={handleToggleStatus}
-                  onOnlyStatus={handleOnlyStatus}
-                  onAllStatus={handleAllStatus}
-                  onToggleMake={handleToggleMake}
-                  onOnlyMake={handleOnlyMake}
-                  onAllMake={handleAllMake}
                   onToggleLayer={handleToggleLayer}
                   lastEventAt={lastEventAt}
                   onRefresh={handleRefresh}
@@ -461,19 +437,26 @@ const LiveTrackingPage = () => {
               roadTrail={roadTrail}
               mapMode={mapMode}
               setMapMode={setMapMode}
+              isTrackMode={isTrackMode}
+              trackFrom={trackMode.from}
+              trackTo={trackMode.to}
+              onApplyTrackRange={(range) => trackMode.applyRange(range)}
             />
 
-            {/* Overlay Bottom-Center: Replay Bar & Telemetry Ticker */}
-            <div className="ov ov--bc">
-              {/* Live Telemetry Ticker */}
-              <TelemetryTicker
-                selectedVehicle={selectedVehicle}
-                vehicles={vehicles}
-                rotating={isTelemetryOn}
-                highlighted={isTelemetryOn && !replayState.on}
-                icon={renderIconSvg('radio', 14)}
-              />
-            </div>
+            {/* Overlay Bottom-Center: the live telemetry ticker. Hidden in Track
+                mode, where the timeline owns the bottom band. */}
+            {!isTrackMode ? (
+              <div className="ov ov--bc">
+                {/* Live Telemetry Ticker */}
+                <TelemetryTicker
+                  selectedVehicle={selectedVehicle}
+                  vehicles={vehicles}
+                  rotating={isTelemetryOn}
+                  highlighted={isTelemetryOn && !replayState.on}
+                  icon={renderIconSvg('radio', 14)}
+                />
+              </div>
+            ) : null}
 
             {/* Track mode: the timeline at the bottom of the map. */}
             {isTrackMode ? (
@@ -492,7 +475,6 @@ const LiveTrackingPage = () => {
                   trackMode.seekToIndex(index);
                 }}
                 onExit={trackMode.exitTrackMode}
-                onApplyRange={(range) => trackMode.applyRange(range)}
                 from={trackMode.from}
                 to={trackMode.to}
               />
@@ -503,20 +485,26 @@ const LiveTrackingPage = () => {
           <aside className="rail">
             {isTrackMode ? (
               <>
-                <div className="rail-tabs">
-                  <button type="button" className="rail-tab" aria-selected="true" role="tab">
-                    Track mode
+                <div className="track-rail-header">
+                  <button
+                    type="button"
+                    className="track-rail-back"
+                    onClick={trackMode.exitTrackMode}
+                    aria-label="Back to fleet"
+                    title="Back to fleet"
+                  >
+                    {renderIconSvg('chevLeft', 16)}
                   </button>
+                  <h2 className="track-rail-title">Track mode</h2>
+                  {trackMode.reg ? (
+                    <span className="track-rail-registration">{trackMode.reg}</span>
+                  ) : null}
                 </div>
                 <div className="rail-body">
                   {trackMode.notDeployed ? (
-                    <p className="m-0 px-3 py-4 text-[13px] text-[var(--rd-ink-3)]">
-                      Stops and landmarks will appear here soon.
-                    </p>
+                    <p className="track-log-message">Stops and landmarks will appear here soon.</p>
                   ) : trackMode.loading ? (
-                    <p className="m-0 px-3 py-4 text-[13px] text-[var(--rd-ink-3)]">
-                      Loading the drive…
-                    </p>
+                    <p className="track-log-message">Loading the drive…</p>
                   ) : (
                     <TrackLog
                       track={trackMode.track}

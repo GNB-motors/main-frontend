@@ -75,24 +75,20 @@ export default function VehicleDetailPanel({
       {selectedVehicle && (
         <>
           <div className="dtop">
-            <button className="backbtn" onClick={() => setSelectedId(null)}>
-              {renderIconSvg('chevLeft', 16)}
-              Fleet
-            </button>
             <button
-              className="dclose"
-              aria-label="Close"
+              className="backbtn"
               onClick={() => {
                 setSelectedId(null);
                 exitReplay();
               }}
             >
-              {renderIconSvg('x', 16)}
+              {renderIconSvg('chevLeft', 16)}
+              Fleet
             </button>
           </div>
 
           <div className="dbody">
-            <VehicleAccountBanner account={notDeployed ? null : now?.account ?? null} />
+            <VehicleAccountBanner account={notDeployed ? null : (now?.account ?? null)} />
 
             <VehiclePanelHeader now={now} account={now?.account ?? null} />
 

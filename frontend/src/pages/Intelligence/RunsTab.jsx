@@ -26,7 +26,12 @@ export default function RunsTab({ from, to }) {
   );
 
   const rangeReady = isYmd(from) && isYmd(to);
-  const { data: trips, loading: tripsLoading, error: tripsError, refetch: refetchTrips } = useApi(
+  const {
+    data: trips,
+    loading: tripsLoading,
+    error: tripsError,
+    refetch: refetchTrips,
+  } = useApi(
     (signal) =>
       IntelligenceService.getAutoTrips({
         from: rangeReady ? istDayStart(from).toISOString() : undefined,
@@ -47,6 +52,8 @@ export default function RunsTab({ from, to }) {
     <div className="flex flex-col gap-3">
       <IntelligenceDataState
         loading={loading}
+        loadingVariant="metrics"
+        loadingCount={3}
         error={error}
         held={held}
         what="The run numbers"
@@ -105,15 +112,24 @@ export default function RunsTab({ from, to }) {
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-3 text-[12px] text-[var(--rd-ink-2)]">
               <span className="inline-flex items-center gap-1.5">
-                <span aria-hidden="true" className="size-2.5 rounded-full bg-[var(--rd-leg-loaded)]" />
+                <span
+                  aria-hidden="true"
+                  className="size-2.5 rounded-full bg-[var(--rd-leg-loaded)]"
+                />
                 Loaded
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span aria-hidden="true" className="size-2.5 rounded-full bg-[var(--rd-leg-empty)]" />
+                <span
+                  aria-hidden="true"
+                  className="size-2.5 rounded-full bg-[var(--rd-leg-empty)]"
+                />
                 Empty
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span aria-hidden="true" className="size-2.5 rounded-full bg-[var(--rd-leg-reposition)]" />
+                <span
+                  aria-hidden="true"
+                  className="size-2.5 rounded-full bg-[var(--rd-leg-reposition)]"
+                />
                 Plant-to-plant
               </span>
             </div>

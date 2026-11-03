@@ -4,6 +4,29 @@ import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import OwnerValueService from '../../services/OwnerValueService';
 import ReleaseDigest from './ReleaseDigest';
+import DailyDigestPage from './DailyDigestPage';
+
+vi.mock('../../services/fleetViewService', () => ({
+  fleetViewService: {
+    getDigest: vi.fn(async () => {
+      throw Object.assign(new Error('Not deployed'), { status: 404 });
+    }),
+    getMileage: vi.fn(async () => ({ items: [] })),
+  },
+}));
+vi.mock('../../hooks/useLivePositions', () => ({
+  useLivePositions: () => ({ positions: [], isLoading: false, refresh: vi.fn() }),
+}));
+vi.mock('../../services/vehicleListService', () => ({
+  getVehicleList: vi.fn(async () => []),
+  invalidateVehicleList: vi.fn(),
+}));
+vi.mock('../../services/AutoTripService', () => ({
+  AutoTripService: { list: vi.fn(async () => ({ items: [], total: 0 })) },
+}));
+vi.mock('../../api/performance', () => ({
+  default: { leaderboards: vi.fn(async () => ({ boards: [] })) },
+}));
 
 vi.mock('../../services/OwnerValueService', () => {
   const svc = { getDigest: vi.fn() };
@@ -68,5 +91,25 @@ describe('ReleaseDigest (the fallback)', () => {
     await screen.findByText('Grade B');
     fireEvent.click(screen.getByRole('button', { name: /refresh/i }));
     await waitFor(() => expect(OwnerValueService.getDigest).toHaveBeenCalledTimes(2));
+  });
+
+  it('uses the new operations layout on a server with only the legacy digest', async () => {
+    render(
+      <MemoryRouter>
+        <DailyDigestPage />
+      </MemoryRouter>,
+    );
+    await screen.findByText('Detailed operational reports');
+    expect(screen.getByRole('heading', { name: 'Fleet Overview' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Your fleet, in view' })).toBeInTheDocument();
+    expect(screen.getByText('Detailed operational reports')).toBeInTheDocument();
+    expect(OwnerValueService.getDigest).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    await waitFor(() => expect(OwnerValueService.getDigest).toHaveBeenCalledTimes(2));
+    fireEvent.change(screen.getByLabelText('Digest date'), { target: { value: '2026-10-30' } });
+    expect(
+      await screen.findByText(/Historical digest reports are unavailable/),
+    ).toBeInTheDocument();
   });
 });

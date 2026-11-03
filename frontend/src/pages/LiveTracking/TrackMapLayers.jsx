@@ -2,6 +2,18 @@ import { useMemo } from 'react';
 import { MarkerF, PolylineF } from '@react-google-maps/api';
 import { buildTrackLayers, playheadAt } from './trackLayersModel';
 import { createVehicleMarkerIcon } from './vehicleMarkerIcon.js';
+import { cssToken } from '../../utils/redesign/tone';
+
+/**
+ * Google Maps draws on its own canvas and cannot read CSS variables, so a
+ * colour like "var(--rd-leg-loaded)" comes out black. Resolve the token to its
+ * computed hex before handing any colour to the map.
+ */
+function resolveColor(color) {
+  if (typeof color !== 'string' || !color.startsWith('var(')) return color;
+  const name = color.slice(4, -1).trim();
+  return cssToken(name, '#8a93a3');
+}
 
 /**
  * TrackMapLayers — the map drawing of one truck's history.
@@ -17,6 +29,9 @@ export default function TrackMapLayers({
   showOverspeed = true,
 }) {
   const layers = useMemo(() => buildTrackLayers(track, { zoom }), [track, zoom]);
+
+  // One plain colour for the whole route (Google Maps needs a resolved hex).
+  const routeColor = cssToken('--rd-leg-loaded', '#2563eb');
 
   const playhead = useMemo(
     () => (playheadTime ? playheadAt(track?.points ?? [], playheadTime) : null),
@@ -40,17 +55,16 @@ export default function TrackMapLayers({
 
   return (
     <>
-      {/* 1. The path, coloured by what the truck was doing. */}
+      {/* 1. The path as one plain line. */}
       {layers.segments.map((segment) =>
         segment.path.length > 1 ? (
           <PolylineF
             key={segment.key}
             path={segment.path}
             options={{
-              strokeColor: segment.color,
-              strokeWeight: segment.width,
-              strokeOpacity: segment.opacity,
-              icons: segment.dash ? [dashIcon(segment.color, segment.dash)] : [],
+              strokeColor: routeColor,
+              strokeWeight: 4,
+              strokeOpacity: 1,
               zIndex: 20,
             }}
           />
@@ -123,37 +137,21 @@ export default function TrackMapLayers({
 
       {/* 7. The playhead: the truck, pointing where it was going. */}
       {playhead && playheadIcon ? (
-        <MarkerF position={{ lat: playhead.lat, lng: playhead.lng }} icon={playheadIcon} zIndex={100} />
+        <MarkerF
+          position={{ lat: playhead.lat, lng: playhead.lng }}
+          icon={playheadIcon}
+          zIndex={100}
+        />
       ) : null}
     </>
   );
-}
-
-/**
- * A repeating dash for a polyline.
- * Google's polyline icons are a Symbol with a fixed path and a short
- * stroke, repeated along the line.
- */
-function dashIcon(color, dash) {
-  const [on, off] = dash;
-  return {
-    icon: {
-      path: 'M 0,-1 0,1',
-      strokeOpacity: 1,
-      strokeWeight: 2,
-      scale: 1,
-      strokeColor: color,
-    },
-    offset: '0',
-    repeat: `${on + off}px`,
-  };
 }
 
 /** A round marker. */
 function circleIcon(color, size, stroke = '#ffffff', strokeWidth = 2) {
   return {
     path: window.google.maps.SymbolPath.CIRCLE,
-    fillColor: color,
+    fillColor: resolveColor(color),
     fillOpacity: 1,
     strokeColor: stroke,
     strokeWeight: strokeWidth,
@@ -166,7 +164,7 @@ function circleIcon(color, size, stroke = '#ffffff', strokeWidth = 2) {
 function diamondIcon(color, size) {
   return {
     path: 'M 0,-8 L 8,0 L 0,8 L -8,0 z',
-    fillColor: color,
+    fillColor: resolveColor(color),
     fillOpacity: 1,
     strokeColor: '#ffffff',
     strokeWeight: 1.5,

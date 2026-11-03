@@ -1,5 +1,5 @@
 import { Inbox } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import IntelligenceSkeleton from './IntelligenceSkeleton';
 import ErrorCard from '@/components/redesign/ErrorCard';
 import HeldCard from '@/components/redesign/HeldCard';
 import NotYetAvailable from '@/components/redesign/NotYetAvailable';
@@ -14,6 +14,8 @@ import NotYetAvailable from '@/components/redesign/NotYetAvailable';
  */
 export default function IntelligenceDataState({
   loading = false,
+  loadingVariant = 'list',
+  loadingCount = 3,
   error = null,
   held = null,
   isEmpty = false,
@@ -27,13 +29,7 @@ export default function IntelligenceDataState({
   const EmptyIcon = emptyIcon;
 
   if (loading) {
-    return (
-      <div className="flex flex-col gap-3" aria-hidden="true">
-        <Skeleton className="h-20 w-full rounded-[var(--rd-radius)]" />
-        <Skeleton className="h-14 w-full rounded-[var(--rd-radius)]" />
-        <Skeleton className="h-14 w-full rounded-[var(--rd-radius)]" />
-      </div>
-    );
+    return <IntelligenceSkeleton variant={loadingVariant} count={loadingCount} />;
   }
 
   if (error) {
@@ -59,7 +55,9 @@ export default function IntelligenceDataState({
           aria-hidden="true"
           className={good ? 'text-[var(--rd-good-ink)]' : 'text-[var(--rd-ink-3)]'}
         />
-        <p className={`m-0 text-[14px] ${good ? 'text-[var(--rd-good-ink)]' : 'text-[var(--rd-ink-2)]'}`}>
+        <p
+          className={`m-0 text-[14px] ${good ? 'text-[var(--rd-good-ink)]' : 'text-[var(--rd-ink-2)]'}`}
+        >
           {emptyMessage}
         </p>
       </div>
