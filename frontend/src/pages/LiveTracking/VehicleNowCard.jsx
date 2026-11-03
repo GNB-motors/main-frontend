@@ -3,7 +3,9 @@ import SectionCard from '../../components/redesign/SectionCard';
 import PlaceName from '../../components/redesign/PlaceName';
 import DeepLink from '../../components/redesign/DeepLink';
 import { formatDuration } from '../../utils/redesign/format';
-import { legLabel } from './vehiclePanelModel';
+import { legLabel, reportedActivity } from './vehiclePanelModel';
+import VehicleLocation from './VehicleLocation.jsx';
+import { formatAgoText } from './minutesAgoFormat.js';
 
 /**
  * VehicleNowCard — what is this truck doing right now?
@@ -12,17 +14,27 @@ import { legLabel } from './vehiclePanelModel';
  * with this truck's usual stay, and where it is. When we know the trip, the
  * trip sits in the same card, so the owner reads one story.
  */
-export default function VehicleNowCard({ now, onOpenPlace = null }) {
+export default function VehicleNowCard({ now, vehicle = null, onOpenPlace = null }) {
   const activity = now?.activity ?? null;
   const place = now?.place ?? null;
   const trip = now?.trip ?? null;
 
+  // No activity from the backend: say what the truck's last report proves,
+  // and where it is. Nothing to say means no card at all.
   if (!activity) {
+    const reported = reportedActivity(vehicle);
+    if (!reported) return null;
+    const ago = vehicle?.ago != null ? formatAgoText(vehicle.ago) : null;
     return (
-      <SectionCard icon={Activity} tone="info" title="Now">
-        <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">
-          We&apos;ll show what this truck is doing once it reports.
-        </p>
+      <SectionCard
+        icon={Activity}
+        tone={reported.tone}
+        title={`Now · ${reported.title}`}
+        meta={ago}
+      >
+        <div className="text-[13px] text-[var(--rd-ink-2)]">
+          <VehicleLocation vehicle={vehicle} />
+        </div>
       </SectionCard>
     );
   }
@@ -82,7 +94,9 @@ export default function VehicleNowCard({ now, onOpenPlace = null }) {
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-[var(--rd-ink-2)]">
             {trip.material ? (
-              <span title={trip.materialSource === 'PLANT_TYPE' ? 'Likely, from the plant type' : null}>
+              <span
+                title={trip.materialSource === 'PLANT_TYPE' ? 'Likely, from the plant type' : null}
+              >
                 {trip.materialSource === 'PLANT_TYPE' ? `Likely ${trip.material}` : trip.material}
               </span>
             ) : null}

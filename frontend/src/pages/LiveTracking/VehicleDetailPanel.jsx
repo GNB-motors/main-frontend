@@ -104,7 +104,7 @@ export default function VehicleDetailPanel({
               shareCreating={shareCreating}
             />
 
-            <VehicleNowCard now={now} />
+            <VehicleNowCard now={now} vehicle={selectedVehicle} />
 
             <WhereNextSection registrationNumber={reg} />
 

@@ -33,6 +33,10 @@ export default function WhereNextSection({ registrationNumber, onSelectDestinati
   const top = destinations[0] ?? null;
   const selected = destinations.find((d) => d.place?.id === selectedId) ?? top;
 
+  // Nothing real to say — still asking, endpoint missing, request failed, or
+  // no guess — means no section. A held answer is real, so it stays.
+  if (!held && (loading || error || destinations.length === 0)) return null;
+
   const headerTitle = isOpen
     ? 'Where next'
     : top
@@ -55,18 +59,8 @@ export default function WhereNextSection({ registrationNumber, onSelectDestinati
         </button>
       }
     >
-      {!isOpen ? null : loading ? (
-        <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">Working out where it is going…</p>
-      ) : held ? (
+      {!isOpen ? null : held ? (
         <HeldCard why={data.why ?? null} />
-      ) : error ? (
-        <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">
-          We could not work out where this truck is going right now.
-        </p>
-      ) : destinations.length === 0 ? (
-        <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">
-          {data?.noPredictionWhy?.text ?? 'We do not have enough of this truck’s history to guess.'}
-        </p>
       ) : (
         <div className="flex flex-col gap-2">
           {data?.basis?.text ? (

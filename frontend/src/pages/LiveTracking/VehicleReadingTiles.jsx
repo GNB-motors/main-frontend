@@ -1,5 +1,5 @@
 import { formatIst } from '../../utils/redesign/format';
-import { formatKm, formatKmh, formatL, formatPct } from '../../utils/redesign/format';
+import { formatKm, formatKmh, formatL, formatNumber, formatPct } from '../../utils/redesign/format';
 import { defTileValues, fuelTileValues } from './vehiclePanelModel';
 
 /**
@@ -18,7 +18,7 @@ export default function VehicleReadingTiles({ now }) {
   const service = now?.identity?.service ?? null;
 
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-2">
       {/* Fuel */}
       <Tile
         label="Fuel"
@@ -27,12 +27,16 @@ export default function VehicleReadingTiles({ now }) {
             ? 'Not received'
             : fuel.main.kind === 'litres'
               ? formatL(fuel.main.value)
-              : formatPct(fuel.main.value)
+              : fuel.main.kind === 'unitless'
+                ? formatNumber(fuel.main.value, { digits: 1 })
+                : formatPct(fuel.main.value)
         }
         secondary={
           fuel.main === null
             ? null
-            : fuel.main.kind === 'litres'
+            : fuel.main.kind === 'unitless'
+              ? fuel.secondary
+              : fuel.main.kind === 'litres'
               ? readings.fuel.tankL != null && readings.fuel.pct?.value != null
                 ? `of ${readings.fuel.tankL} L · ${formatPct(readings.fuel.pct.value)}`
                 : null
@@ -72,8 +76,7 @@ export default function VehicleReadingTiles({ now }) {
       {/* Speed */}
       <Tile
         label="Speed"
-        value={view.speedKmh == null ? '—' : formatKmh(view.speedKmh)}
-        secondary={view.speedKmh == null ? 'Not moving data' : null}
+        value={view.speedKmh == null ? 'Not received' : formatKmh(view.speedKmh)}
         reading={view.lastFixAt ? { freshness: view.freshness ?? 'never' } : null}
       />
     </div>
@@ -85,19 +88,29 @@ export default function VehicleReadingTiles({ now }) {
  * The age is the point — a stale value is greyed and dated.
  */
 function Tile({ label, value, secondary = null, reading = null, info = null }) {
+  // A value we never received is one quiet line, not the biggest text on
+  // the panel.
+  if (value === 'Not received') {
+    return (
+      <div className="flex min-w-0 flex-col rounded-[var(--rd-radius)] border border-dashed border-[var(--rd-line)] px-2.5 py-2">
+        <span className="text-[12px] text-[var(--rd-ink-2)]">{label}</span>
+        <span className="mt-0.5 text-[12px] text-[var(--rd-ink-3)]">Not received</span>
+      </div>
+    );
+  }
   const freshness = reading?.freshness ?? 'never';
   const at = reading?.at ?? null;
   const isMuted = freshness === 'stale' || freshness === 'never';
   const isQuiet = freshness === 'recent';
 
   return (
-    <div className="flex flex-col rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] p-2.5 shadow-[var(--rd-shadow)]">
+    <div className="flex min-w-0 flex-col rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] p-2.5 shadow-[var(--rd-shadow)]">
       <span className="flex items-center gap-1 text-[12px] text-[var(--rd-ink-2)]">
         {label}
         {info ? <span title={info.text}>ⓘ</span> : null}
       </span>
       <span
-        className={`mt-0.5 text-[22px] leading-tight font-[650] tabular-nums ${
+        className={`mt-0.5 truncate text-[22px] leading-tight font-[650] tabular-nums ${
           isMuted ? 'text-[var(--rd-ink-3)]' : isQuiet ? 'text-[var(--rd-ink-2)]' : 'text-[var(--rd-ink)]'
         }`}
         title={at ? `Measured ${formatIst(at, { withDate: true })}` : undefined}

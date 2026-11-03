@@ -16,7 +16,11 @@ import UsageAnalyticsProvider from '../contexts/UsageAnalyticsProvider.jsx';
 import './DashboardLayout.css';
 
 const DashboardLayoutInner = () => {
-  const [isSidebarOpen, setSidebarOpen] = React.useState(true);
+  // On a phone the open sidebar is a drawer over the page, so it starts
+  // closed there; on a desktop it starts open as before.
+  const [isSidebarOpen, setSidebarOpen] = React.useState(
+    () => typeof window === 'undefined' || window.innerWidth > 992,
+  );
   // Re-key the routed page on location switch so every fetch effect re-runs
   // against the newly selected branch (X-Branch-Id changes in the interceptor).
   const { branchId } = useActiveBranch();

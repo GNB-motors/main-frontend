@@ -104,7 +104,12 @@ export function fallbackNow(vehicle, driver = null) {
   const freshness = vehicle.freshness || 'never';
   const at = vehicle.lastFixAt ?? null;
   const ageMin = vehicle.ago ?? null;
-  const ignitionValue = vehicle.ignition === 'ON' ? true : vehicle.ignition === 'OFF' ? false : null;
+  const ignitionValue =
+    vehicle.ignition === 'ON' ? true : vehicle.ignition === 'OFF' ? false : null;
+  // The fleet row says the fuel unit only when it is proven (null = not
+  // proven). A row without the field at all is the old litres-only shape.
+  const fuelUnit = 'fuelUnit' in vehicle ? vehicle.fuelUnit : 'L';
+  const fuelReading = readingFrom(vehicle.fuel ?? null, { at, ageMin, freshness });
 
   return {
     registrationNumber: vehicle.plate ?? null,
@@ -132,8 +137,9 @@ export function fallbackNow(vehicle, driver = null) {
     },
     readings: {
       fuel: {
-        litres: readingFrom(vehicle.fuel ?? null, { at, ageMin, freshness }),
-        pct: null,
+        litres: fuelUnit === 'L' ? fuelReading : null,
+        pct: fuelUnit === '%' ? fuelReading : null,
+        unitless: fuelUnit !== 'L' && fuelUnit !== '%' ? fuelReading : null,
         tankL: null,
       },
       def: {
@@ -143,9 +149,10 @@ export function fallbackNow(vehicle, driver = null) {
         tankSource: null,
       },
       odometerKm: readingFrom(vehicle.odo ?? null, { at, ageMin, freshness }),
-      ignition: ignitionValue === null
-        ? null
-        : { value: ignitionValue, at, ageMin, freshness, source: 'FLEETEDGE' },
+      ignition:
+        ignitionValue === null
+          ? null
+          : { value: ignitionValue, at, ageMin, freshness, source: 'FLEETEDGE' },
       gps: { at, ageMin, freshness, satellites: null },
     },
     place: null,
@@ -182,6 +189,14 @@ export function fuelTileValues(readings) {
   }
   if (pct?.value != null) {
     return { main: { kind: 'pct', value: pct.value }, secondary: null, reading: pct };
+  }
+  const unitless = readings?.fuel?.unitless ?? null;
+  if (unitless?.value != null) {
+    return {
+      main: { kind: 'unitless', value: unitless.value },
+      secondary: 'unit not reported',
+      reading: unitless,
+    };
   }
   return { main: null, secondary: null, reading: null };
 }
@@ -221,5 +236,38 @@ export function trafficWord(congestion) {
   if (congestion === 'LIGHT') return 'light';
   if (congestion === 'HEAVY') return 'heavy';
   if (congestion === 'USUAL') return 'normal';
+  return null;
+}
+
+/**
+ * The activity the truck's own last report proves: moving, idling, stopped,
+ * or not reporting. Used while `/now` is not deployed, so the card never
+ * says less than the header above it.
+ */
+export function reportedActivity(vehicle) {
+  if (!vehicle) return null;
+  const status = String(vehicle.status || '').toLowerCase();
+  const speed =
+    Number.isFinite(Number(vehicle.speed)) && vehicle.speed != null
+      ? Math.round(Number(vehicle.speed))
+      : null;
+  if (!vehicle.lastFixAt && vehicle.ago == null && !vehicle.hasFix) {
+    return { title: 'No report yet', tone: 'watch' };
+  }
+  if (vehicle.live === false || status === 'offline') {
+    return { title: 'Not reporting', tone: 'watch' };
+  }
+  if (status === 'moving') {
+    return { title: speed != null ? `Moving at ${speed} km/h` : 'Moving', tone: 'info' };
+  }
+  if (status === 'idle' || status === 'idling') {
+    return { title: 'Idling — engine on, not moving', tone: 'watch' };
+  }
+  if (status === 'stopped') {
+    return {
+      title: vehicle.ignition === 'ON' ? 'Stopped, engine on' : 'Stopped, engine off',
+      tone: 'info',
+    };
+  }
   return null;
 }

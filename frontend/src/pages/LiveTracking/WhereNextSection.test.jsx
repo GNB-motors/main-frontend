@@ -42,7 +42,9 @@ describe('WhereNextSection', () => {
     render(<WhereNextSection registrationNumber="WB11L8862" />);
     await waitFor(() => expect(getWhereNext).toHaveBeenCalledTimes(1));
     expect(getWhereNext.mock.calls[0][0]).toBe('WB11L8862');
-  });  it('shows the top guess in the collapsed header once it knows it', async () => {
+  });
+
+  it('shows the top guess in the collapsed header once it knows it', async () => {
     getWhereNext.mockResolvedValue({ destinations: [destination], basis: null, computedAt: null });
     render(<WhereNextSection registrationNumber="WB11L8862" />);
     await waitFor(() =>
@@ -53,7 +55,7 @@ describe('WhereNextSection', () => {
   it('prints the reason the API gave, in words', async () => {
     getWhereNext.mockResolvedValue({ destinations: [destination], basis: null, computedAt: null });
     render(<WhereNextSection registrationNumber="WB11L8862" />);
-    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Open' }));
     await waitFor(() =>
       expect(screen.getByText('Usually goes here after JK BUXAR (18 of 24 times)')).toBeInTheDocument(),
     );
@@ -62,7 +64,7 @@ describe('WhereNextSection', () => {
   it('never shows a raw probability', async () => {
     getWhereNext.mockResolvedValue({ destinations: [destination], basis: null, computedAt: null });
     render(<WhereNextSection registrationNumber="WB11L8862" />);
-    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Open' }));
     await waitFor(() => expect(screen.getAllByText(/18 of 24 times/).length).toBeGreaterThan(0));
     expect(screen.queryByText(/0\.75/)).not.toBeInTheDocument();
     expect(screen.queryByText('75%')).not.toBeInTheDocument();
@@ -74,30 +76,30 @@ describe('WhereNextSection', () => {
       why: { text: 'Still being checked.', basis: '122 of 196 rows' },
     });
     render(<WhereNextSection registrationNumber="WB11L8862" />);
-    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Open' }));
     await waitFor(() => expect(screen.getByText('Not shown yet')).toBeInTheDocument());
   });
 
-  it('says it could not work it out when the request fails', async () => {
-    getWhereNext.mockRejectedValue(new Error('boom'));
-    render(<WhereNextSection registrationNumber="WB11L8862" />);
-    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
-    await waitFor(() =>
-      expect(screen.getByText(/could not work out where this truck is going/i)).toBeInTheDocument(),
-    );
+  // The endpoint is not on prod yet: a failed request, or no guess, is
+  // nothing real to say — the section is not drawn at all (it used to print a
+  // sentence under a truck that was plainly moving).
+  it('draws nothing when the request fails', async () => {
+    getWhereNext.mockRejectedValue(Object.assign(new Error('Not found'), { status: 404 }));
+    const { container } = render(<WhereNextSection registrationNumber="WB11L8862" />);
+    await waitFor(() => expect(getWhereNext).toHaveBeenCalled());
+    await waitFor(() => expect(container).toBeEmptyDOMElement());
   });
 
-  it('says there is not enough history when there are no destinations', async () => {
+  it('draws nothing when there are no destinations', async () => {
     getWhereNext.mockResolvedValue({
       destinations: [],
       basis: null,
       computedAt: null,
       noPredictionWhy: { text: 'We do not have enough of this truck’s history to guess.' },
     });
-    render(<WhereNextSection registrationNumber="WB11L8862" />);
-    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
-    await waitFor(() =>
-      expect(screen.getByText(/do not have enough of this truck/)).toBeInTheDocument(),
-    );
+    const { container } = render(<WhereNextSection registrationNumber="WB11L8862" />);
+    await waitFor(() => expect(getWhereNext).toHaveBeenCalled());
+    await waitFor(() => expect(container).toBeEmptyDOMElement());
+    expect(screen.queryByText(/do not have enough of this truck/)).not.toBeInTheDocument();
   });
 });

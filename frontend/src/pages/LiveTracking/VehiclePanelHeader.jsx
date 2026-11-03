@@ -5,6 +5,16 @@ import { legLabel, makeLabel, modelLabel, statusLabel } from './vehiclePanelMode
 import { formatIst } from '../../utils/redesign/format';
 import FreshnessBadge from '../../components/redesign/FreshnessBadge';
 
+/** The dot colour of the status pill — the same colours as the map legend. */
+function statusDotColor(status, isOffline) {
+  const key = String(status || '').toLowerCase();
+  if (isOffline || key === 'offline') return 'var(--rd-offline)';
+  if (key === 'moving') return 'var(--rd-moving)';
+  if (key === 'idle' || key === 'idling') return 'var(--rd-idling)';
+  if (key === 'stopped') return 'var(--rd-stopped)';
+  return 'var(--rd-offline)';
+}
+
 /**
  * VehiclePanelHeader — what truck this is, and is the data live?
  *
@@ -75,7 +85,7 @@ export default function VehiclePanelHeader({ now, account = null, onOpenAccount 
             <span
               aria-hidden="true"
               className="size-2 rounded-full"
-              style={{ backgroundColor: 'var(--rd-moving)' }}
+              style={{ backgroundColor: statusDotColor(view.status, view.isOffline) }}
             />
             {statusLabel(view.status)}
             {leg ? <span className="font-normal text-[var(--rd-ink-2)]">· {leg}</span> : null}

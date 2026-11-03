@@ -38,7 +38,19 @@ const LAYER_ICONS = {
 const LEGEND_OPEN_KEY = 'track.legend.open';
 
 /**
- * TrackLegend — the floating panel at the bottom-left of the map.
+ * Whether the legend starts open. A remembered choice wins; with none, it is
+ * open on a desktop and closed on a phone, where it would cover the map.
+ */
+function readLegendOpen() {
+  const stored = getPref(LEGEND_OPEN_KEY);
+  if (stored === 'true') return true;
+  if (stored === 'false') return false;
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true;
+  return !window.matchMedia('(max-width: 780px)').matches;
+}
+
+/**
+ * TrackLegend — the floating panel down the left side of the map.
  *
  * It is not decoration: it is the filter. Every row is a switch for what is
  * drawn on the map and listed in the rail. A single click turns one group
@@ -67,9 +79,9 @@ export default function TrackLegend({
   placesTruncated = false,
   placesCount = 0,
 }) {
-  const [isOpen, setIsOpen] = useState(() => getPref(LEGEND_OPEN_KEY) !== 'false');
+  const [isOpen, setIsOpen] = useState(() => readLegendOpen());
 
-  const movingCount = statusRows.find((row) => row.key === 'MOVING')?.count ?? 0;
+  const movingCount = statusRows.find((row) => row.key === 'moving')?.count ?? 0;
   const zoomedIn = Number(zoom) >= LAYER_MIN_ZOOM;
 
   const statusAllOn = useMemo(
@@ -91,7 +103,7 @@ export default function TrackLegend({
   return (
     <section
       aria-label="Map filters"
-      className="absolute bottom-4 left-4 z-[600] w-[280px] max-w-[calc(100%-2rem)] rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] shadow-[var(--rd-shadow-float)]"
+      className="ov-legend flex flex-col rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] shadow-[var(--rd-shadow-float)]"
     >
       {!isOpen ? (
         <button
@@ -125,7 +137,7 @@ export default function TrackLegend({
             </button>
           </div>
 
-          <div className="max-h-[70vh] overflow-y-auto px-3 pb-2">
+          <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-2">
             {/* Block 1 — Trucks */}
             <LegendBlock
               title="Trucks"
@@ -193,7 +205,9 @@ export default function TrackLegend({
                     color={placeLayerColor(layer.id)}
                     on={Boolean(layerSelection[layer.id])}
                     disabled={placesNotAvailable}
-                    disabledReason={placesNotAvailable ? 'Coming soon' : gated ? 'Zoom in to see' : null}
+                    disabledReason={
+                      placesNotAvailable ? 'Coming soon' : gated ? 'Zoom in to see' : null
+                    }
                     onToggle={() => onToggleLayer(layer.id)}
                     info={
                       placesNotAvailable ? (

@@ -61,7 +61,10 @@ describe('VehicleDetailPanel', () => {
   it('shows the truck and what it is doing now', () => {
     renderPanel();
     expect(screen.getByText('WB 01 AB 1234')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Now' })).toBeInTheDocument();
+    // `/now` is missing (404): the Now card says what the position row proves.
+    expect(screen.getByRole('heading', { name: 'Now · Moving' })).toBeInTheDocument();
+    expect(screen.queryByText(/once it reports/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Not enough driving/)).not.toBeInTheDocument();
   });
 
   it('labels the vehicle identifiers in the details card', () => {

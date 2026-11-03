@@ -9,7 +9,7 @@ import InfoTip from '../../components/redesign/InfoTip';
  */
 export default function TrafficToggle({ on = false, onToggle }) {
   return (
-    <div className="absolute top-4 right-4 z-[600] flex items-center gap-1.5 rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] py-1.5 pr-1.5 pl-3 shadow-[var(--rd-shadow-float)]">
+    <div className="ov-traffic flex h-10 items-center gap-1.5 rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] pr-1.5 pl-1.5 shadow-[var(--rd-shadow-float)]">
       <button
         type="button"
         onClick={onToggle}

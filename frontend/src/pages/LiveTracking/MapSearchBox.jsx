@@ -16,8 +16,8 @@ export default function MapSearchBox({
 }) {
   return (
     <div
-      className={`absolute top-4 left-4 z-[600] flex items-center gap-2 rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] px-3 py-2 shadow-[var(--rd-shadow-float)] ${
-        compact ? 'w-11 justify-center' : 'w-[280px] max-w-[calc(100%-2rem)]'
+      className={`ov-search flex h-10 items-center gap-2 rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] px-3 shadow-[var(--rd-shadow-float)] ${
+        compact ? 'ov-search--compact justify-center' : ''
       }`}
     >
       <Search size={16} aria-hidden="true" className="shrink-0 text-[var(--rd-ink-3)]" />

@@ -21,13 +21,14 @@ describe('InsightChipsSection', () => {
     expect(screen.getByText('Steady cruise')).toBeInTheDocument();
   });
 
-  it('says it cannot judge when there is no driving to judge', () => {
-    render(
+  it('draws nothing when there are no chips, rather than a sentence a moving truck contradicts', () => {
+    const { container } = render(
       <MemoryRouter>
         <InsightChipsSection chips={[]} registrationNumber="WB11L8862" />
       </MemoryRouter>,
     );
-    expect(screen.getByText(/Not enough driving in the last 7 days/)).toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByText(/Not enough driving/)).not.toBeInTheDocument();
   });
 
   it('links to the full report', () => {

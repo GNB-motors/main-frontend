@@ -124,7 +124,10 @@ const LiveTrackingPage = () => {
   // The legend's rows. The status counts are the FULL fleet counts, so a
   // filter never changes the number the owner sees beside a status.
   const statusRows = useMemo(() => legendStatusRows(fleetCounts), [fleetCounts]);
-  const makeRows = useMemo(() => legendMakeRows(manufacturers, vehicles), [manufacturers, vehicles]);
+  const makeRows = useMemo(
+    () => legendMakeRows(manufacturers, vehicles),
+    [manufacturers, vehicles],
+  );
   const effectiveMakeSelection = useMemo(() => {
     const merged = {};
     makeRows.forEach((row) => {
@@ -139,9 +142,7 @@ const LiveTrackingPage = () => {
   const handleToggleMake = (key) =>
     setMakeSelection((prev) => ({ ...prev, [key]: !(prev[key] ?? true) }));
   const handleOnlyMake = (key) =>
-    setMakeSelection(
-      Object.fromEntries(makeRows.map((row) => [row.key, row.key === key])),
-    );
+    setMakeSelection(Object.fromEntries(makeRows.map((row) => [row.key, row.key === key])));
   const handleAllMake = () => setMakeSelection({});
   const handleToggleLayer = (key) => {
     // "Our places" is the fleet's own confirmed places, which the Track page
@@ -320,9 +321,10 @@ const LiveTrackingPage = () => {
         if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
           e.preventDefault();
           const events = trackMode.track?.events ?? [];
-          const at = e.key === 'ArrowRight'
-            ? nextEventAt(events, trackMode.playheadTime)
-            : previousEventAt(events, trackMode.playheadTime);
+          const at =
+            e.key === 'ArrowRight'
+              ? nextEventAt(events, trackMode.playheadTime)
+              : previousEventAt(events, trackMode.playheadTime);
           if (at) trackMode.seekToTime(at);
           return;
         }
@@ -357,7 +359,11 @@ const LiveTrackingPage = () => {
       {/* Main Console Container */}
       <main className="console">
         {/* Stage Area: Map + Docked Fleet Rail */}
-        <div className={`stage ${!isRailOpen ? 'railoff' : ''}`}>
+        <div
+          className={`stage ${!isRailOpen ? 'railoff' : ''} ${
+            selectedVehicle && isTrailVisible && !replayState.on ? 'has-trail-dates' : ''
+          }`}
+        >
           {/* Map Column */}
           <div className="mapcol">
             <LiveMapCanvas
@@ -404,38 +410,41 @@ const LiveTrackingPage = () => {
               trackPlayheadTime={isTrackMode ? trackMode.playheadTime : null}
             />
 
-            {/* Floating controls: search at the top-left, traffic at the
-                top-right, and the legend — which IS the filter — at the
-                bottom-left. The old top bar is gone (F1.3). */}
-            <MapSearchBox
-              value={searchQuery}
-              onChange={setSearchQuery}
-              inputRef={searchInputRef}
-            />
-            <TrafficToggle on={isTrafficOn} onToggle={handleToggleTraffic} />
-            <TrackLegend
-              statusRows={statusRows}
-              makeRows={makeRows}
-              statusSelection={statusSelection}
-              makeSelection={effectiveMakeSelection}
-              layerSelection={layerSelection}
-              onToggleStatus={handleToggleStatus}
-              onOnlyStatus={handleOnlyStatus}
-              onAllStatus={handleAllStatus}
-              onToggleMake={handleToggleMake}
-              onOnlyMake={handleOnlyMake}
-              onAllMake={handleAllMake}
-              onToggleLayer={handleToggleLayer}
-              lastEventAt={lastEventAt}
-              onRefresh={handleRefresh}
-              isRefreshing={isRefreshing}
-              zoom={mapZoom}
-              placesNotAvailable={mapPlaces.notAvailable}
-              placesTruncated={mapPlaces.truncated}
-              placesCount={mapPlaces.items.length}
-            />
-
+            {/* Floating controls: the search, live telemetry and the legend
+                (which IS the filter) down the left; traffic at the top-right.
+                MapOverlayControls owns the corners so nothing overlaps. */}
             <MapOverlayControls
+              searchBox={
+                <MapSearchBox
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  inputRef={searchInputRef}
+                />
+              }
+              trafficToggle={<TrafficToggle on={isTrafficOn} onToggle={handleToggleTraffic} />}
+              legend={
+                <TrackLegend
+                  statusRows={statusRows}
+                  makeRows={makeRows}
+                  statusSelection={statusSelection}
+                  makeSelection={effectiveMakeSelection}
+                  layerSelection={layerSelection}
+                  onToggleStatus={handleToggleStatus}
+                  onOnlyStatus={handleOnlyStatus}
+                  onAllStatus={handleAllStatus}
+                  onToggleMake={handleToggleMake}
+                  onOnlyMake={handleOnlyMake}
+                  onAllMake={handleAllMake}
+                  onToggleLayer={handleToggleLayer}
+                  lastEventAt={lastEventAt}
+                  onRefresh={handleRefresh}
+                  isRefreshing={isRefreshing}
+                  zoom={mapZoom}
+                  placesNotAvailable={mapPlaces.notAvailable}
+                  placesTruncated={mapPlaces.truncated}
+                  placesCount={mapPlaces.items.length}
+                />
+              }
               selectedVehicle={selectedVehicle}
               replayState={replayState}
               trailSelection={trailSelection}
@@ -456,8 +465,6 @@ const LiveTrackingPage = () => {
 
             {/* Overlay Bottom-Center: Replay Bar & Telemetry Ticker */}
             <div className="ov ov--bc">
-
-
               {/* Live Telemetry Ticker */}
               <TelemetryTicker
                 selectedVehicle={selectedVehicle}
@@ -479,7 +486,9 @@ const LiveTrackingPage = () => {
                 onTogglePlay={() => trackMode.setIsPlaying((playing) => !playing)}
                 onSpeedChange={trackMode.setSpeed}
                 onSeek={(percent) => {
-                  const index = Math.round((percent / 100) * Math.max(1, trackMode.points.length - 1));
+                  const index = Math.round(
+                    (percent / 100) * Math.max(1, trackMode.points.length - 1),
+                  );
                   trackMode.seekToIndex(index);
                 }}
                 onExit={trackMode.exitTrackMode}
@@ -518,90 +527,90 @@ const LiveTrackingPage = () => {
               </>
             ) : (
               <>
-            <div className="rail-tabs" role="tablist" aria-label="Fleet and places">
-              <button
-                type="button"
-                role="tab"
-                className="rail-tab"
-                aria-selected={railTab === 'fleet'}
-                onClick={() => setRailTab('fleet')}
-              >
-                Fleet <span className="rail-tab__count">{vehicles.length}</span>
-              </button>
-              <button
-                type="button"
-                role="tab"
-                className="rail-tab"
-                aria-selected={railTab === 'places'}
-                onClick={openPlacesTab}
-              >
-                Places
-                {trackPlaces.loaded ? (
-                  <span className="rail-tab__count">{trackPlaces.places.length}</span>
-                ) : null}
-              </button>
-            </div>
+                <div className="rail-tabs" role="tablist" aria-label="Fleet and places">
+                  <button
+                    type="button"
+                    role="tab"
+                    className="rail-tab"
+                    aria-selected={railTab === 'fleet'}
+                    onClick={() => setRailTab('fleet')}
+                  >
+                    Fleet <span className="rail-tab__count">{vehicles.length}</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    className="rail-tab"
+                    aria-selected={railTab === 'places'}
+                    onClick={openPlacesTab}
+                  >
+                    Places
+                    {trackPlaces.loaded ? (
+                      <span className="rail-tab__count">{trackPlaces.places.length}</span>
+                    ) : null}
+                  </button>
+                </div>
 
-            <div className="rail-body">
-              {railTab === 'fleet' ? (
-                <>
-                  {/* Primary Fleet List View */}
-                  <FleetListView
-                    isLiveLoading={isLiveLoading}
-                    vehicles={vehicles}
-                    filteredVehicles={filteredVehicles}
-                    counts={counts}
-                    setIsRailOpen={setIsRailOpen}
-                    triggerMapResize={triggerMapResize}
-                    selectedId={selectedId}
-                    setSelectedId={setSelectedId}
-                  />
+                <div className="rail-body">
+                  {railTab === 'fleet' ? (
+                    <>
+                      {/* Primary Fleet List View */}
+                      <FleetListView
+                        isLiveLoading={isLiveLoading}
+                        vehicles={vehicles}
+                        filteredVehicles={filteredVehicles}
+                        counts={counts}
+                        setIsRailOpen={setIsRailOpen}
+                        triggerMapResize={triggerMapResize}
+                        selectedId={selectedId}
+                        setSelectedId={setSelectedId}
+                      />
 
-                  {/* Vehicle Detail Slide-in Drawer */}
-                  <VehicleDetailPanel
-                    selectedVehicle={activeVehicle}
-                    setSelectedId={setSelectedId}
-                    exitReplay={exitReplay}
-                    isTrailVisible={isTrailVisible}
-                    shareCreating={shareCreating}
-                    handleShareVehicle={handleShareVehicle}
-                    selectedDriver={selectedDriver}
-                    weather={activeWeather}
-                    weatherLoading={weatherLoading}
-                    weatherContext={
-                      isReplaying
-                        ? 'Forecast model, at this point in the replay'
-                        : 'Forecast model for this hour, around this location'
-                    }
-                    segmentByTrip={segmentByTrip}
-                    setSegmentByTrip={setSegmentByTrip}
-                    isHabitualHaltsVisible={isHabitualHaltsVisible}
-                    habitualHaltsLoading={habitualHaltsLoading}
-                    toggleHabitualHalts={toggleHabitualHalts}
-                    habitualHalts={habitualHalts}
-                  />
-                </>
-              ) : (
-                <>
-                  <PlacesListView
-                    trackPlaces={trackPlaces}
-                    vehicles={vehicles}
-                    query={searchQuery}
-                    onPick={pickPlace}
-                    onHide={() => {
-                      setIsRailOpen(false);
-                      setTimeout(triggerMapResize, 240);
-                    }}
-                  />
-                  <PlaceDetailPanel
-                    place={trackPlaces.selectedPlace}
-                    vehicles={vehicles}
-                    onBack={() => trackPlaces.selectPlace(null)}
-                    onPickVehicle={pickVehicleFromPlace}
-                  />
-                </>
-              )}
-            </div>
+                      {/* Vehicle Detail Slide-in Drawer */}
+                      <VehicleDetailPanel
+                        selectedVehicle={activeVehicle}
+                        setSelectedId={setSelectedId}
+                        exitReplay={exitReplay}
+                        isTrailVisible={isTrailVisible}
+                        shareCreating={shareCreating}
+                        handleShareVehicle={handleShareVehicle}
+                        selectedDriver={selectedDriver}
+                        weather={activeWeather}
+                        weatherLoading={weatherLoading}
+                        weatherContext={
+                          isReplaying
+                            ? 'Forecast model, at this point in the replay'
+                            : 'Forecast model for this hour, around this location'
+                        }
+                        segmentByTrip={segmentByTrip}
+                        setSegmentByTrip={setSegmentByTrip}
+                        isHabitualHaltsVisible={isHabitualHaltsVisible}
+                        habitualHaltsLoading={habitualHaltsLoading}
+                        toggleHabitualHalts={toggleHabitualHalts}
+                        habitualHalts={habitualHalts}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <PlacesListView
+                        trackPlaces={trackPlaces}
+                        vehicles={vehicles}
+                        query={searchQuery}
+                        onPick={pickPlace}
+                        onHide={() => {
+                          setIsRailOpen(false);
+                          setTimeout(triggerMapResize, 240);
+                        }}
+                      />
+                      <PlaceDetailPanel
+                        place={trackPlaces.selectedPlace}
+                        vehicles={vehicles}
+                        onBack={() => trackPlaces.selectPlace(null)}
+                        onPickVehicle={pickVehicleFromPlace}
+                      />
+                    </>
+                  )}
+                </div>
               </>
             )}
           </aside>

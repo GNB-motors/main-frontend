@@ -112,4 +112,10 @@ describe('TrackLegend', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Collapse filters' }));
     expect(screen.getByRole('button', { name: /moving/ })).toBeInTheDocument();
   });
+
+  it('shows the real moving count on the collapsed pill, not zero', () => {
+    localStorage.setItem('track.legend.open', 'false');
+    renderLegend();
+    expect(screen.getByRole('button', { name: /20\s*moving/ })).toBeInTheDocument();
+  });
 });

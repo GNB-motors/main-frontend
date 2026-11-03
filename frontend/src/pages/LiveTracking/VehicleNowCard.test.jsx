@@ -90,12 +90,40 @@ describe('VehicleNowCard', () => {
     );
   });
 
-  it('says it will show the activity once the truck reports', () => {
+  // `/now` is not on prod yet. The card must never say "once it reports"
+  // under a header that shows the truck live and moving.
+  it('says what the last report proves when there is no activity yet', () => {
     render(
+      <MemoryRouter>
+        <VehicleNowCard
+          now={{ ...now, activity: null }}
+          vehicle={{ plate: 'WB11L8862', status: 'moving', speed: 18, live: true, ago: 2, hasFix: true, area: 'Dankuni, Hooghly' }}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('heading', { name: 'Now · Moving at 18 km/h' })).toBeInTheDocument();
+    expect(screen.getByText('Dankuni, Hooghly')).toBeInTheDocument();
+    expect(screen.queryByText(/once it reports/)).not.toBeInTheDocument();
+  });
+
+  it('says a truck is not reporting when it is offline', () => {
+    render(
+      <MemoryRouter>
+        <VehicleNowCard
+          now={{ ...now, activity: null }}
+          vehicle={{ plate: 'WB11L8862', status: 'offline', live: false, ago: 300, hasFix: true, area: 'Dankuni' }}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('heading', { name: 'Now · Not reporting' })).toBeInTheDocument();
+  });
+
+  it('draws nothing when it has neither an activity nor a truck', () => {
+    const { container } = render(
       <MemoryRouter>
         <VehicleNowCard now={{ ...now, activity: null }} />
       </MemoryRouter>,
     );
-    expect(screen.getByText(/once it reports/)).toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
   });
 });

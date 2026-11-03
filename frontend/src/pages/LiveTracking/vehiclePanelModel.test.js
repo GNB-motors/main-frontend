@@ -165,6 +165,20 @@ describe('fallbackNow', () => {
   });
 });
 
+describe('fallbackNow fuel unit', () => {
+  it('never calls an unproven fuel number litres', () => {
+    const now = fallbackNow({ ...releaseVehicle, fuel: 32, fuelUnit: null });
+    expect(now.readings.fuel.litres).toBeNull();
+    expect(now.readings.fuel.unitless.value).toBe(32);
+    expect(fuelTileValues(now.readings).main).toEqual({ kind: 'unitless', value: 32 });
+  });
+
+  it('keeps litres when the unit is proven', () => {
+    const now = fallbackNow({ ...releaseVehicle, fuel: 32, fuelUnit: 'L' });
+    expect(now.readings.fuel.litres.value).toBe(32);
+  });
+});
+
 describe('fuelTileValues', () => {
   it('shows litres when we have them', () => {
     const values = fuelTileValues({
