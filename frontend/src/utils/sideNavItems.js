@@ -83,7 +83,6 @@ export const SIDE_NAV_ITEMS = [
     icon: Truck,
     children: [
       { to: '/vehicles', label: 'All Vehicles', end: true },
-      { to: '/vehicles/dashboard', label: 'Vehicle Dashboard' },
       { to: '/vehicles/service-intelligence', label: 'Service Intelligence' },
     ],
     matchRoutes: [

@@ -7,7 +7,7 @@ import './ProfilePage.css';
 import './VehiclesPage.css';
 
 // Import assets and icons
-import { Plus, Upload } from 'lucide-react';
+import { FileText, Plus, Upload } from 'lucide-react';
 import NewButton from '@/components/ui/NewButton';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
@@ -23,17 +23,16 @@ import BulkUploadVehiclesPanel from './BulkUploadVehiclesPanel.jsx';
 import VehiclesPagination from './VehiclesPagination.jsx';
 import { useVehicleColumns } from './useVehicleColumns.jsx';
 import {
-  normalizeVehicle,
   buildAccountMap,
   VEHICLE_EXPORT_COLUMNS,
   mapVehicleForExport,
   vehicleExportMeta,
-  vehicleNeedsRelink,
 } from './vehicleList.js';
 import { useFleetLink } from '../../contexts/fleetLinkContext';
-import { vehiclesNeedingAction } from '../../lib/fleetLink';
 import logger from '../../utils/logger';
 import useVehicleManufacturers from './useVehicleManufacturers.js';
+import VehicleListFilters from './VehicleListFilters.jsx';
+import VehicleListService from './VehicleListService.js';
 
 const VehiclesPage = () => {
   const navigate = useNavigate();
@@ -49,6 +48,7 @@ const VehiclesPage = () => {
   const [deletingVehicle, setDeletingVehicle] = useState(null);
   const [searchVehicleNo, setSearchVehicleNo] = useState('');
   const [manufacturerFilter, setManufacturerFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
   const { manufacturers, metadataError, retryMetadata } = useVehicleManufacturers();
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [currentPage, setCurrentPage] = useState(1);
@@ -57,6 +57,13 @@ const VehiclesPage = () => {
   const [totalVehicles, setTotalVehicles] = useState(0);
   const [fleetEdgeAccounts, setFleetEdgeAccounts] = useState([]);
   const [showBulkPanel, setShowBulkPanel] = useState(false);
+
+  const {
+    index: linkIndex,
+    data: linkData,
+    error: linkError,
+    openPanel: openRelinkPanel,
+  } = useFleetLink();
 
   // Update theme colors when component mounts
   useEffect(() => {
@@ -83,15 +90,16 @@ const VehiclesPage = () => {
       setIsLoadingVehicles(true);
       setVehicleError(null);
       try {
-        const result = await VehicleService.getAllVehicles(
+        const result = await VehicleListService.getPage({
           businessRefId,
-          currentPage,
-          itemsPerPage,
-          { signal: controller.signal, manufacturer: manufacturerFilter, search: searchVehicleNo },
-        );
+          page: currentPage,
+          limit: itemsPerPage,
+          manufacturer: manufacturerFilter,
+          search: searchVehicleNo,
+          view: statusFilter,
+          signal: controller.signal,
+        });
         if (controller.signal.aborted) return;
-        // Normalize API vehicle shape (camelCase) to UI expected snake_case
-        const normalized = (result.data || []).map(normalizeVehicle);
 
         // Fetch FleetEdge accounts for the column (fire-and-forget, don't block vehicle render)
         try {
@@ -101,7 +109,7 @@ const VehiclesPage = () => {
           /* non-fatal */
         }
         if (controller.signal.aborted) return;
-        setVehicles(normalized);
+        setVehicles(result.data);
         setTotalPages(result.meta.totalPages);
         setTotalVehicles(result.meta.total);
       } catch (apiError) {
@@ -114,7 +122,15 @@ const VehiclesPage = () => {
     };
     fetchVehicles();
     return () => controller.abort();
-  }, [businessRefId, currentPage, itemsPerPage, refreshKey, manufacturerFilter, searchVehicleNo]);
+  }, [
+    businessRefId,
+    currentPage,
+    itemsPerPage,
+    refreshKey,
+    manufacturerFilter,
+    searchVehicleNo,
+    statusFilter,
+  ]);
 
   // --- Remove Vehicle ---
   const handleRemoveVehicle = async (vehicleIdToRemove) => {
@@ -173,56 +189,19 @@ const VehiclesPage = () => {
 
   // Build a map from accountId → account for fast lookup
   const accountMap = useMemo(() => buildAccountMap(fleetEdgeAccounts), [fleetEdgeAccounts]);
-  const {
-    index: linkIndex,
-    data: linkData,
-    error: linkError,
-    openPanel: openRelinkPanel,
-  } = useFleetLink();
-  // Fleet-wide, not just this page of the table.
-  const relinkCount = vehiclesNeedingAction(linkData);
-
-  const [statusFilter, setStatusFilter] = useState('ALL');
-
-  // --- Filter vehicles by registration number and status ---
-  const filteredVehicles = useMemo(() => {
-    let list = vehicles;
-    if (statusFilter === 'ACTIVE') {
-      list = list.filter((v) => v.status === 'ACTIVE' || v.isActive);
-    } else if (statusFilter === 'UNASSIGNED') {
-      list = list.filter((v) => !v.assignedDriver && !v.driver_id && !v.assigned_driver_id);
-    } else if (statusFilter === 'FLEETEDGE') {
-      list = list.filter((v) => Boolean(v.fleetEdgeAccountId || v.fleet_edge_vehicle_id));
-    } else if (statusFilter === 'RELINK') {
-      list = list.filter((v) => vehicleNeedsRelink(v, linkIndex));
-    }
-    return list;
-  }, [vehicles, statusFilter, linkIndex]);
-
   const exportRows = useMemo(
-    () => filteredVehicles.map((v) => mapVehicleForExport(v, accountMap, linkIndex)),
-    [filteredVehicles, accountMap, linkIndex],
+    () => vehicles.map((v) => mapVehicleForExport(v, accountMap, linkIndex)),
+    [vehicles, accountMap, linkIndex],
   );
 
-  // Export must cover every matching vehicle, not just the currently-loaded
-  // page — pull all pages from the API (capped at the backend's max `limit`
-  // of 1000 per request) before applying the same search filter as the table.
   const fetchAllVehiclesForExport = async () => {
-    const EXPORT_PAGE_LIMIT = 1000;
-    const first = await VehicleService.getAllVehicles(businessRefId, 1, EXPORT_PAGE_LIMIT, {
+    const all = await VehicleListService.getMatching({
+      businessRefId,
       manufacturer: manufacturerFilter,
       search: searchVehicleNo,
+      view: statusFilter,
     });
-    const all = (first.data || []).map(normalizeVehicle);
-    const totalPages = first.meta?.totalPages || 1;
-    for (let page = 2; page <= totalPages; page += 1) {
-      const next = await VehicleService.getAllVehicles(businessRefId, page, EXPORT_PAGE_LIMIT, {
-        manufacturer: manufacturerFilter,
-        search: searchVehicleNo,
-      });
-      all.push(...(next.data || []).map(normalizeVehicle));
-    }
-    return all.map((v) => mapVehicleForExport(v, accountMap, linkIndex));
+    return all.map((vehicle) => mapVehicleForExport(vehicle, accountMap, linkIndex));
   };
 
   const handlePageChange = (page) => {
@@ -232,7 +211,9 @@ const VehiclesPage = () => {
   };
 
   const activeFilterCount =
-    Number(Boolean(searchVehicleNo.trim())) + Number(Boolean(manufacturerFilter));
+    Number(Boolean(searchVehicleNo.trim())) +
+    Number(Boolean(manufacturerFilter)) +
+    Number(statusFilter !== 'ALL');
 
   const columns = useVehicleColumns({
     accountMap,
@@ -264,48 +245,38 @@ const VehiclesPage = () => {
             onClear={() => {
               setSearchVehicleNo('');
               setManufacturerFilter('');
-              setCurrentPage(1);
               setStatusFilter('ALL');
+              setCurrentPage(1);
             }}
             right={
-              <div className="vehicle-table-manufacturer-filter">
-                <label htmlFor="vehicle-table-manufacturer">Manufacturer</label>
-                <select
-                  id="vehicle-table-manufacturer"
-                  value={manufacturerFilter}
-                  onChange={(event) => {
-                    setManufacturerFilter(event.target.value);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <option value="">All manufacturers</option>
-                  {manufacturers.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-                {metadataError && (
-                  <button type="button" onClick={retryMetadata}>
-                    Retry manufacturers
-                  </button>
-                )}
-              </div>
+              <VehicleListFilters
+                manufacturers={manufacturers}
+                manufacturer={manufacturerFilter}
+                view={statusFilter}
+                onViewChange={(value) => {
+                  setStatusFilter(value);
+                  setCurrentPage(1);
+                }}
+                onManufacturerChange={(value) => {
+                  setManufacturerFilter(value);
+                  setCurrentPage(1);
+                }}
+                metadataError={metadataError}
+                retryMetadata={retryMetadata}
+              />
             }
             searchPlaceholder="Search registration or chassis number"
-            chips={[
-              { key: 'ALL', label: 'All', count: totalVehicles },
-              { key: 'ACTIVE', label: 'Active Fleet' },
-              { key: 'UNASSIGNED', label: 'Unassigned' },
-              { key: 'FLEETEDGE', label: 'Account linked' },
-              { key: 'RELINK', label: 'Needs reconnect', count: relinkCount },
-            ]}
-            selectedKeys={[statusFilter]}
-            onToggleChip={(key) => setStatusFilter((cur) => (cur === key ? 'ALL' : key))}
           />
         }
         actions={
           <div className="vehicles-actions-btn-group">
+            <NewButton
+              variant="secondary"
+              type="button"
+              text="Vehicle Documents"
+              prependIcon={<FileText size={15} />}
+              onClick={() => navigate('/vehicles/dashboard')}
+            />
             <ExportButton
               fetchAll={fetchAllVehiclesForExport}
               columns={VEHICLE_EXPORT_COLUMNS}
@@ -350,12 +321,12 @@ const VehiclesPage = () => {
 
         <DataTable
           columns={columns}
-          rows={filteredVehicles}
+          rows={vehicles}
           rowKey={(vehicle) => vehicle.id}
           loading={isLoadingVehicles}
           error={vehicleError}
           onRetry={() => setRefreshKey((k) => k + 1)}
-          showing={filteredVehicles.length}
+          showing={vehicles.length}
           total={totalVehicles}
           activeFilters={activeFilterCount}
           paginated={true}
