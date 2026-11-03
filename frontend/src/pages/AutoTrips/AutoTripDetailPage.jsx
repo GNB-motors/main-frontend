@@ -20,6 +20,7 @@ import TripDriver from './TripDriver';
 import TripBackButton from './TripBackButton';
 import { FLAG_LABEL, answerPlaceHref, inWindow } from './autoTripPlaces';
 import { LONG_PLANT_MIN, timelinePlan } from './timelineModel';
+import { tollClassText, tollSummary, tollLedgerText, withTollPasses } from './tripTolls';
 import {
   STATUS_CLASS,
   STATUS_LABEL,
@@ -100,6 +101,8 @@ export default function AutoTripDetailPage() {
     { enabled: canEdit && Boolean(devWindow) },
   );
   const deviations = deviationData?.records || null;
+  // Toll plazas the truck drove through. Optional: the page works the same without them.
+  const { data: tolls } = useApi((signal) => AutoTripService.tolls(id, { signal }), [id]);
 
   const confirmM = useMutation(AutoTripService.confirm);
   const dropM = useMutation(AutoTripService.drop);
@@ -127,7 +130,7 @@ export default function AutoTripDetailPage() {
     [refetch, refetchTrack],
   );
 
-  const plan = useMemo(() => timelinePlan(trip), [trip]);
+  const plan = useMemo(() => withTollPasses(timelinePlan(trip), tolls?.passes), [trip, tolls]);
 
   if (loading && !trip) {
     return (
@@ -156,6 +159,13 @@ export default function AutoTripDetailPage() {
   const hasTrack = (track?.points?.length || 0) > 1;
   const playable = (at) => hasTrack && inWindow(at, track);
   const playFrom = (at) => replayRef.current?.playFrom(at);
+  const tollText =
+    tollSummary(tolls) ||
+    (tolls?.status === 'OK'
+      ? 'No toll plazas on this run'
+      : tolls?.status === 'FALLBACK'
+        ? 'None found yet — road not matched'
+        : null);
 
   const setDrop = (stop, markPlaceAsDrop) =>
     act(
@@ -234,6 +244,7 @@ export default function AutoTripDetailPage() {
               track={track}
               roadTrail={roadTrail}
               detours={detourSegments(track?.points, deviations)}
+              tolls={tolls}
               loading={trackLoading}
               error={trackError}
               autoPlay={autoPlay}
@@ -312,6 +323,14 @@ export default function AutoTripDetailPage() {
               <div className="atx-field-label">Stops on this trip</div>
               <TripStopList stops={trip.stops} registrationNumber={trip.registrationNumber} />
             </div>
+            {tollText ? <Field label="Tolls on the way">{tollText}</Field> : null}
+            {tollSummary(tolls, 'RETURN') ? (
+              <Field label="Tolls on the way back">{tollSummary(tolls, 'RETURN')}</Field>
+            ) : null}
+            {tollLedgerText(tolls) ? (
+              <Field label="Toll ledger (after bill reconciliation)">{tollLedgerText(tolls)}</Field>
+            ) : null}
+            {tollClassText(tolls) ? <Field label="Toll class">{tollClassText(tolls)}</Field> : null}
             {trip.extraDrops?.length || trip.erpTripId ? (
               <div className="atx-fields">
                 {trip.extraDrops?.length ? (

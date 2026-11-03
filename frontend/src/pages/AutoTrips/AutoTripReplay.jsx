@@ -8,6 +8,8 @@ import { routeMapPoints, tripRoadAt, tripRoadLayers } from './autoTripPlaces';
 import { stopKind } from './timelineModel';
 import ReplayPlayer from './ReplayPlayer';
 import { POI_LABEL_STYLES } from '../../utils/mapLabelStyles';
+import TollMarkers from './TollMarkers';
+import { justPassed, tollMarks } from './tripTolls';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const CONTAINER = { width: '100%', height: '100%' };
@@ -78,6 +80,7 @@ export default function AutoTripReplay({
   track,
   roadTrail = null,
   detours = null,
+  tolls = null,
   loading,
   error,
   autoPlay = false,
@@ -176,6 +179,7 @@ export default function AutoTripReplay({
   const truckAt = onRoad?.truckAt || head;
 
   const pts = useMemo(() => routeMapPoints(trip || {}), [trip]);
+  const marks = tollMarks(tolls?.passes, head?.at);
   const windowEnd = track?.to ? new Date(track.to).getTime() : null;
   const stopMarks = useMemo(() => {
     const byId = new Map((trip?.routeStops || []).map((s) => [String(s._id), s]));
@@ -258,7 +262,10 @@ export default function AutoTripReplay({
     if (loading && !track) chip = 'Loading GPS track…';
     else if (error && !track) chip = 'Could not load the GPS track';
     else if (!frames.length) chip = 'No GPS track for this trip';
-    else chip = `${fmtDayTime(head?.at)} · ${speedText(head)}`;
+    else {
+      const crossed = justPassed(tolls?.passes, head?.at);
+      chip = `${fmtDayTime(head?.at)} · ${speedText(head)}${crossed ? ` · ${crossed}` : ''}`;
+    }
   }
 
   const lastAt = frames.length ? frames[frames.length - 1].at : null;
@@ -360,6 +367,7 @@ export default function AutoTripReplay({
                   zIndex={4}
                 />
               ))}
+            <TollMarkers marks={marks} />
             {truckIcon && head ? (
               <MarkerF
                 position={{ lat: truckAt.lat, lng: truckAt.lng }}

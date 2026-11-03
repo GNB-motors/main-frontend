@@ -23,6 +23,8 @@ import HotspotShape from './map/HotspotShape.jsx';
 import DraftLayer from './map/DraftLayer.jsx';
 import usePoiLayer from './map/usePoiLayer.js';
 import PoiLayer from './map/PoiLayer.jsx';
+import useTollLayer from './map/useTollLayer.js';
+import TollLayer from './map/TollLayer.jsx';
 import RouteLayer from './map/RouteLayer.jsx';
 import { POI_LABEL_STYLES } from '../../utils/mapLabelStyles';
 
@@ -60,6 +62,7 @@ export default function PlaceHubMap({
   stopGroups = [],
   vehicleHalts = [],
   showPoi = false,
+  showAllTolls = false,
   hiddenPlaceId,
   selectedId,
   onSelect,
@@ -75,6 +78,11 @@ export default function PlaceHubMap({
   const lastFitKey = useRef(null);
   const drafting = Boolean(draft);
   const { pois, load: loadPois } = usePoiLayer(map, showPoi);
+  const { plazas: tollPlazas, load: loadTolls } = useTollLayer(map, showAllTolls);
+  const onIdle = useCallback(() => {
+    loadPois();
+    loadTolls();
+  }, [loadPois, loadTolls]);
 
   const options = useMemo(
     () => ({
@@ -159,10 +167,11 @@ export default function PlaceHubMap({
       onLoad={setMap}
       onUnmount={() => setMap(null)}
       onZoomChanged={() => map && setZoom(map.getZoom() || 5)}
-      onIdle={loadPois}
+      onIdle={onIdle}
       onClick={onMapClick}
     >
       {showPoi && <PoiLayer pois={pois} />}
+      <TollLayer plazas={tollPlazas} interactive={interactive} />
       {tab === 'routes' && routes && (
         <RouteLayer map={map} {...routes} isDark={isDark || satellite} zoom={zoom} />
       )}
