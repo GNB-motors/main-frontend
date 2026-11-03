@@ -30,6 +30,8 @@ export const autoTripSchema = z
   .object({
     _id: str,
     registrationNumber: str,
+    driver: z.object({ id: str, name: str, mobileNumber: str }).passthrough().nullish(),
+    driverResolution: z.object({ status: str, at: str, assignmentId: str }).passthrough().nullish(),
     status: str, // OPEN | COMPLETE | NEEDS_REVIEW | CONFIRMED | DISMISSED
     flags: z.array(str).nullish(),
     pickup: point.nullish(),
