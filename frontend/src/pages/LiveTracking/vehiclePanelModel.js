@@ -255,7 +255,7 @@ export function reportedActivity(vehicle) {
     return { title: 'No report yet', tone: 'watch' };
   }
   if (vehicle.live === false || status === 'offline') {
-    return { title: 'Not reporting', tone: 'watch' };
+    return { title: 'Not reporting', tone: 'watch', lastSeen: true };
   }
   if (status === 'moving') {
     return { title: speed != null ? `Moving at ${speed} km/h` : 'Moving', tone: 'info' };

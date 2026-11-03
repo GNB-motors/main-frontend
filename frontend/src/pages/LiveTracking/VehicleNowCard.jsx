@@ -33,6 +33,9 @@ export default function VehicleNowCard({ now, vehicle = null, onOpenPlace = null
         meta={ago}
       >
         <div className="text-[13px] text-[var(--rd-ink-2)]">
+          {reported.lastSeen ? (
+            <span className="mb-0.5 block text-[12px] text-[var(--rd-ink-3)]">Last seen</span>
+          ) : null}
           <VehicleLocation vehicle={vehicle} />
         </div>
       </SectionCard>

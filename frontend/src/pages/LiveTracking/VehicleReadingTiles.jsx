@@ -125,7 +125,7 @@ function Tile({ label, value, secondary = null, reading = null, info = null }) {
       ) : null}
       {isQuiet && reading?.ageMin != null ? (
         <span className="mt-0.5 text-[11px] text-[var(--rd-ink-3)]">
-          · {Math.round(reading.ageMin)} min ago
+          {Math.round(reading.ageMin)} min ago
         </span>
       ) : null}
     </div>
