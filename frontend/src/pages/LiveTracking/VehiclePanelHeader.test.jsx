@@ -33,6 +33,18 @@ describe('VehiclePanelHeader', () => {
     expect(screen.getByRole('button', { name: 'Copy VIN' })).toBeInTheDocument();
   });
 
+  it('says Live only for a report up to five minutes old', () => {
+    render(<VehiclePanelHeader now={now} />);
+    expect(screen.getByText('Live')).toBeInTheDocument();
+  });
+
+  it('never says Live on a 54-minute-old report', () => {
+    const old = { ...now, readings: { gps: { ...now.readings.gps, ageMin: 54 } } };
+    render(<VehiclePanelHeader now={old} />);
+    expect(screen.queryByText('Live')).not.toBeInTheDocument();
+    expect(screen.getByText('Last report 54 min ago')).toBeInTheDocument();
+  });
+
   it('says the status and the leg of the journey', () => {
     render(<VehiclePanelHeader now={now} />);
     expect(screen.getByText('Moving')).toBeInTheDocument();

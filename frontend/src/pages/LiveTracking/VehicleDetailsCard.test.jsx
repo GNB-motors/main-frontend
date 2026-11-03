@@ -41,12 +41,25 @@ describe('VehicleDetailsCard', () => {
     expect(screen.getByText(/at 3,95,000 km/)).toBeInTheDocument();
   });
 
-  it('says Not known instead of guessing a make', () => {
+  // Owner, 3 Nov: a card of "Not known" rows says nothing. A row without a
+  // value is left out (no guessed make either), and an empty card is not drawn.
+  it('leaves out the rows it has no value for, and never guesses a make', () => {
     render(
+      <MemoryRouter>
+        <VehicleDetailsCard now={{ identity: { make: null, model: null, vin: 'MAT123' } }} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('VIN')).toBeInTheDocument();
+    expect(screen.queryByText('Make')).not.toBeInTheDocument();
+    expect(screen.queryByText('Not known')).not.toBeInTheDocument();
+  });
+
+  it('draws nothing when it knows nothing', () => {
+    const { container } = render(
       <MemoryRouter>
         <VehicleDetailsCard now={{ identity: { make: null, model: null, vin: null } }} />
       </MemoryRouter>,
     );
-    expect(screen.getAllByText('Not known').length).toBeGreaterThan(0);
+    expect(container).toBeEmptyDOMElement();
   });
 });

@@ -1,6 +1,7 @@
 import { formatIst } from '../../utils/redesign/format';
 import { formatKm, formatKmh, formatL, formatNumber, formatPct } from '../../utils/redesign/format';
 import { defTileValues, fuelTileValues } from './vehiclePanelModel';
+import { effectiveFreshness } from '../../utils/redesign/freshness';
 
 /**
  * VehicleReadingTiles — fuel, DEF, odometer and speed.
@@ -98,7 +99,7 @@ function Tile({ label, value, secondary = null, reading = null, info = null }) {
       </div>
     );
   }
-  const freshness = reading?.freshness ?? 'never';
+  const freshness = effectiveFreshness(reading?.freshness ?? 'never', reading?.ageMin);
   const at = reading?.at ?? null;
   const isMuted = freshness === 'stale' || freshness === 'never';
   const isQuiet = freshness === 'recent';

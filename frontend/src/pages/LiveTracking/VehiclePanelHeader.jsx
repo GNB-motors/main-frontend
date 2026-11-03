@@ -4,6 +4,7 @@ import copyText from './copyText';
 import { legLabel, makeLabel, modelLabel, statusLabel } from './vehiclePanelModel';
 import { formatIst } from '../../utils/redesign/format';
 import FreshnessBadge from '../../components/redesign/FreshnessBadge';
+import { effectiveFreshness } from '../../utils/redesign/freshness';
 
 /** The dot colour of the status pill — the same colours as the map legend. */
 function statusDotColor(status, isOffline) {
@@ -45,6 +46,9 @@ export default function VehiclePanelHeader({ now, account = null, onOpenAccount 
       })
       .catch(() => setCopied(false));
   };
+
+  const gps = now?.readings?.gps ?? null;
+  const isLive = effectiveFreshness(gps?.freshness, gps?.ageMin) === 'live';
 
   const needsRelink = account?.state === 'NEEDS_RELINK' || account?.state === 'RECOVERING';
 
@@ -95,9 +99,13 @@ export default function VehiclePanelHeader({ now, account = null, onOpenAccount 
 
       {/* Freshness and the last report */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
-        <FreshnessBadge reading={now?.readings?.gps ?? null} size="sm" />
+        <FreshnessBadge reading={now?.readings?.gps ?? null} size="sm" prefix="Last report" />
         <span className="text-[var(--rd-ink-3)]">
-          {view.lastFixAt ? `last report ${formatIst(view.lastFixAt)}` : 'no report yet'}
+          {view.lastFixAt
+            ? isLive
+              ? `last report ${formatIst(view.lastFixAt)}`
+              : `at ${formatIst(view.lastFixAt)}`
+            : 'no report yet'}
         </span>
         {needsRelink ? (
           <button

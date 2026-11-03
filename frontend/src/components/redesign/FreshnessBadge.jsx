@@ -1,5 +1,6 @@
 import { toneStyles } from '@/utils/redesign/tone';
 import { formatAgo, formatIst } from '@/utils/redesign/format';
+import { effectiveFreshness } from '@/utils/redesign/freshness';
 
 /**
  * FreshnessBadge — says how old a reading is, and never lies about it.
@@ -9,10 +10,19 @@ import { formatAgo, formatIst } from '@/utils/redesign/format';
  * usual silence is greyed out with its date. This is the fix for a DEF
  * reading from September being shown as if it were current.
  */
-export default function FreshnessBadge({ reading = null, at = null, freshness = null, size = 'md' }) {
-  const state = freshness || reading?.freshness || 'never';
+export default function FreshnessBadge({
+  reading = null,
+  at = null,
+  freshness = null,
+  size = 'md',
+  prefix = null,
+}) {
+  // "Live" only within five minutes, whatever the row says (effectiveFreshness).
+  const state = effectiveFreshness(freshness || reading?.freshness || 'never', reading?.ageMin);
   const stamp = at || reading?.at || null;
-  const label = freshnessLabel(state, stamp, reading?.ageMin);
+  const base = freshnessLabel(state, stamp, reading?.ageMin);
+  // A prefix ("Last report") reads before an age, never before "Live".
+  const label = prefix && state !== 'live' && state !== 'never' ? `${prefix} ${base}` : base;
   const tone = toneStyles(state === 'live' ? 'good' : state === 'recent' ? 'watch' : 'info');
   const isMuted = state === 'stale' || state === 'never';
   const dotSize = size === 'sm' ? 'size-1.5' : 'size-2';
