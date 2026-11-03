@@ -2,7 +2,8 @@ import Ico from '../../routeHubIcons.jsx';
 import { Seg } from '../../routeHubShared.jsx';
 import { dkey } from '../../routeHubFormat';
 import { RANGES } from './replayConstants.js';
-import VehicleSearchBar from './VehicleSearchBar.jsx';
+import SearchableDropdown from '../../../../components/SearchableDropdown/SearchableDropdown';
+import './ReplayToolbar.css';
 
 export default function ReplayToolbar({
   reg,
@@ -23,31 +24,41 @@ export default function ReplayToolbar({
   loading,
   toast,
 }) {
+  const vehicleOptions = vehicles.map((vehicle) => ({
+    ...vehicle,
+    name: [vehicle.registrationNumber, vehicle.model].filter(Boolean).join(' · '),
+  }));
+  const selectedVehicle = vehicleOptions.find((vehicle) => vehicle.registrationNumber === reg);
   return (
     <div className="card rtool-card" style={{ overflow: 'visible' }}>
       <div className="rtool">
         <span className="lbl">Vehicle</span>
-        <label className="field">
-          <select
-            value={reg}
+        <div className="rtool-vehicle-picker">
+          <SearchableDropdown
+            options={vehicleOptions}
+            selectedOption={selectedVehicle?.name || reg}
+            placeholder="Select or search vehicle…"
             disabled={loading}
-            onChange={(e) => {
-              setReg(e.target.value);
+            getSearchText={(vehicle) =>
+              [
+                vehicle.registrationNumber,
+                vehicle.model,
+                vehicle.chassisNumber,
+                vehicle.manufacturer,
+              ]
+                .filter(Boolean)
+                .join(' ')
+            }
+            onSelect={(vehicle) => {
+              const nextReg = vehicle.registrationNumber;
+              setReg(nextReg);
               setTrip(null);
-              // The picked trip belongs to the old vehicle; keeping it would replay
-              // one vehicle's window under another's trail.
+              // Trip evidence belongs to the previously selected vehicle.
               setErpTripId('');
-              load(e.target.value, range, '', null);
+              load(nextReg, range, '', null);
             }}
-          >
-            {vehicles.map((v) => (
-              <option key={v._id || v.registrationNumber} value={v.registrationNumber}>
-                {v.registrationNumber}
-                {v.model ? ` · ${v.model}` : ''}
-              </option>
-            ))}
-          </select>
-        </label>
+          />
+        </div>
 
         {/* Only offered when the vehicle actually has booked trips — an org
             without ERP keeps the plain date-range replay. */}
@@ -104,19 +115,6 @@ export default function ReplayToolbar({
           />
         </label>
 
-        {/* Dedicated Vehicle Search feature positioned right after the date controls */}
-        <span className="lbl">Search</span>
-        <VehicleSearchBar
-          vehicles={vehicles}
-          selectedReg={reg}
-          disabled={loading}
-          onSelect={(newReg) => {
-            setReg(newReg);
-            setTrip(null);
-            setErpTripId('');
-            load(newReg, range, '', null);
-          }}
-        />
         <span style={{ flex: 1 }} />
         <button
           type="button"

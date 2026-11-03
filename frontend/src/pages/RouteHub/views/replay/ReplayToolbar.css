@@ -1,0 +1,37 @@
+.nova-rh .rtool-vehicle-picker {
+  flex: 0 1 280px;
+  width: 280px;
+  max-width: 100%;
+  min-width: 0;
+}
+.nova-rh .rtool-vehicle-picker .searchable-dropdown-container {
+  min-height: 38px;
+  padding: 6px 12px;
+  font-size: var(--type-2xs);
+  border-color: var(--border-input);
+  background: var(--bg-input);
+  color: var(--fg-primary);
+}
+.nova-rh .rtool-vehicle-picker .searchable-dropdown-header[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.nova-rh .rtool-vehicle-picker .searchable-dropdown-header:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.nova-rh .rtool-vehicle-picker .searchable-dropdown-list-container {
+  background: var(--bg-elevated);
+  border-color: var(--border-input);
+}
+.nova-rh .rtool-vehicle-picker :is(.searchable-dropdown-item, .searchable-search-input) {
+  color: var(--fg-primary);
+}
+.nova-rh .rtool-vehicle-picker .searchable-search-input {
+  background: var(--bg-input);
+  border-color: var(--border-input);
+}
+.nova-rh .rtool-vehicle-picker .searchable-dropdown-item:hover {
+  background: var(--bg-subtle);
+}
