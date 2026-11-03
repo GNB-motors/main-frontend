@@ -79,7 +79,9 @@ export default function DeviationFeed({ groups, selId, onSelect, first, error, p
             <span className="dev-row-num">
               <span className="muted">{d.offRouteKm != null ? 'Off usual road' : 'Farthest'}</span>
               <span className="mono strong">
-                {Number(d.offRouteKm != null ? d.offRouteKm : d.maxOffKm || 0).toFixed(1)} km
+                {(d.offRouteKm ?? d.maxOffKm) != null
+                  ? `${Number(d.offRouteKm ?? d.maxOffKm).toFixed(1)} km`
+                  : '—'}
               </span>
             </span>
             <span className="dev-row-num">
