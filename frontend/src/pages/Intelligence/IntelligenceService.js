@@ -13,6 +13,7 @@
  */
 import apiClient from '../../utils/axiosConfig';
 import ApiError from '../../errors/ApiError';
+import { getBranchId, getOrgId, getUserId } from '../../utils/session.js';
 import { parseSafe } from '../../schemas/validate';
 import fleetViewService from '../../services/fleetViewService';
 
@@ -43,14 +44,28 @@ const importMileage = () => import('../../schemas/mileageV2.schema.js');
 const importTripsHistory = () => import('../../schemas/tripsHistory.schema.js');
 const importAutoTrips = () => import('../../schemas/autoTrip.schema.js');
 
+const SHARED_TTL_MS = 30 * 1000;
+const issueCalls = new Map();
+
 const IntelligenceService = {
   /** GET /api/intelligence/summary — the tiles and the run numbers. */
   getSummary: ({ from, to, signal } = {}) =>
     fleetViewService.getIntelligenceSummary({ from, to, signal }),
 
   /** GET /api/intelligence/issues — the open problems, good and bad. */
-  getIssues: ({ from, to, signal } = {}) =>
-    fleetViewService.getIntelligenceIssues({ from, to, signal }),
+  // The page header and the Issues tab both ask for the same range at once;
+  // they share one call (scoped like every session cache) instead of two.
+  // The shared call carries no AbortSignal, so one reader leaving never
+  // cancels the other's answer.
+  getIssues: ({ from, to } = {}) => {
+    const key = `${getUserId() || ''}:${getOrgId() || ''}:${getBranchId() || 'all'}:${from}:${to}`;
+    const hit = issueCalls.get(key);
+    if (hit && Date.now() - hit.at < SHARED_TTL_MS) return hit.promise;
+    const promise = fleetViewService.getIntelligenceIssues({ from, to });
+    issueCalls.set(key, { at: Date.now(), promise });
+    promise.catch(() => issueCalls.delete(key));
+    return promise;
+  },
 
   /** GET /api/fleet-view/places/questions — the places waiting for a name. */
   getPlaceQuestions: ({ signal } = {}) => fleetViewService.getPlaceQuestions({ signal }),
