@@ -49,6 +49,31 @@ class TripDashboardService {
     return response.data.data;
   }
 
+  /**
+   * How long this lane usually takes — the transit-time distribution between
+   * two sites (P50/P90 in hours) from past trips. Null when the lane has no
+   * history yet: an unknown lane is not a fast lane.
+   */
+  static async getCorridorStats({ originSiteId, destinationSiteId, signal } = {}) {
+    const response = await apiClient.get('/api/corridor-eta/stats', {
+      params: { originSiteId, destinationSiteId },
+      signal,
+    });
+    return response.data?.data ?? response.data ?? null;
+  }
+
+  /**
+   * The cycles (tours) this truck has run, newest first. A tour is the yard
+   * cycle a trip belongs to; its legs are the stops with their times.
+   */
+  static async getVehicleTours({ vehicleId, signal } = {}) {
+    const response = await apiClient.get('/api/vehicle-tours', {
+      params: { vehicleId, limit: 5 },
+      signal,
+    });
+    return response.data?.data ?? response.data ?? null;
+  }
+
   /** Trips still accruing kilometres long after their load came off. */
   static async listStaleWindows(params = {}) {
     const response = await apiClient.get('/api/erp/trips/stale-windows', { params });

@@ -16,6 +16,7 @@ import ManualTripDialog from './ManualTripDialog';
 import TripPlanDialog from './TripPlanDialog';
 import TripRangePicker from './TripRangePicker';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { useKnownEtas } from '../../hooks/useKnownEtas';
 import { tripDetailHref } from './tripWorkspace';
 import tripColumns from './tripColumns';
 import TripHistoryTab from './TripHistoryTab';
@@ -181,7 +182,9 @@ export default function AutoTripsPage() {
   const { isEnabled } = useFeatureFlags();
   // SAP is contract data: owners and managers of an org with SAP only.
   const showSap = canEditSap(getUserRole()) && isEnabled('sapV2');
-  const columns = tripColumns({ showSap, refetch, searchParams });
+  // Destinations we know, with the arrival band (refreshed every 5 min).
+  const knownEtas = useKnownEtas();
+  const columns = tripColumns({ showSap, refetch, searchParams, knownEtas });
 
   const changeTab = (key) => {
     const next = new URLSearchParams(searchParams);

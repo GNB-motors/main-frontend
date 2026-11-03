@@ -45,6 +45,13 @@ export const TollsService = {
   /** Crossing rows, each labelled as an estimate or a driver bill. */
   getCrossings: (params = {}, signal) => get('api/tolls/crossings', params, signal),
 
+  /**
+   * A toll quote between two points: { fromLat, fromLng, toLat, toLng }.
+   * The road engine can be down — that is an error the caller must report as
+   * "unavailable", never as ₹0.
+   */
+  quote: (params = {}, signal) => get('api/route-tolls/quote', params, signal),
+
   /** Per-vehicle toll money, known and unknown apart. */
   getReport: (params = {}, signal) => get('api/tolls/report', params, signal),
 

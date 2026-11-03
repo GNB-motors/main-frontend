@@ -14,6 +14,8 @@ import WeatherSection from './WeatherSection.jsx';
 import VehicleLayerToggles from './VehicleLayerToggles.jsx';
 import TrackIdlingChip from './TrackIdlingChip.jsx';
 import DestinationIntentSection from './DestinationIntentSection.jsx';
+import KnownDestinationSection from './KnownDestinationSection.jsx';
+import { formatKnownEtaLine, matchKnownEta } from '../../lib/knownEta';
 import AddHere from '../PlaceHub/drawer/AddHere.jsx';
 import { Link } from 'react-router-dom';
 import { fallbackNow } from './vehiclePanelModel';
@@ -48,10 +50,14 @@ export default function VehicleDetailPanel({
   idlingMinutes = null,
   vehicleAlerts = [],
   showIntent = false,
+  knownEtas = [],
   canEditPlaces = false,
   onAddAtSpot = null,
 }) {
   const reg = selectedVehicle?.plate ?? null;
+
+  // A destination we know (a trip plan, a SAP dispatch) beats a predicted one.
+  const knownLine = formatKnownEtaLine(matchKnownEta(knownEtas, reg));
 
   // The live stream already carries the position row, so the panel reads it
   // straight from there — no second endpoint to keep alive.
@@ -147,7 +153,12 @@ export default function VehicleDetailPanel({
             <VehicleDetailsCard now={now} />
 
             <div className="sections">
-              {showIntent ? <DestinationIntentSection registrationNumber={reg} /> : null}
+              {knownLine ? (
+                <KnownDestinationSection knownEtas={knownEtas} registrationNumber={reg} />
+              ) : null}
+              {showIntent && !knownLine ? (
+                <DestinationIntentSection registrationNumber={reg} />
+              ) : null}
               <WeatherSection
                 weather={weather}
                 loading={weatherLoading}

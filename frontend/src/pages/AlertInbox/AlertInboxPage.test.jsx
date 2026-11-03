@@ -2,13 +2,26 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AlertInboxPage from './AlertInboxPage';
-import { getInbox, acknowledgeItem } from '../../services/AlertInboxService';
+import {
+  getInbox,
+  acknowledgeItem,
+  acknowledgeAll,
+  getIncidents,
+  getIncidentSummary,
+  acknowledgeIncident,
+} from '../../services/AlertInboxService';
 import { fleetViewService } from '../../services/fleetViewService';
 import SupportPortalContext from '../../contexts/supportPortalContext';
 
 vi.mock('../../services/AlertInboxService', () => ({
   getInbox: vi.fn(),
   acknowledgeItem: vi.fn(),
+  acknowledgeAll: vi.fn(),
+  getIncidents: vi.fn(),
+  getIncidentSummary: vi.fn(),
+  acknowledgeIncident: vi.fn(),
+  assignIncident: vi.fn(),
+  resolveIncident: vi.fn(),
 }));
 vi.mock('../../services/fleetViewService', () => ({
   fleetViewService: { getAccountsLinkState: vi.fn() },
@@ -49,6 +62,17 @@ beforeEach(() => {
   vi.clearAllMocks();
   getInbox.mockResolvedValue({ items: [fuel, ticket] });
   acknowledgeItem.mockResolvedValue({ ...fuel, status: 'ACKNOWLEDGED' });
+  acknowledgeAll.mockResolvedValue({ acknowledged: 2 });
+  getIncidents.mockResolvedValue({ items: [], pagination: { total: 0, page: 1, limit: 50 } });
+  getIncidentSummary.mockResolvedValue({
+    OPEN: 0,
+    ACKNOWLEDGED: 0,
+    MECHANIC_ASSIGNED: 0,
+    RESOLVED: 0,
+    total: 0,
+    unpaired: 0,
+  });
+  acknowledgeIncident.mockResolvedValue({ _id: 'inc-1', status: 'ACKNOWLEDGED' });
   // The account endpoint is not on prod yet; the inbox works without it.
   fleetViewService.getAccountsLinkState.mockRejectedValue(
     Object.assign(new Error('Not found'), { status: 404 }),
@@ -119,6 +143,46 @@ describe('Alert Inbox integration', () => {
     expect(await screen.findByText(/account disconnected/)).toBeInTheDocument();
     const link = screen.getByRole('link', { name: 'Reconnect' });
     expect(link.getAttribute('href')).toBe('/settings/fleetedge-accounts');
+  });
+  it('asks before it marks every open alert as seen', async () => {
+    mount();
+    await screen.findByText('Fuel loss');
+    fireEvent.click(screen.getByRole('button', { name: 'Acknowledge all' }));
+    expect(screen.getByText('Mark all 2 open alerts as seen?')).toBeInTheDocument();
+    expect(acknowledgeAll).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, mark all' }));
+    await waitFor(() => expect(acknowledgeAll).toHaveBeenCalledTimes(1));
+  });
+  it('shows the incident board on the incidents view', async () => {
+    getIncidents.mockResolvedValue({
+      items: [
+        {
+          _id: 'inc-1',
+          incidentNumber: 'INC-42',
+          type: 'BREAKDOWN',
+          status: 'OPEN',
+          truck: { registrationNumber: 'MH12AB1234' },
+          driver: { name: 'Ramesh' },
+          report: { note: 'Engine stopped on the highway.', receivedAt: '2026-11-04T09:30:00.000Z' },
+        },
+      ],
+      pagination: { total: 1, page: 1, limit: 50 },
+    });
+    getIncidentSummary.mockResolvedValue({
+      OPEN: 1,
+      ACKNOWLEDGED: 0,
+      MECHANIC_ASSIGNED: 0,
+      RESOLVED: 0,
+      total: 1,
+      unpaired: 0,
+    });
+    mount();
+    await screen.findByText('Fuel loss');
+    fireEvent.click(screen.getByRole('button', { name: /Incidents/ }));
+    expect(await screen.findByText('INC-42')).toBeInTheDocument();
+    expect(screen.getByText('Breakdown')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Acknowledge' }));
+    await waitFor(() => expect(acknowledgeIncident).toHaveBeenCalledWith('inc-1'));
   });
   it('shows no banner when the account endpoint is not deployed', async () => {
     mount();

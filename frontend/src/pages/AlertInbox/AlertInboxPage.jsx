@@ -5,11 +5,13 @@ import PageShell from '../../components/ui/PageShell.jsx';
 import { Button } from '../../components/ui/button.jsx';
 import { Dialog, DialogContent, DialogTitle, DialogClose } from '../../components/ui/dialog.jsx';
 import { useSupportPortal } from '../../contexts/supportPortalContext';
-import { getInbox, acknowledgeItem } from '../../services/AlertInboxService.js';
+import { getInbox, acknowledgeItem, acknowledgeAll } from '../../services/AlertInboxService.js';
 import { fleetViewService } from '../../services/fleetViewService';
 import useApi from '../../hooks/useApi';
 import { SOURCE_LABELS, sinceLabel, reviewTarget, filterInbox, subjectTitle } from './inboxModel.js';
 import AccountLinkBanner from './AccountLinkBanner.jsx';
+import IncidentsTab from './IncidentsTab.jsx';
+import { ackAllConfirmText } from './incidentsModel.js';
 import './AlertInbox.css';
 
 export default function AlertInboxPage() {
@@ -23,6 +25,9 @@ export default function AlertInboxPage() {
   const [severity, setSeverity] = React.useState('');
   const [source, setSource] = React.useState('');
   const [detailId, setDetailId] = React.useState(null);
+  const [view, setView] = React.useState('ALERTS');
+  const [ackAllOpen, setAckAllOpen] = React.useState(false);
+  const [ackAllPending, setAckAllPending] = React.useState(false);
   const [announcement, setAnnouncement] = React.useState('');
   const request = React.useRef(null);
   const mounted = React.useRef(true);
@@ -90,6 +95,23 @@ export default function AlertInboxPage() {
     }
   };
 
+  const ackEverything = async () => {
+    setAckAllPending(true);
+    setActionError(null);
+    try {
+      await acknowledgeAll();
+      setAckAllOpen(false);
+      await load();
+      setAnnouncement('Every open alert is marked as seen.');
+    } catch (err) {
+      if (mounted.current) {
+        setActionError(err?.message || 'Could not mark the alerts as seen. Try again.');
+      }
+    } finally {
+      if (mounted.current) setAckAllPending(false);
+    }
+  };
+
   const all = data?.items || [];
   const open = all.filter((item) => item.status === 'OPEN');
   const items = filterInbox(all, { status, query, severity, source });
@@ -149,6 +171,27 @@ export default function AlertInboxPage() {
           <AccountLinkBanner key={account.accountId} account={account} />
         ))}
 
+      <div className="ai-tabs ai-views" role="group" aria-label="Inbox views">
+        <button
+          type="button"
+          aria-pressed={view === 'ALERTS'}
+          onClick={() => setView('ALERTS')}
+        >
+          Alerts <span>{open.length}</span>
+        </button>
+        <button
+          type="button"
+          aria-pressed={view === 'INCIDENTS'}
+          onClick={() => setView('INCIDENTS')}
+        >
+          Incidents
+        </button>
+      </div>
+
+      {view === 'INCIDENTS' ? (
+        <IncidentsTab />
+      ) : (
+        <>
       <div className="ai-summary">
         {[
           { label: 'Open alerts', value: open.length, Icon: Bell },
@@ -216,6 +259,30 @@ export default function AlertInboxPage() {
               </option>
             ))}
           </select>
+          {ackAllOpen ? (
+            <span
+              className="ai-confirm"
+              role="group"
+              aria-label="Confirm marking every alert as seen"
+            >
+              <span>{ackAllConfirmText(open.length)}</span>
+              <Button size="sm" onClick={ackEverything} disabled={ackAllPending}>
+                {ackAllPending ? 'Saving…' : 'Yes, mark all'}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setAckAllOpen(false)}>
+                Cancel
+              </Button>
+            </span>
+          ) : (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setAckAllOpen(true)}
+              disabled={loading || open.length === 0}
+            >
+              Acknowledge all
+            </Button>
+          )}
         </div>
         {error || actionError ? (
           <div role="alert" className="ai-error">
@@ -319,6 +386,8 @@ export default function AlertInboxPage() {
           </div>
         )}
       </section>
+        </>
+      )}
       <p className="sr-only" role="status">
         {announcement}
       </p>

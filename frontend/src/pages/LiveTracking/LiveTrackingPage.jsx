@@ -21,6 +21,7 @@ import MapOverlayControls from './MapOverlayControls.jsx';
 import TelemetryTicker from './TelemetryTicker.jsx';
 import FleetListView from './FleetListView.jsx';
 import VehicleDetailPanel from './VehicleDetailPanel.jsx';
+import { useKnownEtas } from '../../hooks/useKnownEtas';
 import ShareLinkDialog from './ShareLinkDialog.jsx';
 import useTrackPlaces from './useTrackPlaces.js';
 import PlacesListView from './PlacesListView.jsx';
@@ -238,6 +239,8 @@ const LiveTrackingPage = () => {
   const { idling: idlingRows, error: idlingError } = useLiveIdling({ enabled: true });
   const { alerts } = useLiveAlerts({ enabled: true });
   const { intents } = useLiveIntents({ enabled: Boolean(selectedId) });
+  // Destinations we actually know, with the arrival band (refreshed every 5 min).
+  const knownEtas = useKnownEtas();
   const idlingByPlate = useMemo(() => idlingMinutesByPlate(idlingRows), [idlingRows]);
   const alertCounts = useMemo(() => alertCountsByVehicle(alerts), [alerts]);
   const reviewQueue = useTrackReviewQueue({ enabled: Boolean(layerSelection.reviewQueue) });
@@ -867,6 +870,7 @@ const LiveTrackingPage = () => {
                         onRetry={handleRefresh}
                         idlingByPlate={idlingByPlate}
                         alertCounts={alertCounts}
+                        knownEtas={knownEtas}
                       />
 
                       {/* Vehicle Detail Slide-in Drawer */}
@@ -896,6 +900,7 @@ const LiveTrackingPage = () => {
                         }
                         vehicleAlerts={activeVehicle ? alertsForVehicle(alerts, activeVehicle.plate) : []}
                         showIntent={activeVehicle ? hasIntentFor(activeVehicle.plate) : false}
+                        knownEtas={knownEtas}
                         canEditPlaces={canEditPlacesHere}
                         onAddAtSpot={handleAddAtSpot}
                       />
