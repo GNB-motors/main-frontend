@@ -14,9 +14,9 @@ const MassBalancePipeline = ({
     <div className="fi-pipeline-header">
       <div className="fi-pipeline-title-group">
         <Layers size={15} className="text-blue-600 dark:text-blue-400" />
-        <span className="fi-pipeline-title">Autonomous Mass-Balance Flow Reconciliation</span>
+        <span className="fi-pipeline-title">Fuel in and fuel used, this period</span>
         <span className="fi-pipeline-formula">
-          Pump Inflow − Engine Burn − ΔTank Level = Fuel down while parked
+          Fuel in, engine burn and tank change side by side · fuel down while parked is measured from parked windows
         </span>
       </div>
       <div className="text-xs text-slate-500 font-medium">
@@ -37,7 +37,7 @@ const MassBalancePipeline = ({
         <div className="fi-step-val text-blue-600 dark:text-blue-400">
           +{formatLitres(totalFillsLitres)}
         </div>
-        <div className="fi-step-sub">≈ {formatINR(totalFillsLitres * pricePerL)} invoiced</div>
+        <div className="fi-step-sub">≈ {formatINR(totalFillsLitres * pricePerL)} at ₹{pricePerL}/L</div>
       </div>
 
       <div className="fi-step-arrow">
@@ -125,7 +125,7 @@ const MassBalancePipeline = ({
             ? 'Not measured yet'
             : lossL > 0
               ? `Worth about ${formatINR(lossL * pricePerL)}`
-              : 'Everything the driving explains'}
+              : 'None found in parked windows'}
         </div>
       </div>
     </div>

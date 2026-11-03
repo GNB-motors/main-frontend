@@ -318,7 +318,7 @@ const FuelIntegrityPage = () => {
           lossL == null
             ? 'We could not measure whether any fuel went down while parked in this period'
             : lossL === 0
-              ? 'Fills, engine burn and tank level agree across the fleet in this period'
+              ? 'No fuel went down while a truck was parked in this period'
               : `${lossL.toFixed(1)} L of fuel went down while parked — review the windows below. This is a measurement, not a conclusion.`
         }
         filters={

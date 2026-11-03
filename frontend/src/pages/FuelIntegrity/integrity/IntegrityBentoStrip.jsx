@@ -85,13 +85,13 @@ const IntegrityBentoStrip = ({
           {lossL == null
             ? 'Not measured yet'
             : lossL === 0
-              ? 'Fills, burn and tank level agree'
-              : 'Fills, burn and tank level do not add up'}
+              ? 'No drop found in parked windows'
+              : 'Drops found in parked windows'}
         </span>
         <span
           className={`fi-bento-pill ${lossL === 0 ? 'fi-bento-pill--ok' : 'fi-bento-pill--crit'}`}
         >
-          {lossL == null ? 'Not measured' : lossL === 0 ? 'Balanced' : 'Needs review'}
+          {lossL == null ? 'Not measured' : lossL === 0 ? 'None found' : 'Needs review'}
         </span>
       </div>
     </div>
@@ -111,11 +111,11 @@ const IntegrityBentoStrip = ({
         </div>
       </div>
       <div className="fi-bento-foot">
-        <span className="fi-bento-sub">Invoices match sensor tank jump</span>
+        <span className="fi-bento-sub">Bill litres that disagree with the tank rise</span>
         <span
           className={`fi-bento-pill ${billCount === 0 ? 'fi-bento-pill--ok' : 'fi-bento-pill--warn'}`}
         >
-          {billCount === 0 ? 'Clean Slips' : `${billCount} Flagged`}
+          {billCount === 0 ? 'None flagged' : `${billCount} Flagged`}
         </span>
       </div>
     </div>
@@ -141,7 +141,7 @@ const IntegrityBentoStrip = ({
           <span className="fi-bento-val" style={{ color: '#d97706' }}>
             {defCount}
           </span>
-          <span className="fi-bento-unit">Under Review</span>
+          <span className="fi-bento-unit">{defCount === 0 ? 'flags' : 'under review'}</span>
         </div>
       </div>
       <div className="fi-bento-foot">
@@ -149,7 +149,7 @@ const IntegrityBentoStrip = ({
         <span
           className={`fi-bento-pill ${defCount === 0 ? 'fi-bento-pill--ok' : 'fi-bento-pill--warn'}`}
         >
-          {defCount === 0 ? 'Ratio Normal' : 'Tamper Alert'}
+          {defCount === 0 ? 'None flagged' : 'Needs a look'}
         </span>
       </div>
     </div>

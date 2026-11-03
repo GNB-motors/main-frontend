@@ -172,7 +172,7 @@ export default function MileagePage() {
   // Only the fill list's search reaches past the truck number.
   const searchHint =
     activeSubview === 'stream'
-      ? 'Truck number, driver, phone or pump'
+      ? 'Truck, driver, phone or pump'
       : activeSubview === 'pumps'
         ? 'Pump or highway'
         : 'Truck number';

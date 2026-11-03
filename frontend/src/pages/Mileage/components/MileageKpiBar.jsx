@@ -129,8 +129,12 @@ export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 
           lines: [],
         }}
       >
-        {k.flagged != null ? (
+        {/* "All clear" needs bills to have been checked: with none uploaded it
+            would contradict "Many bills missing" next to it. */}
+        {k.flagged != null && (k.flagged > 0 || k.bills !== 0) ? (
           <StatusChip group="billsToCheck" value={k.flagged > 0 ? 'NEEDS_A_LOOK' : 'ALL_CLEAR'} />
+        ) : k.flagged != null ? (
+          <span>No bills to check yet</span>
         ) : null}
       </Tile>
     </div>
