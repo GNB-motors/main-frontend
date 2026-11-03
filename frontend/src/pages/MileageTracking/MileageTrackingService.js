@@ -1,6 +1,7 @@
 import apiClient from '../../utils/axiosConfig';
 import ApiError from '../../errors/ApiError';
 import { mapAdBlueLogResponse } from './adBlueTrackingLogic';
+import { getBranchId, getOrgId, getUserId } from '../../utils/session.js';
 
 const call = async (request) => {
   try {
@@ -29,7 +30,9 @@ const getInterval = (id, { signal } = {}) =>
 const MODEL_COMPARISON_TTL_MS = 60 * 1000;
 const modelComparisonCalls = new Map();
 const getModelComparison = (params) => {
-  const key = JSON.stringify(params ?? {});
+  // Scoped like the vehicle list cache: a branch switch or another login
+  // within the minute must never be handed the previous scope's answer.
+  const key = `${getUserId() || ''}:${getOrgId() || ''}:${getBranchId() || 'all'}:${JSON.stringify(params ?? {})}`;
   const hit = modelComparisonCalls.get(key);
   if (hit && Date.now() - hit.at < MODEL_COMPARISON_TTL_MS) return hit.promise;
   const promise = call(

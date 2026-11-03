@@ -14,7 +14,21 @@ const parsed = async (name, response) => parseSafe(name, schemas, unwrap(respons
  * Warehouse changes (accept as WAREHOUSE) answer 409 with an `impact` body
  * until resent with `confirmImpact: true` — see isImpactGate in the model.
  */
-export const PlaceIntelligenceService = {
+export const PAGE_SIZE = 200;
+const MAX_PAGES = 5;
+
+async function allPages(list, params, { signal } = {}) {
+  const page = (n) => list({ ...params, limit: PAGE_SIZE, page: n }, { signal });
+  const first = await page(1);
+  const total = first?.total || 0;
+  const pages = Math.min(Math.ceil(total / PAGE_SIZE), MAX_PAGES);
+  const rest = await Promise.all(
+    Array.from({ length: Math.max(0, pages - 1) }, (_, i) => page(i + 2)),
+  );
+  return { ...first, records: [first, ...rest].flatMap((d) => d?.records ?? []) };
+}
+
+const PlaceIntelligenceService = {
   listDeliveryLegs: async (params = {}, { signal } = {}) =>
     parsed(
       'deliveryLegListSchema',
@@ -104,6 +118,15 @@ export const PlaceIntelligenceService = {
   // ─── Regions (grouped sites a truck treats as one place) ───────────────────
   listRegions: async (params = {}, { signal } = {}) =>
     parsed('regionListSchema', await apiClient.get(`${BASE}/regions`, { params, signal })),
+
+  /** Every site matching `params`, paged at the server's 200-row cap (a bigger
+   *  limit is a 400). Stops at five pages, like Place Hub and Track. */
+  listAllSites: (params = {}, opts = {}) =>
+    allPages(PlaceIntelligenceService.listSites, params, opts),
+
+  /** Every region matching `params`, paged the same way. */
+  listAllRegions: (params = {}, opts = {}) =>
+    allPages(PlaceIntelligenceService.listRegions, params, opts),
 
   decideRegion: async ({ id, decision }, { signal } = {}) =>
     unwrap(await apiClient.post(`${BASE}/regions/${id}/decide`, { decision }, { signal })),
