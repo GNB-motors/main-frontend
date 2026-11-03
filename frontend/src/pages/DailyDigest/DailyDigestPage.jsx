@@ -8,6 +8,7 @@ import DigestStoryCard from './DigestStoryCard';
 import DigestReconnectBanner from './DigestReconnectBanner';
 import DigestReportCardTile from './DigestReportCardTile';
 import ReleaseDigest from './ReleaseDigest';
+import { formatInIST, istDayString } from '../../utils/dateUtils';
 
 /**
  * DailyDigest — the day's story.
@@ -44,18 +45,19 @@ export default function DailyDigestPage() {
     setDate(next);
   };
 
-  const isToday = dateParam === new Date().toISOString().slice(0, 10);
+  // Today and the greeting follow the owner's clock (IST), not UTC.
+  const isToday = istDayString(date) === istDayString(new Date());
+  const istHour = Number(formatInIST(new Date(), 'HH'));
+  const greeting = istHour < 12 ? 'Good morning' : istHour < 17 ? 'Good afternoon' : 'Good evening';
 
   return (
     <div className="mx-auto w-full max-w-[1280px] px-4 py-5">
       <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="m-0 text-[20px] font-semibold text-[var(--rd-ink)]">
-            {isToday ? 'Good morning' : 'Daily Digest'}
+            {isToday ? greeting : 'Daily Digest'}
           </h1>
-          <p className="m-0 mt-0.5 text-[13px] text-[var(--rd-ink-2)]">
-            {formatIstDate(date)}
-          </p>
+          <p className="m-0 mt-0.5 text-[13px] text-[var(--rd-ink-2)]">{formatIstDate(date)}</p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <button
