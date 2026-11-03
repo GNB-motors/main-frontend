@@ -24,6 +24,7 @@ export default function MapOverlayControls({
   searchBox = null,
   legend = null,
   trafficToggle = null,
+  trackTollStatus = null,
   isTrackMode = false,
   trackFrom = null,
   trackTo = null,
@@ -84,6 +85,8 @@ export default function MapOverlayControls({
           ) : null}
           {trafficToggle}
         </div>
+
+        {trackTollStatus ? <div className="w-[280px] max-w-full">{trackTollStatus}</div> : null}
 
         {showTrailDates && (
           <div className="ov-trail-dates">

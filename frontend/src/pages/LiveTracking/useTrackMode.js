@@ -48,6 +48,24 @@ export default function useTrackMode({ searchParams, setSearchParams }) {
   );
   const roadTrail = roadData ?? null;
 
+  // Independent, abortable read once per vehicle/range, never per playback frame.
+  const tollScope = `${state.reg}:${toIso(state.from)}:${toIso(state.to)}`;
+  const {
+    data: tolls,
+    loading: tollsLoading,
+    error: tollsError,
+    refetch: retryTolls,
+  } = useApi(
+    (signal) =>
+      fleetViewService.getVehicleTolls(state.reg, {
+        from: toIso(state.from),
+        to: toIso(state.to),
+        signal,
+      }),
+    [state.reg, state.from?.getTime(), state.to?.getTime()],
+    { enabled: isTrackMode, scopeKey: tollScope },
+  );
+
   // The playhead. It starts where the URL says, or at the start of the range.
   const [playheadTime, setPlayheadTime] = useState(() => state.at);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -162,6 +180,10 @@ export default function useTrackMode({ searchParams, setSearchParams }) {
     track,
     points,
     roadTrail,
+    tolls,
+    tollsLoading,
+    tollsError,
+    retryTolls,
     loading,
     error,
     notDeployed: error?.status === 404,

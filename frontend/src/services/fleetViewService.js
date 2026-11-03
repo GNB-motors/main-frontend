@@ -216,10 +216,18 @@ export const getInstances = ({ kind, page, limit, from, to, vehicle, driver, sig
     importer: importIntelligence,
   });
 
+/** Saved crossings only; this read never starts a historical backfill. */
+export const getVehicleTolls = (reg, { from, to, signal } = {}) =>
+  get(`/api/fleet-view/vehicles/${encodeURIComponent(reg)}/tolls`, {
+    params: { from, to },
+    signal,
+  });
+
 export const fleetViewService = {
   getVehicleNow,
   getWhereNext,
   getVehicleTrack,
+  getVehicleTolls,
   getMapPlaces,
   getCampuses,
   getNearbyHelp,

@@ -1,3 +1,4 @@
+import TrackTollLayers from './TrackTollLayers';
 import { useEffect, useMemo, useState } from 'react';
 import { GoogleMap, MarkerF, OverlayView, PolylineF } from '@react-google-maps/api';
 import { formatDuration } from '../../utils/redesign/format';
@@ -62,6 +63,7 @@ export default function LiveMapCanvas({
   track = null,
   trackPlayheadTime = null,
   trackRoad = null,
+  trackTolls = null,
 }) {
   /* When the user disables per-trip segmentation we fall back to a single
      polyline (visual continuity with the legacy behavior). The fallback
@@ -171,6 +173,10 @@ export default function LiveMapCanvas({
               playheadTime={trackPlayheadTime}
               roadTrail={trackRoad}
             />
+          ) : null}
+
+          {trackTolls ? (
+            <TrackTollLayers passes={trackTolls.passes} playheadTime={trackPlayheadTime} />
           ) : null}
 
           {/* Places (Place Hub's confirmed places) — under the fleet, never hiding a truck. */}

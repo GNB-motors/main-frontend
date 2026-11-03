@@ -1,3 +1,4 @@
+import TrackTollStatus from './TrackTollStatus';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLoadScript } from '@react-google-maps/api';
@@ -395,6 +396,7 @@ const LiveTrackingPage = () => {
               track={isTrackMode ? trackMode.track : null}
               trackPlayheadTime={isTrackMode ? trackMode.playheadTime : null}
               trackRoad={isTrackMode ? trackMode.roadTrail : null}
+              trackTolls={isTrackMode ? trackMode.tolls : null}
             />
 
             {/* Floating controls: the search, live telemetry and the legend
@@ -409,6 +411,18 @@ const LiveTrackingPage = () => {
                 />
               }
               trafficToggle={<TrafficToggle on={isTrafficOn} onToggle={handleToggleTraffic} />}
+              trackTollStatus={
+                isTrackMode ? (
+                  <TrackTollStatus
+                    data={trackMode.tolls}
+                    loading={trackMode.tollsLoading}
+                    error={trackMode.tollsError}
+                    onRetry={trackMode.retryTolls}
+                    playheadTime={trackMode.playheadTime}
+                  />
+                ) : null
+              }
+
               legend={
                 <TrackLegend
                   layerSelection={layerSelection}
