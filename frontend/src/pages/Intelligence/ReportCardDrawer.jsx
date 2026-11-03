@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from '@/components/redesign/FleetLink';
 import { MapPinned, X } from 'lucide-react';
 import {
   Sheet,
@@ -42,7 +42,9 @@ export default function ReportCardDrawer({ card, open, onOpenChange }) {
           <div className="min-w-0">
             <SheetTitle className="text-[16px] text-[var(--rd-ink)]">
               {card?.name ?? ''}
-              {card?.make ? <span className="font-normal text-[var(--rd-ink-2)]">{` · ${card.make}`}</span> : null}
+              {card?.make ? (
+                <span className="font-normal text-[var(--rd-ink-2)]">{` · ${card.make}`}</span>
+              ) : null}
             </SheetTitle>
             <SheetDescription className="mt-1 text-[13px] text-[var(--rd-ink-2)]">
               {card?.headline ?? ''}
@@ -60,7 +62,11 @@ export default function ReportCardDrawer({ card, open, onOpenChange }) {
 
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
           <div className="flex flex-wrap items-center gap-2">
-            {card?.grade ? <ToneBadge tone={GRADE_TONE[card.grade] ?? 'info'}>{GRADE_LABEL[card.grade] ?? card.grade}</ToneBadge> : null}
+            {card?.grade ? (
+              <ToneBadge tone={GRADE_TONE[card.grade] ?? 'info'}>
+                {GRADE_LABEL[card.grade] ?? card.grade}
+              </ToneBadge>
+            ) : null}
             {card?.score !== null && card?.score !== undefined ? (
               <span className="text-[13px] text-[var(--rd-ink-2)] tabular-nums">
                 {`Score ${formatNumber(card.score)}`}
@@ -90,7 +96,9 @@ export default function ReportCardDrawer({ card, open, onOpenChange }) {
                   <div key={`${chip.key}-${chip.label}`} className="flex flex-col gap-1">
                     <InsightChip chip={chip} size="sm" />
                     {chip.advice ? (
-                      <p className="m-0 text-[12px] leading-relaxed text-[var(--rd-ink-2)]">{chip.advice}</p>
+                      <p className="m-0 text-[12px] leading-relaxed text-[var(--rd-ink-2)]">
+                        {chip.advice}
+                      </p>
                     ) : null}
                   </div>
                 ))}
@@ -100,8 +108,12 @@ export default function ReportCardDrawer({ card, open, onOpenChange }) {
 
           {card?.basis?.text ? (
             <section className="flex flex-col gap-1">
-              <h3 className="m-0 text-[13px] font-semibold text-[var(--rd-ink)]">What this is based on</h3>
-              <p className="m-0 text-[13px] leading-relaxed text-[var(--rd-ink-2)]">{card.basis.text}</p>
+              <h3 className="m-0 text-[13px] font-semibold text-[var(--rd-ink)]">
+                What this is based on
+              </h3>
+              <p className="m-0 text-[13px] leading-relaxed text-[var(--rd-ink-2)]">
+                {card.basis.text}
+              </p>
               {card.basis.basis ? (
                 <p className="m-0 text-[12px] text-[var(--rd-ink-3)]">{card.basis.basis}</p>
               ) : null}
@@ -121,13 +133,21 @@ export default function ReportCardDrawer({ card, open, onOpenChange }) {
                 </Link>
               ) : null}
               <Link
-                to={intelligenceLink(isDriver ? { tab: 'idling', driver: card?.id } : { tab: 'idling', vehicle: card?.id })}
+                to={intelligenceLink(
+                  isDriver
+                    ? { tab: 'idling', driver: card?.id }
+                    : { tab: 'idling', vehicle: card?.id },
+                )}
                 className="inline-flex items-center gap-1.5 rounded-[var(--rd-radius-xs)] border border-[var(--rd-line-strong)] bg-[var(--rd-card)] px-2.5 py-1 text-[13px] font-semibold text-[var(--rd-ink)] no-underline hover:bg-[var(--rd-card-2)]"
               >
                 {isDriver ? 'See all their idling' : 'See all its idling'}
               </Link>
               <Link
-                to={intelligenceLink(isDriver ? { tab: 'overspeed', driver: card?.id } : { tab: 'overspeed', vehicle: card?.id })}
+                to={intelligenceLink(
+                  isDriver
+                    ? { tab: 'overspeed', driver: card?.id }
+                    : { tab: 'overspeed', vehicle: card?.id },
+                )}
                 className="inline-flex items-center gap-1.5 rounded-[var(--rd-radius-xs)] border border-[var(--rd-line-strong)] bg-[var(--rd-card)] px-2.5 py-1 text-[13px] font-semibold text-[var(--rd-ink)] no-underline hover:bg-[var(--rd-card-2)]"
               >
                 {isDriver ? 'See all their overspeeds' : 'See all its overspeeds'}

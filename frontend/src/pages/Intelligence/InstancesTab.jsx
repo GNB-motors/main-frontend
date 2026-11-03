@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import Link from '@/components/redesign/FleetLink';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
 import SectionCard from '@/components/redesign/SectionCard';

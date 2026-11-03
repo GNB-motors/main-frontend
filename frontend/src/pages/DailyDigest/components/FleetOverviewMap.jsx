@@ -4,6 +4,7 @@ import { MapPinOff } from 'lucide-react';
 import AnimatedVehicleMarkers from '../../LiveTracking/AnimatedVehicleMarkers.jsx';
 import { LIGHT_MAP_STYLE, DARK_MAP_STYLE } from '../../LiveTracking/mapStyles';
 import useDocumentTheme from '../../LiveTracking/useDocumentTheme';
+import DigestSkeleton from './DigestSkeleton';
 
 const LIBRARIES = ['places', 'drawing'];
 const CENTER = { lat: 22.5937, lng: 78.9629 };
@@ -48,12 +49,7 @@ function GoogleFleetMap({ vehicles, selectedId, onSelect }) {
         <span>Vehicle updates are still available in the list.</span>
       </div>
     );
-  if (!isLoaded)
-    return (
-      <div className="fo-map-state" role="status">
-        Loading fleet map…
-      </div>
-    );
+  if (!isLoaded) return <DigestSkeleton variant="map" label="Loading fleet map" />;
 
   return (
     <>

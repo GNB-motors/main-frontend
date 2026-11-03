@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
-import { GoogleMap, MarkerF, PolylineF } from '@react-google-maps/api';
+import { useEffect, useMemo, useState } from 'react';
+import { GoogleMap, MarkerF, OverlayView, PolylineF } from '@react-google-maps/api';
+import { formatDuration } from '../../utils/redesign/format';
 import RoadTrailLayer from '../../components/map/RoadTrailLayer';
 import { trailArrowIcons } from './mapIcons.js';
 import { createTrailEndpointIcon } from './trailMarkerIcons.js';
@@ -84,9 +85,16 @@ export default function LiveMapCanvas({
     ? []
     : focusedMapVehicles(mapVehicles, {
         selectedId,
-        isTrailVisible,
         replayOn: replayState.on,
       });
+
+  // Clicking a habitual halt isolates it and opens a small card; only that place
+  // stays on the map until it is closed (its ×, or a click on the empty map).
+  // Reset when the halts change (a new truck, or they are hidden).
+  const [selectedHalt, setSelectedHalt] = useState(null);
+  useEffect(() => {
+    setSelectedHalt(null);
+  }, [habitualHalts]);
 
   // Track mode wants a clean map for one truck's path, so every basemap line is
   // switched off — roads, railways, district/administrative boundaries, and the
@@ -146,6 +154,7 @@ export default function LiveMapCanvas({
               if (typeof z === 'number') setMapZoom(z);
             }
           }}
+          onClick={() => setSelectedHalt(null)}
           options={effectiveMapOptions}
         >
           {/* Google's live traffic, as a display layer only. The owner acts
@@ -263,15 +272,51 @@ export default function LiveMapCanvas({
             Array.isArray(habitualHalts) &&
             habitualHalts.map((h, i) => {
               if (h.lat == null || h.lng == null) return null;
+              const key = `halt-${h.lat.toFixed(5)}-${h.lng.toFixed(5)}-${i}`;
+              // When one halt is picked, hide the rest until it is picked again.
+              if (selectedHalt && key !== selectedHalt.key) return null;
               return (
                 <MarkerF
-                  key={`halt-${h.lat.toFixed(5)}-${h.lng.toFixed(5)}-${i}`}
+                  key={key}
                   position={{ lat: h.lat, lng: h.lng }}
                   icon={createHabitualHaltIcon(h.occurrences || 1)}
                   zIndex={900}
+                  clickable
+                  onClick={() =>
+                    setSelectedHalt((cur) => (cur?.key === key ? null : { key, ...h }))
+                  }
                 />
               );
             })}
+
+          {/* The habitual-stop card, anchored just to the right of its marker. */}
+          {selectedHalt ? (
+            <OverlayView
+              position={{ lat: selectedHalt.lat, lng: selectedHalt.lng }}
+              mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+              getPixelPositionOffset={() => ({ x: 22, y: 0 })}
+            >
+              <div className="habitual-halt-anchor">
+                <div className="habitual-halt-card" role="dialog" aria-label="Habitual stop">
+                  <button
+                    type="button"
+                    className="habitual-halt-card__close"
+                    onClick={() => setSelectedHalt(null)}
+                    aria-label="Close"
+                  >
+                    ×
+                  </button>
+                  <p className="habitual-halt-card__eyebrow">Habitual stop</p>
+                  <p className="habitual-halt-card__stat">
+                    <strong>{selectedHalt.occurrences}×</strong> stopped here
+                  </p>
+                  <p className="habitual-halt-card__sub">
+                    Usually ~{formatDuration(Math.round((selectedHalt.medianDwellMs || 0) / 60000))}
+                  </p>
+                </div>
+              </div>
+            </OverlayView>
+          ) : null}
 
           {/* Trip Replay */}
           {replayState.on && replayPtsCoords.length > 1 && (

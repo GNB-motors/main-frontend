@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 const { getDigest, getMileage, getVehicleList, listTrips, refreshLive } = vi.hoisted(() => ({
@@ -33,6 +33,37 @@ const renderPage = () =>
   );
 
 describe('DailyDigestPage', () => {
+  it('replaces each section skeleton as its own source arrives', async () => {
+    let finishReport;
+    let finishFuel;
+    getDigest.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishReport = resolve;
+        }),
+    );
+    getMileage.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishFuel = resolve;
+        }),
+    );
+    renderPage();
+    expect(await screen.findByText('7')).toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Loading active trips' })).not.toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Loading critical issues' })).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Loading fuel consumption' })).toBeInTheDocument();
+    await act(async () => finishReport(digestFixture));
+    expect(
+      screen.queryByRole('status', { name: 'Loading critical issues' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Loading fuel consumption' })).toBeInTheDocument();
+    await act(async () => finishFuel({ items: [] }));
+    expect(
+      screen.queryByRole('status', { name: 'Loading fuel consumption' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('No measured fuel cycles in this window.')).toBeInTheDocument();
+  });
   beforeEach(() => {
     getDigest.mockReset();
     getDigest.mockResolvedValue(digestFixture);

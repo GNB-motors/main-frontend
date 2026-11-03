@@ -1064,6 +1064,56 @@ html.dark,
   z-index: 1100;
 }
 
+/* Habitual-stop card: opens beside its marker when a habitual halt is clicked.
+   The OverlayView anchors the top-left just right of the marker; the wrapper
+   lifts it so the card sits centered beside the "H". */
+.habitual-halt-anchor {
+  transform: translateY(-50%);
+}
+.habitual-halt-card {
+  position: relative;
+  min-width: 190px;
+  max-width: 260px;
+  padding: 12px 34px 12px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  box-shadow: var(--shadow-md);
+  pointer-events: auto;
+}
+.habitual-halt-card__close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  border: none;
+  background: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--fg-secondary);
+  cursor: pointer;
+}
+.habitual-halt-card__close:hover {
+  color: var(--fg-primary);
+}
+.habitual-halt-card__eyebrow {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-secondary);
+}
+.habitual-halt-card__stat {
+  margin: 0;
+  font-size: 15px;
+  color: var(--fg-primary);
+}
+.habitual-halt-card__sub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--fg-secondary);
+}
+
 .mbtn {
   display: inline-flex;
   align-items: center;

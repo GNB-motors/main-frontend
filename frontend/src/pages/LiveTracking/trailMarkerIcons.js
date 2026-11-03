@@ -18,7 +18,7 @@ export const createTrailEndpointIcon = (text, color) => {
 export const createHabitualHaltIcon = (occurrences = 1) => {
   if (typeof window === 'undefined' || !window.google) return undefined;
   const capped = Math.max(1, Math.min(occurrences || 1, 999));
-  const sz = capped >= 30 ? 30 : capped >= 10 ? 26 : 22;
+  const sz = capped >= 30 ? 42 : capped >= 10 ? 36 : 30;
   const label = capped >= 100 ? '99+' : String(capped);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}" viewBox="0 0 32 32">
     <circle cx="16" cy="14" r="11" fill="#0F172A" stroke="#FFFFFF" stroke-width="2"/>

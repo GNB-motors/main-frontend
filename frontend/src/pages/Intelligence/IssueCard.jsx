@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import Link from '@/components/redesign/FleetLink';
 import { ChevronDown, ChevronRight, MapPin, Phone, PlugZap } from 'lucide-react';
 import ToneBadge from '@/components/redesign/ToneBadge';
 import DeepLink from '@/components/redesign/DeepLink';
@@ -30,7 +30,8 @@ export default function IssueCard({ issue, pinned = false }) {
         ? 'Call dealer'
         : 'See on map');
 
-  const ActionIcon = action?.kind === 'RECONNECT' ? PlugZap : action?.kind === 'CALL_DEALER' ? Phone : MapPin;
+  const ActionIcon =
+    action?.kind === 'RECONNECT' ? PlugZap : action?.kind === 'CALL_DEALER' ? Phone : MapPin;
   const actionClass =
     action?.kind === 'RECONNECT'
       ? 'border-[var(--rd-accent)] bg-[var(--rd-accent)] text-white hover:opacity-90'
@@ -77,7 +78,9 @@ export default function IssueCard({ issue, pinned = false }) {
           </p>
 
           <div className="mt-2.5 flex flex-wrap items-center gap-3">
-            {firstEvidenceLink ? <DeepLink link={{ label: 'See when', to: firstEvidenceLink.to }} /> : null}
+            {firstEvidenceLink ? (
+              <DeepLink link={{ label: 'See when', to: firstEvidenceLink.to }} />
+            ) : null}
             {action ? (
               isCall ? (
                 <a
@@ -122,7 +125,9 @@ export default function IssueCard({ issue, pinned = false }) {
                       key={`${entry?.at ?? index}-${index}`}
                       className="flex flex-col gap-0.5 border-l-2 border-[var(--rd-line)] pl-2.5"
                     >
-                      <span className="text-[12px] text-[var(--rd-ink-3)]">{formatIst(entry?.at)}</span>
+                      <span className="text-[12px] text-[var(--rd-ink-3)]">
+                        {formatIst(entry?.at)}
+                      </span>
                       <span className="text-[13px] text-[var(--rd-ink-2)]">{entry?.text}</span>
                       {entry?.link?.to ? <DeepLink link={entry.link} /> : null}
                     </li>

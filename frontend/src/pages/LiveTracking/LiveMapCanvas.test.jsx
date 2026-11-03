@@ -131,19 +131,15 @@ describe('Track replay presentation', () => {
 
 describe('Fleet markers while focused on one truck', () => {
   const fleet = [{ id: 'v1' }, { id: 'v2' }, { id: 'v3' }];
-  it('shows the whole fleet when neither Trail nor Replay is up', () => {
-    expect(
-      focusedMapVehicles(fleet, { selectedId: 'v1', isTrailVisible: false, replayOn: false }),
-    ).toEqual(fleet);
+  it('shows the whole fleet when nothing is selected', () => {
+    expect(focusedMapVehicles(fleet, { selectedId: null, replayOn: false })).toEqual(fleet);
   });
-  it('shows only the selected truck while its Trail is up', () => {
-    expect(
-      focusedMapVehicles(fleet, { selectedId: 'v2', isTrailVisible: true, replayOn: false }),
-    ).toEqual([{ id: 'v2' }]);
+  it('shows only the selected truck when one is selected', () => {
+    expect(focusedMapVehicles(fleet, { selectedId: 'v2', replayOn: false })).toEqual([
+      { id: 'v2' },
+    ]);
   });
   it('hides every live marker during Replay (the replay truck stands in)', () => {
-    expect(
-      focusedMapVehicles(fleet, { selectedId: 'v2', isTrailVisible: true, replayOn: true }),
-    ).toEqual([]);
+    expect(focusedMapVehicles(fleet, { selectedId: 'v2', replayOn: true })).toEqual([]);
   });
 });

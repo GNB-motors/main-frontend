@@ -99,7 +99,7 @@ describe('MileageDefTab', () => {
 
     expect(await screen.findByRole('link', { name: /Open Mileage/ })).toHaveAttribute(
       'href',
-      '/mileage?tab=mileage',
+      '/mileage?tab=live&subtab=completed',
     );
   });
 

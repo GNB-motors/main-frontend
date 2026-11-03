@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from '@/components/redesign/FleetLink';
 import {
   ArrowUpRight,
   BarChart3,
@@ -19,12 +19,24 @@ import {
 import { formatIstDate } from '../../../utils/redesign/format';
 import { intelligenceLink } from '../../../utils/redesign/links';
 import { numeric } from '../fleetOverviewModel';
+import { fleetDestination } from '@/utils/redesign/fleetDestination';
+import DigestSkeleton from './DigestSkeleton';
 
 const fmt = (value) =>
   value == null ? '—' : value.toLocaleString('en-IN', { maximumFractionDigits: 1 });
 
-function Panel({ title, caption, icon, to, children, className = '' }) {
+function Panel({
+  title,
+  caption,
+  icon,
+  to,
+  children,
+  className = '',
+  loading = false,
+  skeleton = 'list',
+}) {
   const Icon = icon;
+  const destination = fleetDestination(to);
   return (
     <section className={`fo-panel fo-analytics-panel ${className}`}>
       <div className="fo-analytics-heading">
@@ -35,18 +47,30 @@ function Panel({ title, caption, icon, to, children, className = '' }) {
           </h3>
           <p>{caption}</p>
         </div>
-        {to ? (
-          <Link className="fo-icon-link" to={to} aria-label={`Open ${title}`}>
+        {destination ? (
+          <Link className="fo-icon-link" to={destination} aria-label={`Open ${title}`}>
             <ArrowUpRight size={17} />
           </Link>
         ) : null}
       </div>
-      {children}
+      {loading ? (
+        <DigestSkeleton variant={skeleton} label={`Loading ${title.toLowerCase()}`} />
+      ) : (
+        children
+      )}
     </section>
   );
 }
 
-export default function FleetAnalytics({ model, fuel, fuelTrend, accounts, digest, loading }) {
+export default function FleetAnalytics({
+  model,
+  fuel,
+  fuelTrend,
+  accounts,
+  digest,
+  loading,
+  loadingSections = {},
+}) {
   const { loadedKm, emptyKm } = model;
   const measured = loadedKm != null && emptyKm != null;
   const total = measured ? loadedKm + emptyKm : null;
@@ -91,8 +115,10 @@ export default function FleetAnalytics({ model, fuel, fuelTrend, accounts, diges
           title="Loaded vs. empty running"
           caption="Distance attributed to the selected day"
           icon={BarChart3}
-          to={model.cards.loaded?.link?.to || '/trips'}
+          to={model.cards.loaded?.link?.to || '/auto-trips'}
           className="fo-running-panel"
+          loading={loadingSections.running ?? (loading && !measured)}
+          skeleton="chart"
         >
           {!measured ? (
             <div className="fo-empty">
@@ -153,8 +179,10 @@ export default function FleetAnalytics({ model, fuel, fuelTrend, accounts, diges
           title="Fuel consumption"
           caption="7 days ending on the report date · completed cycles"
           icon={Fuel}
-          to="/mileage?tab=mileage"
+          to="/mileage?tab=live&subtab=completed"
           className="fo-fuel-panel"
+          loading={fuel.loading && !fuel.data}
+          skeleton="chart"
         >
           {fuel.error ? (
             <div className="fo-empty">
@@ -249,6 +277,7 @@ export default function FleetAnalytics({ model, fuel, fuelTrend, accounts, diges
           icon={Trophy}
           to="/intelligence?tab=drivers"
           className="fo-drivers-panel"
+          loading={loadingSections.drivers ?? (loading && !model.drivers.length)}
         >
           {!model.drivers.length ? (
             <div className="fo-empty">
@@ -286,6 +315,7 @@ export default function FleetAnalytics({ model, fuel, fuelTrend, accounts, diges
           icon={TruckAttention}
           to="/intelligence?tab=drivers"
           className="fo-followup-panel"
+          loading={loading && !followUps.length}
         >
           {!followUps.length ? (
             <div className="fo-empty">
@@ -326,6 +356,7 @@ export default function FleetAnalytics({ model, fuel, fuelTrend, accounts, diges
           icon={TruckAttention}
           to={model.cards.issues?.link?.to || '/intelligence?tab=issues'}
           className="fo-issues-panel"
+          loading={loadingSections.issues ?? loading}
         >
           <div className="fo-severity-list">
             {issueParts.map((part) => (
@@ -363,6 +394,7 @@ export default function FleetAnalytics({ model, fuel, fuelTrend, accounts, diges
           icon={PlugZap}
           to="/settings/fleetedge-accounts"
           className="fo-accounts-panel"
+          loading={accounts.checking && !accounts.data}
         >
           {accounts.error ? (
             <p className="fo-chart-note" role="status">

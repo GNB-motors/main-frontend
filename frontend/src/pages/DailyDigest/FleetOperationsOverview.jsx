@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import Link from '@/components/redesign/FleetLink';
 import {
   ArrowUpRight,
   CalendarDays,
@@ -16,6 +16,7 @@ import { istDayString } from '../../utils/dateUtils';
 import DigestStoryCard from './DigestStoryCard';
 import FleetLiveSection from './components/FleetLiveSection';
 import FleetAnalytics from './components/FleetAnalytics';
+import DigestSkeleton from './components/DigestSkeleton';
 import { buildOverview, numeric, shiftDay } from './fleetOverviewModel';
 
 const fmt = (value) => (value == null ? '—' : value.toLocaleString('en-IN'));
@@ -41,9 +42,16 @@ export default function FleetOperationsOverview({
   const refreshing =
     report.loading || inventory.loading || trips.loading || fuel.loading || legacy?.loading;
   const issueLink = model.cards.issues?.link?.to || '/intelligence?tab=issues';
+  const reportPending = legacy
+    ? legacy.loading && !legacy.lastUpdated
+    : report.loading && !report.data;
+  const attentionPending = legacy
+    ? (legacy.loadingSections?.attention ?? reportPending)
+    : reportPending;
   const kpis = [
     {
       label: 'Total vehicles',
+      loading: inventory.loading && !inventory.data,
       value: Array.isArray(inventory.data) ? inventory.data.length : null,
       note: inventory.error ? 'Fleet register could not refresh' : 'Registered fleet · current',
       to: '/vehicles/dashboard',
@@ -52,6 +60,7 @@ export default function FleetOperationsOverview({
     },
     {
       label: 'Active trips',
+      loading: trips.loading && !trips.data,
       value: numeric(trips.data?.total),
       note: trips.error ? 'Trip status could not refresh' : 'Open trips · current',
       to: '/auto-trips?status=OPEN',
@@ -60,6 +69,7 @@ export default function FleetOperationsOverview({
     },
     {
       label: 'Critical issues',
+      loading: attentionPending,
       value: model.critical,
       note: legacy ? 'Priority action items · today' : 'Reported for the selected day',
       to: issueLink,
@@ -68,6 +78,7 @@ export default function FleetOperationsOverview({
     },
     {
       label: 'Pending actions',
+      loading: attentionPending,
       value: model.pending,
       note: legacy ? 'Reported action items · today' : 'Place reviews + account reconnects',
       to: '#fo-attention',
@@ -192,10 +203,22 @@ export default function FleetOperationsOverview({
                     <Icon size={17} />
                   </span>
                 </span>
-                <strong className="fo-kpi-value">{fmt(value)}</strong>
-                <span className="fo-kpi-note">{note}</span>
+                {kpi.loading ? (
+                  <DigestSkeleton variant="metric" label={`Loading ${label.toLowerCase()}`} />
+                ) : (
+                  <>
+                    <strong className="fo-kpi-value">{fmt(value)}</strong>
+                    <span className="fo-kpi-note">{note}</span>
+                  </>
+                )}
               </>
             );
+            if (kpi.loading)
+              return (
+                <div className="fo-kpi" key={label}>
+                  {body}
+                </div>
+              );
             return to.startsWith('#') ? (
               <a
                 className="fo-kpi"
@@ -235,7 +258,9 @@ export default function FleetOperationsOverview({
             </Link>
           </div>
           <div className="fo-attention-list">
-            {model.attention.length ? (
+            {attentionPending ? (
+              <DigestSkeleton label="Loading action center" />
+            ) : model.attention.length ? (
               model.attention.map((item) => (
                 <Link className="fo-action" key={item.id} to={item.to}>
                   <span className={`fo-action-indicator fo-tone--${item.tone}`}>
@@ -280,7 +305,8 @@ export default function FleetOperationsOverview({
           fuelTrend={fuelTrend}
           accounts={accounts}
           digest={digest}
-          loading={report.loading || legacy?.loading}
+          loading={reportPending}
+          loadingSections={legacy?.loadingSections}
         />
 
         {legacy?.reports ? (

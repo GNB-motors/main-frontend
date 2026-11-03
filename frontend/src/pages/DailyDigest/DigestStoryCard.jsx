@@ -10,7 +10,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import SectionCard from '../../components/redesign/SectionCard';
-import { Link } from 'react-router-dom';
+import Link from '@/components/redesign/FleetLink';
 import { humanise } from '../../lib/vocabulary';
 
 /** Known review reasons the feed sends as codes, in the owner's words. */
@@ -93,6 +93,7 @@ export default function DigestStoryCard({ card, children = null }) {
       {card.link?.to ? (
         <Link
           to={card.link.to}
+          hideUnavailable
           className="mt-2 inline-block text-[13px] font-semibold text-[var(--rd-brand-2)] underline-offset-4 hover:underline"
         >
           {`${card.link.label} →`}

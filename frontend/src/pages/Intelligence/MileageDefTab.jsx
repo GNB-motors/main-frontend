@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from '@/components/redesign/FleetLink';
 import { Fuel, TrendingDown, TrendingUp } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
 import SectionCard from '@/components/redesign/SectionCard';
@@ -10,7 +10,7 @@ import { formatKm, formatL, formatPct } from '@/utils/redesign/format';
 
 // links.js has no helper for the Mileage page yet, so the path is written once,
 // here, instead of being repeated across the app.
-const MILEAGE_PATH = '/mileage?tab=mileage';
+const MILEAGE_PATH = '/mileage?tab=live&subtab=completed';
 
 const DEF_TIP =
   'BS-VI trucks use about 3–6 litres of DEF per 100 litres of diesel. Much lower can mean DEF isn’t being dosed; much higher can mean a leak or wrong reading.';

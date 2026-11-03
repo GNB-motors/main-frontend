@@ -1,8 +1,9 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import Link from '@/components/redesign/FleetLink';
 import { ArrowUpRight, MapPin, Search, Truck } from 'lucide-react';
 import { formatAgo } from '../../../utils/redesign/format';
 import { trackLink, tripLink } from '../../../utils/redesign/links';
+import DigestSkeleton from './DigestSkeleton';
 
 const FleetOverviewMap = lazy(() => import('./FleetOverviewMap'));
 const regKey = (reg) => (reg || '').replace(/[^a-z0-9]/gi, '').toUpperCase();
@@ -64,9 +65,7 @@ export default function FleetLiveSection({ fleet, live, trips }) {
       <div className="fo-live-layout">
         <div className="fo-map" aria-label="Fleet map">
           {live.isLoading && !fleet.vehicles.length ? (
-            <div className="fo-map-state" role="status">
-              Loading vehicle positions…
-            </div>
+            <DigestSkeleton variant="map" label="Loading vehicle positions" />
           ) : !mapVehicles.length ? (
             <div className="fo-map-state">
               <MapPin size={28} />
@@ -78,7 +77,7 @@ export default function FleetLiveSection({ fleet, live, trips }) {
               </span>
             </div>
           ) : (
-            <Suspense fallback={<div className="fo-map-state">Loading fleet map…</div>}>
+            <Suspense fallback={<DigestSkeleton variant="map" label="Loading fleet map" />}>
               <FleetOverviewMap
                 vehicles={mapVehicles}
                 selectedId={selectedId}
@@ -131,7 +130,9 @@ export default function FleetLiveSection({ fleet, live, trips }) {
             </div>
           </div>
           <div className="fo-vehicle-scroll">
-            {!visible.length ? (
+            {live.isLoading && !fleet.vehicles.length ? (
+              <DigestSkeleton label="Loading vehicle list" />
+            ) : !visible.length ? (
               <div className="fo-empty">
                 <Truck size={24} />
                 <p>{live.isLoading ? 'Loading vehicles…' : 'No vehicles match this view.'}</p>

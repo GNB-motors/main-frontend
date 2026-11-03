@@ -1,5 +1,5 @@
 import { PlugZap } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Link from '@/components/redesign/FleetLink';
 import { formatAgo } from '../../utils/redesign/format';
 
 /**
@@ -20,8 +20,8 @@ export default function DigestReconnectBanner({ item }) {
       <PlugZap size={18} aria-hidden="true" className="shrink-0 text-[var(--rd-act)]" />
       <p className="m-0 min-w-0 flex-1 text-[13px] text-[var(--rd-act-ink)]">
         <strong>{item.accountName}</strong> is disconnected
-        {since ? ` since ${since}` : ''}.{' '}
-        {trucks} {trucks === 1 ? 'truck has' : 'trucks have'} no live data.
+        {since ? ` since ${since}` : ''}. {trucks} {trucks === 1 ? 'truck has' : 'trucks have'} no
+        live data.
       </p>
       {item.action?.to ? (
         <Link

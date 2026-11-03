@@ -7,6 +7,7 @@
  */
 
 import { useNavigate } from 'react-router-dom';
+import { fleetDestination } from './fleetDestination';
 
 /** IST offset used when a caller hands us a naive local date-time. */
 const IST_OFFSET = '+05:30';
@@ -100,7 +101,7 @@ export function mileageLink({ tab = 'mileage', vehicle } = {}) {
 export function useGoToLink() {
   const navigate = useNavigate();
   return (link) => {
-    if (!link || !link.to) return;
-    navigate(link.to);
+    const destination = fleetDestination(link?.to);
+    if (destination) navigate(destination);
   };
 }

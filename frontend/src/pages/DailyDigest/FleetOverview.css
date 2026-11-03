@@ -1197,3 +1197,52 @@
     font-size: 9px;
   }
 }
+
+.fo-skeleton {
+  min-width: 0;
+}
+.fo-skeleton--metric {
+  padding-top: 10px;
+}
+.fo-skeleton--chart {
+  min-height: 220px;
+}
+.fo-skeleton-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  height: 140px;
+  padding: 0 4px 8px;
+  border-bottom: 1px solid var(--rd-line);
+}
+.fo-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 0;
+}
+.fo-skeleton-row + .fo-skeleton-row {
+  border-top: 1px solid var(--rd-line);
+}
+.fo-attention-list > .fo-skeleton,
+.fo-vehicle-scroll > .fo-skeleton {
+  padding: 0 18px;
+}
+.fo-skeleton-map {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 340px;
+  height: 100%;
+  padding: 24px;
+}
+.fo-map > .fo-skeleton {
+  height: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fleet-overview [data-slot='skeleton'] {
+    animation: none;
+  }
+}

@@ -428,6 +428,12 @@ export default function ReleaseDigest({ renderOverview = null }) {
         driverLeaderboard,
         loading,
         lastUpdated,
+        loadingSections: {
+          running: utilization$.loading && !utilization,
+          drivers: leaderboardLoading,
+          attention: attnLoading,
+          issues: attnLoading,
+        },
         error:
           digest$.error ||
           alerts$.error ||

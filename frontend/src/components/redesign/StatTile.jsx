@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import InfoTip from './InfoTip';
+import { fleetDestination } from '@/utils/redesign/fleetDestination';
 
 /**
  * StatTile — one number, with its meaning and its evidence.
@@ -8,13 +9,22 @@ import InfoTip from './InfoTip';
  * number is good, neutral or needs them, before a single word is read. When
  * the tile knows where the evidence lives, the whole tile is a link.
  */
-export default function StatTile({ label, value, tone = 'info', why = null, link = null, sub = null }) {
-  const borderColor = {
-    good: 'var(--rd-good)',
-    info: 'var(--rd-info)',
-    watch: 'var(--rd-watch)',
-    act: 'var(--rd-act)',
-  }[tone] || 'var(--rd-info)';
+export default function StatTile({
+  label,
+  value,
+  tone = 'info',
+  why = null,
+  link = null,
+  sub = null,
+}) {
+  const destination = fleetDestination(link?.to);
+  const borderColor =
+    {
+      good: 'var(--rd-good)',
+      info: 'var(--rd-info)',
+      watch: 'var(--rd-watch)',
+      act: 'var(--rd-act)',
+    }[tone] || 'var(--rd-info)';
 
   const body = (
     <>
@@ -34,10 +44,10 @@ export default function StatTile({ label, value, tone = 'info', why = null, link
     </>
   );
 
-  if (link?.to) {
+  if (destination) {
     return (
       <Link
-        to={link.to}
+        to={destination}
         className="relative flex flex-col rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] p-3 no-underline shadow-[var(--rd-shadow)] transition-colors hover:border-[var(--rd-line-strong)]"
       >
         {body}

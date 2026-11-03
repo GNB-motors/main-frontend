@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from '@/components/redesign/FleetLink';
 import { formatKm } from '@/utils/redesign/format';
 import { trackLink } from '@/utils/redesign/links';
 
