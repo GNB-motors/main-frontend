@@ -30,35 +30,38 @@ export default function IntelligenceFilters({ vehicle = '', driver = '', onChang
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <SearchableSelect
-          value={vehicle}
-          aria-label="Filter by truck"
-          placeholder="All trucks"
-          className="intelligence-filter-select"
-          onValueChange={(value) => onChange({ vehicle: value, driver })}
-        >
-          <option value="">All trucks</option>
-          {vehicleOptions.map((reg) => (
-            <option key={reg} value={reg}>
-              {reg}
-            </option>
-          ))}
-        </SearchableSelect>
-
-        <SearchableSelect
-          value={driver}
-          aria-label="Filter by driver"
-          placeholder="All drivers"
-          className="intelligence-filter-select"
-          onValueChange={(value) => onChange({ vehicle, driver: value })}
-        >
-          <option value="">All drivers</option>
-          {drivers.map((entry) => (
-            <option key={entry.id} value={entry.id}>
-              {entry.name}
-            </option>
-          ))}
-        </SearchableSelect>
+        <div className="w-full sm:w-[260px]">
+          <SearchableSelect
+            value={vehicle}
+            aria-label="Filter by truck"
+            placeholder="All trucks"
+            className="intelligence-filter-select"
+            onValueChange={(value) => onChange({ vehicle: value, driver })}
+          >
+            <option value="">All trucks</option>
+            {vehicleOptions.map((reg) => (
+              <option key={reg} value={reg}>
+                {reg}
+              </option>
+            ))}
+          </SearchableSelect>
+        </div>
+        <div className="w-full sm:w-[260px]">
+          <SearchableSelect
+            value={driver}
+            aria-label="Filter by driver"
+            placeholder="All drivers"
+            className="intelligence-filter-select"
+            onValueChange={(value) => onChange({ vehicle, driver: value })}
+          >
+            <option value="">All drivers</option>
+            {drivers.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.name}
+              </option>
+            ))}
+          </SearchableSelect>
+        </div>
       </div>
 
       {vehicle || driver ? (

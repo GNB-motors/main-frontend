@@ -35,44 +35,52 @@ export default function IssuesTab({ from, to }) {
     { id: 'watch', label: 'Watch', count: counts.watch },
   ];
 
+  // The count chips mean something only once there is a list: never "All 0"
+  // above a list that is still loading, missing or held back.
+  const hasList = !loading && !error && !held;
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        {chips.map((chip) => (
-          <button
-            key={chip.id}
-            type="button"
-            aria-pressed={filter === chip.id}
-            onClick={() => setFilter(chip.id)}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rd-brand-2)] ${
-              filter === chip.id
-                ? 'border-[var(--rd-brand-2)] bg-[var(--rd-brand-tint)] text-[var(--rd-brand-2)]'
-                : 'border-[var(--rd-line)] bg-[var(--rd-card)] text-[var(--rd-ink-2)] hover:border-[var(--rd-line-strong)]'
-            }`}
-          >
-            {chip.label}
-            <span className="tabular-nums">{chip.count}</span>
-          </button>
-        ))}
+      {hasList ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {chips.map((chip) => (
+            <button
+              key={chip.id}
+              type="button"
+              aria-pressed={filter === chip.id}
+              onClick={() => setFilter(chip.id)}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rd-brand-2)] ${
+                filter === chip.id
+                  ? 'border-[var(--rd-brand-2)] bg-[var(--rd-brand-tint)] text-[var(--rd-brand-2)]'
+                  : 'border-[var(--rd-line)] bg-[var(--rd-card)] text-[var(--rd-ink-2)] hover:border-[var(--rd-line-strong)]'
+              }`}
+            >
+              {chip.label}
+              <span className="tabular-nums">{chip.count}</span>
+            </button>
+          ))}
 
-        {groups.map((group) => (
-          <button
-            key={group.id}
-            type="button"
-            aria-pressed={filter === group.id}
-            onClick={() => setFilter(group.id)}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rd-brand-2)] ${
-              filter === group.id
-                ? 'border-[var(--rd-brand-2)] bg-[var(--rd-brand-tint)] text-[var(--rd-brand-2)]'
-                : 'border-[var(--rd-line)] bg-[var(--rd-card)] text-[var(--rd-ink-2)] hover:border-[var(--rd-line-strong)]'
-            }`}
-          >
-            {group.label}
-            <span className="tabular-nums">{counts.groups[group.id]}</span>
-            {group.info ? <InfoTip text={group.info.text} label={`About ${group.label} issues`} /> : null}
-          </button>
-        ))}
-      </div>
+          {groups.map((group) => (
+            <button
+              key={group.id}
+              type="button"
+              aria-pressed={filter === group.id}
+              onClick={() => setFilter(group.id)}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rd-brand-2)] ${
+                filter === group.id
+                  ? 'border-[var(--rd-brand-2)] bg-[var(--rd-brand-tint)] text-[var(--rd-brand-2)]'
+                  : 'border-[var(--rd-line)] bg-[var(--rd-card)] text-[var(--rd-ink-2)] hover:border-[var(--rd-line-strong)]'
+              }`}
+            >
+              {group.label}
+              <span className="tabular-nums">{counts.groups[group.id]}</span>
+              {group.info ? (
+                <InfoTip text={group.info.text} label={`About ${group.label} issues`} />
+              ) : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <IntelligenceDataState
         loading={loading}

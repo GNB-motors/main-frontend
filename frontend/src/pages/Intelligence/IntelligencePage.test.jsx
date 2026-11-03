@@ -120,6 +120,22 @@ describe('IntelligencePage', () => {
     expect(screen.getByText('112 h')).toBeInTheDocument();
   });
 
+  it('draws no summary box at all while the summary endpoint is not deployed', async () => {
+    IntelligenceService.getSummary.mockRejectedValue(Object.assign(new Error('Not found'), { status: 404 }));
+    renderPage();
+    await waitFor(() => expect(IntelligenceService.getSummary).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.queryByText(/The summary of this period is being built/)).not.toBeInTheDocument(),
+    );
+  });
+
+  it('shows no "All 0" chips while the issues endpoint is not deployed', async () => {
+    IntelligenceService.getIssues.mockRejectedValue(Object.assign(new Error('Not found'), { status: 404 }));
+    renderPage('/intelligence?tab=issues');
+    expect(await screen.findByText(/being built/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Needs you/ })).not.toBeInTheDocument();
+  });
+
   it('opens on the issues when something needs the owner', async () => {
     IntelligenceService.getIssues.mockResolvedValue(withIssues);
 

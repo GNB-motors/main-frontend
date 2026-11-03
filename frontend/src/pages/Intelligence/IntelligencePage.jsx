@@ -53,8 +53,12 @@ export default function IntelligencePage() {
     setSearchParams(next);
   };
 
-  const { data: summary, loading: summaryLoading, error: summaryError, refetch: refetchSummary } =
-    useApi((signal) => IntelligenceService.getSummary({ from, to, signal }), [from, to]);
+  const {
+    data: summary,
+    loading: summaryLoading,
+    error: summaryError,
+    refetch: refetchSummary,
+  } = useApi((signal) => IntelligenceService.getSummary({ from, to, signal }), [from, to]);
 
   const { data: issues } = useApi(
     (signal) => IntelligenceService.getIssues({ from, to, signal }),
@@ -92,17 +96,22 @@ export default function IntelligencePage() {
         />
       </div>
 
-      <div className="mb-4">
-        <IntelligenceDataState
-          loading={summaryLoading}
-          error={summaryError}
-          held={summary?.held ? summary.why : null}
-          what="The summary of this period"
-          onRetry={refetchSummary}
-        >
-          <IntelligenceSummaryTiles tiles={summary?.tiles ?? []} />
-        </IntelligenceDataState>
-      </div>
+      {/* The summary endpoint not shipped yet (404) means nothing to show:
+          no box at all, rather than a dashed "being built" panel above a
+          second one in the tab. */}
+      {summaryError?.status === 404 ? null : (
+        <div className="mb-4">
+          <IntelligenceDataState
+            loading={summaryLoading}
+            error={summaryError}
+            held={summary?.held ? summary.why : null}
+            what="The summary of this period"
+            onRetry={refetchSummary}
+          >
+            <IntelligenceSummaryTiles tiles={summary?.tiles ?? []} />
+          </IntelligenceDataState>
+        </div>
+      )}
 
       <Tabs value={active} onValueChange={(value) => updateParams({ tab: value })}>
         <TabsList className="flex-wrap">
