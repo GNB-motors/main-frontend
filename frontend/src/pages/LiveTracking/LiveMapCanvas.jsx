@@ -9,6 +9,10 @@ import { createHabitualHaltIcon } from './trailMarkerIcons.js';
 import AnimatedVehicleMarkers from './AnimatedVehicleMarkers.jsx';
 import focusedMapVehicles from './focusedMapVehicles.js';
 import TrackPlacesLayer from './TrackPlacesLayer.jsx';
+import TrackReviewLayer from './TrackReviewLayer.jsx';
+import TrackIdlingLayer from './TrackIdlingLayer.jsx';
+import RouteLayer from '../PlaceHub/map/RouteLayer.jsx';
+import DraftLayer from '../PlaceHub/map/DraftLayer.jsx';
 import MapPlacesLayer from './MapPlacesLayer.jsx';
 import WeatherBubble from './WeatherBubble.jsx';
 import FleetWeatherMarkers from './FleetWeatherMarkers.jsx';
@@ -20,6 +24,9 @@ import replayAppearance from '../../components/map/replayAppearance.js';
 import { DEFAULT_LIMIT_KMH } from '../RouteHub/views/replay/replayConstants.js';
 
 const INDIA_CENTER = { lat: 22.5937, lng: 78.9629 };
+
+/** The routes layer has no sites until the owner turns it on. */
+const NO_SITES = new Map();
 
 export default function LiveMapCanvas({
   isLoaded,
@@ -64,6 +71,16 @@ export default function LiveMapCanvas({
   trackPlayheadTime = null,
   trackRoad = null,
   trackTolls = null,
+  reviewItems = [],
+  selectedReviewId = null,
+  onSelectReviewSite,
+  idlingRows = [],
+  onSelectIdling,
+  routeLines = [],
+  routeSites = NO_SITES,
+  onPickRoute,
+  draft = null,
+  onDraftChange,
 }) {
   /* When the user disables per-trip segmentation we fall back to a single
      polyline (visual continuity with the legacy behavior). The fallback
@@ -195,6 +212,39 @@ export default function LiveMapCanvas({
             selectedId={selectedPlaceId}
             zoom={mapZoom}
           />
+
+          {/* The live control room's own layers: the places nobody has
+              answered for, the routes the fleet runs, and the trucks idling
+              right now. */}
+          {reviewItems.length ? (
+            <TrackReviewLayer
+              items={reviewItems}
+              selectedId={selectedReviewId}
+              onSelect={onSelectReviewSite}
+            />
+          ) : null}
+
+          {idlingRows.length ? <TrackIdlingLayer rows={idlingRows} onSelect={onSelectIdling} /> : null}
+
+          {routeLines.length ? (
+            <RouteLayer
+              map={map}
+              lines={routeLines}
+              sites={routeSites}
+              selectedId={null}
+              hoveredId={null}
+              onPick={onPickRoute}
+              onHover={() => {}}
+              onSite={() => {}}
+              isDark={placesDark}
+              detail={null}
+              showEngine={false}
+              zoom={mapZoom}
+            />
+          ) : null}
+
+          {/* The place or zone being written right now, drawn where it will sit. */}
+          {draft ? <DraftLayer draft={draft} onDraftChange={onDraftChange} /> : null}
 
           {/* Fleet Vehicle Markers — imperative markers that glide between
               SSE fixes instead of teleporting (see AnimatedVehicleMarkers).

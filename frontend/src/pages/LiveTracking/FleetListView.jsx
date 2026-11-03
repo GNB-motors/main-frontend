@@ -7,6 +7,9 @@ import VehicleLocation from './VehicleLocation.jsx';
 import { formatFuel } from '../../utils/liveView.js';
 import { modelLabel } from './vehiclePanelModel';
 import TrackLoadError from './TrackLoadError.jsx';
+import TrackIdlingChip from './TrackIdlingChip.jsx';
+import AlertBadge from './AlertBadge.jsx';
+import { plateKey } from './trackIdlingModel.js';
 
 const SKEL_CARD_COUNT = 6;
 
@@ -21,6 +24,8 @@ export default function FleetListView({
   setSelectedId,
   error = null,
   onRetry = null,
+  idlingByPlate = new Map(),
+  alertCounts = new Map(),
 }) {
   // A failed load is not an empty fleet. Say so instead of showing "0 vehicles".
   const loadFailed = Boolean(error) && vehicles.length === 0;
@@ -94,12 +99,16 @@ export default function FleetListView({
               >
                 <div className="vc-top">
                   <div className="vc-id">
-                    <div className="vc-plate">{v.plate}</div>
+                    <div className="vc-plate">
+                      {v.plate}
+                      <AlertBadge count={alertCounts.get(plateKey(v.plate)) || 0} />
+                    </div>
                     <div className="vc-vin">
                       {v.manufacturer || 'Manufacturer unknown'}
                       {modelLabel(v.model) ? ` · ${modelLabel(v.model)}` : ''}
                     </div>
                     <div className="vc-vin">VIN: {v.vin || '—'}</div>
+                    <TrackIdlingChip minutes={idlingByPlate.get(plateKey(v.plate)) ?? null} />
                   </div>
                   <span className="vc-state">
                     <i />

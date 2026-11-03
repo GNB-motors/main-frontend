@@ -15,6 +15,7 @@ export default function PlaceEditor({
   saving,
   isLoaded,
   allowHotspot,
+  kinds: kindsProp,
   onChange,
   onKind,
   onPick,
@@ -23,7 +24,11 @@ export default function PlaceEditor({
 }) {
   const meta = KIND_META[draft.kind];
   const Icon = KIND_ICON[draft.kind];
-  const kinds = Object.keys(KIND_META).filter((k) => k !== 'HOTSPOT' || allowHotspot);
+  // A caller that knows the kind (the Track map's "Alert zone here") may pin
+  // the list; everyone else gets every kind Place Hub offers.
+  const kinds = (kindsProp || Object.keys(KIND_META)).filter(
+    (k) => k !== 'HOTSPOT' || allowHotspot,
+  );
   const verb = draft.mode === 'edit' ? 'Edit' : 'Add';
 
   const pick = (loc) => {

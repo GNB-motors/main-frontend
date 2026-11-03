@@ -6,7 +6,6 @@ import { LIGHT_MAP_STYLE, DARK_MAP_STYLE } from './mapStyles.js';
 import useTrailGeometry from './useTrailGeometry.js';
 import useTrackReplay from './useTrackReplay.js';
 import useTrailHistory from './useTrailHistory.js';
-import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
 
 /* Map viewport, trail layers and replay share the same map instance. */
 export default function useLiveMap({
@@ -16,6 +15,7 @@ export default function useLiveMap({
   selectedId,
   selectedVehicle,
   showToast,
+  onMapClick,
 }) {
   // Trail & Replay state
   const [trailLoading, setTrailLoading] = useState(false);
@@ -102,6 +102,11 @@ export default function useLiveMap({
   const didAutoFitRef = useRef(false);
   // Zoom once per selection, so live updates preserve the user's zoom.
   const zoomedSelectionRef = useRef(null);
+  // The click handler is kept in a ref so a new callback does not make the
+  // map re-register its listener on every render.
+  const onMapClickRef = useRef(onMapClick);
+  onMapClickRef.current = onMapClick;
+  const mapClickListenerRef = useRef(null);
   const trailHistory = useTrailHistory({
     selectedId,
     mapRef,
@@ -181,13 +186,21 @@ export default function useLiveMap({
       if (typeof initialZ === 'number') {
         setMapZoom(initialZ);
       }
-      // Clicking one of Google's own POIs (shops, plants, hotels) opens it in
-      // Google Maps instead of Google's info window over our panels.
-      poiClickRef.current?.remove();
-      poiClickRef.current = map.addListener('click', (e) => {
-        if (!e.placeId) return;
-        e.stop();
-        openInGoogleMaps({ lat: e.latLng.lat(), lng: e.latLng.lng(), placeId: e.placeId });
+      // A click anywhere on the map — an empty spot, a Google POI or one of our
+      // own places — is an offer: make this a place, watch it as a zone, or
+      // open it in Google Maps. Google's own info window stays closed.
+      mapClickListenerRef.current?.remove();
+      mapClickListenerRef.current = map.addListener('click', (e) => {
+        if (!e.latLng) return;
+        if (e.placeId) e.stop();
+        const dom = e.domEvent;
+        onMapClickRef.current?.({
+          lat: e.latLng.lat(),
+          lng: e.latLng.lng(),
+          placeId: e.placeId || null,
+          x: dom?.clientX ?? null,
+          y: dom?.clientY ?? null,
+        });
       });
       map.addListener('zoom_changed', () => {
         const z = map.getZoom();
@@ -209,9 +222,8 @@ export default function useLiveMap({
    * Panning fires many change events; asking for places on each one would
    * flood the endpoint, so the box is sampled once the map settles.
    */
-  // Detach the POI click listener with the map.
-  const poiClickRef = useRef(null);
-  useEffect(() => () => poiClickRef.current?.remove(), []);
+  // Detach the map click listener with the map.
+  useEffect(() => () => mapClickListenerRef.current?.remove(), []);
 
   const onMapIdle = useCallback(() => {
     const map = mapRef.current;

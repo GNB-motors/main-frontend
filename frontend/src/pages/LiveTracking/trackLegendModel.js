@@ -51,6 +51,35 @@ export const PLACE_LAYERS = [
   },
 ];
 
+/**
+ * The live layers of the control room: the places still waiting for an
+ * answer, the routes the fleet runs, and the trucks idling right now.
+ * They cost a request each, so they all start off.
+ */
+export const LIVE_LAYERS = [
+  {
+    id: 'reviewQueue',
+    label: 'Places to confirm',
+    icon: 'CircleHelp',
+    color: 'var(--rd-stopped)',
+    defaultOn: false,
+  },
+  {
+    id: 'routes',
+    label: 'Routes',
+    icon: 'Route',
+    color: 'var(--rd-brand-2)',
+    defaultOn: false,
+  },
+  {
+    id: 'idling',
+    label: 'Trucks idling now',
+    icon: 'Timer',
+    color: 'var(--rd-idling)',
+    defaultOn: false,
+  },
+];
+
 /** The zoom at which the extra layers start loading. */
 export const LAYER_MIN_ZOOM = 11;
 
@@ -85,7 +114,10 @@ export function defaultStatusSelection() {
 
 /** Every layer starts at its own default. */
 export function defaultLayerSelection() {
-  return PLACE_LAYERS.reduce((acc, layer) => ({ ...acc, [layer.id]: layer.defaultOn }), {});
+  return [...PLACE_LAYERS, ...LIVE_LAYERS].reduce(
+    (acc, layer) => ({ ...acc, [layer.id]: layer.defaultOn }),
+    {},
+  );
 }
 
 /** Turn one row on or off. */

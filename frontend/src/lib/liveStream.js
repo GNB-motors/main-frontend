@@ -160,9 +160,11 @@ export function createLiveStream(deps = {}) {
     };
     es.onmessage = (ev) => dispatch('message', ev.data);
     // Named events: register per subscribed type so unknown events are ignored.
-    ['hello', 'positions', 'alerts', 'freshness'].forEach((type) => {
-      es.addEventListener(type, (ev) => dispatch(type, ev.data));
-    });
+    ['hello', 'positions', 'alerts', 'freshness', 'intent', 'idling', 'incidents'].forEach(
+      (type) => {
+        es.addEventListener(type, (ev) => dispatch(type, ev.data));
+      },
+    );
   };
 
   const scheduleReconnect = (err) => {
