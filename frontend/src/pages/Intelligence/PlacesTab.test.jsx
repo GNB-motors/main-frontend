@@ -82,7 +82,8 @@ describe('PlacesTab', () => {
     );
 
     expect(await screen.findByText('Busiest places')).toBeInTheDocument();
-    expect(screen.getByText('OCL Buxar')).toBeInTheDocument();
+    // The heading shows before the history request resolves; wait for the row itself.
+    expect(await screen.findByText('OCL Buxar')).toBeInTheDocument();
     expect(screen.getByText('14')).toBeInTheDocument();
     expect(screen.getByText('1 h')).toBeInTheDocument();
   });
