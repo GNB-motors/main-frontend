@@ -3,7 +3,17 @@ import { istDayString, istDayStartISO, shiftDay } from '../../utils/dateUtils';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { RefreshCw, AlertTriangle, X, Check, Loader2 } from 'lucide-react';
 import { OwnerAlertsService, ALERT_TYPE_LABELS } from './OwnerAlertsService.js';
-import { LIMIT, CHIPS, SINCE, SORTS, computeView, buildSummary } from './ownerAlertsModel';
+import {
+  LIMIT,
+  CHIPS,
+  LEGACY_CHIPS,
+  DEFAULT_CHIP,
+  SINCE,
+  SORTS,
+  computeView,
+  countsOf,
+  viewParams,
+} from './ownerAlertsModel';
 import AlertDetailsDrawer from './AlertDetailsDrawer.jsx';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
@@ -17,15 +27,18 @@ const OwnerAlertsPage = () => {
   const [vehicleQuery, setVehicleQuery] = useState(params.get('vehicle') || '');
   const [vehicle, setVehicle] = useState(params.get('vehicle') || '');
   const [type, setType] = useState('');
-  const [ackFilter, setAckFilter] = useState('unacknowledged');
+  // The view: Critical by default — the owner reads critical alerts only.
+  const [chip, setChip] = useState(DEFAULT_CHIP);
   const [since, setSince] = useState('all');
-  const [refine, setRefine] = useState('all');
   const [sort, setSort] = useState('triage');
 
   // Data
   const [alerts, setAlerts] = useState([]);
   const [total, setTotal] = useState(0);
-  const [unacknowledgedCount, setUnacknowledgedCount] = useState(0);
+  // The server's counts over the whole filter; null until the server sends
+  // them (before B0b), and then nothing on the page claims a severity count.
+  const [counts, setCounts] = useState(null);
+  const [legacy, setLegacy] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,24 +54,24 @@ const OwnerAlertsPage = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const params = { page, limit: LIMIT };
+      const params = { page, limit: LIMIT, ...viewParams(chip) };
       if (vehicle) params.vehicle = vehicle;
       if (type) params.type = type;
-      if (ackFilter !== 'all') params.acknowledged = ackFilter === 'acknowledged';
       if (since !== 'all') {
         params.from = istDayStartISO(shiftDay(istDayString(), -Number(since)));
       }
-      const data = await OwnerAlertsService.getAlerts(params);
+      const data = await OwnerAlertsService.getAlertsForView(params);
       setAlerts(data.records || []);
       setTotal(data.total || 0);
-      setUnacknowledgedCount(data.unacknowledgedCount || 0);
+      setCounts(countsOf(data));
+      setLegacy(Boolean(data.legacy));
       setTotalPages(data.totalPages || 0);
     } catch (err) {
       setError(err.message || 'Could not load alerts.');
     } finally {
       setIsLoading(false);
     }
-  }, [vehicle, type, ackFilter, since, page]);
+  }, [vehicle, type, chip, since, page]);
 
   useEffect(() => {
     fetchData();
@@ -66,7 +79,7 @@ const OwnerAlertsPage = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [vehicle, type, ackFilter, since]);
+  }, [vehicle, type, chip, since]);
 
   useEffect(() => {
     setSelected(new Set());
@@ -78,9 +91,8 @@ const OwnerAlertsPage = () => {
     setVehicleQuery('');
     setVehicle('');
     setType('');
-    setAckFilter('unacknowledged');
+    setChip(DEFAULT_CHIP);
     setSince('all');
-    setRefine('all');
     setSort('triage');
   };
 
@@ -112,27 +124,15 @@ const OwnerAlertsPage = () => {
     }
   };
 
-  // Enrich + client refine + sort — pure, lives in ownerAlertsModel (rule 21)
-  const view = useMemo(() => computeView(alerts, refine, sort), [alerts, refine, sort]);
-  const summary = useMemo(
-    () => buildSummary(alerts, unacknowledgedCount),
-    [alerts, unacknowledgedCount],
-  );
+  // Enrich + sort — pure, lives in ownerAlertsModel (rule 21). The server
+  // already filtered by severity.
+  const view = useMemo(() => computeView(alerts, sort), [alerts, sort]);
 
-  const activeChip = ackFilter === 'acknowledged' ? 'acknowledged' : refine;
-  const onChip = (key) => {
-    if (key === 'acknowledged') {
-      setAckFilter('acknowledged');
-      return;
-    }
-    if (key === 'all') {
-      setRefine('all');
-      setAckFilter('unacknowledged');
-      return;
-    }
-    setRefine(key);
-    if (ackFilter === 'acknowledged') setAckFilter('unacknowledged');
-  };
+  // Before the server knows severity, Critical and Warnings cannot be shown
+  // honestly: the page shows every open alert under "All".
+  const chips = legacy ? LEGACY_CHIPS : CHIPS;
+  const activeChip = legacy && (chip === 'critical' || chip === 'warning') ? 'all' : chip;
+  const onChip = (key) => setChip(key);
 
   const selectableIds = view.filter((a) => !a.acknowledged).map((a) => a.id);
   const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selected.has(id));
@@ -150,22 +150,36 @@ const OwnerAlertsPage = () => {
   const activeFiltersCount =
     (vehicle ? 1 : 0) +
     (type ? 1 : 0) +
-    (ackFilter !== 'unacknowledged' ? 1 : 0) +
-    (since !== 'all' ? 1 : 0) +
-    (refine !== 'all' ? 1 : 0);
+    (activeChip !== DEFAULT_CHIP && !legacy ? 1 : 0) +
+    (since !== 'all' ? 1 : 0);
 
   return (
     <PageShell
       title="Owner Alerts"
-      subtitle="In-app alerts across your fleet — review and acknowledge"
+      subtitle={
+        legacy
+          ? 'Every open alert across your fleet, newest problems first'
+          : 'Critical alerts across your fleet — review and acknowledge'
+      }
       count={total}
       actions={
-        <div className="flex items-center gap-2">
-          {unacknowledgedCount > 0 && (
-            <span className="oa-torev">
-              <AlertTriangle size={13} /> {unacknowledgedCount} to review
-            </span>
-          )}
+        <div className="flex flex-wrap items-center gap-2">
+          {counts && !isLoading ? (
+            counts.critical > 0 ? (
+              <span className="oa-torev">
+                <AlertTriangle size={13} /> {counts.critical} critical to review
+              </span>
+            ) : (
+              <span className="oa-torev oa-torev--calm">
+                Nothing critical · {counts.warning} warning{counts.warning === 1 ? '' : 's'}{' '}
+                {counts.warning > 0 ? (
+                  <button type="button" className="oa-link" onClick={() => setChip('warning')}>
+                    See warnings
+                  </button>
+                ) : null}
+              </span>
+            )
+          ) : null}
           <button className="ov-btn" onClick={fetchData} disabled={isLoading}>
             <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} /> Refresh
           </button>
@@ -176,7 +190,7 @@ const OwnerAlertsPage = () => {
           searchValue={vehicleQuery}
           onSearchChange={setVehicleQuery}
           searchPlaceholder="Search vehicle number…"
-          chips={CHIPS}
+          chips={chips}
           selectedKeys={[activeChip]}
           onToggleChip={onChip}
           activeCount={activeFiltersCount}
@@ -276,7 +290,14 @@ const OwnerAlertsPage = () => {
           </div>
         )}
 
-        <OwnerAlertsSummary summary={summary} />
+        {legacy ? (
+          <div className="oa-legacy-note" role="note">
+            <strong>Critical count needs the server update.</strong> Until it is live, this page
+            shows every open alert and no severity totals.
+          </div>
+        ) : (
+          <OwnerAlertsSummary counts={counts} />
+        )}
 
         <OwnerAlertsTable
           view={view}

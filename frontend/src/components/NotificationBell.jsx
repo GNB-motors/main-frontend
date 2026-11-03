@@ -52,11 +52,14 @@ const NotificationBell = () => {
   const items = ALERT_ITEMS.filter((item) => canAccess(item.key));
   const canSeeAlerts = canAccess('fleetIntelligence');
 
+  // The badge counts open CRITICAL alerts only (F13), from the server's own
+  // count. A server that cannot tell critical apart yet gives null, and then
+  // the bell shows no number rather than every open alert.
   const refreshCount = React.useCallback(async () => {
     try {
-      const data = await OwnerAlertsService.getAlerts({ acknowledged: false, limit: 50 });
-      (data.records || []).forEach((a) => seenIds.current.add(String(a.id)));
-      setUnread(data.unacknowledgedCount ?? (data.records?.length || 0));
+      const { count, records } = await OwnerAlertsService.getCriticalUnread();
+      records.forEach((a) => seenIds.current.add(String(a.id)));
+      setUnread(count ?? 0);
     } catch {
       // Silent — a missing feed must never break the navbar.
     }
@@ -88,7 +91,11 @@ const NotificationBell = () => {
           const fresh = rows.filter((a) => a && !seenIds.current.has(String(a.id)));
           if (!fresh.length) return;
           fresh.forEach((a) => seenIds.current.add(String(a.id)));
-          setUnread((n) => n + fresh.length);
+          // Only a new critical alert moves the badge.
+          const critical = fresh.filter(
+            (a) => String(a.severity || '').toUpperCase() === 'CRITICAL',
+          );
+          if (critical.length) setUnread((n) => n + critical.length);
           const first = fresh[0];
           const label = ALERT_TYPE_LABELS[first.type] || 'New alert';
           toast.info(
@@ -135,7 +142,7 @@ const NotificationBell = () => {
         <Bell size={18} />
         {unread > 0 && (
           <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
-            {unread > 99 ? '99+' : unread}
+            {unread}
           </span>
         )}
       </SheetTrigger>

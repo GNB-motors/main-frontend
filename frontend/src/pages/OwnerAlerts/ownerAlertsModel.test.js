@@ -2,12 +2,13 @@ import { describe, it, expect } from 'vitest';
 import {
   formatIST,
   formatRelativeIST,
-  sevOf,
+  severityOf,
   catOf,
   titleOf,
   cleanMsg,
   computeView,
-  buildSummary,
+  countsOf,
+  viewParams,
   CHIPS,
   SINCE,
   SORTS,
@@ -27,17 +28,23 @@ describe('ownerAlertsModel', () => {
   });
 
   describe('alert metadata helpers', () => {
-    it('sevOf maps alert types to severity', () => {
-      expect(sevOf('FUEL_SIPHON_SUSPECTED')).toBe('CRITICAL');
-      expect(sevOf('FLEETEDGE_ALERT_FUEL_DRAIN')).toBe('CRITICAL');
-      expect(sevOf('FLEETEDGE_SUBSCRIPTION_EXPIRED')).toBe('WARNING');
-      expect(sevOf('FLEETEDGE_ALERT_REFUEL')).toBe('INFO');
-      expect(sevOf('UNKNOWN_ALERT_TYPE')).toBe('WARNING');
-      // iALERT codes
-      expect(sevOf('IALERT_REAUTH_REQUIRED')).toBe('WARNING');
-      expect(sevOf('IALERT_RELINK_DUE')).toBe('WARNING');
-      expect(sevOf('IALERT_SUBSCRIPTION_EXPIRED')).toBe('WARNING');
-      expect(sevOf('IALERT_SUBSCRIPTION_EXPIRING')).toBe('INFO');
+    it('severityOf reads the severity the backend sent, and invents none', () => {
+      expect(severityOf({ type: 'FUEL_SIPHON_SUSPECTED', severity: 'critical' })).toBe('CRITICAL');
+      expect(severityOf({ type: 'FUEL_SIPHON_SUSPECTED', severity: 'WARNING' })).toBe('WARNING');
+      // The server before B0b sends no severity: none is guessed from the type.
+      expect(severityOf({ type: 'FUEL_SIPHON_SUSPECTED' })).toBeNull();
+    });
+
+    it('keeps no severity table in the frontend (F13)', async () => {
+      const model = await import('./ownerAlertsModel');
+      expect(model.sevOf).toBeUndefined();
+      expect(model.SEVERITY_BY_TYPE).toBeUndefined();
+    });
+
+    it('calls a warning-level fuel row "Fuel to check", never loss or theft', () => {
+      expect(titleOf('FUEL_SIPHON_SUSPECTED', 'WARNING')).toBe('Fuel to check');
+      expect(titleOf('FUEL_SIPHON_SUSPECTED', 'CRITICAL')).toBe('Fuel loss suspected');
+      expect(titleOf('FUEL_DATA_REVIEW')).not.toMatch(/theft/i);
     });
 
     it('catOf categorizes alert types', () => {
@@ -84,6 +91,7 @@ describe('ownerAlertsModel', () => {
       {
         id: '2',
         type: 'FUEL_SIPHON_SUSPECTED',
+        severity: 'CRITICAL',
         at: '2026-09-06T12:00:00Z',
         vehicleNumber: 'MH02CD5678',
         acknowledged: false,
@@ -105,7 +113,7 @@ describe('ownerAlertsModel', () => {
     ];
 
     it('enriches alerts with severity, category, title, typeLabel, detectedRel, and detectedAbs', () => {
-      const view = computeView(mockAlerts, 'all', 'newest');
+      const view = computeView(mockAlerts, 'newest');
       expect(view).toHaveLength(4);
       expect(view[0].detectedAbs).toContain('IST');
       const siphon = view.find((a) => a.id === '2');
@@ -120,55 +128,35 @@ describe('ownerAlertsModel', () => {
     it('does not mutate the input array or its items', () => {
       const before = JSON.parse(JSON.stringify(mockAlerts));
       const order = mockAlerts.map((a) => a.id);
-      computeView(mockAlerts, 'critical', 'vehicle');
+      computeView(mockAlerts, 'vehicle');
       expect(mockAlerts.map((a) => a.id)).toEqual(order);
       expect(mockAlerts).toEqual(before);
     });
 
-    it('filters by critical refine', () => {
-      const view = computeView(mockAlerts, 'critical', 'newest');
-      expect(view).toHaveLength(1);
-      expect(view[0].id).toBe('2');
-    });
-
-    it('filters by warning refine', () => {
-      const view = computeView(mockAlerts, 'warning', 'newest');
-      expect(view).toHaveLength(2);
-      expect(view.map((a) => a.id)).toEqual(expect.arrayContaining(['3', '4']));
-    });
-
-    it('filters by subscription refine', () => {
-      const view = computeView(mockAlerts, 'subscription', 'newest');
-      expect(view).toHaveLength(1);
-      expect(view[0].id).toBe('3');
-    });
-
-    it('filters by data refine', () => {
-      const view = computeView(mockAlerts, 'data', 'newest');
-      expect(view).toHaveLength(1);
-      expect(view[0].id).toBe('4');
+    it('never drops a row: the server filtered by severity already', () => {
+      expect(computeView(mockAlerts, 'newest')).toHaveLength(4);
     });
 
     it('sorts by newest', () => {
-      const view = computeView(mockAlerts, 'all', 'newest');
+      const view = computeView(mockAlerts, 'newest');
       expect(view[0].id).toBe('2'); // 12:00
       expect(view[view.length - 1].id).toBe('3'); // 08:00
     });
 
     it('sorts by oldest', () => {
-      const view = computeView(mockAlerts, 'all', 'oldest');
+      const view = computeView(mockAlerts, 'oldest');
       expect(view[0].id).toBe('3'); // 08:00
       expect(view[view.length - 1].id).toBe('2'); // 12:00
     });
 
     it('sorts by vehicle', () => {
-      const view = computeView(mockAlerts, 'all', 'vehicle');
+      const view = computeView(mockAlerts, 'vehicle');
       expect(view[0].vehicleNumber).toBe('DL01EF9999');
       expect(view[view.length - 1].vehicleNumber).toBe('MH02CD5678');
     });
 
     it('sorts by triage (unacknowledged first, highest severity first)', () => {
-      const view = computeView(mockAlerts, 'all', 'triage');
+      const view = computeView(mockAlerts, 'triage');
       // id: 2 is CRITICAL and unacknowledged
       expect(view[0].id).toBe('2');
       // id: 3 is acknowledged, should be last
@@ -176,20 +164,25 @@ describe('ownerAlertsModel', () => {
     });
   });
 
-  describe('buildSummary', () => {
-    it('summarizes unacknowledged, critical, subscription, and affected vehicles', () => {
-      const alerts = [
-        { type: 'FUEL_SIPHON_SUSPECTED', vehicleNumber: 'KA01' },
-        { type: 'FLEETEDGE_SUBSCRIPTION_EXPIRED', vehicleNumber: 'KA01' },
-        { type: 'FLEETEDGE_ALERT_REFUEL', vehicleNumber: 'MH02' },
-      ];
-      const summary = buildSummary(alerts, 5);
-      expect(summary).toEqual({
-        toReview: 5,
-        critical: 1,
-        subscription: 1,
-        vehicles: 2,
+  describe('server counts and views', () => {
+    it('reads meta.counts, never the page of rows', () => {
+      expect(
+        countsOf({ meta: { counts: { critical: 3, warning: 140, trucksCritical: 2 } } }),
+      ).toEqual({
+        critical: 3,
+        warning: 140,
+        trucks: 2,
       });
+      // The server before B0b sends no counts: nothing is claimed.
+      expect(countsOf({ records: [], total: 451 })).toBeNull();
+    });
+
+    it('asks the server for critical by default', () => {
+      expect(CHIPS[0].key).toBe('critical');
+      expect(viewParams('critical')).toEqual({ acknowledged: false, severity: 'critical' });
+      expect(viewParams('warning')).toEqual({ acknowledged: false, severity: 'warning' });
+      expect(viewParams('all')).toEqual({ acknowledged: false });
+      expect(viewParams('acknowledged')).toEqual({ acknowledged: true });
     });
   });
 
@@ -212,20 +205,17 @@ describe('ownerAlertsModel', () => {
             billCheck: { verdict: 'CONFIRMED', reason: 'r' },
           },
         ],
-        'all',
         'newest',
       );
       expect(a.bill).toMatchObject({ label: 'Bill confirms loss', tone: 'critical', reason: 'r' });
       const [b] = computeView(
         [{ id: '2', type: 'IDLING_BURN_HIGH', at: '2026-10-11T03:39:00Z' }],
-        'all',
         'newest',
       );
       expect(b.bill).toBeNull();
     });
 
     it('a fuel data review is a data issue, not theft', () => {
-      expect(sevOf('FUEL_DATA_REVIEW')).toBe('WARNING');
       expect(catOf('FUEL_DATA_REVIEW')).toBe('data');
       expect(titleOf('FUEL_DATA_REVIEW')).toBe('Fuel data review');
     });
