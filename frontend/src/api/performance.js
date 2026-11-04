@@ -4,6 +4,20 @@ import { ApiError } from '../errors/ApiError';
 const BASE = '/api/performance';
 
 /**
+ * A call to a path that is NOT under /api/performance — the learned
+ * duty-group boards live at their own mount.
+ */
+const getFull = async (path, params = {}, signal) => {
+  try {
+    const response = await apiClient.get(path, { params, signal });
+    return response.data?.data ?? response.data ?? {};
+  } catch (error) {
+    if (error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError') throw error;
+    throw ApiError.from(error);
+  }
+};
+
+/**
  * The Performance API — wave 5.
  *
  * Every number the page shows arrives as a cell:
@@ -38,6 +52,12 @@ export const PerformanceApi = {
     get(`/drivers/${encodeURIComponent(driverId)}`, params, signal),
   /** { window, boards: [{ key, label, rows: [{ rank, subjectId, subjectName, score }] }] } */
   leaderboards: (params = {}, signal) => get('/leaderboards', params, signal),
+  /**
+   * The learned duty-group boards — GET /api/leaderboards/boards.
+   * { window, dataAsOf, boards: [{ key, title, unit, direction, measures, doesNotMeasure,
+   *   numerator, denominator, groups: [{ dutyGroup, rankedCount, floor, rows }] }], meta }
+   */
+  boards: (params = {}, signal) => getFull('/api/leaderboards/boards', params, signal),
 };
 
 export default PerformanceApi;

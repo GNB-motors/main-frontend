@@ -4,6 +4,7 @@ import {
   UNKNOWN_REASON_TEXT,
   agreementLine,
   completenessLine,
+  crossingMoney,
   extraVsLane,
   inr,
   moneyCell,
@@ -17,6 +18,23 @@ import {
  *   2. unknown is never zero, in any cell.
  */
 describe('money cells', () => {
+  it('says unknown, not zero, for a crossing with no fare on file', () => {
+    const cell = crossingMoney({ charge: null, billingStatus: 'NO_FARE' });
+    expect(cell.text).toBe('unknown');
+    expect(cell.text).not.toContain('0');
+  });
+
+  it('says free when the return rule made the crossing cost nothing', () => {
+    const cell = crossingMoney({ charge: 0, billingStatus: 'FREE' });
+    expect(cell.text).toBe('free');
+  });
+
+  it('shows the money when the crossing is priced', () => {
+    const cell = crossingMoney({ charge: 195, billingStatus: 'CHARGED' });
+    expect(cell.text).toContain('195');
+    expect(cell.tone).toBe('bill');
+  });
+
   it('labels an unreconciled estimate as an estimate, in the cell itself', () => {
     const cell = moneyCell({ amountInr: 195, unreconciledEstimate: true });
     expect(cell.tone).toBe('estimate');

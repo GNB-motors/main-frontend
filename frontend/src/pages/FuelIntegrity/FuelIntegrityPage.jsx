@@ -16,6 +16,8 @@ import FuelWindowDrilldown from './FuelWindowDrilldown.jsx';
 import EventInvestigationDrawer from './EventInvestigationDrawer.jsx';
 import FuelIntegrityTables from './FuelIntegrityTables.jsx';
 import VehicleDrilldownPanel from './VehicleDrilldownPanel.jsx';
+import RefuelAdvisoryCard from './RefuelAdvisoryCard.jsx';
+import PumpsWatchCard from './PumpsWatchCard.jsx';
 import { formatRelativeIST } from './fiDates.js';
 import {
   buildEvents,
@@ -392,6 +394,12 @@ const FuelIntegrityPage = () => {
             totalFillsLitres={totalFillsLitres}
             windowDays={windowDays}
           />
+
+          {/* ── Refuel advisory & pump honesty ─────────────────────────────── */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <RefuelAdvisoryCard />
+            <PumpsWatchCard />
+          </div>
 
           {/* ── Operational Mission Control Workspace ────────────────────────── */}
           <FuelIntegrityTables

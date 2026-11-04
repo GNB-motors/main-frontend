@@ -3,13 +3,16 @@ import {
   BadgeCheck,
   ChevronDown,
   ChevronUp,
+  CircleHelp,
   Cross,
   Factory,
   Fuel,
   Landmark,
   ParkingSquare,
   RotateCw,
+  Route,
   Shield,
+  Timer,
   UtensilsCrossed,
   Wrench,
 } from 'lucide-react';
@@ -17,7 +20,7 @@ import { getPref, setPref } from '../../utils/session';
 import { formatAgo } from '../../utils/redesign/format';
 import { placeLayerColor } from '../../utils/redesign/tone';
 import InfoTip from '../../components/redesign/InfoTip';
-import { LAYER_MIN_ZOOM, PLACE_LAYERS } from './trackLegendModel';
+import { LAYER_MIN_ZOOM, LIVE_LAYERS, PLACE_LAYERS } from './trackLegendModel';
 import LegendBlock from './LegendBlock';
 import LegendToggle from './LegendToggle';
 
@@ -32,6 +35,9 @@ const LAYER_ICONS = {
   BadgeCheck,
   ParkingSquare,
   Landmark,
+  CircleHelp,
+  Route,
+  Timer,
 };
 
 /** Where the legend remembers whether it is open. */
@@ -78,6 +84,9 @@ export default function TrackLegend({
   placesNotAvailable = false,
   placesTruncated = false,
   placesCount = 0,
+  liveCounts = {},
+  error = null,
+  onRetry = null,
 }) {
   const [isOpen, setIsOpen] = useState(() => readLegendOpen());
 
@@ -250,18 +259,60 @@ export default function TrackLegend({
                 </p>
               ) : null}
             </LegendBlock>
+
+            {/* Block 4 — the live layers of the control room: the places still
+                waiting for an answer, the routes the fleet runs, the trucks
+                idling right now. All off until the owner asks for them. */}
+            <LegendBlock
+              title="Live layers"
+              info={{
+                text: 'What the fleet is doing between the pins: places still to confirm, the routes it runs, and the trucks idling now.',
+                basis: null,
+              }}
+            >
+              {LIVE_LAYERS.map((layer) => {
+                const Icon = LAYER_ICONS[layer.icon] || Factory;
+                const count = liveCounts[layer.id];
+                return (
+                  <LegendToggle
+                    key={layer.id}
+                    label={layer.label}
+                    count={count == null ? undefined : count}
+                    icon={<Icon size={14} aria-hidden="true" />}
+                    color={layer.color}
+                    on={Boolean(layerSelection[layer.id])}
+                    onToggle={() => onToggleLayer(layer.id)}
+                  />
+                );
+              })}
+            </LegendBlock>
           </div>
 
           {/* Footer */}
           <div className="flex items-center gap-2 border-t border-[var(--rd-line)] px-3 py-2">
-            <span className="flex-1 text-[11px] text-[var(--rd-ink-3)]">
-              {lastEventAt ? `Updated ${formatAgo(lastEventAt)}` : 'Waiting for data'}
-            </span>
+            {error ? (
+              <span className="flex min-w-0 flex-1 items-center gap-1 text-[11px] text-[var(--rd-ink-2)]">
+                <span className="truncate">Couldn&apos;t load your fleet</span>
+                {onRetry ? (
+                  <button
+                    type="button"
+                    onClick={onRetry}
+                    className="shrink-0 rounded-md border border-[var(--rd-line)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--rd-ink-2)]"
+                  >
+                    Retry
+                  </button>
+                ) : null}
+              </span>
+            ) : (
+              <span className="flex-1 text-[11px] text-[var(--rd-ink-3)]">
+                {lastEventAt ? `Updated ${formatAgo(lastEventAt)}` : 'Waiting for data'}
+              </span>
+            )}
             <button
               type="button"
               onClick={onRefresh}
-              aria-label="Refresh fleet data"
-              title="Refresh fleet data"
+              aria-label={error ? 'Retry fleet data' : 'Refresh fleet data'}
+              title={error ? 'Retry fleet data' : 'Refresh fleet data'}
               className="rounded-md p-1 text-[var(--rd-ink-3)] transition-colors hover:bg-[var(--rd-card-2)] hover:text-[var(--rd-ink-2)]"
             >
               <RotateCw

@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import renderIconSvg from './renderIconSvg.jsx';
 import VehiclePanelHeader from './VehiclePanelHeader.jsx';
 import VehicleReadingTiles from './VehicleReadingTiles.jsx';
@@ -13,8 +12,12 @@ import VehicleAccountBanner from './VehicleAccountBanner.jsx';
 import VehiclePanelActions from './VehiclePanelActions.jsx';
 import WeatherSection from './WeatherSection.jsx';
 import VehicleLayerToggles from './VehicleLayerToggles.jsx';
-import useApi from '../../hooks/useApi.js';
-import { fleetViewService } from '../../services/fleetViewService';
+import TrackIdlingChip from './TrackIdlingChip.jsx';
+import DestinationIntentSection from './DestinationIntentSection.jsx';
+import KnownDestinationSection from './KnownDestinationSection.jsx';
+import { formatKnownEtaLine, matchKnownEta } from '../../lib/knownEta';
+import AddHere from '../PlaceHub/drawer/AddHere.jsx';
+import { Link } from 'react-router-dom';
 import { fallbackNow } from './vehiclePanelModel';
 
 /**
@@ -24,9 +27,8 @@ import { fallbackNow } from './vehiclePanelModel';
  * is the data live; what is it doing now; where is it going; is it doing
  * well; who is driving; who can help.
  *
- * The data comes from `/now`. That endpoint is not on prod yet, so until it
- * is, the panel reads the release's position row through the same view
- * model — every section then shows its own honest empty state.
+ * The data comes from the live stream row for the truck, mapped into the
+ * panel's view model — every section then shows its own honest empty state.
  */
 export default function VehicleDetailPanel({
   selectedVehicle,
@@ -45,27 +47,21 @@ export default function VehicleDetailPanel({
   habitualHaltsLoading = false,
   toggleHabitualHalts,
   habitualHalts = [],
+  idlingMinutes = null,
+  vehicleAlerts = [],
+  showIntent = false,
+  knownEtas = [],
+  canEditPlaces = false,
+  onAddAtSpot = null,
 }) {
   const reg = selectedVehicle?.plate ?? null;
 
-  const { data, error, refetch } = useApi(
-    (signal) => fleetViewService.getVehicleNow(reg, { signal }),
-    [reg],
-    { enabled: Boolean(reg), scopeKey: reg },
-  );
+  // A destination we know (a trip plan, a SAP dispatch) beats a predicted one.
+  const knownLine = formatKnownEtaLine(matchKnownEta(knownEtas, reg));
 
-  // The panel refreshes itself every minute while it is open, so a truck
-  // that just moved does not look frozen.
-  useEffect(() => {
-    if (!reg) return undefined;
-    const timer = setInterval(refetch, 60000);
-    return () => clearInterval(timer);
-  }, [reg, refetch]);
-
-  // Until the new endpoint is deployed, the release's position row is the
-  // fallback — mapped into the very same view model.
-  const notDeployed = error?.status === 404;
-  const now = data?.held === true ? null : (data ?? fallbackNow(selectedVehicle, selectedDriver));
+  // The live stream already carries the position row, so the panel reads it
+  // straight from there — no second endpoint to keep alive.
+  const now = fallbackNow(selectedVehicle, selectedDriver);
 
   return (
     <div
@@ -88,9 +84,15 @@ export default function VehicleDetailPanel({
           </div>
 
           <div className="dbody">
-            <VehicleAccountBanner account={notDeployed ? null : (now?.account ?? null)} />
+            <VehicleAccountBanner account={now?.account ?? null} />
 
             <VehiclePanelHeader now={now} account={now?.account ?? null} />
+
+            {idlingMinutes ? (
+              <div className="mb-2">
+                <TrackIdlingChip minutes={idlingMinutes} />
+              </div>
+            ) : null}
 
             <VehicleReadingTiles now={now} />
 
@@ -108,6 +110,42 @@ export default function VehicleDetailPanel({
 
             <VehicleIssuesSection issues={now?.issues ?? []} registrationNumber={reg} />
 
+            {vehicleAlerts.length ? (
+              <section className="flex flex-col gap-1.5">
+                <h3 className="m-0 text-[13px] font-semibold text-[var(--rd-ink)]">
+                  Alerts · {vehicleAlerts.length}
+                </h3>
+                {vehicleAlerts.slice(0, 5).map((alert) => (
+                  <div
+                    key={alert.id || alert._id}
+                    className="rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] p-2.5"
+                  >
+                    <span className="block text-[12px] font-semibold text-[var(--rd-ink)]">
+                      {alert.severity ? String(alert.severity).toUpperCase() : 'Alert'}
+                    </span>
+                    <span className="mt-0.5 block text-[12px] text-[var(--rd-ink-2)]">
+                      {alert.type || alert.message || alert.title || 'Alert'}
+                    </span>
+                  </div>
+                ))}
+                <Link
+                  to="/alert-inbox"
+                  className="text-[12px] font-medium text-[var(--rd-brand-2)] no-underline hover:underline"
+                >
+                  Open the alert inbox →
+                </Link>
+              </section>
+            ) : null}
+
+            {canEditPlaces && onAddAtSpot && Number.isFinite(selectedVehicle?.lat) ? (
+              <AddHere
+                canEdit={canEditPlaces}
+                onAdd={onAddAtSpot}
+                center={{ lat: selectedVehicle.lat, lng: selectedVehicle.lng }}
+                name={reg}
+              />
+            ) : null}
+
             <VehicleDriverSection driver={now?.driver ?? null} />
 
             <HelpNearbySection nearbyHelp={now?.nearbyHelp ?? []} />
@@ -115,6 +153,12 @@ export default function VehicleDetailPanel({
             <VehicleDetailsCard now={now} />
 
             <div className="sections">
+              {knownLine ? (
+                <KnownDestinationSection knownEtas={knownEtas} registrationNumber={reg} />
+              ) : null}
+              {showIntent && !knownLine ? (
+                <DestinationIntentSection registrationNumber={reg} />
+              ) : null}
               <WeatherSection
                 weather={weather}
                 loading={weatherLoading}

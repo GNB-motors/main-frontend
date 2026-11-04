@@ -4,20 +4,28 @@ import { formatKm, formatNum, timeAgo } from '../../../utils/formatters';
 import { formatDateIST } from '../../../utils/dateUtils';
 import { serviceState, daysSince } from '../vehicle360Logic';
 import Empty from './Empty';
+import { TyreStatusCard, ServiceCentreCard, MaintenanceSweepCard } from './ServiceInsights';
 
 /**
  * Service tab — the standing, stated plainly, with the reasoning spelled out.
  * A frozen odometer means the overdue distance cannot grow, which is worth
  * saying: it changes when the workshop visit should be booked.
  */
-export default function ServicePanel({ prediction, health, history }) {
+export default function ServicePanel({
+  prediction,
+  health,
+  history,
+  vehicleId,
+  registrationNumber,
+  livePosition,
+}) {
   const svc = serviceState(prediction);
   const stalled = (history || []).length > 1 && daysSince(health?.pulledAt) >= 1;
 
-  if (svc.level === 'none') {
-    return (
-      <PanelErrorBoundary name="vehicle-service">
-        <div className="v360-panel--single v360-panel">
+  return (
+    <PanelErrorBoundary name="vehicle-service">
+      <div className="v360-panel v360-panel--halves">
+        {svc.level === 'none' ? (
           <section className="v360-card">
             <p className="v360-card-title">Service</p>
             <Empty
@@ -25,15 +33,8 @@ export default function ServicePanel({ prediction, health, history }) {
               hint="A projection appears once the predictive sweep has enough odometer history for this vehicle."
             />
           </section>
-        </div>
-      </PanelErrorBoundary>
-    );
-  }
-
-  return (
-    <PanelErrorBoundary name="vehicle-service">
-      <div className="v360-panel v360-panel--halves">
-        <section className={`v360-card ${svc.overdue ? 'v360-card--alert' : ''}`.trim()}>
+        ) : (
+          <section className={`v360-card ${svc.overdue ? 'v360-card--alert' : ''}`.trim()}>
           <span className={`v360-pill v360-pill--${svc.overdue ? 'crit' : 'warn'}`}>
             <span className="v360-pill-dot" aria-hidden="true" />
             {svc.label}
@@ -101,6 +102,7 @@ export default function ServicePanel({ prediction, health, history }) {
             </Link>
           </div>
         </section>
+        )}
 
         <section className="v360-card">
           <p className="v360-card-title">How this was worked out</p>
@@ -117,6 +119,10 @@ export default function ServicePanel({ prediction, health, history }) {
             <dd className="is-dim">{health?.pulledAt ? timeAgo(health.pulledAt) : 'never'}</dd>
           </dl>
         </section>
+
+        <TyreStatusCard vehicleId={vehicleId} registrationNumber={registrationNumber} />
+        <ServiceCentreCard vehicleId={vehicleId} livePosition={livePosition} />
+        <MaintenanceSweepCard registrationNumber={registrationNumber} />
       </div>
     </PanelErrorBoundary>
   );

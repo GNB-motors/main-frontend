@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { fleetViewService } from '../../services/fleetViewService';
+import { placeApiId } from './placePanelModel.js';
 
 /**
  * PlaceCampusList — the parts of a plant.
@@ -11,7 +12,8 @@ import { fleetViewService } from '../../services/fleetViewService';
  * the weighbridge rather than to a circle 600 m wide.
  */
 export default function PlaceCampusList({ place }) {
-  const placeId = place?.id ?? null;
+  // The API knows the bare site id ("site:abc" → "abc").
+  const placeId = placeApiId(place);
 
   const { data, loading } = useApi(
     (signal) => fleetViewService.getCampuses({ signal }),

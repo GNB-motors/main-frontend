@@ -3,13 +3,12 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import VehicleDetailPanel from './VehicleDetailPanel';
 
-const { getVehicleNow, getWhereNext } = vi.hoisted(() => ({
-  getVehicleNow: vi.fn(),
+const { getWhereNext } = vi.hoisted(() => ({
   getWhereNext: vi.fn(),
 }));
 
 vi.mock('../../services/fleetViewService', () => ({
-  fleetViewService: { getVehicleNow, getWhereNext },
+  fleetViewService: { getWhereNext },
 }));
 
 vi.mock('./VehicleLayerToggles.jsx', () => ({ default: () => null }));
@@ -50,18 +49,16 @@ function renderPanel(vehicle = releaseVehicle) {
 
 describe('VehicleDetailPanel', () => {
   beforeEach(() => {
-    getVehicleNow.mockReset();
     getWhereNext.mockReset();
-    // The new endpoint is not on prod yet, so the panel falls back to the
-    // release's position row.
-    getVehicleNow.mockRejectedValue(Object.assign(new Error('Not found'), { status: 404 }));
+    // There is no `/now` endpoint to wait for any more: the panel reads the
+    // live position row.
     getWhereNext.mockRejectedValue(Object.assign(new Error('Not found'), { status: 404 }));
   });
 
   it('shows the truck and what it is doing now', () => {
     renderPanel();
     expect(screen.getByText('WB 01 AB 1234')).toBeInTheDocument();
-    // `/now` is missing (404): the Now card says what the position row proves.
+    // The Now card says what the position row proves.
     expect(screen.getByRole('heading', { name: 'Now · Moving' })).toBeInTheDocument();
     expect(screen.queryByText(/once it reports/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Not enough driving/)).not.toBeInTheDocument();

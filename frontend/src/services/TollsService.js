@@ -41,18 +41,16 @@ export const TollsService = {
   /** Rate card, return rule, or a review decision. Anything a person owns. */
   updatePlaza: (code, body) => send('put', `api/tolls/plazas/${encodeURIComponent(code)}`, body),
 
-  /** Re-read OSM booths, resolve gates, agree against the fleet, detect crossings. */
-  sweep: () => send('post', 'api/tolls/plazas/sweep', {}),
-
   // ─── Crossings and the money ─────────────────────────────────────────────────
   /** Crossing rows, each labelled as an estimate or a driver bill. */
   getCrossings: (params = {}, signal) => get('api/tolls/crossings', params, signal),
 
-  /** Estimate beside payment, per trip and plaza. Never blended. */
-  getReconciliation: (params = {}, signal) => get('api/tolls/reconciliation', params, signal),
-
-  /** Where a plaza's own return rule did not get applied to what was paid. */
-  getReturnGaps: (params = {}, signal) => get('api/tolls/return-gaps', params, signal),
+  /**
+   * A toll quote between two points: { fromLat, fromLng, toLat, toLng }.
+   * The road engine can be down — that is an error the caller must report as
+   * "unavailable", never as ₹0.
+   */
+  quote: (params = {}, signal) => get('api/route-tolls/quote', params, signal),
 
   /** Per-vehicle toll money, known and unknown apart. */
   getReport: (params = {}, signal) => get('api/tolls/report', params, signal),

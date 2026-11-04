@@ -1724,6 +1724,18 @@ html.dark,
   margin-top: 2px;
   font-variant-numeric: tabular-nums;
 }
+/* A failed load says so — and offers the one action that can fix it. */
+.track-load-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 var(--space-3) var(--space-2h) var(--space-4);
+  color: var(--fg-secondary);
+  font-size: var(--type-2xs);
+}
+.track-load-error__text {
+  color: var(--fg-primary);
+}
 .fsearch {
   flex: none;
   margin: 0 var(--space-3) var(--space-2h) var(--space-4);

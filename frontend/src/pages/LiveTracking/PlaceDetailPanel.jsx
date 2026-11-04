@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { ExternalLink } from 'lucide-react';
+import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
 import renderIconSvg from './renderIconSvg.jsx';
 import { styleOfType } from '../PlaceHub/placeHubStyle.js';
 import { placeTypeLabel } from '../PlaceHub/model/placeGroups.js';
@@ -12,6 +14,8 @@ import PlaceStatRow from './PlaceStatRow';
 import PlaceLandmarkActions from './PlaceLandmarkActions';
 import PlaceRecentVisits from './PlaceRecentVisits';
 import PlaceCampusList from './PlaceCampusList';
+import { isOurPlace } from './placePanelModel.js';
+import usePlaceStats from './usePlaceStats.js';
 import { formatDuration } from '../../utils/redesign/format';
 
 /**
@@ -24,7 +28,8 @@ import { formatDuration } from '../../utils/redesign/format';
  */
 export default function PlaceDetailPanel({ place, vehicles, onBack, onPickVehicle }) {
   const here = useMemo(() => vehiclesAtPlace(place, vehicles), [place, vehicles]);
-  const isOurPlace = place?.type === 'SITE' || place?.kind === 'SITE' || place?.layer === 'plants';
+  const ours = isOurPlace(place);
+  const { stats } = usePlaceStats(place);
 
   if (!place) {
     return <div className="railview railview--detail" aria-live="polite" />;
@@ -52,8 +57,8 @@ export default function PlaceDetailPanel({ place, vehicles, onBack, onPickVehicl
               {place.subtitle ? <div className="model">{place.subtitle}</div> : null}
             </div>
             <div className="mt-1">
-              <ToneBadge tone={isOurPlace ? 'info' : 'watch'}>
-                {isOurPlace ? 'Our place' : 'Map landmark'}
+              <ToneBadge tone={ours ? 'info' : 'watch'}>
+                {ours ? 'Our place' : 'Map landmark'}
               </ToneBadge>
             </div>
           </div>
@@ -61,7 +66,7 @@ export default function PlaceDetailPanel({ place, vehicles, onBack, onPickVehicl
 
         <div className="sections">
           {/* The three numbers about this place */}
-          <PlaceStatRow place={place} trucksHere={here.length} />
+          <PlaceStatRow stats={stats} trucksHere={here.length} />
 
           {/* What a driver can do about a landmark */}
           <PlaceLandmarkActions place={place} />
@@ -100,7 +105,7 @@ export default function PlaceDetailPanel({ place, vehicles, onBack, onPickVehicl
           </details>
 
           {/* Only our own places have a visit history worth listing */}
-          {isOurPlace ? <PlaceRecentVisits place={place} /> : null}
+          {ours ? <PlaceRecentVisits place={place} /> : null}
 
           {/* A plant is a campus: its gates, siding, parking and weighbridge */}
           <PlaceCampusList place={place} />
@@ -127,6 +132,15 @@ export default function PlaceDetailPanel({ place, vehicles, onBack, onPickVehicl
               <Link className="pl-link" to="/place-hub">
                 Manage places →
               </Link>
+              <button
+                type="button"
+                className="pl-link"
+                style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}
+                onClick={() => openInGoogleMaps({ lat: place.lat, lng: place.lng, name: place.name })}
+              >
+                <ExternalLink size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />
+                Open in Google Maps
+              </button>
             </div>
           </details>
         </div>

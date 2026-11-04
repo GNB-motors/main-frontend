@@ -4,6 +4,7 @@ import { useApi } from '../../hooks/useApi';
 import { fleetViewService } from '../../services/fleetViewService';
 import { formatDuration, formatIst } from '../../utils/redesign/format';
 import { tripsHistoryLink } from '../../utils/redesign/links';
+import { placeApiId } from './placePanelModel.js';
 
 /**
  * PlaceRecentVisits — the last visits to one of our places.
@@ -12,7 +13,8 @@ import { tripsHistoryLink } from '../../utils/redesign/links';
  * list is a fact, not a judgement: who came, when, and for how long.
  */
 export default function PlaceRecentVisits({ place, limit = 10 }) {
-  const siteId = place?.id ?? null;
+  // The API knows the bare site id ("site:abc" → "abc").
+  const siteId = placeApiId(place);
 
   const { data, loading } = useApi(
     (signal) => fleetViewService.getTripsHistory({ site: siteId, limit, signal }),

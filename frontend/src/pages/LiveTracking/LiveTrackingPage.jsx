@@ -1,5 +1,5 @@
 import TrackTollStatus from './TrackTollStatus';
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLoadScript } from '@react-google-maps/api';
 import { useLivePositions } from '../../hooks/useLivePositions';
@@ -21,6 +21,7 @@ import MapOverlayControls from './MapOverlayControls.jsx';
 import TelemetryTicker from './TelemetryTicker.jsx';
 import FleetListView from './FleetListView.jsx';
 import VehicleDetailPanel from './VehicleDetailPanel.jsx';
+import { useKnownEtas } from '../../hooks/useKnownEtas';
 import ShareLinkDialog from './ShareLinkDialog.jsx';
 import useTrackPlaces from './useTrackPlaces.js';
 import PlacesListView from './PlacesListView.jsx';
@@ -35,6 +36,28 @@ import TrackLog from './TrackLog.jsx';
 import TrackRangePicker from './TrackRangePicker.jsx';
 import { nextEventAt, previousEventAt } from './trackPlayback.js';
 import { toggleSelection } from './trackLegendModel.js';
+import TrackClickMenu from './TrackClickMenu.jsx';
+import TrackPlaceDraft from './TrackPlaceDraft.jsx';
+import TrackZoneDraft from './TrackZoneDraft.jsx';
+import TrackReviewLayer from './TrackReviewLayer.jsx';
+import TrackReviewPanel from './TrackReviewPanel.jsx';
+import TrackIdlingLayer from './TrackIdlingLayer.jsx';
+import TrackRouteDetailPanel from './TrackRouteDetailPanel.jsx';
+import useTrackReviewQueue from './useTrackReviewQueue.js';
+import useTrackRoutes from './useTrackRoutes.js';
+import { clickDraft, clampRadius, declareOutcome } from './trackClickModel.js';
+import { alertsForVehicle, alertCountsByVehicle } from './trackAlertsModel.js';
+import { idlingMinutesByPlate, plateKey } from './trackIdlingModel.js';
+import { useLiveAlerts } from '../../hooks/useLiveAlerts.js';
+import { useLiveIdling } from '../../hooks/useLiveIdling.js';
+import { useLiveIntents } from '../../hooks/useLiveIntents.js';
+import { canEditPlaces } from '../PlaceHub/model/placeHubConfig.js';
+import { newDraft, payloadFor, validateDraft } from '../PlaceHub/model/placeDraft.js';
+import PlaceHubService from '../PlaceHub/PlaceHubService.js';
+import { ErpSiteService } from '../../services/erpSiteService.js';
+import { getUserRole } from '../../utils/session.js';
+import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
+import '../PlaceHub/PlaceHub.css';
 import {
   readLayerSelection,
   readTrafficOn,
@@ -77,6 +100,24 @@ const LiveTrackingPage = () => {
   const [layerSelection, setLayerSelection] = useState(() => readLayerSelection());
   const [isTrafficOn, setIsTrafficOn] = useState(() => readTrafficOn());
 
+  // The control room: what a click on the map can start, and the live layers
+  // the owner has switched on.
+  const [mapClick, setMapClick] = useState(null);
+  const [placeDraft, setPlaceDraft] = useState(null);
+  const [zoneDraft, setZoneDraft] = useState(null);
+  const [draftError, setDraftError] = useState(null);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [reviewSite, setReviewSite] = useState(null);
+  const [openRouteId, setOpenRouteId] = useState(null);
+  const canEditPlacesHere = canEditPlaces(getUserRole());
+
+  const handleMapClick = useCallback((click) => {
+    setMapClick(click);
+    setPlaceDraft(null);
+    setZoneDraft(null);
+    setDraftError(null);
+  }, []);
+
   // Track mode lives in the URL, so every link in the product can open one
   // truck's history on a given range (F3.2).
   const [searchParams, setSearchParams] = useSearchParams();
@@ -116,9 +157,16 @@ const LiveTrackingPage = () => {
 
   const handleToggleLayer = (key) => {
     // "Our places" is the fleet's own confirmed places, which the Track page
-    // already has; the rest come from the map places endpoint.
+    // already has; the rest come from the map places endpoint. It is a real
+    // layer like any other, so it also flips in `layerSelection` — otherwise the
+    // layer says one thing and the map does another.
     if (key === 'ourPlaces') {
       trackPlaces.toggle();
+      setLayerSelection((prev) => {
+        const next = toggleSelection(prev, key);
+        writeLayerSelection(next);
+        return next;
+      });
       return;
     }
     setLayerSelection((prev) => {
@@ -170,13 +218,46 @@ const LiveTrackingPage = () => {
     handleZoomIn,
     handleZoomOut,
     triggerMapResize,
-  } = useLiveMap({ theme, mapMode, vehicles, selectedId, selectedVehicle, showToast });
+  } = useLiveMap({
+    theme,
+    mapMode,
+    vehicles,
+    selectedId,
+    selectedVehicle,
+    showToast,
+    onMapClick: handleMapClick,
+  });
 
   const selectedDriver = useSelectedDriver(selectedVehicle, vehiclesMeta, driverAssignments);
 
   // Places layer (Place Hub's confirmed places) — off until the user turns it on.
   const trackPlaces = useTrackPlaces();
   const [railTab, setRailTab] = useState('fleet'); // 'fleet' | 'places'
+
+  // The live control room: idling, alerts and destinations, all from the
+  // stream. The new map layers are asked for only when they are switched on.
+  const { idling: idlingRows, error: idlingError } = useLiveIdling({ enabled: true });
+  const { alerts } = useLiveAlerts({ enabled: true });
+  const { intents } = useLiveIntents({ enabled: Boolean(selectedId) });
+  // Destinations we actually know, with the arrival band (refreshed every 5 min).
+  const knownEtas = useKnownEtas();
+  const idlingByPlate = useMemo(() => idlingMinutesByPlate(idlingRows), [idlingRows]);
+  const alertCounts = useMemo(() => alertCountsByVehicle(alerts), [alerts]);
+  const reviewQueue = useTrackReviewQueue({ enabled: Boolean(layerSelection.reviewQueue) });
+  const routes = useTrackRoutes({ enabled: Boolean(layerSelection.routes) });
+
+  // The plates that have a destination on the way — only those trucks get the
+  // destination section in their panel.
+  const intentPlates = useMemo(
+    () =>
+      new Set(
+        intents
+          .map((intent) => plateKey(intent?.registrationNumber || intent?.vehicleNumber || intent?.plate))
+          .filter(Boolean),
+      ),
+    [intents],
+  );
+  const hasIntentFor = useCallback((plate) => intentPlates.has(plateKey(plate)), [intentPlates]);
 
   // The extra place layers (pumps, dhabas, hospitals…) come from the
   // fleet-view map endpoint, asked only for the visible map box and only
@@ -197,7 +278,7 @@ const LiveTrackingPage = () => {
   };
 
   // Recenter on a place picked from the Places list.
-  const focusPlace = (place) => {
+  const focusPlace = useCallback((place) => {
     const map = mapRef.current;
     if (!map || !window.google) return;
     if (place.polygon) {
@@ -213,7 +294,7 @@ const LiveTrackingPage = () => {
       map.setCenter(center);
       map.setZoom(zoom);
     }
-  };
+  }, [mapRef]);
 
   const pickPlace = (place) => {
     trackPlaces.show();
@@ -240,6 +321,166 @@ const LiveTrackingPage = () => {
     setRailTab('fleet');
     setIsRailOpen(true);
   };
+
+  /* ---- The click menu: a click is an offer, never an action. ---- */
+  const closeClickMenu = useCallback(() => setMapClick(null), []);
+
+  const handleClickChoice = useCallback(
+    (action) => {
+      const click = mapClick;
+      setMapClick(null);
+      if (!click) return;
+      if (action === 'openInGoogleMaps') {
+        openInGoogleMaps({ lat: click.lat, lng: click.lng });
+        return;
+      }
+      setDraftError(null);
+      if (action === 'makePlace') {
+        setPlaceDraft(clickDraft({ lat: click.lat, lng: click.lng }));
+        return;
+      }
+      if (action === 'alertZone') {
+        setZoneDraft(newDraft('ZONE', { center: { lat: click.lat, lng: click.lng } }));
+      }
+    },
+    [mapClick],
+  );
+
+  const changePlaceDraft = useCallback((patch) => {
+    setPlaceDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+  }, []);
+
+  const changeZoneDraft = useCallback((patch) => {
+    setZoneDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+  }, []);
+
+  const zoneErrors = useMemo(() => (zoneDraft ? validateDraft(zoneDraft) : {}), [zoneDraft]);
+
+  // "Make this a place" writes to the fleet's own places: the same endpoint the
+  // delivery orders use for a pickup point, so a place is a place everywhere.
+  const savePlaceDraft = useCallback(async () => {
+    const draft = placeDraft;
+    if (!draft?.center) return;
+    const name = String(draft.name || '').trim();
+    if (name.length < 2) {
+      setDraftError('Give the place a name (2 characters or more)');
+      return;
+    }
+    setSavingDraft(true);
+    setDraftError(null);
+    try {
+      const result = await ErpSiteService.declare({
+        name,
+        lat: draft.center.lat,
+        lng: draft.center.lng,
+        radiusM: clampRadius(draft.radiusM),
+        address: '',
+      });
+      const outcome = declareOutcome(result);
+      const site = outcome.site;
+      setPlaceDraft(null);
+      showToast(outcome.message);
+      trackPlaces.show();
+      trackPlaces.retry?.();
+      if (site) {
+        focusPlace(site);
+        if (site._id) {
+          trackPlaces.selectPlace(site._id);
+          setRailTab('places');
+          setIsRailOpen(true);
+        }
+      }
+    } catch (error) {
+      setDraftError(error?.message || 'Could not save the place');
+    } finally {
+      setSavingDraft(false);
+    }
+  }, [placeDraft, showToast, trackPlaces, focusPlace]);
+
+  // "Alert zone here" writes a geofence zone: Place Hub's own fence.
+  const saveZoneDraft = useCallback(async () => {
+    const draft = zoneDraft;
+    if (!draft?.center) return;
+    const problem = Object.values(validateDraft(draft))[0];
+    if (problem) {
+      setDraftError(problem);
+      return;
+    }
+    setSavingDraft(true);
+    setDraftError(null);
+    try {
+      const body = payloadFor(draft);
+      const editing = draft.mode === 'edit' && draft.sourceId;
+      if (editing) await PlaceHubService.updateZone(draft.sourceId, body);
+      else await PlaceHubService.createZone(body);
+      setZoneDraft(null);
+      showToast(editing ? `Zone updated: ${body.name}` : `Alert zone added: ${body.name}`);
+      trackPlaces.retry?.();
+    } catch (error) {
+      setDraftError(error?.message || 'Could not save the zone');
+    } finally {
+      setSavingDraft(false);
+    }
+  }, [zoneDraft, showToast, trackPlaces]);
+
+  // The truck panel's "add this spot": a zone to watch, or a place to work at.
+  const handleAddAtSpot = useCallback((kind, seed) => {
+    const center = seed?.center;
+    if (!center) return;
+    if (kind === 'WAREHOUSE') {
+      setPlaceDraft(clickDraft({ lat: center.lat, lng: center.lng, name: seed?.name || '' }));
+      return;
+    }
+    setZoneDraft(newDraft('ZONE', { center, name: seed?.name || '' }));
+  }, []);
+
+  // A place nobody has answered for yet.
+  const selectReviewSite = useCallback(
+    (site) => {
+      setReviewSite(site);
+      setSelectedId(null);
+      trackPlaces.selectPlace(null);
+      setRailTab('fleet');
+      setIsRailOpen(true);
+    },
+    [trackPlaces],
+  );
+
+  const handleSiteAnswered = useCallback(() => {
+    setReviewSite(null);
+    reviewQueue.reload();
+  }, [reviewQueue]);
+
+  // Its fence is edited with Place Hub's own editor.
+  const editFenceForSite = useCallback((site) => {
+    const lat = Number(site?.centroidLat ?? site?.lat);
+    const lng = Number(site?.centroidLng ?? site?.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    const sourceId = site?.zoneId || site?.geofenceId || null;
+    const draft = newDraft('ZONE', { center: { lat, lng }, name: site?.name || '' });
+    if (sourceId) {
+      draft.mode = 'edit';
+      draft.sourceId = sourceId;
+    }
+    draft.radiusM = clampRadius(Number(site?.radiusM) || 500, 50, 50000);
+    setZoneDraft(draft);
+    setReviewSite(null);
+  }, []);
+
+  const handleRoutePick = useCallback((id) => setOpenRouteId(id), []);
+
+  // An idling marker is a truck: clicking it opens the truck.
+  const selectIdlingRow = useCallback(
+    (row) => {
+      const plate = plateKey(row?.registrationNumber || row?.vehicleNumber || row?.plate);
+      const vehicle = vehicles.find((v) => plateKey(v.plate) === plate);
+      if (!vehicle) return;
+      setSelectedId(vehicle.id);
+      setRailTab('fleet');
+      setIsRailOpen(true);
+    },
+    [vehicles],
+  );
 
   // Weather for the "active" context: the moving marker during replay (at the
   // trip's own hour), otherwise the selected live vehicle (now). One fetch feeds
@@ -397,7 +638,58 @@ const LiveTrackingPage = () => {
               trackPlayheadTime={isTrackMode ? trackMode.playheadTime : null}
               trackRoad={isTrackMode ? trackMode.roadTrail : null}
               trackTolls={isTrackMode ? trackMode.tolls : null}
+              reviewItems={reviewQueue.items}
+              selectedReviewId={reviewSite?._id ?? null}
+              onSelectReviewSite={selectReviewSite}
+              idlingRows={layerSelection.idling ? idlingRows : []}
+              onSelectIdling={selectIdlingRow}
+              routeLines={routes.lines}
+              routeSites={routes.sites}
+              onPickRoute={handleRoutePick}
+              draft={placeDraft || zoneDraft}
+              onDraftChange={placeDraft ? changePlaceDraft : changeZoneDraft}
             />
+
+            {/* A click on the map is an offer: make it a place, watch it as a
+                zone, or open it in Google Maps. */}
+            <TrackClickMenu
+              click={mapClick}
+              canEdit={canEditPlacesHere}
+              onChoose={handleClickChoice}
+              onClose={closeClickMenu}
+            />
+
+            {placeDraft ? (
+              <TrackPlaceDraft
+                draft={placeDraft}
+                onChange={changePlaceDraft}
+                onCancel={() => setPlaceDraft(null)}
+                onSave={savePlaceDraft}
+                saving={savingDraft}
+                error={draftError}
+              />
+            ) : null}
+
+            {zoneDraft ? (
+              <TrackZoneDraft
+                draft={zoneDraft}
+                errors={zoneErrors}
+                saving={savingDraft}
+                onChange={changeZoneDraft}
+                onKind={changeZoneDraft}
+                onPick={(loc) => focusPlace({ lat: loc?.lat, lng: loc?.lng })}
+                onCancel={() => setZoneDraft(null)}
+                onSave={saveZoneDraft}
+              />
+            ) : null}
+
+            {openRouteId ? (
+              <TrackRouteDetailPanel
+                id={openRouteId}
+                onChanged={routes.reload}
+                onClose={() => setOpenRouteId(null)}
+              />
+            ) : null}
 
             {/* Floating controls: the search, live telemetry and the legend
                 (which IS the filter) down the left; traffic at the top-right.
@@ -434,6 +726,13 @@ const LiveTrackingPage = () => {
                   placesNotAvailable={mapPlaces.notAvailable}
                   placesTruncated={mapPlaces.truncated}
                   placesCount={mapPlaces.items.length}
+                  liveCounts={{
+                    reviewQueue: reviewQueue.count,
+                    routes: routes.error ? null : routes.lines.length,
+                    idling: idlingError ? null : idlingRows.length,
+                  }}
+                  error={positionsError}
+                  onRetry={handleRefresh}
                 />
               }
               selectedVehicle={selectedVehicle}
@@ -567,6 +866,11 @@ const LiveTrackingPage = () => {
                         triggerMapResize={triggerMapResize}
                         selectedId={selectedId}
                         setSelectedId={setSelectedId}
+                        error={positionsError}
+                        onRetry={handleRefresh}
+                        idlingByPlate={idlingByPlate}
+                        alertCounts={alertCounts}
+                        knownEtas={knownEtas}
                       />
 
                       {/* Vehicle Detail Slide-in Drawer */}
@@ -591,6 +895,14 @@ const LiveTrackingPage = () => {
                         habitualHaltsLoading={habitualHaltsLoading}
                         toggleHabitualHalts={toggleHabitualHalts}
                         habitualHalts={habitualHalts}
+                        idlingMinutes={
+                          activeVehicle ? (idlingByPlate.get(plateKey(activeVehicle.plate)) ?? null) : null
+                        }
+                        vehicleAlerts={activeVehicle ? alertsForVehicle(alerts, activeVehicle.plate) : []}
+                        showIntent={activeVehicle ? hasIntentFor(activeVehicle.plate) : false}
+                        knownEtas={knownEtas}
+                        canEditPlaces={canEditPlacesHere}
+                        onAddAtSpot={handleAddAtSpot}
                       />
                     </>
                   ) : (
@@ -613,6 +925,14 @@ const LiveTrackingPage = () => {
                       />
                     </>
                   )}
+
+                  {/* A place nobody has answered for yet. */}
+                  <TrackReviewPanel
+                    site={reviewSite}
+                    onAnswered={handleSiteAnswered}
+                    onEditFence={editFenceForSite}
+                    onClose={() => setReviewSite(null)}
+                  />
                 </div>
               </>
             )}

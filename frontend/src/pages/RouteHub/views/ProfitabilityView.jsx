@@ -5,11 +5,15 @@ import { L, useLeafletMap, useLayerGroup, cityLayer } from '../routeHubMap';
 import { KpiRow, RefreshButton, Skel } from '../routeHubShared.jsx';
 import { HEALTH, downloadCsv, inrK } from '../routeHubFormat';
 import MarginEquation from './profitability/MarginEquation.jsx';
+import MoneyStrip from './profitability/MoneyStrip.jsx';
 import ProfitabilityTable from './profitability/ProfitabilityTable.jsx';
 import RouteCostCard from './profitability/RouteCostCard.jsx';
+import TripPnlTable from './profitability/TripPnlTable.jsx';
 
 export default function ProfitabilityView({ params, toast, go }) {
   const [data, setData] = useState(null);
+  const [money, setMoney] = useState(null);
+  const [pnls, setPnls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selId, setSelId] = useState(params.get('c') || null);
@@ -19,7 +23,18 @@ export default function ProfitabilityView({ params, toast, go }) {
     setLoading(true);
     setError(null);
     try {
-      setData(await RouteHubService.getRouteProfitability({ days: 30 }));
+      const [routes, cash, trips] = await Promise.all([
+        RouteHubService.getRouteProfitability({ days: 30 }),
+        RouteHubService.getMoney().catch(() => null),
+        RouteHubService.getTrips({ limit: 8 }).catch(() => []),
+      ]);
+      const ids = trips.map((t) => t?._id || t?.id).filter(Boolean).slice(0, 8);
+      const priced = await Promise.all(
+        ids.map((id) => RouteHubService.getTripPnl(id).catch(() => null)),
+      );
+      setData(routes);
+      setMoney(cash);
+      setPnls(priced.filter(Boolean));
     } catch (e) {
       setError(e?.message || 'Could not load profitability.');
     } finally {
@@ -178,6 +193,8 @@ export default function ProfitabilityView({ params, toast, go }) {
 
       <KpiRow items={kpis} loading={first} />
 
+      <MoneyStrip money={money} loading={loading && !money} />
+
       <MarginEquation first={first} totals={totals} />
 
       <ProfitabilityTable
@@ -188,6 +205,8 @@ export default function ProfitabilityView({ params, toast, go }) {
         first={first}
         error={error}
       />
+
+      <TripPnlTable pnls={pnls} first={loading && !pnls.length} error={null} />
 
       <div className="bento">
         <div className="card s7" style={{ minHeight: 420 }}>

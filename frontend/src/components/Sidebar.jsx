@@ -31,7 +31,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   // `canAccess` = org-entitled (feature flag) AND role-permitted (RBAC). A
   // module only appears when the user's assigned role grants it — so granting a
   // role e.g. CRM/insurance makes it visible to that user automatically.
-  const { canAccess, isEnabled } = useFeatureFlags();
+  const { canAccess, isEnabled, failed, retry } = useFeatureFlags();
   const { organization } = useOrganization();
   const role = getUserRole();
   // On desktop the rail collapses to icons until the pointer comes near it.
@@ -241,6 +241,19 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
             onError={() => setLogoFailed(true)}
           />
         </div>
+        {/* The account could not be read: say so, and offer the retry. Without
+            this the rail silently collapses to a few icons and looks broken. */}
+        {failed ? (
+          <div className="nav-banner" role="status">
+            <span className="nav-banner__text">Couldn&apos;t load your account</span>
+            <span className="nav-banner__sep" aria-hidden="true">
+              &middot;
+            </span>
+            <button type="button" className="nav-banner__retry" onClick={retry}>
+              Retry
+            </button>
+          </div>
+        ) : null}
         <nav className="sidebar-nav" aria-label="Main navigation">
           {navItems.map(renderNavItem)}
         </nav>

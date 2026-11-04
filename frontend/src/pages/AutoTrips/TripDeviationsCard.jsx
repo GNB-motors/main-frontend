@@ -25,6 +25,8 @@ export default function TripDeviationsCard({ deviations, loading, playable, onPl
     );
   }
   if (!deviations) return null;
+  // No detours: no card at all, rather than a column of reassurance.
+  if (!deviations.length) return null;
 
   return (
     <div className="atx-card atx-dev-card">
@@ -68,12 +70,7 @@ export default function TripDeviationsCard({ deviations, loading, playable, onPl
             </li>
           ))}
         </ul>
-      ) : (
-        <p className="atx-dev-none">
-          No detours found. Only routes the fleet drives often have a learned usual route to compare
-          against.
-        </p>
-      )}
+      ) : null}
     </div>
   );
 }

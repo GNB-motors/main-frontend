@@ -325,3 +325,29 @@
     margin-left: 0;
   }
 }
+
+/* ── Views, the incident board and the acknowledge-all confirm ─────────────── */
+.ai-views {
+  margin: 0 0 14px;
+}
+.ai-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ds-ink, #0f172a);
+}
+.ai-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.ai-form input {
+  border: 1px solid var(--ai-line);
+  border-radius: 7px;
+  padding: 8px 10px;
+  color: var(--ds-ink, #0f172a);
+  min-width: 180px;
+  font-size: 13px;
+}

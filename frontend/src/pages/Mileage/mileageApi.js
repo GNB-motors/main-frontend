@@ -2,7 +2,7 @@ import apiClient from '../../utils/axiosConfig';
 import ApiError from '../../errors/ApiError';
 import { getVehicleList } from '../../services/vehicleListService';
 import { parseSafe } from '../../schemas/validate';
-import { rangeToParams } from './mileageDates';
+import { rangeDays, rangeToParams } from './mileageDates';
 import { MileageTrackingService } from '../MileageTracking/MileageTrackingService';
 
 /**
@@ -53,6 +53,20 @@ export const MileageApi = {
       signal,
       'expectedFuelSchema',
     ),
+  /**
+   * GET /api/mileage-rollup — the ONE fleet km/L rollup.
+   *
+   * The endpoint takes a window LENGTH (days), not a date pair, so the hub's
+   * calendar range is turned into the number of days it covers. The window the
+   * roll-up actually used comes back with it and is shown on the page.
+   */
+  rollup: (range, signal) =>
+    get(
+      '/api/mileage-rollup',
+      { days: rangeDays(range.from, range.to) },
+      signal,
+      'mileageRollupSchema',
+    ).then((body) => body?.data ?? body),
   pumpLedger: (range, signal) =>
     apiClient.get('/api/fuel-integrity/pump-ledger', { params: rangeToParams(range), signal }).then(
       (res) =>

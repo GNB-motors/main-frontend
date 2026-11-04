@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { CalendarClock, Plus, Search, ShieldCheck } from 'lucide-react';
+import { CalendarClock, ChevronDown, Plus, Search, ShieldCheck } from 'lucide-react';
 import { canEditSap } from '../Sap/sapModel';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import { getUserRole } from '../../utils/session';
@@ -16,6 +16,7 @@ import ManualTripDialog from './ManualTripDialog';
 import TripPlanDialog from './TripPlanDialog';
 import TripRangePicker from './TripRangePicker';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { useKnownEtas } from '../../hooks/useKnownEtas';
 import { tripDetailHref } from './tripWorkspace';
 import tripColumns from './tripColumns';
 import TripHistoryTab from './TripHistoryTab';
@@ -27,22 +28,26 @@ import './TripList.css';
 
 const TABS = [
   { key: '', label: 'All' },
-  { key: 'COMPLETE', label: 'Delivered' },
-  { key: 'OPEN', label: 'On the road' },
-  // A plant-to-plant run is normal: plants work like warehouses. It is its
-  // own tab so the owner can see those runs, not so they can worry about
-  // them (F8.1).
-  { key: 'REPOSITION', label: 'Plant to plant', leg: 'REPOSITION' },
+  { key: 'COMPLETE', label: 'Delivered', hideWhenEmpty: true },
+  { key: 'OPEN', label: 'On the road', hideWhenEmpty: true },
   // Only real questions belong here. If the backend still counts
   // PICKUP_TO_PICKUP in here, that is the backend's job (B4); we show what
   // it sends.
-  { key: 'NEEDS_REVIEW', label: 'Needs your answer' },
-  { key: 'PLANNED', label: 'Planned trips' },
+  { key: 'NEEDS_REVIEW', label: 'Needs your answer', hideWhenEmpty: true },
+  // A plant-to-plant run is normal: plants work like warehouses. It is its
+  // own tab so the owner can see those runs, not so they can worry about
+  // them (F8.1).
+  { key: 'REPOSITION', label: 'Plant to plant', leg: 'REPOSITION', hideWhenEmpty: true, inMore: true },
+  { key: 'PLANNED', label: 'Planned trips', hideWhenEmpty: true, inMore: true },
   // Only a person moves a trip here (Confirm trip / Not a real trip on the trip page),
   // so these stay hidden until someone has.
-  { key: 'CONFIRMED', label: 'Confirmed', hideWhenEmpty: true },
-  { key: 'DISMISSED', label: 'Rejected', hideWhenEmpty: true },
+  { key: 'CONFIRMED', label: 'Confirmed', hideWhenEmpty: true, inMore: true },
+  { key: 'DISMISSED', label: 'Rejected', hideWhenEmpty: true, inMore: true },
 ];
+
+/** Everything past the four primary tabs lives behind one "More" menu. */
+const MAIN_TABS = TABS.filter((t) => !t.inMore);
+const MORE_TABS = TABS.filter((t) => t.inMore);
 
 /** The two views that are not a filter on the trip list. */
 const VIEWS = [
@@ -154,12 +159,32 @@ export default function AutoTripsPage() {
   const totalPages = Math.max(1, Math.ceil(visibleTotal / PAGE_SIZE));
   const countFor = (key) =>
     key === 'PLANNED' ? (plans.data?.total ?? 0) : key === '' ? allCount : (tabCounts[key] ?? 0);
-  const tabs = TABS.filter((t) => !t.hideWhenEmpty || countFor(t.key) > 0 || statusTab === t.key);
+  const tabs = MAIN_TABS.filter(
+    (t) => !t.hideWhenEmpty || countFor(t.key) > 0 || statusTab === t.key,
+  );
+  const moreTabs = MORE_TABS.filter(
+    (t) => !t.hideWhenEmpty || countFor(t.key) > 0 || statusTab === t.key,
+  );
+  const activeMoreTab =
+    moreTabs.find((t) => statusTab === t.key) || VIEWS.find((v) => viewTab === v.key) || null;
+
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef(null);
+  useEffect(() => {
+    if (!moreOpen) return undefined;
+    const onDown = (e) => {
+      if (moreRef.current && !moreRef.current.contains(e.target)) setMoreOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [moreOpen]);
 
   const { isEnabled } = useFeatureFlags();
   // SAP is contract data: owners and managers of an org with SAP only.
   const showSap = canEditSap(getUserRole()) && isEnabled('sapV2');
-  const columns = tripColumns({ showSap, refetch, searchParams });
+  // Destinations we know, with the arrival band (refreshed every 5 min).
+  const knownEtas = useKnownEtas();
+  const columns = tripColumns({ showSap, refetch, searchParams, knownEtas });
 
   const changeTab = (key) => {
     const next = new URLSearchParams(searchParams);
@@ -231,18 +256,60 @@ export default function AutoTripsPage() {
                   <span className="atx-tab-count">{formatNum(countFor(t.key))}</span>
                 </button>
               ))}
-              {VIEWS.map((view) => (
-                <button
-                  key={view.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={viewTab === view.key}
-                  className="atx-tab"
-                  onClick={() => changeView(view.key)}
-                >
-                  {view.label}
-                </button>
-              ))}
+              {/* History and Questions always live here, so More is always shown. */}
+              {moreTabs.length > 0 || VIEWS.length > 0 ? (
+                <div className="atx-more" ref={moreRef}>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={Boolean(activeMoreTab)}
+                    aria-haspopup="menu"
+                    aria-expanded={moreOpen}
+                    className={`atx-tab atx-tab--more${activeMoreTab ? ' atx-tab--active-more' : ''}`}
+                    onClick={() => setMoreOpen((o) => !o)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') setMoreOpen(false);
+                    }}
+                  >
+                    {activeMoreTab ? activeMoreTab.label : 'More'}
+                    <ChevronDown size={13} aria-hidden="true" />
+                  </button>
+                  {moreOpen ? (
+                    <div className="atx-more-menu" role="menu">
+                      {moreTabs.map((t) => (
+                        <button
+                          key={t.key}
+                          type="button"
+                          role="menuitem"
+                          className={`atx-more-item${statusTab === t.key && !viewTab ? ' atx-more-item--active' : ''}`}
+                          onClick={() => {
+                            setMoreOpen(false);
+                            changeView('');
+                            changeTab(t.key);
+                          }}
+                        >
+                          {t.label}
+                          <span className="atx-tab-count">{formatNum(countFor(t.key))}</span>
+                        </button>
+                      ))}
+                      {VIEWS.map((view) => (
+                        <button
+                          key={view.key}
+                          type="button"
+                          role="menuitem"
+                          className={`atx-more-item${viewTab === view.key ? ' atx-more-item--active' : ''}`}
+                          onClick={() => {
+                            setMoreOpen(false);
+                            changeView(view.key);
+                          }}
+                        >
+                          {view.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
           <div className="atx-filter-row">

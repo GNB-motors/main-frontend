@@ -787,3 +787,37 @@
   padding: 1px 8px;
   white-space: nowrap;
 }
+
+/* ── Fleet km/L roll-up (Mileage → Mileage → Fleet) ─────────── */
+.mhub-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+/* The reason a figure is not there — never a dash on its own. */
+.mhub-reason {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.mhub-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mhub-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #475569;
+}

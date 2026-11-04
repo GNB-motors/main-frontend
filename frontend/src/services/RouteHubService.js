@@ -255,6 +255,28 @@ const RouteHubService = {
   /** Fleet utilization rollup — distance covered, vehicles active. */
   getUtilization: async (params = {}, signal) =>
     unwrap(await apiClient.get('/api/owner-value/utilization', { params, signal })),
+
+  /**
+   * The fleet's ₹ layer — theft, bill fraud, idling, detour, DEF and fuel waste
+   * for a window, with the top vehicles behind it.
+   */
+  getMoney: async (params = {}, signal) =>
+    unwrap(await apiClient.get('/api/owner-value/money', { params, signal })),
+
+  /**
+   * One trip's P&L estimate: revenue, the cost lines with the source of each,
+   * and the margin. A cost the API could not price comes back null, never 0.
+   */
+  getTripPnl: async (tripId, signal) =>
+    unwrap(await apiClient.get('/api/owner-value/trip-pnl', { params: { tripId }, signal })),
+
+  /** Recent trips from the trip register — the rows a trip P&L is computed for. */
+  getTrips: async ({ limit = 8 } = {}, signal) => {
+    const res = await apiClient.get('/api/trips', { params: { page: 1, limit }, signal });
+    const body = res.data?.data;
+    if (Array.isArray(body)) return body;
+    return Array.isArray(body?.trips) ? body.trips : [];
+  },
 };
 
 export default RouteHubService;

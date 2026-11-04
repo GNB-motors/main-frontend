@@ -6,6 +6,11 @@ import { formatAgoText } from './minutesAgoFormat.js';
 import VehicleLocation from './VehicleLocation.jsx';
 import { formatFuel } from '../../utils/liveView.js';
 import { modelLabel } from './vehiclePanelModel';
+import TrackLoadError from './TrackLoadError.jsx';
+import TrackIdlingChip from './TrackIdlingChip.jsx';
+import AlertBadge from './AlertBadge.jsx';
+import { plateKey } from './trackIdlingModel.js';
+import { formatKnownEtaLine, matchKnownEta } from '../../lib/knownEta';
 
 const SKEL_CARD_COUNT = 6;
 
@@ -18,7 +23,15 @@ export default function FleetListView({
   triggerMapResize,
   selectedId,
   setSelectedId,
+  error = null,
+  onRetry = null,
+  idlingByPlate = new Map(),
+  alertCounts = new Map(),
+  knownEtas = [],
 }) {
+  // A failed load is not an empty fleet. Say so instead of showing "0 vehicles".
+  const loadFailed = Boolean(error) && vehicles.length === 0;
+
   return (
     <div className="railview">
       <div className="fhead">
@@ -27,6 +40,8 @@ export default function FleetListView({
           <div className="fsub">
             {isLiveLoading ? (
               <Skel w={120} h={10} />
+            ) : loadFailed ? (
+              "Couldn't load your fleet"
             ) : vehicles.length === 0 ? (
               '0 vehicles · 0 live'
             ) : filteredVehicles.length === vehicles.length ? (
@@ -56,6 +71,8 @@ export default function FleetListView({
       <div className="flist" aria-busy={isLiveLoading}>
         {isLiveLoading ? (
           Array.from({ length: SKEL_CARD_COUNT }, (_, i) => <VehicleCardSkeleton key={i} />)
+        ) : loadFailed ? (
+          <TrackLoadError onRetry={onRetry} />
         ) : !filteredVehicles.length ? (
           <div className="fempty">
             {vehicles.length === 0
@@ -66,6 +83,7 @@ export default function FleetListView({
           filteredVehicles.map((v) => {
             const s = NOVA_STATUS[v.status] || NOVA_STATUS.offline;
             const isSel = v.id === selectedId;
+            const knownLine = formatKnownEtaLine(matchKnownEta(knownEtas, v.plate));
 
             return (
               <div
@@ -84,12 +102,17 @@ export default function FleetListView({
               >
                 <div className="vc-top">
                   <div className="vc-id">
-                    <div className="vc-plate">{v.plate}</div>
+                    <div className="vc-plate">
+                      {v.plate}
+                      <AlertBadge count={alertCounts.get(plateKey(v.plate)) || 0} />
+                    </div>
                     <div className="vc-vin">
                       {v.manufacturer || 'Manufacturer unknown'}
                       {modelLabel(v.model) ? ` · ${modelLabel(v.model)}` : ''}
                     </div>
                     <div className="vc-vin">VIN: {v.vin || '—'}</div>
+                    {knownLine ? <div className="vc-vin">{knownLine}</div> : null}
+                    <TrackIdlingChip minutes={idlingByPlate.get(plateKey(v.plate)) ?? null} />
                   </div>
                   <span className="vc-state">
                     <i />

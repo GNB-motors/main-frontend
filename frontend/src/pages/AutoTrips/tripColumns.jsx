@@ -11,21 +11,28 @@ import { REPOSITION_INFO } from './tripLegModel';
 import { dropLabel } from '../PlaceHub/intelligence/facilityText';
 import { fmtDayTime, fmtKm, fmtDuration, notReachedYet } from './autoTripFormat';
 import { tripDetailHref } from './tripWorkspace';
+import { formatKnownEtaLine, matchKnownEta } from '../../lib/knownEta';
 
-export default function tripColumns({ showSap, refetch, searchParams }) {
+export default function tripColumns({ showSap, refetch, searchParams, knownEtas = [] }) {
   return [
     {
       key: 'registrationNumber',
       width: 145,
       label: 'Truck',
       render: (r) => (
-        <Link
-          className="atx-vehicle-link"
-          to={tripDetailHref(r._id, searchParams)}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {r.registrationNumber || 'Trip'}
-        </Link>
+        <>
+          <Link
+            className="atx-vehicle-link"
+            to={tripDetailHref(r._id, searchParams)}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {r.registrationNumber || 'Trip'}
+          </Link>
+          {/* Only a truck still on the road has an arrival to quote. */}
+          {r.status === 'OPEN'
+            ? formatKnownEtaLine(matchKnownEta(knownEtas, r.registrationNumber))
+            : null}
+        </>
       ),
     },
     {

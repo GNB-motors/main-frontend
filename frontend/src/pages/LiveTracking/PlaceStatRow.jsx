@@ -9,9 +9,9 @@ import { formatDuration } from '../../utils/redesign/format';
  * dash, never as zero — a place we have no data for has no zero visits, it
  * has no answer.
  */
-export default function PlaceStatRow({ place, trucksHere = 0 }) {
-  const usualDwell = place?.usualDwellMin ?? null;
-  const visits = place?.visits ?? null;
+export default function PlaceStatRow({ stats, trucksHere = 0 }) {
+  const usualDwell = stats?.usualDwellMin ?? null;
+  const visits = stats?.visits ?? null;
 
   return (
     <div className="grid grid-cols-3 gap-2">

@@ -108,24 +108,6 @@ class TripService {
   }
 
   /**
-   * Get trip statistics
-   * @param {Object} params - Query parameters for date range
-   * @returns {Promise} API response with statistics
-   */
-  static async getTripStats(params = {}) {
-    try {
-      const queryParams = new URLSearchParams();
-      if (params.startDate) queryParams.append('startDate', params.startDate);
-      if (params.endDate) queryParams.append('endDate', params.endDate);
-
-      const response = await apiClient.get(`/api/trips/stats?${queryParams.toString()}`);
-      return response.data;
-    } catch (error) {
-      throw ApiError.from(error);
-    }
-  }
-
-  /**
    * Fetch list of drivers for trip creation
    * @param {Object} params - Query parameters
    * @param {number} params.limit - Number of drivers to fetch (default: 100)

@@ -70,8 +70,11 @@ describe('mergeByKey', () => {
     expect(current[1].speed).toBe(20);
   });
 
-  it('returns the incoming diff when the base is not an array', () => {
-    expect(mergeByKey(null, [{ reg: 'A' }], 'reg')).toEqual([{ reg: 'A' }]);
+  it('does not merge into a base that is not an array', () => {
+    // There is nothing to merge into yet: a diff must not become the whole
+    // fleet just because it arrived first.
+    expect(mergeByKey(null, [{ reg: 'A' }], 'reg')).toBeNull();
+    expect(mergeByKey({ reg: 'A' }, [{ reg: 'B' }], 'reg')).toEqual({ reg: 'A' });
   });
 });
 
