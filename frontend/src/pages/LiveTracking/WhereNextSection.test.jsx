@@ -52,6 +52,19 @@ describe('WhereNextSection', () => {
     );
   });
 
+  it('never shows a held guess in the header, and says why it is held', async () => {
+    getWhereNext.mockResolvedValue({
+      held: true,
+      destinations: [destination],
+      basis: { text: 'Last fix is not near any of this org\'s places.' },
+    });
+    render(<WhereNextSection registrationNumber="WB11J8562" />);
+    expect(await screen.findByText('Where next · not sure yet')).toBeInTheDocument();
+    expect(screen.queryByText(/Likely →/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    expect(await screen.findByText(/not near any of this org's places/)).toBeInTheDocument();
+  });
+
   it('prints the reason the API gave, in words', async () => {
     getWhereNext.mockResolvedValue({ destinations: [destination], basis: null, computedAt: null });
     render(<WhereNextSection registrationNumber="WB11L8862" />);

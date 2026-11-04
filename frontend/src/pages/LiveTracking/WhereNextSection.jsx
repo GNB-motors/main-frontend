@@ -37,11 +37,16 @@ export default function WhereNextSection({ registrationNumber, onSelectDestinati
   // no guess — means no section. A held answer is real, so it stays.
   if (!held && (loading || error || destinations.length === 0)) return null;
 
+  // A held answer never leaks its guess into the header, and an ETA already
+  // in the past is stale data, not a time to show.
+  const topEta = top?.eta?.at && new Date(top.eta.at).getTime() > Date.now() ? top.eta.at : null;
   const headerTitle = isOpen
     ? 'Where next'
-    : top
-      ? `Likely → ${top.place?.name ?? 'somewhere'} · ETA ${formatIst(top.eta?.at)}`
-      : 'Where next';
+    : held
+      ? 'Where next · not sure yet'
+      : top
+        ? `Likely → ${top.place?.name ?? 'somewhere'}${topEta ? ` · ETA ${formatIst(topEta)}` : ''}`
+        : 'Where next';
 
   return (
     <SectionCard
@@ -60,7 +65,7 @@ export default function WhereNextSection({ registrationNumber, onSelectDestinati
       }
     >
       {!isOpen ? null : held ? (
-        <HeldCard why={data.why ?? null} />
+        <HeldCard why={data.why ?? data.basis ?? null} />
       ) : (
         <div className="flex flex-col gap-2">
           {data?.basis?.text ? (
@@ -118,9 +123,12 @@ function DestinationRow({ destination, index, selected, onSelect }) {
 
       <span className="text-[12px] text-[var(--rd-ink-2)]">{destination.reason}</span>
 
-      {eta ? (
+      {eta?.at && new Date(eta.at).getTime() > Date.now() ? (
         <span className="text-[12px] text-[var(--rd-ink-2)]">
-          ETA {formatIst(eta.at)} ({formatIst(eta.earliestAt)} – {formatIst(eta.latestAt)})
+          ETA {formatIst(eta.at)}
+          {eta.earliestAt && eta.latestAt
+            ? ` (${formatIst(eta.earliestAt)} – ${formatIst(eta.latestAt)})`
+            : ''}
           {eta.driveMin != null ? ` · ${formatDuration(eta.driveMin)} drive` : ''}
           {eta.breakMin ? ` + ${formatDuration(eta.breakMin)} break` : ''}
         </span>
