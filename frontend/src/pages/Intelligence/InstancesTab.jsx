@@ -176,10 +176,6 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
             ),
         }
       : null,
-    // With no free-text column the numbers would drift apart across the
-    // full width; an empty last column takes the spare room instead. The
-    // 'actions' key keeps it out of the column menu.
-    templated ? { key: 'actions', label: '', width: '40%', render: () => null } : null,
   ].filter(Boolean);
 
   const caveat = CAVEATS[activeKind] ?? null;

@@ -47,6 +47,8 @@ describe('IssueGroup', () => {
     // The kind's own numbers, read from the issue.
     expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getByText('38 km/h')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'What we saw' })).toBeInTheDocument();
+    expect(screen.getByTitle(issue.detail)).toBeInTheDocument();
   });
 
   it('opens the evidence when the owner asks for it', () => {

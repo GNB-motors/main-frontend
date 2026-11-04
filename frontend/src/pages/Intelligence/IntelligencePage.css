@@ -463,6 +463,12 @@ button.intel-kpi-hit:focus-visible {
 .intel-table .intel-col-fill {
   width: auto;
 }
+.intel-issue-group .intel-table { table-layout: fixed; }
+.intel-issue-group .intel-table .intel-col-subject { width: 15%; }
+.intel-issue-group .intel-table .intel-col-measure { width: 11%; }
+.intel-issue-group .intel-table .intel-col-when { width: 13%; }
+.intel-issue-group .intel-table .intel-col-detail { width: auto; }
+.intel-issue-group .intel-table td.intel-col-detail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--rd-ink-2); }
 .intel-table .intel-col-chevron {
   width: 36px;
   padding-right: 0;
@@ -946,6 +952,7 @@ button.intel-kpi-hit:focus-visible {
   align-items: center;
   gap: 4px;
 }
+.intel-header .intel-insights { margin: 4px 0 0; }
 .intel-insight-hit {
   display: inline-flex;
   align-items: baseline;

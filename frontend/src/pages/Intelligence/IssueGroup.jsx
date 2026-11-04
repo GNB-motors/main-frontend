@@ -56,7 +56,6 @@ function IssueDetail({ issue, showAdvice }) {
       : null;
   return (
     <div className="intel-issue-detail">
-      <p className="intel-issue-detail-text">{issue?.detail}</p>
       {showAdvice && issue?.advice ? (
         <p className="intel-issue-detail-text">
           <span className="font-semibold text-[var(--rd-ink)]">What to do: </span>
@@ -111,11 +110,8 @@ export default function IssueGroup({ group }) {
   // A step with nowhere to go ("Check the tracker's power and SIM") is still
   // the step: it leads the advice instead of becoming a dead button.
   const step = group.sharedAction && !headerAction ? group.action?.label : null;
-  // With kind-specific columns the numbers sit together on the left and a
-  // filler column takes the spare width; with the detail as the column, the
-  // detail takes it.
-  const filler = columns.length > 0;
-  const colSpan = 4 + Math.max(columns.length, 1) + (group.mixedSeverity ? 1 : 0) + (filler ? 1 : 0);
+  // Keep the issue's own evidence visible after the measured columns.
+  const colSpan = 5 + columns.length + (group.mixedSeverity ? 1 : 0);
 
   const toggle = (id) =>
     setOpenIds((prev) => {
@@ -143,8 +139,7 @@ export default function IssueGroup({ group }) {
       {group.advice ? (
         <p className="intel-issue-advice">
           <span className="font-semibold text-[var(--rd-ink)]">What to do: </span>
-          {step ? <span className="font-semibold text-[var(--rd-ink)]">{`${step}. `}</span> : null}
-          {group.advice}
+          <span className="font-semibold text-[var(--rd-ink)]">{step ? `${step.replace(/[.!?]+$/, '')}.` : group.advice}</span>
         </p>
       ) : null}
 
@@ -168,9 +163,7 @@ export default function IssueGroup({ group }) {
                     {col.label}
                   </th>
                 ))
-              ) : (
-                <th scope="col">What we saw</th>
-              )}
+              ) : null}
               {group.mixedSeverity ? <th scope="col">Severity</th> : null}
               <th scope="col" className="intel-num intel-col-when">
                 {group.firstLabel ?? 'First seen'}
@@ -178,7 +171,7 @@ export default function IssueGroup({ group }) {
               <th scope="col" className="intel-num intel-col-when">
                 {group.lastLabel ?? 'Last seen'}
               </th>
-              {filler ? <th scope="col" aria-hidden="true" className="intel-col-fill" /> : null}
+              <th scope="col" className="intel-col-detail">What we saw</th>
             </tr>
           </thead>
           <tbody>
@@ -194,7 +187,6 @@ export default function IssueGroup({ group }) {
                   columns={columns}
                   mixedSeverity={group.mixedSeverity}
                   colSpan={colSpan}
-                  filler={filler}
                   showAdvice={!group.advice}
                   onToggle={() => toggle(issue.id)}
                 />
@@ -221,7 +213,6 @@ function IssueRows({
   columns,
   mixedSeverity,
   colSpan,
-  filler,
   showAdvice,
   onToggle,
 }) {
@@ -254,11 +245,7 @@ function IssueRows({
               {col.read(issue) ?? '—'}
             </td>
           ))
-        ) : (
-          <td className="intel-truncate" title={issue?.detail}>
-            {issue?.detail}
-          </td>
-        )}
+        ) : null}
         {mixedSeverity ? (
           <td>
             <ToneBadge tone={issue?.severity ?? 'info'} />
@@ -266,7 +253,7 @@ function IssueRows({
         ) : null}
         <td className="intel-num intel-when">{formatIst(issue?.firstSeenAt, { withDate: true })}</td>
         <td className="intel-num intel-when">{formatIst(issue?.lastSeenAt, { withDate: true })}</td>
-        {filler ? <td aria-hidden="true" /> : null}
+        <td className="intel-truncate intel-col-detail" title={issue?.detail}>{issue?.detail || '—'}</td>
       </tr>
       {open ? (
         <tr className="intel-row-detail">

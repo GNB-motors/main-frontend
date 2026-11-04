@@ -111,7 +111,7 @@ describe('IssuesTab', () => {
     expect(await screen.findByRole('heading', { name: 'No data' })).toBeInTheDocument();
     expect(screen.getByText('3 trucks')).toBeInTheDocument();
     expect(screen.getByText('silent for 4–27 days')).toBeInTheDocument();
-    expect(screen.getAllByText('Check that the tracker has power and the SIM is active.')).toHaveLength(1);
+    expect(screen.getAllByText('Check the tracker’s power and SIM.')).toHaveLength(1);
     expect(screen.getByText('27 days')).toBeInTheDocument();
     expect(screen.getByText('Last checked')).toBeInTheDocument();
   });

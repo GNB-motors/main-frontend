@@ -153,6 +153,7 @@ export default function IntelligencePage() {
             What your trucks and drivers did, and what needs you
             <span className="intel-subtitle-period">{periodRangeLabel(from, to)}</span>
           </p>
+          {summary?.tiles?.length && !summary?.held ? <IntelligenceSummaryTiles tiles={summary.tiles} onOpenTab={openTab} /> : null}
         </div>
 
         <div className="intel-header-controls">
@@ -183,9 +184,6 @@ export default function IntelligencePage() {
         vehicle={vehicle}
         onOpenTab={openTab}
       />
-      {summary?.tiles?.length && !summary?.held ? (
-        <IntelligenceSummaryTiles tiles={summary.tiles} onOpenTab={openTab} />
-      ) : null}
 
       <nav className="intel-sections" aria-label="Intelligence sections">
         <div role="tablist" aria-label="Intelligence sections" className="intel-section-list">
