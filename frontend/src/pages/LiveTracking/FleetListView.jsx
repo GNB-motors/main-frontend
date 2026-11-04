@@ -111,7 +111,7 @@ export default function FleetListView({
 
                 {/* Current location (real position) */}
                 <div className="vc-loc">
-                  <VehicleLocation vehicle={v} />
+                  <VehicleLocation vehicle={v} compact />
                 </div>
 
                 {/* Card Meta Footer */}
