@@ -13,7 +13,7 @@ export default function PlaceHubTableTab({ tab, tabs, version, isEnabled, onLear
   return (
     <section className="ph-insight" aria-label={tabs.find((t) => t.id === tab)?.label}>
       <PanelErrorBoundary name={`place-hub-${tab}`}>
-        {tab === 'duplicates' && isEnabled('placesHygiene') && (
+        {tab === 'duplicates' && (
           <Suspense fallback={<p>Loading review…</p>}>
             <DuplicatesTab version={version} onChanged={onLearned} />
           </Suspense>
