@@ -150,7 +150,9 @@ export default function PlacesTab({ from, to }) {
                       <td>
                         <span className="intel-cell-wrap">
                           {question?.why?.text ?? '—'}
-                          {question?.why?.basis ? (
+                          {/* "8 trips · 7 trucks" only repeats the two columns. */}
+                          {question?.why?.basis &&
+                          !/^\d+ trips?\s*·\s*\d+ trucks?$/.test(question.why.basis) ? (
                             <small className="intelligence-table-basis">{question.why.basis}</small>
                           ) : null}
                         </span>
