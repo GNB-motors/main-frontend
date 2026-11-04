@@ -31,6 +31,16 @@ const NOUNS = {
   gear: ['reading', 'readings'],
 };
 
+/** What the number of each kind is. */
+const VALUE_LABELS = {
+  idle: 'Idled',
+  overspeed: 'Speed',
+  detour: 'Off the usual road',
+  fuel_unexplained: 'Unaccounted',
+  cruise: 'Engine speed',
+  gear: 'Reading',
+};
+
 /** A caveat a kind's total needs, said once above the table. */
 const CAVEATS = {
   fuel_unexplained:
@@ -133,7 +143,7 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
       : null,
     {
       key: 'howMuch',
-      label: 'How much',
+      label: VALUE_LABELS[activeKind] ?? 'How much',
       align: 'right',
       render: (row) => (
         <span className="font-semibold tabular-nums" title={templated ? row?.text : undefined}>
