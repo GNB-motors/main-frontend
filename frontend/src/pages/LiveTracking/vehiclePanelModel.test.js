@@ -235,3 +235,8 @@ describe('trafficWord', () => {
     expect(trafficWord(null)).toBeNull();
   });
 });
+
+it('prefers the structured readings carried by the live row', () => {
+  const readings = { def: { pct: { value: 55 } }, fuel: { litres: { value: 120 } }, odometerKm: { value: 999 } };
+  expect(fallbackNow({ plate: 'WB1', readings, defLevel: null, odo: null }).readings).toMatchObject(readings);
+});

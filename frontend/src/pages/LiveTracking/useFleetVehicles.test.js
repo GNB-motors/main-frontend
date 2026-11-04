@@ -75,3 +75,9 @@ describe('Track telemetry mapping', () => {
     expect(result.current.manufacturers).toEqual(['Tata']);
   });
 });
+
+it('preserves structured provider readings on the selected row', () => {
+  const readings = { def: { pct: { value: 42 } }, odometerKm: { value: 9799 } };
+  const { result } = renderHook(() => useFleetVehicles({ rawPositions: [{ registrationNumber: 'WB11S1962', readings }], vehiclesMeta: {}, filter: 'all', searchQuery: '', selectedId: 'live-WB11S1962' }));
+  expect(result.current.selectedVehicle.readings).toEqual(readings);
+});

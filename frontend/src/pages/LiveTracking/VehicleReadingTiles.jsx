@@ -17,7 +17,7 @@ export default function VehicleReadingTiles({ now }) {
   const def = defTileValues(readings);
   const odo = readings.odometerKm ?? null;
   const service = now?.identity?.service ?? null;
-  const missing = [fuel.main === null ? 'Fuel' : null, def.main === null ? 'DEF' : null, odo?.value == null ? 'odometer' : null].filter(Boolean);
+
 
   return (
     <><div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-2">
@@ -39,7 +39,7 @@ export default function VehicleReadingTiles({ now }) {
             : fuel.main.kind === 'unitless'
               ? fuel.secondary
               : fuel.main.kind === 'litres'
-              ? readings.fuel.tankL != null && readings.fuel.pct?.value != null
+              ? readings.fuel.tankL != null && readings.fuel.pct?.value != null && readings.fuel.pct.value >= 0 && readings.fuel.pct.value <= 100 && Math.abs(readings.fuel.pct.value - (100 * fuel.main.value / readings.fuel.tankL)) <= 5
                 ? `of ${readings.fuel.tankL} L · ${formatPct(readings.fuel.pct.value)}`
                 : null
               : readings.fuel.tankL != null
@@ -81,7 +81,7 @@ export default function VehicleReadingTiles({ now }) {
         value={view.speedKmh == null ? 'Not received' : formatKmh(view.speedKmh)}
         reading={view.lastFixAt ? { freshness: view.freshness ?? 'never' } : null}
       />
-    </div>{missing.length ? <p className="m-0 text-[12px] text-[var(--rd-ink-3)]">{missing.join(', ')} {missing.length === 1 ? 'is' : 'are'} not sent by this truck’s tracker.</p> : null}</>
+    </div>{odo?.value == null ? <p className="m-0 text-[12px] text-[var(--rd-ink-3)]">Odometer: no reading yet</p> : null}</>
   );
 }
 
@@ -122,7 +122,10 @@ function Tile({ label, value, secondary = null, reading = null, info = null }) {
       {secondary ? (
         <span className="mt-0.5 text-[11px] text-[var(--rd-ink-3)]">{secondary}</span>
       ) : null}
-      {isMuted && at ? (
+      {label === 'Odometer' && at ? (
+        <span className="mt-0.5 text-[11px] text-[var(--rd-ink-3)]">as of {formatIst(at, { withDate: true })}</span>
+      ) : null}
+      {label !== 'Odometer' && isMuted && at ? (
         <span className="mt-0.5 text-[11px] text-[var(--rd-ink-3)]">last known {formatIst(at)}</span>
       ) : null}
       {isQuiet && reading?.ageMin != null ? (

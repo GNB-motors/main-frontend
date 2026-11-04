@@ -60,7 +60,7 @@ describe('VehicleReadingTiles', () => {
       },
     };
     render(<VehicleReadingTiles now={without} />);
-    expect(screen.getByText(/Fuel, DEF, odometer are not sent/)).toBeInTheDocument();
+    expect(screen.getByText(/Odometer: no reading yet/)).toBeInTheDocument();
     expect(screen.queryByText('0 L')).not.toBeInTheDocument();
   });
 
