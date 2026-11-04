@@ -4,11 +4,7 @@ import { ChevronLeft, ChevronRight, Route } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
 import PlaceName from '@/components/redesign/PlaceName';
 import DataTable from '@/components/ui/DataTable';
-import {
-  formatDuration,
-  formatInr,
-  formatNumber,
-} from '@/utils/redesign/format';
+import { formatDuration, formatInr, formatNumber } from '@/utils/redesign/format';
 import { useGoToLink } from '@/utils/redesign/links';
 import IntelligenceDataState from './IntelligenceDataState';
 import IntelligenceService from './IntelligenceService';
@@ -228,7 +224,11 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
               <span>in total</span>
             </div>
           ) : null}
-          {summary?.totalL !== null && summary?.totalL !== undefined ? (
+          {/* Fuel windows overlap (each loss sits in ~8 rolling windows), so their sum is
+              not a loss total: show no total rather than a number ~8x too big. */}
+          {activeKind !== 'fuel_unexplained' &&
+          summary?.totalL !== null &&
+          summary?.totalL !== undefined ? (
             <div className="intel-summary-stat">
               <b>{`${Math.round(Number(summary.totalL)).toLocaleString('en-IN')} L`}</b>
               <span>across all rows</span>
@@ -260,7 +260,8 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
           toolbarExtra={
             items.length ? (
               <span className="intelligence-scope-note">
-                {samePlace ? `Where: ${samePlace} (every row) · ` : ''}Click a row to open it on the map
+                {samePlace ? `Where: ${samePlace} (every row) · ` : ''}Click a row to open it on the
+                map
               </span>
             ) : null
           }

@@ -20,9 +20,10 @@ const coords = (point) =>
 /** A place's name, with what kind of place it is or where it is. */
 function PlaceCell({ name, category = null, point = null, extra = null }) {
   const kind = placeCategoryLabel(category);
-  const second = [kind, kind ? null : coords(point), extra].filter(Boolean).join(' · ');
+  // Raw coordinates mean nothing to an owner: they go in the tooltip, not the cell.
+  const second = [kind, extra].filter(Boolean).join(' · ');
   return (
-    <span className="intel-place">
+    <span className="intel-place" title={coords(point) ?? undefined}>
       <span className="intel-place-name">{name}</span>
       {second ? <span className="intel-place-meta">{second}</span> : null}
     </span>
@@ -228,7 +229,11 @@ export default function PlacesTab({ from, to }) {
             </table>
           </div>
           {places.length > TOP_PLACES ? (
-            <button type="button" className="intel-show-all" onClick={() => setAllPlaces((v) => !v)}>
+            <button
+              type="button"
+              className="intel-show-all"
+              onClick={() => setAllPlaces((v) => !v)}
+            >
               {allPlaces ? 'Show the top 12' : `Show all ${places.length} places`}
             </button>
           ) : null}
