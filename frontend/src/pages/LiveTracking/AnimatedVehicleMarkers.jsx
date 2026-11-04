@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useGoogleMap } from '@react-google-maps/api';
 import { compactVehicleIcon } from './compactVehicleIcon.js';
-import { MarkerClusterer } from '@googlemaps/markerclusterer';
+import { MarkerClusterer, SuperClusterAlgorithm } from '@googlemaps/markerclusterer';
+import { visibleVehicleLabels } from './labelCollision.js';
 import { createStatusClusterRenderer } from './statusClusterRenderer.js';
 
 /**
@@ -56,7 +57,7 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
   useEffect(() => {
     if (!map || !window.google) return undefined;
     const markers = markersRef.current;
-    const cluster = new MarkerClusterer({ map, markers: [], renderer: createStatusClusterRenderer(() => Boolean(selectedRef.current)) });
+    const cluster = new MarkerClusterer({ map, markers: [], algorithm: new SuperClusterAlgorithm({ radius: 30, maxZoom: 22 }), renderer: createStatusClusterRenderer(() => Boolean(selectedRef.current)) });
     clusterRef.current = cluster;
     return () => {
       cluster.setMap(null);
@@ -76,13 +77,19 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
     const g = window.google.maps;
     const markers = markersRef.current;
     const seen = new Set();
+    const projection = map.getProjection?.();
+    const labels = projection && mapZoom >= 17 ? visibleVehicleLabels(vehicles.filter(v => v.hasFix), selectedId, v => {
+      const point = projection.fromLatLngToPoint(new g.LatLng(Number(v.lat), Number(v.lng)));
+      return point ? { x: point.x * 2 ** mapZoom, y: point.y * 2 ** mapZoom } : null;
+    }) : new Set();
 
     for (const v of vehicles) {
       if (!v.hasFix || v.lat == null || v.lng == null) continue;
       seen.add(v.id);
       const target = { lat: Number(v.lat), lng: Number(v.lng) };
       const isSelected = v.id === selectedId;
-      const iconSig = `${v.status}|${v.courseDegrees ?? ''}|${isSelected}|${Math.round(mapZoom)}`;
+      const showLabel = labels.has(v.id);
+      const iconSig = `${v.status}|${v.courseDegrees ?? ''}|${isSelected}|${showLabel}`;
 
       let rec = markers.get(v.id);
       if (!rec) {
@@ -90,14 +97,18 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
           map,
           title: v.plate,
           position: target,
-          icon: compactVehicleIcon(v, isSelected, mapZoom >= 17),
+          icon: compactVehicleIcon(v, isSelected, showLabel),
           opacity: selectedId && !isSelected ? 0.4 : 1,
           zIndex: zIndexFor(v, isSelected),
         });
         marker.fleetStatus = v.status;
         marker.addListener('click', () => onSelectRef.current && onSelectRef.current(v.id));
+        marker.addListener('mouseover', () => { const current = markers.get(v.id); if (current) current.marker.setIcon(compactVehicleIcon(current.vehicle, current.vehicle.id === selectedRef.current, true)); });
+        marker.addListener('mouseout', () => { const current = markers.get(v.id); if (current) current.marker.setIcon(compactVehicleIcon(current.vehicle, current.vehicle.id === selectedRef.current, current.showLabel)); });
         markers.set(v.id, {
           marker,
+          vehicle: v,
+          showLabel,
           from: target,
           to: target,
           start: 0,
@@ -107,9 +118,11 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
         continue;
       }
 
+      rec.vehicle = v;
+      rec.showLabel = showLabel;
       rec.marker.fleetStatus = v.status;
       if (rec.iconSig !== iconSig) {
-        rec.marker.setIcon(compactVehicleIcon(v, isSelected, mapZoom >= 17));
+        rec.marker.setIcon(compactVehicleIcon(v, isSelected, showLabel));
         rec.marker.setZIndex(zIndexFor(v, isSelected));
         rec.iconSig = iconSig;
       }

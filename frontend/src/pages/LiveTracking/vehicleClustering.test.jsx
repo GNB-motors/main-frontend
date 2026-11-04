@@ -33,7 +33,7 @@ vi.mock('@react-google-maps/api', () => ({
     },
   },
 }));
-vi.mock('@googlemaps/markerclusterer', () => ({ MarkerClusterer: class { constructor() { this.members = []; state.clusters.push(this); } clearMarkers() { this.members = []; } addMarkers(items) { this.members.push(...items); } render() {} setMap() {} } }));
+vi.mock('@googlemaps/markerclusterer', () => ({ SuperClusterAlgorithm: class {}, MarkerClusterer: class { constructor() { this.members = []; state.clusters.push(this); } clearMarkers() { this.members = []; } addMarkers(items) { this.members.push(...items); } render() {} setMap() {} } }));
 import AnimatedVehicleMarkers from './AnimatedVehicleMarkers.jsx';
 import { createLiveClusterAlgorithm, createClusterRenderer } from './vehicleClustering.js';
 
