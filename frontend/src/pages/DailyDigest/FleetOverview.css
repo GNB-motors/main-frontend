@@ -1510,3 +1510,8 @@
 .fo-exception-row strong { text-align: right; }
 .fo-untracked { color: var(--rd-ink-3); font-size: 12px; }
 @media (max-width: 850px) { .fo-headline-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* New owner-report blocks share the panel's 22px inner gutter, like the morning brief. */
+.fo-owner > .fo-headline-tiles { margin: 16px 22px; }
+.fo-owner > .fo-exception-bars { margin: 0 22px 16px; }
+.fo-owner > .fo-untracked { margin: 0 22px 12px; }
+.fo-owner > .fo-report-details { margin: 0 22px 16px; }
