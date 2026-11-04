@@ -43,6 +43,18 @@ const LAYER_ICONS = {
 /** Where the legend remembers whether it is open. */
 const LEGEND_OPEN_KEY = 'track.legend.open';
 
+/** Where the legend remembers whether the place layers are folded open. */
+const PLACES_OPEN_KEY = 'track.legend.places';
+
+/**
+ * Whether the place layers start folded away. The owner decides once and the
+ * choice is remembered; the storage never throws (utils/session.js reads and
+ * writes inside a try/catch), so a locked-down browser only loses the memory.
+ */
+function readPlacesOpen() {
+  return getPref(PLACES_OPEN_KEY) === 'true';
+}
+
 /**
  * Whether the legend starts open. A remembered choice wins; with none, it is
  * open on a desktop and closed on a phone, where it would cover the map.
@@ -89,6 +101,9 @@ export default function TrackLegend({
   onRetry = null,
 }) {
   const [isOpen, setIsOpen] = useState(() => readLegendOpen());
+  // The place layers are many rows; they start folded away and the owner keeps
+  // that choice (the storage read/write never throws — utils/session.js).
+  const [placesOpen, setPlacesOpen] = useState(() => readPlacesOpen());
 
   const movingCount = statusRows.find((row) => row.key === 'moving')?.count ?? 0;
   const zoomedIn = Number(zoom) >= LAYER_MIN_ZOOM;
@@ -110,6 +125,13 @@ export default function TrackLegend({
   const toggleOpen = () => {
     setIsOpen((open) => {
       setPref(LEGEND_OPEN_KEY, String(!open));
+      return !open;
+    });
+  };
+
+  const togglePlaces = () => {
+    setPlacesOpen((open) => {
+      setPref(PLACES_OPEN_KEY, String(!open));
       return !open;
     });
   };
@@ -225,6 +247,9 @@ export default function TrackLegend({
                 text: 'The places on the map: your own plants and sidings, and the landmarks a driver needs.',
                 basis: null,
               }}
+              collapsible
+              open={placesOpen}
+              onToggle={togglePlaces}
             >
               {PLACE_LAYERS.map((layer) => {
                 const gated = layer.zoomGated && !zoomedIn;

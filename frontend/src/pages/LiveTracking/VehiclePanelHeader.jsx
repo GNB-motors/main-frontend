@@ -127,13 +127,11 @@ export default function VehiclePanelHeader({ now, account = null, onOpenAccount 
               ? `Last known position${view.ageMin != null ? ` · ${Math.round(view.ageMin)} min ago` : ''}`
               : 'No GPS position'}
         </span>
-        <span className="rounded-full border border-[var(--rd-line)] px-2 py-0.5 text-[11px] text-[var(--rd-ink-2)]">
-          {view.ignition === 'ON'
-            ? 'Engine on'
-            : view.ignition === 'OFF'
-              ? 'Engine off'
-              : 'Engine: not known'}
-        </span>
+        {view.ignition === 'ON' || view.ignition === 'OFF' ? (
+          <span className="rounded-full border border-[var(--rd-line)] px-2 py-0.5 text-[11px] text-[var(--rd-ink-2)]">
+            {view.ignition === 'ON' ? 'Engine on' : 'Engine off'}
+          </span>
+        ) : null}
       </div>
     </header>
   );

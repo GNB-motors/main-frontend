@@ -265,7 +265,7 @@ const VehiclesPage = () => {
                 retryMetadata={retryMetadata}
               />
             }
-            searchPlaceholder="Search registration or chassis number"
+            searchPlaceholder="Search reg. or chassis no."
           />
         }
         actions={

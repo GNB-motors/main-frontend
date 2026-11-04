@@ -376,6 +376,29 @@
   font-size: 14px;
 }
 
+.khata-erp-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid var(--ds-line);
+  border-radius: var(--ds-radius-md);
+  padding: 16px 20px;
+  background: var(--card);
+  color: var(--ds-ink3);
+}
+
+.khata-erp-note strong {
+  color: var(--ds-ink);
+  font-size: 13px;
+  display: block;
+}
+
+.khata-erp-note p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .khata-ledger .khata-dashboard-error p {
   margin: 4px 0 0;
   color: var(--ds-ink3);

@@ -26,7 +26,7 @@ import {
   TableRow,
   TableCell,
 } from '@/components/ui/table';
-import KhataLedgerService from '../KhataLedgerService';
+import KhataLedgerService, { ERP_DISABLED_MESSAGE, isErpDisabledError } from '../KhataLedgerService';
 import ErpTripDetailModal from './ErpTripDetailModal';
 import { useActiveBranch } from '../../../contexts/BranchContext';
 import logger from '../../../utils/logger.js';
@@ -52,11 +52,14 @@ const SORT_OPTIONS = [
 ];
 
 const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
-  const { branchId, activeBranch } = useActiveBranch();
+  const { activeBranch } = useActiveBranch();
   const [trips, setTrips] = useState([]);
   const [tripFinances, setTripFinances] = useState({});
   const [loading, setLoading] = useState(true);
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
+  // Organisations without ERP get a 404 on the trip endpoints — that is not
+  // "no trips yet", so it gets its own empty state.
+  const [erpDisabled, setErpDisabled] = useState(false);
 
   // Filters & Search
   const [searchInput, setSearchInput] = useState('');
@@ -81,12 +84,12 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
     async (page = 1) => {
       setLoading(true);
       try {
+        // The trip list accepts neither branchId nor driverId; the branch comes
+        // from the shared X-Branch-Id header and the driver filter is applied below.
         const params = { page, limit: 20 };
-        if (branchId) params.branchId = branchId;
         if (search) params.search = search;
         if (statusFilter) params.state = statusFilter;
         if (vehicleFilter) params.vehicleId = vehicleFilter;
-        if (driverFilter) params.driverId = driverFilter;
 
         const res = await KhataLedgerService.getErpTrips(params);
         const tripList = res.data || res.results || (Array.isArray(res) ? res : []);
@@ -112,14 +115,16 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
           }),
         );
         setTripFinances(finances);
+        setErpDisabled(false);
       } catch (err) {
         logger.error('Failed to load ERP Trips:', err);
         setTrips([]);
+        if (isErpDisabledError(err)) setErpDisabled(true);
       } finally {
         setLoading(false);
       }
     },
-    [branchId, search, statusFilter, vehicleFilter, driverFilter],
+    [search, statusFilter, vehicleFilter],
   );
 
   useEffect(() => {
@@ -162,6 +167,13 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
       result = result.filter((t) => t.revenue === 0);
     }
 
+    // The trip endpoint has no driver filter, so narrow the loaded page here.
+    if (driverFilter) {
+      result = result.filter(
+        (t) => String(t.driverId?._id || t.driverId) === String(driverFilter),
+      );
+    }
+
     // Sort
     result.sort((a, b) => {
       switch (sortBy) {
@@ -182,7 +194,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
     });
 
     return result;
-  }, [enrichedTrips, profitabilityFilter, sortBy]);
+  }, [enrichedTrips, profitabilityFilter, sortBy, driverFilter]);
 
   // Summary Metrics across loaded page
   const pageTotals = useMemo(() => {
@@ -251,21 +263,22 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
         items={[
           {
             label: 'Trip Revenue',
-            value: formatCurrency(pageTotals.totalRevenue),
-            sub: 'Sale bills for shown trips',
+            value: erpDisabled ? '—' : formatCurrency(pageTotals.totalRevenue),
+            sub: erpDisabled ? ERP_DISABLED_MESSAGE : 'Sale bills for shown trips',
           },
           {
             label: 'Trip Expenses',
-            value: formatCurrency(pageTotals.totalCost),
-            sub: 'Advances, fuel & hire costs',
+            value: erpDisabled ? '—' : formatCurrency(pageTotals.totalCost),
+            sub: erpDisabled ? ERP_DISABLED_MESSAGE : 'Advances, fuel & hire costs',
           },
           {
             label: 'Net Margin',
             icon: pageTotals.netProfit < 0 ? TrendingDown : TrendingUp,
-            value: formatCurrency(pageTotals.netProfit),
-            sub: 'Revenue minus costs',
-            status:
-              pageTotals.netProfit < 0
+            value: erpDisabled ? '—' : formatCurrency(pageTotals.netProfit),
+            sub: erpDisabled ? ERP_DISABLED_MESSAGE : 'Revenue minus costs',
+            status: erpDisabled
+              ? null
+              : pageTotals.netProfit < 0
                 ? 'Loss-making'
                 : pageTotals.netProfit > 0
                   ? 'Profitable'
@@ -275,8 +288,8 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
           },
           {
             label: 'Trip Health',
-            value: `${pageTotals.profitableCount} profitable`,
-            sub: `${processedTrips.length} trips loaded`,
+            value: erpDisabled ? '—' : `${pageTotals.profitableCount} profitable`,
+            sub: erpDisabled ? ERP_DISABLED_MESSAGE : `${processedTrips.length} trips loaded`,
             status: pageTotals.lossCount > 0 ? `${pageTotals.lossCount} loss-making` : null,
             tone: 'critical',
           },
@@ -447,6 +460,15 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
               {[...Array(6)].map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full rounded-lg" />
               ))}
+            </div>
+          ) : erpDisabled ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-16 text-center text-muted-foreground">
+              <Route size={42} className="opacity-30 text-indigo-600" />
+              <p className="text-base font-semibold text-gray-800">{ERP_DISABLED_MESSAGE}</p>
+              <p className="text-xs text-gray-500 max-w-sm">
+                Trip revenue, advances and margins will appear here once ERP is switched on for your
+                organisation.
+              </p>
             </div>
           ) : processedTrips.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-16 text-center text-muted-foreground">

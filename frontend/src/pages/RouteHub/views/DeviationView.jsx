@@ -140,8 +140,11 @@ export default function DeviationView({ params, toast, setBadge, go }) {
     {
       ic: 'rupee',
       l: 'Est. detour cost',
-      v: inr(summary?.openCostInr || 0),
-      s: 'estimated fuel and wear · open only',
+      v: inr(summary?.openCostInr),
+      s:
+        summary?.openCostInr == null
+          ? 'detour cost not estimated yet'
+          : 'estimated fuel and wear · open only',
       c: '#C2323A',
       tint: 'rgba(229,104,107,.14)',
       vc: '#C2323A',

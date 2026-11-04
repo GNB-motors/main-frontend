@@ -86,16 +86,22 @@ describe('TrackLegend', () => {
 
   it('tells the owner to zoom in before the landmark layers load', () => {
     renderLegend({ zoom: 7 });
+    const expand = screen.queryByRole('button', { name: 'Expand Places' });
+    if (expand) fireEvent.click(expand);
     expect(screen.getAllByText('Zoom in to see').length).toBeGreaterThan(0);
   });
 
   it('does not ask for a zoom when the map is close enough', () => {
     renderLegend({ zoom: 13 });
+    const expand = screen.queryByRole('button', { name: 'Expand Places' });
+    if (expand) fireEvent.click(expand);
     expect(screen.queryByText('Zoom in to see')).not.toBeInTheDocument();
   });
 
   it('says a layer is coming soon when the endpoint is not deployed', () => {
     renderLegend({ placesNotAvailable: true });
+    const expand = screen.queryByRole('button', { name: 'Expand Places' });
+    if (expand) fireEvent.click(expand);
     expect(screen.getAllByRole('button', { name: 'What is this?' }).length).toBeGreaterThan(0);
     const rows = screen.getAllByRole('button', { name: /Pumps/ });
     expect(rows[0]).toBeDisabled();

@@ -4,7 +4,7 @@ import renderIconSvg from './renderIconSvg.jsx';
 import { NOVA_STATUS } from './statusPalettes.js';
 import { formatAgoText } from './minutesAgoFormat.js';
 import VehicleLocation from './VehicleLocation.jsx';
-import { formatFuel } from '../../utils/liveView.js';
+import { formatFuelValue, fuelUnitTitle } from '../../utils/liveView.js';
 import { modelLabel } from './vehiclePanelModel';
 import TrackLoadError from './TrackLoadError.jsx';
 import TrackIdlingChip from './TrackIdlingChip.jsx';
@@ -110,7 +110,6 @@ export default function FleetListView({
                       {v.manufacturer || 'Manufacturer unknown'}
                       {modelLabel(v.model) ? ` · ${modelLabel(v.model)}` : ''}
                     </div>
-                    <div className="vc-vin">VIN: {v.vin || '—'}</div>
                     {knownLine ? <div className="vc-vin">{knownLine}</div> : null}
                     <TrackIdlingChip minutes={idlingByPlate.get(plateKey(v.plate)) ?? null} />
                   </div>
@@ -129,12 +128,20 @@ export default function FleetListView({
                 <div className="vc-meta">
                   <span>
                     {renderIconSvg('fuel', 13)}
-                    <b title={`Fuel ${formatFuel(v.fuelReading)}`}>{formatFuel(v.fuelReading)}</b>
+                    <b
+                      title={
+                        fuelUnitTitle(v.fuelReading) || `Fuel ${formatFuelValue(v.fuelReading)}`
+                      }
+                    >
+                      {formatFuelValue(v.fuelReading)}
+                    </b>
                   </span>
-                  <span>
-                    {renderIconSvg('zap', 13)}
-                    {v.ignition}
-                  </span>
+                  {v.ignition && v.ignition !== '—' ? (
+                    <span>
+                      {renderIconSvg('zap', 13)}
+                      {v.ignition}
+                    </span>
+                  ) : null}
                   <span>
                     {renderIconSvg('nav', 13)}
                     {v.gps}

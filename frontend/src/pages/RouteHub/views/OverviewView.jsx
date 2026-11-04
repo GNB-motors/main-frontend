@@ -88,20 +88,38 @@ export default function OverviewView({ go, toast, setBadge }) {
   // and margin/trips are a 30-day roll-up. Each card states its own period.
   const osHours = Math.min(hours, OS_MAX_HOURS);
 
+  // "No records" is never a zero. The profitability roll-up says when it has
+  // nothing to bill, and a failed endpoint is unknown too — both read "—".
+  const billedTripCount = profit?.totals?.billedTripCount ?? 0;
+  const noBilledTrips = profit == null || billedTripCount === 0;
+  const marginPct = profit?.totals?.marginPct ?? null;
+  const revenueInr = profit?.totals?.revenueInr ?? null;
+  const deviationCostKnown =
+    deviationSummary?.openCostInr != null ||
+    openDev.some((d) => d.estimatedExtraCostInr != null);
+  const deviationCostInr =
+    deviationSummary?.openCostInr ??
+    openDev.reduce((a, d) => a + (d.estimatedExtraCostInr || 0), 0);
+
   const kpis = [
     {
       accent: 1,
       ic: 'truck',
       l: 'Distance covered',
       v: distanceKm != null ? Math.round(distanceKm).toLocaleString('en-IN') : '—',
-      u: 'km',
-      s: `${activeVehicles} vehicles on ${routes.length} routes · last ${hours}h`,
+      u: distanceKm != null ? 'km' : '',
+      s:
+        routes.length === 0
+          ? `${activeVehicles} vehicles · no billed routes yet · last ${hours}h`
+          : `${activeVehicles} vehicles on ${routes.length} routes · last ${hours}h`,
     },
     {
       ic: 'split',
       l: 'Open deviations',
       v: deviationSummary?.open ?? openDev.length,
-      s: `${inr(deviationSummary?.openCostInr ?? openDev.reduce((a, d) => a + (d.estimatedExtraCostInr || 0), 0))} est. detour cost · currently open`,
+      s: deviationCostKnown
+        ? `${inr(deviationCostInr)} est. detour cost · currently open`
+        : 'Detour cost not estimated · currently open',
       c: '#C2323A',
       tint: 'rgba(229,104,107,.14)',
       vc: '#C2323A',
@@ -109,7 +127,7 @@ export default function OverviewView({ go, toast, setBadge }) {
     {
       ic: 'gauge',
       l: 'Sustained overspeed',
-      v: osTotals.eventCount ?? 0,
+      v: overspeed == null ? '—' : (osTotals.eventCount ?? 0),
       s: `over ${OS_THRESHOLD} km/h for ${OS_MIN_MIN}+ min · last ${osHours}h`,
       c: '#C56200',
       tint: 'rgba(240,170,72,.16)',
@@ -118,20 +136,26 @@ export default function OverviewView({ go, toast, setBadge }) {
     {
       ic: 'trend',
       l: 'Fleet net margin',
-      v: profit?.totals?.marginPct != null ? Number(profit.totals.marginPct).toFixed(1) : '—',
-      u: '%',
-      s: `target ${target}% · last 30 days`,
+      v: marginPct != null ? Number(marginPct).toFixed(1) : '—',
+      u: marginPct != null ? '%' : '',
+      s:
+        marginPct != null
+          ? `target ${target}% · last 30 days`
+          : noBilledTrips
+            ? 'No billed ERP trips yet'
+            : 'Margin not estimated yet',
       c: '#187A32',
       tint: 'rgba(37,186,76,.12)',
     },
     {
       ic: 'route',
       l: 'Trips this month',
-      v: profit?.totals?.tripCount ?? 0,
-      s:
-        profit?.totals?.revenueInr != null
-          ? `${inrK(profit.totals.revenueInr)} invoiced`
-          : 'no billing yet',
+      v: noBilledTrips ? '—' : (profit?.totals?.tripCount ?? 0),
+      s: noBilledTrips
+        ? 'No billed ERP trips yet'
+        : revenueInr != null
+          ? `${inrK(revenueInr)} invoiced`
+          : 'not invoiced yet',
       c: 'var(--nova-rage-600)',
       tint: 'var(--nova-rage-a10)',
     },
@@ -189,8 +213,19 @@ export default function OverviewView({ go, toast, setBadge }) {
           ),
       );
 
-      if (withPath.length) {
-        map.fitBounds(L.latLngBounds(withPath.flatMap((r) => r.path)), { padding: [40, 40] });
+      // The map frames what is actually plotted. With nothing plotted it sits
+      // over India instead of the whole of Asia.
+      const routePoints = withPath.flatMap((r) => r.path);
+      const speedPoints = (overspeed?.vehicles || []).flatMap((v) =>
+        (v.events || [])
+          .filter((e) => e.startLat != null && e.startLng != null)
+          .map((e) => [e.startLat, e.startLng]),
+      );
+      const plotted = routePoints.concat(speedPoints);
+      if (plotted.length) {
+        map.fitBounds(L.latLngBounds(plotted), { padding: [40, 40], maxZoom: 9 });
+      } else {
+        map.setView([22.5, 82], 5);
       }
     },
     [routes, overspeed, go],
@@ -200,7 +235,6 @@ export default function OverviewView({ go, toast, setBadge }) {
     <section className="view">
       <div className="phead">
         <div className="t">
-          <h2>Route hub</h2>
           <p>
             Every corridor, trip and exception across your fleet in the last 24 hours. Open any
             module for full detail.

@@ -1,12 +1,19 @@
 import { useMemo } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import useApi from '../../hooks/useApi';
 import { fleetViewService } from '../../services/fleetViewService';
 import DigestSkeleton from './components/DigestSkeleton';
 import {
   DASH,
   briefSections,
-  formatValue,
+  drillRoute,
+  drillTarget,
+  exceptionRows,
+  formatDayLabel,
+  formatFooterText,
+  formatMoney,
+  isToday,
   numberPairs,
   rowPairs,
   sectionFooter,
@@ -23,7 +30,9 @@ import {
  *   - a section is never missing: it is ok | empty | error, and it says which;
  *   - an unknown is "—" with the reason beside it, never a zero;
  *   - the good-driver and needs-attention lists are ALWAYS rendered — an empty
- *     one says "No one this time" instead of disappearing.
+ *     one says "No one this time" instead of disappearing;
+ *   - nothing developer-ish is printed: no drill codes, no raw keys, no ISO
+ *     timestamps, no empty boxes stretched over half a screen.
  */
 
 const STATE_LABEL = { ok: 'Measured', empty: 'Nothing yet', error: 'Failed' };
@@ -70,8 +79,8 @@ function MorningBriefCard({ brief$, day }) {
     <section className="fo-card fo-owner-brief">
       <p className="fo-card-title">Morning brief</p>
       <p className="fo-owner-brief-total">
-        <strong>{formatValue('totalRupees', brief?.totalRupees)}</strong>
-        <span> lost on {day}</span>
+        <strong>{formatMoney(brief?.totalRupees)}</strong>
+        <span> lost · {formatDayLabel(day)}</span>
       </p>
       {sections.length === 0 ? (
         <p className="fo-owner-note">Nothing was flagged for this day — no leak measured.</p>
@@ -90,16 +99,14 @@ function MorningBriefCard({ brief$, day }) {
                 )}
               </div>
               <div className="fo-owner-brief-amount">
-                {section.rupees == null ? DASH : `₹${section.rupees.toLocaleString('en-IN')}`}
+                {section.rupees == null ? DASH : formatMoney(section.rupees)}
               </div>
               {section.vehicles.length ? (
                 <ul className="fo-owner-brief-vehicles">
                   {section.vehicles.map((v) => (
                     <li key={v.registrationNumber}>
                       <span>{v.registrationNumber}</span>
-                      <span>
-                        {v.rupees == null ? DASH : `₹${v.rupees.toLocaleString('en-IN')}`}
-                      </span>
+                      <span>{v.rupees == null ? DASH : formatMoney(v.rupees)}</span>
                     </li>
                   ))}
                 </ul>
@@ -113,15 +120,26 @@ function MorningBriefCard({ brief$, day }) {
   );
 }
 
-function ReportSection({ section, onRetry }) {
+function ReportSection({ section, onRetry, isPendingDay }) {
   const state = sectionState(section);
-  const numbers = useMemo(() => numberPairs(section?.numbers), [section?.numbers]);
-  const rows = useMemo(() => rowPairs(section?.rows), [section?.rows]);
+  const numbers = useMemo(
+    () => numberPairs(section?.numbers, { isPendingDay }),
+    [section?.numbers, isPendingDay],
+  );
+  const isExceptions = section?.id === 'exceptions';
+  const rows = useMemo(
+    () => (isExceptions ? exceptionRows(section?.rows) : rowPairs(section?.rows)),
+    [isExceptions, section?.rows],
+  );
+  const route = drillRoute(drillTarget(section));
+  const title =
+    section?.id === 'yesterdaysWork' && isPendingDay ? 'Today so far' : sectionTitle(section);
+  const footer = formatFooterText(sectionFooter(section));
 
   return (
     <section className={`fo-card fo-owner-section fo-owner-section--${state}`}>
       <div className="fo-owner-section-head">
-        <p className="fo-card-title">{sectionTitle(section)}</p>
+        <p className="fo-card-title">{title}</p>
         <span className={`fo-badge fo-tone--${state === 'ok' ? 'good' : state === 'error' ? 'act' : 'info'}`}>
           {STATE_LABEL[state]}
         </span>
@@ -130,18 +148,13 @@ function ReportSection({ section, onRetry }) {
       {state === 'error' ? (
         <>
           <p className="fo-owner-error">
-            Couldn't load · <RetryButton onRetry={onRetry} />
+            Couldn&apos;t load · <RetryButton onRetry={onRetry} />
           </p>
           <p className="fo-owner-note">{section?.error || 'The section query failed.'}</p>
         </>
       ) : null}
 
-      {state === 'empty' ? (
-        <>
-          <p className="fo-owner-figure">{DASH}</p>
-          <p className="fo-owner-note">{sectionReason(section)}</p>
-        </>
-      ) : null}
+      {state === 'empty' ? <p className="fo-owner-note">{sectionReason(section)}</p> : null}
 
       {state === 'ok' ? (
         <>
@@ -149,15 +162,21 @@ function ReportSection({ section, onRetry }) {
             {numbers.map((pair) => (
               <div key={pair.key} className={pair.unknown ? 'is-unknown' : undefined}>
                 <dt>{pair.label}</dt>
-                <dd>{pair.value}</dd>
+                <dd>
+                  {pair.value}
+                  {pair.note ? <span className="fo-owner-kv-note">{pair.note}</span> : null}
+                </dd>
               </div>
             ))}
           </dl>
           {rows.length ? (
             <ul className="fo-owner-rows">
-              {rows.map((row, i) => (
-                <li key={`${row.label}-${i}`}>
+              {rows.map((row) => (
+                <li key={row.key}>
                   <span className="fo-owner-row-label">{row.label}</span>
+                  {row.count != null ? (
+                    <span className="fo-owner-row-count">{row.count}</span>
+                  ) : null}
                   {row.note ? <span className="fo-owner-note">{row.note}</span> : null}
                 </li>
               ))}
@@ -166,8 +185,20 @@ function ReportSection({ section, onRetry }) {
         </>
       ) : null}
 
-      {state !== 'error' && sectionFooter(section) ? (
-        <p className="fo-owner-footer">{sectionFooter(section)}</p>
+      {state !== 'error' ? (
+        <div className="fo-owner-foot">
+          {route ? (
+            <Link className="fo-owner-open" to={route}>
+              Open →
+            </Link>
+          ) : null}
+          {footer ? (
+            <details className="fo-owner-how">
+              <summary>How we know</summary>
+              <p className="fo-owner-note">{footer}</p>
+            </details>
+          ) : null}
+        </div>
       ) : null}
     </section>
   );
@@ -200,6 +231,7 @@ function SubjectList({ title, note, items }) {
 export default function OwnerReportPanel({ day, digest }) {
   const brief$ = useApi((signal) => fleetViewService.getMorningBrief({ date: day, signal }), [day]);
   const report$ = useApi((signal) => fleetViewService.getOwnerReport({ day, signal }), [day]);
+  const isPendingDay = useMemo(() => isToday(day), [day]);
 
   const sections = Array.isArray(report$.data?.sections) ? report$.data.sections : [];
   const goodDrivers = Array.isArray(digest?.goodDrivers) ? digest.goodDrivers : [];
@@ -212,8 +244,8 @@ export default function OwnerReportPanel({ day, digest }) {
           <div className="fo-eyebrow">Owner&apos;s report</div>
           <h2 id="fo-owner-title">Aaj ka hisaab</h2>
           <p>
-            Eight sections for {day}. Each one says whether it was measured, whether it was empty,
-            or whether it failed — never a silent zero.
+            Eight sections for {formatDayLabel(day)}. Each one says whether it was measured, whether
+            it was empty, or whether it failed — never a silent zero.
           </p>
         </div>
       </div>
@@ -246,6 +278,7 @@ export default function OwnerReportPanel({ day, digest }) {
               key={section?.id || section?.title}
               section={section}
               onRetry={report$.refetch}
+              isPendingDay={isPendingDay}
             />
           ))}
         </div>
