@@ -16,7 +16,7 @@
 
 /** The caption shown when we cannot draw the usual road. */
 export const NO_USUAL_ROAD_CAPTION =
-  'Usual road not drawn: fewer than 2 of your own trips used it.';
+  'Not judged — your trucks have used this road fewer than 2 times.';
 
 /** The layer order, bottom to top. */
 export const LAYER_ORDER = ['usualRoute', 'track', 'offRoute', 'exitRejoin'];
@@ -77,9 +77,9 @@ export function stopsDuringRows(stops) {
  */
 export function deviationDetailModel(detail, row = null) {
   const event = detail?.event || row || {};
-  const geometry = detail?.geometry ?? null;
+  const geometry = detail?.roadEngine?.geometry ?? detail?.geometry ?? null;
 
-  const usualRoute = Array.isArray(detail?.usualRoute) ? detail.usualRoute : null;
+  const usualRoute = detail?.roadEngine?.usualRoute ?? detail?.usualRoute ?? (detail?.corridor?.line?.map((p) => [p.lat, p.lng])) ?? null;
   const offRoute = Array.isArray(geometry?.offRoute) ? geometry.offRoute : null;
   const exitPoint = geometry?.exitPoint ?? null;
   const rejoinPoint = geometry?.rejoinPoint ?? null;
@@ -90,13 +90,13 @@ export function deviationDetailModel(detail, row = null) {
     exitPoint,
     rejoinPoint,
     hasUsualRoad: Array.isArray(usualRoute) && usualRoute.length > 1,
-    noUsualRoadCaption: usualRoute === null ? NO_USUAL_ROAD_CAPTION : null,
+    noUsualRoadCaption: detail && !(usualRoute?.length > 1) ? NO_USUAL_ROAD_CAPTION : null,
     exitAt: exitPoint?.at ?? event.startedAt ?? null,
     rejoinAt: rejoinPoint?.at ?? event.endedAt ?? null,
     trip: detail?.trip ?? null,
     header: tripHeader(detail?.trip),
-    replay: detail?.replay ?? null,
-    stopsDuring: stopsDuringRows(detail?.stopsDuring),
+    replay: detail?.roadEngine?.replay ?? detail?.replay ?? null,
+    stopsDuring: stopsDuringRows(detail?.roadEngine?.stopsDuring ?? detail?.stopsDuring),
     cost: costLabel(event.estimatedExtraCostInr),
     durationMin: event.durationMin ?? null,
     maxOffKm: event.maxOffKm ?? null,

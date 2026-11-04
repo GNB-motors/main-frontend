@@ -26,7 +26,9 @@ function LegPill({ trip }) {
   );
 }
 
-function StatusPill({ d }) {
+function StatusPill({ d, notJudged, checked }) {
+  if (notJudged) return <span className="pill" style={{ '--c': '#64748b', '--tint': 'rgba(100,116,139,.10)' }}>Not judged</span>;
+  if (!checked) return <span className="pill" style={{ '--c': '#64748b', '--tint': 'rgba(100,116,139,.10)' }}>Road not checked</span>;
   return isOpen(d) ? (
     <span className="pill" style={{ '--c': '#C56200', '--tint': 'rgba(240,170,72,.16)' }}>
       <Ico n="alert" s={11} />
@@ -55,7 +57,7 @@ function extraKnown(d) {
   return !(Number(d.extraKmEstimate) === 0 && Number(d.maxOffKm || 0) >= 1);
 }
 
-export default function DeviationFeed({ groups, selId, onSelect, first, error, pager }) {
+export default function DeviationFeed({ groups, selId, onSelect, first, error, pager, selectedNotJudged, selectedChecked }) {
   let body;
   if (groups.length) {
     body = groups.map((g) => (
@@ -112,7 +114,7 @@ export default function DeviationFeed({ groups, selId, onSelect, first, error, p
                   : '—'}
               </span>
             </span>
-            <StatusPill d={d} />
+            <StatusPill d={d} checked={d._id === selId && selectedChecked} notJudged={d._id === selId && selectedNotJudged} />
           </button>
         ))}
       </div>

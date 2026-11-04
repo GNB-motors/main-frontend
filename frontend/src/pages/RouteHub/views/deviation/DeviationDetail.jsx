@@ -71,6 +71,7 @@ export default function DeviationDetail({
   const model = deviationDetailModel(detail, row);
   const exitAt = model.exitAt;
   const rejoinAt = model.rejoinAt;
+  const timeline = timelineModel(detail, siblings);
 
   return (
     <div className="card detailmap">
@@ -87,7 +88,7 @@ export default function DeviationDetail({
           </span>
         </div>
         <span className="sp" />
-        {model.replay?.to ? (
+        {timeline?.outsideTrip ? null : model.replay?.to ? (
           <Link className="btn btn--sm" to={model.replay.to}>
             <Ico n="play" s={12} />
             See on map
@@ -142,25 +143,15 @@ export default function DeviationDetail({
             {detail?.corridor?.sampleCount ? ` (from ${detail.corridor.sampleCount} trips)` : ''}
             {detail?.corridor?.bandTruncated ? ' · band sampled' : ''}
           </span>
-          {trip ? (
-            <span>
-              <i style={{ background: '#828BAE' }} />
-              Empty
-            </span>
-          ) : null}
           <span>
-            <i style={{ background: '#2563eb' }} />
-            {trip ? 'Loaded' : 'Driven'}
-          </span>
-          <span>
-            <i style={{ background: '#dc2626' }} />
-            Off usual route
+            <i style={{ background: model.hasUsualRoad ? '#dc2626' : '#77818d' }} />
+            GPS points, not matched to roads
           </span>
         </div>
       </div>
 
       {detail ? (
-        <DeviationTimeline model={timelineModel(detail, siblings)} onSelect={onSelect} />
+        <DeviationTimeline model={timeline} onSelect={onSelect} />
       ) : (
         <div className="dev-tl">
           <Skel h={10} />
@@ -180,12 +171,9 @@ export default function DeviationDetail({
           k="Extra distance (est.)"
           v={event.extraKmEstimate != null ? `+${km(event.extraKmEstimate)}` : '—'}
         />
-        <Fact
-          k={`Extra cost (est., ${costBasisLabel(event)})`}
-          v={model.cost}
-          tone="#C2323A"
-        />
+        <Fact k={`Extra cost (est., ${costBasisLabel(event)})`} v={model.cost} />
       </div>
+      {event.extraKmEstimate == null || event.estimatedExtraCostInr == null ? <p className="muted" style={{ padding: '0 16px' }}>Extra distance and cost are unavailable because a comparable distance or cost is not measured.</p> : null}
 
       {/* Facts only: where it stopped while off the usual road, and for how
           long. No reason, no judgement - the owner decides. */}
@@ -211,7 +199,7 @@ export default function DeviationDetail({
         )}
       </div>
 
-      <DeviationReview key={event._id} event={event} busy={reviewBusy} onReview={onReview} />
+      {model.hasUsualRoad ? <DeviationReview key={event._id} event={event} busy={reviewBusy} onReview={onReview} /> : null}
     </div>
   );
 }

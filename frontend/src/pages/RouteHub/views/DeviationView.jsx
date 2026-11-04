@@ -140,14 +140,14 @@ export default function DeviationView({ params, toast, setBadge, go }) {
     {
       ic: 'rupee',
       l: 'Est. detour cost',
-      v: inr(summary?.openCostInr),
+      v: rows.some((r) => r.estimatedExtraCostInr > 0) ? inr(summary?.openCostInr) : '—',
       s:
-        summary?.openCostInr == null
+        !rows.some((r) => r.estimatedExtraCostInr > 0)
           ? 'detour cost not estimated yet'
           : 'estimated fuel and wear · open only',
       c: '#C2323A',
       tint: 'rgba(229,104,107,.14)',
-      vc: '#C2323A',
+      vc: rows.some((r) => r.estimatedExtraCostInr > 0) ? '#C2323A' : 'var(--fg-tertiary)',
     },
   ];
 
@@ -245,6 +245,8 @@ export default function DeviationView({ params, toast, setBadge, go }) {
 
       <div className="split">
         <DeviationFeed
+          selectedChecked={Boolean(detail.data)}
+          selectedNotJudged={Boolean(detail.data && !(detail.data.roadEngine?.usualRoute?.length > 1 || detail.data.usualRoute?.length > 1 || detail.data.corridor?.line?.length > 1))}
           groups={groups}
           selId={selectedId}
           onSelect={setSelId}
