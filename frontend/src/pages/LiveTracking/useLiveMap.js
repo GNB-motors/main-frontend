@@ -14,6 +14,7 @@ export default function useLiveMap({
   vehicles,
   selectedId,
   selectedVehicle,
+  suspendFollow = false,
   showToast,
   onMapClick,
 }) {
@@ -246,6 +247,7 @@ export default function useLiveMap({
     if (
       replayState.on ||
       isTrailVisible ||
+      suspendFollow ||
       !selectedVehicle ||
       !selectedVehicle.hasFix ||
       !mapRef.current
@@ -270,7 +272,7 @@ export default function useLiveMap({
       map.setCenter(center);
       map.setZoom(zoom);
     }
-  }, [selectedVehicle, replayState.on, isTrailVisible]);
+  }, [selectedVehicle, replayState.on, isTrailVisible, suspendFollow]);
 
   // Clearing the selection re-arms the gentle zoom, so re-picking the same
   // vehicle later zooms in again.

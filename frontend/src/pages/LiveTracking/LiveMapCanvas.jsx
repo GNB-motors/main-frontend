@@ -1,3 +1,4 @@
+import PassiveTrailLayer from './PassiveTrailLayer.jsx';
 import TrackTollLayers from './TrackTollLayers';
 import { useEffect, useMemo, useState } from 'react';
 import { GoogleMap, MarkerF, OverlayView, PolylineF } from '@react-google-maps/api';
@@ -77,6 +78,7 @@ export default function LiveMapCanvas({
   onPickRoute,
   draft = null,
   onDraftChange,
+  passiveTrail = null,
   whereNext = null,
   whereNextPosition = null,
 }) {
@@ -179,6 +181,7 @@ export default function LiveMapCanvas({
               on the congestion in the vehicle panel's ETA, which comes from
               our own road network, not from this layer. */}
           <TrafficLayer map={map} enabled={isTrafficOn} />
+          {!track && !replayState.on && !isTrailVisible ? <PassiveTrailLayer trail={passiveTrail} color={resolveMapColor(selectedStatusColor)} /> : null}
           {predictionLines(whereNext?.data, whereNext?.open, whereNextPosition).map(({ path, index, weak }) => (
             <PolylineF key={`where-next-${index}`} path={path} options={{
               strokeOpacity: 0,

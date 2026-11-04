@@ -1,3 +1,4 @@
+import usePassiveTrail from './usePassiveTrail.js';
 import { googleMapsLoaderOptions } from '../../utils/googleMapsLoader.js';
 import TrackTollStatus from './TrackTollStatus';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
@@ -175,6 +176,8 @@ const LiveTrackingPage = () => {
       return !prev;
     });
 
+  const passiveTrail = usePassiveTrail(selectedId, selectedVehicle?.plate, !isTrackMode);
+
   const {
     mapRef,
     mapZoom,
@@ -218,9 +221,25 @@ const LiveTrackingPage = () => {
     vehicles,
     selectedId,
     selectedVehicle,
+    suspendFollow: Boolean(passiveTrail),
     showToast,
     onMapClick: handleMapClick,
   });
+
+  const selectedVehicleForFit = useRef(selectedVehicle);
+  selectedVehicleForFit.current = selectedVehicle;
+  useEffect(() => {
+    if (!passiveTrail || !mapRef.current || !window.google?.maps?.LatLngBounds || replayState.on || isTrailVisible) return;
+    const bounds = new window.google.maps.LatLngBounds();
+    const points = [...passiveTrail.points];
+    const vehicle = selectedVehicleForFit.current;
+    if (vehicle?.hasFix) points.push({ lat: vehicle.lat, lng: vehicle.lng });
+    if (points.length < 2) return;
+    points.forEach(point => bounds.extend(point));
+    const panel = document.querySelector('.gnb-lt-page .rail');
+    const right = panel?.getBoundingClientRect().width || 0;
+    mapRef.current.fitBounds(bounds, { top: 70, bottom: 70, left: 70, right: right + 70 });
+  }, [passiveTrail, mapRef, replayState.on, isTrailVisible]);
 
   const selectedDriver = useSelectedDriver(selectedVehicle, vehiclesMeta, driverAssignments);
 
@@ -589,6 +608,7 @@ const LiveTrackingPage = () => {
           {/* Map Column */}
           <div className="mapcol">
             <LiveMapCanvas
+              passiveTrail={passiveTrail}
               whereNext={whereNext?.registrationNumber === activeVehicle?.plate && !isTrackMode && !replayState.on ? whereNext : null}
               whereNextPosition={activeVehicle}
               isLoaded={isLoaded}

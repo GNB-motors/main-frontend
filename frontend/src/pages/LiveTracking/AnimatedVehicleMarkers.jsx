@@ -46,6 +46,8 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
   // id -> { marker, from, to, start, dur, iconSig }
   const markersRef = useRef(new Map());
   const clusterRef = useRef(null);
+  const selectedRef = useRef(selectedId);
+  selectedRef.current = selectedId;
   // Keep click handler current without re-binding the per-marker listener.
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
@@ -54,7 +56,7 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
   useEffect(() => {
     if (!map || !window.google) return undefined;
     const markers = markersRef.current;
-    const cluster = new MarkerClusterer({ map, markers: [], renderer: createStatusClusterRenderer() });
+    const cluster = new MarkerClusterer({ map, markers: [], renderer: createStatusClusterRenderer(() => Boolean(selectedRef.current)) });
     clusterRef.current = cluster;
     return () => {
       cluster.setMap(null);
