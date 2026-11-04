@@ -3953,3 +3953,7 @@ html.dark .wx-icon .wx-star,
 .gnb-lt-page .lt-make-options { position: absolute; top: 100%; left: 0; z-index: 100; display: grid; min-width: 180px; padding: 6px; background: var(--rd-card); border: 1px solid var(--rd-line); border-radius: 8px; box-shadow: var(--rd-shadow-float); }
 .gnb-lt-page .lt-make-options button { text-align: left; border: 0; padding: 8px; background: transparent; color: var(--rd-ink); cursor: pointer; }
 .gnb-lt-page .lt-make-options button[aria-pressed="true"] { background: var(--rd-card-2); font-weight: 600; }
+
+.gnb-lt-page .lt-manufacturers { display: flex; gap: 6px; align-items: center; }
+
+.gnb-lt-page .lt-manufacturers .gnb-status-card--active { color: var(--fg-primary, #172033) !important; }

@@ -238,7 +238,10 @@ const LiveTrackingPage = () => {
     points.forEach(point => bounds.extend(point));
     const panel = document.querySelector('.gnb-lt-page .rail');
     const right = panel?.getBoundingClientRect().width || 0;
-    mapRef.current.fitBounds(bounds, { top: 70, bottom: 70, left: 70, right: right + 70 });
+    const mapBounds = mapRef.current.getDiv().getBoundingClientRect();
+    const overlays = document.querySelectorAll('.gnb-lt-page .ov-search, .gnb-lt-page .ov-legend');
+    const left = Math.max(70, ...Array.from(overlays, overlay => overlay.getBoundingClientRect().right - mapBounds.left + 20));
+    mapRef.current.fitBounds(bounds, { top: 70, bottom: 70, left, right: right + 70 });
   }, [passiveTrail, mapRef, replayState.on, isTrailVisible]);
 
   const selectedDriver = useSelectedDriver(selectedVehicle, vehiclesMeta, driverAssignments);
@@ -591,6 +594,7 @@ const LiveTrackingPage = () => {
           handleRefresh={handleRefresh}
           isRefreshing={isRefreshing}
           manufacturers={manufacturers}
+          manufacturerCounts={Object.fromEntries(manufacturers.map(name => [name, vehicles.filter(v => v.manufacturer === name).length]).concat([['Unclassified', vehicles.filter(v => !v.manufacturer).length]]))}
           selectedManufacturers={selectedManufacturers}
           setSelectedManufacturers={setSelectedManufacturers}
           lastEventAt={lastEventAt}
