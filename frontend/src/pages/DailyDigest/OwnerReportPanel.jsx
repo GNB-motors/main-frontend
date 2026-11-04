@@ -354,7 +354,7 @@ function TrucksCard({ groups, live, reconnect, accountsSummary }) {
             <div className="db-group">
               <p className="db-group-title">
                 <i className="db-dot db-dot--watch" />
-                <strong>{dark.length} dark</strong>
+                <strong>{dark.length} dark now</strong>
                 <span>{darkRange ? `silent ${darkRange}` : 'no recent signal'}</span>
               </p>
               <ul className="db-chips db-chips--tight">
@@ -396,6 +396,13 @@ function TrucksCard({ groups, live, reconnect, accountsSummary }) {
                     </Link>
                   </li>
                 ))}
+                {Number(stuckCount) > stuck.length ? (
+                  <li>
+                    <Link className="db-chip db-chip--more" to="/place-hub">
+                      +{count(Number(stuckCount) - stuck.length)} more
+                    </Link>
+                  </li>
+                ) : null}
               </ul>
             </div>
           ) : null}
@@ -668,6 +675,16 @@ function BriefingPanel({
         <div className="db-col">
           <MoneyLeakCard brief$={brief$} isPendingDay={isPendingDay} />
           <WaitingCard items={attention} pending={attentionPending} note={attentionNote} />
+          {untracked.length ? (
+            <p className="db-untracked">
+              Not tracked yet:{' '}
+              {untracked.map((s) => (s.id === 'moneyIn' ? 'Money in' : 'People')).join(', ')}
+              <InfoTip
+                text={untracked.map((s) => `${sectionTitle(s)}: ${sectionReason(s)}`).join(' · ')}
+                label="Why these are not tracked"
+              />
+            </p>
+          ) : null}
         </div>
         <div className="db-col">
           {report$.error ? (
@@ -694,17 +711,6 @@ function BriefingPanel({
           />
         </div>
       </div>
-
-      {untracked.length ? (
-        <p className="db-untracked">
-          Not tracked yet:{' '}
-          {untracked.map((s) => (s.id === 'moneyIn' ? 'Money in' : 'People')).join(', ')}
-          <InfoTip
-            text={untracked.map((s) => `${sectionTitle(s)}: ${sectionReason(s)}`).join(' · ')}
-            label="Why these are not tracked"
-          />
-        </p>
-      ) : null}
 
       {liveSection}
 
