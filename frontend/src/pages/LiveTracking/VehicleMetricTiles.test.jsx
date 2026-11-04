@@ -60,7 +60,8 @@ describe('VehicleReadingTiles', () => {
       },
     };
     render(<VehicleReadingTiles now={without} />);
-    expect(screen.getAllByText('Not received').length).toBe(3);
+    expect(screen.getByText(/Fuel, DEF, odometer are not sent/)).toBeInTheDocument();
+    expect(screen.queryByText('0 L')).not.toBeInTheDocument();
   });
 
   it('dates a stale value instead of showing it as live', () => {

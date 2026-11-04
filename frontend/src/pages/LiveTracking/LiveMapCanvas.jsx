@@ -13,8 +13,6 @@ import TrackIdlingLayer from './TrackIdlingLayer.jsx';
 import RouteLayer from '../PlaceHub/map/RouteLayer.jsx';
 import DraftLayer from '../PlaceHub/map/DraftLayer.jsx';
 import MapPlacesLayer from './MapPlacesLayer.jsx';
-import WeatherBubble from './WeatherBubble.jsx';
-import FleetWeatherMarkers from './FleetWeatherMarkers.jsx';
 import ReplayTruckMarker from './ReplayTruckMarker.jsx';
 import ReplayRouteLayer from './ReplayRouteLayer.jsx';
 import TrafficLayer from './TrafficLayer.jsx';
@@ -58,9 +56,6 @@ export default function LiveMapCanvas({
   habitualHalts,
   isHabitualHaltsVisible,
   segmentByTrip,
-  weather,
-  weatherBubblePosition,
-  fleetWeather,
   places = [],
   extraPlaces = [],
   selectedPlaceId = null,
@@ -241,6 +236,7 @@ export default function LiveMapCanvas({
 
           {!track && mapZoom >= 7 && routeLines.length ? (
             <RouteLayer
+              dimmed={Boolean(selectedId)}
               map={map}
               lines={routeLines}
               sites={routeSites}
@@ -276,19 +272,11 @@ export default function LiveMapCanvas({
           {/* Fleet weather — compact chips over UNselected trucks in adverse
               weather (rain/thunder/snow), zoom-gated so a wide view stays clean.
               Rendered before the selected bubble so that bubble sits on top. */}
-          <FleetWeatherMarkers
-            vehicles={fleetOnMap}
-            fleetWeather={fleetWeather}
-            selectedId={selectedId}
-          />
 
           {/* Weather — an animated condition bubble floating above the active
               truck: the selected vehicle live, or the moving marker during
               replay (then showing the trip's own hour). Provider credit travels
               with it; the full clickable attribution is in the detail panel. */}
-          {!track && weatherBubblePosition && weather && (
-            <WeatherBubble position={weatherBubblePosition} weather={weather} />
-          )}
 
           {/* Breadcrumb Trail — split per trip when the trail endpoint
               gave us trip ids, otherwise fall back to a single polyline.

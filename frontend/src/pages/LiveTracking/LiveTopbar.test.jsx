@@ -21,12 +21,9 @@ function Toolbar(props) {
   );
 }
 describe('tracking toolbar', () => {
-  it('supports future makes, combinations and returning to All', () => {
+  it('supports multiple makes and returning to all', () => {
     render(<Toolbar />);
-    expect(screen.getByRole('button', { name: 'All manufacturers' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    fireEvent.click(screen.getByText('All manufacturers', { selector: 'summary' }));
     fireEvent.click(screen.getByRole('button', { name: 'Volvo' }));
     fireEvent.click(screen.getByRole('button', { name: 'Tata' }));
     expect(screen.getByRole('button', { name: 'Volvo' })).toHaveAttribute('aria-pressed', 'true');

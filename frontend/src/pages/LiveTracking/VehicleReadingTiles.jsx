@@ -17,11 +17,12 @@ export default function VehicleReadingTiles({ now }) {
   const def = defTileValues(readings);
   const odo = readings.odometerKm ?? null;
   const service = now?.identity?.service ?? null;
+  const missing = [fuel.main === null ? 'Fuel' : null, def.main === null ? 'DEF' : null, odo?.value == null ? 'odometer' : null].filter(Boolean);
 
   return (
-    <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-2">
+    <><div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-2">
       {/* Fuel */}
-      <Tile
+      {fuel.main !== null ? <Tile
         label="Fuel"
         value={
           fuel.main === null
@@ -46,10 +47,10 @@ export default function VehicleReadingTiles({ now }) {
                 : null
         }
         reading={fuel.reading}
-      />
+      /> : null}
 
       {/* DEF */}
-      <Tile
+      {def.main !== null ? <Tile
         label="DEF"
         value={def.main === null ? 'Not received' : formatPct(def.main.value)}
         secondary={def.secondary}
@@ -62,17 +63,17 @@ export default function VehicleReadingTiles({ now }) {
               }
             : null
         }
-      />
+      /> : null}
 
       {/* Odometer */}
-      <Tile
+      {odo?.value != null ? <Tile
         label="Odometer"
         value={odo?.value == null ? 'Not received' : formatKm(odo.value)}
         secondary={
           service?.dueInKm != null ? `Service due in ${formatKm(service.dueInKm)}` : null
         }
         reading={odo}
-      />
+      /> : null}
 
       {/* Speed */}
       <Tile
@@ -80,7 +81,7 @@ export default function VehicleReadingTiles({ now }) {
         value={view.speedKmh == null ? 'Not received' : formatKmh(view.speedKmh)}
         reading={view.lastFixAt ? { freshness: view.freshness ?? 'never' } : null}
       />
-    </div>
+    </div>{missing.length ? <p className="m-0 text-[12px] text-[var(--rd-ink-3)]">{missing.join(', ')} {missing.length === 1 ? 'is' : 'are'} not sent by this truck’s tracker.</p> : null}</>
   );
 }
 

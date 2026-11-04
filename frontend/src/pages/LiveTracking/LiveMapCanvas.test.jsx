@@ -134,10 +134,8 @@ describe('Fleet markers while focused on one truck', () => {
   it('shows the whole fleet when nothing is selected', () => {
     expect(focusedMapVehicles(fleet, { selectedId: null, replayOn: false })).toEqual(fleet);
   });
-  it('shows only the selected truck when one is selected', () => {
-    expect(focusedMapVehicles(fleet, { selectedId: 'v2', replayOn: false })).toEqual([
-      { id: 'v2' },
-    ]);
+  it('keeps the fleet visible when a truck is selected', () => {
+    expect(focusedMapVehicles(fleet, { selectedId: 'v2', replayOn: false })).toEqual(fleet);
   });
   it('hides every live marker during Replay (the replay truck stands in)', () => {
     expect(focusedMapVehicles(fleet, { selectedId: 'v2', replayOn: true })).toEqual([]);

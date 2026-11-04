@@ -2,8 +2,7 @@
    it, so every other truck is hidden while one is selected. Replay hides them
    all too, because the replay marker is the truck at that point in history.
    With nothing selected, the whole fleet shows. */
-export default function focusedMapVehicles(mapVehicles, { selectedId, replayOn }) {
+export default function focusedMapVehicles(mapVehicles, { replayOn }) {
   if (replayOn) return [];
-  if (selectedId) return mapVehicles.filter((v) => v.id === selectedId);
   return mapVehicles;
 }

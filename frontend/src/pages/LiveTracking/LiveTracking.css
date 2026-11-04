@@ -3936,3 +3936,20 @@ html.dark .wx-icon .wx-star,
   white-space: nowrap;
   transform: translateY(-38px);
 }
+.gnb-lt-page .lt-toolbar { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 16px; }
+.gnb-lt-page .lt-command-row, .gnb-lt-page .lt-status-row { display: contents; }
+.gnb-lt-page .gnb-status-bar { order: 0; }
+.gnb-lt-page .lt-manufacturers { order: 1; }
+.gnb-lt-page .lt-toolbar .tools { order: 2; margin-left: auto; }
+.gnb-lt-page .lt-map-count { display: none; }
+.gnb-lt-page .flist { gap: 0; }
+.gnb-lt-page .vcard { border-radius: 0; padding: 8px 12px; min-height: 56px; }
+.gnb-lt-page .vc-top { align-items: center; }
+.gnb-lt-page .vc-loc { margin-top: 2px; }
+.gnb-lt-page .vc-meta { margin-top: 2px; padding-top: 0; border: 0; }
+
+.gnb-lt-page .lt-make-menu { position: relative; font-size: 13px; }
+.gnb-lt-page .lt-make-menu summary { cursor: pointer; border: 1px solid var(--rd-line); border-radius: 7px; padding: 9px 12px; white-space: nowrap; }
+.gnb-lt-page .lt-make-options { position: absolute; top: 100%; left: 0; z-index: 100; display: grid; min-width: 180px; padding: 6px; background: var(--rd-card); border: 1px solid var(--rd-line); border-radius: 8px; box-shadow: var(--rd-shadow-float); }
+.gnb-lt-page .lt-make-options button { text-align: left; border: 0; padding: 8px; background: transparent; color: var(--rd-ink); cursor: pointer; }
+.gnb-lt-page .lt-make-options button[aria-pressed="true"] { background: var(--rd-card-2); font-weight: 600; }

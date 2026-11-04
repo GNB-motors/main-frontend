@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useGoogleMap } from '@react-google-maps/api';
-import { createVehicleMarkerIcon } from './vehicleMarkerIcon.js';
+import { compactVehicleIcon } from './compactVehicleIcon.js';
+import { MarkerClusterer } from '@googlemaps/markerclusterer';
 
 /**
  * AnimatedVehicleMarkers — the moving fleet layer for Live Tracking.
@@ -43,6 +44,7 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
   const map = useGoogleMap();
   // id -> { marker, from, to, start, dur, iconSig }
   const markersRef = useRef(new Map());
+  const clusterRef = useRef(null);
   // Keep click handler current without re-binding the per-marker listener.
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
@@ -51,7 +53,24 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
   useEffect(() => {
     if (!map || !window.google) return undefined;
     const markers = markersRef.current;
+    const renderer = {
+      render: ({ count, position }) => new window.google.maps.Marker({
+        position,
+        label: { text: String(count), color: '#253b5c', fontSize: '12px', fontWeight: '700' },
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          fillColor: '#ffffff', fillOpacity: 0.95,
+          strokeColor: '#6683a5', strokeOpacity: 0.9, strokeWeight: 2,
+          scale: Math.min(23, 13 + Math.log2(count) * 1.5),
+        },
+        zIndex: 600,
+      }),
+    };
+    const cluster = new MarkerClusterer({ map, markers: [], renderer });
+    clusterRef.current = cluster;
     return () => {
+      cluster.setMap(null);
+      clusterRef.current = null;
       for (const rec of markers.values()) {
         window.google.maps.event.clearInstanceListeners(rec.marker);
         rec.marker.setMap(null);
@@ -81,7 +100,8 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
           map,
           title: v.plate,
           position: target,
-          icon: createVehicleMarkerIcon(v, isSelected, false, mapZoom),
+          icon: compactVehicleIcon(v, isSelected, mapZoom >= 17),
+          opacity: selectedId && !isSelected ? 0.4 : 1,
           zIndex: zIndexFor(v, isSelected),
         });
         marker.addListener('click', () => onSelectRef.current && onSelectRef.current(v.id));
@@ -97,10 +117,11 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
       }
 
       if (rec.iconSig !== iconSig) {
-        rec.marker.setIcon(createVehicleMarkerIcon(v, isSelected, false, mapZoom));
+        rec.marker.setIcon(compactVehicleIcon(v, isSelected, mapZoom >= 17));
         rec.marker.setZIndex(zIndexFor(v, isSelected));
         rec.iconSig = iconSig;
       }
+      rec.marker.setOpacity(selectedId && !isSelected ? 0.4 : 1);
 
       if (rec.to.lat !== target.lat || rec.to.lng !== target.lng) {
         const pos = rec.marker.getPosition();
@@ -125,6 +146,12 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
         rec.marker.setMap(null);
         markers.delete(id);
       }
+    }
+    if (clusterRef.current) {
+      clusterRef.current.clearMarkers(true);
+      clusterRef.current.addMarkers([...markers].filter(([id]) => id !== selectedId).map(([, rec]) => rec.marker), true);
+      clusterRef.current.render();
+      if (selectedId && markers.has(selectedId)) markers.get(selectedId).marker.setMap(map);
     }
   }, [map, vehicles, selectedId, mapZoom]);
 

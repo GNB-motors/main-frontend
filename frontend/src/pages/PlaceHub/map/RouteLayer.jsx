@@ -37,6 +37,7 @@ export default function RouteLayer({
   showEngine,
   zoom,
   neutral = false,
+  dimmed = false,
 }) {
   const objects = useRef([]);
   const callbacks = useRef({ onPick, onHover, onSite });
@@ -52,7 +53,7 @@ export default function RouteLayer({
     const listeners = [];
     for (const line of lines.filter((l) => !l.legs[0].inPlant)) {
       const color = neutral ? (isDark ? '#cbd5e1' : '#475569') : routeColor(line.runs, isDark);
-      const width = routeWidth(line.runs, max);
+      const width = neutral ? Math.min(3, Math.max(1, 1 + (line.runs / max) * 2)) : routeWidth(line.runs, max);
       for (const path of line.segments) {
         const casing = new window.google.maps.Polyline({
           map,
@@ -121,7 +122,7 @@ export default function RouteLayer({
       const selected = obj.line.legs.some((l) => String(l._id) === selectedId);
       const hovered = obj.line.legs.some((l) => String(l._id) === hoveredId);
       // Track (neutral) draws lanes as a quiet backdrop; hover brings one forward.
-      const rest = neutral ? (hoveredId ? 0.2 : 0.35) : 0.75;
+      const rest = neutral ? (dimmed ? 0.12 : hoveredId ? 0.2 : 0.35) : 0.75;
       const opacity = selected || hovered ? 1 : selectedId ? 0.15 : rest;
       const icons = pattern(obj.line.source, obj.color).map((i) => ({
         ...i,
@@ -135,7 +136,7 @@ export default function RouteLayer({
       obj.casing.setOptions({ strokeOpacity: selected ? 1 : 0 });
       obj.hit.setOptions({ zIndex: selected ? 10005 : hovered ? 9001 : obj.line.runs + 1 });
     }
-  }, [selectedId, hoveredId, lines, isDark, neutral]);
+  }, [selectedId, hoveredId, lines, isDark, neutral, dimmed]);
 
   useEffect(() => {
     // Track has its own places layer; end-point dots and in-plant counts here only add stray digits.

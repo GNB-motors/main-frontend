@@ -60,11 +60,7 @@ function readPlacesOpen() {
  * open on a desktop and closed on a phone, where it would cover the map.
  */
 function readLegendOpen() {
-  const stored = getPref(LEGEND_OPEN_KEY);
-  if (stored === 'true') return true;
-  if (stored === 'false') return false;
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true;
-  return !window.matchMedia('(max-width: 780px)').matches;
+  return false;
 }
 
 /**
@@ -167,8 +163,7 @@ export default function TrackLegend({
                 aria-hidden="true"
                 style={{ color: placeLayerColor('ourPlaces') }}
               />
-              <span className="text-[var(--rd-ink-2)] ov-legend-word">Places</span>
-              <span className="ml-auto text-[var(--rd-ink-3)]">Layers</span>
+              <span className="text-[var(--rd-ink-2)] ov-legend-word">Layers</span>
             </>
           )}
           <ChevronUp size={15} aria-hidden="true" />
@@ -253,7 +248,6 @@ export default function TrackLegend({
               onToggle={togglePlaces}
             >
               {PLACE_LAYERS.map((layer) => {
-                const gated = layer.zoomGated && !zoomedIn;
                 const Icon = LAYER_ICONS[layer.icon] || Factory;
                 return (
                   <LegendToggle
@@ -263,9 +257,7 @@ export default function TrackLegend({
                     color={placeLayerColor(layer.id)}
                     on={Boolean(layerSelection[layer.id])}
                     disabled={placesNotAvailable}
-                    disabledReason={
-                      placesNotAvailable ? 'Coming soon' : gated ? 'Zoom in to see' : null
-                    }
+                    disabledReason={placesNotAvailable ? 'Coming soon' : null}
                     onToggle={() => onToggleLayer(layer.id)}
                     info={
                       placesNotAvailable ? (
@@ -279,6 +271,7 @@ export default function TrackLegend({
                   />
                 );
               })}
+              {!zoomedIn && placesOpen ? <p className="m-0 px-1 pt-1 text-[12px] text-[var(--rd-ink-3)]">Zoom in to see nearby places.</p> : null}
               {placesTruncated ? (
                 <p className="m-0 px-1 pt-1 text-[11px] text-[var(--rd-ink-3)]">
                   Showing {placesCount.toLocaleString('en-IN')} · zoom in for all

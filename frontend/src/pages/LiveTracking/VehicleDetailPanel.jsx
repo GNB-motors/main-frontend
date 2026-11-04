@@ -16,7 +16,6 @@ import TrackIdlingChip from './TrackIdlingChip.jsx';
 import DestinationIntentSection from './DestinationIntentSection.jsx';
 import KnownDestinationSection from './KnownDestinationSection.jsx';
 import { formatKnownEtaLine, matchKnownEta } from '../../lib/knownEta';
-import AddHere from '../PlaceHub/drawer/AddHere.jsx';
 import { Link } from 'react-router-dom';
 import { fallbackNow } from './vehiclePanelModel';
 
@@ -51,8 +50,6 @@ export default function VehicleDetailPanel({
   vehicleAlerts = [],
   showIntent = false,
   knownEtas = [],
-  canEditPlaces = false,
-  onAddAtSpot = null,
   onWhereNext = null,
 }) {
   const reg = selectedVehicle?.plate ?? null;
@@ -136,15 +133,6 @@ export default function VehicleDetailPanel({
                   Open the alert inbox →
                 </Link>
               </section>
-            ) : null}
-
-            {canEditPlaces && onAddAtSpot && Number.isFinite(selectedVehicle?.lat) ? (
-              <AddHere
-                canEdit={canEditPlaces}
-                onAdd={onAddAtSpot}
-                center={{ lat: selectedVehicle.lat, lng: selectedVehicle.lng }}
-                name={reg}
-              />
             ) : null}
 
             <VehicleDriverSection driver={now?.driver ?? null} />

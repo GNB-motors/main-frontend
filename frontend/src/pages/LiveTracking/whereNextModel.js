@@ -20,6 +20,7 @@ export function heldReason(data) {
   if (/last fix.*is not near any of this org.s places/i.test(basis)) {
     return 'On the road between places — we’ll guess once it reaches or leaves a known place';
   }
+  if (data?.heldWhy) return 'Learning this truck’s routes';
   return data?.why?.text || data?.heldWhy?.text || basis || data?.noPredictionWhy?.text || 'Not enough information to guess yet.';
 }
 

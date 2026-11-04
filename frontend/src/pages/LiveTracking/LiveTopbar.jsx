@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import LiveClock from './LiveClock.jsx';
 import Skel from './Skel.jsx';
 import renderIconSvg from './renderIconSvg.jsx';
-import { toggleManufacturer } from './manufacturerFilters.js';
 
 function UpdateAge({ at }) {
   const [now, setNow] = useState(Date.now());
@@ -48,39 +47,15 @@ export default function LiveTopbar({
     <div className="topbar lt-toolbar">
       <div className="lt-command-row">
         <div className="lt-manufacturers" role="group" aria-label="Manufacturer filters">
-          <button
-            type="button"
-            className="lt-make"
-            aria-pressed={!selectedManufacturers.length}
-            onClick={() => setSelectedManufacturers([])}
-          >
-            All manufacturers
-          </button>
-          {manufacturers.map((name) => (
-            <button
-              key={name}
-              type="button"
-              className="lt-make"
-              aria-pressed={selectedManufacturers.includes(name)}
-              onClick={() =>
-                setSelectedManufacturers(toggleManufacturer(selectedManufacturers, name))
-              }
-            >
-              {name}
-            </button>
-          ))}
-          {unclassifiedCount > 0 && (
-            <button
-              type="button"
-              className="lt-make"
-              aria-pressed={selectedManufacturers.includes('Unclassified')}
-              onClick={() =>
-                setSelectedManufacturers(toggleManufacturer(selectedManufacturers, 'Unclassified'))
-              }
-            >
-              Unclassified · {unclassifiedCount}
-            </button>
-          )}
+          <details className="lt-make-menu">
+            <summary>{selectedManufacturers.length ? selectedManufacturers.join(', ') : 'All manufacturers'}</summary>
+            <div className="lt-make-options">
+              <button type="button" aria-pressed={!selectedManufacturers.length} onClick={() => setSelectedManufacturers([])}>All manufacturers</button>
+              {[...manufacturers, ...(unclassifiedCount > 0 ? ['Unclassified'] : [])].map((name) => (
+                <button key={name} type="button" aria-pressed={selectedManufacturers.includes(name)} onClick={() => setSelectedManufacturers(selectedManufacturers.includes(name) ? selectedManufacturers.filter((item) => item !== name) : [...selectedManufacturers, name])}>{name}</button>
+              ))}
+            </div>
+          </details>
         </div>
         <div className="tools">
           <span className="clockchip">

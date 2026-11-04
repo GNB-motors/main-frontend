@@ -31,6 +31,7 @@ function renderLegend(overrides = {}) {
     ...overrides,
   };
   render(<TrackLegend {...props} />);
+  if (!overrides.closed) fireEvent.click(screen.getByRole('button', { name: /moving|Layers/ }));
   return props;
 }
 
@@ -88,7 +89,7 @@ describe('TrackLegend', () => {
     renderLegend({ zoom: 7 });
     const expand = screen.queryByRole('button', { name: 'Expand Places' });
     if (expand) fireEvent.click(expand);
-    expect(screen.getAllByText('Zoom in to see').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Zoom in to see nearby places.').length).toBeGreaterThan(0);
   });
 
   it('does not ask for a zoom when the map is close enough', () => {
@@ -121,7 +122,7 @@ describe('TrackLegend', () => {
 
   it('shows the real moving count on the collapsed pill, not zero', () => {
     localStorage.setItem('track.legend.open', 'false');
-    renderLegend();
+    renderLegend({ closed: true });
     expect(screen.getByRole('button', { name: /20\s*moving/ })).toBeInTheDocument();
   });
 
@@ -137,8 +138,8 @@ describe('TrackLegend', () => {
 
   it('collapses to a Places pill, not a moving count, in Places-only mode', () => {
     localStorage.setItem('track.legend.open', 'false');
-    renderLegend({ statusRows: [], makeRows: [] });
-    const pill = screen.getByRole('button', { name: /Places/ });
+    renderLegend({ statusRows: [], makeRows: [], closed: true });
+    const pill = screen.getByRole('button', { name: /Layers/ });
     expect(pill).toBeInTheDocument();
     expect(pill).not.toHaveTextContent('moving');
   });

@@ -18,7 +18,6 @@ import LiveTopbar from './LiveTopbar.jsx';
 import useStatusCards from './useStatusCards.js';
 import LiveMapCanvas from './LiveMapCanvas.jsx';
 import MapOverlayControls from './MapOverlayControls.jsx';
-import TelemetryTicker from './TelemetryTicker.jsx';
 import FleetListView from './FleetListView.jsx';
 import VehicleDetailPanel from './VehicleDetailPanel.jsx';
 import { useKnownEtas } from '../../hooks/useKnownEtas';
@@ -129,6 +128,7 @@ const LiveTrackingPage = () => {
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
     libraries: GOOGLE_MAPS_LIBRARIES,
+    language: 'en',
   });
 
   const searchInputRef = useRef(null);
@@ -731,8 +731,8 @@ const LiveTrackingPage = () => {
                   placesCount={mapPlaces.items.length}
                   unmatchedRoutes={routes.error ? null : routes.unmatchedCount}
                   liveCounts={{
-                    reviewQueue: reviewQueue.count,
-                    routes: routes.error ? null : routes.lines.length,
+                    reviewQueue: layerSelection.reviewQueue ? reviewQueue.count : '—',
+                    routes: !layerSelection.routes ? '—' : routes.error ? null : routes.lines.length,
                     idling: idlingError ? null : idlingRows.length,
                   }}
                   error={positionsError}
@@ -760,21 +760,6 @@ const LiveTrackingPage = () => {
               trackTo={trackMode.to}
               onApplyTrackRange={(range) => trackMode.applyRange(range)}
             />
-
-            {/* Overlay Bottom-Center: the live telemetry ticker. Hidden in Track
-                mode, where the timeline owns the bottom band. */}
-            {!isTrackMode ? (
-              <div className="ov ov--bc">
-                {/* Live Telemetry Ticker */}
-                <TelemetryTicker
-                  selectedVehicle={selectedVehicle}
-                  vehicles={vehicles}
-                  rotating={isTelemetryOn}
-                  highlighted={isTelemetryOn && !replayState.on}
-                  icon={renderIconSvg('radio', 14)}
-                />
-              </div>
-            ) : null}
 
             {/* Track mode: the timeline at the bottom of the map. */}
             {isTrackMode ? (

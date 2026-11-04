@@ -5,8 +5,6 @@ import TrailDateFilter from './TrailDateFilter.jsx';
 import TrackRangePicker from './TrackRangePicker.jsx';
 
 export default function MapOverlayControls({
-  isTelemetryOn,
-  setIsTelemetryOn,
   setIsRailOpen,
   triggerMapResize,
   handleZoomIn,
@@ -43,16 +41,6 @@ export default function MapOverlayControls({
       <div className="ov ov--left">
         <div className="ov-left-row">
           {searchBox}
-          <button
-            className={`mbtn ov-telemetry ${isTelemetryOn ? 'mbtn--on' : ''}`}
-            aria-pressed={isTelemetryOn}
-            onClick={() => setIsTelemetryOn?.((prev) => !prev)}
-          >
-            <span className="led" />
-            <span className="eyebrow-mini">
-              Live<span className="ov-telemetry-more"> telemetry</span>
-            </span>
-          </button>
         </div>
         {legend}
       </div>

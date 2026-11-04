@@ -147,7 +147,7 @@ export default function useLiveMap({
       gestureHandling: 'greedy',
       // Google's own POIs are clickable: a click opens them in Google Maps
       // instead of Google's info window (handled by the map click listener).
-      clickableIcons: true,
+      clickableIcons: false,
     }),
     [theme, mapMode],
   );
@@ -167,12 +167,12 @@ export default function useLiveMap({
       if (!live.length) return false;
       const bounds = new window.google.maps.LatLngBounds();
       live.forEach((v) => bounds.extend({ lat: v.lat, lng: v.lng }));
-      map.fitBounds(bounds, { top: 80, right: 80, bottom: 80, left: 80 });
+      map.fitBounds(bounds, { top: 80, right: 360, bottom: 80, left: 80 });
       window.google.maps.event.addListenerOnce(map, 'idle', () => {
         // Land a little closer than a bare fit — one notch in, capped so a tight
         // cluster doesn't rocket to street level and a spread fleet still nudges in.
         const z = map.getZoom() || 6;
-        map.setZoom(Math.min(z + 1, 13));
+        map.setZoom(Math.min(z, 13));
       });
       return true;
     },

@@ -4,13 +4,9 @@ import renderIconSvg from './renderIconSvg.jsx';
 import { NOVA_STATUS } from './statusPalettes.js';
 import { formatAgoText } from './minutesAgoFormat.js';
 import VehicleLocation from './VehicleLocation.jsx';
-import { formatFuelValue, fuelUnitTitle } from '../../utils/liveView.js';
-import { modelLabel } from './vehiclePanelModel';
 import TrackLoadError from './TrackLoadError.jsx';
-import TrackIdlingChip from './TrackIdlingChip.jsx';
 import AlertBadge from './AlertBadge.jsx';
 import { plateKey } from './trackIdlingModel.js';
-import { formatKnownEtaLine, matchKnownEta } from '../../lib/knownEta';
 
 const SKEL_CARD_COUNT = 6;
 
@@ -25,9 +21,7 @@ export default function FleetListView({
   setSelectedId,
   error = null,
   onRetry = null,
-  idlingByPlate = new Map(),
   alertCounts = new Map(),
-  knownEtas = [],
 }) {
   // A failed load is not an empty fleet. Say so instead of showing "0 vehicles".
   const loadFailed = Boolean(error) && vehicles.length === 0;
@@ -80,10 +74,12 @@ export default function FleetListView({
               : 'No vehicles match this filter.'}
           </div>
         ) : (
-          filteredVehicles.map((v) => {
+          [...filteredVehicles].sort((a, b) => {
+            const order = { moving: 0, idling: 1, stopped: 2, offline: 3 };
+            return (order[a.status] ?? 4) - (order[b.status] ?? 4) || (a.ago ?? Infinity) - (b.ago ?? Infinity);
+          }).map((v) => {
             const s = NOVA_STATUS[v.status] || NOVA_STATUS.offline;
             const isSel = v.id === selectedId;
-            const knownLine = formatKnownEtaLine(matchKnownEta(knownEtas, v.plate));
 
             return (
               <div
@@ -106,12 +102,6 @@ export default function FleetListView({
                       {v.plate}
                       <AlertBadge count={alertCounts.get(plateKey(v.plate)) || 0} />
                     </div>
-                    <div className="vc-vin">
-                      {v.manufacturer || 'Manufacturer unknown'}
-                      {modelLabel(v.model) ? ` · ${modelLabel(v.model)}` : ''}
-                    </div>
-                    {knownLine ? <div className="vc-vin">{knownLine}</div> : null}
-                    <TrackIdlingChip minutes={idlingByPlate.get(plateKey(v.plate)) ?? null} />
                   </div>
                   <span className="vc-state">
                     <i />
@@ -126,26 +116,7 @@ export default function FleetListView({
 
                 {/* Card Meta Footer */}
                 <div className="vc-meta">
-                  <span>
-                    {renderIconSvg('fuel', 13)}
-                    <b
-                      title={
-                        fuelUnitTitle(v.fuelReading) || `Fuel ${formatFuelValue(v.fuelReading)}`
-                      }
-                    >
-                      {formatFuelValue(v.fuelReading)}
-                    </b>
-                  </span>
-                  {v.ignition && v.ignition !== '—' ? (
-                    <span>
-                      {renderIconSvg('zap', 13)}
-                      {v.ignition}
-                    </span>
-                  ) : null}
-                  <span>
-                    {renderIconSvg('nav', 13)}
-                    {v.gps}
-                  </span>
+                  <span>{Number.isFinite(v.speed) ? `${Math.round(v.speed)} km/h` : 'Speed unknown'}</span>
                   <span className="sp" />
                   <span>{v.ago != null ? formatAgoText(v.ago) : '—'}</span>
                 </div>
