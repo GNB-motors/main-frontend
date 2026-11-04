@@ -1,3 +1,4 @@
+import { googleMapsLoaderOptions } from '../../utils/googleMapsLoader.js';
 import TrackTollStatus from './TrackTollStatus';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -65,10 +66,6 @@ import {
 } from './trackLegendPrefs.js';
 import './LiveTracking.css';
 
-const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '')
-  .replace(/['"]/g, '')
-  .trim();
-const GOOGLE_MAPS_LIBRARIES = ['places', 'drawing'];
 
 /* ---------------- Main LiveTrackingPage Component ---------------- */
 const LiveTrackingPage = () => {
@@ -125,11 +122,7 @@ const LiveTrackingPage = () => {
   const isTrackMode = trackMode.isTrackMode;
 
   // Google Maps Load Script
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    libraries: GOOGLE_MAPS_LIBRARIES,
-    language: 'en',
-  });
+  const { isLoaded, loadError } = useLoadScript(googleMapsLoaderOptions);
 
   const searchInputRef = useRef(null);
 

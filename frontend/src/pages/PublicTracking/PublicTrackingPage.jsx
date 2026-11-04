@@ -1,3 +1,4 @@
+import { googleMapsLoaderOptions } from '../../utils/googleMapsLoader.js';
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { GoogleMap, useLoadScript, MarkerF, PolylineF } from '@react-google-maps/api';
@@ -10,9 +11,6 @@ import { plateMarkerIcon, trailArrowIcons } from '../LiveTracking/mapIcons.js';
 import { formatAgoText } from '../LiveTracking/minutesAgoFormat.js';
 import './PublicTracking.css';
 
-const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '')
-  .replace(/['"]/g, '')
-  .trim();
 
 const ICONS = {
   truck:
@@ -71,7 +69,7 @@ const minutesSince = (iso) => {
  */
 const PublicTrackingPage = () => {
   const { token } = useParams();
-  const { isLoaded } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
+  const { isLoaded } = useLoadScript(googleMapsLoaderOptions);
 
   const [phase, setPhase] = useState('loading'); // loading | ok | dead | error
   const [vehicle, setVehicle] = useState(null);
@@ -196,7 +194,7 @@ const PublicTrackingPage = () => {
       </div>
 
       <div className="pt-map">
-        {!GOOGLE_MAPS_API_KEY || !isLoaded ? (
+        {!googleMapsLoaderOptions.googleMapsApiKey || !isLoaded ? (
           <div className="pt-map-loading">
             <div className="pt-spinner" />
             <span>Loading map…</span>
