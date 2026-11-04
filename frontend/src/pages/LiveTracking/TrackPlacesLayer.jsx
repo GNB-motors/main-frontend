@@ -31,7 +31,7 @@ export default function TrackPlacesLayer({ places, selectedId, onSelect, zoom, d
         />
       ))}
       <MarkerClustererF
-        options={CLUSTER_OPTIONS}
+        options={{ ...CLUSTER_OPTIONS, styles }}
         styles={styles}
         title="Zoom in to see these places"
         onUnmount={detachClusterer}

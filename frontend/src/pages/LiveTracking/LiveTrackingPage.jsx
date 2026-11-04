@@ -92,6 +92,7 @@ const LiveTrackingPage = () => {
   // Filters & selection
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedId, setSelectedId] = useState(null);
+  const [whereNext, setWhereNext] = useState(null);
 
   // The top toolbar is the filter: one status at a time, and a set of makes
   // (empty means every make). The floating legend keeps only the Places layers.
@@ -595,6 +596,8 @@ const LiveTrackingPage = () => {
           {/* Map Column */}
           <div className="mapcol">
             <LiveMapCanvas
+              whereNext={whereNext?.registrationNumber === activeVehicle?.plate && !isTrackMode && !replayState.on ? whereNext : null}
+              whereNextPosition={activeVehicle}
               isLoaded={isLoaded}
               loadError={loadError}
               mapZoom={mapZoom}
@@ -726,6 +729,7 @@ const LiveTrackingPage = () => {
                   placesNotAvailable={mapPlaces.notAvailable}
                   placesTruncated={mapPlaces.truncated}
                   placesCount={mapPlaces.items.length}
+                  unmatchedRoutes={routes.error ? null : routes.unmatchedCount}
                   liveCounts={{
                     reviewQueue: reviewQueue.count,
                     routes: routes.error ? null : routes.lines.length,
@@ -875,6 +879,7 @@ const LiveTrackingPage = () => {
 
                       {/* Vehicle Detail Slide-in Drawer */}
                       <VehicleDetailPanel
+                        onWhereNext={setWhereNext}
                         selectedVehicle={activeVehicle}
                         setSelectedId={setSelectedId}
                         exitReplay={exitReplay}

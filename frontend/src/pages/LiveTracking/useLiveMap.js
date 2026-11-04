@@ -186,11 +186,9 @@ export default function useLiveMap({
       if (typeof initialZ === 'number') {
         setMapZoom(initialZ);
       }
-      // A click anywhere on the map — an empty spot, a Google POI or one of our
-      // own places — is an offer: make this a place, watch it as a zone, or
-      // open it in Google Maps. Google's own info window stays closed.
+      // Offer actions for a location only on the map's context menu gesture.
       mapClickListenerRef.current?.remove();
-      mapClickListenerRef.current = map.addListener('click', (e) => {
+      mapClickListenerRef.current = map.addListener('contextmenu', (e) => {
         if (!e.latLng) return;
         if (e.placeId) e.stop();
         const dom = e.domEvent;

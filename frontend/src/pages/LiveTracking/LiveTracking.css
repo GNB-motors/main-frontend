@@ -3928,3 +3928,11 @@ html.dark .wx-icon .wx-star,
   color: var(--fg-secondary);
   white-space: nowrap;
 }
+.where-next-map-label {
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 4px 7px;
+  white-space: nowrap;
+  transform: translateY(-38px);
+}

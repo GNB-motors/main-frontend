@@ -53,6 +53,7 @@ export default function VehicleDetailPanel({
   knownEtas = [],
   canEditPlaces = false,
   onAddAtSpot = null,
+  onWhereNext = null,
 }) {
   const reg = selectedVehicle?.plate ?? null;
 
@@ -104,7 +105,7 @@ export default function VehicleDetailPanel({
 
             <VehicleNowCard now={now} vehicle={selectedVehicle} />
 
-            <WhereNextSection registrationNumber={reg} />
+            <WhereNextSection registrationNumber={reg} onPrediction={onWhereNext} />
 
             <InsightChipsSection chips={now?.chips ?? []} registrationNumber={reg} />
 

@@ -97,6 +97,7 @@ export default function TrackLegend({
   placesTruncated = false,
   placesCount = 0,
   liveCounts = {},
+  unmatchedRoutes = null,
   error = null,
   onRetry = null,
 }) {
@@ -310,6 +311,14 @@ export default function TrackLegend({
                   />
                 );
               })}
+              {layerSelection.routes && unmatchedRoutes > 0 ? (
+                <p className="m-0 px-1 pt-1 text-[11px] text-[var(--rd-ink-3)]">
+                  {unmatchedRoutes} lanes not yet road-matched
+                </p>
+              ) : null}
+              {layerSelection.routes && zoom < 7 ? (
+                <p className="m-0 px-1 pt-1 text-[11px] text-[var(--rd-ink-3)]">Zoom in to see routes</p>
+              ) : null}
             </LegendBlock>
           </div>
 
