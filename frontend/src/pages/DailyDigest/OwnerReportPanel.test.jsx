@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import OwnerReportPanel from './OwnerReportPanel';
@@ -106,11 +106,11 @@ describe('OwnerReportPanel', () => {
 
     await waitFor(() => expect(screen.getByText('Fleet now')).toBeTruthy());
 
-    // ok — the numbers are shown, and an unmeasured one is a dash, not a zero.
-    expect(screen.getAllByText('Measured').length).toBeGreaterThan(0);
+    // ok — the numbers are shown, and an unmeasured one is a dash with its
+    // reason, grouped on one line instead of a column of dashes.
     expect(screen.getByText('Moving')).toBeTruthy();
     expect(screen.getAllByText('3').length).toBeGreaterThan(0);
-    expect(screen.getByText('At plant')).toBeTruthy();
+    expect(screen.getByText('— Not measured: At plant')).toBeTruthy();
     expect(screen.getAllByText('—').length).toBeGreaterThan(0);
 
     // empty — one line of reason, and no number dressed as a zero.
@@ -138,41 +138,54 @@ describe('OwnerReportPanel', () => {
 
     await waitFor(() => expect(screen.getByText('Fleet now')).toBeTruthy());
 
-    const open = screen.getByText('Open →');
+    const open = screen.getByRole('link', { name: 'Open' });
     expect(open.getAttribute('href')).toBe('/live-tracking');
   });
 
-  it('keeps "How we know" collapsed and writes its timestamps for a person', async () => {
+  it('keeps "How we know" behind an info tip and writes its timestamps for a person', async () => {
     renderPanel();
 
     await waitFor(() => expect(screen.getByText('Fleet now')).toBeTruthy());
 
-    expect(screen.getAllByText('How we know').length).toBeGreaterThan(0);
-    expect(screen.getByText(/\(as of [^)]+\)/)).toBeTruthy();
+    // Collapsed until asked for.
+    expect(screen.queryByText(/\(as of [^)]+\)/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'How we know: Fleet now' }));
+    expect(await screen.findByText(/\(as of [^)]+\)/)).toBeTruthy();
     expect(screen.queryByText(/T00:49/)).toBeNull();
   });
 
-  it('lists the exception kinds once, biggest first, and drops the empty ones', async () => {
+  it('bars the counted exception kinds, biggest first, and names the rest in one line', async () => {
     renderPanel();
 
     await waitFor(() => expect(screen.getByText('Exceptions')).toBeTruthy());
 
-    expect(screen.getByText('Possible fuel theft')).toBeTruthy();
-    expect(screen.getByText('SOS')).toBeTruthy();
+    const theft = screen.getByText('Possible fuel theft').closest('a');
+    const sos = screen.getByText('SOS').closest('a');
+    expect(theft.getAttribute('href')).toBe('/intelligence?tab=fuel');
+    expect(sos.getAttribute('href')).toBe('/alert-inbox');
+    // biggest first
+    expect(theft.compareDocumentPosition(sos) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // a zero is "none today", an unbuilt kind is "not measured" — never a bar
     expect(screen.queryByText('Papers waiting')).toBeNull();
-    expect(screen.queryByText('ETA slipping')).toBeNull();
+    expect(screen.getByText(/None today: Papers waiting\./)).toBeTruthy();
+    expect(screen.getByText(/Not measured yet: ETA slipping\./)).toBeTruthy();
     expect(screen.queryByText('kinds')).toBeNull();
+    expect(screen.getByText('3 in all')).toBeTruthy();
   });
 
   it('writes the morning brief the way an owner reads it', async () => {
     renderPanel();
 
-    await waitFor(() => expect(screen.getByText('Morning brief')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Where money leaked')).toBeTruthy());
 
     expect(screen.getAllByText('₹17,636').length).toBeGreaterThan(0);
-    expect(screen.getByText(/lost · /)).toBeTruthy();
+    expect(screen.getByText('estimated loss across 1 problem')).toBeTruthy();
     expect(screen.getByText('₹2,207')).toBeTruthy();
-    expect(screen.getByText(/₹270/)).toBeTruthy();
+    expect(screen.getByText('Check the receipts')).toBeTruthy();
+    // each truck is a chip that opens its own page
+    const chip = screen.getByText('MH12AB1234').closest('a');
+    expect(chip.getAttribute('href')).toBe('/vehicles/MH12AB1234');
+    expect(chip.textContent).toContain('₹270');
     expect(screen.queryByText('17,635.8')).toBeNull();
   });
 
@@ -196,7 +209,8 @@ describe('OwnerReportPanel', () => {
 
     await waitFor(() => expect(screen.getByText('Today so far')).toBeTruthy());
     expect(screen.queryByText("Yesterday's work")).toBeNull();
-    expect(screen.getAllByText('Day not over yet').length).toBeGreaterThan(0);
+    expect(screen.getByText(/Day not over yet: km vs last 7-day average/)).toBeTruthy();
+    expect(screen.getByText(/Not counted yet: Trips, Distance covered/)).toBeTruthy();
     expect(screen.queryByText('-100.0%')).toBeNull();
   });
 
