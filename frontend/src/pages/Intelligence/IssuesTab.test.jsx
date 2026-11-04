@@ -58,11 +58,96 @@ describe('IssuesTab', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('GPS freezes on WB11F0162')).toBeInTheDocument();
-    expect(screen.getByText('FleetEdge account stopped sending data')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'GPS freezes' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Account stopped sending data' })).toBeInTheDocument();
+    expect(screen.getByText('WB11F0162')).toBeInTheDocument();
+    expect(screen.getByText('GNB Buxar Fleet')).toBeInTheDocument();
+    expect(screen.getByText('Check the GPS antenna cable.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Reconnect account/ })).toHaveAttribute(
       'href',
       '/settings/fleetedge-accounts',
+    );
+  });
+
+  it('puts what needs the owner first', async () => {
+    IntelligenceService.getIssues.mockResolvedValue(issues);
+    render(
+      <MemoryRouter>
+        <IssuesTab from="2026-10-27" to="2026-11-02" />
+      </MemoryRouter>,
+    );
+
+    await screen.findByRole('heading', { name: 'GPS freezes' });
+    const headings = screen.getAllByRole('heading').map((h) => h.textContent);
+    expect(headings).toEqual(['Account stopped sending data', 'GPS freezes']);
+  });
+
+  it('groups the trucks of one kind under one card with the advice said once', async () => {
+    const silent = (id, reg, days) => ({
+      id,
+      kind: 'NO_DATA',
+      severity: 'act',
+      registrationNumber: reg,
+      title: `No data from ${reg}`,
+      detail: `No reading for ${days} days, while the telematics account feeding this truck is healthy.`,
+      advice: 'Check that the tracker has power and the SIM is active.',
+      firstSeenAt: '2026-10-28T05:00:00Z',
+      lastSeenAt: '2026-11-03T23:40:00Z',
+      occurrences: 1,
+      evidence: [],
+      action: { kind: 'CALL_DEALER', label: 'Check the tracker’s power and SIM', to: null },
+    });
+    IntelligenceService.getIssues.mockResolvedValue({
+      items: [silent('a', 'WB11G1562', 4), silent('b', 'WB11M2162', 27), silent('c', 'WB11E9762', 13)],
+      total: 3,
+      counts: { act: 3, watch: 0, good: 0, info: 0 },
+    });
+    render(
+      <MemoryRouter>
+        <IssuesTab from="2026-10-27" to="2026-11-02" />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'No data' })).toBeInTheDocument();
+    expect(screen.getByText('3 trucks')).toBeInTheDocument();
+    expect(screen.getByText('silent for 4–27 days')).toBeInTheDocument();
+    expect(screen.getAllByText('Check that the tracker has power and the SIM is active.')).toHaveLength(1);
+    expect(screen.getByText('27 days')).toBeInTheDocument();
+    expect(screen.getByText('Last checked')).toBeInTheDocument();
+  });
+
+  it('opens a row to its own detail and evidence', async () => {
+    IntelligenceService.getIssues.mockResolvedValue({
+      ...issues,
+      items: [
+        {
+          ...issues.items[1],
+          evidence: [
+            {
+              at: '2026-10-28T13:43:56Z',
+              text: 'Frozen 152 min, speed up to 38 km/h',
+              link: { label: 'Open', to: '/live-tracking?v=WB11F0162' },
+            },
+          ],
+        },
+      ],
+    });
+    render(
+      <MemoryRouter>
+        <IssuesTab from="2026-10-27" to="2026-11-02" />
+      </MemoryRouter>,
+    );
+
+    const row = await screen.findByRole('button', { name: /WB11F0162: show details/ });
+    expect(screen.queryByText('Frozen 152 min, speed up to 38 km/h')).not.toBeInTheDocument();
+    fireEvent.click(row);
+    expect(screen.getByText('Frozen 152 min, speed up to 38 km/h')).toBeInTheDocument();
+    expect(
+      screen.getByText('The position stopped changing for 24 minutes while the truck was moving on NH19.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open on the map' })).toHaveAttribute(
+      'href',
+      '/live-tracking?v=WB11F0162',
     );
   });
 
@@ -89,11 +174,11 @@ describe('IssuesTab', () => {
       </MemoryRouter>,
     );
 
-    await screen.findByText('GPS freezes on WB11F0162');
+    await screen.findByText('WB11F0162');
     fireEvent.click(screen.getByRole('button', { name: /^Needs you/ }));
 
-    expect(screen.queryByText('GPS freezes on WB11F0162')).not.toBeInTheDocument();
-    expect(screen.getByText('FleetEdge account stopped sending data')).toBeInTheDocument();
+    expect(screen.queryByText('WB11F0162')).not.toBeInTheDocument();
+    expect(screen.getByText('GNB Buxar Fleet')).toBeInTheDocument();
   });
 
   it('says everything is fine when there is nothing wrong', async () => {

@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { INTELLIGENCE_TABS, INSTANCE_TABS, resolveIntelligenceTab } from './intelligenceTabs';
+import {
+  INTELLIGENCE_SECTIONS,
+  INTELLIGENCE_TABS,
+  INSTANCE_TABS,
+  resolveIntelligenceTab,
+  sectionOfTab,
+} from './intelligenceTabs';
 
 describe('the Intelligence tabs', () => {
   it('has the eleven tabs the spec asks for, in order', () => {
@@ -23,6 +29,14 @@ describe('the Intelligence tabs', () => {
       expect(tab.icon).toBeTruthy();
       expect(tab.hint).toBeTruthy();
     });
+  });
+
+  it('puts every tab in exactly one section, so none is dropped', () => {
+    const placed = INTELLIGENCE_SECTIONS.flatMap((section) => section.tabs);
+    expect([...placed].sort()).toEqual(INTELLIGENCE_TABS.map((tab) => tab.id).sort());
+    expect(new Set(placed).size).toBe(placed.length);
+    expect(sectionOfTab('fuel').id).toBe('fuel');
+    expect(sectionOfTab('nope').id).toBe('issues');
   });
 
   it('maps the instance tabs to the kinds the API knows', () => {
