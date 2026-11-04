@@ -1,155 +1,139 @@
 import { Link } from 'react-router-dom';
-import { ArrowUpRight } from 'lucide-react';
 import SapPill from '../Sap/SapPill';
 import { BASIS_LABEL } from '../Sap/sapModel';
 import { FLAG_LABEL } from './autoTripPlaces';
-import TripDriver from './TripDriver';
 import TripStatus from './TripStatus';
-import ToneBadge from '../../components/redesign/ToneBadge';
-import InfoTip from '../../components/redesign/InfoTip';
-import { REPOSITION_INFO } from './tripLegModel';
-import { dropLabel } from '../PlaceHub/intelligence/facilityText';
-import { fmtDayTime, fmtKm, fmtDuration, notReachedYet } from './autoTripFormat';
+import { fmtDayTime, fmtKm } from './autoTripFormat';
 import { tripDetailHref } from './tripWorkspace';
-import { formatKnownEtaLine, matchKnownEta } from '../../lib/knownEta';
+import { allUnknown, loadedKm, loadedMin, minutesOnRoad } from './tripListModel';
+import { DriverCell, RouteCell, TimeCell } from './TripCells';
 
-export default function tripColumns({ showSap, refetch, searchParams, knownEtas = [] }) {
-  return [
+const timeValue = (now) => (trip) => loadedMin(trip) ?? minutesOnRoad(trip, now);
+
+/**
+ * The trip list's columns for the rows on screen. A column whose every value on
+ * this page is unknown is left out; `hidden` names those, so the page can say so once.
+ */
+export default function tripColumns({
+  showSap,
+  refetch,
+  searchParams,
+  knownEtas = [],
+  rows = [],
+  now = new Date(),
+}) {
+  const hidden = [];
+  if (allUnknown(rows, (r) => r.driver?.name || r.driver?.mobileNumber || null)) hidden.push('driver');
+  if (allUnknown(rows, timeValue(now))) hidden.push('time');
+  if (allUnknown(rows, loadedKm)) hidden.push('km');
+
+  const columns = [
     {
       key: 'registrationNumber',
-      width: 145,
+      width: 128,
       label: 'Truck',
       render: (r) => (
-        <>
-          <Link
-            className="atx-vehicle-link"
-            to={tripDetailHref(r._id, searchParams)}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {r.registrationNumber || 'Trip'}
-          </Link>
-          {/* Only a truck still on the road has an arrival to quote. */}
-          {r.status === 'OPEN'
-            ? formatKnownEtaLine(matchKnownEta(knownEtas, r.registrationNumber))
-            : null}
-        </>
+        <Link
+          className="atx-truck"
+          to={tripDetailHref(r._id, searchParams)}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {r.registrationNumber || 'Trip'}
+        </Link>
       ),
     },
     {
       key: 'route',
-      width: 230,
       label: 'Route',
-      render: (r) => (
-        <span className="atx-route-cell">
-          <strong>{r.pickup?.name || '—'}</strong>
-          <span>
-            →{' '}
-            {notReachedYet(r) ? (
-              <span className="atx-muted">not reached yet</span>
-            ) : (
-              dropLabel(r.drop)
-            )}
-          </span>
-          {/* A plant-to-plant run is normal: plants work like warehouses.
-              It is badged, never flagged. */}
-          {r.leg === 'REPOSITION' ? (
-            <span className="mt-1 flex items-center gap-1.5">
-              <ToneBadge tone="info">Plant to plant</ToneBadge>
-              <InfoTip text={REPOSITION_INFO} basis={null} />
-            </span>
-          ) : null}
-        </span>
-      ),
+      render: (r) => <RouteCell trip={r} knownEtas={knownEtas} />,
     },
     {
       key: 'driver',
-      width: 160,
+      width: 180,
       label: 'Driver',
-      render: (r) => <TripDriver trip={r} onRetry={refetch} />,
+      render: (r) => <DriverCell trip={r} onRetry={refetch} />,
     },
     {
       key: 'departedAt',
-      width: 185,
-      label: 'Trip timing',
-      render: (r) => (
-        <span className="atx-cell-stack">
-          <span>{fmtDayTime(r.pickup?.departedAt, { padDay: true })}</span>
-          <small>
-            {r.drop?.arrivedAt ? `Reached ${fmtDayTime(r.drop.arrivedAt)}` : 'Delivery pending'}
-          </small>
-        </span>
-      ),
+      width: 150,
+      label: 'Left plant',
+      render: (r) => <span className="atx-num">{fmtDayTime(r.pickup?.departedAt)}</span>,
     },
     {
-      key: 'laden',
-      label: 'Loaded run',
+      key: 'time',
+      width: 128,
+      label: 'Trip time',
       align: 'right',
-      render: (r) =>
-        r.km?.ladenOdo == null && r.km?.laden == null ? (
-          // A trip still on the road has no loaded run yet; "Not recorded" on
-          // every live row read like missing data.
-          r.drop?.arrivedAt ? (
-            <span className="atx-muted">Not recorded</span>
-          ) : (
-            <span className="atx-muted" title="Counted when the truck reaches the drop">
-              —
-            </span>
-          )
-        ) : (
+      render: (r) => <TimeCell trip={r} now={now} />,
+    },
+    {
+      key: 'km',
+      width: 96,
+      label: 'Loaded km',
+      align: 'right',
+      render: (r) => {
+        const km = loadedKm(r);
+        if (km == null) return <span className="atx-cell-quiet">—</span>;
+        return (
           <span
-            className="atx-cell-stack"
-            title={r.km?.ladenOdo != null ? 'From the vehicle odometer' : 'GPS path'}
+            className="atx-num"
+            title={r.km?.ladenOdo != null ? 'From the odometer' : 'From the GPS path'}
           >
-            <strong>{fmtKm(r.km?.ladenOdo ?? r.km.laden)}</strong>
-            <small>
-              {fmtDuration(r.durations?.ladenMin ?? r.durations?.transitMin)}
-              {r.extraDrops?.length > 0 && r.durations?.ladenMin == null ? ' to first drop' : ''}
-            </small>
+            {fmtKm(km)}
           </span>
-        ),
+        );
+      },
     },
     {
       key: 'sap',
+      width: 150,
       label: 'SAP km',
       render: (r) => (
-        <div className="sap-stack">
-          <span title={r.sap?.basis ? BASIS_LABEL[r.sap.basis] : undefined}>
+        <span className="atx-sap-cell">
+          <span className="atx-num" title={r.sap?.basis ? BASIS_LABEL[r.sap.basis] : undefined}>
             {r.sap?.status === 'MATCHED' ? `${r.sap.sapKm} km` : '—'}
           </span>
-          {r.sap ? <SapPill sap={r.sap} /> : <span className="sap-muted">Not computed yet</span>}
-        </div>
+          {r.sap ? <SapPill sap={r.sap} /> : null}
+        </span>
       ),
     },
     {
       key: 'status',
-      label: 'Trip status',
-      render: (r) => (
-        <span className="atx-cell-stack">
-          <TripStatus status={r.status} />
-          {r.flags?.length > 0 && (
-            <small
-              className="atx-check-label"
-              title={r.flags.map((f) => FLAG_LABEL[f] || f).join(' · ')}
-            >
-              {r.flags.length} check{r.flags.length === 1 ? '' : 's'} to review
-            </small>
-          )}
-        </span>
-      ),
+      width: 150,
+      label: 'Status',
+      render: (r) => {
+        const checks = (r.flags || []).map((f) => FLAG_LABEL[f] || f);
+        return (
+          <span title={checks.length ? `To check: ${checks.join(', ')}` : undefined}>
+            <TripStatus status={r.status} />
+          </span>
+        );
+      },
     },
-    {
-      key: 'actions',
-      label: '',
-      align: 'right',
-      render: (r) => (
-        <Link
-          to={tripDetailHref(r._id, searchParams)}
-          className="atx-view-link"
-          onClick={(e) => e.stopPropagation()}
-        >
-          View trip <ArrowUpRight size={14} aria-hidden="true" />
-        </Link>
-      ),
-    },
-  ].filter((c) => showSap || c.key !== 'sap');
+  ].filter((c) => (showSap || c.key !== 'sap') && !hidden.includes(c.key));
+
+  return { columns, hidden };
+}
+
+/** One sentence for the columns the page left out, or null. */
+export function hiddenColumnsNote(hidden, statusTab) {
+  const km = hidden.includes('km');
+  const time = hidden.includes('time');
+  const driver = hidden.includes('driver');
+  const parts = [];
+  if (km && time) {
+    parts.push(
+      statusTab === 'NEEDS_REVIEW'
+        ? 'Loaded km and trip time are measured once the drop is known'
+        : 'Loaded km and trip time are measured when a truck reaches its drop',
+    );
+  } else if (km) {
+    parts.push('Loaded km is measured when a truck reaches its drop');
+  } else if (time) {
+    parts.push('Trip time is not measured for these trips yet');
+  }
+  if (driver) parts.push('no driver is linked to these trips');
+  if (!parts.length) return null;
+  const text = parts.join('; ');
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}.`;
 }

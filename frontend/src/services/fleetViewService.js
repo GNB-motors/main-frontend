@@ -99,10 +99,11 @@ export const getTripsHistory = ({ site, vehicle, from, to, limit, signal } = {})
     importer: () => import('../schemas/tripsHistory.schema.js'),
   });
 
-/** GET /api/fleet-view/places/questions */
-export const getPlaceQuestions = ({ signal } = {}) =>
+/** GET /api/fleet-view/places/questions (`limit` up to 200; the API pages 20 by default). */
+export const getPlaceQuestions = ({ signal, limit } = {}) =>
   get('/api/fleet-view/places/questions', {
     signal,
+    ...(limit ? { params: { limit } } : {}),
     schema: 'PlaceQuestionsResponseSchema',
     importer: () => import('../schemas/tripsHistory.schema.js'),
   });

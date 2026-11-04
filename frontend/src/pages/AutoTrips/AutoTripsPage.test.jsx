@@ -9,6 +9,10 @@ vi.mock('../../services/AutoTripService', () => ({ default: { list: vi.fn() } })
 vi.mock('../../services/TripPlanService', () => ({
   default: { list: vi.fn(), cancel: vi.fn(), unlink: vi.fn(), resumeAutoMatch: vi.fn() },
 }));
+const { getPlaceQuestions } = vi.hoisted(() => ({ getPlaceQuestions: vi.fn() }));
+vi.mock('../../services/fleetViewService', () => ({
+  fleetViewService: { getPlaceQuestions, answerPlaceQuestion: vi.fn(), getTripsHistory: vi.fn() },
+}));
 vi.mock('../../components/ui/confirmContext', () => ({ useConfirm: () => vi.fn() }));
 vi.mock('./ManualTripDialog', () => ({ default: () => null }));
 vi.mock('./TripPlanDialog', () => ({
@@ -45,6 +49,7 @@ beforeEach(() => {
     tabCounts: { OPEN: 1 },
   });
   TripPlanService.list.mockResolvedValue({ items: [], total: 0, tabCounts: { PLANNED: 0 } });
+  getPlaceQuestions.mockResolvedValue({ items: [], total: 0 });
 });
 it('shows a planned tab with zero and its empty table on the same page', async () => {
   // "Planned trips" lives in the More menu; with a zero count it is only
@@ -107,4 +112,101 @@ it('shows newly scheduled plans in the inline tab instead of navigating away', a
     'true',
   );
   expect(screen.getByLabelText('Current location')).toHaveTextContent('/auto-trips');
+});
+
+const waiting = (n, flags) =>
+  Array.from({ length: n }, (_, i) => ({
+    _id: `w-${flags[0]}-${i}`,
+    registrationNumber: `WB-W${i}`,
+    status: 'NEEDS_REVIEW',
+    flags,
+    drop: { source: flags[0] === 'DROP_UNKNOWN' ? 'UNKNOWN' : 'INFERRED_TURNAROUND' },
+  }));
+
+function listByStatus({ waitingItems = [], items, tabCounts }) {
+  AutoTripService.list.mockImplementation(async (params) => {
+    if (params.status === 'NEEDS_REVIEW' && params.limit === 100) {
+      return { items: waitingItems, total: tabCounts.NEEDS_REVIEW, tabCounts };
+    }
+    if (params.status === 'COMPLETE' && params.limit === 100) return { items: [], total: 0, tabCounts };
+    return { items, total: items.length, tabCounts };
+  });
+}
+
+it('puts the period in KPI tiles that are also the status filter', async () => {
+  listByStatus({
+    items: [{ _id: 't1', registrationNumber: 'WB-ACTUAL', status: 'OPEN' }],
+    tabCounts: { COMPLETE: 585, NEEDS_REVIEW: 2237, OPEN: 113, CONFIRMED: 0, DISMISSED: 0, reposition: 0 },
+  });
+  open();
+  const tile = await screen.findByRole('tab', { name: 'Needs your answer 2,237' });
+  expect(screen.getByRole('tab', { name: 'Trips 2,935' })).toHaveAttribute('aria-selected', 'true');
+  expect(screen.getByRole('tab', { name: 'Delivered 585' })).toBeInTheDocument();
+  expect(screen.getByText('20% of trips · reached the drop')).toBeInTheDocument();
+  // Too few delivered trips for a typical run: unknown, with the reason.
+  expect(await screen.findByText(/Needs 5 delivered trips/)).toBeInTheDocument();
+  fireEvent.click(tile);
+  await waitFor(() =>
+    expect(AutoTripService.list).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'NEEDS_REVIEW', page: 1, limit: 50 }),
+      expect.anything(),
+    ),
+  );
+  expect(screen.getByRole('tab', { name: 'Needs your answer 2,237' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+});
+
+it('explains the waiting trips once and offers the bulk answer', async () => {
+  listByStatus({
+    items: [{ _id: 't1', registrationNumber: 'WB-ACTUAL', status: 'OPEN' }],
+    waitingItems: [...waiting(9, ['DROP_UNKNOWN']), ...waiting(1, ['DROP_INFERRED'])],
+    tabCounts: { COMPLETE: 5, NEEDS_REVIEW: 120, OPEN: 1 },
+  });
+  getPlaceQuestions.mockResolvedValue({
+    items: [{ id: 'q1', tripsAffected: 8 }, { id: 'q2', tripsAffected: 4 }],
+    total: 2,
+  });
+  open();
+  expect(await screen.findByRole('heading', { name: '120 trips need your answer' })).toBeInTheDocument();
+  expect(await screen.findByText('Drop not found')).toBeInTheDocument();
+  expect(screen.getByText('Split measured on the latest 10 waiting trips in this period.')).toBeInTheDocument();
+  expect(await screen.findByText(/For the other 108, open the trip and mark its drop/)).toBeInTheDocument();
+  expect(getPlaceQuestions).toHaveBeenCalledWith(expect.objectContaining({ limit: 200 }));
+  fireEvent.click(screen.getByRole('button', { name: 'Answer place questions' }));
+  expect(await screen.findByRole('tab', { name: /Place questions/ })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+});
+
+it('draws one dense row per trip and leaves out a column nobody has yet', async () => {
+  listByStatus({
+    items: [
+      {
+        _id: 't9',
+        registrationNumber: 'WB11F5362',
+        status: 'OPEN',
+        pickup: { name: 'AMBUJA DHULAGOR', departedAt: '2026-11-03T22:10:46.000Z' },
+        drop: { source: 'UNKNOWN' },
+        driver: null,
+        km: { approach: 141, laden: null },
+      },
+    ],
+    tabCounts: { OPEN: 1 },
+  });
+  open();
+  const route = await screen.findByTitle('AMBUJA DHULAGOR → on the way');
+  expect(route).toHaveTextContent('Ambuja Dhulagor');
+  expect(screen.queryByText(/View trip/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('columnheader', { name: 'Loaded km' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('columnheader', { name: 'Driver' })).not.toBeInTheDocument();
+  expect(
+    screen.getByText(
+      'Loaded km is measured when a truck reaches its drop; no driver is linked to these trips.',
+    ),
+  ).toBeInTheDocument();
+  fireEvent.click(route);
+  expect(screen.getByLabelText('Current location')).toHaveTextContent('/auto-trips/t9');
 });
