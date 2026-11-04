@@ -72,7 +72,8 @@ describe('formatDuration', () => {
 
 describe('formatIst', () => {
   it('shows the IST wall-clock time', () => {
-    // 2026-11-02T18:48:00Z is 2026-11-03 00:18 IST
+    // 2026-11-02T18:48:00Z is 2026-11-03 00:18 IST. withDate:false asks for the
+    // time only (the default now adds the date for a day other than today).
     expect(formatIst('2026-11-02T18:48:00Z', { withDate: false })).toBe('12:18 am');
   });
   it('adds the date for another day', () => {

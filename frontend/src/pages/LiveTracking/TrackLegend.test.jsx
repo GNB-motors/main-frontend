@@ -121,9 +121,12 @@ describe('TrackLegend', () => {
 
   // The top toolbar owns Trucks and Make now; the legend keeps only Places.
   it('is a Places-only panel when given no status or make rows', () => {
+    // An earlier test collapses the legend via localStorage; force it open so
+    // the "Places" heading (only shown when expanded) is present.
+    localStorage.setItem('track.legend.open', 'true');
     renderLegend({ statusRows: [], makeRows: [] });
     expect(screen.queryByText('Trucks')).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Places' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Places', level: 2 })).toBeInTheDocument();
   });
 
   it('collapses to a Places pill, not a moving count, in Places-only mode', () => {
