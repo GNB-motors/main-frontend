@@ -6,11 +6,7 @@ import { cssToken } from '../../../../utils/redesign/tone';
 
 const STYLE = {
   band: { radius: 3, stroke: false, fillColor: '#8B8B8C', fillOpacity: 0.3 },
-  usual: { color: '#5D5D5E', weight: 3, opacity: 0.7, dashArray: '2 7', lineCap: 'round' },
-  approach: { color: '#828BAE', weight: 3, opacity: 0.85, dashArray: '6 6', lineCap: 'round' },
-  laden: { color: '#2F58EE', weight: 4, opacity: 0.8, lineCap: 'round' },
-  detourHalo: { color: '#C2323A', weight: 14, opacity: 0.16 },
-  detour: { color: '#C2323A', weight: 5, opacity: 0.95, lineCap: 'round' },
+  usual: { color: '#3468a5', weight: 4, opacity: 0.85, lineCap: 'round' },
 };
 
 const MARKER = {
@@ -49,39 +45,15 @@ export default function DeviationMap({ detail, zoom }) {
       if (!model) return;
       const redesigned = deviationDetailModel(detail, null);
 
-      model.band.forEach((p) => L.circleMarker(p, STYLE.band).addTo(group));
-
-      // 1. The usual road: grey, 8 px, 70%.
-      if (redesigned.usualRoute && redesigned.usualRoute.length > 1) {
-        L.polyline(redesigned.usualRoute, {
-          color: colours.usual,
-          weight: 8,
-          opacity: 0.7,
-          lineCap: 'round',
-        }).addTo(group);
-      } else if (model.usual.length) {
-        L.polyline(model.usual, STYLE.usual).addTo(group);
-      }
-
-      // 2. The road as driven: blue, 4 px.
-      model.approach.forEach((line) =>
-        L.polyline(line, { ...STYLE.approach, weight: 4 }).addTo(group),
-      );
-      model.laden.forEach((line) =>
-        L.polyline(line, { ...STYLE.laden, color: colours.driven, weight: 4 }).addTo(group),
-      );
-
-      // 3. The part off the usual road: red, 5 px.
-      const offRoute =
-        redesigned.offRoute && redesigned.offRoute.length > 1 ? redesigned.offRoute : model.detour;
-      if (offRoute.length > 1) {
-        L.polyline(offRoute, { ...STYLE.detourHalo, color: colours.detour }).addTo(group);
-        L.polyline(offRoute, { ...STYLE.detour, color: colours.detour }).addTo(group);
-      }
+      if (model.usual.length > 1) L.polyline(model.usual, STYLE.usual).addTo(group);
+      if (model.driven.length > 1) L.polyline(model.driven, {
+        color: model.judged ? colours.detour : '#77818d', weight: 4, opacity: 0.9,
+        dashArray: '2 8', lineCap: 'round',
+      }).addTo(group);
 
       // 4. Where it left the usual road and where it came back: white
       //    circles with a red edge.
-      if (redesigned.exitPoint) {
+      if (model.judged && redesigned.exitPoint) {
         L.circleMarker([redesigned.exitPoint.lat, redesigned.exitPoint.lng], {
           radius: 7,
           color: colours.detour,
@@ -95,7 +67,7 @@ export default function DeviationMap({ detail, zoom }) {
           )
           .addTo(group);
       }
-      if (redesigned.rejoinPoint) {
+      if (model.judged && redesigned.rejoinPoint) {
         L.circleMarker([redesigned.rejoinPoint.lat, redesigned.rejoinPoint.lng], {
           radius: 7,
           color: colours.detour,
@@ -111,7 +83,7 @@ export default function DeviationMap({ detail, zoom }) {
       }
 
       // The stops while off the usual road: facts, pinned where they were.
-      redesigned.stopsDuring.forEach((stop) => {
+      if (model.judged) redesigned.stopsDuring.forEach((stop) => {
         if (stop.lat == null || stop.lng == null) return;
         L.circleMarker([stop.lat, stop.lng], {
           radius: 6,
@@ -129,7 +101,7 @@ export default function DeviationMap({ detail, zoom }) {
           .addTo(group);
       });
 
-      model.markers.forEach((m) => {
+      model.markers.filter((m) => model.judged || !['exit', 'maxOff', 'rejoin'].includes(m.kind)).forEach((m) => {
         const [color, glyph, size] = MARKER[m.kind];
         L.marker(m.at, { icon: pinIcon(color, glyph, size), title: m.label })
           .bindTooltip(textTip(m.label), { direction: 'top', offset: [0, -10] })
