@@ -367,7 +367,7 @@ export default function AutoTripDetailPage() {
           </div>
           <div className="atx-fact">
             <dt>Driver</dt>
-            <dd className={driverName ? '' : 'is-quiet'} title={trip.driver?.mobileNumber || undefined}>
+            <dd className={driverName ? '' : 'is-quiet'} title={driverName || undefined}>
               {driverName ? titleCasePlace(driverName) : 'No driver'}
             </dd>
             <small>

@@ -30,7 +30,7 @@ export default function tripColumns({
   const columns = [
     {
       key: 'registrationNumber',
-      width: 128,
+      width: '120px',
       label: 'Truck',
       render: (r) => (
         <Link
@@ -49,26 +49,26 @@ export default function tripColumns({
     },
     {
       key: 'driver',
-      width: 180,
+      width: '15%',
       label: 'Driver',
       render: (r) => <DriverCell trip={r} onRetry={refetch} />,
     },
     {
       key: 'departedAt',
-      width: 150,
+      width: '12%',
       label: 'Left plant',
       render: (r) => <span className="atx-num">{fmtDayTime(r.pickup?.departedAt)}</span>,
     },
     {
       key: 'time',
-      width: 128,
+      width: '10%',
       label: 'Trip time',
       align: 'right',
       render: (r) => <TimeCell trip={r} now={now} />,
     },
     {
       key: 'km',
-      width: 96,
+      width: '8%',
       label: 'Loaded km',
       align: 'right',
       render: (r) => {
@@ -86,7 +86,7 @@ export default function tripColumns({
     },
     {
       key: 'sap',
-      width: 150,
+      width: '12%',
       label: 'SAP km',
       render: (r) => (
         <span className="atx-sap-cell">
@@ -99,7 +99,7 @@ export default function tripColumns({
     },
     {
       key: 'status',
-      width: 150,
+      width: '11%',
       label: 'Status',
       render: (r) => {
         const checks = (r.flags || []).map((f) => FLAG_LABEL[f] || f);

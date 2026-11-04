@@ -142,7 +142,7 @@ it('puts the period in KPI tiles that are also the status filter', async () => {
   const tile = await screen.findByRole('tab', { name: 'Needs your answer 2,237' });
   expect(screen.getByRole('tab', { name: 'Trips 2,935' })).toHaveAttribute('aria-selected', 'true');
   expect(screen.getByRole('tab', { name: 'Delivered 585' })).toBeInTheDocument();
-  expect(screen.getByText('20% of trips · reached the drop')).toBeInTheDocument();
+  expect(screen.getByText('20% of trips')).toBeInTheDocument();
   // Too few delivered trips for a typical run: unknown, with the reason.
   expect(await screen.findByText(/Needs 5 delivered trips/)).toBeInTheDocument();
   fireEvent.click(tile);

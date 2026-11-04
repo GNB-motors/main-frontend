@@ -33,7 +33,7 @@ function RunTile({ run, loading, failed }) {
   const known = run?.km != null;
   let sub;
   if (known) {
-    sub = `${run.min != null ? `${fmtDuration(run.min)} · ` : ''}median of ${formatNum(run.sample)} delivered`;
+    sub = `${run.min != null ? `${fmtDuration(run.min)} · ` : ''}median of ${formatNum(run.sample)}`;
   } else if (loading) {
     sub = 'Measuring…';
   } else if (failed) {
@@ -88,7 +88,7 @@ export default function TripKpiStrip({
       label: 'Delivered',
       count: delivered,
       tone: 'good',
-      sub: `${shareText(delivered, all) ?? '—'} of trips · reached the drop`,
+      sub: `${shareText(delivered, all) ?? '—'} of trips`,
     },
     {
       tabKey: 'OPEN',
@@ -102,7 +102,7 @@ export default function TripKpiStrip({
       label: 'Needs your answer',
       count: review,
       tone: review ? 'watch' : null,
-      sub: review ? `${shareText(review, all)} of trips · drop to confirm` : 'nothing waiting',
+      sub: review ? `${shareText(review, all)} of trips` : 'nothing waiting',
     },
   ];
   return (
