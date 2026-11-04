@@ -67,15 +67,19 @@ function IssueDetail({ issue, showAdvice }) {
         <ul className="intel-evidence" aria-label="Evidence">
           {evidence.map((entry, index) => (
             <li key={`${entry?.at ?? index}-${index}`}>
-              <span className="intel-evidence-when">{formatIst(entry?.at, { withDate: true })}</span>
-              <span className="intel-evidence-text">{entry?.text}</span>
+              {/* The time is the link: no "Open on the map" repeated per line. */}
               {entry?.link?.to ? (
-                <Link to={entry.link.to} className="intel-link">
-                  Open on the map
+                <Link
+                  to={entry.link.to}
+                  className="intel-evidence-when intel-link"
+                  aria-label={`Open on the map: ${formatIst(entry?.at, { withDate: true })}`}
+                >
+                  {formatIst(entry?.at, { withDate: true })}
                 </Link>
               ) : (
-                <span />
+                <span className="intel-evidence-when">{formatIst(entry?.at, { withDate: true })}</span>
               )}
+              <span className="intel-evidence-text">{entry?.text}</span>
             </li>
           ))}
         </ul>

@@ -145,7 +145,7 @@ describe('IssuesTab', () => {
     expect(
       screen.getByText('The position stopped changing for 24 minutes while the truck was moving on NH19.'),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Open on the map' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /^Open on the map/ })).toHaveAttribute(
       'href',
       '/live-tracking?v=WB11F0162',
     );

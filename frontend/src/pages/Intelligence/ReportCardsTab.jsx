@@ -293,7 +293,7 @@ export default function ReportCardsTab({
             total={total}
             toolbarExtra={
               sharedBasis ? (
-                <span className="intelligence-scope-note">{`Based on ${humanizeDates(sharedBasis)}`}</span>
+                <span className="intelligence-scope-note">{`Based on ${humanizeDates(sharedBasis).replace(/^([A-Z])(?=[a-z])/, (c) => c.toLowerCase())}`}</span>
               ) : null
             }
             pagination={

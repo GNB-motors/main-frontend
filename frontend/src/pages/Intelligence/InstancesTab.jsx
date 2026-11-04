@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Link from '@/components/redesign/FleetLink';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Route } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
 import PlaceName from '@/components/redesign/PlaceName';
 import DataTable from '@/components/ui/DataTable';
@@ -82,8 +82,15 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
 
   const anyDriver = items.some((row) => row?.driverName);
   const anyPlace = items.some((row) => row?.place && (row.place.name || row.place.lat));
+  // Every row at the same place ("On the road" ×25) is said once, above the table.
+  const placeNames = new Set(items.map((row) => row?.place?.name ?? null));
+  const samePlace = items.length > 1 && placeNames.size === 1 ? [...placeNames][0] : null;
+  // An idle's "how much" is its minutes: a second minutes column would repeat it.
+  const valueIsDuration = items.length > 0 && items.every((row) => row?.unit === 'min');
   const anyDuration =
-    activeKind !== 'fuel_unexplained' && items.some((row) => Number(row?.durationMin) > 0);
+    activeKind !== 'fuel_unexplained' &&
+    !valueIsDuration &&
+    items.some((row) => Number(row?.durationMin) > 0);
   const anyTrip = items.some((row) => row?.trip?.to);
   const templated = isTemplatedText(items.map((row) => row?.text));
 
@@ -121,7 +128,7 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
           render: (row) => (row?.durationMin == null ? '—' : formatDuration(row.durationMin)),
         }
       : null,
-    anyPlace
+    anyPlace && !samePlace
       ? { key: 'where', label: 'Where', render: (row) => <PlaceName place={row?.place} /> }
       : null,
     {
@@ -145,20 +152,28 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
       ? {
           key: 'trip',
           label: 'Trip',
+          align: 'center',
+          width: 64,
           render: (row) =>
             row?.trip?.to ? (
               <Link
                 to={row.trip.to}
-                className="intel-link"
+                className="intel-icon-link"
+                aria-label={`${row.registrationNumber}: ${row.trip.label || 'Open the trip'}`}
+                title={row.trip.label || 'Open the trip'}
                 onClick={(event) => event.stopPropagation()}
               >
-                {row.trip.label || 'Open the trip'}
+                <Route size={15} aria-hidden="true" />
               </Link>
             ) : (
               '—'
             ),
         }
       : null,
+    // With no free-text column the numbers would drift apart across the
+    // full width; an empty last column takes the spare room instead. The
+    // 'actions' key keeps it out of the column menu.
+    templated ? { key: 'actions', label: '', width: '40%', render: () => null } : null,
   ].filter(Boolean);
 
   const caveat = CAVEATS[activeKind] ?? null;
@@ -234,7 +249,9 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
           total={total}
           toolbarExtra={
             items.length ? (
-              <span className="intelligence-scope-note">Click a row to open it on the map</span>
+              <span className="intelligence-scope-note">
+                {samePlace ? `Where: ${samePlace} (every row) · ` : ''}Click a row to open it on the map
+              </span>
             ) : null
           }
           pagination={

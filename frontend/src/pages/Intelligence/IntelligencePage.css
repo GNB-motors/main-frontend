@@ -501,7 +501,8 @@ button.intel-kpi-hit:focus-visible {
   text-overflow: ellipsis;
   color: var(--rd-ink-2);
 }
-.intel-row-detail td {
+.intel-table .intel-row-detail td {
+  height: auto;
   padding: 4px 16px 16px 52px;
   border-bottom: 1px solid var(--rd-line);
   background: var(--rd-card-2);
@@ -521,7 +522,7 @@ button.intel-kpi-hit:focus-visible {
 }
 .intel-evidence {
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  grid-template-columns: max-content minmax(0, 1fr);
   gap: 6px 16px;
   margin: 0;
   padding: 0;
@@ -531,6 +532,7 @@ button.intel-kpi-hit:focus-visible {
   display: contents;
 }
 .intel-evidence-when {
+  font-weight: 500;
   color: var(--rd-ink-3);
   font-size: 12px;
   line-height: 20px;
@@ -967,4 +969,20 @@ span.intel-insight-hit {
   color: var(--rd-brand-2);
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+.intel-icon-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  color: var(--rd-ink-2);
+}
+.intel-icon-link:hover {
+  background: var(--rd-brand-tint);
+  color: var(--rd-brand-2);
+}
+a.intel-evidence-when {
+  color: var(--rd-brand-2);
 }

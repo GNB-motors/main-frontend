@@ -60,7 +60,7 @@ describe('IssueGroup', () => {
       'true',
     );
     expect(screen.getByText('Position unchanged for 24 min on NH19')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Open on the map' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /^Open on the map/ })).toHaveAttribute(
       'href',
       '/live-tracking?v=WB11F0162',
     );
