@@ -4,6 +4,7 @@ import { canMarkPlace } from './autoTripPlaces';
 import { fmtClock, fmtDay, fmtDayTime, fmtDuration } from './autoTripFormat';
 import { fareText } from './tripTolls';
 import TollTimelineRow from './TollTimelineRow';
+import { titleCasePlace } from './tripListModel';
 
 const TITLE = { loading: 'Loading at plant', drop: 'Unloading at drop', unknown: 'Unknown stop' };
 /** "drop place" only repeats the title; a guessed or hand-set drop is worth saying. */
@@ -38,7 +39,7 @@ function StayPill({ step }) {
 function placeText(step, asking) {
   const note =
     step.kind === 'drop' && SHOWN_DROP_NOTES.includes(step.placeNote) ? ` · ${step.placeNote}` : '';
-  return `${step.place}${note}${asking ? ' — was this the drop?' : ''}`;
+  return `${titleCasePlace(step.place)}${note}${asking ? ' — was this the drop?' : ''}`;
 }
 
 /**

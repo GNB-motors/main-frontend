@@ -1,274 +1,623 @@
-/* Trip hierarchy and surfaces are scoped so map and legacy trip screens keep their layout. */
-.atx-list .atx-head {
-  align-items: center;
+/*
+ * TripList.css — the Trips list: KPI strip (which is also the status filter),
+ * the "needs your answer" banner and a dense trip table. Tokens and the shared
+ * header/chip rules are in TripsRedesign.css.
+ */
+
+/* ─── KPI strip ───────────────────────────────────────────────────────── */
+.atx-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
 }
-.atx-list .atx-toolbar {
+.atx-kpi-tabs {
+  grid-column: span 4;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: subgrid;
+  gap: 16px;
+}
+.atx-kpi {
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  padding: 14px 18px 16px;
+  border: 1px solid var(--rd-line);
+  border-radius: 10px;
+  background: var(--rd-card);
+  color: var(--rd-ink);
+  text-align: left;
+  font: inherit;
+}
+.atx-kpi--tab {
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+.atx-kpi--tab:hover {
+  border-color: var(--rd-line-strong);
+}
+.atx-kpi--tab.is-selected {
+  border-color: var(--rd-brand);
+  box-shadow: inset 0 0 0 1px var(--rd-brand);
+}
+.atx-kpi-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--rd-ink-2);
+}
+.atx-kpi--tab.is-selected .atx-kpi-label {
+  color: var(--rd-brand);
+}
+.atx-kpi-value {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 36px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--rd-ink);
+}
+.atx-kpi-sub {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--rd-ink-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.atx-kpi-dot {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.atx-kpi-dot--good {
+  background: var(--rd-good);
+}
+.atx-kpi-dot--info {
+  background: var(--rd-info);
+}
+.atx-kpi-dot--watch {
+  background: var(--rd-watch);
+}
+.atx-kpi-dot--act {
+  background: var(--rd-act);
+}
+
+/* ─── Needs your answer ───────────────────────────────────────────────── */
+.atx-needs {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr);
+  border: 1px solid var(--rd-line);
+  border-radius: 10px;
+  background: var(--rd-card);
+}
+.atx-needs-main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px 20px;
+}
+.atx-needs-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--rd-ink);
+  font-variant-numeric: tabular-nums;
+}
+.atx-needs-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.atx-needs-reason {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 96px;
   align-items: center;
   gap: 12px;
-  background: var(--atx-surface);
-  padding: 12px 16px;
-  border: 1px solid var(--atx-line);
-  border-radius: 12px;
 }
-.atx-list .atx-tabs {
-  border-bottom: 0;
-  padding-bottom: 0;
-}
-.atx-list .atx-toolbar-start {
-  display: flex;
+.atx-needs-label {
+  display: inline-flex;
   align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--rd-ink);
+}
+.atx-needs-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--rd-card-2);
+  box-shadow: inset 0 0 0 1px var(--rd-line);
+}
+.atx-needs-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--rd-watch);
+}
+.atx-needs-reason--DROP_INFERRED .atx-needs-bar > span {
+  background: color-mix(in srgb, var(--rd-watch) 50%, var(--rd-card));
+}
+.atx-needs-reason--OTHER .atx-needs-bar > span {
+  background: var(--rd-ink-3);
+}
+.atx-needs-count {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.atx-needs-of {
+  font-weight: 400;
+  color: var(--rd-ink-3);
+}
+.atx-needs-basis {
+  margin: 0;
+  font-size: 12px;
+  color: var(--rd-ink-3);
+}
+.atx-needs-fix {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px 20px;
+  border-left: 1px solid var(--rd-line);
+  background: var(--rd-card-2);
+  border-radius: 0 10px 10px 0;
+}
+.atx-needs-fix-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rd-ink);
+}
+.atx-needs-fix-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--rd-ink-2);
+}
+.atx-needs-fix-text strong {
+  font-weight: 600;
+  color: var(--rd-ink);
+  font-variant-numeric: tabular-nums;
+}
+.atx-needs-actions {
+  display: flex;
   flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+.atx-list .atx-needs-actions .atx-btn {
+  border: 1px solid var(--rd-line-strong);
+  background: var(--rd-card);
+  color: var(--rd-ink);
+}
+.atx-list .atx-needs-actions .atx-btn--primary {
+  border-color: var(--rd-brand);
+  background: var(--rd-brand);
+  color: #fff;
+}
+.atx-list .atx-needs-actions .atx-btn--primary:hover {
+  background: var(--rd-brand-2);
+}
+
+/* ─── Toolbar inside the table card ───────────────────────────────────── */
+.atx-tools {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: flex-end;
   gap: 8px;
   min-width: 0;
 }
-.atx-list .atx-toolbar-link {
+.atx-tools-title {
   display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 38px;
-  padding: 8px 10px;
-  border: 1px solid var(--atx-line);
-  border-radius: 8px;
-  color: var(--atx-ink-2);
+  flex: none;
+  align-items: baseline;
+  gap: 8px;
+  margin-right: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--rd-ink);
+}
+.atx-tools-title .atx-num {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--rd-ink-3);
+}
+.atx-tools-note {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-right: auto;
+  overflow: hidden;
   font-size: 12px;
-  font-weight: 550;
-  text-decoration: none;
+  color: var(--rd-ink-3);
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
-.atx-list .atx-toolbar-link:hover {
-  color: var(--atx-blue);
-  background: var(--atx-blue-bg);
+.atx-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--rd-line);
+  border-radius: 8px;
+  background: var(--rd-card);
+  color: var(--rd-ink-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.atx-tool:hover {
+  border-color: var(--rd-line-strong);
+  color: var(--rd-ink);
+}
+.atx-tool.is-active {
+  border-color: var(--rd-brand);
+  background: var(--rd-brand-tint);
+  color: var(--rd-brand);
+}
+.atx-tool--select select {
+  border: 0;
+  background: transparent;
+  color: var(--rd-ink);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
 }
 .atx-list .atx-search {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  min-height: 38px;
-  padding: 8px 10px;
-  border: 1px solid var(--atx-line);
+  gap: 6px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--rd-line);
   border-radius: 8px;
-  color: var(--atx-ink-2);
-  background: var(--card);
+  background: var(--rd-card);
+  color: var(--rd-ink-3);
 }
 .atx-list .atx-search:focus-within {
-  border-color: var(--atx-blue-line);
+  border-color: var(--rd-brand-2);
 }
 .atx-list .atx-search-input {
-  width: 170px;
+  width: 200px;
   min-width: 0;
   border: 0;
   outline: none;
   background: transparent;
-  color: inherit;
-  font-size: 12px;
+  color: var(--rd-ink);
+  font-size: 13px;
 }
 .atx-list .atx-search-input::placeholder {
-  color: var(--ds-ink3);
+  color: var(--rd-ink-3);
 }
-.atx-list .atx-filter-row {
-  width: auto;
-  margin-left: auto;
-  justify-content: flex-end;
-}
-.atx-list .atx-tab[aria-selected='true'] {
-  background: var(--atx-blue-bg);
-  border-color: var(--atx-blue-line);
-  font-weight: 650;
-}
-.atx-list .dt .dt-table {
-  min-width: 1030px;
-}
-.atx-list .dt .dt-table thead th {
-  background: var(--ds-sunk);
-  color: var(--atx-ink-2);
-  font-size: 12px;
-  font-weight: 650;
-  padding: 14px 16px;
-}
-.atx-list .dt .dt-table tbody td {
-  font-size: 13px;
-  padding: 18px 16px;
-  border-bottom-color: var(--atx-line);
-}
-.atx-list .dt .dt-row:hover td {
-  background: var(--atx-blue-bg);
-}
-.atx-vehicle-link {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--atx-ink);
-  text-decoration: none;
-  white-space: nowrap;
-}
-.atx-vehicle-link:hover {
-  color: var(--atx-blue);
-  text-decoration: underline;
-}
-.atx-list .atx-route-cell {
-  gap: 4px;
-}
-.atx-list .atx-route-cell strong {
-  font-weight: 600;
-}
-.atx-list .atx-route-cell > span {
-  font-size: 12px;
-  color: var(--atx-ink-2);
-}
-.atx-cell-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: flex-start;
-  line-height: 1.5;
-}
-.atx-cell-stack small {
-  font-size: 11px;
-  color: var(--atx-ink-3);
-  white-space: normal;
-}
-.atx-cell-stack .atx-check-label {
-  color: var(--atx-amber);
-}
-.atx-list .atx-status {
-  font-size: 11px;
-  padding: 5px 8px;
-  border-radius: 6px;
-  width: fit-content;
-}
-.atx-view-link,
-.atx-text-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-weight: 600;
-  color: var(--atx-blue);
-  font-size: 12px;
-  white-space: nowrap;
-  text-decoration: none;
-}
-.atx-view-link:hover,
-.atx-text-link:hover {
-  text-decoration: underline;
-}
-
-.atx-list .dt td[style*='right'] .atx-cell-stack {
-  align-items: flex-end;
-}
-
-/* One-row toolbar: the tab strip never wraps; the filters sit on the same row. */
-.atx-list .atx-toolbar {
-  flex-wrap: nowrap;
-}
-.atx-list .atx-toolbar-start {
-  flex: 1 1 auto;
-  min-width: 0;
-  flex-wrap: nowrap;
-}
-.atx-list .atx-tabs {
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  scrollbar-width: none;
-  min-width: 0;
-}
-.atx-list .atx-tabs::-webkit-scrollbar {
-  display: none;
-}
-.atx-list .atx-tab,
-.atx-list .atx-tab--more {
-  white-space: nowrap;
-  flex: 0 0 auto;
-}
-.atx-list .atx-tab--more {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-.atx-list .atx-filter-row {
-  flex: 0 0 auto;
-  flex-wrap: nowrap;
-  margin-left: auto;
-  gap: 8px;
-}
-.atx-list .atx-search,
-.atx-list .atx-toolbar-link,
-.atx-list .sap-row {
-  white-space: nowrap;
-}
-
-/* The "More" menu at the end of the tab strip. */
-.atx-more {
+.atx-list .atx-more {
   position: relative;
   flex: 0 0 auto;
 }
-.atx-more-menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  z-index: 30;
-  min-width: 180px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 6px;
-  background: var(--card);
-  border: 1px solid var(--atx-line);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+.atx-list .atx-more-menu {
+  right: 0;
+  left: auto;
+  min-width: 200px;
+  padding: 4px;
+  border-color: var(--rd-line);
+  border-radius: 8px;
+  background: var(--rd-card);
 }
-.atx-more-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  width: 100%;
-  padding: 8px 10px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--atx-ink-2);
+.atx-list .atx-more-item {
+  padding: 7px 10px;
+  border-radius: 6px;
+  color: var(--rd-ink);
+  font-size: 13px;
+  font-weight: 400;
+}
+.atx-list .atx-more-item:hover {
+  background: var(--rd-card-2);
+  color: var(--rd-ink);
+}
+.atx-list .atx-more-item--active,
+.atx-list .atx-more-item--active:hover {
+  background: var(--rd-brand-tint);
+  color: var(--rd-brand);
+  font-weight: 500;
+}
+.atx-list .atx-more-rule {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--rd-line);
+}
+.atx-list .atx-tab-count {
+  padding: 0;
+  background: none;
+  color: var(--rd-ink-3);
   font-size: 12px;
-  font-weight: 550;
-  text-align: left;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.atx-more-item:hover {
-  background: var(--atx-blue-bg);
-  color: var(--atx-blue);
-}
-.atx-more-item--active,
-.atx-more-item--active:hover {
-  color: var(--atx-blue);
-  background: var(--atx-blue-bg);
-  font-weight: 650;
-}
-.atx-tab--active-more {
-  color: var(--atx-blue);
-  background: var(--atx-blue-bg);
-  border-color: var(--atx-blue-line);
+  font-variant-numeric: tabular-nums;
 }
 
-/* Under 900 px the filters drop to a second row as one tidy line. */
-@media (max-width: 900px) {
-  .atx-list .atx-toolbar {
-    flex-wrap: wrap;
-    row-gap: 10px;
-  }
-  .atx-list .atx-filter-row {
-    flex: 1 0 100%;
-    width: 100%;
-    margin-left: 0;
-    justify-content: flex-start;
-    align-items: center;
-    flex-wrap: nowrap;
-  }
-  .atx-list .atx-search {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
+/* ─── The trip table ──────────────────────────────────────────────────── */
+.atx-list .atx-table.dt {
+  overflow: visible;
+  border: 1px solid var(--rd-line);
+  border-radius: 10px;
+  background: var(--rd-card);
+  box-shadow: none;
+}
+.atx-list .atx-table .dt-tools {
+  gap: 16px;
+  padding: 10px 12px 10px 16px;
+  border-bottom: 1px solid var(--rd-line);
+  border-radius: 10px 10px 0 0;
+  background: var(--rd-card);
+}
+.atx-list .atx-table .dt-tools-right {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* The view title in the toolbar says the count; the pager says the rows shown. */
+.atx-list .atx-table .dt-summary {
+  display: none;
+}
+.atx-list .atx-table .dt-foot {
+  justify-content: flex-end;
+}
+.atx-list .atx-table .dt-foot *,
+.atx-list .atx-panel .dt-foot * {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.atx-list .atx-table .dt-tool {
+  height: 32px;
+  border-color: var(--rd-line);
+  border-radius: 8px;
+  box-shadow: none;
+}
+.atx-list .atx-table .dt-scroll {
+  overflow: visible;
+}
+.atx-list .atx-table .dt-table {
+  min-width: 0;
+  /* Fixed layout: the route takes what the other columns leave, at any width. */
+  table-layout: fixed;
+  font-size: 13px;
+}
+.atx-list .atx-table .dt-table thead th {
+  position: sticky;
+  /* The page scroller (.page-content) has a 24 px padding; stick to its edge, not inside it. */
+  top: calc(-1 * var(--spacing-lg, 24px));
+  z-index: 4;
+  height: 36px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--rd-line);
+  background: var(--rd-card-2);
+  color: var(--rd-ink-2);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.atx-list .atx-table .dt-table thead th:first-child,
+.atx-list .atx-table .dt-table tbody td:first-child {
+  padding-left: 16px;
+}
+.atx-list .atx-table .dt-table thead th:last-child,
+.atx-list .atx-table .dt-table tbody td:last-child {
+  padding-right: 16px;
+}
+.atx-list .atx-table .dt-table tbody td {
+  height: 46px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--rd-line);
+  background: var(--rd-card);
+  color: var(--rd-ink);
+  font-size: 13px;
+  line-height: 20px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.atx-list .atx-table .dt-row:hover td {
+  background: var(--rd-card-2);
+}
+.atx-list .atx-table .dt-row:last-child td {
+  border-bottom: 0;
+}
+.atx-list .atx-table .dt-foot {
+  padding: 10px 16px;
+  border-top: 1px solid var(--rd-line);
+  border-radius: 0 0 10px 10px;
+  background: var(--rd-card);
+}
+
+.atx-truck {
+  color: var(--rd-ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.atx-truck:hover {
+  color: var(--rd-brand);
+}
+.atx-route {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.atx-route-from,
+.atx-route-to {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.atx-route-from {
+  flex: 0 1 auto;
+  color: var(--rd-ink);
+}
+.atx-route-arrow {
+  flex: none;
+  color: var(--rd-ink-3);
+}
+.atx-route-to {
+  flex: 0 1 auto;
+  color: var(--rd-ink);
+}
+.atx-route-to--moving,
+.atx-route-to--missing,
+.atx-route-to--guessed,
+.atx-route-to--unnamed {
+  color: var(--rd-ink-3);
+}
+.atx-route-tag {
+  flex: none;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--rd-card-2);
+  color: var(--rd-ink-2);
+  font-size: 12px;
+}
+.atx-cell-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.atx-cell-quiet {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--rd-ink-3);
+}
+.atx-sap-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.atx-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* History / Questions / Planned share one card with the same toolbar. */
+.atx-panel {
+  border: 1px solid var(--rd-line);
+  border-radius: 10px;
+  background: var(--rd-card);
+}
+.atx-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 12px 10px 16px;
+  border-bottom: 1px solid var(--rd-line);
+}
+.atx-panel-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--rd-ink);
+  white-space: nowrap;
+}
+.atx-panel-body {
+  padding: 16px;
+}
+.atx-panel .dt {
+  border: 0;
+  border-radius: 0 0 10px 10px;
+  box-shadow: none;
+}
+.atx-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  align-self: flex-start;
+  padding: 6px 12px;
+  border: 1px solid var(--rd-line);
+  border-radius: 8px;
+  background: var(--rd-card);
+  font-size: 13px;
+}
+
+/* ─── Narrower screens ────────────────────────────────────────────────── */
+@media (max-width: 1360px) {
   .atx-list .atx-search-input {
-    width: 100%;
+    width: 150px;
+  }
+}
+@media (max-width: 1180px) {
+  .atx-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .atx-kpi-tabs {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .atx-needs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .atx-needs-fix {
+    border-left: 0;
+    border-top: 1px solid var(--rd-line);
+    border-radius: 0 0 10px 10px;
+  }
+  .atx-list .atx-table .dt-scroll {
+    overflow-x: auto;
+  }
+  .atx-list .atx-table .dt-table {
+    min-width: 960px;
+  }
+  .atx-tools-note {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .atx-kpis,
+  .atx-kpi-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .atx-list .atx-table .dt-tools,
+  .atx-panel-head {
+    flex-wrap: wrap;
+  }
+  .atx-tools {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  .atx-needs-reason {
+    grid-template-columns: 120px minmax(0, 1fr) 80px;
   }
 }
