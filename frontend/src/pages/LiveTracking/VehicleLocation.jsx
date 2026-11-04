@@ -1,6 +1,6 @@
 import PlaceLabel from '../../components/ui/PlaceLabel.jsx';
 
-export default function VehicleLocation({ vehicle, showMap = false, compact = false }) {
+export default function VehicleLocation({ vehicle, showMap = false, compact = false, fallback = null }) {
   if (vehicle.area) return <span>{vehicle.area}</span>;
   if (
     !vehicle.hasFix ||
@@ -16,8 +16,8 @@ export default function VehicleLocation({ vehicle, showMap = false, compact = fa
       lat={vehicle.lat}
       lng={vehicle.lng}
       showMap={showMap}
-      fallbackLinkLabel={compact ? null : "View current location"}
-      fallbackText={compact ? (vehicle.status === 'moving' ? 'On the road' : 'Location not named') : null}
+      fallbackLinkLabel={compact || fallback ? null : 'View current location'}
+      fallbackText={fallback || (compact ? (vehicle.status === 'moving' ? 'On the road' : 'Location not named') : null)}
     />
   );
 }

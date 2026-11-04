@@ -41,3 +41,8 @@ describe('VehicleDriverSection', () => {
     expect(screen.getByText('No driver on record for this truck.')).toBeInTheDocument();
   });
 });
+
+it.each(['Rajesh NA', 'Rajesh N/A'])('omits a placeholder surname from %s', name => {
+  render(<MemoryRouter><VehicleDriverSection driver={{ name }} /></MemoryRouter>);
+  expect(screen.getByText('Rajesh')).toBeInTheDocument();
+});
