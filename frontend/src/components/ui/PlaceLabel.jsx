@@ -55,7 +55,7 @@ export default function PlaceLabel({
 
   if (!resolved || ((fallbackLinkLabel || fallbackText) && resolved.source === 'UNMAPPED')) {
     // undefined = still looking up; null = no name (PlaceService negative-caches failures).
-    const text = fallbackText || (resolved === undefined ? 'Finding location?' : fallbackLinkLabel || 'View on map');
+    const text = fallbackText || (resolved === undefined ? 'Finding location…' : fallbackLinkLabel || 'View on map');
     return showMap || fallbackLinkLabel ? (
       <a
         href={mapUrl}
@@ -71,7 +71,7 @@ export default function PlaceLabel({
       </a>
     ) : (
       <span className="text-dim" title={tooltip}>
-        {fallbackText || (resolved === undefined ? '?' : '?')}
+        {fallbackText || (resolved === undefined ? '…' : '—')}
       </span>
     );
   }

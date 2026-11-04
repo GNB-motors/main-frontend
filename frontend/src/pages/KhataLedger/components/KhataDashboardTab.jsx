@@ -290,7 +290,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
   const completeFinances = financeCount === erpTrips.length;
 
   // A period with no expense records is unknown, not ₹0 spent.
-  const noExpenseRecords = filteredExpenses.length === 0;
+  const noExpenseRecords = !loading && filteredExpenses.length === 0;
   const NO_RECORDS = 'No expenses recorded for this period';
   const money = (value) => (noExpenseRecords ? '—' : formatCurrency(value));
 
