@@ -21,6 +21,8 @@ import TrafficLayer from './TrafficLayer.jsx';
 import TrackMapLayers from './TrackMapLayers.jsx';
 import replayAppearance from '../../components/map/replayAppearance.js';
 import { DEFAULT_LIMIT_KMH } from '../RouteHub/views/replay/replayConstants.js';
+import { destinationHeading, routeLines as predictionLines } from './whereNextModel';
+import { resolveMapColor } from './mapColor';
 
 const INDIA_CENTER = { lat: 22.5937, lng: 78.9629 };
 
@@ -80,6 +82,8 @@ export default function LiveMapCanvas({
   onPickRoute,
   draft = null,
   onDraftChange,
+  whereNext = null,
+  whereNextPosition = null,
 }) {
   /* When the user disables per-trip segmentation we fall back to a single
      polyline (visual continuity with the legacy behavior). The fallback
@@ -180,6 +184,15 @@ export default function LiveMapCanvas({
               on the congestion in the vehicle panel's ETA, which comes from
               our own road network, not from this layer. */}
           <TrafficLayer map={map} enabled={isTrafficOn} />
+          {predictionLines(whereNext?.data, whereNext?.open, whereNextPosition).map(({ path, index, weak }) => (
+            <PolylineF key={`where-next-${index}`} path={path} options={{
+              strokeOpacity: 0,
+              icons: [{ icon: { path: 'M 0,-1 0,1', strokeColor: resolveMapColor(selectedStatusColor), strokeOpacity: index || weak ? 0.35 : 0.9, strokeWeight: index ? 2 : 3, scale: 3 }, offset: '0', repeat: '16px' }],
+            }} />
+          ))}
+          {whereNext?.data && !whereNext.data.held && Number.isFinite(whereNext.data.destinations?.[0]?.place?.lat) && Number.isFinite(whereNext.data.destinations?.[0]?.place?.lng) ? (
+            <MarkerF position={{ lat: whereNext.data.destinations[0].place.lat, lng: whereNext.data.destinations[0].place.lng }} title={destinationHeading(whereNext.data.destinations[0])} label={{ text: destinationHeading(whereNext.data.destinations[0]), className: 'where-next-map-label' }} />
+          ) : null}
 
           {/* Track mode: one truck's history, drawn over the live map. */}
           {track ? (

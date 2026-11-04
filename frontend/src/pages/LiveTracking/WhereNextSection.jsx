@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigation } from 'lucide-react';
 import SectionCard from '../../components/redesign/SectionCard';
-import HeldCard from '../../components/redesign/HeldCard';
 import { useApi } from '../../hooks/useApi';
 import { fleetViewService } from '../../services/fleetViewService';
 import { formatDuration, formatIst } from '../../utils/redesign/format';
 import { trafficWord } from './vehiclePanelModel';
+import { destinationHeading, destinationName, evidence, heldReason } from './whereNextModel';
 
 /**
  * WhereNextSection — where is this truck likely going, and when?
@@ -18,14 +18,14 @@ import { trafficWord } from './vehiclePanelModel';
  * of 24 times"). We print it exactly as sent. We never show a raw
  * probability, and we never invent a reason.
  */
-export default function WhereNextSection({ registrationNumber, onSelectDestination = null }) {
+export default function WhereNextSection({ registrationNumber, onSelectDestination = null, onPrediction = null }) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
 
   const { data, loading, error } = useApi(
     (signal) => fleetViewService.getWhereNext(registrationNumber, { signal }),
     [registrationNumber],
-    { enabled: Boolean(registrationNumber) },
+    { enabled: Boolean(registrationNumber), scopeKey: registrationNumber },
   );
 
   const held = data?.held === true;
@@ -33,19 +33,20 @@ export default function WhereNextSection({ registrationNumber, onSelectDestinati
   const top = destinations[0] ?? null;
   const selected = destinations.find((d) => d.place?.id === selectedId) ?? top;
 
+  useEffect(() => {
+    onPrediction?.({ registrationNumber, data: loading || error ? null : data, open: isOpen });
+  }, [registrationNumber, data, loading, error, isOpen, onPrediction]);
+
   // Nothing real to say — still asking, endpoint missing, request failed, or
   // no guess — means no section. A held answer is real, so it stays.
   if (!held && (loading || error || destinations.length === 0)) return null;
 
   // A held answer never leaks its guess into the header, and an ETA already
   // in the past is stale data, not a time to show.
-  const topEta = top?.eta?.at && new Date(top.eta.at).getTime() > Date.now() ? top.eta.at : null;
-  const headerTitle = isOpen
-    ? 'Where next'
-    : held
+  const headerTitle = held
       ? 'Where next · not sure yet'
       : top
-        ? `Likely → ${top.place?.name ?? 'somewhere'}${topEta ? ` · ETA ${formatIst(topEta)}` : ''}`
+        ? destinationHeading(top)
         : 'Where next';
 
   return (
@@ -64,8 +65,12 @@ export default function WhereNextSection({ registrationNumber, onSelectDestinati
         </button>
       }
     >
-      {!isOpen ? null : held ? (
-        <HeldCard why={data.why ?? data.basis ?? null} />
+      {held ? (
+        <p className="m-0 text-[12px] text-[var(--rd-ink-2)]">{heldReason(data)}</p>
+      ) : !isOpen ? (
+        <p className="m-0 text-[12px] text-[var(--rd-ink-3)]">
+          {top?.route?.viaNames?.length ? `usually via ${top.route.viaNames.join(' → ')} · ` : ''}{evidence(top)}
+        </p>
       ) : (
         <div className="flex flex-col gap-2">
           {data?.basis?.text ? (
@@ -112,11 +117,11 @@ function DestinationRow({ destination, index, selected, onSelect }) {
       <span className="flex items-baseline justify-between gap-2">
         <span className="min-w-0 truncate text-[14px] font-semibold text-[var(--rd-ink)]">
           <span className="mr-1 text-[var(--rd-ink-3)]">{index + 1}</span>
-          {destination.place?.name ?? 'Unknown place'}
+          {destinationName(destination.place)}
         </span>
-        {route?.usedTimes != null ? (
+        {evidence(destination) ? (
           <span className="shrink-0 text-[12px] text-[var(--rd-ink-2)] tabular-nums">
-            usually {route.usedTimes} of 24 times
+            {evidence(destination)}
           </span>
         ) : null}
       </span>
