@@ -16,7 +16,7 @@ const questions = {
       tripsAffected: 124,
       trucks: 18,
       suggestion: { name: 'JK BUXAR PLANT GATE', category: 'PLANT', source: 'OSM', confidence: 0.82 },
-      alternatives: [],
+      alternatives: [{ name: 'JK BUXAR SIDING', source: 'OSM' }],
       sampleTrips: [{ label: 'Trip on 1 Nov', to: '/auto-trips/trip-88213' }],
       why: { text: 'Trucks stop here 1.5 h on average after loading.', basis: '124 trips from 18 trucks since 15 Sep' },
     },
@@ -54,8 +54,17 @@ describe('PlacesTab', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('Places waiting for your answer (1)')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /^Places waiting for your answer\s*1$/ }),
+    ).toBeInTheDocument();
     expect(screen.getByText('JK BUXAR PLANT GATE')).toBeInTheDocument();
+    expect(screen.getByText('Plant · from OSM · likely · also JK BUXAR SIDING')).toBeInTheDocument();
+    expect(screen.getByText('124 trips from 18 trucks since 15 Sep')).toBeInTheDocument();
+    expect(screen.getByText('Trucks stop here 1.5 h on average after loading.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /JK BUXAR PLANT GATE: Trip on 1 Nov/ })).toHaveAttribute(
+      'href',
+      '/auto-trips/trip-88213',
+    );
     expect(screen.getByRole('link', { name: /See all/ })).toHaveAttribute(
       'href',
       '/auto-trips?tab=questions',

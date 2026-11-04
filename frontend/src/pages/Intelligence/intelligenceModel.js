@@ -7,6 +7,7 @@
  * the model decided — it never invents a number or a reason.
  */
 import { toISTDateString } from '@/utils/dateUtils';
+import { formatIst } from '@/utils/redesign/format';
 
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -163,6 +164,275 @@ export function sortIssues(items = []) {
     if (tone !== 0) return tone;
     return String(b?.lastSeenAt ?? '').localeCompare(String(a?.lastSeenAt ?? ''));
   });
+}
+
+/** The first number-and-words a pattern finds in an issue's detail, or null. */
+function fromDetail(issue, pattern) {
+  const match = String(issue?.detail ?? '').match(pattern);
+  return match ? match[1].trim() : null;
+}
+
+function minutesText(value) {
+  const min = Number(value);
+  if (!Number.isFinite(min)) return null;
+  const total = Math.max(0, Math.round(min));
+  const days = Math.floor(total / 1440);
+  const hours = Math.floor((total % 1440) / 60);
+  const mins = total % 60;
+  if (days > 0) return hours > 0 ? `${days} d ${hours} h` : `${days} d`;
+  if (hours > 0) return mins > 0 ? `${hours} h ${mins} min` : `${hours} h`;
+  return `${mins} min`;
+}
+
+const times = (issue) =>
+  Number.isFinite(Number(issue?.occurrences)) ? String(issue.occurrences) : null;
+
+/**
+ * How each kind of issue reads as one group.
+ *
+ * `label` names the group ("No data · 8 trucks"). `columns` are the
+ * kind-specific numbers of its table: they are read from the issue's own
+ * fields first and from the words of its detail second, and a column that
+ * cannot be read shows a dash — the full detail is always one click away
+ * in the row. A kind not listed here still groups, with the detail as its
+ * only column.
+ */
+export const ISSUE_KIND_META = {
+  ACCOUNT_DISCONNECTED: { label: 'Account stopped sending data', noun: 'account' },
+  ACCOUNT_EXPIRING: { label: 'Account link expiring', noun: 'account' },
+  NO_DATA: {
+    label: 'No data',
+    // The issue is re-checked every night, so its last sighting is the last
+    // check, not the last reading.
+    lastLabel: 'Last checked',
+    columns: [
+      {
+        key: 'silent',
+        label: 'Silent for',
+        numeric: true,
+        read: (issue) => fromDetail(issue, /No reading for ([^,.;—]+)/i),
+      },
+    ],
+    // The longest-silent truck first.
+    order: (a, b) => String(a?.firstSeenAt ?? '').localeCompare(String(b?.firstSeenAt ?? '')),
+  },
+  GPS_FROZEN: {
+    label: 'GPS freezes',
+    columns: [
+      { key: 'times', label: 'Freezes', numeric: true, read: times },
+      {
+        key: 'speed',
+        label: 'Speed while frozen',
+        numeric: true,
+        read: (issue) => {
+          const v = fromDetail(issue, /up to (\d+(?:\.\d+)?) ?km\/h/i);
+          return v ? `${v} km/h` : null;
+        },
+      },
+    ],
+  },
+  GPS_JUMPS: {
+    label: 'GPS jumps',
+    columns: [
+      { key: 'times', label: 'Jumps', numeric: true, read: times },
+      {
+        key: 'fastest',
+        label: 'Fastest implied',
+        numeric: true,
+        read: (issue) => {
+          const v = fromDetail(issue, /fastest implied (\d+(?:\.\d+)?) ?km\/h/i);
+          return v ? `${Number(v).toLocaleString('en-IN')} km/h` : null;
+        },
+      },
+    ],
+  },
+  GPS_SILENT_MIDROAD: {
+    label: 'Tracker silent on the road',
+    columns: [
+      { key: 'times', label: 'Gaps', numeric: true, read: times },
+      {
+        key: 'silent',
+        label: 'Silent for',
+        numeric: true,
+        read: (issue) => minutesText(fromDetail(issue, /silent for (\d+(?:\.\d+)?) ?min/i)),
+      },
+    ],
+  },
+  WARNING_LAMP: {
+    label: 'Warning lamp stayed on',
+    columns: [
+      {
+        key: 'lamp',
+        label: 'Lamp',
+        read: (issue) => {
+          const v = fromDetail(issue, /The (.+?) lamp/i);
+          return v ? v.charAt(0).toUpperCase() + v.slice(1) : null;
+        },
+      },
+      {
+        key: 'on',
+        label: 'On for',
+        numeric: true,
+        read: (issue) => minutesText(fromDetail(issue, /over (\d+(?:\.\d+)?) ?min/i)),
+      },
+      { key: 'times', label: 'Readings', numeric: true, read: times },
+    ],
+  },
+  DEF_SENSOR: { label: 'DEF gauge stuck' },
+  FUEL_SENSOR_NOISY: { label: 'Fuel sensor reads noisy' },
+  FUEL_SENSOR_CALIBRATION: { label: 'Fuel sensor needs calibration' },
+  BATTERY: { label: 'Battery' },
+  COOLANT: { label: 'Coolant' },
+  SERVICE_DUE: { label: 'Service due' },
+};
+
+/** The number of days in a "4 days" / "27 days" phrase, for a range line. */
+function daysIn(text) {
+  const match = String(text ?? '').match(/^(\d+)\s*day/i);
+  return match ? Number(match[1]) : null;
+}
+
+/**
+ * The open issues as one group per kind, in the order the owner should read
+ * them: what needs the owner first, an account problem before a truck
+ * problem, then the biggest group.
+ *
+ * The advice of a kind is the same sentence for every truck, so a group
+ * carries it once. When the trucks of a group were given different advice,
+ * the group says so and every row keeps its own.
+ */
+export function groupIssuesByKind(items = []) {
+  const byKind = new Map();
+  items.forEach((issue) => {
+    const kind = issue?.kind ?? 'OTHER';
+    if (!byKind.has(kind)) byKind.set(kind, []);
+    byKind.get(kind).push(issue);
+  });
+
+  const groups = [...byKind.entries()].map(([kind, list]) => {
+    const meta = ISSUE_KIND_META[kind] ?? {};
+    const sorted = meta.order ? [...list].sort(meta.order) : sortIssues(list);
+    const severity = sorted.reduce(
+      (worst, issue) =>
+        (TONE_ORDER[issue?.severity] ?? 9) < (TONE_ORDER[worst] ?? 9) ? issue.severity : worst,
+      sorted[0]?.severity ?? 'info',
+    );
+    const advices = new Set(sorted.map((issue) => issue?.advice).filter(Boolean));
+    const subjects = new Set(
+      sorted.map((issue) => issue?.registrationNumber || issue?.accountName || issue?.id),
+    );
+    const noun = meta.noun ?? 'truck';
+    const days = sorted.map((issue) => daysIn(meta.columns?.[0]?.read?.(issue)));
+    const knownDays = days.filter((d) => d !== null);
+    let range = null;
+    if (kind === 'NO_DATA' && knownDays.length) {
+      const min = Math.min(...knownDays);
+      const max = Math.max(...knownDays);
+      range = min === max ? `silent for ${min} days` : `silent for ${min}–${max} days`;
+    }
+    return {
+      kind,
+      label: meta.label ?? sorted[0]?.title ?? kind,
+      columns: meta.columns ?? null,
+      firstLabel: meta.firstLabel ?? null,
+      lastLabel: meta.lastLabel ?? null,
+      severity,
+      mixedSeverity: new Set(sorted.map((issue) => issue?.severity)).size > 1,
+      items: sorted,
+      count: subjects.size,
+      countLabel: `${subjects.size} ${noun}${subjects.size === 1 ? '' : 's'}`,
+      range,
+      advice: advices.size === 1 ? [...advices][0] : null,
+      action: sorted[0]?.action ?? null,
+      sharedAction:
+        sorted.length > 0 &&
+        sorted.every(
+          (issue) =>
+            issue?.action?.kind === sorted[0]?.action?.kind &&
+            (issue?.action?.to ?? null) === (sorted[0]?.action?.to ?? null),
+        ),
+      isAccount: isAccountIssue(sorted[0]),
+    };
+  });
+
+  return groups.sort((a, b) => {
+    const tone = (TONE_ORDER[a.severity] ?? 9) - (TONE_ORDER[b.severity] ?? 9);
+    if (tone !== 0) return tone;
+    const account = Number(b.isAccount) - Number(a.isAccount);
+    if (account !== 0) return account;
+    return b.items.length - a.items.length || a.label.localeCompare(b.label);
+  });
+}
+
+/**
+ * "2026-10-27 → 2026-11-03" becomes "27 Oct → 3 Nov": a raw calendar date
+ * inside an API sentence is read as a date, never shown as a code.
+ */
+export function humanizeDates(text) {
+  if (typeof text !== 'string') return text;
+  return text.replace(/\b(\d{4})-(\d{2})-(\d{2})(T[\d:.]+(?:Z|[+-]\d{2}:?\d{2})?)?/g, (whole, y, m, d, time) => {
+    if (time) return formatIst(whole, { withDate: true });
+    const month = MONTHS[Number(m) - 1];
+    if (!month) return whole;
+    return `${Number(d)} ${month}`;
+  });
+}
+
+/**
+ * "FUEL_PUMP" → "Fuel pump". An unknown category is no category at all:
+ * nothing is printed rather than the word "UNKNOWN".
+ */
+export function placeCategoryLabel(category) {
+  if (!category || typeof category !== 'string') return null;
+  if (/^(unknown|other|none)$/i.test(category)) return null;
+  const words = category.replace(/[_-]+/g, ' ').trim().toLowerCase();
+  return words ? words.charAt(0).toUpperCase() + words.slice(1) : null;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const IST_MS = 330 * 60 * 1000;
+
+function istDayKey(value) {
+  const t = new Date(value).getTime();
+  return Number.isNaN(t) ? null : Math.floor((t + IST_MS) / DAY_MS);
+}
+
+function isIstMidnight(value) {
+  const t = new Date(value).getTime();
+  return !Number.isNaN(t) && (t + IST_MS) % DAY_MS === 0;
+}
+
+function istStamp(value) {
+  return isIstMidnight(value) ? formatIst(value, { withDate: true }).split(',')[0] : formatIst(value, { withDate: true });
+}
+
+/**
+ * When a moment happened, as a window when it has an end:
+ * "29 Oct, 6:10 am – 6:35 am" on one day, "28 Oct → 4 Nov, 5:41 pm" across
+ * days. A window that starts at IST midnight is a day, not "12:00 am".
+ */
+export function whenText(startAt, endAt = null) {
+  if (!startAt) return '—';
+  const start = istStamp(startAt);
+  if (!endAt) return start;
+  const startDay = istDayKey(startAt);
+  const endDay = istDayKey(endAt);
+  if (startDay !== null && startDay === endDay && !isIstMidnight(startAt)) {
+    return `${start} – ${formatIst(endAt, { withDate: false })}`;
+  }
+  return `${start} → ${istStamp(endAt)}`;
+}
+
+/**
+ * True when every sentence says the same thing with only its numbers
+ * changed ("87.0 L left the tank…", "104.8 L left the tank…"): such a
+ * column repeats one sentence N times and is better said once.
+ */
+export function isTemplatedText(texts = []) {
+  const shapes = new Set(
+    texts.filter(Boolean).map((text) => String(text).replace(/[\d.,]+/g, '#')),
+  );
+  return texts.length > 1 && shapes.size === 1;
 }
 
 /** The issues of one group, in reading order. */

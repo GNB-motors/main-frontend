@@ -1,9 +1,8 @@
-import { ArrowLeftRight } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
-import SectionCard from '@/components/redesign/SectionCard';
-import StatTile from '@/components/redesign/StatTile';
 import { formatKm, formatNumber, formatPct } from '@/utils/redesign/format';
+import IntelCard from './IntelCard';
 import IntelligenceDataState from './IntelligenceDataState';
+import IntelligenceKpi from './IntelligenceKpi';
 import RunsTruckBar from './RunsTruckBar';
 import IntelligenceService from './IntelligenceService';
 import { isYmd, istDayEnd, istDayStart, runBarsByTruck } from './intelligenceModel';
@@ -13,11 +12,30 @@ const RUNS_EMPTY_TIP = 'Km driven without load, usually from a customer back to 
 const RUNS_REPOSITION_TIP =
   'The truck went from one plant straight to another without coming back empty. This is normal: plants work like warehouses, and it often saves an empty run.';
 
+function Legend() {
+  return (
+    <div className="flex flex-wrap items-center gap-4 text-[12px] text-[var(--rd-ink-2)]">
+      {[
+        ['Loaded', 'var(--rd-leg-loaded)'],
+        ['Empty', 'var(--rd-leg-empty)'],
+        ['Plant-to-plant', 'var(--rd-leg-reposition)'],
+      ].map(([label, color]) => (
+        <span key={label} className="inline-flex items-center gap-1.5">
+          <span aria-hidden="true" className="size-2.5 rounded-full" style={{ background: color }} />
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /**
  * RunsTab — how much of the driving carried load.
  *
- * A truck going from one plant straight to another is a normal run, so it is
- * shown on its own and never counted as an empty run.
+ * Four numbers from the period summary, then the top trucks by distance
+ * with their kilometres split by leg. A truck going from one plant straight
+ * to another is a normal run, so it is shown on its own and never counted
+ * as an empty run.
  */
 export default function RunsTab({ from, to }) {
   const { data, loading, error, refetch } = useApi(
@@ -49,57 +67,51 @@ export default function RunsTab({ from, to }) {
   const maxKm = bars.reduce((max, row) => Math.max(max, row.totalKm), 0);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <IntelligenceDataState
         loading={loading}
         loadingVariant="metrics"
-        loadingCount={3}
+        loadingCount={4}
         error={error}
         held={held}
         what="The run numbers"
         onRetry={refetch}
       >
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <StatTile
+        <div className="intel-kpi-strip intel-kpi-strip--inline">
+          <IntelligenceKpi
             label="Loaded km"
             value={formatKm(runs?.loadedKm)}
-            tone="good"
             why={{ text: RUNS_LOADED_TIP }}
-            sub={runs ? `on ${formatNumber(runs.loadedTrips)} loaded trips` : ''}
+            context={runs ? `on ${formatNumber(runs.loadedTrips)} loaded trips` : null}
           />
-          <StatTile
+          <IntelligenceKpi
             label="Empty km"
             value={formatKm(runs?.emptyKm)}
-            tone="watch"
             why={{ text: RUNS_EMPTY_TIP }}
-            sub="driving back empty"
+            context="driving back empty"
           />
-          <StatTile
+          <IntelligenceKpi
             label="Plant-to-plant"
-            value={runs ? `${formatNumber(runs.plantToPlant)} runs` : ''}
-            tone="info"
+            value={formatKm(runs?.repositionKm)}
             why={{ text: RUNS_REPOSITION_TIP }}
-            sub="went straight to another plant"
+            context={runs ? `${formatNumber(runs.plantToPlant)} runs` : null}
+          />
+          <IntelligenceKpi
+            label="Empty share"
+            value={formatPct(runs?.emptySharePct)}
+            why={runs?.why ?? null}
+            context={runs ? `of ${formatKm(totalKm)} driven` : null}
           />
         </div>
-
-        {runs?.why?.text ? (
-          <p className="m-0 mt-3 text-[13px] leading-relaxed text-[var(--rd-ink-2)]">
-            {runs.why.text}
-            {runs.why.basis ? (
-              <span className="block text-[12px] text-[var(--rd-ink-3)]">{runs.why.basis}</span>
-            ) : null}
-          </p>
-        ) : null}
       </IntelligenceDataState>
 
-      <SectionCard
-        icon={ArrowLeftRight}
-        tone="info"
+      <IntelCard
         title="Kilometres by truck"
+        count={bars.length ? `top ${bars.length} by distance` : null}
         info={{
-          text: 'Every truck of the period, split into loaded, empty and plant-to-plant kilometres. Click a bar to see that truck on the map.',
+          text: 'The trucks that drove most in the period, split into loaded, empty and plant-to-plant kilometres. Click a bar to see that truck on the map for the same days.',
         }}
+        action={bars.length ? <Legend /> : null}
       >
         <IntelligenceDataState
           loading={tripsLoading}
@@ -109,31 +121,7 @@ export default function RunsTab({ from, to }) {
           what="The trips of this period"
           onRetry={refetchTrips}
         >
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-3 text-[12px] text-[var(--rd-ink-2)]">
-              <span className="inline-flex items-center gap-1.5">
-                <span
-                  aria-hidden="true"
-                  className="size-2.5 rounded-full bg-[var(--rd-leg-loaded)]"
-                />
-                Loaded
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span
-                  aria-hidden="true"
-                  className="size-2.5 rounded-full bg-[var(--rd-leg-empty)]"
-                />
-                Empty
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span
-                  aria-hidden="true"
-                  className="size-2.5 rounded-full bg-[var(--rd-leg-reposition)]"
-                />
-                Plant-to-plant
-              </span>
-            </div>
-
+          <div className="intel-bars" style={{ '--rows': Math.ceil(bars.length / 2) }}>
             {bars.map((row) => (
               <RunsTruckBar
                 key={row.registrationNumber}
@@ -143,15 +131,9 @@ export default function RunsTab({ from, to }) {
                 to={rangeReady ? istDayEnd(to) : null}
               />
             ))}
-
-            {runs ? (
-              <p className="m-0 text-[12px] text-[var(--rd-ink-3)]">
-                {`Empty share: ${formatPct(runs.emptySharePct)} of ${formatKm(totalKm)}.`}
-              </p>
-            ) : null}
           </div>
         </IntelligenceDataState>
-      </SectionCard>
+      </IntelCard>
     </div>
   );
 }

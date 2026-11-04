@@ -53,7 +53,8 @@ describe('InstancesTab', () => {
     expect(await screen.findByText('Engine on, not moving, for more than 15 minutes.')).toBeInTheDocument();
     expect(screen.getByText('From 1,240 km of driving this week')).toBeInTheDocument();
     expect(screen.getByText('12')).toBeInTheDocument();
-    expect(screen.getByText('2 h 6 min in total')).toBeInTheDocument();
+    expect(screen.getByText('2 h 6 min')).toBeInTheDocument();
+    expect(screen.getByText('in total')).toBeInTheDocument();
   });
 
   it('lists every moment with the place and the replay', async () => {
