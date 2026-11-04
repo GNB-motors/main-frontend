@@ -37,6 +37,12 @@ function renderGroup(items) {
 }
 
 describe('IssueGroup', () => {
+  it('hides repeated templated details but retains them when the row opens', () => {
+    renderGroup([issue, { ...issue, id: 'iss-78', registrationNumber: 'WB11F0262', detail: issue.detail.replace('3 times', '4 times') }]);
+    expect(screen.queryByRole('columnheader', { name: 'What we saw' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /WB11F0162: show details/ }));
+    expect(screen.getByText(issue.detail)).toBeInTheDocument();
+  });
   it('says what the group is, how many trucks, its tone and what to do', () => {
     renderGroup([issue]);
 

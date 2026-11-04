@@ -469,6 +469,9 @@ button.intel-kpi-hit:focus-visible {
 .intel-issue-group .intel-table .intel-col-when { width: 13%; }
 .intel-issue-group .intel-table .intel-col-detail { width: auto; }
 .intel-issue-group .intel-table td.intel-col-detail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--rd-ink-2); }
+.intel-issue-group .intel-table--balanced .intel-col-subject { width: 28%; }
+.intel-issue-group .intel-table--balanced .intel-col-measure,
+.intel-issue-group .intel-table--balanced .intel-col-when { width: auto; }
 .intel-table .intel-col-chevron {
   width: 36px;
   padding-right: 0;

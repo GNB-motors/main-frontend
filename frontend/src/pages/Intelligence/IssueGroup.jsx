@@ -4,6 +4,7 @@ import Link from '@/components/redesign/FleetLink';
 import ToneBadge from '@/components/redesign/ToneBadge';
 import { formatIst } from '@/utils/redesign/format';
 import { RECONNECT_PATH, trackLink } from '@/utils/redesign/links';
+import { isTemplatedText } from './intelligenceModel';
 
 /** Rows a group shows before "Show all": more for what needs the owner. */
 const GROUP_ROW_LIMIT = { act: 8, watch: 4, info: 4, good: 4 };
@@ -47,7 +48,7 @@ function ActionLink({ action, className = '' }) {
 }
 
 /** One open issue's details, shown under its row. */
-function IssueDetail({ issue, showAdvice }) {
+function IssueDetail({ issue, showAdvice, showDetail }) {
   const evidence = issue?.evidence ?? [];
   const ownAction = issue?.action?.to ? issue.action : null;
   const fallbackMap =
@@ -56,6 +57,7 @@ function IssueDetail({ issue, showAdvice }) {
       : null;
   return (
     <div className="intel-issue-detail">
+      {showDetail && issue?.detail ? <p className="intel-issue-detail-text">{issue.detail}</p> : null}
       {showAdvice && issue?.advice ? (
         <p className="intel-issue-detail-text">
           <span className="font-semibold text-[var(--rd-ink)]">What to do: </span>
@@ -111,7 +113,8 @@ export default function IssueGroup({ group }) {
   // the step: it leads the advice instead of becoming a dead button.
   const step = group.sharedAction && !headerAction ? group.action?.label : null;
   // Keep the issue's own evidence visible after the measured columns.
-  const colSpan = 5 + columns.length + (group.mixedSeverity ? 1 : 0);
+  const showDetailColumn = !isTemplatedText(group.items.map((issue) => issue.detail));
+  const colSpan = 4 + columns.length + (group.mixedSeverity ? 1 : 0) + (showDetailColumn ? 1 : 0);
 
   const toggle = (id) =>
     setOpenIds((prev) => {
@@ -144,7 +147,7 @@ export default function IssueGroup({ group }) {
       ) : null}
 
       <div className="intel-table-wrap">
-        <table className="intel-table">
+        <table className={`intel-table${showDetailColumn ? '' : ' intel-table--balanced'}`}>
           <thead>
             <tr>
               <th scope="col" className="intel-col-chevron">
@@ -171,7 +174,7 @@ export default function IssueGroup({ group }) {
               <th scope="col" className="intel-num intel-col-when">
                 {group.lastLabel ?? 'Last seen'}
               </th>
-              <th scope="col" className="intel-col-detail">What we saw</th>
+              {showDetailColumn ? <th scope="col" className="intel-col-detail">What we saw</th> : null}
             </tr>
           </thead>
           <tbody>
@@ -187,6 +190,7 @@ export default function IssueGroup({ group }) {
                   columns={columns}
                   mixedSeverity={group.mixedSeverity}
                   colSpan={colSpan}
+                  showDetailColumn={showDetailColumn}
                   showAdvice={!group.advice}
                   onToggle={() => toggle(issue.id)}
                 />
@@ -213,6 +217,7 @@ function IssueRows({
   columns,
   mixedSeverity,
   colSpan,
+  showDetailColumn,
   showAdvice,
   onToggle,
 }) {
@@ -253,12 +258,12 @@ function IssueRows({
         ) : null}
         <td className="intel-num intel-when">{formatIst(issue?.firstSeenAt, { withDate: true })}</td>
         <td className="intel-num intel-when">{formatIst(issue?.lastSeenAt, { withDate: true })}</td>
-        <td className="intel-truncate intel-col-detail" title={issue?.detail}>{issue?.detail || '—'}</td>
+        {showDetailColumn ? <td className="intel-truncate intel-col-detail" title={issue?.detail}>{issue?.detail || '—'}</td> : null}
       </tr>
       {open ? (
         <tr className="intel-row-detail">
           <td colSpan={colSpan}>
-            <IssueDetail issue={issue} showAdvice={showAdvice} />
+            <IssueDetail issue={issue} showAdvice={showAdvice} showDetail={!showDetailColumn} />
           </td>
         </tr>
       ) : null}
