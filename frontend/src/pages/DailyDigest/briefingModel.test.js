@@ -138,7 +138,7 @@ describe('exceptionSummary', () => {
 });
 
 describe('attentionGroups', () => {
-  it('groups dark trucks longest-silent first, plus stuck, no-data and failing feeds', () => {
+  it('groups dark trucks most-recently-dark first, plus stuck, no-data and failing feeds', () => {
     const groups = attentionGroups({
       vehicles: [
         { plate: 'WB11A1', status: 'offline', lastFixAt: new Date(NOW - 3 * H).toISOString() },
@@ -152,7 +152,7 @@ describe('attentionGroups', () => {
       byId: sections,
       now: NOW,
     });
-    expect(groups.dark.map((d) => d.reg)).toEqual(['WB11A2', 'WB11A1']);
+    expect(groups.dark.map((d) => d.reg)).toEqual(['WB11A1', 'WB11A2']);
     expect(groups.darkRange).toBe('3 h to 30 d');
     expect(groups.stuck).toEqual([{ reg: 'WB11T0662', silent: '4 h' }]);
     expect(groups.neverReported.map((t) => t.reg)).toEqual(['WB11E5862', 'WB11E5562']);

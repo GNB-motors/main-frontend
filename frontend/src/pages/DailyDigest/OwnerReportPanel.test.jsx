@@ -214,12 +214,13 @@ describe('OwnerReportPanel', () => {
     expect(screen.queryByText('-100.0%')).toBeNull();
   });
 
-  it('always renders both people lists, and says "No one this time" when one is empty', async () => {
+  it('folds both empty people lists into one Drivers card, saying it once', async () => {
     renderPanel();
 
-    await waitFor(() => expect(screen.getByText('Who drove well')).toBeTruthy());
-    expect(screen.getByText('Who needs a word')).toBeTruthy();
-    expect(screen.getAllByText('No one this time')).toHaveLength(2);
+    await waitFor(() => expect(screen.getByText('Drivers')).toBeTruthy());
+    expect(screen.queryByText('Who drove well')).toBeNull();
+    expect(screen.queryByText('Who needs a word')).toBeNull();
+    expect(screen.getAllByText('No one this time')).toHaveLength(1);
   });
 
   it('names the drivers who drove well when there are any', async () => {

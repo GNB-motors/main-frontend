@@ -747,27 +747,39 @@ function BriefingPanel({
         </header>
         <div className="db-perf-grid">
           {performance}
-          <SubjectList
-            title="Who drove well"
-            items={goodDrivers}
-            info="Drivers who beat your own fleet average over the last 30 days."
-            reason={story.goodDrivers?.why?.text || null}
-            emptyTo={story.goodDrivers ? '/intelligence?tab=drivers' : null}
-          />
-          <SubjectList
-            title="Who needs a word"
-            items={needsWord.map((s) => ({
-              ...s,
-              to:
-                s.to ||
-                (s.subject === 'vehicle'
-                  ? `/intelligence?tab=vehicles&vehicle=${encodeURIComponent(s.id)}`
-                  : `/intelligence?tab=drivers&driver=${encodeURIComponent(s.id || '')}`),
-            }))}
-            info="Trucks and drivers whose behaviour dropped over the last 30 days."
-            reason={story.needsWord?.why?.text || null}
-            emptyTo={story.needsWord ? '/intelligence?tab=drivers' : null}
-          />
+          {goodDrivers.length === 0 && needsWord.length === 0 ? (
+            <SubjectList
+              title="Drivers"
+              items={[]}
+              info="Drivers who beat, or fell behind, your own fleet average over the last 30 days."
+              reason={story.goodDrivers?.why?.text || story.needsWord?.why?.text || null}
+              emptyTo={story.goodDrivers || story.needsWord ? '/intelligence?tab=drivers' : null}
+            />
+          ) : (
+            <>
+              <SubjectList
+                title="Who drove well"
+                items={goodDrivers}
+                info="Drivers who beat your own fleet average over the last 30 days."
+                reason={story.goodDrivers?.why?.text || null}
+                emptyTo={story.goodDrivers ? '/intelligence?tab=drivers' : null}
+              />
+              <SubjectList
+                title="Who needs a word"
+                items={needsWord.map((s) => ({
+                  ...s,
+                  to:
+                    s.to ||
+                    (s.subject === 'vehicle'
+                      ? `/intelligence?tab=vehicles&vehicle=${encodeURIComponent(s.id)}`
+                      : `/intelligence?tab=drivers&driver=${encodeURIComponent(s.id || '')}`),
+                }))}
+                info="Trucks and drivers whose behaviour dropped over the last 30 days."
+                reason={story.needsWord?.why?.text || null}
+                emptyTo={story.needsWord ? '/intelligence?tab=drivers' : null}
+              />
+            </>
+          )}
         </div>
       </section>
     </div>

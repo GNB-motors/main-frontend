@@ -239,7 +239,8 @@ export function attentionGroups({ vehicles, byId, now = Date.now() }) {
       const silentMs = at && Number.isFinite(at) ? now - at : null;
       return { reg: v.plate, silentMs, silent: formatSilence(silentMs) };
     })
-    .sort((a, b) => (b.silentMs ?? Infinity) - (a.silentMs ?? Infinity));
+    // Freshly dark trucks first: those are the ones someone can still chase today.
+    .sort((a, b) => (a.silentMs ?? Infinity) - (b.silentMs ?? Infinity));
 
   const ex = Array.isArray(byId.exceptions?.rows) ? byId.exceptions.rows : [];
   const stuckRows = ex.find((r) => r?.kind === 'stuckAtPlant');
@@ -274,7 +275,7 @@ export function attentionGroups({ vehicles, byId, now = Date.now() }) {
   const silentKnown = dark.filter((d) => d.silentMs != null);
   const darkRange =
     silentKnown.length > 1
-      ? `${silentKnown[silentKnown.length - 1].silent} to ${silentKnown[0].silent}`
+      ? `${silentKnown[0].silent} to ${silentKnown[silentKnown.length - 1].silent}`
       : silentKnown[0]?.silent || null;
 
   return {

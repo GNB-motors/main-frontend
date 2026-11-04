@@ -156,12 +156,17 @@ export default function FleetLiveSection({ fleet, live, trips }) {
                           {STATUS[vehicle.status] || 'Unknown'}
                         </span>
                       </span>
-                      <span className="fo-vehicle-location">
+                      <span
+                        className="fo-vehicle-location"
+                        title={
+                          vehicle.hasFix
+                            ? `${vehicle.lat.toFixed(4)}, ${vehicle.lng.toFixed(4)}`
+                            : undefined
+                        }
+                      >
                         <MapPin size={13} />
                         {vehicle.area ||
-                          (vehicle.hasFix
-                            ? `${vehicle.lat.toFixed(3)}, ${vehicle.lng.toFixed(3)}`
-                            : 'Location unavailable')}
+                          (vehicle.hasFix ? 'Away from your named places' : 'Location unavailable')}
                       </span>
                       <span className="fo-vehicle-route">
                         {trip

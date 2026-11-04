@@ -285,7 +285,7 @@ export function formatValue(key, value) {
     return `${one > 0 ? '+' : ''}${one.toFixed(1)}%`;
   }
   if (k.endsWith('Km')) return `${value} km`;
-  if (KM_KEYS.has(k)) return `${value.toLocaleString('en-IN')} km`;
+  if (KM_KEYS.has(k)) return `${Math.round(value).toLocaleString('en-IN')} km`;
   if (k.endsWith('Minutes') || k.endsWith('Min')) return `${value} min`;
   if (k.endsWith('Hours')) return `${value} h`;
   if (k.endsWith('Litres') || k.endsWith('L')) return `${Math.round(value * 10) / 10} L`;
