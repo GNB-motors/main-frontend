@@ -204,7 +204,7 @@ export default function PlaceHubMap({
         )}
       {tab === 'places' && (
         <MarkerClustererF
-          options={CLUSTER_OPTIONS}
+          options={{ ...CLUSTER_OPTIONS, styles: clusterStylesNow }}
           styles={clusterStylesNow}
           title="Zoom in to see these places"
           onUnmount={detachClusterer}

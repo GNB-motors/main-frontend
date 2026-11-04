@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { GoogleMap, MarkerF, OverlayView, PolylineF } from '@react-google-maps/api';
 import { formatDuration } from '../../utils/redesign/format';
 import RoadTrailLayer from '../../components/map/RoadTrailLayer';
-import { trailArrowIcons } from './mapIcons.js';
 import { createTrailEndpointIcon } from './trailMarkerIcons.js';
 import { createHabitualHaltIcon } from './trailMarkerIcons.js';
 import AnimatedVehicleMarkers from './AnimatedVehicleMarkers.jsx';
@@ -227,7 +226,7 @@ export default function LiveMapCanvas({
 
           {!track && idlingRows.length ? <TrackIdlingLayer rows={idlingRows} onSelect={onSelectIdling} /> : null}
 
-          {!track && routeLines.length ? (
+          {!track && mapZoom >= 7 && routeLines.length ? (
             <RouteLayer
               map={map}
               lines={routeLines}
@@ -241,6 +240,7 @@ export default function LiveMapCanvas({
               detail={null}
               showEngine={false}
               zoom={mapZoom}
+              neutral
             />
           ) : null}
 
@@ -291,9 +291,9 @@ export default function LiveMapCanvas({
                   path={seg.coords}
                   options={{
                     strokeColor: seg.color,
-                    strokeOpacity: 0.95,
+                    strokeOpacity: 0,
                     strokeWeight: 4,
-                    icons: trailArrowIcons(seg.color),
+                    icons: replayAppearance.googleRoute(window.google.maps.SymbolPath.CIRCLE).icons,
                   }}
                 />
               ))
@@ -307,9 +307,9 @@ export default function LiveMapCanvas({
                 path={trailCoords}
                 options={{
                   strokeColor: fallbackSingleColor || selectedStatusColor,
-                  strokeOpacity: 0.9,
+                  strokeOpacity: 0,
                   strokeWeight: 4,
-                  icons: trailArrowIcons(fallbackSingleColor || selectedStatusColor),
+                  icons: replayAppearance.googleRoute(window.google.maps.SymbolPath.CIRCLE).icons,
                 }}
               />
             ))}
@@ -389,14 +389,14 @@ export default function LiveMapCanvas({
                     <PolylineF
                       key={`replay-road-${layer.kind}-${layer.t0}`}
                       path={layer.path}
-                      options={replayAppearance.googleTravelled}
+                      options={replayAppearance.googleRoad(layer, window.google.maps.SymbolPath.CIRCLE)}
                     />
                   ))
                 : replayRunPaths.map(({ key, path }) => (
                     <PolylineF
                       key={`replay-run-${key}`}
                       path={path}
-                      options={replayAppearance.googleTravelled}
+                      options={replayAppearance.googleRoute(window.google.maps.SymbolPath.CIRCLE)}
                     />
                   ))}
               <MarkerF

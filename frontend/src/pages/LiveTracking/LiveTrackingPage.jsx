@@ -726,6 +726,7 @@ const LiveTrackingPage = () => {
                   placesNotAvailable={mapPlaces.notAvailable}
                   placesTruncated={mapPlaces.truncated}
                   placesCount={mapPlaces.items.length}
+                  unmatchedRoutes={routes.error ? null : routes.unmatchedCount}
                   liveCounts={{
                     reviewQueue: reviewQueue.count,
                     routes: routes.error ? null : routes.lines.length,

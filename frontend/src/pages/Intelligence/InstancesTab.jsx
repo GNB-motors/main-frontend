@@ -62,10 +62,12 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
     { key: 'driver', label: 'Driver', render: (row) => row?.driverName ?? '—' },
     {
       key: 'when',
-      label: 'When',
+      label: activeKind === 'fuel_unexplained' ? 'Window' : 'When',
       sortKey: 'startAt',
       sortable: Boolean(data?.sortBy),
-      render: (row) => formatIst(row?.startAt),
+      render: (row) => activeKind === 'fuel_unexplained'
+        ? `${formatIst(row?.startAt)} → ${formatIst(row?.endAt)}`
+        : formatIst(row?.startAt),
     },
     { key: 'where', label: 'Where', render: (row) => <PlaceName place={row?.place} /> },
     {

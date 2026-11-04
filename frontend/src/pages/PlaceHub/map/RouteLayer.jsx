@@ -36,6 +36,7 @@ export default function RouteLayer({
   detail,
   showEngine,
   zoom,
+  neutral = false,
 }) {
   const objects = useRef([]);
   const callbacks = useRef({ onPick, onHover, onSite });
@@ -50,7 +51,7 @@ export default function RouteLayer({
     const records = [];
     const listeners = [];
     for (const line of lines.filter((l) => !l.legs[0].inPlant)) {
-      const color = routeColor(line.runs, isDark);
+      const color = neutral ? (isDark ? '#cbd5e1' : '#475569') : routeColor(line.runs, isDark);
       const width = routeWidth(line.runs, max);
       for (const path of line.segments) {
         const casing = new window.google.maps.Polyline({
@@ -113,13 +114,15 @@ export default function RouteLayer({
       objects.current = [];
       setTooltip(null);
     };
-  }, [map, lines, isDark, land]);
+  }, [map, lines, isDark, land, neutral]);
 
   useEffect(() => {
     for (const obj of objects.current) {
       const selected = obj.line.legs.some((l) => String(l._id) === selectedId);
       const hovered = obj.line.legs.some((l) => String(l._id) === hoveredId);
-      const opacity = selected || hovered ? 1 : selectedId ? 0.15 : 0.75;
+      // Track (neutral) draws lanes as a quiet backdrop; hover brings one forward.
+      const rest = neutral ? (hoveredId ? 0.2 : 0.35) : 0.75;
+      const opacity = selected || hovered ? 1 : selectedId ? 0.15 : rest;
       const icons = pattern(obj.line.source, obj.color).map((i) => ({
         ...i,
         icon: { ...i.icon, strokeOpacity: opacity },
@@ -132,10 +135,11 @@ export default function RouteLayer({
       obj.casing.setOptions({ strokeOpacity: selected ? 1 : 0 });
       obj.hit.setOptions({ zIndex: selected ? 10005 : hovered ? 9001 : obj.line.runs + 1 });
     }
-  }, [selectedId, hoveredId, lines, isDark]);
+  }, [selectedId, hoveredId, lines, isDark, neutral]);
 
   useEffect(() => {
-    if (!map) return undefined;
+    // Track has its own places layer; end-point dots and in-plant counts here only add stray digits.
+    if (!map || neutral) return undefined;
     const counts = new Map();
     const plantCounts = new Map();
     for (const line of lines)
@@ -189,7 +193,7 @@ export default function RouteLayer({
       listeners.forEach((l) => l.remove());
       markers.forEach((m) => m.setMap(null));
     };
-  }, [map, lines, sites, zoom, isDark, ink, land]);
+  }, [map, lines, sites, zoom, isDark, ink, land, neutral]);
 
   // Selected direction uses its own geometry (including detail) over the shared pair.
   useEffect(() => {
