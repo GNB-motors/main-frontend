@@ -30,7 +30,7 @@ export function pickTyreRow(payload, { vehicleId, registrationNumber } = {}) {
   const byId = vehicleId ? rows.find((row) => row?.vehicleId === vehicleId) : null;
   if (byId) return byId;
   const reg = key(registrationNumber);
-  if (!reg) return rows[0] || null;
+  if (!reg) return null; // never another truck's tyres
   return rows.find((row) => key(row?.registrationNumber) === reg) || null;
 }
 
