@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useGoogleMap } from '@react-google-maps/api';
 import { compactVehicleIcon } from './compactVehicleIcon.js';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
+import { createStatusClusterRenderer } from './statusClusterRenderer.js';
 
 /**
  * AnimatedVehicleMarkers — the moving fleet layer for Live Tracking.
@@ -53,20 +54,7 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
   useEffect(() => {
     if (!map || !window.google) return undefined;
     const markers = markersRef.current;
-    const renderer = {
-      render: ({ count, position }) => new window.google.maps.Marker({
-        position,
-        label: { text: String(count), color: '#253b5c', fontSize: '12px', fontWeight: '700' },
-        icon: {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          fillColor: '#ffffff', fillOpacity: 0.95,
-          strokeColor: '#6683a5', strokeOpacity: 0.9, strokeWeight: 2,
-          scale: Math.min(23, 13 + Math.log2(count) * 1.5),
-        },
-        zIndex: 600,
-      }),
-    };
-    const cluster = new MarkerClusterer({ map, markers: [], renderer });
+    const cluster = new MarkerClusterer({ map, markers: [], renderer: createStatusClusterRenderer() });
     clusterRef.current = cluster;
     return () => {
       cluster.setMap(null);
@@ -104,6 +92,7 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
           opacity: selectedId && !isSelected ? 0.4 : 1,
           zIndex: zIndexFor(v, isSelected),
         });
+        marker.fleetStatus = v.status;
         marker.addListener('click', () => onSelectRef.current && onSelectRef.current(v.id));
         markers.set(v.id, {
           marker,
@@ -116,6 +105,7 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
         continue;
       }
 
+      rec.marker.fleetStatus = v.status;
       if (rec.iconSig !== iconSig) {
         rec.marker.setIcon(compactVehicleIcon(v, isSelected, mapZoom >= 17));
         rec.marker.setZIndex(zIndexFor(v, isSelected));
