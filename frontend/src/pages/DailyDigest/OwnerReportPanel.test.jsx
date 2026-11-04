@@ -67,6 +67,11 @@ const REPORT = {
   ],
 };
 
+// The fixtures are a report for 4 Nov. Pin the clock to that morning so "today" means
+// the same thing whenever the suite runs (it broke the first time it ran after midnight).
+vi.useFakeTimers({ toFake: ['Date'] });
+vi.setSystemTime(new Date('2026-11-04T06:30:00Z'));
+
 const TODAY_IST = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'Asia/Kolkata',
   year: 'numeric',
