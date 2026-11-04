@@ -58,9 +58,9 @@ describe('MileageDefTab', () => {
 
     const best = (await screen.findByText('Best km/L')).closest('section');
     const worst = screen.getByText('Lowest km/L').closest('section');
-    expect(within(best).getByText('3.9 L')).toBeInTheDocument();
-    expect(within(worst).getByText('2.6 L')).toBeInTheDocument();
-    expect(within(best).getByText('usual 3.6 L')).toBeInTheDocument();
+    expect(within(best).getByText('3.9 km/L')).toBeInTheDocument();
+    expect(within(worst).getByText('2.6 km/L')).toBeInTheDocument();
+    expect(within(best).getByText('usual 3.6 km/L')).toBeInTheDocument();
   });
 
   it('shows the DEF readings outside the normal band', async () => {

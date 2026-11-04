@@ -87,7 +87,9 @@ describe('RunsTab', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText(/Empty share: 13.3% of 63,200 km\./)).toBeInTheDocument();
+    expect(await screen.findByText('Empty share')).toBeInTheDocument();
+    expect(screen.getByText('13.3%')).toBeInTheDocument();
+    expect(screen.getByText('of 63,200 km driven')).toBeInTheDocument();
   });
 
   it('says the endpoint is still being built on a 404', async () => {
