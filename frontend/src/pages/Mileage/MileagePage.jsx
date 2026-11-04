@@ -28,6 +28,7 @@ const PumpLedgerView = lazy(() => import('./components/PumpLedgerView'));
 const ByTruckMileageView = lazy(() => import('./components/ByTruckMileageView'));
 const FillToFillView = lazy(() => import('./components/FillToFillView'));
 const ExpectedFuelView = lazy(() => import('./components/ExpectedFuelView'));
+const FleetRollupView = lazy(() => import('./components/FleetRollupView'));
 
 /**
  * Which hub surfaces a viewer gets: each view follows the gate of the
@@ -49,6 +50,7 @@ function hubAccess(canAccess, role) {
       reconciliation: [integrity && 'tank', integrity && 'pumps', ecu && 'ecu'].filter(Boolean),
       performance: [
         'vehicles',
+        'fleet',
         'cycles',
         'models',
         canAccess('fuelModel') && manages && 'expected',
@@ -106,6 +108,11 @@ const SUBVIEWS = {
         key: 'vehicles',
         label: 'By truck',
         note: 'km per litre and DEF for every truck in these dates.',
+      },
+      {
+        key: 'fleet',
+        label: 'Fleet',
+        note: 'One km/L for the whole fleet, checked against the engine.',
       },
       {
         key: 'cycles',
@@ -356,6 +363,9 @@ export default function MileagePage() {
                   searchQuery={deferredSearch}
                   onOpenCycles={setCyclesTruck}
                 />
+              )}
+              {activeTab === 'performance' && activeSubview === 'fleet' && (
+                <FleetRollupView range={range} />
               )}
               {activeTab === 'performance' && activeSubview === 'cycles' && (
                 <FillToFillView

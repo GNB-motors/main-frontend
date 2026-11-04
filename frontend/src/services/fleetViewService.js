@@ -152,6 +152,27 @@ export const getDigest = ({ date, signal } = {}) =>
     importer: () => import('../schemas/digestV2.schema.js'),
   });
 
+/* ── The owner's day: the morning brief and the eight-section report ─── */
+
+/**
+ * GET /api/owner-value/morning-brief — the day's ₹ leaks ranked by vehicle,
+ * with a suggested action. `date` is any instant inside the IST day.
+ */
+export const getMorningBrief = ({ date, signal } = {}) =>
+  get('/api/owner-value/morning-brief', {
+    params: { date },
+    signal,
+    schema: 'morningBriefSchema',
+    importer: () => import('../schemas/morningBrief.schema.js'),
+  });
+
+/**
+ * GET /api/owner-report?day=YYYY-MM-DD — the owner's daily business report.
+ * Always eight sections, in the same order; each one is ok | empty | error.
+ */
+export const getOwnerReport = ({ day, signal } = {}) =>
+  get('/api/owner-report', { params: { day }, signal });
+
 /* ── §11 The vendor accounts ──────────────────────────────────────────── */
 
 /**
@@ -228,6 +249,8 @@ export const fleetViewService = {
   getMileage,
   getFuelIntegrityWindows,
   getDigest,
+  getMorningBrief,
+  getOwnerReport,
   getAccountsLinkState,
   getIntelligenceSummary,
   getIntelligenceIssues,

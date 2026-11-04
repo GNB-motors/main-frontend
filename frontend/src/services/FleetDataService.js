@@ -63,6 +63,18 @@ export const FleetDataService = {
 
   /** Latest driver fuel-efficiency leaderboard (km/L), ranked. */
   getDriverLeaderboard: (params = {}, signal) => get('/api/driver-leaderboard', params, signal),
+
+  /** Detected trips (plant → plant) for one vehicle. */
+  getAutoTrips: (params = {}, signal) => get('/api/auto-trips', params, signal),
+
+  /** Warehouse-to-warehouse cycles for one vehicle; the OPEN one is the truck's live cycle. */
+  getVehicleTours: (params = {}, signal) => get('/api/vehicle-tours', params, signal),
+
+  /** Tyre set status for one vehicle: km run, ₹/km, life used, projected replacement. */
+  getTyreStatus: (params = {}, signal) => get('/api/tyres/status', params, signal),
+
+  /** Service centres near a position, costed by our road engine (lat/lng required). */
+  getServiceCentres: (params = {}, signal) => get('/api/service-centres/recommend', params, signal),
 };
 
 export default FleetDataService;

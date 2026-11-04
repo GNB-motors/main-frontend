@@ -77,3 +77,18 @@ export function rangeToParams({ from, to, manufacturer }) {
   if (to) params.to = new Date(`${to}T23:59:59.999+05:30`).toISOString();
   return params;
 }
+
+/**
+ * The number of days a calendar range covers, inclusive of both ends.
+ *
+ * The fleet mileage roll-up takes a window LENGTH rather than a date pair, so
+ * the hub's range is turned into that length here. An unreadable range gives no
+ * window at all, which leaves the endpoint on its own default window.
+ */
+export function rangeDays(from, to) {
+  if (!from || !to) return undefined;
+  const start = new Date(`${from}T00:00:00Z`).getTime();
+  const end = new Date(`${to}T00:00:00Z`).getTime();
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return undefined;
+  return Math.round((end - start) / 86400000) + 1;
+}

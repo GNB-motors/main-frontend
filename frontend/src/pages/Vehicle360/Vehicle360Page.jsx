@@ -155,7 +155,14 @@ export default function Vehicle360Page() {
         />
       ) : null}
       {active === 'service' ? (
-        <ServicePanel prediction={p.prediction} health={p.health} history={history} />
+        <ServicePanel
+          prediction={p.prediction}
+          health={p.health}
+          history={history}
+          vehicleId={p.fleetMaster?.id}
+          registrationNumber={reg}
+          livePosition={p.livePosition}
+        />
       ) : null}
       {active === 'fuel' ? (
         <FuelPanel recentFuelLogs={p.recentFuelLogs} defBalance={p.defBalance} />
@@ -167,7 +174,9 @@ export default function Vehicle360Page() {
           onChanged={refetch}
         />
       ) : null}
-      {active === 'trips' ? <TripsPanel /> : null}
+      {active === 'trips' ? (
+        <TripsPanel vehicleId={p.fleetMaster?.id} registrationNumber={reg} />
+      ) : null}
       {active === 'drivers' ? (
         <DriversPanel vehicleId={p.fleetMaster?.id} assignedDriver={p.assignedDriver} />
       ) : null}

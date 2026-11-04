@@ -9,6 +9,7 @@ vi.mock('../../api/performance', () => ({
     drivers: vi.fn(),
     driver: vi.fn(),
     leaderboards: vi.fn(),
+    boards: vi.fn(),
   },
 }));
 
@@ -38,6 +39,7 @@ beforeEach(() => {
   PerformanceApi.drivers.mockResolvedValue({ drivers: [] });
   PerformanceApi.driver.mockResolvedValue({});
   PerformanceApi.leaderboards.mockResolvedValue({ boards: [] });
+  PerformanceApi.boards.mockResolvedValue({ boards: [] });
 });
 
 describe('Performance page', () => {
@@ -156,28 +158,71 @@ describe('Performance page', () => {
   });
 
   it('shows the leaderboards tab and keeps unmeasured rows unranked', async () => {
-    PerformanceApi.leaderboards.mockResolvedValue({
+    PerformanceApi.boards.mockResolvedValue({
       boards: [
         {
-          key: 'kmPerL',
-          label: 'Best km/L',
-          rows: [
+          key: 'FUEL_VS_EXPECTED',
+          title: 'km/L vs expected for this duty',
+          unit: 'km/L',
+          direction: 'higher',
+          measures: 'THE TRUCK MOSTLY',
+          groups: [
             {
-              rank: 1,
-              subjectId: 'veh-1',
-              subjectName: 'SCRUBPL00001',
-              score: cell({ value: 3.42, unit: 'km/L' }),
-            },
-            {
-              rank: null,
-              subjectId: 'veh-2',
-              subjectName: 'SCRUBPL00002',
-              score: cell({
-                value: null,
-                unit: 'km/L',
-                source: 'insufficient_data',
-                reason: 'no full-tank rounds',
-              }),
+              dutyGroup: 'D1',
+              rankedCount: 1,
+              floor: null,
+              rows: [
+                {
+                  key: 'drv-1#D1',
+                  driverId: 'drv-1',
+                  driverName: 'SCRUBPL00001',
+                  dutyGroup: 'D1',
+                  value: 3.42,
+                  expectedValue: 3.28,
+                  expectedPeers: 3,
+                  expectedExcludesSelf: true,
+                  vsExpectedPct: 4.3,
+                  rank: 1,
+                  position: 1,
+                  rankNote: null,
+                  sample: {
+                    trips: 4,
+                    cycles: 2,
+                    vehicles: 1,
+                    observedDays: 10,
+                    windowDays: 30,
+                    coveragePct: 50,
+                    km: 1200,
+                    observations: 2,
+                  },
+                  vehicleCoverage: [],
+                },
+                {
+                  key: 'drv-2#D1',
+                  driverId: 'drv-2',
+                  driverName: 'SCRUBPL00002',
+                  dutyGroup: 'D1',
+                  value: null,
+                  expectedValue: 3.2,
+                  expectedPeers: 3,
+                  expectedExcludesSelf: true,
+                  vsExpectedPct: null,
+                  rank: null,
+                  position: 2,
+                  rankNote: 'Nothing was measured for this row in this window.',
+                  sample: {
+                    trips: 0,
+                    cycles: 0,
+                    vehicles: 0,
+                    observedDays: 0,
+                    windowDays: 30,
+                    coveragePct: 0,
+                    km: 0,
+                    observations: 0,
+                  },
+                  vehicleCoverage: [],
+                },
+              ],
             },
           ],
         },
@@ -186,14 +231,19 @@ describe('Performance page', () => {
 
     renderAt('/performance?tab=leaderboards');
 
-    await waitFor(() => expect(screen.getAllByText('Best km/L').length).toBeGreaterThan(0));
-    expect(screen.getAllByText('insufficient data').length).toBeGreaterThan(0);
-    expect(screen.getByText('no full-tank rounds')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getAllByText('km/L vs expected for this duty').length).toBeGreaterThan(0),
+    );
+    expect(screen.getByText('SCRUBPL00001')).toBeInTheDocument();
+    expect(screen.getByText('unranked')).toBeInTheDocument();
+    expect(
+      screen.getByText('Nothing was measured for this row in this window.'),
+    ).toBeInTheDocument();
   });
 
   it('shows an empty leaderboard as a directive', async () => {
     renderAt('/performance?tab=leaderboards');
-    expect(await screen.findByText('No leaderboards in this window')).toBeInTheDocument();
+    expect(await screen.findByText('No boards in this window')).toBeInTheDocument();
   });
 
   it('moves between the tabs', async () => {
@@ -201,6 +251,6 @@ describe('Performance page', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Drivers' }));
     expect(await screen.findByText('Driver DNA')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: 'Leaderboards' }));
-    expect(await screen.findByText('No leaderboards in this window')).toBeInTheDocument();
+    expect(await screen.findByText('No boards in this window')).toBeInTheDocument();
   });
 });

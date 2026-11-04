@@ -12,6 +12,8 @@ vi.mock('../../services/fleetViewService', () => ({
       throw Object.assign(new Error('Not deployed'), { status: 404 });
     }),
     getMileage: vi.fn(async () => ({ items: [] })),
+    getMorningBrief: vi.fn(async () => ({})),
+    getOwnerReport: vi.fn(async () => ({ sections: [] })),
   },
 }));
 vi.mock('../../hooks/useLivePositions', () => ({

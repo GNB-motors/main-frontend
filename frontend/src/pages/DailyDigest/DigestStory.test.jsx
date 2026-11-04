@@ -11,7 +11,12 @@ const { getDigest, getMileage, getVehicleList, listTrips, refreshLive } = vi.hoi
 }));
 
 vi.mock('../../services/fleetViewService', () => ({
-  fleetViewService: { getDigest, getMileage },
+  fleetViewService: {
+    getDigest,
+    getMileage,
+    getMorningBrief: vi.fn(async () => ({})),
+    getOwnerReport: vi.fn(async () => ({ sections: [] })),
+  },
 }));
 vi.mock('../../hooks/useLivePositions', () => ({
   useLivePositions: () => ({ positions: [], isLoading: false, refresh: refreshLive }),

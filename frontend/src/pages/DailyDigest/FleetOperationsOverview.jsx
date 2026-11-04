@@ -14,6 +14,7 @@ import {
 import { formatIst, formatIstDate } from '../../utils/redesign/format';
 import { istDayString } from '../../utils/dateUtils';
 import DigestStoryCard from './DigestStoryCard';
+import OwnerReportPanel from './OwnerReportPanel';
 import FleetLiveSection from './components/FleetLiveSection';
 import FleetAnalytics from './components/FleetAnalytics';
 import DigestSkeleton from './components/DigestSkeleton';
@@ -190,6 +191,8 @@ export default function FleetOperationsOverview({
             </button>
           </div>
         ) : null}
+
+        <OwnerReportPanel day={date} digest={digest} />
 
         <section className="fo-kpis" aria-label="Fleet key metrics" aria-busy={refreshing}>
           {kpis.map((kpi) => {
