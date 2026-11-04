@@ -15,6 +15,19 @@ export const SapService = {
     parsed('sapTripDetailSchema', await apiClient.get(`${BASE}/trips/${id}`, { signal })),
   routes: async (params = {}, { signal } = {}) =>
     parsed('sapRouteListSchema', await apiClient.get(`${BASE}/routes`, { params, signal })),
+  /**
+   * Lanes where the SAP pays less than the truck physically drives — the shortfall
+   * per trip and per lane in rupees, priced on each trip's own truck.
+   * @returns {Promise<{ rows: Array, kmSource: string, pricedFrom: Object }>}
+   */
+  lossLanes: async (params = {}, { signal } = {}) =>
+    unwrap(await apiClient.get(`${BASE}/loss-lanes`, { params, signal })),
+  /**
+   * SAP-wise performance grouped by month (default), route, lane, vehicle or driver.
+   * @returns {Promise<{ rows: Array, groupBy: string, trips: number }>}
+   */
+  summary: async (params = {}, { signal } = {}) =>
+    unwrap(await apiClient.get(`${BASE}/summary`, { params, signal })),
   /** { fromSiteId, toSiteId, sapKm, basis, note } — supersedes the route's current SAP. */
   setRoute: async (body, { signal } = {}) =>
     parsed('sapRouteEntrySchema', await apiClient.put(`${BASE}/routes`, body, { signal })),

@@ -215,8 +215,9 @@ export default function LiveMapCanvas({
 
           {/* The live control room's own layers: the places nobody has
               answered for, the routes the fleet runs, and the trucks idling
-              right now. */}
-          {reviewItems.length ? (
+              right now. They are fleet-wide, so Track mode (one truck's
+              history) hides them: drawn under a replay they bury it. */}
+          {!track && reviewItems.length ? (
             <TrackReviewLayer
               items={reviewItems}
               selectedId={selectedReviewId}
@@ -224,9 +225,9 @@ export default function LiveMapCanvas({
             />
           ) : null}
 
-          {idlingRows.length ? <TrackIdlingLayer rows={idlingRows} onSelect={onSelectIdling} /> : null}
+          {!track && idlingRows.length ? <TrackIdlingLayer rows={idlingRows} onSelect={onSelectIdling} /> : null}
 
-          {routeLines.length ? (
+          {!track && routeLines.length ? (
             <RouteLayer
               map={map}
               lines={routeLines}

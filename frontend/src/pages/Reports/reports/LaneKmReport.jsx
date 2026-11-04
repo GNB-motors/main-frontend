@@ -1,15 +1,19 @@
 import { createElement, lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Route, Settings2, Lock } from 'lucide-react';
+import { Route, Settings2, Lock, TrendingDown, Calendar } from 'lucide-react';
 import { canEditSap } from '../../Sap/sapModel';
 import { getUserRole } from '../../../utils/session';
 import '../../Sap/Sap.css';
 
 const SapRoutes = lazy(() => import('../../Sap/SapRoutes'));
 const SapSettings = lazy(() => import('../../Sap/SapSettings'));
+const SapLossLanes = lazy(() => import('../../Sap/SapLossLanes'));
+const SapMonthly = lazy(() => import('../../Sap/SapMonthly'));
 
 const TABS = [
   ['routes', 'SAP routes', Route],
+  ['loss-lanes', 'Loss lanes', TrendingDown],
+  ['month', 'By month', Calendar],
   ['settings', 'Settings & import', Settings2],
 ];
 
@@ -50,7 +54,15 @@ export default function LaneKmReport() {
         ))}
       </nav>
       <Suspense fallback={<p className="sap-panel">Loading…</p>}>
-        {tab === 'settings' ? <SapSettings /> : <SapRoutes />}
+        {tab === 'settings' ? (
+          <SapSettings />
+        ) : tab === 'loss-lanes' ? (
+          <SapLossLanes />
+        ) : tab === 'month' ? (
+          <SapMonthly />
+        ) : (
+          <SapRoutes />
+        )}
       </Suspense>
     </div>
   );
