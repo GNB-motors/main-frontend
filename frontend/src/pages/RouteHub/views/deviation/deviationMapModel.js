@@ -97,6 +97,17 @@ export function mapModel(detail) {
   }
   const raw = detail.roadEngine?.geometry?.offRoute ?? detail.geometry?.offRoute;
   const driven = Array.isArray(raw) && raw.length > 1 ? raw : detourLine;
+  const anchors = [...driven, ...[detour.exitPoint, detour.rejoinPoint].filter(ok).map(ll)];
+  let nearbyRoad = [];
+  if (anchors.length) {
+    const lats = anchors.map((p) => p[0]);
+    const lngs = anchors.map((p) => p[1]);
+    const south = Math.min(...lats), north = Math.max(...lats);
+    const west = Math.min(...lngs), east = Math.max(...lngs);
+    const latMargin = Math.max((north - south) * 0.3, 0.005);
+    const lngMargin = Math.max((east - west) * 0.3, 0.005);
+    nearbyRoad = usual.filter(([lat, lng]) => lat >= south - latMargin && lat <= north + latMargin && lng >= west - lngMargin && lng <= east + lngMargin);
+  }
   return {
     band,
     usual: usual.length > 1 ? usual : [],
@@ -108,7 +119,7 @@ export function mapModel(detail) {
     judged: usual.length > 1,
     markers,
     bounds: {
-      detour: driven.length ? driven.concat(usual) : tripPoints.concat(usual),
+      detour: anchors.length ? anchors.concat(nearbyRoad) : tripPoints,
       trip: tripPoints.concat(usual, driven, band),
     },
   };

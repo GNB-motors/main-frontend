@@ -96,7 +96,7 @@ describe('mapModel', () => {
   });
 
   it('zooms to the detour by default and has a whole-trip view', () => {
-    expect(m.bounds.detour).toEqual([...m.detour, ...m.usual]);
+    expect(m.bounds.detour).toEqual(expect.arrayContaining(m.detour));
     expect(m.bounds.trip.length).toBeGreaterThan(m.detour.length);
     expect(m.band).toEqual([[22.5, 88.3]]);
     expect(m.usual).toEqual([
@@ -130,7 +130,14 @@ describe('mapModel', () => {
   it('old events without geometry fall back to the trip bounds', () => {
     const out = mapModel({ ...detail, detour: { path: [] } });
     expect(out.detour).toEqual([]);
-    expect(out.bounds.detour).toContainEqual(out.usual[0]);
+    expect(out.bounds.detour).toContainEqual([22.3, 88.1]);
+  });
+
+  it('fits the detour and nearby road, excluding a distant road excursion', () => {
+    const out = mapModel({ ...detail, roadEngine: { usualRoute: [[22.5, 88.3], [25, 90], [22.6, 88.4]] } });
+    expect(out.bounds.detour).not.toContainEqual([25, 90]);
+    expect(out.bounds.detour).toContainEqual([22.5, 88.3]);
+    expect(out.bounds.detour).toContainEqual([22.6, 88.4]);
   });
 });
 
