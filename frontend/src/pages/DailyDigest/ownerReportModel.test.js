@@ -42,7 +42,7 @@ describe('ownerReportModel', () => {
   });
 
   it('gives a distance its unit', () => {
-    expect(formatValue('km', 12000.5)).toBe('12,000.5 km');
+    expect(formatValue('km', 12000.5)).toBe('12,001 km');
     expect(formatValue('dieselBillLitres', 12.34)).toBe('12.3 L');
   });
 

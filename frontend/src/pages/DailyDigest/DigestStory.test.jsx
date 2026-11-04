@@ -54,16 +54,15 @@ describe('DailyDigestPage', () => {
         }),
     );
     renderPage();
-    expect(await screen.findByText('More operational detail')).toBeInTheDocument();
-    expect(screen.getByLabelText('Loading fuel consumption')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Fleet right now' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Loading actions')).toBeInTheDocument();
+    expect(screen.getByLabelText('Loading fuel, last 7 days')).toBeInTheDocument();
     await act(async () => finishReport(digestFixture));
-    expect(
-      screen.queryByRole('status', { name: 'Loading critical issues' }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Loading fuel consumption')).toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Loading actions' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Loading fuel, last 7 days')).toBeInTheDocument();
     await act(async () => finishFuel({ items: [] }));
     expect(
-      screen.queryByRole('status', { name: 'Loading fuel consumption' }),
+      screen.queryByRole('status', { name: 'Loading fuel, last 7 days' }),
     ).not.toBeInTheDocument();
     expect(screen.getByText('No measured fuel cycles in this window.')).toBeInTheDocument();
   });
@@ -76,52 +75,74 @@ describe('DailyDigestPage', () => {
     refreshLive.mockReset();
   });
 
-  it('shows the headline the API sent', async () => {
+  it('shows the headline the API sent as the page subtitle', async () => {
     renderPage();
     expect(
-      await screen.findByText('A good day: 41 loaded trips, 3 trucks need you.'),
+      await screen.findByText(/A good day: 41 loaded trips, 3 trucks need you\./),
     ).toBeInTheDocument();
   });
 
-  it('renders the story cards in the order the API sent them', async () => {
+  it('lays the page out as real sections, with no "More…" disclosures', async () => {
     renderPage();
-    await screen.findByText('Loaded runs');
-    fireEvent.click(screen.getByText('Daily report details'));
+    await screen.findByText(/A good day/);
     const headings = screen.getAllByRole('heading').map((h) => h.textContent);
-    expect(headings.indexOf('Loaded runs')).toBeLessThan(headings.indexOf('Empty runs'));
-    expect(headings.indexOf('Empty runs')).toBeLessThan(headings.indexOf('Who drove well'));
-    expect(headings.indexOf('Who drove well')).toBeLessThan(headings.indexOf('Who needs a word'));
+    for (const title of [
+      'Where money leaked',
+      'Exceptions',
+      'Trucks needing attention',
+      'Fleet right now',
+      'The day in numbers',
+      'Loaded vs empty running',
+      'Who drove well',
+      'Who needs a word',
+    ])
+      expect(headings).toContain(title);
+    expect(headings.indexOf('Loaded vs empty running')).toBeLessThan(
+      headings.indexOf('Who drove well'),
+    );
+    expect(screen.queryByText('More operational detail')).not.toBeInTheDocument();
   });
 
-  it('shows the card text exactly as the API sent it', async () => {
+  it('keeps the story text the API sent behind the running card info tip', async () => {
     renderPage();
+    await screen.findByText(/A good day/);
+    fireEvent.click(screen.getByRole('button', { name: 'About Loaded vs empty running' }));
     expect(
       await screen.findByText(/Most of your distance today carried cement and clinker/),
     ).toBeInTheDocument();
   });
 
-  it('shows the big number of a card', async () => {
+  it('shows the loaded trip count from the story beside the loaded distance', async () => {
     renderPage();
-    expect(await screen.findByText('41 trips · 4,820 km')).toBeInTheDocument();
+    expect(await screen.findByText(/41 trips/)).toBeInTheDocument();
   });
 
-  it('links a card to where the API said', async () => {
+  it('links the running card to where the API said', async () => {
     renderPage();
-    const link = await screen.findByText('See all in Intelligence →');
+    await screen.findByText(/A good day/);
+    const card = screen
+      .getByRole('heading', { name: 'Loaded vs empty running' })
+      .closest('section');
+    const link = Array.from(card.querySelectorAll('a')).find((a) => a.textContent.includes('Open'));
     expect(link.getAttribute('href')).toBe('/intelligence?tab=runs');
   });
 
-  it('shows a reconnect banner with the button that fixes it', async () => {
+  it('shows a disconnected account with the button that fixes it', async () => {
     renderPage();
     expect(await screen.findByText(/is disconnected/)).toBeInTheDocument();
     const button = screen.getByRole('link', { name: 'Reconnect' });
     expect(button.getAttribute('href')).toBe('/settings/fleetedge-accounts');
   });
 
-  it('says nothing happened on a quiet day', async () => {
+  it('says nothing leaked on a quiet day instead of printing a zero', async () => {
     getDigest.mockResolvedValue({ date: '2026-11-02', headline: '', story: [] });
     renderPage();
-    expect(await screen.findByText(/Nothing happened on this day/)).toBeInTheDocument();
+    expect(
+      await screen.findByText('Nothing was flagged for this day. No leak measured.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/What happened, what it cost and what needs you\./),
+    ).toBeInTheDocument();
   });
 
   it('says it could not load the digest when the request failed', async () => {
@@ -138,17 +159,17 @@ describe('DailyDigestPage', () => {
 
   it('uses one open-trip response for the live KPI and routes', async () => {
     renderPage();
-    await screen.findByRole('heading', { name: 'Fleet Overview' });
+    await screen.findByRole('heading', { name: 'Daily digest' });
     await waitFor(() => expect(listTrips).toHaveBeenCalledTimes(1));
     expect(listTrips.mock.calls[0][0]).toEqual({ status: 'OPEN', limit: 50 });
-    expect(screen.getByText('More operational detail')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Fleet right now' })).toBeInTheDocument();
     expect(getVehicleList).toHaveBeenCalledTimes(1);
     expect(getMileage).toHaveBeenCalledTimes(1);
   });
 
   it('changes the report date without reloading current trips or fleet inventory', async () => {
     renderPage();
-    await screen.findByText('A good day: 41 loaded trips, 3 trucks need you.');
+    await screen.findByText(/A good day: 41 loaded trips, 3 trucks need you\./);
     fireEvent.change(screen.getByLabelText('Digest date'), { target: { value: '2026-10-30' } });
     await waitFor(() =>
       expect(getDigest).toHaveBeenLastCalledWith(expect.objectContaining({ date: '2026-10-30' })),
@@ -166,7 +187,7 @@ describe('DailyDigestPage', () => {
     getDigest.mockRejectedValue(new Error('boom'));
     renderPage();
     await screen.findByText(/could not load today/);
-    expect(screen.getByRole('heading', { name: 'Your fleet, in view' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Fleet right now' })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
     await waitFor(() => expect(getDigest).toHaveBeenCalledTimes(2));

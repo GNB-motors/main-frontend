@@ -102,8 +102,8 @@ describe('ReleaseDigest (the fallback)', () => {
       </MemoryRouter>,
     );
     await screen.findByText('Detailed operational reports');
-    expect(screen.getByRole('heading', { name: 'Fleet Overview' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Your fleet, in view' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Daily digest' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Fleet right now' })).toBeInTheDocument();
     expect(screen.getByText('Detailed operational reports')).toBeInTheDocument();
     expect(OwnerValueService.getDigest).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).toBeEnabled());
