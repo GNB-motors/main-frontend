@@ -18,7 +18,7 @@ import OwnerReportPanel from './OwnerReportPanel';
 import FleetLiveSection from './components/FleetLiveSection';
 import FleetAnalytics from './components/FleetAnalytics';
 import DigestSkeleton from './components/DigestSkeleton';
-import { buildOverview, numeric, shiftDay } from './fleetOverviewModel';
+import { buildOverview, shiftDay } from './fleetOverviewModel';
 
 const fmt = (value) => (value == null ? '—' : value.toLocaleString('en-IN'));
 const SEVERITY = { act: 'Critical', watch: 'Warning', info: 'Info', good: 'Clear' };
@@ -49,44 +49,6 @@ export default function FleetOperationsOverview({
   const attentionPending = legacy
     ? (legacy.loadingSections?.attention ?? reportPending)
     : reportPending;
-  const kpis = [
-    {
-      label: 'Total vehicles',
-      loading: inventory.loading && !inventory.data,
-      value: Array.isArray(inventory.data) ? inventory.data.length : null,
-      note: inventory.error ? 'Fleet register could not refresh' : 'Registered fleet · current',
-      to: '/vehicles/dashboard',
-      icon: Truck,
-      tone: 'info',
-    },
-    {
-      label: 'Active trips',
-      loading: trips.loading && !trips.data,
-      value: numeric(trips.data?.total),
-      note: trips.error ? 'Trip status could not refresh' : 'Open trips · current',
-      to: '/auto-trips?status=OPEN',
-      icon: Route,
-      tone: 'good',
-    },
-    {
-      label: 'Critical issues',
-      loading: attentionPending,
-      value: model.critical,
-      note: legacy ? 'Priority action items · today' : 'Reported for the selected day',
-      to: issueLink,
-      icon: ShieldAlert,
-      tone: model.critical > 0 ? 'act' : 'info',
-    },
-    {
-      label: 'Pending actions',
-      loading: attentionPending,
-      value: model.pending,
-      note: legacy ? 'Reported action items · today' : 'Place reviews + account reconnects',
-      to: '#fo-attention',
-      icon: ClipboardList,
-      tone: model.pending > 0 ? 'watch' : 'info',
-    },
-  ];
   const reportUnavailable = report.error && report.error.status !== 404;
   const held = digest?.held === true;
 
@@ -194,54 +156,7 @@ export default function FleetOperationsOverview({
 
         <OwnerReportPanel day={date} digest={digest} />
 
-        <section className="fo-kpis" aria-label="Fleet key metrics" aria-busy={refreshing}>
-          {kpis.map((kpi) => {
-            const { label, value, note, to, tone } = kpi;
-            const Icon = kpi.icon;
-            const body = (
-              <>
-                <span className="fo-kpi-label">
-                  {label}
-                  <span className={`fo-kpi-icon fo-tone--${tone}`}>
-                    <Icon size={17} />
-                  </span>
-                </span>
-                {kpi.loading ? (
-                  <DigestSkeleton variant="metric" label={`Loading ${label.toLowerCase()}`} />
-                ) : (
-                  <>
-                    <strong className="fo-kpi-value">{fmt(value)}</strong>
-                    <span className="fo-kpi-note">{note}</span>
-                  </>
-                )}
-              </>
-            );
-            if (kpi.loading)
-              return (
-                <div className="fo-kpi" key={label}>
-                  {body}
-                </div>
-              );
-            return to.startsWith('#') ? (
-              <a
-                className="fo-kpi"
-                href={to}
-                key={label}
-                onClick={(event) => {
-                  event.preventDefault();
-                  document.getElementById('fo-attention')?.scrollIntoView({ block: 'start' });
-                }}
-              >
-                {body}
-              </a>
-            ) : (
-              <Link className="fo-kpi" key={label} to={to}>
-                {body}
-              </Link>
-            );
-          })}
-        </section>
-
+        <details className="fo-report-details"><summary>More operational detail</summary>
         <FleetLiveSection fleet={fleet} live={live} trips={trips} />
 
         <section
@@ -311,6 +226,8 @@ export default function FleetOperationsOverview({
           loading={reportPending}
           loadingSections={legacy?.loadingSections}
         />
+
+        </details>
 
         {legacy?.reports ? (
           <details className="fo-report-details">

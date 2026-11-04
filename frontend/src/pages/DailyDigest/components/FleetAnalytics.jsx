@@ -125,7 +125,7 @@ export default function FleetAnalytics({
               <p>
                 {loading
                   ? 'Loading distance…'
-                  : 'Comparable loaded and empty distances are not available for this day.'}
+                  : `— ${model.runningReason || 'Comparable loaded and empty distances are not available for this day.'}`}
               </p>
             </div>
           ) : (

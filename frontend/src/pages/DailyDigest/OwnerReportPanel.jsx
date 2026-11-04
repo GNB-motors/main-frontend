@@ -85,39 +85,52 @@ function MorningBriefCard({ brief$, day }) {
       {sections.length === 0 ? (
         <p className="fo-owner-note">Nothing was flagged for this day — no leak measured.</p>
       ) : (
-        <div className="fo-owner-brief-list">
-          {sections.map((section) => (
-            <div className="fo-owner-brief-row" key={section.key}>
-              <div>
-                <span className="fo-owner-brief-label">{section.label}</span>
-                {section.status === 'empty' ? (
-                  <span className="fo-owner-note">Nothing lost here this time.</span>
-                ) : (
-                  <span className="fo-owner-brief-action">
-                    {section.suggestedAction || 'No suggested action was returned.'}
-                  </span>
-                )}
-              </div>
-              <div className="fo-owner-brief-amount">
-                {section.rupees == null ? DASH : formatMoney(section.rupees)}
-              </div>
-              {section.vehicles.length ? (
-                <ul className="fo-owner-brief-vehicles">
-                  {section.vehicles.map((v) => (
-                    <li key={v.registrationNumber}>
-                      <span>{v.registrationNumber}</span>
-                      <span>{v.rupees == null ? DASH : formatMoney(v.rupees)}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-          ))}
-        </div>
+        <div className="fo-money-table-wrap"><table className="fo-money-table">
+          <thead><tr><th>Problem</th><th>Trucks</th><th>Amount</th></tr></thead>
+          <tbody>{[...sections].sort((a, b) => (b.rupees ?? -1) - (a.rupees ?? -1)).map((section) => (
+            <tr key={section.key}>
+              <td><strong>{section.label}</strong><small>{section.suggestedAction}</small></td>
+              <td>{section.vehicles.length ? <><span>{section.vehicles.slice(0, 3).map((v) => <span className="fo-extra-truck" key={v.registrationNumber}>{v.registrationNumber}{v.rupees != null ? ` · ${formatMoney(v.rupees)}` : ''}</span>)}</span>{section.vehicles.length > 3 ? <details><summary>Show all ({section.vehicles.length})</summary>{section.vehicles.slice(3).map((v) => <span className="fo-extra-truck" key={v.registrationNumber}>{v.registrationNumber}{v.rupees != null ? ` · ${formatMoney(v.rupees)}` : ''}</span>)}</details> : null}</> : DASH}</td>
+              <td>{section.rupees == null ? DASH : formatMoney(section.rupees)}</td>
+            </tr>
+          ))}</tbody>
+        </table></div>
       )}
       {brief?.disclaimer ? <p className="fo-owner-note">{brief.disclaimer}</p> : null}
     </section>
   );
+}
+
+const EXCEPTION_LINKS = { sos: '/alert-inbox', moneyTheft: '/intelligence?tab=fuel', idling: '/place-hub?tab=idling', stuckAtPlant: '/place-hub', etaSlipping: '/auto-trips', papersWaiting: '/expenses', documentsExpiring: '/vehicles/dashboard', broadcastNotAcknowledged: '/alert-inbox' };
+
+function HeadlineTiles({ sections, brief, pendingDay }) {
+  const byId = Object.fromEntries(sections.map((section) => [section.id, section.numbers || {}]));
+  const fleet = byId.fleetNow || {};
+  const work = byId.yesterdaysWork || {};
+  const trend = byId.trend || {};
+  const notCounted = pendingDay && work.trips === 0 && work.km === 0;
+  const tiles = [
+    { label: 'Moving now', value: fleet.moving },
+    { label: 'Trips today', value: notCounted ? null : work.trips, delta: notCounted ? null : trend.tripsVsPrev7Pct, note: notCounted ? 'Not counted yet' : null },
+    { label: 'km today', value: notCounted ? null : work.km, delta: notCounted ? null : trend.kmVsPrev7Pct, note: notCounted ? 'Not counted yet' : null },
+    { label: '₹ lost today', value: brief?.totalRupees, money: true },
+    { label: 'Trucks dark', value: fleet.dark },
+  ];
+  return <section className="fo-headline-tiles" aria-label="Daily key metrics">{tiles.map((tile) => (
+    <div className="fo-headline-tile" key={tile.label}>
+      <span>{tile.label}</span><strong>{tile.value == null ? DASH : tile.money ? formatMoney(tile.value) : Number(tile.value).toLocaleString('en-IN')}</strong>
+      <small className={tile.delta == null ? '' : tile.delta >= 0 ? 'fo-delta-up' : 'fo-delta-down'}>{tile.note || (tile.delta == null ? '7-day comparison unavailable' : `${tile.delta >= 0 ? '↑' : '↓'} ${Math.abs(tile.delta)}% vs 7-day average`)}</small>
+    </div>
+  ))}</section>;
+}
+
+function ExceptionsBars({ section }) {
+  const rows = exceptionRows(section?.rows);
+  if (!section) return null;
+  const max = rows[0]?.count || 1;
+  return <section className="fo-card fo-exception-bars"><p className="fo-card-title">Exceptions</p>{rows.length ? rows.map((row) => (
+    <Link key={row.key} className="fo-exception-row" to={EXCEPTION_LINKS[row.key] || '/alert-inbox'}><span>{row.label}</span><span className="fo-exception-track"><i style={{ width: `${row.count / max * 100}%` }} /></span><strong>{row.count}</strong></Link>
+  )) : <p className="fo-owner-note">{sectionState(section) === 'error' ? 'Exceptions unavailable.' : 'No exceptions reported.'}</p>}</section>;
 }
 
 function ReportSection({ section, onRetry, isPendingDay }) {
@@ -234,6 +247,8 @@ export default function OwnerReportPanel({ day, digest }) {
   const isPendingDay = useMemo(() => isToday(day), [day]);
 
   const sections = Array.isArray(report$.data?.sections) ? report$.data.sections : [];
+  const untracked = sections.filter((s) => ['moneyIn', 'people'].includes(s.id) && sectionState(s) === 'empty');
+  const detailed = sections.filter((s) => s.id !== 'exceptions' && !untracked.includes(s));
   const goodDrivers = Array.isArray(digest?.goodDrivers) ? digest.goodDrivers : [];
   const needsAttention = Array.isArray(digest?.needsAttention) ? digest.needsAttention : [];
 
@@ -250,7 +265,10 @@ export default function OwnerReportPanel({ day, digest }) {
         </div>
       </div>
 
+      <HeadlineTiles sections={sections} brief={brief$.data} pendingDay={isPendingDay} />
       <MorningBriefCard brief$={brief$} day={day} />
+      <ExceptionsBars section={sections.find((s) => s.id === 'exceptions')} />
+      {untracked.length ? <p className="fo-untracked">Not tracked yet: {untracked.map((s) => s.id === 'moneyIn' ? 'Money in (SAP freight)' : 'People').join(', ')}</p> : null}
 
       {report$.loading && !report$.data ? (
         <div className="fo-owner-grid">
@@ -272,8 +290,8 @@ export default function OwnerReportPanel({ day, digest }) {
           </section>
         </div>
       ) : (
-        <div className="fo-owner-grid">
-          {sections.map((section) => (
+        <details className="fo-report-details"><summary>More report details</summary><div className="fo-owner-grid">
+          {detailed.map((section) => (
             <ReportSection
               key={section?.id || section?.title}
               section={section}
@@ -281,10 +299,10 @@ export default function OwnerReportPanel({ day, digest }) {
               isPendingDay={isPendingDay}
             />
           ))}
-        </div>
+        </div></details>
       )}
 
-      <div className="fo-owner-people">
+      <details className="fo-report-details"><summary>Driver insights</summary><div className="fo-owner-people">
         <SubjectList
           title="Who drove well"
           items={goodDrivers}
@@ -295,7 +313,7 @@ export default function OwnerReportPanel({ day, digest }) {
           items={needsAttention}
           note="Trucks and drivers whose behaviour dropped over the last 30 days."
         />
-      </div>
+      </div></details>
     </section>
   );
 }

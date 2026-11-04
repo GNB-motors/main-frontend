@@ -114,8 +114,7 @@ describe('OwnerReportPanel', () => {
     expect(screen.getAllByText('—').length).toBeGreaterThan(0);
 
     // empty — one line of reason, and no number dressed as a zero.
-    expect(screen.getByText('Nothing yet')).toBeTruthy();
-    expect(screen.getByText('not built yet')).toBeTruthy();
+    expect(screen.getByText('Not tracked yet: People')).toBeTruthy();
 
     // error — the section is still there, with a retry.
     expect(screen.getByText(/Couldn't load/)).toBeTruthy();
@@ -170,10 +169,10 @@ describe('OwnerReportPanel', () => {
 
     await waitFor(() => expect(screen.getByText('Morning brief')).toBeTruthy());
 
-    expect(screen.getByText('₹17,636')).toBeTruthy();
+    expect(screen.getAllByText('₹17,636').length).toBeGreaterThan(0);
     expect(screen.getByText(/lost · /)).toBeTruthy();
     expect(screen.getByText('₹2,207')).toBeTruthy();
-    expect(screen.getByText('₹270')).toBeTruthy();
+    expect(screen.getByText(/₹270/)).toBeTruthy();
     expect(screen.queryByText('17,635.8')).toBeNull();
   });
 

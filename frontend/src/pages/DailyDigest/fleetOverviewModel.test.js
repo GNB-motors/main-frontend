@@ -9,6 +9,10 @@ const card = (key, values, extra = {}) => ({
 });
 
 describe('fleet overview data', () => {
+  it('preserves the reason the running split is unknown', () => {
+    const model = buildOverview(null, { utilization: { fleet: { loadedKm: null, emptyKm: null, reason: 'Trips not linked to distance yet' } } });
+    expect(model).toMatchObject({ loadedKm: null, emptyKm: null, runningReason: 'Trips not linked to distance yet' });
+  });
   it('keeps missing sources unknown, including a partial pending-action count', () => {
     const model = buildOverview({ story: [card('questions', { 'Places waiting': '4' })] });
     expect(model.pending).toBeNull();

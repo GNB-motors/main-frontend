@@ -425,7 +425,7 @@ export function briefSections(brief) {
           rupees: v?.rupees == null ? null : Number(v.rupees),
           durationMin: v?.durationMin == null ? null : Number(v.durationMin),
           excessL: v?.excessL == null ? null : Number(v.excessL),
-        }))
+        })).sort((a, b) => (b.rupees ?? -1) - (a.rupees ?? -1))
       : [],
   }));
 }

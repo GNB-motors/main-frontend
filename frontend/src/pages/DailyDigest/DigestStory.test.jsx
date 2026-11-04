@@ -54,15 +54,13 @@ describe('DailyDigestPage', () => {
         }),
     );
     renderPage();
-    expect(await screen.findByText('7')).toBeInTheDocument();
-    expect(screen.queryByRole('status', { name: 'Loading active trips' })).not.toBeInTheDocument();
-    expect(screen.getByRole('status', { name: 'Loading critical issues' })).toBeInTheDocument();
-    expect(screen.getByRole('status', { name: 'Loading fuel consumption' })).toBeInTheDocument();
+    expect(await screen.findByText('More operational detail')).toBeInTheDocument();
+    expect(screen.getByLabelText('Loading fuel consumption')).toBeInTheDocument();
     await act(async () => finishReport(digestFixture));
     expect(
       screen.queryByRole('status', { name: 'Loading critical issues' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('status', { name: 'Loading fuel consumption' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Loading fuel consumption')).toBeInTheDocument();
     await act(async () => finishFuel({ items: [] }));
     expect(
       screen.queryByRole('status', { name: 'Loading fuel consumption' }),
@@ -143,7 +141,7 @@ describe('DailyDigestPage', () => {
     await screen.findByRole('heading', { name: 'Fleet Overview' });
     await waitFor(() => expect(listTrips).toHaveBeenCalledTimes(1));
     expect(listTrips.mock.calls[0][0]).toEqual({ status: 'OPEN', limit: 50 });
-    expect(await screen.findByText('7')).toBeInTheDocument();
+    expect(screen.getByText('More operational detail')).toBeInTheDocument();
     expect(getVehicleList).toHaveBeenCalledTimes(1);
     expect(getMileage).toHaveBeenCalledTimes(1);
   });
