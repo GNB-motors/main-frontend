@@ -3,8 +3,10 @@ import { Empty, RowsSkeleton } from '../../routeHubShared.jsx';
 import { inr } from '../../routeHubFormat';
 import {
   costBasisLabel,
+  costKnown,
   deviationGroupSubtitle,
   deviationGroupTitle,
+  extraKnown,
   isOpen,
   legLabel,
   shortDay,
@@ -50,11 +52,6 @@ function StatusPill({ d, notJudged, checked }) {
  * with "+0.0 km extra" means there was no usual road to compare against
  * (fewer than two of the fleet's own trips used it), so we show a dash.
  */
-function extraKnown(d) {
-  if (d.extraKmEstimate == null) return false;
-  return !(Number(d.extraKmEstimate) === 0 && Number(d.maxOffKm || 0) >= 1);
-}
-
 export default function DeviationFeed({ groups, selId, onSelect, first, error, pager, selectedNotJudged, selectedChecked }) {
   const events = groups.flatMap((g) => g.events);
   const showExtra = events.some(extraKnown);
@@ -73,7 +70,7 @@ export default function DeviationFeed({ groups, selId, onSelect, first, error, p
           <span className="sp" />
           {g.events.length > 1 ? (
             <span className="muted dev-group-sum">
-              {g.events.length} detours{g.events.some(extraKnown) ? ` · +${g.extraKm.toFixed(1)} km` : ''}{g.events.some((d) => extraKnown(d) && d.estimatedExtraCostInr != null) ? ` · ${inr(g.costInr)}` : ''}
+              {g.events.length} detours{g.events.some(extraKnown) ? ` · +${g.events.filter(extraKnown).reduce((sum, d) => sum + Number(d.extraKmEstimate), 0).toFixed(1)} km${g.events.every(extraKnown) ? '' : ' measured'}` : ''}{g.events.some(costKnown) ? ` · ${inr(g.events.filter(costKnown).reduce((sum, d) => sum + Number(d.estimatedExtraCostInr), 0))}${g.events.every(costKnown) ? '' : ' estimated for known detours'}` : ''}
             </span>
           ) : null}
         </div>
@@ -89,7 +86,7 @@ export default function DeviationFeed({ groups, selId, onSelect, first, error, p
             <LegPill trip={d.trip} />
             {showExtra ? <span className="dev-row-num">
               <span className="muted">Extra</span>
-              <span>
+              <span title={extraKnown(d) ? undefined : 'Not estimated'}>
                 {extraKnown(d) ? `+${Number(d.extraKmEstimate).toFixed(1)} km` : '—'}
               </span>
             </span> : null}
@@ -97,12 +94,10 @@ export default function DeviationFeed({ groups, selId, onSelect, first, error, p
               <span className="muted">Cost (est.)</span>
               <span
                 className="strong"
-                style={{ color: extraKnown(d) ? '#C2323A' : 'var(--fg-tertiary)' }}
-                title={costBasisLabel(d)}
+                style={{ color: costKnown(d) ? '#C2323A' : 'var(--fg-tertiary)' }}
+                title={costKnown(d) ? costBasisLabel(d) : 'Not estimated'}
               >
-                {extraKnown(d) && d.estimatedExtraCostInr != null
-                  ? inr(d.estimatedExtraCostInr)
-                  : '—'}
+                {costKnown(d) ? inr(d.estimatedExtraCostInr) : '—'}
               </span>
             </span> : null}
             <StatusPill d={d} checked={d._id === selId && selectedChecked} notJudged={d._id === selId && selectedNotJudged} />

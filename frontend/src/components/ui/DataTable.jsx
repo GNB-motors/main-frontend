@@ -114,6 +114,10 @@ export default function DataTable({
     total: total ?? rows.length,
     activeFilters,
   });
+  // The row count is printed once: the pagination row owns it when the table
+  // has one, otherwise the table's own toolbar (or footer) carries it.
+  const hasPagination = Boolean(pagination);
+  const showFoot = (paginated || hasPagination) && rows.length > 0;
 
   // Visible + selectable rows, in display order — "select all" only ever
   // touches what search/filtering has left on screen, never hidden rows.
@@ -153,9 +157,11 @@ export default function DataTable({
   return (
     <div className={`dt dt--${density} ${className}`.trim()}>
       <div className="dt-tools">
-        <span className="dt-summary" aria-live="polite">
-          {summary}
-        </span>
+        {showFoot ? null : (
+          <span className="dt-summary" aria-live="polite">
+            {summary}
+          </span>
+        )}
         <div className="dt-tools-right">
           {toolbarExtra}
           <div className="dt-cols" ref={colsRef}>
@@ -317,10 +323,10 @@ export default function DataTable({
         ) : null}
       </div>
 
-      {(paginated || pagination) && rows.length > 0 ? (
+      {showFoot ? (
         <div className="dt-foot">
-          <span className="dt-summary">{summary}</span>
-          {pagination ? <div className="dt-pagination">{pagination}</div> : null}
+          {hasPagination ? null : <span className="dt-summary">{summary}</span>}
+          {hasPagination ? <div className="dt-pagination">{pagination}</div> : null}
         </div>
       ) : null}
     </div>

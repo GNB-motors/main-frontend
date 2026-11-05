@@ -1,5 +1,6 @@
 import { fmtT, haversineKm, hm } from '../../routeHubFormat';
 import { toLayers, distanceAtTime } from '../../../../lib/roadTrail';
+import { pathPieces } from './replayPath.js';
 
 /**
  * Turns the trail's irregular fixes into something the player can scrub:
@@ -180,6 +181,7 @@ export default function buildTrip(
   return {
     fixes,
     path,
+    pieces: pathPieces(fixes),
     events,
     overspeed: overspeedEvents || [],
     km: acc,

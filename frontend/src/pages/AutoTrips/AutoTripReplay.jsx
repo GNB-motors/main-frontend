@@ -2,13 +2,19 @@ import { googleMapsLoaderOptions } from '../../utils/googleMapsLoader.js';
 import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { GoogleMap, MarkerF, PolylineF, useLoadScript } from '@react-google-maps/api';
 import { createVehicleMarkerIcon } from '../LiveTracking/vehicleMarkerIcon.js';
-import { positionAt, toFrames, toLatLngSegments } from '../RouteReplay/routeReplay';
+import { positionAt, toFrames } from '../RouteReplay/routeReplay';
 import RoadTrailLayer from '../../components/map/RoadTrailLayer';
 import { fmtClock, fmtDayTime } from './autoTripFormat';
 import { routeMapPoints, tripRoadAt, tripRoadLayers } from './autoTripPlaces';
 import { stopKind } from './timelineModel';
 import ReplayPlayer from './ReplayPlayer';
-import { POI_LABEL_STYLES } from '../../utils/mapLabelStyles';
+import {
+  PATH_COLORS,
+  loadWindows,
+  pathSegments,
+  segmentPath,
+  travelledSegments,
+} from './tripPathModel';
 import TollMarkers from './TollMarkers';
 import { justPassed, tollMarks } from './tripTolls';
 import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
@@ -22,20 +28,18 @@ const HEADING_STEP = 5;
 const MOVING_KMPH = 3;
 const COLOR = {
   trail: '#CBD5E1',
-  run: '#1D4ED8',
   detour: '#C2323A',
-  plant: '#0F172A',
-  drop: '#15803D',
+  /** The trip starts at the plant (green) and ends at the drop (red). */
+  start: '#15803D',
+  drop: '#DC2626',
   unknown: '#B45309',
   stop: '#64748B',
 };
-/** A quiet, light basemap so the route reads first. */
+/** A quiet, light basemap so the route reads first — Google's own place labels stay on. */
 const MAP_THEME = [
   { elementType: 'geometry', stylers: [{ color: '#eef2ec' }] },
-  { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
   { elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
   { elementType: 'labels.text.stroke', stylers: [{ color: '#f7f8fa' }] },
-  ...POI_LABEL_STYLES,
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
   { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
   { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#f1f5f9' }] },
@@ -47,6 +51,33 @@ const MAP_THEME = [
   },
 ];
 const LINE = (color, zIndex) => ({ strokeColor: color, strokeOpacity: 1, strokeWeight: 6, zIndex });
+
+/**
+ * The driven path: solid indigo where the truck carried, dashed slate where it drove
+ * empty. The part already driven is drawn opaque over the faded rest of the trip.
+ */
+const pathStyle = (load, opacity, zIndex) =>
+  load === 'empty'
+    ? {
+        strokeColor: PATH_COLORS.empty,
+        strokeOpacity: 0,
+        strokeWeight: 3,
+        zIndex,
+        icons: [
+          {
+            icon: {
+              path: 'M 0,-1 0,1',
+              strokeOpacity: opacity,
+              strokeColor: PATH_COLORS.empty,
+              strokeWeight: 3,
+              scale: 2,
+            },
+            offset: '0',
+            repeat: '10px',
+          },
+        ],
+      }
+    : { strokeColor: PATH_COLORS.loaded, strokeOpacity: opacity, strokeWeight: 4, zIndex };
 
 const headKmph = (head) => head?.reportedSpeed ?? head?.groundSpeedKmph;
 
@@ -62,7 +93,7 @@ function placeLabel(text, color) {
     color,
     fontSize: '14px',
     fontWeight: '700',
-    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    fontFamily: 'var(--font-sans, Inter, sans-serif)',
     className: 'atx-map-label',
   };
 }
@@ -162,16 +193,9 @@ export default function AutoTripReplay({
     () => (frames.length ? positionAt(frames, progress) : null),
     [frames, progress],
   );
-  const fullSegments = useMemo(() => toLatLngSegments(frames), [frames]);
-  const runSegments = useMemo(() => {
-    if (!head || !canPlay) return [];
-    const segs = toLatLngSegments(frames, head.index);
-    const next = frames[head.index + 1];
-    if (segs.length && next && !next.isBreak) {
-      segs[segs.length - 1] = [...segs[segs.length - 1], { lat: head.lat, lng: head.lng }];
-    }
-    return segs;
-  }, [frames, head, canPlay]);
+  const windows = useMemo(() => loadWindows(trip), [trip]);
+  const segments = useMemo(() => pathSegments(frames, windows), [frames, windows]);
+  const runSegments = useMemo(() => travelledSegments(segments, head), [segments, head]);
 
   const roadLayers = useMemo(() => tripRoadLayers(roadTrail), [roadTrail]);
   const onRoad = useMemo(
@@ -230,9 +254,20 @@ export default function AutoTripReplay({
       strokeWeight,
       ...(labelY != null ? { labelOrigin: new Point(0, labelY) } : {}),
     });
+    // The start and the drop are pins, so they read as where the trip began and where
+    // it ended rather than as one more stop on the route.
+    const pin = (fill) => ({
+      path: 'M 0,-14 C -7.5,-14 -13,-8.5 -13,-1 C -13,6 0,14 0,14 C 0,14 13,6 13,-1 C 13,-8.5 7.5,-14 0,-14 Z',
+      fillColor: fill,
+      fillOpacity: 1,
+      strokeColor: '#FFFFFF',
+      strokeWeight: 2,
+      anchor: new Point(0, 14),
+      labelOrigin: new Point(0, -30),
+    });
     return {
-      plant: circle(COLOR.plant, 10, '#FFFFFF', 2, 3),
-      drop: circle(COLOR.drop, 10, '#FFFFFF', 2, 3),
+      start: pin(COLOR.start),
+      drop: pin(COLOR.drop),
       unknown: circle('#FFFFFF', 7, COLOR.unknown, 3),
       stop: circle('#FFFFFF', 5, COLOR.stop, 2),
     };
@@ -319,26 +354,33 @@ export default function AutoTripReplay({
             }}
           >
             {roadLayers && <RoadTrailLayer layers={roadLayers} color={COLOR.trail} />}
-            {roadLayers && onRoad && <RoadTrailLayer layers={onRoad.run} color={COLOR.run} />}
-            {roadLayers
-              ? null
-              : frames.length > 1
-                ? fullSegments.map((seg, i) =>
-                    seg.length > 1 ? (
-                      <PolylineF key={`full-${i}`} path={seg} options={LINE(COLOR.trail, 1)} />
-                    ) : null,
-                  )
-                : pts.path.length > 1 && (
-                    <PolylineF path={pts.path} options={LINE(COLOR.trail, 1)} />
-                  )}
-            {!roadLayers &&
-              runSegments.map((seg, i) =>
-                seg.length > 1 ? (
-                  <PolylineF key={`run-${i}`} path={seg} options={LINE(COLOR.run, 2)} />
-                ) : null,
-              )}
+            {segments.map((seg, i) =>
+              seg.points.length > 1 ? (
+                <PolylineF
+                  key={`path-${i}`}
+                  path={segmentPath(seg)}
+                  options={pathStyle(seg.load, 0.35, 4)}
+                />
+              ) : null,
+            )}
+            {runSegments.map((seg, i) =>
+              seg.path.length > 1 ? (
+                <PolylineF key={`run-${i}`} path={seg.path} options={pathStyle(seg.load, 1, 5)} />
+              ) : null,
+            )}
+            {!frames.length && pts.path.length > 1 && (
+              <PolylineF
+                path={pts.path}
+                options={{
+                  strokeColor: COLOR.trail,
+                  strokeOpacity: 0.9,
+                  strokeWeight: 3,
+                  zIndex: 4,
+                }}
+              />
+            )}
             {(detours || []).map((d) => (
-              <PolylineF key={`detour-${d.id}`} path={d.path} options={LINE(COLOR.detour, 3)} />
+              <PolylineF key={`detour-${d.id}`} path={d.path} options={LINE(COLOR.detour, 6)} />
             ))}
             {icons &&
               stopMarks.map((m) => (
@@ -347,16 +389,16 @@ export default function AutoTripReplay({
                   position={m.at}
                   icon={m.unknown ? icons.unknown : icons.stop}
                   title={m.unknown ? 'Unknown stop' : 'Stop'}
-                  zIndex={3}
+                  zIndex={7}
                 />
               ))}
             {icons && pts.pickup ? (
               <MarkerF
                 position={pts.pickup}
-                icon={icons.plant}
-                label={placeLabel(trip?.pickup?.name, COLOR.plant)}
+                icon={icons.start}
+                label={placeLabel(trip?.pickup?.name, COLOR.start)}
                 title={trip?.pickup?.name || 'Plant'}
-                zIndex={4}
+                zIndex={12}
               />
             ) : null}
             {icons && pts.drop ? (
@@ -365,7 +407,7 @@ export default function AutoTripReplay({
                 icon={icons.drop}
                 label={placeLabel(trip?.drop?.name, COLOR.drop)}
                 title={trip?.drop?.name || 'Drop'}
-                zIndex={4}
+                zIndex={12}
               />
             ) : null}
             {icons &&
@@ -376,7 +418,7 @@ export default function AutoTripReplay({
                   icon={icons.drop}
                   label={placeLabel(x.label, COLOR.drop)}
                   title="Further drop"
-                  zIndex={4}
+                  zIndex={12}
                 />
               ))}
             <TollMarkers marks={marks} />

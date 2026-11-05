@@ -5,6 +5,7 @@ import { RotateCw, Search } from 'lucide-react';
 import useApi from '../../hooks/useApi';
 import FleetDataService from '../../services/FleetDataService';
 import ExportButton from '../../components/ui/ExportButton';
+import PageShell from '../../components/ui/PageShell';
 import EnterprisePagination from '../../components/ui/EnterprisePagination';
 import { formatLitres, formatNum, formatINR, formatPct } from '../../utils/formatters';
 import { STATUS } from './defLedgerStatus';
@@ -104,20 +105,11 @@ export default function DefLedgerPage() {
 
   return (
     <>
-      <div className="p-6 md:p-8 bg-slate-50 dark:bg-slate-950 min-h-screen text-slate-900 dark:text-slate-100">
-        {/* ── Page Header ────────────────────────────────────────────── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              DEF & AdBlue Governance Ledger
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Your registered vehicles: DEF burned against diesel, AdBlue logged against AdBlue the
-              tank sensor saw going in, and drains the engine burn cannot explain.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
+      <PageShell
+        title="DEF & AdBlue"
+        subtitle="Your registered vehicles: DEF burned against diesel, AdBlue logged against AdBlue the tank sensor saw going in, and drains the engine burn cannot explain."
+        actions={
+          <>
             <ExportButton
               rows={filteredVehicles}
               columns={EXPORT_COLUMNS}
@@ -133,21 +125,23 @@ export default function DefLedgerPage() {
             >
               <RotateCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
+          </>
+        }
+        filters={
+          <div className="manufacturer-scope-row">
+            <ManufacturerFilter
+              value={manufacturer}
+              onChange={(value) => {
+                setSelectedVehicle(null);
+                setPage(1);
+                setManufacturer(value);
+              }}
+            />
           </div>
-        </div>
-
-        <div className="manufacturer-scope-row mb-6">
-          <ManufacturerFilter
-            value={manufacturer}
-            onChange={(value) => {
-              setSelectedVehicle(null);
-              setPage(1);
-              setManufacturer(value);
-            }}
-          />
-        </div>
+        }
+      >
         {/* ── KPI Tiles ──────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiTile
             label="Registered vehicles"
             loading={firstLoad}
@@ -158,16 +152,14 @@ export default function DefLedgerPage() {
           <KpiTile
             label="AdBlue logged"
             loading={firstLoad}
-            value={claimsTracked ? formatLitres(totals.claimedAdblueL) : 'Not logged'}
+            value={claimsTracked ? formatLitres(totals.claimedAdblueL) : '—'}
             valueClass={
-              claimsTracked
-                ? 'text-indigo-600 dark:text-indigo-400'
-                : 'text-slate-400 dark:text-slate-500'
+              claimsTracked ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'
             }
             note={
               claimsTracked && price
                 ? `~${formatINR(Math.round((totals.claimedAdblueL || 0) * price))} at ₹${price}/L · sensors saw ${formatLitres(totals.sensorFillL)}`
-                : `Sensors saw ${formatLitres(totals.sensorFillL)} go in`
+                : `No AdBlue bills logged · sensors saw ${formatLitres(totals.sensorFillL)} go in`
             }
           />
           <KpiTile
@@ -185,15 +177,16 @@ export default function DefLedgerPage() {
           <KpiTile
             label="Needs review"
             loading={firstLoad}
-            value={`${formatNum(totals.flagged ?? 0)} Vehicles`}
-            valueClass="text-rose-600 dark:text-rose-400"
+            value={formatNum(totals.flagged ?? 0)}
+            unit="vehicles"
+            valueClass="text-slate-900 dark:text-white"
             note="Drains beyond engine burn or impossible fills"
-            noteClass="text-rose-500 font-semibold"
+            noteDot
           />
         </div>
 
         {/* ── Filters Bar ─────────────────────────────────────────────── */}
-        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 mb-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
             {chips.map((chip) => (
               <button
@@ -301,13 +294,13 @@ export default function DefLedgerPage() {
                       <td className="py-3 px-4 text-center">
                         <StatusBadge status={v.status} />
                       </td>
-                      <td className="py-3 px-4 text-center font-mono">
+                      <td className="py-3 px-4 text-center">
                         {v.flagCount > 0 ? (
                           <span className="px-2 py-0.5 rounded bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 font-bold text-[11px]">
                             {v.flagCount} {v.flagCount === 1 ? 'flag' : 'flags'}
                           </span>
                         ) : (
-                          <span className="text-slate-400 text-[11px]">Clear</span>
+                          <span className="text-slate-400 text-[11px]">—</span>
                         )}
                       </td>
                       <td className="py-3 px-4 text-center">
@@ -319,7 +312,7 @@ export default function DefLedgerPage() {
                           }}
                           className="px-2.5 py-1 text-xs font-semibold rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition"
                         >
-                          Audit Drawer
+                          Details
                         </button>
                       </td>
                     </tr>
@@ -338,13 +331,13 @@ export default function DefLedgerPage() {
             onPageSizeChange={setPageSize}
           />
         </div>
+      </PageShell>
 
-        <DefDetailDrawer
-          vehicle={selectedVehicle}
-          claimsTracked={claimsTracked}
-          onClose={() => setSelectedVehicle(null)}
-        />
-      </div>
+      <DefDetailDrawer
+        vehicle={selectedVehicle}
+        claimsTracked={claimsTracked}
+        onClose={() => setSelectedVehicle(null)}
+      />
     </>
   );
 }

@@ -4,14 +4,14 @@ import DataTable from '../../../components/ui/DataTable';
 import EnterprisePagination from '../../../components/ui/EnterprisePagination';
 import StatusChip from '../../../components/ui/StatusChip';
 import { useApi } from '../../../hooks/useApi';
-import { toISTDateString } from '../../../utils/dateUtils';
+import { humanDate } from '../mileageDates';
 import { formatINR, formatKm, formatLitres } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
 import { mapIntervalRow, mileageBand, isPlausibleKmPerL } from '../cycleRows';
 import FuelCyclesList from './FuelCyclesList';
 import InfoTip from './InfoTip';
 
-const between = (a, b) => `${a ? toISTDateString(a) : '—'} → ${b ? toISTDateString(b) : '—'}`;
+const between = (a, b) => `${a ? humanDate(a) : '—'} → ${b ? humanDate(b) : '—'}`;
 
 const COLUMNS = [
   {

@@ -4,7 +4,7 @@ import SegmentedChips from './SegmentedChips';
 import EnterprisePagination from '../../../components/ui/EnterprisePagination';
 import StatusChip from '../../../components/ui/StatusChip';
 import { useApi } from '../../../hooks/useApi';
-import { toISTDateString, toISTTimeString } from '../../../utils/dateUtils';
+import { humanDateTime } from '../mileageDates';
 import { formatLitres } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
 import { RECONCILIATION_RESULT, drawerFromReconciliationRow } from '../refuelRows';
@@ -34,10 +34,7 @@ const columns = (onOpen) => [
     label: 'Bill time',
     render: (r) =>
       r.billDate ? (
-        <span className="num">
-          {toISTDateString(r.billDate)}
-          <span className="mhub-sub">{toISTTimeString(r.billDate)}</span>
-        </span>
+        <span className="num">{humanDateTime(r.billDate)}</span>
       ) : (
         '—'
       ),

@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { MarkerF, PolylineF } from '@react-google-maps/api';
-import { buildTrackLayers, playheadAt } from './trackLayersModel';
-import { createVehicleMarkerIcon } from './vehicleMarkerIcon.js';
+import { buildTrackLayers } from './trackLayersModel';
 import { cssToken } from '../../utils/redesign/tone';
 import { resolveMapColor } from './mapColor.js';
 import { toLayers } from '../../lib/roadTrail';
@@ -27,7 +26,6 @@ function resolveColor(color) {
 export default function TrackMapLayers({
   track,
   zoom = 0,
-  playheadTime = null,
   showOverspeed = true,
   roadTrail = null,
 }) {
@@ -45,26 +43,6 @@ export default function TrackMapLayers({
       .filter((layer) => Array.isArray(layer.path) && layer.path.length > 1)
       .map((layer) => ({ ...layer, key: `road-${layer.kind}-${layer.t0}` }));
   }, [roadTrail]);
-
-  const playhead = useMemo(
-    () => (playheadTime ? playheadAt(track?.points ?? [], playheadTime) : null),
-    [track, playheadTime],
-  );
-
-  const playheadIcon = useMemo(
-    () =>
-      playhead
-        ? createVehicleMarkerIcon({
-            status: 'MOVING',
-            courseDegrees: playhead.headingDeg ?? 0,
-            speed: playhead.speedKmh ?? 0,
-            registrationNumber: '',
-            showLabel: false,
-            zoom,
-          })
-        : null,
-    [playhead, zoom],
-  );
 
   return (
     <>
@@ -152,14 +130,9 @@ export default function TrackMapLayers({
         />
       ))}
 
-      {/* 7. The playhead: the truck, pointing where it was going. */}
-      {playhead && playheadIcon ? (
-        <MarkerF
-          position={{ lat: playhead.lat, lng: playhead.lng }}
-          icon={playheadIcon}
-          zIndex={100}
-        />
-      ) : null}
+      {/* 7. The playhead is NOT drawn here: the truck itself is an overlay
+            (ReplayTruckMarker) so it sits above the line and turns with the
+            heading. Two trucks on one drive is worse than none. */}
     </>
   );
 }

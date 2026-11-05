@@ -60,7 +60,7 @@ describe('WhereNextSection', () => {
     });
     render(<WhereNextSection registrationNumber="WB11J8562" />);
     expect(await screen.findByText('Where next · not sure yet')).toBeInTheDocument();
-    expect(screen.queryByText(/Likely →/)).toBeNull();
+    expect(screen.queryByText(/→/)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Open' }));
     expect(await screen.findByText(/On the road between places/)).toBeInTheDocument();
   });
@@ -81,6 +81,46 @@ describe('WhereNextSection', () => {
     await waitFor(() => expect(screen.getAllByText(/18 of 24 times/).length).toBeGreaterThan(0));
     expect(screen.queryByText(/0\.75/)).not.toBeInTheDocument();
     expect(screen.queryByText('75%')).not.toBeInTheDocument();
+  });
+
+  // An ETA that has already passed says nothing about when the truck will
+  // arrive, so the time is never printed.
+  it('never prints an ETA that has already passed', async () => {
+    getWhereNext.mockResolvedValue({
+      destinations: [
+        {
+          ...destination,
+          eta: { ...destination.eta, at: '2020-01-01T10:00:00Z' },
+        },
+      ],
+      basis: null,
+      computedAt: null,
+    });
+    render(<WhereNextSection registrationNumber="WB11L8862" />);
+    await waitFor(() =>
+      expect(screen.getByText(/→ DANKUNI SIDING/)).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/ETA \d/)).not.toBeInTheDocument();
+    expect(screen.getAllByText(/ETA passed/).length).toBeGreaterThan(0);
+  });
+
+  it('prints an ETA that is still ahead of the owner', async () => {
+    getWhereNext.mockResolvedValue({
+      destinations: [
+        {
+          ...destination,
+          eta: { ...destination.eta, at: '2099-01-01T10:00:00Z' },
+        },
+      ],
+      basis: null,
+      computedAt: null,
+    });
+    render(<WhereNextSection registrationNumber="WB11L8862" />);
+    await waitFor(() =>
+      expect(screen.getByText(/→ DANKUNI SIDING/)).toBeInTheDocument(),
+    );
+    expect(screen.getAllByText(/ETA \d/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/ETA passed/)).not.toBeInTheDocument();
   });
 
   it('says the answer is not ready when the backend holds it', async () => {

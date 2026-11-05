@@ -7,6 +7,7 @@ import VehicleLocation from './VehicleLocation.jsx';
 import TrackLoadError from './TrackLoadError.jsx';
 import AlertBadge from './AlertBadge.jsx';
 import { plateKey } from './trackIdlingModel.js';
+import { formatFuelValue, fuelUnitTitle } from '../../utils/liveView.js';
 
 const SKEL_CARD_COUNT = 6;
 
@@ -117,6 +118,12 @@ export default function FleetListView({
                 {/* Card Meta Footer */}
                 <div className="vc-meta">
                   <span>{Number.isFinite(v.speed) ? `${Math.round(v.speed)} km/h` : 'Speed unknown'}</span>
+                  {v.fuelReading != null ? (
+                    <span title={fuelUnitTitle(v.fuelReading) || `Fuel ${formatFuelValue(v.fuelReading)}`}>
+                      {formatFuelValue(v.fuelReading)}
+                    </span>
+                  ) : null}
+                  {v.ignition && v.ignition !== '—' ? <span>{v.ignition}</span> : null}
                   <span className="sp" />
                   <span>{v.ago != null ? formatAgoText(v.ago) : '—'}</span>
                 </div>

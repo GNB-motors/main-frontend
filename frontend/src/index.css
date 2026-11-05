@@ -21,7 +21,7 @@
 /* Auto Trips pages (trips list + trip detail) */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 /* Settings section nav (matches its mockup) */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @import 'tailwindcss';
 @import 'tw-animate-css';
@@ -31,18 +31,9 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ── Global Input Focus Reset ────────────────────────────── */
-/* Eliminates browser default harsh blue outline ring on input focus */
-input:focus,
-input:focus-visible,
-select:focus,
-select:focus-visible,
-textarea:focus,
-textarea:focus-visible {
-  outline: none !important;
-}
-
-input:focus-visible,
-select:focus-visible,
+/* The reset itself lives in the @layer base block at the end of this file,
+   so a control inside the app can still draw its own focus ring. */
+input:not(select):focus-visible,
 textarea:focus-visible {
   border-color: var(--color-primary-500, #4f46e5);
   box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
@@ -122,6 +113,7 @@ textarea:focus-visible {
   --signal-high: #e5484d; /* HIGH severity */
   --signal-med: #f2a413; /* MEDIUM severity */
   --signal-low: #8b93a7; /* LOW severity */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Space Grotesk', 'DM Sans', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
 
@@ -213,6 +205,48 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ─────────────────────────────────────────────────────────
+   One typeface in the logged-in app
+   ─────────────────────────────────────────────────────────
+   The app used to mix Montserrat, DM Sans, Space Grotesk, Archivo
+   and JetBrains Mono on the same screen, so every page read as a
+   patchwork. Inside the dashboard shell every one of those font
+   variables now points at Inter, so the whole app speaks in one
+   voice. The marketing pages (landing, sign-up, login) live outside
+   .dashboard-layout and keep the faces they had.
+   ───────────────────────────────────────────────────────── */
+.dashboard-layout {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-cluster-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-eyebrow: var(--font-sans);
+  font-family: var(--font-sans);
+}
+
+/* Tailwind's font-* utilities and every "mono" class resolve to the same
+   face; the figures stay aligned with tabular numbers. */
+.dashboard-layout .font-sans,
+.dashboard-layout .font-display,
+.dashboard-layout .font-mono,
+.dashboard-layout [class*='mono'] {
+  font-family: var(--font-sans);
+}
+
+.dashboard-layout .font-mono,
+.dashboard-layout [class*='mono'] {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+/* Headings: one weight, one tracking. The sizes are untouched. */
+.dashboard-layout h1,
+.dashboard-layout h2,
+.dashboard-layout h3 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
 /* ── Global button defaults ──────────────────────────────── */
 .btn {
   width: auto;
@@ -302,13 +336,13 @@ body {
 .page-content > .space-y-6 > div:first-child h1 {
   font-family: var(--font-display);
   font-size: 26px;
-  font-weight: 700;
-  letter-spacing: -0.6px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--ink);
 }
 
 .page-content > .space-y-6 > div:first-child p {
-  font-family: 'DM Sans', 'Montserrat', sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   font-weight: 400;
   color: #64748b;
@@ -388,7 +422,7 @@ body {
   border-radius: 10px;
   border: 1px solid #e2e8f0;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
-  font-family: 'Montserrat', sans-serif;
+  font-family: var(--font-sans);
   font-size: 13px;
   padding: 10px 14px;
 }
@@ -507,6 +541,97 @@ body {
   }
   html {
     @apply font-sans;
+  }
+
+  /* The browser's own focus ring is harsh and off-brand. The reset lives in
+     the base layer so a control can still draw its own ring on top of it. */
+  input:focus,
+  input:focus-visible,
+  select:focus,
+  select:focus-visible,
+  textarea:focus,
+  textarea:focus-visible {
+    outline: none;
+  }
+
+  /* ── Native form controls ──────────────────────────────
+     A bare <select> used to render the grey OS chevron and a
+     <input type="date"> used to render "dd-mm-yyyy" in the OS
+     face. Both are redrawn here in the app's own idiom, inside the
+     dashboard shell only, so the marketing pages keep the platform
+     look. Base layer: a Tailwind utility or a component class wins.
+     ─────────────────────────────────────────────────────── */
+  .dashboard-layout select:not([multiple]) {
+    appearance: none;
+    -webkit-appearance: none;
+    height: 36px;
+    padding: 0 32px 0 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background-color: #ffffff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%2364748b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 7.5 5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px 16px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    color: #0f172a;
+    cursor: pointer;
+  }
+
+  .dashboard-layout select:not([multiple]):focus,
+  .dashboard-layout select:not([multiple]):focus-visible {
+    outline: 2px solid #4f46e5;
+    outline-offset: 1px;
+    border-color: #4f46e5;
+  }
+
+  .dashboard-layout select:not([multiple]):disabled {
+    background-color: #f1f5f9;
+    color: #94a3b8;
+    cursor: not-allowed;
+  }
+
+  .dashboard-layout select:not([multiple]) option {
+    background-color: #ffffff;
+    color: #0f172a;
+  }
+
+  .dashboard-layout input[type='date'],
+  .dashboard-layout input[type='datetime-local'],
+  .dashboard-layout input[type='month'] {
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background-color: #ffffff;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f172a;
+  }
+
+  .dashboard-layout input[type='date']::-webkit-calendar-picker-indicator,
+  .dashboard-layout
+    input[type='datetime-local']::-webkit-calendar-picker-indicator,
+  .dashboard-layout input[type='month']::-webkit-calendar-picker-indicator {
+    opacity: 0.6;
+    cursor: pointer;
+  }
+
+  .dashboard-layout input[type='file']::file-selector-button {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 6px 12px;
+    margin-right: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
   }
 }
 /* ── Utility: theme-aware active filter border (KhataLedger filter btn) ── */
@@ -982,7 +1107,7 @@ a.ov-kpi:hover {
   color: #475569;
 }
 .ov-kpi-value {
-  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   font-size: 28px;

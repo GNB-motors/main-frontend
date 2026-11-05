@@ -5,6 +5,7 @@ import { useApi } from '../../hooks/useApi';
 import { fleetViewService } from '../../services/fleetViewService';
 import { formatDuration, formatIst } from '../../utils/redesign/format';
 import { trafficWord } from './vehiclePanelModel';
+import { etaHasPassed, ETA_PASSED_TEXT } from './etaPassed';
 import { destinationHeading, destinationName, evidence, heldReason } from './whereNextModel';
 
 /**
@@ -46,7 +47,7 @@ export default function WhereNextSection({ registrationNumber, onSelectDestinati
   const headerTitle = held
       ? 'Where next · not sure yet'
       : top
-        ? destinationHeading(top)
+        ? `${destinationHeading(top)}${etaHasPassed(top.eta) ? ` · ${ETA_PASSED_TEXT}` : top.eta?.at && new Date(top.eta.at).getTime() > Date.now() ? ` · ETA ${formatIst(top.eta.at)}` : ''}`
         : 'Where next';
 
   return (
@@ -128,7 +129,9 @@ function DestinationRow({ destination, index, selected, onSelect }) {
 
       <span className="text-[12px] text-[var(--rd-ink-2)]">{destination.reason}</span>
 
-      {eta?.at && new Date(eta.at).getTime() > Date.now() ? (
+      {etaHasPassed(eta) ? (
+        <span className="text-[12px] text-[var(--rd-ink-3)]">{ETA_PASSED_TEXT}</span>
+      ) : eta?.at && new Date(eta.at).getTime() > Date.now() ? (
         <span className="text-[12px] text-[var(--rd-ink-2)]">
           ETA {formatIst(eta.at)}
           {eta.earliestAt && eta.latestAt

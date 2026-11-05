@@ -18,6 +18,9 @@ let pane;
 beforeEach(() => {
   vi.clearAllMocks();
   overlays.length = 0;
+  map.fitBounds = vi.fn();
+  map.getBounds = vi.fn(() => null);
+  map.panTo = vi.fn();
   pane = document.createElement('div');
   document.body.appendChild(pane);
   class OverlayView {
@@ -44,6 +47,14 @@ beforeEach(() => {
       LatLng: class {
         constructor(point) {
           Object.assign(this, point);
+        }
+      },
+      LatLngBounds: class {
+        constructor() {
+          this.points = [];
+        }
+        extend(point) {
+          this.points.push(point);
         }
       },
       Size: class {},
@@ -126,6 +137,40 @@ describe('Track replay presentation', () => {
     expect(PolylineF.mock.calls.filter(([p]) => p.path === props.replayPtsCoords)).toHaveLength(1);
     unmount();
     expect(overlays[0].setMap).toHaveBeenLastCalledWith(null);
+  });
+});
+
+const track = {
+  points: [
+    { t: '2026-11-01T13:00:00Z', lat: 22, lng: 88, speedKmh: 40 },
+    { t: '2026-11-01T13:10:00Z', lat: 23, lng: 89, speedKmh: 70 },
+  ],
+};
+
+describe('Track mode', () => {
+  it('draws the truck being replayed, on an overlay above the line', () => {
+    render(<LiveMapCanvas {...props} track={track} trackPlayheadTime="2026-11-01T13:10:00Z" />);
+    const truck = pane.querySelector('.rh-truck');
+    expect(truck).not.toBeNull();
+    // The truck turns with the heading it actually had.
+    expect(truck.querySelector('div').style.transform).toMatch(/rotate\(/);
+  });
+
+  it('fits the whole trail once, so the owner sees the whole drive', () => {
+    const { rerender } = render(
+      <LiveMapCanvas {...props} track={track} trackPlayheadTime="2026-11-01T13:10:00Z" />,
+    );
+    expect(map.fitBounds).toHaveBeenCalledTimes(1);
+    const [bounds, padding] = map.fitBounds.mock.calls[0];
+    expect(bounds.points).toEqual([
+      { lat: 22, lng: 88 },
+      { lat: 23, lng: 89 },
+    ]);
+    expect(padding).toEqual({ top: 80, right: 60, bottom: 120, left: 60 });
+    rerender(
+      <LiveMapCanvas {...props} track={track} trackPlayheadTime="2026-11-01T13:05:00Z" />,
+    );
+    expect(map.fitBounds).toHaveBeenCalledTimes(1);
   });
 });
 

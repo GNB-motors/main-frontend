@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera, Check } from 'lucide-react';
+import { Camera, Check, FileText, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Button } from '../../components/ui/button';
 import billPhotoService from '../../services/billPhotoService';
@@ -73,6 +73,14 @@ export default function AddBillPhotoDialog({ open, onOpenChange, onConfirmed = n
     }
   };
 
+  /** Hold the file the owner picked. Nothing is sent until they press Upload. */
+  const pickFile = (picked) => {
+    if (!picked) return;
+    setFile(picked);
+    setError(null);
+    if (stage === 'failed') setStage('pick');
+  };
+
   const upload = async (chosenFile) => {
     setFile(chosenFile);
     setStage('uploading');
@@ -101,7 +109,7 @@ export default function AddBillPhotoDialog({ open, onOpenChange, onConfirmed = n
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[460px] border-[var(--rd-line)] bg-[var(--rd-card)]">
+      <DialogContent className="bp-dialog flex max-h-[calc(100vh-48px)] max-w-[460px] flex-col overflow-hidden border-[var(--rd-line)] bg-[var(--rd-card)] p-0">
         <DialogHeader>
           <DialogTitle className="text-[16px] font-semibold text-[var(--rd-ink)]">
             Add bill photo
@@ -111,7 +119,7 @@ export default function AddBillPhotoDialog({ open, onOpenChange, onConfirmed = n
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3">
+        <div className="bp-dialog-body flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-6 py-4">
           {/* The kind of bill */}
           <div className="flex items-center gap-2">
             <label htmlFor="bill-photo-kind" className="text-[13px] text-[var(--rd-ink-2)]">
@@ -121,7 +129,7 @@ export default function AddBillPhotoDialog({ open, onOpenChange, onConfirmed = n
               id="bill-photo-kind"
               value={kind}
               onChange={(event) => setKind(event.target.value)}
-              className="rounded-[var(--rd-radius-sm)] border border-[var(--rd-line)] bg-[var(--rd-card)] px-2 py-1 text-[13px] text-[var(--rd-ink)]"
+              className="bp-select"
             >
               {BILL_TYPES.map((type) => (
                 <option key={type.id} value={type.id}>
@@ -133,9 +141,10 @@ export default function AddBillPhotoDialog({ open, onOpenChange, onConfirmed = n
 
           {/* The photo */}
           {stage === 'pick' ? (
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col gap-2">
               <button
                 type="button"
+                className={`bp-drop${isDragging ? ' bp-drop--active' : ''}`}
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={(event) => {
                   event.preventDefault();
@@ -146,31 +155,41 @@ export default function AddBillPhotoDialog({ open, onOpenChange, onConfirmed = n
                   event.preventDefault();
                   setIsDragging(false);
                   const dropped = event.dataTransfer?.files?.[0];
-                  if (dropped) upload(dropped);
+                  if (dropped) pickFile(dropped);
                 }}
-                className={`flex w-full flex-col items-center gap-2 rounded-[var(--rd-radius)] border border-dashed p-5 text-center ${
-                  isDragging
-                    ? 'border-[var(--rd-brand-2)] bg-[var(--rd-brand-tint)]'
-                    : 'border-[var(--rd-line-strong)]'
-                }`}
               >
-                <Camera size={22} aria-hidden="true" className="text-[var(--rd-ink-3)]" />
-                <span className="text-[13px] text-[var(--rd-ink-2)]">
-                  Drop the photo here, or choose one.
+                <Camera size={24} aria-hidden="true" className="text-[var(--rd-ink-3)]" />
+                <span className="text-[13px] font-medium text-[var(--rd-ink-2)]">
+                  Drop a bill photo or click to choose
                 </span>
+                <span className="text-[12px] text-[var(--rd-ink-3)]">JPG, PNG or PDF</span>
               </button>
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
-                capture="environment"
+                accept="image/*,application/pdf"
                 aria-label="Bill photo"
                 onChange={(event) => {
                   const chosenFile = event.target.files?.[0];
-                  if (chosenFile) upload(chosenFile);
+                  if (chosenFile) pickFile(chosenFile);
                 }}
-                className="text-[12px] text-[var(--rd-ink-2)]"
+                className="sr-only"
               />
+              {file ? (
+                <div className="bp-file">
+                  <FileText size={15} aria-hidden="true" className="shrink-0 text-[var(--rd-ink-3)]" />
+                  <span className="truncate text-[13px] text-[var(--rd-ink)]">{file.name}</span>
+                  <button
+                    type="button"
+                    className="bp-file-remove"
+                    aria-label={`Remove ${file.name}`}
+                    title="Remove this file"
+                    onClick={() => setFile(null)}
+                  >
+                    <X size={14} aria-hidden="true" />
+                  </button>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -249,6 +268,17 @@ export default function AddBillPhotoDialog({ open, onOpenChange, onConfirmed = n
                 Confirm
               </Button>
             </fieldset>
+          ) : null}
+        </div>
+
+        <div className="bp-dialog-foot">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          {stage === 'pick' ? (
+            <Button size="sm" disabled={!file} onClick={() => file && upload(file)}>
+              Upload
+            </Button>
           ) : null}
         </div>
       </DialogContent>

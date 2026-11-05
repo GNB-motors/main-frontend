@@ -1,6 +1,7 @@
 import usePassiveTrail from './usePassiveTrail.js';
 import { googleMapsLoaderOptions } from '../../utils/googleMapsLoader.js';
 import TrackTollStatus from './TrackTollStatus';
+import { getPref } from '../../utils/session';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLoadScript } from '@react-google-maps/api';
@@ -85,6 +86,18 @@ const LiveTrackingPage = () => {
   const [isRailOpen, setIsRailOpen] = useState(true);
   const [mapMode, setMapMode] = useState('map'); // 'map' | 'sat'
   const [isTelemetryOn, setIsTelemetryOn] = useState(true);
+
+  // The Places panel (the legend down the left of the map) covers that side of
+  // the map, so a track is fitted to the right of it while it is open. The
+  // legend remembers whether it is open; when it has never been touched it is
+  // open on a desktop and closed on a phone.
+  const placesPanelOpen = useMemo(() => {
+    const stored = getPref('track.legend.open');
+    if (stored === 'true') return true;
+    if (stored === 'false') return false;
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true;
+    return !window.matchMedia('(max-width: 780px)').matches;
+  }, []);
 
   // Filters & selection
   const [searchQuery, setSearchQuery] = useState('');
@@ -658,6 +671,7 @@ const LiveTrackingPage = () => {
               trackPlayheadTime={isTrackMode ? trackMode.playheadTime : null}
               trackRoad={isTrackMode ? trackMode.roadTrail : null}
               trackTolls={isTrackMode ? trackMode.tolls : null}
+              placesPanelOpen={placesPanelOpen}
               reviewItems={reviewQueue.items}
               selectedReviewId={reviewSite?._id ?? null}
               onSelectReviewSite={selectReviewSite}
@@ -723,17 +737,6 @@ const LiveTrackingPage = () => {
                 />
               }
               trafficToggle={<TrafficToggle on={isTrafficOn} onToggle={handleToggleTraffic} />}
-              trackTollStatus={
-                isTrackMode ? (
-                  <TrackTollStatus
-                    data={trackMode.tolls}
-                    loading={trackMode.tollsLoading}
-                    error={trackMode.tollsError}
-                    onRetry={trackMode.retryTolls}
-                    playheadTime={trackMode.playheadTime}
-                  />
-                ) : null
-              }
 
               legend={
                 <TrackLegend
@@ -797,6 +800,16 @@ const LiveTrackingPage = () => {
                 onExit={trackMode.exitTrackMode}
                 from={trackMode.from}
                 to={trackMode.to}
+                tollStatus={
+                  <TrackTollStatus
+                    compact
+                    data={trackMode.tolls}
+                    loading={trackMode.tollsLoading}
+                    error={trackMode.tollsError}
+                    onRetry={trackMode.retryTolls}
+                    playheadTime={trackMode.playheadTime}
+                  />
+                }
               />
             ) : null}
           </div>

@@ -778,6 +778,15 @@ button.intel-kpi-hit:focus-visible {
   line-height: 18px;
 }
 
+.intelligence-scope-note--warn {
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--rd-watch) 35%, var(--rd-line));
+  border-radius: var(--rd-radius-xs);
+  background: var(--rd-watch-tint);
+  color: var(--rd-watch-ink);
+  font-weight: 500;
+}
+
 /* Responsive --------------------------------------------------------- */
 @media (max-width: 1180px) {
   .intel-kpi-strip {

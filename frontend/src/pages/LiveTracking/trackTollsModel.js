@@ -30,3 +30,17 @@ export function tollCoverageText(data, { loading = false, error = null } = {}) {
   if (data.status !== 'READY') return 'Toll coverage is incomplete. Available crossings are shown.';
   return data.passes?.length ? null : 'No toll crossings detected in this period.';
 }
+
+/**
+ * The short form of the toll status, for the chip in the replay bar.
+ * Unknown is never zero: when the crossings could not be worked out the chip
+ * says so instead of counting nothing.
+ */
+export function tollChipText(data, { loading = false, error = null, passed = 0, total = 0 } = {}) {
+  if (loading) return 'Tolls loading…';
+  if (error) return 'Tolls unavailable';
+  if (!data || data.status === 'NOT_COMPUTED') return 'Tolls not computed';
+  if (data.status !== 'READY') return 'Tolls partly known';
+  if (!total) return 'No toll crossings';
+  return `Tolls ${passed}/${total} reached`;
+}

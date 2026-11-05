@@ -1,6 +1,6 @@
 import PassiveTrailLayer from './PassiveTrailLayer.jsx';
 import TrackTollLayers from './TrackTollLayers';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { GoogleMap, MarkerF, OverlayView, PolylineF } from '@react-google-maps/api';
 import { formatDuration } from '../../utils/redesign/format';
 import RoadTrailLayer from '../../components/map/RoadTrailLayer';
@@ -22,6 +22,8 @@ import replayAppearance from '../../components/map/replayAppearance.js';
 import { DEFAULT_LIMIT_KMH } from '../RouteHub/views/replay/replayConstants.js';
 import { destinationHeading, routeLines as predictionLines } from './whereNextModel';
 import { resolveMapColor } from './mapColor';
+import { playheadAt } from './trackLayersModel';
+import { isNearEdge, trackFitPadding } from './trackMapCamera';
 
 const INDIA_CENTER = { lat: 22.5937, lng: 78.9629 };
 
@@ -78,6 +80,7 @@ export default function LiveMapCanvas({
   onPickRoute,
   draft = null,
   onDraftChange,
+  placesPanelOpen = false,
   passiveTrail = null,
   whereNext = null,
   whereNextPosition = null,
@@ -107,6 +110,48 @@ export default function LiveMapCanvas({
         selectedId,
         replayOn: replayState.on,
       });
+
+  // In Track mode the truck being watched is drawn by ReplayTruckMarker: an
+  // overlay that sits above the line and turns with the heading. Its position
+  // is interpolated from the fixes around the playhead time.
+  const trackPoints = useMemo(() => (Array.isArray(track?.points) ? track.points : []), [track]);
+  const trackPlayhead = useMemo(
+    () => (track && trackPlayheadTime ? playheadAt(trackPoints, trackPlayheadTime) : null),
+    [track, trackPoints, trackPlayheadTime],
+  );
+
+  // Fit the whole trail once when it arrives, so the owner sees the whole
+  // drive instead of a three-kilometre slice of it. The fit happens once per
+  // trail: a change of range is a new trail and gets its own fit.
+  const fittedTrailRef = useRef(null);
+  const mapInstance = mapRef?.current || map;
+  useEffect(() => {
+    if (!track || !mapInstance || !window.google?.maps?.LatLngBounds) return;
+    if (trackPoints.length < 2) return;
+    const key = `${trackPoints.length}:${trackPoints[0]?.t ?? ''}:${
+      trackPoints[trackPoints.length - 1]?.t ?? ''
+    }`;
+    if (fittedTrailRef.current === key) return;
+    fittedTrailRef.current = key;
+    const bounds = new window.google.maps.LatLngBounds();
+    trackPoints.forEach((point) => bounds.extend({ lat: point.lat, lng: point.lng }));
+    mapInstance.fitBounds(bounds, trackFitPadding({ placesPanelOpen }));
+  }, [track, trackPoints, mapInstance, placesPanelOpen]);
+
+  // Keep the truck in view while the drive plays: when it comes close to an
+  // edge of the visible box the map is panned to it. The zoom never changes.
+  useEffect(() => {
+    if (!track || !trackPlayhead || !mapInstance) return;
+    const box = mapInstance.getBounds?.();
+    const ne = box?.getNorthEast?.();
+    const sw = box?.getSouthWest?.();
+    if (!ne || !sw) return;
+    const toPoint = (value) =>
+      typeof value?.lat === 'function' ? { lat: value.lat(), lng: value.lng() } : value;
+    const point = { lat: trackPlayhead.lat, lng: trackPlayhead.lng };
+    if (!isNearEdge(point, { ne: toPoint(ne), sw: toPoint(sw) })) return;
+    mapInstance.panTo(point);
+  }, [track, trackPlayhead, mapInstance]);
 
   // Clicking a habitual halt isolates it and opens a small card; only that place
   // stays on the map until it is closed (its ×, or a click on the empty map).
@@ -199,6 +244,16 @@ export default function LiveMapCanvas({
               zoom={mapZoom}
               playheadTime={trackPlayheadTime}
               roadTrail={trackRoad}
+            />
+          ) : null}
+
+          {/* Track mode: the truck being replayed, on an overlay so it sits
+              above the line and turns with the heading. */}
+          {track && trackPlayhead ? (
+            <ReplayTruckMarker
+              position={{ lat: trackPlayhead.lat, lng: trackPlayhead.lng }}
+              heading={trackPlayhead.headingDeg ?? 0}
+              fast={(trackPlayhead.speedKmh ?? 0) > DEFAULT_LIMIT_KMH}
             />
           ) : null}
 

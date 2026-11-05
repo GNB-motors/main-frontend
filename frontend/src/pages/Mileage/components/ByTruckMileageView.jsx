@@ -13,8 +13,10 @@ import {
   DEF_PCT_COPY,
   defBandCaption,
   defPctTone,
+  kmPerLReason,
   kmPerLTone,
   rowsOf,
+  usualKmPerLReason,
 } from '../mileageVerdicts';
 import MileageVerdictBadge from './MileageVerdictBadge';
 import TruckMileageView from './TruckMileageView';
@@ -26,7 +28,8 @@ const INK = {
   watch: 'text-[var(--rd-watch-ink)]',
 };
 
-const kmPerLText = (value) => (value == null ? DASH : `${value.toFixed(2)} km/L`);
+const kmPerLText = (value) =>
+  value == null || Number.isNaN(Number(value)) ? DASH : `${Number(value).toFixed(2)} km/L`;
 
 const matches = (row, needle) => {
   if (!needle) return true;
@@ -56,6 +59,9 @@ export default function ByTruckMileageView({ range, searchQuery = '', onOpenCycl
     return rowsOf(data).filter((row) => matches(row, needle));
   }, [data, searchQuery]);
 
+  // No driver on any truck: say it once, on the column, not on every row.
+  const noDrivers = rows.length > 0 && rows.every((t) => !t.driverName);
+
   const columns = useMemo(
     () => [
       {
@@ -76,8 +82,15 @@ export default function ByTruckMileageView({ range, searchQuery = '', onOpenCycl
       },
       {
         key: 'driverName',
-        label: 'Driver',
-        render: (t) => <span>{t.driverName || DASH}</span>,
+        label: (
+          <span className="inline-flex items-center gap-1">
+            Driver
+            {noDrivers ? (
+              <InfoTip text="Driver not assigned" label="Why the driver column is empty" />
+            ) : null}
+          </span>
+        ),
+        render: (t) => (noDrivers ? '' : <span>{t.driverName || DASH}</span>),
       },
       {
         key: 'km',
@@ -97,8 +110,12 @@ export default function ByTruckMileageView({ range, searchQuery = '', onOpenCycl
         align: 'right',
         render: (t) => {
           const tone = kmPerLTone(t.kmPerL, t.usualKmPerL);
+          const reason = kmPerLReason(t);
           return (
-            <span className={`num ${tone ? INK[tone] : ''}`}>{kmPerLText(t.kmPerL)}</span>
+            <span className="num">
+              <span className={tone ? INK[tone] : ''}>{kmPerLText(t.kmPerL)}</span>
+              {reason ? <span className="mhub-sub">{reason}</span> : null}
+            </span>
           );
         },
       },
@@ -106,7 +123,15 @@ export default function ByTruckMileageView({ range, searchQuery = '', onOpenCycl
         key: 'usualKmPerL',
         label: 'Usual km/L',
         align: 'right',
-        render: (t) => <span className="num">{kmPerLText(t.usualKmPerL)}</span>,
+        render: (t) => {
+          const reason = usualKmPerLReason(t);
+          return (
+            <span className="num">
+              {kmPerLText(t.usualKmPerL)}
+              {reason ? <span className="mhub-sub">{reason}</span> : null}
+            </span>
+          );
+        },
       },
       {
         key: 'defL',
@@ -131,8 +156,10 @@ export default function ByTruckMileageView({ range, searchQuery = '', onOpenCycl
         render: (t) => {
           const tone = defPctTone(t.defPctOfDiesel, t.defBand);
           return (
-            <span className={`num ${tone ? INK[tone] : ''}`}>
-              {formatPct(t.defPctOfDiesel)}
+            <span className="inline-flex items-center gap-1.5">
+              <span className={`num ${tone ? INK[tone] : ''}`}>
+                {formatPct(t.defPctOfDiesel)}
+              </span>
               <InfoTip text={DEF_PCT_COPY} label="What DEF % of diesel means" />
             </span>
           );
@@ -144,7 +171,7 @@ export default function ByTruckMileageView({ range, searchQuery = '', onOpenCycl
         render: (t) => <MileageVerdictBadge item={t} />,
       },
     ],
-    [onOpenCycles],
+    [onOpenCycles, noDrivers],
   );
 
   // The endpoint is not shipped yet: show the old mileage list rather than a

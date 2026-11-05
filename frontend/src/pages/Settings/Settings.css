@@ -30,7 +30,7 @@
   --stx-amber-line: #fde68a;
   --stx-red: #b91c1c;
   --stx-red-bg: #fef2f2;
-  --stx-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --stx-mono: var(--font-mono);
 
   width: 100%;
   min-width: 0;
@@ -38,12 +38,7 @@
   padding: 24px 32px;
   box-sizing: border-box;
   color: var(--stx-ink);
-  font-family:
-    'Plus Jakarta Sans',
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    sans-serif;
+  font-family: var(--font-sans);
 }
 
 .dark .stx-page {

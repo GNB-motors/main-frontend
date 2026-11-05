@@ -67,6 +67,11 @@
     font-family: 'Montserrat', sans-serif;
 }
 
+/* In the logged-in app the loader inherits the single Inter type system. */
+.dashboard-layout .loader-message {
+  font-family: var(--font-sans);
+}
+
 /* Animation for the loader message */
 .loader-message {
     animation: pulse 1.5s ease-in-out infinite;

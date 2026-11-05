@@ -3,7 +3,7 @@ import DataTable from '../../../components/ui/DataTable';
 import EnterprisePagination from '../../../components/ui/EnterprisePagination';
 import StatusChip from '../../../components/ui/StatusChip';
 import { useApi } from '../../../hooks/useApi';
-import { toISTDateString } from '../../../utils/dateUtils';
+import { humanDate } from '../mileageDates';
 import { formatINR, formatInrCompact, formatLitres, formatNum } from '../../../utils/formatters';
 import { PUMP_MIN_FILLS, mapPumpRow, pumpLedgerSummary } from '../pumpRows';
 import { MileageApi } from '../mileageApi';
@@ -105,7 +105,7 @@ const columns = (price) => [
     key: 'last',
     label: 'Last fill',
     render: (p) => (
-      <span className="num">{p.lastFillAt ? toISTDateString(p.lastFillAt) : '—'}</span>
+      <span className="num">{p.lastFillAt ? humanDate(p.lastFillAt) : '—'}</span>
     ),
   },
 ];

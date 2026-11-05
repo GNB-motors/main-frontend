@@ -163,7 +163,7 @@ export function useVehicleColumns({
       key: 'chassis_number',
       label: 'Chassis No',
       render: (vehicle) => (
-        <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: '12px' }}>
           {vehicle.chassis_number || '—'}
         </span>
       ),
@@ -350,7 +350,7 @@ export function useVehicleColumns({
             <span
               className="vehicle-badge"
               style={{
-                fontFamily: 'monospace',
+                fontFamily: 'var(--font-sans)',
                 fontWeight: 600,
                 fontSize: 12,
                 cursor: 'pointer',

@@ -14,7 +14,7 @@ import FuelBillPopup from '../../../components/ui/FuelBillPopup';
 import { useMutation } from '../../../hooks/useMutation';
 import { toneOf } from '../../../lib/vocabulary';
 import DocumentService from '../../Trip/services/DocumentService';
-import { formatDateTimeIST } from '../../../utils/dateUtils';
+import { humanDateTime } from '../mileageDates';
 import { formatINR, formatKm, formatLitres } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
 import { ODOMETER_SOURCE } from '../refuelRows';
@@ -170,7 +170,7 @@ export default function RefuelDetailDrawer({ detail, onClose, canEdit = false, o
                   <Row label="Diesel">{formatLitres(bill.litres)}</Row>
                   <Row label="Amount">{bill.amount != null ? formatINR(bill.amount) : null}</Row>
                   <Row label="Rate">{rateText(bill.rate)}</Row>
-                  <Row label="Filled at">{bill.at ? formatDateTimeIST(bill.at) : null}</Row>
+                  <Row label="Filled at">{bill.at ? humanDateTime(bill.at) : null}</Row>
                   <Row label="Pump">{bill.location}</Row>
                   <Row label="Driver">{bill.driverName}</Row>
                   <Row label="Odometer">
@@ -214,7 +214,7 @@ export default function RefuelDetailDrawer({ detail, onClose, canEdit = false, o
                       ? 'None (gauge jump)'
                       : formatLitres(sensor.litres)}
                   </Row>
-                  <Row label="Seen at">{sensor.at ? formatDateTimeIST(sensor.at) : null}</Row>
+                  <Row label="Seen at">{sensor.at ? humanDateTime(sensor.at) : null}</Row>
                   <Row label="Where">
                     {sensor.pumpName ||
                       (sensor.lat != null && sensor.lng != null

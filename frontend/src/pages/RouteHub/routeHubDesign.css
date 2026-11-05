@@ -162,10 +162,10 @@
   --radius-full: 999px;
 
   /* ---- type ---- */
-  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'DM Sans', 'Inter', sans-serif;
-  --font-mono: 'DM Mono', 'SF Mono', Menlo, monospace;
-  --font-eyebrow: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-ui: var(--font-sans);
+  --font-display: var(--font-sans);
+  --font-mono: var(--font-sans);
+  --font-eyebrow: var(--font-sans);
 
   --type-xxs: 8px;
   --type-3xs: 10px;
@@ -1127,6 +1127,13 @@ html.dark .nova-rh {
   height: 6px;
   border-radius: 50%;
   background: currentColor;
+}
+/* The deviation rows say what happened in words - "Please review", "Loaded",
+   "Empty, driving back". Sentence case reads as a sentence, so the uppercase
+   pill style is kept for the short tags elsewhere and dropped here. */
+.nova-rh .dev-row .pill {
+  text-transform: none;
+  letter-spacing: 0.01em;
 }
 .nova-rh .empty {
   display: flex;
