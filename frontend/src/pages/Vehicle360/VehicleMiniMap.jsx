@@ -2,9 +2,9 @@ import { googleMapsLoaderOptions } from '../../utils/googleMapsLoader.js';
 import { useMemo } from 'react';
 import { GoogleMap, useLoadScript, MarkerF } from '@react-google-maps/api';
 import { INDIA_CENTER } from '../LiveTracking/liveTrackingConstants.js';
-import { getStateMeta } from '../LiveTracking/statusPalettes.js';
+import { getStateMeta, NOVA_STATUS } from '../LiveTracking/statusPalettes.js';
 import { pinIcon } from '../LiveTracking/mapIcons.js';
-import { timeAgo } from '../../utils/formatters';
+import { formatNum, timeAgo } from '../../utils/formatters';
 
 const MAP_CONTAINER_STYLE = { width: '100%', height: '100%', borderRadius: 'inherit' };
 
@@ -16,6 +16,8 @@ const MAP_CONTAINER_STYLE = { width: '100%', height: '100%', borderRadius: 'inhe
  * `livePosition` arrives once with the rest of the vehicle profile fetch; this
  * widget does not poll on its own, and it never reverse-geocodes the pin (see
  * CLAUDE.md's geocoding cost landmine) — the coordinates are shown as-is.
+ * Status and staleness are derived from `livePosition.view` (pure canonical
+ * liveVehicleView reader) rather than trusted raw DB fields.
  */
 export default function VehicleMiniMap({ livePosition }) {
   const { isLoaded } = useLoadScript(googleMapsLoaderOptions);
@@ -25,7 +27,30 @@ export default function VehicleMiniMap({ livePosition }) {
     () => (hasFix ? { lat: livePosition.latitude, lng: livePosition.longitude } : INDIA_CENTER),
     [hasFix, livePosition],
   );
-  const meta = getStateMeta(livePosition?.state);
+
+  const view = livePosition?.view;
+  const statusKey = view?.status || (livePosition?.state ? String(livePosition.state).toLowerCase() : 'offline');
+  const novaMeta = NOVA_STATUS[statusKey];
+  const fallbackMeta = getStateMeta(livePosition?.state);
+  const color = novaMeta?.c || fallbackMeta.color;
+  const label = novaMeta?.label || fallbackMeta.label;
+  const isOffline = view?.isOffline ?? (livePosition?.isStale || livePosition?.state === 'OFFLINE');
+  const speed = view?.speedKmh ?? (livePosition?.speed != null ? Math.round(livePosition.speed) : null);
+  const fixTime = view?.lastFixAt || livePosition?.eventDateTime || livePosition?.pulledAt;
+
+  let badgeText = label;
+  if (statusKey === 'moving' && speed != null && speed > 0) {
+    badgeText = `Moving · ${formatNum(speed)} km/h`;
+  } else if (statusKey === 'idling') {
+    badgeText = 'Idling · Engine on';
+  } else if (statusKey === 'stopped') {
+    badgeText = 'Stopped';
+  } else if (isOffline) {
+    badgeText = 'Offline';
+  }
+  if (fixTime) {
+    badgeText += ` · ${timeAgo(fixTime)}`;
+  }
 
   if (!googleMapsLoaderOptions.googleMapsApiKey) {
     return (
@@ -63,18 +88,17 @@ export default function VehicleMiniMap({ livePosition }) {
       >
         <MarkerF
           position={center}
-          icon={pinIcon(meta.color, livePosition.isStale || livePosition.state === 'OFFLINE')}
-          title={livePosition.speed != null ? `${Math.round(livePosition.speed)} km/h` : meta.label}
+          icon={pinIcon(color, isOffline)}
+          title={speed != null && speed > 0 ? `${formatNum(speed)} km/h` : label}
         />
       </GoogleMap>
       <span className="v360-minimap-badge">
         <span
           className="v360-minimap-badge-dot"
-          style={{ background: meta.color }}
+          style={{ background: color }}
           aria-hidden="true"
         />
-        {meta.label}
-        {livePosition.pulledAt ? ` · ${timeAgo(livePosition.pulledAt)}` : ''}
+        {badgeText}
       </span>
     </div>
   );

@@ -1,6 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, ShieldAlert, Truck, RefreshCw, Search, ArrowUpRight, Check, X } from 'lucide-react';
+import {
+  Bell,
+  ShieldAlert,
+  Truck,
+  RefreshCw,
+  Search,
+  ArrowUpRight,
+  Check,
+  X,
+  Sparkles,
+  FileText,
+  Clock,
+} from 'lucide-react';
 import PageShell from '../../components/ui/PageShell.jsx';
 import { Button } from '../../components/ui/button.jsx';
 import { Dialog, DialogContent, DialogTitle, DialogClose } from '../../components/ui/dialog.jsx';
@@ -128,7 +140,7 @@ export default function AlertInboxPage() {
     return target.ticketId ? (
       <Button
         size="sm"
-        variant="secondary"
+        className="ai-review"
         disabled={!support.enabled}
         onClick={() => {
           setDetailId(null);
@@ -160,7 +172,8 @@ export default function AlertInboxPage() {
       }
     >
       <div className="ai-notice">
-        Feeds update periodically. For urgent incidents, check the dedicated alert pages.
+        <Bell size={15} aria-hidden="true" style={{ flexShrink: 0 }} />
+        <span>Feeds update periodically. For urgent incidents, check the dedicated alert pages.</span>
       </div>
 
       {/* A vendor account that stopped sending data explains why the trucks
@@ -295,8 +308,25 @@ export default function AlertInboxPage() {
           </div>
         ) : null}
         {!data && loading ? (
-          <div role="status" className="ai-empty">
-            Loading your fleet alerts…
+          <div role="status" className="ai-empty" aria-label="Loading your fleet alerts…">
+            <span className="sr-only">Loading your fleet alerts…</span>
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10, padding: 8 }}>
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="ai-row ai-row--skeleton" style={{ width: '100%', margin: 0 }}>
+                  <div className="ai-skel-bar" style={{ width: 96, height: 26, borderRadius: 6, flexShrink: 0 }} />
+                  <div className="ai-row-main">
+                    <div className="ai-skel-bar" style={{ width: 140, height: 18 }} />
+                    <div className="ai-skel-bar" style={{ width: '65%', height: 20, marginTop: 8 }} />
+                    <div className="ai-skel-bar" style={{ width: '90%', height: 36, marginTop: 8 }} />
+                    <div className="ai-skel-bar" style={{ width: 220, height: 14, marginTop: 8 }} />
+                  </div>
+                  <div className="ai-row-actions">
+                    <div className="ai-skel-bar" style={{ width: 70, height: 32 }} />
+                    <div className="ai-skel-bar" style={{ width: 95, height: 32 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : null}
         {!loading && !error && items.length === 0 ? (
@@ -399,32 +429,84 @@ export default function AlertInboxPage() {
       >
         {detail && (
           <DialogContent className="ai-detail">
-            <header>
+            <header className="ai-detail-header">
               <div>
-                <DialogTitle>{subjectTitle(detail.subjectLabel)}</DialogTitle>
-                <p>{detail.label}</p>
+                <div className="ai-detail-header-top">
+                  <span className="ai-detail-plate">
+                    <Truck size={14} aria-hidden="true" />
+                    {subjectTitle(detail.subjectLabel)}
+                  </span>
+                  <span className={`ai-priority ai-priority--${detail.severity}`}>
+                    {detail.severity === 'critical'
+                      ? 'Critical'
+                      : detail.severity === 'caution'
+                        ? 'Needs review'
+                        : 'Info'}
+                  </span>
+                  {detail.status === 'ACKNOWLEDGED' && (
+                    <span className="ai-detail-ack-badge">
+                      <Check size={12} aria-hidden="true" />
+                      Acknowledged
+                    </span>
+                  )}
+                </div>
+                <DialogTitle className="ai-detail-title">{detail.label}</DialogTitle>
               </div>
-              <DialogClose aria-label="Close alert details">
+              <DialogClose className="ai-detail-close" aria-label="Close alert details">
                 <X size={18} />
               </DialogClose>
             </header>
             <div className="ai-detail-body">
-              <h3>Recommended action</h3>
-              <p>{detail.wants || 'Open the source alert to review this issue.'}</p>
-              <h3>Evidence · {detail.sources?.length || 0} reports</h3>
-              {(detail.sources || []).map((evidence, index) => (
-                <article key={`${evidence.source}-${evidence.refId || index}-${evidence.at}`}>
-                  <strong>{SOURCE_LABELS[evidence.source] || 'Other source'}</strong>
-                  <p>{evidence.detail || 'Open the source page for more information.'}</p>
-                  <small>{sinceLabel(evidence.at)}</small>
-                </article>
-              ))}
-              <p className="ai-meta">
-                First reported {sinceLabel(detail.firstSeenAt)} · Last activity{' '}
-                {sinceLabel(detail.lastSeenAt)}
-              </p>
-              {reviewAction(detail)}
+              <div className="ai-detail-section-header">
+                <Sparkles size={14} aria-hidden="true" className="ai-detail-icon-accent" />
+                <h3>Recommended action</h3>
+              </div>
+              <div className="ai-detail-action-card">
+                <p>{detail.wants || 'Open the source alert to review this issue.'}</p>
+              </div>
+
+              <div className="ai-detail-section-header">
+                <FileText size={14} aria-hidden="true" className="ai-detail-icon-accent" />
+                <h3>Evidence</h3>
+                <span className="ai-detail-count-pill">{detail.sources?.length || 0} reports</span>
+              </div>
+              <div className="ai-detail-cards">
+                {(detail.sources || []).map((evidence, index) => (
+                  <article
+                    key={`${evidence.source}-${evidence.refId || index}-${evidence.at}`}
+                    className="ai-detail-card"
+                  >
+                    <div className="ai-detail-card-head">
+                      <span className="ai-detail-source-badge">
+                        {SOURCE_LABELS[evidence.source] || 'Other source'}
+                      </span>
+                      <span className="ai-detail-time">
+                        <Clock size={12} aria-hidden="true" />
+                        {sinceLabel(evidence.at)}
+                      </span>
+                    </div>
+                    <p className="ai-detail-card-text">
+                      {evidence.detail || 'Open the source page for more information.'}
+                    </p>
+                  </article>
+                ))}
+              </div>
             </div>
+            <footer className="ai-detail-footer">
+              <div className="ai-detail-meta">
+                <Clock size={13} aria-hidden="true" />
+                <span>
+                  First reported {sinceLabel(detail.firstSeenAt)} · Last activity{' '}
+                  {sinceLabel(detail.lastSeenAt)}
+                </span>
+              </div>
+              <div className="ai-detail-actions">
+                <Button variant="outline" size="sm" onClick={() => setDetailId(null)}>
+                  Close
+                </Button>
+                {reviewAction(detail)}
+              </div>
+            </footer>
           </DialogContent>
         )}
       </Dialog>

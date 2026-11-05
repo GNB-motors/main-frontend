@@ -40,6 +40,23 @@ const formatTime = (d) => {
   });
 };
 
+const AlertSkeleton = () => (
+  <div className="si-alert-skel-card">
+    <div className="si-alert-skel-icon" />
+    <div className="si-alert-skel-body">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span className="si-skel-bar" style={{ width: 110, height: 16 }} />
+        <span className="si-skel-bar" style={{ width: 80, height: 16, borderRadius: 12 }} />
+      </div>
+      <span className="si-skel-bar" style={{ width: '85%', height: 13 }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
+        <span className="si-skel-bar" style={{ width: 100, height: 12 }} />
+        <span className="si-skel-bar" style={{ width: 70, height: 12, borderRadius: 10 }} />
+      </div>
+    </div>
+  </div>
+);
+
 const AlertsTab = ({ search = '', refreshKey = 0 }) => {
   const navigate = useNavigate();
   const [alerts, setAlerts] = useState([]);
@@ -122,36 +139,36 @@ const AlertsTab = ({ search = '', refreshKey = 0 }) => {
   };
 
   return (
-    <div className="si-alerts-wrapper" style={{ width: '100%' }}>
+    <div className="si-alerts-wrapper" style={{ width: '100%', gap: 12 }}>
       {/* KPI strip with uniform margins matching Service & Repair tabs */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '16px 0 16px 0' }}>
+      <div className="si-kpis-strip" style={{ margin: '0 0 12px 0' }}>
         <KpiCard
           title="Active Alerts"
-          value={counts.total}
+          value={loading && alerts.length === 0 ? <span className="si-skel-kpi-val" /> : counts.total}
           accent="#3b82f6"
           icon={<Bell size={18} />}
         />
         <KpiCard
           title="Critical"
-          value={counts.critical}
+          value={loading && alerts.length === 0 ? <span className="si-skel-kpi-val" /> : counts.critical}
           accent="#dc2626"
           icon={<AlertTriangle size={18} />}
         />
         <KpiCard
           title="Service Due"
-          value={counts.SERVICE_DUE}
+          value={loading && alerts.length === 0 ? <span className="si-skel-kpi-val" /> : counts.SERVICE_DUE}
           accent="#2563eb"
           icon={<Wrench size={18} />}
         />
         <KpiCard
           title="High Spend"
-          value={counts.HIGH_REPAIR_SPEND}
+          value={loading && alerts.length === 0 ? <span className="si-skel-kpi-val" /> : counts.HIGH_REPAIR_SPEND}
           accent="#dc2626"
           icon={<AlertTriangle size={18} />}
         />
         <KpiCard
           title="Doc Expiry"
-          value={counts.DOCUMENT_EXPIRY}
+          value={loading && alerts.length === 0 ? <span className="si-skel-kpi-val" /> : counts.DOCUMENT_EXPIRY}
           accent="#ea580c"
           icon={<FileWarning size={18} />}
         />
@@ -163,8 +180,8 @@ const AlertsTab = ({ search = '', refreshKey = 0 }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          margin: '0 0 16px 0',
-          gap: 16,
+          margin: '0 0 12px 0',
+          gap: 12,
           flexWrap: 'nowrap',
           width: '100%',
           boxSizing: 'border-box',
@@ -204,9 +221,17 @@ const AlertsTab = ({ search = '', refreshKey = 0 }) => {
         </div>
       </div>
 
-      {/* Alert list without lateral padding mismatch */}
+      {/* Alert list with clean skeleton loading state */}
       <div style={{ padding: 0 }}>
-        {loading && alerts.length === 0 && <div style={emptyBox}>Loading alerts…</div>}
+        {loading && alerts.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <AlertSkeleton />
+            <AlertSkeleton />
+            <AlertSkeleton />
+            <AlertSkeleton />
+          </div>
+        ) : null}
+
         {!loading && filtered.length === 0 && (
           <div style={emptyBox}>
             {subTab === 'RESOLVED'
@@ -216,6 +241,7 @@ const AlertsTab = ({ search = '', refreshKey = 0 }) => {
                 : 'No alerts in this category.'}
           </div>
         )}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {filtered.map((a) => (
             <AlertCard

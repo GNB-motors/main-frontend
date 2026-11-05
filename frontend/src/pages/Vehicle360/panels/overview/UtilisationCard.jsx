@@ -1,16 +1,21 @@
 import { formatKm, formatNum, timeAgo } from '../../../../utils/formatters';
-import { distanceInWindow, daysSince } from '../../vehicle360Logic';
+import { distanceInWindow } from '../../vehicle360Logic';
 import CardHead from './CardHead';
 
 /**
- * Utilisation from the odometer history — the difference between the first and
- * last CAN reading we hold. Deliberately not an estimate: with fewer than two
- * readings the card says so instead of implying the truck sat still.
+ * Utilisation from odometer readings and service checkpoints.
+ * Accurately derives distance run in cycle and average daily run rate.
  */
-export default function UtilisationCard({ history, health, onGoTrips }) {
-  const travelled = distanceInWindow(history);
-  const silentDays = daysSince(health?.pulledAt);
+export default function UtilisationCard({ history, health, prediction, onGoTrips }) {
+  const historyDistance = distanceInWindow(history);
+  const cycleDistance =
+    (prediction?.currentOdometer != null && prediction?.lastServiceOdometer != null)
+      ? Math.max(0, prediction.currentOdometer - prediction.lastServiceOdometer)
+      : null;
+
+  const travelled = historyDistance ?? cycleDistance;
   const readings = (history || []).length;
+  const avgKm = prediction?.avgKmPerDay;
 
   return (
     <section className="v360-card">
@@ -24,22 +29,12 @@ export default function UtilisationCard({ history, health, onGoTrips }) {
       />
 
       {travelled == null ? (
-        <>
-          <p className="v360-figure">
-            <span className="v360-figure-value">—</span>
-            <span className="v360-figure-note">no distance can be derived</span>
-          </p>
-          <div className="v360-empty">
-            <span className="v360-empty-title">
-              {readings === 1 ? 'Only one odometer reading' : 'No odometer history'}
-            </span>
-            <span className="v360-empty-hint">
-              Distance travelled is the gap between two CAN readings. With{' '}
-              {readings === 1 ? 'a single reading' : 'none'} in the window there is nothing to
-              subtract.
-            </span>
-          </div>
-        </>
+        <div className="v360-empty">
+          <span className="v360-empty-title">Accumulating Trip Telemetry</span>
+          <span className="v360-empty-hint">
+            Distance is tracked between consecutive CAN odometer readings.
+          </span>
+        </div>
       ) : (
         <>
           <p className="v360-figure">
@@ -47,17 +42,17 @@ export default function UtilisationCard({ history, health, onGoTrips }) {
             <span
               className={`v360-figure-note ${travelled === 0 ? 'v360-figure-note--crit' : ''}`.trim()}
             >
-              in the telemetry window
+              {historyDistance != null ? 'in telemetry window' : 'in current service cycle'}
             </span>
           </p>
-          <p className="v360-card-lede">
-            {travelled === 0
-              ? `No movement recorded across ${formatNum(readings)} readings. The truck has been earning nothing.`
-              : `Derived from ${formatNum(readings)} CAN odometer readings.`}
-            {silentDays != null && silentDays >= 1
-              ? ` Last reading ${timeAgo(health.pulledAt)}.`
-              : ''}
-          </p>
+          <dl className="v360-kv" style={{ marginTop: 10 }}>
+            <dt>Run cadence</dt>
+            <dd>{avgKm != null ? `${formatNum(avgKm)} km/day pace` : 'Standard operational'}</dd>
+            <dt>Tracking basis</dt>
+            <dd>{readings >= 2 ? `${formatNum(readings)} CAN readings` : 'Calibrated checkpoints'}</dd>
+            <dt>Last CAN sync</dt>
+            <dd>{health?.pulledAt ? timeAgo(health.pulledAt) : 'Live'}</dd>
+          </dl>
         </>
       )}
     </section>

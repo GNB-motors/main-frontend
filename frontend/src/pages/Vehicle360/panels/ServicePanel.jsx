@@ -1,90 +1,122 @@
 import { Link } from 'react-router-dom';
 import PanelErrorBoundary from '../../../components/cluster/PanelErrorBoundary';
-import { formatKm, formatNum, timeAgo } from '../../../utils/formatters';
+import { formatKm, formatNum } from '../../../utils/formatters';
 import { formatDateIST } from '../../../utils/dateUtils';
-import { serviceState, daysSince } from '../vehicle360Logic';
+import { serviceState } from '../vehicle360Logic';
 import Empty from './Empty';
-import { TyreStatusCard, ServiceCentreCard, MaintenanceSweepCard } from './ServiceInsights';
+import { ServiceCentreCard, MaintenanceSweepCard } from './ServiceInsights';
 
 /**
- * Service tab — the standing, stated plainly, with the reasoning spelled out.
- * A frozen odometer means the overdue distance cannot grow, which is worth
- * saying: it changes when the workshop visit should be booked.
+ * ServicePanel — Standing, predictive forecast, true dynamic progress, and nearest service centres.
+ *
+ * Implements real mathematical service progress:
+ *   Progress = (Current Odo - Last Service Odo) / (Next Service Odo - Last Service Odo)
  */
 export default function ServicePanel({
   prediction,
   health,
-  history,
   vehicleId,
   registrationNumber,
   livePosition,
 }) {
   const svc = serviceState(prediction);
-  const stalled = (history || []).length > 1 && daysSince(health?.pulledAt) >= 1;
+
+  const currentOdo = health?.canOdo ?? prediction?.currentOdometer;
+  const lastOdo = prediction?.lastServiceOdometer ?? health?.lastServiceKm;
+  const nextOdo = prediction?.projectedServiceDueOdometer ?? health?.nextServiceKm;
+
+  // True dynamic mathematical progress
+  let progressPct = 0;
+  if (svc.overdue) {
+    progressPct = 100;
+  } else if (currentOdo != null && lastOdo != null && nextOdo != null && nextOdo > lastOdo) {
+    const elapsed = Math.max(0, currentOdo - lastOdo);
+    const interval = nextOdo - lastOdo;
+    progressPct = Math.min(100, Math.round((elapsed / interval) * 100));
+  } else if (svc.km != null && currentOdo != null && lastOdo != null) {
+    const elapsed = Math.max(0, currentOdo - lastOdo);
+    const interval = elapsed + svc.km;
+    progressPct = interval > 0 ? Math.min(100, Math.round((elapsed / interval) * 100)) : 0;
+  }
+
+  const remainingKm = svc.km != null ? svc.km : (nextOdo != null && currentOdo != null ? Math.max(0, nextOdo - currentOdo) : null);
 
   return (
     <PanelErrorBoundary name="vehicle-service">
-      <div className="v360-panel v360-panel--halves">
-        {svc.level === 'none' ? (
-          <section className="v360-card">
-            <p className="v360-card-title">Service</p>
-            <Empty
-              title="No service forecast yet"
-              hint="A projection appears once the predictive sweep has enough odometer history for this vehicle."
-            />
-          </section>
-        ) : (
-          <section className={`v360-card ${svc.overdue ? 'v360-card--alert' : ''}`.trim()}>
-          <span className={`v360-pill v360-pill--${svc.overdue ? 'crit' : 'warn'}`}>
-            <span className="v360-pill-dot" aria-hidden="true" />
-            {svc.label}
-          </span>
+      <div className="v360-panel" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-          <p className="v360-figure">
-            <span
-              className={`v360-figure-value v360-figure-value--lg ${svc.overdue ? 'v360-figure-value--crit' : ''}`.trim()}
-            >
-              {svc.km != null ? formatKm(svc.km) : `${formatNum(svc.days ?? 0)} days`}
+        {/* Service Standing & Mathematical Progress Card */}
+        <section className={`v360-card ${svc.overdue ? 'v360-card--alert' : ''}`.trim()}>
+          <div className="v360-card-head">
+            <p className="v360-card-title">Service Standing & Health</p>
+            <span className={`v360-pill v360-pill--${svc.overdue ? 'crit' : svc.level === 'warn' ? 'warn' : 'ok'}`}>
+              <span className="v360-pill-dot" aria-hidden="true" />
+              {svc.label}
             </span>
-            <span className="v360-figure-note">
-              {svc.overdue ? 'past the service interval' : 'until the service is due'}
-            </span>
-          </p>
+          </div>
 
-          <p className="v360-card-lede">
-            {svc.projectedAt ? `Due ${formatDateIST(svc.projectedAt)}` : 'Due date not projected'}
-            {svc.days != null
-              ? ` — ${formatNum(svc.days)} days ${svc.overdue ? 'ago' : 'away'}.`
-              : '.'}
-            {stalled && svc.overdue
-              ? ' The odometer has not moved since the last reading, so the overdue distance is frozen — it will not grow until the truck runs again.'
-              : ''}
-          </p>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: 14,
+              marginTop: 10,
+            }}
+          >
+            {/* Headline Figure */}
+            <div>
+              <p className="v360-figure">
+                <span className={`v360-figure-value v360-figure-value--lg ${svc.overdue ? 'v360-figure-value--crit' : ''}`.trim()}>
+                  {remainingKm != null ? formatKm(remainingKm) : `${formatNum(svc.days ?? 0)} days`}
+                </span>
+                <span className="v360-figure-note">
+                  {svc.overdue ? 'past due interval' : 'remaining until service'}
+                </span>
+              </p>
+              <p className="v360-card-lede" style={{ marginTop: 6 }}>
+                {svc.projectedAt ? `Projected due date: ${formatDateIST(svc.projectedAt)}` : 'Due date not projected'}
+                {svc.days != null ? ` (${formatNum(svc.days)} days ${svc.overdue ? 'ago' : 'away'}).` : '.'}
+              </p>
+            </div>
 
-          <dl className="v360-kv">
-            {svc.days != null ? (
-              <>
-                <dt>{svc.overdue ? 'Days overdue' : 'Days until due'}</dt>
-                <dd className={svc.overdue ? 'is-crit' : undefined}>{formatNum(svc.days)} days</dd>
-              </>
-            ) : null}
-            <dt>Projected due</dt>
-            <dd>{svc.projectedAt ? formatDateIST(svc.projectedAt) : '—'}</dd>
-            {health?.nextServiceKm != null ? (
-              <>
-                <dt>Next service at</dt>
-                <dd>{formatKm(health.nextServiceKm)}</dd>
-              </>
-            ) : null}
-            {health?.canOdo != null ? (
-              <>
-                <dt>Odometer at last reading</dt>
-                <dd>{formatKm(health.canOdo)}</dd>
-              </>
-            ) : null}
+            {/* True Dynamic Progress Bar */}
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                <span style={{ color: 'var(--ink3)' }}>Service Interval Progress:</span>
+                <span style={{ fontWeight: 700, color: svc.overdue ? 'var(--red-ink)' : 'var(--erp)' }}>
+                  {progressPct}%
+                </span>
+              </div>
+              <div style={{ width: '100%', height: 10, borderRadius: 5, background: 'var(--sunk)', overflow: 'hidden', border: '1px solid var(--line)' }}>
+                <div
+                  style={{
+                    width: `${progressPct}%`,
+                    height: '100%',
+                    background: svc.overdue ? 'var(--red)' : svc.level === 'warn' ? 'var(--amber)' : 'var(--erp)',
+                    transition: 'width 0.3s ease',
+                  }}
+                />
+              </div>
+              <span style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>
+                Interval progress based on CAN odometer checkpoints
+              </span>
+            </div>
+          </div>
+
+          <dl className="v360-kv" style={{ marginTop: 16 }}>
+            <dt>Current CAN odometer</dt>
+            <dd className="is-code">{currentOdo != null ? formatKm(currentOdo) : '—'}</dd>
+            <dt>Last service odometer</dt>
+            <dd className="is-code">{lastOdo != null ? formatKm(lastOdo) : '—'}</dd>
+            <dt>Next service due odometer</dt>
+            <dd className="is-code">{nextOdo != null ? formatKm(nextOdo) : '—'}</dd>
+            <dt>Distance difference (remaining)</dt>
+            <dd className={svc.overdue ? 'is-crit' : 'is-ok'}>
+              {remainingKm != null ? `${formatKm(remainingKm)} ${svc.overdue ? 'overdue' : 'to go'}` : '—'}
+            </dd>
             {svc.basis ? (
               <>
-                <dt>Basis</dt>
+                <dt>Calculation basis</dt>
                 <dd className="is-dim">{String(svc.basis).replace(/_/g, ' ').toLowerCase()}</dd>
               </>
             ) : null}
@@ -95,34 +127,19 @@ export default function ServicePanel({
               to="/vehicles/service-intelligence/add-service"
               className="v360-btn v360-btn--primary"
             >
-              Create service record
+              Book this service
             </Link>
             <Link to="/vehicles/service-intelligence" className="v360-btn">
               Service history
             </Link>
           </div>
         </section>
-        )}
 
-        <section className="v360-card">
-          <p className="v360-card-title">How this was worked out</p>
-          <p className="v360-card-lede">
-            The forecast comes from the predictive sweep, which projects the next service from the
-            odometer trend rather than from a fixed calendar date.
-          </p>
-          <dl className="v360-kv">
-            <dt>Source</dt>
-            <dd className="is-dim">predictive maintenance sweep</dd>
-            <dt>Readings used</dt>
-            <dd>{formatNum((history || []).length)}</dd>
-            <dt>Last telemetry</dt>
-            <dd className="is-dim">{health?.pulledAt ? timeAgo(health.pulledAt) : 'never'}</dd>
-          </dl>
-        </section>
-
-        <TyreStatusCard vehicleId={vehicleId} registrationNumber={registrationNumber} />
-        <ServiceCentreCard vehicleId={vehicleId} livePosition={livePosition} />
-        <MaintenanceSweepCard registrationNumber={registrationNumber} />
+        {/* Two Halves: Nearest Service Centres & Predictive Sweep */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
+          <ServiceCentreCard vehicleId={vehicleId} livePosition={livePosition} />
+          <MaintenanceSweepCard registrationNumber={registrationNumber} />
+        </div>
       </div>
     </PanelErrorBoundary>
   );

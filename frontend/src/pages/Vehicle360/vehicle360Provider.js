@@ -18,7 +18,13 @@ export function isBs6Vehicle(ialert, fleetEdge) {
   return ialert?.isBs6 === true || BS6_NORMS.has(norm);
 }
 
-const PROVIDER_LABEL = { FLEETEDGE: 'FleetEdge', IALERT: 'iALERT' };
+const PROVIDER_LABEL = {
+  FLEETEDGE: 'FleetEdge',
+  IALERT: 'iALERT',
+  MAHINDRA_IMAXX: 'iMAXX',
+  EICHER: 'My Eicher',
+  BHARATBENZ: 'Truckonnect',
+};
 
 /** Pill props for the identity strip, or null when the provider is unknown. */
 export function providerPill(telematicsProvider) {

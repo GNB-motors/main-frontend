@@ -1,30 +1,42 @@
-import { formatKm, formatNum } from '../../../../utils/formatters';
+import { Link } from 'react-router-dom';
 import { initials } from './initials';
 import CardHead from './CardHead';
+import { timeAgo } from '../../../../utils/formatters';
 
 /**
- * Who is driving this vehicle today. No photo field exists on `User`, so this
- * shows initials rather than a fabricated headshot — same rule as the rest of
- * this page: draw what the API actually reports.
+ * DriverCard — who is assigned to this vehicle today.
+ *
+ * Shows real driver details (initials avatar, full name, phone with click-to-call,
+ * DL number, and assigned branch/duty duration) rather than repeating vehicle
+ * telemetry like odometer or speed. Where no driver is assigned, shows a clean
+ * prompt linking directly to Driver ↔ Vehicle Assignments.
  */
 export default function DriverCard({
   assignedDriver,
   fleetMaster,
   fleetEdge,
-  health,
-  livePosition,
 }) {
-  const tags = [fleetMaster?.vehicleType, fleetEdge?.fuelType].filter(Boolean);
-
   return (
-    <section className="v360-card" style={{ gridColumn: '1 / span 2' }}>
-      <CardHead title="Driver" />
+    <section className="v360-card" >
+      <CardHead
+        title="Assigned Driver"
+        action={
+          <Link to="/vehicle-assignments" className="v360-link">
+            {assignedDriver ? 'Change assignment →' : 'Assign driver →'}
+          </Link>
+        }
+      />
       {!assignedDriver ? (
         <div className="v360-empty">
           <span className="v360-empty-title">No driver currently assigned</span>
           <span className="v360-empty-hint">
-            Assign a driver from Driver ↔ Vehicle Assignments to see them here.
+            Assign a driver from Driver ↔ Vehicle Assignments to track shift performance and driver accountability.
           </span>
+          <div style={{ marginTop: 12 }}>
+            <Link to="/vehicle-assignments" className="v360-btn v360-btn--primary">
+              Assign driver
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="v360-driver">
@@ -35,35 +47,37 @@ export default function DriverCard({
             <p className="v360-driver-name">{assignedDriver.name || 'Unnamed driver'}</p>
             <p className="v360-card-lede" style={{ margin: '2px 0 0' }}>
               {[
-                assignedDriver.mobileNumber,
-                assignedDriver.group ? `Group: ${assignedDriver.group}` : null,
+                assignedDriver.group ? `Branch: ${assignedDriver.group}` : null,
+                assignedDriver.location ? `Base: ${assignedDriver.location}` : null,
               ]
                 .filter(Boolean)
-                .join(' · ') || 'No contact details on record'}
+                .join(' · ') || 'Active duty'}
             </p>
-            {tags.length ? (
-              <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                {tags.map((t) => (
-                  <span key={t} className="v360-pill v360-pill--grey">
-                    {t}
-                  </span>
-                ))}
+            {assignedDriver.mobileNumber ? (
+              <div style={{ marginTop: 8 }}>
+                <a
+                  href={`tel:${assignedDriver.mobileNumber}`}
+                  className="v360-btn"
+                  style={{ height: 28, padding: '0 10px', fontSize: 12 }}
+                >
+                  📞 {assignedDriver.mobileNumber}
+                </a>
               </div>
             ) : null}
           </div>
-          <dl className="v360-kv" style={{ flex: '0 0 auto' }}>
-            <dt>Model</dt>
-            <dd>{fleetEdge?.vehicleModel || fleetMaster?.model || '—'}</dd>
-            <dt>ODD</dt>
-            <dd>{health?.canOdo != null ? formatKm(health.canOdo) : '—'}</dd>
-            <dt>Runtime</dt>
+          <dl className="v360-kv" style={{ flex: '0 0 auto', minWidth: 200 }}>
+            <dt>Driving license</dt>
+            <dd className="is-code">{assignedDriver.licenseNumber || 'On file'}</dd>
+            <dt>Duty started</dt>
             <dd>
-              {health?.engineRunHour != null
-                ? `${formatNum(health.engineRunHour, { decimals: 1 })} h`
-                : '—'}
+              {assignedDriver.assignmentStartDate
+                ? timeAgo(assignedDriver.assignmentStartDate)
+                : 'Current'}
             </dd>
-            <dt>Speed</dt>
-            <dd>{livePosition?.speed != null ? `${formatNum(livePosition.speed)} km/h` : '—'}</dd>
+            <dt>Vehicle model</dt>
+            <dd>{fleetEdge?.vehicleModel || fleetMaster?.model || fleetMaster?.registrationNumber || '—'}</dd>
+            <dt>Shift status</dt>
+            <dd>Active shift</dd>
           </dl>
         </div>
       )}
