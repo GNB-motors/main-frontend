@@ -96,7 +96,7 @@ describe('mapModel', () => {
   });
 
   it('zooms to the detour by default and has a whole-trip view', () => {
-    expect(m.bounds.detour).toBe(m.detour);
+    expect(m.bounds.detour).toEqual(expect.arrayContaining(m.detour));
     expect(m.bounds.trip.length).toBeGreaterThan(m.detour.length);
     expect(m.band).toEqual([[22.5, 88.3]]);
     expect(m.usual).toEqual([
@@ -106,7 +106,18 @@ describe('mapModel', () => {
   });
 
   it('no usual-route line on a corridor built before it existed', () => {
-    expect(mapModel({ ...detail, corridor: { band: [] } }).usual).toEqual([]);
+    const result = mapModel({ ...detail, corridor: { band: [] } });
+    expect(result.usual).toEqual([]);
+    expect(result.judged).toBe(false);
+    expect(result.drivenIsRaw).toBe(true);
+  });
+
+  it('keeps both the nested usual road and raw driven fixes for comparison', () => {
+    const result = mapModel({ ...detail, roadEngine: { usualRoute: [[22.5, 88.3], [22.6, 88.4]], geometry: { offRoute: [[22.5, 88.3], [22.55, 88.45], [22.6, 88.4]] } } });
+    expect(result.judged).toBe(true);
+    expect(result.usual).toHaveLength(2);
+    expect(result.driven).toHaveLength(3);
+    expect(result.drivenIsRaw).toBe(true);
   });
 
   it('a run outside any trip draws its context track as one neutral line', () => {
@@ -119,11 +130,23 @@ describe('mapModel', () => {
   it('old events without geometry fall back to the trip bounds', () => {
     const out = mapModel({ ...detail, detour: { path: [] } });
     expect(out.detour).toEqual([]);
-    expect(out.bounds.detour).toBe(out.bounds.trip);
+    expect(out.bounds.detour).toContainEqual([22.3, 88.1]);
+  });
+
+  it('fits the detour and nearby road, excluding a distant road excursion', () => {
+    const out = mapModel({ ...detail, roadEngine: { usualRoute: [[22.5, 88.3], [25, 90], [22.6, 88.4]] } });
+    expect(out.bounds.detour).not.toContainEqual([25, 90]);
+    expect(out.bounds.detour).toContainEqual([22.5, 88.3]);
+    expect(out.bounds.detour).toContainEqual([22.6, 88.4]);
   });
 });
 
 describe('timelineModel', () => {
+  it('does not place an outside run on the linked trip', () => {
+    const tl = timelineModel({ ...detail, event: { ...detail.event, startedAt: T(16), endedAt: T(17) } });
+    expect(tl.outsideTrip).toBe(true);
+    expect(tl.bands).toEqual([]);
+  });
   it('places the loaded stretch and every detour of the trip on one bar', () => {
     const tl = timelineModel(detail, [
       { _id: 'e0', startedAt: T(11, 0), endedAt: T(11, 15) },

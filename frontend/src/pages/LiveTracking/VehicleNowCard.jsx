@@ -36,7 +36,7 @@ export default function VehicleNowCard({ now, vehicle = null, onOpenPlace = null
           {reported.lastSeen ? (
             <span className="mb-0.5 block text-[12px] text-[var(--rd-ink-3)]">Last seen</span>
           ) : null}
-          <VehicleLocation vehicle={vehicle} />
+          <VehicleLocation vehicle={vehicle} fallback="Away from your named places" />
         </div>
       </SectionCard>
     );

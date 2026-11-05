@@ -89,6 +89,34 @@ export const INTELLIGENCE_TABS = [
   },
 ];
 
+/**
+ * The five sections the tabs sit in.
+ *
+ * Eleven tabs in one row overflowed the page, so the page shows the
+ * sections first and the tabs of the open section underneath. Every tab is
+ * in exactly one section, so every tab stays two clicks away at most.
+ */
+export const INTELLIGENCE_SECTIONS = [
+  { id: 'issues', label: 'Issues', tabs: ['issues'] },
+  { id: 'people', label: 'Trucks & drivers', tabs: ['vehicles', 'drivers'] },
+  { id: 'driving', label: 'Driving', tabs: ['idling', 'overspeed', 'cruise', 'detours'] },
+  { id: 'fuel', label: 'Fuel & DEF', tabs: ['fuel', 'mileage'] },
+  { id: 'runs', label: 'Runs & places', tabs: ['runs', 'places'] },
+];
+
+/** The section a tab belongs to. */
+export function sectionOfTab(tabId) {
+  return (
+    INTELLIGENCE_SECTIONS.find((section) => section.tabs.includes(tabId)) ??
+    INTELLIGENCE_SECTIONS[0]
+  );
+}
+
+/** The tab definition for an id. */
+export function tabById(tabId) {
+  return INTELLIGENCE_TABS.find((tab) => tab.id === tabId) ?? null;
+}
+
 /** The tab that opens when the URL does not name one and nothing needs you. */
 export const DEFAULT_INTELLIGENCE_TAB = 'issues';
 

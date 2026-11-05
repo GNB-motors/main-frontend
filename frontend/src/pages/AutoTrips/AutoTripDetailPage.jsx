@@ -8,7 +8,6 @@ import AutoTripService from '../../services/AutoTripService';
 import RoadService from '../../services/RoadService';
 import { getWhereNext } from '../../services/fleetViewService.js';
 import { getUserRole } from '../../utils/session.js';
-import { dropLabel } from '../PlaceHub/intelligence/facilityText';
 import RouteSapCard from '../Sap/RouteSapCard';
 import RouteHubService from '../../services/RouteHubService';
 import TripDeviationsCard from './TripDeviationsCard';
@@ -17,27 +16,31 @@ import AutoTripReplay from './AutoTripReplay';
 import TripLegBar from './TripLegBar';
 import TripStopList from './TripStopList';
 import AutoTripTimeline from './AutoTripTimeline';
-import TripDriver from './TripDriver';
+import TripStatus from './TripStatus';
+import InfoTip from '../../components/redesign/InfoTip';
+import { formatINR } from '../../utils/formatters';
+import { destinationOf, minutesOnRoad, titleCasePlace } from './tripListModel';
 import TripBackButton from './TripBackButton';
 import { FLAG_LABEL, answerPlaceHref, inWindow } from './autoTripPlaces';
 import { LONG_PLANT_MIN, timelinePlan } from './timelineModel';
 import { legBarSegments } from './tripLegModel.js';
 import { tollClassText, tollSummary, tollLedgerText, withTollPasses } from './tripTolls';
 import {
-  STATUS_CLASS,
-  STATUS_LABEL,
   fmtDayTime,
   fmtDuration,
   fmtKm,
   notReachedYet,
   stopsOnWayText,
-  tripDateRange,
+  fmtDateRange,
 } from './autoTripFormat';
 import './AutoTrips.css';
 import './TripsWorkspace.css';
+import './TripsRedesign.css';
 
 /** Confirm, dismiss and drop fixes are owner/manager actions on the server. */
 const CAN_EDIT = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
+/** Flags the route line already says in words ("drop not found", "guessed"). */
+const DROP_FLAGS = ['DROP_UNKNOWN', 'DROP_INFERRED'];
 
 function Field({ label, children, mono = false, warn = false }) {
   return (
@@ -213,6 +216,21 @@ export default function AutoTripDetailPage() {
       markPlaceAsDrop ? 'Drop set and the place saved as a drop place' : 'Drop updated',
     );
 
+  const dest = destinationOf(trip);
+  // The route line already says "drop not found" / "guessed"; only other checks get a chip.
+  const dropFlag = (trip.flags || []).some((f) => DROP_FLAGS.includes(f));
+  const checkFlags = (trip.flags || []).filter(
+    (f) => !DROP_FLAGS.includes(f) && !(dropFlag && f === 'PICKUP_TO_PICKUP'),
+  );
+  const lastDrop = trip.extraDrops?.length
+    ? trip.extraDrops[trip.extraDrops.length - 1]
+    : trip.drop;
+  const onRoadMin = minutesOnRoad(trip);
+  const economics = Object.values(trip.roleEconomics || {});
+  const fuelInr = economics.reduce((a, leg) => a + (Number(leg?.fuelInr) || 0), 0);
+  const wearInr = economics.reduce((a, leg) => a + (Number(leg?.wearInr) || 0), 0);
+  const driverName = trip.driver?.name || trip.driver?.mobileNumber;
+
   return (
     <div className="atx-page atx-page--detail">
       <div className="atx-wrap">
@@ -222,29 +240,46 @@ export default function AutoTripDetailPage() {
             <div className="atx-head-main">
               <div className="atx-plate-row">
                 <h1 className="atx-plate-title">{trip.registrationNumber || 'Trip'}</h1>
-                <span
-                  className={`atx-status atx-status--strong ${STATUS_CLASS[trip.status] || 'atx-status--open'}`}
-                >
-                  {STATUS_LABEL[trip.status] || trip.status}
-                </span>
+                <TripStatus status={trip.status} />
                 {frozen && trip.status !== 'CONFIRMED' && trip.status !== 'DISMISSED' ? (
                   <span className="atx-chip">Locked</span>
                 ) : null}
-                {(trip.flags || []).map((f) => (
-                  <span key={f} className="atx-chip">
+                {checkFlags.map((f) => (
+                  <span key={f} className="atx-chip atx-chip--watch">
                     {FLAG_LABEL[f] || f}
                   </span>
                 ))}
               </div>
               <p className="atx-route-sub">
-                {trip.pickup?.name || 'Pickup'} → {open ? 'not reached yet' : dropLabel(trip.drop)}{' '}
-                · {tripDateRange(trip)}
+                <span title={trip.pickup?.name || undefined}>
+                  {trip.pickup?.name ? titleCasePlace(trip.pickup.name) : 'Pickup not recorded'}
+                </span>
+                <span className="atx-sep" aria-hidden="true">
+                  →
+                </span>
+                <span className={`atx-route-to--${dest.state}`} title={dest.title || undefined}>
+                  {dest.text}
+                </span>
+                <span className="atx-sep" aria-hidden="true">
+                  ·
+                </span>
+                <span>
+                  {fmtDateRange(
+                    trip.pickup?.arrivedAt || trip.pickup?.departedAt,
+                    open ? null : lastDrop?.arrivedAt,
+                  ) || 'Date not recorded'}
+                </span>
+                {answerHref && !frozen ? (
+                  <>
+                    <span className="atx-sep" aria-hidden="true">
+                      ·
+                    </span>
+                    <Link to={answerHref} className="atx-answer">
+                      Is this place a drop? Answer it on Places
+                    </Link>
+                  </>
+                ) : null}
               </p>
-              {answerHref && !frozen ? (
-                <Link to={answerHref} className="atx-answer">
-                  Is this place a drop? Answer it on the Places page →
-                </Link>
-              ) : null}
             </div>
           </div>
 
@@ -275,43 +310,147 @@ export default function AutoTripDetailPage() {
           ) : null}
         </div>
 
-        <div className="atx-grid">
-          <div className="atx-card atx-card--clip atx-span-2">
-            <AutoTripReplay
-              ref={replayRef}
-              trip={trip}
-              track={track}
-              roadTrail={roadTrail}
-              detours={detourSegments(track?.points, deviations)}
-              tolls={tolls}
-              loading={trackLoading}
-              error={trackError}
-              autoPlay={autoPlay}
+        <dl className="atx-facts" aria-label="Trip at a glance">
+          <div className="atx-fact">
+            <dt>Left plant</dt>
+            <dd className={trip.pickup?.departedAt ? '' : 'is-quiet'}>
+              {trip.pickup?.departedAt ? fmtDayTime(trip.pickup.departedAt) : '—'}
+            </dd>
+            <small>
+              {plantMin != null || trip.pickup?.dwellMin != null
+                ? `${fmtDuration(plantMin ?? trip.pickup.dwellMin)} at the plant`
+                : 'time at plant not recorded'}
+            </small>
+          </div>
+          <div className="atx-fact">
+            <dt>{trip.extraDrops?.length ? 'Last drop' : 'Arrived at drop'}</dt>
+            <dd className={lastDrop?.arrivedAt && !open ? '' : 'is-quiet'}>
+              {lastDrop?.arrivedAt && !open ? fmtDayTime(lastDrop.arrivedAt) : '—'}
+            </dd>
+            <small>
+              {open
+                ? nextLine || 'still on the way'
+                : lastDrop?.arrivedAt
+                  ? trip.extraDrops?.length
+                    ? `${trip.extraDrops.length + 1} drops`
+                    : dest.text
+                  : dest.text}
+            </small>
+          </div>
+          <div className="atx-fact">
+            <dt>Loaded run</dt>
+            <dd className={runKm != null ? '' : 'is-quiet'}>{runKm != null ? fmtKm(runKm) : '—'}</dd>
+            <small>
+              {runKm == null
+                ? 'needs a known drop'
+                : trip.km?.ladenOdo != null
+                  ? 'from the odometer'
+                  : 'from the GPS path'}
+            </small>
+          </div>
+          <div className="atx-fact">
+            <dt>Running time</dt>
+            <dd className={runTime != null ? '' : 'is-quiet'}>
+              {runTime != null
+                ? fmtDuration(runTime)
+                : onRoadMin != null
+                  ? fmtDuration(onRoadMin)
+                  : '—'}
+            </dd>
+            <small>
+              {runTime != null
+                ? 'plant to last drop'
+                : onRoadMin != null
+                  ? 'since it left, so far'
+                  : 'needs a known drop'}
+            </small>
+          </div>
+          <div className="atx-fact">
+            <dt>Driver</dt>
+            <dd className={driverName ? '' : 'is-quiet'} title={driverName || undefined}>
+              {driverName ? titleCasePlace(driverName) : 'No driver'}
+            </dd>
+            <small>
+              {driverName ? (
+                trip.driver?.mobileNumber || 'assigned when it left'
+              ) : trip.driverResolution?.status === 'UNAVAILABLE' ? (
+                <>
+                  driver lookup did not answer{' '}
+                  <button type="button" className="atx-inline-link" onClick={refetch}>
+                    Retry
+                  </button>
+                </>
+              ) : (
+                'no driver is linked to this trip'
+              )}
+            </small>
+          </div>
+          <div className="atx-fact">
+            <dt>
+              Running cost
+              <InfoTip
+                text="Fuel and wear for each leg of this trip: the empty run to the plant, the loaded run and the return. An estimate, not a bill."
+                label="How running cost is estimated"
+              />
+            </dt>
+            <dd className={trip.totalCostInr != null ? '' : 'is-quiet'}>
+              {trip.totalCostInr != null ? formatINR(trip.totalCostInr) : '—'}
+            </dd>
+            <small>
+              {trip.totalCostInr != null && economics.length
+                ? `fuel ${formatINR(fuelInr)} · wear ${formatINR(wearInr)}`
+                : 'priced once the trip ends'}
+            </small>
+          </div>
+        </dl>
+
+        <div className="atx-detail-main">
+          <div className="atx-detail-map">
+            <div className="atx-card atx-card--clip">
+              <AutoTripReplay
+                ref={replayRef}
+                trip={trip}
+                track={track}
+                roadTrail={roadTrail}
+                detours={detourSegments(track?.points, deviations)}
+                tolls={tolls}
+                loading={trackLoading}
+                error={trackError}
+                autoPlay={autoPlay}
+              />
+            </div>
+          </div>
+          <div className="atx-detail-tl">
+            <AutoTripTimeline
+              plan={plan}
+              canEdit={canEdit && !frozen}
+              busy={busy}
+              playable={playable}
+              onPlay={playFrom}
+              onSetDrop={setDrop}
             />
           </div>
+        </div>
 
+        <div className="atx-detail-more">
           <div className="atx-card atx-summary">
-            <h2 className="atx-card-title">Trip summary</h2>
+            <h2 className="atx-card-title">Trip details</h2>
             <div className="atx-fields">
-              {trip.pickup?.name ? <Field label="Loaded at">{trip.pickup.name}</Field> : null}
-              <Field label="Unloaded at">{open ? 'Not reached yet' : dropLabel(trip.drop)}</Field>
-              {nextLine ? <Field label="Where next">{nextLine}</Field> : null}
-              {trip.pickup?.departedAt ? (
-                <Field label="Left plant">{fmtDayTime(trip.pickup.departedAt)}</Field>
-              ) : null}
-              {!open && trip.drop?.arrivedAt ? (
-                <Field label={trip.extraDrops?.length ? 'First drop at' : 'Reached drop'}>
-                  {fmtDayTime(trip.drop.arrivedAt)}
-                </Field>
-              ) : null}
-              {trip.extraDrops?.length && trip.extraDrops[trip.extraDrops.length - 1]?.arrivedAt ? (
-                <Field label="Last drop at">
-                  {fmtDayTime(trip.extraDrops[trip.extraDrops.length - 1].arrivedAt)}
-                </Field>
-              ) : null}
-              <Field label="Driver">
-                <TripDriver trip={trip} onRetry={refetch} />
+              <Field label="Loaded at">
+                {trip.pickup?.name ? titleCasePlace(trip.pickup.name) : 'Not recorded'}
               </Field>
+              <Field label="Unloaded at">
+                {dest.state === 'reached'
+                  ? dest.text
+                  : open
+                    ? 'Not reached yet'
+                    : `${dest.text.charAt(0).toUpperCase()}${dest.text.slice(1)}`}
+              </Field>
+              {trip.material ? <Field label="Material">{trip.material}</Field> : null}
+              {trip.tonnage != null ? <Field label="Tonnage">{`${trip.tonnage} t`}</Field> : null}
+              {trip.extraDrops?.length && trip.drop?.arrivedAt ? (
+                <Field label="First drop at">{fmtDayTime(trip.drop.arrivedAt)}</Field>
+              ) : null}
             </div>
             {legBarSegments(trip).length ? (
               <>
@@ -329,113 +468,81 @@ export default function AutoTripDetailPage() {
               <>
                 <div className="atx-rule" />
                 <div className="atx-fields">
-                  {runKm != null ? (
-                    <Field mono label="Loaded run">
-                      {fmtKm(trip.km?.ladenOdo ?? trip.km?.laden)}
-                      <span className="atx-muted">
-                        {trip.km?.ladenOdo != null
-                          ? ' · odometer'
-                          : trip.km?.laden != null
-                            ? ' · GPS path'
-                            : ''}
-                      </span>
-                    </Field>
-                  ) : null}
                   {trip.km?.approach != null ? (
-                    <Field mono label="Empty run to plant">
-                      {fmtKm(trip.km.approach)}
-                    </Field>
+                    <Field label="Empty run to plant">{fmtKm(trip.km.approach)}</Field>
                   ) : null}
                   {trip.km?.return != null ? (
-                    <Field mono label="Return to plant">
-                      {fmtKm(trip.km.return)}
-                    </Field>
+                    <Field label="Return to plant">{fmtKm(trip.km.return)}</Field>
                   ) : null}
                   {trip.km?.fuelDetour != null ? (
-                    <Field mono label="Extra km for fuel">
-                      {fmtKm(trip.km.fuelDetour)}
-                    </Field>
+                    <Field label="Extra km for fuel">{fmtKm(trip.km.fuelDetour)}</Field>
                   ) : null}
                   {/* The loaded run covers every drop, so its time must too (audit TR-01):
                       transitMin stops at the FIRST drop. */}
-                  {runTime != null ? (
-                    <Field mono label="Loaded running time">
-                      {fmtDuration(trip.durations?.ladenMin ?? trip.durations?.transitMin)}
-                    </Field>
-                  ) : null}
                   {trip.extraDrops?.length && trip.durations?.transitMin != null ? (
-                    <Field mono label="To first drop">
-                      {fmtDuration(trip.durations.transitMin)}
-                    </Field>
+                    <Field label="To first drop">{fmtDuration(trip.durations.transitMin)}</Field>
                   ) : null}
                   {trip.durations?.approachMin != null ? (
-                    <Field mono label="Empty before loading">
+                    <Field label="Empty before loading">
                       {fmtDuration(trip.durations.approachMin)}
                     </Field>
                   ) : null}
-                  {plantMin != null ? (
-                    <Field mono warn={plantMin > LONG_PLANT_MIN} label="Time at plant">
-                      {fmtDuration(plantMin)}
+                  {plantMin != null && plantMin > LONG_PLANT_MIN ? (
+                    <Field warn label="Time at plant">
+                      {`${fmtDuration(plantMin)} · long wait`}
                     </Field>
                   ) : null}
                 </div>
               </>
             ) : null}
             <div className="atx-rule" />
-            {trip.stopsSummary ? (
-              <Field label="Stops on the way">{stopsOnWayText(trip.stopsSummary)}</Field>
-            ) : null}
-            {/* Every stop, with the reason it stopped (F8.5). Clicking a row
+            <div className="atx-fields">
+              {trip.stopsSummary ? (
+                <Field label="Stops on the way">{stopsOnWayText(trip.stopsSummary)}</Field>
+              ) : null}
+              {tollText ? <Field label="Tolls on the way">{tollText}</Field> : null}
+              {tollSummary(tolls, 'RETURN') ? (
+                <Field label="Tolls on the way back">{tollSummary(tolls, 'RETURN')}</Field>
+              ) : null}
+              {tollLedgerText(tolls) ? (
+                <Field label="Toll ledger (after bill reconciliation)">
+                  {tollLedgerText(tolls)}
+                </Field>
+              ) : null}
+              {tollClassText(tolls) ? <Field label="Toll class">{tollClassText(tolls)}</Field> : null}
+              {trip.extraDrops?.length ? (
+                <Field label="Further drops">{trip.extraDrops.length}</Field>
+              ) : null}
+              {trip.erpTripId ? (
+                <Field label="ERP trip">
+                  <Link to={`/erp/trips/${trip.erpTripId}`} className="atx-answer">
+                    {String(trip.erpTripId).slice(-6)}
+                  </Link>
+                </Field>
+              ) : null}
+            </div>
+            {/* The plant visit, with the reason for each stop (F8.5). Clicking a row
                 opens Track at that stop. */}
             {trip.stops?.length ? (
               <div className="atx-field">
-                <div className="atx-field-label">Stops on this trip</div>
+                <div className="atx-field-label">Stops at the plant</div>
                 <TripStopList stops={trip.stops} registrationNumber={trip.registrationNumber} />
               </div>
             ) : null}
-            {tollText ? <Field label="Tolls on the way">{tollText}</Field> : null}
-            {tollSummary(tolls, 'RETURN') ? (
-              <Field label="Tolls on the way back">{tollSummary(tolls, 'RETURN')}</Field>
-            ) : null}
-            {tollLedgerText(tolls) ? (
-              <Field label="Toll ledger (after bill reconciliation)">{tollLedgerText(tolls)}</Field>
-            ) : null}
-            {tollClassText(tolls) ? <Field label="Toll class">{tollClassText(tolls)}</Field> : null}
-            {trip.extraDrops?.length || trip.erpTripId ? (
-              <div className="atx-fields">
-                {trip.extraDrops?.length ? (
-                  <Field label="Further drops">{trip.extraDrops.length}</Field>
-                ) : null}
-                {trip.erpTripId ? (
-                  <Field label="ERP trip">
-                    <Link to={`/erp/trips/${trip.erpTripId}`} className="atx-answer">
-                      {String(trip.erpTripId).slice(-6)}
-                    </Link>
-                  </Field>
-                ) : null}
-              </div>
+          </div>
+          <div className="atx-detail-side">
+            <RouteSapCard key={id} trip={trip} />
+            {canEdit ? (
+              <TripDeviationsCard
+                deviations={deviations}
+                loading={deviationsLoading}
+                playable={playable}
+                onPlay={playFrom}
+                focusId={focusDeviation}
+              />
             ) : null}
           </div>
-          <RouteSapCard key={id} trip={trip} />
-          {canEdit ? (
-            <TripDeviationsCard
-              deviations={deviations}
-              loading={deviationsLoading}
-              playable={playable}
-              onPlay={playFrom}
-              focusId={focusDeviation}
-            />
-          ) : null}
         </div>
-
-        <AutoTripTimeline
-          plan={plan}
-          canEdit={canEdit && !frozen}
-          busy={busy}
-          playable={playable}
-          onPlay={playFrom}
-          onSetDrop={setDrop}
-        />
       </div>
     </div>
   );

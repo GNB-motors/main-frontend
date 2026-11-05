@@ -3,13 +3,17 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import KhataDashboardTab from './KhataDashboardTab';
 import KhataLedgerService from '../KhataLedgerService';
 
-vi.mock('../KhataLedgerService', () => ({
-  default: {
-    getDashboardExpenses: vi.fn(),
-    getDashboardTrips: vi.fn(),
-    getErpTripFinance: vi.fn(),
-  },
-}));
+vi.mock('../KhataLedgerService', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    default: {
+      getDashboardExpenses: vi.fn(),
+      getDashboardTrips: vi.fn(),
+      getErpTripFinance: vi.fn(),
+    },
+  };
+});
 vi.mock('../../../contexts/BranchContext', () => ({
   useActiveBranch: () => ({ branchId: null, activeBranch: null }),
 }));
@@ -57,6 +61,31 @@ describe('dashboard data states', () => {
     expect(profit).toHaveTextContent('Unavailable');
     expect(screen.getByText('Finances available for 1 of 2 trips')).toBeInTheDocument();
     expect(KhataLedgerService.getErpTripFinance).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows a dash and a reason when the period has no expense records', async () => {
+    KhataLedgerService.getDashboardExpenses.mockResolvedValue([]);
+    const { container } = render(<KhataDashboardTab />);
+    await screen.findAllByText('No expenses recorded for this period');
+    const cost = [...container.querySelectorAll('.ov-kpi')].find((tile) =>
+      tile.textContent.includes('Total Cost'),
+    );
+    expect(cost).toHaveTextContent('—');
+    expect(screen.queryByText('Break-even')).not.toBeInTheDocument();
+    const perKm = [...container.querySelectorAll('.ov-kpi')].find((tile) =>
+      tile.textContent.includes('Fleet Cost / KM'),
+    );
+    expect(perKm).toHaveTextContent('—');
+  });
+
+  it('explains that ERP is switched off instead of showing an empty ledger', async () => {
+    const off = new Error('Not Found');
+    off.status = 404;
+    KhataLedgerService.getDashboardTrips.mockRejectedValue(off);
+    render(<KhataDashboardTab />);
+    expect(
+      await screen.findAllByText("ERP isn't switched on for your organisation"),
+    ).not.toHaveLength(0);
   });
 
   it('aborts outstanding dashboard loads on unmount', () => {

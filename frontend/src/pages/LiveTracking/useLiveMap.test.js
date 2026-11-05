@@ -31,6 +31,33 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 
+describe('Track map actions', () => {
+  it('opens location actions from contextmenu, not a left click', () => {
+    const onMapClick = vi.fn();
+    const handlers = {};
+    const remove = vi.fn();
+    const map = {
+      getZoom: () => 8,
+      addListener: vi.fn((event, handler) => {
+        handlers[event] = handler;
+        return { remove };
+      }),
+    };
+    const { result, unmount } = renderHook(() => useLiveMap({
+      theme: 'light', mapMode: 'map', vehicles: [], onMapClick,
+    }));
+    act(() => result.current.onMapLoad(map));
+    expect(handlers.click).toBeUndefined();
+    act(() => handlers.contextmenu({
+      latLng: { lat: () => 22, lng: () => 88 },
+      domEvent: { clientX: 10, clientY: 20 },
+    }));
+    expect(onMapClick).toHaveBeenCalledWith({ lat: 22, lng: 88, placeId: null, x: 10, y: 20 });
+    unmount();
+    expect(remove).toHaveBeenCalled();
+  });
+});
+
 describe('Track trail dates', () => {
   it('uses both custom dates for GPS, roads and replay, and reloads when the end date changes', async () => {
     vi.useFakeTimers();

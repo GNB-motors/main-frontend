@@ -68,3 +68,10 @@ describe('Track location display', () => {
     expect(link).toHaveAttribute('target', '_blank');
   });
 });
+
+it('uses the requested plain location fallback for an unnamed position', async () => {
+  resolvePlace.mockResolvedValue(null);
+  render(<VehicleLocation fallback="Away from your named places" vehicle={{ hasFix: true, lat: 22.67, lng: 88.3 }} />);
+  expect(await screen.findByText('Away from your named places')).toBeInTheDocument();
+  expect(screen.queryByText('View current location')).not.toBeInTheDocument();
+});

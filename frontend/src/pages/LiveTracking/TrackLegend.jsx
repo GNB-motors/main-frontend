@@ -43,16 +43,24 @@ const LAYER_ICONS = {
 /** Where the legend remembers whether it is open. */
 const LEGEND_OPEN_KEY = 'track.legend.open';
 
+/** Where the legend remembers whether the place layers are folded open. */
+const PLACES_OPEN_KEY = 'track.legend.places';
+
+/**
+ * Whether the place layers start folded away. The owner decides once and the
+ * choice is remembered; the storage never throws (utils/session.js reads and
+ * writes inside a try/catch), so a locked-down browser only loses the memory.
+ */
+function readPlacesOpen() {
+  return getPref(PLACES_OPEN_KEY) === 'true';
+}
+
 /**
  * Whether the legend starts open. A remembered choice wins; with none, it is
  * open on a desktop and closed on a phone, where it would cover the map.
  */
 function readLegendOpen() {
-  const stored = getPref(LEGEND_OPEN_KEY);
-  if (stored === 'true') return true;
-  if (stored === 'false') return false;
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true;
-  return !window.matchMedia('(max-width: 780px)').matches;
+  return false;
 }
 
 /**
@@ -85,10 +93,14 @@ export default function TrackLegend({
   placesTruncated = false,
   placesCount = 0,
   liveCounts = {},
+  unmatchedRoutes = null,
   error = null,
   onRetry = null,
 }) {
   const [isOpen, setIsOpen] = useState(() => readLegendOpen());
+  // The place layers are many rows; they start folded away and the owner keeps
+  // that choice (the storage read/write never throws — utils/session.js).
+  const [placesOpen, setPlacesOpen] = useState(() => readPlacesOpen());
 
   const movingCount = statusRows.find((row) => row.key === 'moving')?.count ?? 0;
   const zoomedIn = Number(zoom) >= LAYER_MIN_ZOOM;
@@ -110,6 +122,13 @@ export default function TrackLegend({
   const toggleOpen = () => {
     setIsOpen((open) => {
       setPref(LEGEND_OPEN_KEY, String(!open));
+      return !open;
+    });
+  };
+
+  const togglePlaces = () => {
+    setPlacesOpen((open) => {
+      setPref(PLACES_OPEN_KEY, String(!open));
       return !open;
     });
   };
@@ -144,8 +163,7 @@ export default function TrackLegend({
                 aria-hidden="true"
                 style={{ color: placeLayerColor('ourPlaces') }}
               />
-              <span className="text-[var(--rd-ink-2)] ov-legend-word">Places</span>
-              <span className="ml-auto text-[var(--rd-ink-3)]">Layers</span>
+              <span className="text-[var(--rd-ink-2)] ov-legend-word">Layers</span>
             </>
           )}
           <ChevronUp size={15} aria-hidden="true" />
@@ -225,9 +243,11 @@ export default function TrackLegend({
                 text: 'The places on the map: your own plants and sidings, and the landmarks a driver needs.',
                 basis: null,
               }}
+              collapsible
+              open={placesOpen}
+              onToggle={togglePlaces}
             >
               {PLACE_LAYERS.map((layer) => {
-                const gated = layer.zoomGated && !zoomedIn;
                 const Icon = LAYER_ICONS[layer.icon] || Factory;
                 return (
                   <LegendToggle
@@ -237,9 +257,7 @@ export default function TrackLegend({
                     color={placeLayerColor(layer.id)}
                     on={Boolean(layerSelection[layer.id])}
                     disabled={placesNotAvailable}
-                    disabledReason={
-                      placesNotAvailable ? 'Coming soon' : gated ? 'Zoom in to see' : null
-                    }
+                    disabledReason={placesNotAvailable ? 'Coming soon' : null}
                     onToggle={() => onToggleLayer(layer.id)}
                     info={
                       placesNotAvailable ? (
@@ -253,6 +271,7 @@ export default function TrackLegend({
                   />
                 );
               })}
+              {!zoomedIn && placesOpen ? <p className="m-0 px-1 pt-1 text-[12px] text-[var(--rd-ink-3)]">Zoom in to see nearby places.</p> : null}
               {placesTruncated ? (
                 <p className="m-0 px-1 pt-1 text-[11px] text-[var(--rd-ink-3)]">
                   Showing {placesCount.toLocaleString('en-IN')} · zoom in for all
@@ -285,6 +304,14 @@ export default function TrackLegend({
                   />
                 );
               })}
+              {layerSelection.routes && unmatchedRoutes > 0 ? (
+                <p className="m-0 px-1 pt-1 text-[11px] text-[var(--rd-ink-3)]">
+                  {unmatchedRoutes} lanes not yet road-matched
+                </p>
+              ) : null}
+              {layerSelection.routes && zoom < 7 ? (
+                <p className="m-0 px-1 pt-1 text-[11px] text-[var(--rd-ink-3)]">Zoom in to see routes</p>
+              ) : null}
             </LegendBlock>
           </div>
 

@@ -6,8 +6,13 @@ import { legLabel, tripLabel } from '../deviation/deviationRules.js';
 /** `summary` (when the API sent one) counts every open detour, not just this page. */
 export default function DeviationModule({ go, first, openDev, summary }) {
   const openCount = summary?.open ?? openDev.length;
+  // A cost nobody estimated is unknown, not ₹0.
+  const costKnown =
+    summary?.openCostInr != null || openDev.some((d) => d.estimatedExtraCostInr != null);
   const openCost =
     summary?.openCostInr ?? openDev.reduce((a, d) => a + (d.estimatedExtraCostInr || 0), 0);
+  const extraKmKnown = openDev.some((d) => d.extraKmEstimate != null);
+  const extraKm = openDev.reduce((a, d) => a + (d.extraKmEstimate || 0), 0);
   return (
     <div className="card">
       <div className="mhead" style={{ '--c': '#C2323A', '--tint': 'rgba(229,104,107,.14)' }}>
@@ -35,18 +40,20 @@ export default function DeviationModule({ go, first, openDev, summary }) {
           <div className="k">pending review</div>
         </div>
         <div>
-          <div className="v">{first ? <Skel w={56} h={20} /> : inr(openCost)}</div>
-          <div className="k">est. detour cost</div>
+          <div className="v">{first ? <Skel w={56} h={20} /> : costKnown ? inr(openCost) : '—'}</div>
+          <div className="k">{costKnown ? 'est. detour cost' : 'detour cost not estimated'}</div>
         </div>
         <div>
           <div className="v">
             {first ? (
               <Skel w={48} h={20} />
+            ) : extraKmKnown ? (
+              `+${extraKm.toFixed(1)}`
             ) : (
-              `+${openDev.reduce((a, d) => a + (d.extraKmEstimate || 0), 0).toFixed(1)}`
+              '—'
             )}
           </div>
-          <div className="k">extra km</div>
+          <div className="k">{extraKmKnown ? 'extra km' : 'extra km not estimated'}</div>
         </div>
       </div>
       {first ? <RowsSkeleton n={3} /> : null}
@@ -81,14 +88,25 @@ export default function DeviationModule({ go, first, openDev, summary }) {
               {d.trip ? tripLabel(d.trip) : legLabel(null)}
             </span>
             <span className="sp" />
-            <b style={{ fontVariantNumeric: 'tabular-nums' }}>
+            <b style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
               {d.offRouteKm != null
                 ? `${d.offRouteKm} km off road`
-                : `+${d.extraKmEstimate ?? 0} km`}
+                : d.extraKmEstimate != null
+                  ? `+${d.extraKmEstimate} km`
+                  : '—'}
             </b>
-            <b style={{ color: '#C2323A', width: 44, textAlign: 'right' }}>
-              {d.estimatedExtraCostInr != null ? inr(d.estimatedExtraCostInr) : '—'}
-            </b>
+            {d.estimatedExtraCostInr != null ? (
+              <b
+                style={{
+                  color: '#C2323A',
+                  width: 44,
+                  textAlign: 'right',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {inr(d.estimatedExtraCostInr)}
+              </b>
+            ) : null}
           </button>
         ))}
       </div>

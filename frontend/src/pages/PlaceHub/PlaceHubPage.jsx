@@ -1,3 +1,4 @@
+import { googleMapsLoaderOptions } from '../../utils/googleMapsLoader.js';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLoadScript } from '@react-google-maps/api';
@@ -30,7 +31,6 @@ import './PlaceHub.css';
 
 // Same libraries as the other place pages, so moving between them does not
 // make @react-google-maps/api tear down and reload the Maps script.
-const GMAPS_LIBS = ['places', 'geometry'];
 /** Tabs drawn on the map; the rest are tables that take the whole body. */
 const MAP_TABS = new Set(['places', 'idling', 'fuel', 'stops', 'routes']);
 
@@ -49,10 +49,7 @@ export default function PlaceHubPage() {
   const canEdit = canEditPlaces(getUserRole());
   const isSuperAdmin = getUserRole() === 'SUPER_ADMIN';
   const [params, setParams] = useSearchParams();
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-    libraries: GMAPS_LIBS,
-  });
+  const { isLoaded, loadError } = useLoadScript(googleMapsLoaderOptions);
 
   // Idling, hotspots and Place Intelligence are manager-only on the backend;
   // asking for them as anyone else would only collect 403s.

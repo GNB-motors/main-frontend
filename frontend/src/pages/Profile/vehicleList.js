@@ -43,7 +43,7 @@ export function normalizeVehicle(v) {
     mileageUnavailableReason:
       averageMileage != null
         ? null
-        : efficiency?.withheldReason || 'No calculated mileage available yet.',
+        : efficiency?.withheldReason || 'No full-tank rounds yet.',
   };
 }
 
@@ -83,6 +83,14 @@ export function vehicleNeedsRelink(vehicle, linkIndex) {
 }
 
 /**
+ * The telematics provider behind an account. Only iALERT portal accounts are
+ * not Tata FleetEdge; the extension and lemu accounts are FleetEdge.
+ */
+export function accountProviderLabel(source) {
+  return String(source || '').toUpperCase() === 'IALERT_PORTAL' ? 'iALERT' : 'FleetEdge';
+}
+
+/**
  * Resolve the FleetEdge account badge model for a vehicle row. `linkIndex`
  * (from lib/fleetLink) adds the account's link state — connected, expiring or
  * disconnected — whenever link health covers it.
@@ -101,6 +109,9 @@ export function describeFleetEdgeAccount(vehicle, accountMap = {}, linkIndex = n
     tagged: true,
     label,
     tip,
+    provider: accountProviderLabel(acct?.source),
+    accountId: acct?.externalAccountId || String(vehicle.fleetEdgeAccountId),
+    name: acct?.friendlyName || '',
     isDisabled: acct?.status === 'DISABLED',
     isAuthFailed: acct?.status === 'AUTH_FAILED',
     link: linkAccount

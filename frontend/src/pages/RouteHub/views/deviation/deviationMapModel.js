@@ -85,17 +85,42 @@ export function mapModel(detail) {
 
   const tripPoints = [...approach.flat(), ...laden.flat(), ...markers.map((m) => m.at)];
   const band = (corridor?.band || []).filter(ok).map(ll);
-  const usual = (corridor?.line || []).filter(ok).map(ll);
+  const engineUsual = detail.roadEngine?.usualRoute ?? detail.usualRoute;
+  let usual = Array.isArray(engineUsual) ? engineUsual.filter((p) => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite)) : (corridor?.line || []).filter(ok).map(ll);
+  if (usual.length > 2 && ok(detour.exitPoint) && ok(detour.rejoinPoint)) {
+    const nearest = (point) => usual.reduce((best, p, i) => {
+      const distance = (p[0] - point.lat) ** 2 + (p[1] - point.lng) ** 2;
+      return distance < best.distance ? { i, distance } : best;
+    }, { i: 0, distance: Infinity }).i;
+    const a = nearest(detour.exitPoint), b = nearest(detour.rejoinPoint);
+    if (a !== b) usual = usual.slice(Math.min(a, b), Math.max(a, b) + 1);
+  }
+  const raw = detail.roadEngine?.geometry?.offRoute ?? detail.geometry?.offRoute;
+  const driven = Array.isArray(raw) && raw.length > 1 ? raw : detourLine;
+  const anchors = [...driven, ...[detour.exitPoint, detour.rejoinPoint].filter(ok).map(ll)];
+  let nearbyRoad = [];
+  if (anchors.length) {
+    const lats = anchors.map((p) => p[0]);
+    const lngs = anchors.map((p) => p[1]);
+    const south = Math.min(...lats), north = Math.max(...lats);
+    const west = Math.min(...lngs), east = Math.max(...lngs);
+    const latMargin = Math.max((north - south) * 0.3, 0.005);
+    const lngMargin = Math.max((east - west) * 0.3, 0.005);
+    nearbyRoad = usual.filter(([lat, lng]) => lat >= south - latMargin && lat <= north + latMargin && lng >= west - lngMargin && lng <= east + lngMargin);
+  }
   return {
     band,
     usual: usual.length > 1 ? usual : [],
     approach,
     laden,
     detour: detourLine,
+    driven,
+    drivenIsRaw: true,
+    judged: usual.length > 1,
     markers,
     bounds: {
-      detour: detourLine.length ? detourLine : tripPoints,
-      trip: tripPoints.length ? tripPoints : detourLine.concat(band),
+      detour: anchors.length ? anchors.concat(nearbyRoad) : tripPoints,
+      trip: tripPoints.concat(usual, driven, band),
     },
   };
 }
@@ -114,8 +139,11 @@ export function timelineModel(detail, siblings = []) {
   const ladenFrom = ms(detail.trip?.pickup?.departedAt);
   const currentId = detail.event?._id;
   const runs = siblings.some((s) => s._id === currentId) ? siblings : [detail.event, ...siblings];
+  const eventStart = ms(detail.event?.startedAt);
+  const eventEnd = ms(detail.event?.endedAt) ?? eventStart;
+  const outsideTrip = eventStart != null && (eventStart < start || eventEnd > end);
   const bands = runs
-    .filter((r) => r && r.startedAt)
+    .filter((r) => r && r.startedAt && ms(r.startedAt) >= start && (ms(r.endedAt) ?? ms(r.startedAt)) <= end)
     .map((r) => {
       const s = ms(r.startedAt);
       const e = Math.max(ms(r.endedAt) ?? s, s);
@@ -134,5 +162,6 @@ export function timelineModel(detail, siblings = []) {
     end,
     ladenLeft: detail.trip && ladenFrom != null ? pct(ladenFrom, start, span) : null,
     bands,
+    outsideTrip,
   };
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { CalendarClock, ChevronDown, Plus, Search, ShieldCheck } from 'lucide-react';
 import { canEditSap } from '../Sap/sapModel';
@@ -10,6 +10,7 @@ import { Button } from '../../components/ui/button';
 import { useApi } from '../../hooks/useApi';
 import AutoTripService from '../../services/AutoTripService';
 import TripPlanService from '../../services/TripPlanService';
+import { fleetViewService } from '../../services/fleetViewService';
 import TripPlansTable from './TripPlansTable';
 import { formatNum } from '../../utils/formatters';
 import ManualTripDialog from './ManualTripDialog';
@@ -18,22 +19,27 @@ import TripRangePicker from './TripRangePicker';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useKnownEtas } from '../../hooks/useKnownEtas';
 import { tripDetailHref } from './tripWorkspace';
-import tripColumns from './tripColumns';
+import tripColumns, { hiddenColumnsNote } from './tripColumns';
 import TripHistoryTab from './TripHistoryTab';
 import PlaceQuestionsTab from './PlaceQuestionsTab';
+import TripKpiStrip from './TripKpiStrip';
+import NeedsAnswerBanner from './NeedsAnswerBanner';
+import { typicalRun } from './tripListModel';
 import { rangeToParams, readRange, writeRange } from './tripRange';
 import './AutoTrips.css';
 import './TripsWorkspace.css';
+import './TripsRedesign.css';
 import './TripList.css';
 
+/** The status filters. The first four are the KPI tiles; the rest live under "More". */
 const TABS = [
-  { key: '', label: 'All' },
-  { key: 'COMPLETE', label: 'Delivered', hideWhenEmpty: true },
-  { key: 'OPEN', label: 'On the road', hideWhenEmpty: true },
+  { key: '', label: 'All trips' },
+  { key: 'COMPLETE', label: 'Delivered' },
+  { key: 'OPEN', label: 'On the road' },
   // Only real questions belong here. If the backend still counts
   // PICKUP_TO_PICKUP in here, that is the backend's job (B4); we show what
   // it sends.
-  { key: 'NEEDS_REVIEW', label: 'Needs your answer', hideWhenEmpty: true },
+  { key: 'NEEDS_REVIEW', label: 'Needs your answer' },
   // A plant-to-plant run is normal: plants work like warehouses. It is its
   // own tab so the owner can see those runs, not so they can worry about
   // them (F8.1).
@@ -45,17 +51,17 @@ const TABS = [
   { key: 'DISMISSED', label: 'Rejected', hideWhenEmpty: true, inMore: true },
 ];
 
-/** Everything past the four primary tabs lives behind one "More" menu. */
-const MAIN_TABS = TABS.filter((t) => !t.inMore);
 const MORE_TABS = TABS.filter((t) => t.inMore);
 
 /** The two views that are not a filter on the trip list. */
 const VIEWS = [
   { key: 'history', label: 'History' },
-  { key: 'questions', label: 'Questions' },
+  { key: 'questions', label: 'Place questions' },
 ];
 
 const PAGE_SIZE = 50;
+/** How many of the latest trips the KPI strip and the banner measure. */
+const SAMPLE_SIZE = 100;
 
 export default function AutoTripsPage() {
   const navigate = useNavigate();
@@ -121,16 +127,20 @@ export default function AutoTripsPage() {
     setSearchParams(next, { replace: true });
   }, [debouncedSearch, searchParams, setSearchParams]);
 
+  const vehicleId = searchParams.get('vehicleId');
+  const periodParams = {
+    ...(vehicleId ? { vehicleId } : {}),
+    ...rangeToParams({ range: rangeKind, from: rangeFrom, to: rangeTo }),
+  };
   const params = {
     page: planned ? 1 : page,
     limit: planned ? 1 : PAGE_SIZE,
     ...(statusTab && !planned ? { status: statusTab } : {}),
     ...(legFilter && !planned ? { leg: legFilter } : {}),
-    ...(searchParams.get('vehicleId') ? { vehicleId: searchParams.get('vehicleId') } : {}),
     ...(searchParams.get('sapVerdict') ? { sapVerdict: searchParams.get('sapVerdict') } : {}),
     ...(searchParams.get('dropSiteId') ? { dropSiteId: searchParams.get('dropSiteId') } : {}),
     ...(urlSearch ? { search: urlSearch } : {}),
-    ...rangeToParams({ range: rangeKind, from: rangeFrom, to: rangeTo }),
+    ...periodParams,
   };
 
   const { data, loading, error, refetch } = useApi(
@@ -142,7 +152,7 @@ export default function AutoTripsPage() {
     page: planned ? page : 1,
     limit: planned ? PAGE_SIZE : 1,
     status: 'PLANNED',
-    ...(searchParams.get('vehicleId') ? { vehicleId: searchParams.get('vehicleId') } : {}),
+    ...(vehicleId ? { vehicleId } : {}),
     ...rangeToParams(range),
   };
   const plans = useApi(
@@ -151,22 +161,68 @@ export default function AutoTripsPage() {
     { scopeKey: JSON.stringify(planParams) },
   );
 
+  // ── The KPI strip and the banner: small reads that follow the period only. ──
+  const periodKey = JSON.stringify(periodParams);
+  const todayParams = {
+    page: 1,
+    limit: 1,
+    ...(vehicleId ? { vehicleId } : {}),
+    ...rangeToParams({ range: 'today' }),
+  };
+  const today = useApi(
+    (signal) => AutoTripService.list(todayParams, { signal }),
+    [JSON.stringify(todayParams)],
+    { enabled: rangeKind !== 'today', scopeKey: `today:${JSON.stringify(todayParams)}` },
+  );
+  const deliveredSample = useApi(
+    (signal) =>
+      AutoTripService.list(
+        { page: 1, limit: SAMPLE_SIZE, status: 'COMPLETE', ...periodParams },
+        { signal },
+      ),
+    [periodKey],
+    { scopeKey: `delivered:${periodKey}` },
+  );
+  const waitingSample = useApi(
+    (signal) =>
+      AutoTripService.list(
+        { page: 1, limit: SAMPLE_SIZE, status: 'NEEDS_REVIEW', ...periodParams },
+        { signal },
+      ),
+    [periodKey],
+    { scopeKey: `waiting:${periodKey}` },
+  );
+  const questions = useApi((signal) => fleetViewService.getPlaceQuestions({ signal, limit: 200 }), []);
+
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
   const tabCounts = data?.tabCounts ?? {};
-  const allCount = Object.values(tabCounts).reduce((a, b) => a + (b || 0), 0) || total;
+  const allCount = Object.entries(tabCounts)
+    .filter(([key]) => key === key.toUpperCase())
+    .reduce((a, [, b]) => a + (b || 0), 0) || total;
   const visibleTotal = planned ? (plans.data?.total ?? 0) : total;
   const totalPages = Math.max(1, Math.ceil(visibleTotal / PAGE_SIZE));
   const countFor = (key) =>
-    key === 'PLANNED' ? (plans.data?.total ?? 0) : key === '' ? allCount : (tabCounts[key] ?? 0);
-  const tabs = MAIN_TABS.filter(
-    (t) => !t.hideWhenEmpty || countFor(t.key) > 0 || statusTab === t.key,
-  );
+    key === 'PLANNED'
+      ? (plans.data?.total ?? 0)
+      : key === ''
+        ? allCount
+        : key === 'REPOSITION'
+          ? (tabCounts.reposition ?? tabCounts.REPOSITION ?? 0)
+          : (tabCounts[key] ?? 0);
   const moreTabs = MORE_TABS.filter(
     (t) => !t.hideWhenEmpty || countFor(t.key) > 0 || statusTab === t.key,
   );
   const activeMoreTab =
     moreTabs.find((t) => statusTab === t.key) || VIEWS.find((v) => viewTab === v.key) || null;
+  const kpiTab = viewTab || moreTabs.some((t) => t.key === statusTab) ? null : statusTab;
+  const todayCounts = today.data?.tabCounts;
+  const todayCount = todayCounts
+    ? Object.entries(todayCounts)
+        .filter(([key]) => key === key.toUpperCase())
+        .reduce((a, [, b]) => a + (b || 0), 0)
+    : null;
+  const run = useMemo(() => typicalRun(deliveredSample.data?.items), [deliveredSample.data]);
 
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef(null);
@@ -184,24 +240,26 @@ export default function AutoTripsPage() {
   const showSap = canEditSap(getUserRole()) && isEnabled('sapV2');
   // Destinations we know, with the arrival band (refreshed every 5 min).
   const knownEtas = useKnownEtas();
-  const columns = tripColumns({ showSap, refetch, searchParams, knownEtas });
+  const { columns, hidden } = tripColumns({
+    showSap,
+    refetch,
+    searchParams,
+    knownEtas,
+    rows: items,
+  });
+  const note = loading ? null : hiddenColumnsNote(hidden, statusTab);
 
-  const changeTab = (key) => {
+  const select = (status, view) => {
     const next = new URLSearchParams(searchParams);
-    if (key) next.set('status', key);
+    if (status) next.set('status', status);
     else next.delete('status');
-    next.delete('page');
-    setSearchParams(next);
-  };
-
-  const changeView = (key) => {
-    const next = new URLSearchParams(searchParams);
-    if (key) next.set('tab', key);
+    if (view) next.set('tab', view);
     else next.delete('tab');
-    next.delete('status');
     next.delete('page');
     setSearchParams(next);
   };
+  const changeTab = (key) => select(key, '');
+  const changeView = (key) => select('', key);
 
   const pagination = (
     <EnterprisePagination
@@ -213,156 +271,178 @@ export default function AutoTripsPage() {
     />
   );
 
+  const reviewCount = tabCounts.NEEDS_REVIEW ?? 0;
+  const showBanner = !viewTab && (statusTab === '' || statusTab === 'NEEDS_REVIEW') && reviewCount > 0;
+
+  const moreMenu = (
+    <div className="atx-more" ref={moreRef} role="tablist" aria-label="More trip views">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={Boolean(activeMoreTab)}
+        aria-haspopup="menu"
+        aria-expanded={moreOpen}
+        className={`atx-tool${activeMoreTab ? ' is-active' : ''}`}
+        onClick={() => setMoreOpen((o) => !o)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') setMoreOpen(false);
+        }}
+      >
+        {activeMoreTab ? activeMoreTab.label : 'More'}
+        <ChevronDown size={14} aria-hidden="true" />
+      </button>
+      {moreOpen ? (
+        <div className="atx-more-menu" role="menu">
+          {moreTabs.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              role="menuitem"
+              className={`atx-more-item${statusTab === t.key && !viewTab ? ' atx-more-item--active' : ''}`}
+              onClick={() => {
+                setMoreOpen(false);
+                changeTab(t.key);
+              }}
+            >
+              {t.label}
+              <span className="atx-tab-count">{formatNum(countFor(t.key))}</span>
+            </button>
+          ))}
+          {moreTabs.length ? <span className="atx-more-rule" aria-hidden="true" /> : null}
+          {VIEWS.map((view) => (
+            <button
+              key={view.key}
+              type="button"
+              role="menuitem"
+              className={`atx-more-item${viewTab === view.key ? ' atx-more-item--active' : ''}`}
+              onClick={() => {
+                setMoreOpen(false);
+                changeView(view.key);
+              }}
+            >
+              {view.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+
+  const viewTitle =
+    activeMoreTab?.label || TABS.find((t) => t.key === statusTab)?.label || 'All trips';
+  const listCount = planned ? visibleTotal : total;
+
+  const tools = (
+    <div className="atx-tools">
+      {!viewTab && !planned ? (
+        <span className="atx-tools-title">
+          {viewTitle}
+          {!loading || data ? <span className="atx-num">{formatNum(listCount)}</span> : null}
+        </span>
+      ) : null}
+      <span className="atx-tools-note">{note}</span>
+      {moreMenu}
+      {showSap && !planned && !viewTab ? (
+        <label className="atx-tool atx-tool--select">
+          SAP
+          <select
+            aria-label="SAP"
+            value={searchParams.get('sapVerdict') || ''}
+            onChange={(e) => {
+              const next = new URLSearchParams(searchParams);
+              if (e.target.value) next.set('sapVerdict', e.target.value);
+              else next.delete('sapVerdict');
+              next.delete('page');
+              setSearchParams(next, { replace: true });
+            }}
+          >
+            <option value="">All</option>
+            <option value="OVER">Over SAP</option>
+            <option value="UNDER">Under SAP</option>
+            <option value="WITHIN">Within</option>
+            <option value="NO_SAP">No SAP</option>
+          </select>
+        </label>
+      ) : null}
+      {!planned && !viewTab ? (
+        <div className="atx-search">
+          <Search size={14} aria-hidden="true" />
+          <input
+            type="search"
+            className="atx-search-input"
+            placeholder="Search a place, e.g. Buxar"
+            aria-label="Search trips by place"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+        </div>
+      ) : null}
+      <Link className="atx-tool" to="/auto-trips/approvals">
+        <ShieldCheck size={14} aria-hidden="true" />
+        Pending approvals
+      </Link>
+    </div>
+  );
+
   return (
     <div className="atx-page atx-list">
       <div className="atx-wrap">
-        <div className="atx-head">
+        <header className="atx-head">
           <div className="atx-head-main">
-            <div className="atx-title-row">
-              <h1 className="atx-title">Trips</h1>
-              <span className="atx-count">{formatNum(allCount)} trips</span>
-            </div>
+            <h1 className="atx-title">Trips</h1>
             <p className="atx-sub">
-              Pickup, delivery and the driver behind every trip. Open a trip to review its journey.
+              Every run from plant to drop, found from the trucks&apos; GPS. Open a trip to replay
+              it.
             </p>
           </div>
           <div className="atx-actions">
-            <Button onClick={() => setDialog({ kind: 'manual' })}>
-              <Plus size={15} aria-hidden="true" />
-              Add missed trip
-            </Button>
+            <TripRangePicker value={range} onChange={changeRange} />
             <Button variant="outline" onClick={() => setDialog({ kind: 'plan' })}>
               <CalendarClock size={15} aria-hidden="true" />
               Schedule trip
             </Button>
+            <Button onClick={() => setDialog({ kind: 'manual' })}>
+              <Plus size={15} aria-hidden="true" />
+              Add missed trip
+            </Button>
           </div>
-        </div>
-        <div className="atx-toolbar">
-          <div className="atx-toolbar-start">
-            <div role="tablist" aria-label="Filter trips" className="atx-tabs">
-              {tabs.map((t) => (
-                <button
-                  key={t.key || 'all'}
-                  type="button"
-                  role="tab"
-                  aria-selected={statusTab === t.key && !viewTab}
-                  className="atx-tab"
-                  onClick={() => {
-                    changeView('');
-                    changeTab(t.key);
-                  }}
-                >
-                  {t.label}
-                  <span className="atx-tab-count">{formatNum(countFor(t.key))}</span>
-                </button>
-              ))}
-              {/* History and Questions always live here, so More is always shown. */}
-              {moreTabs.length > 0 || VIEWS.length > 0 ? (
-                <div className="atx-more" ref={moreRef}>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={Boolean(activeMoreTab)}
-                    aria-haspopup="menu"
-                    aria-expanded={moreOpen}
-                    className={`atx-tab atx-tab--more${activeMoreTab ? ' atx-tab--active-more' : ''}`}
-                    onClick={() => setMoreOpen((o) => !o)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Escape') setMoreOpen(false);
-                    }}
-                  >
-                    {activeMoreTab ? activeMoreTab.label : 'More'}
-                    <ChevronDown size={13} aria-hidden="true" />
-                  </button>
-                  {moreOpen ? (
-                    <div className="atx-more-menu" role="menu">
-                      {moreTabs.map((t) => (
-                        <button
-                          key={t.key}
-                          type="button"
-                          role="menuitem"
-                          className={`atx-more-item${statusTab === t.key && !viewTab ? ' atx-more-item--active' : ''}`}
-                          onClick={() => {
-                            setMoreOpen(false);
-                            changeView('');
-                            changeTab(t.key);
-                          }}
-                        >
-                          {t.label}
-                          <span className="atx-tab-count">{formatNum(countFor(t.key))}</span>
-                        </button>
-                      ))}
-                      {VIEWS.map((view) => (
-                        <button
-                          key={view.key}
-                          type="button"
-                          role="menuitem"
-                          className={`atx-more-item${viewTab === view.key ? ' atx-more-item--active' : ''}`}
-                          onClick={() => {
-                            setMoreOpen(false);
-                            changeView(view.key);
-                          }}
-                        >
-                          {view.label}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          </div>
-          <div className="atx-filter-row">
-            {showSap && !planned && (
-              <label className="sap-row">
-                SAP
-                <select
-                  className="sap-filter"
-                  aria-label="SAP"
-                  value={searchParams.get('sapVerdict') || ''}
-                  onChange={(e) => {
-                    const next = new URLSearchParams(searchParams);
-                    if (e.target.value) next.set('sapVerdict', e.target.value);
-                    else next.delete('sapVerdict');
-                    next.delete('page');
-                    setSearchParams(next, { replace: true });
-                  }}
-                >
-                  <option value="">All</option>
-                  <option value="OVER">Over SAP</option>
-                  <option value="UNDER">Under SAP</option>
-                  <option value="WITHIN">Within</option>
-                  <option value="NO_SAP">No SAP</option>
-                </select>
-              </label>
-            )}
-            {!planned && (
-              <div className="atx-search">
-                <Search size={15} aria-hidden="true" />
-                <input
-                  type="search"
-                  className="atx-search-input"
-                  placeholder="Search a place, e.g. Buxar"
-                  aria-label="Search trips by place"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                />
-              </div>
-            )}
-            <Link className="atx-toolbar-link" to="/auto-trips/approvals">
-              <ShieldCheck size={14} aria-hidden="true" />
-              Pending approvals
-            </Link>
-            <TripRangePicker value={range} onChange={changeRange} />
-          </div>
-        </div>
+        </header>
+
+        <TripKpiStrip
+          counts={{
+            all: allCount,
+            delivered: tabCounts.COMPLETE ?? 0,
+            open: tabCounts.OPEN ?? 0,
+            review: reviewCount,
+          }}
+          todayCount={todayCount}
+          rangeIsToday={rangeKind === 'today'}
+          selectedTab={kpiTab}
+          onSelect={changeTab}
+          run={run}
+          runLoading={deliveredSample.loading}
+          runFailed={Boolean(deliveredSample.error)}
+        />
+
+        {showBanner ? (
+          <NeedsAnswerBanner
+            total={reviewCount}
+            sample={waitingSample.data?.items}
+            sampleLoading={waitingSample.loading}
+            questions={questions.data?.items}
+            questionsTotal={questions.data?.total}
+            questionsFailed={Boolean(questions.error)}
+            onAnswerPlaces={() => changeView('questions')}
+            onShowTrips={statusTab === 'NEEDS_REVIEW' ? null : () => changeTab('NEEDS_REVIEW')}
+          />
+        ) : null}
 
         {!planned && searchParams.get('dropSiteId') && (
-          <div className="sap-row">
+          <div className="atx-filter-chip">
             <span>Drop: {searchParams.get('dropName') || 'Selected place'}</span>
             <button
               type="button"
-              className="atx-btn atx-btn--sm"
+              className="atx-inline-link"
               onClick={() => {
                 const next = new URLSearchParams(searchParams);
                 next.delete('dropSiteId');
@@ -375,25 +455,43 @@ export default function AutoTripsPage() {
             </button>
           </div>
         )}
-        {viewTab === 'history' ? (
-          <TripHistoryTab
-            vehicle={searchParams.get('vehicle')}
-            site={searchParams.get('site')}
-            from={searchParams.get('from')}
-            to={searchParams.get('to')}
-          />
-        ) : viewTab === 'questions' ? (
-          <PlaceQuestionsTab />
+
+        {viewTab ? (
+          <section className="atx-panel">
+            <div className="atx-panel-head">
+              <h2 className="atx-panel-title">{viewTitle}</h2>
+              {tools}
+            </div>
+            <div className="atx-panel-body">
+              {viewTab === 'history' ? (
+                <TripHistoryTab
+                  vehicle={searchParams.get('vehicle')}
+                  site={searchParams.get('site')}
+                  from={searchParams.get('from')}
+                  to={searchParams.get('to')}
+                />
+              ) : (
+                <PlaceQuestionsTab />
+              )}
+            </div>
+          </section>
         ) : planned ? (
-          <TripPlansTable
-            data={plans.data}
-            loading={plans.loading}
-            error={plans.error}
-            refetch={plans.refetch}
-            pagination={pagination}
-          />
+          <section className="atx-panel">
+            <div className="atx-panel-head">
+              <h2 className="atx-panel-title">{viewTitle}</h2>
+              {tools}
+            </div>
+            <TripPlansTable
+              data={plans.data}
+              loading={plans.loading}
+              error={plans.error}
+              refetch={plans.refetch}
+              pagination={pagination}
+            />
+          </section>
         ) : (
           <DataTable
+            className="atx-table"
             columns={columns}
             rows={items}
             paginated={true}
@@ -404,6 +502,7 @@ export default function AutoTripsPage() {
             showing={items.length}
             total={total}
             pagination={pagination}
+            toolbarExtra={tools}
             onRowClick={(r) => navigate(tripDetailHref(r._id, searchParams))}
             emptyTitle={
               urlSearch

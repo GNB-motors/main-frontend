@@ -29,7 +29,7 @@ export default function VehicleDriverSection({ driver = null }) {
       ) : (
         <div className="flex flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[14px] font-semibold text-[var(--rd-ink)]">{driver.name}</span>
+            <span className="text-[14px] font-semibold text-[var(--rd-ink)]">{String(driver.name || '').replace(/\s+N\/?A$/i, '').trim() || 'Name not known'}</span>
             {driver.source === 'INFERRED' ? (
               <>
                 <ToneBadge tone="watch">Inferred</ToneBadge>

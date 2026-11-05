@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import IntelligenceSummaryTiles from './IntelligenceSummaryTiles';
 
@@ -20,34 +20,59 @@ const tiles = [
     why: { text: 'Engine on, not moving.' },
     link: null,
   },
+  {
+    key: 'NO_DATA',
+    label: 'No data from WB11F6562',
+    value: '1 time',
+    severity: 'act',
+    why: { text: 'No reading for 8 days.', basis: 'First seen 2026-10-27T02:20:13.000Z' },
+    link: { label: 'See the issues', to: '/intelligence?kind=NO_DATA' },
+  },
+  {
+    key: 'REPORT_CARDS',
+    label: 'Report cards',
+    value: '126 trucks graded',
+    severity: 'good',
+    why: { text: '15 truck(s) excellent.' },
+    link: { label: 'Open the report cards', to: '/intelligence?tab=report-cards' },
+  },
 ];
 
 describe('IntelligenceSummaryTiles', () => {
-  it('shows every tile the API sent, in order', () => {
+  it('shows every finding the API sent that the Issues tab does not already group', () => {
     render(
       <MemoryRouter>
         <IntelligenceSummaryTiles tiles={tiles} />
       </MemoryRouter>,
     );
+
     expect(screen.getByText('Kilometres driven')).toBeInTheDocument();
     expect(screen.getByText('42,180 km')).toBeInTheDocument();
     expect(screen.getByText('Idling')).toBeInTheDocument();
+    expect(screen.getByText('126 trucks graded')).toBeInTheDocument();
+    expect(screen.queryByText('No data from WB11F6562')).not.toBeInTheDocument();
   });
 
-  it('makes a tile a link when the API knows where the evidence is', () => {
+  it('opens the tab an in-page link points at, mapping old tab names', () => {
+    const onOpenTab = vi.fn();
     render(
       <MemoryRouter>
-        <IntelligenceSummaryTiles tiles={tiles} />
+        <IntelligenceSummaryTiles tiles={tiles} onOpenTab={onOpenTab} />
       </MemoryRouter>,
     );
-    expect(screen.getByRole('link', { name: /Kilometres driven/ })).toHaveAttribute(
-      'href',
-      '/intelligence?tab=runs',
-    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^42,180 km/ }));
+    expect(onOpenTab).toHaveBeenCalledWith('runs');
+    fireEvent.click(screen.getByRole('button', { name: /^126 trucks graded/ }));
+    expect(onOpenTab).toHaveBeenCalledWith('vehicles');
   });
 
-  it('shows nothing when there are no tiles', () => {
-    const { container } = render(<IntelligenceSummaryTiles tiles={[]} />);
+  it('shows nothing when every tile is an issue the Issues tab already shows', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <IntelligenceSummaryTiles tiles={[tiles[2]]} />
+      </MemoryRouter>,
+    );
     expect(container).toBeEmptyDOMElement();
   });
 });

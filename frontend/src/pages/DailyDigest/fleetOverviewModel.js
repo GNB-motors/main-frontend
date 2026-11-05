@@ -148,6 +148,7 @@ export function buildOverview(digest, legacy = null) {
     pending,
     loadedKm,
     emptyKm,
+    runningReason: legacy?.utilization?.fleet?.reason || null,
     drivers,
     followUps: digest?.needsAttention || [],
     issueNote: legacy

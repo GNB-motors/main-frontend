@@ -37,10 +37,10 @@ export default function IntelligenceFilters({
   const driverName = drivers.find((entry) => entry.id === driver)?.name ?? driver;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-wrap items-center justify-end gap-2">
       <div className="flex flex-wrap items-center gap-2">
         {showVehicle ? (
-          <div className="w-full sm:w-[260px]">
+          <div className="w-full sm:w-[210px]">
             <SearchableSelect
               value={vehicle}
               aria-label="Filter by truck"
@@ -58,7 +58,7 @@ export default function IntelligenceFilters({
           </div>
         ) : null}
         {showDriver ? (
-          <div className="w-full sm:w-[260px]">
+          <div className="w-full sm:w-[210px]">
             <SearchableSelect
               value={driver}
               aria-label="Filter by driver"

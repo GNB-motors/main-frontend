@@ -1,3 +1,4 @@
+import { googleMapsLoaderOptions } from '../../utils/googleMapsLoader.js';
 import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { GoogleMap, MarkerF, PolylineF, useLoadScript } from '@react-google-maps/api';
 import { createVehicleMarkerIcon } from '../LiveTracking/vehicleMarkerIcon.js';
@@ -12,7 +13,6 @@ import TollMarkers from './TollMarkers';
 import { justPassed, tollMarks } from './tripTolls';
 import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
 
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const CONTAINER = { width: '100%', height: '100%' };
 const INDIA = { lat: 22.9734, lng: 78.6569 };
 /** At 1× the replay plays one minute of the trip every second; 10× and 50× scale up. */
@@ -87,7 +87,7 @@ export default function AutoTripReplay({
   autoPlay = false,
   ref,
 }) {
-  const { isLoaded } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
+  const { isLoaded } = useLoadScript(googleMapsLoaderOptions);
   const mapRef = useRef(null);
   const poiClickRef = useRef(null);
   const wrapRef = useRef(null);
@@ -260,7 +260,7 @@ export default function AutoTripReplay({
   };
 
   let chip = null;
-  if (GOOGLE_MAPS_API_KEY) {
+  if (googleMapsLoaderOptions.googleMapsApiKey) {
     if (loading && !track) chip = 'Loading GPS track…';
     else if (error && !track) chip = 'Could not load the GPS track';
     else if (!frames.length) chip = 'No GPS track for this trip';
@@ -279,7 +279,7 @@ export default function AutoTripReplay({
   return (
     <div ref={wrapRef} className="atx-replay">
       <div className="atx-map">
-        {!GOOGLE_MAPS_API_KEY ? (
+        {!googleMapsLoaderOptions.googleMapsApiKey ? (
           <div className="atx-map-empty">
             <strong>Map unavailable</strong>
             <span>No Google Maps key is configured.</span>

@@ -1,27 +1,58 @@
 import { useMemo } from 'react';
-import Link from '@/components/redesign/FleetLink';
-import {
-  ArrowUpRight,
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  ClipboardList,
-  RefreshCw,
-  Route,
-  ShieldAlert,
-  Truck,
-} from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, RefreshCw, ShieldAlert } from 'lucide-react';
 import { formatIst, formatIstDate } from '../../utils/redesign/format';
 import { istDayString } from '../../utils/dateUtils';
-import DigestStoryCard from './DigestStoryCard';
 import OwnerReportPanel from './OwnerReportPanel';
+import useOwnerReport from './useOwnerReport';
 import FleetLiveSection from './components/FleetLiveSection';
 import FleetAnalytics from './components/FleetAnalytics';
-import DigestSkeleton from './components/DigestSkeleton';
-import { buildOverview, numeric, shiftDay } from './fleetOverviewModel';
+import { buildOverview, shiftDay } from './fleetOverviewModel';
 
-const fmt = (value) => (value == null ? '—' : value.toLocaleString('en-IN'));
-const SEVERITY = { act: 'Critical', watch: 'Warning', info: 'Info', good: 'Clear' };
+const WEEKDAY = new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long' });
+
+/** The "Waiting on you" rows: the digest's action items, written for an owner. */
+function waitingItems(model, legacy) {
+  if (legacy) return model.attention;
+  const issues = model.cards.issues;
+  const first = issues?.items?.find((item) => item.link && item.value === 'critical')?.label;
+  return model.attention
+    .filter((item) => item.id !== 'accounts' || item.count > 0)
+    .map((item) => {
+      if (item.id === 'issues') {
+        const parts = [];
+        if (model.caution != null)
+          parts.push(`${model.caution.toLocaleString('en-IN')} cautions too`);
+        if (first) parts.push(`start with ${first.charAt(0).toLowerCase()}${first.slice(1)}`);
+        return { ...item, description: parts.length ? parts.join(' · ') : item.description };
+      }
+      if (item.id === 'questions') {
+        const names = (model.cards.questions?.items || [])
+          .filter((i) => i.link)
+          .map((i) => i.label)
+          .slice(0, 2);
+        return {
+          ...item,
+          title: 'Places waiting for your answer',
+          description: names.length
+            ? `Start with ${names.join(', ')}`
+            : 'Answering them sharpens trip detection.',
+        };
+      }
+      if (item.id === 'fuel') return { ...item, title: 'Fuel to explain' };
+      return item;
+    });
+}
+
+function accountsLine(accounts) {
+  const list = Array.isArray(accounts?.data?.accounts) ? accounts.data.accounts : null;
+  if (!list) return accounts?.checking ? 'Checking vendor accounts…' : null;
+  const healthy = list.filter((a) => a.state === 'HEALTHY').length;
+  const relink = list.filter((a) => a.state === 'NEEDS_RELINK').length;
+  const other = list.length - healthy - relink;
+  return `FleetEdge accounts: ${healthy} connected${relink ? `, ${relink} to re-link` : ''}${
+    other > 0 ? `, ${other} in another state` : ''
+  }.`;
+}
 
 export default function FleetOperationsOverview({
   date,
@@ -39,80 +70,42 @@ export default function FleetOperationsOverview({
 }) {
   const digest = report.data?.payload;
   const model = useMemo(() => buildOverview(digest, legacy), [digest, legacy]);
+  const owner = useOwnerReport(date);
   const today = istDayString(new Date());
   const refreshing =
     report.loading || inventory.loading || trips.loading || fuel.loading || legacy?.loading;
-  const issueLink = model.cards.issues?.link?.to || '/intelligence?tab=issues';
   const reportPending = legacy
     ? legacy.loading && !legacy.lastUpdated
     : report.loading && !report.data;
   const attentionPending = legacy
     ? (legacy.loadingSections?.attention ?? reportPending)
     : reportPending;
-  const kpis = [
-    {
-      label: 'Total vehicles',
-      loading: inventory.loading && !inventory.data,
-      value: Array.isArray(inventory.data) ? inventory.data.length : null,
-      note: inventory.error ? 'Fleet register could not refresh' : 'Registered fleet · current',
-      to: '/vehicles/dashboard',
-      icon: Truck,
-      tone: 'info',
-    },
-    {
-      label: 'Active trips',
-      loading: trips.loading && !trips.data,
-      value: numeric(trips.data?.total),
-      note: trips.error ? 'Trip status could not refresh' : 'Open trips · current',
-      to: '/auto-trips?status=OPEN',
-      icon: Route,
-      tone: 'good',
-    },
-    {
-      label: 'Critical issues',
-      loading: attentionPending,
-      value: model.critical,
-      note: legacy ? 'Priority action items · today' : 'Reported for the selected day',
-      to: issueLink,
-      icon: ShieldAlert,
-      tone: model.critical > 0 ? 'act' : 'info',
-    },
-    {
-      label: 'Pending actions',
-      loading: attentionPending,
-      value: model.pending,
-      note: legacy ? 'Reported action items · today' : 'Place reviews + account reconnects',
-      to: '#fo-attention',
-      icon: ClipboardList,
-      tone: model.pending > 0 ? 'watch' : 'info',
-    },
-  ];
   const reportUnavailable = report.error && report.error.status !== 404;
   const held = digest?.held === true;
+  const generatedAt = owner.report$.data?.generatedAt;
+  const builtAt = generatedAt ? formatIst(generatedAt) : null;
+  const dayDate = new Date(`${date}T12:00:00+05:30`);
+
+  const handleRefresh = () => {
+    owner.brief$.refetch();
+    owner.report$.refetch();
+    onRefresh();
+  };
 
   return (
     <div className="fleet-overview">
       <div className="fo-page">
-        <header className="fo-page-header">
-          <div>
-            <div className="fo-eyebrow">Daily digest</div>
-            <h1>Fleet Overview</h1>
+        <header className="db-header">
+          <div className="db-header-text">
+            <h1>Daily digest</h1>
             <p>
-              {formatIstDate(new Date(`${date}T12:00:00+05:30`))}
-              <span className="fo-header-divider">/</span>Operations at a glance
+              {date === today ? 'Today' : WEEKDAY.format(dayDate)}, {formatIstDate(dayDate)}.{' '}
+              {digest?.headline || 'What happened, what it cost and what needs you.'}
+              {builtAt ? <span className="db-header-meta"> Report built {builtAt}.</span> : null}
             </p>
           </div>
-          <div className="fo-header-actions">
-            <span className="fo-last-updated">
-              {legacy?.lastUpdated
-                ? `Report updated ${formatIst(legacy.lastUpdated)}`
-                : report.data?.readAt
-                  ? `Report updated ${formatIst(report.data.readAt)}`
-                  : report.loading
-                    ? 'Loading report…'
-                    : 'Report update unavailable'}
-            </span>
-            <div className="fo-date-control">
+          <div className="db-header-actions">
+            <div className="db-date">
               <button
                 type="button"
                 aria-label="Previous day"
@@ -121,7 +114,7 @@ export default function FleetOperationsOverview({
                 <ChevronLeft size={16} />
               </button>
               <label>
-                <CalendarDays size={15} />
+                <CalendarDays size={15} aria-hidden="true" />
                 <input
                   type="date"
                   aria-label="Digest date"
@@ -143,26 +136,26 @@ export default function FleetOperationsOverview({
               </button>
             </div>
             {date !== today ? (
-              <button type="button" className="fo-button" onClick={() => onDateChange(today)}>
+              <button type="button" className="db-button" onClick={() => onDateChange(today)}>
                 Today
               </button>
             ) : null}
             {legacy?.exportAction}
             <button
               type="button"
-              className="fo-button fo-refresh"
-              onClick={onRefresh}
+              className="db-button db-button--primary"
+              onClick={handleRefresh}
               disabled={refreshing}
             >
-              <RefreshCw size={15} />
+              <RefreshCw size={15} aria-hidden="true" />
               <span>{refreshing ? 'Refreshing…' : 'Refresh'}</span>
             </button>
           </div>
         </header>
 
         {reportUnavailable || held ? (
-          <div className="fo-notice" role="alert">
-            <ShieldAlert size={18} />
+          <div className="db-notice" role="alert">
+            <ShieldAlert size={18} aria-hidden="true" />
             <div>
               <strong>We could not load today&apos;s digest.</strong>
               <p>
@@ -172,175 +165,64 @@ export default function FleetOperationsOverview({
                     : 'Live operations remain available. Retry the report to load daily insights.')}
               </p>
             </div>
-            <button className="fo-button" type="button" onClick={report.refetch}>
+            <button className="db-button" type="button" onClick={report.refetch}>
               Retry report
             </button>
           </div>
         ) : null}
         {report.error?.status === 404 && !legacy ? (
-          <div className="fo-notice" role="status">
+          <div className="db-notice" role="status">
             Historical digest reports are unavailable on this server. Select Today to view the
             available operational report.
           </div>
         ) : null}
         {legacy?.error ? (
-          <div className="fo-notice" role="alert">
+          <div className="db-notice" role="alert">
             Some daily report sources could not load. Live operations are still available.{' '}
-            <button type="button" className="fo-text-link" onClick={legacy.refresh}>
+            <button type="button" className="db-link" onClick={legacy.refresh}>
               Retry daily report
             </button>
           </div>
         ) : null}
 
-        <OwnerReportPanel day={date} digest={digest} />
-
-        <section className="fo-kpis" aria-label="Fleet key metrics" aria-busy={refreshing}>
-          {kpis.map((kpi) => {
-            const { label, value, note, to, tone } = kpi;
-            const Icon = kpi.icon;
-            const body = (
-              <>
-                <span className="fo-kpi-label">
-                  {label}
-                  <span className={`fo-kpi-icon fo-tone--${tone}`}>
-                    <Icon size={17} />
-                  </span>
-                </span>
-                {kpi.loading ? (
-                  <DigestSkeleton variant="metric" label={`Loading ${label.toLowerCase()}`} />
-                ) : (
-                  <>
-                    <strong className="fo-kpi-value">{fmt(value)}</strong>
-                    <span className="fo-kpi-note">{note}</span>
-                  </>
-                )}
-              </>
-            );
-            if (kpi.loading)
-              return (
-                <div className="fo-kpi" key={label}>
-                  {body}
-                </div>
-              );
-            return to.startsWith('#') ? (
-              <a
-                className="fo-kpi"
-                href={to}
-                key={label}
-                onClick={(event) => {
-                  event.preventDefault();
-                  document.getElementById('fo-attention')?.scrollIntoView({ block: 'start' });
-                }}
-              >
-                {body}
-              </a>
-            ) : (
-              <Link className="fo-kpi" key={label} to={to}>
-                {body}
-              </Link>
-            );
-          })}
-        </section>
-
-        <FleetLiveSection fleet={fleet} live={live} trips={trips} />
-
-        <section
-          className="fo-panel fo-attention"
-          id="fo-attention"
-          aria-labelledby="fo-attention-title"
-          aria-busy={report.loading || legacy?.loading || false}
-        >
-          <div className="fo-section-head">
-            <div>
-              <div className="fo-eyebrow">Action center</div>
-              <h2 id="fo-attention-title">Needs your attention</h2>
-              <p>Critical issues first. Open an item to investigate or take action.</p>
-            </div>
-            <Link className="fo-text-link" to={issueLink}>
-              View issues <ArrowUpRight size={16} />
-            </Link>
-          </div>
-          <div className="fo-attention-list">
-            {attentionPending ? (
-              <DigestSkeleton label="Loading action center" />
-            ) : model.attention.length ? (
-              model.attention.map((item) => (
-                <Link className="fo-action" key={item.id} to={item.to}>
-                  <span className={`fo-action-indicator fo-tone--${item.tone}`}>
-                    <ShieldAlert size={18} />
-                  </span>
-                  <span className="fo-action-copy">
-                    <span className="fo-action-title">
-                      {item.title}
-                      <span className={`fo-badge fo-tone--${item.tone}`}>
-                        {SEVERITY[item.tone] || 'Review'}
-                      </span>
-                    </span>
-                    <span className="fo-action-description">{item.description}</span>
-                  </span>
-                  <strong className="fo-action-count">
-                    {item.count == null ? '—' : fmt(item.count)}
-                    <small>
-                      {item.count == null ? (legacy ? 'review' : 'unavailable') : 'reported'}
-                    </small>
-                  </strong>
-                  <span className="fo-action-go">
-                    {item.label || 'Review'} <ArrowUpRight size={15} />
-                  </span>
-                </Link>
-              ))
-            ) : (
-              <p className="fo-empty">
-                {legacy?.loading ? 'Loading actions…' : 'No action items returned by the report.'}
-              </p>
-            )}
-          </div>
-          <p className="fo-attention-note">
-            {legacy
-              ? 'Today’s available operational actions. Detailed reports below retain acknowledgements and vehicle drilldowns.'
-              : 'Issue and place counts follow the digest’s organisation scope. Unknown counts are shown as —.'}
-          </p>
-        </section>
-
-        <FleetAnalytics
-          model={model}
-          fuel={fuel}
-          fuelTrend={fuelTrend}
-          accounts={accounts}
+        <OwnerReportPanel
+          day={date}
           digest={digest}
-          loading={reportPending}
-          loadingSections={legacy?.loadingSections}
+          brief$={owner.brief$}
+          report$={owner.report$}
+          builtAt={builtAt}
+          fleet={fleet}
+          live={live}
+          attention={waitingItems(model, legacy)}
+          attentionPending={attentionPending}
+          attentionNote={
+            legacy
+              ? 'Priority action items from the daily report. They may group several alerts.'
+              : 'Counts follow the digest for this organisation. An unknown count is shown as —.'
+          }
+          accountsSummary={accountsLine(accounts)}
+          drivers={legacy ? model.drivers : null}
+          liveSection={<FleetLiveSection fleet={fleet} live={live} trips={trips} />}
+          performance={
+            <FleetAnalytics
+              model={model}
+              fuel={fuel}
+              fuelTrend={fuelTrend}
+              loading={reportPending}
+              loadingSections={legacy?.loadingSections}
+            />
+          }
         />
 
         {legacy?.reports ? (
-          <details className="fo-report-details">
-            <summary>
-              Detailed operational reports
-              <span>Calendar, refuelling, cost estimates and follow-ups</span>
-            </summary>
+          <section className="db-section" aria-labelledby="db-legacy-title">
+            <header className="db-section-head">
+              <h2 id="db-legacy-title">Detailed operational reports</h2>
+              <p>Calendar, refuelling, cost estimates and follow-ups.</p>
+            </header>
             <div className="fo-legacy-reports">{legacy.reports}</div>
-          </details>
-        ) : (
-          <details className="fo-report-details">
-            <summary>
-              Daily report details<span>Source explanations and all original drilldowns</span>
-            </summary>
-            <div className="fo-report-content">
-              {digest?.headline ? <p className="fo-report-headline">{digest.headline}</p> : null}
-              {report.loading && !digest ? (
-                <p role="status">Loading the day&apos;s report…</p>
-              ) : !digest?.story?.length ? (
-                <p>Nothing happened on this day that we can report yet.</p>
-              ) : (
-                <div className="fo-report-grid">
-                  {digest.story.map((card) => (
-                    <DigestStoryCard key={card.key} card={card} />
-                  ))}
-                </div>
-              )}
-            </div>
-          </details>
-        )}
+          </section>
+        ) : null}
       </div>
     </div>
   );

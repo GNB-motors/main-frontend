@@ -44,3 +44,11 @@ describe('Track metric readings', () => {
     ).toMatchObject({ fuel: '—', def: '—', odometer: '—' });
   });
 });
+
+it('uses the newest timestamp, including an Ashok Leyland status reading', () => {
+  const vehicle = { readings: { odometerKm: { value: 100, at: '2026-11-01T00:00:00Z' } } };
+  const health = { canOdo: 200, pulledAt: '2026-11-02T00:00:00Z' };
+  const status = { odometer: 9799, eventDateTime: '2026-11-04T00:00:00Z', provider: 'IALERT' };
+  expect(vehicleMetricReadings(vehicle, health, status)).toMatchObject({ odometer: '9,799 km', odometerSource: 'STATUS' });
+  expect(vehicleMetricReadings({ readings: { odometerKm: { value: 300, at: '2026-11-05T00:00:00Z' } } }, health, status)).toMatchObject({ odometer: '300 km', odometerSource: 'LIVE' });
+});

@@ -18,10 +18,11 @@ export default function VehicleReadingTiles({ now }) {
   const odo = readings.odometerKm ?? null;
   const service = now?.identity?.service ?? null;
 
+
   return (
-    <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-2">
+    <><div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-2">
       {/* Fuel */}
-      <Tile
+      {fuel.main !== null ? <Tile
         label="Fuel"
         value={
           fuel.main === null
@@ -38,7 +39,7 @@ export default function VehicleReadingTiles({ now }) {
             : fuel.main.kind === 'unitless'
               ? fuel.secondary
               : fuel.main.kind === 'litres'
-              ? readings.fuel.tankL != null && readings.fuel.pct?.value != null
+              ? readings.fuel.tankL != null && readings.fuel.pct?.value != null && readings.fuel.pct.value >= 0 && readings.fuel.pct.value <= 100 && Math.abs(readings.fuel.pct.value - (100 * fuel.main.value / readings.fuel.tankL)) <= 5
                 ? `of ${readings.fuel.tankL} L · ${formatPct(readings.fuel.pct.value)}`
                 : null
               : readings.fuel.tankL != null
@@ -46,10 +47,10 @@ export default function VehicleReadingTiles({ now }) {
                 : null
         }
         reading={fuel.reading}
-      />
+      /> : null}
 
       {/* DEF */}
-      <Tile
+      {def.main !== null ? <Tile
         label="DEF"
         value={def.main === null ? 'Not received' : formatPct(def.main.value)}
         secondary={def.secondary}
@@ -62,17 +63,17 @@ export default function VehicleReadingTiles({ now }) {
               }
             : null
         }
-      />
+      /> : null}
 
       {/* Odometer */}
-      <Tile
+      {odo?.value != null ? <Tile
         label="Odometer"
         value={odo?.value == null ? 'Not received' : formatKm(odo.value)}
         secondary={
           service?.dueInKm != null ? `Service due in ${formatKm(service.dueInKm)}` : null
         }
         reading={odo}
-      />
+      /> : null}
 
       {/* Speed */}
       <Tile
@@ -80,7 +81,7 @@ export default function VehicleReadingTiles({ now }) {
         value={view.speedKmh == null ? 'Not received' : formatKmh(view.speedKmh)}
         reading={view.lastFixAt ? { freshness: view.freshness ?? 'never' } : null}
       />
-    </div>
+    </div>{odo?.value == null ? <p className="m-0 text-[12px] text-[var(--rd-ink-3)]">Odometer: no reading yet</p> : null}</>
   );
 }
 
@@ -121,7 +122,10 @@ function Tile({ label, value, secondary = null, reading = null, info = null }) {
       {secondary ? (
         <span className="mt-0.5 text-[11px] text-[var(--rd-ink-3)]">{secondary}</span>
       ) : null}
-      {isMuted && at ? (
+      {label === 'Odometer' && at ? (
+        <span className="mt-0.5 text-[11px] text-[var(--rd-ink-3)]">as of {formatIst(at, { withDate: true })}</span>
+      ) : null}
+      {label !== 'Odometer' && isMuted && at ? (
         <span className="mt-0.5 text-[11px] text-[var(--rd-ink-3)]">last known {formatIst(at)}</span>
       ) : null}
       {isQuiet && reading?.ageMin != null ? (

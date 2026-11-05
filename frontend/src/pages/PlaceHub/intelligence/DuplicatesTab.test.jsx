@@ -37,17 +37,17 @@ it('only adds the duplicate review tab when enabled', () => {
     placeHubTabs({ allowSites: true, allowHygiene: true }).some((t) => t.id === 'duplicates'),
   ).toBe(true);
 });
-it('defaults the survivor to most visits, merges and supports undo', async () => {
+it('defaults to the older site ID, merges and supports undo', async () => {
   render(
     <MemoryRouter>
       <DuplicatesTab />
     </MemoryRouter>,
   );
-  expect(await screen.findByRole('radio', { name: 'Plant B (20 visits)' })).toBeChecked();
+  expect(await screen.findByRole('radio', { name: 'Plant A (10 visits)' })).toBeChecked();
   fireEvent.click(screen.getByRole('button', { name: 'Merge' }));
   await waitFor(() =>
     expect(PlaceIntelligenceService.mergeSites).toHaveBeenCalledWith(
-      { survivorId: b._id, memberIds: [a._id] },
+      { survivorId: a._id, memberIds: [b._id] },
       expect.anything(),
     ),
   );
@@ -70,4 +70,13 @@ it('marks a pair distinct with the other place ID', async () => {
       expect.anything(),
     ),
   );
+});
+it('prefers the earlier creation time when it disagrees with ID order', async () => {
+  PlaceIntelligenceService.duplicates.mockResolvedValue([{
+    a: { ...a, createdAt: '2026-11-02T00:00:00Z' },
+    b: { ...b, createdAt: '2026-11-01T00:00:00Z' },
+    distanceM: 23, tripsAffected: 1, verdict: 'CHECK',
+  }]);
+  render(<MemoryRouter><DuplicatesTab /></MemoryRouter>);
+  expect(await screen.findByRole('radio', { name: 'Plant B (20 visits)' })).toBeChecked();
 });

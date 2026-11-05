@@ -11,6 +11,7 @@ function renderLegend(overrides = {}) {
     ...overrides,
   };
   render(<TrackLegend {...props} />);
+  fireEvent.click(screen.getByRole('button', { name: /Layers/ }));
   return props;
 }
 

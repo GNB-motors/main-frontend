@@ -9,7 +9,7 @@ import { formatInIST, istDayString } from '../../utils/dateUtils';
 export const STATUS_LABEL = {
   COMPLETE: 'Reached drop',
   CONFIRMED: 'Confirmed',
-  NEEDS_REVIEW: 'Needs a check',
+  NEEDS_REVIEW: 'Needs answer',
   OPEN: 'On the road',
   DISMISSED: 'Rejected',
 };

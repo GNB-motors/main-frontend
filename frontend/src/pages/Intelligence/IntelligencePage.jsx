@@ -1,18 +1,21 @@
 import { lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import IntelligenceSkeleton from './IntelligenceSkeleton';
 import { useApi } from '@/hooks/useApi';
 import { useFullPageLayout } from '@/hooks/usePageLayout';
 import IntelligencePeriodPicker from './IntelligencePeriodPicker';
 import IntelligenceFilters from './IntelligenceFilters';
-import IntelligenceSummaryTiles from './IntelligenceSummaryTiles';
 import IntelligenceOverview from './IntelligenceOverview';
-import IntelligenceDataState from './IntelligenceDataState';
+import IntelligenceSummaryTiles from './IntelligenceSummaryTiles';
 import IntelligenceService from './IntelligenceService';
-import { INTELLIGENCE_TABS, INSTANCE_TABS, resolveIntelligenceTab } from './intelligenceTabs';
-import { periodDates, resolvePeriod } from './intelligenceModel';
+import {
+  INSTANCE_TABS,
+  INTELLIGENCE_SECTIONS,
+  resolveIntelligenceTab,
+  sectionOfTab,
+  tabById,
+} from './intelligenceTabs';
+import { periodDates, periodRangeLabel, resolvePeriod } from './intelligenceModel';
 import './IntelligencePage.css';
 
 const IssuesTab = lazy(() => import('./IssuesTab'));
@@ -25,13 +28,84 @@ const PlacesTab = lazy(() => import('./PlacesTab'));
 /** The shape of a tab while its code is still being fetched. */
 const TAB_FALLBACK = <IntelligenceSkeleton variant="table" />;
 
+/** The tabs that always cover the whole fleet. */
+const FLEET_ONLY_TABS = ['runs', 'places'];
+
+function TabContent({ active, from, to, vehicle, driver, kind }) {
+  if (active === 'issues') {
+    return (
+      <Suspense fallback={<IntelligenceSkeleton />}>
+        <IssuesTab
+          key={`${from}:${to}:${vehicle}:${kind}`}
+          from={from}
+          to={to}
+          vehicle={vehicle}
+          kind={kind}
+        />
+      </Suspense>
+    );
+  }
+  if (active === 'vehicles' || active === 'drivers') {
+    const subject = active === 'vehicles' ? 'vehicle' : 'driver';
+    return (
+      <Suspense fallback={TAB_FALLBACK}>
+        <ReportCardsTab
+          key={`${active}:${from}:${to}:${vehicle}:${driver}`}
+          subject={subject}
+          from={from}
+          to={to}
+          vehicle={vehicle}
+          driver={driver}
+        />
+      </Suspense>
+    );
+  }
+  if (active === 'runs') {
+    return (
+      <Suspense fallback={<IntelligenceSkeleton variant="metrics" count={3} />}>
+        <RunsTab from={from} to={to} />
+      </Suspense>
+    );
+  }
+  if (active === 'mileage') {
+    return (
+      <Suspense fallback={<IntelligenceSkeleton variant="cards" count={2} />}>
+        <MileageDefTab from={from} to={to} vehicle={vehicle} />
+      </Suspense>
+    );
+  }
+  if (active === 'places') {
+    return (
+      <Suspense fallback={TAB_FALLBACK}>
+        <PlacesTab from={from} to={to} />
+      </Suspense>
+    );
+  }
+  if (Object.hasOwn(INSTANCE_TABS, active)) {
+    return (
+      <Suspense fallback={TAB_FALLBACK}>
+        <InstancesTab
+          key={`${active}-${from}-${to}-${vehicle}-${driver}`}
+          kind={INSTANCE_TABS[active]}
+          from={from}
+          to={to}
+          vehicle={vehicle}
+          driver={driver}
+        />
+      </Suspense>
+    );
+  }
+  return null;
+}
+
 /**
  * Intelligence — what we worked out about the fleet, good and bad, with the
  * reason for every claim.
  *
- * The tab, the period and the filters all live in the URL, so a link to a
- * page is a link to that exact view and the Back button goes back through
- * it.
+ * The page answers "what needs me" first: five numbers, then the tabs in
+ * five sections. The tab, the period and the filters all live in the URL,
+ * so a link to a page is a link to that exact view and the Back button goes
+ * back through it.
  */
 export default function IntelligencePage() {
   useFullPageLayout();
@@ -53,226 +127,131 @@ export default function IntelligencePage() {
     setSearchParams(next);
   };
 
-  const {
-    data: summary,
-    loading: summaryLoading,
-    error: summaryError,
-    refetch: refetchSummary,
-  } = useApi((signal) => IntelligenceService.getSummary({ from, to, signal }), [from, to]);
+  const { data: summary } = useApi(
+    (signal) => IntelligenceService.getSummary({ from, to, signal }),
+    [from, to],
+  );
 
-  const { data: issues } = useApi(
+  const { data: issues, loading: issuesLoading } = useApi(
     (signal) => IntelligenceService.getIssues({ from, to, signal }),
     [from, to],
   );
 
   const actCount = issues?.counts?.act ?? null;
   const active = resolveIntelligenceTab(requested, actCount);
+  const section = sectionOfTab(active);
+  const activeTab = tabById(active);
+  const fleetOnly = FLEET_ONLY_TABS.includes(active);
+  const openTab = (tab) => updateParams({ tab, kind: null });
 
   return (
-    <div className="intelligence-page min-w-0 w-full bg-[var(--rd-bg)] px-4 py-6 sm:px-8">
-      <header className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex flex-col gap-1">
-          <h1 className="m-0 text-[20px] font-semibold text-[var(--rd-ink)]">Intelligence</h1>
-          <p className="m-0 text-[13px] text-[var(--rd-ink-2)]">
-            What your trucks and drivers did, explained.
+    <div className="intelligence-page min-w-0 w-full">
+      <header className="intel-header">
+        <div className="min-w-0">
+          <h1 className="intel-title">Intelligence</h1>
+          <p className="intel-subtitle">
+            What your trucks and drivers did, and what needs you
+            <span className="intel-subtitle-period">{periodRangeLabel(from, to)}</span>
           </p>
+          {summary?.tiles?.length && !summary?.held ? <IntelligenceSummaryTiles tiles={summary.tiles} onOpenTab={openTab} /> : null}
         </div>
 
-        <IntelligencePeriodPicker
-          period={period}
-          onPreset={(presetId) => {
-            const dates = periodDates(presetId);
-            updateParams({ from: dates.from, to: dates.to });
-          }}
-          onCustom={(range) => updateParams({ from: range.from, to: range.to })}
-        />
+        <div className="intel-header-controls">
+          <IntelligenceFilters
+            showVehicle={!['drivers', ...FLEET_ONLY_TABS].includes(active)}
+            showDriver={active === 'drivers' || Object.hasOwn(INSTANCE_TABS, active)}
+            vehicle={vehicle}
+            driver={driver}
+            onChange={(next) => updateParams({ vehicle: next.vehicle, driver: next.driver })}
+          />
+          <IntelligencePeriodPicker
+            period={period}
+            onPreset={(presetId) => {
+              const dates = periodDates(presetId);
+              updateParams({ from: dates.from, to: dates.to });
+            }}
+            onCustom={(range) => updateParams({ from: range.from, to: range.to })}
+          />
+        </div>
       </header>
 
-      <div className="mb-4">
-        <IntelligenceFilters
-          showVehicle={!['drivers', 'runs', 'places'].includes(active)}
-          showDriver={active === 'drivers' || Object.hasOwn(INSTANCE_TABS, active)}
-          vehicle={vehicle}
-          driver={driver}
-          onChange={(next) => updateParams({ vehicle: next.vehicle, driver: next.driver })}
-        />
+      <IntelligenceOverview
+        summary={summary?.held ? null : summary}
+        issues={issues}
+        issuesLoading={issuesLoading}
+        from={from}
+        to={to}
+        vehicle={vehicle}
+        onOpenTab={openTab}
+      />
+
+      <nav className="intel-sections" aria-label="Intelligence sections">
+        <div role="tablist" aria-label="Intelligence sections" className="intel-section-list">
+          {INTELLIGENCE_SECTIONS.map((entry) => {
+            const selected = entry.id === section.id;
+            return (
+              <button
+                key={entry.id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                className="intel-section-tab"
+                onClick={() => {
+                  if (!selected) openTab(entry.tabs[0]);
+                }}
+              >
+                {entry.label}
+                {entry.id === 'issues' && actCount ? (
+                  <span
+                    className="intel-section-count"
+                    aria-label={`${actCount} need you`}
+                  >
+                    {actCount}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      <div className="intel-view-bar">
+        {section.tabs.length > 1 ? (
+          <div role="tablist" aria-label={`${section.label} views`} className="intel-segmented">
+            {section.tabs.map((id) => {
+              const tab = tabById(id);
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={id === active}
+                  className="intel-segment"
+                  onClick={() => openTab(id)}
+                >
+                  <tab.icon size={14} aria-hidden="true" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+        <p className="intel-view-hint">
+          {activeTab?.hint}
+          {fleetOnly ? ' Covers the whole fleet; the truck filter does not apply here.' : ''}
+        </p>
       </div>
 
-      {['runs', 'places'].includes(active) ? (
-        <p className="intelligence-scope-note">
-          This tab covers the whole fleet. Truck and driver filters apply on their supported tabs.
-        </p>
-      ) : null}
-      {/* The summary endpoint not shipped yet (404) means nothing to show:
-          no box at all, rather than a dashed "being built" panel above a
-          second one in the tab. */}
-      {summaryError?.status === 404 ? null : (
-        <div className="mb-4">
-          <IntelligenceDataState
-            loading={summaryLoading}
-            loadingVariant="metrics"
-            loadingCount={summary?.tiles?.length || 4}
-            error={summaryError}
-            held={summary?.held ? summary.why : null}
-            what="The summary of this period"
-            onRetry={refetchSummary}
-          >
-            <IntelligenceOverview summary={summary} issues={issues} />
-            {summary?.tiles?.length ? (
-              <details className="intelligence-insight-details">
-                <summary>Period insights and explanations</summary>
-                <IntelligenceSummaryTiles tiles={summary.tiles} />
-              </details>
-            ) : null}
-          </IntelligenceDataState>
-        </div>
-      )}
-
-      <Tabs value={active} onValueChange={(value) => updateParams({ tab: value })}>
-        <div className="intelligence-tabs-scroll">
-          <TabsList className="intelligence-tabs-list" aria-label="Intelligence views">
-            {INTELLIGENCE_TABS.map((tab) => (
-              <Tooltip key={tab.id} delay={300}>
-                <TooltipTrigger
-                  render={
-                    <TabsTrigger value={tab.id} className="intelligence-tab normal-case">
-                      <span className="inline-flex items-center gap-1.5">
-                        <tab.icon size={14} aria-hidden="true" />
-                        {tab.label}
-                        {tab.id === 'issues' && actCount ? (
-                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--rd-act)] px-1 text-[10px] font-bold text-white">
-                            {actCount}
-                          </span>
-                        ) : null}
-                      </span>
-                    </TabsTrigger>
-                  }
-                />
-                <TooltipContent side="top">{tab.hint}</TooltipContent>
-              </Tooltip>
-            ))}
-          </TabsList>
-        </div>
-
-        <TabsContent value="issues">
-          <Suspense fallback={<IntelligenceSkeleton />}>
-            <IssuesTab
-              key={`${from}:${to}:${vehicle}:${kind}`}
-              from={from}
-              to={to}
-              vehicle={vehicle}
-              kind={kind}
-            />
-          </Suspense>
-        </TabsContent>
-
-        <TabsContent value="vehicles">
-          <Suspense fallback={<IntelligenceSkeleton variant="cards" />}>
-            <ReportCardsTab
-              key={`vehicles:${from}:${to}:${vehicle}`}
-              subject="vehicle"
-              from={from}
-              to={to}
-              vehicle={vehicle}
-            />
-          </Suspense>
-        </TabsContent>
-
-        <TabsContent value="drivers">
-          <Suspense fallback={<IntelligenceSkeleton variant="cards" />}>
-            <ReportCardsTab
-              key={`drivers:${from}:${to}:${driver}`}
-              subject="driver"
-              from={from}
-              to={to}
-              driver={driver}
-            />
-          </Suspense>
-        </TabsContent>
-
-        <TabsContent value="runs">
-          <Suspense fallback={<IntelligenceSkeleton variant="metrics" count={3} />}>
-            <RunsTab from={from} to={to} />
-          </Suspense>
-        </TabsContent>
-
-        <TabsContent value="idling">
-          <Suspense fallback={TAB_FALLBACK}>
-            <InstancesTab
-              key={`idling-${from}-${to}-${vehicle}-${driver}`}
-              kind={INSTANCE_TABS.idling}
-              from={from}
-              to={to}
-              vehicle={vehicle}
-              driver={driver}
-            />
-          </Suspense>
-        </TabsContent>
-
-        <TabsContent value="cruise">
-          <Suspense fallback={TAB_FALLBACK}>
-            <InstancesTab
-              key={`cruise-${from}-${to}-${vehicle}-${driver}`}
-              kind={INSTANCE_TABS.cruise}
-              from={from}
-              to={to}
-              vehicle={vehicle}
-              driver={driver}
-            />
-          </Suspense>
-        </TabsContent>
-
-        <TabsContent value="overspeed">
-          <Suspense fallback={TAB_FALLBACK}>
-            <InstancesTab
-              key={`overspeed-${from}-${to}-${vehicle}-${driver}`}
-              kind={INSTANCE_TABS.overspeed}
-              from={from}
-              to={to}
-              vehicle={vehicle}
-              driver={driver}
-            />
-          </Suspense>
-        </TabsContent>
-
-        <TabsContent value="fuel">
-          <Suspense fallback={TAB_FALLBACK}>
-            <InstancesTab
-              key={`fuel-${from}-${to}-${vehicle}-${driver}`}
-              kind={INSTANCE_TABS.fuel}
-              from={from}
-              to={to}
-              vehicle={vehicle}
-              driver={driver}
-            />
-          </Suspense>
-        </TabsContent>
-
-        <TabsContent value="detours">
-          <Suspense fallback={TAB_FALLBACK}>
-            <InstancesTab
-              key={`detours-${from}-${to}-${vehicle}-${driver}`}
-              kind={INSTANCE_TABS.detours}
-              from={from}
-              to={to}
-              vehicle={vehicle}
-              driver={driver}
-            />
-          </Suspense>
-        </TabsContent>
-
-        <TabsContent value="mileage">
-          <Suspense fallback={<IntelligenceSkeleton variant="cards" count={2} />}>
-            <MileageDefTab from={from} to={to} vehicle={vehicle} />
-          </Suspense>
-        </TabsContent>
-
-        <TabsContent value="places">
-          <Suspense fallback={TAB_FALLBACK}>
-            <PlacesTab from={from} to={to} />
-          </Suspense>
-        </TabsContent>
-      </Tabs>
+      <div role="tabpanel" aria-label={activeTab?.label} className="intel-panel">
+        <TabContent
+          active={active}
+          from={from}
+          to={to}
+          vehicle={vehicle}
+          driver={driver}
+          kind={kind}
+        />
+      </div>
     </div>
   );
 }

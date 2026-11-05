@@ -73,6 +73,7 @@ export default function useFleetVehicles({
           speed: view.speedKmh,
           fuel: fuel ? fuel.value : null,
           fuelReading: fuel,
+          readings: p.readings ?? null,
           fuelUnit: fuel ? fuel.unit : null,
           defLevel: p.defLevel ?? null,
           defUnit: p.defLevelUnit || null,

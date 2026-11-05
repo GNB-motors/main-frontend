@@ -88,8 +88,9 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
+      // The expenses endpoint caps a page at 100 rows, so the report reads every
+      // page instead of asking for a limit the API rejects.
       const expParams = {
-        limit: 1000,
         includeTripExpenses: true,
       };
       if (branchId) expParams.branchId = branchId;
@@ -99,21 +100,24 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
       if (driverId) expParams.driverId = driverId;
       if (category) expParams.category = category;
 
+      // The trip endpoint accepts neither branchId nor driverId; the branch comes
+      // from the shared X-Branch-Id header and the driver filter is applied below.
       const tripParams = {
         limit: 200,
       };
-      if (branchId) tripParams.branchId = branchId;
       if (vehicleId) tripParams.vehicleId = vehicleId;
-      if (driverId) tripParams.driverId = driverId;
 
       const [expRes, tripRes] = await Promise.all([
-        KhataLedgerService.getExpenses(expParams).catch(() => ({ results: [] })),
+        KhataLedgerService.getDashboardExpenses(expParams).catch(() => []),
         KhataLedgerService.getErpTrips(tripParams).catch(() => ({ data: [] })),
       ]);
 
-      const loadedExpenses = expRes.results || expRes.data || (Array.isArray(expRes) ? expRes : []);
-      const loadedTrips =
-        tripRes.data || tripRes.results || (Array.isArray(tripRes) ? tripRes : []);
+      const loadedExpenses = Array.isArray(expRes)
+        ? expRes
+        : expRes.results || expRes.data || (Array.isArray(expRes) ? expRes : []);
+      const loadedTrips = (
+        tripRes.data || tripRes.results || (Array.isArray(tripRes) ? tripRes : [])
+      ).filter((t) => !driverId || String(t.driverId?._id || t.driverId) === String(driverId));
 
       setExpenses(loadedExpenses);
       setTrips(loadedTrips);

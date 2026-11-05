@@ -48,8 +48,21 @@ describe('WhereNextSection', () => {
     getWhereNext.mockResolvedValue({ destinations: [destination], basis: null, computedAt: null });
     render(<WhereNextSection registrationNumber="WB11L8862" />);
     await waitFor(() =>
-      expect(screen.getByText(/Likely → DANKUNI SIDING/)).toBeInTheDocument(),
+      expect(screen.getByText(/→ DANKUNI SIDING/)).toBeInTheDocument(),
     );
+  });
+
+  it('never shows a held guess in the header, and says why it is held', async () => {
+    getWhereNext.mockResolvedValue({
+      held: true,
+      destinations: [destination],
+      basis: { text: 'Last fix is not near any of this org\'s places.' },
+    });
+    render(<WhereNextSection registrationNumber="WB11J8562" />);
+    expect(await screen.findByText('Where next · not sure yet')).toBeInTheDocument();
+    expect(screen.queryByText(/Likely →/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    expect(await screen.findByText(/On the road between places/)).toBeInTheDocument();
   });
 
   it('prints the reason the API gave, in words', async () => {
@@ -77,7 +90,7 @@ describe('WhereNextSection', () => {
     });
     render(<WhereNextSection registrationNumber="WB11L8862" />);
     fireEvent.click(await screen.findByRole('button', { name: 'Open' }));
-    await waitFor(() => expect(screen.getByText('Not shown yet')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Still being checked.')).toBeInTheDocument());
   });
 
   // The endpoint is not on prod yet: a failed request, or no guess, is

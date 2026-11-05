@@ -14,6 +14,7 @@ export default function useLiveMap({
   vehicles,
   selectedId,
   selectedVehicle,
+  suspendFollow = false,
   showToast,
   onMapClick,
 }) {
@@ -147,7 +148,7 @@ export default function useLiveMap({
       gestureHandling: 'greedy',
       // Google's own POIs are clickable: a click opens them in Google Maps
       // instead of Google's info window (handled by the map click listener).
-      clickableIcons: true,
+      clickableIcons: false,
     }),
     [theme, mapMode],
   );
@@ -167,12 +168,12 @@ export default function useLiveMap({
       if (!live.length) return false;
       const bounds = new window.google.maps.LatLngBounds();
       live.forEach((v) => bounds.extend({ lat: v.lat, lng: v.lng }));
-      map.fitBounds(bounds, { top: 80, right: 80, bottom: 80, left: 80 });
+      map.fitBounds(bounds, { top: 80, right: 360, bottom: 80, left: 80 });
       window.google.maps.event.addListenerOnce(map, 'idle', () => {
         // Land a little closer than a bare fit — one notch in, capped so a tight
         // cluster doesn't rocket to street level and a spread fleet still nudges in.
         const z = map.getZoom() || 6;
-        map.setZoom(Math.min(z + 1, 13));
+        map.setZoom(Math.min(z, 13));
       });
       return true;
     },
@@ -186,11 +187,9 @@ export default function useLiveMap({
       if (typeof initialZ === 'number') {
         setMapZoom(initialZ);
       }
-      // A click anywhere on the map — an empty spot, a Google POI or one of our
-      // own places — is an offer: make this a place, watch it as a zone, or
-      // open it in Google Maps. Google's own info window stays closed.
+      // Offer actions for a location only on the map's context menu gesture.
       mapClickListenerRef.current?.remove();
-      mapClickListenerRef.current = map.addListener('click', (e) => {
+      mapClickListenerRef.current = map.addListener('contextmenu', (e) => {
         if (!e.latLng) return;
         if (e.placeId) e.stop();
         const dom = e.domEvent;
@@ -248,6 +247,7 @@ export default function useLiveMap({
     if (
       replayState.on ||
       isTrailVisible ||
+      suspendFollow ||
       !selectedVehicle ||
       !selectedVehicle.hasFix ||
       !mapRef.current
@@ -272,7 +272,7 @@ export default function useLiveMap({
       map.setCenter(center);
       map.setZoom(zoom);
     }
-  }, [selectedVehicle, replayState.on, isTrailVisible]);
+  }, [selectedVehicle, replayState.on, isTrailVisible, suspendFollow]);
 
   // Clearing the selection re-arms the gentle zoom, so re-picking the same
   // vehicle later zooms in again.

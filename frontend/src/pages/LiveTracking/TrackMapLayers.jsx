@@ -5,6 +5,8 @@ import { createVehicleMarkerIcon } from './vehicleMarkerIcon.js';
 import { cssToken } from '../../utils/redesign/tone';
 import { resolveMapColor } from './mapColor.js';
 import { toLayers } from '../../lib/roadTrail';
+import { polylineOptions } from '../../lib/roadTrailGoogle';
+import replayAppearance from '../../components/map/replayAppearance.js';
 
 /**
  * Google Maps draws on its own canvas and cannot read CSS variables, so a
@@ -41,7 +43,7 @@ export default function TrackMapLayers({
     if (roadTrail?.mode !== 'MATCHED') return [];
     return toLayers(roadTrail)
       .filter((layer) => Array.isArray(layer.path) && layer.path.length > 1)
-      .map((layer) => ({ key: `road-${layer.kind}-${layer.t0}`, path: layer.path }));
+      .map((layer) => ({ ...layer, key: `road-${layer.kind}-${layer.t0}` }));
   }, [roadTrail]);
 
   const playhead = useMemo(
@@ -73,12 +75,7 @@ export default function TrackMapLayers({
             <PolylineF
               key={road.key}
               path={road.path}
-              options={{
-                strokeColor: routeColor,
-                strokeWeight: 4,
-                strokeOpacity: 1,
-                zIndex: 20,
-              }}
+              options={polylineOptions(road, { color: routeColor, symbolCircle: window.google.maps.SymbolPath.CIRCLE })}
             />
           ))
         : layers.segments.map((segment) =>
@@ -86,12 +83,7 @@ export default function TrackMapLayers({
               <PolylineF
                 key={segment.key}
                 path={segment.path}
-                options={{
-                  strokeColor: routeColor,
-                  strokeWeight: 4,
-                  strokeOpacity: 1,
-                  zIndex: 20,
-                }}
+                options={replayAppearance.googleRoute(window.google.maps.SymbolPath.CIRCLE)}
               />
             ) : null,
           )}

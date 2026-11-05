@@ -91,7 +91,7 @@ const props = {
 };
 
 describe('Track replay presentation', () => {
-  it('draws the dotted grey route and the growing blue travelled line', () => {
+  it('keeps raw replay geometry dotted, including the travelled part', () => {
     render(<LiveMapCanvas {...props} />);
     const lines = PolylineF.mock.calls.map(([p]) => p);
     const background = lines.find((p) => p.options.strokeOpacity === 0);
@@ -99,9 +99,9 @@ describe('Track replay presentation', () => {
       repeat: '10px',
       icon: { fillColor: '#9A9AA5' },
     });
-    expect(lines.find((p) => p.options.strokeColor === '#2F58EE')).toMatchObject({
+    expect(lines.find((p) => p.path === props.replayRunPaths[0].path)).toMatchObject({
       path: props.replayRunPaths[0].path,
-      options: { strokeWeight: 5, strokeOpacity: 0.95 },
+      options: { strokeOpacity: 0, icons: [{ repeat: '10px' }] },
     });
   });
   it('keeps the same truck DOM and map overlay as playback and zoom change', () => {
@@ -134,10 +134,8 @@ describe('Fleet markers while focused on one truck', () => {
   it('shows the whole fleet when nothing is selected', () => {
     expect(focusedMapVehicles(fleet, { selectedId: null, replayOn: false })).toEqual(fleet);
   });
-  it('shows only the selected truck when one is selected', () => {
-    expect(focusedMapVehicles(fleet, { selectedId: 'v2', replayOn: false })).toEqual([
-      { id: 'v2' },
-    ]);
+  it('keeps the fleet visible when a truck is selected', () => {
+    expect(focusedMapVehicles(fleet, { selectedId: 'v2', replayOn: false })).toEqual(fleet);
   });
   it('hides every live marker during Replay (the replay truck stands in)', () => {
     expect(focusedMapVehicles(fleet, { selectedId: 'v2', replayOn: true })).toEqual([]);

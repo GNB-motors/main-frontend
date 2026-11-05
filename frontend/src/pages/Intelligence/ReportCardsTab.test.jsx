@@ -53,7 +53,7 @@ describe('ReportCardsTab', () => {
 
     expect(await screen.findByText('WB11F6762')).toBeInTheDocument();
     expect(screen.queryByText('Ramesh Yadav')).not.toBeInTheDocument();
-    expect(screen.getByText('Excellent (1)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Excellent 1' })).toBeInTheDocument();
   });
 
   it('shows the driver cards on the drivers tab', async () => {
@@ -144,7 +144,7 @@ describe('ReportCardsTab', () => {
       </MemoryRouter>,
     );
     expect(await screen.findByText('BR44GB1162')).toBeInTheDocument();
-    expect(screen.getByText('Insufficient data (1)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Insufficient data 1' })).toBeInTheDocument();
     expect(screen.queryByText('WB11F6762')).not.toBeInTheDocument();
   });
 
@@ -156,7 +156,7 @@ describe('ReportCardsTab', () => {
       </MemoryRouter>,
     );
     expect(await screen.findByText('Ramesh Yadav')).toBeInTheDocument();
-    expect(screen.getByText('Insufficient data (1)')).toBeInTheDocument();
-    expect(screen.getByText('Good (0)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Insufficient data 1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Good 0' })).toBeInTheDocument();
   });
 });

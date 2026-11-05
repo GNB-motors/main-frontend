@@ -45,6 +45,7 @@ export const LIGHT_MAP_STYLE = [
     stylers: [{ visibility: 'on' }, { color: '#ffffff' }, { weight: 2 }],
   },
   ...POI_LABEL_STYLES,
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
   { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
   {
@@ -106,6 +107,7 @@ export const DARK_MAP_STYLE = [
     stylers: [{ visibility: 'on' }, { color: '#090d18' }, { weight: 2 }],
   },
   ...POI_LABEL_STYLES,
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
   { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#161b2e' }] },
   { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#101524' }] },

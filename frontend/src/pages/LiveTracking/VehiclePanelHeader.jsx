@@ -1,6 +1,3 @@
-import { useState } from 'react';
-import { Check, Copy } from 'lucide-react';
-import copyText from './copyText';
 import { legLabel, makeLabel, modelLabel, statusLabel } from './vehiclePanelModel';
 import { formatIst } from '../../utils/redesign/format';
 import FreshnessBadge from '../../components/redesign/FreshnessBadge';
@@ -25,7 +22,6 @@ function statusDotColor(status, isOffline) {
  * disconnected.
  */
 export default function VehiclePanelHeader({ now, account = null, onOpenAccount = null }) {
-  const [copied, setCopied] = useState(false);
   const identity = now?.identity ?? {};
   const view = now?.view ?? {};
   const activity = now?.activity ?? null;
@@ -36,16 +32,6 @@ export default function VehiclePanelHeader({ now, account = null, onOpenAccount 
   const model = modelLabel(identity.model);
   const modelLine = identity.modelLine ?? null;
   const leg = legLabel(activity?.kind, trip?.leg);
-
-  const handleCopy = () => {
-    if (!identity.vin) return;
-    copyText(identity.vin)
-      .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      })
-      .catch(() => setCopied(false));
-  };
 
   const gps = now?.readings?.gps ?? null;
   const isLive = effectiveFreshness(gps?.freshness, gps?.ageMin) === 'live';
@@ -64,24 +50,6 @@ export default function VehiclePanelHeader({ now, account = null, onOpenAccount 
             </span>
             {model ? null : <span className="text-[var(--rd-ink-3)]">Model not known</span>}
           </div>
-          {identity.vin ? (
-            <div className="mt-1 flex items-center gap-1.5">
-              <code className="font-mono text-[12px] text-[var(--rd-ink-2)]">{identity.vin}</code>
-              <button
-                type="button"
-                onClick={handleCopy}
-                aria-label="Copy VIN"
-                title="Copy VIN"
-                className="rounded p-0.5 text-[var(--rd-ink-3)] transition-colors hover:text-[var(--rd-ink-2)]"
-              >
-                {copied ? (
-                  <Check size={13} aria-hidden="true" />
-                ) : (
-                  <Copy size={13} aria-hidden="true" />
-                )}
-              </button>
-            </div>
-          ) : null}
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
@@ -127,13 +95,11 @@ export default function VehiclePanelHeader({ now, account = null, onOpenAccount 
               ? `Last known position${view.ageMin != null ? ` · ${Math.round(view.ageMin)} min ago` : ''}`
               : 'No GPS position'}
         </span>
-        <span className="rounded-full border border-[var(--rd-line)] px-2 py-0.5 text-[11px] text-[var(--rd-ink-2)]">
-          {view.ignition === 'ON'
-            ? 'Engine on'
-            : view.ignition === 'OFF'
-              ? 'Engine off'
-              : 'Engine: not known'}
-        </span>
+        {view.ignition === 'ON' || view.ignition === 'OFF' ? (
+          <span className="rounded-full border border-[var(--rd-line)] px-2 py-0.5 text-[11px] text-[var(--rd-ink-2)]">
+            {view.ignition === 'ON' ? 'Engine on' : 'Engine off'}
+          </span>
+        ) : null}
       </div>
     </header>
   );

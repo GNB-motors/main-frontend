@@ -30,6 +30,9 @@ export const FleetDataService = {
   /** Latest live-status reading per vehicle (fuel%, DEF%, odo, engine hrs, service, staleness). */
   getFleetHealth: (signal) => get('/api/vehicle-health', {}, signal),
 
+  /** Most recent provider status for a selected VIN. */
+  getLatestVehicleStatus: (vin, signal) => get('/api/fleet-insights/status', { vin, limit: 1 }, signal),
+
   /** One vehicle's latest reading + history for trend charts. */
   getVehicleHealth: (registrationNumber, params = {}, signal) =>
     get(`/api/vehicle-health/${encodeURIComponent(registrationNumber)}`, params, signal),

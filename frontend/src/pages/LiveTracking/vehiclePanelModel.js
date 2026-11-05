@@ -136,23 +136,23 @@ export function fallbackNow(vehicle, driver = null) {
       rule: null,
     },
     readings: {
-      fuel: {
+      fuel: vehicle.readings?.fuel ?? {
         litres: fuelUnit === 'L' ? fuelReading : null,
         pct: fuelUnit === '%' ? fuelReading : null,
         unitless: fuelUnit !== 'L' && fuelUnit !== '%' ? fuelReading : null,
         tankL: null,
       },
-      def: {
+      def: vehicle.readings?.def ?? {
         pct: readingFrom(vehicle.defLevel ?? null, { at, ageMin, freshness }),
         litres: null,
         tankL: null,
         tankSource: null,
       },
-      odometerKm: readingFrom(vehicle.odo ?? null, { at, ageMin, freshness }),
-      ignition:
+      odometerKm: vehicle.readings?.odometerKm ?? readingFrom(vehicle.odo ?? null, { at, ageMin, freshness }),
+      ignition: vehicle.readings?.ignition ?? (
         ignitionValue === null
           ? null
-          : { value: ignitionValue, at, ageMin, freshness, source: 'FLEETEDGE' },
+          : { value: ignitionValue, at, ageMin, freshness, source: 'FLEETEDGE' }),
       gps: { at, ageMin, freshness, satellites: null },
     },
     place: null,

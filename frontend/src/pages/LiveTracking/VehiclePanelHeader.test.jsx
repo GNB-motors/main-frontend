@@ -27,10 +27,10 @@ describe('VehiclePanelHeader', () => {
     expect(screen.getByText(/Tata 4830TC/)).toBeInTheDocument();
   });
 
-  it('shows the VIN so it can be copied', () => {
+  it('keeps the VIN out of the header', () => {
     render(<VehiclePanelHeader now={now} />);
-    expect(screen.getByText('MAT566011S3E16394')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Copy VIN' })).toBeInTheDocument();
+    expect(screen.queryByText('MAT566011S3E16394')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Copy VIN' })).not.toBeInTheDocument();
   });
 
   it('says Live only for a report up to five minutes old', () => {
