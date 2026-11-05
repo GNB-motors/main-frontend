@@ -7,6 +7,7 @@ import { KpiRow, RefreshButton } from '../routeHubShared.jsx';
 import { downloadCsv, fmtDT, inr } from '../routeHubFormat';
 import {
   dayRange,
+  costKnown,
   groupByTrip,
   legLabel,
   matchesSearch,
@@ -140,14 +141,14 @@ export default function DeviationView({ params, toast, setBadge, go }) {
     {
       ic: 'rupee',
       l: 'Est. detour cost',
-      v: rows.some((r) => r.estimatedExtraCostInr > 0) ? inr(summary?.openCostInr) : '—',
+      v: rows.some(costKnown) && summary?.openCostInr != null ? inr(summary.openCostInr) : '—',
       s:
-        !rows.some((r) => r.estimatedExtraCostInr > 0)
+        !rows.some(costKnown) || summary?.openCostInr == null
           ? 'detour cost not estimated yet'
           : 'estimated fuel and wear · open only',
       c: '#C2323A',
       tint: 'rgba(229,104,107,.14)',
-      vc: rows.some((r) => r.estimatedExtraCostInr > 0) ? '#C2323A' : 'var(--fg-tertiary)',
+      vc: rows.some(costKnown) && summary?.openCostInr != null ? '#C2323A' : 'var(--rd-ink-3)',
     },
   ];
 

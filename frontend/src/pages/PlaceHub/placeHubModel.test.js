@@ -169,6 +169,23 @@ describe('mergePlaces', () => {
     expect(filterPlaces(places, { group: 'rejected' }).map((p) => p.sourceId)).toEqual(['c']);
   });
 
+  it('says how far an unnamed own yard sits from a place we know', () => {
+    const places = mergePlaces({
+      warehouses: [warehouse],
+      sites: [
+        site({
+          _id: 'yard',
+          name: undefined,
+          siteType: 'YARD',
+          centroidLat: 22.9,
+          centroidLng: 88.1,
+        }),
+      ],
+    });
+    const yard = places.find((p) => p.sourceId === 'yard');
+    expect(yard.name).toMatch(/^Own yard · .+ km from Dankuni yard$/);
+  });
+
   it('orders suggestions by the review queue, then by visits', () => {
     const places = mergePlaces({
       sites: [

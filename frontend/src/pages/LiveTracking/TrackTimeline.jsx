@@ -1,8 +1,13 @@
 import { useMemo } from 'react';
 import { Pause, Play, X } from 'lucide-react';
 import { formatDuration, formatIst } from '../../utils/redesign/format';
-import { PLAYBACK_SPEEDS } from './trackPlayback';
+import { PLAYBACK_SPEEDS, gapMinutes, isGapEvent } from './trackPlayback';
 import { isLongRange } from './trackUrlModel';
+
+/** The colour of a stop dot on the timeline. */
+const STOP_DOT = '#7c3aed';
+/** The colour of a “no GPS” dot on the timeline. */
+const GAP_DOT = 'var(--rd-ink-3)';
 
 /**
  * TrackTimeline — the bar at the bottom of the map in Track mode.
@@ -14,6 +19,40 @@ import { isLongRange } from './trackUrlModel';
  * It is built with a native range input and absolutely positioned ticks —
  * no new dependency, and it works with a keyboard and a screen reader.
  */
+/** The colour of a dot on the timeline, by what it stands for. */
+function eventColor(kind) {
+  switch (kind) {
+    case 'OVERSPEED':
+      return 'var(--rd-overspeed)';
+    case 'DETOUR':
+      return 'var(--rd-detour)';
+    case 'FUEL_FILL':
+      return 'var(--rd-leg-loaded)';
+    case 'FUEL_DROP':
+      return 'var(--rd-leg-reposition)';
+    default:
+      return 'var(--rd-ink-3)';
+  }
+}
+
+/** The plain name of an event, when the backend did not write one. */
+const EVENT_LABEL = {
+  OVERSPEED: 'Over 60 km/h',
+  DETOUR: 'Detour',
+  FUEL_FILL: 'Fuel fill',
+  FUEL_DROP: 'Fuel drop',
+  HARSH: 'Harsh driving',
+};
+
+/** The label of a dot: what happened and, for a gap, how long it lasted. */
+function eventTitle(event) {
+  if (isGapEvent(event)) {
+    const minutes = gapMinutes(event);
+    return minutes ? `No GPS ${formatDuration(minutes)}` : 'No GPS';
+  }
+  return event.text || EVENT_LABEL[event.kind] || 'Event';
+}
+
 export default function TrackTimeline({
   track,
   points = [],
@@ -26,6 +65,7 @@ export default function TrackTimeline({
   onExit,
   from = null,
   to = null,
+  tollStatus = null,
 }) {
   const summary = track?.summary ?? null;
   const segments = useMemo(() => (Array.isArray(track?.segments) ? track.segments : []), [track]);
@@ -48,15 +88,36 @@ export default function TrackTimeline({
     [segments, firstTime, span],
   );
 
+  // The dots above the bar: every event, every stop and every gap, each with a
+  // label so the owner knows what they are looking at.
   const ticks = useMemo(
     () =>
       events.map((event) => ({
         key: `${event.kind}-${event.at}`,
         kind: event.kind,
-        title: event.text,
+        title: eventTitle(event),
         left: ((new Date(event.at).getTime() - firstTime) / span) * 100,
+        color: isGapEvent(event) ? GAP_DOT : eventColor(event.kind),
       })),
     [events, firstTime, span],
+  );
+
+  // A stop is a purple dot: when the truck stopped, and where.
+  const stopDots = useMemo(
+    () =>
+      stops.map((stop, index) => ({
+        key: `stop-dot-${stop.startAt}-${index}`,
+        kind: 'STOP',
+        title: `${stop.place?.name ?? 'Stop'} · ${formatIst(stop.startAt)}`,
+        left: ((new Date(stop.startAt).getTime() - firstTime) / span) * 100,
+        color: STOP_DOT,
+      })),
+    [stops, firstTime, span],
+  );
+
+  const dots = useMemo(
+    () => [...ticks, ...stopDots].sort((a, b) => a.left - b.left),
+    [ticks, stopDots],
   );
 
   const stopBlocks = useMemo(
@@ -137,26 +198,17 @@ export default function TrackTimeline({
 
         {/* The scrubber */}
         <div className="relative min-w-[120px] flex-1">
-          {ticks.map((tick) => (
+          {dots.map((dot) => (
             <button
-              key={tick.key}
+              key={dot.key}
               type="button"
-              title={tick.title}
-              aria-label={tick.title}
-              onClick={() => onSeek?.(tick.left)}
+              title={dot.title}
+              aria-label={dot.title}
+              onClick={() => onSeek?.(dot.left)}
               className="absolute -top-3 size-2 -translate-x-1/2 rounded-full"
               style={{
-                left: `${tick.left}%`,
-                backgroundColor:
-                  tick.kind === 'OVERSPEED'
-                    ? 'var(--rd-overspeed)'
-                    : tick.kind === 'DETOUR'
-                      ? 'var(--rd-detour)'
-                      : tick.kind === 'FUEL_FILL'
-                        ? 'var(--rd-leg-loaded)'
-                        : tick.kind === 'FUEL_DROP'
-                          ? 'var(--rd-leg-reposition)'
-                          : 'var(--rd-ink-3)',
+                left: `${dot.left}%`,
+                backgroundColor: dot.color,
               }}
             />
           ))}
@@ -221,6 +273,26 @@ export default function TrackTimeline({
           ))}
         </div>
 
+        {/* What the dots mean. */}
+        <div className="flex shrink-0 items-center gap-2 text-[11px] text-[var(--rd-ink-3)]">
+          <span className="flex items-center gap-1">
+            <span
+              aria-hidden="true"
+              className="size-2 rounded-full"
+              style={{ backgroundColor: STOP_DOT }}
+            />
+            Stop
+          </span>
+          <span className="flex items-center gap-1">
+            <span
+              aria-hidden="true"
+              className="size-2 rounded-full"
+              style={{ backgroundColor: GAP_DOT }}
+            />
+            No GPS
+          </span>
+        </div>
+
         <span className="text-[12px] text-[var(--rd-ink-2)] tabular-nums">
           {points.length ? formatIst(points[points.length - 1].t) : '—'}
         </span>
@@ -242,10 +314,13 @@ export default function TrackTimeline({
       ) : null}
 
       {summary ? (
-        <p className="m-0 text-[12px] text-[var(--rd-ink-2)] tabular-nums">
-          {summary.km} km · {formatDuration(summary.driveMin)} driving ·{' '}
-          {formatDuration(summary.stopMin)} stopped
-          {summary.maxKmh ? ` · top ${summary.maxKmh} km/h` : ''}
+        <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-[var(--rd-ink-2)] tabular-nums">
+          <span>
+            {summary.km} km · {formatDuration(summary.driveMin)} driving ·{' '}
+            {formatDuration(summary.stopMin)} stopped
+            {summary.maxKmh ? ` · top ${summary.maxKmh} km/h` : ''}
+          </span>
+          {tollStatus}
         </p>
       ) : null}
     </div>

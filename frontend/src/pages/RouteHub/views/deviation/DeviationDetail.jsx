@@ -6,6 +6,8 @@ import { fmtDT } from '../../routeHubFormat';
 import {
   clock,
   costBasisLabel,
+  costKnown,
+  extraKnown,
   deviationGroupSubtitle,
   deviationGroupTitle,
   legLabel,
@@ -23,11 +25,11 @@ const ZOOMS = [
 
 const km = (n, digits = 1) => (n == null ? '—' : `${Number(n).toFixed(digits)} km`);
 
-function Fact({ k, v, tone }) {
+function Fact({ k, v, tone, title }) {
   return (
     <div>
       <div className="k">{k}</div>
-      <div className="v" style={tone ? { color: tone } : undefined}>
+      <div className="v" style={tone ? { color: tone } : undefined} title={title}>
         {v}
       </div>
     </div>
@@ -121,11 +123,6 @@ export default function DeviationDetail({
         <div className="ov" style={{ top: 12, left: 12 }}>
           <Seg options={ZOOMS} value={zoom} onChange={setZoom} />
         </div>
-        {model.noUsualRoadCaption ? (
-          <div className="ov chipcard" style={{ top: 12, right: 12 }}>
-            {model.noUsualRoadCaption}
-          </div>
-        ) : null}
         {loading && !detail ? (
           <div className="ov chipcard" style={{ top: 12, right: 12 }}>
             Loading the trip…
@@ -136,13 +133,14 @@ export default function DeviationDetail({
             Could not load the map for this deviation.
           </div>
         ) : null}
+        {model.noUsualRoadCaption ? <div className="ov chipcard" style={{ bottom: 54, left: 14, color: 'var(--rd-ink-2)' }}>{model.noUsualRoadCaption}</div> : null}
         <div className="ov chipcard legend" style={{ bottom: 14, left: 14 }}>
-          <span>
-            <i className="dot" style={{ background: '#9ca3af' }} />
+          {model.hasUsualRoad ? <span>
+            <i className="dot" style={{ background: '#3468a5' }} />
             Usual route
             {detail?.corridor?.sampleCount ? ` (from ${detail.corridor.sampleCount} trips)` : ''}
             {detail?.corridor?.bandTruncated ? ' · band sampled' : ''}
-          </span>
+          </span> : null}
           <span>
             <i style={{ background: model.hasUsualRoad ? '#dc2626' : '#77818d' }} />
             GPS points, not matched to roads
@@ -169,11 +167,12 @@ export default function DeviationDetail({
         )}
         <Fact
           k="Extra distance (est.)"
-          v={event.extraKmEstimate != null ? `+${km(event.extraKmEstimate)}` : '—'}
+          v={extraKnown(event) ? `+${km(event.extraKmEstimate)}` : '—'}
+          title={extraKnown(event) ? undefined : 'Not estimated'}
         />
-        <Fact k={`Extra cost (est., ${costBasisLabel(event)})`} v={model.cost} />
+        <Fact k={costKnown(event) ? `Extra cost (est., ${costBasisLabel(event)})` : 'Extra cost (est.)'} v={costKnown(event) ? model.cost : '—'} title={costKnown(event) ? costBasisLabel(event) : 'Not estimated yet'} />
       </div>
-      {event.extraKmEstimate == null || event.estimatedExtraCostInr == null ? <p className="muted" style={{ padding: '0 16px' }}>Extra distance and cost are unavailable because a comparable distance or cost is not measured.</p> : null}
+      {!extraKnown(event) || !costKnown(event) ? <p className="muted" style={{ padding: '0 16px' }}>Some estimates are unavailable because a comparable distance or cost is not measured.</p> : null}
 
       {/* Facts only: where it stopped while off the usual road, and for how
           long. No reason, no judgement - the owner decides. */}

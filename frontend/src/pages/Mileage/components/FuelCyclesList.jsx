@@ -3,7 +3,7 @@ import DataTable from '../../../components/ui/DataTable';
 import EnterprisePagination from '../../../components/ui/EnterprisePagination';
 import StatusChip from '../../../components/ui/StatusChip';
 import { useApi } from '../../../hooks/useApi';
-import { toISTDateString } from '../../../utils/dateUtils';
+import { humanDate } from '../mileageDates';
 import { formatKm, formatLitres } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
 import { mapFuelCycleRow, mileageBand, isPlausibleKmPerL } from '../cycleRows';
@@ -29,8 +29,8 @@ const COLUMNS = [
     label: 'Between fills',
     render: (r) => (
       <span className="num">
-        {r.openAt ? toISTDateString(r.openAt) : '—'} →{' '}
-        {r.closeAt ? toISTDateString(r.closeAt) : 'still running'}
+        {r.openAt ? humanDate(r.openAt) : '—'} →{' '}
+        {r.closeAt ? humanDate(r.closeAt) : 'still running'}
       </span>
     ),
   },

@@ -301,12 +301,10 @@ export default function MileagePage() {
                   role="tab"
                   aria-selected={activeTab === t.key}
                   className="mhub-tab"
+                  title={t.hint}
                   onClick={() => updateParams({ tab: t.key, subtab: null, view: null })}
                 >
                   {t.label}
-                  <span className="mhub-tab-hint" aria-hidden>
-                    {t.hint}
-                  </span>
                 </button>
               ))}
             </div>

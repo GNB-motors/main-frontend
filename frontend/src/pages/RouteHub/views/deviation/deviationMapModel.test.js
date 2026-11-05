@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mapModel, splitTrack, timelineModel } from './deviationMapModel';
+import { mapModel, padBounds, splitTrack, timelineModel } from './deviationMapModel';
 
 const T = (h, m = 0) => new Date(2026, 9, 14, h, m).toISOString();
 const fix = (h, m, lat, lng, extra = {}) => ({
@@ -96,7 +96,8 @@ describe('mapModel', () => {
   });
 
   it('zooms to the detour by default and has a whole-trip view', () => {
-    expect(m.bounds.detour).toEqual(expect.arrayContaining(m.detour));
+    expect(m.bounds.detour[0][0]).toBeLessThan(22.5);
+    expect(m.bounds.detour[1][0]).toBeGreaterThan(22.6);
     expect(m.bounds.trip.length).toBeGreaterThan(m.detour.length);
     expect(m.band).toEqual([[22.5, 88.3]]);
     expect(m.usual).toEqual([
@@ -135,9 +136,18 @@ describe('mapModel', () => {
 
   it('fits the detour and nearby road, excluding a distant road excursion', () => {
     const out = mapModel({ ...detail, roadEngine: { usualRoute: [[22.5, 88.3], [25, 90], [22.6, 88.4]] } });
-    expect(out.bounds.detour).not.toContainEqual([25, 90]);
-    expect(out.bounds.detour).toContainEqual([22.5, 88.3]);
-    expect(out.bounds.detour).toContainEqual([22.6, 88.4]);
+    expect(out.bounds.detour[0][0]).toBeLessThan(22.5);
+    expect(out.bounds.detour[1][0]).toBeGreaterThan(22.6);
+    expect(out.bounds.detour[1][0]).toBeLessThan(25);
+  });
+});
+
+describe('padBounds', () => {
+  it('pads valid points and ignores invalid coordinates', () => {
+    const [southwest, northeast] = padBounds([[22.5, 88.3], [22.6, 88.4], [null, 88.4]]);
+    expect(southwest[0]).toBeCloseTo(22.5 - 2 / 111.32, 5);
+    expect(northeast[0]).toBeCloseTo(22.6 + 2 / 111.32, 5);
+    expect(padBounds([])).toEqual([]);
   });
 });
 

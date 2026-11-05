@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
@@ -67,17 +67,7 @@ const REPORT = {
   ],
 };
 
-// The fixtures are a report for 4 Nov. Pin the clock to that morning so "today" means
-// the same thing whenever the suite runs (it broke the first time it ran after midnight).
-vi.useFakeTimers({ toFake: ['Date'] });
-vi.setSystemTime(new Date('2026-11-04T06:30:00Z'));
-
-const TODAY_IST = new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Asia/Kolkata',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-}).format(new Date());
+const TODAY_IST = '2026-11-04';
 
 const renderPanel = (day = '2026-11-04', digest = { goodDrivers: [], needsAttention: [] }) =>
   render(
@@ -88,7 +78,10 @@ const renderPanel = (day = '2026-11-04', digest = { goodDrivers: [], needsAttent
 
 describe('OwnerReportPanel', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    // Keep the fixture day "today" in IST, regardless of the machine's clock.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-04T06:30:00Z'));
+    vi.resetAllMocks();
     fleetViewService.getMorningBrief.mockResolvedValue({
       date: '2026-11-04',
       totalRupees: 17635.8,
@@ -104,6 +97,10 @@ describe('OwnerReportPanel', () => {
       ],
     });
     fleetViewService.getOwnerReport.mockResolvedValue(REPORT);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('shows every section with its own state: ok, empty and error', async () => {
@@ -162,9 +159,7 @@ describe('OwnerReportPanel', () => {
   it('bars the counted exception kinds, biggest first, and names the rest in one line', async () => {
     renderPanel();
 
-    await waitFor(() => expect(screen.getByText('Exceptions')).toBeTruthy());
-
-    const theft = screen.getByText('Possible fuel theft').closest('a');
+    const theft = (await screen.findByText('Possible fuel theft')).closest('a');
     const sos = screen.getByText('SOS').closest('a');
     expect(theft.getAttribute('href')).toBe('/intelligence?tab=fuel');
     expect(sos.getAttribute('href')).toBe('/alert-inbox');
@@ -181,7 +176,7 @@ describe('OwnerReportPanel', () => {
   it('writes the morning brief the way an owner reads it', async () => {
     renderPanel();
 
-    await waitFor(() => expect(screen.getByText('Where money leaked')).toBeTruthy());
+    await screen.findByText('estimated loss across 1 problem');
 
     expect(screen.getAllByText('₹17,636').length).toBeGreaterThan(0);
     expect(screen.getByText('estimated loss across 1 problem')).toBeTruthy();

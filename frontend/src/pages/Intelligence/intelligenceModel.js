@@ -518,6 +518,54 @@ export function driverOptions(assignments = []) {
   return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/** A Mongo id, not a name. */
+export const OBJECT_ID = /^[0-9a-f]{24}$/i;
+
+/**
+ * The drivers list as a map of id → name.
+ *
+ * The list is the one place a driver's real name lives; the report cards
+ * sometimes carry the id instead.
+ */
+export function driverNameMap(drivers = []) {
+  const byId = new Map();
+  drivers.forEach((driver) => {
+    const id = driver?._id ?? driver?.id;
+    if (!id) return;
+    const name =
+      [driver?.firstName, driver?.lastName].filter(Boolean).join(' ').trim() ||
+      String(driver?.name ?? '').trim();
+    if (name) byId.set(String(id), name);
+  });
+  return byId;
+}
+
+/**
+ * The name of the driver a card is about.
+ *
+ * A card that carries an id instead of a name is looked up in the drivers
+ * list. A driver who is not in that list is "Unnamed driver" — never a bare
+ * id, which is not a name anyone can read.
+ */
+export function resolveDriverName(card, driversById, { ready = true } = {}) {
+  const raw = String(card?.name ?? '').trim();
+  const id = String(card?.id ?? '').trim();
+  const isId = !raw || raw === id || OBJECT_ID.test(raw);
+  if (!isId) return raw;
+  const known = driversById?.get(id) || driversById?.get(raw);
+  if (known) return known;
+  return ready ? 'Unnamed driver' : '—';
+}
+
+/**
+ * A basis line that leaks an internal model name ("DriverVehicleAssignment
+ * intervals") is not something the owner can act on, so it is not shown.
+ */
+export function isInternalBasis(text) {
+  if (!text) return false;
+  return /[a-z][A-Z][A-Za-z]{6,}/.test(String(text));
+}
+
 /** The IST midnight of a YYYY-MM-DD, as an instant. */
 export function istDayStart(ymd) {
   return new Date(`${ymd}T00:00:00+05:30`);

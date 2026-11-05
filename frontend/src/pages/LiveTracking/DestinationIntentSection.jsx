@@ -1,6 +1,7 @@
 import { Navigation, ChevronDown } from 'lucide-react';
 import useApi from '../../hooks/useApi';
 import { LiveTrackingService } from './LiveTrackingService';
+import { ETA_PASSED_TEXT, etaHasPassed } from './etaPassed.js';
 
 const pct = (v) => (typeof v === 'number' ? `${Math.round(v * 100)}%` : '—');
 const km1 = (v) => (typeof v === 'number' ? `${v.toFixed(1)} km` : '—');
@@ -50,6 +51,7 @@ export default function DestinationIntentSection({ registrationNumber }) {
 
   const top = intent && Array.isArray(intent.candidates) ? intent.candidates[0] : null;
   const eta = timeIST(intent?.eta?.etaAt);
+  const etaPassed = etaHasPassed(intent?.eta?.etaAt);
   const alertState = intent?.alert?.state;
 
   return (
@@ -97,7 +99,11 @@ export default function DestinationIntentSection({ registrationNumber }) {
             {eta ? (
               <div className="kv">
                 <span className="k">ETA</span>
-                <span className="v">{eta} IST</span>
+                {etaPassed ? (
+                  <span className="v text-[var(--rd-ink-3)]">{ETA_PASSED_TEXT}</span>
+                ) : (
+                  <span className="v">{eta} IST</span>
+                )}
               </div>
             ) : null}
             <div className="kv">

@@ -78,6 +78,24 @@ export function defBandCaption(band = DEF_BAND) {
   return `normal ${min}–${max}% of diesel`;
 }
 
+/**
+ * Why a truck's km/L is blank. The figure only exists once a full-tank round
+ * has closed, so a blank means "not enough yet" — never a zero.
+ */
+export function kmPerLReason(item) {
+  if (item?.kmPerL != null) return null;
+  if (item?.km == null && item?.dieselL == null) return 'no round closed yet';
+  if (item?.km == null) return 'no distance yet';
+  if (item?.dieselL == null) return 'no diesel yet';
+  return 'no full-tank round';
+}
+
+/** Why a truck's usual km/L is blank: it is learned from its own history. */
+export function usualKmPerLReason(item) {
+  if (item?.usualKmPerL != null) return null;
+  return 'no history yet';
+}
+
 /** True when this row was reconciled against the oil report. */
 export function isReconciled(item) {
   return item?.source === 'RECONCILED_REGISTER';

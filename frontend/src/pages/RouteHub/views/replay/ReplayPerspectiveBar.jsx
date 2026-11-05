@@ -21,8 +21,8 @@ export default function ReplayPerspectiveBar({ persp, setPersp }) {
           Deviation
         </span>
         <span>
-          <i className="dot" style={{ background: '#f59e0b', border: '1px dashed #d97706' }} />
-          GSM Dead-Zone Bridge
+          <i className="dot" style={{ background: '#cbd5e1', border: '1px dashed #94a3b8' }} />
+          No signal (gap)
         </span>
       </div>
     </div>

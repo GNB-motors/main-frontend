@@ -42,13 +42,11 @@ const CAN_EDIT = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
 /** Flags the route line already says in words ("drop not found", "guessed"). */
 const DROP_FLAGS = ['DROP_UNKNOWN', 'DROP_INFERRED'];
 
-function Field({ label, children, mono = false, warn = false }) {
+function Field({ label, children, warn = false }) {
   return (
     <div className="atx-field">
       <span className="atx-field-label">{label}</span>
-      <span className={`atx-field-value${mono ? ' is-mono' : ''}${warn ? ' is-warn' : ''}`}>
-        {children}
-      </span>
+      <span className={`atx-field-value${warn ? ' is-warn' : ''}`}>{children}</span>
     </div>
   );
 }
@@ -468,6 +466,7 @@ export default function AutoTripDetailPage() {
               <>
                 <div className="atx-rule" />
                 <div className="atx-fields">
+                  {runTime != null ? <Field label="Loaded running time">{fmtDuration(runTime)}</Field> : null}
                   {trip.km?.approach != null ? (
                     <Field label="Empty run to plant">{fmtKm(trip.km.approach)}</Field>
                   ) : null}
@@ -487,9 +486,9 @@ export default function AutoTripDetailPage() {
                       {fmtDuration(trip.durations.approachMin)}
                     </Field>
                   ) : null}
-                  {plantMin != null && plantMin > LONG_PLANT_MIN ? (
-                    <Field warn label="Time at plant">
-                      {`${fmtDuration(plantMin)} · long wait`}
+                  {plantMin != null ? (
+                    <Field warn={plantMin > LONG_PLANT_MIN} label="Time at plant">
+                      {`${fmtDuration(plantMin)}${plantMin > LONG_PLANT_MIN ? ' · long wait' : ''}`}
                     </Field>
                   ) : null}
                 </div>

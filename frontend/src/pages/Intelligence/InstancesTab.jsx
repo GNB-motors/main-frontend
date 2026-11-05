@@ -9,6 +9,7 @@ import { useGoToLink } from '@/utils/redesign/links';
 import IntelligenceDataState from './IntelligenceDataState';
 import IntelligenceService from './IntelligenceService';
 import { INSTANCE_EMPTY_COPY, humanizeDates, isTemplatedText, whenText } from './intelligenceModel';
+import { eventCountLabel, formatLitres, formatMinutes, rowMinutes, withRoundedMinutes } from './intelligenceFormat';
 
 const PAGE_SIZE = 25;
 
@@ -44,7 +45,9 @@ const CAVEATS = {
 };
 
 const valueText = (row) =>
-  row?.value === null || row?.value === undefined
+  row?.unit === 'min'
+    ? formatMinutes(rowMinutes(row))
+    : row?.value === null || row?.value === undefined
     ? '—'
     : `${formatNumber(row.value, { digits: 1 })}${row?.unit ? ` ${row.unit}` : ''}`;
 
@@ -85,6 +88,7 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const [one, many] = NOUNS[activeKind] ?? ['moment', 'moments'];
+  const count = summary?.count == null ? { value: '—', label: 'count unavailable' } : eventCountLabel(summary.count, total);
 
   const anyDriver = items.some((row) => row?.driverName);
   const anyPlace = items.some((row) => row?.place && (row.place.name || row.place.lat));
@@ -152,7 +156,7 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
       : {
           key: 'what',
           label: 'What happened',
-          render: (row) => <span className="intel-cell-wrap">{row?.text ?? '—'}</span>,
+          render: (row) => <span className="intel-cell-wrap">{(row?.unit === 'min' ? withRoundedMinutes(row?.text, rowMinutes(row)) : row?.text) ?? '—'}</span>,
         },
     anyTrip
       ? {
@@ -211,8 +215,8 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
       >
         <div className="intel-summary" aria-label="What the system saw">
           <div className="intel-summary-stat">
-            <b>{formatNumber(summary?.count)}</b>
-            <span>{summary?.count === 1 ? one : many} in this period</span>
+            <b>{count.value}</b>
+            <span>{count.label === 'in this period' ? `${summary?.count === 1 ? one : many} in this period` : count.label}</span>
           </div>
           {summary?.totalMin !== null && summary?.totalMin !== undefined ? (
             <div className="intel-summary-stat">
@@ -226,7 +230,7 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
           summary?.totalL !== null &&
           summary?.totalL !== undefined ? (
             <div className="intel-summary-stat">
-              <b>{`${Math.round(Number(summary.totalL)).toLocaleString('en-IN')} L`}</b>
+              <b>{formatLitres(summary.totalL)}</b>
               <span>across all rows</span>
             </div>
           ) : null}

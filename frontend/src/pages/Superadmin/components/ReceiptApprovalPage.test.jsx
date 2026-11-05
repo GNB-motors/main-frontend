@@ -160,6 +160,15 @@ describe('ReceiptApprovalPage', () => {
 
   // Until the paging backend is deployed, an older one answers with its first
   // 200 drafts and no totalPages; the page then filters them itself, as before.
+  // D1: with nothing in the inbox the cards used to read "₹0" and "₹—/L".
+  it('says there are no receipts yet instead of showing an empty rate', async () => {
+    serveList(() => pagedOf([]));
+    renderPage();
+    expect((await screen.findAllByText('No receipts yet')).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/₹—\/L/)).not.toBeInTheDocument();
+    expect(screen.getByText('Pending approvals')).toBeInTheDocument();
+  });
+
   it('falls back to filtering in the browser against an older backend', async () => {
     serveList(() =>
       draftsOf([

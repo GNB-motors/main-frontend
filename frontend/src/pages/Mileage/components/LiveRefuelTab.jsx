@@ -6,9 +6,9 @@ import SegmentedChips from './SegmentedChips';
 import EnterprisePagination from '../../../components/ui/EnterprisePagination';
 import StatusChip from '../../../components/ui/StatusChip';
 import { useApi } from '../../../hooks/useApi';
-import { toISTDateString, toISTTimeString } from '../../../utils/dateUtils';
 import { formatINR, formatKm, formatLitres } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
+import { humanDateTime } from '../mileageDates';
 import { ODOMETER_SOURCE, REFUEL_CHIPS, drawerFromLiveRow, mapUnifiedRow } from '../refuelRows';
 import { fillExplanation } from '../fillExplanations';
 import InfoTip from './InfoTip';
@@ -31,8 +31,15 @@ function PumpCell({ row }) {
   if (row.location) return <span>{row.location}</span>;
   if (row.coords) {
     return (
-      <span>
-        Unknown pump<span className="mhub-sub num">{coordsText(row.coords)}</span>
+      <span className="mhub-cell">
+        <span title={`Coordinates: ${coordsText(row.coords)}`}>Unknown pump</span>
+        <Link
+          to="/place-hub"
+          className="mhub-link"
+          title="Name this pump in Place Hub"
+        >
+          Name this pump
+        </Link>
       </span>
     );
   }
@@ -55,10 +62,7 @@ const columns = (onOpen) => [
     label: 'When',
     render: (r) =>
       r.at ? (
-        <span className="num">
-          {toISTDateString(r.at)}
-          <span className="mhub-sub">{toISTTimeString(r.at)}</span>
-        </span>
+        <span className="num">{humanDateTime(r.at)}</span>
       ) : (
         '—'
       ),
@@ -167,7 +171,7 @@ export default function LiveRefuelTab({
   refreshKey = 0,
 }) {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(25);
   const [newestFirst, setNewestFirst] = useState(true);
   const [status, setStatus] = useState('all');
 
@@ -213,6 +217,13 @@ export default function LiveRefuelTab({
   const rows = (data?.data || []).map(mapUnifiedRow);
   const meta = data?.meta || null;
 
+  // Rate and amount come off the bill. With no bill on this page there is
+  // nothing to show in them, so the columns go away rather than fill with dashes.
+  const anyBill = rows.some((r) => r.rate?.value != null || r.totalAmount != null);
+  const visibleColumns = columns(onOpenDrawer).filter(
+    (c) => anyBill || (c.key !== 'rate' && c.key !== 'amount'),
+  );
+
   useEffect(() => {
     onMeta?.(meta);
   }, [meta, onMeta]);
@@ -255,7 +266,7 @@ export default function LiveRefuelTab({
         </button>
       </div>
       <DataTable
-        columns={columns(onOpenDrawer)}
+        columns={visibleColumns}
         rows={rows}
         rowKey={(r) => r.id}
         loading={loading && !data}

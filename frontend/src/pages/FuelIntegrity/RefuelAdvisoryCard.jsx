@@ -15,6 +15,13 @@ const STATUS_BADGE = {
   OK: 'fi-status-badge--confirmed',
 };
 
+/** The backend's codes, in words a person would use. */
+const STATUS_LABEL = {
+  CRITICAL: 'Critical',
+  REFUEL_SOON: 'Refuel soon',
+  OK: 'All good',
+};
+
 /**
  * Refuel advisory — the same numbers the full Refuel Advisory page shows,
  * trimmed to the five vehicles an owner acts on first. The API is the role
@@ -84,7 +91,7 @@ export default function RefuelAdvisoryCard() {
                       STATUS_BADGE[a.status] || 'fi-status-badge--neutral'
                     }`}
                   >
-                    {a.status || 'Unknown'}
+                    {STATUS_LABEL[a.status] || 'Unknown'}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">

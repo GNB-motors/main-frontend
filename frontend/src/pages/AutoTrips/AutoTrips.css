@@ -55,15 +55,10 @@
   --atx-tl-stop: #94a3b8;
   --atx-tl-drop: #16a34a;
   --atx-tl-rail: #cbd5e1;
-  --atx-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --atx-mono: var(--font-mono);
 
   color: var(--atx-ink);
-  font-family:
-    'Plus Jakarta Sans',
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    sans-serif;
+  font-family: var(--font-sans);
 }
 
 .atx-page {
@@ -864,6 +859,11 @@
 .atx-muted {
   color: var(--atx-ink-4);
 }
+/* A stop we could not place: the trip needs an answer, so it is amber. */
+.atx-drop-missing {
+  color: var(--atx-amber);
+  font-weight: 600;
+}
 .atx-replay-link {
   font-weight: 700;
   color: var(--atx-blue);
@@ -1181,9 +1181,6 @@
   font-weight: 600;
   color: var(--atx-ink);
   overflow-wrap: anywhere;
-}
-.atx-field-value.is-mono {
-  font-family: var(--atx-mono);
 }
 .atx-field-value.is-warn {
   color: var(--atx-amber);

@@ -701,6 +701,7 @@ function BriefingPanel({
               section={byId.exceptions}
               loading={reportLoading}
               onRetry={report$.refetch}
+              isPendingDay={isPendingDay}
             />
           )}
           <TrucksCard

@@ -63,6 +63,31 @@ export function hubRangeFromParams(params, now = new Date()) {
   return { preset, range: presetRange(preset, now) };
 }
 
+/**
+ * A date for people: "4 Nov" in this year, "4 Nov 2025" in another. IST.
+ * null when the input is missing or unreadable — never "Invalid Date".
+ */
+export function humanDate(input, now = new Date()) {
+  const day = formatInIST(input, 'D MMM');
+  if (!day) return null;
+  const year = formatInIST(input, 'YYYY');
+  return year === istDayString(now).slice(0, 4) ? day : `${day} ${year}`;
+}
+
+/**
+ * A date and time for people: "4 Nov, 03:51" in this year,
+ * "4 Nov 2025, 03:51" in another. IST. null when the input is unreadable.
+ */
+export function humanDateTime(input, now = new Date()) {
+  const day = formatInIST(input, 'D MMM');
+  if (!day) return null;
+  const year = formatInIST(input, 'YYYY');
+  const time = formatInIST(input, 'HH:mm');
+  return year === istDayString(now).slice(0, 4)
+    ? `${day}, ${time}`
+    : `${day} ${year}, ${time}`;
+}
+
 /** "9 Oct 2026", or "10 Sep – 9 Oct 2026". */
 export function rangeLabel({ from, to }) {
   if (from === to) return formatInIST(to, 'D MMM YYYY');

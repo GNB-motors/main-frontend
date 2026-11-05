@@ -111,4 +111,25 @@ describe('ByTruckMileageView', () => {
     await screen.findByText('WB11L8862');
     expect(container.textContent.toLowerCase()).not.toMatch(/siphon|theft|stolen|steal/);
   });
+
+  it('says why a truck has no km/L yet', async () => {
+    MileageService.getMileage.mockResolvedValue({
+      items: [{ ...truck, kmPerL: null, usualKmPerL: null }],
+    });
+    renderView();
+    await screen.findByText('WB11L8862');
+    expect(screen.getByText('no full-tank round')).toBeInTheDocument();
+    expect(screen.getByText('no history yet')).toBeInTheDocument();
+  });
+
+  it('says once, on the column, that no driver is assigned', async () => {
+    MileageService.getMileage.mockResolvedValue({
+      items: [{ ...truck, driverName: null }],
+    });
+    renderView();
+    await screen.findByText('WB11L8862');
+    expect(
+      screen.getByRole('button', { name: 'Why the driver column is empty' }),
+    ).toBeInTheDocument();
+  });
 });

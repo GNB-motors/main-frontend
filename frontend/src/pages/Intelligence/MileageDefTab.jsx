@@ -49,7 +49,7 @@ function KmplTable({ rows }) {
                   ? `usual ${kmPerL(item.usualKmPerL)}`
                   : '—'}
               </td>
-              <td className="intel-num intel-when">{item.km ? formatKm(item.km) : '—'}</td>
+              <td className="intel-num intel-when">{item.km != null ? formatKm(item.km) : '—'}</td>
             </tr>
           ))}
         </tbody>
@@ -146,7 +146,7 @@ export default function MileageDefTab({ from, to, vehicle = '' }) {
                           ? `normal ${formatPct(item.defBand.min)}–${formatPct(item.defBand.max)}`
                           : '—'}
                       </td>
-                      <td className="intel-num intel-when">{item.km ? formatKm(item.km) : '—'}</td>
+                    <td className="intel-num intel-when">{item.km != null ? formatKm(item.km) : '—'}</td>
                       <td>
                         <span className="intel-cell-wrap">{item.verdictWhy?.text ?? '—'}</span>
                       </td>

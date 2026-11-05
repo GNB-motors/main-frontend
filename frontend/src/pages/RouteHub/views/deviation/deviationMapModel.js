@@ -8,6 +8,17 @@ const ms = (d) => (d == null ? null : new Date(d).getTime());
 const ok = (p) => p && Number.isFinite(p.lat) && Number.isFinite(p.lng);
 const ll = (p) => [p.lat, p.lng];
 
+export function padBounds(points, padKm = 2) {
+  const list = (points || []).filter((p) => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]));
+  if (!list.length) return [];
+  const lats = list.map((p) => p[0]);
+  const lngs = list.map((p) => p[1]);
+  const midLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+  const latPad = padKm / 111.32;
+  const lngPad = padKm / (111.32 * Math.max(0.01, Math.abs(Math.cos(midLat * Math.PI / 180))));
+  return [[Math.min(...lats) - latPad, Math.min(...lngs) - lngPad], [Math.max(...lats) + latPad, Math.max(...lngs) + lngPad]];
+}
+
 /**
  * Trip track split into the empty run to the pickup and the loaded run after
  * it. A GPS gap (`break`) starts a new line so the map never draws a straight
@@ -72,7 +83,7 @@ export function mapModel(detail) {
     markers.push({
       kind: 'maxOff',
       at: ll(detour.maxOffPoint),
-      label: `Farthest point: ${Number(event.maxOffKm || 0).toFixed(1)} km off the usual route`,
+      label: event.maxOffKm == null ? 'Farthest point: distance unknown' : `Farthest point: ${Number(event.maxOffKm).toFixed(1)} km off the usual route`,
     });
   }
   if (ok(detour.rejoinPoint)) {
@@ -119,7 +130,7 @@ export function mapModel(detail) {
     judged: usual.length > 1,
     markers,
     bounds: {
-      detour: anchors.length ? anchors.concat(nearbyRoad) : tripPoints,
+      detour: anchors.length ? padBounds(anchors.concat(nearbyRoad)) : tripPoints,
       trip: tripPoints.concat(usual, driven, band),
     },
   };

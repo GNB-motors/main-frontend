@@ -1,4 +1,5 @@
 import { label, toneOf } from '../../lib/vocabulary';
+import { humanizeCode } from '../../utils/format';
 
 /**
  * StatusChip — the one way status is rendered anywhere in the product.
@@ -12,7 +13,9 @@ import { label, toneOf } from '../../lib/vocabulary';
  */
 export default function StatusChip({ group, value, tone, fallback = '—', className = '' }) {
   const resolvedTone = tone || toneOf(group, value);
-  const text = label(group, value, fallback);
+  // The vocabulary layer names the constant; humanizeCode is the last guard
+  // against a raw code reaching the screen.
+  const text = humanizeCode(label(group, value, fallback));
   return (
     <span className={`status-chip status-chip--${resolvedTone} ${className}`.trim()}>{text}</span>
   );

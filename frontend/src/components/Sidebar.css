@@ -103,18 +103,17 @@
 .sidebar-content {
   display: flex;
   flex-direction: column;
-  flex-grow: 1; /* Pushes footer down */
+  flex: 1 1 auto; /* Pushes footer down, but lets the column shrink */
   position: relative; /* sit above the ::before/::after gradient layers */
   z-index: 1;
   /* Without min-height:0 a flex item refuses to shrink below its content
-       height, so overflow-y never engages and the tail of the nav is unreachable. */
+       height, so the nav is pushed under the footer and the tail of the list
+       is unreachable. */
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  /* The list scrolls, not this column: the logo stays put and the footer
+       below it never gets overlapped by the last nav items. */
+  overflow: hidden;
   overscroll-behavior: contain;
-  /* Scrollbar hidden in all browsers — the nav still scrolls (wheel/trackpad),
-       there is just no visible bar. */
-  scrollbar-width: none; /* Firefox */
 }
 
 .sidebar-content::-webkit-scrollbar {
@@ -200,7 +199,22 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
-  flex-shrink: 0; /* keep natural height so the container scrolls instead of squashing links */
+  /* The item list is the thing that scrolls: it takes the space the footer
+     leaves, and its own tail is reachable at a 768px-tall window. */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  /* Scrollbar hidden in all browsers — the nav still scrolls (wheel/trackpad),
+     there is just no visible bar. */
+  scrollbar-width: none; /* Firefox */
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none; /* Chrome / Safari / Edge */
 }
 
 .nav-link {
@@ -257,7 +271,7 @@
 .sidebar-footer {
   padding-top: 12px;
   border-top: 1px solid var(--color-grey-200);
-  flex-shrink: 0; /* stays pinned; never squeezed by a tall nav */
+  flex: 0 0 auto; /* stays pinned below the scrolling list; never squeezed or overlapped */
   position: relative; /* sit above the gradient layers */
   z-index: 1;
 }

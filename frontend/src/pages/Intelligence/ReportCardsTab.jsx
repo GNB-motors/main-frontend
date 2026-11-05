@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import DataTable from '@/components/ui/DataTable';
 import EnterprisePagination from '@/components/ui/EnterprisePagination';
 import ToneBadge from '@/components/redesign/ToneBadge';
 import { formatNumber } from '@/utils/redesign/format';
 import { useApi } from '@/hooks/useApi';
+import TripService from '@/pages/Trip/services/TripService';
 import {
   Select,
   SelectContent,
@@ -15,7 +16,7 @@ import {
 import IntelligenceDataState from './IntelligenceDataState';
 import ReportCardDrawer from './ReportCardDrawer';
 import IntelligenceService from './IntelligenceService';
-import { bucketReportCards, humanizeDates, reportCardMakes } from './intelligenceModel';
+import { bucketReportCards, driverNameMap, humanizeDates, isInternalBasis, reportCardMakes, resolveDriverName } from './intelligenceModel';
 
 const GRADES = [
   { id: 'all', label: 'All grades' },
@@ -51,6 +52,15 @@ export default function ReportCardsTab({
     { scopeKey: `${subject}:${from}:${to}` },
   );
 
+  const { data: drivers, loading: driversLoading } = useApi(
+    (signal) => TripService.getDrivers({ limit: 200 }, { signal }),
+    [],
+    { enabled: subject === 'driver', scopeKey: 'drivers' },
+  );
+  const driversById = useMemo(() => driverNameMap(
+    Array.isArray(drivers) ? drivers : Array.isArray(drivers?.data) ? drivers.data : [],
+  ), [drivers]);
+
   const held = data?.held ? data.why : null;
   const cards = (data?.items ?? [])
     .filter(
@@ -68,7 +78,12 @@ export default function ReportCardsTab({
       !card.problems?.length
         ? { ...card, grade: 'NOT_ENOUGH_DATA' }
         : card,
-    );
+    )
+    .map((card) => subject === 'driver'
+      ? { ...card, name: resolveDriverName(card, driversById, { ready: !driversLoading }) }
+      : card);
+  const allUngraded = subject === 'driver' && cards.length > 0 &&
+    cards.every((card) => card.grade === 'NOT_ENOUGH_DATA');
   const makes = reportCardMakes(cards);
   const { buckets, total } = bucketReportCards(cards, { query, grade, make });
   const { buckets: gradeBuckets } = bucketReportCards(cards, { query, make });
@@ -83,7 +98,7 @@ export default function ReportCardsTab({
   const allNoTrend = cards.length > 0 && cards.every((card) => card.trend == null);
   const oneGrade = cards.length > 0 && new Set(cards.map((card) => card.grade)).size === 1;
   const bases = new Set(cards.map((card) => card.basis?.basis ?? ''));
-  const sharedBasis = cards.length > 1 && bases.size === 1 ? [...bases][0] : null;
+  const sharedBasis = cards.length > 1 && bases.size === 1 && !isInternalBasis([...bases][0]) ? [...bases][0] : null;
   const columns = [
     {
       key: 'name',
@@ -171,7 +186,7 @@ export default function ReportCardsTab({
       render: (card) => (
         <span className="intel-cell-wrap">
           {humanizeDates(card.headline) || 'No assessment available'}
-          {!sharedBasis && card.basis?.basis ? (
+          {!sharedBasis && card.basis?.basis && !isInternalBasis(card.basis.basis) ? (
             <small className="intelligence-table-basis">{humanizeDates(card.basis.basis)}</small>
           ) : null}
         </span>
@@ -279,7 +294,7 @@ export default function ReportCardsTab({
       >
         <>
           {subject === 'driver' ? (
-            <p className="intelligence-scope-note">
+            allUngraded ? <p className="intelligence-scope-note intelligence-scope-note--warn" role="status">No driver can be graded yet. Assignment coverage is not a driving-quality assessment.</p> : <p className="intelligence-scope-note">
               Assignment coverage is shown when a performance score is unavailable. An ungraded
               driver is not classified as a good or bad performer.
             </p>
