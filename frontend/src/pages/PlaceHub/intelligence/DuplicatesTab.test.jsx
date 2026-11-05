@@ -17,6 +17,10 @@ vi.mock('./PlaceIntelligenceService', () => ({
     listMerges: vi.fn(),
     undoMerge: vi.fn(),
     listSites: vi.fn(),
+    previewMergeJob: vi.fn(),
+    activeMergeJob: vi.fn(),
+    getMergeJob: vi.fn(),
+    retryMergeJob: vi.fn(),
   },
 }));
 beforeEach(() => {
@@ -24,12 +28,22 @@ beforeEach(() => {
   PlaceIntelligenceService.duplicates.mockResolvedValue([
     { a, b, distanceM: 23, roadKm: 0.02, tripsAffected: 485, verdict: 'LIKELY_SAME' },
   ]);
-  PlaceIntelligenceService.mergeSites.mockResolvedValue({});
+  PlaceIntelligenceService.previewMergeJob.mockResolvedValue({
+    previewId: 'preview1',
+    scope: { stopsToMove: 12, tripReferenceRows: 20 },
+  });
+  PlaceIntelligenceService.activeMergeJob.mockResolvedValue(null);
+  PlaceIntelligenceService.mergeSites.mockResolvedValue({ jobId: 'job1', status: 'QUEUED' });
+  PlaceIntelligenceService.getMergeJob.mockResolvedValue({ jobId: 'job1', status: 'COMPLETE' });
   PlaceIntelligenceService.distinctSites.mockResolvedValue({});
   PlaceIntelligenceService.listMerges.mockResolvedValue([
     { _id: 'merge1', memberIds: [a._id], members: [{ name: 'Plant A' }] },
   ]);
-  PlaceIntelligenceService.undoMerge.mockResolvedValue({ restored: 1 });
+  PlaceIntelligenceService.undoMerge.mockResolvedValue({
+    jobId: 'undo1',
+    status: 'QUEUED',
+    direction: 'UNDO',
+  });
 });
 it('includes duplicate review with place management without a separate feature flag', () => {
   expect(placeHubTabs({ allowSites: true }).some((t) => t.id === 'duplicates')).toBe(true);
@@ -45,10 +59,13 @@ it('defaults the survivor to most visits, merges and supports undo', async () =>
   fireEvent.click(screen.getByRole('button', { name: 'Merge' }));
   await waitFor(() =>
     expect(PlaceIntelligenceService.mergeSites).toHaveBeenCalledWith(
-      { survivorId: b._id, memberIds: [a._id] },
+      { previewId: 'preview1' },
       expect.anything(),
     ),
   );
+  expect(PlaceIntelligenceService.previewMergeJob).toHaveBeenCalledWith([
+    { survivorId: b._id, memberIds: [a._id] },
+  ]);
   fireEvent.click(screen.getByText('Merge history and undo'));
   fireEvent.click(await screen.findByRole('button', { name: 'Undo merge' }));
   await waitFor(() =>

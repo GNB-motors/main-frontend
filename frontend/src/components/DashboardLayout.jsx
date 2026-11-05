@@ -14,6 +14,7 @@ import { BranchProvider, useActiveBranch } from '../contexts/BranchContext.jsx';
 import FleetLinkProvider from '../contexts/FleetLinkProvider.jsx';
 import SupportPortalProvider from '../contexts/SupportPortalProvider.jsx';
 import UsageAnalyticsProvider from '../contexts/UsageAnalyticsProvider.jsx';
+import PlaceRecalculationBoundary from './PlaceRecalculationBoundary.jsx';
 import './DashboardLayout.css';
 
 const DashboardLayoutInner = () => {
@@ -77,7 +78,9 @@ const DashboardLayoutInner = () => {
           <ConfirmDialogHost>
             {/* A page crash stays inside the page area; sidebar and navbar survive. */}
             <ErrorBoundary resetKey={pathname}>
-              <Outlet />
+              <PlaceRecalculationBoundary>
+                <Outlet />
+              </PlaceRecalculationBoundary>
             </ErrorBoundary>
           </ConfirmDialogHost>
         </div>

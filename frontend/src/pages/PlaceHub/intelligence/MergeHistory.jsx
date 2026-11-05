@@ -15,10 +15,10 @@ export default function MergeHistory({ survivorId, version, onChanged }) {
   const m = useMutation(PlaceIntelligenceService.undoMerge);
   const undo = async (id) => {
     try {
-      await m.mutate(id);
-      toast.success('Merge undone');
-      q.refetch();
-      onChanged();
+      const operation = await m.mutate(id);
+      if (!operation) return;
+      toast.success('Undo queued for recalculation');
+      onChanged(operation);
     } catch (err) {
       toast.error(err?.message || 'Could not undo merge');
     }
