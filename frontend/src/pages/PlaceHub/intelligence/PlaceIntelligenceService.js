@@ -47,7 +47,32 @@ const PlaceIntelligenceService = {
   duplicates: async ({ signal } = {}) =>
     parsed('duplicateListSchema', await apiClient.get(`${BASE}/duplicates`, { signal })),
   mergeSites: async (body, { signal } = {}) =>
-    parsed('placeMutationSchema', await apiClient.post(`${BASE}/sites/merge`, body, { signal })),
+    parsed(
+      'mergeJobSchema',
+      await apiClient.post(body.previewId ? `${BASE}/merge-jobs` : `${BASE}/sites/merge`, body, {
+        signal,
+        headers: {
+          'Idempotency-Key': body.previewId ? `preview-${body.previewId}` : crypto.randomUUID(),
+        },
+      }),
+    ),
+  previewMergeJob: async (groups, { signal } = {}) =>
+    parsed(
+      'mergeJobPreviewSchema',
+      await apiClient.post(`${BASE}/merge-jobs/preview`, { groups }, { signal }),
+    ),
+  getMergeJob: async (id, { signal } = {}) =>
+    parsed('mergeJobSchema', await apiClient.get(`${BASE}/merge-jobs/${id}`, { signal })),
+  activeMergeJob: async ({ signal } = {}) => {
+    const response = await apiClient.get(`${BASE}/merge-jobs/active`, { signal });
+    const value = response.data?.data === null ? null : unwrap(response);
+    return value == null ? null : parseSafe('mergeJobSchema', schemas, value);
+  },
+  retryMergeJob: async (id, { signal } = {}) =>
+    parsed(
+      'mergeJobSchema',
+      await apiClient.post(`${BASE}/merge-jobs/${id}/retry`, {}, { signal }),
+    ),
   distinctSites: async ({ id, otherId }, { signal } = {}) =>
     parsed(
       'placeMutationSchema',
@@ -60,7 +85,7 @@ const PlaceIntelligenceService = {
     ),
   undoMerge: async (id, { signal } = {}) =>
     parsed(
-      'placeMutationSchema',
+      'mergeJobSchema',
       await apiClient.post(`${BASE}/sites/merges/${id}/undo`, {}, { signal }),
     ),
   summary: async ({ signal } = {}) =>

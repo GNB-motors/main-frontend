@@ -16,7 +16,6 @@ export default function placeHubTabs({
   allowFuel,
   allowSites,
   isSuperAdmin,
-  allowHygiene,
   allowDeliveries,
   hasHomes,
 }) {
@@ -25,7 +24,7 @@ export default function placeHubTabs({
     allowIdling && { id: 'idling', label: 'Idling', Icon: Hourglass },
     allowFuel && { id: 'fuel', label: 'Fuel risk', Icon: Flame },
     allowSites && { id: 'stops', label: 'Stops', Icon: Clock, title: 'Unexplained stops' },
-    allowHygiene && { id: 'duplicates', label: 'Same place?', Icon: Layers, table: true },
+    allowSites && { id: 'duplicates', label: 'Same place?', Icon: Layers, table: true },
     allowSites && { id: 'routes', label: 'Routes', Icon: Route },
     allowSites &&
       allowDeliveries && { id: 'deliveries', label: 'Deliveries', Icon: Route, table: true },

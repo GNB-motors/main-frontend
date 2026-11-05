@@ -88,6 +88,19 @@ export const mergeHistorySchema = z.array(
 );
 export const placeMutationSchema = z.object({}).passthrough();
 
+export const mergeJobSchema = z
+  .object({
+    jobId: z.string(),
+    status: z.enum(['PREVIEW', 'QUEUED', 'RUNNING', 'FAILED', 'COMPLETE']),
+    stage: z.string().nullish(),
+    direction: z.enum(['MERGE', 'UNDO']).optional(),
+    scope: z.record(z.string(), z.unknown()).nullish(),
+    stages: z.record(z.string(), z.unknown()).nullish(),
+    error: z.string().nullish(),
+  })
+  .passthrough();
+export const mergeJobPreviewSchema = mergeJobSchema.extend({ previewId: z.string() });
+
 const engineSchema = z
   .object({
     siteType: str,
