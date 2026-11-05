@@ -1,4 +1,5 @@
 import { effectiveType, typeLabel } from './siteType.js';
+import { kmLabel } from './unitLabels.js';
 
 /**
  * The question an auto-trip drop puts to a person: trucks loaded somewhere, drove out
@@ -38,13 +39,59 @@ export function hasRisk(site) {
   return (r.theftIncidents || 0) + (r.unauthRefuelIncidents || 0) > 0;
 }
 
-/** A name a person can read: the given name, else what it is and where. */
-export function placeTitle(site) {
+/** Great-circle distance in metres, or null when a point is missing. */
+export function distanceM(a, b) {
+  const lat1 = Number(a?.lat);
+  const lng1 = Number(a?.lng);
+  const lat2 = Number(b?.lat);
+  const lng2 = Number(b?.lng);
+  if (![lat1, lng1, lat2, lng2].every(Number.isFinite)) return null;
+  const R = 6371000;
+  const rad = (d) => (d * Math.PI) / 180;
+  const dLat = rad(lat2 - lat1);
+  const dLng = rad(lng2 - lng1);
+  const s =
+    Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
+}
+
+/** A point in either shape: a merged place or a raw site. */
+function pointOf(p) {
+  const lat = Number(p?.lat ?? p?.centroidLat);
+  const lng = Number(p?.lng ?? p?.centroidLng);
+  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+}
+
+/** The closest place the fleet can name, as { name, distanceM }. Null when none. */
+export function nearestKnownPlace(place, places) {
+  const from = pointOf(place);
+  if (!from) return null;
+  let best = null;
+  for (const other of places || []) {
+    if (!other?.name || other === place) continue;
+    const to = pointOf(other);
+    if (!to) continue;
+    const d = distanceM(from, to);
+    if (d == null) continue;
+    if (!best || d < best.distanceM) best = { name: other.name, distanceM: d };
+  }
+  return best;
+}
+
+/**
+ * A name a person can read: the given name, else what it is and where. An own
+ * yard with no name and no locality says nothing, so it says how far it sits
+ * from the nearest place we do know.
+ */
+export function placeTitle(site, nearest = null) {
   if (site?.name) return site.name;
   const { type } = effectiveType(site);
   const locality = site?.address?.locality;
   const what = type === 'UNKNOWN' ? 'Unnamed stop' : typeLabel(type);
-  return locality ? `${what}, ${locality}` : what;
+  if (locality) return `${what}, ${locality}`;
+  if (type === 'YARD' && nearest?.name)
+    return `${what} · ${kmLabel(nearest.distanceM / 1000)} from ${nearest.name}`;
+  return what;
 }
 
 export function coordsLabel(lat, lng) {

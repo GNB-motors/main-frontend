@@ -18,6 +18,9 @@ let pane;
 beforeEach(() => {
   vi.clearAllMocks();
   overlays.length = 0;
+  map.fitBounds = vi.fn();
+  map.getBounds = vi.fn(() => null);
+  map.panTo = vi.fn();
   pane = document.createElement('div');
   document.body.appendChild(pane);
   class OverlayView {
@@ -44,6 +47,14 @@ beforeEach(() => {
       LatLng: class {
         constructor(point) {
           Object.assign(this, point);
+        }
+      },
+      LatLngBounds: class {
+        constructor() {
+          this.points = [];
+        }
+        extend(point) {
+          this.points.push(point);
         }
       },
       Size: class {},
@@ -91,7 +102,7 @@ const props = {
 };
 
 describe('Track replay presentation', () => {
-  it('draws the dotted grey route and the growing blue travelled line', () => {
+  it('keeps raw replay geometry dotted, including the travelled part', () => {
     render(<LiveMapCanvas {...props} />);
     const lines = PolylineF.mock.calls.map(([p]) => p);
     const background = lines.find((p) => p.options.strokeOpacity === 0);
@@ -99,9 +110,9 @@ describe('Track replay presentation', () => {
       repeat: '10px',
       icon: { fillColor: '#9A9AA5' },
     });
-    expect(lines.find((p) => p.options.strokeColor === '#2F58EE')).toMatchObject({
+    expect(lines.find((p) => p.path === props.replayRunPaths[0].path)).toMatchObject({
       path: props.replayRunPaths[0].path,
-      options: { strokeWeight: 5, strokeOpacity: 0.95 },
+      options: { strokeOpacity: 0, icons: [{ repeat: '10px' }] },
     });
   });
   it('keeps the same truck DOM and map overlay as playback and zoom change', () => {
@@ -129,15 +140,47 @@ describe('Track replay presentation', () => {
   });
 });
 
+const track = {
+  points: [
+    { t: '2026-11-01T13:00:00Z', lat: 22, lng: 88, speedKmh: 40 },
+    { t: '2026-11-01T13:10:00Z', lat: 23, lng: 89, speedKmh: 70 },
+  ],
+};
+
+describe('Track mode', () => {
+  it('draws the truck being replayed, on an overlay above the line', () => {
+    render(<LiveMapCanvas {...props} track={track} trackPlayheadTime="2026-11-01T13:10:00Z" />);
+    const truck = pane.querySelector('.rh-truck');
+    expect(truck).not.toBeNull();
+    // The truck turns with the heading it actually had.
+    expect(truck.querySelector('div').style.transform).toMatch(/rotate\(/);
+  });
+
+  it('fits the whole trail once, so the owner sees the whole drive', () => {
+    const { rerender } = render(
+      <LiveMapCanvas {...props} track={track} trackPlayheadTime="2026-11-01T13:10:00Z" />,
+    );
+    expect(map.fitBounds).toHaveBeenCalledTimes(1);
+    const [bounds, padding] = map.fitBounds.mock.calls[0];
+    expect(bounds.points).toEqual([
+      { lat: 22, lng: 88 },
+      { lat: 23, lng: 89 },
+    ]);
+    expect(padding).toEqual({ top: 80, right: 60, bottom: 120, left: 60 });
+    rerender(
+      <LiveMapCanvas {...props} track={track} trackPlayheadTime="2026-11-01T13:05:00Z" />,
+    );
+    expect(map.fitBounds).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('Fleet markers while focused on one truck', () => {
   const fleet = [{ id: 'v1' }, { id: 'v2' }, { id: 'v3' }];
   it('shows the whole fleet when nothing is selected', () => {
     expect(focusedMapVehicles(fleet, { selectedId: null, replayOn: false })).toEqual(fleet);
   });
-  it('shows only the selected truck when one is selected', () => {
-    expect(focusedMapVehicles(fleet, { selectedId: 'v2', replayOn: false })).toEqual([
-      { id: 'v2' },
-    ]);
+  it('keeps the fleet visible when a truck is selected', () => {
+    expect(focusedMapVehicles(fleet, { selectedId: 'v2', replayOn: false })).toEqual(fleet);
   });
   it('hides every live marker during Replay (the replay truck stands in)', () => {
     expect(focusedMapVehicles(fleet, { selectedId: 'v2', replayOn: true })).toEqual([]);

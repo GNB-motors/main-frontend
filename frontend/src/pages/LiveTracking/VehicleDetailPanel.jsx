@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+import FleetDataService from '../../services/FleetDataService.js';
+import { newestOdometer } from './vehicleMetricReadings.js';
 import renderIconSvg from './renderIconSvg.jsx';
 import VehiclePanelHeader from './VehiclePanelHeader.jsx';
 import VehicleReadingTiles from './VehicleReadingTiles.jsx';
@@ -16,7 +19,6 @@ import TrackIdlingChip from './TrackIdlingChip.jsx';
 import DestinationIntentSection from './DestinationIntentSection.jsx';
 import KnownDestinationSection from './KnownDestinationSection.jsx';
 import { formatKnownEtaLine, matchKnownEta } from '../../lib/knownEta';
-import AddHere from '../PlaceHub/drawer/AddHere.jsx';
 import { Link } from 'react-router-dom';
 import { fallbackNow } from './vehiclePanelModel';
 
@@ -51,10 +53,23 @@ export default function VehicleDetailPanel({
   vehicleAlerts = [],
   showIntent = false,
   knownEtas = [],
-  canEditPlaces = false,
-  onAddAtSpot = null,
+  onWhereNext = null,
 }) {
   const reg = selectedVehicle?.plate ?? null;
+  const vin = selectedVehicle?.vin ?? null;
+  const [odometerSources, setOdometerSources] = useState(null);
+  useEffect(() => {
+    setOdometerSources(null);
+    if (!reg) return undefined;
+    const controller = new AbortController();
+    Promise.allSettled([
+      FleetDataService.getVehicleHealth(reg, { days: 1, limit: 1 }, controller.signal),
+      vin ? FleetDataService.getLatestVehicleStatus(vin, controller.signal) : Promise.resolve([]),
+    ]).then(([health, status]) => {
+      if (!controller.signal.aborted) setOdometerSources({ reg, vin, health: health.status === 'fulfilled' ? health.value?.latest : null, status: status.status === 'fulfilled' ? status.value?.[0] : null });
+    });
+    return () => controller.abort();
+  }, [reg, vin]);
 
   // A destination we know (a trip plan, a SAP dispatch) beats a predicted one.
   const knownLine = formatKnownEtaLine(matchKnownEta(knownEtas, reg));
@@ -62,6 +77,9 @@ export default function VehicleDetailPanel({
   // The live stream already carries the position row, so the panel reads it
   // straight from there — no second endpoint to keep alive.
   const now = fallbackNow(selectedVehicle, selectedDriver);
+  const sources = odometerSources?.reg === reg && odometerSources?.vin === vin ? odometerSources : null;
+  const odometer = newestOdometer(selectedVehicle ?? {}, sources?.health, sources?.status);
+  if (now && odometer) now.readings.odometerKm = { ...odometer, freshness: odometer.freshness ?? (odometer.isStale ? 'stale' : 'recent') };
 
   return (
     <div
@@ -104,7 +122,7 @@ export default function VehicleDetailPanel({
 
             <VehicleNowCard now={now} vehicle={selectedVehicle} />
 
-            <WhereNextSection registrationNumber={reg} />
+            <WhereNextSection registrationNumber={reg} onPrediction={onWhereNext} />
 
             <InsightChipsSection chips={now?.chips ?? []} registrationNumber={reg} />
 
@@ -135,15 +153,6 @@ export default function VehicleDetailPanel({
                   Open the alert inbox →
                 </Link>
               </section>
-            ) : null}
-
-            {canEditPlaces && onAddAtSpot && Number.isFinite(selectedVehicle?.lat) ? (
-              <AddHere
-                canEdit={canEditPlaces}
-                onAdd={onAddAtSpot}
-                center={{ lat: selectedVehicle.lat, lng: selectedVehicle.lng }}
-                name={reg}
-              />
             ) : null}
 
             <VehicleDriverSection driver={now?.driver ?? null} />

@@ -7,6 +7,7 @@ import { KpiRow, RefreshButton } from '../routeHubShared.jsx';
 import { downloadCsv, fmtDT, inr } from '../routeHubFormat';
 import {
   dayRange,
+  costKnown,
   groupByTrip,
   legLabel,
   matchesSearch,
@@ -140,11 +141,14 @@ export default function DeviationView({ params, toast, setBadge, go }) {
     {
       ic: 'rupee',
       l: 'Est. detour cost',
-      v: inr(summary?.openCostInr || 0),
-      s: 'estimated fuel and wear · open only',
+      v: rows.some(costKnown) && summary?.openCostInr != null ? inr(summary.openCostInr) : '—',
+      s:
+        !rows.some(costKnown) || summary?.openCostInr == null
+          ? 'detour cost not estimated yet'
+          : 'estimated fuel and wear · open only',
       c: '#C2323A',
       tint: 'rgba(229,104,107,.14)',
-      vc: '#C2323A',
+      vc: rows.some(costKnown) && summary?.openCostInr != null ? '#C2323A' : 'var(--rd-ink-3)',
     },
   ];
 
@@ -242,6 +246,8 @@ export default function DeviationView({ params, toast, setBadge, go }) {
 
       <div className="split">
         <DeviationFeed
+          selectedChecked={Boolean(detail.data)}
+          selectedNotJudged={Boolean(detail.data && !(detail.data.roadEngine?.usualRoute?.length > 1 || detail.data.usualRoute?.length > 1 || detail.data.corridor?.line?.length > 1))}
           groups={groups}
           selId={selectedId}
           onSelect={setSelId}

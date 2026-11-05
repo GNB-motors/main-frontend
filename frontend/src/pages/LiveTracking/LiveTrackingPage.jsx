@@ -1,4 +1,7 @@
+import usePassiveTrail from './usePassiveTrail.js';
+import { googleMapsLoaderOptions } from '../../utils/googleMapsLoader.js';
 import TrackTollStatus from './TrackTollStatus';
+import { getPref } from '../../utils/session';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLoadScript } from '@react-google-maps/api';
@@ -18,7 +21,6 @@ import LiveTopbar from './LiveTopbar.jsx';
 import useStatusCards from './useStatusCards.js';
 import LiveMapCanvas from './LiveMapCanvas.jsx';
 import MapOverlayControls from './MapOverlayControls.jsx';
-import TelemetryTicker from './TelemetryTicker.jsx';
 import FleetListView from './FleetListView.jsx';
 import VehicleDetailPanel from './VehicleDetailPanel.jsx';
 import { useKnownEtas } from '../../hooks/useKnownEtas';
@@ -66,10 +68,6 @@ import {
 } from './trackLegendPrefs.js';
 import './LiveTracking.css';
 
-const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '')
-  .replace(/['"]/g, '')
-  .trim();
-const GOOGLE_MAPS_LIBRARIES = ['places', 'drawing'];
 
 /* ---------------- Main LiveTrackingPage Component ---------------- */
 const LiveTrackingPage = () => {
@@ -89,9 +87,22 @@ const LiveTrackingPage = () => {
   const [mapMode, setMapMode] = useState('map'); // 'map' | 'sat'
   const [isTelemetryOn, setIsTelemetryOn] = useState(true);
 
+  // The Places panel (the legend down the left of the map) covers that side of
+  // the map, so a track is fitted to the right of it while it is open. The
+  // legend remembers whether it is open; when it has never been touched it is
+  // open on a desktop and closed on a phone.
+  const placesPanelOpen = useMemo(() => {
+    const stored = getPref('track.legend.open');
+    if (stored === 'true') return true;
+    if (stored === 'false') return false;
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true;
+    return !window.matchMedia('(max-width: 780px)').matches;
+  }, []);
+
   // Filters & selection
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedId, setSelectedId] = useState(null);
+  const [whereNext, setWhereNext] = useState(null);
 
   // The top toolbar is the filter: one status at a time, and a set of makes
   // (empty means every make). The floating legend keeps only the Places layers.
@@ -125,10 +136,7 @@ const LiveTrackingPage = () => {
   const isTrackMode = trackMode.isTrackMode;
 
   // Google Maps Load Script
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    libraries: GOOGLE_MAPS_LIBRARIES,
-  });
+  const { isLoaded, loadError } = useLoadScript(googleMapsLoaderOptions);
 
   const searchInputRef = useRef(null);
 
@@ -181,6 +189,8 @@ const LiveTrackingPage = () => {
       return !prev;
     });
 
+  const passiveTrail = usePassiveTrail(selectedId, selectedVehicle?.plate, !isTrackMode);
+
   const {
     mapRef,
     mapZoom,
@@ -224,9 +234,28 @@ const LiveTrackingPage = () => {
     vehicles,
     selectedId,
     selectedVehicle,
+    suspendFollow: Boolean(passiveTrail),
     showToast,
     onMapClick: handleMapClick,
   });
+
+  const selectedVehicleForFit = useRef(selectedVehicle);
+  selectedVehicleForFit.current = selectedVehicle;
+  useEffect(() => {
+    if (!passiveTrail || !mapRef.current || !window.google?.maps?.LatLngBounds || replayState.on || isTrailVisible) return;
+    const bounds = new window.google.maps.LatLngBounds();
+    const points = [...passiveTrail.points];
+    const vehicle = selectedVehicleForFit.current;
+    if (vehicle?.hasFix) points.push({ lat: vehicle.lat, lng: vehicle.lng });
+    if (points.length < 2) return;
+    points.forEach(point => bounds.extend(point));
+    const panel = document.querySelector('.gnb-lt-page .rail');
+    const right = panel?.getBoundingClientRect().width || 0;
+    const mapBounds = mapRef.current.getDiv().getBoundingClientRect();
+    const overlays = document.querySelectorAll('.gnb-lt-page .ov-search, .gnb-lt-page .ov-legend');
+    const left = Math.max(70, ...Array.from(overlays, overlay => overlay.getBoundingClientRect().right - mapBounds.left + 20));
+    mapRef.current.fitBounds(bounds, { top: 70, bottom: 70, left, right: right + 70 });
+  }, [passiveTrail, mapRef, replayState.on, isTrailVisible]);
 
   const selectedDriver = useSelectedDriver(selectedVehicle, vehiclesMeta, driverAssignments);
 
@@ -578,6 +607,7 @@ const LiveTrackingPage = () => {
           handleRefresh={handleRefresh}
           isRefreshing={isRefreshing}
           manufacturers={manufacturers}
+          manufacturerCounts={Object.fromEntries(manufacturers.map(name => [name, vehicles.filter(v => v.manufacturer === name).length]).concat([['Unclassified', vehicles.filter(v => !v.manufacturer).length]]))}
           selectedManufacturers={selectedManufacturers}
           setSelectedManufacturers={setSelectedManufacturers}
           lastEventAt={lastEventAt}
@@ -595,6 +625,9 @@ const LiveTrackingPage = () => {
           {/* Map Column */}
           <div className="mapcol">
             <LiveMapCanvas
+              passiveTrail={passiveTrail}
+              whereNext={whereNext?.registrationNumber === activeVehicle?.plate && !isTrackMode && !replayState.on ? whereNext : null}
+              whereNextPosition={activeVehicle}
               isLoaded={isLoaded}
               loadError={loadError}
               mapZoom={mapZoom}
@@ -638,6 +671,7 @@ const LiveTrackingPage = () => {
               trackPlayheadTime={isTrackMode ? trackMode.playheadTime : null}
               trackRoad={isTrackMode ? trackMode.roadTrail : null}
               trackTolls={isTrackMode ? trackMode.tolls : null}
+              placesPanelOpen={placesPanelOpen}
               reviewItems={reviewQueue.items}
               selectedReviewId={reviewSite?._id ?? null}
               onSelectReviewSite={selectReviewSite}
@@ -703,17 +737,6 @@ const LiveTrackingPage = () => {
                 />
               }
               trafficToggle={<TrafficToggle on={isTrafficOn} onToggle={handleToggleTraffic} />}
-              trackTollStatus={
-                isTrackMode ? (
-                  <TrackTollStatus
-                    data={trackMode.tolls}
-                    loading={trackMode.tollsLoading}
-                    error={trackMode.tollsError}
-                    onRetry={trackMode.retryTolls}
-                    playheadTime={trackMode.playheadTime}
-                  />
-                ) : null
-              }
 
               legend={
                 <TrackLegend
@@ -726,9 +749,10 @@ const LiveTrackingPage = () => {
                   placesNotAvailable={mapPlaces.notAvailable}
                   placesTruncated={mapPlaces.truncated}
                   placesCount={mapPlaces.items.length}
+                  unmatchedRoutes={routes.error ? null : routes.unmatchedCount}
                   liveCounts={{
-                    reviewQueue: reviewQueue.count,
-                    routes: routes.error ? null : routes.lines.length,
+                    reviewQueue: layerSelection.reviewQueue ? reviewQueue.count : '—',
+                    routes: !layerSelection.routes ? '—' : routes.error ? null : routes.lines.length,
                     idling: idlingError ? null : idlingRows.length,
                   }}
                   error={positionsError}
@@ -757,21 +781,6 @@ const LiveTrackingPage = () => {
               onApplyTrackRange={(range) => trackMode.applyRange(range)}
             />
 
-            {/* Overlay Bottom-Center: the live telemetry ticker. Hidden in Track
-                mode, where the timeline owns the bottom band. */}
-            {!isTrackMode ? (
-              <div className="ov ov--bc">
-                {/* Live Telemetry Ticker */}
-                <TelemetryTicker
-                  selectedVehicle={selectedVehicle}
-                  vehicles={vehicles}
-                  rotating={isTelemetryOn}
-                  highlighted={isTelemetryOn && !replayState.on}
-                  icon={renderIconSvg('radio', 14)}
-                />
-              </div>
-            ) : null}
-
             {/* Track mode: the timeline at the bottom of the map. */}
             {isTrackMode ? (
               <TrackTimeline
@@ -791,6 +800,16 @@ const LiveTrackingPage = () => {
                 onExit={trackMode.exitTrackMode}
                 from={trackMode.from}
                 to={trackMode.to}
+                tollStatus={
+                  <TrackTollStatus
+                    compact
+                    data={trackMode.tolls}
+                    loading={trackMode.tollsLoading}
+                    error={trackMode.tollsError}
+                    onRetry={trackMode.retryTolls}
+                    playheadTime={trackMode.playheadTime}
+                  />
+                }
               />
             ) : null}
           </div>
@@ -875,6 +894,7 @@ const LiveTrackingPage = () => {
 
                       {/* Vehicle Detail Slide-in Drawer */}
                       <VehicleDetailPanel
+                        onWhereNext={setWhereNext}
                         selectedVehicle={activeVehicle}
                         setSelectedId={setSelectedId}
                         exitReplay={exitReplay}

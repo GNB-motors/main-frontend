@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import DataTable from '@/components/ui/DataTable';
 import EnterprisePagination from '@/components/ui/EnterprisePagination';
 import ToneBadge from '@/components/redesign/ToneBadge';
 import { formatNumber } from '@/utils/redesign/format';
 import { useApi } from '@/hooks/useApi';
+import TripService from '@/pages/Trip/services/TripService';
 import {
   Select,
   SelectContent,
@@ -15,7 +16,7 @@ import {
 import IntelligenceDataState from './IntelligenceDataState';
 import ReportCardDrawer from './ReportCardDrawer';
 import IntelligenceService from './IntelligenceService';
-import { bucketReportCards, reportCardMakes } from './intelligenceModel';
+import { bucketReportCards, driverNameMap, humanizeDates, isInternalBasis, reportCardMakes, resolveDriverName } from './intelligenceModel';
 
 const GRADES = [
   { id: 'all', label: 'All grades' },
@@ -51,6 +52,15 @@ export default function ReportCardsTab({
     { scopeKey: `${subject}:${from}:${to}` },
   );
 
+  const { data: drivers, loading: driversLoading } = useApi(
+    (signal) => TripService.getDrivers({ limit: 200 }, { signal }),
+    [],
+    { enabled: subject === 'driver', scopeKey: 'drivers' },
+  );
+  const driversById = useMemo(() => driverNameMap(
+    Array.isArray(drivers) ? drivers : Array.isArray(drivers?.data) ? drivers.data : [],
+  ), [drivers]);
+
   const held = data?.held ? data.why : null;
   const cards = (data?.items ?? [])
     .filter(
@@ -68,7 +78,12 @@ export default function ReportCardsTab({
       !card.problems?.length
         ? { ...card, grade: 'NOT_ENOUGH_DATA' }
         : card,
-    );
+    )
+    .map((card) => subject === 'driver'
+      ? { ...card, name: resolveDriverName(card, driversById, { ready: !driversLoading }) }
+      : card);
+  const allUngraded = subject === 'driver' && cards.length > 0 &&
+    cards.every((card) => card.grade === 'NOT_ENOUGH_DATA');
   const makes = reportCardMakes(cards);
   const { buckets, total } = bucketReportCards(cards, { query, grade, make });
   const { buckets: gradeBuckets } = bucketReportCards(cards, { query, make });
@@ -77,12 +92,27 @@ export default function ReportCardsTab({
   const currentPage = Math.min(page, totalPages);
   const gradeLabel = (card) =>
     GRADES.find((entry) => entry.id === card.grade)?.label || 'Insufficient data';
+  // A column that says the same thing on every row says it once instead:
+  // no "Not graded" ×118, no "No comparison" ×126, no repeated basis line.
+  const allNoScore = cards.length > 0 && cards.every((card) => card.score == null);
+  const allNoTrend = cards.length > 0 && cards.every((card) => card.trend == null);
+  const oneGrade = cards.length > 0 && new Set(cards.map((card) => card.grade)).size === 1;
+  const bases = new Set(cards.map((card) => card.basis?.basis ?? ''));
+  const sharedBasis = cards.length > 1 && bases.size === 1 && !isInternalBasis([...bases][0]) ? [...bases][0] : null;
   const columns = [
     {
       key: 'name',
       label: subject === 'driver' ? 'Driver' : 'Truck',
       render: (card) => (
-        <button type="button" className="intelligence-table-open" onClick={() => setOpenCard(card)}>
+        <button
+          type="button"
+          className="intelligence-table-open"
+          aria-label={`Open the full card for ${card.name}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpenCard(card);
+          }}
+        >
           {card.name}
           {card.make ? (
             <small>
@@ -92,67 +122,77 @@ export default function ReportCardsTab({
         </button>
       ),
     },
-    {
-      key: 'grade',
-      label: 'Assessment',
-      render: (card) => (
-        <ToneBadge
-          tone={card.grade === 'EXCELLENT' ? 'good' : card.grade === 'FALLING' ? 'watch' : 'info'}
-        >
-          {gradeLabel(card)}
-        </ToneBadge>
-      ),
-    },
-    {
-      key: 'score',
-      label: 'Score',
-      render: (card) => (card.score == null ? 'Not graded' : `${formatNumber(card.score)}/100`),
-    },
-    {
-      key: 'trend',
-      label: 'Trend',
-      render: (card) =>
-        card.trend === 'UP'
-          ? 'Improving ↑'
-          : card.trend === 'DOWN'
-            ? 'Declining ↓'
-            : card.trend === 'FLAT'
-              ? 'Steady'
-              : 'No comparison',
-    },
+    oneGrade
+      ? null
+      : {
+          key: 'grade',
+          label: 'Assessment',
+          render: (card) => (
+            <ToneBadge
+              tone={
+                card.grade === 'EXCELLENT' ? 'good' : card.grade === 'FALLING' ? 'watch' : 'info'
+              }
+            >
+              {gradeLabel(card)}
+            </ToneBadge>
+          ),
+        },
+    allNoScore
+      ? null
+      : {
+          key: 'score',
+          label: 'Score',
+          align: 'right',
+          render: (card) =>
+            card.score == null ? (
+              <span className="text-[var(--rd-ink-3)]">—</span>
+            ) : (
+              <span className="intel-score">
+                <span className="intel-score-bar" aria-hidden="true">
+                  <span style={{ width: `${Math.max(0, Math.min(100, card.score))}%` }} />
+                </span>
+                {formatNumber(card.score)}
+              </span>
+            ),
+        },
+    allNoTrend
+      ? null
+      : {
+          key: 'trend',
+          label: 'Trend',
+          render: (card) =>
+            card.trend === 'UP'
+              ? 'Improving ↑'
+              : card.trend === 'DOWN'
+                ? 'Declining ↓'
+                : card.trend === 'FLAT'
+                  ? 'Steady'
+                  : '—',
+        },
     {
       key: 'distance',
       label: 'Distance',
+      align: 'right',
       render: (card) =>
-        card.kmInPeriod == null ? 'Not measured' : `${formatNumber(card.kmInPeriod)} km`,
+        card.kmInPeriod == null ? (
+          <span className="text-[var(--rd-ink-3)]">Not measured</span>
+        ) : (
+          `${formatNumber(card.kmInPeriod)} km`
+        ),
     },
     {
       key: 'finding',
       label: 'Key finding',
       render: (card) => (
-        <span>
-          {card.headline || 'No assessment available'}
-          {card.basis?.basis ? (
-            <small className="intelligence-table-basis">{card.basis.basis}</small>
+        <span className="intel-cell-wrap">
+          {humanizeDates(card.headline) || 'No assessment available'}
+          {!sharedBasis && card.basis?.basis && !isInternalBasis(card.basis.basis) ? (
+            <small className="intelligence-table-basis">{humanizeDates(card.basis.basis)}</small>
           ) : null}
         </span>
       ),
     },
-    {
-      key: 'open',
-      label: 'Details',
-      render: (card) => (
-        <button
-          className="intelligence-table-open"
-          type="button"
-          aria-label={`Open the full card for ${card.name}`}
-          onClick={() => setOpenCard(card)}
-        >
-          View details →
-        </button>
-      ),
-    },
-  ];
+  ].filter(Boolean);
 
   const title = subject === 'driver' ? 'Drivers' : 'Trucks';
   const what = subject === 'driver' ? 'The driver card' : 'The truck card';
@@ -202,24 +242,40 @@ export default function ReportCardsTab({
           </Select>
         ) : null}
 
-        <Select
-          value={grade}
-          onValueChange={(value) => {
-            setGrade(value ?? 'all');
-            setPage(1);
-          }}
-        >
-          <SelectTrigger aria-label="Filter by grade" size="sm">
-            <SelectValue>{GRADES.find((entry) => entry.id === grade)?.label}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {GRADES.map((entry) => (
-              <SelectItem key={entry.id} value={entry.id}>
-                {entry.label}
-              </SelectItem>
+
+        {cards.length ? (
+          <div className="intel-chip-row" role="group" aria-label="Assessment groups">
+            <button
+              type="button"
+              className="intel-chip"
+              aria-pressed={grade === 'all'}
+              onClick={() => {
+                setGrade('all');
+                setPage(1);
+              }}
+            >
+              All
+              <span className="tabular-nums">
+                {gradeBuckets.reduce((sum, bucket) => sum + bucket.cards.length, 0)}
+              </span>
+            </button>
+            {gradeBuckets.map((bucket) => (
+              <button
+                key={bucket.id}
+                type="button"
+                className="intel-chip"
+                aria-pressed={bucket.grades.includes(grade)}
+                onClick={() => {
+                  setGrade(grade === bucket.grades[0] ? 'all' : bucket.grades[0]);
+                  setPage(1);
+                }}
+              >
+                {bucket.label}
+                <span className="tabular-nums">{bucket.cards.length}</span>
+              </button>
             ))}
-          </SelectContent>
-        </Select>
+          </div>
+        ) : null}
       </div>
 
       <IntelligenceDataState
@@ -237,23 +293,8 @@ export default function ReportCardsTab({
         onRetry={refetch}
       >
         <>
-          <div className="intelligence-grade-counts" role="group" aria-label="Assessment groups">
-            {gradeBuckets.map((bucket) => (
-              <button
-                key={bucket.id}
-                type="button"
-                aria-pressed={bucket.grades.includes(grade)}
-                onClick={() => {
-                  setGrade(grade === bucket.grades[0] ? 'all' : bucket.grades[0]);
-                  setPage(1);
-                }}
-              >
-                {bucket.label} ({bucket.cards.length})
-              </button>
-            ))}
-          </div>
           {subject === 'driver' ? (
-            <p className="intelligence-scope-note">
+            allUngraded ? <p className="intelligence-scope-note intelligence-scope-note--warn" role="status">No driver can be graded yet. Assignment coverage is not a driving-quality assessment.</p> : <p className="intelligence-scope-note">
               Assignment coverage is shown when a performance score is unavailable. An ungraded
               driver is not classified as a good or bad performer.
             </p>
@@ -262,19 +303,26 @@ export default function ReportCardsTab({
             columns={columns}
             rows={rows.slice((currentPage - 1) * 25, currentPage * 25)}
             rowKey={(card) => card.id}
+            onRowClick={(card) => setOpenCard(card)}
             showing={Math.min(25, rows.length - (currentPage - 1) * 25)}
             total={total}
-            paginated={totalPages > 1}
+            toolbarExtra={
+              sharedBasis ? (
+                <span className="intelligence-scope-note">{`Based on ${humanizeDates(sharedBasis).replace(/^([A-Z])(?=[a-z])/, (c) => c.toLowerCase())}`}</span>
+              ) : null
+            }
+            pagination={
+              totalPages > 1 ? (
+                <EnterprisePagination
+                  page={currentPage}
+                  totalPages={totalPages}
+                  totalItems={rows.length}
+                  pageSize={25}
+                  onPageChange={setPage}
+                />
+              ) : null
+            }
           />
-          {totalPages > 1 ? (
-            <EnterprisePagination
-              page={currentPage}
-              totalPages={totalPages}
-              totalItems={rows.length}
-              pageSize={25}
-              onPageChange={setPage}
-            />
-          ) : null}
         </>
       </IntelligenceDataState>
 

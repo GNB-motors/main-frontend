@@ -146,7 +146,7 @@ export function useVehicleColumns({
           <span className="vehicle-badge vehicle-badge-unknown">Unclassified</span>
         ),
     },
-    { key: 'model', label: 'Model', render: (vehicle) => vehicle.model || 'N/A' },
+    { key: 'model', label: 'Model', render: (vehicle) => vehicle.model || '—' },
     {
       key: 'vehicleCategory',
       label: 'Category',
@@ -156,15 +156,15 @@ export function useVehicleColumns({
             {vehicle.vehicleCategory}
           </span>
         ) : (
-          <span className="vehicle-badge vehicle-badge-unknown">—</span>
+          <span style={{ color: 'var(--fg-secondary)', fontSize: 12 }}>—</span>
         ),
     },
     {
       key: 'chassis_number',
       label: 'Chassis No',
       render: (vehicle) => (
-        <span style={{ fontFamily: 'monospace', fontSize: '12px' }}>
-          {vehicle.chassis_number || 'N/A'}
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: '12px' }}>
+          {vehicle.chassis_number || '—'}
         </span>
       ),
     },
@@ -178,10 +178,22 @@ export function useVehicleColumns({
             <span style={{ fontStyle: 'italic', color: '#aaa', fontSize: 12 }}>Not assigned</span>
           );
         }
+        // The account id stays in the tooltip; the cell itself shows only the
+        // provider name and a green dot, so a long id cannot stretch the column.
+        const accountTitle = [
+          `${acct.provider} account ${acct.accountId}`,
+          acct.name && acct.name !== acct.accountId ? acct.name : null,
+        ]
+          .filter(Boolean)
+          .join(' · ');
         // The account's link state on every row; a Reconnect action while the
-        // truck's data is paused (or about to be).
+        // truck's data is paused (or about to be). A healthy link is just the
+        // green dot on the badge — no second line of chips.
+        const connected = acct.link?.tone === 'ok' && !acct.link.needsAction;
         let linkChip = null;
-        if (acct.link) {
+        if (connected) {
+          linkChip = null;
+        } else if (acct.link) {
           const Icon = acct.link.needsAction ? Unplug : Plug;
           linkChip = (
             <button
@@ -237,7 +249,7 @@ export function useVehicleColumns({
         }
         const badge = (
           <span
-            title={acct.tip}
+            title={accountTitle}
             className="vehicle-badge"
             style={{
               background: acct.isDisabled ? '#fef3c7' : '#eff6ff',
@@ -246,6 +258,7 @@ export function useVehicleColumns({
               display: 'inline-flex',
               alignItems: 'center',
               gap: 4,
+              textTransform: 'none',
             }}
           >
             {acct.isDisabled && (
@@ -260,7 +273,19 @@ export function useVehicleColumns({
                 title="Source account disabled"
               />
             )}
-            {acct.label}
+            {connected && !acct.isDisabled && (
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: '#16a34a',
+                  display: 'inline-block',
+                }}
+                title="Connected"
+              />
+            )}
+            {acct.provider}
           </span>
         );
         if (!linkChip) return badge;
@@ -306,10 +331,10 @@ export function useVehicleColumns({
         if (val == null || !Number.isFinite(val) || val <= 0) {
           return (
             <span
-              title={vehicle.mileageUnavailableReason || 'No calculated mileage available yet.'}
+              title={vehicle.mileageUnavailableReason || 'No full-tank rounds yet.'}
               style={{ color: 'var(--fg-secondary)', fontSize: 12 }}
             >
-              {vehicle.mileageWithheld ? 'Insufficient data' : 'Not available'}
+              —
             </span>
           );
         }
@@ -325,7 +350,7 @@ export function useVehicleColumns({
             <span
               className="vehicle-badge"
               style={{
-                fontFamily: 'monospace',
+                fontFamily: 'var(--font-sans)',
                 fontWeight: 600,
                 fontSize: 12,
                 cursor: 'pointer',

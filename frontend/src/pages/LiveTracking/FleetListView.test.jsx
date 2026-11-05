@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import FleetListView from './FleetListView.jsx';
 
+vi.mock('../../services/PlaceService', () => ({ resolvePlace: vi.fn().mockResolvedValue(null) }));
+
 /**
  * A failed fleet read must not look like an empty fleet. The rail says what
  * happened and offers the one action that can fix it.
@@ -47,4 +49,13 @@ describe('FleetListView error state', () => {
     renderRail({ error: new Error('stream hiccup'), vehicles: [vehicle], filteredVehicles: [vehicle] });
     expect(screen.queryAllByText("Couldn't load your fleet")).toHaveLength(0);
   });
+});
+
+it('uses an honest road fallback and shows speed without exposing identifiers', async () => {
+  const vehicle = { id: 'v1', plate: 'WB01AB1234', status: 'moving', hasFix: true, lat: 22, lng: 88, speed: 32, vin: 'SECRET-VIN' };
+  renderRail({ vehicles: [vehicle], filteredVehicles: [vehicle] });
+  expect(await screen.findByText('On the road')).toBeInTheDocument();
+  expect(screen.getByText('32 km/h')).toBeInTheDocument();
+  expect(screen.queryByText('View current location')).not.toBeInTheDocument();
+  expect(screen.queryByText('SECRET-VIN')).not.toBeInTheDocument();
 });

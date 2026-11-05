@@ -48,8 +48,21 @@ describe('WhereNextSection', () => {
     getWhereNext.mockResolvedValue({ destinations: [destination], basis: null, computedAt: null });
     render(<WhereNextSection registrationNumber="WB11L8862" />);
     await waitFor(() =>
-      expect(screen.getByText(/Likely → DANKUNI SIDING/)).toBeInTheDocument(),
+      expect(screen.getByText(/→ DANKUNI SIDING/)).toBeInTheDocument(),
     );
+  });
+
+  it('never shows a held guess in the header, and says why it is held', async () => {
+    getWhereNext.mockResolvedValue({
+      held: true,
+      destinations: [destination],
+      basis: { text: 'Last fix is not near any of this org\'s places.' },
+    });
+    render(<WhereNextSection registrationNumber="WB11J8562" />);
+    expect(await screen.findByText('Where next · not sure yet')).toBeInTheDocument();
+    expect(screen.queryByText(/→/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    expect(await screen.findByText(/On the road between places/)).toBeInTheDocument();
   });
 
   it('prints the reason the API gave, in words', async () => {
@@ -70,6 +83,46 @@ describe('WhereNextSection', () => {
     expect(screen.queryByText('75%')).not.toBeInTheDocument();
   });
 
+  // An ETA that has already passed says nothing about when the truck will
+  // arrive, so the time is never printed.
+  it('never prints an ETA that has already passed', async () => {
+    getWhereNext.mockResolvedValue({
+      destinations: [
+        {
+          ...destination,
+          eta: { ...destination.eta, at: '2020-01-01T10:00:00Z' },
+        },
+      ],
+      basis: null,
+      computedAt: null,
+    });
+    render(<WhereNextSection registrationNumber="WB11L8862" />);
+    await waitFor(() =>
+      expect(screen.getByText(/→ DANKUNI SIDING/)).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/ETA \d/)).not.toBeInTheDocument();
+    expect(screen.getAllByText(/ETA passed/).length).toBeGreaterThan(0);
+  });
+
+  it('prints an ETA that is still ahead of the owner', async () => {
+    getWhereNext.mockResolvedValue({
+      destinations: [
+        {
+          ...destination,
+          eta: { ...destination.eta, at: '2099-01-01T10:00:00Z' },
+        },
+      ],
+      basis: null,
+      computedAt: null,
+    });
+    render(<WhereNextSection registrationNumber="WB11L8862" />);
+    await waitFor(() =>
+      expect(screen.getByText(/→ DANKUNI SIDING/)).toBeInTheDocument(),
+    );
+    expect(screen.getAllByText(/ETA \d/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/ETA passed/)).not.toBeInTheDocument();
+  });
+
   it('says the answer is not ready when the backend holds it', async () => {
     getWhereNext.mockResolvedValue({
       held: true,
@@ -77,7 +130,7 @@ describe('WhereNextSection', () => {
     });
     render(<WhereNextSection registrationNumber="WB11L8862" />);
     fireEvent.click(await screen.findByRole('button', { name: 'Open' }));
-    await waitFor(() => expect(screen.getByText('Not shown yet')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Still being checked.')).toBeInTheDocument());
   });
 
   // The endpoint is not on prod yet: a failed request, or no guess, is

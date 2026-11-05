@@ -1,3 +1,4 @@
+import { googleMapsLoaderOptions } from '../../../utils/googleMapsLoader.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { GoogleMap, useLoadScript } from '@react-google-maps/api';
 import { MapPinOff } from 'lucide-react';
@@ -6,13 +7,12 @@ import { LIGHT_MAP_STYLE, DARK_MAP_STYLE } from '../../LiveTracking/mapStyles';
 import useDocumentTheme from '../../LiveTracking/useDocumentTheme';
 import DigestSkeleton from './DigestSkeleton';
 
-const LIBRARIES = ['places', 'drawing'];
 const CENTER = { lat: 22.5937, lng: 78.9629 };
 const SIZE = { width: '100%', height: '100%' };
 const KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').replace(/['"]/g, '').trim();
 
 function GoogleFleetMap({ vehicles, selectedId, onSelect }) {
-  const { isLoaded, loadError } = useLoadScript({ googleMapsApiKey: KEY, libraries: LIBRARIES });
+  const { isLoaded, loadError } = useLoadScript(googleMapsLoaderOptions);
   const theme = useDocumentTheme();
   const [map, setMap] = useState(null);
   const [zoom, setZoom] = useState(5);

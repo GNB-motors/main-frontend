@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
 import { GoogleMap, MarkerClustererF } from '@react-google-maps/api';
-import { boundsOf } from './intelligence/model/mapBounds.js';
+import { planFit } from './intelligence/model/mapBounds.js';
 import { LIGHT_MAP_STYLE, DARK_MAP_STYLE } from '../LiveTracking/mapStyles.js';
 import { IDLE_COLOR, idleTone, DRAIN_COLOR, STOP_COLOR } from './placeHubStyle.js';
 
@@ -77,6 +77,7 @@ export default function PlaceHubMap({
   const [map, setMap] = useState(null);
   const [zoom, setZoom] = useState(5);
   const lastFitKey = useRef(null);
+  const warnedFitKey = useRef(null);
   const drafting = Boolean(draft);
   const { pois, load: loadPois } = usePoiLayer(map, showPoi);
   const { plazas: tollPlazas, load: loadTolls } = useTollLayer(map, showAllTolls);
@@ -117,9 +118,20 @@ export default function PlaceHubMap({
 
   useEffect(() => {
     if (!map || lastFitKey.current === fitKey) return;
-    const b = boundsOf(fitPoints);
-    if (!b) return;
+    const { bounds, rejected } = planFit(fitPoints);
+    if (rejected.length && warnedFitKey.current !== fitKey) {
+      warnedFitKey.current = fitKey;
+      // The bad fix is worth saying out loud: it is a data problem, not a view one.
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[place-hub] ignoring fit points outside India:',
+        rejected.map((p) => p.id || p._id || `${p.lat},${p.lng}`).join(', '),
+      );
+    }
+    // Nothing usable inside the country — leave the map where the user left it.
+    if (!bounds) return;
     lastFitKey.current = fitKey;
+    const b = bounds;
     if (b.north - b.south < 0.01 && b.east - b.west < 0.01) {
       map.setCenter({ lat: (b.north + b.south) / 2, lng: (b.east + b.west) / 2 });
       map.setZoom(14);
@@ -204,7 +216,7 @@ export default function PlaceHubMap({
         )}
       {tab === 'places' && (
         <MarkerClustererF
-          options={CLUSTER_OPTIONS}
+          options={{ ...CLUSTER_OPTIONS, styles: clusterStylesNow }}
           styles={clusterStylesNow}
           title="Zoom in to see these places"
           onUnmount={detachClusterer}

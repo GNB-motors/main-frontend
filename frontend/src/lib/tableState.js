@@ -38,8 +38,13 @@ export function activeFilterCount(params = {}, defaults = {}) {
 }
 
 /** Honest footer: "Showing 24 of 151 · 2 filters active". Never hides the total. */
+const inrCount = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
+
+/** A count the way this app writes numbers: Indian digit grouping. */
+const grouped = (n) => inrCount.format(Number(n) || 0);
+
 export function footerSummary({ showing = 0, total = 0, activeFilters = 0 } = {}) {
-  const base = `Showing ${showing} of ${total}`;
+  const base = `Showing ${grouped(showing)} of ${grouped(total)}`;
   return activeFilters > 0 ? `${base} · ${activeFilters} filter${activeFilters === 1 ? '' : 's'} active` : base;
 }
 

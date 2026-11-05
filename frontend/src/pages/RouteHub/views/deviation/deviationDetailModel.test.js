@@ -98,6 +98,12 @@ describe('deviationDetailModel', () => {
     expect(model.noUsualRoadCaption).toBeNull();
   });
 
+  it('uses nested road-engine geometry returned by the API', () => {
+    const result = deviationDetailModel({ roadEngine: { usualRoute: detail.usualRoute, geometry: detail.geometry } });
+    expect(result.hasUsualRoad).toBe(true);
+    expect(result.offRoute).toHaveLength(3);
+  });
+
   it('says why the usual road is not drawn when it is missing', () => {
     const model = deviationDetailModel({ ...detail, usualRoute: null }, null);
     expect(model.hasUsualRoad).toBe(false);

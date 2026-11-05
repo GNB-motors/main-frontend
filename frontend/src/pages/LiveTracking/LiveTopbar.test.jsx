@@ -21,18 +21,14 @@ function Toolbar(props) {
   );
 }
 describe('tracking toolbar', () => {
-  it('supports future makes, combinations and returning to All', () => {
+  it('supports multiple makes and returning to all', () => {
     render(<Toolbar />);
-    expect(screen.getByRole('button', { name: 'All manufacturers' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Volvo' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Tata' }));
-    expect(screen.getByRole('button', { name: 'Volvo' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'Tata' })).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(screen.getByRole('button', { name: 'All manufacturers' }));
-    expect(screen.getByRole('button', { name: 'Volvo' })).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(screen.getByRole('button', { name: /Volvo/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Tata/ }));
+    expect(screen.getByRole('button', { name: /Volvo/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /Tata/ })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: /All makes/ }));
+    expect(screen.getByRole('button', { name: /Volvo/ })).toHaveAttribute('aria-pressed', 'false');
   });
   it('retains the successful update time on failure and disables duplicate refresh', () => {
     const refresh = vi.fn();

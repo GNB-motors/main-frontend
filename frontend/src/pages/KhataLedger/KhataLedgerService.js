@@ -3,6 +3,20 @@ import DriverVehicleAssignmentService from '../../services/DriverVehicleAssignme
 
 const unwrap = (res) => res.data?.data || res.data;
 
+// The ERP module answers 404 for organisations that have not switched ERP on.
+// That is a different situation from "no trips yet", so it gets its own message.
+export const ERP_DISABLED_MESSAGE = "ERP isn't switched on for your organisation";
+
+export const isErpDisabledError = (err) => (err?.status ?? err?.response?.status) === 404;
+
+const erpDisabledError = () => {
+  const err = new Error(ERP_DISABLED_MESSAGE);
+  err.name = 'ErpDisabledError';
+  err.status = 404;
+  err.erpDisabled = true;
+  return err;
+};
+
 // Chart aggregates need the complete filtered set; the API caps each page at 100.
 const getDashboardPages = async (path, params, { signal } = {}) => {
   const all = [];
@@ -25,7 +39,7 @@ const KhataLedgerService = {
     try {
       return await getDashboardPages('/api/erp/trips', params, options);
     } catch (err) {
-      if ((err?.status ?? err?.response?.status) === 404) return [];
+      if (isErpDisabledError(err)) throw erpDisabledError();
       throw err;
     }
   },
@@ -104,7 +118,7 @@ const KhataLedgerService = {
       const response = await apiClient.get('/api/erp/trips', { params });
       return response.data || { data: [], meta: { total: 0 } };
     } catch (err) {
-      if (err?.response?.status === 404) return { data: [], meta: { total: 0 } };
+      if (isErpDisabledError(err)) throw erpDisabledError();
       throw err;
     }
   },

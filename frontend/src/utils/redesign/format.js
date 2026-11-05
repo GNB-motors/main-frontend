@@ -180,3 +180,7 @@ export const NOT_MEASURED = 'Not measured yet';
 
 /** "Not received" — when a sensor has never sent a value. */
 export const NOT_RECEIVED = 'Not received';
+
+/* The one place a raw code becomes words. Re-exported here so the redesign
+   surfaces reach for the same helper. */
+export { humanizeCode } from '../format.js';

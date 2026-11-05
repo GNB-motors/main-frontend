@@ -2,10 +2,9 @@ import { OverlayView } from '@react-google-maps/api';
 import WeatherIcon from './WeatherIcon.jsx';
 import { categoryOf, isDayAt, labelOf, num } from './weatherGlyph.js';
 
-/** Anchor the overlay's top-left at the vehicle point; the CSS on `.wx-anchor`
- *  does the centering + lift, which is reliable regardless of render timing
- *  (measuring width/height in JS mis-placed the bubble to the side). */
-const anchorAtPoint = () => ({ x: 0, y: 0 });
+/** The bubble sits up and to the right of the truck, so the truck stays
+ *  visible under it. The CSS on `.wx-anchor` does the rest of the placement. */
+const anchorUpRight = () => ({ x: 28, y: -36 });
 
 /**
  * The floating weather card centered directly above the vehicle on the map
@@ -26,7 +25,7 @@ export default function WeatherBubble({ position, weather }) {
     <OverlayView
       position={position}
       mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-      getPixelPositionOffset={anchorAtPoint}
+      getPixelPositionOffset={anchorUpRight}
     >
       <div className="wx-anchor">
         <div className={`wx-bubble wx-bubble--${category}`}>

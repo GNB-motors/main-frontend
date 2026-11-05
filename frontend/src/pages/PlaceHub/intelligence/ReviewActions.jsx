@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Check, X, Pencil, Loader2 } from 'lucide-react';
 import TypeChips from './TypeChips';
+// Own styles: Track's place panel renders this without Place Hub's page CSS.
+import './placeIntelligence.css';
 import { aType, effectiveType, suggestion, typeLabel } from './model/siteType.js';
 
 /**

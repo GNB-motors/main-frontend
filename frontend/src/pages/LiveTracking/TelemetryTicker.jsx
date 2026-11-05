@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { formatAgoText } from './minutesAgoFormat.js';
-import { formatFuel } from '../../utils/liveView.js';
+import { formatFuelValue, fuelUnitTitle } from '../../utils/liveView.js';
 
 /**
  * Live telemetry strip: the selected vehicle, or a rotation through the live
@@ -34,12 +34,21 @@ export default function TelemetryTicker({
       </span>
       <span className="tsep" />
       <span className="tval tfuel">
-        Fuel <b>{formatFuel(vehicle.fuelReading)}</b>
+        Fuel{' '}
+        <b
+          title={fuelUnitTitle(vehicle.fuelReading) || `Fuel ${formatFuelValue(vehicle.fuelReading)}`}
+        >
+          {formatFuelValue(vehicle.fuelReading)}
+        </b>
       </span>
-      <span className="tsep opt0" />
-      <span className="tval opt0">
-        Ign <b>{vehicle.ignition}</b>
-      </span>
+      {vehicle.ignition && vehicle.ignition !== '—' ? (
+        <>
+          <span className="tsep opt0" />
+          <span className="tval opt0">
+            Ign <b>{vehicle.ignition}</b>
+          </span>
+        </>
+      ) : null}
       <span className="tsep opt1" />
       <span className="tval opt1">
         GPS <b>{vehicle.gps}</b>

@@ -96,7 +96,7 @@ describe('VehicleDetailPanel', () => {
 
   it('never shows a zero for a value it does not have', () => {
     renderPanel({ ...releaseVehicle, fuel: null, defLevel: null, odo: null });
-    expect(screen.getAllByText('Not received').length).toBeGreaterThanOrEqual(3);
+    expect(screen.getByText(/Odometer: no reading yet/)).toBeInTheDocument();
     expect(screen.queryByText('0 L')).not.toBeInTheDocument();
   });
 

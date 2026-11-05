@@ -1,3 +1,4 @@
+import { googleMapsLoaderOptions } from '../../utils/googleMapsLoader.js';
 import { useMemo } from 'react';
 import { GoogleMap, useLoadScript, MarkerF } from '@react-google-maps/api';
 import { INDIA_CENTER } from '../LiveTracking/liveTrackingConstants.js';
@@ -5,7 +6,6 @@ import { getStateMeta } from '../LiveTracking/statusPalettes.js';
 import { pinIcon } from '../LiveTracking/mapIcons.js';
 import { timeAgo } from '../../utils/formatters';
 
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const MAP_CONTAINER_STYLE = { width: '100%', height: '100%', borderRadius: 'inherit' };
 
 /**
@@ -18,7 +18,7 @@ const MAP_CONTAINER_STYLE = { width: '100%', height: '100%', borderRadius: 'inhe
  * CLAUDE.md's geocoding cost landmine) — the coordinates are shown as-is.
  */
 export default function VehicleMiniMap({ livePosition }) {
-  const { isLoaded } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
+  const { isLoaded } = useLoadScript(googleMapsLoaderOptions);
 
   const hasFix = livePosition?.latitude != null && livePosition?.longitude != null;
   const center = useMemo(
@@ -27,7 +27,7 @@ export default function VehicleMiniMap({ livePosition }) {
   );
   const meta = getStateMeta(livePosition?.state);
 
-  if (!GOOGLE_MAPS_API_KEY) {
+  if (!googleMapsLoaderOptions.googleMapsApiKey) {
     return (
       <div className="v360-minimap v360-minimap--empty">
         <span className="v360-empty-title">Map unavailable</span>

@@ -68,3 +68,15 @@ export function dropLabel(drop) {
   if (drop.areaName) return `${drop.areaName} area`;
   return drop.source === 'UNKNOWN' ? 'drop not found' : 'unnamed place';
 }
+
+/**
+ * A drop we could not find at all.
+ *
+ * This is not the same as an unnamed place: the stop happened, we simply do
+ * not know where — so it is shown as something to fix, in amber.
+ */
+export function isUnknownDrop(drop) {
+  if (!drop) return false;
+  if (drop.name || drop.areaName) return false;
+  return drop.source === 'UNKNOWN';
+}

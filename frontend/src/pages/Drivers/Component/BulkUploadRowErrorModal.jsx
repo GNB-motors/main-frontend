@@ -128,7 +128,7 @@ const BulkUploadRowErrorModal = ({ selected, onClose }) => {
                   backgroundColor: '#f9fafb',
                   borderRadius: '8px',
                   fontSize: '12px',
-                  fontFamily: 'monospace',
+                  fontFamily: 'var(--font-sans)',
                   maxHeight: '200px',
                   overflow: 'auto',
                 }}

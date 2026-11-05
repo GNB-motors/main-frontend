@@ -8,6 +8,7 @@ import { replayWindow } from '../overspeedReplay';
 import { DEFAULT_LIMIT_KMH, DEFAULT_DUR_MIN, PLAYBACK_BASE_SEC } from './replay/replayConstants.js';
 import { windowForRange, tripWindow } from './replay/replayWindows.js';
 import buildTrip from './replay/buildTrip.js';
+import { travelledPieces } from './replay/replayPath.js';
 import sampleAt from './replay/sampleAt.js';
 import tripStats from './replay/tripStats.js';
 import useReplayLayers from './replay/useReplayLayers.js';
@@ -215,13 +216,14 @@ export default function ReplayView({ params, toast }) {
     truckRef.current.setLatLng(onRoad ? [onRoad.lat, onRoad.lng] : frame.ll);
     if (trip.roadLayers.length) {
       const travelled = clipLayersAt(trip.roadLayers, frame.at.getTime()).filter(
-        (l) => l.kind !== 'RAW',
+        (l) => l.kind !== 'RAW' && l.kind !== 'INFERRED',
       );
       runRef.current.setLatLngs(
         travelled.length ? travelled.map((l) => toLatLngPairs(l.path)) : [frame.ll],
       );
     } else {
-      runRef.current.setLatLngs(trip.path.slice(0, frame.upto).concat([frame.ll]));
+      const driven = travelledPieces(trip.pieces, frame.upto, frame.ll);
+      runRef.current.setLatLngs(driven.length ? driven : [frame.ll]);
     }
     const el = truckRef.current.getElement()?.querySelector('.rh-truck');
     if (el) el.classList.toggle('fast', (frame.speed || 0) > limitKmh);

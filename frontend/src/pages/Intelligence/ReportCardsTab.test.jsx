@@ -5,8 +5,12 @@ import { MemoryRouter } from 'react-router-dom';
 vi.mock('./IntelligenceService', () => ({
   default: { getReportCards: vi.fn() },
 }));
+vi.mock('@/pages/Trip/services/TripService', () => ({
+  default: { getDrivers: vi.fn().mockResolvedValue({ data: [] }) },
+}));
 
 import IntelligenceService from './IntelligenceService';
+import TripService from '@/pages/Trip/services/TripService';
 import ReportCardsTab from './ReportCardsTab';
 
 const cards = {
@@ -40,6 +44,16 @@ const cards = {
 describe('ReportCardsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    TripService.getDrivers.mockResolvedValue({ data: [] });
+  });
+
+  it('resolves driver ids to names', async () => {
+    const id = '65f1c2a4b7d9e12345678901';
+    IntelligenceService.getReportCards.mockResolvedValue({ items: [{ id, subject: 'driver', name: id }] });
+    TripService.getDrivers.mockResolvedValue({ data: [{ _id: id, firstName: 'Ramesh', lastName: 'Yadav' }] });
+    render(<MemoryRouter><ReportCardsTab subject="driver" /></MemoryRouter>);
+    expect(await screen.findByText('Ramesh Yadav')).toBeInTheDocument();
+    expect(screen.queryByText(id)).not.toBeInTheDocument();
   });
 
   it('shows the truck cards in their columns, and only the truck cards', async () => {
@@ -53,7 +67,7 @@ describe('ReportCardsTab', () => {
 
     expect(await screen.findByText('WB11F6762')).toBeInTheDocument();
     expect(screen.queryByText('Ramesh Yadav')).not.toBeInTheDocument();
-    expect(screen.getByText('Excellent (1)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Excellent 1' })).toBeInTheDocument();
   });
 
   it('shows the driver cards on the drivers tab', async () => {
@@ -144,7 +158,7 @@ describe('ReportCardsTab', () => {
       </MemoryRouter>,
     );
     expect(await screen.findByText('BR44GB1162')).toBeInTheDocument();
-    expect(screen.getByText('Insufficient data (1)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Insufficient data 1' })).toBeInTheDocument();
     expect(screen.queryByText('WB11F6762')).not.toBeInTheDocument();
   });
 
@@ -156,7 +170,7 @@ describe('ReportCardsTab', () => {
       </MemoryRouter>,
     );
     expect(await screen.findByText('Ramesh Yadav')).toBeInTheDocument();
-    expect(screen.getByText('Insufficient data (1)')).toBeInTheDocument();
-    expect(screen.getByText('Good (0)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Insufficient data 1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Good 0' })).toBeInTheDocument();
   });
 });

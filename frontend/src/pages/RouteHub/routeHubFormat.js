@@ -5,10 +5,13 @@
 
 /* ================= formatters (ported from the mockup) ================= */
 
-export const inr = (n) => '₹' + Math.round(n || 0).toLocaleString('en-IN');
+/** Money. A missing amount is unknown, never ₹0. */
+export const inr = (n) =>
+  n == null ? '—' : '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
 
 export const inrK = (n) => {
-  const v = n || 0;
+  if (n == null) return '—';
+  const v = Number(n) || 0;
   if (v >= 100000) return '₹' + (v / 100000).toFixed(2) + 'L';
   if (v >= 1000) return '₹' + (v / 1000).toFixed(1) + 'k';
   return '₹' + Math.round(v);

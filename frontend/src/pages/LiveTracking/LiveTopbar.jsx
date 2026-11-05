@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import LiveClock from './LiveClock.jsx';
 import Skel from './Skel.jsx';
 import renderIconSvg from './renderIconSvg.jsx';
-import { toggleManufacturer } from './manufacturerFilters.js';
 
 function UpdateAge({ at }) {
   const [now, setNow] = useState(Date.now());
@@ -36,6 +35,7 @@ export default function LiveTopbar({
   handleRefresh,
   isRefreshing,
   manufacturers = [],
+  manufacturerCounts = {},
   selectedManufacturers = [],
   setSelectedManufacturers,
   lastEventAt,
@@ -47,40 +47,17 @@ export default function LiveTopbar({
   return (
     <div className="topbar lt-toolbar">
       <div className="lt-command-row">
-        <div className="lt-manufacturers" role="group" aria-label="Manufacturer filters">
-          <button
-            type="button"
-            className="lt-make"
-            aria-pressed={!selectedManufacturers.length}
-            onClick={() => setSelectedManufacturers([])}
-          >
-            All manufacturers
+        <div className="gnb-status-bar lt-manufacturers" role="group" aria-label="Manufacturer filters">
+          <button type="button" className={`gnb-status-card ${!selectedManufacturers.length ? 'gnb-status-card--active' : ''}`} aria-pressed={!selectedManufacturers.length} onClick={() => setSelectedManufacturers([])}>
+            <span className="gnb-status-card-label">All makes</span>
+            <span className="gnb-status-card-count">{Object.values(manufacturerCounts).reduce((sum, n) => sum + (n || 0), 0)}</span>
           </button>
-          {manufacturers.map((name) => (
-            <button
-              key={name}
-              type="button"
-              className="lt-make"
-              aria-pressed={selectedManufacturers.includes(name)}
-              onClick={() =>
-                setSelectedManufacturers(toggleManufacturer(selectedManufacturers, name))
-              }
-            >
-              {name}
+          {[...manufacturers, ...(unclassifiedCount > 0 ? ['Unclassified'] : [])].map(name => (
+            <button key={name} type="button" className={`gnb-status-card ${selectedManufacturers.includes(name) ? 'gnb-status-card--active' : ''}`} aria-pressed={selectedManufacturers.includes(name)} onClick={() => setSelectedManufacturers(selectedManufacturers.includes(name) ? selectedManufacturers.filter(item => item !== name) : [...selectedManufacturers, name])}>
+              <span className="gnb-status-card-label">{name}</span>
+              <span className="gnb-status-card-count">{manufacturerCounts[name] ?? 0}</span>
             </button>
           ))}
-          {unclassifiedCount > 0 && (
-            <button
-              type="button"
-              className="lt-make"
-              aria-pressed={selectedManufacturers.includes('Unclassified')}
-              onClick={() =>
-                setSelectedManufacturers(toggleManufacturer(selectedManufacturers, 'Unclassified'))
-              }
-            >
-              Unclassified · {unclassifiedCount}
-            </button>
-          )}
         </div>
         <div className="tools">
           <span className="clockchip">

@@ -12,6 +12,7 @@ import InfoTip from '@/components/redesign/InfoTip';
 import ToneBadge from '@/components/redesign/ToneBadge';
 import { formatNumber } from '@/utils/redesign/format';
 import { intelligenceLink, trackLink } from '@/utils/redesign/links';
+import { isInternalBasis } from './intelligenceModel';
 
 const GRADE_LABEL = {
   EXCELLENT: 'Excellent',
@@ -121,7 +122,7 @@ export default function ReportCardDrawer({ card, open, onOpenChange }) {
               <p className="m-0 text-[13px] leading-relaxed text-[var(--rd-ink-2)]">
                 {card.basis.text}
               </p>
-              {card.basis.basis ? (
+              {card.basis.basis && !isInternalBasis(card.basis.basis) ? (
                 <p className="m-0 text-[12px] text-[var(--rd-ink-3)]">{card.basis.basis}</p>
               ) : null}
             </section>

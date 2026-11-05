@@ -7,7 +7,7 @@
  * the store it came from.
  */
 import { effectiveType } from '../intelligence/model/siteType.js';
-import { hasRisk, placeTitle } from '../intelligence/model/siteSummary.js';
+import { hasRisk, nearestKnownPlace, placeTitle } from '../intelligence/model/siteSummary.js';
 import { groupOfType } from './placeGroups.js';
 import { isNum, ringOf, toNum } from './placeGeometry.js';
 
@@ -120,6 +120,16 @@ export function mergePlaces({ warehouses = [], zones = [], sites = [] } = {}) {
       .filter((s) => !warehouseIds.has(String(s.legacy?.vehicleWarehouseId || '')))
       .map(fromSite),
   ].filter((p) => isNum(p.lat) && isNum(p.lng));
+
+  // An own yard with no name and no locality reads as a bare "Own yard"; say
+  // how far it sits from the nearest place the fleet can name.
+  const named = places.filter((p) => p.raw?.name);
+  for (const p of places) {
+    if (p.source !== 'site' || p.raw?.name || p.raw?.address?.locality) continue;
+    if (p.type !== 'YARD') continue;
+    const nearest = nearestKnownPlace(p, named);
+    if (nearest) p.name = placeTitle(p.raw, nearest);
+  }
 
   return places.sort(
     (a, b) =>

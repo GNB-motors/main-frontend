@@ -1,4 +1,5 @@
 import { toneLabel, toneStyles } from '@/utils/redesign/tone';
+import { humanizeCode } from '@/utils/format';
 
 /**
  * ToneBadge — a pill that says what kind of thing this is.
@@ -9,7 +10,9 @@ import { toneLabel, toneStyles } from '@/utils/redesign/tone';
  */
 export default function ToneBadge({ tone = 'info', children = null, className = '' }) {
   const styles = toneStyles(tone);
-  const text = children ?? toneLabel(tone);
+  const rawText = children ?? toneLabel(tone);
+  // A raw code never reaches the screen: REFUEL_SOON reads "Refuel soon".
+  const text = typeof rawText === 'string' ? humanizeCode(rawText) : rawText;
 
   return (
     <span

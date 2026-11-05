@@ -100,6 +100,40 @@ describe('buildTripLog', () => {
     expect(log.filter((row) => row.kind === 'STOP')).toHaveLength(3);
     expect(log.filter((row) => row.kind !== 'STOP')).toHaveLength(4);
   });
+
+  // Nine “no GPS” rows in a row are one thing that happened (the truck went
+  // dark), not nine.
+  it('merges consecutive no-GPS entries into one row', () => {
+    const log = buildTripLog([], [
+      { kind: 'GPS_GAP', at: '2026-11-01T13:00:00Z', text: 'No GPS for 5 min', durationMin: 5 },
+      { kind: 'GPS_GAP', at: '2026-11-01T13:06:00Z', text: 'No GPS for 5 min', durationMin: 5 },
+      { kind: 'GPS_GAP', at: '2026-11-01T13:12:00Z', text: 'No GPS for 5 min', durationMin: 5 },
+    ]);
+    expect(log).toHaveLength(1);
+    expect(log[0].kind).toBe('GPS_GAP');
+    expect(log[0].gapCount).toBe(3);
+    expect(log[0].durationMin).toBe(15);
+    expect(log[0].title).toContain('3 gaps');
+  });
+
+  it('keeps gaps apart when a stop sits between them', () => {
+    const log = buildTripLog(
+      [
+        {
+          startAt: '2026-11-01T13:05:00Z',
+          place: { name: 'Mohania' },
+          durationMin: 10,
+          reason: 'REST',
+        },
+      ],
+      [
+        { kind: 'GPS_GAP', at: '2026-11-01T13:00:00Z', text: 'No GPS for 4 min', durationMin: 4 },
+        { kind: 'GPS_GAP', at: '2026-11-01T13:20:00Z', text: 'No GPS for 6 min', durationMin: 6 },
+      ],
+    );
+    expect(log.map((row) => row.kind)).toEqual(['GPS_GAP', 'STOP', 'GPS_GAP']);
+    expect(log.filter((row) => row.kind === 'GPS_GAP').every((row) => row.gapCount === 1)).toBe(true);
+  });
 });
 
 describe('buildTrackCsv', () => {

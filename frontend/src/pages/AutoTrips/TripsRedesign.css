@@ -1,0 +1,538 @@
+/*
+ * TripsRedesign.css — the Trips list and the trip page on the shared redesign
+ * language (REMAKE_BRIEF 4 Nov 2026): Inter only, --rd-* colours, 22/600 titles,
+ * 15/600 section titles, 13 px body, nothing under 12 px, colour only for meaning.
+ * Scoped to the two remade pages so every other .atx-page keeps its look.
+ */
+
+.atx-list,
+.atx-page--detail,
+.dark .atx-list,
+.dark .atx-page--detail {
+  --atx-bg: var(--rd-bg);
+  --atx-surface: var(--rd-card);
+  --atx-ink: var(--rd-ink);
+  --atx-ink-2: var(--rd-ink-2);
+  --atx-ink-3: var(--rd-ink-3);
+  --atx-ink-4: var(--rd-ink-3);
+  --atx-line: var(--rd-line);
+  --atx-line-2: var(--rd-line);
+  --atx-line-3: var(--rd-line);
+  --atx-hover: var(--rd-card-2);
+  --atx-chip: var(--rd-card-2);
+  --atx-blue: var(--rd-brand);
+  --atx-blue-hover: var(--rd-brand-2);
+  --atx-blue-bg: var(--rd-brand-tint);
+  --atx-blue-line: color-mix(in srgb, var(--rd-brand) 30%, transparent);
+  --atx-green: var(--rd-good-ink);
+  --atx-green-bg: var(--rd-good-tint);
+  --atx-green-line: color-mix(in srgb, var(--rd-good) 30%, transparent);
+  --atx-green-soft: var(--rd-good-tint);
+  --atx-green-ink: var(--rd-good-ink);
+  --atx-teal: var(--rd-brand);
+  --atx-teal-bg: var(--rd-brand-tint);
+  --atx-teal-line: color-mix(in srgb, var(--rd-brand) 30%, transparent);
+  --atx-amber: var(--rd-watch-ink);
+  --atx-amber-ink: var(--rd-watch-ink);
+  --atx-amber-link: var(--rd-watch-ink);
+  --atx-amber-bg: var(--rd-watch-tint);
+  --atx-amber-soft: var(--rd-watch-tint);
+  --atx-amber-line: color-mix(in srgb, var(--rd-watch) 35%, transparent);
+  --atx-red: var(--rd-act-ink);
+  --atx-red-bg: var(--rd-act-tint);
+  --atx-red-line: color-mix(in srgb, var(--rd-act) 30%, transparent);
+  --atx-solid: var(--rd-ink);
+  --atx-on-solid: var(--rd-card);
+  --atx-mono: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  padding: 24px;
+  background: var(--rd-bg);
+  color: var(--rd-ink);
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 13px;
+}
+:is(.atx-list, .atx-page--detail) :is(button, input, select, h1, h2, h3, p) {
+  font-family: inherit;
+}
+:is(.atx-list, .atx-page--detail) .atx-wrap {
+  max-width: none;
+  gap: 16px;
+}
+
+/* ─── Header: title + subtitle left, controls right, one row ───────────── */
+:is(.atx-list, .atx-page--detail) .atx-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+:is(.atx-list, .atx-page--detail) .atx-head-main {
+  gap: 4px;
+  min-width: 0;
+}
+:is(.atx-list, .atx-page--detail) .atx-title,
+:is(.atx-list, .atx-page--detail) .atx-plate-title {
+  margin: 0;
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 28px;
+  letter-spacing: -0.01em;
+  color: var(--rd-ink);
+}
+:is(.atx-list, .atx-page--detail) .atx-sub,
+:is(.atx-list, .atx-page--detail) .atx-route-sub {
+  margin: 0;
+  max-width: none;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--rd-ink-2);
+}
+:is(.atx-list, .atx-page--detail) .atx-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+:is(.atx-list, .atx-page--detail) .atx-actions > button,
+:is(.atx-list, .atx-page--detail) .atx-btn {
+  height: 36px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ─── Status chip: one chip, colour = meaning ──────────────────────────── */
+:is(.atx-list, .atx-page--detail) .atx-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+:is(.atx-list, .atx-page--detail) .atx-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+:is(.atx-list, .atx-page--detail) .atx-status--open {
+  background: var(--rd-info-tint);
+  color: var(--rd-info-ink);
+}
+:is(.atx-list, .atx-page--detail) .atx-status--delivered {
+  background: var(--rd-good-tint);
+  color: var(--rd-good-ink);
+}
+:is(.atx-list, .atx-page--detail) .atx-status--confirmed {
+  background: var(--rd-brand-tint);
+  color: var(--rd-brand);
+}
+:is(.atx-list, .atx-page--detail) .atx-status--review {
+  background: var(--rd-watch-tint);
+  color: var(--rd-watch-ink);
+}
+:is(.atx-list, .atx-page--detail) .atx-status--rejected {
+  background: var(--rd-card-2);
+  color: var(--rd-ink-2);
+}
+:is(.atx-list, .atx-page--detail) .atx-chip {
+  height: 24px;
+  margin: 0;
+  padding: 0 9px;
+  border-radius: 6px;
+  background: var(--rd-card-2);
+  border: 1px solid var(--rd-line);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--rd-ink-2);
+}
+:is(.atx-list, .atx-page--detail) .atx-chip--watch {
+  border-color: transparent;
+  background: var(--rd-watch-tint);
+  color: var(--rd-watch-ink);
+}
+
+.atx-num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.atx-inline-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--rd-brand);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.atx-inline-link:hover {
+  text-decoration: underline;
+}
+:is(.atx-list, .atx-page--detail) :focus-visible {
+  outline: 2px solid var(--rd-brand-2);
+  outline-offset: 2px;
+}
+
+/* ─── Trip page ───────────────────────────────────────────────────────── */
+
+.atx-page--detail .atx-detail-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.atx-page--detail .atx-plate-row {
+  gap: 10px;
+}
+.atx-page--detail .trip-back-circle {
+  flex-basis: 36px;
+  border-color: var(--rd-line);
+  background: var(--rd-card);
+  color: var(--rd-ink-2);
+}
+.atx-page--detail .atx-route-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
+}
+.atx-route-sub .atx-route-to--missing,
+.atx-route-sub .atx-route-to--moving,
+.atx-route-sub .atx-route-to--guessed,
+.atx-route-sub .atx-route-to--unnamed {
+  color: var(--rd-ink-3);
+}
+.atx-route-sub .atx-sep {
+  color: var(--rd-ink-3);
+}
+.atx-page--detail .atx-answer {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--rd-brand);
+}
+
+/* The facts strip: the trip's numbers in one row under the header. */
+.atx-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: 0;
+  border: 1px solid var(--rd-line);
+  border-radius: 10px;
+  background: var(--rd-card);
+}
+.atx-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 18px;
+  border-left: 1px solid var(--rd-line);
+}
+.atx-fact:first-child {
+  border-left: 0;
+}
+.atx-fact dt {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--rd-ink-2);
+}
+.atx-fact dd {
+  margin: 0;
+  overflow: hidden;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 24px;
+  color: var(--rd-ink);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.atx-fact dd.is-quiet {
+  color: var(--rd-ink-3);
+}
+.atx-fact small {
+  font-size: 12px;
+  color: var(--rd-ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Map and timeline side by side; the map sets the row height, the timeline scrolls. */
+.atx-detail-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(420px, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+.atx-detail-map {
+  min-width: 0;
+}
+.atx-detail-map .atx-card--clip {
+  height: 100%;
+}
+.atx-detail-map .atx-map {
+  min-height: 520px;
+}
+.atx-detail-tl {
+  position: relative;
+  min-width: 0;
+}
+.atx-detail-tl > .atx-tl {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+.atx-detail-tl > .atx-tl .atx-tl-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.atx-page--detail .atx-card {
+  border: 1px solid var(--rd-line);
+  border-radius: 10px;
+  background: var(--rd-card);
+  box-shadow: none;
+}
+.atx-page--detail .atx-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--rd-ink);
+}
+.atx-page--detail .atx-player {
+  padding: 12px 16px;
+  border-top-color: var(--rd-line);
+}
+.atx-page--detail .atx-play {
+  width: 36px;
+  height: 36px;
+  background: var(--rd-brand);
+}
+.atx-page--detail .atx-speeds button {
+  height: 32px;
+  min-width: 42px;
+  font-size: 12px;
+}
+.atx-page--detail .atx-scrub-labels {
+  font-size: 12px;
+}
+.atx-page--detail .atx-map-chip {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Timeline, tightened for a column beside the map. */
+.atx-page--detail .atx-tl {
+  --atx-tl-rail-x: 98px;
+}
+.atx-page--detail .atx-tl-head {
+  gap: 12px;
+  padding: 16px 18px 14px;
+  border-bottom-color: var(--rd-line);
+}
+.atx-page--detail .atx-tl-total {
+  font-size: 12px;
+  color: var(--rd-ink-2);
+}
+.atx-page--detail .atx-tl-total strong {
+  font-weight: 600;
+}
+.atx-page--detail .atx-tl-bar {
+  height: 8px;
+  background: var(--rd-card-2);
+}
+.atx-page--detail .atx-tl-legend {
+  gap: 4px 16px;
+}
+.atx-page--detail .atx-tl-legend li {
+  font-size: 12px;
+}
+.atx-page--detail .atx-tl-legend strong {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.atx-page--detail .atx-tl-list {
+  padding: 16px 18px;
+}
+.atx-page--detail .atx-tl-step,
+.atx-page--detail .atx-tl-leg {
+  grid-template-columns: 74px 24px minmax(0, 1fr) auto;
+  column-gap: 12px;
+}
+.atx-page--detail .atx-tl-day,
+.atx-page--detail .atx-tl-left {
+  font-size: 12px;
+  color: var(--rd-ink-3);
+}
+.atx-page--detail .atx-tl-clock {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.atx-page--detail .atx-tl-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+.atx-page--detail .atx-tl-place {
+  font-size: 12px;
+  color: var(--rd-ink-2);
+}
+.atx-page--detail .atx-tl-pill {
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.atx-page--detail .atx-tl-drive {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--rd-ink-2);
+}
+.atx-page--detail .atx-tl-drive svg {
+  color: var(--rd-leg-loaded);
+}
+.atx-page--detail .atx-tl-step--unknown .atx-tl-body {
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+.atx-page--detail .atx-tl-actions .atx-btn,
+.atx-page--detail .atx-tl-play {
+  height: 28px;
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+.atx-page--detail .atx-tl-play {
+  border: 1px solid var(--rd-line);
+  background: var(--rd-card);
+  color: var(--rd-brand);
+  font-weight: 500;
+}
+.atx-page--detail .atx-tl-leg {
+  --atx-tl-leg-h: 28px;
+  --atx-tl-leg-bottom: 8px;
+}
+
+/* Below the map: details and the contract card, two columns. */
+.atx-detail-more {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.atx-detail-more > * {
+  min-width: 0;
+}
+.atx-page--detail .atx-detail-more .sap-route-card {
+  grid-column: auto;
+}
+.atx-page--detail .atx-summary {
+  gap: 14px;
+  padding: 18px 20px;
+}
+.atx-page--detail .atx-fields {
+  gap: 12px 20px;
+}
+.atx-page--detail .atx-field-label {
+  font-size: 12px;
+  color: var(--rd-ink-2);
+}
+.atx-page--detail .atx-field-value {
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.atx-page--detail .atx-rule {
+  background: var(--rd-line);
+}
+
+/* Stops as a list: one line each, label · place · when. */
+.atx-stops {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--rd-line);
+}
+.atx-stops li {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--rd-line);
+  font-size: 13px;
+}
+.atx-stops .atx-stop-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  align-self: center;
+}
+.atx-stops .atx-stop-what {
+  overflow: hidden;
+  color: var(--rd-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.atx-stops .atx-stop-what span {
+  color: var(--rd-ink-2);
+}
+.atx-stops .atx-stop-when {
+  font-size: 12px;
+  color: var(--rd-ink-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 1180px) {
+  .atx-detail-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .atx-detail-tl > .atx-tl {
+    position: static;
+  }
+  .atx-detail-tl > .atx-tl .atx-tl-list {
+    overflow: visible;
+  }
+}
+@media (max-width: 640px) {
+  .atx-list,
+  .atx-page--detail {
+    padding: 16px;
+  }
+  .atx-fact {
+    border-left: 0;
+    border-top: 1px solid var(--rd-line);
+  }
+}
+.atx-detail-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+/* No contract card and no deviations: the details card takes the row, four columns wide. */
+.atx-detail-side:empty {
+  display: none;
+}
+@media (min-width: 1181px) {
+  .atx-detail-more:not(:has(.atx-detail-side > *)) .atx-summary .atx-fields {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

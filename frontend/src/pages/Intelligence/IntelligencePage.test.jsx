@@ -100,24 +100,42 @@ describe('IntelligencePage', () => {
     IntelligenceService.getPlaceQuestions.mockResolvedValue({ items: [], total: 0 });
   });
 
-  it('shows the title and the eleven tabs', async () => {
-    renderPage();
+  it('shows the title, the five sections, and every tab inside its section', async () => {
+    renderPage('/intelligence?tab=issues');
 
     expect(screen.getByText('Intelligence')).toBeInTheDocument();
-    expect(screen.getByText('What your trucks and drivers did, explained.')).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole('tab', { name: /Issues/ })).toBeInTheDocument());
-    ['Issues', 'Trucks', 'Drivers', 'Loaded & empty runs', 'Idling', 'Cruise & gears', 'Overspeed', 'Mileage & DEF', 'Fuel checks', 'Detours', 'Places'].forEach(
-      (label) => {
-        expect(screen.getByRole('tab', { name: new RegExp(label) })).toBeInTheDocument();
-      },
-    );
+    expect(screen.getByText(/What your trucks and drivers did, and what needs you/)).toBeInTheDocument();
+    const sections = {
+      Issues: [],
+      'Trucks & drivers': ['Trucks', 'Drivers'],
+      Driving: ['Idling', 'Overspeed', 'Cruise & gears', 'Detours'],
+      'Fuel & DEF': ['Fuel checks', 'Mileage & DEF'],
+      'Runs & places': ['Loaded & empty runs', 'Places'],
+    };
+    for (const [section, tabs] of Object.entries(sections)) {
+      fireEvent.click(await screen.findByRole('tab', { name: new RegExp(`^${section}`) }));
+      for (const label of tabs) {
+        expect(await screen.findByRole('tab', { name: label })).toBeInTheDocument();
+      }
+    }
   });
 
-  it('shows the summary tiles the API sent', async () => {
-    renderPage();
+  it('shows the period at a glance from the issues and the instances', async () => {
+    IntelligenceService.getIssues.mockResolvedValue(withIssues);
+    IntelligenceService.getInstances.mockImplementation(({ kind }) =>
+      Promise.resolve(
+        kind === 'overspeed'
+          ? { summary: { count: 7, totalMin: 95, why: { text: 'From the GPS trail.' } }, items: [], total: 7 }
+          : { summary: null, items: [], total: 0 },
+      ),
+    );
+    renderPage('/intelligence?tab=issues');
 
-    expect(await screen.findByText('Idling')).toBeInTheDocument();
-    expect(screen.getByText('112 h')).toBeInTheDocument();
+    const glance = await screen.findByRole('region', { name: 'This period at a glance' });
+    await waitFor(() => expect(glance).toHaveTextContent('Needs you1'));
+    expect(glance).toHaveTextContent('124of 124');
+    expect(glance).toHaveTextContent('1 h 35 min over the limit');
+    expect(glance).toHaveTextContent('Not available for this period');
   });
 
   it('draws no summary box at all while the summary endpoint is not deployed', async () => {
@@ -133,7 +151,7 @@ describe('IntelligencePage', () => {
     IntelligenceService.getIssues.mockRejectedValue(Object.assign(new Error('Not found'), { status: 404 }));
     renderPage('/intelligence?tab=issues');
     expect(await screen.findByText(/being built/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Needs you/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Filter the issues' })).not.toBeInTheDocument();
   });
 
   it('opens on the issues when something needs the owner', async () => {
@@ -153,7 +171,7 @@ describe('IntelligencePage', () => {
     renderPage();
 
     await waitFor(() =>
-      expect(screen.getByRole('tab', { name: /Trucks/ })).toHaveAttribute('aria-selected', 'true'),
+      expect(screen.getByRole('tab', { name: 'Trucks' })).toHaveAttribute('aria-selected', 'true'),
     );
   });
 
@@ -168,8 +186,11 @@ describe('IntelligencePage', () => {
   it('writes the tab into the URL when a tab is clicked', async () => {
     renderPage();
 
-    await waitFor(() => expect(screen.getByRole('tab', { name: /Overspeed/ })).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('tab', { name: /Overspeed/ }));
+    fireEvent.click(await screen.findByRole('tab', { name: 'Driving' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent('/intelligence?tab=idling'),
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Overspeed' }));
 
     await waitFor(() =>
       expect(screen.getByTestId('location')).toHaveTextContent('/intelligence?tab=overspeed'),
@@ -193,9 +214,9 @@ describe('IntelligencePage', () => {
       expect(screen.getByRole('tab', { name: /Overspeed/ })).toHaveAttribute('aria-selected', 'true'),
     );
 
-    fireEvent.click(screen.getByRole('tab', { name: /Places/ }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Runs & places' }));
     await waitFor(() =>
-      expect(screen.getByTestId('location')).toHaveTextContent('tab=places'),
+      expect(screen.getByTestId('location')).toHaveTextContent('tab=runs'),
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Go back' }));

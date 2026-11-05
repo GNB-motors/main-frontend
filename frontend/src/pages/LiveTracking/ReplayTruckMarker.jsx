@@ -3,7 +3,14 @@ import { useGoogleMap } from '@react-google-maps/api';
 import replayAppearance from '../../components/map/replayAppearance.js';
 import '../../components/map/replayTruck.css';
 
-export default function ReplayTruckMarker({ position, fast }) {
+/**
+ * The truck of the replay, drawn as an overlay so it sits above the line.
+ *
+ * The marker is one DOM node that is moved, never replaced: replacing the SVG
+ * every frame makes the icon flicker. The heading turns the truck to the way
+ * it was going (the icon points east, so a northbound truck is turned -90°).
+ */
+export default function ReplayTruckMarker({ position, fast, heading = null }) {
   const map = useGoogleMap();
   const positionRef = useRef(position);
   positionRef.current = position;
@@ -42,9 +49,15 @@ export default function ReplayTruckMarker({ position, fast }) {
 
   useEffect(() => {
     // Move the existing DOM node; replacing SVG marker URLs each frame can flicker.
-    elementRef.current?.querySelector('.rh-truck').classList.toggle('fast', Boolean(fast));
+    const truck = elementRef.current?.querySelector('.rh-truck');
+    truck?.classList.toggle('fast', Boolean(fast));
+    if (truck && Number.isFinite(Number(heading))) {
+      const inner = truck.querySelector('div');
+      // The truck icon points east; north (0°) is a quarter turn back.
+      if (inner) inner.style.transform = `rotate(${Number(heading) - 90}deg)`;
+    }
     overlayRef.current?.draw();
-  }, [position, fast]);
+  }, [position, fast, heading]);
 
   return null;
 }

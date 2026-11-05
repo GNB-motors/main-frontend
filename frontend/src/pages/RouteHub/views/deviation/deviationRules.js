@@ -34,6 +34,26 @@ export function costBasisLabel(d) {
     : "at this trip's own cost per km";
 }
 
+/**
+ * Whether the extra distance is a measurement. A truck 9.9 km off its road
+ * with "+0.0 km extra" means there was no usual road to compare against
+ * (fewer than two of the fleet's own trips used it), so we show a dash.
+ */
+export function extraKnown(d) {
+  if (!d) return false;
+  if (d.extraKmEstimate == null) return false;
+  return !(Number(d.extraKmEstimate) === 0 && Number(d.maxOffKm || 0) >= 1);
+}
+
+/**
+ * Whether the extra cost is a measurement: it needs both the extra distance
+ * and a cost for it. Otherwise we show a dash rather than a ₹0 that looks free.
+ */
+export function costKnown(d) {
+  if (!extraKnown(d)) return false;
+  return d.estimatedExtraCostInr != null;
+}
+
 export const isOpen = (d) => String(d.status || '').toUpperCase() === 'OPEN';
 
 export const normalisePlate = (s) =>

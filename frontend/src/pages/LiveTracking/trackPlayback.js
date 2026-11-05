@@ -1,3 +1,5 @@
+import { formatIst, formatIstDate } from '../../utils/redesign/format';
+
 /**
  * trackPlayback — the playhead moving along a truck's path.
  *
@@ -101,6 +103,9 @@ export function previousEventAt(events, currentTime) {
 /**
  * The trip log: the stops and the events, in the order they happened.
  * The log is a fact list, not a judgement list.
+ *
+ * Consecutive GPS gaps are merged into one row: nine short “no GPS” entries in
+ * a row are one thing that happened (the truck went dark), not nine.
  */
 export function buildTripLog(stops = [], events = []) {
   const rows = [];
@@ -115,6 +120,7 @@ export function buildTripLog(stops = [], events = []) {
       text: stop.reasonWhy ?? '',
       durationMin: stop.durationMin ?? null,
       place: stop.place ?? null,
+      isGap: false,
     });
   });
 
@@ -126,12 +132,103 @@ export function buildTripLog(stops = [], events = []) {
       reason: event.kind,
       title: event.text,
       text: '',
-      durationMin: null,
+      durationMin: event.durationMin ?? null,
       place: null,
+      isGap: isGapEvent(event),
     });
   });
 
-  return rows.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+  return mergeGapRows(
+    rows.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime()),
+  );
+}
+
+/** Whether an event says the truck had no GPS. */
+export function isGapEvent(event) {
+  if (!event) return false;
+  if (event.kind === 'GPS_GAP') return true;
+  return /no gps/i.test(String(event.text ?? ''));
+}
+
+/**
+ * How long a gap lasted, in minutes. The event may say so outright; otherwise
+ * the length is read out of its own words ("No GPS for 61 min").
+ */
+export function gapMinutes(event) {
+  if (Number.isFinite(Number(event?.durationMin))) return Number(event.durationMin);
+  const text = String(event?.text ?? '');
+  const hours = text.match(/(\d+(?:\.\d+)?)\s*h/);
+  const minutes = text.match(/(\d+(?:\.\d+)?)\s*min/);
+  let total = 0;
+  if (hours) total += Number(hours[1]) * 60;
+  if (minutes) total += Number(minutes[1]);
+  return total;
+}
+
+/** "3 Nov 8:17 am – 2:31 pm" — the span of a gap, in the owner's clock. */
+export function gapSpanText(startAt, endAt) {
+  const startDay = formatIstDate(startAt);
+  const endDay = formatIstDate(endAt);
+  const startTime = formatIst(startAt, { withDate: false });
+  const endTime = formatIst(endAt, { withDate: false });
+  return startDay === endDay
+    ? `${startDay} ${startTime} – ${endTime}`
+    : `${startDay} ${startTime} – ${endDay} ${endTime}`;
+}
+
+/**
+ * Merge the rows that are one after the other into a single gap row:
+ * "No GPS · 9 gaps · 3 Nov 8:17 am – 2:31 pm", with the total time the truck
+ * was dark. A stop between two gaps keeps them apart.
+ */
+function mergeGapRows(rows) {
+  const merged = [];
+  let group = null;
+
+  const flush = () => {
+    if (!group) return;
+    merged.push(group.row);
+    group = null;
+  };
+
+  rows.forEach((row) => {
+    if (!row.isGap) {
+      flush();
+      merged.push(row);
+      return;
+    }
+    const minutes = gapMinutes(row);
+    const end = new Date(new Date(row.at).getTime() + minutes * 60000);
+    if (!group) {
+      group = {
+        row: {
+          ...row,
+          key: `gap-${row.at}-${end.toISOString()}`,
+          kind: 'GPS_GAP',
+          title: row.title,
+          text: '',
+          durationMin: minutes,
+          gapCount: 1,
+          gapEndAt: end.toISOString(),
+        },
+        count: 1,
+        startAt: row.at,
+        endAt: end,
+        total: minutes,
+      };
+      return;
+    }
+    group.count += 1;
+    group.total += minutes;
+    if (end.getTime() > group.endAt.getTime()) group.endAt = end;
+    group.row.durationMin = group.total;
+    group.row.gapCount = group.count;
+    group.row.gapEndAt = group.endAt.toISOString();
+    group.row.title = `No GPS · ${group.count} gaps · ${gapSpanText(group.startAt, group.endAt)}`;
+  });
+
+  flush();
+  return merged;
 }
 
 /**

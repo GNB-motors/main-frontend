@@ -1,10 +1,9 @@
 import { L, useLayerGroup, pinIcon, truckIcon } from '../../routeHubMap';
 import { fmtT } from '../../routeHubFormat';
-import { addRoadLayers } from '../../../../lib/roadTrailLeaflet';
 import { overspeedStretches } from '../../overspeedReplay';
 import { EVC, OVERSPEED_STRETCH } from './replayConstants.js';
 import sampleAt from './sampleAt.js';
-import replayAppearance from '../../../../components/map/replayAppearance.js';
+import { DRIVEN, DRIVEN_DONE, GAP, layerStyle, pathPieces } from './replayPath.js';
 
 export default function useReplayLayers({
   mapRef,
@@ -20,9 +19,13 @@ export default function useReplayLayers({
     (group, map) => {
       if (!trip) return;
       if (trip.roadLayers.length) {
-        addRoadLayers(L, group, trip.roadLayers, { color: '#9A9AA5', fleetColor: '#c4b5fd' });
+        trip.roadLayers.forEach((layer) => {
+          L.polyline(layer.path, layerStyle(layer)).addTo(group);
+        });
       } else {
-        L.polyline(trip.path, replayAppearance.route).addTo(group);
+        pathPieces(trip.fixes).forEach((piece) => {
+          L.polyline(piece.path, piece.gap ? GAP : DRIVEN).addTo(group);
+        });
       }
       // Over the limit: the stretch itself, along the road, so the map shows where.
       overspeedStretches(trip, trip.overspeed).forEach(({ event, onRoad, paths }) => {
@@ -47,7 +50,7 @@ export default function useReplayLayers({
           .addTo(group);
       });
 
-      runRef.current = L.polyline([trip.path[0]], replayAppearance.travelled).addTo(group);
+      runRef.current = L.polyline([trip.path[0]], DRIVEN_DONE).addTo(group);
 
       trip.events.forEach((e) => {
         const at = sampleAt(trip, e.t).ll;
@@ -75,6 +78,8 @@ export default function useReplayLayers({
       truckRef.current = L.marker(trip.path[0], { zIndexOffset: 1000, icon: truckIcon() }).addTo(
         group,
       );
+      // The whole replay has to be in view, not just where the truck is now.
+      map.invalidateSize();
       map.fitBounds(L.latLngBounds(trip.path), { padding: [60, 60] });
     },
     [trip, limitKmh],

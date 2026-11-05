@@ -15,7 +15,7 @@ import {
   RotateCcw,
   Calendar,
 } from 'lucide-react';
-import KhataLedgerService from '../KhataLedgerService';
+import KhataLedgerService, { ERP_DISABLED_MESSAGE, isErpDisabledError } from '../KhataLedgerService';
 import { Badge } from '@/components/ui/badge';
 import ErpTripDetailModal from './ErpTripDetailModal';
 import KhataKpiGrid from './KhataKpiGrid';
@@ -58,6 +58,9 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
   const [erpTrips, setErpTrips] = useState([]);
   const [tripFinances, setTripFinances] = useState({});
   const [selectedTrip, setSelectedTrip] = useState(null);
+  // Organisations without ERP get a 404 on the trip endpoints. That is not the
+  // same as "no trips yet", so it gets its own empty state.
+  const [erpDisabled, setErpDisabled] = useState(false);
 
   const fetchDashboardData = useCallback(
     async (signal) => {
@@ -82,11 +85,15 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
         const tripParams = {};
         if (vehicleId) tripParams.vehicleId = vehicleId;
 
-        const [loadedExpenses, allTrips] = await Promise.all([
+        const [loadedExpenses, tripResult] = await Promise.all([
           KhataLedgerService.getDashboardExpenses(expenseParams, { signal }),
-          KhataLedgerService.getDashboardTrips(tripParams, { signal }),
+          KhataLedgerService.getDashboardTrips(tripParams, { signal }).catch((err) => {
+            if (isErpDisabledError(err)) return { disabled: true, trips: [] };
+            throw err;
+          }),
         ]);
         if (signal.aborted) return;
+        const allTrips = Array.isArray(tripResult) ? tripResult : tripResult.trips || [];
         const loadedTrips = allTrips.filter((trip) => {
           if (driverId && String(trip.driverId?._id || trip.driverId) !== driverId) return false;
           const date = new Date(trip.tripDate || trip.createdAt).getTime();
@@ -99,6 +106,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
 
         setExpenses(loadedExpenses);
         setErpTrips(loadedTrips);
+        setErpDisabled(tripResult?.disabled === true);
 
         // Fetch financial summaries for top trips
         const finances = {};
@@ -280,6 +288,11 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
 
   const financeCount = Object.keys(tripFinances).length;
   const completeFinances = financeCount === erpTrips.length;
+
+  // A period with no expense records is unknown, not ₹0 spent.
+  const noExpenseRecords = !loading && filteredExpenses.length === 0;
+  const NO_RECORDS = 'No expenses recorded for this period';
+  const money = (value) => (noExpenseRecords ? '—' : formatCurrency(value));
 
   return (
     <div className="space-y-4">
@@ -516,6 +529,18 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
         </div>
       ) : (
         <>
+          {erpDisabled && (
+            <div className="khata-erp-note" role="status">
+              <Route size={20} className="text-gray-400" aria-hidden="true" />
+              <div>
+                <strong>{ERP_DISABLED_MESSAGE}</strong>
+                <p>
+                  Trip revenue, advances and margins show up here once ERP is switched on. The
+                  expense ledger below is complete for this period.
+                </p>
+              </div>
+            </div>
+          )}
           <KhataKpiGrid
             headline
             loading={loading}
@@ -524,26 +549,40 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
               {
                 label: 'Total Cost',
                 icon: IndianRupee,
-                value: formatCurrency(kpis.totalCost),
-                sub: 'All counted fleet expenditures',
+                value: money(kpis.totalCost),
+                sub: noExpenseRecords ? NO_RECORDS : 'All counted fleet expenditures',
               },
               {
                 label: 'Trip Revenue',
                 icon: TrendingUp,
-                value:
-                  financeCount || erpTrips.length === 0
+                value: erpDisabled
+                  ? '—'
+                  : financeCount || erpTrips.length === 0
                     ? formatCurrency(kpis.totalRevenue)
                     : 'Unavailable',
-                sub: `Finances available for ${financeCount} of ${erpTrips.length} trips`,
+                sub: erpDisabled
+                  ? ERP_DISABLED_MESSAGE
+                  : `Finances available for ${financeCount} of ${erpTrips.length} trips`,
               },
               {
                 label: 'Net Profit',
                 icon: kpis.totalProfit < 0 ? TrendingDown : TrendingUp,
-                value: completeFinances ? formatCurrency(kpis.totalProfit) : 'Unavailable',
-                sub: completeFinances
-                  ? 'Revenue minus all expenses'
-                  : 'Some trip finances are unavailable',
-                status: completeFinances ? kpis.profitStatus.label : 'Partial data',
+                value: noExpenseRecords && !erpTrips.length
+                  ? '—'
+                  : completeFinances
+                    ? formatCurrency(kpis.totalProfit)
+                    : 'Unavailable',
+                sub: noExpenseRecords && !erpTrips.length
+                  ? NO_RECORDS
+                  : completeFinances
+                    ? 'Revenue minus all expenses'
+                    : 'Some trip finances are unavailable',
+                status:
+                  noExpenseRecords && !erpTrips.length
+                    ? null
+                    : completeFinances
+                      ? kpis.profitStatus.label
+                      : 'Partial data',
                 tone:
                   completeFinances && kpis.totalProfit < 0
                     ? 'critical'
@@ -567,42 +606,43 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
                 {
                   label: 'Fuel Cost',
                   icon: Fuel,
-                  value: formatCurrency(kpis.fuelCost),
-                  sub:
-                    kpis.totalCost > 0
+                  value: money(kpis.fuelCost),
+                  sub: noExpenseRecords
+                    ? NO_RECORDS
+                    : kpis.totalCost > 0
                       ? `${((kpis.fuelCost / kpis.totalCost) * 100).toFixed(0)}% of total expenditure`
                       : 'Direct fuel refills',
                 },
                 {
                   label: 'Maintenance',
                   icon: Wrench,
-                  value: formatCurrency(kpis.maintenanceCost),
-                  sub: 'Repairs, servicing & tyres',
+                  value: money(kpis.maintenanceCost),
+                  sub: noExpenseRecords ? NO_RECORDS : 'Repairs, servicing & tyres',
                 },
                 {
                   label: 'Other Expenses',
                   icon: Receipt,
-                  value: formatCurrency(kpis.otherExpenses),
-                  sub: 'Tolls, driver food, fines, permits',
+                  value: money(kpis.otherExpenses),
+                  sub: noExpenseRecords ? NO_RECORDS : 'Tolls, driver food, fines, permits',
                 },
                 {
                   label: 'ERP Trip Costs',
                   icon: Route,
-                  value: formatCurrency(kpis.tripExpenses),
-                  sub: 'Advances and trip charges',
+                  value: money(kpis.tripExpenses),
+                  sub: noExpenseRecords ? NO_RECORDS : 'Advances and trip charges',
                 },
                 {
                   label: 'Pending Review',
                   icon: Clock,
-                  value: formatCurrency(kpis.pendingExpenses),
-                  sub: 'Awaiting approval before ledger',
+                  value: money(kpis.pendingExpenses),
+                  sub: noExpenseRecords ? NO_RECORDS : 'Awaiting approval before ledger',
                   status: kpis.pendingExpenses > 0 ? 'Needs review' : null,
                   tone: 'warning',
                 },
                 {
                   label: 'Fleet Cost / KM',
                   icon: Gauge,
-                  value: kpis.costPerKmText || 'Unavailable',
+                  value: kpis.costPerKmText || '—',
                   sub:
                     kpis.totalDistanceKm > 0
                       ? `Logged distance: ${formatKm(kpis.totalDistanceKm)}`

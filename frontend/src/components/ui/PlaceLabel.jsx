@@ -28,6 +28,7 @@ export default function PlaceLabel({
   showMap = true,
   className = '',
   fallbackLinkLabel = null,
+  fallbackText = null,
 }) {
   const key = lat == null || lng == null ? null : `${lat},${lng}`;
   // { key, place } of the last lookup; `place: null` = the lookup failed or found nothing.
@@ -52,9 +53,9 @@ export default function PlaceLabel({
   const mapUrl = `https://www.google.com/maps?q=${numLat},${numLng}`;
   const resolved = place || (lookup?.key === key ? lookup.place : undefined);
 
-  if (!resolved || (fallbackLinkLabel && resolved.source === 'UNMAPPED')) {
+  if (!resolved || ((fallbackLinkLabel || fallbackText) && resolved.source === 'UNMAPPED')) {
     // undefined = still looking up; null = no name (PlaceService negative-caches failures).
-    const text = resolved === undefined ? 'Finding location…' : fallbackLinkLabel || 'View on map';
+    const text = fallbackText || (resolved === undefined ? 'Finding location…' : fallbackLinkLabel || 'View on map');
     return showMap || fallbackLinkLabel ? (
       <a
         href={mapUrl}
@@ -70,7 +71,7 @@ export default function PlaceLabel({
       </a>
     ) : (
       <span className="text-dim" title={tooltip}>
-        {resolved === undefined ? '…' : '—'}
+        {fallbackText || (resolved === undefined ? '…' : '—')}
       </span>
     );
   }

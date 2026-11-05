@@ -1,9 +1,9 @@
+import PassiveTrailLayer from './PassiveTrailLayer.jsx';
 import TrackTollLayers from './TrackTollLayers';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { GoogleMap, MarkerF, OverlayView, PolylineF } from '@react-google-maps/api';
 import { formatDuration } from '../../utils/redesign/format';
 import RoadTrailLayer from '../../components/map/RoadTrailLayer';
-import { trailArrowIcons } from './mapIcons.js';
 import { createTrailEndpointIcon } from './trailMarkerIcons.js';
 import { createHabitualHaltIcon } from './trailMarkerIcons.js';
 import AnimatedVehicleMarkers from './AnimatedVehicleMarkers.jsx';
@@ -14,14 +14,16 @@ import TrackIdlingLayer from './TrackIdlingLayer.jsx';
 import RouteLayer from '../PlaceHub/map/RouteLayer.jsx';
 import DraftLayer from '../PlaceHub/map/DraftLayer.jsx';
 import MapPlacesLayer from './MapPlacesLayer.jsx';
-import WeatherBubble from './WeatherBubble.jsx';
-import FleetWeatherMarkers from './FleetWeatherMarkers.jsx';
 import ReplayTruckMarker from './ReplayTruckMarker.jsx';
 import ReplayRouteLayer from './ReplayRouteLayer.jsx';
 import TrafficLayer from './TrafficLayer.jsx';
 import TrackMapLayers from './TrackMapLayers.jsx';
 import replayAppearance from '../../components/map/replayAppearance.js';
 import { DEFAULT_LIMIT_KMH } from '../RouteHub/views/replay/replayConstants.js';
+import { destinationHeading, routeLines as predictionLines } from './whereNextModel';
+import { resolveMapColor } from './mapColor';
+import { playheadAt } from './trackLayersModel';
+import { isNearEdge, trackFitPadding } from './trackMapCamera';
 
 const INDIA_CENTER = { lat: 22.5937, lng: 78.9629 };
 
@@ -57,9 +59,6 @@ export default function LiveMapCanvas({
   habitualHalts,
   isHabitualHaltsVisible,
   segmentByTrip,
-  weather,
-  weatherBubblePosition,
-  fleetWeather,
   places = [],
   extraPlaces = [],
   selectedPlaceId = null,
@@ -81,6 +80,10 @@ export default function LiveMapCanvas({
   onPickRoute,
   draft = null,
   onDraftChange,
+  placesPanelOpen = false,
+  passiveTrail = null,
+  whereNext = null,
+  whereNextPosition = null,
 }) {
   /* When the user disables per-trip segmentation we fall back to a single
      polyline (visual continuity with the legacy behavior). The fallback
@@ -107,6 +110,48 @@ export default function LiveMapCanvas({
         selectedId,
         replayOn: replayState.on,
       });
+
+  // In Track mode the truck being watched is drawn by ReplayTruckMarker: an
+  // overlay that sits above the line and turns with the heading. Its position
+  // is interpolated from the fixes around the playhead time.
+  const trackPoints = useMemo(() => (Array.isArray(track?.points) ? track.points : []), [track]);
+  const trackPlayhead = useMemo(
+    () => (track && trackPlayheadTime ? playheadAt(trackPoints, trackPlayheadTime) : null),
+    [track, trackPoints, trackPlayheadTime],
+  );
+
+  // Fit the whole trail once when it arrives, so the owner sees the whole
+  // drive instead of a three-kilometre slice of it. The fit happens once per
+  // trail: a change of range is a new trail and gets its own fit.
+  const fittedTrailRef = useRef(null);
+  const mapInstance = mapRef?.current || map;
+  useEffect(() => {
+    if (!track || !mapInstance || !window.google?.maps?.LatLngBounds) return;
+    if (trackPoints.length < 2) return;
+    const key = `${trackPoints.length}:${trackPoints[0]?.t ?? ''}:${
+      trackPoints[trackPoints.length - 1]?.t ?? ''
+    }`;
+    if (fittedTrailRef.current === key) return;
+    fittedTrailRef.current = key;
+    const bounds = new window.google.maps.LatLngBounds();
+    trackPoints.forEach((point) => bounds.extend({ lat: point.lat, lng: point.lng }));
+    mapInstance.fitBounds(bounds, trackFitPadding({ placesPanelOpen }));
+  }, [track, trackPoints, mapInstance, placesPanelOpen]);
+
+  // Keep the truck in view while the drive plays: when it comes close to an
+  // edge of the visible box the map is panned to it. The zoom never changes.
+  useEffect(() => {
+    if (!track || !trackPlayhead || !mapInstance) return;
+    const box = mapInstance.getBounds?.();
+    const ne = box?.getNorthEast?.();
+    const sw = box?.getSouthWest?.();
+    if (!ne || !sw) return;
+    const toPoint = (value) =>
+      typeof value?.lat === 'function' ? { lat: value.lat(), lng: value.lng() } : value;
+    const point = { lat: trackPlayhead.lat, lng: trackPlayhead.lng };
+    if (!isNearEdge(point, { ne: toPoint(ne), sw: toPoint(sw) })) return;
+    mapInstance.panTo(point);
+  }, [track, trackPlayhead, mapInstance]);
 
   // Clicking a habitual halt isolates it and opens a small card; only that place
   // stays on the map until it is closed (its ×, or a click on the empty map).
@@ -181,6 +226,16 @@ export default function LiveMapCanvas({
               on the congestion in the vehicle panel's ETA, which comes from
               our own road network, not from this layer. */}
           <TrafficLayer map={map} enabled={isTrafficOn} />
+          {!track && !replayState.on && !isTrailVisible ? <PassiveTrailLayer trail={passiveTrail} color={resolveMapColor(selectedStatusColor)} /> : null}
+          {predictionLines(whereNext?.data, whereNext?.open, whereNextPosition).map(({ path, index, weak }) => (
+            <PolylineF key={`where-next-${index}`} path={path} options={{
+              strokeOpacity: 0,
+              icons: [{ icon: { path: 'M 0,-1 0,1', strokeColor: resolveMapColor(selectedStatusColor), strokeOpacity: index || weak ? 0.35 : 0.9, strokeWeight: index ? 2 : 3, scale: 3 }, offset: '0', repeat: '16px' }],
+            }} />
+          ))}
+          {whereNext?.data && !whereNext.data.held && Number.isFinite(whereNext.data.destinations?.[0]?.place?.lat) && Number.isFinite(whereNext.data.destinations?.[0]?.place?.lng) ? (
+            <MarkerF position={{ lat: whereNext.data.destinations[0].place.lat, lng: whereNext.data.destinations[0].place.lng }} title={destinationHeading(whereNext.data.destinations[0])} label={{ text: destinationHeading(whereNext.data.destinations[0]), className: 'where-next-map-label' }} />
+          ) : null}
 
           {/* Track mode: one truck's history, drawn over the live map. */}
           {track ? (
@@ -189,6 +244,16 @@ export default function LiveMapCanvas({
               zoom={mapZoom}
               playheadTime={trackPlayheadTime}
               roadTrail={trackRoad}
+            />
+          ) : null}
+
+          {/* Track mode: the truck being replayed, on an overlay so it sits
+              above the line and turns with the heading. */}
+          {track && trackPlayhead ? (
+            <ReplayTruckMarker
+              position={{ lat: trackPlayhead.lat, lng: trackPlayhead.lng }}
+              heading={trackPlayhead.headingDeg ?? 0}
+              fast={(trackPlayhead.speedKmh ?? 0) > DEFAULT_LIMIT_KMH}
             />
           ) : null}
 
@@ -227,8 +292,9 @@ export default function LiveMapCanvas({
 
           {!track && idlingRows.length ? <TrackIdlingLayer rows={idlingRows} onSelect={onSelectIdling} /> : null}
 
-          {!track && routeLines.length ? (
+          {!track && mapZoom >= 7 && routeLines.length ? (
             <RouteLayer
+              dimmed={Boolean(selectedId)}
               map={map}
               lines={routeLines}
               sites={routeSites}
@@ -241,6 +307,7 @@ export default function LiveMapCanvas({
               detail={null}
               showEngine={false}
               zoom={mapZoom}
+              neutral
             />
           ) : null}
 
@@ -263,19 +330,11 @@ export default function LiveMapCanvas({
           {/* Fleet weather — compact chips over UNselected trucks in adverse
               weather (rain/thunder/snow), zoom-gated so a wide view stays clean.
               Rendered before the selected bubble so that bubble sits on top. */}
-          <FleetWeatherMarkers
-            vehicles={fleetOnMap}
-            fleetWeather={fleetWeather}
-            selectedId={selectedId}
-          />
 
           {/* Weather — an animated condition bubble floating above the active
               truck: the selected vehicle live, or the moving marker during
               replay (then showing the trip's own hour). Provider credit travels
               with it; the full clickable attribution is in the detail panel. */}
-          {!track && weatherBubblePosition && weather && (
-            <WeatherBubble position={weatherBubblePosition} weather={weather} />
-          )}
 
           {/* Breadcrumb Trail — split per trip when the trail endpoint
               gave us trip ids, otherwise fall back to a single polyline.
@@ -291,9 +350,9 @@ export default function LiveMapCanvas({
                   path={seg.coords}
                   options={{
                     strokeColor: seg.color,
-                    strokeOpacity: 0.95,
+                    strokeOpacity: 0,
                     strokeWeight: 4,
-                    icons: trailArrowIcons(seg.color),
+                    icons: replayAppearance.googleRoute(window.google.maps.SymbolPath.CIRCLE).icons,
                   }}
                 />
               ))
@@ -307,9 +366,9 @@ export default function LiveMapCanvas({
                 path={trailCoords}
                 options={{
                   strokeColor: fallbackSingleColor || selectedStatusColor,
-                  strokeOpacity: 0.9,
+                  strokeOpacity: 0,
                   strokeWeight: 4,
-                  icons: trailArrowIcons(fallbackSingleColor || selectedStatusColor),
+                  icons: replayAppearance.googleRoute(window.google.maps.SymbolPath.CIRCLE).icons,
                 }}
               />
             ))}
@@ -389,14 +448,14 @@ export default function LiveMapCanvas({
                     <PolylineF
                       key={`replay-road-${layer.kind}-${layer.t0}`}
                       path={layer.path}
-                      options={replayAppearance.googleTravelled}
+                      options={replayAppearance.googleRoad(layer, window.google.maps.SymbolPath.CIRCLE)}
                     />
                   ))
                 : replayRunPaths.map(({ key, path }) => (
                     <PolylineF
                       key={`replay-run-${key}`}
                       path={path}
-                      options={replayAppearance.googleTravelled}
+                      options={replayAppearance.googleRoute(window.google.maps.SymbolPath.CIRCLE)}
                     />
                   ))}
               <MarkerF

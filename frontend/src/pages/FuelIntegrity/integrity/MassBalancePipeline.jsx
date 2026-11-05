@@ -28,14 +28,14 @@ const MassBalancePipeline = ({
     </div>
 
     <div className="fi-pipeline-steps">
-      {/* Step 1: Dispensed Inflow */}
+      {/* Step 1: Fuel in. Same figure as the "Fuel in (tank sensor)" card. */}
       <div className="fi-step-card">
         <div className="fi-step-head">
-          <span className="fi-step-label">1. Pump Dispensed</span>
+          <span className="fi-step-label">1. Fuel in (tank sensor)</span>
           <Fuel size={14} className="text-blue-500" />
         </div>
         <div className="fi-step-val text-blue-600 dark:text-blue-400">
-          +{formatLitres(totalFillsLitres)}
+          {formatLitres(totalFillsLitres)}
         </div>
         <div className="fi-step-sub">≈ {formatINR(totalFillsLitres * pricePerL)} at ₹{pricePerL}/L</div>
       </div>
@@ -47,7 +47,7 @@ const MassBalancePipeline = ({
       {/* Step 2: Engine Consumed */}
       <div className="fi-step-card">
         <div className="fi-step-head">
-          <span className="fi-step-label">2. Engine Consumed</span>
+          <span className="fi-step-label">2. Engine consumed</span>
           <Activity size={14} className="text-emerald-500" />
         </div>
         <div className="fi-step-val text-slate-800 dark:text-slate-100">
@@ -65,11 +65,10 @@ const MassBalancePipeline = ({
       {/* Step 3: Net Tank Delta */}
       <div className="fi-step-card">
         <div className="fi-step-head">
-          <span className="fi-step-label">3. Net Tank Reserve</span>
+          <span className="fi-step-label">3. Net tank reserve</span>
           <Gauge size={14} className="text-indigo-500" />
         </div>
         <div className="fi-step-val text-indigo-600 dark:text-indigo-400">
-          {totalNetTankDeltaL >= 0 ? '+' : ''}
           {formatLitres(totalNetTankDeltaL)}
         </div>
         <div className="fi-step-sub">Fleet tank level balance</div>

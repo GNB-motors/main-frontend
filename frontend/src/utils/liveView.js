@@ -98,12 +98,37 @@ export function viewOf(row, nowMs = Date.now()) {
  * { value, unit } — unit 'L' or '%' only when proven. An unproven unit is
  * said, never guessed.
  */
-export function formatFuel(fuel) {
-  if (!fuel || !finite(Number(fuel.value))) return '—';
+function fuelParts(fuel) {
+  if (!fuel || !finite(Number(fuel.value))) return { text: '—', known: false, hasValue: false };
   const n = Number(fuel.value).toLocaleString('en-IN', { maximumFractionDigits: 1 });
-  if (fuel.unit === 'L') return `${n} L`;
-  if (fuel.unit === '%') return `${n}%`;
-  return `${n} (unit unknown)`;
+  if (fuel.unit === 'L') return { text: `${n} L`, known: true, hasValue: true };
+  if (fuel.unit === '%') return { text: `${n}%`, known: true, hasValue: true };
+  return { text: n, known: false, hasValue: true };
+}
+
+export function formatFuel(fuel) {
+  const { text, known, hasValue } = fuelParts(fuel);
+  if (!hasValue) return '—';
+  return known ? text : `${text} (unit unknown)`;
+}
+
+/** What we say about a fuel reading whose unit the device did not report. */
+export const FUEL_UNIT_UNKNOWN_TITLE = 'Unit not reported by the device';
+
+/**
+ * The fuel value on its own: the unit only when it is proven. The note about an
+ * unproven unit moves to the tooltip (fuelUnitTitle), so the number is not
+ * buried inside a parenthesis.
+ */
+export function formatFuelValue(fuel) {
+  return fuelParts(fuel).text;
+}
+
+/** The tooltip for a fuel reading — why the unit is missing, or null. */
+export function fuelUnitTitle(fuel) {
+  const { known, hasValue } = fuelParts(fuel);
+  if (!hasValue || known) return null;
+  return FUEL_UNIT_UNKNOWN_TITLE;
 }
 
 export default { viewOf, formatFuel };
