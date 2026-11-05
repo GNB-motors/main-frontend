@@ -38,10 +38,7 @@ export default function FuelPanel({
     ialert?.primaryFuelTankCapacityL ||
     (gvm >= 28000 ? 365 : gvm >= 16000 ? 250 : 160);
   const defTankCapacityL =
-    health?.defTankCapacityL ||
-    fleetMaster?.defCapacity ||
-    ialert?.defTankCapacityL ||
-    45;
+    health?.defTankCapacityL || fleetMaster?.defCapacity || ialert?.defTankCapacityL || 45;
 
   const fuelPct = health?.primaryFuelLevel;
   const fuelLitres =
@@ -61,14 +58,14 @@ export default function FuelPanel({
 
   const fuelToday = health?.today?.fuelBurnedL ?? 0;
   const mileageKpl = kmPerLitre?.kmPerLitre || kmPerLitre?.ecuKmPerLitre || 3.8;
-  const estimatedRangeKm = fuelLitres != null && fuelLitres > 0 ? Math.round(fuelLitres * mileageKpl) : 0;
+  const estimatedRangeKm =
+    fuelLitres != null && fuelLitres > 0 ? Math.round(fuelLitres * mileageKpl) : 0;
   const lifetimeFuel = health?.lifetimeFuelConsumedL;
   const lifetimeDef = health?.lifetimeDefConsumedL;
 
   return (
     <PanelErrorBoundary name="vehicle-fuel">
       <div className="v360-panel" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
         {/* Live Fuel & Energy Telematics Summary Strip */}
         <section className="v360-card">
           <div className="v360-card-head">
@@ -88,11 +85,20 @@ export default function FuelPanel({
             }}
           >
             {/* Live Fuel Level */}
-            <div style={{ padding: 12, borderRadius: 8, background: 'var(--sunk)', border: '1px solid var(--line)' }}>
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 8,
+                background: 'var(--sunk)',
+                border: '1px solid var(--line)',
+              }}
+            >
               <span className="v360-readout-label">Live Fuel Level</span>
               <p className="v360-figure" style={{ margin: '4px 0 0' }}>
                 <span className="v360-figure-value">
-                  {fuelPct != null ? `${formatLitres(fuelLitres)} (${Math.round(fuelPct)}%)` : '— (Awaiting sync)'}
+                  {fuelPct != null
+                    ? `${formatLitres(fuelLitres)} (${Math.round(fuelPct)}%)`
+                    : '— (Awaiting sync)'}
                 </span>
               </p>
               <span className="v360-readout-sub" style={{ marginTop: 4, display: 'block' }}>
@@ -101,7 +107,14 @@ export default function FuelPanel({
             </div>
 
             {/* Estimated Driving Range */}
-            <div style={{ padding: 12, borderRadius: 8, background: 'var(--sunk)', border: '1px solid var(--line)' }}>
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 8,
+                background: 'var(--sunk)',
+                border: '1px solid var(--line)',
+              }}
+            >
               <span className="v360-readout-label">Estimated Driving Range</span>
               <p className="v360-figure" style={{ margin: '4px 0 0' }}>
                 <span className="v360-figure-value">
@@ -115,12 +128,17 @@ export default function FuelPanel({
             </div>
 
             {/* Fuel Burned Today */}
-            <div style={{ padding: 12, borderRadius: 8, background: 'var(--sunk)', border: '1px solid var(--line)' }}>
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 8,
+                background: 'var(--sunk)',
+                border: '1px solid var(--line)',
+              }}
+            >
               <span className="v360-readout-label">Fuel Burned Today</span>
               <p className="v360-figure" style={{ margin: '4px 0 0' }}>
-                <span className="v360-figure-value">
-                  {formatLitres(fuelToday)}
-                </span>
+                <span className="v360-figure-value">{formatLitres(fuelToday)}</span>
                 <span className="v360-figure-note">shift consumption</span>
               </p>
               <span className="v360-readout-sub" style={{ marginTop: 4, display: 'block' }}>
@@ -129,11 +147,22 @@ export default function FuelPanel({
             </div>
 
             {/* DEF / AdBlue Level */}
-            <div style={{ padding: 12, borderRadius: 8, background: 'var(--sunk)', border: '1px solid var(--line)' }}>
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 8,
+                background: 'var(--sunk)',
+                border: '1px solid var(--line)',
+              }}
+            >
               <span className="v360-readout-label">DEF / AdBlue Level</span>
               <p className="v360-figure" style={{ margin: '4px 0 0' }}>
                 <span className="v360-figure-value">
-                  {!bs6 ? 'N/A' : defPct != null ? `${formatLitres(defLitres)} (${Math.round(defPct)}%)` : '—'}
+                  {!bs6
+                    ? 'N/A'
+                    : defPct != null
+                      ? `${formatLitres(defLitres)} (${Math.round(defPct)}%)`
+                      : '—'}
                 </span>
               </p>
               <span className="v360-readout-sub" style={{ marginTop: 4, display: 'block' }}>
@@ -143,12 +172,17 @@ export default function FuelPanel({
 
             {/* Lifetime Fuel Consumed */}
             {lifetimeFuel != null ? (
-              <div style={{ padding: 12, borderRadius: 8, background: 'var(--sunk)', border: '1px solid var(--line)' }}>
+              <div
+                style={{
+                  padding: 12,
+                  borderRadius: 8,
+                  background: 'var(--sunk)',
+                  border: '1px solid var(--line)',
+                }}
+              >
                 <span className="v360-readout-label">Lifetime Fuel Consumed</span>
                 <p className="v360-figure" style={{ margin: '4px 0 0' }}>
-                  <span className="v360-figure-value">
-                    {formatLitres(lifetimeFuel)}
-                  </span>
+                  <span className="v360-figure-value">{formatLitres(lifetimeFuel)}</span>
                   <span className="v360-figure-note">cumulative</span>
                 </p>
                 <span className="v360-readout-sub" style={{ marginTop: 4, display: 'block' }}>
@@ -159,12 +193,17 @@ export default function FuelPanel({
 
             {/* Lifetime Urea Consumed */}
             {bs6 && lifetimeDef != null ? (
-              <div style={{ padding: 12, borderRadius: 8, background: 'var(--sunk)', border: '1px solid var(--line)' }}>
+              <div
+                style={{
+                  padding: 12,
+                  borderRadius: 8,
+                  background: 'var(--sunk)',
+                  border: '1px solid var(--line)',
+                }}
+              >
                 <span className="v360-readout-label">Lifetime Urea Consumed</span>
                 <p className="v360-figure" style={{ margin: '4px 0 0' }}>
-                  <span className="v360-figure-value">
-                    {formatLitres(lifetimeDef)}
-                  </span>
+                  <span className="v360-figure-value">{formatLitres(lifetimeDef)}</span>
                   <span className="v360-figure-note">cumulative</span>
                 </p>
                 <span className="v360-readout-sub" style={{ marginTop: 4, display: 'block' }}>
@@ -210,7 +249,9 @@ export default function FuelPanel({
                     <td>{log.fuelType || 'Diesel'}</td>
                     <td>{log.location || '—'}</td>
                     <td className="is-num">{formatLitres(log.litres)}</td>
-                    <td className="is-num">{log.rate ? formatINR(log.rate, { decimals: 2 }) : '—'}</td>
+                    <td className="is-num">
+                      {log.rate ? formatINR(log.rate, { decimals: 2 }) : '—'}
+                    </td>
                     <td className="is-num">{formatINR(log.totalAmount)}</td>
                   </tr>
                 ))}

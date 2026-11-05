@@ -14,7 +14,13 @@ const ServiceIntelligenceKpis = ({ isService, summary, filterCounts, loading }) 
       <>
         <KpiCard
           title="Last 30 days"
-          value={loading && summary.last30 == null ? <span className="si-skel-kpi-val" /> : summary.last30}
+          value={
+            loading && summary.last30 == null ? (
+              <span className="si-skel-kpi-val" />
+            ) : (
+              summary.last30
+            )
+          }
           accent="#2563eb"
           icon={<CalendarCheck size={18} />}
         />
@@ -47,13 +53,25 @@ const ServiceIntelligenceKpis = ({ isService, summary, filterCounts, loading }) 
       <>
         <KpiCard
           title="Critical (P0 Grounded)"
-          value={loading && filterCounts.p0 == null ? <span className="si-skel-kpi-val" /> : (filterCounts.p0 ?? 0)}
+          value={
+            loading && filterCounts.p0 == null ? (
+              <span className="si-skel-kpi-val" />
+            ) : (
+              (filterCounts.p0 ?? 0)
+            )
+          }
           accent="#dc2626"
           icon={<AlertOctagon size={18} />}
         />
         <KpiCard
           title="Open Issues"
-          value={loading && filterCounts.open == null ? <span className="si-skel-kpi-val" /> : (filterCounts.open ?? 0)}
+          value={
+            loading && filterCounts.open == null ? (
+              <span className="si-skel-kpi-val" />
+            ) : (
+              (filterCounts.open ?? 0)
+            )
+          }
           accent="#e11d48"
           icon={<AlertTriangle size={18} />}
         />

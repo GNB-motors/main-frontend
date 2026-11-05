@@ -9,7 +9,7 @@ import CardHead from './CardHead';
 export default function UtilisationCard({ history, health, prediction, onGoTrips }) {
   const historyDistance = distanceInWindow(history);
   const cycleDistance =
-    (prediction?.currentOdometer != null && prediction?.lastServiceOdometer != null)
+    prediction?.currentOdometer != null && prediction?.lastServiceOdometer != null
       ? Math.max(0, prediction.currentOdometer - prediction.lastServiceOdometer)
       : null;
 
@@ -49,7 +49,9 @@ export default function UtilisationCard({ history, health, prediction, onGoTrips
             <dt>Run cadence</dt>
             <dd>{avgKm != null ? `${formatNum(avgKm)} km/day pace` : 'Standard operational'}</dd>
             <dt>Tracking basis</dt>
-            <dd>{readings >= 2 ? `${formatNum(readings)} CAN readings` : 'Calibrated checkpoints'}</dd>
+            <dd>
+              {readings >= 2 ? `${formatNum(readings)} CAN readings` : 'Calibrated checkpoints'}
+            </dd>
             <dt>Last CAN sync</dt>
             <dd>{health?.pulledAt ? timeAgo(health.pulledAt) : 'Live'}</dd>
           </dl>

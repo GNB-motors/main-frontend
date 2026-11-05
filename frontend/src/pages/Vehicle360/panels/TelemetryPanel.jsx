@@ -10,13 +10,7 @@ import Trend from './Trend';
  * RPM, coolant temperature, battery voltage, battery connection tampering check)
  * with cellular network telemetry and historical trends.
  */
-export default function TelemetryPanel({
-  health,
-  prediction,
-  livePosition,
-  history,
-  fleetMaster,
-}) {
+export default function TelemetryPanel({ health, prediction, livePosition, history, fleetMaster }) {
   const signals = buildSignals(health, livePosition);
   const enough = (history || []).length > 1;
 
@@ -25,15 +19,17 @@ export default function TelemetryPanel({
     health?.canOdo ??
     prediction?.currentOdometer ??
     livePosition?.odometer ??
-    (Number.isFinite(Number(fleetMaster?.currentOdometer)) ? Number(fleetMaster.currentOdometer) : null);
+    (Number.isFinite(Number(fleetMaster?.currentOdometer))
+      ? Number(fleetMaster.currentOdometer)
+      : null);
 
   const batteryV = health?.batteryVoltage;
-  const isBatteryLow = batteryV != null ? (batteryV < 16 ? batteryV < 11.8 : batteryV < 23.5) : false;
+  const isBatteryLow =
+    batteryV != null ? (batteryV < 16 ? batteryV < 11.8 : batteryV < 23.5) : false;
   const isBatteryWireConnected = health?.batteryConnected !== false;
 
   const totalEngineHours =
-    health?.engineRunHour ??
-    (currentOdo > 0 ? Math.round(currentOdo / 28) : null);
+    health?.engineRunHour ?? (currentOdo > 0 ? Math.round(currentOdo / 28) : null);
   const engineHoursToday = health?.today?.engineHours ?? 0;
 
   const coolantTemp = health?.coolantTempC;
@@ -49,7 +45,6 @@ export default function TelemetryPanel({
   return (
     <PanelErrorBoundary name="vehicle-telemetry">
       <div className="v360-panel" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
         {/* Engine, Powertrain & Electrical Health Card */}
         <section className="v360-card">
           <div className="v360-card-head">
@@ -69,7 +64,14 @@ export default function TelemetryPanel({
             }}
           >
             {/* Live Odometer */}
-            <div style={{ padding: 12, borderRadius: 8, background: 'var(--sunk)', border: '1px solid var(--line)' }}>
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 8,
+                background: 'var(--sunk)',
+                border: '1px solid var(--line)',
+              }}
+            >
               <span className="v360-readout-label">Live Odometer</span>
               <p className="v360-figure" style={{ margin: '4px 0 0' }}>
                 <span className="v360-figure-value">
@@ -83,14 +85,25 @@ export default function TelemetryPanel({
             </div>
 
             {/* Engine Hours */}
-            <div style={{ padding: 12, borderRadius: 8, background: 'var(--sunk)', border: '1px solid var(--line)' }}>
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 8,
+                background: 'var(--sunk)',
+                border: '1px solid var(--line)',
+              }}
+            >
               <span className="v360-readout-label">Engine Hours</span>
               <p className="v360-figure" style={{ margin: '4px 0 0' }}>
                 <span className="v360-figure-value">
-                  {totalEngineHours != null ? `${formatNum(totalEngineHours, { decimals: 1 })} h` : '—'}
+                  {totalEngineHours != null
+                    ? `${formatNum(totalEngineHours, { decimals: 1 })} h`
+                    : '—'}
                 </span>
                 <span className="v360-figure-note" style={{ color: 'var(--green-ink)' }}>
-                  {engineHoursToday > 0 ? `+${formatNum(engineHoursToday, { decimals: 1 })} h today` : 'total run'}
+                  {engineHoursToday > 0
+                    ? `+${formatNum(engineHoursToday, { decimals: 1 })} h today`
+                    : 'total run'}
                 </span>
               </p>
               <span className="v360-readout-sub" style={{ marginTop: 4, display: 'block' }}>
@@ -99,12 +112,17 @@ export default function TelemetryPanel({
             </div>
 
             {/* Engine RPM */}
-            <div style={{ padding: 12, borderRadius: 8, background: 'var(--sunk)', border: '1px solid var(--line)' }}>
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 8,
+                background: 'var(--sunk)',
+                border: '1px solid var(--line)',
+              }}
+            >
               <span className="v360-readout-label">Engine RPM</span>
               <p className="v360-figure" style={{ margin: '4px 0 0' }}>
-                <span className="v360-figure-value">
-                  {`${formatNum(rpm)} RPM`}
-                </span>
+                <span className="v360-figure-value">{`${formatNum(rpm)} RPM`}</span>
                 <span className="v360-figure-note">
                   {rpm > 1000 ? 'Active drive' : rpm > 0 ? 'Idling' : 'Engine off'}
                 </span>
@@ -115,14 +133,27 @@ export default function TelemetryPanel({
             </div>
 
             {/* Coolant Temperature */}
-            <div style={{ padding: 12, borderRadius: 8, background: 'var(--sunk)', border: '1px solid var(--line)' }}>
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 8,
+                background: 'var(--sunk)',
+                border: '1px solid var(--line)',
+              }}
+            >
               <span className="v360-readout-label">Coolant Temperature</span>
               <p className="v360-figure" style={{ margin: '4px 0 0' }}>
-                <span className={`v360-figure-value ${isCoolantHot ? 'v360-figure-value--crit' : ''}`.trim()}>
+                <span
+                  className={`v360-figure-value ${isCoolantHot ? 'v360-figure-value--crit' : ''}`.trim()}
+                >
                   {coolantTemp != null ? `${coolantTemp} °C` : '—'}
                 </span>
                 <span className="v360-figure-note">
-                  {isCoolantHot ? 'Overheating Risk' : coolantTemp != null && coolantTemp > 0 ? 'Normal Operating' : 'Cold Engine'}
+                  {isCoolantHot
+                    ? 'Overheating Risk'
+                    : coolantTemp != null && coolantTemp > 0
+                      ? 'Normal Operating'
+                      : 'Cold Engine'}
                 </span>
               </p>
               <span className="v360-readout-sub" style={{ marginTop: 4, display: 'block' }}>
@@ -131,7 +162,14 @@ export default function TelemetryPanel({
             </div>
 
             {/* Exhaust Temperature */}
-            <div style={{ padding: 12, borderRadius: 8, background: 'var(--sunk)', border: '1px solid var(--line)' }}>
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 8,
+                background: 'var(--sunk)',
+                border: '1px solid var(--line)',
+              }}
+            >
               <span className="v360-readout-label">Exhaust Gas Temperature</span>
               <p className="v360-figure" style={{ margin: '4px 0 0' }}>
                 <span className="v360-figure-value">
@@ -147,12 +185,17 @@ export default function TelemetryPanel({
             </div>
 
             {/* Transmission Gear */}
-            <div style={{ padding: 12, borderRadius: 8, background: 'var(--sunk)', border: '1px solid var(--line)' }}>
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 8,
+                background: 'var(--sunk)',
+                border: '1px solid var(--line)',
+              }}
+            >
               <span className="v360-readout-label">Transmission Gear</span>
               <p className="v360-figure" style={{ margin: '4px 0 0' }}>
-                <span className="v360-figure-value">
-                  {gearNumber}
-                </span>
+                <span className="v360-figure-value">{gearNumber}</span>
                 <span className="v360-figure-note">
                   {gearNumber === 'N' ? 'Neutral' : `Gear ${gearNumber}`}
                 </span>
@@ -163,14 +206,27 @@ export default function TelemetryPanel({
             </div>
 
             {/* Battery Voltage */}
-            <div style={{ padding: 12, borderRadius: 8, background: 'var(--sunk)', border: '1px solid var(--line)' }}>
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 8,
+                background: 'var(--sunk)',
+                border: '1px solid var(--line)',
+              }}
+            >
               <span className="v360-readout-label">Battery Voltage</span>
               <p className="v360-figure" style={{ margin: '4px 0 0' }}>
-                <span className={`v360-figure-value ${isBatteryLow ? 'v360-figure-value--crit' : ''}`.trim()}>
+                <span
+                  className={`v360-figure-value ${isBatteryLow ? 'v360-figure-value--crit' : ''}`.trim()}
+                >
                   {batteryV != null ? `${batteryV} V` : '—'}
                 </span>
                 <span className="v360-figure-note">
-                  {batteryV != null ? (isBatteryLow ? 'Low Charge' : 'Alternator Healthy') : 'Awaiting sensor'}
+                  {batteryV != null
+                    ? isBatteryLow
+                      ? 'Low Charge'
+                      : 'Alternator Healthy'
+                    : 'Awaiting sensor'}
                 </span>
               </p>
               <span className="v360-readout-sub" style={{ marginTop: 4, display: 'block' }}>
@@ -179,10 +235,19 @@ export default function TelemetryPanel({
             </div>
 
             {/* Battery Connection State */}
-            <div style={{ padding: 12, borderRadius: 8, background: 'var(--sunk)', border: '1px solid var(--line)' }}>
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 8,
+                background: 'var(--sunk)',
+                border: '1px solid var(--line)',
+              }}
+            >
               <span className="v360-readout-label">Battery Power Connection</span>
               <p className="v360-figure" style={{ margin: '4px 0 0' }}>
-                <span className={`v360-figure-value ${!isBatteryWireConnected ? 'v360-figure-value--crit' : ''}`.trim()}>
+                <span
+                  className={`v360-figure-value ${!isBatteryWireConnected ? 'v360-figure-value--crit' : ''}`.trim()}
+                >
                   {isBatteryWireConnected ? 'Connected' : 'Tampered / Disconnected'}
                 </span>
               </p>
@@ -204,7 +269,8 @@ export default function TelemetryPanel({
           </div>
 
           <p className="v360-card-lede">
-            Telematics transmitted via on-board cellular unit (OBU) connecting to local carrier cell towers.
+            Telematics transmitted via on-board cellular unit (OBU) connecting to local carrier cell
+            towers.
           </p>
 
           <dl className="v360-kv" style={{ marginTop: 10 }}>

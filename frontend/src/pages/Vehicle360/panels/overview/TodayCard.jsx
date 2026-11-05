@@ -10,7 +10,8 @@ import CardHead from './CardHead';
 export default function TodayCard({ health, livePosition }) {
   const today = health?.today || {};
   const batteryV = health?.batteryVoltage;
-  const isBatteryLow = batteryV != null ? (batteryV < 16 ? batteryV < 11.8 : batteryV < 23.5) : false;
+  const isBatteryLow =
+    batteryV != null ? (batteryV < 16 ? batteryV < 11.8 : batteryV < 23.5) : false;
   const batteryTone = isBatteryLow ? 'warn' : 'ok';
 
   const kmToday = today.distanceKm ?? 0;
@@ -18,12 +19,11 @@ export default function TodayCard({ health, livePosition }) {
   const runH = today.engineHours ?? 0;
   const idleMin = today.idlingDurationMin ?? 0;
 
-  const todayMileage =
-    kmToday > 0 && fuelToday > 0
-      ? (kmToday / fuelToday).toFixed(2)
-      : null;
+  const todayMileage = kmToday > 0 && fuelToday > 0 ? (kmToday / fuelToday).toFixed(2) : null;
 
-  const isMoving = livePosition?.view?.status === 'moving' || (livePosition?.speed != null && livePosition.speed > 0);
+  const isMoving =
+    livePosition?.view?.status === 'moving' ||
+    (livePosition?.speed != null && livePosition.speed > 0);
 
   return (
     <section className="v360-card">
@@ -45,11 +45,13 @@ export default function TodayCard({ health, livePosition }) {
       />
 
       <p className="v360-figure">
-        <span className="v360-figure-value">
-          {formatKm(kmToday)}
-        </span>
+        <span className="v360-figure-value">{formatKm(kmToday)}</span>
         <span className="v360-figure-note">
-          {todayMileage ? `${todayMileage} km/L shift economy` : isMoving ? 'in transit' : 'parked at depot'}
+          {todayMileage
+            ? `${todayMileage} km/L shift economy`
+            : isMoving
+              ? 'in transit'
+              : 'parked at depot'}
         </span>
       </p>
 

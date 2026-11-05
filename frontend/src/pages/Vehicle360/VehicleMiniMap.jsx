@@ -29,13 +29,15 @@ export default function VehicleMiniMap({ livePosition }) {
   );
 
   const view = livePosition?.view;
-  const statusKey = view?.status || (livePosition?.state ? String(livePosition.state).toLowerCase() : 'offline');
+  const statusKey =
+    view?.status || (livePosition?.state ? String(livePosition.state).toLowerCase() : 'offline');
   const novaMeta = NOVA_STATUS[statusKey];
   const fallbackMeta = getStateMeta(livePosition?.state);
   const color = novaMeta?.c || fallbackMeta.color;
   const label = novaMeta?.label || fallbackMeta.label;
   const isOffline = view?.isOffline ?? (livePosition?.isStale || livePosition?.state === 'OFFLINE');
-  const speed = view?.speedKmh ?? (livePosition?.speed != null ? Math.round(livePosition.speed) : null);
+  const speed =
+    view?.speedKmh ?? (livePosition?.speed != null ? Math.round(livePosition.speed) : null);
   const fixTime = view?.lastFixAt || livePosition?.eventDateTime || livePosition?.pulledAt;
 
   let badgeText = label;
@@ -93,11 +95,7 @@ export default function VehicleMiniMap({ livePosition }) {
         />
       </GoogleMap>
       <span className="v360-minimap-badge">
-        <span
-          className="v360-minimap-badge-dot"
-          style={{ background: color }}
-          aria-hidden="true"
-        />
+        <span className="v360-minimap-badge-dot" style={{ background: color }} aria-hidden="true" />
         {badgeText}
       </span>
     </div>

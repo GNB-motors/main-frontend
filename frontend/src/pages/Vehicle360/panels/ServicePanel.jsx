@@ -39,17 +39,23 @@ export default function ServicePanel({
     progressPct = interval > 0 ? Math.min(100, Math.round((elapsed / interval) * 100)) : 0;
   }
 
-  const remainingKm = svc.km != null ? svc.km : (nextOdo != null && currentOdo != null ? Math.max(0, nextOdo - currentOdo) : null);
+  const remainingKm =
+    svc.km != null
+      ? svc.km
+      : nextOdo != null && currentOdo != null
+        ? Math.max(0, nextOdo - currentOdo)
+        : null;
 
   return (
     <PanelErrorBoundary name="vehicle-service">
       <div className="v360-panel" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
         {/* Service Standing & Mathematical Progress Card */}
         <section className={`v360-card ${svc.overdue ? 'v360-card--alert' : ''}`.trim()}>
           <div className="v360-card-head">
             <p className="v360-card-title">Service Standing & Health</p>
-            <span className={`v360-pill v360-pill--${svc.overdue ? 'crit' : svc.level === 'warn' ? 'warn' : 'ok'}`}>
+            <span
+              className={`v360-pill v360-pill--${svc.overdue ? 'crit' : svc.level === 'warn' ? 'warn' : 'ok'}`}
+            >
               <span className="v360-pill-dot" aria-hidden="true" />
               {svc.label}
             </span>
@@ -66,7 +72,9 @@ export default function ServicePanel({
             {/* Headline Figure */}
             <div>
               <p className="v360-figure">
-                <span className={`v360-figure-value v360-figure-value--lg ${svc.overdue ? 'v360-figure-value--crit' : ''}`.trim()}>
+                <span
+                  className={`v360-figure-value v360-figure-value--lg ${svc.overdue ? 'v360-figure-value--crit' : ''}`.trim()}
+                >
                   {remainingKm != null ? formatKm(remainingKm) : `${formatNum(svc.days ?? 0)} days`}
                 </span>
                 <span className="v360-figure-note">
@@ -74,25 +82,51 @@ export default function ServicePanel({
                 </span>
               </p>
               <p className="v360-card-lede" style={{ marginTop: 6 }}>
-                {svc.projectedAt ? `Projected due date: ${formatDateIST(svc.projectedAt)}` : 'Due date not projected'}
-                {svc.days != null ? ` (${formatNum(svc.days)} days ${svc.overdue ? 'ago' : 'away'}).` : '.'}
+                {svc.projectedAt
+                  ? `Projected due date: ${formatDateIST(svc.projectedAt)}`
+                  : 'Due date not projected'}
+                {svc.days != null
+                  ? ` (${formatNum(svc.days)} days ${svc.overdue ? 'ago' : 'away'}).`
+                  : '.'}
               </p>
             </div>
 
             {/* True Dynamic Progress Bar */}
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontSize: 12,
+                  marginBottom: 4,
+                }}
+              >
                 <span style={{ color: 'var(--ink3)' }}>Service Interval Progress:</span>
-                <span style={{ fontWeight: 700, color: svc.overdue ? 'var(--red-ink)' : 'var(--erp)' }}>
+                <span
+                  style={{ fontWeight: 700, color: svc.overdue ? 'var(--red-ink)' : 'var(--erp)' }}
+                >
                   {progressPct}%
                 </span>
               </div>
-              <div style={{ width: '100%', height: 10, borderRadius: 5, background: 'var(--sunk)', overflow: 'hidden', border: '1px solid var(--line)' }}>
+              <div
+                style={{
+                  width: '100%',
+                  height: 10,
+                  borderRadius: 5,
+                  background: 'var(--sunk)',
+                  overflow: 'hidden',
+                  border: '1px solid var(--line)',
+                }}
+              >
                 <div
                   style={{
                     width: `${progressPct}%`,
                     height: '100%',
-                    background: svc.overdue ? 'var(--red)' : svc.level === 'warn' ? 'var(--amber)' : 'var(--erp)',
+                    background: svc.overdue
+                      ? 'var(--red)'
+                      : svc.level === 'warn'
+                        ? 'var(--amber)'
+                        : 'var(--erp)',
                     transition: 'width 0.3s ease',
                   }}
                 />
@@ -112,7 +146,9 @@ export default function ServicePanel({
             <dd className="is-code">{nextOdo != null ? formatKm(nextOdo) : '—'}</dd>
             <dt>Distance difference (remaining)</dt>
             <dd className={svc.overdue ? 'is-crit' : 'is-ok'}>
-              {remainingKm != null ? `${formatKm(remainingKm)} ${svc.overdue ? 'overdue' : 'to go'}` : '—'}
+              {remainingKm != null
+                ? `${formatKm(remainingKm)} ${svc.overdue ? 'overdue' : 'to go'}`
+                : '—'}
             </dd>
             {svc.basis ? (
               <>
@@ -136,7 +172,13 @@ export default function ServicePanel({
         </section>
 
         {/* Two Halves: Nearest Service Centres & Predictive Sweep */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: 14,
+          }}
+        >
           <ServiceCentreCard vehicleId={vehicleId} livePosition={livePosition} />
           <MaintenanceSweepCard registrationNumber={registrationNumber} />
         </div>

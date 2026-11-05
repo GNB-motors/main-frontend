@@ -82,7 +82,8 @@ export function IdentityStrip({
     {
       ...fleetMaster,
       model: fleetMaster?.model || ialert?.vehicleModel || fleetEdge?.vehicleModel,
-      manufacturer: fleetMaster?.manufacturer || (ialert ? 'Ashok Leyland' : fleetEdge?.manufacturer),
+      manufacturer:
+        fleetMaster?.manufacturer || (ialert ? 'Ashok Leyland' : fleetEdge?.manufacturer),
     },
     fleetEdge,
   );
@@ -137,7 +138,9 @@ export function IdentityStrip({
         <FleetLinkVehicleNotice
           reg={reg}
           telematicsProvider={telematicsProvider}
-          manufacturer={fleetMaster?.manufacturer || (ialert ? 'Ashok Leyland' : fleetEdge?.manufacturer)}
+          manufacturer={
+            fleetMaster?.manufacturer || (ialert ? 'Ashok Leyland' : fleetEdge?.manufacturer)
+          }
           ialert={ialert}
           coverage={coverage}
         />
@@ -231,7 +234,9 @@ export function HeroRow({
     (fleetMaster?.emissionNorm || '').toUpperCase().includes('BS 6');
 
   const gvm = Number(fleetMaster?.gvm) || 0;
-  const isTipper = (fleetMaster?.vehicleCategory || fleetEdge?.vehicleType || '').toLowerCase().includes('tipper');
+  const isTipper = (fleetMaster?.vehicleCategory || fleetEdge?.vehicleType || '')
+    .toLowerCase()
+    .includes('tipper');
   const targetMonthlyKm = isTipper ? 4000 : 8000;
 
   // Multi-tier dynamic odometer resolution: CAN signal -> prediction odometer -> live tracking odometer -> master
@@ -239,12 +244,12 @@ export function HeroRow({
     health?.canOdo ??
     prediction?.currentOdometer ??
     livePosition?.odometer ??
-    (Number.isFinite(Number(fleetMaster?.currentOdometer)) ? Number(fleetMaster.currentOdometer) : 0);
+    (Number.isFinite(Number(fleetMaster?.currentOdometer))
+      ? Number(fleetMaster.currentOdometer)
+      : 0);
 
   // Dynamic engine hours resolution
-  const engineHours =
-    health?.engineRunHour ??
-    (currentOdo > 0 ? Math.round(currentOdo / 28) : 0);
+  const engineHours = health?.engineRunHour ?? (currentOdo > 0 ? Math.round(currentOdo / 28) : 0);
   const hoursToday = health?.today?.engineHours ?? 0;
 
   // Speed and motion
@@ -266,7 +271,7 @@ export function HeroRow({
     fleetMaster?.fuelTankCapacity ||
     ialert?.primaryFuelTankCapacityL ||
     (gvm >= 28000 ? 365 : gvm >= 16000 ? 250 : 160);
-  const fuelPct = health?.primaryFuelLevel ?? (livePosition?.primaryFuelLevel ?? null);
+  const fuelPct = health?.primaryFuelLevel ?? livePosition?.primaryFuelLevel ?? null;
   const fuelLitres =
     health?.primaryFuelLevelL != null
       ? health.primaryFuelLevelL
@@ -275,10 +280,7 @@ export function HeroRow({
         : null;
 
   const defCapacity =
-    health?.defTankCapacityL ||
-    fleetMaster?.defCapacity ||
-    ialert?.defTankCapacityL ||
-    45;
+    health?.defTankCapacityL || fleetMaster?.defCapacity || ialert?.defTankCapacityL || 45;
   const defPct = health?.defLevel;
   const defLitres =
     health?.defLitres != null
@@ -314,18 +316,36 @@ export function HeroRow({
 
   const telemetryAge = daysSince(health?.pulledAt);
   const registry = [
-    ['Manufacturer', fleetEdge?.manufacturer || (ialert ? 'Ashok Leyland' : fleetMaster?.manufacturer), false],
+    [
+      'Manufacturer',
+      fleetEdge?.manufacturer || (ialert ? 'Ashok Leyland' : fleetMaster?.manufacturer),
+      false,
+    ],
     ['Model', fleetEdge?.vehicleModel || ialert?.vehicleModel || fleetMaster?.model, false],
-    ['Category', fleetMaster?.vehicleCategory || fleetEdge?.vehicleType || ialert?.vehicleType, false],
+    [
+      'Category',
+      fleetMaster?.vehicleCategory || fleetEdge?.vehicleType || ialert?.vehicleType,
+      false,
+    ],
     ['Line of business', fleetEdge?.lobName, false],
     [
       'Emission norm',
-      (fleetEdge?.emissionNorm || bs6) && <EmissionNorm norm={fleetEdge?.emissionNorm || (bs6 ? 'BS6' : null)} bs6={bs6} />,
+      (fleetEdge?.emissionNorm || bs6) && (
+        <EmissionNorm norm={fleetEdge?.emissionNorm || (bs6 ? 'BS6' : null)} bs6={bs6} />
+      ),
       false,
     ],
     ['VIN / chassis', fleetEdge?.vin || ialert?.vin || fleetMaster?.chassisNumber, true],
-    ['Device ID / OBU', ialert?.obuId || fleetEdge?.engineNumber || fleetMaster?.chassisNumber, true],
-    ['Provider', providerLabel(telematicsProvider) || (ialert ? 'iALERT' : fleetEdge ? 'FleetEdge' : null), false],
+    [
+      'Device ID / OBU',
+      ialert?.obuId || fleetEdge?.engineNumber || fleetMaster?.chassisNumber,
+      true,
+    ],
+    [
+      'Provider',
+      providerLabel(telematicsProvider) || (ialert ? 'iALERT' : fleetEdge ? 'FleetEdge' : null),
+      false,
+    ],
     ['Known to', coverageSources(coverage).join(' · '), false],
   ].filter(([, v]) => v);
 
@@ -363,7 +383,13 @@ export function HeroRow({
             <Readout
               label="Service"
               crit={svc.overdue}
-              value={remainingKm != null ? formatKm(remainingKm) : svc.level === 'none' ? 'On Schedule' : svc.label}
+              value={
+                remainingKm != null
+                  ? formatKm(remainingKm)
+                  : svc.level === 'none'
+                    ? 'On Schedule'
+                    : svc.label
+              }
               sub={
                 svc.days != null
                   ? `${svc.days} days ${svc.overdue ? 'overdue' : 'to go'}`

@@ -73,7 +73,12 @@ export default function Vehicle360Page() {
   if (error?.status === 404) {
     return (
       <div className="v360">
-        <Breadcrumbs reg={reg} lastSyncAt={p.livePosition?.view?.lastFixAt || p.livePosition?.eventDateTime || p.health?.pulledAt} />
+        <Breadcrumbs
+          reg={reg}
+          lastSyncAt={
+            p.livePosition?.view?.lastFixAt || p.livePosition?.eventDateTime || p.health?.pulledAt
+          }
+        />
         <section className="v360-card">
           <p className="v360-card-title">Nothing on record for {reg}</p>
           <p className="v360-card-lede">

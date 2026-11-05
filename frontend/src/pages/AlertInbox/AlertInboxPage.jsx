@@ -20,7 +20,13 @@ import { useSupportPortal } from '../../contexts/supportPortalContext';
 import { getInbox, acknowledgeItem, acknowledgeAll } from '../../services/AlertInboxService.js';
 import { fleetViewService } from '../../services/fleetViewService';
 import useApi from '../../hooks/useApi';
-import { SOURCE_LABELS, sinceLabel, reviewTarget, filterInbox, subjectTitle } from './inboxModel.js';
+import {
+  SOURCE_LABELS,
+  sinceLabel,
+  reviewTarget,
+  filterInbox,
+  subjectTitle,
+} from './inboxModel.js';
 import AccountLinkBanner from './AccountLinkBanner.jsx';
 import IncidentsTab from './IncidentsTab.jsx';
 import { ackAllConfirmText } from './incidentsModel.js';
@@ -173,7 +179,9 @@ export default function AlertInboxPage() {
     >
       <div className="ai-notice">
         <Bell size={15} aria-hidden="true" style={{ flexShrink: 0 }} />
-        <span>Feeds update periodically. For urgent incidents, check the dedicated alert pages.</span>
+        <span>
+          Feeds update periodically. For urgent incidents, check the dedicated alert pages.
+        </span>
       </div>
 
       {/* A vendor account that stopped sending data explains why the trucks
@@ -185,11 +193,7 @@ export default function AlertInboxPage() {
         ))}
 
       <div className="ai-tabs ai-views" role="group" aria-label="Inbox views">
-        <button
-          type="button"
-          aria-pressed={view === 'ALERTS'}
-          onClick={() => setView('ALERTS')}
-        >
+        <button type="button" aria-pressed={view === 'ALERTS'} onClick={() => setView('ALERTS')}>
           Alerts <span>{open.length}</span>
         </button>
         <button
@@ -205,217 +209,247 @@ export default function AlertInboxPage() {
         <IncidentsTab />
       ) : (
         <>
-      <div className="ai-summary">
-        {[
-          { label: 'Open alerts', value: open.length, Icon: Bell },
-          {
-            label: 'Critical',
-            value: open.filter((item) => item.severity === 'critical').length,
-            Icon: ShieldAlert,
-          },
-          { label: 'Vehicles affected', value: vehicleCount, Icon: Truck },
-        ].map(({ label, value, Icon }) => (
-          <div className="ai-stat" key={label}>
-            <span className="ai-stat-icon">
-              {React.createElement(Icon, { size: 19, 'aria-hidden': true })}
-            </span>
-            <div>
-              <span>{label}</span>
-              <strong>{data ? value : '—'}</strong>
-            </div>
-          </div>
-        ))}
-      </div>
-      <section className="ai-panel" aria-label="Fleet alert queue" aria-busy={loading}>
-        <div className="ai-toolbar">
-          <div className="ai-tabs" role="group" aria-label="Alert status">
-            {['OPEN', 'ACKNOWLEDGED'].map((value) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={status === value}
-                onClick={() => setStatus(value)}
-              >
-                {value === 'OPEN' ? 'Open' : 'Acknowledged'}{' '}
-                <span>{all.filter((item) => item.status === value).length}</span>
-              </button>
-            ))}
-          </div>
-          <label className="ai-search">
-            <Search size={16} aria-hidden="true" />
-            <input
-              aria-label="Search alerts"
-              placeholder="Search vehicle or issue"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </label>
-          <select
-            aria-label="Severity"
-            value={severity}
-            onChange={(event) => setSeverity(event.target.value)}
-          >
-            <option value="">All priorities</option>
-            <option value="critical">Critical</option>
-            <option value="caution">Needs review</option>
-            <option value="info">Information</option>
-          </select>
-          <select
-            aria-label="Source"
-            value={source}
-            onChange={(event) => setSource(event.target.value)}
-          >
-            <option value="">All sources</option>
-            {Object.entries(SOURCE_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
-          {ackAllOpen ? (
-            <span
-              className="ai-confirm"
-              role="group"
-              aria-label="Confirm marking every alert as seen"
-            >
-              <span>{ackAllConfirmText(open.length)}</span>
-              <Button size="sm" onClick={ackEverything} disabled={ackAllPending}>
-                {ackAllPending ? 'Saving…' : 'Yes, mark all'}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setAckAllOpen(false)}>
-                Cancel
-              </Button>
-            </span>
-          ) : (
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => setAckAllOpen(true)}
-              disabled={loading || open.length === 0}
-            >
-              Acknowledge all
-            </Button>
-          )}
-        </div>
-        {error || actionError ? (
-          <div role="alert" className="ai-error">
-            {error || actionError}{' '}
-            {error && (
-              <button type="button" onClick={load}>
-                Retry
-              </button>
-            )}
-          </div>
-        ) : null}
-        {!data && loading ? (
-          <div role="status" className="ai-empty" aria-label="Loading your fleet alerts…">
-            <span className="sr-only">Loading your fleet alerts…</span>
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10, padding: 8 }}>
-              {[1, 2, 3].map((n) => (
-                <div key={n} className="ai-row ai-row--skeleton" style={{ width: '100%', margin: 0 }}>
-                  <div className="ai-skel-bar" style={{ width: 96, height: 26, borderRadius: 6, flexShrink: 0 }} />
-                  <div className="ai-row-main">
-                    <div className="ai-skel-bar" style={{ width: 140, height: 18 }} />
-                    <div className="ai-skel-bar" style={{ width: '65%', height: 20, marginTop: 8 }} />
-                    <div className="ai-skel-bar" style={{ width: '90%', height: 36, marginTop: 8 }} />
-                    <div className="ai-skel-bar" style={{ width: 220, height: 14, marginTop: 8 }} />
-                  </div>
-                  <div className="ai-row-actions">
-                    <div className="ai-skel-bar" style={{ width: 70, height: 32 }} />
-                    <div className="ai-skel-bar" style={{ width: 95, height: 32 }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-        {!loading && !error && items.length === 0 ? (
-          <div className="ai-empty">
-            <Bell size={28} aria-hidden="true" />
-            <h2>
-              {query || severity || source
-                ? 'No matching alerts'
-                : status === 'OPEN'
-                  ? 'No open inbox alerts'
-                  : 'No acknowledged alerts'}
-            </h2>
-            <p>
-              {query || severity || source
-                ? 'Try another search or clear your filters.'
-                : 'Source feeds update periodically. Review urgent incidents in their dedicated pages.'}
-            </p>
-            {(query || severity || source) && (
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setQuery('');
-                  setSeverity('');
-                  setSource('');
-                }}
-              >
-                Clear filters
-              </Button>
-            )}
-          </div>
-        ) : null}
-        <ul className="ai-list">
-          {items.map((item) => (
-            <li key={item.id} className="ai-row">
-              <span className={`ai-priority ai-priority--${item.severity}`}>
-                {item.severity === 'critical'
-                  ? 'Critical'
-                  : item.severity === 'caution'
-                    ? 'Needs review'
-                    : 'Info'}
-              </span>
-              <div className="ai-row-main">
-                <button className="ai-subject" type="button" onClick={() => setDetailId(item.id)}>
-                  {subjectTitle(item.subjectLabel)}
-                </button>
-                <h2>{item.label}</h2>
-                <p className="ai-ask">
-                  {item.wants || 'Open the source alert to review this issue.'}
-                </p>
-                <div className="ai-meta">
-                  {[
-                    ...new Set(
-                      (item.sources || []).map((s) => SOURCE_LABELS[s.source] || 'Other source'),
-                    ),
-                  ].join(' · ')}
-                  <span>Updated {sinceLabel(item.lastSeenAt)}</span>
-                  {item.status === 'ACKNOWLEDGED' && (
-                    <span>Acknowledged {sinceLabel(item.acknowledgedAt)}</span>
-                  )}
+          <div className="ai-summary">
+            {[
+              { label: 'Open alerts', value: open.length, Icon: Bell },
+              {
+                label: 'Critical',
+                value: open.filter((item) => item.severity === 'critical').length,
+                Icon: ShieldAlert,
+              },
+              { label: 'Vehicles affected', value: vehicleCount, Icon: Truck },
+            ].map(({ label, value, Icon }) => (
+              <div className="ai-stat" key={label}>
+                <span className="ai-stat-icon">
+                  {React.createElement(Icon, { size: 19, 'aria-hidden': true })}
+                </span>
+                <div>
+                  <span>{label}</span>
+                  <strong>{data ? value : '—'}</strong>
                 </div>
               </div>
-              <div className="ai-row-actions">
-                <Button variant="ghost" size="sm" onClick={() => setDetailId(item.id)}>
-                  Details
-                </Button>
-                {reviewAction(item)}
-                {item.status === 'OPEN' && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={pending.has(item.id)}
-                    onClick={() => ack(item.id)}
+            ))}
+          </div>
+          <section className="ai-panel" aria-label="Fleet alert queue" aria-busy={loading}>
+            <div className="ai-toolbar">
+              <div className="ai-tabs" role="group" aria-label="Alert status">
+                {['OPEN', 'ACKNOWLEDGED'].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={status === value}
+                    onClick={() => setStatus(value)}
                   >
-                    <Check size={14} aria-hidden="true" />
-                    {pending.has(item.id) ? 'Saving…' : 'Acknowledge'}
+                    {value === 'OPEN' ? 'Open' : 'Acknowledged'}{' '}
+                    <span>{all.filter((item) => item.status === value).length}</span>
+                  </button>
+                ))}
+              </div>
+              <label className="ai-search">
+                <Search size={16} aria-hidden="true" />
+                <input
+                  aria-label="Search alerts"
+                  placeholder="Search vehicle or issue"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+              </label>
+              <select
+                aria-label="Severity"
+                value={severity}
+                onChange={(event) => setSeverity(event.target.value)}
+              >
+                <option value="">All priorities</option>
+                <option value="critical">Critical</option>
+                <option value="caution">Needs review</option>
+                <option value="info">Information</option>
+              </select>
+              <select
+                aria-label="Source"
+                value={source}
+                onChange={(event) => setSource(event.target.value)}
+              >
+                <option value="">All sources</option>
+                {Object.entries(SOURCE_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              {ackAllOpen ? (
+                <span
+                  className="ai-confirm"
+                  role="group"
+                  aria-label="Confirm marking every alert as seen"
+                >
+                  <span>{ackAllConfirmText(open.length)}</span>
+                  <Button size="sm" onClick={ackEverything} disabled={ackAllPending}>
+                    {ackAllPending ? 'Saving…' : 'Yes, mark all'}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setAckAllOpen(false)}>
+                    Cancel
+                  </Button>
+                </span>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setAckAllOpen(true)}
+                  disabled={loading || open.length === 0}
+                >
+                  Acknowledge all
+                </Button>
+              )}
+            </div>
+            {error || actionError ? (
+              <div role="alert" className="ai-error">
+                {error || actionError}{' '}
+                {error && (
+                  <button type="button" onClick={load}>
+                    Retry
+                  </button>
+                )}
+              </div>
+            ) : null}
+            {!data && loading ? (
+              <div role="status" className="ai-empty" aria-label="Loading your fleet alerts…">
+                <span className="sr-only">Loading your fleet alerts…</span>
+                <div
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                    padding: 8,
+                  }}
+                >
+                  {[1, 2, 3].map((n) => (
+                    <div
+                      key={n}
+                      className="ai-row ai-row--skeleton"
+                      style={{ width: '100%', margin: 0 }}
+                    >
+                      <div
+                        className="ai-skel-bar"
+                        style={{ width: 96, height: 26, borderRadius: 6, flexShrink: 0 }}
+                      />
+                      <div className="ai-row-main">
+                        <div className="ai-skel-bar" style={{ width: 140, height: 18 }} />
+                        <div
+                          className="ai-skel-bar"
+                          style={{ width: '65%', height: 20, marginTop: 8 }}
+                        />
+                        <div
+                          className="ai-skel-bar"
+                          style={{ width: '90%', height: 36, marginTop: 8 }}
+                        />
+                        <div
+                          className="ai-skel-bar"
+                          style={{ width: 220, height: 14, marginTop: 8 }}
+                        />
+                      </div>
+                      <div className="ai-row-actions">
+                        <div className="ai-skel-bar" style={{ width: 70, height: 32 }} />
+                        <div className="ai-skel-bar" style={{ width: 95, height: 32 }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {!loading && !error && items.length === 0 ? (
+              <div className="ai-empty">
+                <Bell size={28} aria-hidden="true" />
+                <h2>
+                  {query || severity || source
+                    ? 'No matching alerts'
+                    : status === 'OPEN'
+                      ? 'No open inbox alerts'
+                      : 'No acknowledged alerts'}
+                </h2>
+                <p>
+                  {query || severity || source
+                    ? 'Try another search or clear your filters.'
+                    : 'Source feeds update periodically. Review urgent incidents in their dedicated pages.'}
+                </p>
+                {(query || severity || source) && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setQuery('');
+                      setSeverity('');
+                      setSource('');
+                    }}
+                  >
+                    Clear filters
                   </Button>
                 )}
               </div>
-            </li>
-          ))}
-        </ul>
-        {data && (
-          <div className="ai-footer">
-            Showing {items.length} of {all.filter((item) => item.status === status).length}{' '}
-            {status === 'OPEN' ? 'open' : 'acknowledged'} alerts. Acknowledging records your review;
-            it does not resolve the source issue.
-          </div>
-        )}
-      </section>
+            ) : null}
+            <ul className="ai-list">
+              {items.map((item) => (
+                <li key={item.id} className="ai-row">
+                  <span className={`ai-priority ai-priority--${item.severity}`}>
+                    {item.severity === 'critical'
+                      ? 'Critical'
+                      : item.severity === 'caution'
+                        ? 'Needs review'
+                        : 'Info'}
+                  </span>
+                  <div className="ai-row-main">
+                    <button
+                      className="ai-subject"
+                      type="button"
+                      onClick={() => setDetailId(item.id)}
+                    >
+                      {subjectTitle(item.subjectLabel)}
+                    </button>
+                    <h2>{item.label}</h2>
+                    <p className="ai-ask">
+                      {item.wants || 'Open the source alert to review this issue.'}
+                    </p>
+                    <div className="ai-meta">
+                      {[
+                        ...new Set(
+                          (item.sources || []).map(
+                            (s) => SOURCE_LABELS[s.source] || 'Other source',
+                          ),
+                        ),
+                      ].join(' · ')}
+                      <span>Updated {sinceLabel(item.lastSeenAt)}</span>
+                      {item.status === 'ACKNOWLEDGED' && (
+                        <span>Acknowledged {sinceLabel(item.acknowledgedAt)}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="ai-row-actions">
+                    <Button variant="ghost" size="sm" onClick={() => setDetailId(item.id)}>
+                      Details
+                    </Button>
+                    {reviewAction(item)}
+                    {item.status === 'OPEN' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={pending.has(item.id)}
+                        onClick={() => ack(item.id)}
+                      >
+                        <Check size={14} aria-hidden="true" />
+                        {pending.has(item.id) ? 'Saving…' : 'Acknowledge'}
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {data && (
+              <div className="ai-footer">
+                Showing {items.length} of {all.filter((item) => item.status === status).length}{' '}
+                {status === 'OPEN' ? 'open' : 'acknowledged'} alerts. Acknowledging records your
+                review; it does not resolve the source issue.
+              </div>
+            )}
+          </section>
         </>
       )}
       <p className="sr-only" role="status">

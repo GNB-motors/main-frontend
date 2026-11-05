@@ -108,19 +108,25 @@ const UpcomingServiceTab = ({ search = '', refreshKey = 0 }) => {
       <div className="si-kpis-strip" style={{ margin: '0 0 12px 0' }}>
         <KpiCard
           title="Tracked vehicles"
-          value={loading && records.length === 0 ? <span className="si-skel-kpi-val" /> : counts.total}
+          value={
+            loading && records.length === 0 ? <span className="si-skel-kpi-val" /> : counts.total
+          }
           accent="#3b82f6"
           icon={<CalendarClock size={18} />}
         />
         <KpiCard
           title="Overdue"
-          value={loading && records.length === 0 ? <span className="si-skel-kpi-val" /> : counts.OVERDUE}
+          value={
+            loading && records.length === 0 ? <span className="si-skel-kpi-val" /> : counts.OVERDUE
+          }
           accent="#dc2626"
           icon={<AlertTriangle size={18} />}
         />
         <KpiCard
           title="Due soon"
-          value={loading && records.length === 0 ? <span className="si-skel-kpi-val" /> : counts.DUE_SOON}
+          value={
+            loading && records.length === 0 ? <span className="si-skel-kpi-val" /> : counts.DUE_SOON
+          }
           accent="#ea580c"
           icon={<Clock size={18} />}
         />

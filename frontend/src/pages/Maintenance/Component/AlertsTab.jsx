@@ -144,31 +144,53 @@ const AlertsTab = ({ search = '', refreshKey = 0 }) => {
       <div className="si-kpis-strip" style={{ margin: '0 0 12px 0' }}>
         <KpiCard
           title="Active Alerts"
-          value={loading && alerts.length === 0 ? <span className="si-skel-kpi-val" /> : counts.total}
+          value={
+            loading && alerts.length === 0 ? <span className="si-skel-kpi-val" /> : counts.total
+          }
           accent="#3b82f6"
           icon={<Bell size={18} />}
         />
         <KpiCard
           title="Critical"
-          value={loading && alerts.length === 0 ? <span className="si-skel-kpi-val" /> : counts.critical}
+          value={
+            loading && alerts.length === 0 ? <span className="si-skel-kpi-val" /> : counts.critical
+          }
           accent="#dc2626"
           icon={<AlertTriangle size={18} />}
         />
         <KpiCard
           title="Service Due"
-          value={loading && alerts.length === 0 ? <span className="si-skel-kpi-val" /> : counts.SERVICE_DUE}
+          value={
+            loading && alerts.length === 0 ? (
+              <span className="si-skel-kpi-val" />
+            ) : (
+              counts.SERVICE_DUE
+            )
+          }
           accent="#2563eb"
           icon={<Wrench size={18} />}
         />
         <KpiCard
           title="High Spend"
-          value={loading && alerts.length === 0 ? <span className="si-skel-kpi-val" /> : counts.HIGH_REPAIR_SPEND}
+          value={
+            loading && alerts.length === 0 ? (
+              <span className="si-skel-kpi-val" />
+            ) : (
+              counts.HIGH_REPAIR_SPEND
+            )
+          }
           accent="#dc2626"
           icon={<AlertTriangle size={18} />}
         />
         <KpiCard
           title="Doc Expiry"
-          value={loading && alerts.length === 0 ? <span className="si-skel-kpi-val" /> : counts.DOCUMENT_EXPIRY}
+          value={
+            loading && alerts.length === 0 ? (
+              <span className="si-skel-kpi-val" />
+            ) : (
+              counts.DOCUMENT_EXPIRY
+            )
+          }
           accent="#ea580c"
           icon={<FileWarning size={18} />}
         />

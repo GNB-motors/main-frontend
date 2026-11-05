@@ -18,7 +18,9 @@ export default function FleetLinkVehicleNotice({
   const { enabled, data, error, index, openPanel } = useFleetLink();
   if (!enabled) return null;
 
-  const mfg = String(manufacturer || '').trim().toUpperCase();
+  const mfg = String(manufacturer || '')
+    .trim()
+    .toUpperCase();
   const isIalert =
     telematicsProvider === 'IALERT' ||
     mfg.includes('ASHOK') ||
@@ -29,8 +31,7 @@ export default function FleetLinkVehicleNotice({
   if (isIalert) {
     // iALERT provider logic for Ashok Leyland vehicles
     const isLinked =
-      ialert?.account?.isLinked ||
-      (coverage?.inIalert && Boolean(ialert?.lastReportedAt));
+      ialert?.account?.isLinked || (coverage?.inIalert && Boolean(ialert?.lastReportedAt));
     const tokenStatus = ialert?.account?.tokenStatus;
     const accountStatus = ialert?.account?.status;
     const needsReconnect = tokenStatus === 'NEEDS_REAUTH' || accountStatus === 'AUTH_FAILED';

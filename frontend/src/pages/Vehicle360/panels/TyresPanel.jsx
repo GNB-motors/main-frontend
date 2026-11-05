@@ -17,29 +17,36 @@ const CONFIGS = [
  * Surfaces live CAN TPMS air pressures where equipped, or reports the genuine
  * vendor state (e.g. iALERT 'Air —' for unequipped chassis) without fake hardcoding.
  */
-export default function TyresPanel({
-  fleetMaster,
-  fleetEdge,
-  health,
-  ialert,
-  tyres,
-}) {
+export default function TyresPanel({ fleetMaster, fleetEdge, health, ialert, tyres }) {
   const [selectedWheelId, setSelectedWheelId] = useState('FL');
 
   // Infer default configuration from vehicle model and GVM
   const modelStr = String(
     ialert?.vehicleModel ||
-    fleetEdge?.vehicleModel ||
-    fleetMaster?.model ||
-    fleetMaster?.vehicleCategory ||
-    '',
+      fleetEdge?.vehicleModel ||
+      fleetMaster?.model ||
+      fleetMaster?.vehicleCategory ||
+      '',
   ).toUpperCase();
   const gvm = Number(fleetMaster?.gvm) || 0;
 
   const defaultLayout = useMemo(() => {
-    if (modelStr.includes('5530') || modelStr.includes('TRAILER') || gvm >= 45000) return '18-WHEEL';
-    if (modelStr.includes('3525') || modelStr.includes('3530') || modelStr.includes('14-W') || gvm >= 35000) return '14-WHEEL';
-    if (modelStr.includes('2820') || modelStr.includes('2821') || modelStr.includes('10-W') || gvm >= 28000) return '10-WHEEL';
+    if (modelStr.includes('5530') || modelStr.includes('TRAILER') || gvm >= 45000)
+      return '18-WHEEL';
+    if (
+      modelStr.includes('3525') ||
+      modelStr.includes('3530') ||
+      modelStr.includes('14-W') ||
+      gvm >= 35000
+    )
+      return '14-WHEEL';
+    if (
+      modelStr.includes('2820') ||
+      modelStr.includes('2821') ||
+      modelStr.includes('10-W') ||
+      gvm >= 28000
+    )
+      return '10-WHEEL';
     return '6-WHEEL';
   }, [modelStr, gvm]);
 
@@ -52,32 +59,134 @@ export default function TyresPanel({
   const axles = useMemo(() => {
     if (layoutType === '18-WHEEL') {
       return [
-        { name: 'Axle 1 · Front Steer', wheels: [{ id: 'FL', label: 'Front Left', pos: 'Steer L', nominalPsi: 120 }, { id: 'FR', label: 'Front Right', pos: 'Steer R', nominalPsi: 120 }] },
-        { name: 'Axle 2 · Drive Axle 1 (Duals)', wheels: [{ id: 'R1-OL', label: 'Drive 1 Outer Left', pos: 'D1-OL', nominalPsi: 125 }, { id: 'R1-IL', label: 'Drive 1 Inner Left', pos: 'D1-IL', nominalPsi: 125 }, { id: 'R1-IR', label: 'Drive 1 Inner Right', pos: 'D1-IR', nominalPsi: 125 }, { id: 'R1-OR', label: 'Drive 1 Outer Right', pos: 'D1-OR', nominalPsi: 125 }] },
-        { name: 'Axle 3 · Drive Axle 2 (Duals)', wheels: [{ id: 'R2-OL', label: 'Drive 2 Outer Left', pos: 'D2-OL', nominalPsi: 125 }, { id: 'R2-IL', label: 'Drive 2 Inner Left', pos: 'D2-IL', nominalPsi: 125 }, { id: 'R2-IR', label: 'Drive 2 Inner Right', pos: 'D2-IR', nominalPsi: 125 }, { id: 'R2-OR', label: 'Drive 2 Outer Right', pos: 'D2-OR', nominalPsi: 125 }] },
-        { name: 'Axle 4 · Trailer Axle 1 (Duals)', wheels: [{ id: 'T1-OL', label: 'Trailer 1 Outer Left', pos: 'T1-OL', nominalPsi: 120 }, { id: 'T1-IL', label: 'Trailer 1 Inner Left', pos: 'T1-IL', nominalPsi: 120 }, { id: 'T1-IR', label: 'Trailer 1 Inner Right', pos: 'T1-IR', nominalPsi: 120 }, { id: 'T1-OR', label: 'Trailer 1 Outer Right', pos: 'T1-OR', nominalPsi: 120 }] },
-        { name: 'Axle 5 · Trailer Axle 2 (Duals)', wheels: [{ id: 'T2-OL', label: 'Trailer 2 Outer Left', pos: 'T2-OL', nominalPsi: 120 }, { id: 'T2-IL', label: 'Trailer 2 Inner Left', pos: 'T2-IL', nominalPsi: 120 }, { id: 'T2-IR', label: 'Trailer 2 Inner Right', pos: 'T2-IR', nominalPsi: 120 }, { id: 'T2-OR', label: 'Trailer 2 Outer Right', pos: 'T2-OR', nominalPsi: 120 }] },
+        {
+          name: 'Axle 1 · Front Steer',
+          wheels: [
+            { id: 'FL', label: 'Front Left', pos: 'Steer L', nominalPsi: 120 },
+            { id: 'FR', label: 'Front Right', pos: 'Steer R', nominalPsi: 120 },
+          ],
+        },
+        {
+          name: 'Axle 2 · Drive Axle 1 (Duals)',
+          wheels: [
+            { id: 'R1-OL', label: 'Drive 1 Outer Left', pos: 'D1-OL', nominalPsi: 125 },
+            { id: 'R1-IL', label: 'Drive 1 Inner Left', pos: 'D1-IL', nominalPsi: 125 },
+            { id: 'R1-IR', label: 'Drive 1 Inner Right', pos: 'D1-IR', nominalPsi: 125 },
+            { id: 'R1-OR', label: 'Drive 1 Outer Right', pos: 'D1-OR', nominalPsi: 125 },
+          ],
+        },
+        {
+          name: 'Axle 3 · Drive Axle 2 (Duals)',
+          wheels: [
+            { id: 'R2-OL', label: 'Drive 2 Outer Left', pos: 'D2-OL', nominalPsi: 125 },
+            { id: 'R2-IL', label: 'Drive 2 Inner Left', pos: 'D2-IL', nominalPsi: 125 },
+            { id: 'R2-IR', label: 'Drive 2 Inner Right', pos: 'D2-IR', nominalPsi: 125 },
+            { id: 'R2-OR', label: 'Drive 2 Outer Right', pos: 'D2-OR', nominalPsi: 125 },
+          ],
+        },
+        {
+          name: 'Axle 4 · Trailer Axle 1 (Duals)',
+          wheels: [
+            { id: 'T1-OL', label: 'Trailer 1 Outer Left', pos: 'T1-OL', nominalPsi: 120 },
+            { id: 'T1-IL', label: 'Trailer 1 Inner Left', pos: 'T1-IL', nominalPsi: 120 },
+            { id: 'T1-IR', label: 'Trailer 1 Inner Right', pos: 'T1-IR', nominalPsi: 120 },
+            { id: 'T1-OR', label: 'Trailer 1 Outer Right', pos: 'T1-OR', nominalPsi: 120 },
+          ],
+        },
+        {
+          name: 'Axle 5 · Trailer Axle 2 (Duals)',
+          wheels: [
+            { id: 'T2-OL', label: 'Trailer 2 Outer Left', pos: 'T2-OL', nominalPsi: 120 },
+            { id: 'T2-IL', label: 'Trailer 2 Inner Left', pos: 'T2-IL', nominalPsi: 120 },
+            { id: 'T2-IR', label: 'Trailer 2 Inner Right', pos: 'T2-IR', nominalPsi: 120 },
+            { id: 'T2-OR', label: 'Trailer 2 Outer Right', pos: 'T2-OR', nominalPsi: 120 },
+          ],
+        },
       ];
     }
     if (layoutType === '14-WHEEL') {
       return [
-        { name: 'Axle 1 · Front Steer 1', wheels: [{ id: 'FL', label: 'Front Left', pos: 'Steer 1 L', nominalPsi: 120 }, { id: 'FR', label: 'Front Right', pos: 'Steer 1 R', nominalPsi: 120 }] },
-        { name: 'Axle 2 · Lift / Steer 2', wheels: [{ id: 'S2-L', label: 'Steer 2 Left', pos: 'Steer 2 L', nominalPsi: 120 }, { id: 'S2-R', label: 'Steer 2 Right', pos: 'Steer 2 R', nominalPsi: 120 }] },
-        { name: 'Axle 3 · Drive Axle 1 (Duals)', wheels: [{ id: 'R1-OL', label: 'Drive 1 Outer Left', pos: 'D1-OL', nominalPsi: 125 }, { id: 'R1-IL', label: 'Drive 1 Inner Left', pos: 'D1-IL', nominalPsi: 125 }, { id: 'R1-IR', label: 'Drive 1 Inner Right', pos: 'D1-IR', nominalPsi: 125 }, { id: 'R1-OR', label: 'Drive 1 Outer Right', pos: 'D1-OR', nominalPsi: 125 }] },
-        { name: 'Axle 4 · Tag / Drive 2 (Duals)', wheels: [{ id: 'R2-OL', label: 'Drive 2 Outer Left', pos: 'D2-OL', nominalPsi: 125 }, { id: 'R2-IL', label: 'Drive 2 Inner Left', pos: 'D2-IL', nominalPsi: 125 }, { id: 'R2-IR', label: 'Drive 2 Inner Right', pos: 'D2-IR', nominalPsi: 125 }, { id: 'R2-OR', label: 'Drive 2 Outer Right', pos: 'D2-OR', nominalPsi: 125 }] },
+        {
+          name: 'Axle 1 · Front Steer 1',
+          wheels: [
+            { id: 'FL', label: 'Front Left', pos: 'Steer 1 L', nominalPsi: 120 },
+            { id: 'FR', label: 'Front Right', pos: 'Steer 1 R', nominalPsi: 120 },
+          ],
+        },
+        {
+          name: 'Axle 2 · Lift / Steer 2',
+          wheels: [
+            { id: 'S2-L', label: 'Steer 2 Left', pos: 'Steer 2 L', nominalPsi: 120 },
+            { id: 'S2-R', label: 'Steer 2 Right', pos: 'Steer 2 R', nominalPsi: 120 },
+          ],
+        },
+        {
+          name: 'Axle 3 · Drive Axle 1 (Duals)',
+          wheels: [
+            { id: 'R1-OL', label: 'Drive 1 Outer Left', pos: 'D1-OL', nominalPsi: 125 },
+            { id: 'R1-IL', label: 'Drive 1 Inner Left', pos: 'D1-IL', nominalPsi: 125 },
+            { id: 'R1-IR', label: 'Drive 1 Inner Right', pos: 'D1-IR', nominalPsi: 125 },
+            { id: 'R1-OR', label: 'Drive 1 Outer Right', pos: 'D1-OR', nominalPsi: 125 },
+          ],
+        },
+        {
+          name: 'Axle 4 · Tag / Drive 2 (Duals)',
+          wheels: [
+            { id: 'R2-OL', label: 'Drive 2 Outer Left', pos: 'D2-OL', nominalPsi: 125 },
+            { id: 'R2-IL', label: 'Drive 2 Inner Left', pos: 'D2-IL', nominalPsi: 125 },
+            { id: 'R2-IR', label: 'Drive 2 Inner Right', pos: 'D2-IR', nominalPsi: 125 },
+            { id: 'R2-OR', label: 'Drive 2 Outer Right', pos: 'D2-OR', nominalPsi: 125 },
+          ],
+        },
       ];
     }
     if (layoutType === '10-WHEEL') {
       return [
-        { name: 'Axle 1 · Front Steer', wheels: [{ id: 'FL', label: 'Front Left', pos: 'Steer L', nominalPsi: 120 }, { id: 'FR', label: 'Front Right', pos: 'Steer R', nominalPsi: 120 }] },
-        { name: 'Axle 2 · Drive Axle 1 (Duals)', wheels: [{ id: 'R1-OL', label: 'Drive 1 Outer Left', pos: 'D1-OL', nominalPsi: 125 }, { id: 'R1-IL', label: 'Drive 1 Inner Left', pos: 'D1-IL', nominalPsi: 125 }, { id: 'R1-IR', label: 'Drive 1 Inner Right', pos: 'D1-IR', nominalPsi: 125 }, { id: 'R1-OR', label: 'Drive 1 Outer Right', pos: 'D1-OR', nominalPsi: 125 }] },
-        { name: 'Axle 3 · Tag / Lift Axle (Duals)', wheels: [{ id: 'R2-OL', label: 'Tag Outer Left', pos: 'Tag OL', nominalPsi: 125 }, { id: 'R2-IL', label: 'Tag Inner Left', pos: 'Tag IL', nominalPsi: 125 }, { id: 'R2-IR', label: 'Tag Inner Right', pos: 'Tag IR', nominalPsi: 125 }, { id: 'R2-OR', label: 'Tag Outer Right', pos: 'Tag OR', nominalPsi: 125 }] },
+        {
+          name: 'Axle 1 · Front Steer',
+          wheels: [
+            { id: 'FL', label: 'Front Left', pos: 'Steer L', nominalPsi: 120 },
+            { id: 'FR', label: 'Front Right', pos: 'Steer R', nominalPsi: 120 },
+          ],
+        },
+        {
+          name: 'Axle 2 · Drive Axle 1 (Duals)',
+          wheels: [
+            { id: 'R1-OL', label: 'Drive 1 Outer Left', pos: 'D1-OL', nominalPsi: 125 },
+            { id: 'R1-IL', label: 'Drive 1 Inner Left', pos: 'D1-IL', nominalPsi: 125 },
+            { id: 'R1-IR', label: 'Drive 1 Inner Right', pos: 'D1-IR', nominalPsi: 125 },
+            { id: 'R1-OR', label: 'Drive 1 Outer Right', pos: 'D1-OR', nominalPsi: 125 },
+          ],
+        },
+        {
+          name: 'Axle 3 · Tag / Lift Axle (Duals)',
+          wheels: [
+            { id: 'R2-OL', label: 'Tag Outer Left', pos: 'Tag OL', nominalPsi: 125 },
+            { id: 'R2-IL', label: 'Tag Inner Left', pos: 'Tag IL', nominalPsi: 125 },
+            { id: 'R2-IR', label: 'Tag Inner Right', pos: 'Tag IR', nominalPsi: 125 },
+            { id: 'R2-OR', label: 'Tag Outer Right', pos: 'Tag OR', nominalPsi: 125 },
+          ],
+        },
       ];
     }
     // Default: 6-WHEEL (4x2 rigid chassis, e.g. CA1915 19T)
     return [
-      { name: 'Axle 1 · Front Steer', wheels: [{ id: 'FL', label: 'Front Left', pos: 'Front L', nominalPsi: 120 }, { id: 'FR', label: 'Front Right', pos: 'Front R', nominalPsi: 120 }] },
-      { name: 'Axle 2 · Rear Drive Duals', wheels: [{ id: 'R1-OL', label: 'Rear Outer Left', pos: 'Rear OL', nominalPsi: 125 }, { id: 'R1-IL', label: 'Rear Inner Left', pos: 'Rear IL', nominalPsi: 125 }, { id: 'R1-IR', label: 'Rear Inner Right', pos: 'Rear IR', nominalPsi: 125 }, { id: 'R1-OR', label: 'Rear Outer Right', pos: 'Rear OR', nominalPsi: 125 }] },
+      {
+        name: 'Axle 1 · Front Steer',
+        wheels: [
+          { id: 'FL', label: 'Front Left', pos: 'Front L', nominalPsi: 120 },
+          { id: 'FR', label: 'Front Right', pos: 'Front R', nominalPsi: 120 },
+        ],
+      },
+      {
+        name: 'Axle 2 · Rear Drive Duals',
+        wheels: [
+          { id: 'R1-OL', label: 'Rear Outer Left', pos: 'Rear OL', nominalPsi: 125 },
+          { id: 'R1-IL', label: 'Rear Inner Left', pos: 'Rear IL', nominalPsi: 125 },
+          { id: 'R1-IR', label: 'Rear Inner Right', pos: 'Rear IR', nominalPsi: 125 },
+          { id: 'R1-OR', label: 'Rear Outer Right', pos: 'Rear OR', nominalPsi: 125 },
+        ],
+      },
     ];
   }, [layoutType]);
 
@@ -87,19 +196,23 @@ export default function TyresPanel({
     return list;
   }, [axles]);
 
-  const selectedWheel = allWheels.find((w) => w.id === selectedWheelId) || allWheels[0] || {
-    id: 'FL',
-    label: 'Front Left',
-    pos: 'Front L',
-    nominalPsi: 120,
-  };
+  const selectedWheel = allWheels.find((w) => w.id === selectedWheelId) ||
+    allWheels[0] || {
+      id: 'FL',
+      label: 'Front Left',
+      pos: 'Front L',
+      nominalPsi: 120,
+    };
 
   const hasFitmentLedger = Boolean(tyres?.fittedOdometer != null);
   const fitmentOdo = tyres?.fittedOdometer ?? null;
   const kmRun = tyres?.distanceRunKm ?? null;
   const expectedLifeKm = tyres?.expectedLifeKm ?? 80000;
   const lifeRemainingKm = kmRun != null ? Math.max(0, expectedLifeKm - kmRun) : null;
-  const treadHealthPct = kmRun != null ? Math.max(0, Math.min(100, Math.round(((expectedLifeKm - kmRun) / expectedLifeKm) * 100))) : null;
+  const treadHealthPct =
+    kmRun != null
+      ? Math.max(0, Math.min(100, Math.round(((expectedLifeKm - kmRun) / expectedLifeKm) * 100)))
+      : null;
 
   return (
     <PanelErrorBoundary name="vehicle-tyres">
@@ -221,9 +334,13 @@ export default function TyresPanel({
                               width: 40,
                               height: 64,
                               borderRadius: 6,
-                              border: isSelected ? '2px solid var(--erp)' : '1px solid var(--line2)',
+                              border: isSelected
+                                ? '2px solid var(--erp)'
+                                : '1px solid var(--line2)',
                               background: isSelected ? 'var(--card)' : 'var(--card)',
-                              boxShadow: isSelected ? '0 0 0 3px rgba(37,99,235,0.2)' : 'var(--shadow)',
+                              boxShadow: isSelected
+                                ? '0 0 0 3px rgba(37,99,235,0.2)'
+                                : 'var(--shadow)',
                               cursor: 'pointer',
                               display: 'flex',
                               flexDirection: 'column',
@@ -234,11 +351,27 @@ export default function TyresPanel({
                               transition: 'all 0.15s ease',
                             }}
                           >
-                            <span style={{ fontSize: 9, fontWeight: 700, color: isSelected ? 'var(--erp)' : 'var(--ink)' }}>
+                            <span
+                              style={{
+                                fontSize: 9,
+                                fontWeight: 700,
+                                color: isSelected ? 'var(--erp)' : 'var(--ink)',
+                              }}
+                            >
                               {w.pos.split(' ')[0]}
                             </span>
-                            <span style={{ fontSize: 9.5, fontFamily: 'var(--mono)', color: 'var(--ink2)' }}>
-                              {hasCanTpms ? `${w.nominalPsi}` : treadHealthPct != null ? `${treadHealthPct}%` : '—'}
+                            <span
+                              style={{
+                                fontSize: 9.5,
+                                fontFamily: 'var(--mono)',
+                                color: 'var(--ink2)',
+                              }}
+                            >
+                              {hasCanTpms
+                                ? `${w.nominalPsi}`
+                                : treadHealthPct != null
+                                  ? `${treadHealthPct}%`
+                                  : '—'}
                             </span>
                             <span style={{ fontSize: 8, color: 'var(--ink3)' }}>
                               {hasCanTpms ? 'PSI' : treadHealthPct != null ? 'life' : 'Air —'}
@@ -273,9 +406,13 @@ export default function TyresPanel({
                               width: 40,
                               height: 64,
                               borderRadius: 6,
-                              border: isSelected ? '2px solid var(--erp)' : '1px solid var(--line2)',
+                              border: isSelected
+                                ? '2px solid var(--erp)'
+                                : '1px solid var(--line2)',
                               background: isSelected ? 'var(--card)' : 'var(--card)',
-                              boxShadow: isSelected ? '0 0 0 3px rgba(37,99,235,0.2)' : 'var(--shadow)',
+                              boxShadow: isSelected
+                                ? '0 0 0 3px rgba(37,99,235,0.2)'
+                                : 'var(--shadow)',
                               cursor: 'pointer',
                               display: 'flex',
                               flexDirection: 'column',
@@ -286,11 +423,27 @@ export default function TyresPanel({
                               transition: 'all 0.15s ease',
                             }}
                           >
-                            <span style={{ fontSize: 9, fontWeight: 700, color: isSelected ? 'var(--erp)' : 'var(--ink)' }}>
+                            <span
+                              style={{
+                                fontSize: 9,
+                                fontWeight: 700,
+                                color: isSelected ? 'var(--erp)' : 'var(--ink)',
+                              }}
+                            >
                               {w.pos.split(' ')[0]}
                             </span>
-                            <span style={{ fontSize: 9.5, fontFamily: 'var(--mono)', color: 'var(--ink2)' }}>
-                              {hasCanTpms ? `${w.nominalPsi}` : treadHealthPct != null ? `${treadHealthPct}%` : '—'}
+                            <span
+                              style={{
+                                fontSize: 9.5,
+                                fontFamily: 'var(--mono)',
+                                color: 'var(--ink2)',
+                              }}
+                            >
+                              {hasCanTpms
+                                ? `${w.nominalPsi}`
+                                : treadHealthPct != null
+                                  ? `${treadHealthPct}%`
+                                  : '—'}
                             </span>
                             <span style={{ fontSize: 8, color: 'var(--ink3)' }}>
                               {hasCanTpms ? 'PSI' : treadHealthPct != null ? 'life' : 'Air —'}
@@ -306,7 +459,8 @@ export default function TyresPanel({
           </div>
 
           <p className="v360-card-lede" style={{ marginTop: 14 }}>
-            Click any wheel on the schematic to inspect position, tread depth, brand, and lifecycle cost.
+            Click any wheel on the schematic to inspect position, tread depth, brand, and lifecycle
+            cost.
           </p>
         </section>
 
@@ -314,9 +468,15 @@ export default function TyresPanel({
         <section className="v360-card">
           <div className="v360-card-head">
             <p className="v360-card-title">{selectedWheel.label} Details</p>
-            <span className={`v360-pill v360-pill--${hasCanTpms || hasFitmentLedger ? 'ok' : 'grey'}`}>
+            <span
+              className={`v360-pill v360-pill--${hasCanTpms || hasFitmentLedger ? 'ok' : 'grey'}`}
+            >
               <span className="v360-pill-dot" aria-hidden="true" />
-              {hasCanTpms ? 'Sensor Live' : hasFitmentLedger ? 'Ledger Active' : 'Fitment Not Logged'}
+              {hasCanTpms
+                ? 'Sensor Live'
+                : hasFitmentLedger
+                  ? 'Ledger Active'
+                  : 'Fitment Not Logged'}
             </span>
           </div>
 
@@ -340,9 +500,15 @@ export default function TyresPanel({
 
             <dl className="v360-kv" style={{ marginTop: 14 }}>
               <dt>Wheel position</dt>
-              <dd className="is-code">{selectedWheel.id} ({selectedWheel.pos})</dd>
+              <dd className="is-code">
+                {selectedWheel.id} ({selectedWheel.pos})
+              </dd>
               <dt>Tyre brand & pattern</dt>
-              <dd>{tyres?.brand ? `${tyres.brand} ${tyres.vendor ? `· ${tyres.vendor}` : ''}` : '— (No fitment on record)'}</dd>
+              <dd>
+                {tyres?.brand
+                  ? `${tyres.brand} ${tyres.vendor ? `· ${tyres.vendor}` : ''}`
+                  : '— (No fitment on record)'}
+              </dd>
               <dt>Tyre size</dt>
               <dd className="is-code">295/90 R20 16PR (Standard)</dd>
               <dt>Current tread depth</dt>
@@ -372,8 +538,13 @@ export default function TyresPanel({
             <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>
               Chassis Hardware & Sensor Architecture Note
             </p>
-            <p style={{ margin: '4px 0 0', fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.45 }}>
-              Ashok Leyland iALERT and Tata FleetEdge commercial trucks standardly report &quot;Air —&quot; unless fitted with aftermarket Bluetooth/CAN TPMS rim sensors. When rim sensors are absent, tyre lifecycles and cost-per-km are maintained through the GNB Tyre Ledger.
+            <p
+              style={{ margin: '4px 0 0', fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.45 }}
+            >
+              Ashok Leyland iALERT and Tata FleetEdge commercial trucks standardly report &quot;Air
+              —&quot; unless fitted with aftermarket Bluetooth/CAN TPMS rim sensors. When rim
+              sensors are absent, tyre lifecycles and cost-per-km are maintained through the GNB
+              Tyre Ledger.
             </p>
           </div>
         </section>

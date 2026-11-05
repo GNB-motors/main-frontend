@@ -11,13 +11,9 @@ import { timeAgo } from '../../../../utils/formatters';
  * telemetry like odometer or speed. Where no driver is assigned, shows a clean
  * prompt linking directly to Driver ↔ Vehicle Assignments.
  */
-export default function DriverCard({
-  assignedDriver,
-  fleetMaster,
-  fleetEdge,
-}) {
+export default function DriverCard({ assignedDriver, fleetMaster, fleetEdge }) {
   return (
-    <section className="v360-card" >
+    <section className="v360-card">
       <CardHead
         title="Assigned Driver"
         action={
@@ -30,7 +26,8 @@ export default function DriverCard({
         <div className="v360-empty">
           <span className="v360-empty-title">No driver currently assigned</span>
           <span className="v360-empty-hint">
-            Assign a driver from Driver ↔ Vehicle Assignments to track shift performance and driver accountability.
+            Assign a driver from Driver ↔ Vehicle Assignments to track shift performance and driver
+            accountability.
           </span>
           <div style={{ marginTop: 12 }}>
             <Link to="/vehicle-assignments" className="v360-btn v360-btn--primary">
@@ -75,7 +72,12 @@ export default function DriverCard({
                 : 'Current'}
             </dd>
             <dt>Vehicle model</dt>
-            <dd>{fleetEdge?.vehicleModel || fleetMaster?.model || fleetMaster?.registrationNumber || '—'}</dd>
+            <dd>
+              {fleetEdge?.vehicleModel ||
+                fleetMaster?.model ||
+                fleetMaster?.registrationNumber ||
+                '—'}
+            </dd>
             <dt>Shift status</dt>
             <dd>Active shift</dd>
           </dl>
