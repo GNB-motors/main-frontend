@@ -5,7 +5,7 @@
  * when the organization cannot open them.
  */
 
-export const DEFAULT_REPORT = 'driver';
+export const DEFAULT_REPORT = 'vehicle';
 
 export const REPORT_GROUPS = [
   {
@@ -35,6 +35,11 @@ export const REPORT_GROUPS = [
       // existing links keep working.
       { id: 'laneKm', label: 'SAP routes', flag: 'sapV2' },
     ],
+  },
+  {
+    id: 'custom',
+    label: 'CUSTOM REPORTS',
+    children: [{ id: 'customReports', label: 'Custom Reports' }],
   },
 ];
 
