@@ -74,8 +74,10 @@ export default function RequestFieldModal({
             ) : null}
 
             <div className="builder-field-group">
-              <label>Field Name *</label>
+              <label htmlFor="rf-field-name">Field Name *</label>
               <input
+                id="rf-field-name"
+                aria-label="Field Name"
                 type="text"
                 className="builder-input"
                 placeholder="e.g. Over-Speed Violations Count, Fuel Pump State"
@@ -86,8 +88,10 @@ export default function RequestFieldModal({
             </div>
 
             <div className="builder-field-group">
-              <label>Related Module *</label>
+              <label htmlFor="rf-module">Related Module *</label>
               <select
+                id="rf-module"
+                aria-label="Related Module"
                 className="builder-select"
                 value={module}
                 onChange={(e) => setModule(e.target.value)}
@@ -101,8 +105,10 @@ export default function RequestFieldModal({
             </div>
 
             <div className="builder-field-group">
-              <label>Information Description *</label>
+              <label htmlFor="rf-description">Information Description *</label>
               <textarea
+                id="rf-description"
+                aria-label="Information Description"
                 className="builder-textarea"
                 rows={3}
                 placeholder="Describe what data this field represents and how it should be captured."
@@ -113,8 +119,10 @@ export default function RequestFieldModal({
             </div>
 
             <div className="builder-field-group">
-              <label>Why is this field required? *</label>
+              <label htmlFor="rf-reason">Why is this field required? *</label>
               <textarea
+                id="rf-reason"
+                aria-label="Why is this field required?"
                 className="builder-textarea"
                 rows={2}
                 placeholder="Explain the business reporting or operational need."
@@ -125,8 +133,10 @@ export default function RequestFieldModal({
             </div>
 
             <div className="builder-field-group">
-              <label>Example Expected Output (Optional)</label>
+              <label htmlFor="rf-example-output">Example Expected Output (Optional)</label>
               <input
+                id="rf-example-output"
+                aria-label="Example Expected Output (Optional)"
                 type="text"
                 className="builder-input"
                 placeholder="e.g. '3 incidents' or 'West Bengal'"

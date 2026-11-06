@@ -35,9 +35,12 @@ export default function CustomReportBuilder({
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [requestModalOpen, setRequestModalOpen] = useState(false);
 
-  const datasets = catalog.datasets || [];
-  const allFields = catalog.fields || [];
-  const unsupportedFields = catalog.unsupportedFields || [];
+  const datasets = useMemo(() => catalog.datasets || [], [catalog.datasets]);
+  const allFields = useMemo(() => catalog.fields || [], [catalog.fields]);
+  const unsupportedFields = useMemo(
+    () => catalog.unsupportedFields || [],
+    [catalog.unsupportedFields],
+  );
 
   const selectedDataset = config.dataset || 'fuel_transactions';
   const selectedFields = config.fields || [];
@@ -45,7 +48,10 @@ export default function CustomReportBuilder({
   const selectedSorting = config.sorting || { field: null, order: 'desc' };
   const currentFilters = config.filters || {};
 
-  const allowedModules = DATASET_MODULE_MAP[selectedDataset] || ['FUEL', 'VEHICLE', 'DRIVER'];
+  const allowedModules = useMemo(
+    () => DATASET_MODULE_MAP[selectedDataset] || ['FUEL', 'VEHICLE', 'DRIVER'],
+    [selectedDataset],
+  );
 
   // Filter fields available for the chosen dataset
   const availableFields = useMemo(() => {
@@ -143,8 +149,10 @@ export default function CustomReportBuilder({
         </div>
         <div className="builder-grid-2">
           <div className="builder-field-group">
-            <label>Report Name *</label>
+            <label htmlFor="cr-report-name">Report Name *</label>
             <input
+              id="cr-report-name"
+              aria-label="Report Name"
               type="text"
               className="builder-input"
               placeholder="e.g. Q4 High Consumption Vehicles"
@@ -154,8 +162,10 @@ export default function CustomReportBuilder({
           </div>
 
           <div className="builder-field-group">
-            <label>Primary Data Source (Dataset) *</label>
+            <label htmlFor="cr-primary-dataset">Primary Data Source (Dataset) *</label>
             <select
+              id="cr-primary-dataset"
+              aria-label="Primary Data Source (Dataset)"
               className="builder-select"
               value={selectedDataset}
               onChange={(e) => {
@@ -205,6 +215,7 @@ export default function CustomReportBuilder({
               <input
                 type="text"
                 className="field-search-input"
+                aria-label="Search fields by name or module"
                 placeholder="Search fields by name or module..."
                 value={fieldSearch}
                 onChange={(e) => setFieldSearch(e.target.value)}
@@ -222,6 +233,7 @@ export default function CustomReportBuilder({
                         <label key={f.key} className="field-checkbox-label">
                           <input
                             type="checkbox"
+                            aria-label={f.label}
                             checked={isSelected}
                             onChange={() => toggleField(f.key)}
                             className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-3.5 w-3.5"
@@ -381,8 +393,10 @@ export default function CustomReportBuilder({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
           <div className="builder-field-group">
-            <label>Start Date</label>
+            <label htmlFor="cr-filter-start-date">Start Date</label>
             <input
+              id="cr-filter-start-date"
+              aria-label="Start Date"
               type="date"
               className="builder-input !py-1.5 !text-xs"
               value={currentFilters.startDate ? currentFilters.startDate.slice(0, 10) : ''}
@@ -396,8 +410,10 @@ export default function CustomReportBuilder({
           </div>
 
           <div className="builder-field-group">
-            <label>End Date</label>
+            <label htmlFor="cr-filter-end-date">End Date</label>
             <input
+              id="cr-filter-end-date"
+              aria-label="End Date"
               type="date"
               className="builder-input !py-1.5 !text-xs"
               value={currentFilters.endDate ? currentFilters.endDate.slice(0, 10) : ''}
@@ -411,8 +427,10 @@ export default function CustomReportBuilder({
           </div>
 
           <div className="builder-field-group">
-            <label>Fuel Type Filter</label>
+            <label htmlFor="cr-filter-fuel-type">Fuel Type Filter</label>
             <select
+              id="cr-filter-fuel-type"
+              aria-label="Fuel Type Filter"
               className="builder-select !py-1.5 !text-xs"
               value={currentFilters.fuelType || ''}
               onChange={(e) => handleFilterChange('fuelType', e.target.value)}
@@ -424,8 +442,10 @@ export default function CustomReportBuilder({
           </div>
 
           <div className="builder-field-group">
-            <label>Search Text</label>
+            <label htmlFor="cr-filter-search">Search Text</label>
             <input
+              id="cr-filter-search"
+              aria-label="Search Text"
               type="text"
               className="builder-input !py-1.5 !text-xs"
               placeholder="Filter by vehicle or pump..."

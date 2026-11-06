@@ -47,7 +47,7 @@ export default function CustomReportPreview({
   onRetry = null,
   onPageChange = null,
 }) {
-  const fields = config.fields || [];
+  const fields = useMemo(() => config.fields || [], [config.fields]);
   const fieldMap = useMemo(() => {
     const map = new Map();
     (catalog.fields || []).forEach((f) => map.set(f.key, f));

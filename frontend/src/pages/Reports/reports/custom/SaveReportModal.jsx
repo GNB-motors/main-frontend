@@ -88,8 +88,10 @@ export default function SaveReportModal({
             ) : null}
 
             <div className="builder-field-group">
-              <label>Report Name *</label>
+              <label htmlFor="sr-report-name">Report Name *</label>
               <input
+                id="sr-report-name"
+                aria-label="Report Name"
                 type="text"
                 className="builder-input"
                 placeholder="e.g. Monthly High Fuel Spenders, West Bengal Fleet Compliance"
@@ -100,8 +102,10 @@ export default function SaveReportModal({
             </div>
 
             <div className="builder-field-group">
-              <label>Category</label>
+              <label htmlFor="sr-category">Category</label>
               <select
+                id="sr-category"
+                aria-label="Category"
                 className="builder-select"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
@@ -115,8 +119,10 @@ export default function SaveReportModal({
             </div>
 
             <div className="builder-field-group">
-              <label>Description (Optional)</label>
+              <label htmlFor="sr-description">Description (Optional)</label>
               <textarea
+                id="sr-description"
+                aria-label="Description (Optional)"
                 className="builder-textarea"
                 rows={3}
                 placeholder="Add notes about what this report is used for or who reads it."

@@ -179,8 +179,10 @@ export default function FieldRequestsView({ userRole }) {
             <form onSubmit={handleUpdateStatus}>
               <div className="custom-modal-body">
                 <div className="builder-field-group">
-                  <label>Status</label>
+                  <label htmlFor="fr-review-status">Status</label>
                   <select
+                    id="fr-review-status"
+                    aria-label="Status"
                     className="builder-select"
                     value={adminStatus}
                     onChange={(e) => setAdminStatus(e.target.value)}
@@ -193,8 +195,10 @@ export default function FieldRequestsView({ userRole }) {
                   </select>
                 </div>
                 <div className="builder-field-group">
-                  <label>Admin Review Comments</label>
+                  <label htmlFor="fr-review-comments">Admin Review Comments</label>
                   <textarea
+                    id="fr-review-comments"
+                    aria-label="Admin Review Comments"
                     className="builder-textarea"
                     rows={3}
                     placeholder="Provide feedback or expected implementation timeline."
