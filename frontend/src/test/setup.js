@@ -1,5 +1,15 @@
 import '@testing-library/jest-dom';
 
+// Restored Route Hub views use the browser's ResizeObserver. jsdom does not
+// provide it; supply the observation lifecycle without changing production code.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
 if (
   typeof globalThis.localStorage === 'undefined' ||
   typeof globalThis.localStorage?.getItem !== 'function'

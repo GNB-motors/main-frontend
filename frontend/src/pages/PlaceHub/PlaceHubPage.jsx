@@ -1,6 +1,6 @@
 import { googleMapsLoaderOptions } from '../../utils/googleMapsLoader.js';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useLoadScript } from '@react-google-maps/api';
 import { useFullPageLayout } from '../../hooks/usePageLayout';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
@@ -32,7 +32,7 @@ import './PlaceHub.css';
 // Same libraries as the other place pages, so moving between them does not
 // make @react-google-maps/api tear down and reload the Maps script.
 /** Tabs drawn on the map; the rest are tables that take the whole body. */
-const MAP_TABS = new Set(['places', 'stops', 'routes']);
+const MAP_TABS = new Set(['places', 'idling', 'fuel', 'stops', 'routes']);
 
 /**
  * Place Hub — one map for every place a fleet works with: warehouses, zones,
@@ -105,21 +105,6 @@ export default function PlaceHubPage() {
     hasHomes: (data?.summary?.homes || 0) > 0,
   });
   const requestedTab = params.get('tab');
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!canEdit) return;
-    if (requestedTab === 'idling') {
-      navigate('/intelligence?tab=idling', { replace: true });
-    } else if (requestedTab === 'fuel') {
-      const hotspot = params.get('hotspot');
-      navigate(
-        `/intelligence?tab=fuel${hotspot ? `&hotspot=${encodeURIComponent(hotspot)}` : ''}`,
-        { replace: true },
-      );
-    }
-  }, [requestedTab, params, navigate, canEdit]);
-
   const tab = tabs.some((t) => t.id === requestedTab) ? requestedTab : 'places';
 
   const [selectedId, setSelectedId] = useState(null);

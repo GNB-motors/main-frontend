@@ -1,6 +1,6 @@
 import { tollMarkerIcon } from './mapPlaceIcon.js';
 import FocusedRouteLayer from './FocusedRouteLayer.jsx';
-import TollLayer from '../PlaceHub/map/TollLayer.jsx';
+import TollLayer from './TrackPlacesTollLayer.jsx';
 import PassiveTrailLayer from './PassiveTrailLayer.jsx';
 import TrackTollLayers from './TrackTollLayers';
 import { useEffect, useMemo, useRef, useState } from 'react';
