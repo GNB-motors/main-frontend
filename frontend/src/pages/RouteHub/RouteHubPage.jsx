@@ -9,14 +9,12 @@ import { trackLink } from '../../utils/redesign/links';
 import './routeHubDesign.css';
 
 const OverviewView = lazy(() => import('./views/OverviewView.jsx'));
-const DeviationView = lazy(() => import('./views/DeviationView.jsx'));
 const ReplayView = lazy(() => import('./views/ReplayView.jsx'));
 const ProfitabilityView = lazy(() => import('./views/ProfitabilityView.jsx'));
 const IntelligenceView = lazy(() => import('./views/IntelligenceView.jsx'));
 
 const VIEWS = [
   { key: 'overview', label: 'Overview', Component: OverviewView },
-  { key: 'deviation', label: 'Route deviation', badge: 'deviation', Component: DeviationView },
   { key: 'replay', label: 'Route replay', Component: ReplayView },
   { key: 'profitability', label: 'Profitability', Component: ProfitabilityView },
   { key: 'intelligence', label: 'Intelligence', Component: IntelligenceView },
@@ -56,6 +54,22 @@ export default function RouteHubPage() {
     if (v) next.set('vehicle', v);
     if (from) next.set('from', from);
     if (to) next.set('to', to);
+    navigate(`/intelligence?${next.toString()}`, { replace: true });
+  }, [searchParams, navigate]);
+
+  // Route deviation audit moved to Intelligence. Redirect legacy links.
+  useEffect(() => {
+    if (searchParams.get('tab') !== 'deviation') return;
+    const v = searchParams.get('v');
+    const from = searchParams.get('from');
+    const to = searchParams.get('to');
+    const q = searchParams.get('q');
+    const next = new URLSearchParams();
+    next.set('tab', 'detours');
+    if (v) next.set('vehicle', v);
+    if (from) next.set('from', from);
+    if (to) next.set('to', to);
+    if (q) next.set('q', q);
     navigate(`/intelligence?${next.toString()}`, { replace: true });
   }, [searchParams, navigate]);
 
@@ -152,6 +166,14 @@ export default function RouteHubPage() {
         const next = new URLSearchParams();
         next.set('tab', 'overspeed');
         if (extra?.v) next.set('vehicle', extra.v);
+        navigate(`/intelligence?${next.toString()}`);
+        return;
+      }
+      if (key === 'deviation') {
+        const next = new URLSearchParams();
+        next.set('tab', 'detours');
+        if (extra?.v) next.set('vehicle', extra.v);
+        if (extra?.q) next.set('q', extra.q);
         navigate(`/intelligence?${next.toString()}`);
         return;
       }
