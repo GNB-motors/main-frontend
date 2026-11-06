@@ -167,9 +167,7 @@ describe('Track mode', () => {
       { lat: 23, lng: 89 },
     ]);
     expect(padding).toEqual({ top: 80, right: 60, bottom: 120, left: 60 });
-    rerender(
-      <LiveMapCanvas {...props} track={track} trackPlayheadTime="2026-11-01T13:05:00Z" />,
-    );
+    rerender(<LiveMapCanvas {...props} track={track} trackPlayheadTime="2026-11-01T13:05:00Z" />);
     expect(map.fitBounds).toHaveBeenCalledTimes(1);
   });
 });
@@ -179,8 +177,8 @@ describe('Fleet markers while focused on one truck', () => {
   it('shows the whole fleet when nothing is selected', () => {
     expect(focusedMapVehicles(fleet, { selectedId: null, replayOn: false })).toEqual(fleet);
   });
-  it('keeps the fleet visible when a truck is selected', () => {
-    expect(focusedMapVehicles(fleet, { selectedId: 'v2', replayOn: false })).toEqual(fleet);
+  it('shows only the selected truck', () => {
+    expect(focusedMapVehicles(fleet, { selectedId: 'v2', replayOn: false })).toEqual([fleet[1]]);
   });
   it('hides every live marker during Replay (the replay truck stands in)', () => {
     expect(focusedMapVehicles(fleet, { selectedId: 'v2', replayOn: true })).toEqual([]);
