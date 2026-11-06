@@ -23,14 +23,15 @@ export default function tripColumns({
   now = new Date(),
 }) {
   const hidden = [];
-  if (allUnknown(rows, (r) => r.driver?.name || r.driver?.mobileNumber || null)) hidden.push('driver');
+  if (allUnknown(rows, (r) => r.driver?.name || r.driver?.mobileNumber || null))
+    hidden.push('driver');
   if (allUnknown(rows, timeValue(now))) hidden.push('time');
   if (allUnknown(rows, loadedKm)) hidden.push('km');
 
   const columns = [
     {
       key: 'registrationNumber',
-      width: '120px',
+      width: '122px',
       label: 'Truck',
       render: (r) => (
         <Link
@@ -49,26 +50,26 @@ export default function tripColumns({
     },
     {
       key: 'driver',
-      width: '15%',
+      width: '140px',
       label: 'Driver',
       render: (r) => <DriverCell trip={r} onRetry={refetch} />,
     },
     {
       key: 'departedAt',
-      width: '12%',
+      width: '128px',
       label: 'Left plant',
       render: (r) => <span className="atx-num">{fmtDayTime(r.pickup?.departedAt)}</span>,
     },
     {
       key: 'time',
-      width: '10%',
+      width: '104px',
       label: 'Trip time',
       align: 'right',
       render: (r) => <TimeCell trip={r} now={now} />,
     },
     {
       key: 'km',
-      width: '8%',
+      width: '112px',
       label: 'Loaded km',
       align: 'right',
       render: (r) => {
@@ -86,7 +87,7 @@ export default function tripColumns({
     },
     {
       key: 'sap',
-      width: '12%',
+      width: '144px',
       label: 'SAP km',
       render: (r) => (
         <span className="atx-sap-cell">
@@ -99,7 +100,7 @@ export default function tripColumns({
     },
     {
       key: 'status',
-      width: '11%',
+      width: '142px',
       label: 'Status',
       render: (r) => {
         const checks = (r.flags || []).map((f) => FLAG_LABEL[f] || f);

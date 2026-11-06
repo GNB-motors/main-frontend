@@ -1595,6 +1595,64 @@
 .atx-field--wide {
   grid-column: 1 / -1;
 }
+/* A full-width row inside the form grid that splits into equal columns
+   (the approval limits: type / max extra km / max dwell). */
+.atx-form-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 560px) {
+  .atx-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+/* Segmented control — the When toggle and the weekday picker in the
+   approval dialog. Sits on a sunk track like the workspace tabs; the active
+   segment carries the brand blue. */
+.atx-seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px;
+  border: 1px solid var(--ds-line);
+  border-radius: 9px;
+  background: var(--ds-sunk);
+}
+.atx-seg-item {
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-ink2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+.atx-seg-item:hover {
+  color: var(--ds-ink);
+}
+.atx-seg-item--active,
+.atx-seg-item--active:hover {
+  background: var(--rd-brand);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18);
+}
+.atx-seg--sm .atx-seg-item {
+  height: 24px;
+  padding: 0 9px;
+  font-size: 11px;
+}
 .atx-form-footer {
   flex-wrap: wrap;
   gap: 8px;

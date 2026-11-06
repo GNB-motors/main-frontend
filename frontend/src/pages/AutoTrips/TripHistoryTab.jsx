@@ -49,7 +49,23 @@ export default function TripHistoryTab({ vehicle = null, site = null, from = nul
       ) : null}
 
       {loading ? (
-        <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">Loading the history…</p>
+        <ul
+          className="m-0 flex list-none flex-col gap-1 p-0"
+          aria-busy="true"
+          aria-label="Loading the history"
+        >
+          {Array.from({ length: 6 }).map((_, index) => (
+            <li
+              key={index}
+              className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-[var(--rd-line)] py-2 last:border-b-0"
+            >
+              <span className="atx-skel h-[12px] w-[130px] shrink-0" />
+              <span className="atx-skel h-[13px] w-[130px] shrink-0" />
+              <span className="atx-skel h-[13px] min-w-[160px] flex-1" />
+              <span className="atx-skel h-[12px] w-[110px] shrink-0" />
+            </li>
+          ))}
+        </ul>
       ) : error ? (
         <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">
           We could not load the history for this place.
@@ -66,7 +82,9 @@ export default function TripHistoryTab({ vehicle = null, site = null, from = nul
               className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-[var(--rd-line)] py-2 last:border-b-0"
             >
               <span className="w-[130px] shrink-0 text-[12px] text-[var(--rd-ink-3)] tabular-nums">
-                {item.arrivedAt ? formatIst(item.arrivedAt, { withDate: true }) : item.register?.date}
+                {item.arrivedAt
+                  ? formatIst(item.arrivedAt, { withDate: true })
+                  : item.register?.date}
               </span>
               <span className="w-[130px] shrink-0 text-[13px] font-medium text-[var(--rd-ink)]">
                 {item.registrationNumber}
@@ -78,7 +96,7 @@ export default function TripHistoryTab({ vehicle = null, site = null, from = nul
                     {item.register?.driver ? ` · ${item.register.driver}` : ''}
                   </>
                 ) : (
-                  item.place?.name ?? 'Place not known'
+                  (item.place?.name ?? 'Place not known')
                 )}
               </span>
               <span className="w-[110px] shrink-0 text-[12px] text-[var(--rd-ink-2)] tabular-nums">

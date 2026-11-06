@@ -32,6 +32,7 @@ export default function TripPlansTable({ data, loading, error, refetch, paginati
   const columns = [
     {
       key: 'truck',
+      width: '150px',
       label: 'Truck',
       render: (p) => (
         <>
@@ -53,7 +54,12 @@ export default function TripPlansTable({ data, loading, error, refetch, paginati
       label: 'Planned route',
       render: (p) => `${planEndName(p.pickup)} → ${planEndName(p.drop)}`,
     },
-    { key: 'planned', label: 'Planned / ERP start', render: (p) => fmtDayTime(p.plannedStartAt) },
+    {
+      key: 'planned',
+      width: '150px',
+      label: 'Planned / ERP start',
+      render: (p) => fmtDayTime(p.plannedStartAt),
+    },
     {
       key: 'actual',
       label: 'Actual',
@@ -72,6 +78,7 @@ export default function TripPlansTable({ data, loading, error, refetch, paginati
     },
     {
       key: 'status',
+      width: '240px',
       label: 'Status',
       render: (p) => (
         <>

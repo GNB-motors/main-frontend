@@ -1042,6 +1042,28 @@
   font-family: 'SF Mono', 'Roboto Mono', Menlo, monospace;
 }
 
+/* ─── Empty-card art ─────────────────────────────────────────────────────────
+   A card with no rows shows its concept picture (pump / gauge) above the one
+   explanation line, so a half-empty box still reads as an intentional state. */
+.fi-empty-art {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 8px 10px;
+  text-align: center;
+}
+.fi-empty-art p {
+  max-width: 320px;
+}
+.fi-empty-art-svg {
+  flex: none;
+}
+
+.dark .fi-empty-art-svg {
+  filter: brightness(0.92) saturate(0.95);
+}
+
 /* ─── Pump Honesty Table Clean Styling ────────────────────────────────────── */
 .fi-pump-name {
   font-weight: 600;

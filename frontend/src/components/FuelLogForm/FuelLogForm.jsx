@@ -131,114 +131,118 @@ export default function FuelLogForm({
 
   return (
     <div className="mileage-form-content diesel-entry">
-      <form ref={formRef} onSubmit={handleSubmit} noValidate>
-        <fieldset disabled={isLoading} className="diesel-entry-fields">
-          <div className="mileage-form-row">
-            <div className="mileage-form-group">
-              <label htmlFor={`${uid}-vehicle`}>Vehicle *</label>
-              <VehiclePicker
-                uid={uid}
-                lockVehicle={lockVehicle}
-                selectedVehicle={selectedVehicle}
-                loadingVehicles={loadingOptions}
-                showVehicleDropdown={picker.showVehicle}
-                setShowVehicleDropdown={setPickerField('showVehicle')}
-                setShowDriverDropdown={setPickerField('showDriver')}
-                vehicleSearch={picker.vehicleSearch}
-                setVehicleSearch={setPickerField('vehicleSearch')}
-                filteredVehicles={vehicles.filter((v) =>
-                  `${v.name} ${v.registration}`
-                    .toLowerCase()
-                    .includes(picker.vehicleSearch.toLowerCase()),
-                )}
-                setSelectedVehicle={(v) => {
-                  setSelection({ vehicleId: v.id, driverId: null, driverVehicleId: null });
-                  setValidationError(null);
-                }}
-              />
-              {selectedVehicle && (
-                <PreviousLogHint
-                  loadingLastOdometer={loadingLastOdometer}
-                  lastOdometer={lastOdometer}
+      <form ref={formRef} onSubmit={handleSubmit} noValidate className="diesel-entry-form">
+        <div className="diesel-entry-scroll">
+          <fieldset disabled={isLoading} className="diesel-entry-fields">
+            <div className="mileage-form-row">
+              <div className="mileage-form-group">
+                <label htmlFor={`${uid}-vehicle`}>Vehicle *</label>
+                <VehiclePicker
+                  uid={uid}
+                  lockVehicle={lockVehicle}
+                  selectedVehicle={selectedVehicle}
+                  loadingVehicles={loadingOptions}
+                  showVehicleDropdown={picker.showVehicle}
+                  setShowVehicleDropdown={setPickerField('showVehicle')}
+                  setShowDriverDropdown={setPickerField('showDriver')}
+                  vehicleSearch={picker.vehicleSearch}
+                  setVehicleSearch={setPickerField('vehicleSearch')}
+                  filteredVehicles={vehicles.filter((v) =>
+                    `${v.name} ${v.registration}`
+                      .toLowerCase()
+                      .includes(picker.vehicleSearch.toLowerCase()),
+                  )}
+                  setSelectedVehicle={(v) => {
+                    setSelection({ vehicleId: v.id, driverId: null, driverVehicleId: null });
+                    setValidationError(null);
+                  }}
                 />
-              )}
-            </div>
-            <div className="mileage-form-group">
-              <label htmlFor={`${uid}-driver`}>Driver *</label>
-              <DriverPicker
-                uid={uid}
-                lockDriver={lockDriver}
-                selectedDriver={selectedDriver}
-                loadingDrivers={loadingOptions}
-                showDriverDropdown={picker.showDriver}
-                setShowDriverDropdown={setPickerField('showDriver')}
-                setShowVehicleDropdown={setPickerField('showVehicle')}
-                driverSearch={picker.driverSearch}
-                setDriverSearch={setPickerField('driverSearch')}
-                filteredDrivers={drivers.filter((d) =>
-                  `${d.name} ${d.licenseNo}`
-                    .toLowerCase()
-                    .includes(picker.driverSearch.toLowerCase()),
+                {selectedVehicle && (
+                  <PreviousLogHint
+                    loadingLastOdometer={loadingLastOdometer}
+                    lastOdometer={lastOdometer}
+                  />
                 )}
-                setSelectedDriver={(d) => {
-                  setSelection((prev) => ({
-                    ...prev,
-                    driverId: d.id,
-                    driverVehicleId: selectedVehicle?.id,
-                  }));
-                  setValidationError(null);
-                }}
-              />
-              {driverAutoFilled && (
-                <small>Suggested from the assignment at refuelling time. Change if needed.</small>
-              )}
+              </div>
+              <div className="mileage-form-group">
+                <label htmlFor={`${uid}-driver`}>Driver *</label>
+                <DriverPicker
+                  uid={uid}
+                  lockDriver={lockDriver}
+                  selectedDriver={selectedDriver}
+                  loadingDrivers={loadingOptions}
+                  showDriverDropdown={picker.showDriver}
+                  setShowDriverDropdown={setPickerField('showDriver')}
+                  setShowVehicleDropdown={setPickerField('showVehicle')}
+                  driverSearch={picker.driverSearch}
+                  setDriverSearch={setPickerField('driverSearch')}
+                  filteredDrivers={drivers.filter((d) =>
+                    `${d.name} ${d.licenseNo}`
+                      .toLowerCase()
+                      .includes(picker.driverSearch.toLowerCase()),
+                  )}
+                  setSelectedDriver={(d) => {
+                    setSelection((prev) => ({
+                      ...prev,
+                      driverId: d.id,
+                      driverVehicleId: selectedVehicle?.id,
+                    }));
+                    setValidationError(null);
+                  }}
+                />
+                {driverAutoFilled && (
+                  <small>Suggested from the assignment at refuelling time. Change if needed.</small>
+                )}
+              </div>
             </div>
+            <FuelFields uid={uid} formData={formData} handleFormChange={handleFormChange} />
+            <div className="diesel-entry-help">
+              <strong>How this affects mileage</strong>
+              <p>
+                The first full tank starts a cycle. The next full tank calculates distance ÷ diesel
+                added, including partial fills between them. Record every fill.
+              </p>
+              <p>
+                The Vehicles average updates after processing completed cycles; saving one bill does
+                not immediately change it.
+              </p>
+            </div>
+            <details className="diesel-entry-documents">
+              <summary>Add a bill or odometer photo (optional)</summary>
+              <p>
+                Photos can fill in details for you. Check the values and refuelling time before
+                saving.
+              </p>
+              <DocumentSlots uid={uid} formData={formData} {...docs} />
+            </details>
+          </fieldset>
+        </div>
+        <div className="diesel-entry-foot">
+          {validationError && (
+            <p role="alert" className="diesel-entry-error">
+              {validationError}
+            </p>
+          )}
+          <div className="mileage-actions">
+            <button type="button" className="mileage-btn mileage-btn-secondary" onClick={onCancel}>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading || busyScanning || loadingOptions}
+              className="mileage-btn mileage-btn-primary"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Saving…
+                </>
+              ) : busyScanning ? (
+                'Reading photo…'
+              ) : (
+                'Save diesel fill'
+              )}
+            </button>
           </div>
-          <FuelFields uid={uid} formData={formData} handleFormChange={handleFormChange} />
-          <div className="diesel-entry-help">
-            <strong>How this affects mileage</strong>
-            <p>
-              The first full tank starts a cycle. The next full tank calculates distance ÷ diesel
-              added, including partial fills between them. Record every fill.
-            </p>
-            <p>
-              The Vehicles average updates after processing completed cycles; saving one bill does
-              not immediately change it.
-            </p>
-          </div>
-          <details className="diesel-entry-documents">
-            <summary>Add a bill or odometer photo (optional)</summary>
-            <p>
-              Photos can fill in details for you. Check the values and refuelling time before
-              saving.
-            </p>
-            <DocumentSlots uid={uid} formData={formData} {...docs} />
-          </details>
-        </fieldset>
-        {validationError && (
-          <p role="alert" className="diesel-entry-error">
-            {validationError}
-          </p>
-        )}
-        <div className="mileage-actions">
-          <button type="button" className="mileage-btn mileage-btn-secondary" onClick={onCancel}>
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isLoading || busyScanning || loadingOptions}
-            className="mileage-btn mileage-btn-primary"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 size={16} className="animate-spin" /> Saving…
-              </>
-            ) : busyScanning ? (
-              'Reading photo…'
-            ) : (
-              'Save diesel fill'
-            )}
-          </button>
         </div>
       </form>
     </div>
