@@ -309,7 +309,9 @@ export default function AutoTripReplay({
   const leftLabel = `Left plant ${fmtClock(trip?.pickup?.departedAt || (frames[0] && frames[0].at))}`;
   const rightLabel = track?.open
     ? `Last GPS ${fmtClock(lastAt || track?.to)}`
-    : `Reached drop ${fmtClock(track?.to || trip?.drop?.arrivedAt)}`;
+    : trip?.leg === 'REPOSITION'
+      ? `Reached next plant ${fmtClock(trip?.movementEnd?.arrivedAt || track?.to)}`
+      : `Reached drop ${fmtClock(track?.to || trip?.drop?.arrivedAt)}`;
 
   return (
     <div ref={wrapRef} className="atx-replay">

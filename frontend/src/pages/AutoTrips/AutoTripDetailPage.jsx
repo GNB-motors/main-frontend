@@ -17,6 +17,7 @@ import TripLegBar from './TripLegBar';
 import TripStopList from './TripStopList';
 import AutoTripTimeline from './AutoTripTimeline';
 import TripStatus from './TripStatus';
+import TripEvidence from './TripEvidence';
 import InfoTip from '../../components/redesign/InfoTip';
 import { formatINR } from '../../utils/formatters';
 import { destinationOf, minutesOnRoad, titleCasePlace } from './tripListModel';
@@ -185,8 +186,19 @@ export default function AutoTripDetailPage() {
   const plantMin = trip.durations?.plantMin;
   // A summary group is only worth a divider when at least one of its rows has
   // a real value — never render an empty row.
-  const runKm = trip.km?.ladenOdo ?? trip.km?.laden;
-  const runTime = trip.durations?.ladenMin ?? trip.durations?.transitMin;
+  const reposition = trip.leg === 'REPOSITION';
+  const runKm = reposition
+    ? (trip.km?.repositionOdo ?? trip.km?.reposition ?? trip.km?.returnOdo ?? trip.km?.return)
+    : (trip.km?.ladenOdo ?? trip.km?.laden);
+  const movementMinutes =
+    trip.movementEnd?.arrivedAt && trip.pickup?.departedAt
+      ? (Date.parse(trip.movementEnd.arrivedAt) - Date.parse(trip.pickup.departedAt)) / 60000
+      : null;
+  const runTime = reposition
+    ? Number.isFinite(movementMinutes) && movementMinutes >= 0
+      ? movementMinutes
+      : null
+    : (trip.durations?.ladenMin ?? trip.durations?.transitMin);
   const hasRunGroup =
     runKm != null ||
     trip.km?.approach != null ||
@@ -220,9 +232,11 @@ export default function AutoTripDetailPage() {
   const checkFlags = (trip.flags || []).filter(
     (f) => !DROP_FLAGS.includes(f) && !(dropFlag && f === 'PICKUP_TO_PICKUP'),
   );
-  const lastDrop = trip.extraDrops?.length
-    ? trip.extraDrops[trip.extraDrops.length - 1]
-    : trip.drop;
+  const lastDrop = reposition
+    ? trip.movementEnd
+    : trip.extraDrops?.length
+      ? trip.extraDrops[trip.extraDrops.length - 1]
+      : trip.drop;
   const onRoadMin = minutesOnRoad(trip);
   const economics = Object.values(trip.roleEconomics || {});
   const fuelInr = economics.reduce((a, leg) => a + (Number(leg?.fuelInr) || 0), 0);
@@ -238,7 +252,7 @@ export default function AutoTripDetailPage() {
             <div className="atx-head-main">
               <div className="atx-plate-row">
                 <h1 className="atx-plate-title">{trip.registrationNumber || 'Trip'}</h1>
-                <TripStatus status={trip.status} />
+                <TripStatus status={trip.status} leg={trip.leg} />
                 {frozen && trip.status !== 'CONFIRMED' && trip.status !== 'DISMISSED' ? (
                   <span className="atx-chip">Locked</span>
                 ) : null}
@@ -321,7 +335,13 @@ export default function AutoTripDetailPage() {
             </small>
           </div>
           <div className="atx-fact">
-            <dt>{trip.extraDrops?.length ? 'Last drop' : 'Arrived at drop'}</dt>
+            <dt>
+              {reposition
+                ? 'Reached next plant'
+                : trip.extraDrops?.length
+                  ? 'Last drop'
+                  : 'Arrived at drop'}
+            </dt>
             <dd className={lastDrop?.arrivedAt && !open ? '' : 'is-quiet'}>
               {lastDrop?.arrivedAt && !open ? fmtDayTime(lastDrop.arrivedAt) : '—'}
             </dd>
@@ -336,12 +356,18 @@ export default function AutoTripDetailPage() {
             </small>
           </div>
           <div className="atx-fact">
-            <dt>Loaded run</dt>
-            <dd className={runKm != null ? '' : 'is-quiet'}>{runKm != null ? fmtKm(runKm) : '—'}</dd>
+            <dt>{reposition ? 'Plant-to-plant run' : 'Loaded run'}</dt>
+            <dd className={runKm != null ? '' : 'is-quiet'}>
+              {runKm != null ? fmtKm(runKm) : '—'}
+            </dd>
             <small>
               {runKm == null
-                ? 'needs a known drop'
-                : trip.km?.ladenOdo != null
+                ? reposition
+                  ? 'distance not recorded'
+                  : 'needs a known drop'
+                : (reposition
+                      ? (trip.km?.returnOdo ?? trip.km?.repositionOdo)
+                      : trip.km?.ladenOdo) != null
                   ? 'from the odometer'
                   : 'from the GPS path'}
             </small>
@@ -357,7 +383,9 @@ export default function AutoTripDetailPage() {
             </dd>
             <small>
               {runTime != null
-                ? 'plant to last drop'
+                ? reposition
+                  ? 'plant to next plant'
+                  : 'plant to last drop'
                 : onRoadMin != null
                   ? 'since it left, so far'
                   : 'needs a known drop'}
@@ -401,6 +429,7 @@ export default function AutoTripDetailPage() {
             </small>
           </div>
         </dl>
+        <TripEvidence trip={trip} />
 
         <div className="atx-detail-main">
           <div className="atx-detail-map">
@@ -434,10 +463,18 @@ export default function AutoTripDetailPage() {
           <div className="atx-card atx-summary">
             <h2 className="atx-card-title">Trip details</h2>
             <div className="atx-fields">
-              <Field label="Loaded at">
+              <Field label={reposition ? 'From plant' : 'Loaded at'}>
                 {trip.pickup?.name ? titleCasePlace(trip.pickup.name) : 'Not recorded'}
               </Field>
-              <Field label="Unloaded at">
+              <Field
+                label={
+                  reposition
+                    ? 'Next plant'
+                    : trip.drop?.source === 'REGISTER'
+                      ? 'Register-associated destination'
+                      : 'Unloaded at'
+                }
+              >
                 {dest.state === 'reached'
                   ? dest.text
                   : open
@@ -466,11 +503,17 @@ export default function AutoTripDetailPage() {
               <>
                 <div className="atx-rule" />
                 <div className="atx-fields">
-                  {runTime != null ? <Field label="Loaded running time">{fmtDuration(runTime)}</Field> : null}
+                  {runTime != null ? (
+                    <Field
+                      label={reposition ? 'Plant-to-plant running time' : 'Loaded running time'}
+                    >
+                      {fmtDuration(runTime)}
+                    </Field>
+                  ) : null}
                   {trip.km?.approach != null ? (
                     <Field label="Empty run to plant">{fmtKm(trip.km.approach)}</Field>
                   ) : null}
-                  {trip.km?.return != null ? (
+                  {!reposition && trip.km?.return != null ? (
                     <Field label="Return to plant">{fmtKm(trip.km.return)}</Field>
                   ) : null}
                   {trip.km?.fuelDetour != null ? (
@@ -508,7 +551,9 @@ export default function AutoTripDetailPage() {
                   {tollLedgerText(tolls)}
                 </Field>
               ) : null}
-              {tollClassText(tolls) ? <Field label="Toll class">{tollClassText(tolls)}</Field> : null}
+              {tollClassText(tolls) ? (
+                <Field label="Toll class">{tollClassText(tolls)}</Field>
+              ) : null}
               {trip.extraDrops?.length ? (
                 <Field label="Further drops">{trip.extraDrops.length}</Field>
               ) : null}

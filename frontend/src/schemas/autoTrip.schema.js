@@ -21,7 +21,7 @@ const point = z
 
 const drop = point
   .extend({
-    source: str, // LABELLED_PLACE | HUMAN | INFERRED_TURNAROUND | UNKNOWN
+    source: str, // LABELLED_PLACE | HUMAN | REGISTER | INFERRED_TURNAROUND | UNKNOWN
     confidence: num,
   })
   .passthrough();
@@ -33,6 +33,18 @@ export const autoTripSchema = z
     driver: z.object({ id: str, name: str, mobileNumber: str }).passthrough().nullish(),
     driverResolution: z.object({ status: str, at: str, assignmentId: str }).passthrough().nullish(),
     status: str, // OPEN | COMPLETE | NEEDS_REVIEW | CONFIRMED | DISMISSED
+    leg: str,
+    movementEnd: point.nullish(),
+    boundaryDecision: z
+      .object({
+        ruleRevision: str,
+        source: str,
+        result: str,
+        reason: str,
+        evidenceIds: z.array(str).nullish(),
+      })
+      .passthrough()
+      .nullish(),
     flags: z.array(str).nullish(),
     pickup: point.nullish(),
     drop: drop.nullish(),
@@ -75,6 +87,16 @@ export const autoTripListSchema = z
     page: num,
     limit: num,
     tabCounts: tabCounts.nullish(),
+    summary: z
+      .object({
+        movements: num,
+        delivered: num,
+        repositioned: num,
+        open: num,
+        needsReview: num,
+      })
+      .passthrough()
+      .nullish(),
   })
   .passthrough();
 

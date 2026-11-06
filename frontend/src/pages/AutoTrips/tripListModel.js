@@ -47,6 +47,13 @@ export function titleCasePlace(name) {
 export function destinationOf(trip) {
   const drop = trip?.drop || null;
   const flags = trip?.flags || [];
+  if (trip?.leg === 'REPOSITION') {
+    return {
+      text: 'plant to plant',
+      title: 'Vehicle movement without an identified delivery',
+      state: 'reached',
+    };
+  }
   if (trip?.status === 'OPEN' && !drop?.arrivedAt) {
     return { text: 'on the way', title: null, state: 'moving' };
   }
@@ -66,7 +73,8 @@ export function destinationOf(trip) {
 // ─── Numbers on a row ────────────────────────────────────────────────────────
 
 /** The loaded run's km: the odometer when the truck has one, else the GPS path. */
-export const loadedKm = (trip) => trip?.km?.ladenOdo ?? trip?.km?.laden ?? null;
+export const loadedKm = (trip) =>
+  trip?.leg === 'REPOSITION' ? null : (trip?.km?.ladenOdo ?? trip?.km?.laden ?? null);
 
 /** Minutes from leaving the plant to the last drop (transit time when that is all we have). */
 export const loadedMin = (trip) => trip?.durations?.ladenMin ?? trip?.durations?.transitMin ?? null;
@@ -122,7 +130,12 @@ export const MIN_SAMPLE = 5;
  * with how many trips it is the median of. Null fields when there are too few.
  */
 export function typicalRun(items) {
-  const rows = Array.isArray(items) ? items : [];
+  const rows = (Array.isArray(items) ? items : []).filter(
+    (trip) =>
+      ['COMPLETE', 'CONFIRMED'].includes(trip.status) &&
+      trip.leg !== 'REPOSITION' &&
+      (trip.leg === 'LADEN' || (trip.drop?.orgSiteId && trip.drop.source !== 'UNKNOWN')),
+  );
   const km = rows.map(loadedKm).filter((v) => v != null);
   const min = rows.map(loadedMin).filter((v) => v != null);
   return {
@@ -135,7 +148,7 @@ export function typicalRun(items) {
 
 /** "20%" of a whole; null when the whole is zero. */
 export function shareText(part, whole) {
-  if (!whole) return null;
+  if (part == null || !whole) return null;
   const pct = (100 * (part || 0)) / whole;
   if (pct > 0 && pct < 1) return '<1%';
   return `${Math.round(pct)}%`;
@@ -167,7 +180,8 @@ export function needReasons(items) {
   const counts = { DROP_UNKNOWN: 0, DROP_INFERRED: 0, OTHER: 0 };
   (Array.isArray(items) ? items : []).forEach((trip) => {
     const flags = trip?.flags || [];
-    if (flags.includes('DROP_UNKNOWN') || trip?.drop?.source === 'UNKNOWN') counts.DROP_UNKNOWN += 1;
+    if (flags.includes('DROP_UNKNOWN') || trip?.drop?.source === 'UNKNOWN')
+      counts.DROP_UNKNOWN += 1;
     else if (flags.includes('DROP_INFERRED') || trip?.drop?.source === 'INFERRED_TURNAROUND')
       counts.DROP_INFERRED += 1;
     else counts.OTHER += 1;

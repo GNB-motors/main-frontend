@@ -23,7 +23,8 @@ export default function tripColumns({
   now = new Date(),
 }) {
   const hidden = [];
-  if (allUnknown(rows, (r) => r.driver?.name || r.driver?.mobileNumber || null)) hidden.push('driver');
+  if (allUnknown(rows, (r) => r.driver?.name || r.driver?.mobileNumber || null))
+    hidden.push('driver');
   if (allUnknown(rows, timeValue(now))) hidden.push('time');
   if (allUnknown(rows, loadedKm)) hidden.push('km');
 
@@ -105,7 +106,7 @@ export default function tripColumns({
         const checks = (r.flags || []).map((f) => FLAG_LABEL[f] || f);
         return (
           <span title={checks.length ? `To check: ${checks.join(', ')}` : undefined}>
-            <TripStatus status={r.status} />
+            <TripStatus status={r.status} leg={r.leg} />
           </span>
         );
       },
