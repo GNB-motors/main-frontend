@@ -12,6 +12,7 @@ import BasicInformationForm from './Component/BasicInformationForm.jsx';
 import DocumentUpload from './Component/DocumentUpload.jsx';
 import FormFooter from './Component/FormFooter.jsx';
 import ImportEmployeeDialog from './ImportEmployeeDialog.jsx';
+import { ReassignVehicleModal } from './Component/DriverConfirmModals.jsx';
 import { mapFetchedEmployeeDocs } from './employeeDocMapping.js';
 import './DriversPage.css';
 import '../../components/EntityFormLayout.css';
@@ -34,6 +35,9 @@ const AddDriverPage = () => {
   // the Import Employee modal instead of creating a duplicate.
   const [importCandidate, setImportCandidate] = useState(null);
   const [importing, setImporting] = useState(false);
+  // Reassignment conflict state when selected vehicle is held by another driver
+  const [vehicleConflict, setVehicleConflict] = useState(null);
+  const [isReassigning, setIsReassigning] = useState(false);
   const [documents, setDocuments] = useState({
     driverLicense: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
     panCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
@@ -84,6 +88,7 @@ const AddDriverPage = () => {
         }
 
         const formData = {
+          driverId: empId,
           firstName: editing.firstName || editing.first_name || '',
           lastName: editing.lastName || editing.last_name || '',
           email: editing.email || '',
@@ -153,24 +158,7 @@ const AddDriverPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.state?.editingDriver]);
 
-  const handleSubmit = async (formData) => {
-    // Client-side required checks for creating an employee. The footer submits the
-    // form programmatically, which skips native HTML validation, so we validate
-    // here and show a clear toast instead of letting the user hit a raw 400.
-    if (!isEdit) {
-      const missing = [];
-      if (!formData.firstName?.trim()) missing.push('First name');
-      if (!formData.lastName?.trim()) missing.push('Last name');
-      if (!formData.mobileNumber?.trim()) missing.push('Mobile number');
-      if (!formData.password) missing.push('Password');
-      if (!formData.enterpriseRoleId && !formData.branchRoleId)
-        missing.push('a Role (Enterprise or Branch)');
-      if (missing.length) {
-        toast.error(`To create an employee, please add: ${missing.join(', ')}.`);
-        return;
-      }
-    }
-
+  const executeSave = async (formData) => {
     setIsSubmitting(true);
     try {
       const docTypes = {
@@ -322,6 +310,90 @@ const AddDriverPage = () => {
     }
   };
 
+  const handleSubmit = async (formData) => {
+    // Client-side required checks for creating an employee. The footer submits the
+    // form programmatically, which skips native HTML validation, so we validate
+    // here and show a clear toast instead of letting the user hit a raw 400.
+    if (!isEdit) {
+      const missing = [];
+      if (!formData.firstName?.trim()) missing.push('First name');
+      if (!formData.lastName?.trim()) missing.push('Last name');
+      if (!formData.mobileNumber?.trim()) missing.push('Mobile number');
+      if (!formData.password) missing.push('Password');
+      if (!formData.enterpriseRoleId && !formData.branchRoleId)
+        missing.push('a Role (Enterprise or Branch)');
+      if (missing.length) {
+        toast.error(`To create an employee, please add: ${missing.join(', ')}.`);
+        return;
+      }
+    }
+
+    const activeAssignment = driverId
+      ? await DriverVehicleAssignmentService.getActiveAssignment({ driverId })
+      : null;
+    const currentVehicleId = activeAssignment
+      ? DriverVehicleAssignmentService.idOf(activeAssignment.vehicleId)
+      : '';
+    const chosenVehicleId = formData.vehicleId || '';
+
+    // Check if the chosen vehicle already has an active assignment with someone else
+    if (chosenVehicleId && chosenVehicleId !== currentVehicleId) {
+      try {
+        const vehicleAssignment = await DriverVehicleAssignmentService.getActiveAssignment({
+          vehicleId: chosenVehicleId,
+        });
+        const assignedDriverId = vehicleAssignment
+          ? DriverVehicleAssignmentService.idOf(vehicleAssignment.driverId)
+          : null;
+        if (
+          vehicleAssignment &&
+          assignedDriverId &&
+          String(assignedDriverId) !== String(driverId || '')
+        ) {
+          const vehObj =
+            typeof vehicleAssignment.vehicleId === 'object' ? vehicleAssignment.vehicleId : null;
+          const vLabel = vehObj
+            ? `${vehObj.registrationNumber || ''}${vehObj.model ? ` - ${vehObj.model}` : ''}`
+            : 'Selected Vehicle';
+          const drvObj =
+            typeof vehicleAssignment.driverId === 'object' ? vehicleAssignment.driverId : null;
+          const dName = drvObj
+            ? [drvObj.firstName, drvObj.lastName].filter(Boolean).join(' ') || drvObj.mobileNumber
+            : 'Another Driver';
+
+          setVehicleConflict({
+            conflictingAssignmentId: vehicleAssignment._id,
+            vehicleLabel: vLabel,
+            currentDriverName: dName,
+            currentDriverPhone: drvObj?.mobileNumber || '',
+            startDate: vehicleAssignment.startDate,
+            pendingFormData: formData,
+          });
+          return;
+        }
+      } catch (checkErr) {
+        logger.warn('AddDriverPage', 'Could not check vehicle conflict upfront', checkErr);
+      }
+    }
+
+    await executeSave(formData);
+  };
+
+  const handleConfirmReassignment = async () => {
+    if (!vehicleConflict) return;
+    setIsReassigning(true);
+    try {
+      await DriverVehicleAssignmentService.endAssignment(vehicleConflict.conflictingAssignmentId);
+      const pendingData = vehicleConflict.pendingFormData;
+      setVehicleConflict(null);
+      await executeSave(pendingData);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to reassign vehicle');
+    } finally {
+      setIsReassigning(false);
+    }
+  };
+
   const confirmImport = async () => {
     if (!importCandidate?.id) return;
     setImporting(true);
@@ -403,6 +475,17 @@ const AddDriverPage = () => {
         importing={importing}
         confirmImport={confirmImport}
       />
+
+      {/* Reassign Vehicle Confirmation — shown when the selected vehicle is already held by another driver */}
+      {vehicleConflict && (
+        <ReassignVehicleModal
+          isOpen={Boolean(vehicleConflict)}
+          onClose={() => setVehicleConflict(null)}
+          onConfirm={handleConfirmReassignment}
+          conflict={vehicleConflict}
+          isLoading={isReassigning}
+        />
+      )}
     </div>
   );
 };

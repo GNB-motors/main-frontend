@@ -172,6 +172,7 @@ const BasicInformationForm = forwardRef(
                 <AssignedVehicleField
                   value={formData.vehicleId}
                   onChange={(v) => handleInputChange('vehicleId', v)}
+                  currentDriverId={initialData.driverId || initialData.id || initialData._id}
                 />
               </div>
 

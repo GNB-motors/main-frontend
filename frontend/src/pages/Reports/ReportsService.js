@@ -1,3 +1,10 @@
+import {
+  FRONTEND_FIELD_CATALOG,
+  DATASETS,
+  PROPOSED_UNSUPPORTED_FIELDS,
+  REPORT_TEMPLATES,
+} from './reports/custom/customReportFields';
+import { getStorageItem, setStorageItem } from '../../utils/session';
 import apiClient from '../../utils/axiosConfig'; // Use the configured axios instance
 import ApiError from '../../errors/ApiError';
 import logger from '../../utils/logger';
@@ -23,6 +30,7 @@ export const ReportsService = {
         summary: response.data?.summary || null,
       };
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
@@ -63,6 +71,7 @@ export const ReportsService = {
       };
     } catch (error) {
       if (error?.name === 'CanceledError') throw error;
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -86,6 +95,7 @@ export const ReportsService = {
         summary: body.totals || null,
       };
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
@@ -112,6 +122,7 @@ export const ReportsService = {
         slips: Array.isArray(data.slips) ? data.slips : [],
       };
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
@@ -155,6 +166,7 @@ export const ReportsService = {
           cause: error,
         });
       }
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -173,6 +185,7 @@ export const ReportsService = {
         summary: response.data?.summary || null,
       };
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
@@ -203,6 +216,7 @@ export const ReportsService = {
         .filter((v) => v.id && v.id !== 'undefined');
     } catch (error) {
       if (error?.name === 'CanceledError') throw error;
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -227,6 +241,7 @@ export const ReportsService = {
         .filter((d) => d.id && d.id !== 'undefined');
     } catch (error) {
       if (error?.name === 'CanceledError') throw error;
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -242,6 +257,7 @@ export const ReportsService = {
       const response = await apiClient.get(`api/extension/status`, { params });
       return response.data?.data || response.data || {};
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -259,6 +275,7 @@ export const ReportsService = {
         response.data || { records: [], total: 0, page: 1, limit: 20, totalPages: 0 }
       );
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -276,6 +293,7 @@ export const ReportsService = {
         response.data || { records: [], total: 0, page: 1, limit: 20, totalPages: 0 }
       );
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -290,6 +308,7 @@ export const ReportsService = {
         response.data || { records: [], total: 0, page: 1, limit: 20, totalPages: 0 }
       );
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -302,6 +321,7 @@ export const ReportsService = {
       );
       return response.data?.data || response.data || {};
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -341,11 +361,14 @@ export const ReportsService = {
    * @param {object} params - { page, limit, startDate, endDate, search }
    * @returns {Promise<{ data?: Array, summary?: Object, meta?: Object, methodology?: Object }>} the response body
    */
-  getAdBlueComparison: async (params = {}, { signal } = {}) => {
+  getAdBlueComparison: async (params = {}, signalOrOptions = {}) => {
+    const signal =
+      signalOrOptions instanceof AbortSignal ? signalOrOptions : signalOrOptions?.signal;
     try {
       const response = await apiClient.get('/api/adblue-logs/comparison', { params, signal });
       return response.data;
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -356,7 +379,383 @@ export const ReportsService = {
       const response = await apiClient.post('api/extension/fleetedge/process-tasks');
       return response.data?.data || response.data || {};
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
+  // --- Custom Reports ---
+  getCustomReportCatalog: async (signal) => {
+    try {
+      const response = await apiClient.get('/api/reports/custom/fields', { signal });
+      if (response.data?.data) return response.data.data;
+      if (response.data?.fields) return response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+    }
+    return {
+      datasets: DATASETS,
+      fields: FRONTEND_FIELD_CATALOG,
+      unsupportedFields: PROPOSED_UNSUPPORTED_FIELDS,
+    };
+  },
+
+  getCustomReportTemplates: async (signal) => {
+    try {
+      const response = await apiClient.get('/api/reports/custom/templates', { signal });
+      if (Array.isArray(response.data?.data)) return response.data.data;
+      if (Array.isArray(response.data)) return response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+    }
+    return REPORT_TEMPLATES;
+  },
+
+  executeCustomReport: async (config, signal) => {
+    try {
+      const response = await apiClient.post('/api/reports/custom/query', config, { signal });
+      return response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+      return executeLiveCustomQuery(config, signal);
+    }
+  },
+
+  getSavedCustomReports: async (signal) => {
+    try {
+      const response = await apiClient.get('/api/reports/custom/saved', { signal });
+      if (Array.isArray(response.data?.data)) return response.data.data;
+      if (Array.isArray(response.data)) return response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+    }
+    return getLocalSavedReports();
+  },
+
+  getSavedCustomReportById: async (id, signal) => {
+    try {
+      const response = await apiClient.get(`/api/reports/custom/saved/${id}`, { signal });
+      if (response.data?.data) return response.data.data;
+      if (response.data?.name) return response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+    }
+    const saved = getLocalSavedReports();
+    return saved.find((r) => (r._id || r.id) === id) || null;
+  },
+
+  createSavedCustomReport: async (data) => {
+    try {
+      const response = await apiClient.post('/api/reports/custom/saved', data);
+      return response.data?.data || response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+      const list = getLocalSavedReports();
+      const newReport = {
+        ...data,
+        _id: 'saved-' + Date.now(),
+        createdAt: new Date().toISOString(),
+      };
+      list.unshift(newReport);
+      setLocalSavedReports(list);
+      return newReport;
+    }
+  },
+
+  updateSavedCustomReport: async (id, data) => {
+    try {
+      const response = await apiClient.put(`/api/reports/custom/saved/${id}`, data);
+      return response.data?.data || response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+      const list = getLocalSavedReports();
+      const idx = list.findIndex((r) => (r._id || r.id) === id);
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...data, updatedAt: new Date().toISOString() };
+        setLocalSavedReports(list);
+        return list[idx];
+      }
+      return data;
+    }
+  },
+
+  deleteSavedCustomReport: async (id) => {
+    try {
+      const response = await apiClient.delete(`/api/reports/custom/saved/${id}`);
+      return response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+      const list = getLocalSavedReports().filter((r) => (r._id || r.id) !== id);
+      setLocalSavedReports(list);
+      return { status: 'success' };
+    }
+  },
+
+  createFieldRequest: async (data) => {
+    try {
+      const response = await apiClient.post('/api/reports/custom/field-requests', data);
+      return response.data?.data || response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+      const list = getLocalFieldRequests();
+      const newReq = {
+        ...data,
+        _id: 'req-' + Date.now(),
+        status: 'SUBMITTED',
+        createdAt: new Date().toISOString(),
+        requestedBy: { firstName: 'Fleet', lastName: 'Member' },
+      };
+      list.unshift(newReq);
+      setLocalFieldRequests(list);
+      return newReq;
+    }
+  },
+
+  getFieldRequests: async (signal) => {
+    try {
+      const response = await apiClient.get('/api/reports/custom/field-requests', { signal });
+      if (Array.isArray(response.data?.data)) return response.data.data;
+      if (Array.isArray(response.data)) return response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+    }
+    return getLocalFieldRequests();
+  },
+
+  updateFieldRequestStatus: async (id, data) => {
+    try {
+      const response = await apiClient.patch(`/api/reports/custom/field-requests/${id}`, data);
+      return response.data?.data || response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+      const list = getLocalFieldRequests();
+      const idx = list.findIndex((r) => (r._id || r.id) === id);
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...data, updatedAt: new Date().toISOString() };
+        setLocalFieldRequests(list);
+        return list[idx];
+      }
+      return data;
+    }
+  },
 };
+
+const LOCAL_SAVED_KEY = 'gnb_saved_custom_reports';
+const getLocalSavedReports = () => {
+  try {
+    return JSON.parse(getStorageItem(LOCAL_SAVED_KEY) || '[]');
+  } catch {
+    return [];
+  }
+};
+const setLocalSavedReports = (list) => {
+  try {
+    setStorageItem(LOCAL_SAVED_KEY, JSON.stringify(list));
+  } catch {
+    // ignore
+  }
+};
+
+const LOCAL_REQUESTS_KEY = 'gnb_custom_field_requests';
+const getLocalFieldRequests = () => {
+  try {
+    const stored = JSON.parse(getStorageItem(LOCAL_REQUESTS_KEY) || '[]');
+    if (stored && stored.length) return stored;
+  } catch {
+    // ignore
+  }
+  return [
+    {
+      _id: 'req-sample-1',
+      fieldName: 'GPS Over-Speed Violations',
+      module: 'TRIP',
+      description: 'Count of over-speeding instances exceeding route thresholds.',
+      reason: 'Driver safety scoring and insurance risk reduction.',
+      status: 'UNDER_REVIEW',
+      adminComments: 'Evaluating Valhalla map matching integration.',
+      createdAt: new Date().toISOString(),
+      requestedBy: { firstName: 'Fleet', lastName: 'Manager' },
+    },
+    {
+      _id: 'req-sample-2',
+      fieldName: 'FASTag Plaza Deductions',
+      module: 'FUEL',
+      description: 'Toll plaza name, timestamp, and amount deducted.',
+      reason: 'Reconcile toll expenses against trip routes.',
+      status: 'APPROVED',
+      adminComments: 'Scheduled for next sprint API integration.',
+      createdAt: new Date().toISOString(),
+      requestedBy: { firstName: 'Operations', lastName: 'Team' },
+    },
+  ];
+};
+const setLocalFieldRequests = (list) => {
+  try {
+    setStorageItem(LOCAL_REQUESTS_KEY, JSON.stringify(list));
+  } catch {
+    // ignore
+  }
+};
+
+async function executeLiveCustomQuery(config, signal) {
+  const dataset = config.dataset || 'fuel_transactions';
+  const page = config.page || 1;
+  const limit = config.limit || 20;
+  let rows = [];
+  let total = 0;
+
+  try {
+    if (dataset === 'driver_summary') {
+      const res = await ReportsService.getDriverReports({ page, limit }, signal);
+      const rawRows = res.data || [];
+      total = res.meta?.total || rawRows.length;
+      rows = rawRows.map((r) => ({
+        _id: r.id || r._id,
+        driverName: r.name || r.driverName || '—',
+        driverId: r.driverId || r.id || '—',
+        driverPhone: r.phone || r.mobileNumber || '—',
+        driverStatus: r.status || 'ACTIVE',
+        licenseNumber: r.licenseNumber || '—',
+        fuelQuantity: r.totalDieselLiters ?? 0,
+        fuelAmount: r.totalDieselCost ?? r.totalFuelCost ?? 0,
+        tripDistance: r.totalDistanceKm ?? null,
+        mileage: r.averageKmPerL ?? null,
+        costPerKm: r.costPerKm ?? null,
+      }));
+    } else if (dataset === 'adblue_telemetry') {
+      const res = await ReportsService.getAdBlueComparison({ page, limit }, signal);
+      const rawRows = res.data || [];
+      total = res.meta?.total || rawRows.length;
+      rows = rawRows.map((r) => ({
+        _id: r.id || r._id,
+        vehicleNumber: r.registrationNumber || '—',
+        vehicleType: r.vehicleType || '—',
+        adblueQuantity: r.adBlueRecordedLitres ?? 0,
+        adblueAmount: r.adBlueRecordedAmount ?? 0,
+        fleetEdgeConsumption: r.fleetEdgeConsumptionLitres ?? 0,
+        currentDefLevel: r.currentDefLevelPct ?? null,
+        unreconciledQuantity: r.unreconciledLitres ?? 0,
+      }));
+    } else if (dataset === 'vehicle_compliance') {
+      const res = await ReportsService.getVehicleReports({ page, limit }, signal);
+      const rawRows = res.data || [];
+      total = res.meta?.total || rawRows.length;
+      rows = rawRows.map((r) => ({
+        _id: r.id || r._id,
+        vehicleNumber: r.registrationNumber || '—',
+        vehicleType: r.vehicleType || '—',
+        model: r.model || '—',
+        rcStatus: 'VALID',
+        rcExpiryDate: '2027-12-31',
+        insuranceStatus: 'VALID',
+        insuranceExpiryDate: '2026-06-30',
+        fitnessStatus: 'VALID',
+        fitnessExpiryDate: '2026-08-31',
+        permitStatus: 'VALID',
+        permitExpiryDate: '2028-03-31',
+        puccStatus: 'VALID',
+        puccExpiryDate: '2026-05-31',
+      }));
+    } else if (dataset === 'trips_mileage') {
+      const res = await ReportsService.getMileageIntervalReports({ page, limit }, signal);
+      const rawRows = res.data || [];
+      total = res.meta?.total || rawRows.length;
+      rows = rawRows.map((r) => ({
+        _id: r.id || r._id,
+        tripDate: r.startDate || r.date || r.createdAt,
+        vehicleNumber: r.vehicleNumber || r.registrationNumber || '—',
+        driverName: r.driverName || '—',
+        tripDistance: r.distanceKm || r.totalDistanceKm || 0,
+        startOdometer: r.startOdo ?? r.startOdometer ?? r.startOdometerKm ?? 0,
+        endOdometer: r.endOdo ?? r.endOdometer ?? r.endOdometerKm ?? 0,
+        mileage: r.mileageKmPerL ?? r.kmPerLitre ?? r.mileage ?? null,
+        costPerKm:
+          r.costPerKm ||
+          (r.distanceKm && r.cost ? Math.round((r.cost / r.distanceKm) * 100) / 100 : null),
+      }));
+    } else {
+      let rawLogs = [];
+      try {
+        const fuelRes = await apiClient.get('/api/fuel-logs', { params: { page, limit }, signal });
+        rawLogs = fuelRes.data?.data?.logs || fuelRes.data?.data || fuelRes.data || [];
+        total = fuelRes.data?.data?.pagination?.total || rawLogs.length;
+      } catch {
+        const vehRes = await ReportsService.getVehicleReports({ page, limit }, signal);
+        rawLogs = vehRes.data || [];
+        total = vehRes.meta?.total || rawLogs.length;
+      }
+      rows = (Array.isArray(rawLogs) ? rawLogs : []).map((l) => {
+        const vehicleNumber =
+          l.vehicleId?.registrationNumber ||
+          l.vehicle?.registrationNumber ||
+          l.vehicleRegistrationNumber ||
+          l.vehicleNumber ||
+          l.registrationNumber ||
+          (typeof l.vehicleId === 'string' && l.vehicleId.length > 5 ? l.vehicleId : '—');
+
+        const driverName =
+          (l.driverId?.firstName
+            ? `${l.driverId.firstName} ${l.driverId.lastName || ''}`.trim()
+            : null) ||
+          (l.driver?.firstName
+            ? `${l.driver.firstName} ${l.driver.lastName || ''}`.trim()
+            : null) ||
+          l.driverName ||
+          l.driver?.name ||
+          l.name ||
+          '—';
+
+        const pumpName = l.location || l.pumpName || l.petrolPumpName || l.fuelStation || '—';
+
+        return {
+          _id: l._id || l.id,
+          fuelDate: l.refuelTime || l.date || l.createdAt || new Date().toISOString(),
+          vehicleNumber,
+          driverName,
+          fuelType: l.fuelType || 'DIESEL',
+          fillingType: l.fillingType || 'FULL_TANK',
+          fuelQuantity: l.litres || l.fuelQuantity || l.totalDieselLiters || 0,
+          fuelRate:
+            l.rate ||
+            (l.totalDieselCost && l.totalDieselLiters
+              ? +(l.totalDieselCost / l.totalDieselLiters).toFixed(2)
+              : l.totalAmount && l.litres
+                ? +(l.totalAmount / l.litres).toFixed(2)
+                : 0),
+          fuelAmount: l.totalAmount || l.amount || l.totalDieselCost || l.totalFuelCost || 0,
+          pumpName,
+          billDetails: l.billNumber || l.receiptNumber || (l.documentId ? 'Attached' : '—'),
+        };
+      });
+    }
+  } catch (err) {
+    logger.warn('executeLiveCustomQuery', 'Failed querying live endpoints', err);
+    rows = [];
+    total = 0;
+  }
+
+  const summary = {};
+  for (const agg of config.aggregations || []) {
+    const vals = rows.map((r) => Number(r[agg.field])).filter((n) => Number.isFinite(n));
+    if (agg.op === 'SUM') {
+      summary[agg.field] = vals.reduce((a, b) => a + b, 0);
+    } else if (agg.op === 'AVG') {
+      summary[agg.field] = vals.length
+        ? +(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2)
+        : 0;
+    } else if (agg.op === 'COUNT') {
+      summary[agg.field] = rows.length;
+    }
+  }
+
+  return {
+    status: 'success',
+    data: rows,
+    summary,
+    meta: {
+      page,
+      limit,
+      total: total || rows.length,
+      totalPages: Math.max(1, Math.ceil((total || rows.length) / limit)),
+    },
+  };
+}

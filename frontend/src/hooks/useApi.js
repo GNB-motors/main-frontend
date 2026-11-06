@@ -55,7 +55,7 @@ export function useApi(fetcher, deps = [], { enabled = true, scopeKey = null } =
 
   return {
     data: dataScope === scopeKey ? data : null,
-    loading: loading || dataScope !== scopeKey,
+    loading: !error && (loading || dataScope !== scopeKey),
     error,
     refetch: run,
   };
