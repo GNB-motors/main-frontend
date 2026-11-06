@@ -27,6 +27,7 @@ const PlacesTab = lazy(() => import('./PlacesTab'));
 const IdlingTab = lazy(() => import('./IdlingTab'));
 const FuelRiskTab = lazy(() => import('./FuelRiskTab'));
 const OverspeedTab = lazy(() => import('./OverspeedTab'));
+const DetoursTab = lazy(() => import('./DetoursTab'));
 
 /** The shape of a tab while its code is still being fetched. */
 const TAB_FALLBACK = <IntelligenceSkeleton variant="table" />;
@@ -115,6 +116,19 @@ function TabContent({ active, from, to, vehicle, driver, kind }) {
       <Suspense fallback={TAB_FALLBACK}>
         <OverspeedTab
           key={`overspeed-${from}-${to}-${vehicle}-${driver}`}
+          from={from}
+          to={to}
+          vehicle={vehicle}
+          driver={driver}
+        />
+      </Suspense>
+    );
+  }
+  if (active === 'detours') {
+    return (
+      <Suspense fallback={TAB_FALLBACK}>
+        <DetoursTab
+          key={`detours-${from}-${to}-${vehicle}-${driver}`}
           from={from}
           to={to}
           vehicle={vehicle}
