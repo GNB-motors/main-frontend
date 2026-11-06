@@ -9,6 +9,54 @@
   max-width: none;
   margin: 0;
 }
+
+/* The Add diesel fill page keeps its buttons in view: the page fills the
+   window height, only the fields scroll, and Cancel/Save sit in their own
+   strip pinned to the bottom of the card. */
+.diesel-entry-page {
+  height: 100%;
+  max-height: 100vh;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.diesel-entry-page .pshell-body {
+  min-height: 0;
+}
+.diesel-entry-page .diesel-entry.mileage-form-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 24px 32px 0;
+}
+.diesel-entry-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  /* the fields region scrolls, so the card bottom stays put */
+  overflow: hidden;
+}
+.diesel-entry-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+.diesel-entry-foot {
+  flex: none;
+  margin: 20px -28px -24px;
+  padding: 14px 28px 18px;
+  border-top: 1px solid #e5e7eb;
+  border-radius: 0 0 12px 12px;
+  background: #f8fafc;
+}
+.diesel-entry-foot .mileage-actions {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
 .diesel-entry-page > .pshell-head {
   justify-content: flex-start;
   flex-wrap: nowrap;
@@ -75,5 +123,12 @@
   }
   .diesel-entry .mileage-actions {
     flex-wrap: wrap;
+  }
+  .diesel-entry-page .diesel-entry.mileage-form-content {
+    padding: 16px 16px 0;
+  }
+  .diesel-entry-foot {
+    margin: 16px -18px -18px;
+    padding: 12px 18px 14px;
   }
 }

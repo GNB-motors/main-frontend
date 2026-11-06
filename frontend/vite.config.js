@@ -15,7 +15,8 @@ function dracoDecoderPaths() {
     name: 'draco-decoder-paths',
     enforce: 'pre',
     transform(code, id) {
-      if (!id.replace(/\\/g, '/').includes('three/examples/jsm/loaders/DRACOLoader.js')) return null;
+      if (!id.replace(/\\/g, '/').includes('three/examples/jsm/loaders/DRACOLoader.js'))
+        return null;
       const patched = code.replace(
         /new URL\(\s*'\.\.\/libs\/draco\/(?:gltf\/)?([^']+)'\s*,\s*import\.meta\.url\s*\)\.toString\(\)/g,
         (_match, file) => `'/draco/${file}'`,
@@ -68,6 +69,8 @@ export default defineConfig(({ mode, command }) => {
               target: apiOrigin,
               changeOrigin: true,
               secure: true,
+              timeout: 120000,
+              proxyTimeout: 120000,
               rewrite: (path) => `${apiBasePath}${path}`,
               configure: (proxy) => {
                 // This is a server-to-server request; the upstream must not

@@ -31,7 +31,7 @@ export default function IntelligenceKpi({
   );
 
   return (
-    <div className="intel-kpi">
+    <div className="intel-kpi" data-tone={tone}>
       {onOpen ? (
         <button
           type="button"

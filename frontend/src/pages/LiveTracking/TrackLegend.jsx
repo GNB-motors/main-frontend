@@ -1,3 +1,4 @@
+import PlaceLayerRow from './PlaceLayerRow.jsx';
 import { useMemo, useState } from 'react';
 import {
   BadgeCheck,
@@ -20,7 +21,7 @@ import { getPref, setPref } from '../../utils/session';
 import { formatAgo } from '../../utils/redesign/format';
 import { placeLayerColor } from '../../utils/redesign/tone';
 import InfoTip from '../../components/redesign/InfoTip';
-import { LAYER_MIN_ZOOM, LIVE_LAYERS, PLACE_LAYERS } from './trackLegendModel';
+import { LIVE_LAYERS, PLACE_LAYERS } from './trackLegendModel';
 import LegendBlock from './LegendBlock';
 import LegendToggle from './LegendToggle';
 
@@ -73,6 +74,17 @@ function readLegendOpen() {
  * many trucks the owner has.
  */
 export default function TrackLegend({
+  nearbyInfo = null,
+  onRetryNearby,
+  layerAvailability = null,
+  availabilityLoading = false,
+  ownPlacesCount = null,
+  tollInfo = null,
+  showAllTolls = false,
+  onToggleAllTolls,
+  hideRoutes = false,
+  initialOpen = false,
+  initialPlacesOpen = false,
   statusRows = [],
   makeRows = [],
   statusSelection = {},
@@ -89,6 +101,8 @@ export default function TrackLegend({
   onRefresh,
   isRefreshing = false,
   zoom = 0,
+  tollsError = null,
+  onRetryTolls,
   placesNotAvailable = false,
   placesTruncated = false,
   placesCount = 0,
@@ -97,13 +111,15 @@ export default function TrackLegend({
   error = null,
   onRetry = null,
 }) {
-  const [isOpen, setIsOpen] = useState(() => readLegendOpen());
+  const [showEmptyLayers, setShowEmptyLayers] = useState(false);
+  const emptyLayers = PLACE_LAYERS.filter((layer) => layerAvailability?.[layer.id]?.count === 0);
+  const availableLayers = PLACE_LAYERS.filter((layer) => layerAvailability?.[layer.id]?.count !== 0);
+  const [isOpen, setIsOpen] = useState(() => initialOpen || readLegendOpen());
   // The place layers are many rows; they start folded away and the owner keeps
   // that choice (the storage read/write never throws — utils/session.js).
-  const [placesOpen, setPlacesOpen] = useState(() => readPlacesOpen());
+  const [placesOpen, setPlacesOpen] = useState(() => initialPlacesOpen || readPlacesOpen());
 
   const movingCount = statusRows.find((row) => row.key === 'moving')?.count ?? 0;
-  const zoomedIn = Number(zoom) >= LAYER_MIN_ZOOM;
   // Trucks and Make now live in the top toolbar; when the page hands the legend
   // no status/make rows it is a Places-only panel, so the header and the
   // collapsed pill drop the fleet language.
@@ -247,31 +263,39 @@ export default function TrackLegend({
               open={placesOpen}
               onToggle={togglePlaces}
             >
-              {PLACE_LAYERS.map((layer) => {
-                const Icon = LAYER_ICONS[layer.icon] || Factory;
-                return (
-                  <LegendToggle
-                    key={layer.id}
-                    label={layer.label}
-                    icon={<Icon size={14} aria-hidden="true" />}
-                    color={placeLayerColor(layer.id)}
-                    on={Boolean(layerSelection[layer.id])}
-                    disabled={placesNotAvailable}
-                    disabledReason={placesNotAvailable ? 'Coming soon' : null}
-                    onToggle={() => onToggleLayer(layer.id)}
-                    info={
-                      placesNotAvailable ? (
-                        <InfoTip
-                          text="Coming soon. This layer arrives with the new map places service."
-                          basis={null}
-                          side="left"
-                        />
-                      ) : null
-                    }
-                  />
-                );
+              <div className="lt-place-layer-list">
+              {availableLayers.map((layer) => {
+                const coverage = layerAvailability?.[layer.id];
+                const isToll = layer.id === 'tolls';
+                const notAvailable = placesNotAvailable && !isToll && layer.id !== 'ourPlaces';
+                const nearby = !isToll && layer.id !== 'ourPlaces' && layerSelection[layer.id]
+                  ? nearbyInfo?.loading ? 'Loading in this view…'
+                    : nearbyInfo?.error ? 'Could not load this view'
+                      : nearbyInfo?.loaded ? nearbyInfo.counts[layer.id] ? `${nearbyInfo.counts[layer.id]}${nearbyInfo.truncated ? '+' : ''} in this view` : nearbyInfo.truncated ? 'Zoom in for local results' : 'None in this view' : null : null;
+                const count = layer.id === 'ourPlaces' ? ownPlacesCount : isToll ? tollInfo?.visitedCount : coverage?.count;
+                return <div key={layer.id}>
+                  <PlaceLayerRow layer={layer} on={Boolean(layerSelection[layer.id])} onToggle={() => onToggleLayer(layer.id)}
+                    count={count} truncated={coverage?.truncated} color={placeLayerColor(layer.id)} disabled={notAvailable}
+                    subtitle={notAvailable ? 'Coming soon' : isToll ? 'Visited by your fleet' : nearby || (coverage?.failed ? 'Coverage unavailable' : null)} />
+                  {notAvailable ? <InfoTip text="Coming soon. This layer arrives with the new map places service." basis={null} side="left" /> : null}
+                  {isToll && onToggleAllTolls ? <div className="lt-toll-scope">
+                    <div className="lt-toll-scope-heading"><span>All tolls in view</span><button type="button" role="switch" aria-label="Show all tolls in view" aria-checked={showAllTolls && Boolean(layerSelection.tolls)} onClick={onToggleAllTolls} className="lt-layer-switch"><span /></button></div>
+                    <p>{showAllTolls && layerSelection.tolls ? tollInfo?.needsZoom ? 'Zoom in to load all tolls in view.' : tollInfo?.loading ? 'Loading toll plazas…' : `${tollInfo?.allCount ?? '—'} toll plazas in this view` : 'Include plazas your fleet hasn’t used.'}</p>
+                    {tollInfo?.truncated ? <p>Some plazas are hidden. Zoom in for all.</p> : null}
+                  </div> : null}
+                </div>;
               })}
-              {!zoomedIn && placesOpen ? <p className="m-0 px-1 pt-1 text-[12px] text-[var(--rd-ink-3)]">Zoom in to see nearby places.</p> : null}
+              </div>
+              {availabilityLoading && !layerAvailability ? <p className="lt-layer-coverage-note" role="status">Checking map coverage…</p> : null}
+              {layerAvailability ? <p className="lt-layer-coverage-note">Map category counts cover India. Toll count shows fleet-visited plazas.</p> : null}
+              {emptyLayers.length ? <div className="lt-empty-layer-group">
+                <button type="button" aria-expanded={showEmptyLayers} onClick={() => setShowEmptyLayers((value) => !value)}>{emptyLayers.length} categories without mapped data <ChevronDown size={12} aria-hidden="true" /></button>
+                {showEmptyLayers ? emptyLayers.map((layer) => <PlaceLayerRow key={layer.id} layer={layer} on={false} disabled color={placeLayerColor(layer.id)} count={0} subtitle="No mapped data yet" />) : null}
+              </div> : null}
+              {tollsError ? <p role="status" className="m-0 px-1 pt-1 text-[12px] text-[var(--rd-ink-2)]">
+                Could not load toll plazas. <button type="button" onClick={onRetryTolls}>Retry tolls</button>
+              </p> : null}
+              {nearbyInfo?.error ? <p className="lt-layer-coverage-note" role="alert">Could not load nearby places. <button type="button" onClick={onRetryNearby}>Retry nearby places</button></p> : null}
               {placesTruncated ? (
                 <p className="m-0 px-1 pt-1 text-[11px] text-[var(--rd-ink-3)]">
                   Showing {placesCount.toLocaleString('en-IN')} · zoom in for all
@@ -289,7 +313,7 @@ export default function TrackLegend({
                 basis: null,
               }}
             >
-              {LIVE_LAYERS.map((layer) => {
+              {LIVE_LAYERS.filter((layer) => !hideRoutes || layer.id !== 'routes').map((layer) => {
                 const Icon = LAYER_ICONS[layer.icon] || Factory;
                 const count = liveCounts[layer.id];
                 return (
@@ -304,12 +328,12 @@ export default function TrackLegend({
                   />
                 );
               })}
-              {layerSelection.routes && unmatchedRoutes > 0 ? (
+              {!hideRoutes && layerSelection.routes && unmatchedRoutes > 0 ? (
                 <p className="m-0 px-1 pt-1 text-[11px] text-[var(--rd-ink-3)]">
                   {unmatchedRoutes} lanes not yet road-matched
                 </p>
               ) : null}
-              {layerSelection.routes && zoom < 7 ? (
+              {!hideRoutes && layerSelection.routes && zoom < 7 ? (
                 <p className="m-0 px-1 pt-1 text-[11px] text-[var(--rd-ink-3)]">Zoom in to see routes</p>
               ) : null}
             </LegendBlock>
@@ -332,14 +356,14 @@ export default function TrackLegend({
               </span>
             ) : (
               <span className="flex-1 text-[11px] text-[var(--rd-ink-3)]">
-                {lastEventAt ? `Updated ${formatAgo(lastEventAt)}` : 'Waiting for data'}
+                {hasFilterRows ? lastEventAt ? `Updated ${formatAgo(lastEventAt)}` : 'Waiting for data' : 'Place layers'}
               </span>
             )}
             <button
               type="button"
               onClick={onRefresh}
-              aria-label={error ? 'Retry fleet data' : 'Refresh fleet data'}
-              title={error ? 'Retry fleet data' : 'Refresh fleet data'}
+              aria-label={hasFilterRows ? error ? 'Retry fleet data' : 'Refresh fleet data' : 'Refresh place layers'}
+              title={hasFilterRows ? error ? 'Retry fleet data' : 'Refresh fleet data' : 'Refresh place layers'}
               className="rounded-md p-1 text-[var(--rd-ink-3)] transition-colors hover:bg-[var(--rd-card-2)] hover:text-[var(--rd-ink-2)]"
             >
               <RotateCw

@@ -2,15 +2,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import UsageAnalyticsPage from './UsageAnalyticsPage';
-import { UsageAnalyticsContext } from '../../contexts/UsageAnalyticsContext';
-import { getUsageSummary } from '../../services/UsageAnalyticsService';
-vi.mock('../../services/UsageAnalyticsService', () => ({ getUsageSummary: vi.fn() }));
-const catalog = [
-  { type: 'link', to: '/reports', label: 'Reports' },
-  { type: 'link', to: '/live-tracking', label: 'Live Tracking' },
+import { getOrgUsageSummary, listOrganizations } from '../../../../services/UsageAnalyticsService';
+
+vi.mock('../../../../services/UsageAnalyticsService', () => ({
+  getOrgUsageSummary: vi.fn(),
+  listOrganizations: vi.fn(),
+  getNavProfile: vi.fn(),
+  getUsageSummary: vi.fn(),
+  recordView: vi.fn(),
+}));
+
+const ORGS = [
+  { _id: 'org1', name: 'BD Roadlines' },
+  { _id: 'org2', name: 'GNB Transport' },
 ];
-const surfaces = catalog.map((item) => item.to);
-const updateProfile = vi.fn();
+
 const payload = {
   state: 'LEARNED',
   computedAt: '2026-10-22T02:00:00Z',
@@ -27,64 +33,82 @@ const payload = {
       disposition: 'AT_OR_ABOVE_FLOOR',
       evidence: { views: 37, activeDays: 2 },
     },
-    { surfaceKey: '/old-screen', disposition: 'NEVER_OPENED', evidence: {} },
   ],
   daily: [
     { day: '2026-10-20', views: 10 },
     { day: '2026-10-21', views: 30 },
   ],
 };
-function mount() {
+
+function mount(initialEntries = ['/superadmin/app-usage']) {
   return render(
-    <MemoryRouter>
-      <UsageAnalyticsContext.Provider value={{ catalog, surfaces, updateProfile }}>
-        <UsageAnalyticsPage />
-      </UsageAnalyticsContext.Provider>
+    <MemoryRouter initialEntries={initialEntries}>
+      <UsageAnalyticsPage />
     </MemoryRouter>,
   );
 }
+
+async function pickOrg(name = 'BD Roadlines') {
+  await screen.findByRole('option', { name });
+  fireEvent.change(screen.getByRole('combobox', { name: 'Organization' }), {
+    target: { value: 'org1' },
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
-  getUsageSummary.mockResolvedValue(payload);
+  listOrganizations.mockResolvedValue(ORGS);
+  getOrgUsageSummary.mockResolvedValue(payload);
 });
-describe('App Usage', () => {
-  it('shares the eligible catalog with the sidebar and renders screen links and the data horizon', async () => {
+
+describe('App Usage (superadmin)', () => {
+  it('asks for an organization before reading any usage', async () => {
     mount();
-    expect(await screen.findByRole('link', { name: 'Reports' })).toHaveAttribute(
-      'href',
-      '/reports',
-    );
-    expect(getUsageSummary).toHaveBeenCalledWith({ surfaces, signal: expect.any(AbortSignal) });
-    expect(updateProfile).toHaveBeenCalledWith(payload);
-    expect(screen.getByText(/Data through 2026-10-21/)).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Old Screen/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('img')).toHaveAccessibleName(/Daily page opens/);
+    expect(await screen.findByText('No organization selected')).toBeInTheDocument();
+    expect(getOrgUsageSummary).not.toHaveBeenCalled();
   });
+
+  it('loads the chosen org summary and renders screens without linking into them', async () => {
+    mount();
+    await pickOrg();
+    expect(getOrgUsageSummary).toHaveBeenCalledWith('org1', { signal: expect.any(AbortSignal) });
+    expect(await screen.findByText('Reports')).toBeInTheDocument();
+    // superadmin cannot open client screens from here: labels, no links
+    expect(screen.queryByRole('link', { name: 'Reports' })).not.toBeInTheDocument();
+    expect(screen.getByText(/Data through 2026-10-21/)).toBeInTheDocument();
+    expect(screen.getByRole('img')).toHaveAccessibleName(/Daily page opens/);
+    expect(screen.getByText('BD Roadlines')).toBeInTheDocument();
+  });
+
   it('searches and filters screen activity and exposes role counts', async () => {
     mount();
-    await screen.findByRole('link', { name: 'Reports' });
+    await pickOrg();
+    await screen.findByText('Reports');
     fireEvent.change(screen.getByRole('textbox', { name: 'Search screens' }), {
       target: { value: 'reports' },
     });
-    expect(screen.queryByRole('link', { name: 'Live Tracking' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Live Tracking')).not.toBeInTheDocument();
     expect(screen.getByText('OWNER: 3 opens')).toBeInTheDocument();
     fireEvent.change(screen.getByRole('combobox', { name: 'Usage category' }), {
       target: { value: 'NEVER_OPENED' },
     });
     expect(screen.getByText('No matching screens')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
-    expect(screen.getByRole('link', { name: 'Live Tracking' })).toBeInTheDocument();
+    expect(screen.getByText('Live Tracking')).toBeInTheDocument();
   });
+
   it('recovers from failure with Retry', async () => {
-    getUsageSummary.mockRejectedValueOnce(new Error('Network unavailable'));
+    getOrgUsageSummary.mockRejectedValueOnce(new Error('Network unavailable'));
     mount();
+    await pickOrg();
     expect(await screen.findByRole('alert')).toHaveTextContent('Network unavailable');
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
-    await screen.findByRole('link', { name: 'Reports' });
+    await screen.findByText('Reports');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
+
   it('keeps incomplete history separate from an API failure', async () => {
-    getUsageSummary.mockResolvedValue({
+    getOrgUsageSummary.mockResolvedValue({
       state: 'INSUFFICIENT',
       window: {},
       learned: {},
@@ -92,16 +116,26 @@ describe('App Usage', () => {
       daily: [],
     });
     mount();
+    await pickOrg();
     await screen.findByText('Collecting history', { selector: 'strong' });
     expect(screen.getByText('No screen history yet')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
+
   it('aborts the read when the page unmounts', async () => {
-    getUsageSummary.mockReturnValue(new Promise(() => {}));
+    getOrgUsageSummary.mockReturnValue(new Promise(() => {}));
     const view = mount();
-    await waitFor(() => expect(getUsageSummary).toHaveBeenCalled());
-    const signal = getUsageSummary.mock.calls[0][0].signal;
+    await pickOrg();
+    await waitFor(() => expect(getOrgUsageSummary).toHaveBeenCalled());
+    const signal = getOrgUsageSummary.mock.calls[0][1].signal;
     view.unmount();
     expect(signal.aborted).toBe(true);
+  });
+
+  it('reads the org from the URL so a shared link reopens it', async () => {
+    mount(['/superadmin/app-usage?org=org2']);
+    await waitFor(() =>
+      expect(getOrgUsageSummary).toHaveBeenCalledWith('org2', { signal: expect.any(AbortSignal) }),
+    );
   });
 });

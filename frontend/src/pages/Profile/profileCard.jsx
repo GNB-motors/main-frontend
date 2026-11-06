@@ -56,16 +56,16 @@ export const ProfileCard = ({ user, organization }) => {
         <div className="my-6 h-px w-full bg-slate-100" />
 
         {/* Quick stats */}
-        <div className="grid w-full grid-cols-2 gap-3">
-          <div className="rounded-xl bg-blue-50 px-3 py-3 text-center">
+        <div className="grid w-full grid-cols-2 gap-3 items-stretch">
+          <div className="flex flex-col items-center justify-center rounded-xl bg-blue-50 p-3 text-center min-h-[72px] transition-all">
             <p className="text-[10px] font-bold uppercase tracking-widest text-blue-400">Company</p>
-            <p className="mt-1 truncate text-sm font-bold text-blue-700">
+            <p className="mt-1 w-full text-sm font-bold text-blue-700 break-words [overflow-wrap:anywhere] leading-snug">
               {organization?.companyName || '—'}
             </p>
           </div>
-          <div className="rounded-xl bg-indigo-50 px-3 py-3 text-center">
+          <div className="flex flex-col items-center justify-center rounded-xl bg-indigo-50 p-3 text-center min-h-[72px] transition-all">
             <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">GSTIN</p>
-            <p className="mt-1 truncate text-sm font-bold text-indigo-700">
+            <p className="mt-1 w-full text-sm font-bold text-indigo-700 break-words [overflow-wrap:anywhere] leading-snug tracking-tight">
               {organization?.gstin || '—'}
             </p>
           </div>
@@ -89,8 +89,8 @@ export const ProfileCard = ({ user, organization }) => {
 };
 
 export const ProfileSkeleton = () => (
-  <div className="flex h-full w-full gap-6 p-6">
-    <div className="w-72 shrink-0">
+  <div className="flex flex-col lg:flex-row h-full w-full gap-6 p-6">
+    <div className="w-full lg:w-80 xl:w-88 shrink-0">
       <div className="rounded-2xl bg-white p-6 shadow-sm space-y-4">
         <Skeleton className="h-28 w-full rounded-xl" />
         <div className="flex flex-col items-center gap-2">

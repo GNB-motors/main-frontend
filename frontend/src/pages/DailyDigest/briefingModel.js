@@ -169,7 +169,7 @@ export function leakRows(brief) {
 export const EXCEPTION_LINKS = {
   sos: '/alert-inbox',
   moneyTheft: '/intelligence?tab=fuel',
-  idling: '/place-hub?tab=idling',
+  idling: '/intelligence?tab=idling',
   stuckAtPlant: '/place-hub',
   etaSlipping: '/auto-trips',
   papersWaiting: '/expenses',

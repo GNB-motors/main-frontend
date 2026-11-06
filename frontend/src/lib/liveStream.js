@@ -65,6 +65,7 @@ export function createLiveStream(deps = {}) {
 
   let state = 'closed';
   let source = null;
+  let connectingPromise = null;
   let reconnectTimer = null;
   let graceTimer = null;
   let hiddenTimer = null;
@@ -101,6 +102,7 @@ export function createLiveStream(deps = {}) {
 
   const disconnect = (nextState = 'closed') => {
     clearTimers();
+    connectingPromise = null;
     closeSource();
     attempt = 0;
     emitState(nextState);
@@ -119,52 +121,58 @@ export function createLiveStream(deps = {}) {
     set.forEach((h) => h(payload));
   };
 
-  const connect = async () => {
-    if (source) return;
+  const connect = () => {
+    if (source) return Promise.resolve();
+    if (connectingPromise) return connectingPromise;
     clearTimers();
     emitState(attempt === 0 ? 'connecting' : 'reconnecting');
-    let ticket;
-    try {
-      ticket = await requestTicket();
-    } catch (err) {
-      scheduleReconnect(err);
-      return;
-    }
-    if (!ticket) {
-      scheduleReconnect(new Error('ticket endpoint returned no token'));
-      return;
-    }
-    let es;
-    try {
-      es = openStream(streamUrl(ticket));
-    } catch {
-      scheduleReconnect(new Error('EventSource construction failed'));
-      return;
-    }
-    if (state === 'closed') {
-      // Unsubscribed (or hidden-shutdown) while the ticket request was in flight.
-      es.close();
-      return;
-    }
-    source = es;
-    es.onopen = () => {
-      attempt = 0;
-      emitState('open');
-    };
-    es.onerror = () => {
-      // Per SSE semantics the browser auto-reconnects unless we intervene; we
-      // manage retries ourselves (fresh ticket each attempt), so tear down and
-      // schedule our own backoff reconnect.
-      closeSource();
-      scheduleReconnect();
-    };
-    es.onmessage = (ev) => dispatch('message', ev.data);
-    // Named events: register per subscribed type so unknown events are ignored.
-    ['hello', 'positions', 'alerts', 'freshness', 'intent', 'idling', 'incidents'].forEach(
-      (type) => {
-        es.addEventListener(type, (ev) => dispatch(type, ev.data));
-      },
-    );
+    connectingPromise = (async () => {
+      let ticket;
+      try {
+        ticket = await requestTicket();
+      } catch (err) {
+        scheduleReconnect(err);
+        return;
+      }
+      if (!ticket) {
+        scheduleReconnect(new Error('ticket endpoint returned no token'));
+        return;
+      }
+      let es;
+      try {
+        es = openStream(streamUrl(ticket));
+      } catch {
+        scheduleReconnect(new Error('EventSource construction failed'));
+        return;
+      }
+      if (state === 'closed') {
+        // Unsubscribed (or hidden-shutdown) while the ticket request was in flight.
+        es.close();
+        return;
+      }
+      source = es;
+      es.onopen = () => {
+        attempt = 0;
+        emitState('open');
+      };
+      es.onerror = () => {
+        // Per SSE semantics the browser auto-reconnects unless we intervene; we
+        // manage retries ourselves (fresh ticket each attempt), so tear down and
+        // schedule our own backoff reconnect.
+        closeSource();
+        scheduleReconnect();
+      };
+      es.onmessage = (ev) => dispatch('message', ev.data);
+      // Named events: register per subscribed type so unknown events are ignored.
+      ['hello', 'positions', 'alerts', 'freshness', 'intent', 'idling', 'incidents'].forEach(
+        (type) => {
+          es.addEventListener(type, (ev) => dispatch(type, ev.data));
+        },
+      );
+    })().finally(() => {
+      connectingPromise = null;
+    });
+    return connectingPromise;
   };
 
   const scheduleReconnect = (err) => {
@@ -219,7 +227,14 @@ export function createLiveStream(deps = {}) {
       clearTimeout(hiddenTimer);
       hiddenTimer = null;
     }
-    if (!source && !reconnectTimer && !cooldownTimer && hasSubscribers() && state === 'closed') {
+    if (
+      !source &&
+      !connectingPromise &&
+      !reconnectTimer &&
+      !cooldownTimer &&
+      hasSubscribers() &&
+      state === 'closed'
+    ) {
       connect();
     }
   };
@@ -238,7 +253,7 @@ export function createLiveStream(deps = {}) {
       clearTimeout(graceTimer);
       graceTimer = null;
     }
-    if (!source && !reconnectTimer && !cooldownTimer) connect();
+    if (!source && !connectingPromise && !reconnectTimer && !cooldownTimer) connect();
     return () => {
       const set = handlers.get(eventType);
       if (!set) return;
@@ -293,4 +308,10 @@ export function getLiveStream() {
 export function resetLiveStream() {
   if (singleton) singleton.dispose();
   singleton = null;
+}
+
+if (typeof import.meta !== 'undefined' && import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    resetLiveStream();
+  });
 }

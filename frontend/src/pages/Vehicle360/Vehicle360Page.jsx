@@ -8,6 +8,7 @@ import ServicePanel from './panels/ServicePanel';
 import FuelPanel from './panels/FuelPanel';
 import DocumentsPanel from './panels/DocumentsPanel';
 import TelemetryPanel from './panels/TelemetryPanel';
+import TyresPanel from './panels/TyresPanel';
 import TripsPanel from './panels/TripsPanel';
 import DriversPanel from './panels/DriversPanel';
 import OpenChallanBadge from '../Compliance/OpenChallanBadge';
@@ -56,6 +57,7 @@ export default function Vehicle360Page() {
     { id: 'trips', label: 'Trips' },
     { id: 'drivers', label: 'Drivers' },
     { id: 'telemetry', label: 'Telemetry' },
+    { id: 'tyres', label: 'Tyres & Axles' },
   ];
 
   // Tab lives in the URL so a vehicle view is shareable and the back button works.
@@ -71,11 +73,16 @@ export default function Vehicle360Page() {
   if (error?.status === 404) {
     return (
       <div className="v360">
-        <Breadcrumbs reg={reg} />
+        <Breadcrumbs
+          reg={reg}
+          lastSyncAt={
+            p.livePosition?.view?.lastFixAt || p.livePosition?.eventDateTime || p.health?.pulledAt
+          }
+        />
         <section className="v360-card">
           <p className="v360-card-title">Nothing on record for {reg}</p>
           <p className="v360-card-lede">
-            This registration is not in the fleet master, the FleetEdge directory, or the
+            This registration is not in the fleet master, the telematics directory, or the
             live-status feed. Check the plate, or add the vehicle to the fleet first.
           </p>
           <div style={{ display: 'flex', gap: 9, marginTop: 14 }}>
@@ -115,6 +122,8 @@ export default function Vehicle360Page() {
         livePosition={p.livePosition}
         prediction={p.prediction}
         telematicsProvider={p.telematicsProvider}
+        ialert={p.ialert}
+        coverage={p.coverage}
       />
 
       {/* Compliance: open e-challans block registration, so they belong on
@@ -135,6 +144,7 @@ export default function Vehicle360Page() {
         history={history}
         ialert={p.ialert}
         telematicsProvider={p.telematicsProvider}
+        kmPerLitre={p.kmPerLitre}
       />
 
       <Tabs tabs={TABS} active={active} onChange={setActive} />
@@ -151,6 +161,7 @@ export default function Vehicle360Page() {
           assignedDriver={p.assignedDriver}
           fleetMaster={p.fleetMaster}
           fleetEdge={p.fleetEdge}
+          kmPerLitre={p.kmPerLitre}
           onGoTab={setActive}
         />
       ) : null}
@@ -165,7 +176,16 @@ export default function Vehicle360Page() {
         />
       ) : null}
       {active === 'fuel' ? (
-        <FuelPanel recentFuelLogs={p.recentFuelLogs} defBalance={p.defBalance} />
+        <FuelPanel
+          recentFuelLogs={p.recentFuelLogs}
+          defBalance={p.defBalance}
+          health={p.health}
+          prediction={p.prediction}
+          kmPerLitre={p.kmPerLitre}
+          fleetMaster={p.fleetMaster}
+          fleetEdge={p.fleetEdge}
+          ialert={p.ialert}
+        />
       ) : null}
       {active === 'documents' ? (
         <DocumentsPanel
@@ -178,10 +198,31 @@ export default function Vehicle360Page() {
         <TripsPanel vehicleId={p.fleetMaster?.id} registrationNumber={reg} />
       ) : null}
       {active === 'drivers' ? (
-        <DriversPanel vehicleId={p.fleetMaster?.id} assignedDriver={p.assignedDriver} />
+        <DriversPanel
+          vehicleId={p.fleetMaster?.id}
+          assignedDriver={p.assignedDriver}
+          health={p.health}
+          livePosition={p.livePosition}
+        />
       ) : null}
       {active === 'telemetry' ? (
-        <TelemetryPanel health={p.health} livePosition={p.livePosition} history={history} />
+        <TelemetryPanel
+          health={p.health}
+          prediction={p.prediction}
+          livePosition={p.livePosition}
+          history={history}
+          fleetMaster={p.fleetMaster}
+          fleetEdge={p.fleetEdge}
+        />
+      ) : null}
+      {active === 'tyres' ? (
+        <TyresPanel
+          fleetMaster={p.fleetMaster}
+          fleetEdge={p.fleetEdge}
+          health={p.health}
+          ialert={p.ialert}
+          tyres={p.tyres}
+        />
       ) : null}
     </div>
   );

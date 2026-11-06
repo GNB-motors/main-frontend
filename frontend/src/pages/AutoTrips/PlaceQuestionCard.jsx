@@ -43,7 +43,7 @@ export default function PlaceQuestionCard({ question, canAnswer = true, onAnswer
               type="button"
               onClick={() => answer({ answer: 'CONFIRM' })}
               disabled={busy}
-              className="ml-2 rounded-[var(--rd-radius-sm)] bg-[var(--rd-accent)] px-2.5 py-1 text-[12px] font-semibold text-white disabled:opacity-50"
+              className="ml-2 rounded-[var(--rd-radius-sm)] bg-[var(--rd-brand)] px-2.5 py-1 text-[12px] font-semibold text-white hover:bg-[var(--rd-brand-2)] disabled:opacity-50"
             >
               Yes, that&apos;s it
             </button>
@@ -88,7 +88,7 @@ export default function PlaceQuestionCard({ question, canAnswer = true, onAnswer
                 type="button"
                 disabled={busy || !name.trim()}
                 onClick={() => answer({ answer: 'RENAME', name: name.trim(), category })}
-                className="rounded-[var(--rd-radius-sm)] bg-[var(--rd-accent)] px-2.5 py-1 text-[12px] font-semibold text-white disabled:opacity-50"
+                className="rounded-[var(--rd-radius-sm)] bg-[var(--rd-brand)] px-2.5 py-1 text-[12px] font-semibold text-white hover:bg-[var(--rd-brand-2)] disabled:opacity-50"
               >
                 Save the name
               </button>
@@ -134,9 +134,7 @@ export default function PlaceQuestionCard({ question, canAnswer = true, onAnswer
       )}
 
       {question.why?.text ? (
-        <p className="m-0 text-[12px] text-[var(--rd-ink-3)]">
-          Why we ask: {question.why.text}
-        </p>
+        <p className="m-0 text-[12px] text-[var(--rd-ink-3)]">Why we ask: {question.why.text}</p>
       ) : null}
 
       {samples.length ? (

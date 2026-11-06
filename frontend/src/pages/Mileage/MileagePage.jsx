@@ -2,7 +2,7 @@ import ManufacturerFilter from '../../components/filters/ManufacturerFilter';
 import useManufacturerFilter from '../../hooks/useManufacturerFilter';
 import React, { Suspense, lazy, useDeferredValue, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Camera, Search, X } from 'lucide-react';
+import { Camera, PenLine, Search, X } from 'lucide-react';
 import PageShell from '../../components/ui/PageShell';
 import { Skeleton } from '../../components/ui/skeleton.jsx';
 import HubDateBar from './components/HubDateBar';
@@ -129,7 +129,6 @@ const SUBVIEWS = {
   },
 };
 
-
 /** The shape of the hub while the page's own permissions are still loading. */
 const HubSkeleton = () => (
   <div className="mhub" aria-busy="true" aria-label="Loading the hub">
@@ -203,8 +202,7 @@ export default function MileagePage() {
     setSearchParams(next, { replace });
   };
 
-  const openPerformanceTab = () =>
-    updateParams({ tab: 'performance', subtab: null, view: null });
+  const openPerformanceTab = () => updateParams({ tab: 'performance', subtab: null, view: null });
 
   const choosePreset = (key) => updateParams({ dates: key, from: null, to: null });
   const changeRange = (patch) => {
@@ -258,8 +256,11 @@ export default function MileagePage() {
                   <Camera size={15} aria-hidden /> Add bill photo
                 </button>
                 {/* The by-hand form stays reachable: a route is never deleted. */}
-                <Link to="/mileage-tracking/new" className="text-[12px] text-[var(--rd-ink-2)] underline-offset-4 hover:underline">
-                  Enter by hand instead
+                <Link
+                  to="/mileage-tracking/new"
+                  className="pshell-btn mhub-add-btn mhub-by-hand-btn"
+                >
+                  <PenLine size={15} aria-hidden /> Enter by hand
                 </Link>
               </div>
             ) : null}

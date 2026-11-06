@@ -13,14 +13,16 @@ import PlaceQuestionCard from './PlaceQuestionCard';
  * so the card says how many trips are waiting. Only an owner or a manager
  * may answer; everybody else sees the queue read-only.
  */
-export default function PlaceQuestionsTab() {
+export default function PlaceQuestionsTab({ query = null }) {
   const [busyId, setBusyId] = useState(null);
   const [answered, setAnswered] = useState([]);
 
-  const { data, loading, error, refetch } = useApi(
-    (signal) => fleetViewService.getPlaceQuestions({ signal }),
-    [],
-  );
+  // The page already fetched the queue for the banner — reuse it so the tab
+  // renders instantly instead of waiting on a second identical request.
+  const own = useApi((signal) => fleetViewService.getPlaceQuestions({ signal }), [], {
+    enabled: !query,
+  });
+  const { data, loading, error, refetch } = query ?? own;
 
   const role = getUserRole();
   const canAnswer = role === 'OWNER' || role === 'MANAGER';
@@ -52,14 +54,45 @@ export default function PlaceQuestionsTab() {
   }
 
   if (loading) {
-    return <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">Loading the questions…</p>;
+    return (
+      <div
+        className="flex flex-col gap-3"
+        aria-busy="true"
+        aria-label="Loading the place questions"
+      >
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div
+            key={index}
+            className="flex flex-col gap-3 rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] p-4 shadow-[var(--rd-shadow)]"
+          >
+            <span className="atx-skel h-[14px] w-3/5" />
+            <span className="atx-skel h-[13px] w-2/5" />
+            <span className="atx-skel h-[13px] w-4/5" />
+            <span className="mt-1 flex gap-2">
+              <span className="atx-skel h-[26px] w-[88px]" />
+              <span className="atx-skel h-[26px] w-[96px]" />
+              <span className="atx-skel h-[26px] w-[64px]" />
+            </span>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">
-        We could not load the place questions.
-      </p>
+      <div className="flex flex-col items-start gap-2">
+        <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">
+          We could not load the place questions.
+        </p>
+        <button
+          type="button"
+          onClick={() => refetch?.()}
+          className="rounded-[var(--rd-radius-sm)] border border-[var(--rd-line)] px-2.5 py-1 text-[12px] font-semibold text-[var(--rd-brand)]"
+        >
+          Try again
+        </button>
+      </div>
     );
   }
 

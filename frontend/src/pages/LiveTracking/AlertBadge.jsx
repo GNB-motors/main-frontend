@@ -10,7 +10,7 @@ export default function AlertBadge({ count = 0 }) {
   const label = `${total} unacknowledged alert${total === 1 ? '' : 's'}`;
   return (
     <span
-      className="inline-flex min-w-[18px] items-center justify-center rounded-full bg-[var(--rd-act)] px-1.5 py-0.5 text-[11px] font-semibold text-white"
+      className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-[var(--rd-act)] px-1 text-[11px] leading-none font-semibold tracking-normal text-white"
       aria-label={label}
       title={label}
     >

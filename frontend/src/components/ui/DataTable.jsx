@@ -246,7 +246,7 @@ export default function DataTable({
             </tr>
           </thead>
           <tbody>
-            {loading && rows.length === 0
+            {!error && loading && rows.length === 0
               ? Array.from({ length: 6 }).map((_, i) => (
                   <tr key={`skel-${i}`} className="dt-row dt-row--skeleton" aria-hidden>
                     {selectable ? (

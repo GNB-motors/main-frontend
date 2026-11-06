@@ -1,3 +1,6 @@
+import { tollMarkerIcon } from './mapPlaceIcon.js';
+import FocusedRouteLayer from './FocusedRouteLayer.jsx';
+import TollLayer from './TrackPlacesTollLayer.jsx';
 import PassiveTrailLayer from './PassiveTrailLayer.jsx';
 import TrackTollLayers from './TrackTollLayers';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -59,6 +62,7 @@ export default function LiveMapCanvas({
   habitualHalts,
   isHabitualHaltsVisible,
   segmentByTrip,
+  tollPlazas = [],
   places = [],
   extraPlaces = [],
   selectedPlaceId = null,
@@ -75,6 +79,7 @@ export default function LiveMapCanvas({
   onSelectReviewSite,
   idlingRows = [],
   onSelectIdling,
+  focusedRoute = null,
   routeLines = [],
   routeSites = NO_SITES,
   onPickRoute,
@@ -272,6 +277,7 @@ export default function LiveMapCanvas({
 
           {/* The landmark layers (pumps, dhabas, hospitals…) — under the
               fleet too, so a truck is never hidden by a pin. */}
+          <TollLayer plazas={tollPlazas} interactive markerIcon={tollMarkerIcon} />
           <MapPlacesLayer
             places={extraPlaces}
             selectedId={selectedPlaceId}
@@ -292,7 +298,8 @@ export default function LiveMapCanvas({
 
           {!track && idlingRows.length ? <TrackIdlingLayer rows={idlingRows} onSelect={onSelectIdling} /> : null}
 
-          {!track && mapZoom >= 7 && routeLines.length ? (
+          <FocusedRouteLayer route={focusedRoute} />
+          {!focusedRoute && !track && mapZoom >= 7 && routeLines.length ? (
             <RouteLayer
               dimmed={Boolean(selectedId)}
               map={map}

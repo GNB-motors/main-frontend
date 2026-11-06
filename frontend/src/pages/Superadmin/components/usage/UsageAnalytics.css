@@ -452,3 +452,41 @@
     padding: 12px;
   }
 }
+
+/* ─── Superadmin org picker ────────────────────────────────────────────── */
+.usage-org-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+.usage-org-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 300px;
+  padding: 0 12px;
+  height: 36px;
+  border: 1px solid var(--rd-line-strong, #c9d0dc);
+  border-radius: 10px;
+  background: var(--rd-card, #ffffff);
+  color: var(--rd-ink-2, #4b5563);
+}
+.usage-org-picker select {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--rd-ink, #111827);
+  outline: none;
+  cursor: pointer;
+}
+.usage-org-bar .usage-scope {
+  margin: 0;
+}
+.usage-empty--picker {
+  padding: 40px 16px;
+}

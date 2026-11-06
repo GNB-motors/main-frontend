@@ -61,7 +61,6 @@ const LiveTrackingPage = lazy(() => import('../../pages/LiveTracking/LiveTrackin
 const OwnerAlertsPage = lazy(() => import('../../pages/OwnerAlerts/OwnerAlertsPage.jsx'));
 // Item 26 — the one alert inbox and the usage numbers behind the nav cut.
 const AlertInboxPage = lazy(() => import('../../pages/AlertInbox/AlertInboxPage.jsx'));
-const UsageAnalyticsPage = lazy(() => import('../../pages/UsageAnalytics/UsageAnalyticsPage.jsx'));
 const FieldAgentFuelPage = lazy(() => import('../../pages/FieldAgentFuel/FieldAgentFuelPage.jsx'));
 const FieldAgentFuelUploadPage = lazy(
   () => import('../../pages/FieldAgentFuel/FieldAgentFuelUploadPage.jsx'),
@@ -97,7 +96,7 @@ const dashboardRoutes = (
   <>
     <Route path="/digest" element={<DailyDigestPage />} />
     <Route path="/fleet-alerts" element={<FleetAlertsPage />} />
-    <Route path="/idling-console" element={<Navigate to="/place-hub?tab=idling" replace />} />
+    <Route path="/idling-console" element={<Navigate to="/intelligence?tab=idling" replace />} />
     <Route path="/daily-brief" element={<Navigate to="/digest" replace />} />
     <Route path="/def-ledger" element={<DefLedgerPage />} />
     <Route path="/challans" element={<ChallansPage />} />
@@ -162,10 +161,10 @@ const dashboardRoutes = (
       path="/route-profitability"
       element={<RedirectWithState to="/route-hub?tab=profitability" />}
     />
-    <Route path="/overspeed" element={<RedirectWithState to="/route-hub?tab=overspeed" />} />
+    <Route path="/overspeed" element={<RedirectWithState to="/intelligence?tab=overspeed" />} />
     {/* Deprecated / hidden routes redirect cleanly so no blank screens appear */}
-    <Route path="/hotspots" element={<Navigate to="/place-hub?tab=fuel" replace />} />
-    <Route path="/idling-console" element={<Navigate to="/place-hub?tab=idling" replace />} />
+    <Route path="/hotspots" element={<Navigate to="/intelligence?tab=fuel" replace />} />
+    <Route path="/idling-console" element={<Navigate to="/intelligence?tab=idling" replace />} />
     <Route path="/places" element={<PlacesRedirect />} />
     <Route path="/place-hub" element={<PlaceHubPage />} />
     <Route
@@ -181,10 +180,9 @@ const dashboardRoutes = (
     {/* Item 26.5: ONE inbox over the scattered alert sources. The pages it reads
         from are all still mounted below and keep working unchanged. */}
     <Route path="/alert-inbox" element={<AlertInboxPage />} />
-    {/* Item 26.1: what this org opens, and the numbers the menu cut is argued
-        from. The endpoint authorizes OWNER/MANAGER; the nav entry is gated to
-        the same two roles. */}
-    <Route path="/usage" element={<UsageAnalyticsPage />} />
+    {/* Item 26.1: the App Usage PAGE moved to the superadmin interface
+        (/superadmin/app-usage). Usage recording and the sidebar's nav cut
+        stay here — only the page left. */}
     <Route path="/geofence" element={<Navigate to="/live-tracking" replace />} />
     <Route path="/geofence/zones" element={<Navigate to="/live-tracking" replace />} />
     <Route path="/geofence-zones" element={<Navigate to="/live-tracking" replace />} />

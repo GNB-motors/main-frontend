@@ -46,16 +46,30 @@ describe('FleetListView error state', () => {
       status: 'moving',
       hasFix: true,
     };
-    renderRail({ error: new Error('stream hiccup'), vehicles: [vehicle], filteredVehicles: [vehicle] });
+    renderRail({
+      error: new Error('stream hiccup'),
+      vehicles: [vehicle],
+      filteredVehicles: [vehicle],
+    });
     expect(screen.queryAllByText("Couldn't load your fleet")).toHaveLength(0);
   });
 });
 
-it('uses an honest road fallback and shows speed without exposing identifiers', async () => {
-  const vehicle = { id: 'v1', plate: 'WB01AB1234', status: 'moving', hasFix: true, lat: 22, lng: 88, speed: 32, vin: 'SECRET-VIN' };
+it('shows the original vehicle details alongside speed', async () => {
+  const vehicle = {
+    id: 'v1',
+    plate: 'WB01AB1234',
+    status: 'moving',
+    hasFix: true,
+    lat: 22,
+    lng: 88,
+    speed: 32,
+    manufacturer: 'Tata',
+    vin: 'TEST-VIN',
+  };
   renderRail({ vehicles: [vehicle], filteredVehicles: [vehicle] });
-  expect(await screen.findByText('On the road')).toBeInTheDocument();
+  expect(await screen.findByText('View current location')).toBeInTheDocument();
   expect(screen.getByText('32 km/h')).toBeInTheDocument();
-  expect(screen.queryByText('View current location')).not.toBeInTheDocument();
-  expect(screen.queryByText('SECRET-VIN')).not.toBeInTheDocument();
+  expect(screen.getByText('Tata')).toBeInTheDocument();
+  expect(screen.getByText('VIN: TEST-VIN')).toBeInTheDocument();
 });

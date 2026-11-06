@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import DataTable from '@/components/ui/DataTable';
-import EnterprisePagination from '@/components/ui/EnterprisePagination';
 import ToneBadge from '@/components/redesign/ToneBadge';
 import { formatNumber } from '@/utils/redesign/format';
 import { useApi } from '@/hooks/useApi';
@@ -196,88 +195,96 @@ export default function ReportCardsTab({
 
   const title = subject === 'driver' ? 'Drivers' : 'Trucks';
   const what = subject === 'driver' ? 'The driver card' : 'The truck card';
+  const activeFilters = (grade !== 'all' ? 1 : 0) + (make !== 'all' ? 1 : 0) + (query.trim() ? 1 : 0);
 
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex items-center">
-          <Search
-            size={14}
-            aria-hidden="true"
-            className="pointer-events-none absolute left-2.5 text-[var(--rd-ink-3)]"
-          />
-          <input
-            id="intelligence-card-search"
-            type="search"
-            aria-label={`Search ${title.toLowerCase()}`}
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setPage(1);
-            }}
-            placeholder={subject === 'driver' ? 'Search a driver' : 'Search a plate'}
-            className="w-[200px] rounded-[var(--rd-radius-xs)] border border-[var(--rd-line)] bg-[var(--rd-card)] py-1.5 pr-2 pl-8 text-[13px] text-[var(--rd-ink)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--rd-brand-2)]"
-          />
-        </div>
+  const toolbar = (
+    <div className="intel-tab-tools">
+      <div className="intel-search-box">
+        <Search
+          size={14}
+          aria-hidden="true"
+          className="intel-search-icon"
+        />
+        <input
+          id="intelligence-card-search"
+          type="search"
+          aria-label={`Search ${title.toLowerCase()}`}
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setPage(1);
+          }}
+          placeholder={subject === 'driver' ? 'Search a driver' : 'Search a plate'}
+          className="intel-search-input"
+        />
+      </div>
 
-        {makes.length > 0 ? (
-          <Select
-            value={make}
-            onValueChange={(value) => {
-              setMake(value ?? 'all');
+      {makes.length > 0 ? (
+        <Select
+          value={make}
+          onValueChange={(value) => {
+            setMake(value ?? 'all');
+            setPage(1);
+          }}
+        >
+          <SelectTrigger aria-label="Filter by make" size="sm" className="intel-select-trigger">
+            <SelectValue>{make === 'all' ? 'All makes' : make}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All makes</SelectItem>
+            {makes.map((name) => (
+              <SelectItem key={name} value={name}>
+                {name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : null}
+
+      {makes.length > 0 && cards.length ? <span className="intel-chip-sep" aria-hidden="true" /> : null}
+
+      {cards.length ? (
+        <div className="intel-chip-row" role="group" aria-label="Assessment groups">
+          <button
+            type="button"
+            className="intel-chip"
+            aria-pressed={grade === 'all'}
+            onClick={() => {
+              setGrade('all');
               setPage(1);
             }}
           >
-            <SelectTrigger aria-label="Filter by make" size="sm">
-              <SelectValue>{make === 'all' ? 'All makes' : make}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All makes</SelectItem>
-              {makes.map((name) => (
-                <SelectItem key={name} value={name}>
-                  {name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : null}
-
-
-        {cards.length ? (
-          <div className="intel-chip-row" role="group" aria-label="Assessment groups">
+            All
+            <span className="tabular-nums">
+              {gradeBuckets.reduce((sum, bucket) => sum + bucket.cards.length, 0)}
+            </span>
+          </button>
+          {gradeBuckets.map((bucket) => (
             <button
+              key={bucket.id}
               type="button"
               className="intel-chip"
-              aria-pressed={grade === 'all'}
+              aria-pressed={bucket.grades.includes(grade)}
               onClick={() => {
-                setGrade('all');
+                setGrade(grade === bucket.grades[0] ? 'all' : bucket.grades[0]);
                 setPage(1);
               }}
             >
-              All
-              <span className="tabular-nums">
-                {gradeBuckets.reduce((sum, bucket) => sum + bucket.cards.length, 0)}
-              </span>
+              {bucket.label}
+              <span className="tabular-nums">{bucket.cards.length}</span>
             </button>
-            {gradeBuckets.map((bucket) => (
-              <button
-                key={bucket.id}
-                type="button"
-                className="intel-chip"
-                aria-pressed={bucket.grades.includes(grade)}
-                onClick={() => {
-                  setGrade(grade === bucket.grades[0] ? 'all' : bucket.grades[0]);
-                  setPage(1);
-                }}
-              >
-                {bucket.label}
-                <span className="tabular-nums">{bucket.cards.length}</span>
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
+          ))}
+        </div>
+      ) : null}
 
+      {sharedBasis ? (
+        <span className="intelligence-scope-note-inline ml-auto">{`Based on ${humanizeDates(sharedBasis).replace(/^([A-Z])(?=[a-z])/, (c) => c.toLowerCase())}`}</span>
+      ) : null}
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-3">
       <IntelligenceDataState
         loading={loading}
         loadingVariant="table"
@@ -294,10 +301,16 @@ export default function ReportCardsTab({
       >
         <>
           {subject === 'driver' ? (
-            allUngraded ? <p className="intelligence-scope-note intelligence-scope-note--warn" role="status">No driver can be graded yet. Assignment coverage is not a driving-quality assessment.</p> : <p className="intelligence-scope-note">
-              Assignment coverage is shown when a performance score is unavailable. An ungraded
-              driver is not classified as a good or bad performer.
-            </p>
+            allUngraded ? (
+              <p className="intelligence-scope-note intelligence-scope-note--warn" role="status">
+                No driver can be graded yet. Assignment coverage is not a driving-quality assessment.
+              </p>
+            ) : (
+              <p className="intelligence-scope-note">
+                Assignment coverage is shown when a performance score is unavailable. An ungraded
+                driver is not classified as a good or bad performer.
+              </p>
+            )
           ) : null}
           <DataTable
             columns={columns}
@@ -305,21 +318,34 @@ export default function ReportCardsTab({
             rowKey={(card) => card.id}
             onRowClick={(card) => setOpenCard(card)}
             showing={Math.min(25, rows.length - (currentPage - 1) * 25)}
-            total={total}
-            toolbarExtra={
-              sharedBasis ? (
-                <span className="intelligence-scope-note">{`Based on ${humanizeDates(sharedBasis).replace(/^([A-Z])(?=[a-z])/, (c) => c.toLowerCase())}`}</span>
-              ) : null
-            }
+            total={cards.length}
+            activeFilters={activeFilters}
+            toolbarExtra={toolbar}
             pagination={
               totalPages > 1 ? (
-                <EnterprisePagination
-                  page={currentPage}
-                  totalPages={totalPages}
-                  totalItems={rows.length}
-                  pageSize={25}
-                  onPageChange={setPage}
-                />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPage((value) => Math.max(1, value - 1))}
+                    disabled={currentPage <= 1}
+                    aria-label="Previous page"
+                    className="intel-pager"
+                  >
+                    <ChevronLeft size={14} aria-hidden="true" />
+                    Previous
+                  </button>
+                  <span className="text-[12px] text-[var(--rd-ink-3)] tabular-nums">{`Page ${currentPage} of ${formatNumber(totalPages)}`}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+                    disabled={currentPage >= totalPages}
+                    aria-label="Next page"
+                    className="intel-pager"
+                  >
+                    Next
+                    <ChevronRight size={14} aria-hidden="true" />
+                  </button>
+                </div>
               ) : null
             }
           />

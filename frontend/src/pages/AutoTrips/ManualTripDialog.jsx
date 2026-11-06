@@ -73,7 +73,7 @@ export default function ManualTripDialog({ open, onOpenChange, onAdded }) {
 
   return (
     <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : close())}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[560px]">
+      <DialogContent className="atx-dialog max-h-[85vh] overflow-y-auto sm:max-w-[560px]">
         <DialogHeader>
           <DialogTitle>Add a missed trip</DialogTitle>
           <DialogDescription>

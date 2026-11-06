@@ -15,5 +15,6 @@ describe('Track routes', () => {
     });
     expect(result.lines.map((line) => line.id)).toEqual(['a', 'b']);
     expect(result.unmatchedCount).toBe(1);
+    expect(result.legs.map((leg) => leg._id)).toEqual(['a', 'b', 'c']);
   });
 });

@@ -40,6 +40,24 @@ const daysText = (days) => {
   return `Due in ${days} day${days === 1 ? '' : 's'}`;
 };
 
+const PredictionSkeleton = () => (
+  <div className="si-alert-skel-card">
+    <div className="si-alert-skel-icon" />
+    <div className="si-alert-skel-body">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span className="si-skel-bar" style={{ width: 90, height: 16 }} />
+        <span className="si-skel-bar" style={{ width: 70, height: 16, borderRadius: 12 }} />
+        <span className="si-skel-bar" style={{ width: 110, height: 16 }} />
+      </div>
+      <span className="si-skel-bar" style={{ width: '75%', height: 13 }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
+        <span className="si-skel-bar" style={{ width: 90, height: 12 }} />
+        <span className="si-skel-bar" style={{ width: 120, height: 12 }} />
+      </div>
+    </div>
+  </div>
+);
+
 const UpcomingServiceTab = ({ search = '', refreshKey = 0 }) => {
   const navigate = useNavigate();
   const [records, setRecords] = useState([]);
@@ -86,29 +104,35 @@ const UpcomingServiceTab = ({ search = '', refreshKey = 0 }) => {
   const countForTab = (key) => (key === 'ALL' ? counts.total : counts[key] || 0);
 
   return (
-    <div className="si-alerts-wrapper" style={{ width: '100%' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '16px 0 16px 0' }}>
+    <div className="si-alerts-wrapper" style={{ width: '100%', gap: 12 }}>
+      <div className="si-kpis-strip" style={{ margin: '0 0 12px 0' }}>
         <KpiCard
           title="Tracked vehicles"
-          value={counts.total}
+          value={
+            loading && records.length === 0 ? <span className="si-skel-kpi-val" /> : counts.total
+          }
           accent="#3b82f6"
           icon={<CalendarClock size={18} />}
         />
         <KpiCard
           title="Overdue"
-          value={counts.OVERDUE}
+          value={
+            loading && records.length === 0 ? <span className="si-skel-kpi-val" /> : counts.OVERDUE
+          }
           accent="#dc2626"
           icon={<AlertTriangle size={18} />}
         />
         <KpiCard
           title="Due soon"
-          value={counts.DUE_SOON}
+          value={
+            loading && records.length === 0 ? <span className="si-skel-kpi-val" /> : counts.DUE_SOON
+          }
           accent="#ea580c"
           icon={<Clock size={18} />}
         />
         <KpiCard
           title="On track"
-          value={counts.OK}
+          value={loading && records.length === 0 ? <span className="si-skel-kpi-val" /> : counts.OK}
           accent="#16a34a"
           icon={<CheckCircle2 size={18} />}
         />
@@ -119,8 +143,8 @@ const UpcomingServiceTab = ({ search = '', refreshKey = 0 }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          margin: '0 0 16px 0',
-          gap: 16,
+          margin: '0 0 12px 0',
+          gap: 12,
           flexWrap: 'nowrap',
           width: '100%',
           boxSizing: 'border-box',
@@ -157,9 +181,15 @@ const UpcomingServiceTab = ({ search = '', refreshKey = 0 }) => {
       </div>
 
       <div style={{ padding: 0 }}>
-        {loading && records.length === 0 && (
-          <div style={emptyBox}>Loading service predictions…</div>
-        )}
+        {loading && records.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <PredictionSkeleton />
+            <PredictionSkeleton />
+            <PredictionSkeleton />
+            <PredictionSkeleton />
+          </div>
+        ) : null}
+
         {!loading && filtered.length === 0 && (
           <div style={emptyBox}>
             {records.length === 0
@@ -167,6 +197,7 @@ const UpcomingServiceTab = ({ search = '', refreshKey = 0 }) => {
               : 'No vehicles in this category.'}
           </div>
         )}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {filtered.map((r) => (
             <PredictionCard

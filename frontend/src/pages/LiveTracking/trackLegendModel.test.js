@@ -152,8 +152,8 @@ describe('layersForZoom', () => {
     expect(layersForZoom(7, defaultLayerSelection())).toContain('ourPlaces');
   });
 
-  it('hides the zoom-gated layers when the map is far out', () => {
-    expect(layersForZoom(7, defaultLayerSelection())).not.toContain('pumps');
+  it('keeps selected place categories available when the map is far out', () => {
+    expect(layersForZoom(7, defaultLayerSelection())).toContain('pumps');
   });
 
   it('allows the zoom-gated layers when zoomed in', () => {
@@ -167,8 +167,8 @@ describe('layersForZoom', () => {
 });
 
 describe('isZoomGated', () => {
-  it('is true for a gated layer below the zoom', () => {
-    expect(isZoomGated('dhabas', 9)).toBe(true);
+  it('does not block dhabas at a regional zoom', () => {
+    expect(isZoomGated('dhabas', 9)).toBe(false);
   });
 
   it('is false for our places at any zoom', () => {
