@@ -12,7 +12,7 @@ import {
   measurementNote,
   pathLabel,
   recentDays,
-} from '../UsageAnalytics/usageModel.js';
+} from '../Superadmin/components/usage/usageModel.js';
 
 /**
  * The two properties the pages promise, tested without rendering:
@@ -38,7 +38,11 @@ const item = (over = {}) => ({
 
 describe('the inbox row always says what it wants', () => {
   it('withholds a row with no ask instead of rendering a blank one', () => {
-    const items = [item({ id: 'ok' }), item({ id: 'broken', wants: '   ' }), item({ id: 'none', wants: undefined })];
+    const items = [
+      item({ id: 'ok' }),
+      item({ id: 'broken', wants: '   ' }),
+      item({ id: 'none', wants: undefined }),
+    ];
     const broken = assertEveryItemSaysWhatItWants(items);
     expect(broken.map((b) => b.id)).toEqual(['broken', 'none']);
   });
@@ -46,11 +50,7 @@ describe('the inbox row always says what it wants', () => {
   it('makes the three-sources-one-item case legible', () => {
     const merged = item({
       sourceCount: 3,
-      sources: [
-        { source: 'ownerAlerts' },
-        { source: 'hotspotWatch' },
-        { source: 'fleetAlerts' },
-      ],
+      sources: [{ source: 'ownerAlerts' }, { source: 'hotspotWatch' }, { source: 'fleetAlerts' }],
     });
     expect(merged.sources).toHaveLength(3);
     expect(sourcesLine(merged)).toContain('3 modules');
@@ -89,11 +89,32 @@ describe('the usage page makes the cut arguable', () => {
   const profile = {
     state: 'LEARNED',
     window: { from: '2026-09-01', to: '2026-10-22' },
-    learned: { engagementFloor: 40, sessionGapMs: 120000, surfacesMeasured: 3, userDays: 93, totalViews: 664 },
+    learned: {
+      engagementFloor: 40,
+      sessionGapMs: 120000,
+      surfacesMeasured: 3,
+      userDays: 93,
+      totalViews: 664,
+    },
     surfaces: [
-      { surfaceKey: '/live-tracking', disposition: 'AT_OR_ABOVE_FLOOR', reason: '400 opens vs median 40.', evidence: { views: 400, userDays: 90, followOn: 120 } },
-      { surfaceKey: '/route-hub', disposition: 'BELOW_ORG_FLOOR', reason: '4 opens vs median 40.', evidence: { views: 4, userDays: 3, followOn: 1 } },
-      { surfaceKey: '/khata-ledger', disposition: 'NEVER_OPENED', reason: 'Not opened once.', evidence: { views: 0, userDays: 0, followOn: 0 } },
+      {
+        surfaceKey: '/live-tracking',
+        disposition: 'AT_OR_ABOVE_FLOOR',
+        reason: '400 opens vs median 40.',
+        evidence: { views: 400, userDays: 90, followOn: 120 },
+      },
+      {
+        surfaceKey: '/route-hub',
+        disposition: 'BELOW_ORG_FLOOR',
+        reason: '4 opens vs median 40.',
+        evidence: { views: 4, userDays: 3, followOn: 1 },
+      },
+      {
+        surfaceKey: '/khata-ledger',
+        disposition: 'NEVER_OPENED',
+        reason: 'Not opened once.',
+        evidence: { views: 0, userDays: 0, followOn: 0 },
+      },
     ],
   };
 
@@ -137,7 +158,12 @@ describe('the usage page makes the cut arguable', () => {
   });
 
   it('trims the daily series to the tail, oldest first', () => {
-    const daily = Array.from({ length: 30 }, (_, i) => ({ day: `2026-10-${String(i + 1).padStart(2, '0')}`, views: i, followOn: 0, userDays: 0 }));
+    const daily = Array.from({ length: 30 }, (_, i) => ({
+      day: `2026-10-${String(i + 1).padStart(2, '0')}`,
+      views: i,
+      followOn: 0,
+      userDays: 0,
+    }));
     const out = recentDays(daily, 14);
     expect(out).toHaveLength(14);
     expect(out[13].day).toBe('2026-10-30');

@@ -4,6 +4,7 @@ import { useApi } from '../../hooks/useApi';
 import { KaaranService } from '../../services/KaaranService';
 import { formatINR, formatLitres, formatNum, formatPct } from '../../utils/formatters';
 import { MAX_PUMP_ROWS, pumpRow, sortPumps } from './pumpHonestyModel.js';
+import { PumpArt } from './FuelIntegrityEmptyArt.jsx';
 
 const MAX_ROWS = MAX_PUMP_ROWS;
 const STATUS_BADGE = {
@@ -75,10 +76,13 @@ export default function PumpsWatchCard() {
           The pump ledger is not available for this account — it is read by managers and owners.
         </p>
       ) : rows.length === 0 ? (
-        <p className="text-xs text-slate-500 m-0">
-          No pump fills audited yet — the ledger needs a fuel bill and a tank reading for the same
-          fill.
-        </p>
+        <div className="fi-empty-art">
+          <PumpArt />
+          <p className="text-xs text-slate-500 m-0">
+            No pump fills audited yet — the ledger needs a fuel bill and a tank reading for the same
+            fill.
+          </p>
+        </div>
       ) : (
         <ul className="list-none p-0 m-0 flex flex-col gap-2">
           {rows.map((p) => (

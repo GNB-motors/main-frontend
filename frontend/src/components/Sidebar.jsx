@@ -47,7 +47,8 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   }, [organization?.logoUrl]);
 
   // No usage profile: the menu is never folded by usage, every entry stays in
-  // its own section. /usage still reports which screens are less used.
+  // its own section. (The App Usage page itself lives in the superadmin
+  // interface now; usage recording still feeds the cut.)
   const { items: navItems } = useMemo(
     () => computeVisibleNav(canAccess, role, null, isEnabled),
     [canAccess, role, isEnabled],
@@ -137,18 +138,8 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
 
     if (item.type === 'link') {
       return (
-        <NavHint
-          key={item.to}
-          hint={item.hint}
-          label={item.label}
-          collapsed={isRailCollapsed}
-        >
-          <NavLink
-            to={item.to}
-            end={item.end}
-            className="nav-link"
-            onClick={closeSidebarOnMobile}
-          >
+        <NavHint key={item.to} hint={item.hint} label={item.label} collapsed={isRailCollapsed}>
+          <NavLink to={item.to} end={item.end} className="nav-link" onClick={closeSidebarOnMobile}>
             <Icon size={20} />
             <span>{item.label}</span>
             {item.badgeKey === 'approvalsCount' && approvalsCount > 0 && (
@@ -189,7 +180,10 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
               <Icon size={20} />
               <span>{item.label}</span>
               {item.badgeKey === 'approvalsTotal' && approvalsCount + billApprovalsCount > 0 && (
-                <span className="erp-badge warning" style={{ fontSize: '11px', padding: '2px 7px' }}>
+                <span
+                  className="erp-badge warning"
+                  style={{ fontSize: '11px', padding: '2px 7px' }}
+                >
                   {approvalsCount + billApprovalsCount}
                 </span>
               )}

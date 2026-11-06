@@ -220,7 +220,7 @@
 .nav-link {
   display: flex;
   align-items: center;
-  padding: 10px 8px;
+  padding: 10px 12px;
   border-radius: var(--border-radius-md);
   color: var(--color-grey-400);
   text-decoration: none;
@@ -228,6 +228,8 @@
   font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
   transition:
     gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     justify-content 0.3s cubic-bezier(0.4, 0, 0.2, 1),
@@ -269,7 +271,7 @@
 }
 
 .sidebar-footer {
-  padding-top: 12px;
+  padding: 10px 0 8px;
   border-top: 1px solid var(--color-grey-200);
   flex: 0 0 auto; /* stays pinned below the scrolling list; never squeezed or overlapped */
   position: relative; /* sit above the gradient layers */
@@ -383,15 +385,17 @@
 
 /* === Section headings === */
 .nav-section-label {
-  padding: 14px 8px 4px;
+  padding: 14px 10px 4px;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
   text-transform: uppercase;
   color: var(--color-grey-400);
   white-space: nowrap;
-  overflow: hidden;
+  overflow: visible;
   user-select: none;
+  flex-shrink: 0;
   transition: color 0.35s ease;
 }
 
@@ -400,6 +404,8 @@
 }
 
 .nav-section-label span {
+  display: block;
+  line-height: 1.4;
   transition:
     opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -409,12 +415,13 @@
 .nav-section {
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
 }
 
 .nav-parent {
   display: flex;
   align-items: center;
-  padding: 10px 8px;
+  padding: 10px 12px;
   border-radius: var(--border-radius-md);
   color: var(--color-grey-400);
   text-decoration: none;
@@ -428,6 +435,7 @@
   width: 100%;
   text-align: left;
   position: relative;
+  flex-shrink: 0;
   justify-content: space-between;
   transition:
     gap 0.3s cubic-bezier(0.4, 0, 0.2, 1),
@@ -530,6 +538,7 @@
     padding: 12px 8px 8px;
     display: flex;
     justify-content: center;
+    align-items: center;
   }
 
   .sidebar .nav-section-label span {
@@ -537,10 +546,12 @@
     visibility: hidden;
     width: 0;
     height: 0;
+    overflow: hidden;
   }
 
   .sidebar .nav-section-label::before {
     content: '';
+    display: block;
     height: 1px;
     width: 28px;
     background-color: var(--color-grey-200);
@@ -549,18 +560,25 @@
       opacity 0.2s ease;
   }
 
-  .sidebar:hover .nav-section-label {
+  .sidebar:hover .nav-section-label,
+  .sidebar.open .nav-section-label {
     display: block;
+    padding: 16px 12px 6px;
+    text-align: left;
+    overflow: visible;
   }
 
-  .sidebar:hover .nav-section-label span {
+  .sidebar:hover .nav-section-label span,
+  .sidebar.open .nav-section-label span {
     opacity: 1;
     visibility: visible;
     width: auto;
     height: auto;
+    overflow: visible;
   }
 
-  .sidebar:hover .nav-section-label::before {
+  .sidebar:hover .nav-section-label::before,
+  .sidebar.open .nav-section-label::before {
     display: none;
   }
 
@@ -712,14 +730,26 @@
   opacity: 0;
 }
 
-/* The active item carries the brand: tint ground, AA-safe ink, and a 3px
-   edge in full-strength orange — small enough area that #EE6126 is legible
-   as a marker without being read as text. */
+/* The active item carries the brand: tint ground, AA-safe ink, and a clean
+   left indicator pill — avoids inset box-shadow curving into the rounded corners/icon. */
 .nav-link.active,
 .nav-parent.active-parent {
   background-color: var(--sb-active-bg);
   color: var(--sb-active-text);
-  box-shadow: inset 3px 0 0 var(--orange);
+  box-shadow: none;
+  position: relative;
+}
+
+.nav-link.active::before,
+.nav-parent.active-parent::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3.5px;
+  border-radius: 0 4px 4px 0;
+  background-color: var(--orange, #2563eb);
 }
 
 /* ERP mirrors the treatment exactly, in blue. Text stays neutral because
@@ -733,7 +763,7 @@
   --sb-divider: var(--ds-line);
 }
 
-.sidebar--erp .nav-link.active,
-.sidebar--erp .nav-parent.active-parent {
-  box-shadow: inset 3px 0 0 var(--erp);
+.sidebar--erp .nav-link.active::before,
+.sidebar--erp .nav-parent.active-parent::before {
+  background-color: var(--erp, #2563eb);
 }

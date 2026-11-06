@@ -13,6 +13,7 @@ import {
   Satellite,
   MessageSquareWarning,
   GraduationCap,
+  Activity,
 } from 'lucide-react';
 import UkoLogo from '../../../assets/uko-logo.png';
 import { clearSession } from '../../../utils/session';
@@ -142,6 +143,15 @@ const SuperAdminSidebar = ({ setSidebarOpen }) => {
           >
             <Satellite size={20} />
             <span>Fleet Data Health</span>
+          </NavLink>
+
+          <NavLink
+            to="/superadmin/app-usage"
+            className="superadmin-nav-link"
+            onClick={closeSidebarOnMobile}
+          >
+            <Activity size={20} />
+            <span>App Usage</span>
           </NavLink>
 
           <SupportTicketsNavLink onNavigate={closeSidebarOnMobile} />

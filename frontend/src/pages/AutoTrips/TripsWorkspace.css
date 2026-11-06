@@ -293,15 +293,39 @@
   grid-column: 1 / -1;
   align-content: start;
 }
+/* Trips surfaces follow the redesign brand blue (--rd-brand, the colour the
+   trip pages already use for .atx-btn--primary and the list tabs). The shell
+   navy accent stays on legacy ERP surfaces. Mapping the accent tokens — not
+   just --primary — matters because the shared Button reads --orange-hover /
+   --orange-active for its hover and pressed states. */
 .sap-panel,
-.atx-page {
-  --primary: var(--orange-solid);
+.atx-page,
+.trip-workspace {
+  --orange: var(--rd-brand);
+  --orange-solid: var(--rd-brand);
+  --orange-hover: var(--rd-brand-2);
+  --orange-active: color-mix(in srgb, var(--rd-brand) 82%, #0b1440);
+  --orange-tint: var(--rd-brand-tint);
+  --accent-ink: var(--rd-brand);
+  --primary: var(--rd-brand);
   --primary-foreground: #fff;
 }
 .trip-workspace {
-  --primary: var(--orange-solid);
-  --primary-foreground: #fff;
   padding: 24px;
+}
+
+/* Dialogs opened from the trips pages render in a portal at <body>, outside
+   .atx-page, so the scope above never reaches them. The class goes on
+   DialogContent and gives the dialog the same brand blue buttons. */
+.atx-dialog {
+  --orange: var(--rd-brand);
+  --orange-solid: var(--rd-brand);
+  --orange-hover: var(--rd-brand-2);
+  --orange-active: color-mix(in srgb, var(--rd-brand) 82%, #0b1440);
+  --orange-tint: var(--rd-brand-tint);
+  --accent-ink: var(--rd-brand);
+  --primary: var(--rd-brand);
+  --primary-foreground: #fff;
 }
 .trip-workspace .pshell-title {
   color: var(--ds-ink);

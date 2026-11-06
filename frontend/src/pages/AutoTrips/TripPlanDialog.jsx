@@ -51,7 +51,7 @@ export default function TripPlanDialog({ open, onOpenChange, onCreated }) {
 
   return (
     <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : close())}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[560px]">
+      <DialogContent className="atx-dialog max-h-[85vh] overflow-y-auto sm:max-w-[560px]">
         <DialogHeader>
           <DialogTitle>Schedule a trip</DialogTitle>
           <DialogDescription>

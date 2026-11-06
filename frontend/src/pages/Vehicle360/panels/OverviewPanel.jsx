@@ -4,24 +4,16 @@ import WhatIsDueCard from './overview/WhatIsDueCard';
 import FuelCard from './overview/FuelCard';
 import DriverCard from './overview/DriverCard';
 import ServicesCard from './overview/ServicesCard';
-import ActivityCard from './overview/ActivityCard';
-import InfoCard from './overview/InfoCard';
-import AttributionPanel from './AttributionPanel';
-import DriverAttributionPanel from './DriverAttributionPanel';
-import { getUserRole } from '../../../utils/session';
-
-// The card API is OWNER/MANAGER only (it grades people). Mounting the panels
-// for anyone else would fetch a 403 on every Vehicle360 open.
-const canReadAttribution = () => ['OWNER', 'MANAGER'].includes(getUserRole());
+import TodayCard from './overview/TodayCard';
 
 /**
  * Overview panel — "can this truck earn today, and what is stopping it".
- * Three cards: how much it has run, what it owes, and what it has burned.
- * Plus the attribution card, which says whether a fuel gap is the truck or the
- * driver and shows the evidence either way.
+ * Includes live shift vitals (TodayCard), distance utilisation, due obligations,
+ * fuel economics with true mileage, driver duty details, and service progress.
+ *
+ * Rendered as an executive 2-row, 3-column balanced grid with equal-height cards.
  */
 export default function OverviewPanel({
-  vehicleId,
   history,
   health,
   livePosition,
@@ -31,39 +23,43 @@ export default function OverviewPanel({
   assignedDriver,
   fleetMaster,
   fleetEdge,
+  kmPerLitre,
   onGoTab,
 }) {
   return (
     <PanelErrorBoundary name="vehicle-overview">
       <div className="v360-panel">
-        {canReadAttribution() ? (
-          <>
-            <AttributionPanel vehicleId={vehicleId} />
-            {/* The driver's own card, so the truck card's "driver" verdict can be
-                read against the driver's own view of the same history. */}
-            <DriverAttributionPanel
-              driverId={assignedDriver?.id || assignedDriver?._id || assignedDriver?.driverId}
-            />
-          </>
-        ) : null}
-        <UtilisationCard history={history} health={health} onGoTrips={() => onGoTab('trips')} />
+        {/* Row 1: Operations, Utilisation, Compliance */}
+        <TodayCard health={health} livePosition={livePosition} />
+        <UtilisationCard
+          history={history}
+          health={health}
+          prediction={prediction}
+          onGoTrips={() => onGoTab('trips')}
+        />
         <WhatIsDueCard
           prediction={prediction}
           documents={documents}
           health={health}
           onGoTab={onGoTab}
         />
-        <FuelCard recentFuelLogs={recentFuelLogs} onGoFuel={() => onGoTab('fuel')} />
+
+        {/* Row 2: Asset Health, Economics, Driver Duty */}
+        <ServicesCard
+          prediction={prediction}
+          health={health}
+          onGoService={() => onGoTab('service')}
+        />
+        <FuelCard
+          recentFuelLogs={recentFuelLogs}
+          kmPerLitre={kmPerLitre}
+          onGoFuel={() => onGoTab('fuel')}
+        />
         <DriverCard
           assignedDriver={assignedDriver}
           fleetMaster={fleetMaster}
           fleetEdge={fleetEdge}
-          health={health}
-          livePosition={livePosition}
         />
-        <ServicesCard prediction={prediction} />
-        <ActivityCard history={history} />
-        <InfoCard documents={documents} onGoDocuments={() => onGoTab('documents')} />
       </div>
     </PanelErrorBoundary>
   );

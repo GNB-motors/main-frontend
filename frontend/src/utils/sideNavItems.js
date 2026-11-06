@@ -19,7 +19,6 @@ import {
   Warehouse,
   Route,
   Bell,
-  Activity,
   Gauge,
   Sparkles,
   MapPinned,
@@ -434,14 +433,6 @@ export const SIDE_NAV_ITEMS = [
   },
 
   { type: 'section', label: 'Account' },
-  {
-    type: 'link',
-    key: null,
-    to: '/usage',
-    label: 'App Usage',
-    icon: Activity,
-    roles: ['OWNER', 'MANAGER'],
-  },
   // Settings hub for fleet and vehicle configs
   { type: 'link', key: null, to: '/settings', label: 'Settings', icon: Settings },
   // Always visible (no feature flag) — guaranteed fallback page. Profile must

@@ -96,6 +96,22 @@
   letter-spacing: -0.01em !important;
 }
 
+/* The by-hand entry sits next to the photo button as its quieter sibling:
+   same geometry, no solid fill. */
+.mhub-by-hand-btn {
+  background: var(--rd-card, #ffffff) !important;
+  border: 1.5px solid var(--rd-line-strong, #c9d0dc) !important;
+  color: var(--rd-ink-2, #4b5563) !important;
+  box-shadow: none !important;
+}
+.mhub-by-hand-btn:hover:not(:disabled) {
+  border-color: var(--rd-brand, #1f3fbf) !important;
+  background: var(--rd-brand-tint, #eaf0ff) !important;
+  color: var(--rd-brand, #1f3fbf) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(31, 63, 191, 0.12) !important;
+}
+
 /* ── Date Bar (HubDateBar - left untouched) ─────────────────── */
 .mhub-datebar {
   position: sticky;

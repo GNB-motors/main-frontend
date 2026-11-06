@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { CalendarClock, ChevronDown, Plus, Search, ShieldCheck } from 'lucide-react';
+import { toast } from 'react-toastify';
+import { ArrowLeft, CalendarClock, ChevronDown, Plus, Search, ShieldCheck } from 'lucide-react';
 import { canEditSap } from '../Sap/sapModel';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import { getUserRole } from '../../utils/session';
 import DataTable from '../../components/ui/DataTable';
 import EnterprisePagination from '../../components/ui/EnterprisePagination';
-import { Button } from '../../components/ui/button';
 import { useApi } from '../../hooks/useApi';
 import AutoTripService from '../../services/AutoTripService';
 import TripPlanService from '../../services/TripPlanService';
@@ -24,6 +24,7 @@ import TripHistoryTab from './TripHistoryTab';
 import PlaceQuestionsTab from './PlaceQuestionsTab';
 import TripKpiStrip from './TripKpiStrip';
 import NeedsAnswerBanner from './NeedsAnswerBanner';
+import AutoTripCoverage from './AutoTripCoverage';
 import { typicalRun } from './tripListModel';
 import { rangeToParams, readRange, writeRange } from './tripRange';
 import './AutoTrips.css';
@@ -43,7 +44,13 @@ const TABS = [
   // A plant-to-plant run is normal: plants work like warehouses. It is its
   // own tab so the owner can see those runs, not so they can worry about
   // them (F8.1).
-  { key: 'REPOSITION', label: 'Plant to plant', leg: 'REPOSITION', hideWhenEmpty: true, inMore: true },
+  {
+    key: 'REPOSITION',
+    label: 'Plant to plant',
+    leg: 'REPOSITION',
+    hideWhenEmpty: true,
+    inMore: true,
+  },
   { key: 'PLANNED', label: 'Planned trips', hideWhenEmpty: true, inMore: true },
   // Only a person moves a trip here (Confirm trip / Not a real trip on the trip page),
   // so these stay hidden until someone has.
@@ -192,14 +199,18 @@ export default function AutoTripsPage() {
     [periodKey],
     { scopeKey: `waiting:${periodKey}` },
   );
-  const questions = useApi((signal) => fleetViewService.getPlaceQuestions({ signal, limit: 200 }), []);
+  const questions = useApi(
+    (signal) => fleetViewService.getPlaceQuestions({ signal, limit: 200 }),
+    [],
+  );
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
   const tabCounts = data?.tabCounts ?? {};
-  const allCount = Object.entries(tabCounts)
-    .filter(([key]) => key === key.toUpperCase())
-    .reduce((a, [, b]) => a + (b || 0), 0) || total;
+  const allCount =
+    Object.entries(tabCounts)
+      .filter(([key]) => key === key.toUpperCase())
+      .reduce((a, [, b]) => a + (b || 0), 0) || total;
   const visibleTotal = planned ? (plans.data?.total ?? 0) : total;
   const totalPages = Math.max(1, Math.ceil(visibleTotal / PAGE_SIZE));
   const countFor = (key) =>
@@ -234,6 +245,39 @@ export default function AutoTripsPage() {
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
   }, [moreOpen]);
+
+  // ── Close every open place question in one go: each cluster's suggested
+  // name is confirmed, so naming happens in bulk instead of card by card.
+  // Answers are owner/manager writes server-side, so the button only shows
+  // for those roles; questions without a suggestion still need a human name.
+  const canAnswerPlaces = ['OWNER', 'MANAGER'].includes(getUserRole());
+  const [closingAll, setClosingAll] = useState({ busy: false, done: 0, total: 0 });
+  const closeAllPlaces = async () => {
+    const list = (questions.data?.items ?? []).filter((q) => q.suggestion);
+    if (!list.length) {
+      toast.info('Nothing to close in bulk — no waiting place has a suggested name yet.');
+      return;
+    }
+    setClosingAll({ busy: true, done: 0, total: list.length });
+    let named = 0;
+    let failed = 0;
+    for (const [index, question] of list.entries()) {
+      try {
+        await fleetViewService.answerPlaceQuestion(question.id, { answer: 'CONFIRM' });
+        named += 1;
+      } catch {
+        failed += 1;
+      }
+      setClosingAll({ busy: true, done: index + 1, total: list.length });
+    }
+    setClosingAll({ busy: false, done: 0, total: 0 });
+    toast.success(
+      `Named ${named} place${named === 1 ? '' : 's'} in bulk` +
+        (failed ? ` — ${failed} could not be saved` : ''),
+    );
+    questions.refetch?.();
+    refetch();
+  };
 
   const { isEnabled } = useFeatureFlags();
   // SAP is contract data: owners and managers of an org with SAP only.
@@ -272,7 +316,8 @@ export default function AutoTripsPage() {
   );
 
   const reviewCount = tabCounts.NEEDS_REVIEW ?? 0;
-  const showBanner = !viewTab && (statusTab === '' || statusTab === 'NEEDS_REVIEW') && reviewCount > 0;
+  const showBanner =
+    !viewTab && (statusTab === '' || statusTab === 'NEEDS_REVIEW') && reviewCount > 0;
 
   const moreMenu = (
     <div className="atx-more" ref={moreRef} role="tablist" aria-label="More trip views">
@@ -397,16 +442,26 @@ export default function AutoTripsPage() {
           </div>
           <div className="atx-actions">
             <TripRangePicker value={range} onChange={changeRange} />
-            <Button variant="outline" onClick={() => setDialog({ kind: 'plan' })}>
+            <button
+              type="button"
+              className="atx-btn atx-btn--sm"
+              onClick={() => setDialog({ kind: 'plan' })}
+            >
               <CalendarClock size={15} aria-hidden="true" />
               Schedule trip
-            </Button>
-            <Button onClick={() => setDialog({ kind: 'manual' })}>
+            </button>
+            <button
+              type="button"
+              className="atx-btn atx-btn--primary atx-btn--sm"
+              onClick={() => setDialog({ kind: 'manual' })}
+            >
               <Plus size={15} aria-hidden="true" />
               Add missed trip
-            </Button>
+            </button>
           </div>
         </header>
+
+        <AutoTripCoverage />
 
         <TripKpiStrip
           counts={{
@@ -433,6 +488,8 @@ export default function AutoTripsPage() {
             questionsTotal={questions.data?.total}
             questionsFailed={Boolean(questions.error)}
             onAnswerPlaces={() => changeView('questions')}
+            onAnswerAllPlaces={canAnswerPlaces ? closeAllPlaces : null}
+            closingAll={closingAll}
             onShowTrips={statusTab === 'NEEDS_REVIEW' ? null : () => changeTab('NEEDS_REVIEW')}
           />
         ) : null}
@@ -459,6 +516,15 @@ export default function AutoTripsPage() {
         {viewTab ? (
           <section className="atx-panel">
             <div className="atx-panel-head">
+              <button
+                type="button"
+                className="trip-back-circle"
+                onClick={() => changeView('')}
+                aria-label="Back to trips"
+                title="Back to trips"
+              >
+                <ArrowLeft size={16} aria-hidden="true" />
+              </button>
               <h2 className="atx-panel-title">{viewTitle}</h2>
               {tools}
             </div>
@@ -471,7 +537,7 @@ export default function AutoTripsPage() {
                   to={searchParams.get('to')}
                 />
               ) : (
-                <PlaceQuestionsTab />
+                <PlaceQuestionsTab query={questions} />
               )}
             </div>
           </section>

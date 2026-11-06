@@ -231,6 +231,7 @@ const ServiceIntelligencePage = () => {
     setSearchParams({ tab: tab.toLowerCase() });
     setSearch('');
     setPage(1);
+    setRows([]);
     setActivePriorityFilter('ALL');
     setActiveServiceFilter('ALL');
     isFirstRenderRef.current = true; // re-fire immediate load
@@ -243,6 +244,7 @@ const ServiceIntelligencePage = () => {
       setActiveTab(tabParam);
       setSearch('');
       setPage(1);
+      setRows([]);
       setActivePriorityFilter('ALL');
       setActiveServiceFilter('ALL');
       isFirstRenderRef.current = true;
@@ -279,7 +281,7 @@ const ServiceIntelligencePage = () => {
     <div className="vehicles-page-container" style={themeColors}>
       <div
         className="vehicles-content-wrapper"
-        style={{ paddingBottom: 48, alignItems: 'stretch' }}
+        style={{ paddingBottom: 16, alignItems: 'stretch' }}
       >
         <PageShell
           title="Service Intelligence"
@@ -303,7 +305,7 @@ const ServiceIntelligencePage = () => {
             switchTab={switchTab}
           />
 
-          <div style={{ margin: '14px 0 6px 0' }}>
+          <div style={{ margin: '0 0 10px 0' }}>
             <FilterBar
               searchValue={search}
               onSearchChange={setSearch}
@@ -332,6 +334,7 @@ const ServiceIntelligencePage = () => {
                   isService={isService}
                   summary={summary}
                   filterCounts={filterCounts}
+                  loading={loading}
                 />
 
                 {/* Priority & Category Quick Filter Pills Bar */}

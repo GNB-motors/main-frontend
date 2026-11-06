@@ -23,7 +23,6 @@ import MovementApprovalService from '../../services/MovementApprovalService';
 import PlaceIntelligenceService from '../PlaceHub/intelligence/PlaceIntelligenceService';
 import { SITE_TYPE_LABEL } from '../PlaceHub/intelligence/placeIntelligenceModel';
 import ApprovalWhenFields from './ApprovalWhenFields';
-import { labelStyle, rowStyle } from './approvalDialogStyles';
 
 const PLACE_KINDS = [
   { value: 'ANY_WORKSHOP', label: 'Any workshop' },
@@ -145,7 +144,7 @@ export default function ApprovalCreateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[560px]">
+      <DialogContent className="atx-dialog max-h-[85vh] overflow-y-auto sm:max-w-[560px]">
         <DialogHeader>
           <DialogTitle>New movement approval</DialogTitle>
           <DialogDescription>
@@ -153,14 +152,14 @@ export default function ApprovalCreateDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div style={rowStyle}>
-            <span style={labelStyle}>Vehicle</span>
+        <div className="atx-form-grid">
+          <div className="atx-field">
+            <span className="atx-field-label">Vehicle</span>
             <Select
               value={vehicleId || 'none'}
               onValueChange={(v) => setVehicleId(v === 'none' ? '' : v)}
             >
-              <SelectTrigger className="h-9 text-sm">
+              <SelectTrigger className="h-9 w-full text-sm">
                 <SelectValue placeholder="Any vehicle" />
               </SelectTrigger>
               <SelectContent align="start">
@@ -173,13 +172,13 @@ export default function ApprovalCreateDialog({
               </SelectContent>
             </Select>
           </div>
-          <div style={rowStyle}>
-            <span style={labelStyle}>Driver</span>
+          <div className="atx-field">
+            <span className="atx-field-label">Driver</span>
             <Select
               value={driverId || 'none'}
               onValueChange={(v) => setDriverId(v === 'none' ? '' : v)}
             >
-              <SelectTrigger className="h-9 text-sm">
+              <SelectTrigger className="h-9 w-full text-sm">
                 <SelectValue placeholder="Any driver" />
               </SelectTrigger>
               <SelectContent align="start">
@@ -192,132 +191,125 @@ export default function ApprovalCreateDialog({
               </SelectContent>
             </Select>
           </div>
-        </div>
 
-        <div style={rowStyle}>
-          <span style={labelStyle}>Place</span>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Select value={placeKind} onValueChange={setPlaceKind}>
-              <SelectTrigger className="h-9 w-[200px] text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent align="start">
-                {PLACE_KINDS.map((k) => (
-                  <SelectItem key={k.value} value={k.value}>
-                    {k.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {placeKind === 'SITE' ? (
-              <Select value={placeId} onValueChange={setPlaceId}>
-                <SelectTrigger className="h-9 w-[220px] text-sm">
-                  <SelectValue placeholder={sitesQ.loading ? 'Loading…' : 'Pick a place'} />
-                </SelectTrigger>
-                <SelectContent align="start">
-                  {siteOptions.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : null}
-            {placeKind === 'REGION' ? (
-              <Select value={placeId} onValueChange={setPlaceId}>
-                <SelectTrigger className="h-9 w-[220px] text-sm">
-                  <SelectValue placeholder={regionsQ.loading ? 'Loading…' : 'Pick a region'} />
-                </SelectTrigger>
-                <SelectContent align="start">
-                  {regionOptions.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>
-                      {r.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : null}
-            {placeKind === 'TYPE' ? (
-              <Select value={placeType} onValueChange={setPlaceType}>
-                <SelectTrigger className="h-9 w-[220px] text-sm">
+          <div className="atx-field atx-field--wide">
+            <span className="atx-field-label">Place</span>
+            <div className="flex flex-wrap gap-2">
+              <Select value={placeKind} onValueChange={setPlaceKind}>
+                <SelectTrigger className="h-9 w-[200px] max-w-full text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent align="start">
-                  {TYPE_OPTIONS.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {SITE_TYPE_LABEL[t]}
+                  {PLACE_KINDS.map((k) => (
+                    <SelectItem key={k.value} value={k.value}>
+                      {k.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            ) : null}
+              {placeKind === 'SITE' ? (
+                <Select value={placeId} onValueChange={setPlaceId}>
+                  <SelectTrigger className="h-9 min-w-[220px] flex-1 text-sm">
+                    <SelectValue placeholder={sitesQ.loading ? 'Loading…' : 'Pick a place'} />
+                  </SelectTrigger>
+                  <SelectContent align="start">
+                    {siteOptions.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
+              {placeKind === 'REGION' ? (
+                <Select value={placeId} onValueChange={setPlaceId}>
+                  <SelectTrigger className="h-9 min-w-[220px] flex-1 text-sm">
+                    <SelectValue placeholder={regionsQ.loading ? 'Loading…' : 'Pick a region'} />
+                  </SelectTrigger>
+                  <SelectContent align="start">
+                    {regionOptions.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
+              {placeKind === 'TYPE' ? (
+                <Select value={placeType} onValueChange={setPlaceType}>
+                  <SelectTrigger className="h-9 min-w-[220px] flex-1 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent align="start">
+                    {TYPE_OPTIONS.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {SITE_TYPE_LABEL[t]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
+            </div>
           </div>
-        </div>
 
-        <ApprovalWhenFields
-          timeMode={timeMode}
-          setTimeMode={setTimeMode}
-          from={from}
-          setFrom={setFrom}
-          to={to}
-          setTo={setTo}
-          weekdays={weekdays}
-          toggleDay={toggleDay}
-          fromHour={fromHour}
-          setFromHour={setFromHour}
-          toHour={toHour}
-          setToHour={setToHour}
-        />
+          <ApprovalWhenFields
+            timeMode={timeMode}
+            setTimeMode={setTimeMode}
+            from={from}
+            setFrom={setFrom}
+            to={to}
+            setTo={setTo}
+            weekdays={weekdays}
+            toggleDay={toggleDay}
+            fromHour={fromHour}
+            setFromHour={setFromHour}
+            toHour={toHour}
+            setToHour={setToHour}
+          />
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-          <div style={rowStyle}>
-            <span style={labelStyle}>Approval type</span>
-            <Select value={approvalKind} onValueChange={setApprovalKind}>
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent align="start">
-                {APPROVAL_KINDS.map((k) => (
-                  <SelectItem key={k.value} value={k.value}>
-                    {k.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="atx-form-row">
+            <div className="atx-field">
+              <span className="atx-field-label">Approval type</span>
+              <Select value={approvalKind} onValueChange={setApprovalKind}>
+                <SelectTrigger className="h-9 w-full text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent align="start">
+                  {APPROVAL_KINDS.map((k) => (
+                    <SelectItem key={k.value} value={k.value}>
+                      {k.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="atx-field">
+              <span className="atx-field-label">Max extra km</span>
+              <Input
+                type="number"
+                min="0"
+                value={maxExtraKm}
+                onChange={(e) => setMaxExtraKm(e.target.value)}
+              />
+            </div>
+            <div className="atx-field">
+              <span className="atx-field-label">Max dwell (min)</span>
+              <Input
+                type="number"
+                min="0"
+                value={maxDwellMin}
+                onChange={(e) => setMaxDwellMin(e.target.value)}
+              />
+            </div>
           </div>
-          <div style={rowStyle}>
-            <span style={labelStyle}>Max extra km</span>
-            <Input
-              type="number"
-              min="0"
-              value={maxExtraKm}
-              onChange={(e) => setMaxExtraKm(e.target.value)}
-            />
-          </div>
-          <div style={rowStyle}>
-            <span style={labelStyle}>Max dwell (min)</span>
-            <Input
-              type="number"
-              min="0"
-              value={maxDwellMin}
-              onChange={(e) => setMaxDwellMin(e.target.value)}
-            />
-          </div>
-        </div>
 
-        <div style={rowStyle}>
-          <span style={labelStyle}>Purpose &amp; note</span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Input
-              placeholder="Purpose (optional)"
-              value={purpose}
-              onChange={(e) => setPurpose(e.target.value)}
-            />
-            <Input
-              placeholder="Note (optional)"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
+          <div className="atx-field">
+            <span className="atx-field-label">Purpose (optional)</span>
+            <Input value={purpose} onChange={(e) => setPurpose(e.target.value)} />
+          </div>
+          <div className="atx-field">
+            <span className="atx-field-label">Note (optional)</span>
+            <Input value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
         </div>
 

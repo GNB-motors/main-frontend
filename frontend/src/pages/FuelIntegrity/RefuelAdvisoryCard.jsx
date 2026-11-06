@@ -7,6 +7,7 @@ import { RefuelAdvisoryService } from '../RefuelAdvisory/RefuelAdvisoryService';
 import { refuelAdvisoryResponseSchema } from '../../schemas/refuelAdvisory.schema';
 import { formatINR, formatKm, formatLitres, formatNum, formatPct } from '../../utils/formatters';
 import { MAX_ADVISORY_ROWS, missingReasons, sortAdvisories } from './refuelAdvisoryModel.js';
+import { GaugeArt } from './FuelIntegrityEmptyArt.jsx';
 
 const MAX_ROWS = MAX_ADVISORY_ROWS;
 const STATUS_BADGE = {
@@ -52,8 +53,8 @@ export default function RefuelAdvisoryCard() {
           <Fuel size={15} className="text-slate-400" />
           Refuel advisory
           <span className="text-[11px] font-normal text-slate-500">
-            {formatNum(summary.CRITICAL ?? 0)} critical · {formatNum(summary.REFUEL_SOON ?? 0)} refuel
-            soon
+            {formatNum(summary.CRITICAL ?? 0)} critical · {formatNum(summary.REFUEL_SOON ?? 0)}{' '}
+            refuel soon
           </span>
         </div>
         <Link to="/refuel-advisory" className="fi-action-btn">
@@ -69,9 +70,12 @@ export default function RefuelAdvisoryCard() {
           managers.
         </p>
       ) : rows.length === 0 ? (
-        <p className="text-xs text-slate-500 m-0">
-          No advisory yet — the sweep needs a recent tank reading and efficiency history.
-        </p>
+        <div className="fi-empty-art">
+          <GaugeArt />
+          <p className="text-xs text-slate-500 m-0">
+            No advisory yet — the sweep needs a recent tank reading and efficiency history.
+          </p>
+        </div>
       ) : (
         <ul className="list-none p-0 m-0 flex flex-col gap-2">
           {rows.map((a) => {
@@ -108,13 +112,17 @@ export default function RefuelAdvisoryCard() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] uppercase tracking-wide text-slate-500">To fill</div>
+                    <div className="text-[10px] uppercase tracking-wide text-slate-500">
+                      To fill
+                    </div>
                     <div className="fi-mono text-slate-800 dark:text-slate-200">
                       {formatLitres(a.litresToFull)}
                     </div>
                   </div>
                   <div>
-                    <div className="text-[10px] uppercase tracking-wide text-slate-500">Est. fill</div>
+                    <div className="text-[10px] uppercase tracking-wide text-slate-500">
+                      Est. fill
+                    </div>
                     <div className="fi-mono text-slate-800 dark:text-slate-200">
                       {formatINR(a.estimatedFillCostInr)}
                     </div>

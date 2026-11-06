@@ -167,6 +167,7 @@ export function coverageSources(coverage) {
   return [
     coverage.inFleetMaster ? 'Fleet master' : null,
     coverage.inFleetEdge ? 'FleetEdge' : null,
+    coverage.inIalert ? 'iALERT' : null,
     coverage.hasLiveStatus ? 'Live status' : null,
   ].filter(Boolean);
 }

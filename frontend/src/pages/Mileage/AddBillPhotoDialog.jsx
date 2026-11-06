@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Camera, Check, FileText, X } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import { Button } from '../../components/ui/button';
 import billPhotoService from '../../services/billPhotoService';
 import {
@@ -45,6 +51,8 @@ export default function AddBillPhotoDialog({ open, onOpenChange, onConfirmed = n
 
   useEffect(() => {
     if (!open) {
+      // Everything stops with the dialog: no poll left running in the background.
+      if (timerRef.current) clearTimeout(timerRef.current);
       setFile(null);
       setStage('pick');
       setError(null);
@@ -110,7 +118,16 @@ export default function AddBillPhotoDialog({ open, onOpenChange, onConfirmed = n
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bp-dialog flex max-h-[calc(100vh-48px)] max-w-[460px] flex-col overflow-hidden border-[var(--rd-line)] bg-[var(--rd-card)] p-0">
-        <DialogHeader>
+        <button
+          type="button"
+          onClick={() => onOpenChange(false)}
+          aria-label="Close"
+          title="Close"
+          className="absolute right-4 top-4 z-10 rounded-full p-1 text-[var(--rd-ink-3)] transition-colors hover:bg-[var(--rd-card-2)] hover:text-[var(--rd-ink)]"
+        >
+          <X size={16} aria-hidden="true" />
+        </button>
+        <DialogHeader className="pr-10">
           <DialogTitle className="text-[16px] font-semibold text-[var(--rd-ink)]">
             Add bill photo
           </DialogTitle>
@@ -177,7 +194,11 @@ export default function AddBillPhotoDialog({ open, onOpenChange, onConfirmed = n
               />
               {file ? (
                 <div className="bp-file">
-                  <FileText size={15} aria-hidden="true" className="shrink-0 text-[var(--rd-ink-3)]" />
+                  <FileText
+                    size={15}
+                    aria-hidden="true"
+                    className="shrink-0 text-[var(--rd-ink-3)]"
+                  />
                   <span className="truncate text-[13px] text-[var(--rd-ink)]">{file.name}</span>
                   <button
                     type="button"
@@ -238,7 +259,10 @@ export default function AddBillPhotoDialog({ open, onOpenChange, onConfirmed = n
                 Which truck is this bill for?
               </legend>
               {rows.map((row) => (
-                <label key={row.registrationNumber ?? row.label} className="flex items-start gap-2 text-[13px]">
+                <label
+                  key={row.registrationNumber ?? row.label}
+                  className="flex items-start gap-2 text-[13px]"
+                >
                   <input
                     type="radio"
                     name="bill-candidate"

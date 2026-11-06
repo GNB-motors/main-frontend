@@ -16,6 +16,8 @@ export default function NeedsAnswerBanner({
   questionsTotal,
   questionsFailed,
   onAnswerPlaces,
+  onAnswerAllPlaces = null,
+  closingAll = null,
   onShowTrips,
 }) {
   if (!total) return null;
@@ -57,7 +59,9 @@ export default function NeedsAnswerBanner({
           </>
         ) : (
           <p className="atx-needs-basis">
-            {sampleLoading ? 'Reading why they are waiting…' : 'Why they are waiting could not be loaded.'}
+            {sampleLoading
+              ? 'Reading why they are waiting…'
+              : 'Why they are waiting could not be loaded.'}
           </p>
         )}
       </div>
@@ -71,8 +75,7 @@ export default function NeedsAnswerBanner({
             {queue.top < queue.places
               ? `; the busiest ${queue.top} settle ${formatNum(queue.topTrips)}`
               : ''}
-            .{' '}
-            {rest > 0 ? `For the other ${formatNum(rest)}, open the trip and mark its drop.` : ''}
+            . {rest > 0 ? `For the other ${formatNum(rest)}, open the trip and mark its drop.` : ''}
           </p>
         ) : (
           <p className="atx-needs-fix-text">
@@ -82,8 +85,20 @@ export default function NeedsAnswerBanner({
           </p>
         )}
         <div className="atx-needs-actions">
+          {onAnswerAllPlaces && places > 0 ? (
+            <button
+              type="button"
+              className="atx-btn atx-btn--primary"
+              onClick={onAnswerAllPlaces}
+              disabled={closingAll?.busy}
+            >
+              {closingAll?.busy
+                ? `Closing ${formatNum(closingAll.done)} of ${formatNum(closingAll.total)}…`
+                : 'Close all in bulk'}
+            </button>
+          ) : null}
           {places > 0 ? (
-            <button type="button" className="atx-btn atx-btn--primary" onClick={onAnswerPlaces}>
+            <button type="button" className="atx-btn" onClick={onAnswerPlaces}>
               Answer place questions
             </button>
           ) : null}

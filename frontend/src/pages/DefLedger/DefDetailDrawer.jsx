@@ -99,6 +99,12 @@ function DefDetailDrawer({ vehicle, claimsTracked, onClose }) {
           <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-2.5">
             Review flags ({vehicle.flagCount ?? flags.length})
           </h4>
+          {vehicle.alertsSuppressed && (
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 -mt-1.5 mb-2.5">
+              Findings the sweep computed but did not raise — iALERT alerts are off for this
+              account.
+            </p>
+          )}
           {flags.length === 0 ? (
             <div className="py-6 text-center text-slate-400 text-xs bg-slate-50 dark:bg-slate-800/40 rounded-lg border border-dashed border-slate-200 dark:border-slate-700">
               Nothing to review.
@@ -115,11 +121,21 @@ function DefDetailDrawer({ vehicle, claimsTracked, onClose }) {
                       <AlertTriangle className="w-3 h-3 text-amber-600" />
                       {humanizeFlagType(f.type)}
                     </span>
-                    {f.litres != null && (
-                      <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
-                        {formatLitres(f.litres)}
-                      </span>
-                    )}
+                    <span className="inline-flex items-center gap-2">
+                      {vehicle.alertsSuppressed && (
+                        <span
+                          className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-dashed border-slate-300 dark:border-slate-600"
+                          title="Computed but not raised: iALERT alerts are off for this account."
+                        >
+                          Held back
+                        </span>
+                      )}
+                      {f.litres != null && (
+                        <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
+                          {formatLitres(f.litres)}
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                     {f.message}

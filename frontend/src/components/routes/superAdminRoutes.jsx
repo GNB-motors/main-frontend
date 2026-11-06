@@ -48,6 +48,11 @@ const SupportTicketDetailPage = lazy(
 const EnquiriesPage = lazy(
   () => import('../../pages/Superadmin/components/enquiries/EnquiriesPage.jsx'),
 );
+// App Usage moved here from the client interface: platform admins see which
+// screens an organization opens; clients keep recording usage.
+const UsageAnalyticsPage = lazy(
+  () => import('../../pages/Superadmin/components/usage/UsageAnalyticsPage.jsx'),
+);
 
 const superAdminRoutes = (
   <>
@@ -220,6 +225,14 @@ const superAdminRoutes = (
         element={
           <Suspense fallback={null}>
             <EnquiriesPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="app-usage"
+        element={
+          <Suspense fallback={null}>
+            <UsageAnalyticsPage />
           </Suspense>
         }
       />

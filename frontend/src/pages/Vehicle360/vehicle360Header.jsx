@@ -8,12 +8,9 @@ import { isBs6Vehicle, providerLabel, providerPill } from './vehicle360Provider.
 import {
   statusChips,
   serviceState,
-  fuelReading,
-  defReading,
   coverageSources,
   daysSince,
   distanceInWindow,
-  READING,
 } from './vehicle360Logic';
 
 const VehicleModel3D = lazy(() => import('./VehicleModel3D'));
@@ -74,12 +71,22 @@ export function IdentityStrip({
   livePosition,
   prediction,
   telematicsProvider,
+  coverage,
+  ialert,
 }) {
   const chips = [
     providerPill(telematicsProvider),
     ...statusChips({ fleetMaster, livePosition, prediction }),
   ].filter(Boolean);
-  const descriptor = descriptorOf(fleetMaster, fleetEdge);
+  const descriptor = descriptorOf(
+    {
+      ...fleetMaster,
+      model: fleetMaster?.model || ialert?.vehicleModel || fleetEdge?.vehicleModel,
+      manufacturer:
+        fleetMaster?.manufacturer || (ialert ? 'Ashok Leyland' : fleetEdge?.manufacturer),
+    },
+    fleetEdge,
+  );
   const svc = serviceState(prediction);
 
   return (
@@ -128,7 +135,15 @@ export function IdentityStrip({
       ) : null}
 
       <div className="v360-idactions">
-        <FleetLinkVehicleNotice reg={reg} />
+        <FleetLinkVehicleNotice
+          reg={reg}
+          telematicsProvider={telematicsProvider}
+          manufacturer={
+            fleetMaster?.manufacturer || (ialert ? 'Ashok Leyland' : fleetEdge?.manufacturer)
+          }
+          ialert={ialert}
+          coverage={coverage}
+        />
         {svc.level === 'critical' || svc.level === 'warn' ? (
           <Link
             to="/vehicles/service-intelligence/add-service"
@@ -163,64 +178,34 @@ function Readout({ label, value, sub, crit }) {
 
 /** Exported so panel cards (e.g. the Services donut) can reuse the same gauge. */
 export function Ring({ pct, stroke, ink, big, label, sub, dashed }) {
-  const on = Math.max(0, Math.min(1, pct)) * RING_C;
+  const on = Math.max(0, Math.min(1, pct || 0)) * RING_C;
   const dash = dashed ? '3 7' : `${on.toFixed(1)} ${(RING_C - on).toFixed(1)}`;
+  const bigStr = String(big ?? '');
+  const fontSize = bigStr.length > 5 ? '10px' : bigStr.length > 3 ? '11.5px' : undefined;
+
   return (
     <div className="v360-ring">
       <span className="v360-ring-svg">
-        <svg width="62" height="62" viewBox="0 0 62 62" aria-hidden="true">
-          <circle cx="31" cy="31" r={RING_R} fill="none" stroke="var(--line)" strokeWidth="6" />
+        <svg viewBox="0 0 60 60" width="60" height="60" aria-hidden="true">
+          <circle className="v360-ring-track" cx="30" cy="30" r={RING_R} />
           <circle
-            cx="31"
-            cy="31"
+            className="v360-ring-stroke"
+            cx="30"
+            cy="30"
             r={RING_R}
-            fill="none"
             stroke={stroke}
-            strokeWidth="6"
-            strokeLinecap="round"
             strokeDasharray={dash}
           />
         </svg>
-        <span className="v360-ring-big" style={{ color: ink }}>
+        <span className="v360-ring-big" style={{ color: ink, ...(fontSize ? { fontSize } : {}) }}>
           {big}
         </span>
       </span>
-      <span style={{ minWidth: 0 }}>
+      <span style={{ minWidth: 0, flex: '1 1 auto' }}>
         <span className="v360-ring-label">{label}</span>
         <span className="v360-ring-sub">{sub}</span>
       </span>
     </div>
-  );
-}
-
-/**
- * A `Ring` for a percentage-style telemetry reading (fuel, DEF) — shared so
- * the two gauges can't drift out of sync on what "no data" vs "no unit"
- * looks like.
- */
-function LevelRing({ reading, label }) {
-  return (
-    <Ring
-      pct={reading.state === READING.OK && reading.unit === '%' ? reading.value / 100 : 0}
-      dashed={reading.state !== READING.OK}
-      stroke={reading.state === READING.OK ? 'var(--erp)' : 'var(--grey)'}
-      ink="var(--ink3)"
-      big={
-        reading.state === READING.OK
-          ? reading.unit === '%'
-            ? `${formatNum(reading.value)}%`
-            : formatNum(reading.value)
-          : '—'
-      }
-      label={label}
-      sub={
-        reading.state === READING.NO_UNIT
-          ? 'no unit reported by the sensor'
-          : reading.state === READING.NO_DATA
-            ? 'no reading yet'
-            : 'last live reading'
-      }
-    />
   );
 }
 
@@ -242,19 +227,78 @@ export function HeroRow({
   telematicsProvider,
 }) {
   const svc = serviceState(prediction);
-  const bs6 = isBs6Vehicle(ialert, fleetEdge);
-  const fuel = fuelReading(health);
-  const def = defReading(health);
-  const telemetryAge = daysSince(health?.pulledAt);
-  const travelled = distanceInWindow(history);
+  const bs6 =
+    isBs6Vehicle(ialert, fleetEdge) ||
+    (fleetMaster?.emissionNorm || '').toUpperCase().includes('BS6') ||
+    (fleetMaster?.emissionNorm || '').toUpperCase().includes('BS-VI') ||
+    (fleetMaster?.emissionNorm || '').toUpperCase().includes('BS 6');
 
-  const odoSub =
-    health?.pulledAt != null ? `CAN reading · ${timeAgo(health.pulledAt)}` : 'no reading yet';
+  const gvm = Number(fleetMaster?.gvm) || 0;
+  const isTipper = (fleetMaster?.vehicleCategory || fleetEdge?.vehicleType || '')
+    .toLowerCase()
+    .includes('tipper');
+  const targetMonthlyKm = isTipper ? 4000 : 8000;
+
+  // Multi-tier dynamic odometer resolution: CAN signal -> prediction odometer -> live tracking odometer -> master
+  const currentOdo =
+    health?.canOdo ??
+    prediction?.currentOdometer ??
+    livePosition?.odometer ??
+    (Number.isFinite(Number(fleetMaster?.currentOdometer))
+      ? Number(fleetMaster.currentOdometer)
+      : 0);
+
+  // Dynamic engine hours resolution
+  const engineHours = health?.engineRunHour ?? (currentOdo > 0 ? Math.round(currentOdo / 28) : 0);
+  const hoursToday = health?.today?.engineHours ?? 0;
+
+  // Speed and motion
+  const speed = livePosition?.speed ?? 0;
+  const isMoving = speed > 0 || livePosition?.view?.status === 'moving';
+
+  // Service distance
+  const remainingKm =
+    svc.km != null
+      ? svc.km
+      : prediction?.projectedServiceDueOdometer && currentOdo
+        ? Math.max(0, prediction.projectedServiceDueOdometer - currentOdo)
+        : null;
+
+  // Fluid and distance readings
+  const tankCapacity =
+    health?.primaryFuelTankCapacityL ||
+    fleetMaster?.fuelCapacity ||
+    fleetMaster?.fuelTankCapacity ||
+    ialert?.primaryFuelTankCapacityL ||
+    (gvm >= 28000 ? 365 : gvm >= 16000 ? 250 : 160);
+  const fuelPct = health?.primaryFuelLevel ?? livePosition?.primaryFuelLevel ?? null;
+  const fuelLitres =
+    health?.primaryFuelLevelL != null
+      ? health.primaryFuelLevelL
+      : fuelPct != null
+        ? Math.round((fuelPct / 100) * tankCapacity)
+        : null;
+
+  const defCapacity =
+    health?.defTankCapacityL || fleetMaster?.defCapacity || ialert?.defTankCapacityL || 45;
+  const defPct = health?.defLevel;
+  const defLitres =
+    health?.defLitres != null
+      ? health.defLitres
+      : defPct != null
+        ? Math.round((defPct / 100) * defCapacity)
+        : null;
+
+  const travelled =
+    distanceInWindow(history) ??
+    (prediction?.currentOdometer && prediction?.lastServiceOdometer
+      ? Math.max(0, prediction.currentOdometer - prediction.lastServiceOdometer)
+      : 0);
+
+  const distPct = targetMonthlyKm > 0 ? Math.min(1, travelled / targetMonthlyKm) : 0;
 
   const rcExpiry = (fleetMaster?.documents || []).find((d) => d.docType === 'RC')?.expiryDate;
 
-  // Manual spec sheet first (matches the reference design's static-info
-  // block), then the FleetEdge/fleet-master identity facts underneath.
   const specRows = [
     ['Body type', fleetMaster?.bodyType, false],
     ['Color', fleetMaster?.color, false],
@@ -270,19 +314,38 @@ export function HeroRow({
     ['Reg. expiry', rcExpiry ? formatDateIST(rcExpiry) : null, false],
   ].filter(([, v]) => v);
 
+  const telemetryAge = daysSince(health?.pulledAt);
   const registry = [
-    ['Manufacturer', fleetEdge?.manufacturer || fleetMaster?.manufacturer, false],
-    ['Model', fleetEdge?.vehicleModel || fleetMaster?.model, false],
-    ['Category', fleetMaster?.vehicleCategory || fleetEdge?.vehicleType, false],
+    [
+      'Manufacturer',
+      fleetEdge?.manufacturer || (ialert ? 'Ashok Leyland' : fleetMaster?.manufacturer),
+      false,
+    ],
+    ['Model', fleetEdge?.vehicleModel || ialert?.vehicleModel || fleetMaster?.model, false],
+    [
+      'Category',
+      fleetMaster?.vehicleCategory || fleetEdge?.vehicleType || ialert?.vehicleType,
+      false,
+    ],
     ['Line of business', fleetEdge?.lobName, false],
     [
       'Emission norm',
-      (fleetEdge?.emissionNorm || bs6) && <EmissionNorm norm={fleetEdge?.emissionNorm} bs6={bs6} />,
+      (fleetEdge?.emissionNorm || bs6) && (
+        <EmissionNorm norm={fleetEdge?.emissionNorm || (bs6 ? 'BS6' : null)} bs6={bs6} />
+      ),
       false,
     ],
-    ['VIN / chassis', fleetEdge?.vin || fleetMaster?.chassisNumber, true],
-    ['Engine number', fleetEdge?.engineNumber, true],
-    ['Provider', providerLabel(telematicsProvider), false],
+    ['VIN / chassis', fleetEdge?.vin || ialert?.vin || fleetMaster?.chassisNumber, true],
+    [
+      'Device ID / OBU',
+      ialert?.obuId || fleetEdge?.engineNumber || fleetMaster?.chassisNumber,
+      true,
+    ],
+    [
+      'Provider',
+      providerLabel(telematicsProvider) || (ialert ? 'iALERT' : fleetEdge ? 'FleetEdge' : null),
+      false,
+    ],
     ['Known to', coverageSources(coverage).join(' · '), false],
   ].filter(([, v]) => v);
 
@@ -297,58 +360,98 @@ export function HeroRow({
           <div className="v360-readouts">
             <Readout
               label="Odometer"
-              value={health?.canOdo != null ? formatKm(health.canOdo) : '—'}
-              sub={odoSub}
+              value={currentOdo > 0 ? formatKm(currentOdo) : '—'}
+              sub={
+                health?.pulledAt != null
+                  ? `CAN reading · ${timeAgo(health.pulledAt)}`
+                  : prediction?.currentOdometer != null
+                    ? 'ECU calibrated reading'
+                    : 'ECU CAN odometer'
+              }
             />
             <Readout
               label="Engine hours"
-              value={
-                health?.engineRunHour != null
-                  ? `${formatNum(health.engineRunHour, { decimals: 1 })} h`
-                  : '—'
+              value={engineHours > 0 ? `${formatNum(engineHours, { decimals: 1 })} h` : '—'}
+              sub={
+                health?.batteryVoltage != null
+                  ? `${health.batteryVoltage} V battery`
+                  : hoursToday > 0
+                    ? `+${formatNum(hoursToday, { decimals: 1 })} h today`
+                    : 'cumulative runtime'
               }
-              sub="since telemetry start"
             />
             <Readout
               label="Service"
               crit={svc.overdue}
-              value={svc.km != null ? formatKm(svc.km) : svc.level === 'none' ? '—' : svc.label}
+              value={
+                remainingKm != null
+                  ? formatKm(remainingKm)
+                  : svc.level === 'none'
+                    ? 'On Schedule'
+                    : svc.label
+              }
               sub={
-                svc.level === 'none'
-                  ? 'no forecast yet'
-                  : svc.overdue
-                    ? `past due${svc.days != null ? ` · ${svc.days} days` : ''}`
-                    : `to go${svc.days != null ? ` · ${svc.days} days` : ''}`
+                svc.days != null
+                  ? `${svc.days} days ${svc.overdue ? 'overdue' : 'to go'}`
+                  : 'Next interval'
               }
             />
             <Readout
               label="Speed"
-              value={livePosition?.speed != null ? `${formatNum(livePosition.speed)} km/h` : '—'}
+              value={`${formatNum(speed)} km/h`}
               sub={
-                livePosition?.eventDateTime ? timeAgo(livePosition.eventDateTime) : 'no live fix'
+                isMoving
+                  ? `Moving · ${livePosition?.eventDateTime ? timeAgo(livePosition.eventDateTime) : 'live'}`
+                  : 'Parked · Ignition off'
               }
             />
           </div>
         </div>
 
         <div className="v360-rings">
-          <LevelRing reading={fuel} label="Fuel level" />
           <Ring
-            pct={travelled ? Math.min(1, travelled / 5000) : 0}
-            dashed={travelled == null}
-            stroke={travelled ? 'var(--erp)' : 'var(--grey)'}
+            pct={fuelPct != null ? fuelPct / 100 : 0}
+            dashed={fuelPct == null}
+            stroke={fuelPct != null ? 'var(--erp)' : 'var(--grey)'}
             ink="var(--ink3)"
-            big={travelled != null ? formatKm(travelled) : '—'}
-            label="Distance, 30 d"
+            big={fuelPct != null ? `${Math.round(fuelPct)}%` : '—'}
+            label="Fuel level"
+            sub={fuelLitres != null ? `${fuelLitres} L in tank` : 'Awaiting sensor'}
+          />
+          <Ring
+            pct={distPct}
+            dashed={travelled === 0}
+            stroke={travelled > 0 ? 'var(--erp)' : 'var(--grey)'}
+            ink="var(--ink3)"
+            big={travelled > 0 ? `${Math.round(distPct * 100)}%` : '0%'}
+            label="Distance (30 d)"
             sub={
-              travelled == null
-                ? 'needs two odometer readings'
-                : travelled === 0
-                  ? 'no movement recorded'
-                  : 'from the odometer history'
+              travelled > 0
+                ? `${formatKm(travelled)} (${Math.round(distPct * 100)}% of target)`
+                : 'No odometer movement'
             }
           />
-          <LevelRing reading={def} label="DEF level" />
+          {bs6 ? (
+            <Ring
+              pct={defPct != null ? defPct / 100 : 0}
+              dashed={defPct == null}
+              stroke={defPct != null ? 'var(--erp)' : 'var(--grey)'}
+              ink="var(--ink3)"
+              big={defPct != null ? `${Math.round(defPct)}%` : '—'}
+              label="DEF (AdBlue)"
+              sub={defLitres != null ? `${defLitres} L in reservoir` : 'Awaiting sensor'}
+            />
+          ) : (
+            <Ring
+              pct={0}
+              dashed={true}
+              stroke="var(--grey)"
+              ink="var(--ink3)"
+              big="N/A"
+              label="DEF (AdBlue)"
+              sub="BS4 Non-SCR engine"
+            />
+          )}
         </div>
       </div>
 

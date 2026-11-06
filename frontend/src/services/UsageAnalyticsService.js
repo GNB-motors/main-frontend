@@ -40,3 +40,25 @@ export async function getUsageSummary({ surfaces = [], signal } = {}) {
   }
   return data;
 }
+
+/**
+ * Superadmin reads — the App Usage page lives in the superadmin interface and
+ * looks at one organization at a time.
+ */
+export async function listOrganizations({ signal } = {}) {
+  const response = await apiClient.get('/api/admin/organizations', { signal });
+  return response.data?.data ?? [];
+}
+
+/** The App Usage summary for one organization (SUPER_ADMIN). */
+export async function getOrgUsageSummary(orgId, { signal } = {}) {
+  const response = await apiClient.get(
+    `/api/admin/organizations/${encodeURIComponent(orgId)}/usage`,
+    { signal },
+  );
+  const data = response.data?.data;
+  if (!data || !Array.isArray(data.surfaces) || !Array.isArray(data.daily)) {
+    throw new Error('Could not read app usage. Please try again.');
+  }
+  return data;
+}
