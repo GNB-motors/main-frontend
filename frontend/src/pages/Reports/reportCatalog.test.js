@@ -13,6 +13,13 @@ const ALL_FLAGS = ['vehicleActivity', 'fuelIntegrity', 'autoTrips', 'sapV2'];
 const flags = (on) => (key) => on.includes(key);
 const ids = (groups) => groups.flatMap((g) => g.children.map((c) => c.id));
 
+describe('DEFAULT_REPORT', () => {
+  it('defaults to vehicle report as the first report feature', () => {
+    expect(DEFAULT_REPORT).toBe('vehicle');
+    expect(REPORT_GROUPS[0].children[0].id).toBe(DEFAULT_REPORT);
+  });
+});
+
 describe('visibleReportGroups', () => {
   it('keeps the six reports this page renders in front, in order', () => {
     const visible = ids(visibleReportGroups(flags(ALL_FLAGS)));
@@ -46,7 +53,16 @@ describe('visibleReportGroups', () => {
   });
 
   it('keeps only the genuine-report groups (module deep-links removed)', () => {
-    expect(visibleReportGroups(flags(ALL_FLAGS)).map((g) => g.id)).toEqual(['fuel', 'trips']);
+    expect(visibleReportGroups(flags(ALL_FLAGS)).map((g) => g.id)).toEqual([
+      'fuel',
+      'trips',
+      'custom',
+    ]);
+  });
+
+  it('exposes Custom Reports under the custom group', () => {
+    const visible = ids(visibleReportGroups(flags(ALL_FLAGS)));
+    expect(visible).toContain('customReports');
   });
 
   it('shows SAP routes on sapV2 alone, and hides the other Trip Economics reports without autoTrips', () => {

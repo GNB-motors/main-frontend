@@ -1,4 +1,4 @@
-import { cycleNote, excludedCycleHint } from './fleetReportUtils';
+import { cycleNote, excludedCycleHint, noCycleHint } from './fleetReportUtils';
 import { formatNum } from '../../../utils/formatters';
 
 /** Primary label with a muted second line; deleted records are marked. */
@@ -19,7 +19,11 @@ export function NameCell({ primary, secondary, isDeleted }) {
 /** km/L with the cycles it rests on, and why any were left out. */
 export function KmplCell({ value, cycleCount, excludedCycleCount, plausible }) {
   return (
-    <div title={excludedCycleCount ? excludedCycleHint(plausible) : undefined}>
+    <div
+      title={
+        excludedCycleCount ? excludedCycleHint(plausible) : !cycleCount ? noCycleHint() : undefined
+      }
+    >
       <div className="cell-primary" style={value != null ? { fontWeight: 600 } : undefined}>
         {value != null ? `${formatNum(value, { decimals: 2 })} km/L` : '—'}
       </div>

@@ -95,7 +95,16 @@ const VehicleReport = () => {
       label: 'Distance',
       align: 'right',
       render: (r) => (
-        <div className="cell-primary">{r.totalDistanceKm ? formatKm(r.totalDistanceKm) : '—'}</div>
+        <div
+          className="cell-primary"
+          title={
+            !r.totalDistanceKm && !r.cycleCount
+              ? 'No completed full-tank cycle in this date range'
+              : undefined
+          }
+        >
+          {r.totalDistanceKm ? formatKm(r.totalDistanceKm) : '—'}
+        </div>
       ),
     },
     {

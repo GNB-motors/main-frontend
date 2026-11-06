@@ -83,7 +83,7 @@ export function mapUnifiedRow(row) {
     !location && num(sensor?.lat) != null && num(sensor?.lng) != null
       ? { lat: num(sensor.lat), lng: num(sensor.lng) }
       : null;
-  const odometer = num(slip?.odometerReading) || null;
+  const odometer = num(slip?.odometerReading) ?? num(sensor?.odometer) ?? null;
 
   return {
     id: row.id,
@@ -108,9 +108,14 @@ export function mapUnifiedRow(row) {
     coords,
     place,
     rate: effectiveRate(slip),
-    totalAmount: num(slip?.totalAmount),
+    totalAmount:
+      num(slip?.totalAmount) ??
+      (num(slip?.litres) && num(slip?.rate) ? num(slip.litres) * num(slip.rate) : null),
     odometer,
-    odometerSource: odometer != null ? slip.odometerSource || null : null,
+    odometerSource:
+      odometer != null
+        ? slip?.odometerSource || (sensor?.odometer != null ? 'FLEETEDGE' : null)
+        : null,
     fuelType: slip?.fuelType || (sensor ? 'DIESEL' : null),
     raw: row,
   };

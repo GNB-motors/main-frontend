@@ -100,6 +100,19 @@ describe('createLiveStream', () => {
     stream.dispose();
   });
 
+  it('shares a single in-flight ticket request across concurrent subscribers', async () => {
+    const deps = makeDeps();
+    const stream = createLiveStream(deps);
+    // Two subscribers subscribe concurrently on mount before ticket resolution
+    stream.subscribe('positions', () => {});
+    stream.subscribe('alerts', () => {});
+    await flushConnect();
+
+    expect(deps.requestTicket).toHaveBeenCalledTimes(1);
+    expect(deps.openStream).toHaveBeenCalledTimes(1);
+    stream.dispose();
+  });
+
   it('dispatches named events to matching subscribers with parsed JSON payloads', async () => {
     const stream = createLiveStream(makeDeps());
     const seen = [];
