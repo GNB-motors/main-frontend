@@ -211,7 +211,7 @@ describe('IntelligencePage', () => {
     renderPage('/intelligence?tab=overspeed');
 
     await waitFor(() =>
-      expect(screen.getByRole('tab', { name: /Overspeed/ })).toHaveAttribute('aria-selected', 'true'),
+      expect(screen.getByRole('tab', { name: 'Overspeed' })).toHaveAttribute('aria-selected', 'true'),
     );
 
     fireEvent.click(screen.getByRole('tab', { name: 'Runs & places' }));
@@ -224,6 +224,6 @@ describe('IntelligencePage', () => {
     await waitFor(() =>
       expect(screen.getByTestId('location')).toHaveTextContent('tab=overspeed'),
     );
-    expect(screen.getByRole('tab', { name: /Overspeed/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Overspeed' })).toHaveAttribute('aria-selected', 'true');
   });
 });

@@ -24,6 +24,9 @@ const RunsTab = lazy(() => import('./RunsTab'));
 const InstancesTab = lazy(() => import('./InstancesTab'));
 const MileageDefTab = lazy(() => import('./MileageDefTab'));
 const PlacesTab = lazy(() => import('./PlacesTab'));
+const IdlingTab = lazy(() => import('./IdlingTab'));
+const FuelRiskTab = lazy(() => import('./FuelRiskTab'));
+const OverspeedTab = lazy(() => import('./OverspeedTab'));
 
 /** The shape of a tab while its code is still being fetched. */
 const TAB_FALLBACK = <IntelligenceSkeleton variant="table" />;
@@ -78,6 +81,45 @@ function TabContent({ active, from, to, vehicle, driver, kind }) {
     return (
       <Suspense fallback={TAB_FALLBACK}>
         <PlacesTab from={from} to={to} />
+      </Suspense>
+    );
+  }
+  if (active === 'idling') {
+    return (
+      <Suspense fallback={TAB_FALLBACK}>
+        <IdlingTab
+          key={`idling-${from}-${to}-${vehicle}-${driver}`}
+          from={from}
+          to={to}
+          vehicle={vehicle}
+          driver={driver}
+        />
+      </Suspense>
+    );
+  }
+  if (active === 'fuel') {
+    return (
+      <Suspense fallback={TAB_FALLBACK}>
+        <FuelRiskTab
+          key={`fuel-${from}-${to}-${vehicle}-${driver}`}
+          from={from}
+          to={to}
+          vehicle={vehicle}
+          driver={driver}
+        />
+      </Suspense>
+    );
+  }
+  if (active === 'overspeed') {
+    return (
+      <Suspense fallback={TAB_FALLBACK}>
+        <OverspeedTab
+          key={`overspeed-${from}-${to}-${vehicle}-${driver}`}
+          from={from}
+          to={to}
+          vehicle={vehicle}
+          driver={driver}
+        />
       </Suspense>
     );
   }

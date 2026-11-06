@@ -36,6 +36,26 @@ function renderLegend(overrides = {}) {
 }
 
 describe('TrackLegend', () => {
+  it('groups only confirmed-empty categories and retains unknown coverage', () => {
+    renderLegend({ layerAvailability: { hospitals: { count: 0 }, police: { count: 0 }, pumps: { count: null, failed: true } } });
+    const expand = screen.queryByRole('button', { name: 'Expand Places' });
+    if (expand) fireEvent.click(expand);
+    expect(screen.queryByRole('button', { name: /Hospitals/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Pumps/ })).not.toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: /2 categories without mapped data/ }));
+    expect(screen.getByRole('button', { name: /Hospitals/ })).toBeDisabled();
+  });
+  it('offers the All tolls switch independently of other category layers', () => {
+    const change = vi.fn();
+    renderLegend({ onToggleAllTolls: change, showAllTolls: true, layerSelection: { ...defaultLayerSelection(), tolls: true }, tollInfo: { visitedCount: 56, allCount: 19 } });
+    const expand = screen.queryByRole('button', { name: 'Expand Places' });
+    if (expand) fireEvent.click(expand);
+    const toggle = screen.getByRole('switch', { name: 'Show all tolls in view' });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(toggle);
+    expect(change).toHaveBeenCalled();
+    expect(screen.getByText('19 toll plazas in this view')).toBeInTheDocument();
+  });
   it('is a labelled region of map filters', () => {
     renderLegend();
     expect(screen.getByRole('region', { name: 'Map filters' })).toBeInTheDocument();
@@ -85,11 +105,13 @@ describe('TrackLegend', () => {
     expect(screen.queryByText('Ashok Leyland')).not.toBeInTheDocument();
   });
 
-  it('tells the owner to zoom in before the landmark layers load', () => {
-    renderLegend({ zoom: 7 });
+  it('shows local counts and empty states instead of blocking pins by zoom', () => {
+    renderLegend({ zoom: 7, layerSelection: { ...defaultLayerSelection(), dhabas: true }, nearbyInfo: { loaded: true, counts: { pumps: 6, dhabas: 0 } } });
     const expand = screen.queryByRole('button', { name: 'Expand Places' });
     if (expand) fireEvent.click(expand);
-    expect(screen.getAllByText('Zoom in to see nearby places.').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Zoom in to see nearby places.')).not.toBeInTheDocument();
+    expect(screen.getByText('6 in this view')).toBeInTheDocument();
+    expect(screen.getByText('None in this view')).toBeInTheDocument();
   });
 
   it('does not ask for a zoom when the map is close enough', () => {

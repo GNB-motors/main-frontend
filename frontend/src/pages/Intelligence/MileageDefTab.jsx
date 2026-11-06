@@ -5,6 +5,7 @@ import IntelCard from './IntelCard';
 import IntelligenceDataState from './IntelligenceDataState';
 import IntelligenceService from './IntelligenceService';
 import { formatKm, formatPct } from '@/utils/redesign/format';
+import { trackLink } from '@/utils/redesign/links';
 
 // links.js has no helper for the Mileage page yet, so the path is written once,
 // here, instead of being repeated across the app.
@@ -18,7 +19,7 @@ const kmPerL = (value) =>
     ? '—'
     : `${Number(value).toFixed(1)} km/L`;
 
-function KmplTable({ rows }) {
+function KmplTable({ rows, from, to }) {
   if (!rows.length) {
     return <p className="intel-card-empty">No truck had enough fuel data.</p>;
   }
@@ -41,8 +42,16 @@ function KmplTable({ rows }) {
         </thead>
         <tbody>
           {rows.map((item) => (
-            <tr key={item.registrationNumber}>
-              <td className="font-semibold">{item.registrationNumber}</td>
+            <tr key={item.registrationNumber} className="intel-row">
+              <td className="font-semibold">
+                <Link
+                  to={trackLink({ reg: item.registrationNumber, from, to })}
+                  className="intel-row-link"
+                  aria-label={`Open tracking for ${item.registrationNumber}`}
+                >
+                  {item.registrationNumber}
+                </Link>
+              </td>
               <td className="intel-num font-semibold">{kmPerL(item.kmPerL)}</td>
               <td className="intel-num intel-when">
                 {item.usualKmPerL !== null && item.usualKmPerL !== undefined
@@ -106,10 +115,10 @@ export default function MileageDefTab({ from, to, vehicle = '' }) {
       >
         <div className="intel-two-col">
           <IntelCard title="Best km/L" flush action={openMileage}>
-            <KmplTable rows={best} />
+            <KmplTable rows={best} from={from} to={to} />
           </IntelCard>
           <IntelCard title="Lowest km/L" flush>
-            <KmplTable rows={worst} />
+            <KmplTable rows={worst} from={from} to={to} />
           </IntelCard>
         </div>
 
@@ -136,8 +145,16 @@ export default function MileageDefTab({ from, to, vehicle = '' }) {
                 </thead>
                 <tbody>
                   {defOutliers.map((item) => (
-                    <tr key={item.registrationNumber}>
-                      <td className="font-semibold">{item.registrationNumber}</td>
+                    <tr key={item.registrationNumber} className="intel-row">
+                      <td className="font-semibold">
+                        <Link
+                          to={trackLink({ reg: item.registrationNumber, from, to })}
+                          className="intel-row-link"
+                          aria-label={`Open tracking for ${item.registrationNumber}`}
+                        >
+                          {item.registrationNumber}
+                        </Link>
+                      </td>
                       <td>
                         <ToneBadge tone="watch">{`${formatPct(item.defPctOfDiesel)} of diesel`}</ToneBadge>
                       </td>
@@ -146,7 +163,7 @@ export default function MileageDefTab({ from, to, vehicle = '' }) {
                           ? `normal ${formatPct(item.defBand.min)}–${formatPct(item.defBand.max)}`
                           : '—'}
                       </td>
-                    <td className="intel-num intel-when">{item.km != null ? formatKm(item.km) : '—'}</td>
+                      <td className="intel-num intel-when">{item.km != null ? formatKm(item.km) : '—'}</td>
                       <td>
                         <span className="intel-cell-wrap">{item.verdictWhy?.text ?? '—'}</span>
                       </td>

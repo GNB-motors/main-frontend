@@ -89,11 +89,14 @@ export function useLeafletMap(opts = {}, deps = []) {
     const map = makeMap(containerRef.current, optsRef.current);
     mapRef.current = map;
 
-    const ro = new ResizeObserver(() => map.invalidateSize());
-    ro.observe(containerRef.current);
+    const ro =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => map.invalidateSize())
+        : null;
+    ro?.observe(containerRef.current);
 
     return () => {
-      ro.disconnect();
+      ro?.disconnect();
       // Null the ref first: this hook is declared before useLayerGroup, so its
       // cleanup runs first, and the layer-group cleanup that follows must be
       // able to tell the map is already gone.

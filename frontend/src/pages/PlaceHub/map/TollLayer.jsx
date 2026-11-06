@@ -21,7 +21,7 @@ function icon(visited) {
  * Toll plazas: solid where this org's trucks have been, hollow for the rest (shown only with the
  * "All tolls" toggle). Clicking one opens what is known about it.
  */
-const TollLayer = memo(function TollLayer({ plazas, interactive }) {
+const TollLayer = memo(function TollLayer({ plazas, interactive, markerIcon = icon }) {
   const [openId, setOpenId] = useState(null);
   const open = plazas.find((p) => p.id === openId) || null;
   return (
@@ -30,7 +30,7 @@ const TollLayer = memo(function TollLayer({ plazas, interactive }) {
         <MarkerF
           key={`toll-${p.id}`}
           position={{ lat: p.lat, lng: p.lng }}
-          icon={icon(p.visited)}
+          icon={markerIcon(p.visited)}
           title={p.name || 'Toll Plaza'}
           clickable={interactive}
           onClick={() => setOpenId(p.id)}

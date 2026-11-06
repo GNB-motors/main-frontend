@@ -19,6 +19,7 @@ export default function MapOverlayControls({
   trailLoading,
   trailNotice,
   loadTrail,
+  listLabel = 'Fleet list',
   searchBox = null,
   legend = null,
   trafficToggle = null,
@@ -56,7 +57,7 @@ export default function MapOverlayControls({
             }}
           >
             {renderIconSvg('list', 15)}
-            Fleet list
+            {listLabel}
           </button>
           {isTrackMode ? (
             <TrackRangePicker

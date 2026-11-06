@@ -204,7 +204,7 @@ export default function PlacesTab({ from, to }) {
               </thead>
               <tbody>
                 {shownPlaces.map((row) => (
-                  <tr key={row?.place?.id ?? row?.place?.name}>
+                  <tr key={row?.place?.id ?? row?.place?.name} className="intel-row">
                     <td>
                       <PlaceCell
                         name={row?.place?.name ?? 'Location not known'}

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, within, act } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { render, screen, fireEvent, within } from '@testing-library/react';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import PlaceHubPage from './PlaceHubPage.jsx';
 import PlaceHubService from './PlaceHubService.js';
 import PlaceIntelligenceService from './intelligence/PlaceIntelligenceService.js';
@@ -186,7 +186,10 @@ function seed() {
 function renderPage(path = '/place-hub') {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <PlaceHubPage />
+      <Routes>
+        <Route path="/place-hub" element={<PlaceHubPage />} />
+        <Route path="/intelligence" element={<div data-testid="intelligence-page">Intelligence Page</div>} />
+      </Routes>
     </MemoryRouter>,
   );
 }
@@ -289,24 +292,14 @@ describe('PlaceHubPage', () => {
     expect(PlaceHubService.createZone).not.toHaveBeenCalled();
   });
 
-  it('opens the hotspot linked from the alert inbox', async () => {
+  it('redirects the legacy fuel and hotspot deep links to intelligence', async () => {
     renderPage('/place-hub?tab=fuel&hotspot=h1');
-    expect(await screen.findByRole('complementary', { name: 'NH16 lay-by' })).toBeInTheDocument();
+    expect(await screen.findByTestId('intelligence-page')).toBeInTheDocument();
   });
 
-  it('shows live idling and fuel hotspots on their tabs', async () => {
+  it('redirects the legacy idling tab to the intelligence idling tab', async () => {
     renderPage('/place-hub?tab=idling');
-    expect(await screen.findByText('WB11G0962')).toBeInTheDocument();
-    expect(screen.getByText('Excess')).toBeInTheDocument();
-    // the threshold the list is counting by comes from Settings, not the page
-    expect(screen.getByText('20 min')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Change' })).toHaveAttribute(
-      'href',
-      '/settings?section=idling',
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /Fuel risk/ }));
-    expect(await screen.findByText('NH16 lay-by')).toBeInTheDocument();
+    expect(await screen.findByTestId('intelligence-page')).toBeInTheDocument();
   });
 
   it('answers unexplained stops from the stops tab, all at once', async () => {
@@ -385,43 +378,5 @@ describe('PlaceHubPage', () => {
     expect(PlaceHubService.loadSites).not.toHaveBeenCalled();
     expect(PlaceHubService.loadLiveIdling).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: /Routes/ })).not.toBeInTheDocument();
-  });
-
-  // Idling and fuel layers that failed used to look like "nothing here".
-  it('says when an idling or fuel layer failed to load', async () => {
-    PlaceHubService.loadLiveIdling.mockReturnValue(
-      Promise.resolve({ rows: [], error: new Error('timeout') }),
-    );
-    PlaceHubService.loadDrainMap.mockReturnValue(
-      Promise.resolve({ rows: null, error: new Error('timeout') }),
-    );
-    renderPage('/place-hub?tab=idling');
-    expect(
-      await screen.findByText(/Some idling data could not load \(live idling\)/),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Fuel risk/ }));
-    expect(
-      await screen.findByText(/Some fuel data could not load \(drain map\)/),
-    ).toBeInTheDocument();
-  });
-
-  // A refresh in flight when the user left used to land on an unmounted page.
-  it('cancels a live-idling refresh still in flight on unmount', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    try {
-      const view = renderPage('/place-hub?tab=idling');
-      expect(await screen.findByText('WB11G0962')).toBeInTheDocument();
-      let signal;
-      PlaceHubService.loadLiveIdling.mockImplementation((opts = {}) => {
-        signal = opts.signal;
-        return new Promise(() => {});
-      });
-      await act(() => vi.advanceTimersByTimeAsync(60_000));
-      expect(signal?.aborted).toBe(false);
-      view.unmount();
-      expect(signal.aborted).toBe(true);
-    } finally {
-      vi.useRealTimers();
-    }
   });
 });

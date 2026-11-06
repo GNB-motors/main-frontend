@@ -13,7 +13,7 @@ export function trackRouteModel(data) {
     const segments = (leg.path?.overviewSegments || []).map(decodePolyline6).filter((path) => path.length > 1);
     return segments.length ? [{ ...leg, segments }] : [];
   });
-  return { lines: drawableRoutes(matched), sites: model.sites, unmatchedCount: eligible.length - matched.length };
+  return { legs: eligible, lines: drawableRoutes(matched), sites: model.sites, unmatchedCount: eligible.length - matched.length };
 }
 
 /**
@@ -23,7 +23,7 @@ export function trackRouteModel(data) {
  * the same model, so a route looks the same on both pages.
  */
 export default function useTrackRoutes({ enabled = false } = {}) {
-  const [state, setState] = useState({ lines: [], sites: new Map(), unmatchedCount: null, loading: false, error: null });
+  const [state, setState] = useState({ legs: [], lines: [], sites: new Map(), unmatchedCount: null, loading: false, error: null });
 
   const load = useCallback(async () => {
     if (!enabled) return;
@@ -39,10 +39,11 @@ export default function useTrackRoutes({ enabled = false } = {}) {
   useEffect(() => {
     if (enabled) load();
     // Layer switched off: drop the lines so the map clears at once, not on reload.
-    else setState({ lines: [], sites: new Map(), unmatchedCount: null, loading: false, error: null });
+    else setState({ legs: [], lines: [], sites: new Map(), unmatchedCount: null, loading: false, error: null });
   }, [enabled, load]);
 
   return {
+    legs: enabled ? state.legs : EMPTY,
     lines: enabled ? state.lines : EMPTY,
     sites: state.sites,
     unmatchedCount: state.unmatchedCount,

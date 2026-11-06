@@ -1,3 +1,4 @@
+import { MapPinned, Radio } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import LiveClock from './LiveClock.jsx';
 import Skel from './Skel.jsx';
@@ -28,6 +29,9 @@ function UpdateAge({ at }) {
 }
 
 export default function LiveTopbar({
+  view = 'live',
+  onViewChange,
+  viewSwitchDisabled = false,
   isLiveLoading,
   statusCards,
   filter,
@@ -46,6 +50,23 @@ export default function LiveTopbar({
 }) {
   return (
     <div className="topbar lt-toolbar">
+      {onViewChange ? (
+        <div className="lt-view-switch" role="group" aria-label="Tracking view">
+          {[{ id: 'live', label: 'Live tracking', icon: <Radio size={16} aria-hidden="true" /> }, { id: 'places', label: 'Places & routes', icon: <MapPinned size={16} aria-hidden="true" /> }].map(({ id, label, icon }) => (
+            <button key={id} type="button" aria-pressed={view === id} disabled={viewSwitchDisabled}
+              onClick={() => onViewChange(id)} title={viewSwitchDisabled ? 'Exit Track mode to switch views' : label}>
+              {icon}{label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {view === 'places' ? (
+        <div className="lt-view-description">
+          <strong>Places & routes</strong>
+          <span>Your places, nearby stops, tolls and fleet routes</span>
+          <a href="/place-hub">Open Place Hub ↗</a>
+        </div>
+      ) : <>
       <div className="lt-command-row">
         <div className="gnb-status-bar lt-manufacturers" role="group" aria-label="Manufacturer filters">
           <button type="button" className={`gnb-status-card ${!selectedManufacturers.length ? 'gnb-status-card--active' : ''}`} aria-pressed={!selectedManufacturers.length} onClick={() => setSelectedManufacturers([])}>
@@ -107,6 +128,7 @@ export default function LiveTopbar({
         {layerPills}
         <span className="lt-map-count">On map: {isLiveLoading ? '…' : onMapCount}</span>
       </div>
+      </>}
     </div>
   );
 }

@@ -35,20 +35,21 @@ export const STATUS_TOKENS = {
  */
 export const PLACE_LAYERS = [
   { id: 'ourPlaces', label: 'Our places', icon: 'Factory', defaultOn: true, zoomGated: false },
-  { id: 'pumps', label: 'Pumps', icon: 'Fuel', defaultOn: true, zoomGated: true },
-  { id: 'dhabas', label: 'Dhabas', icon: 'UtensilsCrossed', defaultOn: false, zoomGated: true },
-  { id: 'hospitals', label: 'Hospitals', icon: 'Cross', defaultOn: false, zoomGated: true },
-  { id: 'police', label: 'Police', icon: 'Shield', defaultOn: false, zoomGated: true },
-  { id: 'workshops', label: 'Workshops & tyres', icon: 'Wrench', defaultOn: false, zoomGated: true },
-  { id: 'dealers', label: 'Dealers (Tata / AL)', icon: 'BadgeCheck', defaultOn: false, zoomGated: true },
-  { id: 'parking', label: 'Truck parking', icon: 'ParkingSquare', defaultOn: false, zoomGated: true },
+  { id: 'pumps', label: 'Pumps', icon: 'Fuel', defaultOn: true, zoomGated: false },
+  { id: 'dhabas', label: 'Dhabas & truck stops', icon: 'UtensilsCrossed', defaultOn: false, zoomGated: false },
+  { id: 'hospitals', label: 'Hospitals', icon: 'Cross', defaultOn: false, zoomGated: false },
+  { id: 'police', label: 'Police', icon: 'Shield', defaultOn: false, zoomGated: false },
+  { id: 'workshops', label: 'Workshops & tyres', icon: 'Wrench', defaultOn: false, zoomGated: false },
+  { id: 'dealers', label: 'Dealers (Tata / AL)', icon: 'BadgeCheck', defaultOn: false, zoomGated: false },
+  { id: 'parking', label: 'Truck parking', icon: 'ParkingSquare', defaultOn: false, zoomGated: false },
   {
     id: 'tolls',
-    label: 'Tolls & weighbridges',
+    label: 'Toll plazas',
     icon: 'Landmark',
     defaultOn: false,
-    zoomGated: true,
+    zoomGated: false,
   },
+  { id: 'weighbridges', label: 'Weighbridges', icon: 'Weight', defaultOn: false, zoomGated: false },
 ];
 
 /**
@@ -96,7 +97,8 @@ export const LAYER_API_NAMES = {
   workshops: 'workshops,tyres',
   dealers: 'dealers',
   parking: 'parking',
-  tolls: 'tolls,weighbridges',
+  tolls: 'tolls',
+  weighbridges: 'weighbridges',
 };
 
 /** The API layer names for a set of legend layers. */

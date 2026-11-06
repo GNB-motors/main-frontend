@@ -16,7 +16,7 @@ import { createStatusClusterRenderer } from './statusClusterRenderer.js';
  * trucks appear to drive rather than jump.
  *
  * Heading comes from the feed's courseDegrees (already baked into the icon by
- * createVehicleMarkerIcon), so a frame only moves the marker — it never rebuilds
+ * compactVehicleIcon), so a frame only moves the marker — it never rebuilds
  * the SVG icon. The icon is recomputed only when status / heading / selection /
  * zoom actually change (tracked by a small signature string).
  *

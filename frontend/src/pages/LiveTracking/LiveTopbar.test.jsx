@@ -21,6 +21,25 @@ function Toolbar(props) {
   );
 }
 describe('tracking toolbar', () => {
+  it('switches views and shows only the relevant controls', () => {
+    const changeView = vi.fn();
+    const { rerender } = render(<Toolbar onViewChange={changeView} />);
+    expect(screen.getByRole('button', { name: 'Live tracking' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Places & routes' }));
+    expect(changeView).toHaveBeenCalledWith('places');
+    rerender(<Toolbar view="places" onViewChange={changeView} />);
+    expect(screen.getByRole('button', { name: 'Places & routes' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('group', { name: 'Fleet status filters' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Manufacturer filters' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Open Place Hub/ })).toHaveAttribute('href', '/place-hub');
+  });
+  it('keeps replay protected until the user exits Track mode', () => {
+    const changeView = vi.fn();
+    render(<Toolbar onViewChange={changeView} viewSwitchDisabled />);
+    fireEvent.click(screen.getByRole('button', { name: 'Places & routes' }));
+    expect(changeView).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Places & routes' })).toBeDisabled();
+  });
   it('supports multiple makes and returning to all', () => {
     render(<Toolbar />);
     fireEvent.click(screen.getByRole('button', { name: /Volvo/ }));

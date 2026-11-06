@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from '@/components/redesign/FleetLink';
-import { ChevronLeft, ChevronRight, Route } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Route, Search } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
 import PlaceName from '@/components/redesign/PlaceName';
 import DataTable from '@/components/ui/DataTable';
@@ -63,6 +63,7 @@ const valueText = (row) =>
 export default function InstancesTab({ kind, from, to, vehicle = '', driver = '' }) {
   const [page, setPage] = useState(1);
   const [subKind, setSubKind] = useState('cruise');
+  const [filterText, setFilterText] = useState('');
   const goTo = useGoToLink();
 
   const activeKind = kind === 'cruise' ? subKind : kind;
@@ -84,7 +85,7 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
 
   const held = data?.held ? data.why : null;
   const summary = data?.summary ?? null;
-  const items = data?.items ?? [];
+  const items = useMemo(() => data?.items ?? [], [data?.items]);
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const [one, many] = NOUNS[activeKind] ?? ['moment', 'moments'];
@@ -182,12 +183,24 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
       : null,
   ].filter(Boolean);
 
+  const displayedItems = useMemo(() => {
+    if (!filterText.trim()) return items;
+    const q = filterText.trim().toLowerCase();
+    return items.filter(
+      (row) =>
+        row?.registrationNumber?.toLowerCase().includes(q) ||
+        row?.driverName?.toLowerCase().includes(q) ||
+        row?.text?.toLowerCase().includes(q) ||
+        row?.place?.name?.toLowerCase().includes(q),
+    );
+  }, [items, filterText]);
+
   const caveat = CAVEATS[activeKind] ?? null;
 
   return (
     <div className="flex flex-col gap-4">
       {kind === 'cruise' ? (
-        <div role="group" aria-label="Cruise and gears" className="intel-segmented self-start">
+        <div role="group" aria-label="Cruise and gears" className="intel-segmented self-start mb-1">
           {SUB_TABS.map((tab) => (
             <button
               key={tab.id}
@@ -252,18 +265,33 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
         <DataTable
           className="mt-4"
           columns={columns}
-          rows={items}
+          rows={displayedItems}
           rowKey={(row) => row?.id ?? row?.startAt}
           onRowClick={(row) => goTo(row?.replay)}
-          showing={items.length}
+          showing={displayedItems.length}
           total={total}
+          activeFilters={filterText.trim() ? 1 : 0}
           toolbarExtra={
-            items.length ? (
-              <span className="intelligence-scope-note">
-                {samePlace ? `Where: ${samePlace} (every row) · ` : ''}Click a row to open it on the
-                map
-              </span>
-            ) : null
+            <div className="intel-tab-tools">
+              {items.length > 0 ? (
+                <div className="intel-search-box">
+                  <Search size={14} aria-hidden="true" className="intel-search-icon" />
+                  <input
+                    type="search"
+                    aria-label="Filter moments"
+                    value={filterText}
+                    onChange={(e) => setFilterText(e.target.value)}
+                    placeholder="Filter by plate, driver or place"
+                    className="intel-search-input"
+                  />
+                </div>
+              ) : null}
+              {items.length ? (
+                <span className="intelligence-scope-note-inline">
+                  {samePlace ? `Where: ${samePlace} (every row) · ` : ''}Click a row to open on map
+                </span>
+              ) : null}
+            </div>
           }
           pagination={
             totalPages > 1 ? (

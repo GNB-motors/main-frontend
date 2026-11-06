@@ -12,7 +12,6 @@ const OverviewView = lazy(() => import('./views/OverviewView.jsx'));
 const DeviationView = lazy(() => import('./views/DeviationView.jsx'));
 const ReplayView = lazy(() => import('./views/ReplayView.jsx'));
 const ProfitabilityView = lazy(() => import('./views/ProfitabilityView.jsx'));
-const OverspeedView = lazy(() => import('./views/OverspeedView.jsx'));
 const IntelligenceView = lazy(() => import('./views/IntelligenceView.jsx'));
 
 const VIEWS = [
@@ -20,7 +19,6 @@ const VIEWS = [
   { key: 'deviation', label: 'Route deviation', badge: 'deviation', Component: DeviationView },
   { key: 'replay', label: 'Route replay', Component: ReplayView },
   { key: 'profitability', label: 'Profitability', Component: ProfitabilityView },
-  { key: 'overspeed', label: 'Overspeed audit', badge: 'overspeed', Component: OverspeedView },
   { key: 'intelligence', label: 'Intelligence', Component: IntelligenceView },
 ];
 
@@ -45,6 +43,20 @@ export default function RouteHubPage() {
       }),
       { replace: true },
     );
+  }, [searchParams, navigate]);
+
+  // Overspeed audit moved to Intelligence. Redirect legacy links.
+  useEffect(() => {
+    if (searchParams.get('tab') !== 'overspeed') return;
+    const v = searchParams.get('v');
+    const from = searchParams.get('from');
+    const to = searchParams.get('to');
+    const next = new URLSearchParams();
+    next.set('tab', 'overspeed');
+    if (v) next.set('vehicle', v);
+    if (from) next.set('from', from);
+    if (to) next.set('to', to);
+    navigate(`/intelligence?${next.toString()}`, { replace: true });
   }, [searchParams, navigate]);
 
   const activeKey = VIEWS.some((v) => v.key === searchParams.get('tab'))
@@ -136,11 +148,18 @@ export default function RouteHubPage() {
 
   const go = useCallback(
     (key, extra) => {
+      if (key === 'overspeed') {
+        const next = new URLSearchParams();
+        next.set('tab', 'overspeed');
+        if (extra?.v) next.set('vehicle', extra.v);
+        navigate(`/intelligence?${next.toString()}`);
+        return;
+      }
       const next = { tab: key, ...(extra || {}) };
       setSearchParams(next);
       window.scrollTo({ top: 0 });
     },
-    [setSearchParams],
+    [setSearchParams, navigate],
   );
 
   // Compute fuzzy suggestions
