@@ -1,8 +1,13 @@
+import { IntelligenceViewSwitcher, IntelligenceMapWorkspace } from './IntelligenceWorkspace.jsx';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MapPin, Timer } from 'lucide-react';
 import IdlingConsoleService from '../IdlingConsole/IdlingConsoleService.js';
 import PlaceHubService from '../PlaceHub/PlaceHubService.js';
-import { clusterIdleEvents, idleHistoryTotals, liveIdleTotals } from '../PlaceHub/model/idleSpots.js';
+import {
+  clusterIdleEvents,
+  idleHistoryTotals,
+  liveIdleTotals,
+} from '../PlaceHub/model/idleSpots.js';
 import IdlingPanel from '../PlaceHub/panels/IdlingPanel.jsx';
 import LiveIdleDetail from '../PlaceHub/drawer/LiveIdleDetail.jsx';
 import IdleSpotDetail from '../PlaceHub/drawer/IdleSpotDetail.jsx';
@@ -143,35 +148,37 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
 
   return (
     <div className="intel-idling-tab">
-      <div className="intel-subview-toggle-bar">
-        <div role="tablist" aria-label="Idling views" className="intel-segmented">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={subView === 'map'}
-            className="intel-segment"
-            onClick={() => setSubView('map')}
-          >
-            <MapPin size={14} aria-hidden="true" />
-            Live & spots map
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={subView === 'instances'}
-            className="intel-segment"
-            onClick={() => setSubView('instances')}
-          >
-            <Timer size={14} aria-hidden="true" />
-            Idle moments log
-          </button>
-        </div>
-      </div>
+      <IntelligenceViewSwitcher label="Idling views">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={subView === 'map'}
+          className="intel-segment"
+          onClick={() => setSubView('map')}
+        >
+          <MapPin size={14} aria-hidden="true" />
+          Live & spots map
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={subView === 'instances'}
+          className="intel-segment"
+          onClick={() => setSubView('instances')}
+        >
+          <Timer size={14} aria-hidden="true" />
+          Idle moments log
+        </button>
+      </IntelligenceViewSwitcher>
 
       {subView === 'instances' ? (
         <InstancesTab kind="idle" from={from} to={to} vehicle={vehicle} driver={driver} />
       ) : (
-        <div className={`ph-page intel-embed-console ph-body ${selectedItem ? 'has-panel' : ''}`}>
+        <IntelligenceMapWorkspace
+          label="Idling map and activity"
+          hasDetail={Boolean(selectedItem)}
+          loading={loading}
+        >
           <div className="ph-side">
             <IdlingPanel
               loading={loading}
@@ -189,7 +196,7 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
               onPickSpot={(item) => setSelectedId(item.id)}
             />
           </div>
-          <div className="ph-map-wrap" style={{ position: 'relative', minHeight: '520px' }}>
+          <div className="ph-map-wrap">
             <RiskMapCanvas
               type="idling"
               idleLive={filteredLive}
@@ -199,8 +206,8 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
               isDark={isDark}
             />
           </div>
-          {selectedItem && (
-            selectedKind === 'live' ? (
+          {selectedItem &&
+            (selectedKind === 'live' ? (
               <LiveIdleDetail
                 event={selectedItem}
                 canEdit={false}
@@ -212,9 +219,8 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
                 canEdit={false}
                 onClose={() => setSelectedId(null)}
               />
-            )
-          )}
-        </div>
+            ))}
+        </IntelligenceMapWorkspace>
       )}
     </div>
   );

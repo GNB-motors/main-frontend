@@ -1,3 +1,4 @@
+import { IntelligenceViewSwitcher, IntelligenceMapWorkspace } from './IntelligenceWorkspace.jsx';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Flame, Droplets } from 'lucide-react';
@@ -89,7 +90,11 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
   const selectedItem = useMemo(() => {
     if (!selectedId) return null;
     if (selectedId.startsWith('hotspot:')) {
-      return hotspots.find((h) => h.id === selectedId || h.sourceId === selectedId.replace(/^hotspot:/, '')) || null;
+      return (
+        hotspots.find(
+          (h) => h.id === selectedId || h.sourceId === selectedId.replace(/^hotspot:/, ''),
+        ) || null
+      );
     }
     return filteredCells.find((c) => c.id === selectedId) || null;
   }, [selectedId, hotspots, filteredCells]);
@@ -98,35 +103,43 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
 
   return (
     <div className="intel-fuel-tab">
-      <div className="intel-subview-toggle-bar">
-        <div role="tablist" aria-label="Fuel views" className="intel-segmented">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={subView === 'map'}
-            className="intel-segment"
-            onClick={() => setSubView('map')}
-          >
-            <Flame size={14} aria-hidden="true" />
-            Risk map & hotspots
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={subView === 'instances'}
-            className="intel-segment"
-            onClick={() => setSubView('instances')}
-          >
-            <Droplets size={14} aria-hidden="true" />
-            Unexplained fuel drops log
-          </button>
-        </div>
-      </div>
+      <IntelligenceViewSwitcher label="Fuel views">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={subView === 'map'}
+          className="intel-segment"
+          onClick={() => setSubView('map')}
+        >
+          <Flame size={14} aria-hidden="true" />
+          Risk map & hotspots
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={subView === 'instances'}
+          className="intel-segment"
+          onClick={() => setSubView('instances')}
+        >
+          <Droplets size={14} aria-hidden="true" />
+          Unexplained fuel drops log
+        </button>
+      </IntelligenceViewSwitcher>
 
       {subView === 'instances' ? (
-        <InstancesTab kind="fuel_unexplained" from={from} to={to} vehicle={vehicle} driver={driver} />
+        <InstancesTab
+          kind="fuel_unexplained"
+          from={from}
+          to={to}
+          vehicle={vehicle}
+          driver={driver}
+        />
       ) : (
-        <div className={`ph-page intel-embed-console ph-body ${selectedItem ? 'has-panel' : ''}`}>
+        <IntelligenceMapWorkspace
+          label="Fuel risk map and activity"
+          hasDetail={Boolean(selectedItem)}
+          loading={loading}
+        >
           <div className="ph-side">
             <FuelPanel
               loading={loading}
@@ -142,7 +155,7 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
               onPickCell={(item) => setSelectedId(item.id)}
             />
           </div>
-          <div className="ph-map-wrap" style={{ position: 'relative', minHeight: '520px' }}>
+          <div className="ph-map-wrap">
             <RiskMapCanvas
               type="fuel"
               hotspots={hotspots}
@@ -152,8 +165,8 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
               isDark={isDark}
             />
           </div>
-          {selectedItem && (
-            selectedKind === 'hotspot' ? (
+          {selectedItem &&
+            (selectedKind === 'hotspot' ? (
               <HotspotDetail
                 hotspot={selectedItem}
                 canEdit={false}
@@ -165,11 +178,9 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
                 canEdit={false}
                 onClose={() => setSelectedId(null)}
               />
-            )
-          )}
-        </div>
+            ))}
+        </IntelligenceMapWorkspace>
       )}
     </div>
   );
 }
-

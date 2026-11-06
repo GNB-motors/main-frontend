@@ -17,6 +17,7 @@ import {
 } from './intelligenceTabs';
 import { periodDates, periodRangeLabel, resolvePeriod } from './intelligenceModel';
 import './IntelligencePage.css';
+import './IntelligenceDesign.css';
 
 const IssuesTab = lazy(() => import('./IssuesTab'));
 const ReportCardsTab = lazy(() => import('./ReportCardsTab'));
@@ -197,6 +198,7 @@ export default function IntelligencePage() {
   const active = resolveIntelligenceTab(requested, actCount);
   const section = sectionOfTab(active);
   const activeTab = tabById(active);
+  const ActiveIcon = activeTab?.icon;
   const fleetOnly = FLEET_ONLY_TABS.includes(active);
   const openTab = (tab) => updateParams({ tab, kind: null });
 
@@ -209,7 +211,9 @@ export default function IntelligencePage() {
             What your trucks and drivers did, and what needs you
             <span className="intel-subtitle-period">{periodRangeLabel(from, to)}</span>
           </p>
-          {summary?.tiles?.length && !summary?.held ? <IntelligenceSummaryTiles tiles={summary.tiles} onOpenTab={openTab} /> : null}
+          {summary?.tiles?.length && !summary?.held ? (
+            <IntelligenceSummaryTiles tiles={summary.tiles} onOpenTab={openTab} />
+          ) : null}
         </div>
 
         <div className="intel-header-controls">
@@ -258,10 +262,7 @@ export default function IntelligencePage() {
               >
                 {entry.label}
                 {entry.id === 'issues' && actCount ? (
-                  <span
-                    className="intel-section-count"
-                    aria-label={`${actCount} need you`}
-                  >
+                  <span className="intel-section-count" aria-label={`${actCount} need you`}>
                     {actCount}
                   </span>
                 ) : null}
@@ -271,8 +272,8 @@ export default function IntelligencePage() {
         </div>
       </nav>
 
-      <div className="intel-view-bar">
-        {section.tabs.length > 1 ? (
+      {section.tabs.length > 1 ? (
+        <div className="intel-view-bar">
           <div role="tablist" aria-label={`${section.label} views`} className="intel-segmented">
             {section.tabs.map((id) => {
               const tab = tabById(id);
@@ -291,13 +292,24 @@ export default function IntelligencePage() {
               );
             })}
           </div>
-        ) : null}
-        <p className="intel-view-hint">
+        </div>
+      ) : null}
+
+      <header className="intel-panel-heading">
+        <div className="intel-panel-heading-title">
+          {ActiveIcon ? (
+            <span className="intel-panel-heading-icon">
+              <ActiveIcon size={17} aria-hidden="true" />
+            </span>
+          ) : null}
+          <h2>{activeTab?.label}</h2>
+          {fleetOnly ? <span className="intel-scope-badge">Whole fleet</span> : null}
+        </div>
+        <p>
           {activeTab?.hint}
           {fleetOnly ? ' Covers the whole fleet; the truck filter does not apply here.' : ''}
         </p>
-      </div>
-
+      </header>
       <div role="tabpanel" aria-label={activeTab?.label} className="intel-panel">
         <TabContent
           active={active}

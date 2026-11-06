@@ -43,7 +43,8 @@ export default function IntelligenceDataState({
     const good = emptyTone === 'good';
     return (
       <div
-        className={`flex flex-col items-center gap-2 rounded-[var(--rd-radius)] border px-6 py-10 text-center ${
+        data-tone={good ? 'good' : 'empty'}
+        className={`intel-data-empty flex flex-col items-center gap-2 rounded-[var(--rd-radius)] border px-6 py-10 text-center ${
           good
             ? 'border-[var(--rd-good)] bg-[var(--rd-good-tint)]'
             : 'border-dashed border-[var(--rd-line-strong)] bg-[var(--rd-card)]'

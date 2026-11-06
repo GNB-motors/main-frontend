@@ -1,3 +1,4 @@
+import { IntelligenceViewSwitcher, IntelligenceAuditWorkspace } from './IntelligenceWorkspace.jsx';
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GitFork, Zap } from 'lucide-react';
@@ -41,38 +42,47 @@ export default function DetoursTab({ from, to, vehicle = '', driver = '' }) {
 
   return (
     <div className="intel-detours-tab">
-      <div className="intel-subview-toggle-bar">
-        <div role="tablist" aria-label="Detour views" className="intel-segmented">
-          <button type="button" role="tab" aria-selected={subView === 'audit'}
-            className="intel-segment" onClick={() => setSubView('audit')}>
-            <GitFork size={14} aria-hidden="true" />
-            Route deviation audit
-          </button>
-          <button type="button" role="tab" aria-selected={subView === 'instances'}
-            className="intel-segment" onClick={() => setSubView('instances')}>
-            <Zap size={14} aria-hidden="true" />
-            Detour moments log
-          </button>
-        </div>
-      </div>
+      <IntelligenceViewSwitcher label="Detour views">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={subView === 'audit'}
+          className="intel-segment"
+          onClick={() => setSubView('audit')}
+        >
+          <GitFork size={14} aria-hidden="true" />
+          Route deviation audit
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={subView === 'instances'}
+          className="intel-segment"
+          onClick={() => setSubView('instances')}
+        >
+          <Zap size={14} aria-hidden="true" />
+          Detour moments log
+        </button>
+      </IntelligenceViewSwitcher>
 
       {toastMsg && (
-        <div className="intel-toast" role="status">{toastMsg}</div>
+        <div className="intel-toast" role="status">
+          {toastMsg}
+        </div>
       )}
 
       {subView === 'instances' ? (
         <InstancesTab kind="detour" from={from} to={to} vehicle={vehicle} driver={driver} />
       ) : (
-        <div className="nova-rh intel-detours-embed">
+        <IntelligenceAuditWorkspace label="Route deviation audit">
           <DeviationView
             params={deviationParams}
             toast={handleToast}
             setBadge={() => {}}
             go={handleGo}
           />
-        </div>
+        </IntelligenceAuditWorkspace>
       )}
     </div>
   );
 }
-

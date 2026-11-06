@@ -1,0 +1,817 @@
+/* Intelligence's presentation contract. All rules are scoped to this page:
+   migrated tools use the same app tokens without restyling their old pages. */
+.intelligence-page {
+  --intel-radius: var(--rd-radius-sm);
+  font-family: var(--font-sans, 'Inter', system-ui, sans-serif);
+  padding: 24px;
+}
+.intelligence-page .intel-header {
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.intelligence-page .intel-title {
+  font-size: 22px;
+  line-height: 30px;
+}
+.intelligence-page .intel-subtitle {
+  font-size: 12px;
+  line-height: 20px;
+}
+.intelligence-page .intel-subtitle-period {
+  box-shadow: none;
+  border-radius: var(--rd-radius-xs);
+}
+.intelligence-page .intel-kpi-strip {
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.intelligence-page .intel-kpi {
+  border-radius: var(--intel-radius);
+  box-shadow: none;
+}
+.intelligence-page .intel-kpi::before {
+  display: none;
+}
+.intelligence-page .intel-kpi:has(button.intel-kpi-hit):hover {
+  transform: none;
+  box-shadow: none;
+  background: var(--rd-card-2);
+  border-color: var(--rd-line-strong);
+}
+.intelligence-page .intel-kpi-hit {
+  padding: 15px 16px;
+  gap: 4px;
+}
+.intelligence-page .intel-kpi-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+.intelligence-page .intel-kpi-value {
+  font-size: 27px;
+  line-height: 34px;
+}
+.intelligence-page .intel-kpi-context {
+  font-size: 11px;
+  line-height: 17px;
+}
+.intelligence-page .intel-kpi-why {
+  top: 14px;
+  right: 12px;
+}
+.intelligence-page .intel-insights li {
+  box-shadow: none;
+  background: var(--rd-card);
+}
+.intelligence-page .intel-insights li:hover {
+  box-shadow: none;
+}
+.intelligence-page .intel-insight-hit {
+  font-size: 12px;
+}
+.intelligence-page .intel-view-bar {
+  margin: 14px 0 0;
+  min-height: 36px;
+}
+.intelligence-page .intel-segmented {
+  max-width: 100%;
+  overflow-x: auto;
+  box-shadow: none;
+  border-radius: 8px;
+  background: var(--rd-card-2);
+}
+.intelligence-page .intel-segment {
+  min-height: 30px;
+  padding: 5px 11px;
+  font-size: 12px;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+.intelligence-page .intel-segment:hover {
+  background: var(--rd-card);
+}
+.intelligence-page .intel-segment:is([aria-selected='true'], [aria-pressed='true']) {
+  box-shadow: 0 0 0 1px var(--rd-line);
+  background: var(--rd-card);
+  color: var(--rd-ink);
+}
+.intelligence-page .intel-panel-heading {
+  padding: 20px 0 16px;
+}
+.intelligence-page .intel-panel-heading-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.intelligence-page .intel-panel-heading-title h2 {
+  margin: 0;
+  color: var(--rd-ink);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+.intelligence-page .intel-panel-heading-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--rd-line);
+  border-radius: 8px;
+  background: var(--rd-card);
+  color: var(--rd-ink-2);
+}
+.intelligence-page .intel-panel-heading > p {
+  margin: 5px 0 0 39px;
+  color: var(--rd-ink-2);
+  font-size: 12px;
+  line-height: 19px;
+}
+.intelligence-page .intel-scope-badge {
+  border: 1px solid var(--rd-line);
+  border-radius: 5px;
+  padding: 2px 6px;
+  color: var(--rd-ink-3);
+  font-size: 10px;
+}
+.intelligence-page .intel-panel {
+  min-width: 0;
+}
+.intelligence-page .intel-subview-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  border: 1px solid var(--rd-line);
+  border-radius: var(--intel-radius);
+  background: var(--rd-card);
+}
+.intelligence-page .intel-subview-label {
+  color: var(--rd-ink-3);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Native Intelligence cards, tables, metrics and controls. */
+.intelligence-page .intel-card {
+  box-shadow: none;
+  border-radius: var(--intel-radius);
+}
+.intelligence-page .intel-card:hover {
+  box-shadow: none;
+}
+.intelligence-page .intel-card-head {
+  min-height: 52px;
+  padding: 14px 16px;
+  background: var(--rd-card);
+}
+.intelligence-page .intel-card-head h3 {
+  font-size: 14px;
+  line-height: 20px;
+}
+.intelligence-page .intel-card-body {
+  padding: 16px;
+}
+.intelligence-page .intel-card-body--flush {
+  padding: 0;
+}
+.intelligence-page .intel-card-count {
+  border: 1px solid var(--rd-line);
+  border-radius: 5px;
+  padding: 1px 6px;
+  font-size: 11px;
+  color: var(--rd-ink-2);
+}
+.intelligence-page .intel-table-wrap {
+  border-radius: var(--intel-radius);
+}
+.intelligence-page .intel-table-wrap--flush {
+  border-top: 0;
+  border-radius: 0;
+}
+.intelligence-page .intel-table thead th {
+  background: var(--rd-card-2);
+  color: var(--rd-ink-2);
+  text-transform: none;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  padding: 11px 16px;
+}
+.intelligence-page .intel-table tbody td {
+  padding: 12px 16px;
+  line-height: 20px;
+  font-size: 13px;
+  border-color: var(--rd-line);
+}
+.intelligence-page .intel-tab-tools {
+  background: var(--rd-card);
+  padding: 12px 16px;
+  gap: 10px;
+}
+.intelligence-page .intel-pager,
+.intelligence-page .intelligence-filter-select {
+  box-shadow: none;
+  border-radius: var(--rd-radius-xs);
+}
+.intelligence-page .intel-summary {
+  background: var(--rd-card);
+  box-shadow: none;
+  border-radius: var(--intel-radius);
+  border: 1px solid var(--rd-line);
+  padding: 16px;
+  gap: 24px;
+}
+.intelligence-page .intel-summary-stat b {
+  color: var(--rd-ink);
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 600;
+}
+.intelligence-page .intel-summary-stat span {
+  color: var(--rd-ink-2);
+  font-size: 12px;
+}
+.intelligence-page .intelligence-scope-note {
+  border-radius: var(--rd-radius-xs);
+  background: var(--rd-card-2);
+  box-shadow: none;
+}
+.intelligence-page .intel-search-input {
+  font-size: 12px;
+}
+.intelligence-page .intel-empty,
+.intelligence-page .intel-card-empty {
+  color: var(--rd-ink-2);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+/* Place-derived tools get the same surfaces and semantic colors as native tabs. */
+.intelligence-page .intel-map-workspace.ph-page {
+  --ph-bg: var(--rd-card);
+  --ph-surface: var(--rd-card);
+  --ph-raised: var(--rd-card-2);
+  --ph-sunk: var(--rd-card-2);
+  --ph-border: var(--rd-line);
+  --ph-border-strong: var(--rd-line-strong);
+  --ph-text: var(--rd-ink);
+  --ph-text-2: var(--rd-ink-2);
+  --ph-dim: var(--rd-ink-3);
+  --ph-accent: var(--rd-brand);
+  --ph-accent-solid: var(--rd-brand-2);
+  --ph-accent-tint: var(--rd-brand-tint);
+  --ph-ok: var(--rd-good-ink);
+  --ph-ok-tint: var(--rd-good-tint);
+  --ph-warn: var(--rd-watch-ink);
+  --ph-warn-tint: var(--rd-watch-tint);
+  --ph-crit: var(--rd-act-ink);
+  --ph-crit-tint: var(--rd-act-tint);
+  --ph-info: var(--rd-info-ink);
+  --ph-info-tint: var(--rd-info-tint);
+  --ph-shadow: none;
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  height: 600px;
+  min-height: 0;
+  border: 1px solid var(--rd-line);
+  border-radius: var(--intel-radius);
+  overflow: hidden;
+  font-family: inherit;
+}
+.intelligence-page .intel-map-workspace.ph-page[data-has-detail='true'] {
+  grid-template-columns: 290px minmax(200px, 1fr) 330px;
+}
+.intelligence-page .intel-map-workspace.ph-page > .ph-side {
+  min-width: 0;
+  border-right: 1px solid var(--rd-line);
+  overflow: hidden;
+}
+.intelligence-page .intel-map-workspace.ph-page > .ph-map-wrap {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.intelligence-page .intel-map-workspace.ph-page .ph-kpis {
+  padding: 14px;
+  gap: 10px;
+}
+.intelligence-page .intel-map-workspace.ph-page .ph-kpi {
+  padding: 12px;
+  border-radius: 8px;
+  border-color: var(--rd-line);
+  background: var(--rd-card);
+  box-shadow: none;
+}
+.intelligence-page .intel-map-workspace.ph-page .ph-kpi-label {
+  font-size: 10px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--rd-ink-2);
+}
+.intelligence-page .intel-map-workspace.ph-page .ph-kpi-value {
+  font-size: 24px;
+  line-height: 31px;
+  font-weight: 600;
+}
+.intelligence-page .intel-map-workspace.ph-page .ph-kpi-hint {
+  font-size: 10px;
+  line-height: 16px;
+}
+.intelligence-page .intel-map-workspace.ph-page .ph-filter {
+  padding: 12px 14px;
+  gap: 10px;
+  border-bottom-color: var(--rd-line);
+}
+.intelligence-page .intel-map-workspace.ph-page .ph-segmented {
+  border-radius: 7px;
+  background: var(--rd-card-2);
+  border: 1px solid var(--rd-line);
+}
+.intelligence-page .intel-map-workspace.ph-page .ph-row {
+  padding: 12px 14px;
+  border-radius: 0;
+  min-height: 64px;
+}
+.intelligence-page .intel-map-workspace.ph-page .ph-row.is-selected {
+  background: var(--rd-brand-tint);
+  box-shadow: inset 3px 0 0 var(--rd-brand-2);
+}
+.intelligence-page .intel-map-workspace.ph-page .ph-row-title {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+.intelligence-page .intel-map-workspace.ph-page .ph-row-sub {
+  font-size: 11px;
+  line-height: 17px;
+}
+.intelligence-page .intel-map-workspace.ph-page .ph-pill {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+.intelligence-page .intel-map-workspace.ph-page > .ph-panel {
+  width: auto;
+  min-width: 0;
+  border-left: 1px solid var(--rd-line);
+  box-shadow: none;
+}
+.intelligence-page .intel-map-workspace.ph-page .ph-panel-head {
+  padding: 14px 16px;
+  min-height: 62px;
+}
+.intelligence-page .intel-map-workspace.ph-page .ph-panel-titles h2 {
+  font-size: 15px;
+}
+.intelligence-page .intel-map-workspace.ph-page .ph-panel-body {
+  padding: 16px;
+}
+.intelligence-page .intel-map-fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+  background: var(--rd-card-2);
+  color: var(--rd-ink-3);
+  font-size: 12px;
+}
+
+/* Route-derived tools inherit the exact same token contract, not a second theme. */
+.intelligence-page .intel-audit-workspace.nova-rh {
+  --bg-app: var(--rd-card);
+  --bg-canvas: transparent;
+  --bg-surface: var(--rd-card);
+  --bg-elevated: var(--rd-card);
+  --bg-subtle: var(--rd-card-2);
+  --bg-input: var(--rd-card);
+  --fg-primary: var(--rd-ink);
+  --fg-secondary: var(--rd-ink-2);
+  --fg-tertiary: var(--rd-ink-3);
+  --fg-brand: var(--rd-brand);
+  --fg-success: var(--rd-good-ink);
+  --fg-warning: var(--rd-watch-ink);
+  --fg-danger: var(--rd-act-ink);
+  --fg-info: var(--rd-info-ink);
+  --border-default: var(--rd-line);
+  --border-subtle: var(--rd-line);
+  --border-strong: var(--rd-line-strong);
+  --border-input: var(--rd-line);
+  --border-focus: var(--rd-brand-2);
+  --font-ui: var(--font-sans);
+  --font-display: var(--font-sans);
+  --font-mono: var(--font-sans);
+  --type-3xl: 26px;
+  --type-2xl: 22px;
+  --type-xl: 18px;
+  --type-l: 16px;
+  --type-s: 13px;
+  --radius-xl: var(--intel-radius);
+  --radius-l: var(--intel-radius);
+  --radius-m: var(--rd-radius-xs);
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --nova-rage-400: var(--rd-brand-2);
+  --nova-rage-600: var(--rd-brand);
+  --nova-rage-a10: var(--rd-brand-tint);
+  --nova-rage-a05: var(--rd-brand-tint);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  color: var(--rd-ink);
+  font-family: inherit;
+}
+.intelligence-page .intel-audit-workspace.nova-rh > .view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0;
+}
+.intelligence-page .intel-audit-workspace.nova-rh .phead {
+  margin: 0;
+  padding: 16px;
+  background: var(--rd-card);
+  border: 1px solid var(--rd-line);
+  border-radius: var(--intel-radius);
+  gap: 16px;
+}
+.intelligence-page .intel-audit-workspace.nova-rh .phead h2 {
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.intelligence-page .intel-audit-workspace.nova-rh .phead p {
+  font-size: 12px;
+  line-height: 19px;
+  color: var(--rd-ink-2);
+  max-width: 760px;
+}
+.intelligence-page .intel-audit-workspace.nova-rh :is(.card, .split, .filter-bar, .ctrlbar) {
+  border: 1px solid var(--rd-line);
+  border-radius: var(--intel-radius);
+  box-shadow: none;
+  background: var(--rd-card);
+}
+.intelligence-page .intel-audit-workspace.nova-rh .split {
+  border: 0;
+  background: transparent;
+  gap: 16px;
+}
+.intelligence-page .intel-audit-workspace.nova-rh .card-head {
+  padding: 14px 16px;
+  min-height: 52px;
+  border-bottom: 1px solid var(--rd-line);
+}
+.intelligence-page .intel-audit-workspace.nova-rh .card-head h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.intelligence-page .intel-audit-workspace.nova-rh .kpis {
+  gap: 12px;
+}
+.intelligence-page .intel-audit-workspace.nova-rh .kpi {
+  padding: 14px 16px;
+  border-radius: var(--intel-radius);
+  background: var(--rd-card);
+  border-color: var(--rd-line);
+  color: var(--rd-ink);
+  box-shadow: none;
+}
+.intelligence-page .intel-audit-workspace.nova-rh .kpi--accent::after {
+  display: none;
+}
+.intelligence-page .intel-audit-workspace.nova-rh .kpi-top {
+  color: var(--rd-ink-2);
+}
+.intelligence-page .intel-audit-workspace.nova-rh .kpi-top span {
+  font-size: 11px;
+}
+.intelligence-page .intel-audit-workspace.nova-rh .kpi-top .ic {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+}
+.intelligence-page .intel-audit-workspace.nova-rh .kpi--accent .kpi-top .ic {
+  background: var(--rd-brand-tint);
+  color: var(--rd-brand);
+}
+.intelligence-page .intel-audit-workspace.nova-rh .kpi-val {
+  font-size: 26px;
+  line-height: 34px;
+  margin-top: 8px;
+}
+.intelligence-page .intel-audit-workspace.nova-rh :is(.kpi-sub, .kpi-val small, .hint) {
+  color: var(--rd-ink-3);
+  font-size: 11px;
+  line-height: 17px;
+}
+.intelligence-page .intel-audit-workspace.nova-rh :is(.ctrlbar, .filter-bar) {
+  padding: 14px 16px;
+  margin: 0;
+  gap: 10px;
+}
+.intelligence-page .intel-audit-workspace.nova-rh .field {
+  border-color: var(--rd-line);
+  background: var(--rd-card);
+  border-radius: var(--rd-radius-xs);
+  min-height: 36px;
+  height: 36px;
+}
+.intelligence-page .intel-audit-workspace.nova-rh :is(.field input, .field select) {
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--rd-ink);
+  background: transparent;
+}
+.intelligence-page .intel-audit-workspace.nova-rh .flabel > span:first-child {
+  color: var(--rd-ink-2);
+  font-size: 11px;
+}
+.intelligence-page .intel-audit-workspace.nova-rh .btn {
+  min-height: 34px;
+  border-radius: var(--rd-radius-xs);
+  border-color: var(--rd-line);
+  font-family: inherit;
+  font-size: 12px;
+  box-shadow: none;
+}
+.intelligence-page .intel-audit-workspace.nova-rh .btn--primary {
+  background: var(--rd-accent);
+  border-color: var(--rd-accent);
+  color: var(--fg-inverse, #fff);
+}
+.intelligence-page .intel-audit-workspace.nova-rh .btn--primary:hover {
+  background: color-mix(in srgb, var(--rd-accent) 85%, var(--rd-ink));
+}
+.intelligence-page .intel-audit-workspace.nova-rh .pill {
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
+  box-shadow: none;
+}
+.intelligence-page .intel-audit-workspace.nova-rh .pill[aria-pressed='true'] {
+  background: var(--rd-brand-tint);
+  border-color: var(--rd-brand-2);
+  color: var(--rd-brand);
+}
+.intelligence-page .intel-audit-workspace.nova-rh .plate {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.intelligence-page .intel-audit-workspace.nova-rh .tbl {
+  width: 100%;
+  border-collapse: collapse;
+}
+.intelligence-page .intel-audit-workspace.nova-rh .tbl th {
+  font-family: inherit;
+  background: var(--rd-card-2);
+  color: var(--rd-ink-2);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 11px 16px;
+  height: auto;
+  border-bottom: 1px solid var(--rd-line);
+}
+.intelligence-page .intel-audit-workspace.nova-rh .tbl td {
+  color: var(--rd-ink);
+  font-size: 13px;
+  line-height: 20px;
+  padding: 12px 16px;
+  height: auto;
+  border-color: var(--rd-line);
+}
+.intelligence-page .intel-audit-workspace.nova-rh .tbl tr:is(.sel, .click:hover) {
+  background: var(--rd-brand-tint);
+}
+.intelligence-page .intel-audit-workspace.nova-rh .empty {
+  min-height: 180px;
+  color: var(--rd-ink-2);
+  font-size: 13px;
+}
+.intelligence-page .intel-audit-workspace.nova-rh .detailmap {
+  top: 16px;
+}
+.intelligence-page :is(button, a, input, select):focus-visible {
+  outline: 2px solid var(--rd-brand-2);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1200px) {
+  .intelligence-page .intel-map-workspace.ph-page[data-has-detail='true'] {
+    grid-template-columns: 300px minmax(0, 1fr);
+    height: auto;
+  }
+  .intelligence-page .intel-map-workspace.ph-page[data-has-detail='true'] > .ph-side {
+    max-height: 560px;
+  }
+  .intelligence-page .intel-map-workspace.ph-page[data-has-detail='true'] > .ph-panel {
+    grid-column: 1 / -1;
+    border-left: 0;
+    border-top: 1px solid var(--rd-line);
+    max-height: 440px;
+  }
+  .intelligence-page .intel-audit-workspace.nova-rh .split {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 720px) {
+  .intelligence-page {
+    padding: 16px;
+  }
+  .intelligence-page .intel-header-controls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .intelligence-page .intel-kpi-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .intelligence-page .intel-kpi-hit {
+    padding: 12px;
+  }
+  .intelligence-page .intel-kpi-value {
+    font-size: 24px;
+  }
+  .intelligence-page .intel-section-list {
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .intelligence-page .intel-panel-heading > p {
+    margin-left: 0;
+  }
+  .intelligence-page .intel-subview-toolbar {
+    padding: 8px;
+    gap: 7px;
+  }
+  .intelligence-page .intel-subview-toolbar .intel-segmented {
+    flex: 1;
+  }
+  .intelligence-page .intel-map-workspace.ph-page,
+  .intelligence-page .intel-map-workspace.ph-page[data-has-detail='true'] {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+  .intelligence-page .intel-map-workspace.ph-page > .ph-map-wrap {
+    grid-row: 1;
+    height: 300px;
+  }
+  .intelligence-page .intel-map-workspace.ph-page > .ph-side {
+    border-right: 0;
+    border-top: 1px solid var(--rd-line);
+    max-height: 420px;
+  }
+  .intelligence-page .intel-map-workspace.ph-page > .ph-panel {
+    border-left: 0;
+    border-top: 1px solid var(--rd-line);
+    max-height: 480px;
+  }
+  .intelligence-page .intel-audit-workspace.nova-rh .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .intelligence-page .intel-audit-workspace.nova-rh .ctrlbar {
+    flex-wrap: wrap;
+  }
+  .intelligence-page .intel-audit-workspace.nova-rh .ctrlbar > .flabel {
+    min-width: 140px;
+    flex: 1;
+  }
+  .intelligence-page .intel-audit-workspace.nova-rh .phead {
+    align-items: flex-start;
+    padding: 14px;
+  }
+  .intelligence-page .intel-audit-workspace.nova-rh .bento {
+    display: flex;
+    flex-direction: column;
+  }
+  .intelligence-page .intel-audit-workspace.nova-rh .bento > * {
+    min-width: 0;
+    width: 100%;
+  }
+  .intelligence-page .intel-audit-workspace.nova-rh .tblwrap {
+    overflow-x: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .intelligence-page *,
+  .intelligence-page *::before,
+  .intelligence-page *::after {
+    transition: none;
+    scroll-behavior: auto;
+  }
+}
+
+/* Loading must not present zero as a measured result. */
+.intelligence-page .intel-map-workspace.ph-page[aria-busy='true'] .ph-kpi-value {
+  position: relative;
+  visibility: hidden;
+}
+.intelligence-page .intel-map-workspace.ph-page[aria-busy='true'] .ph-kpi-value::after {
+  content: '—';
+  position: absolute;
+  inset: 0;
+  visibility: visible;
+  color: var(--rd-ink-3);
+}
+.intelligence-page .intel-map-workspace.ph-page[aria-busy='true'] .ph-kpi-hint {
+  visibility: hidden;
+}
+.intelligence-page .intel-data-empty {
+  border: 1px solid var(--rd-line);
+  border-radius: var(--intel-radius);
+  background: var(--rd-card);
+  padding: 32px 20px;
+}
+.intelligence-page .intel-data-empty > svg {
+  width: 30px;
+  height: 30px;
+}
+.intelligence-page .intel-data-empty > p {
+  color: var(--rd-ink-2);
+  font-size: 13px;
+  line-height: 20px;
+}
+.intelligence-page .dt {
+  border-radius: var(--intel-radius);
+  box-shadow: none;
+}
+.intelligence-page .dt thead th {
+  background: var(--rd-card-2);
+  color: var(--rd-ink-2);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 11px 16px;
+}
+.intelligence-page .dt tbody td {
+  font-size: 13px;
+  line-height: 20px;
+  padding: 12px 16px;
+  border-color: var(--rd-line);
+}
+.intelligence-page .dt-tools {
+  background: var(--rd-card);
+}
+
+/* Bright semantic ink on dark surfaces; token overrides remain page-local. */
+:root[data-theme='dark'] .intelligence-page,
+html.dark .intelligence-page {
+  --rd-brand: #a5b4fc;
+  --rd-brand-2: #818cf8;
+  --rd-good-ink: #86efac;
+  --rd-watch-ink: #fcd34d;
+  --rd-act-ink: #fca5a5;
+  --rd-info-ink: #93c5fd;
+  color-scheme: dark;
+}
+.intelligence-page .intel-audit-workspace.nova-rh {
+  --nova-fern-600: var(--rd-good-ink);
+  --nova-blaze-700: var(--rd-act-ink);
+  --nova-bronze-600: var(--rd-watch-ink);
+}
+@media (max-width: 720px) {
+  .intelligence-page .intel-header-controls > * {
+    width: 100%;
+  }
+  .intelligence-page .intel-header-controls > :first-child > :first-child {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+  }
+  .intelligence-page .intel-header-controls [role='group'][aria-label='Period'] {
+    width: 100%;
+    flex-wrap: nowrap;
+    gap: 2px;
+  }
+  .intelligence-page .intel-header-controls [aria-label='Period'] button {
+    white-space: nowrap;
+    font-size: 11px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .intelligence-page .intel-kpi-strip {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    gap: 10px;
+    padding-bottom: 4px;
+  }
+  .intelligence-page .intel-kpi-strip > .intel-kpi {
+    flex: 0 0 164px;
+    scroll-snap-align: start;
+  }
+}

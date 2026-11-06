@@ -1,3 +1,4 @@
+import { IntelligenceViewSwitcher, IntelligenceAuditWorkspace } from './IntelligenceWorkspace.jsx';
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Gauge, Zap } from 'lucide-react';
@@ -41,30 +42,28 @@ export default function OverspeedTab({ from, to, vehicle = '', driver = '' }) {
 
   return (
     <div className="intel-overspeed-tab">
-      <div className="intel-subview-toggle-bar">
-        <div role="tablist" aria-label="Overspeed views" className="intel-segmented">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={subView === 'audit'}
-            className="intel-segment"
-            onClick={() => setSubView('audit')}
-          >
-            <Gauge size={14} aria-hidden="true" />
-            Speed audit & traces
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={subView === 'instances'}
-            className="intel-segment"
-            onClick={() => setSubView('instances')}
-          >
-            <Zap size={14} aria-hidden="true" />
-            Overspeed moments log
-          </button>
-        </div>
-      </div>
+      <IntelligenceViewSwitcher label="Overspeed views">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={subView === 'audit'}
+          className="intel-segment"
+          onClick={() => setSubView('audit')}
+        >
+          <Gauge size={14} aria-hidden="true" />
+          Speed audit & traces
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={subView === 'instances'}
+          className="intel-segment"
+          onClick={() => setSubView('instances')}
+        >
+          <Zap size={14} aria-hidden="true" />
+          Overspeed moments log
+        </button>
+      </IntelligenceViewSwitcher>
 
       {toastMsg && (
         <div className="intel-toast" role="status">
@@ -75,16 +74,15 @@ export default function OverspeedTab({ from, to, vehicle = '', driver = '' }) {
       {subView === 'instances' ? (
         <InstancesTab kind="overspeed" from={from} to={to} vehicle={vehicle} driver={driver} />
       ) : (
-        <div className="nova-rh intel-overspeed-embed">
+        <IntelligenceAuditWorkspace label="Overspeed audit">
           <OverspeedView
             params={overspeedParams}
             toast={handleToast}
             setBadge={() => {}}
             go={handleGo}
           />
-        </div>
+        </IntelligenceAuditWorkspace>
       )}
     </div>
   );
 }
-

@@ -1,3 +1,4 @@
+import { IntelligenceViewSwitcher } from './IntelligenceWorkspace.jsx';
 import { useMemo, useState } from 'react';
 import Link from '@/components/redesign/FleetLink';
 import { ChevronLeft, ChevronRight, Route, Search } from 'lucide-react';
@@ -9,7 +10,13 @@ import { useGoToLink } from '@/utils/redesign/links';
 import IntelligenceDataState from './IntelligenceDataState';
 import IntelligenceService from './IntelligenceService';
 import { INSTANCE_EMPTY_COPY, humanizeDates, isTemplatedText, whenText } from './intelligenceModel';
-import { eventCountLabel, formatLitres, formatMinutes, rowMinutes, withRoundedMinutes } from './intelligenceFormat';
+import {
+  eventCountLabel,
+  formatLitres,
+  formatMinutes,
+  rowMinutes,
+  withRoundedMinutes,
+} from './intelligenceFormat';
 
 const PAGE_SIZE = 25;
 
@@ -48,8 +55,8 @@ const valueText = (row) =>
   row?.unit === 'min'
     ? formatMinutes(rowMinutes(row))
     : row?.value === null || row?.value === undefined
-    ? '—'
-    : `${formatNumber(row.value, { digits: 1 })}${row?.unit ? ` ${row.unit}` : ''}`;
+      ? '—'
+      : `${formatNumber(row.value, { digits: 1 })}${row?.unit ? ` ${row.unit}` : ''}`;
 
 /**
  * InstancesTab — the moments behind one kind of event.
@@ -89,7 +96,10 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const [one, many] = NOUNS[activeKind] ?? ['moment', 'moments'];
-  const count = summary?.count == null ? { value: '—', label: 'count unavailable' } : eventCountLabel(summary.count, total);
+  const count =
+    summary?.count == null
+      ? { value: '—', label: 'count unavailable' }
+      : eventCountLabel(summary.count, total);
 
   const anyDriver = items.some((row) => row?.driverName);
   const anyPlace = items.some((row) => row?.place && (row.place.name || row.place.lat));
@@ -157,7 +167,12 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
       : {
           key: 'what',
           label: 'What happened',
-          render: (row) => <span className="intel-cell-wrap">{(row?.unit === 'min' ? withRoundedMinutes(row?.text, rowMinutes(row)) : row?.text) ?? '—'}</span>,
+          render: (row) => (
+            <span className="intel-cell-wrap">
+              {(row?.unit === 'min' ? withRoundedMinutes(row?.text, rowMinutes(row)) : row?.text) ??
+                '—'}
+            </span>
+          ),
         },
     anyTrip
       ? {
@@ -200,7 +215,7 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
   return (
     <div className="flex flex-col gap-4">
       {kind === 'cruise' ? (
-        <div role="group" aria-label="Cruise and gears" className="intel-segmented self-start mb-1">
+        <IntelligenceViewSwitcher role="group" label="Cruise and gears">
           {SUB_TABS.map((tab) => (
             <button
               key={tab.id}
@@ -215,7 +230,7 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
               {tab.label}
             </button>
           ))}
-        </div>
+        </IntelligenceViewSwitcher>
       ) : null}
 
       <IntelligenceDataState
@@ -229,7 +244,11 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
         <div className="intel-summary" aria-label="What the system saw">
           <div className="intel-summary-stat">
             <b>{count.value}</b>
-            <span>{count.label === 'in this period' ? `${summary?.count === 1 ? one : many} in this period` : count.label}</span>
+            <span>
+              {count.label === 'in this period'
+                ? `${summary?.count === 1 ? one : many} in this period`
+                : count.label}
+            </span>
           </div>
           {summary?.totalMin !== null && summary?.totalMin !== undefined ? (
             <div className="intel-summary-stat">
