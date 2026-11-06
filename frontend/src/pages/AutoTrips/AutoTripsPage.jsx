@@ -43,7 +43,13 @@ const TABS = [
   // A plant-to-plant run is normal: plants work like warehouses. It is its
   // own tab so the owner can see those runs, not so they can worry about
   // them (F8.1).
-  { key: 'REPOSITION', label: 'Plant to plant', leg: 'REPOSITION', hideWhenEmpty: true, inMore: true },
+  {
+    key: 'REPOSITION',
+    label: 'Plant to plant',
+    leg: 'REPOSITION',
+    hideWhenEmpty: true,
+    inMore: true,
+  },
   { key: 'PLANNED', label: 'Planned trips', hideWhenEmpty: true, inMore: true },
   // Only a person moves a trip here (Confirm trip / Not a real trip on the trip page),
   // so these stay hidden until someone has.
@@ -128,18 +134,25 @@ export default function AutoTripsPage() {
   }, [debouncedSearch, searchParams, setSearchParams]);
 
   const vehicleId = searchParams.get('vehicleId');
-  const periodParams = {
+  const sharedParams = {
+    ...(searchParams.get('sapVerdict') ? { sapVerdict: searchParams.get('sapVerdict') } : {}),
+    ...(searchParams.get('dropSiteId') ? { dropSiteId: searchParams.get('dropSiteId') } : {}),
+    ...(urlSearch ? { search: urlSearch } : {}),
     ...(vehicleId ? { vehicleId } : {}),
+  };
+  const periodParams = {
+    ...sharedParams,
     ...rangeToParams({ range: rangeKind, from: rangeFrom, to: rangeTo }),
   };
   const params = {
     page: planned ? 1 : page,
     limit: planned ? 1 : PAGE_SIZE,
-    ...(statusTab && !planned ? { status: statusTab } : {}),
+    ...(statusTab === 'COMPLETE'
+      ? { view: 'DELIVERED' }
+      : statusTab && !planned && !legFilter
+        ? { status: statusTab }
+        : {}),
     ...(legFilter && !planned ? { leg: legFilter } : {}),
-    ...(searchParams.get('sapVerdict') ? { sapVerdict: searchParams.get('sapVerdict') } : {}),
-    ...(searchParams.get('dropSiteId') ? { dropSiteId: searchParams.get('dropSiteId') } : {}),
-    ...(urlSearch ? { search: urlSearch } : {}),
     ...periodParams,
   };
 
@@ -166,7 +179,7 @@ export default function AutoTripsPage() {
   const todayParams = {
     page: 1,
     limit: 1,
-    ...(vehicleId ? { vehicleId } : {}),
+    ...sharedParams,
     ...rangeToParams({ range: 'today' }),
   };
   const today = useApi(
@@ -177,7 +190,7 @@ export default function AutoTripsPage() {
   const deliveredSample = useApi(
     (signal) =>
       AutoTripService.list(
-        { page: 1, limit: SAMPLE_SIZE, status: 'COMPLETE', ...periodParams },
+        { page: 1, limit: SAMPLE_SIZE, view: 'DELIVERED', ...periodParams },
         { signal },
       ),
     [periodKey],
@@ -192,14 +205,18 @@ export default function AutoTripsPage() {
     [periodKey],
     { scopeKey: `waiting:${periodKey}` },
   );
-  const questions = useApi((signal) => fleetViewService.getPlaceQuestions({ signal, limit: 200 }), []);
+  const questions = useApi(
+    (signal) => fleetViewService.getPlaceQuestions({ signal, limit: 200 }),
+    [],
+  );
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
   const tabCounts = data?.tabCounts ?? {};
-  const allCount = Object.entries(tabCounts)
-    .filter(([key]) => key === key.toUpperCase())
-    .reduce((a, [, b]) => a + (b || 0), 0) || total;
+  const summary = data?.summary;
+  // A missing delivery summary is unknown, not the raw COMPLETE count (which
+  // includes empty repositioning). Never estimate it from the visible page.
+  const allCount = summary?.movements ?? null;
   const visibleTotal = planned ? (plans.data?.total ?? 0) : total;
   const totalPages = Math.max(1, Math.ceil(visibleTotal / PAGE_SIZE));
   const countFor = (key) =>
@@ -209,19 +226,16 @@ export default function AutoTripsPage() {
         ? allCount
         : key === 'REPOSITION'
           ? (tabCounts.reposition ?? tabCounts.REPOSITION ?? 0)
-          : (tabCounts[key] ?? 0);
+          : key === 'COMPLETE'
+            ? (summary?.delivered ?? null)
+            : (tabCounts[key] ?? 0);
   const moreTabs = MORE_TABS.filter(
     (t) => !t.hideWhenEmpty || countFor(t.key) > 0 || statusTab === t.key,
   );
   const activeMoreTab =
     moreTabs.find((t) => statusTab === t.key) || VIEWS.find((v) => viewTab === v.key) || null;
   const kpiTab = viewTab || moreTabs.some((t) => t.key === statusTab) ? null : statusTab;
-  const todayCounts = today.data?.tabCounts;
-  const todayCount = todayCounts
-    ? Object.entries(todayCounts)
-        .filter(([key]) => key === key.toUpperCase())
-        .reduce((a, [, b]) => a + (b || 0), 0)
-    : null;
+  const todayCount = today.data?.summary?.movements ?? null;
   const run = useMemo(() => typicalRun(deliveredSample.data?.items), [deliveredSample.data]);
 
   const [moreOpen, setMoreOpen] = useState(false);
@@ -272,7 +286,8 @@ export default function AutoTripsPage() {
   );
 
   const reviewCount = tabCounts.NEEDS_REVIEW ?? 0;
-  const showBanner = !viewTab && (statusTab === '' || statusTab === 'NEEDS_REVIEW') && reviewCount > 0;
+  const showBanner =
+    !viewTab && (statusTab === '' || statusTab === 'NEEDS_REVIEW') && reviewCount > 0;
 
   const moreMenu = (
     <div className="atx-more" ref={moreRef} role="tablist" aria-label="More trip views">
@@ -411,9 +426,9 @@ export default function AutoTripsPage() {
         <TripKpiStrip
           counts={{
             all: allCount,
-            delivered: tabCounts.COMPLETE ?? 0,
-            open: tabCounts.OPEN ?? 0,
-            review: reviewCount,
+            delivered: summary?.delivered ?? null,
+            open: summary?.open ?? tabCounts.OPEN ?? null,
+            review: summary?.needsReview ?? reviewCount,
           }}
           todayCount={todayCount}
           rangeIsToday={rangeKind === 'today'}

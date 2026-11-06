@@ -20,7 +20,9 @@ vi.mock('../../services/RoadService', () => ({
 vi.mock('../../services/RouteHubService', () => ({
   default: { getDeviationEvents: vi.fn().mockResolvedValue({ records: [] }) },
 }));
-vi.mock('../../services/fleetViewService.js', () => ({ getWhereNext: vi.fn().mockResolvedValue(null) }));
+vi.mock('../../services/fleetViewService.js', () => ({
+  getWhereNext: vi.fn().mockResolvedValue(null),
+}));
 vi.mock('../../utils/session.js', () => ({ getUserRole: () => 'VIEWER' }));
 // The map and the contract card have their own tests; here they are stand-ins.
 vi.mock('./AutoTripReplay', () => ({ default: () => <div>Replay map</div> }));
@@ -121,4 +123,25 @@ it('says what is not known yet on a trip whose drop was not found', async () => 
   // The drop flag is said in the route, not repeated as a chip.
   const chips = [...document.querySelectorAll('.atx-chip')].map((el) => el.textContent);
   expect(chips).not.toContain('Drop not found');
+});
+
+it('shows completed repositioning as a movement and never as a reached drop', async () => {
+  AutoTripService.get.mockResolvedValue({
+    ...trip,
+    leg: 'REPOSITION',
+    status: 'COMPLETE',
+    pickup: { ...trip.pickup, departedAt: '2026-11-04T00:00:00Z' },
+    movementEnd: { name: 'Next plant', arrivedAt: '2026-11-04T02:00:00Z' },
+    drop: { source: 'UNKNOWN' },
+    km: { return: 90, laden: null },
+    boundaryDecision: { result: 'NEW_MOVEMENT', reason: 'DIFFERENT_CAMPUS' },
+  });
+  open();
+  await screen.findByText('Movement complete');
+  const strip = within(document.querySelector('.atx-facts'));
+  expect(strip.getByText('Plant-to-plant run')).toBeInTheDocument();
+  expect(strip.getByText('Reached next plant')).toBeInTheDocument();
+  expect(strip.getByText('90 km')).toBeInTheDocument();
+  expect(strip.queryByText('Loaded run')).not.toBeInTheDocument();
+  expect(screen.queryByText('Reached drop')).not.toBeInTheDocument();
 });

@@ -27,6 +27,7 @@ const DROP_NOTE = {
   LABELLED_PLACE: 'drop place',
   HUMAN: 'set by a person',
   INFERRED_TURNAROUND: 'guessed',
+  REGISTER: 'associated with register route',
 };
 
 /**
@@ -71,8 +72,8 @@ export function timelineRows(trip) {
   if (pickupAt) {
     rows.push({
       id: 'pickup',
-      kind: 'loading',
-      label: 'Loading',
+      kind: trip.leg === 'REPOSITION' ? 'plant' : 'loading',
+      label: trip.leg === 'REPOSITION' ? 'At origin plant' : 'Loading',
       place: pickup.name || 'Pickup place',
       placeNote: 'plant',
       at: pickupAt,
@@ -83,7 +84,10 @@ export function timelineRows(trip) {
     });
   }
 
-  const drops = [trip.drop, ...(trip.extraDrops || [])].filter((d) => d && toDate(d.arrivedAt));
+  const drops =
+    trip.leg === 'REPOSITION'
+      ? []
+      : [trip.drop, ...(trip.extraDrops || [])].filter((d) => d && toDate(d.arrivedAt));
   const dropAt = new Map(drops.map((d) => [toDate(d.arrivedAt).getTime(), d]));
   const shown = new Set();
 
@@ -94,8 +98,8 @@ export function timelineRows(trip) {
       shown.add(t);
       rows.push({
         id: s._id,
-        kind: 'drop',
-        label: 'Unloading',
+        kind: drop.source === 'REGISTER' ? 'register' : 'drop',
+        label: drop.source === 'REGISTER' ? 'Register-associated arrival' : 'Unloading',
         place: dropLabel(drop),
         placeNote: DROP_NOTE[drop.source] || null,
         at: s.startAt,
@@ -126,8 +130,8 @@ export function timelineRows(trip) {
     if (shown.has(t)) return;
     rows.push({
       id: `drop-${i}`,
-      kind: 'drop',
-      label: 'Unloading',
+      kind: d.source === 'REGISTER' ? 'register' : 'drop',
+      label: d.source === 'REGISTER' ? 'Register-associated arrival' : 'Unloading',
       place: dropLabel(d),
       placeNote: DROP_NOTE[d.source] || null,
       at: d.arrivedAt,
@@ -138,13 +142,35 @@ export function timelineRows(trip) {
     });
   });
 
+  if (trip.leg === 'REPOSITION' && toDate(trip.movementEnd?.arrivedAt)) {
+    rows.push({
+      id: 'movement-end',
+      kind: 'movement',
+      label: 'Reached next plant',
+      place: trip.movementEnd.name || 'Next plant',
+      at: trip.movementEnd.arrivedAt,
+      leftAt: null,
+      stayMin: null,
+      playAt: trip.movementEnd.arrivedAt,
+      stop: null,
+    });
+  }
+
   return rows.sort((a, b) => toDate(a.at).getTime() - toDate(b.at).getTime());
 }
 
 /** A plant visit this long is worth a second look, so it shows amber. */
 export const LONG_PLANT_MIN = 4 * 60;
 
-const SPAN_KIND = { loading: 'plant', drop: 'drop', unknown: 'unknown', stop: 'stop' };
+const SPAN_KIND = {
+  loading: 'plant',
+  plant: 'plant',
+  drop: 'drop',
+  register: 'stop',
+  movement: 'plant',
+  unknown: 'unknown',
+  stop: 'stop',
+};
 
 export const TIMELINE_SPANS = [
   { kind: 'plant', label: 'At plant' },
@@ -171,7 +197,7 @@ export function timelinePlan(trip) {
   const rows = timelineRows(trip);
   let lastDrop = -1;
   rows.forEach((r, i) => {
-    if (r.kind === 'drop') lastDrop = i;
+    if (r.kind === 'drop' || r.kind === 'register') lastDrop = i;
   });
   const onTheWay = notReachedYet(trip);
 
@@ -181,7 +207,8 @@ export function timelinePlan(trip) {
     if (i > 0) {
       const driveMin = minutesBetween(rows[i - 1].leftAt, row.at);
       let load = null;
-      if (lastDrop >= 0) load = i <= lastDrop ? 'loaded' : 'empty';
+      if (trip.leg === 'REPOSITION') load = 'empty';
+      else if (lastDrop >= 0) load = i <= lastDrop ? 'loaded' : 'empty';
       else if (onTheWay) load = 'loaded';
       items.push({
         type: 'leg',

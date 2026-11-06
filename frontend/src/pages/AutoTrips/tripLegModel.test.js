@@ -88,3 +88,12 @@ describe('REPOSITION_INFO', () => {
     expect(REPOSITION_INFO).not.toMatch(/error|problem|check/i);
   });
 });
+
+it('labels the v4 RETURN allocation as plant-to-plant once for a reposition movement', () => {
+  const legs = legKilometres({ leg: 'REPOSITION', km: { approach: 10, return: 90 } });
+  expect(legs).toEqual([
+    { kind: 'RETURN', km: 10 },
+    { kind: 'REPOSITION', km: 90 },
+  ]);
+  expect(legs.reduce((sum, leg) => sum + leg.km, 0)).toBe(100);
+});

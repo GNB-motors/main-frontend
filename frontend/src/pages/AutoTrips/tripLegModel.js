@@ -33,7 +33,7 @@ export const LEG_COLORS = {
 
 /** The hover text for the plant-to-plant badge, exactly as the plan words it. */
 export const REPOSITION_INFO =
-  'The truck went from one plant straight to another without coming back empty. This is normal: plants work like warehouses, and it often saves an empty run.';
+  'The truck moved between plants without an identified delivery. This is normal vehicle movement and is counted separately from loaded deliveries.';
 
 /** The word for a leg, or null when we do not know it. */
 export function legWord(leg) {
@@ -60,6 +60,17 @@ export function isPlantToPlant(trip) {
  */
 export function legKilometres(trip) {
   const km = trip?.km ?? {};
+  if (trip?.leg === 'REPOSITION') {
+    // The v4 ledger stores this movement's drive in RETURN. Relabel it for
+    // display, without adding it a second time as a separate empty-return leg.
+    return [
+      { kind: 'RETURN', km: km.approach ?? null },
+      {
+        kind: 'REPOSITION',
+        km: km.repositionOdo ?? km.reposition ?? km.returnOdo ?? km.return ?? null,
+      },
+    ].filter((leg) => leg.km != null && Number(leg.km) > 0);
+  }
   const legs = [
     { kind: 'LADEN', km: km.ladenOdo ?? km.laden ?? null },
     { kind: 'RETURN', km: km.returnOdo ?? km.return ?? km.approach ?? null },

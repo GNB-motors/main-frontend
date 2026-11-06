@@ -128,21 +128,44 @@ function listByStatus({ waitingItems = [], items, tabCounts }) {
     if (params.status === 'NEEDS_REVIEW' && params.limit === 100) {
       return { items: waitingItems, total: tabCounts.NEEDS_REVIEW, tabCounts };
     }
-    if (params.status === 'COMPLETE' && params.limit === 100) return { items: [], total: 0, tabCounts };
-    return { items, total: items.length, tabCounts };
+    if (params.view === 'DELIVERED' && params.limit === 100)
+      return { items: [], total: 0, tabCounts };
+    return {
+      items,
+      total: items.length,
+      tabCounts,
+      summary: {
+        movements:
+          (tabCounts.COMPLETE || 0) +
+          (tabCounts.NEEDS_REVIEW || 0) +
+          (tabCounts.OPEN || 0) +
+          (tabCounts.CONFIRMED || 0),
+        delivered: tabCounts.COMPLETE || 0,
+        open: tabCounts.OPEN || 0,
+        needsReview: tabCounts.NEEDS_REVIEW || 0,
+        repositioned: 0,
+      },
+    };
   });
 }
 
 it('puts the period in KPI tiles that are also the status filter', async () => {
   listByStatus({
     items: [{ _id: 't1', registrationNumber: 'WB-ACTUAL', status: 'OPEN' }],
-    tabCounts: { COMPLETE: 585, NEEDS_REVIEW: 2237, OPEN: 113, CONFIRMED: 0, DISMISSED: 0, reposition: 0 },
+    tabCounts: {
+      COMPLETE: 585,
+      NEEDS_REVIEW: 2237,
+      OPEN: 113,
+      CONFIRMED: 0,
+      DISMISSED: 0,
+      reposition: 0,
+    },
   });
   open();
   const tile = await screen.findByRole('tab', { name: 'Needs your answer 2,237' });
   expect(screen.getByRole('tab', { name: 'Trips 2,935' })).toHaveAttribute('aria-selected', 'true');
   expect(screen.getByRole('tab', { name: 'Delivered 585' })).toBeInTheDocument();
-  expect(screen.getByText('20% of trips')).toBeInTheDocument();
+  expect(screen.getByText('20% of movements · loaded deliveries only')).toBeInTheDocument();
   // Too few delivered trips for a typical run: unknown, with the reason.
   expect(await screen.findByText(/Needs 5 delivered trips/)).toBeInTheDocument();
   fireEvent.click(tile);
@@ -165,14 +188,23 @@ it('explains the waiting trips once and offers the bulk answer', async () => {
     tabCounts: { COMPLETE: 5, NEEDS_REVIEW: 120, OPEN: 1 },
   });
   getPlaceQuestions.mockResolvedValue({
-    items: [{ id: 'q1', tripsAffected: 8 }, { id: 'q2', tripsAffected: 4 }],
+    items: [
+      { id: 'q1', tripsAffected: 8 },
+      { id: 'q2', tripsAffected: 4 },
+    ],
     total: 2,
   });
   open();
-  expect(await screen.findByRole('heading', { name: '120 trips need your answer' })).toBeInTheDocument();
+  expect(
+    await screen.findByRole('heading', { name: '120 trips need your answer' }),
+  ).toBeInTheDocument();
   expect(await screen.findByText('Drop not found')).toBeInTheDocument();
-  expect(screen.getByText('Split measured on the latest 10 waiting trips in this period.')).toBeInTheDocument();
-  expect(await screen.findByText(/For the other 108, open the trip and mark its drop/)).toBeInTheDocument();
+  expect(
+    screen.getByText('Split measured on the latest 10 waiting trips in this period.'),
+  ).toBeInTheDocument();
+  expect(
+    await screen.findByText(/For the other 108, open the trip and mark its drop/),
+  ).toBeInTheDocument();
   expect(getPlaceQuestions).toHaveBeenCalledWith(expect.objectContaining({ limit: 200 }));
   fireEvent.click(screen.getByRole('button', { name: 'Answer place questions' }));
   expect(await screen.findByRole('tab', { name: /Place questions/ })).toHaveAttribute(
@@ -209,4 +241,68 @@ it('draws one dense row per trip and leaves out a column nobody has yet', async 
   ).toBeInTheDocument();
   fireEvent.click(route);
   expect(screen.getByLabelText('Current location')).toHaveTextContent('/auto-trips/t9');
+});
+
+it('shows loaded delivery summary and uses the identical delivery view for list and sample', async () => {
+  AutoTripService.list.mockImplementation(async (params) => ({
+    items:
+      params.limit === 50
+        ? [
+            {
+              _id: 'loaded',
+              registrationNumber: 'LOADED-ONLY',
+              status: 'CONFIRMED',
+              leg: 'LADEN',
+              drop: { orgSiteId: 'drop', name: 'Dealer' },
+            },
+          ]
+        : [],
+    total: params.view === 'DELIVERED' ? 7 : 12,
+    tabCounts: { COMPLETE: 9, CONFIRMED: 1, OPEN: 1, NEEDS_REVIEW: 1, reposition: 3 },
+    summary: { movements: 12, delivered: 7, repositioned: 3, open: 1, needsReview: 1 },
+  }));
+  open('/auto-trips?range=7d&vehicleId=truck&dropSiteId=drop&search=Dealer');
+  fireEvent.click(await screen.findByRole('tab', { name: 'Delivered 7' }));
+  await waitFor(() => {
+    expect(AutoTripService.list).toHaveBeenCalledWith(
+      expect.objectContaining({
+        view: 'DELIVERED',
+        limit: 50,
+        vehicleId: 'truck',
+        dropSiteId: 'drop',
+        search: 'Dealer',
+      }),
+      expect.anything(),
+    );
+    expect(AutoTripService.list).toHaveBeenCalledWith(
+      expect.objectContaining({
+        view: 'DELIVERED',
+        limit: 100,
+        vehicleId: 'truck',
+        dropSiteId: 'drop',
+        search: 'Dealer',
+      }),
+      expect.anything(),
+    );
+  });
+  const deliveredCalls = AutoTripService.list.mock.calls.filter(
+    ([params]) => params.view === 'DELIVERED',
+  );
+  expect(deliveredCalls.every(([params]) => params.status == null && params.leg == null)).toBe(
+    true,
+  );
+  expect(screen.getByRole('tab', { name: 'Trips 12' })).toBeInTheDocument();
+  expect(screen.queryByRole('tab', { name: 'Delivered 9' })).not.toBeInTheDocument();
+});
+
+it('keeps missing summary unknown rather than calling all complete movements deliveries', async () => {
+  AutoTripService.list.mockResolvedValue({
+    items: [],
+    total: 10,
+    tabCounts: { COMPLETE: 10, reposition: 4 },
+  });
+  open();
+  await screen.findByText('Delivery count unavailable');
+  expect(screen.getByRole('tab', { name: 'Delivered —' })).toBeInTheDocument();
+  expect(screen.queryByRole('tab', { name: 'Delivered 10' })).not.toBeInTheDocument();
 });
