@@ -30,7 +30,7 @@ const distance = (card) => {
   return match ? Number(match[1].replaceAll(',', '')) : null;
 };
 
-export function buildOverview(digest, legacy = null) {
+export function buildOverview(digest, legacy = null, work = null) {
   const cards = Object.fromEntries((digest?.story || []).map((card) => [card.key, card]));
   const critical = legacy
     ? legacy.loading || legacy.error
@@ -56,12 +56,18 @@ export function buildOverview(digest, legacy = null) {
     : places != null && disconnected != null
       ? places + disconnected
       : null;
-  const loadedKm = legacy
-    ? numeric(legacy.utilization?.fleet?.loadedKm)
-    : (cell(cards.loaded, 'Distance covered') ?? distance(cards.loaded));
-  const emptyKm = legacy
-    ? numeric(legacy.utilization?.fleet?.emptyKm)
-    : (cell(cards.empty, 'Empty running') ?? distance(cards.empty));
+  const loadedKm =
+    work && 'loadedKm' in work
+      ? numeric(work.loadedKm)
+      : legacy
+        ? numeric(legacy.utilization?.fleet?.loadedKm)
+        : (cell(cards.loaded, 'Distance covered') ?? distance(cards.loaded));
+  const emptyKm =
+    work && 'emptyKm' in work
+      ? numeric(work.emptyKm)
+      : legacy
+        ? numeric(legacy.utilization?.fleet?.emptyKm)
+        : (cell(cards.empty, 'Empty running') ?? distance(cards.empty));
 
   const attention = legacy
     ? (legacy.actions || []).map((a) => ({
@@ -148,7 +154,13 @@ export function buildOverview(digest, legacy = null) {
     pending,
     loadedKm,
     emptyKm,
-    runningReason: legacy?.utilization?.fleet?.reason || null,
+    loadedTrips: numeric(work?.trips),
+    runningPartial: Boolean(work?.kmPartial || work?.emptyKmPartial),
+    runningReason:
+      legacy?.utilization?.fleet?.reason ||
+      cards.loaded?.why?.text ||
+      cards.empty?.why?.text ||
+      null,
     drivers,
     followUps: digest?.needsAttention || [],
     issueNote: legacy
@@ -160,23 +172,21 @@ export function buildOverview(digest, legacy = null) {
   };
 }
 
-/** Consumption is assigned to its actual cycle end date, never spread over
- * unmeasured days. A gap stays null, including a day with incomplete cycles. */
+/** Daily measured consumption from the backend; missing days stay unknown. */
 export function buildFuelTrend(payload, endDay) {
   if (!Array.isArray(payload?.items) || payload.held) return [];
   const days = Array.from({ length: 7 }, (_, i) => ({
     day: shiftDay(endDay, i - 6),
     litres: null,
-    cycles: 0,
-    incomplete: false,
+    measuredTrucks: 0,
+    partial: false,
   }));
-  for (const cycle of payload.items) {
-    if (!cycle.to || Number.isNaN(new Date(cycle.to).getTime())) continue;
-    const row = days.find((d) => d.day === istDayString(new Date(cycle.to)));
+  for (const item of payload.items) {
+    const row = days.find((d) => d.day === item.day);
     if (!row) continue;
-    row.cycles += 1;
-    if (numeric(cycle.dieselL) == null || cycle.dieselL < 0) row.incomplete = true;
-    else row.litres = (row.litres ?? 0) + cycle.dieselL;
+    row.litres = numeric(item.litres) != null && item.litres >= 0 ? item.litres : null;
+    row.measuredTrucks = item.measuredTrucks ?? 0;
+    row.partial = Boolean(item.partial);
   }
-  return days.map((day) => ({ ...day, litres: day.incomplete ? null : day.litres }));
+  return days;
 }

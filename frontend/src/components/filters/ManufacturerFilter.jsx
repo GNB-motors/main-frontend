@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { getManufacturerCatalog } from '../../services/manufacturerService';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import './ManufacturerFilter.css';
 
 export default function ManufacturerFilter({ value = '', onChange }) {
+  const id = useId();
   const [options, setOptions] = useState([]);
   const [state, setState] = useState('loading');
   const [attempt, setAttempt] = useState(0);
@@ -23,28 +25,32 @@ export default function ManufacturerFilter({ value = '', onChange }) {
       active = false;
     };
   }, [attempt]);
+  const items = [
+    { value: null, label: 'All manufacturers' },
+    ...(value && !options.some((item) => item.value === value)
+      ? [{ value, label: value === 'UNKNOWN' ? 'Unclassified (current filter)' : value }]
+      : []),
+    ...options,
+  ];
   return (
     <div className="manufacturer-filter">
-      <label>
-        <span>Manufacturer</span>
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+      <label htmlFor={id}>Manufacturer</label>
+      <Select items={items} value={value || null} onValueChange={(next) => onChange(next || '')}>
+        <SelectTrigger
+          id={id}
+          className="manufacturer-filter-trigger"
           aria-busy={state === 'loading'}
         >
-          <option value="">All manufacturers</option>
-          {value && !options.some((item) => item.value === value) ? (
-            <option value={value} hidden>
-              {value === 'UNKNOWN' ? 'Unclassified (current filter)' : value}
-            </option>
-          ) : null}
-          {options.map((item) => (
-            <option key={item.value} value={item.value}>
+          <SelectValue placeholder="All manufacturers" />
+        </SelectTrigger>
+        <SelectContent align="start">
+          {items.map((item) => (
+            <SelectItem key={item.value ?? 'all'} value={item.value}>
               {item.label}
-            </option>
+            </SelectItem>
           ))}
-        </select>
-      </label>
+        </SelectContent>
+      </Select>
       {state === 'loading' ? <small role="status">Loading manufacturers…</small> : null}
       {state === 'error' ? (
         <small role="status">

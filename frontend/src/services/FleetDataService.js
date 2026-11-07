@@ -53,6 +53,9 @@ export const FleetDataService = {
   getVehicleProfile: (registrationNumber, signal) =>
     get(`/api/vehicle-profile/${encodeURIComponent(registrationNumber)}`, {}, signal),
 
+  getVehicleOverview: (registrationNumber, signal) =>
+    get(`/api/vehicle-profile/${encodeURIComponent(registrationNumber)}/overview`, {}, signal),
+
   /** Service predictions, riskiest first. */
   getMaintenancePredictions: (params = {}, signal) =>
     get('/api/maintenance-predictions', params, signal),

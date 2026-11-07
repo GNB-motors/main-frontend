@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import OwnerReportPanel from './OwnerReportPanel';
@@ -210,17 +210,23 @@ describe('OwnerReportPanel', () => {
     await waitFor(() => expect(screen.getByText('Today so far')).toBeTruthy());
     expect(screen.queryByText("Yesterday's work")).toBeNull();
     expect(screen.getByText(/Day not over yet: km vs last 7-day average/)).toBeTruthy();
-    expect(screen.getByText(/Not counted yet: Trips, Distance covered/)).toBeTruthy();
+    const kpis = within(screen.getByRole('region', { name: 'Key numbers for the day' }));
+    expect(kpis.getByRole('link', { name: /Trips today/ })).toHaveTextContent('0');
+    expect(kpis.getByRole('link', { name: /km today/ })).toHaveTextContent('0');
+    expect(kpis.getByText('Completed / confirmed · so far today')).toBeInTheDocument();
+    const work = within(screen.getByText('Today so far').closest('section'));
+    expect(work.getByText('0')).toBeInTheDocument();
+    expect(work.getByText('0 km')).toBeInTheDocument();
+    expect(screen.queryByText(/Not counted yet: Trips, Distance covered/)).toBeNull();
     expect(screen.queryByText('-100.0%')).toBeNull();
   });
 
-  it('folds both empty people lists into one Drivers card, saying it once', async () => {
+  it('keeps both driver cards visible when no driver scores are available', async () => {
     renderPanel();
 
-    await waitFor(() => expect(screen.getByText('Drivers')).toBeTruthy());
-    expect(screen.queryByText('Who drove well')).toBeNull();
-    expect(screen.queryByText('Who needs a word')).toBeNull();
-    expect(screen.getAllByText('No one this time')).toHaveLength(1);
+    await screen.findByRole('heading', { name: 'Who drove well' });
+    expect(screen.getByRole('heading', { name: 'Who needs a word' })).toBeInTheDocument();
+    expect(screen.getAllByText('No one this time')).toHaveLength(2);
   });
 
   it('names the drivers who drove well when there are any', async () => {

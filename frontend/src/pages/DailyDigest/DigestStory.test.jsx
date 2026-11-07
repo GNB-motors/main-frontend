@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
-const { getDigest, getMileage, getVehicleList, listTrips, refreshLive } = vi.hoisted(() => ({
+const { getDigest, getDailyFuel, getVehicleList, listTrips, refreshLive } = vi.hoisted(() => ({
   getDigest: vi.fn(),
-  getMileage: vi.fn(),
+  getDailyFuel: vi.fn(),
   getVehicleList: vi.fn(),
   listTrips: vi.fn(),
   refreshLive: vi.fn(),
@@ -13,7 +13,7 @@ const { getDigest, getMileage, getVehicleList, listTrips, refreshLive } = vi.hoi
 vi.mock('../../services/fleetViewService', () => ({
   fleetViewService: {
     getDigest,
-    getMileage,
+    getDailyFuel,
     getMorningBrief: vi.fn(async () => ({})),
     getOwnerReport: vi.fn(async () => ({ sections: [] })),
   },
@@ -47,14 +47,14 @@ describe('DailyDigestPage', () => {
           finishReport = resolve;
         }),
     );
-    getMileage.mockImplementation(
+    getDailyFuel.mockImplementation(
       () =>
         new Promise((resolve) => {
           finishFuel = resolve;
         }),
     );
     renderPage();
-    expect(await screen.findByRole('heading', { name: 'Fleet right now' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Daily digest' })).toBeInTheDocument();
     expect(screen.getByLabelText('Loading actions')).toBeInTheDocument();
     expect(screen.getByLabelText('Loading fuel, last 7 days')).toBeInTheDocument();
     await act(async () => finishReport(digestFixture));
@@ -64,12 +64,12 @@ describe('DailyDigestPage', () => {
     expect(
       screen.queryByRole('status', { name: 'Loading fuel, last 7 days' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('No measured fuel cycles in this window.')).toBeInTheDocument();
+    expect(screen.getByText('No engine consumption readings in this window.')).toBeInTheDocument();
   });
   beforeEach(() => {
     getDigest.mockReset();
     getDigest.mockResolvedValue(digestFixture);
-    getMileage.mockReset().mockResolvedValue({ items: [] });
+    getDailyFuel.mockReset().mockResolvedValue({ items: [] });
     getVehicleList.mockReset().mockResolvedValue([{ registrationNumber: 'WB11F0162' }]);
     listTrips.mockReset().mockResolvedValue({ items: [], total: 7 });
     refreshLive.mockReset();
@@ -90,7 +90,6 @@ describe('DailyDigestPage', () => {
       'Where money leaked',
       'Exceptions',
       'Trucks needing attention',
-      'Fleet right now',
       'The day in numbers',
       'Loaded vs empty running',
       'Who drove well',
@@ -157,14 +156,14 @@ describe('DailyDigestPage', () => {
     expect(getDigest.mock.calls[0][0].date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  it('uses one open-trip response for the live KPI and routes', async () => {
+  it('omits the live fleet section and its unused trip and inventory requests', async () => {
     renderPage();
     await screen.findByRole('heading', { name: 'Daily digest' });
-    await waitFor(() => expect(listTrips).toHaveBeenCalledTimes(1));
-    expect(listTrips.mock.calls[0][0]).toEqual({ status: 'OPEN', limit: 50 });
-    expect(screen.getByRole('heading', { name: 'Fleet right now' })).toBeInTheDocument();
-    expect(getVehicleList).toHaveBeenCalledTimes(1);
-    expect(getMileage).toHaveBeenCalledTimes(1);
+    await screen.findByText(/A good day/);
+    expect(listTrips).not.toHaveBeenCalled();
+    expect(screen.queryByRole('heading', { name: 'Fleet right now' })).not.toBeInTheDocument();
+    expect(getVehicleList).not.toHaveBeenCalled();
+    expect(getDailyFuel).toHaveBeenCalledTimes(1);
   });
 
   it('changes the report date without reloading current trips or fleet inventory', async () => {
@@ -175,25 +174,23 @@ describe('DailyDigestPage', () => {
       expect(getDigest).toHaveBeenLastCalledWith(expect.objectContaining({ date: '2026-10-30' })),
     );
     await waitFor(() =>
-      expect(getMileage).toHaveBeenLastCalledWith(
-        expect.objectContaining({ from: '2026-10-24', to: '2026-10-30', groupBy: 'cycle' }),
-      ),
+      expect(getDailyFuel).toHaveBeenLastCalledWith(expect.objectContaining({ day: '2026-10-30' })),
     );
-    expect(listTrips).toHaveBeenCalledTimes(1);
-    expect(getVehicleList).toHaveBeenCalledTimes(1);
+    expect(listTrips).not.toHaveBeenCalled();
+    expect(getVehicleList).not.toHaveBeenCalled();
   });
 
-  it('refreshes each owned source once and keeps live operations visible on report failure', async () => {
+  it('refreshes each owned source once and keeps daily cards visible on report failure', async () => {
     getDigest.mockRejectedValue(new Error('boom'));
     renderPage();
     await screen.findByText(/could not load today/);
-    expect(screen.getByRole('heading', { name: 'Fleet right now' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Fleet right now' })).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
     await waitFor(() => expect(getDigest).toHaveBeenCalledTimes(2));
-    expect(listTrips).toHaveBeenCalledTimes(2);
-    expect(getVehicleList).toHaveBeenCalledTimes(2);
-    expect(getMileage).toHaveBeenCalledTimes(2);
+    expect(listTrips).not.toHaveBeenCalled();
+    expect(getVehicleList).not.toHaveBeenCalled();
+    expect(getDailyFuel).toHaveBeenCalledTimes(2);
     expect(refreshLive).toHaveBeenCalledTimes(1);
   });
 });

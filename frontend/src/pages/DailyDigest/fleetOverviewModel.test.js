@@ -9,9 +9,29 @@ const card = (key, values, extra = {}) => ({
 });
 
 describe('fleet overview data', () => {
+  it('prefers the scoped Trips summary over legacy running and keeps unknown legs unknown', () => {
+    const digest = {
+      story: [
+        card('loaded', { 'Distance covered': '9,999 km' }),
+        card('empty', { 'Empty running': '500 km' }),
+      ],
+    };
+    expect(
+      buildOverview(digest, null, { trips: 3, loadedKm: 330, emptyKm: null, emptyKmPartial: true }),
+    ).toMatchObject({ loadedTrips: 3, loadedKm: 330, emptyKm: null, runningPartial: true });
+  });
+
   it('preserves the reason the running split is unknown', () => {
-    const model = buildOverview(null, { utilization: { fleet: { loadedKm: null, emptyKm: null, reason: 'Trips not linked to distance yet' } } });
-    expect(model).toMatchObject({ loadedKm: null, emptyKm: null, runningReason: 'Trips not linked to distance yet' });
+    const model = buildOverview(null, {
+      utilization: {
+        fleet: { loadedKm: null, emptyKm: null, reason: 'Trips not linked to distance yet' },
+      },
+    });
+    expect(model).toMatchObject({
+      loadedKm: null,
+      emptyKm: null,
+      runningReason: 'Trips not linked to distance yet',
+    });
   });
   it('keeps missing sources unknown, including a partial pending-action count', () => {
     const model = buildOverview({ story: [card('questions', { 'Places waiting': '4' })] });
@@ -95,22 +115,21 @@ describe('fleet overview data', () => {
     expect(buildOverview(null, { actions: [], error: true }).pending).toBeNull();
   });
 
-  it('keeps fuel gaps and incomplete days null, and groups cycle ends in IST', () => {
+  it('keeps unreported fuel days unknown and displays measured partial daily readings', () => {
     const rows = buildFuelTrend(
       {
         items: [
-          { to: '2026-11-01T18:45:00Z', dieselL: 30 },
-          { to: '2026-11-02T10:00:00Z', dieselL: 20 },
-          { to: '2026-11-03T10:00:00Z', dieselL: null },
-          { to: '2026-11-03T12:00:00Z', dieselL: 40 },
-          { to: '2026-11-04T12:00:00Z', dieselL: 0 },
+          { day: '2026-11-02', litres: 50, measuredTrucks: 2 },
+          { day: '2026-11-03', litres: 40, partial: true },
+          { day: '2026-11-04', litres: 0 },
+          { day: '2026-11-05', litres: 999 },
         ],
       },
       '2026-11-04',
     );
     expect(rows.find((r) => r.day === '2026-11-01').litres).toBeNull();
     expect(rows.find((r) => r.day === '2026-11-02').litres).toBe(50);
-    expect(rows.find((r) => r.day === '2026-11-03').litres).toBeNull();
+    expect(rows.find((r) => r.day === '2026-11-03')).toMatchObject({ litres: 40, partial: true });
     expect(rows.find((r) => r.day === '2026-11-04').litres).toBe(0);
     expect(shiftDay('2026-11-01', -1)).toBe('2026-10-31');
   });

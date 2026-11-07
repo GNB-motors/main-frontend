@@ -12,9 +12,8 @@ vi.mock('../../utils/axiosConfig', () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
 }));
 
-// Base UI's popover/select stall jsdom on open; see test/baseUiStubs.jsx.
+// Stub the popover; use the real shared select for manufacturer scope checks.
 vi.mock('@/components/ui/popover', async () => (await import('../../test/baseUiStubs')).popover);
-vi.mock('../../components/ui/select', async () => (await import('../../test/baseUiStubs')).select);
 
 vi.mock('../../contexts/FeatureFlagsContext', () => ({
   useFeatureFlags: vi.fn(),
@@ -705,10 +704,10 @@ describe('manufacturer scope in the mileage hub', () => {
   it('scopes the feed and both KPI sources, survives tabs, and clears back to All', async () => {
     renderAt('/mileage?dates=7DAYS');
     const select = await screen.findByRole('combobox', { name: 'Manufacturer' });
-    await waitFor(() =>
-      expect(within(select).getByRole('option', { name: 'Tata' })).toBeInTheDocument(),
-    );
-    fireEvent.change(select, { target: { value: 'TATA' } });
+    fireEvent.click(select);
+    await waitFor(() => expect(screen.getByRole('option', { name: 'Tata' })).toBeInTheDocument());
+    fireEvent.pointerDown(screen.getByRole('option', { name: 'Tata' }), { pointerType: 'mouse' });
+    fireEvent.click(screen.getByRole('option', { name: 'Tata' }));
     await waitFor(() => expect(feedCalls().at(-1)[1].params.manufacturer).toBe('TATA'));
     const kpi = apiClient.get.mock.calls.filter(
       ([url, options]) => url === '/api/fuel-logs/unified' && options.params.limit === 1,
@@ -717,7 +716,7 @@ describe('manufacturer scope in the mileage hub', () => {
     // The model comparison is read on the Mileage tab, so that tab is opened
     // before the figure it feeds can be checked.
     fireEvent.click(screen.getByRole('tab', { name: /Mileage/ }));
-    expect(select.value).toBe('TATA');
+    expect(select).toHaveTextContent('Tata');
     expect(screen.getAllByRole('combobox', { name: 'Manufacturer' })).toHaveLength(1);
     await waitFor(() =>
       expect(
@@ -726,7 +725,11 @@ describe('manufacturer scope in the mileage hub', () => {
           .at(-1)[1].params.manufacturer,
       ).toBe('TATA'),
     );
-    fireEvent.change(select, { target: { value: '' } });
+    fireEvent.click(select);
+    fireEvent.pointerDown(screen.getByRole('option', { name: 'All manufacturers' }), {
+      pointerType: 'mouse',
+    });
+    fireEvent.click(screen.getByRole('option', { name: 'All manufacturers' }));
     await waitFor(() => {
       const calls = apiClient.get.mock.calls.filter(
         ([url]) => url === '/api/mileage/model-comparison',

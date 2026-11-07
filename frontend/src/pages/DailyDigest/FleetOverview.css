@@ -297,7 +297,8 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding: 14px 18px 15px;
+  min-height: 120px;
+  padding: 18px 20px 20px;
   border: 1px solid var(--rd-line);
   border-radius: 10px;
   background: var(--rd-card);
@@ -345,13 +346,31 @@
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 .db-col {
   display: flex;
   flex-direction: column;
   gap: 16px;
   min-width: 0;
+}
+.db-col--primary > .db-card {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+.db-col--primary .db-leak-list,
+.db-col--primary .db-rows {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+.db-col--primary .db-leak-row,
+.db-col--primary .db-rows > li {
+  flex: 1;
+}
+.db-col--primary .db-row {
+  height: 100%;
 }
 
 /* Where money leaked — the page's one loud element. */
@@ -671,7 +690,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 0 2px;
+  margin: 16px 2px 0;
   color: var(--rd-ink-3);
   font-size: 12px;
 }
@@ -709,13 +728,13 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 .db-perf-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 .db-report--error {
   border-color: #f3c9c6;

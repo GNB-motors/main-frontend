@@ -52,7 +52,24 @@ const sections = sectionsById([
 ]);
 
 describe('buildKpis', () => {
-  it('uses live counts for "now" on today, and calls a 6 am zero "not counted yet"', () => {
+  it('uses the Trips summary including open/review trips and labels partial loaded distance', () => {
+    const tiles = buildKpis({
+      byId: {
+        yesterdaysWork: {
+          numbers: { trips: 9, km: 325, openTrips: 4, reviewTrips: 2, kmPartial: true },
+        },
+      },
+      isToday: true,
+    });
+    const by = Object.fromEntries(tiles.map((tile) => [tile.key, tile]));
+    expect(by.trips.value).toBe(9);
+    expect(by.trips.context).toBe('Departed today · includes open trips');
+    expect(by.km.value).toBe(325);
+    expect(by.km.context).toBe('Loaded trip distance · partial');
+    expect(by.km.why).toContain('odometer first');
+  });
+
+  it('uses live counts for "now" and preserves reported zero trips and km today', () => {
     const tiles = buildKpis({
       byId: sections,
       brief: { totalRupees: 47486.7, sections: [{}, {}], disclaimer: 'Estimated.' },
@@ -63,14 +80,30 @@ describe('buildKpis', () => {
     const by = Object.fromEntries(tiles.map((t) => [t.key, t]));
     expect(by.moving.value).toBe(9);
     expect(by.moving.context).toBe('of 124 trucks · live');
-    expect(by.trips.value).toBeNull();
-    expect(by.trips.context).toBe('Not counted yet · usually 32/day');
-    expect(by.km.context).toBe('Not counted yet · usually 7,953 km');
+    expect(by.trips.value).toBe(0);
+    expect(by.trips.context).toBe('Completed / confirmed · so far today');
+    expect(by.km.value).toBe(0);
+    expect(by.km.context).toBe('From completed / confirmed trips');
+    expect(by.trips.delta).toBeNull();
+    expect(by.km.delta).toBeNull();
+    expect(by.trips.why).toMatch(/Open trips are excluded/);
     expect(by.trips.why).toMatch(/built at 6:20 am/);
     expect(by.lost.value).toBe(47486.7);
     expect(by.lost.context).toBe('Estimated across 2 problems');
     expect(by.lost.why).toBe('Estimated.');
     expect(by.dark.value).toBe(47);
+  });
+
+  it('keeps missing counts unknown instead of inventing zeros or using the previous average', () => {
+    const tiles = buildKpis({
+      byId: { ...sections, yesterdaysWork: { numbers: { trips: null, km: null } } },
+      isToday: true,
+    });
+    const by = Object.fromEntries(tiles.map((t) => [t.key, t]));
+    expect(by.trips.value).toBeNull();
+    expect(by.km.value).toBeNull();
+    expect(by.trips.context).toBe('Not counted yet · usually 32/day');
+    expect(by.km.context).toBe('Not counted yet · usually 7,953 km');
   });
 
   it('falls back to the report snapshot, with deltas, on a past day', () => {

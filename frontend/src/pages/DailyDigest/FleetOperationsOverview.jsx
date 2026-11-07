@@ -4,7 +4,6 @@ import { formatIst, formatIstDate } from '../../utils/redesign/format';
 import { istDayString } from '../../utils/dateUtils';
 import OwnerReportPanel from './OwnerReportPanel';
 import useOwnerReport from './useOwnerReport';
-import FleetLiveSection from './components/FleetLiveSection';
 import FleetAnalytics from './components/FleetAnalytics';
 import { buildOverview, shiftDay } from './fleetOverviewModel';
 
@@ -60,8 +59,6 @@ export default function FleetOperationsOverview({
   report,
   live,
   fleet,
-  inventory,
-  trips,
   fuel,
   fuelTrend,
   accounts,
@@ -69,11 +66,18 @@ export default function FleetOperationsOverview({
   legacy = null,
 }) {
   const digest = report.data?.payload;
-  const model = useMemo(() => buildOverview(digest, legacy), [digest, legacy]);
   const owner = useOwnerReport(date);
+  const work = owner.report$.data?.sections?.find(
+    (section) => section.id === 'yesterdaysWork',
+  )?.numbers;
+  const model = useMemo(() => buildOverview(digest, legacy, work), [digest, legacy, work]);
   const today = istDayString(new Date());
   const refreshing =
-    report.loading || inventory.loading || trips.loading || fuel.loading || legacy?.loading;
+    report.loading ||
+    fuel.loading ||
+    owner.report$.loading ||
+    owner.brief$.loading ||
+    legacy?.loading;
   const reportPending = legacy
     ? legacy.loading && !legacy.lastUpdated
     : report.loading && !report.data;
@@ -161,8 +165,8 @@ export default function FleetOperationsOverview({
               <p>
                 {digest?.why?.text ||
                   (digest
-                    ? 'The last successful report is shown. Live operations remain available below.'
-                    : 'Live operations remain available. Retry the report to load daily insights.')}
+                    ? 'The last successful report is shown. Retry to update daily insights.'
+                    : 'Retry the report to load daily insights.')}
               </p>
             </div>
             <button className="db-button" type="button" onClick={report.refetch}>
@@ -178,7 +182,7 @@ export default function FleetOperationsOverview({
         ) : null}
         {legacy?.error ? (
           <div className="db-notice" role="alert">
-            Some daily report sources could not load. Live operations are still available.{' '}
+            Some daily report sources could not load.{' '}
             <button type="button" className="db-link" onClick={legacy.refresh}>
               Retry daily report
             </button>
@@ -202,9 +206,9 @@ export default function FleetOperationsOverview({
           }
           accountsSummary={accountsLine(accounts)}
           drivers={legacy ? model.drivers : null}
-          liveSection={<FleetLiveSection fleet={fleet} live={live} trips={trips} />}
           performance={
             <FleetAnalytics
+              day={date}
               model={model}
               fuel={fuel}
               fuelTrend={fuelTrend}

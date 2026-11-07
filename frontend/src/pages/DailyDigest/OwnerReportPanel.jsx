@@ -623,7 +623,6 @@ function BriefingPanel({
   accountsSummary = null,
   drivers = null,
   followUps = null,
-  liveSection = null,
   performance = null,
 }) {
   const isPendingDay = useMemo(() => isToday(day), [day]);
@@ -637,6 +636,7 @@ function BriefingPanel({
   const tiles = useMemo(
     () =>
       buildKpis({
+        day,
         byId,
         brief: brief$.data,
         briefState: brief$.error ? 'error' : 'ok',
@@ -644,7 +644,7 @@ function BriefingPanel({
         liveCounts: fleet?.fleetCounts || null,
         builtAt,
       }),
-    [byId, brief$.data, brief$.error, isPendingDay, fleet?.fleetCounts, builtAt],
+    [byId, brief$.data, brief$.error, isPendingDay, fleet?.fleetCounts, builtAt, day],
   );
   const groups = useMemo(
     () => (fleet ? attentionGroups({ vehicles: fleet.vehicles, byId }) : null),
@@ -672,19 +672,9 @@ function BriefingPanel({
       <KpiStrip tiles={tiles} loading={reportLoading || (brief$.loading && !brief$.data)} />
 
       <div className="db-grid">
-        <div className="db-col">
+        <div className="db-col db-col--primary">
           <MoneyLeakCard brief$={brief$} isPendingDay={isPendingDay} />
           <WaitingCard items={attention} pending={attentionPending} note={attentionNote} />
-          {untracked.length ? (
-            <p className="db-untracked">
-              Not tracked yet:{' '}
-              {untracked.map((s) => (s.id === 'moneyIn' ? 'Money in' : 'People')).join(', ')}
-              <InfoTip
-                text={untracked.map((s) => `${sectionTitle(s)}: ${sectionReason(s)}`).join(' · ')}
-                label="Why these are not tracked"
-              />
-            </p>
-          ) : null}
         </div>
         <div className="db-col">
           {report$.error ? (
@@ -713,7 +703,16 @@ function BriefingPanel({
         </div>
       </div>
 
-      {liveSection}
+      {untracked.length ? (
+        <p className="db-untracked">
+          Not tracked yet:{' '}
+          {untracked.map((s) => (s.id === 'moneyIn' ? 'Money in' : 'People')).join(', ')}
+          <InfoTip
+            text={untracked.map((s) => `${sectionTitle(s)}: ${sectionReason(s)}`).join(' · ')}
+            label="Why these are not tracked"
+          />
+        </p>
+      ) : null}
 
       <section className="db-section" aria-labelledby="db-numbers-title">
         <header className="db-section-head">
@@ -748,39 +747,27 @@ function BriefingPanel({
         </header>
         <div className="db-perf-grid">
           {performance}
-          {goodDrivers.length === 0 && needsWord.length === 0 ? (
-            <SubjectList
-              title="Drivers"
-              items={[]}
-              info="Drivers who beat, or fell behind, your own fleet average over the last 30 days."
-              reason={story.goodDrivers?.why?.text || story.needsWord?.why?.text || null}
-              emptyTo={story.goodDrivers || story.needsWord ? '/intelligence?tab=drivers' : null}
-            />
-          ) : (
-            <>
-              <SubjectList
-                title="Who drove well"
-                items={goodDrivers}
-                info="Drivers who beat your own fleet average over the last 30 days."
-                reason={story.goodDrivers?.why?.text || null}
-                emptyTo={story.goodDrivers ? '/intelligence?tab=drivers' : null}
-              />
-              <SubjectList
-                title="Who needs a word"
-                items={needsWord.map((s) => ({
-                  ...s,
-                  to:
-                    s.to ||
-                    (s.subject === 'vehicle'
-                      ? `/intelligence?tab=vehicles&vehicle=${encodeURIComponent(s.id)}`
-                      : `/intelligence?tab=drivers&driver=${encodeURIComponent(s.id || '')}`),
-                }))}
-                info="Trucks and drivers whose behaviour dropped over the last 30 days."
-                reason={story.needsWord?.why?.text || null}
-                emptyTo={story.needsWord ? '/intelligence?tab=drivers' : null}
-              />
-            </>
-          )}
+          <SubjectList
+            title="Who drove well"
+            items={goodDrivers}
+            info="Drivers who beat your own fleet average over the last 30 days."
+            reason={story.goodDrivers?.why?.text || null}
+            emptyTo={story.goodDrivers ? '/intelligence?tab=drivers' : null}
+          />
+          <SubjectList
+            title="Who needs a word"
+            items={needsWord.map((s) => ({
+              ...s,
+              to:
+                s.to ||
+                (s.subject === 'vehicle'
+                  ? `/intelligence?tab=vehicles&vehicle=${encodeURIComponent(s.id)}`
+                  : `/intelligence?tab=drivers&driver=${encodeURIComponent(s.id || '')}`),
+            }))}
+            info="Trucks and drivers whose behaviour dropped over the last 30 days."
+            reason={story.needsWord?.why?.text || null}
+            emptyTo={story.needsWord ? '/intelligence?tab=drivers' : null}
+          />
         </div>
       </section>
     </div>
