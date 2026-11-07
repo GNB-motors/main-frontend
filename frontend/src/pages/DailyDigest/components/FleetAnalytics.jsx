@@ -61,20 +61,35 @@ function Panel({
  * render as siblings so the parent grid can place them beside the driver
  * lists.
  */
-export default function FleetAnalytics({ model, fuel, fuelTrend, loading, loadingSections = {} }) {
+export default function FleetAnalytics({
+  model,
+  fuel,
+  fuelTrend,
+  loading,
+  loadingSections = {},
+  day,
+}) {
   const { loadedKm, emptyKm } = model;
-  const measured = loadedKm != null && emptyKm != null;
-  const total = measured ? loadedKm + emptyKm : null;
+  const measured = loadedKm != null || emptyKm != null;
+  const complete = loadedKm != null && emptyKm != null;
+  const total = measured ? (loadedKm ?? 0) + (emptyKm ?? 0) : null;
   const knownDays = fuelTrend.filter((d) => d.litres != null);
   const summary = fuelTrend.reduce((sum, d) => sum + (d.litres ?? 0), 0);
-  const runningWhy = [model.cards.loaded?.text, model.cards.empty?.text].filter(Boolean).join(' ');
+  const runningWhy =
+    model.loadedTrips != null
+      ? 'The same pickup-departure day and detector version as Trips. Loaded km uses the odometer first; approach and return are empty km. Missing legs remain unknown.'
+      : [model.cards.loaded?.text, model.cards.empty?.text].filter(Boolean).join(' ');
 
   return (
     <>
       <Panel
         title="Loaded vs empty running"
         info={runningWhy || 'Distance attributed to the selected day.'}
-        to={model.cards.loaded?.link?.to || '/auto-trips'}
+        to={
+          model.loadedTrips != null && day
+            ? `/auto-trips?range=custom&from=${day}&to=${day}`
+            : model.cards.loaded?.link?.to || '/auto-trips'
+        }
         className="db-running"
         loading={loadingSections.running ?? (loading && !measured)}
         skeleton="chart"
@@ -90,7 +105,7 @@ export default function FleetAnalytics({ model, fuel, fuelTrend, loading, loadin
             <div className="db-big-number">
               {fmt(total)} <span>km attributed</span>
             </div>
-            {total > 0 ? (
+            {total > 0 && complete ? (
               <div
                 className="db-split"
                 role="img"
@@ -102,9 +117,14 @@ export default function FleetAnalytics({ model, fuel, fuelTrend, loading, loadin
                 />
                 <span className="db-split-empty" style={{ width: `${(emptyKm / total) * 100}%` }} />
               </div>
-            ) : (
+            ) : total === 0 ? (
               <p className="db-muted">No attributed running distance for this day.</p>
-            )}
+            ) : null}
+            {model.runningPartial || !complete ? (
+              <p className="db-muted">
+                Partial distance: some trips or legs have no recorded km yet.
+              </p>
+            ) : null}
             <dl className="db-kv db-kv--keyed">
               <div>
                 <dt>
@@ -115,8 +135,10 @@ export default function FleetAnalytics({ model, fuel, fuelTrend, loading, loadin
                   {fmt(loadedKm)} km
                   <small>
                     {[
-                      total > 0 ? `${((loadedKm / total) * 100).toFixed(1)}%` : 'No distance',
-                      tripsOf(model.cards.loaded),
+                      complete && total > 0 ? `${((loadedKm / total) * 100).toFixed(1)}%` : null,
+                      model.loadedTrips != null
+                        ? `${fmt(model.loadedTrips)} trips`
+                        : tripsOf(model.cards.loaded),
                     ]
                       .filter(Boolean)
                       .join(' · ')}
@@ -131,7 +153,11 @@ export default function FleetAnalytics({ model, fuel, fuelTrend, loading, loadin
                 <dd>
                   {fmt(emptyKm)} km
                   <small>
-                    {total > 0 ? `${((emptyKm / total) * 100).toFixed(1)}%` : 'No distance'}
+                    {complete && total > 0
+                      ? `${((emptyKm / total) * 100).toFixed(1)}%`
+                      : emptyKm == null
+                        ? 'Not measured'
+                        : null}
                   </small>
                 </dd>
               </div>
@@ -142,8 +168,11 @@ export default function FleetAnalytics({ model, fuel, fuelTrend, loading, loadin
 
       <Panel
         title="Fuel, last 7 days"
-        info="Litres from completed fuel cycles, grouped by the day each cycle ended. It is not a daily burn estimate; a gap means the day was not fully measured."
-        to="/mileage?tab=live&subtab=completed"
+        info={
+          fuel.data?.basis ||
+          'Recorded daily engine consumption in IST, using one measured source per truck/day. Gaps are missing readings; partial days show only recorded consumption.'
+        }
+        to="/mileage"
         className="db-fuel"
         loading={fuel.loading && !fuel.data}
         skeleton="chart"
@@ -155,24 +184,24 @@ export default function FleetAnalytics({ model, fuel, fuelTrend, loading, loadin
               Retry
             </button>
           </p>
-        ) : knownDays.length < 2 ? (
+        ) : knownDays.length === 0 ? (
           <div className="db-people-empty">
             <Fuel size={20} aria-hidden="true" />
-            <p className="db-empty-line">
-              {knownDays.length
-                ? 'One day has measured cycles. A trend needs two.'
-                : 'No measured fuel cycles in this window.'}
-            </p>
+            <p className="db-empty-line">No engine consumption readings in this window.</p>
           </div>
         ) : (
           <>
             <div className="db-big-number">
-              {fmt(summary)} L <span>on fully measured days</span>
+              {fmt(summary)} L <span>recorded consumption</span>
             </div>
+            <p className="db-muted">
+              {knownDays.length} of 7 days with readings
+              {knownDays.some((d) => d.partial) ? ' · partial coverage' : ''}
+            </p>
             <div
               className="db-fuel-chart"
               role="img"
-              aria-label="Fuel consumed in completed cycles by cycle end date"
+              aria-label="Recorded daily engine consumption over the last seven IST days"
             >
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={fuelTrend} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
@@ -192,7 +221,7 @@ export default function FleetAnalytics({ model, fuel, fuelTrend, loading, loadin
                   <Tooltip
                     labelFormatter={(d) => formatIstDate(new Date(`${d}T12:00:00+05:30`))}
                     formatter={(v, _n, item) => [
-                      `${fmt(v)} L · ${item?.payload?.cycles ?? 0} cycles`,
+                      `${fmt(v)} L · ${item?.payload?.measuredTrucks ?? 0} trucks${item?.payload?.partial ? ' · partial' : ''}`,
                       'Consumed',
                     ]}
                     contentStyle={{

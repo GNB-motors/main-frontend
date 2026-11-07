@@ -4,13 +4,11 @@ import { useFullPageLayout } from '../../hooks/usePageLayout';
 import { useLivePositions } from '../../hooks/useLivePositions';
 import { useFleetLink } from '../../contexts/fleetLinkContext';
 import { fleetViewService } from '../../services/fleetViewService';
-import { AutoTripService } from '../../services/AutoTripService';
-import { getVehicleList, invalidateVehicleList } from '../../services/vehicleListService';
 import { istDayString } from '../../utils/dateUtils';
 import useFleetVehicles from '../LiveTracking/useFleetVehicles';
 import FleetOperationsOverview from './FleetOperationsOverview';
 import ReleaseDigest from './ReleaseDigest';
-import { buildFuelTrend, shiftDay } from './fleetOverviewModel';
+import { buildFuelTrend } from './fleetOverviewModel';
 import './FleetOverview.css';
 
 const EMPTY_META = {};
@@ -28,18 +26,10 @@ export default function DailyDigestPage() {
   );
   const live = useLivePositions();
   const accounts = useFleetLink();
-  const inventory = useApi((signal) => getVehicleList({ signal }), []);
-  // One response supplies the exact live KPI total and a bounded route preview.
-  const trips = useApi(
-    (signal) => AutoTripService.list({ status: 'OPEN', limit: 50 }, { signal }),
-    [],
-  );
   const fuel = useApi(
     (signal) =>
-      fleetViewService.getMileage({
-        groupBy: 'cycle',
-        from: shiftDay(date, -6),
-        to: date,
+      fleetViewService.getDailyFuel({
+        day: date,
         signal,
       }),
     [date],
@@ -57,9 +47,6 @@ export default function DailyDigestPage() {
   const refresh = (legacyRefresh) => {
     if (report.error?.status !== 404) report.refetch();
     legacyRefresh?.();
-    invalidateVehicleList();
-    inventory.refetch();
-    trips.refetch();
     fuel.refetch();
     live.refresh();
     accounts.refresh?.();
@@ -70,8 +57,6 @@ export default function DailyDigestPage() {
     report,
     live,
     fleet,
-    inventory,
-    trips,
     fuel,
     fuelTrend,
     accounts,

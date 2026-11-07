@@ -66,3 +66,21 @@ export const DigestPayloadSchema = z
   .passthrough();
 
 export const DigestResponseSchema = heldOr(DigestPayloadSchema);
+
+export const DailyFuelTrendSchema = z
+  .object({
+    items: z.array(
+      z
+        .object({
+          day: z.string(),
+          litres: z.number().nullable(),
+          measuredTrucks: z.number(),
+          partial: z.boolean(),
+          sources: z.array(z.string()),
+          freshAsOf: z.string().nullable(),
+        })
+        .passthrough(),
+    ),
+    basis: z.string(),
+  })
+  .passthrough();

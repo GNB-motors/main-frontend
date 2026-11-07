@@ -13,20 +13,24 @@ describe('ManufacturerFilter', () => {
     const change = vi.fn();
     render(<ManufacturerFilter value="TATA" onChange={change} />);
     await screen.findByRole('button', { name: 'Retry' });
-    expect(screen.getByRole('combobox', { name: 'Manufacturer' }).value).toBe('TATA');
+    expect(screen.getByRole('combobox', { name: 'Manufacturer' })).toHaveTextContent('TATA');
     expect(change).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Manufacturer' })).toHaveTextContent('Tata'),
+    );
+    fireEvent.click(screen.getByRole('combobox', { name: 'Manufacturer' }));
+    await waitFor(() =>
       expect(screen.getByRole('option', { name: 'Ashok Leyland' })).toBeInTheDocument(),
     );
-    fireEvent.change(screen.getByRole('combobox', { name: 'Manufacturer' }), {
-      target: { value: 'ASHOK LEYLAND' },
-    });
-    expect(change).toHaveBeenCalledWith('ASHOK LEYLAND');
     expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
       'All manufacturers',
       'Tata',
       'Ashok Leyland',
     ]);
+    const option = screen.getByRole('option', { name: 'Ashok Leyland' });
+    fireEvent.pointerDown(option, { pointerType: 'mouse' });
+    fireEvent.click(option);
+    expect(change).toHaveBeenCalledWith('ASHOK LEYLAND');
   });
 });

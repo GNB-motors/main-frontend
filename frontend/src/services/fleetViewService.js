@@ -174,6 +174,15 @@ export const getMorningBrief = ({ date, signal } = {}) =>
 export const getOwnerReport = ({ day, signal } = {}) =>
   get('/api/owner-report', { params: { day }, signal });
 
+/** Seven IST days of recorded engine consumption, independent of refuel cycles. */
+export const getDailyFuel = ({ day, signal } = {}) =>
+  get('/api/owner-report/fuel-trend', {
+    params: { day },
+    signal,
+    schema: 'DailyFuelTrendSchema',
+    importer: () => import('../schemas/digestV2.schema.js'),
+  });
+
 /* ── §11 The vendor accounts ──────────────────────────────────────────── */
 
 /**
@@ -252,6 +261,7 @@ export const fleetViewService = {
   getDigest,
   getMorningBrief,
   getOwnerReport,
+  getDailyFuel,
   getAccountsLinkState,
   getIntelligenceSummary,
   getIntelligenceIssues,

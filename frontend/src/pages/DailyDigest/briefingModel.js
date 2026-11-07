@@ -57,24 +57,33 @@ export function sectionsById(sections) {
  * today and live positions are loaded; otherwise the report's snapshot is
  * used and the tile says when it was taken.
  */
-export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtAt }) {
+export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtAt, day }) {
   const fleet = byId.fleetNow?.numbers || {};
   const work = byId.yesterdaysWork?.numbers || {};
   const trend = byId.trend?.numbers || {};
   const health = byId.dataHealth?.numbers || {};
+  const tripsModule = work.openTrips != null;
+  const tripsTo = day ? `/auto-trips?range=custom&from=${day}&to=${day}` : '/auto-trips';
   const live = isToday && liveCounts && liveCounts.all > 0 ? liveCounts : null;
   const snapshot = builtAt ? `When the report ran, ${builtAt}` : 'From the daily report';
 
-  // A live day's trips are counted when they close; a zero at 6 am is "not yet".
-  const notCounted = (value) => value == null || (isToday && Number(value) === 0);
+  // A reported zero is a count, even while today's trips are still open.
+  const notCounted = (value) => value == null;
   const delta = (pct) =>
     isToday || pct == null || !Number.isFinite(Number(pct)) ? null : Number(pct);
   const avgNote = (avg, unit) =>
     avg == null ? 'Not counted yet' : `Not counted yet · usually ${count(Math.round(avg))}${unit}`;
 
-  const countWhy = `Trips are counted when they close${
+  const countWhy = `${
+    tripsModule
+      ? 'The Trips module detector version and pickup-departure day in IST are used. Open, completed, confirmed and review trips are included; dismissed and superseded trips are excluded'
+      : 'Counts include completed and confirmed trips that left a pickup on this IST day. Open trips are excluded'
+  }${
     builtAt ? `; this report was built at ${builtAt}` : ''
   }. "Usually" is the average of the previous 7 days.`;
+  const distanceWhy = tripsModule
+    ? `${countWhy} Distance is the Trips table's loaded km: odometer first, GPS otherwise. It covers those trips, not all fleet travel since midnight. Missing distances are excluded and the total is labelled partial.`
+    : `${countWhy} Distance includes approach, loaded, return and fuel-detour km for those trips, rather than all fleet travel since midnight.`;
 
   const trucks = live ? live.all : (health.trucks ?? null);
   const dark = live ? live.offline : (fleet.dark ?? health.trucksDark ?? null);
@@ -96,19 +105,31 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
       key: 'trips',
       label: isToday ? 'Trips today' : 'Trips',
       value: notCounted(work.trips) ? null : work.trips,
-      context: notCounted(work.trips) ? avgNote(trend.tripsPrev7Avg, '/day') : null,
+      context: notCounted(work.trips)
+        ? avgNote(trend.tripsPrev7Avg, '/day')
+        : isToday
+          ? tripsModule
+            ? 'Departed today · includes open trips'
+            : 'Completed / confirmed · so far today'
+          : null,
       delta: notCounted(work.trips) ? null : delta(trend.tripsVsPrev7Pct),
-      why: notCounted(work.trips) ? countWhy : null,
-      to: '/auto-trips',
+      why: countWhy,
+      to: tripsTo,
     },
     {
       key: 'km',
       label: isToday ? 'km today' : 'km',
       value: notCounted(work.km) ? null : work.km,
-      context: notCounted(work.km) ? avgNote(trend.kmPrev7Avg, ' km') : null,
+      context: notCounted(work.km)
+        ? avgNote(trend.kmPrev7Avg, ' km')
+        : isToday
+          ? tripsModule
+            ? `Loaded trip distance${work.kmPartial ? ' · partial' : ''}`
+            : 'From completed / confirmed trips'
+          : null,
       delta: notCounted(work.km) ? null : delta(trend.kmVsPrev7Pct),
-      why: notCounted(work.km) ? countWhy : null,
-      to: '/auto-trips',
+      why: distanceWhy,
+      to: tripsTo,
     },
     {
       key: 'lost',

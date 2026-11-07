@@ -11,7 +11,7 @@ vi.mock('../../services/fleetViewService', () => ({
     getDigest: vi.fn(async () => {
       throw Object.assign(new Error('Not deployed'), { status: 404 });
     }),
-    getMileage: vi.fn(async () => ({ items: [] })),
+    getDailyFuel: vi.fn(async () => ({ items: [] })),
     getMorningBrief: vi.fn(async () => ({})),
     getOwnerReport: vi.fn(async () => ({ sections: [] })),
   },
@@ -103,7 +103,7 @@ describe('ReleaseDigest (the fallback)', () => {
     );
     await screen.findByText('Detailed operational reports');
     expect(screen.getByRole('heading', { name: 'Daily digest' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Fleet right now' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Fleet right now' })).not.toBeInTheDocument();
     expect(screen.getByText('Detailed operational reports')).toBeInTheDocument();
     expect(OwnerValueService.getDigest).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).toBeEnabled());

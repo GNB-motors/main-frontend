@@ -151,6 +151,10 @@ export default function Vehicle360Page() {
 
       {active === 'overview' ? (
         <OverviewPanel
+          reg={reg}
+          ialert={p.ialert}
+          coverage={p.coverage}
+          telematicsProvider={p.telematicsProvider}
           vehicleId={p.fleetMaster?.id}
           history={history}
           health={p.health}
