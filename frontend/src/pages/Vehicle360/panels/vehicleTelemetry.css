@@ -1,0 +1,282 @@
+.vtelemetry {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.vtelemetry .vdo-card {
+  padding: 20px 22px;
+  gap: 16px;
+}
+.vtelemetry-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: stretch;
+}
+.vtelemetry-top > section:first-child {
+  flex: 1.4 1 520px;
+  min-width: 0;
+}
+.vtelemetry-top > section:last-child {
+  flex: 1 1 360px;
+  min-width: 0;
+}
+.vtelemetry .vtelemetry-connection {
+  padding: 22px 24px;
+  gap: 20px;
+}
+.vtelemetry-head,
+.vtelemetry-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.vtelemetry-title {
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+}
+.vtelemetry-badge {
+  display: inline-flex;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #f3f3f6;
+  color: #5d5d5e;
+  font-size: 12px;
+}
+.vtelemetry-badge--warn {
+  background: #fff5df;
+  color: #c56200;
+}
+.vtelemetry p {
+  color: #5d5d5e;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.vtelemetry-head p {
+  margin-top: 6px;
+}
+.vtelemetry-age {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.vtelemetry-age strong {
+  font:
+    500 36px/1.1 'Vehicle Overview DM Sans',
+    sans-serif;
+  letter-spacing: -0.5px;
+}
+.vtelemetry-age > span {
+  font-size: 13px;
+  color: #5d5d5e;
+}
+.vtelemetry-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 9px 16px;
+  border: 1px solid #dce1ee;
+  border-radius: 8px;
+  color: #2a4fd6;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.vtelemetry-channel-heading,
+.vtelemetry-channel-row {
+  display: grid;
+  grid-template-columns: minmax(100px, 140px) minmax(0, 1fr) minmax(82px, auto);
+  gap: 14px;
+  align-items: center;
+}
+.vtelemetry-channel-heading {
+  font-size: 10.5px;
+  color: #747476;
+  padding-bottom: 8px;
+}
+.vtelemetry-channel-heading > span:last-child {
+  text-align: right;
+}
+.vtelemetry-channel-row {
+  padding: 9px 0;
+  border-top: 1px solid #f3f3f6;
+  font-size: 13px;
+}
+.vtelemetry-channel-row b {
+  font-weight: 500;
+}
+.vtelemetry small {
+  display: block;
+  font-size: 11px;
+  color: #93939a;
+  line-height: 1.5;
+}
+.vtelemetry-cells {
+  display: flex;
+  gap: 1px;
+  height: 14px;
+}
+.vtelemetry-cells > button {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid #dfdfe2;
+  border-radius: 1px;
+  background: #f3f3f6;
+  cursor: pointer;
+}
+.vtelemetry-cells > .vtelemetry-cell--received {
+  background: #187a32;
+  border-color: #187a32;
+}
+.data-tooltip.vtelemetry-tooltip {
+  display: none;
+  position: absolute;
+  bottom: 22px;
+  left: 0;
+  z-index: 20;
+}
+.data-tooltip.vtelemetry-tooltip--end {
+  left: auto;
+  right: 0;
+}
+.vtelemetry-cells > button:hover,
+.vtelemetry-cells > button:focus-visible {
+  z-index: 21;
+}
+.vtelemetry-cells > button:hover > .data-tooltip,
+.vtelemetry-cells > button:focus-visible > .data-tooltip {
+  display: grid;
+}
+.vtelemetry-last {
+  text-align: right;
+  font-size: 11.5px;
+  color: #5d5d5e;
+}
+.vtelemetry-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 11.5px;
+  color: #5d5d5e;
+}
+.vtelemetry-legend > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.vtelemetry-legend i {
+  width: 12px;
+  height: 8px;
+  background: #187a32;
+  border-radius: 2px;
+}
+.vtelemetry-legend > span + span i {
+  background: #f3f3f6;
+  border: 1px solid #dfdfe2;
+}
+.vtelemetry .vtelemetry-diagnosis {
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(135deg, rgba(47, 88, 238, 0.28), rgba(106, 67, 216, 0.06)) border-box;
+  box-shadow: 0 4px 14px rgba(30, 34, 56, 0.08);
+}
+.vtelemetry-eyebrow {
+  color: #6a43d8;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.vtelemetry .vtelemetry-diagnosis-lead {
+  font:
+    400 16px/1.5 'Vehicle Overview DM Sans',
+    sans-serif;
+  color: #121214;
+}
+.vtelemetry-check {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid #ececee;
+}
+.vtelemetry-check > span {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dfdfe2;
+  border-radius: 50%;
+  font-size: 11px;
+  color: #5d5d5e;
+}
+.vtelemetry-check b {
+  font-size: 13px;
+  font-weight: 500;
+}
+.vtelemetry-check p {
+  margin-top: 3px;
+  font-size: 12px;
+}
+.vtelemetry-diagnosis > small {
+  margin-top: auto;
+}
+.vtelemetry-readings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  border-top: 1px solid #ececee;
+}
+.vtelemetry-readings > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px 14px 0;
+  border-bottom: 1px solid #f3f3f6;
+  font-size: 12px;
+  color: #5d5d5e;
+}
+.vtelemetry-readings > div > div {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.vtelemetry-readings strong {
+  font:
+    500 22px/1.15 'Vehicle Overview DM Sans',
+    sans-serif;
+  color: #121214;
+}
+.vtelemetry-readings .vtelemetry-muted {
+  color: #93939a;
+}
+.vtelemetry-note {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f8f8fb;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #5d5d5e;
+}
+@media (max-width: 600px) {
+  .vtelemetry .vtelemetry-connection {
+    padding: 20px 14px;
+  }
+  .vtelemetry-channel-heading,
+  .vtelemetry-channel-row {
+    grid-template-columns: 90px minmax(0, 1fr) 68px;
+    gap: 6px;
+  }
+  .vtelemetry-last {
+    font-size: 10px;
+  }
+}

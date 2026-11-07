@@ -1,3 +1,5 @@
+import { OverviewCardSkeleton } from './OverviewSkeleton';
+import DataTooltip from '../../../../components/ui/DataTooltip';
 import { useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatKm, formatNum } from '../../../../utils/formatters';
@@ -31,6 +33,7 @@ export function DistanceCard({ series, prediction, overview, loading }) {
   const lastEngineIndex = series.findLastIndex((day) => day.engineKm != null);
   const hasGpsAfter =
     lastEngineIndex >= 0 && series.slice(lastEngineIndex + 1).some((day) => day.gpsOnly);
+  if (loading && !measured.length) return <OverviewCardSkeleton className="vdo-distance" chart />;
   return (
     <section className="vdo-card vdo-distance">
       <div className="vdo-distance-head">
@@ -65,16 +68,35 @@ export function DistanceCard({ series, prediction, overview, loading }) {
       </div>
       <div
         className="vdo-bars"
-        role="img"
+        role="group"
         aria-label="Recorded daily distance for the last 30 days; solid bars are engine-confirmed and dashed bars are GPS-only"
       >
-        {series.map((day) => (
-          <span
+        {series.map((day, index) => (
+          <button
             key={day.day}
-            className={`vdo-bar${day.gpsOnly ? ' vdo-bar--gps' : ''}${day.km == null || day.km === 0 ? ' vdo-bar--empty' : ''}`}
-            style={{ height: day.km > 0 ? `${Math.max(4, (day.km / max) * 100)}%` : '2px' }}
-            title={`${shortDate(`${day.day}T12:00:00+05:30`)} · ${day.km == null ? 'Not measured' : `${formatKm(day.km)} · ${day.gpsOnly ? 'GPS only' : 'Engine-confirmed'}`}`}
-          />
+            type="button"
+            className="vdo-bar-hit"
+            aria-label={`${shortDate(`${day.day}T12:00:00+05:30`)} · ${day.km == null ? 'Not measured' : `${formatKm(day.km)} · ${day.gpsOnly ? 'GPS-estimated' : 'Engine-confirmed'}`}`}
+          >
+            <span
+              className={`vdo-bar${day.gpsOnly ? ' vdo-bar--gps' : ''}${day.km == null || day.km === 0 ? ' vdo-bar--empty' : ''}`}
+              style={{ height: day.km > 0 ? `${Math.max(4, (day.km / max) * 100)}%` : '2px' }}
+            />
+            <DataTooltip
+              className={`vdo-distance-tooltip${index > series.length / 2 ? ' vdo-distance-tooltip--end' : ''}`}
+              aria-hidden="true"
+              label="Daily distance"
+              value={day.km == null ? 'Not measured' : formatKm(day.km)}
+              details={[
+                shortDate(`${day.day}T12:00:00+05:30`),
+                day.km == null
+                  ? 'No distance reading available'
+                  : day.gpsOnly
+                    ? 'GPS-estimated'
+                    : 'Engine-confirmed',
+              ]}
+            />
+          </button>
         ))}
         {hasGpsAfter ? (
           <div

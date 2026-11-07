@@ -31,7 +31,8 @@ export const FleetDataService = {
   getFleetHealth: (signal) => get('/api/vehicle-health', {}, signal),
 
   /** Most recent provider status for a selected VIN. */
-  getLatestVehicleStatus: (vin, signal) => get('/api/fleet-insights/status', { vin, limit: 1 }, signal),
+  getLatestVehicleStatus: (vin, signal) =>
+    get('/api/fleet-insights/status', { vin, limit: 1 }, signal),
 
   /** One vehicle's latest reading + history for trend charts. */
   getVehicleHealth: (registrationNumber, params = {}, signal) =>
@@ -77,6 +78,9 @@ export const FleetDataService = {
   getVehicleTours: (params = {}, signal) => get('/api/vehicle-tours', params, signal),
 
   /** Tyre set status for one vehicle: km run, ₹/km, life used, projected replacement. */
+  getVehicleTelemetry: (reg, signal) =>
+    get(`/api/vehicle-profile/${encodeURIComponent(reg)}/telemetry`, {}, signal),
+
   getTyreStatus: (params = {}, signal) => get('/api/tyres/status', params, signal),
 
   /** Service centres near a position, costed by our road engine (lat/lng required). */

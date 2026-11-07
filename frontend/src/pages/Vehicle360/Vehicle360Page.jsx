@@ -1,7 +1,10 @@
+import OverviewSkeleton from './panels/overview/OverviewSkeleton';
+import './panels/overview/referenceOverview.css';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import useApi from '../../hooks/useApi';
 import FleetDataService from '../../services/FleetDataService';
-import { Breadcrumbs, IdentityStrip, HeroRow } from './vehicle360Header';
+import { Breadcrumbs } from './vehicle360Header';
+import VehicleHeaderCard from './VehicleHeaderCard';
 import { Tabs } from './vehicle360Tabs';
 import OverviewPanel from './panels/OverviewPanel';
 import ServicePanel from './panels/ServicePanel';
@@ -11,7 +14,6 @@ import TelemetryPanel from './panels/TelemetryPanel';
 import TyresPanel from './panels/TyresPanel';
 import TripsPanel from './panels/TripsPanel';
 import DriversPanel from './panels/DriversPanel';
-import OpenChallanBadge from '../Compliance/OpenChallanBadge';
 import './vehicle360.css';
 
 /**
@@ -107,6 +109,7 @@ export default function Vehicle360Page() {
           <div className="v360-modelcard" style={{ height: 424 }} />
           <div className="v360-registry" style={{ height: 424 }} />
         </div>
+        <OverviewSkeleton />
       </div>
     );
   }
@@ -115,37 +118,7 @@ export default function Vehicle360Page() {
     <div className="v360">
       <Breadcrumbs reg={reg} />
 
-      <IdentityStrip
-        reg={reg}
-        fleetMaster={p.fleetMaster}
-        fleetEdge={p.fleetEdge}
-        livePosition={p.livePosition}
-        prediction={p.prediction}
-        telematicsProvider={p.telematicsProvider}
-        ialert={p.ialert}
-        coverage={p.coverage}
-      />
-
-      {/* Compliance: open e-challans block registration, so they belong on
-          the vehicle header rather than behind a tab. Renders nothing when
-          the vehicle is clean. */}
-      <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-        <OpenChallanBadge vehicleNumber={reg} />
-      </div>
-
-      <HeroRow
-        reg={reg}
-        fleetMaster={p.fleetMaster}
-        fleetEdge={p.fleetEdge}
-        health={p.health}
-        livePosition={p.livePosition}
-        prediction={p.prediction}
-        coverage={p.coverage}
-        history={history}
-        ialert={p.ialert}
-        telematicsProvider={p.telematicsProvider}
-        kmPerLitre={p.kmPerLitre}
-      />
+      <VehicleHeaderCard reg={reg} profile={p} onGoTab={setActive} />
 
       <Tabs tabs={TABS} active={active} onChange={setActive} />
 
@@ -181,6 +154,8 @@ export default function Vehicle360Page() {
       ) : null}
       {active === 'fuel' ? (
         <FuelPanel
+          registrationNumber={reg}
+          onGoTab={setActive}
           recentFuelLogs={p.recentFuelLogs}
           defBalance={p.defBalance}
           health={p.health}
@@ -203,6 +178,7 @@ export default function Vehicle360Page() {
       ) : null}
       {active === 'drivers' ? (
         <DriversPanel
+          recentAlerts={p.recentAlerts}
           vehicleId={p.fleetMaster?.id}
           assignedDriver={p.assignedDriver}
           health={p.health}
@@ -211,6 +187,8 @@ export default function Vehicle360Page() {
       ) : null}
       {active === 'telemetry' ? (
         <TelemetryPanel
+          registrationNumber={reg}
+          assignedDriver={p.assignedDriver}
           health={p.health}
           prediction={p.prediction}
           livePosition={p.livePosition}

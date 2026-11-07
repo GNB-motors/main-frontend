@@ -1,0 +1,269 @@
+.vhcard {
+  font-family: 'Vehicle Overview Inter', Inter, sans-serif;
+  color: #121214;
+  background: #fff;
+  border: 1px solid rgba(5, 8, 22, 0.05);
+  border-radius: 12px;
+  box-shadow:
+    0 2px 4px rgba(30, 34, 56, 0.08),
+    0 1px 2px rgba(30, 34, 56, 0.04);
+  overflow: hidden;
+}
+.vhcard-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 22px 24px 18px;
+}
+.vhcard-identity {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.vhcard-identity h1 {
+  margin: 0;
+  font:
+    500 30px/1.1 'Vehicle Overview DM Sans',
+    sans-serif;
+  letter-spacing: -0.4px;
+}
+.vhcard-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  background: #f3f3f6;
+  color: #5d5d5e;
+  border-radius: 999px;
+  font-size: 12px;
+}
+.vhcard-descriptor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 10px;
+  font-size: 13.5px;
+  color: #5d5d5e;
+}
+.vhcard-descriptor > span::after {
+  content: '·';
+  margin-left: 10px;
+  color: #c6c6c9;
+}
+.vhcard button {
+  font-family: inherit;
+  cursor: pointer;
+}
+.vhcard-descriptor > button,
+.vhcard-notice > button {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  color: #2a4fd6;
+}
+.vhcard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.vhcard-actions > a {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 9px 16px;
+  border: 1px solid #dce1ee;
+  border-radius: 8px;
+  color: #2a4fd6;
+  font-size: 13.5px;
+  text-decoration: none;
+}
+.vhcard-actions > .vhcard-primary {
+  background: #4469f0;
+  border-color: #2a4fd6;
+  color: #fff;
+}
+.vhcard-specs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 0 28px;
+  padding: 0 24px 16px;
+}
+.vhcard-specs > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid #f3f3f6;
+  font-size: 12.5px;
+}
+.vhcard-specs span {
+  color: #5d5d5e;
+}
+.vhcard-specs b {
+  font-weight: 400;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.vhcard-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 24px;
+  background: linear-gradient(90deg, #6a43d80f, #2f58ee00 70%);
+  border-top: 1px solid #ececee;
+}
+.vhcard-notice > span {
+  color: #6a43d8;
+}
+.vhcard-notice p {
+  margin: 0;
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.vhcard-notice > button {
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.vhcard-visuals {
+  display: flex;
+  flex-wrap: wrap;
+  border-top: 1px solid #ececee;
+}
+.vhcard-truck {
+  flex: 3 1 560px;
+  min-width: 0;
+  background: #f8f8fb;
+  padding: 18px 24px 16px;
+}
+.vhcard-truck > svg {
+  display: block;
+  width: 100%;
+  max-width: 760px;
+  height: auto;
+  margin: 0 auto;
+}
+.vhcard-truck-caption {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+  color: #5d5d5e;
+  font-size: 12px;
+}
+.vhcard-map {
+  flex: 1 1 300px;
+  min-width: 0;
+  border-left: 1px solid #ececee;
+  display: flex;
+  flex-direction: column;
+}
+.vhcard-map-canvas {
+  flex: 1;
+  min-height: 220px;
+  position: relative;
+}
+.vhcard-map-canvas > .v360-minimap {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  min-height: 220px;
+  border-radius: 0;
+}
+.vhcard-map-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid #ececee;
+  font-size: 12px;
+}
+.vhcard-map-caption b {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+.vhcard-map-caption span {
+  display: block;
+  margin-top: 3px;
+  color: #5d5d5e;
+}
+.vhcard-map-caption a {
+  color: #2a4fd6;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.vhcard-vitals {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(150px, 1fr));
+  overflow-x: auto;
+  border-top: 1px solid #ececee;
+}
+.vhcard-vitals > button {
+  display: grid;
+  grid-template-rows: 16px 28px 4px 16px;
+  gap: 8px;
+  align-content: start;
+  text-align: left;
+  border: 0;
+  border-right: 1px solid #ececee;
+  padding: 16px 20px;
+  background: #fff;
+}
+.vhcard-vitals > button:hover {
+  background: #f8f8fb;
+}
+.vhcard-vitals > button > span {
+  font-size: 12px;
+  color: #5d5d5e;
+}
+.vhcard-vitals strong {
+  font:
+    500 22px/28px 'Vehicle Overview DM Sans',
+    sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vhcard-vitals i {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: #f3f3f6;
+}
+.vhcard-vitals i > b {
+  display: block;
+  height: 100%;
+  background: #4469f0;
+}
+.vhcard-vitals small {
+  font-size: 11px;
+  color: #93939a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vhcard :focus-visible {
+  outline: 2px solid #2a4fd6;
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .vhcard-top {
+    padding: 20px 16px;
+  }
+  .vhcard-notice {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+  }
+  .vhcard-truck {
+    padding: 16px 10px;
+  }
+  .vhcard-identity h1 {
+    font-size: 26px;
+  }
+}

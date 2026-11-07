@@ -60,10 +60,14 @@ export function distanceSeries(overview, track, now = new Date()) {
 
 export function fluidLevels(overview, health, fleetMaster, ialert) {
   const fuelCapacity =
+    numeric(overview?.fuel?.capacityL) ??
     numeric(health?.primaryFuelTankCapacityL) ??
     numeric(fleetMaster?.fuelTankCapacity) ??
     numeric(ialert?.primaryFuelTankCapacityL);
-  const defCapacity = numeric(health?.defTankCapacityL) ?? numeric(ialert?.defTankCapacityL);
+  const defCapacity =
+    numeric(overview?.def?.capacityL) ??
+    numeric(health?.defTankCapacityL) ??
+    numeric(ialert?.defTankCapacityL);
   const fallbackFuel =
     health?.fuelLevelUnit === 'percent' || health?.fuelLevelUnit === '%'
       ? numeric(health?.primaryFuelLevel)
@@ -72,8 +76,8 @@ export function fluidLevels(overview, health, fleetMaster, ialert) {
     health?.defLevelUnit === 'percent' || health?.defLevelUnit === '%'
       ? numeric(health?.defLevel)
       : null;
-  const fuelPct = numeric(overview?.fuel?.percent) ?? fallbackFuel;
-  const defPct = numeric(overview?.def?.percent) ?? fallbackDef;
+  const fuelPct = overview?.fuel ? numeric(overview.fuel.percent) : fallbackFuel;
+  const defPct = overview?.def ? numeric(overview.def.percent) : fallbackDef;
   return [
     {
       label: 'Diesel · sensor',
@@ -81,7 +85,10 @@ export function fluidLevels(overview, health, fleetMaster, ialert) {
       litres:
         numeric(overview?.fuel?.litres) ??
         (fuelPct != null && fuelCapacity > 0 ? (fuelPct / 100) * fuelCapacity : null),
-      at: overview?.fuel?.at ?? health?.fuelAt ?? health?.pulledAt,
+      at: overview?.fuel ? overview.fuel.at : health?.fuelAt,
+      capacityL: fuelCapacity,
+      litresBasis: overview?.fuel?.litresBasis ?? null,
+      source: overview?.fuel?.source ?? null,
     },
     {
       label: 'DEF (AdBlue) · sensor',
@@ -89,7 +96,10 @@ export function fluidLevels(overview, health, fleetMaster, ialert) {
       litres:
         numeric(overview?.def?.litres) ??
         (defPct != null && defCapacity > 0 ? (defPct / 100) * defCapacity : null),
-      at: overview?.def?.at ?? health?.defAt ?? health?.pulledAt,
+      at: overview?.def ? overview.def.at : health?.defAt,
+      capacityL: defCapacity,
+      litresBasis: overview?.def?.litresBasis ?? null,
+      source: overview?.def?.source ?? null,
     },
   ];
 }

@@ -1,309 +1,295 @@
+import { Link } from 'react-router-dom';
 import PanelErrorBoundary from '../../../components/cluster/PanelErrorBoundary';
-import { formatDateIST } from '../../../utils/dateUtils';
+import { formatDateIST, formatDateTimeIST, toISTDateString } from '../../../utils/dateUtils';
 import { timeAgo } from '../../../utils/formatters';
 import useApi from '../../../hooks/useApi';
 import DriverVehicleAssignmentService from '../../../services/DriverVehicleAssignmentService';
+import DataTooltip from '../../../components/ui/DataTooltip';
 import { initials } from './overview/initials';
-import Empty from './Empty';
+import { OverviewCardSkeleton } from './overview/OverviewSkeleton';
+import './overview/referenceOverview.css';
+import './vehicleDrivers.css';
 
-/**
- * DriversPanel — Driver profile, 1-click contact, DL validity, and live safety telemetry.
- *
- * Surfaces driver credentials, tenure on vehicle, and live webhook safety events:
- *   - Harsh braking count today
- *   - Harsh acceleration count today
- *   - Rash turning count today
- *   - Night driving duration (11 PM – 5 AM fatigue risk)
- *   - Neutral coasting / free-wheeling detection
- */
-export default function DriversPanel({ vehicleId, assignedDriver }) {
+const ASSIGNMENTS = '/vehicle-assignments';
+const stamp = (value) =>
+  value && Number.isFinite(new Date(value).getTime()) ? new Date(value).getTime() : null;
+const date = (value) => (stamp(value) != null ? formatDateIST(value) : 'Not recorded');
+const nameOf = (row) =>
+  [row.driverId?.firstName, row.driverId?.lastName].filter(Boolean).join(' ') ||
+  'Driver not recorded';
+
+export default function DriversPanel({ vehicleId, assignedDriver, recentAlerts = [] }) {
   const { data, loading, error } = useApi(
     (signal) =>
-      DriverVehicleAssignmentService.getAssignments({ vehicleId, includePast: true }, { signal }),
+      DriverVehicleAssignmentService.getAssignments(
+        { vehicleId, includePast: true, limit: 200 },
+        { signal },
+      ),
     [vehicleId],
-    { enabled: Boolean(vehicleId) },
+    { enabled: Boolean(vehicleId), scopeKey: vehicleId },
   );
   const rows = Array.isArray(data) ? data : data?.results || data?.items || [];
-
+  const now = Date.now();
+  const start = new Date(`${toISTDateString(new Date())}T00:00:00+05:30`).getTime();
+  const windowStart = start - 29 * 86400000;
+  const period = now - windowStart;
+  const activeRows = rows.filter(
+    (row) =>
+      stamp(row.startDate) != null &&
+      stamp(row.startDate) <= now &&
+      (stamp(row.endDate) == null || stamp(row.endDate) > now),
+  );
+  const safety = (Array.isArray(recentAlerts) ? recentAlerts : []).filter(
+    (alert) =>
+      stamp(alert.eventDateTime) >= start &&
+      stamp(alert.eventDateTime) <= now &&
+      /harsh|brak|accel|rash|turn|coast|wheel|overspeed/i.test(alert.type || ''),
+  );
+  const counts = [
+    ['Harsh braking', /harsh.*brak|brak.*harsh/i],
+    ['Harsh acceleration', /harsh.*accel|accel.*harsh/i],
+    ['Rash turning', /rash.*turn|harsh.*turn/i],
+    ['Neutral coasting', /coast|free.?wheel/i],
+  ];
   return (
     <PanelErrorBoundary name="vehicle-drivers">
-      <div className="v360-panel" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {/* Top Section: Active Driver Profile & Live Safety Webhook Strip */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: 14,
-          }}
-        >
-          {/* Active Driver Profile */}
-          <section className="v360-card">
-            <div className="v360-card-head">
-              <p className="v360-card-title">Active Assigned Driver</p>
-              {assignedDriver ? (
-                <span className="v360-pill v360-pill--ok">
-                  <span className="v360-pill-dot" aria-hidden="true" />
-                  On Duty
-                </span>
-              ) : null}
-            </div>
-
-            {!assignedDriver ? (
-              <Empty
-                title="No driver currently assigned"
-                hint="Assign a driver from Driver ↔ Vehicle Assignments to monitor shift behavior."
-              />
-            ) : (
-              <div style={{ marginTop: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <div
-                    style={{
-                      width: 52,
-                      height: 52,
-                      borderRadius: '50%',
-                      background: 'color-mix(in srgb, var(--erp) 14%, var(--card))',
-                      color: 'var(--erp)',
-                      display: 'grid',
-                      placeItems: 'center',
-                      fontWeight: 700,
-                      fontSize: 18,
-                    }}
-                  >
-                    {initials(assignedDriver.name) || 'DR'}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>
-                      {assignedDriver.name || 'Unnamed Driver'}
-                    </h3>
-                    <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--ink3)' }}>
-                      {[
-                        assignedDriver.group ? `Branch: ${assignedDriver.group}` : null,
-                        assignedDriver.location ? `Base: ${assignedDriver.location}` : null,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ') || 'Active Shift'}
-                    </p>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-                  {assignedDriver.mobileNumber ? (
-                    <a
-                      href={`tel:${assignedDriver.mobileNumber}`}
-                      className="v360-btn v360-btn--primary"
-                      style={{ height: 32, padding: '0 12px', fontSize: 12 }}
-                    >
-                      📞 Call {assignedDriver.mobileNumber}
-                    </a>
-                  ) : null}
-                  <span
-                    className="v360-pill v360-pill--grey"
-                    style={{
-                      height: 32,
-                      padding: '0 10px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    Assigned:{' '}
-                    {assignedDriver.assignmentStartDate
-                      ? timeAgo(assignedDriver.assignmentStartDate)
-                      : 'Active'}
-                  </span>
-                </div>
-
-                <dl className="v360-kv" style={{ marginTop: 14 }}>
-                  <dt>Driving license (DL)</dt>
-                  <dd className="is-code">{assignedDriver.licenseNumber || 'Verified on file'}</dd>
-                  <dt>DL validity status</dt>
-                  <dd className="is-ok">Active & verified</dd>
-                  <dt>Attribution status</dt>
-                  <dd>Single assigned driver</dd>
-                </dl>
-              </div>
-            )}
-          </section>
-
-          {/* Driver Behavior & Live Safety Telematics */}
-          <section className="v360-card">
-            <div className="v360-card-head">
-              <p className="v360-card-title">Live Safety Telematics (Today&apos;s Feed)</p>
-              <span className="v360-pill v360-pill--ok">
-                <span className="v360-pill-dot" aria-hidden="true" />
-                Webhook Stream
+      <div className="vdo-overview vdrivers">
+        <div className="vdrivers-top">
+          <section className="vdo-card vdrivers-profile">
+            <div className="vdrivers-head">
+              <h3>Assigned driver</h3>
+              <span className="vdrivers-badge">
+                {assignedDriver ? 'Assigned' : 'No assignment'}
               </span>
             </div>
-
-            <p className="v360-card-lede" style={{ margin: '0 0 10px' }}>
-              Real-time driving safety telemetry captured from ECU accelerometer & speed sensors.
-            </p>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: 10,
-              }}
-            >
-              <div
-                style={{
-                  padding: 10,
-                  borderRadius: 8,
-                  background: 'var(--sunk)',
-                  border: '1px solid var(--line)',
-                }}
-              >
-                <span className="v360-readout-label">Harsh Braking</span>
-                <p className="v360-figure" style={{ margin: '2px 0 0' }}>
-                  <span className="v360-figure-value" style={{ color: 'var(--green-ink)' }}>
-                    0
-                  </span>
-                  <span className="v360-figure-note">clean braking</span>
-                </p>
-                <span className="v360-readout-sub">Zero emergency decelerations</span>
+            {assignedDriver ? (
+              <>
+                <div className="vdrivers-identity">
+                  <span className="vdrivers-avatar">{initials(assignedDriver.name) || '—'}</span>
+                  <div>
+                    <strong>{assignedDriver.name || 'Name not recorded'}</strong>
+                    <p>
+                      {assignedDriver.assignmentStartDate
+                        ? `Assigned ${date(assignedDriver.assignmentStartDate)} · ${timeAgo(assignedDriver.assignmentStartDate)}`
+                        : 'Assignment start not recorded'}
+                    </p>
+                    <p>{assignedDriver.mobileNumber || 'Phone not recorded'}</p>
+                  </div>
+                </div>
+                <div className="vdrivers-profile-facts">
+                  <div>
+                    <span>
+                      Driving licence<small>Number on the driver record</small>
+                    </span>
+                    <b>{assignedDriver.licenseNumber || 'Not on record'}</b>
+                  </div>
+                  <div>
+                    <span>
+                      Licence validity<small>Expiry and verification are not supplied</small>
+                    </span>
+                    <b>Not verified here</b>
+                  </div>
+                  <div>
+                    <span>
+                      Attribution<small>Based on recorded assignment periods</small>
+                    </span>
+                    <b>
+                      {loading
+                        ? 'Loading'
+                        : error
+                          ? 'Unavailable'
+                          : activeRows.length > 1
+                            ? 'Overlapping assignments'
+                            : 'Current assignment'}
+                    </b>
+                  </div>
+                  <div>
+                    <span>
+                      Driving score<small>No measured score supplied for this driver</small>
+                    </span>
+                    <b>Not available</b>
+                  </div>
+                  {assignedDriver.group ? (
+                    <div>
+                      <span>Branch</span>
+                      <b>{assignedDriver.group}</b>
+                    </div>
+                  ) : null}
+                </div>
+              </>
+            ) : (
+              <div className="vdrivers-empty">
+                <h3>No driver currently assigned</h3>
+                <p>Assign a driver to keep a record of who operates this vehicle.</p>
               </div>
-
-              <div
-                style={{
-                  padding: 10,
-                  borderRadius: 8,
-                  background: 'var(--sunk)',
-                  border: '1px solid var(--line)',
-                }}
-              >
-                <span className="v360-readout-label">Harsh Acceleration</span>
-                <p className="v360-figure" style={{ margin: '2px 0 0' }}>
-                  <span className="v360-figure-value" style={{ color: 'var(--amber-ink)' }}>
-                    1
-                  </span>
-                  <span className="v360-figure-note">minor surge</span>
-                </p>
-                <span className="v360-readout-sub">Rapid throttle detected</span>
+            )}
+            <div className="vdrivers-actions">
+              {assignedDriver?.mobileNumber ? (
+                <a
+                  className="vdrivers-button vdrivers-button--primary"
+                  href={`tel:${assignedDriver.mobileNumber}`}
+                >
+                  Call driver
+                </a>
+              ) : null}
+              <Link className="vdrivers-button" to={ASSIGNMENTS}>
+                {assignedDriver ? 'Change driver' : 'Assign driver'}
+              </Link>
+            </div>
+          </section>
+          <section className="vdo-card vdrivers-safety">
+            <div className="vdrivers-head">
+              <div>
+                <h3>Safety today</h3>
+                <p>Safety alerts in the vehicle’s recent returned records</p>
               </div>
-
-              <div
-                style={{
-                  padding: 10,
-                  borderRadius: 8,
-                  background: 'var(--sunk)',
-                  border: '1px solid var(--line)',
-                }}
-              >
-                <span className="v360-readout-label">Rash Turning</span>
-                <p className="v360-figure" style={{ margin: '2px 0 0' }}>
-                  <span className="v360-figure-value" style={{ color: 'var(--green-ink)' }}>
-                    0
-                  </span>
-                  <span className="v360-figure-note">stable cornering</span>
-                </p>
-                <span className="v360-readout-sub">Zero lateral slip alerts</span>
+              <span className="vdrivers-badge vdrivers-badge--warn">
+                {safety.length ? `${safety.length} returned alerts` : 'Coverage unconfirmed'}
+              </span>
+            </div>
+            <div>
+              <div className="vdrivers-safety-timeline">
+                <span className="vdrivers-night vdrivers-night--early" />
+                <span className="vdrivers-night vdrivers-night--late" />
+                <span className="vdrivers-safety-track" />
+                {safety.map((alert, index) => {
+                  const left = ((stamp(alert.eventDateTime) - start) / 86400000) * 100;
+                  return (
+                    <button
+                      key={alert.id || index}
+                      style={{ left: `${left}%` }}
+                      aria-label={`${alert.type} · ${formatDateTimeIST(alert.eventDateTime)}`}
+                    >
+                      <DataTooltip
+                        className={`vdrivers-tooltip${left > 50 ? ' vdrivers-tooltip--end' : ''}`}
+                        aria-hidden="true"
+                        label={alert.type}
+                        details={[
+                          formatDateTimeIST(alert.eventDateTime),
+                          'Returned vehicle alert; driver attribution not verified',
+                        ]}
+                      />
+                    </button>
+                  );
+                })}
               </div>
-
-              <div
-                style={{
-                  padding: 10,
-                  borderRadius: 8,
-                  background: 'var(--sunk)',
-                  border: '1px solid var(--line)',
-                }}
-              >
-                <span className="v360-readout-label">Night Driving</span>
-                <p className="v360-figure" style={{ margin: '2px 0 0' }}>
-                  <span className="v360-figure-value" style={{ color: 'var(--green-ink)' }}>
-                    0.0 h
-                  </span>
-                  <span className="v360-figure-note">11 PM – 5 AM</span>
-                </p>
-                <span className="v360-readout-sub">Zero night fatigue risk</span>
+              <div className="vdrivers-ticks">
+                <span>12 am</span>
+                <span>6 am</span>
+                <span>12 pm</span>
+                <span>6 pm</span>
+                <span>12 am</span>
+              </div>
+              <p className="vdrivers-timeline-note">
+                Night window · 11 pm–5 am · dots show returned alerts
+              </p>
+            </div>
+            <div className="vdrivers-safety-rows">
+              {counts.map(([label, pattern]) => {
+                const count = safety.filter((alert) => pattern.test(alert.type)).length;
+                return (
+                  <div key={label}>
+                    <span>{label}</span>
+                    <strong>{count || '—'}</strong>
+                    <small>{count ? 'Returned alerts' : 'No matching alert returned'}</small>
+                  </div>
+                );
+              })}
+              <div>
+                <span>Night driving</span>
+                <strong>—</strong>
+                <small>Driving duration unavailable</small>
               </div>
             </div>
-
-            <div
-              style={{
-                marginTop: 10,
-                padding: 8,
-                borderRadius: 6,
-                background: 'var(--card)',
-                border: '1px solid var(--line)',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  fontSize: 11.5,
-                }}
-              >
-                <span style={{ fontWeight: 600, color: 'var(--ink)' }}>
-                  Neutral Coasting / Free Wheeling:
-                </span>
-                <span style={{ color: 'var(--green-ink)', fontWeight: 600 }}>
-                  0 incidents (Normal)
-                </span>
-              </div>
+            <div className="vdrivers-insight">
+              ✧ These are recent vehicle alerts, not a complete daily safety report. No returned
+              event does not prove zero incidents. Driver ratings and fault attribution need
+              verified coverage and assignment history.
             </div>
           </section>
         </div>
-
-        {/* Assignment History Table */}
-        <section className="v360-card">
-          <div className="v360-card-head">
-            <p className="v360-card-title">Driver Assignment History</p>
-          </div>
-          {!vehicleId ? (
-            <Empty
-              title="No fleet-master record"
-              hint="This registration isn't in the fleet master, so assignments can't be resolved."
-            />
-          ) : loading && !data ? (
-            <Empty title="Loading assignment history…" />
-          ) : error ? (
-            <Empty
-              title="Could not load assignments"
-              hint="This vehicle may not have driver assignments enabled for this organization."
-            />
-          ) : rows.length === 0 ? (
-            <Empty
-              title="No past assignments on record"
-              hint="Nobody else has been assigned to this vehicle yet."
-            />
-          ) : (
-            <table className="v360-table">
-              <thead>
-                <tr>
-                  <th>Driver</th>
-                  <th>Phone</th>
-                  <th className="is-num">Start</th>
-                  <th className="is-num">End</th>
-                  <th className="is-num">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((a) => {
-                  const driverName = [a.driverId?.firstName, a.driverId?.lastName]
-                    .filter(Boolean)
-                    .join(' ');
-                  const isCurrent =
-                    assignedDriver &&
-                    String(a.driverId?._id || a.driverId) === String(assignedDriver.id);
-                  return (
-                    <tr key={a._id}>
-                      <td>
-                        {driverName || '—'}
-                        {isCurrent ? ' (current)' : ''}
-                      </td>
-                      <td>{a.driverId?.mobileNumber || '—'}</td>
-                      <td className="is-num">{a.startDate ? formatDateIST(a.startDate) : '—'}</td>
-                      <td className="is-num">{a.endDate ? formatDateIST(a.endDate) : 'ongoing'}</td>
-                      <td className="is-num">{a.status || '—'}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </section>
+        {loading && !data ? (
+          <OverviewCardSkeleton />
+        ) : (
+          <section className="vdo-card vdrivers-history">
+            <div className="vdrivers-head">
+              <h3>Driver assignment history</h3>
+              <Link to={ASSIGNMENTS}>Manage assignments →</Link>
+            </div>
+            {!vehicleId ? (
+              <p>No fleet-master vehicle record to resolve assignments.</p>
+            ) : error ? (
+              <p>Couldn’t load assignment history.</p>
+            ) : !rows.length ? (
+              <div className="vdrivers-empty">
+                <h3>No assignment history returned</h3>
+                <p>Recorded driver assignments will appear here.</p>
+              </div>
+            ) : (
+              <>
+                <div
+                  className="vdrivers-assignment-timeline"
+                  aria-label="Recorded assignments over the last 30 days"
+                >
+                  {rows.map((row, index) => {
+                    const from = stamp(row.startDate);
+                    const to = stamp(row.endDate) ?? now;
+                    if (from == null || from >= now || to <= windowStart) return null;
+                    const left = Math.max(0, ((from - windowStart) / period) * 100);
+                    const width =
+                      ((Math.min(now, to) - Math.max(windowStart, from)) / period) * 100;
+                    return (
+                      <span
+                        key={row._id || index}
+                        style={{ left: `${left}%`, width: `${width}%` }}
+                        title={`${nameOf(row)} · ${date(row.startDate)} → ${row.endDate ? date(row.endDate) : 'ongoing'}`}
+                      >
+                        {initials(nameOf(row))}
+                      </span>
+                    );
+                  })}
+                </div>
+                <div className="vdrivers-ticks">
+                  <span>{date(new Date(windowStart))}</span>
+                  <span>Last 30 days · shaded periods have recorded assignments</span>
+                  <span>Today</span>
+                </div>
+                <div className="vdrivers-table-wrap">
+                  <table className="vdrivers-table">
+                    <thead>
+                      <tr>
+                        <th>Driver</th>
+                        <th>Phone</th>
+                        <th>Period</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((row, index) => (
+                        <tr key={row._id || index}>
+                          <td>
+                            <span className="vdrivers-table-name">
+                              <i>{initials(nameOf(row))}</i>
+                              {nameOf(row)}
+                            </span>
+                          </td>
+                          <td>{row.driverId?.mobileNumber || '—'}</td>
+                          <td>
+                            {date(row.startDate)} →{' '}
+                            {row.endDate ? date(row.endDate) : 'No end recorded'}
+                          </td>
+                          <td>
+                            <span className="vdrivers-badge">{row.status || 'Not recorded'}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </section>
+        )}
       </div>
     </PanelErrorBoundary>
   );

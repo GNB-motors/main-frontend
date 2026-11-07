@@ -1,209 +1,325 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import useApi from '../../../hooks/useApi';
 import FleetDataService from '../../../services/FleetDataService';
 import PanelErrorBoundary from '../../../components/cluster/PanelErrorBoundary';
+import DataTooltip from '../../../components/ui/DataTooltip';
 import { formatKm, formatNum } from '../../../utils/formatters';
-import { formatDateTimeIST } from '../../../utils/dateUtils';
-import { tourStops, formatStopTime } from '../../ErpTrips/detail/laneFactsModel';
-import Empty from './Empty';
+import { formatDateTimeIST, formatDateIST } from '../../../utils/dateUtils';
+import { tourStops } from '../../ErpTrips/detail/laneFactsModel';
+import { OverviewCardSkeleton } from './overview/OverviewSkeleton';
 import {
-  DASH,
   pickCurrentTour,
   sortTrips,
   tripKm,
   tripRoute,
-  tripStatusTone,
   tripTime,
   tourSummary,
 } from './vehicleTripsModel';
+import './overview/referenceOverview.css';
+import './vehicleTrips.css';
 
-/**
- * Trips tab — the truck's own running, read from the two sources that
- * describe it: the detected trip (plant → plant) and the tour, the
- * warehouse-to-warehouse cycle the trip sits inside.
- *
- * The tour is the honest unit of distance. An open cycle carries no distance
- * yet — a half-finished cycle is not a measurable number — so it is shown as
- * a position with "not measured until the cycle closes", never as 0 km.
- */
+const MANAGEMENT = '/trip-management';
+const complete = (trip) => ['COMPLETE', 'CONFIRMED'].includes(trip.status);
+const category = (trip) =>
+  complete(trip)
+    ? 'complete'
+    : trip.status === 'OPEN'
+      ? 'open'
+      : trip.status === 'NEEDS_REVIEW'
+        ? 'review'
+        : 'other';
+const statusLabel = (trip) =>
+  ({ complete: 'Complete', open: 'Open', review: 'Needs review' })[category(trip)] ||
+  String(trip.status || 'Unknown')
+    .replace(/_/g, ' ')
+    .toLowerCase();
+const stamp = (value) =>
+  value && Number.isFinite(new Date(value).getTime()) ? new Date(value).getTime() : null;
+
 export default function TripsPanel({ vehicleId, registrationNumber }) {
+  const [filter, setFilter] = useState('all');
   const trips$ = useApi(
     (signal) => FleetDataService.getAutoTrips({ vehicleId, limit: 20 }, signal),
     [vehicleId],
-    { enabled: Boolean(vehicleId) },
+    { enabled: Boolean(vehicleId), scopeKey: vehicleId },
   );
   const tours$ = useApi(
     (signal) => FleetDataService.getVehicleTours({ vehicleId, limit: 10 }, signal),
     [vehicleId],
-    { enabled: Boolean(vehicleId) },
+    { enabled: Boolean(vehicleId), scopeKey: vehicleId },
   );
-
-  const trips = sortTrips(trips$.data?.items);
+  const trips = sortTrips(trips$.data?.items).filter(
+    (trip) => !['DISMISSED', 'SUPERSEDED'].includes(trip.status),
+  );
   const tour = pickCurrentTour(tours$.data?.tours);
   const stops = tourStops(tour);
   const summary = tourSummary(tour, stops);
-
+  const filtered = trips.filter((trip) => filter === 'all' || category(trip) === filter);
+  const review = trips.filter(
+    (trip) => trip.status === 'NEEDS_REVIEW' || (complete(trip) && !tripRoute(trip).to),
+  );
+  const timed = trips.filter((trip) => tripTime(trip) != null);
+  const end = Date.now();
+  const start = Math.min(end - 86400000, ...timed.map(tripTime));
+  const span = end - start;
+  const distances = trips.map((trip) => tripKm(trip).total).filter((value) => value != null);
+  const total = distances.length ? distances.reduce((sum, value) => sum + value, 0) : null;
+  const error = trips$.error || tours$.error;
   return (
     <PanelErrorBoundary name="vehicle-trips">
-      <div className="v360-panel v360-panel--halves">
-        <section className="v360-card">
-          <div className="v360-card-head">
-            <p className="v360-card-title">Live cycle</p>
-            <Link to="/trip-management" className="v360-link">
-              Trip management →
-            </Link>
-          </div>
-
-          {!vehicleId ? (
-            <Empty
-              title="No vehicle id on this record"
-              hint="Trips are looked up by vehicle id, and this registration is not on the fleet master."
-            />
-          ) : tours$.error ? (
-            <Empty
-              title="Couldn't load the cycle"
-              hint={tours$.error?.message || 'The tours API did not answer.'}
-            />
-          ) : tour ? (
-            <>
-              <span className="v360-pill v360-pill--warn">
-                <span className="v360-pill-dot" aria-hidden="true" />
-                Out now
-              </span>
-
-              <p className="v360-figure">
-                <span className="v360-figure-value">
-                  {summary.from || DASH} {summary.to ? `→ ${summary.to}` : ''}
-                </span>
-                <span className="v360-figure-note">
-                  {summary.startedAt
-                    ? `left ${formatDateTimeIST(summary.startedAt)}`
-                    : 'start time not recorded'}
-                </span>
-              </p>
-
-              <dl className="v360-kv">
-                <dt>Distance so far</dt>
-                <dd className={summary.km == null ? 'is-dim' : undefined}>
-                  {summary.km == null ? `${DASH} · ${summary.kmReason}` : formatKm(summary.km)}
-                </dd>
-                <dt>Laden</dt>
-                <dd>{summary.ladenKm == null ? DASH : formatKm(summary.ladenKm)}</dd>
-                <dt>Empty</dt>
-                <dd>{summary.emptyKm == null ? DASH : formatKm(summary.emptyKm)}</dd>
-                <dt>Legs</dt>
-                <dd>{formatNum(summary.legs)}</dd>
-              </dl>
-
-              {stops.length ? (
-                <table className="v360-table">
-                  <thead>
-                    <tr>
-                      <th>Leg</th>
-                      <th>Left</th>
-                      <th>Arrived</th>
-                      <th className="is-num">Km</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {stops.map((leg, index) => (
-                      <tr key={`${leg.from}-${leg.to}-${index}`}>
-                        <td>
-                          {leg.from} → {leg.to}
-                        </td>
-                        <td>{formatStopTime(leg.departedAt) || DASH}</td>
-                        <td>{formatStopTime(leg.arrivedAt) || DASH}</td>
-                        <td className="is-num">{leg.km == null ? DASH : formatKm(leg.km)}</td>
-                      </tr>
+      <div className="vdo-overview vtrips">
+        {!vehicleId ? (
+          <section className="vdo-card">
+            <h3>No fleet-master vehicle record</h3>
+            <p>A vehicle record is needed to resolve trips and cycles.</p>
+          </section>
+        ) : (
+          <div className="vtrips-columns">
+            {tours$.loading && !tours$.data ? (
+              <OverviewCardSkeleton />
+            ) : (
+              <section className="vdo-card vtrips-cycle">
+                <div className="vtrips-head">
+                  <div>
+                    <h3>Live cycle</h3>
+                    <span className={`vtrips-status vtrips-status--${tour ? 'open' : 'other'}`}>
+                      {tours$.error ? 'Cycle unavailable' : tour ? 'Open cycle' : 'No open cycle'}
+                    </span>
+                  </div>
+                  <Link to={MANAGEMENT}>Trip management →</Link>
+                </div>
+                <div className="vtrips-headline">
+                  <small>{tour ? 'Current route' : 'Cycle standing'}</small>
+                  <strong>
+                    {tours$.error
+                      ? 'Couldn’t load cycle'
+                      : tour
+                        ? `${summary.from || 'Origin unresolved'}${summary.to ? ` → ${summary.to}` : ''}`
+                        : 'No open cycle'}
+                  </strong>
+                  <p>
+                    {tour && summary.startedAt
+                      ? `Started ${formatDateTimeIST(summary.startedAt)}`
+                      : 'An open cycle is recorded when the truck leaves a confirmed base.'}
+                  </p>
+                </div>
+                {tour ? (
+                  <div className="vtrips-cycle-facts">
+                    {[
+                      [
+                        'Cycle distance',
+                        summary.km == null ? 'Not measured yet' : formatKm(summary.km),
+                      ],
+                      ['Laden', summary.ladenKm == null ? '—' : formatKm(summary.ladenKm)],
+                      ['Empty', summary.emptyKm == null ? '—' : formatKm(summary.emptyKm)],
+                      ['Resolved legs', formatNum(stops.length)],
+                    ].map(([label, value]) => (
+                      <div key={label}>
+                        <small>{label}</small>
+                        <b>{value}</b>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p className="v360-card-lede">
-                  The cycle is open but no leg has been resolved yet — the yard this truck left
-                  from has not been confirmed.
-                </p>
-              )}
-            </>
-          ) : (
-            <Empty
-              title="Parked — no open cycle"
-              hint="A cycle opens when the truck leaves a yard and closes when it comes back. Nothing is open right now."
-            />
-          )}
-        </section>
-
-        <section className="v360-card">
-          <div className="v360-card-head">
-            <p className="v360-card-title">Recent trips</p>
-            <Link to="/trip-management" className="v360-link">
-              Trip management →
-            </Link>
+                  </div>
+                ) : null}
+                <div className="vtrips-timeline-block">
+                  <small>
+                    Recent records · {trips.length} trips
+                    {total != null ? ` · ${formatKm(total)} measured` : ''}
+                  </small>
+                  <div className="vtrips-timeline">
+                    <div className="vtrips-timeline-track" />
+                    {timed.map((trip, index) => {
+                      const left = Math.max(
+                        0,
+                        Math.min(99, ((tripTime(trip) - start) / span) * 100),
+                      );
+                      const ended = stamp(trip.drop?.arrivedAt || trip.completedAt);
+                      const width =
+                        ended != null && ended > tripTime(trip)
+                          ? Math.min(100 - left, ((ended - tripTime(trip)) / span) * 100)
+                          : null;
+                      const route = tripRoute(trip);
+                      return (
+                        <button
+                          key={trip._id || index}
+                          className={`vtrips-timeline-bar vtrips-timeline-bar--${category(trip)}`}
+                          style={{ left: `${left}%`, width: width != null ? `${width}%` : '6px' }}
+                          aria-label={`${route.from || 'Unknown pickup'} to ${route.to || 'No drop'} · ${statusLabel(trip)}`}
+                        >
+                          <DataTooltip
+                            className={`vtrips-tooltip${left > 50 ? ' vtrips-tooltip--end' : ''}`}
+                            aria-hidden="true"
+                            label={statusLabel(trip)}
+                            value={tripKm(trip).total == null ? '—' : formatKm(tripKm(trip).total)}
+                            details={[
+                              `${route.from || 'Unknown pickup'} → ${route.to || 'No drop'}`,
+                              formatDateTimeIST(tripTime(trip)),
+                            ]}
+                          />
+                        </button>
+                      );
+                    })}
+                    <i />
+                  </div>
+                  <div className="vtrips-ticks">
+                    {[0, 0.25, 0.5, 0.75, 1].map((part) => (
+                      <span key={part}>
+                        {part === 1 ? 'Today' : formatDateIST(new Date(start + span * part))}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="vtrips-legend">
+                    <span>● Complete</span>
+                    <span>◌ Needs review</span>
+                    <span>● Open</span>
+                  </div>
+                </div>
+                <div className="vtrips-insight">
+                  <span className="vtrips-eyebrow">✧ Records to review</span>
+                  {error ? (
+                    <p>Some trip or cycle records could not be loaded.</p>
+                  ) : review.length ? (
+                    <>
+                      <p>{review.length} recent records need review or have no confirmed drop.</p>
+                      {review.slice(0, 3).map((trip, index) => (
+                        <div className="vtrips-review" key={trip._id || index}>
+                          <span>
+                            {tripRoute(trip).from || 'Pickup unresolved'}
+                            <small>
+                              {!tripRoute(trip).to ? 'Drop place not recorded' : statusLabel(trip)}
+                            </small>
+                          </span>
+                          <Link to={MANAGEMENT}>Review →</Link>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <p>
+                      {trips.length
+                        ? 'No review flags or missing drops in the loaded records.'
+                        : 'No trip records available to review.'}
+                    </p>
+                  )}
+                </div>
+                <Link className="vtrips-button" to={MANAGEMENT}>
+                  Open trip management →
+                </Link>
+              </section>
+            )}
+            {trips$.loading && !trips$.data ? (
+              <OverviewCardSkeleton />
+            ) : (
+              <section className="vdo-card vtrips-recent">
+                <div className="vtrips-head">
+                  <h3>Recent trips</h3>
+                  <Link to={MANAGEMENT}>Trip management →</Link>
+                </div>
+                <div className="vtrips-filters" role="group" aria-label="Filter trips">
+                  {[
+                    ['all', 'All'],
+                    ['review', 'Needs review'],
+                    ['complete', 'Complete'],
+                    ['open', 'Open'],
+                  ].map(([key, label]) => (
+                    <button key={key} aria-pressed={filter === key} onClick={() => setFilter(key)}>
+                      {label}{' '}
+                      <span>
+                        {trips.filter((trip) => key === 'all' || category(trip) === key).length}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {trips$.error ? (
+                  <p className="vtrips-empty">Couldn’t load trips. Please try again.</p>
+                ) : !filtered.length ? (
+                  <p className="vtrips-empty">
+                    No {filter === 'all' ? 'recent' : filter === 'review' ? 'review' : filter} trips
+                    in the loaded records.
+                  </p>
+                ) : (
+                  <div className="vtrips-table-wrap">
+                    <table className="vtrips-table">
+                      <thead>
+                        <tr>
+                          <th>Trip</th>
+                          <th>Started</th>
+                          <th>Distance</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtered.map((trip, index) => {
+                          const route = tripRoute(trip);
+                          const distance = tripKm(trip).total;
+                          return (
+                            <tr key={trip._id || index}>
+                              <td>
+                                <span>{route.from || 'Unknown pickup'}</span>{' '}
+                                <span className="vtrips-arrow">→</span>{' '}
+                                {route.to || <span className="vtrips-no-drop">No drop</span>}
+                              </td>
+                              <td>
+                                {tripTime(trip) != null ? formatDateTimeIST(tripTime(trip)) : '—'}
+                              </td>
+                              <td>{distance == null ? '—' : formatKm(distance)}</td>
+                              <td>
+                                <span className={`vtrips-status vtrips-status--${category(trip)}`}>
+                                  {statusLabel(trip)}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            )}
           </div>
-
-          {trips$.error ? (
-            <Empty
-              title="Couldn't load trips"
-              hint={trips$.error?.message || 'The auto-trips API did not answer.'}
-            />
-          ) : !trips.length ? (
-            <Empty
-              title="No detected trip yet"
-              hint="Trips are detected from GPS stops and confirmed pickup/drop places — they are never declared by hand."
-            />
-          ) : (
-            <table className="v360-table">
-              <thead>
-                <tr>
-                  <th>Trip</th>
-                  <th>When</th>
-                  <th className="is-num">Km</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {trips.map((trip) => {
-                  const route = tripRoute(trip);
-                  const km = tripKm(trip);
-                  return (
-                    <tr key={trip._id || `${route.from}-${route.to}-${tripTime(trip)}`}>
-                      <td>
-                        {route.from || DASH} → {route.to || DASH}
-                      </td>
-                      <td>
-                        {trip.pickup?.departedAt
-                          ? formatDateTimeIST(trip.pickup.departedAt)
-                          : DASH}
-                      </td>
-                      <td className="is-num">{km.total == null ? DASH : formatKm(km.total)}</td>
-                      <td>
-                        <span className={`v360-pill v360-pill--${tripStatusTone(trip.status)}`}>
-                          {String(trip.status || 'UNKNOWN').replace(/_/g, ' ').toLowerCase()}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </section>
-
-        <section className="v360-card" style={{ gridColumn: '1 / -1' }}>
-          <p className="v360-card-title">How this was worked out</p>
-          <p className="v360-card-lede">
-            A trip is a plant-to-plant run detected from GPS stops and confirmed pickup and
-            drop places. The cycle above is the warehouse-to-warehouse tour that contains it —
-            the truck may run several trips before it comes home.
+        )}
+        <section className="vdo-card">
+          <h3>How this was worked out</h3>
+          <p>
+            A trip is a plant-to-plant run detected from GPS stops and matched pickup and drop
+            places. A cycle is the base-to-base tour containing those runs.
           </p>
-          <dl className="v360-kv">
-            <dt>Vehicle</dt>
-            <dd className="is-dim">{registrationNumber || DASH}</dd>
-            <dt>Trips read</dt>
-            <dd>{formatNum(trips.length)}</dd>
-            <dt>Cycle status</dt>
-            <dd className="is-dim">{tour ? 'open' : 'closed'}</dd>
-          </dl>
+          <div className="vtrips-process">
+            {['GPS stops', 'Pickup & drop matched', 'Trip', 'Cycle · base to base'].map(
+              (label, index) => (
+                <span key={label}>
+                  {index ? <i>→</i> : null}
+                  <b>{label}</b>
+                </span>
+              ),
+            )}
+          </div>
+          <div className="vtrips-facts">
+            {[
+              ['Vehicle', registrationNumber || '—'],
+              ['Trips loaded', trips$.error ? 'Unavailable' : trips.length],
+              [
+                'Drop place recorded',
+                `${trips.filter((trip) => tripRoute(trip).to).length} of ${trips.length}`,
+              ],
+              [
+                'Cycle status',
+                tours$.error
+                  ? 'Unavailable'
+                  : tours$.loading
+                    ? 'Loading'
+                    : tour
+                      ? 'Open'
+                      : 'No open cycle',
+              ],
+            ].map(([label, value]) => (
+              <div key={label}>
+                <small>{label}</small>
+                <strong>{value}</strong>
+              </div>
+            ))}
+          </div>
         </section>
       </div>
     </PanelErrorBoundary>

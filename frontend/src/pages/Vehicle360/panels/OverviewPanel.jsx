@@ -1,3 +1,4 @@
+import { OverviewCardSkeleton } from './overview/OverviewSkeleton';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PanelErrorBoundary from '../../../components/cluster/PanelErrorBoundary';
@@ -73,48 +74,60 @@ export default function OverviewPanel({
               overview={overview.data}
               loading={overview.loading || track.loading}
             />
-            <section className="vdo-card vdo-location">
-              <div className="vdo-location-head">
-                <div>
-                  <h3>{location}</h3>
-                  <p>
-                    {[
-                      motion,
-                      view.ignition != null ? `ignition ${view.ignition ? 'on' : 'off'}` : null,
-                      view.lastFixAt ? timeAgo(view.lastFixAt) : null,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </p>
+            {track.loading && !track.data ? (
+              <OverviewCardSkeleton className="vdo-location" map />
+            ) : (
+              <section className="vdo-card vdo-location">
+                <div className="vdo-location-head">
+                  <div>
+                    <h3>{location}</h3>
+                    <p>
+                      {[
+                        motion,
+                        view.ignition != null ? `ignition ${view.ignition ? 'on' : 'off'}` : null,
+                        view.lastFixAt ? timeAgo(view.lastFixAt) : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                  </div>
+                  <Link className="vdo-link" to={trackLink({ reg, ...range })}>
+                    Open in tracking →
+                  </Link>
                 </div>
-                <Link className="vdo-link" to={trackLink({ reg, ...range })}>
-                  Open in tracking →
-                </Link>
-              </div>
-              <ReferenceOverviewMap
-                track={track.data}
-                livePosition={livePosition}
-                series={series}
-                loading={track.loading}
-              />
-            </section>
+                <ReferenceOverviewMap
+                  track={track.data}
+                  livePosition={livePosition}
+                  series={series}
+                  loading={track.loading}
+                />
+              </section>
+            )}
           </div>
           <div className="vdo-card-grid">
-            <ServiceCard
-              prediction={prediction}
-              health={health}
-              overview={overview.data}
-              onGoTab={onGoTab}
-            />
+            {overview.loading && !overview.data ? (
+              <OverviewCardSkeleton />
+            ) : (
+              <ServiceCard
+                prediction={prediction}
+                health={health}
+                overview={overview.data}
+                onGoTab={onGoTab}
+              />
+            )}
             <DriverCard driver={assignedDriver} />
             <DocumentsCard documents={documents} onGoTab={onGoTab} />
-            <FuelCard
-              overview={overview.data}
-              health={health}
-              fleetMaster={fleetMaster}
-              ialert={ialert}
-              onGoTab={onGoTab}
-            />
+            {overview.loading && !overview.data ? (
+              <OverviewCardSkeleton />
+            ) : (
+              <FuelCard
+                overview={overview.data}
+                health={health}
+                fleetMaster={fleetMaster}
+                ialert={ialert}
+                onGoTab={onGoTab}
+              />
+            )}
           </div>
           <RegistryCard
             fleetMaster={fleetMaster}

@@ -1,3 +1,4 @@
+import DataTooltip from '../../../../components/ui/DataTooltip';
 import { useMemo, useState } from 'react';
 import { haversineKm } from '../../../LiveTracking/geoMath';
 import { toISTDateString } from '../../../../utils/dateUtils';
@@ -97,6 +98,7 @@ function mapData(track, livePosition, series) {
 
 export default function ReferenceOverviewMap({ track, livePosition, series, loading }) {
   const [selected, setSelected] = useState(0);
+  const [hovered, setHovered] = useState(null);
   const data = useMemo(() => mapData(track, livePosition, series), [track, livePosition, series]);
   return (
     <div className="vdo-map">
@@ -160,7 +162,14 @@ export default function ReferenceOverviewMap({ track, livePosition, series, load
               role="button"
               tabIndex="0"
               aria-label={`${point.name}${point.n ? ` · ${point.n} stops` : ''}`}
-              onClick={() => setSelected(i)}
+              onMouseEnter={() => setHovered(i)}
+              onMouseLeave={() => setHovered(null)}
+              onFocus={() => setHovered(i)}
+              onBlur={() => setHovered(null)}
+              onClick={() => {
+                setSelected(i);
+                setHovered(i);
+              }}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
@@ -206,6 +215,31 @@ export default function ReferenceOverviewMap({ track, livePosition, series, load
             {loading ? 'Loading recorded routes…' : 'No recorded positions'}
           </text>
         ) : null}
+        {hovered != null && data.markers[hovered]
+          ? (() => {
+              const point = data.markers[hovered];
+              const x = Math.max(8, Math.min(370, point.xy[0] - 110));
+              const y = Math.max(8, point.xy[1] - 130);
+              return (
+                <g transform={`translate(${x}, ${y})`} pointerEvents="none" aria-hidden="true">
+                  <foreignObject width="238" height="120" style={{ overflow: 'visible' }}>
+                    <DataTooltip
+                      label={
+                        point.kind === 'vehicle'
+                          ? 'Last position'
+                          : `${point.n} long ${point.n === 1 ? 'stop' : 'stops'}`
+                      }
+                      details={[
+                        point.name || 'Recorded stop',
+                        `${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}`,
+                        point.kind === 'vehicle' ? null : 'Clustered within 2 km',
+                      ]}
+                    />
+                  </foreignObject>
+                </g>
+              );
+            })()
+          : null}
       </svg>
       <div className="vdo-map-legend">
         <span>

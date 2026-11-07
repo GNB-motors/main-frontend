@@ -1,551 +1,305 @@
-import { useState, useMemo } from 'react';
+import { vehicleAxles } from '../vehicleAxles';
+import { useState } from 'react';
 import PanelErrorBoundary from '../../../components/cluster/PanelErrorBoundary';
-import { formatKm } from '../../../utils/formatters';
+import useApi from '../../../hooks/useApi';
+import FleetDataService from '../../../services/FleetDataService';
+import { formatKm, formatINR } from '../../../utils/formatters';
+import { formatDateIST } from '../../../utils/dateUtils';
+import { pickTyreRow } from './serviceInsightsModel';
+import { numeric } from './overview/referenceOverviewModel';
+import { OverviewCardSkeleton } from './overview/OverviewSkeleton';
+import './overview/referenceOverview.css';
+import './vehicleTyres.css';
 
 const CONFIGS = [
-  { id: '6-WHEEL', label: '2-Axle (6 Wheels · 19T)' },
-  { id: '10-WHEEL', label: '3-Axle (10 Wheels · 28T)' },
-  { id: '14-WHEEL', label: '4-Axle (14 Wheels · 35T)' },
-  { id: '18-WHEEL', label: '5-Axle (18 Wheels · 55T)' },
+  { wheels: 6, axles: 2 },
+  { wheels: 10, axles: 3 },
+  { wheels: 14, axles: 4 },
+  { wheels: 18, axles: 5 },
 ];
-
-/**
- * TyresPanel — Visual Axle & Tyre Layout with CAN TPMS & Lifecycle Ledger.
- *
- * Dynamically resolves axle layout (6, 10, 14, or 18 wheels) from vehicle model/GVM,
- * while allowing fleet managers to inspect any axle configuration.
- * Surfaces live CAN TPMS air pressures where equipped, or reports the genuine
- * vendor state (e.g. iALERT 'Air —' for unequipped chassis) without fake hardcoding.
- */
-export default function TyresPanel({ fleetMaster, fleetEdge, health, ialert, tyres }) {
-  const [selectedWheelId, setSelectedWheelId] = useState('FL');
-
-  // Infer default configuration from vehicle model and GVM
-  const modelStr = String(
-    ialert?.vehicleModel ||
-      fleetEdge?.vehicleModel ||
-      fleetMaster?.model ||
-      fleetMaster?.vehicleCategory ||
-      '',
-  ).toUpperCase();
-  const gvm = Number(fleetMaster?.gvm) || 0;
-
-  const defaultLayout = useMemo(() => {
-    if (modelStr.includes('5530') || modelStr.includes('TRAILER') || gvm >= 45000)
-      return '18-WHEEL';
-    if (
-      modelStr.includes('3525') ||
-      modelStr.includes('3530') ||
-      modelStr.includes('14-W') ||
-      gvm >= 35000
-    )
-      return '14-WHEEL';
-    if (
-      modelStr.includes('2820') ||
-      modelStr.includes('2821') ||
-      modelStr.includes('10-W') ||
-      gvm >= 28000
-    )
-      return '10-WHEEL';
-    return '6-WHEEL';
-  }, [modelStr, gvm]);
-
-  const [layoutType, setLayoutType] = useState(defaultLayout);
-
-  // Check if CAN J1939 TPMS messages exist
-  const hasCanTpms = Boolean(health?.tpmsFitted);
-
-  // Build axle schematic based on layout
-  const axles = useMemo(() => {
-    if (layoutType === '18-WHEEL') {
-      return [
-        {
-          name: 'Axle 1 · Front Steer',
-          wheels: [
-            { id: 'FL', label: 'Front Left', pos: 'Steer L', nominalPsi: 120 },
-            { id: 'FR', label: 'Front Right', pos: 'Steer R', nominalPsi: 120 },
-          ],
-        },
-        {
-          name: 'Axle 2 · Drive Axle 1 (Duals)',
-          wheels: [
-            { id: 'R1-OL', label: 'Drive 1 Outer Left', pos: 'D1-OL', nominalPsi: 125 },
-            { id: 'R1-IL', label: 'Drive 1 Inner Left', pos: 'D1-IL', nominalPsi: 125 },
-            { id: 'R1-IR', label: 'Drive 1 Inner Right', pos: 'D1-IR', nominalPsi: 125 },
-            { id: 'R1-OR', label: 'Drive 1 Outer Right', pos: 'D1-OR', nominalPsi: 125 },
-          ],
-        },
-        {
-          name: 'Axle 3 · Drive Axle 2 (Duals)',
-          wheels: [
-            { id: 'R2-OL', label: 'Drive 2 Outer Left', pos: 'D2-OL', nominalPsi: 125 },
-            { id: 'R2-IL', label: 'Drive 2 Inner Left', pos: 'D2-IL', nominalPsi: 125 },
-            { id: 'R2-IR', label: 'Drive 2 Inner Right', pos: 'D2-IR', nominalPsi: 125 },
-            { id: 'R2-OR', label: 'Drive 2 Outer Right', pos: 'D2-OR', nominalPsi: 125 },
-          ],
-        },
-        {
-          name: 'Axle 4 · Trailer Axle 1 (Duals)',
-          wheels: [
-            { id: 'T1-OL', label: 'Trailer 1 Outer Left', pos: 'T1-OL', nominalPsi: 120 },
-            { id: 'T1-IL', label: 'Trailer 1 Inner Left', pos: 'T1-IL', nominalPsi: 120 },
-            { id: 'T1-IR', label: 'Trailer 1 Inner Right', pos: 'T1-IR', nominalPsi: 120 },
-            { id: 'T1-OR', label: 'Trailer 1 Outer Right', pos: 'T1-OR', nominalPsi: 120 },
-          ],
-        },
-        {
-          name: 'Axle 5 · Trailer Axle 2 (Duals)',
-          wheels: [
-            { id: 'T2-OL', label: 'Trailer 2 Outer Left', pos: 'T2-OL', nominalPsi: 120 },
-            { id: 'T2-IL', label: 'Trailer 2 Inner Left', pos: 'T2-IL', nominalPsi: 120 },
-            { id: 'T2-IR', label: 'Trailer 2 Inner Right', pos: 'T2-IR', nominalPsi: 120 },
-            { id: 'T2-OR', label: 'Trailer 2 Outer Right', pos: 'T2-OR', nominalPsi: 120 },
-          ],
-        },
-      ];
-    }
-    if (layoutType === '14-WHEEL') {
-      return [
-        {
-          name: 'Axle 1 · Front Steer 1',
-          wheels: [
-            { id: 'FL', label: 'Front Left', pos: 'Steer 1 L', nominalPsi: 120 },
-            { id: 'FR', label: 'Front Right', pos: 'Steer 1 R', nominalPsi: 120 },
-          ],
-        },
-        {
-          name: 'Axle 2 · Lift / Steer 2',
-          wheels: [
-            { id: 'S2-L', label: 'Steer 2 Left', pos: 'Steer 2 L', nominalPsi: 120 },
-            { id: 'S2-R', label: 'Steer 2 Right', pos: 'Steer 2 R', nominalPsi: 120 },
-          ],
-        },
-        {
-          name: 'Axle 3 · Drive Axle 1 (Duals)',
-          wheels: [
-            { id: 'R1-OL', label: 'Drive 1 Outer Left', pos: 'D1-OL', nominalPsi: 125 },
-            { id: 'R1-IL', label: 'Drive 1 Inner Left', pos: 'D1-IL', nominalPsi: 125 },
-            { id: 'R1-IR', label: 'Drive 1 Inner Right', pos: 'D1-IR', nominalPsi: 125 },
-            { id: 'R1-OR', label: 'Drive 1 Outer Right', pos: 'D1-OR', nominalPsi: 125 },
-          ],
-        },
-        {
-          name: 'Axle 4 · Tag / Drive 2 (Duals)',
-          wheels: [
-            { id: 'R2-OL', label: 'Drive 2 Outer Left', pos: 'D2-OL', nominalPsi: 125 },
-            { id: 'R2-IL', label: 'Drive 2 Inner Left', pos: 'D2-IL', nominalPsi: 125 },
-            { id: 'R2-IR', label: 'Drive 2 Inner Right', pos: 'D2-IR', nominalPsi: 125 },
-            { id: 'R2-OR', label: 'Drive 2 Outer Right', pos: 'D2-OR', nominalPsi: 125 },
-          ],
-        },
-      ];
-    }
-    if (layoutType === '10-WHEEL') {
-      return [
-        {
-          name: 'Axle 1 · Front Steer',
-          wheels: [
-            { id: 'FL', label: 'Front Left', pos: 'Steer L', nominalPsi: 120 },
-            { id: 'FR', label: 'Front Right', pos: 'Steer R', nominalPsi: 120 },
-          ],
-        },
-        {
-          name: 'Axle 2 · Drive Axle 1 (Duals)',
-          wheels: [
-            { id: 'R1-OL', label: 'Drive 1 Outer Left', pos: 'D1-OL', nominalPsi: 125 },
-            { id: 'R1-IL', label: 'Drive 1 Inner Left', pos: 'D1-IL', nominalPsi: 125 },
-            { id: 'R1-IR', label: 'Drive 1 Inner Right', pos: 'D1-IR', nominalPsi: 125 },
-            { id: 'R1-OR', label: 'Drive 1 Outer Right', pos: 'D1-OR', nominalPsi: 125 },
-          ],
-        },
-        {
-          name: 'Axle 3 · Tag / Lift Axle (Duals)',
-          wheels: [
-            { id: 'R2-OL', label: 'Tag Outer Left', pos: 'Tag OL', nominalPsi: 125 },
-            { id: 'R2-IL', label: 'Tag Inner Left', pos: 'Tag IL', nominalPsi: 125 },
-            { id: 'R2-IR', label: 'Tag Inner Right', pos: 'Tag IR', nominalPsi: 125 },
-            { id: 'R2-OR', label: 'Tag Outer Right', pos: 'Tag OR', nominalPsi: 125 },
-          ],
-        },
-      ];
-    }
-    // Default: 6-WHEEL (4x2 rigid chassis, e.g. CA1915 19T)
-    return [
-      {
-        name: 'Axle 1 · Front Steer',
-        wheels: [
-          { id: 'FL', label: 'Front Left', pos: 'Front L', nominalPsi: 120 },
-          { id: 'FR', label: 'Front Right', pos: 'Front R', nominalPsi: 120 },
-        ],
-      },
-      {
-        name: 'Axle 2 · Rear Drive Duals',
-        wheels: [
-          { id: 'R1-OL', label: 'Rear Outer Left', pos: 'Rear OL', nominalPsi: 125 },
-          { id: 'R1-IL', label: 'Rear Inner Left', pos: 'Rear IL', nominalPsi: 125 },
-          { id: 'R1-IR', label: 'Rear Inner Right', pos: 'Rear IR', nominalPsi: 125 },
-          { id: 'R1-OR', label: 'Rear Outer Right', pos: 'Rear OR', nominalPsi: 125 },
-        ],
-      },
-    ];
-  }, [layoutType]);
-
-  const allWheels = useMemo(() => {
-    const list = [];
-    axles.forEach((ax) => ax.wheels.forEach((w) => list.push(w)));
-    return list;
-  }, [axles]);
-
-  const selectedWheel = allWheels.find((w) => w.id === selectedWheelId) ||
-    allWheels[0] || {
-      id: 'FL',
-      label: 'Front Left',
-      pos: 'Front L',
-      nominalPsi: 120,
+function positions(config) {
+  return Array.from({ length: config.axles }, (_, index) => {
+    const dual = index > 0;
+    const role = index === 0 ? 'Front steer' : `Rear axle ${index}`;
+    const side = (letter) =>
+      (dual ? (letter === 'L' ? ['O', 'I'] : ['I', 'O']) : ['']).map((suffix) => ({
+        code: `A${index + 1}-${letter}${suffix}`,
+        name: `Axle ${index + 1} ${letter === 'L' ? 'left' : 'right'}${suffix ? (suffix === 'O' ? ' outer' : ' inner') : ''}`,
+        role: `${role}${dual ? ' · dual' : ''}`,
+      }));
+    return {
+      label: `Axle ${index + 1} · ${role.toLowerCase()}`,
+      left: side('L'),
+      right: side('R'),
     };
+  });
+}
+const km = (value) => (numeric(value) != null ? formatKm(Number(value)) : '—');
+const date = (value) =>
+  value && Number.isFinite(new Date(value).getTime()) ? formatDateIST(value) : '—';
 
-  const hasFitmentLedger = Boolean(tyres?.fittedOdometer != null);
-  const fitmentOdo = tyres?.fittedOdometer ?? null;
-  const kmRun = tyres?.distanceRunKm ?? null;
-  const expectedLifeKm = tyres?.expectedLifeKm ?? 80000;
-  const lifeRemainingKm = kmRun != null ? Math.max(0, expectedLifeKm - kmRun) : null;
-  const treadHealthPct =
-    kmRun != null
-      ? Math.max(0, Math.min(100, Math.round(((expectedLifeKm - kmRun) / expectedLifeKm) * 100)))
-      : null;
-
+export default function TyresPanel({ fleetMaster, fleetEdge, health, ialert }) {
+  const vehicleId = fleetMaster?.id;
+  const registrationNumber =
+    fleetMaster?.registrationNumber || fleetEdge?.registrationNumber || ialert?.registrationNumber;
+  const tyres$ = useApi(
+    (signal) => FleetDataService.getTyreStatus({ vehicleId, registrationNumber }, signal),
+    [vehicleId, registrationNumber],
+    {
+      enabled: Boolean(vehicleId || registrationNumber),
+      scopeKey: vehicleId || registrationNumber,
+    },
+  );
+  const set = pickTyreRow(tyres$.data, { vehicleId, registrationNumber });
+  const recordedCount = numeric(set?.tyreCount) ?? numeric(fleetMaster?.wheelCount);
+  const configured =
+    CONFIGS.find((config) => config.axles === vehicleAxles(fleetMaster)) ||
+    CONFIGS.find((config) => config.wheels === recordedCount);
+  const [preview, setPreview] = useState(null);
+  const [configOpen, setConfigOpen] = useState(false);
+  const [selected, setSelected] = useState('A1-L');
+  const config = CONFIGS.find((item) => item.wheels === preview) || configured || CONFIGS[0];
+  const axles = positions(config);
+  const all = axles.flatMap((axle) => [...axle.left, ...axle.right]);
+  const wheel = all.find((item) => item.code === selected) || all[0];
+  const currentKnown = numeric(set?.currentOdometer) != null;
+  const facts = [
+    ['Fitted at', date(set?.fittedAt)],
+    ['Fitment odometer', km(set?.fittedOdometer)],
+    ['Current odometer', km(set?.currentOdometer)],
+    ['Distance run · set', currentKnown ? km(set?.kmRun) : '—'],
+    ['Expected life · set', km(set?.expectedLifeKm)],
+    ['Estimated remaining · set', currentKnown ? km(set?.remainingKm) : '—'],
+    [
+      'Cost per km · set',
+      currentKnown && numeric(set?.costPerKmInr) != null
+        ? `${formatINR(Number(set.costPerKmInr), { decimals: 2 })}/km`
+        : '—',
+    ],
+    ['Replacement projected', currentKnown ? date(set?.projectedReplacementDate) : '—'],
+  ];
+  const model = ialert?.vehicleModel || fleetEdge?.vehicleModel || fleetMaster?.model;
+  const size = fleetMaster?.tyreSize || null;
   return (
     <PanelErrorBoundary name="vehicle-tyres">
-      <div className="v360-panel v360-panel--halves">
-        {/* Left column: Visual Axle & Chassis Layout */}
-        <section className="v360-card">
-          <div className="v360-card-head">
-            <div>
-              <p className="v360-card-title">Axle & Tyre Layout</p>
-              <p className="v360-card-lede" style={{ margin: '2px 0 0' }}>
-                {layoutType} configuration · {allWheels.length} fitted wheel positions
-              </p>
+      <div className="vdo-overview vtyres">
+        <div className="vtyres-top">
+          <section className="vdo-card vtyres-layout">
+            <div className="vtyres-head">
+              <div>
+                <h3>Axle &amp; tyre layout</h3>
+                <p>
+                  {config.axles} axles · {config.wheels} wheel positions ·{' '}
+                  {preview
+                    ? 'Preview configuration'
+                    : configured
+                      ? 'Based on recorded configuration'
+                      : 'Illustrative layout; configuration not recorded'}{' '}
+                  <button className="vtyres-link" onClick={() => setConfigOpen(!configOpen)}>
+                    {configOpen ? 'Hide options' : 'Change layout'}
+                  </button>
+                </p>
+              </div>
+              <span className="vtyres-badge">Position fitments unavailable</span>
             </div>
-            <span className={`v360-pill v360-pill--${hasCanTpms ? 'ok' : 'grey'}`}>
-              <span className="v360-pill-dot" aria-hidden="true" />
-              {hasCanTpms ? 'CAN TPMS Active' : 'CAN TPMS: Unequipped (Air —)'}
-            </span>
-          </div>
-
-          {/* Configuration Selector */}
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
-            {CONFIGS.map((cfg) => {
-              const active = cfg.id === layoutType;
-              return (
-                <button
-                  key={cfg.id}
-                  type="button"
-                  onClick={() => {
-                    setLayoutType(cfg.id);
-                    setSelectedWheelId('FL');
-                  }}
-                  className={`v360-btn ${active ? 'v360-btn--primary' : ''}`}
-                  style={{ fontSize: 11, padding: '4px 8px', height: 26 }}
-                >
-                  {cfg.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <div
-            style={{
-              padding: '24px 16px',
-              background: 'var(--sunk)',
-              borderRadius: 10,
-              marginTop: 14,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 18,
-              alignItems: 'center',
-            }}
-          >
-            {axles.map((ax) => {
-              // Left wheels end with 'L' or pos ends with 'L'
-              const leftWheels = ax.wheels.filter(
-                (w) => w.id.endsWith('L') || w.pos.endsWith('L') || w.pos.includes('Left'),
-              );
-              // Right wheels end with 'R' or pos ends with 'R'
-              const rightWheels = ax.wheels.filter(
-                (w) => w.id.endsWith('R') || w.pos.endsWith('R') || w.pos.includes('Right'),
-              );
-
-              return (
-                <div
-                  key={ax.name}
-                  style={{
-                    width: '100%',
-                    maxWidth: 380,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 10.5,
-                      fontWeight: 600,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.06em',
-                      color: 'var(--ink3)',
+            {configOpen ? (
+              <div className="vtyres-configs" role="group" aria-label="Preview axle configuration">
+                {CONFIGS.map((item) => (
+                  <button
+                    key={item.wheels}
+                    aria-pressed={config.wheels === item.wheels}
+                    onClick={() => {
+                      setPreview(item.wheels);
+                      setSelected('A1-L');
                     }}
                   >
-                    {ax.name}
-                  </span>
-
-                  <div
-                    style={{
-                      position: 'relative',
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    {/* Axle beam line */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        left: 30,
-                        right: 30,
-                        height: 4,
-                        background: 'var(--line2)',
-                        borderRadius: 2,
-                        zIndex: 0,
-                      }}
-                    />
-
-                    {/* Left wheel(s) */}
-                    <div style={{ display: 'flex', gap: 6, zIndex: 1 }}>
-                      {leftWheels.map((w) => {
-                        const isSelected = w.id === selectedWheelId;
-                        return (
+                    {item.axles} axles · {item.wheels} wheels
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            <div className="vtyres-chassis">
+              <span className="vtyres-front">⌃ Front</span>
+              {axles.map((axle) => (
+                <div className="vtyres-axle" key={axle.label}>
+                  <small>{axle.label}</small>
+                  <div className="vtyres-axle-row">
+                    {[axle.left, axle.right].map((side, index) => (
+                      <div className="vtyres-wheel-side" key={index}>
+                        {side.map((item) => (
                           <button
-                            key={w.id}
-                            type="button"
-                            onClick={() => setSelectedWheelId(w.id)}
-                            style={{
-                              width: 40,
-                              height: 64,
-                              borderRadius: 6,
-                              border: isSelected
-                                ? '2px solid var(--erp)'
-                                : '1px solid var(--line2)',
-                              background: isSelected ? 'var(--card)' : 'var(--card)',
-                              boxShadow: isSelected
-                                ? '0 0 0 3px rgba(37,99,235,0.2)'
-                                : 'var(--shadow)',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: 2,
-                              padding: 2,
-                              transition: 'all 0.15s ease',
-                            }}
+                            key={item.code}
+                            className={`vtyres-wheel${wheel.code === item.code ? ' vtyres-wheel--selected' : ''}`}
+                            aria-pressed={wheel.code === item.code}
+                            aria-label={item.name}
+                            onClick={() => setSelected(item.code)}
                           >
-                            <span
-                              style={{
-                                fontSize: 9,
-                                fontWeight: 700,
-                                color: isSelected ? 'var(--erp)' : 'var(--ink)',
-                              }}
-                            >
-                              {w.pos.split(' ')[0]}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: 9.5,
-                                fontFamily: 'var(--mono)',
-                                color: 'var(--ink2)',
-                              }}
-                            >
-                              {hasCanTpms
-                                ? `${w.nominalPsi}`
-                                : treadHealthPct != null
-                                  ? `${treadHealthPct}%`
-                                  : '—'}
-                            </span>
-                            <span style={{ fontSize: 8, color: 'var(--ink3)' }}>
-                              {hasCanTpms ? 'PSI' : treadHealthPct != null ? 'life' : 'Air —'}
+                            <b>{item.code}</b>
+                            <span>
+                              Not
+                              <br />
+                              recorded
                             </span>
                           </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Center differential icon */}
-                    <div
-                      style={{
-                        width: 18,
-                        height: 18,
-                        borderRadius: '50%',
-                        background: 'var(--line2)',
-                        border: '2px solid var(--card)',
-                        zIndex: 1,
-                      }}
-                    />
-
-                    {/* Right wheel(s) */}
-                    <div style={{ display: 'flex', gap: 6, zIndex: 1 }}>
-                      {rightWheels.map((w) => {
-                        const isSelected = w.id === selectedWheelId;
-                        return (
-                          <button
-                            key={w.id}
-                            type="button"
-                            onClick={() => setSelectedWheelId(w.id)}
-                            style={{
-                              width: 40,
-                              height: 64,
-                              borderRadius: 6,
-                              border: isSelected
-                                ? '2px solid var(--erp)'
-                                : '1px solid var(--line2)',
-                              background: isSelected ? 'var(--card)' : 'var(--card)',
-                              boxShadow: isSelected
-                                ? '0 0 0 3px rgba(37,99,235,0.2)'
-                                : 'var(--shadow)',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: 2,
-                              padding: 2,
-                              transition: 'all 0.15s ease',
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontSize: 9,
-                                fontWeight: 700,
-                                color: isSelected ? 'var(--erp)' : 'var(--ink)',
-                              }}
-                            >
-                              {w.pos.split(' ')[0]}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: 9.5,
-                                fontFamily: 'var(--mono)',
-                                color: 'var(--ink2)',
-                              }}
-                            >
-                              {hasCanTpms
-                                ? `${w.nominalPsi}`
-                                : treadHealthPct != null
-                                  ? `${treadHealthPct}%`
-                                  : '—'}
-                            </span>
-                            <span style={{ fontSize: 8, color: 'var(--ink3)' }}>
-                              {hasCanTpms ? 'PSI' : treadHealthPct != null ? 'life' : 'Air —'}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                        ))}
+                      </div>
+                    ))}
+                    <span className="vtyres-beam">
+                      <i />
+                    </span>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-
-          <p className="v360-card-lede" style={{ marginTop: 14 }}>
-            Click any wheel on the schematic to inspect position, tread depth, brand, and lifecycle
-            cost.
-          </p>
-        </section>
-
-        {/* Right column: Selected Wheel Inspector & Tyre Health Ledger */}
-        <section className="v360-card">
-          <div className="v360-card-head">
-            <p className="v360-card-title">{selectedWheel.label} Details</p>
-            <span
-              className={`v360-pill v360-pill--${hasCanTpms || hasFitmentLedger ? 'ok' : 'grey'}`}
-            >
-              <span className="v360-pill-dot" aria-hidden="true" />
-              {hasCanTpms
-                ? 'Sensor Live'
-                : hasFitmentLedger
-                  ? 'Ledger Active'
-                  : 'Fitment Not Logged'}
-            </span>
-          </div>
-
-          <div style={{ marginTop: 8 }}>
-            <p className="v360-figure">
-              <span className="v360-figure-value">
-                {hasCanTpms
-                  ? `${selectedWheel.nominalPsi} PSI`
-                  : treadHealthPct != null
-                    ? `${treadHealthPct}%`
-                    : '—'}
+              ))}
+            </div>
+            <div className="vtyres-legend">
+              <span>□ Position not recorded</span>
+              <span>▣ Selected position</span>
+            </div>
+            <p>
+              Changing this layout previews positions; it does not update the vehicle or create
+              fitment records.
+            </p>
+          </section>
+          <section className="vdo-card vtyres-selected">
+            <div className="vtyres-head">
+              <div>
+                <small>Selected position</small>
+                <strong>{wheel.name}</strong>
+                <code>{wheel.code}</code>
+              </div>
+              <span className="vtyres-badge">No position record</span>
+            </div>
+            <div className="vtyres-facts">
+              <div>
+                <span>Tyre size</span>
+                <b>{size || 'Not recorded'}</b>
+              </div>
+              <div>
+                <span>Axle role</span>
+                <b>{wheel.role}</b>
+              </div>
+              <div>
+                <span>Vehicle model</span>
+                <b>{model || 'Not recorded'}</b>
+              </div>
+              <div>
+                <span>Pressure</span>
+                <b>Position reading unavailable</b>
+              </div>
+            </div>
+            <div className="vtyres-empty">
+              <h3>No individual fitment returned</h3>
+              <p>
+                The tyre API records a vehicle-level set. It does not identify which tyre is fitted
+                at this position.
+              </p>
+              <div className="vtyres-chips">
+                {['Brand & pattern', 'Fitment odometer', 'Tread depth', 'Purchase price'].map(
+                  (label) => (
+                    <span key={label}>{label}</span>
+                  ),
+                )}
+              </div>
+            </div>
+            <div className="vtyres-insight">
+              ✧ Set-level distance and estimated life are shown separately below. They do not
+              establish tread depth, pressure or wear for this individual wheel.{' '}
+              {health?.tpmsFitted === false
+                ? 'The vehicle reports that TPMS is not fitted.'
+                : 'A mapped pressure reading is needed to monitor this position.'}
+            </div>
+          </section>
+        </div>
+        {tyres$.loading && !tyres$.data ? (
+          <OverviewCardSkeleton />
+        ) : (
+          <section className="vdo-card">
+            <div className="vtyres-head">
+              <h3>Recorded tyre set</h3>
+              <span className="vtyres-badge">
+                {tyres$.error
+                  ? 'Couldn’t load tyre data'
+                  : set
+                    ? `${set.tyreCount ?? '—'} tyres recorded`
+                    : 'No active set returned'}
               </span>
-              <span className="v360-figure-note">
-                {hasCanTpms
-                  ? 'CAN live pressure'
-                  : lifeRemainingKm != null
-                    ? `${formatKm(lifeRemainingKm)} remaining life`
-                    : 'Air — (No rim sensor)'}
-              </span>
-            </p>
-
-            <dl className="v360-kv" style={{ marginTop: 14 }}>
-              <dt>Wheel position</dt>
-              <dd className="is-code">
-                {selectedWheel.id} ({selectedWheel.pos})
-              </dd>
-              <dt>Tyre brand & pattern</dt>
-              <dd>
-                {tyres?.brand
-                  ? `${tyres.brand} ${tyres.vendor ? `· ${tyres.vendor}` : ''}`
-                  : '— (No fitment on record)'}
-              </dd>
-              <dt>Tyre size</dt>
-              <dd className="is-code">295/90 R20 16PR (Standard)</dd>
-              <dt>Current tread depth</dt>
-              <dd>{hasFitmentLedger ? '11.4 mm / 15.0 mm' : '— (Requires manual depth gauge)'}</dd>
-              <dt>Fitment odometer</dt>
-              <dd>{fitmentOdo != null ? formatKm(fitmentOdo) : '—'}</dd>
-              <dt>Distance run on set</dt>
-              <dd>{kmRun != null ? formatKm(kmRun) : '—'}</dd>
-              <dt>Operating cost</dt>
-              <dd>{tyres?.costPerKm != null ? `₹${tyres.costPerKm} / km` : '—'}</dd>
-              <dt>CAN sensor telemetry</dt>
-              <dd className="is-dim">
-                {hasCanTpms ? 'Active J1939 CAN' : 'Factory TPMS unequipped (Air —)'}
-              </dd>
-            </dl>
+            </div>
+            {set ? (
+              <>
+                <div className="vtyres-set-facts">
+                  {facts.map(([label, value]) => (
+                    <div key={label}>
+                      <small>{label}</small>
+                      <strong>{value}</strong>
+                    </div>
+                  ))}
+                </div>
+                <p>
+                  Estimated life is based on the set’s recorded expected life and odometer distance;
+                  it is not a measured tread reading.
+                  {set.odometerSource ? ` Odometer source: ${set.odometerSource}.` : ''}
+                </p>
+              </>
+            ) : (
+              <div className="vtyres-empty">
+                <h3>
+                  {tyres$.error ? 'Tyre-set data unavailable' : 'No active tyre set on record'}
+                </h3>
+                <p>
+                  {tyres$.error
+                    ? 'The tyre status API could not be loaded.'
+                    : 'A recorded tyre set and current odometer are needed to calculate distance, cost per km and estimated replacement.'}
+                </p>
+              </div>
+            )}
+          </section>
+        )}
+        <section className="vdo-card vtyres-positions">
+          <div className="vtyres-head">
+            <div>
+              <h3>All positions</h3>
+              <p>Illustrated layout · individual fitments not supplied by the current ledger</p>
+            </div>
+            <span className="vtyres-badge">{all.length} positions</span>
           </div>
-
-          <div
-            style={{
-              marginTop: 18,
-              padding: '12px 14px',
-              borderRadius: 8,
-              background: 'var(--sunk)',
-              border: '1px solid var(--line)',
-            }}
-          >
-            <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>
-              Chassis Hardware & Sensor Architecture Note
-            </p>
-            <p
-              style={{ margin: '4px 0 0', fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.45 }}
-            >
-              Ashok Leyland iALERT and Tata FleetEdge commercial trucks standardly report &quot;Air
-              —&quot; unless fitted with aftermarket Bluetooth/CAN TPMS rim sensors. When rim
-              sensors are absent, tyre lifecycles and cost-per-km are maintained through the GNB
-              Tyre Ledger.
-            </p>
+          <div className="vtyres-table-wrap">
+            <table className="vtyres-table">
+              <thead>
+                <tr>
+                  <th>Position</th>
+                  <th>Axle</th>
+                  <th>Tyre</th>
+                  <th>Distance run</th>
+                  <th>Tread depth</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {all.map((item) => (
+                  <tr
+                    key={item.code}
+                    className={wheel.code === item.code ? 'vtyres-row--selected' : ''}
+                  >
+                    <td>
+                      <button
+                        className="vtyres-position-button"
+                        onClick={() => setSelected(item.code)}
+                        aria-pressed={wheel.code === item.code}
+                      >
+                        {item.code}
+                      </button>
+                    </td>
+                    <td>{item.role}</td>
+                    <td>Not recorded</td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td>
+                      <span className="vtyres-badge">No position record</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
       </div>

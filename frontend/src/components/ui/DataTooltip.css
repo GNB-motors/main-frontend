@@ -1,0 +1,40 @@
+.data-tooltip {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px 18px;
+  width: max-content;
+  max-width: 260px;
+  padding: 16px;
+  border: 1px solid #dde3ee;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 6px 24px rgba(30, 34, 56, 0.12);
+  color: #5d5d5e;
+  text-align: left;
+  font:
+    12px/1.4 Inter,
+    -apple-system,
+    sans-serif;
+  pointer-events: none;
+}
+.data-tooltip strong {
+  color: #121214;
+  font-size: 16px;
+  text-align: right;
+}
+.data-tooltip-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.data-tooltip-label i {
+  width: 4px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 3px;
+  background: #4469f0;
+}
+.data-tooltip-detail {
+  grid-column: 1 / -1;
+  overflow-wrap: anywhere;
+}

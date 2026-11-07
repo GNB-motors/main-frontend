@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 import TripsPanel from './TripsPanel';
@@ -68,23 +68,23 @@ describe('TripsPanel', () => {
   it('shows the open cycle with its legs and the detected trips', async () => {
     renderPanel();
 
-    await waitFor(() => expect(screen.getByText('Out now')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Open cycle')).toBeTruthy());
     expect(screen.getAllByText(/Plant A/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Site B/).length).toBeGreaterThan(0);
-    expect(screen.getByText('130 km')).toBeTruthy();
+    expect(screen.getByText('Resolved legs')).toBeTruthy();
 
     expect(screen.getByText('Recent trips')).toBeTruthy();
-    expect(screen.getByText('260 km')).toBeTruthy();
-    expect(screen.getByText('complete')).toBeTruthy();
-    expect(screen.getByText('needs review')).toBeTruthy();
+    expect(within(screen.getByRole('table')).getByText('260 km')).toBeTruthy();
+    expect(within(screen.getByRole('table')).getByText('Complete')).toBeTruthy();
+    expect(within(screen.getByRole('table')).getByText('Needs review')).toBeTruthy();
   });
 
   it('never turns an unmeasured distance into a zero', async () => {
     renderPanel();
 
-    await waitFor(() => expect(screen.getByText('Out now')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Open cycle')).toBeTruthy());
     // The cycle is open, so it has no distance yet — that is stated, not shown as 0 km.
-    expect(screen.getByText(/not measured until the cycle closes/)).toBeTruthy();
+    expect(screen.getByText('Not measured yet')).toBeTruthy();
     // The second trip has no km reading at all.
     expect(screen.getAllByText('—').length).toBeGreaterThan(0);
     expect(screen.queryByText('0 km')).toBeNull();
@@ -97,7 +97,15 @@ describe('TripsPanel', () => {
 
     renderPanel();
 
-    await waitFor(() => expect(screen.getByText('Parked — no open cycle')).toBeTruthy());
+    await waitFor(() => expect(screen.getAllByText('No open cycle')[0]).toBeTruthy());
     expect(screen.queryByText('Out now')).toBeNull();
+  });
+  it('filters actual trip records by status', async () => {
+    renderPanel();
+    await screen.findByRole('table');
+    fireEvent.click(screen.getByRole('button', { name: /^Needs review/ }));
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('Site C')).toBeInTheDocument();
+    expect(table.queryByText('Site B')).not.toBeInTheDocument();
   });
 });

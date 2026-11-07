@@ -1,3 +1,4 @@
+import EmployeeSelect from './EmployeeSelect';
 import React, { useState, useEffect, useId, forwardRef } from 'react';
 import UserIcon from '../assets/UserIcon.jsx';
 import { useActiveBranch } from '../../../contexts/BranchContext';
@@ -201,38 +202,30 @@ const BasicInformationForm = forwardRef(
                     <label className="basic-info-label" htmlFor={`${fieldId}-branchRoleId`}>
                       Branch Role
                     </label>
-                    <select
+                    <EmployeeSelect
                       id={`${fieldId}-branchRoleId`}
-                      className="basic-info-input"
                       value={formData.branchRoleId}
-                      onChange={(e) => handleInputChange('branchRoleId', e.target.value)}
-                    >
-                      <option value="">None (no branch access)</option>
-                      {roles.map((r) => (
-                        <option key={r._id} value={r._id}>
-                          {r.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(next) => handleInputChange('branchRoleId', next)}
+                      items={[
+                        { value: null, label: 'None (no branch access)' },
+                        ...roles.map((role) => ({ value: role._id, label: role.name })),
+                      ]}
+                    />
                   </div>
                 ) : (
                   <div className="basic-info-form-field">
                     <label className="basic-info-label" htmlFor={`${fieldId}-enterpriseRoleId`}>
                       Enterprise Role
                     </label>
-                    <select
+                    <EmployeeSelect
                       id={`${fieldId}-enterpriseRoleId`}
-                      className="basic-info-input"
                       value={formData.enterpriseRoleId}
-                      onChange={(e) => handleInputChange('enterpriseRoleId', e.target.value)}
-                    >
-                      <option value="">None (no enterprise access)</option>
-                      {roles.map((r) => (
-                        <option key={r._id} value={r._id}>
-                          {r.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(next) => handleInputChange('enterpriseRoleId', next)}
+                      items={[
+                        { value: null, label: 'None (no enterprise access)' },
+                        ...roles.map((role) => ({ value: role._id, label: role.name })),
+                      ]}
+                    />
                   </div>
                 )}
               </div>
@@ -251,16 +244,16 @@ const BasicInformationForm = forwardRef(
                     <label className="basic-info-label" htmlFor={`${fieldId}-status`}>
                       Status
                     </label>
-                    <select
+                    <EmployeeSelect
                       id={`${fieldId}-status`}
-                      className="basic-info-input"
                       value={formData.status}
-                      onChange={(e) => handleInputChange('status', e.target.value)}
-                    >
-                      <option value="PENDING">Pending</option>
-                      <option value="ACTIVE">Active</option>
-                      <option value="SUSPENDED">Suspended</option>
-                    </select>
+                      onChange={(next) => handleInputChange('status', next)}
+                      items={[
+                        { value: 'PENDING', label: 'Pending' },
+                        { value: 'ACTIVE', label: 'Active' },
+                        { value: 'SUSPENDED', label: 'Suspended' },
+                      ]}
+                    />
                   </div>
                 </div>
               )}

@@ -1,0 +1,309 @@
+.vdrivers {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.vdrivers .vdo-card {
+  padding: 20px 22px;
+  gap: 16px;
+}
+.vdrivers-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: stretch;
+}
+.vdrivers-profile {
+  flex: 1 1 380px;
+  min-width: 0;
+}
+.vdrivers-safety {
+  flex: 1.4 1 520px;
+  min-width: 0;
+}
+.vdrivers-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.vdrivers p {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #5d5d5e;
+}
+.vdrivers-head p {
+  margin-top: 5px;
+}
+.vdrivers small {
+  display: block;
+  color: #93939a;
+  font-size: 11.5px;
+  line-height: 1.5;
+  font-weight: 400;
+}
+.vdrivers a {
+  color: #2a4fd6;
+  font-size: 12.5px;
+  text-decoration: none;
+}
+.vdrivers-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #f3f3f6;
+  color: #5d5d5e;
+  font-size: 12px;
+}
+.vdrivers-badge--warn {
+  background: #fff5df;
+  color: #c56200;
+}
+.vdrivers-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.vdrivers-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  flex: none;
+  border-radius: 50%;
+  background: #eef1ff;
+  color: #213ea7;
+  font-size: 17px;
+  font-weight: 600;
+}
+.vdrivers-identity strong {
+  font:
+    500 22px/1.15 'Vehicle Overview DM Sans',
+    sans-serif;
+}
+.vdrivers-identity p {
+  margin-top: 4px;
+}
+.vdrivers-profile-facts > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid #f3f3f6;
+  padding: 11px 0;
+  font-size: 13px;
+}
+.vdrivers-profile-facts b {
+  font-size: 12px;
+  font-weight: 500;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.vdrivers-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+}
+.vdrivers .vdrivers-button {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  min-height: 40px;
+  padding: 9px 16px;
+  border: 1px solid #dce1ee;
+  border-radius: 8px;
+  color: #2a4fd6;
+  font-size: 13.5px;
+}
+.vdrivers .vdrivers-button--primary {
+  background: #4469f0;
+  color: #fff;
+  border-color: #2a4fd6;
+}
+.vdrivers-safety-timeline {
+  position: relative;
+  height: 56px;
+  margin-top: 8px;
+}
+.vdrivers-safety-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 32px;
+  height: 8px;
+  border-radius: 4px;
+  background: #f3f3f6;
+}
+.vdrivers-night {
+  position: absolute;
+  top: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: #6a43d80f;
+  border: 1px dashed #6a43d84d;
+}
+.vdrivers-night--early {
+  left: 0;
+  width: 20.833%;
+}
+.vdrivers-night--late {
+  left: 95.833%;
+  right: 0;
+}
+.vdrivers-safety-timeline > button {
+  position: absolute;
+  top: 29px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2.5px solid #c56200;
+  background: #fff;
+  transform: translateX(-50%);
+  cursor: pointer;
+  padding: 0;
+}
+.data-tooltip.vdrivers-tooltip {
+  display: none;
+  position: absolute;
+  bottom: 22px;
+  left: 0;
+  z-index: 20;
+}
+.data-tooltip.vdrivers-tooltip--end {
+  left: auto;
+  right: 0;
+}
+.vdrivers-safety-timeline > button:hover,
+.vdrivers-safety-timeline > button:focus-visible {
+  z-index: 21;
+}
+.vdrivers-safety-timeline > button:hover > .data-tooltip,
+.vdrivers-safety-timeline > button:focus-visible > .data-tooltip {
+  display: grid;
+}
+.vdrivers-ticks {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font:
+    10.5px 'Vehicle Overview DM Mono',
+    monospace;
+  color: #93939a;
+}
+.vdrivers .vdrivers-timeline-note {
+  font-size: 11.5px;
+  margin-top: 10px;
+}
+.vdrivers-safety-rows > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px minmax(110px, auto);
+  gap: 12px;
+  align-items: center;
+  padding: 9px 0;
+  border-top: 1px solid #f3f3f6;
+  font-size: 13px;
+}
+.vdrivers-safety-rows strong {
+  font:
+    500 16px 'Vehicle Overview DM Sans',
+    sans-serif;
+  text-align: right;
+}
+.vdrivers-safety-rows small {
+  text-align: right;
+}
+.vdrivers-insight {
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(135deg, rgba(47, 88, 238, 0.28), rgba(106, 67, 216, 0.06)) border-box;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #5d5d5e;
+}
+.vdrivers-assignment-timeline {
+  position: relative;
+  height: 30px;
+  border: 1px dashed #c6c6c9;
+  background: #fcfcfd;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.vdrivers-assignment-timeline > span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #4469f0;
+  color: #fff;
+  font-size: 12px;
+  overflow: hidden;
+  border-right: 1px solid #fff;
+}
+.vdrivers-table-wrap {
+  overflow: auto;
+}
+.vdrivers-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.vdrivers-table td,
+.vdrivers-table th {
+  text-align: left;
+  padding: 12px 8px;
+  border-bottom: 1px solid #f3f3f6;
+}
+.vdrivers-table th {
+  color: #747476;
+  font-weight: 400;
+  font-size: 11px;
+}
+.vdrivers-table-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.vdrivers-table-name i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: #213ea7;
+  background: #eef1ff;
+  font-style: normal;
+  font-size: 11px;
+  flex: none;
+}
+.vdrivers-empty {
+  padding: 24px;
+  border: 1.5px dashed #dfdfe2;
+  border-radius: 10px;
+  background: #fcfcfd;
+}
+.vdrivers-empty p {
+  margin-top: 8px;
+}
+@media (max-width: 600px) {
+  .vdrivers-safety-rows > div {
+    grid-template-columns: minmax(0, 1fr) 35px;
+  }
+  .vdrivers-safety-rows small {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+  .vdrivers-ticks {
+    font-size: 9px;
+  }
+}

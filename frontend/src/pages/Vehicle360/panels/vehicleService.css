@@ -1,0 +1,310 @@
+.vsvc {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.vsvc .vdo-card {
+  padding: 20px 22px;
+  gap: 14px;
+}
+.vsvc .vsvc-summary {
+  padding: 24px;
+  gap: 24px;
+}
+.vsvc-heading,
+.vsvc-title,
+.vsvc-actions,
+.vsvc-progress-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.vsvc-heading {
+  align-items: flex-end;
+  gap: 20px;
+}
+.vsvc-headline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.vsvc-headline .vsvc-title {
+  justify-content: flex-start;
+}
+.vsvc-status {
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  color: #187a32;
+  background: #e8f7ec;
+}
+.vsvc-status--danger {
+  color: #bb2626;
+  background: #fff0ef;
+}
+.vsvc-status--warn {
+  color: #a65c00;
+  background: #fff6df;
+}
+.vsvc-status--unknown {
+  color: #5d5d5e;
+  background: #f3f3f6;
+}
+.vsvc-figure {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  color: #5d5d5e;
+  font-size: 14px;
+}
+.vsvc-figure strong {
+  font:
+    500 44px/1.1 'Vehicle Overview DM Sans',
+    sans-serif;
+  letter-spacing: -1px;
+  color: #121214;
+}
+.vsvc .vsvc-prediction {
+  font-size: 13.5px;
+  color: #2e2e30;
+}
+.vsvc-button {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid #dce1ee;
+  border-radius: 8px;
+  background: #fff;
+  color: #2a4fd6;
+  font-size: 13.5px;
+  text-decoration: none;
+}
+.vsvc-button--primary {
+  background: #4469f0;
+  border-color: #2a4fd6;
+  color: #fff;
+}
+.vsvc-progress-caption {
+  font-size: 12px;
+  color: #5d5d5e;
+}
+.vsvc-progress {
+  position: relative;
+  height: 10px;
+  background: #ececee;
+  border-radius: 5px;
+  margin-top: 20px;
+}
+.vsvc-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: #4469f0;
+}
+.vsvc-progress > i {
+  position: absolute;
+  top: -2px;
+  width: 14px;
+  height: 14px;
+  border: 3px solid #121214;
+  background: #fff;
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+.vsvc-progress > i > span {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font:
+    600 11px Inter,
+    sans-serif;
+}
+.vsvc-scale {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+.vsvc-scale > span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vsvc-scale > span:last-child {
+  text-align: right;
+}
+.vsvc-scale b,
+.vsvc-calc-row > b {
+  font-family: 'Vehicle Overview DM Mono', monospace;
+  font-weight: 500;
+}
+.vsvc small {
+  display: block;
+  font-size: 11.5px;
+  color: #93939a;
+  font-weight: 400;
+  margin-top: 3px;
+}
+.vsvc-middle,
+.vsvc-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: stretch;
+}
+.vsvc-calculation {
+  flex: 3 1 520px;
+  min-width: 0;
+}
+.vsvc-explanation {
+  flex: 2 1 360px;
+  min-width: 0;
+}
+.vsvc .vsvc-subtitle {
+  font-size: 12px;
+  color: #5d5d5e;
+  margin-top: -8px;
+}
+.vsvc-calc-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto minmax(110px, auto);
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-top: 1px solid #f3f3f6;
+  font-size: 13px;
+}
+.vsvc-calc-row:first-child {
+  border-top: 0;
+}
+.vsvc-calc-row > span:first-child {
+  color: #93939a;
+  text-align: center;
+}
+.vsvc-calc-row > b {
+  text-align: right;
+  max-width: 260px;
+}
+.vsvc-calc-row em {
+  font-size: 11.5px;
+  color: #5d5d5e;
+  font-style: normal;
+}
+.vsvc-calc-row--total {
+  border-top: 1.5px solid #dfdfe2;
+  font-weight: 600;
+}
+.vsvc .vsvc-explanation {
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(135deg, rgba(47, 88, 238, 0.28), rgba(106, 67, 216, 0.06)) border-box;
+  box-shadow: 0 4px 14px rgba(30, 34, 56, 0.08);
+}
+.vsvc-eyebrow {
+  color: #6a43d8;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 10px;
+}
+.vsvc-explanation p {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #5d5d5e;
+}
+.vsvc-explanation .vsvc-explanation-lead {
+  font:
+    400 16px/1.5 'Vehicle Overview DM Sans',
+    sans-serif;
+  color: #121214;
+}
+.vsvc-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid #ececee;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: auto;
+}
+.vsvc-comparison > div {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vsvc-comparison > div + div {
+  background: #f8f8fb;
+  border-left: 1px solid #ececee;
+}
+.vsvc-comparison strong {
+  font:
+    500 18px 'Vehicle Overview DM Sans',
+    sans-serif;
+}
+.vsvc-bottom > section {
+  flex: 1 1 360px;
+  min-width: 0;
+}
+.vsvc-bottom > .v360-card {
+  background: #fff;
+  border: 1px solid rgba(5, 8, 22, 0.05);
+  border-radius: 12px;
+  box-shadow: var(--vdo-shadow);
+  padding: 20px 22px;
+}
+.vsvc-bottom .v360-empty {
+  border: 1.5px dashed #dfdfe2;
+  border-radius: 10px;
+  background: #fcfcfd;
+  padding: 24px;
+}
+.vsvc-event {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid #f3f3f6;
+  font-size: 13px;
+}
+.vsvc-event > i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #187a32;
+  margin-top: 4px;
+}
+.vsvc-event > i.vsvc-event--predicted {
+  background: #fff;
+  border: 2px dotted #6a43d8;
+}
+.vsvc-event time,
+.vsvc-title > a {
+  font-size: 12px;
+  color: #2a4fd6;
+}
+@media (max-width: 600px) {
+  .vsvc-calc-row {
+    grid-template-columns: 16px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+  .vsvc-calc-row em {
+    display: none;
+  }
+  .vsvc-scale {
+    flex-wrap: wrap;
+  }
+  .vsvc .vsvc-summary {
+    padding: 20px;
+  }
+  .vsvc-event {
+    grid-template-columns: 12px minmax(0, 1fr);
+  }
+  .vsvc-event time {
+    grid-column: 2;
+  }
+}

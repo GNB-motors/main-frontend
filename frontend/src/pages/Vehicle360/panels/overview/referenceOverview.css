@@ -35,10 +35,10 @@
   src: url('/fonts/vehicle-overview/dm-mono-regular.woff2') format('woff2');
 }
 
-/* Measurements copied from the reference's card area, scoped to the overview. */
+/* Keep the reference cards within the vehicle page's existing white surface and gutters. */
 .vdo-overview {
-  padding: 24px 28px;
-  background: #f3f3f6;
+  padding: 10px 0 0;
+  background: #ffffff;
   color: #121214;
   font-family:
     'Vehicle Overview Inter',
@@ -79,8 +79,9 @@
   outline-offset: 3px;
 }
 .vdo-content {
-  max-width: 1360px;
-  margin: 0 auto;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -573,14 +574,70 @@
   font-family: 'Vehicle Overview DM Mono', monospace;
 }
 @media (max-width: 600px) {
-  .vdo-overview {
-    padding: 20px 16px;
-  }
   .vdo-distance,
   .vdo-location {
     flex-basis: 100%;
   }
   .vdo-location-head {
     flex-wrap: wrap;
+  }
+}
+
+.vdo-bar-hit {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.vdo-bar-hit:hover,
+.vdo-bar-hit:focus-visible {
+  background: rgba(68, 105, 240, 0.05);
+}
+.vdo-bar-hit > .vdo-bar {
+  display: block;
+}
+.data-tooltip.vdo-distance-tooltip {
+  position: absolute;
+  left: 100%;
+  top: 12px;
+  z-index: 10;
+  display: none;
+}
+.vdo-distance-tooltip--end {
+  left: auto;
+  right: 100%;
+}
+.vdo-bar-hit:hover .data-tooltip.vdo-distance-tooltip,
+.vdo-bar-hit:focus-visible .data-tooltip.vdo-distance-tooltip {
+  display: grid;
+}
+
+.vdo-loading-card {
+  min-height: 260px;
+  gap: 18px;
+}
+.vdo-loading-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.vdo-loading-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  min-height: 160px;
+  flex: 1;
+  border-bottom: 1px solid #ececee;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vdo-loading-card [data-slot='skeleton'] {
+    animation: none;
   }
 }
