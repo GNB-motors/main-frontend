@@ -234,19 +234,6 @@ export const SIDE_NAV_ITEMS = [
     icon: Radar,
     hint: 'Live map of every truck, with places, landmarks and each truck’s history.',
   },
-  // Intelligence — what we worked out about the fleet, good and bad, with the
-  // reason for every claim. The badge counts the issues that need the owner
-  // now; it disappears when there are none.
-  {
-    type: 'link',
-    key: null,
-    access: 'fleet',
-    to: '/intelligence',
-    label: 'Intelligence',
-    icon: Sparkles,
-    hint: 'Everything we worked out about your trucks and drivers, good and bad, with the reasons.',
-    badgeKey: 'intelligenceActIssues',
-  },
   {
     type: 'link',
     key: null,
@@ -264,6 +251,19 @@ export const SIDE_NAV_ITEMS = [
     label: 'Alert Inbox',
     icon: Bell,
     hint: 'Things that need an action, in one list.',
+  },
+  // Intelligence — what we worked out about the fleet, good and bad, with the
+  // reason for every claim. The badge counts the issues that need the owner
+  // now; it disappears when there are none.
+  {
+    type: 'link',
+    key: null,
+    access: 'fleet',
+    to: '/intelligence',
+    label: 'Intelligence',
+    icon: Sparkles,
+    hint: 'Everything we worked out about your trucks and drivers, good and bad, with the reasons.',
+    badgeKey: 'intelligenceActIssues',
   },
   {
     type: 'group',
