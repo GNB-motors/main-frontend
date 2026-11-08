@@ -256,6 +256,11 @@
   border-radius: 12px;
   box-shadow: var(--vdo-shadow);
   padding: 20px 22px;
+  /* The global .v360-card height:100% resolves against this auto-height flex
+     row and collapses the card to its own content, overriding the row's
+     align-items: stretch. Clear it so the card stretches level with the
+     taller Service timeline card beside it. */
+  height: auto;
 }
 .vsvc-bottom .v360-empty {
   border: 1.5px dashed #dfdfe2;

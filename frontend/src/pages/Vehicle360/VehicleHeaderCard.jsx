@@ -14,6 +14,7 @@ import './panels/overview/referenceOverview.css';
 import './vehicleHeaderCard.css';
 
 const VehicleMiniMap = lazy(() => import('./VehicleMiniMap'));
+const AddFuelLogModal = lazy(() => import('../KhataLedger/components/AddFuelLogModal'));
 
 function TruckIllustration({ reg, axles, fuelPercent }) {
   // One visible wheel per axle in side elevation. Unknown configuration stays illustrative.
@@ -123,6 +124,7 @@ function TruckIllustration({ reg, axles, fuelPercent }) {
 
 export default function VehicleHeaderCard({ reg, profile, onGoTab }) {
   const [specsOpen, setSpecsOpen] = useState(false);
+  const [fuelLogOpen, setFuelLogOpen] = useState(false);
   const { fleetMaster: vehicle, fleetEdge, ialert, livePosition, health, prediction } = profile;
   const overview = useApi((signal) => FleetDataService.getVehicleOverview(reg, signal), [reg], {
     enabled: Boolean(reg),
@@ -243,8 +245,9 @@ export default function VehicleHeaderCard({ reg, profile, onGoTab }) {
           </div>
         </div>
         <div className="vhcard-actions">
-          <Link to="/fuel-ledger">Log fuel</Link>
-          <Link to="/trip-management">Assign trip</Link>
+          <button type="button" onClick={() => setFuelLogOpen(true)}>
+            Log fuel
+          </button>
           <Link className="vhcard-primary" to={trackLink({ reg })}>
             Track live
           </Link>
@@ -323,6 +326,19 @@ export default function VehicleHeaderCard({ reg, profile, onGoTab }) {
         ))}
       </div>
       <OpenChallanBadge vehicleNumber={reg} />
+      {fuelLogOpen ? (
+        <Suspense fallback={<span role="status">Opening fuel log…</span>}>
+          <AddFuelLogModal
+            key={reg}
+            open
+            photoFirst
+            registrationNumber={reg}
+            vehicleId={vehicle?._id || vehicle?.id || reg}
+            onClose={() => setFuelLogOpen(false)}
+            onAdded={() => overview.refetch()}
+          />
+        </Suspense>
+      ) : null}
     </section>
   );
 }

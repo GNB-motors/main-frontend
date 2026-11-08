@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import FleetDataService from '../../services/FleetDataService';
 import VehicleHeaderCard from './VehicleHeaderCard';
@@ -16,6 +16,22 @@ vi.mock('../../services/FleetDataService', () => ({
     getTyreStatus: vi.fn(),
   },
 }));
+vi.mock('../../components/FuelLogForm/FuelLogForm', () => ({
+  default: ({ initialVehicleId, photoFirst, onSuccess, onCancel }) => (
+    <div
+      data-testid="vehicle-fuel-form"
+      data-vehicle={initialVehicleId}
+      data-photo-first={String(photoFirst)}
+    >
+      <button onClick={() => onSuccess({ id: 'fill-one' })}>Complete fuel entry</button>
+      <button onClick={onCancel}>Cancel fuel entry</button>
+    </div>
+  ),
+}));
+vi.mock('../../services/DriverVehicleAssignmentService', () => ({
+  default: { getActiveAssignment: vi.fn().mockResolvedValue(null), idOf: (value) => value },
+}));
+
 vi.mock('./VehicleMiniMap', () => ({ default: () => <div>Vehicle map</div> }));
 vi.mock('../Compliance/OpenChallanBadge', () => ({ default: () => null }));
 const mount = (node) => render(<MemoryRouter>{node}</MemoryRouter>);
@@ -146,4 +162,34 @@ it('shows set data without attributing it to every individual wheel', async () =
   await screen.findByText('10 tyres recorded');
   expect(within(screen.getByRole('table')).getAllByText('Not recorded')).toHaveLength(10);
   expect(screen.queryByText('80,000 km')).not.toBeInTheDocument();
+});
+
+it('opens Log fuel as a photo-first modal for this vehicle and refreshes after saving', async () => {
+  mount(
+    <VehicleHeaderCard
+      reg="WB11T0662"
+      profile={{ fleetMaster: { _id: 'vehicle-one' } }}
+      onGoTab={vi.fn()}
+    />,
+  );
+  await waitFor(() => expect(FleetDataService.getVehicleOverview).toHaveBeenCalledTimes(1));
+  expect(screen.queryByRole('link', { name: 'Log fuel' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Log fuel' }));
+  const dialog = await screen.findByRole('dialog', { name: 'Add bill photo' });
+  expect(dialog).toHaveTextContent('WB11T0662');
+  expect(within(dialog).getByTestId('vehicle-fuel-form')).toHaveAttribute(
+    'data-vehicle',
+    'vehicle-one',
+  );
+  expect(within(dialog).getByTestId('vehicle-fuel-form')).toHaveAttribute(
+    'data-photo-first',
+    'true',
+  );
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel fuel entry' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  fireEvent.click(screen.getByRole('button', { name: 'Log fuel' }));
+  const reopened = await screen.findByRole('dialog', { name: 'Add bill photo' });
+  fireEvent.click(within(reopened).getByRole('button', { name: 'Complete fuel entry' }));
+  await waitFor(() => expect(FleetDataService.getVehicleOverview).toHaveBeenCalledTimes(2));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });

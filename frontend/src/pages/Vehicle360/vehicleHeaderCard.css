@@ -69,7 +69,8 @@
   flex-wrap: wrap;
   gap: 8px;
 }
-.vhcard-actions > a {
+.vhcard-actions > a,
+.vhcard-actions > button {
   display: flex;
   align-items: center;
   min-height: 40px;
@@ -79,6 +80,11 @@
   color: #2a4fd6;
   font-size: 13.5px;
   text-decoration: none;
+}
+.vhcard-actions > button {
+  background: #fff;
+  font-family: inherit;
+  cursor: pointer;
 }
 .vhcard-actions > .vhcard-primary {
   background: #4469f0;

@@ -1,11 +1,10 @@
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useToast } from './useRouteHubToast.jsx';
 import { useFullPageLayout } from '../../hooks/usePageLayout';
 import Ico from './routeHubIcons.jsx';
 import RouteHubService from '../../services/RouteHubService';
 import { ViewSkeleton } from './routeHubShared.jsx';
-import { trackLink } from '../../utils/redesign/links';
 import './routeHubDesign.css';
 
 const OverviewView = lazy(() => import('./views/OverviewView.jsx'));
@@ -27,25 +26,7 @@ const VIEWS = [
 export default function RouteHubPage() {
   useFullPageLayout();
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { toast, toastNode } = useToast();
-
-  // The replay tab became Track mode (F3). An old link that still points
-  // here is sent on to the Track page, so nothing the owner saved breaks.
-  useEffect(() => {
-    if (searchParams.get('tab') !== 'replay') return;
-    const reg = searchParams.get('v');
-    if (!reg) return;
-    navigate(
-      trackLink({
-        reg,
-        from: searchParams.get('from'),
-        to: searchParams.get('to'),
-        at: searchParams.get('at'),
-      }),
-      { replace: true },
-    );
-  }, [searchParams, navigate]);
 
   const activeKey = VIEWS.some((v) => v.key === searchParams.get('tab'))
     ? searchParams.get('tab')

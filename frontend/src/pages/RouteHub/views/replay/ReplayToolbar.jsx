@@ -123,7 +123,9 @@ export default function ReplayToolbar({
           onClick={() => {
             setRange('custom');
             setErpTripId('');
-            load(reg, 'custom', '', null).then(() => toast(`Replay loaded · ${reg}`));
+            load(reg, 'custom', '', null).then((loaded) => {
+              if (loaded) toast(`Replay loaded · ${reg}`);
+            });
           }}
         >
           <Ico n="route" />

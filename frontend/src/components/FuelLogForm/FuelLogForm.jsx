@@ -31,6 +31,7 @@ export default function FuelLogForm({
   initialRefuelTime,
   lockVehicle = false,
   lockDriver = false,
+  photoFirst = false,
   onSuccess,
   onCancel,
 }) {
@@ -134,6 +135,15 @@ export default function FuelLogForm({
       <form ref={formRef} onSubmit={handleSubmit} noValidate className="diesel-entry-form">
         <div className="diesel-entry-scroll">
           <fieldset disabled={isLoading} className="diesel-entry-fields">
+            {photoFirst ? (
+              <section className="diesel-entry-documents" aria-label="Bill photo">
+                <p>
+                  Add a bill photo to fill in the fuel details. Check the values and refuelling time
+                  before saving.
+                </p>
+                <DocumentSlots uid={uid} formData={formData} {...docs} />
+              </section>
+            ) : null}
             <div className="mileage-form-row">
               <div className="mileage-form-group">
                 <label htmlFor={`${uid}-vehicle`}>Vehicle *</label>
@@ -207,14 +217,16 @@ export default function FuelLogForm({
                 not immediately change it.
               </p>
             </div>
-            <details className="diesel-entry-documents">
-              <summary>Add a bill or odometer photo (optional)</summary>
-              <p>
-                Photos can fill in details for you. Check the values and refuelling time before
-                saving.
-              </p>
-              <DocumentSlots uid={uid} formData={formData} {...docs} />
-            </details>
+            {!photoFirst ? (
+              <details className="diesel-entry-documents">
+                <summary>Add a bill or odometer photo (optional)</summary>
+                <p>
+                  Photos can fill in details for you. Check the values and refuelling time before
+                  saving.
+                </p>
+                <DocumentSlots uid={uid} formData={formData} {...docs} />
+              </details>
+            ) : null}
           </fieldset>
         </div>
         <div className="diesel-entry-foot">

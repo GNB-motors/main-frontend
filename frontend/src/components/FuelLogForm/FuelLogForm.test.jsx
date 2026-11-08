@@ -48,6 +48,23 @@ describe('manual diesel entry', () => {
     URL.revokeObjectURL = vi.fn();
   });
 
+  it('offers the bill photo first, reads it and saves it with the prefilled vehicle', async () => {
+    OCRService.scan.mockResolvedValue({ success: true, data: { volume: 85, rate: 92 } });
+    const form = await openForm({ photoFirst: true, lockVehicle: true });
+    expect(screen.getByRole('region', { name: 'Bill photo' })).toBeVisible();
+    expect(screen.queryByText('Add a bill or odometer photo (optional)')).not.toBeInTheDocument();
+    const receipt = new File(['bill'], 'diesel-bill.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByLabelText('Upload fuel slip'), { target: { files: [receipt] } });
+    await waitFor(() => expect(screen.getByLabelText('Litres')).toHaveValue(85));
+    change(/Tank full after filling/, 'PARTIAL');
+    fireEvent.submit(form);
+    await waitFor(() => expect(FuelLogService.submitEntry).toHaveBeenCalled());
+    expect(FuelLogService.submitEntry.mock.calls[0][0]).toMatchObject({
+      payload: { vehicleId: 'v1' },
+      documents: { fuel: { file: receipt } },
+    });
+  });
+
   it('saves a manual partial fill without a receipt, using the visible IST time', async () => {
     const onSuccess = vi.fn();
     const form = await openForm({ onSuccess, initialRefuelTime: '2026-10-31T04:30:00Z' });

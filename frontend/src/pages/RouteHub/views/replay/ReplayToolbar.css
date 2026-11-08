@@ -4,11 +4,12 @@
   max-width: 100%;
   min-width: 0;
 }
-.nova-rh .rtool-vehicle-picker .searchable-dropdown-container {
+.nova-rh .rtool-vehicle-picker .searchable-dropdown-header {
   min-height: 38px;
   padding: 6px 12px;
   font-size: var(--type-2xs);
-  border-color: var(--border-input);
+  border: 1px solid var(--border-input, #e0e0e0);
+  border-radius: var(--radius-m, 8px);
   background: var(--bg-input);
   color: var(--fg-primary);
 }
@@ -34,4 +35,14 @@
 }
 .nova-rh .rtool-vehicle-picker .searchable-dropdown-item:hover {
   background: var(--bg-subtle);
+}
+
+.nova-rh .rtool-load-error {
+  margin: 0 0 12px;
+  padding: 12px 16px;
+  border: 1px solid #efc6c6;
+  border-radius: 10px;
+  background: #fff5f5;
+  color: #a12b2b;
+  font-size: 13px;
 }
