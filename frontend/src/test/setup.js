@@ -1,4 +1,11 @@
 import '@testing-library/jest-dom';
+import { configure } from '@testing-library/react';
+
+// The self-hosted CI runner is several times slower than a dev laptop, so a
+// render chain that settles in ~400ms locally can take >1s there. Raise the
+// default findBy*/waitFor timeout above that gap so slow-runner latency never
+// turns a passing test into a flake. Individual tests can still override it.
+configure({ asyncUtilTimeout: 4000 });
 
 // Restored Route Hub views use the browser's ResizeObserver. jsdom does not
 // provide it; supply the observation lifecycle without changing production code.
