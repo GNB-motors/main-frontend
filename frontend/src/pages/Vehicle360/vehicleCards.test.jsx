@@ -91,7 +91,7 @@ describe('sensor cards', () => {
       },
       def: { litres: 8.8, percent: null, at: '2026-11-07T10:00:00Z', litresBasis: 'SENSOR_LITRES' },
     });
-    mount(<FuelPanel registrationNumber="WB11T0662" kmPerLitre={{ kmPerLitre: 4 }} />);
+    mount(<FuelPanel registrationNumber="WB11T0662" kmPerLitre={{ kmPerL: 4 }} />);
     await screen.findByText('Fuel & DEF levels');
     expect(screen.getByText('0 km')).toBeInTheDocument();
     expect(screen.getAllByText('Tank sensor · litres')).toHaveLength(2);
