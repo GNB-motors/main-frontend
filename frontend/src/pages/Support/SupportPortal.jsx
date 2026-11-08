@@ -48,6 +48,7 @@ export default function SupportPortal({ open, onOpenChange, onActivity, initialT
         <div className="sp-portal-body">
           {view.kind === 'list' ? (
             <SupportRequestsView
+              onBack={() => onOpenChange(false)}
               onOpenTicket={(id) => setView({ kind: 'ticket', id })}
               onNewRequest={() => setCompose({ subject: '' })}
             />

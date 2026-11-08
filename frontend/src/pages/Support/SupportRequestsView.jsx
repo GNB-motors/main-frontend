@@ -1,4 +1,4 @@
-import { Plus, Search } from 'lucide-react';
+import { ArrowLeft, Plus, Search } from 'lucide-react';
 import DataTable from '../../components/ui/DataTable';
 import EnterprisePagination from '../../components/ui/EnterprisePagination';
 import { Button } from '../../components/ui/button';
@@ -14,7 +14,7 @@ const PAGE_SIZES = [10, 25, 50];
 const COLUMNS = supportColumns();
 
 /** The portal's landing view: counters, filters and the org's request table. */
-export default function SupportRequestsView({ onOpenTicket, onNewRequest }) {
+export default function SupportRequestsView({ onOpenTicket, onNewRequest, onBack }) {
   const { filters, dispatch, list, summary, requesters } = useSupportRequests();
 
   const requesterOptions = [
@@ -32,6 +32,10 @@ export default function SupportRequestsView({ onOpenTicket, onNewRequest }) {
 
   return (
     <div className="sp-view">
+      <button type="button" className="sp-back" onClick={onBack}>
+        <ArrowLeft size={16} aria-hidden="true" />
+        Back
+      </button>
       <div className="sp-titlebar">
         <div>
           <h2 className="sp-title">Support requests</h2>
