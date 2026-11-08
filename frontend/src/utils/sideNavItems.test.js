@@ -19,16 +19,25 @@ describe('side nav hints', () => {
   it('gives every child of a Fleet group a hint', () => {
     const missing = fleetItems
       .filter((item) => item.type === 'group')
-      .flatMap((group) => (group.children || []).filter((child) => !child.hint || !child.hint.trim()));
+      .flatMap((group) =>
+        (group.children || []).filter((child) => !child.hint || !child.hint.trim()),
+      );
     expect(missing.map((child) => child.label)).toEqual([]);
   });
 
-  it('puts Intelligence in the Fleet section, right after Track', () => {
+  it('orders the requested Fleet items with trips and alerts first', () => {
+    const requested = [
+      'Trip',
+      'Alert Inbox',
+      'Intelligence',
+      'Fuel Management',
+      'Route Hub',
+      'Places & Routes',
+      'Approvals',
+    ];
     const order = fleetItems.map((item) => item.label);
-    expect(order.indexOf('Track')).toBeLessThan(order.indexOf('Intelligence'));
-    expect(order.indexOf('Intelligence')).toBeLessThan(order.indexOf('Trip'));
-    expect(order.indexOf('Trip')).toBeLessThan(order.indexOf('Alert Inbox'));
-    expect(order.indexOf('Alert Inbox')).toBeLessThan(order.indexOf('Route Hub'));
+    expect(order.filter((label) => requested.includes(label))).toEqual(requested);
+    expect(order.indexOf('Track')).toBeLessThan(order.indexOf('Trip'));
   });
 
   it('takes Place Hub out of the sidebar but keeps the route', () => {
