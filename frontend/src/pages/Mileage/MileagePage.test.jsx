@@ -673,7 +673,9 @@ describe('Mileage → Used vs should use', () => {
     expect(truckSelect).toHaveTextContent('Choose a truck');
     expect(apiClient.get).not.toHaveBeenCalledWith('/api/fuel-model/expected', expect.anything());
     fireEvent.click(truckSelect);
-    fireEvent.click(await screen.findByRole('option', { name: /WB11J8562/ }));
+    const option = await screen.findByRole('option', { name: /WB11J8562/ });
+    fireEvent.pointerDown(option, { pointerType: 'mouse' });
+    fireEvent.click(option);
 
     expect(await screen.findByText('Used extra')).toBeInTheDocument();
     const call = apiClient.get.mock.calls.find(([u]) => u === '/api/fuel-model/expected');
