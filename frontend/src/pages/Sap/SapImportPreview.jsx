@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { useState } from 'react';
 import PlacePicker from './PlacePicker';
 import { BASIS_LABEL, kmText } from './sapModel';
@@ -18,7 +19,7 @@ function EndPicker({ label, end, value, onChange }) {
   return (
     <div className="sap-stack">
       {candidates.length > 0 && (
-        <select
+        <SearchableSelect
           aria-label={`${label} place`}
           value={chosen ? '' : value || ''}
           onChange={(e) => onChange(e.target.value || null)}
@@ -29,7 +30,7 @@ function EndPicker({ label, end, value, onChange }) {
               {c.name || 'Unnamed place'}
             </option>
           ))}
-        </select>
+        </SearchableSelect>
       )}
       {chosen && <span className="sap-muted">{names[value] || 'Chosen place'}</span>}
       <details className="sap-disclosure">
@@ -125,7 +126,7 @@ export default function SapImportPreview({ preview, choices, onChange }) {
                   </td>
                   <td>
                     {(p.sapValues || []).length > 1 ? (
-                      <select
+                      <SearchableSelect
                         aria-label={`SAP km for ${p.ref}`}
                         value={c.sapKm ?? ''}
                         onChange={(e) => onChange(p.ref, { sapKm: Number(e.target.value) })}
@@ -135,13 +136,13 @@ export default function SapImportPreview({ preview, choices, onChange }) {
                             {v}
                           </option>
                         ))}
-                      </select>
+                      </SearchableSelect>
                     ) : (
                       kmText(c.sapKm)
                     )}
                   </td>
                   <td>
-                    <select
+                    <SearchableSelect
                       aria-label={`Basis for ${p.ref}`}
                       value={c.basis}
                       onChange={(e) => onChange(p.ref, { basis: e.target.value })}
@@ -151,7 +152,7 @@ export default function SapImportPreview({ preview, choices, onChange }) {
                           {l}
                         </option>
                       ))}
-                    </select>
+                    </SearchableSelect>
                   </td>
                   <td>
                     {p.existing

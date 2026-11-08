@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import Ico from '../../routeHubIcons.jsx';
 import { WINDOWS } from './overspeedHelpers.js';
 
@@ -20,7 +21,7 @@ export default function OverspeedControls({
         <span>Vehicle</span>
         <span className="field">
           <Ico n="search" />
-          <select
+          <SearchableSelect
             aria-label="Vehicle"
             value={selected}
             onChange={(e) => setSelected(e.target.value)}
@@ -32,7 +33,7 @@ export default function OverspeedControls({
                 {v.model ? ` · ${v.model}` : ''}
               </option>
             ))}
-          </select>
+          </SearchableSelect>
         </span>
       </label>
       <label className="flabel">
@@ -64,7 +65,7 @@ export default function OverspeedControls({
       <label className="flabel">
         <span>Time window</span>
         <span className="field">
-          <select
+          <SearchableSelect
             aria-label="Time window"
             value={win}
             onChange={(e) => setWin(Number(e.target.value))}
@@ -74,7 +75,7 @@ export default function OverspeedControls({
                 {w.label}
               </option>
             ))}
-          </select>
+          </SearchableSelect>
         </span>
       </label>
       <button type="button" className="btn btn--primary" style={{ height: 38 }} onClick={run}>

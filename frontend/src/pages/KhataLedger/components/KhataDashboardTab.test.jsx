@@ -1,3 +1,4 @@
+import { changeField } from '@/test/changeField';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import KhataDashboardTab from './KhataDashboardTab';
@@ -109,7 +110,7 @@ describe('dashboard data states', () => {
     await screen.findByText('Finances available for 2 of 2 trips');
     KhataLedgerService.getErpTripFinance.mockClear();
     fireEvent.click(screen.getByRole('button', { name: 'Filter Scope' }));
-    fireEvent.change(screen.getByLabelText('Driver'), { target: { value: 'driver-a' } });
+    changeField(screen.getByLabelText('Driver'), { target: { value: 'driver-a' } });
     await screen.findByText('Finances available for 1 of 1 trips');
     expect(KhataLedgerService.getDashboardTrips).toHaveBeenLastCalledWith({}, expect.anything());
     expect(KhataLedgerService.getErpTripFinance).toHaveBeenCalledTimes(1);

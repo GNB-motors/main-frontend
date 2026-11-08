@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { useState, useEffect, forwardRef } from 'react';
 import { Truck, Building2 } from 'lucide-react';
 import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
@@ -251,7 +252,7 @@ const VehicleBasicInformationForm = forwardRef(
                             'Current location'}
                       </div>
                     ) : (
-                      <select
+                      <SearchableSelect
                         id="vehicle-branch-select"
                         className="basic-info-input"
                         value={selectedBranchId}
@@ -264,14 +265,14 @@ const VehicleBasicInformationForm = forwardRef(
                             {branch.name}
                           </option>
                         ))}
-                      </select>
+                      </SearchableSelect>
                     )}
                   </div>
                   <div className="basic-info-form-field">
                     <label htmlFor="vehicle-account-select" className="basic-info-label">
                       Account <span className="field-badge-optional">Optional</span>
                     </label>
-                    <select
+                    <SearchableSelect
                       id="vehicle-account-select"
                       className="basic-info-input"
                       value={selectedAccountId}
@@ -300,7 +301,7 @@ const VehicleBasicInformationForm = forwardRef(
                           {account.friendlyName || account.externalAccountId}
                         </option>
                       ))}
-                    </select>
+                    </SearchableSelect>
                     {!canAssignAccount ? (
                       <p className="field-hint-text">
                         An owner manages account assignments. Existing assignments are preserved.

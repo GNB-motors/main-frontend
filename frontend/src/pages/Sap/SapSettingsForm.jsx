@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { useState } from 'react';
 import { SlidersHorizontal, Info } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -54,7 +55,7 @@ export default function SapSettingsForm({ settings, onSaved, canEdit }) {
       </label>
       <label>
         Routes
-        <select
+        <SearchableSelect
           aria-label="Routes"
           disabled={!canEdit || m.loading}
           value={form.directionPolicy}
@@ -65,11 +66,11 @@ export default function SapSettingsForm({ settings, onSaved, canEdit }) {
               {l}
             </option>
           ))}
-        </select>
+        </SearchableSelect>
       </label>
       <label>
         One way or round trip
-        <select
+        <SearchableSelect
           aria-label="One way or round trip"
           disabled={!canEdit || m.loading}
           value={form.basisPolicy}
@@ -80,7 +81,7 @@ export default function SapSettingsForm({ settings, onSaved, canEdit }) {
               {l}
             </option>
           ))}
-        </select>
+        </SearchableSelect>
       </label>
       <label>
         Minimum trip km for a verdict

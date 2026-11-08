@@ -1487,8 +1487,14 @@ html.dark .nova-rh {
   color: inherit;
   cursor: pointer;
 }
-.nova-rh .dev-row-when { flex: 1; font-family: Inter, sans-serif; font-variant-numeric: tabular-nums; }
-.nova-rh .dev-row .pill { font-size: 12px; }
+.nova-rh .dev-row-when {
+  flex: 1;
+  font-family: Inter, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.nova-rh .dev-row .pill {
+  font-size: 12px;
+}
 .nova-rh .dev-row:hover {
   background: var(--nova-rage-a05);
 }
@@ -2226,4 +2232,14 @@ html.dark .nova-rh .persp::before {
   .nova-rh .skel::after {
     animation: none;
   }
+}
+
+/* Field frames already supply the border around shared searchable controls. */
+.nova-rh .field > .searchable-select-trigger {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  min-height: 0;
+  height: 100%;
+  padding: 0;
 }

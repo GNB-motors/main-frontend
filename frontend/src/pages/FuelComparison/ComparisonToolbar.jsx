@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { Search, X } from 'lucide-react';
 
 const STATUS_TABS = [
@@ -78,7 +79,7 @@ const ComparisonToolbar = ({
       {/* Date Preset (the /mileage hub supplies its own dates) */}
       {!hubRange && (
         <div className="fc-select-wrap">
-          <select
+          <SearchableSelect
             value={datePreset}
             onChange={(e) => handlePresetChange(e.target.value)}
             className="fc-select fc-select--compact"
@@ -89,7 +90,7 @@ const ComparisonToolbar = ({
                 {p.label}
               </option>
             ))}
-          </select>
+          </SearchableSelect>
         </div>
       )}
 
@@ -116,7 +117,7 @@ const ComparisonToolbar = ({
 
       {/* Variance Severity */}
       <div className="fc-select-wrap">
-        <select
+        <SearchableSelect
           value={varianceFilter}
           onChange={(e) => {
             setVarianceFilter(e.target.value);
@@ -130,7 +131,7 @@ const ComparisonToolbar = ({
               {o.label}
             </option>
           ))}
-        </select>
+        </SearchableSelect>
       </div>
 
       {/* Search Box */}

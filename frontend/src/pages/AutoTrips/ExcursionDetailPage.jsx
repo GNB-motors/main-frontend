@@ -1,14 +1,8 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ArrowLeft, Check, X, Tag } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import PageShell from '../../components/ui/PageShell';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -16,7 +10,6 @@ import { Input } from '../../components/ui/input';
 import { useApi } from '../../hooks/useApi';
 import { useMutation } from '../../hooks/useMutation';
 import ExcursionService from '../../services/ExcursionService';
-
 const STATUS_VARIANT = {
   DEVIATION: 'destructive',
   APPROVED: 'default',
@@ -24,13 +17,27 @@ const STATUS_VARIANT = {
   NOT_DEVIATION: 'outline',
 };
 const PURPOSES = [
-  { value: 'MAINTENANCE', label: 'Maintenance' },
-  { value: 'DRIVER_HOME', label: 'Driver home' },
-  { value: 'PERSONAL_ERRAND', label: 'Personal errand' },
-  { value: 'FAMILY', label: 'Family' },
-  { value: 'OTHER', label: 'Other' },
+  {
+    value: 'MAINTENANCE',
+    label: 'Maintenance',
+  },
+  {
+    value: 'DRIVER_HOME',
+    label: 'Driver home',
+  },
+  {
+    value: 'PERSONAL_ERRAND',
+    label: 'Personal errand',
+  },
+  {
+    value: 'FAMILY',
+    label: 'Family',
+  },
+  {
+    value: 'OTHER',
+    label: 'Other',
+  },
 ];
-
 function fmt(v) {
   if (!v) return '—';
   const d = new Date(v);
@@ -38,34 +45,55 @@ function fmt(v) {
 }
 const km = (v) => (v == null ? '—' : `${Math.round(v)} km`);
 const litres = (v) => (v == null ? '—' : `${Number(v).toFixed(1)} L`);
-
 function Field({ label, children }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <span style={{ fontSize: 12, color: 'var(--muted-foreground, #777)' }}>{label}</span>
-      <span style={{ fontSize: 14, fontWeight: 500 }}>{children}</span>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+      }}
+    >
+      <span
+        style={{
+          fontSize: 12,
+          color: 'var(--muted-foreground, #777)',
+        }}
+      >
+        {label}
+      </span>
+      <span
+        style={{
+          fontSize: 14,
+          fontWeight: 500,
+        }}
+      >
+        {children}
+      </span>
     </div>
   );
 }
-
 export default function ExcursionDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [purpose, setPurpose] = useState('MAINTENANCE');
   const [note, setNote] = useState('');
-
   const {
     data: ex,
     loading,
     error,
     refetch,
-  } = useApi((signal) => ExcursionService.get(id, { signal }), [id]);
-
+  } = useApi(
+    (signal) =>
+      ExcursionService.get(id, {
+        signal,
+      }),
+    [id],
+  );
   const classifyM = useMutation(ExcursionService.classify);
   const approveM = useMutation(ExcursionService.approveLate);
   const dismissM = useMutation(ExcursionService.notADeviation);
   const busy = classifyM.loading || approveM.loading || dismissM.loading;
-
   const act = useCallback(
     async (fn, payload, okMsg) => {
       try {
@@ -78,18 +106,28 @@ export default function ExcursionDetailPage() {
     },
     [refetch],
   );
-
   if (loading && !ex) {
     return (
       <PageShell title="Deviation">
-        <div style={{ padding: 24, color: '#777' }}>Loading…</div>
+        <div
+          style={{
+            padding: 24,
+            color: '#777',
+          }}
+        >
+          Loading…
+        </div>
       </PageShell>
     );
   }
   if (error || !ex) {
     return (
       <PageShell title="Deviation">
-        <div style={{ padding: 24 }}>
+        <div
+          style={{
+            padding: 24,
+          }}
+        >
           <p>Could not load this deviation.</p>
           <Button variant="outline" size="sm" onClick={refetch}>
             Retry
@@ -98,9 +136,7 @@ export default function ExcursionDetailPage() {
       </PageShell>
     );
   }
-
   const isOpen = ex.status === 'DEVIATION';
-
   return (
     <PageShell
       title={ex.registrationNumber || 'Deviation'}
@@ -111,13 +147,26 @@ export default function ExcursionDetailPage() {
         </Button>
       }
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          marginBottom: 16,
+        }}
+      >
         <Badge variant={STATUS_VARIANT[ex.status] || 'outline'}>{ex.status}</Badge>
         {ex.loadState ? <Badge variant="outline">{ex.loadState}</Badge> : null}
         {ex.purpose ? <Badge variant="secondary">{ex.purpose}</Badge> : null}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 14 }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, minmax(0,1fr))',
+          gap: 14,
+        }}
+      >
         <Field label="Total km">{km(ex.km?.total)}</Field>
         <Field label="Direct km">{km(ex.km?.direct)}</Field>
         <Field label="Extra km">{km(ex.km?.extra)}</Field>
@@ -130,16 +179,39 @@ export default function ExcursionDetailPage() {
 
       {Array.isArray(ex.visits) && ex.visits.length ? (
         <>
-          <h2 style={{ fontSize: 15, fontWeight: 600, margin: '24px 0 10px' }}>Where it stopped</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <h2
+            style={{
+              fontSize: 15,
+              fontWeight: 600,
+              margin: '24px 0 10px',
+            }}
+          >
+            Where it stopped
+          </h2>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}
+          >
             {ex.visits.map((v, i) => (
               <div
                 key={v.visitId || i}
-                style={{ display: 'flex', gap: 10, fontSize: 13, color: '#444' }}
+                style={{
+                  display: 'flex',
+                  gap: 10,
+                  fontSize: 13,
+                  color: '#444',
+                }}
               >
                 <Badge variant="outline">{v.placeKind || '—'}</Badge>
                 <span>{v.name || '—'}</span>
-                <span style={{ color: '#888' }}>
+                <span
+                  style={{
+                    color: '#888',
+                  }}
+                >
                   {fmt(v.arrivedAt)} · {v.dwellMin != null ? `${Math.round(v.dwellMin)} min` : '—'}
                 </span>
               </div>
@@ -150,33 +222,62 @@ export default function ExcursionDetailPage() {
 
       {isOpen ? (
         <>
-          <h2 style={{ fontSize: 15, fontWeight: 600, margin: '24px 0 10px' }}>Review</h2>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
-            <Select value={purpose} onValueChange={setPurpose}>
-              <SelectTrigger className="h-9 w-[180px] text-sm" aria-label="Purpose">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent align="start">
-                {PURPOSES.map((p) => (
-                  <SelectItem key={p.value} value={p.value}>
-                    {p.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <h2
+            style={{
+              fontSize: 15,
+              fontWeight: 600,
+              margin: '24px 0 10px',
+            }}
+          >
+            Review
+          </h2>
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              gap: 10,
+            }}
+          >
+            <SearchableSelect
+              value={purpose}
+              onValueChange={setPurpose}
+              className="h-9 w-[180px] text-sm"
+              aria-label="Purpose"
+            >
+              {PURPOSES.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
+            </SearchableSelect>
             <Input
               placeholder="Note (optional)"
               aria-label="Note"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              style={{ width: 240 }}
+              style={{
+                width: 240,
+              }}
             />
             <Button
               size="sm"
               variant="outline"
               disabled={busy}
               onClick={() =>
-                act(classifyM.mutate, { id, purpose, ...(note ? { note } : {}) }, 'Classified')
+                act(
+                  classifyM.mutate,
+                  {
+                    id,
+                    purpose,
+                    ...(note
+                      ? {
+                          note,
+                        }
+                      : {}),
+                  },
+                  'Classified',
+                )
               }
             >
               <Tag size={16} /> Classify
@@ -185,7 +286,18 @@ export default function ExcursionDetailPage() {
               size="sm"
               disabled={busy}
               onClick={() =>
-                act(approveM.mutate, { id, ...(note ? { note } : {}) }, 'Approved (late)')
+                act(
+                  approveM.mutate,
+                  {
+                    id,
+                    ...(note
+                      ? {
+                          note,
+                        }
+                      : {}),
+                  },
+                  'Approved (late)',
+                )
               }
             >
               <Check size={16} /> Approve
@@ -195,13 +307,30 @@ export default function ExcursionDetailPage() {
               variant="destructive"
               disabled={busy}
               onClick={() =>
-                act(dismissM.mutate, { id, ...(note ? { note } : {}) }, 'Marked not a deviation')
+                act(
+                  dismissM.mutate,
+                  {
+                    id,
+                    ...(note
+                      ? {
+                          note,
+                        }
+                      : {}),
+                  },
+                  'Marked not a deviation',
+                )
               }
             >
               <X size={16} /> Not a deviation
             </Button>
           </div>
-          <p style={{ fontSize: 12, color: '#888', marginTop: 8 }}>
+          <p
+            style={{
+              fontSize: 12,
+              color: '#888',
+              marginTop: 8,
+            }}
+          >
             Classify records the reason (and may watch the place) without clearing the charge.
             Approve or Not-a-deviation settle it.
           </p>
@@ -210,10 +339,30 @@ export default function ExcursionDetailPage() {
 
       {Array.isArray(ex.statusHistory) && ex.statusHistory.length ? (
         <>
-          <h2 style={{ fontSize: 15, fontWeight: 600, margin: '24px 0 10px' }}>History</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <h2
+            style={{
+              fontSize: 15,
+              fontWeight: 600,
+              margin: '24px 0 10px',
+            }}
+          >
+            History
+          </h2>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+            }}
+          >
             {ex.statusHistory.map((h, i) => (
-              <div key={i} style={{ fontSize: 13, color: '#555' }}>
+              <div
+                key={i}
+                style={{
+                  fontSize: 13,
+                  color: '#555',
+                }}
+              >
                 <strong>{h.status}</strong> · {fmt(h.at)}
                 {h.note ? ` · ${h.note}` : ''}
               </div>

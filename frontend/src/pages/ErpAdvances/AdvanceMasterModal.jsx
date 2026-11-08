@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { X } from 'lucide-react';
 import TABS from './advanceMasterTabs';
 
@@ -45,7 +46,7 @@ const AdvanceMasterModal = ({
                 </div>
                 <div className="erp-field">
                   <label htmlFor="m-route">Route</label>
-                  <select
+                  <SearchableSelect
                     id="m-route"
                     value={form.routeId || ''}
                     onChange={(e) => setField('routeId', e.target.value)}
@@ -56,20 +57,20 @@ const AdvanceMasterModal = ({
                         {r.name}
                       </option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div className="erp-field">
                   <label htmlFor="m-load">
                     Load State <span className="required">*</span>
                   </label>
-                  <select
+                  <SearchableSelect
                     id="m-load"
                     value={form.loadType || 'LOAD'}
                     onChange={(e) => setField('loadType', e.target.value)}
                   >
                     <option value="LOAD">Loaded</option>
                     <option value="EMPTY">Empty</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div className="erp-field">
                   <label htmlFor="m-kmpl">
@@ -142,7 +143,7 @@ const AdvanceMasterModal = ({
                   <label htmlFor="b-route">
                     Route <span className="required">*</span>
                   </label>
-                  <select
+                  <SearchableSelect
                     id="b-route"
                     value={form.routeId || ''}
                     onChange={(e) => setField('routeId', e.target.value)}
@@ -154,7 +155,7 @@ const AdvanceMasterModal = ({
                         {r.name}
                       </option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div className="erp-field full">
                   <label htmlFor="b-model">Vehicle Model</label>
@@ -207,14 +208,14 @@ const AdvanceMasterModal = ({
                 </div>
                 <div className="erp-field">
                   <label htmlFor="b-empty">Empty legs</label>
-                  <select
+                  <SearchableSelect
                     id="b-empty"
                     value={form.emptyDieselOnly === false ? 'no' : 'yes'}
                     onChange={(e) => setField('emptyDieselOnly', e.target.value === 'yes')}
                   >
                     <option value="yes">Diesel only</option>
                     <option value="no">Include all costs</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </>
             )}

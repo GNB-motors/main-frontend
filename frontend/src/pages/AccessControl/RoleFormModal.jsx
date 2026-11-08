@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { X } from 'lucide-react';
@@ -171,7 +172,7 @@ const RoleFormModal = ({ open, onClose, role = null, onSaved, branchId = null })
               <label className="ff-field__label" htmlFor="ac-role-base">
                 Access tier
               </label>
-              <select
+              <SearchableSelect
                 id="ac-role-base"
                 className="rbac-select"
                 value={baseRole}
@@ -182,7 +183,7 @@ const RoleFormModal = ({ open, onClose, role = null, onSaved, branchId = null })
                     {b.label}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
               <span className="ff-field__help">
                 Sets which part of the product the role belongs to. Grant its permissions from the
                 roles page after saving.

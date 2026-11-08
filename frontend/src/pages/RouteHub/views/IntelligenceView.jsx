@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 /* eslint-disable jsx-a11y/no-noninteractive-tabindex -- The table's scroll region needs keyboard focus for arrow-key scrolling. */
 import React, { useEffect, useState } from 'react';
 import RoadService from '../../../services/RoadService';
@@ -78,7 +79,7 @@ export default function IntelligenceView() {
         <label className="flabel">
           <span>Hour (IST)</span>
           <span className="field">
-            <select
+            <SearchableSelect
               aria-label="Hour (IST)"
               value={how}
               onChange={(e) => setHow(Number(e.target.value))}
@@ -88,7 +89,7 @@ export default function IntelligenceView() {
                   {howLabel(h)}
                 </option>
               ))}
-            </select>
+            </SearchableSelect>
           </span>
         </label>
         <p className="intelligence-context">

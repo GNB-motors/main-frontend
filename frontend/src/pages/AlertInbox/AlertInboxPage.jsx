@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -254,7 +255,7 @@ export default function AlertInboxPage() {
                   onChange={(event) => setQuery(event.target.value)}
                 />
               </label>
-              <select
+              <SearchableSelect
                 aria-label="Severity"
                 value={severity}
                 onChange={(event) => setSeverity(event.target.value)}
@@ -263,8 +264,8 @@ export default function AlertInboxPage() {
                 <option value="critical">Critical</option>
                 <option value="caution">Needs review</option>
                 <option value="info">Information</option>
-              </select>
-              <select
+              </SearchableSelect>
+              <SearchableSelect
                 aria-label="Source"
                 value={source}
                 onChange={(event) => setSource(event.target.value)}
@@ -275,7 +276,7 @@ export default function AlertInboxPage() {
                     {label}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
               {ackAllOpen ? (
                 <span
                   className="ai-confirm"

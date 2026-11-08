@@ -1,3 +1,4 @@
+import { changeField } from '@/test/changeField';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import AllTransactionsTab from './AllTransactionsTab';
@@ -61,8 +62,8 @@ describe('Transaction filters before backend pagination', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Next Page' }));
     await screen.findByText('Page 2 of 2 (26 total)');
     fireEvent.click(screen.getByRole('button', { name: 'Filters', exact: true }));
-    fireEvent.change(screen.getByLabelText('Source'), { target: { value: 'DRIVER_BILL' } });
-    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'PENDING' } });
+    changeField(screen.getByLabelText('Source'), { target: { value: 'DRIVER_BILL' } });
+    changeField(screen.getByLabelText('Status'), { target: { value: 'PENDING' } });
     await screen.findByText('Old pending driver receipt');
     await waitFor(() =>
       expect(KhataLedgerService.getExpenses).toHaveBeenLastCalledWith(
@@ -87,7 +88,7 @@ describe('Transaction filters before backend pagination', () => {
     );
     render(<AllTransactionsTab />);
     fireEvent.click(screen.getByRole('button', { name: 'Filters', exact: true }));
-    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'PENDING' } });
+    changeField(screen.getByLabelText('Status'), { target: { value: 'PENDING' } });
     await screen.findByText('Old pending driver receipt');
     finishOld({ results: [rows[0]], totalPages: 1, page: 1, totalResults: 1 });
     await waitFor(() => expect(screen.queryByText('Manual toll 0')).not.toBeInTheDocument());

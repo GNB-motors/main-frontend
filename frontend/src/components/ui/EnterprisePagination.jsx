@@ -1,3 +1,4 @@
+import SearchableSelect from '../SearchableDropdown/SearchableSelect';
 import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
@@ -80,7 +81,8 @@ export default function EnterprisePagination({
         {onPageSizeChange && (
           <div className="flex items-center gap-1.5">
             <span className="text-slate-500">Rows:</span>
-            <select
+            <SearchableSelect
+              aria-label="Rows per page"
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
               className="h-7 px-2 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none cursor-pointer focus:border-indigo-500"
@@ -90,7 +92,7 @@ export default function EnterprisePagination({
                   {opt}
                 </option>
               ))}
-            </select>
+            </SearchableSelect>
           </div>
         )}
       </div>

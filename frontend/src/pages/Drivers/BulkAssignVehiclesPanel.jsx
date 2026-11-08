@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useRef, useState } from 'react';
 import { FileSpreadsheet, Upload, X } from 'lucide-react';
 import {
@@ -164,7 +165,7 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
               <div className="bulk-assign-mapping">
                 <label className="bulk-assign-field">
                   <span>Employee mobile number *</span>
-                  <select
+                  <SearchableSelect
                     value={employeeColumn}
                     disabled={busy}
                     onChange={(e) => {
@@ -182,11 +183,11 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
                         {h.label}
                       </option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </label>
                 <label className="bulk-assign-field">
                   <span>Vehicle registration *</span>
-                  <select
+                  <SearchableSelect
                     value={vehicleColumn}
                     disabled={busy}
                     onChange={(e) => {
@@ -204,7 +205,7 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
                         {h.label}
                       </option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </label>
               </div>
               <p className="bulk-assign-hint">

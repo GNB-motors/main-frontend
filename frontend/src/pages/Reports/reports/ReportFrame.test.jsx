@@ -10,7 +10,7 @@ describe('ReportDateRange component', () => {
     render(<ReportDateRange from={today} to={today} onChange={() => {}} />);
 
     // Quick range selector should be present
-    expect(screen.getByRole('button', { name: /Quick range/i })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /Quick range/i })).toBeInTheDocument();
 
     // Clear range display badge
     expect(screen.getByTitle(/Current date range:/i)).toBeInTheDocument();
@@ -21,12 +21,12 @@ describe('ReportDateRange component', () => {
     const today = istDayString();
     render(<ReportDateRange from={today} to={today} onChange={onChange} />);
 
-    const trigger = screen.getByRole('button', { name: /Quick range/i });
+    const trigger = screen.getByRole('combobox', { name: /Quick range/i });
     fireEvent.click(trigger);
 
     // Pick 'Last 7 Days'
-    const option7Days = screen.getByText('Last 7 Days');
-    fireEvent.mouseDown(option7Days);
+    const option7Days = screen.getByRole('option', { name: 'Last 7 Days' });
+    fireEvent.click(option7Days);
 
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -42,11 +42,11 @@ describe('ReportDateRange component', () => {
     const today = istDayString();
     render(<ReportDateRange from={today} to={today} onChange={onChange} />);
 
-    const trigger = screen.getByRole('button', { name: /Quick range/i });
+    const trigger = screen.getByRole('combobox', { name: /Quick range/i });
     fireEvent.click(trigger);
 
-    const option15Days = screen.getByText('Last 15 Days');
-    fireEvent.mouseDown(option15Days);
+    const option15Days = screen.getByRole('option', { name: 'Last 15 Days' });
+    fireEvent.click(option15Days);
 
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -62,11 +62,11 @@ describe('ReportDateRange component', () => {
     const today = istDayString();
     render(<ReportDateRange from={today} to={today} onChange={onChange} />);
 
-    const trigger = screen.getByRole('button', { name: /Quick range/i });
+    const trigger = screen.getByRole('combobox', { name: /Quick range/i });
     fireEvent.click(trigger);
 
-    const optionLastMonth = screen.getByText('Last Month');
-    fireEvent.mouseDown(optionLastMonth);
+    const optionLastMonth = screen.getByRole('option', { name: 'Last Month' });
+    fireEvent.click(optionLastMonth);
 
     const lastDayOfPrevMonth = shiftDay(`${today.slice(0, 7)}-01`, -1);
     const firstDayOfPrevMonth = `${lastDayOfPrevMonth.slice(0, 7)}-01`;
@@ -85,11 +85,11 @@ describe('ReportDateRange component', () => {
     const today = istDayString();
     render(<ReportDateRange from={today} to={today} onChange={onChange} />);
 
-    const trigger = screen.getByRole('button', { name: /Quick range/i });
+    const trigger = screen.getByRole('combobox', { name: /Quick range/i });
     fireEvent.click(trigger);
 
-    const optionCustom = screen.getByText('Custom Range');
-    fireEvent.mouseDown(optionCustom);
+    const optionCustom = screen.getByRole('option', { name: 'Custom Range' });
+    fireEvent.click(optionCustom);
 
     // From and To date inputs should now appear
     const fromInput = screen.getByLabelText('From date');

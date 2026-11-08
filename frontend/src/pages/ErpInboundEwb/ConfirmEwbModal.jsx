@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { X, Info, AlertTriangle, Truck } from 'lucide-react';
 
 const ConfirmEwbModal = ({
@@ -87,7 +88,7 @@ const ConfirmEwbModal = ({
             <label htmlFor="ewb-trip">
               Trip <span className="required">*</span>
             </label>
-            <select
+            <SearchableSelect
               id="ewb-trip"
               value={form.tripId || ''}
               onChange={(e) => setField('tripId', e.target.value)}
@@ -99,7 +100,7 @@ const ConfirmEwbModal = ({
                   {t.tripNumber} — {t.vehicleNumber || t.material} ({t.state})
                 </option>
               ))}
-            </select>
+            </SearchableSelect>
             <span className="erp-field-hint">
               <Truck size={12} /> Only placed trips can take a CN.
             </span>
@@ -152,7 +153,7 @@ const ConfirmEwbModal = ({
                 onChange={(e) => setField('loadedQty', e.target.value)}
                 style={{ flex: 1 }}
               />
-              <select
+              <SearchableSelect
                 aria-label="Loaded quantity unit"
                 value={form.loadedQtyUnit || 'KL'}
                 onChange={(e) => setField('loadedQtyUnit', e.target.value)}
@@ -160,7 +161,7 @@ const ConfirmEwbModal = ({
               >
                 <option value="KL">KL</option>
                 <option value="MT">MT</option>
-              </select>
+              </SearchableSelect>
             </div>
           </div>
 

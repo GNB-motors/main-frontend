@@ -1,3 +1,4 @@
+import { changeField } from '@/test/changeField';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import React from 'react';
@@ -349,8 +350,8 @@ describe('MileagePage', () => {
     fireEvent.click(screen.getByRole('button', { name: '7 days' }));
     await waitFor(() => expect(daysBetween(feedCalls().at(-1)[1].params)).toBe(7));
 
-    fireEvent.change(screen.getByLabelText('From date'), { target: { value: '2026-08-01' } });
-    fireEvent.change(screen.getByLabelText('To date'), { target: { value: '2026-08-31' } });
+    changeField(screen.getByLabelText('From date'), { target: { value: '2026-08-01' } });
+    changeField(screen.getByLabelText('To date'), { target: { value: '2026-08-31' } });
     await waitFor(() => expect(feedCalls().at(-1)[1].params.from).toBe('2026-07-31T18:30:00.000Z'));
     expect(screen.getByText('1 Aug – 31 Aug 2026')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '7 days' })).toHaveAttribute('aria-pressed', 'false');
@@ -463,7 +464,7 @@ describe('MileagePage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open fill for WB25V8040' }));
     const dialog = await screen.findByRole('dialog');
     fireEvent.click(within(dialog).getByRole('button', { name: /Edit/ }));
-    fireEvent.change(within(dialog).getByLabelText('Litres'), { target: { value: '118' } });
+    changeField(within(dialog).getByLabelText('Litres'), { target: { value: '118' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(apiClient.put).toHaveBeenCalled());

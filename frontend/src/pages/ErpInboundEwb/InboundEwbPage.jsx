@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 /**
  * Inbound e-Way Bill review queue (ISOCL ERP Stage 5)
  *
@@ -175,7 +176,7 @@ const InboundEwbPage = () => {
       }
     >
       <div className="erp-toolbar">
-        <select
+        <SearchableSelect
           className="erp-filter"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
@@ -185,7 +186,7 @@ const InboundEwbPage = () => {
           <option value="UNMATCHED">Unmatched</option>
           <option value="LINKED">Linked</option>
           <option value="IGNORED">Ignored</option>
-        </select>
+        </SearchableSelect>
       </div>
 
       <div className="erp-container">

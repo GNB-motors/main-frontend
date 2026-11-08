@@ -1,3 +1,4 @@
+import { changeField } from '@/test/changeField';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
@@ -37,14 +38,14 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 async function uploadAndMap() {
-  fireEvent.change(screen.getByLabelText('Excel or CSV file'), {
+  changeField(screen.getByLabelText('Excel or CSV file'), {
     target: {
       files: [{ name: 'fleet.xlsx', size: 100, arrayBuffer: async () => new ArrayBuffer(1) }],
     },
   });
   await screen.findByText('fleet.xlsx · 1 rows');
-  fireEvent.change(screen.getByLabelText('Employee mobile number *'), { target: { value: '0' } });
-  fireEvent.change(screen.getByLabelText('Vehicle registration *'), { target: { value: '1' } });
+  changeField(screen.getByLabelText('Employee mobile number *'), { target: { value: '0' } });
+  changeField(screen.getByLabelText('Vehicle registration *'), { target: { value: '1' } });
 }
 
 describe('Bulk Assign Vehicles panel', () => {
@@ -73,7 +74,7 @@ describe('Bulk Assign Vehicles panel', () => {
     await uploadAndMap();
     fireEvent.click(screen.getByRole('button', { name: 'Preview assignments' }));
     await screen.findByText('Anil Das');
-    fireEvent.change(screen.getByLabelText('Vehicle registration *'), { target: { value: '2' } });
+    changeField(screen.getByLabelText('Vehicle registration *'), { target: { value: '2' } });
     expect(screen.queryByText('Anil Das')).not.toBeInTheDocument();
     expect(Service.applyBulk).not.toHaveBeenCalled();
   });

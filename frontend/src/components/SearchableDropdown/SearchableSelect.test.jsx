@@ -78,3 +78,48 @@ it('keeps required validation and disables both native form field and visible tr
   fireEvent.click(screen.getByRole('combobox', { name: 'Disabled picker' }));
   expect(screen.queryByRole('textbox', { name: 'Search options' })).not.toBeInTheDocument();
 });
+
+it('keeps nullable and numeric values intact when clearing a searchable choice', async () => {
+  const change = vi.fn();
+  const control = (value) => (
+    <form aria-label="Accounts">
+      <SearchableSelect aria-label="Account" name="accountId" value={value} onValueChange={change}>
+        <option value={null}>All accounts</option>
+        <option value={0}>Zero account</option>
+      </SearchableSelect>
+    </form>
+  );
+  const { rerender } = render(control(null));
+  expect(new FormData(screen.getByRole('form')).get('accountId')).toBe('');
+  fireEvent.click(screen.getByRole('combobox', { name: 'Account' }));
+  fireEvent.change(screen.getByRole('textbox', { name: 'Search options' }), {
+    target: { value: 'zero' },
+  });
+  fireEvent.click(screen.getByRole('option', { name: 'Zero account' }));
+  expect(change).toHaveBeenLastCalledWith(0);
+  rerender(control(0));
+  expect(new FormData(screen.getByRole('form')).get('accountId')).toBe('0');
+  fireEvent.click(screen.getByRole('combobox', { name: 'Account' }));
+  fireEvent.click(screen.getByRole('option', { name: 'All accounts' }));
+  expect(change).toHaveBeenLastCalledWith(null);
+});
+it('shows a placeholder for an empty controlled value and preserves blur context', () => {
+  const blur = vi.fn();
+  render(
+    <SearchableSelect
+      aria-label="Account"
+      name="accountId"
+      value=""
+      onChange={() => {}}
+      onBlur={blur}
+      placeholder="Choose an account"
+    >
+      <option value="a">Account A</option>
+    </SearchableSelect>,
+  );
+  const trigger = screen.getByRole('combobox', { name: 'Account' });
+  expect(trigger).toHaveTextContent('Choose an account');
+  fireEvent.blur(trigger);
+  expect(blur).toHaveBeenCalledOnce();
+  expect(blur.mock.calls[0][0].target).toHaveAttribute('name', 'accountId');
+});

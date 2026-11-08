@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 /**
  * Placement Board (ISOCL ERP Stage 3)
  *
@@ -256,7 +257,7 @@ const PlacementBoardPage = ({ embedded = false }) => {
               <ArrowLeft size={15} />
               Back to placement queue
             </button>
-            <select
+            <SearchableSelect
               className="erp-filter"
               value={selectedDoId}
               onChange={(e) => setSelectedDoId(e.target.value)}
@@ -268,7 +269,7 @@ const PlacementBoardPage = ({ embedded = false }) => {
                   {o.doNumber} · {o.partyId?.name} · {o.balanceQty} {o.qtyUnit} left
                 </option>
               ))}
-            </select>
+            </SearchableSelect>
           </div>
 
           {/* ── The requirement ─────────────────────────────────────────────── */}

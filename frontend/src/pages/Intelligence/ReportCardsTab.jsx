@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import DriverCardsBriefing from './DriverCardsBriefing';
 import { cardsBriefing } from './reportCardsBriefingModel';
 import ReportCardsBriefing, { ScoreSparkline } from './ReportCardsBriefing';
@@ -9,13 +10,6 @@ import DataTable from '@/components/ui/DataTable';
 import { formatNumber } from '@/utils/redesign/format';
 import { useApi } from '@/hooks/useApi';
 import TripService from '@/pages/Trip/services/TripService';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import IntelligenceDataState from './IntelligenceDataState';
 import ReportCardDrawer from './ReportCardDrawer';
 import IntelligenceService from './IntelligenceService';
@@ -27,14 +21,31 @@ import {
   reportCardMakes,
   resolveDriverName,
 } from './intelligenceModel';
-
 const GRADES = [
-  { id: 'all', label: 'All grades' },
-  { id: 'EXCELLENT', label: 'Excellent' },
-  { id: 'GOOD', label: 'Good' },
-  { id: 'FAIR', label: 'Fair' },
-  { id: 'FALLING', label: 'Falling off' },
-  { id: 'NOT_ENOUGH_DATA', label: 'Insufficient data' },
+  {
+    id: 'all',
+    label: 'All grades',
+  },
+  {
+    id: 'EXCELLENT',
+    label: 'Excellent',
+  },
+  {
+    id: 'GOOD',
+    label: 'Good',
+  },
+  {
+    id: 'FAIR',
+    label: 'Fair',
+  },
+  {
+    id: 'FALLING',
+    label: 'Falling off',
+  },
+  {
+    id: 'NOT_ENOUGH_DATA',
+    label: 'Insufficient data',
+  },
 ];
 
 /**
@@ -56,17 +67,34 @@ export default function ReportCardsTab({
   const [grade, setGrade] = useState('all');
   const [make, setMake] = useState('all');
   const [openCard, setOpenCard] = useState(null);
-
   const { data, loading, error, refetch } = useApi(
-    (signal) => IntelligenceService.getReportCards({ subject, from, to, signal }),
+    (signal) =>
+      IntelligenceService.getReportCards({
+        subject,
+        from,
+        to,
+        signal,
+      }),
     [subject, from, to],
-    { scopeKey: `${subject}:${from}:${to}` },
+    {
+      scopeKey: `${subject}:${from}:${to}`,
+    },
   );
-
   const { data: drivers, loading: driversLoading } = useApi(
-    (signal) => TripService.getDrivers({ limit: 200 }, { signal }),
+    (signal) =>
+      TripService.getDrivers(
+        {
+          limit: 200,
+        },
+        {
+          signal,
+        },
+      ),
     [],
-    { enabled: subject === 'driver', scopeKey: 'drivers' },
+    {
+      enabled: subject === 'driver',
+      scopeKey: 'drivers',
+    },
   );
   const driversById = useMemo(
     () =>
@@ -75,7 +103,6 @@ export default function ReportCardsTab({
       ),
     [drivers],
   );
-
   const held = data?.held ? data.why : null;
   const cards = (data?.items ?? [])
     .filter(
@@ -91,12 +118,20 @@ export default function ReportCardsTab({
       card.score == null &&
       !card.strengths?.length &&
       !card.problems?.length
-        ? { ...card, grade: 'NOT_ENOUGH_DATA' }
+        ? {
+            ...card,
+            grade: 'NOT_ENOUGH_DATA',
+          }
         : card,
     )
     .map((card) =>
       subject === 'driver'
-        ? { ...card, name: resolveDriverName(card, driversById, { ready: !driversLoading }) }
+        ? {
+            ...card,
+            name: resolveDriverName(card, driversById, {
+              ready: !driversLoading,
+            }),
+          }
         : card,
     );
   const allUngraded =
@@ -105,8 +140,15 @@ export default function ReportCardsTab({
     cards.every((card) => card.grade === 'NOT_ENOUGH_DATA');
   const makes = subject === 'vehicle' ? reportCardMakes(cards) : [];
   const Briefing = subject === 'driver' ? DriverCardsBriefing : ReportCardsBriefing;
-  const { buckets } = bucketReportCards(cards, { query, grade, make });
-  const { buckets: gradeBuckets } = bucketReportCards(cards, { query, make });
+  const { buckets } = bucketReportCards(cards, {
+    query,
+    grade,
+    make,
+  });
+  const { buckets: gradeBuckets } = bucketReportCards(cards, {
+    query,
+    make,
+  });
   const rows = buckets.flatMap((bucket) => bucket.cards);
   const totalPages = Math.max(1, Math.ceil(rows.length / 25));
   const currentPage = Math.min(page, totalPages);
@@ -181,7 +223,11 @@ export default function ReportCardsTab({
             ) : (
               <span className="intel-score">
                 <span className="intel-score-bar" aria-hidden="true">
-                  <span style={{ width: `${Math.max(0, Math.min(100, card.score))}%` }} />
+                  <span
+                    style={{
+                      width: `${Math.max(0, Math.min(100, card.score))}%`,
+                    }}
+                  />
                 </span>
                 {formatNumber(card.score)}
               </span>
@@ -235,34 +281,29 @@ export default function ReportCardsTab({
       ),
     },
   ].filter(Boolean);
-
   const title = subject === 'driver' ? 'Drivers' : 'Trucks';
   const what = subject === 'driver' ? 'The driver card' : 'The truck card';
   const activeFilters =
     (grade !== 'all' ? 1 : 0) + (make !== 'all' ? 1 : 0) + (query.trim() ? 1 : 0);
-
   const toolbar = (
     <div className="intel-tab-tools">
       {makes.length > 0 ? (
-        <Select
+        <SearchableSelect
           value={make}
           onValueChange={(value) => {
             setMake(value ?? 'all');
             setPage(1);
           }}
+          aria-label="Filter by make"
+          className="intel-select-trigger"
         >
-          <SelectTrigger aria-label="Filter by make" size="sm" className="intel-select-trigger">
-            <SelectValue>{make === 'all' ? 'All makes' : make}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All makes</SelectItem>
-            {makes.map((name) => (
-              <SelectItem key={name} value={name}>
-                {name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <option value="all">All makes</option>
+          {makes.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </SearchableSelect>
       ) : null}
 
       {makes.length > 0 && cards.length ? (
@@ -324,7 +365,6 @@ export default function ReportCardsTab({
       </div>
     </div>
   );
-
   return (
     <div className="intel-assessments flex flex-col gap-5">
       <header className="intel-assessments-heading">

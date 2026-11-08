@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState, useEffect } from 'react';
 import { Info, AlertTriangle, Fuel, ArrowRight } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -188,7 +189,7 @@ const AdvanceDrawer = ({
                   style={{ backgroundColor: '#f1f5f9', opacity: 1 }}
                 />
               ) : (
-                <select
+                <SearchableSelect
                   id="adv-trip"
                   value={tripId}
                   onChange={(e) => setTripId(e.target.value)}
@@ -201,7 +202,7 @@ const AdvanceDrawer = ({
                       {p.vehicleId?.registrationNumber || p.hireVehicleNumber}
                     </option>
                   ))}
-                </select>
+                </SearchableSelect>
               )}
             </div>
 
@@ -362,7 +363,7 @@ const AdvanceDrawer = ({
               <label htmlFor="pay-mode">
                 Mode <span className="required">*</span>
               </label>
-              <select
+              <SearchableSelect
                 id="pay-mode"
                 value={paymentMode}
                 onChange={(e) => setPaymentMode(e.target.value)}
@@ -371,7 +372,7 @@ const AdvanceDrawer = ({
                 <option value="CASH">Cash</option>
                 <option value="UPI">UPI</option>
                 <option value="FUEL_CARD">Fuel card</option>
-              </select>
+              </SearchableSelect>
             </div>
             <div className="erp-field full">
               <label htmlFor="pay-ref">Reference</label>

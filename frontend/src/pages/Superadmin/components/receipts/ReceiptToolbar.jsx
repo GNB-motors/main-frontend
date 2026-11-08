@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { Search, Gauge, ChevronDown, ShieldCheck, Calendar, X } from 'lucide-react';
 import Skel from './Skel';
 
@@ -50,7 +51,7 @@ const ReceiptToolbar = ({
       {/* Date Preset Filter */}
       <div className="ra-select-wrap">
         <Calendar size={14} className="ra-select-icon" />
-        <select
+        <SearchableSelect
           value={dateFilter}
           onChange={(e) => setDateFilter(e.target.value)}
           aria-label="Filter receipts by date range"
@@ -60,14 +61,14 @@ const ReceiptToolbar = ({
           <option value="YESTERDAY">Yesterday</option>
           <option value="7DAYS">Last 7 Days</option>
           <option value="30DAYS">Last 30 Days</option>
-        </select>
+        </SearchableSelect>
         <ChevronDown size={14} className="ra-select-chevron" />
       </div>
 
       {/* Odometer Source Filter */}
       <div className="ra-select-wrap">
         <Gauge size={14} className="ra-select-icon" />
-        <select
+        <SearchableSelect
           value={odoFilter}
           onChange={(e) => setOdoFilter(e.target.value)}
           aria-label="Filter receipts by odometer source"
@@ -76,14 +77,14 @@ const ReceiptToolbar = ({
           <option value="TELEMATICS">📡 FleetEdge Auto</option>
           <option value="PHOTO">📸 Dash Photo OCR</option>
           <option value="MISSING">⚠️ Missing Odometer</option>
-        </select>
+        </SearchableSelect>
         <ChevronDown size={14} className="ra-select-chevron" />
       </div>
 
       {/* Anomaly / Quality Filter */}
       <div className="ra-select-wrap">
         <ShieldCheck size={14} className="ra-select-icon" />
-        <select
+        <SearchableSelect
           value={anomalyFilter}
           onChange={(e) => setAnomalyFilter(e.target.value)}
           aria-label="Filter receipts by AI extraction health"
@@ -91,7 +92,7 @@ const ReceiptToolbar = ({
           <option value="ALL">All AI Health</option>
           <option value="MATH_VERIFIED">✓ Math Verified</option>
           <option value="NEEDS_REVIEW">⚠️ Needs Review</option>
-        </select>
+        </SearchableSelect>
         <ChevronDown size={14} className="ra-select-chevron" />
       </div>
 

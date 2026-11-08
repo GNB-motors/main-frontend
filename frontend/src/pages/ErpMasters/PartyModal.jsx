@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { X } from 'lucide-react';
 
 const PartyModal = ({
@@ -86,7 +87,7 @@ const PartyModal = ({
 
             <div className="erp-field full">
               <label htmlFor="party-kam">Key Account Manager</label>
-              <select
+              <SearchableSelect
                 id="party-kam"
                 value={form.kamId}
                 onChange={(e) => setField('kamId', e.target.value)}
@@ -97,7 +98,7 @@ const PartyModal = ({
                     {kam.firstName} {kam.lastName}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
               <span className="erp-field-hint">
                 {kams.length === 0
                   ? 'No users with the KAM role yet — create one under Employees.'

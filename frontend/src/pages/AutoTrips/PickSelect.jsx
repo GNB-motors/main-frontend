@@ -1,23 +1,25 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { useId, useMemo } from 'react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-
 /**
  * A labelled select over {id, label} options; `noneLabel` adds an empty choice.
- * Base UI's trigger shows the raw value unless it is handed `items`, so the
- * labels go there too — and "nothing picked" is null, not a sentinel string.
+ * Uses the shared searchable control while keeping ids and optional empty choices.
  */
 export default function PickSelect({ label, value, onChange, options = [], noneLabel, disabled }) {
   const labelId = useId();
   const items = useMemo(
     () => [
-      ...(noneLabel ? [{ value: null, label: noneLabel }] : []),
-      ...options.map((o) => ({ value: o.id, label: o.label })),
+      ...(noneLabel
+        ? [
+            {
+              value: null,
+              label: noneLabel,
+            },
+          ]
+        : []),
+      ...options.map((o) => ({
+        value: o.id,
+        label: o.label,
+      })),
     ],
     [noneLabel, options],
   );
@@ -26,23 +28,25 @@ export default function PickSelect({ label, value, onChange, options = [], noneL
       <span className="atx-field-label" id={labelId}>
         {label}
       </span>
-      <Select
-        items={items}
+      <SearchableSelect
         value={value || null}
         onValueChange={(v) => onChange(v || '')}
         disabled={disabled}
+        className="h-9 w-full text-sm"
+        aria-labelledby={labelId}
+        placeholder={noneLabel || 'Pick one'}
       >
-        <SelectTrigger className="h-9 w-full text-sm" aria-labelledby={labelId}>
-          <SelectValue placeholder={noneLabel || 'Pick one'} />
-        </SelectTrigger>
-        <SelectContent align="start" className="w-auto max-w-[420px] min-w-(--anchor-width)">
-          {items.map((it) => (
-            <SelectItem key={it.value ?? ''} value={it.value}>
-              {it.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        {!noneLabel ? (
+          <option value="" disabled>
+            Pick one
+          </option>
+        ) : null}
+        {items.map((it) => (
+          <option key={it.value ?? ''} value={it.value}>
+            {it.label}
+          </option>
+        ))}
+      </SearchableSelect>
     </div>
   );
 }

@@ -1,7 +1,6 @@
-import React from 'react';
-import { ChevronDown } from 'lucide-react';
+import SearchableDropdown from '../SearchableDropdown/SearchableDropdown';
 
-const VehiclePicker = ({
+export default function VehiclePicker({
   uid,
   lockVehicle,
   selectedVehicle,
@@ -13,66 +12,37 @@ const VehiclePicker = ({
   setVehicleSearch,
   filteredVehicles,
   setSelectedVehicle,
-}) => {
-  if (lockVehicle) {
-    return (
-      <div className="dropdown-button disabled" style={{ cursor: 'default' }}>
-        <span>{selectedVehicle ? selectedVehicle.name : loadingVehicles ? 'Loading...' : '—'}</span>
-      </div>
-    );
-  }
+}) {
   return (
-    <div className="dropdown-wrapper" style={{ zIndex: showVehicleDropdown ? 200 : undefined }}>
-      <button
-        id={`${uid}-vehicle`}
-        type="button"
-        className={`dropdown-button ${loadingVehicles ? 'disabled' : ''}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          setShowVehicleDropdown(!showVehicleDropdown);
-          setShowDriverDropdown(false);
-        }}
-      >
+    <SearchableDropdown
+      bare
+      role="combobox"
+      id={`${uid}-vehicle`}
+      options={filteredVehicles}
+      selectedOption={selectedVehicle?.name || ''}
+      disabled={lockVehicle || loadingVehicles}
+      loading={loadingVehicles}
+      placeholder={loadingVehicles ? 'Loading…' : 'Choose vehicle…'}
+      open={showVehicleDropdown}
+      onOpenChange={(open) => {
+        setShowVehicleDropdown(open);
+        if (open) setShowDriverDropdown(false);
+      }}
+      searchValue={vehicleSearch}
+      onSearchChange={setVehicleSearch}
+      searchLabel="Search vehicle"
+      searchPlaceholder="Search vehicle…"
+      filterOptions={false}
+      isOptionSelected={(item) => item.id === selectedVehicle?.id}
+      renderOption={(item) => (
         <span>
-          {selectedVehicle
-            ? selectedVehicle.name
-            : loadingVehicles
-              ? 'Loading...'
-              : 'Choose vehicle...'}
+          {item.name}
+          {item.registration ? (
+            <small className="block text-xs text-slate-500">{item.registration}</small>
+          ) : null}
         </span>
-        <ChevronDown size={16} className={showVehicleDropdown ? 'rotated' : ''} />
-      </button>
-      {showVehicleDropdown && (
-        <div className="dropdown-menu">
-          <input
-            type="text"
-            aria-label="Search vehicle"
-            placeholder="Search vehicle..."
-            className="dropdown-search"
-            value={vehicleSearch}
-            onChange={(e) => setVehicleSearch(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-          />
-          <div className="dropdown-list">
-            {filteredVehicles.map((v) => (
-              <button
-                key={v.id}
-                type="button"
-                className={`dropdown-item ${selectedVehicle?.id === v.id ? 'selected' : ''}`}
-                onClick={() => {
-                  setSelectedVehicle(v);
-                  setShowVehicleDropdown(false);
-                }}
-              >
-                <div className="item-main">{v.name}</div>
-                <div className="item-sub">{v.registration}</div>
-              </button>
-            ))}
-          </div>
-        </div>
       )}
-    </div>
+      onSelect={setSelectedVehicle}
+    />
   );
-};
-
-export default VehiclePicker;
+}

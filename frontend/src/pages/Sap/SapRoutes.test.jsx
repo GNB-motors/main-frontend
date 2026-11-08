@@ -1,3 +1,4 @@
+import { changeField } from '@/test/changeField';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi, it, expect, beforeEach } from 'vitest';
@@ -69,7 +70,7 @@ it('lists routes with their usual km and SAP, compared on its basis', async () =
 it('filters on the server and starts again from page one', async () => {
   mount();
   await screen.findByText('DALMIA OCL → TARAKESHWAR');
-  fireEvent.change(screen.getByLabelText('SAP set'), { target: { value: 'nosap' } });
+  changeField(screen.getByLabelText('SAP set'), { target: { value: 'nosap' } });
   await waitFor(() =>
     expect(SapService.routes).toHaveBeenLastCalledWith(
       { page: 1, limit: 50, has: 'nosap' },
@@ -82,7 +83,7 @@ it('sets SAP on a route the trips found', async () => {
   mount();
   const bare = (await screen.findByText('DALMIA OCL → MAMUDPUR')).closest('tr');
   fireEvent.click(within(bare).getByRole('button', { name: /Set SAP/ }));
-  fireEvent.change(await screen.findByLabelText('SAP km'), { target: { value: '190' } });
+  changeField(await screen.findByLabelText('SAP km'), { target: { value: '190' } });
   fireEvent.click(screen.getByRole('button', { name: 'Save SAP' }));
   await waitFor(() =>
     expect(SapService.setRoute).toHaveBeenCalledWith(
@@ -97,6 +98,6 @@ it('a new route needs its two places before it can be saved', async () => {
   fireEvent.click(await screen.findByRole('button', { name: /New route/ }));
   expect(await screen.findByLabelText('Plant (loading place)')).toBeTruthy();
   expect(screen.getByLabelText('Drop (unloading place)')).toBeTruthy();
-  fireEvent.change(screen.getByLabelText('SAP km'), { target: { value: '90' } });
+  changeField(screen.getByLabelText('SAP km'), { target: { value: '90' } });
   expect(screen.getByRole('button', { name: 'Save SAP' }).disabled).toBe(true);
 });

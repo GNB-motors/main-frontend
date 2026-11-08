@@ -24,8 +24,10 @@ export function selectOptions(children, group = '', disabled = false) {
       options.push(...selectOptions(props.children, props.label, disabled || props.disabled));
     else if (child.type === 'option')
       options.push({
-        value: String(props.value ?? optionText(props.children)),
-        rawValue: props.value ?? '',
+        value: String(
+          Object.hasOwn(props, 'value') ? (props.value ?? '') : optionText(props.children),
+        ),
+        rawValue: Object.hasOwn(props, 'value') ? props.value : optionText(props.children),
         name: props.label || optionText(props.children),
         group,
         disabled: Boolean(disabled || props.disabled),

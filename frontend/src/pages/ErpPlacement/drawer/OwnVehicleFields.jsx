@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 const OwnVehicleFields = ({
   form,
   setField,
@@ -12,7 +13,7 @@ const OwnVehicleFields = ({
       <label htmlFor="pl-driver">
         Driver <span className="required">*</span>
       </label>
-      <select
+      <SearchableSelect
         id="pl-driver"
         value={form.driverId || ''}
         onChange={(e) => setField('driverId', e.target.value)}
@@ -24,7 +25,7 @@ const OwnVehicleFields = ({
             {d.firstName} {d.lastName}
           </option>
         ))}
-      </select>
+      </SearchableSelect>
       <span className="erp-field-hint">
         {drivers.length === 0
           ? 'No spare drivers at this location — every one is on a live placement.'

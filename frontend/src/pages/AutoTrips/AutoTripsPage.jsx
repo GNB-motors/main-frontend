@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -390,7 +391,7 @@ export default function AutoTripsPage() {
       {showSap && !planned && !viewTab ? (
         <label className="atx-tool atx-tool--select">
           SAP
-          <select
+          <SearchableSelect
             aria-label="SAP"
             value={searchParams.get('sapVerdict') || ''}
             onChange={(e) => {
@@ -406,7 +407,7 @@ export default function AutoTripsPage() {
             <option value="UNDER">Under SAP</option>
             <option value="WITHIN">Within</option>
             <option value="NO_SAP">No SAP</option>
-          </select>
+          </SearchableSelect>
         </label>
       ) : null}
       {!planned && !viewTab ? (

@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Search,
@@ -26,7 +27,10 @@ import {
   TableRow,
   TableCell,
 } from '@/components/ui/table';
-import KhataLedgerService, { ERP_DISABLED_MESSAGE, isErpDisabledError } from '../KhataLedgerService';
+import KhataLedgerService, {
+  ERP_DISABLED_MESSAGE,
+  isErpDisabledError,
+} from '../KhataLedgerService';
 import ErpTripDetailModal from './ErpTripDetailModal';
 import { useActiveBranch } from '../../../contexts/BranchContext';
 import logger from '../../../utils/logger.js';
@@ -169,9 +173,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
 
     // The trip endpoint has no driver filter, so narrow the loaded page here.
     if (driverFilter) {
-      result = result.filter(
-        (t) => String(t.driverId?._id || t.driverId) === String(driverFilter),
-      );
+      result = result.filter((t) => String(t.driverId?._id || t.driverId) === String(driverFilter));
     }
 
     // Sort
@@ -318,7 +320,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
             {/* Sort Dropdown */}
             <div className="flex items-center gap-2">
               <ArrowUpDown size={15} className="text-gray-400" />
-              <select
+              <SearchableSelect
                 aria-label="Sort trips"
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 bg-white"
                 value={sortBy}
@@ -329,7 +331,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
                     {opt.label}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
 
             {/* Toggle Filters button */}
@@ -360,7 +362,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
                 >
                   Trip Status
                 </label>
-                <select
+                <SearchableSelect
                   id="erp-filter-status"
                   className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs bg-white"
                   value={statusFilter}
@@ -372,7 +374,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
                   <option value="DISPATCHED">Dispatched</option>
                   <option value="DELIVERED">Delivered</option>
                   <option value="CLOSED">Closed</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>
@@ -382,7 +384,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
                 >
                   Profitability
                 </label>
-                <select
+                <SearchableSelect
                   id="erp-filter-profitability"
                   className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs bg-white"
                   value={profitabilityFilter}
@@ -392,7 +394,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
                   <option value="PROFITABLE">Profitable Only</option>
                   <option value="LOSS_MAKING">Loss-making Only</option>
                   <option value="UNBILLED">Unbilled (Revenue ₹0)</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>
@@ -402,7 +404,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
                 >
                   Vehicle
                 </label>
-                <select
+                <SearchableSelect
                   id="erp-filter-vehicle"
                   className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs bg-white"
                   value={vehicleFilter}
@@ -414,7 +416,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
                       {getVehicleLabel(v)}
                     </option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>
@@ -424,7 +426,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
                 >
                   Driver
                 </label>
-                <select
+                <SearchableSelect
                   id="erp-filter-driver"
                   className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs bg-white"
                   value={driverFilter}
@@ -436,7 +438,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
                       {getDriverName(d)}
                     </option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
 
               <div className="sm:col-span-4 flex justify-end">

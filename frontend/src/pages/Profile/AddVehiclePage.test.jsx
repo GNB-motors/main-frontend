@@ -1,3 +1,4 @@
+import { changeField } from '@/test/changeField';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
@@ -63,13 +64,13 @@ beforeEach(() => {
 });
 async function fillForm() {
   fireEvent.click(await screen.findByRole('radio', { name: 'Tata' }));
-  fireEvent.change(screen.getByLabelText('Registration number'), {
+  changeField(screen.getByLabelText('Registration number'), {
     target: { value: 'WB11F1234' },
   });
-  fireEvent.change(screen.getByLabelText('Chassis / VIN'), {
+  changeField(screen.getByLabelText('Chassis / VIN'), {
     target: { value: 'MAT12345678912345' },
   });
-  fireEvent.change(screen.getByLabelText('Model'), { target: { value: 'Signa' } });
+  changeField(screen.getByLabelText('Model'), { target: { value: 'Signa' } });
 }
 describe('Add Vehicle save flow', () => {
   it('retains a saved vehicle after account failure and retries assignment without duplicate create', async () => {
@@ -82,8 +83,8 @@ describe('Add Vehicle save flow', () => {
       </MemoryRouter>,
     );
     await fillForm();
-    await screen.findByRole('option', { name: 'Main account' });
-    fireEvent.change(screen.getByLabelText(/Account/), { target: { value: 'account1' } });
+    await waitFor(() => expect(screen.getByLabelText(/Account/)).not.toBeDisabled());
+    changeField(screen.getByLabelText(/Account/), { target: { value: 'account1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add vehicle' }));
     await screen.findByText(/Vehicle saved.*Account unavailable/);
     expect(VehicleService.addVehicle).toHaveBeenCalledTimes(1);
@@ -103,8 +104,8 @@ describe('Add Vehicle save flow', () => {
       </MemoryRouter>,
     );
     await fillForm();
-    await screen.findByRole('option', { name: 'Main account' });
-    fireEvent.change(screen.getByLabelText(/Account/), { target: { value: 'account1' } });
+    await waitFor(() => expect(screen.getByLabelText(/Account/)).not.toBeDisabled());
+    changeField(screen.getByLabelText(/Account/), { target: { value: 'account1' } });
     fireEvent.click(screen.getByRole('radio', { name: 'Ashok Leyland' }));
     expect(screen.getByLabelText(/Account/)).toHaveValue('');
     expect(screen.getByRole('status')).toHaveTextContent('Account cleared');
@@ -121,7 +122,7 @@ it('retains files on an upload failure and retries without creating another vehi
     </MemoryRouter>,
   );
   await fillForm();
-  fireEvent.change(screen.getByLabelText('RC file'), {
+  changeField(screen.getByLabelText('RC file'), {
     target: { files: [new File(['RC'], 'rc.pdf', { type: 'application/pdf' })] },
   });
   fireEvent.click(screen.getByRole('button', { name: 'Add vehicle' }));

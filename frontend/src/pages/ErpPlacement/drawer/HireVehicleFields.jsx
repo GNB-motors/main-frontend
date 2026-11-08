@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { AlertTriangle, Ban, CheckCircle2 } from 'lucide-react';
 
 const HireVehicleFields = ({
@@ -14,7 +15,7 @@ const HireVehicleFields = ({
       <label htmlFor="pl-vendor">
         Vendor <span className="required">*</span>
       </label>
-      <select
+      <SearchableSelect
         id="pl-vendor"
         value={form.vendorId || ''}
         onChange={(e) => setField('vendorId', e.target.value)}
@@ -26,7 +27,7 @@ const HireVehicleFields = ({
             {v.name} {v.code ? `(${v.code})` : ''}
           </option>
         ))}
-      </select>
+      </SearchableSelect>
     </div>
 
     <div className="erp-field">

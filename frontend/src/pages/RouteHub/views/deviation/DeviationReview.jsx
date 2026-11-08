@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { useState } from 'react';
 import Ico from '../../routeHubIcons.jsx';
 import { REVIEW_REASONS, isOpen, reasonLabel } from './deviationRules.js';
@@ -34,7 +35,7 @@ export default function DeviationReview({ event, busy, onReview }) {
   return (
     <div className="dev-review">
       <label className="field">
-        <select
+        <SearchableSelect
           aria-label="Why did the truck leave the usual route?"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
@@ -45,7 +46,7 @@ export default function DeviationReview({ event, busy, onReview }) {
               {r.label}
             </option>
           ))}
-        </select>
+        </SearchableSelect>
       </label>
       <label className="field grow">
         <input

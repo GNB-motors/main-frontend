@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { toRefuelLocal } from './fuelLogFormLogic';
 
 export default function FuelFields({ uid, formData, handleFormChange }) {
@@ -19,7 +20,7 @@ export default function FuelFields({ uid, formData, handleFormChange }) {
         </div>
         <div className="mileage-form-group">
           <label htmlFor={`${uid}-filling-type`}>Tank full after filling? *</label>
-          <select
+          <SearchableSelect
             id={`${uid}-filling-type`}
             name="fillingType"
             value={formData.fillingType}
@@ -31,7 +32,7 @@ export default function FuelFields({ uid, formData, handleFormChange }) {
             </option>
             <option value="FULL_TANK">Yes — full tank</option>
             <option value="PARTIAL">No — partial fill</option>
-          </select>
+          </SearchableSelect>
         </div>
       </div>
       <div className="mileage-form-row">

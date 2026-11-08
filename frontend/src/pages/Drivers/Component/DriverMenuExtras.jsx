@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 // Filter dropdown + portal action menu. Split from driversComponents.jsx (WS0.7); markup preserved.
 import { createPortal } from 'react-dom';
 import { X, ToggleRight, ToggleLeft, Trash2, Edit } from 'lucide-react';
@@ -54,7 +55,7 @@ export const FilterDropdown = ({
             Role
             {filters.role && <span className="drivers-filter-indicator"></span>}
           </label>
-          <select
+          <SearchableSelect
             value={tempFilters.role}
             onChange={(e) => onFilterChange('role', e.target.value)}
             disabled={isLoading}
@@ -65,7 +66,7 @@ export const FilterDropdown = ({
                 {option.label}
               </option>
             ))}
-          </select>
+          </SearchableSelect>
         </div>
 
         {/* Vehicle Assignment Filter */}
@@ -74,7 +75,7 @@ export const FilterDropdown = ({
             Vehicle Assignment
             {filters.vehicleAssignment && <span className="drivers-filter-indicator"></span>}
           </label>
-          <select
+          <SearchableSelect
             value={tempFilters.vehicleAssignment}
             onChange={(e) => onFilterChange('vehicleAssignment', e.target.value)}
             disabled={isLoading}
@@ -85,7 +86,7 @@ export const FilterDropdown = ({
                 {option.label}
               </option>
             ))}
-          </select>
+          </SearchableSelect>
         </div>
       </div>
 

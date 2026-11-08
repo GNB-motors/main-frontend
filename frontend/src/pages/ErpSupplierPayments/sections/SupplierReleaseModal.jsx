@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React from 'react';
 
 function SupplierReleaseModal({
@@ -14,7 +15,7 @@ function SupplierReleaseModal({
         <h3>Release {releaseTarget.paymentNumber}</h3>
         <label>
           Mode
-          <select
+          <SearchableSelect
             value={releaseForm.paymentMode}
             onChange={(e) => setReleaseForm({ ...releaseForm, paymentMode: e.target.value })}
           >
@@ -23,7 +24,7 @@ function SupplierReleaseModal({
                 {m}
               </option>
             ))}
-          </select>
+          </SearchableSelect>
         </label>
         <label>
           Instrument no

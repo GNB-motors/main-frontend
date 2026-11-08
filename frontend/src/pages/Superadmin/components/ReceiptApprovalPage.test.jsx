@@ -1,3 +1,4 @@
+import { changeField } from '@/test/changeField';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import React from 'react';
@@ -103,13 +104,12 @@ describe('ReceiptApprovalPage', () => {
     expect(await screen.findByText('WB01AA1111')).toBeInTheDocument();
     expect(listParams()[0]).toEqual({ status: 'READY', page: 1, limit: 50, order: 'desc' });
 
-    fireEvent.change(
-      screen.getByLabelText('Search receipts by vehicle, driver, station, or plate'),
-      { target: { value: 'WB01' } },
-    );
+    changeField(screen.getByLabelText('Search receipts by vehicle, driver, station, or plate'), {
+      target: { value: 'WB01' },
+    });
     await waitFor(() => expect(listParams().at(-1)).toMatchObject({ q: 'WB01', page: 1 }));
 
-    fireEvent.change(screen.getByLabelText('Filter receipts by odometer source'), {
+    changeField(screen.getByLabelText('Filter receipts by odometer source'), {
       target: { value: 'MISSING' },
     });
     await waitFor(() =>
@@ -132,7 +132,7 @@ describe('ReceiptApprovalPage', () => {
     expect(await screen.findByText('WB02PG0000')).toBeInTheDocument();
     expect(listParams().at(-1)).toMatchObject({ page: 2 });
 
-    fireEvent.change(screen.getByLabelText('Filter receipts by odometer source'), {
+    changeField(screen.getByLabelText('Filter receipts by odometer source'), {
       target: { value: 'PHOTO' },
     });
     await waitFor(() => expect(listParams().at(-1)).toMatchObject({ page: 1, odometer: 'PHOTO' }));
@@ -182,7 +182,7 @@ describe('ReceiptApprovalPage', () => {
     await waitFor(() => expect(screen.getByText('WB02BB2222')).toBeInTheDocument());
     const requests = listParams().length;
 
-    fireEvent.change(screen.getByLabelText('Filter receipts by odometer source'), {
+    changeField(screen.getByLabelText('Filter receipts by odometer source'), {
       target: { value: 'MISSING' },
     });
     await waitFor(() => {

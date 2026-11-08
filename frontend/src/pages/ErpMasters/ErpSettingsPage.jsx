@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 /**
  * ERP Settings (ISOCL ERP)
  *
@@ -154,7 +155,7 @@ const ErpSettingsPage = () => {
 
             <div className="erp-field full">
               <label htmlFor="set-direction">Margin rule direction</label>
-              <select
+              <SearchableSelect
                 id="set-direction"
                 value={form.sbPbGapDirection || 'MARGIN_ABOVE'}
                 onChange={(e) => setField('sbPbGapDirection', e.target.value)}
@@ -165,7 +166,7 @@ const ErpSettingsPage = () => {
                 <option value="MARGIN_BELOW">
                   Approve when margin is BELOW the threshold (thin or negative margin)
                 </option>
-              </select>
+              </SearchableSelect>
               <span className="erp-field-hint">
                 <SlidersHorizontal size={12} style={{ verticalAlign: 'middle' }} /> Ask the client
                 which they meant — this is question A3 on the register.

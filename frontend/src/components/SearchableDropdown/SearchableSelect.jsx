@@ -1,6 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
+import { Children, cloneElement, isValidElement, useEffect, useRef, useState } from 'react';
 import SearchableDropdown from './SearchableDropdown';
 import { selectOptions } from './dropdownOptions';
+
+function nativeOptions(children) {
+  return Children.map(children, (child) => {
+    if (!isValidElement(child)) return child;
+    if (child.type === 'option') {
+      return Object.hasOwn(child.props, 'value') && child.props.value == null
+        ? cloneElement(child, { value: '' })
+        : child;
+    }
+    return child.props.children
+      ? cloneElement(child, {}, nativeOptions(child.props.children))
+      : child;
+  });
+}
 
 /** Native form values and events stay intact while the visible picker is shared. */
 export default function SearchableSelect({
@@ -30,7 +44,7 @@ export default function SearchableSelect({
   const current = value === undefined ? localValue : value;
   const selected =
     options.find((option) => option.value === String(current ?? '')) ||
-    options.find((option) => !option.disabled);
+    (value === undefined ? options.find((option) => !option.disabled) : null);
   useEffect(() => {
     const form = native.current?.form;
     const reset = () =>
@@ -46,8 +60,10 @@ export default function SearchableSelect({
     setLocalValue(next);
     setValidation('');
     onChange?.(event);
-    if (onValueChange)
-      onValueChange(options.find((option) => option.value === next)?.rawValue ?? next);
+    if (onValueChange) {
+      const option = options.find((item) => item.value === next);
+      onValueChange(option ? option.rawValue : next);
+    }
   };
   return (
     <>
@@ -57,7 +73,8 @@ export default function SearchableSelect({
         selectedOption={selected?.name || ''}
         id={id}
         role="combobox"
-        name={undefined}
+        name={name}
+        value={String(current ?? '')}
         disabled={disabled}
         aria-required={required || undefined}
         aria-invalid={validation ? true : props['aria-invalid']}
@@ -99,7 +116,7 @@ export default function SearchableSelect({
           trigger.current?.focus();
         }}
       >
-        {children}
+        {nativeOptions(children)}
       </select>
     </>
   );

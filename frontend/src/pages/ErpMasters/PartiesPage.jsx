@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 /**
  * Party Master (ISOCL ERP)
  *
@@ -206,11 +207,11 @@ const PartiesPage = () => {
             onChange={handleSearch}
           />
         </div>
-        <select className="erp-filter" value={statusFilter} onChange={handleStatusFilter}>
+        <SearchableSelect className="erp-filter" value={statusFilter} onChange={handleStatusFilter}>
           <option value="">All statuses</option>
           <option value="ACTIVE">Active</option>
           <option value="INACTIVE">Inactive</option>
-        </select>
+        </SearchableSelect>
       </div>
 
       <div className="erp-container">

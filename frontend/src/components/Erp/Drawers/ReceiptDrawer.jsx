@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState, useEffect, useId } from 'react';
 import { toast } from 'react-toastify';
 import ErpDrawer from '../ErpDrawer';
@@ -112,7 +113,7 @@ const ReceiptDrawer = ({ isOpen, onClose, bill = null, party = null, onSuccess }
             <label htmlFor={`${uid}-payment-mode`}>
               Payment Mode <span className="required">*</span>
             </label>
-            <select
+            <SearchableSelect
               id={`${uid}-payment-mode`}
               value={paymentMode}
               onChange={(e) => setPaymentMode(e.target.value)}
@@ -121,7 +122,7 @@ const ReceiptDrawer = ({ isOpen, onClose, bill = null, party = null, onSuccess }
               <option value="CHEQUE">Cheque</option>
               <option value="CASH">Cash</option>
               <option value="UPI">UPI</option>
-            </select>
+            </SearchableSelect>
           </div>
 
           <div className="erp-field">

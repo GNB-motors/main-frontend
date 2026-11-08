@@ -1,3 +1,4 @@
+import { changeField } from '@/test/changeField';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import FuelLogForm from './FuelLogForm';
@@ -36,8 +37,7 @@ async function openForm(props = {}) {
   await screen.findByText('Vinod');
   return screen.getByRole('button', { name: /Save diesel fill|Submit Fuel Log/ }).closest('form');
 }
-const change = (label, value) =>
-  fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const change = (label, value) => changeField(screen.getByLabelText(label), { target: { value } });
 
 describe('manual diesel entry', () => {
   beforeEach(() => {
@@ -54,7 +54,7 @@ describe('manual diesel entry', () => {
     expect(screen.getByRole('region', { name: 'Bill photo' })).toBeVisible();
     expect(screen.queryByText('Add a bill or odometer photo (optional)')).not.toBeInTheDocument();
     const receipt = new File(['bill'], 'diesel-bill.jpg', { type: 'image/jpeg' });
-    fireEvent.change(screen.getByLabelText('Upload fuel slip'), { target: { files: [receipt] } });
+    changeField(screen.getByLabelText('Upload fuel slip'), { target: { files: [receipt] } });
     await waitFor(() => expect(screen.getByLabelText('Litres')).toHaveValue(85));
     change(/Tank full after filling/, 'PARTIAL');
     fireEvent.submit(form);
@@ -124,7 +124,7 @@ describe('manual diesel entry', () => {
     );
     await openForm();
     fireEvent.click(screen.getByText('Add a bill or odometer photo (optional)'));
-    fireEvent.change(screen.getByLabelText('Upload fuel slip'), {
+    changeField(screen.getByLabelText('Upload fuel slip'), {
       target: { files: [new File(['bill'], 'bill.jpg', { type: 'image/jpeg' })] },
     });
     change(/Refuelling date and time/, '2026-10-31T10:15');
@@ -145,7 +145,7 @@ describe('manual diesel entry', () => {
     );
     await openForm();
     fireEvent.click(screen.getByText('Add a bill or odometer photo (optional)'));
-    fireEvent.change(screen.getByLabelText('Upload fuel slip'), {
+    changeField(screen.getByLabelText('Upload fuel slip'), {
       target: { files: [new File(['bill'], 'bill.jpg', { type: 'image/jpeg' })] },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Remove fuel slip' }));

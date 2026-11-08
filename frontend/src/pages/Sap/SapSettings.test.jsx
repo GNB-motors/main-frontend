@@ -1,3 +1,4 @@
+import { changeField } from '@/test/changeField';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, it, expect, beforeEach } from 'vitest';
 import SapSettings from './SapSettings';
@@ -62,7 +63,7 @@ it('a sheet becomes proposals; only the chosen ones are saved, with their basis'
   const file = Object.assign(new File([csv], 'lanes.csv', { type: 'text/csv' }), {
     text: async () => csv,
   });
-  fireEvent.change(await screen.findByLabelText('Sheet file'), { target: { files: [file] } });
+  changeField(await screen.findByLabelText('Sheet file'), { target: { files: [file] } });
   await waitFor(() =>
     expect(SapService.importPreview.mock.calls[0][0]).toEqual({
       csv: 'FROM,TO,SAP\nOCL,TARAKESHWAR,280\n',
@@ -71,10 +72,10 @@ it('a sheet becomes proposals; only the chosen ones are saved, with their basis'
   expect(await screen.findByText(/places found for 1 · 1 need places/)).toBeTruthy();
   expect(SapService.importApply).not.toHaveBeenCalled();
 
-  fireEvent.change(screen.getByLabelText('SAP km for OCL -> TARAKESHWAR'), {
+  changeField(screen.getByLabelText('SAP km for OCL -> TARAKESHWAR'), {
     target: { value: '560' },
   });
-  fireEvent.change(screen.getByLabelText('Basis for OCL -> TARAKESHWAR'), {
+  changeField(screen.getByLabelText('Basis for OCL -> TARAKESHWAR'), {
     target: { value: 'ROUND_TRIP' },
   });
   fireEvent.click(screen.getByRole('button', { name: 'Save 1 route SAPs' }));
@@ -115,9 +116,9 @@ it('a lane without places cannot be used until it has them', async () => {
 
 it('saves the comparison settings and the two route rules', async () => {
   render(<SapSettings />);
-  fireEvent.change(await screen.findByLabelText('Tolerance (%)'), { target: { value: '15' } });
-  fireEvent.change(screen.getByLabelText('Routes'), { target: { value: 'UNDIRECTED' } });
-  fireEvent.change(screen.getByLabelText('One way or round trip'), { target: { value: 'AUTO' } });
+  changeField(await screen.findByLabelText('Tolerance (%)'), { target: { value: '15' } });
+  changeField(screen.getByLabelText('Routes'), { target: { value: 'UNDIRECTED' } });
+  changeField(screen.getByLabelText('One way or round trip'), { target: { value: 'AUTO' } });
   fireEvent.click(screen.getByRole('button', { name: 'Save settings' }));
   await waitFor(() =>
     expect(SapService.saveSettings.mock.calls[0][0]).toEqual({

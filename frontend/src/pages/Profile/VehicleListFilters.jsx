@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { SlidersHorizontal } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover';
 import './VehicleListFilters.css';
@@ -26,7 +27,7 @@ export default function VehicleListFilters({
         <PopoverTitle>Vehicle filters</PopoverTitle>
         <div className="vehicle-list-filter-field">
           <label htmlFor="vehicle-list-view">Fleet view</label>
-          <select
+          <SearchableSelect
             id="vehicle-list-view"
             value={view}
             onChange={(event) => onViewChange(event.target.value)}
@@ -36,13 +37,13 @@ export default function VehicleListFilters({
             <option value="UNASSIGNED">Unassigned</option>
             <option value="FLEETEDGE">Account linked</option>
             <option value="RELINK">Needs reconnect</option>
-          </select>
+          </SearchableSelect>
           {view === 'ACTIVE' && <small>Vehicles active in the current location.</small>}
           {view === 'UNASSIGNED' && <small>Vehicles without an active driver assignment.</small>}
         </div>
         <div className="vehicle-list-filter-field">
           <label htmlFor="vehicle-table-manufacturer">Manufacturer</label>
-          <select
+          <SearchableSelect
             id="vehicle-table-manufacturer"
             value={manufacturer}
             onChange={(event) => onManufacturerChange(event.target.value)}
@@ -53,7 +54,7 @@ export default function VehicleListFilters({
                 {item.label}
               </option>
             ))}
-          </select>
+          </SearchableSelect>
         </div>
         {metadataError && (
           <button type="button" className="vehicle-list-filter-reset" onClick={retryMetadata}>

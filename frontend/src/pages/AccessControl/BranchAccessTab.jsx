@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Shield, Building2, MapPin, Plus, Trash2 } from 'lucide-react';
@@ -212,7 +213,7 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
             </strong>
           </span>
         ) : branches.length > 0 ? (
-          <select
+          <SearchableSelect
             className="rbac-select"
             value={branchId}
             onChange={(e) => setBranchId(e.target.value)}
@@ -222,7 +223,7 @@ const BranchAccessTab = ({ initialBranchId = '', lockedBranchName = '' }) => {
                 {b.name}
               </option>
             ))}
-          </select>
+          </SearchableSelect>
         ) : null}
       </div>
 

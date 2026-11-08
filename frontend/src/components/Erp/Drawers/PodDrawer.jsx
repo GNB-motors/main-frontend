@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState, useEffect, useId } from 'react';
 import { Upload, CheckCircle2 } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -116,21 +117,21 @@ const PodDrawer = ({ isOpen, onClose, trip = null, onSuccess }) => {
             <label htmlFor={`${uid}-copy-type`}>
               Copy type <span className="required">*</span>
             </label>
-            <select
+            <SearchableSelect
               id={`${uid}-copy-type`}
               value={form.copyType}
               onChange={(e) => setForm({ ...form, copyType: e.target.value })}
             >
               <option value="HARD">Original hard copy</option>
               <option value="SOFT">Soft copy (Scan/WhatsApp)</option>
-            </select>
+            </SearchableSelect>
           </div>
 
           <div className="erp-field">
             <label htmlFor={`${uid}-received-via`}>
               Received via <span className="required">*</span>
             </label>
-            <select
+            <SearchableSelect
               id={`${uid}-received-via`}
               value={form.receivedVia}
               onChange={(e) => setForm({ ...form, receivedVia: e.target.value })}
@@ -139,7 +140,7 @@ const PodDrawer = ({ isOpen, onClose, trip = null, onSuccess }) => {
               <option value="COURIER">Courier</option>
               <option value="EMAIL">Email</option>
               <option value="WHATSAPP">WhatsApp</option>
-            </select>
+            </SearchableSelect>
           </div>
 
           {form.receivedVia === 'COURIER' && (

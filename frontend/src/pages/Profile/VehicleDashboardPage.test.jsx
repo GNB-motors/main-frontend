@@ -1,3 +1,4 @@
+import { changeField } from '@/test/changeField';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
@@ -84,7 +85,7 @@ describe('VehicleDashboardPage — Document Dropdown Filter', () => {
     await waitFor(() => expect(screen.getByText('UP14BT1001')).toBeInTheDocument());
 
     const select = screen.getByLabelText(/Document Filter/i);
-    fireEvent.change(select, { target: { value: 'EXPIRING_SOON' } });
+    changeField(select, { target: { value: 'EXPIRING_SOON' } });
 
     // Only veh-2 should be visible
     expect(screen.getByText('UP14BT2002')).toBeInTheDocument();
@@ -102,7 +103,7 @@ describe('VehicleDashboardPage — Document Dropdown Filter', () => {
     await waitFor(() => expect(screen.getByText('UP14BT1001')).toBeInTheDocument());
 
     const select = screen.getByLabelText(/Document Filter/i);
-    fireEvent.change(select, { target: { value: 'EXPIRED_ANY' } });
+    changeField(select, { target: { value: 'EXPIRED_ANY' } });
 
     // Only veh-1 should be visible
     expect(screen.getByText('UP14BT1001')).toBeInTheDocument();

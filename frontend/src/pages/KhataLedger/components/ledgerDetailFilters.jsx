@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import {
   CATEGORIES,
   CATEGORY_LABELS,
@@ -24,7 +25,7 @@ export const LedgerFilterSelects = ({
   <>
     <label className="fbar-field">
       <span>Category</span>
-      <select
+      <SearchableSelect
         className="fbar-select"
         value={category}
         onChange={(e) => onCategoryChange(e.target.value)}
@@ -35,11 +36,11 @@ export const LedgerFilterSelects = ({
             {CATEGORY_LABELS[c]}
           </option>
         ))}
-      </select>
+      </SearchableSelect>
     </label>
     <label className="fbar-field">
       <span>Source</span>
-      <select
+      <SearchableSelect
         className="fbar-select"
         value={source}
         onChange={(e) => onSourceChange(e.target.value)}
@@ -50,11 +51,11 @@ export const LedgerFilterSelects = ({
             {SOURCE_LABELS[s]}
           </option>
         ))}
-      </select>
+      </SearchableSelect>
     </label>
     <label className="fbar-field">
       <span>{isDriver ? 'Vehicle' : 'Driver'}</span>
-      <select
+      <SearchableSelect
         className="fbar-select"
         value={crossFilterId}
         onChange={(e) => onCrossFilterChange(e.target.value)}
@@ -65,7 +66,7 @@ export const LedgerFilterSelects = ({
             {isDriver ? getVehicleLabel(opt) : getDriverName(opt)}
           </option>
         ))}
-      </select>
+      </SearchableSelect>
     </label>
   </>
 );

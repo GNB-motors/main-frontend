@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   TrendingUp,
@@ -15,7 +16,10 @@ import {
   RotateCcw,
   Calendar,
 } from 'lucide-react';
-import KhataLedgerService, { ERP_DISABLED_MESSAGE, isErpDisabledError } from '../KhataLedgerService';
+import KhataLedgerService, {
+  ERP_DISABLED_MESSAGE,
+  isErpDisabledError,
+} from '../KhataLedgerService';
 import { Badge } from '@/components/ui/badge';
 import ErpTripDetailModal from './ErpTripDetailModal';
 import KhataKpiGrid from './KhataKpiGrid';
@@ -404,7 +408,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
               >
                 Vehicle
               </label>
-              <select
+              <SearchableSelect
                 id="kdt-filter-vehicle"
                 className="w-full rounded-md border border-gray-300 px-2 py-1 bg-white text-xs"
                 value={vehicleId}
@@ -416,7 +420,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
                     {getVehicleLabel(v)}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
 
             {/* Driver */}
@@ -427,7 +431,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
               >
                 Driver
               </label>
-              <select
+              <SearchableSelect
                 id="kdt-filter-driver"
                 className="w-full rounded-md border border-gray-300 px-2 py-1 bg-white text-xs"
                 value={driverId}
@@ -439,7 +443,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
                     {getDriverName(d)}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
 
             {/* Category */}
@@ -450,7 +454,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
               >
                 Category
               </label>
-              <select
+              <SearchableSelect
                 id="kdt-filter-category"
                 className="w-full rounded-md border border-gray-300 px-2 py-1 bg-white text-xs"
                 value={category}
@@ -462,7 +466,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
                     {CATEGORY_LABELS[c]}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
 
             {/* Source */}
@@ -473,7 +477,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
               >
                 Source
               </label>
-              <select
+              <SearchableSelect
                 id="kdt-filter-source"
                 className="w-full rounded-md border border-gray-300 px-2 py-1 bg-white text-xs"
                 value={source}
@@ -484,7 +488,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
                 <option value="FUEL">Fuel Refill</option>
                 <option value="MAINTENANCE">Maintenance</option>
                 <option value="TRIP">Trip Generated</option>
-              </select>
+              </SearchableSelect>
             </div>
 
             {/* Status */}
@@ -495,7 +499,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
               >
                 Status
               </label>
-              <select
+              <SearchableSelect
                 id="kdt-filter-status"
                 className="w-full rounded-md border border-gray-300 px-2 py-1 bg-white text-xs"
                 value={status}
@@ -505,7 +509,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
                 <option value="CONFIRMED">Confirmed / Approved</option>
                 <option value="PENDING">Pending Review</option>
                 <option value="REJECTED">Rejected</option>
-              </select>
+              </SearchableSelect>
             </div>
           </div>
         )}
@@ -567,16 +571,18 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
               {
                 label: 'Net Profit',
                 icon: kpis.totalProfit < 0 ? TrendingDown : TrendingUp,
-                value: noExpenseRecords && !erpTrips.length
-                  ? '—'
-                  : completeFinances
-                    ? formatCurrency(kpis.totalProfit)
-                    : 'Unavailable',
-                sub: noExpenseRecords && !erpTrips.length
-                  ? NO_RECORDS
-                  : completeFinances
-                    ? 'Revenue minus all expenses'
-                    : 'Some trip finances are unavailable',
+                value:
+                  noExpenseRecords && !erpTrips.length
+                    ? '—'
+                    : completeFinances
+                      ? formatCurrency(kpis.totalProfit)
+                      : 'Unavailable',
+                sub:
+                  noExpenseRecords && !erpTrips.length
+                    ? NO_RECORDS
+                    : completeFinances
+                      ? 'Revenue minus all expenses'
+                      : 'Some trip finances are unavailable',
                 status:
                   noExpenseRecords && !erpTrips.length
                     ? null

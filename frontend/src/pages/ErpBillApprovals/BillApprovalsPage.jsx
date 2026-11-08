@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 /**
  * Driver Bill Approvals (web)
  *
@@ -113,7 +114,7 @@ const BillApprovalsPage = () => {
   return (
     <PageShell title="Bill Approvals" subtitle={pendingText}>
       <div className="erp-toolbar">
-        <select
+        <SearchableSelect
           className="erp-filter"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
@@ -122,7 +123,7 @@ const BillApprovalsPage = () => {
           <option value="CONFIRMED">Confirmed</option>
           <option value="REJECTED">Rejected</option>
           <option value="">All</option>
-        </select>
+        </SearchableSelect>
       </div>
 
       <div className="erp-container">

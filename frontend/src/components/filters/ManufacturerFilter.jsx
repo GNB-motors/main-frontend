@@ -1,8 +1,7 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { useEffect, useId, useState } from 'react';
 import { getManufacturerCatalog } from '../../services/manufacturerService';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import './ManufacturerFilter.css';
-
 export default function ManufacturerFilter({ value = '', onChange }) {
   const id = useId();
   const [options, setOptions] = useState([]);
@@ -26,31 +25,37 @@ export default function ManufacturerFilter({ value = '', onChange }) {
     };
   }, [attempt]);
   const items = [
-    { value: null, label: 'All manufacturers' },
+    {
+      value: null,
+      label: 'All manufacturers',
+    },
     ...(value && !options.some((item) => item.value === value)
-      ? [{ value, label: value === 'UNKNOWN' ? 'Unclassified (current filter)' : value }]
+      ? [
+          {
+            value,
+            label: value === 'UNKNOWN' ? 'Unclassified (current filter)' : value,
+          },
+        ]
       : []),
     ...options,
   ];
   return (
     <div className="manufacturer-filter">
       <label htmlFor={id}>Manufacturer</label>
-      <Select items={items} value={value || null} onValueChange={(next) => onChange(next || '')}>
-        <SelectTrigger
-          id={id}
-          className="manufacturer-filter-trigger"
-          aria-busy={state === 'loading'}
-        >
-          <SelectValue placeholder="All manufacturers" />
-        </SelectTrigger>
-        <SelectContent align="start">
-          {items.map((item) => (
-            <SelectItem key={item.value ?? 'all'} value={item.value}>
-              {item.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <SearchableSelect
+        value={value || null}
+        onValueChange={(next) => onChange(next || '')}
+        id={id}
+        className="manufacturer-filter-trigger"
+        aria-busy={state === 'loading'}
+        placeholder="All manufacturers"
+      >
+        {items.map((item) => (
+          <option key={item.value ?? 'all'} value={item.value}>
+            {item.label}
+          </option>
+        ))}
+      </SearchableSelect>
       {state === 'loading' ? <small role="status">Loading manufacturers…</small> : null}
       {state === 'error' ? (
         <small role="status">

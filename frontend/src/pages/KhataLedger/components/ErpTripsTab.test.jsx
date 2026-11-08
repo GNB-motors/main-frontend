@@ -1,3 +1,4 @@
+import { changeField } from '@/test/changeField';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ErpTripsTab from './ErpTripsTab';
@@ -58,7 +59,7 @@ describe('ERP trips tab', () => {
     render(<ErpTripsTab drivers={[{ _id: 'driver-a', firstName: 'Ravi' }]} />);
     expect(await screen.findByText('TRIP-1')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /^filters$/i }));
-    fireEvent.change(screen.getByLabelText('Driver'), { target: { value: 'driver-a' } });
+    changeField(screen.getByLabelText('Driver'), { target: { value: 'driver-a' } });
     await waitFor(() => expect(screen.queryByText('TRIP-2')).not.toBeInTheDocument());
     expect(screen.getByText('TRIP-1')).toBeInTheDocument();
   });

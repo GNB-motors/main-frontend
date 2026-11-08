@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { X, Info } from 'lucide-react';
 import UNITS from './rateUnits';
 
@@ -32,7 +33,7 @@ const RateModal = ({ setShowModal, handleSubmit, form, setField, parties, routes
               <label htmlFor="rate-party">
                 Party <span className="required">*</span>
               </label>
-              <select
+              <SearchableSelect
                 id="rate-party"
                 value={form.partyId}
                 onChange={(e) => setField('partyId', e.target.value)}
@@ -44,14 +45,14 @@ const RateModal = ({ setShowModal, handleSubmit, form, setField, parties, routes
                     {p.name} ({p.code})
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
 
             <div className="erp-field full">
               <label htmlFor="rate-route">
                 Route <span className="required">*</span>
               </label>
-              <select
+              <SearchableSelect
                 id="rate-route"
                 value={form.routeId}
                 onChange={(e) => setField('routeId', e.target.value)}
@@ -63,7 +64,7 @@ const RateModal = ({ setShowModal, handleSubmit, form, setField, parties, routes
                     {r.name}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
               {routes.length === 0 && (
                 <span className="erp-field-hint">No routes yet — add one under Routes first.</span>
               )}
@@ -118,7 +119,7 @@ const RateModal = ({ setShowModal, handleSubmit, form, setField, parties, routes
               <label htmlFor="rate-unit">
                 Unit <span className="required">*</span>
               </label>
-              <select
+              <SearchableSelect
                 id="rate-unit"
                 value={form.unit}
                 onChange={(e) => setField('unit', e.target.value)}
@@ -128,7 +129,7 @@ const RateModal = ({ setShowModal, handleSubmit, form, setField, parties, routes
                     {u.label}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
           </div>
         </div>

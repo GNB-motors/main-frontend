@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { useState } from 'react';
 import { MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -72,7 +73,7 @@ export default function PlaceQuestionCard({ question, canAnswer = true, onAnswer
                 onChange={(event) => setName(event.target.value)}
                 className="rounded-[var(--rd-radius-sm)] border border-[var(--rd-line)] bg-[var(--rd-card)] px-2 py-1 text-[13px] text-[var(--rd-ink)]"
               />
-              <select
+              <SearchableSelect
                 aria-label="Category"
                 value={category}
                 onChange={(event) => setCategory(event.target.value)}
@@ -83,7 +84,7 @@ export default function PlaceQuestionCard({ question, canAnswer = true, onAnswer
                     {item}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
               <button
                 type="button"
                 disabled={busy || !name.trim()}

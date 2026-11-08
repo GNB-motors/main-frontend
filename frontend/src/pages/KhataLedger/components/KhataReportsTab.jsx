@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   FileSpreadsheet,
@@ -116,7 +117,9 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
         ? expRes
         : expRes.results || expRes.data || (Array.isArray(expRes) ? expRes : []);
       const loadedTrips = (
-        tripRes.data || tripRes.results || (Array.isArray(tripRes) ? tripRes : [])
+        tripRes.data ||
+        tripRes.results ||
+        (Array.isArray(tripRes) ? tripRes : [])
       ).filter((t) => !driverId || String(t.driverId?._id || t.driverId) === String(driverId));
 
       setExpenses(loadedExpenses);
@@ -510,7 +513,7 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
               <label htmlFor="krt-filter-vehicle" className="block text-gray-500 font-medium mb-1">
                 Vehicle
               </label>
-              <select
+              <SearchableSelect
                 id="krt-filter-vehicle"
                 className="w-full rounded-md border border-gray-300 px-2 py-1.5 bg-white"
                 value={vehicleId}
@@ -522,13 +525,13 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
                     {getVehicleLabel(v)}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
             <div>
               <label htmlFor="krt-filter-driver" className="block text-gray-500 font-medium mb-1">
                 Driver
               </label>
-              <select
+              <SearchableSelect
                 id="krt-filter-driver"
                 className="w-full rounded-md border border-gray-300 px-2 py-1.5 bg-white"
                 value={driverId}
@@ -540,13 +543,13 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
                     {getDriverName(d)}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
             <div>
               <label htmlFor="krt-filter-category" className="block text-gray-500 font-medium mb-1">
                 Category
               </label>
-              <select
+              <SearchableSelect
                 id="krt-filter-category"
                 className="w-full rounded-md border border-gray-300 px-2 py-1.5 bg-white"
                 value={category}
@@ -558,7 +561,7 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
                     {CATEGORY_LABELS[cat] || cat}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
           </div>
         </CardContent>

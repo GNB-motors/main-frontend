@@ -1,6 +1,7 @@
+import { changeField } from '@/test/changeField';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 
 vi.mock('../../../services/RoadService', () => ({
   default: { getEngineStatus: vi.fn(), getCongestion: vi.fn() },
@@ -86,7 +87,7 @@ describe('Route Hub Intelligence tab (plan P5.6; maths R22)', () => {
     await waitFor(() => expect(RoadService.getCongestion).toHaveBeenCalledTimes(1));
     const oldSignal = RoadService.getCongestion.mock.calls[0][1];
     const select = screen.getByLabelText('Hour (IST)');
-    fireEvent.change(select, { target: { value: String((Number(select.value) + 1) % 168) } });
+    changeField(select, { target: { value: String((Number(select.value) + 1) % 168) } });
     expect(await screen.findByText(/secondary/i)).toBeInTheDocument();
     await act(async () => finishFirst({ rows: [{ edgeKey: 'old', roadClass: 'motorway' }] }));
     expect(oldSignal.aborted).toBe(true);

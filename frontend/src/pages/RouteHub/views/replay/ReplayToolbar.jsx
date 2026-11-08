@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import Ico from '../../routeHubIcons.jsx';
 import { Seg } from '../../routeHubShared.jsx';
 import { dkey } from '../../routeHubFormat';
@@ -66,7 +67,7 @@ export default function ReplayToolbar({
           <>
             <span className="lbl">Trip</span>
             <label className="field">
-              <select
+              <SearchableSelect
                 aria-label="ERP trip"
                 value={erpTripId}
                 onChange={(e) => pickTrip(e.target.value)}
@@ -79,7 +80,7 @@ export default function ReplayToolbar({
                     {t.warehouseAnchors?.exitedAt ? ' · anchored' : ''}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </label>
           </>
         )}

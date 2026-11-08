@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState, useEffect } from 'react';
 import { X, Save, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -103,7 +104,7 @@ export default function SaveReportModal({
 
             <div className="builder-field-group">
               <label htmlFor="sr-category">Category</label>
-              <select
+              <SearchableSelect
                 id="sr-category"
                 aria-label="Category"
                 className="builder-select"
@@ -115,7 +116,7 @@ export default function SaveReportModal({
                     {c.label}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
 
             <div className="builder-field-group">

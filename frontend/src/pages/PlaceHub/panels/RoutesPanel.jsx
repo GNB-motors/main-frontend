@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { CloudOff } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { placeTitle } from '../intelligence/model/siteSummary.js';
@@ -66,13 +67,13 @@ export default function RoutesPanel({
         </div>
         <label>
           Sort{' '}
-          <select value={sort} onChange={(e) => onSort(e.target.value)}>
+          <SearchableSelect value={sort} onChange={(e) => onSort(e.target.value)}>
             <option value="runs">Runs</option>
             <option value="distance">Distance</option>
             <option value="time">Usual time</option>
             <option value="fuel">Fuel cost</option>
             <option value="spread">Spread</option>
-          </select>
+          </SearchableSelect>
         </label>
         {siteId && (
           <button type="button" onClick={() => onSite(null)}>

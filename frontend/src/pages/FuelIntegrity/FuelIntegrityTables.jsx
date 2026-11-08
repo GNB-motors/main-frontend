@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState } from 'react';
 import { AlertTriangle, Truck, Fuel, TrendingUp, Search, X, SlidersHorizontal } from 'lucide-react';
 import EventsFeedPanel from './EventsFeedPanel.jsx';
@@ -152,7 +153,7 @@ export default function FuelIntegrityTables({
               )}
             </div>
 
-            <select
+            <SearchableSelect
               value={eventType}
               onChange={(e) => onEventTypeChange(e.target.value)}
               className="fi-select"
@@ -162,9 +163,9 @@ export default function FuelIntegrityTables({
               <option value="fill">Refuel Fills</option>
               <option value="loss">Fuel down while parked</option>
               <option value="def">DEF / AdBlue Anomalies</option>
-            </select>
+            </SearchableSelect>
 
-            <select
+            <SearchableSelect
               value={statusFilter}
               onChange={(e) => onStatusFilterChange(e.target.value)}
               className="fi-select"
@@ -174,7 +175,7 @@ export default function FuelIntegrityTables({
               <option value="ESTIMATED">Estimated</option>
               <option value="CONFIRMED">Confirmed</option>
               <option value="REJECTED">Rejected</option>
-            </select>
+            </SearchableSelect>
 
             <button type="button" className="fi-action-btn" onClick={onApplyFilter}>
               Apply

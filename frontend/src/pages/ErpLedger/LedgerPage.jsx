@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 /**
  * Ledger & Vouchers (ISOCL ERP — ledger foundation)
  */
@@ -147,7 +148,7 @@ const LedgerPage = ({ embedded = false }) => {
           </button>
         </div>
         {tab === 'statement' && (
-          <select
+          <SearchableSelect
             className="erp-filter"
             value={partyId}
             onChange={(e) => setPartyId(e.target.value)}
@@ -158,7 +159,7 @@ const LedgerPage = ({ embedded = false }) => {
                 {p.name}
               </option>
             ))}
-          </select>
+          </SearchableSelect>
         )}
       </div>
 
@@ -284,7 +285,7 @@ const LedgerPage = ({ embedded = false }) => {
               <div className="erp-form-grid">
                 <label>
                   Type
-                  <select
+                  <SearchableSelect
                     value={voucherForm.voucherType}
                     onChange={(e) =>
                       setVoucherForm({ ...voucherForm, voucherType: e.target.value })
@@ -294,11 +295,11 @@ const LedgerPage = ({ embedded = false }) => {
                     <option value="PAYMENT">Payment</option>
                     <option value="ON_ACCOUNT">On account</option>
                     <option value="JOURNAL">Journal</option>
-                  </select>
+                  </SearchableSelect>
                 </label>
                 <label>
                   Party
-                  <select
+                  <SearchableSelect
                     required
                     value={voucherForm.partyId}
                     onChange={(e) => setVoucherForm({ ...voucherForm, partyId: e.target.value })}
@@ -309,7 +310,7 @@ const LedgerPage = ({ embedded = false }) => {
                         {p.name}
                       </option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </label>
                 <label>
                   Amount
@@ -325,7 +326,7 @@ const LedgerPage = ({ embedded = false }) => {
                 </label>
                 <label>
                   Mode
-                  <select
+                  <SearchableSelect
                     value={voucherForm.mode}
                     onChange={(e) => setVoucherForm({ ...voucherForm, mode: e.target.value })}
                   >
@@ -335,7 +336,7 @@ const LedgerPage = ({ embedded = false }) => {
                     <option value="UPI">UPI</option>
                     <option value="NEFT">NEFT</option>
                     <option value="RTGS">RTGS</option>
-                  </select>
+                  </SearchableSelect>
                 </label>
                 <label>
                   Instrument / UTR

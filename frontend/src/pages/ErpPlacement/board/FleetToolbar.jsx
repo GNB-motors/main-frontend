@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { Search, Plus } from 'lucide-react';
 
 const FleetToolbar = ({
@@ -34,7 +35,7 @@ const FleetToolbar = ({
     </div>
 
     {locations.length > 1 && (
-      <select
+      <SearchableSelect
         className="erp-filter"
         value={locFilter}
         onChange={(e) => setLocFilter(e.target.value)}
@@ -46,10 +47,10 @@ const FleetToolbar = ({
             {l}
           </option>
         ))}
-      </select>
+      </SearchableSelect>
     )}
 
-    <select
+    <SearchableSelect
       className="erp-filter"
       value={sortBy}
       onChange={(e) => setSortBy(e.target.value)}
@@ -58,7 +59,7 @@ const FleetToolbar = ({
       <option value="LOADING_POINT">At the loading point first</option>
       <option value="CAPACITY">Largest capacity first</option>
       <option value="LOCATION">By location</option>
-    </select>
+    </SearchableSelect>
     {/* Hire belongs beside the fleet it is an alternative to: the choice
                 is "assign one of these, or bring in an outside vehicle", and
                 that reads as one decision only when both sit together. */}

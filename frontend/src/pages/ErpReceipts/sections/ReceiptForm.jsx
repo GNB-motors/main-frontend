@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React from 'react';
 
 function ReceiptForm({ receiptForm, setReceiptForm, parties, busy, submitReceipt }) {
@@ -5,7 +6,7 @@ function ReceiptForm({ receiptForm, setReceiptForm, parties, busy, submitReceipt
     <form className="erp-card erp-form-grid" onSubmit={submitReceipt}>
       <label>
         Party
-        <select
+        <SearchableSelect
           required
           value={receiptForm.partyId}
           onChange={(e) => setReceiptForm({ ...receiptForm, partyId: e.target.value })}
@@ -16,7 +17,7 @@ function ReceiptForm({ receiptForm, setReceiptForm, parties, busy, submitReceipt
               {p.name} ({p.code})
             </option>
           ))}
-        </select>
+        </SearchableSelect>
       </label>
       <label>
         Amount
@@ -42,7 +43,7 @@ function ReceiptForm({ receiptForm, setReceiptForm, parties, busy, submitReceipt
       </label>
       <label>
         Mode
-        <select
+        <SearchableSelect
           value={receiptForm.mode}
           onChange={(e) => setReceiptForm({ ...receiptForm, mode: e.target.value })}
         >
@@ -51,7 +52,7 @@ function ReceiptForm({ receiptForm, setReceiptForm, parties, busy, submitReceipt
               {m}
             </option>
           ))}
-        </select>
+        </SearchableSelect>
       </label>
       <label>
         Instrument no

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera, Check, FileText, X } from 'lucide-react';
+import { Camera, Check, FileText, Loader2, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -8,302 +8,340 @@ import {
   DialogTitle,
 } from '../../components/ui/dialog';
 import { Button } from '../../components/ui/button';
+import SearchableSelect from '../../components/SearchableDropdown/SearchableSelect';
+import { getVehicleList } from '../../services/vehicleListService';
 import billPhotoService from '../../services/billPhotoService';
-import {
-  BILL_TYPES,
-  POLL_INTERVAL_MS,
-  POLL_TIMEOUT_MS,
-  buildBillFormData,
-  candidateRows,
-  isAutoMatch,
-  matchSentence,
-  needsChoice,
-} from './billPhotoModel';
+import './AddBillPhotoDialog.css';
 
-/**
- * AddBillPhotoDialog — photograph a diesel slip instead of typing it in.
- *
- * The flow is: choose the bill, take or choose the photo, upload it, and
- * wait. The product either says which truck it matched and why, or lists
- * the candidates with their reasons and lets the owner choose. Nothing is
- * saved without the owner saying so.
- */
-export default function AddBillPhotoDialog({ open, onOpenChange, onConfirmed = null }) {
-  const [kind, setKind] = useState('DIESEL_SLIP');
+const normalise = (value) =>
+  String(value || '')
+    .replace(/[\s-]/g, '')
+    .toUpperCase();
+const REVIEW_REASONS = {
+  VEHICLE_NO_MISMATCH: 'The registration read from the bill differs from the selected truck.',
+  MISSING_LITRES: 'Litres could not be read.',
+  MISSING_RATE: 'The fuel rate could not be read.',
+  LOW_OCR_CONFIDENCE: 'The photo could not be read with enough confidence.',
+  FUEL_OCR_LOW_STATUS: 'Some bill details need checking.',
+  ODOMETER_UNRESOLVED: 'An odometer reading is still needed.',
+};
+
+/** Compact photo capture. The selected vehicle is explicit; OCR never silently changes it. */
+export default function AddBillPhotoDialog({
+  open,
+  onOpenChange,
+  onConfirmed = null,
+  vehicleId = '',
+  registrationNumber = '',
+}) {
+  const [fuelType, setFuelType] = useState('DIESEL');
   const [file, setFile] = useState(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [stage, setStage] = useState('pick'); // pick | uploading | polling | ready | failed
+  const [dragging, setDragging] = useState(false);
+  const [stage, setStage] = useState('pick');
+  const [fillingType, setFillingType] = useState('');
   const [error, setError] = useState(null);
-  const [suggestion, setSuggestion] = useState(null);
-  const [chosen, setChosen] = useState(null);
-
-  const fileInputRef = useRef(null);
-  const timerRef = useRef(null);
-  const startedAtRef = useRef(0);
-
-  // Everything stops when the dialog closes: no timer left running.
-  useEffect(
-    () => () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    },
-    [],
-  );
+  const [vehicles, setVehicles] = useState([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState(vehicleId);
+  const [loadingVehicles, setLoadingVehicles] = useState(false);
+  const [result, setResult] = useState(null);
+  const fileInput = useRef(null);
+  const busy = useRef(false);
+  const request = useRef(null);
+  const uploading = stage === 'uploading';
 
   useEffect(() => {
-    if (!open) {
-      // Everything stops with the dialog: no poll left running in the background.
-      if (timerRef.current) clearTimeout(timerRef.current);
-      setFile(null);
-      setStage('pick');
-      setError(null);
-      setSuggestion(null);
-      setChosen(null);
-    }
-  }, [open]);
-
-  const poll = async (captureId) => {
-    try {
-      const answer = await billPhotoService.getBillSuggestion(captureId);
-      setSuggestion(answer);
-      if (answer?.decision === 'AUTO' || answer?.decision === 'ASK') {
-        setStage('ready');
-        return;
-      }
-      if (Date.now() - startedAtRef.current < POLL_TIMEOUT_MS) {
-        timerRef.current = setTimeout(() => poll(captureId), POLL_INTERVAL_MS);
-      } else {
-        setStage('failed');
-        setError('We could not work out which truck this bill belongs to.');
-      }
-    } catch (err) {
-      setStage('failed');
-      setError(err?.message || 'The photo was sent, but we could not read it back.');
-    }
-  };
-
-  /** Hold the file the owner picked. Nothing is sent until they press Upload. */
-  const pickFile = (picked) => {
-    if (!picked) return;
-    setFile(picked);
+    if (!open) return undefined;
+    setFile(null);
     setError(null);
-    if (stage === 'failed') setStage('pick');
-  };
+    setStage('pick');
+    setFillingType('');
+    setResult(null);
+    setSelectedVehicleId(vehicleId);
+    setFuelType('DIESEL');
+    if (vehicleId) return undefined;
+    const controller = new AbortController();
+    setLoadingVehicles(true);
+    getVehicleList({ signal: controller.signal })
+      .then((rows) => {
+        if (controller.signal.aborted) return;
+        setVehicles(rows || []);
+        if (registrationNumber) {
+          const match = rows.find(
+            (row) => normalise(row.registrationNumber) === normalise(registrationNumber),
+          );
+          setSelectedVehicleId(match ? String(match._id || match.id) : '');
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted)
+          setError('Could not load the vehicle list. Close and reopen to try again.');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoadingVehicles(false);
+      });
+    return () => controller.abort();
+  }, [open, vehicleId, registrationNumber]);
+  useEffect(() => () => request.current?.abort(), []);
 
-  const upload = async (chosenFile) => {
-    setFile(chosenFile);
+  const selected = vehicles.find(
+    (vehicle) => String(vehicle._id || vehicle.id) === selectedVehicleId,
+  );
+  const plate = registrationNumber || selected?.registrationNumber || 'selected truck';
+  const pick = (next) => {
+    if (!next) return;
+    if (!['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(next.type)) {
+      setError('Choose a JPG, PNG, WEBP or PDF bill.');
+      return;
+    }
+    if (next.size > 10 * 1024 * 1024) {
+      setError('The bill must be smaller than 10 MB.');
+      return;
+    }
+    setFile(next);
+    setError(null);
+  };
+  const close = () => {
+    if (!busy.current) onOpenChange(false);
+  };
+  const upload = async () => {
+    if (busy.current || !file || !selectedVehicleId || !fillingType) return;
+    busy.current = true;
     setStage('uploading');
     setError(null);
+    const controller = new AbortController();
+    request.current = controller;
     try {
-      const body = buildBillFormData(chosenFile, kind);
-      const capture = await billPhotoService.uploadBillPhoto({ body });
-      const captureId = capture?._id ?? capture?.id ?? null;
-      if (!captureId) {
-        setStage('failed');
-        setError('The photo was sent, but the server did not give us its id.');
-        return;
-      }
-      setStage('polling');
-      startedAtRef.current = Date.now();
-      poll(captureId);
+      const body = new FormData();
+      body.append('fuelPhoto', file);
+      body.append('vehicleId', selectedVehicleId);
+      body.append('fuelType', fuelType);
+      body.append('fillingType', fillingType);
+      const saved = await billPhotoService.uploadBillPhoto({ body, signal: controller.signal });
+      if (controller.signal.aborted) return;
+      if (!saved?.id && !saved?.fuelLog?._id)
+        throw new Error('The server did not confirm that the bill was saved.');
+      setResult(saved);
+      setStage('saved');
+      onConfirmed?.(saved);
     } catch (err) {
-      setStage('failed');
-      setError(err?.message || 'The photo could not be sent.');
+      if (!controller.signal.aborted) {
+        setError(err?.message || 'The bill could not be uploaded. Please try again.');
+        setStage('confirm');
+      }
+    } finally {
+      busy.current = false;
     }
   };
-
-  const rows = candidateRows(suggestion);
-  const auto = isAutoMatch(suggestion) ? rows[0] : null;
-  const answer = auto ?? (chosen ? rows.find((row) => row.registrationNumber === chosen) : null);
+  const reviewReasons = result?.reviewReasons || result?.fuelLog?.reviewReasons || [];
+  const needsReview = (result?.reviewStatus || result?.fuelLog?.reviewStatus) === 'NEEDS_REVIEW';
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bp-dialog flex max-h-[calc(100vh-48px)] max-w-[460px] flex-col overflow-hidden border-[var(--rd-line)] bg-[var(--rd-card)] p-0">
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!busy.current) onOpenChange(next);
+      }}
+    >
+      <DialogContent className="bp-dialog" aria-busy={uploading}>
         <button
           type="button"
-          onClick={() => onOpenChange(false)}
+          className="bp-close"
           aria-label="Close"
-          title="Close"
-          className="absolute right-4 top-4 z-10 rounded-full p-1 text-[var(--rd-ink-3)] transition-colors hover:bg-[var(--rd-card-2)] hover:text-[var(--rd-ink)]"
+          onClick={close}
+          disabled={uploading}
         >
-          <X size={16} aria-hidden="true" />
+          <X size={18} aria-hidden="true" />
         </button>
-        <DialogHeader className="pr-10">
-          <DialogTitle className="text-[16px] font-semibold text-[var(--rd-ink)]">
-            Add bill photo
-          </DialogTitle>
-          <DialogDescription className="text-[13px] text-[var(--rd-ink-2)]">
-            Photograph the slip. We will work out which truck it belongs to, and you confirm.
+        <DialogHeader className="bp-dialog-head">
+          <DialogTitle>Add bill photo</DialogTitle>
+          <DialogDescription>
+            {registrationNumber
+              ? `Upload a fuel bill for ${registrationNumber}. Review and confirm before saving.`
+              : 'Photograph the slip. Choose its truck, then review and confirm before saving.'}
           </DialogDescription>
         </DialogHeader>
-
-        <div className="bp-dialog-body flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-6 py-4">
-          {/* The kind of bill */}
-          <div className="flex items-center gap-2">
-            <label htmlFor="bill-photo-kind" className="text-[13px] text-[var(--rd-ink-2)]">
-              Bill type
-            </label>
-            <select
-              id="bill-photo-kind"
-              value={kind}
-              onChange={(event) => setKind(event.target.value)}
-              className="bp-select"
-            >
-              {BILL_TYPES.map((type) => (
-                <option key={type.id} value={type.id}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* The photo */}
+        <div className="bp-dialog-body">
           {stage === 'pick' ? (
-            <div className="flex flex-col gap-2">
+            <>
+              <div className="bp-field">
+                <label htmlFor="bill-photo-kind">Bill type</label>
+                <SearchableSelect id="bill-photo-kind" value={fuelType} onValueChange={setFuelType}>
+                  <option value="DIESEL">Diesel slip</option>
+                  <option value="ADBLUE">DEF (AdBlue) slip</option>
+                </SearchableSelect>
+              </div>
+              {!vehicleId ? (
+                <div className="bp-field">
+                  <label htmlFor="bill-photo-vehicle">Vehicle</label>
+                  <SearchableSelect
+                    id="bill-photo-vehicle"
+                    value={selectedVehicleId}
+                    onValueChange={setSelectedVehicleId}
+                    disabled={loadingVehicles || Boolean(registrationNumber)}
+                    placeholder={loadingVehicles ? 'Loading vehicles…' : 'Choose a truck'}
+                  >
+                    <option value="" disabled>
+                      Choose a truck
+                    </option>
+                    {vehicles.map((vehicle) => (
+                      <option
+                        key={vehicle._id || vehicle.id}
+                        value={String(vehicle._id || vehicle.id)}
+                      >
+                        {vehicle.registrationNumber}
+                      </option>
+                    ))}
+                  </SearchableSelect>
+                </div>
+              ) : null}
               <button
                 type="button"
-                className={`bp-drop${isDragging ? ' bp-drop--active' : ''}`}
-                onClick={() => fileInputRef.current?.click()}
+                className={`bp-drop${dragging ? ' bp-drop--active' : ''}`}
+                onClick={() => fileInput.current?.click()}
                 onDragOver={(event) => {
                   event.preventDefault();
-                  setIsDragging(true);
+                  setDragging(true);
                 }}
-                onDragLeave={() => setIsDragging(false)}
+                onDragLeave={() => setDragging(false)}
                 onDrop={(event) => {
                   event.preventDefault();
-                  setIsDragging(false);
-                  const dropped = event.dataTransfer?.files?.[0];
-                  if (dropped) pickFile(dropped);
+                  setDragging(false);
+                  pick(event.dataTransfer?.files?.[0]);
                 }}
               >
-                <Camera size={24} aria-hidden="true" className="text-[var(--rd-ink-3)]" />
-                <span className="text-[13px] font-medium text-[var(--rd-ink-2)]">
-                  Drop a bill photo or click to choose
-                </span>
-                <span className="text-[12px] text-[var(--rd-ink-3)]">JPG, PNG or PDF</span>
+                <Camera size={26} aria-hidden="true" />
+                <span>Drop a bill photo or click to choose</span>
+                <small>JPG, PNG or PDF · up to 10 MB</small>
               </button>
               <input
-                ref={fileInputRef}
+                ref={fileInput}
                 type="file"
-                accept="image/*,application/pdf"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
                 aria-label="Bill photo"
-                onChange={(event) => {
-                  const chosenFile = event.target.files?.[0];
-                  if (chosenFile) pickFile(chosenFile);
-                }}
                 className="sr-only"
+                onChange={(event) => {
+                  pick(event.target.files?.[0]);
+                  event.target.value = '';
+                }}
               />
               {file ? (
                 <div className="bp-file">
-                  <FileText
-                    size={15}
-                    aria-hidden="true"
-                    className="shrink-0 text-[var(--rd-ink-3)]"
-                  />
-                  <span className="truncate text-[13px] text-[var(--rd-ink)]">{file.name}</span>
+                  <FileText size={18} aria-hidden="true" />
+                  <span>{file.name}</span>
                   <button
                     type="button"
                     className="bp-file-remove"
                     aria-label={`Remove ${file.name}`}
-                    title="Remove this file"
                     onClick={() => setFile(null)}
                   >
-                    <X size={14} aria-hidden="true" />
+                    <X size={15} />
                   </button>
                 </div>
               ) : null}
-            </div>
-          ) : null}
-
-          {stage === 'uploading' ? (
-            <p className="m-0 text-[13px] text-[var(--rd-ink-2)]">
-              Sending {file?.name ? `${file.name}…` : 'the photo…'}
-            </p>
-          ) : null}
-
-          {stage === 'polling' ? (
-            <p className="m-0 text-[13px] text-[var(--rd-ink-2)]">
-              Reading the bill and looking for the truck…
-            </p>
-          ) : null}
-
-          {stage === 'failed' ? (
-            <p className="m-0 text-[13px] text-[var(--rd-act-ink)]">{error}</p>
-          ) : null}
-
-          {stage === 'ready' && auto ? (
-            <div className="flex flex-col gap-2 rounded-[var(--rd-radius)] border border-[var(--rd-good)] bg-[var(--rd-good-tint)] p-3">
-              <p className="m-0 flex items-center gap-2 text-[13px] font-semibold text-[var(--rd-good-ink)]">
-                <Check size={15} aria-hidden="true" />
-                {matchSentence(auto)}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    onConfirmed?.(auto);
-                    onOpenChange(false);
-                  }}
-                >
-                  Confirm
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setChosen('__change__')}>
-                  Change
-                </Button>
-              </div>
-            </div>
-          ) : null}
-
-          {stage === 'ready' && needsChoice(suggestion) ? (
-            <fieldset className="flex flex-col gap-1.5">
-              <legend className="m-0 text-[13px] font-semibold text-[var(--rd-ink)]">
-                Which truck is this bill for?
-              </legend>
-              {rows.map((row) => (
-                <label
-                  key={row.registrationNumber ?? row.label}
-                  className="flex items-start gap-2 text-[13px]"
-                >
-                  <input
-                    type="radio"
-                    name="bill-candidate"
-                    aria-label={row.label}
-                    checked={chosen === row.registrationNumber}
-                    onChange={() => setChosen(row.registrationNumber)}
-                  />
+            </>
+          ) : stage === 'confirm' ? (
+            <>
+              <div className="bp-confirm">
+                <FileText size={22} aria-hidden="true" />
+                <div>
+                  <strong>{file?.name}</strong>
                   <span>
-                    {row.label}
-                    {row.reasons.length ? (
-                      <span className="block text-[12px] text-[var(--rd-ink-3)]">
-                        {row.reasons.join(' · ')}
-                      </span>
-                    ) : null}
+                    {plate} · {fuelType === 'DIESEL' ? 'Diesel' : 'DEF (AdBlue)'}
                   </span>
-                </label>
-              ))}
-              <Button
-                size="sm"
-                className="w-fit"
-                disabled={!chosen}
-                onClick={() => {
-                  onConfirmed?.(answer);
-                  onOpenChange(false);
-                }}
-              >
-                Confirm
-              </Button>
-            </fieldset>
+                </div>
+              </div>
+              <div className="bp-field">
+                <label htmlFor="bill-photo-fill">Tank full?</label>
+                <SearchableSelect
+                  id="bill-photo-fill"
+                  value={fillingType}
+                  onValueChange={setFillingType}
+                  placeholder="Choose full or partial"
+                >
+                  <option value="" disabled>
+                    Choose full or partial
+                  </option>
+                  <option value="FULL_TANK">Yes — full tank</option>
+                  <option value="PARTIAL">No — partial fill</option>
+                </SearchableSelect>
+              </div>
+              <p className="bp-help">
+                The bill will be saved to <strong>{plate}</strong>. Fuel figures and the receipt
+                time are read from the photo. Uncertain or mismatched details are marked for review.
+              </p>
+            </>
+          ) : uploading ? (
+            <div className="bp-progress" role="status">
+              <Loader2 size={26} className="animate-spin" aria-hidden="true" />
+              <strong>Reading and saving your bill…</strong>
+              <span>This may take a moment. Keep this window open.</span>
+            </div>
+          ) : (
+            <div className="bp-success" role="status">
+              <Check size={28} aria-hidden="true" />
+              <strong>Bill saved for {plate}</strong>
+              <span>
+                {needsReview
+                  ? 'Saved for review. Please check the extracted details in Diesel & Mileage.'
+                  : 'The fuel entry is now recorded.'}
+              </span>
+              {reviewReasons.length ? (
+                <ul>
+                  {reviewReasons.map((reason) => (
+                    <li key={reason}>
+                      {REVIEW_REASONS[reason] || 'An extracted reading needs review.'}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          )}
+          {error ? (
+            <p role="alert" className="bp-error">
+              {error}
+            </p>
           ) : null}
         </div>
-
         <div className="bp-dialog-foot">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          {stage === 'pick' ? (
-            <Button size="sm" disabled={!file} onClick={() => file && upload(file)}>
-              Upload
+          {stage === 'saved' ? (
+            <Button size="sm" onClick={close}>
+              Done
             </Button>
-          ) : null}
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={uploading}
+                onClick={
+                  stage === 'confirm'
+                    ? () => {
+                        setError(null);
+                        setStage('pick');
+                      }
+                    : close
+                }
+              >
+                {stage === 'confirm' ? 'Back' : 'Cancel'}
+              </Button>
+              <Button
+                size="sm"
+                disabled={
+                  uploading || !file || !selectedVehicleId || (stage === 'confirm' && !fillingType)
+                }
+                onClick={
+                  stage === 'pick'
+                    ? () => {
+                        setError(null);
+                        setStage('confirm');
+                      }
+                    : upload
+                }
+              >
+                {uploading ? 'Uploading…' : stage === 'confirm' ? 'Upload & save' : 'Upload'}
+              </Button>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>

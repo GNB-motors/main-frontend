@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Plus,
@@ -374,7 +375,7 @@ const ExpenseModal = ({
               >
                 Category
               </label>
-              <select
+              <SearchableSelect
                 id="atx-form-category"
                 className={inputClass}
                 value={form.category}
@@ -385,7 +386,7 @@ const ExpenseModal = ({
                     {CATEGORY_LABELS[c]}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
           </div>
 
@@ -433,7 +434,7 @@ const ExpenseModal = ({
                   <span className="text-[10px] text-gray-400">Loading trips...</span>
                 )}
               </label>
-              <select
+              <SearchableSelect
                 className={inputClass}
                 value={form.tripId}
                 onChange={(e) => handleTripChange(e.target.value)}
@@ -445,7 +446,7 @@ const ExpenseModal = ({
                     {t.fromLocation && t.toLocation ? ` (${t.fromLocation} → ${t.toLocation})` : ''}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
               {selectedTripObj && (
                 <div className="mt-1.5 p-2 bg-indigo-50/70 border border-indigo-100 rounded text-[11px] text-indigo-900">
                   <span>
@@ -466,7 +467,7 @@ const ExpenseModal = ({
                 >
                   Vehicle
                 </label>
-                <select
+                <SearchableSelect
                   id="atx-form-vehicle"
                   className={inputClass}
                   value={form.vehicleId}
@@ -478,7 +479,7 @@ const ExpenseModal = ({
                       {getVehicleLabel(v)}
                     </option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
 
               {/* Driver */}
@@ -489,7 +490,7 @@ const ExpenseModal = ({
                 >
                   Driver
                 </label>
-                <select
+                <SearchableSelect
                   id="atx-form-driver"
                   className={inputClass}
                   value={form.driverId}
@@ -501,7 +502,7 @@ const ExpenseModal = ({
                       {getDriverName(d)}
                     </option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
             </div>
 
@@ -779,7 +780,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
                 >
                   Category
                 </label>
-                <select
+                <SearchableSelect
                   id="atx-filter-category"
                   className="w-full rounded-lg border border-gray-300 px-2 py-1.5 bg-white text-xs"
                   value={category}
@@ -791,14 +792,14 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
                       {CATEGORY_LABELS[c]}
                     </option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>
                 <label htmlFor="atx-filter-source" className="block text-gray-500 font-medium mb-1">
                   Source
                 </label>
-                <select
+                <SearchableSelect
                   id="atx-filter-source"
                   className="w-full rounded-lg border border-gray-300 px-2 py-1.5 bg-white text-xs"
                   value={source}
@@ -810,14 +811,14 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
                   <option value="MAINTENANCE">Maintenance</option>
                   <option value="TRIP">Trip Expense</option>
                   <option value="DRIVER_BILL">Driver Bill</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>
                 <label htmlFor="atx-filter-status" className="block text-gray-500 font-medium mb-1">
                   Status
                 </label>
-                <select
+                <SearchableSelect
                   id="atx-filter-status"
                   className="w-full rounded-lg border border-gray-300 px-2 py-1.5 bg-white text-xs"
                   value={status}
@@ -827,7 +828,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
                   <option value="CONFIRMED">Confirmed / Approved</option>
                   <option value="PENDING">Pending</option>
                   <option value="REJECTED">Rejected</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>
@@ -837,7 +838,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
                 >
                   Vehicle
                 </label>
-                <select
+                <SearchableSelect
                   id="atx-filter-vehicle"
                   className="w-full rounded-lg border border-gray-300 px-2 py-1.5 bg-white text-xs"
                   value={vehicleId}
@@ -849,7 +850,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
                       {getVehicleLabel(v)}
                     </option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>

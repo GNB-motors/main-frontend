@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState, useEffect } from 'react';
 import { Plus, MessageSquare, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -180,7 +181,7 @@ export default function FieldRequestsView({ userRole }) {
               <div className="custom-modal-body">
                 <div className="builder-field-group">
                   <label htmlFor="fr-review-status">Status</label>
-                  <select
+                  <SearchableSelect
                     id="fr-review-status"
                     aria-label="Status"
                     className="builder-select"
@@ -192,7 +193,7 @@ export default function FieldRequestsView({ userRole }) {
                     <option value="APPROVED">APPROVED</option>
                     <option value="REJECTED">REJECTED</option>
                     <option value="IMPLEMENTED">IMPLEMENTED</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div className="builder-field-group">
                   <label htmlFor="fr-review-comments">Admin Review Comments</label>

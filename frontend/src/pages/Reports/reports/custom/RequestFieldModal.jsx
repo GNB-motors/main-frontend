@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState } from 'react';
 import { X, Send, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -89,7 +90,7 @@ export default function RequestFieldModal({
 
             <div className="builder-field-group">
               <label htmlFor="rf-module">Related Module *</label>
-              <select
+              <SearchableSelect
                 id="rf-module"
                 aria-label="Related Module"
                 className="builder-select"
@@ -101,7 +102,7 @@ export default function RequestFieldModal({
                     {m.label}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
 
             <div className="builder-field-group">

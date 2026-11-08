@@ -1,7 +1,6 @@
-import React from 'react';
-import { ChevronDown } from 'lucide-react';
+import SearchableDropdown from '../SearchableDropdown/SearchableDropdown';
 
-const DriverPicker = ({
+export default function DriverPicker({
   uid,
   lockDriver,
   selectedDriver,
@@ -13,66 +12,37 @@ const DriverPicker = ({
   setDriverSearch,
   filteredDrivers,
   setSelectedDriver,
-}) => {
-  if (lockDriver) {
-    return (
-      <div className="dropdown-button disabled" style={{ cursor: 'default' }}>
-        <span>{selectedDriver ? selectedDriver.name : loadingDrivers ? 'Loading...' : '—'}</span>
-      </div>
-    );
-  }
+}) {
   return (
-    <div className="dropdown-wrapper" style={{ zIndex: showDriverDropdown ? 200 : undefined }}>
-      <button
-        id={`${uid}-driver`}
-        type="button"
-        className={`dropdown-button ${loadingDrivers ? 'disabled' : ''}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          setShowDriverDropdown(!showDriverDropdown);
-          setShowVehicleDropdown(false);
-        }}
-      >
+    <SearchableDropdown
+      bare
+      role="combobox"
+      id={`${uid}-driver`}
+      options={filteredDrivers}
+      selectedOption={selectedDriver?.name || ''}
+      disabled={lockDriver || loadingDrivers}
+      loading={loadingDrivers}
+      placeholder={loadingDrivers ? 'Loading…' : 'Choose driver…'}
+      open={showDriverDropdown}
+      onOpenChange={(open) => {
+        setShowDriverDropdown(open);
+        if (open) setShowVehicleDropdown(false);
+      }}
+      searchValue={driverSearch}
+      onSearchChange={setDriverSearch}
+      searchLabel="Search driver"
+      searchPlaceholder="Search driver…"
+      filterOptions={false}
+      isOptionSelected={(item) => item.id === selectedDriver?.id}
+      renderOption={(item) => (
         <span>
-          {selectedDriver
-            ? selectedDriver.name
-            : loadingDrivers
-              ? 'Loading...'
-              : 'Choose driver...'}
+          {item.name}
+          {item.licenseNo ? (
+            <small className="block text-xs text-slate-500">{item.licenseNo}</small>
+          ) : null}
         </span>
-        <ChevronDown size={16} className={showDriverDropdown ? 'rotated' : ''} />
-      </button>
-      {showDriverDropdown && (
-        <div className="dropdown-menu">
-          <input
-            type="text"
-            aria-label="Search driver"
-            placeholder="Search driver..."
-            className="dropdown-search"
-            value={driverSearch}
-            onChange={(e) => setDriverSearch(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-          />
-          <div className="dropdown-list">
-            {filteredDrivers.map((d) => (
-              <button
-                key={d.id}
-                type="button"
-                className={`dropdown-item ${selectedDriver?.id === d.id ? 'selected' : ''}`}
-                onClick={() => {
-                  setSelectedDriver(d);
-                  setShowDriverDropdown(false);
-                }}
-              >
-                <div className="item-main">{d.name}</div>
-                <div className="item-sub">{d.licenseNo}</div>
-              </button>
-            ))}
-          </div>
-        </div>
       )}
-    </div>
+      onSelect={setSelectedDriver}
+    />
   );
-};
-
-export default DriverPicker;
+}

@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../../components/ui/button.jsx';
 import {
@@ -61,21 +62,24 @@ export default function IncidentsTab() {
     }
   }, []);
 
-  const load = useCallback(async (signal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await getIncidents({ status, limit: 50, signal });
-      if (mounted.current) {
-        setRows(result.items);
-        setPagination(result.pagination);
+  const load = useCallback(
+    async (signal) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await getIncidents({ status, limit: 50, signal });
+        if (mounted.current) {
+          setRows(result.items);
+          setPagination(result.pagination);
+        }
+      } catch (err) {
+        if (mounted.current) setError(err?.message || 'Could not load incidents. Try again.');
+      } finally {
+        if (mounted.current) setLoading(false);
       }
-    } catch (err) {
-      if (mounted.current) setError(err?.message || 'Could not load incidents. Try again.');
-    } finally {
-      if (mounted.current) setLoading(false);
-    }
-  }, [status]);
+    },
+    [status],
+  );
 
   useEffect(() => {
     mounted.current = true;
@@ -88,7 +92,10 @@ export default function IncidentsTab() {
     };
   }, [load, refreshSummary]);
 
-  const items = useMemo(() => filterIncidents(rows, { status, severity }), [rows, status, severity]);
+  const items = useMemo(
+    () => filterIncidents(rows, { status, severity }),
+    [rows, status, severity],
+  );
   const severities = useMemo(() => severityOptions(rows), [rows]);
 
   /** Run one write: update the row, then refresh the counts. */
@@ -99,7 +106,9 @@ export default function IncidentsTab() {
       const updated = await call();
       if (!mounted.current) return;
       setRows((current) =>
-        current.map((row) => (row._id === id ? { ...row, ...optimistic, ...(updated || {}) } : row)),
+        current.map((row) =>
+          row._id === id ? { ...row, ...optimistic, ...(updated || {}) } : row,
+        ),
       );
       setAnnouncement(message);
       await refreshSummary();
@@ -184,7 +193,7 @@ export default function IncidentsTab() {
 
       <section className="ai-panel" aria-label="Incident board" aria-busy={loading}>
         <div className="ai-toolbar">
-          <select
+          <SearchableSelect
             aria-label="Incident status"
             value={status}
             onChange={(event) => setStatus(event.target.value)}
@@ -195,8 +204,8 @@ export default function IncidentsTab() {
                 {STATUS_LABEL[value]}
               </option>
             ))}
-          </select>
-          <select
+          </SearchableSelect>
+          <SearchableSelect
             aria-label="Incident severity"
             value={severity}
             onChange={(event) => setSeverity(event.target.value)}
@@ -208,7 +217,7 @@ export default function IncidentsTab() {
               </option>
             ))}
             <option value="unspecified">Not stated</option>
-          </select>
+          </SearchableSelect>
         </div>
 
         {error || actionError ? (
@@ -239,12 +248,16 @@ export default function IncidentsTab() {
             const isPending = pending.has(row._id);
             return (
               <li key={row._id} className="ai-row">
-                <span className={`ai-priority${severityOfRow ? ` ai-priority--${severityOfRow}` : ''}`}>
+                <span
+                  className={`ai-priority${severityOfRow ? ` ai-priority--${severityOfRow}` : ''}`}
+                >
                   {TYPE_LABEL[row.type] || row.type || 'Incident'}
                 </span>
                 <div className="ai-row-main">
                   <h2>{row.incidentNumber || 'Incident'}</h2>
-                  <p className="ai-ask">{row.report?.note || 'The driver reported this incident.'}</p>
+                  <p className="ai-ask">
+                    {row.report?.note || 'The driver reported this incident.'}
+                  </p>
                   <div className="ai-meta">
                     <span>{row.truck?.registrationNumber || 'Truck unknown'}</span>
                     <span>{STATUS_LABEL[row.status] || row.status}</span>
@@ -297,7 +310,12 @@ export default function IncidentsTab() {
                 </div>
                 <div className="ai-row-actions">
                   {row.status === 'OPEN' ? (
-                    <Button size="sm" variant="ghost" disabled={isPending} onClick={() => ackIncident(row)}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={isPending}
+                      onClick={() => ackIncident(row)}
+                    >
                       {isPending ? 'Saving…' : 'Acknowledge'}
                     </Button>
                   ) : null}

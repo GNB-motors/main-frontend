@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState, useEffect, useId } from 'react';
 import { X } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -115,7 +116,7 @@ const AssignmentFormModal = ({
               >
                 Driver <span className="text-red-500">*</span>
               </label>
-              <select
+              <SearchableSelect
                 id={`${uid}-driver`}
                 className={inputClass}
                 value={form.driverId}
@@ -127,7 +128,7 @@ const AssignmentFormModal = ({
                     {getDriverName(d)}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
             <div>
               <label
@@ -136,7 +137,7 @@ const AssignmentFormModal = ({
               >
                 Vehicle <span className="text-red-500">*</span>
               </label>
-              <select
+              <SearchableSelect
                 id={`${uid}-vehicle`}
                 className={inputClass}
                 value={form.vehicleId}
@@ -148,7 +149,7 @@ const AssignmentFormModal = ({
                     {getVehicleLabel(v)}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
           </div>
 
@@ -191,7 +192,7 @@ const AssignmentFormModal = ({
             >
               Status
             </label>
-            <select
+            <SearchableSelect
               id={`${uid}-status`}
               className={inputClass}
               value={form.status}
@@ -199,7 +200,7 @@ const AssignmentFormModal = ({
             >
               <option value="ACTIVE">Active</option>
               <option value="INACTIVE">Inactive</option>
-            </select>
+            </SearchableSelect>
           </div>
 
           <div>

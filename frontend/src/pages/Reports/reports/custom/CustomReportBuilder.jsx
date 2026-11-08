@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState, useMemo } from 'react';
 import {
   Search,
@@ -163,7 +164,7 @@ export default function CustomReportBuilder({
 
           <div className="builder-field-group">
             <label htmlFor="cr-primary-dataset">Primary Data Source (Dataset) *</label>
-            <select
+            <SearchableSelect
               id="cr-primary-dataset"
               aria-label="Primary Data Source (Dataset)"
               className="builder-select"
@@ -188,7 +189,7 @@ export default function CustomReportBuilder({
                   {d.label} — {d.description}
                 </option>
               ))}
-            </select>
+            </SearchableSelect>
           </div>
         </div>
       </div>
@@ -299,7 +300,7 @@ export default function CustomReportBuilder({
                     <div className="selected-col-actions">
                       {/* Aggregation operator select */}
                       {def.aggregations?.length > 0 ? (
-                        <select
+                        <SearchableSelect
                           className="agg-select"
                           value={currentAgg}
                           onChange={(e) => handleAggChange(fieldKey, e.target.value)}
@@ -311,7 +312,7 @@ export default function CustomReportBuilder({
                               {op === 'SUM' ? 'Sum (Total)' : op === 'AVG' ? 'Average' : 'Count'}
                             </option>
                           ))}
-                        </select>
+                        </SearchableSelect>
                       ) : null}
 
                       {/* Move Up / Down */}
@@ -354,7 +355,7 @@ export default function CustomReportBuilder({
           {selectedFields.length > 0 ? (
             <div className="flex items-center gap-3 pt-3 mt-2 border-t border-slate-100 text-xs">
               <span className="font-semibold text-slate-600">Sort Records By:</span>
-              <select
+              <SearchableSelect
                 className="builder-select !py-1 !text-xs !w-auto"
                 value={selectedSorting.field || ''}
                 onChange={(e) => handleSortChange(e.target.value, selectedSorting.order)}
@@ -368,15 +369,15 @@ export default function CustomReportBuilder({
                     </option>
                   );
                 })}
-              </select>
-              <select
+              </SearchableSelect>
+              <SearchableSelect
                 className="builder-select !py-1 !text-xs !w-auto"
                 value={selectedSorting.order || 'desc'}
                 onChange={(e) => handleSortChange(selectedSorting.field, e.target.value)}
               >
                 <option value="desc">Descending (High → Low)</option>
                 <option value="asc">Ascending (Low → High)</option>
-              </select>
+              </SearchableSelect>
             </div>
           ) : null}
         </div>
@@ -428,7 +429,7 @@ export default function CustomReportBuilder({
 
           <div className="builder-field-group">
             <label htmlFor="cr-filter-fuel-type">Fuel Type Filter</label>
-            <select
+            <SearchableSelect
               id="cr-filter-fuel-type"
               aria-label="Fuel Type Filter"
               className="builder-select !py-1.5 !text-xs"
@@ -438,7 +439,7 @@ export default function CustomReportBuilder({
               <option value="">All Fuel Types</option>
               <option value="DIESEL">Diesel</option>
               <option value="ADBLUE">AdBlue</option>
-            </select>
+            </SearchableSelect>
           </div>
 
           <div className="builder-field-group">

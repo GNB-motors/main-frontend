@@ -14,7 +14,7 @@ import './panels/overview/referenceOverview.css';
 import './vehicleHeaderCard.css';
 
 const VehicleMiniMap = lazy(() => import('./VehicleMiniMap'));
-const AddFuelLogModal = lazy(() => import('../KhataLedger/components/AddFuelLogModal'));
+const AddBillPhotoDialog = lazy(() => import('../Mileage/AddBillPhotoDialog'));
 
 function TruckIllustration({ reg, axles, fuelPercent }) {
   // One visible wheel per axle in side elevation. Unknown configuration stays illustrative.
@@ -328,14 +328,13 @@ export default function VehicleHeaderCard({ reg, profile, onGoTab }) {
       <OpenChallanBadge vehicleNumber={reg} />
       {fuelLogOpen ? (
         <Suspense fallback={<span role="status">Opening fuel log…</span>}>
-          <AddFuelLogModal
+          <AddBillPhotoDialog
             key={reg}
             open
-            photoFirst
             registrationNumber={reg}
-            vehicleId={vehicle?._id || vehicle?.id || reg}
-            onClose={() => setFuelLogOpen(false)}
-            onAdded={() => overview.refetch()}
+            vehicleId={vehicle?._id || vehicle?.id || ''}
+            onOpenChange={setFuelLogOpen}
+            onConfirmed={() => overview.refetch()}
           />
         </Suspense>
       ) : null}

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import useApi from '../../hooks/useApi';
@@ -56,16 +56,6 @@ export default function FuelLogForm({
     refuelTime: toRefuelLocal(initialRefuelTime || new Date()),
   }));
   const edited = useRef(new Set(initialRefuelTime ? ['refuelTime'] : []));
-  const formRef = useRef(null);
-  useEffect(() => {
-    const closePickers = (event) => {
-      if (formRef.current && !formRef.current.contains(event.target)) {
-        setPicker((prev) => ({ ...prev, showVehicle: false, showDriver: false }));
-      }
-    };
-    document.addEventListener('click', closePickers);
-    return () => document.removeEventListener('click', closePickers);
-  }, []);
   const { vehicles, drivers, loading: loadingOptions } = useVehicleDriverOptions();
   const vehicleKey = selection.vehicleId ?? initialVehicleId;
   const selectedVehicle =
@@ -132,7 +122,7 @@ export default function FuelLogForm({
 
   return (
     <div className="mileage-form-content diesel-entry">
-      <form ref={formRef} onSubmit={handleSubmit} noValidate className="diesel-entry-form">
+      <form onSubmit={handleSubmit} noValidate className="diesel-entry-form">
         <div className="diesel-entry-scroll">
           <fieldset disabled={isLoading} className="diesel-entry-fields">
             {photoFirst ? (

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import FleetDataService from '../../services/FleetDataService';
+import billPhotoService from '../../services/billPhotoService';
 import VehicleHeaderCard from './VehicleHeaderCard';
 import FuelPanel from './panels/FuelPanel';
 import TelemetryPanel from './panels/TelemetryPanel';
@@ -16,22 +17,7 @@ vi.mock('../../services/FleetDataService', () => ({
     getTyreStatus: vi.fn(),
   },
 }));
-vi.mock('../../components/FuelLogForm/FuelLogForm', () => ({
-  default: ({ initialVehicleId, photoFirst, onSuccess, onCancel }) => (
-    <div
-      data-testid="vehicle-fuel-form"
-      data-vehicle={initialVehicleId}
-      data-photo-first={String(photoFirst)}
-    >
-      <button onClick={() => onSuccess({ id: 'fill-one' })}>Complete fuel entry</button>
-      <button onClick={onCancel}>Cancel fuel entry</button>
-    </div>
-  ),
-}));
-vi.mock('../../services/DriverVehicleAssignmentService', () => ({
-  default: { getActiveAssignment: vi.fn().mockResolvedValue(null), idOf: (value) => value },
-}));
-
+vi.mock('../../services/billPhotoService', () => ({ default: { uploadBillPhoto: vi.fn() } }));
 vi.mock('./VehicleMiniMap', () => ({ default: () => <div>Vehicle map</div> }));
 vi.mock('../Compliance/OpenChallanBadge', () => ({ default: () => null }));
 const mount = (node) => render(<MemoryRouter>{node}</MemoryRouter>);
@@ -42,6 +28,7 @@ beforeEach(() => {
     def: { litres: null, percent: null, at: null },
   });
   FleetDataService.getTyreStatus.mockResolvedValue({ vehicles: [] });
+  billPhotoService.uploadBillPhoto.mockResolvedValue({ id: 'fill-one', reviewStatus: 'AUTO_OK' });
 });
 
 describe('recorded axle configuration', () => {
@@ -164,7 +151,7 @@ it('shows set data without attributing it to every individual wheel', async () =
   expect(screen.queryByText('80,000 km')).not.toBeInTheDocument();
 });
 
-it('opens Log fuel as a photo-first modal for this vehicle and refreshes after saving', async () => {
+it('opens the compact photo dialog for this vehicle and refreshes after saving', async () => {
   mount(
     <VehicleHeaderCard
       reg="WB11T0662"
@@ -173,23 +160,21 @@ it('opens Log fuel as a photo-first modal for this vehicle and refreshes after s
     />,
   );
   await waitFor(() => expect(FleetDataService.getVehicleOverview).toHaveBeenCalledTimes(1));
-  expect(screen.queryByRole('link', { name: 'Log fuel' })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Log fuel' }));
   const dialog = await screen.findByRole('dialog', { name: 'Add bill photo' });
   expect(dialog).toHaveTextContent('WB11T0662');
-  expect(within(dialog).getByTestId('vehicle-fuel-form')).toHaveAttribute(
-    'data-vehicle',
+  expect(within(dialog).queryByLabelText('Litres')).not.toBeInTheDocument();
+  fireEvent.change(within(dialog).getByLabelText('Bill photo'), {
+    target: { files: [new File(['bill'], 'bill.jpg', { type: 'image/jpeg' })] },
+  });
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Upload' }));
+  fireEvent.click(within(dialog).getByRole('combobox', { name: 'Tank full?' }));
+  fireEvent.click(screen.getByRole('option', { name: 'No — partial fill' }));
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Upload & save' }));
+  await waitFor(() => expect(FleetDataService.getVehicleOverview).toHaveBeenCalledTimes(2));
+  expect(billPhotoService.uploadBillPhoto.mock.calls[0][0].body.get('vehicleId')).toBe(
     'vehicle-one',
   );
-  expect(within(dialog).getByTestId('vehicle-fuel-form')).toHaveAttribute(
-    'data-photo-first',
-    'true',
-  );
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel fuel entry' }));
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Done' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-  fireEvent.click(screen.getByRole('button', { name: 'Log fuel' }));
-  const reopened = await screen.findByRole('dialog', { name: 'Add bill photo' });
-  fireEvent.click(within(reopened).getByRole('button', { name: 'Complete fuel entry' }));
-  await waitFor(() => expect(FleetDataService.getVehicleOverview).toHaveBeenCalledTimes(2));
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
