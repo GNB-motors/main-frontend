@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('./IntelligenceService', () => ({
-  default: { getPlaceQuestions: vi.fn(), getTripsHistory: vi.fn() },
+  default: { getPlaceQuestions: vi.fn(), getTripsHistory: vi.fn(), answerPlaceQuestion: vi.fn() },
 }));
 
 import IntelligenceService from './IntelligenceService';
@@ -15,10 +15,18 @@ const questions = {
       id: 'q-501',
       tripsAffected: 124,
       trucks: 18,
-      suggestion: { name: 'JK BUXAR PLANT GATE', category: 'PLANT', source: 'OSM', confidence: 0.82 },
+      suggestion: {
+        name: 'JK BUXAR PLANT GATE',
+        category: 'PLANT',
+        source: 'OSM',
+        confidence: 0.82,
+      },
       alternatives: [{ name: 'JK BUXAR SIDING', source: 'OSM' }],
       sampleTrips: [{ label: 'Trip on 1 Nov', to: '/auto-trips/trip-88213' }],
-      why: { text: 'Trucks stop here 1.5 h on average after loading.', basis: '124 trips from 18 trucks since 15 Sep' },
+      why: {
+        text: 'Trucks stop here 1.5 h on average after loading.',
+        basis: '124 trips from 18 trucks since 15 Sep',
+      },
     },
   ],
   total: 1,
@@ -55,23 +63,24 @@ describe('PlacesTab', () => {
     );
 
     expect(
-      await screen.findByRole('heading', { name: /^Places waiting for your answer\s*1$/ }),
+      await screen.findByRole('heading', { name: /Places waiting for your answer/ }),
     ).toBeInTheDocument();
-    expect(screen.getByText('JK BUXAR PLANT GATE')).toBeInTheDocument();
-    expect(screen.getByText('Plant · from OSM · likely · also JK BUXAR SIDING')).toBeInTheDocument();
+    expect(screen.getAllByText(/JK BUXAR PLANT GATE/).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: 'Confirm' })).toBeInTheDocument();
     expect(screen.getByText('124 trips from 18 trucks since 15 Sep')).toBeInTheDocument();
-    expect(screen.getByText('Trucks stop here 1.5 h on average after loading.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /JK BUXAR PLANT GATE: Trip on 1 Nov/ })).toHaveAttribute(
-      'href',
-      '/auto-trips/trip-88213',
-    );
+    expect(
+      screen.getByText('Trucks stop here 1.5 h on average after loading.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /JK BUXAR PLANT GATE: Trip on 1 Nov/ }),
+    ).toHaveAttribute('href', '/auto-trips/trip-88213');
     expect(screen.getByRole('link', { name: /See all/ })).toHaveAttribute(
       'href',
       '/auto-trips?tab=questions',
     );
   });
 
-  it('says every place has a name when there is no question', async () => {
+  it('reports no unanswered questions without claiming complete place coverage', async () => {
     IntelligenceService.getPlaceQuestions.mockResolvedValue({ items: [], total: 0 });
 
     render(
@@ -80,7 +89,7 @@ describe('PlacesTab', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('Every place the fleet visited has a name.')).toBeInTheDocument();
+    expect(await screen.findByText('No unanswered place questions returned.')).toBeInTheDocument();
   });
 
   it('shows the busiest places of the period', async () => {
@@ -108,5 +117,34 @@ describe('PlacesTab', () => {
     );
 
     await waitFor(() => expect(screen.getAllByText(/is being built/).length).toBeGreaterThan(0));
+  });
+  it('persists confirmation through the API before showing saved', async () => {
+    IntelligenceService.answerPlaceQuestion.mockResolvedValue({
+      placeId: 'site-1',
+      tripsUpdated: 2,
+    });
+    render(
+      <MemoryRouter>
+        <PlacesTab from="2026-10-27" to="2026-11-02" />
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Saved as JK BUXAR PLANT GATE');
+    expect(IntelligenceService.answerPlaceQuestion).toHaveBeenCalledWith('q-501', {
+      answer: 'CONFIRM',
+      name: 'JK BUXAR PLANT GATE',
+      category: 'PLANT',
+    });
+  });
+  it('does not claim a save when the API lacks the place-radius evidence to persist it', async () => {
+    IntelligenceService.answerPlaceQuestion.mockResolvedValue({ placeId: null, tripsUpdated: 0 });
+    render(
+      <MemoryRouter>
+        <PlacesTab from="2026-10-27" to="2026-11-02" />
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('The place was not saved');
+    expect(screen.queryByText(/Saved as/)).not.toBeInTheDocument();
   });
 });

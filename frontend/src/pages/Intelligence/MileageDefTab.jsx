@@ -1,3 +1,5 @@
+import '../Vehicle360/panels/overview/referenceOverview.css';
+import './intelFuelReference.css';
 import Link from '@/components/redesign/FleetLink';
 import { useApi } from '@/hooks/useApi';
 import ToneBadge from '@/components/redesign/ToneBadge';
@@ -101,7 +103,7 @@ export default function MileageDefTab({ from, to, vehicle = '' }) {
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="intel-mileage-reference flex flex-col gap-5">
       <IntelligenceDataState
         loading={loading}
         loadingVariant="cards"
@@ -113,6 +115,33 @@ export default function MileageDefTab({ from, to, vehicle = '' }) {
         what="The mileage of this period"
         onRetry={refetch}
       >
+        <section className="intel-fuel-briefing" aria-label="Mileage and DEF briefing">
+          <div className="intel-fuel-brief-copy">
+            <span>✧ Period read</span>
+            <p>
+              {measured.length} trucks have reported km/L in this selection. {defOutliers.length}{' '}
+              returned DEF readings are outside their supplied comparison band.
+            </p>
+            <small>
+              Mileage and DEF comparisons use the API’s measured values and bands. Missing readings
+              are not treated as a pass.
+            </small>
+          </div>
+          <div className="intel-fuel-brief-kpis">
+            {[
+              ['Measured trucks', measured.length],
+              ['Highest economy', best.length ? kmPerL(best[0].kmPerL) : '—'],
+              ['Lowest economy', worst.length ? kmPerL(worst[0].kmPerL) : '—'],
+              ['DEF outliers', defOutliers.length],
+            ].map(([label, value]) => (
+              <div className="intel-mileage-kpi" key={label}>
+                <span>{label}</span>
+                <strong>{value}</strong>
+                <small>Returned period records</small>
+              </div>
+            ))}
+          </div>
+        </section>
         <div className="intel-two-col">
           <IntelCard title="Best km/L" flush action={openMileage}>
             <KmplTable rows={best} from={from} to={to} />
@@ -163,7 +192,9 @@ export default function MileageDefTab({ from, to, vehicle = '' }) {
                           ? `normal ${formatPct(item.defBand.min)}–${formatPct(item.defBand.max)}`
                           : '—'}
                       </td>
-                      <td className="intel-num intel-when">{item.km != null ? formatKm(item.km) : '—'}</td>
+                      <td className="intel-num intel-when">
+                        {item.km != null ? formatKm(item.km) : '—'}
+                      </td>
                       <td>
                         <span className="intel-cell-wrap">{item.verdictWhy?.text ?? '—'}</span>
                       </td>
@@ -174,7 +205,10 @@ export default function MileageDefTab({ from, to, vehicle = '' }) {
             </div>
           ) : (
             <p className="intel-card-empty">
-              Every DEF reading of this period was inside the normal band.
+              {items.length > 0 &&
+              items.every((item) => item.defPctOfDiesel != null && item.defBand)
+                ? 'Every DEF reading of this period was inside the normal band.'
+                : 'No outliers among the available DEF comparisons. Some trucks have no DEF reading or comparison band.'}
             </p>
           )}
         </IntelCard>

@@ -370,12 +370,15 @@ export function groupIssuesByKind(items = []) {
  */
 export function humanizeDates(text) {
   if (typeof text !== 'string') return text;
-  return text.replace(/\b(\d{4})-(\d{2})-(\d{2})(T[\d:.]+(?:Z|[+-]\d{2}:?\d{2})?)?/g, (whole, y, m, d, time) => {
-    if (time) return formatIst(whole, { withDate: true });
-    const month = MONTHS[Number(m) - 1];
-    if (!month) return whole;
-    return `${Number(d)} ${month}`;
-  });
+  return text.replace(
+    /\b(\d{4})-(\d{2})-(\d{2})(T[\d:.]+(?:Z|[+-]\d{2}:?\d{2})?)?/g,
+    (whole, y, m, d, time) => {
+      if (time) return formatIst(whole, { withDate: true });
+      const month = MONTHS[Number(m) - 1];
+      if (!month) return whole;
+      return `${Number(d)} ${month}`;
+    },
+  );
 }
 
 /**
@@ -403,7 +406,9 @@ function isIstMidnight(value) {
 }
 
 function istStamp(value) {
-  return isIstMidnight(value) ? formatIst(value, { withDate: true }).split(',')[0] : formatIst(value, { withDate: true });
+  return isIstMidnight(value)
+    ? formatIst(value, { withDate: true }).split(',')[0]
+    : formatIst(value, { withDate: true });
 }
 
 /**
@@ -474,7 +479,13 @@ export function bucketReportCards(items = [], { query = '', grade = 'all', make 
     if (grade !== 'all' && card?.grade !== grade) return false;
     if (make !== 'all' && String(card?.make ?? '') !== make) return false;
     if (!needle) return true;
-    const haystack = [card?.name, card?.id, card?.make, card?.headline]
+    const haystack = [
+      card?.name,
+      card?.id,
+      card?.make,
+      card?.headline,
+      ...(card?.assignmentCoverage?.trucks || []),
+    ]
       .filter(Boolean)
       .join(' ')
       .toLowerCase();

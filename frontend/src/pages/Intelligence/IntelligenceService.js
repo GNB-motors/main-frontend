@@ -76,12 +76,19 @@ const IntelligenceService = {
   // they share one call (scoped like every session cache) instead of two.
   // The shared call carries no AbortSignal, so one reader leaving never
   // cancels the other's answer.
-  getIssues: ({ from, to } = {}) => {
-    const key = `${getUserId() || ''}:${getOrgId() || ''}:${getBranchId() || 'all'}:${from}:${to}`;
+  getIssues: ({ from, to, vehicle = '', kind = '' } = {}) => {
+    const key = `${getUserId() || ''}:${getOrgId() || ''}:${getBranchId() || 'all'}:${from}:${to}:${vehicle}:${kind}`;
     const hit = issueCalls.get(key);
     if (hit && Date.now() - hit.at < SHARED_TTL_MS) return hit.promise;
     const promise = readAllPages((page, limit) =>
-      fleetViewService.getIntelligenceIssues({ from, to, page, limit }),
+      fleetViewService.getIntelligenceIssues({
+        from,
+        to,
+        page,
+        limit,
+        ...(vehicle ? { vehicle } : {}),
+        ...(kind ? { kind } : {}),
+      }),
     );
     issueCalls.set(key, { at: Date.now(), promise });
     promise.catch(() => issueCalls.delete(key));
@@ -90,6 +97,7 @@ const IntelligenceService = {
 
   /** GET /api/fleet-view/places/questions — the places waiting for a name. */
   getPlaceQuestions: ({ signal } = {}) => fleetViewService.getPlaceQuestions({ signal }),
+  answerPlaceQuestion: (id, answer) => fleetViewService.answerPlaceQuestion(id, answer),
 
   /** GET /api/intelligence/report-cards — one card per truck or driver. */
   getReportCards: ({ subject, from, to, signal } = {}) =>

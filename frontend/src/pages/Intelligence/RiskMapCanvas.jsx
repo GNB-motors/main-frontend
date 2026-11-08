@@ -1,5 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { GoogleMap, useLoadScript } from '@react-google-maps/api';
+import { GoogleMap, OverlayViewF, useLoadScript } from '@react-google-maps/api';
+import DataTooltip from '../../components/ui/DataTooltip.jsx';
+import './intelFuelReference.css';
 import { googleMapsLoaderOptions } from '../../utils/googleMapsLoader.js';
 import { LIGHT_MAP_STYLE, DARK_MAP_STYLE } from '../LiveTracking/mapStyles.js';
 import LiveIdleMarker from '../PlaceHub/map/LiveIdleMarker.jsx';
@@ -26,12 +28,16 @@ function RiskMapCanvas({
 }) {
   const { isLoaded, loadError } = useLoadScript(googleMapsLoaderOptions);
   const [map, setMap] = useState(null);
+  const [hoveredId, setHoveredId] = useState(null);
+  const hoveredDrain = type === 'fuel' ? drainCells.find((item) => item.id === hoveredId) : null;
+  const hoveredHotspot = type === 'fuel' ? hotspots.find((item) => item.id === hoveredId) : null;
+  const hoveredLive =
+    type === 'idling' ? idleLive.find((event) => `live:${event._id}` === hoveredId) : null;
+  const hoveredSpot = type === 'idling' ? idleSpots.find((spot) => spot.id === hoveredId) : null;
+  const hovered = hoveredDrain || hoveredHotspot || hoveredLive || hoveredSpot;
   const hasFitInitially = useRef(false);
 
-  const maxIdle = useMemo(
-    () => Math.max(0, ...idleSpots.map((s) => s.rupees || 0)),
-    [idleSpots],
-  );
+  const maxIdle = useMemo(() => Math.max(0, ...idleSpots.map((s) => s.rupees || 0)), [idleSpots]);
   const maxDrain = useMemo(
     () => Math.max(0, ...drainCells.map((c) => c.rupees || c.events || 0)),
     [drainCells],
@@ -159,6 +165,8 @@ function RiskMapCanvas({
               color={IDLE_COLOR[idleTone(s.excessShare)]}
               scale={scaleFor(s.rupees, maxIdle)}
               title={`${s.events} idles · ${formatInrCompact(s.rupees)} burned`}
+              onMouseOver={() => setHoveredId(s.id)}
+              onMouseOut={() => setHoveredId(null)}
               selected={s.id === selectedId}
               interactive={true}
               onSelect={onSelect}
@@ -168,6 +176,8 @@ function RiskMapCanvas({
             <LiveIdleMarker
               key={`live-${e._id}`}
               event={e}
+              onMouseOver={() => setHoveredId(`live:${e._id}`)}
+              onMouseOut={() => setHoveredId(null)}
               selected={`live:${e._id}` === selectedId}
               interactive={true}
               onSelect={onSelect}
@@ -187,6 +197,8 @@ function RiskMapCanvas({
               color={DRAIN_COLOR}
               scale={scaleFor(c.rupees || c.events, maxDrain)}
               title={`${c.events} fuel drops · ${formatInrCompact(c.rupees)}`}
+              onMouseOver={() => setHoveredId(c.id)}
+              onMouseOut={() => setHoveredId(null)}
               selected={c.id === selectedId}
               interactive={true}
               onSelect={onSelect}
@@ -196,6 +208,8 @@ function RiskMapCanvas({
             <HotspotShape
               key={h.id}
               hotspot={h}
+              onMouseOver={() => setHoveredId(h.id)}
+              onMouseOut={() => setHoveredId(null)}
               selected={h.id === selectedId}
               interactive={true}
               onSelect={onSelect}
@@ -203,9 +217,85 @@ function RiskMapCanvas({
           ))}
         </>
       )}
+      {hovered && (
+        <OverlayViewF
+          position={{ lat: Number(hovered.lat), lng: Number(hovered.lng) }}
+          mapPaneName="floatPane"
+        >
+          <DataTooltip
+            className="intel-fuel-map-tooltip"
+            role="tooltip"
+            label={
+              hoveredLive
+                ? hoveredLive.registrationNumber || 'Live idling'
+                : hoveredSpot
+                  ? 'Idle spot'
+                  : hoveredDrain
+                    ? 'Parked fuel drops'
+                    : hoveredHotspot.name || 'Fuel hotspot'
+            }
+            value={
+              hoveredLive
+                ? hoveredLive.durationMin != null
+                  ? `${Math.round(hoveredLive.durationMin)} min idling`
+                  : null
+                : hoveredSpot
+                  ? `${hoveredSpot.events} idle events`
+                  : hoveredDrain
+                    ? `${hoveredDrain.events ?? '—'} drops`
+                    : null
+            }
+            details={
+              hoveredLive
+                ? [
+                    hoveredLive.zoneName ||
+                      (hoveredLive.legitimacy === 'excess'
+                        ? 'Outside a known place'
+                        : 'Location not supplied'),
+                    hoveredLive.rupees != null
+                      ? `${formatInrCompact(hoveredLive.rupees)} estimated cost`
+                      : null,
+                    hoveredLive.legitimacy === 'excess' ? 'Excess idling' : 'Recorded idling',
+                  ]
+                : hoveredSpot
+                  ? [
+                      hoveredSpot.hours != null
+                        ? `${Number(hoveredSpot.hours).toFixed(1)} idle hours`
+                        : null,
+                      hoveredSpot.rupees != null
+                        ? `${formatInrCompact(hoveredSpot.rupees)} estimated cost`
+                        : null,
+                      hoveredSpot.trucks?.join(', '),
+                    ]
+                  : hoveredDrain
+                    ? [
+                        hoveredDrain.litres != null
+                          ? `${Number(hoveredDrain.litres).toLocaleString('en-IN', { maximumFractionDigits: 1 })} L recorded`
+                          : null,
+                        hoveredDrain.rupees != null
+                          ? `${formatInrCompact(hoveredDrain.rupees)} estimated value`
+                          : null,
+                        hoveredDrain.vehicles != null
+                          ? `${Array.isArray(hoveredDrain.vehicles) ? hoveredDrain.vehicles.length : hoveredDrain.vehicles} trucks`
+                          : null,
+                      ]
+                    : [
+                        hoveredHotspot.provenance === 'network'
+                          ? 'Network hotspot'
+                          : 'Your hotspot',
+                        hoveredHotspot.incidentCount != null
+                          ? `${hoveredHotspot.incidentCount} recorded incidents`
+                          : null,
+                        hoveredHotspot.radiusM != null
+                          ? `${hoveredHotspot.radiusM} m radius`
+                          : null,
+                      ]
+            }
+          />
+        </OverlayViewF>
+      )}
     </GoogleMap>
   );
 }
 
 export default memo(RiskMapCanvas);
-

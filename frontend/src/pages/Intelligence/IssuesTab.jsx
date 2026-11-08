@@ -1,11 +1,19 @@
+import '../Vehicle360/panels/overview/referenceOverview.css';
+import { briefingFromIssues, matchesIssueSearch } from './issuesBriefingModel';
+import IssuesBriefing from './IssuesBriefing';
+import './issuesCards.css';
 import { useState } from 'react';
-import { CircleCheck, Inbox } from 'lucide-react';
+import { CircleCheck, Inbox, Search } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
-import InfoTip from '@/components/redesign/InfoTip';
 import IntelligenceDataState from './IntelligenceDataState';
 import IssueGroup from './IssueGroup';
 import IntelligenceService from './IntelligenceService';
-import { ISSUE_GROUPS, groupIssuesByKind, issueCounts, issuesWithFilter } from './intelligenceModel';
+import {
+  ISSUE_GROUPS,
+  groupIssuesByKind,
+  issueCounts,
+  issuesWithFilter,
+} from './intelligenceModel';
 
 const sameReg = (a, b) =>
   String(a ?? '')
@@ -34,10 +42,18 @@ function Chip({ active, onClick, label, count }) {
  */
 export default function IssuesTab({ from, to, vehicle = '', kind = '' }) {
   const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
 
   const { data, loading, error, refetch } = useApi(
-    (signal) => IntelligenceService.getIssues({ from, to, signal }),
-    [from, to],
+    (signal) =>
+      IntelligenceService.getIssues({
+        from,
+        to,
+        signal,
+        ...(vehicle ? { vehicle } : {}),
+        ...(kind ? { kind } : {}),
+      }),
+    [from, to, vehicle, kind],
   );
 
   const held = data?.held ? data.why : null;
@@ -46,7 +62,9 @@ export default function IssuesTab({ from, to, vehicle = '', kind = '' }) {
       (!vehicle || sameReg(issue.registrationNumber, vehicle)) && (!kind || issue.kind === kind),
   );
   const counts = issueCounts(items);
-  const shown = issuesWithFilter(items, filter);
+  const shown = issuesWithFilter(items, filter).filter((issue) =>
+    matchesIssueSearch(issue, search),
+  );
   const groups = groupIssuesByKind(shown);
   const chipGroups = ISSUE_GROUPS.filter((group) => (counts.groups[group.id] ?? 0) > 0);
 
@@ -55,49 +73,70 @@ export default function IssuesTab({ from, to, vehicle = '', kind = '' }) {
   const hasList = !loading && !error && !held;
 
   return (
-    <div className="flex flex-col gap-4">
-      {hasList && counts.all > 0 ? (
-        <div className="intel-chip-row" role="group" aria-label="Filter the issues">
-          <Chip
-            active={filter === 'all'}
-            onClick={() => setFilter('all')}
-            label="All"
-            count={counts.all}
-          />
-          <Chip
-            active={filter === 'act'}
-            onClick={() => setFilter('act')}
-            label="Needs you"
-            count={counts.act}
-          />
-          <Chip
-            active={filter === 'watch'}
-            onClick={() => setFilter('watch')}
-            label="Watch"
-            count={counts.watch}
-          />
-          <span className="intel-chip-sep" aria-hidden="true" />
-          {chipGroups.map((group) => (
-            <span className="inline-flex items-center gap-0.5" key={group.id}>
-              <Chip
-                active={filter === group.id}
-                onClick={() => setFilter(filter === group.id ? 'all' : group.id)}
-                label={group.label}
-                count={counts.groups[group.id]}
-              />
-              {group.info ? (
-                <InfoTip text={group.info.text} label={`About ${group.label} issues`} />
-              ) : null}
-            </span>
-          ))}
-          <span className="ml-auto">
-            <InfoTip
-              text="Every issue here was found by comparing your trucks with each other. The advice is what the system suggests, not a diagnosis."
-              label="How issues are found"
-            />
-          </span>
-        </div>
+    <div className="intel-issues-layout flex flex-col gap-4">
+      <header className="intel-issues-heading">
+        <h2>Issues</h2>
+        <p>
+          Problems with trucks, sensors or accounts, found by scanning every reading. Each truck
+          appears once per issue.
+        </p>
+      </header>
+      {hasList ? (
+        <IssuesBriefing
+          briefing={data?.briefing || briefingFromIssues(items)}
+          onFilter={setFilter}
+        />
       ) : null}
+      <div className="intel-issues-toolbar">
+        {hasList && counts.all > 0 ? (
+          <div className="intel-chip-row" role="group" aria-label="Filter the issues">
+            <Chip
+              active={filter === 'all'}
+              onClick={() => setFilter('all')}
+              label="All"
+              count={counts.all}
+            />
+            <Chip
+              active={filter === 'act'}
+              onClick={() => setFilter('act')}
+              label="Needs you"
+              count={counts.act}
+            />
+            <Chip
+              active={filter === 'watch'}
+              onClick={() => setFilter('watch')}
+              label="Watch"
+              count={counts.watch}
+            />
+            <span className="intel-chip-sep" aria-hidden="true" />
+            {chipGroups.map((group) => (
+              <span className="inline-flex items-center gap-0.5" key={group.id}>
+                <Chip
+                  active={filter === group.id}
+                  onClick={() => setFilter(filter === group.id ? 'all' : group.id)}
+                  label={group.label}
+                  count={counts.groups[group.id]}
+                />
+              </span>
+            ))}
+          </div>
+        ) : null}
+
+        {hasList ? (
+          <div className="intel-issues-search-row">
+            <label className="intel-issue-search">
+              <Search size={18} aria-hidden="true" />
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search vehicle or anything…"
+                aria-label="Search all issues"
+              />
+            </label>
+          </div>
+        ) : null}
+      </div>
 
       <IntelligenceDataState
         loading={loading}
@@ -105,9 +144,11 @@ export default function IssuesTab({ from, to, vehicle = '', kind = '' }) {
         held={held}
         isEmpty={shown.length === 0}
         emptyMessage={
-          filter === 'all'
-            ? 'No open issues returned for this selection. This does not confirm that every truck is reporting.'
-            : 'Nothing in this group for this period.'
+          search.trim()
+            ? `No issues match “${search}”.`
+            : filter === 'all'
+              ? 'No open issues returned for this selection. This does not confirm that every truck is reporting.'
+              : 'Nothing in this group for this period.'
         }
         emptyTone={filter === 'all' ? 'good' : 'info'}
         emptyIcon={filter === 'all' ? CircleCheck : Inbox}
@@ -116,7 +157,7 @@ export default function IssuesTab({ from, to, vehicle = '', kind = '' }) {
       >
         <div className="flex flex-col gap-4">
           {groups.map((group) => (
-            <IssueGroup key={group.kind} group={group} />
+            <IssueGroup key={group.kind} group={group} from={from} to={to} />
           ))}
         </div>
       </IntelligenceDataState>

@@ -1,3 +1,4 @@
+import './reportCardsReference.css';
 import { lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import IntelligenceSkeleton from './IntelligenceSkeleton';
@@ -36,7 +37,7 @@ const TAB_FALLBACK = <IntelligenceSkeleton variant="table" />;
 /** The tabs that always cover the whole fleet. */
 const FLEET_ONLY_TABS = ['runs', 'places'];
 
-function TabContent({ active, from, to, vehicle, driver, kind }) {
+function TabContent({ active, from, to, vehicle, driver, kind, headerControl }) {
   if (active === 'issues') {
     return (
       <Suspense fallback={<IntelligenceSkeleton />}>
@@ -57,6 +58,7 @@ function TabContent({ active, from, to, vehicle, driver, kind }) {
         <ReportCardsTab
           key={`${active}:${from}:${to}:${vehicle}:${driver}`}
           subject={subject}
+          headerControl={headerControl}
           from={from}
           to={to}
           vehicle={vehicle}
@@ -198,8 +200,6 @@ export default function IntelligencePage() {
   const active = resolveIntelligenceTab(requested, actCount);
   const section = sectionOfTab(active);
   const activeTab = tabById(active);
-  const ActiveIcon = activeTab?.icon;
-  const fleetOnly = FLEET_ONLY_TABS.includes(active);
   const openTab = (tab) => updateParams({ tab, kind: null });
 
   return (
@@ -272,44 +272,39 @@ export default function IntelligencePage() {
         </div>
       </nav>
 
-      {section.tabs.length > 1 ? (
-        <div className="intel-view-bar">
-          <div role="tablist" aria-label={`${section.label} views`} className="intel-segmented">
-            {section.tabs.map((id) => {
-              const tab = tabById(id);
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  role="tab"
-                  aria-selected={id === active}
-                  className="intel-segment"
-                  onClick={() => openTab(id)}
-                >
-                  <tab.icon size={14} aria-hidden="true" />
-                  {tab.label}
-                </button>
-              );
-            })}
+      {!['issues', 'vehicles', 'drivers'].includes(active) ? (
+        <header className="intel-panel-heading intel-panel-heading--switch">
+          <div className="intel-panel-heading-copy">
+            <div className="intel-panel-heading-title">
+              <h2>{activeTab?.label}</h2>
+            </div>
+            <p>{activeTab?.hint}</p>
           </div>
-        </div>
-      ) : null}
-
-      <header className="intel-panel-heading">
-        <div className="intel-panel-heading-title">
-          {ActiveIcon ? (
-            <span className="intel-panel-heading-icon">
-              <ActiveIcon size={17} aria-hidden="true" />
-            </span>
+          {section.tabs.length > 1 ? (
+            <div
+              className="intel-assessment-view-switch"
+              role="tablist"
+              aria-label={`${section.label} views`}
+            >
+              {section.tabs.map((id) => {
+                const tab = tabById(id);
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={id === active}
+                    onClick={() => openTab(id)}
+                  >
+                    <tab.icon size={16} aria-hidden="true" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
           ) : null}
-          <h2>{activeTab?.label}</h2>
-          {fleetOnly ? <span className="intel-scope-badge">Whole fleet</span> : null}
-        </div>
-        <p>
-          {activeTab?.hint}
-          {fleetOnly ? ' Covers the whole fleet; the truck filter does not apply here.' : ''}
-        </p>
-      </header>
+        </header>
+      ) : null}
       <div role="tabpanel" aria-label={activeTab?.label} className="intel-panel">
         <TabContent
           active={active}
@@ -318,6 +313,31 @@ export default function IntelligencePage() {
           vehicle={vehicle}
           driver={driver}
           kind={kind}
+          headerControl={
+            ['vehicles', 'drivers'].includes(active) ? (
+              <div
+                className="intel-assessment-view-switch"
+                role="tablist"
+                aria-label="Trucks & drivers views"
+              >
+                {section.tabs.map((id) => {
+                  const tab = tabById(id);
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      role="tab"
+                      aria-selected={id === active}
+                      onClick={() => openTab(id)}
+                    >
+                      <tab.icon size={16} aria-hidden="true" />
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null
+          }
         />
       </div>
     </div>

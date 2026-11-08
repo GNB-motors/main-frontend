@@ -47,11 +47,57 @@ describe('ReportCardsTab', () => {
     TripService.getDrivers.mockResolvedValue({ data: [] });
   });
 
+  it('shows assignment coverage and searches drivers by their assigned truck', async () => {
+    IntelligenceService.getReportCards.mockResolvedValue({
+      items: [
+        {
+          ...cards.items[1],
+          kmInPeriod: 0,
+          assignmentCoverage: { trucks: ['WB11T0662'], assignmentCount: 2, measuredDays: 1 },
+        },
+        {
+          ...cards.items[1],
+          id: 'other-driver',
+          name: 'Other Driver',
+          assignmentCoverage: { trucks: ['BR44GB1162'], assignmentCount: 1, measuredDays: 0 },
+        },
+      ],
+    });
+    render(
+      <MemoryRouter>
+        <ReportCardsTab subject="driver" />
+      </MemoryRouter>,
+    );
+    await screen.findByText('Ramesh Yadav');
+    expect(screen.getByRole('columnheader', { name: 'Assignments' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Measured days' })).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Score' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search drivers' }), {
+      target: { value: 'WB11T0662' },
+    });
+    expect(screen.getByText('Ramesh Yadav')).toBeInTheDocument();
+    expect(screen.queryByText('Other Driver')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Open the full card for Ramesh Yadav' }));
+    expect(await screen.findByRole('region', { name: 'Assignment coverage' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'WB11T0662 →' })).toHaveAttribute(
+      'href',
+      '/vehicles/WB11T0662',
+    );
+  });
+
   it('resolves driver ids to names', async () => {
     const id = '65f1c2a4b7d9e12345678901';
-    IntelligenceService.getReportCards.mockResolvedValue({ items: [{ id, subject: 'driver', name: id }] });
-    TripService.getDrivers.mockResolvedValue({ data: [{ _id: id, firstName: 'Ramesh', lastName: 'Yadav' }] });
-    render(<MemoryRouter><ReportCardsTab subject="driver" /></MemoryRouter>);
+    IntelligenceService.getReportCards.mockResolvedValue({
+      items: [{ id, subject: 'driver', name: id }],
+    });
+    TripService.getDrivers.mockResolvedValue({
+      data: [{ _id: id, firstName: 'Ramesh', lastName: 'Yadav' }],
+    });
+    render(
+      <MemoryRouter>
+        <ReportCardsTab subject="driver" />
+      </MemoryRouter>,
+    );
     expect(await screen.findByText('Ramesh Yadav')).toBeInTheDocument();
     expect(screen.queryByText(id)).not.toBeInTheDocument();
   });

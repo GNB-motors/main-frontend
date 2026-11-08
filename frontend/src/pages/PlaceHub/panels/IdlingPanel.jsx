@@ -20,6 +20,7 @@ export default function IdlingPanel({
   liveTotals,
   spots,
   historyTotals,
+  historyLabel = '7 days',
   truncated,
   idleSetting,
   errors,
@@ -42,11 +43,11 @@ export default function IdlingPanel({
           tone={liveTotals.excessRupees > 0 ? 'crit' : null}
         />
         <Kpi
-          label="Excess · 7 days"
+          label={`Excess · ${historyLabel}`}
           value={formatInrCompact(historyTotals.excessRupees)}
           tone="crit"
         />
-        <Kpi label="Idle hours · 7 days" value={hoursLabel(historyTotals.hours)} />
+        <Kpi label={`Idle hours · ${historyLabel}`} value={hoursLabel(historyTotals.hours)} />
       </div>
       <div className="ph-filter">
         <Segmented
@@ -55,7 +56,7 @@ export default function IdlingPanel({
           onChange={onView}
           options={[
             { id: 'live', label: 'Live now', count: live.length },
-            { id: 'spots', label: 'Idle spots · 7 days', count: spots.length },
+            { id: 'spots', label: `Idle spots · ${historyLabel}`, count: spots.length },
           ]}
         />
         {thresholdMin != null ? (

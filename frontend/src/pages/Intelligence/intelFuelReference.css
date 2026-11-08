@@ -1,0 +1,401 @@
+.intel-fuel-reference {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  font-family: 'Vehicle Overview Inter', Inter, sans-serif;
+  color: #121214;
+}
+.intel-fuel-briefing {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(135deg, #2f58ee4d, #6a43d814) border-box;
+  box-shadow: 0 4px 14px #1e223814;
+  overflow: hidden;
+}
+.intel-fuel-brief-copy {
+  flex: 2 1 480px;
+  min-width: 0;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.intel-fuel-brief-copy > span {
+  font:
+    500 10px/1 Helvetica,
+    Arial,
+    sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #6a43d8;
+}
+.intel-fuel-brief-copy p {
+  margin: 0;
+  font:
+    400 19px/1.5 'Vehicle Overview DM Sans',
+    sans-serif;
+}
+.intel-fuel-brief-copy button {
+  border: 0;
+  border-bottom: 2px solid #c56200;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.intel-fuel-brief-copy small {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #5d5d5e;
+}
+.intel-fuel-brief-kpis {
+  flex: 1 1 340px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-left: 1px solid #ececee;
+}
+.intel-fuel-brief-kpis > button {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  text-align: left;
+  border: 0;
+  border-right: 1px solid #ececee;
+  border-bottom: 1px solid #ececee;
+  background: transparent;
+  cursor: pointer;
+}
+.intel-fuel-brief-kpis > button:hover {
+  background: #f8f8fb;
+}
+.intel-fuel-brief-kpis span {
+  font-size: 12px;
+  color: #5d5d5e;
+}
+.intel-fuel-brief-kpis strong {
+  font:
+    500 26px/1.1 'Vehicle Overview DM Sans',
+    sans-serif;
+}
+.intel-fuel-brief-kpis small {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #93939a;
+}
+.intel-fuel-display-switch,
+.intel-fuel-layer-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid #ececee;
+  border-radius: 10px;
+  background: #f3f3f6;
+  align-self: flex-start;
+}
+.intel-fuel-display-switch button,
+.intel-fuel-layer-switch button {
+  display: flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #5d5d5e;
+  cursor: pointer;
+}
+.intel-fuel-display-switch button[aria-selected='true'],
+.intel-fuel-layer-switch button[aria-pressed='true'] {
+  background: #fff;
+  border-color: #ececee;
+  color: #121214;
+  box-shadow: 0 1px 3px #0000000d;
+}
+.intel-fuel-map-card {
+  display: flex;
+  flex-wrap: wrap;
+  overflow: hidden;
+  border: 1px solid #0508160d;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px #1e223814;
+  background: #fff;
+}
+.intel-fuel-map-sidebar {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 340px;
+  min-width: 0;
+  border-right: 1px solid #ececee;
+}
+.intel-fuel-map-sidebar > header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #ececee;
+}
+.intel-fuel-source-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.intel-fuel-source-chips button {
+  padding: 5px 10px;
+  border: 1px solid #dfdfe2;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.intel-fuel-source-chips button[aria-pressed='true'] {
+  border-color: #2f58ee40;
+  background: #2f58ee1a;
+  color: #213ea7;
+}
+.intel-fuel-record-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 420px;
+  overflow: auto;
+}
+.intel-fuel-record-list > button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid #f3f3f6;
+  background: #fff;
+  color: #121214;
+  cursor: pointer;
+}
+.intel-fuel-record-list > button:hover {
+  background: #f8f8fb;
+}
+.intel-fuel-record-list > button[aria-pressed='true'] {
+  background: #2f58ee0f;
+  box-shadow: inset 3px 0 #2f58ee;
+}
+.intel-fuel-record-list strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.intel-fuel-record-list small {
+  display: block;
+  margin-top: 4px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #93939a;
+}
+.intel-fuel-record-list > button > span {
+  font:
+    500 20px 'Vehicle Overview DM Sans',
+    sans-serif;
+  text-align: right;
+  white-space: nowrap;
+}
+.intel-fuel-map-sidebar > footer {
+  margin-top: auto;
+  padding: 12px 18px;
+  border-top: 1px solid #ececee;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #93939a;
+}
+.intel-fuel-map-column {
+  flex: 2 1 560px;
+  min-width: 0;
+}
+.intel-fuel-map-canvas {
+  height: 520px;
+  min-height: 320px;
+}
+.intel-fuel-selected {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px;
+  border-top: 1px solid #ececee;
+}
+.intel-fuel-selected > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.intel-fuel-selected h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.intel-fuel-selected small {
+  display: block;
+  margin-top: 4px;
+  color: #93939a;
+  font-size: 11.5px;
+}
+.intel-fuel-selected > header button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #dfdfe2;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+}
+.intel-fuel-source-tag {
+  align-self: flex-start;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #6a43d814;
+  color: #5530bc;
+  font-size: 12px;
+}
+.intel-fuel-selected p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #2e2e30;
+}
+.intel-fuel-selected-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.intel-fuel-selected-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f8f8fb;
+}
+.intel-fuel-selected-stats strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.intel-fuel-review-log {
+  align-self: flex-start;
+  min-height: 32px;
+  padding: 7px 12px;
+  border: 1px solid #2a4fd6;
+  border-radius: 8px;
+  background: #4469f0;
+  color: #fff;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.intel-fuel-log .dt {
+  border: 1px solid #0508160d;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 4px #1e223814;
+  overflow: hidden;
+}
+.intel-fuel-log .dt th {
+  padding: 10px 20px;
+  color: #747476;
+  background: #f8f8fb;
+  font-size: 11px;
+  font-weight: 400;
+}
+.intel-fuel-log .dt td {
+  padding: 12px 20px;
+  border-color: #f3f3f6;
+  font-size: 13px;
+}
+.intel-fuel-log .dt-tools {
+  padding: 16px 20px;
+}
+.intel-mileage-reference .intel-card {
+  border: 1px solid #0508160d;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 4px #1e223814;
+  overflow: hidden;
+}
+.intel-mileage-reference .intel-table th {
+  background: #f8f8fb;
+  padding: 10px 20px;
+  font-size: 11px;
+  font-weight: 400;
+  color: #747476;
+}
+.intel-mileage-reference .intel-table td {
+  padding: 12px 20px;
+  border-color: #f3f3f6;
+  font-size: 13px;
+}
+.intel-fuel-brief-kpis > .intel-mileage-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border-right: 1px solid #ececee;
+  border-bottom: 1px solid #ececee;
+}
+.intel-fuel-window-value {
+  border: 0;
+  padding: 0;
+  width: 100%;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: help;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 150px;
+}
+.intel-fuel-window-value > i {
+  flex: 1;
+  height: 6px;
+  min-width: 40px;
+  border-radius: 3px;
+  background: #f3f3f6;
+  overflow: hidden;
+}
+.intel-fuel-window-value > i > b {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: #c56200;
+}
+.intel-fuel-window-value > strong {
+  min-width: 64px;
+  text-align: right;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.data-tooltip.intel-fuel-map-tooltip {
+  transform: translate(-50%, calc(-100% - 20px));
+  min-width: 190px;
+}
+.intel-fuel-window-value {
+  position: relative;
+}
+.data-tooltip.intel-fuel-bar-tooltip {
+  position: fixed;
+  z-index: 1500;
+  min-width: 220px;
+  white-space: normal;
+  text-align: left;
+}
+.intel-fuel-map-tooltip .data-tooltip-label > i,
+.intel-fuel-bar-tooltip .data-tooltip-label > i {
+  background: #c56200;
+}

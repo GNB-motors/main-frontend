@@ -4,6 +4,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Gauge, Zap } from 'lucide-react';
 import OverspeedView from '../RouteHub/views/OverspeedView.jsx';
 import InstancesTab from './InstancesTab.jsx';
+import DrivingBriefing from './DrivingPeriodRead';
+import './drivingReference.css';
 import { trackLink } from '../../utils/redesign/links.js';
 import '../RouteHub/routeHubDesign.css';
 import './IntelligencePage.css';
@@ -41,7 +43,10 @@ export default function OverspeedTab({ from, to, vehicle = '', driver = '' }) {
   };
 
   return (
-    <div className="intel-overspeed-tab">
+    <div className="intel-driving-tab intel-overspeed-tab">
+      {subView === 'audit' ? (
+        <DrivingBriefing kind="overspeed" from={from} to={to} vehicle={vehicle} driver={driver} />
+      ) : null}
       <IntelligenceViewSwitcher label="Overspeed views">
         <button
           type="button"

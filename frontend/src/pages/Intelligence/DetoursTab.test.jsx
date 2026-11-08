@@ -6,6 +6,12 @@ import RouteHubService from '../../services/RouteHubService';
 
 const mockNavigate = vi.fn();
 
+vi.mock('./IntelligenceService', () => ({
+  default: {
+    getInstances: vi.fn().mockResolvedValue({ summary: { count: 3, totalMin: 15 }, total: 3 }),
+  },
+}));
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
@@ -30,7 +36,10 @@ vi.mock('../RouteHub/routeHubMap', () => ({
   useLayerGroup: () => {},
   L: {
     latLngBounds: vi.fn(() => ({ pad: () => ({ isValid: () => false }) })),
-    circleMarker: vi.fn(() => ({ bindTooltip: vi.fn().mockReturnThis(), addTo: vi.fn().mockReturnThis() })),
+    circleMarker: vi.fn(() => ({
+      bindTooltip: vi.fn().mockReturnThis(),
+      addTo: vi.fn().mockReturnThis(),
+    })),
     polyline: vi.fn(() => ({ addTo: vi.fn().mockReturnThis() })),
   },
 }));
@@ -110,4 +119,3 @@ describe('DetoursTab', () => {
     expect(screen.getByText(/Instances Log: detour \(v1\)/i)).toBeInTheDocument();
   });
 });
-

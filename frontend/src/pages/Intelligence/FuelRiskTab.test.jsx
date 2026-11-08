@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import FuelRiskTab from './FuelRiskTab.jsx';
 import { listHotspots, getDrainMap } from '../../services/HotspotService.js';
@@ -67,7 +67,7 @@ describe('FuelRiskTab', () => {
     expect(screen.getByText('3')).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('NH16 lay-by'));
-    expect(await screen.findByRole('complementary', { name: 'NH16 lay-by' })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'NH16 lay-by' })).toBeInTheDocument();
   });
 
   it('pre-selects hotspot when URL includes hotspot search param', async () => {
@@ -77,7 +77,7 @@ describe('FuelRiskTab', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('complementary', { name: 'NH16 lay-by' })).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: 'NH16 lay-by' })).toBeInTheDocument();
   });
 
   it('switches between hotspots and drain map', async () => {
@@ -88,9 +88,13 @@ describe('FuelRiskTab', () => {
     );
 
     expect(await screen.findByText('NH16 lay-by')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('tab', { name: /Drain map/ }));
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Fuel map layers' })).getByRole('button', {
+        name: /Parked drops/,
+      }),
+    );
     expect(await screen.findByText(/Drain map shows estimated drops/)).toBeInTheDocument();
-    expect(screen.getByText(/2 drops/)).toBeInTheDocument();
+    expect(screen.getByText(/80 L · 2 events/)).toBeInTheDocument();
   });
 
   it('switches to the fuel drops log', async () => {
@@ -115,8 +119,6 @@ describe('FuelRiskTab', () => {
       </MemoryRouter>,
     );
 
-    expect(
-      await screen.findByText(/Some fuel data could not load \(fuel hotspots\)/),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Couldn't load this/)).toBeInTheDocument();
   });
 });

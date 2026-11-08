@@ -1,7 +1,11 @@
+import DriverCardsBriefing from './DriverCardsBriefing';
+import { cardsBriefing } from './reportCardsBriefingModel';
+import ReportCardsBriefing, { ScoreSparkline } from './ReportCardsBriefing';
+import '../Vehicle360/panels/overview/referenceOverview.css';
+import './reportCardsReference.css';
 import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import DataTable from '@/components/ui/DataTable';
-import ToneBadge from '@/components/redesign/ToneBadge';
 import { formatNumber } from '@/utils/redesign/format';
 import { useApi } from '@/hooks/useApi';
 import TripService from '@/pages/Trip/services/TripService';
@@ -15,7 +19,14 @@ import {
 import IntelligenceDataState from './IntelligenceDataState';
 import ReportCardDrawer from './ReportCardDrawer';
 import IntelligenceService from './IntelligenceService';
-import { bucketReportCards, driverNameMap, humanizeDates, isInternalBasis, reportCardMakes, resolveDriverName } from './intelligenceModel';
+import {
+  bucketReportCards,
+  driverNameMap,
+  humanizeDates,
+  isInternalBasis,
+  reportCardMakes,
+  resolveDriverName,
+} from './intelligenceModel';
 
 const GRADES = [
   { id: 'all', label: 'All grades' },
@@ -34,6 +45,7 @@ const GRADES = [
  */
 export default function ReportCardsTab({
   subject = 'vehicle',
+  headerControl = null,
   from,
   to,
   vehicle = '',
@@ -56,9 +68,13 @@ export default function ReportCardsTab({
     [],
     { enabled: subject === 'driver', scopeKey: 'drivers' },
   );
-  const driversById = useMemo(() => driverNameMap(
-    Array.isArray(drivers) ? drivers : Array.isArray(drivers?.data) ? drivers.data : [],
-  ), [drivers]);
+  const driversById = useMemo(
+    () =>
+      driverNameMap(
+        Array.isArray(drivers) ? drivers : Array.isArray(drivers?.data) ? drivers.data : [],
+      ),
+    [drivers],
+  );
 
   const held = data?.held ? data.why : null;
   const cards = (data?.items ?? [])
@@ -78,13 +94,18 @@ export default function ReportCardsTab({
         ? { ...card, grade: 'NOT_ENOUGH_DATA' }
         : card,
     )
-    .map((card) => subject === 'driver'
-      ? { ...card, name: resolveDriverName(card, driversById, { ready: !driversLoading }) }
-      : card);
-  const allUngraded = subject === 'driver' && cards.length > 0 &&
+    .map((card) =>
+      subject === 'driver'
+        ? { ...card, name: resolveDriverName(card, driversById, { ready: !driversLoading }) }
+        : card,
+    );
+  const allUngraded =
+    subject === 'driver' &&
+    cards.length > 0 &&
     cards.every((card) => card.grade === 'NOT_ENOUGH_DATA');
-  const makes = reportCardMakes(cards);
-  const { buckets, total } = bucketReportCards(cards, { query, grade, make });
+  const makes = subject === 'vehicle' ? reportCardMakes(cards) : [];
+  const Briefing = subject === 'driver' ? DriverCardsBriefing : ReportCardsBriefing;
+  const { buckets } = bucketReportCards(cards, { query, grade, make });
   const { buckets: gradeBuckets } = bucketReportCards(cards, { query, make });
   const rows = buckets.flatMap((bucket) => bucket.cards);
   const totalPages = Math.max(1, Math.ceil(rows.length / 25));
@@ -93,11 +114,9 @@ export default function ReportCardsTab({
     GRADES.find((entry) => entry.id === card.grade)?.label || 'Insufficient data';
   // A column that says the same thing on every row says it once instead:
   // no "Not graded" ×118, no "No comparison" ×126, no repeated basis line.
-  const allNoScore = cards.length > 0 && cards.every((card) => card.score == null);
-  const allNoTrend = cards.length > 0 && cards.every((card) => card.trend == null);
-  const oneGrade = cards.length > 0 && new Set(cards.map((card) => card.grade)).size === 1;
   const bases = new Set(cards.map((card) => card.basis?.basis ?? ''));
-  const sharedBasis = cards.length > 1 && bases.size === 1 && !isInternalBasis([...bases][0]) ? [...bases][0] : null;
+  const sharedBasis =
+    cards.length > 1 && bases.size === 1 && !isInternalBasis([...bases][0]) ? [...bases][0] : null;
   const columns = [
     {
       key: 'name',
@@ -112,7 +131,26 @@ export default function ReportCardsTab({
             setOpenCard(card);
           }}
         >
-          {card.name}
+          {subject === 'driver' ? (
+            <span className="intel-driver-identity">
+              <span className="intel-driver-avatar" aria-hidden="true">
+                {card.name
+                  ?.split(/\s+/)
+                  .map((part) => part[0])
+                  .slice(0, 2)
+                  .join('')
+                  .toUpperCase()}
+              </span>
+              <span>
+                {card.name}
+                <small>
+                  {card.assignmentCoverage?.trucks?.join(' · ') || 'Assigned truck not available'}
+                </small>
+              </span>
+            </span>
+          ) : (
+            card.name
+          )}
           {card.make ? (
             <small>
               {card.make} {card.model || ''}
@@ -121,24 +159,19 @@ export default function ReportCardsTab({
         </button>
       ),
     },
-    oneGrade
-      ? null
-      : {
-          key: 'grade',
-          label: 'Assessment',
-          render: (card) => (
-            <ToneBadge
-              tone={
-                card.grade === 'EXCELLENT' ? 'good' : card.grade === 'FALLING' ? 'watch' : 'info'
-              }
-            >
-              {gradeLabel(card)}
-            </ToneBadge>
-          ),
-        },
-    allNoScore
-      ? null
-      : {
+    {
+      key: 'grade',
+      label: 'Assessment',
+      render: (card) => (
+        <span
+          className={`intel-assessment-grade intel-assessment-grade--${card.grade || 'NOT_ENOUGH_DATA'}`}
+        >
+          {gradeLabel(card)}
+        </span>
+      ),
+    },
+    !allUngraded
+      ? {
           key: 'score',
           label: 'Score',
           align: 'right',
@@ -153,21 +186,31 @@ export default function ReportCardsTab({
                 {formatNumber(card.score)}
               </span>
             ),
-        },
-    allNoTrend
-      ? null
-      : {
+        }
+      : null,
+    !allUngraded
+      ? {
           key: 'trend',
-          label: 'Trend',
-          render: (card) =>
-            card.trend === 'UP'
-              ? 'Improving ↑'
-              : card.trend === 'DOWN'
-                ? 'Declining ↓'
-                : card.trend === 'FLAT'
-                  ? 'Steady'
-                  : '—',
-        },
+          label: '7-day trend',
+          render: (card) => <ScoreSparkline history={card.scoreHistory} trend={card.trend} />,
+        }
+      : null,
+    allUngraded
+      ? {
+          key: 'assignments',
+          label: 'Assignments',
+          align: 'right',
+          render: (card) => card.assignmentCoverage?.assignmentCount ?? '—',
+        }
+      : null,
+    allUngraded
+      ? {
+          key: 'measuredDays',
+          label: 'Measured days',
+          align: 'right',
+          render: (card) => card.assignmentCoverage?.measuredDays ?? '—',
+        }
+      : null,
     {
       key: 'distance',
       label: 'Distance',
@@ -195,30 +238,11 @@ export default function ReportCardsTab({
 
   const title = subject === 'driver' ? 'Drivers' : 'Trucks';
   const what = subject === 'driver' ? 'The driver card' : 'The truck card';
-  const activeFilters = (grade !== 'all' ? 1 : 0) + (make !== 'all' ? 1 : 0) + (query.trim() ? 1 : 0);
+  const activeFilters =
+    (grade !== 'all' ? 1 : 0) + (make !== 'all' ? 1 : 0) + (query.trim() ? 1 : 0);
 
   const toolbar = (
     <div className="intel-tab-tools">
-      <div className="intel-search-box">
-        <Search
-          size={14}
-          aria-hidden="true"
-          className="intel-search-icon"
-        />
-        <input
-          id="intelligence-card-search"
-          type="search"
-          aria-label={`Search ${title.toLowerCase()}`}
-          value={query}
-          onChange={(event) => {
-            setQuery(event.target.value);
-            setPage(1);
-          }}
-          placeholder={subject === 'driver' ? 'Search a driver' : 'Search a plate'}
-          className="intel-search-input"
-        />
-      </div>
-
       {makes.length > 0 ? (
         <Select
           value={make}
@@ -241,7 +265,9 @@ export default function ReportCardsTab({
         </Select>
       ) : null}
 
-      {makes.length > 0 && cards.length ? <span className="intel-chip-sep" aria-hidden="true" /> : null}
+      {makes.length > 0 && cards.length ? (
+        <span className="intel-chip-sep" aria-hidden="true" />
+      ) : null}
 
       {cards.length ? (
         <div className="intel-chip-row" role="group" aria-label="Assessment groups">
@@ -278,19 +304,52 @@ export default function ReportCardsTab({
       ) : null}
 
       {sharedBasis ? (
-        <span className="intelligence-scope-note-inline ml-auto">{`Based on ${humanizeDates(sharedBasis).replace(/^([A-Z])(?=[a-z])/, (c) => c.toLowerCase())}`}</span>
+        <span className="intelligence-scope-note-inline">{`Based on ${humanizeDates(sharedBasis).replace(/^([A-Z])(?=[a-z])/, (c) => c.toLowerCase())}`}</span>
       ) : null}
+
+      <div className="intel-search-box">
+        <Search size={14} aria-hidden="true" className="intel-search-icon" />
+        <input
+          id="intelligence-card-search"
+          type="search"
+          aria-label={`Search ${title.toLowerCase()}`}
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setPage(1);
+          }}
+          placeholder={subject === 'driver' ? 'Search a driver' : 'Search a plate'}
+          className="intel-search-input"
+        />
+      </div>
     </div>
   );
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="intel-assessments flex flex-col gap-5">
+      <header className="intel-assessments-heading">
+        <div>
+          <h2>{title}</h2>
+          <p>
+            {subject === 'driver'
+              ? 'Which drivers are doing well or slipping, and why.'
+              : 'Which trucks are doing well or slipping, and why.'}
+          </p>
+        </div>
+        <div className="intel-assessment-heading-right">
+          {headerControl}
+          <span>
+            {from && to ? `Based on ${from} → ${to} · ` : ''}
+            {cardsBriefing(cards).graded} of {cards.length} graded
+          </span>
+        </div>
+      </header>
       <IntelligenceDataState
         loading={loading}
         loadingVariant="table"
         error={error}
         held={held}
-        isEmpty={total === 0}
+        isEmpty={cards.length === 0}
         emptyMessage={
           subject === 'driver'
             ? 'No driver cards for this period yet.'
@@ -300,19 +359,16 @@ export default function ReportCardsTab({
         onRetry={refetch}
       >
         <>
-          {subject === 'driver' ? (
-            allUngraded ? (
-              <p className="intelligence-scope-note intelligence-scope-note--warn" role="status">
-                No driver can be graded yet. Assignment coverage is not a driving-quality assessment.
-              </p>
-            ) : (
-              <p className="intelligence-scope-note">
-                Assignment coverage is shown when a performance score is unavailable. An ungraded
-                driver is not classified as a good or bad performer.
-              </p>
-            )
-          ) : null}
+          <Briefing
+            cards={cards}
+            subject={subject}
+            onGrade={(next) => {
+              setGrade(next);
+              setPage(1);
+            }}
+          />
           <DataTable
+            className="intel-assessments-table"
             columns={columns}
             rows={rows.slice((currentPage - 1) * 25, currentPage * 25)}
             rowKey={(card) => card.id}

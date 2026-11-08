@@ -669,8 +669,10 @@ describe('Mileage → Used vs should use', () => {
     useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity', 'fuelModel']));
     renderAt('/mileage?tab=performance&view=expected');
 
-    expect(await screen.findByText('Choose a truck')).toBeInTheDocument();
+    const truckSelect = await screen.findByRole('combobox', { name: 'Truck' });
+    expect(truckSelect).toHaveTextContent('Choose a truck');
     expect(apiClient.get).not.toHaveBeenCalledWith('/api/fuel-model/expected', expect.anything());
+    fireEvent.click(truckSelect);
     fireEvent.click(await screen.findByRole('option', { name: /WB11J8562/ }));
 
     expect(await screen.findByText('Used extra')).toBeInTheDocument();

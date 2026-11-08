@@ -13,6 +13,8 @@ import LiveIdleDetail from '../PlaceHub/drawer/LiveIdleDetail.jsx';
 import IdleSpotDetail from '../PlaceHub/drawer/IdleSpotDetail.jsx';
 import useHtmlDark from '../PlaceHub/page/useHtmlDark.js';
 import InstancesTab from './InstancesTab';
+import IdlingPeriodRead from './IdlingPeriodRead';
+import './drivingReference.css';
 import RiskMapCanvas from './RiskMapCanvas';
 import '../PlaceHub/PlaceHub.css';
 import './IntelligencePage.css';
@@ -61,7 +63,7 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
           try {
             for (let page = 1; page <= MAX_IDLE_PAGES; page++) {
               const res = await IdlingConsoleService.getHistory(
-                { from: fromDate, page, limit: IDLE_PAGE_SIZE },
+                { from: fromDate, to, page, limit: IDLE_PAGE_SIZE },
                 { signal },
               );
               rows = rows.concat(res.data || []);
@@ -93,7 +95,7 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
         setLoading(false);
       }
     }
-  }, [from]);
+  }, [from, to]);
 
   useEffect(() => {
     loadData();
@@ -123,7 +125,14 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
     return live.filter((e) => (e.registrationNumber || '').toLowerCase().includes(v));
   }, [live, vehicle]);
 
-  const spots = useMemo(() => clusterIdleEvents(history), [history]);
+  const filteredHistory = useMemo(() => {
+    if (!vehicle) return history;
+    const plate = vehicle.replace(/\s/g, '').toUpperCase();
+    return history.filter(
+      (event) => (event.registrationNumber || '').replace(/\s/g, '').toUpperCase() === plate,
+    );
+  }, [history, vehicle]);
+  const spots = useMemo(() => clusterIdleEvents(filteredHistory), [filteredHistory]);
 
   const filteredSpots = useMemo(() => {
     if (!vehicle) return spots;
@@ -132,7 +141,7 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
   }, [spots, vehicle]);
 
   const liveTotals = useMemo(() => liveIdleTotals(filteredLive), [filteredLive]);
-  const historyTotals = useMemo(() => idleHistoryTotals(history), [history]);
+  const historyTotals = useMemo(() => idleHistoryTotals(filteredHistory), [filteredHistory]);
 
   // Selected item
   const selectedItem = useMemo(() => {
@@ -147,7 +156,22 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
   const selectedKind = selectedId?.startsWith('live:') ? 'live' : 'idleSpot';
 
   return (
-    <div className="intel-idling-tab">
+    <div className="intel-driving-tab intel-idling-tab">
+      <IdlingPeriodRead
+        live={filteredLive}
+        history={filteredHistory}
+        loading={loading}
+        errors={errors}
+        truncated={truncated}
+        onLive={() => {
+          setSubView('map');
+          setView('live');
+        }}
+        onHistory={() => {
+          setSubView('map');
+          setView('spots');
+        }}
+      />
       <IntelligenceViewSwitcher label="Idling views">
         <button
           type="button"
@@ -188,6 +212,7 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
               liveTotals={liveTotals}
               spots={filteredSpots}
               historyTotals={historyTotals}
+              historyLabel={from || to ? 'selected period' : '7 days'}
               truncated={truncated}
               idleSetting={idleSetting}
               errors={errors}

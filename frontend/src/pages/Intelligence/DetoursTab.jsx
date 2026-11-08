@@ -4,6 +4,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GitFork, Zap } from 'lucide-react';
 import DeviationView from '../RouteHub/views/DeviationView.jsx';
 import InstancesTab from './InstancesTab.jsx';
+import DrivingBriefing from './DrivingPeriodRead';
+import './drivingReference.css';
 import { trackLink } from '../../utils/redesign/links.js';
 import '../RouteHub/routeHubDesign.css';
 import './IntelligencePage.css';
@@ -41,7 +43,10 @@ export default function DetoursTab({ from, to, vehicle = '', driver = '' }) {
   };
 
   return (
-    <div className="intel-detours-tab">
+    <div className="intel-driving-tab intel-detours-tab">
+      {subView === 'audit' ? (
+        <DrivingBriefing kind="detour" from={from} to={to} vehicle={vehicle} driver={driver} />
+      ) : null}
       <IntelligenceViewSwitcher label="Detour views">
         <button
           type="button"

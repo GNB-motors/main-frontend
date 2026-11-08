@@ -33,9 +33,9 @@ export const IntelligenceSummaryPayloadSchema = z
       .passthrough(),
     runs: z
       .object({
-        loadedKm: z.number(),
-        emptyKm: z.number(),
-        repositionKm: z.number(),
+        loadedKm: z.number().nullable(),
+        emptyKm: z.number().nullable(),
+        repositionKm: z.number().nullable(),
         loadedTrips: z.number(),
         plantToPlant: z.number(),
         emptySharePct: z.number().nullable(),
@@ -92,6 +92,14 @@ export const ReportCardSchema = z
     strengths: z.array(InsightChipSchema).default([]),
     problems: z.array(InsightChipSchema.extend({ advice: z.string() }).passthrough()).default([]),
     kmInPeriod: z.number().nullable(),
+    assignmentCoverage: z
+      .object({
+        assignmentCount: z.number().int().nonnegative(),
+        trucks: z.array(z.string()),
+        measuredDays: z.number().int().nonnegative(),
+      })
+      .nullable()
+      .optional(),
     basis: WhySchema,
   })
   .passthrough();

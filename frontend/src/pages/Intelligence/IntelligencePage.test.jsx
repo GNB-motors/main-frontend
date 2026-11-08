@@ -2,6 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 
+// Navigation is exercised here; each tab's API and contents have dedicated tests.
+vi.mock('./ReportCardsTab', () => ({ default: ({ headerControl }) => <div>{headerControl}</div> }));
+vi.mock('./IdlingTab', () => ({ default: () => <div>Idling view</div> }));
+vi.mock('./OverspeedTab', () => ({ default: () => <div>Overspeed view</div> }));
+vi.mock('./FuelRiskTab', () => ({ default: () => <div>Fuel checks view</div> }));
+vi.mock('@/pages/Trip/services/TripService', () => ({
+  default: {
+    getDrivers: vi.fn().mockResolvedValue({ data: [] }),
+    getVehicles: vi.fn().mockResolvedValue({ data: [] }),
+  },
+}));
+
 vi.mock('./IntelligenceService', () => ({
   default: {
     getSummary: vi.fn(),
@@ -104,7 +116,9 @@ describe('IntelligencePage', () => {
     renderPage('/intelligence?tab=issues');
 
     expect(screen.getByText('Intelligence')).toBeInTheDocument();
-    expect(screen.getByText(/What your trucks and drivers did, and what needs you/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/What your trucks and drivers did, and what needs you/),
+    ).toBeInTheDocument();
     const sections = {
       Issues: [],
       'Trucks & drivers': ['Trucks', 'Drivers'],
@@ -125,7 +139,11 @@ describe('IntelligencePage', () => {
     IntelligenceService.getInstances.mockImplementation(({ kind }) =>
       Promise.resolve(
         kind === 'overspeed'
-          ? { summary: { count: 7, totalMin: 95, why: { text: 'From the GPS trail.' } }, items: [], total: 7 }
+          ? {
+              summary: { count: 7, totalMin: 95, why: { text: 'From the GPS trail.' } },
+              items: [],
+              total: 7,
+            }
           : { summary: null, items: [], total: 0 },
       ),
     );
@@ -139,16 +157,22 @@ describe('IntelligencePage', () => {
   });
 
   it('draws no summary box at all while the summary endpoint is not deployed', async () => {
-    IntelligenceService.getSummary.mockRejectedValue(Object.assign(new Error('Not found'), { status: 404 }));
+    IntelligenceService.getSummary.mockRejectedValue(
+      Object.assign(new Error('Not found'), { status: 404 }),
+    );
     renderPage();
     await waitFor(() => expect(IntelligenceService.getSummary).toHaveBeenCalled());
     await waitFor(() =>
-      expect(screen.queryByText(/The summary of this period is being built/)).not.toBeInTheDocument(),
+      expect(
+        screen.queryByText(/The summary of this period is being built/),
+      ).not.toBeInTheDocument(),
     );
   });
 
   it('shows no "All 0" chips while the issues endpoint is not deployed', async () => {
-    IntelligenceService.getIssues.mockRejectedValue(Object.assign(new Error('Not found'), { status: 404 }));
+    IntelligenceService.getIssues.mockRejectedValue(
+      Object.assign(new Error('Not found'), { status: 404 }),
+    );
     renderPage('/intelligence?tab=issues');
     expect(await screen.findByText(/being built/)).toBeInTheDocument();
     expect(screen.queryByRole('group', { name: 'Filter the issues' })).not.toBeInTheDocument();
@@ -164,7 +188,10 @@ describe('IntelligencePage', () => {
         expect.objectContaining({ from: expect.any(String), to: expect.any(String) }),
       ),
     );
-    expect(await screen.findByRole('tab', { name: /Issues/ })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByRole('tab', { name: /Issues/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
   });
 
   it('opens on the trucks when nothing needs the owner', async () => {
@@ -179,7 +206,10 @@ describe('IntelligencePage', () => {
     renderPage('/intelligence?tab=mileage');
 
     await waitFor(() =>
-      expect(screen.getByRole('tab', { name: /Mileage & DEF/ })).toHaveAttribute('aria-selected', 'true'),
+      expect(screen.getByRole('tab', { name: /Mileage & DEF/ })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      ),
     );
   });
 
@@ -202,28 +232,25 @@ describe('IntelligencePage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Last 30 days' }));
 
-    await waitFor(() =>
-      expect(screen.getByTestId('location')).toHaveTextContent('from='),
-    );
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('from='));
   });
 
   it('goes back to the tab the owner came from', async () => {
     renderPage('/intelligence?tab=overspeed');
 
     await waitFor(() =>
-      expect(screen.getByRole('tab', { name: 'Overspeed' })).toHaveAttribute('aria-selected', 'true'),
+      expect(screen.getByRole('tab', { name: 'Overspeed' })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      ),
     );
 
     fireEvent.click(screen.getByRole('tab', { name: 'Runs & places' }));
-    await waitFor(() =>
-      expect(screen.getByTestId('location')).toHaveTextContent('tab=runs'),
-    );
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('tab=runs'));
 
     fireEvent.click(screen.getByRole('button', { name: 'Go back' }));
 
-    await waitFor(() =>
-      expect(screen.getByTestId('location')).toHaveTextContent('tab=overspeed'),
-    );
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('tab=overspeed'));
     expect(screen.getByRole('tab', { name: 'Overspeed' })).toHaveAttribute('aria-selected', 'true');
   });
 });

@@ -38,7 +38,15 @@ function renderGroup(items) {
 
 describe('IssueGroup', () => {
   it('hides repeated templated details but retains them when the row opens', () => {
-    renderGroup([issue, { ...issue, id: 'iss-78', registrationNumber: 'WB11F0262', detail: issue.detail.replace('3 times', '4 times') }]);
+    renderGroup([
+      issue,
+      {
+        ...issue,
+        id: 'iss-78',
+        registrationNumber: 'WB11F0262',
+        detail: issue.detail.replace('3 times', '4 times'),
+      },
+    ]);
     expect(screen.queryByRole('columnheader', { name: 'What we saw' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /WB11F0162: show details/ }));
     expect(screen.getByText(issue.detail)).toBeInTheDocument();
@@ -52,9 +60,9 @@ describe('IssueGroup', () => {
     expect(screen.getByText(/Check the GPS antenna cable/)).toBeInTheDocument();
     // The kind's own numbers, read from the issue.
     expect(screen.getByText('3')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /WB11F0162: show details/ }));
     expect(screen.getByText('38 km/h')).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'What we saw' })).toBeInTheDocument();
-    expect(screen.getByTitle(issue.detail)).toBeInTheDocument();
+    expect(screen.getByText(issue.detail)).toBeInTheDocument();
   });
 
   it('opens the evidence when the owner asks for it', () => {
@@ -82,7 +90,11 @@ describe('IssueGroup', () => {
         kind: 'ACCOUNT_DISCONNECTED',
         registrationNumber: null,
         accountName: 'GNB Buxar Fleet',
-        action: { kind: 'RECONNECT', label: 'Reconnect account', to: '/settings/fleetedge-accounts' },
+        action: {
+          kind: 'RECONNECT',
+          label: 'Reconnect account',
+          to: '/settings/fleetedge-accounts',
+        },
       },
     ]);
 
@@ -107,7 +119,10 @@ describe('IssueGroup', () => {
 
   it('does not invent a phone number when there is none, and says the step instead', () => {
     renderGroup([
-      { ...issue, action: { kind: 'CALL_DEALER', label: 'Check the tracker’s power and SIM', to: null } },
+      {
+        ...issue,
+        action: { kind: 'CALL_DEALER', label: 'Check the tracker’s power and SIM', to: null },
+      },
     ]);
 
     expect(screen.queryByRole('link', { name: /Check the tracker/ })).not.toBeInTheDocument();
@@ -125,7 +140,7 @@ describe('IssueGroup', () => {
     expect(screen.getByText('Replace the antenna.')).toBeInTheDocument();
   });
 
-  it('shows the first rows and the rest one click away', () => {
+  it('renders every row in the scrolling panel without a per-card search', () => {
     const many = Array.from({ length: 6 }, (_, i) => ({
       ...issue,
       id: `iss-${i}`,
@@ -133,8 +148,7 @@ describe('IssueGroup', () => {
     }));
     renderGroup(many);
 
-    expect(screen.getAllByRole('button', { name: /show details/ })).toHaveLength(4);
-    fireEvent.click(screen.getByRole('button', { name: /Show all 6/ }));
     expect(screen.getAllByRole('button', { name: /show details/ })).toHaveLength(6);
+    expect(screen.queryByRole('button', { name: /Show all/ })).not.toBeInTheDocument();
   });
 });

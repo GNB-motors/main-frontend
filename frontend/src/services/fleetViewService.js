@@ -213,9 +213,9 @@ export const getIntelligenceSummary = ({ from, to, signal } = {}) =>
   });
 
 /** GET /api/intelligence/issues */
-export const getIntelligenceIssues = ({ from, to, page, limit, signal } = {}) =>
+export const getIntelligenceIssues = ({ from, to, page, limit, vehicle, kind, signal } = {}) =>
   get('/api/intelligence/issues', {
-    params: { from, to, page, limit },
+    params: { from, to, page, limit, ...(vehicle ? { vehicle } : {}), ...(kind ? { kind } : {}) },
     signal,
     schema: 'IntelligenceIssuesResponseSchema',
     importer: importIntelligence,

@@ -8,7 +8,6 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import InsightChip from '@/components/redesign/InsightChip';
-import InfoTip from '@/components/redesign/InfoTip';
 import ToneBadge from '@/components/redesign/ToneBadge';
 import { formatNumber } from '@/utils/redesign/format';
 import { intelligenceLink, trackLink } from '@/utils/redesign/links';
@@ -45,7 +44,7 @@ export default function ReportCardDrawer({ card, open, onOpenChange }) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="max-w-md border-[var(--rd-line)] bg-[var(--rd-card)]">
+      <SheetContent className="intel-assessment-drawer max-w-md border-[var(--rd-line)] bg-[var(--rd-card)]">
         <SheetHeader className="border-[var(--rd-line)] px-5 py-4">
           <div className="min-w-0">
             <SheetTitle className="text-[16px] text-[var(--rd-ink)]">
@@ -85,6 +84,48 @@ export default function ReportCardDrawer({ card, open, onOpenChange }) {
             ) : null}
           </div>
 
+          {card.rank != null ? (
+            <p className="intel-assessment-rank">
+              Rank {card.rank} of {card.rankedCount} graded records
+            </p>
+          ) : null}
+          {card.periodFrom && card.periodTo ? (
+            <p className="intel-assessment-period">
+              Assessment period · {String(card.periodFrom).slice(0, 10)} →{' '}
+              {String(card.periodTo).slice(0, 10)}
+            </p>
+          ) : null}
+          {isDriver && card.assignmentCoverage ? (
+            <section className="intel-driver-coverage" aria-label="Assignment coverage">
+              <h3>Assignment coverage</h3>
+              <dl>
+                <div>
+                  <dt>Assignments</dt>
+                  <dd>{formatNumber(card.assignmentCoverage.assignmentCount)}</dd>
+                </div>
+                <div>
+                  <dt>Measured days</dt>
+                  <dd>{formatNumber(card.assignmentCoverage.measuredDays)}</dd>
+                </div>
+                <div>
+                  <dt>Distance</dt>
+                  <dd>
+                    {card.kmInPeriod == null
+                      ? 'Not measured'
+                      : `${formatNumber(card.kmInPeriod)} km`}
+                  </dd>
+                </div>
+              </dl>
+              <p>Distance covers fully assigned days with recorded readings.</p>
+              <div className="intel-driver-trucks">
+                {card.assignmentCoverage.trucks.map((reg) => (
+                  <Link key={reg} to={`/vehicles/${encodeURIComponent(reg)}`}>
+                    {reg} →
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : null}
           {card?.strengths?.length ? (
             <section className="flex flex-col gap-2">
               <h3 className="m-0 text-[13px] font-semibold text-[var(--rd-ink)]">What went well</h3>
@@ -162,20 +203,13 @@ export default function ReportCardDrawer({ card, open, onOpenChange }) {
               </Link>
             </div>
 
-            {isDriver ? (
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  aria-disabled="true"
-                  className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-[var(--rd-radius-xs)] border border-[var(--rd-line)] bg-[var(--rd-card-2)] px-2.5 py-1 text-[13px] font-semibold text-[var(--rd-ink-3)]"
-                >
-                  Reward this driver (coming soon)
-                </button>
-                <InfoTip
-                  text="Soon you’ll be able to reward good drivers directly from here."
-                  label="About rewarding a driver"
-                />
-              </div>
+            {!isDriver && card.id ? (
+              <Link
+                to={`/vehicles/${encodeURIComponent(card.id)}`}
+                className="intel-assessment-open-profile"
+              >
+                Open truck →
+              </Link>
             ) : null}
           </section>
         </div>

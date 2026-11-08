@@ -12,6 +12,8 @@ const ScaledDot = memo(function ScaledDot({
   selected,
   interactive,
   onSelect,
+  onMouseOver,
+  onMouseOut,
 }) {
   const icon = useMemo(() => dotIcon(color, scale, { selected }), [color, scale, selected]);
   const click = useCallback(() => onSelect(id), [onSelect, id]);
@@ -23,6 +25,8 @@ const ScaledDot = memo(function ScaledDot({
       clickable={interactive}
       zIndex={selected ? 1000 : Math.round(scale)}
       onClick={click}
+      onMouseOver={onMouseOver}
+      onMouseOut={onMouseOut}
     />
   );
 });

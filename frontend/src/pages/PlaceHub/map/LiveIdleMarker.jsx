@@ -4,7 +4,14 @@ import { IDLE_COLOR } from '../placeHubStyle.js';
 import { durationLabel } from '../model/placeLabels.js';
 import { diamondIcon } from './mapIcons.js';
 
-const LiveIdleMarker = memo(function LiveIdleMarker({ event, selected, interactive, onSelect }) {
+const LiveIdleMarker = memo(function LiveIdleMarker({
+  event,
+  selected,
+  interactive,
+  onSelect,
+  onMouseOver,
+  onMouseOut,
+}) {
   const color = event.legitimacy === 'excess' ? IDLE_COLOR.excess : IDLE_COLOR.legit;
   const icon = useMemo(() => diamondIcon(color, selected), [color, selected]);
   const id = `live:${event._id}`;
@@ -17,6 +24,8 @@ const LiveIdleMarker = memo(function LiveIdleMarker({ event, selected, interacti
       clickable={interactive}
       zIndex={selected ? 1001 : 500}
       onClick={click}
+      onMouseOver={onMouseOver}
+      onMouseOut={onMouseOut}
     />
   );
 });

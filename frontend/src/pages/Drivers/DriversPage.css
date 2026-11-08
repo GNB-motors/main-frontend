@@ -1341,3 +1341,14 @@
   background: #dcedc8;
   border-color: #2e7d32;
 }
+
+/* Keep employee search left and table actions at the opposite edge. */
+.drivers-container .dt-tools-right {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.drivers-container .dt-tools-right > .dt-search {
+  margin-right: auto;
+}

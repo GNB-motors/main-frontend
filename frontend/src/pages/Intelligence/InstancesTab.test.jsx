@@ -16,7 +16,10 @@ const instances = {
     totalMin: 126,
     totalL: null,
     totalInr: null,
-    why: { text: 'Engine on, not moving, for more than 15 minutes.', basis: 'From 1,240 km of driving this week' },
+    why: {
+      text: 'Engine on, not moving, for more than 15 minutes.',
+      basis: 'From 1,240 km of driving this week',
+    },
   },
   items: [
     {
@@ -26,7 +29,14 @@ const instances = {
       startAt: '2026-11-01T15:05:00Z',
       endAt: '2026-11-01T15:45:00Z',
       durationMin: 40,
-      place: { id: 'poi-202', kind: 'POI', name: 'Mohania Dhaba', category: 'DHABA', lat: 24.37, lng: 84.98 },
+      place: {
+        id: 'poi-202',
+        kind: 'POI',
+        name: 'Mohania Dhaba',
+        category: 'DHABA',
+        lat: 24.37,
+        lng: 84.98,
+      },
       value: 40,
       unit: 'min',
       text: 'Idled 40 min with engine on at Mohania dhaba',
@@ -43,6 +53,34 @@ describe('InstancesTab', () => {
     IntelligenceService.getInstances.mockResolvedValue(instances);
   });
 
+  it('shows the actual fuel-window data on bar hover and keyboard focus', async () => {
+    IntelligenceService.getInstances.mockResolvedValue({
+      kind: 'fuel_unexplained',
+      summary: { count: 1 },
+      total: 1,
+      items: [
+        { ...instances.items[0], value: 32.5, unit: 'L', text: 'Fuel decreased while parked.' },
+      ],
+    });
+    render(
+      <MemoryRouter>
+        <InstancesTab kind="fuel_unexplained" from="2026-10-27" to="2026-11-02" />
+      </MemoryRouter>,
+    );
+    const bar = await screen.findByRole('button', { name: /WB11L8862: 32.5 L unaccounted fuel/ });
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    fireEvent.mouseEnter(bar);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('WB11L8862');
+    expect(screen.getByRole('tooltip')).toHaveTextContent('32.5 L');
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Mohania Dhaba');
+    fireEvent.mouseLeave(bar);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    fireEvent.focus(bar);
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+    fireEvent.blur(bar);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
   it('says what the system saw, and why', async () => {
     render(
       <MemoryRouter>
@@ -50,9 +88,11 @@ describe('InstancesTab', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('Engine on, not moving, for more than 15 minutes.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Engine on, not moving, for more than 15 minutes.'),
+    ).toBeInTheDocument();
     expect(screen.getByText('From 1,240 km of driving this week')).toBeInTheDocument();
-    expect(screen.getByText('12')).toBeInTheDocument();
+    expect(screen.getAllByText('12')).toHaveLength(2);
     expect(screen.getByText('2 h 6 min')).toBeInTheDocument();
     expect(screen.getByText('in total')).toBeInTheDocument();
   });
@@ -83,7 +123,13 @@ describe('InstancesTab', () => {
 
     await waitFor(() =>
       expect(IntelligenceService.getInstances).toHaveBeenCalledWith(
-        expect.objectContaining({ kind: 'overspeed', from: '2026-10-27', to: '2026-11-02', page: 1, limit: 25 }),
+        expect.objectContaining({
+          kind: 'overspeed',
+          from: '2026-10-27',
+          to: '2026-11-02',
+          page: 1,
+          limit: 25,
+        }),
       ),
     );
   });

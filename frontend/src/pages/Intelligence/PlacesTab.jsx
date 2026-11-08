@@ -2,53 +2,128 @@ import { useState } from 'react';
 import Link from '@/components/redesign/FleetLink';
 import { useApi } from '@/hooks/useApi';
 import { formatDuration, formatNumber, formatProbability } from '@/utils/redesign/format';
-import { useGoToLink } from '@/utils/redesign/links';
-import IntelCard from './IntelCard';
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import IntelligenceDataState from './IntelligenceDataState';
 import IntelligenceService from './IntelligenceService';
 import { placeCategoryLabel, summarisePlacesByPlace } from './intelligenceModel';
+import '../Vehicle360/panels/overview/referenceOverview.css';
+import './runsPlacesReference.css';
 
 const QUESTIONS_PATH = '/auto-trips?tab=questions';
-const TOP_QUESTIONS = 6;
-const TOP_PLACES = 12;
-
 const coords = (point) =>
-  Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lng))
+  point?.lat != null &&
+  point?.lng != null &&
+  Number.isFinite(Number(point.lat)) &&
+  Number.isFinite(Number(point.lng))
     ? `${Number(point.lat).toFixed(3)}, ${Number(point.lng).toFixed(3)}`
     : null;
 
-/** A place's name, with what kind of place it is or where it is. */
-function PlaceCell({ name, category = null, point = null, extra = null }) {
-  const kind = placeCategoryLabel(category);
-  // Raw coordinates mean nothing to an owner: they go in the tooltip, not the cell.
-  const second = [kind, extra].filter(Boolean).join(' · ');
+function QuestionAnswer({ question }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(question.suggestion?.name || '');
+  const [category, setCategory] = useState(question.suggestion?.category || '');
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+  const save = async (answer) => {
+    setBusy(true);
+    setError('');
+    try {
+      const result = await IntelligenceService.answerPlaceQuestion(question.id, {
+        answer,
+        ...(name.trim() ? { name: name.trim() } : {}),
+        ...(category ? { category } : {}),
+      });
+      if (!result?.placeId)
+        throw new Error(
+          'The place was not saved. Review the place evidence or open the questions page.',
+        );
+      setSaved(true);
+      setEditing(false);
+    } catch (err) {
+      setError(err?.displayMessage || err?.message || 'Could not save the answer.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  if (saved)
+    return (
+      <span className="intel-place-saved" role="status">
+        ✓ Saved as {name || 'confirmed place'}
+      </span>
+    );
   return (
-    <span className="intel-place" title={coords(point) ?? undefined}>
-      <span className="intel-place-name">{name}</span>
-      {second ? <span className="intel-place-meta">{second}</span> : null}
-    </span>
+    <div className="intel-place-guess">
+      {editing ? (
+        <div className="intel-place-answer-form">
+          <input
+            aria-label={`Place name for ${question.id}`}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Place name"
+          />
+          <SearchableSelect
+            value={category}
+            onValueChange={setCategory}
+            aria-label={`Category for ${question.id}`}
+          >
+            <option value="">Select category</option>
+            {['PLANT', 'CUSTOMER', 'PARKING', 'FUEL_PUMP', 'WORKSHOP'].map((value) => (
+              <option key={value} value={value}>
+                {placeCategoryLabel(value)}
+              </option>
+            ))}
+          </SearchableSelect>
+          <div>
+            <button
+              className="intel-place-action intel-place-action--primary"
+              disabled={busy || !name.trim()}
+              onClick={() => save('RENAME')}
+            >
+              {busy ? 'Saving…' : 'Save answer'}
+            </button>{' '}
+            <button
+              className="intel-place-action"
+              disabled={busy}
+              onClick={() => setEditing(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <span className="intel-place-guess-label">
+            {question.suggestion?.name || 'No suggestion'}
+            {question.suggestion?.confidence != null
+              ? ` · ${formatProbability(question.suggestion.confidence)}`
+              : ''}
+          </span>
+          <button
+            className="intel-place-action intel-place-action--primary"
+            disabled={busy || !question.suggestion?.name}
+            onClick={() => save('CONFIRM')}
+          >
+            {busy ? 'Saving…' : 'Confirm'}
+          </button>
+          <button className="intel-place-action" disabled={busy} onClick={() => setEditing(true)}>
+            Something else
+          </button>
+        </>
+      )}
+      {error ? <small role="alert">{error}</small> : null}
+    </div>
   );
 }
 
-/**
- * PlacesTab — the places waiting for a name, and the places the fleet uses
- * most, side by side.
- *
- * A question is only worth asking when the trips behind it can be looked
- * at: a row opens the first trip that stopped there, and the full list,
- * where the owner answers, is one click away.
- */
 export default function PlacesTab({ from, to }) {
-  const [allPlaces, setAllPlaces] = useState(false);
-  const goTo = useGoToLink();
-
+  const [type, setType] = useState('all');
   const {
     data: questions,
     loading: questionsLoading,
     error: questionsError,
     refetch: refetchQuestions,
   } = useApi((signal) => IntelligenceService.getPlaceQuestions({ signal }), []);
-
   const {
     data: history,
     loading: historyLoading,
@@ -58,108 +133,80 @@ export default function PlacesTab({ from, to }) {
     (signal) => IntelligenceService.getTripsHistory({ from, to, limit: 200, signal }),
     [from, to],
   );
-
-  const questionItems = questions?.items ?? [];
+  const questionItems = questions?.items || [];
   const questionTotal = questions?.total ?? questionItems.length;
-  const places = summarisePlacesByPlace(history?.countsByPlace ?? [], history?.items ?? []);
-  const shownPlaces = allPlaces ? places : places.slice(0, TOP_PLACES);
-
+  const places = summarisePlacesByPlace(history?.countsByPlace || [], history?.items || []);
+  const types = [...new Set(places.map((row) => row.place?.category || 'UNKNOWN'))];
+  const shown = places.filter(
+    (row) => type === 'all' || (row.place?.category || 'UNKNOWN') === type,
+  );
+  const maxTime = Math.max(1, ...places.map((row) => row.usualMin || 0));
   return (
-    <div className="intel-places-grid">
-      <IntelCard
-        title="Places waiting for your answer"
-        count={questionTotal}
-        flush
-        info={{
-          text: 'A place the system could not name. Answering with the right name makes every later trip, report and search better.',
-        }}
-        action={
-          questionItems.length ? (
-            <Link to={QUESTIONS_PATH} className="intel-link">
-              {`See all ${formatNumber(questionTotal)} and answer`}
-            </Link>
-          ) : null
-        }
-      >
+    <div className="intel-places-reference">
+      <section className="intel-place-card intel-place-card--questions">
+        <header>
+          <div className="intel-place-question-heading">
+            <h3 className="intel-place-eyebrow">✧ Places waiting for your answer</h3>
+            <p>
+              {questionsLoading
+                ? 'Loading place questions…'
+                : `${formatNumber(questionTotal)} places need a name or confirmation.`}
+            </p>
+            <small>
+              Suggestions are inferred from recorded stops and place matches. Confirm after
+              reviewing the trip.
+            </small>
+          </div>
+          <Link to={QUESTIONS_PATH}>{`See all ${formatNumber(questionTotal)} and answer`}</Link>
+        </header>
         <IntelligenceDataState
           loading={questionsLoading}
           error={questionsError}
-          isEmpty={questionItems.length === 0}
-          emptyMessage="Every place the fleet visited has a name."
+          isEmpty={!questionItems.length}
+          emptyMessage="No unanswered place questions returned."
           emptyTone="good"
           what="The places waiting for an answer"
           onRetry={refetchQuestions}
         >
-          <div className="intel-table-wrap intel-table-wrap--flush">
-            <table className="intel-table">
+          <div className="intel-place-table-wrap">
+            <table className="intel-place-table">
               <thead>
                 <tr>
-                  <th scope="col">Place</th>
-                  <th scope="col">What trucks do there</th>
-                  <th scope="col" className="intel-num">
-                    Trucks
-                  </th>
-                  <th scope="col" className="intel-num">
-                    Trips
-                  </th>
+                  <th>Place</th>
+                  <th>What trucks do there</th>
+                  <th>Our guess</th>
+                  <th className="intel-num">Trucks</th>
+                  <th className="intel-num">Trips</th>
                 </tr>
               </thead>
               <tbody>
-                {questionItems.slice(0, TOP_QUESTIONS).map((question) => {
-                  const suggestion = question?.suggestion ?? null;
-                  const firstTrip = (question?.sampleTrips ?? []).find((trip) => trip?.to);
-                  const alternatives = (question?.alternatives ?? [])
-                    .map((alt) => alt?.name)
-                    .filter(Boolean);
-                  const extra = [
-                    suggestion?.source ? `from ${suggestion.source}` : null,
-                    formatProbability(suggestion?.confidence),
-                    alternatives.length ? `also ${alternatives.join(', ')}` : null,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ');
+                {questionItems.map((question) => {
+                  const firstTrip = question.sampleTrips?.find((trip) => trip.to);
+                  const label = question.suggestion?.name || 'Unnamed point';
                   return (
-                    <tr
-                      key={question.id}
-                      className={firstTrip ? 'intel-row' : undefined}
-                      onClick={firstTrip ? () => goTo(firstTrip) : undefined}
-                    >
+                    <tr key={question.id}>
                       <td>
                         {firstTrip ? (
-                          <Link
-                            to={firstTrip.to}
-                            className="intel-row-link"
-                            onClick={(event) => event.stopPropagation()}
-                            aria-label={`${suggestion?.name ?? 'Unnamed point'}: ${firstTrip.label}`}
-                          >
-                            <PlaceCell
-                              name={suggestion?.name ?? 'Unnamed point'}
-                              category={suggestion?.category}
-                              point={question?.point}
-                              extra={extra}
-                            />
+                          <Link to={firstTrip.to} aria-label={`${label}: ${firstTrip.label}`}>
+                            <b>{label}</b>
                           </Link>
                         ) : (
-                          <PlaceCell
-                            name={suggestion?.name ?? 'Unnamed point'}
-                            category={suggestion?.category}
-                            point={question?.point}
-                            extra={extra}
-                          />
+                          <b>{label}</b>
                         )}
+                        <small>{coords(question.point) || 'Coordinates unavailable'}</small>
                       </td>
                       <td>
-                        <span className="intel-cell-wrap">
-                          {question?.why?.text ?? '—'}
-                          {/* "8 trips · 7 trucks" only repeats the two columns. */}
-                          {question?.why?.basis &&
-                          !/^\d+ trips?\s*·\s*\d+ trucks?$/.test(question.why.basis) ? (
-                            <small className="intelligence-table-basis">{question.why.basis}</small>
-                          ) : null}
-                        </span>
+                        {question.why?.text || 'Stop activity not described'}
+                        {question.why?.basis ? <small>{question.why.basis}</small> : null}
+                        {question.suggestion?.category ? (
+                          <small>{placeCategoryLabel(question.suggestion.category)}</small>
+                        ) : null}
                       </td>
-                      <td className="intel-num">{formatNumber(question?.trucks)}</td>
-                      <td className="intel-num">{formatNumber(question?.tripsAffected)}</td>
+                      <td>
+                        <QuestionAnswer question={question} />
+                      </td>
+                      <td className="intel-num">{formatNumber(question.trucks)}</td>
+                      <td className="intel-num">{formatNumber(question.tripsAffected)}</td>
                     </tr>
                   );
                 })}
@@ -167,78 +214,94 @@ export default function PlacesTab({ from, to }) {
             </table>
           </div>
         </IntelligenceDataState>
-      </IntelCard>
-
-      <IntelCard
-        title="Busiest places"
-        count={places.length || null}
-        flush
-        info={{
-          text: 'The places the fleet visited most in this period, with how many trucks came and how long they usually stay. Trucks and usual time are worked out from the visits loaded, so they are only as complete as that page of history.',
-        }}
-      >
+      </section>
+      <section className="intel-place-card">
+        <header>
+          <h3>
+            Busiest places <small>{places.length} places returned</small>
+          </h3>
+          <div className="intel-place-type-filters" role="group" aria-label="Filter place type">
+            <button aria-pressed={type === 'all'} onClick={() => setType('all')}>
+              All {places.length}
+            </button>
+            {types.map((category) => (
+              <button
+                key={category}
+                aria-pressed={type === category}
+                onClick={() => setType(category)}
+              >
+                {placeCategoryLabel(category)}{' '}
+                {places.filter((row) => (row.place?.category || 'UNKNOWN') === category).length}
+              </button>
+            ))}
+          </div>
+        </header>
         <IntelligenceDataState
           loading={historyLoading}
           loadingVariant="table"
           error={historyError}
-          isEmpty={places.length === 0}
+          isEmpty={!places.length}
           emptyMessage="No visits were recorded in this period."
           what="The visits of this period"
           onRetry={refetchHistory}
         >
-          <div className="intel-table-wrap intel-table-wrap--flush">
-            <table className="intel-table">
+          <div className="intel-place-table-wrap">
+            <table className="intel-place-table">
               <thead>
                 <tr>
-                  <th scope="col">Place</th>
-                  <th scope="col" className="intel-num">
-                    Visits
-                  </th>
-                  <th scope="col" className="intel-num">
-                    Trucks
-                  </th>
-                  <th scope="col" className="intel-num">
-                    Usual time there
-                  </th>
+                  <th>Place</th>
+                  <th className="intel-num">Visits</th>
+                  <th className="intel-num">Trucks</th>
+                  <th className="intel-num">Usual time there</th>
+                  <th>Time per visit</th>
                 </tr>
               </thead>
               <tbody>
-                {shownPlaces.map((row) => (
-                  <tr key={row?.place?.id ?? row?.place?.name} className="intel-row">
+                {shown.map((row) => (
+                  <tr key={row.place?.id || row.place?.name}>
                     <td>
-                      <PlaceCell
-                        name={row?.place?.name ?? 'Location not known'}
-                        category={row?.place?.category}
-                        point={row?.place}
-                      />
+                      <b>{row.place?.name || 'Location not known'}</b>
+                      <small>{placeCategoryLabel(row.place?.category)}</small>
                     </td>
-                    <td className="intel-num">{formatNumber(row?.visits)}</td>
+                    <td className="intel-num">{formatNumber(row.visits)}</td>
                     <td className="intel-num">
-                      {row?.trucks === null || row?.trucks === undefined
-                        ? '—'
-                        : formatNumber(row.trucks)}
+                      {row.trucks == null ? '—' : formatNumber(row.trucks)}
                     </td>
                     <td className="intel-num">
-                      {row?.usualMin === null || row?.usualMin === undefined
-                        ? '—'
-                        : formatDuration(row.usualMin)}
+                      {row.usualMin == null ? '—' : formatDuration(row.usualMin)}
+                    </td>
+                    <td>
+                      <div
+                        className="intel-place-time-track"
+                        aria-label={
+                          row.usualMin == null
+                            ? 'Duration unavailable'
+                            : `Usual visit ${formatDuration(row.usualMin)}`
+                        }
+                      >
+                        <span
+                          style={{
+                            width: `${row.usualMin == null ? 0 : (row.usualMin / maxTime) * 100}%`,
+                          }}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))}
+                {!shown.length ? (
+                  <tr>
+                    <td colSpan={5}>No places match this type.</td>
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </div>
-          {places.length > TOP_PLACES ? (
-            <button
-              type="button"
-              className="intel-show-all"
-              onClick={() => setAllPlaces((v) => !v)}
-            >
-              {allPlaces ? 'Show the top 12' : `Show all ${places.length} places`}
-            </button>
-          ) : null}
+          <div className="intel-place-coverage">
+            Visit counts describe the returned history. Distinct trucks and usual time are
+            calculated from loaded visits; incomplete history may limit these values.
+          </div>
         </IntelligenceDataState>
-      </IntelCard>
+      </section>
     </div>
   );
 }

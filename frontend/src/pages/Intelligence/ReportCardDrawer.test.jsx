@@ -11,9 +11,17 @@ const vehicleCard = {
   grade: 'EXCELLENT',
   score: 88,
   headline: 'Best km/L in the fleet this week',
-  strengths: [{ key: 'cruise', tone: 'good', label: 'Steady cruise', why: { text: 'Held 60 km/h.' }, link: null }],
+  strengths: [
+    {
+      key: 'cruise',
+      tone: 'good',
+      label: 'Steady cruise',
+      why: { text: 'Held 60 km/h.' },
+      link: null,
+    },
+  ],
   problems: [],
-  basis: { text: 'From the truck\'s own reports.', basis: '1,240 km · 9 trips' },
+  basis: { text: "From the truck's own reports.", basis: '1,240 km · 9 trips' },
 };
 
 const driverCard = {
@@ -23,9 +31,17 @@ const driverCard = {
   grade: 'GOOD',
   score: 76,
   headline: 'Drives steadily and rarely idles',
-  strengths: [{ key: 'gear', tone: 'good', label: 'Right gear', why: { text: 'Changes gear early.' }, link: null }],
+  strengths: [
+    {
+      key: 'gear',
+      tone: 'good',
+      label: 'Right gear',
+      why: { text: 'Changes gear early.' },
+      link: null,
+    },
+  ],
   problems: [],
-  basis: { text: 'From the driver\'s own trips.', basis: '9 trips' },
+  basis: { text: "From the driver's own trips.", basis: '9 trips' },
 };
 
 describe('ReportCardDrawer', () => {
@@ -59,15 +75,14 @@ describe('ReportCardDrawer', () => {
     );
   });
 
-  it('offers the driver a reward that does not work yet', () => {
+  it('does not offer an unsupported reward action for a driver', () => {
     render(
       <MemoryRouter>
         <ReportCardDrawer card={driverCard} open onOpenChange={vi.fn()} />
       </MemoryRouter>,
     );
 
-    const reward = screen.getByRole('button', { name: /Reward this driver/ });
-    expect(reward).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.queryByRole('button', { name: /Reward this driver/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'See on map' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'See all their idling' })).toHaveAttribute(
       'href',

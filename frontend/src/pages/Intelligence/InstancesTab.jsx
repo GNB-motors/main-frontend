@@ -1,10 +1,14 @@
 import { IntelligenceViewSwitcher } from './IntelligenceWorkspace.jsx';
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import './intelFuelReference.css';
 import Link from '@/components/redesign/FleetLink';
 import { ChevronLeft, ChevronRight, Route, Search } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
 import PlaceName from '@/components/redesign/PlaceName';
 import DataTable from '@/components/ui/DataTable';
+import DataTooltip from '@/components/ui/DataTooltip';
+import { DrivingPeriodRead } from './DrivingPeriodRead';
 import { formatDuration, formatInr, formatNumber } from '@/utils/redesign/format';
 import { useGoToLink } from '@/utils/redesign/links';
 import IntelligenceDataState from './IntelligenceDataState';
@@ -57,6 +61,49 @@ const valueText = (row) =>
     : row?.value === null || row?.value === undefined
       ? '—'
       : `${formatNumber(row.value, { digits: 1 })}${row?.unit ? ` ${row.unit}` : ''}`;
+
+function FuelWindowValue({ row, maximum }) {
+  const [anchor, setAnchor] = useState(null);
+  const show = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setAnchor({
+      top: rect.bottom + 8,
+      left: Math.max(8, Math.min(rect.right - 260, window.innerWidth - 280)),
+    });
+  };
+  return (
+    <button
+      type="button"
+      className="intel-fuel-window-value"
+      aria-label={`${row.registrationNumber || 'Truck'}: ${valueText(row)} unaccounted fuel`}
+      onMouseEnter={show}
+      onMouseLeave={() => setAnchor(null)}
+      onFocus={show}
+      onBlur={() => setAnchor(null)}
+    >
+      <i aria-hidden="true">
+        <b
+          style={{
+            width: `${Number.isFinite(row.value) ? Math.max(0, Math.min(100, (row.value / maximum) * 100)) : 0}%`,
+          }}
+        />
+      </i>
+      <strong>{valueText(row)}</strong>
+      {anchor &&
+        createPortal(
+          <DataTooltip
+            style={{ top: anchor.top, left: anchor.left }}
+            className="intel-fuel-bar-tooltip"
+            role="tooltip"
+            label={row.registrationNumber || 'Unaccounted fuel'}
+            value={valueText(row)}
+            details={[whenText(row.startAt, row.endAt), row.place?.name, row.text]}
+          />,
+          document.body,
+        )}
+    </button>
+  );
+}
 
 /**
  * InstancesTab — the moments behind one kind of event.
@@ -156,11 +203,20 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
       key: 'howMuch',
       label: VALUE_LABELS[activeKind] ?? 'How much',
       align: 'right',
-      render: (row) => (
-        <span className="font-semibold tabular-nums" title={templated ? row?.text : undefined}>
-          {valueText(row)}
-        </span>
-      ),
+      render: (row) =>
+        activeKind === 'fuel_unexplained' ? (
+          <FuelWindowValue
+            row={row}
+            maximum={Math.max(
+              1,
+              ...items.map((item) => (Number.isFinite(item.value) ? item.value : 0)),
+            )}
+          />
+        ) : (
+          <span className="font-semibold tabular-nums" title={templated ? row?.text : undefined}>
+            {valueText(row)}
+          </span>
+        ),
     },
     templated
       ? null
@@ -213,7 +269,9 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
   const caveat = CAVEATS[activeKind] ?? null;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div
+      className={activeKind === 'fuel_unexplained' ? 'flex flex-col gap-4' : 'intel-driving-tab'}
+    >
       {kind === 'cruise' ? (
         <IntelligenceViewSwitcher role="group" label="Cruise and gears">
           {SUB_TABS.map((tab) => (
@@ -241,48 +299,52 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
         what="This list of moments"
         onRetry={refetch}
       >
-        <div className="intel-summary" aria-label="What the system saw">
-          <div className="intel-summary-stat">
-            <b>{count.value}</b>
-            <span>
-              {count.label === 'in this period'
-                ? `${summary?.count === 1 ? one : many} in this period`
-                : count.label}
-            </span>
-          </div>
-          {summary?.totalMin !== null && summary?.totalMin !== undefined ? (
+        {activeKind !== 'fuel_unexplained' ? (
+          <DrivingPeriodRead kind={activeKind} summary={summary} total={total} />
+        ) : (
+          <div className="intel-summary" aria-label="What the system saw">
             <div className="intel-summary-stat">
-              <b>{formatDuration(summary.totalMin)}</b>
-              <span>in total</span>
+              <b>{count.value}</b>
+              <span>
+                {count.label === 'in this period'
+                  ? `${summary?.count === 1 ? one : many} in this period`
+                  : count.label}
+              </span>
             </div>
-          ) : null}
-          {/* Fuel windows overlap (each loss sits in ~8 rolling windows), so their sum is
+            {summary?.totalMin !== null && summary?.totalMin !== undefined ? (
+              <div className="intel-summary-stat">
+                <b>{formatDuration(summary.totalMin)}</b>
+                <span>in total</span>
+              </div>
+            ) : null}
+            {/* Fuel windows overlap (each loss sits in ~8 rolling windows), so their sum is
               not a loss total: show no total rather than a number ~8x too big. */}
-          {activeKind !== 'fuel_unexplained' &&
-          summary?.totalL !== null &&
-          summary?.totalL !== undefined ? (
-            <div className="intel-summary-stat">
-              <b>{formatLitres(summary.totalL)}</b>
-              <span>across all rows</span>
-            </div>
-          ) : null}
-          {summary?.totalInr !== null && summary?.totalInr !== undefined ? (
-            <div className="intel-summary-stat">
-              <b>{formatInr(summary.totalInr)}</b>
-              <span>estimated cost</span>
-            </div>
-          ) : null}
-          {summary?.why?.text || caveat ? (
-            <p className="intel-summary-note">
-              {humanizeDates(summary?.why?.text)}
-              {caveat ? ` ${caveat}` : ''}
-              {summary?.why?.basis ? <small>{humanizeDates(summary.why.basis)}</small> : null}
-            </p>
-          ) : null}
-        </div>
+            {activeKind !== 'fuel_unexplained' &&
+            summary?.totalL !== null &&
+            summary?.totalL !== undefined ? (
+              <div className="intel-summary-stat">
+                <b>{formatLitres(summary.totalL)}</b>
+                <span>across all rows</span>
+              </div>
+            ) : null}
+            {summary?.totalInr !== null && summary?.totalInr !== undefined ? (
+              <div className="intel-summary-stat">
+                <b>{formatInr(summary.totalInr)}</b>
+                <span>estimated cost</span>
+              </div>
+            ) : null}
+            {summary?.why?.text || caveat ? (
+              <p className="intel-summary-note">
+                {humanizeDates(summary?.why?.text)}
+                {caveat ? ` ${caveat}` : ''}
+                {summary?.why?.basis ? <small>{humanizeDates(summary.why.basis)}</small> : null}
+              </p>
+            ) : null}
+          </div>
+        )}
 
         <DataTable
-          className="mt-4"
+          className={activeKind === 'fuel_unexplained' ? 'mt-4' : 'intel-assessments-table'}
           columns={columns}
           rows={displayedItems}
           rowKey={(row) => row?.id ?? row?.startAt}

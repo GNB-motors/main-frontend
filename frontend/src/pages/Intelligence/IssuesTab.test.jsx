@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('./IntelligenceService', () => ({
@@ -59,7 +59,9 @@ describe('IssuesTab', () => {
     );
 
     expect(await screen.findByRole('heading', { name: 'GPS freezes' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Account stopped sending data' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Account stopped sending data' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('WB11F0162')).toBeInTheDocument();
     expect(screen.getByText('GNB Buxar Fleet')).toBeInTheDocument();
     expect(screen.getByText('Check the GPS antenna cable.')).toBeInTheDocument();
@@ -78,7 +80,7 @@ describe('IssuesTab', () => {
     );
 
     await screen.findByRole('heading', { name: 'GPS freezes' });
-    const headings = screen.getAllByRole('heading').map((h) => h.textContent);
+    const headings = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
     expect(headings).toEqual(['Account stopped sending data', 'GPS freezes']);
   });
 
@@ -98,7 +100,11 @@ describe('IssuesTab', () => {
       action: { kind: 'CALL_DEALER', label: 'Check the tracker’s power and SIM', to: null },
     });
     IntelligenceService.getIssues.mockResolvedValue({
-      items: [silent('a', 'WB11G1562', 4), silent('b', 'WB11M2162', 27), silent('c', 'WB11E9762', 13)],
+      items: [
+        silent('a', 'WB11G1562', 4),
+        silent('b', 'WB11M2162', 27),
+        silent('c', 'WB11E9762', 13),
+      ],
       total: 3,
       counts: { act: 3, watch: 0, good: 0, info: 0 },
     });
@@ -143,7 +149,9 @@ describe('IssuesTab', () => {
     fireEvent.click(row);
     expect(screen.getByText('Frozen 152 min, speed up to 38 km/h')).toBeInTheDocument();
     expect(
-      screen.getByText('The position stopped changing for 24 minutes while the truck was moving on NH19.'),
+      screen.getByText(
+        'The position stopped changing for 24 minutes while the truck was moving on NH19.',
+      ),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /^Open on the map/ })).toHaveAttribute(
       'href',
@@ -162,7 +170,11 @@ describe('IssuesTab', () => {
 
     const all = await screen.findByRole('button', { name: /^All/ });
     expect(all).toHaveTextContent('All2');
-    expect(screen.getByRole('button', { name: /^Needs you/ })).toHaveTextContent('Needs you1');
+    expect(
+      within(screen.getByRole('group', { name: 'Filter the issues' })).getByRole('button', {
+        name: /^Needs you/,
+      }),
+    ).toHaveTextContent('Needs you1');
   });
 
   it('filters the list by the chip that was picked', async () => {
@@ -175,7 +187,11 @@ describe('IssuesTab', () => {
     );
 
     await screen.findByText('WB11F0162');
-    fireEvent.click(screen.getByRole('button', { name: /^Needs you/ }));
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Filter the issues' })).getByRole('button', {
+        name: /^Needs you/,
+      }),
+    );
 
     expect(screen.queryByText('WB11F0162')).not.toBeInTheDocument();
     expect(screen.getByText('GNB Buxar Fleet')).toBeInTheDocument();
@@ -224,5 +240,33 @@ describe('IssuesTab', () => {
     );
 
     expect(await screen.findByText('Issues are being rebuilt.')).toBeInTheDocument();
+  });
+  it('shows a briefing when the deployed API has no briefing field', async () => {
+    IntelligenceService.getIssues.mockResolvedValue(issues);
+    render(
+      <MemoryRouter>
+        <IssuesTab from="2026-10-27" to="2026-11-02" />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('region', { name: 'Issues briefing' })).toBeInTheDocument();
+    expect(
+      screen.getByText(/4 recorded occurrences across 1 trucks and 1 accounts/),
+    ).toBeInTheDocument();
+  });
+  it('uses one shared search across all issue groups', async () => {
+    IntelligenceService.getIssues.mockResolvedValue(issues);
+    render(
+      <MemoryRouter>
+        <IssuesTab from="2026-10-27" to="2026-11-02" />
+      </MemoryRouter>,
+    );
+    const search = await screen.findByRole('searchbox', { name: 'Search all issues' });
+    expect(screen.getAllByRole('searchbox')).toHaveLength(1);
+    expect(screen.getByRole('heading', { name: 'Issues', exact: true })).toBeInTheDocument();
+    fireEvent.change(search, { target: { value: 'WB11F0162' } });
+    expect(screen.getByRole('button', { name: /WB11F0162: show details/ })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /GNB Buxar Fleet: show details/ }),
+    ).not.toBeInTheDocument();
   });
 });

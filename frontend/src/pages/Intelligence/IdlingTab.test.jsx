@@ -71,6 +71,22 @@ describe('IdlingTab', () => {
     });
   });
 
+  it('shows a period read and requests the selected end date', async () => {
+    render(
+      <MemoryRouter>
+        <IdlingTab from="2026-10-30T00:00:00Z" to="2026-11-06T00:00:00Z" />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('region', { name: 'Idling period read' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: /Closed idle events 1 Selected period/ }),
+    ).toBeInTheDocument();
+    expect(IdlingConsoleService.getHistory).toHaveBeenCalledWith(
+      expect.objectContaining({ to: '2026-11-06T00:00:00Z' }),
+      expect.any(Object),
+    );
+  });
+
   it('renders live idling vehicles, KPIs, and threshold rule link', async () => {
     render(
       <MemoryRouter>
