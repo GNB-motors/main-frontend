@@ -270,7 +270,8 @@ export default function RouteLayer({
       {tooltip.line.legs[0].title}
       {tooltip.line.legs.length > 1 ? ' (both directions)' : ''}
       <br />
-      {tooltip.line.runs} runs · usual {minutesLabel(tooltip.line.legs[0].stats?.minutes?.p50)} ·{' '}
+      {tooltip.line.runs} leg {tooltip.line.runs === 1 ? 'pass' : 'passes'} · usual{' '}
+      {minutesLabel(tooltip.line.legs[0].stats?.minutes?.p50)} ·{' '}
       {kmLabel(tooltip.line.legs[0].stats?.km?.p50)}
       <br />
       {tooltip.line.source === 'NONE'

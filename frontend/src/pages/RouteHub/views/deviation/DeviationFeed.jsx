@@ -7,6 +7,7 @@ import {
   deviationGroupSubtitle,
   deviationGroupTitle,
   extraKnown,
+  enrichmentReason,
   isOpen,
   legLabel,
   shortDay,
@@ -28,7 +29,16 @@ function LegPill({ trip }) {
 }
 
 function StatusPill({ d, notJudged, checked }) {
-  if (notJudged || !checked) return <span className="pill" title="Your trucks have used this road fewer than 2 times, so there is no usual road to compare." style={{ '--c': '#64748b', '--tint': 'rgba(100,116,139,.10)' }}>Not judged</span>;
+  if (notJudged || !checked)
+    return (
+      <span
+        className="pill"
+        title="Your trucks have used this road fewer than 2 times, so there is no usual road to compare."
+        style={{ '--c': '#64748b', '--tint': 'rgba(100,116,139,.10)' }}
+      >
+        Not judged
+      </span>
+    );
   return isOpen(d) ? (
     <span className="pill" style={{ '--c': '#C56200', '--tint': 'rgba(240,170,72,.16)' }}>
       <Ico n="alert" s={11} />
@@ -52,11 +62,26 @@ function StatusPill({ d, notJudged, checked }) {
  * with "+0.0 km extra" means there was no usual road to compare against
  * (fewer than two of the fleet's own trips used it), so we show a dash.
  */
-export default function DeviationFeed({ groups, selId, onSelect, first, error, pager, selectedNotJudged, selectedChecked }) {
+export default function DeviationFeed({
+  groups,
+  selId,
+  onSelect,
+  first,
+  error,
+  pager,
+  selectedNotJudged,
+  selectedChecked,
+}) {
   const events = groups.flatMap((g) => g.events);
   const showExtra = events.some(extraKnown);
   const showCost = events.some((d) => extraKnown(d) && d.estimatedExtraCostInr != null);
-  const time = (date) => new Date(date).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit', hour12: true });
+  const time = (date) =>
+    new Date(date).toLocaleTimeString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
   let body;
   if (groups.length) {
     body = groups.map((g) => (
@@ -70,7 +95,16 @@ export default function DeviationFeed({ groups, selId, onSelect, first, error, p
           <span className="sp" />
           {g.events.length > 1 ? (
             <span className="muted dev-group-sum">
-              {g.events.length} detours{g.events.some(extraKnown) ? ` · +${g.events.filter(extraKnown).reduce((sum, d) => sum + Number(d.extraKmEstimate), 0).toFixed(1)} km${g.events.every(extraKnown) ? '' : ' measured'}` : ''}{g.events.some(costKnown) ? ` · ${inr(g.events.filter(costKnown).reduce((sum, d) => sum + Number(d.estimatedExtraCostInr), 0))}${g.events.every(costKnown) ? '' : ' estimated for known detours'}` : ''}
+              {g.events.length} detours
+              {g.events.some(extraKnown)
+                ? ` · +${g.events
+                    .filter(extraKnown)
+                    .reduce((sum, d) => sum + Number(d.extraKmEstimate), 0)
+                    .toFixed(1)} km${g.events.every(extraKnown) ? '' : ' measured'}`
+                : ''}
+              {g.events.some(costKnown)
+                ? ` · ${inr(g.events.filter(costKnown).reduce((sum, d) => sum + Number(d.estimatedExtraCostInr), 0))}${g.events.every(costKnown) ? '' : ' estimated for known detours'}`
+                : ''}
             </span>
           ) : null}
         </div>
@@ -82,25 +116,45 @@ export default function DeviationFeed({ groups, selId, onSelect, first, error, p
             aria-pressed={d._id === selId}
             onClick={() => onSelect(d._id)}
           >
-            <span className="dev-row-when strong">{shortDay(d.startedAt || d.detectedAt)} · {d.startedAt ? time(d.startedAt) : '—'}{d.endedAt ? `–${time(d.endedAt)}` : ''}{d.durationMin != null ? ` · ${d.durationMin} min` : ''} · {(d.offRouteKm ?? d.maxOffKm) != null ? `${Number(d.offRouteKm ?? d.maxOffKm).toFixed(1)} km off` : 'distance unknown'}</span>
+            <span className="dev-row-when strong">
+              {shortDay(d.startedAt || d.detectedAt)} · {d.startedAt ? time(d.startedAt) : '—'}
+              {d.endedAt ? `–${time(d.endedAt)}` : ''}
+              {d.durationMin != null ? ` · ${d.durationMin} min` : ''} ·{' '}
+              {(d.offRouteKm ?? d.maxOffKm) != null
+                ? `${Number(d.offRouteKm ?? d.maxOffKm).toFixed(1)} km off`
+                : 'distance unknown'}
+            </span>
             <LegPill trip={d.trip} />
-            {showExtra ? <span className="dev-row-num">
-              <span className="muted">Extra</span>
-              <span title={extraKnown(d) ? undefined : 'Not estimated'}>
-                {extraKnown(d) ? `+${Number(d.extraKmEstimate).toFixed(1)} km` : '—'}
+            {showExtra ? (
+              <span className="dev-row-num">
+                <span className="muted">Extra</span>
+                <span title={extraKnown(d) ? undefined : 'Not estimated'}>
+                  {extraKnown(d) ? `+${Number(d.extraKmEstimate).toFixed(1)} km` : '—'}
+                </span>
               </span>
-            </span> : null}
-            {showCost ? <span className="dev-row-num">
-              <span className="muted">Cost (est.)</span>
-              <span
-                className="strong"
-                style={{ color: costKnown(d) ? '#C2323A' : 'var(--fg-tertiary)' }}
-                title={costKnown(d) ? costBasisLabel(d) : 'Not estimated'}
-              >
-                {costKnown(d) ? inr(d.estimatedExtraCostInr) : '—'}
+            ) : null}
+            {showCost ? (
+              <span className="dev-row-num">
+                <span className="muted">Cost (est.)</span>
+                <span
+                  className="strong"
+                  style={{ color: costKnown(d) ? '#C2323A' : 'var(--fg-tertiary)' }}
+                  title={costKnown(d) ? costBasisLabel(d) : enrichmentReason(d)}
+                >
+                  {costKnown(d) ? inr(d.estimatedExtraCostInr) : '—'}
+                </span>
               </span>
-            </span> : null}
-            <StatusPill d={d} checked={d._id === selId && selectedChecked} notJudged={d._id === selId && selectedNotJudged} />
+            ) : null}
+            {!costKnown(d) ? (
+              <span className="muted" title={enrichmentReason(d)}>
+                {d.source === 'ROAD_ENGINE' ? 'Off-route distance only' : 'Estimate unavailable'}
+              </span>
+            ) : null}
+            <StatusPill
+              d={d}
+              checked={d._id === selId && selectedChecked}
+              notJudged={d._id === selId && selectedNotJudged}
+            />
           </button>
         ))}
       </div>
@@ -126,7 +180,11 @@ export default function DeviationFeed({ groups, selId, onSelect, first, error, p
         </span>
         <h3>Deviations by trip</h3>
         <span className="sp" />
-        <span className="hint">{!showExtra && !showCost ? 'Extra km and cost not estimated yet' : 'Select a detour to see it on the map'}</span>
+        <span className="hint">
+          {!showExtra && !showCost && events.length
+            ? 'Extra distance/cost unavailable · select a detour for details'
+            : 'Select a detour to see it on the map'}
+        </span>
       </div>
       <div className="dev-feed">{body}</div>
       {pager}

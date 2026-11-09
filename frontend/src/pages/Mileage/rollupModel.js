@@ -97,9 +97,7 @@ export function ecuCrossCheck(kmPerLitre) {
         ? 'No ECU tile fell inside a counted cycle span, so there is no cross-check to report.'
         : null,
     gapText:
-      gapKmPerL == null
-        ? DASH
-        : `${gapKmPerL > 0 ? '+' : ''}${Number(gapKmPerL).toFixed(2)} km/L`,
+      gapKmPerL == null ? DASH : `${gapKmPerL > 0 ? '+' : ''}${Number(gapKmPerL).toFixed(2)} km/L`,
     gapReason:
       gapKmPerL == null
         ? 'Nothing to compare against: the ECU side has no figure over the counted cycles.'
@@ -152,12 +150,13 @@ export function rankingRows(kmPerLitre) {
     expectedKmPerL: r?.expectedKmPerL ?? null,
     expectedText: kmPerLText(r?.expectedKmPerL),
     expectedReason:
-      r?.expectedKmPerL == null ? 'No expected figure has been worked out for this truck yet.' : null,
+      r?.expectedKmPerL == null
+        ? 'No expected figure has been worked out for this truck yet.'
+        : null,
     expectedBasis: expectedBasisText(r?.expectedBasis),
     variancePct: r?.variancePct ?? null,
     varianceText: varianceText(r?.variancePct),
-    varianceReason:
-      r?.variancePct == null ? 'No expected figure to compare it against.' : null,
+    varianceReason: r?.variancePct == null ? 'No expected figure to compare it against.' : null,
     cycles: r?.cycles ?? null,
   }));
 }
@@ -210,10 +209,7 @@ export function dutyCut(kmPerLitre) {
   return {
     basis: duty.basis || null,
     cutKmPerCycle: duty.cutKmPerCycle ?? null,
-    cutText:
-      duty.cutKmPerCycle == null
-        ? DASH
-        : `${formatKm(duty.cutKmPerCycle)} per cycle`,
+    cutText: duty.cutKmPerCycle == null ? DASH : `${formatKm(duty.cutKmPerCycle)} per cycle`,
     cutReason:
       duty.cutKmPerCycle == null
         ? 'No truck has a measured cycle distance yet, so the cut is not known.'
@@ -222,7 +218,7 @@ export function dutyCut(kmPerLitre) {
   };
 }
 
-/** The window the roll-up actually covered — it is not always the dates asked for. */
+/** The completion-date window the backend actually used. */
 export function windowText(kmPerLitre) {
   const win = kmPerLitre?.window || {};
   const from = win.from ? formatInIST(win.from, 'D MMM YYYY') : null;

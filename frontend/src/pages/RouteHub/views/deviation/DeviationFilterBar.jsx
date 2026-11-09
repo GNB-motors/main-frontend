@@ -34,6 +34,7 @@ export default function DeviationFilterBar({ filters, dispatch, legCounts }) {
         <input
           type="search"
           aria-label="Search vehicle number or place"
+          maxLength={64}
           placeholder="Vehicle number or place (e.g. WB25R9540, Durgapur)…"
           value={filters.q}
           onChange={(e) => set('q')(e.target.value)}

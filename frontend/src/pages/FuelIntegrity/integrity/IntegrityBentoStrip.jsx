@@ -12,6 +12,7 @@ const IntegrityBentoStrip = ({
   setChip,
   totalFillsLitres,
   windowDays,
+  lossLabel = 'Fuel down while parked',
 }) => (
   <div className="fi-bento-grid">
     {/* Card 1: Audited Dispensed Fuel */}
@@ -47,7 +48,7 @@ const IntegrityBentoStrip = ({
       <div className="fi-bento-head">
         {/* "Needs review", never an accusation: fuel can go down while parked for
             reasons other than a person taking it (audit FI-03/04). */}
-        <span className="fi-bento-label">Fuel down while parked</span>
+        <span className="fi-bento-label">{lossLabel}</span>
         <div
           className={`fi-bento-icon ${lossL > 0 ? 'fi-bento-icon--rose' : 'fi-bento-icon--emerald'}`}
         >
@@ -85,8 +86,8 @@ const IntegrityBentoStrip = ({
           {lossL == null
             ? 'Not measured yet'
             : lossL === 0
-              ? 'Parked windows checked'
-              : 'In parked windows'}
+              ? 'Windows checked'
+              : 'In checked windows'}
         </span>
         <span
           className={`fi-bento-pill ${lossL === 0 ? 'fi-bento-pill--ok' : 'fi-bento-pill--crit'}`}

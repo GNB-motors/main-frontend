@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import RouteHubService from '../../../services/RouteHubService';
 import Ico from '../routeHubIcons.jsx';
 import { L, useLeafletMap, useLayerGroup } from '../routeHubMap';
@@ -26,8 +26,6 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const windowRef = useRef({ from: null, to: null });
-
   useEffect(() => {
     const ac = new AbortController();
     RouteHubService.getVehicles(ac.signal)
@@ -41,7 +39,6 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
   const run = useCallback(async () => {
     const to = new Date();
     const from = new Date(to.getTime() - win * 3600000);
-    windowRef.current = { from, to };
     setLoading(true);
     setError(null);
     setAppliedThr(thr);
@@ -65,25 +62,14 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
           speedKmh: thr,
           durationSec: dur * 60,
         });
-        const trail = await RouteHubService.getTrail(
-          data.registrationNumber ||
-            vehicles.find((v) => v._id === selected)?.registrationNumber ||
-            '',
-          { from: from.toISOString(), to: to.toISOString(), limit: 5000 },
-        ).catch(() => ({ points: [] }));
-        setDetail({
-          ...data,
-          fixes: (trail.points || [])
-            .filter((p) => p.speed != null)
-            .map((p) => ({ at: new Date(p.eventDateTime).getTime(), speed: p.speed })),
-        });
+        setDetail(data);
       }
     } catch (e) {
       setError(e?.message || 'Could not run the audit.');
     } finally {
       setLoading(false);
     }
-  }, [selected, thr, dur, win, vehicles, setBadge]);
+  }, [selected, thr, dur, win, setBadge]);
 
   useEffect(() => {
     run();
@@ -356,7 +342,6 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
               win={win}
               thr={appliedThr}
               events={events}
-              windowRef={windowRef}
             />
 
             <OverspeedEventsCard

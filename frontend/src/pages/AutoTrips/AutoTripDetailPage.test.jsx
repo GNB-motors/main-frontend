@@ -20,7 +20,9 @@ vi.mock('../../services/RoadService', () => ({
 vi.mock('../../services/RouteHubService', () => ({
   default: { getDeviationEvents: vi.fn().mockResolvedValue({ records: [] }) },
 }));
-vi.mock('../../services/fleetViewService.js', () => ({ getWhereNext: vi.fn().mockResolvedValue(null) }));
+vi.mock('../../services/fleetViewService.js', () => ({
+  getWhereNext: vi.fn().mockResolvedValue(null),
+}));
 vi.mock('../../utils/session.js', () => ({ getUserRole: () => 'VIEWER' }));
 // The map and the contract card have their own tests; here they are stand-ins.
 vi.mock('./AutoTripReplay', () => ({ default: () => <div>Replay map</div> }));
@@ -117,8 +119,59 @@ it('says what is not known yet on a trip whose drop was not found', async () => 
   const strip = within(document.querySelector('.atx-facts'));
   expect(strip.getAllByText('needs a known drop')).toHaveLength(2);
   expect(strip.getByText('No driver')).toBeInTheDocument();
-  expect(strip.getByText('priced once the trip ends')).toBeInTheDocument();
+  expect(
+    strip.getByText('Cost calculation unavailable until the drop is resolved.'),
+  ).toBeInTheDocument();
   // The drop flag is said in the route, not repeated as a chip.
   const chips = [...document.querySelectorAll('.atx-chip')].map((el) => el.textContent);
   expect(chips).not.toContain('Drop not found');
+});
+
+it.each(['COMPLETE', 'CONFIRMED'])(
+  'does not tell a %s trip to wait for its end when cost is missing',
+  async (status) => {
+    AutoTripService.get.mockResolvedValue({
+      ...trip,
+      status,
+      totalCostInr: null,
+      roleEconomics: null,
+    });
+    open();
+    expect(
+      await screen.findByText('Cost calculation unavailable for this completed trip.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('priced once the trip ends')).not.toBeInTheDocument();
+  },
+);
+
+it('uses the backend cost-availability reason and reserves pending copy for a running trip', async () => {
+  AutoTripService.get.mockResolvedValue({
+    ...trip,
+    totalCostInr: null,
+    economicsAvailability: {
+      status: 'UNAVAILABLE',
+      reason: 'Cost calculation unavailable: more than one matching trip record was found.',
+    },
+  });
+  open();
+  expect(await screen.findByText(/more than one matching trip record/)).toBeInTheDocument();
+  cleanup();
+  AutoTripService.get.mockResolvedValue({
+    ...trip,
+    status: 'OPEN',
+    drop: null,
+    totalCostInr: null,
+  });
+  open();
+  expect(
+    await screen.findByText('Cost calculation pending while the trip is running.'),
+  ).toBeInTheDocument();
+});
+
+it('shows an available total without claiming it is waiting for pricing when its breakdown is absent', async () => {
+  AutoTripService.get.mockResolvedValue({ ...trip, roleEconomics: { laden: null, return: null } });
+  open();
+  expect(
+    await screen.findByText('Estimated running cost; breakdown unavailable.'),
+  ).toBeInTheDocument();
 });

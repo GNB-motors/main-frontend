@@ -28,8 +28,10 @@ export default function RoutesPanel({
   onPick,
   onRetry,
 }) {
-  const totalRuns = data?.totals?.runs ?? null;
-  const topRuns = [...(data?.legs || [])]
+  const totalPasses = legs.reduce((sum, leg) => sum + leg.traversals, 0);
+  const placeCount = new Set(legs.flatMap((leg) => [String(leg.fromSiteId), String(leg.toSiteId)]))
+    .size;
+  const topPasses = [...legs]
     .sort((a, b) => b.traversals - a.traversals)
     .slice(0, 10)
     .reduce((sum, l) => sum + l.traversals, 0);
@@ -37,14 +39,18 @@ export default function RoutesPanel({
   return (
     <aside className="ph-side" aria-label="routes list">
       <div className="ph-route-kpis">
-        <Kpi label="Legs" value={data?.totals?.legs ?? '—'} />
-        <Kpi label="Runs" value={totalRuns ?? '—'} />
-        <Kpi label="Places" value={data?.totals?.places ?? '—'} />
+        <Kpi label="Legs" value={data ? legs.length : '—'} />
+        <Kpi label="Leg passes" value={data ? totalPasses : '—'} />
+        <Kpi label="Places" value={data ? placeCount : '—'} />
         <Kpi
           label="Top 10 share"
-          value={totalRuns ? `${Math.round((topRuns / totalRuns) * 100)}%` : '—'}
+          value={data && totalPasses ? `${Math.round((topPasses / totalPasses) * 100)}%` : '—'}
         />
       </div>
+      <p className="ph-muted">
+        Totals follow the filters below. A leg pass is one recorded movement between two places; one
+        trip can include several leg passes.
+      </p>
       <div className="ph-route-controls">
         <input
           aria-label="Search route places"
@@ -68,7 +74,7 @@ export default function RoutesPanel({
         <label>
           Sort{' '}
           <SearchableSelect value={sort} onChange={(e) => onSort(e.target.value)}>
-            <option value="runs">Runs</option>
+            <option value="runs">Leg passes</option>
             <option value="distance">Distance</option>
             <option value="time">Usual time</option>
             <option value="fuel">Fuel cost</option>
@@ -95,7 +101,8 @@ export default function RoutesPanel({
       )}
       {data?.truncated && (
         <p className="ph-layer-error" role="status">
-          Showing the {data.legs.length} busiest of {data.total} legs.
+          Showing the {data.legs.length} busiest of {data.total} legs. Totals cover only matching
+          legs in this subset.
         </p>
       )}
       {!loading && !error && !legs.length && (
@@ -125,8 +132,8 @@ export default function RoutesPanel({
               <LegEnd site={sites.get(String(leg.toSiteId))} fallback="UNKNOWN" />
             </span>
             <span className="ph-route-meta">
-              {leg.traversals} runs · {minutesLabel(leg.stats?.minutes?.p50)} ·{' '}
-              {kmLabel(leg.stats?.km?.p50)}
+              {leg.traversals} leg {leg.traversals === 1 ? 'pass' : 'passes'} ·{' '}
+              {minutesLabel(leg.stats?.minutes?.p50)} · {kmLabel(leg.stats?.km?.p50)}
             </span>
             <span
               className="ph-route-bar"

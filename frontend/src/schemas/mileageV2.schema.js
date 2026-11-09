@@ -49,7 +49,8 @@ export const MileageResponseSchema = heldOr(MileagePayloadSchema);
 /**
  * GET /api/fuel-integrity/windows (contract §8.2)
  * The verdict is what the window means; `siphonSuspected` stays for old
- * readers and is now true only for UNEXPLAINED_WHILE_PARKED.
+ * readers. V2 REVIEW_LOSS is a window balance finding, distinct from the
+ * legacy UNEXPLAINED_WHILE_PARKED verdict.
  */
 export const FuelIntegrityWindowSchema = z
   .object({
@@ -66,9 +67,16 @@ export const FuelIntegrityWindowSchema = z
       'UNEXPLAINED_WHILE_PARKED',
       'NOT_ENOUGH_DATA',
       'FILL_MISMATCH',
+      'REVIEW_LOSS',
+      'CLEAN',
+      'INSUFFICIENT_DATA',
+      'KEY_CONFLICT',
     ]),
     verdictWhy: WhySchema,
     parkedDropL: z.number().nullable(),
+    reviewLossL: z.number().nullish(),
+    unaccountedLossL: z.number().nullish(),
+    reviewLineL: z.number().nullish(),
     drivingUseL: z.number().nullable(),
     expectedDrivingUseL: z.number().nullable(),
     siphonSuspected: z.boolean().nullable(),

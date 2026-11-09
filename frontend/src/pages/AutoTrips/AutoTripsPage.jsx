@@ -26,7 +26,7 @@ import PlaceQuestionsTab from './PlaceQuestionsTab';
 import TripKpiStrip from './TripKpiStrip';
 import NeedsAnswerBanner from './NeedsAnswerBanner';
 import AutoTripCoverage from './AutoTripCoverage';
-import { typicalRun } from './tripListModel';
+import { actualTripCount, deliveredTripCount, typicalRun } from './tripListModel';
 import { rangeToParams, readRange, writeRange } from './tripRange';
 import './AutoTrips.css';
 import './TripsWorkspace.css';
@@ -143,7 +143,9 @@ export default function AutoTripsPage() {
   const params = {
     page: planned ? 1 : page,
     limit: planned ? 1 : PAGE_SIZE,
-    ...(statusTab && !planned ? { status: statusTab } : {}),
+    ...(statusTab && !planned
+      ? { status: statusTab === 'COMPLETE' ? 'DELIVERED' : statusTab }
+      : {}),
     ...(legFilter && !planned ? { leg: legFilter } : {}),
     ...(searchParams.get('sapVerdict') ? { sapVerdict: searchParams.get('sapVerdict') } : {}),
     ...(searchParams.get('dropSiteId') ? { dropSiteId: searchParams.get('dropSiteId') } : {}),
@@ -154,6 +156,7 @@ export default function AutoTripsPage() {
   const { data, loading, error, refetch } = useApi(
     (signal) => AutoTripService.list(params, { signal }),
     [JSON.stringify(params)],
+    { scopeKey: JSON.stringify(params) },
   );
 
   const planParams = {
@@ -185,7 +188,7 @@ export default function AutoTripsPage() {
   const deliveredSample = useApi(
     (signal) =>
       AutoTripService.list(
-        { page: 1, limit: SAMPLE_SIZE, status: 'COMPLETE', ...periodParams },
+        { page: 1, limit: SAMPLE_SIZE, status: 'DELIVERED', ...periodParams },
         { signal },
       ),
     [periodKey],
@@ -201,17 +204,16 @@ export default function AutoTripsPage() {
     { scopeKey: `waiting:${periodKey}` },
   );
   const questions = useApi(
-    (signal) => fleetViewService.getPlaceQuestions({ signal, limit: 200 }),
-    [],
+    (signal) => fleetViewService.getPlaceQuestions({ ...periodParams, signal, limit: 200 }),
+    [periodKey],
+    { scopeKey: `questions:${periodKey}` },
   );
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
   const tabCounts = data?.tabCounts ?? {};
-  const allCount =
-    Object.entries(tabCounts)
-      .filter(([key]) => key === key.toUpperCase())
-      .reduce((a, [, b]) => a + (b || 0), 0) || total;
+  const allCount = actualTripCount(tabCounts);
+  const deliveredCount = deliveredTripCount(tabCounts);
   const visibleTotal = planned ? (plans.data?.total ?? 0) : total;
   const totalPages = Math.max(1, Math.ceil(visibleTotal / PAGE_SIZE));
   const countFor = (key) =>
@@ -219,9 +221,11 @@ export default function AutoTripsPage() {
       ? (plans.data?.total ?? 0)
       : key === ''
         ? allCount
-        : key === 'REPOSITION'
-          ? (tabCounts.reposition ?? tabCounts.REPOSITION ?? 0)
-          : (tabCounts[key] ?? 0);
+        : key === 'COMPLETE'
+          ? deliveredCount
+          : key === 'REPOSITION'
+            ? (tabCounts.reposition ?? tabCounts.REPOSITION ?? 0)
+            : (tabCounts[key] ?? 0);
   const moreTabs = MORE_TABS.filter(
     (t) => !t.hideWhenEmpty || countFor(t.key) > 0 || statusTab === t.key,
   );
@@ -229,11 +233,7 @@ export default function AutoTripsPage() {
     moreTabs.find((t) => statusTab === t.key) || VIEWS.find((v) => viewTab === v.key) || null;
   const kpiTab = viewTab || moreTabs.some((t) => t.key === statusTab) ? null : statusTab;
   const todayCounts = today.data?.tabCounts;
-  const todayCount = todayCounts
-    ? Object.entries(todayCounts)
-        .filter(([key]) => key === key.toUpperCase())
-        .reduce((a, [, b]) => a + (b || 0), 0)
-    : null;
+  const todayCount = todayCounts ? actualTripCount(todayCounts) : null;
   const run = useMemo(() => typicalRun(deliveredSample.data?.items), [deliveredSample.data]);
 
   const [moreOpen, setMoreOpen] = useState(false);
@@ -316,7 +316,7 @@ export default function AutoTripsPage() {
     />
   );
 
-  const reviewCount = tabCounts.NEEDS_REVIEW ?? 0;
+  const reviewCount = waitingSample.data?.tabCounts?.NEEDS_REVIEW ?? 0;
   const showBanner =
     !viewTab && (statusTab === '' || statusTab === 'NEEDS_REVIEW') && reviewCount > 0;
 
@@ -467,7 +467,7 @@ export default function AutoTripsPage() {
         <TripKpiStrip
           counts={{
             all: allCount,
-            delivered: tabCounts.COMPLETE ?? 0,
+            delivered: deliveredCount,
             open: tabCounts.OPEN ?? 0,
             review: reviewCount,
           }}
@@ -487,6 +487,8 @@ export default function AutoTripsPage() {
             sampleLoading={waitingSample.loading}
             questions={questions.data?.items}
             questionsTotal={questions.data?.total}
+            questionsTrips={questions.data?.tripsAffected}
+            questionsLoading={questions.loading}
             questionsFailed={Boolean(questions.error)}
             onAnswerPlaces={() => changeView('questions')}
             onAnswerAllPlaces={canAnswerPlaces ? closeAllPlaces : null}

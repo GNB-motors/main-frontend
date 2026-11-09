@@ -138,7 +138,7 @@ export default function EventsFeedPanel({
                         {isFill
                           ? 'Refuel Inflow Telematics'
                           : isLoss
-                            ? 'Fuel down while parked — telematics'
+                            ? `${activeEvent.lossLabel || 'Fuel down while parked'} — telematics`
                             : 'DEF Dosing Telematics'}
                       </span>
                     </div>

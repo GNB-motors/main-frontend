@@ -8,12 +8,32 @@
  */
 
 /**
- * The four verdicts the contract can return for a window.
+ * V2 balance verdicts and legacy driving/parked verdicts.
  *
  * `tip` is the sentence behind the badge — the same wording the redesign
  * appendix fixes, so the page and the other features say one thing.
  */
 export const FUEL_VERDICTS = {
+  REVIEW_LOSS: {
+    label: 'Fuel loss to review',
+    tone: 'act',
+    tip: 'The calibrated fuel balance has unexplained loss above its review threshold. Review the readings; this does not establish when or why the fuel left the tank.',
+  },
+  CLEAN: {
+    label: 'Within review threshold',
+    tone: 'good',
+    tip: 'The calibrated fuel balance is within its uncertainty and review threshold.',
+  },
+  INSUFFICIENT_DATA: {
+    label: 'Not enough data',
+    tone: 'info',
+    tip: 'There are not enough usable readings to assess this fuel balance.',
+  },
+  KEY_CONFLICT: {
+    label: 'Vehicle identity needs review',
+    tone: 'watch',
+    tip: 'Conflicting vehicle identifiers prevent a reliable fuel assessment.',
+  },
   EXPLAINED_BY_DRIVING: {
     label: 'Explained by driving',
     tone: 'good',
@@ -83,6 +103,27 @@ export function parkedDropL(window) {
  */
 export function isParkedDrop(window) {
   return window?.verdict === 'UNEXPLAINED_WHILE_PARKED';
+}
+
+export function isV2Window(window) {
+  return (
+    window?.mathVersion === 'v2' ||
+    ['REVIEW_LOSS', 'CLEAN', 'INSUFFICIENT_DATA', 'KEY_CONFLICT'].includes(window?.verdict)
+  );
+}
+
+export const lossLabelFor = (window) =>
+  isV2Window(window) ? 'Fuel loss to review' : 'Fuel down while parked';
+
+export const isReviewLoss = (window) => window?.verdict === 'REVIEW_LOSS' || isParkedDrop(window);
+
+/** V2 adjusted loss, never its threshold or a fabricated parked drop. */
+export function reviewLossL(window) {
+  if (!isV2Window(window)) return parkedDropL(window);
+  if (window?.verdict === 'CLEAN') return 0;
+  if (window?.verdict !== 'REVIEW_LOSS') return null;
+  const litres = window.reviewLossL ?? window.unaccountedLossL;
+  return Number.isFinite(litres) ? Math.max(0, litres) : null;
 }
 
 /**

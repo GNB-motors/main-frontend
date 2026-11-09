@@ -752,4 +752,19 @@ describe('manufacturer scope in the mileage hub', () => {
       );
     });
   });
+  it('passes the shared picked dates to completed full-tank cycles', async () => {
+    useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
+    renderAt('/mileage?subtab=completed&from=2026-11-01&to=2026-11-07');
+    await waitFor(() => {
+      const calls = apiClient.get.mock.calls.filter(
+        ([url, opts]) => url === '/api/mileage/intervals' && opts.params.limit > 1,
+      );
+      expect(calls.length).toBeGreaterThan(0);
+      expect(calls.at(-1)[1].params).toMatchObject({
+        from: '2026-10-31T18:30:00.000Z',
+        to: '2026-11-07T18:29:59.999Z',
+        status: 'COMPLETED',
+      });
+    });
+  });
 });

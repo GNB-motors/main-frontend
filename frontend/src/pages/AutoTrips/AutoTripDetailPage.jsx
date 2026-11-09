@@ -224,9 +224,23 @@ export default function AutoTripDetailPage() {
     ? trip.extraDrops[trip.extraDrops.length - 1]
     : trip.drop;
   const onRoadMin = minutesOnRoad(trip);
-  const economics = Object.values(trip.roleEconomics || {});
+  const economics = Object.values(trip.roleEconomics || {}).filter(
+    (leg) => leg && typeof leg === 'object',
+  );
+  const hasCost = Number.isFinite(trip.totalCostInr);
+  const costReason = hasCost
+    ? 'Estimated running cost; breakdown unavailable.'
+    : trip.economicsAvailability?.reason ||
+      (trip.status === 'OPEN'
+        ? 'Cost calculation pending while the trip is running.'
+        : ['COMPLETE', 'CONFIRMED'].includes(trip.status)
+          ? 'Cost calculation unavailable for this completed trip.'
+          : 'Cost calculation unavailable until the drop is resolved.');
   const fuelInr = economics.reduce((a, leg) => a + (Number(leg?.fuelInr) || 0), 0);
   const wearInr = economics.reduce((a, leg) => a + (Number(leg?.wearInr) || 0), 0);
+  const hasBreakdown = economics.some(
+    (leg) => Number.isFinite(leg.fuelInr) || Number.isFinite(leg.wearInr),
+  );
   const driverName = trip.driver?.name || trip.driver?.mobileNumber;
 
   return (
@@ -337,7 +351,9 @@ export default function AutoTripDetailPage() {
           </div>
           <div className="atx-fact">
             <dt>Loaded run</dt>
-            <dd className={runKm != null ? '' : 'is-quiet'}>{runKm != null ? fmtKm(runKm) : '—'}</dd>
+            <dd className={runKm != null ? '' : 'is-quiet'}>
+              {runKm != null ? fmtKm(runKm) : '—'}
+            </dd>
             <small>
               {runKm == null
                 ? 'needs a known drop'
@@ -391,13 +407,13 @@ export default function AutoTripDetailPage() {
                 label="How running cost is estimated"
               />
             </dt>
-            <dd className={trip.totalCostInr != null ? '' : 'is-quiet'}>
-              {trip.totalCostInr != null ? formatINR(trip.totalCostInr) : '—'}
+            <dd className={hasCost ? '' : 'is-quiet'}>
+              {hasCost ? formatINR(trip.totalCostInr) : '—'}
             </dd>
             <small>
-              {trip.totalCostInr != null && economics.length
+              {hasCost && hasBreakdown
                 ? `fuel ${formatINR(fuelInr)} · wear ${formatINR(wearInr)}`
-                : 'priced once the trip ends'}
+                : costReason}
             </small>
           </div>
         </dl>
@@ -466,7 +482,9 @@ export default function AutoTripDetailPage() {
               <>
                 <div className="atx-rule" />
                 <div className="atx-fields">
-                  {runTime != null ? <Field label="Loaded running time">{fmtDuration(runTime)}</Field> : null}
+                  {runTime != null ? (
+                    <Field label="Loaded running time">{fmtDuration(runTime)}</Field>
+                  ) : null}
                   {trip.km?.approach != null ? (
                     <Field label="Empty run to plant">{fmtKm(trip.km.approach)}</Field>
                   ) : null}
@@ -508,7 +526,9 @@ export default function AutoTripDetailPage() {
                   {tollLedgerText(tolls)}
                 </Field>
               ) : null}
-              {tollClassText(tolls) ? <Field label="Toll class">{tollClassText(tolls)}</Field> : null}
+              {tollClassText(tolls) ? (
+                <Field label="Toll class">{tollClassText(tolls)}</Field>
+              ) : null}
               {trip.extraDrops?.length ? (
                 <Field label="Further drops">{trip.extraDrops.length}</Field>
               ) : null}
