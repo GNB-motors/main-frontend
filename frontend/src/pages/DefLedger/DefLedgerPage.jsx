@@ -40,7 +40,7 @@ const CHIPS = [
 
 const EXPORT_COLUMNS = [
   { key: 'registrationNumber', label: 'Vehicle' },
-  { key: 'claimedAdblueL', label: 'Logged AdBlue (L)', type: 'number' },
+  { key: 'claimedAdblueL', label: 'Logged AdBlue in window (L)', type: 'number' },
   { key: 'telemetryDefL', label: 'DEF burned (L)', type: 'number' },
   { key: 'sensorFillL', label: 'Sensor fills (L)', type: 'number' },
   { key: 'expectedBalanceL', label: 'Balance (L)', type: 'number' },
@@ -150,7 +150,7 @@ export default function DefLedgerPage() {
             note={`${formatNum(totals.withData)} with telemetry`}
           />
           <KpiTile
-            label="AdBlue logged"
+            label="AdBlue logged (in window)"
             loading={firstLoad}
             value={claimsTracked ? formatLitres(totals.claimedAdblueL) : '—'}
             valueClass={
@@ -232,7 +232,7 @@ export default function DefLedgerPage() {
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-400">
                   <th className="py-3 px-4">Vehicle No</th>
-                  <th className="py-3 px-4 text-right">AdBlue Logged</th>
+                  <th className="py-3 px-4 text-right">AdBlue Logged (in window)</th>
                   <th className="py-3 px-4 text-right">DEF Burned</th>
                   <th className="py-3 px-4 text-right">Sensor Fills</th>
                   <th className="py-3 px-4 text-right">Balance</th>

@@ -3,7 +3,7 @@ import { BRIEF_SECTION, BRIEF_FALLBACK } from './briefSections';
 import NdBriefCard from './NdBriefCard.jsx';
 
 /** The day's leaks ranked biggest-first, led by the one action worth taking first. */
-export default function NdMorningBrief({ brief, onOpenVehicle, onRetry }) {
+export default function NdMorningBrief({ brief, onOpenVehicle, onRetry, rangeLabel = 'today' }) {
   const rank = (s) => (s.status === 'ok' ? s.rupees || 0 : -1);
   const sections = [...(brief?.sections || [])].sort((a, b) => rank(b) - rank(a));
 
@@ -22,7 +22,10 @@ export default function NdMorningBrief({ brief, onOpenVehicle, onRetry }) {
               <Info size={22} />
             </span>
             <b>Morning brief couldn&apos;t load</b>
-            <span>Excess idling and fuel over expected for today will show here.</span>
+            <span>
+              Excess idling and fuel over expected for{' '}
+              {rangeLabel === 'today' ? 'today' : `the ${rangeLabel}`} will show here.
+            </span>
             {onRetry ? (
               <button type="button" className="nd-btn nd-btn--sm" onClick={onRetry}>
                 Try again
@@ -54,7 +57,12 @@ export default function NdMorningBrief({ brief, onOpenVehicle, onRetry }) {
       ) : null}
       <div className="nd-cols nd-cols--half">
         {sections.map((s) => (
-          <NdBriefCard key={s.key} section={s} onOpenVehicle={onOpenVehicle} />
+          <NdBriefCard
+            key={s.key}
+            section={s}
+            onOpenVehicle={onOpenVehicle}
+            rangeLabel={rangeLabel}
+          />
         ))}
       </div>
     </section>
