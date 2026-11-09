@@ -7,6 +7,7 @@
  * of inventing a distance.
  */
 import { sumKnown, toMeasured } from '@/utils/measured';
+import { formatKm } from '@/utils/redesign/format';
 import { classifyTrip } from './intelligenceModel';
 
 /**
@@ -73,6 +74,37 @@ export function loadedShare(runs) {
 export function unknownKmTruckNote(count) {
   if (!Number.isFinite(count) || count <= 0) return null;
   return `${count} ${count === 1 ? 'truck has' : 'trucks have'} unknown km.`;
+}
+
+/**
+ * The kilometres a truck drove that could not be attributed to loaded or empty
+ * running — the odometer's leftover. The server sends it as `unknownKm` on a
+ * runs row; the old backend sends nothing, and the bar then has no unknown
+ * part at all.
+ */
+export function unknownKmOf(row) {
+  return toMeasured(row?.unknownKm);
+}
+
+/**
+ * Is this truck's distance only partly measured?
+ *
+ * The bars this page builds itself say `partial`; the server's own rows say
+ * `kmPartial`. Both mean the same thing — some of the distance is unknown — so
+ * both are honoured, whichever backend answered.
+ */
+export function isPartialRow(row) {
+  return row?.partial === true || row?.kmPartial === true;
+}
+
+/**
+ * "120 km not attributed", the line that sits beside the bar. Null when the
+ * whole distance was attributed, and null when the server did not say.
+ */
+export function unknownKmText(row) {
+  const km = unknownKmOf(row);
+  if (km == null || km <= 0) return null;
+  return `${formatKm(km)} not attributed`;
 }
 
 /**

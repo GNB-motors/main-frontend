@@ -6,6 +6,7 @@
  */
 import { humanizeCode } from '@/utils/format';
 import { FLAG_LABEL } from './autoTripPlaces';
+import { SUSPICIOUS_UNLOAD_FLAG, SUSPICIOUS_UNLOAD_REASON } from './tripSuspicion';
 
 /** The flags that come with the server's explanation of a trip that stayed open. */
 const STALE_FLAGS = new Set(['STALE_OPEN', 'OPEN_AT_DATA_END']);
@@ -30,12 +31,15 @@ export function staleDetail(trip) {
 }
 
 /**
- * The reason for a flag: the server's own words when it explained a stale trip, else the
- * flag's own label.
+ * The reason for a flag: the server's own words when it explained a stale trip,
+ * else the flag's own label.
  */
 export function flagReason(trip, flag) {
   const detail = staleDetail(trip);
   if (detail && STALE_FLAGS.has(flag)) return detail;
+  // A suspicious unload says where to look, not what happened — so the tooltip
+  // explains that a person should look, and never names a crime.
+  if (flag === SUSPICIOUS_UNLOAD_FLAG) return SUSPICIOUS_UNLOAD_REASON;
   return flagLabel(flag);
 }
 

@@ -4,6 +4,8 @@ import { MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ToneBadge from '../../components/redesign/ToneBadge';
 import { PLACE_CATEGORIES } from './placeQuestionCategories';
+import { questionHeadline, kmAtStakeText, questionSuspicious } from '@/utils/placeQuestions';
+import { toMeasured } from '@/utils/measured';
 
 /**
  * PlaceQuestionCard — "is this one place or two?".
@@ -25,6 +27,18 @@ export default function PlaceQuestionCard({ question, canAnswer = true, onAnswer
   const suggest = question.suggestion;
   const alternatives = Array.isArray(question.alternatives) ? question.alternatives : [];
   const samples = Array.isArray(question.sampleTrips) ? question.sampleTrips : [];
+  // What the server says this question is about; absent on the old backend.
+  const headline = questionHeadline(question);
+  const kmAtStake = kmAtStakeText(question);
+  const suspicious = questionSuspicious(question);
+  // Counts the server always sends, but never print a blank where a number
+  // belongs: an absent count reads as a dash, not as a zero.
+  const affected = toMeasured(question.tripsAffected);
+  const truckCount = toMeasured(question.trucks);
+  const affectedText =
+    affected === null
+      ? `Trucks are waiting on this answer (${truckCount === null ? '—' : truckCount} trucks)`
+      : `This point is on ${affected} trips (${truckCount === null ? '—' : truckCount} trucks)`;
 
   const answer = (value) => onAnswer?.(question.id, value);
 
@@ -32,8 +46,23 @@ export default function PlaceQuestionCard({ question, canAnswer = true, onAnswer
     <article className="flex flex-col gap-2 rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] p-4 shadow-[var(--rd-shadow)]">
       <p className="m-0 flex items-center gap-2 text-[14px] font-semibold text-[var(--rd-ink)]">
         <MapPin size={16} aria-hidden="true" className="text-[var(--rd-brand-2)]" />
-        This point is on {question.tripsAffected} trips ({question.trucks} trucks)
+        {affectedText}
       </p>
+
+      {headline ? (
+        <p className="m-0 text-[13px] text-[var(--rd-ink)]">{headline}</p>
+      ) : null}
+
+      {kmAtStake ? (
+        <p className="m-0 text-[13px] text-[var(--rd-ink-2)]">{kmAtStake}</p>
+      ) : null}
+
+      {suspicious ? (
+        <p className="m-0 text-[13px] text-[var(--rd-ink-2)]">
+          {suspicious} {suspicious === 1 ? 'trip here looks' : 'trips here look'} unusual — worth a
+          look
+        </p>
+      ) : null}
 
       {suggest ? (
         <p className="m-0 text-[13px] text-[var(--rd-ink)]">

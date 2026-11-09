@@ -16,12 +16,17 @@ export const FLAG_LABEL = {
   KM_ESTIMATED: 'Distance partly estimated (GPS gap)',
   NO_ERP_TRIP: 'No ERP trip',
   ERP_DROP_MISMATCH: 'Drop differs from the order',
+  // The engine inferred a drop where no delivery point is known. It says
+  // "a person should look", never "theft".
+  SUSPICIOUS_UNLOAD: 'Suspicious unload',
 };
 
 export const DROP_SOURCE_LABEL = {
   LABELLED_PLACE: 'drop place',
   HUMAN: 'set by a person',
-  INFERRED_TURNAROUND: 'guessed',
+  // The engine took the point where the truck turned round as the drop. Only a
+  // person can confirm it, so the label asks for the answer.
+  INFERRED_TURNAROUND: 'inferred, needs your answer',
   UNKNOWN: 'not found',
 };
 

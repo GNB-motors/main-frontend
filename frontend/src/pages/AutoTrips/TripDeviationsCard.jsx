@@ -3,6 +3,8 @@ import { fmtDayTime } from './autoTripFormat';
 import { deviationHref } from './tripDeviations';
 import {
   costBasisLabel,
+  costKnown,
+  extraKnown,
   isOpen,
   legLabel,
   runWindow,
@@ -14,6 +16,11 @@ const inr = (n) => `₹${Math.round(n || 0).toLocaleString('en-IN')}`;
  * Where this trip left its usual route. Each detour can be replayed from the
  * moment it started, or opened on the Route Hub deviation map. `focusId`
  * (from ?deviation=) is the one the owner arrived for.
+ *
+ * A distance or cost the server could not measure is a dash, never 0 km or
+ * ₹0: the old backend sent 0 for "not measured", so a measured zero and an
+ * unmeasured figure are told apart by the same rules the deviation screen
+ * uses.
  */
 export default function TripDeviationsCard({ deviations, loading, playable, onPlay, focusId }) {
   if (loading && !deviations) {
@@ -45,12 +52,12 @@ export default function TripDeviationsCard({ deviations, loading, playable, onPl
                 {isOpen(d) ? <span className="atx-chip">Please review</span> : null}
               </div>
               <div className="atx-dev-nums">
-                <span>{Number(d.maxOffKm || 0).toFixed(1)} km off at most</span>
-                <span>
-                  {d.extraKmEstimate != null ? `+${Number(d.extraKmEstimate).toFixed(1)} km` : '—'}
+                <span>{d.maxOffKm != null ? `${Number(d.maxOffKm).toFixed(1)} km off at most` : '— off at most'}</span>
+                <span title={extraKnown(d) ? undefined : 'Not estimated'}>
+                  {extraKnown(d) ? `+${Number(d.extraKmEstimate).toFixed(1)} km` : '—'}
                 </span>
-                <span title={costBasisLabel(d)}>
-                  {d.estimatedExtraCostInr != null ? `${inr(d.estimatedExtraCostInr)} est.` : '—'}
+                <span title={costKnown(d) ? costBasisLabel(d) : 'Not estimated'}>
+                  {costKnown(d) ? `${inr(d.estimatedExtraCostInr)} est.` : '—'}
                 </span>
               </div>
               <div className="atx-dev-actions">

@@ -140,6 +140,38 @@ describe('RunsTab', () => {
     expect(await screen.findByText(/1 truck has unknown km/)).toBeInTheDocument();
   });
 
+  it('keeps the plant-to-plant tile when the server sends no reposition km', async () => {
+    // The new backend always sends `repositionKm: null`: the approach km are
+    // inside the empty km now. The tile stays and says so — it is not removed.
+    IntelligenceService.getSummary.mockResolvedValue({
+      ...summary,
+      runs: { ...summary.runs, repositionKm: null, plantToPlant: 3 },
+    });
+
+    render(
+      <MemoryRouter>
+        <RunsTab from="2026-10-27" to="2026-11-02" />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Plant-to-plant')).toBeInTheDocument();
+    expect(screen.getByText('included in empty km')).toBeInTheDocument();
+    // The plant-to-plant run count is still shown.
+    expect(screen.getByText(/3 plant-to-plant runs/)).toBeInTheDocument();
+  });
+
+  it('keeps the plant-to-plant tile and its run count on the old backend', async () => {
+    render(
+      <MemoryRouter>
+        <RunsTab from="2026-10-27" to="2026-11-02" />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Plant-to-plant')).toBeInTheDocument();
+    expect(screen.getByText('12,600 km')).toBeInTheDocument();
+    expect(screen.getByText('966 runs')).toBeInTheDocument();
+  });
+
   it('says the endpoint is still being built on a 404', async () => {
     IntelligenceService.getSummary.mockRejectedValue({ status: 404 });
     IntelligenceService.getAutoTrips.mockRejectedValue({ status: 404 });
@@ -151,5 +183,86 @@ describe('RunsTab', () => {
     );
 
     await waitFor(() => expect(screen.getAllByText(/is being built/).length).toBeGreaterThan(0));
+  });
+
+  describe('the server’s own bars, which carry the unknown km', () => {
+    const withBars = {
+      ...summary,
+      runs: {
+        ...summary.runs,
+        byTruck: [
+          {
+            registrationNumber: 'WB11L8862',
+            loadedKm: 900,
+            emptyKm: 240,
+            unknownKm: 120,
+            totalKm: 1260,
+            kmPartial: true,
+          },
+          {
+            registrationNumber: 'WB11L9999',
+            loadedKm: 500,
+            emptyKm: 100,
+            unknownKm: null,
+            totalKm: 600,
+            kmPartial: false,
+          },
+        ],
+      },
+    };
+
+    it('shows the km it could not attribute beside the bar', async () => {
+      IntelligenceService.getSummary.mockResolvedValue(withBars);
+
+      render(
+        <MemoryRouter>
+          <RunsTab from="2026-10-27" to="2026-11-02" />
+        </MemoryRouter>,
+      );
+
+      expect(await screen.findByText('120 km not attributed')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /WB11L8862/ })).toHaveAccessibleName(
+        'WB11L8862, 1,260 km in total, 900 km loaded, 240 km empty, — plant to plant, 120 km not attributed, neither loaded nor empty',
+      );
+    });
+
+    it('says nothing beside the bar when the server did not send unknown km', async () => {
+      IntelligenceService.getSummary.mockResolvedValue(withBars);
+
+      render(
+        <MemoryRouter>
+          <RunsTab from="2026-10-27" to="2026-11-02" />
+        </MemoryRouter>,
+      );
+
+      await screen.findByText('120 km not attributed');
+      expect(screen.getAllByText(/not attributed/)).toHaveLength(1);
+      expect(document.body.textContent).not.toContain('undefined');
+    });
+
+    it('counts a truck whose km were only partly measured', async () => {
+      IntelligenceService.getSummary.mockResolvedValue(withBars);
+
+      render(
+        <MemoryRouter>
+          <RunsTab from="2026-10-27" to="2026-11-02" />
+        </MemoryRouter>,
+      );
+
+      expect(await screen.findByText(/1 truck has unknown km/)).toBeInTheDocument();
+    });
+
+    it('claims no empty share for a truck whose distance is only partly known', async () => {
+      IntelligenceService.getSummary.mockResolvedValue(withBars);
+
+      render(
+        <MemoryRouter>
+          <RunsTab from="2026-10-27" to="2026-11-02" />
+        </MemoryRouter>,
+      );
+
+      await screen.findByText('120 km not attributed');
+      expect(screen.queryByText(/empty ·/)).toBeNull();
+    });
   });
 });

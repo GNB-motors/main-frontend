@@ -1,9 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
   classifiedTotal,
+  isPartialRow,
   loadedShare,
   runBarsByTruck,
   tripKmParts,
+  unknownKmOf,
+  unknownKmText,
   unknownKmTruckNote,
 } from './runsBarsModel';
 
@@ -106,6 +109,35 @@ describe('unknownKmTruckNote', () => {
 
   it('says nothing when every truck was measured', () => {
     expect(unknownKmTruckNote(0)).toBeNull();
+  });
+});
+
+describe('the unknown km of a runs row', () => {
+  it('reads a normal value', () => {
+    expect(unknownKmOf({ unknownKm: 120 })).toBe(120);
+    expect(unknownKmText({ unknownKm: 120 })).toBe('120 km not attributed');
+  });
+
+  it('is null when the field is null, as the server may send it', () => {
+    expect(unknownKmOf({ unknownKm: null })).toBeNull();
+    expect(unknownKmText({ unknownKm: null })).toBeNull();
+  });
+
+  it('is null when the field is absent, as on the old backend', () => {
+    expect(unknownKmOf({})).toBeNull();
+    expect(unknownKmText({})).toBeNull();
+    expect(unknownKmText(undefined)).toBeNull();
+  });
+
+  it('says nothing when the whole distance was attributed', () => {
+    expect(unknownKmText({ unknownKm: 0 })).toBeNull();
+  });
+
+  it('knows a partly measured row whichever backend sent it', () => {
+    expect(isPartialRow({ partial: true })).toBe(true);
+    expect(isPartialRow({ kmPartial: true })).toBe(true);
+    expect(isPartialRow({ partial: false, kmPartial: false })).toBe(false);
+    expect(isPartialRow({})).toBe(false);
   });
 });
 

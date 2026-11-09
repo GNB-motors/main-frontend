@@ -57,4 +57,51 @@ describe('DeviationModule', () => {
     expect(screen.getByText('+4.6')).toBeInTheDocument();
     expect(screen.getByText('extra km')).toBeInTheDocument();
   });
+
+  it('says how many open detours were not measured', () => {
+    const { container } = render(
+      <DeviationModule
+        {...base}
+        openDev={[
+          { _id: 'a', registrationNumber: 'AS15AC6474', extraKmEstimate: 3.4, estimatedExtraCostInr: 500 },
+          { _id: 'b', registrationNumber: 'WB11S1962', extraKmEstimate: null, estimatedExtraCostInr: null },
+          { _id: 'c', registrationNumber: 'WB11S1963', extraKmEstimate: null, estimatedExtraCostInr: null },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('+3.4')).toBeInTheDocument();
+    expect(container.textContent).toContain('2 of 3 detours not measured');
+  });
+
+  it('never shows a rupee or a kilometre for detours nobody measured', () => {
+    const { container } = render(
+      <DeviationModule
+        {...base}
+        openDev={[
+          { _id: 'a', registrationNumber: 'AS15AC6474', extraKmEstimate: null, estimatedExtraCostInr: null },
+          { _id: 'b', registrationNumber: 'WB11S1962', extraKmEstimate: null, estimatedExtraCostInr: null },
+        ]}
+      />,
+    );
+
+    expect(container.textContent).not.toContain('₹0');
+    expect(container.textContent).not.toContain('+0.0');
+    expect(screen.getByText('detour cost not estimated')).toBeInTheDocument();
+    expect(screen.getByText('extra km not estimated')).toBeInTheDocument();
+  });
+
+  it('keeps a measured zero a zero', () => {
+    const { container } = render(
+      <DeviationModule
+        {...base}
+        openDev={[
+          { _id: 'a', registrationNumber: 'AS15AC6474', extraKmEstimate: 0, estimatedExtraCostInr: 0, maxOffKm: 0.4 },
+        ]}
+      />,
+    );
+
+    expect(container.textContent).toContain('+0.0');
+    expect(container.textContent).toContain('₹0');
+  });
 });

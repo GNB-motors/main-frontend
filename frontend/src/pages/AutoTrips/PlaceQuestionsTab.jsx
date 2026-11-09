@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { useApi } from '../../hooks/useApi';
 import { fleetViewService } from '../../services/fleetViewService';
 import { getUserRole } from '../../utils/session';
+import { placeAnswerMessage } from '../../utils/placeQuestions';
 import NotYetAvailable from '../../components/redesign/NotYetAvailable';
 import PlaceQuestionCard from './PlaceQuestionCard';
 
@@ -34,12 +35,9 @@ export default function PlaceQuestionsTab({ query = null }) {
     setBusyId(id);
     try {
       const result = await fleetViewService.answerPlaceQuestion(id, payload);
-      const updated = result?.tripsUpdated ?? null;
-      toast.success(
-        updated !== null
-          ? `Done: ${updated} trips updated`
-          : 'Done. We will name this place from now on.',
-      );
+      // `tripsUpdated: 0` is a normal answer, not a failure: the place got a
+      // name but its trips stay open. Say so instead of "0 trips updated".
+      toast.success(placeAnswerMessage(result, payload?.answer));
       setAnswered((prev) => [...prev, id]);
       refetch?.();
     } catch (err) {

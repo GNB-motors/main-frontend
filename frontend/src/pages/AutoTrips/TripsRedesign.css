@@ -161,6 +161,13 @@
   background: var(--rd-watch-tint);
   color: var(--rd-watch-ink);
 }
+/* The status column can carry the status and a check badge beside it. */
+:is(.atx-list, .atx-page--detail) .atx-status-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
 
 .atx-num {
   font-variant-numeric: tabular-nums;

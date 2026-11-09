@@ -46,14 +46,24 @@ describe('destinationOf', () => {
     ).toMatchObject({ text: 'drop not found', state: 'missing' });
   });
 
-  it('marks a guessed drop and keeps the original spelling for the tooltip', () => {
+  it('marks an inferred drop and keeps the original spelling for the tooltip', () => {
     expect(
       destinationOf({
         status: 'NEEDS_REVIEW',
         flags: ['DROP_INFERRED'],
         drop: { name: 'NIMPURA', source: 'INFERRED_TURNAROUND', arrivedAt: '2026-11-03T02:40:00Z' },
       }),
-    ).toEqual({ text: 'Nimpura (guessed)', title: 'NIMPURA', state: 'guessed' });
+    ).toEqual({ text: 'Nimpura (inferred)', title: 'NIMPURA', state: 'guessed' });
+  });
+
+  it('asks for an answer when an inferred drop has no name', () => {
+    expect(
+      destinationOf({
+        status: 'NEEDS_REVIEW',
+        flags: ['DROP_INFERRED'],
+        drop: { name: null, source: 'INFERRED_TURNAROUND', arrivedAt: '2026-11-03T02:40:00Z' },
+      }),
+    ).toEqual({ text: 'inferred, needs your answer', title: null, state: 'guessed' });
   });
 
   it('names a reached drop, or says it has no name', () => {

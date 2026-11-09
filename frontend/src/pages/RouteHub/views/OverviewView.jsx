@@ -8,6 +8,7 @@ import { RANGES, OS_THRESHOLD, OS_MIN_MIN, OS_MAX_HOURS } from './overview/overv
 import { distanceCoverage } from './overview/overviewDistance.js';
 import ToneBadge from '../../../components/redesign/ToneBadge';
 import { PARTIAL_LABEL } from '../../../utils/measured';
+import { groupTotals, notMeasuredNote } from './deviation/deviationRules.js';
 import NetworkChip from './overview/NetworkChip.jsx';
 import DeviationModule from './overview/DeviationModule.jsx';
 import OverspeedModule from './overview/OverspeedModule.jsx';
@@ -98,12 +99,17 @@ export default function OverviewView({ go, toast, setBadge }) {
   const noBilledTrips = profit == null || billedTripCount === 0;
   const marginPct = profit?.totals?.marginPct ?? null;
   const revenueInr = profit?.totals?.revenueInr ?? null;
-  const deviationCostKnown =
-    deviationSummary?.openCostInr != null ||
-    openDev.some((d) => d.estimatedExtraCostInr != null);
+  // A detour cost nobody estimated is unknown, not ₹0. The figure counts only
+  // the detours that were measured, and says how many detours are left out.
+  const deviationTotals = groupTotals(openDev);
   const deviationCostInr =
-    deviationSummary?.openCostInr ??
-    openDev.reduce((a, d) => a + (d.estimatedExtraCostInr || 0), 0);
+    deviationSummary?.openCostInr ?? deviationTotals.costInr;
+  const deviationCostKnown =
+    deviationSummary?.openCostInr != null || deviationTotals.costKnown > 0;
+  const deviationCostNote =
+    deviationSummary?.openCostInr != null
+      ? null
+      : notMeasuredNote(deviationTotals.costUnknown, deviationTotals.total);
 
   const kpis = [
     {
@@ -132,7 +138,7 @@ export default function OverviewView({ go, toast, setBadge }) {
       l: 'Open deviations',
       v: deviationSummary?.open ?? openDev.length,
       s: deviationCostKnown
-        ? `${inr(deviationCostInr)} est. detour cost · currently open`
+        ? `${inr(deviationCostInr)} est. detour cost · currently open${deviationCostNote ? ` · ${deviationCostNote}` : ''}`
         : 'Detour cost not estimated · currently open',
       c: '#C2323A',
       tint: 'rgba(229,104,107,.14)',

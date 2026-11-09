@@ -7,8 +7,10 @@ import IntelligenceService from './IntelligenceService';
 import { isYmd, istDayEnd, istDayStart } from './intelligenceModel';
 import {
   classifiedTotal,
+  isPartialRow,
   loadedShare,
   runBarsByTruck,
+  unknownKmOf,
   unknownKmTruckNote,
 } from './runsBarsModel';
 import '../Vehicle360/panels/overview/referenceOverview.css';
@@ -16,7 +18,7 @@ import './runsPlacesReference.css';
 
 /** The empty share of a truck, when every km behind it was measured. */
 const emptyShareOf = (row) =>
-  row?.totalKm > 0 && row?.emptyKm != null && row?.partial !== true
+  row?.totalKm > 0 && row?.emptyKm != null && !isPartialRow(row)
     ? row.emptyKm / row.totalKm
     : null;
 
@@ -57,29 +59,39 @@ export default function RunsTab({ from, to }) {
   const maxKm = measured.reduce((max, row) => Math.max(max, row.totalKm ?? 0), 0);
   const carriedShare = loadedShare(runs);
   const serverBars = Array.isArray(runs?.byTruck);
-  const unknownKmTrucks = bars.filter((row) => row.partial === true).length;
+  // A truck is missing part of its distance when the server says so (`kmPartial`)
+  // or when it reports km it could not attribute to loaded or empty running.
+  const unknownKmTrucks = bars.filter(
+    (row) => isPartialRow(row) || unknownKmOf(row) > 0,
+  ).length;
   // The bars now come from the trip list, which the API pages.
   const loadedTrips = trips?.items?.length ?? 0;
   const tripTotal = trips?.total ?? 0;
   const fromFirstTrips =
     !serverBars && tripTotal > loadedTrips ? `${loadedTrips} of ${tripTotal}` : null;
-  // Plant-to-plant km is its own tile only while the server still sends it.
+  // The new backend sends no reposition km of its own — the approach km are
+  // inside the empty km now. The tile stays and says so, instead of
+  // disappearing: a tile that vanishes reads like a feature that was removed,
+  // and the plant-to-plant run count still has to be shown.
   const plantToPlantKm = runs?.repositionKm;
   const plantKnown = typeof plantToPlantKm === 'number';
-  const showPlantTile = !(runs != null && plantToPlantKm === null);
   const plantRuns = runs?.plantToPlant;
   const loadedTripsNote = runs
     ? runs.loadedTrips != null
       ? `on ${formatNumber(runs.loadedTrips)} loaded trips`
       : '—'
     : 'No reading';
-  const plantNote = runs ? (plantRuns != null ? `${formatNumber(plantRuns)} runs` : '—') : 'No reading';
+  const plantNote = !runs
+    ? 'No reading'
+    : plantKnown
+      ? plantRuns != null
+        ? `${formatNumber(plantRuns)} runs`
+        : '—'
+      : 'included in empty km';
   const kpiTiles = [
     ['Loaded km', formatKm(runs?.loadedKm), loadedTripsNote, 'loaded'],
     ['Empty km', formatKm(runs?.emptyKm), 'running with no load', 'empty'],
-    ...(showPlantTile
-      ? [['Plant-to-plant', formatKm(plantToPlantKm), plantNote, 'plant']]
-      : []),
+    ['Plant-to-plant', formatKm(plantToPlantKm), plantNote, 'plant'],
     [
       'Empty share',
       formatPct(runs?.emptySharePct),
@@ -111,7 +123,7 @@ export default function RunsTab({ from, to }) {
                 'Not enough classified distance is available to calculate the loaded share. '
               )}
               {plantKnown ? 'Plant-to-plant running is shown separately from empty returns. ' : null}
-              {!showPlantTile && plantRuns != null
+              {!plantKnown && plantRuns != null
                 ? `${formatNumber(plantRuns)} plant-to-plant runs. `
                 : null}
               {highEmpty.length ? (

@@ -127,6 +127,36 @@ export const ReportsService = {
       throw ApiError.from(error);
     }
   },
+  /**
+   * The "Full tank" report tab (GET /api/reports/fuel-cycles/full-tank-tab).
+   *
+   * This endpoint is newer than the rest of the Reports API, so a backend
+   * that has not shipped it yet answers 404. That is not a failure of the
+   * request but an answer about the server, so it is reported as
+   * `available: false` instead of being thrown: the caller hides the tab
+   * rather than showing a broken report. Every other failure still throws a
+   * typed ApiError, and the response body is returned under `data` with the
+   * endpoint's own field names (trucks, summary, models, days).
+   * @param {object} params - { days, search }
+   * @param {AbortSignal} signal
+   * @returns {Promise<{ available: boolean, data: Object|null }>}
+   */
+  getFullTankTab: async (params = {}, signal) => {
+    try {
+      const response = await apiClient.get('api/reports/fuel-cycles/full-tank-tab', {
+        params,
+        signal,
+      });
+      const body = response.data?.data ?? response.data ?? {};
+      return { available: true, data: body };
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+      const apiError = ApiError.from(error);
+      if (apiError.status === 404) return { available: false, data: null };
+      throw apiError;
+    }
+  },
+
   getNonBusiness: (params = {}, signal) =>
     ReportsService._getTripReport('api/reports/non-business', params, signal),
   getRunningCost: (params = {}, signal) =>

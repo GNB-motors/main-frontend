@@ -6,8 +6,6 @@ import { fmtDT } from '../../routeHubFormat';
 import {
   clock,
   costBasisLabel,
-  costKnown,
-  extraKnown,
   deviationGroupSubtitle,
   deviationGroupTitle,
   legLabel,
@@ -167,12 +165,12 @@ export default function DeviationDetail({
         )}
         <Fact
           k="Extra distance (est.)"
-          v={extraKnown(event) ? `+${km(event.extraKmEstimate)}` : '—'}
-          title={extraKnown(event) ? undefined : 'Not estimated'}
+          v={model.extraKnown ? `+${km(event.extraKmEstimate)}` : '—'}
+          title={model.extraKnown ? undefined : 'Not estimated'}
         />
-        <Fact k={costKnown(event) ? `Extra cost (est., ${costBasisLabel(event)})` : 'Extra cost (est.)'} v={costKnown(event) ? model.cost : '—'} title={costKnown(event) ? costBasisLabel(event) : 'Not estimated yet'} />
+        <Fact k={model.costKnown ? `Extra cost (est., ${costBasisLabel(event)})` : 'Extra cost (est.)'} v={model.costKnown ? model.cost : '—'} title={model.costKnown ? costBasisLabel(event) : 'Not estimated yet'} />
       </div>
-      {!extraKnown(event) || !costKnown(event) ? <p className="muted" style={{ padding: '0 16px' }}>Some estimates are unavailable because a comparable distance or cost is not measured.</p> : null}
+      {!model.extraKnown || !model.costKnown ? <p className="muted" style={{ padding: '0 16px' }}>Some estimates are unavailable because a comparable distance or cost is not measured.</p> : null}
 
       {/* Facts only: where it stopped while off the usual road, and for how
           long. No reason, no judgement - the owner decides. */}

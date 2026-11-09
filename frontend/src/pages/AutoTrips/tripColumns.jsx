@@ -5,6 +5,7 @@ import TripStatus from './TripStatus';
 import { flagReasons } from './tripFlags';
 import { PARTIAL_LABEL } from '../../utils/measured';
 import { fmtDayTime, fmtKm } from './autoTripFormat';
+import { SUSPICIOUS_UNLOAD_LABEL, SUSPICIOUS_UNLOAD_REASON, isSuspiciousUnload } from './tripSuspicion';
 import { tripDetailHref } from './tripWorkspace';
 import { allUnknown, loadedKm, loadedMin, minutesOnRoad } from './tripListModel';
 import { DriverCell, RouteCell, TimeCell } from './TripCells';
@@ -109,9 +110,26 @@ export default function tripColumns({
       label: 'Status',
       render: (r) => {
         const checks = flagReasons(r);
+        // A suspicious unload is worth a person's attention, so the row says so
+        // in a badge rather than hiding it in the tooltip.
+        const suspicious = isSuspiciousUnload(r);
         return (
-          <span title={checks.length ? `To check: ${checks.join(', ')}` : undefined}>
+          <span
+            className="atx-status-cell"
+            title={
+              checks.length
+                ? `To check: ${checks.join(', ')}`
+                : suspicious
+                  ? SUSPICIOUS_UNLOAD_REASON
+                  : undefined
+            }
+          >
             <TripStatus status={r.status} />
+            {suspicious ? (
+              <span className="atx-chip atx-chip--watch" title={SUSPICIOUS_UNLOAD_REASON}>
+                {SUSPICIOUS_UNLOAD_LABEL}
+              </span>
+            ) : null}
           </span>
         );
       },

@@ -147,4 +147,56 @@ describe('PlacesTab', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('The place was not saved');
     expect(screen.queryByText(/Saved as/)).not.toBeInTheDocument();
   });
+
+  it('says the trips stay open when the answer named the place but closed no trip', async () => {
+    // The new backend labels a dhaba or a yard and leaves its trips open, so
+    // `tripsUpdated: 0` is a normal result and must not read as a failure.
+    IntelligenceService.answerPlaceQuestion.mockResolvedValue({ placeId: 'site-1', tripsUpdated: 0 });
+    render(
+      <MemoryRouter>
+        <PlacesTab from="2026-10-27" to="2026-11-02" />
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'These trips stay open until their drop is found',
+    );
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('shows the kilometres at stake and the kind of question when the server sends them', async () => {
+    IntelligenceService.getPlaceQuestions.mockResolvedValue({
+      items: [
+        {
+          ...questions.items[0],
+          kind: 'LONG_STOP',
+          kmAtStake: 1240,
+          suspicious: 3,
+        },
+      ],
+      total: 1,
+    });
+    render(
+      <MemoryRouter>
+        <PlacesTab from="2026-10-27" to="2026-11-02" />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('1,240 km depend on this answer')).toBeInTheDocument();
+    expect(
+      screen.getByText('Trucks stop here for a long time. Is this a delivery point?'),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/3 trips here look unusual/)).toBeInTheDocument();
+  });
+
+  it('says nothing about kilometres on the old backend, and never prints undefined', async () => {
+    render(
+      <MemoryRouter>
+        <PlacesTab from="2026-10-27" to="2026-11-02" />
+      </MemoryRouter>,
+    );
+    await screen.findByText('JK BUXAR PLANT GATE');
+    expect(screen.queryByText(/depend on this answer/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/look unusual/)).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toContain('undefined');
+  });
 });

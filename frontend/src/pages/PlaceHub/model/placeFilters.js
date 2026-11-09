@@ -52,6 +52,14 @@ export function reviewNoteFor(group, sizes = {}) {
     .join(' ');
 }
 
+/**
+ * The page's totals.
+ *
+ * "Places" counts the places the org has confirmed — the ones a person
+ * answered for. A proposed place (the system's own reading) is counted under
+ * "To review" instead, so it is never swallowed by the confirmed count and
+ * never counted as if somebody had confirmed it.
+ */
 export function placeTotals(places) {
   const confirmed = places.filter((p) => p.status === 'CONFIRMED');
   return {

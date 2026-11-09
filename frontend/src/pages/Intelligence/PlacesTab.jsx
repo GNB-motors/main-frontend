@@ -6,6 +6,12 @@ import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import IntelligenceDataState from './IntelligenceDataState';
 import IntelligenceService from './IntelligenceService';
 import { placeCategoryLabel, summarisePlacesByPlace } from './intelligenceModel';
+import {
+  kmAtStakeText,
+  placeTripsStayOpen,
+  questionHeadline,
+  questionSuspicious,
+} from '@/utils/placeQuestions';
 import '../Vehicle360/panels/overview/referenceOverview.css';
 import './runsPlacesReference.css';
 
@@ -24,6 +30,7 @@ function QuestionAnswer({ question }) {
   const [category, setCategory] = useState(question.suggestion?.category || '');
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [savedResult, setSavedResult] = useState(null);
   const [error, setError] = useState('');
   const save = async (answer) => {
     setBusy(true);
@@ -39,6 +46,7 @@ function QuestionAnswer({ question }) {
           'The place was not saved. Review the place evidence or open the questions page.',
         );
       setSaved(true);
+      setSavedResult(result);
       setEditing(false);
     } catch (err) {
       setError(err?.displayMessage || err?.message || 'Could not save the answer.');
@@ -49,7 +57,10 @@ function QuestionAnswer({ question }) {
   if (saved)
     return (
       <span className="intel-place-saved" role="status">
-        ✓ Saved as {name || 'confirmed place'}
+        ✓{' '}
+        {placeTripsStayOpen(savedResult)
+          ? 'Saved. These trips stay open until their drop is found.'
+          : `Saved as ${name || 'confirmed place'}`}
       </span>
     );
   return (
@@ -183,6 +194,10 @@ export default function PlacesTab({ from, to }) {
                 {questionItems.map((question) => {
                   const firstTrip = question.sampleTrips?.find((trip) => trip.to);
                   const label = question.suggestion?.name || 'Unnamed point';
+                  // The new backend's optional fields; absent on the old one.
+                  const headline = questionHeadline(question);
+                  const kmAtStake = kmAtStakeText(question);
+                  const suspicious = questionSuspicious(question);
                   return (
                     <tr key={question.id}>
                       <td>
@@ -196,8 +211,16 @@ export default function PlacesTab({ from, to }) {
                         <small>{coords(question.point) || 'Coordinates unavailable'}</small>
                       </td>
                       <td>
+                        {headline ? <small>{headline}</small> : null}
                         {question.why?.text || 'Stop activity not described'}
                         {question.why?.basis ? <small>{question.why.basis}</small> : null}
+                        {kmAtStake ? <small>{kmAtStake}</small> : null}
+                        {suspicious ? (
+                          <small>
+                            {suspicious} {suspicious === 1 ? 'trip' : 'trips'} here look unusual — worth a
+                            look
+                          </small>
+                        ) : null}
                         {question.suggestion?.category ? (
                           <small>{placeCategoryLabel(question.suggestion.category)}</small>
                         ) : null}

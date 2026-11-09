@@ -22,7 +22,13 @@ export function labelReviewNote(site) {
   return r?.kind && r.reason ? r.reason : null;
 }
 
-/** Status in plain words with its reserved tone. */
+/**
+ * Status in plain words with its reserved tone.
+ *
+ * "Confirmed" means a person answered for this place. "Proposed" is the
+ * system's own reading — nobody has answered it — so it says so instead of
+ * borrowing the word "confirmed". Any other status still asks for an answer.
+ */
 export function placeState(site) {
   if (!site) return { key: 'unknown', label: '—', tone: 'neutral' };
   if (site.status === 'REJECTED') return { key: 'rejected', label: 'Not a place', tone: 'neutral' };
@@ -31,6 +37,7 @@ export function placeState(site) {
     return conflict
       ? { key: 'confirmed', label: 'Confirmed · data disagrees', tone: 'warn' }
       : { key: 'confirmed', label: 'Confirmed', tone: 'ok' };
+  if (site.status === 'PROPOSED') return { key: 'review', label: 'Proposed', tone: 'warn' };
   return { key: 'review', label: 'Needs your answer', tone: 'warn' };
 }
 

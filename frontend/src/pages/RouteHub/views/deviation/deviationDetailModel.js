@@ -12,7 +12,11 @@
  *    Never a reason, never a judgement. Some drivers detour for bad
  *    reasons and some to earn more for their families; the screen shows
  *    the facts and the owner decides.
+ * 4. A figure the server could not measure stays null. It is never turned
+ *    into a zero, so the screen can print a dash instead of 0 km or ₹0.
  */
+
+import { costKnown, extraKnown } from './deviationRules.js';
 
 /** The caption shown when we cannot draw the usual road. */
 export const NO_USUAL_ROAD_CAPTION =
@@ -98,6 +102,9 @@ export function deviationDetailModel(detail, row = null) {
     replay: detail?.roadEngine?.replay ?? detail?.replay ?? null,
     stopsDuring: stopsDuringRows(detail?.roadEngine?.stopsDuring ?? detail?.stopsDuring),
     cost: costLabel(event.estimatedExtraCostInr),
+    costInr: event.estimatedExtraCostInr ?? null,
+    costKnown: costKnown(event),
+    extraKnown: extraKnown(event),
     durationMin: event.durationMin ?? null,
     maxOffKm: event.maxOffKm ?? null,
     extraKmEstimate: event.extraKmEstimate ?? null,

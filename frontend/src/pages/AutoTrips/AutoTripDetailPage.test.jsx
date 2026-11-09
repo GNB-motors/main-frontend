@@ -88,6 +88,21 @@ it('heads the trip with the truck, one status chip and the route in title case',
   expect(screen.getByText('GPS went quiet on the way')).toBeInTheDocument();
 });
 
+it('badges a trip the server flagged as a suspicious unload, without accusing anyone', async () => {
+  AutoTripService.get.mockResolvedValue({
+    ...trip,
+    status: 'NEEDS_REVIEW',
+    flags: ['SUSPICIOUS_UNLOAD'],
+    drop: { name: 'NIMPURA', source: 'INFERRED_TURNAROUND', lat: 25.5647, lng: 83.9754 },
+  });
+  open();
+  const badge = await screen.findByText('Suspicious unload');
+  expect(badge).toBeInTheDocument();
+  // The tooltip says a person should look at it, and never names a crime.
+  expect(badge.getAttribute('title')).toMatch(/a person should look/i);
+  expect(badge.getAttribute('title')).not.toMatch(/theft|stolen|steal|siphon|thief/i);
+});
+
 it('puts the trip numbers in one strip, unknown as a dash with its reason', async () => {
   open();
   await screen.findByRole('heading', { name: 'WB11F4262' });

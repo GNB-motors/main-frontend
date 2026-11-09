@@ -1,6 +1,7 @@
 import Link from '@/components/redesign/FleetLink';
 import { formatKm } from '@/utils/redesign/format';
 import { trackLink } from '@/utils/redesign/links';
+import { unknownKmText } from './runsBarsModel';
 
 /**
  * RunsTruckBar — one truck's kilometres of the period, in three colours.
@@ -8,6 +9,10 @@ import { trackLink } from '@/utils/redesign/links';
  * Loaded km, empty km and plant-to-plant km share the bar, so a truck that
  * mostly runs empty looks different from one that runs loaded. The bar is a
  * link: it takes the owner to that truck's track for the same days.
+ *
+ * The new backend also reports the km the truck drove that could not be
+ * attributed to loaded or empty running. That part is not a third colour — it
+ * is unknown, so it is written beside the bar instead of being drawn.
  */
 export default function RunsTruckBar({ row, maxKm = 0, from = null, to = null }) {
   // A truck whose km were not measured has no km at all: the bar stays empty
@@ -15,6 +20,7 @@ export default function RunsTruckBar({ row, maxKm = 0, from = null, to = null })
   const total = row?.totalKm ?? null;
   const width = total != null && maxKm > 0 ? Math.max(2, (total / maxKm) * 100) : 0;
   const part = (value) => (total > 0 && value != null ? (value / total) * 100 : 0);
+  const unknown = unknownKmText(row);
 
   const label = [
     row?.registrationNumber,
@@ -22,7 +28,10 @@ export default function RunsTruckBar({ row, maxKm = 0, from = null, to = null })
     `${formatKm(row?.loadedKm)} loaded`,
     `${formatKm(row?.emptyKm)} empty`,
     `${formatKm(row?.repositionKm)} plant to plant`,
-  ].join(', ');
+    unknown ? `${unknown}, neither loaded nor empty` : null,
+  ]
+    .filter(Boolean)
+    .join(', ');
 
   return (
     <Link
@@ -52,6 +61,11 @@ export default function RunsTruckBar({ row, maxKm = 0, from = null, to = null })
       <span className="w-[92px] shrink-0 text-right text-[12px] text-[var(--rd-ink-3)] tabular-nums">
         {formatKm(total)}
       </span>
+      {unknown ? (
+        <span className="w-[132px] shrink-0 text-right text-[12px] text-[var(--rd-ink-3)]">
+          {unknown}
+        </span>
+      ) : null}
     </Link>
   );
 }

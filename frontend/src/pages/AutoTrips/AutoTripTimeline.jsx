@@ -7,8 +7,8 @@ import TollTimelineRow from './TollTimelineRow';
 import { titleCasePlace } from './tripListModel';
 
 const TITLE = { loading: 'Loading at plant', drop: 'Unloading at drop', unknown: 'Unknown stop' };
-/** "drop place" only repeats the title; a guessed or hand-set drop is worth saying. */
-const SHOWN_DROP_NOTES = ['guessed', 'set by a person'];
+/** "drop place" only repeats the title; an inferred or hand-set drop is worth saying. */
+const SHOWN_DROP_NOTES = ['inferred, needs your answer', 'set by a person'];
 
 function When({ step }) {
   const leftOtherDay = step.leftAt && fmtDay(step.leftAt) !== fmtDay(step.at);

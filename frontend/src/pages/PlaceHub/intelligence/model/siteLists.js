@@ -1,10 +1,18 @@
 import { effectiveType, typeLabel } from './siteType.js';
 import { hasRisk, placeSubtitle, placeTitle } from './siteSummary.js';
 
-/** The list filters, each a predicate over a site. */
+/**
+ * The list filters, each a predicate over a site.
+ *
+ * "Confirmed" holds only the places a person answered. A proposed place — the
+ * system's own reading — sits in its own group, so it never vanishes when the
+ * confirmed group is picked and it is never called confirmed. It stays in
+ * "All" too, which is every place that is not said not to exist.
+ */
 export const PLACE_FILTERS = [
   { key: 'all', label: 'All', test: (s) => s.status !== 'REJECTED' },
   { key: 'confirmed', label: 'Confirmed', test: (s) => s.status === 'CONFIRMED' },
+  { key: 'proposed', label: 'Proposed', test: (s) => s.status === 'PROPOSED' },
   { key: 'risk', label: 'Fuel risk', test: (s) => hasRisk(s) },
   { key: 'rejected', label: 'Not a place', test: (s) => s.status === 'REJECTED' },
 ];
