@@ -24,6 +24,8 @@ export function refuelResult(status, tankMinusBillL = null) {
       return 'NO_TANK_READING';
     case 'SENSOR_GLITCH':
       return 'GAUGE_JUMP';
+    case 'UNASSESSED':
+      return 'COMPARISON_UNAVAILABLE';
     default:
       return null;
   }
@@ -34,12 +36,13 @@ export const REFUEL_CHIPS = [
   {
     key: 'all',
     label: 'All fills',
-    count: (m) => m.verified + m.flagged + m.unverified + m.slipOnly,
+    count: (m) => m.verified + m.flagged + m.unverified + m.slipOnly + (m.unassessed || 0),
   },
   { key: 'verified', label: 'Bill matches', count: (m) => m.verified },
   { key: 'flagged', label: 'Bill to check', count: (m) => m.flagged },
   { key: 'unverified', label: 'Bill missing', count: (m) => m.unverified },
   { key: 'slip_only', label: 'No tank reading', count: (m) => m.slipOnly },
+  { key: 'unassessed', label: 'Comparison unavailable', count: (m) => m.unassessed || 0 },
   // Glitches are never in "All fills" or any total; only listed when asked for.
   { key: 'sensor_glitch', label: 'Gauge jumps', count: (m) => m.sensorGlitch },
 ];
@@ -49,6 +52,7 @@ export const RECONCILIATION_RESULT = {
   CLEAN: 'BILL_MATCHES',
   FLAGGED: 'BILL_TOO_HIGH',
   REVIEW: 'BILL_TOO_LOW',
+  UNAVAILABLE: 'COMPARISON_UNAVAILABLE',
 };
 
 /** Where a bill's odometer reading came from, in plain words. */
@@ -171,6 +175,7 @@ export function drawerFromLiveRow(row) {
       slip && sensor
         ? {
             toleranceL: num(sensor.billToleranceL),
+            comparable: sensor.billComparable !== false,
             flagged: Boolean(sensor.billFlag),
             v1VarianceL: num(sensor.v1BillVarianceL),
             v1Flagged: sensor.v1BillFlag == null ? null : Boolean(sensor.v1BillFlag),
@@ -207,6 +212,10 @@ export function drawerFromReconciliationRow(r) {
     },
     sensor: {
       litres: num(r.telemetryLitres),
+      rawLitres: num(r.rawLitres),
+      correction: r.correction || null,
+      gainBills: num(r.gainBills),
+      bandL: num(r.bandL),
       at: r.sensorAt || null,
       pumpName: null,
       lat: null,
@@ -215,6 +224,12 @@ export function drawerFromReconciliationRow(r) {
     },
     varianceL: num(r.varianceL),
     variancePct: num(r.variancePct),
-    billCheck: null,
+    billCheck: {
+      toleranceL: num(r.billToleranceL),
+      comparable: r.billComparable !== false,
+      flagged: r.billFlag == null ? null : Boolean(r.billFlag),
+      v1VarianceL: num(r.v1VarianceL),
+      v1Flagged: r.v1Flagged == null ? null : Boolean(r.v1Flagged),
+    },
   };
 }

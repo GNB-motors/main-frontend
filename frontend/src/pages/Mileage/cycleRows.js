@@ -99,7 +99,9 @@ export function mapIntervalRow(c) {
  */
 export function kpisFromSources({ feedMeta, modelData }) {
   const matched = feedMeta ? (feedMeta.verified || 0) + (feedMeta.flagged || 0) : null;
-  const sensorFills = feedMeta ? matched + (feedMeta.unverified || 0) : null;
+  const sensorFills = feedMeta
+    ? matched + (feedMeta.unverified || 0) + (feedMeta.unassessed || 0)
+    : null;
 
   let fleetKmPerL = null;
   let vehicleCount = null;
@@ -119,7 +121,10 @@ export function kpisFromSources({ feedMeta, modelData }) {
     flagged: feedMeta ? feedMeta.flagged || 0 : null,
     spendInr: feedMeta ? num(feedMeta.totalSpendInr) : null,
     bills: feedMeta
-      ? (feedMeta.verified || 0) + (feedMeta.flagged || 0) + (feedMeta.slipOnly || 0)
+      ? (feedMeta.verified || 0) +
+        (feedMeta.flagged || 0) +
+        (feedMeta.slipOnly || 0) +
+        (feedMeta.unassessed || 0)
       : null,
   };
 }

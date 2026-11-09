@@ -27,6 +27,20 @@ export const deviationEventSchema = z
     _id: str,
     registrationNumber: str,
     corridorId: ref,
+    source: str,
+    globalRouteId: ref,
+    offRouteKm: num,
+    enrichment: z
+      .object({
+        version: num,
+        status: str,
+        reason: str,
+        message: str,
+        anchorType: str,
+        anchorId: ref,
+      })
+      .passthrough()
+      .nullish(),
     corridorLabel: str,
     detectedAt: str,
     startedAt: str,
@@ -55,6 +69,7 @@ export const deviationListSchema = z
         total: num,
         open: num,
         openCostInr: num,
+        openCostCount: num,
         extraKm: num,
         trips: num,
         byLeg: z.object({ LADEN: num, RETURN: num, NONE: num }).passthrough().nullish(),

@@ -4,7 +4,7 @@ import DataTable from '../../../components/ui/DataTable';
 import EnterprisePagination from '../../../components/ui/EnterprisePagination';
 import StatusChip from '../../../components/ui/StatusChip';
 import { useApi } from '../../../hooks/useApi';
-import { humanDate } from '../mileageDates';
+import { humanDate, rangeToParams } from '../mileageDates';
 import { formatINR, formatKm, formatLitres } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
 import { mapIntervalRow, mileageBand, isPlausibleKmPerL } from '../cycleRows';
@@ -86,14 +86,15 @@ const COLUMNS = [
   },
 ];
 
-function IntervalCycles({ searchQuery = '', manufacturer }) {
+function IntervalCycles({ searchQuery = '', range }) {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const [searchedFor, setSearchedFor] = useState(searchQuery);
-  if (searchedFor !== searchQuery) {
-    setSearchedFor(searchQuery);
+  const scopeKey = JSON.stringify([range.manufacturer, range.from, range.to, searchQuery]);
+  const [searchedScope, setSearchedScope] = useState(scopeKey);
+  if (searchedScope !== scopeKey) {
+    setSearchedScope(scopeKey);
     setPage(1);
   }
 
@@ -101,7 +102,7 @@ function IntervalCycles({ searchQuery = '', manufacturer }) {
     (signal) =>
       MileageApi.intervals(
         {
-          ...(manufacturer ? { manufacturer } : {}),
+          ...rangeToParams(range),
           page,
           limit: pageSize,
           status: 'COMPLETED',
@@ -109,14 +110,18 @@ function IntervalCycles({ searchQuery = '', manufacturer }) {
         },
         signal,
       ),
-    [manufacturer, page, pageSize, searchQuery],
+    [range.manufacturer, range.from, range.to, page, pageSize, searchQuery],
+    { scopeKey },
   );
   const rows = (data?.data || []).map(mapIntervalRow);
   const total = data?.meta?.total ?? rows.length;
 
   return (
     <div className="mhub">
-      <p className="mhub-footnote">This list shows all dates. It can’t be narrowed by date yet.</p>
+      <p className="mhub-footnote">
+        Rounds completed in the selected dates (IST). A round may start earlier; its full distance
+        and diesel are included.
+      </p>
       <DataTable
         columns={COLUMNS}
         rows={rows}
@@ -127,8 +132,8 @@ function IntervalCycles({ searchQuery = '', manufacturer }) {
         showing={rows.length}
         total={total}
         onRowClick={(r) => navigate(`/mileage-tracking/${r.id}`)}
-        emptyTitle="No full-tank rounds yet"
-        emptyHint="A round closes when a truck fills a full tank again."
+        emptyTitle="No full-tank rounds completed in these dates"
+        emptyHint="Pick a wider date range. A round closes at the next full-tank fill."
         pagination={
           <EnterprisePagination
             page={page}
@@ -158,6 +163,8 @@ export default function CompletedCyclesSubtab({
   fuelCyclesAllowed = false,
 }) {
   const probe = useApi(
+    // Source detection only: an org with bill-based cycles outside this
+    // window must still get an empty dated interval list, not switch sources.
     (signal) =>
       MileageApi.intervals(
         {
@@ -181,6 +188,6 @@ export default function CompletedCyclesSubtab({
   return source === 'fuelCycles' ? (
     <FuelCyclesList range={range} searchQuery={searchQuery} />
   ) : (
-    <IntervalCycles manufacturer={range.manufacturer} searchQuery={searchQuery} />
+    <IntervalCycles range={range} searchQuery={searchQuery} />
   );
 }

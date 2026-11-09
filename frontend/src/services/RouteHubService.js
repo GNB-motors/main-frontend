@@ -180,7 +180,7 @@ const RouteHubService = {
    * AutoTrip and leg (LADEN / RETURN) the detour happened on, or is null.
    */
   getDeviationEvents: async (
-    { vehicle, from, to, status, leg, linked, autoTripId, minExtraKm, page, limit } = {},
+    { vehicle, q, from, to, status, leg, linked, autoTripId, minExtraKm, page, limit } = {},
     signal,
   ) =>
     parseSafe(
@@ -190,6 +190,7 @@ const RouteHubService = {
         await apiClient.get('/api/route-deviation/events', {
           params: {
             ...(vehicle ? { vehicle } : {}),
+            ...(q ? { q } : {}),
             ...(from ? { from } : {}),
             ...(to ? { to } : {}),
             ...(status ? { status } : {}),

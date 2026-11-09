@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   allUnknown,
+  actualTripCount,
+  deliveredTripCount,
   destinationOf,
   median,
   minutesOnRoad,
@@ -11,6 +13,26 @@ import {
   titleCasePlace,
   typicalRun,
 } from './tripListModel';
+
+it('confirmation preserves delivered counts and rejected detections never enter actual totals', () => {
+  expect(deliveredTripCount({ COMPLETE: 100, CONFIRMED: 0 })).toBe(100);
+  expect(deliveredTripCount({ COMPLETE: 40, CONFIRMED: 60 })).toBe(100);
+  const counts = {
+    COMPLETE: 40,
+    CONFIRMED: 20,
+    OPEN: 20,
+    NEEDS_REVIEW: 0,
+    DISMISSED: 20,
+    SUPERSEDED: 30,
+    PLANNED: 50,
+    DELIVERED: 60,
+    reposition: 10,
+  };
+  expect(actualTripCount(counts)).toBe(80);
+  expect(shareText(deliveredTripCount(counts), actualTripCount(counts))).toBe('75%');
+  expect(actualTripCount({ DISMISSED: 20 })).toBe(0);
+  expect(actualTripCount()).toBe(0);
+});
 
 describe('titleCasePlace', () => {
   it('title-cases a name written in capitals and keeps short codes', () => {

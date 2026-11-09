@@ -18,7 +18,12 @@ const nameOf = (row) =>
   [row.driverId?.firstName, row.driverId?.lastName].filter(Boolean).join(' ') ||
   'Driver not recorded';
 
-export default function DriversPanel({ vehicleId, assignedDriver, recentAlerts = [] }) {
+export default function DriversPanel({
+  vehicleId,
+  assignedDriver,
+  recentAlerts = [],
+  safetyToday,
+}) {
   const { data, loading, error } = useApi(
     (signal) =>
       DriverVehicleAssignmentService.getAssignments(
@@ -31,6 +36,15 @@ export default function DriversPanel({ vehicleId, assignedDriver, recentAlerts =
   const rows = Array.isArray(data) ? data : data?.results || data?.items || [];
   const now = Date.now();
   const start = new Date(`${toISTDateString(new Date())}T00:00:00+05:30`).getTime();
+  const safetyAvailable =
+    safetyToday?.status === 'AVAILABLE' &&
+    Number.isFinite(safetyToday?.counts?.total) &&
+    safetyToday?.window?.day === toISTDateString(new Date());
+  const dailyCounts = safetyAvailable ? safetyToday.counts : null;
+  const safetyReason =
+    safetyToday?.window?.day && safetyToday.window.day !== toISTDateString(new Date())
+      ? 'Refresh to load today’s safety counts.'
+      : safetyToday?.reason || 'Daily safety counts are unavailable.';
   const windowStart = start - 29 * 86400000;
   const period = now - windowStart;
   const activeRows = rows.filter(
@@ -41,15 +55,17 @@ export default function DriversPanel({ vehicleId, assignedDriver, recentAlerts =
   );
   const safety = (Array.isArray(recentAlerts) ? recentAlerts : []).filter(
     (alert) =>
+      alert.eventTimeKnown !== false &&
       stamp(alert.eventDateTime) >= start &&
       stamp(alert.eventDateTime) <= now &&
       /harsh|brak|accel|rash|turn|coast|wheel|overspeed/i.test(alert.type || ''),
   );
   const counts = [
-    ['Harsh braking', /harsh.*brak|brak.*harsh/i],
-    ['Harsh acceleration', /harsh.*accel|accel.*harsh/i],
-    ['Rash turning', /rash.*turn|harsh.*turn/i],
-    ['Neutral coasting', /coast|free.?wheel/i],
+    ['Harsh braking', 'harshBraking'],
+    ['Harsh acceleration', 'harshAcceleration'],
+    ['Rash turning', 'rashTurning'],
+    ['Neutral coasting', 'neutralCoasting'],
+    ['Overspeed alerts', 'overspeed'],
   ];
   return (
     <PanelErrorBoundary name="vehicle-drivers">
@@ -141,10 +157,14 @@ export default function DriversPanel({ vehicleId, assignedDriver, recentAlerts =
             <div className="vdrivers-head">
               <div>
                 <h3>Safety today</h3>
-                <p>Safety alerts in the vehicle’s recent returned records</p>
+                <p>
+                  {safetyAvailable ? 'Recorded native safety telemetry today · IST' : safetyReason}
+                </p>
               </div>
               <span className="vdrivers-badge vdrivers-badge--warn">
-                {safety.length ? `${safety.length} returned alerts` : 'Coverage unconfirmed'}
+                {Number.isFinite(dailyCounts?.total)
+                  ? `${dailyCounts.total} recorded events`
+                  : 'Daily counts unavailable'}
               </span>
             </div>
             <div>
@@ -185,13 +205,15 @@ export default function DriversPanel({ vehicleId, assignedDriver, recentAlerts =
               </p>
             </div>
             <div className="vdrivers-safety-rows">
-              {counts.map(([label, pattern]) => {
-                const count = safety.filter((alert) => pattern.test(alert.type)).length;
+              {counts.map(([label, key]) => {
+                const count = Number.isFinite(dailyCounts?.[key]) ? dailyCounts[key] : null;
                 return (
                   <div key={label}>
                     <span>{label}</span>
-                    <strong>{count || '—'}</strong>
-                    <small>{count ? 'Returned alerts' : 'No matching alert returned'}</small>
+                    <strong>{count ?? '—'}</strong>
+                    <small>
+                      {count != null ? 'Recorded today · IST' : 'Daily count unavailable'}
+                    </small>
                   </div>
                 );
               })}
@@ -202,9 +224,13 @@ export default function DriversPanel({ vehicleId, assignedDriver, recentAlerts =
               </div>
             </div>
             <div className="vdrivers-insight">
-              ✧ These are recent vehicle alerts, not a complete daily safety report. No returned
-              event does not prove zero incidents. Driver ratings and fault attribution need
-              verified coverage and assignment history.
+              Harsh-event and coasting counts are summed from stored native safety telemetry
+              (30-minute windows) in today’s IST window; overspeed is counted from native alerts.
+              Timeline dots show only recent returned alerts. No recorded event does not prove zero
+              incidents. Driver attribution is not verified.
+              {safetyAvailable && safetyToday.undatedAlertsReceivedToday > 0
+                ? ` ${safetyToday.undatedAlertsReceivedToday} overspeed alerts received today have no event timestamp and are excluded from daily counts.`
+                : ''}
             </div>
           </section>
         </div>

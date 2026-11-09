@@ -14,7 +14,7 @@ import { formatInIST } from '../../utils/dateUtils';
 import { formatLitres } from '../../utils/formatters';
 import { billCheckView } from '../../utils/billCheck';
 import FuelVerdictBadge from './FuelVerdictBadge';
-import { drivingUseSentence, parkedDropL } from './fuelVerdicts';
+import { drivingUseSentence, reviewLossL, isV2Window } from './fuelVerdicts';
 
 export default function VehicleDrilldownPanel({
   vehicle,
@@ -23,10 +23,11 @@ export default function VehicleDrilldownPanel({
   onClose,
   onShowWorking,
 }) {
+  const lossLabel = windows.some(isV2Window) ? 'Fuel loss to review' : 'Fuel down while parked';
   return (
     <Panel
       eyebrow={`${vehicle} — fuel timeline`}
-      question="Daily fills vs fuel that went down while parked"
+      question={`Daily fills vs ${lossLabel.toLowerCase()}`}
       action={
         <button className="ov-btn" onClick={onClose}>
           <ArrowLeft size={14} /> Close
@@ -49,10 +50,10 @@ export default function VehicleDrilldownPanel({
                 }}
                 formatter={(value, name) => [
                   `${value} L`,
-                  name === 'fills' ? 'Fills ▲' : 'Went down while parked ▼',
+                  name === 'fills' ? 'Fills ▲' : `${lossLabel} ▼`,
                 ]}
               />
-              <Legend formatter={(value) => (value === 'fills' ? 'Fills ▲' : 'Went down while parked ▼')} />
+              <Legend formatter={(value) => (value === 'fills' ? 'Fills ▲' : `${lossLabel} ▼`)} />
               <Bar dataKey="fills" fill="var(--ok)" radius={[4, 4, 0, 0]} />
               <Bar dataKey="loss" fill="var(--critical)" radius={[4, 4, 0, 0]} />
             </BarChart>
@@ -76,7 +77,7 @@ export default function VehicleDrilldownPanel({
                 <th className="text-right">Fills</th>
                 <th className="text-right">Engine burn</th>
                 <th className="text-right">Tank Δ</th>
-                <th className="text-right">Fuel down while parked</th>
+                <th className="text-right">{lossLabel}</th>
                 <th>Check</th>
                 <th className="text-right">DEF used, % of diesel</th>
                 <th aria-label="Working" />
@@ -95,11 +96,10 @@ export default function VehicleDrilldownPanel({
                   <td
                     className="num text-right"
                     style={{
-                      color:
-                        parkedDropL(w) != null ? 'var(--critical)' : 'var(--cluster-text-dim)',
+                      color: reviewLossL(w) != null ? 'var(--critical)' : 'var(--cluster-text-dim)',
                     }}
                   >
-                    {formatLitres(parkedDropL(w))}
+                    {formatLitres(reviewLossL(w))}
                   </td>
                   <td>
                     <FuelVerdictBadge fuelWindow={w} />

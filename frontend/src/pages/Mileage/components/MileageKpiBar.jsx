@@ -48,7 +48,7 @@ export default function MileageKpiBar({
   const models = useApi(
     (signal) => MileageApi.modelComparison(range, signal),
     [range.manufacturer, range.from, range.to, refreshKey],
-    { enabled: showFleetKmL },
+    { enabled: showFleetKmL, scopeKey: JSON.stringify([range.manufacturer, range.from, range.to]) },
   );
 
   const k = kpisFromSources({

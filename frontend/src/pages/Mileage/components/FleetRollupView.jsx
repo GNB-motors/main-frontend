@@ -97,7 +97,12 @@ const TILE = ({ label, value, unit, foot, reason }) => (
 );
 
 export default function FleetRollupView({ range }) {
-  const rollup = useApi((signal) => MileageApi.rollup(range, signal), [range.from, range.to]);
+  const scopeKey = JSON.stringify([range.manufacturer, range.from, range.to]);
+  const rollup = useApi(
+    (signal) => MileageApi.rollup(range, signal),
+    [range.manufacturer, range.from, range.to],
+    { scopeKey },
+  );
 
   const data = rollup.data || null;
   const kmPerLitre = data?.kmPerLitre || null;
@@ -139,8 +144,7 @@ export default function FleetRollupView({ range }) {
         <div className="mhub-box">
           <h3>Fleet mileage</h3>
           <p className="mhub-reason">
-            There is no fleet mileage roll-up for this window yet. It is rebuilt every night from
-            completed fill-to-full cycles.
+            No fleet mileage result was returned for these dates. Try refreshing.
           </p>
         </div>
       </div>
@@ -165,12 +169,7 @@ export default function FleetRollupView({ range }) {
           foot={headline.foot}
           reason={headline.reason}
         />
-        <TILE
-          label="Engine (ECU) km/L"
-          value={ecu.text}
-          foot={ecu.over}
-          reason={ecu.reason}
-        />
+        <TILE label="Engine (ECU) km/L" value={ecu.text} foot={ecu.over} reason={ecu.reason} />
         <TILE
           label="Bill vs engine"
           value={ecu.gapText}
@@ -194,9 +193,15 @@ export default function FleetRollupView({ range }) {
           <span>Headline</span>
           <span>Σ km ÷ Σ litres over completed fill-to-full cycles</span>
         </div>
+        <p className="mhub-footnote">
+          Cycles completed in these dates (IST), including their full distance and diesel even if
+          they started earlier. Unusable cycles are excluded as in the fill-to-fill KPI.
+        </p>
         <div className="mhub-kv">
           <span>Cross-check</span>
-          <span>{ecu.over || 'The ECU figure is a second number over the same counted cycles.'}</span>
+          <span>
+            {ecu.over || 'The ECU figure is a second number over the same counted cycles.'}
+          </span>
         </div>
         {ecu.uncoveredNote ? (
           <div className="mhub-kv">

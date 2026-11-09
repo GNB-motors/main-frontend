@@ -348,6 +348,65 @@ describe('PlaceHubPage', () => {
     expect(PlaceIntelligenceService.routesMap).toHaveBeenCalledTimes(1);
   });
 
+  it('counts leg passes and places for the visible routes, including search and in-plant filters', async () => {
+    const legs = Array.from({ length: 12 }, (_, i) => ({
+      _id: `leg${i + 1}`,
+      fromSiteId: 'a',
+      toSiteId: `b${i + 1}`,
+      traversals: i + 1,
+      inPlant: false,
+      path: { source: 'NONE' },
+      stats: { minutes: { p50: 100 } },
+    }));
+    PlaceIntelligenceService.routesMap.mockResolvedValue({
+      legs: [
+        ...legs,
+        { ...legs[0], _id: 'plant', toSiteId: 'gate', traversals: 1000, inPlant: true },
+      ],
+      sites: [
+        { _id: 'a', name: 'Bokaro plant', lat: 23, lng: 86 },
+        ...legs.map((leg, i) => ({
+          _id: leg.toSiteId,
+          name: `Town ${i + 1}`,
+          lat: 24,
+          lng: 87,
+        })),
+        { _id: 'gate', name: 'Plant gate', lat: 23, lng: 86 },
+      ],
+      totals: { legs: 13, places: 14, runs: 1078, inPlant: 1 },
+      total: 600,
+      truncated: true,
+    });
+    const { container } = renderPage('/place-hub?tab=routes');
+    await screen.findByRole('button', { name: /Bokaro plant.*Town 12/ });
+    const values = () =>
+      [...container.querySelectorAll('.ph-route-kpis .ph-kpi-value')].map((el) => el.textContent);
+
+    expect(values()).toEqual(['12', '78', '13', '96%']);
+    expect(screen.getByText(/one trip can include several leg passes/)).toBeInTheDocument();
+    expect(screen.getByText(/Showing the 13 busiest of 600 legs/)).toHaveTextContent(
+      'Totals cover only matching legs in this subset.',
+    );
+
+    const search = screen.getByRole('textbox', { name: 'Search route places' });
+    fireEvent.change(search, { target: { value: 'Town 12' } });
+    expect(values()).toEqual(['1', '12', '2', '100%']);
+
+    fireEvent.change(search, { target: { value: 'No such town' } });
+    expect(values()).toEqual(['0', '0', '0', '—']);
+
+    fireEvent.change(search, { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'In-plant (1)' }));
+    expect(values()).toEqual(['1', '1000', '2', '100%']);
+    fireEvent.click(screen.getByRole('button', { name: 'All', exact: true }));
+    expect(values()).toEqual(['12', '78', '13', '96%']);
+
+    fireEvent.click(screen.getByRole('button', { name: /Bokaro plant.*Town 12/ }));
+    const drawer = await screen.findByRole('complementary', { name: 'Route leg details' });
+    expect(within(drawer).getByText('Leg passes')).toBeInTheDocument();
+    expect(within(drawer).getByRole('heading', { name: 'Recent leg passes' })).toBeInTheDocument();
+  });
+
   it('keeps route place links in spider mode and Escape closes a leg', async () => {
     renderPage('/place-hub?tab=routes&place=site:a&leg=leg1');
     await screen.findByRole('complementary', { name: 'Route leg details' });

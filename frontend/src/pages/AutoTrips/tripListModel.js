@@ -4,6 +4,20 @@
  */
 import { toDate } from './autoTripFormat';
 
+const countOf = (counts, status) =>
+  Number.isFinite(counts?.[status]) ? Math.max(0, counts[status]) : 0;
+
+/** Rejected/superseded detections and overlapping view counts are not trips. */
+export const actualTripCount = (counts) =>
+  ['OPEN', 'COMPLETE', 'CONFIRMED', 'NEEDS_REVIEW'].reduce(
+    (sum, status) => sum + countOf(counts, status),
+    0,
+  );
+
+/** Confirmation verifies a delivery; it does not remove it from delivered trips. */
+export const deliveredTripCount = (counts) =>
+  countOf(counts, 'COMPLETE') + countOf(counts, 'CONFIRMED');
+
 // ─── Place names ─────────────────────────────────────────────────────────────
 
 /** Short words that read as words, not codes, when they come in capitals. */

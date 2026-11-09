@@ -1,4 +1,5 @@
 import { formatINR, formatLitres } from '../../../utils/formatters';
+import { fillBillView } from '../fillBillView';
 
 /** The event-specific meter or gauge at the top of the inspector. */
 const InspectorMeter = ({ activeEvent, isDef, isFill, isLoss }) => (
@@ -38,9 +39,13 @@ const InspectorMeter = ({ activeEvent, isDef, isFill, isLoss }) => (
     {isLoss && (
       <div className="fi-reconciliation-meter bg-red-50/60 dark:bg-red-950/20 border-red-200/80 dark:border-red-800/60">
         <div className="flex items-center justify-between text-xs font-semibold">
-          <span className="text-slate-700 dark:text-slate-300">Fuel went down while parked</span>
+          <span className="text-slate-700 dark:text-slate-300">
+            {activeEvent.lossLabel || 'Fuel down while parked'}
+          </span>
           <span className="text-red-600 dark:text-red-400 font-bold">
-            {activeEvent.confidence ? `${activeEvent.confidence} Confidence` : 'Confidence not rated'}
+            {activeEvent.confidence
+              ? `${activeEvent.confidence} Confidence`
+              : 'Confidence not rated'}
           </span>
         </div>
 
@@ -64,11 +69,10 @@ const InspectorMeter = ({ activeEvent, isDef, isFill, isLoss }) => (
 
     {isFill &&
       (() => {
-        const hasBill = activeEvent.claimedLitres != null;
-        const sensorL = activeEvent.litres ?? 0;
+        const bill = fillBillView(activeEvent);
+        const hasBill = bill.hasBill;
+        const sensorL = activeEvent.litres;
         const billedL = activeEvent.claimedLitres;
-        const varianceL =
-          activeEvent.billVarianceL ?? (hasBill ? Math.abs(sensorL - billedL) : null);
         const isEstimated = activeEvent.confirmationStatus === 'ESTIMATED';
         const isConfirmed = activeEvent.confirmationStatus === 'CONFIRMED';
 
@@ -78,22 +82,18 @@ const InspectorMeter = ({ activeEvent, isDef, isFill, isLoss }) => (
         let barColor = 'bg-slate-300 dark:bg-slate-600';
 
         if (hasBill) {
-          if (activeEvent.billFlag) {
-            const displayVar =
-              typeof varianceL === 'number' ? varianceL.toFixed(1) : (varianceL ?? '—');
-            statusText = `${displayVar} L Variance`;
-            statusColor = 'text-amber-600 dark:text-amber-400 font-bold';
-            barWidthPct = Math.max(
-              10,
-              Math.min(100, Math.round(((billedL - (varianceL || 0)) / (billedL || 1)) * 100)),
-            );
-            barColor = 'bg-amber-500';
-          } else {
-            statusText = '100% Reconciled';
-            statusColor = 'text-emerald-600 dark:text-emerald-400 font-bold';
-            barWidthPct = 100;
-            barColor = 'bg-emerald-500';
-          }
+          statusText = bill.statusText;
+          statusColor = !bill.comparable
+            ? 'text-slate-500'
+            : bill.flagged
+              ? 'text-amber-600 dark:text-amber-400 font-bold'
+              : 'text-emerald-600 dark:text-emerald-400 font-bold';
+          barWidthPct = sensorL == null ? 0 : Math.min(100, Math.max(0, (sensorL / billedL) * 100));
+          barColor = !bill.comparable
+            ? 'bg-slate-400'
+            : bill.flagged
+              ? 'bg-amber-500'
+              : 'bg-emerald-500';
         } else {
           statusText = isEstimated
             ? 'Estimated · No Bill on File'
@@ -123,7 +123,7 @@ const InspectorMeter = ({ activeEvent, isDef, isFill, isLoss }) => (
                 className={`${barColor} h-full rounded-full transition-all`}
                 style={{ width: `${barWidthPct}%` }}
               />
-              {hasBill && activeEvent.billFlag && (
+              {hasBill && bill.flagged && (
                 <div
                   className="bg-red-500/80 h-full rounded-r-full"
                   style={{ width: `${100 - barWidthPct}%` }}

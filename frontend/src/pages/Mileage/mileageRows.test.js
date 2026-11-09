@@ -139,9 +139,10 @@ describe('drawer detail', () => {
       telemetryLitres: 78,
       varianceL: -17,
       variancePct: -17.89,
+      billToleranceL: 18.5,
     });
     expect(d.result).toBe('BILL_TOO_HIGH');
-    expect(d.explanation.lines).toContainEqual(['Allowed', '± 10.0 L']);
+    expect(d.explanation.lines).toContainEqual(['Allowed', '± 18.5 L']);
     expect(d.bill.litres).toBe(95);
     expect(d.sensor.litres).toBe(78);
     expect(d.varianceL).toBe(-17);
@@ -284,6 +285,7 @@ describe('PR #142 feed fields', () => {
     expect(d.varianceL).toBe(-40);
     expect(d.billCheck).toEqual({
       toleranceL: 7.5,
+      comparable: true,
       flagged: true,
       v1VarianceL: -43.6,
       v1Flagged: true,
@@ -538,7 +540,7 @@ describe('plain-word verdicts', () => {
 
   it('fill chips read the feed counts, gauge jumps kept out of All', () => {
     const m = { verified: 21, flagged: 1, unverified: 81, slipOnly: 61, sensorGlitch: 3 };
-    expect(REFUEL_CHIPS.map((c) => c.count(m))).toEqual([164, 21, 1, 81, 61, 3]);
+    expect(REFUEL_CHIPS.map((c) => c.count(m))).toEqual([164, 21, 1, 81, 61, 0, 3]);
   });
 });
 

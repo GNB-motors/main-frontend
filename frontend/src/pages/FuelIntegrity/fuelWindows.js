@@ -1,4 +1,4 @@
-import { NOT_CHECKED } from './fuelVerdicts';
+import { verdictFor } from './fuelVerdicts';
 
 /**
  * The fuel window, in the shape the contract says.
@@ -26,7 +26,10 @@ export function toContractWindow(record) {
     fuelUsedL: record.fuelUsedL ?? record.fillsLitres ?? null,
     km: record.km ?? null,
     verdict: record.verdict ?? 'NOT_ENOUGH_DATA',
-    verdictWhy: record.verdictWhy ?? { text: NOT_CHECKED.tip, basis: null },
+    verdictWhy: record.verdictWhy ?? {
+      text: verdictFor(record).text ?? verdictFor(record).tip,
+      basis: null,
+    },
     parkedDropL: record.parkedDropL ?? null,
     drivingUseL: record.drivingUseL ?? null,
     expectedDrivingUseL: record.expectedDrivingUseL ?? null,

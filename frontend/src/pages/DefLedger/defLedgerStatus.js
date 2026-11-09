@@ -9,6 +9,7 @@ export const TONE = {
 
 // Mirrors defLedger.service statusOf(), most urgent first.
 export const STATUS = {
+  HELD_BACK: { label: 'Assessment held back', tone: 'muted', Icon: Info },
   NOT_ASSESSED: { label: 'Not assessed', tone: 'muted', Icon: Info },
   NOT_APPLICABLE: { label: 'Not applicable', tone: 'muted', Icon: Info },
   FLAGGED: { label: 'Needs review', tone: 'bad', Icon: AlertTriangle },
@@ -21,6 +22,8 @@ export const STATUS = {
 };
 
 export const STATUS_NOTE = {
+  HELD_BACK:
+    'Findings were computed, but alerts are held back for this account. The findings below have not been raised as alerts.',
   NOT_ASSESSED: 'Dosing is shown without a calibrated assessment band for this vehicle.',
   NOT_APPLICABLE: 'Vehicle data explicitly identifies that SCR dosing is not required.',
   FLAGGED:

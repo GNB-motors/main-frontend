@@ -78,6 +78,7 @@ export const LABELS = {
     BILL_TOO_LOW: 'Bill too low',
     BILL_MISSING: 'Bill missing',
     NO_TANK_READING: 'No tank reading',
+    COMPARISON_UNAVAILABLE: 'Comparison unavailable',
     GAUGE_JUMP: 'Gauge jump',
   },
   pumpHonesty: {

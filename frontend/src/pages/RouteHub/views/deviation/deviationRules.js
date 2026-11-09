@@ -41,6 +41,7 @@ export function costBasisLabel(d) {
  */
 export function extraKnown(d) {
   if (!d) return false;
+  if (d.source === 'ROAD_ENGINE' || d.enrichment?.status === 'UNAVAILABLE') return false;
   if (d.extraKmEstimate == null) return false;
   return !(Number(d.extraKmEstimate) === 0 && Number(d.maxOffKm || 0) >= 1);
 }
@@ -52,6 +53,15 @@ export function extraKnown(d) {
 export function costKnown(d) {
   if (!extraKnown(d)) return false;
   return d.estimatedExtraCostInr != null;
+}
+
+/** Why a detour can be shown without an extra-distance/cost estimate. */
+export function enrichmentReason(d) {
+  if (d?.enrichment?.message) return d.enrichment.message;
+  if (d?.source === 'ROAD_ENGINE') {
+    return 'This event measures distance driven off the usual road. Extra distance and cost are not calculated for this detector.';
+  }
+  return 'Extra distance and cost are unavailable because a comparable route and a complete exit-and-return track have not been verified.';
 }
 
 export const isOpen = (d) => String(d.status || '').toUpperCase() === 'OPEN';
@@ -156,8 +166,8 @@ export function groupByTrip(rows) {
       if (id) byTrip.set(id, g);
     }
     g.events.push(d);
-    g.extraKm += d.extraKmEstimate || 0;
-    g.costInr += d.estimatedExtraCostInr || 0;
+    if (extraKnown(d)) g.extraKm += Number(d.extraKmEstimate);
+    if (costKnown(d)) g.costInr += Number(d.estimatedExtraCostInr);
     if (isOpen(d)) g.open += 1;
   }
   for (const g of groups) {

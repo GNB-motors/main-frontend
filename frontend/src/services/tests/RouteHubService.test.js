@@ -105,6 +105,30 @@ describe('RouteHubService.getFleetOverspeed', () => {
   });
 });
 
+describe('route deviation search', () => {
+  it('sends the search with pagination and keeps the whole-set cost coverage', async () => {
+    const signal = new AbortController().signal;
+    apiClient.get.mockResolvedValueOnce({
+      data: {
+        data: {
+          records: [],
+          summary: { total: 3, open: 3, openCostInr: 900, openCostCount: 2 },
+          totalPages: 1,
+        },
+      },
+    });
+    const data = await RouteHubService.getDeviationEvents(
+      { q: 'Patna', page: 1, limit: 100 },
+      signal,
+    );
+    expect(apiClient.get).toHaveBeenLastCalledWith('/api/route-deviation/events', {
+      params: { q: 'Patna', page: 1, limit: 100 },
+      signal,
+    });
+    expect(data.summary).toMatchObject({ total: 3, openCostInr: 900, openCostCount: 2 });
+  });
+});
+
 describe('route profitability distance basis', () => {
   it('displays the window distance used to calculate per-km revenue and cost', async () => {
     apiClient.get.mockResolvedValueOnce({

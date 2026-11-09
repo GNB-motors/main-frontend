@@ -19,7 +19,12 @@ import { onActivateKey } from '../../utils/onActivateKey';
 
 const PAGE_SIZE = 12;
 
-export default function VehicleRiskPanel({ isLoading, riskVehicles = [], onDrill }) {
+export default function VehicleRiskPanel({
+  isLoading,
+  riskVehicles = [],
+  onDrill,
+  lossLabel = 'Fuel down while parked',
+}) {
   const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
 
@@ -147,7 +152,7 @@ export default function VehicleRiskPanel({ isLoading, riskVehicles = [], onDrill
                   </div>
 
                   <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200/60 dark:border-slate-800/80">
-                    <span className="text-slate-500 font-medium">Fuel down while parked</span>
+                    <span className="text-slate-500 font-medium">{lossLabel}</span>
                     <span
                       className={`font-bold font-mono ${
                         hasLoss
@@ -210,7 +215,7 @@ export default function VehicleRiskPanel({ isLoading, riskVehicles = [], onDrill
               <tr>
                 <th>Vehicle</th>
                 <th className="text-right">Dispensed Fuel</th>
-                <th className="text-right">Fuel down while parked</th>
+                <th className="text-right">{lossLabel}</th>
                 <th className="text-right">Est. value of the drop</th>
                 <th className="text-right">DEF Flags</th>
                 <th className="text-right">Bill Flags</th>

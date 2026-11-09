@@ -38,6 +38,9 @@ export const unifiedFeedSchema = list(
       unverified: num,
       slipOnly: num,
       sensorGlitch: num,
+      unassessed: num,
+      totalLitres: num,
+      truncated: z.boolean().nullish(),
       totalSpendInr: num,
     })
     .passthrough()
@@ -160,6 +163,9 @@ export const billVsTankSchema = z
                 billLitres: num,
                 telemetryLitres: num,
                 varianceL: num,
+                rawLitres: num,
+                billToleranceL: num,
+                billComparable: z.boolean().nullish(),
                 status: str,
               })
               .passthrough(),

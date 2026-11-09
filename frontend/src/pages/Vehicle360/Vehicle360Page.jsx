@@ -35,14 +35,15 @@ export default function Vehicle360Page() {
   const { data, loading, error, refetch } = useApi(
     (signal) => FleetDataService.getVehicleProfile(reg, signal),
     [reg],
+    { scopeKey: reg },
   );
   const { data: healthDetail } = useApi(
     (signal) => FleetDataService.getVehicleHealth(reg, { days: 30 }, signal),
     [reg],
-    { enabled: Boolean(data?.health) },
+    { enabled: Boolean(data?.health) && !error, scopeKey: reg },
   );
 
-  const p = data || {};
+  const p = error ? {} : data || {};
   const history = (healthDetail?.history || []).map((h) => ({
     t: h.pulledAt
       ? new Date(h.pulledAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
@@ -82,10 +83,10 @@ export default function Vehicle360Page() {
           }
         />
         <section className="v360-card">
-          <p className="v360-card-title">Nothing on record for {reg}</p>
+          <p className="v360-card-title">Vehicle unavailable — {reg}</p>
           <p className="v360-card-lede">
-            This registration is not in the fleet master, the telematics directory, or the
-            live-status feed. Check the plate, or add the vehicle to the fleet first.
+            This vehicle is not available in your registered fleet or selected location. Check the
+            plate and location, or onboard the vehicle first.
           </p>
           <div style={{ display: 'flex', gap: 9, marginTop: 14 }}>
             <Link to="/vehicles" className="v360-btn v360-btn--primary">
@@ -110,6 +111,23 @@ export default function Vehicle360Page() {
           <div className="v360-registry" style={{ height: 424 }} />
         </div>
         <OverviewSkeleton />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="v360">
+        <Breadcrumbs reg={reg} />
+        <section className="v360-card" role="alert">
+          <p className="v360-card-title">Could not load vehicle</p>
+          <p className="v360-card-lede">
+            {error.displayMessage || error.message || 'Try refreshing this vehicle.'}
+          </p>
+          <button className="v360-btn" onClick={refetch}>
+            Try again
+          </button>
+        </section>
       </div>
     );
   }
@@ -179,6 +197,7 @@ export default function Vehicle360Page() {
       {active === 'drivers' ? (
         <DriversPanel
           recentAlerts={p.recentAlerts}
+          safetyToday={p.safetyToday}
           vehicleId={p.fleetMaster?.id}
           assignedDriver={p.assignedDriver}
           health={p.health}

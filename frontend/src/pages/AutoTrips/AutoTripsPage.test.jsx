@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { act, render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import AutoTripsPage from './AutoTripsPage';
 import AutoTripService from '../../services/AutoTripService';
 import TripPlanService from '../../services/TripPlanService';
@@ -128,7 +128,8 @@ function listByStatus({ waitingItems = [], items, tabCounts }) {
     if (params.status === 'NEEDS_REVIEW' && params.limit === 100) {
       return { items: waitingItems, total: tabCounts.NEEDS_REVIEW, tabCounts };
     }
-    if (params.status === 'COMPLETE' && params.limit === 100) return { items: [], total: 0, tabCounts };
+    if (params.status === 'DELIVERED' && params.limit === 100)
+      return { items: [], total: 0, tabCounts };
     return { items, total: items.length, tabCounts };
   });
 }
@@ -136,7 +137,14 @@ function listByStatus({ waitingItems = [], items, tabCounts }) {
 it('puts the period in KPI tiles that are also the status filter', async () => {
   listByStatus({
     items: [{ _id: 't1', registrationNumber: 'WB-ACTUAL', status: 'OPEN' }],
-    tabCounts: { COMPLETE: 585, NEEDS_REVIEW: 2237, OPEN: 113, CONFIRMED: 0, DISMISSED: 0, reposition: 0 },
+    tabCounts: {
+      COMPLETE: 585,
+      NEEDS_REVIEW: 2237,
+      OPEN: 113,
+      CONFIRMED: 0,
+      DISMISSED: 0,
+      reposition: 0,
+    },
   });
   open();
   const tile = await screen.findByRole('tab', { name: 'Needs your answer 2,237' });
@@ -158,6 +166,78 @@ it('puts the period in KPI tiles that are also the status filter', async () => {
   );
 });
 
+it('keeps confirmed trips under Delivered and uses the same combined filter for its list and sample', async () => {
+  const tabCounts = { COMPLETE: 40, CONFIRMED: 60, DISMISSED: 0, OPEN: 0, NEEDS_REVIEW: 0 };
+  AutoTripService.list.mockImplementation(async (params) => ({
+    items:
+      params.status === 'DELIVERED'
+        ? [
+            { _id: 'c1', registrationNumber: 'WB-DELIVERED', status: 'COMPLETE' },
+            { _id: 'c2', registrationNumber: 'WB-CONFIRMED', status: 'CONFIRMED' },
+          ]
+        : [],
+    total: 100,
+    tabCounts,
+  }));
+  open('/auto-trips?range=7d');
+  const tile = await screen.findByRole('tab', { name: 'Delivered 100' });
+  expect(screen.getByRole('tab', { name: 'Trips 100' })).toBeInTheDocument();
+  expect(screen.getByText('100% of trips')).toBeInTheDocument();
+  expect(AutoTripService.list).toHaveBeenCalledWith(
+    expect.objectContaining({ status: 'DELIVERED', limit: 100 }),
+    expect.anything(),
+  );
+  fireEvent.click(tile);
+  expect(await screen.findByText('WB-CONFIRMED')).toBeInTheDocument();
+  expect(screen.getByText('WB-DELIVERED')).toBeInTheDocument();
+  expect(AutoTripService.list).toHaveBeenCalledWith(
+    expect.objectContaining({ status: 'DELIVERED', page: 1, limit: 50 }),
+    expect.anything(),
+  );
+});
+
+it('uses actual trips for percentages and keeps rejected detections only in the explicit tab', async () => {
+  const tabCounts = { COMPLETE: 40, CONFIRMED: 20, DISMISSED: 20, OPEN: 20, NEEDS_REVIEW: 0 };
+  AutoTripService.list.mockImplementation(async (params) => ({
+    items:
+      params.limit === 100
+        ? []
+        : params.status === 'DISMISSED'
+          ? [{ _id: 'r1', registrationNumber: 'WB-REJECTED', status: 'DISMISSED' }]
+          : [{ _id: 'a1', registrationNumber: 'WB-ACTUAL', status: 'COMPLETE' }],
+    total: params.status === 'DISMISSED' ? 20 : 80,
+    tabCounts,
+  }));
+  open();
+  expect(await screen.findByRole('tab', { name: 'Trips 80' })).toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: 'Delivered 60' })).toBeInTheDocument();
+  expect(screen.getByText('75% of trips')).toBeInTheDocument();
+  expect(screen.queryByText('WB-REJECTED')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('tab', { name: /More/ }));
+  fireEvent.click(await screen.findByRole('menuitem', { name: 'Rejected 20' }));
+  expect(await screen.findByText('WB-REJECTED')).toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: 'Trips 80' })).toBeInTheDocument();
+  expect(screen.getByText('75% of trips')).toBeInTheDocument();
+  expect(AutoTripService.list).toHaveBeenCalledWith(
+    expect.objectContaining({ status: 'DISMISSED', limit: 50 }),
+    expect.anything(),
+  );
+});
+
+it('does not fall back to the rejected list total when every detection was rejected', async () => {
+  AutoTripService.list.mockResolvedValue({
+    items: [{ _id: 'r1', registrationNumber: 'WB-REJECTED', status: 'DISMISSED' }],
+    total: 20,
+    tabCounts: { DISMISSED: 20, COMPLETE: 0, CONFIRMED: 0, OPEN: 0, NEEDS_REVIEW: 0 },
+  });
+  open('/auto-trips?range=7d&status=DISMISSED');
+  expect(await screen.findByText('WB-REJECTED')).toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: 'Trips 0' })).toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: 'Delivered 0' })).toBeInTheDocument();
+  expect(screen.getByText('0 left a plant today')).toBeInTheDocument();
+  expect(screen.queryByRole('tab', { name: 'Trips 20' })).not.toBeInTheDocument();
+});
+
 it('explains the waiting trips once and offers the bulk answer', async () => {
   listByStatus({
     items: [{ _id: 't1', registrationNumber: 'WB-ACTUAL', status: 'OPEN' }],
@@ -165,20 +245,91 @@ it('explains the waiting trips once and offers the bulk answer', async () => {
     tabCounts: { COMPLETE: 5, NEEDS_REVIEW: 120, OPEN: 1 },
   });
   getPlaceQuestions.mockResolvedValue({
-    items: [{ id: 'q1', tripsAffected: 8 }, { id: 'q2', tripsAffected: 4 }],
+    items: [
+      { id: 'q1', tripsAffected: 8 },
+      { id: 'q2', tripsAffected: 4 },
+    ],
     total: 2,
   });
   open();
-  expect(await screen.findByRole('heading', { name: '120 trips need your answer' })).toBeInTheDocument();
+  expect(
+    await screen.findByRole('heading', { name: '120 trips need your answer' }),
+  ).toBeInTheDocument();
   expect(await screen.findByText('Drop not found')).toBeInTheDocument();
-  expect(screen.getByText('Split measured on the latest 10 waiting trips in this period.')).toBeInTheDocument();
-  expect(await screen.findByText(/For the other 108, open the trip and mark its drop/)).toBeInTheDocument();
+  expect(
+    screen.getByText('Split measured on the latest 10 waiting trips in this period.'),
+  ).toBeInTheDocument();
+  expect(
+    await screen.findByText(/For the other 108, open the trip and mark its drop/),
+  ).toBeInTheDocument();
   expect(getPlaceQuestions).toHaveBeenCalledWith(expect.objectContaining({ limit: 200 }));
   fireEvent.click(screen.getByRole('button', { name: 'Answer place questions' }));
   expect(await screen.findByRole('tab', { name: /Place questions/ })).toHaveAttribute(
     'aria-selected',
     'true',
   );
+});
+
+it('scopes place questions to the selected IST period and truck, hiding the previous queue while loading', async () => {
+  const vehicleId = '507f1f77bcf86cd799439011';
+  let finish;
+  AutoTripService.list.mockImplementation(async (params) => ({
+    items: [],
+    total: 0,
+    tabCounts: { NEEDS_REVIEW: params.from ? 3 : 120 },
+  }));
+  getPlaceQuestions.mockResolvedValueOnce({
+    items: [{ id: 'old', tripsAffected: 90 }],
+    total: 14,
+    tripsAffected: 90,
+  });
+  function PickPeriod() {
+    const navigate = useNavigate();
+    return (
+      <button
+        onClick={() =>
+          navigate(`/auto-trips?range=custom&from=2026-11-01&to=2026-11-07&vehicleId=${vehicleId}`)
+        }
+      >
+        Pick period
+      </button>
+    );
+  }
+  render(
+    <MemoryRouter initialEntries={[`/auto-trips?vehicleId=${vehicleId}`]}>
+      <AutoTripsPage />
+      <PickPeriod />
+    </MemoryRouter>,
+  );
+  expect(await screen.findByText('90 trips')).toBeInTheDocument();
+  const oldSignal = getPlaceQuestions.mock.calls[0][0].signal;
+  getPlaceQuestions.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Pick period' }));
+  await waitFor(() =>
+    expect(getPlaceQuestions).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        from: '2026-10-31T18:30:00.000Z',
+        to: '2026-11-07T18:29:59.999Z',
+        vehicleId,
+        limit: 200,
+      }),
+    ),
+  );
+  expect(oldSignal.aborted).toBe(true);
+  expect(screen.queryByText('90 trips')).not.toBeInTheDocument();
+  await act(async () =>
+    finish({ items: [{ id: 'current', tripsAffected: 3 }], total: 1, tripsAffected: 3 }),
+  );
+  expect(
+    await screen.findByRole('heading', { name: '3 trips need your answer' }),
+  ).toBeInTheDocument();
+  expect(screen.getByText('3 trips')).toBeInTheDocument();
+  expect(screen.queryByText('14 places')).not.toBeInTheDocument();
 });
 
 it('draws one dense row per trip and leaves out a column nobody has yet', async () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import FleetRollupView from './FleetRollupView';
 import { MileageApi } from '../mileageApi';
 
@@ -21,8 +21,16 @@ const rollup = {
       kmPerL: 5.85,
     },
     ecu: { source: 'ECU_TILES_WITHIN_COUNTED_CYCLE_SPANS', km: 12000, litres: 2100, kmPerL: 5.71 },
-    gap: { kmPerL: 0.14, pctOfEcu: 2.5, over: 'Bill minus ECU, both measured over the same counted cycle spans.' },
-    ecuUncovered: { km: 340, litres: 10.5, note: 'Some billed driving fell outside the spans the engine covers.' },
+    gap: {
+      kmPerL: 0.14,
+      pctOfEcu: 2.5,
+      over: 'Bill minus ECU, both measured over the same counted cycle spans.',
+    },
+    ecuUncovered: {
+      km: 340,
+      litres: 10.5,
+      note: 'Some billed driving fell outside the spans the engine covers.',
+    },
     duty: { basis: 'OTSU_ON_ORG_MEDIAN_CYCLE_KM', cutKmPerCycle: 180, trucksDescribed: 9 },
     groups: [
       {
@@ -37,7 +45,10 @@ const rollup = {
         ranked: false,
         excludeNote: 'Not ranked: this group carries 30 cycles, 3,000 km and 600 L.',
         excludedTrucks: [
-          { registrationNumber: 'WB11L8863', reason: 'no completed fill-to-full cycle in this window' },
+          {
+            registrationNumber: 'WB11L8863',
+            reason: 'no completed fill-to-full cycle in this window',
+          },
         ],
       },
       {
@@ -115,6 +126,42 @@ describe('FleetRollupView', () => {
     expect(screen.getByText('+4.2%')).toBeInTheDocument();
   });
 
+  it('hides the old period while loading selected dates and refetches for manufacturer changes', async () => {
+    MileageApi.rollup.mockResolvedValueOnce(rollup);
+    const { rerender } = renderView();
+    expect(await screen.findByText('5.85 km/L')).toBeInTheDocument();
+    let finish;
+    MileageApi.rollup.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const september = { from: '2026-09-01', to: '2026-09-30' };
+    rerender(<FleetRollupView range={september} />);
+    expect(screen.queryByText('5.85 km/L')).not.toBeInTheDocument();
+    await act(async () =>
+      finish({
+        ...rollup,
+        kmPerLitre: {
+          ...rollup.kmPerLitre,
+          fleet: { ...rollup.kmPerLitre.fleet, kmPerL: 4 },
+          window: { from: '2026-08-31T18:30:00Z', to: '2026-09-30T18:29:59.999Z' },
+        },
+      }),
+    );
+    expect(await screen.findByText('4.00 km/L')).toBeInTheDocument();
+    expect(screen.getByText('1 Sep 2026 – 30 Sep 2026')).toBeInTheDocument();
+    MileageApi.rollup.mockResolvedValue(rollup);
+    rerender(<FleetRollupView range={{ ...september, manufacturer: 'TATA' }} />);
+    await waitFor(() =>
+      expect(MileageApi.rollup).toHaveBeenLastCalledWith(
+        { ...september, manufacturer: 'TATA' },
+        expect.anything(),
+      ),
+    );
+  });
+
   it('keeps the reason a truck is held back', async () => {
     MileageApi.rollup.mockResolvedValue(rollup);
     renderView();
@@ -133,7 +180,9 @@ describe('FleetRollupView', () => {
       },
     });
     renderView();
-    expect(await screen.findByText(/no completed fill-to-full cycle fell in this window/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/no completed fill-to-full cycle fell in this window/i),
+    ).toBeInTheDocument();
     expect(screen.queryByText('0.00 km/L')).not.toBeInTheDocument();
   });
 

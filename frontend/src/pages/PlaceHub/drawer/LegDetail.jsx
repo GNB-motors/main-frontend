@@ -57,9 +57,9 @@ export default function LegDetail({
       )}
       <Stats
         items={[
-          { label: 'Runs', value: leg.traversals },
+          { label: 'Leg passes', value: leg.traversals },
           { label: 'Usual time', value: minutesLabel(leg.stats?.minutes?.p50) },
-          { label: 'Slow run (1 in 10)', value: minutesLabel(leg.stats?.minutes?.p90) },
+          { label: 'Slow pass (1 in 10)', value: minutesLabel(leg.stats?.minutes?.p90) },
           { label: 'Usual distance', value: kmLabel(leg.stats?.km?.p50) },
           {
             label: 'Fuel per km',
@@ -89,7 +89,7 @@ export default function LegDetail({
       ) : (
         <p>
           {path?.source === 'ENGINE'
-            ? 'Likely road; no matched run yet.'
+            ? 'Likely road; no matched pass yet.'
             : 'No road line yet; shown as a straight-line link.'}
         </p>
       )}
@@ -111,7 +111,7 @@ export default function LegDetail({
           </label>
         </>
       )}
-      {loading && <p role="status">Loading runs…</p>}
+      {loading && <p role="status">Loading leg passes…</p>}
       {error && <p role="alert">{messageOf(error, 'Could not load this leg')}</p>}
       {vehicles.length > 0 && (
         <>
@@ -119,14 +119,14 @@ export default function LegDetail({
           <ul>
             {vehicles.map(([reg, count]) => (
               <li key={reg}>
-                {reg} · {count} runs
+                {reg} · {count} leg {count === 1 ? 'pass' : 'passes'}
               </li>
             ))}
           </ul>
         </>
       )}
-      <h3>Recent runs</h3>
-      {detail && !detail.traversals?.length && <p>No runs recorded yet.</p>}
+      <h3>Recent leg passes</h3>
+      {detail && !detail.traversals?.length && <p>No leg passes recorded yet.</p>}
       <ul className="ph-route-runs">
         {(detail?.traversals || []).slice(0, 15).map((run) => (
           <li key={`${run.autoTripId || run.tourId || run.registrationNumber}:${run.departedAt}`}>
