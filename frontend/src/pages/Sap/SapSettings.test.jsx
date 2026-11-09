@@ -95,7 +95,7 @@ it('a sheet becomes proposals; only the chosen ones are saved, with their basis'
       expect.anything(),
     ),
   );
-  expect(screen.queryByText(/Sheet preview/)).toBeNull();
+  await waitFor(() => expect(screen.queryByText(/Sheet preview/)).toBeNull());
 });
 
 it('a lane without places cannot be used until it has them', async () => {
