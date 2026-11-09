@@ -14,7 +14,9 @@ export default function NdImpactItems({ rows, total }) {
             <span className="nd-impact-ico">
               <Icon size={13} />
             </span>
-            <span className="nd-impact-item-name">{r.label}</span>
+            <span className="nd-impact-item-name" title={r.tip || undefined}>
+              {r.label}
+            </span>
             {pct > 0 && <span className="nd-impact-pct-pill">{pct}%</span>}
           </div>
           <span

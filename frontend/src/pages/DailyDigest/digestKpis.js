@@ -31,9 +31,22 @@ export function buildDigestKpis({
   calendar,
   healthScore,
   tripsToday: autoTrips,
+  // The selected digest window in whole days (1 = today, 2 = last 2 days…).
+  // Defaults to 1 so existing callers keep the single-day wording.
+  rangeDays = 1,
+  // IST calendar dates of the window edges, for the Trips tile's deep-link.
+  fromYmd = null,
+  toYmd = null,
 }) {
   // The Trip page's own count when it loaded; the calendar's older count only as a fallback.
   const tripsToday = autoTrips != null ? autoTrips : countTripsToday(calendar);
+  const windowWord = rangeDays <= 1 ? 'today' : `last ${rangeDays} days`;
+  const tripsHref =
+    autoTrips == null
+      ? '#nd-calendar'
+      : rangeDays <= 1 || !fromYmd || !toYmd
+        ? '/auto-trips?range=today'
+        : `/auto-trips?range=custom&from=${fromYmd}&to=${toYmd}`;
 
   const vehicleCount = fleetDashboard?.length || 0;
   const activeVehicleCount = (fleetDashboard || []).filter(
@@ -58,23 +71,23 @@ export function buildDigestKpis({
       // Telemetry burn × diesel price — an estimate, not money paid (audit DD-04).
       label: 'Fuel burned (est.)',
       value: `₹${formatNum(m?.fuelCostInr || 0)}`,
-      note: 'today · from telemetry',
+      note: `${windowWord} · from telemetry`,
       to: '/refuel-logs',
     },
     {
       id: 'trips',
       icon: Calendar,
-      label: 'Trips today',
+      label: rangeDays <= 1 ? 'Trips today' : `Trips · ${rangeDays}d`,
       value: formatNum(tripsToday),
-      note: 'left a pickup today',
-      to: autoTrips != null ? '/auto-trips?range=today' : '#nd-calendar',
+      note: `left a pickup ${windowWord}`,
+      to: tripsHref,
     },
     {
       id: 'def',
       icon: Droplet,
       label: 'AdBlue/DEF spend',
       value: `₹${formatNum(m?.defCostInr || 0)}`,
-      note: 'today',
+      note: windowWord,
     },
     {
       id: 'health',
