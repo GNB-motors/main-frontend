@@ -16,7 +16,13 @@ import {
 import { formatINR } from '../../../utils/formatters';
 import NdImpactItems from './NdImpactItems.jsx';
 
-export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
+export default function NdImpactCard({
+  money,
+  atRisk,
+  utilization,
+  downtime,
+  rangeLabel = 'today',
+}) {
   const lost = [
     {
       key: 'idling',
@@ -57,6 +63,7 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
       c: '#0D9488',
       tint: 'rgba(13, 148, 136, 0.12)',
       icon: Gauge,
+      tip: 'Empty km = telemetry distance in the window minus the whole trip’s recorded loaded distance. A trip longer than the selected window can skew this; the default 2-day window covers most trips.',
     },
     {
       key: 'speed',
@@ -123,7 +130,7 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
   return (
     <div className="nd-card nd-card--impact" id="nd-impact">
       <div className="nd-card-head">
-        <h2>Today&apos;s ₹ impact</h2>
+        <h2>{rangeLabel === 'today' ? "Today's ₹ impact" : `₹ impact · ${rangeLabel}`}</h2>
         <span className="nd-sp" />
         <span className="nd-hint">Estimated</span>
       </div>
@@ -132,7 +139,7 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
         <div className="nd-impact-hero-top">
           <span className="nd-impact-tag">
             <TrendingDown size={13} />
-            <span>Total loss today</span>
+            <span>Total loss {rangeLabel === 'today' ? 'today' : `· ${rangeLabel}`}</span>
           </span>
           <span className="nd-impact-count-badge">
             {activeCount > 0 ? `${activeCount} active categories` : 'All nominal'}

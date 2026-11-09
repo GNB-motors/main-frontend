@@ -17,6 +17,14 @@ export function startOfTodayIST(now = new Date()) {
   return istDayStartISO(istDayString(now));
 }
 
+// Start of the IST day `daysAgo` days back, as an ISO instant. daysAgo=0 is
+// today's start (== startOfTodayIST); daysAgo=1 is yesterday's start, giving a
+// two-calendar-day window [yesterday 00:00 IST, now] when used as `from`.
+export function startOfDaysAgoIST(daysAgo = 0, now = new Date()) {
+  const DAY = 24 * 60 * 60 * 1000;
+  return istDayStartISO(istDayString(new Date(now.getTime() - daysAgo * DAY)));
+}
+
 // HIGH shares the --caution tone with MEDIUM (not --critical) so red stays
 // reserved for genuinely CRITICAL items — the design system only defines
 // ok/caution/critical/inert, so severity within a tone is told apart by the

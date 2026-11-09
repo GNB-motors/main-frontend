@@ -87,7 +87,7 @@ describe('DEF ledger page', () => {
 
   it('shows a dash, and the reason, when no AdBlue was ever logged', async () => {
     await renderPage();
-    const tile = tileFor('AdBlue logged');
+    const tile = tileFor('AdBlue logged (in window)');
     expect(within(tile).getByText('—')).toBeInTheDocument();
     expect(within(tile).getByText(/No AdBlue bills logged/)).toBeInTheDocument();
     expect(within(tile).getByText(/sensors saw .* go in/)).toBeInTheDocument();

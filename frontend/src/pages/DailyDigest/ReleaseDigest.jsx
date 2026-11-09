@@ -19,9 +19,9 @@ import PerformanceApi from '../../api/performance';
 import { rangeToParams } from '../AutoTrips/tripRange';
 import { morningBriefSchema } from '../../schemas/morningBrief.schema';
 
-import { formatDateLongIST } from '../../utils/dateUtils';
+import { formatDateLongIST, toISTDateString } from '../../utils/dateUtils';
 import {
-  startOfTodayIST,
+  startOfDaysAgoIST,
   buildActionItems,
   buildDocumentAlerts,
   buildUpcomingItems,
@@ -55,7 +55,12 @@ import '../../styles/nova/novaDesignSystem.css';
  * never leak into the rest of the app's CSS.
  */
 export default function ReleaseDigest({ renderOverview = null }) {
-  const from = startOfTodayIST();
+  // The digest window defaults to the last 2 days (most trips span ~2 days), with
+  // a Today toggle for the single-day view. `from` drives every windowed section
+  // (money, utilization, refuelling, morning brief) via getDigest.
+  const [rangeDays, setRangeDays] = useState(2);
+  const from = useMemo(() => startOfDaysAgoIST(rangeDays - 1), [rangeDays]);
+  const rangeLabel = rangeDays <= 1 ? 'today' : `last ${rangeDays} days`;
 
   // The eight owner-value sections arrive in one request (FRONTEND_AUDIT B1);
   // each section below reads its slice and shares the request's loading state.
@@ -89,9 +94,20 @@ export default function ReleaseDigest({ renderOverview = null }) {
   const driverLeaderboard$ = useApi((s) => PerformanceApi.leaderboards({}, s), []);
   // Trips today = the Trip page's own trips that left a pickup today (IST), not
   // the legacy VehicleTour rows the calendar holds (audit DD-02).
+  const tripsParams = useMemo(
+    () =>
+      rangeDays <= 1
+        ? rangeToParams({ range: 'today' })
+        : rangeToParams({
+            range: 'custom',
+            from: toISTDateString(new Date(from)),
+            to: toISTDateString(new Date()),
+          }),
+    [rangeDays, from],
+  );
   const tripsToday$ = useApi(
-    (s) => AutoTripService.list({ ...rangeToParams({ range: 'today' }), limit: 1 }, { signal: s }),
-    [],
+    (s) => AutoTripService.list({ ...tripsParams, limit: 1 }, { signal: s }),
+    [tripsParams],
   );
 
   const { data: money } = money$;
@@ -177,6 +193,9 @@ export default function ReleaseDigest({ renderOverview = null }) {
     calendar,
     healthScore,
     tripsToday: tripsToday$.data?.total ?? null,
+    rangeDays,
+    fromYmd: toISTDateString(new Date(from)),
+    toYmd: toISTDateString(new Date()),
   });
 
   // Fetched only while the drawer is open for a given plate — the digest's
@@ -257,6 +276,42 @@ export default function ReleaseDigest({ renderOverview = null }) {
               <div className="nd-sub">{formatDateLongIST(new Date())} · Your fleet at a glance</div>
             </div>
             <div className="nd-headtools">
+              <div
+                role="group"
+                aria-label="Digest window"
+                style={{
+                  display: 'inline-flex',
+                  gap: 2,
+                  border: '1px solid #dce1e8',
+                  borderRadius: 8,
+                  padding: 2,
+                  background: '#fff',
+                }}
+              >
+                {[
+                  { d: 2, l: 'Last 2 days' },
+                  { d: 1, l: 'Today' },
+                ].map(({ d, l }) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setRangeDays(d)}
+                    aria-pressed={rangeDays === d}
+                    style={{
+                      border: 'none',
+                      cursor: 'pointer',
+                      borderRadius: 6,
+                      padding: '5px 10px',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      background: rangeDays === d ? '#111827' : 'transparent',
+                      color: rangeDays === d ? '#fff' : '#374151',
+                    }}
+                  >
+                    {l}
+                  </button>
+                ))}
+              </div>
               <ExportButton
                 rows={digestExportRows}
                 columns={digestExportColumns}
@@ -286,7 +341,7 @@ export default function ReleaseDigest({ renderOverview = null }) {
         {!renderOverview ? (
           <section>
             <div className="nd-eyebrow" style={{ marginBottom: 10 }}>
-              Today at a glance
+              {rangeDays <= 1 ? 'Today' : 'Last 2 days'} at a glance
             </div>
             {loading && !money ? <NdKpiStripSkeleton items={kpis} /> : <NdKpiStrip items={kpis} />}
           </section>
@@ -321,6 +376,7 @@ export default function ReleaseDigest({ renderOverview = null }) {
                 atRisk={money?.atRisk}
                 utilization={utilization}
                 downtime={downtime}
+                rangeLabel={rangeLabel}
               />
             )}
           </div>
@@ -333,6 +389,7 @@ export default function ReleaseDigest({ renderOverview = null }) {
             brief={morningBrief}
             onOpenVehicle={openVehicle}
             onRetry={morningBrief$.refetch}
+            rangeLabel={rangeLabel}
           />
         )}
 
