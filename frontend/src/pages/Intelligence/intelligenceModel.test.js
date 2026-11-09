@@ -15,11 +15,9 @@ import {
   periodDates,
   periodRangeLabel,
   resolvePeriod,
-  runBarsByTruck,
   shiftYmd,
   sortIssues,
   summarisePlacesByPlace,
-  tripKmParts,
 } from './intelligenceModel';
 
 // 2 Nov 2026, 15:30 IST — a fixed "now" so the windows never move.
@@ -190,40 +188,6 @@ describe('classifyTrip', () => {
   it('reads a delivery as loaded and a run without a drop as empty', () => {
     expect(classifyTrip({ drop: { name: 'OCL' } })).toBe('loaded');
     expect(classifyTrip({})).toBe('empty');
-  });
-});
-
-describe('tripKmParts', () => {
-  it('never counts a plant-to-plant run as empty', () => {
-    const parts = tripKmParts({ flags: ['PICKUP_TO_PICKUP'], km: { laden: 300, return: 280 } });
-    expect(parts).toEqual({ loadedKm: 0, emptyKm: 280, repositionKm: 300 });
-  });
-
-  it('splits a loaded trip into loaded and empty km', () => {
-    const parts = tripKmParts({ drop: { name: 'OCL' }, km: { laden: 420, return: 400 } });
-    expect(parts).toEqual({ loadedKm: 420, emptyKm: 400, repositionKm: 0 });
-  });
-
-  it('reads a missing km as no km at all', () => {
-    expect(tripKmParts({})).toEqual({ loadedKm: 0, emptyKm: 0, repositionKm: 0 });
-  });
-});
-
-describe('runBarsByTruck', () => {
-  const trips = [
-    { registrationNumber: 'WB11L8862', drop: { name: 'OCL' }, km: { laden: 100, return: 90 } },
-    { registrationNumber: 'WB11L8862', leg: 'REPOSITION', km: { laden: 50, return: 40 } },
-    { registrationNumber: 'WB11F6762', leg: 'RETURN', km: { laden: 0, return: 30 } },
-  ];
-
-  it('adds up the km of each truck', () => {
-    const bars = runBarsByTruck(trips);
-    expect(bars[0].registrationNumber).toBe('WB11L8862');
-    expect(bars[0]).toMatchObject({ loadedKm: 100, emptyKm: 130, repositionKm: 50, totalKm: 280 });
-  });
-
-  it('keeps only the top trucks', () => {
-    expect(runBarsByTruck(trips, { limit: 1 })).toHaveLength(1);
   });
 });
 

@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
+import ToneBadge from '../../../components/redesign/ToneBadge';
 import { formatDate, formatNumber, formatCurrency, fmtKm, fmtL } from './tripReportsUtils';
 import { StatusChip, FlagChips } from './tripReportCells';
 import { BILL_VERDICT } from '../../../utils/billCheck';
-import { cycleDistance, notInTripsAlert, slipsHref } from './cycleTrips';
+import { cycleDistance, kmPartialLabel, notInTripsAlert, slipsHref } from './cycleTrips';
 
 // Columns for GET /api/reports/fuel-cycles (FuelCycle rows).
 export function useFuelCyclesColumns() {
@@ -92,7 +93,19 @@ export function useFuelCyclesColumns() {
         key: 'tripLaden',
         label: 'Laden in trips',
         align: 'right',
-        render: (r) => <div className="cell-primary">{fmtKm(r.tripSummary?.ladenKm)}</div>,
+        render: (r) => {
+          const partial = kmPartialLabel(r.tripSummary);
+          return (
+            <div className="cell-primary">
+              {fmtKm(r.tripSummary?.ladenKm)}
+              {partial ? (
+                <div className="rpt-cycle-trips-sub">
+                  <ToneBadge tone="watch">{partial}</ToneBadge>
+                </div>
+              ) : null}
+            </div>
+          );
+        },
       },
       {
         key: 'notInTrips',

@@ -7,6 +7,7 @@
  * null so the tile can print "—" with its reason.
  */
 import { DASH, formatMoment, labelFor } from './ownerReportModel';
+import { PARTIAL_LABEL } from '../../utils/measured.js';
 
 /** A vendor error, without the internal API path: "Timed out after 30 s". */
 export function feedReason(reason) {
@@ -124,7 +125,7 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
         ? avgNote(trend.kmPrev7Avg, ' km')
         : isToday
           ? tripsModule
-            ? `Loaded trip distance${work.kmPartial ? ' · partial' : ''}`
+            ? `Loaded trip distance${work.kmPartial ? ` · ${PARTIAL_LABEL.toLowerCase()}` : ''}`
             : 'From completed / confirmed trips'
           : null,
       delta: notCounted(work.km) ? null : delta(trend.kmVsPrev7Pct),

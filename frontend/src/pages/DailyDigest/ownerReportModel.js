@@ -11,8 +11,16 @@
  * and every timestamp is a date a person can read.
  */
 
+import { PARTIAL_LABEL } from '../../utils/measured.js';
+
 /** What an unknown reads as. Never a zero. */
 export const DASH = '—';
+
+/** The badge for a partly measured section, or null when nothing is partial. */
+export function partialLabel(numbers) {
+  if (!numbers || typeof numbers !== 'object') return null;
+  return numbers.kmPartial || numbers.emptyKmPartial ? PARTIAL_LABEL : null;
+}
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const IST = 'Asia/Kolkata';

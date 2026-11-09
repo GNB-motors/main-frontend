@@ -1,4 +1,5 @@
-import { legBarSegments, legBarSentence } from './tripLegModel';
+import { legBarSegments, legBarSentence, unattributedKm, unknownDriveText } from './tripLegModel';
+import { fmtKm } from './autoTripFormat';
 
 /**
  * TripLegBar — the trip's distance, split by what the truck was carrying.
@@ -6,12 +7,27 @@ import { legBarSegments, legBarSentence } from './tripLegModel';
  * A plain bar built from divs and CSS widths — no chart library. Each
  * slice is in the leg's own colour, the same colour the map uses for that
  * kind of run, so a glance at the map and a glance at the bar agree.
+ *
+ * Distance the server could not attribute to a leg is said on its own line,
+ * so the bar keeps telling the truth about the legs it does know.
  */
 export default function TripLegBar({ trip }) {
   const segments = legBarSegments(trip);
+  const unattributed = unattributedKm(trip);
+  const unknownDrive = unknownDriveText(trip);
+  const note =
+    unattributed != null ? (
+      <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">
+        Not attributed: {fmtKm(unattributed)}
+        {unknownDrive ? ` · ${unknownDrive}` : ''}
+      </p>
+    ) : null;
 
   if (!segments.length) {
-    return <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">No distance recorded for this trip.</p>;
+    if (note) return note;
+    return (
+      <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">No distance recorded for this trip.</p>
+    );
   }
 
   return (
@@ -43,6 +59,7 @@ export default function TripLegBar({ trip }) {
           </span>
         ))}
       </div>
+      {note}
     </div>
   );
 }

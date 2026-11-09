@@ -10,9 +10,11 @@ import { trackLink } from '@/utils/redesign/links';
  * link: it takes the owner to that truck's track for the same days.
  */
 export default function RunsTruckBar({ row, maxKm = 0, from = null, to = null }) {
-  const total = row?.totalKm ?? 0;
-  const width = maxKm > 0 ? Math.max(2, (total / maxKm) * 100) : 0;
-  const part = (value) => (total > 0 ? (value / total) * 100 : 0);
+  // A truck whose km were not measured has no km at all: the bar stays empty
+  // and the number is a dash, never 0 km.
+  const total = row?.totalKm ?? null;
+  const width = total != null && maxKm > 0 ? Math.max(2, (total / maxKm) * 100) : 0;
+  const part = (value) => (total > 0 && value != null ? (value / total) * 100 : 0);
 
   const label = [
     row?.registrationNumber,

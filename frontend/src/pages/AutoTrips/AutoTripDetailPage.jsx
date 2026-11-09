@@ -21,9 +21,13 @@ import InfoTip from '../../components/redesign/InfoTip';
 import { formatINR } from '../../utils/formatters';
 import { destinationOf, minutesOnRoad, titleCasePlace } from './tripListModel';
 import TripBackButton from './TripBackButton';
-import { FLAG_LABEL, answerPlaceHref, inWindow } from './autoTripPlaces';
+import { answerPlaceHref, inWindow } from './autoTripPlaces';
 import { LONG_PLANT_MIN, timelinePlan } from './timelineModel';
-import { legBarSegments } from './tripLegModel.js';
+import { legBarSegments, unattributedKm } from './tripLegModel.js';
+import { partialFlags, runKmOf } from './tripMeasureModel';
+import TripCostNote from './TripCostNote';
+import TripStatusNotes, { TripFlagChips } from './TripStatusNotes';
+import { PARTIAL_LABEL } from '../../utils/measured';
 import { tollClassText, tollSummary, tollLedgerText, withTollPasses } from './tripTolls';
 import {
   fmtDayTime,
@@ -185,7 +189,9 @@ export default function AutoTripDetailPage() {
   const plantMin = trip.durations?.plantMin;
   // A summary group is only worth a divider when at least one of its rows has
   // a real value — never render an empty row.
-  const runKm = trip.km?.ladenOdo ?? trip.km?.laden;
+  const runKm = runKmOf(trip);
+  const partial = partialFlags(trip);
+  const unattributed = unattributedKm(trip);
   const runTime = trip.durations?.ladenMin ?? trip.durations?.transitMin;
   const hasRunGroup =
     runKm != null ||
@@ -216,17 +222,10 @@ export default function AutoTripDetailPage() {
 
   const dest = destinationOf(trip);
   // The route line already says "drop not found" / "guessed"; only other checks get a chip.
-  const dropFlag = (trip.flags || []).some((f) => DROP_FLAGS.includes(f));
-  const checkFlags = (trip.flags || []).filter(
-    (f) => !DROP_FLAGS.includes(f) && !(dropFlag && f === 'PICKUP_TO_PICKUP'),
-  );
   const lastDrop = trip.extraDrops?.length
     ? trip.extraDrops[trip.extraDrops.length - 1]
     : trip.drop;
   const onRoadMin = minutesOnRoad(trip);
-  const economics = Object.values(trip.roleEconomics || {});
-  const fuelInr = economics.reduce((a, leg) => a + (Number(leg?.fuelInr) || 0), 0);
-  const wearInr = economics.reduce((a, leg) => a + (Number(leg?.wearInr) || 0), 0);
   const driverName = trip.driver?.name || trip.driver?.mobileNumber;
 
   return (
@@ -242,11 +241,7 @@ export default function AutoTripDetailPage() {
                 {frozen && trip.status !== 'CONFIRMED' && trip.status !== 'DISMISSED' ? (
                   <span className="atx-chip">Locked</span>
                 ) : null}
-                {checkFlags.map((f) => (
-                  <span key={f} className="atx-chip atx-chip--watch">
-                    {FLAG_LABEL[f] || f}
-                  </span>
-                ))}
+                <TripFlagChips trip={trip} />
               </div>
               <p className="atx-route-sub">
                 <span title={trip.pickup?.name || undefined}>
@@ -308,6 +303,8 @@ export default function AutoTripDetailPage() {
           ) : null}
         </div>
 
+        <TripStatusNotes trip={trip} />
+
         <dl className="atx-facts" aria-label="Trip at a glance">
           <div className="atx-fact">
             <dt>Left plant</dt>
@@ -337,7 +334,12 @@ export default function AutoTripDetailPage() {
           </div>
           <div className="atx-fact">
             <dt>Loaded run</dt>
-            <dd className={runKm != null ? '' : 'is-quiet'}>{runKm != null ? fmtKm(runKm) : '—'}</dd>
+            <dd className={runKm != null ? '' : 'is-quiet'}>
+              {runKm != null ? fmtKm(runKm) : '—'}
+              {partial.km ? (
+                <span className="atx-chip atx-chip--watch">{PARTIAL_LABEL}</span>
+              ) : null}
+            </dd>
             <small>
               {runKm == null
                 ? 'needs a known drop'
@@ -394,11 +396,7 @@ export default function AutoTripDetailPage() {
             <dd className={trip.totalCostInr != null ? '' : 'is-quiet'}>
               {trip.totalCostInr != null ? formatINR(trip.totalCostInr) : '—'}
             </dd>
-            <small>
-              {trip.totalCostInr != null && economics.length
-                ? `fuel ${formatINR(fuelInr)} · wear ${formatINR(wearInr)}`
-                : 'priced once the trip ends'}
-            </small>
+            <TripCostNote trip={trip} />
           </div>
         </dl>
 
@@ -450,7 +448,7 @@ export default function AutoTripDetailPage() {
                 <Field label="First drop at">{fmtDayTime(trip.drop.arrivedAt)}</Field>
               ) : null}
             </div>
-            {legBarSegments(trip).length ? (
+            {legBarSegments(trip).length || unattributed != null ? (
               <>
                 <div className="atx-rule" />
                 <div className="atx-fields">
@@ -466,7 +464,9 @@ export default function AutoTripDetailPage() {
               <>
                 <div className="atx-rule" />
                 <div className="atx-fields">
-                  {runTime != null ? <Field label="Loaded running time">{fmtDuration(runTime)}</Field> : null}
+                  {runTime != null ? (
+                    <Field label="Loaded running time">{fmtDuration(runTime)}</Field>
+                  ) : null}
                   {trip.km?.approach != null ? (
                     <Field label="Empty run to plant">{fmtKm(trip.km.approach)}</Field>
                   ) : null}
@@ -508,7 +508,9 @@ export default function AutoTripDetailPage() {
                   {tollLedgerText(tolls)}
                 </Field>
               ) : null}
-              {tollClassText(tolls) ? <Field label="Toll class">{tollClassText(tolls)}</Field> : null}
+              {tollClassText(tolls) ? (
+                <Field label="Toll class">{tollClassText(tolls)}</Field>
+              ) : null}
               {trip.extraDrops?.length ? (
                 <Field label="Further drops">{trip.extraDrops.length}</Field>
               ) : null}

@@ -150,4 +150,31 @@ describe('LeaderboardsTab', () => {
     expect(screen.getAllByText('—').length).toBeGreaterThan(0);
     expect(screen.queryByText('0 km/L')).toBeNull();
   });
+
+  it('says how many trips were not measured', async () => {
+    PerformanceApi.boards.mockResolvedValue({
+      ...BOARDS,
+      meta: { ...BOARDS.meta, tripsWithUnknownKm: 7 },
+    });
+    render(<LeaderboardsTab />);
+
+    await waitFor(() => expect(screen.getByText('7 trips not measured.')).toBeTruthy());
+  });
+
+  it('says nothing about unmeasured trips when the server did not count them', async () => {
+    render(<LeaderboardsTab />);
+
+    await waitFor(() => expect(screen.getByText('km/L vs expected for this duty')).toBeTruthy());
+    expect(screen.queryByText(/trips not measured/)).toBeNull();
+  });
+
+  it('writes a dash for a side of the sum the server did not name', async () => {
+    PerformanceApi.boards.mockResolvedValue({
+      ...BOARDS,
+      boards: BOARDS.boards.map((board) => ({ ...board, numerator: null })),
+    });
+    render(<LeaderboardsTab />);
+
+    await waitFor(() => expect(screen.getByText('Σ — ÷ Σ litres')).toBeTruthy());
+  });
 });

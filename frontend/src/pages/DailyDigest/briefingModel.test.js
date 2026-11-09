@@ -65,7 +65,7 @@ describe('buildKpis', () => {
     expect(by.trips.value).toBe(9);
     expect(by.trips.context).toBe('Departed today · includes open trips');
     expect(by.km.value).toBe(325);
-    expect(by.km.context).toBe('Loaded trip distance · partial');
+    expect(by.km.context).toBe('Loaded trip distance · partly measured');
     expect(by.km.why).toContain('odometer first');
   });
 

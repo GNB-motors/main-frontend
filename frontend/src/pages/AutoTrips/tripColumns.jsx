@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import SapPill from '../Sap/SapPill';
 import { BASIS_LABEL } from '../Sap/sapModel';
-import { FLAG_LABEL } from './autoTripPlaces';
 import TripStatus from './TripStatus';
+import { flagReasons } from './tripFlags';
+import { PARTIAL_LABEL } from '../../utils/measured';
 import { fmtDayTime, fmtKm } from './autoTripFormat';
 import { tripDetailHref } from './tripWorkspace';
 import { allUnknown, loadedKm, loadedMin, minutesOnRoad } from './tripListModel';
@@ -74,13 +75,17 @@ export default function tripColumns({
       align: 'right',
       render: (r) => {
         const km = loadedKm(r);
-        if (km == null) return <span className="atx-cell-quiet">—</span>;
+        const badge = r.kmPartial ? (
+          <span className="atx-chip atx-chip--watch">{PARTIAL_LABEL}</span>
+        ) : null;
+        if (km == null) return <span className="atx-cell-quiet">—{badge}</span>;
         return (
           <span
             className="atx-num"
             title={r.km?.ladenOdo != null ? 'From the odometer' : 'From the GPS path'}
           >
             {fmtKm(km)}
+            {badge}
           </span>
         );
       },
@@ -103,7 +108,7 @@ export default function tripColumns({
       width: '142px',
       label: 'Status',
       render: (r) => {
-        const checks = (r.flags || []).map((f) => FLAG_LABEL[f] || f);
+        const checks = flagReasons(r);
         return (
           <span title={checks.length ? `To check: ${checks.join(', ')}` : undefined}>
             <TripStatus status={r.status} />

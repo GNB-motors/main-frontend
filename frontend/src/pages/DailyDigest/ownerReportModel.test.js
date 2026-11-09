@@ -12,6 +12,7 @@ import {
   isToday,
   labelFor,
   numberPairs,
+  partialLabel,
 } from './ownerReportModel';
 
 describe('ownerReportModel', () => {
@@ -50,6 +51,17 @@ describe('ownerReportModel', () => {
     const pairs = numberPairs({ kmVsPrev7Pct: -100 }, { isPendingDay: true });
     expect(pairs[0].value).toBe(DASH);
     expect(pairs[0].note).toBe('Day not over yet');
+  });
+
+  it('keeps the partial flag out of the numbers but says it', () => {
+    // OLD response: the flag means a trip had no km, and is still shown.
+    expect(numberPairs({ km: 325, kmPartial: true })).toHaveLength(1);
+    expect(partialLabel({ km: 325, kmPartial: true })).toBe('Partly measured');
+    expect(partialLabel({ km: 325, emptyKmPartial: true })).toBe('Partly measured');
+    // NEW response: the flag means the day's coverage is not complete.
+    expect(partialLabel({ km: null, kmPartial: true })).toBe('Partly measured');
+    expect(partialLabel({ km: 325 })).toBeNull();
+    expect(partialLabel(null)).toBeNull();
   });
 
   it('finds the drill target and the page it goes to', () => {

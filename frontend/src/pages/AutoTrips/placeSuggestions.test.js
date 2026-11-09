@@ -121,3 +121,27 @@ describe('shouldIncludeLowConfidence', () => {
     expect(shouldIncludeLowConfidence('true')).toBe(false);
   });
 });
+
+describe('a place the server has not judged', () => {
+  it('keeps the server’s own answer, null included', () => {
+    expect(toPickOption({ id: 'a', name: 'Yard', lowConfidence: null }).lowConfidence).toBeNull();
+    expect(toPickOption({ id: 'a', name: 'Yard' }).lowConfidence).toBe(false);
+    expect(toPickOption({ id: 'a', name: 'Yard', lowConfidence: true }).lowConfidence).toBe(true);
+  });
+
+  it('says a place that was not judged yet, not a percentage', () => {
+    const badge = confidenceBadge({ lowConfidence: null, confidence: 0.83 });
+    expect(badge.tone).toBe('unknown');
+    expect(badge.label).toBe('Not judged yet');
+  });
+
+  it('keeps warning about a duplicate that was not judged yet', () => {
+    expect(
+      duplicateWarning({
+        items: [
+          { id: 'b', name: 'Balaji gate', distanceM: 88, status: 'CONFIRMED', lowConfidence: null },
+        ],
+      }).tone,
+    ).toBe('warn');
+  });
+});

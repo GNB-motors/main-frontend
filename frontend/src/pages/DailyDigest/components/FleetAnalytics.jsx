@@ -10,6 +10,9 @@ import {
   YAxis,
 } from 'recharts';
 import InfoTip from '@/components/redesign/InfoTip';
+import ToneBadge from '@/components/redesign/ToneBadge';
+import { PARTIAL_LABEL } from '../../../utils/measured';
+import { missingPartsLabel, runningCoverageLine, runningDistance } from '../measuredDistance';
 import { formatIstDate } from '../../../utils/redesign/format';
 import { fleetDestination } from '@/utils/redesign/fleetDestination';
 import DigestSkeleton from './DigestSkeleton';
@@ -70,9 +73,15 @@ export default function FleetAnalytics({
   day,
 }) {
   const { loadedKm, emptyKm } = model;
+  const distance = runningDistance(loadedKm, emptyKm);
   const measured = loadedKm != null || emptyKm != null;
-  const complete = loadedKm != null && emptyKm != null;
-  const total = measured ? (loadedKm ?? 0) + (emptyKm ?? 0) : null;
+  const complete = distance.complete;
+  // A total is only published when both legs were measured; one known leg is
+  // not a total, and the missing leg is said out loud.
+  const total = distance.total;
+  const legLine = runningCoverageLine(distance, fmt);
+  const missingParts = missingPartsLabel(model.runsMissingParts);
+  const partial = Boolean(model.runningPartial || model.runsPartial || model.runningCoveragePartial);
   const knownDays = fuelTrend.filter((d) => d.litres != null);
   const summary = fuelTrend.reduce((sum, d) => sum + (d.litres ?? 0), 0);
   const runningWhy =
@@ -99,13 +108,19 @@ export default function FleetAnalytics({
             {loading
               ? 'Loading distance…'
               : `— ${model.runningReason || 'Loaded and empty distance are not available for this day.'}`}
+            {partial ? (
+              <>
+                {' '}
+                <ToneBadge tone="watch">{PARTIAL_LABEL}</ToneBadge>
+              </>
+            ) : null}
           </p>
         ) : (
           <>
             <div className="db-big-number">
               {fmt(total)} <span>km attributed</span>
             </div>
-            {total > 0 && complete ? (
+            {complete && total > 0 ? (
               <div
                 className="db-split"
                 role="img"
@@ -117,12 +132,16 @@ export default function FleetAnalytics({
                 />
                 <span className="db-split-empty" style={{ width: `${(emptyKm / total) * 100}%` }} />
               </div>
-            ) : total === 0 ? (
+            ) : complete && total === 0 ? (
               <p className="db-muted">No attributed running distance for this day.</p>
             ) : null}
-            {model.runningPartial || !complete ? (
+            {!complete ? (
               <p className="db-muted">
-                Partial distance: some trips or legs have no recorded km yet.
+                <ToneBadge tone="watch">{PARTIAL_LABEL}</ToneBadge> {legLine}
+              </p>
+            ) : partial ? (
+              <p className="db-muted">
+                <ToneBadge tone="watch">{PARTIAL_LABEL}</ToneBadge> Some distance was not measured.
               </p>
             ) : null}
             <dl className="db-kv db-kv--keyed">
@@ -161,9 +180,20 @@ export default function FleetAnalytics({
                   </small>
                 </dd>
               </div>
+              {model.runsUnknownKm > 0 ? (
+                <div>
+                  <dt>Unknown distance</dt>
+                  <dd>
+                    {fmt(model.runsUnknownKm)} km
+                    <small>Neither loaded nor empty</small>
+                  </dd>
+                </div>
+              ) : null}
             </dl>
           </>
         )}
+        {missingParts ? <p className="db-muted">{missingParts}</p> : null}
+        {model.runningCoverage ? <p className="db-muted">{model.runningCoverage}</p> : null}
       </Panel>
 
       <Panel

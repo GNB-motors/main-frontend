@@ -38,7 +38,11 @@ describe('destinationOf', () => {
 
   it('says plainly when no drop was found', () => {
     expect(
-      destinationOf({ status: 'NEEDS_REVIEW', flags: ['DROP_UNKNOWN'], drop: { source: 'UNKNOWN' } }),
+      destinationOf({
+        status: 'NEEDS_REVIEW',
+        flags: ['DROP_UNKNOWN'],
+        drop: { source: 'UNKNOWN' },
+      }),
     ).toMatchObject({ text: 'drop not found', state: 'missing' });
   });
 
@@ -53,9 +57,15 @@ describe('destinationOf', () => {
   });
 
   it('names a reached drop, or says it has no name', () => {
-    const reached = { status: 'COMPLETE', drop: { name: 'NIMPURA', source: 'LABELLED_PLACE', arrivedAt: 'x' } };
+    const reached = {
+      status: 'COMPLETE',
+      drop: { name: 'NIMPURA', source: 'LABELLED_PLACE', arrivedAt: 'x' },
+    };
     expect(destinationOf(reached)).toEqual({ text: 'Nimpura', title: 'NIMPURA', state: 'reached' });
-    const unnamed = { status: 'COMPLETE', drop: { name: null, source: 'LABELLED_PLACE', arrivedAt: 'x' } };
+    const unnamed = {
+      status: 'COMPLETE',
+      drop: { name: null, source: 'LABELLED_PLACE', arrivedAt: 'x' },
+    };
     expect(destinationOf(unnamed)).toMatchObject({ text: 'unnamed drop place', state: 'unnamed' });
   });
 });
@@ -128,5 +138,20 @@ describe('needs your answer', () => {
   it('adds up what naming the waiting places settles', () => {
     const queue = placeQueue([{ tripsAffected: 2 }, { tripsAffected: 8 }, { tripsAffected: 5 }], 2);
     expect(queue).toEqual({ places: 3, trips: 15, top: 2, topTrips: 13 });
+  });
+});
+
+describe('destinationOf for a trip that stayed open', () => {
+  it('calls a stale trip stale, not on its way', () => {
+    const trip = { status: 'OPEN', flags: ['STALE_OPEN'], drop: { source: 'UNKNOWN' } };
+    expect(destinationOf(trip)).toEqual({
+      text: 'stale, no drop yet',
+      title: null,
+      state: 'missing',
+    });
+  });
+
+  it('keeps saying “on the way” for a trip that is still running', () => {
+    expect(destinationOf({ status: 'OPEN', flags: [] }).text).toBe('on the way');
   });
 });

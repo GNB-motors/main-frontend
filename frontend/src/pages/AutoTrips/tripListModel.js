@@ -48,6 +48,11 @@ export function destinationOf(trip) {
   const drop = trip?.drop || null;
   const flags = trip?.flags || [];
   if (trip?.status === 'OPEN' && !drop?.arrivedAt) {
+    // A trip that stayed open past the limit is stale, not on its way: there is
+    // no ETA to show for it.
+    if (flags.includes('STALE_OPEN')) {
+      return { text: 'stale, no drop yet', title: null, state: 'missing' };
+    }
     return { text: 'on the way', title: null, state: 'moving' };
   }
   if (flags.includes('DROP_UNKNOWN') || drop?.source === 'UNKNOWN' || !drop) {
@@ -167,7 +172,8 @@ export function needReasons(items) {
   const counts = { DROP_UNKNOWN: 0, DROP_INFERRED: 0, OTHER: 0 };
   (Array.isArray(items) ? items : []).forEach((trip) => {
     const flags = trip?.flags || [];
-    if (flags.includes('DROP_UNKNOWN') || trip?.drop?.source === 'UNKNOWN') counts.DROP_UNKNOWN += 1;
+    if (flags.includes('DROP_UNKNOWN') || trip?.drop?.source === 'UNKNOWN')
+      counts.DROP_UNKNOWN += 1;
     else if (flags.includes('DROP_INFERRED') || trip?.drop?.source === 'INFERRED_TURNAROUND')
       counts.DROP_INFERRED += 1;
     else counts.OTHER += 1;

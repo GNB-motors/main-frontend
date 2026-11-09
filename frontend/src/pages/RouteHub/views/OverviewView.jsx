@@ -5,6 +5,9 @@ import { L, useLeafletMap, useLayerGroup, cityLayer } from '../routeHubMap';
 import { KpiRow, RefreshButton, Seg } from '../routeHubShared.jsx';
 import { HEALTH, inr, inrK } from '../routeHubFormat';
 import { RANGES, OS_THRESHOLD, OS_MIN_MIN, OS_MAX_HOURS } from './overview/overviewConstants.js';
+import { distanceCoverage } from './overview/overviewDistance.js';
+import ToneBadge from '../../../components/redesign/ToneBadge';
+import { PARTIAL_LABEL } from '../../../utils/measured';
 import NetworkChip from './overview/NetworkChip.jsx';
 import DeviationModule from './overview/DeviationModule.jsx';
 import OverspeedModule from './overview/OverspeedModule.jsx';
@@ -79,9 +82,10 @@ export default function OverviewView({ go, toast, setBadge }) {
   );
 
   // /api/owner-value/utilization returns the distance under fleet.totalKm; the
-  // older totals/top-level keys are kept as fallbacks only.
-  const distanceKm =
-    utilization?.fleet?.totalKm ?? utilization?.totals?.totalKm ?? utilization?.totalKm ?? null;
+  // older totals/top-level keys are kept as fallbacks only. The new backend
+  // sums only the trucks it measured, so the figure says how many it covers.
+  const coverage = distanceCoverage(utilization);
+  const distanceKm = coverage.distanceKm;
   const activeVehicles = utilization?.vehicles?.length ?? vehicles.length;
   // The cards do not share one timeframe: distance follows the window selector,
   // overspeed is clamped to OS_MAX_HOURS, deviations are the currently-open set,
@@ -108,10 +112,20 @@ export default function OverviewView({ go, toast, setBadge }) {
       l: 'Distance covered',
       v: distanceKm != null ? Math.round(distanceKm).toLocaleString('en-IN') : '—',
       u: distanceKm != null ? 'km' : '',
-      s:
-        routes.length === 0
-          ? `${activeVehicles} vehicles · no billed routes yet · last ${hours}h`
-          : `${activeVehicles} vehicles on ${routes.length} routes · last ${hours}h`,
+      s: (
+        <>
+          {routes.length === 0
+            ? `${activeVehicles} vehicles · no billed routes yet · last ${hours}h`
+            : `${activeVehicles} vehicles on ${routes.length} routes · last ${hours}h`}
+          {coverage.note ? ` · ${coverage.note}` : ''}
+          {coverage.partial ? (
+            <>
+              {' '}
+              <ToneBadge tone="watch">{PARTIAL_LABEL}</ToneBadge>
+            </>
+          ) : null}
+        </>
+      ),
     },
     {
       ic: 'split',

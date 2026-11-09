@@ -22,11 +22,25 @@ export function replayTolls(passes = [], playheadTime) {
     });
 }
 
+/**
+ * What the server says about its own coverage: a partial set of crossings, and a road
+ * it could not match.
+ */
+export function tollCoverageNote(data) {
+  if (!data || data.status !== 'PARTIAL') return null;
+  const parts = ['partial'];
+  const roadNotMatched = (data.coverage || []).some((c) => c?.reason === 'ROAD_NOT_MATCHED');
+  if (roadNotMatched) parts.push('road not matched');
+  return parts.join(' · ');
+}
+
 export function tollCoverageText(data, { loading = false, error = null } = {}) {
   if (loading) return 'Loading toll crossings…';
   if (error) return 'Toll crossings unavailable. Replay is still available.';
   if (!data || data.status === 'NOT_COMPUTED')
     return 'Toll crossings have not been computed for this period.';
+  const partial = tollCoverageNote(data);
+  if (partial) return `Toll coverage is incomplete (${partial}). Available crossings are shown.`;
   if (data.status !== 'READY') return 'Toll coverage is incomplete. Available crossings are shown.';
   return data.passes?.length ? null : 'No toll crossings detected in this period.';
 }
@@ -40,6 +54,8 @@ export function tollChipText(data, { loading = false, error = null, passed = 0, 
   if (loading) return 'Tolls loading…';
   if (error) return 'Tolls unavailable';
   if (!data || data.status === 'NOT_COMPUTED') return 'Tolls not computed';
+  const partial = tollCoverageNote(data);
+  if (partial) return `Tolls ${partial}`;
   if (data.status !== 'READY') return 'Tolls partly known';
   if (!total) return 'No toll crossings';
   return `Tolls ${passed}/${total} reached`;

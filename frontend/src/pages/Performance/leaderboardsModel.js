@@ -102,3 +102,29 @@ export function methodRows(meta) {
     { label: 'Supersedes', value: meta.supersedes || null },
   ].filter((row) => row.value);
 }
+
+/**
+ * The Σ line of a board: "Σ fuelKm ÷ Σ litres".
+ *
+ * A side the server did not name is a dash, never a blank — a board whose
+ * numerator or denominator is missing must not read as if it had one. The line
+ * is dropped only when the board names neither side.
+ */
+export function sumLine(board) {
+  const numerator = board?.numerator;
+  const denominator = board?.denominator;
+  const hasNumerator = numerator !== null && numerator !== undefined && numerator !== '';
+  const hasDenominator = denominator !== null && denominator !== undefined && denominator !== '';
+  if (!hasNumerator && !hasDenominator) return null;
+  return `Σ ${hasNumerator ? numerator : DASH} ÷ Σ ${hasDenominator ? denominator : DASH}`;
+}
+
+/**
+ * "7 trips not measured." — only when the server counted trips whose distance
+ * it could not read. Without it a board looks complete when it is not.
+ */
+export function unknownKmNote(meta) {
+  const n = num(meta?.tripsWithUnknownKm);
+  if (n === null || n <= 0) return null;
+  return `${n.toLocaleString('en-IN')} ${n === 1 ? 'trip' : 'trips'} not measured.`;
+}

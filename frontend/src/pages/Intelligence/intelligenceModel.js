@@ -604,56 +604,6 @@ export function classifyTrip(trip) {
   return 'empty';
 }
 
-const num = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
-
-/**
- * The km of one trip, split by leg.
- *
- * `km.laden` is the trip out (plant → customer, or plant → plant for a
- * reposition) and `km.return` is the way back to the plant, which is empty
- * running whenever it happens.
- */
-export function tripKmParts(trip) {
-  const km = trip?.km ?? {};
-  const laden = num(km.laden);
-  const back = num(km.return);
-  const kind = classifyTrip(trip);
-  if (kind === 'reposition') return { loadedKm: 0, emptyKm: back, repositionKm: laden };
-  if (kind === 'empty') return { loadedKm: 0, emptyKm: back, repositionKm: 0 };
-  return { loadedKm: laden, emptyKm: back, repositionKm: 0 };
-}
-
-/**
- * The per-truck km of the period: the top trucks by distance, each split into
- * loaded, empty and plant-to-plant km.
- */
-export function runBarsByTruck(trips = [], { limit = 20 } = {}) {
-  const byTruck = new Map();
-  trips.forEach((trip) => {
-    const registration = trip?.registrationNumber;
-    if (!registration) return;
-    const parts = tripKmParts(trip);
-    const row = byTruck.get(registration) ?? {
-      registrationNumber: registration,
-      loadedKm: 0,
-      emptyKm: 0,
-      repositionKm: 0,
-      totalKm: 0,
-    };
-    row.loadedKm += parts.loadedKm;
-    row.emptyKm += parts.emptyKm;
-    row.repositionKm += parts.repositionKm;
-    row.totalKm += parts.loadedKm + parts.emptyKm + parts.repositionKm;
-    byTruck.set(registration, row);
-  });
-
-  return [...byTruck.values()]
-    .sort(
-      (a, b) => b.totalKm - a.totalKm || a.registrationNumber.localeCompare(b.registrationNumber),
-    )
-    .slice(0, limit);
-}
-
 /**
  * The busiest places: how many visits each place had, how many trucks came,
  * and how long they usually stay.

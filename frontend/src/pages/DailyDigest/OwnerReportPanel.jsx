@@ -11,6 +11,7 @@ import {
   formatFooterText,
   isToday,
   numberPairs,
+  partialLabel,
   sectionFooter,
   sectionReason,
   sectionState,
@@ -493,6 +494,8 @@ function ReportSection({ section, onRetry, isPendingDay, builtAt }) {
     () => numberPairs(section?.numbers, { isPendingDay }),
     [section?.numbers, isPendingDay],
   );
+  // The partial flag is not one of the numbers: it is a note on the section.
+  const partial = partialLabel(section?.numbers);
   // Trend repeats the day's trips and km; "Today so far" already shows them.
   const shown = section?.id === 'trend' ? pairs.filter((p) => !TREND_REPEATS.has(p.key)) : pairs;
   const known = shown.filter((p) => !p.unknown);
@@ -554,6 +557,11 @@ function ReportSection({ section, onRetry, isPendingDay, builtAt }) {
               {DASH} {group.reason}: {group.labels.join(', ')}
             </p>
           ))}
+          {partial ? (
+            <p className="db-foot-line">
+              <span className="db-badge">{partial}</span> Some distance was not measured.
+            </p>
+          ) : null}
         </>
       )}
     </Card>

@@ -92,6 +92,54 @@ describe('RunsTab', () => {
     expect(screen.getByText('of 63,200 km driven')).toBeInTheDocument();
   });
 
+  it('calls the empty running "running with no load"', async () => {
+    render(
+      <MemoryRouter>
+        <RunsTab from="2026-10-27" to="2026-11-02" />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('running with no load')).toBeInTheDocument();
+  });
+
+  it('claims no loaded share when the empty running was not measured', async () => {
+    IntelligenceService.getSummary.mockResolvedValue({
+      ...summary,
+      runs: { ...summary.runs, emptyKm: null, emptySharePct: null },
+    });
+
+    render(
+      <MemoryRouter>
+        <RunsTab from="2026-10-27" to="2026-11-02" />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText(/Not enough classified distance/)).toBeInTheDocument();
+    expect(screen.queryByText(/carried load/)).toBeNull();
+  });
+
+  it('says one truck has unknown km', async () => {
+    IntelligenceService.getAutoTrips.mockResolvedValue({
+      items: [
+        {
+          _id: 't1',
+          registrationNumber: 'WB11L8862',
+          drop: { name: 'OCL' },
+          km: { laden: 900, approach: null, return: null },
+        },
+      ],
+      total: 1,
+    });
+
+    render(
+      <MemoryRouter>
+        <RunsTab from="2026-10-27" to="2026-11-02" />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText(/1 truck has unknown km/)).toBeInTheDocument();
+  });
+
   it('says the endpoint is still being built on a 404', async () => {
     IntelligenceService.getSummary.mockRejectedValue({ status: 404 });
     IntelligenceService.getAutoTrips.mockRejectedValue({ status: 404 });

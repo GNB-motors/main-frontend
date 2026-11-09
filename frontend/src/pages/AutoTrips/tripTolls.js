@@ -68,6 +68,28 @@ export function tollClassText(tolls) {
   return 'not priced: set this truck’s axle class or model';
 }
 
+/** Money as people read it. An amount the server did not send stays unknown, not ₹0. */
+const amount = (value) => (value == null ? null : inr(value));
+
+/**
+ * What the server says about its own toll coverage: a match it could only partly make,
+ * and a total that is not final yet.
+ */
+export function tollBasisNotes(tolls) {
+  const notes = [];
+  if (tolls?.basis === 'ROAD_PARTIAL') {
+    notes.push('partial');
+    const km = tolls.unmatchedKm;
+    notes.push(
+      km == null
+        ? 'unmatched distance unknown'
+        : `${Math.round(Number(km))} km of the road not matched`,
+    );
+  }
+  if (tolls?.total?.complete === false) notes.push('not final');
+  return notes;
+}
+
 /**
  * One leg's tolls: "3 toll plazas · ₹1,185" (+ "· 1 unpriced"), "2 toll plazas" for drivers, null with
  * none. Rupees come from the server's per-leg total (owners and managers only).
@@ -75,15 +97,17 @@ export function tollClassText(tolls) {
 export function tollSummary(tolls, leg = 'LADEN') {
   const own = passesOf(tolls?.passes, leg);
   const n = own.length;
-  if (!n) return null;
-  const head = `${n} toll plaza${n === 1 ? '' : 's'}`;
-  const t = tolls.total?.byLeg?.[leg] || (leg === 'LADEN' ? tolls.total : null);
-  const parts = [head];
-  if (t?.priced) parts.push(`${inr(t.inr)} estimated`);
+  const basis = leg === 'LADEN' ? tollBasisNotes(tolls) : [];
+  // A leg with no crossing has nothing to count, so only what the server said stays.
+  if (!n) return basis.length ? basis.join(' · ') : null;
+  const t = tolls?.total?.byLeg?.[leg] || (leg === 'LADEN' ? tolls?.total : null);
+  const parts = [`${n} toll plaza${n === 1 ? '' : 's'}`];
+  if (t?.priced) parts.push(t.inr == null ? 'amount unknown' : `${amount(t.inr)} estimated`);
   if (t?.unknown) parts.push(`${t.unknown} unpriced`);
-  if (tolls.total?.notes?.includes('RETURN_HISTORY_PENDING')) parts.push('return history pending');
-  if (tolls.status === 'STALE') parts.push('refresh pending');
-  if (tolls.status === 'FALLBACK') parts.push('road not matched yet');
+  if (tolls?.total?.notes?.includes('RETURN_HISTORY_PENDING')) parts.push('return history pending');
+  if (tolls?.status === 'STALE') parts.push('refresh pending');
+  if (tolls?.status === 'FALLBACK') parts.push('road not matched yet');
+  parts.push(...basis);
   return parts.join(' · ');
 }
 

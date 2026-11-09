@@ -133,4 +133,51 @@ describe('fleet overview data', () => {
     expect(rows.find((r) => r.day === '2026-11-04').litres).toBe(0);
     expect(shiftDay('2026-11-01', -1)).toBe('2026-10-31');
   });
+
+  it('says how many trucks a fleet distance covers, and only when the response says', () => {
+    // OLD response: no attribution fields, so nothing extra is said.
+    const old = buildOverview(null, {
+      utilization: { fleet: { loadedKm: 300, emptyKm: 120 } },
+    });
+    expect(old.runningCoverage).toBeNull();
+    expect(old.runningCoveragePartial).toBe(false);
+    // NEW response: the distance covers only the trucks it was measured on.
+    const fresh = buildOverview(null, {
+      utilization: {
+        fleet: { loadedKm: 300, emptyKm: 120, trucksAttributed: 42, kmPartial: true },
+        vehicles: Array.from({ length: 51 }, (_, i) => ({ registrationNumber: `T${i}` })),
+      },
+    });
+    expect(fresh.runningCoverage).toBe('over 42 of 51 trucks');
+    expect(fresh.runningCoveragePartial).toBe(true);
+  });
+
+  it('reads the digest runs: coverage, the missing leg and the unknown distance', () => {
+    // OLD response: no runs block, so nothing is said about it.
+    const old = buildOverview({ story: [card('loaded', { 'Distance covered': '4,820 km' })] });
+    expect(old.runsPartial).toBe(false);
+    expect(old.runsMissingParts).toEqual([]);
+    expect(old.runsUnknownKm).toBeNull();
+    expect(old.noTripLegs).toBe(false);
+    // NEW response: a partly measured day, one leg missing and 80 km unattributed.
+    const fresh = buildOverview({
+      story: [card('loaded', { 'Distance covered': '300 km' })],
+      runs: {
+        loadedKm: 300,
+        emptyKm: null,
+        unknownKm: 80,
+        coverage: 'partial',
+        kmPartial: true,
+        kmMissingParts: ['empty'],
+        why: { reason: 'NO_TRIPS' },
+      },
+    });
+    expect(fresh.runsPartial).toBe(true);
+    expect(fresh.runsMissingParts).toEqual(['empty']);
+    expect(fresh.runsUnknownKm).toBe(80);
+    expect(fresh.noTripLegs).toBe(true);
+    expect(fresh.runningReason).toBe('No trip legs for this day');
+    expect(fresh.loadedKm).toBeNull();
+    expect(fresh.emptyKm).toBeNull();
+  });
 });

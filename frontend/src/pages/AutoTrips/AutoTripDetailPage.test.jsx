@@ -20,7 +20,9 @@ vi.mock('../../services/RoadService', () => ({
 vi.mock('../../services/RouteHubService', () => ({
   default: { getDeviationEvents: vi.fn().mockResolvedValue({ records: [] }) },
 }));
-vi.mock('../../services/fleetViewService.js', () => ({ getWhereNext: vi.fn().mockResolvedValue(null) }));
+vi.mock('../../services/fleetViewService.js', () => ({
+  getWhereNext: vi.fn().mockResolvedValue(null),
+}));
 vi.mock('../../utils/session.js', () => ({ getUserRole: () => 'VIEWER' }));
 // The map and the contract card have their own tests; here they are stand-ins.
 vi.mock('./AutoTripReplay', () => ({ default: () => <div>Replay map</div> }));
@@ -121,4 +123,72 @@ it('says what is not known yet on a trip whose drop was not found', async () => 
   // The drop flag is said in the route, not repeated as a chip.
   const chips = [...document.querySelectorAll('.atx-chip')].map((el) => el.textContent);
   expect(chips).not.toContain('Drop not found');
+});
+
+it('says a trip was replaced by a newer one, and links to the truck’s trips', async () => {
+  AutoTripService.get.mockResolvedValue({
+    ...trip,
+    status: 'SUPERSEDED',
+    vehicleId: 'vehicle-1',
+    supersededBy: 'v2|WB11F4262|2026-11-04T04:00:00.000Z',
+  });
+  open();
+  expect(await screen.findByText('This trip was replaced by a newer trip.')).toBeInTheDocument();
+  const link = screen.getByRole('link', { name: 'open the trip list' });
+  expect(link.getAttribute('href')).toContain('vehicleId=vehicle-1');
+});
+
+it('says why a trip was left open', async () => {
+  AutoTripService.get.mockResolvedValue({
+    ...trip,
+    status: 'OPEN',
+    flags: ['STALE_OPEN'],
+    staleReason: { detail: 'Open for 26 h while the longest trip on record is 20 h.' },
+    drop: { source: 'UNKNOWN' },
+  });
+  open();
+  expect(
+    await screen.findByText('Reason: Open for 26 h while the longest trip on record is 20 h.'),
+  ).toBeInTheDocument();
+});
+
+it('says why a trip needs a second look', async () => {
+  AutoTripService.get.mockResolvedValue({
+    ...trip,
+    status: 'NEEDS_REVIEW',
+    needsReview: 'LINEAGE_SPLIT',
+  });
+  open();
+  expect(await screen.findByText('Split from another trip')).toBeInTheDocument();
+});
+
+it('says what was only partly measured, and never a rupee that was not measured', async () => {
+  AutoTripService.get.mockResolvedValue({
+    ...trip,
+    kmPartial: true,
+    fuelPartial: true,
+    totalCostInr: null,
+    roleEconomics: {
+      approach: { fuelInr: null, wearInr: null },
+      laden: { fuelInr: 3358, wearInr: 351, fuelBasis: 'PARTIAL' },
+      return: { fuelInr: null, wearInr: null },
+    },
+  });
+  open();
+  await screen.findByRole('heading', { name: 'WB11F4262' });
+  const strip = within(document.querySelector('.atx-facts'));
+  expect(strip.getAllByText('Partly measured').length).toBe(2);
+  expect(strip.getByText(/fuel ₹3,358 · 1 of 3 legs costed · partial/)).toBeInTheDocument();
+});
+
+it('shows distance the server could not attribute, on its own line', async () => {
+  AutoTripService.get.mockResolvedValue({
+    ...trip,
+    km: { approach: 2, laden: 117, return: 18.37, unattributed: 38 },
+    unknownDriveReason: 'DROP_UNKNOWN',
+  });
+  open();
+  await screen.findByRole('heading', { name: 'WB11F4262' });
+  expect(screen.getByText(/Not attributed: 38 km/)).toBeInTheDocument();
+  expect(screen.getByText(/Drop not found, so this drive has no load label/)).toBeInTheDocument();
 });

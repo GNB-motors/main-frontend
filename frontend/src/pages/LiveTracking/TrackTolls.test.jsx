@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { replayTolls, tollCoverageText } from './trackTollsModel';
+import { replayTolls, tollChipText, tollCoverageText } from './trackTollsModel';
 import TrackTollStatus from './TrackTollStatus';
 import TrackTollLayers from './TrackTollLayers';
 
@@ -81,4 +81,23 @@ describe('replay tolls', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Retry tolls' }));
     expect(retry).toHaveBeenCalledOnce();
   });
+});
+
+it('says when only part of the road was matched', () => {
+  const data = {
+    status: 'PARTIAL',
+    passes: [],
+    coverage: [{ reason: 'ROAD_NOT_MATCHED' }],
+  };
+  expect(tollCoverageText(data)).toContain('partial');
+  expect(tollCoverageText(data)).toContain('road not matched');
+  expect(tollChipText(data)).toContain('partial');
+  expect(tollChipText(data)).toContain('road not matched');
+});
+
+it('leaves a ready coverage as it was', () => {
+  expect(tollCoverageText({ status: 'READY', passes: [{}] })).toBeNull();
+  expect(tollChipText({ status: 'READY', passes: [{}] }, { passed: 1, total: 1 })).toBe(
+    'Tolls 1/1 reached',
+  );
 });

@@ -8,6 +8,7 @@ import useApi from '../../../hooks/useApi';
 import { ReportsService } from '../ReportsService.js';
 import { formatINR } from '../../../utils/formatters';
 import { unattributedKmOf, useRunningCostColumns } from './useRunningCostColumns.jsx';
+import { costCell, runningCostTotals } from './runningCostTotals';
 import ReportFrame, {
   ReportClear,
   ReportDateRange,
@@ -23,6 +24,7 @@ import {
   defaultTripRange,
   exportTripReport,
   newestFirst,
+  notCostedNote,
   rangeFilterCount,
   tripReportSummary,
 } from './tripReportsUtils';
@@ -38,7 +40,8 @@ const GROUP_NOUN = { vehicle: 'vehicles', hub: 'hubs', driver: 'drivers', day: '
 
 // For a searched export, built from the rows on screen (the server's /export
 // cannot apply the search box). Same columns as the server file, plus unattributed km.
-const EXPORT_COLUMNS = [
+// eslint-disable-next-line react-refresh/only-export-components -- the export columns are tested directly
+export const EXPORT_COLUMNS = [
   ['Group', (r) => r.label || r.key],
   ['Trips', (r) => r.trips],
   ['Approach (Km)', (r) => r.kmApproach],
@@ -47,27 +50,20 @@ const EXPORT_COLUMNS = [
   ['Unattributed (Km)', unattributedKmOf],
   ['Empty Share (%)', (r) => r.emptySharePct],
   ['Fuel (L)', (r) => r.fuelL],
-  ['Fuel (Rs)', (r) => r.fuelInr],
-  ['Wear (Rs)', (r) => r.wearInr],
-  ['Business (Rs)', (r) => r.businessCostInr],
-  ['Approved Non-Business (Rs)', (r) => r.nonBusinessCostInr],
-  ['Deviation (Rs)', (r) => r.deviationCostInr],
+  ['Fuel (Rs)', (r) => costCell(r.fuelInr)],
+  ['Wear (Rs)', (r) => costCell(r.wearInr)],
+  ['Business (Rs)', (r) => costCell(r.businessCostInr)],
+  ['Approved Non-Business (Rs)', (r) => costCell(r.nonBusinessCostInr)],
+  ['Deviation (Rs)', (r) => costCell(r.deviationCostInr)],
   ['Deviation Share (%)', (r) => r.deviationSharePct],
-  ['Total (Rs)', (r) => r.totalCostInr],
+  ['Total (Rs)', (r) => costCell(r.totalCostInr)],
 ];
 
-const COST_KEYS = ['totalCostInr', 'businessCostInr', 'nonBusinessCostInr', 'deviationCostInr'];
-
-/** The server's totals, recomputed for a searched subset. */
-function totalsOf(rows) {
-  const totals = Object.fromEntries(COST_KEYS.map((k) => [k, 0]));
-  rows.forEach((r) => {
-    COST_KEYS.forEach((k) => {
-      totals[k] += r[k] || 0;
-    });
-  });
-  return totals;
-}
+/** A KPI hint with the rows the total leaves out, when it leaves any out. */
+const hintWith = (text, missing) => {
+  const note = notCostedNote(missing);
+  return note ? `${text} · ${note}` : text;
+};
 
 const RunningCostReport = () => {
   const { manufacturer, setManufacturer } = useManufacturerFilter();
@@ -101,10 +97,12 @@ const RunningCostReport = () => {
     () => rows.filter((r) => matchesSearch(search, [r.label, r.key])),
     [rows, search],
   );
-  const totals = useMemo(
-    () => (!searching && response?.summary ? response.summary : totalsOf(filtered)),
-    [searching, response, filtered],
+  const { totals: computedTotals, unknown: notCosted } = useMemo(
+    () => runningCostTotals(filtered),
+    [filtered],
   );
+  // The server's totals, recomputed for a searched subset.
+  const totals = !searching && response?.summary ? response.summary : computedTotals;
   const columns = useRunningCostColumns(groupBy);
 
   const [page, setPage] = useReportPage(`${paramsKey}|${search.trim()}`);
@@ -123,28 +121,28 @@ const RunningCostReport = () => {
       label: 'Total cost',
       value: formatINR(totals.totalCostInr),
       icon: IndianRupee,
-      hint: 'Business + approved non-business + deviation',
+      hint: hintWith('Business + approved non-business + deviation', notCosted.totalCostInr),
     },
     {
       label: 'Business',
       value: formatINR(totals.businessCostInr),
       icon: Briefcase,
       tone: 'teal',
-      hint: 'Approach, laden and return running of the trips',
+      hint: hintWith('Approach, laden and return running of the trips', notCosted.businessCostInr),
     },
     {
       label: 'Non-business',
       value: formatINR(totals.nonBusinessCostInr),
       icon: CheckCircle2,
       tone: 'green',
-      hint: 'Approved non-business movement',
+      hint: hintWith('Approved non-business movement', notCosted.nonBusinessCostInr),
     },
     {
       label: 'Deviation',
       value: formatINR(totals.deviationCostInr),
       icon: AlertTriangle,
       tone: 'red',
-      hint: 'Unapproved deviations',
+      hint: hintWith('Unapproved deviations', notCosted.deviationCostInr),
     },
   ];
 

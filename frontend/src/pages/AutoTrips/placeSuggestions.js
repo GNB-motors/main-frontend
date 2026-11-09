@@ -23,13 +23,15 @@ export function toPickOption(site) {
   const name = site?.name || site?.key || 'Unnamed place';
   const visits = site?.visitCount ?? 0;
   const suffix = visits > 0 ? ` · ${visits} visit${visits === 1 ? '' : 's'}` : '';
+  // The server's own answer is kept: true, false, or null for "not judged yet".
+  const lowConfidence = site?.lowConfidence;
   return {
     id: site?.id,
     label: `${name}${suffix}`,
     name,
     visitCount: visits,
     confidence: typeof site?.confidence === 'number' ? site.confidence : null,
-    lowConfidence: site?.lowConfidence === true,
+    lowConfidence: lowConfidence === undefined ? false : lowConfidence,
     stoppageCount: site?.stoppageCount ?? null,
     prefixMatch: site?.prefixMatch === true,
     siteType: site?.siteType ?? null,
@@ -54,6 +56,13 @@ export function confidenceBadge(site) {
       detail: site.stoppageCount
         ? `${site.confidentStoppageCount ?? 0} of ${site.stoppageCount} stoppages sit inside this fence`
         : 'Most of its stoppages fall outside the fence',
+    };
+  }
+  if (site.lowConfidence === null) {
+    return {
+      tone: 'unknown',
+      label: 'Not judged yet',
+      detail: 'This place has not been judged yet',
     };
   }
   if (typeof site.confidence === 'number') {
