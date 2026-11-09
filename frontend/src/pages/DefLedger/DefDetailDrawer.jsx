@@ -5,9 +5,11 @@ import { formatDateTimeIST, formatDateIST } from '../../utils/dateUtils';
 import StatusBadge from './StatusBadge';
 import { STATUS_NOTE, SENSOR_FAULT_LABEL } from './defLedgerStatus';
 import { humanizeFlagType, signedLitres } from './defLedgerFormat';
+import DataFreshness from './DataFreshness';
 
-function DefDetailDrawer({ vehicle, claimsTracked, onClose }) {
+function DefDetailDrawer({ vehicle, onClose }) {
   if (!vehicle) return null;
+  const claimsTracked = vehicle.claimsTracked === true;
   const flags = vehicle.flags || [];
   const fills = vehicle.fills || [];
   const band = vehicle.defBand || {};
@@ -25,7 +27,7 @@ function DefDetailDrawer({ vehicle, claimsTracked, onClose }) {
     {
       label: 'Balance',
       value: claimsTracked ? signedLitres(vehicle.expectedBalanceL) : '—',
-      bad: vehicle.expectedBalanceL != null && vehicle.expectedBalanceL < 0,
+      bad: claimsTracked && vehicle.expectedBalanceL != null && vehicle.expectedBalanceL < 0,
     },
   ];
 
@@ -37,6 +39,18 @@ function DefDetailDrawer({ vehicle, claimsTracked, onClose }) {
       subtitle={coverage ? `Telemetry ${coverage}` : 'No telemetry yet'}
     >
       <div className="flex flex-col gap-5 p-1">
+        <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+          <DataFreshness vehicle={vehicle} />
+          {vehicle.lastComputedAt && (
+            <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+              Calculated on {formatDateTimeIST(vehicle.lastComputedAt)} IST
+            </p>
+          )}
+          <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+            The figures reflect the telemetry coverage date; recalculation does not make older
+            telemetry current.
+          </p>
+        </div>
         {(vehicle.sensorFaults || []).length > 0 && (
           <div className="rounded-lg border border-slate-200 p-3 text-xs text-slate-600">
             <p className="font-semibold">Sensor observations</p>
@@ -91,13 +105,14 @@ function DefDetailDrawer({ vehicle, claimsTracked, onClose }) {
           <p className="text-[11px] text-slate-500 leading-relaxed">
             {STATUS_NOTE[vehicle.status] || STATUS_NOTE.NO_DATA}
             {!claimsTracked &&
-              ' No AdBlue purchases are logged for this organization, so there is no balance to reconcile.'}
+              ' No AdBlue purchases are logged for this vehicle, so there is no balance to reconcile. DEF consumption and sensor findings are still shown.'}
           </p>
         </div>
 
         <div>
           <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-2.5">
-            Review flags ({vehicle.flagCount ?? flags.length})
+            {vehicle.alertsSuppressed ? 'Held-back findings' : 'Review flags'} (
+            {vehicle.flagCount ?? flags.length})
           </h4>
           {vehicle.alertsSuppressed && (
             <p className="text-[11px] text-slate-500 dark:text-slate-400 -mt-1.5 mb-2.5">
@@ -107,7 +122,9 @@ function DefDetailDrawer({ vehicle, claimsTracked, onClose }) {
           )}
           {flags.length === 0 ? (
             <div className="py-6 text-center text-slate-400 text-xs bg-slate-50 dark:bg-slate-800/40 rounded-lg border border-dashed border-slate-200 dark:border-slate-700">
-              Nothing to review.
+              {vehicle.alertsSuppressed
+                ? 'No held-back findings in this calculation.'
+                : 'Nothing to review.'}
             </div>
           ) : (
             <div className="flex flex-col gap-2.5">

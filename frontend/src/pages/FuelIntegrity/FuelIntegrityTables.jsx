@@ -58,6 +58,7 @@ export default function FuelIntegrityTables({
   defCount,
   billCount,
   lossL,
+  lossLabel = 'Fuel down while parked',
   affected,
   // Filter controls
   chip,
@@ -162,7 +163,7 @@ export default function FuelIntegrityTables({
             >
               <option value="all">All Event Types</option>
               <option value="fill">Refuel Fills</option>
-              <option value="loss">Fuel down while parked</option>
+              <option value="loss">{lossLabel}</option>
               <option value="def">DEF / AdBlue Anomalies</option>
             </SearchableSelect>
 
@@ -224,6 +225,7 @@ export default function FuelIntegrityTables({
         {activeTab === 'risk' && (
           <div className="p-4">
             <VehicleRiskPanel
+              lossLabel={lossLabel}
               bare
               isLoading={isLoading}
               riskVehicles={riskVehicles}

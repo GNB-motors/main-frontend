@@ -14,6 +14,8 @@ export default function NeedsAnswerBanner({
   sampleLoading,
   questions,
   questionsTotal,
+  questionsTrips,
+  questionsLoading = false,
   questionsFailed,
   onAnswerPlaces,
   onAnswerAllPlaces = null,
@@ -25,7 +27,8 @@ export default function NeedsAnswerBanner({
   const measured = Array.isArray(sample) ? sample.length : 0;
   const queue = placeQueue(questions);
   const places = Math.max(queue.places, Number(questionsTotal) || 0);
-  const rest = Math.max(0, total - queue.trips);
+  const affected = questionsTrips ?? queue.trips;
+  const rest = Math.max(0, total - affected);
 
   return (
     <section className="atx-needs" aria-labelledby="atx-needs-title">
@@ -71,7 +74,7 @@ export default function NeedsAnswerBanner({
         {places > 0 ? (
           <p className="atx-needs-fix-text">
             <strong>{formatNum(places)} places</strong> trucks stop at after loading have no name.
-            Naming them settles <strong>{formatNum(queue.trips)} trips</strong>
+            Naming them settles <strong>{formatNum(affected)} trips</strong> in this period
             {queue.top < queue.places
               ? `; the busiest ${queue.top} settle ${formatNum(queue.topTrips)}`
               : ''}
@@ -79,9 +82,11 @@ export default function NeedsAnswerBanner({
           </p>
         ) : (
           <p className="atx-needs-fix-text">
-            {questionsFailed
-              ? 'The place questions could not be loaded. Open a trip and mark its drop.'
-              : 'No place is waiting for a name. Open a trip and mark its drop.'}
+            {questionsLoading
+              ? 'Loading place questions for this period…'
+              : questionsFailed
+                ? 'The place questions could not be loaded. Open a trip and mark its drop.'
+                : 'No place is waiting for a name. Open a trip and mark its drop.'}
           </p>
         )}
         <div className="atx-needs-actions">

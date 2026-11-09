@@ -6,6 +6,8 @@ import {
   parkedDropL,
   isParkedDrop,
   drivingUseSentence,
+  reviewLossL,
+  isReviewLoss,
 } from './fuelVerdicts';
 
 describe('FUEL_VERDICTS', () => {
@@ -80,11 +82,35 @@ describe('isParkedDrop', () => {
   });
 });
 
+describe('v2 review loss', () => {
+  it('uses the adjusted loss and never the threshold or parked-drop field', () => {
+    const window = {
+      verdict: 'REVIEW_LOSS',
+      unaccountedLossL: 40,
+      reviewLineL: 15,
+      parkedDropL: 999,
+    };
+    expect(isReviewLoss(window)).toBe(true);
+    expect(isParkedDrop(window)).toBe(false);
+    expect(reviewLossL(window)).toBe(40);
+    expect(reviewLossL({ verdict: 'REVIEW_LOSS', reviewLineL: 15 })).toBeNull();
+    expect(reviewLossL({ verdict: 'CLEAN', unaccountedLossL: -5 })).toBe(0);
+    expect(reviewLossL({ verdict: 'INSUFFICIENT_DATA', unaccountedLossL: 100 })).toBeNull();
+  });
+  it.each(['REVIEW_LOSS', 'CLEAN', 'INSUFFICIENT_DATA', 'KEY_CONFLICT'])(
+    'recognizes the backend verdict %s as checked',
+    (verdict) => {
+      expect(verdictFor({ verdict }).checked).toBe(true);
+      expect(verdictFor({ verdict }).label).not.toBe('Not checked yet');
+    },
+  );
+});
+
 describe('drivingUseSentence', () => {
   it('says what the driving used and what it usually needs', () => {
-    expect(
-      drivingUseSentence({ drivingUseL: 638, expectedDrivingUseL: 610, km: 1920 }),
-    ).toBe('Used 638 L for 1,920 km; this truck usually needs 610 L for that.');
+    expect(drivingUseSentence({ drivingUseL: 638, expectedDrivingUseL: 610, km: 1920 })).toBe(
+      'Used 638 L for 1,920 km; this truck usually needs 610 L for that.',
+    );
   });
 
   it('says nothing about the distance when there is none', () => {

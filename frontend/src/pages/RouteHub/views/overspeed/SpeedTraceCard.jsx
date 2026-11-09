@@ -1,7 +1,7 @@
 import Ico from '../../routeHubIcons.jsx';
 import SpeedChart from './SpeedChart.jsx';
 
-export default function SpeedTraceCard({ detail, setSelected, win, thr, events, windowRef }) {
+export default function SpeedTraceCard({ detail, setSelected, win, thr, events }) {
   return (
     <div className="card s12">
       <div className="card-head">
@@ -16,7 +16,11 @@ export default function SpeedTraceCard({ detail, setSelected, win, thr, events, 
         <div className="legend">
           <span>
             <i style={{ background: '#2F58EE' }} />
-            Speed
+            Ground speed
+          </span>
+          <span>
+            <i style={{ borderTop: '2px dashed #2F58EE', background: 'none' }} />
+            Long gap / GPS catch-up
           </span>
           <span>
             <i style={{ background: '#C2323A' }} />
@@ -29,21 +33,25 @@ export default function SpeedTraceCard({ detail, setSelected, win, thr, events, 
         </div>
       </div>
       <div className="chart">
-        {detail.fixes?.length && windowRef.current.from ? (
+        {detail.speedSeries?.length && detail.from && detail.to ? (
           <SpeedChart
-            fixes={detail.fixes}
+            series={detail.speedSeries}
             events={events}
             threshold={thr}
-            from={windowRef.current.from}
-            to={windowRef.current.to}
+            from={new Date(detail.from)}
+            to={new Date(detail.to)}
           />
         ) : (
           <div className="empty">
             <b>No speed trace</b>
-            <span>No position fixes for this vehicle in the window.</span>
+            <span>No usable ground-speed intervals for this vehicle in the window.</span>
           </div>
         )}
       </div>
+      <p className="hint">
+        Interval-average ground speed from the event calculation. GPS jumps are omitted; dashed
+        intervals have uncertain timing. Events can include brief dips below the limit.
+      </p>
     </div>
   );
 }

@@ -393,8 +393,8 @@ export default function AutoTripDetailPage() {
                 label="How running cost is estimated"
               />
             </dt>
-            <dd className={trip.totalCostInr != null ? '' : 'is-quiet'}>
-              {trip.totalCostInr != null ? formatINR(trip.totalCostInr) : '—'}
+            <dd className={Number.isFinite(trip.totalCostInr) ? '' : 'is-quiet'}>
+              {Number.isFinite(trip.totalCostInr) ? formatINR(trip.totalCostInr) : '—'}
             </dd>
             <TripCostNote trip={trip} />
           </div>

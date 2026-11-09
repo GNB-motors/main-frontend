@@ -26,7 +26,7 @@ const useIntegrityExport = (filteredEvents) => {
           ev.kind === 'fill'
             ? 'Refuel Fill'
             : ev.kind === 'loss'
-              ? 'Fuel went down while parked'
+              ? ev.lossLabel || 'Fuel down while parked'
               : 'DEF Anomaly',
         timestampIST: formatIST(ev.at),
         litres: ev.litres != null ? Number(Number(ev.litres).toFixed(1)) : null,
@@ -37,7 +37,7 @@ const useIntegrityExport = (filteredEvents) => {
               ? 'Bill Mismatch'
               : ev.confirmationStatus || 'Estimated'
             : ev.kind === 'loss'
-              ? 'Fuel went down while parked'
+              ? ev.lossLabel || 'Fuel down while parked'
               : `DEF ${ev.defFlag || 'Anomaly'}`,
         lat: ev.lat != null ? Number(ev.lat) : null,
         lng: ev.lng != null ? Number(ev.lng) : null,

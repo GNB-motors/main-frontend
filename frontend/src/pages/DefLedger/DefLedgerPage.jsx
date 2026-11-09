@@ -8,8 +8,10 @@ import ExportButton from '../../components/ui/ExportButton';
 import PageShell from '../../components/ui/PageShell';
 import EnterprisePagination from '../../components/ui/EnterprisePagination';
 import { formatLitres, formatNum, formatINR, formatPct } from '../../utils/formatters';
+import { formatInIST } from '../../utils/dateUtils';
 import { STATUS } from './defLedgerStatus';
-import { signedLitres } from './defLedgerFormat';
+import { signedLitres, defFreshness, FRESHNESS_LABEL } from './defLedgerFormat';
+import DataFreshness from './DataFreshness';
 import Skel from './Skel';
 import LedgerRowSkeleton from './LedgerRowSkeleton';
 import StatusBadge from './StatusBadge';
@@ -20,6 +22,7 @@ import KpiTile from './KpiTile';
 const CHIPS = [
   { id: 'all', label: 'All vehicles', match: () => true },
   { id: 'review', label: 'Needs review', match: (v) => v.status === 'FLAGGED' },
+  { id: 'heldBack', label: 'Held back', match: (v) => v.alertsSuppressed === true },
   {
     id: 'deficit',
     label: 'Unlogged burn',
@@ -47,6 +50,10 @@ const EXPORT_COLUMNS = [
   { key: 'dosingRatioPct', label: 'DEF % of diesel', type: 'number' },
   { key: 'statusLabel', label: 'Status' },
   { key: 'flagCount', label: 'Flags', type: 'number' },
+  { key: 'alertState', label: 'Alert state' },
+  { key: 'telemetryAsOf', label: 'Telemetry data as of (IST)' },
+  { key: 'freshnessLabel', label: 'Data freshness' },
+  { key: 'calculatedAt', label: 'Calculated on (IST)' },
 ];
 
 const SKEL_ROWS = 8;
@@ -79,9 +86,17 @@ export default function DefLedgerPage() {
       (data?.vehicles || []).map((v) => ({
         ...v,
         statusLabel: (STATUS[v.status] || STATUS.NO_DATA).label,
+        alertState: v.alertsSuppressed ? 'Held back' : 'Not held back',
+        telemetryAsOf: formatInIST(defFreshness(v).asOf, 'D MMM YYYY, h:mm a'),
+        freshnessLabel: FRESHNESS_LABEL[defFreshness(v).status],
+        calculatedAt: formatInIST(v.lastComputedAt, 'D MMM YYYY, h:mm a'),
       })),
     [data],
   );
+  const staleCount = vehicles.filter((v) => defFreshness(v).status === 'STALE').length;
+  const currentSelectedVehicle = selectedVehicle
+    ? vehicles.find((v) => v.registrationNumber === selectedVehicle.registrationNumber) || null
+    : null;
 
   const chips = CHIPS.filter((c) => !c.needsClaims || claimsTracked).map((c) => ({
     ...c,
@@ -187,6 +202,17 @@ export default function DefLedgerPage() {
           />
         </div>
 
+        {!firstLoad && (
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Balances require this vehicle’s own AdBlue logs; missing logs are not zero purchases.{' '}
+            Freshness follows telemetry coverage, not calculation time.
+            {data?.freshness?.staleAfterHours != null &&
+              ` Telemetry older than ${data.freshness.staleAfterHours} hours is marked stale.`}
+            {staleCount > 0 &&
+              ` ${staleCount} ${staleCount === 1 ? 'vehicle has' : 'vehicles have'} stale telemetry; totals include those balances.`}
+          </p>
+        )}
+
         {/* ── Filters Bar ─────────────────────────────────────────────── */}
         <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
@@ -232,6 +258,7 @@ export default function DefLedgerPage() {
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-400">
                   <th className="py-3 px-4">Vehicle No</th>
+                  <th className="py-3 px-4">Data freshness</th>
                   <th className="py-3 px-4 text-right">AdBlue Logged (in window)</th>
                   <th className="py-3 px-4 text-right">DEF Burned</th>
                   <th className="py-3 px-4 text-right">Sensor Fills</th>
@@ -250,7 +277,7 @@ export default function DefLedgerPage() {
                   Array.from({ length: SKEL_ROWS }, (_, i) => <LedgerRowSkeleton key={i} />)
                 ) : paginatedVehicles.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-12 text-center text-slate-400">
+                    <td colSpan={10} className="py-12 text-center text-slate-400">
                       {vehicles.length === 0
                         ? 'No vehicles are registered to your organization yet.'
                         : 'No vehicles found matching current filter.'}
@@ -268,8 +295,11 @@ export default function DefLedgerPage() {
                           {v.registrationNumber}
                         </span>
                       </td>
+                      <td className="py-3 px-4">
+                        <DataFreshness vehicle={v} />
+                      </td>
                       <td className="py-3 px-4 text-right font-mono font-semibold text-slate-800 dark:text-slate-200">
-                        {claimsTracked ? (
+                        {v.claimsTracked ? (
                           formatLitres(v.claimedAdblueL)
                         ) : (
                           <span className="font-sans font-normal text-slate-400">Not logged</span>
@@ -283,12 +313,12 @@ export default function DefLedgerPage() {
                       </td>
                       <td
                         className={`py-3 px-4 text-right font-mono font-bold ${
-                          v.expectedBalanceL != null && v.expectedBalanceL < 0
+                          v.claimsTracked && v.expectedBalanceL != null && v.expectedBalanceL < 0
                             ? 'text-rose-600 dark:text-rose-400'
                             : 'text-slate-700 dark:text-slate-300'
                         }`}
                       >
-                        {signedLitres(v.expectedBalanceL)}
+                        {v.claimsTracked ? signedLitres(v.expectedBalanceL) : '—'}
                       </td>
                       <td className="py-3 px-4 text-center font-mono">
                         <DosingBadge vehicle={v} />
@@ -297,19 +327,17 @@ export default function DefLedgerPage() {
                         <StatusBadge status={v.status} />
                       </td>
                       <td className="py-3 px-4 text-center">
-                        {v.flagCount > 0 ? (
-                          v.alertsSuppressed ? (
-                            <span
-                              className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 font-bold text-[11px] border border-dashed border-slate-300 dark:border-slate-600"
-                              title="These findings are computed but held back: iALERT alerts are off for this account, so nothing has been raised yet."
-                            >
-                              {v.flagCount} held back
-                            </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 font-bold text-[11px]">
-                              {v.flagCount} {v.flagCount === 1 ? 'flag' : 'flags'}
-                            </span>
-                          )
+                        {v.alertsSuppressed ? (
+                          <span
+                            className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 font-bold text-[11px] border border-dashed border-slate-300 dark:border-slate-600"
+                            title="These findings are computed but held back: iALERT alerts are off for this account, so nothing has been raised yet."
+                          >
+                            {v.flagCount > 0 ? `${v.flagCount} held back` : 'Alerts held back'}
+                          </span>
+                        ) : v.flagCount > 0 ? (
+                          <span className="px-2 py-0.5 rounded bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 font-bold text-[11px]">
+                            {v.flagCount} {v.flagCount === 1 ? 'flag' : 'flags'}
+                          </span>
                         ) : (
                           <span className="text-slate-400 text-[11px]">—</span>
                         )}
@@ -344,11 +372,7 @@ export default function DefLedgerPage() {
         </div>
       </PageShell>
 
-      <DefDetailDrawer
-        vehicle={selectedVehicle}
-        claimsTracked={claimsTracked}
-        onClose={() => setSelectedVehicle(null)}
-      />
+      <DefDetailDrawer vehicle={currentSelectedVehicle} onClose={() => setSelectedVehicle(null)} />
     </>
   );
 }

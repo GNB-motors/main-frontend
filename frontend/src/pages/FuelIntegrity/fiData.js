@@ -1,6 +1,6 @@
 import { formatINR, formatLitres } from '../../utils/formatters';
 import { formatInIST } from '../../utils/dateUtils';
-import { isParkedDrop, parkedDropL } from './fuelVerdicts';
+import { isReviewLoss, reviewLossL, lossLabelFor } from './fuelVerdicts';
 
 export const RISK_RANK = { Critical: 4, High: 3, Medium: 2, Low: 1, Healthy: 0 };
 export const RISK_TONE = {
@@ -19,8 +19,8 @@ export function computeRisk(v) {
   return 'Healthy';
 }
 
-// Merged events feed: fills + fuel that went down while parked + DEF-flag
-// windows, newest first.
+// Merged events feed: fills + reviewed loss windows + DEF-flag windows,
+// newest first. V2 balance loss and legacy parked loss keep their own labels.
 export function buildEvents(fills, windows, pricePerL) {
   const fillEvents = fills.map((f) => ({
     id: `fill-${f._id}`,
@@ -34,21 +34,23 @@ export function buildEvents(fills, windows, pricePerL) {
     confirmationStatus: f.confirmationStatus,
     billFlag: f.billFlag,
     billVarianceL: f.billVarianceL,
+    billComparable: f.billComparable,
+    billToleranceL: f.billToleranceL,
     smoothedJumpL: f.smoothedJumpL,
     odometer: f.odometer,
     claimedLitres: f.claimedLitres,
   }));
-  // Only a window the backend judged as a parked drop becomes a loss event.
-  // The old flag is not a fallback: it fired on trucks that were parked with
-  // the engine off, which is how the page used to cry wolf.
+  // Use the v2 REVIEW_LOSS or legacy parked-loss verdict. The old boolean
+  // flag alone does not establish a reviewable loss.
   const lossEvents = windows
-    .filter((w) => isParkedDrop(w))
+    .filter((w) => isReviewLoss(w))
     .map((w) => ({
       id: `loss-${w._id}`,
       kind: 'loss',
       vehicle: w.registrationNumber,
-      litres: parkedDropL(w),
-      inr: parkedDropL(w) != null ? Math.max(0, parkedDropL(w)) * pricePerL : null,
+      litres: reviewLossL(w),
+      lossLabel: lossLabelFor(w),
+      inr: reviewLossL(w) != null ? Math.max(0, reviewLossL(w)) * pricePerL : null,
       at: w.windowTo,
       windowFrom: w.windowFrom,
       windowTo: w.windowTo,
@@ -123,10 +125,10 @@ export function buildChartData(fills, windows) {
     }
   });
   windows.forEach((w) => {
-    if (isParkedDrop(w)) {
+    if (isReviewLoss(w)) {
       const x = b(w.windowTo);
       if (x) {
-        x.loss += Math.max(0, parkedDropL(w) ?? 0);
+        x.loss += Math.max(0, reviewLossL(w) ?? 0);
         x.events += 1;
       }
     }
@@ -144,8 +146,7 @@ export function buildChartData(fills, windows) {
     }));
 }
 
-// Daily fills vs fuel that went down while parked, for one vehicle's
-// drill-down.
+// Daily fills vs reviewable loss, for one vehicle's drill-down.
 export function buildDrillChartData(fills, windows, vehicle) {
   const buckets = {};
   const bucketFor = (ts) => {
@@ -163,9 +164,9 @@ export function buildDrillChartData(fills, windows, vehicle) {
   windows
     .filter((w) => w.registrationNumber === vehicle)
     .forEach((w) => {
-      if (!isParkedDrop(w)) return;
+      if (!isReviewLoss(w)) return;
       const x = bucketFor(w.windowTo);
-      if (x) x.loss += Math.max(0, parkedDropL(w) ?? 0);
+      if (x) x.loss += Math.max(0, reviewLossL(w) ?? 0);
     });
   return Object.values(buckets).map((x) => ({
     ...x,
@@ -218,7 +219,7 @@ export function buildChipDefs(events) {
     { key: 'bill', label: 'Bill mismatch', count: events.filter((e) => e.billFlag).length },
     {
       key: 'loss',
-      label: 'Fuel down while parked',
+      label: 'Fuel loss to review',
       count: events.filter((e) => e.kind === 'loss').length,
     },
   ];

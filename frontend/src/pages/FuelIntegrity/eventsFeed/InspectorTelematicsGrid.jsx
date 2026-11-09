@@ -50,7 +50,9 @@ const InspectorTelematicsGrid = ({ activeCtx, activeEvent, isDef, isFill, isLoss
       <>
         <div className="fi-tele-item">
           <span className="fi-tele-label">Event Nature</span>
-          <span className="fi-tele-val text-red-600 dark:text-red-400">Fuel went down while parked</span>
+          <span className="fi-tele-val text-red-600 dark:text-red-400">
+            {activeEvent.lossLabel || 'Fuel down while parked'}
+          </span>
         </div>
         <div className="fi-tele-item">
           <span className="fi-tele-label">Est. Financial Loss</span>

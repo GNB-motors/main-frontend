@@ -66,7 +66,7 @@ const EventsFeedTable = ({
                   )}
                   {isRowLoss && (
                     <span className="inline-flex items-center gap-1 text-xs text-red-600 dark:text-red-400 font-semibold">
-                      <TrendingDown size={12} /> Fuel went down while parked
+                      <TrendingDown size={12} /> {ev.lossLabel || 'Fuel down while parked'}
                     </span>
                   )}
                   {isRowDef && (

@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   costBasisLabel,
+  costKnown,
+  extraKnown,
+  enrichmentReason,
   dayRange,
   deviationGroupSubtitle,
   deviationGroupTitle,
@@ -89,6 +92,23 @@ describe('groupByTrip', () => {
     expect(groups[0].events.map((e) => e._id)).toEqual(['e1', 'e2']);
     expect(groups[0]).toMatchObject({ extraKm: 8, costInr: 400, open: 1 });
     expect(groups[1].autoTripId).toBeNull();
+  });
+
+  it('excludes unavailable estimates and road-engine distances from group distance and cost totals', () => {
+    const groups = groupByTrip([
+      ev('measured', 't1', 8),
+      ev('unavailable', 't1', 9, {
+        enrichment: { status: 'UNAVAILABLE', message: 'GPS track missing' },
+      }),
+      ev('off-route', 't1', 10, { source: 'ROAD_ENGINE', offRouteKm: 12 }),
+    ]);
+    expect(groups[0]).toMatchObject({ extraKm: 4, costInr: 200 });
+    expect(extraKnown(groups[0].events[1])).toBe(false);
+    expect(costKnown(groups[0].events[2])).toBe(false);
+    expect(enrichmentReason(groups[0].events[1])).toBe('GPS track missing');
+    expect(enrichmentReason(groups[0].events[2])).toContain(
+      'Extra distance and cost are not calculated',
+    );
   });
 });
 

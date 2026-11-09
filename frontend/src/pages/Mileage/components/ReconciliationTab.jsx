@@ -16,6 +16,7 @@ const CHIPS = [
   { key: 'flagged', label: 'Bill too high' },
   { key: 'review', label: 'Bill too low' },
   { key: 'clean', label: 'Bill matches' },
+  { key: 'unavailable', label: 'Comparison unavailable' },
 ];
 
 const columns = (onOpen) => [
@@ -32,12 +33,7 @@ const columns = (onOpen) => [
   {
     key: 'when',
     label: 'Bill time',
-    render: (r) =>
-      r.billDate ? (
-        <span className="num">{humanDateTime(r.billDate)}</span>
-      ) : (
-        '—'
-      ),
+    render: (r) => (r.billDate ? <span className="num">{humanDateTime(r.billDate)}</span> : '—'),
   },
   {
     key: 'pump',
@@ -49,15 +45,15 @@ const columns = (onOpen) => [
     label: 'On bill',
     align: 'right',
     render: (r) => (
-      <span className="mhub-litres">{formatLitres(r.billLitres, { decimals: 0 })}</span>
+      <span className="mhub-litres">{formatLitres(r.billLitres, { decimals: 1 })}</span>
     ),
   },
   {
     key: 'tank',
-    label: 'Tank rose',
+    label: 'Corrected sensor fill',
     align: 'right',
     render: (r) => (
-      <span className="mhub-litres">{formatLitres(r.telemetryLitres, { decimals: 0 })}</span>
+      <span className="mhub-litres">{formatLitres(r.telemetryLitres, { decimals: 1 })}</span>
     ),
   },
   {
@@ -114,6 +110,7 @@ export default function ReconciliationTab({ range, searchQuery = '', onOpenDrawe
         signal,
       ),
     [range.manufacturer, range.from, range.to, page, pageSize, searchQuery, status],
+    { scopeKey: `${nextKey}|${page}|${pageSize}|${status}` },
   );
   const rows = data?.data?.records || [];
   const total = data?.meta?.total ?? rows.length;

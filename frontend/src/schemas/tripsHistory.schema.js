@@ -97,6 +97,7 @@ export const PlaceQuestionsPayloadSchema = z
   .object({
     items: z.array(PlaceQuestionSchema).default([]),
     total: z.number(),
+    tripsAffected: z.number().optional(),
   })
   .passthrough();
 

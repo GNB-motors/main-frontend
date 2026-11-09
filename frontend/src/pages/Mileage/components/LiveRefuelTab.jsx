@@ -33,11 +33,7 @@ function PumpCell({ row }) {
     return (
       <span className="mhub-cell">
         <span title={`Coordinates: ${coordsText(row.coords)}`}>Unknown pump</span>
-        <Link
-          to="/place-hub"
-          className="mhub-link"
-          title="Name this pump in Place Hub"
-        >
+        <Link to="/place-hub" className="mhub-link" title="Name this pump in Place Hub">
           Name this pump
         </Link>
       </span>
@@ -60,12 +56,7 @@ const columns = (onOpen) => [
   {
     key: 'when',
     label: 'When',
-    render: (r) =>
-      r.at ? (
-        <span className="num">{humanDateTime(r.at)}</span>
-      ) : (
-        '—'
-      ),
+    render: (r) => (r.at ? <span className="num">{humanDateTime(r.at)}</span> : '—'),
   },
   {
     key: 'tank',
@@ -235,6 +226,7 @@ export default function LiveRefuelTab({
         unverified: meta.unverified || 0,
         slipOnly: meta.slipOnly || 0,
         sensorGlitch: meta.sensorGlitch || 0,
+        unassessed: meta.unassessed || 0,
       }
     : null;
 

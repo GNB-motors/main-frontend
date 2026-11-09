@@ -9,6 +9,7 @@ const MassBalancePipeline = ({
   totalFillsLitres,
   totalNetTankDeltaL,
   windowDays,
+  lossLabel = 'Fuel down while parked',
 }) => (
   <div className="fi-flow-pipeline">
     <div className="fi-pipeline-header">
@@ -16,7 +17,8 @@ const MassBalancePipeline = ({
         <Layers size={15} className="text-blue-600 dark:text-blue-400" />
         <span className="fi-pipeline-title">Fuel in and fuel used, this period</span>
         <span className="fi-pipeline-formula">
-          Fuel in, engine burn and tank change side by side · fuel down while parked is measured from parked windows
+          Fuel in, engine burn and tank change side by side · review unexplained loss in the windows
+          below
         </span>
       </div>
       <div className="text-xs text-slate-500 font-medium">
@@ -37,7 +39,9 @@ const MassBalancePipeline = ({
         <div className="fi-step-val text-blue-600 dark:text-blue-400">
           {formatLitres(totalFillsLitres)}
         </div>
-        <div className="fi-step-sub">≈ {formatINR(totalFillsLitres * pricePerL)} at ₹{pricePerL}/L</div>
+        <div className="fi-step-sub">
+          ≈ {formatINR(totalFillsLitres * pricePerL)} at ₹{pricePerL}/L
+        </div>
       </div>
 
       <div className="fi-step-arrow">
@@ -97,7 +101,7 @@ const MassBalancePipeline = ({
         }}
       >
         <div className="fi-step-head">
-          <span className="fi-step-label">4. Fuel down while parked</span>
+          <span className="fi-step-label">4. {lossLabel}</span>
           {lossL > 0 ? (
             <ShieldAlert size={14} className="text-red-500" />
           ) : lossL == null ? (
@@ -124,7 +128,7 @@ const MassBalancePipeline = ({
             ? 'Not measured yet'
             : lossL > 0
               ? `Worth about ${formatINR(lossL * pricePerL)}`
-              : 'None found in parked windows'}
+              : 'None found in checked windows'}
         </div>
       </div>
     </div>

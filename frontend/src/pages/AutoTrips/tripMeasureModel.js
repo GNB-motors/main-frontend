@@ -65,3 +65,18 @@ export function runningCostParts(trip) {
   if (trip?.totalCostInr == null && fuel.unknown === 0 && wear.unknown === 0) return null;
   return { fuel: amountText(fuel, note), wear: amountText(wear, null) };
 }
+
+/**
+ * Why a trip shows no cost breakdown. A total without legs is an estimate; a
+ * missing total uses the server's own reason first, and only a running trip is
+ * told the cost is still pending (a finished trip is never told to wait).
+ */
+export function costReason(trip) {
+  if (Number.isFinite(trip?.totalCostInr)) return 'Estimated running cost; breakdown unavailable.';
+  if (trip?.economicsAvailability?.reason) return trip.economicsAvailability.reason;
+  if (trip?.status === 'OPEN') return 'Cost calculation pending while the trip is running.';
+  if (['COMPLETE', 'CONFIRMED'].includes(trip?.status)) {
+    return 'Cost calculation unavailable for this completed trip.';
+  }
+  return 'Cost calculation unavailable until the drop is resolved.';
+}
