@@ -51,19 +51,13 @@ export function isPlantToPlant(trip) {
   return trip?.leg === 'REPOSITION';
 }
 
-/**
- * The kilometres of each leg of a trip, in the order they happened.
- *
- * The release's shape calls the return leg `return` and the deadhead to
- * the plant `approach`; the redesign shows the empty leg as whichever of
- * the two the trip actually recorded. A leg with no distance is left out,
- * so the bar never draws a zero-width slice that pretends to be a leg.
- */
+/** Approach and return cover opposite ends of a trip and must remain separate. */
 export function legKilometres(trip) {
   const km = trip?.km ?? {};
   const legs = [
+    { kind: 'APPROACH', km: km.approachOdo ?? km.approach ?? null },
     { kind: 'LADEN', km: km.ladenOdo ?? km.laden ?? null },
-    { kind: 'RETURN', km: km.returnOdo ?? km.return ?? km.approach ?? null },
+    { kind: 'RETURN', km: km.returnOdo ?? km.return ?? null },
     { kind: 'REPOSITION', km: km.repositionOdo ?? km.reposition ?? null },
   ].filter((leg) => leg.km !== null && leg.km !== undefined && Number(leg.km) > 0);
   return legs;

@@ -118,8 +118,8 @@ export function DistanceCard({ series, prediction, overview, loading }) {
   );
 }
 
-export function ServiceCard({ prediction, health, overview, onGoTab }) {
-  const service = serviceProgress(prediction, health, overview);
+export function ServiceCard({ prediction, health, onGoTab }) {
+  const service = serviceProgress(prediction, health);
   const overdue = service.remaining != null && service.remaining < 0;
   return (
     <section className="vdo-card">
@@ -145,7 +145,7 @@ export function ServiceCard({ prediction, health, overview, onGoTab }) {
         </div>
         <div className="vdo-service-scale">
           <span>{formatNum(service.last)}</span>
-          <span>{formatNum(service.current)} now</span>
+          <span>{formatNum(service.current)} at forecast</span>
           <span>{formatNum(service.next)}</span>
         </div>
       </div>

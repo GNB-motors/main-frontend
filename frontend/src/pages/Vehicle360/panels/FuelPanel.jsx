@@ -86,7 +86,7 @@ export default function FuelPanel({
     numeric(health?.defTankCapacityL) ??
     numeric(fleetMaster?.defCapacity) ??
     numeric(ialert?.defTankCapacityL);
-  const economy = numeric(kmPerLitre?.kmPerLitre) ?? numeric(kmPerLitre?.ecuKmPerLitre);
+  const economy = numeric(kmPerLitre?.kmPerL) ?? numeric(kmPerLitre?.ecuKmPerL);
   const range = fuel.litres != null && economy > 0 ? fuel.litres * economy : null;
   const fuelToday = numeric(health?.today?.fuelBurnedL);
   const todayAt = health?.today?.at ?? health?.canAt ?? health?.pulledAt;

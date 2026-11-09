@@ -28,7 +28,10 @@ export default function ProfitabilityView({ params, toast, go }) {
         RouteHubService.getMoney().catch(() => null),
         RouteHubService.getTrips({ limit: 8 }).catch(() => []),
       ]);
-      const ids = trips.map((t) => t?._id || t?.id).filter(Boolean).slice(0, 8);
+      const ids = trips
+        .map((t) => t?._id || t?.id)
+        .filter(Boolean)
+        .slice(0, 8);
       const priced = await Promise.all(
         ids.map((id) => RouteHubService.getTripPnl(id).catch(() => null)),
       );
@@ -138,7 +141,16 @@ export default function ProfitabilityView({ params, toast, go }) {
 
   const exportCsv = () => {
     const out = [
-      ['route', 'km', 'trips', 'avg_rev_inr', 'avg_cost_inr', 'margin_inr', 'margin_pct', 'health'],
+      [
+        'route',
+        'total_km_window',
+        'trips',
+        'avg_rev_inr',
+        'avg_cost_inr',
+        'margin_inr',
+        'margin_pct',
+        'health',
+      ],
     ].concat(
       routes.map((r) => [
         r.name,
@@ -222,7 +234,8 @@ export default function ProfitabilityView({ params, toast, go }) {
                 </span>
                 <span className="sp" />
                 <span className="hint">
-                  {selected.distanceKm ?? '—'} km · {selected.tripCount ?? 0} trips this month
+                  {selected.distanceKm ?? '—'} km total · {selected.tripCount ?? 0} trips in this
+                  window
                 </span>
               </>
             ) : first ? (

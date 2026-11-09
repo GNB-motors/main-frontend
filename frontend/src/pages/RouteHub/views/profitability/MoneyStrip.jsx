@@ -25,7 +25,7 @@ export default function MoneyStrip({ money, loading }) {
       ic: 'alert',
       l: 'Waste in the window',
       v: rupees(money?.totalWasteInr),
-      s: 'theft, fraud, idling, detour, fuel and DEF',
+      s: 'theft, fraud, idling and detours',
       c: '#C2323A',
       tint: 'rgba(229,104,107,.14)',
       vc: '#C2323A',

@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { useApi } from '../../hooks/useApi';
 import { useMutation } from '../../hooks/useMutation';
+import { formatInIST } from '../../utils/dateUtils';
 import ExcursionService from '../../services/ExcursionService';
 const STATUS_VARIANT = {
   DEVIATION: 'destructive',
@@ -38,11 +39,7 @@ const PURPOSES = [
     label: 'Other',
   },
 ];
-function fmt(v) {
-  if (!v) return '—';
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('en-IN');
-}
+const fmt = (value) => formatInIST(value, 'DD MMM YYYY, hh:mm A') ?? '—';
 const km = (v) => (v == null ? '—' : `${Math.round(v)} km`);
 const litres = (v) => (v == null ? '—' : `${Number(v).toFixed(1)} L`);
 function Field({ label, children }) {

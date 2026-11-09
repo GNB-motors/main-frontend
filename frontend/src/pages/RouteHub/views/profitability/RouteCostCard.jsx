@@ -49,16 +49,22 @@ export default function RouteCostCard({ selected, slices, costTotal, target, dat
           <div className="perkm">
             <div>
               <div className="k">Revenue / km</div>
-              <div className="v">₹{Math.round(selected.revenuePerKm ?? 0)}</div>
+              <div className="v">
+                {selected.revenuePerKm != null ? `₹${Math.round(selected.revenuePerKm)}` : '—'}
+              </div>
             </div>
             <div>
               <div className="k">Cost / km</div>
-              <div className="v">₹{Math.round(selected.costPerKm ?? 0)}</div>
+              <div className="v">
+                {selected.costPerKm != null ? `₹${Math.round(selected.costPerKm)}` : '—'}
+              </div>
             </div>
             <div>
               <div className="k">Margin / km</div>
               <div className="v" style={{ color: selected.health.c }}>
-                ₹{Math.round((selected.revenuePerKm ?? 0) - (selected.costPerKm ?? 0))}
+                {selected.revenuePerKm != null && selected.costPerKm != null
+                  ? `₹${Math.round(selected.revenuePerKm - selected.costPerKm)}`
+                  : '—'}
               </div>
             </div>
           </div>

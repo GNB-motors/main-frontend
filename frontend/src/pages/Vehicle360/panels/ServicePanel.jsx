@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import PanelErrorBoundary from '../../../components/cluster/PanelErrorBoundary';
 import { formatKm, formatNum } from '../../../utils/formatters';
 import { formatDateIST, formatDateTimeIST } from '../../../utils/dateUtils';
+import { serviceDistance } from '../serviceDistance';
 import { serviceState } from '../vehicle360Logic';
 import { ServiceCentreCard } from './ServiceInsights';
 import { numeric } from './overview/referenceOverviewModel';
@@ -13,17 +14,9 @@ const km = (value) => (value == null ? '—' : formatKm(value));
 const date = (value) => (value ? formatDateIST(value) : 'Not recorded');
 
 export default function ServicePanel({ prediction, health, vehicleId, livePosition }) {
-  const svc = serviceState(prediction);
-  const current = numeric(prediction?.currentOdometer ?? health?.canOdo);
-  const last = numeric(prediction?.lastServiceOdometer ?? health?.lastServiceKm);
-  const next = numeric(prediction?.projectedServiceDueOdometer ?? health?.nextServiceKm);
+  const svc = serviceState(prediction, health);
+  const { current, last, next, remaining, percent: used } = serviceDistance(prediction, health);
   const interval = last != null && next != null ? next - last : null;
-  const remaining =
-    numeric(prediction?.kmUntilDue) ?? (next != null && current != null ? next - current : null);
-  const used =
-    interval > 0 && current != null
-      ? Math.max(0, Math.min(100, ((current - last) / interval) * 100))
-      : null;
   const pace = numeric(prediction?.avgKmPerDay);
   const basis = prediction?.basis
     ? String(prediction.basis).replace(/_/g, ' ').toLowerCase()

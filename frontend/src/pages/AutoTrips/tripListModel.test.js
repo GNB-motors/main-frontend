@@ -155,3 +155,25 @@ describe('destinationOf for a trip that stayed open', () => {
     expect(destinationOf({ status: 'OPEN', flags: [] }).text).toBe('on the way');
   });
 });
+
+describe('destinationOf for a multi-drop loaded run', () => {
+  it('uses the final drop as the destination of a multi-drop loaded run', () => {
+    expect(
+      destinationOf({
+        status: 'COMPLETE',
+        drop: { name: 'PATNA', source: 'LABELLED_PLACE' },
+        extraDrops: [{ name: 'NIYAJIPUR' }, { name: 'MASHWRHI' }],
+      }),
+    ).toMatchObject({
+      text: 'Mashwrhi',
+      title: 'MASHWRHI',
+      state: 'reached',
+    });
+  });
+
+  it('keeps an unnamed final drop unnamed instead of substituting the first stop', () => {
+    expect(
+      destinationOf({ status: 'COMPLETE', drop: { name: 'PATNA' }, extraDrops: [{ name: null }] }),
+    ).toMatchObject({ state: 'unnamed' });
+  });
+});

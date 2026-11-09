@@ -44,10 +44,10 @@ describe('legKilometres', () => {
     expect(legs.map((leg) => leg.kind)).toEqual(['LADEN', 'RETURN']);
   });
 
-  it('uses the deadhead when the trip recorded no return', () => {
+  it('keeps the approach separate when the trip recorded no return', () => {
     const legs = legKilometres({ km: { laden: 412, approach: 30 } });
-    expect(legs.map((leg) => leg.kind)).toEqual(['LADEN', 'RETURN']);
-    expect(legs[1].km).toBe(30);
+    expect(legs.map((leg) => leg.kind)).toEqual(['APPROACH', 'LADEN']);
+    expect(legs[0].km).toBe(30);
   });
 
   it('drops a leg with no distance', () => {
@@ -111,4 +111,13 @@ describe('distance the server could not attribute', () => {
     );
     expect(unknownDriveText({})).toBeNull();
   });
+});
+
+it('retains approach and return distances in the same bar', () => {
+  const segments = legBarSegments({ km: { approach: 50, laden: 300, return: 150 } });
+  expect(segments.map(({ kind, km, percent }) => ({ kind, km, percent }))).toEqual([
+    { kind: 'APPROACH', km: 50, percent: 10 },
+    { kind: 'LADEN', km: 300, percent: 60 },
+    { kind: 'RETURN', km: 150, percent: 30 },
+  ]);
 });

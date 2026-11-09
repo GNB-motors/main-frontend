@@ -1,3 +1,4 @@
+import { serviceDistance } from './serviceDistance';
 import { viewOf } from '../../utils/liveView.js';
 import { formatInIST } from '../../utils/dateUtils';
 /** Pure display logic for the Vehicle 360 profile (rule 21). */
@@ -70,10 +71,10 @@ export function defReading(health) {
  * past due, which reads terribly as "-3,353 km". Callers get absolute magnitudes
  * plus an explicit `overdue` flag so the copy can say "3,353 km overdue".
  */
-export function serviceState(prediction) {
+export function serviceState(prediction, health) {
   if (!prediction) return { level: 'none', label: 'No forecast' };
 
-  const km = prediction.kmUntilDue;
+  const { remaining: km } = serviceDistance(prediction, health);
   const days = prediction.daysUntilDue;
   const overdue =
     prediction.risk === 'OVERDUE' || (km != null && km < 0) || (days != null && days < 0);

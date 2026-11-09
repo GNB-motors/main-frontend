@@ -15,9 +15,10 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
   const [vehicles, setVehicles] = useState([]);
   const [selected, setSelected] = useState(params.get('v') || '');
   const [thr, setThr] = useState(60);
-  // The limit the shown results were computed with (thr is the unsubmitted input).
-  const [appliedThr, setAppliedThr] = useState(60);
   const [dur, setDur] = useState(3);
+  // The values the shown results were computed with (thr/dur are the unsubmitted inputs).
+  const [appliedThr, setAppliedThr] = useState(60);
+  const [appliedDur, setAppliedDur] = useState(3);
   const [win, setWin] = useState(24);
 
   const [fleet, setFleet] = useState(null);
@@ -44,6 +45,7 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
     setLoading(true);
     setError(null);
     setAppliedThr(thr);
+    setAppliedDur(dur);
     try {
       if (!selected) {
         const data = await RouteHubService.getFleetOverspeed({
@@ -104,7 +106,7 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
           ic: 'gauge',
           l: 'Sustained events',
           v: events.length,
-          s: `over ${thr} km/h for ${dur}+ min · last ${win} h`,
+          s: `over ${appliedThr} km/h for ${appliedDur}+ min · last ${win} h`,
         },
         {
           ic: 'truck',
@@ -128,7 +130,7 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
           l: 'Peak speed',
           v: peak || '—',
           u: peak ? 'km/h' : '',
-          s: peak ? `${Math.round(peak - thr)} km/h over the limit` : 'no events in window',
+          s: peak ? `${Math.round(peak - appliedThr)} km/h over the limit` : 'no events in window',
           c: '#C2323A',
           tint: 'rgba(229,104,107,.14)',
           vc: peak ? '#C2323A' : undefined,
@@ -141,7 +143,7 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
         ic: 'gauge',
         l: 'Sustained events',
         v: totals.eventCount ?? 0,
-        s: `over ${thr} km/h for ${dur}+ min · last ${win} h`,
+        s: `over ${appliedThr} km/h for ${appliedDur}+ min · last ${win} h`,
       },
       {
         ic: 'truck',
@@ -167,14 +169,14 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
         v: totals.peakSpeedKmh || '—',
         u: totals.peakSpeedKmh ? 'km/h' : '',
         s: totals.peakSpeedKmh
-          ? `${Math.round(totals.peakSpeedKmh - thr)} km/h over the limit`
+          ? `${Math.round(totals.peakSpeedKmh - appliedThr)} km/h over the limit`
           : 'no events in window',
         c: '#C2323A',
         tint: 'rgba(229,104,107,.14)',
         vc: totals.peakSpeedKmh ? '#C2323A' : undefined,
       },
     ];
-  }, [detail, events, totals, rank.length, thr, dur, win, vehicles, selected]);
+  }, [detail, events, totals, rank.length, appliedThr, appliedDur, win, vehicles, selected]);
 
   const { containerRef, mapRef } = useLeafletMap({ scrollWheelZoom: false }, [Boolean(detail)]);
 
@@ -264,7 +266,7 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
         e.maxSpeedKmh,
         e.avgSpeedKmh,
         e.distanceKm ?? '',
-        thr,
+        appliedThr,
       ]),
     );
     downloadCsv('overspeed-audit', rows);
@@ -325,8 +327,8 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
               rank={rank}
               openVehicle={openVehicle}
               loading={loading}
-              thr={thr}
-              dur={dur}
+              thr={appliedThr}
+              dur={appliedDur}
             />
             <div className="card s5 ovs-pane">
               <div className="card-head">
@@ -352,7 +354,7 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
               detail={detail}
               setSelected={setSelected}
               win={win}
-              thr={thr}
+              thr={appliedThr}
               events={events}
               windowRef={windowRef}
             />
@@ -361,8 +363,8 @@ export default function OverspeedView({ params, toast, setBadge, go }) {
               events={events}
               selected={selected}
               appliedThr={appliedThr}
-              dur={dur}
-              thr={thr}
+              dur={appliedDur}
+              thr={appliedThr}
               go={go}
             />
 
