@@ -84,6 +84,12 @@ export const PlaceQuestionSchema = z
       .default([]),
     sampleTrips: z.array(LinkSchema).default([]),
     why: WhySchema,
+    // New backend only — all three are optional, and the old backend sends
+    // none of them. `kind` is a plain string so that a kind this build does
+    // not know about still parses and simply falls back to today's wording.
+    kind: z.string().optional(),
+    kmAtStake: z.number().nullable().optional(),
+    suspicious: z.number().nullable().optional(),
   })
   .passthrough();
 

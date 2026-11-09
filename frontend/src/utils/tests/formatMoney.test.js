@@ -1,9 +1,10 @@
-import { inr, num, pct, money, signedInr, drCr } from '../formatMoney.js';
+import { inr, litres, num, pct, money, signedInr, drCr } from '../formatMoney.js';
 import { formatINR } from '../formatters.js';
 
 describe('formatMoney.js — central currency formatting', () => {
   describe('inr', () => {
-    // One rupee implementation app-wide: inr is formatINR with missing-as-zero.
+    // One rupee implementation app-wide: inr is formatINR, with a missing
+    // amount shown as a dash rather than as ₹0.
     it('prints exactly what formatINR prints', () => {
       for (const v of [0, 999, 45300, 1200000, -4200, 12345678.9]) {
         expect(inr(v)).toBe(formatINR(v));
@@ -15,9 +16,14 @@ describe('formatMoney.js — central currency formatting', () => {
       expect(inr(0)).toBe('₹0');
     });
 
-    it('treats null/undefined/NaN as zero', () => {
-      expect(inr(null)).toBe('₹0');
-      expect(inr(undefined)).toBe('₹0');
+    it('renders an em-dash for a missing amount, never ₹0', () => {
+      expect(inr(null)).toBe('—');
+      expect(inr(undefined)).toBe('—');
+      expect(inr('')).toBe('—');
+    });
+
+    it('still prints ₹0 when zero is the real amount', () => {
+      expect(inr(0)).toBe('₹0');
     });
 
     it('rounds away paise', () => {
@@ -28,7 +34,25 @@ describe('formatMoney.js — central currency formatting', () => {
   describe('num', () => {
     it('formats plain integers with Indian grouping', () => {
       expect(num(120000)).toBe('1,20,000');
+    });
+
+    it('keeps printing 0 for a missing count — a count that was not sent is none', () => {
       expect(num(null)).toBe('0');
+    });
+  });
+
+  describe('litres', () => {
+    it('reads a normal value', () => {
+      expect(litres(120.4)).toBe('120 L');
+    });
+
+    it('renders an em-dash for a missing volume, never 0 L', () => {
+      expect(litres(null)).toBe('—');
+      expect(litres(undefined)).toBe('—');
+    });
+
+    it('still prints 0 L when zero is the real volume', () => {
+      expect(litres(0)).toBe('0 L');
     });
   });
 

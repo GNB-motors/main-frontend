@@ -28,6 +28,10 @@ export const REPORT_GROUPS = [
       // router, which is gated by requireFeature('autoTrips') like this group.
       { id: 'oilAverage', label: 'Oil & Average Report', flag: 'autoTrips' },
       { id: 'fuelCycles', label: 'Fuel Cycles', flag: 'autoTrips' },
+      // Full tank (/api/reports/fuel-cycles/full-tank-tab) is newer than the
+      // rest of this API, so the row is also hidden until the backend says
+      // the endpoint exists — see pages/Reports/fullTankAvailability.js.
+      { id: 'fullTankTab', label: 'Full tank', flag: 'autoTrips' },
       { id: 'nonBusiness', label: 'Non-Business', flag: 'autoTrips' },
       { id: 'runningCost', label: 'Running Cost', flag: 'autoTrips' },
       { id: 'registerMatch', label: 'Trip Register Match', flag: 'autoTrips' },

@@ -68,14 +68,24 @@ describe('destinationOf', () => {
     ).toMatchObject({ text: 'drop not found', state: 'missing' });
   });
 
-  it('marks a guessed drop and keeps the original spelling for the tooltip', () => {
+  it('marks an inferred drop and keeps the original spelling for the tooltip', () => {
     expect(
       destinationOf({
         status: 'NEEDS_REVIEW',
         flags: ['DROP_INFERRED'],
         drop: { name: 'NIMPURA', source: 'INFERRED_TURNAROUND', arrivedAt: '2026-11-03T02:40:00Z' },
       }),
-    ).toEqual({ text: 'Nimpura (guessed)', title: 'NIMPURA', state: 'guessed' });
+    ).toEqual({ text: 'Nimpura (inferred)', title: 'NIMPURA', state: 'guessed' });
+  });
+
+  it('asks for an answer when an inferred drop has no name', () => {
+    expect(
+      destinationOf({
+        status: 'NEEDS_REVIEW',
+        flags: ['DROP_INFERRED'],
+        drop: { name: null, source: 'INFERRED_TURNAROUND', arrivedAt: '2026-11-03T02:40:00Z' },
+      }),
+    ).toEqual({ text: 'inferred, needs your answer', title: null, state: 'guessed' });
   });
 
   it('names a reached drop, or says it has no name', () => {
@@ -163,21 +173,39 @@ describe('needs your answer', () => {
   });
 });
 
-it('uses the final drop as the destination of a multi-drop loaded run', () => {
-  expect(
-    destinationOf({
-      status: 'COMPLETE',
-      drop: { name: 'PATNA', source: 'LABELLED_PLACE' },
-      extraDrops: [{ name: 'NIYAJIPUR' }, { name: 'MASHWRHI' }],
-    }),
-  ).toMatchObject({
-    text: 'Mashwrhi',
-    title: 'MASHWRHI',
-    state: 'reached',
+describe('destinationOf for a trip that stayed open', () => {
+  it('calls a stale trip stale, not on its way', () => {
+    const trip = { status: 'OPEN', flags: ['STALE_OPEN'], drop: { source: 'UNKNOWN' } };
+    expect(destinationOf(trip)).toEqual({
+      text: 'stale, no drop yet',
+      title: null,
+      state: 'missing',
+    });
+  });
+
+  it('keeps saying “on the way” for a trip that is still running', () => {
+    expect(destinationOf({ status: 'OPEN', flags: [] }).text).toBe('on the way');
   });
 });
-it('keeps an unnamed final drop unnamed instead of substituting the first stop', () => {
-  expect(
-    destinationOf({ status: 'COMPLETE', drop: { name: 'PATNA' }, extraDrops: [{ name: null }] }),
-  ).toMatchObject({ state: 'unnamed' });
+
+describe('destinationOf for a multi-drop loaded run', () => {
+  it('uses the final drop as the destination of a multi-drop loaded run', () => {
+    expect(
+      destinationOf({
+        status: 'COMPLETE',
+        drop: { name: 'PATNA', source: 'LABELLED_PLACE' },
+        extraDrops: [{ name: 'NIYAJIPUR' }, { name: 'MASHWRHI' }],
+      }),
+    ).toMatchObject({
+      text: 'Mashwrhi',
+      title: 'MASHWRHI',
+      state: 'reached',
+    });
+  });
+
+  it('keeps an unnamed final drop unnamed instead of substituting the first stop', () => {
+    expect(
+      destinationOf({ status: 'COMPLETE', drop: { name: 'PATNA' }, extraDrops: [{ name: null }] }),
+    ).toMatchObject({ state: 'unnamed' });
+  });
 });

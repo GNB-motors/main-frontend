@@ -7,6 +7,7 @@ import './ReportsPage.css';
 import { getThemeCSS } from '../../utils/colorTheme';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import { DEFAULT_REPORT, resolveReport } from './reportCatalog';
+import { FULL_TANK_REPORT_ID, useFullTankAvailable } from './fullTankAvailability';
 
 import DriverReport from './reports/DriverReport.jsx';
 import VehicleReport from './reports/VehicleReport.jsx';
@@ -15,6 +16,7 @@ import DieselRefuelReport from './reports/DieselRefuelReport.jsx';
 import AdBlueComparisonReport from './reports/AdBlueComparisonReport.jsx';
 import ModelComparisonPage from '../MileageTracking/ModelComparisonPage.jsx';
 import FuelCyclesReport from './reports/FuelCyclesReport.jsx';
+import FullTankTabReport from './reports/FullTankTabReport.jsx';
 import NonBusinessReport from './reports/NonBusinessReport.jsx';
 import RunningCostReport from './reports/RunningCostReport.jsx';
 import OilAverageReport from './reports/OilAverageReport.jsx';
@@ -31,6 +33,7 @@ const REPORT_COMPONENTS = {
   adblueReport: () => <AdBlueComparisonReport />,
   oilAverage: () => <OilAverageReport />,
   fuelCycles: () => <FuelCyclesReport />,
+  fullTankTab: () => <FullTankTabReport />,
   nonBusiness: () => <NonBusinessReport />,
   runningCost: () => <RunningCostReport />,
   registerMatch: () => <RegisterMatchReport />,
@@ -45,6 +48,7 @@ const ReportsPage = () => {
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [searchParams, setSearchParams] = useSearchParams();
   const { isEnabled, loading: flagsLoading } = useFeatureFlags();
+  const { available: fullTankAvailable } = useFullTankAvailable();
 
   // The selected report lives in the URL (?report=vehicle) so a refresh or a
   // shared link opens the same report. Until flags load, trust the URL; after,
@@ -53,7 +57,13 @@ const ReportsPage = () => {
   // the same slice of the business can be compared across two reports.
   const requested = searchParams.get('report') || DEFAULT_REPORT;
   const selectedReport = flagsLoading ? requested : resolveReport(requested, isEnabled);
-  const unsupportedManufacturer = ['registerMatch', 'laneKm'].includes(selectedReport);
+  // The full-tank endpoint is newer than the rest of the Reports API. A
+  // backend that answers 404 has no such report: its row is hidden, and a
+  // direct link to it falls back to the default report instead of opening a
+  // screen that can only show an error.
+  const activeReport =
+    selectedReport === FULL_TANK_REPORT_ID && !fullTankAvailable ? DEFAULT_REPORT : selectedReport;
+  const unsupportedManufacturer = ['registerMatch', 'laneKm'].includes(activeReport);
   useEffect(() => {
     if (!unsupportedManufacturer || !searchParams.has('manufacturer')) return;
     setScopeNotice(
@@ -104,14 +114,14 @@ const ReportsPage = () => {
     return () => observer.disconnect();
   }, []);
 
-  const renderReport = REPORT_COMPONENTS[selectedReport] || REPORT_COMPONENTS[DEFAULT_REPORT];
+  const renderReport = REPORT_COMPONENTS[activeReport] || REPORT_COMPONENTS[DEFAULT_REPORT];
 
   return (
     <div className="reports-page-container" style={themeColors}>
       <ReportsSidebar
         isOpen
         mobileOpen={reportNavOpen}
-        selectedReport={selectedReport}
+        selectedReport={activeReport}
         setSelectedReport={setSelectedReport}
       />
       <div

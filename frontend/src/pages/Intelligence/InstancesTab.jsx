@@ -14,6 +14,7 @@ import { useGoToLink } from '@/utils/redesign/links';
 import IntelligenceDataState from './IntelligenceDataState';
 import IntelligenceService from './IntelligenceService';
 import { INSTANCE_EMPTY_COPY, humanizeDates, isTemplatedText, whenText } from './intelligenceModel';
+import { truncatedNote } from './truncatedLists';
 import {
   eventCountLabel,
   formatLitres,
@@ -141,6 +142,8 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
   const summary = data?.summary ?? null;
   const items = useMemo(() => data?.items ?? [], [data?.items]);
   const total = data?.total ?? 0;
+  // The server says which lists it had to cut; the page says that too.
+  const truncatedText = truncatedNote(data?.truncated);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const [one, many] = NOUNS[activeKind] ?? ['moment', 'moments'];
   const count =
@@ -299,6 +302,11 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
         what="This list of moments"
         onRetry={refetch}
       >
+        {truncatedText ? (
+          <p className="intel-summary-note" role="status">
+            {truncatedText}
+          </p>
+        ) : null}
         {activeKind !== 'fuel_unexplained' ? (
           <DrivingPeriodRead kind={activeKind} summary={summary} total={total} />
         ) : (

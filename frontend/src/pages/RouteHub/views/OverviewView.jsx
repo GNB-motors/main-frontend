@@ -5,6 +5,10 @@ import { L, useLeafletMap, useLayerGroup, cityLayer } from '../routeHubMap';
 import { KpiRow, RefreshButton, Seg } from '../routeHubShared.jsx';
 import { HEALTH, inr, inrK } from '../routeHubFormat';
 import { RANGES, OS_THRESHOLD, OS_MIN_MIN, OS_MAX_HOURS } from './overview/overviewConstants.js';
+import { distanceCoverage } from './overview/overviewDistance.js';
+import ToneBadge from '../../../components/redesign/ToneBadge';
+import { PARTIAL_LABEL } from '../../../utils/measured';
+import { groupTotals, notMeasuredNote } from './deviation/deviationRules.js';
 import NetworkChip from './overview/NetworkChip.jsx';
 import DeviationModule from './overview/DeviationModule.jsx';
 import OverspeedModule from './overview/OverspeedModule.jsx';
@@ -79,9 +83,10 @@ export default function OverviewView({ go, toast, setBadge }) {
   );
 
   // /api/owner-value/utilization returns the distance under fleet.totalKm; the
-  // older totals/top-level keys are kept as fallbacks only.
-  const distanceKm =
-    utilization?.fleet?.totalKm ?? utilization?.totals?.totalKm ?? utilization?.totalKm ?? null;
+  // older totals/top-level keys are kept as fallbacks only. The new backend
+  // sums only the trucks it measured, so the figure says how many it covers.
+  const coverage = distanceCoverage(utilization);
+  const distanceKm = coverage.distanceKm;
   const activeVehicles = utilization?.vehicles?.length ?? vehicles.length;
   // The cards do not share one timeframe: distance follows the window selector,
   // overspeed is clamped to OS_MAX_HOURS, deviations are the currently-open set,
@@ -94,12 +99,17 @@ export default function OverviewView({ go, toast, setBadge }) {
   const noBilledTrips = profit == null || billedTripCount === 0;
   const marginPct = profit?.totals?.marginPct ?? null;
   const revenueInr = profit?.totals?.revenueInr ?? null;
-  const deviationCostKnown =
-    deviationSummary?.openCostInr != null ||
-    openDev.some((d) => d.estimatedExtraCostInr != null);
+  // A detour cost nobody estimated is unknown, not ₹0. The figure counts only
+  // the detours that were measured, and says how many detours are left out.
+  const deviationTotals = groupTotals(openDev);
   const deviationCostInr =
-    deviationSummary?.openCostInr ??
-    openDev.reduce((a, d) => a + (d.estimatedExtraCostInr || 0), 0);
+    deviationSummary?.openCostInr ?? deviationTotals.costInr;
+  const deviationCostKnown =
+    deviationSummary?.openCostInr != null || deviationTotals.costKnown > 0;
+  const deviationCostNote =
+    deviationSummary?.openCostInr != null
+      ? null
+      : notMeasuredNote(deviationTotals.costUnknown, deviationTotals.total);
 
   const kpis = [
     {
@@ -108,17 +118,27 @@ export default function OverviewView({ go, toast, setBadge }) {
       l: 'Distance covered',
       v: distanceKm != null ? Math.round(distanceKm).toLocaleString('en-IN') : '—',
       u: distanceKm != null ? 'km' : '',
-      s:
-        routes.length === 0
-          ? `${activeVehicles} vehicles · no billed routes yet · last ${hours}h`
-          : `${activeVehicles} vehicles on ${routes.length} routes · last ${hours}h`,
+      s: (
+        <>
+          {routes.length === 0
+            ? `${activeVehicles} vehicles · no billed routes yet · last ${hours}h`
+            : `${activeVehicles} vehicles on ${routes.length} routes · last ${hours}h`}
+          {coverage.note ? ` · ${coverage.note}` : ''}
+          {coverage.partial ? (
+            <>
+              {' '}
+              <ToneBadge tone="watch">{PARTIAL_LABEL}</ToneBadge>
+            </>
+          ) : null}
+        </>
+      ),
     },
     {
       ic: 'split',
       l: 'Open deviations',
       v: deviationSummary?.open ?? openDev.length,
       s: deviationCostKnown
-        ? `${inr(deviationCostInr)} est. detour cost · currently open`
+        ? `${inr(deviationCostInr)} est. detour cost · currently open${deviationCostNote ? ` · ${deviationCostNote}` : ''}`
         : 'Detour cost not estimated · currently open',
       c: '#C2323A',
       tint: 'rgba(229,104,107,.14)',

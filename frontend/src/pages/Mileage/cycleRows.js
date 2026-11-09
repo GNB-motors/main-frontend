@@ -51,6 +51,9 @@ export function mapFuelCycleRow(r) {
     tankDelta: num(r.fuel?.tankDelta),
     kmPerLTankToTank: num(r.mileage?.tankToTank),
     kmPerLEcu: num(r.mileage?.ecu),
+    // Where the km/L came from — "from slips" or "from register rows". The
+    // old backend sends no basis at all, and then nothing is said.
+    fullBasis: r.fullBasis ?? null,
     kmCoveragePct: pct(r.coverage?.kmMeasured),
     fuelCoveragePct: pct(r.coverage?.fuelEcu),
     status: r.status || null,

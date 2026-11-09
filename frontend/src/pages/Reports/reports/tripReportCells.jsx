@@ -39,7 +39,14 @@ export function StatusChip({ value }) {
   );
 }
 
-export function FlagChips({ flags }) {
+/**
+ * The flags of a row, as chips.
+ *
+ * `labelFor` gives a flag its own words (the fuel cycles have flags that say
+ * what was not measured). A flag with no word of its own keeps its code, so
+ * a report that does not know a flag still shows something readable.
+ */
+export function FlagChips({ flags, labelFor }) {
   if (!Array.isArray(flags) || flags.length === 0) return <span>—</span>;
   return (
     <span style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap' }}>
@@ -54,7 +61,7 @@ export function FlagChips({ flags }) {
             color: TONES.amber.fg,
           }}
         >
-          {f}
+          {labelFor ? labelFor(f) : f}
         </span>
       ))}
     </span>

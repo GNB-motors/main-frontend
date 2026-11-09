@@ -26,7 +26,9 @@ const STOP_KIND_LABEL = {
 const DROP_NOTE = {
   LABELLED_PLACE: 'drop place',
   HUMAN: 'set by a person',
-  INFERRED_TURNAROUND: 'guessed',
+  // The engine took the turnaround point as the drop; only a person can
+  // confirm it, so the note asks for the answer.
+  INFERRED_TURNAROUND: 'inferred, needs your answer',
 };
 
 /**

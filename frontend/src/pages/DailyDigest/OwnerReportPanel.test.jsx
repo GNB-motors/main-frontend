@@ -124,6 +124,24 @@ describe('OwnerReportPanel', () => {
     expect(screen.getByText('query failed')).toBeTruthy();
   });
 
+  it('says a partly measured section instead of dropping the flag', async () => {
+    fleetViewService.getOwnerReport.mockResolvedValue({
+      ...REPORT,
+      sections: [
+        {
+          id: 'yesterdaysWork',
+          title: "Yesterday's work",
+          state: 'ok',
+          numbers: { trips: 9, km: 325, kmPartial: true },
+          notes: [],
+        },
+      ],
+    });
+    renderPanel();
+    await waitFor(() => expect(screen.getByText('Partly measured')).toBeTruthy());
+    expect(screen.getByText(/Some distance was not measured/)).toBeTruthy();
+  });
+
   it('never prints the drill target, its params or a raw key', async () => {
     renderPanel();
 

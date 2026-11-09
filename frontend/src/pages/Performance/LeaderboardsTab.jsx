@@ -11,6 +11,8 @@ import {
   formatVsExpected,
   methodRows,
   rankLabel,
+  sumLine,
+  unknownKmNote,
   vehicleCoverageRows,
 } from './leaderboardsModel';
 
@@ -127,6 +129,7 @@ function DutyGroup({ group, board }) {
 function BoardCard({ board }) {
   const groups = board.groups || [];
   const direction = board.direction === 'higher' ? 'higher is better' : 'lower is better';
+  const sum = sumLine(board);
 
   return (
     <section className="pf-card">
@@ -139,11 +142,7 @@ function BoardCard({ board }) {
 
       {board.measures ? <p className="pf-sub-title">Measures: {board.measures}</p> : null}
       {board.doesNotMeasure ? <p className="pf-note">{board.doesNotMeasure}</p> : null}
-      {board.numerator ? (
-        <p className="pf-sub">
-          Σ {board.numerator} ÷ Σ {board.denominator}
-        </p>
-      ) : null}
+      {sum ? <p className="pf-sub">{sum}</p> : null}
 
       {groups.length ? (
         groups.map((group) => (
@@ -173,6 +172,7 @@ export default function LeaderboardsTab() {
   );
   const boards = useMemo(() => data?.boards ?? [], [data]);
   const notes = useMemo(() => methodRows(data?.meta), [data]);
+  const unmeasuredTrips = useMemo(() => unknownKmNote(data?.meta), [data]);
 
   return (
     <div className="pf-stack">
@@ -193,6 +193,8 @@ export default function LeaderboardsTab() {
       ) : (
         boards.map((board) => <BoardCard board={board} key={board.key || board.title} />)
       )}
+
+      {unmeasuredTrips ? <p className="pf-note">{unmeasuredTrips}</p> : null}
 
       {notes.length ? (
         <section className="pf-card">

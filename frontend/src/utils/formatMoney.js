@@ -3,16 +3,40 @@
  *
  * formatters.js owns how a rupee amount is printed (full: formatINR, compact
  * tiles: formatInrCompact). This module only adds what financial statements
- * need on top: zero-for-missing totals (inr), em-dash cells (money), signed
- * deltas (signedInr) and Dr/Cr balances (drCr).
+ * need on top: em-dash money cells (inr, money), plain grouped integers (num),
+ * signed deltas (signedInr) and Dr/Cr balances (drCr).
+ *
+ * Two different ideas live here, and they must not be mixed:
+ *
+ * - An **amount** the server did not send is unknown. "No value recorded" and
+ *   "zero rupees" mean different things on a financial statement, so a missing
+ *   amount prints an em-dash. The backend says the same thing: an idle
+ *   segment nobody priced carries `rupees: null` and "must not read as ₹0
+ *   wasted".
+ * - A **count** that is missing means there are none of them. A count is
+ *   zero or a number, so `num` keeps printing 0 for a missing count — turning
+ *   "—" into every empty counter would be a change of meaning, not a fix.
  */
 import { formatINR } from './formatters.js';
 
-/** Full-precision rupees, no paise; a missing value counts as zero. e.g. 1200000 → "₹12,00,000" */
-export const inr = (v) => formatINR(Number(v) || 0);
+/** Full-precision rupees, no paise; a missing amount is an em-dash. e.g. 1200000 → "₹12,00,000" */
+export const inr = (v) =>
+  v === null || v === undefined || v === '' ? '—' : formatINR(Number(v) || 0);
 
-/** Plain Indian-grouped integer. e.g. 120000 → "1,20,000" */
+/**
+ * Plain Indian-grouped integer. e.g. 120000 → "1,20,000"
+ *
+ * This is the count formatter: a count that was not sent is zero, so it stays
+ * "0" and never becomes a dash.
+ */
 export const num = (v) => new Intl.NumberFormat('en-IN').format(v || 0);
+
+/**
+ * Litres as people read them. A volume nobody measured is a dash, not 0 L.
+ * e.g. 120.4 → "120 L"
+ */
+export const litres = (v) =>
+  v === null || v === undefined || v === '' ? '—' : `${num(Math.round(Number(v)))} L`;
 
 /** Percentage of a whole, guarding divide-by-zero. Returns a number, not a string. */
 export const pct = (part, whole) => (whole > 0 ? (part / whole) * 100 : 0);

@@ -1,6 +1,6 @@
 import { Truck, Flame, Droplets } from 'lucide-react';
 import PlaceLabel from '../../../components/ui/PlaceLabel';
-import { inr, num } from '../../../utils/formatMoney.js';
+import { inr, litres, num } from '../../../utils/formatMoney.js';
 import { TypeTile } from '../PlaceHubPanels.jsx';
 import { DRAIN_COLOR } from '../placeHubStyle.js';
 import Frame from './Frame.jsx';
@@ -36,7 +36,7 @@ export default function DrainDetail({ cell, disclaimer, canEdit, onClose, onAdd 
         items={[
           { label: 'Est. loss', value: inr(cell.rupees), tone: 'warn' },
           { label: 'Fuel drops', value: num(cell.events) },
-          { label: 'Litres', value: `${num(Math.round(cell.litres))} L` },
+          { label: 'Litres', value: litres(cell.litres) },
           { label: 'Trucks', value: num(cell.vehicles.length) },
         ]}
       />

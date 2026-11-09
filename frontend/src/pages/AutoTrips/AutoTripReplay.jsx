@@ -7,6 +7,7 @@ import RoadTrailLayer from '../../components/map/RoadTrailLayer';
 import { fmtClock, fmtDayTime } from './autoTripFormat';
 import { routeMapPoints, tripRoadAt, tripRoadLayers } from './autoTripPlaces';
 import { stopKind } from './timelineModel';
+import { SUSPICIOUS_UNLOAD_LABEL, suspiciousDropPoint } from './tripSuspicion';
 import ReplayPlayer from './ReplayPlayer';
 import {
   PATH_COLORS,
@@ -32,6 +33,8 @@ const COLOR = {
   /** The trip starts at the plant (green) and ends at the drop (red). */
   start: '#15803D',
   drop: '#DC2626',
+  /** A suspicious unload: the watch colour, because it asks for a look. */
+  suspicious: '#B45309',
   unknown: '#B45309',
   stop: '#64748B',
 };
@@ -205,6 +208,10 @@ export default function AutoTripReplay({
   const truckAt = onRoad?.truckAt || head;
 
   const pts = useMemo(() => routeMapPoints(trip || {}), [trip]);
+  // A suspicious unload is pinned at the trip's own drop, so a person can see
+  // the exact spot that is worth a look. It is the drop's coordinates — never
+  // an invented point.
+  const suspicious = useMemo(() => suspiciousDropPoint(trip), [trip]);
   const marks = tollMarks(tolls?.passes, head?.at);
   const windowEnd = track?.to ? new Date(track.to).getTime() : null;
   const stopMarks = useMemo(() => {
@@ -268,6 +275,9 @@ export default function AutoTripReplay({
     return {
       start: pin(COLOR.start),
       drop: pin(COLOR.drop),
+      // The suspicious unload wears the watch colour, not the alarm colour: it
+      // asks for a look, it does not accuse anyone.
+      suspicious: pin(COLOR.suspicious),
       unknown: circle('#FFFFFF', 7, COLOR.unknown, 3),
       stop: circle('#FFFFFF', 5, COLOR.stop, 2),
     };
@@ -408,6 +418,15 @@ export default function AutoTripReplay({
                 label={placeLabel(trip?.drop?.name, COLOR.drop)}
                 title={trip?.drop?.name || 'Drop'}
                 zIndex={12}
+              />
+            ) : null}
+            {icons && suspicious ? (
+              <MarkerF
+                position={suspicious}
+                icon={icons.suspicious}
+                label={placeLabel(SUSPICIOUS_UNLOAD_LABEL, COLOR.suspicious)}
+                title={`${SUSPICIOUS_UNLOAD_LABEL} — a person should look at this spot`}
+                zIndex={13}
               />
             ) : null}
             {icons &&

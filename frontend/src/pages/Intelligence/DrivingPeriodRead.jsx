@@ -2,6 +2,7 @@ import { useApi } from '@/hooks/useApi';
 import { formatDuration, formatInr, formatNumber } from '@/utils/redesign/format';
 import IntelligenceService from './IntelligenceService';
 import { humanizeDates } from './intelligenceModel';
+import { truncatedNote } from './truncatedLists';
 import './reportCardsReference.css';
 import './drivingReference.css';
 import '../Vehicle360/panels/overview/referenceOverview.css';
@@ -18,12 +19,14 @@ export function DrivingPeriodRead({
   kind,
   summary,
   total,
+  truncated = [],
   loading = false,
   error = null,
   held = null,
 }) {
   const ready = !loading && !error && !held;
   const count = ready ? summary?.count : null;
+  const truncatedText = truncatedNote(truncated);
   return (
     <section
       className="intel-assessment-briefing"
@@ -57,6 +60,7 @@ export function DrivingPeriodRead({
             : 'Unavailable measurements are shown as a dash.'}
         </small>
         {ready && summary?.why?.basis ? <small>{humanizeDates(summary.why.basis)}</small> : null}
+        {truncatedText ? <small>{truncatedText}</small> : null}
       </div>
       <div className="intel-assessment-brief-kpis">
         {[
@@ -113,6 +117,7 @@ export default function DrivingBriefing({ kind, from, to, vehicle = '', driver =
       kind={kind}
       summary={data?.summary}
       total={data?.total}
+      truncated={data?.truncated}
       loading={loading}
       error={error}
       held={data?.held ? data.why : null}

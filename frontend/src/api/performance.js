@@ -18,6 +18,16 @@ const getFull = async (path, params = {}, signal) => {
 };
 
 /**
+ * A budget for the reads that are slow on the largest organisation: the first
+ * load of the fleet tables and the leaderboards takes about 34 s there, so the
+ * 30 s default would abort a healthy answer. It is set per call — the axios
+ * interceptor only widens the default for known-slow paths, and
+ * /api/performance is deliberately not one of them, so the other performance
+ * reads keep the default budget.
+ */
+const SLOW_READ_TIMEOUT = 120000;
+
+/**
  * The Performance API — wave 5.
  *
  * Every number the page shows arrives as a cell:
@@ -28,9 +38,12 @@ const getFull = async (path, params = {}, signal) => {
  * insufficient_data. Nothing in this file turns a missing reading into 0 —
  * the page renders the cell exactly as the server sent it.
  */
-const get = async (path, params = {}, signal) => {
+const get = async (path, params = {}, signal, timeout) => {
   try {
-    const response = await apiClient.get(`${BASE}${path}`, { params, signal });
+    const config = { params, signal };
+    // Only the heavy reads carry their own budget; the rest keep the default.
+    if (timeout) config.timeout = timeout;
+    const response = await apiClient.get(`${BASE}${path}`, config);
     return response.data?.data ?? response.data ?? {};
   } catch (error) {
     // A cancelled request is not a failure — useApi swallows it.
@@ -41,17 +54,17 @@ const get = async (path, params = {}, signal) => {
 
 export const PerformanceApi = {
   /** { window, vehicles: [{ vehicleKey, vehicleId, registration, provider, kmPerL, idlePct, topGearPct, overRevPct, healthFindings }] } */
-  vehicles: (params = {}, signal) => get('/vehicles', params, signal),
+  vehicles: (params = {}, signal) => get('/vehicles', params, signal, SLOW_READ_TIMEOUT),
   /** { vehicle, gearRpm, health, efficiencyDrift, harshEvents } */
   vehicle: (vehicleId, params = {}, signal) =>
     get(`/vehicles/${encodeURIComponent(vehicleId)}`, params, signal),
   /** { window, drivers: [{ driverId, name, dnaScore, harshPer100Km, idlePct, vehicles }] } */
-  drivers: (params = {}, signal) => get('/drivers', params, signal),
+  drivers: (params = {}, signal) => get('/drivers', params, signal, SLOW_READ_TIMEOUT),
   /** { driver, dna } — the DNA payload with every number as a cell. */
   driver: (driverId, params = {}, signal) =>
     get(`/drivers/${encodeURIComponent(driverId)}`, params, signal),
   /** { window, boards: [{ key, label, rows: [{ rank, subjectId, subjectName, score }] }] } */
-  leaderboards: (params = {}, signal) => get('/leaderboards', params, signal),
+  leaderboards: (params = {}, signal) => get('/leaderboards', params, signal, SLOW_READ_TIMEOUT),
   /**
    * The learned duty-group boards — GET /api/leaderboards/boards.
    * { window, dataAsOf, boards: [{ key, title, unit, direction, measures, doesNotMeasure,

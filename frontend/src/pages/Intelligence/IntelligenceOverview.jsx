@@ -3,6 +3,7 @@ import { formatDuration, formatNumber } from '@/utils/redesign/format';
 import IntelligenceKpi from './IntelligenceKpi';
 import IntelligenceService from './IntelligenceService';
 import { ISSUE_GROUPS, groupIssuesByKind } from './intelligenceModel';
+import { truncatedNoteFor } from './truncatedLists';
 
 const sameReg = (a, b) =>
   String(a ?? '')
@@ -39,7 +40,7 @@ function useInstanceSummary(kind, { from, to, vehicle }) {
   );
   if (loading) return { state: 'loading' };
   if (error || !data || data.held || !data.summary) return { state: 'unknown', why: data?.why };
-  return { state: 'ok', summary: data.summary };
+  return { state: 'ok', summary: data.summary, truncated: data.truncated };
 }
 
 /**
@@ -99,6 +100,9 @@ export default function IntelligenceOverview({
   const overspeedSummary = overspeed.summary;
   const detourSummary = detours.summary;
   const detourKm = String(detourSummary?.why?.text ?? '').match(/about ([\d.,]+) km/i)?.[1];
+  // The server says when it had to cut a list; the count behind it is then a
+  // lower bound, so the reader is told.
+  const detourCut = truncatedNoteFor(detours.truncated, ['detour']);
 
   return (
     <section aria-label="This period at a glance" className="intel-kpi-strip">
@@ -159,9 +163,12 @@ export default function IntelligenceOverview({
         tone="info"
         context={
           detours.state === 'ok'
-            ? detourKm
-              ? `${detourKm} km off the usual road`
-              : 'Runs that left the usual road'
+            ? [
+                detourKm ? `${detourKm} km off the usual road` : 'Runs that left the usual road',
+                detourCut,
+              ]
+                .filter(Boolean)
+                .join(' · ')
             : detours.state === 'loading'
               ? 'Loading…'
               : 'Not available for this period'

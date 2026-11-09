@@ -8,8 +8,11 @@ import {
   deviationGroupSubtitle,
   deviationGroupTitle,
   groupByTrip,
+  groupSummaryText,
+  groupTotals,
   legLabel,
   matchesSearch,
+  notMeasuredNote,
   runWindow,
   tripLabel,
 } from './deviationRules';
@@ -106,6 +109,159 @@ describe('groupByTrip', () => {
     expect(enrichmentReason(groups[0].events[2])).toContain(
       'Extra distance and cost are not calculated',
     );
+  });
+});
+
+describe('group totals: an unmeasured detour is never a zero', () => {
+  it('adds up only the detours that were measured', () => {
+    const groups = groupByTrip([
+      ev('e1', 't1', 9),
+      ev('e2', 't1', 11, { extraKmEstimate: null, estimatedExtraCostInr: null }),
+      ev('e3', 't1', 13),
+    ]);
+    const g = groups[0];
+    expect(g.extraKm).toBe(8);
+    expect(g.costInr).toBe(400);
+    expect(g.totals.extraUnknown).toBe(1);
+    expect(g.totals.costUnknown).toBe(1);
+  });
+
+  it('has no distance and no cost when nothing in the group was measured', () => {
+    const groups = groupByTrip([
+      ev('e1', 't1', 9, { extraKmEstimate: null, estimatedExtraCostInr: null }),
+      ev('e2', 't1', 11, { extraKmEstimate: null, estimatedExtraCostInr: null }),
+    ]);
+    const g = groups[0];
+    expect(g.extraKm).toBeNull();
+    expect(g.costInr).toBeNull();
+    expect(g.totals.extraUnknown).toBe(2);
+    expect(g.totals.costUnknown).toBe(2);
+  });
+
+  it('treats a field the old backend never sent as not measured', () => {
+    const rows = [
+      { _id: 'e1', registrationNumber: 'WB25R9540', startedAt: at(9), trip: { autoTripId: 't1' } },
+    ];
+    const g = groupByTrip(rows)[0];
+    expect(g.extraKm).toBeNull();
+    expect(g.costInr).toBeNull();
+    expect(g.totals.extraUnknown).toBe(1);
+    expect(g.totals.costUnknown).toBe(1);
+  });
+
+  it('keeps a measured zero a zero', () => {
+    const groups = groupByTrip([
+      ev('e1', 't1', 9, { extraKmEstimate: 0, estimatedExtraCostInr: 0, maxOffKm: 0.4 }),
+    ]);
+    const g = groups[0];
+    expect(g.extraKm).toBe(0);
+    expect(g.costInr).toBe(0);
+  });
+
+  it('leaves out a detour with no usual road to compare against', () => {
+    const groups = groupByTrip([
+      ev('e1', 't1', 9, { extraKmEstimate: 0, estimatedExtraCostInr: 0, maxOffKm: 5 }),
+    ]);
+    const g = groups[0];
+    expect(g.extraKm).toBeNull();
+    expect(g.costInr).toBeNull();
+    expect(g.totals.extraUnknown).toBe(1);
+  });
+});
+
+describe('notMeasuredNote', () => {
+  it('says how many of how many detours were not measured', () => {
+    expect(notMeasuredNote(2, 5)).toBe('2 of 5 detours not measured');
+    expect(notMeasuredNote(1, 3)).toBe('1 of 3 detours not measured');
+  });
+
+  it('says nothing when every detour was measured', () => {
+    expect(notMeasuredNote(0, 5)).toBeNull();
+    expect(notMeasuredNote(2, 0)).toBeNull();
+  });
+
+  it('says one detour in the singular', () => {
+    expect(notMeasuredNote(1, 1)).toBe('1 of 1 detour not measured');
+  });
+});
+
+describe('groupSummaryText', () => {
+  it('shows the known sum and how many detours were not measured', () => {
+    const g = {
+      events: [
+        ev('e1', 't1', 9),
+        ev('e2', 't1', 11, { extraKmEstimate: null, estimatedExtraCostInr: null }),
+        ev('e3', 't1', 13),
+        ev('e4', 't1', 15, { extraKmEstimate: null, estimatedExtraCostInr: null }),
+        ev('e5', 't1', 17),
+      ],
+    };
+    const text = groupSummaryText(g);
+    expect(text).toContain('5 detours');
+    expect(text).toContain('+12.0 km');
+    expect(text).toContain('2 of 5 detours not measured');
+    expect(text).toContain('₹600');
+  });
+
+  it('shows a dash, never 0 km or ₹0, when nothing in the group was measured', () => {
+    const g = {
+      events: [
+        ev('e1', 't1', 9, { extraKmEstimate: null, estimatedExtraCostInr: null }),
+        ev('e2', 't1', 11, { extraKmEstimate: null, estimatedExtraCostInr: null }),
+      ],
+    };
+    const text = groupSummaryText(g);
+    expect(text).toContain('—');
+    expect(text).toContain('2 of 2 detours not measured');
+    expect(text).not.toContain('₹0');
+    expect(text).not.toContain('0 km');
+  });
+
+  it('keeps a measured zero a zero', () => {
+    const g = {
+      events: [ev('e1', 't1', 9, { extraKmEstimate: 0, estimatedExtraCostInr: 0, maxOffKm: 0.4 })],
+    };
+    const text = groupSummaryText(g);
+    expect(text).toContain('+0.0 km');
+    expect(text).toContain('₹0');
+  });
+
+  it('says one detour in the singular', () => {
+    const g = {
+      events: [ev('e1', 't1', 9, { extraKmEstimate: null, estimatedExtraCostInr: null })],
+    };
+    const text = groupSummaryText(g);
+    expect(text).toContain('1 detour ·');
+    expect(text).toContain('1 of 1 detour not measured');
+    expect(text).not.toContain('1 detours');
+  });
+});
+
+describe('groupTotals', () => {
+  it('counts what it left out', () => {
+    const totals = groupTotals([
+      ev('e1', 't1', 9),
+      ev('e2', 't1', 11, { extraKmEstimate: null, estimatedExtraCostInr: null }),
+    ]);
+    expect(totals).toMatchObject({
+      extraKm: 4,
+      costInr: 200,
+      extraKnown: 1,
+      extraUnknown: 1,
+      costKnown: 1,
+      costUnknown: 1,
+      total: 2,
+    });
+  });
+
+  it('is empty for an empty group', () => {
+    expect(groupTotals([])).toMatchObject({
+      extraKm: null,
+      costInr: null,
+      extraUnknown: 0,
+      costUnknown: 0,
+      total: 0,
+    });
   });
 });
 

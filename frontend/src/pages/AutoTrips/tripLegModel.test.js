@@ -7,6 +7,8 @@ import {
   legKilometres,
   legTone,
   legWord,
+  unattributedKm,
+  unknownDriveText,
 } from './tripLegModel';
 
 describe('legWord', () => {
@@ -86,6 +88,28 @@ describe('REPOSITION_INFO', () => {
   it('explains that plant-to-plant is normal', () => {
     expect(REPOSITION_INFO).toMatch(/This is normal/);
     expect(REPOSITION_INFO).not.toMatch(/error|problem|check/i);
+  });
+});
+
+describe('distance the server could not attribute', () => {
+  it('keeps the unattributed km out of the bar', () => {
+    const trip = { km: { laden: 117, unattributed: 38 } };
+    expect(unattributedKm(trip)).toBe(38);
+    expect(legKilometres(trip).map((leg) => leg.km)).toEqual([117]);
+    expect(legBarSegments(trip).map((segment) => segment.km)).toEqual([117]);
+  });
+
+  it('says nothing when there is no unattributed distance', () => {
+    expect(unattributedKm({ km: { laden: 117 } })).toBeNull();
+    expect(unattributedKm({ km: { unattributed: 0 } })).toBeNull();
+    expect(unattributedKm({})).toBeNull();
+  });
+
+  it('says why a drive had no load label', () => {
+    expect(unknownDriveText({ unknownDriveReason: 'DROP_UNKNOWN' })).toBe(
+      'Drop not found, so this drive has no load label',
+    );
+    expect(unknownDriveText({})).toBeNull();
   });
 });
 

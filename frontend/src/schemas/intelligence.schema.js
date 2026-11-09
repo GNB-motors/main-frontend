@@ -36,8 +36,8 @@ export const IntelligenceSummaryPayloadSchema = z
         loadedKm: z.number().nullable(),
         emptyKm: z.number().nullable(),
         repositionKm: z.number().nullable(),
-        loadedTrips: z.number(),
-        plantToPlant: z.number(),
+        loadedTrips: z.number().nullable().optional(),
+        plantToPlant: z.number().nullable().optional(),
         emptySharePct: z.number().nullable(),
         why: WhySchema,
       })

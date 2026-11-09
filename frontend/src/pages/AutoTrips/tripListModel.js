@@ -63,6 +63,11 @@ export function destinationOf(trip) {
   const drop = extraDrops.at(-1) ?? trip?.drop ?? null;
   const flags = trip?.flags || [];
   if (trip?.status === 'OPEN' && !drop?.arrivedAt) {
+    // A trip that stayed open past the limit is stale, not on its way: there is
+    // no ETA to show for it.
+    if (flags.includes('STALE_OPEN')) {
+      return { text: 'stale, no drop yet', title: null, state: 'missing' };
+    }
     return { text: 'on the way', title: null, state: 'moving' };
   }
   if (
@@ -77,9 +82,11 @@ export function destinationOf(trip) {
     (!extraDrops.length && flags.includes('DROP_INFERRED')) ||
     drop.source === 'INFERRED_TURNAROUND'
   ) {
+    // The drop was inferred, so it needs a person to confirm it. The row says
+    // so rather than calling the place a guess.
     return name
-      ? { text: `${titleCasePlace(name)} (guessed)`, title: name, state: 'guessed' }
-      : { text: 'drop guessed', title: null, state: 'guessed' };
+      ? { text: `${titleCasePlace(name)} (inferred)`, title: name, state: 'guessed' }
+      : { text: 'inferred, needs your answer', title: null, state: 'guessed' };
   }
   if (!name) return { text: 'unnamed drop place', title: null, state: 'unnamed' };
   return { text: titleCasePlace(name), title: name, state: 'reached' };

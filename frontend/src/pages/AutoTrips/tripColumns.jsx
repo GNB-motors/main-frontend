@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import SapPill from '../Sap/SapPill';
 import { BASIS_LABEL } from '../Sap/sapModel';
-import { FLAG_LABEL } from './autoTripPlaces';
 import TripStatus from './TripStatus';
+import { flagReasons } from './tripFlags';
+import { PARTIAL_LABEL } from '../../utils/measured';
 import { fmtDayTime, fmtKm } from './autoTripFormat';
+import { SUSPICIOUS_UNLOAD_LABEL, SUSPICIOUS_UNLOAD_REASON, isSuspiciousUnload } from './tripSuspicion';
 import { tripDetailHref } from './tripWorkspace';
 import { allUnknown, loadedKm, loadedMin, minutesOnRoad } from './tripListModel';
 import { DriverCell, RouteCell, TimeCell } from './TripCells';
@@ -74,13 +76,17 @@ export default function tripColumns({
       align: 'right',
       render: (r) => {
         const km = loadedKm(r);
-        if (km == null) return <span className="atx-cell-quiet">—</span>;
+        const badge = r.kmPartial ? (
+          <span className="atx-chip atx-chip--watch">{PARTIAL_LABEL}</span>
+        ) : null;
+        if (km == null) return <span className="atx-cell-quiet">—{badge}</span>;
         return (
           <span
             className="atx-num"
             title={r.km?.ladenOdo != null ? 'From the odometer' : 'From the GPS path'}
           >
             {fmtKm(km)}
+            {badge}
           </span>
         );
       },
@@ -103,10 +109,27 @@ export default function tripColumns({
       width: '142px',
       label: 'Status',
       render: (r) => {
-        const checks = (r.flags || []).map((f) => FLAG_LABEL[f] || f);
+        const checks = flagReasons(r);
+        // A suspicious unload is worth a person's attention, so the row says so
+        // in a badge rather than hiding it in the tooltip.
+        const suspicious = isSuspiciousUnload(r);
         return (
-          <span title={checks.length ? `To check: ${checks.join(', ')}` : undefined}>
+          <span
+            className="atx-status-cell"
+            title={
+              checks.length
+                ? `To check: ${checks.join(', ')}`
+                : suspicious
+                  ? SUSPICIOUS_UNLOAD_REASON
+                  : undefined
+            }
+          >
             <TripStatus status={r.status} />
+            {suspicious ? (
+              <span className="atx-chip atx-chip--watch" title={SUSPICIOUS_UNLOAD_REASON}>
+                {SUSPICIOUS_UNLOAD_LABEL}
+              </span>
+            ) : null}
           </span>
         );
       },

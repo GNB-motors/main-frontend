@@ -6,6 +6,7 @@
  * another is working, and it usually saves an empty run. It is never shown
  * as an error and never as something that needs a check.
  */
+import { isMeasured } from '../../utils/measured';
 
 /** The word for each leg. */
 export const LEG_WORDS = {
@@ -60,6 +61,27 @@ export function legKilometres(trip) {
     { kind: 'REPOSITION', km: km.repositionOdo ?? km.reposition ?? null },
   ].filter((leg) => leg.km !== null && leg.km !== undefined && Number(leg.km) > 0);
   return legs;
+}
+
+/**
+ * The km the server could not attribute to a leg: real distance, but not loaded
+ * and not empty either. It never joins the bar's shares — it is said on its own
+ * line, so the bar keeps telling the truth about the legs it does know.
+ */
+export function unattributedKm(trip) {
+  const km = trip?.km?.unattributed;
+  return isMeasured(km) && Number(km) > 0 ? Number(km) : null;
+}
+
+/** Why a drive had no load label, in plain words. */
+export function unknownDriveText(trip) {
+  const reason = trip?.unknownDriveReason;
+  if (!reason) return null;
+  return (
+    {
+      DROP_UNKNOWN: 'Drop not found, so this drive has no load label',
+    }[reason] || 'This drive could not be attributed to a load'
+  );
 }
 
 /**

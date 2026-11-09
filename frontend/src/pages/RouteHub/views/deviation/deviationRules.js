@@ -1,3 +1,6 @@
+import { sumKnown } from '../../../../utils/measured';
+import { inr } from '../../routeHubFormat';
+
 export const STATUS_FILTERS = [
   { key: 'all', label: 'All statuses' },
   { key: 'OPEN', label: 'Please review', ic: 'alert', c: '#C56200' },
@@ -53,6 +56,60 @@ export function extraKnown(d) {
 export function costKnown(d) {
   if (!extraKnown(d)) return false;
   return d.estimatedExtraCostInr != null;
+}
+
+/**
+ * The totals of a group of detours. Only the detours whose figure was
+ * measured go into a sum: a detour the server could not measure is unknown,
+ * and adding it as zero would report a distance nobody drove. The sum is
+ * null when nothing was measured, so the screen can print a dash instead of
+ * 0 km or ₹0, and the `unknown` counts say how many detours are left out.
+ */
+export function groupTotals(events = []) {
+  const list = Array.isArray(events) ? events : [];
+  const extra = sumKnown(list.map((d) => (extraKnown(d) ? d.extraKmEstimate : null)));
+  const cost = sumKnown(list.map((d) => (costKnown(d) ? d.estimatedExtraCostInr : null)));
+  return {
+    extraKm: extra.sum,
+    costInr: cost.sum,
+    extraKnown: extra.known,
+    extraUnknown: extra.unknown,
+    costKnown: cost.known,
+    costUnknown: cost.unknown,
+    total: list.length,
+  };
+}
+
+/**
+ * "2 of 5 detours not measured" - how many detours a sum leaves out. Null
+ * when every one of them was measured, so there is nothing to say.
+ */
+export function notMeasuredNote(unknown, total, noun = 'detour') {
+  if (!unknown || !total) return null;
+  return `${unknown} of ${total} ${total === 1 ? noun : `${noun}s`} not measured`;
+}
+
+/**
+ * The one-line summary of a group of detours: how many detours, the extra
+ * distance and the extra cost. A figure nobody measured is a dash, never
+ * 0 km or ₹0, and a partly measured figure says how many detours it left
+ * out.
+ */
+export function groupSummaryText(g) {
+  const events = g?.events || [];
+  const totals = groupTotals(events);
+  const extraNote = notMeasuredNote(totals.extraUnknown, totals.total);
+  const costNote = notMeasuredNote(totals.costUnknown, totals.total);
+  const extra =
+    totals.extraKm != null
+      ? `+${Number(totals.extraKm).toFixed(1)} km`
+      : 'extra km —';
+  const cost = totals.costInr != null ? inr(totals.costInr) : 'cost —';
+  return [
+    `${events.length} ${events.length === 1 ? 'detour' : 'detours'}`,
+    `${extra}${extraNote ? ` (${extraNote})` : ''}`,
+    `${cost}${costNote ? ` (${costNote})` : ''}`,
+  ].join(' · ');
 }
 
 /** Why a detour can be shown without an extra-distance/cost estimate. */
@@ -144,6 +201,10 @@ export function matchesSearch(d, q) {
 /**
  * Rows grouped by the trip they happened on, in the order the feed sorted
  * them. A run outside any trip is its own group.
+ *
+ * The group totals count only what was measured: a group where nothing was
+ * measured has no distance and no cost (both null), and says how many of its
+ * detours were not measured.
  */
 export function groupByTrip(rows) {
   const groups = [];
@@ -158,22 +219,24 @@ export function groupByTrip(rows) {
         trip: d.trip || null,
         registrationNumber: d.registrationNumber,
         events: [],
-        extraKm: 0,
-        costInr: 0,
+        extraKm: null,
+        costInr: null,
         open: 0,
       };
       groups.push(g);
       if (id) byTrip.set(id, g);
     }
     g.events.push(d);
-    if (extraKnown(d)) g.extraKm += Number(d.extraKmEstimate);
-    if (costKnown(d)) g.costInr += Number(d.estimatedExtraCostInr);
     if (isOpen(d)) g.open += 1;
   }
   for (const g of groups) {
     g.events.sort(
       (a, b) => new Date(a.startedAt || a.detectedAt) - new Date(b.startedAt || b.detectedAt),
     );
+    const totals = groupTotals(g.events);
+    g.extraKm = totals.extraKm;
+    g.costInr = totals.costInr;
+    g.totals = totals;
   }
   return groups;
 }

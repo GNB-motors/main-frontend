@@ -7,6 +7,7 @@ import {
   deviationGroupSubtitle,
   deviationGroupTitle,
   extraKnown,
+  groupSummaryText,
   enrichmentReason,
   isOpen,
   legLabel,
@@ -94,18 +95,7 @@ export default function DeviationFeed({
           </div>
           <span className="sp" />
           {g.events.length > 1 ? (
-            <span className="muted dev-group-sum">
-              {g.events.length} detours
-              {g.events.some(extraKnown)
-                ? ` · +${g.events
-                    .filter(extraKnown)
-                    .reduce((sum, d) => sum + Number(d.extraKmEstimate), 0)
-                    .toFixed(1)} km${g.events.every(extraKnown) ? '' : ' measured'}`
-                : ''}
-              {g.events.some(costKnown)
-                ? ` · ${inr(g.events.filter(costKnown).reduce((sum, d) => sum + Number(d.estimatedExtraCostInr), 0))}${g.events.every(costKnown) ? '' : ' estimated for known detours'}`
-                : ''}
-            </span>
+            <span className="muted dev-group-sum">{groupSummaryText(g)}</span>
           ) : null}
         </div>
         {g.events.map((d) => (

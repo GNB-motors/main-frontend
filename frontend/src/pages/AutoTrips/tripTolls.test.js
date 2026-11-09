@@ -191,3 +191,48 @@ it('shows the reconciled ledger amount separately from crossing estimates', () =
   );
   expect(tollLedgerText({ total: null })).toBeNull();
 });
+
+describe('the server’s own toll coverage', () => {
+  it('says when only part of the road was matched', () => {
+    expect(
+      tollSummary({
+        passes: [{}],
+        total: { inr: 590, priced: 1 },
+        basis: 'ROAD_PARTIAL',
+        unmatchedKm: 12.4,
+      }),
+    ).toBe('1 toll plaza · ₹590 estimated · partial · 12 km of the road not matched');
+  });
+
+  it('says the unmatched distance is unknown when the server did not say', () => {
+    expect(
+      tollSummary({ passes: [{}], total: { inr: 590, priced: 1 }, basis: 'ROAD_PARTIAL' }),
+    ).toBe('1 toll plaza · ₹590 estimated · partial · unmatched distance unknown');
+  });
+
+  it('says a total that is not final is not final', () => {
+    expect(tollSummary({ passes: [{}], total: { inr: 590, priced: 1, complete: false } })).toBe(
+      '1 toll plaza · ₹590 estimated · not final',
+    );
+  });
+
+  it('never turns an amount the server did not send into ₹0', () => {
+    expect(tollSummary({ passes: [{}], total: { priced: 1, inr: null } })).toBe(
+      '1 toll plaza · amount unknown',
+    );
+  });
+});
+
+describe('a leg with no toll passes', () => {
+  it('says nothing, as it did before', () => {
+    expect(tollSummary({ passes: [], status: 'STALE' })).toBeNull();
+    expect(tollSummary({ passes: [], status: 'FALLBACK' })).toBeNull();
+  });
+
+  it('still says what the server said about its coverage', () => {
+    expect(tollSummary({ passes: [], basis: 'ROAD_PARTIAL', unmatchedKm: 12 })).toBe(
+      'partial · 12 km of the road not matched',
+    );
+    expect(tollSummary({ passes: [], total: { complete: false } })).toBe('not final');
+  });
+});

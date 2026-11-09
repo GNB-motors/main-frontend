@@ -1,4 +1,6 @@
 import { formatINR } from '../../../utils/formatters';
+import ToneBadge from '@/components/redesign/ToneBadge';
+import { PARTIAL_LABEL } from '../../../utils/measured';
 
 export default function NdImpactItems({ rows, total }) {
   return rows.map((r) => {
@@ -18,6 +20,8 @@ export default function NdImpactItems({ rows, total }) {
               {r.label}
             </span>
             {pct > 0 && <span className="nd-impact-pct-pill">{pct}%</span>}
+            {r.coverage ? <span className="nd-impact-pct-pill">{r.coverage}</span> : null}
+            {r.partial ? <ToneBadge tone="watch">{PARTIAL_LABEL}</ToneBadge> : null}
           </div>
           <span
             className={`nd-impact-item-amount ${notMeasured || r.v === 0 ? 'nd-zero' : ''}`}

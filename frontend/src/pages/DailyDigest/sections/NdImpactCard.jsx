@@ -14,6 +14,8 @@ import {
   MapPinOff,
 } from 'lucide-react';
 import { formatINR } from '../../../utils/formatters';
+import { sumKnown } from '../../../utils/measured';
+import { fleetAttribution } from '../../../utils/measuredAttribution';
 import NdImpactItems from './NdImpactItems.jsx';
 
 export default function NdImpactCard({
@@ -23,6 +25,10 @@ export default function NdImpactCard({
   downtime,
   rangeLabel = 'today',
 }) {
+  // The utilization response's fleet: the empty-running waste covers only the
+  // trucks whose empty-km cost was measured.
+  const fleet = utilization?.fleet ?? null;
+  const attribution = fleetAttribution(fleet, utilization);
   const lost = [
     {
       key: 'idling',
@@ -59,7 +65,9 @@ export default function NdImpactCard({
     {
       key: 'empty',
       label: 'Empty-running waste',
-      v: utilization?.fleet?.emptyKmWasteInr ?? null,
+      v: fleet?.emptyKmWasteInr ?? null,
+      coverage: attribution.note,
+      partial: attribution.partial,
       c: '#0D9488',
       tint: 'rgba(13, 148, 136, 0.12)',
       icon: Gauge,
@@ -123,9 +131,21 @@ export default function NdImpactCard({
   // A channel with no measurable baseline comes back null ("not measured"), not
   // 0 — it must not read as "no waste", and it must not drag the totals. Null
   // contributes nothing to the sums and is never an "active" category.
-  const total = lost.reduce((s, r) => s + (r.v || 0), 0);
-  const riskTotal = risk.reduce((s, r) => s + (r.v || 0), 0);
+  const totalSum = sumKnown(lost.map((r) => r.v));
+  const riskSum = sumKnown(risk.map((r) => r.v));
+  const total = totalSum.sum;
+  const riskTotal = riskSum.sum;
   const activeCount = lost.filter((r) => r.v > 0).length;
+  // "All nominal" is only true when every channel was measured and none of
+  // them lost anything; a partly measured day says how much was measured.
+  const impactBadge =
+    totalSum.known === 0
+      ? 'Not measured'
+      : totalSum.known < totalSum.total
+        ? `${totalSum.known} of ${totalSum.total} channels measured`
+        : activeCount > 0
+          ? `${activeCount} active categories`
+          : 'All nominal';
 
   return (
     <div className="nd-card nd-card--impact" id="nd-impact">
@@ -141,9 +161,7 @@ export default function NdImpactCard({
             <TrendingDown size={13} />
             <span>Total loss {rangeLabel === 'today' ? 'today' : `· ${rangeLabel}`}</span>
           </span>
-          <span className="nd-impact-count-badge">
-            {activeCount > 0 ? `${activeCount} active categories` : 'All nominal'}
-          </span>
+          <span className="nd-impact-count-badge">{impactBadge}</span>
         </div>
         <div className="nd-v">{formatINR(total)}</div>
         <div className="nd-n">

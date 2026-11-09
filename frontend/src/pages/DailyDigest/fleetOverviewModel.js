@@ -1,4 +1,5 @@
 import { istDayString } from '../../utils/dateUtils';
+import { fleetAttribution } from '../../utils/measuredAttribution.js';
 import { cellNumber } from '../Performance/performanceCells';
 
 export const numeric = (value) =>
@@ -56,18 +57,34 @@ export function buildOverview(digest, legacy = null, work = null) {
     : places != null && disconnected != null
       ? places + disconnected
       : null;
-  const loadedKm =
+  // The digest's runs block: how complete the day's distance is, which leg it
+  // could not measure and how much it could not attribute. The old backend
+  // sends none of it, so every field stays absent.
+  const runs = digest?.runs ?? null;
+  const noTripLegs = runs?.why?.reason === 'NO_TRIPS';
+  const runsPartial = runs?.coverage === 'partial' || Boolean(runs?.kmPartial);
+  const runsMissingParts = Array.isArray(runs?.kmMissingParts) ? runs.kmMissingParts : [];
+  const runsUnknownKm = numeric(digest?.unknownKm ?? runs?.unknownKm);
+  // The utilization response's fleet: how many trucks a fleet figure covers.
+  // It describes the fleet only while the fleet is the source of the distance.
+  const fromFleet = !(work && 'loadedKm' in work);
+  const attribution = fleetAttribution(legacy?.utilization?.fleet, legacy?.utilization);
+  const rawLoadedKm =
     work && 'loadedKm' in work
       ? numeric(work.loadedKm)
       : legacy
         ? numeric(legacy.utilization?.fleet?.loadedKm)
         : (cell(cards.loaded, 'Distance covered') ?? distance(cards.loaded));
-  const emptyKm =
+  const rawEmptyKm =
     work && 'emptyKm' in work
       ? numeric(work.emptyKm)
       : legacy
         ? numeric(legacy.utilization?.fleet?.emptyKm)
         : (cell(cards.empty, 'Empty running') ?? distance(cards.empty));
+  // A day without trip legs has no distance to attribute: it reads "no trip
+  // legs for this day", never "0 km".
+  const loadedKm = noTripLegs ? null : rawLoadedKm;
+  const emptyKm = noTripLegs ? null : rawEmptyKm;
 
   const attention = legacy
     ? (legacy.actions || []).map((a) => ({
@@ -156,11 +173,18 @@ export function buildOverview(digest, legacy = null, work = null) {
     emptyKm,
     loadedTrips: numeric(work?.trips),
     runningPartial: Boolean(work?.kmPartial || work?.emptyKmPartial),
-    runningReason:
-      legacy?.utilization?.fleet?.reason ||
-      cards.loaded?.why?.text ||
-      cards.empty?.why?.text ||
-      null,
+    runningCoverage: fromFleet ? attribution.note : null,
+    runningCoveragePartial: fromFleet ? attribution.partial : false,
+    runsPartial,
+    runsMissingParts,
+    runsUnknownKm,
+    noTripLegs,
+    runningReason: noTripLegs
+      ? 'No trip legs for this day'
+      : legacy?.utilization?.fleet?.reason ||
+        cards.loaded?.why?.text ||
+        cards.empty?.why?.text ||
+        null,
     drivers,
     followUps: digest?.needsAttention || [],
     issueNote: legacy

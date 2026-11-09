@@ -141,3 +141,50 @@ describe('deviationDetailModel', () => {
     expect(model.exitAt).toBe('2026-11-01T14:55:00Z');
   });
 });
+
+describe('deviationDetailModel: an unmeasured figure is never a zero', () => {
+  it('keeps a null distance and cost null', () => {
+    const model = deviationDetailModel(null, {
+      extraKmEstimate: null,
+      estimatedExtraCostInr: null,
+    });
+    expect(model.extraKmEstimate).toBeNull();
+    expect(model.costInr).toBeNull();
+    expect(model.cost).toBe('—');
+    expect(model.extraKnown).toBe(false);
+    expect(model.costKnown).toBe(false);
+  });
+
+  it('treats a field the old backend never sent as not measured', () => {
+    const model = deviationDetailModel(null, { startedAt: '2026-11-01T14:55:00Z' });
+    expect(model.extraKmEstimate).toBeNull();
+    expect(model.costInr).toBeNull();
+    expect(model.cost).toBe('—');
+    expect(model.extraKnown).toBe(false);
+    expect(model.costKnown).toBe(false);
+  });
+
+  it('keeps a measured zero a zero', () => {
+    const model = deviationDetailModel(null, {
+      extraKmEstimate: 0,
+      estimatedExtraCostInr: 0,
+      maxOffKm: 0.4,
+    });
+    expect(model.extraKmEstimate).toBe(0);
+    expect(model.costInr).toBe(0);
+    expect(model.cost).toBe('₹0');
+    expect(model.extraKnown).toBe(true);
+    expect(model.costKnown).toBe(true);
+  });
+
+  it('knows a detour with no usual road to compare against was not measured', () => {
+    const model = deviationDetailModel(null, {
+      extraKmEstimate: 0,
+      estimatedExtraCostInr: 0,
+      maxOffKm: 5,
+    });
+    expect(model.extraKnown).toBe(false);
+    expect(model.costKnown).toBe(false);
+    expect(model.cost).toBe('₹0');
+  });
+});

@@ -167,12 +167,31 @@ describe('placeIntelligenceModel', () => {
   });
 
   it('names states in plain words with reserved tones', () => {
-    expect(placeState({ status: 'PROPOSED' })).toMatchObject({ key: 'review', tone: 'warn' });
+    expect(placeState({ status: 'PROPOSED' })).toMatchObject({
+      key: 'review',
+      label: 'Proposed',
+      tone: 'warn',
+    });
     expect(placeState({ status: 'CONFIRMED' })).toMatchObject({ label: 'Confirmed', tone: 'ok' });
     expect(
       placeState({ status: 'CONFIRMED', engine: { evidenceLevel: 'CONFLICT' } }).label,
     ).toMatch(/disagrees/);
     expect(placeState({ status: 'REJECTED' })).toMatchObject({ label: 'Not a place' });
+  });
+
+  it('says who knows a place: the system proposed it, a person confirmed it, or nobody did', () => {
+    // The system's own reading — nobody has answered for this place.
+    expect(placeState({ status: 'PROPOSED' }).label).toBe('Proposed');
+    // A person answered for this place.
+    expect(placeState({ status: 'CONFIRMED' }).label).toBe('Confirmed');
+    // No status at all: the old wording still asks for an answer.
+    expect(placeState({})).toMatchObject({
+      key: 'review',
+      label: 'Needs your answer',
+      tone: 'warn',
+    });
+    // No place at all is not a zero — it is nothing measured.
+    expect(placeState(null)).toEqual({ key: 'unknown', label: '—', tone: 'neutral' });
   });
 
   it('titles a place by name, else by type and town — never by raw status', () => {
@@ -271,6 +290,8 @@ describe('placeIntelligenceModel', () => {
     ];
     expect(filterPlaces(sites, 'all').map((s) => s._id)).toEqual(['a', 'b']);
     expect(filterPlaces(sites, 'confirmed').map((s) => s._id)).toEqual(['a']);
+    // A proposed place is never swallowed by the confirmed group — it has its own.
+    expect(filterPlaces(sites, 'proposed').map((s) => s._id)).toEqual(['b']);
     expect(filterPlaces(sites, 'risk').map((s) => s._id)).toEqual(['b']);
     expect(filterPlaces(sites, 'rejected').map((s) => s._id)).toEqual(['c']);
     expect(filterPlaces(sites, 'all', 'fuel').map((s) => s._id)).toEqual(['b']);
