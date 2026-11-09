@@ -29,7 +29,7 @@ export const KMPL_DROP_LIMIT = 0.1;
 /** The badge for a cycle that was checked against the oil report. */
 export const RECONCILED_COPY = {
   label: 'From your oil report',
-  tip: 'These cycles were checked against your oil report (bills) for 14 Sep – 6 Oct.',
+  tip: 'These cycles were checked against your oil report (bills).',
 };
 
 /** What a DEF percentage means, for the tip beside the column. */
@@ -67,14 +67,16 @@ export function kmPerLTone(kmPerL, usualKmPerL) {
 /** watch when DEF use sits outside the 3–6% band; nothing when it sits inside. */
 export function defPctTone(defPct, band = DEF_BAND) {
   if (defPct == null) return null;
-  const { min, max } = band ?? DEF_BAND;
+  const min = band?.min ?? DEF_BAND.min;
+  const max = band?.max ?? DEF_BAND.max;
   if (defPct < min || defPct > max) return 'watch';
   return null;
 }
 
 /** "normal 3–6% of diesel" — the caption under a DEF percentage. */
 export function defBandCaption(band = DEF_BAND) {
-  const { min, max } = band ?? DEF_BAND;
+  const min = band?.min ?? DEF_BAND.min;
+  const max = band?.max ?? DEF_BAND.max;
   return `normal ${min}–${max}% of diesel`;
 }
 

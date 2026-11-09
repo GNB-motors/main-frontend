@@ -354,13 +354,10 @@ export default function ReplayView({ params, toast }) {
             fontWeight: 500,
           }}
         >
-          ⚠️ Showing the newest {trailMeta.shown.toLocaleString('en-IN')}
+          ⚠️ Showing {trailMeta.shown.toLocaleString('en-IN')}
           {trailMeta.totalCount ? ` of ${trailMeta.totalCount.toLocaleString('en-IN')}` : ''}{' '}
-          position fixes — this window was truncated by the server cap
-          {trailMeta.actualFrom
-            ? `, so the replay starts at ${new Date(trailMeta.actualFrom).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
-            : ''}
-          . Narrow the date range to see the full trail.
+          position fixes — sampled evenly across the whole window to stay within the server cap. The
+          full time span is shown at reduced detail; narrow the date range to see every fix.
         </div>
       ) : null}
 

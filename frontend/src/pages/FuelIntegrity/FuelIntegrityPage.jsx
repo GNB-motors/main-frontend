@@ -1,3 +1,5 @@
+import { useApi } from '../../hooks/useApi';
+import { normalisePumpLedger } from './pumpHonestyModel';
 import ManufacturerFilter from '../../components/filters/ManufacturerFilter';
 import useManufacturerFilter from '../../hooks/useManufacturerFilter';
 import {
@@ -114,6 +116,20 @@ const FuelIntegrityPage = () => {
     return params;
   }, [manufacturer, vehicle, fromDate, toDate]);
 
+  // Pumps are a fleet ledger; the endpoint supports date and manufacturer scope.
+  const pumpParams = {
+    ...(manufacturer ? { manufacturer } : {}),
+    ...(fromDate ? { from: istDayStartISO(fromDate) } : {}),
+    ...(toDate ? { to: istDayEndISO(toDate) } : {}),
+  };
+  const pumpScope = JSON.stringify(pumpParams);
+  const { refetch: refreshPumpLedger, ...pumpLedger } = useApi(
+    (signal) =>
+      FuelIntegrityService.getPumpLedger(pumpParams, { signal }).then(normalisePumpLedger),
+    [pumpScope],
+    { scopeKey: pumpScope },
+  );
+
   const controllerRef = useRef(null);
   const lastFetchRef = useRef(0);
 
@@ -161,12 +177,13 @@ const FuelIntegrityPage = () => {
     try {
       await FuelIntegrityService.triggerSync();
       await fetchData();
+      refreshPumpLedger();
     } catch (err) {
       setError(err.message || 'Could not reconcile FleetEdge telemetry.');
     } finally {
       setIsSyncing(false);
     }
-  }, [fetchData]);
+  }, [fetchData, refreshPumpLedger]);
 
   useEffect(() => {
     setSummary(null);
@@ -180,11 +197,15 @@ const FuelIntegrityPage = () => {
     setPage(1);
     fetchData();
     const pollInterval = setInterval(() => {
-      if (!document.hidden) fetchData({ silent: true });
+      if (!document.hidden) {
+        fetchData({ silent: true });
+        refreshPumpLedger();
+      }
     }, POLL_MS);
     const onVisible = () => {
       if (document.visibilityState === 'visible' && Date.now() - lastFetchRef.current >= POLL_MS) {
         fetchData({ silent: true });
+        refreshPumpLedger();
       }
     };
     document.addEventListener('visibilitychange', onVisible);
@@ -193,7 +214,7 @@ const FuelIntegrityPage = () => {
       document.removeEventListener('visibilitychange', onVisible);
       controllerRef.current?.abort();
     };
-  }, [fetchData]);
+  }, [fetchData, refreshPumpLedger]);
 
   useEffect(() => {
     setPage(1);
@@ -332,7 +353,10 @@ const FuelIntegrityPage = () => {
           <IntegrityHeaderActions
             exportColumns={exportColumns}
             exportRows={exportRows}
-            fetchData={fetchData}
+            fetchData={() => {
+              refreshPumpLedger();
+              return fetchData();
+            }}
             filteredEvents={filteredEvents}
             handleSyncIoT={handleSyncIoT}
             isLoading={isLoading}
@@ -398,11 +422,12 @@ const FuelIntegrityPage = () => {
           {/* ── Refuel advisory & pump honesty ─────────────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <RefuelAdvisoryCard />
-            <PumpsWatchCard />
+            <PumpsWatchCard ledger={pumpLedger} />
           </div>
 
           {/* ── Operational Mission Control Workspace ────────────────────────── */}
           <FuelIntegrityTables
+            pumpLedger={pumpLedger}
             isLoading={isLoading}
             filteredCount={filteredEvents.length}
             pageEvents={pageEvents}

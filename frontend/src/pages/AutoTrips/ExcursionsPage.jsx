@@ -8,6 +8,7 @@ import DataTable from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { useApi } from '../../hooks/useApi';
+import { formatInIST } from '../../utils/dateUtils';
 import ExcursionService from '../../services/ExcursionService';
 
 const TABS = [
@@ -33,18 +34,7 @@ const STATUS_LABEL = {
 
 const PAGE_SIZE = 50;
 
-function fmtDate(v) {
-  if (!v) return '—';
-  const d = new Date(v);
-  return Number.isNaN(d.getTime())
-    ? '—'
-    : d.toLocaleString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-}
+const fmtDate = (value) => formatInIST(value, 'DD MMM, hh:mm A') ?? '—';
 const km = (v) => (v == null ? '—' : `${Math.round(v)} km`);
 const litres = (v) => (v == null ? '—' : `${Number(v).toFixed(1)} L`);
 

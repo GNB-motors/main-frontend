@@ -1,5 +1,6 @@
 import { toISTDateString } from '../../../../utils/dateUtils';
 import { haversineKm } from '../../../LiveTracking/geoMath';
+import { serviceDistance } from '../../serviceDistance';
 import { daysSince } from '../../vehicle360Logic';
 
 export const numeric = (value) =>
@@ -104,26 +105,10 @@ export function fluidLevels(overview, health, fleetMaster, ialert) {
   ];
 }
 
-export function serviceProgress(prediction, health, overview) {
-  const current =
-    numeric(overview?.odometer?.value) ??
-    numeric(health?.canOdo) ??
-    numeric(prediction?.currentOdometer);
-  const last = numeric(prediction?.lastServiceOdometer) ?? numeric(health?.lastServiceKm);
-  const next = numeric(prediction?.projectedServiceDueOdometer) ?? numeric(health?.nextServiceKm);
-  const remaining =
-    current != null && next != null ? next - current : numeric(prediction?.kmUntilDue);
-  const percent =
-    current != null && last != null && next != null && next > last
-      ? Math.max(0, Math.min(100, ((current - last) / (next - last)) * 100))
-      : null;
+export function serviceProgress(prediction, health) {
   return {
-    current,
-    last,
-    next,
-    remaining,
-    percent,
-    age: daysSince(overview?.odometer?.at ?? health?.pulledAt),
+    ...serviceDistance(prediction, health),
+    age: daysSince(prediction?.currentOdometer != null ? prediction?.computedAt : health?.pulledAt),
   };
 }
 

@@ -53,7 +53,9 @@ export default function RouteLayer({
     const listeners = [];
     for (const line of lines.filter((l) => !l.legs[0].inPlant)) {
       const color = neutral ? (isDark ? '#cbd5e1' : '#475569') : routeColor(line.runs, isDark);
-      const width = neutral ? Math.min(3, Math.max(1, 1 + (line.runs / max) * 2)) : routeWidth(line.runs, max);
+      const width = neutral
+        ? Math.min(3, Math.max(1, 1 + (line.runs / max) * 2))
+        : routeWidth(line.runs, max);
       for (const path of line.segments) {
         const casing = new window.google.maps.Polyline({
           map,
@@ -269,7 +271,7 @@ export default function RouteLayer({
       {tooltip.line.legs.length > 1 ? ' (both directions)' : ''}
       <br />
       {tooltip.line.runs} runs · usual {minutesLabel(tooltip.line.legs[0].stats?.minutes?.p50)} ·{' '}
-      {kmLabel(tooltip.line.legs[0].path?.km)}
+      {kmLabel(tooltip.line.legs[0].stats?.km?.p50)}
       <br />
       {tooltip.line.source === 'NONE'
         ? 'Straight-line link'

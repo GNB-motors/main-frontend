@@ -1,19 +1,8 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import {
-  AlertCircle,
-  CheckCircle,
-  HelpCircle,
-  ShieldAlert,
-  Fuel,
-  MapPin,
-  Search,
-  Building2,
-  TrendingDown,
-} from 'lucide-react';
+import { useState } from 'react';
+import { ShieldAlert, Fuel, MapPin, Search } from 'lucide-react';
 import { formatINR, formatLitres } from '../../utils/formatters';
 import { StatusPill } from '../../components/overview.primitives.jsx';
 import TablePager from './TablePager.jsx';
-import { FuelIntegrityService } from './FuelIntegrityService.js';
 import { cleanStationName } from './fiData.js';
 
 const PAGE_SIZE = 10;
@@ -28,93 +17,36 @@ const STATUS_MAP = {
   INSUFFICIENT_DATA: { tone: 'inert', label: 'Needs More Fills' },
 };
 
-/** Derive a honesty status from shortfall percentage and fill count. */
-function derivePumpStatus(shortfallPct, fills) {
-  if (fills < 3) return 'INSUFFICIENT_DATA';
-  if (shortfallPct <= 1) return 'HONEST';
-  if (shortfallPct <= 3) return 'RELIABLE';
-  if (shortfallPct <= 6) return 'SUSPICIOUS';
-  if (shortfallPct <= 10) return 'UNRELIABLE';
-  return 'CHRONIC_SHORTAGE';
-}
-
-export default function PumpHonestyPanel() {
-  const [summary, setSummary] = useState(null);
-  const [pumps, setPumps] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function PumpHonestyPanel({ ledger = {} }) {
+  const { data, loading, error } = ledger;
+  const summary = data?.summary;
+  const pumps = data?.pumps || [];
   const [page, setPage] = useState(1);
-  const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-
-  useEffect(() => {
-    let active = true;
-    async function loadData() {
-      setLoading(true);
-      setError(null);
-      try {
-        const ledger = await FuelIntegrityService.getPumpLedger();
-        if (!active) return;
-        const pumpList = (ledger.pumps || []).map((p) => ({
-          pumpName: p.pump,
-          fillCount: p.fills,
-          totalBilledLitres: p.claimedLitres,
-          totalShortageLitres: p.shortfallLitres,
-          totalRupeeLoss: p.estimatedLossInr,
-          shortfallPct: p.shortfallPct,
-          status: derivePumpStatus(p.shortfallPct, p.fills),
-          lat: p.lat,
-          lng: p.lng,
-          lastFillAt: p.lastFillAt,
-          _id: p.pump,
-        }));
-        const totalShort = pumpList.reduce((s, p) => s + (p.totalShortageLitres || 0), 0);
-        const totalLoss = pumpList.reduce((s, p) => s + (p.totalRupeeLoss || 0), 0);
-        const totalFills = pumpList.reduce((s, p) => s + (p.fillCount || 0), 0);
-        const chronicCount = pumpList.filter(
-          (p) => p.status === 'CHRONIC_SHORTAGE' || p.status === 'CHRONIC_DEFICIT',
-        ).length;
-        setSummary({
-          totalAuditedFills: totalFills,
-          totalShortLitres: totalShort,
-          totalRupeeLoss: totalLoss,
-          chronicPumpsCount: chronicCount,
-        });
-        setPumps(pumpList);
-      } catch (err) {
-        if (active) setError(err.message || 'Failed to load pump ledger');
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-    loadData();
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const filteredPumps = useMemo(() => {
-    if (!searchQuery.trim()) return pumps;
-    const q = searchQuery.toLowerCase();
-    return pumps.filter((p) => {
-      const name = (p.pumpName || '').toLowerCase();
-      const loc = (p.location || '').toLowerCase();
-      return name.includes(q) || loc.includes(q);
-    });
-  }, [pumps, searchQuery]);
+  const query = searchQuery.trim().toLowerCase();
+  const filteredPumps = pumps.filter((p) => !query || p.pumpName?.toLowerCase().includes(query));
 
   const totalPages = Math.max(1, Math.ceil(filteredPumps.length / PAGE_SIZE));
-  const pagePumps = filteredPumps.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const currentPage = Math.min(page, totalPages);
+  const pagePumps = filteredPumps.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   if (loading) {
     return <div className="ov-inset h-48 animate-pulse rounded-xl" />;
   }
 
   if (error) {
-    return <div className="text-dim py-8 text-center text-sm text-red-500">{error}</div>;
+    return (
+      <div className="text-dim py-8 text-center text-sm text-red-500">
+        {error.displayMessage || error.message || 'Could not load the pump ledger.'}
+      </div>
+    );
   }
 
   return (
     <div className="pump-honesty-container flex flex-col gap-4">
+      {data?.windowLabel ? (
+        <p className="text-xs text-slate-500 m-0">Fleet pumps · {data.windowLabel}</p>
+      ) : null}
       {/* Top Rollup Metrics */}
       {summary && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-50 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
@@ -193,7 +125,7 @@ export default function PumpHonestyPanel() {
               const isShort = (p.totalShortageLitres || 0) > 0;
               const billedL = p.totalBilledLitres || 0;
               const shortL = p.totalShortageLitres || 0;
-              const shortPct = billedL > 0 ? (shortL / billedL) * 100 : 0;
+              const shortPct = p.shortfallPct ?? (billedL > 0 ? (shortL / billedL) * 100 : 0);
 
               return (
                 <div key={p.pumpId || p._id || p.pumpName} className="fi-bunk-card">
@@ -274,7 +206,7 @@ export default function PumpHonestyPanel() {
 
           {totalPages > 1 && (
             <div className="pt-2">
-              <TablePager page={page} totalPages={totalPages} onPageChange={setPage} />
+              <TablePager page={currentPage} totalPages={totalPages} onPageChange={setPage} />
             </div>
           )}
         </>

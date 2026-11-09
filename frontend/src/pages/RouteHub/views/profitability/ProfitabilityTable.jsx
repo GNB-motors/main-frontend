@@ -11,7 +11,7 @@ export default function ProfitabilityTable({ routes, selected, setSelId, target,
           <Ico n="split" />
         </span>
         <h3>Route profitability benchmark</h3>
-        <span className="hint">Per trip averages · select a route for its cost breakdown</span>
+        <span className="hint">Total distance in window · money shown as per trip averages</span>
       </div>
       <div className="tblwrap">
         <table className="tbl">
@@ -19,7 +19,7 @@ export default function ProfitabilityTable({ routes, selected, setSelId, target,
             <tr>
               <th>Rank</th>
               <th>Route</th>
-              <th className="num">Distance</th>
+              <th className="num">Total distance</th>
               <th className="num">Trips</th>
               <th className="num">Avg invoiced rev</th>
               <th className="num">Avg running cost</th>

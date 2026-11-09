@@ -1,52 +1,36 @@
-import React, { useMemo } from 'react';
 import { Fuel } from 'lucide-react';
-import { useApi } from '../../hooks/useApi';
-import { KaaranService } from '../../services/KaaranService';
 import { formatINR, formatLitres, formatNum, formatPct } from '../../utils/formatters';
 import { MAX_PUMP_ROWS, pumpRow, sortPumps } from './pumpHonestyModel.js';
 import { PumpArt } from './FuelIntegrityEmptyArt.jsx';
 
 const MAX_ROWS = MAX_PUMP_ROWS;
 const STATUS_BADGE = {
+  HONEST: 'fi-status-badge--confirmed',
   RELIABLE: 'fi-status-badge--confirmed',
+  UNRELIABLE: 'fi-status-badge--flagged',
   SUSPICIOUS: 'fi-status-badge--flagged',
   CHRONIC_SHORTAGE: 'fi-status-badge--critical',
 };
 
-/** The backend's codes, in words a person would use. */
+/** Shared watchlist statuses in the owner's words. */
 const STATUS_LABEL = {
-  RELIABLE: 'Reliable',
+  HONEST: 'Honest delivery',
+  RELIABLE: 'Reliable delivery',
+  UNRELIABLE: 'Unreliable',
+  INSUFFICIENT_DATA: 'Needs more fills',
   SUSPICIOUS: 'Suspicious',
   CHRONIC_SHORTAGE: 'Chronic shortage',
 };
 
-/**
- * Kaaran pump honesty — the ledger the pump call returns: what the pump
- * billed against what the tank sensor measured, and the rupee gap.
- * The API allows managers, owners and super admins; anyone else gets a
- * one-line note instead of a broken card.
- */
-export default function PumpsWatchCard() {
-  const { data, loading, error } = useApi(
-    () =>
-      Promise.all([KaaranService.getPumpLedger(), KaaranService.getPumpSummary()]).then(
-        ([pumps, stats]) => ({
-          pumps: Array.isArray(pumps) ? pumps : [],
-          stats: stats || {},
-        }),
-      ),
-    [],
-  );
-
-  const rows = useMemo(
-    () => sortPumps((data?.pumps || []).map(pumpRow)).slice(0, MAX_ROWS),
-    [data],
-  );
-  const stats = data?.stats || {};
+/** The card and watchlist receive the same ledger response from their page. */
+export default function PumpsWatchCard({ ledger = {} }) {
+  const { data, loading, error } = ledger;
+  const rows = sortPumps((data?.pumps || []).map(pumpRow)).slice(0, MAX_ROWS);
+  const stats = data?.summary || {};
   // With no pump audited there is nothing to count: the zeros would read as
   // findings, so the numbers go away and the explanation line does the talking.
   const auditedPumps = Array.isArray(data?.pumps) ? data.pumps.length : 0;
-  const showStats = auditedPumps > 0;
+  const showStats = !loading && !error && auditedPumps > 0;
   const pumpCount = Math.max(Number(stats.totalPumpsEvaluated) || 0, auditedPumps);
 
   return (
@@ -69,11 +53,15 @@ export default function PumpsWatchCard() {
         ) : null}
       </header>
 
-      {loading && !data ? (
+      {!loading && !error && data?.windowLabel ? (
+        <p className="text-xs text-slate-500 m-0">Fleet pumps · {data.windowLabel}</p>
+      ) : null}
+
+      {loading ? (
         <div className="h-20 animate-pulse rounded-xl bg-slate-200/60 dark:bg-slate-800/60" />
       ) : error ? (
         <p className="text-xs text-slate-500 m-0">
-          The pump ledger is not available for this account — it is read by managers and owners.
+          Could not load the pump ledger. Try again shortly.
         </p>
       ) : rows.length === 0 ? (
         <div className="fi-empty-art">

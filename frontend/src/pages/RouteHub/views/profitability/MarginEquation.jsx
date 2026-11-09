@@ -41,7 +41,7 @@ export default function MarginEquation({ first, totals }) {
             {first ? <Skel w={96} h={24} /> : totals.costInr != null ? inrK(totals.costInr) : '—'}
           </div>
           <div className="d">
-            GPS odometer km, diesel refuels, AdBlue top-ups, Fastag toll debits and trip allowances.
+            GPS odometer km, diesel refuels, AdBlue top-ups, toll and trip allowances.
           </div>
         </div>
         <span className="op">=</span>
