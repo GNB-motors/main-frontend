@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   ALL_TIME,
+  dateOf,
   rangeLabel,
   rangeToParams,
   readRange,
@@ -87,6 +88,11 @@ describe('rangeLabel', () => {
 
 describe('ymdOf', () => {
   it('keeps the calendar day the person picked', () => {
-    expect(ymdOf(new Date(2026, 9, 1))).toBe('2026-10-01');
+    expect(ymdOf(dateOf('2026-10-01'))).toBe('2026-10-01');
   });
+});
+
+it('reads a calendar instant in IST even when UTC is still on the previous day', () => {
+  expect(ymdOf(new Date('2026-09-30T20:00:00Z'))).toBe('2026-10-01');
+  expect(new Date(dateOf('2026-10-01').getTime()).toISOString()).toBe('2026-09-30T18:30:00.000Z');
 });

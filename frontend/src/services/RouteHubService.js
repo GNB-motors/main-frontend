@@ -58,17 +58,17 @@ function normaliseProfitability(data) {
   const routes = (data.routes || []).map((r) => {
     const avgRevenueInr = r.avgRevenuePerTripInr ?? 0;
     const avgCostInr = r.avgRunningCostPerTripInr ?? 0;
-    const km = r.distanceKm || r.routeDistanceKm || 0;
+    const km = r.distanceKm ?? null;
     return {
       ...r,
       originCity: r.origin?.city || null,
       destCity: r.destination?.city || null,
-      distanceKm: r.routeDistanceKm ?? r.distanceKm ?? null,
+      distanceKm: km,
       avgRevenueInr,
       avgCostInr,
       avgMarginInr: avgRevenueInr - avgCostInr,
-      revenuePerKm: km ? (r.revenueInr || 0) / km : 0,
-      costPerKm: km ? (r.runningCostInr || 0) / km : 0,
+      revenuePerKm: km > 0 && r.revenueInr != null ? r.revenueInr / km : null,
+      costPerKm: km > 0 && r.runningCostInr != null ? r.runningCostInr / km : null,
       costBreakdown: (r.costBreakdown || []).map((s) => ({ ...s, key: s.slice })),
       path: decodePolyline(r.geometry?.encodedPolyline),
     };

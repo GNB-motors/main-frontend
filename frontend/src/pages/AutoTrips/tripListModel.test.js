@@ -38,7 +38,11 @@ describe('destinationOf', () => {
 
   it('says plainly when no drop was found', () => {
     expect(
-      destinationOf({ status: 'NEEDS_REVIEW', flags: ['DROP_UNKNOWN'], drop: { source: 'UNKNOWN' } }),
+      destinationOf({
+        status: 'NEEDS_REVIEW',
+        flags: ['DROP_UNKNOWN'],
+        drop: { source: 'UNKNOWN' },
+      }),
     ).toMatchObject({ text: 'drop not found', state: 'missing' });
   });
 
@@ -53,9 +57,15 @@ describe('destinationOf', () => {
   });
 
   it('names a reached drop, or says it has no name', () => {
-    const reached = { status: 'COMPLETE', drop: { name: 'NIMPURA', source: 'LABELLED_PLACE', arrivedAt: 'x' } };
+    const reached = {
+      status: 'COMPLETE',
+      drop: { name: 'NIMPURA', source: 'LABELLED_PLACE', arrivedAt: 'x' },
+    };
     expect(destinationOf(reached)).toEqual({ text: 'Nimpura', title: 'NIMPURA', state: 'reached' });
-    const unnamed = { status: 'COMPLETE', drop: { name: null, source: 'LABELLED_PLACE', arrivedAt: 'x' } };
+    const unnamed = {
+      status: 'COMPLETE',
+      drop: { name: null, source: 'LABELLED_PLACE', arrivedAt: 'x' },
+    };
     expect(destinationOf(unnamed)).toMatchObject({ text: 'unnamed drop place', state: 'unnamed' });
   });
 });
@@ -129,4 +139,23 @@ describe('needs your answer', () => {
     const queue = placeQueue([{ tripsAffected: 2 }, { tripsAffected: 8 }, { tripsAffected: 5 }], 2);
     expect(queue).toEqual({ places: 3, trips: 15, top: 2, topTrips: 13 });
   });
+});
+
+it('uses the final drop as the destination of a multi-drop loaded run', () => {
+  expect(
+    destinationOf({
+      status: 'COMPLETE',
+      drop: { name: 'PATNA', source: 'LABELLED_PLACE' },
+      extraDrops: [{ name: 'NIYAJIPUR' }, { name: 'MASHWRHI' }],
+    }),
+  ).toMatchObject({
+    text: 'Mashwrhi',
+    title: 'MASHWRHI',
+    state: 'reached',
+  });
+});
+it('keeps an unnamed final drop unnamed instead of substituting the first stop', () => {
+  expect(
+    destinationOf({ status: 'COMPLETE', drop: { name: 'PATNA' }, extraDrops: [{ name: null }] }),
+  ).toMatchObject({ state: 'unnamed' });
 });

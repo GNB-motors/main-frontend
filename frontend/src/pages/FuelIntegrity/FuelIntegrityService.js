@@ -4,6 +4,7 @@ import { parseSafe } from '../../schemas/validate.js';
 import { normaliseWindowsPayload } from './fuelWindows.js';
 
 /** The schema module is loaded on demand so zod stays out of the main chunk. */
+const importPumpLedger = () => import('../../schemas/pumpLedger.schema.js');
 const importFuelIntegrityV2 = () => import('../../schemas/mileageV2.schema.js');
 
 /**
@@ -64,7 +65,11 @@ export const FuelIntegrityService = {
   getPumpLedger: async (params = {}, { signal } = {}) => {
     try {
       const response = await apiClient.get(`/api/fuel-integrity/pump-ledger`, { params, signal });
-      return response.data?.data || {};
+      return await parseSafe(
+        'pumpLedgerSchema',
+        importPumpLedger,
+        response.data?.data || { pumps: [] },
+      );
     } catch (error) {
       if (error?.code === 'ERR_CANCELED') throw error;
       throw ApiError.from(error);

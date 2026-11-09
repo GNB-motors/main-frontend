@@ -45,16 +45,24 @@ export function titleCasePlace(name) {
  * `title` keeps the place's own spelling for the tooltip.
  */
 export function destinationOf(trip) {
-  const drop = trip?.drop || null;
+  const extraDrops = trip?.extraDrops || [];
+  const drop = extraDrops.at(-1) ?? trip?.drop ?? null;
   const flags = trip?.flags || [];
   if (trip?.status === 'OPEN' && !drop?.arrivedAt) {
     return { text: 'on the way', title: null, state: 'moving' };
   }
-  if (flags.includes('DROP_UNKNOWN') || drop?.source === 'UNKNOWN' || !drop) {
+  if (
+    (!extraDrops.length && flags.includes('DROP_UNKNOWN')) ||
+    drop?.source === 'UNKNOWN' ||
+    !drop
+  ) {
     return { text: 'drop not found', title: null, state: 'missing' };
   }
   const name = drop.name || (drop.areaName ? `${drop.areaName} area` : null);
-  if (flags.includes('DROP_INFERRED') || drop.source === 'INFERRED_TURNAROUND') {
+  if (
+    (!extraDrops.length && flags.includes('DROP_INFERRED')) ||
+    drop.source === 'INFERRED_TURNAROUND'
+  ) {
     return name
       ? { text: `${titleCasePlace(name)} (guessed)`, title: name, state: 'guessed' }
       : { text: 'drop guessed', title: null, state: 'guessed' };
@@ -167,7 +175,8 @@ export function needReasons(items) {
   const counts = { DROP_UNKNOWN: 0, DROP_INFERRED: 0, OTHER: 0 };
   (Array.isArray(items) ? items : []).forEach((trip) => {
     const flags = trip?.flags || [];
-    if (flags.includes('DROP_UNKNOWN') || trip?.drop?.source === 'UNKNOWN') counts.DROP_UNKNOWN += 1;
+    if (flags.includes('DROP_UNKNOWN') || trip?.drop?.source === 'UNKNOWN')
+      counts.DROP_UNKNOWN += 1;
     else if (flags.includes('DROP_INFERRED') || trip?.drop?.source === 'INFERRED_TURNAROUND')
       counts.DROP_INFERRED += 1;
     else counts.OTHER += 1;

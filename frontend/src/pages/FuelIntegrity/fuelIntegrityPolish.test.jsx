@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { normalisePumpLedger } from './pumpHonestyModel';
 import PumpsWatchCard from './PumpsWatchCard';
 import RefuelAdvisoryCard from './RefuelAdvisoryCard';
 import MassBalancePipeline from './integrity/MassBalancePipeline';
@@ -80,46 +81,28 @@ describe('Fuel Integrity cards', () => {
   });
 
   it('drops the pump numbers when no pump has been audited', () => {
-    useApi.mockReturnValue({
-      data: { pumps: [], stats: { totalPumpsEvaluated: 0, chronicPumpsCount: 0 } },
-      loading: false,
-      error: null,
-    });
-
-    render(<PumpsWatchCard />);
-
+    render(<PumpsWatchCard ledger={{ data: normalisePumpLedger({ pumps: [] }) }} />);
     expect(screen.getByText(/No pump fills audited yet/)).toBeInTheDocument();
     expect(screen.queryByText(/pumps ·/)).not.toBeInTheDocument();
   });
 
   it('names the pump status in words when there is one', () => {
-    useApi.mockReturnValue({
-      data: {
+    const ledger = {
+      data: normalisePumpLedger({
         pumps: [
           {
-            pumpName: 'Dankuni pump',
-            honestyStatus: 'CHRONIC_SHORTAGE',
-            totalFills: 4,
-            totalBilledL: 1200,
-            totalMeasuredL: 1000,
-            shortfallL: 200,
-            variancePercent: 16.7,
-            rupeeImpact: 19000,
+            pump: 'Dankuni pump',
+            fills: 4,
+            claimedLitres: 1200,
+            actualLitres: 1000,
+            shortfallLitres: 200,
+            shortfallPct: 16.7,
+            estimatedLossInr: 19000,
           },
         ],
-        stats: {
-          totalPumpsEvaluated: 1,
-          chronicPumpsCount: 1,
-          totalShortfallL: 200,
-          totalRupeeLoss: 19000,
-        },
-      },
-      loading: false,
-      error: null,
-    });
-
-    render(<PumpsWatchCard />);
-
+      }),
+    };
+    render(<PumpsWatchCard ledger={ledger} />);
     expect(screen.getByText('Chronic shortage')).toBeInTheDocument();
     expect(screen.queryByText('CHRONIC_SHORTAGE')).not.toBeInTheDocument();
     expect(screen.getByText('1 pumps · 1 chronic')).toBeInTheDocument();
@@ -139,7 +122,9 @@ describe('Fuel Integrity mass balance strip', () => {
       />,
     );
     expect(screen.getByText('1. Fuel in (tank sensor)')).toBeInTheDocument();
-    expect(screen.getByText(/Fuel in, engine burn and tank change side by side/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Fuel in, engine burn and tank change side by side/),
+    ).toBeInTheDocument();
   });
 
   it('keeps the chips and the step labels in sentence case', () => {

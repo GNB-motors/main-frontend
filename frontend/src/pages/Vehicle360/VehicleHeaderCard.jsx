@@ -133,7 +133,7 @@ export default function VehicleHeaderCard({ reg, profile, onGoTab }) {
   const [fuel, def] = fluidLevels(overview.data, health, vehicle, ialert);
   const view = viewOf(livePosition);
   const axles = vehicleAxles(vehicle);
-  const svc = serviceState(prediction);
+  const svc = serviceState(prediction, health);
   const model = [
     vehicle?.manufacturer || fleetEdge?.manufacturer,
     vehicle?.model || ialert?.vehicleModel || fleetEdge?.vehicleModel,

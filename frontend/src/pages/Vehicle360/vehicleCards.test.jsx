@@ -4,6 +4,8 @@ import { MemoryRouter } from 'react-router-dom';
 import FleetDataService from '../../services/FleetDataService';
 import billPhotoService from '../../services/billPhotoService';
 import VehicleHeaderCard from './VehicleHeaderCard';
+import ServicePanel from './panels/ServicePanel';
+import { ServiceCard } from './panels/overview/ReferenceOverviewCards';
 import FuelPanel from './panels/FuelPanel';
 import TelemetryPanel from './panels/TelemetryPanel';
 import TyresPanel from './panels/TyresPanel';
@@ -18,6 +20,7 @@ vi.mock('../../services/FleetDataService', () => ({
   },
 }));
 vi.mock('../../services/billPhotoService', () => ({ default: { uploadBillPhoto: vi.fn() } }));
+vi.mock('./panels/ServiceInsights', () => ({ ServiceCentreCard: () => null }));
 vi.mock('./VehicleMiniMap', () => ({ default: () => <div>Vehicle map</div> }));
 vi.mock('../Compliance/OpenChallanBadge', () => ({ default: () => null }));
 const mount = (node) => render(<MemoryRouter>{node}</MemoryRouter>);
@@ -177,4 +180,41 @@ it('opens the compact photo dialog for this vehicle and refreshes after saving',
   );
   fireEvent.click(within(dialog).getByRole('button', { name: 'Done' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+});
+
+it('shows the same service distance in the header, overview and service tab after live km advances', async () => {
+  const prediction = {
+    currentOdometer: 10000,
+    lastServiceOdometer: 5000,
+    projectedServiceDueOdometer: 15000,
+    kmUntilDue: 5000,
+    risk: 'FINE',
+  };
+  const health = { canOdo: 12000 };
+  mount(
+    <>
+      <div data-testid="service-header">
+        <VehicleHeaderCard reg="WB11T0662" profile={{ prediction, health }} onGoTab={vi.fn()} />
+      </div>
+      <div data-testid="service-overview">
+        <ServiceCard
+          prediction={prediction}
+          health={health}
+          overview={{ odometer: { value: 13000 } }}
+          onGoTab={vi.fn()}
+        />
+      </div>
+      <div data-testid="service-tab">
+        <ServicePanel prediction={prediction} health={health} />
+      </div>
+    </>,
+  );
+  await waitFor(() => expect(FleetDataService.getVehicleOverview).toHaveBeenCalled());
+  for (const id of ['service-header', 'service-overview', 'service-tab']) {
+    expect(within(screen.getByTestId(id)).getAllByText('5,000 km').length).toBeGreaterThan(0);
+    expect(within(screen.getByTestId(id)).queryByText('2,000 km')).not.toBeInTheDocument();
+  }
+  expect(
+    within(screen.getByTestId('service-overview')).getByText('10,000 at forecast'),
+  ).toBeInTheDocument();
 });

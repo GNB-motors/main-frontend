@@ -2,14 +2,14 @@ import { useRef, useState } from 'react';
 import { CalendarDays, Check, ChevronDown, ChevronLeft } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { RANGE_PRESETS, dateOf, rangeLabel, ymdOf } from './tripRange';
+import { RANGE_PRESETS, dateOf, rangeLabel, shiftYmd, ymdOf } from './tripRange';
 
 const narrowScreen = () => typeof window !== 'undefined' && window.innerWidth < 640;
 
 /** Open on last month + this month, so the second month isn't all future days. */
 const firstShownMonth = (months) => {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
+  const month = ymdOf(new Date()).slice(0, 7) + '-01';
+  return dateOf(shiftYmd(month, { months: -(months - 1) }));
 };
 
 /**
@@ -47,6 +47,7 @@ export default function TripRangePicker({ value, onChange }) {
   };
 
   const months = narrowScreen() ? 1 : 2;
+  const today = dateOf(ymdOf(new Date()));
   const filtered = value.range !== 'all';
   const draftText = draft?.from
     ? rangeLabel({
@@ -114,16 +115,17 @@ export default function TripRangePicker({ value, onChange }) {
             </button>
             <Calendar
               mode="range"
+              timeZone="Asia/Kolkata"
               numberOfMonths={months}
               selected={draft}
               onSelect={setDraft}
               defaultMonth={draft?.from || firstShownMonth(months)}
-              endMonth={new Date()}
-              disabled={{ after: new Date() }}
+              endMonth={today}
+              disabled={{ after: today }}
               weekStartsOn={1}
             />
             <div className="atx-range-foot">
-              <span className="atx-range-draft">{draftText}</span>
+              <span className="atx-range-draft">{draftText} · IST</span>
               <button type="button" className="atx-btn atx-btn--sm" onClick={() => setOpen(false)}>
                 Cancel
               </button>

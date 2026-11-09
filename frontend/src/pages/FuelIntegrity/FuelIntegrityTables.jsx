@@ -38,6 +38,7 @@ const TABS = [
  * FuelIntegrityTables — The unified Mission Control Workspace.
  */
 export default function FuelIntegrityTables({
+  pumpLedger,
   isLoading,
   filteredCount,
   pageEvents,
@@ -233,7 +234,7 @@ export default function FuelIntegrityTables({
 
         {activeTab === 'pumps' && (
           <div className="p-4">
-            <PumpHonestyPanel />
+            <PumpHonestyPanel ledger={pumpLedger} />
           </div>
         )}
 
