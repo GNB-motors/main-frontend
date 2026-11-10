@@ -1,6 +1,6 @@
 import ManufacturerFilter from '../../components/filters/ManufacturerFilter';
 import useManufacturerFilter from '../../hooks/useManufacturerFilter';
-import React, { Suspense, lazy, useDeferredValue, useEffect, useState } from 'react';
+import React, { Suspense, lazy, useDeferredValue, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Camera, PenLine, Search, X } from 'lucide-react';
 import PageShell from '../../components/ui/PageShell';
@@ -13,6 +13,10 @@ import MileageKpiBar from './components/MileageKpiBar';
 import RefuelDetailDrawer from './components/RefuelDetailDrawer';
 import MileageCyclesDrawer from './components/MileageCyclesDrawer';
 import AddBillPhotoDialog from './AddBillPhotoDialog';
+import BillsToConfirm from './BillsToConfirm';
+import { createBillQueue } from './billUploadQueue';
+import billPhotoService from '../../services/billPhotoService';
+import { MileageApi } from './mileageApi';
 import { hubRangeFromParams } from './mileageDates';
 import './MileagePage.css';
 
@@ -192,6 +196,16 @@ export default function MileagePage() {
   const [refreshKey, setRefreshKey] = useState(0);
   // The photo bill dialog (F11). The by-hand form is still there.
   const [billPhotoOpen, setBillPhotoOpen] = useState(false);
+  const [billUploads, setBillUploads] = useState([]);
+  const [billVehicles, setBillVehicles] = useState([]);
+  const billQueue = useRef(null);
+  if (!billQueue.current) billQueue.current = createBillQueue({ upload: (args) => billPhotoService.uploadBillCapture(args), onChange: setBillUploads });
+  useEffect(() => {
+    if (!ready || !access.editBills) return;
+    let live = true;
+    MileageApi.vehicles().then((data) => { if (live) setBillVehicles(Array.isArray(data) ? data : []); }).catch(() => {});
+    return () => { live = false; };
+  }, [ready, access.editBills]);
 
   const updateParams = (patch, { replace = false } = {}) => {
     const next = new URLSearchParams(searchParams);
@@ -246,7 +260,7 @@ export default function MileagePage() {
                 </button>
               ) : null}
             </label>
-            {ready && access.fleetMileage ? (
+            {ready && access.editBills ? (
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -286,6 +300,7 @@ export default function MileagePage() {
       >
         {ready ? (
           <div className="mhub" key={manufacturer}>
+            {access.editBills && <BillsToConfirm uploads={billUploads} vehicles={billVehicles} />}
             <MileageKpiBar
               range={range}
               showFleetKmL={showFleetKmL}
@@ -407,7 +422,9 @@ export default function MileagePage() {
         <AddBillPhotoDialog
           open={billPhotoOpen}
           onOpenChange={setBillPhotoOpen}
-          onConfirmed={() => setRefreshKey((key) => key + 1)}
+          rows={billUploads}
+          queue={billQueue.current}
+          vehicles={billVehicles}
         />
       </PageShell>
     </>

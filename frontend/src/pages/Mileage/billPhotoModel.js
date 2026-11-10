@@ -26,12 +26,15 @@ export const POLL_TIMEOUT_MS = 30000;
 
 /**
  * The multipart body for the upload.
- * The field names are the capture contract's: `file` and `kind`.
+ * The capture contract expects `pages` and `clientId`.
  */
-export function buildBillFormData(file, kind) {
+export function buildBillFormData(file, clientId, vehicleHint, kind) {
   const form = new FormData();
-  form.append('file', file);
-  form.append('kind', kind);
+  form.append('pages', file);
+  form.append('clientId', clientId);
+  if (vehicleHint?.trim()) form.append('vehicleHint', vehicleHint.trim());
+  // The bill type is optional. When the owner does not know it, it is left out.
+  if (kind?.trim()) form.append('kind', kind.trim());
   return form;
 }
 

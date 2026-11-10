@@ -155,3 +155,22 @@ describe('compact bill-photo dialog', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('multi bill photo queue', () => {
+  it('accepts multiple photos and leaves upload under user control', async () => {
+    const queue = { add: vi.fn(), start: vi.fn() };
+    render(<AddBillPhotoDialog open onOpenChange={() => {}} queue={queue} />);
+    const input = await screen.findByLabelText('Bill photo');
+    expect(input).toHaveAttribute('multiple');
+    fireEvent.change(input, {
+      target: {
+        files: [
+          new File(['x'], 'one.jpg', { type: 'image/jpeg' }),
+          new File(['y'], 'two.jpg', { type: 'image/jpeg' }),
+        ],
+      },
+    });
+    expect(queue.add.mock.calls[0][0]).toHaveLength(2);
+    expect(queue.start).not.toHaveBeenCalled();
+  });
+});

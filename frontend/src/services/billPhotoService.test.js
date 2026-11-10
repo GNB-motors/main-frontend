@@ -1,10 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import apiClient from '../utils/axiosConfig';
-import { uploadBillPhoto } from './billPhotoService';
+import service, { uploadBillPhoto } from './billPhotoService';
 
-vi.mock('../utils/axiosConfig', () => ({ default: { post: vi.fn() } }));
+vi.mock('../utils/axiosConfig', () => ({
+  default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
+}));
 
 describe('bill photo upload', () => {
+  beforeEach(() => vi.clearAllMocks());
   it('uses the fuel capture endpoint and returns its persisted log and review result', async () => {
     const body = new FormData();
     body.append('vehicleId', 'vehicle-one');
@@ -25,5 +28,48 @@ describe('bill photo upload', () => {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 120000,
     });
+  });
+});
+
+describe('fleet bill API', () => {
+  beforeEach(() => vi.clearAllMocks());
+  it('uses the fleet routes and their exact bodies', async () => {
+    apiClient.post.mockResolvedValue({ data: { data: { capture: { id: 'cap' }, links: [] } } });
+    apiClient.get.mockResolvedValue({ data: { data: { captures: [], entries: [] } } });
+    apiClient.patch.mockResolvedValue({ data: { data: { captureId: 'cap' } } });
+    const body = new FormData();
+    body.append('pages', new File(['a'], 'bill.jpg'));
+    body.append('clientId', 'client');
+    body.append('vehicleHint', 'A');
+    expect(await service.uploadBillCapture({ body, clientId: 'client' })).toEqual({ id: 'cap' });
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/api/fleet-view/bills/captures',
+      body,
+      expect.objectContaining({ headers: { 'Idempotency-Key': 'client' } }),
+    );
+    await service.listBillCaptures({ status: 'submitted', page: 2, limit: 50 });
+    expect(apiClient.get).toHaveBeenCalledWith(
+      '/api/fleet-view/bills',
+      expect.objectContaining({ params: { status: 'submitted', page: 2, limit: 50 } }),
+    );
+    await service.getBillPage('cap', 0);
+    expect(apiClient.get).toHaveBeenCalledWith(
+      '/api/fleet-view/bills/cap/pages/0',
+      expect.objectContaining({ responseType: 'blob' }),
+    );
+    await service.saveBillLinks([{ captureId: 'cap', registrationNumber: 'A', reason: null }]);
+    expect(apiClient.post).toHaveBeenCalledWith('/api/fleet-view/bills/confirmations', {
+      links: [{ captureId: 'cap', registrationNumber: 'A', reason: null }],
+    });
+    await service.editBillLink('cap', { registrationNumber: 'B', reason: 'fix' });
+    expect(apiClient.patch).toHaveBeenCalledWith('/api/fleet-view/bills/cap/link', {
+      registrationNumber: 'B',
+      reason: 'fix',
+    });
+    await service.getBillLinkHistory('cap');
+    expect(apiClient.get).toHaveBeenCalledWith(
+      '/api/fleet-view/bills/cap/history',
+      expect.any(Object),
+    );
   });
 });
