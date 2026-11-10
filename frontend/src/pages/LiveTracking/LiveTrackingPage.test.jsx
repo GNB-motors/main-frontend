@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -17,6 +17,7 @@ vi.mock('@react-google-maps/api', () => ({
 vi.mock('../../utils/axiosConfig', () => ({
   default: { get: vi.fn(pending), post: vi.fn(pending) },
 }));
+vi.mock('../../utils/session', async (original) => ({ ...await original(), getUserRole: () => 'OWNER' }));
 vi.mock('../../hooks/useLivePositions', () => ({
   useLivePositions: () => ({ positions: [], isLoading: false, refresh: vi.fn() }),
 }));
@@ -48,6 +49,43 @@ vi.mock('./useTrackRoutes.js', () => ({ default: () => ({
 import LiveTrackingPage from './LiveTrackingPage';
 
 describe('LiveTrackingPage master data', () => {
+  const reviewSite = { _id:'review-1', name:'Place to confirm', status:'PROPOSED', centroidLat:22.5,centroidLng:88.3 };
+  const renderPlaces = () => render(<MemoryRouter initialEntries={['/live-tracking?view=places']}><LiveTrackingPage /></MemoryRouter>);
+
+  it('exits place confirmation by back, close and Escape without submitting an answer', () => {
+    const view=renderPlaces();
+    for(const method of ['back','close','escape']) {
+      act(()=>seen.map.onSelectReviewSite(reviewSite));
+      expect(screen.getByLabelText('Place confirmation')).toBeInTheDocument();
+      if(method==='escape')fireEvent.keyDown(window,{key:'Escape'});
+      else fireEvent.click(screen.getByRole('button',{name:method==='back'?'Back to places':'Close place confirmation'}));
+      expect(screen.queryByLabelText('Place confirmation')).not.toBeInTheDocument();
+    }
+    view.unmount();
+  });
+
+  it('returns from fence editing to the same place when cancelled', () => {
+    const view=renderPlaces();
+    act(()=>seen.map.onSelectReviewSite(reviewSite));
+    fireEvent.click(screen.getByRole('button',{name:'Edit fence'}));
+    expect(screen.getByRole('dialog',{name:'Alert zone here'})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'Back to place'}));
+    expect(screen.queryByRole('dialog',{name:'Alert zone here'})).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Place confirmation')).toHaveTextContent('Place to confirm');
+    fireEvent.click(screen.getByRole('button',{name:'Edit fence'}));
+    fireEvent.keyDown(screen.getByRole('button',{name:'Back to place'}),{key:'Escape'});
+    expect(screen.getByLabelText('Place confirmation')).toBeInTheDocument();
+    view.unmount();
+  });
+
+  it('does not leave a review panel over the route list after switching tabs', () => {
+    const view=renderPlaces();
+    act(()=>seen.map.onSelectReviewSite(reviewSite));
+    fireEvent.click(screen.getByRole('tab',{name:'Routes'}));
+    expect(screen.queryByLabelText('Place confirmation')).not.toBeInTheDocument();
+    expect(screen.getByRole('button',{name:/Plant → Depot/})).toBeInTheDocument();
+    view.unmount();
+  });
   it('opens places from a direct link and returns to the live fleet', () => {
     const view = render(<MemoryRouter initialEntries={['/live-tracking?view=places']}><LiveTrackingPage /></MemoryRouter>);
     expect(screen.getByRole('region', { name: 'Map filters' })).toBeInTheDocument();

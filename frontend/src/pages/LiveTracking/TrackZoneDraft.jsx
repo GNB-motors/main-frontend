@@ -1,4 +1,5 @@
 import PlaceEditor from '../PlaceHub/drawer/PlaceEditor.jsx';
+import { ArrowLeft } from 'lucide-react';
 
 /**
  * TrackZoneDraft — the Place Hub editor, used for "Alert zone here".
@@ -16,13 +17,20 @@ export default function TrackZoneDraft({
   onPick,
   onCancel,
   onSave,
+  backLabel = 'Back to map',
 }) {
   return (
     <div
       role="dialog"
       aria-label="Alert zone here"
-      className="absolute right-4 top-4 z-[1200] w-[380px] max-w-[94vw] overflow-y-auto rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] shadow-[var(--rd-shadow-float)]"
+      className="lt-place-draft absolute right-4 top-4 z-[1200] w-[380px] max-w-[94vw] overflow-y-auto rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] shadow-[var(--rd-shadow-float)]"
     >
+      <div className="dtop lt-draft-back">
+        <button type="button" className="backbtn" onClick={onCancel} disabled={saving}>
+          <ArrowLeft size={16} aria-hidden="true" />
+          {backLabel}
+        </button>
+      </div>
       <PlaceEditor
         draft={draft}
         errors={errors}
@@ -33,7 +41,7 @@ export default function TrackZoneDraft({
         onChange={onChange}
         onKind={onKind}
         onPick={onPick}
-        onCancel={onCancel}
+        onCancel={saving ? undefined : onCancel}
         onSave={onSave}
       />
     </div>

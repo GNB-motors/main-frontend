@@ -123,6 +123,7 @@ const LiveTrackingPage = () => {
   const [draftError, setDraftError] = useState(null);
   const [savingDraft, setSavingDraft] = useState(false);
   const [reviewSite, setReviewSite] = useState(null);
+  const reviewBeforeFence = useRef(null);
   const [openRouteId, setOpenRouteId] = useState(null);
   const [routeDetail, setRouteDetail] = useState(null);
   const routeOverviewCamera = useRef(null);
@@ -130,6 +131,7 @@ const LiveTrackingPage = () => {
 
   const handleMapClick = useCallback((click) => {
     if (openRouteId) return;
+    reviewBeforeFence.current = null;
     setMapClick(click);
     setPlaceDraft(null);
     setZoneDraft(null);
@@ -327,6 +329,7 @@ const LiveTrackingPage = () => {
   }, [isPlacesView, layerSelection.ourPlaces, showPlaces]);
 
   const changeView = (view) => {
+    reviewBeforeFence.current = null;
     exitReplay();
     setSelectedId(null);
     setSearchQuery('');
@@ -369,6 +372,7 @@ const LiveTrackingPage = () => {
   }, [mapRef]);
 
   const pickPlace = (place) => {
+    setReviewSite(null);
     trackPlaces.show();
     trackPlaces.selectPlace(place.id);
     // A followed vehicle would pull the map back to itself on its next fix.
@@ -377,6 +381,7 @@ const LiveTrackingPage = () => {
   };
 
   const selectPlaceFromMap = (id) => {
+    setReviewSite(null);
     setPlacesTab('places');
     setOpenRouteId(null);
     trackPlaces.selectPlace(id);
@@ -427,6 +432,12 @@ const LiveTrackingPage = () => {
 
   const changeZoneDraft = useCallback((patch) => {
     setZoneDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+  }, []);
+
+  const closeZoneDraft = useCallback(() => {
+    setZoneDraft(null);
+    if (reviewBeforeFence.current) setReviewSite(reviewBeforeFence.current);
+    reviewBeforeFence.current = null;
   }, []);
 
   const zoneErrors = useMemo(() => (zoneDraft ? validateDraft(zoneDraft) : {}), [zoneDraft]);
@@ -488,7 +499,7 @@ const LiveTrackingPage = () => {
       const editing = draft.mode === 'edit' && draft.sourceId;
       if (editing) await PlaceHubService.updateZone(draft.sourceId, body);
       else await PlaceHubService.createZone(body);
-      setZoneDraft(null);
+      closeZoneDraft();
       showToast(editing ? `Zone updated: ${body.name}` : `Alert zone added: ${body.name}`);
       trackPlaces.retry?.();
     } catch (error) {
@@ -496,7 +507,7 @@ const LiveTrackingPage = () => {
     } finally {
       setSavingDraft(false);
     }
-  }, [zoneDraft, showToast, trackPlaces]);
+  }, [zoneDraft, showToast, trackPlaces, closeZoneDraft]);
 
   // The truck panel's "add this spot": a zone to watch, or a place to work at.
   const handleAddAtSpot = useCallback((kind, seed) => {
@@ -512,7 +523,14 @@ const LiveTrackingPage = () => {
   // A place nobody has answered for yet.
   const selectReviewSite = useCallback(
     (site) => {
+      reviewBeforeFence.current = null;
+      setZoneDraft(null);
+      setPlaceDraft(null);
       setReviewSite(site);
+      setOpenRouteId(null);
+      setRouteDetail(null);
+      routeOverviewCamera.current = null;
+      setPlacesTab('places');
       setSelectedId(null);
       trackPlaces.selectPlace(null);
       setRailTab('fleet');
@@ -538,6 +556,7 @@ const LiveTrackingPage = () => {
       draft.sourceId = sourceId;
     }
     draft.radiusM = clampRadius(Number(site?.radiusM) || 500, 50, 50000);
+    reviewBeforeFence.current = site;
     setZoneDraft(draft);
     setReviewSite(null);
   }, []);
@@ -557,6 +576,37 @@ const LiveTrackingPage = () => {
     if (camera && mapRef.current) mapRef.current.moveCamera(camera);
     routeOverviewCamera.current = null;
   }, [mapRef]);
+
+  const changePlacesTab = (tab) => {
+    if (savingDraft) return;
+    reviewBeforeFence.current = null;
+    setReviewSite(null);
+    setPlaceDraft(null);
+    setZoneDraft(null);
+    setMapClick(null);
+    trackPlaces.selectPlace(null);
+    closeRoute();
+    setPlacesTab(tab);
+    setSearchQuery('');
+  };
+
+  // Escape dismisses only the topmost local panel. Confirmation dialogs and
+  // popovers get first refusal; saving an answer must not hide its result.
+  useEffect(() => {
+    const onEscape = (event) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || savingDraft) return;
+      const overlay = event.target?.closest?.('[role="dialog"], [role="alertdialog"], [role="menu"]');
+      if (overlay && !['Make this a place', 'Alert zone here', 'Route detail'].includes(overlay.getAttribute('aria-label'))) return;
+      if (zoneDraft) closeZoneDraft();
+      else if (placeDraft) setPlaceDraft(null);
+      else if (reviewSite) setReviewSite(null);
+      else if (openRouteId) closeRoute();
+      else return;
+      event.preventDefault();
+    };
+    window.addEventListener('keydown', onEscape);
+    return () => window.removeEventListener('keydown', onEscape);
+  }, [savingDraft, zoneDraft, placeDraft, reviewSite, openRouteId, closeZoneDraft, closeRoute]);
   const selectTrackPlace = trackPlaces.selectPlace;
   const handleRoutePick = useCallback((id) => {
     if (!routeOverviewCamera.current && mapRef.current) {
@@ -787,13 +837,14 @@ const LiveTrackingPage = () => {
 
             {zoneDraft ? (
               <TrackZoneDraft
+                backLabel={reviewBeforeFence.current ? 'Back to place' : 'Back to map'}
                 draft={zoneDraft}
                 errors={zoneErrors}
                 saving={savingDraft}
                 onChange={changeZoneDraft}
                 onKind={changeZoneDraft}
                 onPick={(loc) => focusPlace({ lat: loc?.lat, lng: loc?.lng })}
-                onCancel={() => setZoneDraft(null)}
+                onCancel={closeZoneDraft}
                 onSave={saveZoneDraft}
               />
             ) : null}
@@ -951,8 +1002,8 @@ const LiveTrackingPage = () => {
               <>
                 {isPlacesView ? (
                   <div className="rail-tabs" role="tablist" aria-label="Places and routes">
-                    <button type="button" role="tab" className="rail-tab" aria-selected={placesTab === 'places'} onClick={() => { setPlacesTab('places'); closeRoute(); setSearchQuery(''); }}>Places</button>
-                    <button type="button" role="tab" className="rail-tab" aria-selected={placesTab === 'routes'} onClick={() => { setPlacesTab('routes'); trackPlaces.selectPlace(null); setSearchQuery(''); }}>Routes</button>
+                    <button type="button" role="tab" className="rail-tab" disabled={savingDraft} aria-selected={placesTab === 'places'} onClick={() => changePlacesTab('places')}>Places</button>
+                    <button type="button" role="tab" className="rail-tab" disabled={savingDraft} aria-selected={placesTab === 'routes'} onClick={() => changePlacesTab('routes')}>Routes</button>
                   </div>
                 ) : null}
                 <div className="rail-body">
@@ -1039,6 +1090,7 @@ const LiveTrackingPage = () => {
 
                   {/* A place nobody has answered for yet. */}
                   <TrackReviewPanel
+                    backLabel={isPlacesView ? 'Back to places' : 'Back to fleet'}
                     site={reviewSite}
                     onAnswered={handleSiteAnswered}
                     onEditFence={editFenceForSite}
