@@ -14,6 +14,7 @@ const FLEET_ROUTES = [
   '/auto-trips/approvals',
   '/vehicles',
   '/vehicles/:registrationNumber',
+  '/data-imports',
   '/vehicles/service-intelligence/add-service',
   '/vehicles/service-intelligence/add-repair',
   '/drivers',
