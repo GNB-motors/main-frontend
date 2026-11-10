@@ -54,6 +54,37 @@ export function detectedColumns(detected, headers = []) {
 }
 
 /**
+ * Field names the server may use for each column we map, most specific first.
+ * An older server called the person column 'employee' — that column held the
+ * mobile number.
+ */
+const ASSIGNMENT_FIELD_RULES = [
+  ['aadhaar', /aadhaar|aadhar/i],
+  ['licence', /licen[cs]e|driving|^dl/i],
+  ['vehicle', /vehicle|truck|registration|plate/i],
+  ['name', /name$|^driver$|drivername|personname/i],
+  ['phone', /phone|mobile|contact|employee/i],
+];
+
+/**
+ * Which of our columns the server thinks the sheet has.
+ *
+ * @param {object|null} detected
+ * @param {string[]} headers - the column labels in the sheet
+ * @returns {Record<string, string>} field name to column label
+ */
+export function detectedAssignmentColumns(detected, headers = []) {
+  const columns = detectedColumns(detected, headers);
+  const labels = headers.map((label) => String(label ?? '').trim());
+  const out = {};
+  Object.entries(columns).forEach(([field, label]) => {
+    const key = ASSIGNMENT_FIELD_RULES.find(([, pattern]) => pattern.test(field))?.[0];
+    if (key && !out[key] && labels.includes(label)) out[key] = label;
+  });
+  return out;
+}
+
+/**
  * The column the server thinks holds the employee/driver.
  */
 export function detectedEmployeeColumn(detected, headers = []) {

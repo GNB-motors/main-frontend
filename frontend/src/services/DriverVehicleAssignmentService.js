@@ -18,18 +18,61 @@ const unwrap = (res) => res.data?.data || res.data;
 /** The list endpoint populates driverId/vehicleId — normalize back to a bare id. */
 const idOf = (refOrId) => (refOrId && typeof refOrId === 'object' ? refOrId._id : refOrId) || '';
 
+/** The person columns the bulk endpoints take, plus the vehicle. */
+const BULK_ROW_KEYS = ['name', 'phone', 'licence', 'aadhaar', 'vehicle'];
+
+/**
+ * One row of a bulk request: every person column the sheet had, the vehicle,
+ * the spreadsheet row, and the driver the manager picked (when there is one).
+ */
+const bulkRow = (row = {}) => {
+  const out = { rowNumber: Number(row.rowNumber) || 0 };
+  BULK_ROW_KEYS.forEach((key) => {
+    out[key] = String(row[key] ?? '').trim();
+  });
+  if (row.userId) out.userId = String(row.userId).trim();
+  return out;
+};
+
+/** The body the bulk preview and apply endpoints want. */
+const bulkBody = (payload = {}) => ({
+  rows: (Array.isArray(payload.rows) ? payload.rows : []).map(bulkRow),
+  effectiveAt: payload.effectiveAt,
+  fileName: payload.fileName,
+});
+
+/**
+ * The report the server sends back: every row with a code and, when the server
+ * is unsure about a driver, the drivers it is unsure between.
+ */
+const bulkReport = (data) => {
+  if (!data || typeof data !== 'object') return data;
+  return {
+    ...data,
+    rows: (Array.isArray(data.rows) ? data.rows : []).map((row) => ({
+      ...row,
+      code: row.code || row.errorCode || '',
+      candidates: Array.isArray(row.candidates) ? row.candidates : [],
+    })),
+  };
+};
+
 const DriverVehicleAssignmentService = {
   previewBulk: async (payload) => {
-    const response = await apiClient.post('/api/driver-vehicle-assignments/bulk/preview', payload, {
-      timeout: 200000,
-    });
-    return response.data.data;
+    const response = await apiClient.post(
+      '/api/driver-vehicle-assignments/bulk/preview',
+      bulkBody(payload),
+      {
+        timeout: 200000,
+      },
+    );
+    return bulkReport(response.data.data);
   },
   applyBulk: async (payload) => {
-    const response = await apiClient.post('/api/driver-vehicle-assignments/bulk/apply', payload, {
+    const response = await apiClient.post('/api/driver-vehicle-assignments/bulk/apply', bulkBody(payload), {
       timeout: 200000,
     });
-    return response.data.data;
+    return bulkReport(response.data.data);
   },
   getAssignmentPage: async (params = {}, { signal } = {}) => {
     const response = await apiClient.get('/api/driver-vehicle-assignments', { params, signal });

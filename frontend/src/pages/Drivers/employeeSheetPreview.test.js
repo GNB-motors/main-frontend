@@ -5,6 +5,7 @@ import {
   detectedColumns,
   detectedEmployeeColumn,
   detectedVehicleColumn,
+  detectedAssignmentColumns,
 } from './employeeSheetPreview';
 
 vi.mock('@/services/DataImportService', () => ({
@@ -44,6 +45,37 @@ describe('employee sheet preview', () => {
     const headers = ['Mobile Number', 'Truck No'];
     expect(detectedEmployeeColumn(detected, headers)).toBe('Mobile Number');
     expect(detectedVehicleColumn(detected, headers)).toBe('Truck No');
+  });
+
+  it('maps every person column the server detected', () => {
+    const headers = ['Name', 'Mobile', 'DL Number', 'Aadhaar', 'Vehicle'];
+    expect(
+      detectedAssignmentColumns(
+        {
+          Name: 'name',
+          Mobile: 'phone',
+          'DL Number': 'licence',
+          Aadhaar: 'aadhaar',
+          Vehicle: 'vehicle',
+        },
+        headers,
+      ),
+    ).toEqual({
+      name: 'Name',
+      phone: 'Mobile',
+      licence: 'DL Number',
+      aadhaar: 'Aadhaar',
+      vehicle: 'Vehicle',
+    });
+  });
+
+  it('still reads the old employee column as the mobile number', () => {
+    expect(detectedAssignmentColumns({ employee: 'Mobile Number' }, ['Mobile Number'])).toEqual({
+      phone: 'Mobile Number',
+    });
+    expect(detectedAssignmentColumns({ vehicle: 'Truck No' }, ['Truck No'])).toEqual({
+      vehicle: 'Truck No',
+    });
   });
 
   it('keeps working when the server cannot read the sheet', async () => {

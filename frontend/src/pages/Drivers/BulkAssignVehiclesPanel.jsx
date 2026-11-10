@@ -10,31 +10,54 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import AssignmentService from '@/services/DriverVehicleAssignmentService';
-import { assignmentTable, assignmentRows } from './bulkAssignmentFile';
-import { splitFiles } from './photoDriverImport.js';
 import {
-  detectSheetMapping,
-  detectedEmployeeColumn,
-  detectedVehicleColumn,
-} from './employeeSheetPreview.js';
+  ASSIGNMENT_PERSON_FIELDS,
+  assignmentRows,
+  assignmentTable,
+  candidateLabel,
+  isDidYouMean,
+  reportRowView,
+} from './bulkAssignmentFile';
+import { splitFiles } from './photoDriverImport.js';
+import { detectSheetMapping, detectedAssignmentColumns } from './employeeSheetPreview.js';
 import PhotoDriverImportPanel from './PhotoDriverImportPanel.jsx';
 import './BulkAssignVehiclesPanel.css';
+
+const PERSON_COLUMNS = [
+  { key: 'name', label: 'Name (optional)' },
+  { key: 'phone', label: 'Mobile number (optional)' },
+  { key: 'licence', label: 'DL number (optional)' },
+  { key: 'aadhaar', label: 'Aadhaar number (optional)' },
+];
+const VEHICLE_LABEL = 'Vehicle registration *';
+const EMPTY_COLUMNS = { name: '', phone: '', licence: '', aadhaar: '', vehicle: '' };
+/** The manager's answer for a row the server was not sure about. */
+const NONE_OF_THESE = 'none';
 
 export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
   const [table, setTable] = useState(null);
   const [fileName, setFileName] = useState('');
-  const [employeeColumn, setEmployeeColumn] = useState('');
-  const [vehicleColumn, setVehicleColumn] = useState('');
+  const [columns, setColumns] = useState(EMPTY_COLUMNS);
   const [report, setReport] = useState(null);
   const [payload, setPayload] = useState(null);
+  const [choices, setChoices] = useState({});
+  const [picksVersion, setPicksVersion] = useState(0);
+  const [previewedVersion, setPreviewedVersion] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [photoOpen, setPhotoOpen] = useState(false);
   const fileInput = useRef(null);
+
   const invalidate = () => {
     setReport(null);
     setPayload(null);
     setError('');
+  };
+  // A new mapping makes every earlier pick meaningless.
+  const resetPicks = () => {
+    setChoices({});
+    setPicksVersion(0);
+    setPreviewedVersion(0);
   };
 
   async function readFile(event) {
@@ -43,8 +66,8 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
     invalidate();
     setTable(null);
     setFileName('');
-    setEmployeeColumn('');
-    setVehicleColumn('');
+    setColumns(EMPTY_COLUMNS);
+    resetPicks();
     setBusy(true);
     try {
       const { photos, sheets } = splitFiles(files);
@@ -70,17 +93,23 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
       setTable(nextTable);
       setFileName(file.name);
       // The server may know which column is which. It is only a starting point —
-      // both columns can still be changed below.
+      // every column can still be changed below.
       const detected = await detectSheetMapping(file, 'assignments');
-      const labels = nextTable.headers.map((h) => h.label);
+      const detectedLabels = detectedAssignmentColumns(
+        detected,
+        nextTable.headers.map((header) => header.label),
+      );
       const indexOf = (label) => {
-        const found = nextTable.headers.find((h) => h.label === label);
+        const found = nextTable.headers.find((header) => header.label === label);
         return found ? String(found.index) : '';
       };
-      const employee = indexOf(detectedEmployeeColumn(detected, labels));
-      const vehicle = indexOf(detectedVehicleColumn(detected, labels));
-      if (employee) setEmployeeColumn(employee);
-      if (vehicle) setVehicleColumn(vehicle);
+      setColumns({
+        name: indexOf(detectedLabels.name),
+        phone: indexOf(detectedLabels.phone),
+        licence: indexOf(detectedLabels.licence),
+        aadhaar: indexOf(detectedLabels.aadhaar),
+        vehicle: indexOf(detectedLabels.vehicle),
+      });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -89,19 +118,29 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
     }
   }
 
+  function pick(rowNumber, value) {
+    setChoices((previous) => ({ ...previous, [rowNumber]: value }));
+    setPicksVersion((version) => version + 1);
+  }
+
   async function preview() {
     setBusy(true);
     setError('');
     setReport(null);
     setPayload(null);
+    const picks = {};
+    Object.entries(choices).forEach(([rowNumber, value]) => {
+      if (value && value !== NONE_OF_THESE) picks[rowNumber] = value;
+    });
     const nextPayload = {
-      rows: assignmentRows(table.rows, employeeColumn, vehicleColumn),
+      rows: assignmentRows(table.rows, columns, picks),
       effectiveAt: new Date().toISOString(),
       fileName,
     };
     try {
       setReport(await AssignmentService.previewBulk(nextPayload));
       setPayload(nextPayload);
+      setPreviewedVersion(picksVersion);
     } catch (err) {
       setError(err.response?.data?.message || err.message);
     } finally {
@@ -116,7 +155,7 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
       const result = await AssignmentService.applyBulk(payload);
       setReport(result);
       setPayload(null);
-      if (result.counts.assigned) onAssigned?.();
+      if (result?.counts?.assigned) onAssigned?.();
     } catch (err) {
       // Some rows may have committed before a network/server error. A fresh
       // preview is required; identical pairs will be skipped on the retry.
@@ -129,6 +168,26 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
       setBusy(false);
     }
   }
+
+  const personMapped = ASSIGNMENT_PERSON_FIELDS.some((key) => columns[key] !== '');
+  const canPreview = !busy && !!table && columns.vehicle !== '' && personMapped;
+  const reportRows = Array.isArray(report?.rows) ? report.rows : [];
+  const counts = report?.counts || {};
+  const unsureRows = reportRows.filter((row) => isDidYouMean(row));
+  const unansweredRows = unsureRows.filter((row) => !choices[row.rowNumber]);
+  const picksChanged = picksVersion !== previewedVersion;
+  const canApply = !busy && !!payload && !unansweredRows.length && !picksChanged;
+
+  const columnOptions = (disabledIndex) =>
+    (table?.headers || []).map((header) => (
+      <option
+        key={header.index}
+        value={header.index}
+        disabled={String(header.index) === disabledIndex}
+      >
+        {header.label}
+      </option>
+    ));
 
   return (
     <Sheet
@@ -192,69 +251,61 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
               <div className="bulk-assign-section-heading">
                 <h3 id="bulk-assign-mapping-title">2. Map columns</h3>
                 <p>
-                  Choose the employee mobile and vehicle registration columns. Other columns are
-                  ignored.
+                  Tell us which column holds the driver’s name, mobile number, DL number and
+                  Aadhaar number, and which one holds the vehicle registration. Map at least one
+                  person column and the vehicle.
                 </p>
               </div>
               <div className="bulk-assign-mapping">
+                {PERSON_COLUMNS.map((field) => (
+                  <label className="bulk-assign-field" key={field.key}>
+                    <span>{field.label}</span>
+                    <SearchableSelect
+                      value={columns[field.key]}
+                      disabled={busy}
+                      onChange={(event) => {
+                        setColumns((previous) => ({
+                          ...previous,
+                          [field.key]: event.target.value,
+                        }));
+                        invalidate();
+                        resetPicks();
+                      }}
+                    >
+                      <option value="">Choose column</option>
+                      {columnOptions(columns.vehicle)}
+                    </SearchableSelect>
+                  </label>
+                ))}
                 <label className="bulk-assign-field">
-                  <span>Employee mobile number *</span>
+                  <span>{VEHICLE_LABEL}</span>
                   <SearchableSelect
-                    value={employeeColumn}
+                    value={columns.vehicle}
                     disabled={busy}
-                    onChange={(e) => {
-                      setEmployeeColumn(e.target.value);
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setColumns((previous) => {
+                        const next = { ...previous, vehicle: value };
+                        // The vehicle column cannot also be a person column.
+                        ASSIGNMENT_PERSON_FIELDS.forEach((key) => {
+                          if (next[key] === value) next[key] = '';
+                        });
+                        return next;
+                      });
                       invalidate();
+                      resetPicks();
                     }}
                   >
                     <option value="">Choose column</option>
-                    {table.headers.map((h) => (
-                      <option
-                        key={h.index}
-                        value={h.index}
-                        disabled={String(h.index) === vehicleColumn}
-                      >
-                        {h.label}
-                      </option>
-                    ))}
-                  </SearchableSelect>
-                </label>
-                <label className="bulk-assign-field">
-                  <span>Vehicle registration *</span>
-                  <SearchableSelect
-                    value={vehicleColumn}
-                    disabled={busy}
-                    onChange={(e) => {
-                      setVehicleColumn(e.target.value);
-                      invalidate();
-                    }}
-                  >
-                    <option value="">Choose column</option>
-                    {table.headers.map((h) => (
-                      <option
-                        key={h.index}
-                        value={h.index}
-                        disabled={String(h.index) === employeeColumn}
-                      >
-                        {h.label}
-                      </option>
-                    ))}
+                    {columnOptions('')}
                   </SearchableSelect>
                 </label>
               </div>
               <p className="bulk-assign-hint">
-                Use the employee’s registered mobile number (10-digit Indian or international
-                format). Names alone cannot identify employees reliably.
+                We send every column you map, so the server can find the right driver. Aadhaar
+                numbers are never shown in full.
               </p>
-              <Button
-                disabled={
-                  busy ||
-                  employeeColumn === '' ||
-                  vehicleColumn === '' ||
-                  employeeColumn === vehicleColumn
-                }
-                onClick={preview}
-              >
+              <Button disabled={!canPreview} onClick={preview}>
                 {busy ? 'Processing…' : 'Preview assignments'}
               </Button>
             </section>
@@ -275,14 +326,20 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
                   {report.dryRun ? '3. Preview assignments' : 'Assignment results'}
                 </h3>
                 <p>
-                  {report.counts.ready} ready · {report.counts.assigned} assigned ·{' '}
-                  {report.counts.skipped} skipped · {report.counts.error} errors
+                  {counts.ready} ready · {counts.assigned} assigned · {counts.skipped} skipped ·{' '}
+                  {counts.error} errors
                 </p>
               </div>
               <p className="bulk-assign-hint">
                 Effective from {new Date(report.effectiveAt).toLocaleString()}. Conflicting rows
                 must be corrected before they can be assigned.
               </p>
+              {unsureRows.length > 0 && (
+                <p className="bulk-assign-hint">
+                  We are not sure which driver some rows mean. Choose the right driver for each
+                  one, or choose “None of these” to leave that row out, then preview again.
+                </p>
+              )}
               {/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- Keyboard users need focus to scroll wide results. */}
               <div
                 className="bulk-assign-table-scroll"
@@ -293,32 +350,66 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
                 <table className="bulk-assign-table">
                   <thead>
                     <tr>
-                      {['Row', 'Employee', 'Vehicle', 'Status', 'Details'].map((h) => (
-                        <th key={h} scope="col">
-                          {h}
+                      {['Row', 'Driver', 'Vehicle', 'Status', 'Details'].map((heading) => (
+                        <th key={heading} scope="col">
+                          {heading}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {report.rows.map((row) => (
-                      <tr key={row.rowNumber}>
-                        <td>{row.rowNumber}</td>
-                        <td>
-                          {row.employeeName || row.employee}
-                          <div className="bulk-assign-employee-mobile">
-                            {row.employeeName ? row.employee : ''}
-                          </div>
-                        </td>
-                        <td>{row.registrationNumber || row.vehicle}</td>
-                        <td>
-                          <span className="bulk-assign-status" data-status={row.status}>
-                            {row.status}
-                          </span>
-                        </td>
-                        <td>{row.message}</td>
-                      </tr>
-                    ))}
+                    {reportRows.map((row) => {
+                      const view = reportRowView(row);
+                      const details = [
+                        view.phone,
+                        view.licence,
+                        view.aadhaar ? `Aadhaar ${view.aadhaar}` : '',
+                      ].filter(Boolean);
+                      return (
+                        <tr key={view.rowNumber}>
+                          <td>{view.rowNumber}</td>
+                          <td>
+                            {view.name || '—'}
+                            {details.length > 0 && (
+                              <div className="bulk-assign-employee-mobile">
+                                {details.join(' · ')}
+                              </div>
+                            )}
+                          </td>
+                          <td>{view.vehicle}</td>
+                          <td>
+                            <span className="bulk-assign-status" data-status={view.status}>
+                              {view.status}
+                            </span>
+                          </td>
+                          <td>
+                            {view.message}
+                            {isDidYouMean(row) && (
+                              <div className="bulk-assign-did-you-mean">
+                                <p className="bulk-assign-did-you-mean-question">
+                                  Did you mean one of these drivers?
+                                </p>
+                                <select
+                                  className="bulk-assign-candidate-select"
+                                  aria-label={`Did you mean for row ${view.rowNumber}`}
+                                  value={choices[view.rowNumber] || ''}
+                                  disabled={busy}
+                                  onChange={(event) => pick(view.rowNumber, event.target.value)}
+                                >
+                                  <option value="">Choose a driver</option>
+                                  {view.candidates.map((candidate) => (
+                                    <option key={candidate.userId} value={candidate.userId}>
+                                      {candidateLabel(candidate)}
+                                    </option>
+                                  ))}
+                                  <option value={NONE_OF_THESE}>None of these</option>
+                                </select>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -332,9 +423,9 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
             <Button variant="outline" disabled={busy} onClick={onClose}>
               Close
             </Button>
-            {report?.dryRun && payload && report.counts.ready > 0 && (
-              <Button disabled={busy} onClick={apply}>
-                {busy ? 'Assigning…' : `Assign ${report.counts.ready} valid rows`}
+            {report?.dryRun && payload && counts.ready > 0 && (
+              <Button disabled={!canApply} onClick={apply}>
+                {busy ? 'Assigning…' : `Assign ${counts.ready} valid rows`}
               </Button>
             )}
           </div>
