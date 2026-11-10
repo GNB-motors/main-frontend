@@ -57,6 +57,14 @@ function insideRing(ring, lat, lng) {
 /** Is (lat, lng) inside the place: its polygon when it has one, else its radius. */
 export function placeContains(place, lat, lng) {
   if (!place || !isNum(lat) || !isNum(lng)) return false;
+  // A real area: inside the outer ring of any part, but never inside its hole.
+  if (place.polygonParts?.length) {
+    return place.polygonParts.some((part) => {
+      const [outer, ...holes] = part || [];
+      if (!outer || !insideRing(outer, lat, lng)) return false;
+      return !holes.some((hole) => insideRing(hole, lat, lng));
+    });
+  }
   if (place.polygon) return insideRing(place.polygon, lat, lng);
   if (!isNum(place.radiusM) || place.radiusM <= 0) return false;
   return metresBetween(place.lat, place.lng, lat, lng) <= place.radiusM;

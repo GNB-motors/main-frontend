@@ -127,3 +127,47 @@ describe('Places tab list', () => {
     expect(counts.get('b')).toBe(0);
   });
 });
+
+describe('Places with real areas', () => {
+  const parts = [
+    [
+      // outer ring
+      [
+        { lat: 22.4, lng: 88.2 },
+        { lat: 22.4, lng: 88.4 },
+        { lat: 22.6, lng: 88.4 },
+        { lat: 22.6, lng: 88.2 },
+      ],
+      // hole in the middle
+      [
+        { lat: 22.48, lng: 88.28 },
+        { lat: 22.48, lng: 88.32 },
+        { lat: 22.52, lng: 88.32 },
+        { lat: 22.52, lng: 88.28 },
+      ],
+    ],
+    [
+      // a second, separate part
+      [
+        { lat: 23.4, lng: 89.2 },
+        { lat: 23.4, lng: 89.4 },
+        { lat: 23.6, lng: 89.4 },
+        { lat: 23.6, lng: 89.2 },
+      ],
+    ],
+  ];
+  const place = { lat: 22.5, lng: 88.3, radiusM: null, polygon: null, polygonParts: parts };
+
+  it('is false inside a hole', () => {
+    expect(placeContains(place, 22.5, 88.3)).toBe(false);
+  });
+  it('is true inside the outer ring but outside the hole', () => {
+    expect(placeContains(place, 22.45, 88.3)).toBe(true);
+  });
+  it('is true inside a second part', () => {
+    expect(placeContains(place, 23.5, 89.3)).toBe(true);
+  });
+  it('is false outside every part', () => {
+    expect(placeContains(place, 22.5, 88.9)).toBe(false);
+  });
+});

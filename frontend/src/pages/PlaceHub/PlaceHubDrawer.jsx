@@ -30,6 +30,7 @@ export default function PlaceHubDrawer({ selection, draft, ...props }) {
     return (
       <PlaceDetail
         place={item}
+        places={props.places}
         {...common}
         onEdit={props.onEdit}
         onDelete={props.onDelete}
