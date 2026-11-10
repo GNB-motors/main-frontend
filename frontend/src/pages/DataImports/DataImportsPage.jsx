@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import PageShell from '@/components/ui/PageShell';
 import DataImportService from '@/services/DataImportService';
+import PhotoImportPanel from './PhotoImportPanel';
 
 /**
  * The canonical field list, mirrored from the server's ENTITY_FIELDS so the
@@ -235,6 +236,8 @@ const DataImportsPage = () => {
       subtitle="Upload a CSV of drivers, driver↔vehicle assignments or vehicle master fields. Always dry-run first: the preview writes nothing."
     >
       <div className="space-y-6">
+        <PhotoImportPanel />
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

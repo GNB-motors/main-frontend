@@ -118,4 +118,40 @@ describe('compact bill-photo dialog', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Choose a JPG');
     expect(screen.getByRole('button', { name: 'Upload' })).toBeDisabled();
   });
+
+  it('shows the server guidance when the photo was filed somewhere else', async () => {
+    billPhotoService.uploadBillPhoto.mockResolvedValue({
+      id: 'log1',
+      reviewStatus: 'AUTO_OK',
+      guidance: {
+        status: 'filed_elsewhere',
+        message:
+          'This looks like an odometer photo, not a fuel slip. We have saved it as an odometer reading.',
+      },
+    });
+    open();
+    chooseFile();
+    confirmPartial();
+    fireEvent.click(screen.getByRole('button', { name: 'Upload & save' }));
+    expect(
+      await screen.findByText(
+        'This looks like an odometer photo, not a fuel slip. We have saved it as an odometer reading.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('asks for a retake when the server could not read the photo', async () => {
+    billPhotoService.uploadBillPhoto.mockResolvedValue({
+      id: 'log1',
+      reviewStatus: 'NEEDS_REVIEW',
+      guidance: { status: 'reupload', message: 'Please retake this photo in better light.' },
+    });
+    open();
+    chooseFile();
+    confirmPartial();
+    fireEvent.click(screen.getByRole('button', { name: 'Upload & save' }));
+    expect(
+      await screen.findByText('Please retake this photo in better light.'),
+    ).toBeInTheDocument();
+  });
 });

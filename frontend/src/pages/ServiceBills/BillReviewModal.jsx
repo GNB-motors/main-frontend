@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import BillExtractionService from '../../services/BillExtractionService';
+import safeText from '../../utils/redactSensitive';
 import {
   buildFieldRows,
   buildReviewPayload,
@@ -90,6 +91,19 @@ const BillReviewModal = ({ billId, onClose, onReviewed }) => {
         </header>
 
         {error ? <div className="sbills-error">{error}</div> : null}
+
+        {extraction?.guidance?.message ? (
+          <div
+            role="status"
+            className={
+              extraction.guidance.status === 'filed_elsewhere'
+                ? 'rounded border border-blue-200 bg-blue-50 p-2 text-xs text-blue-800'
+                : 'rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800'
+            }
+          >
+            {safeText(extraction.guidance.message)}
+          </div>
+        ) : null}
 
         <div className="sbills-modal-body">
           <aside className="sbills-photo">

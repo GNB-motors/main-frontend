@@ -11,6 +11,7 @@ import { Button } from '../../components/ui/button';
 import SearchableSelect from '../../components/SearchableDropdown/SearchableSelect';
 import { getVehicleList } from '../../services/vehicleListService';
 import billPhotoService from '../../services/billPhotoService';
+import safeText from '../../utils/redactSensitive';
 import './AddBillPhotoDialog.css';
 
 const normalise = (value) =>
@@ -44,6 +45,7 @@ export default function AddBillPhotoDialog({
   const [selectedVehicleId, setSelectedVehicleId] = useState(vehicleId);
   const [loadingVehicles, setLoadingVehicles] = useState(false);
   const [result, setResult] = useState(null);
+  const [guidance, setGuidance] = useState(null);
   const fileInput = useRef(null);
   const busy = useRef(false);
   const request = useRef(null);
@@ -56,6 +58,7 @@ export default function AddBillPhotoDialog({
     setStage('pick');
     setFillingType('');
     setResult(null);
+    setGuidance(null);
     setSelectedVehicleId(vehicleId);
     setFuelType('DIESEL');
     if (vehicleId) return undefined;
@@ -118,6 +121,9 @@ export default function AddBillPhotoDialog({
       body.append('fillingType', fillingType);
       const saved = await billPhotoService.uploadBillPhoto({ body, signal: controller.signal });
       if (controller.signal.aborted) return;
+      // The server may file the photo somewhere else or ask for a retake. Its
+      // wording is shown as it was written; nothing else about the read is.
+      if (saved?.guidance) setGuidance(saved.guidance);
       if (!saved?.id && !saved?.fuelLog?._id)
         throw new Error('The server did not confirm that the bill was saved.');
       setResult(saved);
@@ -125,6 +131,7 @@ export default function AddBillPhotoDialog({
       onConfirmed?.(saved);
     } catch (err) {
       if (!controller.signal.aborted) {
+        if (err?.response?.data?.guidance) setGuidance(err.response.data.guidance);
         setError(err?.message || 'The bill could not be uploaded. Please try again.');
         setStage('confirm');
       }
@@ -299,6 +306,18 @@ export default function AddBillPhotoDialog({
           {error ? (
             <p role="alert" className="bp-error">
               {error}
+            </p>
+          ) : null}
+          {guidance?.message ? (
+            <p
+              role="status"
+              className={
+                guidance.status === 'filed_elsewhere'
+                  ? 'mt-2 rounded border border-blue-200 bg-blue-50 p-2 text-xs text-blue-800'
+                  : 'mt-2 rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800'
+              }
+            >
+              {safeText(guidance.message)}
             </p>
           ) : null}
         </div>
