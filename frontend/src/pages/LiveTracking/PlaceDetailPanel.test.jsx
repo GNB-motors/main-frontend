@@ -22,8 +22,34 @@ describe('Place detail in the Places tab', () => {
         <PlaceDetailPanel
           place={place}
           vehicles={[
-            { id: 'v1', plate: 'WB01AB1234', status: 'idling', hasFix: true, lat: 22.5, lng: 88.3 },
-            { id: 'v2', plate: 'WB02CD5678', status: 'moving', hasFix: true, lat: 23.5, lng: 88.3 },
+            {
+              id: 'v1',
+              plate: 'WB01AB1234',
+              status: 'idling',
+              hasFix: true,
+              hasGpsFix: true,
+              lat: 22.5,
+              lng: 88.3,
+              ago: 4,
+            },
+            {
+              id: 'v2',
+              plate: 'WB02CD5678',
+              status: 'moving',
+              hasFix: true,
+              hasGpsFix: true,
+              lat: 23.5,
+              lng: 88.3,
+            },
+            {
+              id: 'offline',
+              plate: 'OFFLINE',
+              status: 'offline',
+              hasFix: true,
+              hasGpsFix: false,
+              lat: 22.5,
+              lng: 88.3,
+            },
           ]}
           onBack={() => {}}
           onPickVehicle={onPick}
@@ -31,6 +57,9 @@ describe('Place detail in the Places tab', () => {
       </MemoryRouter>,
     );
     expect(screen.getByText(/Vehicles here now · 1/)).toBeTruthy();
+    expect(screen.queryByText('OFFLINE')).toBeNull();
+    expect(screen.getByText('Last report 4 min ago')).toBeTruthy();
+    expect(screen.queryByText('here 4 min')).toBeNull();
     fireEvent.click(screen.getByText('WB01AB1234'));
     expect(onPick).toHaveBeenCalledWith('v1');
     // The redesign moves place editing behind one plain link (F1.7).

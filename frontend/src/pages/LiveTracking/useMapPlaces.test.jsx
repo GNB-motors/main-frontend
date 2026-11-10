@@ -12,14 +12,17 @@ import { defaultLayerSelection } from './trackLegendModel';
 
 describe('useMapPlaces', () => {
   it('coalesces quick viewport changes and does not share cached data with a new page scope', async () => {
-    const hook = ({ bbox }) => useMapPlaces({ bbox, zoom: 8, layers: { pumps: true } });
-    const first = renderHook(hook, { initialProps: { bbox: [24, 86, 26, 88] } });
+    const useViewportPlaces = ({ bbox }) =>
+      useMapPlaces({ bbox, zoom: 8, layers: { pumps: true } });
+    const first = renderHook(useViewportPlaces, { initialProps: { bbox: [24, 86, 26, 88] } });
     first.rerender({ bbox: [24.1, 86.1, 26.1, 88.1] });
     first.rerender({ bbox: [24.2, 86.2, 26.2, 88.2] });
     await waitFor(() => expect(first.result.current.loaded).toBe(true));
     expect(getMapPlaces).toHaveBeenCalledTimes(1);
     first.unmount();
-    const second = renderHook(hook, { initialProps: { bbox: [24.2, 86.2, 26.2, 88.2] } });
+    const second = renderHook(useViewportPlaces, {
+      initialProps: { bbox: [24.2, 86.2, 26.2, 88.2] },
+    });
     await waitFor(() => expect(second.result.current.loaded).toBe(true));
     expect(getMapPlaces).toHaveBeenCalledTimes(2);
   });
