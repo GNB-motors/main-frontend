@@ -12,11 +12,11 @@ describe('map styles', () => {
     ['DARK_MAP_STYLE', DARK_MAP_STYLE],
   ];
 
-  it.each(styles)('%s hides poi clutter', (_name, style) => {
+  it.each(styles)('%s does not hide every poi label', (_name, style) => {
     const hidesAllPois = style.some(
       (rule) => rule.featureType === 'poi' && rule.stylers?.some((s) => s.visibility === 'off'),
     );
-    expect(hidesAllPois).toBe(true);
+    expect(hidesAllPois).toBe(false);
   });
 
   it.each(styles)('%s keeps the labels a driver needs', (_name, style) => {
