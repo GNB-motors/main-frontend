@@ -9,23 +9,21 @@ import {
   detachClusterer,
 } from '../PlaceHub/map/clusterer.js';
 
-/** Below this zoom a few-hundred-metre circle is a speck; draw the pin only (as Place Hub). */
-const SHAPE_MIN_ZOOM = 11;
-
 /* Place Hub's own pins, shapes and clusters, so a place looks the same on both
    pages. Drawn under the fleet: place pins sit at zIndex 10, trucks at 100+. */
-export default function TrackPlacesLayer({ places, selectedId, onSelect, zoom, dark }) {
+export default function TrackPlacesLayer({ places, selectedId, onSelect, dark }) {
   if (!places.length) return null;
-  const showShapes = zoom >= SHAPE_MIN_ZOOM;
   const styles = dark ? CLUSTER_STYLES_DARK : CLUSTER_STYLES_LIGHT;
   return (
     <>
+      {/* A learned area is always drawn. A place with no truck stops has only
+          its imported guess circle, so that circle shows only when selected. */}
       {places.map((p) => (
         <PlaceShape
           key={`tp-s-${p.id}`}
           place={p}
           selected={p.id === selectedId}
-          showCircle={showShapes || p.id === selectedId}
+          showCircle={p.id === selectedId}
           interactive
           onSelect={onSelect}
         />

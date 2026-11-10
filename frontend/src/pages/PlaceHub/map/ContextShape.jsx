@@ -14,6 +14,16 @@ const ContextShape = memo(function ContextShape({ place, showCircle }) {
     }),
     [],
   );
+  // A real area: one polygon per part, each with its holes — no circle on top.
+  if (place.polygonParts?.length) {
+    return (
+      <>
+        {place.polygonParts.map((part, i) => (
+          <PolygonF key={i} paths={part} options={options} />
+        ))}
+      </>
+    );
+  }
   if (place.polygon) return <PolygonF paths={place.polygon} options={options} />;
   if (!showCircle || !place.radiusM) return null;
   return (

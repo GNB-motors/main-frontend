@@ -3,7 +3,7 @@ import { toast } from 'react-toastify';
 import PlaceLabel from '../../../components/ui/PlaceLabel';
 import { coordsLabel } from '../model/placeLabels.js';
 
-export default function Where({ lat, lng, shape, address }) {
+export default function Where({ lat, lng, shape, address, extra }) {
   const copy = () => {
     navigator.clipboard?.writeText(`${lat}, ${lng}`).then(
       () => toast.success('Coordinates copied'),
@@ -34,6 +34,11 @@ export default function Where({ lat, lng, shape, address }) {
           </a>
         </div>
         {shape && <p className="ph-where-shape">{shape}</p>}
+        {(extra || []).filter(Boolean).map((line) => (
+          <p key={line} className="ph-where-shape">
+            {line}
+          </p>
+        ))}
       </div>
     </section>
   );

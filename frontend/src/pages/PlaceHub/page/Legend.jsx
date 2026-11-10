@@ -1,4 +1,5 @@
 import { placeTypeLabel } from '../model/placeGroups.js';
+import { PURPOSE_COLOR, PURPOSE_LABEL } from '../model/placePurpose.js';
 import {
   styleOfType,
   IDLE_COLOR,
@@ -57,6 +58,8 @@ export default function Legend({ tab, places, showContext, showPoi, showAllTolls
     ].slice(0, 8);
     const proposed = places.some((p) => p.status === 'PROPOSED');
     const risk = places.some((p) => p.risk);
+    const purposes = new Set(places.map((p) => p.purpose || 'general'));
+    const hasCore = places.some((p) => p.coreParts?.length);
     return (
       <div className="ph-legend">
         {types.map((t) => (
@@ -72,6 +75,26 @@ export default function Legend({ tab, places, showContext, showPoi, showAllTolls
         {risk && (
           <span className="ph-legend-item">
             <i className="is-ring" style={{ borderColor: RISK_COLOR }} /> Fuel risk
+          </span>
+        )}
+        {purposes.has('theft') && (
+          <span className="ph-legend-item">
+            <i style={{ background: PURPOSE_COLOR.theft }} /> {PURPOSE_LABEL.theft}
+          </span>
+        )}
+        {purposes.has('pump') && (
+          <span className="ph-legend-item">
+            <i style={{ background: PURPOSE_COLOR.pump }} /> {PURPOSE_LABEL.pump}
+          </span>
+        )}
+        {purposes.has('general') && (
+          <span className="ph-legend-item">
+            <i style={{ background: PURPOSE_COLOR.general }} /> {PURPOSE_LABEL.general}
+          </span>
+        )}
+        {hasCore && (
+          <span className="ph-legend-item">
+            <i className="is-square" style={{ background: '#0f172a' }} /> Busiest part (darker)
           </span>
         )}
         {poi}

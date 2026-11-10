@@ -15,6 +15,7 @@ import {
   detachClusterer,
 } from './map/clusterer.js';
 import PlaceShape from './map/PlaceShape.jsx';
+import GroupShape from './map/GroupShape.jsx';
 import PlaceMarker from './map/PlaceMarker.jsx';
 import ClusterRepaint from './map/ClusterRepaint.jsx';
 import ContextShape from './map/ContextShape.jsx';
@@ -201,19 +202,25 @@ export default function PlaceHubMap({
         <RouteLayer map={map} {...routes} isDark={isDark || satellite} zoom={zoom} />
       )}
 
-      {tab === 'places' &&
-        places.map((p) =>
-          p.id === hiddenPlaceId ? null : (
-            <PlaceShape
-              key={`s-${p.id}`}
-              place={p}
-              selected={p.id === selectedId}
-              showCircle={showCircles || p.id === selectedId}
-              interactive={interactive}
-              onSelect={onSelect}
-            />
-          ),
-        )}
+      {tab === 'places' && (
+        <>
+          {places.map((p) =>
+            p.id === hiddenPlaceId ? null : <GroupShape key={`g-${p.id}`} place={p} />,
+          )}
+          {places.map((p) =>
+            p.id === hiddenPlaceId ? null : (
+              <PlaceShape
+                key={`s-${p.id}`}
+                place={p}
+                selected={p.id === selectedId}
+                showCircle={showCircles || p.id === selectedId}
+                interactive={interactive}
+                onSelect={onSelect}
+              />
+            ),
+          )}
+        </>
+      )}
       {tab === 'places' && (
         <MarkerClustererF
           options={{ ...CLUSTER_OPTIONS, styles: clusterStylesNow }}

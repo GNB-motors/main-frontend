@@ -9,7 +9,8 @@
 import { effectiveType } from '../intelligence/model/siteType.js';
 import { hasRisk, nearestKnownPlace, placeTitle } from '../intelligence/model/siteSummary.js';
 import { groupOfType } from './placeGroups.js';
-import { isNum, ringOf, toNum } from './placeGeometry.js';
+import { isNum, partsOf, ringOf, toNum } from './placeGeometry.js';
+import { purposeOf } from './placePurpose.js';
 
 export function fromWarehouse(w) {
   return {
@@ -24,6 +25,10 @@ export function fromWarehouse(w) {
     lng: toNum(w.lng),
     radiusM: Number(w.geofenceRadiusM) || null,
     polygon: ringOf(w.polygon),
+    polygonParts: partsOf(w.polygon),
+    purpose: purposeOf(w),
+    areaSource: w.polygonSource || null,
+    areaM2: w.polygonStats?.areaM2 ?? null,
     subtitle: [w.code, w.city, w.state].filter(Boolean).join(' · '),
     readOnly: false,
     raw: w,
@@ -46,6 +51,7 @@ export function fromZone(z) {
     lng: toNum(z.lng),
     radiusM: polygon ? null : Number(z.radiusMetres) || 500,
     polygon,
+    purpose: purposeOf(z),
     subtitle: alertSummary(entry, exit),
     alerts: { entry, exit },
     readOnly: false,
@@ -86,6 +92,18 @@ export function fromSite(s) {
     lng: toNum(s.centroidLng),
     radiusM: Number(s.radiusM) || null,
     polygon: ringOf(s.polygon),
+    polygonParts: partsOf(s.polygon),
+    // The busiest part: where the trucks actually stood, not the whole yard.
+    coreParts: partsOf(s.polygonCore),
+    areaSource: s.polygonSource || null,
+    areaM2: s.polygonStats?.areaM2 ?? null,
+    // The joined group: the anchor knows the shape and the member list, the
+    // members only know the group's id.
+    groupId: s.areaGroup?.id ? String(s.areaGroup.id) : null,
+    groupAnchor: Boolean(s.areaGroup?.anchor),
+    groupParts: s.areaGroup?.anchor ? partsOf(s.areaGroup.polygon) : null,
+    groupMembers: Array.isArray(s.areaGroup?.members) ? s.areaGroup.members.map(String) : [],
+    purpose: purposeOf(s),
     subtitle: s.address?.locality || s.address?.formatted || '',
     erp,
     readOnly: erp,
@@ -131,6 +149,8 @@ export function mergePlaces({ warehouses = [], zones = [], sites = [] } = {}) {
     if (nearest) p.name = placeTitle(p.raw, nearest);
   }
 
+  linkGroups(places);
+
   return places.sort(
     (a, b) =>
       (STATUS_ORDER[a.status] ?? 0) - (STATUS_ORDER[b.status] ?? 0) ||
@@ -140,6 +160,27 @@ export function mergePlaces({ warehouses = [], zones = [], sites = [] } = {}) {
 }
 
 const STATUS_ORDER = { CONFIRMED: 0, PROPOSED: 1, REJECTED: 2 };
+
+/**
+ * The group a place belongs to: the anchor knows the member list, the members
+ * only know the group's id. After the merge every member carries the same
+ * list, so the drawer can name the places it is joined with.
+ */
+function linkGroups(places) {
+  const groups = new Map();
+  for (const p of places) {
+    if (!p.groupId) continue;
+    const key = String(p.groupId);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(p);
+  }
+  for (const members of groups.values()) {
+    const anchor = members.find((p) => p.groupAnchor);
+    const ids = anchor?.groupMembers;
+    if (!ids?.length) continue;
+    for (const p of members) if (!p.groupMembers?.length) p.groupMembers = ids.slice();
+  }
+}
 
 /** The review queue's order first (it puts trip drops up front), then the busiest. */
 function byReviewPriority(a, b) {

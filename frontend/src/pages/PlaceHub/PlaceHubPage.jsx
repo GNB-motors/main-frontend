@@ -570,6 +570,7 @@ export default function PlaceHubPage() {
           <PlaceHubDrawer
             selection={activeSelection}
             draft={draft}
+            places={places}
             canEdit={canEdit}
             disclaimer={data.drain?.disclaimer}
             onClose={() => (tab === 'routes' ? pickRoute(null) : setSelectedId(null))}
