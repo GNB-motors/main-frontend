@@ -317,11 +317,11 @@ export default function TrackLegend({
                 const Icon = LAYER_ICONS[layer.icon] || Factory;
                 const count = liveCounts[layer.id];
                 return (
-                  <LegendToggle
+                  <PlaceLayerRow
                     key={layer.id}
-                    label={layer.label}
-                    count={count == null ? undefined : count}
-                    icon={<Icon size={14} aria-hidden="true" />}
+                    layer={layer}
+                    count={count}
+                    icon={<Icon size={19} aria-hidden="true" />}
                     color={layer.color}
                     on={Boolean(layerSelection[layer.id])}
                     onToggle={() => onToggleLayer(layer.id)}

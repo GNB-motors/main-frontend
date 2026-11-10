@@ -46,11 +46,42 @@ vi.mock('./useTrackRoutes.js', () => ({ default: () => ({
   lines: [], sites: new Map([['a', { name: 'Plant', lat: 22, lng: 88 }], ['b', { name: 'Depot', lat: 23, lng: 87 }]]),
   isLoading: false, error: null, reload: vi.fn(),
 }) }));
+vi.mock('./useTrackReviewQueue.js', () => ({ default: () => ({
+  items: [{ _id: 'cached-review', centroidLat: 22.5, centroidLng: 88.3 }],
+  count: 1, reload: vi.fn(),
+}) }));
+vi.mock('../../hooks/useLiveIdling.js', () => ({ useLiveIdling: () => ({
+  idling: [{ registrationNumber: 'TEST01', lat: 22.5, lng: 88.3 }], error: null,
+}) }));
+import { writeLayerSelection } from './trackLegendPrefs';
+import { defaultLayerSelection } from './trackLegendModel';
 import LiveTrackingPage from './LiveTrackingPage';
 
 describe('LiveTrackingPage master data', () => {
   const reviewSite = { _id:'review-1', name:'Place to confirm', status:'PROPOSED', centroidLat:22.5,centroidLng:88.3 };
   const renderPlaces = () => render(<MemoryRouter initialEntries={['/live-tracking?view=places']}><LiveTrackingPage /></MemoryRouter>);
+
+  it('removes cached live layers on every off toggle and restores them when enabled', () => {
+    writeLayerSelection(defaultLayerSelection());
+    const view = renderPlaces();
+    for (const [label, mapProp] of [['Places to confirm', 'reviewItems'], ['Trucks idling now', 'idlingRows']]) {
+      const row = screen.getByRole('button', { name: new RegExp(label) });
+      expect(row).toHaveClass('lt-place-layer-row');
+      expect(row).toHaveAttribute('aria-pressed', 'false');
+      expect(seen.map[mapProp]).toEqual([]);
+      for (let cycle = 0; cycle < 2; cycle++) {
+        fireEvent.click(row);
+        expect(row).toHaveAttribute('aria-pressed', 'true');
+        expect(row.querySelector('.lt-place-layer-check svg')).not.toBeNull();
+        expect(seen.map[mapProp]).toHaveLength(1);
+        fireEvent.click(row);
+        expect(row).toHaveAttribute('aria-pressed', 'false');
+        expect(row.querySelector('.lt-place-layer-check svg')).toBeNull();
+        expect(seen.map[mapProp]).toEqual([]);
+      }
+    }
+    view.unmount();
+  });
 
   it('exits place confirmation by back, close and Escape without submitting an answer', () => {
     const view=renderPlaces();

@@ -801,7 +801,7 @@ const LiveTrackingPage = () => {
               trackRoad={isTrackMode ? trackMode.roadTrail : null}
               trackTolls={isTrackMode ? trackMode.tolls : null}
               placesPanelOpen={isPlacesView && placesPanelOpen}
-              reviewItems={showPlaceLayers ? reviewQueue.items : []}
+              reviewItems={showPlaceLayers && layerSelection.reviewQueue ? reviewQueue.items : []}
               tollPlazas={showPlaceLayers && layerSelection.tolls ? tolls.plazas : []}
               selectedReviewId={reviewSite?._id ?? null}
               onSelectReviewSite={selectReviewSite}
