@@ -54,7 +54,6 @@ export default function LiveTopbar({
         <>
           <div className="lt-filter-groups">
             <div className="lt-filter-group lt-filter-group--movement">
-              <span className="lt-filter-label">Movement</span>
               <div className="gnb-status-bar" role="group" aria-label="Fleet status filters">
                 {statusCards.map((card) => (
                   <button
@@ -75,7 +74,6 @@ export default function LiveTopbar({
               </div>
             </div>
             <div className="lt-filter-group lt-filter-group--make">
-              <span className="lt-filter-label">Vehicle make</span>
               <div className="lt-make-options-bar" role="group" aria-label="Manufacturer filters">
                 <button
                   type="button"
