@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { SIDE_NAV_ITEMS } from './sideNavItems';
+import { getVisibleNavItems } from './sideNavUtils';
 
 /**
  * The owner asked for hover help on every menu item. These tests make sure
@@ -66,5 +67,31 @@ describe('side nav hints', () => {
     fleetItems.forEach((item) => {
       expect(item.hint).not.toMatch(/API|endpoint|schema|query param/i);
     });
+  });
+});
+
+/**
+ * Data Imports (/data-imports) — the page and the route exist, but the sidebar
+ * had no entry for it, so owners could not find it. The backend route is
+ * authorize('OWNER','MANAGER'), so the menu entry must carry the same gate.
+ */
+describe('data imports nav entry', () => {
+  const item = SIDE_NAV_ITEMS.find((i) => i.to === '/data-imports');
+  const navFor = (role) => getVisibleNavItems(() => true, role);
+
+  it('points at the data imports page', () => {
+    expect(item).toBeTruthy();
+    expect(item.type).toBe('link');
+    expect(item.label).toBe('Data imports');
+    expect(item.icon).toBeTruthy();
+  });
+
+  it('is shown to an owner and to a manager', () => {
+    expect(navFor('OWNER').some((i) => i.to === '/data-imports')).toBe(true);
+    expect(navFor('MANAGER').some((i) => i.to === '/data-imports')).toBe(true);
+  });
+
+  it('is hidden from a driver', () => {
+    expect(navFor('DRIVER').some((i) => i.to === '/data-imports')).toBe(false);
   });
 });

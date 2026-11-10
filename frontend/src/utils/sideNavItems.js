@@ -23,6 +23,7 @@ import {
   Sparkles,
   MapPinned,
   Receipt,
+  FileUp,
 } from 'lucide-react';
 
 /**
@@ -116,6 +117,19 @@ export const SIDE_NAV_ITEMS = [
       { to: '/access-control', label: 'User Management' },
     ],
     matchRoutes: ['/drivers', '/drivers/add', '/drivers/bulk-upload', '/access-control'],
+  },
+  // Data Imports — bulk CSV upload of drivers, driver↔vehicle assignments and
+  // vehicle master fields (always preview first, then apply). The backend
+  // route is authorize('OWNER','MANAGER'), so the menu entry carries the same
+  // gate: only an owner or a manager is shown this link.
+  {
+    type: 'link',
+    key: null,
+    roles: ['OWNER', 'MANAGER'],
+    to: '/data-imports',
+    label: 'Data imports',
+    icon: FileUp,
+    hint: 'Upload a CSV of drivers, assignments or vehicle master data — preview first, then apply.',
   },
 
   // ─── ISOCL ERP / CRM — five workspaces ─────────────────────────────────────
