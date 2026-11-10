@@ -3960,11 +3960,11 @@ html.dark .wx-icon .wx-star,
 }
 .gnb-lt-page .lt-filter-group--movement .gnb-status-bar {
   margin: 0;
-  padding: 2px;
 }
 .gnb-lt-page .lt-filter-group--movement .gnb-status-card {
   gap: 7px;
-  padding: 8px 11px;
+  min-height: 34px;
+  padding: 6px 11px;
 }
 :root[data-theme='dark'] .lt-toolbar .gnb-status-card--active {
   background: #152d4a !important;
@@ -3974,7 +3974,8 @@ html.dark .wx-icon .wx-star,
   padding-left: 24px;
   border-left: 1px solid var(--border-default);
 }
-.gnb-lt-page .lt-make-options-bar {
+.gnb-lt-page .lt-make-options-bar,
+.gnb-lt-page .lt-filter-group--movement .gnb-status-bar {
   display: flex;
   gap: 3px;
   padding: 3px;
