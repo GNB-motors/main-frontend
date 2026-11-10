@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { Send } from 'lucide-react';
 import { getThemeCSS } from '../../utils/colorTheme.js';
@@ -19,6 +19,8 @@ import {
   buildCredentialsCsv,
   MAX_ROWS,
 } from './bulkUploadFlow.js';
+import { splitFiles } from './photoDriverImport.js';
+import { detectSheetMapping, detectedColumns } from './employeeSheetPreview.js';
 import logger from '../../utils/logger';
 
 /**
@@ -28,7 +30,12 @@ import logger from '../../utils/logger';
  * results panel is dismissed — the host decides what to do next (navigate to the
  * list, or close the panel and refresh it).
  */
-const BulkUploadDriversContent = ({ onCompleted, variant = 'page' }) => {
+const BulkUploadDriversContent = ({
+  onCompleted,
+  variant = 'page',
+  allowPhotos = false,
+  onPhotoFiles = null,
+}) => {
   const [rawRows, setRawRows] = useState([]);
   const [fileColumns, setFileColumns] = useState([]);
   const [columnMapping, setColumnMapping] = useState(null);
@@ -44,6 +51,7 @@ const BulkUploadDriversContent = ({ onCompleted, variant = 'page' }) => {
   const [uploadProgress, setUploadProgress] = useState(null);
   const [selectedRowForError, setSelectedRowForError] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [detectedMapping, setDetectedMapping] = useState(null);
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const fileInputRef = useRef(null);
 
@@ -125,6 +133,9 @@ const BulkUploadDriversContent = ({ onCompleted, variant = 'page' }) => {
         setFileColumns(headers);
         setShowMappingModal(true);
         setIsParsing(false);
+        // The server may know which column is which. It is only a suggestion —
+        // every column can still be changed in the mapping panel.
+        detectSheetMapping(file, 'drivers').then((detected) => setDetectedMapping(detected));
       } catch (error) {
         setIsParsing(false);
         toast.error(`Failed to parse file: ${error.message}`);
@@ -140,18 +151,31 @@ const BulkUploadDriversContent = ({ onCompleted, variant = 'page' }) => {
   };
 
   const handleFileChange = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+
+    const { photos, sheets } = splitFiles(files);
+    if (photos.length && onPhotoFiles) {
+      onPhotoFiles(photos);
+    }
+
+    const file = sheets[0];
+    if (!file) {
+      event.target.value = '';
+      return;
+    }
 
     const validExtensions = ['.xlsx', '.xls', '.csv'];
     const fileExt = '.' + file.name.split('.').pop().toLowerCase();
     if (!validExtensions.includes(fileExt)) {
       toast.error('Please upload a .xlsx, .xls, or .csv file');
+      event.target.value = '';
       return;
     }
 
     setFileName(file.name);
     parseFile(file);
+    event.target.value = '';
   };
 
   const handleMappingSave = (mapping) => {
@@ -281,6 +305,10 @@ const BulkUploadDriversContent = ({ onCompleted, variant = 'page' }) => {
 
   const filteredRows = filterRowsByStatus(normalizedRows, rowErrors, filterStatus);
   const { errorCount } = summarizeRowErrors(normalizedRows, rowErrors);
+  const suggestedColumns = useMemo(
+    () => detectedColumns(detectedMapping, fileColumns),
+    [detectedMapping, fileColumns],
+  );
 
   const openFilePicker = () => {
     if (isParsing || isSubmitting) return;
@@ -305,6 +333,7 @@ const BulkUploadDriversContent = ({ onCompleted, variant = 'page' }) => {
             onClearFile={handleClearRows}
             fileInputRef={fileInputRef}
             onFileChange={handleFileChange}
+            allowPhotos={allowPhotos}
           />
 
           {normalizedRows.length > 0 && (
@@ -348,6 +377,7 @@ const BulkUploadDriversContent = ({ onCompleted, variant = 'page' }) => {
       <BulkEmployeeMappingSidePanel
         isOpen={showMappingModal}
         fileColumns={fileColumns}
+        initialMapping={suggestedColumns}
         onSave={handleMappingSave}
         onClose={() => {
           setShowMappingModal(false);

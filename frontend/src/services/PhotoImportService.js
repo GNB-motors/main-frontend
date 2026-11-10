@@ -22,7 +22,7 @@ const unwrap = (res) => res.data?.data ?? res.data;
 
 const UPLOAD_TIMEOUT = 200000;
 
-const buildForm = ({ files = [], uploadedAs = {}, batchId } = {}) => {
+const buildForm = ({ files = [], uploadedAs = {}, batchId, context } = {}) => {
   const form = new FormData();
   files.forEach((file) => form.append('files', file, file.name));
   const hints = Object.entries(uploadedAs || {})
@@ -30,6 +30,8 @@ const buildForm = ({ files = [], uploadedAs = {}, batchId } = {}) => {
     .map(([fileName, kind]) => ({ fileName, kind }));
   if (hints.length) form.append('uploadedAs', JSON.stringify(hints));
   if (batchId) form.append('batchId', batchId);
+  // What the photos are about: the drivers list, or the vehicle assignments.
+  if (context) form.append('context', context);
   return form;
 };
 
@@ -44,8 +46,32 @@ const post = async (form, { signal } = {}) => {
 
 const PhotoImportService = {
   /** Start a batch of photos. Resolves with { batchId }. */
-  start: async ({ files = [], uploadedAs = {} } = {}, { signal } = {}) =>
-    post(buildForm({ files, uploadedAs }), { signal }),
+  start: async ({ files = [], uploadedAs = {}, context } = {}, { signal } = {}) =>
+    post(buildForm({ files, uploadedAs, context }), { signal }),
+
+  /**
+   * The drivers the reader saw in the photos. Each row says whether the driver
+   * is already in the list, is probably someone we know, or is new.
+   */
+  getDriverRows: async (batchId, { signal } = {}) => {
+    const response = await apiClient.get(`/api/photo-imports/${batchId}/drivers`, { signal });
+    const data = unwrap(response);
+    const rows = Array.isArray(data) ? data : data?.rows || data?.drivers || [];
+    return Array.isArray(rows) ? rows : [];
+  },
+
+  /**
+   * Save the owner's answers. One item per driver row: use an existing driver,
+   * create a new one, or skip the row.
+   */
+  resolveDrivers: async (batchId, items, { signal } = {}) => {
+    const response = await apiClient.post(
+      `/api/photo-imports/${batchId}/drivers/resolve`,
+      { items },
+      { signal },
+    );
+    return unwrap(response);
+  },
 
   /**
    * Put one retaken photo back into the batch it came from. Same endpoint,

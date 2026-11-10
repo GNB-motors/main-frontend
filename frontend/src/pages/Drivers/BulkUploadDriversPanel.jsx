@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import {
   Sheet,
@@ -9,6 +9,7 @@ import {
   SheetClose,
 } from '@/components/ui/sheet';
 import BulkUploadDriversContent from './BulkUploadDriversContent.jsx';
+import PhotoDriverImportPanel from './PhotoDriverImportPanel.jsx';
 import '../Profile/BulkUploadVehiclesPage.css';
 
 /**
@@ -17,6 +18,8 @@ import '../Profile/BulkUploadVehiclesPage.css';
  * page renders. `onUploaded` lets the host refresh its list after a real upload.
  */
 const BulkUploadDriversPanel = ({ isOpen, onClose, onUploaded }) => {
+  const [photoOpen, setPhotoOpen] = useState(false);
+
   return (
     <Sheet
       open={isOpen}
@@ -45,6 +48,8 @@ const BulkUploadDriversPanel = ({ isOpen, onClose, onUploaded }) => {
         <div className="min-h-0 flex-1 overflow-y-auto">
           <BulkUploadDriversContent
             variant="panel"
+            allowPhotos
+            onPhotoFiles={() => setPhotoOpen(true)}
             onCompleted={() => {
               onUploaded?.();
               onClose();
@@ -52,6 +57,12 @@ const BulkUploadDriversPanel = ({ isOpen, onClose, onUploaded }) => {
           />
         </div>
       </SheetContent>
+      <PhotoDriverImportPanel
+        open={photoOpen}
+        onOpenChange={setPhotoOpen}
+        context="drivers"
+        onSaved={onUploaded}
+      />
     </Sheet>
   );
 };

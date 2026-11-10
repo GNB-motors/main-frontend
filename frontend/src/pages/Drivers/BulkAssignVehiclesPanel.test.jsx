@@ -4,9 +4,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import BulkAssignVehiclesPanel from './BulkAssignVehiclesPanel';
 import Service from '@/services/DriverVehicleAssignmentService';
+import DataImportService from '@/services/DataImportService';
 
 vi.mock('@/services/DriverVehicleAssignmentService', () => ({
   default: { previewBulk: vi.fn(), applyBulk: vi.fn() },
+}));
+vi.mock('@/services/DataImportService', () => ({
+  default: { preview: vi.fn() },
 }));
 vi.mock('xlsx', () => ({
   read: () => ({ SheetNames: ['Fleet'], Sheets: { Fleet: {} } }),
@@ -35,10 +39,11 @@ const preview = {
 beforeEach(() => {
   vi.clearAllMocks();
   Service.previewBulk.mockResolvedValue(preview);
+  DataImportService.preview.mockResolvedValue({});
 });
 afterEach(cleanup);
 async function uploadAndMap() {
-  changeField(screen.getByLabelText('Excel or CSV file'), {
+  changeField(screen.getByLabelText('Excel, CSV or photos'), {
     target: {
       files: [{ name: 'fleet.xlsx', size: 100, arrayBuffer: async () => new ArrayBuffer(1) }],
     },

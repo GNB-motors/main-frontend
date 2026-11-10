@@ -11,6 +11,13 @@ import {
 import { Button } from '@/components/ui/button';
 import AssignmentService from '@/services/DriverVehicleAssignmentService';
 import { assignmentTable, assignmentRows } from './bulkAssignmentFile';
+import { splitFiles } from './photoDriverImport.js';
+import {
+  detectSheetMapping,
+  detectedEmployeeColumn,
+  detectedVehicleColumn,
+} from './employeeSheetPreview.js';
+import PhotoDriverImportPanel from './PhotoDriverImportPanel.jsx';
 import './BulkAssignVehiclesPanel.css';
 
 export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
@@ -22,6 +29,7 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
   const [payload, setPayload] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [photoOpen, setPhotoOpen] = useState(false);
   const fileInput = useRef(null);
   const invalidate = () => {
     setReport(null);
@@ -30,8 +38,8 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
   };
 
   async function readFile(event) {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
     invalidate();
     setTable(null);
     setFileName('');
@@ -39,6 +47,15 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
     setVehicleColumn('');
     setBusy(true);
     try {
+      const { photos, sheets } = splitFiles(files);
+      if (photos.length) {
+        // Photos answer a different question: who was driving. The driver chart
+        // confirms the periods.
+        setPhotoOpen(true);
+        return;
+      }
+      const file = sheets[0];
+      if (!file) throw new Error('Choose an Excel (.xlsx, .xls) or CSV file, or photos.');
       if (!/\.(xlsx|xls|csv)$/i.test(file.name))
         throw new Error('Choose an Excel (.xlsx, .xls) or CSV file.');
       if (file.size > 10 * 1024 * 1024) throw new Error('Choose a file smaller than 10 MB.');
@@ -49,8 +66,21 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
         defval: '',
         raw: false,
       });
-      setTable(assignmentTable(matrix));
+      const nextTable = assignmentTable(matrix);
+      setTable(nextTable);
       setFileName(file.name);
+      // The server may know which column is which. It is only a starting point —
+      // both columns can still be changed below.
+      const detected = await detectSheetMapping(file, 'assignments');
+      const labels = nextTable.headers.map((h) => h.label);
+      const indexOf = (label) => {
+        const found = nextTable.headers.find((h) => h.label === label);
+        return found ? String(found.index) : '';
+      };
+      const employee = indexOf(detectedEmployeeColumn(detected, labels));
+      const vehicle = indexOf(detectedVehicleColumn(detected, labels));
+      if (employee) setEmployeeColumn(employee);
+      if (vehicle) setVehicleColumn(vehicle);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -136,7 +166,10 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
               <p className="bulk-assign-file-name">
                 {table ? `${fileName} · ${table.rows.length} rows` : 'Choose an Excel or CSV file'}
               </p>
-              <p className="bulk-assign-hint">Supports .xlsx, .xls and .csv · Up to 10 MB</p>
+              <p className="bulk-assign-hint">
+                Supports .xlsx, .xls and .csv · Up to 10 MB · Photos of the register page, licence
+                or ID work too
+              </p>
               <Button variant="outline" disabled={busy} onClick={() => fileInput.current?.click()}>
                 <Upload size={16} aria-hidden="true" />
                 {table ? 'Change file' : 'Choose file'}
@@ -145,8 +178,9 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
             <input
               ref={fileInput}
               type="file"
-              aria-label="Excel or CSV file"
-              accept=".xlsx,.xls,.csv"
+              aria-label="Excel, CSV or photos"
+              accept=".xlsx,.xls,.csv,image/jpeg,image/png,image/webp"
+              multiple
               disabled={busy}
               onChange={readFile}
               className="bulk-assign-file-input"
@@ -306,6 +340,11 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
           </div>
         </footer>
       </SheetContent>
+      <PhotoDriverImportPanel
+        open={photoOpen}
+        onOpenChange={setPhotoOpen}
+        context="assignments"
+      />
     </Sheet>
   );
 }
