@@ -1,4 +1,5 @@
 import apiClient from '../utils/axiosConfig';
+import { getToken, getOrgId, getBranchId } from '../utils/session';
 
 /**
  * liveStream — one shared SSE connection per session (OVERHAUL_MASTER_PLAN §A.5).
@@ -58,6 +59,7 @@ const defaultDeps = {
 
 export function createLiveStream(deps = {}) {
   const { requestTicket, openStream, streamUrl, visibility } = { ...defaultDeps, ...deps };
+  const isCurrentScope = deps.isCurrentScope ?? (() => true);
 
   /** eventType -> Set<handler> */
   const handlers = new Map();
@@ -71,6 +73,7 @@ export function createLiveStream(deps = {}) {
   let hiddenTimer = null;
   let cooldownTimer = null;
   let attempt = 0;
+  let generation = 0;
 
   const emitState = (next) => {
     if (next === state) return;
@@ -101,6 +104,7 @@ export function createLiveStream(deps = {}) {
   };
 
   const disconnect = (nextState = 'closed') => {
+    generation += 1;
     clearTimers();
     connectingPromise = null;
     closeSource();
@@ -109,6 +113,7 @@ export function createLiveStream(deps = {}) {
   };
 
   const dispatch = (eventType, raw) => {
+    if (!isCurrentScope()) return;
     const set = handlers.get(eventType);
     if (!set || set.size === 0) return;
     let payload;
@@ -126,14 +131,18 @@ export function createLiveStream(deps = {}) {
     if (connectingPromise) return connectingPromise;
     clearTimers();
     emitState(attempt === 0 ? 'connecting' : 'reconnecting');
+    const currentGeneration = generation;
     connectingPromise = (async () => {
       let ticket;
       try {
         ticket = await requestTicket();
       } catch (err) {
-        scheduleReconnect(err);
+        if (currentGeneration === generation && isCurrentScope()) scheduleReconnect(err);
         return;
       }
+      // A location switch or disposal can happen while minting the ticket.
+      // Never open that old scope's stream, even if the request succeeds late.
+      if (currentGeneration !== generation || !isCurrentScope()) return;
       if (!ticket) {
         scheduleReconnect(new Error('ticket endpoint returned no token'));
         return;
@@ -152,6 +161,10 @@ export function createLiveStream(deps = {}) {
       }
       source = es;
       es.onopen = () => {
+        if (!isCurrentScope()) {
+          disconnect('closed');
+          return;
+        }
         attempt = 0;
         emitState('open');
       };
@@ -170,7 +183,7 @@ export function createLiveStream(deps = {}) {
         },
       );
     })().finally(() => {
-      connectingPromise = null;
+      if (currentGeneration === generation) connectingPromise = null;
     });
     return connectingPromise;
   };
@@ -297,10 +310,18 @@ export function createLiveStream(deps = {}) {
 }
 
 let singleton = null;
+let singletonScope = null;
+
+const sessionScope = () => JSON.stringify([getToken(), getOrgId(), getBranchId()]);
 
 /** Lazy singleton per A.5: first subscriber opens it, dispose on logout. */
 export function getLiveStream() {
-  if (!singleton) singleton = createLiveStream();
+  const scope = sessionScope();
+  if (singleton && singletonScope !== scope) resetLiveStream();
+  if (!singleton) {
+    singletonScope = scope;
+    singleton = createLiveStream({ isCurrentScope: () => sessionScope() === scope });
+  }
   return singleton;
 }
 
@@ -308,6 +329,7 @@ export function getLiveStream() {
 export function resetLiveStream() {
   if (singleton) singleton.dispose();
   singleton = null;
+  singletonScope = null;
 }
 
 if (typeof import.meta !== 'undefined' && import.meta.hot) {

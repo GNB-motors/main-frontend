@@ -8,7 +8,18 @@ import {
   HIDDEN_CLOSE_MS,
   MISSING_ENDPOINT_RETRY_MS,
   BUSY_RETRY_MS,
+  getLiveStream,
+  resetLiveStream,
 } from './liveStream';
+import apiClient from '../utils/axiosConfig';
+
+const scope = vi.hoisted(() => ({ token: 'session', orgId: 'org-1', branchId: null }));
+vi.mock('../utils/session', () => ({
+  getToken: () => scope.token,
+  getOrgId: () => scope.orgId,
+  getBranchId: () => scope.branchId,
+}));
+vi.mock('../utils/axiosConfig', () => ({ default: { post: vi.fn() } }));
 
 /** Minimal EventSource double: records listeners, lets a test drive open/error/named events. */
 class FakeEventSource {
@@ -71,7 +82,78 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  resetLiveStream();
+  vi.unstubAllGlobals();
   vi.useRealTimers();
+});
+
+describe('live stream location changes', () => {
+  beforeEach(() => {
+    scope.token = 'session';
+    scope.orgId = 'org-1';
+    scope.branchId = null;
+    apiClient.post.mockReset().mockResolvedValue({ data: { ticket: TICKET } });
+    vi.stubGlobal('EventSource', FakeEventSource);
+  });
+
+  it('closes the enterprise connection on location switch and ignores its late events', async () => {
+    const enterprise = getLiveStream();
+    const onEnterprisePosition = vi.fn();
+    enterprise.subscribe('positions', onEnterprisePosition);
+    await flushConnect();
+    await flushConnect();
+    const previousSource = FakeEventSource.instances[0];
+    previousSource.simulateOpen();
+    scope.branchId = 'chennai';
+    // A queued frame can arrive between the user's click and React's remount.
+    previousSource.emit('positions', '[{"registrationNumber":"ENTERPRISE"}]');
+    expect(onEnterprisePosition).not.toHaveBeenCalled();
+    const branch = getLiveStream();
+    expect(branch).not.toBe(enterprise);
+    expect(previousSource.closed).toBe(true);
+    const onBranchPosition = vi.fn();
+    branch.subscribe('positions', onBranchPosition);
+    await flushConnect();
+    await flushConnect();
+    expect(FakeEventSource.instances).toHaveLength(2);
+    FakeEventSource.instances[1].emit('positions', '[]');
+    expect(onBranchPosition).toHaveBeenCalledWith([]);
+    // Switching back opens a fresh enterprise stream, not the retired one.
+    scope.branchId = null;
+    expect(getLiveStream()).not.toBe(enterprise);
+    expect(FakeEventSource.instances[1].closed).toBe(true);
+  });
+
+  it('cannot open an old enterprise connection when its ticket resolves after a branch switch', async () => {
+    let finishOldTicket;
+    apiClient.post.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishOldTicket = resolve;
+        }),
+    );
+    getLiveStream().subscribe('positions', vi.fn());
+    scope.branchId = 'chennai';
+    getLiveStream().subscribe('positions', vi.fn());
+    await flushConnect();
+    await flushConnect();
+    expect(FakeEventSource.instances).toHaveLength(1);
+    finishOldTicket({ data: { ticket: 'old-enterprise-ticket' } });
+    await flushConnect();
+    await flushConnect();
+    expect(FakeEventSource.instances).toHaveLength(1);
+    expect(FakeEventSource.instances[0].url).not.toContain('old-enterprise-ticket');
+  });
+
+  it('replaces a connection when the authenticated organization changes', async () => {
+    const old = getLiveStream();
+    old.subscribe('positions', vi.fn());
+    await flushConnect();
+    await flushConnect();
+    scope.orgId = 'org-2';
+    expect(getLiveStream()).not.toBe(old);
+    expect(FakeEventSource.instances[0].closed).toBe(true);
+  });
 });
 
 describe('backoffDelayMs', () => {
