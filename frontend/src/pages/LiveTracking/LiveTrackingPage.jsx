@@ -283,7 +283,7 @@ const LiveTrackingPage = () => {
   const knownEtas = useKnownEtas();
   const idlingByPlate = useMemo(() => idlingMinutesByPlate(idlingRows), [idlingRows]);
   const alertCounts = useMemo(() => alertCountsByVehicle(alerts), [alerts]);
-  const reviewQueue = useTrackReviewQueue({ enabled: isPlacesView && Boolean(layerSelection.reviewQueue) });
+  const reviewQueue = useTrackReviewQueue({ enabled: isPlacesView });
   const routes = useTrackRoutes({ enabled: isPlacesView && placesTab === 'routes' });
   const [showAllTolls, setShowAllTolls] = useState(false);
   const tolls = useTrackTolls({ enabled: isPlacesView && placesTab === 'places', showAll: showAllTolls && Boolean(layerSelection.tolls), bbox: mapBounds, zoom: mapZoom });
@@ -905,7 +905,7 @@ const LiveTrackingPage = () => {
                   onRetryTolls={tolls.refresh}
                   unmatchedRoutes={routes.error ? null : routes.unmatchedCount}
                   liveCounts={{
-                    reviewQueue: layerSelection.reviewQueue ? reviewQueue.count : '—',
+                    reviewQueue: reviewQueue.count,
                     routes: !layerSelection.routes ? '—' : routes.error ? null : routes.lines.length,
                     idling: idlingError ? null : idlingRows.length,
                   }}

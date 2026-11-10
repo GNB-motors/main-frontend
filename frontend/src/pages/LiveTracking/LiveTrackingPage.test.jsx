@@ -48,7 +48,7 @@ vi.mock('./useTrackRoutes.js', () => ({ default: () => ({
 }) }));
 vi.mock('./useTrackReviewQueue.js', () => ({ default: () => ({
   items: [{ _id: 'cached-review', centroidLat: 22.5, centroidLng: 88.3 }],
-  count: 1, reload: vi.fn(),
+  count: 137, reload: vi.fn(),
 }) }));
 vi.mock('../../hooks/useLiveIdling.js', () => ({ useLiveIdling: () => ({
   idling: [{ registrationNumber: 'TEST01', lat: 22.5, lng: 88.3 }], error: null,
@@ -67,6 +67,7 @@ describe('LiveTrackingPage master data', () => {
     for (const [label, mapProp] of [['Places to confirm', 'reviewItems'], ['Trucks idling now', 'idlingRows']]) {
       const row = screen.getByRole('button', { name: new RegExp(label) });
       expect(row).toHaveClass('lt-place-layer-row');
+      if (mapProp === 'reviewItems') expect(row).toHaveTextContent('137');
       expect(row).toHaveAttribute('aria-pressed', 'false');
       expect(seen.map[mapProp]).toEqual([]);
       for (let cycle = 0; cycle < 2; cycle++) {
