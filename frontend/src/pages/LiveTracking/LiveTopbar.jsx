@@ -61,6 +61,7 @@ export default function LiveTopbar({
                     type="button"
                     className={`gnb-status-card ${filter === card.k ? 'gnb-status-card--active' : ''}`}
                     aria-pressed={filter === card.k}
+                    style={{ '--lt-status-color': card.stripe }}
                     title={card.title}
                     onClick={() => setFilter(card.k)}
                   >

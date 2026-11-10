@@ -3965,10 +3965,31 @@ html.dark .wx-icon .wx-star,
   gap: 7px;
   min-height: 34px;
   padding: 6px 11px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  transition:
+    background-color 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 160ms ease;
 }
-:root[data-theme='dark'] .lt-toolbar .gnb-status-card--active {
-  background: #152d4a !important;
-  border-color: #60a5fa !important;
+.gnb-lt-page .lt-filter-group--movement .gnb-status-card:hover {
+  background: var(--bg-surface);
+  border-color: var(--border-default);
+  box-shadow: none;
+  transform: none;
+}
+.gnb-lt-page .lt-filter-group--movement .gnb-status-card--active {
+  background: color-mix(in srgb, var(--lt-status-color) 12%, var(--bg-surface)) !important;
+  border-color: color-mix(in srgb, var(--lt-status-color) 55%, var(--border-default)) !important;
+}
+.gnb-lt-page .lt-filter-group--movement .lt-status-dot {
+  transition: box-shadow 240ms ease;
+}
+.gnb-lt-page .lt-filter-group--movement .gnb-status-card--active .lt-status-dot {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lt-status-color) 15%, transparent);
 }
 .gnb-lt-page .lt-filter-group--make {
   padding-left: 24px;
@@ -4003,6 +4024,12 @@ html.dark .wx-icon .wx-star,
   font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
+  transition:
+    background-color 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    color 200ms ease,
+    box-shadow 240ms ease,
+    transform 160ms ease;
 }
 .gnb-lt-page .lt-make-option:hover {
   background: var(--bg-surface);
@@ -4018,10 +4045,26 @@ html.dark .wx-icon .wx-star,
   color: var(--fg-secondary);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
+  transition: color 200ms ease;
 }
 .gnb-lt-page .lt-make-option[aria-pressed='true'] .lt-make-count {
   color: var(--fg-primary);
-  font-weight: 600;
+}
+.gnb-lt-page .lt-filter-group--movement .gnb-status-card:active,
+.gnb-lt-page .lt-make-option:active {
+  transform: scale(0.98);
+}
+@media (prefers-reduced-motion: reduce) {
+  .gnb-lt-page .lt-filter-group--movement .gnb-status-card,
+  .gnb-lt-page .lt-filter-group--movement .lt-status-dot,
+  .gnb-lt-page .lt-make-option,
+  .gnb-lt-page .lt-make-count {
+    transition: none;
+  }
+  .gnb-lt-page .lt-filter-group--movement .gnb-status-card:active,
+  .gnb-lt-page .lt-make-option:active {
+    transform: none;
+  }
 }
 .gnb-lt-page .lt-map-count {
   display: none;
