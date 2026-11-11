@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog';
 import billPhotoService from '../../services/billPhotoService';
+import SearchableSelect from '../../components/SearchableDropdown/SearchableSelect';
 import { candidateRows } from './billPhotoModel';
 import './BillsTable.css';
 const statusOf = (error) => error?.status ?? error?.response?.status;
@@ -106,7 +107,11 @@ export function BillThumbnail({ capture, file, large = false }) {
     <img
       src={url}
       alt="Bill thumbnail"
-      className={large ? 'max-h-[75vh] w-auto object-contain' : 'h-20 w-20 rounded object-cover'}
+      className={
+        large
+          ? 'max-h-[75vh] w-auto object-contain'
+          : 'h-24 w-24 rounded-lg border border-[var(--rd-line)] object-cover'
+      }
     />
   ) : (
     <span>Loading photo…</span>
@@ -143,31 +148,43 @@ function BillRow({
       '');
   const ocr = capture.ocr || {};
   const show = (value) => (value == null || value === '' ? '\u2014' : String(value));
-  const details = [
+  const money = (n) => (n == null ? '\u2014' : '\u20b9' + Number(n).toLocaleString('en-IN'));
+  // Secondary fields shown as a compact grid under the headline amount; the
+  // core figures (amount, litres, rate, fuel) are rendered prominently above.
+  const meta = [
+    ['Pump / station', ocr.pump ?? ocr.station],
     ['Date', ocr.printedDate ?? ocr.date],
     ['Time', ocr.printedTime],
-    ['Amount', ocr.amount == null ? null : '\u20b9' + ocr.amount],
-    ['Litres', ocr.litres],
-    ['Rate', ocr.rate == null ? null : '\u20b9' + ocr.rate + '/L'],
-    ['Pump / station', ocr.pump ?? ocr.station],
     ['Truck on bill', ocr.vehicleNo ?? ocr.vehicleNumber ?? ocr.registrationNumber],
     ['Odometer', ocr.odometer == null ? null : ocr.odometer + ' km'],
-    ['Fuel', ocr.fuelType],
     ['Receipt no.', ocr.receiptNo],
   ];
   return (
     <tr aria-label={`Bill ${capture.id}`}>
       <td data-label="#">{index + 1}</td>
       <td data-label="Details">
-        {details.map(([label, value]) => (
-          <div key={label}>
-            {label}: {show(value)}
+        <div className="bp-bill">
+          <div className="bp-bill__head">
+            <span className="bp-bill__amount">{money(ocr.amount)}</span>
+            {ocr.fuelType ? <span className="bp-badge">{ocr.fuelType}</span> : null}
           </div>
-        ))}
+          <div className="bp-bill__sub">
+            {show(ocr.litres)} L · {ocr.rate == null ? '—' : '₹' + ocr.rate + '/L'}
+          </div>
+          <dl className="bp-bill__meta">
+            {meta.map(([label, value]) => (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd className={value == null || value === '' ? 'is-empty' : ''}>{show(value)}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
       </td>
       <td data-label="Photo">
         <button
           type="button"
+          className="bp-photo-btn"
           onClick={() => setPhotoOpen(true)}
           aria-label={`Open bill photo ${index + 1}`}
         >
@@ -237,26 +254,22 @@ function BillRow({
                     {candidate.reasons.length ? ' - ' + candidate.reasons.join(' · ') : ''}
                   </Button>
                 ))}
-                <label>
-                  Truck{' '}
-                  <input
-                    className="bp-select"
+                <label className="bp-truck-pick">
+                  <span className="bp-truck-pick__label">Truck</span>
+                  <SearchableSelect
+                    className="bp-truck-select"
                     aria-label="Truck"
-                    list={`fleet-${capture.id}`}
                     value={chosen}
                     onChange={(event) => onChoice(event.target.value)}
-                    placeholder="Search trucks"
-                  />
+                  >
+                    <option value="">Search all trucks…</option>
+                    {vehicles.map((vehicle) => (
+                      <option key={vehicle._id || vehicle.id} value={vehicle.registrationNumber}>
+                        {vehicle.registrationNumber}
+                      </option>
+                    ))}
+                  </SearchableSelect>
                 </label>
-                <datalist id={`fleet-${capture.id}`}>
-                  {vehicles.map((vehicle) => (
-                    <option
-                      key={vehicle._id || vehicle.id}
-                      value={vehicle.registrationNumber}
-                      aria-label={vehicle.registrationNumber}
-                    />
-                  ))}
-                </datalist>
               </>
             )}
             {errors?.map((message, i) => (
@@ -376,4 +389,3 @@ export default function BillsTable({
     </>
   );
 }
-
