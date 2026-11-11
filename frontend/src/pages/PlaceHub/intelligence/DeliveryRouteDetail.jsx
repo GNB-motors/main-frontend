@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, X, ArrowUpRight, Pencil } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -12,6 +12,7 @@ import SetSapDialog from '../../Sap/SetSapDialog';
 import { BASIS_LABEL, canEditSap, kmText, signed } from '../../Sap/sapModel';
 import { minutesLabel } from './model/unitLabels';
 import RouteComparison from './RouteComparison';
+import { compareBars, countText, sapDelta } from './model/deliveryRoutesModel';
 
 export default function DeliveryRouteDetail({ id, version, showSap = false, onChanged, onClose }) {
   const q = useApi(
@@ -24,11 +25,15 @@ export default function DeliveryRouteDetail({ id, version, showSap = false, onCh
   const [limit, setLimit] = useState(5);
   const [tab, setTab] = useState('overview');
   const [editing, setEditing] = useState(false);
-  const detailRef = useRef(null);
   useEffect(() => {
-    if (window.matchMedia?.('(max-width: 850px)').matches)
-      detailRef.current?.scrollIntoView({ block: 'start' });
-  }, [id]);
+    // Escape closes the panel (it is a slide-over on narrow screens), unless a
+    // dialog on top of it owns the key.
+    const onKey = (e) => {
+      if (e.key === 'Escape' && !editing && !document.querySelector('[role="dialog"]')) onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [editing, onClose]);
   const route = q.data;
   const act = async (status) => {
     try {
@@ -48,8 +53,11 @@ export default function DeliveryRouteDetail({ id, version, showSap = false, onCh
   const samples = route?.samples || [];
   const comparison = route?.sap?.comparison;
   const roundTrip = route?.sap?.basis === 'ROUND_TRIP';
+  const learnedKm = roundTrip ? route?.roundTripKm?.p50 : route?.km?.p50;
+  const bars = compareBars(learnedKm, route?.sap?.sapKm);
+  const delta = route ? sapDelta(route) : null;
   return (
-    <aside ref={detailRef} className="ud-detail sap-panel" aria-label="Selected delivery route">
+    <aside className="ud-detail sap-panel" aria-label="Selected delivery route">
       <div className="ud-detail-heading">
         <small>DELIVERY ROUTE</small>
         <button type="button" aria-label="Close route details" onClick={onClose}>
@@ -59,16 +67,18 @@ export default function DeliveryRouteDetail({ id, version, showSap = false, onCh
       <SapRequestState query={q}>
         {route && (
           <>
-            {showSap && <RouteComparison route={route} />}
             <h2>
               {route.fromName || 'Unnamed pickup'}
               <span>→ {route.toName || 'Unnamed drop'}</span>
             </h2>
-            <p>
-              {route.n
-                ? `Learned from ${route.n} trips across ${route.trucks} trucks`
-                : 'Configured route · no trips yet'}
-            </p>
+            <div className="ud-detail-meta">
+              {showSap && <RouteComparison route={route} />}
+              <span>
+                {route.n
+                  ? `Learned from ${countText(route.n)} trips across ${countText(route.trucks)} trucks`
+                  : 'Configured route · no trips yet'}
+              </span>
+            </div>
             <nav className="ud-detail-tabs" aria-label="Route detail views">
               {['overview', 'trips', ...(showSap ? ['sap'] : [])].map((t) => (
                 <button type="button" key={t} aria-pressed={tab === t} onClick={() => setTab(t)}>
@@ -84,25 +94,33 @@ export default function DeliveryRouteDetail({ id, version, showSap = false, onCh
                       <small>
                         {roundTrip ? 'ROUND TRIP · LOADED + RETURN' : 'LOADED JOURNEY · ONE WAY'}
                       </small>
-                      <div>
+                      <div className="ud-compare-grid">
                         <strong>
-                          {kmText(roundTrip ? route.roundTripKm?.p50 : route.km?.p50)}
-                          <small>typical learned distance</small>
+                          <small>Typical learned</small>
+                          {kmText(learnedKm)}
                         </strong>
-                        <span>/</span>
                         <strong>
+                          <small>Agreed SAP</small>
                           {kmText(route.sap?.sapKm)}
-                          <small>agreed SAP</small>
                         </strong>
                       </div>
-                      <p>
+                      {bars && (
+                        <div className="ud-bars" aria-hidden="true">
+                          <span
+                            className={`ud-bar ud-bar--learned ud-bar--${delta?.tone || 'none'}`}
+                            style={{ width: `${bars.learned}%` }}
+                          />
+                          <span className="ud-bar ud-bar--sap" style={{ width: `${bars.sap}%` }} />
+                        </div>
+                      )}
+                      <p className={delta ? `ud-delta ud-delta--${delta.tone}` : undefined}>
                         {!route.sap
                           ? 'SAP not set. Enter the distance agreed with your customer.'
                           : !route.n
                             ? 'SAP is saved. Waiting for this route’s first trip.'
                             : comparison?.verdict === 'NO_KM'
                               ? 'More distance evidence is needed. Missing return km is not treated as zero.'
-                              : `${signed(comparison?.deltaKm, ' km')} versus SAP · ${route.sap.tolerancePct}% tolerance`}
+                              : `${signed(comparison?.deltaKm, ' km')}${delta?.pct ? ` (${delta.pct})` : ''} versus SAP · ${route.sap.tolerancePct}% tolerance`}
                       </p>
                       {roundTrip && (
                         <p>
