@@ -8,6 +8,9 @@ import { str, num } from './primitives.js';
 const pumpSchema = z
   .object({
     pump: str,
+    auditStatus: z.enum(['AUDITED', 'NOT_AUDITED']).nullish(),
+    sourceCounts: z.object({ register: num, sensor: num, alert: num }).nullish(),
+    registeredLitres: num,
     fills: num,
     flaggedFills: num,
     claimedLitres: num,

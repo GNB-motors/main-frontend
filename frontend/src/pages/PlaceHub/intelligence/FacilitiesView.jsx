@@ -6,6 +6,7 @@ import { useMutation } from '../../../hooks/useMutation';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
 import PanelLoading from './PanelLoading';
 import EmptyPanel from './EmptyPanel';
+import PlaceMapModal from './PlaceMapModal.jsx';
 import { messageOf } from './model/requestOutcome.js';
 import { evidenceLines, poiText, roleText, pct } from './facilityText';
 
@@ -21,6 +22,11 @@ const ANSWERS = [
   { siteType: 'PLANT', label: 'Both' },
 ];
 
+const roleOf = (f = {}) =>
+  (f.roles || []).includes('DROP') && !(f.roles || []).includes('PICKUP') ? 'DROP' : 'PICKUP';
+const coord = (lat, lng) =>
+  typeof lat === 'number' && typeof lng === 'number' ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : '—';
+
 /**
  * Facilities — one row per physical place, exactly as trip detection sees it:
  * its role, whether that came from your answer or was learned (with how sure
@@ -30,6 +36,7 @@ const ANSWERS = [
  */
 export default function FacilitiesView({ version, onChanged, onOpenPlace }) {
   const [filter, setFilter] = useState('review');
+  const [openFac, setOpenFac] = useState(null);
   const params = FILTERS.find((f) => f.key === filter).params;
   const { data, loading, error, refetch } = useApi(
     (signal) => PlaceIntelligenceService.listFacilities({ ...params, limit: 200 }, { signal }),
@@ -99,21 +106,23 @@ export default function FacilitiesView({ version, onChanged, onOpenPlace }) {
             <tbody>
               {items.map((s) => {
                 const f = s.facility || {};
-                const role =
-                  (f.roles || []).includes('DROP') && !(f.roles || []).includes('PICKUP')
-                    ? 'DROP'
-                    : 'PICKUP';
+                const role = roleOf(f);
                 return (
-                  <tr key={s._id}>
-                    <td>
-                      <button
-                        type="button"
-                        className="pi-link"
-                        onClick={() => onOpenPlace?.(s._id)}
-                      >
-                        {f.name || s.name || 'Unnamed place'}
-                      </button>
-                    </td>
+                  <tr
+                    key={s._id}
+                    className="pi-row-click"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Open ${f.name || s.name || 'this place'} on the map`}
+                    onClick={() => setOpenFac(s)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setOpenFac(s);
+                      }
+                    }}
+                  >
+                    <td className="pi-cell-strong">{f.name || s.name || 'Unnamed place'}</td>
                     <td>
                       {roleText(f)}
                       {f.suggestions?.length ? (
@@ -134,7 +143,10 @@ export default function FacilitiesView({ version, onChanged, onOpenPlace }) {
                             type="button"
                             className="pi-btn-quiet"
                             disabled={retypeM.loading || acceptM.loading}
-                            onClick={() => answer(s, a.siteType)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              answer(s, a.siteType);
+                            }}
                           >
                             {a.label}
                           </button>
@@ -148,6 +160,58 @@ export default function FacilitiesView({ version, onChanged, onOpenPlace }) {
           </table>
         </div>
       )}
+
+      <PlaceMapModal
+        open={!!openFac}
+        onOpenChange={(o) => (o ? null : setOpenFac(null))}
+        icon={<Factory size={18} />}
+        title={openFac ? openFac.facility?.name || openFac.name || 'Unnamed place' : ''}
+        subtitle="What trip detection sees here"
+        lat={openFac?.centroidLat}
+        lng={openFac?.centroidLng}
+        label={openFac ? openFac.facility?.name || openFac.name || 'Place' : ''}
+        footer={
+          openFac && onOpenPlace ? (
+            <button
+              type="button"
+              className="pi-btn-quiet"
+              onClick={() => {
+                onOpenPlace(openFac._id);
+                setOpenFac(null);
+              }}
+            >
+              Open in full map
+            </button>
+          ) : null
+        }
+      >
+        {openFac ? (
+          <>
+            <dl className="pi-fact">
+              <dt>What trips see</dt>
+              <dd>{roleText(openFac.facility || {}) || '—'}</dd>
+            </dl>
+            <dl className="pi-fact">
+              <dt>Why</dt>
+              <dd>
+                {evidenceLines(openFac.facility || {}, roleOf(openFac.facility)).join('; ') || '—'}
+              </dd>
+            </dl>
+            <dl className="pi-fact">
+              <dt>On the map</dt>
+              <dd>{poiText(openFac.poi) || '—'}</dd>
+            </dl>
+            <dl className="pi-fact">
+              <dt>Stops</dt>
+              <dd>{openFac.visitCount ?? '—'}</dd>
+            </dl>
+            <dl className="pi-fact">
+              <dt>Coordinates</dt>
+              <dd>{coord(openFac.centroidLat, openFac.centroidLng)}</dd>
+            </dl>
+          </>
+        ) : null}
+      </PlaceMapModal>
     </div>
   );
 }

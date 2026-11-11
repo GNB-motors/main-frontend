@@ -30,7 +30,12 @@ vi.mock('@react-google-maps/api', async () => {
   };
 });
 vi.mock('./map/usePoiLayer.js', () => ({ default: () => ({ pois: [], load: () => {} }) }));
-vi.mock('./map/useTollLayer.js', () => ({ default: () => ({ plazas: [], load: () => {} }) }));
+vi.mock('./map/useTollLayer.js', () => ({
+  default: () => ({ plazas: [{ id: 'toll1', visited: true }], load: () => {} }),
+}));
+vi.mock('./map/TollLayer.jsx', () => ({
+  default: ({ plazas }) => <div data-testid="tolls">{plazas.length} tolls</div>,
+}));
 vi.mock('./map/PlaceMarker.jsx', () => ({
   default: ({ place }) => <span data-testid="pin">{place.name}</span>,
 }));
@@ -71,6 +76,17 @@ const zoomTo = (zoom) =>
 beforeEach(() => vi.clearAllMocks());
 
 describe('Place Hub area labels', () => {
+  it('hides tolls by default and shows them only when a toll toggle is enabled', () => {
+    const view = render(<PlaceHubMap {...base} />);
+    expect(screen.queryByTestId('tolls')).not.toBeInTheDocument();
+    view.rerender(<PlaceHubMap {...base} showUsedTolls />);
+    expect(screen.getByTestId('tolls')).toHaveTextContent('1 tolls');
+    view.rerender(<PlaceHubMap {...base} showAllTolls />);
+    expect(screen.getByTestId('tolls')).toHaveTextContent('1 tolls');
+    view.rerender(<PlaceHubMap {...base} />);
+    expect(screen.queryByTestId('tolls')).not.toBeInTheDocument();
+  });
+
   it('replaces a pin at close zoom, keeps the area clickable, and restores pins on zoom-out', () => {
     const onSelect = vi.fn();
     render(<PlaceHubMap {...base} onSelect={onSelect} />);

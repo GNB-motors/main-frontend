@@ -1,3 +1,4 @@
+import { PLACE_ICON_SIZES } from '../../config/placeIcons.js';
 import { memo, useEffect, useRef } from 'react';
 import { useGoogleMap } from '@react-google-maps/api';
 import { MarkerClusterer, SuperClusterAlgorithm } from '@googlemaps/markerclusterer';
@@ -114,7 +115,10 @@ function MapPlacesLayer({ places = EMPTY, selectedId = null }) {
         const selected = place.id === selectedId;
         const iconKey = `${layer}:${selected}`;
         if (!current.icons.has(iconKey))
-          current.icons.set(iconKey, mapPlaceIcon(place, { size: 26, selected }));
+          current.icons.set(
+            iconKey,
+            mapPlaceIcon(place, { size: PLACE_ICON_SIZES.default, selected }),
+          );
         const marker = new maps.Marker({
           position: { lat: place.lat, lng: place.lng },
           icon: current.icons.get(iconKey),

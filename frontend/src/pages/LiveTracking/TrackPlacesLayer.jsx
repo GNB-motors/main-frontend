@@ -1,4 +1,4 @@
-import { MarkerClustererF } from '@react-google-maps/api';
+import PlaceClusterer from '../PlaceHub/map/PlaceClusterer.jsx';
 import PlaceShape from '../PlaceHub/map/PlaceShape.jsx';
 import PlaceMarker from '../PlaceHub/map/PlaceMarker.jsx';
 import PlaceAreaLabel from '../PlaceHub/map/PlaceAreaLabel.jsx';
@@ -37,7 +37,8 @@ export default function TrackPlacesLayer({ places, selectedId, onSelect, dark, z
             <PlaceAreaLabel key={`tp-label-${p.id}`} name={p.name} layout={labels.get(p.id)} />
           ),
       )}
-      <MarkerClustererF
+      <PlaceClusterer
+        places={markerPlaces}
         options={{ ...CLUSTER_OPTIONS, styles }}
         styles={styles}
         title="Zoom in to see these places"
@@ -58,7 +59,7 @@ export default function TrackPlacesLayer({ places, selectedId, onSelect, dark, z
             <ClusterRepaint clusterer={clusterer} styles={styles} places={markerPlaces} />
           </>
         )}
-      </MarkerClustererF>
+      </PlaceClusterer>
     </>
   );
 }

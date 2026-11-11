@@ -1,3 +1,4 @@
+import { pumpSourceSummary } from './pumpHonestyModel.js';
 import { useState } from 'react';
 import { ShieldAlert, Fuel, MapPin, Search } from 'lucide-react';
 import { formatINR, formatLitres } from '../../utils/formatters';
@@ -14,6 +15,7 @@ const STATUS_MAP = {
   UNRELIABLE: { tone: 'caution', label: 'Unreliable' },
   CHRONIC_SHORTAGE: { tone: 'critical', label: 'Chronic Shortage' },
   CHRONIC_DEFICIT: { tone: 'critical', label: 'Chronic Deficit' },
+  NOT_AUDITED: { tone: 'inert', label: 'Not yet audited' },
   INSUFFICIENT_DATA: { tone: 'inert', label: 'Needs More Fills' },
 };
 
@@ -48,7 +50,7 @@ export default function PumpHonestyPanel({ ledger = {} }) {
         <p className="text-xs text-slate-500 m-0">Fleet pumps · {data.windowLabel}</p>
       ) : null}
       {/* Top Rollup Metrics */}
-      {summary && (
+      {summary?.totalAuditedFills > 0 && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-50 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
           <div>
             <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
@@ -90,6 +92,12 @@ export default function PumpHonestyPanel({ ledger = {} }) {
         </div>
       )}
 
+      {pumps.length > 0 && !summary?.totalAuditedFills && (
+        <p className="text-sm text-slate-500 m-0">
+          Known pumps are listed from register and telemetry records. Shortage and loss remain
+          unknown until a reliable bill-to-tank comparison is available.
+        </p>
+      )}
       {/* Filter / Search Strip */}
       <div className="flex items-center justify-between gap-3">
         <div className="fi-search-wrap max-w-sm flex-1">
@@ -113,8 +121,9 @@ export default function PumpHonestyPanel({ ledger = {} }) {
 
       {filteredPumps.length === 0 ? (
         <div className="text-dim py-12 text-center text-sm">
-          No pump fill transactions recorded yet. Once fuel bills and sensor fill events are
-          captured, pump honesty analytics will appear here.
+          {query
+            ? 'No stations match your search.'
+            : 'No named pump records found for this fleet and period.'}
         </div>
       ) : (
         <>
@@ -155,40 +164,54 @@ export default function PumpHonestyPanel({ ledger = {} }) {
                           </span>
                         )}
                         <span>·</span>
-                        <span className="font-mono">{p.fillCount || 0} refuels audited</span>
+                        <span className="font-mono">
+                          {p.status === 'NOT_AUDITED'
+                            ? pumpSourceSummary(p)
+                            : `${p.fillCount || 0} refuels audited`}
+                        </span>
                       </div>
                     </div>
                   </div>
 
                   {/* Middle: Shortfall Progress Meter */}
-                  <div className="hidden md:flex flex-col gap-1 w-44">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-500 font-medium">Shortage</span>
-                      <span
-                        className={`font-mono font-bold ${
-                          isShort
-                            ? 'text-amber-600 dark:text-amber-400'
-                            : 'text-emerald-600 dark:text-emerald-400'
-                        }`}
-                      >
-                        {shortPct.toFixed(1)}% ({formatLitres(shortL)})
-                      </span>
+                  {p.status === 'NOT_AUDITED' ? (
+                    <div className="hidden md:flex flex-col gap-1 w-44 text-xs text-slate-500">
+                      <span>Shortage not assessed</span>
+                      {p.registeredLitres != null && (
+                        <span>Register fuel: {formatLitres(p.registeredLitres)}</span>
+                      )}
                     </div>
+                  ) : (
+                    <div className="hidden md:flex flex-col gap-1 w-44">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500 font-medium">Shortage</span>
+                        <span
+                          className={`font-mono font-bold ${
+                            isShort
+                              ? 'text-amber-600 dark:text-amber-400'
+                              : 'text-emerald-600 dark:text-emerald-400'
+                          }`}
+                        >
+                          {shortPct.toFixed(1)}% ({formatLitres(shortL)})
+                        </span>
+                      </div>
 
-                    <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${
-                          isShort ? 'bg-amber-500' : 'bg-emerald-500'
-                        }`}
-                        style={{ width: `${Math.min(100, Math.max(4, shortPct * 5))}%` }}
-                      />
+                      <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            isShort ? 'bg-amber-500' : 'bg-emerald-500'
+                          }`}
+                          style={{ width: `${Math.min(100, Math.max(4, shortPct * 5))}%` }}
+                        />
+                      </div>
                     </div>
-                  </div>
-
+                  )}
                   {/* Right: Est Loss & Honesty Pill */}
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <div className="text-sm font-bold font-mono text-slate-900 dark:text-slate-100">
-                      {(p.totalRupeeLoss || 0) > 0 ? (
+                      {p.status === 'NOT_AUDITED' ? (
+                        <span className="text-slate-500">Loss unknown</span>
+                      ) : (p.totalRupeeLoss || 0) > 0 ? (
                         <span className="text-red-600 dark:text-red-400">
                           {formatINR(p.totalRupeeLoss)} lost
                         </span>

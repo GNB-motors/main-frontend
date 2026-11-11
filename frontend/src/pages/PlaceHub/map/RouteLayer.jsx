@@ -1,3 +1,4 @@
+import { mapPlaceIcon } from '../../LiveTracking/mapPlaceIcon.js';
 import { useEffect, useRef, useState } from 'react';
 import DataTooltip from '../../../components/ui/DataTooltip.jsx';
 import { decodePolyline6 } from '../../../lib/polyline6.js';
@@ -175,18 +176,15 @@ export default function RouteLayer({
       const site = sites.get(id);
       if (!site || !Number.isFinite(site.lat) || !Number.isFinite(site.lng)) continue;
       const plant = plantCounts.get(id) || 0;
+      const type = effectiveType(site).type;
+      const size = Math.round(22 + 8 * Math.sqrt(count / max) + (plant ? 4 : 0));
       const marker = new window.google.maps.Marker({
         map,
         position: { lat: site.lat, lng: site.lng },
         title: `${placeTitle(site)}${plant ? ` · ${plant} in-plant legs` : ''}`,
         icon: {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 4 + 4 * Math.sqrt(count / max) + (plant ? 3 : 0),
-          fillColor: typeStyle(effectiveType(site).type).color,
-          fillOpacity: plant ? 0.25 : 1,
-          strokeColor: plant ? ink : land,
-          strokeWeight: plant ? 3 : 2,
-          labelOrigin: new window.google.maps.Point(0, -18),
+          ...mapPlaceIcon({ type }, { size, color: typeStyle(type).color, hollow: Boolean(plant) }),
+          labelOrigin: new window.google.maps.Point(size / 2, -8),
         },
         label: plant
           ? { text: String(plant), color: ink, fontSize: '11px' }

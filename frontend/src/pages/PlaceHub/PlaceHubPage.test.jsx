@@ -199,6 +199,26 @@ beforeEach(() => {
 });
 
 describe('PlaceHubPage', () => {
+  it('toggles used tolls and its legend independently of all tolls', async () => {
+    renderPage('/place-hub');
+    await screen.findByText('Dankuni yard');
+    const used = screen.getByRole('button', { name: 'Used tolls' });
+    const all = screen.getByRole('button', { name: 'All tolls' });
+    expect(used).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByText('Toll plaza used')).not.toBeInTheDocument();
+    fireEvent.click(used);
+    expect(used).toHaveAttribute('aria-pressed', 'true');
+    expect(all).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByText('Toll plaza used')).toBeInTheDocument();
+    fireEvent.click(used);
+    expect(screen.queryByText('Toll plaza used')).not.toBeInTheDocument();
+    fireEvent.click(all);
+    expect(screen.getByText('Toll plaza used')).toBeInTheDocument();
+    expect(screen.getByText('Other toll plaza')).toBeInTheDocument();
+    fireEvent.click(all);
+    expect(screen.queryByText('Other toll plaza')).not.toBeInTheDocument();
+  });
+
   it('always loads the toll plazas the fleet used; every other plaza waits for the toggle', async () => {
     renderPage();
     const toggle = await screen.findByRole('button', { name: /all tolls/i });

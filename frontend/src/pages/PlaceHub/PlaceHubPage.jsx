@@ -116,6 +116,7 @@ export default function PlaceHubPage() {
   const [satellite, setSatellite] = useState(false);
   const [showPoi, setShowPoi] = useState(false);
   const [showAllTolls, setShowAllTolls] = useState(false);
+  const [showUsedTolls, setShowUsedTolls] = useState(false);
   const [showContext, setShowContext] = useState(true);
   const [fitNonce, setFitNonce] = useState(0);
   const [routeChip, setRouteChip] = useState('all');
@@ -512,6 +513,7 @@ export default function PlaceHubPage() {
             vehicleHalts={vehicleHalts}
             showPoi={showPoi}
             showAllTolls={showAllTolls}
+            showUsedTolls={showUsedTolls}
             hiddenPlaceId={hiddenPlaceId}
             selectedId={selectedId}
             onSelect={pickFromMap}
@@ -548,7 +550,9 @@ export default function PlaceHubPage() {
             showPoi={showPoi}
             setShowPoi={setShowPoi}
             showAllTolls={showAllTolls}
+            showUsedTolls={showUsedTolls}
             setShowAllTolls={setShowAllTolls}
+            setShowUsedTolls={setShowUsedTolls}
             satellite={satellite}
             setSatellite={setSatellite}
             setFitNonce={setFitNonce}
@@ -563,6 +567,7 @@ export default function PlaceHubPage() {
             showContext={showContext && tab !== 'places'}
             showPoi={showPoi}
             showAllTolls={showAllTolls}
+            showUsedTolls={showUsedTolls}
           />
         </section>
 

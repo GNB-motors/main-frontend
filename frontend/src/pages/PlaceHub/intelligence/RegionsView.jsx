@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
-import { Layers } from 'lucide-react';
+import { Layers, Check, X } from 'lucide-react';
 import useApi from '../../../hooks/useApi';
 import { useMutation } from '../../../hooks/useMutation';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
@@ -167,21 +167,23 @@ export default function RegionsView({ version, onChanged }) {
                   {tab.actions ? (
                     // eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table cell, not a control; the rule reads <td> as a gridcell and stops before the button text inside
                     <td>
-                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                      <div className="pi-region-actions">
                         <button
                           type="button"
-                          className="pi-btn-quiet"
+                          className="pi-region-action pi-region-action--keep"
                           disabled={decideM.loading}
                           onClick={() => decide(r._id, 'CONFIRM')}
                         >
+                          <Check size={14} aria-hidden="true" />
                           {ACTION_LABEL.CONFIRM[status] || 'Confirm'}
                         </button>
                         <button
                           type="button"
-                          className="pi-btn-quiet"
+                          className="pi-region-action pi-region-action--reject"
                           disabled={decideM.loading}
                           onClick={() => decide(r._id, 'REJECT')}
                         >
+                          <X size={14} aria-hidden="true" />
                           Reject
                         </button>
                       </div>

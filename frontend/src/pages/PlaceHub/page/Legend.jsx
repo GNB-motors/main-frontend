@@ -1,3 +1,5 @@
+import PlaceIcon from '../../../components/Icons/PlaceIcon.jsx';
+import { PLACE_ICON_SIZES } from '../../../config/placeIcons.js';
 import { placeTypeLabel } from '../model/placeGroups.js';
 import { PURPOSE_COLOR, PURPOSE_LABEL } from '../model/placePurpose.js';
 import {
@@ -13,15 +15,23 @@ import PoiKeys from './PoiKeys.jsx';
 import { RUN_COLORS } from '../model/routes.js';
 import { mapPlaceIconUrl } from '../../LiveTracking/mapPlaceIcon.js';
 
-export default function Legend({ tab, places, showContext, showPoi, showAllTolls, isDark }) {
+export default function Legend({
+  tab,
+  places,
+  showContext,
+  showPoi,
+  showAllTolls,
+  showUsedTolls,
+  isDark,
+}) {
   const poi = showPoi && <PoiKeys />;
-  // Visited toll plazas are on every tab, so their key is too.
-  const tolls = (
+  // Only show toll keys while the corresponding layer is visible.
+  const tolls = (showUsedTolls || showAllTolls) && (
     <>
       <span className="ph-legend-item">
         <img
           className="ph-toll-key"
-          src={mapPlaceIconUrl({ layer: 'tolls' }, { size: 28 })}
+          src={mapPlaceIconUrl({ layer: 'tolls' }, { size: PLACE_ICON_SIZES.tolls.visited })}
           alt=""
         />{' '}
         Toll plaza used
@@ -30,7 +40,10 @@ export default function Legend({ tab, places, showContext, showPoi, showAllTolls
         <span className="ph-legend-item">
           <img
             className="ph-toll-key"
-            src={mapPlaceIconUrl({ layer: 'tolls' }, { size: 24, hollow: true })}
+            src={mapPlaceIconUrl(
+              { layer: 'tolls' },
+              { size: PLACE_ICON_SIZES.tolls.upcoming, hollow: true },
+            )}
             alt=""
           />{' '}
           Other toll plaza
@@ -65,6 +78,7 @@ export default function Legend({ tab, places, showContext, showPoi, showAllTolls
     const types = [
       ...new Set(places.filter((p) => p.status === 'CONFIRMED').map((p) => p.type)),
     ].slice(0, 8);
+    const hasUnknown = places.some((p) => p.type === 'UNKNOWN');
     const proposed = places.some((p) => p.status === 'PROPOSED');
     const risk = places.some((p) => p.risk);
     const purposes = new Set(places.map((p) => p.purpose || 'general'));
@@ -73,9 +87,16 @@ export default function Legend({ tab, places, showContext, showPoi, showAllTolls
       <div className="ph-legend">
         {types.map((t) => (
           <span key={t} className="ph-legend-item">
-            <i style={{ background: styleOfType(t).color }} /> {placeTypeLabel(t)}
+            <PlaceIcon type={t} size={18} style={{ color: styleOfType(t).color }} />{' '}
+            {placeTypeLabel(t)}
           </span>
         ))}
+        {hasUnknown && (
+          <span className="ph-legend-item">
+            <PlaceIcon type="UNKNOWN" size={18} style={{ color: styleOfType('UNKNOWN').color }} />{' '}
+            Unknown place
+          </span>
+        )}
         {proposed && (
           <span className="ph-legend-item">
             <i className="is-hollow" /> To review
@@ -93,7 +114,8 @@ export default function Legend({ tab, places, showContext, showPoi, showAllTolls
         )}
         {purposes.has('pump') && (
           <span className="ph-legend-item">
-            <i style={{ background: PURPOSE_COLOR.pump }} /> {PURPOSE_LABEL.pump}
+            <PlaceIcon layer="pumps" size={18} style={{ color: PURPOSE_COLOR.pump }} />{' '}
+            {PURPOSE_LABEL.pump}
           </span>
         )}
         {purposes.has('general') && (

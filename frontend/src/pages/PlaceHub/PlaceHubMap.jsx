@@ -1,6 +1,7 @@
+import PlaceClusterer from './map/PlaceClusterer.jsx';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
-import { GoogleMap, MarkerClustererF } from '@react-google-maps/api';
+import { GoogleMap } from '@react-google-maps/api';
 import { planFit } from './intelligence/model/mapBounds.js';
 import { LIGHT_MAP_STYLE, DARK_MAP_STYLE } from '../LiveTracking/mapStyles.js';
 import { IDLE_COLOR, idleTone, DRAIN_COLOR, STOP_COLOR } from './placeHubStyle.js';
@@ -67,6 +68,7 @@ export default function PlaceHubMap({
   vehicleHalts = [],
   showPoi = false,
   showAllTolls = false,
+  showUsedTolls = false,
   hiddenPlaceId,
   selectedId,
   onSelect,
@@ -205,7 +207,9 @@ export default function PlaceHubMap({
       onClick={onMapClick}
     >
       {showPoi && <PoiLayer pois={pois} />}
-      <TollLayer plazas={tollPlazas} interactive={interactive} />
+      {(showAllTolls || showUsedTolls) && (
+        <TollLayer plazas={tollPlazas} interactive={interactive} />
+      )}
       {tab === 'routes' && routes && (
         <RouteLayer map={map} {...routes} isDark={isDark || satellite} zoom={zoom} />
       )}
@@ -238,7 +242,8 @@ export default function PlaceHubMap({
             ),
         )}
       {tab === 'places' && (
-        <MarkerClustererF
+        <PlaceClusterer
+          places={markerPlaces}
           options={{ ...CLUSTER_OPTIONS, styles: clusterStylesNow }}
           styles={clusterStylesNow}
           title="Zoom in to see these places"
@@ -266,7 +271,7 @@ export default function PlaceHubMap({
               />
             </>
           )}
-        </MarkerClustererF>
+        </PlaceClusterer>
       )}
 
       {tab !== 'places' &&
