@@ -1,47 +1,43 @@
-import StatTile from '../../components/redesign/StatTile';
+import InfoTip from '../../components/redesign/InfoTip';
 import { formatDuration } from '../../utils/redesign/format';
+import { compactDuration } from './placeDetailFormat.js';
 
-/**
- * PlaceStatRow — the three numbers about a place.
- *
- * "Trucks here now", "Usual time here" and "Visits (60 days)" are what an
- * owner actually asks about a place. A missing number is shown as an em
- * dash, never as zero — a place we have no data for has no zero visits, it
- * has no answer.
- */
 export default function PlaceStatRow({ stats, trucksHere = 0 }) {
   const usualDwell = stats?.usualDwellMin ?? null;
   const visits = stats?.visits ?? null;
-
+  const metrics = [
+    {
+      label: 'Here now',
+      value: String(trucksHere),
+      sub: 'trucks',
+      why: 'Trucks with a live position inside this place right now.',
+    },
+    {
+      label: 'Usual stay',
+      value: compactDuration(usualDwell),
+      sub: 'per visit',
+      title: formatDuration(usualDwell),
+      why: 'How long a truck usually stays here, worked out from its past visits.',
+    },
+    {
+      label: 'Visits',
+      value: visits === null ? '—' : visits.toLocaleString('en-IN'),
+      sub: 'last 60 days',
+      why: 'How many times your trucks came here in the last 60 days.',
+    },
+  ];
   return (
-    <div className="grid grid-cols-3 gap-2">
-      <StatTile
-        label="Trucks here now"
-        value={String(trucksHere)}
-        tone="info"
-        why={{
-          text: 'Trucks with a live position inside this place right now.',
-          basis: null,
-        }}
-      />
-      <StatTile
-        label="Usual time here"
-        value={usualDwell === null ? '—' : formatDuration(usualDwell)}
-        tone="info"
-        why={{
-          text: 'How long a truck usually stays here, worked out from its past visits.',
-          basis: null,
-        }}
-      />
-      <StatTile
-        label="Visits (60 days)"
-        value={visits === null ? '—' : visits.toLocaleString('en-IN')}
-        tone="info"
-        why={{
-          text: 'How many times your trucks came here in the last 60 days.',
-          basis: null,
-        }}
-      />
-    </div>
+    <dl className="pd-stats" aria-label="Place activity">
+      {metrics.map((m) => (
+        <div key={m.label} className="pd-stat">
+          <dt>
+            {m.label}
+            <InfoTip label={`About ${m.label.toLowerCase()}`} text={m.why} />
+          </dt>
+          <dd title={m.title}>{m.value}</dd>
+          <span className="pd-stat-sub">{m.sub}</span>
+        </div>
+      ))}
+    </dl>
   );
 }

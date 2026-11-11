@@ -11,8 +11,7 @@ import {
 } from '../placeHubStyle.js';
 import PoiKeys from './PoiKeys.jsx';
 import { RUN_COLORS } from '../model/routes.js';
-
-const TOLL = '#0891b2';
+import { mapPlaceIconUrl } from '../../LiveTracking/mapPlaceIcon.js';
 
 export default function Legend({ tab, places, showContext, showPoi, showAllTolls, isDark }) {
   const poi = showPoi && <PoiKeys />;
@@ -20,11 +19,21 @@ export default function Legend({ tab, places, showContext, showPoi, showAllTolls
   const tolls = (
     <>
       <span className="ph-legend-item">
-        <i className="is-square" style={{ background: TOLL, borderColor: TOLL }} /> Toll plaza used
+        <img
+          className="ph-toll-key"
+          src={mapPlaceIconUrl({ layer: 'tolls' }, { size: 28 })}
+          alt=""
+        />{' '}
+        Toll plaza used
       </span>
       {showAllTolls && (
         <span className="ph-legend-item">
-          <i className="is-square is-hollow" style={{ borderColor: TOLL }} /> Other toll plaza
+          <img
+            className="ph-toll-key"
+            src={mapPlaceIconUrl({ layer: 'tolls' }, { size: 24, hollow: true })}
+            alt=""
+          />{' '}
+          Other toll plaza
         </span>
       )}
     </>

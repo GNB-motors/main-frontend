@@ -56,14 +56,16 @@ describe('Place detail in the Places tab', () => {
         />
       </MemoryRouter>,
     );
-    expect(screen.getByText(/Vehicles here now · 1/)).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Vehicles here now 1' })).toBeTruthy();
     expect(screen.queryByText('OFFLINE')).toBeNull();
     expect(screen.getByText('Last report 4 min ago')).toBeTruthy();
     expect(screen.queryByText('here 4 min')).toBeNull();
     fireEvent.click(screen.getByText('WB01AB1234'));
     expect(onPick).toHaveBeenCalledWith('v1');
     // The redesign moves place editing behind one plain link (F1.7).
-    expect(screen.getByText('Manage places →').getAttribute('href')).toBe('/place-hub');
+    expect(screen.getByRole('link', { name: 'Manage places' }).getAttribute('href')).toBe(
+      '/place-hub',
+    );
   });
 
   it('renders nothing open when no place is picked', () => {

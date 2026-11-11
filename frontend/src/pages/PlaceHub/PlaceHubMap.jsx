@@ -17,6 +17,8 @@ import {
 import PlaceShape from './map/PlaceShape.jsx';
 import GroupShape from './map/GroupShape.jsx';
 import PlaceMarker from './map/PlaceMarker.jsx';
+import PlaceAreaLabel from './map/PlaceAreaLabel.jsx';
+import usePlaceAreaLabels from './map/usePlaceAreaLabels.js';
 import ClusterRepaint from './map/ClusterRepaint.jsx';
 import ContextShape from './map/ContextShape.jsx';
 import ScaledDot from './map/ScaledDot.jsx';
@@ -77,6 +79,12 @@ export default function PlaceHubMap({
 }) {
   const [map, setMap] = useState(null);
   const [zoom, setZoom] = useState(5);
+  const { labels, markerPlaces } = usePlaceAreaLabels(
+    places,
+    zoom,
+    zoom >= SHAPE_MIN_ZOOM,
+    selectedId,
+  );
   const lastFitKey = useRef(null);
   const warnedFitKey = useRef(null);
   const drafting = Boolean(draft);
@@ -221,6 +229,14 @@ export default function PlaceHubMap({
           )}
         </>
       )}
+      {tab === 'places' &&
+        places.map(
+          (p) =>
+            p.id !== hiddenPlaceId &&
+            labels.has(p.id) && (
+              <PlaceAreaLabel key={`label-${p.id}`} name={p.name} layout={labels.get(p.id)} />
+            ),
+        )}
       {tab === 'places' && (
         <MarkerClustererF
           options={{ ...CLUSTER_OPTIONS, styles: clusterStylesNow }}
@@ -230,7 +246,7 @@ export default function PlaceHubMap({
         >
           {(clusterer) => (
             <>
-              {places.map((p) =>
+              {markerPlaces.map((p) =>
                 p.id === hiddenPlaceId ? null : (
                   <PlaceMarker
                     key={`m-${p.id}`}
@@ -245,7 +261,7 @@ export default function PlaceHubMap({
               <ClusterRepaint
                 clusterer={clusterer}
                 styles={clusterStylesNow}
-                places={places}
+                places={markerPlaces}
                 hiddenPlaceId={hiddenPlaceId}
               />
             </>

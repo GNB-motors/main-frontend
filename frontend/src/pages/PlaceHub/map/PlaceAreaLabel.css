@@ -1,0 +1,18 @@
+.place-area-label {
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow-wrap: anywhere;
+  text-align: center;
+  font:
+    600 12px / 17px Arial,
+    sans-serif;
+  color: #1e293b;
+  -webkit-text-stroke: 3px #ffffff;
+  paint-order: stroke fill;
+  text-shadow: 0 1px 3px #ffffff;
+}
