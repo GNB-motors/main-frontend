@@ -1862,17 +1862,12 @@
   background: #3987e5;
   border-radius: 3px;
 }
+/* Positioning shell only; the shared DataTooltip supplies the card itself,
+   so the route hover tooltip matches the one used on bar graphs. */
 .ph-route-tooltip {
   position: absolute;
   z-index: 20;
   pointer-events: none;
-  max-width: 260px;
-  background: var(--ph-bg, #fff);
-  color: var(--ph-text, #1e293b);
-  padding: 9px 12px;
-  border-radius: 7px;
-  box-shadow: 0 3px 16px #0003;
-  font-size: 12px;
 }
 .ph-route-label {
   text-shadow:
