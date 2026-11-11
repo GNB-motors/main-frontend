@@ -34,6 +34,7 @@ const slipRow = {
     totalAmount: 11400,
     rate: null,
     location: 'IOCL Dankuni',
+    stationName: 'IOCL Dankuni',
     fuelType: 'DIESEL',
     odometerReading: 418920,
     odometerSource: 'FLEETEDGE',
@@ -54,6 +55,26 @@ const sensorOnlyRow = {
 };
 
 describe('mapUnifiedRow', () => {
+  it('does not turn a plant or a bill address into a pump name', () => {
+    const row = mapUnifiedRow({
+      ...sensorOnlyRow,
+      place: { id: 'plant', hubId: 'site:plant', name: 'Dalmia OCL', siteType: 'PLANT' },
+      slip: { location: 'Plant road, Salbani' },
+    });
+    expect(row.place).toBeNull();
+    expect(row.location).toBeNull();
+    expect(row.billLocation).toBe('Plant road, Salbani');
+  });
+  it('keeps a saved pump name ahead of a different receipt name', () => {
+    const row = mapUnifiedRow({
+      ...slipRow,
+      place: { id: 's', hubId: 'site:s', name: 'My Salbani Pump', siteType: 'FUEL_PUMP' },
+    });
+    expect(row.location).toBe('My Salbani Pump');
+    expect(row.stationName).toBe('IOCL Dankuni');
+    expect(row.pumpNameSource).toBe('SAVED');
+  });
+
   it('turns every backend status into a plain-word result that has a label', () => {
     for (const status of ['VERIFIED', 'UNVERIFIED', 'SLIP_ONLY', 'FLAGGED', 'SENSOR_GLITCH']) {
       expect(LABELS.refuel[refuelResult(status, -1)]).toBeDefined();
@@ -101,11 +122,16 @@ describe('mapUnifiedRow', () => {
     });
     expect(row.location).toBe('Dankuni pump');
     expect(row.billLocation).toBe('IOCL Dankuni');
-    expect(row.place).toEqual({ hubId: 'site:s1', name: 'Dankuni pump', siteType: 'FUEL_PUMP' });
+    expect(row.place).toEqual({
+      id: 's1',
+      hubId: 'site:s1',
+      name: 'Dankuni pump',
+      siteType: 'FUEL_PUMP',
+    });
   });
 
   it('an unnamed saved place keeps the bill text, or the coordinates, and still links', () => {
-    const unnamed = { id: 's2', hubId: 'site:s2', name: null, siteType: 'UNKNOWN' };
+    const unnamed = { id: 's2', hubId: 'site:s2', name: null, siteType: 'FUEL_PUMP' };
     expect(mapUnifiedRow({ ...slipRow, place: unnamed }).location).toBe('IOCL Dankuni');
     const sensorOnly = mapUnifiedRow({ ...sensorOnlyRow, place: unnamed });
     expect(sensorOnly.location).toBeNull();

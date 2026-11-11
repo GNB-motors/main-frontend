@@ -365,13 +365,19 @@ describe('MileagePage', () => {
     expect(screen.getByText('1 Sep – 3 Sep 2026')).toBeInTheDocument();
   });
 
-  it('links a fill made at a saved place to that place in Place Hub', async () => {
+  it('offers explicit naming actions instead of linking pump names away from Mileage', async () => {
     useFeatureFlags.mockReturnValue(flagsFor(['fuelIntegrity']));
     const placed = {
       ...feed,
       data: [
-        { ...feed.data[0], place: { id: 's1', hubId: 'site:s1', name: 'Dankuni pump' } },
-        { ...feed.data[1], place: { id: 's2', hubId: 'site:s2', name: null } },
+        {
+          ...feed.data[0],
+          place: { id: 's1', hubId: 'site:s1', name: 'Dankuni pump', siteType: 'FUEL_PUMP' },
+        },
+        {
+          ...feed.data[1],
+          place: { id: 's2', hubId: 'site:s2', name: null, siteType: 'FUEL_PUMP' },
+        },
       ],
     };
     apiClient.get.mockImplementation((url) =>
@@ -381,10 +387,10 @@ describe('MileagePage', () => {
     );
     renderAt('/mileage');
 
-    const named = await screen.findByRole('link', { name: 'Dankuni pump' });
-    expect(named).toHaveAttribute('href', '/place-hub?place=site%3As1');
-    const unnamed = screen.getByRole('link', { name: 'Name this pump' });
-    expect(unnamed).toHaveAttribute('href', '/place-hub?place=site%3As2');
+    expect(await screen.findByText('Dankuni pump')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Dankuni pump' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'View pump' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Name pump' })).toBeInTheDocument();
   });
 
   it('keeps gauge jumps out of the list, behind their own chip', async () => {

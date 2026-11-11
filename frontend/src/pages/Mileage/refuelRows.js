@@ -77,16 +77,25 @@ export function mapUnifiedRow(row) {
   const sensor = row.sensor || null;
   const slipLocation =
     slip?.location && String(slip.location).trim() !== '-' ? String(slip.location).trim() : null;
-  // The saved place the sensor fix falls in (Place Hub) names the pump when
-  // someone named it; otherwise the bill's text, then the raw coordinates.
-  const place = row.place?.hubId
-    ? { hubId: row.place.hubId, name: row.place.name || null, siteType: row.place.siteType }
-    : null;
-  const location = place?.name || slipLocation || sensor?.fuelPumpName || null;
-  const coords =
-    !location && num(sensor?.lat) != null && num(sensor?.lng) != null
-      ? { lat: num(sensor.lat), lng: num(sensor.lng) }
+  // Only typed fuel pumps supply saved names. Receipt station names and
+  // addresses remain separate; neither can rename a saved pump.
+  const place =
+    row.place?.hubId && row.place.siteType === 'FUEL_PUMP'
+      ? {
+          id: row.place.id || row.place.hubId.split(':')[1],
+          hubId: row.place.hubId,
+          name: row.place.name || null,
+          siteType: row.place.siteType,
+        }
       : null;
+  const stationName = slip?.stationName?.trim() || null;
+  const location = place?.name || stationName || null;
+  const coords =
+    num(sensor?.lat) != null && num(sensor?.lng) != null
+      ? { lat: num(sensor.lat), lng: num(sensor.lng) }
+      : slip?.locationGeo?.coordinates?.length === 2
+        ? { lat: slip.locationGeo.coordinates[1], lng: slip.locationGeo.coordinates[0] }
+        : null;
   const odometer = num(slip?.odometerReading) ?? num(sensor?.odometer) ?? null;
 
   return {
@@ -109,6 +118,8 @@ export function mapUnifiedRow(row) {
     billToleranceL: num(sensor?.billToleranceL),
     location,
     billLocation: slipLocation,
+    stationName,
+    pumpNameSource: place?.name ? 'SAVED' : stationName ? 'BILL' : null,
     coords,
     place,
     rate: effectiveRate(slip),

@@ -17,6 +17,14 @@ const get = (url, params, signal, schema) =>
     .then((res) => parseSafe(schema, hubSchemas, res.data ?? null));
 
 export const MileageApi = {
+  pumpOptions: (refuelId, signal) =>
+    apiClient
+      .get(`/api/fuel-logs/${encodeURIComponent(refuelId)}/pump-options`, { signal })
+      .then((res) => res.data.data),
+  savePump: (refuelId, body) =>
+    apiClient
+      .post(`/api/fuel-logs/${encodeURIComponent(refuelId)}/pump`, body)
+      .then((res) => res.data.data),
   unifiedFeed: (range, params, signal) =>
     get(
       '/api/fuel-logs/unified',
