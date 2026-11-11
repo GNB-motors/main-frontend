@@ -60,6 +60,7 @@ export default function useFleetVehicles({
           manufactureYear: master ? master.manufactureYear : (meta.manufactureYear ?? null),
           driver: p.driver || null,
           status: view.status,
+          neverReported: !p.eventDateTime,
           freshness: view.freshness,
           live: !view.isOffline,
           // "has a position" draws the marker; "GPS fix" means a CURRENT one (DC-11).

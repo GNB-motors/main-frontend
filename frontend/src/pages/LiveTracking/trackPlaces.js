@@ -72,7 +72,7 @@ export function placeContains(place, lat, lng) {
 
 /** The live vehicles (with a GPS fix) currently inside the place. */
 export function vehiclesAtPlace(place, vehicles = []) {
-  return vehicles.filter((v) => v.hasFix && placeContains(place, v.lat, v.lng));
+  return vehicles.filter((v) => v.hasGpsFix === true && placeContains(place, v.lat, v.lng));
 }
 
 /** Name, type or address contains the query (case-insensitive). */
@@ -92,7 +92,7 @@ export function searchPlaces(places, query) {
 
 /** place id → how many fleet vehicles are inside it now. */
 export function vehicleCountsByPlace(places, vehicles = []) {
-  const withFix = vehicles.filter((v) => v.hasFix);
+  const withFix = vehicles.filter((v) => v.hasGpsFix === true);
   const out = new Map();
   for (const p of places) {
     let n = 0;

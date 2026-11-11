@@ -80,9 +80,10 @@ describe('Vehicles inside a place', () => {
   });
   it('lists only trucks with a live GPS fix inside the place', () => {
     const vehicles = [
-      { id: 'a', hasFix: true, lat: 22.5, lng: 88.3 },
-      { id: 'b', hasFix: true, lat: 23, lng: 88.3 },
+      { id: 'a', hasFix: true, hasGpsFix: true, lat: 22.5, lng: 88.3 },
+      { id: 'b', hasFix: true, hasGpsFix: true, lat: 23, lng: 88.3 },
       { id: 'c', hasFix: false, lat: null, lng: null },
+      { id: 'offline', hasFix: true, hasGpsFix: false, lat: 22.5, lng: 88.3 },
     ];
     expect(vehiclesAtPlace(circle, vehicles).map((v) => v.id)).toEqual(['a']);
   });
@@ -119,8 +120,8 @@ describe('Places tab list', () => {
   });
   it('counts vehicles inside each place', () => {
     const counts = vehicleCountsByPlace(places, [
-      { hasFix: true, lat: 22.5, lng: 88.3 },
-      { hasFix: true, lat: 22.5001, lng: 88.3 },
+      { hasFix: true, hasGpsFix: true, lat: 22.5, lng: 88.3 },
+      { hasFix: true, hasGpsFix: true, lat: 22.5001, lng: 88.3 },
       { hasFix: false, lat: 23, lng: 88 },
     ]);
     expect(counts.get('a')).toBe(2);

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -17,6 +17,7 @@ vi.mock('@react-google-maps/api', () => ({
 vi.mock('../../utils/axiosConfig', () => ({
   default: { get: vi.fn(pending), post: vi.fn(pending) },
 }));
+vi.mock('../../utils/session', async (original) => ({ ...await original(), getUserRole: () => 'OWNER' }));
 vi.mock('../../hooks/useLivePositions', () => ({
   useLivePositions: () => ({ positions: [], isLoading: false, refresh: vi.fn() }),
 }));
@@ -45,9 +46,78 @@ vi.mock('./useTrackRoutes.js', () => ({ default: () => ({
   lines: [], sites: new Map([['a', { name: 'Plant', lat: 22, lng: 88 }], ['b', { name: 'Depot', lat: 23, lng: 87 }]]),
   isLoading: false, error: null, reload: vi.fn(),
 }) }));
+vi.mock('./useTrackReviewQueue.js', () => ({ default: () => ({
+  items: [{ _id: 'cached-review', centroidLat: 22.5, centroidLng: 88.3 }],
+  count: 137, reload: vi.fn(),
+}) }));
+vi.mock('../../hooks/useLiveIdling.js', () => ({ useLiveIdling: () => ({
+  idling: [{ registrationNumber: 'TEST01', lat: 22.5, lng: 88.3 }], error: null,
+}) }));
+import { writeLayerSelection } from './trackLegendPrefs';
+import { defaultLayerSelection } from './trackLegendModel';
 import LiveTrackingPage from './LiveTrackingPage';
 
 describe('LiveTrackingPage master data', () => {
+  const reviewSite = { _id:'review-1', name:'Place to confirm', status:'PROPOSED', centroidLat:22.5,centroidLng:88.3 };
+  const renderPlaces = () => render(<MemoryRouter initialEntries={['/live-tracking?view=places']}><LiveTrackingPage /></MemoryRouter>);
+
+  it('removes cached live layers on every off toggle and restores them when enabled', () => {
+    writeLayerSelection(defaultLayerSelection());
+    const view = renderPlaces();
+    for (const [label, mapProp] of [['Places to confirm', 'reviewItems'], ['Trucks idling now', 'idlingRows']]) {
+      const row = screen.getByRole('button', { name: new RegExp(label) });
+      expect(row).toHaveClass('lt-place-layer-row');
+      if (mapProp === 'reviewItems') expect(row).toHaveTextContent('137');
+      expect(row).toHaveAttribute('aria-pressed', 'false');
+      expect(seen.map[mapProp]).toEqual([]);
+      for (let cycle = 0; cycle < 2; cycle++) {
+        fireEvent.click(row);
+        expect(row).toHaveAttribute('aria-pressed', 'true');
+        expect(row.querySelector('.lt-place-layer-check svg')).not.toBeNull();
+        expect(seen.map[mapProp]).toHaveLength(1);
+        fireEvent.click(row);
+        expect(row).toHaveAttribute('aria-pressed', 'false');
+        expect(row.querySelector('.lt-place-layer-check svg')).toBeNull();
+        expect(seen.map[mapProp]).toEqual([]);
+      }
+    }
+    view.unmount();
+  });
+
+  it('exits place confirmation by back, close and Escape without submitting an answer', () => {
+    const view=renderPlaces();
+    for(const method of ['back','close','escape']) {
+      act(()=>seen.map.onSelectReviewSite(reviewSite));
+      expect(screen.getByLabelText('Place confirmation')).toBeInTheDocument();
+      if(method==='escape')fireEvent.keyDown(window,{key:'Escape'});
+      else fireEvent.click(screen.getByRole('button',{name:method==='back'?'Back to places':'Close place confirmation'}));
+      expect(screen.queryByLabelText('Place confirmation')).not.toBeInTheDocument();
+    }
+    view.unmount();
+  });
+
+  it('returns from fence editing to the same place when cancelled', () => {
+    const view=renderPlaces();
+    act(()=>seen.map.onSelectReviewSite(reviewSite));
+    fireEvent.click(screen.getByRole('button',{name:'Edit fence'}));
+    expect(screen.getByRole('dialog',{name:'Alert zone here'})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'Back to place'}));
+    expect(screen.queryByRole('dialog',{name:'Alert zone here'})).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Place confirmation')).toHaveTextContent('Place to confirm');
+    fireEvent.click(screen.getByRole('button',{name:'Edit fence'}));
+    fireEvent.keyDown(screen.getByRole('button',{name:'Back to place'}),{key:'Escape'});
+    expect(screen.getByLabelText('Place confirmation')).toBeInTheDocument();
+    view.unmount();
+  });
+
+  it('does not leave a review panel over the route list after switching tabs', () => {
+    const view=renderPlaces();
+    act(()=>seen.map.onSelectReviewSite(reviewSite));
+    fireEvent.click(screen.getByRole('tab',{name:'Routes'}));
+    expect(screen.queryByLabelText('Place confirmation')).not.toBeInTheDocument();
+    expect(screen.getByRole('button',{name:/Plant → Depot/})).toBeInTheDocument();
+    view.unmount();
+  });
   it('opens places from a direct link and returns to the live fleet', () => {
     const view = render(<MemoryRouter initialEntries={['/live-tracking?view=places']}><LiveTrackingPage /></MemoryRouter>);
     expect(screen.getByRole('region', { name: 'Map filters' })).toBeInTheDocument();

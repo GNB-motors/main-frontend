@@ -24,6 +24,44 @@ function renderTimeline(overrides = {}) {
 }
 
 describe('TrackTimeline', () => {
+  it('keeps a boundary stop inside the recorded timeline when the chosen range is wider', () => {
+    renderTimeline({
+      track: {
+        ...trackFixture,
+        stops: [
+          {
+            startAt: '2026-11-01T12:00:00Z',
+            endAt: '2026-11-01T20:00:00Z',
+            durationMin: 480,
+            place: { name: 'Boundary stop' },
+          },
+        ],
+      },
+      from: new Date('2026-11-01T12:00:00Z'),
+      to: new Date('2026-11-01T20:00:00Z'),
+    });
+    expect(screen.getByRole('button', { name: /Boundary stop/ })).toHaveStyle({ left: '0%' });
+    expect(screen.getByTitle('Boundary stop · 8 h')).toHaveStyle({ left: '0%', width: '100%' });
+  });
+
+  it('omits stop markers when the stop does not overlap the recorded drive', () => {
+    renderTimeline({
+      track: {
+        ...trackFixture,
+        stops: [
+          {
+            startAt: '2026-11-01T11:00:00Z',
+            endAt: '2026-11-01T12:00:00Z',
+            durationMin: 60,
+            place: { name: 'Earlier stop' },
+          },
+        ],
+      },
+    });
+    expect(screen.queryByRole('button', { name: /Earlier stop/ })).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Earlier stop · 1 h')).not.toBeInTheDocument();
+  });
+
   it('offers play and pause', () => {
     const props = renderTimeline();
     fireEvent.click(screen.getByRole('button', { name: 'Play' }));

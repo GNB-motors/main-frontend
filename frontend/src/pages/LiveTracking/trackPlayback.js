@@ -132,15 +132,13 @@ export function buildTripLog(stops = [], events = []) {
       reason: event.kind,
       title: event.text,
       text: '',
-      durationMin: event.durationMin ?? null,
+      durationMin: isGapEvent(event) ? gapMinutes(event) : (event.durationMin ?? null),
       place: null,
       isGap: isGapEvent(event),
     });
   });
 
-  return mergeGapRows(
-    rows.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime()),
-  );
+  return mergeGapRows(rows.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime()));
 }
 
 /** Whether an event says the truck had no GPS. */
@@ -155,7 +153,15 @@ export function isGapEvent(event) {
  * the length is read out of its own words ("No GPS for 61 min").
  */
 export function gapMinutes(event) {
-  if (Number.isFinite(Number(event?.durationMin))) return Number(event.durationMin);
+  if (
+    event?.durationMin != null &&
+    event.durationMin !== '' &&
+    Number.isFinite(Number(event.durationMin))
+  )
+    return Math.max(0, Number(event.durationMin));
+  const start = Date.parse(event?.at);
+  const end = Date.parse(event?.endAt);
+  if (Number.isFinite(start) && Number.isFinite(end) && end >= start) return (end - start) / 60000;
   const text = String(event?.text ?? '');
   const hours = text.match(/(\d+(?:\.\d+)?)\s*h/);
   const minutes = text.match(/(\d+(?:\.\d+)?)\s*min/);
