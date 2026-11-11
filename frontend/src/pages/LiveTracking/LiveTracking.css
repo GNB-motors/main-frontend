@@ -4669,3 +4669,22 @@ html.dark .wx-icon .wx-star,
   font-size: 10px;
   cursor: pointer;
 }
+
+/* Reused Place Hub editors need their tokens inside the tracking map. */
+.gnb-lt-page .lt-map-draft {
+  max-height: calc(100% - 2rem);
+  overflow-y: auto;
+  --ph-surface: var(--rd-card);
+  --ph-raised: var(--rd-card-2);
+  --ph-sunk: var(--rd-card-2);
+  --ph-border: var(--rd-line);
+  --ph-border-strong: var(--rd-line);
+  --ph-text: var(--rd-ink);
+  --ph-text-2: var(--rd-ink-2);
+  --ph-dim: var(--rd-ink-3);
+  --ph-accent: #4058b5;
+  --ph-accent-solid: #344b9f;
+  --ph-accent-tint: #eef2ff;
+  --ph-crit: #c62828;
+}
+.lt-map-draft-error { margin: 12px 16px; padding: 10px 12px; background: #fff1f1; color: #9f2424; border: 1px solid #f2cccc; border-radius: 8px; font-size: 12px; }

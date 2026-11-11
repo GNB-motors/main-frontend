@@ -28,10 +28,10 @@ export function clampRadius(value, min = PLACE_RADIUS_MIN, max = PLACE_RADIUS_MA
  * "Make this a place" writes to the fleet's places, so it is shown only to the
  * people Place Hub lets edit (owner, manager, super admin).
  */
-export function clickMenuItems({ canEdit = false } = {}) {
+export function clickMenuItems({ canEdit = false, canCreateZone = canEdit } = {}) {
   const items = [];
   if (canEdit) items.push({ id: 'makePlace', label: 'Make this a place' });
-  items.push({ id: 'alertZone', label: 'Alert zone here' });
+  if (canCreateZone) items.push({ id: 'alertZone', label: 'Alert zone here' });
   items.push({ id: 'openInGoogleMaps', label: 'Open in Google Maps' });
   return items;
 }

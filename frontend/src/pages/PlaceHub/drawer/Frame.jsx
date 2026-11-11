@@ -9,7 +9,7 @@ export default function Frame({ icon, title, eyebrow, label, onClose, children, 
           {eyebrow && <span className="ph-eyebrow">{eyebrow}</span>}
           <h2>{title}</h2>
         </div>
-        <button type="button" className="ph-icon-btn" onClick={onClose} aria-label="Close">
+        <button type="button" className="ph-icon-btn" onClick={onClose} disabled={!onClose} aria-label="Close">
           <X size={16} />
         </button>
       </header>

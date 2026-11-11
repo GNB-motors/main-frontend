@@ -10,6 +10,7 @@ import PlaceEditor from '../PlaceHub/drawer/PlaceEditor.jsx';
 export default function TrackZoneDraft({
   draft,
   errors = {},
+  error = null,
   saving = false,
   onChange,
   onKind,
@@ -21,8 +22,13 @@ export default function TrackZoneDraft({
     <div
       role="dialog"
       aria-label="Alert zone here"
-      className="absolute right-4 top-4 z-[1200] w-[380px] max-w-[94vw] overflow-y-auto rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] shadow-[var(--rd-shadow-float)]"
+      className="lt-map-draft absolute right-4 top-4 z-[1200] w-[380px] max-w-[94vw] overflow-y-auto rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] shadow-[var(--rd-shadow-float)]"
     >
+      {error ? (
+        <p className="lt-map-draft-error" role="alert">
+          {error}
+        </p>
+      ) : null}
       <PlaceEditor
         draft={draft}
         errors={errors}

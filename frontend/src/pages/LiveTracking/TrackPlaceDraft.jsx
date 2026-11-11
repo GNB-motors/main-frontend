@@ -26,7 +26,7 @@ export default function TrackPlaceDraft({
     <section
       role="dialog"
       aria-label="Make this a place"
-      className="absolute right-4 top-4 z-[1200] w-[340px] max-w-[92vw] rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] p-3 shadow-[var(--rd-shadow-float)]"
+      className="lt-map-draft absolute right-4 top-4 z-[1200] w-[340px] max-w-[92vw] rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] p-3 shadow-[var(--rd-shadow-float)]"
     >
       <h3 className="m-0 text-[13px] font-semibold text-[var(--rd-ink)]">Make this a place</h3>
       <p className="m-0 mt-1 text-[12px] text-[var(--rd-ink-3)]">
@@ -42,7 +42,7 @@ export default function TrackPlaceDraft({
           value={draft?.name || ''}
           onChange={(event) => onChange({ name: event.target.value })}
           placeholder="e.g. Tata Steel gate 3"
-          maxLength={200}
+          maxLength={120}
         />
       </div>
 
