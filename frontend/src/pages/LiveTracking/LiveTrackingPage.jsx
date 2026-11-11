@@ -857,7 +857,7 @@ const LiveTrackingPage = () => {
               <TrackZoneDraft
                 backLabel={reviewBeforeFence.current ? 'Back to place' : 'Back to map'}
                 draft={zoneDraft}
-                errors={zoneErrors}
+                errors={draftError ? zoneErrors : {}}
                 error={draftError}
                 saving={savingDraft}
                 onChange={changeZoneDraft}

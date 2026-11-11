@@ -1,6 +1,6 @@
 import RadiusControl from '../PlaceHub/drawer/RadiusControl.jsx';
 import { PLACE_RADIUS_MAX, PLACE_RADIUS_MIN } from './trackClickModel';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, MapPinPlus } from 'lucide-react';
 
 /** The radius a place may have: 50 m to 5 km. */
 const RADIUS_META = {
@@ -27,7 +27,7 @@ export default function TrackPlaceDraft({
     <section
       role="dialog"
       aria-label="Make this a place"
-      className="lt-place-draft absolute right-4 top-4 z-[1200] w-[340px] max-w-[92vw] overflow-y-auto rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] shadow-[var(--rd-shadow-float)]"
+      className="lt-place-draft lt-location-draft absolute right-4 top-4 z-[1200] w-[340px] max-w-[92vw] overflow-y-auto rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] shadow-[var(--rd-shadow-float)]"
     >
       <div className="dtop lt-draft-back">
         <button type="button" className="backbtn" onClick={onCancel} disabled={saving}>
@@ -36,9 +36,17 @@ export default function TrackPlaceDraft({
         </button>
       </div>
       <div className="lt-draft-content">
-        <h3 className="m-0 text-[13px] font-semibold text-[var(--rd-ink)]">Make this a place</h3>
+        <div className="lt-location-draft-title">
+          <span className="lt-location-draft-symbol">
+            <MapPinPlus size={22} aria-hidden="true" />
+          </span>
+          <div>
+            <span className="lt-location-draft-eyebrow">New place</span>
+            <h3>Save this location</h3>
+          </div>
+        </div>
         <p className="m-0 mt-1 text-[12px] text-[var(--rd-ink-3)]">
-          Trucks that stop here will know this spot. Drag the circle on the map to set its edge.
+          Give this spot a name, then adjust the circle to cover the place.
         </p>
 
         <div className="ph-field mt-2">

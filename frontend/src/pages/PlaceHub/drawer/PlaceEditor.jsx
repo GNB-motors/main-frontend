@@ -68,7 +68,7 @@ export default function PlaceEditor({
         </>
       }
     >
-      {draft.mode === 'create' && (
+      {draft.mode === 'create' && kinds.length > 1 && (
         <div className="ph-kinds" role="radiogroup" aria-label="What is this place?">
           {kinds.map((k) => {
             const KIcon = KIND_ICON[k];

@@ -1,6 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { MapPin, MapPinPlus, BellRing, ExternalLink } from 'lucide-react';
 import { clickMenuItems } from './trackClickModel';
+
+const ACTION_STYLE = {
+  makePlace: { Icon: MapPinPlus, description: 'Add a named place to your map' },
+  alertZone: { Icon: BellRing, description: 'Set alerts for trucks entering or leaving' },
+  openInGoogleMaps: { Icon: ExternalLink, description: 'Explore this location in a new tab' },
+};
 
 /** Location actions, kept within the viewport and usable without a pointer. */
 export default function TrackClickMenu({
@@ -72,20 +79,41 @@ export default function TrackClickMenu({
       tabIndex={-1}
       aria-label="What to do here"
       onKeyDown={onKeyDown}
-      className="fixed z-[1200] flex w-[220px] max-w-[calc(100vw-16px)] max-h-[calc(100vh-16px)] overflow-y-auto flex-col gap-0.5 rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] p-1 shadow-[var(--rd-shadow-float)]"
+      className="lt-location-menu"
       style={position}
     >
-      {clickMenuItems({ canEdit, canCreateZone }).map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          role="menuitem"
-          className="rounded-[var(--rd-radius-xs)] px-2.5 py-1.5 text-left text-[13px] text-[var(--rd-ink)] transition-colors hover:bg-[var(--rd-card-2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
-          onClick={() => onChoose(item.id)}
-        >
-          {item.label}
-        </button>
-      ))}
+      <div className="lt-location-menu-heading" aria-hidden="true">
+        <span className="lt-location-menu-pin">
+          <MapPin size={17} />
+        </span>
+        <div>
+          <strong>This location</strong>
+          <span>
+            {Number(click.lat).toFixed(5)}, {Number(click.lng).toFixed(5)}
+          </span>
+        </div>
+      </div>
+      {clickMenuItems({ canEdit, canCreateZone }).map((item) => {
+        const { Icon, description } = ACTION_STYLE[item.id];
+        return (
+          <button
+            key={item.id}
+            type="button"
+            role="menuitem"
+            aria-label={item.label}
+            className={`lt-location-menu-action${item.id === 'openInGoogleMaps' ? ' is-external' : ''}`}
+            onClick={() => onChoose(item.id)}
+          >
+            <span className="lt-location-menu-icon" aria-hidden="true">
+              <Icon size={18} />
+            </span>
+            <span className="lt-location-menu-copy">
+              <strong>{item.label}</strong>
+              <small>{description}</small>
+            </span>
+          </button>
+        );
+      })}
     </div>,
     document.body,
   );
