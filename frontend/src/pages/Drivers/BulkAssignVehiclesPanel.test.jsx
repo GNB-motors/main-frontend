@@ -1,7 +1,7 @@
 import { changeField } from '@/test/changeField';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup, act } from '@testing-library/react';
 import BulkAssignVehiclesPanel from './BulkAssignVehiclesPanel';
 import Service from '@/services/DriverVehicleAssignmentService';
 import DataImportService from '@/services/DataImportService';
@@ -70,6 +70,10 @@ async function uploadAndMap() {
     },
   });
   await screen.findByText('fleet.xlsx · 2 rows');
+  // Column detection resolves after the file shows and re-renders the column
+  // pickers; picking before it lands races the dropdown under a loaded run.
+  await waitFor(() => expect(DataImportService.preview).toHaveBeenCalled());
+  await act(async () => {});
   changeField(screen.getByLabelText('Name (optional)'), { target: { value: '0' } });
   changeField(screen.getByLabelText('Mobile number (optional)'), { target: { value: '1' } });
   changeField(screen.getByLabelText('DL number (optional)'), { target: { value: '2' } });
