@@ -31,11 +31,9 @@ beforeEach(() => {
   ]);
   PlaceIntelligenceService.undoMerge.mockResolvedValue({ restored: 1 });
 });
-it('only adds the duplicate review tab when enabled', () => {
-  expect(placeHubTabs({ allowSites: true }).some((t) => t.id === 'duplicates')).toBe(false);
-  expect(
-    placeHubTabs({ allowSites: true, allowHygiene: true }).some((t) => t.id === 'duplicates'),
-  ).toBe(true);
+it('includes duplicate review with place management without a separate feature flag', () => {
+  expect(placeHubTabs({ allowSites: true }).some((t) => t.id === 'duplicates')).toBe(true);
+  expect(placeHubTabs({ allowSites: false }).some((t) => t.id === 'duplicates')).toBe(false);
 });
 it('defaults to the older site ID, merges and supports undo', async () => {
   render(

@@ -100,7 +100,6 @@ export default function PlaceHubPage() {
     allowFuel,
     allowSites,
     isSuperAdmin,
-    allowHygiene: allowSites && isEnabled('placesHygiene'),
     allowDeliveries: allowSites && isEnabled('routesV2'),
     hasHomes: (data?.summary?.homes || 0) > 0,
   });
