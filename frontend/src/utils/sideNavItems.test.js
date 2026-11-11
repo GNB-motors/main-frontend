@@ -75,6 +75,22 @@ describe('side nav hints', () => {
  * had no entry for it, so owners could not find it. The backend route is
  * authorize('OWNER','MANAGER'), so the menu entry must carry the same gate.
  */
+describe('App Usage nav entry', () => {
+  it.each(['OWNER', 'MANAGER'])('is available to %s without feature flags', (role) => {
+    const items = getVisibleNavItems(() => false, role);
+    expect(items.find((item) => item.to === '/usage')).toMatchObject({
+      type: 'link',
+      label: 'App Usage',
+    });
+    const account = items.findIndex((item) => item.type === 'section' && item.label === 'Account');
+    expect(items[account + 1].to).toBe('/usage');
+  });
+
+  it.each(['DRIVER', 'EMPLOYEE', 'SUPER_ADMIN'])('is hidden from %s', (role) => {
+    expect(getVisibleNavItems(() => true, role).some((item) => item.to === '/usage')).toBe(false);
+  });
+});
+
 describe('data imports nav entry', () => {
   const item = SIDE_NAV_ITEMS.find((i) => i.to === '/data-imports');
   const navFor = (role) => getVisibleNavItems(() => true, role);
