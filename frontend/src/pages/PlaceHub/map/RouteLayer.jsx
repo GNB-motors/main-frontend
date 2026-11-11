@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import DataTooltip from '../../../components/ui/DataTooltip.jsx';
 import { decodePolyline6 } from '../../../lib/polyline6.js';
 import { routeColor, routeWidth } from '../model/routes.js';
 import { placeTitle } from '../intelligence/model/siteSummary.js';
@@ -120,12 +121,22 @@ export default function RouteLayer({
   }, [map, lines, isDark, land, neutral]);
 
   useEffect(() => {
+    const max = Math.max(1, ...lines.map((l) => l.runs));
     for (const obj of objects.current) {
       const selected = obj.line.legs.some((l) => String(l._id) === selectedId);
       const hovered = obj.line.legs.some((l) => String(l._id) === hoveredId);
-      // Track (neutral) draws lanes as a quiet backdrop; hover brings one forward.
-      const rest = neutral ? (dimmed ? 0.12 : hoveredId ? 0.2 : 0.35) : 0.75;
-      const opacity = selected || hovered ? 1 : selectedId ? 0.15 : rest;
+      // Share of the busiest corridor's run count: the lever that de-tangles the
+      // Routes overview. The many one-off legs fade to almost nothing while the
+      // handful of trunk corridors stay readable — like Google Maps keeping the
+      // main route bold and alternates faint. The Track backdrop keeps its own
+      // flat, quiet opacities unchanged.
+      const share = obj.line.runs / max;
+      let opacity;
+      if (selected || hovered) opacity = 1;
+      else if (neutral) opacity = selectedId ? 0.15 : dimmed ? 0.12 : hoveredId ? 0.2 : 0.35;
+      else if (selectedId) opacity = 0.06;
+      else if (hoveredId) opacity = 0.05 + 0.1 * share;
+      else opacity = 0.1 + 0.2 * share;
       const icons = pattern(obj.line.source, obj.color).map((i) => ({
         ...i,
         icon: { ...i.icon, strokeOpacity: opacity },
@@ -265,20 +276,25 @@ export default function RouteLayer({
     };
   }, [map, lines, selectedId, detail, showEngine, isDark]);
 
-  return tooltip ? (
-    <div className="ph-route-tooltip" style={{ left: tooltip.x, top: tooltip.y }} role="tooltip">
-      {tooltip.line.legs[0].title}
-      {tooltip.line.legs.length > 1 ? ' (both directions)' : ''}
-      <br />
-      {tooltip.line.runs} leg {tooltip.line.runs === 1 ? 'pass' : 'passes'} · usual{' '}
-      {minutesLabel(tooltip.line.legs[0].stats?.minutes?.p50)} ·{' '}
-      {kmLabel(tooltip.line.legs[0].stats?.km?.p50)}
-      <br />
-      {tooltip.line.source === 'NONE'
-        ? 'Straight-line link'
-        : tooltip.line.source === 'ENGINE'
-          ? 'Likely road (engine)'
-          : 'Road our trucks drove'}
+  if (!tooltip) return null;
+  const stats = tooltip.line.legs[0].stats;
+  const sourceText =
+    tooltip.line.source === 'NONE'
+      ? 'Straight-line link'
+      : tooltip.line.source === 'ENGINE'
+        ? 'Likely road (engine)'
+        : 'Road our trucks drove';
+  return (
+    <div className="ph-route-tooltip" style={{ left: tooltip.x, top: tooltip.y }}>
+      <DataTooltip
+        role="tooltip"
+        label={`${tooltip.line.legs[0].title}${tooltip.line.legs.length > 1 ? ' (both directions)' : ''}`}
+        value={`${tooltip.line.runs} ${tooltip.line.runs === 1 ? 'pass' : 'passes'}`}
+        details={[
+          `Usual ${minutesLabel(stats?.minutes?.p50)} · ${kmLabel(stats?.km?.p50)}`,
+          sourceText,
+        ]}
+      />
     </div>
-  ) : null;
+  );
 }
