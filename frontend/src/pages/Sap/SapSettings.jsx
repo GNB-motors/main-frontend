@@ -18,7 +18,7 @@ import './Sap.css';
  * SAP settings, and the sheet import. A sheet never becomes SAP by itself: it is read into
  * proposed route SAPs, the person checks the places and values, and only what they apply is saved.
  */
-export default function SapSettings() {
+export default function SapSettings({ onChanged }) {
   const q = useApi((signal) => SapService.settings({ signal }), []);
   const canEdit = canEditSap(getUserRole());
   // { preview, choices } once a sheet has been read; null before.
@@ -65,6 +65,7 @@ export default function SapSettings() {
       toast.success(
         `${res.created} route SAPs saved${res.unchanged ? `, ${res.unchanged} already set` : ''} — trips refresh shortly`,
       );
+      onChanged?.();
       setDraft(null);
       setFileName('');
       if (fileInput.current) fileInput.current.value = '';
@@ -88,7 +89,10 @@ export default function SapSettings() {
               key={JSON.stringify(q.data)}
               settings={q.data}
               canEdit={canEdit}
-              onSaved={q.refetch}
+              onSaved={() => {
+                q.refetch();
+                onChanged?.();
+              }}
             />
           )}
         </SapRequestState>

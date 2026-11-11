@@ -76,6 +76,10 @@ export default function SetSapDialog({ from = null, to = null, current = null, o
         </DialogHeader>
         <form className="sap-panel" onSubmit={submit}>
           <div className="sap-dialog-body">
+            <p className="sap-muted">
+              This sets the route’s agreed SAP distance. Learned distances stay separate; existing
+              trip snapshots refresh in the background.
+            </p>
             {!from && (
               <PlacePicker
                 label={ends.from ? `Plant: ${ends.from.name} (change)` : 'Plant (loading place)'}

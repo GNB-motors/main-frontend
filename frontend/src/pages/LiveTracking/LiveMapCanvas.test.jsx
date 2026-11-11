@@ -1,6 +1,7 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { PolylineF } from '@react-google-maps/api';
+import RouteLayer from '../PlaceHub/map/RouteLayer.jsx';
 import LiveMapCanvas from './LiveMapCanvas.jsx';
 import focusedMapVehicles from './focusedMapVehicles.js';
 
@@ -11,6 +12,7 @@ vi.mock('@react-google-maps/api', () => ({
   MarkerF: () => null,
   useGoogleMap: () => map,
 }));
+vi.mock('../PlaceHub/map/RouteLayer.jsx', () => ({ default: vi.fn(() => null) }));
 vi.mock('./AnimatedVehicleMarkers.jsx', () => ({ default: () => null }));
 vi.mock('../../components/map/CongestionLayer', () => ({ default: () => null }));
 
@@ -183,4 +185,13 @@ describe('Fleet markers while focused on one truck', () => {
   it('hides every live marker during Replay (the replay truck stands in)', () => {
     expect(focusedMapVehicles(fleet, { selectedId: 'v2', replayOn: true })).toEqual([]);
   });
+});
+
+it('shows primary delivery roads at overview zoom while retaining the movement zoom floor', () => {
+  const config = { ...props, replayState: { on: false }, isTrailVisible: false, selectedId: null, mapZoom: 5, routeKind: 'delivery', routeLines: [{ id: 'delivery1', segments: [] }] };
+  const view = render(<LiveMapCanvas {...config} />);
+  expect(RouteLayer).toHaveBeenCalled();
+  RouteLayer.mockClear();
+  view.rerender(<LiveMapCanvas {...config} routeKind="movement" />);
+  expect(RouteLayer).not.toHaveBeenCalled();
 });

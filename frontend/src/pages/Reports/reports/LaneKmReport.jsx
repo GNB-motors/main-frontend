@@ -1,6 +1,7 @@
 import { createElement, lazy, Suspense } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { Route, Settings2, Lock, TrendingDown, Calendar } from 'lucide-react';
+import { useFeatureFlags } from '../../../contexts/FeatureFlagsContext';
 import { canEditSap } from '../../Sap/sapModel';
 import { getUserRole } from '../../../utils/session';
 import '../../Sap/Sap.css';
@@ -23,6 +24,18 @@ const TABS = [
  */
 export default function LaneKmReport() {
   const [params, setParams] = useSearchParams();
+  const { isEnabled, ready } = useFeatureFlags();
+  if (
+    ready &&
+    canEditSap(getUserRole()) &&
+    isEnabled('fleetIntelligence') &&
+    isEnabled('routesV2')
+  ) {
+    const next = new URLSearchParams({ tab: 'routes', routeView: 'deliveries' });
+    const intent = params.get('sapTab');
+    if (['settings', 'month', 'loss-lanes'].includes(intent)) next.set('sapTab', intent);
+    return <Navigate replace to={`/place-hub?${next}`} />;
+  }
   if (!canEditSap(getUserRole()))
     return (
       <div className="sap-card sap-empty" role="status">

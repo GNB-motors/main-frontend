@@ -28,6 +28,7 @@ import DraftHint from './page/DraftHint.jsx';
 import Legend from './page/Legend.jsx';
 import './intelligence/placeIntelligence.css';
 import './PlaceHub.css';
+import DeliveryRoutes from './intelligence/DeliveryRoutes';
 
 // Same libraries as the other place pages, so moving between them does not
 // make @react-google-maps/api tear down and reload the Maps script.
@@ -101,11 +102,45 @@ export default function PlaceHubPage() {
     allowSites,
     isSuperAdmin,
     allowHygiene: allowSites && isEnabled('placesHygiene'),
-    allowDeliveries: allowSites && isEnabled('routesV2'),
     hasHomes: (data?.summary?.homes || 0) > 0,
   });
-  const requestedTab = params.get('tab');
+  const requestedTab = params.get('tab') === 'deliveries' ? 'routes' : params.get('tab');
+  const deliveryEnabled = allowSites && isEnabled('routesV2');
+  const deliveryView =
+    requestedTab === 'routes' &&
+    deliveryEnabled &&
+    params.get('routeView') !== 'movements' &&
+    (params.get('routeView') === 'deliveries' ||
+      params.get('tab') === 'deliveries' ||
+      (!params.has('leg') && !params.has('place')));
   const tab = tabs.some((t) => t.id === requestedTab) ? requestedTab : 'places';
+
+  // Old delivery IDs and movement IDs belong to different stores.
+  useEffect(() => {
+    if (params.get('tab') !== 'deliveries') return;
+    setParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        next.set('tab', 'routes');
+        next.set('routeView', 'deliveries');
+        if (next.has('leg')) {
+          next.set('delivery', next.get('leg'));
+          next.delete('leg');
+        }
+        return next;
+      },
+      { replace: true },
+    );
+  }, [params, setParams]);
+  const setRouteView = (view) => {
+    setParams((previous) => {
+      const next = new URLSearchParams(previous);
+      next.set('tab', 'routes');
+      next.set('routeView', view);
+      for (const key of ['leg', 'place', 'delivery', 'sapTab']) next.delete(key);
+      return next;
+    });
+  };
 
   const [selectedId, setSelectedId] = useState(null);
   const [focus, setFocus] = useState(null);
@@ -125,7 +160,7 @@ export default function PlaceHubPage() {
   const [routeHover, setRouteHover] = useState(null);
   const [routeDetail, setRouteDetail] = useState(null);
   const [showRouteEngine, setShowRouteEngine] = useState(false);
-  const routeId = tab === 'routes' ? params.get('leg') : null;
+  const routeId = tab === 'routes' && !deliveryView ? params.get('leg') : null;
   const routeSiteId = tab === 'routes' ? params.get('place')?.replace(/^site:/, '') || null : null;
   const pickRoute = useCallback(
     (id) => {
@@ -158,13 +193,13 @@ export default function PlaceHubPage() {
     [setParams],
   );
   useEffect(() => {
-    if (tab !== 'routes') return undefined;
+    if (tab !== 'routes' || deliveryView) return undefined;
     const escape = (e) => {
       if (e.key === 'Escape') pickRoute(null);
     };
     window.addEventListener('keydown', escape);
     return () => window.removeEventListener('keydown', escape);
-  }, [tab, pickRoute]);
+  }, [tab, deliveryView, pickRoute]);
   const routeModel = useMemo(() => decodeRoutes(data.routes), [data.routes]);
   const routeLegs = useMemo(
     () =>
@@ -199,6 +234,9 @@ export default function PlaceHubPage() {
         const next = new URLSearchParams(p);
         next.delete('leg');
         next.delete('place');
+        next.delete('delivery');
+        next.delete('routeView');
+        next.delete('sapTab');
         if (id === 'places') next.delete('tab');
         else next.set('tab', id);
         return next;
@@ -209,8 +247,8 @@ export default function PlaceHubPage() {
 
   // Each tab's own data loads the first time it is opened.
   useEffect(() => {
-    if (ready && tab === 'routes' && !loaded.routes) loadRoutes();
-  }, [ready, tab, loaded.routes, loadRoutes]);
+    if (ready && tab === 'routes' && !deliveryView && !loaded.routes) loadRoutes();
+  }, [ready, tab, deliveryView, loaded.routes, loadRoutes]);
   useEffect(() => {
     if (tab === 'stops' && !loaded.stops) loadStops();
   }, [tab, loaded.stops, loadStops]);
@@ -399,7 +437,7 @@ export default function PlaceHubPage() {
   };
   const activeSelection = tab === 'routes' ? { kind: 'leg', item: routeSelection } : selection;
   const panelOpen = Boolean(draft || activeSelection?.item);
-  const isMapTab = MAP_TABS.has(tab);
+  const isMapTab = MAP_TABS.has(tab) && !deliveryView;
   const lastRunAt = data.summary?.lastRunAt;
 
   /* ─── Render ──────────────────────────────────────────────────────────── */
@@ -420,7 +458,38 @@ export default function PlaceHubPage() {
         startAdd={startAdd}
       />
 
-      {!isMapTab && (
+      {tab === 'routes' && deliveryEnabled && (
+        <div className="ud-view-bar">
+          <nav className="ud-segmented" aria-label="Route views">
+            <button
+              type="button"
+              aria-pressed={deliveryView}
+              onClick={() => setRouteView('deliveries')}
+            >
+              Delivery routes
+            </button>
+            <button
+              type="button"
+              aria-pressed={!deliveryView}
+              onClick={() => setRouteView('movements')}
+            >
+              All movements
+            </button>
+          </nav>
+          {!deliveryView && (
+            <p>
+              Travel between places, including intermediate stops and empty journeys. Counts are
+              movement passes.
+            </p>
+          )}
+        </div>
+      )}
+      {deliveryView && (
+        <section className="ph-insight" aria-label="Delivery routes">
+          <DeliveryRoutes version={version} />
+        </section>
+      )}
+      {!isMapTab && !deliveryView && (
         <PlaceHubTableTab
           tab={tab}
           tabs={tabs}

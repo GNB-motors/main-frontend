@@ -8,7 +8,13 @@ import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import { getUserRole } from '../../utils/session.js';
 
 vi.mock('./intelligence/PlaceIntelligenceService.js', () => ({
-  default: { routesMap: vi.fn(), getLeg: vi.fn() },
+  default: {
+    routesMap: vi.fn(),
+    getLeg: vi.fn(),
+    listDeliveryLegs: vi.fn(),
+    getDeliveryLeg: vi.fn(),
+    reviewDeliveryLeg: vi.fn(),
+  },
 }));
 vi.mock('@react-google-maps/api', () => ({
   useLoadScript: () => ({ isLoaded: false, loadError: null }),
@@ -50,6 +56,14 @@ vi.mock('./PlaceHubService.js', () => {
 const ok = (rows) => Promise.resolve({ rows, error: null });
 
 function seed() {
+  PlaceIntelligenceService.listDeliveryLegs.mockResolvedValue({ rows: [], total: 0 });
+  PlaceIntelligenceService.getDeliveryLeg.mockResolvedValue({
+    _id: 'delivery1',
+    fromName: 'Factory',
+    toName: 'Customer',
+    n: 2,
+    samples: [],
+  });
   PlaceIntelligenceService.routesMap.mockResolvedValue({
     legs: [
       {
@@ -397,7 +411,7 @@ describe('PlaceHubPage', () => {
       total: 600,
       truncated: true,
     });
-    const { container } = renderPage('/place-hub?tab=routes');
+    const { container } = renderPage('/place-hub?tab=routes&routeView=movements');
     await screen.findByRole('button', { name: /Bokaro plant.*Town 12/ });
     const values = () =>
       [...container.querySelectorAll('.ph-route-kpis .ph-kpi-value')].map((el) => el.textContent);
@@ -442,7 +456,7 @@ describe('PlaceHubPage', () => {
 
   it('reports routes errors and retries the map request', async () => {
     PlaceIntelligenceService.routesMap.mockRejectedValueOnce(new Error('Routes unavailable'));
-    renderPage('/place-hub?tab=routes');
+    renderPage('/place-hub?tab=routes&routeView=movements');
     expect(await screen.findByRole('alert')).toHaveTextContent('Routes unavailable');
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(await screen.findByText('Bokaro plant')).toBeInTheDocument();
@@ -450,9 +464,34 @@ describe('PlaceHubPage', () => {
 
   it('only exposes the delivery tab with its existing feature flag', async () => {
     useFeatureFlags.mockReturnValue({ isEnabled: (flag) => flag !== 'routesV2', ready: true });
-    renderPage('/place-hub?tab=routes');
+    renderPage('/place-hub?tab=routes&routeView=movements');
     await screen.findByText('Bokaro plant');
     expect(screen.queryByRole('button', { name: /^Deliveries/ })).not.toBeInTheDocument();
+  });
+
+  it('defaults Routes to deliveries without requesting the movement map', async () => {
+    renderPage('/place-hub?tab=routes');
+    expect(
+      await screen.findByRole('heading', { name: 'Your routes, understood.' }),
+    ).toBeInTheDocument();
+    expect(PlaceIntelligenceService.listDeliveryLegs).toHaveBeenCalled();
+    expect(PlaceIntelligenceService.routesMap).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /^Deliveries$/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'All movements' }));
+    expect(await screen.findByText('Bokaro plant')).toBeInTheDocument();
+  });
+
+  it('migrates old delivery links without reading their IDs as movement legs', async () => {
+    renderPage('/place-hub?tab=deliveries&leg=delivery1');
+    expect(
+      await screen.findByRole('complementary', { name: 'Selected delivery route' }),
+    ).toBeInTheDocument();
+    expect(PlaceIntelligenceService.getDeliveryLeg).toHaveBeenCalledWith(
+      'delivery1',
+      expect.anything(),
+    );
+    expect(PlaceIntelligenceService.getLeg).not.toHaveBeenCalled();
+    expect(PlaceIntelligenceService.routesMap).not.toHaveBeenCalled();
   });
 
   it('keeps manager-only views and editing away from other roles', async () => {

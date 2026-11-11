@@ -26,8 +26,11 @@ export const SapService = {
    * SAP-wise performance grouped by month (default), route, lane, vehicle or driver.
    * @returns {Promise<{ rows: Array, groupBy: string, trips: number }>}
    */
-  summary: async (params = {}, { signal } = {}) =>
-    unwrap(await apiClient.get(`${BASE}/summary`, { params, signal })),
+  summary: async (params = {}, { signal } = {}) => {
+    const data = unwrap(await apiClient.get(`${BASE}/summary`, { params, signal }));
+    // Mongo's legacy reader returns an array; the warehouse reader returns rows.
+    return Array.isArray(data) ? { rows: data } : data;
+  },
   /** { fromSiteId, toSiteId, sapKm, basis, note } — supersedes the route's current SAP. */
   setRoute: async (body, { signal } = {}) =>
     parsed('sapRouteEntrySchema', await apiClient.put(`${BASE}/routes`, body, { signal })),
