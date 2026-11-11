@@ -1,3 +1,4 @@
+import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import useTrackTolls from './useTrackTolls.js';
 import usePlaceLayerAvailability from './usePlaceLayerAvailability.js';
 import { routeFocusModel } from './routeFocusModel.js';
@@ -127,16 +128,18 @@ const LiveTrackingPage = () => {
   const [openRouteId, setOpenRouteId] = useState(null);
   const [routeDetail, setRouteDetail] = useState(null);
   const routeOverviewCamera = useRef(null);
+  const { isEnabled } = useFeatureFlags();
+  const canCreateZoneHere = canEditPlaces(getUserRole()) && isEnabled('geofence');
   const canEditPlacesHere = canEditPlaces(getUserRole());
 
   const handleMapClick = useCallback((click) => {
-    if (openRouteId) return;
+    if (openRouteId || placeDraft || zoneDraft || savingDraft) return;
     reviewBeforeFence.current = null;
     setMapClick(click);
     setPlaceDraft(null);
     setZoneDraft(null);
     setDraftError(null);
-  }, [openRouteId]);
+  }, [openRouteId, placeDraft, zoneDraft, savingDraft]);
 
   // Track mode lives in the URL, so every link in the product can open one
   // truck's history on a given range (F3.2).
@@ -415,24 +418,26 @@ const LiveTrackingPage = () => {
         return;
       }
       setDraftError(null);
-      if (action === 'makePlace') {
+      if (action === 'makePlace' && canEditPlacesHere) {
         setPlaceDraft(clickDraft({ lat: click.lat, lng: click.lng }));
         return;
       }
-      if (action === 'alertZone') {
+      if (action === 'alertZone' && canCreateZoneHere) {
         setZoneDraft(newDraft('ZONE', { center: { lat: click.lat, lng: click.lng } }));
       }
     },
-    [mapClick],
+    [mapClick, canEditPlacesHere, canCreateZoneHere],
   );
 
   const changePlaceDraft = useCallback((patch) => {
+    if (savingDraft) return;
     setPlaceDraft((prev) => (prev ? { ...prev, ...patch } : prev));
-  }, []);
+  }, [savingDraft]);
 
   const changeZoneDraft = useCallback((patch) => {
+    if (savingDraft) return;
     setZoneDraft((prev) => (prev ? { ...prev, ...patch } : prev));
-  }, []);
+  }, [savingDraft]);
 
   const closeZoneDraft = useCallback(() => {
     setZoneDraft(null);
@@ -448,8 +453,12 @@ const LiveTrackingPage = () => {
     const draft = placeDraft;
     if (!draft?.center) return;
     const name = String(draft.name || '').trim();
-    if (name.length < 2) {
-      setDraftError('Give the place a name (2 characters or more)');
+    if (name.length < 2 || name.length > 120) {
+      setDraftError('Give the place a name (2–120 characters)');
+      return;
+    }
+    if (!Number.isFinite(Number(draft.radiusM)) || Number(draft.radiusM) < 50 || Number(draft.radiusM) > 5000) {
+      setDraftError('Radius must be 50–5,000 m');
       return;
     }
     setSavingDraft(true);
@@ -471,13 +480,13 @@ const LiveTrackingPage = () => {
       if (site) {
         focusPlace(site);
         if (site._id) {
-          trackPlaces.selectPlace(site._id);
+          trackPlaces.selectPlace(`site:${site._id}`);
           setRailTab('places');
           setIsRailOpen(true);
         }
       }
     } catch (error) {
-      setDraftError(error?.message || 'Could not save the place');
+      setDraftError(error?.response?.data?.message || error?.message || 'Could not save the place');
     } finally {
       setSavingDraft(false);
     }
@@ -486,7 +495,7 @@ const LiveTrackingPage = () => {
   // "Alert zone here" writes a geofence zone: Place Hub's own fence.
   const saveZoneDraft = useCallback(async () => {
     const draft = zoneDraft;
-    if (!draft?.center) return;
+    if (!draft || (draft.shape !== 'polygon' && !draft.center)) return;
     const problem = Object.values(validateDraft(draft))[0];
     if (problem) {
       setDraftError(problem);
@@ -503,7 +512,7 @@ const LiveTrackingPage = () => {
       showToast(editing ? `Zone updated: ${body.name}` : `Alert zone added: ${body.name}`);
       trackPlaces.retry?.();
     } catch (error) {
-      setDraftError(error?.message || 'Could not save the zone');
+      setDraftError(error?.response?.data?.message || error?.message || 'Could not save the zone');
     } finally {
       setSavingDraft(false);
     }
@@ -813,6 +822,14 @@ const LiveTrackingPage = () => {
               onPickRoute={handleRoutePick}
               draft={placeDraft || zoneDraft}
               onDraftChange={placeDraft ? changePlaceDraft : changeZoneDraft}
+              onDraftMapClick={(point) => {
+                if (savingDraft || !point) return;
+                if (zoneDraft?.shape === 'polygon') {
+                  setZoneDraft((current) => current && !current.polygonDone
+                    ? { ...current, polygon: [...current.polygon, point] } : current);
+                } else if (placeDraft) changePlaceDraft({ center: point });
+                else if (zoneDraft) changeZoneDraft({ center: point });
+              }}
             />
 
             {/* A click on the map is an offer: make it a place, watch it as a
@@ -820,6 +837,7 @@ const LiveTrackingPage = () => {
             <TrackClickMenu
               click={mapClick}
               canEdit={canEditPlacesHere}
+              canCreateZone={canCreateZoneHere}
               onChoose={handleClickChoice}
               onClose={closeClickMenu}
             />
@@ -839,12 +857,13 @@ const LiveTrackingPage = () => {
               <TrackZoneDraft
                 backLabel={reviewBeforeFence.current ? 'Back to place' : 'Back to map'}
                 draft={zoneDraft}
-                errors={zoneErrors}
+                errors={draftError ? zoneErrors : {}}
+                error={draftError}
                 saving={savingDraft}
                 onChange={changeZoneDraft}
                 onKind={changeZoneDraft}
                 onPick={(loc) => focusPlace({ lat: loc?.lat, lng: loc?.lng })}
-                onCancel={closeZoneDraft}
+                onCancel={savingDraft ? undefined : closeZoneDraft}
                 onSave={saveZoneDraft}
               />
             ) : null}

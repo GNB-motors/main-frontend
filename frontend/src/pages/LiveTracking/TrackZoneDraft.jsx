@@ -11,6 +11,7 @@ import { ArrowLeft } from 'lucide-react';
 export default function TrackZoneDraft({
   draft,
   errors = {},
+  error = null,
   saving = false,
   onChange,
   onKind,
@@ -23,7 +24,7 @@ export default function TrackZoneDraft({
     <div
       role="dialog"
       aria-label="Alert zone here"
-      className="lt-place-draft absolute right-4 top-4 z-[1200] w-[380px] max-w-[94vw] overflow-y-auto rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] shadow-[var(--rd-shadow-float)]"
+      className="lt-place-draft lt-location-draft lt-zone-draft absolute right-4 top-4 z-[1200] w-[380px] max-w-[94vw] overflow-y-auto rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] shadow-[var(--rd-shadow-float)]"
     >
       <div className="dtop lt-draft-back">
         <button type="button" className="backbtn" onClick={onCancel} disabled={saving}>
@@ -31,6 +32,11 @@ export default function TrackZoneDraft({
           {backLabel}
         </button>
       </div>
+      {error ? (
+        <p className="lt-map-draft-error" role="alert">
+          {error}
+        </p>
+      ) : null}
       <PlaceEditor
         draft={draft}
         errors={errors}

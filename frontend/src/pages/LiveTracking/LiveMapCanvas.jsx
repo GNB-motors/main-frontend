@@ -85,6 +85,7 @@ export default function LiveMapCanvas({
   onPickRoute,
   draft = null,
   onDraftChange,
+  onDraftMapClick,
   placesPanelOpen = false,
   passiveTrail = null,
   whereNext = null,
@@ -224,7 +225,10 @@ export default function LiveMapCanvas({
               if (typeof z === 'number') setMapZoom(z);
             }
           }}
-          onClick={() => setSelectedHalt(null)}
+          onClick={(event) => {
+            setSelectedHalt(null);
+            if (draft && event?.latLng) onDraftMapClick?.({ lat: event.latLng.lat(), lng: event.latLng.lng() });
+          }}
           options={effectiveMapOptions}
         >
           {/* Google's live traffic, as a display layer only. The owner acts
