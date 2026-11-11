@@ -5,7 +5,22 @@ import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog';
 import billPhotoService from '../../services/billPhotoService';
 import { candidateRows } from './billPhotoModel';
 import './BillsTable.css';
+
 const statusOf = (error) => error?.status ?? error?.response?.status;
+// The reason a slip has no truck to offer, in plain words. The backend says it
+// for every other case; these two are the ones the person reads most.
+const REASON_WORDS = {
+  NO_PRINTED_TIME:
+    "No time on the photo, so we can't tell which truck was at the pump. Pick the truck.",
+  NO_GPS_NEAR_PUMP: "No truck's GPS was near this pump at that time.",
+};
+const reasonOf = (suggestion) => {
+  if (!suggestion) return '';
+  const code = suggestion?.why?.code || suggestion?.askReason || '';
+  if (REASON_WORDS[code]) return REASON_WORDS[code];
+  return suggestion?.why?.text || '';
+};
+
 // Each row owns its timer and request, so one slow matcher cannot block the rest.
 function useSuggestion(capture, onMatched, skip, onUnavailable) {
   const [suggestion, setSuggestion] = useState(capture.suggestion);
@@ -143,9 +158,15 @@ function BillRow({
       '');
   const ocr = capture.ocr || {};
   const show = (value) => (value == null || value === '' ? '\u2014' : String(value));
+  // The date and the time of the photo: the paper's own when it prints them,
+  // the camera's own stamp when it does not.
+  const photo = suggestion?.photo || null;
+  const photoDate = photo?.date ?? ocr.printedDate ?? ocr.date ?? null;
+  const photoTime = photo?.time ?? ocr.printedTime ?? null;
+  const fromStamp = photo?.timeSource === 'stamp';
   const details = [
-    ['Date', ocr.printedDate ?? ocr.date],
-    ['Time', ocr.printedTime],
+    ['Date', photoDate],
+    ['Time', photoTime, fromStamp ? 'from the photo stamp' : null],
     ['Amount', ocr.amount == null ? null : '\u20b9' + ocr.amount],
     ['Litres', ocr.litres],
     ['Rate', ocr.rate == null ? null : '\u20b9' + ocr.rate + '/L'],
@@ -159,9 +180,10 @@ function BillRow({
     <tr aria-label={`Bill ${capture.id}`}>
       <td data-label="#">{index + 1}</td>
       <td data-label="Details">
-        {details.map(([label, value]) => (
+        {details.map(([label, value, note]) => (
           <div key={label}>
             {label}: {show(value)}
+            {note ? <span className="bp-stamp-note"> ({note})</span> : null}
           </div>
         ))}
       </td>
@@ -223,20 +245,26 @@ function BillRow({
                 {['MARKET_TRUCK', 'NO_TRUCK_WITH_THESE_DIGITS'].includes(suggestion?.askReason) && (
                   <p>Not one of your trucks (market truck?)</p>
                 )}
-                <p>These might be the truck:</p>
-                {candidates.map((candidate) => (
-                  <Button
-                    key={candidate.registrationNumber}
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    aria-pressed={chosen === candidate.registrationNumber}
-                    onClick={() => onChoice(candidate.registrationNumber)}
-                  >
-                    {candidate.registrationNumber}
-                    {candidate.reasons.length ? ' - ' + candidate.reasons.join(' · ') : ''}
-                  </Button>
-                ))}
+                {candidates.length > 0 ? (
+                  <>
+                    <p>These might be the truck:</p>
+                    {candidates.map((candidate) => (
+                      <Button
+                        key={candidate.registrationNumber}
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        aria-pressed={chosen === candidate.registrationNumber}
+                        onClick={() => onChoice(candidate.registrationNumber)}
+                      >
+                        {candidate.registrationNumber}
+                        {candidate.reasons.length ? ' - ' + candidate.reasons.join(' · ') : ''}
+                      </Button>
+                    ))}
+                  </>
+                ) : (
+                  <p className="bp-reason">{reasonOf(suggestion)}</p>
+                )}
                 <label>
                   Truck{' '}
                   <input

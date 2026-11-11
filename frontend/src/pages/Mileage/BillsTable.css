@@ -17,6 +17,14 @@
 .bills-table td:last-child > * {
   margin: 0.25rem;
 }
+.bp-stamp-note {
+  color: var(--rd-ink-3);
+  font-size: 0.75rem;
+}
+.bp-reason {
+  color: var(--rd-ink-3);
+  max-width: 24rem;
+}
 @media (max-width: 600px) {
   .bills-table thead {
     display: none;
