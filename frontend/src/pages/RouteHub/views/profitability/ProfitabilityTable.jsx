@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Ico from '../../routeHubIcons.jsx';
 import { TableEmpty, TableSkeleton } from '../../routeHubShared.jsx';
 import { inr } from '../../routeHubFormat';
@@ -6,11 +7,14 @@ import { inr } from '../../routeHubFormat';
 const money = (n) => (typeof n === 'number' && Number.isFinite(n) ? inr(n) : '—');
 const km = (n) => (typeof n === 'number' && Number.isFinite(n) ? `${Math.round(n)} km` : '—');
 
+const PAGE = 12;
+
 /**
  * Per-route RUNNING COST from AutoTrip telemetry (no ERP, no revenue, no margin).
  * Lanes are grouped by the route the truck actually ran (origin place → drop
  * place); a lane with no priced trips shows "—", never ₹0, and the "Priced"
- * column says how many of its trips carry cost.
+ * column says how many of its trips carry cost. Paginated so a long fleet does
+ * not stretch the card.
  */
 export default function ProfitabilityTable({
   routes,
@@ -19,32 +23,39 @@ export default function ProfitabilityTable({
   first,
   error,
   windowLabel = 'the last 30 days',
+  className = '',
 }) {
+  const [page, setPage] = useState(0);
+  const pageCount = Math.max(1, Math.ceil(routes.length / PAGE));
+  const safePage = Math.min(page, pageCount - 1);
+  const start = safePage * PAGE;
+  const shown = routes.slice(start, start + PAGE);
+
   return (
-    <div className="card">
+    <div className={`card ${className}`.trim()}>
       <div className="card-head">
         <span style={{ color: 'var(--nova-rage-600)', display: 'flex' }}>
           <Ico n="split" />
         </span>
         <h3>Route running cost</h3>
-        <span className="hint">Detected trips grouped by lane · cost from telemetry economics</span>
+        <span className="hint">Detected trips grouped by lane · cost from telemetry</span>
       </div>
       <div className="tblwrap">
         <table className="tbl">
           <thead>
             <tr>
-              <th>Rank</th>
+              <th>#</th>
               <th>Route</th>
               <th className="num">Trips</th>
               <th className="num">Distance</th>
-              <th className="num">Avg cost / trip</th>
+              <th className="num">Avg / trip</th>
               <th className="num">Cost / km</th>
               <th className="num">Priced</th>
             </tr>
           </thead>
           {routes.length ? (
             <tbody>
-              {routes.map((r) => (
+              {shown.map((r) => (
                 <tr
                   key={r.routeId}
                   className={`click ${selected && r.routeId === selected.routeId ? 'sel' : ''}`}
@@ -82,6 +93,31 @@ export default function ProfitabilityTable({
           )}
         </table>
       </div>
+      {routes.length > PAGE ? (
+        <div className="dev-pager">
+          <span className="muted">
+            {start + 1}–{Math.min(start + PAGE, routes.length)} of {routes.length} lanes
+          </span>
+          <span style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              className="btn btn--sm"
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={safePage === 0}
+            >
+              <Ico n="arrowL" s={12} /> Prev
+            </button>
+            <button
+              type="button"
+              className="btn btn--sm"
+              onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+              disabled={safePage >= pageCount - 1}
+            >
+              Next <Ico n="arrowR" s={12} />
+            </button>
+          </span>
+        </div>
+      ) : null}
     </div>
   );
 }

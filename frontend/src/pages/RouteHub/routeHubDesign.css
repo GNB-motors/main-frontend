@@ -1024,6 +1024,48 @@ html.dark .nova-rh {
 .nova-rh .tblwrap {
   overflow-x: auto;
 }
+/* "How to read this" instruction list at the top of the running-cost view. */
+.nova-rh .prof-howto__list {
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-4);
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.nova-rh .prof-howto__list li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--fg-secondary);
+}
+.nova-rh .prof-howto__list li::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #2f58ee;
+}
+.nova-rh .prof-howto__list b {
+  color: var(--fg-primary);
+  font-weight: 600;
+}
+
+/* A table that scrolls inside its card instead of paginating, header pinned. */
+.nova-rh .tblwrap--scroll {
+  max-height: 560px;
+  overflow-y: auto;
+}
+.nova-rh .tblwrap--scroll .tbl thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-surface);
+  box-shadow: inset 0 -1px 0 var(--border-subtle);
+}
 
 /* Intelligence uses the same table rhythm as the other Route Hub views. */
 .nova-rh .ctrlbar.intelligence-controls {

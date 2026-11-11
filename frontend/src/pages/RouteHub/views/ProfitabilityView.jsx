@@ -135,28 +135,49 @@ export default function ProfitabilityView({ toast }) {
           </p>
         </div>
         <div className="tools">
-          <label className="flabel">
-            <span>Time window</span>
-            <span className="field">
-              <SearchableSelect
-                aria-label="Time window"
-                value={win}
-                onChange={(e) => setWin(Number(e.target.value))}
-              >
-                {WINDOWS.map((w) => (
-                  <option key={w.value} value={w.value}>
-                    {w.label}
-                  </option>
-                ))}
-              </SearchableSelect>
-            </span>
-          </label>
+          <span className="field">
+            <SearchableSelect
+              aria-label="Time window"
+              value={win}
+              onChange={(e) => setWin(Number(e.target.value))}
+            >
+              {WINDOWS.map((w) => (
+                <option key={w.value} value={w.value}>
+                  {w.label}
+                </option>
+              ))}
+            </SearchableSelect>
+          </span>
           <RefreshButton onClick={load} busy={loading} />
           <button type="button" className="btn" onClick={exportCsv}>
             <Ico n="download" />
             Export
           </button>
         </div>
+      </div>
+
+      <div className="card prof-howto">
+        <div className="card-head">
+          <span style={{ color: '#2F58EE', display: 'flex' }}>
+            <Ico n="eye" />
+          </span>
+          <h3>How to read this</h3>
+          <span className="hint">cost from AutoTrip GPS telemetry</span>
+        </div>
+        <ul className="prof-howto__list">
+          <li>
+            <b>Running cost only.</b> Detected trips carry no revenue, so there is no profit or
+            margin here — just what each lane and trip cost to run (fuel + wear).
+          </li>
+          <li>
+            <b>Cost shows for priced trips.</b> The economics engine prices some trips; the “priced”
+            count is how many. Unpriced rows read “—”, never ₹0.
+          </li>
+          <li>
+            <b>Pick a time window</b> (top-right), read lanes by running cost on the left, and
+            scroll the latest trips on the right. Export sends the full lane table to CSV.
+          </li>
+        </ul>
       </div>
 
       {error ? (
@@ -175,16 +196,19 @@ export default function ProfitabilityView({ toast }) {
 
       <MoneyStrip money={money} loading={loading && !money} />
 
-      <ProfitabilityTable
-        routes={routes}
-        selected={selected}
-        setSelId={setSelId}
-        first={first}
-        error={error}
-        windowLabel={windowLabel}
-      />
+      <div className="bento">
+        <ProfitabilityTable
+          className="s6"
+          routes={routes}
+          selected={selected}
+          setSelId={setSelId}
+          first={first}
+          error={error}
+          windowLabel={windowLabel}
+        />
 
-      <TripPnlTable trips={trips} first={first} error={error} />
+        <TripPnlTable className="s6" trips={trips} first={first} error={error} />
+      </div>
 
       {data?.disclaimer ? <p className="hint">{data.disclaimer}</p> : null}
     </section>

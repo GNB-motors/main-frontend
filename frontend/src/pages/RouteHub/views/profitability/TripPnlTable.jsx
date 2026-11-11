@@ -18,20 +18,18 @@ const STATUS_LABEL = {
  * running cost only. A trip the economics engine has not priced shows "—" for
  * cost (unknown, not ₹0).
  */
-export default function TripPnlTable({ trips, first, error }) {
+export default function TripPnlTable({ trips, first, error, className = '' }) {
   const rows = trips || [];
   return (
-    <div className="card">
+    <div className={`card ${className}`.trim()}>
       <div className="card-head">
         <span style={{ color: 'var(--nova-rage-600)', display: 'flex' }}>
           <Ico n="ledger" />
         </span>
         <h3>Trip running cost</h3>
-        <span className="hint">
-          Detected trips, most recent first · cost from telemetry economics
-        </span>
+        <span className="hint">Detected trips, most recent first · cost from telemetry</span>
       </div>
-      <div className="tblwrap">
+      <div className="tblwrap tblwrap--scroll">
         <table className="tbl">
           <thead>
             <tr>
