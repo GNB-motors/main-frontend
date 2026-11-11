@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Camera, Check, FileText, Loader2, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import {
   Dialog,
   DialogContent,
@@ -13,6 +15,7 @@ import { getVehicleList } from '../../services/vehicleListService';
 import billPhotoService from '../../services/billPhotoService';
 import safeText from '../../utils/redactSensitive';
 import './AddBillPhotoDialog.css';
+import BillsTable from './BillsTable';
 
 const normalise = (value) =>
   String(value || '')
@@ -367,32 +370,12 @@ function SingleBillDialog({
   );
 }
 
-const ROW_STATUS_TEXT = {
-  hashing: 'Checking this file…',
-  queued: 'Ready to upload',
-  sending: 'Uploading…',
-  sent: 'Uploaded',
-  failed: 'Could not be uploaded',
-  duplicate: 'Skipped — the same photo was already added',
-};
-
-export function Photo({ file }) {
-  const [url, setUrl] = useState('');
-  useEffect(() => {
-    if (!file || !URL.createObjectURL) return undefined;
-    const next = URL.createObjectURL(file);
-    setUrl(next);
-    return () => URL.revokeObjectURL(next);
-  }, [file]);
-  return url ? <img src={url} alt="Bill thumbnail" className="h-12 w-12 object-cover" /> : null;
-}
-
 /**
  * Many bills at once. The bill type and the truck are optional: the server
  * reads the photo, suggests the truck and the owner confirms it later in
  * "Bills to confirm".
  */
-function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [] }) {
+function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [], onUnavailable }) {
   const input = useRef(null);
   const [dragging, setDragging] = useState(false);
   const [kind, setKind] = useState('');
@@ -401,9 +384,7 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [] }
   const addFiles = (files) => {
     const list = Array.from(files || []);
     if (!list.length) return;
-    const bad = list.find(
-      (file) => !['image/jpeg', 'image/png', 'image/webp'].includes(file.type),
-    );
+    const bad = list.find((file) => !['image/jpeg', 'image/png', 'image/webp'].includes(file.type));
     if (bad) {
       setError('Choose JPG, PNG or WEBP bill photos.');
       return;
@@ -411,20 +392,29 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [] }
     setError(null);
     queue?.add?.(list);
   };
+  const waiting = rows.filter((row) => row.status === 'sent').length;
+  const changeOpen = (next) => {
+    if (!next && waiting)
+      toast.info(
+        <>
+          {waiting} bills not confirmed yet are waiting in{' '}
+          <Link to="/approvals?type=office">Approvals</Link>
+        </>,
+      );
+    onOpenChange(next);
+  };
   const changeKind = (next) => {
     setKind(next ?? '');
     queue?.setKind?.(next ?? '');
   };
-  const queued = rows.filter((row) => row.status === 'queued').length;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bp-dialog" aria-busy={queued === 0 && rows.length > 0}>
+    <Dialog open={open} onOpenChange={changeOpen}>
+      <DialogContent className="bp-dialog">
         <DialogHeader className="bp-dialog-head">
           <DialogTitle>Add bill photos</DialogTitle>
           <DialogDescription>
-            Add as many bill photos as you like. The truck is worked out from the photo and you
-            confirm it in Bills to confirm.
+            1. Upload photos. 2. Check suggested trucks. 3. Confirm bills.
           </DialogDescription>
         </DialogHeader>
         <div className="bp-dialog-body">
@@ -452,7 +442,7 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [] }
             }}
           >
             <Camera size={26} aria-hidden="true" />
-            <span>Drop bill photos or click to choose</span>
+            <span>Drop bill photos or tap to choose</span>
             <small>JPG, PNG or WEBP · many at a time</small>
           </button>
           <input
@@ -472,74 +462,24 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [] }
               {error}
             </p>
           ) : null}
-          {rows.map((row) => (
-            <div
-              key={row.id}
-              className="flex flex-wrap items-center gap-3 rounded border border-[var(--rd-line)] p-2 text-[var(--rd-ink)]"
-            >
-              <Photo file={row.file} />
-              <span>{row.name}</span>
-              <span>{ROW_STATUS_TEXT[row.status] || row.status}</span>
-              {row.error ? (
-                <span role="alert" className="bp-error">
-                  {row.error}
-                </span>
-              ) : null}
-              {row.capture?.guidance?.message ? (
-                <p
-                  role="status"
-                  className={
-                    row.capture.guidance.status === 'filed_elsewhere'
-                      ? 'rounded border border-blue-200 bg-blue-50 p-2 text-xs text-blue-800'
-                      : 'rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800'
-                  }
-                >
-                  {safeText(row.capture.guidance.message)}
-                </p>
-              ) : null}
-              <label>
-                Truck (optional){' '}
-                <input
-                  list={`queue-trucks-${row.id}`}
-                  aria-label="Truck"
-                  value={row.truck ?? ''}
-                  disabled={row.started}
-                  onChange={(event) => queue?.setTruck?.(row.id, event.target.value)}
-                  placeholder="Search trucks"
-                />
-              </label>
-              <datalist id={`queue-trucks-${row.id}`}>
-                {vehicles.map((vehicle) => (
-                  <option
-                  key={vehicle._id || vehicle.id}
-                  value={vehicle.registrationNumber}
-                  aria-label={vehicle.registrationNumber}
-                />
-                ))}
-              </datalist>
-              {row.status === 'failed' ? (
-                <Button size="sm" variant="outline" onClick={() => queue?.retry?.(row.id)}>
-                  Retry
-                </Button>
-              ) : null}
-              {!['sending', 'sent'].includes(row.status) ? (
-                <button
-                  type="button"
-                  onClick={() => queue?.remove?.(row.id)}
-                  aria-label={`Remove ${row.name}`}
-                >
-                  Remove
-                </button>
-              ) : null}
-            </div>
-          ))}
+          <BillsTable
+            rows={rows}
+            via="UPLOAD"
+            vehicles={vehicles}
+            queue={queue}
+            onUnavailable={onUnavailable}
+            onSaved={(ids) => queue?.removeSaved?.(ids)}
+          />
+          {waiting > 0 && (
+            <p>
+              {waiting} bills not confirmed yet are waiting in{' '}
+              <Link to="/approvals?type=office">Approvals</Link>
+            </p>
+          )}
         </div>
-        <div className="bp-dialog-foot">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+        <div className="bp-dialog-foot flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => changeOpen(false)}>
             Close
-          </Button>
-          <Button size="sm" disabled={!queued} onClick={() => queue?.start?.()}>
-            Upload{queued ? ` ${queued} bill${queued === 1 ? '' : 's'}` : ''}
           </Button>
         </div>
       </DialogContent>

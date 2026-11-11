@@ -46,13 +46,18 @@ export function driverRowView(row = {}) {
     userId: candidate.userId || candidate._id || '',
     name: candidate.name || '',
     phone: candidate.phone || '',
-    reason: candidate.reason || '',
+    matched: Array.isArray(candidate.matched || candidate.matchedFields || candidate.matchedOn)
+      ? candidate.matched || candidate.matchedFields || candidate.matchedOn
+      : [],
   }));
   return {
     key: row.key || '',
     name: row.nameRead || row.name || '',
     phone: row.phone || '',
     licenceNumber: row.licenceNumber || '',
+    aadhaar: String(row.aadhaarLast4 || row.aadhaar || '')
+      .replace(/\D/g, '')
+      .slice(-4),
     photoCount: Number(row.photoCount || 0),
     status,
     userId: match.userId || '',

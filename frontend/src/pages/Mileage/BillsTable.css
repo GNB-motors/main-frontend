@@ -1,0 +1,41 @@
+.bills-table-wrap {
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+.bills-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+.bills-table th,
+.bills-table td {
+  border-bottom: 1px solid var(--rd-line);
+  padding: 0.75rem;
+  vertical-align: top;
+}
+.bills-table td:last-child > * {
+  margin: 0.25rem;
+}
+@media (max-width: 600px) {
+  .bills-table thead {
+    display: none;
+  }
+  .bills-table,
+  .bills-table tbody,
+  .bills-table tr,
+  .bills-table td {
+    display: block;
+    width: 100%;
+  }
+  .bills-table tr {
+    border: 1px solid var(--rd-line);
+    border-radius: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .bills-table td::before {
+    content: attr(data-label);
+    display: block;
+    font-weight: 600;
+  }
+}

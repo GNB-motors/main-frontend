@@ -49,8 +49,8 @@ describe('photo driver import panel', () => {
     render(<PhotoDriverImportPanel open onOpenChange={vi.fn()} context="drivers" />);
     fireEvent.change(screen.getByLabelText('Driver photos'), { target: { files: [photo()] } });
     expect(await screen.findByText('Already in your list: Asha Roy')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Did you mean Ram Das?' })).toBeInTheDocument();
-    expect(screen.getAllByText('New driver').length).toBe(3);
+    expect(screen.getByRole('button', { name: /Ram Das/ })).toBeInTheDocument();
+    expect(screen.getAllByText('New driver').length).toBe(2);
     expect(screen.queryByText(/0\.9/)).not.toBeInTheDocument();
   });
 
@@ -66,6 +66,15 @@ describe('photo driver import panel', () => {
         { key: 'k3', action: 'create', name: 'New Person' },
       ]),
     );
+  });
+
+  it('uploads the selected files without a second chooser', async () => {
+    const file = photo();
+    render(<PhotoDriverImportPanel open initialFiles={[file]} onOpenChange={vi.fn()} />);
+    await waitFor(() =>
+      expect(PhotoImportService.start).toHaveBeenCalledWith({ files: [file], context: 'drivers' }),
+    );
+    expect(screen.queryByRole('button', { name: /tap to choose/ })).not.toBeInTheDocument();
   });
 
   it('sends assignment photos as an assignments batch', async () => {
