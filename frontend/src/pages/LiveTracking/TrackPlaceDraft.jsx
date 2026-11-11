@@ -1,5 +1,6 @@
 import RadiusControl from '../PlaceHub/drawer/RadiusControl.jsx';
 import { PLACE_RADIUS_MAX, PLACE_RADIUS_MIN } from './trackClickModel';
+import { ArrowLeft } from 'lucide-react';
 
 /** The radius a place may have: 50 m to 5 km. */
 const RADIUS_META = {
@@ -26,35 +27,42 @@ export default function TrackPlaceDraft({
     <section
       role="dialog"
       aria-label="Make this a place"
-      className="lt-map-draft absolute right-4 top-4 z-[1200] w-[340px] max-w-[92vw] rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] p-3 shadow-[var(--rd-shadow-float)]"
+      className="lt-place-draft absolute right-4 top-4 z-[1200] w-[340px] max-w-[92vw] overflow-y-auto rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] shadow-[var(--rd-shadow-float)]"
     >
-      <h3 className="m-0 text-[13px] font-semibold text-[var(--rd-ink)]">Make this a place</h3>
-      <p className="m-0 mt-1 text-[12px] text-[var(--rd-ink-3)]">
-        Trucks that stop here will know this spot. Drag the circle on the map to set its edge.
-      </p>
-
-      <div className="ph-field mt-2">
-        <span className="ph-field-label">Name</span>
-        <input
-          id="track-place-name"
-          className="ph-text"
-          aria-label="Name"
-          value={draft?.name || ''}
-          onChange={(event) => onChange({ name: event.target.value })}
-          placeholder="e.g. Tata Steel gate 3"
-          maxLength={120}
-        />
+      <div className="dtop lt-draft-back">
+        <button type="button" className="backbtn" onClick={onCancel} disabled={saving}>
+          <ArrowLeft size={16} aria-hidden="true" />
+          Back to map
+        </button>
       </div>
-
-      <RadiusControl draft={draft} meta={RADIUS_META} error={null} onChange={onChange} />
-
-      {error ? (
-        <p role="alert" className="m-0 mt-1 text-[12px] text-[var(--rd-act-ink)]">
-          {error}
+      <div className="lt-draft-content">
+        <h3 className="m-0 text-[13px] font-semibold text-[var(--rd-ink)]">Make this a place</h3>
+        <p className="m-0 mt-1 text-[12px] text-[var(--rd-ink-3)]">
+          Trucks that stop here will know this spot. Drag the circle on the map to set its edge.
         </p>
-      ) : null}
 
-      <div className="ph-btn-row mt-2">
+        <div className="ph-field mt-2">
+          <span className="ph-field-label">Name</span>
+          <input
+            id="track-place-name"
+            className="ph-text"
+            aria-label="Name"
+            value={draft?.name || ''}
+            onChange={(event) => onChange({ name: event.target.value })}
+            placeholder="e.g. Tata Steel gate 3"
+            maxLength={120}
+          />
+        </div>
+
+        <RadiusControl draft={draft} meta={RADIUS_META} error={null} onChange={onChange} />
+
+        {error ? (
+          <p role="alert" className="m-0 mt-1 text-[12px] text-[var(--rd-act-ink)]">
+            {error}
+          </p>
+        ) : null}
+      </div>
+      <div className="ph-btn-row lt-draft-footer">
         <button type="button" className="ph-btn ph-btn--ghost" onClick={onCancel} disabled={saving}>
           Cancel
         </button>

@@ -9,10 +9,36 @@ import {
   playbackPosition,
   previousEventAt,
   timeAtIndex,
+  gapMinutes,
 } from './trackPlayback';
 
 const points = trackFixture.points;
 const events = trackFixture.events;
+
+it('retains API gap durations without an explicit durationMin, including merged logs', () => {
+  const gaps = [
+    {
+      kind: 'GPS_GAP',
+      at: '2026-11-01T13:00:00Z',
+      endAt: '2026-11-01T14:03:30Z',
+      text: 'No GPS for 64 min',
+    },
+    {
+      kind: 'GPS_GAP',
+      at: '2026-11-01T14:03:30Z',
+      endAt: '2026-11-01T15:06:30Z',
+      text: 'No GPS for 63 min',
+    },
+  ];
+  expect(gapMinutes({ ...gaps[0], durationMin: null })).toBe(63.5);
+  expect(buildTripLog([], gaps)[0]).toMatchObject({
+    durationMin: 126.5,
+    gapCount: 2,
+    gapEndAt: '2026-11-01T15:06:30.000Z',
+  });
+  expect(gapMinutes({ durationMin: null, text: 'No GPS for 63 min' })).toBe(63);
+  expect(gapMinutes({ durationMin: 0, text: 'No GPS for 63 min' })).toBe(0);
+});
 
 describe('indexAtTime', () => {
   it('finds the last point at or before the time', () => {
@@ -104,11 +130,14 @@ describe('buildTripLog', () => {
   // Nine “no GPS” rows in a row are one thing that happened (the truck went
   // dark), not nine.
   it('merges consecutive no-GPS entries into one row', () => {
-    const log = buildTripLog([], [
-      { kind: 'GPS_GAP', at: '2026-11-01T13:00:00Z', text: 'No GPS for 5 min', durationMin: 5 },
-      { kind: 'GPS_GAP', at: '2026-11-01T13:06:00Z', text: 'No GPS for 5 min', durationMin: 5 },
-      { kind: 'GPS_GAP', at: '2026-11-01T13:12:00Z', text: 'No GPS for 5 min', durationMin: 5 },
-    ]);
+    const log = buildTripLog(
+      [],
+      [
+        { kind: 'GPS_GAP', at: '2026-11-01T13:00:00Z', text: 'No GPS for 5 min', durationMin: 5 },
+        { kind: 'GPS_GAP', at: '2026-11-01T13:06:00Z', text: 'No GPS for 5 min', durationMin: 5 },
+        { kind: 'GPS_GAP', at: '2026-11-01T13:12:00Z', text: 'No GPS for 5 min', durationMin: 5 },
+      ],
+    );
     expect(log).toHaveLength(1);
     expect(log[0].kind).toBe('GPS_GAP');
     expect(log[0].gapCount).toBe(3);
@@ -132,16 +161,16 @@ describe('buildTripLog', () => {
       ],
     );
     expect(log.map((row) => row.kind)).toEqual(['GPS_GAP', 'STOP', 'GPS_GAP']);
-    expect(log.filter((row) => row.kind === 'GPS_GAP').every((row) => row.gapCount === 1)).toBe(true);
+    expect(log.filter((row) => row.kind === 'GPS_GAP').every((row) => row.gapCount === 1)).toBe(
+      true,
+    );
   });
 });
 
 describe('buildTrackCsv', () => {
   it('writes a header row', () => {
     const csv = buildTrackCsv(trackFixture);
-    expect(csv.split('\n')[0]).toBe(
-      '"time","lat","lng","speed_kmh","kind","label","duration_min"',
-    );
+    expect(csv.split('\n')[0]).toBe('"time","lat","lng","speed_kmh","kind","label","duration_min"');
   });
 
   it('writes every point, stop and event', () => {
@@ -153,7 +182,14 @@ describe('buildTrackCsv', () => {
   it('quotes a cell that contains a comma', () => {
     const csv = buildTrackCsv({
       points: [],
-      stops: [{ startAt: '2026-11-01T13:00:00Z', place: { name: 'Mohania, Dhaba', lat: 1, lng: 2 }, durationMin: 40, reason: 'REST' }],
+      stops: [
+        {
+          startAt: '2026-11-01T13:00:00Z',
+          place: { name: 'Mohania, Dhaba', lat: 1, lng: 2 },
+          durationMin: 40,
+          reason: 'REST',
+        },
+      ],
       events: [],
     });
     expect(csv).toContain('"Mohania, Dhaba"');

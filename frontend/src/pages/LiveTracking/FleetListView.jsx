@@ -117,7 +117,7 @@ export default function FleetListView({
                     </div>
                     <span className="vc-state">
                       <i />
-                      {s.label}
+                      {v.neverReported ? 'No telemetry' : s.label}
                     </span>
                   </div>
 
@@ -154,7 +154,13 @@ export default function FleetListView({
                       </span>
                     ) : null}
                     <span className="sp" />
-                    <span>{v.ago != null ? formatAgoText(v.ago) : '—'}</span>
+                    <span>
+                      {v.neverReported
+                        ? 'No telemetry received'
+                        : v.ago != null
+                          ? formatAgoText(v.ago)
+                          : '—'}
+                    </span>
                   </div>
                 </div>
               );

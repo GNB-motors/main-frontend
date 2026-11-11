@@ -79,9 +79,7 @@ export default function PlaceDetailPanel({ place, vehicles, onBack, onPickVehicl
             </summary>
             <div className="secbody">
               {here.length === 0 ? (
-                <div className="secnote">
-                  No vehicle with a live GPS fix is inside this place.
-                </div>
+                <div className="secnote">No vehicle with a live GPS fix is inside this place.</div>
               ) : (
                 here.map((v) => {
                   const s = NOVA_STATUS[v.status] || NOVA_STATUS.offline;
@@ -95,7 +93,7 @@ export default function PlaceDetailPanel({ place, vehicles, onBack, onPickVehicl
                       <b>{v.plate}</b>
                       <span style={{ color: s.c }}>{s.label}</span>
                       {v.ago != null ? (
-                        <span className="pl-ago">here {formatDuration(v.ago)}</span>
+                        <span className="pl-ago">Last report {formatDuration(v.ago)} ago</span>
                       ) : null}
                     </button>
                   );
@@ -136,7 +134,9 @@ export default function PlaceDetailPanel({ place, vehicles, onBack, onPickVehicl
                 type="button"
                 className="pl-link"
                 style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}
-                onClick={() => openInGoogleMaps({ lat: place.lat, lng: place.lng, name: place.name })}
+                onClick={() =>
+                  openInGoogleMaps({ lat: place.lat, lng: place.lng, name: place.name })
+                }
               >
                 <ExternalLink size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />
                 Open in Google Maps

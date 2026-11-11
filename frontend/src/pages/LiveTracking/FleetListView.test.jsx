@@ -25,6 +25,24 @@ function renderRail(props = {}) {
 }
 
 describe('FleetListView error state', () => {
+  it('keeps a never-reported truck visible without a location or fabricated measurements', () => {
+    const truck = {
+      id: 'new',
+      plate: 'WB11E5562',
+      status: 'offline',
+      neverReported: true,
+      hasFix: false,
+      hasGpsFix: false,
+      lat: null,
+      lng: null,
+      speed: null,
+    };
+    renderRail({ vehicles: [truck], filteredVehicles: [truck] });
+    expect(screen.getByText('WB11E5562')).toBeTruthy();
+    expect(screen.getByText('No telemetry received')).toBeTruthy();
+    expect(screen.getByText('GPS position unavailable')).toBeTruthy();
+    expect(screen.queryByText('0 km/h')).toBeNull();
+  });
   it('says the fleet could not be loaded instead of showing zero vehicles', () => {
     renderRail({ error: new Error('network down') });
     expect(screen.getAllByText("Couldn't load your fleet").length).toBeGreaterThan(0);
