@@ -1,21 +1,7 @@
 import { memo, useState } from 'react';
 import { InfoWindowF, MarkerF } from '@react-google-maps/api';
 import { tollPopupLines } from '../model/tollPlazas.js';
-
-/** The Places page's own toll colour (intelligence/placeTypes TOLL). */
-const TOLL = '#0891b2';
-const SQUARE = 'M -5 -5 L 5 -5 L 5 5 L -5 5 z';
-
-function icon(visited) {
-  return {
-    path: SQUARE,
-    scale: visited ? 1.1 : 0.8,
-    fillColor: visited ? TOLL : '#ffffff',
-    fillOpacity: 1,
-    strokeColor: TOLL,
-    strokeWeight: 2,
-  };
-}
+import { tollMarkerIcon } from './tollMarker.js';
 
 /**
  * Toll plazas: solid where this org's trucks have been, hollow for the rest (shown only with the
@@ -30,8 +16,8 @@ const TollLayer = memo(function TollLayer({ plazas, interactive }) {
         <MarkerF
           key={`toll-${p.id}`}
           position={{ lat: p.lat, lng: p.lng }}
-          icon={icon(p.visited)}
-          title={p.name || 'Toll Plaza'}
+          icon={tollMarkerIcon(p.visited)}
+          title={`${p.name || 'Toll Plaza'} · ${p.visited ? 'Used by your fleet' : 'Other toll plaza'}`}
           clickable={interactive}
           onClick={() => setOpenId(p.id)}
           zIndex={p.visited ? 2 : 1}

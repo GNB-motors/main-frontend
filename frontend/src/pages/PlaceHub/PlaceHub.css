@@ -1101,6 +1101,12 @@
   box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.15);
 }
 
+.ph-toll-key {
+  width: 20px;
+  height: 22.5px;
+  flex-shrink: 0;
+}
+
 .ph-legend-item i.is-hollow {
   background: #ffffff;
   border: 2px solid var(--ph-dim);
