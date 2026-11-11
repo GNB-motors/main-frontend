@@ -41,11 +41,11 @@ vi.mock('../../services/DriverVehicleAssignmentService', () => ({
 }));
 
 vi.mock('./LiveMapCanvas.jsx', () => ({ default: (props) => { seen.map = props; return null; } }));
-vi.mock('./useTrackRoutes.js', () => ({ default: () => ({
+vi.mock('./useTrackRoutes.js', () => ({ default: (options) => { seen.routeOptions = options; return ({
   legs: [{ _id: 'route-a', title: 'Plant → Depot', fromSiteId: 'a', toSiteId: 'b', traversals: 4, path: { source: 'NONE' } }],
   lines: [], sites: new Map([['a', { name: 'Plant', lat: 22, lng: 88 }], ['b', { name: 'Depot', lat: 23, lng: 87 }]]),
   isLoading: false, error: null, reload: vi.fn(),
-}) }));
+}); } }));
 vi.mock('./useTrackReviewQueue.js', () => ({ default: () => ({
   items: [{ _id: 'cached-review', centroidLat: 22.5, centroidLng: 88.3 }],
   count: 137, reload: vi.fn(),
@@ -196,7 +196,7 @@ describe('LiveTrackingPage master data', () => {
     expect(screen.queryByRole('button', { name: /^Routes/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: 'Routes' }));
     expect(screen.getByRole('tab', { name: 'Routes' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('heading', { name: 'Routes' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Delivery routes' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('tab', { name: 'Places' }));
     expect(screen.getByRole('tab', { name: 'Places' })).toHaveAttribute('aria-selected', 'true');
     fireEvent.click(screen.getByRole('button', { name: 'Live tracking' }));
@@ -204,6 +204,17 @@ describe('LiveTrackingPage master data', () => {
     expect(screen.getByRole('heading', { name: 'Fleet' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Places & routes' }));
     expect(screen.getByRole('region', { name: 'Map filters' })).toBeInTheDocument();
+    view.unmount();
+  });
+  it('defaults the Places routes feed to deliveries and keeps All movements explicit', () => {
+    const view = renderPlaces();
+    fireEvent.click(screen.getByRole('tab', { name: 'Routes' }));
+    expect(seen.routeOptions).toMatchObject({ enabled: true, kind: 'delivery' });
+    fireEvent.click(screen.getByRole('button', { name: 'All movements', exact: true }));
+    expect(seen.routeOptions).toMatchObject({ enabled: true, kind: 'movement' });
+    expect(screen.getByRole('heading', { name: 'All movements' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Delivery routes', exact: true }));
+    expect(seen.routeOptions.kind).toBe('delivery');
     view.unmount();
   });
   it('isolates a selected route and restores the overview on back', () => {

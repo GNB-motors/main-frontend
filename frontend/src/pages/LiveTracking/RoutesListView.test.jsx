@@ -14,7 +14,7 @@ describe('Routes sidebar', () => {
     expect(screen.queryByText('Depot → Pump')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Plant → Warehouse/ }));
     expect(pick).toHaveBeenCalledWith('a');
-    expect(screen.getByText('12 runs · 123 km')).toBeInTheDocument();
+    expect(screen.getByText('12 passes · 123 km')).toBeInTheDocument();
   });
   it('shows a retry for failed reads rather than an empty list', () => {
     render(<RoutesListView routes={{ ...routes, error: new Error('offline') }} />);

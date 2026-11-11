@@ -5225,3 +5225,8 @@ html.dark .wx-icon .wx-star,
     padding-bottom: 16px;
   }
 }
+
+.lt-route-list-note { margin: 0; padding: 10px 16px; color: var(--rd-ink-3); font-size: 11px; line-height: 1.6; }
+.lt-route-modes { flex-shrink: 0; }
+
+.lt-route-modes .rail-tab[aria-pressed="true"] { color: var(--fg-primary); border-bottom-color: #2563eb; background: var(--bg-subtle); }

@@ -147,6 +147,9 @@ const LiveTrackingPage = () => {
   const trackMode = useTrackMode({ searchParams, setSearchParams });
   const isTrackMode = trackMode.isTrackMode;
   const isPlacesView = !isTrackMode && searchParams.get('view') === 'places';
+  const deliveryRoutesEnabled = canEditPlacesHere && isEnabled('fleetIntelligence') && isEnabled('routesV2');
+  const routeKind = deliveryRoutesEnabled && searchParams.get('routeView') !== 'movements' ? 'delivery' : 'movement';
+  useEffect(() => { setOpenRouteId(null); setRouteDetail(null); }, [routeKind]);
 
   // Google Maps Load Script
   const { isLoaded, loadError } = useLoadScript(googleMapsLoaderOptions);
@@ -287,7 +290,7 @@ const LiveTrackingPage = () => {
   const idlingByPlate = useMemo(() => idlingMinutesByPlate(idlingRows), [idlingRows]);
   const alertCounts = useMemo(() => alertCountsByVehicle(alerts), [alerts]);
   const reviewQueue = useTrackReviewQueue({ enabled: isPlacesView });
-  const routes = useTrackRoutes({ enabled: isPlacesView && placesTab === 'routes' });
+  const routes = useTrackRoutes({ enabled: isPlacesView && placesTab === 'routes', kind: routeKind });
   const [showAllTolls, setShowAllTolls] = useState(false);
   const tolls = useTrackTolls({ enabled: isPlacesView && placesTab === 'places', showAll: showAllTolls && Boolean(layerSelection.tolls), bbox: mapBounds, zoom: mapZoom });
   const layerAvailability = usePlaceLayerAvailability(isPlacesView && placesTab === 'places');
@@ -586,6 +589,17 @@ const LiveTrackingPage = () => {
     routeOverviewCamera.current = null;
   }, [mapRef]);
 
+  const changeRouteKind = (kind) => {
+    if (savingDraft) return;
+    closeRoute();
+    setSearchQuery('');
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous);
+      next.set('routeView', kind === 'delivery' ? 'deliveries' : 'movements');
+      return next;
+    });
+  };
+
   const changePlacesTab = (tab) => {
     if (savingDraft) return;
     reviewBeforeFence.current = null;
@@ -817,6 +831,7 @@ const LiveTrackingPage = () => {
               idlingRows={showPlaceLayers && layerSelection.idling ? idlingRows : []}
               onSelectIdling={selectIdlingRow}
               focusedRoute={focusedRoute}
+              routeKind={routeKind}
               routeLines={focusedRoute ? [] : routes.lines}
               routeSites={routes.sites}
               onPickRoute={handleRoutePick}
@@ -1025,6 +1040,7 @@ const LiveTrackingPage = () => {
                     <button type="button" role="tab" className="rail-tab" disabled={savingDraft} aria-selected={placesTab === 'routes'} onClick={() => changePlacesTab('routes')}>Routes</button>
                   </div>
                 ) : null}
+                {isPlacesView && placesTab === 'routes' && deliveryRoutesEnabled && <nav className="rail-tabs lt-route-modes" aria-label="Route types"><button type="button" className="rail-tab" aria-pressed={routeKind === 'delivery'} onClick={() => changeRouteKind('delivery')}>Delivery routes</button><button type="button" className="rail-tab" aria-pressed={routeKind === 'movement'} onClick={() => changeRouteKind('movement')}>All movements</button></nav>}
                 <div className="rail-body">
                   {!isPlacesView && railTab === 'fleet' ? (
                     <>
@@ -1080,9 +1096,9 @@ const LiveTrackingPage = () => {
                     </>
                   ) : isPlacesView && placesTab === 'routes' ? (
                     <>
-                      {openRouteId ? <TrackRouteDetailPanel key={openRouteId} docked id={openRouteId} leg={selectedRoute} focus={focusedRoute}
+                      {openRouteId ? <TrackRouteDetailPanel key={`${routeKind}:${openRouteId}`} docked kind={routeKind} showSap={isEnabled('sapV2') && ['OWNER', 'MANAGER'].includes(getUserRole())} id={openRouteId} leg={selectedRoute} focus={focusedRoute}
                         onDetail={setRouteDetail} onFit={fitSelectedRoute} onClose={closeRoute} /> : (
-                        <RoutesListView routes={routes} query={searchQuery} selectedId={openRouteId} onPick={handleRoutePick}
+                        <RoutesListView routes={routes} kind={routeKind} query={searchQuery} selectedId={openRouteId} onPick={handleRoutePick}
                           onHide={() => { setIsRailOpen(false); setTimeout(triggerMapResize, 240); }} />
                       )}
                     </>

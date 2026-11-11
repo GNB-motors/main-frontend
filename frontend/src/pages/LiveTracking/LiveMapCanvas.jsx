@@ -80,6 +80,7 @@ export default function LiveMapCanvas({
   idlingRows = [],
   onSelectIdling,
   focusedRoute = null,
+  routeKind = 'movement',
   routeLines = [],
   routeSites = NO_SITES,
   onPickRoute,
@@ -303,7 +304,7 @@ export default function LiveMapCanvas({
           {!track && idlingRows.length ? <TrackIdlingLayer rows={idlingRows} onSelect={onSelectIdling} /> : null}
 
           <FocusedRouteLayer route={focusedRoute} />
-          {!focusedRoute && !track && mapZoom >= 7 && routeLines.length ? (
+          {!focusedRoute && !track && (routeKind === 'delivery' || mapZoom >= 7) && routeLines.length ? (
             <RouteLayer
               dimmed={Boolean(selectedId)}
               map={map}
