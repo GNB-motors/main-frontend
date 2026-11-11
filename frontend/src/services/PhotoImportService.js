@@ -22,6 +22,10 @@ const unwrap = (res) => res.data?.data ?? res.data;
 
 const UPLOAD_TIMEOUT = 200000;
 
+// The WhatsApp chat export is read on the server: a few hundred photos are
+// read one by one, so the wait is long. The timeout has to outlive the read.
+const WHATSAPP_EXPORT_TIMEOUT = 30 * 60 * 1000;
+
 const buildForm = ({ files = [], uploadedAs = {}, batchId, context } = {}) => {
   const form = new FormData();
   files.forEach((file) => form.append('files', file, file.name));
@@ -110,6 +114,23 @@ const PhotoImportService = {
     const response = await apiClient.get('/api/photo-imports', { signal });
     const data = unwrap(response);
     return Array.isArray(data) ? data : [];
+  },
+
+  /**
+   * One WhatsApp chat export (a .zip with the chat and its media).
+   * The server reads every photo before it answers, so this call is slow:
+   * `onUploadProgress` reports the upload, the answer comes minutes later.
+   */
+  uploadWhatsappExport: async (file, { signal, onUploadProgress } = {}) => {
+    const form = new FormData();
+    if (file) form.append('file', file, file.name);
+    const response = await apiClient.post('/api/photo-imports/whatsapp-export', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: WHATSAPP_EXPORT_TIMEOUT,
+      signal,
+      onUploadProgress,
+    });
+    return unwrap(response);
   },
 
   /** Drivers that already exist, for "pick another driver". */

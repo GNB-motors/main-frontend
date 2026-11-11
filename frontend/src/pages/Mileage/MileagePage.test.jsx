@@ -778,3 +778,45 @@ describe('bill approval placement', () => {
     expect(screen.getByRole('button', { name: /Add bill photo/ })).toBeInTheDocument();
   });
 });
+
+describe('WhatsApp chat upload on the mileage page', () => {
+  it('offers the upload to people who can edit bills', async () => {
+    mockApi();
+    useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
+    renderAt('/mileage');
+
+    await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));
+    expect(screen.getByRole('button', { name: /Upload WhatsApp chat/ })).toBeInTheDocument();
+  });
+
+  it('keeps the upload away from people who cannot edit bills', async () => {
+    mockApi();
+    useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
+    getUserRole.mockReturnValue('DRIVER');
+    renderAt('/mileage');
+
+    await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));
+    expect(screen.queryByRole('button', { name: /Upload WhatsApp chat/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Add bill photo/ })).not.toBeInTheDocument();
+  });
+
+  it('reads the list again after a chat has been imported', async () => {
+    mockApi();
+    useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
+    apiClient.post.mockResolvedValue({
+      data: { data: { filename: 'chat.zip', messages: 4, photos: 2, failed: [] } },
+    });
+    renderAt('/mileage');
+    await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));
+    const before = feedCalls().length;
+
+    fireEvent.click(screen.getByRole('button', { name: /Upload WhatsApp chat/ }));
+    fireEvent.change(await screen.findByLabelText('WhatsApp chat export'), {
+      target: { files: [new File(['zip'], 'chat.zip', { type: 'application/zip' })] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+
+    expect(await screen.findByText('Chat imported')).toBeInTheDocument();
+    await waitFor(() => expect(feedCalls().length).toBeGreaterThan(before));
+  });
+});

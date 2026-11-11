@@ -2,7 +2,7 @@ import ManufacturerFilter from '../../components/filters/ManufacturerFilter';
 import useManufacturerFilter from '../../hooks/useManufacturerFilter';
 import React, { Suspense, lazy, useDeferredValue, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Camera, PenLine, Search, X } from 'lucide-react';
+import { Camera, MessageCircle, PenLine, Search, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import PageShell from '../../components/ui/PageShell';
 import { Skeleton } from '../../components/ui/skeleton.jsx';
@@ -14,6 +14,7 @@ import MileageKpiBar from './components/MileageKpiBar';
 import RefuelDetailDrawer from './components/RefuelDetailDrawer';
 import MileageCyclesDrawer from './components/MileageCyclesDrawer';
 import AddBillPhotoDialog from './AddBillPhotoDialog';
+import WhatsappExportDialog from './WhatsappExportDialog';
 import { createBillQueue } from './billUploadQueue';
 import billPhotoService from '../../services/billPhotoService';
 import { MileageApi } from './mileageApi';
@@ -196,6 +197,8 @@ export default function MileagePage() {
   const [refreshKey, setRefreshKey] = useState(0);
   // The photo bill dialog (F11). The by-hand form is still there.
   const [billPhotoOpen, setBillPhotoOpen] = useState(false);
+  // The WhatsApp chat export (.zip). It lands in the same mileage list.
+  const [whatsappExportOpen, setWhatsappExportOpen] = useState(false);
   const [billPhotosAvailable, setBillPhotosAvailable] = useState(true);
   const [billUploads, setBillUploads] = useState([]);
   const [billVehicles, setBillVehicles] = useState([]);
@@ -287,6 +290,13 @@ export default function MileagePage() {
                   className="pshell-btn pshell-btn--primary mhub-add-btn"
                 >
                   <Camera size={15} aria-hidden /> Add bill photo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWhatsappExportOpen(true)}
+                  className="pshell-btn mhub-add-btn"
+                >
+                  <MessageCircle size={15} aria-hidden /> Upload WhatsApp chat
                 </button>
                 {/* The by-hand form stays reachable: a route is never deleted. */}
                 <Link
@@ -448,6 +458,12 @@ export default function MileagePage() {
             setBillPhotoOpen(false);
             toast.info('Bill photos are not switched on yet');
           }}
+        />
+
+        <WhatsappExportDialog
+          open={whatsappExportOpen}
+          onOpenChange={setWhatsappExportOpen}
+          onImported={() => setRefreshKey((k) => k + 1)}
         />
       </PageShell>
     </>
