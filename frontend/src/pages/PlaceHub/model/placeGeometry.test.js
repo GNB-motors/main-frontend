@@ -10,6 +10,7 @@ const square = (lng, lat, size = 0.1) => [
   [lng, lat],
 ];
 
+
 /** GeoJSON hole ring (lng, lat), closed. */
 const holeRing = [
   [88.02, 22.02],
@@ -95,13 +96,7 @@ describe('partsOf', () => {
   it('drops the closing point and rings with fewer than 3 points', () => {
     const parts = partsOf({
       type: 'Polygon',
-      coordinates: [
-        square(88, 22),
-        [
-          [88.02, 22.02],
-          [88.03, 22.03],
-        ],
-      ],
+      coordinates: [square(88, 22), [[88.02, 22.02], [88.03, 22.03]]],
     });
     expect(parts).toHaveLength(1);
     expect(parts[0]).toHaveLength(1);

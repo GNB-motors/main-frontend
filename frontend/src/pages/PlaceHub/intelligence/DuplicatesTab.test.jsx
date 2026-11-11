@@ -72,19 +72,11 @@ it('marks a pair distinct with the other place ID', async () => {
   );
 });
 it('prefers the earlier creation time when it disagrees with ID order', async () => {
-  PlaceIntelligenceService.duplicates.mockResolvedValue([
-    {
-      a: { ...a, createdAt: '2026-11-02T00:00:00Z' },
-      b: { ...b, createdAt: '2026-11-01T00:00:00Z' },
-      distanceM: 23,
-      tripsAffected: 1,
-      verdict: 'CHECK',
-    },
-  ]);
-  render(
-    <MemoryRouter>
-      <DuplicatesTab />
-    </MemoryRouter>,
-  );
+  PlaceIntelligenceService.duplicates.mockResolvedValue([{
+    a: { ...a, createdAt: '2026-11-02T00:00:00Z' },
+    b: { ...b, createdAt: '2026-11-01T00:00:00Z' },
+    distanceM: 23, tripsAffected: 1, verdict: 'CHECK',
+  }]);
+  render(<MemoryRouter><DuplicatesTab /></MemoryRouter>);
   expect(await screen.findByRole('radio', { name: 'Plant B (20 visits)' })).toBeChecked();
 });

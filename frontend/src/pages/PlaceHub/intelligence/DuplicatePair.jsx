@@ -15,14 +15,9 @@ export default function DuplicatePair({ pair, onChanged }) {
   // Prefer the older record; ObjectId order is a fallback for legacy rows.
   const aTime = Date.parse(a.createdAt);
   const bTime = Date.parse(b.createdAt);
-  const older =
-    Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime
-      ? aTime < bTime
-        ? a
-        : b
-      : String(a._id) < String(b._id)
-        ? a
-        : b;
+  const older = Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime
+    ? (aTime < bTime ? a : b)
+    : (String(a._id) < String(b._id) ? a : b);
   const [survivorId, setSurvivorId] = useState(older._id);
   const m = useMutation(({ action, body }, options) =>
     PlaceIntelligenceService[action](body, options),

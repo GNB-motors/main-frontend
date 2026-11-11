@@ -12,9 +12,7 @@ export function samePlaceSentence(pair) {
   const a = pair.a?.name || 'Unnamed place';
   const b = pair.b?.name || 'Unnamed place';
   const apart =
-    pair.distanceM == null
-      ? 'we do not know how far apart they are'
-      : `${Math.round(pair.distanceM)} m apart`;
+    pair.distanceM == null ? 'we do not know how far apart they are' : `${Math.round(pair.distanceM)} m apart`;
   return `These look like the same place: ${a} and ${b}, ${apart}.`;
 }
 

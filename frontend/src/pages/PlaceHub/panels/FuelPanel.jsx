@@ -105,7 +105,8 @@ export default function FuelPanel({
                       <PlaceLabel lat={c.lat} lng={c.lng} showMap={false} />
                     </span>
                     <span className="ph-row-sub">
-                      {num(c.events)} drops · {litres(c.litres)} · {num(c.vehicles.length)} trucks
+                      {num(c.events)} drops · {litres(c.litres)} ·{' '}
+                      {num(c.vehicles.length)} trucks
                     </span>
                   </span>
                   <span className="ph-row-end">

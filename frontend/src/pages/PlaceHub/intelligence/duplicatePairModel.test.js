@@ -13,13 +13,15 @@ describe('samePlaceSentence', () => {
   });
 
   it('says it does not know the distance rather than guessing', () => {
-    expect(samePlaceSentence({ a: { name: 'A' }, b: { name: 'B' }, distanceM: null })).toBe(
-      'These look like the same place: A and B, we do not know how far apart they are.',
-    );
+    expect(
+      samePlaceSentence({ a: { name: 'A' }, b: { name: 'B' }, distanceM: null }),
+    ).toBe('These look like the same place: A and B, we do not know how far apart they are.');
   });
 
   it('copes with a place that has no name', () => {
-    expect(samePlaceSentence({ a: {}, b: { name: 'B' }, distanceM: 5 })).toContain('Unnamed place');
+    expect(samePlaceSentence({ a: {}, b: { name: 'B' }, distanceM: 5 })).toContain(
+      'Unnamed place',
+    );
   });
 
   it('is null without a pair', () => {
