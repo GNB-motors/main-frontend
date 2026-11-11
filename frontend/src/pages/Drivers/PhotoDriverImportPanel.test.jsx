@@ -49,7 +49,7 @@ describe('photo driver import panel', () => {
     render(<PhotoDriverImportPanel open onOpenChange={vi.fn()} context="drivers" />);
     fireEvent.change(screen.getByLabelText('Driver photos'), { target: { files: [photo()] } });
     expect(await screen.findByText('Already in your list: Asha Roy')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Did you mean Ram Das?' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /Ram Das/ })).toBeInTheDocument();
     expect(screen.getAllByText('New driver').length).toBe(3);
     expect(screen.queryByText(/0\.9/)).not.toBeInTheDocument();
   });

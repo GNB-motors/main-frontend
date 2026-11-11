@@ -308,3 +308,43 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+@media (max-width: 600px) {
+  .bulk-assign-table {
+    min-width: 0;
+    display: block;
+  }
+  .bulk-assign-table thead {
+    display: none;
+  }
+  .bulk-assign-table tbody,
+  .bulk-assign-table tr,
+  .bulk-assign-table td {
+    display: block;
+    width: 100%;
+  }
+  .bulk-assign-table tr {
+    border-bottom: 1px solid var(--ds-line);
+    padding: 8px;
+  }
+  .bulk-assign-table td {
+    border: 0;
+    padding: 4px;
+  }
+  .bulk-assign-table td::before {
+    font-weight: 600;
+    margin-right: 8px;
+  }
+  .bulk-assign-table td:nth-child(1)::before {
+    content: 'Row';
+  }
+  .bulk-assign-table td:nth-child(2)::before {
+    content: 'Driver';
+  }
+  .bulk-assign-table td:nth-child(3)::before {
+    content: 'Vehicle';
+  }
+  .bulk-assign-table td:nth-child(4)::before {
+    content: 'Status';
+  }
+}

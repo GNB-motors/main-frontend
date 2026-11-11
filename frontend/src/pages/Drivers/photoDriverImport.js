@@ -46,7 +46,9 @@ export function driverRowView(row = {}) {
     userId: candidate.userId || candidate._id || '',
     name: candidate.name || '',
     phone: candidate.phone || '',
-    reason: candidate.reason || '',
+    matched: Array.isArray(candidate.matched || candidate.matchedFields || candidate.matchedOn)
+      ? candidate.matched || candidate.matchedFields || candidate.matchedOn
+      : [],
   }));
   return {
     key: row.key || '',

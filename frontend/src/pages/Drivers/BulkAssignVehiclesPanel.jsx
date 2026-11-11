@@ -14,13 +14,14 @@ import {
   ASSIGNMENT_PERSON_FIELDS,
   assignmentRows,
   assignmentTable,
-  candidateLabel,
   isDidYouMean,
   reportRowView,
 } from './bulkAssignmentFile';
 import { splitFiles } from './photoDriverImport.js';
 import { detectSheetMapping, detectedAssignmentColumns } from './employeeSheetPreview.js';
 import PhotoDriverImportPanel from './PhotoDriverImportPanel.jsx';
+import CandidateCards from './CandidateCards.jsx';
+import safeText from '@/utils/redactSensitive';
 import './BulkAssignVehiclesPanel.css';
 
 const PERSON_COLUMNS = [
@@ -251,9 +252,9 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
               <div className="bulk-assign-section-heading">
                 <h3 id="bulk-assign-mapping-title">2. Map columns</h3>
                 <p>
-                  Tell us which column holds the driver’s name, mobile number, DL number and
-                  Aadhaar number, and which one holds the vehicle registration. Map at least one
-                  person column and the vehicle.
+                  Tell us which column holds the driver’s name, mobile number, DL number and Aadhaar
+                  number, and which one holds the vehicle registration. Map at least one person
+                  column and the vehicle.
                 </p>
               </div>
               <div className="bulk-assign-mapping">
@@ -336,8 +337,8 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
               </p>
               {unsureRows.length > 0 && (
                 <p className="bulk-assign-hint">
-                  We are not sure which driver some rows mean. Choose the right driver for each
-                  one, or choose “None of these” to leave that row out, then preview again.
+                  We are not sure which driver some rows mean. Choose the right driver for each one,
+                  or choose “None of these” to leave that row out, then preview again.
                 </p>
               )}
               {/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- Keyboard users need focus to scroll wide results. */}
@@ -383,27 +384,17 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
                             </span>
                           </td>
                           <td>
-                            {view.message}
+                            {safeText(view.message)}
                             {isDidYouMean(row) && (
                               <div className="bulk-assign-did-you-mean">
-                                <p className="bulk-assign-did-you-mean-question">
-                                  Did you mean one of these drivers?
-                                </p>
-                                <select
-                                  className="bulk-assign-candidate-select"
-                                  aria-label={`Did you mean for row ${view.rowNumber}`}
+                                <CandidateCards
+                                  candidates={view.candidates}
+                                  name={`candidate-${view.rowNumber}`}
                                   value={choices[view.rowNumber] || ''}
                                   disabled={busy}
-                                  onChange={(event) => pick(view.rowNumber, event.target.value)}
-                                >
-                                  <option value="">Choose a driver</option>
-                                  {view.candidates.map((candidate) => (
-                                    <option key={candidate.userId} value={candidate.userId}>
-                                      {candidateLabel(candidate)}
-                                    </option>
-                                  ))}
-                                  <option value={NONE_OF_THESE}>None of these</option>
-                                </select>
+                                  onChange={(value) => pick(view.rowNumber, value)}
+                                  noneLabel="None of these / leave out"
+                                />
                               </div>
                             )}
                           </td>
@@ -431,11 +422,7 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
           </div>
         </footer>
       </SheetContent>
-      <PhotoDriverImportPanel
-        open={photoOpen}
-        onOpenChange={setPhotoOpen}
-        context="assignments"
-      />
+      <PhotoDriverImportPanel open={photoOpen} onOpenChange={setPhotoOpen} context="assignments" />
     </Sheet>
   );
 }

@@ -146,9 +146,9 @@ export default function DriverChartDialog({ open, onOpenChange, batchId }) {
 
   return (
     <Dialog open={open} onOpenChange={(next) => onOpenChange?.(next)}>
-      <DialogContent className="max-w-5xl">
+      <DialogContent className="max-h-[90dvh] max-w-5xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Driver predictions</DialogTitle>
+          <DialogTitle>Check driver periods</DialogTitle>
           <DialogDescription>
             Who the photos say was driving, and when. Confirm a period, reject it, or send it to
             somebody else.
@@ -358,6 +358,9 @@ export default function DriverChartDialog({ open, onOpenChange, batchId }) {
           <Button variant="outline" size="sm" onClick={() => onOpenChange?.(false)}>
             Close
           </Button>
+          {!groups.length && !loading && (
+            <p className="text-sm text-muted-foreground">There are no periods to confirm.</p>
+          )}
           <Button size="sm" disabled={saving || !groups.length} onClick={confirmAll}>
             {saving ? 'Saving…' : 'Confirm all'}
           </Button>

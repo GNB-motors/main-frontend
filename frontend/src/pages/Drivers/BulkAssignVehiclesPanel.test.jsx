@@ -143,7 +143,7 @@ describe('Bulk Assign Vehicles panel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Preview assignments' }));
     await screen.findByText('Did you mean one of these drivers?');
     expect(screen.getByRole('button', { name: 'Assign 1 valid rows' })).toBeDisabled();
-    fireEvent.change(screen.getByLabelText('Did you mean for row 3'), { target: { value: 'u1' } });
+    fireEvent.click(screen.getByRole('radio', { name: /Sunil Das/ }));
     expect(screen.getByRole('button', { name: 'Assign 1 valid rows' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Preview assignments' }));
     await waitFor(() => expect(Service.previewBulk).toHaveBeenCalledTimes(2));
@@ -156,7 +156,7 @@ describe('Bulk Assign Vehicles panel', () => {
     await uploadAndMap();
     fireEvent.click(screen.getByRole('button', { name: 'Preview assignments' }));
     await screen.findByText('Did you mean one of these drivers?');
-    fireEvent.change(screen.getByLabelText('Did you mean for row 3'), { target: { value: 'none' } });
+    fireEvent.click(screen.getByRole('radio', { name: /None of these/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Preview assignments' }));
     await waitFor(() => expect(Service.previewBulk).toHaveBeenCalledTimes(2));
     expect(Service.previewBulk.mock.calls[1][0].rows[1]).not.toHaveProperty('userId');

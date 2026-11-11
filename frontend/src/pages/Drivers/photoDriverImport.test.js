@@ -32,7 +32,7 @@ describe('photo driver import', () => {
       userId: 'u1',
       name: 'Asha Roy',
       phone: '9876543210',
-      reason: '',
+      matched: [],
     });
     expect(JSON.stringify(view)).not.toContain('1234 5678 9012');
     expect(JSON.stringify(view)).not.toContain('ab12');
