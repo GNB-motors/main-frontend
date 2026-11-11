@@ -9,7 +9,44 @@ export default function CandidateCards({
   name,
   disabled,
   noneLabel = 'None of these / new driver',
+  asButtons = false,
 }) {
+  if (asButtons)
+    return (
+      <div className="space-y-2">
+        <p>These might be the driver:</p>
+        {candidates.map((candidate) => (
+          <button
+            key={candidate.userId}
+            type="button"
+            className="block w-full rounded border p-2 text-left"
+            disabled={disabled}
+            aria-pressed={value === candidate.userId}
+            onClick={() => onChange(candidate.userId)}
+          >
+            <strong>{safeText(candidate.name) || 'Driver'}</strong>
+            <span className="block text-xs">
+              {candidate.phone
+                ? `Phone ending ${String(candidate.phone).replace(/\D/g, '').slice(-4)}`
+                : 'Phone not available'}
+            </span>
+            <span className="text-xs">
+              {matchLabels(candidate.matched)
+                .map((label) => `${label} matches`)
+                .join(', ')}
+            </span>
+          </button>
+        ))}
+        <button
+          type="button"
+          className="rounded border p-2"
+          disabled={disabled}
+          onClick={() => onChange('none')}
+        >
+          {noneLabel}
+        </button>
+      </div>
+    );
   return (
     <fieldset className="min-w-0 space-y-2">
       <legend className="mb-2 text-sm font-medium">Did you mean one of these drivers?</legend>

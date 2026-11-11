@@ -55,6 +55,9 @@ export function driverRowView(row = {}) {
     name: row.nameRead || row.name || '',
     phone: row.phone || '',
     licenceNumber: row.licenceNumber || '',
+    aadhaar: String(row.aadhaarLast4 || row.aadhaar || '')
+      .replace(/\D/g, '')
+      .slice(-4),
     photoCount: Number(row.photoCount || 0),
     status,
     userId: match.userId || '',
