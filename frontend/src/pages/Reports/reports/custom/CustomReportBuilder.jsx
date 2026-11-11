@@ -5,7 +5,6 @@ import {
   ArrowUp,
   ArrowDown,
   Trash2,
-  Play,
   Save,
   Plus,
   Filter,
@@ -29,8 +28,7 @@ export default function CustomReportBuilder({
   catalog = {},
   config = {},
   onChange = null,
-  onRunPreview = null,
-  loading = false,
+  onBackToRequests = null,
 }) {
   const [fieldSearch, setFieldSearch] = useState('');
   const [saveModalOpen, setSaveModalOpen] = useState(false);
@@ -460,26 +458,26 @@ export default function CustomReportBuilder({
       {/* 4. Action Toolbar */}
       <div className="builder-actions-toolbar">
         <div className="builder-actions-left">
-          <button
-            type="button"
-            className="btn-secondary-action"
-            onClick={() => setSaveModalOpen(true)}
-            disabled={!selectedFields.length}
-          >
-            <Save size={15} />
-            <span>Save Configuration</span>
-          </button>
+          {onBackToRequests && (
+            <button
+              type="button"
+              className="btn-secondary-action !py-2 !px-4"
+              onClick={onBackToRequests}
+            >
+              <span>← Back to Requested Reports</span>
+            </button>
+          )}
         </div>
 
         <div className="builder-actions-right">
           <button
             type="button"
             className="btn-primary-action !py-2 !px-5"
-            onClick={onRunPreview}
-            disabled={!selectedFields.length || loading}
+            onClick={() => setSaveModalOpen(true)}
+            disabled={!selectedFields.length}
           >
-            <Play size={15} />
-            <span>{loading ? 'Executing Query...' : 'Generate Report Preview'}</span>
+            <Save size={15} />
+            <span>Submit for Approval</span>
           </button>
         </div>
       </div>
@@ -488,6 +486,10 @@ export default function CustomReportBuilder({
       <SaveReportModal
         isOpen={saveModalOpen}
         onClose={() => setSaveModalOpen(false)}
+        onSuccess={() => {
+          setSaveModalOpen(false);
+          onBackToRequests?.();
+        }}
         initialConfig={config}
         currentSavedId={config.savedId || null}
       />

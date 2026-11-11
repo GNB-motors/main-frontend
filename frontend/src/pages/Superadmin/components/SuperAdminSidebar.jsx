@@ -13,6 +13,7 @@ import {
   Satellite,
   MessageSquareWarning,
   GraduationCap,
+  FileCheck,
 } from 'lucide-react';
 import UkoLogo from '../../../assets/uko-logo.png';
 import { clearSession } from '../../../utils/session';
@@ -142,6 +143,15 @@ const SuperAdminSidebar = ({ setSidebarOpen }) => {
           >
             <Satellite size={20} />
             <span>Fleet Data Health</span>
+          </NavLink>
+
+          <NavLink
+            to="/superadmin/reports-approval"
+            className="superadmin-nav-link"
+            onClick={closeSidebarOnMobile}
+          >
+            <FileCheck size={20} />
+            <span>Reports Approval</span>
           </NavLink>
 
           <SupportTicketsNavLink onNavigate={closeSidebarOnMobile} />

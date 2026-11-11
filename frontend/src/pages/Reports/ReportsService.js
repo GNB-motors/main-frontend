@@ -482,6 +482,7 @@ export const ReportsService = {
       const list = getLocalSavedReports();
       const newReport = {
         ...data,
+        status: data.status || 'PENDING',
         _id: 'saved-' + Date.now(),
         createdAt: new Date().toISOString(),
       };
