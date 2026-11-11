@@ -1,22 +1,31 @@
 import Ico from '../../routeHubIcons.jsx';
-import { SCALE_PCT } from './overviewConstants.js';
+import { inr } from '../../routeHubFormat';
 import BarsSkeleton from './BarsSkeleton.jsx';
 
-export default function ProfitabilityModule({ go, first, routes, target }) {
+const money = (n) => (typeof n === 'number' && Number.isFinite(n) ? inr(n) : '—');
+
+/**
+ * Route running cost (AutoTrip telemetry) — the top lanes by running cost. No
+ * revenue is recorded for detected trips, so there is no margin here; the bar is
+ * each lane's running cost against the dearest lane in view.
+ */
+export default function ProfitabilityModule({ go, first, routes }) {
+  const top = (routes || []).slice(0, 6);
+  const maxCost = top.reduce((m, r) => Math.max(m, r.runningCostInr || 0), 0) || 1;
   return (
     <div className="card s7">
-      <div className="mhead" style={{ '--c': '#187A32', '--tint': 'rgba(37,186,76,.12)' }}>
+      <div className="mhead" style={{ '--c': '#C56200', '--tint': 'rgba(240,170,72,.16)' }}>
         <span className="mic">
           <Ico n="trend" s={18} />
         </span>
         <div className="mt">
-          <h3>Route profitability</h3>
-          <div className="ms">Net margin per trip · target {target}%</div>
+          <h3>Route running cost</h3>
+          <div className="ms">Top lanes by running cost · from telemetry</div>
         </div>
         <button
           type="button"
           className="go"
-          aria-label="Open profitability"
+          aria-label="Open running cost"
           onClick={() => go('profitability')}
         >
           <Ico n="arrowUR" s={15} />
@@ -24,55 +33,33 @@ export default function ProfitabilityModule({ go, first, routes, target }) {
       </div>
       {first ? <BarsSkeleton /> : null}
       <div className="bars" hidden={first}>
-        {routes.map((r) => (
-          <div className="bar" key={r.routeId} style={{ '--c': r.health.c }}>
+        {top.map((r) => (
+          <div className="bar" key={r.routeId} style={{ '--c': '#C56200' }}>
             <span className="n">
-              {r.name}{' '}
+              {r.origin || '—'} → {r.destination || '—'}{' '}
               <span style={{ color: 'var(--fg-tertiary)', fontWeight: 400 }}>
-                · {r.distanceKm ?? '—'} km
+                · {r.tripCount ?? 0} trips
               </span>
             </span>
-            <span className="a" style={{ color: r.health.c }}>
-              {Number(r.marginPct ?? 0).toFixed(1)}%
-            </span>
-            <span className="pill" style={{ '--c': r.health.c, '--tint': r.health.tint }}>
-              {r.health.l}
+            <span className="a" style={{ color: '#C56200' }}>
+              {money(r.runningCostInr)}
             </span>
             <span className="track">
               <span
                 className="f"
                 style={{
-                  width: `${Math.max(0, Math.min(100, ((r.marginPct ?? 0) / SCALE_PCT) * 100))}%`,
+                  width: `${Math.max(2, Math.min(100, ((r.runningCostInr || 0) / maxCost) * 100))}%`,
                 }}
-              />
-              <span
-                className="tick"
-                title={`Target ${target}%`}
-                style={{ left: `${(target / SCALE_PCT) * 100}%` }}
               />
             </span>
           </div>
         ))}
-        {routes.length ? (
-          <div className="legend" style={{ marginTop: 2 }}>
-            <span>
-              <i
-                style={{
-                  width: 2,
-                  height: 12,
-                  background: 'var(--midnight-black-800)',
-                  opacity: 0.55,
-                }}
-              />
-              Target {target}%
-            </span>
-          </div>
-        ) : (
+        {!top.length ? (
           <div className="empty">
-            <b>No billed routes yet</b>
-            <span>Route margin needs ERP trips with billing in the last 30 days.</span>
+            <b>No detected trips yet</b>
+            <span>Route running cost appears once trucks run detected trips.</span>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

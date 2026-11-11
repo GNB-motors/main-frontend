@@ -1,5 +1,8 @@
 import Ico from '../../routeHubIcons.jsx';
 import { Skel } from '../../routeHubShared.jsx';
+import { inr } from '../../routeHubFormat';
+
+const money = (n) => (typeof n === 'number' && Number.isFinite(n) ? inr(n) : '—');
 
 export default function NetworkChip({ chip, setChip, go, first, routes }) {
   return (
@@ -20,7 +23,7 @@ export default function NetworkChip({ chip, setChip, go, first, routes }) {
             </button>
           </div>
           <div style={{ fontSize: 'var(--type-s)', fontWeight: 600, marginTop: 2 }}>
-            {chip.name}
+            {chip.origin || '—'} → {chip.destination || '—'}
           </div>
           <div
             style={{
@@ -33,15 +36,15 @@ export default function NetworkChip({ chip, setChip, go, first, routes }) {
           >
             <span>
               <b style={{ color: 'var(--fg-primary)', fontSize: 'var(--type-xs)' }}>
-                {chip.distanceKm ?? '—'}
+                {chip.distanceKm != null ? Math.round(chip.distanceKm) : '—'}
               </b>{' '}
               km
             </span>
             <span>
-              <b style={{ color: chip.health.c, fontSize: 'var(--type-xs)' }}>
-                {Number(chip.marginPct ?? 0).toFixed(1)}%
+              <b style={{ color: '#C56200', fontSize: 'var(--type-xs)' }}>
+                {money(chip.runningCostInr)}
               </b>{' '}
-              margin
+              cost
             </span>
             <span>
               <b style={{ color: 'var(--fg-primary)', fontSize: 'var(--type-xs)' }}>
@@ -80,7 +83,7 @@ export default function NetworkChip({ chip, setChip, go, first, routes }) {
             {routes.reduce((a, r) => a + (r.distanceKm || 0), 0).toLocaleString('en-IN')} km
           </div>
           <div style={{ fontSize: 11, color: 'var(--fg-secondary)', marginTop: 2 }}>
-            {routes.length ? 'Click a route for its numbers' : 'No billed routes yet'}
+            {routes.length ? 'Open the running cost view for details' : 'No detected routes yet'}
           </div>
         </>
       )}

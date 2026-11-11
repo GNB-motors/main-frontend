@@ -3,7 +3,7 @@ import RouteHubService from '../../../services/RouteHubService';
 import Ico from '../routeHubIcons.jsx';
 import { L, useLeafletMap, useLayerGroup, cityLayer } from '../routeHubMap';
 import { KpiRow, RefreshButton, Seg } from '../routeHubShared.jsx';
-import { HEALTH, inr, inrK } from '../routeHubFormat';
+import { inr, inrK } from '../routeHubFormat';
 import { RANGES, OS_THRESHOLD, OS_MIN_MIN, OS_MAX_HOURS } from './overview/overviewConstants.js';
 import { distanceCoverage } from './overview/overviewDistance.js';
 import ToneBadge from '../../../components/redesign/ToneBadge';
@@ -45,7 +45,7 @@ export default function OverviewView({ go, toast, setBadge }) {
         speedKmh: OS_THRESHOLD,
         durationSec: OS_MIN_MIN * 60,
       }).catch(() => null),
-      RouteHubService.getRouteProfitability({ days: 30 }).catch(() => null),
+      RouteHubService.getAutoTripRunningCost({ days: 30 }).catch(() => null),
       RouteHubService.getUtilization(iso).catch(() => null),
       RouteHubService.getVehicles().catch(() => []),
     ]);
@@ -73,14 +73,8 @@ export default function OverviewView({ go, toast, setBadge }) {
   const first = loading && !ready;
   const openDev = deviation.filter((d) => String(d.status || '').toUpperCase() === 'OPEN');
   const osTotals = overspeed?.totals || {};
-  const target = profit?.targetMarginPct ?? 22.5;
-  const routes = useMemo(
-    () =>
-      (profit?.routes || [])
-        .map((r) => ({ ...r, health: HEALTH(r.marginPct ?? 0) }))
-        .sort((a, b) => (b.marginPct ?? 0) - (a.marginPct ?? 0)),
-    [profit],
-  );
+  // Routes come ranked by running cost from the AutoTrip endpoint; render as-is.
+  const routes = useMemo(() => profit?.routes || [], [profit]);
 
   // /api/owner-value/utilization returns the distance under fleet.totalKm; the
   // older totals/top-level keys are kept as fallbacks only. The new backend
@@ -93,19 +87,17 @@ export default function OverviewView({ go, toast, setBadge }) {
   // and margin/trips are a 30-day roll-up. Each card states its own period.
   const osHours = Math.min(hours, OS_MAX_HOURS);
 
-  // "No records" is never a zero. The profitability roll-up says when it has
-  // nothing to bill, and a failed endpoint is unknown too — both read "—".
-  const billedTripCount = profit?.totals?.billedTripCount ?? 0;
-  const noBilledTrips = profit == null || billedTripCount === 0;
-  const marginPct = profit?.totals?.marginPct ?? null;
-  const revenueInr = profit?.totals?.revenueInr ?? null;
+  // "No records" is never a zero. A failed endpoint is unknown ("—"), and an
+  // unpriced trip has no running cost — detected trips carry no revenue, so there
+  // is no margin here, only cost.
+  const costTotals = profit?.totals || {};
+  const noDetectedTrips = profit == null || (costTotals.tripCount ?? 0) === 0;
+  const runningCostInr = costTotals.runningCostInr ?? null;
   // A detour cost nobody estimated is unknown, not ₹0. The figure counts only
   // the detours that were measured, and says how many detours are left out.
   const deviationTotals = groupTotals(openDev);
-  const deviationCostInr =
-    deviationSummary?.openCostInr ?? deviationTotals.costInr;
-  const deviationCostKnown =
-    deviationSummary?.openCostInr != null || deviationTotals.costKnown > 0;
+  const deviationCostInr = deviationSummary?.openCostInr ?? deviationTotals.costInr;
+  const deviationCostKnown = deviationSummary?.openCostInr != null || deviationTotals.costKnown > 0;
   const deviationCostNote =
     deviationSummary?.openCostInr != null
       ? null
@@ -121,7 +113,7 @@ export default function OverviewView({ go, toast, setBadge }) {
       s: (
         <>
           {routes.length === 0
-            ? `${activeVehicles} vehicles · no billed routes yet · last ${hours}h`
+            ? `${activeVehicles} vehicles · no detected routes yet · last ${hours}h`
             : `${activeVehicles} vehicles on ${routes.length} routes · last ${hours}h`}
           {coverage.note ? ` · ${coverage.note}` : ''}
           {coverage.partial ? (
@@ -155,27 +147,25 @@ export default function OverviewView({ go, toast, setBadge }) {
     },
     {
       ic: 'trend',
-      l: 'Fleet net margin',
-      v: marginPct != null ? Number(marginPct).toFixed(1) : '—',
-      u: marginPct != null ? '%' : '',
+      l: 'Running cost',
+      v: runningCostInr != null ? inrK(runningCostInr) : '—',
+      u: '',
       s:
-        marginPct != null
-          ? `target ${target}% · last 30 days`
-          : noBilledTrips
-            ? 'No billed ERP trips yet'
-            : 'Margin not estimated yet',
-      c: '#187A32',
-      tint: 'rgba(37,186,76,.12)',
+        runningCostInr != null
+          ? `${costTotals.costPerKmInr != null ? `₹${Math.round(costTotals.costPerKmInr)}/km · ` : ''}last 30 days`
+          : noDetectedTrips
+            ? 'No detected trips yet'
+            : 'Cost not priced yet',
+      c: '#C56200',
+      tint: 'rgba(240,170,72,.16)',
     },
     {
       ic: 'route',
-      l: 'Trips this month',
-      v: noBilledTrips ? '—' : (profit?.totals?.tripCount ?? 0),
-      s: noBilledTrips
-        ? 'No billed ERP trips yet'
-        : revenueInr != null
-          ? `${inrK(revenueInr)} invoiced`
-          : 'not invoiced yet',
+      l: 'Detected trips',
+      v: noDetectedTrips ? '—' : (costTotals.tripCount ?? 0),
+      s: noDetectedTrips
+        ? 'No detected trips yet'
+        : `${costTotals.economicsTripCount ?? 0} priced · last 30 days`,
       c: 'var(--nova-rage-600)',
       tint: 'var(--nova-rage-a10)',
     },
@@ -322,7 +312,7 @@ export default function OverviewView({ go, toast, setBadge }) {
           />
         </div>
 
-        <ProfitabilityModule go={go} first={first} routes={routes} target={target} />
+        <ProfitabilityModule go={go} first={first} routes={routes} />
 
         <ReplayModule go={go} first={first} utilization={utilization} vehicles={vehicles} />
       </div>

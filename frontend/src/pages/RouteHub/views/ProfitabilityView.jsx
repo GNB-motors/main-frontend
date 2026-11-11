@@ -1,200 +1,156 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import RouteHubService from '../../../services/RouteHubService';
 import Ico from '../routeHubIcons.jsx';
-import { L, useLeafletMap, useLayerGroup, cityLayer } from '../routeHubMap';
-import { KpiRow, RefreshButton, Skel } from '../routeHubShared.jsx';
-import { HEALTH, downloadCsv, inrK } from '../routeHubFormat';
-import MarginEquation from './profitability/MarginEquation.jsx';
+import { KpiRow, RefreshButton } from '../routeHubShared.jsx';
+import { downloadCsv, inrK } from '../routeHubFormat';
 import MoneyStrip from './profitability/MoneyStrip.jsx';
 import ProfitabilityTable from './profitability/ProfitabilityTable.jsx';
-import RouteCostCard from './profitability/RouteCostCard.jsx';
 import TripPnlTable from './profitability/TripPnlTable.jsx';
 
-export default function ProfitabilityView({ params, toast, go }) {
+// The window every figure on this page is computed over. One control, so the
+// running cost and the money strip can never be read over different spans.
+const WINDOWS = [
+  { value: 7, label: 'Last 7 days' },
+  { value: 30, label: 'Last 30 days' },
+  { value: 90, label: 'Last 90 days' },
+];
+
+const kmFmt = (n) =>
+  typeof n === 'number' && Number.isFinite(n) ? Math.round(n).toLocaleString('en-IN') : '—';
+
+export default function ProfitabilityView({ toast }) {
   const [data, setData] = useState(null);
   const [money, setMoney] = useState(null);
-  const [pnls, setPnls] = useState([]);
+  const [selId, setSelId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selId, setSelId] = useState(params.get('c') || null);
+  const [win, setWin] = useState(30);
   const first = loading && !data;
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    const to = new Date();
+    const from = new Date(to.getTime() - win * 86400000);
+    const range = { from: from.toISOString(), to: to.toISOString() };
     try {
-      const [routes, cash, trips] = await Promise.all([
-        RouteHubService.getRouteProfitability({ days: 30 }),
-        RouteHubService.getMoney().catch(() => null),
-        RouteHubService.getTrips({ limit: 8 }).catch(() => []),
+      const [cost, cash] = await Promise.all([
+        RouteHubService.getAutoTripRunningCost(range),
+        RouteHubService.getMoney(range).catch(() => null),
       ]);
-      const ids = trips
-        .map((t) => t?._id || t?.id)
-        .filter(Boolean)
-        .slice(0, 8);
-      const priced = await Promise.all(
-        ids.map((id) => RouteHubService.getTripPnl(id).catch(() => null)),
-      );
-      setData(routes);
+      setData(cost);
       setMoney(cash);
-      setPnls(priced.filter(Boolean));
     } catch (e) {
-      setError(e?.message || 'Could not load profitability.');
+      setError(e?.message || 'Could not load running cost.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [win]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const target = data?.targetMarginPct ?? 22.5;
-  const routes = useMemo(
-    () =>
-      (data?.routes || [])
-        .map((r) => ({ ...r, health: HEALTH(r.marginPct ?? 0) }))
-        .sort((a, b) => (b.marginPct ?? 0) - (a.marginPct ?? 0)),
-    [data],
-  );
-
-  const selected = routes.find((r) => r.routeId === selId) || routes[routes.length - 1] || null;
+  const routes = useMemo(() => data?.routes || [], [data]);
+  const trips = useMemo(() => data?.trips || [], [data]);
   const totals = data?.totals || {};
-  const below = routes.filter((r) => (r.marginPct ?? 0) < target);
+  const selected = routes.find((r) => r.routeId === selId) || null;
+  const windowLabel = (WINDOWS.find((w) => w.value === win) || {}).label || `last ${win} days`;
 
-  const { containerRef, mapRef } = useLeafletMap({ scrollWheelZoom: false });
-
-  useLayerGroup(
-    mapRef,
-    (group, map) => {
-      const withPath = routes.filter((r) => (r.path || []).length > 1);
-      if (!withPath.length) return;
-      const cities = [];
-      withPath.forEach((r) => {
-        const on = selected && r.routeId === selected.routeId;
-        if (on) L.polyline(r.path, { color: r.health.c, weight: 14, opacity: 0.16 }).addTo(group);
-        L.polyline(r.path, {
-          color: r.health.c,
-          weight: on ? 5 : 3,
-          opacity: on ? 1 : 0.3,
-          lineCap: 'round',
-        })
-          .on('click', () => setSelId(r.routeId))
-          .addTo(group);
-        if (r.originCity)
-          cities.push({ lat: r.path[0][0], lng: r.path[0][1], label: r.originCity });
-        if (r.destCity) {
-          const last = r.path[r.path.length - 1];
-          cities.push({ lat: last[0], lng: last[1], label: r.destCity });
-        }
-      });
-      cityLayer(map, cities);
-      const focus = selected?.path?.length ? selected.path : withPath.flatMap((r) => r.path);
-      if (focus.length) {
-        map.flyToBounds(L.latLngBounds(focus), { padding: [60, 60], duration: 0.6, maxZoom: 8 });
-      }
-    },
-    [routes, selected],
-  );
+  const priceNote =
+    totals.tripCount > 0
+      ? `cost from ${totals.economicsTripCount ?? 0} of ${totals.tripCount} priced trips`
+      : 'no detected trips in window';
 
   const kpis = [
     {
       accent: 1,
-      ic: 'trend',
-      l: 'Fleet net margin',
-      v: totals.marginPct != null ? Number(totals.marginPct).toFixed(1) : '—',
-      u: totals.marginPct != null ? '%' : '',
-      s:
-        totals.marginPct != null
-          ? `${(totals.marginPct - target).toFixed(1)} pts vs ${target}% target`
-          : 'no billed trips in window',
+      ic: 'route',
+      l: 'Detected trips',
+      v: totals.tripCount ?? 0,
+      s: `${windowLabel.toLowerCase()} · AutoTrip telemetry`,
     },
     {
-      ic: 'ledger',
-      l: 'Invoiced revenue',
-      v: totals.revenueInr != null ? inrK(totals.revenueInr) : '—',
-      s: `${totals.tripCount ?? 0} trips · ERP billing`,
+      ic: 'trend',
+      l: 'Distance',
+      v: kmFmt(totals.distanceKm),
+      u: 'km',
+      s: 'driven across detected trips',
       c: 'var(--nova-rage-600)',
       tint: 'var(--nova-rage-a10)',
     },
     {
       ic: 'fuel',
       l: 'Running cost',
-      v: totals.costInr != null ? inrK(totals.costInr) : '—',
-      s: 'fuel, AdBlue, Fastag and allowances',
+      v: totals.runningCostInr != null ? inrK(totals.runningCostInr) : '—',
+      s: priceNote,
       c: '#C56200',
       tint: 'rgba(240,170,72,.16)',
     },
     {
-      ic: 'target',
-      l: 'Below target',
-      v: below.length,
-      u: `of ${routes.length}`,
-      s: below.length
-        ? `lowest: ${[...below].sort((a, b) => a.marginPct - b.marginPct)[0].name}`
-        : 'all routes on target',
-      c: '#C2323A',
-      tint: 'rgba(229,104,107,.14)',
-      vc: below.length ? '#C2323A' : undefined,
+      ic: 'ledger',
+      l: 'Cost per km',
+      v: totals.costPerKmInr != null ? `₹${Math.round(totals.costPerKmInr)}` : '—',
+      s: 'fuel + wear, priced trips only',
+      c: '#6A43D8',
+      tint: 'rgba(106,67,216,.12)',
     },
   ];
 
   const exportCsv = () => {
     const out = [
       [
-        'route',
-        'total_km_window',
+        'origin',
+        'destination',
         'trips',
-        'avg_rev_inr',
+        'priced_trips',
+        'distance_km',
         'avg_cost_inr',
-        'margin_inr',
-        'margin_pct',
-        'health',
+        'cost_per_km_inr',
       ],
     ].concat(
       routes.map((r) => [
-        r.name,
-        r.distanceKm,
+        r.origin || '',
+        r.destination || '',
         r.tripCount,
-        r.avgRevenueInr,
-        r.avgCostInr,
-        r.avgMarginInr,
-        r.marginPct,
-        r.health.l,
+        r.economicsTripCount,
+        r.distanceKm,
+        r.avgCostPerTripInr ?? '',
+        r.costPerKmInr ?? '',
       ]),
     );
-    downloadCsv('route-profitability', out);
+    downloadCsv('route-running-cost', out);
     toast(`${out.length - 1} rows exported`);
   };
-
-  const slices = selected?.costBreakdown || [];
-  // The card header is "Cost per trip", so the breakdown must use the per-trip
-  // slice (perTripInr), not the window group total (amountInr) — otherwise the
-  // slices never sum to the header figure.
-  const costTotal = slices.reduce((a, s) => a + (s.perTripInr || 0), 0) || 1;
 
   return (
     <section className="view">
       <div className="phead">
         <div className="t">
-          <a
-            className="crumb"
-            href="?tab=overview"
-            onClick={(e) => {
-              e.preventDefault();
-              go('overview');
-            }}
-          >
-            <Ico n="arrowL" s={14} />
-            Route hub
-          </a>
-          <h2>Route profitability</h2>
+          <h2>Route running cost</h2>
           <p>
-            ERP revenue joined with GPS-measured running cost, so each route shows its real margin
-            per trip.
+            Running cost per route and per trip, measured from AutoTrip GPS telemetry. Detected
+            trips carry no revenue, so this is cost only — no margin is shown.
           </p>
         </div>
         <div className="tools">
+          <label className="flabel">
+            <span>Time window</span>
+            <span className="field">
+              <SearchableSelect
+                aria-label="Time window"
+                value={win}
+                onChange={(e) => setWin(Number(e.target.value))}
+              >
+                {WINDOWS.map((w) => (
+                  <option key={w.value} value={w.value}>
+                    {w.label}
+                  </option>
+                ))}
+              </SearchableSelect>
+            </span>
+          </label>
           <RefreshButton onClick={load} busy={loading} />
           <button type="button" className="btn" onClick={exportCsv}>
             <Ico n="download" />
@@ -203,61 +159,34 @@ export default function ProfitabilityView({ params, toast, go }) {
         </div>
       </div>
 
+      {error ? (
+        <div className="card">
+          <div className="empty">
+            <span style={{ color: '#C56200' }}>
+              <Ico n="alert" s={28} />
+            </span>
+            <b>Running cost unavailable</b>
+            <span>{error}</span>
+          </div>
+        </div>
+      ) : null}
+
       <KpiRow items={kpis} loading={first} />
 
       <MoneyStrip money={money} loading={loading && !money} />
-
-      <MarginEquation first={first} totals={totals} />
 
       <ProfitabilityTable
         routes={routes}
         selected={selected}
         setSelId={setSelId}
-        target={target}
         first={first}
         error={error}
+        windowLabel={windowLabel}
       />
 
-      <TripPnlTable pnls={pnls} first={loading && !pnls.length} error={null} />
+      <TripPnlTable trips={trips} first={first} error={error} />
 
-      <div className="bento">
-        <div className="card s7" style={{ minHeight: 420 }}>
-          <div className="card-head">
-            {selected ? (
-              <>
-                <h3>{selected.name}</h3>
-                <span
-                  className="pill"
-                  style={{ '--c': selected.health.c, '--tint': selected.health.tint }}
-                >
-                  {selected.health.l}
-                </span>
-                <span className="sp" />
-                <span className="hint">
-                  {selected.distanceKm ?? '—'} km total · {selected.tripCount ?? 0} trips in this
-                  window
-                </span>
-              </>
-            ) : first ? (
-              <Skel w={200} h={16} />
-            ) : (
-              <h3>No route selected</h3>
-            )}
-          </div>
-          <div className="mapbox">
-            <div className="lmap" ref={containerRef} />
-          </div>
-        </div>
-
-        <RouteCostCard
-          selected={selected}
-          slices={slices}
-          costTotal={costTotal}
-          target={target}
-          data={data}
-          first={first}
-        />
-      </div>
+      {data?.disclaimer ? <p className="hint">{data.disclaimer}</p> : null}
     </section>
   );
 }
