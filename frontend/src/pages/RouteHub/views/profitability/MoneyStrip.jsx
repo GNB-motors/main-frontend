@@ -4,13 +4,28 @@ import { KpiRow } from '../../routeHubShared.jsx';
 const rupees = (n) =>
   typeof n === 'number' && Number.isFinite(n) ? `₹${Math.round(n).toLocaleString('en-IN')}` : '—';
 
+// Each row carries its own honest sub-label. Theft and bill variance are
+// REVIEW signals (a suspected loss to check), never a measured figure or an
+// accusation; idling/detour/fuel/DEF are genuinely estimated from telemetry.
 const WASTE = [
-  ['theftLossInr', 'Theft', '#C2323A', 'rgba(229,104,107,.14)'],
-  ['billFraudSuspectInr', 'Bill fraud', '#C2323A', 'rgba(229,104,107,.14)'],
-  ['idlingWasteInr', 'Idling', '#C56200', 'rgba(240,170,72,.16)'],
-  ['detourWasteInr', 'Detours', '#C56200', 'rgba(240,170,72,.16)'],
-  ['fuelCostInr', 'Fuel', '#2F58EE', 'var(--nova-rage-a10)'],
-  ['defCostInr', 'DEF', '#2F58EE', 'var(--nova-rage-a10)'],
+  [
+    'theftLossInr',
+    'Suspected fuel loss',
+    '#C2323A',
+    'rgba(229,104,107,.14)',
+    'fuel gone while parked · review',
+  ],
+  [
+    'billFraudSuspectInr',
+    'Bill variance',
+    '#C2323A',
+    'rgba(229,104,107,.14)',
+    'bill vs tank gap · review',
+  ],
+  ['idlingWasteInr', 'Idling', '#C56200', 'rgba(240,170,72,.16)', 'estimated from telemetry'],
+  ['detourWasteInr', 'Detours', '#C56200', 'rgba(240,170,72,.16)', 'estimated from telemetry'],
+  ['fuelCostInr', 'Fuel', '#2F58EE', 'var(--nova-rage-a10)', 'estimated from telemetry'],
+  ['defCostInr', 'DEF', '#2F58EE', 'var(--nova-rage-a10)', 'estimated from telemetry'],
 ];
 
 /**
@@ -25,16 +40,16 @@ export default function MoneyStrip({ money, loading }) {
       ic: 'alert',
       l: 'Waste in the window',
       v: rupees(money?.totalWasteInr),
-      s: 'theft, fraud, idling and detours',
+      s: 'suspected loss, idling, detours and fuel — review before acting',
       c: '#C2323A',
       tint: 'rgba(229,104,107,.14)',
       vc: '#C2323A',
     },
-    ...WASTE.map(([key, label, c, tint]) => ({
+    ...WASTE.map(([key, label, c, tint, sub]) => ({
       ic: 'ledger',
       l: label,
       v: rupees(m[key]),
-      s: 'estimated from telemetry',
+      s: sub,
       c,
       tint,
     })),
