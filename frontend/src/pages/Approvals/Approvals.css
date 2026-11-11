@@ -180,6 +180,30 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-top: 16px;
   font-size: 13px;
   color: var(--muted-foreground);
+}
+
+/* Loading / empty states for the Owner & manager tab, matching the hub's look. */
+.apv-state {
+  gap: 4px;
+  padding: 56px 24px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.apv-state__hint {
+  max-width: 420px;
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
+/* The Refresh action sits at the trailing edge of the error banner. */
+.apv-alert__action {
+  margin-left: auto;
+  padding: 6px 12px;
 }

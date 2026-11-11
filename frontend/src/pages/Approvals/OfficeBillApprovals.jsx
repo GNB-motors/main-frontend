@@ -1,5 +1,5 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
-import { Button } from '../../components/ui/button';
+import { AlertTriangle, FileCheck2, Inbox, RotateCw } from 'lucide-react';
 import billPhotoService from '../../services/billPhotoService';
 import { MileageApi } from '../Mileage/mileageApi';
 import BillsTable from '../Mileage/BillsTable';
@@ -83,16 +83,38 @@ export default function OfficeBillApprovals({ onCount, onUnavailable }) {
         </div>
       </div>
       {error && (
-        <p role="alert">
-          {error}{' '}
-          <button type="button" onClick={refresh}>
-            Refresh
+        <div className="ra-alert ra-alert--error" role="alert">
+          <AlertTriangle size={16} />
+          <span>{error}</span>
+          <button
+            type="button"
+            className="ra-btn ra-btn--ghost apv-alert__action"
+            onClick={refresh}
+          >
+            <RotateCw size={14} /> Refresh
           </button>
-        </p>
+        </div>
       )}
-      {!data && !error && <p>Loading bills…</p>}
-      {data && !data.captures.length && (
-        <p>No {tab === 'pending' ? 'pending' : 'confirmed'} bills.</p>
+      {!data && !error && (
+        <div className="ra-state apv-state" aria-live="polite">
+          <div className="ra-spinner" />
+          <p className="ra-state__title">Loading bills…</p>
+        </div>
+      )}
+      {data && !error && !data.captures.length && (
+        <div className="ra-state apv-state">
+          <div className="ra-state__icon">
+            {tab === 'pending' ? <Inbox size={22} /> : <FileCheck2 size={22} />}
+          </div>
+          <p className="ra-state__title">
+            {tab === 'pending' ? 'Nothing waiting for approval' : 'No confirmed bills yet'}
+          </p>
+          <p className="apv-state__hint">
+            {tab === 'pending'
+              ? 'Fuel bills that owners and managers upload show up here until you confirm the truck.'
+              : 'Bills you confirm move here, with who confirmed them and when.'}
+          </p>
+        </div>
       )}
       {data && tab === 'pending' && (
         <BillsTable
@@ -132,27 +154,27 @@ export default function OfficeBillApprovals({ onCount, onUnavailable }) {
           </table>
         </div>
       )}
-      {data && (
+      {data && !error && data.total > 50 && (
         <div className="apv-pager">
-          <Button
-            size="sm"
-            variant="outline"
+          <button
+            type="button"
+            className="ra-btn ra-btn--ghost"
             disabled={page === 1}
             onClick={() => setPage((n) => n - 1)}
           >
             Previous
-          </Button>
+          </button>
           <span>
             Page {page} · {data.total} bills
           </span>
-          <Button
-            size="sm"
-            variant="outline"
+          <button
+            type="button"
+            className="ra-btn ra-btn--ghost"
             disabled={page * 50 >= data.total}
             onClick={() => setPage((n) => n + 1)}
           >
             Next
-          </Button>
+          </button>
         </div>
       )}
       <HistoryDrawer capture={history} onClose={() => setHistory(null)} />
