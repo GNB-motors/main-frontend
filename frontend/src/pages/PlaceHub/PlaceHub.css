@@ -1862,17 +1862,12 @@
   background: #3987e5;
   border-radius: 3px;
 }
+/* Positioning shell only; the shared DataTooltip supplies the card itself,
+   so the route hover tooltip matches the one used on bar graphs. */
 .ph-route-tooltip {
   position: absolute;
   z-index: 20;
   pointer-events: none;
-  max-width: 260px;
-  background: var(--ph-bg, #fff);
-  color: var(--ph-text, #1e293b);
-  padding: 9px 12px;
-  border-radius: 7px;
-  box-shadow: 0 3px 16px #0003;
-  font-size: 12px;
 }
 .ph-route-label {
   text-shadow:
@@ -2041,6 +2036,202 @@
 .ph-route-error strong {
   color: var(--ph-text);
   font-weight: 550;
+}
+
+/* ─── Route-leg drawer: Google-Maps-style directions card ── */
+.ph-route-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--ph-border);
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--ph-accent-tint), var(--ph-raised));
+}
+.ph-route-hero-primary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ph-text);
+}
+.ph-route-hero-primary > svg {
+  color: var(--ph-accent);
+}
+.ph-route-hero-time {
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.ph-route-hero-sep {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--ph-dim);
+}
+.ph-route-hero-dist {
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--ph-text-2);
+  font-variant-numeric: tabular-nums;
+}
+.ph-route-hero-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ph-dim);
+}
+.ph-route-hero-passes {
+  font-variant-numeric: tabular-nums;
+}
+.ph-route-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+.ph-route-badge::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentcolor;
+}
+.ph-route-badge--driven {
+  color: var(--ph-accent);
+  background: var(--ph-accent-tint);
+}
+.ph-route-badge--engine {
+  color: var(--ph-warn);
+  background: var(--ph-warn-tint);
+}
+.ph-route-badge--none {
+  color: var(--ph-dim);
+  background: var(--ph-raised);
+}
+
+/* Direction switch, styled like a Maps segmented control. */
+.ph-route-dir {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--ph-border);
+  border-radius: 10px;
+  background: var(--ph-raised);
+}
+.ph-route-dir button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ph-text-2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ph-route-dir button.is-active {
+  background: var(--ph-surface);
+  color: var(--ph-accent);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 10%);
+}
+
+.ph-route-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ph-route-sec-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ph-dim);
+}
+.ph-route-sec-head > svg {
+  color: var(--ph-accent);
+}
+.ph-route-road {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--ph-border);
+  border-radius: 10px;
+  background: var(--ph-raised);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ph-route-road p {
+  margin: 0;
+}
+.ph-route-note {
+  font-size: 12px;
+  color: var(--ph-dim);
+}
+.ph-route-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ph-text-2);
+  cursor: pointer;
+}
+
+.ph-route-trucks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.ph-route-trucks li {
+  display: grid;
+  grid-template-columns: minmax(90px, auto) 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+.ph-route-truck-reg {
+  font-family: var(--font-mono, monospace);
+  font-weight: 600;
+  color: var(--ph-text);
+}
+.ph-route-truck-track {
+  height: 6px;
+  border-radius: 4px;
+  background: var(--ph-border);
+  overflow: hidden;
+}
+.ph-route-truck-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--ph-accent);
+  opacity: 0.8;
+}
+.ph-route-truck-count {
+  color: var(--ph-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ph-route-run-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 /* ─── Toll plaza popup (map/TollLayer) ── */

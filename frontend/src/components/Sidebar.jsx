@@ -47,8 +47,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   }, [organization?.logoUrl]);
 
   // No usage profile: the menu is never folded by usage, every entry stays in
-  // its own section. (The App Usage page itself lives in the superadmin
-  // interface now; usage recording still feeds the cut.)
+  // its own section. App Usage reports screen-open counts at /usage.
   const { items: navItems } = useMemo(
     () => computeVisibleNav(canAccess, role, null, isEnabled),
     [canAccess, role, isEnabled],

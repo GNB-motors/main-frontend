@@ -12,7 +12,7 @@ import {
   measurementNote,
   pathLabel,
   recentDays,
-} from '../Superadmin/components/usage/usageModel.js';
+} from '../UsageAnalytics/usageModel.js';
 
 /**
  * The two properties the pages promise, tested without rendering:
