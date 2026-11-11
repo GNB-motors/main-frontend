@@ -47,10 +47,10 @@ describe('fleet bill API', () => {
       body,
       expect.objectContaining({ headers: { 'Idempotency-Key': 'client' } }),
     );
-    await service.listBillCaptures({ status: 'submitted', page: 2, limit: 50 });
+    await service.listBillCaptures({ status: 'submitted', uploaderRole: 'OWNER,MANAGER', page: 2, limit: 50 });
     expect(apiClient.get).toHaveBeenCalledWith(
       '/api/fleet-view/bills',
-      expect.objectContaining({ params: { status: 'submitted', page: 2, limit: 50 } }),
+      expect.objectContaining({ params: { status: 'submitted', uploaderRole: 'OWNER,MANAGER', page: 2, limit: 50 } }),
     );
     await service.getBillPage('cap', 0);
     expect(apiClient.get).toHaveBeenCalledWith(

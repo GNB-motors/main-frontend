@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Camera, Check, FileText, Loader2, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import {
   Dialog,
   DialogContent,
@@ -390,13 +392,24 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [], 
     setError(null);
     queue?.add?.(list);
   };
+  const waiting = rows.filter((row) => row.status === 'sent').length;
+  const changeOpen = (next) => {
+    if (!next && waiting)
+      toast.info(
+        <>
+          {waiting} bills not confirmed yet are waiting in{' '}
+          <Link to="/approvals?type=office">Approvals</Link>
+        </>,
+      );
+    onOpenChange(next);
+  };
   const changeKind = (next) => {
     setKind(next ?? '');
     queue?.setKind?.(next ?? '');
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={changeOpen}>
       <DialogContent className="bp-dialog">
         <DialogHeader className="bp-dialog-head">
           <DialogTitle>Add bill photos</DialogTitle>
@@ -451,14 +464,21 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [], 
           ) : null}
           <BillsTable
             rows={rows}
+            via="UPLOAD"
             vehicles={vehicles}
             queue={queue}
             onUnavailable={onUnavailable}
             onSaved={(ids) => queue?.removeSaved?.(ids)}
           />
+          {waiting > 0 && (
+            <p>
+              {waiting} bills not confirmed yet are waiting in{' '}
+              <Link to="/approvals?type=office">Approvals</Link>
+            </p>
+          )}
         </div>
         <div className="bp-dialog-foot flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" size="sm" onClick={() => changeOpen(false)}>
             Close
           </Button>
         </div>

@@ -33,8 +33,17 @@ export const uploadBillCapture = async ({ body, clientId, signal } = {}) => {
     throw ApiError.from(error);
   }
 };
-export const listBillCaptures = async ({ status, page = 1, limit = 50, signal } = {}) => {
-  const res = await apiClient.get(base, { params: { status, page, limit }, signal });
+export const listBillCaptures = async ({
+  status,
+  uploaderRole,
+  page = 1,
+  limit = 50,
+  signal,
+} = {}) => {
+  const res = await apiClient.get(base, {
+    params: { status, ...(uploaderRole && { uploaderRole }), page, limit },
+    signal,
+  });
   return res.data?.data;
 };
 export const getBillSuggestion = async (captureId, { signal } = {}) => {

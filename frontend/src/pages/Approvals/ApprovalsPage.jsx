@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { MessageSquare, ShieldCheck, UserCheck } from 'lucide-react';
+import { Briefcase, MessageSquare, ShieldCheck, UserCheck } from 'lucide-react';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import { useFullPageLayout } from '../../hooks/usePageLayout';
 import ReceiptApprovalPage from '../Superadmin/components/ReceiptApprovalPage';
 import { FieldAgentFuelService } from '../FieldAgentFuel/FieldAgentFuelService';
 import FieldAgentApprovals from './FieldAgentApprovals';
+import OfficeBillApprovals from './OfficeBillApprovals';
+import billPhotoService from '../../services/billPhotoService';
 import { ApprovalsService } from './ApprovalsService';
 import '../Superadmin/components/ReceiptApproval.css';
 import './Approvals.css';
@@ -21,6 +23,22 @@ const APPROVAL_TYPES = [
     hint: 'Fuel bills drivers send on WhatsApp',
     icon: MessageSquare,
     pendingCount: (opts) => ApprovalsService.getWhatsAppPendingCount(opts),
+  },
+  {
+    key: 'office',
+    label: 'Owner & manager',
+    hint: 'Fuel bills owners and managers upload',
+    icon: Briefcase,
+    pendingCount: async (opts) =>
+      (
+        await billPhotoService.listBillCaptures({
+          status: 'pending',
+          uploaderRole: 'OWNER,MANAGER',
+          page: 1,
+          limit: 1,
+          ...opts,
+        })
+      ).total,
   },
   {
     key: 'field-agent',
@@ -40,8 +58,10 @@ export default function ApprovalsPage() {
     [isEnabled],
   );
   const [params, setParams] = useSearchParams();
-  const active = types.find((t) => t.key === params.get('type')) || types[0];
   const [pending, setPending] = useState({});
+  const [officeUnavailable, setOfficeUnavailable] = useState(false);
+  const visibleTypes = types.filter((t) => t.key !== 'office' || !officeUnavailable);
+  const active = visibleTypes.find((t) => t.key === params.get('type')) || visibleTypes[0];
 
   useEffect(() => {
     let alive = true;
@@ -49,7 +69,12 @@ export default function ApprovalsPage() {
     types.forEach((t) => {
       t.pendingCount({ signal: controller.signal })
         .then((n) => alive && setPending((p) => ({ ...p, [t.key]: n })))
-        .catch(() => alive && setPending((p) => ({ ...p, [t.key]: null })));
+        .catch((error) => {
+          if (!alive) return;
+          if (t.key === 'office' && (error?.status ?? error?.response?.status) === 404)
+            setOfficeUnavailable(true);
+          else setPending((p) => ({ ...p, [t.key]: null }));
+        });
     });
     return () => {
       alive = false;
@@ -66,6 +91,8 @@ export default function ApprovalsPage() {
     [],
   );
 
+  const onOfficeCount = useCallback((count) => setPending((p) => ({ ...p, office: count })), []);
+  const hideOffice = useCallback(() => setOfficeUnavailable(true), []);
   return (
     <div className="ra-page apv-page">
       <div className="ra-header">
@@ -83,7 +110,7 @@ export default function ApprovalsPage() {
       </div>
 
       <div className="apv-types" role="tablist" aria-label="Approval type">
-        {types.map((t) => {
+        {visibleTypes.map((t) => {
           const Icon = t.icon;
           const n = pending[t.key];
           return (
@@ -112,6 +139,9 @@ export default function ApprovalsPage() {
         <ReceiptApprovalPage embedded onCounts={onWhatsAppCounts} />
       ) : null}
       {active?.key === 'field-agent' ? <FieldAgentApprovals onCounts={onFieldAgentCounts} /> : null}
+      {active?.key === 'office' ? (
+        <OfficeBillApprovals onCount={onOfficeCount} onUnavailable={hideOffice} />
+      ) : null}
     </div>
   );
 }

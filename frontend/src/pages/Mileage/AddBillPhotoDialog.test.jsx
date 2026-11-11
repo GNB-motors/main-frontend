@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import AddBillPhotoDialog from './AddBillPhotoDialog';
+import { MemoryRouter } from 'react-router-dom';
 import billPhotoService from '../../services/billPhotoService';
 import { getVehicleList } from '../../services/vehicleListService';
-vi.mock('../../services/billPhotoService', () => ({ default: { uploadBillPhoto: vi.fn() } }));
+vi.mock('../../services/billPhotoService', () => ({
+  default: { uploadBillPhoto: vi.fn(), saveBillLinks: vi.fn() },
+}));
 vi.mock('../../services/vehicleListService', () => ({ getVehicleList: vi.fn() }));
 const file = () => new File(['bill'], 'diesel-slip.jpg', { type: 'image/jpeg' });
 function open(props = {}) {
@@ -173,4 +176,33 @@ describe('multi bill photo queue', () => {
     expect(queue.add.mock.calls[0][0]).toHaveLength(2);
     expect(queue.start).not.toHaveBeenCalled();
   });
+});
+
+it('confirms selected uploaded bills with the upload source', async () => {
+  billPhotoService.saveBillLinks.mockResolvedValue({});
+  const queue = { removeSaved: vi.fn() };
+  const rows = [
+    {
+      id: 'row1',
+      status: 'sent',
+      capture: {
+        id: 'cap1',
+        vehicleHint: 'A',
+        suggestion: { decision: 'AUTO', candidates: [{ registrationNumber: 'A' }] },
+        ocr: {},
+      },
+    },
+  ];
+  render(
+    <MemoryRouter>
+      <AddBillPhotoDialog open onOpenChange={vi.fn()} queue={queue} rows={rows} />
+    </MemoryRouter>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Confirm 1 bills' }));
+  await waitFor(() =>
+    expect(billPhotoService.saveBillLinks).toHaveBeenCalledWith([
+      { captureId: 'cap1', registrationNumber: 'A', reason: null, via: 'UPLOAD' },
+    ]),
+  );
+  expect(queue.removeSaved).toHaveBeenCalledWith(['cap1']);
 });
