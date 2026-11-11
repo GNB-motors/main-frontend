@@ -227,6 +227,30 @@
   color: var(--ds-ink3);
 }
 
+.bulk-assign-did-you-mean {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.bulk-assign-did-you-mean-question {
+  margin: 0;
+  font-weight: 600;
+}
+
+.bulk-assign-candidate-select {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--ds-line2);
+  border-radius: var(--ds-radius-sm);
+  background: var(--card);
+  color: var(--ds-ink);
+  font: inherit;
+}
+
 .bulk-assign-status {
   display: inline-block;
   padding: 2px 8px;

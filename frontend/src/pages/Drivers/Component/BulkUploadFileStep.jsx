@@ -15,6 +15,7 @@ const BulkUploadFileStep = ({
   onClearFile,
   fileInputRef,
   onFileChange,
+  allowPhotos = false,
 }) => {
   if (fileName) {
     return (
@@ -44,8 +45,14 @@ const BulkUploadFileStep = ({
       <div className="bulk-upload-icon-circle">
         <Upload size={24} />
       </div>
-      <div className="bulk-upload-text-primary">Click to upload spreadsheet</div>
-      <div className="bulk-upload-text-secondary">Supports .xlsx, .xls, and .csv files</div>
+      <div className="bulk-upload-text-primary">
+        {allowPhotos ? 'Click to upload a spreadsheet or photos' : 'Click to upload spreadsheet'}
+      </div>
+      <div className="bulk-upload-text-secondary">
+        {allowPhotos
+          ? 'Supports .xlsx, .xls, and .csv files, plus photos of the register page, licence or ID'
+          : 'Supports .xlsx, .xls, and .csv files'}
+      </div>
       <NewButton
         variant="primary"
         size="md"
@@ -58,8 +65,11 @@ const BulkUploadFileStep = ({
       <input
         ref={fileInputRef}
         type="file"
-        aria-label="Upload spreadsheet"
-        accept=".xlsx,.xls,.csv"
+        aria-label={allowPhotos ? 'Upload spreadsheet or photos' : 'Upload spreadsheet'}
+        accept={
+          allowPhotos ? '.xlsx,.xls,.csv,image/jpeg,image/png,image/webp' : '.xlsx,.xls,.csv'
+        }
+        multiple={allowPhotos}
         onChange={onFileChange}
         style={{ display: 'none' }}
       />

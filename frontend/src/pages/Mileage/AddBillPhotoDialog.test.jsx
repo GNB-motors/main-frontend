@@ -118,4 +118,59 @@ describe('compact bill-photo dialog', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Choose a JPG');
     expect(screen.getByRole('button', { name: 'Upload' })).toBeDisabled();
   });
+
+  it('shows the server guidance when the photo was filed somewhere else', async () => {
+    billPhotoService.uploadBillPhoto.mockResolvedValue({
+      id: 'log1',
+      reviewStatus: 'AUTO_OK',
+      guidance: {
+        status: 'filed_elsewhere',
+        message:
+          'This looks like an odometer photo, not a fuel slip. We have saved it as an odometer reading.',
+      },
+    });
+    open();
+    chooseFile();
+    confirmPartial();
+    fireEvent.click(screen.getByRole('button', { name: 'Upload & save' }));
+    expect(
+      await screen.findByText(
+        'This looks like an odometer photo, not a fuel slip. We have saved it as an odometer reading.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('asks for a retake when the server could not read the photo', async () => {
+    billPhotoService.uploadBillPhoto.mockResolvedValue({
+      id: 'log1',
+      reviewStatus: 'NEEDS_REVIEW',
+      guidance: { status: 'reupload', message: 'Please retake this photo in better light.' },
+    });
+    open();
+    chooseFile();
+    confirmPartial();
+    fireEvent.click(screen.getByRole('button', { name: 'Upload & save' }));
+    expect(
+      await screen.findByText('Please retake this photo in better light.'),
+    ).toBeInTheDocument();
+  });
+});
+
+describe('multi bill photo queue', () => {
+  it('accepts multiple photos and leaves upload under user control', async () => {
+    const queue = { add: vi.fn(), start: vi.fn() };
+    render(<AddBillPhotoDialog open onOpenChange={() => {}} queue={queue} />);
+    const input = await screen.findByLabelText('Bill photo');
+    expect(input).toHaveAttribute('multiple');
+    fireEvent.change(input, {
+      target: {
+        files: [
+          new File(['x'], 'one.jpg', { type: 'image/jpeg' }),
+          new File(['y'], 'two.jpg', { type: 'image/jpeg' }),
+        ],
+      },
+    });
+    expect(queue.add.mock.calls[0][0]).toHaveLength(2);
+    expect(queue.start).not.toHaveBeenCalled();
+  });
 });

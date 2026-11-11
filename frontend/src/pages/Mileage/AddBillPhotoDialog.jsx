@@ -11,6 +11,7 @@ import { Button } from '../../components/ui/button';
 import SearchableSelect from '../../components/SearchableDropdown/SearchableSelect';
 import { getVehicleList } from '../../services/vehicleListService';
 import billPhotoService from '../../services/billPhotoService';
+import safeText from '../../utils/redactSensitive';
 import './AddBillPhotoDialog.css';
 
 const normalise = (value) =>
@@ -27,7 +28,7 @@ const REVIEW_REASONS = {
 };
 
 /** Compact photo capture. The selected vehicle is explicit; OCR never silently changes it. */
-export default function AddBillPhotoDialog({
+function SingleBillDialog({
   open,
   onOpenChange,
   onConfirmed = null,
@@ -44,6 +45,7 @@ export default function AddBillPhotoDialog({
   const [selectedVehicleId, setSelectedVehicleId] = useState(vehicleId);
   const [loadingVehicles, setLoadingVehicles] = useState(false);
   const [result, setResult] = useState(null);
+  const [guidance, setGuidance] = useState(null);
   const fileInput = useRef(null);
   const busy = useRef(false);
   const request = useRef(null);
@@ -56,6 +58,7 @@ export default function AddBillPhotoDialog({
     setStage('pick');
     setFillingType('');
     setResult(null);
+    setGuidance(null);
     setSelectedVehicleId(vehicleId);
     setFuelType('DIESEL');
     if (vehicleId) return undefined;
@@ -118,6 +121,9 @@ export default function AddBillPhotoDialog({
       body.append('fillingType', fillingType);
       const saved = await billPhotoService.uploadBillPhoto({ body, signal: controller.signal });
       if (controller.signal.aborted) return;
+      // The server may file the photo somewhere else or ask for a retake. Its
+      // wording is shown as it was written; nothing else about the read is.
+      if (saved?.guidance) setGuidance(saved.guidance);
       if (!saved?.id && !saved?.fuelLog?._id)
         throw new Error('The server did not confirm that the bill was saved.');
       setResult(saved);
@@ -125,6 +131,7 @@ export default function AddBillPhotoDialog({
       onConfirmed?.(saved);
     } catch (err) {
       if (!controller.signal.aborted) {
+        if (err?.response?.data?.guidance) setGuidance(err.response.data.guidance);
         setError(err?.message || 'The bill could not be uploaded. Please try again.');
         setStage('confirm');
       }
@@ -301,6 +308,18 @@ export default function AddBillPhotoDialog({
               {error}
             </p>
           ) : null}
+          {guidance?.message ? (
+            <p
+              role="status"
+              className={
+                guidance.status === 'filed_elsewhere'
+                  ? 'mt-2 rounded border border-blue-200 bg-blue-50 p-2 text-xs text-blue-800'
+                  : 'mt-2 rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800'
+              }
+            >
+              {safeText(guidance.message)}
+            </p>
+          ) : null}
         </div>
         <div className="bp-dialog-foot">
           {stage === 'saved' ? (
@@ -346,4 +365,193 @@ export default function AddBillPhotoDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+const ROW_STATUS_TEXT = {
+  hashing: 'Checking this file…',
+  queued: 'Ready to upload',
+  sending: 'Uploading…',
+  sent: 'Uploaded',
+  failed: 'Could not be uploaded',
+  duplicate: 'Skipped — the same photo was already added',
+};
+
+export function Photo({ file }) {
+  const [url, setUrl] = useState('');
+  useEffect(() => {
+    if (!file || !URL.createObjectURL) return undefined;
+    const next = URL.createObjectURL(file);
+    setUrl(next);
+    return () => URL.revokeObjectURL(next);
+  }, [file]);
+  return url ? <img src={url} alt="Bill thumbnail" className="h-12 w-12 object-cover" /> : null;
+}
+
+/**
+ * Many bills at once. The bill type and the truck are optional: the server
+ * reads the photo, suggests the truck and the owner confirms it later in
+ * "Bills to confirm".
+ */
+function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [] }) {
+  const input = useRef(null);
+  const [dragging, setDragging] = useState(false);
+  const [kind, setKind] = useState('');
+  const [error, setError] = useState(null);
+
+  const addFiles = (files) => {
+    const list = Array.from(files || []);
+    if (!list.length) return;
+    const bad = list.find(
+      (file) => !['image/jpeg', 'image/png', 'image/webp'].includes(file.type),
+    );
+    if (bad) {
+      setError('Choose JPG, PNG or WEBP bill photos.');
+      return;
+    }
+    setError(null);
+    queue?.add?.(list);
+  };
+  const changeKind = (next) => {
+    setKind(next ?? '');
+    queue?.setKind?.(next ?? '');
+  };
+  const queued = rows.filter((row) => row.status === 'queued').length;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bp-dialog" aria-busy={queued === 0 && rows.length > 0}>
+        <DialogHeader className="bp-dialog-head">
+          <DialogTitle>Add bill photos</DialogTitle>
+          <DialogDescription>
+            Add as many bill photos as you like. The truck is worked out from the photo and you
+            confirm it in Bills to confirm.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="bp-dialog-body">
+          <div className="bp-field">
+            <label htmlFor="bill-queue-kind">Bill type (optional)</label>
+            <SearchableSelect id="bill-queue-kind" value={kind} onValueChange={changeKind}>
+              <option value="">Not sure</option>
+              <option value="DIESEL">Diesel slip</option>
+              <option value="ADBLUE">DEF (AdBlue) slip</option>
+            </SearchableSelect>
+          </div>
+          <button
+            type="button"
+            className={`bp-drop${dragging ? ' bp-drop--active' : ''}`}
+            onClick={() => input.current?.click()}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(event) => {
+              event.preventDefault();
+              setDragging(false);
+              addFiles(event.dataTransfer?.files);
+            }}
+          >
+            <Camera size={26} aria-hidden="true" />
+            <span>Drop bill photos or click to choose</span>
+            <small>JPG, PNG or WEBP · many at a time</small>
+          </button>
+          <input
+            ref={input}
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp"
+            aria-label="Bill photo"
+            className="sr-only"
+            onChange={(event) => {
+              addFiles(event.target.files);
+              event.target.value = '';
+            }}
+          />
+          {error ? (
+            <p role="alert" className="bp-error">
+              {error}
+            </p>
+          ) : null}
+          {rows.map((row) => (
+            <div
+              key={row.id}
+              className="flex flex-wrap items-center gap-3 rounded border border-[var(--rd-line)] p-2 text-[var(--rd-ink)]"
+            >
+              <Photo file={row.file} />
+              <span>{row.name}</span>
+              <span>{ROW_STATUS_TEXT[row.status] || row.status}</span>
+              {row.error ? (
+                <span role="alert" className="bp-error">
+                  {row.error}
+                </span>
+              ) : null}
+              {row.capture?.guidance?.message ? (
+                <p
+                  role="status"
+                  className={
+                    row.capture.guidance.status === 'filed_elsewhere'
+                      ? 'rounded border border-blue-200 bg-blue-50 p-2 text-xs text-blue-800'
+                      : 'rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800'
+                  }
+                >
+                  {safeText(row.capture.guidance.message)}
+                </p>
+              ) : null}
+              <label>
+                Truck (optional){' '}
+                <input
+                  list={`queue-trucks-${row.id}`}
+                  aria-label="Truck"
+                  value={row.truck ?? ''}
+                  disabled={row.started}
+                  onChange={(event) => queue?.setTruck?.(row.id, event.target.value)}
+                  placeholder="Search trucks"
+                />
+              </label>
+              <datalist id={`queue-trucks-${row.id}`}>
+                {vehicles.map((vehicle) => (
+                  <option
+                  key={vehicle._id || vehicle.id}
+                  value={vehicle.registrationNumber}
+                  aria-label={vehicle.registrationNumber}
+                />
+                ))}
+              </datalist>
+              {row.status === 'failed' ? (
+                <Button size="sm" variant="outline" onClick={() => queue?.retry?.(row.id)}>
+                  Retry
+                </Button>
+              ) : null}
+              {!['sending', 'sent'].includes(row.status) ? (
+                <button
+                  type="button"
+                  onClick={() => queue?.remove?.(row.id)}
+                  aria-label={`Remove ${row.name}`}
+                >
+                  Remove
+                </button>
+              ) : null}
+            </div>
+          ))}
+        </div>
+        <div className="bp-dialog-foot">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
+          <Button size="sm" disabled={!queued} onClick={() => queue?.start?.()}>
+            Upload{queued ? ` ${queued} bill${queued === 1 ? '' : 's'}` : ''}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * One dialog, two ways in. A single bill with an explicit truck (vehicle
+ * screens) or a queue of many bills whose truck is suggested and confirmed
+ * later (Diesel & Mileage).
+ */
+export default function AddBillPhotoDialog(props) {
+  return props.queue ? <BillQueueDialog {...props} /> : <SingleBillDialog {...props} />;
 }

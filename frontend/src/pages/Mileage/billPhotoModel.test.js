@@ -18,11 +18,13 @@ describe('BILL_TYPES', () => {
 });
 
 describe('buildBillFormData', () => {
-  it('sends the file and the kind', () => {
+  it('sends pages and the client id', () => {
     const file = new File(['x'], 'slip.jpg', { type: 'image/jpeg' });
-    const form = buildBillFormData(file, 'DIESEL_SLIP');
-    expect(form.get('file')).toBe(file);
-    expect(form.get('kind')).toBe('DIESEL_SLIP');
+    const form = buildBillFormData(file, 'client-1');
+    expect(form.get('pages')).toBe(file);
+    expect(form.get('clientId')).toBe('client-1');
+    expect(buildBillFormData(file, 'client-1', 'WB01').get('vehicleHint')).toBe('WB01');
+    expect(form.has('vehicleHint')).toBe(false);
   });
 });
 
