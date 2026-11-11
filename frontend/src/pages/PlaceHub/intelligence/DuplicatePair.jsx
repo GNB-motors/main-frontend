@@ -15,31 +15,47 @@ export default function DuplicatePair({ pair, onChanged }) {
   // Prefer the older record; ObjectId order is a fallback for legacy rows.
   const aTime = Date.parse(a.createdAt);
   const bTime = Date.parse(b.createdAt);
-  const older = Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime
-    ? (aTime < bTime ? a : b)
-    : (String(a._id) < String(b._id) ? a : b);
+  const older =
+    Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime
+      ? aTime < bTime
+        ? a
+        : b
+      : String(a._id) < String(b._id)
+        ? a
+        : b;
   const [survivorId, setSurvivorId] = useState(older._id);
+  const [previewing, setPreviewing] = useState(false);
+
   const m = useMutation(({ action, body }, options) =>
     PlaceIntelligenceService[action](body, options),
   );
   const confirm = useConfirm();
   const canEdit = canEditSap(getUserRole());
   const act = async (action, body) => {
-    if (
-      action === 'mergeSites' &&
-      !(await confirm({
-        title: 'Merge these places?',
-        body: 'The selected survivor keeps the combined place history. You can undo this in Merge history.',
-        confirmLabel: 'Merge places',
-      }))
-    )
-      return;
     try {
-      await m.mutate({ action, body });
-      toast.success(action === 'mergeSites' ? 'Places merged' : 'Marked as different places');
-      onChanged(survivorId);
+      if (action === 'mergeSites') {
+        setPreviewing(true);
+        const preview = await PlaceIntelligenceService.previewMergeJob([body]);
+        if (
+          !(await confirm({
+            title: 'Merge and recalculate?',
+            body: `Keep the selected place and recalculate related history. ${preview.scope?.stopsToMove ?? 'Affected'} stops will move; ${preview.scope?.tripReferenceRows ?? 'related'} trip records will be checked. Original records and manual decisions are retained.`,
+            confirmLabel: 'Merge and recalculate',
+          }))
+        )
+          return;
+        body = { previewId: preview.previewId };
+      }
+      const result = await m.mutate({ action, body });
+      if (!result) return;
+      toast.success(
+        action === 'mergeSites' ? 'Merge queued for recalculation' : 'Marked as different places',
+      );
+      onChanged(survivorId, action === 'mergeSites' ? result : null);
     } catch (err) {
       toast.error(err?.message || 'Could not review places');
+    } finally {
+      setPreviewing(false);
     }
   };
   return (
@@ -108,7 +124,7 @@ export default function DuplicatePair({ pair, onChanged }) {
                   name="survivor"
                   value={s._id}
                   checked={survivorId === s._id}
-                  disabled={m.loading}
+                  disabled={m.loading || previewing}
                   onChange={() => setSurvivorId(s._id)}
                 />
                 <span>
@@ -119,7 +135,7 @@ export default function DuplicatePair({ pair, onChanged }) {
             ))}
           </fieldset>
           <Button
-            disabled={m.loading}
+            disabled={m.loading || previewing}
             onClick={() =>
               act('mergeSites', { survivorId, memberIds: [survivorId === a._id ? b._id : a._id] })
             }
@@ -129,14 +145,15 @@ export default function DuplicatePair({ pair, onChanged }) {
           </Button>
           <Button
             variant="outline"
-            disabled={m.loading}
+            disabled={m.loading || previewing}
             onClick={() => act('distinctSites', { id: a._id, otherId: b._id })}
           >
             <Split size={14} />
             Different places
           </Button>
           <p className="sap-muted">
-            Merging combines history into the selected place. You can undo it below.
+            Merging recalculates related visits, trips and reports. Track progress here; undo also
+            recalculates the results.
           </p>
         </>
       )}

@@ -98,6 +98,12 @@ apiClient.interceptors.response.use(
     // read those fields are unaffected, and additionally exposes
     // .status/.requestId/.body plus the is*Error helpers.
     const apiError = ApiError.from(error);
+    if (error.response?.data?.code === 'PLACE_RECALCULATING') {
+      window.dispatchEvent(
+        new CustomEvent('placeRecalculationRequired', { detail: error.response.data.operation }),
+      );
+      return Promise.reject(apiError);
+    }
 
     // Log X-Request-ID on every error so we can correlate with backend logs
     const requestId = error.response?.headers?.['x-request-id'];

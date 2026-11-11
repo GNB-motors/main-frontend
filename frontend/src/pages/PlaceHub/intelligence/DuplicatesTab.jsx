@@ -11,6 +11,8 @@ import SapRequestState from '../../Sap/SapRequestState';
 import PlacePicker from '../../Sap/PlacePicker';
 import DuplicatePair from './DuplicatePair';
 import MergeHistory from './MergeHistory';
+import useMergeJob from './useMergeJob';
+import MergeJobStatus from './MergeJobStatus';
 import '../../Sap/Sap.css';
 const keyOf = (pair) => `${pair.a._id}:${pair.b._id}`;
 const PAGE_SIZE = 12;
@@ -22,12 +24,17 @@ export default function DuplicatesTab({ version, onChanged }) {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState(null);
   const term = useDeferredValue(search).trim().toLocaleLowerCase();
-  const changed = (id) => {
+  const changed = (id, operation) => {
     if (id) setSurvivorId(id);
+    if (operation?.jobId) {
+      progress.watch(operation);
+      return;
+    }
     setHistoryVersion((v) => v + 1);
     q.refetch();
     onChanged?.();
   };
+  const progress = useMergeJob(() => changed());
   const pairs = Array.isArray(q.data) ? q.data : q.data?.pairs || q.data?.records || [];
   const rows = pairs.filter(
     (p) => !term || `${p.a.name || ''} ${p.b.name || ''}`.toLocaleLowerCase().includes(term),
@@ -80,6 +87,7 @@ export default function DuplicatesTab({ version, onChanged }) {
       count={q.data ? pairs.length : null}
       subtitle="Review nearby places using their visits, route distance and mapped-place evidence."
     >
+      <MergeJobStatus job={progress.job} error={progress.error} onRetry={progress.retry} />
       <div className="sap-toolbar">
         <div className="sap-search">
           <Search size={16} aria-hidden="true" />
@@ -130,7 +138,7 @@ export default function DuplicatesTab({ version, onChanged }) {
               />
             }
           />
-          {current ? (
+          {current && !progress.busy ? (
             <DuplicatePair key={keyOf(current)} pair={current} onChanged={changed} />
           ) : (
             <aside className="sap-card sap-empty">
@@ -151,7 +159,7 @@ export default function DuplicatesTab({ version, onChanged }) {
             <MergeHistory
               survivorId={survivorId}
               version={historyVersion}
-              onChanged={() => changed()}
+              onChanged={(operation) => changed(null, operation)}
             />
           )}
         </div>
