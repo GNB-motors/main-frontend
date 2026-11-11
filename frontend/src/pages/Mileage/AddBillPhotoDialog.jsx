@@ -13,6 +13,7 @@ import { getVehicleList } from '../../services/vehicleListService';
 import billPhotoService from '../../services/billPhotoService';
 import safeText from '../../utils/redactSensitive';
 import './AddBillPhotoDialog.css';
+import BillsTable from './BillsTable';
 
 const normalise = (value) =>
   String(value || '')
@@ -367,32 +368,12 @@ function SingleBillDialog({
   );
 }
 
-const ROW_STATUS_TEXT = {
-  hashing: 'Checking this file…',
-  queued: 'Ready to upload',
-  sending: 'Uploading…',
-  sent: 'Uploaded',
-  failed: 'Could not be uploaded',
-  duplicate: 'Skipped — the same photo was already added',
-};
-
-export function Photo({ file }) {
-  const [url, setUrl] = useState('');
-  useEffect(() => {
-    if (!file || !URL.createObjectURL) return undefined;
-    const next = URL.createObjectURL(file);
-    setUrl(next);
-    return () => URL.revokeObjectURL(next);
-  }, [file]);
-  return url ? <img src={url} alt="Bill thumbnail" className="h-12 w-12 object-cover" /> : null;
-}
-
 /**
  * Many bills at once. The bill type and the truck are optional: the server
  * reads the photo, suggests the truck and the owner confirms it later in
  * "Bills to confirm".
  */
-function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [] }) {
+function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [], onUnavailable }) {
   const input = useRef(null);
   const [dragging, setDragging] = useState(false);
   const [kind, setKind] = useState('');
@@ -413,11 +394,10 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [] }
     setKind(next ?? '');
     queue?.setKind?.(next ?? '');
   };
-  const queued = rows.filter((row) => row.status === 'queued').length;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bp-dialog" aria-busy={queued === 0 && rows.length > 0}>
+      <DialogContent className="bp-dialog">
         <DialogHeader className="bp-dialog-head">
           <DialogTitle>Add bill photos</DialogTitle>
           <DialogDescription>
@@ -469,79 +449,17 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [] }
               {error}
             </p>
           ) : null}
-          {rows.map((row) => (
-            <div
-              key={row.id}
-              className="flex flex-wrap items-center gap-3 rounded border border-[var(--rd-line)] p-2 text-[var(--rd-ink)]"
-            >
-              <Photo file={row.file} />
-              <span className="min-w-0 break-all">{row.name}</span>
-              <span>{ROW_STATUS_TEXT[row.status] || row.status}</span>
-              {row.error ? (
-                <span role="alert" className="bp-error">
-                  {row.error}
-                </span>
-              ) : null}
-              {row.capture?.guidance?.message ? (
-                <p
-                  role="status"
-                  className={
-                    row.capture.guidance.status === 'filed_elsewhere'
-                      ? 'rounded border border-blue-200 bg-blue-50 p-2 text-xs text-blue-800'
-                      : 'rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800'
-                  }
-                >
-                  {safeText(row.capture.guidance.message)}
-                </p>
-              ) : null}
-              <label>
-                Truck (optional){' '}
-                <input
-                  list={`queue-trucks-${row.id}`}
-                  aria-label="Truck"
-                  value={row.truck ?? ''}
-                  disabled={row.started}
-                  onChange={(event) => queue?.setTruck?.(row.id, event.target.value)}
-                  placeholder="Search trucks"
-                />
-              </label>
-              <datalist id={`queue-trucks-${row.id}`}>
-                {vehicles.map((vehicle) => (
-                  <option
-                    key={vehicle._id || vehicle.id}
-                    value={vehicle.registrationNumber}
-                    aria-label={vehicle.registrationNumber}
-                  />
-                ))}
-              </datalist>
-              {row.status === 'failed' ? (
-                <Button size="sm" variant="outline" onClick={() => queue?.retry?.(row.id)}>
-                  Re-upload
-                </Button>
-              ) : null}
-              {!['sending', 'sent'].includes(row.status) ? (
-                <button
-                  type="button"
-                  onClick={() => queue?.remove?.(row.id)}
-                  aria-label={`Remove ${row.name}`}
-                >
-                  Remove
-                </button>
-              ) : null}
-            </div>
-          ))}
+          <BillsTable
+            rows={rows}
+            vehicles={vehicles}
+            queue={queue}
+            onUnavailable={onUnavailable}
+            onSaved={(ids) => queue?.removeSaved?.(ids)}
+          />
         </div>
         <div className="bp-dialog-foot flex-wrap">
-          {!queued && (
-            <p className="w-full text-sm text-muted-foreground">
-              Choose photos and wait for them to be checked before uploading.
-            </p>
-          )}
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
             Close
-          </Button>
-          <Button size="sm" disabled={!queued} onClick={() => queue?.start?.()}>
-            Upload{queued ? ` ${queued} bill${queued === 1 ? '' : 's'}` : ''}
           </Button>
         </div>
       </DialogContent>

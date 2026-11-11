@@ -47,6 +47,7 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [photoFiles, setPhotoFiles] = useState([]);
   const fileInput = useRef(null);
 
   const invalidate = () => {
@@ -75,6 +76,7 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
       if (photos.length) {
         // Photos answer a different question: who was driving. The driver chart
         // confirms the periods.
+        setPhotoFiles(photos);
         setPhotoOpen(true);
         return;
       }
@@ -422,7 +424,12 @@ export default function BulkAssignVehiclesPanel({ onClose, onAssigned }) {
           </div>
         </footer>
       </SheetContent>
-      <PhotoDriverImportPanel open={photoOpen} onOpenChange={setPhotoOpen} context="assignments" />
+      <PhotoDriverImportPanel
+        open={photoOpen}
+        initialFiles={photoFiles}
+        onOpenChange={setPhotoOpen}
+        context="assignments"
+      />
     </Sheet>
   );
 }

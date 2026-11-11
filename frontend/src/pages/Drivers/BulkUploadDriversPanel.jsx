@@ -19,6 +19,7 @@ import '../Profile/BulkUploadVehiclesPage.css';
  */
 const BulkUploadDriversPanel = ({ isOpen, onClose, onUploaded }) => {
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [photoFiles, setPhotoFiles] = useState([]);
 
   return (
     <Sheet
@@ -49,7 +50,10 @@ const BulkUploadDriversPanel = ({ isOpen, onClose, onUploaded }) => {
           <BulkUploadDriversContent
             variant="panel"
             allowPhotos
-            onPhotoFiles={() => setPhotoOpen(true)}
+            onPhotoFiles={(files) => {
+              setPhotoFiles(files);
+              setPhotoOpen(true);
+            }}
             onCompleted={() => {
               onUploaded?.();
               onClose();
@@ -59,6 +63,7 @@ const BulkUploadDriversPanel = ({ isOpen, onClose, onUploaded }) => {
       </SheetContent>
       <PhotoDriverImportPanel
         open={photoOpen}
+        initialFiles={photoFiles}
         onOpenChange={setPhotoOpen}
         context="drivers"
         onSaved={onUploaded}

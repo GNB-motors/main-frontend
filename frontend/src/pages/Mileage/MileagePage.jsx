@@ -3,6 +3,7 @@ import useManufacturerFilter from '../../hooks/useManufacturerFilter';
 import React, { Suspense, lazy, useDeferredValue, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Camera, PenLine, Search, X } from 'lucide-react';
+import { toast } from 'react-toastify';
 import PageShell from '../../components/ui/PageShell';
 import { Skeleton } from '../../components/ui/skeleton.jsx';
 import HubDateBar from './components/HubDateBar';
@@ -196,15 +197,31 @@ export default function MileagePage() {
   const [refreshKey, setRefreshKey] = useState(0);
   // The photo bill dialog (F11). The by-hand form is still there.
   const [billPhotoOpen, setBillPhotoOpen] = useState(false);
+  const [billPhotosAvailable, setBillPhotosAvailable] = useState(true);
   const [billUploads, setBillUploads] = useState([]);
   const [billVehicles, setBillVehicles] = useState([]);
   const billQueue = useRef(null);
-  if (!billQueue.current) billQueue.current = createBillQueue({ upload: (args) => billPhotoService.uploadBillCapture(args), onChange: setBillUploads });
+  if (!billQueue.current)
+    billQueue.current = createBillQueue({
+      upload: (args) => billPhotoService.uploadBillCapture(args),
+      onChange: setBillUploads,
+      onUnavailable: () => {
+        setBillPhotosAvailable(false);
+        setBillPhotoOpen(false);
+        toast.info('Bill photos are not switched on yet');
+      },
+    });
   useEffect(() => {
     if (!ready || !access.editBills) return;
     let live = true;
-    MileageApi.vehicles().then((data) => { if (live) setBillVehicles(Array.isArray(data) ? data : []); }).catch(() => {});
-    return () => { live = false; };
+    MileageApi.vehicles()
+      .then((data) => {
+        if (live) setBillVehicles(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
   }, [ready, access.editBills]);
 
   const updateParams = (patch, { replace = false } = {}) => {
@@ -264,7 +281,10 @@ export default function MileagePage() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setBillPhotoOpen(true)}
+                  onClick={() => {
+                    if (billPhotosAvailable) setBillPhotoOpen(true);
+                    else toast.info('Bill photos are not switched on yet');
+                  }}
                   className="pshell-btn pshell-btn--primary mhub-add-btn"
                 >
                   <Camera size={15} aria-hidden /> Add bill photo
@@ -300,7 +320,13 @@ export default function MileagePage() {
       >
         {ready ? (
           <div className="mhub" key={manufacturer}>
-            {access.editBills && <BillsToConfirm uploads={billUploads} vehicles={billVehicles} />}
+            {access.editBills && (
+              <BillsToConfirm
+                uploads={billUploads}
+                vehicles={billVehicles}
+                onAvailability={setBillPhotosAvailable}
+              />
+            )}
             <MileageKpiBar
               range={range}
               showFleetKmL={showFleetKmL}
@@ -425,6 +451,11 @@ export default function MileagePage() {
           rows={billUploads}
           queue={billQueue.current}
           vehicles={billVehicles}
+          onUnavailable={() => {
+            setBillPhotosAvailable(false);
+            setBillPhotoOpen(false);
+            toast.info('Bill photos are not switched on yet');
+          }}
         />
       </PageShell>
     </>

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import BillsToConfirm from './BillsToConfirm';
 import service from '../../services/billPhotoService';
 vi.mock('../../services/billPhotoService', () => ({
@@ -43,20 +43,14 @@ describe('Bills to confirm', () => {
       total: 1,
     }));
   });
-  it('shows the top prediction, warns on disagreement and submits only after review', async () => {
+  it('lets the owner edit an automatic match and save the chosen truck', async () => {
     service.saveBillLinks.mockResolvedValue({});
-    render(<BillsToConfirm uploads={[]} vehicles={vehicles} />);
-    expect(await screen.findByText(/A \(Top prediction\)/)).toBeInTheDocument();
-    fireEvent.click(screen.getByLabelText(/B — other/));
-    expect(screen.getByRole('alert')).toHaveTextContent('at pump');
-    fireEvent.click(screen.getByRole('button', { name: 'Review now' }));
-    expect(screen.getByText('Review & submit')).toBeInTheDocument();
-    expect(screen.getByText(/Litres: 50/)).toBeInTheDocument();
-    expect(service.saveBillLinks).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Review later' }));
-    expect(service.saveBillLinks).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Review now' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
+    render(<BillsToConfirm vehicles={vehicles} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit' }));
+    expect(screen.getByLabelText('Truck')).toHaveValue('A');
+    fireEvent.click(screen.getByRole('button', { name: /B.*other/ }));
+    expect(screen.getByLabelText('Truck')).toHaveValue('B');
+    fireEvent.click(screen.getByRole('button', { name: 'Save 1 bills' }));
     await waitFor(() =>
       expect(service.saveBillLinks).toHaveBeenCalledWith([
         { captureId: '1', registrationNumber: 'B', reason: null },
@@ -64,34 +58,39 @@ describe('Bills to confirm', () => {
     );
   });
   it.each(['MARKET_TRUCK', 'NO_TRUCK_WITH_THESE_DIGITS'])(
-    'explains %s and requires a fleet truck',
+    'explains %s and allows a candidate',
     async (askReason) => {
       service.listBillCaptures.mockResolvedValue({
-        captures: [{ ...pending, suggestion: { decision: 'ASK', askReason, candidates: [] } }],
+        captures: [
+          {
+            ...pending,
+            suggestion: { decision: 'ASK', askReason, candidates: pending.suggestion.candidates },
+          },
+        ],
         total: 1,
       });
       render(<BillsToConfirm vehicles={vehicles} />);
-      expect(await screen.findByText(/not one of your trucks/)).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: 'Review now' }));
-      expect(screen.getByRole('button', { name: 'Submit' })).toBeDisabled();
-      expect(screen.getByText(/Choose one of your trucks/)).toBeInTheDocument();
+      expect(await screen.findByText(/Not one of your trucks/)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /B.*other/ }));
+      expect(screen.getByLabelText('Truck')).toHaveValue('B');
     },
   );
-  it('maps 422 errors to the bill without claiming any links were saved', async () => {
+  it('shows per-row errors from the server', async () => {
     service.saveBillLinks.mockRejectedValue({
       status: 422,
-      body: { errors: [{ index: 0, captureId: '1', errors: ['OCR must contain litres'] }] },
+      body: { errors: [{ index: 0, errors: ['OCR must contain litres'] }] },
     });
     render(<BillsToConfirm vehicles={vehicles} />);
-    await screen.findByText(/A \(Top prediction\)/);
-    fireEvent.click(screen.getByRole('button', { name: 'Review now' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
-    expect(
-      await within(screen.getByRole('article', { name: 'Bill 1' })).findByText(
-        'OCR must contain litres',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/No bills were submitted/)).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Save 1 bills' }));
+    expect(await screen.findByText('OCR must contain litres')).toBeInTheDocument();
+  });
+  it('hides the card when the endpoint is unavailable', async () => {
+    service.listBillCaptures.mockRejectedValue({ response: { status: 404 } });
+    const onAvailability = vi.fn();
+    render(<BillsToConfirm onAvailability={onAvailability} />);
+    await waitFor(() => expect(onAvailability).toHaveBeenCalledWith(false));
+    expect(screen.queryByRole('region', { name: 'Bills to confirm' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Could not load bills/)).not.toBeInTheDocument();
   });
   it('edits submitted links with a reason, explains 409 and shows history', async () => {
     service.editBillLink.mockRejectedValueOnce({ status: 409 });
@@ -107,7 +106,7 @@ describe('Bills to confirm', () => {
       ],
     });
     render(<BillsToConfirm vehicles={vehicles} />);
-    await screen.findByText(/A \(Top prediction\)/);
+    await screen.findByRole('button', { name: 'Edit' });
     fireEvent.click(screen.getByRole('tab', { name: 'Submitted' }));
     await screen.findByText(/Originally submitted by u1/);
     fireEvent.click(screen.getByRole('button', { name: 'Change truck' }));
@@ -179,7 +178,7 @@ describe('Bills to confirm', () => {
     service.getBillLinkHistory.mockResolvedValue({ entries: [] });
     service.editBillLink.mockResolvedValue({ captureId: '2' });
     render(<BillsToConfirm vehicles={vehicles} />);
-    await screen.findByText(/A \(Top prediction\)/);
+    await screen.findByRole('button', { name: 'Edit' });
     fireEvent.click(screen.getByRole('tab', { name: 'Submitted' }));
     await screen.findByText(/Originally submitted by u1/);
     fireEvent.click(screen.getByRole('button', { name: 'Change truck' }));
