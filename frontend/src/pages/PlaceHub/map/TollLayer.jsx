@@ -1,7 +1,7 @@
 import { memo, useState } from 'react';
 import { InfoWindowF, MarkerF } from '@react-google-maps/api';
 import { tollPopupLines } from '../model/tollPlazas.js';
-import { tollMarkerIcon } from './tollMarker.js';
+import { tollMarkerIcon } from '../../LiveTracking/mapPlaceIcon.js';
 
 /**
  * Toll plazas: solid where this org's trucks have been, hollow for the rest (shown only with the
