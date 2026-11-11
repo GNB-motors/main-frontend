@@ -412,3 +412,16 @@
     gap: 12px;
   }
 }
+
+/* SAP forms share typography, while this workspace owns its flex/grid layout. */
+.ud-workspace.sap-panel,
+.ud-detail.sap-panel {
+  display: block;
+}
+.ud-toolbar .sap-search {
+  max-width: none;
+}
+.ud-workspace .ud-toolbar select {
+  width: auto;
+  flex: 0 0 174px;
+}
