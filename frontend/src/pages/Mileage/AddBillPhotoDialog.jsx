@@ -401,9 +401,7 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [] }
   const addFiles = (files) => {
     const list = Array.from(files || []);
     if (!list.length) return;
-    const bad = list.find(
-      (file) => !['image/jpeg', 'image/png', 'image/webp'].includes(file.type),
-    );
+    const bad = list.find((file) => !['image/jpeg', 'image/png', 'image/webp'].includes(file.type));
     if (bad) {
       setError('Choose JPG, PNG or WEBP bill photos.');
       return;
@@ -423,8 +421,7 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [] }
         <DialogHeader className="bp-dialog-head">
           <DialogTitle>Add bill photos</DialogTitle>
           <DialogDescription>
-            Add as many bill photos as you like. The truck is worked out from the photo and you
-            confirm it in Bills to confirm.
+            1. Upload photos. 2. Check suggested trucks. 3. Confirm bills.
           </DialogDescription>
         </DialogHeader>
         <div className="bp-dialog-body">
@@ -452,7 +449,7 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [] }
             }}
           >
             <Camera size={26} aria-hidden="true" />
-            <span>Drop bill photos or click to choose</span>
+            <span>Drop bill photos or tap to choose</span>
             <small>JPG, PNG or WEBP · many at a time</small>
           </button>
           <input
@@ -478,7 +475,7 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [] }
               className="flex flex-wrap items-center gap-3 rounded border border-[var(--rd-line)] p-2 text-[var(--rd-ink)]"
             >
               <Photo file={row.file} />
-              <span>{row.name}</span>
+              <span className="min-w-0 break-all">{row.name}</span>
               <span>{ROW_STATUS_TEXT[row.status] || row.status}</span>
               {row.error ? (
                 <span role="alert" className="bp-error">
@@ -511,15 +508,15 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [] }
               <datalist id={`queue-trucks-${row.id}`}>
                 {vehicles.map((vehicle) => (
                   <option
-                  key={vehicle._id || vehicle.id}
-                  value={vehicle.registrationNumber}
-                  aria-label={vehicle.registrationNumber}
-                />
+                    key={vehicle._id || vehicle.id}
+                    value={vehicle.registrationNumber}
+                    aria-label={vehicle.registrationNumber}
+                  />
                 ))}
               </datalist>
               {row.status === 'failed' ? (
                 <Button size="sm" variant="outline" onClick={() => queue?.retry?.(row.id)}>
-                  Retry
+                  Re-upload
                 </Button>
               ) : null}
               {!['sending', 'sent'].includes(row.status) ? (
@@ -534,7 +531,12 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [] }
             </div>
           ))}
         </div>
-        <div className="bp-dialog-foot">
+        <div className="bp-dialog-foot flex-wrap">
+          {!queued && (
+            <p className="w-full text-sm text-muted-foreground">
+              Choose photos and wait for them to be checked before uploading.
+            </p>
+          )}
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
             Close
           </Button>

@@ -10,6 +10,9 @@ import {
 } from '@/components/ui/dialog';
 import PhotoImportService from '../../services/PhotoImportService';
 import DriverChartDialog from '../DataImports/DriverChartDialog';
+import CandidateCards from './CandidateCards';
+import PhotoBatchStatus from './PhotoBatchStatus';
+import safeText from '@/utils/redactSensitive';
 import { defaultDecision, driverRowView, resolveItems } from './photoDriverImport';
 
 /**
@@ -36,8 +39,10 @@ export default function PhotoDriverImportPanel({
   const [views, setViews] = useState([]);
   const [decisions, setDecisions] = useState({});
   const [chartOpen, setChartOpen] = useState(false);
+  const [files, setFiles] = useState([]);
 
   const reset = () => {
+    setFiles([]);
     setViews([]);
     setDecisions({});
     setBatchId('');
@@ -52,6 +57,7 @@ export default function PhotoDriverImportPanel({
   const upload = async (files) => {
     const list = Array.from(files || []);
     if (!list.length) return;
+    setFiles(list);
     setBusy(true);
     setError('');
     try {
@@ -67,9 +73,7 @@ export default function PhotoDriverImportPanel({
       const rows = await PhotoImportService.getDriverRows(id);
       const next = rows.map(driverRowView);
       setViews(next);
-      setDecisions(
-        Object.fromEntries(next.map((view) => [view.key, defaultDecision(view)])),
-      );
+      setDecisions(Object.fromEntries(next.map((view) => [view.key, defaultDecision(view)])));
       setBatchId(id);
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || 'The photos could not be read.');
@@ -100,7 +104,7 @@ export default function PhotoDriverImportPanel({
   return (
     <>
       <Dialog open={open} onOpenChange={(next) => (next ? null : close())}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add drivers from photos</DialogTitle>
             <DialogDescription>
@@ -109,7 +113,10 @@ export default function PhotoDriverImportPanel({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-4 px-6 py-4">
+            <p className="text-xs font-medium text-muted-foreground">
+              1. Upload photos / 2. Check drivers / 3. Confirm
+            </p>
             <input
               ref={inputRef}
               type="file"
@@ -125,13 +132,27 @@ export default function PhotoDriverImportPanel({
             <Button
               type="button"
               variant="outline"
+              className="h-auto w-full flex-col border-dashed py-6"
               onClick={() => inputRef.current?.click()}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault();
+                if (!busy) upload(event.dataTransfer.files);
+              }}
               disabled={busy}
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-              Choose photos
+              Drop photos here or tap to choose
             </Button>
 
+            {files.map((file) => (
+              <PhotoBatchStatus
+                key={`${file.name}-${file.lastModified}`}
+                file={file}
+                busy={busy}
+                error={error}
+              />
+            ))}
             {error ? (
               <p role="alert" className="text-sm text-red-600">
                 {error}
@@ -148,7 +169,7 @@ export default function PhotoDriverImportPanel({
                       className="rounded border border-[var(--ds-line)] p-3 text-sm"
                       data-testid={`driver-row-${view.key}`}
                     >
-                      <p className="font-medium">{view.name || 'Unnamed driver'}</p>
+                      <p className="font-medium">{safeText(view.name) || 'Unnamed driver'}</p>
                       <p className="text-xs text-[var(--ds-ink3)]">
                         {view.phone ? `${view.phone} · ` : ''}
                         {view.licenceNumber ? `${view.licenceNumber} · ` : ''}
@@ -161,7 +182,11 @@ export default function PhotoDriverImportPanel({
                           size="sm"
                           variant={decision.action === 'use' ? 'default' : 'outline'}
                           onClick={() =>
-                            decide(view.key, { action: 'use', userId: view.userId, name: view.name })
+                            decide(view.key, {
+                              action: 'use',
+                              userId: view.userId,
+                              name: view.name,
+                            })
                           }
                         >
                           Already in your list: {view.name}
@@ -169,29 +194,21 @@ export default function PhotoDriverImportPanel({
                       ) : null}
 
                       {view.status === 'likely' ? (
-                        <div className="flex flex-wrap gap-2">
-                          {view.candidates.map((candidate) => (
-                            <Button
-                              key={candidate.userId || candidate.name}
-                              type="button"
-                              size="sm"
-                              variant={
-                                decision.action === 'use' && decision.userId === candidate.userId
-                                  ? 'default'
-                                  : 'outline'
-                              }
-                              onClick={() =>
-                                decide(view.key, {
-                                  action: 'use',
-                                  userId: candidate.userId,
-                                  name: candidate.name,
-                                })
-                              }
-                            >
-                              Did you mean {candidate.name}?
-                            </Button>
-                          ))}
-                        </div>
+                        <CandidateCards
+                          candidates={view.candidates}
+                          name={`driver-${view.key}`}
+                          value={decision.action === 'use' ? decision.userId : 'none'}
+                          disabled={busy}
+                          onChange={(id) => {
+                            const candidate = view.candidates.find((item) => item.userId === id);
+                            decide(
+                              view.key,
+                              candidate
+                                ? { action: 'use', userId: id, name: candidate.name }
+                                : { action: 'create', userId: '', name: view.name },
+                            );
+                          }}
+                        />
                       ) : null}
 
                       <label className="mt-2 block text-xs">
@@ -216,7 +233,12 @@ export default function PhotoDriverImportPanel({
             ) : null}
           </div>
 
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2 px-6 pb-4">
+            {!views.length && !busy && (
+              <p className="w-full text-sm text-muted-foreground">
+                Upload photos to check drivers before saving.
+              </p>
+            )}
             <Button type="button" variant="outline" onClick={close} disabled={busy}>
               Close
             </Button>
