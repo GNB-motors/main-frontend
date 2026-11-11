@@ -46,23 +46,26 @@ export default function SaveReportModal({
       const payload = {
         name: name.trim(),
         description: description.trim(),
-        category,
-        dataset: initialConfig.dataset,
-        fields: initialConfig.fields,
-        filters: initialConfig.filters,
-        sorting: initialConfig.sorting,
-        aggregations: initialConfig.aggregations,
+        category: category || 'GENERAL',
+        dataset: initialConfig.dataset || 'fuel_transactions',
+        fields:
+          initialConfig.fields && initialConfig.fields.length
+            ? initialConfig.fields
+            : ['fuelDate', 'vehicleNumber', 'fuelQuantity', 'fuelAmount'],
+        filters: initialConfig.filters || {},
+        sorting: initialConfig.sorting || { field: null, order: 'desc' },
+        aggregations: initialConfig.aggregations || [],
       };
 
-      if (currentSavedId) {
-        await ReportsService.updateSavedCustomReport(currentSavedId, payload);
-        toast.success('Custom report updated successfully.');
-      } else {
-        const saved = await ReportsService.createSavedCustomReport(payload);
-        toast.success('Custom report saved successfully.');
-        onSuccess?.(saved._id || saved.id);
-      }
-      onClose();
+        if (currentSavedId) {
+          await ReportsService.updateSavedCustomReport(currentSavedId, payload);
+          toast.success('Custom report updated successfully.');
+        } else {
+          const saved = await ReportsService.createSavedCustomReport(payload);
+          toast.success('Custom report submitted for Superadmin approval.');
+          onSuccess?.(saved._id || saved.id);
+        }
+        onClose();
     } catch (err) {
       setError(err?.message || 'Failed to save report configuration.');
     } finally {
@@ -74,7 +77,7 @@ export default function SaveReportModal({
     <div className="custom-modal-backdrop" role="dialog" aria-modal="true">
       <div className="custom-modal-content">
         <div className="custom-modal-header">
-          <h3>{currentSavedId ? 'Update Saved Report' : 'Save Custom Report'}</h3>
+          <h3>{currentSavedId ? 'Update Report Configuration' : 'Submit Custom Report for Approval'}</h3>
           <button type="button" className="col-btn" onClick={onClose} aria-label="Close">
             <X size={18} />
           </button>
@@ -132,10 +135,10 @@ export default function SaveReportModal({
               />
             </div>
 
-            <div className="text-xs text-slate-500 bg-slate-50 p-2.5 rounded">
-              <strong>Notice:</strong> This saves the dynamic query configuration, not a stale copy
-              of the records. Whenever you re-run this report, it executes against current live
-              data.
+            <div className="text-xs text-blue-900 bg-blue-50 border border-blue-100 p-2.5 rounded">
+              <strong>Approval Workflow:</strong> Submitted custom reports go directly to the
+              Superadmin for review. Once approved, the report becomes active and visible to run and
+              export.
             </div>
           </div>
 
@@ -150,7 +153,7 @@ export default function SaveReportModal({
             </button>
             <button type="submit" className="btn-primary-action" disabled={saving}>
               <Save size={15} />
-              {saving ? 'Saving...' : 'Save Configuration'}
+              {saving ? 'Submitting...' : currentSavedId ? 'Update Configuration' : 'Submit for Approval'}
             </button>
           </div>
         </form>
