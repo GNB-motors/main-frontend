@@ -1,3 +1,6 @@
+/* Delivery routes: the map tab's list rail, drawer extras and the SAP workspace.
+   Layout comes from PlaceHub.css (.ph-side / .ph-panel); only additions live here. */
+
 /* ── Route view switcher (Delivery routes / All movements) ───────────────── */
 .ud-view-bar {
   display: flex;
@@ -24,6 +27,7 @@
   padding: 6px 14px;
   font-size: 12px;
   color: var(--ph-dim);
+  white-space: nowrap;
 }
 .ud-segmented button[aria-pressed='true'] {
   background: var(--ph-surface);
@@ -31,260 +35,116 @@
   box-shadow: 0 1px 3px #0001;
   font-weight: 600;
 }
-
-/* ── Workspace ───────────────────────────────────────────────────────────── */
-.ud-workspace {
-  padding: 20px 24px 28px;
-  min-width: 0;
-  color: var(--ph-text);
-}
-.ud-workspace .pshell-head {
-  padding: 0 0 14px;
-  align-items: flex-end;
-  gap: 16px;
-}
-.ud-workspace .pshell-title {
-  font-size: 20px;
-}
-.ud-workspace .pshell-subtitle {
-  font-size: 12.5px;
-  margin-top: 2px;
-}
-.ud-workspace .pshell-body {
-  padding: 0;
-}
-.ud-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.ud-actions nav {
-  display: flex;
-  gap: 12px;
-}
-.ud-actions nav button {
-  padding: 8px;
-  color: var(--ph-dim);
-}
-.ud-actions nav button[aria-pressed='true'] {
-  color: var(--ph-accent);
-  text-decoration: underline;
+.ud-view-bar button:focus-visible,
+.ph-delivery button:focus-visible {
+  outline: 2px solid var(--ph-accent);
+  outline-offset: 2px;
 }
 
-/* Summary strip: counts read at a glance; SAP chips filter the list. */
-.ud-summary {
+/* ── List rail ───────────────────────────────────────────────────────────── */
+.ph-delivery-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-.ud-chip {
-  display: inline-flex;
-  align-items: baseline;
   gap: 6px;
-  padding: 7px 12px;
-  border: 1px solid var(--ph-border);
-  border-radius: 999px;
-  background: var(--ph-surface);
-  font-size: 12.5px;
-  color: var(--ph-dim);
+  padding: 12px 16px 0;
+}
+.ph-delivery-actions > :first-child {
+  flex: 1;
+  justify-content: center;
+}
+.ph-delivery .ph-route-kpis {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+/* Four counts in one row: the list, not the counts, should own the rail. */
+.ph-delivery .ph-delivery-kpis {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 12px 16px;
+}
+.ph-delivery .ph-delivery-kpis > * {
+  padding: 8px 9px;
+}
+.ph-delivery .ph-delivery-kpis .ph-kpi-label {
+  font-size: 9.5px;
   white-space: nowrap;
-}
-.ud-chip strong {
-  font-size: 14px;
-  font-weight: 650;
-  color: var(--ph-text);
-  font-variant-numeric: tabular-nums;
-}
-button.ud-chip {
-  cursor: pointer;
-  transition:
-    border-color 0.12s,
-    background 0.12s;
-}
-button.ud-chip:hover {
-  border-color: var(--ph-dim);
-}
-.ud-chip--over strong {
-  color: var(--ph-warn);
-}
-.ud-chip[aria-pressed='true'] {
-  border-color: var(--ph-accent);
-  background: var(--ph-accent-tint);
-  color: var(--ph-accent);
-}
-
-/* ── Layout: list + detail ───────────────────────────────────────────────── */
-.ud-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 380px;
-  gap: 16px;
-  align-items: start;
-}
-.ud-list {
-  min-width: 0;
-  background: var(--ph-surface);
-  border: 1px solid var(--ph-border);
-  border-radius: 10px;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
-/* The table's own toolbar row carries search + filters + column menu. */
-.ud-list .dt-tools {
-  padding: 10px 12px;
+.ph-delivery .ph-delivery-kpis .ph-kpi-value {
+  font-size: 17px;
 }
-.ud-list .dt-tools-right {
-  flex: 1;
-  min-width: 0;
-}
-.ud-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 10px;
-  flex: 1;
-  min-width: 0;
-}
-.ud-toolbar .sap-search {
-  flex: 1 1 240px;
-  min-width: 0;
-  max-width: none;
-}
-.ud-workspace .ud-toolbar select {
-  width: auto;
-  flex: 0 0 auto;
-  min-height: 34px;
-  padding: 6px 28px 6px 10px;
-  font-size: 12.5px;
-}
-.ud-workspace .ud-toolbar input[type='search'] {
-  min-height: 34px;
-}
-.ud-review {
-  display: inline-flex;
-  flex-shrink: 0;
-  padding: 3px;
-  background: var(--ph-sunk);
-  border-radius: 8px;
-}
-.ud-review button {
-  padding: 5px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  color: var(--ph-dim);
-  white-space: nowrap;
-}
-.ud-review button[aria-pressed='true'] {
-  background: var(--ph-surface);
-  color: var(--ph-text);
-  font-weight: 600;
-  box-shadow: 0 1px 3px #0001;
-}
-
-/* SAP form styles (.sap-panel input/label) must not restyle the table chrome. */
-.ud-list .dt-cols-item {
-  display: flex;
-  gap: 8px;
-  font-weight: 400;
-}
-.ud-list input[aria-label='Jump to page'] {
-  width: 48px;
-  min-height: 28px;
-  height: 28px;
-  padding: 2px 6px;
-  font-size: 12px;
-}
-.ud-list .dt-foot,
-.ud-list .dt-foot * {
-  white-space: nowrap;
-}
-
-/* Rows */
-.ud-list .dt-table td {
-  vertical-align: middle;
-}
-.ud-route-button {
-  display: flex;
-  flex-direction: column;
-  text-align: left;
-  gap: 2px;
-  width: 100%;
-  max-width: 340px;
-  min-width: 0;
-  padding: 0;
-  background: none;
-  color: inherit;
-}
-.ud-route-button > strong,
-.ud-route-button > span:not(.ud-route-compact) {
+.ph-delivery-search {
+  position: relative;
   display: block;
-  max-width: 100%;
+}
+.ph-delivery-search svg {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ph-dim);
+  pointer-events: none;
+}
+.ph-delivery-search input {
+  width: 100%;
+  padding-left: 30px !important;
+}
+.ph-delivery .ph-seg {
+  width: 100%;
+}
+.ph-delivery .ph-seg-btn {
+  flex: 1;
+}
+.ph-delivery-site {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  border-color: var(--ph-accent) !important;
+  color: var(--ph-accent) !important;
+  background: var(--ph-accent-tint) !important;
+}
+.ph-delivery-row {
+  gap: 4px;
+}
+.ph-delivery-ends {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.ph-delivery-ends .pi-leg-end {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.ud-route-button strong {
-  font-size: 12.5px;
   font-weight: 600;
 }
-.ud-route-button > span:not(.ud-route-compact) {
-  font-size: 12px;
+.ph-delivery-ends .pi-leg-end svg {
+  flex-shrink: 0;
+}
+.ph-delivery-ends .pi-leg-end + .pi-leg-end {
+  font-weight: 500;
   color: var(--ph-dim);
 }
-.ud-route-button small {
-  font-size: 11px;
-  color: var(--ph-dim);
-}
-.ud-route-button .ud-flag {
-  color: var(--ph-warn);
-}
-.ud-route-button .ud-route-compact {
-  display: none;
-}
-.ud-route-button[aria-pressed='true'] strong {
-  color: var(--ph-accent);
-}
-.ud-route-button:focus-visible {
-  outline: 2px solid var(--ph-accent);
-  outline-offset: 4px;
-  border-radius: 4px;
-}
-.ud-list .dt-table td,
-.ud-list .dt-table th {
-  font-variant-numeric: tabular-nums;
-}
-.ud-sub {
-  display: block;
-  color: var(--ph-dim);
-  font-size: 10.5px;
-  white-space: nowrap;
-}
-.ud-compare-cell {
-  display: inline-flex;
+.ph-delivery-sap {
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 8px;
-}
-.ud-delta {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11.5px;
+  color: var(--ph-dim);
   font-variant-numeric: tabular-nums;
 }
-.ud-delta--over {
-  color: var(--ph-warn);
-}
-.ud-delta--under {
-  color: var(--ph-info);
-}
-.ud-delta--within {
-  color: var(--ph-ok);
-}
+
+/* ── Verdict pills & deltas (list and drawer) ────────────────────────────── */
 .ud-pill {
   display: inline-block;
-  padding: 3px 8px;
+  padding: 2px 7px;
   border-radius: 5px;
   font-size: 11px;
-  font-weight: 550;
+  font-weight: 600;
   white-space: nowrap;
   color: var(--ph-ok);
   background: var(--ph-ok-tint);
@@ -301,122 +161,67 @@ button.ud-chip:hover {
   color: var(--ph-dim);
   background: var(--ph-sunk);
 }
-.ud-updating {
-  padding: 8px 14px;
-  font-size: 12px;
+.ud-delta {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.ud-delta--over {
+  color: var(--ph-warn);
+}
+.ud-delta--under {
+  color: var(--ph-info);
+}
+.ud-delta--within {
+  color: var(--ph-ok);
 }
 
-/* ── Detail panel ────────────────────────────────────────────────────────── */
-.ud-detail {
-  position: sticky;
-  top: 16px;
-  max-height: calc(100vh - 32px);
-  overflow-y: auto;
-  padding: 18px 20px 20px;
-  background: var(--ph-surface);
-  border: 1px solid var(--ph-border);
-  border-radius: 10px;
-  min-width: 0;
+/* ── Drawer ──────────────────────────────────────────────────────────────── */
+.ph-delivery-title {
+  display: grid;
+  gap: 2px;
 }
-.ud-pick {
-  color: var(--ph-dim);
-  padding: 26px 22px;
-  border-style: dashed;
+.ph-delivery-title > span[aria-hidden] {
+  display: none;
 }
-.ud-pick h2 {
-  font-size: 14px;
-  margin: 0 0 6px;
-  color: var(--ph-text);
-}
-.ud-detail h2 {
-  font-size: 16px;
-  font-weight: 650;
-  line-height: 1.35;
-  margin: 0 0 10px;
+.ph-delivery-title .pi-leg-end {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   overflow-wrap: anywhere;
 }
-.ud-detail h2 span {
-  display: block;
+.ph-delivery-title .pi-leg-end + span + .pi-leg-end {
+  font-size: 0.9em;
   color: var(--ph-dim);
-  font-size: 13px;
-  font-weight: 550;
-  margin-top: 3px;
 }
-.ud-detail p {
+.ph-delivery-evidence {
+  margin: 6px 0 0;
   font-size: 12px;
-  color: var(--ph-dim);
-  line-height: 1.6;
-  margin: 10px 0 14px;
 }
-.ud-detail h3 {
-  font-size: 13px;
-  font-weight: 600;
-}
-.ud-detail-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-.ud-detail-heading small {
-  font-size: 10px;
-  letter-spacing: 1px;
-  color: var(--ph-dim);
-}
-.ud-detail-heading button {
-  display: inline-flex;
-  padding: 6px;
-  margin: -6px;
-  border-radius: 6px;
-  color: var(--ph-dim);
-}
-.ud-detail-heading button:hover {
-  background: var(--ph-sunk);
-  color: var(--ph-text);
-}
-.ud-detail-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--ph-dim);
-}
-.ud-detail-tabs {
-  display: flex;
-  gap: 20px;
-  border-bottom: 1px solid var(--ph-border);
-  margin: 16px 0;
-}
-.ud-detail-tabs button {
-  font-size: 12.5px;
-  padding: 0 0 9px;
-  color: var(--ph-dim);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-}
-.ud-detail-tabs button[aria-pressed='true'] {
-  color: var(--ph-accent);
-  border-color: var(--ph-accent);
-  font-weight: 600;
-}
-.ud-comparison {
-  padding: 14px 16px;
+.ph-delivery-sapcard {
+  margin: 14px 0;
+  padding: 12px 14px 14px;
   border: 1px solid var(--ph-border);
-  background: var(--ph-raised);
-  border-radius: 8px;
-  margin-bottom: 12px;
+  border-radius: 10px;
+  background: var(--ph-raised, var(--ph-sunk));
 }
-.ud-comparison > small {
-  font-size: 9.5px;
-  letter-spacing: 0.6px;
-  color: var(--ph-dim);
+.ph-delivery-sapcard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ph-delivery-sapcard-head button {
+  margin-right: -8px;
+}
+.ph-delivery-sapcard p {
+  margin: 10px 0 0;
+  font-size: 12px;
 }
 .ud-compare-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 .ud-compare-grid strong {
   display: flex;
@@ -459,205 +264,82 @@ button.ud-chip:hover {
   background: var(--ph-ok);
 }
 .ud-bar--sap {
-  background: var(--ph-border);
+  background: color-mix(in srgb, var(--ph-text) 28%, transparent);
 }
-.ud-comparison p {
-  font-size: 12px;
-  margin: 10px 0 0;
+.ph-delivery-note {
+  margin: 8px 0 0;
+  font-size: 11.5px;
 }
-.ud-comparison p.ud-delta {
-  font-weight: 550;
-}
-.ud-wide {
-  width: 100%;
-}
-.ud-facts {
-  margin: 16px 0;
-}
-.ud-facts > div {
-  display: flex;
-  gap: 10px;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--ph-border);
-  font-size: 12px;
-}
-.ud-facts dt {
-  color: var(--ph-dim);
-}
-.ud-facts dd {
-  font-weight: 550;
-  font-variant-numeric: tabular-nums;
-}
-.ud-trip-list {
-  list-style: none;
-  padding: 0;
-  margin: 10px 0;
-}
-.ud-trip-list li {
-  display: flex;
+.ph-delivery-trip {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
   gap: 4px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--ph-border);
-  font-size: 12px;
-}
-.ud-trip-list a {
-  display: flex;
-  align-items: center;
-  gap: 5px;
   color: var(--ph-accent);
-  font-weight: 550;
-}
-.ud-trip-list small {
-  width: 100%;
-  color: var(--ph-dim);
-  font-size: 11px;
-}
-.ud-history-title {
-  margin-top: 20px;
+  font-weight: 600;
 }
 .ud-review-details {
-  margin-top: 22px;
+  margin-top: 18px;
   border-top: 1px solid var(--ph-border);
-  padding-top: 14px;
+  padding-top: 12px;
 }
 .ud-review-details summary {
   font-size: 12px;
   color: var(--ph-dim);
   cursor: pointer;
 }
-.ud-review-details .ud-actions {
-  margin-top: 12px;
+.ud-review-details p {
+  font-size: 12px;
+  margin: 8px 0;
 }
-.ud-scrim {
-  display: none;
+.ph-delivery-field {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 550;
 }
-.ud-workspace button:focus-visible,
-.ud-view-bar button:focus-visible {
-  outline: 2px solid var(--ph-accent);
-  outline-offset: 3px;
+.ph-delivery-field input {
+  padding: 7px 10px;
+  border: 1px solid var(--ph-border);
+  border-radius: 8px;
+  background: var(--ph-surface);
+  color: var(--ph-text);
+  font: inherit;
+  font-size: 13px;
+}
+.ph-delivery-review-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
 }
 
-/* ── Responsive ──────────────────────────────────────────────────────────── */
-@media (min-width: 1600px) {
-  .ud-grid {
-    grid-template-columns: minmax(0, 1fr) 420px;
-  }
+/* ── SAP workspace (performance / loss lanes / settings) ─────────────────── */
+.ud-workspace {
+  padding: 18px 24px 28px;
+  min-width: 0;
+  color: var(--ph-text);
 }
-/* Below 1400px the table needs the full width; the detail slides over it. */
-@media (max-width: 1399px) {
-  .ud-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .ud-pick {
-    display: none;
-  }
-  .ud-grid--open .ud-detail {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1011;
-    width: min(440px, 100vw);
-    max-height: none;
-    border-radius: 0;
-    border-width: 0 0 0 1px;
-    box-shadow: -12px 0 32px #0f172a29;
-  }
-  .ud-grid--open .ud-scrim {
-    display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 1010;
-    border: 0;
-    background: #0f172a59;
-    cursor: default;
-  }
-  .ud-workspace {
-    padding: 18px;
-  }
+.ud-workspace.sap-panel {
+  display: block;
 }
-@media (max-width: 1099px) {
-  .ud-route-button {
-    max-width: 240px;
-  }
-  .ud-list .dt-table :is(th, td) {
-    padding-left: 12px;
-    padding-right: 12px;
-  }
+.ud-sap-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
 }
+
 @media (max-width: 760px) {
-  .ud-workspace .pshell-head {
-    flex-direction: column;
-    align-items: stretch;
-  }
   .ud-view-bar {
-    align-items: start;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
     padding: 10px 14px;
   }
-  .ud-toolbar .sap-search {
-    flex-basis: 100%;
-  }
-  /* Phones: one column per row; trips / km / SAP move under the route name. */
-  .ud-list .dt-table :is(th, td):nth-child(2),
-  .ud-list .dt-table :is(th, td):nth-child(3),
-  .ud-list .dt-table :is(th, td):nth-child(4),
-  .ud-list .dt-table th:nth-child(5),
-  .ud-list .dt-cols {
-    display: none;
-  }
-  /* The SAP status cell stacks under the route instead of a fifth column. */
-  .ud-list .dt-table tbody tr {
-    display: grid;
-  }
-  .ud-list .dt-table tbody td:nth-child(5) {
-    padding-top: 0;
-    border-top: 0;
-  }
-  .ud-list .dt-table tbody td:first-child {
-    border-bottom: 0;
-  }
-  .ud-route-button .ud-route-compact {
-    display: block;
-    margin-top: 3px;
-  }
-  .ud-route-button {
-    max-width: calc(100vw - 96px);
-  }
-}
-@media (max-width: 480px) {
   .ud-workspace {
     padding: 14px;
   }
-  .ud-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+  .ud-sap-bar .ud-segmented {
+    max-width: 100%;
+    overflow-x: auto;
   }
-  .ud-actions > :last-child {
-    grid-column: 1 / -1;
-  }
-  .ud-review {
-    width: 100%;
-  }
-  .ud-review button {
-    flex: 1;
-  }
-  .ud-workspace .ud-toolbar select {
-    flex: 1 1 100%;
-  }
-  .ud-chip {
-    padding: 6px 10px;
-    font-size: 12px;
-  }
-}
-
-/* SAP forms share typography, while this workspace owns its flex/grid layout. */
-.ud-workspace.sap-panel,
-.ud-detail.sap-panel {
-  display: block;
 }

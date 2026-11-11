@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compareBars, countText, sapDelta, summaryChips } from './deliveryRoutesModel';
+import { compareBars, countText, sapDelta } from './deliveryRoutesModel';
 
 const route = (over = {}) => ({
   n: 12,
@@ -35,19 +35,6 @@ describe('sapDelta', () => {
     expect(
       sapDelta(route({ sap: { sapKm: 0, comparison: { verdict: 'WITHIN', deltaKm: 0 } } })),
     ).toEqual({ tone: 'within', km: '±0 km', pct: null });
-  });
-});
-
-describe('summaryChips', () => {
-  const totals = { routes: 26, trips: 3033, over: 7, withoutSap: 3 };
-  it('adds SAP filter chips only for SAP users', () => {
-    expect(summaryChips(totals, false).map((c) => c.key)).toEqual(['routes', 'trips']);
-    const chips = summaryChips(totals, true);
-    expect(chips.map((c) => c.filter).filter(Boolean)).toEqual(['OVER', 'NO_SAP']);
-    expect(chips[1].value).toBe('3,033');
-  });
-  it('is empty before totals load', () => {
-    expect(summaryChips(undefined, true)).toEqual([]);
   });
 });
 

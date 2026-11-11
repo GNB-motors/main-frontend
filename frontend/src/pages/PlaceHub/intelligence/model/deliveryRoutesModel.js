@@ -24,36 +24,6 @@ export function sapDelta(route) {
   };
 }
 
-/**
- * Summary chips above the list. Chips with a `filter` act as the SAP status
- * filter, so the count and the list behind it are always the same thing.
- */
-export function summaryChips(totals, showSap) {
-  if (!totals) return [];
-  const chips = [
-    { key: 'routes', value: countText(totals.routes), label: 'routes' },
-    { key: 'trips', value: countText(totals.trips), label: 'trips' },
-  ];
-  if (showSap)
-    chips.push(
-      {
-        key: 'over',
-        value: countText(totals.over),
-        label: 'over SAP',
-        filter: 'OVER',
-        tone: 'over',
-      },
-      {
-        key: 'nosap',
-        value: countText(totals.withoutSap),
-        label: 'SAP not set',
-        filter: 'NO_SAP',
-        tone: 'muted',
-      },
-    );
-  return chips;
-}
-
 /** Relative bar widths (0–100) for learned km vs SAP km in the detail panel. */
 export function compareBars(learnedKm, sapKm) {
   const a = Number(learnedKm);
