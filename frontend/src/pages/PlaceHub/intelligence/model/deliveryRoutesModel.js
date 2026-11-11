@@ -37,3 +37,21 @@ export function compareBars(learnedKm, sapKm) {
     sap: okB ? Math.round((b / max) * 100) : 0,
   };
 }
+
+/** One short status tag per route for the list; tone drives colour, title the full wording. */
+export function routeTag(route) {
+  if (!route?.sap) return { tone: 'muted', text: 'No SAP', title: 'SAP not set' };
+  if (!route.n) return { tone: 'muted', text: 'No trips yet', title: 'Waiting for the first trip' };
+  const v = route.sap.comparison?.verdict;
+  if (!v || v === 'NO_KM')
+    return { tone: 'muted', text: 'Needs km', title: 'More distance evidence needed' };
+  const d = sapDelta(route);
+  if (v === 'OVER') return { tone: 'over', text: `${d?.km || ''} over`.trim(), title: 'Over SAP' };
+  if (v === 'UNDER')
+    return { tone: 'under', text: `${d?.km || ''} under`.trim(), title: 'Under SAP' };
+  return {
+    tone: 'within',
+    text: 'On SAP',
+    title: `Within ${route.sap.tolerancePct ?? 10}% of SAP`,
+  };
+}

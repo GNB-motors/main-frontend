@@ -113,15 +113,15 @@ it('loads every route with its map path, sorted by trips, with SAP verdicts and 
   );
   const rows = screen.getAllByRole('button', { name: /^Plant → / });
   expect(rows.map((r) => r.getAttribute('aria-label'))).toEqual(['Plant → Port', 'Plant → Town']);
-  expect(screen.getByText('Over SAP', { selector: '.ud-pill' })).toBeInTheDocument();
-  expect(screen.getByText('+25 km')).toBeInTheDocument();
-  expect(screen.getByText('44')).toBeInTheDocument(); // trips KPI
+  expect(screen.getByText('+25 km over')).toBeInTheDocument();
+  expect(screen.getByText('No SAP', { selector: '.ph-delivery-tag' })).toBeInTheDocument();
+  expect(screen.getByText('2 routes · 44 trips')).toBeInTheDocument();
 });
 
 it('sends search, review and SAP filters to the list API', async () => {
   mount();
   await screen.findByRole('button', { name: 'Plant → Town' });
-  fireEvent.click(screen.getByRole('tab', { name: 'Needs review' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Needs review' }));
   await waitFor(() =>
     expect(PlaceIntelligenceService.listDeliveryLegs).toHaveBeenLastCalledWith(
       expect.objectContaining({ review: 'NEEDS_REVIEW' }),
@@ -131,7 +131,21 @@ it('sends search, review and SAP filters to the list API', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Over SAP' }));
   await waitFor(() =>
     expect(PlaceIntelligenceService.listDeliveryLegs).toHaveBeenLastCalledWith(
-      expect.objectContaining({ review: 'NEEDS_REVIEW', sapStatus: 'OVER' }),
+      expect.objectContaining({ review: undefined, sapStatus: 'OVER' }),
+      expect.anything(),
+    ),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Show rejected routes' }));
+  await waitFor(() =>
+    expect(PlaceIntelligenceService.listDeliveryLegs).toHaveBeenLastCalledWith(
+      expect.objectContaining({ review: 'REJECTED', sapStatus: undefined }),
+      expect.anything(),
+    ),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Rejected routes, show usual routes' }));
+  await waitFor(() =>
+    expect(PlaceIntelligenceService.listDeliveryLegs).toHaveBeenLastCalledWith(
+      expect.objectContaining({ review: undefined }),
       expect.anything(),
     ),
   );
@@ -147,11 +161,12 @@ it('sends search, review and SAP filters to the list API', async () => {
 it('opens a route in the drawer with trips, links and a review note', async () => {
   mount();
   fireEvent.click(await screen.findByRole('button', { name: 'Plant → Town' }));
-  expect(await screen.findByText('Learned from 4 trips across 2 trucks')).toBeInTheDocument();
+  expect(await screen.findByText('4 trips · 2 trucks · long trips 140 km')).toBeInTheDocument();
   expect((await screen.findByRole('link', { name: 'TRUCK1' })).getAttribute('href')).toBe(
     '/auto-trips/trip1',
   );
   expect(screen.getByText('+25 km (+25%) versus SAP · 10% tolerance')).toBeInTheDocument();
+  expect(screen.getByText('4 trips · 2 trucks · long trips 140 km')).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText('Review note (optional)'), {
     target: { value: 'Confirmed delivery' },
   });
@@ -163,13 +178,13 @@ it('opens a route in the drawer with trips, links and a review note', async () =
     ),
   );
   fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-  await waitFor(() => expect(screen.queryByText(/Learned from 4 trips/)).not.toBeInTheDocument());
+  await waitFor(() => expect(screen.queryByText(/4 trips · 2 trucks/)).not.toBeInTheDocument());
 });
 
 it('opens a linked route outside the current filters', async () => {
   PlaceIntelligenceService.listDeliveryLegs.mockResolvedValue(page([other]));
   mount('/place-hub?tab=routes&routeView=deliveries&delivery=leg1');
-  expect(await screen.findByText('Learned from 4 trips across 2 trucks')).toBeInTheDocument();
+  expect(await screen.findByText('4 trips · 2 trucks · long trips 140 km')).toBeInTheDocument();
   expect(PlaceIntelligenceService.getDeliveryLeg).toHaveBeenCalledWith('leg1', expect.anything());
 });
 
@@ -194,7 +209,9 @@ it('saves the selected route SAP and refreshes both the list and the drawer', as
       expect.anything(),
     ),
   );
-  await waitFor(() => expect(screen.getAllByText(/150 km/).length).toBeGreaterThanOrEqual(2));
+  // Drawer shows the new SAP and the list tag flips from over to under.
+  expect(await screen.findByText('150 km')).toBeInTheDocument();
+  expect(await screen.findByText('−25 km under')).toBeInTheDocument();
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
@@ -203,8 +220,8 @@ it('hides SAP management and fields when the organization entitlement is off', a
   mount();
   await screen.findByRole('button', { name: 'Plant → Town' });
   expect(screen.queryByRole('button', { name: 'New route' })).not.toBeInTheDocument();
-  expect(screen.queryByRole('group', { name: 'Filter SAP status' })).not.toBeInTheDocument();
-  expect(screen.queryByText('Over SAP')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Over SAP' })).not.toBeInTheDocument();
+  expect(screen.queryByText('No SAP')).not.toBeInTheDocument();
   expect(PlaceIntelligenceService.listDeliveryLegs).toHaveBeenCalledWith(
     expect.not.objectContaining({ sapStatus: expect.anything() }),
     expect.anything(),
@@ -216,7 +233,7 @@ it('keeps a configured route visible before its first trip', async () => {
   PlaceIntelligenceService.listDeliveryLegs.mockResolvedValue(page([configured]));
   PlaceIntelligenceService.getDeliveryLeg.mockResolvedValue(configured);
   mount('/place-hub?tab=routes&routeView=deliveries&delivery=leg1');
-  expect(await screen.findByText('Configured · awaiting first trip')).toBeInTheDocument();
+  expect(await screen.findByText('Awaiting first trip')).toBeInTheDocument();
   expect(await screen.findByText('Configured route · no trips yet')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Edit SAP distance' })).toBeInTheDocument();
   expect(

@@ -1,128 +1,134 @@
 import { useState } from 'react';
 import { BarChart3, CloudOff, Plus, Route, Search, Settings2, X } from 'lucide-react';
 import { toast } from 'react-toastify';
-import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { Button } from '../../../components/ui/button';
 import SetSapDialog from '../../Sap/SetSapDialog';
 import { kmText } from '../../Sap/sapModel';
-import LegEnd from '../intelligence/LegEnd.jsx';
-import RouteComparison from '../intelligence/RouteComparison.jsx';
 import { messageOf } from '../intelligence/model/requestOutcome.js';
-import { minutesLabel } from '../intelligence/model/unitLabels.js';
 import { placeTitle } from '../intelligence/model/siteSummary.js';
-import { countText, sapDelta } from '../intelligence/model/deliveryRoutesModel.js';
-import Kpi from './Kpi.jsx';
+import { countText, routeTag } from '../intelligence/model/deliveryRoutesModel.js';
 import Empty from './Empty.jsx';
 import ListSkeleton from './ListSkeleton.jsx';
-import Segmented from './Segmented.jsx';
 
-const REVIEW = [
-  { id: '', label: 'Usual' },
-  { id: 'NEEDS_REVIEW', label: 'Needs review' },
-  { id: 'REJECTED', label: 'Rejected' },
+// One filter at a time: each chip sets the SAP status and review status together.
+const FILTERS = [
+  { id: 'all', label: 'All', review: '', sapStatus: '' },
+  { id: 'over', label: 'Over SAP', review: '', sapStatus: 'OVER', sap: true },
+  { id: 'nosap', label: 'No SAP', review: '', sapStatus: 'NO_SAP', sap: true },
+  { id: 'review', label: 'Needs review', review: 'NEEDS_REVIEW', sapStatus: '' },
 ];
-const SAP_CHIPS = [
-  ['', 'All'],
-  ['OVER', 'Over SAP'],
-  ['WITHIN', 'Within'],
-  ['UNDER', 'Under'],
-  ['NO_SAP', 'SAP not set'],
-  ['NO_TRIPS', 'No trips yet'],
-  ['NO_KM', 'Needs km evidence'],
+// Rejected routes are rarely needed: reached from the list foot, shown as a removable chip.
+const REJECTED = { id: 'rejected', label: 'Rejected', review: 'REJECTED', sapStatus: '' };
+const SORTS = [
+  ['trips', 'Most trips'],
+  ['distance', 'Longest'],
+  ['over', 'Most over SAP', true],
+  ['name', 'A–Z'],
 ];
 
-/** Left rail for delivery routes: same anatomy as the movements list, plus SAP. */
+/** Left rail for delivery routes: search, one row of filters, a quiet summary, the list. */
 export default function DeliveryRoutesPanel({ d }) {
   const [creating, setCreating] = useState(false);
-  const max = Math.max(1, ...d.legs.map((l) => l.n || 0));
   const site = d.siteId ? d.sites.get(d.siteId) : null;
-  const totals = d.totals;
+  const filters = FILTERS.filter((f) => d.showSap || !f.sap);
+  const viewingRejected = d.review === REJECTED.review;
+  const active = viewingRejected
+    ? REJECTED.id
+    : filters.find((f) => f.review === d.review && f.sapStatus === d.sapStatus)?.id || 'all';
+  const pickFilter = (f) => {
+    d.setReview(f.review);
+    d.setSapStatus(f.sapStatus);
+  };
   return (
     <aside className="ph-side ph-delivery" aria-label="Delivery route list">
-      {d.showSap && (
-        <div className="ph-delivery-actions">
-          <button type="button" className="ph-btn ph-btn--sm" onClick={() => d.setIntent('month')}>
-            <BarChart3 size={14} aria-hidden="true" /> SAP performance
-          </button>
-          <button
-            type="button"
-            className="ph-btn ph-btn--sm"
-            onClick={() => d.setIntent('settings')}
-            aria-label="Settings & import"
-            title="SAP settings & import"
-          >
-            <Settings2 size={14} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="ph-btn ph-btn--sm ph-btn--primary"
-            onClick={() => setCreating(true)}
-          >
-            <Plus size={14} aria-hidden="true" /> New route
-          </button>
-        </div>
-      )}
-      <div
-        className={`ph-route-kpis${d.showSap ? ' ph-delivery-kpis' : ''}`}
-        aria-label="Route summary"
-      >
-        <Kpi label="Routes" value={totals ? countText(totals.routes) : '—'} />
-        <Kpi label="Trips" value={totals ? countText(totals.trips) : '—'} />
-        {d.showSap && (
-          <>
-            <Kpi
-              label="Over SAP"
-              value={totals ? countText(totals.over) : '—'}
-              tone={totals?.over ? 'warn' : undefined}
+      <div className="ph-delivery-head">
+        <div className="ph-delivery-top">
+          <label className="ph-delivery-search">
+            <Search size={14} aria-hidden="true" />
+            <input
+              type="search"
+              aria-label="Search deliveries"
+              placeholder="Search pickup or drop…"
+              maxLength={60}
+              value={d.search}
+              onChange={(e) => d.setSearch(e.target.value)}
             />
-            <Kpi label="No SAP" value={totals ? countText(totals.withoutSap) : '—'} />
-          </>
-        )}
-      </div>
-      <div className="ph-route-controls">
-        <label className="ph-delivery-search">
-          <Search size={14} aria-hidden="true" />
-          <input
-            type="search"
-            aria-label="Search deliveries"
-            placeholder="Search pickup or drop…"
-            maxLength={60}
-            value={d.search}
-            onChange={(e) => d.setSearch(e.target.value)}
-          />
-        </label>
-        <Segmented
-          label="Route review status"
-          value={d.review}
-          options={REVIEW}
-          onChange={d.setReview}
-        />
-        {d.showSap && (
-          <div className="ph-route-chips" role="group" aria-label="Filter SAP status">
-            {SAP_CHIPS.map(([id, label]) => (
+          </label>
+          {d.showSap && (
+            <>
               <button
                 type="button"
-                key={id}
-                aria-pressed={d.sapStatus === id}
-                onClick={() => d.setSapStatus(id)}
+                className="ph-icon-btn"
+                onClick={() => d.setIntent('month')}
+                aria-label="SAP performance"
+                title="SAP performance"
               >
-                {label}
+                <BarChart3 size={16} />
               </button>
+              <button
+                type="button"
+                className="ph-icon-btn"
+                onClick={() => d.setIntent('settings')}
+                aria-label="Settings & import"
+                title="SAP settings & import"
+              >
+                <Settings2 size={16} />
+              </button>
+              <button
+                type="button"
+                className="ph-icon-btn ph-icon-btn--primary"
+                onClick={() => setCreating(true)}
+                aria-label="New route"
+                title="New route with SAP"
+              >
+                <Plus size={16} />
+              </button>
+            </>
+          )}
+        </div>
+        <div className="ph-delivery-filters" role="group" aria-label="Filter routes">
+          {filters.map((f) => (
+            <button
+              type="button"
+              key={f.id}
+              aria-pressed={active === f.id}
+              onClick={() => pickFilter(f)}
+            >
+              {f.label}
+            </button>
+          ))}
+          {viewingRejected && (
+            <button
+              type="button"
+              aria-pressed="true"
+              aria-label="Rejected routes, show usual routes"
+              onClick={() => pickFilter(FILTERS[0])}
+            >
+              Rejected <X size={11} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+        <div className="ph-delivery-summary">
+          <span aria-live="polite">
+            {d.totals
+              ? `${countText(d.totals.routes)} routes · ${countText(d.totals.trips)} trips`
+              : ' '}
+          </span>
+          <select
+            aria-label="Sort routes"
+            value={d.sort}
+            onChange={(e) => d.setSort(e.target.value)}
+          >
+            {SORTS.filter(([, , sap]) => d.showSap || !sap).map(([id, label]) => (
+              <option key={id} value={id}>
+                {label}
+              </option>
             ))}
-          </div>
-        )}
-        <label>
-          Sort{' '}
-          <SearchableSelect value={d.sort} onChange={(e) => d.setSort(e.target.value)}>
-            <option value="trips">Most trips</option>
-            <option value="distance">Longest</option>
-            {d.showSap && <option value="over">Most over SAP</option>}
-            <option value="name">Name</option>
-          </SearchableSelect>
-        </label>
+          </select>
+        </div>
         {d.siteId && (
           <button type="button" className="ph-delivery-site" onClick={() => d.setSiteId(null)}>
-            Routes at {site ? placeTitle(site) : 'this place'} <X size={12} aria-hidden="true" />
+            At {site ? placeTitle(site) : 'this place'} <X size={12} aria-hidden="true" />
           </button>
         )}
       </div>
@@ -140,52 +146,51 @@ export default function DeliveryRoutesPanel({ d }) {
       {d.loaded && !d.error && !d.legs.length && (
         <Empty
           icon={Route}
-          title="No delivery routes in this view"
-          body="Routes appear from completed loaded trips. Try another search or filter; configured SAP routes stay listed before their first trip."
+          title="No delivery routes here"
+          body="Routes appear from completed loaded trips. Try another search or filter."
         />
       )}
-      <div className="ph-route-list" aria-busy={d.loading || undefined}>
+      <div className="ph-delivery-list" aria-busy={d.loading || undefined}>
         {d.legs.map((leg) => {
           const id = String(leg._id);
-          const delta = d.showSap ? sapDelta(leg) : null;
+          const tag = d.showSap ? routeTag(leg) : null;
           return (
             <button
               type="button"
               key={id}
               aria-label={`${leg.fromName} → ${leg.toName}`}
               aria-pressed={d.selectedId === id}
-              className={`ph-route-row ph-delivery-row${d.selectedId === id ? ' is-selected' : ''}${d.hoveredId === id ? ' is-hovered' : ''}`}
+              className={`ph-delivery-row${d.selectedId === id ? ' is-selected' : ''}${d.hoveredId === id ? ' is-hovered' : ''}`}
               onClick={() => d.pick(id)}
               onMouseEnter={() => d.setHoveredId(id)}
               onMouseLeave={() => d.setHoveredId(null)}
               onFocus={() => d.setHoveredId(id)}
               onBlur={() => d.setHoveredId(null)}
             >
-              <span className="ph-delivery-ends">
-                <LegEnd site={d.sites.get(String(leg.fromSiteId))} fallback="UNKNOWN" />
-                <LegEnd site={d.sites.get(String(leg.toSiteId))} fallback="UNKNOWN" />
+              <span className="ph-delivery-name" title={`${leg.fromName} → ${leg.toName}`}>
+                <strong>{leg.fromName || 'Unnamed pickup'}</strong>
+                <span>→ {leg.toName || 'Unnamed drop'}</span>
               </span>
-              <span className="ph-route-meta">
-                {leg.n
-                  ? `${countText(leg.n)} ${leg.n === 1 ? 'trip' : 'trips'} · ${minutesLabel(leg.minutes?.p50)} · ${kmText(leg.km?.p50)}`
-                  : 'Configured · awaiting first trip'}
-              </span>
-              {d.showSap && (
-                <span className="ph-delivery-sap">
-                  <RouteComparison route={leg} compact />
-                  {leg.sap && <span>SAP {kmText(leg.sap.sapKm)}</span>}
-                  {delta && delta.tone !== 'within' && (
-                    <span className={`ud-delta ud-delta--${delta.tone}`}>{delta.km}</span>
-                  )}
+              <span className="ph-delivery-meta">
+                <span>
+                  {leg.n
+                    ? `${countText(leg.n)} ${leg.n === 1 ? 'trip' : 'trips'} · ${kmText(leg.km?.p50)}`
+                    : 'Awaiting first trip'}
                 </span>
-              )}
-              <span
-                className="ph-route-bar"
-                style={{ width: `${Math.max(3, ((leg.n || 0) / max) * 100)}%` }}
-              />
+                {tag && (
+                  <span className={`ph-delivery-tag is-${tag.tone}`} title={tag.title}>
+                    {tag.text}
+                  </span>
+                )}
+              </span>
             </button>
           );
         })}
+        {d.loaded && !d.error && !viewingRejected && (
+          <button type="button" className="ph-delivery-foot" onClick={() => pickFilter(REJECTED)}>
+            Show rejected routes
+          </button>
+        )}
       </div>
       {creating && (
         <SetSapDialog

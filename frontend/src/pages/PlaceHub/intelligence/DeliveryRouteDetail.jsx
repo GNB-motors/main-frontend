@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, Check, Clock, History, Truck, X } from 'lucide-react';
+import { ArrowUpRight, Check, Clock, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Button } from '../../../components/ui/button';
 import useApi from '../../../hooks/useApi';
@@ -13,17 +13,10 @@ import { BASIS_LABEL, canEditSap, kmText } from '../../Sap/sapModel';
 import { minutesLabel } from './model/unitLabels';
 import { messageOf } from './model/requestOutcome.js';
 import { countText } from './model/deliveryRoutesModel';
-import RouteComparison from './RouteComparison';
 import DeliverySapCard from './DeliverySapCard';
 import LegEnd from './LegEnd.jsx';
 import Frame from '../drawer/Frame.jsx';
-import Stats from '../drawer/Stats.jsx';
 
-const SOURCE = {
-  DRIVEN: { label: 'Road our trucks drove', tone: 'driven' },
-  ENGINE: { label: 'Likely road · estimated', tone: 'engine' },
-  NONE: { label: 'Straight-line link', tone: 'none' },
-};
 const dateOnly = (iso) =>
   new Date(iso).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium' });
 
@@ -44,7 +37,7 @@ export default function DeliveryRouteDetail({
   );
   const m = useMutation(PlaceIntelligenceService.reviewDeliveryLeg);
   const [note, setNote] = useState('');
-  const [limit, setLimit] = useState(6);
+  const [limit, setLimit] = useState(5);
   const [editing, setEditing] = useState(false);
   useEffect(() => {
     // A dialog on top owns Escape; otherwise Escape closes the drawer.
@@ -73,7 +66,16 @@ export default function DeliveryRouteDetail({
   const from = route && (sites?.get(String(route.fromSiteId)) || { name: route.fromName });
   const to = route && (sites?.get(String(route.toSiteId)) || { name: route.toName });
   const samples = q.data?.samples || [];
-  const source = SOURCE[leg?.path?.source] || SOURCE.NONE;
+  const history = route?.sapHistory || [];
+  const facts = route
+    ? [
+        route.n
+          ? `${countText(route.n)} trips · ${countText(route.trucks)} trucks`
+          : 'No trips yet',
+        route.km?.p90 != null && `long trips ${kmText(route.km.p90)}`,
+        route.fuelPerKm?.p50 != null && `${route.fuelPerKm.p50.toFixed(2)} L/km`,
+      ].filter(Boolean)
+    : [];
   return (
     <Frame
       eyebrow="Delivery route"
@@ -95,51 +97,25 @@ export default function DeliveryRouteDetail({
       {q.error && <p role="alert">{messageOf(q.error, 'Could not load this route')}</p>}
       {route && (
         <>
-          <div className="ph-route-hero">
+          <div
+            className="ph-route-hero ph-delivery-hero"
+            title="Typical = median across this route’s trips"
+          >
             <div className="ph-route-hero-primary">
               <Clock size={18} aria-hidden="true" />
               <span className="ph-route-hero-time">{minutesLabel(route.minutes?.p50)}</span>
               <span className="ph-route-hero-sep" aria-hidden="true" />
               <span className="ph-route-hero-dist">{kmText(route.km?.p50)}</span>
             </div>
-            <div className="ph-route-hero-meta">
-              {showSap && <RouteComparison route={route} />}
-              <span className={`ph-route-badge ph-route-badge--${source.tone}`}>
-                {source.label}
-              </span>
-            </div>
-            <p className="ph-muted ph-delivery-evidence">
-              {route.n
-                ? `Learned from ${countText(route.n)} trips across ${countText(route.trucks)} trucks`
-                : 'Configured route · no trips yet'}
+            <p className="ph-delivery-evidence">
+              {route.n ? facts.join(' · ') : 'Configured route · no trips yet'}
             </p>
           </div>
 
           {showSap && <DeliverySapCard route={route} onEdit={() => setEditing(true)} />}
 
-          <Stats
-            items={[
-              { label: 'Typical loaded distance', value: kmText(route.km?.p50) },
-              {
-                label: 'Distance evidence',
-                value: `${route.km?.n ?? '—'} / ${countText(route.n)} trips`,
-              },
-              { label: 'Long trip (1 in 10)', value: kmText(route.km?.p90) },
-              {
-                label: 'Fuel per km',
-                value:
-                  route.fuelPerKm?.p50 == null ? '—' : `${route.fuelPerKm.p50.toFixed(2)} L/km`,
-              },
-            ]}
-          />
-          <p className="ph-muted ph-delivery-note">
-            Typical = median across this route’s trips. Learned distances never become agreed SAP.
-          </p>
-
           <section className="ph-route-sec" aria-label="Trips on this route">
-            <h3 className="ph-route-sec-head">
-              <Truck size={15} aria-hidden="true" /> Recent trips
-            </h3>
+            <h3 className="ph-route-sec-head">Recent trips</h3>
             {q.loading && !q.data && <p className="ph-muted">Loading trips…</p>}
             {q.data && !samples.length && (
               <p className="ph-muted">
@@ -169,32 +145,13 @@ export default function DeliveryRouteDetail({
                 Show more trips ({samples.length - limit} remaining)
               </Button>
             )}
-            {samples.length > 0 && route.n > samples.length && (
-              <p className="ph-muted">
-                {samples.length} most recent of {countText(route.n)} trips. Figures above use all of
-                them.
-              </p>
-            )}
           </section>
 
-          {showSap && (
-            <section className="ph-route-sec" aria-label="SAP agreements">
-              <h3 className="ph-route-sec-head">
-                <History size={15} aria-hidden="true" /> SAP agreements
-              </h3>
+          {showSap && history.length > 0 && (
+            <details className="ud-review-details">
+              <summary>SAP history · {history.length} earlier</summary>
               <ul className="ph-route-runs">
-                <li>
-                  <div className="ph-route-run-top">
-                    <strong>Current</strong>
-                    <span>
-                      {route.sap
-                        ? `${kmText(route.sap.sapKm)} · ${BASIS_LABEL[route.sap.basis] || ''}`
-                        : 'Not set'}
-                    </span>
-                  </div>
-                  {route.sap?.note && <span>{route.sap.note}</span>}
-                </li>
-                {(route.sapHistory || []).map((h) => (
+                {history.map((h) => (
                   <li key={h._id}>
                     <div className="ph-route-run-top">
                       <span>Replaced {dateOnly(h.supersededAt)}</span>
@@ -202,12 +159,11 @@ export default function DeliveryRouteDetail({
                         {kmText(h.sapKm)} · {BASIS_LABEL[h.basis] || ''}
                       </span>
                     </div>
-                    <span>{h.note || 'No note'}</span>
+                    {h.note && <span>{h.note}</span>}
                   </li>
                 ))}
               </ul>
-              {!route.sapHistory?.length && <p className="ph-muted">No earlier SAP entries.</p>}
-            </section>
+            </details>
           )}
 
           {canEditSap(getUserRole()) && q.data && (

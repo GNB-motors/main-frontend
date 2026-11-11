@@ -22,9 +22,14 @@ export default function DeliverySapCard({ route, onEdit }) {
     <section className="ph-delivery-sapcard" aria-label="SAP comparison">
       <div className="ph-delivery-sapcard-head">
         <span className="ph-eyebrow">{roundTrip ? 'Round trip' : 'One way · loaded'}</span>
-        <Button variant="ghost" size="sm" onClick={onEdit}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onEdit}
+          aria-label={sap ? 'Edit SAP distance' : 'Set SAP distance'}
+        >
           <Pencil size={13} />
-          {sap ? 'Edit SAP distance' : 'Set SAP distance'}
+          {sap ? 'Edit' : 'Set SAP'}
         </Button>
       </div>
       <div className="ud-compare-grid">

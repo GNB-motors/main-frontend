@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compareBars, countText, sapDelta } from './deliveryRoutesModel';
+import { compareBars, countText, routeTag, sapDelta } from './deliveryRoutesModel';
 
 const route = (over = {}) => ({
   n: 12,
@@ -43,5 +43,22 @@ describe('compareBars', () => {
     expect(compareBars(120, 100)).toEqual({ learned: 100, sap: 83 });
     expect(compareBars(null, 100)).toEqual({ learned: 0, sap: 100 });
     expect(compareBars(null, null)).toBeNull();
+  });
+});
+
+describe('routeTag', () => {
+  it('gives one short tag per route state', () => {
+    expect(routeTag(route()).text).toBe('+24 km over');
+    expect(
+      routeTag(route({ sap: { sapKm: 200, comparison: { verdict: 'UNDER', deltaKm: -50 } } })),
+    ).toMatchObject({ tone: 'under', text: '−50 km under' });
+    expect(
+      routeTag(route({ sap: { sapKm: 100, tolerancePct: 8, comparison: { verdict: 'WITHIN' } } })),
+    ).toMatchObject({ tone: 'within', text: 'On SAP', title: 'Within 8% of SAP' });
+    expect(routeTag(route({ sap: undefined })).text).toBe('No SAP');
+    expect(routeTag(route({ n: 0 })).text).toBe('No trips yet');
+    expect(routeTag(route({ sap: { sapKm: 100, comparison: { verdict: 'NO_KM' } } })).text).toBe(
+      'Needs km',
+    );
   });
 });
