@@ -17,7 +17,6 @@ export default function placeHubTabs({
   allowSites,
   isSuperAdmin,
   allowHygiene,
-  allowDeliveries,
   hasHomes,
 }) {
   return [
@@ -27,8 +26,6 @@ export default function placeHubTabs({
     allowSites && { id: 'stops', label: 'Stops', Icon: Clock, title: 'Unexplained stops' },
     allowHygiene && { id: 'duplicates', label: 'Same place?', Icon: Layers, table: true },
     allowSites && { id: 'routes', label: 'Routes', Icon: Route },
-    allowSites &&
-      allowDeliveries && { id: 'deliveries', label: 'Deliveries', Icon: Route, table: true },
     allowSites && { id: 'facilities', label: 'Facilities', Icon: Factory, table: true },
     allowSites && { id: 'regions', label: 'Regions', Icon: Layers, table: true },
     // Hidden until the inference has at least one proposal — it stays empty
