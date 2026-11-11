@@ -108,7 +108,9 @@ describe('LiveTrackingPage master data', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'Alert zone here' }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Polygon zone' } });
     fireEvent.click(screen.getByRole('tab', { name: 'Draw outline' }));
-    for (const point of [{ lat: 22, lng: 88 }, { lat: 23, lng: 88 }, { lat: 23, lng: 89 }]) act(() => seen.map.onDraftMapClick(point));
+    act(() => {
+      for (const point of [{ lat: 22, lng: 88 }, { lat: 23, lng: 88 }, { lat: 23, lng: 89 }]) seen.map.onDraftMapClick(point);
+    });
     expect(seen.map.draft.polygon).toHaveLength(3);
     act(() => handlers.contextmenu({ latLng: { lat: () => 24, lng: () => 89 } }));
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();

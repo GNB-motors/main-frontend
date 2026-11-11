@@ -825,7 +825,8 @@ const LiveTrackingPage = () => {
               onDraftMapClick={(point) => {
                 if (savingDraft || !point) return;
                 if (zoneDraft?.shape === 'polygon') {
-                  if (!zoneDraft.polygonDone) changeZoneDraft({ polygon: [...zoneDraft.polygon, point] });
+                  setZoneDraft((current) => current && !current.polygonDone
+                    ? { ...current, polygon: [...current.polygon, point] } : current);
                 } else if (placeDraft) changePlaceDraft({ center: point });
                 else if (zoneDraft) changeZoneDraft({ center: point });
               }}
