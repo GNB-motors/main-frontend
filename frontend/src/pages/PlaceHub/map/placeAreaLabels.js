@@ -1,3 +1,5 @@
+import { placeLabelText } from './placeLabelText.js';
+
 // Work in Web Mercator world pixels so the fit follows the area on screen,
 // rather than a zoom threshold that treats every place as the same size.
 const project = ({ lat, lng }) => {
@@ -104,13 +106,12 @@ export function fitPlaceLabel(place, area, zoom, circleVisible) {
   const name = place.name.trim();
   const radius = area.radius * 2 ** zoom;
   for (const width of [160, 128, 96, 72]) {
-    const textWidth = Math.min(width, Math.max(40, name.length * 7.5));
-    const lines = Math.min(3, Math.ceil((name.length * 7.5) / textWidth));
-    const height = lines * 17;
+    const text = placeLabelText(name, width);
+    if (!text) continue;
     // The entire label's bounding circle fits inside the polygon, with an
     // extra margin for the white text outline, holes and boundary strokes.
-    if (Math.hypot(textWidth / 2 + 8, height / 2 + 8) <= radius) {
-      return { position: area.position, width: textWidth, height };
+    if (Math.hypot(text.width / 2 + 8, text.height / 2 + 8) <= radius) {
+      return { position: area.position, ...text };
     }
   }
   return null;

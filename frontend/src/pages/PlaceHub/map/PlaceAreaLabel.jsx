@@ -1,5 +1,10 @@
 import { memo } from 'react';
 import { OverlayViewF } from '@react-google-maps/api';
+import {
+  PLACE_LABEL_FONT,
+  PLACE_LABEL_LINE_HEIGHT,
+  PLACE_LABEL_PADDING,
+} from './placeLabelText.js';
 import './PlaceAreaLabel.css';
 
 // The overlay layer sits below vehicle markers. Pointer events pass through
@@ -10,9 +15,18 @@ export default memo(function PlaceAreaLabel({ name, layout }) {
       <div
         className="place-area-label"
         title={name}
-        style={{ width: layout.width, height: layout.height }}
+        aria-label={name}
+        style={{
+          width: layout.width,
+          height: layout.height,
+          font: PLACE_LABEL_FONT,
+          lineHeight: `${PLACE_LABEL_LINE_HEIGHT}px`,
+          padding: PLACE_LABEL_PADDING,
+        }}
       >
-        {name}
+        {layout.lines.map((line, index) => (
+          <span key={index}>{line}</span>
+        ))}
       </div>
     </OverlayViewF>
   );

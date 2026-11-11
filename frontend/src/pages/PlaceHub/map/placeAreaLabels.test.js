@@ -75,4 +75,9 @@ describe('place labels inside visible areas', () => {
     expect(placeLabelArea({ polygon: Array(4).fill({ lat: 23, lng: 87 }) })).toBeNull();
     expect(fitPlaceLabel({ name: '  ' }, placeLabelArea(place), 20, true)).toBeNull();
   });
+
+  it('keeps the marker when the full name would require more than three lines', () => {
+    const longName = { ...place, name: 'W'.repeat(100) };
+    expect(fitPlaceLabel(longName, placeLabelArea(longName), 20, true)).toBeNull();
+  });
 });
