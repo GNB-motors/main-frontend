@@ -82,7 +82,9 @@ export function createBillQueue({ upload, onChange, onUnavailable, hash = fileHa
       kind = next || '';
     },
     removeSaved(ids) {
-      rows = rows.filter((row) => !ids.includes(row.capture?.id));
+      rows = rows.map((row) =>
+        ids.includes(row.capture?.id) ? { ...row, status: 'confirmed' } : row,
+      );
       emit();
     },
     remove(id) {

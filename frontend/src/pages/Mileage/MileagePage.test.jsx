@@ -768,3 +768,13 @@ describe('manufacturer scope in the mileage hub', () => {
     });
   });
 });
+
+describe('bill approval placement', () => {
+  it('does not render the bills to confirm card', () => {
+    mockApi();
+    useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
+    renderAt('/mileage');
+    expect(screen.queryByText('Bills to confirm')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Add bill photo/ })).toBeInTheDocument();
+  });
+});

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+﻿import { useCallback, useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog';
@@ -125,8 +125,14 @@ function BillRow({
   onUnavailable,
 }) {
   const capture = row.capture || row;
-  const pending = Boolean(row.status && row.status !== 'sent');
-  const { suggestion, state, retry } = useSuggestion(capture, onMatched, pending, onUnavailable);
+  const confirmed = row.status === 'confirmed';
+  const pending = Boolean(row.status && row.status !== 'sent' && !confirmed);
+  const { suggestion, state, retry } = useSuggestion(
+    capture,
+    onMatched,
+    pending || confirmed,
+    onUnavailable,
+  );
   const [editing, setEditing] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
   const candidates = candidateRows(suggestion);
@@ -175,7 +181,9 @@ function BillRow({
         </Dialog>
       </td>
       <td data-label="Truck">
-        {pending ? (
+        {confirmed ? (
+          <p>Confirmed &#10003;</p>
+        ) : pending ? (
           row.status === 'failed' ? (
             <>
               <p>Upload failed</p>
@@ -262,7 +270,14 @@ function BillRow({
     </tr>
   );
 }
-export default function BillsTable({ rows = [], vehicles = [], queue, onSaved, onUnavailable }) {
+export default function BillsTable({
+  rows = [],
+  vehicles = [],
+  queue,
+  onSaved,
+  onUnavailable,
+  via,
+}) {
   const [choices, setChoices] = useState({});
   const [suggestions, setSuggestions] = useState({});
   const [errors, setErrors] = useState({});
@@ -293,6 +308,7 @@ export default function BillsTable({ rows = [], vehicles = [], queue, onSaved, o
           captureId: capture.id,
           registrationNumber: selection(capture),
           reason: null,
+          via,
         })),
       );
       setChoices({});
@@ -354,9 +370,10 @@ export default function BillsTable({ rows = [], vehicles = [], queue, onSaved, o
       {error && <p role="alert">{error}</p>}
       {rows.length > 0 && (
         <Button disabled={saving || !selected.length} onClick={save}>
-          Save {selected.length} bills
+          Confirm {selected.length} bills
         </Button>
       )}
     </>
   );
 }
+

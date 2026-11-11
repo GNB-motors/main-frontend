@@ -14,7 +14,6 @@ import MileageKpiBar from './components/MileageKpiBar';
 import RefuelDetailDrawer from './components/RefuelDetailDrawer';
 import MileageCyclesDrawer from './components/MileageCyclesDrawer';
 import AddBillPhotoDialog from './AddBillPhotoDialog';
-import BillsToConfirm from './BillsToConfirm';
 import { createBillQueue } from './billUploadQueue';
 import billPhotoService from '../../services/billPhotoService';
 import { MileageApi } from './mileageApi';
@@ -320,13 +319,6 @@ export default function MileagePage() {
       >
         {ready ? (
           <div className="mhub" key={manufacturer}>
-            {access.editBills && (
-              <BillsToConfirm
-                uploads={billUploads}
-                vehicles={billVehicles}
-                onAvailability={setBillPhotosAvailable}
-              />
-            )}
             <MileageKpiBar
               range={range}
               showFleetKmL={showFleetKmL}
