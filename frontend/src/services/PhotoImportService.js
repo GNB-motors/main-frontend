@@ -23,7 +23,8 @@ const unwrap = (res) => res.data?.data ?? res.data;
 const UPLOAD_TIMEOUT = 200000;
 
 // The WhatsApp chat export is read on the server: a few hundred photos are
-// read one by one, so the wait is long. The timeout has to outlive the read.
+// read one by one, so the upload itself can take a while. The timeout has to
+// outlive the sending of the file.
 const WHATSAPP_EXPORT_TIMEOUT = 30 * 60 * 1000;
 
 const buildForm = ({ files = [], uploadedAs = {}, batchId, context } = {}) => {
@@ -118,8 +119,8 @@ const PhotoImportService = {
 
   /**
    * One WhatsApp chat export (a .zip with the chat and its media).
-   * The server reads every photo before it answers, so this call is slow:
-   * `onUploadProgress` reports the upload, the answer comes minutes later.
+   * The server writes the zip to the disk and puts the import in a queue: it
+   * answers at once with a job id, and the photos are read in the background.
    */
   uploadWhatsappExport: async (file, { signal, onUploadProgress } = {}) => {
     const form = new FormData();
@@ -129,6 +130,18 @@ const PhotoImportService = {
       timeout: WHATSAPP_EXPORT_TIMEOUT,
       signal,
       onUploadProgress,
+    });
+    return unwrap(response);
+  },
+
+  /**
+   * How the import is doing: its state (queued, running, done or failed), how
+   * many photos have been read out of how many, and the counts of what it
+   * made once it is done.
+   */
+  getChatExportJob: async (jobId, { signal } = {}) => {
+    const response = await apiClient.get(`/api/photo-imports/chat-export/jobs/${jobId}`, {
+      signal,
     });
     return unwrap(response);
   },

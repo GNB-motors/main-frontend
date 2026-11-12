@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Check, FileArchive, Loader2, X } from 'lucide-react';
 import {
   Dialog,
@@ -20,6 +20,18 @@ const MAX_BYTES = 500 * 1024 * 1024;
 // that, not that nothing was imported.
 const LOST_CONTACT_MESSAGE =
   'We lost contact with the server before the import finished. It may still be running. Wait a few minutes and check Mileage before uploading again.';
+
+// How often the import is asked how far it has come.
+const POLL_MS = 3000;
+
+// The plain words of the server, so the dialog says the same thing as the
+// server does when an import fails.
+const READER_DOWN_MESSAGE =
+  'The photo reader is not running, so nothing was imported. Start it and upload the chat again.';
+const PARTWAY_MESSAGE =
+  'The import stopped partway. Some photos may already be saved. Uploading the same chat again is safe: photos already saved are skipped.';
+const JOB_GONE_MESSAGE =
+  "We can't find that import any more. Upload the chat again if it didn't finish.";
 
 // One row per count, in the words the owner reads.
 const COUNT_ROWS = [
@@ -72,6 +84,31 @@ function failureGroups(result) {
 }
 
 /**
+ * The words of a failed import.
+ *
+ * A reader that is not running keeps its own sentence: nothing was imported,
+ * and the chat can be sent again. Any other failure may have saved some
+ * photos already, so it says so instead of promising that nothing happened.
+ */
+function failureText(view) {
+  const serverMessage = typeof view?.error === 'string' ? view.error.trim() : '';
+  const readerDown =
+    view?.errorCode === 'READER_DOWN' || /photo reader is not running/i.test(serverMessage);
+  if (readerDown) {
+    return {
+      heading: 'Nothing was imported',
+      message: serverMessage || READER_DOWN_MESSAGE,
+      detail: '',
+    };
+  }
+  return {
+    heading: 'The import stopped partway',
+    message: PARTWAY_MESSAGE,
+    detail: serverMessage && serverMessage !== PARTWAY_MESSAGE ? serverMessage : '',
+  };
+}
+
+/**
  * One WhatsApp chat export, uploaded as a .zip. The server reads every photo
  * in it before it answers, so the wait is long and the words on screen say so.
  */
@@ -81,19 +118,37 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
   const [error, setError] = useState(null);
   const [percent, setPercent] = useState(0);
   const [result, setResult] = useState(null);
+  // The job of the import. It stays here while the dialog is closed, so
+  // opening the dialog again shows the import that is still running.
+  const [jobId, setJobId] = useState(null);
+  const [progress, setProgress] = useState({ read: 0, total: 0 });
+  // The words of a failure: the heading says how much was lost, the message
+  // says what the owner can do.
+  const [failureHeading, setFailureHeading] = useState('Nothing was imported');
+  const [failureDetail, setFailureDetail] = useState('');
   const input = useRef(null);
   const busy = useRef(false);
   const request = useRef(null);
   const imported = useRef(false);
+  // The job that is being followed right now. A late answer about an older
+  // import is not the answer about this one.
+  const jobIdRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
-    setFile(null);
     setError(null);
-    setStage('pick');
+    setFailureHeading('Nothing was imported');
+    setFailureDetail('');
     setPercent(0);
-    setResult(null);
     imported.current = false;
+    if (jobIdRef.current) {
+      // The import is on the server: show it again and keep asking about it.
+      setStage('reading');
+      return;
+    }
+    setFile(null);
+    setStage('pick');
+    setResult(null);
   }, [open]);
 
   useEffect(() => () => request.current?.abort(), []);
@@ -116,11 +171,85 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
 
   // The list refreshes once per import: when the chat comes in, and again if
   // the dialog is closed afterwards.
-  const markImported = (answer) => {
+  const onImportedRef = useRef(onImported);
+  useEffect(() => {
+    onImportedRef.current = onImported;
+  }, [onImported]);
+  const markImported = useCallback((answer) => {
     if (imported.current) return;
     imported.current = true;
-    onImported?.(answer);
-  };
+    onImportedRef.current?.(answer);
+  }, []);
+
+  // The import runs on the server: the dialog asks the job how far it has
+  // come. Closing the dialog stops the asking, not the import.
+  useEffect(() => {
+    if (!open || !jobId) return undefined;
+    const current = jobId;
+    let stopped = false;
+    let timer = null;
+    // The asking stops as soon as the import is over.
+    const finish = () => {
+      stopped = true;
+      if (timer) clearInterval(timer);
+    };
+    const ask = async () => {
+      let view = null;
+      try {
+        view = await PhotoImportService.getChatExportJob(current);
+      } catch (err) {
+        if (stopped) return;
+        if (err?.response?.status === 404) {
+          // The import is not on the server any more.
+          finish();
+          jobIdRef.current = null;
+          setJobId(null);
+          setFailureHeading('The import could not be found');
+          setError(JOB_GONE_MESSAGE);
+          setStage('failed');
+          return;
+        }
+        // The connection dropped: the import keeps running, so keep asking.
+        return;
+      }
+      if (stopped || !view) return;
+      // A late answer about an older import is not the answer about this one.
+      if (jobIdRef.current !== current) return;
+      setProgress({
+        read: Number(view.progress?.read || 0),
+        total: Number(view.progress?.total || 0),
+      });
+      if (view.state === 'done') {
+        finish();
+        const made = view.result || {};
+        setResult(made);
+        setStage('done');
+        markImported(made);
+        // The import is over: its job is not needed any more.
+        jobIdRef.current = null;
+        setJobId(null);
+        return;
+      }
+      if (view.state === 'failed') {
+        finish();
+        const words = failureText(view);
+        setFailureHeading(words.heading);
+        setError(words.message);
+        setFailureDetail(words.detail);
+        setStage('failed');
+        jobIdRef.current = null;
+        setJobId(null);
+        return;
+      }
+      setStage('reading');
+    };
+    timer = setInterval(ask, POLL_MS);
+    ask();
+    return () => {
+      stopped = true;
+      if (timer) clearInterval(timer);
+    };
+  }, [open, jobId, markImported]);
 
   const close = () => {
     if (busy.current) return;
@@ -134,7 +263,13 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
     busy.current = true;
     setStage('uploading');
     setError(null);
+    setFailureHeading('Nothing was imported');
+    setFailureDetail('');
     setPercent(0);
+    setProgress({ read: 0, total: 0 });
+    // A new chat: the job of the old one is forgotten.
+    jobIdRef.current = null;
+    setJobId(null);
     const controller = new AbortController();
     request.current = controller;
     try {
@@ -146,20 +281,22 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
           if (!total) return;
           const next = Math.min(100, Math.round((loaded / total) * 100));
           setPercent(next);
-          // The file is on its way; the server now reads the photos.
-          if (next >= 100) setStage('reading');
         },
       });
       if (controller.signal.aborted) return;
-      setResult(answer || {});
-      setStage('done');
-      markImported(answer || {});
+      const id = answer?.jobId;
+      if (!id) throw new Error('The chat could not be uploaded. Please try again.');
+      // The import is on the server now: the dialog follows it from here.
+      jobIdRef.current = id;
+      setJobId(id);
+      setStage('reading');
     } catch (err) {
       if (controller.signal.aborted) return;
       const serverMessage = serverErrorMessage(err);
       if (serverMessage) {
         // The server answered: it knows what happened.
         setError(serverMessage);
+        setFailureHeading('Nothing was imported');
         setStage('failed');
       } else if (isLostContact(err)) {
         // We never heard back: the import may still be running.
@@ -168,6 +305,7 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
       } else {
         // Nothing was imported, and the technical reason stays off the screen.
         setError('The chat could not be uploaded. Please try again.');
+        setFailureHeading('Nothing was imported');
         setStage('failed');
       }
     } finally {
@@ -200,7 +338,7 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
           className="bp-close"
           aria-label="Close"
           onClick={close}
-          disabled={stage === 'uploading' || stage === 'reading'}
+          disabled={stage === 'uploading'}
         >
           <X size={18} aria-hidden="true" />
         </button>
@@ -266,13 +404,29 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
           ) : stage === 'reading' ? (
             <div className="bp-progress" role="status">
               <Loader2 size={26} className="animate-spin" aria-hidden="true" />
-              <strong>Reading the photos… this can take up to 15 minutes. Keep this page open.</strong>
+              <strong>
+                {progress.total > 0
+                  ? `Reading photos ${progress.read} / ${progress.total}`
+                  : 'Reading the photos… this can take up to 15 minutes.'}
+              </strong>
+              {progress.total > 0 ? (
+                <div className="wxp-bar">
+                  <div
+                    className="wxp-bar-fill"
+                    style={{
+                      width: `${Math.round((progress.read / progress.total) * 100)}%`,
+                    }}
+                  />
+                </div>
+              ) : null}
+              <span>You can close this: the import keeps running.</span>
             </div>
           ) : stage === 'failed' ? (
             <div className="bp-failed" role="alert">
               <X size={28} aria-hidden="true" />
-              <strong>Nothing was imported</strong>
+              <strong>{failureHeading}</strong>
               <span>{error}</span>
+              {failureDetail ? <span>{failureDetail}</span> : null}
             </div>
           ) : stage === 'unreachable' ? (
             <div className="bp-warning" role="alert">
@@ -363,10 +517,10 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
               <Button
                 variant="outline"
                 size="sm"
-                disabled={stage === 'uploading' || stage === 'reading'}
+                disabled={stage === 'uploading'}
                 onClick={close}
               >
-                Cancel
+                {stage === 'reading' ? 'Close' : 'Cancel'}
               </Button>
               <Button
                 size="sm"
