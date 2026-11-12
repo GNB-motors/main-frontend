@@ -23,9 +23,13 @@ const updateNetFuelKmPerL = (netFuelKmPerL) =>
 const updateWhatsAppOdometerMode = (odometerMode) =>
   call(apiClient.patch('/api/whatsapp/settings', { odometerMode }));
 
+const updateWhatsAppCaptureMode = (captureMode) =>
+  call(apiClient.patch('/api/whatsapp/settings', { captureMode }));
+
 export const SettingsService = {
   getFuelSettings,
   updateIdleThreshold,
   updateNetFuelKmPerL,
   updateWhatsAppOdometerMode,
+  updateWhatsAppCaptureMode,
 };
