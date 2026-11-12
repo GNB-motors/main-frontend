@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import WhatsappExportDialog from './WhatsappExportDialog';
 import PhotoImportService from '../../services/PhotoImportService';
@@ -44,6 +44,18 @@ const rowValue = (label) => {
   return head.parentElement.querySelector('td').textContent;
 };
 
+// The questions and their answers travel through promises: let them land.
+const flush = async (times = 4) => {
+  for (let i = 0; i < times; i += 1) {
+    await act(async () => {
+      await Promise.resolve();
+    });
+  }
+};
+
+const READER_DOWN =
+  'The photo reader is not running, so nothing was imported. Start it and upload the chat again.';
+
 describe('WhatsApp chat export dialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -55,6 +67,10 @@ describe('WhatsApp chat export dialog', () => {
       progress: { read: 96, total: 96 },
       result: answer,
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('refuses a file that is not a zip before anything is uploaded', () => {
@@ -276,5 +292,123 @@ describe('WhatsApp chat export dialog', () => {
     // The chat was sent once, and the same job is being followed.
     expect(PhotoImportService.uploadWhatsappExport).toHaveBeenCalledTimes(1);
     expect(PhotoImportService.getChatExportJob).toHaveBeenCalledWith('job-1');
+  });
+
+  it('stops asking once the import is done', async () => {
+    vi.useFakeTimers();
+    open();
+    chooseFile(zipFile());
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+    await flush();
+
+    expect(screen.getByText('Chat imported')).toBeInTheDocument();
+    expect(PhotoImportService.getChatExportJob).toHaveBeenCalledTimes(1);
+
+    // The asking stops: the minutes that pass bring no new question.
+    await act(async () => {
+      vi.advanceTimersByTime(6000);
+    });
+    expect(PhotoImportService.getChatExportJob).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops asking once the import has failed', async () => {
+    vi.useFakeTimers();
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'failed',
+      progress: { read: 0, total: 0 },
+      errorCode: 'READER_DOWN',
+      error: READER_DOWN,
+    });
+    open();
+    chooseFile(zipFile());
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+    await flush();
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Nothing was imported');
+
+    await act(async () => {
+      vi.advanceTimersByTime(6000);
+    });
+    expect(PhotoImportService.getChatExportJob).toHaveBeenCalledTimes(1);
+  });
+
+  it('says the import is not found any more, and stops asking', async () => {
+    vi.useFakeTimers();
+    const gone = Object.assign(new Error('Not Found'), { response: { status: 404 } });
+    PhotoImportService.getChatExportJob.mockRejectedValue(gone);
+    open();
+    chooseFile(zipFile());
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+    await flush();
+
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent("We can't find that import any more.");
+    expect(alert).toHaveTextContent("Upload the chat again if it didn't finish.");
+
+    await act(async () => {
+      vi.advanceTimersByTime(6000);
+    });
+    expect(PhotoImportService.getChatExportJob).toHaveBeenCalledTimes(1);
+  });
+
+  it('says the import stopped partway when something else went wrong', async () => {
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'failed',
+      progress: { read: 12, total: 40 },
+      error: 'The disk filled up.',
+    });
+    open();
+    chooseFile(zipFile());
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('The import stopped partway');
+    expect(alert).toHaveTextContent('Some photos may already be saved.');
+    expect(alert).toHaveTextContent('The disk filled up.');
+  });
+
+  it('ignores the late answer of an import that was replaced', async () => {
+    vi.useFakeTimers();
+    let releaseSlow;
+    const slow = new Promise((resolve) => {
+      releaseSlow = resolve;
+    });
+    PhotoImportService.uploadWhatsappExport
+      .mockResolvedValueOnce({ jobId: 'job-1' })
+      .mockResolvedValueOnce({ jobId: 'job-2' });
+    PhotoImportService.getChatExportJob
+      .mockImplementationOnce(() => slow)
+      .mockResolvedValueOnce({
+        state: 'failed',
+        progress: { read: 0, total: 0 },
+        errorCode: 'READER_DOWN',
+        error: READER_DOWN,
+      })
+      .mockResolvedValue({ state: 'running', progress: { read: 1, total: 2 } });
+
+    open();
+    chooseFile(zipFile());
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+    await flush();
+
+    // The second question says the import failed: the chat is sent again.
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
+    await flush();
+    expect(screen.getByRole('alert')).toHaveTextContent('Nothing was imported');
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await flush();
+    expect(PhotoImportService.uploadWhatsappExport).toHaveBeenCalledTimes(2);
+
+    // The slow answer of the first import arrives now: it is about an import
+    // that is gone, so it changes nothing.
+    await act(async () => {
+      releaseSlow({ state: 'done', progress: { read: 9, total: 9 }, result: answer });
+    });
+    await flush();
+
+    expect(screen.queryByText('Chat imported')).not.toBeInTheDocument();
+    expect(screen.getByText('Reading photos 1 / 2')).toBeInTheDocument();
   });
 });
