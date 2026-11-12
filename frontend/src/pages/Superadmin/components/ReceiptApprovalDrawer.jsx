@@ -84,6 +84,27 @@ const ReceiptApprovalDrawer = ({
     return () => window.removeEventListener('keydown', handleKey);
   }, [isOpen, onClose, onPrev, onNext, hasPrev, hasNext, rejectModalOpen]);
 
+  // The time of the fill, set by a person: accept the prediction, or type it.
+  const handleSetTime = async (action, at) => {
+    if (!draft?._id || actionBusy) return;
+    setActionBusy(true);
+    try {
+      await ReceiptApprovalService.setDraftTime(
+        draft._id,
+        action === 'accept' ? { action: 'accept' } : { action: 'set', at },
+      );
+      toast.success(
+        action === 'accept' ? 'The predicted time was accepted' : 'The time of the fill was saved',
+      );
+      await loadDraft();
+      onUpdated?.();
+    } catch (err) {
+      toast.error(err.displayMessage || err.message || 'Could not save the time');
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
   // Publish action
   const handlePublish = async () => {
     if (!draft?._id || actionBusy) return;
@@ -254,6 +275,8 @@ const ReceiptApprovalDrawer = ({
                 odoMeta={odoMeta}
                 stationInfo={stationInfo}
                 submitter={submitter}
+                onSetTime={handleSetTime}
+                timeBusy={actionBusy}
               />
             </div>
           )}

@@ -51,6 +51,18 @@ const rejectDraft = (draftId, reason) =>
 const clearDraft = (draftId, note) =>
   call(apiClient.post(`/api/whatsapp/admin/drafts/${draftId}/clear`, { note }));
 
+/**
+ * The time of the fill, set by a person: 'accept' takes the predicted time,
+ * 'set' takes the time the person typed. The prediction is kept.
+ */
+const setDraftTime = (draftId, { action = 'accept', at = null } = {}) =>
+  call(
+    apiClient.post(`/api/whatsapp/admin/drafts/${draftId}/time`, {
+      action,
+      ...(at ? { at } : {}),
+    }),
+  );
+
 /** { successCount, failureCount, failed: [{ message }] } */
 const bulkPublishDrafts = async (ids) =>
   (await call(apiClient.post('/api/whatsapp/admin/drafts/bulk-publish', { ids }))) || {};
@@ -65,6 +77,7 @@ export const ReceiptApprovalService = {
   publishDraft,
   rejectDraft,
   clearDraft,
+  setDraftTime,
   bulkPublishDrafts,
   updateOdometerMode,
 };
