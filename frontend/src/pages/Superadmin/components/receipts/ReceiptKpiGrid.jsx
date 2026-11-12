@@ -2,7 +2,31 @@ import { AlertTriangle, Fuel, TrendingUp } from 'lucide-react';
 import Skel from './Skel';
 import { fmtMoney, fmtLitres } from './receiptFormat';
 
-const ReceiptKpiGrid = ({ loading, kpis, odoFilter, setOdoFilter }) => {
+const ReceiptKpiGrid = ({ loading, kpis, odoFilter, setOdoFilter, error = '', onRetry }) => {
+  // A failed load is a failure, never a zero. The cards say they could not be
+  // read and offer a way to try again.
+  if (error && !loading) {
+    return (
+      <div className="ra-kpi-grid">
+        <div className="ra-kpi-card ra-kpi-card--error" role="alert">
+          <div className="ra-kpi-card__head">
+            <span className="ra-kpi-card__title">Pending approvals</span>
+            <AlertTriangle size={16} color="var(--amber-500, #F59E0B)" />
+          </div>
+          <div className="ra-kpi-card__val">Couldn&apos;t load</div>
+          <div className="ra-kpi-card__sub">
+            The inbox could not be read just now, so these numbers are unknown.
+            <div style={{ marginTop: 8 }}>
+              <button type="button" className="ra-btn ra-btn--ghost" onClick={onRetry}>
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Nothing has come in yet: a zero is not a measurement, so say so instead of
   // showing "₹0" and a rate of "₹—/L".
   const empty = !loading && kpis.totalCount === 0;

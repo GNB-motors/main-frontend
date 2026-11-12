@@ -1,7 +1,8 @@
-import { Truck, Check, Phone, ShieldCheck, Eye, Receipt } from 'lucide-react';
+import { Truck, Check, Phone, ShieldCheck, Eye, Receipt, MessageCircle, HelpCircle, Store } from 'lucide-react';
 import { evaluateOcrQuality, getOdometerMeta } from './receiptVerification';
 import { fmtMoney, fmtLitres, fmtDate, fmtRelativeTime } from './receiptFormat';
 import { predictedTimeText } from './predictedTime';
+import { isChatRow, isTruckCertain } from './chatDraft';
 
 const STATUS_BADGE = {
   READY: 'ra-badge--ready',
@@ -17,6 +18,8 @@ const ReceiptRow = ({
   toggleSelectOne,
   setPreviewImage,
   handleSingleApprove,
+  rowError = '',
+  onRetryRow,
 }) => {
   const veh = d.vehicleId?.registrationNumber || d.vehicleReg || '—';
   const isSelected = selectedIds.has(d._id);
@@ -26,6 +29,18 @@ const ReceiptRow = ({
   const driverName =
     [d.userId?.firstName, d.userId?.lastName].filter(Boolean).join(' ') || d.phoneE164 || 'Driver';
   const stationName = d.stationName || d.fuelOcr?.data?.location || 'Highway Pump';
+
+  // A chat row came in through a WhatsApp chat: it says so, and it says what
+  // is still unsure about it.
+  const isChat = isChatRow(d);
+  const truckUnsure = Boolean(d.truck) && !isTruckCertain(d);
+  const isMarket = d.market === true;
+
+  // The time of a chat row: the read time, else the prediction, else nothing.
+  const readTime = d.time?.value || null;
+  const predicted = predictedTimeText(d.time?.predicted);
+  // A chat row may carry its photo in the photo list instead of one slip URL.
+  const slipUrl = d.fuelImageUrl || d.photos?.[0]?.url || '';
 
   return (
     <tr
@@ -52,8 +67,8 @@ const ReceiptRow = ({
         className="ra-table__td-slip"
         onClick={(e) => {
           e.stopPropagation();
-          if (d.fuelImageUrl) {
-            setPreviewImage({ url: d.fuelImageUrl, title: `Fuel Slip · ${veh}` });
+          if (slipUrl) {
+            setPreviewImage({ url: slipUrl, title: `Fuel Slip · ${veh}` });
           } else {
             setActiveDrawerId(d._id);
           }
@@ -80,6 +95,31 @@ const ReceiptRow = ({
             </span>
           )}
         </div>
+        {(isChat || truckUnsure || isMarket) && (
+          <div className="ra-chip-row">
+            {isChat && (
+              <span className="ra-chip ra-chip--chat" title="This fill came in through a WhatsApp chat">
+                <MessageCircle size={11} />
+                From chat
+              </span>
+            )}
+            {truckUnsure && (
+              <span
+                className="ra-chip ra-chip--warn"
+                title="We are not sure which truck this fill belongs to"
+              >
+                <HelpCircle size={11} />
+                Truck not sure
+              </span>
+            )}
+            {isMarket && (
+              <span className="ra-chip ra-chip--market" title="A market truck, not a fleet vehicle">
+                <Store size={11} />
+                Market truck
+              </span>
+            )}
+          </div>
+        )}
       </td>
 
       {/* Driver / Submitter */}
@@ -144,30 +184,53 @@ const ReceiptRow = ({
 
       {/* Refuel Timestamp */}
       <td className="ra-muted" style={{ fontSize: '12px' }}>
-        <div
-          style={{
-            fontWeight: d.billDatetime ? 600 : 500,
-            color: 'var(--foreground)',
-          }}
-        >
-          {fmtDate(d.billDatetime || d.fuelOcr?.data?.datetime || d.createdAt)}
-        </div>
-        <div
-          style={{ fontSize: '11px', opacity: 0.75 }}
-          title={
-            d.createdAt
-              ? `Received via WhatsApp: ${fmtDate(d.createdAt)} (${fmtRelativeTime(d.createdAt)})`
-              : undefined
-          }
-        >
-          {d.billDatetime || d.fuelOcr?.data?.datetime ? (
-            <span>{fmtRelativeTime(d.billDatetime || d.fuelOcr?.data?.datetime)}</span>
-          ) : (
-            <span>Recv: {fmtRelativeTime(d.createdAt)}</span>
-          )}
-        </div>
-        {predictedTimeText(d.time?.predicted) && (
-          <div className="ra-predicted">{predictedTimeText(d.time?.predicted)}</div>
+        {isChat ? (
+          /* A chat row: the time read from the photo, else the predicted one,
+             else the plain words that there is no time at all. */
+          <div className="ra-time-cell">
+            {readTime ? (
+              <>
+                <div style={{ fontWeight: 600, color: 'var(--foreground)' }}>
+                  {fmtDate(readTime)}
+                </div>
+                <div style={{ fontSize: '11px', opacity: 0.75 }}>
+                  {fmtRelativeTime(readTime)}
+                </div>
+              </>
+            ) : predicted ? (
+              <div className="ra-predicted">{predicted}</div>
+            ) : (
+              <div className="ra-time-missing">No time on the photo</div>
+            )}
+          </div>
+        ) : (
+          <>
+            <div
+              style={{
+                fontWeight: d.billDatetime ? 600 : 500,
+                color: 'var(--foreground)',
+              }}
+            >
+              {fmtDate(d.billDatetime || d.fuelOcr?.data?.datetime || d.createdAt)}
+            </div>
+            <div
+              style={{ fontSize: '11px', opacity: 0.75 }}
+              title={
+                d.createdAt
+                  ? `Received via WhatsApp: ${fmtDate(d.createdAt)} (${fmtRelativeTime(d.createdAt)})`
+                  : undefined
+              }
+            >
+              {d.billDatetime || d.fuelOcr?.data?.datetime ? (
+                <span>{fmtRelativeTime(d.billDatetime || d.fuelOcr?.data?.datetime)}</span>
+              ) : (
+                <span>Recv: {fmtRelativeTime(d.createdAt)}</span>
+              )}
+            </div>
+            {predictedTimeText(d.time?.predicted) && (
+              <div className="ra-predicted">{predictedTimeText(d.time?.predicted)}</div>
+            )}
+          </>
         )}
       </td>
 
@@ -193,6 +256,21 @@ const ReceiptRow = ({
             <Eye size={14} />
           </button>
         </div>
+        {/* A refused action belongs to this row: the words sit next to it. */}
+        {rowError && (
+          <div className="ra-row-error" role="alert">
+            <span className="ra-row-error__text">{rowError}</span>
+            {onRetryRow && (
+              <button
+                type="button"
+                className="ra-row-error__retry"
+                onClick={(e) => onRetryRow(d._id, e)}
+              >
+                Retry
+              </button>
+            )}
+          </div>
+        )}
       </td>
     </tr>
   );

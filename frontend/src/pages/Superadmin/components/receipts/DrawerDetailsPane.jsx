@@ -1,16 +1,26 @@
 import { useState } from 'react';
-import { CheckCircle2, Receipt, Gauge, MapPin, Clock, User, AlertTriangle } from 'lucide-react';
+import {
+  CheckCircle2,
+  Receipt,
+  Gauge,
+  MapPin,
+  Clock,
+  User,
+  AlertTriangle,
+  MessageCircle,
+} from 'lucide-react';
 import { fmtMoney, fmtLitres, fmtDate, fmtRelativeTime } from './receiptFormat';
 import { predictedEvidenceLines, predictedTimeText } from './predictedTime';
 
 /** The predicted time of a fill, with the buttons a person needs. */
-const PredictedTime = ({ draft, onSetTime, timeBusy }) => {
+const PredictedTime = ({ draft, onSetTime, timeBusy, hidden = false }) => {
   const [editing, setEditing] = useState(false);
   const [typed, setTyped] = useState('');
   const predicted = draft?.time?.predicted || null;
   const person = draft?.time?.person || null;
   const text = predictedTimeText(predicted);
   const evidenceLines = predictedEvidenceLines(predicted?.evidence);
+  if (hidden) return null;
   if (!text && !person?.at) return null;
 
   return (
@@ -97,8 +107,17 @@ const DrawerDetailsPane = ({
   submitter,
   onSetTime,
   timeBusy,
-}) => (
-  <div className="ra-drawer__details-pane">
+  showTimeBlock = true,
+}) => {
+  // The words the server wrote for the person: why this row is in the inbox.
+  const reasons = Array.isArray(draft.pipelineReasons)
+    ? draft.pipelineReasons.filter(Boolean)
+    : [];
+  const reason = draft.pipelineReason || '';
+  const caption = draft.caption || '';
+
+  return (
+    <div className="ra-drawer__details-pane">
     {/* Math & Amount Banner */}
     <div className="ra-amount-hero">
       <div className="ra-amount-hero__main">
@@ -144,7 +163,12 @@ const DrawerDetailsPane = ({
           <span className="ra-prop__label">Bill Date & Time</span>
           <span className="ra-prop__val">{fmtDate(draft.billDatetime)}</span>
         </div>
-        <PredictedTime draft={draft} onSetTime={onSetTime} timeBusy={timeBusy} />
+        <PredictedTime
+          draft={draft}
+          onSetTime={onSetTime}
+          timeBusy={timeBusy}
+          hidden={!showTimeBlock}
+        />
         <div className="ra-prop">
           <span className="ra-prop__label">Plate (OCR Detected)</span>
           <span className="ra-prop__val font-mono">{draft.plateText || 'Not Detected'}</span>
@@ -256,7 +280,33 @@ const DrawerDetailsPane = ({
         )}
       </div>
     </div>
+
+    {/* Section: Why the server put this row in the inbox, in plain words */}
+    {(reason || reasons.length > 0) && (
+      <div className="ra-section-card">
+        <div className="ra-section-card__title">
+          <AlertTriangle size={15} /> Why this is in the inbox
+        </div>
+        <ul className="ra-reasons">
+          {reason && <li>{reason}</li>}
+          {reasons.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+    {/* Section: What the driver wrote with the photo */}
+    {caption && (
+      <div className="ra-section-card">
+        <div className="ra-section-card__title">
+          <MessageCircle size={15} /> Message from the driver
+        </div>
+        <div className="ra-caption">{caption}</div>
+      </div>
+    )}
   </div>
-);
+  );
+};
 
 export default DrawerDetailsPane;

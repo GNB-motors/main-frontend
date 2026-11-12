@@ -1,4 +1,4 @@
-import { Inbox, ArrowDown, ArrowUp } from 'lucide-react';
+import { Inbox, ArrowDown, ArrowUp, AlertTriangle } from 'lucide-react';
 import EnterprisePagination from '../../../../components/ui/EnterprisePagination';
 import ReceiptRowSkeleton from './ReceiptRowSkeleton';
 import ReceiptRow from './ReceiptRow';
@@ -27,6 +27,10 @@ const ReceiptTable = ({
   pageSize,
   setPage,
   setPageSize,
+  error = '',
+  onRetry,
+  rowErrors = {},
+  onRetryRow,
 }) => (
   <div className="ra-card">
     <div
@@ -82,7 +86,32 @@ const ReceiptTable = ({
         <tbody aria-busy={loading}>
           {loading && Array.from({ length: SKEL_ROWS }, (_, i) => <ReceiptRowSkeleton key={i} />)}
 
-          {!loading && filtered.length === 0 && (
+          {/* A failed load is a failure, never an empty inbox. */}
+          {!loading && error && (
+            <tr>
+              <td colSpan={12} aria-label="The receipts did not load">
+                <div className="ra-state ra-state--error" role="alert" style={{ padding: '50px 0' }}>
+                  <div className="ra-state__icon">
+                    <AlertTriangle size={26} />
+                  </div>
+                  <div className="ra-state__title">The receipts did not load</div>
+                  <div style={{ color: 'var(--muted-foreground)', fontSize: '13px', marginTop: 4 }}>
+                    {error}
+                  </div>
+                  <button
+                    type="button"
+                    className="ra-btn ra-btn--ghost"
+                    style={{ marginTop: 14 }}
+                    onClick={onRetry}
+                  >
+                    Try again
+                  </button>
+                </div>
+              </td>
+            </tr>
+          )}
+
+          {!loading && !error && filtered.length === 0 && (
             // eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table row, not a control; its cell holds the empty-state text and button
             <tr>
               <td colSpan={12}>
@@ -114,6 +143,7 @@ const ReceiptTable = ({
           )}
 
           {!loading &&
+            !error &&
             filtered.map((d) => (
               <ReceiptRow
                 key={d._id}
@@ -123,6 +153,8 @@ const ReceiptTable = ({
                 toggleSelectOne={toggleSelectOne}
                 setPreviewImage={setPreviewImage}
                 handleSingleApprove={handleSingleApprove}
+                rowError={rowErrors[d._id] || ''}
+                onRetryRow={onRetryRow}
               />
             ))}
         </tbody>

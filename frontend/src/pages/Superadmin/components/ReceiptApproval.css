@@ -1866,3 +1866,153 @@
     animation: none;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Chat-import rows: a photo that came in through a WhatsApp chat.
+   The chips say where the row came from and what is still unsure.
+   ───────────────────────────────────────────────────────────── */
+.ra-chip-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 5px;
+}
+
+.ra-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.5;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--secondary);
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.ra-chip--chat {
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+  border-color: rgba(37, 99, 235, 0.25);
+}
+
+.ra-chip--warn {
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.32);
+}
+
+.ra-chip--market {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+/* The time of a chat row: the read time, the prediction, or nothing. */
+.ra-time-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ra-time-missing {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--muted-foreground);
+}
+
+/* A refused action, in the words the server wrote for people. */
+.ra-row-error {
+  margin-top: 6px;
+  max-width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--rose-600, #e11d48);
+}
+
+.ra-row-error__retry {
+  align-self: flex-start;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.ra-row-error__retry:hover {
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+/* A failed load: the cards say so, they never show a zero. */
+.ra-kpi-card--error {
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.ra-state--error .ra-state__icon {
+  color: var(--amber-500, #f59e0b);
+}
+
+/* The drawer's right column: the details and the editor of a chat row. */
+.ra-drawer__details-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* The editor of a chat-import row. */
+.ra-chat-editor .ra-prop {
+  gap: 5px;
+}
+
+.ra-chat-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--muted-foreground);
+}
+
+.ra-select--plain,
+.ra-input--plain {
+  width: 100%;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 9px;
+}
+
+.ra-select--plain:focus,
+.ra-input--plain:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+/* The plain words the server wrote for the person. */
+.ra-reasons {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--foreground);
+}
+
+.ra-caption {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--foreground);
+  white-space: pre-wrap;
+}

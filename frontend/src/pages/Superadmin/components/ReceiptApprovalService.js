@@ -1,6 +1,7 @@
 import apiClient from '../../../utils/axiosConfig';
 import ApiError from '../../../errors/ApiError';
 import { parseSafe } from '../../../schemas/validate.js';
+import { getVehicleList } from '../../../services/vehicleListService';
 
 const call = async (request) => {
   try {
@@ -42,8 +43,22 @@ const getDraftCounts = async ({ signal } = {}) => {
 const getDraft = async (draftId, { signal } = {}) =>
   (await call(apiClient.get(`/api/whatsapp/admin/drafts/${draftId}`, { signal }))) ?? null;
 
-const publishDraft = (draftId) =>
-  call(apiClient.post(`/api/whatsapp/admin/drafts/${draftId}/publish`));
+/**
+ * Approve a draft. A chat-import row saves the fill with the values a person
+ * changed in the drawer (truck, litres, amount, filling type, time); a guided
+ * row is approved as it is.
+ */
+const publishDraft = (draftId, payload) => {
+  const body = payload && Object.keys(payload).length ? payload : undefined;
+  return call(apiClient.post(`/api/whatsapp/admin/drafts/${draftId}/publish`, body));
+};
+
+/** Mark a row as a market truck: a truck that is not in our fleet. */
+const markDraftAsMarket = (draftId, payload) =>
+  call(apiClient.post(`/api/whatsapp/admin/drafts/${draftId}/market`, payload || {}));
+
+/** The org's vehicles, for the truck picker of a chat-import row. */
+const listVehicles = async ({ signal } = {}) => (await getVehicleList({ signal })) || [];
 
 const rejectDraft = (draftId, reason) =>
   call(apiClient.post(`/api/whatsapp/admin/drafts/${draftId}/reject`, { reason }));
@@ -75,6 +90,8 @@ export const ReceiptApprovalService = {
   getDraftCounts,
   getDraft,
   publishDraft,
+  markDraftAsMarket,
+  listVehicles,
   rejectDraft,
   clearDraft,
   setDraftTime,
