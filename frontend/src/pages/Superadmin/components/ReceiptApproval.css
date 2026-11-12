@@ -1363,6 +1363,15 @@
   flex-wrap: wrap;
 }
 
+/* How we know, in plain words: the lines a person reads to check it. */
+.ra-predicted__evidence {
+  margin: 2px 0 0;
+  padding-left: 16px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
 /* PREDICTED time inside a list row: same warning colour, smaller. */
 .ra-predicted {
   margin-top: 2px;

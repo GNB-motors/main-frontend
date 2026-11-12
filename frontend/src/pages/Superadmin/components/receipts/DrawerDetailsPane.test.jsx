@@ -89,6 +89,39 @@ describe('DrawerDetailsPane — the predicted fill time', () => {
     expect(screen.queryByRole('button', { name: 'Accept' })).toBeNull();
   });
 
+  it('shows how we know, so that a person can check it', () => {
+    const draft = draftWith({
+      predicted: {
+        ...PREDICTED,
+        evidence: {
+          truckStatus: 'likely',
+          sensor: {
+            at: '2026-11-10T13:10:00.000Z',
+            litres: 100,
+            pumpName: 'Jhargram Pump',
+          },
+          gps: {
+            at: '2026-11-10T13:05:00.000Z',
+            until: '2026-11-10T13:12:00.000Z',
+            fixes: 3,
+            radiusM: 500,
+            place: { id: 'p1', name: 'Jhargram Pump' },
+          },
+        },
+      },
+    });
+    render(<DrawerDetailsPane {...props} draft={draft} />);
+
+    expect(screen.getByText('Tank rise at Jhargram Pump of 100 L at 6:40 pm.')).toBeTruthy();
+    expect(
+      screen.getByText('At Jhargram Pump from 6:35 pm to 6:42 pm, 3 readings within 500 m.'),
+    ).toBeTruthy();
+    expect(
+      screen.getByText('The truck itself is only likely, so a person has to pick it.'),
+    ).toBeTruthy();
+    expect(screen.getByText('Predicted 6:40 pm (tank rise, likely truck)')).toBeTruthy();
+  });
+
   it('names the source of every prediction', () => {
     expect(predictedTimeText(PREDICTED)).toBe('Predicted 6:40 pm (tank rise)');
     expect(predictedTimeText({ ...PREDICTED, source: 'GPS_AT_PUMP' })).toBe(

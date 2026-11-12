@@ -13,6 +13,22 @@ export const PREDICTED_WORDS = {
   BOTH: 'tank rise and GPS at pump',
 };
 
+/** A time on a clock, the way a person reads it. */
+const clock = (value) =>
+  new Date(value).toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+
+/** The time in plain words, or nothing when there is no time. */
+const time = (value) => {
+  if (!value) return '';
+  const at = new Date(value);
+  if (Number.isNaN(at.getTime())) return '';
+  return clock(at);
+};
+
 /**
  * The predicted time in plain words: "Predicted 6:40 pm (tank rise)".
  * An empty string when there is no prediction to show.
@@ -21,12 +37,48 @@ export const predictedTimeText = (predicted) => {
   if (!predicted || !predicted.at) return '';
   const at = new Date(predicted.at);
   if (Number.isNaN(at.getTime())) return '';
-  const clock = at.toLocaleString('en-IN', {
-    timeZone: 'Asia/Kolkata',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-  return `Predicted ${clock} (${PREDICTED_WORDS[predicted.source] || 'our own data'})`;
+  const source = PREDICTED_WORDS[predicted.source] || 'our own data';
+  // A truck that is only likely says so: it may be another truck.
+  const truck = predicted.evidence?.truckStatus === 'likely' ? ', likely truck' : '';
+  return `Predicted ${clock(at)} (${source}${truck})`;
+};
+
+/**
+ * How we know, in plain words — the lines a person reads to check the
+ * prediction themselves.
+ */
+export const predictedEvidenceLines = (evidence) => {
+  if (!evidence) return [];
+  const lines = [];
+
+  const sensor = evidence.sensor;
+  if (sensor && sensor.at) {
+    const litres = sensor.litres ? ` of ${sensor.litres} L` : '';
+    const pump = sensor.pumpName ? ` at ${sensor.pumpName}` : '';
+    lines.push(`Tank rise${pump}${litres} at ${time(sensor.at)}.`);
+  }
+
+  const gps = evidence.gps;
+  if (gps && gps.at) {
+    const place = gps.place?.name || 'the pump';
+    const readings = gps.fixes ? `, ${gps.fixes} readings` : '';
+    const radius = gps.radiusM ? ` within ${gps.radiusM} m` : '';
+    lines.push(`At ${place} from ${time(gps.at)} to ${time(gps.until)}${readings}${radius}.`);
+  }
+
+  const also = evidence.alsoSeen;
+  if (also && also.at) {
+    const place = also.place?.name || 'the pump';
+    lines.push(
+      `Also seen: at ${place} from ${time(also.at)} to ${time(also.until)} — ${also.why}.`,
+    );
+  }
+
+  if (evidence.truckStatus === 'likely') {
+    lines.push('The truck itself is only likely, so a person has to pick it.');
+  }
+
+  return lines;
 };
 
 export default predictedTimeText;

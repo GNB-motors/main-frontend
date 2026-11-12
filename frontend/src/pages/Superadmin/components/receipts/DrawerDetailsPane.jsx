@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { CheckCircle2, Receipt, Gauge, MapPin, Clock, User, AlertTriangle } from 'lucide-react';
 import { fmtMoney, fmtLitres, fmtDate, fmtRelativeTime } from './receiptFormat';
-import { predictedTimeText } from './predictedTime';
+import { predictedEvidenceLines, predictedTimeText } from './predictedTime';
 
 /** The predicted time of a fill, with the buttons a person needs. */
 const PredictedTime = ({ draft, onSetTime, timeBusy }) => {
@@ -10,6 +10,7 @@ const PredictedTime = ({ draft, onSetTime, timeBusy }) => {
   const predicted = draft?.time?.predicted || null;
   const person = draft?.time?.person || null;
   const text = predictedTimeText(predicted);
+  const evidenceLines = predictedEvidenceLines(predicted?.evidence);
   if (!text && !person?.at) return null;
 
   return (
@@ -20,6 +21,13 @@ const PredictedTime = ({ draft, onSetTime, timeBusy }) => {
           <Clock size={13} style={{ display: 'inline', marginRight: 4 }} />
           {text}
         </span>
+      )}
+      {evidenceLines.length > 0 && (
+        <ul className="ra-predicted__evidence">
+          {evidenceLines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
       )}
       {person?.at && (
         <span className="ra-prop__val">
