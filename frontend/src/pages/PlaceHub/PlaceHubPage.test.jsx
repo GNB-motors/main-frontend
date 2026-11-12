@@ -472,9 +472,12 @@ describe('PlaceHubPage', () => {
   it('defaults Routes to deliveries without requesting the movement map', async () => {
     renderPage('/place-hub?tab=routes');
     expect(
-      await screen.findByRole('heading', { name: 'Your routes, understood.' }),
+      await screen.findByRole('complementary', { name: 'Delivery route list' }),
     ).toBeInTheDocument();
-    expect(PlaceIntelligenceService.listDeliveryLegs).toHaveBeenCalled();
+    expect(PlaceIntelligenceService.listDeliveryLegs).toHaveBeenCalledWith(
+      expect.objectContaining({ includeMap: true }),
+      expect.anything(),
+    );
     expect(PlaceIntelligenceService.routesMap).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: /^Deliveries$/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'All movements' }));

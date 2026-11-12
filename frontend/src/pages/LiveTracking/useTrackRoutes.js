@@ -44,17 +44,25 @@ export function trackDeliveryModel(data) {
   return trackRouteModel({ legs, sites: [...sites.values()] });
 }
 
-export async function loadDeliveryRoutes(signal) {
+/** Every delivery route with its road path; `filters` are the list API's own filters. */
+export async function loadDeliveryRoutes(signal, filters = {}) {
   const limit = 200;
   const read = (page) =>
-    PlaceIntelligenceService.listDeliveryLegs({ page, limit, includeMap: true }, { signal });
+    PlaceIntelligenceService.listDeliveryLegs(
+      { ...filters, page, limit, includeMap: true },
+      { signal },
+    );
   const first = await read(1);
   const rest = await Promise.all(
     Array.from({ length: Math.max(0, Math.ceil(first.total / limit) - 1) }, (_, index) =>
       read(index + 2),
     ),
   );
-  return { rows: [first, ...rest].flatMap((page) => page.rows || []) };
+  return {
+    rows: [first, ...rest].flatMap((page) => page.rows || []),
+    total: first.total,
+    totals: first.totals,
+  };
 }
 
 /** The delivery feed and movement feed keep separate IDs and abort on a mode change. */

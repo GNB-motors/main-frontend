@@ -28,7 +28,10 @@ import DraftHint from './page/DraftHint.jsx';
 import Legend from './page/Legend.jsx';
 import './intelligence/placeIntelligence.css';
 import './PlaceHub.css';
-import DeliveryRoutes from './intelligence/DeliveryRoutes';
+import SapWorkspace from './intelligence/SapWorkspace';
+import DeliveryRoutesPanel from './panels/DeliveryRoutesPanel.jsx';
+import useDeliveryRouteMap from './page/useDeliveryRouteMap.js';
+import './intelligence/DeliveryRoutes.css';
 
 // Same libraries as the other place pages, so moving between them does not
 // make @react-google-maps/api tear down and reload the Maps script.
@@ -286,6 +289,14 @@ export default function PlaceHubPage() {
     selection,
     fitPoints,
   } = usePlaceHubDerived({ data, group, query, showContext, selectedId, tab });
+  const delivery = useDeliveryRouteMap({
+    enabled: ready && tab === 'routes' && deliveryView,
+    version,
+    params,
+    setParams,
+    siteOf,
+  });
+  const sapView = deliveryView ? delivery.sapTab : null;
   const subView = { places: group, idling: idleView, fuel: fuelView }[tab] || '';
   const fitKey = `${tab}:${subView}:${loaded[tab] ? 1 : 0}:${fitNonce}`;
 
@@ -435,9 +446,14 @@ export default function PlaceHubPage() {
     fuel: loaded.fuel ? num(fuel.active) : null,
     stops: unexplainedHours ? `${num(unexplainedHours)} h` : null,
   };
-  const activeSelection = tab === 'routes' ? { kind: 'leg', item: routeSelection } : selection;
+  const activeSelection =
+    tab !== 'routes'
+      ? selection
+      : deliveryView
+        ? { kind: 'delivery', item: delivery.selected }
+        : { kind: 'leg', item: routeSelection };
   const panelOpen = Boolean(draft || activeSelection?.item);
-  const isMapTab = MAP_TABS.has(tab) && !deliveryView;
+  const isMapTab = MAP_TABS.has(tab) && !sapView;
   const lastRunAt = data.summary?.lastRunAt;
 
   /* ─── Render ──────────────────────────────────────────────────────────── */
@@ -484,9 +500,9 @@ export default function PlaceHubPage() {
           )}
         </div>
       )}
-      {deliveryView && (
-        <section className="ph-insight" aria-label="Delivery routes">
-          <DeliveryRoutes version={version} />
+      {sapView && (
+        <section className="ph-insight" aria-label="SAP">
+          <SapWorkspace view={sapView} onView={delivery.setIntent} onChanged={delivery.refresh} />
         </section>
       )}
       {!isMapTab && !deliveryView && (
@@ -502,7 +518,9 @@ export default function PlaceHubPage() {
 
       {/* Hidden, not unmounted, on the table tabs: every new map is a billed map load. */}
       <div className={`ph-body${panelOpen ? ' has-panel' : ''}`} hidden={!isMapTab}>
-        {tab === 'routes' ? (
+        {tab === 'routes' && deliveryView ? (
+          <DeliveryRoutesPanel d={delivery} />
+        ) : tab === 'routes' ? (
           <RoutesPanel
             data={data.routes}
             legs={routeLegs}
@@ -588,24 +606,46 @@ export default function PlaceHubPage() {
             onSelect={pickFromMap}
             draft={draft}
             onDraftChange={changeDraftFromMap}
-            routes={{
-              lines: routeLines,
-              sites: routeModel.sites,
-              selectedId: routeId,
-              hoveredId: routeHover,
-              onPick: pickRoute,
-              onHover: setRouteHover,
-              onSite: pickRouteSite,
-              detail: routeDetail,
-              showEngine: showRouteEngine,
-            }}
+            routes={
+              deliveryView
+                ? {
+                    lines: delivery.lines,
+                    sites: delivery.sites,
+                    selectedId: delivery.selectedId,
+                    hoveredId: delivery.hoveredId,
+                    onPick: delivery.pick,
+                    onHover: delivery.setHoveredId,
+                    onSite: delivery.setSiteId,
+                    detail: null,
+                    showEngine: false,
+                  }
+                : {
+                    lines: routeLines,
+                    sites: routeModel.sites,
+                    selectedId: routeId,
+                    hoveredId: routeHover,
+                    onPick: pickRoute,
+                    onHover: setRouteHover,
+                    onSite: pickRouteSite,
+                    detail: routeDetail,
+                    showEngine: showRouteEngine,
+                  }
+            }
             fitPoints={
-              tab === 'routes' ? (routeSelection ? selectedRoutePoints : routePoints) : fitPoints
+              tab === 'routes' && deliveryView
+                ? delivery.fitPoints
+                : tab === 'routes'
+                  ? routeSelection
+                    ? selectedRoutePoints
+                    : routePoints
+                  : fitPoints
             }
             fitKey={
-              tab === 'routes'
-                ? `${fitKey}:${data.routes?.generatedAt || ''}:${routeId || ''}:${routeChip}:${routeSiteId || ''}:${routeQuery}`
-                : fitKey
+              tab === 'routes' && deliveryView
+                ? `${fitNonce}:${delivery.fitKey}`
+                : tab === 'routes'
+                  ? `${fitKey}:${data.routes?.generatedAt || ''}:${routeId || ''}:${routeChip}:${routeSiteId || ''}:${routeQuery}`
+                  : fitKey
             }
             focus={focus}
           />
@@ -647,7 +687,14 @@ export default function PlaceHubPage() {
             places={places}
             canEdit={canEdit}
             disclaimer={data.drain?.disclaimer}
-            onClose={() => (tab === 'routes' ? pickRoute(null) : setSelectedId(null))}
+            onClose={() =>
+              tab !== 'routes'
+                ? setSelectedId(null)
+                : deliveryView
+                  ? delivery.pick(null)
+                  : pickRoute(null)
+            }
+            delivery={delivery}
             routeSites={routeModel.sites}
             onPickRoute={pickRoute}
             onRouteDetail={setRouteDetail}
