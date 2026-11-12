@@ -1,7 +1,7 @@
 import { Truck, Check, Phone, ShieldCheck, Eye, Receipt, MessageCircle, HelpCircle, Store } from 'lucide-react';
 import { evaluateOcrQuality, getOdometerMeta } from './receiptVerification';
 import { fmtMoney, fmtLitres, fmtDate, fmtRelativeTime } from './receiptFormat';
-import { predictedTimeText } from './predictedTime';
+import { predictedTimeText, severalRisesText } from './predictedTime';
 import { isChatRow, isTruckCertain } from './chatDraft';
 
 const STATUS_BADGE = {
@@ -199,6 +199,8 @@ const ReceiptRow = ({
               </>
             ) : predicted ? (
               <div className="ra-predicted">{predicted}</div>
+            ) : severalRisesText(d.time?.predicted) ? (
+              <div className="ra-time-missing">{severalRisesText(d.time?.predicted)}</div>
             ) : (
               <div className="ra-time-missing">No time on the photo</div>
             )}

@@ -1,5 +1,5 @@
 import { Fuel, Truck, Clock, Store, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { predictedTimeText, predictedEvidenceLines } from './predictedTime';
+import { predictedTimeText, predictedEvidenceLines, suggestedLitres } from './predictedTime';
 import { fmtDate } from './receiptFormat';
 import { candidatePercent, truckCandidates } from './chatDraft';
 
@@ -18,6 +18,7 @@ const ChatDraftEditor = ({ draft, edits, onChange, vehicles = [], vehiclesError 
   const predicted = draft.time?.predicted || null;
   const predictedText = predictedTimeText(predicted);
   const evidence = predictedEvidenceLines(predicted?.evidence);
+  const litresSuggestion = predictedText ? suggestedLitres(predicted) : null;
   const readTime = draft.time?.value || null;
 
   // The trucks a person can pick: the ones this photo could be, plus every
@@ -156,9 +157,20 @@ const ChatDraftEditor = ({ draft, edits, onChange, vehicles = [], vehiclesError 
           )}
           {predictedText && (
             <div className="ra-predicted__actions">
+              {litresSuggestion != null && (
+                <button
+                  type="button"
+                  className="ra-btn ra-btn--publish"
+                  onClick={() =>
+                    set({ time: { action: 'accept' }, litres: String(litresSuggestion) })
+                  }
+                >
+                  Accept suggested time and {litresSuggestion} L
+                </button>
+              )}
               <button
                 type="button"
-                className="ra-btn ra-btn--publish"
+                className={litresSuggestion != null ? 'ra-btn ra-btn--ghost' : 'ra-btn ra-btn--publish'}
                 onClick={() => set({ time: { action: 'accept' } })}
               >
                 Use the predicted time

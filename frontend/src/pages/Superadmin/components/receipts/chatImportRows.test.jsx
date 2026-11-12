@@ -63,14 +63,14 @@ describe('ReceiptRow — a chat-import row', () => {
   it('shows the predicted time when the photo has no time of its own', () => {
     renderRow(chatRow);
 
-    expect(screen.getByText('Predicted 6:40 pm (tank rise)')).toBeInTheDocument();
+    expect(screen.getByText('Predicted 10 Nov, 6:40 pm (tank rise)')).toBeInTheDocument();
     expect(screen.queryByText('No time on the photo')).not.toBeInTheDocument();
   });
 
   it('shows the time read from the photo when there is one', () => {
     renderRow({ ...chatRow, time: { value: '2026-11-10T08:30:00.000Z' } });
 
-    expect(screen.queryByText('Predicted 6:40 pm (tank rise)')).not.toBeInTheDocument();
+    expect(screen.queryByText('Predicted 10 Nov, 6:40 pm (tank rise)')).not.toBeInTheDocument();
     expect(screen.queryByText('No time on the photo')).not.toBeInTheDocument();
     expect(screen.getByText(/10 Nov/)).toBeInTheDocument();
   });

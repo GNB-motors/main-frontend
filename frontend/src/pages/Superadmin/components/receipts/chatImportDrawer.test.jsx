@@ -38,6 +38,7 @@ const chatDraft = {
     predicted: {
       at: '2026-11-10T13:10:00.000Z',
       source: 'SENSOR_RISE',
+      litres: 218,
       evidence: { sensor: { litres: 120 } },
     },
   },
@@ -130,6 +131,17 @@ describe('ReceiptApprovalDrawer — a chat-import row', () => {
 
     await waitFor(() => expect(postCalls('/publish')).toHaveLength(1));
     expect(postCalls('/publish')[0][1]).toMatchObject({ time: { action: 'accept' } });
+  });
+
+  it('accepts the suggested time and litres in one click', async () => {
+    renderDrawer();
+    await screen.findByText('Check the fill before you approve it');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Accept suggested time and 218 L' }));
+    fireEvent.click(screen.getByRole('button', { name: /Approve & Publish/i }));
+
+    await waitFor(() => expect(postCalls('/publish')).toHaveLength(1));
+    expect(postCalls('/publish')[0][1]).toMatchObject({ time: { action: 'accept' }, litres: 218 });
   });
 
   it('keeps a row that is not a fill, and says that it is kept', async () => {

@@ -5,21 +5,21 @@ describe('predictedTimeText', () => {
   it('shows the predicted time in plain words with its source', () => {
     const at = new Date('2026-11-12T13:10:00.000Z'); // 6:40 pm IST
     expect(predictedTimeText({ at, source: 'SENSOR_RISE' })).toBe(
-      'Predicted 6:40 pm (tank rise)'
+      'Predicted 12 Nov, 6:40 pm (tank rise)'
     );
   });
 
   it('names a GPS based prediction', () => {
     const at = new Date('2026-11-12T13:10:00.000Z');
     expect(predictedTimeText({ at, source: 'GPS_AT_PUMP' })).toBe(
-      'Predicted 6:40 pm (GPS at pump)'
+      'Predicted 12 Nov, 6:40 pm (GPS at pump)'
     );
   });
 
   it('names both sources when they agree', () => {
     const at = new Date('2026-11-12T13:10:00.000Z');
     expect(predictedTimeText({ at, source: 'BOTH' })).toBe(
-      'Predicted 6:40 pm (tank rise and GPS at pump)'
+      'Predicted 12 Nov, 6:40 pm (tank rise and GPS at pump)'
     );
   });
 
@@ -34,7 +34,7 @@ describe('predictedTimeText', () => {
     const at = new Date('2026-11-12T13:10:00.000Z');
     expect(
       predictedTimeText({ at, source: 'SENSOR_RISE', evidence: { truckStatus: 'likely' } }),
-    ).toBe('Predicted 6:40 pm (tank rise, likely truck)');
+    ).toBe('Predicted 12 Nov, 6:40 pm (tank rise, likely truck)');
   });
 
   it('lists how we know, in plain words', () => {
@@ -65,5 +65,41 @@ describe('predictedTimeText', () => {
   it('says nothing about evidence that is not there', () => {
     expect(predictedEvidenceLines(null)).toEqual([]);
     expect(predictedEvidenceLines({})).toEqual([]);
+  });
+});
+
+import { suggestedLitres, severalRisesText } from './predictedTime';
+
+describe('tank-rise match words', () => {
+  it('says how sure the match is', () => {
+    const at = new Date('2026-11-09T14:41:00.000Z');
+    expect(predictedTimeText({ at, source: 'SENSOR_RISE', confidence: 'HIGH' })).toBe(
+      'Predicted 9 Nov, 8:11 pm (tank rise, two clues agree)'
+    );
+  });
+
+  it('shows the matcher lines and the odometer note', () => {
+    const lines = predictedEvidenceLines({
+      plainLines: ['Tank rose 218 L at 8:11 pm on 9 Nov.'],
+      odometerNote: 'The odometer on the photo is higher than the truck’s own odometer.',
+      sensor: { at: '2026-11-09T14:41:00.000Z', litres: 218 },
+    });
+    expect(lines).toEqual([
+      'Tank rose 218 L at 8:11 pm on 9 Nov.',
+      'The odometer on the photo is higher than the truck’s own odometer.',
+    ]);
+  });
+
+  it('suggests the litres of the match', () => {
+    expect(suggestedLitres({ litres: 218 })).toBe(218);
+    expect(suggestedLitres({ evidence: { litresSuggestion: { litres: 150.5 } } })).toBe(150.5);
+    expect(suggestedLitres({ litres: null })).toBeNull();
+  });
+
+  it('asks a person to pick when several rises fit', () => {
+    expect(
+      severalRisesText({ at: null, evidence: { status: 'several', candidates: [{}, {}, {}] } })
+    ).toBe('3 tank rises fit — pick one');
+    expect(severalRisesText({ at: '2026-11-09T14:41:00.000Z', evidence: { status: 'several' } })).toBe('');
   });
 });

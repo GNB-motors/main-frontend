@@ -21,6 +21,21 @@ const clock = (value) =>
     minute: '2-digit',
   });
 
+/** A day and a time, the way a person reads it: "9 Nov, 8:11 pm". */
+const dayClock = (value) =>
+  `${new Date(value).toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: 'numeric',
+    month: 'short',
+  })}, ${clock(value)}`;
+
+/** The words for how sure a suggestion is. */
+const CONFIDENCE_WORDS = {
+  HIGH: 'two clues agree',
+  MEDIUM: 'one clue',
+  LOW: 'weak',
+};
+
 /** The time in plain words, or nothing when there is no time. */
 const time = (value) => {
   if (!value) return '';
@@ -40,7 +55,11 @@ export const predictedTimeText = (predicted) => {
   const source = PREDICTED_WORDS[predicted.source] || 'our own data';
   // A truck that is only likely says so: it may be another truck.
   const truck = predicted.evidence?.truckStatus === 'likely' ? ', likely truck' : '';
-  return `Predicted ${clock(at)} (${source}${truck})`;
+  const sure = CONFIDENCE_WORDS[predicted.confidence]
+    ? `, ${CONFIDENCE_WORDS[predicted.confidence]}`
+    : '';
+  // A forwarded chat can be days after the fill, so the day is always shown.
+  return `Predicted ${dayClock(at)} (${source}${sure}${truck})`;
 };
 
 /**
@@ -51,8 +70,14 @@ export const predictedEvidenceLines = (evidence) => {
   if (!evidence) return [];
   const lines = [];
 
+  // The words the matcher wrote: which rise, the odometer, the pump litres,
+  // or the several rises a person has to pick from.
+  const plain = Array.isArray(evidence.plainLines) ? evidence.plainLines.filter(Boolean) : [];
+  lines.push(...plain);
+  if (evidence.odometerNote) lines.push(evidence.odometerNote);
+
   const sensor = evidence.sensor;
-  if (sensor && sensor.at) {
+  if (sensor && sensor.at && !plain.length) {
     const litres = sensor.litres ? ` of ${sensor.litres} L` : '';
     const pump = sensor.pumpName ? ` at ${sensor.pumpName}` : '';
     lines.push(`Tank rise${pump}${litres} at ${time(sensor.at)}.`);
@@ -68,10 +93,9 @@ export const predictedEvidenceLines = (evidence) => {
 
   const also = evidence.alsoSeen;
   if (also && also.at) {
-    const place = also.place?.name || 'the pump';
-    lines.push(
-      `Also seen: at ${place} from ${time(also.at)} to ${time(also.until)} — ${also.why}.`,
-    );
+    const place = (typeof also.place === 'string' ? also.place : also.place?.name) || 'the pump';
+    const why = also.why ? ` — ${also.why}` : ' — the tank rose outside that visit';
+    lines.push(`Also seen: at ${place} from ${time(also.at)} to ${time(also.until)}${why}.`);
   }
 
   if (evidence.truckStatus === 'likely') {
@@ -79,6 +103,21 @@ export const predictedEvidenceLines = (evidence) => {
   }
 
   return lines;
+};
+
+/** The litres the matched rise (or the pump photo) suggests, else null. */
+export const suggestedLitres = (predicted) => {
+  const value = predicted?.litres ?? predicted?.evidence?.litresSuggestion?.litres ?? null;
+  const n = Number(value);
+  return value != null && Number.isFinite(n) && n > 0 ? n : null;
+};
+
+/** Several rises fit and none was picked: the person has to choose. */
+export const severalRisesText = (predicted) => {
+  const ev = predicted?.evidence;
+  if (!ev || predicted?.at || ev.status !== 'several') return '';
+  const count = Array.isArray(ev.candidates) ? ev.candidates.length : 0;
+  return count ? `${count} tank rises fit — pick one` : 'Several tank rises fit — pick one';
 };
 
 export default predictedTimeText;

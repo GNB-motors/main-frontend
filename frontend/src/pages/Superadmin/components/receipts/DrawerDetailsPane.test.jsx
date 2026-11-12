@@ -41,7 +41,7 @@ describe('DrawerDetailsPane — the predicted fill time', () => {
   it('shows the predicted time in plain words, never as a read time', () => {
     render(<DrawerDetailsPane {...props} draft={draftWith({ predicted: PREDICTED })} />);
 
-    expect(screen.getByText('Predicted 6:40 pm (tank rise)')).toBeTruthy();
+    expect(screen.getByText('Predicted 10 Nov, 6:40 pm (tank rise, one clue)')).toBeTruthy();
     // The read time of the photo is still unknown.
     expect(screen.getByText('Bill Date & Time')).toBeTruthy();
   });
@@ -119,16 +119,16 @@ describe('DrawerDetailsPane — the predicted fill time', () => {
     expect(
       screen.getByText('The truck itself is only likely, so a person has to pick it.'),
     ).toBeTruthy();
-    expect(screen.getByText('Predicted 6:40 pm (tank rise, likely truck)')).toBeTruthy();
+    expect(screen.getByText('Predicted 10 Nov, 6:40 pm (tank rise, one clue, likely truck)')).toBeTruthy();
   });
 
   it('names the source of every prediction', () => {
-    expect(predictedTimeText(PREDICTED)).toBe('Predicted 6:40 pm (tank rise)');
+    expect(predictedTimeText(PREDICTED)).toBe('Predicted 10 Nov, 6:40 pm (tank rise, one clue)');
     expect(predictedTimeText({ ...PREDICTED, source: 'GPS_AT_PUMP' })).toBe(
-      'Predicted 6:40 pm (GPS at pump)',
+      'Predicted 10 Nov, 6:40 pm (GPS at pump, one clue)',
     );
     expect(predictedTimeText({ ...PREDICTED, source: 'BOTH' })).toBe(
-      'Predicted 6:40 pm (tank rise and GPS at pump)',
+      'Predicted 10 Nov, 6:40 pm (tank rise and GPS at pump, one clue)',
     );
     expect(predictedTimeText(null)).toBe('');
   });
