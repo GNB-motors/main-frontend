@@ -828,7 +828,8 @@ describe('WhatsApp chat upload on the mileage page', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
 
-    expect(await screen.findByText('Chat imported')).toBeInTheDocument();
+    // The mocked job saves nothing new, so the end state is the neutral one.
+    expect(await screen.findByText('Nothing new in this chat')).toBeInTheDocument();
     await waitFor(() => expect(feedCalls().length).toBeGreaterThan(before));
   });
 });
