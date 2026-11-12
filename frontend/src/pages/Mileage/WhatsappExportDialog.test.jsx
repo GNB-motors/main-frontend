@@ -132,7 +132,7 @@ describe('WhatsApp chat export dialog', () => {
         '12 photos missing: export the chat again with Include media.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText('The photo could not be read.')).toBeInTheDocument();
+    expect(screen.getByText('1 photo: The photo could not be read.')).toBeInTheDocument();
     expect(rowValue('Failed')).toBe('1');
   });
 
@@ -163,6 +163,58 @@ describe('WhatsApp chat export dialog', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'That file is not a WhatsApp chat export.',
     );
+  });
+
+  it('shows an amber state with the failures grouped when something could not be read', async () => {
+    PhotoImportService.uploadWhatsappExport.mockResolvedValue({
+      ...answer,
+      fillsConfirmed: 20,
+      failed: [
+        { seq: 1, sender: 'Mehfuz', reason: 'the photo could not be read' },
+        { seq: 2, sender: 'Mehfuz', reason: 'the photo could not be read' },
+        { seq: 3, sender: 'Mehfuz', reason: 'no truck, litres or time found on the photo' },
+      ],
+      failedGroups: [
+        { reason: 'the photo could not be read', count: 2, seqs: [1, 2] },
+        { reason: 'no truck, litres or time found on the photo', count: 1, seqs: [3] },
+      ],
+    });
+    open();
+    chooseFile(zipFile());
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+
+    expect(await screen.findByText('Imported, with 3 problems')).toBeInTheDocument();
+    expect(screen.queryByText('Chat imported')).not.toBeInTheDocument();
+    expect(screen.getByText('2 photos: the photo could not be read')).toBeInTheDocument();
+    expect(
+      screen.getByText('1 photo: no truck, litres or time found on the photo'),
+    ).toBeInTheDocument();
+  });
+
+  it('says nothing was imported when the photo reader is not running, and offers a retry', async () => {
+    PhotoImportService.uploadWhatsappExport.mockRejectedValue({
+      response: {
+        status: 503,
+        data: {
+          message:
+            'The photo reader is not running, so nothing was imported. Start it and upload the chat again.',
+        },
+      },
+    });
+    open();
+    chooseFile(zipFile());
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Nothing was imported');
+    expect(alert).toHaveTextContent(
+      'The photo reader is not running, so nothing was imported.',
+    );
+    // The chosen file is kept, so Try again sends the very same chat again.
+    const again = screen.getByRole('button', { name: 'Try again' });
+    expect(again).toBeEnabled();
+    fireEvent.click(again);
+    await waitFor(() => expect(PhotoImportService.uploadWhatsappExport).toHaveBeenCalledTimes(2));
   });
 
   it('says the import may still be running when the connection times out', async () => {

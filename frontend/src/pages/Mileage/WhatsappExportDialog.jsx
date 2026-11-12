@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, FileArchive, Loader2, X } from 'lucide-react';
+import { AlertTriangle, Check, FileArchive, Loader2, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -40,6 +40,31 @@ const isZip = (file) =>
 
 const failureReason = (item) =>
   typeof item === 'string' ? item : item?.reason || 'Could not be read.';
+
+/**
+ * The failures of one import, grouped the way the owner reads them:
+ * "12 photos: the photo could not be read". The server sends the groups; when
+ * it does not, they are grouped here.
+ */
+function failureGroups(result) {
+  const sent = Array.isArray(result?.failedGroups) ? result.failedGroups : null;
+  if (sent && sent.length) {
+    return sent.map((group) => ({
+      reason: group?.reason || 'Could not be read.',
+      count: Number(group?.count || 0),
+    }));
+  }
+  const failed = Array.isArray(result?.failed) ? result.failed : [];
+  const groups = new Map();
+  for (const item of failed) {
+    const reason = failureReason(item);
+    const key = reason.toLowerCase();
+    const group = groups.get(key);
+    if (group) group.count += 1;
+    else groups.set(key, { reason, count: 1 });
+  }
+  return Array.from(groups.values());
+}
 
 /**
  * One WhatsApp chat export, uploaded as a .zip. The server reads every photo
@@ -126,8 +151,9 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
       markImported(answer || {});
     } catch (err) {
       if (controller.signal.aborted) return;
+      // Nothing was imported: the chat can be sent again, with the same file.
       setError(errorText(err));
-      setStage('pick');
+      setStage('failed');
     } finally {
       busy.current = false;
     }
@@ -137,6 +163,11 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
   const failedCount = Array.isArray(result?.failed)
     ? failed.length
     : countText(result?.failed);
+  const groups = failureGroups(result);
+  const failedTotal = Array.isArray(result?.failed)
+    ? failed.length
+    : groups.reduce((sum, group) => sum + group.count, 0);
+  const hasProblems = failedTotal > 0;
   const photosMissing = Number(result?.photosMissing || 0);
 
   return (
@@ -221,11 +252,25 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
               <Loader2 size={26} className="animate-spin" aria-hidden="true" />
               <strong>Reading the photos… this can take up to 15 minutes. Keep this page open.</strong>
             </div>
+          ) : stage === 'failed' ? (
+            <div className="bp-failed" role="alert">
+              <X size={28} aria-hidden="true" />
+              <strong>Nothing was imported</strong>
+              <span>{error}</span>
+            </div>
           ) : (
-            <div className="bp-success" role="status">
-              <Check size={28} aria-hidden="true" />
-              <strong>Chat imported</strong>
-              <span>The fills are now in the mileage list.</span>
+            <div className={hasProblems ? 'bp-warning' : 'bp-success'} role="status">
+              {hasProblems ? (
+                <AlertTriangle size={28} aria-hidden="true" />
+              ) : (
+                <Check size={28} aria-hidden="true" />
+              )}
+              <strong>{hasProblems ? `Imported, with ${failedTotal} problems` : 'Chat imported'}</strong>
+              <span>
+                {hasProblems
+                  ? 'The fills that could be read are now in the mileage list.'
+                  : 'The fills are now in the mileage list.'}
+              </span>
               <table className="wxp-table">
                 <caption className="sr-only">What came out of the chat export</caption>
                 <tbody>
@@ -246,19 +291,21 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
                   {`${photosMissing} photos missing: export the chat again with Include media.`}
                 </p>
               ) : null}
-              {failed.length ? (
+              {groups.length ? (
                 <>
-                  <p className="wxp-note">These messages could not be read:</p>
+                  <p className="wxp-note">These could not be read:</p>
                   <ul>
-                    {failed.map((item, index) => (
-                      <li key={`${failureReason(item)}-${index}`}>{failureReason(item)}</li>
+                    {groups.map((group) => (
+                      <li key={group.reason}>
+                        {`${group.count} ${group.count === 1 ? 'photo' : 'photos'}: ${group.reason}`}
+                      </li>
                     ))}
                   </ul>
                 </>
               ) : null}
             </div>
           )}
-          {error ? (
+          {error && stage !== 'failed' ? (
             <p role="alert" className="bp-error">
               {error}
             </p>
@@ -269,6 +316,19 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
             <Button size="sm" onClick={close}>
               Done
             </Button>
+          ) : stage === 'failed' ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={close}
+              >
+                Close
+              </Button>
+              <Button size="sm" disabled={!file} onClick={upload}>
+                Try again
+              </Button>
+            </>
           ) : (
             <>
               <Button

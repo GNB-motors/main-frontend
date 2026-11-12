@@ -39,3 +39,35 @@
   color: #68768d;
   text-align: left;
 }
+/* The amber state: the chat came in, but some of it could not be read. */
+.bp-warning,
+.bp-failed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  text-align: center;
+}
+.bp-warning strong,
+.bp-failed strong {
+  font-size: 14px;
+}
+.bp-warning span,
+.bp-failed span,
+.bp-warning li {
+  font-size: 12px;
+  line-height: 1.65;
+  color: #68768d;
+}
+.bp-warning > svg {
+  color: #a16b00;
+}
+.bp-failed > svg {
+  color: #ac3030;
+}
+.bp-warning ul {
+  margin: 0;
+  padding-left: 20px;
+  text-align: left;
+}
