@@ -2,9 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
 import WhatsappExportDialog from './WhatsappExportDialog';
 import PhotoImportService from '../../services/PhotoImportService';
+import * as chatUpload from './chatUploadStore';
 
 vi.mock('../../services/PhotoImportService', () => ({
-  default: { uploadWhatsappExport: vi.fn(), getChatExportJob: vi.fn() },
+  default: {
+    uploadWhatsappExport: vi.fn(),
+    getChatExportJob: vi.fn(),
+    getActiveChatExportJob: vi.fn(),
+  },
 }));
 
 // The live line of the import is watched here, so the test can play the part
@@ -109,8 +114,10 @@ describe('WhatsApp chat export dialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     streamMock.calls.length = 0;
+    // The store belongs to the session, not to one test.
+    chatUpload.reset();
     // The server answers at once with a job id: the import runs in the
-    // background and the dialog follows it.
+    // background and the session follows it.
     PhotoImportService.uploadWhatsappExport.mockResolvedValue({ jobId: 'job-1' });
     PhotoImportService.getChatExportJob.mockResolvedValue({
       state: 'done',
@@ -346,6 +353,69 @@ describe('WhatsApp chat export dialog', () => {
     expect(alert).not.toHaveTextContent('/photo-imports/whatsapp-export');
   });
 
+  it('can be closed while the chat is being sent, and the upload keeps going', async () => {
+    let signal = null;
+    PhotoImportService.uploadWhatsappExport.mockImplementation((_file, options) => {
+      signal = options.signal;
+      return new Promise(() => {});
+    });
+    const onOpenChange = vi.fn();
+    open({ onOpenChange });
+    chooseFile(zipFile());
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+    await waitFor(() => expect(signal).toBeTruthy());
+
+    // The close button is never disabled, and closing does not stop the bytes.
+    const close = screen.getByLabelText('Close');
+    expect(close).toBeEnabled();
+    fireEvent.click(close);
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(signal.aborted).toBe(false);
+    expect(chatUpload.getState().stage).toBe('uploading');
+  });
+
+  it('can be closed while the photos are being read, and the import keeps going', async () => {
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'running',
+      progress: { read: 120, total: 603 },
+    });
+    const onOpenChange = vi.fn();
+    const { rerender } = render(
+      <WhatsappExportDialog open onOpenChange={onOpenChange} />,
+    );
+    chooseFile(zipFile());
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+
+    expect(await screen.findByText('Reading photos 120 / 603')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Close'));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    rerender(<WhatsappExportDialog open={false} onOpenChange={onOpenChange} />);
+    expect(screen.queryByText('Reading photos 120 / 603')).not.toBeInTheDocument();
+
+    // The import is still being followed: the session did not forget it.
+    expect(chatUpload.getState().jobId).toBe('job-1');
+    expect(streamMock.calls[0].closed).toBe(false);
+  });
+
+  it('stops the bytes only when the owner asks for it', async () => {
+    let signal = null;
+    PhotoImportService.uploadWhatsappExport.mockImplementation((_file, options) => {
+      signal = options.signal;
+      return new Promise(() => {});
+    });
+    open();
+    chooseFile(zipFile());
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+    await waitFor(() => expect(signal).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel upload' }));
+
+    expect(signal.aborted).toBe(true);
+    expect(chatUpload.getState().stage).toBe('idle');
+  });
+
   it('closing the dialog does not cancel the job, and opening it again shows the running import', async () => {
     PhotoImportService.getChatExportJob.mockResolvedValue({
       state: 'running',
@@ -360,7 +430,7 @@ describe('WhatsApp chat export dialog', () => {
 
     expect(await screen.findByText('Reading photos 120 / 603')).toBeInTheDocument();
 
-    // Closing the dialog only stops the asking: the import keeps running.
+    // Closing the dialog only hides it: the import keeps running.
     fireEvent.click(screen.getByLabelText('Close'));
     expect(onOpenChange).toHaveBeenCalledWith(false);
     rerender(<WhatsappExportDialog open={false} onOpenChange={onOpenChange} />);
@@ -419,6 +489,7 @@ describe('WhatsApp chat export dialog', () => {
     open();
     chooseFile(zipFile());
     fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+    await flush();
     await flush();
 
     const alert = screen.getByRole('alert');
@@ -586,7 +657,7 @@ describe('WhatsApp chat export dialog', () => {
     expect(await screen.findByText('Chat imported', undefined, { timeout: 6000 })).toBeInTheDocument();
   });
 
-  it('follows the import again when the dialog is opened again', async () => {
+  it('keeps the live line open when the dialog is closed and opened again', async () => {
     PhotoImportService.getChatExportJob.mockResolvedValue({
       state: 'running',
       progress: { read: 5, total: 100 },
@@ -607,16 +678,16 @@ describe('WhatsApp chat export dialog', () => {
       }),
     );
 
-    // Closing the dialog closes the line, but the import keeps running.
+    // Closing the dialog does not close the line: the session keeps following
+    // the import.
     fireEvent.click(screen.getByLabelText('Close'));
     expect(onOpenChange).toHaveBeenCalledWith(false);
     rerender(<WhatsappExportDialog open={false} onOpenChange={onOpenChange} />);
-    expect(streamMock.calls[0].closed).toBe(true);
+    expect(streamMock.calls[0].closed).toBe(false);
 
-    // Opening it again follows the same import and asks only for what is new.
+    // Opening it again shows the same import and asks only for what is new.
     rerender(<WhatsappExportDialog open onOpenChange={onOpenChange} />);
-    await waitFor(() => expect(streamMock.calls.length).toBe(2));
-    expect(streamMock.calls[1].options.lastEventId).toBe(7);
+    await waitFor(() => expect(streamMock.calls.length).toBe(1));
   });
 
   it('says nothing new when the chat brings nothing new', async () => {

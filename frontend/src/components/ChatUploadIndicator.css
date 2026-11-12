@@ -1,0 +1,83 @@
+/* The little pill that says what the chat upload is doing. */
+.cui-pill {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(440px, calc(100vw - 36px));
+  padding: 8px 10px 8px 12px;
+  border: 1px solid #e7ecf4;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(22, 32, 51, 0.14);
+  font-size: 12px;
+  color: #162033;
+}
+.cui-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.cui-title {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cui-detail {
+  min-width: 0;
+  color: #68768d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cui-view {
+  flex: none;
+  padding: 3px 10px;
+  border: 1px solid #d8dfeb;
+  border-radius: 999px;
+  background: #f7f9fc;
+  color: #162033;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cui-close {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: #68768d;
+  cursor: pointer;
+}
+.cui-close:hover {
+  background: #f0f3f8;
+}
+@media (max-width: 640px) {
+  .cui-pill {
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    max-width: none;
+  }
+  .cui-detail {
+    display: none;
+  }
+}

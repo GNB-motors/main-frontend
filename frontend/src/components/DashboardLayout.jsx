@@ -5,6 +5,7 @@ import Sidebar from './Sidebar.jsx';
 import Navbar from './Navbar.jsx';
 import LottieLoader from './LottieLoader.jsx';
 import CommandPalette from './cluster/CommandPalette.jsx';
+import ChatUploadIndicator from './ChatUploadIndicator.jsx';
 import { ConfirmDialogHost } from './ui/ConfirmDialog.jsx';
 import { applyThemeToRoot } from '../utils/colorTheme.js';
 import { usePageHeading } from '../hooks/usePageHeading.js';
@@ -83,6 +84,9 @@ const DashboardLayoutInner = () => {
         </div>
       </main>
       <CommandPalette />
+      {/* The chat upload belongs to the session, not to the page: the pill is
+          here, outside the page, so it is there on every page of the site. */}
+      <ChatUploadIndicator />
     </div>
   );
 };

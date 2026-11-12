@@ -146,6 +146,18 @@ const PhotoImportService = {
     return unwrap(response);
   },
 
+  /**
+   * The import that is running for this organisation right now, if there is
+   * one. A browser that comes back after a reload asks this, so the import is
+   * picked up again instead of being forgotten.
+   */
+  getActiveChatExportJob: async ({ signal } = {}) => {
+    const response = await apiClient.get('/api/photo-imports/chat-export/jobs/active', {
+      signal,
+    });
+    return unwrap(response);
+  },
+
   /** Drivers that already exist, for "pick another driver". */
   listDrivers: async ({ signal } = {}) => {
     const response = await apiClient.get('/api/employees', {
