@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Check, FileArchive, Loader2, X } from 'lucide-react';
 import {
   Dialog,
@@ -15,6 +15,9 @@ import './WhatsappExportDialog.css';
 // The same cap the server keeps: a chat export bigger than this is refused
 // before it is sent, so nobody waits for an upload that will not be read.
 const MAX_BYTES = 500 * 1024 * 1024;
+
+// How often the import is asked how far it has come.
+const POLL_MS = 3000;
 
 // One row per count, in the words the owner reads.
 const COUNT_ROWS = [
@@ -76,6 +79,10 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
   const [error, setError] = useState(null);
   const [percent, setPercent] = useState(0);
   const [result, setResult] = useState(null);
+  // The job of the import. It stays here while the dialog is closed, so
+  // opening the dialog again shows the import that is still running.
+  const [jobId, setJobId] = useState(null);
+  const [progress, setProgress] = useState({ read: 0, total: 0 });
   const input = useRef(null);
   const busy = useRef(false);
   const request = useRef(null);
@@ -83,13 +90,18 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
 
   useEffect(() => {
     if (!open) return;
-    setFile(null);
     setError(null);
-    setStage('pick');
     setPercent(0);
-    setResult(null);
     imported.current = false;
-  }, [open]);
+    if (jobId) {
+      // The import is on the server: show it again and keep asking about it.
+      setStage('reading');
+      return;
+    }
+    setFile(null);
+    setStage('pick');
+    setResult(null);
+  }, [open, jobId]);
 
   useEffect(() => () => request.current?.abort(), []);
 
@@ -111,11 +123,54 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
 
   // The list refreshes once per import: when the chat comes in, and again if
   // the dialog is closed afterwards.
-  const markImported = (answer) => {
+  const onImportedRef = useRef(onImported);
+  useEffect(() => {
+    onImportedRef.current = onImported;
+  }, [onImported]);
+  const markImported = useCallback((answer) => {
     if (imported.current) return;
     imported.current = true;
-    onImported?.(answer);
-  };
+    onImportedRef.current?.(answer);
+  }, []);
+
+  // The import runs on the server: the dialog asks the job how far it has
+  // come. Closing the dialog stops the asking, not the import.
+  useEffect(() => {
+    if (!open || !jobId) return undefined;
+    let stopped = false;
+    const ask = async () => {
+      let view = null;
+      try {
+        view = await PhotoImportService.getChatExportJob(jobId);
+      } catch {
+        // The connection dropped: the import keeps running, so keep asking.
+        return;
+      }
+      if (stopped || !view) return;
+      setProgress({
+        read: Number(view.progress?.read || 0),
+        total: Number(view.progress?.total || 0),
+      });
+      if (view.state === 'done') {
+        setResult(view.result || {});
+        setStage('done');
+        markImported(view.result || {});
+        return;
+      }
+      if (view.state === 'failed') {
+        setError(view.error || 'The import could not be finished.');
+        setStage('failed');
+        return;
+      }
+      setStage('reading');
+    };
+    ask();
+    const timer = setInterval(ask, POLL_MS);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [open, jobId, markImported]);
 
   const close = () => {
     if (busy.current) return;
@@ -130,6 +185,7 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
     setStage('uploading');
     setError(null);
     setPercent(0);
+    setProgress({ read: 0, total: 0 });
     const controller = new AbortController();
     request.current = controller;
     try {
@@ -141,14 +197,14 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
           if (!total) return;
           const next = Math.min(100, Math.round((loaded / total) * 100));
           setPercent(next);
-          // The file is on its way; the server now reads the photos.
-          if (next >= 100) setStage('reading');
         },
       });
       if (controller.signal.aborted) return;
-      setResult(answer || {});
-      setStage('done');
-      markImported(answer || {});
+      const id = answer?.jobId;
+      if (!id) throw new Error('The chat could not be uploaded. Please try again.');
+      // The import is on the server now: the dialog follows it from here.
+      setJobId(id);
+      setStage('reading');
     } catch (err) {
       if (controller.signal.aborted) return;
       // Nothing was imported: the chat can be sent again, with the same file.
@@ -184,7 +240,7 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
           className="bp-close"
           aria-label="Close"
           onClick={close}
-          disabled={stage === 'uploading' || stage === 'reading'}
+          disabled={stage === 'uploading'}
         >
           <X size={18} aria-hidden="true" />
         </button>
@@ -250,7 +306,22 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
           ) : stage === 'reading' ? (
             <div className="bp-progress" role="status">
               <Loader2 size={26} className="animate-spin" aria-hidden="true" />
-              <strong>Reading the photos… this can take up to 15 minutes. Keep this page open.</strong>
+              <strong>
+                {progress.total > 0
+                  ? `Reading photos ${progress.read} / ${progress.total}`
+                  : 'Reading the photos… this can take up to 15 minutes.'}
+              </strong>
+              {progress.total > 0 ? (
+                <div className="wxp-bar">
+                  <div
+                    className="wxp-bar-fill"
+                    style={{
+                      width: `${Math.round((progress.read / progress.total) * 100)}%`,
+                    }}
+                  />
+                </div>
+              ) : null}
+              <span>You can close this: the import keeps running.</span>
             </div>
           ) : stage === 'failed' ? (
             <div className="bp-failed" role="alert">
@@ -334,10 +405,10 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
               <Button
                 variant="outline"
                 size="sm"
-                disabled={stage === 'uploading' || stage === 'reading'}
+                disabled={stage === 'uploading'}
                 onClick={close}
               >
-                Cancel
+                {stage === 'reading' ? 'Close' : 'Cancel'}
               </Button>
               <Button
                 size="sm"

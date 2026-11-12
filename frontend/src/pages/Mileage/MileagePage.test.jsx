@@ -198,6 +198,18 @@ function mockApi() {
         },
       });
     }
+    if (url.startsWith('/api/photo-imports/chat-export/jobs/')) {
+      return Promise.resolve({
+        data: {
+          status: 'success',
+          data: {
+            state: 'done',
+            progress: { read: 2, total: 2 },
+            result: { filename: 'chat.zip', messages: 4, photos: 2, failed: [] },
+          },
+        },
+      });
+    }
     if (url === '/api/documents/doc1') {
       return Promise.resolve({
         data: { success: true, data: { _id: 'doc1', publicUrl: 'https://s3.example/bill-1.jpg' } },
@@ -804,7 +816,7 @@ describe('WhatsApp chat upload on the mileage page', () => {
     mockApi();
     useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
     apiClient.post.mockResolvedValue({
-      data: { data: { filename: 'chat.zip', messages: 4, photos: 2, failed: [] } },
+      data: { status: 'success', jobId: 'job-1', data: { jobId: 'job-1' } },
     });
     renderAt('/mileage');
     await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));

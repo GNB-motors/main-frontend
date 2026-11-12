@@ -4,7 +4,7 @@ import WhatsappExportDialog from './WhatsappExportDialog';
 import PhotoImportService from '../../services/PhotoImportService';
 
 vi.mock('../../services/PhotoImportService', () => ({
-  default: { uploadWhatsappExport: vi.fn() },
+  default: { uploadWhatsappExport: vi.fn(), getChatExportJob: vi.fn() },
 }));
 
 const zipFile = () => new File(['zip'], 'mehfuz-chat.zip', { type: 'application/zip' });
@@ -47,7 +47,14 @@ const rowValue = (label) => {
 describe('WhatsApp chat export dialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    PhotoImportService.uploadWhatsappExport.mockResolvedValue(answer);
+    // The server answers at once with a job id: the import runs in the
+    // background and the dialog follows it.
+    PhotoImportService.uploadWhatsappExport.mockResolvedValue({ jobId: 'job-1' });
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'done',
+      progress: { read: 96, total: 96 },
+      result: answer,
+    });
   });
 
   it('refuses a file that is not a zip before anything is uploaded', () => {
@@ -70,7 +77,7 @@ describe('WhatsApp chat export dialog', () => {
     expect(screen.getByRole('button', { name: 'Upload' })).toBeDisabled();
   });
 
-  it('shows the upload progress, then says the photos are being read', async () => {
+  it('shows the upload progress while the chat is being sent', async () => {
     let progress = null;
     PhotoImportService.uploadWhatsappExport.mockImplementation((_file, options) => {
       progress = options.onUploadProgress;
@@ -85,11 +92,19 @@ describe('WhatsApp chat export dialog', () => {
 
     act(() => progress({ loaded: 50, total: 100 }));
     expect(screen.getByText(/50%/)).toBeInTheDocument();
+  });
 
-    act(() => progress({ loaded: 100, total: 100 }));
-    expect(
-      screen.getByText('Reading the photos… this can take up to 15 minutes. Keep this page open.'),
-    ).toBeInTheDocument();
+  it('says how many photos have been read out of how many', async () => {
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'running',
+      progress: { read: 120, total: 603 },
+    });
+    open();
+    chooseFile(zipFile());
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+
+    expect(await screen.findByText('Reading photos 120 / 603')).toBeInTheDocument();
+    expect(PhotoImportService.getChatExportJob).toHaveBeenCalledWith('job-1');
   });
 
   it('shows every count after a successful import', async () => {
@@ -118,10 +133,14 @@ describe('WhatsApp chat export dialog', () => {
   });
 
   it('says how many photos were missing, and lists each failure with its reason', async () => {
-    PhotoImportService.uploadWhatsappExport.mockResolvedValue({
-      ...answer,
-      photosMissing: 12,
-      failed: [{ seq: 4, sender: 'Mehfuz', reason: 'The photo could not be read.' }],
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'done',
+      progress: { read: 2, total: 2 },
+      result: {
+        ...answer,
+        photosMissing: 12,
+        failed: [{ seq: 4, sender: 'Mehfuz', reason: 'The photo could not be read.' }],
+      },
     });
     open();
     chooseFile(zipFile());
@@ -137,10 +156,10 @@ describe('WhatsApp chat export dialog', () => {
   });
 
   it('shows a dash, never a zero, for a count the server did not send', async () => {
-    PhotoImportService.uploadWhatsappExport.mockResolvedValue({
-      filename: 'chat.zip',
-      messages: 5,
-      photos: 2,
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'done',
+      progress: { read: 2, total: 2 },
+      result: { filename: 'chat.zip', messages: 5, photos: 2 },
     });
     open();
     chooseFile(zipFile());
@@ -152,7 +171,7 @@ describe('WhatsApp chat export dialog', () => {
     expect(rowValue('Failed')).toBe('—');
   });
 
-  it('shows the server’s own message when the chat cannot be read', async () => {
+  it('shows the server’s own message when the chat cannot be sent', async () => {
     PhotoImportService.uploadWhatsappExport.mockRejectedValue({
       response: { data: { message: 'That file is not a WhatsApp chat export.' } },
     });
@@ -166,18 +185,22 @@ describe('WhatsApp chat export dialog', () => {
   });
 
   it('shows an amber state with the failures grouped when something could not be read', async () => {
-    PhotoImportService.uploadWhatsappExport.mockResolvedValue({
-      ...answer,
-      fillsConfirmed: 20,
-      failed: [
-        { seq: 1, sender: 'Mehfuz', reason: 'the photo could not be read' },
-        { seq: 2, sender: 'Mehfuz', reason: 'the photo could not be read' },
-        { seq: 3, sender: 'Mehfuz', reason: 'no truck, litres or time found on the photo' },
-      ],
-      failedGroups: [
-        { reason: 'the photo could not be read', count: 2, seqs: [1, 2] },
-        { reason: 'no truck, litres or time found on the photo', count: 1, seqs: [3] },
-      ],
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'done',
+      progress: { read: 3, total: 3 },
+      result: {
+        ...answer,
+        fillsConfirmed: 20,
+        failed: [
+          { seq: 1, sender: 'Mehfuz', reason: 'the photo could not be read' },
+          { seq: 2, sender: 'Mehfuz', reason: 'the photo could not be read' },
+          { seq: 3, sender: 'Mehfuz', reason: 'no truck, litres or time found on the photo' },
+        ],
+        failedGroups: [
+          { reason: 'the photo could not be read', count: 2, seqs: [1, 2] },
+          { reason: 'no truck, litres or time found on the photo', count: 1, seqs: [3] },
+        ],
+      },
     });
     open();
     chooseFile(zipFile());
@@ -192,14 +215,11 @@ describe('WhatsApp chat export dialog', () => {
   });
 
   it('says nothing was imported when the photo reader is not running, and offers a retry', async () => {
-    PhotoImportService.uploadWhatsappExport.mockRejectedValue({
-      response: {
-        status: 503,
-        data: {
-          message:
-            'The photo reader is not running, so nothing was imported. Start it and upload the chat again.',
-        },
-      },
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'failed',
+      progress: { read: 0, total: 0 },
+      error:
+        'The photo reader is not running, so nothing was imported. Start it and upload the chat again.',
     });
     open();
     chooseFile(zipFile());
@@ -228,5 +248,33 @@ describe('WhatsApp chat export dialog', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'It may still be running — check the mileage list later',
     );
+  });
+
+  it('closing the dialog does not cancel the job, and opening it again shows the running import', async () => {
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'running',
+      progress: { read: 120, total: 603 },
+    });
+    const onOpenChange = vi.fn();
+    const { rerender } = render(
+      <WhatsappExportDialog open onOpenChange={onOpenChange} />,
+    );
+    chooseFile(zipFile());
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+
+    expect(await screen.findByText('Reading photos 120 / 603')).toBeInTheDocument();
+
+    // Closing the dialog only stops the asking: the import keeps running.
+    fireEvent.click(screen.getByLabelText('Close'));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    rerender(<WhatsappExportDialog open={false} onOpenChange={onOpenChange} />);
+    expect(screen.queryByText('Reading photos 120 / 603')).not.toBeInTheDocument();
+
+    // Opening it again shows the import that is still running.
+    rerender(<WhatsappExportDialog open onOpenChange={onOpenChange} />);
+    expect(await screen.findByText('Reading photos 120 / 603')).toBeInTheDocument();
+    // The chat was sent once, and the same job is being followed.
+    expect(PhotoImportService.uploadWhatsappExport).toHaveBeenCalledTimes(1);
+    expect(PhotoImportService.getChatExportJob).toHaveBeenCalledWith('job-1');
   });
 });
