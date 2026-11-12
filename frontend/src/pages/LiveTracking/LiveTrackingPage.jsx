@@ -34,6 +34,7 @@ import RoutesListView from './RoutesListView.jsx';
 import PlacesListView from './PlacesListView.jsx';
 import PlaceDetailPanel from './PlaceDetailPanel.jsx';
 import TrackLegend from './TrackLegend.jsx';
+import TrackMapKey from './TrackMapKey.jsx';
 import MapSearchBox from './MapSearchBox.jsx';
 import TrafficToggle from './TrafficToggle.jsx';
 import useMapPlaces from './useMapPlaces.js';
@@ -888,6 +889,18 @@ const LiveTrackingPage = () => {
                 id={openRouteId}
                 leg={routes.legs.find((leg) => String(leg._id) === String(openRouteId))}
                 onClose={() => setOpenRouteId(null)}
+              />
+            ) : null}
+
+            {isPlacesView && !placeDraft && !zoneDraft ? (
+              <TrackMapKey
+                tab={placesTab}
+                places={showPlaceLayers && layerSelection.ourPlaces ? trackPlaces.shownPlaces : []}
+                reviewCount={showPlaceLayers && layerSelection.reviewQueue ? reviewQueue.items.length : 0}
+                idlingCount={showPlaceLayers && layerSelection.idling ? idlingRows.length : 0}
+                tollCount={showPlaceLayers && layerSelection.tolls ? tolls.plazas.length : 0}
+                routeLines={focusedRoute ? [] : routes.lines}
+                routeKind={routeKind}
               />
             ) : null}
 
