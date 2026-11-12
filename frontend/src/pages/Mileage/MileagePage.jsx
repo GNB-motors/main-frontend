@@ -1,7 +1,7 @@
 import ManufacturerFilter from '../../components/filters/ManufacturerFilter';
 import useManufacturerFilter from '../../hooks/useManufacturerFilter';
 import React, { Suspense, lazy, useDeferredValue, useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Camera, MessageCircle, PenLine, Search, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import PageShell from '../../components/ui/PageShell';
@@ -160,6 +160,7 @@ const TabSkeleton = () => (
 
 export default function MileagePage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { canAccess, ready } = useFeatureFlags();
   const access = hubAccess(canAccess, getUserRole());
 
@@ -464,6 +465,7 @@ export default function MileagePage() {
           open={whatsappExportOpen}
           onOpenChange={setWhatsappExportOpen}
           onImported={() => setRefreshKey((k) => k + 1)}
+          onReview={() => navigate('/approvals?type=whatsapp')}
         />
       </PageShell>
     </>
