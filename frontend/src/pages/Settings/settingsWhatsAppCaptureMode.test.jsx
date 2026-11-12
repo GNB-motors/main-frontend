@@ -5,7 +5,9 @@ import apiClient from '../../utils/axiosConfig';
 import { WhatsAppSettings } from './settingsWhatsApp';
 
 const flags = vi.hoisted(() => ({ value: {} }));
+const session = vi.hoisted(() => ({ role: 'OWNER' }));
 vi.mock('../../contexts/FeatureFlagsContext.jsx', () => ({ useFeatureFlags: () => flags.value }));
+vi.mock('../../utils/session.js', () => ({ getUserRole: () => session.role }));
 vi.mock('../../utils/axiosConfig', () => ({ default: { get: vi.fn(), patch: vi.fn() } }));
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
@@ -18,6 +20,7 @@ const withCapture = (captureMode) => ({
 describe('Settings — WhatsApp capture mode', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    session.role = 'OWNER';
   });
 
   // The capture mode rides on /api/auth/me, like the odometer mode.
@@ -53,5 +56,18 @@ describe('Settings — WhatsApp capture mode', () => {
     fireEvent.click(screen.getByLabelText('Just receive and read'));
     await waitFor(() => expect(screen.getByLabelText('Ask the sender questions')).toBeChecked());
     expect(flags.value.refresh).not.toHaveBeenCalled();
+  });
+
+  // The capture mode is the owner's call: the server answers 403 for anyone
+  // else, so the card must not offer the change to a manager either.
+  it('lets a manager see the mode but not change it', () => {
+    session.role = 'MANAGER';
+    flags.value = withCapture('GUIDED');
+    render(<WhatsAppSettings />);
+    expect(screen.getByLabelText('Ask the sender questions')).toBeChecked();
+    expect(screen.getByLabelText('Ask the sender questions')).toBeDisabled();
+    expect(
+      screen.getByText('Only the owner can change how the bot reads messages.'),
+    ).toBeInTheDocument();
   });
 });

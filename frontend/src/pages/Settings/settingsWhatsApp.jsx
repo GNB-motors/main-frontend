@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext.jsx';
+import { getUserRole } from '../../utils/session.js';
 import { SettingsService } from './SettingsService';
 import { Card, LoadError, SectionHead, Skeleton } from './settingsAtoms';
 
@@ -75,8 +76,13 @@ export function WhatsAppSettings() {
   const captureMode = chosenCapture ?? savedCapture;
   const [savingCapture, setSavingCapture] = useState(false);
 
+  // How the bot reads what the sender sends is the owner's call (plan §8.4):
+  // the server refuses the change for anyone else, so the card says so too.
+  const userRole = (getUserRole() || '').toUpperCase();
+  const canChangeCapture = ['OWNER', 'SUPER_ADMIN'].includes(userRole);
+
   const changeCapture = async (next) => {
-    if (next === captureMode || savingCapture) return;
+    if (next === captureMode || savingCapture || !canChangeCapture) return;
     const prev = captureMode;
     setChosenCapture(next);
     setSavingCapture(true);
@@ -145,7 +151,7 @@ export function WhatsAppSettings() {
                 key={m.key}
                 htmlFor={`capture-${m.key}`}
                 className={`stx-option${captureMode === m.key ? ' stx-option--on' : ''}`}
-                aria-disabled={savingCapture || undefined}
+                aria-disabled={savingCapture || !canChangeCapture || undefined}
               >
                 <input
                   id={`capture-${m.key}`}
@@ -154,7 +160,7 @@ export function WhatsAppSettings() {
                   name="capture-mode"
                   value={m.key}
                   checked={captureMode === m.key}
-                  disabled={savingCapture}
+                  disabled={savingCapture || !canChangeCapture}
                   onChange={() => changeCapture(m.key)}
                   className="stx-radio"
                 />
@@ -168,6 +174,9 @@ export function WhatsAppSettings() {
               </label>
             ))}
           </div>
+          {!canChangeCapture ? (
+            <p className="stx-empty-hint">Only the owner can change how the bot reads messages.</p>
+          ) : null}
         </Card>
       ) : null}
     </>
