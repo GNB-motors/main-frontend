@@ -106,3 +106,34 @@ it('builds the pump card and tab totals from the same Fuel Integrity ledger', ()
   });
   expect(ledger.pumps[1].status).toBe('INSUFFICIENT_DATA');
 });
+
+it('keeps discovered pump evidence separate from audited shortage and loss', () => {
+  const ledger = normalisePumpLedger({
+    pumps: [
+      {
+        pump: 'GABRU',
+        fills: 0,
+        auditStatus: 'NOT_AUDITED',
+        registeredLitres: 300,
+        sourceCounts: { register: 2, sensor: 0, alert: 0 },
+        claimedLitres: null,
+        actualLitres: null,
+        shortfallLitres: null,
+        shortfallPct: null,
+        estimatedLossInr: null,
+      },
+    ],
+  });
+  expect(ledger.pumps[0]).toMatchObject({
+    status: 'NOT_AUDITED',
+    registeredLitres: 300,
+    totalShortageLitres: null,
+  });
+  expect(ledger.summary).toMatchObject({
+    totalKnownPumps: 1,
+    totalPumpsEvaluated: 0,
+    totalAuditedFills: 0,
+    totalShortLitres: null,
+    totalRupeeLoss: null,
+  });
+});

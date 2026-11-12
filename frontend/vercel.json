@@ -1,4 +1,5 @@
 {
+  "git": { "deploymentEnabled": true },
   "rewrites": [
     {
       "source": "/api/live/(.*)",

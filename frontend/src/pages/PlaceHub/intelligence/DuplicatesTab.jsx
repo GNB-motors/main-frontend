@@ -11,6 +11,7 @@ import SapRequestState from '../../Sap/SapRequestState';
 import PlacePicker from '../../Sap/PlacePicker';
 import DuplicatePair from './DuplicatePair';
 import MergeHistory from './MergeHistory';
+import DuplicatesSkeleton from './DuplicatesSkeleton.jsx';
 import '../../Sap/Sap.css';
 const keyOf = (pair) => `${pair.a._id}:${pair.b._id}`;
 const PAGE_SIZE = 12;
@@ -96,50 +97,54 @@ export default function DuplicatesTab({ version, onChanged }) {
         </div>
         <span className="sap-muted">Select a pair to compare and review</span>
       </div>
-      <SapRequestState query={q}>
-        <div className="sap-review-layout">
-          <DataTable
-            className="sap-table"
-            columns={columns}
-            rows={visible}
-            total={rows.length}
-            rowKey={keyOf}
-            rowClassName={(p) => (p === current ? 'dt-row--selected' : '')}
-            onRowClick={(p) => {
-              setSelected(keyOf(p));
-              revealReview('duplicate-review-detail');
-            }}
-            emptyTitle={
-              search ? 'No places match your search' : 'No possible duplicates waiting for review'
-            }
-            emptyHint={
-              search
-                ? 'Try another place name.'
-                : 'New candidates appear here when nearby places need a check.'
-            }
-            pagination={
-              <EnterprisePagination
-                page={currentPage}
-                totalPages={Math.max(1, Math.ceil(rows.length / PAGE_SIZE))}
-                totalItems={rows.length || null}
-                pageSize={PAGE_SIZE}
-                onPageChange={(next) => {
-                  setPage(next);
-                  setSelected(null);
-                }}
-              />
-            }
-          />
-          {current ? (
-            <DuplicatePair key={keyOf(current)} pair={current} onChanged={changed} />
-          ) : (
-            <aside className="sap-card sap-empty">
-              <MapPinned size={28} />
-              <p>Select a place pair to compare its map and visit history.</p>
-            </aside>
-          )}
-        </div>
-      </SapRequestState>
+      {q.loading && !q.data ? (
+        <DuplicatesSkeleton />
+      ) : (
+        <SapRequestState query={q}>
+          <div className="sap-review-layout">
+            <DataTable
+              className="sap-table"
+              columns={columns}
+              rows={visible}
+              total={rows.length}
+              rowKey={keyOf}
+              rowClassName={(p) => (p === current ? 'dt-row--selected' : '')}
+              onRowClick={(p) => {
+                setSelected(keyOf(p));
+                revealReview('duplicate-review-detail');
+              }}
+              emptyTitle={
+                search ? 'No places match your search' : 'No possible duplicates waiting for review'
+              }
+              emptyHint={
+                search
+                  ? 'Try another place name.'
+                  : 'New candidates appear here when nearby places need a check.'
+              }
+              pagination={
+                <EnterprisePagination
+                  page={currentPage}
+                  totalPages={Math.max(1, Math.ceil(rows.length / PAGE_SIZE))}
+                  totalItems={rows.length || null}
+                  pageSize={PAGE_SIZE}
+                  onPageChange={(next) => {
+                    setPage(next);
+                    setSelected(null);
+                  }}
+                />
+              }
+            />
+            {current ? (
+              <DuplicatePair key={keyOf(current)} pair={current} onChanged={changed} />
+            ) : (
+              <aside className="sap-card sap-empty">
+                <MapPinned size={28} />
+                <p>Select a place pair to compare its map and visit history.</p>
+              </aside>
+            )}
+          </div>
+        </SapRequestState>
+      )}
       <details className="sap-disclosure sap-history">
         <summary>Merge history and undo</summary>
         <div className="sap-stack">

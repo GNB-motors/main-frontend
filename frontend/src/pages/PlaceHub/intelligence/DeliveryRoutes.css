@@ -1,0 +1,454 @@
+/* Delivery routes: the map tab's list rail, drawer extras and the SAP workspace.
+   Layout comes from PlaceHub.css (.ph-side / .ph-panel); only additions live here. */
+
+/* ── Route view switcher (Delivery routes / All movements) ───────────────── */
+.ud-view-bar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 24px;
+  background: var(--ph-surface);
+  border-bottom: 1px solid var(--ph-border);
+}
+.ud-view-bar p {
+  font-size: 12px;
+  color: var(--ph-dim);
+}
+.ud-segmented {
+  display: flex;
+  padding: 3px;
+  background: var(--ph-sunk);
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.ud-segmented button {
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--ph-dim);
+  white-space: nowrap;
+}
+.ud-segmented button[aria-pressed='true'] {
+  background: var(--ph-surface);
+  color: var(--ph-text);
+  box-shadow: 0 1px 3px #0001;
+  font-weight: 600;
+}
+.ud-view-bar button:focus-visible,
+.ph-delivery button:focus-visible {
+  outline: 2px solid var(--ph-accent);
+  outline-offset: 2px;
+}
+
+/* ── List rail ───────────────────────────────────────────────────────────── */
+.ph-delivery-head {
+  display: grid;
+  gap: 10px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid var(--ph-border);
+}
+.ph-delivery-top {
+  display: flex;
+  gap: 6px;
+}
+.ph-delivery-search {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.ph-delivery-search svg {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ph-dim);
+  pointer-events: none;
+}
+.ph-delivery-search input {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px 0 30px;
+  border: 1px solid var(--ph-border);
+  border-radius: 9px;
+  background: var(--ph-surface);
+  color: var(--ph-text);
+  font: inherit;
+  font-size: 13px;
+}
+.ph-delivery-search input:focus {
+  outline: 2px solid var(--ph-accent);
+  outline-offset: -1px;
+}
+.ph-icon-btn--primary {
+  background: var(--ph-accent);
+  border-color: var(--ph-accent);
+  color: #fff;
+}
+.ph-icon-btn--primary:hover {
+  background: var(--ph-accent);
+  color: #fff;
+  filter: brightness(1.1);
+}
+.ph-delivery-filters {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ph-delivery-filters button {
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ph-dim);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ph-delivery-filters button:hover {
+  background: var(--ph-sunk);
+  color: var(--ph-text);
+}
+.ph-delivery-filters button svg {
+  margin-left: 2px;
+  vertical-align: -1px;
+}
+.ph-delivery-filters button[aria-pressed='true'] {
+  background: var(--ph-accent-tint);
+  color: var(--ph-accent);
+  font-weight: 600;
+}
+.ph-delivery-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ph-dim);
+  font-variant-numeric: tabular-nums;
+}
+.ph-delivery-summary select {
+  width: auto;
+  margin-left: auto;
+  padding: 2px 0;
+  text-align: right;
+  border: 0;
+  background: transparent;
+  color: var(--ph-text-2, var(--ph-text));
+  font: inherit;
+  font-size: 12px;
+  font-weight: 550;
+  cursor: pointer;
+}
+.ph-delivery-site {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: start;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ph-accent-tint);
+  color: var(--ph-accent);
+  font-size: 12px;
+  cursor: pointer;
+}
+.ph-delivery-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.ph-delivery-row {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--ph-border);
+  border-left: 3px solid transparent;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ph-delivery-row:hover,
+.ph-delivery-row.is-hovered {
+  background: var(--ph-raised);
+}
+.ph-delivery-row.is-selected {
+  background: var(--ph-accent-tint);
+  border-left-color: var(--ph-accent);
+}
+.ph-delivery-row:focus-visible {
+  outline: 2px solid var(--ph-accent);
+  outline-offset: -2px;
+}
+.ph-delivery-name {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.ph-delivery-name > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ph-delivery-name strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.ph-delivery-name span {
+  font-size: 12.5px;
+  color: var(--ph-dim);
+}
+.ph-delivery-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ph-dim);
+  font-variant-numeric: tabular-nums;
+}
+.ph-delivery-foot {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  border: 0;
+  background: transparent;
+  color: var(--ph-dim);
+  font-size: 12px;
+  cursor: pointer;
+}
+.ph-delivery-foot:hover {
+  color: var(--ph-accent);
+}
+.ph-delivery-tag {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ph-delivery-tag.is-over {
+  color: var(--ph-warn);
+}
+.ph-delivery-tag.is-under {
+  color: var(--ph-info);
+}
+.ph-delivery-tag.is-within {
+  color: var(--ph-ok);
+}
+.ph-delivery-tag.is-muted {
+  color: var(--ph-dim);
+  font-weight: 500;
+}
+
+/* ── Verdict pills & deltas (list and drawer) ────────────────────────────── */
+.ud-pill {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ph-ok);
+  background: var(--ph-ok-tint);
+}
+.ud-pill--over {
+  color: var(--ph-warn);
+  background: var(--ph-warn-tint);
+}
+.ud-pill--under {
+  color: var(--ph-info);
+  background: var(--ph-info-tint);
+}
+.ud-pill--muted {
+  color: var(--ph-dim);
+  background: var(--ph-sunk);
+}
+.ud-delta {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.ud-delta--over {
+  color: var(--ph-warn);
+}
+.ud-delta--under {
+  color: var(--ph-info);
+}
+.ud-delta--within {
+  color: var(--ph-ok);
+}
+
+/* ── Drawer ──────────────────────────────────────────────────────────────── */
+.ph-delivery-title {
+  display: grid;
+  gap: 2px;
+}
+.ph-delivery-title > span[aria-hidden] {
+  display: none;
+}
+.ph-delivery-title .pi-leg-end {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+.ph-delivery-title .pi-leg-end + span + .pi-leg-end {
+  font-size: 0.9em;
+  color: var(--ph-dim);
+}
+.ph-delivery-evidence {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--ph-dim);
+}
+.ph-delivery-sapcard {
+  margin: 14px 0;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--ph-border);
+  border-radius: 10px;
+  background: var(--ph-raised, var(--ph-sunk));
+}
+.ph-delivery-sapcard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ph-delivery-sapcard-head button {
+  margin-right: -8px;
+}
+.ph-delivery-sapcard p {
+  margin: 10px 0 0;
+  font-size: 12px;
+}
+.ud-compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+.ud-compare-grid strong {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.4px;
+  font-variant-numeric: tabular-nums;
+}
+.ud-compare-grid strong + strong {
+  padding-left: 12px;
+  border-left: 1px solid var(--ph-border);
+}
+.ud-compare-grid small {
+  font-size: 11px;
+  font-weight: 450;
+  letter-spacing: 0;
+  color: var(--ph-dim);
+}
+.ud-bars {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+}
+.ud-bar {
+  display: block;
+  height: 6px;
+  min-width: 2px;
+  border-radius: 3px;
+  background: var(--ph-dim);
+}
+.ud-bar--learned.ud-bar--over {
+  background: var(--ph-warn);
+}
+.ud-bar--learned.ud-bar--under {
+  background: var(--ph-info);
+}
+.ud-bar--learned.ud-bar--within {
+  background: var(--ph-ok);
+}
+.ud-bar--sap {
+  background: color-mix(in srgb, var(--ph-text) 28%, transparent);
+}
+.ph-delivery-note {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+}
+.ph-delivery-trip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ph-accent);
+  font-weight: 600;
+}
+.ud-review-details {
+  margin-top: 18px;
+  border-top: 1px solid var(--ph-border);
+  padding-top: 12px;
+}
+.ud-review-details summary {
+  font-size: 12px;
+  color: var(--ph-dim);
+  cursor: pointer;
+}
+.ud-review-details p {
+  font-size: 12px;
+  margin: 8px 0;
+}
+.ph-delivery-field {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 550;
+}
+.ph-delivery-field input {
+  padding: 7px 10px;
+  border: 1px solid var(--ph-border);
+  border-radius: 8px;
+  background: var(--ph-surface);
+  color: var(--ph-text);
+  font: inherit;
+  font-size: 13px;
+}
+.ph-delivery-review-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* ── SAP workspace (performance / loss lanes / settings) ─────────────────── */
+.ud-workspace {
+  padding: 18px 24px 28px;
+  min-width: 0;
+  color: var(--ph-text);
+}
+.ud-workspace.sap-panel {
+  display: block;
+}
+.ud-sap-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 760px) {
+  .ud-view-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 14px;
+  }
+  .ud-workspace {
+    padding: 14px;
+  }
+  .ud-sap-bar .ud-segmented {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}

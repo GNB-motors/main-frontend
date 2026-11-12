@@ -1,8 +1,9 @@
-﻿import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog';
 import billPhotoService from '../../services/billPhotoService';
+import SearchableSelect from '../../components/SearchableDropdown/SearchableSelect';
 import { candidateRows } from './billPhotoModel';
 import './BillsTable.css';
 
@@ -121,7 +122,11 @@ export function BillThumbnail({ capture, file, large = false }) {
     <img
       src={url}
       alt="Bill thumbnail"
-      className={large ? 'max-h-[75vh] w-auto object-contain' : 'h-20 w-20 rounded object-cover'}
+      className={
+        large
+          ? 'max-h-[75vh] w-auto object-contain'
+          : 'h-24 w-24 rounded-lg border border-[var(--rd-line)] object-cover'
+      }
     />
   ) : (
     <span>Loading photo…</span>
@@ -158,38 +163,59 @@ function BillRow({
       '');
   const ocr = capture.ocr || {};
   const show = (value) => (value == null || value === '' ? '\u2014' : String(value));
+  const money = (n) =>
+    n == null || n === '' ? '\u2014' : '\u20b9' + Number(n).toLocaleString('en-IN');
   // The date and the time of the photo: the paper's own when it prints them,
   // the camera's own stamp when it does not.
   const photo = suggestion?.photo || null;
   const photoDate = photo?.date ?? ocr.printedDate ?? ocr.date ?? null;
   const photoTime = photo?.time ?? ocr.printedTime ?? null;
   const fromStamp = photo?.timeSource === 'stamp';
-  const details = [
+  // Secondary fields shown as a compact grid under the headline amount; the
+  // core figures (amount, litres, rate, fuel) are rendered prominently above.
+  const meta = [
+    ['Pump / station', ocr.pump ?? ocr.station],
     ['Date', photoDate],
     ['Time', photoTime, fromStamp ? 'from the photo stamp' : null],
-    ['Amount', ocr.amount == null ? null : '\u20b9' + ocr.amount],
-    ['Litres', ocr.litres],
-    ['Rate', ocr.rate == null ? null : '\u20b9' + ocr.rate + '/L'],
-    ['Pump / station', ocr.pump ?? ocr.station],
     ['Truck on bill', ocr.vehicleNo ?? ocr.vehicleNumber ?? ocr.registrationNumber],
-    ['Odometer', ocr.odometer == null ? null : ocr.odometer + ' km'],
-    ['Fuel', ocr.fuelType],
+    ['Odometer', ocr.odometer == null || ocr.odometer === '' ? null : ocr.odometer + ' km'],
     ['Receipt no.', ocr.receiptNo],
   ];
   return (
     <tr aria-label={`Bill ${capture.id}`}>
       <td data-label="#">{index + 1}</td>
       <td data-label="Details">
-        {details.map(([label, value, note]) => (
-          <div key={label}>
-            {label}: {show(value)}
-            {note ? <span className="bp-stamp-note"> ({note})</span> : null}
+        <div className="bp-bill">
+          <div className="bp-bill__head">
+            <span className="bp-bill__amount">{money(ocr.amount)}</span>
+            {ocr.fuelType ? <span className="bp-badge">{ocr.fuelType}</span> : null}
           </div>
-        ))}
+          <div className="bp-bill__sub">
+            {show(ocr.litres)} L ·{' '}
+            {ocr.rate == null || ocr.rate === '' ? '—' : '₹' + ocr.rate + '/L'}
+          </div>
+          <dl className="bp-bill__meta">
+            {meta.map(([label, value, note]) => (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd className={value == null || value === '' ? 'is-empty' : ''}>
+                  {show(value)}
+                  {note ? <span className="bp-stamp-note"> ({note})</span> : null}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {/* The date and time as one phrase, for assistive tech and the
+              compact rows that cannot render the labelled grid. */}
+          <span className="bp-visually-hidden">
+            Date: {show(photoDate)} · Time: {show(photoTime)}
+          </span>
+        </div>
       </td>
       <td data-label="Photo">
         <button
           type="button"
+          className="bp-photo-btn"
           onClick={() => setPhotoOpen(true)}
           aria-label={`Open bill photo ${index + 1}`}
         >
@@ -265,26 +291,22 @@ function BillRow({
                 ) : (
                   <p className="bp-reason">{reasonOf(suggestion)}</p>
                 )}
-                <label>
-                  Truck{' '}
-                  <input
-                    className="bp-select"
+                <label className="bp-truck-pick">
+                  <span className="bp-truck-pick__label">Truck</span>
+                  <SearchableSelect
+                    className="bp-truck-select"
                     aria-label="Truck"
-                    list={`fleet-${capture.id}`}
                     value={chosen}
                     onChange={(event) => onChoice(event.target.value)}
-                    placeholder="Search trucks"
-                  />
+                  >
+                    <option value="">Search all trucks…</option>
+                    {vehicles.map((vehicle) => (
+                      <option key={vehicle._id || vehicle.id} value={vehicle.registrationNumber}>
+                        {vehicle.registrationNumber}
+                      </option>
+                    ))}
+                  </SearchableSelect>
                 </label>
-                <datalist id={`fleet-${capture.id}`}>
-                  {vehicles.map((vehicle) => (
-                    <option
-                      key={vehicle._id || vehicle.id}
-                      value={vehicle.registrationNumber}
-                      aria-label={vehicle.registrationNumber}
-                    />
-                  ))}
-                </datalist>
               </>
             )}
             {errors?.map((message, i) => (

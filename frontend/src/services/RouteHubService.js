@@ -253,6 +253,26 @@ const RouteHubService = {
     );
   },
 
+  /**
+   * Per-route & per-trip RUNNING COST from AutoTrip telemetry (no ERP). Detected
+   * trips carry no revenue, so this is cost only — margin is never returned.
+   * Cost is present only for trips the economics engine priced; the rest are null.
+   */
+  getAutoTripRunningCost: async ({ days = 30, from, to, branchId } = {}, signal) => {
+    const toDate = to ? new Date(to) : new Date();
+    const fromDate = from ? new Date(from) : new Date(toDate.getTime() - days * 86400000);
+    return unwrap(
+      await apiClient.get('/api/route-profitability/running-cost', {
+        params: {
+          from: fromDate.toISOString(),
+          to: toDate.toISOString(),
+          ...(branchId ? { branchId } : {}),
+        },
+        signal,
+      }),
+    );
+  },
+
   /** Fleet utilization rollup — distance covered, vehicles active. */
   getUtilization: async (params = {}, signal) =>
     unwrap(await apiClient.get('/api/owner-value/utilization', { params, signal })),

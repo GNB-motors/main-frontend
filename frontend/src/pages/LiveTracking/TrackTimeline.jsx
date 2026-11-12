@@ -76,6 +76,20 @@ export default function TrackTimeline({
   const lastTime = points.length ? new Date(points[points.length - 1].t).getTime() : null;
   const span = firstTime !== null && lastTime !== null ? Math.max(1, lastTime - firstTime) : 1;
 
+  // The selected range can begin before the first recorded fix or finish
+  // after the last one. Keep stop markers inside the visible drive too.
+  const visibleStops = useMemo(() => {
+    if (firstTime === null || lastTime === null) return [];
+    return stops.flatMap((stop) => {
+      const start = Math.max(firstTime, new Date(stop.startAt).getTime());
+      const end = Math.min(lastTime, new Date(stop.endAt).getTime());
+      if (!(end > start)) return [];
+      return [
+        { stop, left: ((start - firstTime) / span) * 100, right: ((end - firstTime) / span) * 100 },
+      ];
+    });
+  }, [stops, firstTime, lastTime, span]);
+
   // The coloured track: one strip per segment, sized by how long it lasted.
   const strips = useMemo(
     () =>
@@ -105,14 +119,14 @@ export default function TrackTimeline({
   // A stop is a purple dot: when the truck stopped, and where.
   const stopDots = useMemo(
     () =>
-      stops.map((stop, index) => ({
+      visibleStops.map(({ stop, left }, index) => ({
         key: `stop-dot-${stop.startAt}-${index}`,
         kind: 'STOP',
         title: `${stop.place?.name ?? 'Stop'} · ${formatIst(stop.startAt)}`,
-        left: ((new Date(stop.startAt).getTime() - firstTime) / span) * 100,
+        left,
         color: STOP_DOT,
       })),
-    [stops, firstTime, span],
+    [visibleStops],
   );
 
   const dots = useMemo(
@@ -122,16 +136,13 @@ export default function TrackTimeline({
 
   const stopBlocks = useMemo(
     () =>
-      stops.map((stop, index) => ({
+      visibleStops.map(({ stop, left, right }, index) => ({
         key: `stop-${stop.startAt}-${index}`,
         title: `${stop.place?.name ?? 'Stop'} · ${formatDuration(stop.durationMin)}`,
-        left: ((new Date(stop.startAt).getTime() - firstTime) / span) * 100,
-        width: Math.max(
-          1,
-          ((new Date(stop.endAt).getTime() - new Date(stop.startAt).getTime()) / span) * 100,
-        ),
+        left,
+        width: Math.min(100 - left, Math.max(1, right - left)),
       })),
-    [stops, firstTime, span],
+    [visibleStops],
   );
 
   const playheadPercent = points.length

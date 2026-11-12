@@ -1,54 +1,92 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useMemo } from 'react';
+import useApi from '../../hooks/useApi.js';
 import PlaceIntelligenceService from '../PlaceHub/intelligence/PlaceIntelligenceService.js';
 import { decodeRoutes, drawableRoutes } from '../PlaceHub/model/routes.js';
 import { decodePolyline6 } from '../../lib/polyline6.js';
 
 const EMPTY = [];
-
+const EMPTY_SITES = new Map();
 export function trackRouteModel(data) {
   const model = decodeRoutes(data);
   const eligible = model.legs.filter((leg) => !leg.inPlant);
   const matched = eligible.flatMap((leg) => {
     if (!['DRIVEN', 'ENGINE'].includes(leg.path?.source)) return [];
-    const segments = (leg.path?.overviewSegments || []).map(decodePolyline6).filter((path) => path.length > 1);
+    const segments = (leg.path?.overviewSegments || [])
+      .map(decodePolyline6)
+      .filter((path) => path.length > 1);
     return segments.length ? [{ ...leg, segments }] : [];
   });
-  return { legs: eligible, lines: drawableRoutes(matched), sites: model.sites, unmatchedCount: eligible.length - matched.length };
+  return {
+    legs: eligible,
+    lines: drawableRoutes(matched),
+    sites: model.sites,
+    unmatchedCount: eligible.length - matched.length,
+  };
 }
 
-/**
- * useTrackRoutes — the routes the fleet runs.
- *
- * The same map Place Hub draws, read from the same endpoint and decoded with
- * the same model, so a route looks the same on both pages.
- */
-export default function useTrackRoutes({ enabled = false } = {}) {
-  const [state, setState] = useState({ legs: [], lines: [], sites: new Map(), unmatchedCount: null, loading: false, error: null });
-
-  const load = useCallback(async () => {
-    if (!enabled) return;
-    setState((prev) => ({ ...prev, loading: true }));
-    try {
-      const data = await PlaceIntelligenceService.routesMap();
-      setState({ ...trackRouteModel(data), loading: false, error: null });
-    } catch (error) {
-      setState((prev) => ({ ...prev, loading: false, error }));
+export function trackDeliveryModel(data) {
+  const sites = new Map();
+  const legs = (data?.rows || []).map((row) => {
+    for (const [id, name, position] of [
+      [row.fromSiteId, row.fromName, row.fromPosition],
+      [row.toSiteId, row.toName, row.toPosition],
+    ]) {
+      sites.set(String(id), { _id: id, name, ...(position || {}) });
     }
-  }, [enabled]);
+    return {
+      ...row,
+      kind: 'delivery',
+      traversals: row.n,
+      stats: { km: row.km, minutes: row.minutes },
+      path: row.path || { source: 'NONE', overviewSegments: [] },
+    };
+  });
+  return trackRouteModel({ legs, sites: [...sites.values()] });
+}
 
-  useEffect(() => {
-    if (enabled) load();
-    // Layer switched off: drop the lines so the map clears at once, not on reload.
-    else setState({ legs: [], lines: [], sites: new Map(), unmatchedCount: null, loading: false, error: null });
-  }, [enabled, load]);
-
+/** Every delivery route with its road path; `filters` are the list API's own filters. */
+export async function loadDeliveryRoutes(signal, filters = {}) {
+  const limit = 200;
+  const read = (page) =>
+    PlaceIntelligenceService.listDeliveryLegs(
+      { ...filters, page, limit, includeMap: true },
+      { signal },
+    );
+  const first = await read(1);
+  const rest = await Promise.all(
+    Array.from({ length: Math.max(0, Math.ceil(first.total / limit) - 1) }, (_, index) =>
+      read(index + 2),
+    ),
+  );
   return {
-    legs: enabled ? state.legs : EMPTY,
-    lines: enabled ? state.lines : EMPTY,
-    sites: state.sites,
-    unmatchedCount: state.unmatchedCount,
-    isLoading: state.loading,
-    error: state.error,
-    reload: load,
+    rows: [first, ...rest].flatMap((page) => page.rows || []),
+    total: first.total,
+    totals: first.totals,
+  };
+}
+
+/** The delivery feed and movement feed keep separate IDs and abort on a mode change. */
+export default function useTrackRoutes({ enabled = false, kind = 'movement' } = {}) {
+  const q = useApi(
+    (signal) =>
+      kind === 'delivery'
+        ? loadDeliveryRoutes(signal)
+        : PlaceIntelligenceService.routesMap({}, { signal }),
+    [kind],
+    { enabled, scopeKey: kind },
+  );
+  const model = useMemo(
+    () => (kind === 'delivery' ? trackDeliveryModel(q.data) : trackRouteModel(q.data)),
+    [q.data, kind],
+  );
+  return {
+    kind,
+    legs: enabled ? model.legs : EMPTY,
+    lines: enabled ? model.lines : EMPTY,
+    sites: enabled ? model.sites : EMPTY_SITES,
+    unmatchedCount: enabled && q.data ? model.unmatchedCount : null,
+    isLoading: enabled && q.loading,
+    error: enabled ? q.error : null,
+    reload: q.refetch,
   };
 }

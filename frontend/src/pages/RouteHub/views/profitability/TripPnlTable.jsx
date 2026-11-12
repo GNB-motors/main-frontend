@@ -1,62 +1,65 @@
 import Ico from '../../routeHubIcons.jsx';
 import { TableEmpty, TableSkeleton } from '../../routeHubShared.jsx';
-import { UNKNOWN, percent, rupees, sortByMarginAsc, tripPnlRow } from './tripPnlModel';
+import { inr, fmtDT } from '../../routeHubFormat';
+
+const money = (n) => (typeof n === 'number' && Number.isFinite(n) ? inr(n) : '—');
+const km = (n) => (typeof n === 'number' && Number.isFinite(n) ? `${Math.round(n)} km` : '—');
+
+const STATUS_LABEL = {
+  COMPLETE: 'Complete',
+  CONFIRMED: 'Confirmed',
+  NEEDS_REVIEW: 'Needs review',
+  OPEN: 'Open',
+};
 
 /**
- * Per-trip P&L, worst margin first. Every figure shows the source the API gave
- * it, and a figure the API could not price is "—" with the reason beside it —
- * never a confident ₹0.
+ * Per-trip RUNNING COST from AutoTrip telemetry, most recent first. No revenue
+ * is recorded for a detected trip, so there is no margin — this is distance and
+ * running cost only. A trip the economics engine has not priced shows "—" for
+ * cost (unknown, not ₹0).
  */
-export default function TripPnlTable({ pnls, first, error }) {
-  const rows = sortByMarginAsc((pnls || []).map(tripPnlRow));
+export default function TripPnlTable({ trips, first, error, className = '' }) {
+  const rows = trips || [];
   return (
-    <div className="card">
+    <div className={`card ${className}`.trim()}>
       <div className="card-head">
         <span style={{ color: 'var(--nova-rage-600)', display: 'flex' }}>
           <Ico n="ledger" />
         </span>
-        <h3>Trip P&amp;L</h3>
-        <span className="hint">Per trip, worst margin first · every figure keeps its source</span>
+        <h3>Trip running cost</h3>
+        <span className="hint">Detected trips, most recent first · cost from telemetry</span>
       </div>
-      <div className="tblwrap">
+      <div className="tblwrap tblwrap--scroll">
         <table className="tbl">
           <thead>
             <tr>
-              <th>Trip</th>
+              <th>Vehicle</th>
+              <th>Route</th>
               <th className="num">Distance</th>
-              <th className="num">Revenue</th>
-              <th className="num">Cost</th>
-              <th className="num">Margin</th>
-              <th>Sources</th>
+              <th className="num">Running cost</th>
+              <th>When</th>
+              <th>Status</th>
             </tr>
           </thead>
           {rows.length ? (
             <tbody>
-              {rows.map((r) => (
-                <tr key={r.id || `${r.vehicle}-${r.at}`}>
-                  <td className="strong">{r.vehicle}</td>
-                  <td className="num mono">{r.km != null ? `${r.km} km` : UNKNOWN}</td>
-                  <td className="num mono">
-                    {rupees(r.revenue)}
-                    {r.revenueReason ? <div className="hint">{r.revenueReason}</div> : null}
-                  </td>
-                  <td className="num mono">
-                    {rupees(r.cost)}
-                    {r.costReason ? (
-                      <div className="hint">
-                        {r.costReason}
-                        {r.knownCost != null
-                          ? ` · ₹${Math.round(r.knownCost).toLocaleString('en-IN')} known so far`
-                          : ''}
-                      </div>
-                    ) : null}
-                  </td>
-                  <td className="num mono strong">
-                    {percent(r.margin)}
-                    {r.marginReason ? <div className="hint">{r.marginReason}</div> : null}
-                  </td>
+              {rows.map((t) => (
+                <tr key={t.id}>
+                  <td className="strong">{t.registrationNumber || '—'}</td>
                   <td>
-                    <div className="mono">{r.sources.length ? r.sources.join(' · ') : UNKNOWN}</div>
+                    {t.origin || '—'} <span style={{ color: 'var(--fg-tertiary)' }}>→</span>{' '}
+                    {t.destination || '—'}
+                  </td>
+                  <td className="num mono">{km(t.distanceKm)}</td>
+                  <td className="num mono strong">
+                    {money(t.runningCostInr)}
+                    {!t.priced ? <div className="hint">not priced yet</div> : null}
+                  </td>
+                  <td className="mono">{t.at ? fmtDT(new Date(t.at)) : '—'}</td>
+                  <td>
+                    <span style={{ color: 'var(--fg-tertiary)' }}>
+                      {STATUS_LABEL[t.status] || t.status || '—'}
+                    </span>
                   </td>
                 </tr>
               ))}
@@ -66,10 +69,10 @@ export default function TripPnlTable({ pnls, first, error }) {
           ) : (
             <TableEmpty
               colSpan={6}
-              title={error ? 'Trip P&L unavailable' : 'No trips to price yet'}
-              sub={error || 'Trip revenue and cost appear once trips are in the register.'}
-              tone={error ? '#C56200' : '#187A32'}
-              icon={error ? 'alert' : 'check'}
+              title={error ? 'Trip cost unavailable' : 'No detected trips in this window'}
+              sub={error || 'Detected trips and their running cost appear here once trucks run.'}
+              tone={error ? '#C56200' : '#4B5563'}
+              icon={error ? 'alert' : 'ledger'}
             />
           )}
         </table>

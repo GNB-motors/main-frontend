@@ -1,6 +1,6 @@
 import { Fuel } from 'lucide-react';
 import { formatINR, formatLitres, formatNum, formatPct } from '../../utils/formatters';
-import { MAX_PUMP_ROWS, pumpRow, sortPumps } from './pumpHonestyModel.js';
+import { MAX_PUMP_ROWS, pumpRow, sortPumps, pumpSourceSummary } from './pumpHonestyModel.js';
 import { PumpArt } from './FuelIntegrityEmptyArt.jsx';
 
 const MAX_ROWS = MAX_PUMP_ROWS;
@@ -18,6 +18,7 @@ const STATUS_LABEL = {
   RELIABLE: 'Reliable delivery',
   UNRELIABLE: 'Unreliable',
   INSUFFICIENT_DATA: 'Needs more fills',
+  NOT_AUDITED: 'Not yet audited',
   SUSPICIOUS: 'Suspicious',
   CHRONIC_SHORTAGE: 'Chronic shortage',
 };
@@ -29,9 +30,9 @@ export default function PumpsWatchCard({ ledger = {} }) {
   const stats = data?.summary || {};
   // With no pump audited there is nothing to count: the zeros would read as
   // findings, so the numbers go away and the explanation line does the talking.
-  const auditedPumps = Array.isArray(data?.pumps) ? data.pumps.length : 0;
+  const auditedPumps = (data?.pumps || []).filter((p) => p.status !== 'NOT_AUDITED').length;
   const showStats = !loading && !error && auditedPumps > 0;
-  const pumpCount = Math.max(Number(stats.totalPumpsEvaluated) || 0, auditedPumps);
+  const pumpCount = data?.pumps?.length || 0;
 
   return (
     <section className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col gap-3">
@@ -41,7 +42,9 @@ export default function PumpsWatchCard({ ledger = {} }) {
           Pumps
           {showStats ? (
             <span className="text-[11px] font-normal text-slate-500">
-              {formatNum(pumpCount)} pumps · {formatNum(stats.chronicPumpsCount)} chronic
+              {formatNum(pumpCount)} pumps ·{' '}
+              {auditedPumps < pumpCount ? `${auditedPumps} audited · ` : ''}
+              {formatNum(stats.chronicPumpsCount)} chronic
             </span>
           ) : null}
         </div>
@@ -53,6 +56,11 @@ export default function PumpsWatchCard({ ledger = {} }) {
         ) : null}
       </header>
 
+      {!loading && !error && rows.length > 0 && !showStats ? (
+        <p className="text-xs text-slate-500 m-0">
+          {data.pumps.length} known pumps · Not yet audited
+        </p>
+      ) : null}
       {!loading && !error && data?.windowLabel ? (
         <p className="text-xs text-slate-500 m-0">Fleet pumps · {data.windowLabel}</p>
       ) : null}
@@ -90,37 +98,59 @@ export default function PumpsWatchCard({ ledger = {} }) {
                   {STATUS_LABEL[p.status] || 'Unknown'}
                 </span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
-                <div>
-                  <div className="text-[10px] uppercase tracking-wide text-slate-500">Fills</div>
-                  <div className="fi-mono text-slate-800 dark:text-slate-200">
-                    {formatNum(p.fills)}
-                  </div>
+              {p.status === 'NOT_AUDITED' ? (
+                <div className="text-xs text-slate-500 mt-1">
+                  {pumpSourceSummary(p)}
+                  {p.registeredLitres != null && (
+                    <div>Register fuel: {formatLitres(p.registeredLitres)}</div>
+                  )}
+                  <div>No reliable bill-to-tank comparison yet.</div>
                 </div>
-                <div>
-                  <div className="text-[10px] uppercase tracking-wide text-slate-500">Billed</div>
-                  <div className="fi-mono text-slate-800 dark:text-slate-200">
-                    {formatLitres(p.billedL)}
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-slate-500">
+                        Fills
+                      </div>
+                      <div className="fi-mono text-slate-800 dark:text-slate-200">
+                        {formatNum(p.fills)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-slate-500">
+                        Billed
+                      </div>
+                      <div className="fi-mono text-slate-800 dark:text-slate-200">
+                        {formatLitres(p.billedL)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-slate-500">
+                        Measured
+                      </div>
+                      <div className="fi-mono text-slate-800 dark:text-slate-200">
+                        {formatLitres(p.measuredL)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-slate-500">
+                        Short
+                      </div>
+                      <div className="fi-mono text-slate-800 dark:text-slate-200">
+                        {formatLitres(p.shortfallL)}
+                        {p.variancePct == null
+                          ? ''
+                          : ` (${formatPct(p.variancePct, { decimals: 1 })})`}
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase tracking-wide text-slate-500">Measured</div>
-                  <div className="fi-mono text-slate-800 dark:text-slate-200">
-                    {formatLitres(p.measuredL)}
+                  <div className="text-[11px] text-slate-500 mt-1">
+                    Estimated loss {formatINR(p.rupeeLoss)}
+                    {p.variancePct == null && ' — no variance recorded for this pump yet'}
                   </div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase tracking-wide text-slate-500">Short</div>
-                  <div className="fi-mono text-slate-800 dark:text-slate-200">
-                    {formatLitres(p.shortfallL)}
-                    {p.variancePct == null ? '' : ` (${formatPct(p.variancePct, { decimals: 1 })})`}
-                  </div>
-                </div>
-              </div>
-              <div className="text-[11px] text-slate-500 mt-1">
-                Estimated loss {formatINR(p.rupeeLoss)}
-                {p.variancePct == null && ' — no variance recorded for this pump yet'}
-              </div>
+                </>
+              )}
             </li>
           ))}
         </ul>

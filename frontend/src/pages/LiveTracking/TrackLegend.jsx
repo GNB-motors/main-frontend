@@ -269,7 +269,7 @@ export default function TrackLegend({
                 const isToll = layer.id === 'tolls';
                 const notAvailable = placesNotAvailable && !isToll && layer.id !== 'ourPlaces';
                 const nearby = !isToll && layer.id !== 'ourPlaces' && layerSelection[layer.id]
-                  ? nearbyInfo?.loading ? 'Loading in this view…'
+                  ? nearbyInfo?.loading ? nearbyInfo.items?.length ? 'Updating nearby places…' : 'Loading in this view…'
                     : nearbyInfo?.error ? 'Could not load this view'
                       : nearbyInfo?.loaded ? nearbyInfo.counts[layer.id] ? `${nearbyInfo.counts[layer.id]}${nearbyInfo.truncated ? '+' : ''} in this view` : nearbyInfo.truncated ? 'Zoom in for local results' : 'None in this view' : null : null;
                 const count = layer.id === 'ourPlaces' ? ownPlacesCount : isToll ? tollInfo?.visitedCount : coverage?.count;
@@ -317,11 +317,11 @@ export default function TrackLegend({
                 const Icon = LAYER_ICONS[layer.icon] || Factory;
                 const count = liveCounts[layer.id];
                 return (
-                  <LegendToggle
+                  <PlaceLayerRow
                     key={layer.id}
-                    label={layer.label}
-                    count={count == null ? undefined : count}
-                    icon={<Icon size={14} aria-hidden="true" />}
+                    layer={layer}
+                    count={count}
+                    icon={<Icon size={19} aria-hidden="true" />}
                     color={layer.color}
                     on={Boolean(layerSelection[layer.id])}
                     onToggle={() => onToggleLayer(layer.id)}

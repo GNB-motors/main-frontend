@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Bell, ChevronRight, X, CheckCheck } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useFeatureFlags } from '../contexts/FeatureFlagsContext';
+import { useActiveBranch } from '../contexts/BranchContext';
 import { OwnerAlertsService, ALERT_TYPE_LABELS } from '../pages/OwnerAlerts/OwnerAlertsService.js';
 import {
   Sheet,
@@ -43,6 +44,9 @@ const ALERT_ITEMS = [
 const NotificationBell = () => {
   const navigate = useNavigate();
   const { canAccess } = useFeatureFlags();
+  const { branchId } = useActiveBranch();
+  const branchRef = React.useRef(branchId);
+  branchRef.current = branchId;
   const [open, setOpen] = React.useState(false);
   const [unread, setUnread] = React.useState(0);
   // Ids we've already counted/toasted, so the SSE reconnect burst (last 24 h)
@@ -56,8 +60,10 @@ const NotificationBell = () => {
   // count. A server that cannot tell critical apart yet gives null, and then
   // the bell shows no number rather than every open alert.
   const refreshCount = React.useCallback(async () => {
+    const requestedBranch = branchRef.current;
     try {
       const { count, records } = await OwnerAlertsService.getCriticalUnread();
+      if (requestedBranch !== branchRef.current) return;
       records.forEach((a) => seenIds.current.add(String(a.id)));
       setUnread(count ?? 0);
     } catch {
@@ -67,6 +73,8 @@ const NotificationBell = () => {
 
   // Initial unread count (REST-first).
   React.useEffect(() => {
+    seenIds.current.clear();
+    setUnread(0);
     if (!canSeeAlerts) return undefined;
     let cancelled = false;
     (async () => {
@@ -75,7 +83,7 @@ const NotificationBell = () => {
     return () => {
       cancelled = true;
     };
-  }, [canSeeAlerts, refreshCount]);
+  }, [canSeeAlerts, refreshCount, branchId]);
 
   // Real-time — the shared SSE stream's `alerts` event. Only genuinely new ids
   // (not in the initial load / earlier ticks) bump the badge and toast.
@@ -111,7 +119,7 @@ const NotificationBell = () => {
       cancelled = true;
       if (unsub) unsub();
     };
-  }, [canSeeAlerts]);
+  }, [canSeeAlerts, branchId]);
 
   const handleOpenChange = (next) => {
     setOpen(next);

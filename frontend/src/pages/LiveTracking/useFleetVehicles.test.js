@@ -3,6 +3,34 @@ import { renderHook } from '@testing-library/react';
 import useFleetVehicles from './useFleetVehicles.js';
 
 describe('Track telemetry mapping', () => {
+  it('counts a never-reported master vehicle but excludes it from the map and live count', () => {
+    const { result } = renderHook(() =>
+      useFleetVehicles({
+        rawPositions: [
+          {
+            registrationNumber: 'WB11E5562',
+            eventDateTime: null,
+            latitude: null,
+            longitude: null,
+            speed: null,
+            ignition: null,
+          },
+        ],
+        vehiclesMeta: {},
+        filter: 'all',
+        searchQuery: '',
+        selectedId: null,
+      }),
+    );
+    expect(result.current.counts).toMatchObject({ all: 1, gps: 0 });
+    expect(result.current.vehicles[0]).toMatchObject({
+      neverReported: true,
+      hasFix: false,
+      hasGpsFix: false,
+      speed: null,
+    });
+    expect(result.current.mapVehicles).toEqual([]);
+  });
   it('uses the live odometer including zero, and never a master value that the list does not carry', () => {
     const { result, rerender } = renderHook(
       ({ odometer }) =>
@@ -78,6 +106,14 @@ describe('Track telemetry mapping', () => {
 
 it('preserves structured provider readings on the selected row', () => {
   const readings = { def: { pct: { value: 42 } }, odometerKm: { value: 9799 } };
-  const { result } = renderHook(() => useFleetVehicles({ rawPositions: [{ registrationNumber: 'WB11S1962', readings }], vehiclesMeta: {}, filter: 'all', searchQuery: '', selectedId: 'live-WB11S1962' }));
+  const { result } = renderHook(() =>
+    useFleetVehicles({
+      rawPositions: [{ registrationNumber: 'WB11S1962', readings }],
+      vehiclesMeta: {},
+      filter: 'all',
+      searchQuery: '',
+      selectedId: 'live-WB11S1962',
+    }),
+  );
   expect(result.current.selectedVehicle.readings).toEqual(readings);
 });

@@ -1,3 +1,4 @@
+import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import useTrackTolls from './useTrackTolls.js';
 import usePlaceLayerAvailability from './usePlaceLayerAvailability.js';
 import { routeFocusModel } from './routeFocusModel.js';
@@ -33,6 +34,7 @@ import RoutesListView from './RoutesListView.jsx';
 import PlacesListView from './PlacesListView.jsx';
 import PlaceDetailPanel from './PlaceDetailPanel.jsx';
 import TrackLegend from './TrackLegend.jsx';
+import TrackMapKey from './TrackMapKey.jsx';
 import MapSearchBox from './MapSearchBox.jsx';
 import TrafficToggle from './TrafficToggle.jsx';
 import useMapPlaces from './useMapPlaces.js';
@@ -123,18 +125,22 @@ const LiveTrackingPage = () => {
   const [draftError, setDraftError] = useState(null);
   const [savingDraft, setSavingDraft] = useState(false);
   const [reviewSite, setReviewSite] = useState(null);
+  const reviewBeforeFence = useRef(null);
   const [openRouteId, setOpenRouteId] = useState(null);
   const [routeDetail, setRouteDetail] = useState(null);
   const routeOverviewCamera = useRef(null);
+  const { isEnabled } = useFeatureFlags();
+  const canCreateZoneHere = canEditPlaces(getUserRole()) && isEnabled('geofence');
   const canEditPlacesHere = canEditPlaces(getUserRole());
 
   const handleMapClick = useCallback((click) => {
-    if (openRouteId) return;
+    if (openRouteId || placeDraft || zoneDraft || savingDraft) return;
+    reviewBeforeFence.current = null;
     setMapClick(click);
     setPlaceDraft(null);
     setZoneDraft(null);
     setDraftError(null);
-  }, [openRouteId]);
+  }, [openRouteId, placeDraft, zoneDraft, savingDraft]);
 
   // Track mode lives in the URL, so every link in the product can open one
   // truck's history on a given range (F3.2).
@@ -142,6 +148,9 @@ const LiveTrackingPage = () => {
   const trackMode = useTrackMode({ searchParams, setSearchParams });
   const isTrackMode = trackMode.isTrackMode;
   const isPlacesView = !isTrackMode && searchParams.get('view') === 'places';
+  const deliveryRoutesEnabled = canEditPlacesHere && isEnabled('fleetIntelligence') && isEnabled('routesV2');
+  const routeKind = deliveryRoutesEnabled && searchParams.get('routeView') !== 'movements' ? 'delivery' : 'movement';
+  useEffect(() => { setOpenRouteId(null); setRouteDetail(null); }, [routeKind]);
 
   // Google Maps Load Script
   const { isLoaded, loadError } = useLoadScript(googleMapsLoaderOptions);
@@ -281,8 +290,8 @@ const LiveTrackingPage = () => {
   const knownEtas = useKnownEtas();
   const idlingByPlate = useMemo(() => idlingMinutesByPlate(idlingRows), [idlingRows]);
   const alertCounts = useMemo(() => alertCountsByVehicle(alerts), [alerts]);
-  const reviewQueue = useTrackReviewQueue({ enabled: isPlacesView && Boolean(layerSelection.reviewQueue) });
-  const routes = useTrackRoutes({ enabled: isPlacesView && placesTab === 'routes' });
+  const reviewQueue = useTrackReviewQueue({ enabled: isPlacesView });
+  const routes = useTrackRoutes({ enabled: isPlacesView && placesTab === 'routes', kind: routeKind });
   const [showAllTolls, setShowAllTolls] = useState(false);
   const tolls = useTrackTolls({ enabled: isPlacesView && placesTab === 'places', showAll: showAllTolls && Boolean(layerSelection.tolls), bbox: mapBounds, zoom: mapZoom });
   const layerAvailability = usePlaceLayerAvailability(isPlacesView && placesTab === 'places');
@@ -327,6 +336,7 @@ const LiveTrackingPage = () => {
   }, [isPlacesView, layerSelection.ourPlaces, showPlaces]);
 
   const changeView = (view) => {
+    reviewBeforeFence.current = null;
     exitReplay();
     setSelectedId(null);
     setSearchQuery('');
@@ -369,6 +379,7 @@ const LiveTrackingPage = () => {
   }, [mapRef]);
 
   const pickPlace = (place) => {
+    setReviewSite(null);
     trackPlaces.show();
     trackPlaces.selectPlace(place.id);
     // A followed vehicle would pull the map back to itself on its next fix.
@@ -377,6 +388,7 @@ const LiveTrackingPage = () => {
   };
 
   const selectPlaceFromMap = (id) => {
+    setReviewSite(null);
     setPlacesTab('places');
     setOpenRouteId(null);
     trackPlaces.selectPlace(id);
@@ -410,23 +422,31 @@ const LiveTrackingPage = () => {
         return;
       }
       setDraftError(null);
-      if (action === 'makePlace') {
+      if (action === 'makePlace' && canEditPlacesHere) {
         setPlaceDraft(clickDraft({ lat: click.lat, lng: click.lng }));
         return;
       }
-      if (action === 'alertZone') {
+      if (action === 'alertZone' && canCreateZoneHere) {
         setZoneDraft(newDraft('ZONE', { center: { lat: click.lat, lng: click.lng } }));
       }
     },
-    [mapClick],
+    [mapClick, canEditPlacesHere, canCreateZoneHere],
   );
 
   const changePlaceDraft = useCallback((patch) => {
+    if (savingDraft) return;
     setPlaceDraft((prev) => (prev ? { ...prev, ...patch } : prev));
-  }, []);
+  }, [savingDraft]);
 
   const changeZoneDraft = useCallback((patch) => {
+    if (savingDraft) return;
     setZoneDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+  }, [savingDraft]);
+
+  const closeZoneDraft = useCallback(() => {
+    setZoneDraft(null);
+    if (reviewBeforeFence.current) setReviewSite(reviewBeforeFence.current);
+    reviewBeforeFence.current = null;
   }, []);
 
   const zoneErrors = useMemo(() => (zoneDraft ? validateDraft(zoneDraft) : {}), [zoneDraft]);
@@ -437,8 +457,12 @@ const LiveTrackingPage = () => {
     const draft = placeDraft;
     if (!draft?.center) return;
     const name = String(draft.name || '').trim();
-    if (name.length < 2) {
-      setDraftError('Give the place a name (2 characters or more)');
+    if (name.length < 2 || name.length > 120) {
+      setDraftError('Give the place a name (2–120 characters)');
+      return;
+    }
+    if (!Number.isFinite(Number(draft.radiusM)) || Number(draft.radiusM) < 50 || Number(draft.radiusM) > 5000) {
+      setDraftError('Radius must be 50–5,000 m');
       return;
     }
     setSavingDraft(true);
@@ -460,13 +484,13 @@ const LiveTrackingPage = () => {
       if (site) {
         focusPlace(site);
         if (site._id) {
-          trackPlaces.selectPlace(site._id);
+          trackPlaces.selectPlace(`site:${site._id}`);
           setRailTab('places');
           setIsRailOpen(true);
         }
       }
     } catch (error) {
-      setDraftError(error?.message || 'Could not save the place');
+      setDraftError(error?.response?.data?.message || error?.message || 'Could not save the place');
     } finally {
       setSavingDraft(false);
     }
@@ -475,7 +499,7 @@ const LiveTrackingPage = () => {
   // "Alert zone here" writes a geofence zone: Place Hub's own fence.
   const saveZoneDraft = useCallback(async () => {
     const draft = zoneDraft;
-    if (!draft?.center) return;
+    if (!draft || (draft.shape !== 'polygon' && !draft.center)) return;
     const problem = Object.values(validateDraft(draft))[0];
     if (problem) {
       setDraftError(problem);
@@ -488,15 +512,15 @@ const LiveTrackingPage = () => {
       const editing = draft.mode === 'edit' && draft.sourceId;
       if (editing) await PlaceHubService.updateZone(draft.sourceId, body);
       else await PlaceHubService.createZone(body);
-      setZoneDraft(null);
+      closeZoneDraft();
       showToast(editing ? `Zone updated: ${body.name}` : `Alert zone added: ${body.name}`);
       trackPlaces.retry?.();
     } catch (error) {
-      setDraftError(error?.message || 'Could not save the zone');
+      setDraftError(error?.response?.data?.message || error?.message || 'Could not save the zone');
     } finally {
       setSavingDraft(false);
     }
-  }, [zoneDraft, showToast, trackPlaces]);
+  }, [zoneDraft, showToast, trackPlaces, closeZoneDraft]);
 
   // The truck panel's "add this spot": a zone to watch, or a place to work at.
   const handleAddAtSpot = useCallback((kind, seed) => {
@@ -512,7 +536,14 @@ const LiveTrackingPage = () => {
   // A place nobody has answered for yet.
   const selectReviewSite = useCallback(
     (site) => {
+      reviewBeforeFence.current = null;
+      setZoneDraft(null);
+      setPlaceDraft(null);
       setReviewSite(site);
+      setOpenRouteId(null);
+      setRouteDetail(null);
+      routeOverviewCamera.current = null;
+      setPlacesTab('places');
       setSelectedId(null);
       trackPlaces.selectPlace(null);
       setRailTab('fleet');
@@ -538,6 +569,7 @@ const LiveTrackingPage = () => {
       draft.sourceId = sourceId;
     }
     draft.radiusM = clampRadius(Number(site?.radiusM) || 500, 50, 50000);
+    reviewBeforeFence.current = site;
     setZoneDraft(draft);
     setReviewSite(null);
   }, []);
@@ -557,6 +589,48 @@ const LiveTrackingPage = () => {
     if (camera && mapRef.current) mapRef.current.moveCamera(camera);
     routeOverviewCamera.current = null;
   }, [mapRef]);
+
+  const changeRouteKind = (kind) => {
+    if (savingDraft) return;
+    closeRoute();
+    setSearchQuery('');
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous);
+      next.set('routeView', kind === 'delivery' ? 'deliveries' : 'movements');
+      return next;
+    });
+  };
+
+  const changePlacesTab = (tab) => {
+    if (savingDraft) return;
+    reviewBeforeFence.current = null;
+    setReviewSite(null);
+    setPlaceDraft(null);
+    setZoneDraft(null);
+    setMapClick(null);
+    trackPlaces.selectPlace(null);
+    closeRoute();
+    setPlacesTab(tab);
+    setSearchQuery('');
+  };
+
+  // Escape dismisses only the topmost local panel. Confirmation dialogs and
+  // popovers get first refusal; saving an answer must not hide its result.
+  useEffect(() => {
+    const onEscape = (event) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || savingDraft) return;
+      const overlay = event.target?.closest?.('[role="dialog"], [role="alertdialog"], [role="menu"]');
+      if (overlay && !['Make this a place', 'Alert zone here', 'Route detail'].includes(overlay.getAttribute('aria-label'))) return;
+      if (zoneDraft) closeZoneDraft();
+      else if (placeDraft) setPlaceDraft(null);
+      else if (reviewSite) setReviewSite(null);
+      else if (openRouteId) closeRoute();
+      else return;
+      event.preventDefault();
+    };
+    window.addEventListener('keydown', onEscape);
+    return () => window.removeEventListener('keydown', onEscape);
+  }, [savingDraft, zoneDraft, placeDraft, reviewSite, openRouteId, closeZoneDraft, closeRoute]);
   const selectTrackPlace = trackPlaces.selectPlace;
   const handleRoutePick = useCallback((id) => {
     if (!routeOverviewCamera.current && mapRef.current) {
@@ -751,18 +825,27 @@ const LiveTrackingPage = () => {
               trackRoad={isTrackMode ? trackMode.roadTrail : null}
               trackTolls={isTrackMode ? trackMode.tolls : null}
               placesPanelOpen={isPlacesView && placesPanelOpen}
-              reviewItems={showPlaceLayers ? reviewQueue.items : []}
+              reviewItems={showPlaceLayers && layerSelection.reviewQueue ? reviewQueue.items : []}
               tollPlazas={showPlaceLayers && layerSelection.tolls ? tolls.plazas : []}
               selectedReviewId={reviewSite?._id ?? null}
               onSelectReviewSite={selectReviewSite}
               idlingRows={showPlaceLayers && layerSelection.idling ? idlingRows : []}
               onSelectIdling={selectIdlingRow}
               focusedRoute={focusedRoute}
+              routeKind={routeKind}
               routeLines={focusedRoute ? [] : routes.lines}
               routeSites={routes.sites}
               onPickRoute={handleRoutePick}
               draft={placeDraft || zoneDraft}
               onDraftChange={placeDraft ? changePlaceDraft : changeZoneDraft}
+              onDraftMapClick={(point) => {
+                if (savingDraft || !point) return;
+                if (zoneDraft?.shape === 'polygon') {
+                  setZoneDraft((current) => current && !current.polygonDone
+                    ? { ...current, polygon: [...current.polygon, point] } : current);
+                } else if (placeDraft) changePlaceDraft({ center: point });
+                else if (zoneDraft) changeZoneDraft({ center: point });
+              }}
             />
 
             {/* A click on the map is an offer: make it a place, watch it as a
@@ -770,6 +853,7 @@ const LiveTrackingPage = () => {
             <TrackClickMenu
               click={mapClick}
               canEdit={canEditPlacesHere}
+              canCreateZone={canCreateZoneHere}
               onChoose={handleClickChoice}
               onClose={closeClickMenu}
             />
@@ -787,13 +871,15 @@ const LiveTrackingPage = () => {
 
             {zoneDraft ? (
               <TrackZoneDraft
+                backLabel={reviewBeforeFence.current ? 'Back to place' : 'Back to map'}
                 draft={zoneDraft}
-                errors={zoneErrors}
+                errors={draftError ? zoneErrors : {}}
+                error={draftError}
                 saving={savingDraft}
                 onChange={changeZoneDraft}
                 onKind={changeZoneDraft}
                 onPick={(loc) => focusPlace({ lat: loc?.lat, lng: loc?.lng })}
-                onCancel={() => setZoneDraft(null)}
+                onCancel={savingDraft ? undefined : closeZoneDraft}
                 onSave={saveZoneDraft}
               />
             ) : null}
@@ -803,6 +889,18 @@ const LiveTrackingPage = () => {
                 id={openRouteId}
                 leg={routes.legs.find((leg) => String(leg._id) === String(openRouteId))}
                 onClose={() => setOpenRouteId(null)}
+              />
+            ) : null}
+
+            {isPlacesView && !placeDraft && !zoneDraft ? (
+              <TrackMapKey
+                tab={placesTab}
+                places={showPlaceLayers && layerSelection.ourPlaces ? trackPlaces.shownPlaces : []}
+                reviewCount={showPlaceLayers && layerSelection.reviewQueue ? reviewQueue.items.length : 0}
+                idlingCount={showPlaceLayers && layerSelection.idling ? idlingRows.length : 0}
+                tollCount={showPlaceLayers && layerSelection.tolls ? tolls.plazas.length : 0}
+                routeLines={focusedRoute ? [] : routes.lines}
+                routeKind={routeKind}
               />
             ) : null}
 
@@ -854,7 +952,7 @@ const LiveTrackingPage = () => {
                   onRetryTolls={tolls.refresh}
                   unmatchedRoutes={routes.error ? null : routes.unmatchedCount}
                   liveCounts={{
-                    reviewQueue: layerSelection.reviewQueue ? reviewQueue.count : '—',
+                    reviewQueue: reviewQueue.count,
                     routes: !layerSelection.routes ? '—' : routes.error ? null : routes.lines.length,
                     idling: idlingError ? null : idlingRows.length,
                   }}
@@ -951,10 +1049,11 @@ const LiveTrackingPage = () => {
               <>
                 {isPlacesView ? (
                   <div className="rail-tabs" role="tablist" aria-label="Places and routes">
-                    <button type="button" role="tab" className="rail-tab" aria-selected={placesTab === 'places'} onClick={() => { setPlacesTab('places'); closeRoute(); setSearchQuery(''); }}>Places</button>
-                    <button type="button" role="tab" className="rail-tab" aria-selected={placesTab === 'routes'} onClick={() => { setPlacesTab('routes'); trackPlaces.selectPlace(null); setSearchQuery(''); }}>Routes</button>
+                    <button type="button" role="tab" className="rail-tab" disabled={savingDraft} aria-selected={placesTab === 'places'} onClick={() => changePlacesTab('places')}>Places</button>
+                    <button type="button" role="tab" className="rail-tab" disabled={savingDraft} aria-selected={placesTab === 'routes'} onClick={() => changePlacesTab('routes')}>Routes</button>
                   </div>
                 ) : null}
+                {isPlacesView && placesTab === 'routes' && deliveryRoutesEnabled && <nav className="rail-tabs lt-route-modes" aria-label="Route types"><button type="button" className="rail-tab" aria-pressed={routeKind === 'delivery'} onClick={() => changeRouteKind('delivery')}>Delivery routes</button><button type="button" className="rail-tab" aria-pressed={routeKind === 'movement'} onClick={() => changeRouteKind('movement')}>All movements</button></nav>}
                 <div className="rail-body">
                   {!isPlacesView && railTab === 'fleet' ? (
                     <>
@@ -1010,9 +1109,9 @@ const LiveTrackingPage = () => {
                     </>
                   ) : isPlacesView && placesTab === 'routes' ? (
                     <>
-                      {openRouteId ? <TrackRouteDetailPanel key={openRouteId} docked id={openRouteId} leg={selectedRoute} focus={focusedRoute}
+                      {openRouteId ? <TrackRouteDetailPanel key={`${routeKind}:${openRouteId}`} docked kind={routeKind} showSap={isEnabled('sapV2') && ['OWNER', 'MANAGER'].includes(getUserRole())} id={openRouteId} leg={selectedRoute} focus={focusedRoute}
                         onDetail={setRouteDetail} onFit={fitSelectedRoute} onClose={closeRoute} /> : (
-                        <RoutesListView routes={routes} query={searchQuery} selectedId={openRouteId} onPick={handleRoutePick}
+                        <RoutesListView routes={routes} kind={routeKind} query={searchQuery} selectedId={openRouteId} onPick={handleRoutePick}
                           onHide={() => { setIsRailOpen(false); setTimeout(triggerMapResize, 240); }} />
                       )}
                     </>
@@ -1039,6 +1138,7 @@ const LiveTrackingPage = () => {
 
                   {/* A place nobody has answered for yet. */}
                   <TrackReviewPanel
+                    backLabel={isPlacesView ? 'Back to places' : 'Back to fleet'}
                     site={reviewSite}
                     onAnswered={handleSiteAnswered}
                     onEditFence={editFenceForSite}

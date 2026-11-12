@@ -52,72 +52,71 @@ export default function LiveTopbar({
         </div>
       ) : (
         <>
-          <div className="lt-command-row">
-            <div
-              className="gnb-status-bar lt-manufacturers"
-              role="group"
-              aria-label="Manufacturer filters"
-            >
-              <button
-                type="button"
-                className={`gnb-status-card ${!selectedManufacturers.length ? 'gnb-status-card--active' : ''}`}
-                aria-pressed={!selectedManufacturers.length}
-                onClick={() => setSelectedManufacturers([])}
-              >
-                <span className="gnb-status-card-label">All makes</span>
-                <span className="gnb-status-card-count">
-                  {Object.values(manufacturerCounts).reduce((sum, n) => sum + (n || 0), 0)}
-                </span>
-              </button>
-              {[...manufacturers, ...(unclassifiedCount > 0 ? ['Unclassified'] : [])].map(
-                (name) => (
+          <div className="lt-filter-groups">
+            <div className="lt-filter-group lt-filter-group--movement">
+              <div className="gnb-status-bar" role="group" aria-label="Fleet status filters">
+                {statusCards.map((card) => (
                   <button
-                    key={name}
+                    key={card.k}
                     type="button"
-                    className={`gnb-status-card ${selectedManufacturers.includes(name) ? 'gnb-status-card--active' : ''}`}
-                    aria-pressed={selectedManufacturers.includes(name)}
-                    onClick={() =>
-                      setSelectedManufacturers(
-                        selectedManufacturers.includes(name)
-                          ? selectedManufacturers.filter((item) => item !== name)
-                          : [...selectedManufacturers, name],
-                      )
-                    }
+                    className={`gnb-status-card ${filter === card.k ? 'gnb-status-card--active' : ''}`}
+                    aria-pressed={filter === card.k}
+                    style={{ '--lt-status-color': card.stripe }}
+                    title={card.title}
+                    onClick={() => setFilter(card.k)}
                   >
-                    <span className="gnb-status-card-label">{name}</span>
-                    <span className="gnb-status-card-count">{manufacturerCounts[name] ?? 0}</span>
+                    <span className="lt-status-dot" style={{ backgroundColor: card.stripe }} />
+                    <span className="gnb-status-card-label">{card.label}</span>
+                    <span className="gnb-status-card-count">
+                      {isLiveLoading ? <Skel w={18} h={14} /> : card.count}
+                    </span>
                   </button>
-                ),
-              )}
+                ))}
+              </div>
             </div>
-            {positionsError && (
-              <span className="lt-refresh-error" role="status">
-                Update failed
-              </span>
-            )}
-          </div>
-          <div className="lt-status-row">
-            <div className="gnb-status-bar" role="group" aria-label="Fleet status filters">
-              {statusCards.map((card) => (
+            <div className="lt-filter-group lt-filter-group--make">
+              <div className="lt-make-options-bar" role="group" aria-label="Manufacturer filters">
                 <button
-                  key={card.k}
                   type="button"
-                  className={`gnb-status-card ${filter === card.k ? 'gnb-status-card--active' : ''}`}
-                  aria-pressed={filter === card.k}
-                  title={card.title}
-                  onClick={() => setFilter(card.k)}
+                  className="lt-make-option"
+                  aria-pressed={!selectedManufacturers.length}
+                  onClick={() => setSelectedManufacturers([])}
                 >
-                  <span className="lt-status-dot" style={{ backgroundColor: card.stripe }} />
-                  <span className="gnb-status-card-label">{card.label}</span>
-                  <span className="gnb-status-card-count">
-                    {isLiveLoading ? <Skel w={18} h={14} /> : card.count}
+                  <span>All makes</span>
+                  <span className="lt-make-count">
+                    {Object.values(manufacturerCounts).reduce((sum, n) => sum + (n || 0), 0)}
                   </span>
                 </button>
-              ))}
+                {[...manufacturers, ...(unclassifiedCount > 0 ? ['Unclassified'] : [])].map(
+                  (name) => (
+                    <button
+                      key={name}
+                      type="button"
+                      className="lt-make-option"
+                      aria-pressed={selectedManufacturers.includes(name)}
+                      onClick={() =>
+                        setSelectedManufacturers(
+                          selectedManufacturers.includes(name)
+                            ? selectedManufacturers.filter((item) => item !== name)
+                            : [...selectedManufacturers, name],
+                        )
+                      }
+                    >
+                      <span>{name}</span>
+                      <span className="lt-make-count">{manufacturerCounts[name] ?? 0}</span>
+                    </button>
+                  ),
+                )}
+              </div>
             </div>
-            {layerPills}
-            <span className="lt-map-count">On map: {isLiveLoading ? '…' : onMapCount}</span>
           </div>
+          {positionsError && (
+            <span className="lt-refresh-error" role="status">
+              Update failed
+            </span>
+          )}
+          {layerPills}
+          <span className="lt-map-count">On map: {isLiveLoading ? '…' : onMapCount}</span>
         </>
       )}
     </div>

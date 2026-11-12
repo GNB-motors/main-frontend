@@ -105,7 +105,7 @@ describe('ReleaseDigest (the fallback)', () => {
     expect(screen.getByRole('heading', { name: 'Daily digest' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Fleet right now' })).not.toBeInTheDocument();
     expect(screen.getByText('Detailed operational reports')).toBeInTheDocument();
-    expect(OwnerValueService.getDigest).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(OwnerValueService.getDigest).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
     await waitFor(() => expect(OwnerValueService.getDigest).toHaveBeenCalledTimes(2));

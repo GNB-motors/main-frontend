@@ -1,0 +1,13 @@
+.place-hover-tooltip {
+  position: absolute;
+  bottom: 22px;
+  left: 0;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.place-hover-tooltip .data-tooltip {
+  width: max-content;
+  max-width: min(300px, 70vw);
+}

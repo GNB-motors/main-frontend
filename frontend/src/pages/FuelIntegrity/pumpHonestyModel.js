@@ -4,6 +4,17 @@ import { formatInIST } from '../../utils/dateUtils';
 
 export const MAX_PUMP_ROWS = 5;
 
+export function pumpSourceSummary(p) {
+  const counts = p.sourceCounts || {};
+  return [
+    counts.register ? `${counts.register} register entries` : null,
+    counts.sensor ? `${counts.sensor} sensor fills` : null,
+    counts.alert ? `${counts.alert} refuel alerts` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
+
 /** Billed litres, measured litres and the money — either name the API used. */
 export function pumpRow(p) {
   return {
@@ -14,6 +25,8 @@ export function pumpRow(p) {
     shortfallL: p?.shortfallL ?? p?.totalShortageLitres ?? null,
     variancePct: p?.shortfallPct ?? p?.variancePercent ?? null,
     rupeeLoss: p?.rupeeImpact ?? p?.totalRupeeLoss ?? null,
+    sourceCounts: p?.sourceCounts,
+    registeredLitres: p?.registeredLitres,
     status: p?.honestyStatus || p?.status || null,
   };
 }
@@ -47,12 +60,18 @@ export function normalisePumpLedger(ledger) {
     totalShortageLitres: p.shortfallLitres,
     totalRupeeLoss: p.estimatedLossInr,
     shortfallPct: p.shortfallPct,
-    status: derivePumpStatus(p.shortfallPct, p.fills),
+    status:
+      p.auditStatus === 'NOT_AUDITED' || !(p.fills > 0)
+        ? 'NOT_AUDITED'
+        : derivePumpStatus(p.shortfallPct, p.fills),
+    sourceCounts: p.sourceCounts,
+    registeredLitres: p.registeredLitres,
     lat: p.lat,
     lng: p.lng,
     lastFillAt: p.lastFillAt,
     _id: p.pump,
   }));
+  const audited = pumps.filter((p) => p.status !== 'NOT_AUDITED');
   return {
     window: ledger?.window,
     windowLabel:
@@ -61,10 +80,15 @@ export function normalisePumpLedger(ledger) {
         : null,
     pumps,
     summary: {
-      totalPumpsEvaluated: pumps.length,
+      totalKnownPumps: pumps.length,
+      totalPumpsEvaluated: audited.length,
       totalAuditedFills: pumps.reduce((sum, p) => sum + (p.fillCount || 0), 0),
-      totalShortLitres: pumps.reduce((sum, p) => sum + (p.totalShortageLitres || 0), 0),
-      totalRupeeLoss: pumps.reduce((sum, p) => sum + (p.totalRupeeLoss || 0), 0),
+      totalShortLitres: audited.length
+        ? audited.reduce((sum, p) => sum + (p.totalShortageLitres || 0), 0)
+        : null,
+      totalRupeeLoss: audited.length
+        ? audited.reduce((sum, p) => sum + (p.totalRupeeLoss || 0), 0)
+        : null,
       chronicPumpsCount: pumps.filter((p) => p.status === 'CHRONIC_SHORTAGE').length,
     },
   };

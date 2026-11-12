@@ -20,7 +20,14 @@ export const unifiedFeedSchema = list(
       at: str,
       litres: num,
       slip: z
-        .object({ id: str, litres: money, totalAmount: money, rate: money, location: str })
+        .object({
+          id: str,
+          litres: money,
+          totalAmount: money,
+          rate: money,
+          location: str,
+          stationName: str,
+        })
         .passthrough()
         .nullish(),
       sensor: z

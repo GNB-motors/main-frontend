@@ -61,7 +61,14 @@ export default function RouteSapCard({ trip }) {
           </p>
         </div>
         <div className="sap-row">
-          <Link className="sap-link" to="/reports?report=laneKm">
+          <Link
+            className="sap-link"
+            to={
+              isEnabled('fleetIntelligence') && isEnabled('routesV2')
+                ? '/place-hub?tab=routes&routeView=deliveries'
+                : '/reports?report=laneKm'
+            }
+          >
             All SAP routes
             <ArrowUpRight size={14} />
           </Link>
@@ -127,7 +134,10 @@ export default function RouteSapCard({ trip }) {
       {(entry || (isEnabled('routesV2') && trip.routeLeg)) && (
         <div className="sap-route-footer">
           {isEnabled('routesV2') && trip.routeLeg && (
-            <Link className="sap-link" to={`/place-hub?tab=deliveries&leg=${trip.routeLeg._id}`}>
+            <Link
+              className="sap-link"
+              to={`/place-hub?tab=routes&routeView=deliveries&delivery=${trip.routeLeg._id}`}
+            >
               Usual for this route: {kmText(trip.routeLeg.km?.p50)} ({trip.routeLeg.n} trips)
               <ArrowUpRight size={14} />
             </Link>

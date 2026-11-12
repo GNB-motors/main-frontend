@@ -21,7 +21,7 @@ describe('data imports page', () => {
 
   it('is the spreadsheet importer on its own', async () => {
     render(<DataImportsPage />);
-    expect(await screen.findByText(/Nothing applied yet/)).toBeInTheDocument();
+    expect(await screen.findByText(/No imports applied yet/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Upload photos/ })).not.toBeInTheDocument();
     expect(screen.queryByText('Photos')).not.toBeInTheDocument();
   });

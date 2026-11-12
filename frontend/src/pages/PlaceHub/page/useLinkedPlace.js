@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import PlaceHubService from '../PlaceHubService.js';
+import { SET_ASIDE } from '../model/placeGroups.js';
 
 export default function useLinkedPlace({
   params,
@@ -20,7 +21,10 @@ export default function useLinkedPlace({
     if (!linkedPlace || !loaded.places) return;
     const p = places.find((x) => x.id === linkedPlace);
     if (p) {
-      setGroup(p.group === 'review' || p.group === 'rejected' ? p.group : 'all');
+      // "All" hides the set-aside groups (review / low / rejected), so switch to
+      // the place's own chip when it lives in one — otherwise it pans there with
+      // no marker. Confirmed places stay under "All".
+      setGroup(SET_ASIDE.has(p.group) ? p.group : 'all');
       pickFromList(p.id, p.lat, p.lng);
       setParams(
         (prev) => {

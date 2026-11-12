@@ -291,6 +291,15 @@ body {
   transform: translateY(-2px);
 }
 
+/* Data Imports is a form/wizard, not a clickable card grid — the cards should
+   sit still. Opt out of the global hover lift (same specificity, so this must
+   come after the rule above to win). */
+.di-imports [data-slot='card']:hover {
+  box-shadow: var(--ds-shadow);
+  border-color: var(--ds-line);
+  transform: none;
+}
+
 /* On the console (Overview) the hover accent is teal, not indigo.
    Higher specificity (0,2,1) scopes it to the overview only. */
 .page-content > .space-y-6 [data-slot='card']:hover {
@@ -614,8 +623,7 @@ body {
   }
 
   .dashboard-layout input[type='date']::-webkit-calendar-picker-indicator,
-  .dashboard-layout
-    input[type='datetime-local']::-webkit-calendar-picker-indicator,
+  .dashboard-layout input[type='datetime-local']::-webkit-calendar-picker-indicator,
   .dashboard-layout input[type='month']::-webkit-calendar-picker-indicator {
     opacity: 0.6;
     cursor: pointer;
