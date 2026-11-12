@@ -9,6 +9,7 @@ import {
 } from '../../components/ui/dialog';
 import { Button } from '../../components/ui/button';
 import PhotoImportService from '../../services/PhotoImportService';
+import { openChatExportStream, MAX_PHOTO_ROWS } from './chatExportStream';
 import './AddBillPhotoDialog.css';
 import './WhatsappExportDialog.css';
 
@@ -33,18 +34,69 @@ const PARTWAY_MESSAGE =
 const JOB_GONE_MESSAGE =
   "We can't find that import any more. Upload the chat again if it didn't finish.";
 
-// One row per count, in the words the owner reads.
-const COUNT_ROWS = [
+// One row per count of the chat itself, in the words the owner reads.
+const CHAT_ROWS = [
   ['messages', 'Messages'],
-  ['photos', 'Photos'],
-  ['fillsConfirmed', 'Fills saved'],
-  ['drafts', 'Waiting for a person'],
-  ['market', 'Market trucks'],
-  ['dutyRecords', 'Duty records'],
-  ['skippedAsAlreadyReceived', 'Already received (skipped)'],
   ['captionOnly', 'Caption without photo'],
   ['skippedMedia', 'Other files skipped'],
 ];
+
+// The mark of one photo in the live list.
+const ROW_MARKS = {
+  read: '✓',
+  unreadable: '⚠',
+  'already-saved': '↺',
+};
+
+/** The words of one photo of the live list. */
+function rowText(row) {
+  const file = row?.file || `Photo ${row?.i || ''}`.trim();
+  if (row?.result === 'unreadable') {
+    return row?.reason
+      ? `${file} — could not be read: ${row.reason}`
+      : `${file} — could not be read`;
+  }
+  if (row?.result === 'already-saved') return `${file} — already received`;
+  return row?.kind ? `${file} — read (${row.kind})` : `${file} — read`;
+}
+
+/**
+ * The buckets of the photos: every photo is in exactly one of them, and they
+ * add up to the number of photos.
+ */
+function bucketsOf(result) {
+  const empty = {
+    saved: 0,
+    waiting: 0,
+    market: 0,
+    alreadyReceived: 0,
+    unreadable: 0,
+    failed: 0,
+    other: 0,
+  };
+  const sent = result?.photoBuckets;
+  if (!sent || typeof sent !== 'object') return empty;
+  const out = { ...empty };
+  for (const name of Object.keys(empty)) out[name] = Number(sent[name] || 0);
+  return out;
+}
+
+/** The fills of the chat: the groups of photos that make one fill. */
+function fillsOf(result) {
+  const empty = { saved: 0, waiting: 0, market: 0, alreadyReceived: 0, failed: 0 };
+  const sent = result?.fills;
+  if (!sent || typeof sent !== 'object') return empty;
+  const out = { ...empty };
+  for (const name of Object.keys(empty)) out[name] = Number(sent[name] || 0);
+  return out;
+}
+
+/** How many photos there are: the buckets add up to them. */
+function photosTotalOf(result, buckets) {
+  const total = Object.values(buckets).reduce((sum, number) => sum + number, 0);
+  if (total > 0) return total;
+  return Number(result?.photos || 0);
+}
 
 // A count the server did not send is not zero: it is not known.
 const countText = (value) =>
@@ -112,7 +164,7 @@ function failureText(view) {
  * One WhatsApp chat export, uploaded as a .zip. The server reads every photo
  * in it before it answers, so the wait is long and the words on screen say so.
  */
-export default function WhatsappExportDialog({ open, onOpenChange, onImported }) {
+export default function WhatsappExportDialog({ open, onOpenChange, onImported, onReview }) {
   const [file, setFile] = useState(null);
   const [stage, setStage] = useState('pick');
   const [error, setError] = useState(null);
@@ -122,6 +174,9 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
   // opening the dialog again shows the import that is still running.
   const [jobId, setJobId] = useState(null);
   const [progress, setProgress] = useState({ read: 0, total: 0 });
+  // The photos as they are read, newest first. Only the last ones are kept:
+  // a chat of six hundred photos does not have to be on the screen at once.
+  const [photoRows, setPhotoRows] = useState({ rows: [], more: 0 });
   // The words of a failure: the heading says how much was lost, the message
   // says what the owner can do.
   const [failureHeading, setFailureHeading] = useState('Nothing was imported');
@@ -133,6 +188,10 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
   // The job that is being followed right now. A late answer about an older
   // import is not the answer about this one.
   const jobIdRef = useRef(null);
+  // The live line of the import, and the last event it gave: a browser that
+  // comes back asks for what it missed.
+  const stream = useRef(null);
+  const lastEventId = useRef(0);
 
   useEffect(() => {
     if (!open) return;
@@ -149,6 +208,8 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
     setFile(null);
     setStage('pick');
     setResult(null);
+    setPhotoRows({ rows: [], more: 0 });
+    lastEventId.current = 0;
   }, [open]);
 
   useEffect(() => () => request.current?.abort(), []);
@@ -251,11 +312,87 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
     };
   }, [open, jobId, markImported]);
 
+  // Close the live line of the import. The import itself keeps running.
+  const closeStream = useCallback(() => {
+    if (stream.current) {
+      stream.current.close();
+      stream.current = null;
+    }
+  }, []);
+
+  /**
+   * The live line: one row per photo, as soon as the photo is read.
+   *
+   * When the line is not there (no stream, a dropped connection), the asking
+   * above keeps the import going and nothing is said to the owner.
+   */
+  useEffect(() => {
+    if (!open || !jobId) return undefined;
+    const current = jobId;
+    const line = openChatExportStream(current, {
+      lastEventId: lastEventId.current || undefined,
+      onEvent: (event) => {
+        if (jobIdRef.current !== current) return;
+        const payload = event?.data || {};
+        if (payload.seq) lastEventId.current = Number(payload.seq);
+        if (event.type === 'photo') {
+          setPhotoRows((state) => {
+            const rows = [payload, ...state.rows];
+            if (rows.length <= MAX_PHOTO_ROWS) return { rows, more: state.more };
+            return {
+              rows: rows.slice(0, MAX_PHOTO_ROWS),
+              more: state.more + rows.length - MAX_PHOTO_ROWS,
+            };
+          });
+          setProgress((state) => ({
+            read: Math.max(Number(state.read || 0), Number(payload.i || 0)),
+            total: Number(payload.total || state.total || 0),
+          }));
+          return;
+        }
+        if (event.type === 'done') {
+          closeStream();
+          const made = payload.summary || {};
+          setResult(made);
+          setStage('done');
+          markImported(made);
+          jobIdRef.current = null;
+          setJobId(null);
+          return;
+        }
+        if (event.type === 'failed') {
+          closeStream();
+          const words = failureText({ error: payload.message, errorCode: payload.errorCode });
+          setFailureHeading(words.heading);
+          setError(words.message);
+          setFailureDetail(words.detail);
+          setStage('failed');
+          jobIdRef.current = null;
+          setJobId(null);
+        }
+      },
+      onError: () => {
+        // The live line is not there: the asking above keeps the import going.
+      },
+    });
+    stream.current = line;
+    return () => {
+      line.close();
+      if (stream.current === line) stream.current = null;
+    };
+  }, [open, jobId, markImported, closeStream]);
+
   const close = () => {
     if (busy.current) return;
     onOpenChange(false);
     // The list is only worth reading again once a chat has actually come in.
     if (result) markImported(result);
+  };
+
+  // The fills that are waiting for a person: the owner goes and checks them.
+  const review = () => {
+    onReview?.();
+    close();
   };
 
   const upload = async () => {
@@ -267,6 +404,8 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
     setFailureDetail('');
     setPercent(0);
     setProgress({ read: 0, total: 0 });
+    setPhotoRows({ rows: [], more: 0 });
+    lastEventId.current = 0;
     // A new chat: the job of the old one is forgotten.
     jobIdRef.current = null;
     setJobId(null);
@@ -323,6 +462,40 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
     : groups.reduce((sum, group) => sum + group.count, 0);
   const hasProblems = failedTotal > 0;
   const photosMissing = Number(result?.photosMissing || 0);
+  const buckets = bucketsOf(result);
+  const fills = fillsOf(result);
+  const photosTotal = photosTotalOf(result, buckets);
+  // Nothing new means nothing to be happy about: the end state is neutral.
+  const nothingNew = fills.saved === 0 && fills.waiting === 0;
+  const summaryTone = nothingNew ? 'bp-neutral' : hasProblems ? 'bp-warning' : 'bp-success';
+  const summaryTitle = nothingNew
+    ? 'Nothing new in this chat'
+    : hasProblems
+      ? `Imported, with ${failedTotal} ${failedTotal === 1 ? 'problem' : 'problems'}`
+      : 'Chat imported';
+  const summaryParts = [];
+  if (fills.saved > 0) {
+    summaryParts.push(
+      `${fills.saved} ${fills.saved === 1 ? 'fill' : 'fills'} saved to the mileage list`,
+    );
+  }
+  if (fills.waiting > 0) {
+    summaryParts.push(
+      `${fills.waiting} ${fills.waiting === 1 ? 'fill is' : 'fills are'} waiting for you to check`,
+    );
+  }
+  if (buckets.alreadyReceived > 0) {
+    summaryParts.push(
+      `${buckets.alreadyReceived} ${
+        buckets.alreadyReceived === 1 ? 'photo was' : 'photos were'
+      } already imported`,
+    );
+  }
+  const summaryLine = nothingNew
+    ? `Nothing new in this chat. All ${photosTotal} photos were already imported.`
+    : summaryParts.length
+      ? `${summaryParts.join('. ')}.`
+      : 'Nothing was added to the mileage list.';
 
   return (
     <Dialog
@@ -403,6 +576,23 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
             </div>
           ) : stage === 'reading' ? (
             <div className="bp-progress" role="status">
+              {photoRows.rows.length ? (
+                <div className="wxp-live">
+                  <ul className="wxp-live-list" aria-label="The photos as they are read">
+                    {photoRows.rows.map((row) => (
+                      <li key={`${row.seq}-${row.i}`} className="wxp-live-row">
+                        <span className="wxp-live-mark" aria-hidden="true">
+                          {ROW_MARKS[row.result] || '•'}
+                        </span>
+                        <span className="wxp-live-text">{rowText(row)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {photoRows.more > 0 ? (
+                    <p className="wxp-note">{`and ${photoRows.more} more`}</p>
+                  ) : null}
+                </div>
+              ) : null}
               <Loader2 size={26} className="animate-spin" aria-hidden="true" />
               <strong>
                 {progress.total > 0
@@ -434,22 +624,80 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
               <strong>{LOST_CONTACT_MESSAGE}</strong>
             </div>
           ) : (
-            <div className={hasProblems ? 'bp-warning' : 'bp-success'} role="status">
-              {hasProblems ? (
-                <AlertTriangle size={28} aria-hidden="true" />
-              ) : (
+            <div className={summaryTone} role="status">
+              {summaryTone === 'bp-success' ? (
                 <Check size={28} aria-hidden="true" />
-              )}
-              <strong>{hasProblems ? `Imported, with ${failedTotal} problems` : 'Chat imported'}</strong>
-              <span>
-                {hasProblems
-                  ? 'The fills that could be read are now in the mileage list.'
-                  : 'The fills are now in the mileage list.'}
-              </span>
+              ) : summaryTone === 'bp-warning' ? (
+                <AlertTriangle size={28} aria-hidden="true" />
+              ) : null}
+              <strong>{summaryTitle}</strong>
+              <span>{summaryLine}</span>
               <table className="wxp-table">
-                <caption className="sr-only">What came out of the chat export</caption>
+                <caption className="sr-only">What happened to the photos</caption>
                 <tbody>
-                  {COUNT_ROWS.map(([key, label]) => (
+                  <tr>
+                    <th scope="row">Saved to the mileage list</th>
+                    <td>{buckets.saved}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Waiting for a person</th>
+                    <td>{buckets.waiting}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Market truck</th>
+                    <td>{buckets.market}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Already received</th>
+                    <td>{buckets.alreadyReceived}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Unreadable</th>
+                    <td>{buckets.unreadable}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Failed</th>
+                    <td>{buckets.failed}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Other</th>
+                    <td>{buckets.other}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Photos</th>
+                    <td>{photosTotal}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <table className="wxp-table">
+                <caption className="sr-only">The fills of the chat</caption>
+                <tbody>
+                  <tr>
+                    <th scope="row">Saved</th>
+                    <td>{fills.saved}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Waiting for a person</th>
+                    <td>{fills.waiting}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Market truck</th>
+                    <td>{fills.market}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Already received</th>
+                    <td>{fills.alreadyReceived}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Failed</th>
+                    <td>{fills.failed}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <table className="wxp-table">
+                <caption className="sr-only">The chat itself</caption>
+                <tbody>
+                  {CHAT_ROWS.map(([key, label]) => (
                     <tr key={key}>
                       <th scope="row">{label}</th>
                       <td>{countText(result?.[key])}</td>
@@ -488,9 +736,16 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
         </div>
         <div className="bp-dialog-foot">
           {stage === 'done' ? (
-            <Button size="sm" onClick={close}>
-              Done
-            </Button>
+            <>
+              {onReview && fills.waiting > 0 ? (
+                <Button size="sm" onClick={review}>
+                  Review them
+                </Button>
+              ) : null}
+              <Button size="sm" onClick={close}>
+                Done
+              </Button>
+            </>
           ) : stage === 'unreachable' ? (
             <Button
               variant="outline"

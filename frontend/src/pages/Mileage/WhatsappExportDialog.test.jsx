@@ -1,10 +1,30 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
 import WhatsappExportDialog from './WhatsappExportDialog';
 import PhotoImportService from '../../services/PhotoImportService';
 
 vi.mock('../../services/PhotoImportService', () => ({
   default: { uploadWhatsappExport: vi.fn(), getChatExportJob: vi.fn() },
+}));
+
+// The live line of the import is watched here, so the test can play the part
+// of the server: it gives one photo at a time and says how the import ended.
+const { streamMock } = vi.hoisted(() => {
+  const calls = [];
+  const open = vi.fn((jobId, options) => {
+    const handle = { jobId, options, closed: false };
+    handle.close = vi.fn(() => {
+      handle.closed = true;
+    });
+    calls.push(handle);
+    return handle;
+  });
+  return { streamMock: { calls, open } };
+});
+
+vi.mock('./chatExportStream', () => ({
+  MAX_PHOTO_ROWS: 200,
+  openChatExportStream: (...args) => streamMock.open(...args),
 }));
 
 const zipFile = () => new File(['zip'], 'mehfuz-chat.zip', { type: 'application/zip' });
@@ -16,10 +36,28 @@ const bigZip = () => {
   return file;
 };
 
+// The answer of the server: every photo is in exactly one bucket, and the
+// buckets add up to the number of photos.
 const answer = {
   filename: 'mehfuz-chat.zip',
   messages: 120,
   photos: 96,
+  photoBuckets: {
+    saved: 40,
+    waiting: 12,
+    market: 3,
+    alreadyReceived: 30,
+    unreadable: 5,
+    failed: 2,
+    other: 4,
+  },
+  fills: {
+    saved: 40,
+    waiting: 12,
+    market: 3,
+    alreadyReceived: 30,
+    failed: 2,
+  },
   fillsConfirmed: 40,
   drafts: 12,
   market: 3,
@@ -39,8 +77,10 @@ const chooseFile = (file) =>
     target: { files: [file] },
   });
 
-const rowValue = (label) => {
-  const head = screen.getByRole('rowheader', { name: label });
+// The count of one row of one of the tables of the end state.
+const cell = (caption, label) => {
+  const table = screen.getByRole('table', { name: caption });
+  const head = within(table).getByRole('rowheader', { name: label });
   return head.parentElement.querySelector('td').textContent;
 };
 
@@ -53,12 +93,22 @@ const flush = async (times = 4) => {
   }
 };
 
+// Send a chat and wait until the live line is open.
+const startImport = async (props = {}) => {
+  open(props);
+  chooseFile(zipFile());
+  fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+  await waitFor(() => expect(streamMock.calls.length).toBe(1));
+  return streamMock.calls[0].options;
+};
+
 const READER_DOWN =
   'The photo reader is not running, so nothing was imported. Start it and upload the chat again.';
 
 describe('WhatsApp chat export dialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    streamMock.calls.length = 0;
     // The server answers at once with a job id: the import runs in the
     // background and the dialog follows it.
     PhotoImportService.uploadWhatsappExport.mockResolvedValue({ jobId: 'job-1' });
@@ -130,16 +180,26 @@ describe('WhatsApp chat export dialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
 
     expect(await screen.findByText('Chat imported')).toBeInTheDocument();
-    expect(rowValue('Messages')).toBe('120');
-    expect(rowValue('Photos')).toBe('96');
-    expect(rowValue('Fills saved')).toBe('40');
-    expect(rowValue('Waiting for a person')).toBe('12');
-    expect(rowValue('Market trucks')).toBe('3');
-    expect(rowValue('Duty records')).toBe('5');
-    expect(rowValue('Already received (skipped)')).toBe('7');
-    expect(rowValue('Caption without photo')).toBe('2');
-    expect(rowValue('Other files skipped')).toBe('4');
-    expect(rowValue('Failed')).toBe('0');
+    // Every photo is in exactly one bucket, and the buckets add up.
+    expect(cell('What happened to the photos', 'Saved to the mileage list')).toBe('40');
+    expect(cell('What happened to the photos', 'Waiting for a person')).toBe('12');
+    expect(cell('What happened to the photos', 'Market truck')).toBe('3');
+    expect(cell('What happened to the photos', 'Already received')).toBe('30');
+    expect(cell('What happened to the photos', 'Unreadable')).toBe('5');
+    expect(cell('What happened to the photos', 'Failed')).toBe('2');
+    expect(cell('What happened to the photos', 'Other')).toBe('4');
+    expect(cell('What happened to the photos', 'Photos')).toBe('96');
+    // The fills of the chat.
+    expect(cell('The fills of the chat', 'Saved')).toBe('40');
+    expect(cell('The fills of the chat', 'Waiting for a person')).toBe('12');
+    expect(cell('The fills of the chat', 'Market truck')).toBe('3');
+    expect(cell('The fills of the chat', 'Already received')).toBe('30');
+    expect(cell('The fills of the chat', 'Failed')).toBe('2');
+    // The chat itself.
+    expect(cell('The chat itself', 'Messages')).toBe('120');
+    expect(cell('The chat itself', 'Caption without photo')).toBe('2');
+    expect(cell('The chat itself', 'Other files skipped')).toBe('4');
+    expect(cell('The chat itself', 'Failed')).toBe('0');
     // Nothing was missing, so the line about missing photos is not shown.
     expect(screen.queryByText(/photos missing/)).not.toBeInTheDocument();
     expect(PhotoImportService.uploadWhatsappExport).toHaveBeenCalledWith(
@@ -168,7 +228,7 @@ describe('WhatsApp chat export dialog', () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByText('1 photo: The photo could not be read.')).toBeInTheDocument();
-    expect(rowValue('Failed')).toBe('1');
+    expect(cell('The chat itself', 'Failed')).toBe('1');
   });
 
   it('shows a dash, never a zero, for a count the server did not send', async () => {
@@ -181,10 +241,11 @@ describe('WhatsApp chat export dialog', () => {
     chooseFile(zipFile());
     fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
 
-    expect(await screen.findByText('Chat imported')).toBeInTheDocument();
-    expect(rowValue('Messages')).toBe('5');
-    expect(rowValue('Market trucks')).toBe('—');
-    expect(rowValue('Failed')).toBe('—');
+    expect(await screen.findByText('Nothing new in this chat')).toBeInTheDocument();
+    expect(cell('The chat itself', 'Messages')).toBe('5');
+    expect(cell('The chat itself', 'Caption without photo')).toBe('—');
+    expect(cell('The chat itself', 'Other files skipped')).toBe('—');
+    expect(cell('The chat itself', 'Failed')).toBe('—');
   });
 
   it('shows the server’s own message when the chat cannot be sent', async () => {
@@ -224,6 +285,7 @@ describe('WhatsApp chat export dialog', () => {
 
     expect(await screen.findByText('Imported, with 3 problems')).toBeInTheDocument();
     expect(screen.queryByText('Chat imported')).not.toBeInTheDocument();
+    expect(screen.getByRole('status').className).toContain('bp-warning');
     expect(screen.getByText('2 photos: the photo could not be read')).toBeInTheDocument();
     expect(
       screen.getByText('1 photo: no truck, litres or time found on the photo'),
@@ -428,5 +490,180 @@ describe('WhatsApp chat export dialog', () => {
 
     expect(screen.queryByText('Chat imported')).not.toBeInTheDocument();
     expect(screen.getByText('Reading photos 1 / 2')).toBeInTheDocument();
+  });
+
+  it('shows the photos as they are read, one row at a time', async () => {
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'running',
+      progress: { read: 0, total: 100 },
+    });
+    const options = await startImport();
+
+    act(() =>
+      options.onEvent({
+        type: 'photo',
+        id: '1',
+        data: { seq: 1, i: 1, total: 100, file: 'IMG-0001.jpg', result: 'read', kind: 'fuel' },
+      }),
+    );
+    expect(await screen.findByText('IMG-0001.jpg — read (fuel)')).toBeInTheDocument();
+
+    act(() =>
+      options.onEvent({
+        type: 'photo',
+        id: '2',
+        data: {
+          seq: 2,
+          i: 2,
+          total: 100,
+          file: 'IMG-0002.jpg',
+          result: 'unreadable',
+          reason: 'the photo is broken',
+        },
+      }),
+    );
+    expect(
+      await screen.findByText('IMG-0002.jpg — could not be read: the photo is broken'),
+    ).toBeInTheDocument();
+
+    // The newest photo comes first.
+    const list = screen.getByRole('list', { name: 'The photos as they are read' });
+    const rows = list.querySelectorAll('li');
+    expect(rows).toHaveLength(2);
+    expect(rows[0].textContent).toContain('IMG-0002.jpg');
+    // The counter follows the photos.
+    expect(screen.getByText('Reading photos 2 / 100')).toBeInTheDocument();
+  });
+
+  it('closes the live line when the import ends', async () => {
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'running',
+      progress: { read: 1, total: 2 },
+    });
+    const options = await startImport();
+
+    act(() => options.onEvent({ type: 'done', id: '2', data: { seq: 2, summary: answer } }));
+
+    expect(await screen.findByText('Chat imported')).toBeInTheDocument();
+    expect(streamMock.calls[0].closed).toBe(true);
+  });
+
+  it('closes the live line when the import fails', async () => {
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'running',
+      progress: { read: 0, total: 2 },
+    });
+    const options = await startImport();
+
+    act(() =>
+      options.onEvent({
+        type: 'failed',
+        data: { message: READER_DOWN, errorCode: 'READER_DOWN' },
+      }),
+    );
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Nothing was imported');
+    expect(streamMock.calls[0].closed).toBe(true);
+  });
+
+  it('keeps asking the server when the live line is not there', async () => {
+    PhotoImportService.getChatExportJob
+      .mockResolvedValueOnce({ state: 'running', progress: { read: 120, total: 603 } })
+      .mockResolvedValue({
+        state: 'done',
+        progress: { read: 96, total: 96 },
+        result: answer,
+      });
+    const options = await startImport();
+
+    // The line drops: nothing is said to the owner, the asking goes on.
+    act(() => options.onError(new Error('no line')));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByText('Reading photos 120 / 603')).toBeInTheDocument();
+
+    // The asking finds the end of the import.
+    expect(await screen.findByText('Chat imported', undefined, { timeout: 6000 })).toBeInTheDocument();
+  });
+
+  it('follows the import again when the dialog is opened again', async () => {
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'running',
+      progress: { read: 5, total: 100 },
+    });
+    const onOpenChange = vi.fn();
+    const { rerender } = render(
+      <WhatsappExportDialog open onOpenChange={onOpenChange} />,
+    );
+    chooseFile(zipFile());
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+    await waitFor(() => expect(streamMock.calls.length).toBe(1));
+
+    act(() =>
+      streamMock.calls[0].options.onEvent({
+        type: 'photo',
+        id: '7',
+        data: { seq: 7, i: 7, total: 100, file: 'IMG-0007.jpg', result: 'read' },
+      }),
+    );
+
+    // Closing the dialog closes the line, but the import keeps running.
+    fireEvent.click(screen.getByLabelText('Close'));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    rerender(<WhatsappExportDialog open={false} onOpenChange={onOpenChange} />);
+    expect(streamMock.calls[0].closed).toBe(true);
+
+    // Opening it again follows the same import and asks only for what is new.
+    rerender(<WhatsappExportDialog open onOpenChange={onOpenChange} />);
+    await waitFor(() => expect(streamMock.calls.length).toBe(2));
+    expect(streamMock.calls[1].options.lastEventId).toBe(7);
+  });
+
+  it('says nothing new when the chat brings nothing new', async () => {
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'done',
+      progress: { read: 5, total: 5 },
+      result: {
+        filename: 'chat.zip',
+        messages: 12,
+        photos: 5,
+        photoBuckets: {
+          saved: 0,
+          waiting: 0,
+          market: 0,
+          alreadyReceived: 5,
+          unreadable: 0,
+          failed: 0,
+          other: 0,
+        },
+        fills: { saved: 0, waiting: 0, market: 0, alreadyReceived: 3, failed: 0 },
+        failed: [],
+      },
+    });
+    open();
+    chooseFile(zipFile());
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+
+    expect(await screen.findByText('Nothing new in this chat')).toBeInTheDocument();
+    expect(
+      screen.getByText('Nothing new in this chat. All 5 photos were already imported.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('status').className).toContain('bp-neutral');
+    // There is nothing to check, so there is nothing to review.
+    expect(screen.queryByRole('button', { name: 'Review them' })).not.toBeInTheDocument();
+  });
+
+  it('lets the owner go and check the fills that are waiting', async () => {
+    const onReview = vi.fn();
+    const onOpenChange = vi.fn();
+    render(<WhatsappExportDialog open onOpenChange={onOpenChange} onReview={onReview} />);
+    chooseFile(zipFile());
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+
+    expect(await screen.findByText('Chat imported')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Review them' }));
+
+    expect(onReview).toHaveBeenCalled();
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });

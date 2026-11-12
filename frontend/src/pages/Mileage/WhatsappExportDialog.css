@@ -71,3 +71,57 @@
   padding-left: 20px;
   text-align: left;
 }
+/* The live list: the photos as they are read, newest first. */
+.wxp-live {
+  width: 100%;
+  text-align: left;
+}
+.wxp-live-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid #eef1f6;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+.wxp-live-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  border-bottom: 1px solid #f2f5fa;
+}
+.wxp-live-row:last-child {
+  border-bottom: none;
+}
+.wxp-live-mark {
+  flex: none;
+  width: 14px;
+  font-weight: 600;
+  color: #162033;
+}
+.wxp-live-text {
+  color: #46536a;
+  overflow-wrap: anywhere;
+}
+/* The neutral state: nothing new came in, so there is nothing to be happy about. */
+.bp-neutral {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  text-align: center;
+}
+.bp-neutral strong {
+  font-size: 14px;
+}
+.bp-neutral span {
+  font-size: 12px;
+  line-height: 1.65;
+  color: #68768d;
+}
