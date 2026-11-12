@@ -225,8 +225,26 @@ describe('WhatsApp chat export dialog', () => {
     chooseFile(zipFile());
     fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'It may still be running — check the mileage list later',
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(
+      'We lost contact with the server before the import finished. It may still be running. Wait a few minutes and check Mileage before uploading again.',
     );
+    // The server may still be working: this is not "nothing was imported".
+    expect(alert).not.toHaveTextContent('Nothing was imported');
+    expect(alert).not.toHaveTextContent('timeout of 1800000ms exceeded');
+  });
+
+  it('never shows the technical text of a failure', async () => {
+    PhotoImportService.uploadWhatsappExport.mockRejectedValue(
+      new Error('Request failed with status code 500 at /photo-imports/whatsapp-export'),
+    );
+    open();
+    chooseFile(zipFile());
+    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('The chat could not be uploaded. Please try again.');
+    expect(alert).not.toHaveTextContent('status code 500');
+    expect(alert).not.toHaveTextContent('/photo-imports/whatsapp-export');
   });
 });

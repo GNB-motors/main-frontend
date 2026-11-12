@@ -16,6 +16,11 @@ import './WhatsappExportDialog.css';
 // before it is sent, so nobody waits for an upload that will not be read.
 const MAX_BYTES = 500 * 1024 * 1024;
 
+// The server may still be working when we never heard back: the owner is told
+// that, not that nothing was imported.
+const LOST_CONTACT_MESSAGE =
+  'We lost contact with the server before the import finished. It may still be running. Wait a few minutes and check Mileage before uploading again.';
+
 // One row per count, in the words the owner reads.
 const COUNT_ROWS = [
   ['messages', 'Messages'],
@@ -151,9 +156,20 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
       markImported(answer || {});
     } catch (err) {
       if (controller.signal.aborted) return;
-      // Nothing was imported: the chat can be sent again, with the same file.
-      setError(errorText(err));
-      setStage('failed');
+      const serverMessage = serverErrorMessage(err);
+      if (serverMessage) {
+        // The server answered: it knows what happened.
+        setError(serverMessage);
+        setStage('failed');
+      } else if (isLostContact(err)) {
+        // We never heard back: the import may still be running.
+        setError(LOST_CONTACT_MESSAGE);
+        setStage('unreachable');
+      } else {
+        // Nothing was imported, and the technical reason stays off the screen.
+        setError('The chat could not be uploaded. Please try again.');
+        setStage('failed');
+      }
     } finally {
       busy.current = false;
     }
@@ -258,6 +274,11 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
               <strong>Nothing was imported</strong>
               <span>{error}</span>
             </div>
+          ) : stage === 'unreachable' ? (
+            <div className="bp-warning" role="alert">
+              <AlertTriangle size={28} aria-hidden="true" />
+              <strong>{LOST_CONTACT_MESSAGE}</strong>
+            </div>
           ) : (
             <div className={hasProblems ? 'bp-warning' : 'bp-success'} role="status">
               {hasProblems ? (
@@ -305,7 +326,7 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
               ) : null}
             </div>
           )}
-          {error && stage !== 'failed' ? (
+          {error && stage !== 'failed' && stage !== 'unreachable' ? (
             <p role="alert" className="bp-error">
               {error}
             </p>
@@ -315,6 +336,14 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
           {stage === 'done' ? (
             <Button size="sm" onClick={close}>
               Done
+            </Button>
+          ) : stage === 'unreachable' ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={close}
+            >
+              Close
             </Button>
           ) : stage === 'failed' ? (
             <>
@@ -354,14 +383,20 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported })
   );
 }
 
-/** The server's own words when it has them; otherwise plain words of our own. */
-function errorText(err) {
-  const serverMessage =
+/** The server's own words when it has them. */
+function serverErrorMessage(err) {
+  const message =
     err?.response?.data?.message || err?.response?.data?.data?.message || err?.response?.data?.error;
-  if (serverMessage) return String(serverMessage);
+  return message ? String(message) : null;
+}
+
+/**
+ * True when we never heard back: the connection timed out or broke. The
+ * server may still be working, so the owner is told that and not that
+ * nothing was imported.
+ */
+function isLostContact(err) {
   const code = err?.code || '';
-  if (code === 'ECONNABORTED' || code === 'ETIMEDOUT' || /timeout/i.test(err?.message || '')) {
-    return 'The import took too long and the connection dropped. It may still be running — check the mileage list later to see what came through.';
-  }
-  return err?.message || 'The chat could not be uploaded. Please try again.';
+  if (code === 'ECONNABORTED' || code === 'ETIMEDOUT' || code === 'ERR_NETWORK') return true;
+  return /timeout|timed out|network error/i.test(String(err?.message || ''));
 }
