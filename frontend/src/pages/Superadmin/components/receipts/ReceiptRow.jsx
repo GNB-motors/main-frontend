@@ -1,6 +1,7 @@
 import { Truck, Check, Phone, ShieldCheck, Eye, Receipt } from 'lucide-react';
 import { evaluateOcrQuality, getOdometerMeta } from './receiptVerification';
 import { fmtMoney, fmtLitres, fmtDate, fmtRelativeTime } from './receiptFormat';
+import { predictedTimeText } from './predictedTime';
 
 const STATUS_BADGE = {
   READY: 'ra-badge--ready',
@@ -165,6 +166,9 @@ const ReceiptRow = ({
             <span>Recv: {fmtRelativeTime(d.createdAt)}</span>
           )}
         </div>
+        {predictedTimeText(d.time?.predicted) && (
+          <div className="ra-predicted">{predictedTimeText(d.time?.predicted)}</div>
+        )}
       </td>
 
       {/* Row Actions */}

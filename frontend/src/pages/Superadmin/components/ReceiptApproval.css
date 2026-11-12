@@ -1341,6 +1341,37 @@
   color: var(--foreground);
 }
 
+/* A PREDICTED time: it is a suggestion for a person, never a read time. */
+.ra-prop--predicted {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+
+.ra-prop__val--predicted {
+  color: #b45309;
+  font-style: italic;
+}
+
+.ra-predicted__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* PREDICTED time inside a list row: same warning colour, smaller. */
+.ra-predicted {
+  margin-top: 2px;
+  font-size: 11px;
+  font-style: italic;
+  font-weight: 600;
+  color: #b45309;
+}
+
 /* Odometer Card in Drawer */
 .ra-odo-row {
   display: flex;

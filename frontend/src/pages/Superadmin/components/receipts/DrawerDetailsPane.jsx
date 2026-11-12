@@ -1,7 +1,95 @@
+import { useState } from 'react';
 import { CheckCircle2, Receipt, Gauge, MapPin, Clock, User, AlertTriangle } from 'lucide-react';
 import { fmtMoney, fmtLitres, fmtDate, fmtRelativeTime } from './receiptFormat';
+import { predictedTimeText } from './predictedTime';
 
-const DrawerDetailsPane = ({ draft, ocrEval, veh, odoMeta, stationInfo, submitter }) => (
+/** The predicted time of a fill, with the buttons a person needs. */
+const PredictedTime = ({ draft, onSetTime, timeBusy }) => {
+  const [editing, setEditing] = useState(false);
+  const [typed, setTyped] = useState('');
+  const predicted = draft?.time?.predicted || null;
+  const person = draft?.time?.person || null;
+  const text = predictedTimeText(predicted);
+  if (!text && !person?.at) return null;
+
+  return (
+    <div className="ra-prop ra-prop--full ra-prop--predicted">
+      <span className="ra-prop__label">Fill time</span>
+      {text && (
+        <span className="ra-prop__val ra-prop__val--predicted">
+          <Clock size={13} style={{ display: 'inline', marginRight: 4 }} />
+          {text}
+        </span>
+      )}
+      {person?.at && (
+        <span className="ra-prop__val">
+          <CheckCircle2 size={13} style={{ display: 'inline', marginRight: 4 }} />
+          Time set by a person: {fmtDate(person.at)}
+        </span>
+      )}
+      {text && !person?.at && (
+        <div className="ra-predicted__actions">
+          {editing ? (
+            <>
+              <input
+                type="datetime-local"
+                value={typed}
+                aria-label="Time of the fill"
+                onChange={(event) => setTyped(event.target.value)}
+              />
+              <button
+                type="button"
+                className="ra-btn ra-btn--publish"
+                disabled={!typed || timeBusy}
+                onClick={() => {
+                  const at = new Date(typed);
+                  if (Number.isNaN(at.getTime())) return;
+                  setEditing(false);
+                  onSetTime?.('set', at.toISOString());
+                }}
+              >
+                Save
+              </button>
+              <button type="button" className="ra-btn ra-btn--clear" onClick={() => setEditing(false)}>
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="ra-btn ra-btn--publish"
+                disabled={timeBusy}
+                onClick={() => onSetTime?.('accept')}
+              >
+                Accept
+              </button>
+              <button
+                type="button"
+                className="ra-btn ra-btn--clear"
+                disabled={timeBusy}
+                onClick={() => setEditing(true)}
+              >
+                Edit
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const DrawerDetailsPane = ({
+  draft,
+  ocrEval,
+  veh,
+  odoMeta,
+  stationInfo,
+  submitter,
+  onSetTime,
+  timeBusy,
+}) => (
   <div className="ra-drawer__details-pane">
     {/* Math & Amount Banner */}
     <div className="ra-amount-hero">
@@ -48,6 +136,7 @@ const DrawerDetailsPane = ({ draft, ocrEval, veh, odoMeta, stationInfo, submitte
           <span className="ra-prop__label">Bill Date & Time</span>
           <span className="ra-prop__val">{fmtDate(draft.billDatetime)}</span>
         </div>
+        <PredictedTime draft={draft} onSetTime={onSetTime} timeBusy={timeBusy} />
         <div className="ra-prop">
           <span className="ra-prop__label">Plate (OCR Detected)</span>
           <span className="ra-prop__val font-mono">{draft.plateText || 'Not Detected'}</span>
