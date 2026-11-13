@@ -157,30 +157,54 @@ describe('ReceiptRow — what the server knows about the fill', () => {
     expect(screen.getByText('Source: photo')).toBeInTheDocument();
   });
 
-  it('shows the mileage against the usual of that truck', () => {
+  it('shows the mileage over the last fills of the truck', () => {
     renderRow({
       ...chatRow,
       mileage: {
         computed: 3.4,
-        vsAverage: {
-          average: 3.9,
-          n: 8,
-          source: 'FLEETEDGE',
-          deltaPct: 12,
-          verdict: 'worse',
+        trend: {
+          from: '2026-11-01',
+          to: '2026-11-10',
+          fills: 5,
+          km: 460,
+          litres: 160,
+          kmpl: 2.9,
+          usual: 3.1,
+          usualSource: 'CYCLES',
+          deltaPct: -6.5,
+          verdict: 'low',
         },
       },
     });
 
     expect(
-      screen.getByText("3.4 km/L · 12% below this truck's usual 3.9 (8 fills)"),
+      screen.getByText(
+        'Mileage, last 5 fills (1 Nov–10 Nov): 2.9 km/L · usual 3.1 · low: 6.5% below usual — watch this truck',
+      ),
     ).toBeInTheDocument();
   });
 
-  it('never invents a verdict when the comparison is not there', () => {
+  it('never judges a single fill on its own', () => {
     renderRow({ ...chatRow, mileage: { computed: 3.4 } });
 
-    expect(screen.getByText('3.4 km/L · Comparison not available')).toBeInTheDocument();
+    expect(screen.queryByText(/km\/L/)).not.toBeInTheDocument();
+  });
+
+  it('flags an unusual refill and says why in the chip', () => {
+    renderRow({
+      ...chatRow,
+      refillCheck: { unusual: true, reasons: ['Litres are far more than the tank takes'] },
+    });
+
+    const chip = screen.getByText('Unusual refill');
+    expect(chip).toBeInTheDocument();
+    expect(chip.getAttribute('title')).toBe('Litres are far more than the tank takes');
+  });
+
+  it('shows no refill flag when the refill is a usual one', () => {
+    renderRow({ ...chatRow, refillCheck: { unusual: false, reasons: [] } });
+
+    expect(screen.queryByText('Unusual refill')).not.toBeInTheDocument();
   });
 
   it('never gives a photo chip to a reading that did not come from a photo', () => {

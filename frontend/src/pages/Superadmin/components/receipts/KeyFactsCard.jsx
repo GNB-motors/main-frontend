@@ -1,8 +1,8 @@
 import { Receipt } from 'lucide-react';
 import { fmtMoney, fmtLitres, fmtDate } from './receiptFormat';
 import { fillTimeFromDraft } from './predictedTime';
-import { truckChip, mileageLine } from './chatDraft';
-import { sourceText } from './sourceWords';
+import { truckChip, mileageLine, refillCheckOf, thisFillOf } from './chatDraft';
+import { sourceText, sourceWord } from './sourceWords';
 import { missingKeyFields } from './keyFields';
 
 /** The class of a chip for the kind of certainty it carries. */
@@ -55,8 +55,12 @@ const KeyFactsCard = ({
           : fill.value;
   const truckValue = edits?.truckPicked && edits.truckPlate ? edits.truckPlate : veh;
 
-  // The mileage of this fill, and how it compares with the usual of the truck.
+  // The mileage of the last fills of the truck, and how it compares with its usual.
   const mileage = mileageLine(draft);
+  // This fill's own numbers, with no verdict on them.
+  const thisFill = thisFillOf(draft);
+  // The check the server ran on this refill itself.
+  const refill = refillCheckOf(draft);
 
   return (
     <div className="ra-section-card">
@@ -164,12 +168,39 @@ const KeyFactsCard = ({
           {mileage ? (
             <>
               <span className={`${chipClass(mileage.kind)} ra-chip--wrap`}>{mileage.text}</span>
-              <span className="ra-prop__val ra-prop__val--muted">
-                {sourceText(mileage.source)}
-              </span>
+              {sourceWord(mileage.source) && (
+                <span className="ra-prop__val ra-prop__val--muted">
+                  {sourceText(mileage.source)}
+                </span>
+              )}
             </>
           ) : (
             <span className="ra-prop__val">—</span>
+          )}
+          {thisFill && (
+            <>
+              <span className="ra-prop__val">{thisFill.text}</span>
+              {thisFill.kmplText && (
+                <span className="ra-prop__val ra-prop__val--muted">{thisFill.kmplText}</span>
+              )}
+            </>
+          )}
+          {refill?.unusual && (
+            <>
+              <span
+                className="ra-chip ra-chip--warn"
+                title={
+                  refill.reasons.length ? refill.reasons.join(' · ') : 'This refill looks unusual'
+                }
+              >
+                Unusual refill
+              </span>
+              {refill.reasons.map((reason) => (
+                <span key={reason} className="ra-prop__val ra-prop__val--muted">
+                  {reason}
+                </span>
+              ))}
+            </>
           )}
         </div>
       </div>

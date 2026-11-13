@@ -100,7 +100,7 @@ describe('DrawerDetailsPane — the key facts', () => {
     expect(screen.getByText("Source: truck's detected fill")).toBeTruthy();
   });
 
-  it('shows the mileage against the usual of that truck', () => {
+  it('shows the mileage over the last fills of the truck', () => {
     render(
       <DrawerDetailsPane
         {...props}
@@ -108,12 +108,17 @@ describe('DrawerDetailsPane — the key facts', () => {
           ...draftWith({}),
           mileage: {
             computed: 3.4,
-            vsAverage: {
-              average: 3.9,
-              n: 8,
-              source: 'FLEETEDGE',
-              deltaPct: 12,
-              verdict: 'worse',
+            trend: {
+              from: '2026-11-01',
+              to: '2026-11-10',
+              fills: 5,
+              km: 460,
+              litres: 160,
+              kmpl: 2.9,
+              usual: 3.1,
+              usualSource: 'FLEETEDGE',
+              deltaPct: -6.5,
+              verdict: 'low',
             },
           },
         }}
@@ -121,20 +126,49 @@ describe('DrawerDetailsPane — the key facts', () => {
     );
 
     expect(
-      screen.getByText("3.4 km/L · 12% below this truck's usual 3.9 (8 fills)"),
+      screen.getByText(
+        'Mileage, last 5 fills (1 Nov–10 Nov): 2.9 km/L · usual 3.1 · low: 6.5% below usual — watch this truck',
+      ),
     ).toBeTruthy();
     expect(screen.getByText('Source: tracker')).toBeTruthy();
   });
 
-  it('never invents a comparison that was not measured', () => {
+  it('shows this fill on its own, with no verdict on it', () => {
     render(
       <DrawerDetailsPane
         {...props}
-        draft={{ ...draftWith({}), mileage: { computed: 3.4 } }}
+        draft={{ ...draftWith({}), mileage: { computed: 3.4, km: 46 } }}
       />,
     );
 
-    expect(screen.getByText('3.4 km/L · Comparison not available')).toBeTruthy();
+    expect(screen.getByText('This fill: 46 km since last fill')).toBeTruthy();
+    expect(screen.getByText('3.4 km/L')).toBeTruthy();
+  });
+
+  it('lists the reasons of an unusual refill', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{
+          ...draftWith({}),
+          refillCheck: { unusual: true, reasons: ['Litres are far more than the tank takes'] },
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Unusual refill')).toBeTruthy();
+    expect(screen.getByText('Litres are far more than the tank takes')).toBeTruthy();
+  });
+
+  it('shows no refill flag when the refill is a usual one', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{ ...draftWith({}), refillCheck: { unusual: false, reasons: [] } }}
+      />,
+    );
+
+    expect(screen.queryByText('Unusual refill')).toBeNull();
   });
 });
 

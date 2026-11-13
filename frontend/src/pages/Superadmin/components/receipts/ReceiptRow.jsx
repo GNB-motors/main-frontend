@@ -7,7 +7,7 @@ import {
   fillTimeFromDraft,
   fillTimeText,
 } from './predictedTime';
-import { isChatRow, truckChip, uploaderOf, driverOf, driverAssignedOf, pumpOf, mileageLine } from './chatDraft';
+import { isChatRow, truckChip, uploaderOf, driverOf, driverAssignedOf, pumpOf, mileageLine, refillCheckOf } from './chatDraft';
 import { isPhotoSource, sourceText, sourceWord } from './sourceWords';
 
 const STATUS_BADGE = {
@@ -73,8 +73,11 @@ const ReceiptRow = ({
   // A station name without a matched pump was read off the bill photo.
   const stationSource = pump && pump.name ? pump.source : d.stationName ? 'PHOTO' : null;
 
-  // The mileage of this fill, and how it compares with the usual of the truck.
+  // The mileage of the last fills of the truck, and how it compares with its usual.
   const mileage = mileageLine(d);
+
+  // The check the server ran on this refill itself: is it an unusual one?
+  const refill = refillCheckOf(d);
 
   // A chat row came in through a WhatsApp chat: it says so.
   const isChat = isChatRow(d);
@@ -150,7 +153,7 @@ const ReceiptRow = ({
             </span>
           )}
         </div>
-        {(isChat || d.truck || mileage) && (
+        {(isChat || d.truck || mileage || refill?.unusual) && (
           <div className="ra-chip-row">
             {isChat && (
               <span className="ra-chip ra-chip--chat" title="This fill came in through a WhatsApp chat">
@@ -184,9 +187,17 @@ const ReceiptRow = ({
             {mileage && (
               <span
                 className={`ra-chip ra-chip--wrap ${mileage.kind === 'warn' ? 'ra-chip--warn' : ''}`}
-                title="The mileage of this fill, compared with the usual of this truck"
+                title="The mileage of the last fills of this truck, compared with its usual"
               >
                 {mileage.text}
+              </span>
+            )}
+            {refill?.unusual && (
+              <span
+                className="ra-chip ra-chip--warn"
+                title={refill.reasons.length ? refill.reasons.join(' · ') : 'This refill looks unusual'}
+              >
+                Unusual refill
               </span>
             )}
           </div>

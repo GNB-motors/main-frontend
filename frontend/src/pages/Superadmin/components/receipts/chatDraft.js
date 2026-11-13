@@ -103,34 +103,74 @@ export const pumpOf = (row) => {
 };
 
 /**
- * The mileage of a row and how it compares with the usual of that truck.
+ * The mileage trend of a row: how the truck has been doing over its last
+ * fills, and how that stretch compares with its usual.
  *
  * Nothing is worked out here: the numbers are the ones the server measured,
  * and the verdict is the one it gave.
  */
-export const mileageOf = (row) => {
+export const mileageTrendOf = (row) => {
+  const raw = row?.mileage?.trend;
+  if (!raw || typeof raw !== 'object') return null;
+  const verdictRaw = String(raw.verdict || '');
+  const verdict = ['low', 'ok', 'too_high'].includes(verdictRaw) ? verdictRaw : null;
+  const driverRaw = raw.driver && typeof raw.driver === 'object' ? raw.driver : null;
+  const driverName = driverRaw ? String(driverRaw.name || '').trim() : '';
+  return {
+    from: raw.from ?? null,
+    to: raw.to ?? null,
+    fills: toNumber(raw.fills),
+    km: toNumber(raw.km),
+    litres: toNumber(raw.litres),
+    kmpl: toNumber(raw.kmpl),
+    usual: toNumber(raw.usual),
+    usualSource: raw.usualSource || null,
+    deltaPct: toNumber(raw.deltaPct),
+    verdict,
+    // The server's reason when it could not measure, e.g. a misread odometer.
+    note: raw.note ? String(raw.note) : null,
+    driver: driverName ? { driverId: driverRaw.driverId ?? null, name: driverName } : null,
+  };
+};
+
+/**
+ * The check the server ran on the refill itself: is this refill unusual, and
+ * why? Nothing is shown when the server ran no such check.
+ */
+export const refillCheckOf = (row) => {
+  const raw = row?.refillCheck;
+  if (!raw || typeof raw !== 'object') return null;
+  const reasons = Array.isArray(raw.reasons)
+    ? raw.reasons.map((reason) => String(reason || '').trim()).filter(Boolean)
+    : [];
+  return { unusual: raw.unusual === true, reasons };
+};
+
+/**
+ * This fill's own mileage, as plain numbers: the km since the last fill and
+ * the km/L of this fill. One fill is never judged here.
+ */
+export const thisFillOf = (row) => {
   const raw = row?.mileage;
   if (!raw || typeof raw !== 'object') return null;
-  const vs = raw.vsAverage && typeof raw.vsAverage === 'object' ? raw.vsAverage : null;
-  const verdictRaw = vs ? String(vs.verdict || '') : '';
-  const verdict = ['low', 'ok', 'too_high', 'better', 'worse', 'in_line', 'outside_range'].includes(verdictRaw) ? verdictRaw : null;
-  const average = vs ? toNumber(vs.average) : null;
-  const n = vs ? toNumber(vs.n) : null;
-  const deltaPct = vs ? toNumber(vs.deltaPct) : null;
+  const computed = toNumber(raw.computed);
+  const km = toNumber(
+    raw.km ??
+      raw.kmSinceLastFill ??
+      raw.distanceKm ??
+      (typeof row?.kmSinceLastFill === 'number' ? row.kmSinceLastFill : null) ??
+      row?.kmSinceLastFill?.km ??
+      null,
+  );
+  if (computed == null && km == null) return null;
   return {
-    computed: toNumber(raw.computed),
-    average,
-    n,
-    deltaPct,
-    verdict,
-    source: vs?.source || null,
-    // The lowest and highest km/L of the truck's own past fill-to-fill rounds.
-    computedFrom: raw.computedFrom || null,
-    previous: row?.kmSinceLastFill?.previous || null,
-    rangeLow: vs?.range ? toNumber(vs.range.low) : null,
-    rangeHigh: vs?.range ? toNumber(vs.range.high) : null,
-    // A comparison needs all of its own parts: without them there is none.
-    hasComparison: average != null && deltaPct != null && verdict != null,
+    computed,
+    km,
+    text:
+      km != null
+        ? `This fill: ${trimNumber(km)} km since last fill`
+        : `This fill: ${trimNumber(computed)} km/L`,
+    kmplText: km != null && computed != null ? `${trimNumber(computed)} km/L` : null,
   };
 };
 
@@ -138,82 +178,69 @@ export const mileageOf = (row) => {
 const trimNumber = (value) => String(Number(Number(value).toFixed(2)));
 
 /**
- * The mileage of a row, in one line: "3.4 km/L · 12% below this truck's usual
- * 3.9 (8 fills)".
+ * A day of the trend in plain words: "1 Nov". A day we cannot read stays the
+ * way the server wrote it.
+ */
+const trendDay = (value) => {
+  if (value == null || value === '') return null;
+  const text = String(value).trim();
+  if (!text) return null;
+  const day = new Date(text);
+  if (Number.isNaN(day.getTime())) return text;
+  // A plain day (no time of day) is read in UTC, so the day never moves with
+  // the clock of the person looking at it.
+  const onlyDay = /^\d{4}-\d{2}-\d{2}$/.test(text);
+  return day.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    ...(onlyDay ? { timeZone: 'UTC' } : {}),
+  });
+};
+
+/**
+ * The mileage of a row, in one line: "Mileage, last 5 fills (1 Nov–10 Nov):
+ * 2.9 km/L · usual 3.1 · low: 6.5% below usual — watch this truck".
  *
- * When the comparison is not there, the known value stays and the line says
- * "Comparison not available". A verdict is never worked out from missing
- * numbers.
+ * The numbers are the ones the server measured over the last fills of the
+ * truck, and the verdict is the one it gave for that stretch. One fill on its
+ * own is never judged here.
  */
 export const mileageLine = (row) => {
-  const facts = mileageOf(row);
-  if (!facts) return null;
-  const basis =
-    facts.computedFrom === 'ODOMETER'
-      ? ' (km from the odometer photos)'
-      : facts.computedFrom === 'CAPTION'
-        ? ' (km from the message)'
-        : '';
-  const current = facts.computed != null ? `${trimNumber(facts.computed)} km/L${basis}` : '';
-  if (!facts.hasComparison) {
-    if (!current) return null;
-    // The source belongs to the comparison, and there is no comparison here.
-    return { text: `${current} · Comparison not available`, kind: 'neutral', source: null };
-  }
-  const usual =
-    facts.n != null
-      ? `${trimNumber(facts.average)} (${facts.n} fills)`
-      : `${trimNumber(facts.average)} (its fuel profile)`;
-  const percent = `${trimNumber(Math.abs(facts.deltaPct))}%`;
-  // The owner's rule: more than 5% under the truck's usual is low; above it is
-  // fine; far above it means the km or the litres are wrong (a top-up).
-  if (facts.verdict === 'low') {
-    return {
-      text: `${current ? `${current} · ` : ''}low: ${percent} below this truck's usual ${usual}`,
-      kind: 'warn',
-      source: facts.source,
-    };
-  }
-  if (facts.verdict === 'ok') {
-    return {
-      text: `${current ? `${current} · ` : ''}OK: ${facts.deltaPct < 0 ? 'near' : 'at or above'} this truck's usual ${usual}`,
-      kind: 'neutral',
-      source: facts.source,
-    };
-  }
-  if (facts.verdict === 'too_high') {
-    return {
-      text: `${current ? `${current} · ` : ''}far above this truck's usual ${usual} — the km or litres are wrong (a top-up?)`,
-      kind: 'warn',
-      source: facts.source,
-    };
-  }
-  if (facts.verdict === 'outside_range') {
-    // Outside everything this truck has done: the km or litres are suspect
-    // (a top-up, a misread odometer), so it is not called better or worse.
-    const range =
-      facts.rangeLow != null && facts.rangeHigh != null
-        ? ` (${trimNumber(facts.rangeLow)}–${trimNumber(facts.rangeHigh)} km/L)`
-        : '';
-    return {
-      text: `${current ? `${current} · ` : ''}doesn't fit this truck's past fills${range} — check the km and litres`,
-      kind: 'warn',
-      source: facts.source,
-    };
-  }
-  let comparison;
-  if (facts.verdict === 'worse') {
-    comparison = `${percent} below this truck's usual ${usual}`;
-  } else if (facts.verdict === 'better') {
-    comparison = `${percent} above this truck's usual ${usual}`;
+  const trend = mileageTrendOf(row);
+  if (!trend) return null;
+  const from = trendDay(trend.from);
+  const to = trendDay(trend.to);
+  const range = from && to ? ` (${from}–${to})` : from || to ? ` (${from || to})` : '';
+  const fills =
+    trend.fills != null ? `${trend.fills} fill${trend.fills === 1 ? '' : 's'}` : 'few fills';
+  const head = `Mileage, last ${fills}${range}`;
+  const parts = [trend.kmpl != null ? `${head}: ${trimNumber(trend.kmpl)} km/L` : head];
+  if (trend.usual != null) parts.push(`usual ${trimNumber(trend.usual)}`);
+
+  // The owner's rule: more than 5% under the truck's usual is low; at or
+  // above it is fine; far above it means the km or the litres are wrong.
+  let kind = 'neutral';
+  if (trend.verdict === 'low') {
+    const below =
+      trend.deltaPct != null
+        ? `${trimNumber(Math.abs(trend.deltaPct))}% below usual — watch this truck`
+        : 'below usual — watch this truck';
+    parts.push(`low: ${below}`);
+    kind = 'warn';
+  } else if (trend.verdict === 'ok') {
+    parts.push('OK');
+  } else if (trend.verdict === 'too_high') {
+    parts.push('far above usual — some km or litres are wrong');
+    kind = 'warn';
+  } else if (trend.note) {
+    parts.push(trend.note);
+    kind = 'warn';
   } else {
-    comparison = `in line with this truck's usual ${usual}`;
+    parts.push('Not enough fills yet');
   }
-  return {
-    text: current ? `${current} · ${comparison}` : comparison,
-    kind: facts.verdict === 'worse' ? 'warn' : 'neutral',
-    source: facts.source,
-  };
+  if (trend.driver) parts.push(`driver ${trend.driver.name}`);
+
+  return { text: parts.join(' · '), kind, source: trend.usualSource };
 };
 
 /** The id of the vehicle of a row, whichever way the row carries it. */
@@ -238,11 +265,7 @@ export const truckCandidates = (row) => {
       const c = candidate || {};
       const vehicle = c.vehicle && typeof c.vehicle === 'object' ? c.vehicle : {};
       const id =
-        vehicleIdOf({ vehicleId: c.vehicleId }) ||
-        c.vehicleId?._id ||
-        vehicle._id ||
-        c._id ||
-        '';
+        vehicleIdOf({ vehicleId: c.vehicleId }) || c.vehicleId?._id || vehicle._id || c._id || '';
       const reg =
         c.registrationNumber ||
         c.plate ||
