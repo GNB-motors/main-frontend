@@ -43,6 +43,10 @@ it('keeps details out of the page and opens the full truck list from the badge s
   // Advance the hover/transition clocks explicitly; CI coverage must not depend on wall time.
   vi.useFakeTimers();
   try {
+    // The trigger registers its native hover listener after the API-driven render.
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    fireEvent.pointerEnter(badge, { pointerType: 'mouse' });
+    fireEvent.mouseOver(badge);
     fireEvent.mouseEnter(badge);
     fireEvent.mouseMove(badge);
     await act(() => vi.advanceTimersByTimeAsync(200));
