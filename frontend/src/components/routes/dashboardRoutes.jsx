@@ -49,7 +49,6 @@ const TripPlansPage = lazy(() => import('../../pages/AutoTrips/TripPlansPage.jsx
 const AutoTripDetailPage = lazy(() => import('../../pages/AutoTrips/AutoTripDetailPage.jsx'));
 const ExcursionsPage = lazy(() => import('../../pages/AutoTrips/ExcursionsPage.jsx'));
 const ExcursionDetailPage = lazy(() => import('../../pages/AutoTrips/ExcursionDetailPage.jsx'));
-const MovementApprovalsPage = lazy(() => import('../../pages/AutoTrips/MovementApprovalsPage.jsx'));
 const PlaceHubPage = lazy(() => import('../../pages/PlaceHub/PlaceHubPage.jsx'));
 // Intelligence — what we worked out about the fleet, good and bad, with the
 // reason for every claim. Same guard as /route-hub.
@@ -100,6 +99,7 @@ const dashboardRoutes = (
     <Route path="/idling-console" element={<Navigate to="/intelligence?tab=idling" replace />} />
     <Route path="/daily-brief" element={<Navigate to="/digest" replace />} />
     <Route path="/def-ledger" element={<DefLedgerPage />} />
+    <Route path="/def-ledger/log" element={<AdBlueLogPage />} />
     <Route path="/challans" element={<ChallansPage />} />
     {/* Legacy deep link — the challan ledger lives under Compliance / Docs. */}
     <Route path="/vehicle-challans" element={<Navigate to="/challans" replace />} />
@@ -223,6 +223,7 @@ const dashboardRoutes = (
     />
     <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
     <Route path="/def-ledger" element={<DefLedgerPage />} />
+    <Route path="/def-ledger/log" element={<AdBlueLogPage />} />
     {/* Backward-compatibility redirects for unified Mileage */}
     <Route path="/refuel-logs" element={<Navigate to="/mileage?tab=live" replace />} />
     <Route path="/mileage-tracking" element={<Navigate to="/mileage?tab=performance" replace />} />
@@ -235,7 +236,7 @@ const dashboardRoutes = (
       element={<Navigate to="/mileage?tab=reconciliation&view=ecu" replace />}
     />
     <Route path="/adblue-tracking" element={<Navigate to="/def-ledger" replace />} />
-    <Route path="/adblue-tracking/new" element={<Navigate to="/def-ledger" replace />} />
+    <Route path="/adblue-tracking/new" element={<Navigate to="/def-ledger/log" replace />} />
     <Route
       path="/model-comparison"
       element={<Navigate to="/mileage?tab=performance&view=models" replace />}
@@ -275,7 +276,7 @@ const dashboardRoutes = (
     />
     <Route path="/auto-trips/excursions" element={<ExcursionsPage />} />
     <Route path="/auto-trips/excursions/:id" element={<ExcursionDetailPage />} />
-    <Route path="/auto-trips/approvals" element={<MovementApprovalsPage />} />
+    <Route path="/auto-trips/approvals" element={<Navigate to="/approvals?type=trips" replace />} />
     <Route path="/auto-trips/plans" element={<TripPlansPage />} />
     <Route path="/auto-trips/:id" element={<AutoTripDetailPage />} />
     <Route path="/khata-ledger" element={<KhataLedgerPage />} />

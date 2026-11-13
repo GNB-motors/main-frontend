@@ -19,6 +19,7 @@ import {
 import { periodDates, periodRangeLabel, resolvePeriod } from './intelligenceModel';
 import './IntelligencePage.css';
 import './IntelligenceDesign.css';
+import AlertPageGuide from '../../components/alerts/AlertPageGuide';
 
 const IssuesTab = lazy(() => import('./IssuesTab'));
 const ReportCardsTab = lazy(() => import('./ReportCardsTab'));
@@ -234,6 +235,7 @@ export default function IntelligencePage() {
           />
         </div>
       </header>
+      <AlertPageGuide page="intelligence" />
 
       <IntelligenceOverview
         summary={summary?.held ? null : summary}

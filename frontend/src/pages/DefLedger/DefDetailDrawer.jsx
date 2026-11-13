@@ -1,4 +1,5 @@
-import { AlertTriangle, Droplet } from 'lucide-react';
+import { AlertTriangle, Droplet, BadgeCheck, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import SlideOver from '../../components/cluster/SlideOver';
 import { formatLitres, formatPct } from '../../utils/formatters';
 import { formatDateTimeIST, formatDateIST } from '../../utils/dateUtils';
@@ -8,8 +9,10 @@ import { humanizeFlagType, signedLitres } from './defLedgerFormat';
 import DataFreshness from './DataFreshness';
 
 function DefDetailDrawer({ vehicle, onClose }) {
+  const navigate = useNavigate();
   if (!vehicle) return null;
   const claimsTracked = vehicle.claimsTracked === true;
+  const verified = claimsTracked && (vehicle.flagCount ?? 0) === 0;
   const flags = vehicle.flags || [];
   const fills = vehicle.fills || [];
   const band = vehicle.defBand || {};
@@ -68,7 +71,15 @@ function DefDetailDrawer({ vehicle, onClose }) {
         )}
         <div className="bg-slate-50 dark:bg-slate-800/80 rounded-xl p-4 border border-slate-200 dark:border-slate-700 flex flex-col gap-3">
           <div className="flex items-center justify-between gap-2">
-            <StatusBadge status={vehicle.status} />
+            <span className="inline-flex items-center gap-2">
+              <StatusBadge status={vehicle.status} />
+              {verified && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                  <BadgeCheck className="w-3.5 h-3.5" />
+                  Verified
+                </span>
+              )}
+            </span>
             {vehicle.dosingRatioPct != null && (
               <span className="text-xs text-slate-500 dark:text-slate-400">
                 DEF {formatPct(vehicle.dosingRatioPct, { decimals: 1 })} of{' '}
@@ -107,6 +118,15 @@ function DefDetailDrawer({ vehicle, onClose }) {
             {!claimsTracked &&
               ' No AdBlue purchases are logged for this vehicle, so there is no balance to reconcile. DEF consumption and sensor findings are still shown.'}
           </p>
+
+          <button
+            type="button"
+            onClick={() => navigate(`/def-ledger/log?vehicleId=${vehicle.vehicleId}`)}
+            className="pshell-btn pshell-btn--primary"
+          >
+            <Plus size={16} />
+            {claimsTracked ? 'Log another AdBlue fill' : 'Log AdBlue for this truck'}
+          </button>
         </div>
 
         <div>

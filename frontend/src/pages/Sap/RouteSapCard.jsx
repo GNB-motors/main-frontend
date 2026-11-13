@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Route, Pencil, ArrowUpRight, History } from 'lucide-react';
+import { Route, Truck, Pencil, ArrowUpRight, History } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Button } from '../../components/ui/button';
 import useApi from '../../hooks/useApi';
@@ -8,11 +8,10 @@ import useMutation from '../../hooks/useMutation';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import { getUserRole } from '../../utils/session';
 import SapService from '../../services/SapService';
-import SapPill from './SapPill';
 import SapComparison from './SapComparison';
 import SapRequestState from './SapRequestState';
 import SetSapDialog from './SetSapDialog';
-import { BASIS_LABEL, SOURCE_LABEL, canEditSap, kmText } from './sapModel';
+import { BASIS_LABEL, SOURCE_LABEL, SAP_REASONS, canEditSap, kmText } from './sapModel';
 
 /**
  * The trip's route and that route's SAP. SAP belongs to the route (pickup place → drop place),
@@ -53,7 +52,7 @@ export default function RouteSapCard({ trip }) {
         <div className="sap-stack">
           <h2>
             <Route size={18} aria-hidden="true" />
-            Route SAP
+            Agreed distance (SAP)
           </h2>
           <p className="sap-muted">
             {route?.fromName || trip.pickup?.name || 'Plant'} →{' '}
@@ -69,10 +68,10 @@ export default function RouteSapCard({ trip }) {
                 : '/reports?report=laneKm'
             }
           >
-            All SAP routes
+            Manage routes
             <ArrowUpRight size={14} />
           </Link>
-          {route && (
+          {route && entry && (
             <Button
               variant="outline"
               size="sm"
@@ -102,12 +101,29 @@ export default function RouteSapCard({ trip }) {
               </p>
             </>
           ) : (
-            <div className="sap-notice">
-              {sap ? <SapPill sap={sap} /> : <span>SAP not computed yet</span>}
-              {!route && (
-                <span className="sap-muted">
-                  Save the plant and drop as places to set SAP for this route.
-                </span>
+            <div className="sap-route-empty">
+              <span className="sap-route-empty-icon">
+                <Route size={25} strokeWidth={1.5} aria-hidden="true" />
+              </span>
+              <h3>
+                {entry
+                  ? 'Distance comparison unavailable'
+                  : route
+                    ? 'No agreed distance set'
+                    : SAP_REASONS[sap?.status] || 'Route not ready for comparison'}
+              </h3>
+              <p>
+                {route
+                  ? entry
+                    ? 'The agreed distance is saved. GPS distance is needed to compare this trip.'
+                    : 'Add the distance agreed with the plant to compare it with the kilometres driven.'
+                  : 'Save the plant and drop as places to set SAP for this route.'}
+              </p>
+              {route && !entry && (
+                <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+                  <Pencil size={13} aria-hidden="true" />
+                  Set SAP distance
+                </Button>
               )}
             </div>
           )}
@@ -131,6 +147,22 @@ export default function RouteSapCard({ trip }) {
           )}
         </div>
       </SapRequestState>
+      <aside className="sap-route-help" aria-label="About SAP distance">
+        <span className="sap-route-help-icon">
+          <Truck size={28} strokeWidth={1.5} aria-hidden="true" />
+        </span>
+        <div>
+          <h3>What does SAP mean here?</h3>
+          <p>
+            SAP is the route distance agreed with the plant for payment. We compare it with the
+            truck’s actual GPS distance to show extra or fewer kilometres.
+          </p>
+          <p>One way counts the loaded run. Round trip counts the loaded run and the return.</p>
+          <span className="sap-route-help-example">
+            Example: 200 km agreed, 220 km driven = 20 km extra.
+          </span>
+        </div>
+      </aside>
       {(entry || (isEnabled('routesV2') && trip.routeLeg)) && (
         <div className="sap-route-footer">
           {isEnabled('routesV2') && trip.routeLeg && (

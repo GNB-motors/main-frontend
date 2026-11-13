@@ -212,7 +212,7 @@ export default function AutoTripReplay({
   // the exact spot that is worth a look. It is the drop's coordinates — never
   // an invented point.
   const suspicious = useMemo(() => suspiciousDropPoint(trip), [trip]);
-  const marks = tollMarks(tolls?.passes, head?.at);
+  const marks = tollMarks(tolls?.passes, head?.at, { includeReturn: track?.scope === 'JOURNEY' });
   const windowEnd = track?.to ? new Date(track.to).getTime() : null;
   const stopMarks = useMemo(() => {
     const byId = new Map((trip?.routeStops || []).map((s) => [String(s._id), s]));
@@ -310,7 +310,9 @@ export default function AutoTripReplay({
     else if (error && !track) chip = 'Could not load the GPS track';
     else if (!frames.length) chip = 'No GPS track for this trip';
     else {
-      const crossed = justPassed(tolls?.passes, head?.at);
+      const crossed = justPassed(tolls?.passes, head?.at, {
+        includeReturn: track?.scope === 'JOURNEY',
+      });
       chip = `${fmtDayTime(head?.at)} · ${speedText(head)}${crossed ? ` · ${crossed}` : ''}`;
     }
   }
@@ -319,7 +321,9 @@ export default function AutoTripReplay({
   const leftLabel = `Left plant ${fmtClock(trip?.pickup?.departedAt || (frames[0] && frames[0].at))}`;
   const rightLabel = track?.open
     ? `Last GPS ${fmtClock(lastAt || track?.to)}`
-    : `Reached drop ${fmtClock(track?.to || trip?.drop?.arrivedAt)}`;
+    : track?.scope === 'JOURNEY'
+      ? `Return window ends ${fmtClock(track?.to)}`
+      : `Reached drop ${fmtClock(track?.to || trip?.drop?.arrivedAt)}`;
 
   return (
     <div ref={wrapRef} className="atx-replay">

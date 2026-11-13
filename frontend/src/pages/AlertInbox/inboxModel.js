@@ -89,6 +89,10 @@ export const SOURCE_LABELS = Object.freeze({
   fleetAlerts: 'Fleet alerts',
   hotspotWatch: 'Fuel hotspots',
   supportTicket: 'Support',
+  incidents: 'Driver incident reports',
+  documents: 'Vehicle and driver documents',
+  challans: 'Traffic notices',
+  deviations: 'Route checks',
 });
 
 // Only known internal destinations are used; API text never becomes a URL.
@@ -102,12 +106,10 @@ export function reviewTarget(item) {
       label: 'Review hotspot',
     };
   }
-  const vehicle =
-    item.subjectKey && !item.subjectKey.includes(':') && item.subjectKey !== 'ORG'
-      ? `?vehicle=${encodeURIComponent(item.subjectKey)}`
-      : '';
-  const owner = item.sources?.some((s) => s.source === 'ownerAlerts');
-  return { to: `${owner ? '/owner-alerts' : '/fleet-alerts'}${vehicle}`, label: 'Review alert' };
+  // The modal already contains these reports. A broad source-feed link can be
+  // empty when an old source code is retired, outside its window or reclassified.
+  // Offer navigation only for a specific supported task above.
+  return null;
 }
 
 export function filterInbox(

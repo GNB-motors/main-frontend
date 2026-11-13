@@ -124,6 +124,68 @@ describe('OwnerReportPanel', () => {
     expect(screen.getByText('query failed')).toBeTruthy();
   });
 
+  it('uses toll wording for the earlier response that grouped toll charges under expenses', async () => {
+    fleetViewService.getOwnerReport.mockResolvedValue({
+      ...REPORT,
+      sections: [
+        {
+          id: 'moneyOut',
+          title: 'Money out',
+          state: 'ok',
+          notes: [],
+          numbers: {
+            tollCount: null,
+            tollInr: null,
+            tollUnknownCount: null,
+            expenseApprovedCount: 13,
+            expenseApprovedInr: 2930,
+            expenseRejectedCount: 4,
+          },
+        },
+      ],
+    });
+    renderPanel();
+    await waitFor(() => expect(screen.getByText('Toll crossings')).toBeTruthy());
+    expect(screen.getByText('Toll crossings').closest('div').textContent).toContain('13');
+    expect(screen.getByText('Estimated toll cost').closest('div').textContent).toContain('₹2,930');
+    expect(screen.getByText('Ignored toll crossing records').closest('div').textContent).toContain(
+      '4',
+    );
+    expect(screen.queryByText('Approved bills')).toBeNull();
+    expect(screen.queryByText('Approved bill amount')).toBeNull();
+  });
+
+  it('labels detected crossings and estimates separately from approved bills', async () => {
+    fleetViewService.getOwnerReport.mockResolvedValue({
+      ...REPORT,
+      sections: [
+        {
+          id: 'moneyOut',
+          title: 'Money out',
+          state: 'ok',
+          notes: [],
+          numbers: {
+            tollCount: 13,
+            tollInr: 2930,
+            tollUnknownCount: 8,
+            expenseApprovedCount: 0,
+            expenseApprovedInr: 0,
+            expenseRejectedCount: 0,
+          },
+        },
+      ],
+    });
+    renderPanel();
+    await waitFor(() => expect(screen.getByText('Detected toll crossings')).toBeTruthy());
+    expect(screen.getByText('Detected toll crossings').closest('div').textContent).toContain('13');
+    expect(screen.getByText('Estimated toll cost').closest('div').textContent).toContain('₹2,930');
+    expect(
+      screen.getByText('Crossings with unknown toll cost').closest('div').textContent,
+    ).toContain('8');
+    expect(screen.getByText('Approved bills').closest('div').textContent).toContain('0');
+    expect(screen.queryByText('Expenses approved')).toBeNull();
+  });
+
   it('says a partly measured section instead of dropping the flag', async () => {
     fleetViewService.getOwnerReport.mockResolvedValue({
       ...REPORT,
@@ -194,10 +256,10 @@ describe('OwnerReportPanel', () => {
   it('writes the morning brief the way an owner reads it', async () => {
     renderPanel();
 
-    await screen.findByText('estimated loss across 1 problem');
+    await screen.findByText('estimated extra fuel cost for this period');
 
     expect(screen.getAllByText('₹17,636').length).toBeGreaterThan(0);
-    expect(screen.getByText('estimated loss across 1 problem')).toBeTruthy();
+    expect(screen.getByText('estimated extra fuel cost for this period')).toBeTruthy();
     expect(screen.getByText('₹2,207')).toBeTruthy();
     expect(screen.getByText('Check the receipts')).toBeTruthy();
     // each truck is a chip that opens its own page

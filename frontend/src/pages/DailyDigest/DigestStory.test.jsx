@@ -2,20 +2,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
-const { getDigest, getDailyFuel, getVehicleList, listTrips, refreshLive } = vi.hoisted(() => ({
-  getDigest: vi.fn(),
-  getDailyFuel: vi.fn(),
-  getVehicleList: vi.fn(),
-  listTrips: vi.fn(),
-  refreshLive: vi.fn(),
-}));
+const { getDigest, getDailyFuel, getVehicleList, listTrips, refreshLive, getOwnerReport } =
+  vi.hoisted(() => ({
+    getOwnerReport: vi.fn(),
+    getDigest: vi.fn(),
+    getDailyFuel: vi.fn(),
+    getVehicleList: vi.fn(),
+    listTrips: vi.fn(),
+    refreshLive: vi.fn(),
+  }));
 
 vi.mock('../../services/fleetViewService', () => ({
   fleetViewService: {
     getDigest,
     getDailyFuel,
     getMorningBrief: vi.fn(async () => ({})),
-    getOwnerReport: vi.fn(async () => ({ sections: [] })),
+    getOwnerReport,
   },
 }));
 vi.mock('../../hooks/useLivePositions', () => ({
@@ -67,12 +69,45 @@ describe('DailyDigestPage', () => {
     expect(screen.getByText('No engine consumption readings in this window.')).toBeInTheDocument();
   });
   beforeEach(() => {
+    getOwnerReport.mockReset().mockResolvedValue({ sections: [] });
     getDigest.mockReset();
     getDigest.mockResolvedValue(digestFixture);
     getDailyFuel.mockReset().mockResolvedValue({ items: [] });
     getVehicleList.mockReset().mockResolvedValue([{ registrationNumber: 'WB11F0162' }]);
     listTrips.mockReset().mockResolvedValue({ items: [], total: 7 });
     refreshLive.mockReset();
+  });
+
+  it('waits for Trips distance instead of flashing a different source first', async () => {
+    let finishOwner;
+    getOwnerReport.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishOwner = resolve;
+        }),
+    );
+    renderPage();
+    const heading = await screen.findByRole('heading', { name: 'Loaded vs empty running' });
+    const card = heading.closest('section');
+    await waitFor(() => expect(card.querySelector('[role="status"]')).toBeTruthy());
+    // Other digest sections may already be loaded; running stays pending.
+    expect(card.querySelector('.db-big-number')).toBeNull();
+    await act(async () =>
+      finishOwner({
+        sections: [
+          {
+            id: 'yesterdaysWork',
+            state: 'ok',
+            numbers: { loadedKm: null, emptyKm: 72.1, trips: 15, openTrips: 15, kmPartial: true },
+          },
+        ],
+      }),
+    );
+    await waitFor(() => expect(card.textContent).toContain('72.1 km'));
+    expect(card.querySelector('[role="status"]')).toBeNull();
+    expect(card.textContent).toContain('Loaded distance is pending for 15 ongoing trips');
+    expect(card.querySelector('.db-big-number').textContent).toContain('—');
+    expect(card.querySelector('.db-split')).toBeNull();
   });
 
   it('shows the headline the API sent as the page subtitle', async () => {
@@ -87,7 +122,7 @@ describe('DailyDigestPage', () => {
     await screen.findByText(/A good day/);
     const headings = screen.getAllByRole('heading').map((h) => h.textContent);
     for (const title of [
-      'Where money leaked',
+      'Extra fuel costs to review',
       'Exceptions',
       'Trucks needing attention',
       'The day in numbers',
@@ -137,7 +172,7 @@ describe('DailyDigestPage', () => {
     getDigest.mockResolvedValue({ date: '2026-11-02', headline: '', story: [] });
     renderPage();
     expect(
-      await screen.findByText('Nothing was flagged for this day. No leak measured.'),
+      await screen.findByText('No extra fuel costs were flagged for this day.'),
     ).toBeInTheDocument();
     expect(
       screen.getByText(/What happened, what it cost and what needs you\./),

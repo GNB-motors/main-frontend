@@ -4,6 +4,23 @@
 import { dropLabel } from '../PlaceHub/intelligence/facilityText';
 import { notReachedYet, toDate } from './autoTripFormat';
 
+/** Keep the delivery timeline inside the same window as the loaded replay. */
+export function timelineTrip(trip, scope = 'DELIVERY') {
+  if (!trip || scope === 'JOURNEY') return trip;
+  const arrivals = [trip.drop, ...(trip.extraDrops || [])]
+    .map((drop) => toDate(drop?.arrivedAt)?.getTime())
+    .filter(Number.isFinite);
+  if (!arrivals.length) return trip;
+  const end = Math.max(...arrivals);
+  return {
+    ...trip,
+    routeStops: (trip.routeStops || []).filter((stop) => {
+      const start = toDate(stop.startAt)?.getTime();
+      return Number.isFinite(start) && start <= end;
+    }),
+  };
+}
+
 // ─── Trip timeline ───────────────────────────────────────────────────────────
 
 const STOP_KIND_LABEL = {

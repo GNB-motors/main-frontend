@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Briefcase, MessageSquare, ShieldCheck, UserCheck } from 'lucide-react';
+import { Briefcase, MessageSquare, ShieldCheck, Truck, UserCheck } from 'lucide-react';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import { useFullPageLayout } from '../../hooks/usePageLayout';
+import { getUserRole } from '../../utils/session';
 import ReceiptApprovalPage from '../Superadmin/components/ReceiptApprovalPage';
 import { FieldAgentFuelService } from '../FieldAgentFuel/FieldAgentFuelService';
 import FieldAgentApprovals from './FieldAgentApprovals';
 import OfficeBillApprovals from './OfficeBillApprovals';
+import TripApprovals from './TripApprovals';
 import billPhotoService from '../../services/billPhotoService';
 import { ApprovalsService } from './ApprovalsService';
 import '../Superadmin/components/ReceiptApproval.css';
@@ -49,14 +51,27 @@ const APPROVAL_TYPES = [
     flag: 'fuelIntegrity',
     pendingCount: async (opts) => (await FieldAgentFuelService.approvalCounts(opts)).PENDING ?? 0,
   },
+  {
+    key: 'trips',
+    label: 'Trip approvals',
+    hint: 'Authorised vehicle and driver visits',
+    icon: Truck,
+    flag: 'autoTrips',
+  },
 ];
 
 export default function ApprovalsPage() {
   useFullPageLayout();
   const { isEnabled } = useFeatureFlags();
+  const role = getUserRole();
   const types = useMemo(
-    () => APPROVAL_TYPES.filter((t) => !t.flag || isEnabled(t.flag)),
-    [isEnabled],
+    () =>
+      APPROVAL_TYPES.filter(
+        (t) =>
+          (!t.flag || isEnabled(t.flag)) &&
+          (t.key !== 'trips' || ['OWNER', 'MANAGER'].includes(role)),
+      ),
+    [isEnabled, role],
   );
   const [params, setParams] = useSearchParams();
   const [pending, setPending] = useState({});
@@ -68,6 +83,7 @@ export default function ApprovalsPage() {
     let alive = true;
     const controller = new AbortController();
     types.forEach((t) => {
+      if (!t.pendingCount) return;
       t.pendingCount({ signal: controller.signal })
         .then((n) => alive && setPending((p) => ({ ...p, [t.key]: n })))
         .catch((error) => {
@@ -126,7 +142,7 @@ export default function ApprovalsPage() {
             >
               <Icon size={16} />
               {t.label}
-              {n === undefined ? (
+              {t.pendingCount && n === undefined ? (
                 <span aria-hidden="true" className="ra-skel ra-skel--round apv-type__count-skel" />
               ) : n ? (
                 <span className="apv-type__count">{n}</span>
@@ -140,6 +156,7 @@ export default function ApprovalsPage() {
         <ReceiptApprovalPage embedded onCounts={onWhatsAppCounts} />
       ) : null}
       {active?.key === 'field-agent' ? <FieldAgentApprovals onCounts={onFieldAgentCounts} /> : null}
+      {active?.key === 'trips' ? <TripApprovals /> : null}
       {active?.key === 'office' ? (
         <OfficeBillApprovals onCount={onOfficeCount} onUnavailable={hideOffice} />
       ) : null}

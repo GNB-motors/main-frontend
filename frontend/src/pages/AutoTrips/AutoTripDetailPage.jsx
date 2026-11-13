@@ -1,7 +1,7 @@
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Check } from 'lucide-react';
+import { Check, Route, Clock3, ReceiptText } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
 import { useMutation } from '../../hooks/useMutation';
 import AutoTripService from '../../services/AutoTripService';
@@ -22,9 +22,9 @@ import { formatINR } from '../../utils/formatters';
 import { destinationOf, minutesOnRoad, titleCasePlace } from './tripListModel';
 import TripBackButton from './TripBackButton';
 import { answerPlaceHref, inWindow } from './autoTripPlaces';
-import { LONG_PLANT_MIN, timelinePlan } from './timelineModel';
+import { LONG_PLANT_MIN, timelinePlan, timelineTrip } from './timelineModel';
 import { legBarSegments, unattributedKm } from './tripLegModel.js';
-import { partialFlags, runKmOf } from './tripMeasureModel';
+import { partialFlags, runKmOf, runningCostAmount } from './tripMeasureModel';
 import TripCostNote from './TripCostNote';
 import TripStatusNotes, { TripFlagChips } from './TripStatusNotes';
 import { PARTIAL_LABEL } from '../../utils/measured';
@@ -46,12 +46,24 @@ const CAN_EDIT = ['OWNER', 'MANAGER', 'SUPER_ADMIN'];
 /** Flags the route line already says in words ("drop not found", "guessed"). */
 const DROP_FLAGS = ['DROP_UNKNOWN', 'DROP_INFERRED'];
 
-function Field({ label, children, warn = false }) {
+function Field({ label, children, warn = false, wide = false }) {
   return (
-    <div className="atx-field">
+    <div className={`atx-field${wide ? ' atx-detail-field--wide' : ''}`}>
       <span className="atx-field-label">{label}</span>
       <span className={`atx-field-value${warn ? ' is-warn' : ''}`}>{children}</span>
     </div>
+  );
+}
+
+function DetailGroup({ title, icon, children }) {
+  return (
+    <section className="atx-detail-group">
+      <h3 className="atx-detail-group-title">
+        {icon}
+        {title}
+      </h3>
+      {children}
+    </section>
   );
 }
 
@@ -72,6 +84,7 @@ export default function AutoTripDetailPage() {
   const autoPlay = searchParams.get('play') === '1';
   const focusDeviation = searchParams.get('deviation');
   const replayRef = useRef(null);
+  const [replayScope, setReplayScope] = useState('DELIVERY');
   const canEdit = CAN_EDIT.includes(getUserRole());
 
   const {
@@ -85,7 +98,15 @@ export default function AutoTripDetailPage() {
     loading: trackLoading,
     error: trackError,
     refetch: refetchTrack,
-  } = useApi((signal) => AutoTripService.track(id, { signal }), [id]);
+  } = useApi(
+    (signal) =>
+      AutoTripService.track(id, {
+        signal,
+        ...(replayScope === 'JOURNEY' ? { scope: replayScope } : {}),
+      }),
+    [id, replayScope],
+    { scopeKey: `${id}:${replayScope}` },
+  );
   // The road our engine matched for the same window: the replay draws the road, never a GPS jump.
   const { data: roadTrail } = useApi(
     (signal) =>
@@ -95,7 +116,10 @@ export default function AutoTripDetailPage() {
         signal,
       ),
     [track?.registrationNumber, track?.from, track?.to],
-    { enabled: Boolean(track?.registrationNumber && track?.from && track?.to) },
+    {
+      enabled: Boolean(track?.registrationNumber && track?.from && track?.to),
+      scopeKey: `${track?.registrationNumber || ''}:${track?.from || ''}:${track?.to || ''}`,
+    },
   );
 
   // While the truck is still on the road, ask where it is most likely
@@ -146,7 +170,13 @@ export default function AutoTripDetailPage() {
     [refetch, refetchTrack],
   );
 
-  const plan = useMemo(() => withTollPasses(timelinePlan(trip), tolls?.passes), [trip, tolls]);
+  const plan = useMemo(
+    () =>
+      withTollPasses(timelinePlan(timelineTrip(trip, replayScope)), tolls?.passes, {
+        includeReturn: replayScope === 'JOURNEY',
+      }),
+    [trip, tolls, replayScope],
+  );
 
   if (loading && !trip) {
     return (
@@ -191,6 +221,7 @@ export default function AutoTripDetailPage() {
   // a real value — never render an empty row.
   const runKm = runKmOf(trip);
   const partial = partialFlags(trip);
+  const runningCost = runningCostAmount(trip);
   const unattributed = unattributedKm(trip);
   const runTime = trip.durations?.ladenMin ?? trip.durations?.transitMin;
   const hasRunGroup =
@@ -386,20 +417,42 @@ export default function AutoTripDetailPage() {
             </small>
           </div>
           <div className="atx-fact">
-            <dt>
-              Running cost
-              <InfoTip
-                text="Fuel and wear for each leg of this trip: the empty run to the plant, the loaded run and the return. An estimate, not a bill."
-                label="How running cost is estimated"
-              />
+            <dt className="atx-cost-heading">
+              <span className="atx-cost-title">
+                Running cost
+                <InfoTip
+                  text="Fuel cost plus estimated vehicle maintenance cost based on distance travelled, covering things like tyres and servicing. This is an estimate, not an actual maintenance bill. When the full cost is unavailable, only known costs are shown as partly measured. Toll costs are shown separately."
+                  label="How running cost is estimated"
+                />
+              </span>
+              {runningCost.partial || partial.fuel ? (
+                <span className="atx-chip atx-chip--watch atx-cost-badge">{PARTIAL_LABEL}</span>
+              ) : null}
             </dt>
-            <dd className={Number.isFinite(trip.totalCostInr) ? '' : 'is-quiet'}>
-              {Number.isFinite(trip.totalCostInr) ? formatINR(trip.totalCostInr) : '—'}
+            <dd className={runningCost.inr != null ? '' : 'is-quiet'}>
+              {runningCost.inr != null ? formatINR(runningCost.inr) : '—'}
             </dd>
             <TripCostNote trip={trip} />
           </div>
         </dl>
 
+        <div className="atx-replay-scope" role="group" aria-label="Replay scope">
+          {[
+            ['DELIVERY', 'Loaded trip'],
+            ['JOURNEY', 'Include empty return'],
+          ].map(([scope, label]) => (
+            <button
+              key={scope}
+              type="button"
+              className={`atx-tool${replayScope === scope ? ' is-active' : ''}`}
+              aria-pressed={replayScope === scope}
+              onClick={() => setReplayScope(scope)}
+            >
+              {label}
+            </button>
+          ))}
+          <span>Loaded trip: plant departure to last drop. Return travel is separate.</span>
+        </div>
         <div className="atx-detail-main">
           <div className="atx-detail-map">
             <div className="atx-card atx-card--clip">
@@ -431,44 +484,47 @@ export default function AutoTripDetailPage() {
         <div className="atx-detail-more">
           <div className="atx-card atx-summary">
             <h2 className="atx-card-title">Trip details</h2>
-            <div className="atx-fields">
-              <Field label="Loaded at">
-                {trip.pickup?.name ? titleCasePlace(trip.pickup.name) : 'Not recorded'}
-              </Field>
-              <Field label="Unloaded at">
-                {dest.state === 'reached'
-                  ? dest.text
-                  : open
-                    ? 'Not reached yet'
-                    : `${dest.text.charAt(0).toUpperCase()}${dest.text.slice(1)}`}
-              </Field>
-              {trip.material ? <Field label="Material">{trip.material}</Field> : null}
-              {trip.tonnage != null ? <Field label="Tonnage">{`${trip.tonnage} t`}</Field> : null}
-              {trip.extraDrops?.length && trip.drop?.arrivedAt ? (
-                <Field label="First drop at">{fmtDayTime(trip.drop.arrivedAt)}</Field>
-              ) : null}
-            </div>
+            <DetailGroup title="Route and load" icon={<Route size={16} aria-hidden="true" />}>
+              <div className="atx-fields atx-details-route">
+                <Field label="Loaded at">
+                  {trip.pickup?.name ? titleCasePlace(trip.pickup.name) : 'Not recorded'}
+                </Field>
+                <Field label="Unloaded at">
+                  {dest.state === 'reached'
+                    ? dest.text
+                    : open
+                      ? 'Not reached yet'
+                      : `${dest.text.charAt(0).toUpperCase()}${dest.text.slice(1)}`}
+                </Field>
+                {trip.material ? <Field label="Material">{trip.material}</Field> : null}
+                {trip.tonnage != null ? <Field label="Tonnage">{`${trip.tonnage} t`}</Field> : null}
+                {trip.extraDrops?.length && trip.drop?.arrivedAt ? (
+                  <Field label="First drop at">{fmtDayTime(trip.drop.arrivedAt)}</Field>
+                ) : null}
+              </div>
+            </DetailGroup>
             {legBarSegments(trip).length || unattributed != null ? (
-              <>
-                <div className="atx-rule" />
-                <div className="atx-fields">
+              <DetailGroup title="Distance by leg" icon={<Route size={16} aria-hidden="true" />}>
+                <div className="atx-fields atx-details-distance">
                   {/* The legs, as a bar in the leg colours (F8.5). */}
                   <div className="atx-field">
-                    <div className="atx-field-label">Distance by leg</div>
                     <TripLegBar trip={trip} />
+                    <small className="atx-measure-note">
+                      Travel before loading and after unloading is separate from the loaded
+                      distance.
+                    </small>
                   </div>
                 </div>
-              </>
+              </DetailGroup>
             ) : null}
             {hasRunGroup ? (
-              <>
-                <div className="atx-rule" />
-                <div className="atx-fields">
+              <DetailGroup title="Journey measures" icon={<Clock3 size={16} aria-hidden="true" />}>
+                <div className="atx-fields atx-details-measures">
                   {runTime != null ? (
-                    <Field label="Loaded running time">{fmtDuration(runTime)}</Field>
+                    <Field label="Loaded journey elapsed time">{fmtDuration(runTime)}</Field>
                   ) : null}
                   {trip.km?.approach != null ? (
-                    <Field label="Empty run to plant">{fmtKm(trip.km.approach)}</Field>
+                    <Field label="Distance to loading point">{fmtKm(trip.km.approach)}</Field>
                   ) : null}
                   {trip.km?.return != null ? (
                     <Field label="Return to plant">{fmtKm(trip.km.return)}</Field>
@@ -482,8 +538,11 @@ export default function AutoTripDetailPage() {
                     <Field label="To first drop">{fmtDuration(trip.durations.transitMin)}</Field>
                   ) : null}
                   {trip.durations?.approachMin != null ? (
-                    <Field label="Empty before loading">
+                    <Field label="Time to loading point (elapsed)">
                       {fmtDuration(trip.durations.approachMin)}
+                      <small className="atx-measure-note">
+                        Before this loading; includes waits between recorded movements.
+                      </small>
                     </Field>
                   ) : null}
                   {plantMin != null ? (
@@ -492,36 +551,44 @@ export default function AutoTripDetailPage() {
                     </Field>
                   ) : null}
                 </div>
-              </>
+              </DetailGroup>
             ) : null}
-            <div className="atx-rule" />
-            <div className="atx-fields">
-              {trip.stopsSummary ? (
-                <Field label="Stops on the way">{stopsOnWayText(trip.stopsSummary)}</Field>
-              ) : null}
-              {tollText ? <Field label="Tolls on the way">{tollText}</Field> : null}
-              {tollSummary(tolls, 'RETURN') ? (
-                <Field label="Tolls on the way back">{tollSummary(tolls, 'RETURN')}</Field>
-              ) : null}
-              {tollLedgerText(tolls) ? (
-                <Field label="Toll ledger (after bill reconciliation)">
-                  {tollLedgerText(tolls)}
-                </Field>
-              ) : null}
-              {tollClassText(tolls) ? (
-                <Field label="Toll class">{tollClassText(tolls)}</Field>
-              ) : null}
-              {trip.extraDrops?.length ? (
-                <Field label="Further drops">{trip.extraDrops.length}</Field>
-              ) : null}
-              {trip.erpTripId ? (
-                <Field label="ERP trip">
-                  <Link to={`/erp/trips/${trip.erpTripId}`} className="atx-answer">
-                    {String(trip.erpTripId).slice(-6)}
-                  </Link>
-                </Field>
-              ) : null}
-            </div>
+            <DetailGroup
+              title="Stops and toll costs"
+              icon={<ReceiptText size={16} aria-hidden="true" />}
+            >
+              <div className="atx-fields">
+                {trip.stopsSummary ? (
+                  <Field wide label="Stops on the way">
+                    {stopsOnWayText(trip.stopsSummary)}
+                  </Field>
+                ) : null}
+                {tollText ? <Field label="Tolls on the way">{tollText}</Field> : null}
+                {tollSummary(tolls, 'RETURN') ? (
+                  <Field label="Tolls on the way back">{tollSummary(tolls, 'RETURN')}</Field>
+                ) : null}
+                {tollLedgerText(tolls) ? (
+                  <Field wide label="Toll cost (detected crossings and bills)">
+                    {tollLedgerText(tolls)}
+                  </Field>
+                ) : null}
+                {tollClassText(tolls) ? (
+                  <Field wide label="Toll class">
+                    {tollClassText(tolls)}
+                  </Field>
+                ) : null}
+                {trip.extraDrops?.length ? (
+                  <Field label="Further drops">{trip.extraDrops.length}</Field>
+                ) : null}
+                {trip.erpTripId ? (
+                  <Field label="ERP trip">
+                    <Link to={`/erp/trips/${trip.erpTripId}`} className="atx-answer">
+                      {String(trip.erpTripId).slice(-6)}
+                    </Link>
+                  </Field>
+                ) : null}
+              </div>
+            </DetailGroup>
             {/* The plant visit, with the reason for each stop (F8.5). Clicking a row
                 opens Track at that stop. */}
             {trip.stops?.length ? (

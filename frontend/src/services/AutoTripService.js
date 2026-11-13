@@ -33,8 +33,11 @@ export const AutoTripService = {
     parsed('autoTripDetailSchema', await apiClient.get(`${BASE}/${id}`, { signal })),
 
   /** GPS track to replay a trip: left plant → last drop (next pickup / now while open). */
-  track: async (id, { signal } = {}) =>
-    parsed('autoTripTrackSchema', await apiClient.get(`${BASE}/${id}/track`, { signal })),
+  track: async (id, { signal, scope } = {}) =>
+    parsed(
+      'autoTripTrackSchema',
+      await apiClient.get(`${BASE}/${id}/track`, { signal, params: scope ? { scope } : undefined }),
+    ),
   /** Toll plazas the truck drove through on the replay window, with when (fares for managers). */
   tolls: async (id, { signal } = {}) =>
     parsed('autoTripTollsSchema', await apiClient.get(`${BASE}/${id}/tolls`, { signal })),

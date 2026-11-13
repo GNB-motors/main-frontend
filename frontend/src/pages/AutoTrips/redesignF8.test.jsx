@@ -20,7 +20,15 @@ import TripStopList from './TripStopList';
 const visit = {
   kind: 'VISIT',
   registrationNumber: 'WB11F6762',
-  place: { id: 'site-dalmia', kind: 'SITE', name: 'DALMIA OCL', category: 'PLANT', lat: 25.3, lng: 84.9, radiusM: 700 },
+  place: {
+    id: 'site-dalmia',
+    kind: 'SITE',
+    name: 'DALMIA OCL',
+    category: 'PLANT',
+    lat: 25.3,
+    lng: 84.9,
+    radiusM: 700,
+  },
   arrivedAt: '2026-11-01T12:40:00Z',
   departedAt: '2026-11-01T16:25:00Z',
   dwellMin: 225,
@@ -114,9 +122,10 @@ describe('PlaceQuestionCard', () => {
     render(
       <MemoryRouter>
         <PlaceQuestionCard question={question} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
-    expect(screen.getByText(/This point is on 124 trips \(31 trucks\)/)).toBeInTheDocument();
+    expect(screen.getByText('124 trips')).toBeInTheDocument();
+    expect(screen.getByText('31 trucks')).toBeInTheDocument();
     expect(screen.getByText('JSW Salboni gate 2')).toBeInTheDocument();
   });
 
@@ -124,7 +133,7 @@ describe('PlaceQuestionCard', () => {
     render(
       <MemoryRouter>
         <PlaceQuestionCard question={question} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     expect(screen.getByText(/trucks stop here 1 h 30 min/)).toBeInTheDocument();
   });
@@ -134,10 +143,14 @@ describe('PlaceQuestionCard', () => {
     render(
       <MemoryRouter>
         <PlaceQuestionCard question={question} canAnswer onAnswer={onAnswer} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
-    fireEvent.click(screen.getByRole('button', { name: /Yes, that's it/ }));
-    expect(onAnswer).toHaveBeenCalledWith('q-501', { answer: 'CONFIRM' });
+    fireEvent.click(screen.getByRole('button', { name: /Confirm place/ }));
+    expect(onAnswer).toHaveBeenCalledWith('q-501', {
+      answer: 'CONFIRM',
+      name: 'JSW Salboni gate 2',
+      category: 'PLANT',
+    });
   });
 
   it('lets an owner say it is not a place', () => {
@@ -145,7 +158,7 @@ describe('PlaceQuestionCard', () => {
     render(
       <MemoryRouter>
         <PlaceQuestionCard question={question} canAnswer onAnswer={onAnswer} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Not a place' }));
     expect(onAnswer).toHaveBeenCalledWith('q-501', { answer: 'NOT_A_PLACE' });
@@ -155,17 +168,17 @@ describe('PlaceQuestionCard', () => {
     render(
       <MemoryRouter>
         <PlaceQuestionCard question={question} canAnswer={false} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     expect(screen.getByText('Ask your manager to answer this.')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Yes, that's it/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Confirm place/ })).not.toBeInTheDocument();
   });
 
   it('never accuses anybody of stealing', () => {
     render(
       <MemoryRouter>
         <PlaceQuestionCard question={question} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
     expect(document.body.textContent.toLowerCase()).not.toMatch(/siphon|theft|stolen/);
   });

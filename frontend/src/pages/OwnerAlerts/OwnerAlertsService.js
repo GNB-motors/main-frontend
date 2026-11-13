@@ -90,6 +90,15 @@ export const OwnerAlertsService = {
 };
 
 export const ALERT_TYPE_LABELS = {
+  THEFT_CORROBORATED: 'Matching fuel-loss signals — review',
+  FUEL_GAUGE_FAULT: 'Fuel sensor needs checking',
+  FUEL_PARKED_LEVEL_DROP: 'Fuel level fell while parked',
+  DRIVER_LOCATION_MISMATCH: 'Driver assignment to check',
+  TYRE_REPLACEMENT_DUE: 'Tyre replacement due',
+  IALERT_REAUTH_REQUIRED: 'Reconnect iALERT',
+  IALERT_RELINK_DUE: 'iALERT connection expiring',
+  IALERT_SUBSCRIPTION_EXPIRED: 'iALERT plan expired',
+  IALERT_SUBSCRIPTION_EXPIRING: 'iALERT plan expiring',
   FUEL_SIPHON_SUSPECTED: 'Fuel loss — please review',
   FUEL_DATA_REVIEW: 'Fuel data review',
   REFUEL_ESTIMATED: 'Refuel estimated',

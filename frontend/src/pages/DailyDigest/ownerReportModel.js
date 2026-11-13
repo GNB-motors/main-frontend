@@ -84,21 +84,24 @@ export const METRIC_LABELS = {
   km: 'Distance covered',
   onTimeArrivals: 'On-time arrivals',
   promisedArrivals: 'Promised arrivals',
-  avgTurnaroundHours: 'Average turnaround',
-  plantsMeasured: 'Plants measured',
+  avgTurnaroundHours: 'Average plant turnaround',
+  plantsMeasured: 'Loading/unloading sites visited',
+  plantVisitsMeasured: 'Completed plant visits',
   // 3. Money out
   dieselBillLitres: 'Diesel billed (litres)',
   dieselBillInr: 'Diesel billed',
   dieselSensorLitres: 'Diesel from sensor (litres)',
   dieselGapPct: 'Diesel gap',
-  tollInr: 'Tolls',
-  tollUnknownCount: 'Tolls, count unknown',
-  tollCount: 'Toll crossings',
+  tollInr: 'Estimated toll cost',
+  tollUnknownCount: 'Crossings with unknown toll cost',
+  tollCount: 'Detected toll crossings',
   expensePendingCount: 'Expenses waiting',
   expensePendingInr: 'Expenses waiting',
-  expenseApprovedCount: 'Expenses approved',
-  expenseApprovedInr: 'Expenses approved',
-  expenseRejectedCount: 'Expenses rejected',
+  expenseApprovedCount: 'Approved bills',
+  expenseApprovedInr: 'Approved bill amount',
+  expenseRejectedCount: 'Rejected bills',
+  expenseRecordedCount: 'Recorded expenses',
+  expenseRecordedInr: 'Recorded expense amount',
   advanceCount: 'Advances',
   advanceInr: 'Advances',
   // 4. Money in
@@ -307,7 +310,7 @@ const KM_KEYS = new Set(['km', 'kmPrev7Avg', 'kmSameWeekdayAvg', 'kmWithAppNavig
 const PENDING_PCT_KEYS = new Set(['tripsVsPrev7Pct', 'kmVsPrev7Pct']);
 
 /** The numbers of one section, ready to render. */
-export function numberPairs(numbers, { isPendingDay = false } = {}) {
+export function numberPairs(numbers, { isPendingDay = false, legacyTollLabels = false } = {}) {
   if (!numbers || typeof numbers !== 'object') return [];
   return Object.entries(numbers)
     .filter(([key]) => !['kinds', 'kmPartial', 'emptyKmPartial'].includes(key))
@@ -315,7 +318,13 @@ export function numberPairs(numbers, { isPendingDay = false } = {}) {
       const pending = isPendingDay && PENDING_PCT_KEYS.has(key);
       return {
         key,
-        label: labelFor(key),
+        label: legacyTollLabels
+          ? {
+              expenseApprovedCount: 'Toll crossings',
+              expenseApprovedInr: 'Estimated toll cost',
+              expenseRejectedCount: 'Ignored toll crossing records',
+            }[key] || labelFor(key)
+          : labelFor(key),
         value: pending ? DASH : formatValue(key, value),
         note: pending ? 'Day not over yet' : '',
         unknown: pending || value == null,
@@ -343,12 +352,13 @@ export function rowPairs(rows) {
       .slice(0, 8)
       .filter((row) => !(row && typeof row === 'object' && 'drill' in row))
       .map((row, i) => {
-        if (!row || typeof row !== 'object') return { key: `row-${i}`, label: String(row), note: '' };
+        if (!row || typeof row !== 'object')
+          return { key: `row-${i}`, label: String(row), note: '' };
         const entries = Object.entries(row).filter(
           ([k, v]) => v != null && typeof v !== 'object' && k !== 'drill' && k !== 'params',
         );
-        const labelEntry =
-          entries.find(([k]) => LABEL_KEYS.includes(k)) || entries[0] || ['label', ''];
+        const labelEntry = entries.find(([k]) => LABEL_KEYS.includes(k)) ||
+          entries[0] || ['label', ''];
         const note = entries
           .filter(([k]) => k !== labelEntry[0])
           .map(([k, v]) => `${labelFor(k)}: ${formatValue(k, v)}`)
@@ -379,7 +389,12 @@ export function exceptionRows(rows) {
   return rows
     .filter((row) => row && typeof row === 'object')
     .filter((row) => Number.isFinite(Number(row.count)) && Number(row.count) > 0)
-    .filter((row) => String(row.note || '').trim().toLowerCase() !== 'not built yet')
+    .filter(
+      (row) =>
+        String(row.note || '')
+          .trim()
+          .toLowerCase() !== 'not built yet',
+    )
     .sort((a, b) => Number(b.count) - Number(a.count))
     .map((row) => ({
       key: row.kind || 'exception',
@@ -398,7 +413,9 @@ export function drillTarget(section) {
 
 /** Where a drill target goes. An unknown target has no link. */
 export function drillRoute(drill) {
-  const target = String(drill || '').trim().toLowerCase();
+  const target = String(drill || '')
+    .trim()
+    .toLowerCase();
   if (!target) return null;
   const root = target.split('.')[0];
   if (root === 'fleet') return '/live-tracking';
@@ -428,12 +445,14 @@ export function briefSections(brief) {
     rupees: section?.rupees == null ? null : Number(section.rupees),
     suggestedAction: section?.suggestedAction || '',
     vehicles: Array.isArray(section?.vehicles)
-      ? section.vehicles.map((v) => ({
-          registrationNumber: v?.registrationNumber || '—',
-          rupees: v?.rupees == null ? null : Number(v.rupees),
-          durationMin: v?.durationMin == null ? null : Number(v.durationMin),
-          excessL: v?.excessL == null ? null : Number(v.excessL),
-        })).sort((a, b) => (b.rupees ?? -1) - (a.rupees ?? -1))
+      ? section.vehicles
+          .map((v) => ({
+            registrationNumber: v?.registrationNumber || '—',
+            rupees: v?.rupees == null ? null : Number(v.rupees),
+            durationMin: v?.durationMin == null ? null : Number(v.durationMin),
+            excessL: v?.excessL == null ? null : Number(v.excessL),
+          }))
+          .sort((a, b) => (b.rupees ?? -1) - (a.rupees ?? -1))
       : [],
   }));
 }

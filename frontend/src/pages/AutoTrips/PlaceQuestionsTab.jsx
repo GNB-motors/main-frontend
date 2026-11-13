@@ -6,6 +6,8 @@ import { getUserRole } from '../../utils/session';
 import { placeAnswerMessage } from '../../utils/placeQuestions';
 import NotYetAvailable from '../../components/redesign/NotYetAvailable';
 import PlaceQuestionCard from './PlaceQuestionCard';
+import { formatNum } from '../../utils/formatters';
+import './PlaceQuestions.css';
 
 /**
  * PlaceQuestionsTab — the queue of places waiting to be named.
@@ -97,13 +99,24 @@ export default function PlaceQuestionsTab({ query = null }) {
   if (open.length === 0) {
     return (
       <p className="m-0 text-[13px] text-[var(--rd-ink-3)]">
-        Nothing is waiting for an answer. Every place your trucks stop at has a name.
+        No place questions are waiting in this view.
       </p>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="atx-place-questions">
+      <div className="atx-place-questions-intro">
+        <h3>Help identify these stops</h3>
+        <p>
+          GPS found places where trucks stopped, but the delivery location is not confirmed. Review
+          the location, then confirm or correct its name and type.
+        </p>
+        <span>
+          {formatNum(open.length)} places shown
+          {data?.total > items.length ? ` of ${formatNum(data.total)} in this view` : ''}
+        </span>
+      </div>
       {open.map((question) => (
         <PlaceQuestionCard
           key={question.id}

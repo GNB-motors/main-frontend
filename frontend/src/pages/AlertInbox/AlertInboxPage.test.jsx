@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AlertInboxPage from './AlertInboxPage';
@@ -79,12 +79,14 @@ beforeEach(() => {
   );
 });
 describe('Alert Inbox integration', () => {
-  it('links to vehicle alerts and opens the exact support ticket', async () => {
+  it('keeps alert evidence in the modal and opens the exact support ticket', async () => {
     mount();
-    expect(await screen.findByRole('link', { name: 'Review alert' })).toHaveAttribute(
-      'href',
-      '/owner-alerts?vehicle=MH12AB1234',
-    );
+    fireEvent.click((await screen.findByText('Fuel loss')).closest('tr'));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Review alert' })).not.toBeInTheDocument();
+    expect(screen.getByText('18 litres lost')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Close alert details' }));
+    fireEvent.click(screen.getByText('Support waiting').closest('tr'));
     fireEvent.click(screen.getByRole('button', { name: 'Open ticket' }));
     expect(openPortal).toHaveBeenCalledWith('ticket123');
   });
@@ -95,19 +97,64 @@ describe('Alert Inbox integration', () => {
       target: { value: 'MH12' },
     });
     expect(screen.queryByText('#123')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    expect(screen.queryByRole('button', { name: 'Details' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('Fuel loss').closest('tr'));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText('18 litres lost')).toBeInTheDocument();
   });
   it('acknowledges a row without claiming source resolution', async () => {
     mount();
     await screen.findByText('Fuel loss');
-    fireEvent.click(screen.getAllByRole('button', { name: 'Acknowledge' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Mark as reviewed' })[0]);
     await waitFor(() => expect(screen.queryByText('Fuel loss')).not.toBeInTheDocument());
     expect(acknowledgeItem).toHaveBeenCalledWith('fuel');
-    fireEvent.click(screen.getByRole('button', { name: /Acknowledged/ }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Reviewed/ }));
     expect(screen.getByText('Fuel loss')).toBeInTheDocument();
     expect(screen.getByText(/does not resolve the source issue/)).toBeInTheDocument();
+  });
+  it('explains the row action and lets a user mark reviewed after reading the details', async () => {
+    mount();
+    const subject = await screen.findByRole('button', {
+      name: 'View details for MH12AB1234: Fuel loss',
+    });
+    const row = subject.closest('tr');
+    expect(
+      within(row).getByRole('button', { name: 'Mark as reviewed' }),
+    ).toHaveAccessibleDescription(/Use after checking this alert/);
+    fireEvent.click(subject);
+    const dialog = await screen.findByRole('dialog');
+    const review = within(dialog).getByRole('button', { name: 'Mark as reviewed' });
+    expect(review).toHaveAccessibleDescription(/This does not resolve the issue/);
+    let finish;
+    acknowledgeItem.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    fireEvent.click(review);
+    expect(within(dialog).getByRole('button', { name: 'Saving…' })).toBeDisabled();
+    expect(acknowledgeItem).toHaveBeenCalledTimes(1);
+    expect(acknowledgeItem).toHaveBeenCalledWith('fuel');
+    finish({ ...fuel, status: 'ACKNOWLEDGED' });
+    await waitFor(() => expect(within(dialog).getByText('Reviewed')).toBeInTheDocument());
+    expect(
+      within(dialog).queryByRole('button', { name: 'Mark as reviewed' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+    expect(screen.queryByText('Fuel loss')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Reviewed/ }));
+    expect(screen.getByText('Fuel loss')).toBeInTheDocument();
+  });
+  it('keeps the details action available when marking reviewed fails', async () => {
+    acknowledgeItem.mockRejectedValueOnce(new Error('Could not save review'));
+    mount();
+    fireEvent.click((await screen.findByText('Fuel loss')).closest('tr'));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Mark as reviewed' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Could not save review');
+    expect(within(dialog).getByRole('button', { name: 'Mark as reviewed' })).toBeEnabled();
   });
   it('recovers from a failed load on retry', async () => {
     getInbox.mockRejectedValueOnce(new Error('Network unavailable'));
@@ -121,7 +168,7 @@ describe('Alert Inbox integration', () => {
     acknowledgeItem.mockRejectedValueOnce(new Error('Cannot acknowledge'));
     mount();
     await screen.findByText('Fuel loss');
-    fireEvent.click(screen.getAllByRole('button', { name: 'Acknowledge' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Mark as reviewed' })[0]);
     expect(await screen.findByRole('alert')).toHaveTextContent('Cannot acknowledge');
     expect(screen.getByText('Fuel loss')).toBeInTheDocument();
   });
@@ -147,7 +194,7 @@ describe('Alert Inbox integration', () => {
   it('asks before it marks every open alert as seen', async () => {
     mount();
     await screen.findByText('Fuel loss');
-    fireEvent.click(screen.getByRole('button', { name: 'Acknowledge all' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mark all reviewed' }));
     expect(screen.getByText('Mark all 2 open alerts as seen?')).toBeInTheDocument();
     expect(acknowledgeAll).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Yes, mark all' }));
@@ -163,7 +210,10 @@ describe('Alert Inbox integration', () => {
           status: 'OPEN',
           truck: { registrationNumber: 'MH12AB1234' },
           driver: { name: 'Ramesh' },
-          report: { note: 'Engine stopped on the highway.', receivedAt: '2026-11-04T09:30:00.000Z' },
+          report: {
+            note: 'Engine stopped on the highway.',
+            receivedAt: '2026-11-04T09:30:00.000Z',
+          },
         },
       ],
       pagination: { total: 1, page: 1, limit: 50 },
@@ -190,4 +240,59 @@ describe('Alert Inbox integration', () => {
     expect(screen.queryByText(/account disconnected/)).not.toBeInTheDocument();
     expect(screen.queryByText(/link expires soon/)).not.toBeInTheDocument();
   });
+});
+
+it('explains the review flow and how this inbox differs from the other pages', async () => {
+  mount();
+  await screen.findByText('Fuel loss');
+  expect(screen.getByRole('region', { name: 'How to use this page' })).toBeInTheDocument();
+  expect(screen.getByText('Read the details')).toBeInTheDocument();
+  expect(screen.getByText('Check the reports')).toBeInTheDocument();
+  expect(screen.getByText(/It does not fix the issue or confirm a loss/)).toBeInTheDocument();
+  fireEvent.click(
+    screen.getByText('Alert inbox, Owner alerts and Intelligence: which should I use?'),
+  );
+  expect(screen.getByRole('link', { name: /Intelligence/ })).toHaveAttribute(
+    'href',
+    '/intelligence',
+  );
+  expect(screen.getByText(/Several records may relate to one issue/)).toBeInTheDocument();
+});
+
+it('offers a keyboard-accessible subject control without a separate Details button', async () => {
+  mount();
+  const subject = await screen.findByRole('button', {
+    name: 'View details for MH12AB1234: Fuel loss',
+  });
+  expect(subject.tagName).toBe('BUTTON');
+  expect(screen.getByRole('columnheader', { name: 'Issue and next step' })).toBeInTheDocument();
+  expect(screen.getByRole('columnheader', { name: 'Last reported' })).toBeInTheDocument();
+  fireEvent.click(subject);
+  expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  expect(acknowledgeItem).not.toHaveBeenCalled();
+});
+
+it('shows bill checks and source updates directly in the details instead of opening another feed', async () => {
+  getInbox.mockResolvedValueOnce({
+    items: [
+      {
+        ...fuel,
+        sources: [
+          {
+            ...fuel.sources[0],
+            billCheck: { verdict: 'INCONCLUSIVE', reason: 'Not enough readings to compare.' },
+            resolutionNote: 'Driver confirmation needed.',
+          },
+        ],
+      },
+    ],
+  });
+  mount();
+  fireEvent.click((await screen.findByText('Fuel loss')).closest('tr'));
+  const dialog = await screen.findByRole('dialog');
+  expect(within(dialog).getByText('Refuel bill check: Bill can’t tell')).toBeInTheDocument();
+  expect(within(dialog).getByText('Not enough readings to compare.')).toBeInTheDocument();
+  expect(within(dialog).getByText('Driver confirmation needed.')).toBeInTheDocument();
+  expect(within(dialog).queryByRole('link', { name: 'Review alert' })).not.toBeInTheDocument();
+  expect(within(dialog).getByRole('button', { name: 'Mark as reviewed' })).toBeInTheDocument();
 });

@@ -172,6 +172,7 @@ export function buildOverview(digest, legacy = null, work = null) {
     loadedKm,
     emptyKm,
     loadedTrips: numeric(work?.trips),
+    loadedOpenTrips: numeric(work?.openTrips),
     runningPartial: Boolean(work?.kmPartial || work?.emptyKmPartial),
     runningCoverage: fromFleet ? attribution.note : null,
     runningCoveragePartial: fromFleet ? attribution.partial : false,

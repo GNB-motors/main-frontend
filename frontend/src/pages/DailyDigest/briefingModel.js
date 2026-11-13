@@ -83,12 +83,11 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
     builtAt ? `; this report was built at ${builtAt}` : ''
   }. "Usually" is the average of the previous 7 days.`;
   const distanceWhy = tripsModule
-    ? `${countWhy} Distance is the Trips table's loaded km: odometer first, GPS otherwise. It covers those trips, not all fleet travel since midnight. Missing distances are excluded and the total is labelled partial.`
+    ? `${countWhy} Distance is the Trips table's loaded km: odometer first, GPS otherwise. An open trip can be counted before its loaded distance is recorded. Missing distances are excluded and the total is labelled partial. This is loaded trip distance, not all fleet travel since midnight.`
     : `${countWhy} Distance includes approach, loaded, return and fuel-detour km for those trips, rather than all fleet travel since midnight.`;
 
   const trucks = live ? live.all : (health.trucks ?? null);
   const dark = live ? live.offline : (fleet.dark ?? health.trucksDark ?? null);
-  const briefSections = Array.isArray(brief?.sections) ? brief.sections : [];
 
   return [
     {
@@ -119,10 +118,18 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
     },
     {
       key: 'km',
-      label: isToday ? 'km today' : 'km',
+      label: tripsModule
+        ? isToday
+          ? 'Loaded km today'
+          : 'Loaded km'
+        : isToday
+          ? 'km today'
+          : 'km',
       value: notCounted(work.km) ? null : work.km,
       context: notCounted(work.km)
-        ? avgNote(trend.kmPrev7Avg, ' km')
+        ? tripsModule && work.openTrips > 0
+          ? `Distance pending for ${count(work.openTrips)} open trip${work.openTrips === 1 ? '' : 's'}`
+          : avgNote(trend.kmPrev7Avg, ' km')
         : isToday
           ? tripsModule
             ? `Loaded trip distance${work.kmPartial ? ` · ${PARTIAL_LABEL.toLowerCase()}` : ''}`
@@ -134,7 +141,7 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
     },
     {
       key: 'lost',
-      label: isToday ? '₹ lost today' : '₹ lost',
+      label: isToday ? 'Extra fuel cost today' : 'Extra fuel cost',
       value: brief?.totalRupees ?? null,
       money: true,
       tone: Number(brief?.totalRupees) > 0 ? 'act' : null,
@@ -143,7 +150,7 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
           ? 'Morning brief did not load'
           : brief?.totalRupees == null
             ? 'Not estimated for this day'
-            : `Estimated across ${briefSections.length} problem${briefSections.length === 1 ? '' : 's'}`,
+            : 'Estimated extra diesel cost',
       why: brief?.disclaimer || null,
     },
     {
@@ -177,9 +184,9 @@ export function leakRows(brief) {
           rupees: v?.rupees == null ? null : Number(v.rupees),
           detail:
             v?.excessL != null
-              ? `${Math.round(Number(v.excessL) * 10) / 10} L over`
+              ? `${Math.round(Number(v.excessL) * 10) / 10} litres extra diesel`
               : v?.durationMin != null
-                ? `${formatSilence(Number(v.durationMin) * 60000)} idle`
+                ? `${formatSilence(Number(v.durationMin) * 60000)} stopped with engine running`
                 : null,
         }))
         .filter((t) => t.reg)

@@ -4,6 +4,7 @@ import { canMarkPlace } from './autoTripPlaces';
 import { fmtClock, fmtDay, fmtDayTime, fmtDuration } from './autoTripFormat';
 import { fareText } from './tripTolls';
 import TollTimelineRow from './TollTimelineRow';
+import TimelineEventIcon from './TimelineEventIcon';
 import { titleCasePlace } from './tripListModel';
 
 const TITLE = { loading: 'Loading at plant', drop: 'Unloading at drop', unknown: 'Unknown stop' };
@@ -47,8 +48,9 @@ function placeText(step, asking) {
  * the drive before it. A stop after the plant that is not the drop can be made the drop.
  */
 export default function AutoTripTimeline({ plan, canEdit, busy, playable, onPlay, onSetDrop }) {
-  const steps = plan.items.filter((it) => it.type === 'step');
-  const lastStepId = steps.length ? steps[steps.length - 1].id : null;
+  const events = plan.items.filter((it) => it.type === 'step' || it.type === 'toll');
+  const firstEventId = events[0]?.id;
+  const lastEventId = events.at(-1)?.id;
 
   return (
     <section className="atx-card atx-tl" aria-labelledby="atx-tl-title">
@@ -96,13 +98,23 @@ export default function AutoTripTimeline({ plan, canEdit, busy, playable, onPlay
         <ol className="atx-tl-list">
           {plan.items.map((it, i) => {
             if (it.type === 'toll') {
-              return <TollTimelineRow key={it.id} item={it} playable={playable} onPlay={onPlay} />;
+              return (
+                <TollTimelineRow
+                  key={it.id}
+                  item={it}
+                  first={it.id === firstEventId}
+                  last={it.id === lastEventId}
+                  playable={playable}
+                  onPlay={onPlay}
+                />
+              );
             }
             if (it.type === 'leg') {
               const prev = plan.items[i - 1];
               const next = plan.items[i + 1];
               const cls = [
                 'atx-tl-leg',
+                it.load === 'empty' ? 'atx-tl-leg--empty' : '',
                 it.driveMin ? '' : 'is-quiet',
                 prev?.kind === 'unknown' ? 'atx-tl-leg--after-card' : '',
                 next?.kind === 'unknown' ? 'atx-tl-leg--before-card' : '',
@@ -127,15 +139,20 @@ export default function AutoTripTimeline({ plan, canEdit, busy, playable, onPlay
             const cls = [
               'atx-tl-step',
               `atx-tl-step--${it.kind}`,
-              i === 0 ? 'is-first' : '',
-              it.id === lastStepId ? 'is-last' : '',
+              it.id === firstEventId ? 'is-first' : '',
+              it.id === lastEventId ? 'is-last' : '',
             ]
               .filter(Boolean)
               .join(' ');
             return (
               <li key={it.id} className={cls}>
                 <When step={it} />
-                <span className="atx-tl-mark" aria-hidden="true" />
+                <span
+                  className={`atx-tl-mark atx-tl-mark--icon${it.tollPass ? ' atx-tl-mark--toll' : ''}`}
+                  aria-hidden="true"
+                >
+                  <TimelineEventIcon step={it} />
+                </span>
                 <div className="atx-tl-body">
                   <div className="atx-tl-title-row">
                     <h3 className="atx-tl-title">{title}</h3>

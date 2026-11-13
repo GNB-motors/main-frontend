@@ -20,16 +20,23 @@ import FilterBar from '../../components/ui/FilterBar';
 import OwnerAlertsSummary from './ownerAlertsSummary.jsx';
 import OwnerAlertsTable from './ownerAlertsTable.jsx';
 import './OwnerAlerts.css';
+import AlertPageGuide from '../../components/alerts/AlertPageGuide';
 
 const OwnerAlertsPage = () => {
   const [params] = useSearchParams();
   // Filters
   const [vehicleQuery, setVehicleQuery] = useState(params.get('vehicle') || '');
   const [vehicle, setVehicle] = useState(params.get('vehicle') || '');
-  const [type, setType] = useState('');
+  const [type, setType] = useState(params.get('type') || '');
+  const linkedFrom = params.get('from');
+  const linkedTo = params.get('to');
   // The view: Critical by default — the owner reads critical alerts only.
-  const [chip, setChip] = useState(DEFAULT_CHIP);
-  const [since, setSince] = useState('all');
+  const [chip, setChip] = useState(
+    ['critical', 'warning', 'all'].includes(params.get('severity'))
+      ? params.get('severity')
+      : DEFAULT_CHIP,
+  );
+  const [since, setSince] = useState(linkedFrom ? 'linked' : 'all');
   const [sort, setSort] = useState('triage');
 
   // Data
@@ -57,7 +64,10 @@ const OwnerAlertsPage = () => {
       const params = { page, limit: LIMIT, ...viewParams(chip) };
       if (vehicle) params.vehicle = vehicle;
       if (type) params.type = type;
-      if (since !== 'all') {
+      if (since === 'linked' && linkedFrom) {
+        params.from = linkedFrom;
+        if (linkedTo) params.to = linkedTo;
+      } else if (since !== 'all') {
         params.from = istDayStartISO(shiftDay(istDayString(), -Number(since)));
       }
       const data = await OwnerAlertsService.getAlertsForView(params);
@@ -71,7 +81,7 @@ const OwnerAlertsPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [vehicle, type, chip, since, page]);
+  }, [vehicle, type, chip, since, page, linkedFrom, linkedTo]);
 
   useEffect(() => {
     fetchData();
@@ -217,6 +227,7 @@ const OwnerAlertsPage = () => {
                   onChange={(e) => setSince(e.target.value)}
                   aria-label="Date range"
                 >
+                  {linkedFrom ? <option value="linked">Linked report period</option> : null}
                   {SINCE.map((s) => (
                     <option key={s.key} value={s.key}>
                       {s.label}
@@ -272,6 +283,7 @@ const OwnerAlertsPage = () => {
       }
     >
       <div className="space-y-5">
+        <AlertPageGuide page="owner" />
         {error && (
           <div className="fi-banner fi-banner--crit">
             <span

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('react-toastify', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
@@ -44,7 +44,7 @@ describe('PlaceQuestionsTab', () => {
     fleetViewService.answerPlaceQuestion.mockResolvedValue({ tripsUpdated: 0, placeId: 'site-1' });
     renderTab();
 
-    fireEvent.click(await screen.findByRole('button', { name: "Yes, that's it" }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm place' }));
 
     await waitFor(() =>
       expect(toast.success).toHaveBeenCalledWith(
@@ -58,7 +58,7 @@ describe('PlaceQuestionsTab', () => {
     fleetViewService.answerPlaceQuestion.mockResolvedValue({ tripsUpdated: 2, placeId: 'site-1' });
     renderTab();
 
-    fireEvent.click(await screen.findByRole('button', { name: "Yes, that's it" }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm place' }));
 
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Done: 2 trips updated'));
     expect(toast.error).not.toHaveBeenCalled();
@@ -71,13 +71,16 @@ describe('PlaceQuestionsTab', () => {
     });
     renderTab();
 
-    await screen.findByText(/This point is on 12 trips/);
-    const heads = screen.getAllByText(/This point is on \d+ trips/).map((node) => node.textContent);
-    expect(heads).toEqual([
-      'This point is on 12 trips (3 trucks)',
-      'This point is on 340 trips (3 trucks)',
-      'This point is on 7 trips (3 trucks)',
+    await screen.findByText('Place q-1');
+    const cards = screen.getAllByRole('article');
+    expect(cards.map((card) => card.getAttribute('aria-label'))).toEqual([
+      'Place q-1',
+      'Place q-2',
+      'Place q-3',
     ]);
+    expect(within(cards[0]).getByText('12 trips')).toBeInTheDocument();
+    expect(within(cards[1]).getByText('340 trips')).toBeInTheDocument();
+    expect(within(cards[2]).getByText('7 trips')).toBeInTheDocument();
   });
 
   it('shows the kilometres at stake when the server sends them', async () => {

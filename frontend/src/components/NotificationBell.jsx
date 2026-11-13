@@ -14,30 +14,27 @@ import {
   SheetClose,
 } from './ui/sheet.jsx';
 
-// Alert surfaces relocated out of the Fleet Intelligence nav group — they are
-// now reached only through this bell. `key` mirrors the feature-flag gate the
-// nav items carried, so who can see them stays identical to the old sidebar
-// entries (see sideNavUtils.js). The unread badge tracks the owner-alert feed
-// (which also carries refuel notifications as REFUEL_ESTIMATED).
+// The inbox groups issues; the other destinations retain individual source records.
+// The badge counts unreviewed critical owner-alert records from the server.
 const ALERT_ITEMS = [
   {
-    to: '/fleet-alerts',
+    to: '/alert-inbox',
     key: 'fleetIntelligence',
-    label: 'Fleet Alerts',
-    description: 'Vehicle & fuel anomalies across the fleet',
+    label: 'Alert inbox',
+    description: 'Start here: grouped issues, evidence and what to do next',
   },
   {
     to: '/owner-alerts',
     key: 'fleetIntelligence',
-    label: 'Owner Alerts',
-    description: 'High-priority alerts flagged for owners',
-    counted: true, // the unread badge comes from this feed
+    label: 'Owner alert records',
+    description: 'Individual fleet alerts, including earlier reports',
+    counted: true,
   },
   {
-    to: '/refuel-logs',
-    key: 'fuelIntegrity',
-    label: 'Refuel Alerts',
-    description: 'Recent refuels detected across the fleet',
+    to: '/fleet-alerts',
+    key: 'fleetIntelligence',
+    label: 'Vehicle event history',
+    description: 'FleetEdge events, including refuelling and crossings',
   },
 ];
 
@@ -91,6 +88,7 @@ const NotificationBell = () => {
     if (!canSeeAlerts) return undefined;
     let cancelled = false;
     let unsub = null;
+    const listeningSince = Date.now();
     import('../lib/liveStream')
       .then(({ getLiveStream }) => {
         if (cancelled) return;
@@ -101,15 +99,20 @@ const NotificationBell = () => {
           fresh.forEach((a) => seenIds.current.add(String(a.id)));
           // Only a new critical alert moves the badge.
           const critical = fresh.filter(
-            (a) => String(a.severity || '').toUpperCase() === 'CRITICAL',
+            (a) =>
+              !a.acknowledged &&
+              String(a.severity || '').toUpperCase() === 'CRITICAL' &&
+              Number.isFinite(Date.parse(a.at)) &&
+              Date.parse(a.at) >= listeningSince,
           );
-          if (critical.length) setUnread((n) => n + critical.length);
-          const first = fresh[0];
+          if (!critical.length) return;
+          setUnread((n) => n + critical.length);
+          const first = critical[0];
           const label = ALERT_TYPE_LABELS[first.type] || 'New alert';
           toast.info(
-            fresh.length === 1
+            critical.length === 1
               ? `${label}${first.vehicleNumber ? ` — ${first.vehicleNumber}` : ''}`
-              : `${fresh.length} new notifications`,
+              : `${critical.length} new critical alerts to review`,
           );
         });
       })
@@ -165,6 +168,10 @@ const NotificationBell = () => {
           </SheetClose>
         </SheetHeader>
 
+        <p className="m-0 px-4 pt-3 text-xs leading-relaxed text-muted-foreground">
+          Start with Alert inbox. The badge counts unreviewed critical Owner alert records, not
+          separate issues.
+        </p>
         <nav className="flex flex-col gap-1 p-3">
           {items.map((item) => (
             <button
@@ -196,7 +203,7 @@ const NotificationBell = () => {
               onClick={markAllRead}
               className="flex w-full items-center justify-center gap-2 rounded-[var(--ds-radius-md)] border border-[var(--ds-line)] px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-[var(--ds-sunk)]"
             >
-              <CheckCheck size={15} /> Mark all read
+              <CheckCheck size={15} /> Mark all owner alerts reviewed
             </button>
           </div>
         )}

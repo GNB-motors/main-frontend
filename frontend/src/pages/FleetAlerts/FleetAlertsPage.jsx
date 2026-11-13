@@ -13,6 +13,8 @@ import { formatLitres, formatNum } from '../../utils/formatters';
 import { formatDateTimeIST } from '../../utils/dateUtils';
 import { buildCsvString, triggerFileDownload } from '../../utils/reportCsvExport';
 
+import AlertPageGuide from '../../components/alerts/AlertPageGuide';
+
 const PAGE_SIZE = 20;
 const FUEL_TYPES = new Set(['RefuelAlert', 'FuelDrainAlert']);
 
@@ -144,6 +146,7 @@ export default function FleetAlertsPage() {
           />
         }
       >
+        <AlertPageGuide page="events" />
         <PanelErrorBoundary name="fleet-alerts">
           <div className="flex flex-wrap gap-3">
             <div className="cluster-inset flex min-w-[130px] flex-1 flex-col gap-1 p-4">

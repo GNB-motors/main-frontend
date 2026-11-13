@@ -151,7 +151,7 @@ function MoneyLeakCard({ brief$, isPendingDay }) {
 
   if (brief$.loading && !brief) {
     return (
-      <Card title="Where money leaked" className="db-leak">
+      <Card title="Extra fuel costs to review" className="db-leak">
         <DigestSkeleton label="Loading the morning brief" />
       </Card>
     );
@@ -159,7 +159,7 @@ function MoneyLeakCard({ brief$, isPendingDay }) {
   if (brief$.error) {
     const forbidden = brief$.error?.status === 403;
     return (
-      <Card title="Where money leaked" className="db-leak">
+      <Card title="Extra fuel costs to review" className="db-leak">
         <p className="db-error">
           {forbidden ? 'Not available for your role.' : "Couldn't load the morning brief."}{' '}
           {forbidden ? null : <RetryButton onRetry={brief$.refetch} />}
@@ -175,7 +175,7 @@ function MoneyLeakCard({ brief$, isPendingDay }) {
 
   return (
     <Card
-      title="Where money leaked"
+      title="Extra fuel costs to review"
       className="db-leak"
       info={brief?.disclaimer || null}
       meta={isPendingDay ? 'So far today' : null}
@@ -185,11 +185,11 @@ function MoneyLeakCard({ brief$, isPendingDay }) {
         <span>
           {brief?.totalRupees == null
             ? 'Not estimated for this day'
-            : `estimated loss across ${rows.length} problem${rows.length === 1 ? '' : 's'}`}
+            : 'estimated extra fuel cost for this period'}
         </span>
       </div>
       {rows.length > 1 && rows.some((r) => r.share) ? (
-        <div className="db-leak-split" role="img" aria-label="How the loss splits by problem">
+        <div className="db-leak-split" role="img" aria-label="Estimated cost by issue">
           {rows.map((row, i) =>
             row.share ? (
               <span
@@ -203,7 +203,7 @@ function MoneyLeakCard({ brief$, isPendingDay }) {
         </div>
       ) : null}
       {rows.length === 0 ? (
-        <p className="db-empty-line">Nothing was flagged for this day. No leak measured.</p>
+        <p className="db-empty-line">No extra fuel costs were flagged for this day.</p>
       ) : (
         <ol className="db-leak-list">
           {rows.map((row, i) => (
@@ -491,8 +491,19 @@ const sentence = (text) => (text ? text.charAt(0).toUpperCase() + text.slice(1) 
 function ReportSection({ section, onRetry, isPendingDay, builtAt }) {
   const state = sectionState(section);
   const pairs = useMemo(
-    () => numberPairs(section?.numbers, { isPendingDay }),
-    [section?.numbers, isPendingDay],
+    () =>
+      numberPairs(section?.numbers, {
+        isPendingDay,
+        // The earlier money-out payload put auto-confirmed toll charges in
+        // these expense fields. Keep their display names accurate until the
+        // separate toll/bill payload is available.
+        legacyTollLabels:
+          section?.id === 'moneyOut' &&
+          section.numbers?.tollCount == null &&
+          section.numbers?.tollInr == null &&
+          !Object.hasOwn(section.numbers || {}, 'expenseRecordedCount'),
+      }),
+    [section?.id, section?.numbers, isPendingDay],
   );
   // The partial flag is not one of the numbers: it is a note on the section.
   const partial = partialLabel(section?.numbers);

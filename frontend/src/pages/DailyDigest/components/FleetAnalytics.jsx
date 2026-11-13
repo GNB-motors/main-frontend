@@ -81,7 +81,9 @@ export default function FleetAnalytics({
   const total = distance.total;
   const legLine = runningCoverageLine(distance, fmt);
   const missingParts = missingPartsLabel(model.runsMissingParts);
-  const partial = Boolean(model.runningPartial || model.runsPartial || model.runningCoveragePartial);
+  const partial = Boolean(
+    model.runningPartial || model.runsPartial || model.runningCoveragePartial,
+  );
   const knownDays = fuelTrend.filter((d) => d.litres != null);
   const summary = fuelTrend.reduce((sum, d) => sum + (d.litres ?? 0), 0);
   const runningWhy =
@@ -142,6 +144,12 @@ export default function FleetAnalytics({
             ) : partial ? (
               <p className="db-muted">
                 <ToneBadge tone="watch">{PARTIAL_LABEL}</ToneBadge> Some distance was not measured.
+              </p>
+            ) : null}
+            {loadedKm == null && model.loadedOpenTrips > 0 ? (
+              <p className="db-muted">
+                Loaded distance is pending for {fmt(model.loadedOpenTrips)} ongoing{' '}
+                {model.loadedOpenTrips === 1 ? 'trip' : 'trips'}.
               </p>
             ) : null}
             <dl className="db-kv db-kv--keyed">

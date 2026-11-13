@@ -1,19 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Plus } from 'lucide-react';
-import PageShell from '../../components/ui/PageShell';
 import EnterprisePagination from '../../components/ui/EnterprisePagination';
-import './TripsWorkspace.css';
+import '../AutoTrips/TripsWorkspace.css';
 import DataTable from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/badge';
-import { Button } from '../../components/ui/button';
 import { getVehicleList } from '../../services/vehicleListService';
 import { useApi } from '../../hooks/useApi';
 import { useMutation } from '../../hooks/useMutation';
 import MovementApprovalService from '../../services/MovementApprovalService';
-import ApprovalCreateDialog from './ApprovalCreateDialog';
-import TripBackButton from './TripBackButton';
-import { AutoTripsService } from './AutoTripsService';
+import ApprovalCreateDialog from '../AutoTrips/ApprovalCreateDialog';
+import { AutoTripsService } from '../AutoTrips/AutoTripsService';
 
 const PAGE_SIZE = 50;
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -44,7 +41,7 @@ function placeLabel(a) {
   return ps.kind || '—';
 }
 
-export default function MovementApprovalsPage() {
+export default function TripApprovals() {
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -145,9 +142,9 @@ export default function MovementApprovalsPage() {
         align: 'right',
         render: (r) =>
           r.status === 'ACTIVE' ? (
-            <Button
-              variant="outline"
-              size="sm"
+            <button
+              type="button"
+              className="ra-btn ra-btn--reject"
               disabled={revokeM.loading}
               onClick={(e) => {
                 e.stopPropagation();
@@ -155,7 +152,7 @@ export default function MovementApprovalsPage() {
               }}
             >
               Revoke
-            </Button>
+            </button>
           ) : null,
       },
     ],
@@ -164,39 +161,41 @@ export default function MovementApprovalsPage() {
   );
 
   return (
-    <PageShell
-      className="trip-workspace movement-approvals"
-      title="Movement approvals"
-      count={total}
-      subtitle="Pre-authorise a vehicle or driver to visit a place, so a detour there is not charged as a deviation."
-      leading={<TripBackButton />}
-      actions={
-        <Button size="sm" onClick={() => setDialogOpen(true)}>
-          <Plus size={16} /> New approval
-        </Button>
-      }
-    >
-      <div className="trip-workspace-tabs" aria-label="Approval status">
-        {[
-          { key: '', label: 'All' },
-          { key: 'ACTIVE', label: 'Active' },
-          { key: 'REVOKED', label: 'Revoked' },
-        ].map((t) => (
-          <Button
-            key={t.key || 'all'}
-            type="button"
-            size="sm"
-            variant="ghost"
-            aria-pressed={status === t.key}
-            onClick={() => {
-              setStatus(t.key);
-              setPage(1);
-            }}
-          >
-            {t.label}
-          </Button>
-        ))}
+    <div className="apv-section">
+      <div className="ra-toolbar">
+        <div className="ra-tabs" role="tablist" aria-label="Trip approval status">
+          {[
+            { key: '', label: 'All' },
+            { key: 'ACTIVE', label: 'Active' },
+            { key: 'REVOKED', label: 'Revoked' },
+          ].map((t) => (
+            <button
+              key={t.key || 'all'}
+              type="button"
+              role="tab"
+              className={`ra-tab ${status === t.key ? 'is-active' : ''}`}
+              aria-selected={status === t.key}
+              onClick={() => {
+                setStatus(t.key);
+                setPage(1);
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="ra-btn apv-trip-create"
+          onClick={() => setDialogOpen(true)}
+        >
+          <Plus size={16} /> New trip approval
+        </button>
       </div>
+      <p className="apv-trip-hint">
+        Authorise a vehicle or driver to visit a place, so an agreed stop is not treated as an
+        unapproved detour.
+      </p>
 
       <DataTable
         columns={columns}
@@ -215,7 +214,7 @@ export default function MovementApprovalsPage() {
         loading={loading}
         error={error}
         onRetry={refetch}
-        emptyTitle="No approvals yet"
+        emptyTitle="No trip approvals"
         emptyHint="Create one to pre-authorise a known detour (a workshop, a driver's home, a regular stop)."
       />
 
@@ -229,6 +228,6 @@ export default function MovementApprovalsPage() {
           refetch();
         }}
       />
-    </PageShell>
+    </div>
   );
 }

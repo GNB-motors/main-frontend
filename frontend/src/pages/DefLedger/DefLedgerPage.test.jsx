@@ -87,7 +87,7 @@ describe('DEF ledger page', () => {
 
   it('shows a dash, and the reason, when no AdBlue was ever logged', async () => {
     await renderPage();
-    const tile = tileFor('AdBlue logged (in window)');
+    const tile = tileFor('AdBlue logged (manual)');
     expect(within(tile).getByText('—')).toBeInTheDocument();
     expect(within(tile).getByText(/No AdBlue bills logged/)).toBeInTheDocument();
     expect(within(tile).getByText(/sensors saw .* go in/)).toBeInTheDocument();
@@ -120,12 +120,14 @@ describe('DEF ledger page', () => {
     });
     await renderPage();
     expect(within(tileFor('Needs review')).getByText('3')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Needs review (3)' }));
-    expect(screen.getAllByRole('button', { name: 'Details' })).toHaveLength(3);
+    fireEvent.click(screen.getByRole('combobox', { name: 'Status' }));
+    fireEvent.click(screen.getByRole('option', { name: /Needs review/ }));
+    expect(screen.getAllByRole('button', { name: /^Log AdBlue for/ })).toHaveLength(3);
     expect(screen.getByText(vehicles[2].registrationNumber)).toBeInTheDocument();
     expect(screen.queryByText(vehicles[3].registrationNumber)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Unlogged burn (9)' }));
-    expect(screen.getAllByRole('button', { name: 'Details' })).toHaveLength(9);
+    fireEvent.click(screen.getByRole('combobox', { name: 'Status' }));
+    fireEvent.click(screen.getByRole('option', { name: /Unlogged burn/ }));
+    expect(screen.getAllByRole('button', { name: /^Log AdBlue for/ })).toHaveLength(9);
     expect(screen.queryByText(vehicles[2].registrationNumber)).not.toBeInTheDocument();
     expect(screen.getByText(vehicles[3].registrationNumber)).toBeInTheDocument();
   });
@@ -133,12 +135,11 @@ describe('DEF ledger page', () => {
   it('says a clean vehicle has no flags with a dash, not a zero', async () => {
     await renderPage();
     expect(within(rowFor('WB11L8862')).getAllByText('—').length).toBeGreaterThan(0);
-    expect(within(rowFor('WB11L8863')).getByText('2 flags')).toBeInTheDocument();
   });
 
   it('opens the detail with a button that says what it does', async () => {
     await renderPage();
-    expect(screen.getAllByRole('button', { name: 'Details' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: /^Log AdBlue for/ })).toHaveLength(2);
     expect(screen.queryByRole('button', { name: /Audit Drawer/i })).not.toBeInTheDocument();
   });
 
@@ -177,7 +178,7 @@ describe('DEF ledger page', () => {
     expect(within(otherRow).getByText('Not logged')).toBeInTheDocument();
     expect(within(otherRow).queryByText('0 L')).not.toBeInTheDocument();
     expect(within(otherRow).getByText('80 L')).toBeInTheDocument();
-    fireEvent.click(within(otherRow).getByRole('button', { name: 'Details' }));
+    fireEvent.click(otherRow);
     const drawer = screen.getByRole('dialog');
     expect(within(drawer).getByText('Not logged')).toBeInTheDocument();
     expect(
@@ -209,13 +210,13 @@ describe('DEF ledger page', () => {
     });
     await renderPage();
     expect(within(tileFor('Needs review')).getByText('0')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Needs review (0)' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Held back (1)' }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Status' }));
+    expect(screen.getByRole('option', { name: /Needs review \(0\)/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('option', { name: /Held back/ }));
     const row = rowFor(held.registrationNumber);
     expect(within(row).getByText('Assessment held back')).toBeInTheDocument();
-    expect(within(row).getByText('1 held back')).toBeInTheDocument();
     expect(within(row).queryByText('In band')).not.toBeInTheDocument();
-    fireEvent.click(within(row).getByRole('button', { name: 'Details' }));
+    fireEvent.click(row);
     const drawer = screen.getByRole('dialog');
     expect(within(drawer).getByText('Assessment held back')).toBeInTheDocument();
     expect(
@@ -246,8 +247,7 @@ describe('DEF ledger page', () => {
     await renderPage();
     const row = rowFor(DATA.vehicles[0].registrationNumber);
     expect(within(row).getByText('Assessment held back')).toBeInTheDocument();
-    expect(within(row).getByText('Alerts held back')).toBeInTheDocument();
-    fireEvent.click(within(row).getByRole('button', { name: 'Details' }));
+    fireEvent.click(row);
     expect(
       within(screen.getByRole('dialog')).getByText('No held-back findings in this calculation.'),
     ).toBeInTheDocument();
@@ -272,9 +272,9 @@ describe('DEF ledger page', () => {
     expect(within(row).getByText(/Data as of/)).toHaveTextContent('Data as of 22 Oct 2026');
     expect(row.querySelector('time')).toHaveAttribute('dateTime', '2026-10-22T00:00:00.000Z');
     expect(
-      screen.getByText(/1 vehicle has stale telemetry; totals include those balances/),
+      screen.getByText(/1 truck is stale and left out of the DEF-burned total/),
     ).toBeInTheDocument();
-    fireEvent.click(within(row).getByRole('button', { name: 'Details' }));
+    fireEvent.click(row);
     const drawer = screen.getByRole('dialog', { name: `DEF & AdBlue — ${old.registrationNumber}` });
     expect(within(drawer).getByText('Stale')).toBeInTheDocument();
     expect(within(drawer).getByText(/Data as of/)).toHaveTextContent('22 Oct 2026');

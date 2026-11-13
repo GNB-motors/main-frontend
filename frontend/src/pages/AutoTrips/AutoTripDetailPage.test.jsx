@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest';
-import { render, screen, cleanup, within } from '@testing-library/react';
+import { render, screen, cleanup, within, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import AutoTripDetailPage from './AutoTripDetailPage';
 import AutoTripService from '../../services/AutoTripService';
@@ -111,7 +111,7 @@ it('puts the trip numbers in one strip, unknown as a dash with its reason', asyn
   expect(strip.getByText('from the GPS path')).toBeInTheDocument();
   expect(strip.getByText('3 h 1 min')).toBeInTheDocument();
   expect(strip.getByText('₹3,837')).toBeInTheDocument();
-  expect(strip.getByText('fuel ₹3,425 · wear ₹412')).toBeInTheDocument();
+  expect(strip.getByText('fuel ₹3,425 · estimated maintenance cost ₹412')).toBeInTheDocument();
   expect(strip.getByText('Guddu Chaudhary')).toBeInTheDocument();
   expect(screen.getByText('Replay map')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Trip timeline' })).toBeInTheDocument();
@@ -127,6 +127,7 @@ it('says what is not known yet on a trip whose drop was not found', async () => 
     durations: { ladenMin: null },
     driver: null,
     totalCostInr: null,
+    roleEconomics: null,
   });
   open();
   expect(await screen.findByText('Needs answer')).toBeInTheDocument();
@@ -210,6 +211,24 @@ it('shows distance the server could not attribute, on its own line', async () =>
   expect(screen.getByText(/Drop not found, so this drive has no load label/)).toBeInTheDocument();
 });
 
+it('shows known fuel and wear as a partial estimate when the full trip total is unavailable', async () => {
+  AutoTripService.get.mockResolvedValue({
+    ...trip,
+    totalCostInr: null,
+    roleEconomics: {
+      approach: { fuelInr: 4095, wearInr: 468, fuelBasis: 'AVAILABLE' },
+      laden: { fuelInr: 8343, wearInr: 735, fuelBasis: 'AVAILABLE' },
+    },
+    economicsAvailability: { status: 'UNAVAILABLE', reason: 'Cost calculation unavailable.' },
+  });
+  open();
+  await screen.findByRole('heading', { name: 'WB11F4262' });
+  const strip = within(document.querySelector('.atx-facts'));
+  expect(strip.getByText('₹13,641')).toBeInTheDocument();
+  expect(strip.getByText('Partly measured').closest('dt')).toHaveClass('atx-cost-heading');
+  expect(strip.getByText(/fuel ₹12,438/)).toHaveTextContent('estimated maintenance cost ₹1,203');
+});
+
 it.each(['COMPLETE', 'CONFIRMED'])(
   'does not tell a %s trip to wait for its end when cost is missing',
   async (status) => {
@@ -231,6 +250,7 @@ it('uses the backend cost-availability reason and reserves pending copy for a ru
   AutoTripService.get.mockResolvedValue({
     ...trip,
     totalCostInr: null,
+    roleEconomics: null,
     economicsAvailability: {
       status: 'UNAVAILABLE',
       reason: 'Cost calculation unavailable: more than one matching trip record was found.',
@@ -244,6 +264,7 @@ it('uses the backend cost-availability reason and reserves pending copy for a ru
     status: 'OPEN',
     drop: null,
     totalCostInr: null,
+    roleEconomics: null,
   });
   open();
   expect(
@@ -257,4 +278,39 @@ it('shows an available total without claiming it is waiting for pricing when its
   expect(
     await screen.findByText('Estimated running cost; breakdown unavailable.'),
   ).toBeInTheDocument();
+});
+
+it('keeps the delivery timeline at the last drop and explicitly includes return stops on request', async () => {
+  AutoTripService.get.mockResolvedValue({
+    ...trip,
+    routeStops: [
+      {
+        _id: 'return-fuel',
+        startAt: '2026-11-03T12:30:00Z',
+        endAt: '2026-11-03T13:00:00Z',
+        dwellMinutes: 30,
+        purpose: { top: 'FUEL' },
+        place: { name: 'Return fuel stop' },
+      },
+    ],
+  });
+  open();
+  await screen.findByRole('heading', { name: 'WB11F4262' });
+  expect(screen.queryByText('Return fuel stop')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Loaded trip' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await act(async () =>
+    fireEvent.click(screen.getByRole('button', { name: 'Include empty return' })),
+  );
+  expect(await screen.findByText('Return fuel stop')).toBeInTheDocument();
+  await waitFor(() =>
+    expect(AutoTripService.track).toHaveBeenLastCalledWith(
+      'trip-1',
+      expect.objectContaining({ scope: 'JOURNEY' }),
+    ),
+  );
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Loaded trip' })));
+  expect(screen.queryByText('Return fuel stop')).not.toBeInTheDocument();
 });

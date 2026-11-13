@@ -1,7 +1,8 @@
 import ManufacturerFilter from '../../components/filters/ManufacturerFilter';
 import useManufacturerFilter from '../../hooks/useManufacturerFilter';
 import React, { useEffect, useMemo, useState } from 'react';
-import { RotateCw, Search } from 'lucide-react';
+import { RotateCw, Search, Plus, BadgeCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import useApi from '../../hooks/useApi';
 import FleetDataService from '../../services/FleetDataService';
 import ExportButton from '../../components/ui/ExportButton';
@@ -10,9 +11,15 @@ import EnterprisePagination from '../../components/ui/EnterprisePagination';
 import { formatLitres, formatNum, formatINR, formatPct } from '../../utils/formatters';
 import { formatInIST } from '../../utils/dateUtils';
 import { STATUS } from './defLedgerStatus';
-import { signedLitres, defFreshness, FRESHNESS_LABEL } from './defLedgerFormat';
+import SearchableSelect from '../../components/SearchableDropdown/SearchableSelect';
+import {
+  signedLitres,
+  defFreshness,
+  FRESHNESS_LABEL,
+  freshnessBucket,
+  coverageRange,
+} from './defLedgerFormat';
 import DataFreshness from './DataFreshness';
-import Skel from './Skel';
 import LedgerRowSkeleton from './LedgerRowSkeleton';
 import StatusBadge from './StatusBadge';
 import DosingBadge from './DosingBadge';
@@ -41,9 +48,19 @@ const CHIPS = [
   { id: 'noData', label: 'No telemetry', match: (v) => v.status === 'NO_DATA' },
 ];
 
+const FRESHNESS_FILTERS = [
+  { id: 'all', label: 'All telemetry', match: () => true },
+  { id: 'fresh', label: 'Fresh', match: (v) => freshnessBucket(v) === 'fresh' },
+  { id: 'stale', label: 'Stale', match: (v) => freshnessBucket(v) === 'stale' },
+  { id: 'none', label: 'No telemetry', match: (v) => freshnessBucket(v) === 'none' },
+];
+
+const round1 = (n) => (n == null ? null : Math.round(n * 10) / 10);
+const sumKey = (list, key) => list.reduce((s, v) => s + (v[key] || 0), 0);
+
 const EXPORT_COLUMNS = [
   { key: 'registrationNumber', label: 'Vehicle' },
-  { key: 'claimedAdblueL', label: 'Logged AdBlue in window (L)', type: 'number' },
+  { key: 'claimedAdblueL', label: 'Logged AdBlue (manual, L)', type: 'number' },
   { key: 'telemetryDefL', label: 'DEF burned (L)', type: 'number' },
   { key: 'sensorFillL', label: 'Sensor fills (L)', type: 'number' },
   { key: 'expectedBalanceL', label: 'Balance (L)', type: 'number' },
@@ -59,6 +76,7 @@ const EXPORT_COLUMNS = [
 const SKEL_ROWS = 8;
 
 export default function DefLedgerPage() {
+  const navigate = useNavigate();
   const { manufacturer, setManufacturer } = useManufacturerFilter();
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   useEffect(() => {
@@ -67,6 +85,7 @@ export default function DefLedgerPage() {
   }, [manufacturer]);
   const [search, setSearch] = useState('');
   const [chipId, setChipId] = useState('all');
+  const [freshId, setFreshId] = useState('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
@@ -93,7 +112,24 @@ export default function DefLedgerPage() {
       })),
     [data],
   );
-  const staleCount = vehicles.filter((v) => defFreshness(v).status === 'STALE').length;
+  const staleCount = vehicles.filter((v) => freshnessBucket(v) === 'stale').length;
+
+  // Headline DEF-burn and dosing are computed over FRESH telemetry only, so a
+  // truck whose feed went silent weeks ago no longer skews the fleet number.
+  // The window banner and the "Stale" filter make the excluded trucks findable.
+  const freshVehicles = useMemo(
+    () => vehicles.filter((v) => freshnessBucket(v) === 'fresh'),
+    [vehicles],
+  );
+  const freshDefBurnedL = round1(sumKey(freshVehicles, 'telemetryDefL'));
+  const freshDosed = freshVehicles.filter((v) => v.dosingRatioPct != null);
+  const freshDosedFuelL = sumKey(freshDosed, 'fuelUsedL');
+  const freshDosingPct =
+    freshDosedFuelL > 0
+      ? Math.round((sumKey(freshDosed, 'telemetryDefL') / freshDosedFuelL) * 1000) / 10
+      : null;
+  const coverageWindow = useMemo(() => coverageRange(vehicles), [vehicles]);
+
   const currentSelectedVehicle = selectedVehicle
     ? vehicles.find((v) => v.registrationNumber === selectedVehicle.registrationNumber) || null
     : null;
@@ -104,12 +140,21 @@ export default function DefLedgerPage() {
   }));
   const activeChip = chips.find((c) => c.id === chipId) || chips[0];
 
+  const freshnessFilters = FRESHNESS_FILTERS.map((f) => ({
+    ...f,
+    count: vehicles.filter(f.match).length,
+  }));
+  const activeFresh = freshnessFilters.find((f) => f.id === freshId) || freshnessFilters[0];
+
   const filteredVehicles = useMemo(() => {
     const q = search.toLowerCase().trim();
     return vehicles.filter(
-      (v) => activeChip.match(v) && (!q || (v.registrationNumber || '').toLowerCase().includes(q)),
+      (v) =>
+        activeChip.match(v) &&
+        activeFresh.match(v) &&
+        (!q || (v.registrationNumber || '').toLowerCase().includes(q)),
     );
-  }, [vehicles, search, activeChip]);
+  }, [vehicles, search, activeChip, activeFresh]);
 
   const paginatedVehicles = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -125,6 +170,15 @@ export default function DefLedgerPage() {
         subtitle="Your registered vehicles: DEF burned against diesel, AdBlue logged against AdBlue the tank sensor saw going in, and drains the engine burn cannot explain."
         actions={
           <>
+            <button
+              type="button"
+              onClick={() => navigate('/def-ledger/log')}
+              className="pshell-btn pshell-btn--primary"
+              title="Log an AdBlue purchase (upload the bill)"
+            >
+              <Plus size={16} />
+              Log AdBlue
+            </button>
             <ExportButton
               rows={filteredVehicles}
               columns={EXPORT_COLUMNS}
@@ -162,10 +216,10 @@ export default function DefLedgerPage() {
             loading={firstLoad}
             value={formatNum(totals.vehicles)}
             valueClass="text-slate-900 dark:text-white"
-            note={`${formatNum(totals.withData)} with telemetry`}
+            note={`${formatNum(totals.withData)} with telemetry${staleCount > 0 ? ` · ${staleCount} stale` : ''}`}
           />
           <KpiTile
-            label="AdBlue logged (in window)"
+            label="AdBlue logged (manual)"
             loading={firstLoad}
             value={claimsTracked ? formatLitres(totals.claimedAdblueL) : '—'}
             valueClass={
@@ -180,14 +234,16 @@ export default function DefLedgerPage() {
             }
           />
           <KpiTile
-            label="DEF burned"
+            label="DEF burned (fresh telemetry)"
             loading={firstLoad}
-            value={formatLitres(totals.telemetryDefL)}
+            value={formatLitres(freshDefBurnedL)}
             valueClass="text-emerald-600 dark:text-emerald-400"
             note={
-              totals.dosingRatioPct != null
-                ? `Fleet dosing ${formatPct(totals.dosingRatioPct, { decimals: 1 })} of diesel${data?.defBand ? ` (normal ${data.defBand.min}–${data.defBand.max}%)` : ' · mixed or unassessed bands'}`
-                : 'Fleet dosing —'
+              freshVehicles.length === 0
+                ? staleCount > 0
+                  ? `No fresh telemetry · ${staleCount} stale truck${staleCount === 1 ? '' : 's'} excluded`
+                  : 'Fleet dosing —'
+                : `Fleet dosing ${freshDosingPct != null ? formatPct(freshDosingPct, { decimals: 1 }) : '—'} of diesel${data?.defBand ? ` (normal ${data.defBand.min}–${data.defBand.max}%)` : ''}${staleCount > 0 ? ` · ${staleCount} stale excluded` : ''}`
             }
             noteClass="text-emerald-600 dark:text-emerald-400 font-semibold"
           />
@@ -203,36 +259,85 @@ export default function DefLedgerPage() {
         </div>
 
         {!firstLoad && (
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Balances require this vehicle’s own AdBlue logs; missing logs are not zero purchases.{' '}
-            Freshness follows telemetry coverage, not calculation time.
-            {data?.freshness?.staleAfterHours != null &&
-              ` Telemetry older than ${data.freshness.staleAfterHours} hours is marked stale.`}
-            {staleCount > 0 &&
-              ` ${staleCount} ${staleCount === 1 ? 'vehicle has' : 'vehicles have'} stale telemetry; totals include those balances.`}
-          </p>
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 shadow-xs flex flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+              <span className="font-semibold text-slate-700 dark:text-slate-200">
+                Telemetry window
+              </span>
+              {coverageWindow.from && coverageWindow.to ? (
+                <span className="font-mono text-slate-600 dark:text-slate-300">
+                  {formatInIST(coverageWindow.from, 'D MMM YYYY')} –{' '}
+                  {formatInIST(coverageWindow.to, 'D MMM YYYY')}
+                </span>
+              ) : (
+                <span className="text-slate-500">No telemetry yet</span>
+              )}
+              <span className="text-slate-400">·</span>
+              <span className="text-slate-500 dark:text-slate-400">
+                each truck covers its own span
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              {data?.freshness?.staleAfterHours != null &&
+                `Telemetry older than ${data.freshness.staleAfterHours}h is marked stale. `}
+              {staleCount > 0
+                ? `${staleCount} ${staleCount === 1 ? 'truck is' : 'trucks are'} stale and left out of the DEF-burned total — use the Stale filter to see them. `
+                : 'All trucks with telemetry are fresh. '}
+              Balances need each truck’s own AdBlue logs; missing logs are not zero purchases.
+            </p>
+          </div>
         )}
 
         {/* ── Filters Bar ─────────────────────────────────────────────── */}
-        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-            {chips.map((chip) => (
-              <button
-                key={chip.id}
-                type="button"
-                onClick={() => {
-                  setChipId(chip.id);
+        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center gap-3 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="def-status-filter"
+                className="text-[11px] font-semibold uppercase tracking-wide text-slate-500"
+              >
+                Status
+              </label>
+              <SearchableSelect
+                id="def-status-filter"
+                value={chipId}
+                onValueChange={(v) => {
+                  setChipId(v);
                   setPage(1);
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
-                  activeChip.id === chip.id
-                    ? 'bg-slate-900 text-white dark:bg-indigo-600'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                }`}
+                className="h-9 min-w-[200px] text-sm"
               >
-                {chip.label} {firstLoad ? <Skel className="h-3 w-5" /> : `(${chip.count})`}
-              </button>
-            ))}
+                {chips.map((chip) => (
+                  <option key={chip.id} value={chip.id}>
+                    {`${chip.label} (${chip.count})`}
+                  </option>
+                ))}
+              </SearchableSelect>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="def-freshness-filter"
+                className="text-[11px] font-semibold uppercase tracking-wide text-slate-500"
+              >
+                Freshness
+              </label>
+              <SearchableSelect
+                id="def-freshness-filter"
+                value={freshId}
+                onValueChange={(v) => {
+                  setFreshId(v);
+                  setPage(1);
+                }}
+                className="h-9 min-w-[180px] text-sm"
+              >
+                {freshnessFilters.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {`${f.label} (${f.count})`}
+                  </option>
+                ))}
+              </SearchableSelect>
+            </div>
           </div>
 
           <div className="relative w-full sm:w-64">
@@ -251,6 +356,26 @@ export default function DefLedgerPage() {
           </div>
         </div>
 
+        {/* ── Legend: what each column means ──────────────────────────── */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400 px-1">
+          <span>
+            <strong className="text-indigo-600 dark:text-indigo-400">Logged</strong> = AdBlue bills
+            you enter (manual)
+          </span>
+          <span>
+            <strong className="text-emerald-600 dark:text-emerald-400">DEF Burned</strong> &{' '}
+            <strong className="text-emerald-600 dark:text-emerald-400">Sensor Fills</strong> = truck
+            telemetry (automatic)
+          </span>
+          <span>
+            <strong>Balance</strong> = Logged − DEF Burned
+          </span>
+          <span>
+            <BadgeCheck className="inline w-3 h-3 text-emerald-600" /> <strong>Verified</strong> =
+            bill logged and nothing off
+          </span>
+        </div>
+
         {/* ── Main Data Table ─────────────────────────────────────────── */}
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
@@ -259,13 +384,12 @@ export default function DefLedgerPage() {
                 <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-400">
                   <th className="py-3 px-4">Vehicle No</th>
                   <th className="py-3 px-4">Data freshness</th>
-                  <th className="py-3 px-4 text-right">AdBlue Logged (in window)</th>
+                  <th className="py-3 px-4 text-right">AdBlue Logged (manual)</th>
                   <th className="py-3 px-4 text-right">DEF Burned</th>
                   <th className="py-3 px-4 text-right">Sensor Fills</th>
                   <th className="py-3 px-4 text-right">Balance</th>
                   <th className="py-3 px-4 text-center">DEF % of Diesel</th>
                   <th className="py-3 px-4 text-center">Status</th>
-                  <th className="py-3 px-4 text-center">Flags</th>
                   <th className="py-3 px-4 text-center">Action</th>
                 </tr>
               </thead>
@@ -277,7 +401,7 @@ export default function DefLedgerPage() {
                   Array.from({ length: SKEL_ROWS }, (_, i) => <LedgerRowSkeleton key={i} />)
                 ) : paginatedVehicles.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="py-12 text-center text-slate-400">
+                    <td colSpan={9} className="py-12 text-center text-slate-400">
                       {vehicles.length === 0
                         ? 'No vehicles are registered to your organization yet.'
                         : 'No vehicles found matching current filter.'}
@@ -300,7 +424,14 @@ export default function DefLedgerPage() {
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-semibold text-slate-800 dark:text-slate-200">
                         {v.claimsTracked ? (
-                          formatLitres(v.claimedAdblueL)
+                          <div className="flex flex-col items-end gap-1">
+                            <span>{formatLitres(v.claimedAdblueL)}</span>
+                            {v.flagCount === 0 && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-sans font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                                <BadgeCheck className="w-3 h-3" /> Verified
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span className="font-sans font-normal text-slate-400">Not logged</span>
                         )}
@@ -327,31 +458,17 @@ export default function DefLedgerPage() {
                         <StatusBadge status={v.status} />
                       </td>
                       <td className="py-3 px-4 text-center">
-                        {v.alertsSuppressed ? (
-                          <span
-                            className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 font-bold text-[11px] border border-dashed border-slate-300 dark:border-slate-600"
-                            title="These findings are computed but held back: iALERT alerts are off for this account, so nothing has been raised yet."
-                          >
-                            {v.flagCount > 0 ? `${v.flagCount} held back` : 'Alerts held back'}
-                          </span>
-                        ) : v.flagCount > 0 ? (
-                          <span className="px-2 py-0.5 rounded bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 font-bold text-[11px]">
-                            {v.flagCount} {v.flagCount === 1 ? 'flag' : 'flags'}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 text-[11px]">—</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-center">
                         <button
                           type="button"
+                          aria-label={`Log AdBlue for ${v.registrationNumber}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedVehicle(v);
+                            navigate(`/def-ledger/log?vehicleId=${v.vehicleId}`);
                           }}
-                          className="px-2.5 py-1 text-xs font-semibold rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition"
+                          className="pshell-btn pshell-btn--primary"
+                          style={{ height: 32, minHeight: 32, padding: '0 14px', fontSize: 12.5 }}
                         >
-                          Details
+                          <Plus size={14} /> Log
                         </button>
                       </td>
                     </tr>

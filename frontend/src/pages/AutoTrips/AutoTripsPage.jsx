@@ -23,6 +23,8 @@ import { tripDetailHref } from './tripWorkspace';
 import tripColumns, { hiddenColumnsNote } from './tripColumns';
 import TripHistoryTab from './TripHistoryTab';
 import PlaceQuestionsTab from './PlaceQuestionsTab';
+import BulkPlaceConfirmDialog from './BulkPlaceConfirmDialog';
+import { suggestedPlaceAnswer } from './placeQuestionCategories';
 import TripKpiStrip from './TripKpiStrip';
 import NeedsAnswerBanner from './NeedsAnswerBanner';
 import AutoTripCoverage from './AutoTripCoverage';
@@ -247,37 +249,63 @@ export default function AutoTripsPage() {
     return () => document.removeEventListener('mousedown', onDown);
   }, [moreOpen]);
 
-  // ── Close every open place question in one go: each cluster's suggested
-  // name is confirmed, so naming happens in bulk instead of card by card.
-  // Answers are owner/manager writes server-side, so the button only shows
-  // for those roles; questions without a suggestion still need a human name.
   const canAnswerPlaces = ['OWNER', 'MANAGER'].includes(getUserRole());
   const [closingAll, setClosingAll] = useState({ busy: false, done: 0, total: 0 });
-  const closeAllPlaces = async () => {
-    const list = (questions.data?.items ?? []).filter((q) => q.suggestion);
-    if (!list.length) {
-      toast.info('Nothing to close in bulk — no waiting place has a suggested name yet.');
+  const closingAllRef = useRef(false);
+  const [bulkReview, setBulkReview] = useState(null);
+  const reviewBulkPlaces = () => {
+    if (!canAnswerPlaces || closingAllRef.current || questions.loading) return;
+    const entries = (questions.data?.items ?? [])
+      .filter((question) => question.suggestion?.name?.trim())
+      .map((question) => ({
+        id: question.id,
+        tripsAffected: question.tripsAffected,
+        payload: suggestedPlaceAnswer(question),
+      }));
+    if (!entries.length) {
+      toast.info(
+        'No suggested names to confirm yet. Review the places and add their names individually.',
+      );
       return;
     }
-    setClosingAll({ busy: true, done: 0, total: list.length });
+    setBulkReview({ entries });
+  };
+  const closeAllPlaces = async () => {
+    if (!canAnswerPlaces || closingAllRef.current || !bulkReview?.entries.length) return;
+    const entries = bulkReview.entries;
+    closingAllRef.current = true;
+    setClosingAll({ busy: true, done: 0, total: entries.length });
     let named = 0;
     let failed = 0;
-    for (const [index, question] of list.entries()) {
-      try {
-        await fleetViewService.answerPlaceQuestion(question.id, { answer: 'CONFIRM' });
-        named += 1;
-      } catch {
-        failed += 1;
+    let tripsUpdated = 0;
+    try {
+      for (const [index, entry] of entries.entries()) {
+        try {
+          const result = await fleetViewService.answerPlaceQuestion(entry.id, entry.payload);
+          if (result?.placeId) {
+            named += 1;
+            tripsUpdated += Number(result.tripsUpdated) || 0;
+          } else {
+            failed += 1;
+          }
+        } catch {
+          failed += 1;
+        }
+        setClosingAll({ busy: true, done: index + 1, total: entries.length });
       }
-      setClosingAll({ busy: true, done: index + 1, total: list.length });
+      const message =
+        `Confirmed ${named} place${named === 1 ? '' : 's'}; ${tripsUpdated} trips updated` +
+        (failed ? `. ${failed} places could not be confirmed; review them individually.` : '.');
+      if (named) toast.success(message);
+      else toast.info(message);
+      questions.refetch?.();
+      waitingSample.refetch();
+      refetch();
+    } finally {
+      closingAllRef.current = false;
+      setClosingAll({ busy: false, done: 0, total: 0 });
+      setBulkReview(null);
     }
-    setClosingAll({ busy: false, done: 0, total: 0 });
-    toast.success(
-      `Named ${named} place${named === 1 ? '' : 's'} in bulk` +
-        (failed ? ` — ${failed} could not be saved` : ''),
-    );
-    questions.refetch?.();
-    refetch();
   };
 
   const { isEnabled } = useFeatureFlags();
@@ -389,8 +417,7 @@ export default function AutoTripsPage() {
       <span className="atx-tools-note">{note}</span>
       {moreMenu}
       {showSap && !planned && !viewTab ? (
-        <label className="atx-tool atx-tool--select">
-          SAP
+        <div className="atx-tool atx-tool--select" role="group" aria-label="SAP filter">
           <SearchableSelect
             aria-label="SAP"
             value={searchParams.get('sapVerdict') || ''}
@@ -408,7 +435,7 @@ export default function AutoTripsPage() {
             <option value="WITHIN">Within</option>
             <option value="NO_SAP">No SAP</option>
           </SearchableSelect>
-        </label>
+        </div>
       ) : null}
       {!planned && !viewTab ? (
         <div className="atx-search">
@@ -423,9 +450,9 @@ export default function AutoTripsPage() {
           />
         </div>
       ) : null}
-      <Link className="atx-tool" to="/auto-trips/approvals">
+      <Link className="atx-tool" to="/approvals?type=trips">
         <ShieldCheck size={14} aria-hidden="true" />
-        Pending approvals
+        Trip approvals
       </Link>
     </div>
   );
@@ -435,7 +462,10 @@ export default function AutoTripsPage() {
       <div className="atx-wrap">
         <header className="atx-head">
           <div className="atx-head-main">
-            <h1 className="atx-title">Trips</h1>
+            <div className="atx-title-row">
+              <h1 className="atx-title">Trips</h1>
+              <AutoTripCoverage />
+            </div>
             <p className="atx-sub">
               Every run from plant to drop, found from the trucks&apos; GPS. Open a trip to replay
               it.
@@ -461,8 +491,6 @@ export default function AutoTripsPage() {
             </button>
           </div>
         </header>
-
-        <AutoTripCoverage />
 
         <TripKpiStrip
           counts={{
@@ -491,10 +519,23 @@ export default function AutoTripsPage() {
             questionsLoading={questions.loading}
             questionsFailed={Boolean(questions.error)}
             onAnswerPlaces={() => changeView('questions')}
-            onAnswerAllPlaces={canAnswerPlaces ? closeAllPlaces : null}
+            onAnswerAllPlaces={canAnswerPlaces ? reviewBulkPlaces : null}
             closingAll={closingAll}
-            onShowTrips={statusTab === 'NEEDS_REVIEW' ? null : () => changeTab('NEEDS_REVIEW')}
+            onShowTrips={() => changeTab('NEEDS_REVIEW')}
+            showingTrips={statusTab === 'NEEDS_REVIEW'}
           />
+        ) : null}
+
+        {!viewTab && statusTab === 'NEEDS_REVIEW' ? (
+          <nav className="atx-question-trip-nav" aria-label="Trips needing your answer">
+            <button type="button" onClick={() => changeTab('')}>
+              <ArrowLeft size={16} aria-hidden="true" /> Back to all trips
+            </button>
+            <span>Showing trips that need your answer</span>
+            <button type="button" onClick={() => changeView('questions')}>
+              Review place questions
+            </button>
+          </nav>
         ) : null}
 
         {!planned && searchParams.get('dropSiteId') && (
@@ -592,6 +633,15 @@ export default function AutoTripsPage() {
           />
         )}
       </div>
+
+      <BulkPlaceConfirmDialog
+        review={bulkReview}
+        progress={closingAll}
+        onOpenChange={(open) => {
+          if (!open) setBulkReview(null);
+        }}
+        onConfirm={closeAllPlaces}
+      />
 
       <ManualTripDialog
         open={dialog?.kind === 'manual'}

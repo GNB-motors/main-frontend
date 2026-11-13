@@ -1,5 +1,91 @@
 .sap-route-card {
   padding: 20px;
+  background: #fff;
+}
+.sap-route-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 26px 16px;
+  text-align: center;
+  background: #fff;
+}
+.sap-route-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--ds-line);
+  border-radius: 50%;
+  color: var(--ds-ink3);
+  margin-bottom: 2px;
+}
+.sap-route-empty > h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.sap-route-empty > p {
+  max-width: 42ch;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--ds-ink2);
+}
+.sap-route-empty > button {
+  margin-top: 4px;
+}
+.sap-route-help {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1 0 auto;
+  padding: 20px 0 0;
+  border-top: 1px solid var(--ds-line);
+  background: #fff;
+}
+.sap-route-help-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border: 1px solid var(--ds-line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--rd-brand, #2563eb);
+}
+.sap-route-help > div {
+  min-width: 0;
+}
+.sap-route-help > div h3 {
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.sap-route-help > div p {
+  margin-top: 6px;
+  color: var(--ds-ink2);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.sap-route-help-example {
+  display: block;
+  margin-top: 12px;
+  color: var(--ds-ink);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+@media (max-width: 640px) {
+  .sap-route-help {
+    align-items: flex-start;
+    padding: 16px 0 0;
+    gap: 12px;
+  }
+  .sap-route-help-icon {
+    width: 40px;
+    height: 40px;
+  }
 }
 .sap-route-header {
   display: flex;

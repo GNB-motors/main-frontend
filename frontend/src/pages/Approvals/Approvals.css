@@ -18,6 +18,7 @@
 
 .apv-types {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin-bottom: 22px;
   border-bottom: 1px solid var(--border);
@@ -244,4 +245,20 @@
 .apv-alert__action {
   margin-left: auto;
   padding: 6px 12px;
+}
+
+.apv-trip-hint {
+  margin: 0 0 16px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.apv-trip-create {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.apv-trip-create:hover:not(:disabled) {
+  background: #1d4ed8;
 }

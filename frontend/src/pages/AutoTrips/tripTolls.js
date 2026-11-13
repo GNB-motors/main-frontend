@@ -83,7 +83,9 @@ export function tollBasisNotes(tolls) {
     notes.push(
       km == null
         ? 'unmatched distance unknown'
-        : `${Math.round(Number(km))} km of the road not matched`,
+        : Number(km) > 0
+          ? `${Number(km) < 1 ? '<1' : Math.round(Number(km))} km of the road not matched`
+          : 'some road sections inferred across GPS gaps',
     );
   }
   if (tolls?.total?.complete === false) notes.push('not final');
@@ -97,7 +99,7 @@ export function tollBasisNotes(tolls) {
 export function tollSummary(tolls, leg = 'LADEN') {
   const own = passesOf(tolls?.passes, leg);
   const n = own.length;
-  const basis = leg === 'LADEN' ? tollBasisNotes(tolls) : [];
+  const basis = leg === 'LADEN' || n > 0 || tolls?.returnTo ? tollBasisNotes(tolls) : [];
   // A leg with no crossing has nothing to count, so only what the server said stays.
   if (!n) return basis.length ? basis.join(' · ') : null;
   const t = tolls?.total?.byLeg?.[leg] || (leg === 'LADEN' ? tolls?.total : null);
@@ -117,7 +119,16 @@ export function tollLedgerText(tolls) {
   if (!ledger) return null;
   const parts = [ledger.totalInr == null ? 'Amount unknown' : inr(ledger.totalInr)];
   if (ledger.unknownCount) parts.push(`${ledger.unknownCount} unpriced`);
-  if (ledger.complete === false) parts.push('incomplete');
+  if (ledger.complete === false) {
+    const reasons = ledger.coverageReasons || tolls?.total?.notes || [];
+    const labels = {
+      ROAD_PARTIAL: 'route coverage partial; more toll crossings may be missing',
+      ROAD_NOT_MATCHED: 'road not matched; more toll crossings may be missing',
+      RETURN_HISTORY_PENDING: 'earlier crossings still being checked for return fares',
+    };
+    const explanations = [...new Set(reasons.map((reason) => labels[reason]).filter(Boolean))];
+    parts.push(...(explanations.length ? explanations : ['coverage not fully verified']));
+  }
   return parts.join(' · ');
 }
 
@@ -134,8 +145,8 @@ function stopOf(steps, at) {
  * The timeline plan with the trip's toll passes in it: a pass inside a stop sets that step's
  * `tollPass`; any other pass becomes a `{ type: 'toll' }` item right before the first step after it.
  */
-export function withTollPasses(plan, passes) {
-  const laden = passesOf(passes, 'LADEN');
+export function withTollPasses(plan, passes, { includeReturn = false } = {}) {
+  const laden = includeReturn ? passes || [] : passesOf(passes, 'LADEN');
   if (!plan || !laden.length) return plan;
   const steps = plan.items.filter((it) => it.type === 'step');
   const onStep = new Map();
@@ -168,9 +179,9 @@ export function withTollPasses(plan, passes) {
 }
 
 /** Markers for the replay map; `passed` is relative to the replay's current instant. */
-export function tollMarks(passes, cursorAt) {
+export function tollMarks(passes, cursorAt, { includeReturn = false } = {}) {
   const now = ms(cursorAt);
-  return passesOf(passes, 'LADEN').map((p) => ({
+  return (includeReturn ? passes || [] : passesOf(passes, 'LADEN')).map((p) => ({
     id: passId(p),
     at: { lat: p.lat, lng: p.lng },
     name: passName(p),
@@ -183,10 +194,10 @@ export function tollMarks(passes, cursorAt) {
 const JUST_PASSED_MS = 5 * 60000;
 
 /** The plaza the replay crossed in the last few minutes before `cursorAt`, or null. */
-export function justPassed(passes, cursorAt) {
+export function justPassed(passes, cursorAt, { includeReturn = false } = {}) {
   const now = ms(cursorAt);
   if (now == null) return null;
-  const recent = passesOf(passes, 'LADEN').filter((p) => {
+  const recent = (includeReturn ? passes || [] : passesOf(passes, 'LADEN')).filter((p) => {
     const at = ms(p.at);
     return at != null && at <= now && now - at <= JUST_PASSED_MS;
   });

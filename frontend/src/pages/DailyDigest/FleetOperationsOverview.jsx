@@ -213,7 +213,12 @@ export default function FleetOperationsOverview({
               fuel={fuel}
               fuelTrend={fuelTrend}
               loading={reportPending}
-              loadingSections={legacy?.loadingSections}
+              loadingSections={{
+                ...legacy?.loadingSections,
+                running:
+                  !work &&
+                  (owner.report$.loading || (legacy?.loadingSections?.running ?? reportPending)),
+              }}
             />
           }
         />

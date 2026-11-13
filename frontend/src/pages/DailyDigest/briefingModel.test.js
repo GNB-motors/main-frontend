@@ -89,7 +89,7 @@ describe('buildKpis', () => {
     expect(by.trips.why).toMatch(/Open trips are excluded/);
     expect(by.trips.why).toMatch(/built at 6:20 am/);
     expect(by.lost.value).toBe(47486.7);
-    expect(by.lost.context).toBe('Estimated across 2 problems');
+    expect(by.lost.context).toBe('Estimated extra diesel cost');
     expect(by.lost.why).toBe('Estimated.');
     expect(by.dark.value).toBe(47);
   });
@@ -153,8 +153,12 @@ describe('leakRows', () => {
     });
     expect(rows.map((r) => r.key)).toEqual(['fuelOverModel', 'excessIdling']);
     expect(Math.round(rows[0].share * 100)).toBe(88);
-    expect(rows[0].trucks[0]).toEqual({ reg: 'WB11S4062', rupees: 2950.7, detail: '31.1 L over' });
-    expect(rows[1].trucks[0].detail).toBe('2 d idle');
+    expect(rows[0].trucks[0]).toEqual({
+      reg: 'WB11S4062',
+      rupees: 2950.7,
+      detail: '31.1 litres extra diesel',
+    });
+    expect(rows[1].trucks[0].detail).toBe('2 d stopped with engine running');
   });
 });
 

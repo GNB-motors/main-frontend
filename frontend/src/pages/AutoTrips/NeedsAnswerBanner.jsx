@@ -21,6 +21,7 @@ export default function NeedsAnswerBanner({
   onAnswerAllPlaces = null,
   closingAll = null,
   onShowTrips,
+  showingTrips = false,
 }) {
   if (!total) return null;
   const reasons = needReasons(sample);
@@ -70,15 +71,16 @@ export default function NeedsAnswerBanner({
       </div>
 
       <div className="atx-needs-fix">
-        <h3 className="atx-needs-fix-title">Close them in bulk</h3>
+        <h3 className="atx-needs-fix-title">Resolve places together</h3>
         {places > 0 ? (
           <p className="atx-needs-fix-text">
             <strong>{formatNum(places)} places</strong> trucks stop at after loading have no name.
-            Naming them settles <strong>{formatNum(affected)} trips</strong> in this period
+            They are linked to <strong>{formatNum(affected)} trips</strong> in this period
             {queue.top < queue.places
-              ? `; the busiest ${queue.top} settle ${formatNum(queue.topTrips)}`
+              ? `; the busiest ${queue.top} are linked to ${formatNum(queue.topTrips)}`
               : ''}
-            . {rest > 0 ? `For the other ${formatNum(rest)}, open the trip and mark its drop.` : ''}
+            . Confirming a delivery place can update its trips.{' '}
+            {rest > 0 ? `For the other ${formatNum(rest)}, open the trip and mark its drop.` : ''}
           </p>
         ) : (
           <p className="atx-needs-fix-text">
@@ -98,8 +100,8 @@ export default function NeedsAnswerBanner({
               disabled={closingAll?.busy}
             >
               {closingAll?.busy
-                ? `Closing ${formatNum(closingAll.done)} of ${formatNum(closingAll.total)}…`
-                : 'Close all in bulk'}
+                ? `Saving ${formatNum(closingAll.done)} of ${formatNum(closingAll.total)}…`
+                : 'Review bulk confirmation'}
             </button>
           ) : null}
           {places > 0 ? (
@@ -108,8 +110,13 @@ export default function NeedsAnswerBanner({
             </button>
           ) : null}
           {onShowTrips ? (
-            <button type="button" className="atx-btn" onClick={onShowTrips}>
-              Show these trips
+            <button
+              type="button"
+              className="atx-btn"
+              onClick={onShowTrips}
+              aria-pressed={showingTrips}
+            >
+              {showingTrips ? 'Showing these trips' : 'Show these trips'}
             </button>
           ) : null}
         </div>

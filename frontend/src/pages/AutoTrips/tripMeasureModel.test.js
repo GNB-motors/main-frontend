@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { fuelBasis, legCosts, partialFlags, runKmOf, runningCostParts } from './tripMeasureModel';
+import {
+  fuelBasis,
+  legCosts,
+  partialFlags,
+  runKmOf,
+  runningCostAmount,
+  runningCostParts,
+} from './tripMeasureModel';
 
 // OLD: every leg costed, no basis from the server.
 const oldTrip = {
@@ -109,5 +116,40 @@ describe('legs that do not exist', () => {
     const trip = { totalCostInr: null, roleEconomics: { approach: null, laden: null } };
     expect(legCosts(trip).legs).toBe(0);
     expect(runningCostParts(trip)).toBeNull();
+  });
+});
+
+describe('known running cost', () => {
+  it('uses the server total when it includes costs beyond the visible legs', () => {
+    expect(runningCostAmount({ ...oldTrip, totalCostInr: 4000 })).toEqual({
+      inr: 4000,
+      partial: false,
+    });
+  });
+
+  it('keeps known movement costs visible when the full trip cost is unavailable', () => {
+    const trip = {
+      totalCostInr: null,
+      roleEconomics: {
+        approach: { fuelInr: 4095, wearInr: 468, totalInr: 4563 },
+        laden: { fuelInr: 8343, wearInr: 735, totalInr: 9078 },
+      },
+      tollInr: 2680,
+    };
+    expect(runningCostAmount(trip)).toEqual({ inr: 13641, partial: true });
+    expect(runningCostParts(trip)).toEqual({ fuel: '₹12,438', wear: '₹1,203' });
+    expect(trip.totalCostInr).toBeNull();
+  });
+
+  it('does not turn missing costs into zero or add tolls to running cost', () => {
+    expect(runningCostAmount({ totalCostInr: null, tollInr: 2680 })).toEqual({
+      inr: null,
+      partial: false,
+    });
+    expect(
+      runningCostAmount({ roleEconomics: { laden: { fuelInr: null, wearInr: null } } }),
+    ).toEqual({ inr: null, partial: false });
+    expect(runningCostAmount(partialTrip)).toEqual({ inr: 3709, partial: true });
+    expect(runningCostAmount({ totalCostInr: 0 })).toEqual({ inr: 0, partial: false });
   });
 });

@@ -187,7 +187,7 @@ it('shows the reconciled ledger amount separately from crossing estimates', () =
     }),
   ).toBe('₹895');
   expect(tollLedgerText({ ledger: { totalInr: null, unknownCount: 2, complete: false } })).toBe(
-    'Amount unknown · 2 unpriced · incomplete',
+    'Amount unknown · 2 unpriced · coverage not fully verified',
   );
   expect(tollLedgerText({ total: null })).toBeNull();
 });
@@ -235,4 +235,31 @@ describe('a leg with no toll passes', () => {
     );
     expect(tollSummary({ passes: [], total: { complete: false } })).toBe('not final');
   });
+});
+
+it('explains partial evidence even with zero unmatched km and all crossings priced', () => {
+  const tolls = {
+    basis: 'ROAD_PARTIAL',
+    unmatchedKm: 0,
+    passes: [{ leg: 'LADEN' }, { leg: 'RETURN' }],
+    total: { complete: false, notes: ['ROAD_PARTIAL'], byLeg: { RETURN: { priced: 1, inr: 440 } } },
+    ledger: { totalInr: 2680, unknownCount: 0, complete: false },
+  };
+  expect(tollLedgerText(tolls)).toContain(
+    'route coverage partial; more toll crossings may be missing',
+  );
+  expect(tollSummary(tolls, 'RETURN')).toContain('1 toll plaza · ₹440 estimated');
+  expect(tollSummary(tolls, 'RETURN')).not.toContain('0 km of the road not matched');
+  expect(tollSummary(tolls, 'RETURN')).toContain('GPS gaps');
+});
+
+it('includes return tolls on the timeline and map only in journey mode', () => {
+  const passes = [pass('2026-10-20T11:00:00Z', { leg: 'RETURN' })];
+  expect(withTollPasses(plan, passes).items.some((item) => item.type === 'toll')).toBe(false);
+  expect(
+    withTollPasses(plan, passes, { includeReturn: true }).items.some(
+      (item) => item.type === 'toll',
+    ),
+  ).toBe(true);
+  expect(tollMarks(passes, '2026-10-20T11:01:00Z', { includeReturn: true })).toHaveLength(1);
 });

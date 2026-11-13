@@ -285,13 +285,24 @@
   background: var(--rd-brand-tint);
   color: var(--rd-brand);
 }
-.atx-tool--select select {
+.atx-tool--select {
+  flex: 0 0 auto;
+  padding: 0;
+}
+.atx-tool--select:focus-within {
+  border-color: var(--rd-brand);
+}
+.atx-tool--select :is(select, .searchable-select-trigger) {
+  width: auto;
+  min-width: 112px;
+  height: 30px;
+  min-height: 0;
+  padding: 0 10px;
   border: 0;
   background: transparent;
   color: var(--rd-ink);
   font: inherit;
   font-size: 13px;
-  outline: none;
 }
 .atx-list .atx-search {
   display: inline-flex;

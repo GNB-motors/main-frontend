@@ -23,7 +23,7 @@ export default function NdMorningBrief({ brief, onOpenVehicle, onRetry, rangeLab
             </span>
             <b>Morning brief couldn&apos;t load</b>
             <span>
-              Excess idling and fuel over expected for{' '}
+              Extra diesel costs and engines left running while stopped for{' '}
               {rangeLabel === 'today' ? 'today' : `the ${rangeLabel}`} will show here.
             </span>
             {onRetry ? (

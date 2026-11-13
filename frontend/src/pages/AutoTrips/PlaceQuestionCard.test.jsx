@@ -41,7 +41,8 @@ describe('PlaceQuestionCard', () => {
   it('says the same thing on the old backend, with no new lines at all', () => {
     const { container } = renderCard(oldQuestion);
 
-    expect(screen.getByText('This point is on 124 trips (18 trucks)')).toBeInTheDocument();
+    expect(screen.getByText('124 trips')).toBeInTheDocument();
+    expect(screen.getByText('18 trucks')).toBeInTheDocument();
     expect(screen.queryByText(/depend on this answer/)).not.toBeInTheDocument();
     expect(screen.queryByText(/look unusual/)).not.toBeInTheDocument();
     expect(container.textContent).not.toContain('undefined');
@@ -51,7 +52,8 @@ describe('PlaceQuestionCard', () => {
   it('prints a dash for a count the server did not send, never a blank', () => {
     const { container } = renderCard({ ...oldQuestion, tripsAffected: null, trucks: null });
 
-    expect(container.textContent).toContain('Trucks are waiting on this answer (— trucks)');
+    expect(screen.getByText('— trips')).toBeInTheDocument();
+    expect(screen.getByText('— trucks')).toBeInTheDocument();
     expect(container.textContent).not.toContain('undefined');
   });
 

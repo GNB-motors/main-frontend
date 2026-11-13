@@ -47,7 +47,12 @@
   padding: 24px;
   background: var(--rd-bg);
   color: var(--rd-ink);
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
   font-size: 13px;
 }
 :is(.atx-list, .atx-page--detail) :is(button, input, select, h1, h2, h3, p) {
@@ -277,6 +282,25 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.atx-fact .atx-cost-note {
+  white-space: normal;
+  line-height: 1.5;
+}
+.atx-fact .atx-cost-heading {
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.atx-cost-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.atx-cost-badge {
+  margin-left: auto;
+  white-space: nowrap;
+}
 
 /* Map and timeline side by side; the map sets the row height, the timeline scrolls. */
 .atx-detail-main {
@@ -436,18 +460,25 @@
   --atx-tl-leg-bottom: 8px;
 }
 
-/* Below the map: details and the contract card, two columns. */
+/* Below the map: both columns share the row height as their content changes. */
 .atx-detail-more {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 .atx-detail-more > * {
   min-width: 0;
 }
 .atx-page--detail .atx-detail-more .sap-route-card {
   grid-column: auto;
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.atx-page--detail .atx-detail-more .sap-route-footer {
+  margin-top: auto;
 }
 .atx-page--detail .atx-summary {
   gap: 14px;
@@ -542,4 +573,170 @@
   .atx-detail-more:not(:has(.atx-detail-side > *)) .atx-summary .atx-fields {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+}
+
+.atx-replay-scope {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--rd-ink-2);
+  font-size: 12px;
+}
+.atx-measure-note {
+  display: block;
+  margin-top: 4px;
+  color: var(--rd-ink-2);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+/* Shared map glyphs keep each event recognisable along a continuous rail. */
+.atx-page--detail .atx-tl {
+  --atx-tl-rail-x: 102px;
+}
+.atx-page--detail .atx-tl-step,
+.atx-page--detail .atx-tl-leg {
+  grid-template-columns: 74px 32px minmax(0, 1fr) auto;
+}
+.atx-page--detail .atx-tl-step {
+  padding-bottom: 16px;
+}
+.atx-page--detail .atx-tl-step.is-last {
+  padding-bottom: 0;
+}
+.atx-tl .atx-tl-mark--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin-top: 0;
+  border: 1px solid var(--rd-line);
+  border-radius: 9px;
+  background: var(--rd-card);
+  color: var(--rd-ink-2);
+  box-shadow: none;
+  z-index: 1;
+}
+.atx-tl .atx-tl-mark--icon svg {
+  flex: none;
+}
+.atx-tl .atx-tl-step--loading .atx-tl-mark--icon {
+  color: var(--rd-brand);
+  background: var(--rd-brand-tint);
+}
+.atx-tl .atx-tl-step--drop .atx-tl-mark--icon {
+  color: var(--atx-green);
+  background: var(--atx-green-soft);
+  border-color: var(--atx-green-soft);
+}
+.atx-tl .atx-tl-mark--toll,
+.atx-tl .atx-tl-step--unknown .atx-tl-mark--icon {
+  color: var(--atx-amber-link);
+  background: var(--atx-amber-bg);
+  border-color: var(--atx-amber-line);
+}
+.atx-tl .atx-tl-step--unknown .atx-tl-mark--icon {
+  margin-top: 10px;
+}
+.atx-page--detail .atx-tl-step.is-first::before {
+  top: 15px;
+}
+.atx-page--detail .atx-tl-step.is-last::before {
+  height: 15px;
+}
+.atx-page--detail .atx-tl-title-row {
+  min-height: 28px;
+  align-items: center;
+  gap: 5px 8px;
+}
+.atx-page--detail .atx-tl-place {
+  margin-top: 3px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.atx-page--detail .atx-tl-play {
+  margin-top: 0;
+  border-radius: 7px;
+}
+.atx-page--detail .atx-tl-drive {
+  width: fit-content;
+  padding: 3px 8px;
+  border: 1px solid var(--rd-line);
+  border-radius: 6px;
+  background: var(--rd-card-2);
+  line-height: 20px;
+}
+.atx-page--detail .atx-tl-leg--empty .atx-tl-drive svg {
+  color: var(--rd-leg-empty);
+}
+
+/* The detail card has a clear reading order without mixing long toll notes
+   into the short distance and time measures. */
+.atx-detail-group {
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rd-line);
+}
+.atx-detail-group:first-of-type {
+  padding-top: 0;
+  border-top: 0;
+}
+.atx-page--detail .atx-detail-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--rd-ink-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+.atx-detail-group-title svg {
+  flex: none;
+  color: var(--rd-ink-3);
+}
+.atx-page--detail .atx-details-route > .atx-field,
+.atx-page--detail .atx-details-measures > .atx-field {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--rd-card-2);
+}
+.atx-page--detail .atx-details-route .atx-field-value {
+  font-size: 14px;
+  font-weight: 600;
+}
+.atx-page--detail .atx-detail-group .atx-field-value {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.atx-page--detail .atx-details-distance,
+.atx-page--detail .atx-detail-group .atx-detail-field--wide {
+  grid-column: 1 / -1;
+}
+.atx-page--detail .atx-details-distance {
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (max-width: 640px) {
+  .atx-page--detail .atx-tl {
+    --atx-tl-rail-x: 80px;
+  }
+  .atx-page--detail .atx-tl-step,
+  .atx-page--detail .atx-tl-leg {
+    grid-template-columns: 58px 28px minmax(0, 1fr) auto;
+    column-gap: 8px;
+  }
+  .atx-tl .atx-tl-mark--icon {
+    width: 28px;
+    height: 28px;
+  }
+  .atx-page--detail .atx-detail-group .atx-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.atx-page--detail .atx-details-measures .atx-field-value {
+  font-size: 15px;
+  font-weight: 600;
 }

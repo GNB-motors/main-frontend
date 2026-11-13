@@ -9,6 +9,7 @@ import {
   Search,
   ArrowUpRight,
   Check,
+  CheckCheck,
   X,
   Sparkles,
   FileText,
@@ -30,8 +31,11 @@ import {
 } from './inboxModel.js';
 import AccountLinkBanner from './AccountLinkBanner.jsx';
 import IncidentsTab from './IncidentsTab.jsx';
+import AlertInboxTable from './AlertInboxTable';
+import { billCheckView } from '../../utils/billCheck';
 import { ackAllConfirmText } from './incidentsModel.js';
 import './AlertInbox.css';
+import AlertPageGuide from '../../components/alerts/AlertPageGuide';
 
 export default function AlertInboxPage() {
   const [data, setData] = React.useState(null);
@@ -100,10 +104,10 @@ export default function AlertInboxPage() {
           item.id === id ? { ...item, ...updated, status: 'ACKNOWLEDGED' } : item,
         ),
       }));
-      setAnnouncement('Alert acknowledged. The underlying issue remains available for review.');
+      setAnnouncement('Moved to Reviewed. The issue has not been resolved.');
     } catch (err) {
       if (mounted.current)
-        setActionError(err?.message || 'Could not acknowledge this alert. Try again.');
+        setActionError(err?.message || 'Could not mark this alert as reviewed. Try again.');
     } finally {
       if (mounted.current)
         setPending((current) => {
@@ -144,6 +148,7 @@ export default function AlertInboxPage() {
   ).size;
   const reviewAction = (item) => {
     const target = reviewTarget(item);
+    if (!target) return null;
     return target.ticketId ? (
       <Button
         size="sm"
@@ -169,7 +174,7 @@ export default function AlertInboxPage() {
     <PageShell
       title="Alert Inbox"
       count={open.length}
-      subtitle="Review fleet issues and follow up in one place."
+      subtitle="Fleet issues to check, with evidence and the next step for each one."
       className="alert-inbox"
       actions={
         <Button variant="secondary" size="sm" onClick={load} disabled={loading || pending.size > 0}>
@@ -178,12 +183,7 @@ export default function AlertInboxPage() {
         </Button>
       }
     >
-      <div className="ai-notice">
-        <Bell size={15} aria-hidden="true" style={{ flexShrink: 0 }} />
-        <span>
-          Feeds update periodically. For urgent incidents, check the dedicated alert pages.
-        </span>
-      </div>
+      <AlertPageGuide page="inbox" />
 
       {/* A vendor account that stopped sending data explains why the trucks
           went quiet, and carries the one button that fixes it (F6). */}
@@ -241,66 +241,72 @@ export default function AlertInboxPage() {
                     aria-pressed={status === value}
                     onClick={() => setStatus(value)}
                   >
-                    {value === 'OPEN' ? 'Open' : 'Acknowledged'}{' '}
+                    {value === 'OPEN' ? 'To review' : 'Reviewed'}{' '}
                     <span>{all.filter((item) => item.status === value).length}</span>
                   </button>
                 ))}
               </div>
-              <label className="ai-search">
-                <Search size={16} aria-hidden="true" />
-                <input
-                  aria-label="Search alerts"
-                  placeholder="Search vehicle or issue"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                />
-              </label>
-              <SearchableSelect
-                aria-label="Severity"
-                value={severity}
-                onChange={(event) => setSeverity(event.target.value)}
-              >
-                <option value="">All priorities</option>
-                <option value="critical">Critical</option>
-                <option value="caution">Needs review</option>
-                <option value="info">Information</option>
-              </SearchableSelect>
-              <SearchableSelect
-                aria-label="Source"
-                value={source}
-                onChange={(event) => setSource(event.target.value)}
-              >
-                <option value="">All sources</option>
-                {Object.entries(SOURCE_LABELS).map(([key, label]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))}
-              </SearchableSelect>
-              {ackAllOpen ? (
-                <span
-                  className="ai-confirm"
-                  role="group"
-                  aria-label="Confirm marking every alert as seen"
+              <div className="ai-toolbar-controls">
+                <label className="ai-search">
+                  <Search size={16} aria-hidden="true" />
+                  <input
+                    aria-label="Search alerts"
+                    placeholder="Search vehicle or issue"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                  />
+                </label>
+                <SearchableSelect
+                  aria-label="Priority"
+                  className="ai-filter ai-filter--priority"
+                  value={severity}
+                  onChange={(event) => setSeverity(event.target.value)}
                 >
-                  <span>{ackAllConfirmText(open.length)}</span>
-                  <Button size="sm" onClick={ackEverything} disabled={ackAllPending}>
-                    {ackAllPending ? 'Saving…' : 'Yes, mark all'}
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setAckAllOpen(false)}>
-                    Cancel
-                  </Button>
-                </span>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setAckAllOpen(true)}
-                  disabled={loading || open.length === 0}
+                  <option value="">All priorities</option>
+                  <option value="critical">Critical</option>
+                  <option value="caution">Needs review</option>
+                  <option value="info">Information</option>
+                </SearchableSelect>
+                <SearchableSelect
+                  aria-label="Source"
+                  className="ai-filter ai-filter--source"
+                  value={source}
+                  onChange={(event) => setSource(event.target.value)}
                 >
-                  Acknowledge all
-                </Button>
-              )}
+                  <option value="">All sources</option>
+                  {Object.entries(SOURCE_LABELS).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </SearchableSelect>
+                {ackAllOpen ? (
+                  <span
+                    className="ai-confirm"
+                    role="group"
+                    aria-label="Confirm marking every alert as seen"
+                  >
+                    <span>{ackAllConfirmText(open.length)}</span>
+                    <Button size="sm" onClick={ackEverything} disabled={ackAllPending}>
+                      {ackAllPending ? 'Saving…' : 'Yes, mark all'}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setAckAllOpen(false)}>
+                      Cancel
+                    </Button>
+                  </span>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="ai-bulk-review"
+                    onClick={() => setAckAllOpen(true)}
+                    disabled={loading || open.length === 0}
+                  >
+                    <CheckCheck size={14} aria-hidden="true" />
+                    Mark all reviewed
+                  </Button>
+                )}
+              </div>
             </div>
             {error || actionError ? (
               <div role="alert" className="ai-error">
@@ -366,7 +372,7 @@ export default function AlertInboxPage() {
                     ? 'No matching alerts'
                     : status === 'OPEN'
                       ? 'No open inbox alerts'
-                      : 'No acknowledged alerts'}
+                      : 'No reviewed alerts'}
                 </h2>
                 <p>
                   {query || severity || source
@@ -387,67 +393,19 @@ export default function AlertInboxPage() {
                 )}
               </div>
             ) : null}
-            <ul className="ai-list">
-              {items.map((item) => (
-                <li key={item.id} className="ai-row">
-                  <span className={`ai-priority ai-priority--${item.severity}`}>
-                    {item.severity === 'critical'
-                      ? 'Critical'
-                      : item.severity === 'caution'
-                        ? 'Needs review'
-                        : 'Info'}
-                  </span>
-                  <div className="ai-row-main">
-                    <button
-                      className="ai-subject"
-                      type="button"
-                      onClick={() => setDetailId(item.id)}
-                    >
-                      {subjectTitle(item.subjectLabel)}
-                    </button>
-                    <h2>{item.label}</h2>
-                    <p className="ai-ask">
-                      {item.wants || 'Open the source alert to review this issue.'}
-                    </p>
-                    <div className="ai-meta">
-                      {[
-                        ...new Set(
-                          (item.sources || []).map(
-                            (s) => SOURCE_LABELS[s.source] || 'Other source',
-                          ),
-                        ),
-                      ].join(' · ')}
-                      <span>Updated {sinceLabel(item.lastSeenAt)}</span>
-                      {item.status === 'ACKNOWLEDGED' && (
-                        <span>Acknowledged {sinceLabel(item.acknowledgedAt)}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="ai-row-actions">
-                    <Button variant="ghost" size="sm" onClick={() => setDetailId(item.id)}>
-                      Details
-                    </Button>
-                    {reviewAction(item)}
-                    {item.status === 'OPEN' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={pending.has(item.id)}
-                        onClick={() => ack(item.id)}
-                      >
-                        <Check size={14} aria-hidden="true" />
-                        {pending.has(item.id) ? 'Saving…' : 'Acknowledge'}
-                      </Button>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
+            {items.length > 0 ? (
+              <AlertInboxTable
+                items={items}
+                total={all.filter((item) => item.status === status).length}
+                pending={pending}
+                onSelect={(item) => setDetailId(item.id)}
+                onReview={ack}
+              />
+            ) : null}
             {data && (
               <div className="ai-footer">
-                Showing {items.length} of {all.filter((item) => item.status === status).length}{' '}
-                {status === 'OPEN' ? 'open' : 'acknowledged'} alerts. Acknowledging records your
-                review; it does not resolve the source issue.
+                Marking an item reviewed records that you checked it; it does not resolve the source
+                issue.
               </div>
             )}
           </section>
@@ -481,7 +439,7 @@ export default function AlertInboxPage() {
                   {detail.status === 'ACKNOWLEDGED' && (
                     <span className="ai-detail-ack-badge">
                       <Check size={12} aria-hidden="true" />
-                      Acknowledged
+                      Reviewed
                     </span>
                   )}
                 </div>
@@ -497,35 +455,61 @@ export default function AlertInboxPage() {
                 <h3>Recommended action</h3>
               </div>
               <div className="ai-detail-action-card">
-                <p>{detail.wants || 'Open the source alert to review this issue.'}</p>
+                <p>{detail.wants || 'Check the reports below and confirm with your team.'}</p>
               </div>
 
               <div className="ai-detail-section-header">
                 <FileText size={14} aria-hidden="true" className="ai-detail-icon-accent" />
-                <h3>Evidence</h3>
+                <h3>What was reported</h3>
                 <span className="ai-detail-count-pill">{detail.sources?.length || 0} reports</span>
               </div>
               <div className="ai-detail-cards">
-                {(detail.sources || []).map((evidence, index) => (
-                  <article
-                    key={`${evidence.source}-${evidence.refId || index}-${evidence.at}`}
-                    className="ai-detail-card"
-                  >
-                    <div className="ai-detail-card-head">
-                      <span className="ai-detail-source-badge">
-                        {SOURCE_LABELS[evidence.source] || 'Other source'}
-                      </span>
-                      <span className="ai-detail-time">
-                        <Clock size={12} aria-hidden="true" />
-                        {sinceLabel(evidence.at)}
-                      </span>
-                    </div>
-                    <p className="ai-detail-card-text">
-                      {evidence.detail || 'Open the source page for more information.'}
-                    </p>
-                  </article>
-                ))}
+                {(detail.sources || []).map((evidence, index) => {
+                  const bill = billCheckView(evidence.billCheck);
+                  return (
+                    <article
+                      key={`${evidence.source}-${evidence.refId || index}-${evidence.at}`}
+                      className="ai-detail-card"
+                    >
+                      <div className="ai-detail-card-head">
+                        <span className="ai-detail-source-badge">
+                          {SOURCE_LABELS[evidence.source] || 'Other source'}
+                        </span>
+                        <span className="ai-detail-time">
+                          <Clock size={12} aria-hidden="true" />
+                          {sinceLabel(evidence.at)}
+                        </span>
+                      </div>
+                      <p className="ai-detail-card-text">
+                        {evidence.detail || 'No additional report details were recorded.'}
+                      </p>
+                      {bill && (
+                        <div className="ai-evidence-check">
+                          <strong>Refuel bill check: {bill.label}</strong>
+                          {bill.reason && <p>{bill.reason}</p>}
+                        </div>
+                      )}
+                      {evidence.resolutionNote && (
+                        <div className="ai-evidence-check">
+                          <strong>Source update</strong>
+                          <p>{evidence.resolutionNote}</p>
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
               </div>
+              {detail.status === 'OPEN' && (
+                <p className="ai-review-explanation" id="ai-detail-review-help">
+                  Finished checking the reports? Mark this alert as reviewed to move it out of To
+                  review. This does not resolve the issue.
+                </p>
+              )}
+              {actionError && (
+                <p role="alert" className="ai-error">
+                  {actionError}
+                </p>
+              )}
             </div>
             <footer className="ai-detail-footer">
               <div className="ai-detail-meta">
@@ -540,6 +524,19 @@ export default function AlertInboxPage() {
                   Close
                 </Button>
                 {reviewAction(detail)}
+                {detail.status === 'OPEN' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="ai-mark-reviewed"
+                    aria-describedby="ai-detail-review-help"
+                    disabled={pending.has(detail.id)}
+                    onClick={() => ack(detail.id)}
+                  >
+                    <Check size={14} aria-hidden="true" />
+                    {pending.has(detail.id) ? 'Saving…' : 'Mark as reviewed'}
+                  </Button>
+                )}
               </div>
             </footer>
           </DialogContent>

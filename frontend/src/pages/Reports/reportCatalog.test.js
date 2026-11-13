@@ -42,7 +42,6 @@ describe('visibleReportGroups', () => {
         'nonBusiness',
         'runningCost',
         'registerMatch',
-        'laneKm',
       ]),
     );
   });
@@ -65,14 +64,15 @@ describe('visibleReportGroups', () => {
     expect(visible).toContain('customReports');
   });
 
-  it('shows SAP routes on sapV2 alone, and hides the other Trip Economics reports without autoTrips', () => {
+  it('keeps SAP routes out of Reports navigation while preserving existing authorized URLs', () => {
     const visible = ids(visibleReportGroups(flags(['vehicleActivity', 'fuelIntegrity', 'sapV2'])));
     expect(visible).not.toContain('oilAverage');
     expect(visible).not.toContain('fuelCycles');
     expect(visible).not.toContain('nonBusiness');
     expect(visible).not.toContain('runningCost');
     expect(visible).not.toContain('registerMatch');
-    expect(visible).toContain('laneKm');
+    expect(visible).not.toContain('laneKm');
+    expect(ids(visibleReportGroups(flags(ALL_FLAGS)))).not.toContain('laneKm');
     expect(resolveReport('laneKm', flags(['sapV2']))).toBe('laneKm');
     expect(ids(visibleReportGroups(flags(['autoTrips'])))).not.toContain('laneKm');
     expect(resolveReport('laneKm', flags([]))).toBe(DEFAULT_REPORT);

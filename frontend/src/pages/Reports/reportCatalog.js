@@ -35,9 +35,9 @@ export const REPORT_GROUPS = [
       { id: 'nonBusiness', label: 'Non-Business', flag: 'autoTrips' },
       { id: 'runningCost', label: 'Running Cost', flag: 'autoTrips' },
       { id: 'registerMatch', label: 'Trip Register Match', flag: 'autoTrips' },
-      // SAP per route (/api/sap is gated by requireFeature('sapV2')). The id stays laneKm so
-      // existing links keep working.
-      { id: 'laneKm', label: 'SAP routes', flag: 'sapV2' },
+      // Route settings belong in Place Hub, not the Reports navigation. Keep
+      // the old URL available for bookmarks and orgs using the legacy SAP view.
+      { id: 'laneKm', label: 'SAP routes', flag: 'sapV2', hidden: true },
     ],
   },
   {
@@ -52,7 +52,9 @@ export function visibleReportGroups(isEnabled, groups = REPORT_GROUPS) {
   return groups
     .map((group) => ({
       ...group,
-      children: group.children.filter((report) => !report.flag || isEnabled(report.flag)),
+      children: group.children.filter(
+        (report) => !report.hidden && (!report.flag || isEnabled(report.flag)),
+      ),
     }))
     .filter((group) => group.children.length > 0);
 }
@@ -90,8 +92,10 @@ export function isInlineReport(id, groups = REPORT_GROUPS) {
  * `?report=` naming one falls back rather than rendering the wrong report.
  */
 export function resolveReport(requestedId, isEnabled, groups = REPORT_GROUPS) {
-  const visible = visibleReportGroups(isEnabled, groups)
+  // Hidden legacy entries can still resolve from an existing URL, while the
+  // navigation above only offers actual reports.
+  const visible = groups
     .flatMap((g) => g.children)
-    .filter((report) => !report.to);
+    .filter((report) => !report.to && (!report.flag || isEnabled(report.flag)));
   return visible.some((r) => r.id === requestedId) ? requestedId : DEFAULT_REPORT;
 }

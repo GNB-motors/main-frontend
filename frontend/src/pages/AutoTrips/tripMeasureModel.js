@@ -45,6 +45,16 @@ export function legCosts(trip) {
   };
 }
 
+/** Prefer the full estimate; otherwise show only known fuel and wear as a subtotal. */
+export function runningCostAmount(trip) {
+  if (isMeasured(trip?.totalCostInr)) {
+    return { inr: Number(trip.totalCostInr), partial: false };
+  }
+  const { fuel, wear } = legCosts(trip);
+  const { sum } = sumKnown([fuel.sum, wear.sum]);
+  return { inr: sum, partial: sum != null };
+}
+
 /** "₹3,425", or "₹3,358 · 1 of 3 legs costed" when the server left legs out. */
 function amountText(amount, note) {
   if (amount.sum == null) return note || 'not measured';
@@ -62,7 +72,6 @@ export function runningCostParts(trip) {
   const { legs, fuel, wear } = legCosts(trip);
   if (!legs) return null;
   const note = { UNKNOWN: 'not measured', PARTIAL: 'partial' }[fuelBasis(trip)] || null;
-  if (trip?.totalCostInr == null && fuel.unknown === 0 && wear.unknown === 0) return null;
   return { fuel: amountText(fuel, note), wear: amountText(wear, null) };
 }
 

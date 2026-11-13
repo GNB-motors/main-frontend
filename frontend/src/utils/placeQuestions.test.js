@@ -84,7 +84,9 @@ describe('place questions — what an answer means', () => {
   });
 
   it('counts the trips it closed', () => {
-    expect(placeAnswerMessage({ tripsUpdated: 2, placeId: 'site-1' })).toBe('Done: 2 trips updated');
+    expect(placeAnswerMessage({ tripsUpdated: 2, placeId: 'site-1' })).toBe(
+      'Done: 2 trips updated',
+    );
     expect(placeTripsStayOpen({ tripsUpdated: 2, placeId: 'site-1' })).toBe(false);
   });
 
@@ -98,7 +100,7 @@ describe('place questions — what an answer means', () => {
 
   it('reports a skipped or dismissed point as such', () => {
     expect(placeAnswerMessage({ tripsUpdated: 0, placeId: null }, 'SKIP')).toBe(
-      'Skipped. We will not ask you about this one again.',
+      'Skipped for now. No place or trip was changed.',
     );
     expect(placeAnswerMessage({ tripsUpdated: 0, placeId: null }, 'NOT_A_PLACE')).toBe(
       'Noted. We will not ask you about this point again.',

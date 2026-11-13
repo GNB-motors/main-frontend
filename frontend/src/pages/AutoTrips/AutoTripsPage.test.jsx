@@ -1,17 +1,27 @@
 import { beforeEach, expect, it, vi } from 'vitest';
-import { act, render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor, cleanup, within } from '@testing-library/react';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import AutoTripsPage from './AutoTripsPage';
 import AutoTripService from '../../services/AutoTripService';
 import TripPlanService from '../../services/TripPlanService';
 
-vi.mock('../../services/AutoTripService', () => ({ default: { list: vi.fn() } }));
+vi.mock('../../services/AutoTripService', () => ({
+  default: { list: vi.fn(), coverage: vi.fn() },
+}));
 vi.mock('../../services/TripPlanService', () => ({
   default: { list: vi.fn(), cancel: vi.fn(), unlink: vi.fn(), resumeAutoMatch: vi.fn() },
 }));
-const { getPlaceQuestions } = vi.hoisted(() => ({ getPlaceQuestions: vi.fn() }));
+const { getPlaceQuestions, answerPlaceQuestion, getUserRole } = vi.hoisted(() => ({
+  getPlaceQuestions: vi.fn(),
+  answerPlaceQuestion: vi.fn(),
+  getUserRole: vi.fn(),
+}));
+vi.mock('../../utils/session', async (importOriginal) => ({
+  ...(await importOriginal()),
+  getUserRole,
+}));
 vi.mock('../../services/fleetViewService', () => ({
-  fleetViewService: { getPlaceQuestions, answerPlaceQuestion: vi.fn(), getTripsHistory: vi.fn() },
+  fleetViewService: { getPlaceQuestions, answerPlaceQuestion, getTripsHistory: vi.fn() },
 }));
 vi.mock('../../components/ui/confirmContext', () => ({ useConfirm: () => vi.fn() }));
 vi.mock('./ManualTripDialog', () => ({ default: () => null }));
@@ -30,7 +40,13 @@ vi.mock('./TripPlanDialog', () => ({
 }));
 vi.mock('./LinkTripDialog', () => ({ default: () => null }));
 function Location() {
-  return <output aria-label="Current location">{useLocation().pathname}</output>;
+  const location = useLocation();
+  return (
+    <output aria-label="Current location">
+      {location.pathname}
+      {location.search}
+    </output>
+  );
 }
 function open(entry = '/auto-trips?range=7d') {
   render(
@@ -43,6 +59,8 @@ function open(entry = '/auto-trips?range=7d') {
 beforeEach(() => {
   cleanup();
   vi.clearAllMocks();
+  getUserRole.mockReturnValue('VIEWER');
+  AutoTripService.coverage.mockResolvedValue({ trucksMissing: 0 });
   AutoTripService.list.mockResolvedValue({
     items: [{ _id: 't1', registrationNumber: 'WB-ACTUAL', status: 'OPEN' }],
     total: 1,
@@ -67,6 +85,10 @@ it('badges a trip row the server flagged as a suspicious unload', async () => {
   });
   open();
   const badge = await screen.findByText('Suspicious unload');
+  expect(screen.getByRole('link', { name: 'Trip approvals' })).toHaveAttribute(
+    'href',
+    '/approvals?type=trips',
+  );
   expect(badge).toBeInTheDocument();
   // The badge says where to look, never what happened.
   expect(badge.getAttribute('title')).toMatch(/a person should look/i);
@@ -382,4 +404,86 @@ it('draws one dense row per trip and leaves out a column nobody has yet', async 
   ).toBeInTheDocument();
   fireEvent.click(route);
   expect(screen.getByLabelText('Current location')).toHaveTextContent('/auto-trips/t9');
+});
+
+it('keeps a way back and the selected show-trips action after filtering waiting trips', async () => {
+  listByStatus({
+    items: [],
+    waitingItems: waiting(2, ['DROP_UNKNOWN']),
+    tabCounts: { NEEDS_REVIEW: 12 },
+  });
+  getPlaceQuestions.mockResolvedValue({ items: [{ id: 'q1', tripsAffected: 8 }], total: 1 });
+  open('/auto-trips?range=7d');
+  fireEvent.click(await screen.findByRole('button', { name: 'Show these trips' }));
+  expect(await screen.findByRole('button', { name: 'Showing these trips' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  expect(screen.getByRole('button', { name: 'Back to all trips' })).toBeInTheDocument();
+  expect(screen.getByLabelText('Current location')).toHaveTextContent('status=NEEDS_REVIEW');
+  fireEvent.click(screen.getByRole('button', { name: 'Review place questions' }));
+  expect(await screen.findByRole('button', { name: 'Back to trips' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Back to trips' }));
+  expect(await screen.findByRole('button', { name: 'Show these trips' })).toBeInTheDocument();
+  expect(screen.getByLabelText('Current location')).toHaveTextContent('range=7d');
+  expect(screen.getByLabelText('Current location')).not.toHaveTextContent('status=');
+});
+
+it('previews the exact bulk suggestions, cancels safely and writes only after confirmation', async () => {
+  getUserRole.mockReturnValue('OWNER');
+  listByStatus({
+    items: [],
+    waitingItems: waiting(2, ['DROP_UNKNOWN']),
+    tabCounts: { NEEDS_REVIEW: 12 },
+  });
+  getPlaceQuestions.mockResolvedValue({
+    items: [
+      { id: 'drop', tripsAffected: 8, suggestion: { name: 'Customer yard', category: 'CUSTOMER' } },
+      { id: 'fuel', tripsAffected: 4, suggestion: { name: 'Salbani pump', category: 'PUMP' } },
+      { id: 'unnamed', tripsAffected: 2, suggestion: null },
+    ],
+    total: 468,
+  });
+  let finishFirst;
+  answerPlaceQuestion.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finishFirst = resolve;
+      }),
+  );
+  answerPlaceQuestion.mockResolvedValueOnce({ placeId: 'site-pump', tripsUpdated: 0 });
+  open();
+  fireEvent.click(await screen.findByRole('button', { name: 'Review bulk confirmation' }));
+  let dialog = within(await screen.findByRole('dialog', { name: 'Confirm suggested places' }));
+  expect(dialog.getByText('Customer yard')).toBeInTheDocument();
+  expect(dialog.getByText('Delivery / unloading point')).toBeInTheDocument();
+  expect(dialog.getByText('Salbani pump')).toBeInTheDocument();
+  expect(dialog.getByText('Fuel pump')).toBeInTheDocument();
+  expect(
+    dialog.getByText(/Matching trips outside this date range may also update/),
+  ).toBeInTheDocument();
+  expect(dialog.getByRole('button', { name: 'Confirm 2 places' })).toBeInTheDocument();
+  expect(answerPlaceQuestion).not.toHaveBeenCalled();
+  fireEvent.click(dialog.getByRole('button', { name: 'Cancel' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  expect(answerPlaceQuestion).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Review bulk confirmation' }));
+  dialog = within(await screen.findByRole('dialog', { name: 'Confirm suggested places' }));
+  fireEvent.click(dialog.getByRole('button', { name: 'Confirm 2 places' }));
+  expect(dialog.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+  expect(dialog.getByRole('button', { name: /Saving 0 of 2/ })).toBeDisabled();
+  expect(answerPlaceQuestion).toHaveBeenCalledTimes(1);
+  expect(answerPlaceQuestion).toHaveBeenCalledWith('drop', {
+    answer: 'CONFIRM',
+    name: 'Customer yard',
+    category: 'UNLOADING',
+  });
+  await act(async () => finishFirst({ placeId: 'site-drop', tripsUpdated: 8 }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  expect(answerPlaceQuestion).toHaveBeenCalledTimes(2);
+  expect(answerPlaceQuestion).toHaveBeenLastCalledWith('fuel', {
+    answer: 'CONFIRM',
+    name: 'Salbani pump',
+    category: 'FUEL_PUMP',
+  });
 });

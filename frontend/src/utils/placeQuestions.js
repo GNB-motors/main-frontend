@@ -88,7 +88,7 @@ export function placeTripsStayOpen(result) {
  * - no `tripsUpdated` at all — the old backend, which sends nothing to count.
  */
 export function placeAnswerMessage(result, answer) {
-  if (answer === 'SKIP') return 'Skipped. We will not ask you about this one again.';
+  if (answer === 'SKIP') return 'Skipped for now. No place or trip was changed.';
   if (answer === 'NOT_A_PLACE') return 'Noted. We will not ask you about this point again.';
   const updated = result?.tripsUpdated;
   if (updated === null || updated === undefined) {

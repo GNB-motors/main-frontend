@@ -36,9 +36,9 @@ function serverAnswer({
   };
 }
 
-function renderPage() {
+function renderPage(entry = '/owner-alerts') {
   return render(
-    <MemoryRouter initialEntries={['/owner-alerts']}>
+    <MemoryRouter initialEntries={[entry]}>
       <OwnerAlertsPage />
     </MemoryRouter>,
   );
@@ -93,4 +93,21 @@ describe('OwnerAlertsPage (F13: critical only)', () => {
     expect(screen.queryByText('Trucks affected')).not.toBeInTheDocument();
     expect(getAlerts.mock.calls.at(-1)[0].severity).toBeUndefined();
   });
+});
+
+it('opens linked warning records in their report period instead of the critical-only view', async () => {
+  getAlerts.mockReset();
+  getAlerts.mockResolvedValue(serverAnswer());
+  renderPage(
+    '/owner-alerts?vehicle=WB11G1262&severity=all&type=FUEL_SIPHON_SUSPECTED&from=2026-09-24T10%3A00%3A00.000Z&to=2026-09-24T10%3A00%3A00.000Z',
+  );
+  await waitFor(() => expect(getAlerts).toHaveBeenCalled());
+  expect(getAlerts.mock.calls[0][0]).toMatchObject({
+    acknowledged: false,
+    vehicle: 'WB11G1262',
+    type: 'FUEL_SIPHON_SUSPECTED',
+    from: '2026-09-24T10:00:00.000Z',
+    to: '2026-09-24T10:00:00.000Z',
+  });
+  expect(getAlerts.mock.calls[0][0].severity).toBeUndefined();
 });
