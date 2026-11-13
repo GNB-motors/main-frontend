@@ -1,11 +1,12 @@
 import React from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import ErrorBoundary from '../errors/ErrorBoundary.jsx';
 import Sidebar from './Sidebar.jsx';
 import Navbar from './Navbar.jsx';
 import LottieLoader from './LottieLoader.jsx';
 import CommandPalette from './cluster/CommandPalette.jsx';
 import ChatUploadIndicator from './ChatUploadIndicator.jsx';
+import WhatsappExportDialog from '../pages/Mileage/WhatsappExportDialog.jsx';
 import { ConfirmDialogHost } from './ui/ConfirmDialog.jsx';
 import { applyThemeToRoot } from '../utils/colorTheme.js';
 import { usePageHeading } from '../hooks/usePageHeading.js';
@@ -28,6 +29,7 @@ const DashboardLayoutInner = () => {
   const { branchId } = useActiveBranch();
   const { profile, ready } = useFeatureFlags();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   // The top bar shows the heading the page itself renders, so a page is never
   // named twice in two different ways.
   const pageTitle = usePageHeading();
@@ -87,6 +89,8 @@ const DashboardLayoutInner = () => {
       {/* The chat upload belongs to the session, not to the page: the pill is
           here, outside the page, so it is there on every page of the site. */}
       <ChatUploadIndicator />
+      {/* One chat-upload dialog for the whole dashboard: it opens over any page. */}
+      <WhatsappExportDialog onReview={() => navigate('/approvals?type=whatsapp')} />
     </div>
   );
 };

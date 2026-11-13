@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Loader2, X } from 'lucide-react';
 import { getUserRole } from '../utils/session';
@@ -8,7 +7,10 @@ import {
   dismiss,
   openDialog,
   pillTitleOf,
+  readingProgressPercent,
+  readingProgressText,
   summarise,
+  uploadProgressText,
   useChatUpload,
 } from '../pages/Mileage/chatUploadStore';
 import './ChatUploadIndicator.css';
@@ -26,14 +28,15 @@ const CAN_UPLOAD = ['OWNER', 'MANAGER'];
  */
 export default function ChatUploadIndicator() {
   const state = useChatUpload();
-  const navigate = useNavigate();
   // What was said last, so every import is told about once.
   const told = useRef('');
 
   // On app load: an import that is still running is picked up again.
   useEffect(() => {
-    if (!CAN_UPLOAD.includes(getUserRole())) return;
-    attachActiveJob();
+    if (!CAN_UPLOAD.includes(getUserRole())) return undefined;
+    const controller = new AbortController();
+    attachActiveJob(controller.signal);
+    return () => controller.abort();
   }, []);
 
   // The word when the import is over.
@@ -55,16 +58,17 @@ export default function ChatUploadIndicator() {
 
   if (state.dismissed || !state.stage || state.stage === 'idle') return null;
 
-  const running = state.stage === 'uploading' || state.stage === 'reading';
+  const running = state.stage === 'uploading' || state.stage === 'queued' || state.stage === 'reading';
   let title = '';
   let detail = '';
-  if (state.stage === 'uploading') {
-    title = `Uploading chat ${state.percent}%`;
+  if (state.stage === 'checking') {
+    title = 'Checking upload…';
+  } else if (state.stage === 'uploading') {
+    title = uploadProgressText(state.percent);
+  } else if (state.stage === 'queued') {
+    title = 'Waiting to start…';
   } else if (state.stage === 'reading') {
-    title =
-      state.progress.total > 0
-        ? `Reading photos ${state.progress.read} / ${state.progress.total}`
-        : 'Reading the photos…';
+    title = readingProgressText(state.progress);
   } else if (state.stage === 'done') {
     const summary = summarise(state.result);
     title = pillTitleOf(summary);
@@ -74,16 +78,38 @@ export default function ChatUploadIndicator() {
     detail = state.error || '';
   }
 
-  const show = () => {
-    openDialog();
-    navigate('/mileage?chatUpload=open');
-  };
+  const readingPercent =
+    state.stage === 'reading' ? readingProgressPercent(state.progress) : null;
+  const uploadPercent =
+    state.stage === 'uploading' &&
+    state.percent !== null &&
+    state.percent !== undefined &&
+    Number.isFinite(Number(state.percent))
+      ? Math.min(100, Math.max(0, Number(state.percent)))
+      : null;
+  const barPercent = readingPercent ?? uploadPercent;
+  const indeterminate = state.stage === 'reading' && readingPercent === null;
+  const show = () => openDialog();
 
   return (
     <div className="cui-pill" role="status">
-      <button type="button" className="cui-main" onClick={show}>
-        {running ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : null}
-        <span className="cui-title">{title}</span>
+      <button
+        type="button"
+        className={`cui-main${barPercent !== null || indeterminate ? ' cui-main--progress' : ''}`}
+        onClick={show}
+      >
+        <span className="cui-main-line">
+          {running ? <Loader2 size={15} className="animate-spin" aria-hidden="true" /> : null}
+          <span className="cui-title">{title}</span>
+        </span>
+        {barPercent !== null || indeterminate ? (
+          <span className={`cui-bar${indeterminate ? ' cui-bar--indeterminate' : ''}`} aria-hidden="true">
+            <span
+              className="cui-bar-fill"
+              style={barPercent !== null ? { width: `${barPercent}%` } : undefined}
+            />
+          </span>
+        ) : null}
       </button>
       {detail ? <span className="cui-detail">{detail}</span> : null}
       {running ? null : (

@@ -1,17 +1,6 @@
 import { MapPin } from 'lucide-react';
 import { fmtDate } from './receiptFormat';
 
-/** Coordinates as a person reads them, or empty when none were supplied. */
-const coordText = (coordinates) => {
-  if (coordinates == null) return '';
-  if (typeof coordinates === 'object') {
-    const lat = coordinates.lat ?? coordinates.latitude;
-    const lng = coordinates.lng ?? coordinates.longitude;
-    return lat != null && lng != null ? `${lat}, ${lng}` : '';
-  }
-  return String(coordinates);
-};
-
 /**
  * The station facts a draft really carries.
  *
@@ -20,7 +9,6 @@ const coordText = (coordinates) => {
  */
 const DetailStationCard = ({ stationInfo }) => {
   const stationName = stationInfo?.stationName || null;
-  const coordinates = coordText(stationInfo?.coordinates) || null;
   const haltTime = stationInfo?.haltTime ?? null;
   const geofence = stationInfo?.isGeofenceMatch ?? null;
   const benchmarkRate = stationInfo?.benchmarkRate ?? null;
@@ -44,10 +32,6 @@ const DetailStationCard = ({ stationInfo }) => {
         <div className="ra-prop ra-prop--full">
           <span className="ra-prop__label">Station Name / Location</span>
           <span className="ra-prop__val font-mono">{stationName || 'Station not read from the photo.'}</span>
-        </div>
-        <div className="ra-prop">
-          <span className="ra-prop__label">Station GPS Location</span>
-          <span className="ra-prop__val font-mono">{coordinates || 'Pump location not available.'}</span>
         </div>
         <div className="ra-prop">
           <span className="ra-prop__label">Vehicle Halt Duration</span>

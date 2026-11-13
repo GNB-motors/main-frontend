@@ -44,7 +44,7 @@ describe('the chat upload of the session', () => {
     streamMock.calls.length = 0;
     store.reset();
     PhotoImportService.getChatExportJob.mockResolvedValue({
-      state: 'running',
+      state: 'reading',
       progress: { read: 1, total: 10 },
     });
     PhotoImportService.getActiveChatExportJob.mockResolvedValue({ jobId: null });
@@ -86,11 +86,11 @@ describe('the chat upload of the session', () => {
   it('picks the running import up again after a reload', async () => {
     PhotoImportService.getActiveChatExportJob.mockResolvedValue({
       jobId: 'job-9',
-      state: 'running',
+      state: 'reading',
       progress: { read: 120, total: 589 },
     });
     PhotoImportService.getChatExportJob.mockResolvedValue({
-      state: 'running',
+      state: 'reading',
       progress: { read: 120, total: 589 },
     });
 
@@ -109,6 +109,21 @@ describe('the chat upload of the session', () => {
     expect(await store.attachActiveJob()).toBeNull();
     expect(store.getState().stage).toBe('idle');
     expect(store.getState().jobId).toBeNull();
+  });
+
+  it('keeps a queued job waiting without inventing a percentage', async () => {
+    PhotoImportService.uploadWhatsappExport.mockResolvedValue({ jobId: 'job-1' });
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'queued',
+      progress: { read: 0, total: 0 },
+    });
+
+    store.startUpload(zipFile());
+    await flush();
+
+    expect(store.getState().stage).toBe('queued');
+    expect(store.readingProgressText(store.getState().progress)).toBe('Reading photos…');
+    expect(store.readingProgressPercent(store.getState().progress)).toBeNull();
   });
 
   it('says what the import made when it is over', async () => {
@@ -138,7 +153,9 @@ describe('the chat upload of the session', () => {
     await flush();
 
     expect(store.getState().stage).toBe('unreachable');
-    expect(store.getState().error).toContain('lost contact with the server');
+    expect(store.getState().error).toBe(
+      'Connection lost. The import may still be running. Check before retrying.',
+    );
   });
 
   it('says that a count the server did not send is not known', () => {

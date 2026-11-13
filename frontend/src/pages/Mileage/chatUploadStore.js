@@ -19,7 +19,7 @@ const POLL_MS = 3000;
 
 /** The server may still be working when we never heard back. */
 export const LOST_CONTACT_MESSAGE =
-  'We lost contact with the server before the import finished. It may still be running. Wait a few minutes and check Mileage before uploading again.';
+  'Connection lost. The import may still be running. Check before retrying.';
 
 /** The photo reader is not running: nothing was imported. */
 export const READER_DOWN_MESSAGE =
@@ -85,14 +85,14 @@ export function plainReason(reason) {
 }
 
 const initialState = {
-  // idle | uploading | reading | done | failed | unreachable
+  // idle | checking | uploading | queued | reading | done | failed | unreachable
   stage: 'idle',
-  // How much of the file is on its way to the server.
-  percent: 0,
+  // How much of the file is on its way to the server. Null means not known.
+  percent: null,
   // The import on the server, once the file has been sent.
   jobId: null,
-  // How many photos have been read out of how many.
-  progress: { read: 0, total: 0 },
+  // How many photos have been read out of how many. A null total is unknown.
+  progress: { read: 0, total: null },
   // The photos as they are read, newest first.
   photoRows: { rows: [], more: 0 },
   // What the import made, once it is over.
@@ -149,6 +149,45 @@ export function useChatUpload() {
   return useSyncExternalStore(subscribe, getState);
 }
 
+/** The reading progress in the same words for the pill and the dialog. */
+export function readingProgressText(progress) {
+  const total = Number(progress?.total);
+  if (!Number.isFinite(total) || total <= 0) return 'Reading photos…';
+  const read = Math.max(0, Number(progress?.read) || 0);
+  return `Reading photos ${read} / ${total}`;
+}
+
+/** The width of the reading bar, or null when the total is not known. */
+export function readingProgressPercent(progress) {
+  const total = Number(progress?.total);
+  if (!Number.isFinite(total) || total <= 0) return null;
+  const read = Math.max(0, Number(progress?.read) || 0);
+  return Math.min(100, Math.max(0, (read / total) * 100));
+}
+
+/** The sending progress, without inventing a percentage. */
+export function uploadProgressText(percent) {
+  if (percent === null || percent === undefined || !Number.isFinite(Number(percent))) {
+    return 'Sending chat…';
+  }
+  return `Sending chat: ${Math.min(100, Math.max(0, Number(percent)))}%`;
+}
+
+/** Keep a server progress value without turning an unknown total into zero. */
+function progressOf(sent, previous = { read: 0, total: null }) {
+  const readValue = Number(sent?.read);
+  const totalValue = Number(sent?.total);
+  return {
+    read: Number.isFinite(readValue) ? Math.max(0, readValue) : Number(previous.read || 0),
+    total:
+      sent?.total === null || sent?.total === undefined
+        ? previous.total ?? null
+        : Number.isFinite(totalValue) && totalValue > 0
+          ? totalValue
+          : null,
+  };
+}
+
 /** The live line is closed: the import itself keeps running. */
 function closeStream() {
   if (stream) {
@@ -178,7 +217,7 @@ export function failureText(view) {
     view?.errorCode === 'READER_DOWN' || /photo reader is not running/i.test(serverMessage);
   if (readerDown) {
     return {
-      heading: 'Nothing was imported',
+      heading: 'Could not read the chat. Try again.',
       message: serverMessage || READER_DOWN_MESSAGE,
       detail: '',
     };
@@ -388,9 +427,9 @@ export async function startUpload(file) {
   lastEventId = 0;
   setState({
     stage: 'uploading',
-    percent: 0,
+    percent: null,
     jobId: null,
-    progress: { read: 0, total: 0 },
+    progress: { read: 0, total: null },
     photoRows: { rows: [], more: 0 },
     result: null,
     error: null,
@@ -414,7 +453,7 @@ export async function startUpload(file) {
     const jobId = answer?.jobId;
     if (!jobId) throw new Error('The chat could not be uploaded. Please try again.');
     // The import is on the server now: the session follows it from here.
-    setState({ jobId, stage: 'reading' });
+    setState({ jobId, stage: 'queued' });
     followJob(jobId);
     return jobId;
   } catch (err) {
@@ -456,7 +495,7 @@ export function cancelUpload() {
   if (state.stage !== 'uploading') return false;
   if (request) request.abort();
   request = null;
-  setState({ stage: 'idle', percent: 0, error: null });
+  setState({ stage: 'idle', percent: null, error: null });
   return true;
 }
 
@@ -495,12 +534,17 @@ function handleEvent(current, event) {
     const rows = [payload, ...state.photoRows.rows];
     const more = state.photoRows.more + Math.max(0, rows.length - MAX_PHOTO_ROWS);
     setState({
+      stage: 'reading',
       photoRows: { rows: rows.slice(0, MAX_PHOTO_ROWS), more },
       progress: {
         read: Math.max(Number(state.progress.read || 0), Number(payload.i || 0)),
-        total: Number(payload.total || state.progress.total || 0),
+        total: progressOf({ total: payload.total }, state.progress).total,
       },
     });
+    return;
+  }
+  if (event.type === 'queued') {
+    setState({ stage: 'queued' });
     return;
   }
   if (event.type === 'done') {
@@ -526,18 +570,17 @@ async function ask(jobId) {
     return;
   }
   if (!view || state.jobId !== jobId) return;
-  setState({
-    progress: {
-      read: Number(view.progress?.read || 0),
-      total: Number(view.progress?.total || 0),
-    },
-  });
+  setState({ progress: progressOf(view.progress, state.progress) });
   if (view.state === 'done') {
     finishDone(view.result || {});
     return;
   }
   if (view.state === 'failed') {
     finishFailed(failureText(view));
+    return;
+  }
+  if (view.state === 'queued') {
+    setState({ stage: 'queued' });
     return;
   }
   setState({ stage: 'reading' });
@@ -557,7 +600,9 @@ function followJob(jobId) {
     lastEventId: lastEventId || undefined,
     onEvent: (event) => handleEvent(current, event),
     // The live line is not there: the asking below keeps the import going.
-    onError: () => {},
+    onError: () => {
+      // A dropped line is not a failed import; the polling below carries on.
+    },
   });
   pollTimer = setInterval(() => {
     ask(current);
@@ -571,24 +616,39 @@ function followJob(jobId) {
  *
  * @returns {Promise<string|null>} the job that was picked up
  */
-export async function attachActiveJob() {
-  if (state.stage === 'uploading' || state.stage === 'reading') return state.jobId;
+export async function attachActiveJob(signal) {
+  if (
+    state.stage === 'uploading' ||
+    state.stage === 'queued' ||
+    state.stage === 'reading' ||
+    state.stage === 'checking'
+  ) {
+    return state.jobId;
+  }
+  setState({ stage: 'checking', jobId: null });
   let answer = null;
   try {
-    answer = await PhotoImportService.getActiveChatExportJob();
+    answer = await PhotoImportService.getActiveChatExportJob({ signal });
   } catch {
-    // The server is not answering: there is nothing to pick up.
+    // The server is not answering, or the screen went away: there is nothing
+    // to pick up.
+    if (state.stage === 'checking') setState({ stage: 'idle' });
+    return null;
+  }
+  if (signal?.aborted) {
+    if (state.stage === 'checking') setState({ stage: 'idle' });
     return null;
   }
   const jobId = answer?.jobId || null;
-  if (!jobId) return null;
+  if (!jobId) {
+    if (state.stage === 'checking') setState({ stage: 'idle' });
+    return null;
+  }
+  if (state.stage !== 'checking') return state.jobId;
   setState({
     jobId,
-    stage: 'reading',
-    progress: {
-      read: Number(answer?.progress?.read || 0),
-      total: Number(answer?.progress?.total || 0),
-    },
+    stage: answer?.state === 'queued' ? 'queued' : 'reading',
+    progress: progressOf(answer?.progress, { read: 0, total: null }),
   });
   followJob(jobId);
   return jobId;

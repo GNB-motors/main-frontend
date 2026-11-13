@@ -1,6 +1,6 @@
 import { User, Phone } from 'lucide-react';
 import { fmtDate, fmtRelativeTime } from './receiptFormat';
-import { uploaderOf, driverOf } from './chatDraft';
+import { uploaderOf, driverOf, driverAssignedOf } from './chatDraft';
 
 /**
  * Who sent the receipt, who drove, and when it arrived.
@@ -10,6 +10,8 @@ import { uploaderOf, driverOf } from './chatDraft';
 const DetailAuditCard = ({ draft }) => {
   const uploader = uploaderOf(draft);
   const driver = driverOf(draft);
+  // The driver assigned to the truck: an assignment, not proof of who drove.
+  const assigned = driverAssignedOf(draft);
 
   return (
     <div className="ra-section-card" style={{ marginTop: 16 }}>
@@ -23,7 +25,14 @@ const DetailAuditCard = ({ draft }) => {
         </div>
         <div className="ra-prop">
           <span className="ra-prop__label">Driver</span>
-          <span className="ra-prop__val">{driver || '—'}</span>
+          <span className="ra-prop__val">
+            {assigned ? `${assigned.name} · assigned` : driver || '—'}
+          </span>
+          {assigned?.since && (
+            <span className="ra-prop__val ra-prop__val--muted">
+              Assigned since {fmtDate(assigned.since)}
+            </span>
+          )}
         </div>
         <div className="ra-prop">
           <span className="ra-prop__label">WhatsApp Contact</span>

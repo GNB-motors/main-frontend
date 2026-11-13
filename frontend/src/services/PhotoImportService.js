@@ -20,6 +20,23 @@ import apiClient from '../utils/axiosConfig';
 
 const unwrap = (res) => res.data?.data ?? res.data;
 
+/**
+ * The server (main-backend driverSheet.service) answers a confirm/dismiss with
+ * one result per id: { results: [{ id, status, reason }], confirmed: <count>,
+ * failed: <count> }. The screen wants the ids that went through and the ones
+ * that did not, with the reason.
+ */
+const DONE = new Set(['confirmed', 'dismissed']);
+const decisionLists = (data) => {
+  const results = Array.isArray(data?.results) ? data.results : [];
+  return {
+    confirmed: results.filter((r) => r && DONE.has(r.status)).map((r) => String(r.id)),
+    failed: results
+      .filter((r) => r && !DONE.has(r.status))
+      .map((r) => ({ id: String(r.id), message: r.reason || 'Could not save. Try again.' })),
+  };
+};
+
 const UPLOAD_TIMEOUT = 200000;
 
 // The WhatsApp chat export is read on the server: a few hundred photos are
@@ -135,7 +152,7 @@ const PhotoImportService = {
   },
 
   /**
-   * How the import is doing: its state (queued, running, done or failed), how
+   * How the import is doing: its state (queued, reading, done or failed), how
    * many photos have been read out of how many, and the counts of what it
    * made once it is done.
    */
@@ -156,6 +173,36 @@ const PhotoImportService = {
       signal,
     });
     return unwrap(response);
+  },
+
+  /** The pending driver names found in the uploaded driver sheet. */
+  getDriverSheetSuggestions: async ({ signal } = {}) => {
+    const response = await apiClient.get('/api/photo-imports/driver-suggestions', {
+      params: { status: 'PENDING' },
+      signal,
+    });
+    const data = unwrap(response);
+    return Array.isArray(data) ? data : [];
+  },
+
+  /** Confirm one or more pending driver-sheet suggestions. */
+  confirmDriverSheetSuggestions: async (ids, { signal } = {}) => {
+    const response = await apiClient.post(
+      '/api/photo-imports/driver-suggestions/confirm',
+      { ids },
+      { signal },
+    );
+    return decisionLists(unwrap(response));
+  },
+
+  /** Dismiss one or more pending driver-sheet suggestions. */
+  dismissDriverSheetSuggestions: async (ids, { signal } = {}) => {
+    const response = await apiClient.post(
+      '/api/photo-imports/driver-suggestions/dismiss',
+      { ids },
+      { signal },
+    );
+    return decisionLists(unwrap(response));
   },
 
   /** Drivers that already exist, for "pick another driver". */

@@ -2,12 +2,13 @@ import { changeField } from '@/test/changeField';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import React from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import MileagePage from './MileagePage';
 import DieselRefuelReport from '../Reports/reports/DieselRefuelReport';
 import apiClient from '../../utils/axiosConfig';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import { getUserRole } from '../../utils/session.js';
+import * as chatUpload from './chatUploadStore';
 
 vi.mock('../../utils/axiosConfig', () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
@@ -129,9 +130,15 @@ const flagsFor = (on) => ({
   isEnabled: (key) => on.includes(key),
 });
 
+const Where = () => {
+  const location = useLocation();
+  return <span data-testid="where">{`${location.pathname}${location.search}`}</span>;
+};
+
 const renderAt = (url) =>
   render(
     <MemoryRouter initialEntries={[url]}>
+      <Where />
       <MileagePage />
     </MemoryRouter>,
   );
@@ -338,6 +345,19 @@ describe('MileagePage', () => {
     );
   });
 
+  it('accepts the old performance tab key and makes the address canonical', async () => {
+    useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
+    renderAt('/mileage?tab=performance&view=cycles');
+
+    await waitFor(() =>
+      expect(screen.getByTestId('where').textContent).toBe('/mileage?tab=mileage&view=cycles'),
+    );
+    expect(screen.getByRole('tab', { name: /Mileage/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+
   it('ⓘ next to a result shows how it was worked out', async () => {
     useFeatureFlags.mockReturnValue(flagsFor(['fuelIntegrity']));
     renderAt('/mileage');
@@ -495,7 +515,7 @@ describe('MileagePage', () => {
   it('hides views the viewer is not entitled to — by flag and by role', async () => {
     useFeatureFlags.mockReturnValue(flagsFor(['fuelComparison']));
     getUserRole.mockReturnValue('MANAGER');
-    const { unmount } = renderAt('/mileage?tab=performance');
+    const { unmount } = renderAt('/mileage?tab=mileage');
 
     await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));
     expect(screen.queryByRole('tab', { name: 'Mileage' })).not.toBeInTheDocument();
@@ -624,7 +644,7 @@ describe('MileagePage', () => {
       }
       return Promise.resolve({ data: { status: 'success', data: [], meta: {} } });
     });
-    renderAt('/mileage?tab=performance');
+    renderAt('/mileage?tab=mileage');
 
     expect(await screen.findByText('KA01AB1234')).toBeInTheDocument();
     expect(within(rowOf('KA01AB1234')).getByText('3.40 km/L')).toBeInTheDocument();
@@ -671,7 +691,7 @@ describe('MileagePage', () => {
       }
       return Promise.resolve({ data: { status: 'success', data: { items: [], totals: {} } } });
     });
-    renderAt('/mileage?tab=performance&view=cycles');
+    renderAt('/mileage?tab=mileage&view=cycles');
 
     expect(
       await screen.findByRole('tab', { name: 'Fill to fill (reconciled)' }),
@@ -686,7 +706,7 @@ describe('Mileage → Used vs should use', () => {
 
   it('needs the fuelModel flag and compares one truck at a time', async () => {
     useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity', 'fuelModel']));
-    renderAt('/mileage?tab=performance&view=expected');
+    renderAt('/mileage?tab=mileage&view=expected');
 
     const truckSelect = await screen.findByRole('combobox', { name: 'Truck' });
     expect(truckSelect).toHaveTextContent('Choose a truck');
@@ -818,7 +838,21 @@ describe('WhatsApp chat upload on the mileage page', () => {
     expect(screen.queryByRole('button', { name: /Add bill photo/ })).not.toBeInTheDocument();
   });
 
+  it('opens the shared upload dialog without leaving the mileage page', async () => {
+    chatUpload.reset();
+    mockApi();
+    useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
+    renderAt('/mileage');
+    await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));
+
+    fireEvent.click(screen.getByRole('button', { name: /Upload WhatsApp chat/ }));
+
+    expect(chatUpload.getState().dialogOpen).toBe(true);
+    expect(screen.getByTestId('where').textContent).toBe('/mileage');
+  });
+
   it('reads the list again after a chat has been imported', async () => {
+    chatUpload.reset();
     mockApi();
     useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
     apiClient.post.mockResolvedValue({
@@ -828,16 +862,10 @@ describe('WhatsApp chat upload on the mileage page', () => {
     await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));
     const before = feedCalls().length;
 
-    fireEvent.click(screen.getByRole('button', { name: /Upload WhatsApp chat/ }));
-    fireEvent.change(await screen.findByLabelText('WhatsApp chat export'), {
-      target: { files: [new File(['zip'], 'chat.zip', { type: 'application/zip' })] },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
+    chatUpload.startUpload(
+      new File(['zip'], 'chat.zip', { type: 'application/zip' }),
+    );
 
-    // The mocked job reports no counts, so the end state says so plainly.
-    expect(
-      await screen.findByText('Import finished — some counts not reported.'),
-    ).toBeInTheDocument();
     await waitFor(() => expect(feedCalls().length).toBeGreaterThan(before));
   });
 

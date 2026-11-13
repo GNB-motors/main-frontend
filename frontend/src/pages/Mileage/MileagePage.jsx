@@ -1,7 +1,7 @@
 import ManufacturerFilter from '../../components/filters/ManufacturerFilter';
 import useManufacturerFilter from '../../hooks/useManufacturerFilter';
 import React, { Suspense, lazy, useDeferredValue, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Camera, MessageCircle, PenLine, Search, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import PageShell from '../../components/ui/PageShell';
@@ -14,7 +14,7 @@ import MileageKpiBar from './components/MileageKpiBar';
 import RefuelDetailDrawer from './components/RefuelDetailDrawer';
 import MileageCyclesDrawer from './components/MileageCyclesDrawer';
 import AddBillPhotoDialog from './AddBillPhotoDialog';
-import WhatsappExportDialog from './WhatsappExportDialog';
+import { openDialog, onImported } from './chatUploadStore';
 import { createBillQueue } from './billUploadQueue';
 import billPhotoService from '../../services/billPhotoService';
 import { MileageApi } from './mileageApi';
@@ -49,11 +49,11 @@ function hubAccess(canAccess, role) {
     tabs: {
       live: true,
       reconciliation: integrity || ecu,
-      performance: mileage,
+      mileage: mileage,
     },
     views: {
       reconciliation: [integrity && 'tank', integrity && 'pumps', ecu && 'ecu'].filter(Boolean),
-      performance: [
+      mileage: [
         'vehicles',
         'fleet',
         'cycles',
@@ -71,7 +71,7 @@ function hubAccess(canAccess, role) {
 const TABS = [
   { key: 'live', label: 'Diesel fills', hint: 'bills + tank' },
   { key: 'reconciliation', label: 'Bill check', hint: 'is the bill right?' },
-  { key: 'performance', label: 'Mileage', hint: 'km per litre' },
+  { key: 'mileage', label: 'Mileage', hint: 'km per litre' },
 ];
 
 const SUBVIEWS = {
@@ -106,7 +106,7 @@ const SUBVIEWS = {
       },
     ],
   },
-  performance: {
+  mileage: {
     param: 'view',
     options: [
       {
@@ -160,18 +160,33 @@ const TabSkeleton = () => (
 
 export default function MileagePage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { canAccess, ready } = useFeatureFlags();
   const access = hubAccess(canAccess, getUserRole());
 
   const requestedTab = searchParams.get('tab') || 'live';
-  const activeTab = access.tabs[requestedTab] ? requestedTab : 'live';
+  const activeTab =
+    requestedTab === 'performance'
+      ? access.tabs.mileage
+        ? 'mileage'
+        : 'live'
+      : access.tabs[requestedTab]
+        ? requestedTab
+        : 'live';
+
+  // The old tab key still opens Mileage, but the address becomes canonical
+  // without adding another history entry.
+  useEffect(() => {
+    if (requestedTab !== 'performance' || !access.tabs.mileage) return;
+    const next = new URLSearchParams(searchParams);
+    next.set('tab', 'mileage');
+    setSearchParams(next, { replace: true });
+  }, [requestedTab, access.tabs.mileage, searchParams, setSearchParams]);
 
   // The fleet km/L figure needs the model comparison: it is the slowest read
-  // on this page, so it is read when the performance tab is open instead of on
+  // on this page, so it is read when the Mileage tab is open instead of on
   // the way in. Until then the tile says where the number lives.
-  const canShowFleetKmL = Boolean(access.fleetMileage && access.tabs.performance);
-  const showFleetKmL = canShowFleetKmL && activeTab === 'performance';
+  const canShowFleetKmL = Boolean(access.fleetMileage && access.tabs.mileage);
+  const showFleetKmL = canShowFleetKmL && activeTab === 'mileage';
   const showFleetKmLHint = canShowFleetKmL && !showFleetKmL;
 
   const subview = SUBVIEWS[activeTab];
@@ -198,12 +213,12 @@ export default function MileagePage() {
   const [refreshKey, setRefreshKey] = useState(0);
   // The photo bill dialog (F11). The by-hand form is still there.
   const [billPhotoOpen, setBillPhotoOpen] = useState(false);
-  // The WhatsApp chat export (.zip). It lands in the same mileage list.
-  const [whatsappExportOpen, setWhatsappExportOpen] = useState(false);
   const [billPhotosAvailable, setBillPhotosAvailable] = useState(true);
   const [billUploads, setBillUploads] = useState([]);
   const [billVehicles, setBillVehicles] = useState([]);
   const billQueue = useRef(null);
+  // A chat import that finishes while this page is open makes the list refresh.
+  useEffect(() => onImported(() => setRefreshKey((key) => key + 1)), []);
   if (!billQueue.current)
     billQueue.current = createBillQueue({
       upload: (args) => billPhotoService.uploadBillCapture(args),
@@ -215,16 +230,17 @@ export default function MileagePage() {
       },
     });
   useEffect(() => {
-    if (!ready || !access.editBills) return;
-    let live = true;
-    MileageApi.vehicles()
+    if (!ready || !access.editBills) return undefined;
+    const controller = new AbortController();
+    MileageApi.vehicles(controller.signal)
       .then((data) => {
-        if (live) setBillVehicles(Array.isArray(data) ? data : []);
+        if (!controller.signal.aborted) setBillVehicles(Array.isArray(data) ? data : []);
       })
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
+      .catch(() => {
+        // The bill dialog still works without the fleet list; the plate can be
+        // typed in by hand.
+      });
+    return () => controller.abort();
   }, [ready, access.editBills]);
 
   const updateParams = (patch, { replace = false } = {}) => {
@@ -236,7 +252,7 @@ export default function MileagePage() {
     setSearchParams(next, { replace });
   };
 
-  const openPerformanceTab = () => updateParams({ tab: 'performance', subtab: null, view: null });
+  const openMileageTab = () => updateParams({ tab: 'mileage', subtab: null, view: null });
 
   const choosePreset = (key) => updateParams({ dates: key, from: null, to: null });
   const changeRange = (patch) => {
@@ -296,7 +312,7 @@ export default function MileagePage() {
                 <div className="mhub-secondary-actions">
                   <button
                     type="button"
-                    onClick={() => setWhatsappExportOpen(true)}
+                    onClick={openDialog}
                     className="pshell-btn mhub-add-btn"
                   >
                     <MessageCircle size={15} aria-hidden /> Upload WhatsApp chat
@@ -337,7 +353,7 @@ export default function MileagePage() {
               range={range}
               showFleetKmL={showFleetKmL}
               showFleetKmLHint={showFleetKmLHint}
-              onOpenPerformance={openPerformanceTab}
+              onOpenPerformance={openMileageTab}
               refreshKey={refreshKey}
             />
 
@@ -403,30 +419,30 @@ export default function MileagePage() {
               {activeTab === 'reconciliation' && activeSubview === 'pumps' && (
                 <PumpLedgerView range={range} searchQuery={deferredSearch} />
               )}
-              {activeTab === 'performance' && activeSubview === 'vehicles' && (
+              {activeTab === 'mileage' && activeSubview === 'vehicles' && (
                 <ByTruckMileageView
                   range={range}
                   searchQuery={deferredSearch}
                   onOpenCycles={setCyclesTruck}
                 />
               )}
-              {activeTab === 'performance' && activeSubview === 'fleet' && (
+              {activeTab === 'mileage' && activeSubview === 'fleet' && (
                 <FleetRollupView range={range} />
               )}
-              {activeTab === 'performance' && activeSubview === 'cycles' && (
+              {activeTab === 'mileage' && activeSubview === 'cycles' && (
                 <FillToFillView
                   range={range}
                   searchQuery={deferredSearch}
                   onOpenCycles={setCyclesTruck}
                 />
               )}
-              {activeTab === 'performance' && activeSubview === 'expected' && (
+              {activeTab === 'mileage' && activeSubview === 'expected' && (
                 <ExpectedFuelView range={range} />
               )}
               {activeTab === 'reconciliation' && activeSubview === 'ecu' && (
                 <FuelComparisonPage embedded range={range} />
               )}
-              {activeTab === 'performance' && activeSubview === 'models' && (
+              {activeTab === 'mileage' && activeSubview === 'models' && (
                 <ModelComparisonPage embedded range={range} />
               )}
             </Suspense>
@@ -464,12 +480,6 @@ export default function MileagePage() {
           }}
         />
 
-        <WhatsappExportDialog
-          open={whatsappExportOpen}
-          onOpenChange={setWhatsappExportOpen}
-          onImported={() => setRefreshKey((k) => k + 1)}
-          onReview={() => navigate('/approvals?type=whatsapp')}
-        />
       </PageShell>
     </>
   );

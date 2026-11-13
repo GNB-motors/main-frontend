@@ -8,15 +8,19 @@ import {
   DialogTitle,
 } from '../../components/ui/dialog';
 import { Button } from '../../components/ui/button';
+import DriverSheetReview from './DriverSheetReview';
 import {
   cancelUpload,
   clearUrlFlag,
   closeDialog,
   onImported as listenForImport,
   openDialog,
+  readingProgressPercent,
+  readingProgressText,
   setFile,
   startUpload,
   summarise,
+  uploadProgressText,
   useChatUpload,
   urlWantsOpen,
 } from './chatUploadStore';
@@ -74,6 +78,8 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported, o
   // The file that was picked but is not a chat export: said here, not in the
   // session, because nothing was sent yet.
   const [pickError, setPickError] = useState('');
+  // The driver names found in the chat are reviewed in their own small dialog.
+  const [reviewOpen, setReviewOpen] = useState(false);
   // The address may ask for the dialog to be shown (the little pill).
   const [askedByUrl, setAskedByUrl] = useState(urlWantsOpen);
   const input = useRef(null);
@@ -136,13 +142,37 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported, o
       ? null
       : Number(photosMissingRaw);
   const photosMissing = Number.isFinite(photosMissingNumber) ? photosMissingNumber : null;
-  const running = state.stage === 'uploading' || state.stage === 'reading';
+  const running = state.stage === 'uploading' || state.stage === 'queued' || state.stage === 'reading';
   // Some of the photos made it and some did not, or the server did not report
   // all of the counts: the owner is told to look at the results below.
   const partial = summary.unknown || summary.hasProblems;
+  const readingPercent = readingProgressPercent(state.progress);
+  const driverSheet = state.result?.driverSheet;
+  // A count the server did not send is not zero: it is left out, not guessed.
+  const driverCount = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    const n = Number(value);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  };
+  const driverMissing = driverCount(driverSheet?.missing);
+  const driverConflicts = driverCount(driverSheet?.conflicts);
+  const driverParts = [];
+  if (driverMissing) {
+    driverParts.push(
+      `${driverMissing} ${driverMissing === 1 ? 'truck has' : 'trucks have'} no driver`,
+    );
+  }
+  if (driverConflicts) {
+    driverParts.push(
+      `${driverConflicts} ${driverConflicts === 1 ? 'differs' : 'differ'} from the app`,
+    );
+  }
+  const showDriverCard = driverParts.length > 0;
+  const driverCardText = `Driver list in the chat: ${driverParts.join(', ')} — Review`;
 
   return (
-    <Dialog
+    <>
+      <Dialog
       open={visible}
       onOpenChange={(next) => {
         if (next) {
@@ -164,7 +194,13 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported, o
           </DialogDescription>
         </DialogHeader>
         <div className="bp-dialog-body">
-          {state.stage === 'idle' ? (
+          {state.stage === 'checking' ? (
+            <div className="bp-progress" role="status">
+              <Loader2 size={26} className="animate-spin" aria-hidden="true" />
+              <strong>Checking upload…</strong>
+              <span>Looking for an import that may still be running.</span>
+            </div>
+          ) : state.stage === 'idle' ? (
             <>
               <button
                 type="button"
@@ -212,10 +248,21 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported, o
           ) : state.stage === 'uploading' ? (
             <div className="bp-progress" role="status">
               <Loader2 size={26} className="animate-spin" aria-hidden="true" />
-              <strong>{`Sending chat: ${state.percent}%`}</strong>
-              <div className="wxp-bar">
-                <div className="wxp-bar-fill" style={{ width: `${state.percent}%` }} />
-              </div>
+              <strong>{uploadProgressText(state.percent)}</strong>
+              {state.percent !== null && state.percent !== undefined ? (
+                <div className="wxp-bar">
+                  <div
+                    className="wxp-bar-fill"
+                    style={{ width: `${Math.min(100, Math.max(0, Number(state.percent)))}%` }}
+                  />
+                </div>
+              ) : null}
+              <span>You can close this and keep working. We&apos;ll tell you when it&apos;s done.</span>
+            </div>
+          ) : state.stage === 'queued' ? (
+            <div className="bp-progress" role="status">
+              <Loader2 size={26} className="animate-spin" aria-hidden="true" />
+              <strong>Waiting to start…</strong>
               <span>You can close this and keep working. We&apos;ll tell you when it&apos;s done.</span>
             </div>
           ) : state.stage === 'reading' ? (
@@ -238,21 +285,13 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported, o
                 </div>
               ) : null}
               <Loader2 size={26} className="animate-spin" aria-hidden="true" />
-              <strong>
-                {state.progress.total > 0
-                  ? `Reading photos: ${state.progress.read} of ${state.progress.total}`
-                  : 'Reading photos…'}
-              </strong>
-              {state.progress.total > 0 ? (
-                <div className="wxp-bar">
-                  <div
-                    className="wxp-bar-fill"
-                    style={{
-                      width: `${Math.round((state.progress.read / state.progress.total) * 100)}%`,
-                    }}
-                  />
-                </div>
-              ) : null}
+              <strong>{readingProgressText(state.progress)}</strong>
+              <div className={`wxp-bar${readingPercent === null ? ' wxp-bar--indeterminate' : ''}`}>
+                <div
+                  className="wxp-bar-fill"
+                  style={readingPercent === null ? undefined : { width: `${readingPercent}%` }}
+                />
+              </div>
               <span>You can close this and keep working. We&apos;ll tell you when it&apos;s done.</span>
             </div>
           ) : state.stage === 'failed' ? (
@@ -362,6 +401,11 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported, o
                   {`${photosMissing} photos missing: export the chat again with Include media.`}
                 </p>
               ) : null}
+              {showDriverCard ? (
+                <button type="button" className="wxp-driver-card" onClick={() => setReviewOpen(true)}>
+                  {driverCardText}
+                </button>
+              ) : null}
               {partial ? (
                 <p className="wxp-note">
                   Some photos could not be read. Review the results below.
@@ -423,7 +467,11 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported, o
                 Cancel upload
               </Button>
             </>
-          ) : state.stage === 'reading' ? (
+          ) : state.stage === 'reading' || state.stage === 'queued' ? (
+            <Button variant="outline" size="sm" onClick={close}>
+              Close
+            </Button>
+          ) : state.stage === 'checking' ? (
             <Button variant="outline" size="sm" onClick={close}>
               Close
             </Button>
@@ -439,6 +487,8 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported, o
           )}
         </div>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+      <DriverSheetReview open={reviewOpen} onOpenChange={setReviewOpen} />
+    </>
   );
 }

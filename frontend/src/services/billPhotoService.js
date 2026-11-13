@@ -33,15 +33,26 @@ export const uploadBillCapture = async ({ body, clientId, signal } = {}) => {
     throw ApiError.from(error);
   }
 };
+/**
+ * The bill captures of one queue. `source` says which queue: "office" is the
+ * bills owners and managers upload.
+ */
 export const listBillCaptures = async ({
   status,
   uploaderRole,
+  source,
   page = 1,
   limit = 50,
   signal,
 } = {}) => {
   const res = await apiClient.get(base, {
-    params: { status, ...(uploaderRole && { uploaderRole }), page, limit },
+    params: {
+      status,
+      ...(uploaderRole && { uploaderRole }),
+      ...(source && { source }),
+      page,
+      limit,
+    },
     signal,
   });
   return res.data?.data;

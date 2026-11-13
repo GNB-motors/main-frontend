@@ -8,6 +8,7 @@ import { getUserRole } from '../../../../utils/session';
 import { draftListParams, filterDraftsLocally } from './receiptFilters';
 import { computeReceiptKpis, kpisFromSummary } from './receiptKpis';
 import { plainActionError, plainLoadError, refusalMessage } from './receiptActions';
+import { useBulkApproval } from './useBulkApproval';
 
 // The receipt inbox's state, fetching, selection and actions, in their original hook order.
 const useReceiptInbox = ({ onCounts }) => {
@@ -279,49 +280,16 @@ const useReceiptInbox = ({ onCounts }) => {
   );
 
   // Bulk Approve
-  const handleBulkApprove = useCallback(async () => {
-    if (selectedIds.size === 0 || bulkBusy) return;
-    setBulkBusy(true);
-    try {
-      const ids = Array.from(selectedIds);
-      const data = await ReceiptApprovalService.bulkPublishDrafts(ids);
-      const { successCount = 0, failureCount = 0, failed = [] } = data;
-
-      if (failureCount === 0) {
-        toast.success(
-          `Successfully published ${successCount} fuel receipt${successCount === 1 ? '' : 's'}`,
-        );
-      } else {
-        // Every refusal keeps its own words, next to its own row.
-        failed.forEach((f) =>
-          setRowError(
-            f?.id,
-            plainActionError(
-              { message: f?.message },
-              'The receipt was not approved. Please check it and try again.',
-            ),
-          ),
-        );
-        const failureMessages = Array.from(new Set(failed.map((f) => f.message).filter(Boolean)));
-        if (successCount > 0) {
-          toast.success(`Published ${successCount} fuel receipt${successCount === 1 ? '' : 's'}`);
-        }
-        if (failureMessages.length > 0) {
-          failureMessages.forEach((msg) => toast.error(msg));
-        } else {
-          toast.error(`${failureCount} receipts failed to publish`);
-        }
-      }
-
-      setShowBulkApproveModal(false);
-      clearSelection();
-      await fetchData();
-    } catch (err) {
-      toast.error(plainActionError(err, 'Error processing bulk approval'));
-    } finally {
-      setBulkBusy(false);
-    }
-  }, [selectedIds, bulkBusy, clearSelection, fetchData, setRowError]);
+  const { handleBulkApprove } = useBulkApproval({
+    selectedIds,
+    selectedDrafts,
+    bulkBusy,
+    setBulkBusy,
+    clearSelection,
+    fetchData,
+    setRowError,
+    setShowBulkApproveModal,
+  });
 
   // Bulk Reject
   const handleBulkReject = useCallback(async () => {

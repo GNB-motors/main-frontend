@@ -667,6 +667,16 @@
   text-transform: uppercase;
 }
 
+/* Where a station name came from: a quieter line under it. */
+.ra-station-source {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Odometer Cell */
 .ra-odo-cell {
   display: flex;
@@ -1911,6 +1921,13 @@
   border-color: rgba(16, 185, 129, 0.3);
 }
 
+/* A chip that carries a whole sentence: it wraps instead of running over. */
+.ra-chip--wrap {
+  white-space: normal;
+  font-weight: 600;
+  text-align: left;
+}
+
 /* The time of a chat row: the read time, the prediction, or nothing. */
 .ra-time-cell {
   display: flex;
@@ -2021,6 +2038,60 @@
 .ra-prop__val--muted {
   color: var(--muted-foreground);
   font-weight: 500;
+}
+
+/* A section of the drawer that folds away: the header is a button. */
+.ra-collapse {
+  padding: 0;
+  overflow: hidden;
+}
+
+.ra-collapse__toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: none;
+  border: 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: left;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.ra-collapse__toggle:hover {
+  background: var(--secondary);
+}
+
+.ra-collapse__toggle:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+
+.ra-collapse__chevron {
+  flex: 0 0 auto;
+}
+
+.ra-collapse__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ra-collapse__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 14px 14px;
+}
+
+.ra-collapse__panel .ra-section-card__title {
+  margin-bottom: 0;
 }
 
 /* The note that rides along with a chip: "Truck not identified". */
@@ -2202,5 +2273,80 @@
 @media (max-width: 480px) {
   .ra-grid-props {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Key fields that must be checked before a receipt is approved. */
+.ra-key-field-label {
+  display: inline-flex;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 18%, transparent);
+  border-radius: 999px;
+  color: var(--muted-foreground);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+.ra-key-needed {
+  color: #dc2626;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.ra-prop--missing {
+  border-radius: 7px;
+  outline: 1px solid #ef4444;
+  outline-offset: 3px;
+}
+
+.ra-input--missing {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 1px rgb(239 68 68 / 20%);
+}
+
+.ra-btn--blocked,
+.ra-btn--blocked:hover:not(:disabled) {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.ra-btn--shake {
+  animation: ra-blocked-shake 400ms ease-in-out;
+}
+
+.ra-key-blocked-alert {
+  max-width: 220px;
+  color: #dc2626;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+@keyframes ra-blocked-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ra-btn--shake {
+    animation: none;
   }
 }

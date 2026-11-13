@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import ApprovalsPage from './ApprovalsPage';
 import OfficeBillApprovals from './OfficeBillApprovals';
 import billPhotoService from '../../services/billPhotoService';
-import { ConfirmedBillRow } from './OfficeBillDetails';
+import { ConfirmedBillRow } from './ConfirmedBillRow';
 vi.mock('../../hooks/usePageLayout', () => ({ useFullPageLayout: vi.fn() }));
 vi.mock('../../contexts/FeatureFlagsContext', () => ({
   useFeatureFlags: () => ({ isEnabled: () => false }),
@@ -25,6 +25,7 @@ vi.mock('../../services/billPhotoService', () => ({
     getBillSuggestion: vi.fn(),
     getBillPage: vi.fn(),
     editBillLink: vi.fn(),
+    saveBillLinks: vi.fn(),
   },
 }));
 describe('office approvals', () => {
@@ -126,7 +127,9 @@ describe('the office bill queue', () => {
   it('keeps the bills it already has when a load fails and offers a retry', async () => {
     let fail = false;
     billPhotoService.listBillCaptures.mockImplementation(() =>
-      fail ? Promise.reject(new Error('offline')) : Promise.resolve({ captures: [CAPTURE], total: 1 }),
+      fail
+        ? Promise.reject(new Error('offline'))
+        : Promise.resolve({ captures: [CAPTURE], total: 1 }),
     );
     render(
       <MemoryRouter>
@@ -160,4 +163,97 @@ describe('the office bill queue', () => {
   });
 });
 
+const UNCONFIRMED_CAPTURE = {
+  id: 'cap-2',
+  createdAt: '2026-11-01T00:00:00Z',
+  uploadedBy: { name: 'Asha', role: 'OWNER' },
+  ocr: { litres: 180, amount: 4500, printedDate: '2026-11-01' },
+};
 
+describe('the office bill queue markup', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    URL.createObjectURL = vi.fn(() => 'blob:bill-photo');
+    URL.revokeObjectURL = vi.fn();
+    billPhotoService.getBillPage.mockResolvedValue(new Blob(['photo']));
+    billPhotoService.getBillSuggestion.mockResolvedValue({
+      decision: 'ASK',
+      askReason: 'NO_PLATE_DIGITS',
+      candidates: [],
+      why: { code: 'NO_PRINTED_TIME', text: 'the time could not be read', basis: '' },
+      photo: { date: '2026-11-01', time: '12:01', timeSource: 'stamp' },
+    });
+  });
+
+  it('asks the server for office captures and shows the shared columns', async () => {
+    billPhotoService.listBillCaptures.mockResolvedValue({ captures: [CAPTURE], total: 1 });
+    render(
+      <MemoryRouter>
+        <OfficeBillApprovals />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('180 L')).toBeInTheDocument();
+    expect(billPhotoService.listBillCaptures).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'pending',
+        uploaderRole: 'OWNER,MANAGER',
+        source: 'office',
+        page: 1,
+        limit: 50,
+      }),
+    );
+    const headers = screen.getAllByRole('columnheader').map((cell) => cell.textContent.trim());
+    expect(headers).toEqual([
+      'Photo',
+      'Truck',
+      'Uploaded by',
+      'Pump',
+      'Litres',
+      'Amount',
+      'Rate',
+      'Bill date/time',
+      'Match status',
+      'Actions',
+    ]);
+  });
+
+  it('says plainly when there is nothing waiting and nothing confirmed', async () => {
+    billPhotoService.listBillCaptures.mockResolvedValue({ captures: [], total: 0 });
+    render(
+      <MemoryRouter>
+        <OfficeBillApprovals />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('No bills waiting.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /Confirmed/ }));
+    expect(await screen.findByText('No confirmed bills.')).toBeInTheDocument();
+  });
+
+  it('says when the office bills cannot be reached and offers a retry', async () => {
+    billPhotoService.listBillCaptures.mockRejectedValue({ response: { status: 404 } });
+    render(
+      <MemoryRouter>
+        <OfficeBillApprovals />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('Office bills are unavailable right now.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Retry/ })).toBeInTheDocument();
+  });
+
+  it('opens the bill drawer when a bill is reviewed', async () => {
+    billPhotoService.listBillCaptures.mockResolvedValue({
+      captures: [UNCONFIRMED_CAPTURE],
+      total: 1,
+    });
+    render(
+      <MemoryRouter>
+        <OfficeBillApprovals />
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Review' }));
+    expect(
+      await screen.findByText('We could not suggest a truck for this bill — pick one below.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Confirm/ })).toBeInTheDocument();
+  });
+});

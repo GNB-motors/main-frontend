@@ -1,24 +1,21 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   X,
-  CheckCircle2,
-  XCircle,
-  Archive,
   Receipt,
   ShieldCheck,
   AlertTriangle,
   ExternalLink,
   ChevronLeft,
   ChevronRight,
-  Store,
 } from 'lucide-react';
-import { toast } from 'react-toastify';
 import { ReceiptApprovalService } from './ReceiptApprovalService';
 import DrawerViewerPane from './receipts/DrawerViewerPane';
 import DrawerDetailsPane from './receipts/DrawerDetailsPane';
 import ChatDraftEditor from './receipts/ChatDraftEditor';
-import { initialChatEdits, isChatRow, publishPayload } from './receipts/chatDraft';
-import { plainActionError, refusalMessage } from './receipts/receiptActions';
+import ReceiptApprovalActions from './receipts/ReceiptApprovalActions';
+import { useReceiptApprovalActions } from './receipts/useReceiptApprovalActions';
+import { initialChatEdits, isChatRow } from './receipts/chatDraft';
+import { plainActionError } from './receipts/receiptActions';
 import {
   evaluateOcrQuality,
   getOdometerMeta,
@@ -52,13 +49,12 @@ const ReceiptApprovalDrawer = ({
   const [rotation, setRotation] = useState(0);
   const [activeTab, setActiveTab] = useState('bill'); // 'bill' | 'odometer'
   const [photoIndex, setPhotoIndex] = useState(0);
-  const [rejectModalOpen, setRejectModalOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
   // What a person changed in the drawer, ready to be saved with the approve.
   const [edits, setEdits] = useState(null);
   // The org's vehicles, for the truck picker of a chat-import row.
   const [vehicles, setVehicles] = useState([]);
   const [vehiclesError, setVehiclesError] = useState('');
+  const [closeNotice, setCloseNotice] = useState('');
 
   const loadVehicles = useCallback(async () => {
     try {
@@ -87,13 +83,34 @@ const ReceiptApprovalDrawer = ({
       setEdits(initialChatEdits(data));
       if (isChatRow(data)) loadVehicles();
     } catch (err) {
-      setActionError(
-        plainActionError(err, 'We could not load this receipt. Please try again.'),
-      );
+      setActionError(plainActionError(err, 'We could not load this receipt. Please try again.'));
     } finally {
       setLoading(false);
     }
   }, [draftId, loadVehicles]);
+
+  const {
+    rejectModalOpen,
+    setRejectModalOpen,
+    rejectReason,
+    setRejectReason,
+    shakeCount,
+    publishButtonRef,
+    visibleMissing,
+    handleSetTime,
+    handlePublish,
+    handleMarket,
+    handleReject,
+    handleClear,
+  } = useReceiptApprovalActions({
+    draft,
+    edits,
+    loadDraft,
+    onUpdated,
+    actionBusy,
+    setActionBusy,
+    setActionError,
+  });
 
   useEffect(() => {
     if (isOpen && draftId) {
@@ -105,136 +122,39 @@ const ReceiptApprovalDrawer = ({
   useEffect(() => {
     const handleKey = (e) => {
       if (!isOpen) return;
-      if (e.key === 'Escape' && !rejectModalOpen) onClose();
+      if (e.key === 'Escape' && !rejectModalOpen) closeRef.current();
       if (e.key === 'Escape' && rejectModalOpen) setRejectModalOpen(false);
       if (e.key === 'ArrowLeft' && hasPrev) onPrev?.();
       if (e.key === 'ArrowRight' && hasNext) onNext?.();
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [isOpen, onClose, onPrev, onNext, hasPrev, hasNext, rejectModalOpen]);
+  }, [isOpen, onPrev, onNext, hasPrev, hasNext, rejectModalOpen, setRejectModalOpen]);
 
-  // The time of the fill, set by a person: accept the prediction, or type it.
-  const handleSetTime = async (action, at) => {
-    if (!draft?._id || actionBusy) return;
-    setActionBusy(true);
-    setActionError('');
-    try {
-      await ReceiptApprovalService.setDraftTime(
-        draft._id,
-        action === 'accept' ? { action: 'accept' } : { action: 'set', at },
-      );
-      toast.success(
-        action === 'accept' ? 'The predicted time was accepted' : 'The time of the fill was saved',
-      );
-      await loadDraft();
-      onUpdated?.();
-    } catch (err) {
-      setActionError(plainActionError(err, 'Could not save the time'));
-    } finally {
-      setActionBusy(false);
-    }
-  };
+  // Work that closing the drawer would throw away: the edits the person made
+  // in the form that have not been approved yet.
+  const unsavedEdits =
+    Boolean(draft) &&
+    Boolean(edits) &&
+    JSON.stringify(edits) !== JSON.stringify(initialChatEdits(draft));
 
-  // Publish action. A chat-import row is saved with what the person changed.
-  const handlePublish = async () => {
-    if (!draft?._id || actionBusy) return;
-    setActionBusy(true);
-    setActionError('');
-    try {
-      const payload = isChatRow(draft) ? publishPayload(edits) : {};
-      const result = await ReceiptApprovalService.publishDraft(draft._id, payload);
-      // A resolved promise is not always a success: the server can refuse.
-      const refusal = refusalMessage(
-        result,
-        'The receipt was not approved. Please check the details and try again.',
-      );
-      if (refusal) {
-        setActionError(refusal);
-        return;
-      }
-      const veh = draft.vehicleId?.registrationNumber || draft.vehicleReg || 'vehicle';
-      toast.success(`Published receipt for ${veh} to Fuel Ledger`);
-      await loadDraft();
-      onUpdated?.();
-    } catch (err) {
-      setActionError(
-        plainActionError(err, 'The receipt was not approved. Please try again.'),
-      );
-    } finally {
-      setActionBusy(false);
+  // The drawer closes only when nothing would be lost.
+  const closeDrawer = () => {
+    if (actionBusy) {
+      setCloseNotice('Saving — please wait for it to finish.');
+      return;
     }
-  };
-
-  // A truck that is not in our fleet: the fill is saved without a vehicle.
-  const handleMarket = async () => {
-    if (!draft?._id || actionBusy) return;
-    setActionBusy(true);
-    setActionError('');
-    try {
-      const result = await ReceiptApprovalService.markDraftAsMarket(
-        draft._id,
-        publishPayload(edits),
-      );
-      const refusal = refusalMessage(
-        result,
-        'The row was not marked as a market truck. Please try again.',
-      );
-      if (refusal) {
-        setActionError(refusal);
-        return;
-      }
-      toast.success('Marked as a market truck — no fleet vehicle needed');
-      await loadDraft();
-      onUpdated?.();
-    } catch (err) {
-      setActionError(
-        plainActionError(err, 'The row was not marked as a market truck. Please try again.'),
-      );
-    } finally {
-      setActionBusy(false);
+    // A rejection in progress owns the screen: its own words are on it.
+    if (rejectModalOpen) return;
+    if (unsavedEdits) {
+      setCloseNotice('You have unsaved changes');
+      return;
     }
+    onClose?.();
   };
-
-  // Reject action. On a chat-import row this keeps the row as "not a fill".
-  const handleReject = async () => {
-    if (!draft?._id || actionBusy) return;
-    setActionBusy(true);
-    setActionError('');
-    try {
-      await ReceiptApprovalService.rejectDraft(draft._id, rejectReason.trim() || undefined);
-      toast.success(
-        isChatRow(draft)
-          ? 'Kept as “not a fill” — the photo stays in the inbox'
-          : 'Receipt marked as rejected',
-      );
-      setRejectModalOpen(false);
-      setRejectReason('');
-      await loadDraft();
-      onUpdated?.();
-    } catch (err) {
-      setActionError(plainActionError(err, 'The receipt was not rejected. Please try again.'));
-    } finally {
-      setActionBusy(false);
-    }
-  };
-
-  // Clear action
-  const handleClear = async () => {
-    if (!draft?._id || actionBusy) return;
-    setActionBusy(true);
-    setActionError('');
-    try {
-      await ReceiptApprovalService.clearDraft(draft._id, 'Cleared from drawer');
-      toast.success('Receipt cleared from inbox');
-      await loadDraft();
-      onUpdated?.();
-    } catch (err) {
-      setActionError(plainActionError(err, 'The receipt was not cleared. Please try again.'));
-    } finally {
-      setActionBusy(false);
-    }
-  };
+  // Escape must reach the same guard without re-registering the listener.
+  const closeRef = useRef(closeDrawer);
+  closeRef.current = closeDrawer;
 
   if (!isOpen) return null;
 
@@ -253,8 +173,17 @@ const ReceiptApprovalDrawer = ({
       : draft?.fuelImageUrl;
 
   return (
-    <div className="ra-drawer-backdrop" role="presentation" onClick={onClose}>
-      <div className="ra-drawer" role="presentation" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="ra-drawer-backdrop"
+      role="presentation"
+      onMouseDown={(event) => {
+        // Only a press that starts on the dimmed background closes the drawer:
+        // a drag that starts inside the panel and ends outside must not.
+        if (event.target !== event.currentTarget) return;
+        closeDrawer();
+      }}
+    >
+      <div className="ra-drawer" role="presentation">
         {/* Drawer Header */}
         <div className="ra-drawer__header">
           <div className="ra-drawer__header-left">
@@ -313,7 +242,7 @@ const ReceiptApprovalDrawer = ({
             <button
               type="button"
               className="ra-drawer__close"
-              onClick={onClose}
+              onClick={closeDrawer}
               title="Close Drawer (Esc)"
               aria-label="Close Drawer"
             >
@@ -357,6 +286,7 @@ const ReceiptApprovalDrawer = ({
               <div className="ra-drawer__details-col">
                 <DrawerDetailsPane
                   draft={draft}
+                  edits={edits}
                   ocrEval={ocrEval}
                   veh={veh}
                   odoMeta={odoMeta}
@@ -380,6 +310,12 @@ const ReceiptApprovalDrawer = ({
         </div>
 
         {/* A refusal belongs to this row: the words sit in the drawer. */}
+        {closeNotice && (
+          <div className="ra-alert" role="alert">
+            <AlertTriangle size={16} />
+            <span>{closeNotice}</span>
+          </div>
+        )}
         {actionError && (
           <div className="ra-alert ra-alert--error" role="alert">
             <AlertTriangle size={16} />
@@ -387,119 +323,23 @@ const ReceiptApprovalDrawer = ({
           </div>
         )}
 
-        {/* Drawer Action Footer */}
-        {draft && (
-          <div className="ra-drawer__footer">
-            <div className="ra-drawer__footer-left">
-              <span className="ra-drawer__footer-id">Ref #{draft._id.slice(-8)}</span>
-            </div>
-
-            <div className="ra-drawer__footer-actions">
-              {isReady ? (
-                <>
-                  <button
-                    type="button"
-                    className="ra-btn ra-btn--clear"
-                    onClick={handleClear}
-                    disabled={actionBusy}
-                  >
-                    <Archive size={16} />
-                    Clear
-                  </button>
-                  {isChat && (
-                    <button
-                      type="button"
-                      className="ra-btn ra-btn--clear"
-                      onClick={handleMarket}
-                      disabled={actionBusy}
-                    >
-                      <Store size={16} />
-                      Market truck
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="ra-btn ra-btn--reject"
-                    onClick={() => setRejectModalOpen(true)}
-                    disabled={actionBusy}
-                  >
-                    <XCircle size={16} />
-                    {isChat ? 'Not a fill' : 'Reject'}
-                  </button>
-                  <button
-                    type="button"
-                    className="ra-btn ra-btn--publish"
-                    onClick={handlePublish}
-                    disabled={actionBusy}
-                  >
-                    <CheckCircle2 size={16} />
-                    {actionBusy ? 'Publishing…' : 'Approve & Publish'}
-                  </button>
-                </>
-              ) : (
-                <div className="ra-drawer__settled-state">
-                  This draft is currently <strong>{draft.status}</strong>.
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Inline Reject Modal */}
-        {rejectModalOpen && (
-          <div
-            className="ra-modal-overlay"
-            role="presentation"
-            onClick={() => setRejectModalOpen(false)}
-          >
-            <div className="ra-modal" role="presentation" onClick={(e) => e.stopPropagation()}>
-              <div className="ra-modal__head">
-                {isChat ? 'This photo is not a fill' : 'Reject Fuel Receipt'}
-              </div>
-              <div className="ra-modal__body">
-                <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: 'var(--foreground)' }}>
-                  {isChat
-                    ? 'This row is kept as “not a fill”. The photo is not deleted — it stays in the inbox so you can find it later.'
-                    : 'State the reason for rejection (this will be recorded in the audit trail and sent to the driver):'}
-                </p>
-                <textarea
-                  rows={3}
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder={
-                    isChat
-                      ? 'e.g. A photo of the pump, not a bill…'
-                      : 'e.g. Unclear bill photo, incorrect vehicle registration, suspicious pump rate…'
-                  }
-                  className="ra-modal__textarea"
-                  aria-label="Rejection reason"
-                />
-              </div>
-              <div className="ra-modal__foot">
-                <button
-                  type="button"
-                  className="ra-btn ra-btn--ghost"
-                  onClick={() => setRejectModalOpen(false)}
-                  disabled={actionBusy}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="ra-btn ra-btn--reject"
-                  onClick={handleReject}
-                  disabled={actionBusy}
-                >
-                  {actionBusy
-                    ? 'Saving…'
-                    : isChat
-                      ? 'Keep as not a fill'
-                      : 'Confirm Rejection'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ReceiptApprovalActions
+          draft={draft}
+          isReady={isReady}
+          isChat={isChat}
+          actionBusy={actionBusy}
+          visibleMissing={visibleMissing}
+          shakeCount={shakeCount}
+          publishButtonRef={publishButtonRef}
+          handleClear={handleClear}
+          handleMarket={handleMarket}
+          handlePublish={handlePublish}
+          handleReject={handleReject}
+          rejectModalOpen={rejectModalOpen}
+          setRejectModalOpen={setRejectModalOpen}
+          rejectReason={rejectReason}
+          setRejectReason={setRejectReason}
+        />
       </div>
     </div>
   );

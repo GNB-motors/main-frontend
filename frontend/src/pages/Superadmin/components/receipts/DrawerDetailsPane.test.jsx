@@ -38,12 +38,170 @@ const PREDICTED = {
   evidence: { sensor: { litres: 100 } },
 };
 
+/** Open one of the folding sections of the drawer. */
+const openSection = (name) => {
+  fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${name}`) }));
+};
+
+describe('DrawerDetailsPane — the key facts', () => {
+  it('shows the facts of the fill in one small card', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={draftWith({ value: '2026-11-10T13:10:00.000Z', source: 'stamp' })}
+      />,
+    );
+
+    ['Truck', 'Litres', 'Amount', 'Rate', 'Fill time', 'Odometer', 'Pump', 'Driver', 'Mileage'].forEach(
+      (label) => {
+        expect(screen.getByText(label)).toBeTruthy();
+      },
+    );
+  });
+
+  it('shows the driver assigned to the truck, and since when', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{
+          ...draftWith({}),
+          driverAssigned: {
+            driverId: 'd1',
+            name: 'Ramesh',
+            source: 'ASSIGNMENT',
+            since: '2026-01-05T00:00:00.000Z',
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Ramesh · assigned')).toBeTruthy();
+    expect(screen.getByText(/Assigned since/)).toBeTruthy();
+  });
+
+  it('shows a dash when no driver is known', () => {
+    render(<DrawerDetailsPane {...props} draft={draftWith({})} />);
+
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+  });
+
+  it('shows the pump and where the pump came from', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{
+          ...draftWith({}),
+          pump: { name: 'Jhargram Pump 3', lat: 23.5, lng: 87.1, source: 'DETECTED_FILL' },
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Jhargram Pump 3')).toBeTruthy();
+    expect(screen.getByText("Source: truck's detected fill")).toBeTruthy();
+  });
+
+  it('shows the mileage against the usual of that truck', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{
+          ...draftWith({}),
+          mileage: {
+            computed: 3.4,
+            vsAverage: {
+              average: 3.9,
+              n: 8,
+              source: 'FLEETEDGE',
+              deltaPct: 12,
+              verdict: 'worse',
+            },
+          },
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText("3.4 km/L · 12% below this truck's usual 3.9 (8 fills)"),
+    ).toBeTruthy();
+    expect(screen.getByText('Source: tracker')).toBeTruthy();
+  });
+
+  it('never invents a comparison that was not measured', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{ ...draftWith({}), mileage: { computed: 3.4 } }}
+      />,
+    );
+
+    expect(screen.getByText('3.4 km/L · Comparison not available')).toBeTruthy();
+  });
+});
+
+describe('DrawerDetailsPane — the folding sections', () => {
+  it('starts every section closed, with a summary in the header', () => {
+    render(<DrawerDetailsPane {...props} draft={draftWith({})} />);
+
+    const checks = screen.getByRole('button', { name: /^Checks/ });
+    expect(checks.tagName).toBe('BUTTON');
+    expect(checks.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getByRole('button', { name: 'Checks · Not checked' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Predictions · No suggestions' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Station details · Jhargram Pump' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Audit · Uploader unknown' })).toBeTruthy();
+  });
+
+  it('opens a section and says that it is open', () => {
+    render(<DrawerDetailsPane {...props} draft={draftWith({})} />);
+
+    const checks = screen.getByRole('button', { name: /^Checks/ });
+    fireEvent.click(checks);
+
+    expect(checks.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByText('Math Verified')).toBeTruthy();
+    expect(screen.getAllByText('1200 km').length).toBeGreaterThan(0);
+  });
+
+  it('says how many truck suggestions there are', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{
+          ...draftWith({}),
+          truck: {
+            bucket: 'AMBIGUOUS',
+            candidates: [{ vehicleId: 'v1' }, { vehicleId: 'v2' }],
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Predictions · 2 truck suggestions' })).toBeTruthy();
+  });
+
+  it('says that a check needs a look', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{
+          ...draftWith({}),
+          checks: { MATH: { status: 'FAIL', detail: 'The amount is not the litres times the rate.' } },
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Checks · 1 needs a look' })).toBeTruthy();
+  });
+});
+
 describe('DrawerDetailsPane — the predicted fill time', () => {
   it('shows the predicted time in plain words, never as a read time', () => {
     render(<DrawerDetailsPane {...props} draft={draftWith({ predicted: PREDICTED })} />);
+    openSection('Predictions');
 
     expect(screen.getByText('Predicted 10 Nov, 6:40 pm (tank rise, one clue)')).toBeTruthy();
     // The read time of the photo is still unknown.
+    openSection('Audit');
     expect(screen.getByText('Bill Date & Time')).toBeTruthy();
     expect(screen.getByText('Fill time not read from the photo.')).toBeTruthy();
   });
@@ -57,6 +215,7 @@ describe('DrawerDetailsPane — the predicted fill time', () => {
         onSetTime={onSetTime}
       />,
     );
+    openSection('Predictions');
 
     fireEvent.click(screen.getByRole('button', { name: 'Use suggested time' }));
     expect(onSetTime).toHaveBeenCalledWith('accept');
@@ -74,6 +233,7 @@ describe('DrawerDetailsPane — the predicted fill time', () => {
         onSetTime={onSetTime}
       />,
     );
+    openSection('Predictions');
 
     fireEvent.click(screen.getByRole('button', { name: 'Set time' }));
     fireEvent.change(screen.getByLabelText('Time of the fill'), {
@@ -113,6 +273,7 @@ describe('DrawerDetailsPane — the predicted fill time', () => {
       },
     });
     render(<DrawerDetailsPane {...props} draft={draft} />);
+    openSection('Predictions');
 
     expect(screen.getByText('Tank rise at Jhargram Pump of 100 L at 6:40 pm.')).toBeTruthy();
     expect(
@@ -145,7 +306,7 @@ describe('DrawerDetailsPane — the facts a draft carries', () => {
     );
 
     expect(screen.getByText('10 Nov, 6:40 pm')).toBeTruthy();
-    expect(screen.getByText('Photo stamp')).toBeTruthy();
+    expect(screen.getAllByText('Source: photo').length).toBeGreaterThan(0);
     // The server decided this year from the stamp: no warning.
     expect(screen.queryByText('year not confirmed — check the bill')).toBeNull();
   });
@@ -158,15 +319,16 @@ describe('DrawerDetailsPane — the facts a draft carries', () => {
       />,
     );
 
-    expect(screen.getByText('Printed bill')).toBeTruthy();
+    expect(screen.getByText('Source: printed bill')).toBeTruthy();
     expect(screen.getByText('year not confirmed — check the bill')).toBeTruthy();
   });
 
   it('says what the station does not tell us', () => {
     render(<DrawerDetailsPane {...props} draft={draftWith({})} />);
+    openSection('Station details');
 
     expect(screen.queryByText('Station not read from the photo.')).toBeNull();
-    expect(screen.getByText('Pump location not available.')).toBeTruthy();
+    expect(screen.queryByText('Pump GPS Coordinates')).toBeNull();
     expect(screen.getByText('Halt duration not available.')).toBeTruthy();
     expect(screen.getByText('Location match not checked.')).toBeTruthy();
     expect(screen.getByText('Benchmark not available')).toBeTruthy();
@@ -174,14 +336,16 @@ describe('DrawerDetailsPane — the facts a draft carries', () => {
 
   it('keeps the sender and the driver apart', () => {
     render(<DrawerDetailsPane {...props} draft={draftWith({})} />);
+    openSection('Audit');
 
     expect(screen.getByText('Uploaded by')).toBeTruthy();
-    expect(screen.getByText('Driver')).toBeTruthy();
+    expect(screen.getAllByText('Driver').length).toBeGreaterThan(0);
     expect(screen.getAllByText('—').length).toBeGreaterThan(0);
   });
 
-  it('calls the caption the sender\u2019s message when no driver is known', () => {
+  it('calls the caption the sender’s message when no driver is known', () => {
     render(<DrawerDetailsPane {...props} draft={{ ...draftWith({}), caption: 'Filled up' }} />);
+    openSection('Audit');
 
     expect(screen.getByText('Message from the sender')).toBeTruthy();
   });

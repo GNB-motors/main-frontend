@@ -129,3 +129,68 @@ describe('ReceiptRow — a chat-import row', () => {
     expect(screen.getByText('Printed bill')).toBeInTheDocument();
   });
 });
+
+describe('ReceiptRow — what the server knows about the fill', () => {
+  it('names the driver assigned to the truck', () => {
+    renderRow({
+      ...chatRow,
+      driverAssigned: { driverId: 'd1', name: 'Ramesh', source: 'ASSIGNMENT' },
+    });
+
+    expect(screen.getByText('Driver: Ramesh · assigned')).toBeInTheDocument();
+  });
+
+  it('shows the pump of the fill and where it came from', () => {
+    renderRow({
+      ...chatRow,
+      pump: { name: 'Jhargram Pump 3', lat: 23.5, lng: 87.1, source: 'DETECTED_FILL' },
+    });
+
+    expect(screen.getByText('Jhargram Pump 3')).toBeInTheDocument();
+    expect(screen.getByText("Source: truck's detected fill")).toBeInTheDocument();
+  });
+
+  it('shows the station name when there is no pump', () => {
+    renderRow({ ...chatRow, stationName: 'IOCL Highway Service' });
+
+    expect(screen.getByText('IOCL Highway Service')).toBeInTheDocument();
+    expect(screen.getByText('Source: photo')).toBeInTheDocument();
+  });
+
+  it('shows the mileage against the usual of that truck', () => {
+    renderRow({
+      ...chatRow,
+      mileage: {
+        computed: 3.4,
+        vsAverage: {
+          average: 3.9,
+          n: 8,
+          source: 'FLEETEDGE',
+          deltaPct: 12,
+          verdict: 'worse',
+        },
+      },
+    });
+
+    expect(
+      screen.getByText("3.4 km/L · 12% below this truck's usual 3.9 (8 fills)"),
+    ).toBeInTheDocument();
+  });
+
+  it('never invents a verdict when the comparison is not there', () => {
+    renderRow({ ...chatRow, mileage: { computed: 3.4 } });
+
+    expect(screen.getByText('3.4 km/L · Comparison not available')).toBeInTheDocument();
+  });
+
+  it('never gives a photo chip to a reading that did not come from a photo', () => {
+    renderRow({
+      ...chatRow,
+      odometerReading: 154200,
+      odometerSource: 'DETECTED_FILL',
+    });
+
+    expect(screen.queryByText('Dash Photo OCR')).not.toBeInTheDocument();
+    expect(screen.getByText("Source: truck's detected fill")).toBeInTheDocument();
+  });
+});

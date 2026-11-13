@@ -1,123 +1,55 @@
 import { useState } from 'react';
+import { CheckCircle2, AlertTriangle, MessageCircle } from 'lucide-react';
+import { fmtDate, fmtRelativeTime } from './receiptFormat';
 import {
-  CheckCircle2,
-  Receipt,
-  Gauge,
-  MapPin,
-  Clock,
-  User,
-  AlertTriangle,
-  MessageCircle,
-} from 'lucide-react';
-import { fmtMoney, fmtLitres, fmtDate, fmtRelativeTime } from './receiptFormat';
-import {
-  predictedEvidenceLines,
-  predictedTimeText,
-  fillTimeFromDraft,
-  matchedRiseText,
-} from './predictedTime';
-import { isChatRow, uploaderOf, driverOf } from './chatDraft';
+  isChatRow,
+  uploaderOf,
+  driverOf,
+  driverAssignedOf,
+  pumpOf,
+  truckCandidates,
+} from './chatDraft';
+import { isPhotoSource, sourceText, sourceWord } from './sourceWords';
+import CollapsibleSection from './CollapsibleSection';
+import PredictedFill from './PredictedFill';
+import TimeControls from './TimeControls';
+import KeyFactsCard from './KeyFactsCard';
 
-/** The suggested time of a fill, with the buttons a person needs. */
-const SuggestedTime = ({ draft, onSetTime, timeBusy, hidden = false }) => {
-  const [editing, setEditing] = useState(false);
-  const [typed, setTyped] = useState('');
-  const predicted = draft?.time?.predicted || null;
-  const person = draft?.time?.person || null;
-  const text = predictedTimeText(predicted);
-  const evidenceLines = predictedEvidenceLines(predicted?.evidence);
-  if (hidden) return null;
-  if (!text && !person?.at) return null;
-
-  return (
-    <div className="ra-prop ra-prop--full ra-prop--predicted">
-      <span className="ra-prop__label">Suggested time</span>
-      {text && (
-        <span className="ra-prop__val ra-prop__val--predicted">
-          <Clock size={13} style={{ display: 'inline', marginRight: 4 }} />
-          {text}
-        </span>
-      )}
-      {predicted && <span className="ra-prop__val">{matchedRiseText(predicted)}</span>}
-      {evidenceLines.length > 0 && (
-        <ul className="ra-predicted__evidence">
-          {evidenceLines.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
-      )}
-      {person?.at && (
-        <span className="ra-prop__val">
-          <CheckCircle2 size={13} style={{ display: 'inline', marginRight: 4 }} />
-          Time set by a person: {fmtDate(person.at)}
-        </span>
-      )}
-      {text && !person?.at && (
-        <div className="ra-predicted__actions">
-          {editing ? (
-            <>
-              <input
-                type="datetime-local"
-                value={typed}
-                aria-label="Time of the fill"
-                onChange={(event) => setTyped(event.target.value)}
-              />
-              <button
-                type="button"
-                className="ra-btn ra-btn--publish"
-                disabled={!typed || timeBusy}
-                onClick={() => {
-                  const at = new Date(typed);
-                  if (Number.isNaN(at.getTime())) return;
-                  setEditing(false);
-                  onSetTime?.('set', at.toISOString());
-                }}
-              >
-                Save
-              </button>
-              <button type="button" className="ra-btn ra-btn--clear" onClick={() => setEditing(false)}>
-                Cancel
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="ra-btn ra-btn--publish"
-                disabled={timeBusy}
-                onClick={() => onSetTime?.('accept')}
-              >
-                Use suggested time
-              </button>
-              <button
-                type="button"
-                className="ra-btn ra-btn--clear"
-                disabled={timeBusy}
-                onClick={() => setEditing(true)}
-              >
-                Set time
-              </button>
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-/** Coordinates as a person reads them, or empty when none were supplied. */
-const coordText = (coordinates) => {
-  if (coordinates == null) return '';
-  if (typeof coordinates === 'object') {
-    const lat = coordinates.lat ?? coordinates.latitude;
-    const lng = coordinates.lng ?? coordinates.longitude;
-    return lat != null && lng != null ? `${lat}, ${lng}` : '';
-  }
-  return String(coordinates);
+/**
+ * The checks the server ran on this row, and the ones that need a look.
+ *
+ * A check the server never ran is not a check that passed: it stays unknown.
+ */
+const checkFacts = (draft) => {
+  const checks = draft?.checks && typeof draft.checks === 'object' ? draft.checks : null;
+  if (!checks) return { ran: false, needs: 0, rows: [] };
+  const rows = [];
+  let needs = 0;
+  Object.entries(checks).forEach(([name, value]) => {
+    const status = String(value?.status || value?.result || value?.state || '').toUpperCase();
+    const bad =
+      value?.ok === false ||
+      value?.valid === false ||
+      [
+        'FAIL',
+        'FAILED',
+        'WARN',
+        'WARNING',
+        'NEEDS_REVIEW',
+        'NEEDS_LOOK',
+        'INVALID',
+        'MISMATCH',
+      ].includes(status);
+    const detail = value?.detail || value?.message || value?.reason || '';
+    if (bad) needs += 1;
+    rows.push({ name, bad, detail, status });
+  });
+  return { ran: rows.length > 0, needs, rows };
 };
 
 const DrawerDetailsPane = ({
   draft,
+  edits,
   ocrEval,
   veh,
   odoMeta,
@@ -126,6 +58,10 @@ const DrawerDetailsPane = ({
   timeBusy,
   showTimeBlock = true,
 }) => {
+  // What a person typed for the time of the fill. It lives here, so that
+  // folding a section away never throws the typing away.
+  const [timeEdit, setTimeEdit] = useState({ editing: false, typed: '' });
+
   // The words the server wrote for the person: why this row is in the inbox.
   const reasons = Array.isArray(draft.pipelineReasons)
     ? draft.pipelineReasons.filter(Boolean)
@@ -137,19 +73,22 @@ const DrawerDetailsPane = ({
   const isChat = isChatRow(draft);
   const uploader = uploaderOf(draft);
   const driver = driverOf(draft);
+  const assigned = driverAssignedOf(draft);
+
+  // The trucks the server suggests for this photo.
+  const candidates = truckCandidates(draft);
 
   // The caption belongs to the sender of a chat, and to the driver of a
   // guided receipt — but only when we know who that driver is.
   const captionHeading =
     isChat || !driver ? 'Message from the sender' : 'Message from the driver';
-  const fill = fillTimeFromDraft(draft);
-  const yearNote =
-    fill.value && !fill.yearConfirmed ? 'year not confirmed — check the bill' : '';
 
   // The station facts the draft really carries.
   const stationName =
     stationInfo?.stationName || draft.stationName || draft.fuelOcr?.data?.location || null;
-  const coordinates = coordText(stationInfo?.coordinates) || null;
+  const pump = pumpOf(draft);
+  const pumpName = (pump && pump.name) || stationName || '';
+  const pumpSource = pump && pump.name ? pump.source : null;
   const haltTime = stationInfo?.haltTime ?? null;
   const geofence = stationInfo?.isGeofenceMatch ?? null;
   const benchmarkRate = stationInfo?.benchmarkRate ?? null;
@@ -164,213 +103,266 @@ const DrawerDetailsPane = ({
       ? Number(billRate) - Number(benchmarkRate)
       : null;
 
+  // The odometer: the reading, and where it came from.
+  const odoSource = draft.odometerSource || null;
+  const odoBadgeText =
+    sourceWord(odoSource) &&
+    (odoMeta.badgeText === 'Source not recorded' ||
+      (odoMeta.badgeText === 'Dash Photo OCR' && !isPhotoSource(odoSource)))
+      ? sourceText(odoSource)
+      : odoMeta.badgeText;
+
+  // The checks: what the server looked at, and what needs a person.
+  const checks = checkFacts(draft);
+  const checksSummary = !checks.ran
+    ? 'Not checked'
+    : checks.needs === 0
+      ? 'No issues found'
+      : checks.needs === 1
+        ? '1 needs a look'
+        : `${checks.needs} need a look`;
+
+  const predictionsSummary = candidates.length
+    ? `${candidates.length} truck suggestion${candidates.length === 1 ? '' : 's'}`
+    : 'No suggestions';
+
+  const stationSummary = pumpName || 'Not available';
+
+  const auditSummary =
+    uploader && uploader !== '—' ? `Uploaded by ${uploader}` : 'Uploader unknown';
+
+  // Why the truck is unsure — only when the server said why in words.
+  const truckSource = String(draft.truck?.source || '').trim();
+  const truckReason =
+    draft.checks?.TRUCK_ONE?.detail || (truckSource && truckSource !== 'CHAT' ? truckSource : '');
+
   return (
     <div className="ra-drawer__details-pane">
-    {/* Math & Amount Banner */}
-    <div className="ra-amount-hero">
-      <div className="ra-amount-hero__main">
-        <span className="ra-amount-hero__label">Total Billed Amount</span>
-        <span className="ra-amount-hero__val">{fmtMoney(draft.amount)}</span>
-      </div>
-      <div className="ra-amount-hero__sub">
-        <span className="ra-pill-chip">
-          <strong>{fmtLitres(draft.litres)}</strong> @ {fmtMoney(draft.rate)}/L
-        </span>
-        {ocrEval.math?.isValid && (
-          <span className="ra-pill-chip ra-pill-chip--success">
-            <CheckCircle2 size={13} /> Math Verified
-          </span>
-        )}
-        {ocrEval.math && !ocrEval.math.isValid && (
-          <span className="ra-pill-chip ra-pill-chip--warning">
-            <AlertTriangle size={13} /> Math Variance: ₹{Math.round(ocrEval.math.diff)}
-          </span>
-        )}
-      </div>
-    </div>
+      {/* The facts of the fill, in one small card. */}
+      <KeyFactsCard
+        veh={veh}
+        draft={draft}
+        edits={edits}
+        odoMeta={odoMeta}
+        odoBadgeText={odoBadgeText}
+        odoSource={odoSource}
+        pumpName={pumpName}
+        pumpSource={pumpSource}
+        driver={driver}
+        assigned={assigned}
+      />
 
-    {/* Section: Fuel & Vehicle Core Details */}
-    <div className="ra-section-card">
-      <div className="ra-section-card__title">
-        <Receipt size={15} /> Fuel &amp; Vehicle Extracted Data
-      </div>
-      <div className="ra-grid-props">
-        <div className="ra-prop">
-          <span className="ra-prop__label">Vehicle Reg</span>
-          <span className="ra-prop__val font-mono">{veh}</span>
-        </div>
-        <div className="ra-prop">
-          <span className="ra-prop__label">Fuel Type</span>
-          <span className="ra-prop__val">{draft.fuelType || '—'}</span>
-        </div>
-        <div className="ra-prop">
-          <span className="ra-prop__label">Filling Mode</span>
-          <span className="ra-prop__val">{draft.fillingType || '—'}</span>
-        </div>
-        <div className="ra-prop">
-          <span className="ra-prop__label">Bill Date &amp; Time</span>
-          <span className="ra-prop__val">{fmtDate(draft.billDatetime)}</span>
-        </div>
-        <div className="ra-prop ra-prop--full">
-          <span className="ra-prop__label">Fill time</span>
-          {fill.missing ? (
-            <span className="ra-prop__val">Fill time not read from the photo.</span>
-          ) : (
-            <>
-              <span className="ra-prop__val">{fill.value}</span>
-              <span className="ra-prop__val ra-prop__val--muted">{fill.source}</span>
-              {yearNote && <span className="ra-prop__val ra-prop__val--muted">{yearNote}</span>}
-            </>
-          )}
-        </div>
-        <SuggestedTime
-          draft={draft}
-          onSetTime={onSetTime}
-          timeBusy={timeBusy}
-          hidden={!showTimeBlock}
-        />
-        <div className="ra-prop">
-          <span className="ra-prop__label">Plate (OCR Detected)</span>
-          <span className="ra-prop__val font-mono">{draft.plateText || 'Not Detected'}</span>
-        </div>
-        <div className="ra-prop">
-          <span className="ra-prop__label">Organization</span>
-          <span className="ra-prop__val">{draft.orgId?.companyName || '—'}</span>
-        </div>
-      </div>
-    </div>
-
-    {/* Section: Triple-Check Odometer & Telematics */}
-    <div className="ra-section-card">
-      <div className="ra-section-card__title">
-        <Gauge size={15} /> Triple-Check Odometer Audit
-      </div>
-      <div className="ra-odo-row">
-        <div className="ra-odo-box">
-          <span className="ra-odo-box__reading">{odoMeta.displayReading}</span>
-          {!odoMeta.isMissing && (
-            <span className={`ra-odo-badge ${odoMeta.badgeClass}`}>{odoMeta.badgeText}</span>
-          )}
-        </div>
-        <div className="ra-odo-hint">{odoMeta.detailHint}</div>
-      </div>
-    </div>
-
-    {/* Section: Station facts the draft carries */}
-    <div className="ra-section-card">
-      <div className="ra-section-card__title">
-        <MapPin size={15} /> Station Details
-      </div>
-      <div className="ra-grid-props">
-        <div className="ra-prop ra-prop--full">
-          <span className="ra-prop__label">Station Name</span>
-          <span className="ra-prop__val">{stationName || 'Station not read from the photo.'}</span>
-        </div>
-        <div className="ra-prop">
-          <span className="ra-prop__label">Pump GPS Coordinates</span>
-          <span className="ra-prop__val font-mono">{coordinates || 'Pump location not available.'}</span>
-        </div>
-        <div className="ra-prop">
-          <span className="ra-prop__label">Vehicle Halt Duration</span>
-          <span className="ra-prop__val">{haltTime || 'Halt duration not available.'}</span>
-        </div>
-        <div className="ra-prop">
-          <span className="ra-prop__label">Geofence</span>
-          <span className="ra-prop__val">
-            {geofence === true ? 'Matched' : geofence === false ? 'Not matched' : 'Location match not checked.'}
-          </span>
-        </div>
-        <div className="ra-prop">
-          <span className="ra-prop__label">Rate Benchmark</span>
-          <span className="ra-prop__val">
-            {hasBenchmark
-              ? `₹${benchmarkRate}/L · ${benchmarkPlace} · from ${fmtDate(benchmarkDate)}`
-              : 'Benchmark not available'}
-          </span>
-        </div>
-        <div className="ra-prop">
-          <span className="ra-prop__label">Rate Variance</span>
-          <span className="ra-prop__val">
-            {variance != null
-              ? `${variance > 0 ? '+' : ''}${Number(variance.toFixed(2))} ₹/L vs the benchmark`
-              : '—'}
-          </span>
-        </div>
-      </div>
-    </div>
-
-    {/* Section: Who sent it, and who drove */}
-    <div className="ra-section-card">
-      <div className="ra-section-card__title">
-        <User size={15} /> Uploader &amp; Audit Metadata
-      </div>
-      <div className="ra-grid-props">
-        <div className="ra-prop">
-          <span className="ra-prop__label">Uploaded by</span>
-          <span className="ra-prop__val">{uploader}</span>
-        </div>
-        <div className="ra-prop">
-          <span className="ra-prop__label">Driver</span>
-          <span className="ra-prop__val">{driver || '—'}</span>
-        </div>
-        <div className="ra-prop">
-          <span className="ra-prop__label">WhatsApp Contact</span>
-          <span className="ra-prop__val font-mono">{draft.phoneE164 || draft.waId || '—'}</span>
-        </div>
-        <div className="ra-prop">
-          <span className="ra-prop__label">WhatsApp received</span>
-          <span className="ra-prop__val">
-            {fmtDate(draft.createdAt)} ({fmtRelativeTime(draft.createdAt)})
-          </span>
-        </div>
-        {draft.status === 'PUBLISHED' && (
-          <div className="ra-prop">
-            <span className="ra-prop__label">Approved by</span>
-            <span className="ra-prop__val">
-              {[draft.publishedBy?.firstName, draft.publishedBy?.lastName]
-                .filter(Boolean)
-                .join(' ') || '—'}{' '}
-              on {fmtDate(draft.publishedAt)}
+      {/* What the server checked, and what it found. */}
+      <CollapsibleSection title="Checks" summary={checksSummary}>
+        <div className="ra-chip-row">
+          {ocrEval.math?.isValid && (
+            <span className="ra-pill-chip ra-pill-chip--success">
+              <CheckCircle2 size={13} /> Math Verified
             </span>
+          )}
+          {ocrEval.math && !ocrEval.math.isValid && (
+            <span className="ra-pill-chip ra-pill-chip--warning">
+              <AlertTriangle size={13} /> Math Variance: ₹{Math.round(ocrEval.math.diff)}
+            </span>
+          )}
+          {!ocrEval.math && <span className="ra-pill-chip">Math not checked</span>}
+        </div>
+
+        <div className="ra-odo-row">
+          <div className="ra-odo-box">
+            <span className="ra-odo-box__reading">{odoMeta.displayReading}</span>
+            {!odoMeta.isMissing && (
+              <span className={`ra-odo-badge ${odoMeta.badgeClass}`}>{odoBadgeText}</span>
+            )}
           </div>
+          <div className="ra-odo-hint">{odoMeta.detailHint}</div>
+        </div>
+        {!odoMeta.isMissing && (
+          <div className="ra-prop__val ra-prop__val--muted">{sourceText(odoSource)}</div>
         )}
-        {draft.status === 'REJECTED' && (
+
+        {checks.rows.length > 0 && (
+          <ul className="ra-reasons">
+            {checks.rows.map((row) => (
+              <li key={row.name}>
+                {row.name}
+                {row.status ? `: ${row.status}` : ''}
+                {row.detail ? ` — ${row.detail}` : ''}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {(reason || reasons.length > 0) && (
+          <>
+            <div className="ra-section-card__title">
+              <AlertTriangle size={15} /> Why this is in the inbox
+            </div>
+            <ul className="ra-reasons">
+              {reason && <li>{reason}</li>}
+              {reasons.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </>
+        )}
+      </CollapsibleSection>
+
+      {/* What we think the truck and the time are, and what a person can do. */}
+      <CollapsibleSection title="Predictions" summary={predictionsSummary}>
+        <div className="ra-grid-props">
           <div className="ra-prop ra-prop--full">
-            <span className="ra-prop__label">Rejection Reason</span>
-            <span className="ra-prop__val" style={{ color: 'var(--rose-500, #EF4444)' }}>
-              {draft.rejectReason || 'No reason provided'}
+            <span className="ra-prop__label">Truck suggestions</span>
+            {candidates.length > 0 ? (
+              <ul className="ra-reasons">
+                {candidates.map((candidate) => (
+                  <li key={candidate.id}>
+                    {candidate.reg || candidate.vehicleId}
+                    {candidate.score != null ? ` · ${candidate.score}` : ''}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span className="ra-prop__val ra-prop__val--muted">No truck suggestions</span>
+            )}
+            {truckReason && <span className="ra-prop__val">{truckReason}</span>}
+          </div>
+          <PredictedFill draft={draft} />
+        </div>
+        {showTimeBlock ? (
+          <TimeControls
+            draft={draft}
+            onSetTime={onSetTime}
+            timeBusy={timeBusy}
+            timeEdit={timeEdit}
+            setTimeEdit={setTimeEdit}
+          />
+        ) : null}
+      </CollapsibleSection>
+
+      {/* Where the pump is, and what it should have cost. */}
+      <CollapsibleSection title="Station details" summary={stationSummary}>
+        <div className="ra-grid-props">
+          <div className="ra-prop ra-prop--full">
+            <span className="ra-prop__label">Pump / Station</span>
+            <span className="ra-prop__val">{pumpName || 'Station not read from the photo.'}</span>
+            <span className="ra-prop__val ra-prop__val--muted">{sourceText(pumpSource)}</span>
+          </div>
+          <div className="ra-prop">
+            <span className="ra-prop__label">Vehicle Halt Duration</span>
+            <span className="ra-prop__val">{haltTime || 'Halt duration not available.'}</span>
+          </div>
+          <div className="ra-prop">
+            <span className="ra-prop__label">Geofence</span>
+            <span className="ra-prop__val">
+              {geofence === true ? 'Matched' : geofence === false ? 'Not matched' : 'Location match not checked.'}
             </span>
           </div>
+          <div className="ra-prop">
+            <span className="ra-prop__label">Rate Benchmark</span>
+            <span className="ra-prop__val">
+              {hasBenchmark
+                ? `₹${benchmarkRate}/L · ${benchmarkPlace} · from ${fmtDate(benchmarkDate)}`
+                : 'Benchmark not available'}
+            </span>
+          </div>
+          <div className="ra-prop">
+            <span className="ra-prop__label">Rate Variance</span>
+            <span className="ra-prop__val">
+              {variance != null
+                ? `${variance > 0 ? '+' : ''}${Number(variance.toFixed(2))} ₹/L vs the benchmark`
+                : '—'}
+            </span>
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* Everything else we know about this receipt. */}
+      <CollapsibleSection title="Audit" summary={auditSummary}>
+        <div className="ra-grid-props">
+          <div className="ra-prop">
+            <span className="ra-prop__label">Uploaded by</span>
+            <span className="ra-prop__val">{uploader}</span>
+          </div>
+          <div className="ra-prop">
+            <span className="ra-prop__label">Driver</span>
+            <span className="ra-prop__val">
+              {assigned ? `${assigned.name} · assigned` : driver || '—'}
+            </span>
+            {assigned?.since && (
+              <span className="ra-prop__val ra-prop__val--muted">
+                Assigned since {fmtDate(assigned.since)}
+              </span>
+            )}
+          </div>
+          <div className="ra-prop">
+            <span className="ra-prop__label">WhatsApp Contact</span>
+            <span className="ra-prop__val font-mono">{draft.phoneE164 || draft.waId || '—'}</span>
+          </div>
+          <div className="ra-prop">
+            <span className="ra-prop__label">WhatsApp received</span>
+            <span className="ra-prop__val">
+              {fmtDate(draft.createdAt)} ({fmtRelativeTime(draft.createdAt)})
+            </span>
+          </div>
+          <div className="ra-prop">
+            <span className="ra-prop__label">Fuel Type</span>
+            <span className="ra-prop__val">{draft.fuelType || '—'}</span>
+          </div>
+          <div className="ra-prop">
+            <span className="ra-prop__label">Filling Mode</span>
+            <span className="ra-prop__val">{draft.fillingType || '—'}</span>
+          </div>
+          <div className="ra-prop">
+            <span className="ra-prop__label">Bill Date &amp; Time</span>
+            <span className="ra-prop__val">{fmtDate(draft.billDatetime)}</span>
+          </div>
+          <div className="ra-prop">
+            <span className="ra-prop__label">Plate (OCR Detected)</span>
+            <span className="ra-prop__val font-mono">{draft.plateText || 'Not Detected'}</span>
+          </div>
+          <div className="ra-prop">
+            <span className="ra-prop__label">Organization</span>
+            <span className="ra-prop__val">{draft.orgId?.companyName || '—'}</span>
+          </div>
+          {draft.status === 'PUBLISHED' && (
+            <div className="ra-prop ra-prop--full">
+              <span className="ra-prop__label">Approved by</span>
+              <span className="ra-prop__val">
+                {[draft.publishedBy?.firstName, draft.publishedBy?.lastName]
+                  .filter(Boolean)
+                  .join(' ') || '—'}{' '}
+                on {fmtDate(draft.publishedAt)}. Log ID: {draft.publishedFuelLogId || '—'}
+              </span>
+            </div>
+          )}
+          {draft.status === 'REJECTED' && (
+            <div className="ra-prop ra-prop--full">
+              <span className="ra-prop__label">Rejection Reason</span>
+              <span className="ra-prop__val" style={{ color: 'var(--rose-500, #EF4444)' }}>
+                {draft.rejectReason || 'No reason provided'}
+              </span>
+            </div>
+          )}
+          {draft.status === 'CLEARED' && (
+            <div className="ra-prop ra-prop--full">
+              <span className="ra-prop__label">Cleared Note</span>
+              <span className="ra-prop__val">{draft.clearNote || 'Cleared from inbox'}</span>
+            </div>
+          )}
+        </div>
+
+        {caption && (
+          <>
+            <div className="ra-section-card__title">
+              <MessageCircle size={15} />
+              {captionHeading}
+            </div>
+            <div className="ra-caption">{caption}</div>
+          </>
         )}
-      </div>
+      </CollapsibleSection>
     </div>
-
-    {/* Section: Why the server put this row in the inbox, in plain words */}
-    {(reason || reasons.length > 0) && (
-      <div className="ra-section-card">
-        <div className="ra-section-card__title">
-          <AlertTriangle size={15} /> Why this is in the inbox
-        </div>
-        <ul className="ra-reasons">
-          {reason && <li>{reason}</li>}
-          {reasons.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
-      </div>
-    )}
-
-    {/* Section: What the sender wrote with the photo */}
-    {caption && (
-      <div className="ra-section-card">
-        <div className="ra-section-card__title">
-          <MessageCircle size={15} />
-          {captionHeading}
-        </div>
-        <div className="ra-caption">{caption}</div>
-      </div>
-    )}
-  </div>
   );
 };
 

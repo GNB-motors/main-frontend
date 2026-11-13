@@ -85,7 +85,7 @@ describe('the pill of the chat upload', () => {
     streamMock.calls.length = 0;
     chatUpload.reset();
     PhotoImportService.getChatExportJob.mockResolvedValue({
-      state: 'running',
+      state: 'reading',
       progress: { read: 120, total: 589 },
     });
     PhotoImportService.getActiveChatExportJob.mockResolvedValue({ jobId: null });
@@ -93,7 +93,7 @@ describe('the pill of the chat upload', () => {
 
   it('is hidden when there is no upload', () => {
     renderPill();
-    expect(screen.queryByText(/Uploading chat/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Sending chat/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Reading photos/)).not.toBeInTheDocument();
   });
 
@@ -102,7 +102,7 @@ describe('the pill of the chat upload', () => {
     const progress = await sendChat({ pending: true });
 
     act(() => progress({ loaded: 45, total: 100 }));
-    expect(screen.getByText('Uploading chat 45%')).toBeInTheDocument();
+    expect(screen.getByText('Sending chat: 45%')).toBeInTheDocument();
   });
 
   it('says how many photos are being read', async () => {
@@ -110,6 +110,18 @@ describe('the pill of the chat upload', () => {
     await sendChat();
 
     await waitFor(() => expect(screen.getByText('Reading photos 120 / 589')).toBeInTheDocument());
+  });
+
+  it('waits without a percentage when the server has queued the chat', async () => {
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'queued',
+      progress: { read: 0, total: 0 },
+    });
+    renderPill();
+    await sendChat();
+
+    await waitFor(() => expect(screen.getByText('Waiting to start…')).toBeInTheDocument());
+    expect(screen.queryByText(/%/)).not.toBeInTheDocument();
   });
 
   it('turns into the end of the import when it is over', async () => {
@@ -166,7 +178,9 @@ describe('the pill of the chat upload', () => {
     renderPill();
     await sendChat();
 
-    await waitFor(() => expect(screen.getByText('Nothing was imported')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('Could not read the chat. Try again.')).toBeInTheDocument(),
+    );
   });
 
   it('tells the owner when the import is over', async () => {
@@ -196,13 +210,13 @@ describe('the pill of the chat upload', () => {
     fireEvent.click(screen.getByText('Reading photos 120 / 589'));
 
     expect(chatUpload.getState().dialogOpen).toBe(true);
-    expect(screen.getByTestId('where').textContent).toBe('/mileage?chatUpload=open');
+    expect(screen.getByTestId('where').textContent).toBe('/');
   });
 
   it('picks the import that is running up again after a reload', async () => {
     PhotoImportService.getActiveChatExportJob.mockResolvedValue({
       jobId: 'job-9',
-      state: 'running',
+      state: 'reading',
       progress: { read: 12, total: 589 },
     });
     renderPill();

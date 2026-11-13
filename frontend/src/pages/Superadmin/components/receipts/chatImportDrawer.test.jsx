@@ -60,7 +60,7 @@ const serveGet = () =>
     return Promise.resolve({ data: { data: {} } });
   });
 
-const renderDrawer = () =>
+const renderDrawer = (overrides = {}) =>
   render(
     <ReceiptApprovalDrawer
       draftId="c1"
@@ -73,11 +73,11 @@ const renderDrawer = () =>
       hasNext={false}
       basePath="/approvals/whatsapp"
       navigate={() => {}}
+      {...overrides}
     />,
   );
 
-const postCalls = (suffix) =>
-  apiClient.post.mock.calls.filter(([url]) => url.endsWith(suffix));
+const postCalls = (suffix) => apiClient.post.mock.calls.filter(([url]) => url.endsWith(suffix));
 
 describe('ReceiptApprovalDrawer — a chat-import row', () => {
   beforeEach(() => {
@@ -90,6 +90,9 @@ describe('ReceiptApprovalDrawer — a chat-import row', () => {
     renderDrawer();
 
     expect(await screen.findByText('Check the fill before you approve it')).toBeInTheDocument();
+    // The reasons and the caption live in the folding sections of the drawer.
+    fireEvent.click(screen.getByRole('button', { name: /^Checks/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Audit/ }));
     expect(screen.getByText('Filled the tank at Jhargram pump')).toBeInTheDocument();
     expect(screen.getByText('The truck could not be read from the photo.')).toBeInTheDocument();
     expect(screen.getByText('The litres on the photo are not readable.')).toBeInTheDocument();
@@ -108,7 +111,10 @@ describe('ReceiptApprovalDrawer — a chat-import row', () => {
     fireEvent.change(truckSelect, { target: { value: 'v2' } });
     fireEvent.change(screen.getByLabelText('Litres'), { target: { value: '150' } });
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '13425' } });
-    fireEvent.change(screen.getByLabelText('Filling type'), { target: { value: 'PARTIAL' } });
+    fireEvent.change(screen.getByLabelText('Full tank or top-up?'), {
+      target: { value: 'PARTIAL' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Use suggested time' }));
 
     fireEvent.click(screen.getByRole('button', { name: /Approve & Publish/i }));
 
@@ -119,14 +125,123 @@ describe('ReceiptApprovalDrawer — a chat-import row', () => {
       litres: 150,
       amount: 13425,
       fillingType: 'PARTIAL',
+      time: { action: 'accept' },
     });
     expect(toast.success).toHaveBeenCalled();
   });
 
-  it('accepts the predicted time with the approve', async () => {
-    renderDrawer();
+  it('blocks approval and focuses the first missing key field', async () => {
+    const vibrate = vi.fn();
+    Object.defineProperty(navigator, 'vibrate', { configurable: true, value: vibrate });
+    try {
+      renderDrawer();
+      await screen.findByText('Check the fill before you approve it');
+
+      const approve = screen.getByRole('button', { name: /Approve & Publish/i });
+      fireEvent.click(approve);
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Key field missing: Truck, Fill time',
+      );
+      expect(postCalls('/publish')).toHaveLength(0);
+      expect(screen.getByRole('button', { name: /Approve & Publish/i })).toHaveClass(
+        'ra-btn--blocked',
+        'ra-btn--shake',
+      );
+      expect(vibrate).toHaveBeenCalledWith(200);
+      expect(document.activeElement?.closest('[data-key-field="TRUCK"]')).not.toBeNull();
+    } finally {
+      delete navigator.vibrate;
+    }
+  });
+
+  it('uses the same blocked feedback when the server returns 422', async () => {
+    const vibrate = vi.fn();
+    Object.defineProperty(navigator, 'vibrate', { configurable: true, value: vibrate });
+    apiClient.post.mockRejectedValue({
+      response: { status: 422, data: { missing: ['TRUCK', 'FILL_TIME'] } },
+    });
+    const { container } = renderDrawer();
+    await screen.findByText('Check the fill before you approve it');
+    fireEvent.change(container.querySelector('#ra-chat-truck--native'), {
+      target: { value: 'v2' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Use suggested time' }));
+
+    fireEvent.click(screen.getByRole('button', { name: /Approve & Publish/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Key field missing: Truck, Fill time',
+    );
+    expect(postCalls('/publish')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: /Approve & Publish/i })).toHaveClass(
+      'ra-btn--blocked',
+      'ra-btn--shake',
+    );
+    expect(vibrate).toHaveBeenCalledWith(200);
+    expect(document.activeElement?.closest('[data-key-field="TRUCK"]')).not.toBeNull();
+    delete navigator.vibrate;
+  });
+
+  it('reads the missing key fields the server sends inside the body', async () => {
+    apiClient.post.mockRejectedValue({
+      response: {
+        status: 422,
+        data: {
+          success: false,
+          message: 'Key field missing: Truck, Fill time',
+          data: { missing: ['TRUCK', 'FILL_TIME'] },
+        },
+      },
+    });
+    const { container } = renderDrawer();
+    await screen.findByText('Check the fill before you approve it');
+    fireEvent.change(container.querySelector('#ra-chat-truck--native'), {
+      target: { value: 'v2' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Use suggested time' }));
+
+    fireEvent.click(screen.getByRole('button', { name: /Approve & Publish/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Key field missing: Truck, Fill time',
+    );
+    expect(postCalls('/publish')).toHaveLength(1);
+  });
+
+  it('closes on a press of the dimmed background, but not on a press inside the panel', async () => {
+    const onClose = vi.fn();
+    const { container } = renderDrawer({ onClose });
     await screen.findByText('Check the fill before you approve it');
 
+    fireEvent.mouseDown(container.querySelector('.ra-drawer'));
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.mouseDown(container.querySelector('.ra-drawer-backdrop'));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the drawer open and says so when the person has unsaved changes', async () => {
+    const onClose = vi.fn();
+    const { container } = renderDrawer({ onClose });
+    await screen.findByText('Check the fill before you approve it');
+
+    fireEvent.change(container.querySelector('#ra-chat-truck--native'), {
+      target: { value: 'v2' },
+    });
+    fireEvent.mouseDown(container.querySelector('.ra-drawer-backdrop'));
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(await screen.findByText('You have unsaved changes')).toBeInTheDocument();
+  });
+
+  it('accepts the predicted time with the approve', async () => {
+    const { container } = renderDrawer();
+    await screen.findByText('Check the fill before you approve it');
+
+    fireEvent.change(container.querySelector('#ra-chat-truck--native'), {
+      target: { value: 'v2' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Use suggested time' }));
     fireEvent.click(screen.getByRole('button', { name: /Approve & Publish/i }));
 
@@ -135,9 +250,12 @@ describe('ReceiptApprovalDrawer — a chat-import row', () => {
   });
 
   it('accepts the suggested time and litres in one click', async () => {
-    renderDrawer();
+    const { container } = renderDrawer();
     await screen.findByText('Check the fill before you approve it');
 
+    fireEvent.change(container.querySelector('#ra-chat-truck--native'), {
+      target: { value: 'v2' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Use suggested time and 218 L' }));
     fireEvent.click(screen.getByRole('button', { name: /Approve & Publish/i }));
 
@@ -179,9 +297,13 @@ describe('ReceiptApprovalDrawer — a chat-import row', () => {
         },
       },
     });
-    renderDrawer();
+    const { container } = renderDrawer();
     await screen.findByText('Check the fill before you approve it');
 
+    fireEvent.change(container.querySelector('#ra-chat-truck--native'), {
+      target: { value: 'v2' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Use suggested time' }));
     fireEvent.click(screen.getByRole('button', { name: /Approve & Publish/i }));
 
     expect(

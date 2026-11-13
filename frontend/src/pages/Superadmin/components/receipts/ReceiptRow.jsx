@@ -7,7 +7,8 @@ import {
   fillTimeFromDraft,
   fillTimeText,
 } from './predictedTime';
-import { isChatRow, truckChip, uploaderOf, driverOf } from './chatDraft';
+import { isChatRow, truckChip, uploaderOf, driverOf, driverAssignedOf, pumpOf, mileageLine } from './chatDraft';
+import { isPhotoSource, sourceText, sourceWord } from './sourceWords';
 
 const STATUS_BADGE = {
   READY: 'ra-badge--ready',
@@ -48,11 +49,32 @@ const ReceiptRow = ({
   const canSelect = d.status === 'READY';
   const ocr = evaluateOcrQuality(d);
   const odo = getOdometerMeta(d);
+  // A reading we know the source of never says the source was not recorded,
+  // and never wears a photo badge unless the source really was a photo.
+  const odoBadgeText =
+    sourceWord(d.odometerSource) &&
+    (odo.badgeText === 'Source not recorded' ||
+      (odo.badgeText === 'Dash Photo OCR' && !isPhotoSource(d.odometerSource)))
+      ? sourceText(d.odometerSource)
+      : odo.badgeText;
 
   // Who sent the photo, and who drove: two different people, often.
   const uploader = uploaderOf(d);
-  const driver = driverOf(d) || '—';
-  const stationName = d.stationName || d.fuelOcr?.data?.location || '—';
+  // The driver assigned to the truck. An assignment is not proof that the
+  // person who sent the photo drove it, so the line says so.
+  const assigned = driverAssignedOf(d);
+  const driver = assigned ? `${assigned.name} · assigned` : driverOf(d) || '—';
+
+  // The pump of the fill, when the server knows it, else the station name
+  // the row carries. Each one keeps its own source.
+  const pump = pumpOf(d);
+  const stationName =
+    (pump && pump.name) || d.stationName || d.fuelOcr?.data?.location || '—';
+  // A station name without a matched pump was read off the bill photo.
+  const stationSource = pump && pump.name ? pump.source : d.stationName ? 'PHOTO' : null;
+
+  // The mileage of this fill, and how it compares with the usual of the truck.
+  const mileage = mileageLine(d);
 
   // A chat row came in through a WhatsApp chat: it says so.
   const isChat = isChatRow(d);
@@ -128,7 +150,7 @@ const ReceiptRow = ({
             </span>
           )}
         </div>
-        {(isChat || d.truck) && (
+        {(isChat || d.truck || mileage) && (
           <div className="ra-chip-row">
             {isChat && (
               <span className="ra-chip ra-chip--chat" title="This fill came in through a WhatsApp chat">
@@ -159,6 +181,14 @@ const ReceiptRow = ({
                 <span className="ra-chip__note">{chip.note}</span>
               </span>
             )}
+            {mileage && (
+              <span
+                className={`ra-chip ra-chip--wrap ${mileage.kind === 'warn' ? 'ra-chip--warn' : ''}`}
+                title="The mileage of this fill, compared with the usual of this truck"
+              >
+                {mileage.text}
+              </span>
+            )}
           </div>
         )}
       </td>
@@ -176,11 +206,12 @@ const ReceiptRow = ({
       </td>
 
       {/* Fuel Station */}
-      {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a data cell, not a control; its text sits deeper than the rule looks */}
       <td data-label="Fuel Station">
         <div className="ra-station-cell" title={stationName}>
           <span className="ra-station-name">{stationName}</span>
-          <span className="ra-station-mode">{d.fuelType || d.fillingType || '—'}</span>
+          {stationSource && (
+            <span className="ra-station-source">{sourceText(stationSource)}</span>
+          )}
         </div>
       </td>
 
@@ -204,7 +235,9 @@ const ReceiptRow = ({
           <span className={`ra-odo-val font-mono ${odo.isMissing ? 'ra-odo-val--missing' : ''}`}>
             {odo.displayReading}
           </span>
-          {!odo.isMissing && <span className={`ra-odo-badge ${odo.badgeClass}`}>{odo.badgeText}</span>}
+          {!odo.isMissing && (
+            <span className={`ra-odo-badge ${odo.badgeClass}`}>{odoBadgeText}</span>
+          )}
         </div>
       </td>
 

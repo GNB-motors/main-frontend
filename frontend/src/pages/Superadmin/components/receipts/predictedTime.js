@@ -57,14 +57,16 @@ export const FILL_TIME_SOURCE_WORDS = {
  */
 export const fillTimeInfo = (time) => {
   const value = fillDate(time?.value);
-  if (!value) {
-    return { value: '', source: '', sourceKnown: false, missing: true };
-  }
   const key = String(time?.source ?? '').trim().toLowerCase();
+  if (!value) {
+    return { value: '', source: '', sourceKey: key, sourceKnown: false, missing: true };
+  }
   const words = FILL_TIME_SOURCE_WORDS[key];
   return {
     value,
     source: words || 'Source not recorded',
+    // The source itself, so the words of the source vocabulary can be used.
+    sourceKey: key,
     sourceKnown: Boolean(words),
     missing: false,
   };
@@ -85,6 +87,7 @@ export const fillTimeFromDraft = (draft) => {
   return {
     value: printed,
     source: 'Printed bill',
+    sourceKey: 'printed',
     sourceKnown: true,
     missing: false,
     yearConfirmed: false,

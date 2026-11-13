@@ -162,3 +162,114 @@
   max-height: 40vh;
   overflow-y: auto;
 }
+
+
+/* Reading has begun, but the server has not said how many photos there are. */
+.wxp-bar--indeterminate .wxp-bar-fill {
+  width: 35%;
+  animation: wxp-progress-slide 1.2s ease-in-out infinite;
+}
+@keyframes wxp-progress-slide {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(310%);
+  }
+}
+
+/* The driver names from the chat, when some still need a person to decide. */
+.wxp-driver-card {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #f0d49a;
+  border-radius: 10px;
+  background: #fff9ec;
+  color: #6f4d00;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.55;
+  text-align: left;
+  cursor: pointer;
+}
+.wxp-driver-card:hover {
+  background: #fff5dd;
+}
+.wxp-driver-card:focus-visible {
+  outline: 2px solid #4c6ef5;
+  outline-offset: 2px;
+}
+.wxp-driver-dialog {
+  width: min(760px, calc(100vw - 32px));
+  max-width: min(760px, calc(100vw - 32px));
+}
+.wxp-driver-body {
+  min-height: 0;
+  overflow-y: auto;
+}
+.wxp-driver-table-wrap {
+  max-height: 48vh;
+  overflow: auto;
+  border: 1px solid #e7ecf4;
+  border-radius: 9px;
+}
+.wxp-driver-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+.wxp-driver-table th,
+.wxp-driver-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid #eef1f6;
+  vertical-align: top;
+}
+.wxp-driver-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f7f9fc;
+  color: #59667b;
+  font-weight: 600;
+}
+.wxp-driver-table tr:last-child td {
+  border-bottom: none;
+}
+.wxp-driver-table small {
+  display: block;
+  margin-top: 3px;
+  color: #68768d;
+}
+.wxp-driver-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.wxp-driver-row-error {
+  color: #ac3030 !important;
+}
+.wxp-driver-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: #fff1f1;
+  color: #ac3030;
+  font-size: 12px;
+}
+
+@media (max-width: 460px) {
+  .wxp-driver-dialog {
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+  }
+  .wxp-driver-table {
+    min-width: 620px;
+  }
+}
