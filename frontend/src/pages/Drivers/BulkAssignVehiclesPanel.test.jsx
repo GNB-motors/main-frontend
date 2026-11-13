@@ -142,13 +142,13 @@ describe('Bulk Assign Vehicles panel', () => {
     await uploadAndMap();
     fireEvent.click(screen.getByRole('button', { name: 'Preview assignments' }));
     await screen.findByText('Did you mean one of these drivers?');
-    expect(screen.getByRole('button', { name: 'Assign 1 valid rows' })).toBeDisabled();
+    expect(await screen.findByRole('button', { name: 'Assign 1 valid rows' })).toBeDisabled();
     fireEvent.click(screen.getByRole('radio', { name: /Sunil Das/ }));
-    expect(screen.getByRole('button', { name: 'Assign 1 valid rows' })).toBeDisabled();
+    expect(await screen.findByRole('button', { name: 'Assign 1 valid rows' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Preview assignments' }));
     await waitFor(() => expect(Service.previewBulk).toHaveBeenCalledTimes(2));
     expect(Service.previewBulk.mock.calls[1][0].rows[1].userId).toBe('u1');
-    expect(screen.getByRole('button', { name: 'Assign 1 valid rows' })).toBeEnabled();
+    expect(await screen.findByRole('button', { name: 'Assign 1 valid rows' })).toBeEnabled();
   });
   it('leaves the row out when the manager says none of these', async () => {
     Service.previewBulk.mockResolvedValue(unsurePreview);
@@ -160,7 +160,7 @@ describe('Bulk Assign Vehicles panel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Preview assignments' }));
     await waitFor(() => expect(Service.previewBulk).toHaveBeenCalledTimes(2));
     expect(Service.previewBulk.mock.calls[1][0].rows[1]).not.toHaveProperty('userId');
-    expect(screen.getByRole('button', { name: 'Assign 1 valid rows' })).toBeEnabled();
+    expect(await screen.findByRole('button', { name: 'Assign 1 valid rows' })).toBeEnabled();
   });
   it('never shows a full Aadhaar number', async () => {
     render(<BulkAssignVehiclesPanel onClose={vi.fn()} />);

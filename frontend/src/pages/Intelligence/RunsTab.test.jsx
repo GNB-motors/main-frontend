@@ -60,11 +60,11 @@ describe('RunsTab', () => {
     );
 
     expect(await screen.findByText('Loaded km')).toBeInTheDocument();
-    expect(screen.getByText('42,180 km')).toBeInTheDocument();
-    expect(screen.getByText('Empty km')).toBeInTheDocument();
-    expect(screen.getByText('8,420 km')).toBeInTheDocument();
+    expect(await screen.findByText('42,180 km')).toBeInTheDocument();
+    expect(await screen.findByText('Empty km')).toBeInTheDocument();
+    expect(await screen.findByText('8,420 km')).toBeInTheDocument();
     expect(screen.getAllByText('Plant-to-plant').length).toBeGreaterThan(0);
-    expect(screen.getByText('966 runs')).toBeInTheDocument();
+    expect(await screen.findByText('966 runs')).toBeInTheDocument();
   });
 
   it('never counts a plant-to-plant run as an empty run', async () => {
@@ -88,8 +88,8 @@ describe('RunsTab', () => {
     );
 
     expect(await screen.findByText('Empty share')).toBeInTheDocument();
-    expect(screen.getByText('13.3%')).toBeInTheDocument();
-    expect(screen.getByText('of 63,200 km driven')).toBeInTheDocument();
+    expect(await screen.findByText('13.3%')).toBeInTheDocument();
+    expect(await screen.findByText('of 63,200 km driven')).toBeInTheDocument();
   });
 
   it('calls the empty running "running with no load"', async () => {
@@ -157,7 +157,7 @@ describe('RunsTab', () => {
     expect(await screen.findByText('Plant-to-plant')).toBeInTheDocument();
     expect(await screen.findByText('included in empty km')).toBeInTheDocument();
     // The plant-to-plant run count is still shown.
-    expect(screen.getByText(/3 plant-to-plant runs/)).toBeInTheDocument();
+    expect(await screen.findByText(/3 plant-to-plant runs/)).toBeInTheDocument();
   });
 
   it('keeps the plant-to-plant tile and its run count on the old backend', async () => {
@@ -168,8 +168,8 @@ describe('RunsTab', () => {
     );
 
     expect(await screen.findByText('Plant-to-plant')).toBeInTheDocument();
-    expect(screen.getByText('12,600 km')).toBeInTheDocument();
-    expect(screen.getByText('966 runs')).toBeInTheDocument();
+    expect(await screen.findByText('12,600 km')).toBeInTheDocument();
+    expect(await screen.findByText('966 runs')).toBeInTheDocument();
   });
 
   it('says the endpoint is still being built on a 404', async () => {
