@@ -157,6 +157,53 @@ describe('compact bill-photo dialog', () => {
       await screen.findByText('Please retake this photo in better light.'),
     ).toBeInTheDocument();
   });
+
+  it('asks for a review in plain words when some details could not be read', async () => {
+    billPhotoService.uploadBillPhoto.mockResolvedValue({
+      id: 'log1',
+      reviewStatus: 'NEEDS_REVIEW',
+      reviewReasons: ['MISSING_LITRES'],
+    });
+    open();
+    chooseFile();
+    confirmPartial();
+    fireEvent.click(screen.getByRole('button', { name: 'Upload & save' }));
+    expect(
+      await screen.findByText('Some details could not be read. Review the results below.'),
+    ).toBeInTheDocument();
+  });
+
+  it('says the bill was saved and to check Mileage when the server reports nothing else', async () => {
+    billPhotoService.uploadBillPhoto.mockResolvedValue({ id: 'log1' });
+    open();
+    chooseFile();
+    confirmPartial();
+    fireEvent.click(screen.getByRole('button', { name: 'Upload & save' }));
+    expect(
+      await screen.findByText('The bill was saved. Check Mileage to see it.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/now recorded/)).not.toBeInTheDocument();
+  });
+
+  it('shows a plain heading and a retry when the upload fails', async () => {
+    billPhotoService.uploadBillPhoto.mockRejectedValue(
+      new Error('Request failed with status code 500'),
+    );
+    open();
+    chooseFile();
+    confirmPartial();
+    fireEvent.click(screen.getByRole('button', { name: 'Upload & save' }));
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('The bill could not be saved.');
+    expect(alert).not.toHaveTextContent('500');
+    expect(within(alert).getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
+
+  it('says a bill photo is needed before anything is sent', () => {
+    open();
+    expect(screen.getByText('Choose a bill photo to upload.')).toBeInTheDocument();
+    expect(billPhotoService.uploadBillPhoto).not.toHaveBeenCalled();
+  });
 });
 
 describe('multi bill photo queue', () => {

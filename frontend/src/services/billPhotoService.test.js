@@ -72,4 +72,36 @@ describe('fleet bill API', () => {
       expect.any(Object),
     );
   });
+
+  it('sends the office source only when the caller asks for it', async () => {
+    apiClient.get.mockResolvedValue({ data: { data: { captures: [], entries: [] } } });
+
+    await service.listBillCaptures({ status: 'submitted', uploaderRole: 'OWNER,MANAGER', page: 1, limit: 50 });
+    expect(apiClient.get).toHaveBeenCalledWith(
+      '/api/fleet-view/bills',
+      expect.objectContaining({
+        params: { status: 'submitted', uploaderRole: 'OWNER,MANAGER', page: 1, limit: 50 },
+      }),
+    );
+
+    await service.listBillCaptures({
+      status: 'submitted',
+      uploaderRole: 'OWNER,MANAGER',
+      source: 'office',
+      page: 1,
+      limit: 50,
+    });
+    expect(apiClient.get).toHaveBeenCalledWith(
+      '/api/fleet-view/bills',
+      expect.objectContaining({
+        params: {
+          status: 'submitted',
+          uploaderRole: 'OWNER,MANAGER',
+          source: 'office',
+          page: 1,
+          limit: 50,
+        },
+      }),
+    );
+  });
 });

@@ -1,12 +1,37 @@
-import { Truck, Check, Phone, ShieldCheck, Eye, Receipt } from 'lucide-react';
+import { Truck, Check, Phone, ShieldCheck, Eye, Receipt, MessageCircle, Store } from 'lucide-react';
 import { evaluateOcrQuality, getOdometerMeta } from './receiptVerification';
-import { fmtMoney, fmtLitres, fmtDate, fmtRelativeTime } from './receiptFormat';
+import { fmtMoney, fmtLitres } from './receiptFormat';
+import {
+  predictedTimeText,
+  severalRisesText,
+  fillTimeFromDraft,
+  fillTimeText,
+} from './predictedTime';
+import { isChatRow, truckChip, uploaderOf, driverOf, driverAssignedOf, pumpOf, mileageLine } from './chatDraft';
+import { isPhotoSource, sourceText, sourceWord } from './sourceWords';
 
 const STATUS_BADGE = {
   READY: 'ra-badge--ready',
   PUBLISHED: 'ra-badge--published',
   REJECTED: 'ra-badge--rejected',
   CLEARED: 'ra-badge--cleared',
+};
+
+/** The plain words of each state of a receipt. */
+const STATUS_WORDS = {
+  READY: 'Ready',
+  PUBLISHED: 'Published',
+  REJECTED: 'Rejected',
+  CLEARED: 'Cleared',
+};
+
+/** A receipt that was cleared because the fill was already received says so. */
+const statusWord = (d) => {
+  if (d.status === 'CLEARED') {
+    const note = String(d.clearNote || '');
+    return /already received/i.test(note) ? 'Already received' : 'Cleared';
+  }
+  return STATUS_WORDS[d.status] || 'Cleared';
 };
 
 const ReceiptRow = ({
@@ -16,15 +41,55 @@ const ReceiptRow = ({
   toggleSelectOne,
   setPreviewImage,
   handleSingleApprove,
+  rowError = '',
+  onRetryRow,
 }) => {
   const veh = d.vehicleId?.registrationNumber || d.vehicleReg || '—';
   const isSelected = selectedIds.has(d._id);
   const canSelect = d.status === 'READY';
   const ocr = evaluateOcrQuality(d);
   const odo = getOdometerMeta(d);
-  const driverName =
-    [d.userId?.firstName, d.userId?.lastName].filter(Boolean).join(' ') || d.phoneE164 || 'Driver';
-  const stationName = d.stationName || d.fuelOcr?.data?.location || 'Highway Pump';
+  // A reading we know the source of never says the source was not recorded,
+  // and never wears a photo badge unless the source really was a photo.
+  const odoBadgeText =
+    sourceWord(d.odometerSource) &&
+    (odo.badgeText === 'Source not recorded' ||
+      (odo.badgeText === 'Dash Photo OCR' && !isPhotoSource(d.odometerSource)))
+      ? sourceText(d.odometerSource)
+      : odo.badgeText;
+
+  // Who sent the photo, and who drove: two different people, often.
+  const uploader = uploaderOf(d);
+  // The driver assigned to the truck. An assignment is not proof that the
+  // person who sent the photo drove it, so the line says so.
+  const assigned = driverAssignedOf(d);
+  const driver = assigned ? `${assigned.name} · assigned` : driverOf(d) || '—';
+
+  // The pump of the fill, when the server knows it, else the station name
+  // the row carries. Each one keeps its own source.
+  const pump = pumpOf(d);
+  const stationName =
+    (pump && pump.name) || d.stationName || d.fuelOcr?.data?.location || '—';
+  // A station name without a matched pump was read off the bill photo.
+  const stationSource = pump && pump.name ? pump.source : d.stationName ? 'PHOTO' : null;
+
+  // The mileage of this fill, and how it compares with the usual of the truck.
+  const mileage = mileageLine(d);
+
+  // A chat row came in through a WhatsApp chat: it says so.
+  const isChat = isChatRow(d);
+  const chip = truckChip(d);
+
+  // The fill time: what the photo says, else the printed bill's own time.
+  const fill = fillTimeFromDraft(d);
+  const dateLine = fill.value;
+  const sourceLine = fill.source;
+  const predicted = predictedTimeText(d.time?.predicted);
+  const several = severalRisesText(d.time?.predicted);
+
+  // A chat row may carry its photo in the photo list instead of one slip URL.
+  const slipUrl = d.fuelImageUrl || d.photos?.[0]?.url || '';
+  const hasGroup = Array.isArray(d.photos) && d.photos.length > 1;
 
   return (
     <tr
@@ -32,7 +97,11 @@ const ReceiptRow = ({
       onClick={() => setActiveDrawerId(d._id)}
     >
       {/* Checkbox */}
-      <td className="ra-table__td-select" onClick={(e) => e.stopPropagation()}>
+      <td
+        className="ra-table__td-select"
+        data-label="Select"
+        onClick={(e) => e.stopPropagation()}
+      >
         {canSelect ? (
           <input
             type="checkbox"
@@ -49,12 +118,14 @@ const ReceiptRow = ({
       {/* Slip Thumbnail / Icon */}
       <td
         className="ra-table__td-slip"
+        data-label="Slip"
         onClick={(e) => {
           e.stopPropagation();
-          if (d.fuelImageUrl) {
-            setPreviewImage({ url: d.fuelImageUrl, title: `Fuel Slip · ${veh}` });
-          } else {
+          // Several photos belong together: the drawer shows the whole group.
+          if (hasGroup || !slipUrl) {
             setActiveDrawerId(d._id);
+          } else {
+            setPreviewImage({ url: slipUrl, title: `Fuel Slip · ${veh}` });
           }
         }}
       >
@@ -65,7 +136,7 @@ const ReceiptRow = ({
       </td>
 
       {/* Vehicle & Plate */}
-      <td>
+      <td data-label="Vehicle & Plate">
         <div className="ra-veh-cell">
           <span className="ra-veh">
             <span className="ra-veh__avatar">
@@ -79,51 +150,100 @@ const ReceiptRow = ({
             </span>
           )}
         </div>
+        {(isChat || d.truck || mileage) && (
+          <div className="ra-chip-row">
+            {isChat && (
+              <span className="ra-chip ra-chip--chat" title="This fill came in through a WhatsApp chat">
+                <MessageCircle size={11} />
+                From chat
+              </span>
+            )}
+            {d.truck && chip.kind === 'market' && (
+              <span className="ra-chip ra-chip--market" title="A market truck, not a fleet vehicle">
+                <Store size={11} />
+                Market truck
+              </span>
+            )}
+            {d.truck && chip.kind === 'sure' && (
+              <span className="ra-chip" title="The truck of this fill is certain">
+                <Truck size={11} />
+                {chip.text}
+              </span>
+            )}
+            {d.truck && chip.kind === 'guess' && (
+              <span className="ra-chip ra-chip--warn" title="We are not sure which truck this fill belongs to">
+                {chip.text}
+              </span>
+            )}
+            {d.truck && chip.kind === 'none' && (
+              <span className="ra-chip ra-chip--warn" title="The truck of this fill is not known">
+                <span className="ra-chip__text">—</span>
+                <span className="ra-chip__note">{chip.note}</span>
+              </span>
+            )}
+            {mileage && (
+              <span
+                className={`ra-chip ra-chip--wrap ${mileage.kind === 'warn' ? 'ra-chip--warn' : ''}`}
+                title="The mileage of this fill, compared with the usual of this truck"
+              >
+                {mileage.text}
+              </span>
+            )}
+          </div>
+        )}
       </td>
 
-      {/* Driver / Submitter */}
+      {/* Who sent it, and who drove */}
       {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a data cell, not a control; its text sits deeper than the rule looks */}
-      <td>
+      <td data-label="Uploaded by / Driver" title={d.phoneE164 || d.waId || undefined}>
         <div className="ra-driver-cell">
-          <span className="ra-driver-name">{driverName}</span>
+          <span className="ra-driver-name">Uploaded by {uploader}</span>
           <span className="ra-driver-phone font-mono">
             <Phone size={11} style={{ marginRight: 3, display: 'inline' }} />
-            {d.phoneE164 || d.waId || 'WhatsApp'}
+            Driver: {driver}
           </span>
         </div>
       </td>
 
       {/* Fuel Station */}
-      {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a data cell, not a control; its text sits deeper than the rule looks */}
-      <td>
+      <td data-label="Fuel Station">
         <div className="ra-station-cell" title={stationName}>
           <span className="ra-station-name">{stationName}</span>
-          <span className="ra-station-mode">{d.fuelType || 'DIESEL'}</span>
+          {stationSource && (
+            <span className="ra-station-source">{sourceText(stationSource)}</span>
+          )}
         </div>
       </td>
 
       {/* Litres */}
-      <td className="ra-right ra-strong font-mono">{fmtLitres(d.litres)}</td>
+      <td className="ra-right ra-strong font-mono" data-label="Litres">
+        {fmtLitres(d.litres)}
+      </td>
 
       {/* Amount */}
-      <td className="ra-right ra-strong font-mono" style={{ color: 'var(--foreground)' }}>
+      <td
+        className="ra-right ra-strong font-mono"
+        data-label="Amount"
+        style={{ color: 'var(--foreground)' }}
+      >
         {fmtMoney(d.amount)}
       </td>
 
       {/* Odometer */}
-      {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a data cell, not a control; its text sits deeper than the rule looks */}
-      <td className="ra-center">
+      <td className="ra-center" data-label="Odometer">
         <div className="ra-odo-cell">
           <span className={`ra-odo-val font-mono ${odo.isMissing ? 'ra-odo-val--missing' : ''}`}>
             {odo.displayReading}
           </span>
-          <span className={`ra-odo-badge ${odo.badgeClass}`}>{odo.badgeText}</span>
+          {!odo.isMissing && (
+            <span className={`ra-odo-badge ${odo.badgeClass}`}>{odoBadgeText}</span>
+          )}
         </div>
       </td>
 
       {/* AI Extraction Confidence */}
       {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a data cell, not a control; its text sits deeper than the rule looks */}
-      <td className="ra-center">
+      <td className="ra-center" data-label="AI Extraction">
         <div className="ra-ocr-cell">
           <span className={`ra-ocr-tag ra-ocr-tag--${ocr.level}`}>
             <ShieldCheck size={12} />
@@ -134,41 +254,33 @@ const ReceiptRow = ({
       </td>
 
       {/* Status */}
-      <td className="ra-center">
+      <td className="ra-center" data-label="Status">
         <span className={`ra-badge ${STATUS_BADGE[d.status] || 'ra-badge--cleared'}`}>
           <span className="ra-badge__dot" />
-          {d.status}
+          {statusWord(d)}
         </span>
       </td>
 
       {/* Refuel Timestamp */}
-      <td className="ra-muted" style={{ fontSize: '12px' }}>
-        <div
-          style={{
-            fontWeight: d.billDatetime ? 600 : 500,
-            color: 'var(--foreground)',
-          }}
-        >
-          {fmtDate(d.billDatetime || d.fuelOcr?.data?.datetime || d.createdAt)}
-        </div>
-        <div
-          style={{ fontSize: '11px', opacity: 0.75 }}
-          title={
-            d.createdAt
-              ? `Received via WhatsApp: ${fmtDate(d.createdAt)} (${fmtRelativeTime(d.createdAt)})`
-              : undefined
-          }
-        >
-          {d.billDatetime || d.fuelOcr?.data?.datetime ? (
-            <span>{fmtRelativeTime(d.billDatetime || d.fuelOcr?.data?.datetime)}</span>
-          ) : (
-            <span>Recv: {fmtRelativeTime(d.createdAt)}</span>
-          )}
-        </div>
+      <td className="ra-muted" data-label="Refuel Date" style={{ fontSize: '12px' }}>
+        {dateLine ? (
+          <div className="ra-time-cell">
+            <div style={{ fontWeight: 600, color: 'var(--foreground)' }}>{dateLine}</div>
+            {sourceLine && (
+              <div style={{ fontSize: '11px', opacity: 0.75 }}>{sourceLine}</div>
+            )}
+          </div>
+        ) : predicted ? (
+          <div className="ra-predicted">{predicted}</div>
+        ) : several ? (
+          <div className="ra-time-missing">{several}</div>
+        ) : (
+          <div className="ra-time-missing">{fillTimeText(d.time)}</div>
+        )}
       </td>
 
       {/* Row Actions */}
-      <td className="ra-center" onClick={(e) => e.stopPropagation()}>
+      <td className="ra-center" data-label="Actions" onClick={(e) => e.stopPropagation()}>
         <div className="ra-row-actions">
           {d.status === 'READY' && (
             <button
@@ -189,6 +301,21 @@ const ReceiptRow = ({
             <Eye size={14} />
           </button>
         </div>
+        {/* A refused action belongs to this row: the words sit next to it. */}
+        {rowError && (
+          <div className="ra-row-error" role="alert">
+            <span className="ra-row-error__text">{rowError}</span>
+            {onRetryRow && (
+              <button
+                type="button"
+                className="ra-row-error__retry"
+                onClick={(e) => onRetryRow(d._id, e)}
+              >
+                Retry
+              </button>
+            )}
+          </div>
+        )}
       </td>
     </tr>
   );

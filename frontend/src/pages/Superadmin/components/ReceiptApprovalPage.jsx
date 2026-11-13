@@ -1,6 +1,5 @@
 import React from 'react';
 import { toast } from 'react-toastify';
-import { AlertTriangle } from 'lucide-react';
 import { ReceiptApprovalService } from './ReceiptApprovalService';
 import ReceiptApprovalDrawer from './ReceiptApprovalDrawer';
 import ImagePreviewModal from '../../Trip/components/ImagePreviewModal';
@@ -36,6 +35,7 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
     filtered,
     handleBulkApprove,
     handleBulkReject,
+    handleRetryRow,
     handleSingleApprove,
     isSuperadminRoute,
     kpis,
@@ -51,6 +51,7 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
     query,
     refreshOrganization,
     refreshing,
+    rowErrors,
     savingPolicy,
     selectableItems,
     selectedIds,
@@ -152,6 +153,8 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
         kpis={kpis}
         odoFilter={odoFilter}
         setOdoFilter={setOdoFilter}
+        error={error}
+        onRetry={() => fetchData(true)}
       />
 
       {/* ── Advanced Control Bar: Tabs, Filters, Search ── */}
@@ -172,15 +175,9 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
         setQuery={setQuery}
       />
 
-      {error && (
-        <div className="ra-alert ra-alert--error" role="alert">
-          <AlertTriangle size={16} />
-          <span>{error}</span>
-        </div>
-      )}
+      {/* A failed load says so in the table itself, never as an empty inbox. */}
 
-      {/* ── Main Receipts Table ── */}
-      <ReceiptTable
+      {/* ── Main Receipts Table ── */}      <ReceiptTable
         selectedIds={selectedIds}
         isAllSelected={isAllSelected}
         isSomeSelected={isSomeSelected}
@@ -202,6 +199,10 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
         pageSize={pageSize}
         setPage={setPage}
         setPageSize={setPageSize}
+        error={error}
+        onRetry={() => fetchData(true)}
+        rowErrors={rowErrors}
+        onRetryRow={handleRetryRow}
       />
 
       {/* ── Floating Bulk Action Bar (Both Approve and Reject) ── */}

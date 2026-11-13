@@ -34,6 +34,7 @@ const APPROVAL_TYPES = [
         await billPhotoService.listBillCaptures({
           status: 'pending',
           uploaderRole: 'OWNER,MANAGER',
+          source: 'office',
           page: 1,
           limit: 1,
           ...opts,

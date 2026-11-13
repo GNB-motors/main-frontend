@@ -1,4 +1,10 @@
 import '@testing-library/jest-dom';
+import { configure } from '@testing-library/react';
+
+// CI runs the suite with coverage on a shared runner, where a render that
+// settles in 50 ms locally can take over a second. findBy*/waitFor give up
+// after asyncUtilTimeout, so the default 1 s made unrelated tests flaky there.
+configure({ asyncUtilTimeout: 5000 });
 
 // Restored Route Hub views use the browser's ResizeObserver. jsdom does not
 // provide it; supply the observation lifecycle without changing production code.

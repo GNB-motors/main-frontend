@@ -26,6 +26,7 @@ import {
   getOdometerMeta,
   crossVerifyStation,
 } from './receipts/receiptVerification';
+import { uploaderOf } from './receipts/chatDraft';
 import './ReceiptApproval.css';
 
 const STATUS_BADGE = {
@@ -131,10 +132,7 @@ const ReceiptApprovalDetailPage = () => {
   }
 
   const veh = draft?.vehicleId?.registrationNumber || draft?.vehicleReg || '—';
-  const submitter =
-    [draft?.userId?.firstName, draft?.userId?.lastName].filter(Boolean).join(' ') ||
-    draft?.phoneE164 ||
-    'Driver';
+  const uploader = draft ? uploaderOf(draft) : '—';
   const isReady = draft?.status === 'READY';
   const ocrEval = evaluateOcrQuality(draft);
   const odoMeta = getOdometerMeta(draft);
@@ -169,7 +167,7 @@ const ReceiptApprovalDetailPage = () => {
               </span>
             </div>
             <p className="ra-detail-header__subtitle">
-              Submitted via WhatsApp by <strong>{submitter}</strong> on {fmtDate(draft?.createdAt)}{' '}
+              Uploaded by <strong>{uploader}</strong> on {fmtDate(draft?.createdAt)}{' '}
               ({fmtRelativeTime(draft?.createdAt)})
             </p>
           </div>
@@ -263,8 +261,8 @@ const ReceiptApprovalDetailPage = () => {
               <Field label="Volume (Litres)" value={fmtLitres(draft?.litres)} mono highlight />
               <Field label="Fuel Rate" value={fmtMoney(draft?.rate) + ' / L'} mono />
               <Field label="Total Amount" value={fmtMoney(draft?.amount)} mono highlight />
-              <Field label="Fuel Type" value={draft?.fuelType || 'DIESEL'} />
-              <Field label="Filling Type" value={draft?.fillingType || 'FULL_TANK'} />
+              <Field label="Fuel Type" value={draft?.fuelType || '—'} />
+              <Field label="Filling Type" value={draft?.fillingType || '—'} />
               <Field
                 label="Odometer Audit"
                 value={`${odoMeta.displayReading} · ${odoMeta.badgeText}`}
@@ -280,7 +278,7 @@ const ReceiptApprovalDetailPage = () => {
             <DetailStationCard stationInfo={stationInfo} />
 
             {/* Submitter & Audit History */}
-            <DetailAuditCard submitter={submitter} draft={draft} />
+            <DetailAuditCard draft={draft} />
 
             {/* Bottom Actions for READY status */}
             {isReady && (

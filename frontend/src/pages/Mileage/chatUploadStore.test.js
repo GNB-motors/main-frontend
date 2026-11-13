@@ -1,0 +1,200 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import PhotoImportService from '../../services/PhotoImportService';
+import * as store from './chatUploadStore';
+
+vi.mock('../../services/PhotoImportService', () => ({
+  default: {
+    uploadWhatsappExport: vi.fn(),
+    getChatExportJob: vi.fn(),
+    getActiveChatExportJob: vi.fn(),
+  },
+}));
+
+// The live line of the import is watched here, so the test can play the part
+// of the server.
+const { streamMock } = vi.hoisted(() => {
+  const calls = [];
+  const open = vi.fn((jobId, options) => {
+    const handle = { jobId, options, closed: false };
+    handle.close = vi.fn(() => {
+      handle.closed = true;
+    });
+    calls.push(handle);
+    return handle;
+  });
+  return { streamMock: { calls, open } };
+});
+
+vi.mock('./chatExportStream', () => ({
+  MAX_PHOTO_ROWS: 200,
+  openChatExportStream: (...args) => streamMock.open(...args),
+}));
+
+const zipFile = () => new File(['zip'], 'mehfuz-chat.zip', { type: 'application/zip' });
+
+const flush = async (times = 4) => {
+  for (let i = 0; i < times; i += 1) {
+    await Promise.resolve();
+  }
+};
+
+describe('the chat upload of the session', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    streamMock.calls.length = 0;
+    store.reset();
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'reading',
+      progress: { read: 1, total: 10 },
+    });
+    PhotoImportService.getActiveChatExportJob.mockResolvedValue({ jobId: null });
+  });
+
+  it('keeps the bytes on their way: only an explicit cancel stops them', async () => {
+    let signal = null;
+    PhotoImportService.uploadWhatsappExport.mockImplementation((_file, options) => {
+      signal = options.signal;
+      return new Promise(() => {});
+    });
+
+    store.startUpload(zipFile());
+    await flush();
+
+    expect(store.getState().stage).toBe('uploading');
+    expect(signal.aborted).toBe(false);
+
+    // Only the owner asking for it stops the upload.
+    expect(store.cancelUpload()).toBe(true);
+    expect(signal.aborted).toBe(true);
+    expect(store.getState().stage).toBe('idle');
+  });
+
+  it('keeps the job of the import when the dialog goes away', async () => {
+    PhotoImportService.uploadWhatsappExport.mockResolvedValue({ jobId: 'job-1' });
+
+    store.startUpload(zipFile());
+    await flush();
+
+    // The import is followed by the session, not by the dialog.
+    expect(store.getState().jobId).toBe('job-1');
+    expect(store.getState().stage).toBe('reading');
+    expect(streamMock.calls.length).toBe(1);
+    expect(streamMock.calls[0].jobId).toBe('job-1');
+    expect(streamMock.calls[0].closed).toBe(false);
+  });
+
+  it('picks the running import up again after a reload', async () => {
+    PhotoImportService.getActiveChatExportJob.mockResolvedValue({
+      jobId: 'job-9',
+      state: 'reading',
+      progress: { read: 120, total: 589 },
+    });
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'reading',
+      progress: { read: 120, total: 589 },
+    });
+
+    const jobId = await store.attachActiveJob();
+
+    expect(jobId).toBe('job-9');
+    expect(store.getState().jobId).toBe('job-9');
+    expect(store.getState().stage).toBe('reading');
+    expect(store.getState().progress).toEqual({ read: 120, total: 589 });
+    expect(streamMock.calls[0].jobId).toBe('job-9');
+  });
+
+  it('has nothing to pick up when no import is running', async () => {
+    PhotoImportService.getActiveChatExportJob.mockResolvedValue({ jobId: null });
+
+    expect(await store.attachActiveJob()).toBeNull();
+    expect(store.getState().stage).toBe('idle');
+    expect(store.getState().jobId).toBeNull();
+  });
+
+  it('keeps a queued job waiting without inventing a percentage', async () => {
+    PhotoImportService.uploadWhatsappExport.mockResolvedValue({ jobId: 'job-1' });
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'queued',
+      progress: { read: 0, total: 0 },
+    });
+
+    store.startUpload(zipFile());
+    await flush();
+
+    expect(store.getState().stage).toBe('queued');
+    expect(store.readingProgressText(store.getState().progress)).toBe('Reading photos…');
+    expect(store.readingProgressPercent(store.getState().progress)).toBeNull();
+  });
+
+  it('says what the import made when it is over', async () => {
+    PhotoImportService.uploadWhatsappExport.mockResolvedValue({ jobId: 'job-1' });
+    PhotoImportService.getChatExportJob.mockResolvedValue({
+      state: 'done',
+      progress: { read: 5, total: 5 },
+      result: { photos: 5, fills: { saved: 2, waiting: 1 }, failed: [] },
+    });
+    const imported = vi.fn();
+    store.onImported(imported);
+
+    store.startUpload(zipFile());
+    await flush();
+
+    expect(store.getState().stage).toBe('done');
+    expect(store.getState().result.fills.saved).toBe(2);
+    expect(imported).toHaveBeenCalledTimes(1);
+  });
+
+  it('says the import may still be running when the server is not answering', async () => {
+    PhotoImportService.uploadWhatsappExport.mockRejectedValue(
+      Object.assign(new Error('timeout of 1800000ms exceeded'), { code: 'ECONNABORTED' }),
+    );
+
+    store.startUpload(zipFile());
+    await flush();
+
+    expect(store.getState().stage).toBe('unreachable');
+    expect(store.getState().error).toBe(
+      'Connection lost. The import may still be running. Check before retrying.',
+    );
+  });
+
+  it('says that a count the server did not send is not known', () => {
+    const buckets = store.bucketsOf({});
+    expect(buckets.saved).toBeNull();
+    expect(buckets.waiting).toBeNull();
+    expect(buckets.failed).toBeNull();
+    const fills = store.fillsOf({ fills: { saved: 3 } });
+    expect(fills.saved).toBe(3);
+    expect(fills.waiting).toBeNull();
+    expect(store.fillsOf({}).saved).toBeNull();
+  });
+
+  it('does not add up photos it only knows half of', () => {
+    expect(store.photosTotalOf({}, store.bucketsOf({}))).toBeNull();
+    expect(store.photosTotalOf({ photos: 7 }, store.bucketsOf({}))).toBe(7);
+    expect(
+      store.photosTotalOf({ photos: 7 }, store.bucketsOf({ photoBuckets: { saved: 1 } })),
+    ).toBe(7);
+  });
+
+  it('does not say the chat was imported when the counts are unknown', () => {
+    const summary = store.summarise({ photos: 3 });
+    expect(summary.title).toBe('Import finished — some counts not reported.');
+    expect(summary.title).not.toContain('Chat imported');
+    expect(summary.title).not.toContain('Nothing new');
+    expect(summary.line).toContain('—');
+  });
+
+  it('says the chat was imported when the counts are known', () => {
+    const summary = store.summarise({ photos: 3, fills: { saved: 2, waiting: 1 }, failed: [] });
+    expect(summary.title).toBe('Chat imported');
+  });
+
+  it('turns a raw reason into plain words and keeps a sentence as it is', () => {
+    const groups = store.failureGroups({
+      failed: [{ reason: 'ENOENT' }, { reason: 'no truck, litres or time found on the bill' }],
+    });
+    expect(groups[0].reason).toBe('Some details could not be read.');
+    expect(groups[1].reason).toBe('no truck, litres or time found on the bill');
+  });
+});

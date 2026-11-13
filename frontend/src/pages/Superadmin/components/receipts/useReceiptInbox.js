@@ -7,6 +7,8 @@ import { ReceiptApprovalService } from '../ReceiptApprovalService';
 import { getUserRole } from '../../../../utils/session';
 import { draftListParams, filterDraftsLocally } from './receiptFilters';
 import { computeReceiptKpis, kpisFromSummary } from './receiptKpis';
+import { plainActionError, plainLoadError, refusalMessage } from './receiptActions';
+import { useBulkApproval } from './useBulkApproval';
 
 // The receipt inbox's state, fetching, selection and actions, in their original hook order.
 const useReceiptInbox = ({ onCounts }) => {
@@ -33,6 +35,8 @@ const useReceiptInbox = ({ onCounts }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  // A refused action belongs to the row it was made on: { [draftId]: words }.
+  const [rowErrors, setRowErrors] = useState({});
 
   // Filters
   const [query, setQuery] = useState('');
@@ -125,7 +129,8 @@ const useReceiptInbox = ({ onCounts }) => {
         }
       } catch (e) {
         if (signal.aborted) return;
-        setError(e.message || 'Failed to load receipts');
+        // A failed load is a failure, never an empty inbox.
+        setError(plainLoadError(e));
       } finally {
         if (fetchAbortRef.current === controller) {
           setLoading(false);
@@ -223,54 +228,68 @@ const useReceiptInbox = ({ onCounts }) => {
   }, []);
 
   // Quick single actions
+  const setRowError = useCallback((draftId, message) => {
+    setRowErrors((prev) => {
+      const next = { ...prev };
+      if (!message) delete next[draftId];
+      else next[draftId] = message;
+      return next;
+    });
+  }, []);
+
   const handleSingleApprove = useCallback(
     async (draftId, vehReg, e) => {
-      e?.stopPropagation();
+      e?.stopPropagation?.();
+      setRowError(draftId, '');
       try {
-        await ReceiptApprovalService.publishDraft(draftId);
+        const result = await ReceiptApprovalService.publishDraft(draftId);
+        // A resolved promise is not always a success: the server can refuse.
+        const refusal = refusalMessage(
+          result,
+          'The receipt was not approved. Please check the details and try again.',
+        );
+        if (refusal) {
+          setRowError(draftId, refusal);
+          return;
+        }
         toast.success(`Published receipt for ${vehReg} to Fuel Ledger`);
         await fetchData();
       } catch (err) {
-        toast.error(err.response?.data?.message || 'Failed to publish receipt');
+        // The words sit next to the row: never a silent failure.
+        setRowError(
+          draftId,
+          plainActionError(err, 'The receipt was not approved. Please try again.'),
+        );
       }
     },
-    [fetchData],
+    [fetchData, setRowError],
+  );
+
+  // The same approval, tried again from the row itself.
+  const handleRetryRow = useCallback(
+    (draftId, e) => {
+      e?.stopPropagation?.();
+      const draft = items.find((d) => d._id === draftId);
+      return handleSingleApprove(
+        draftId,
+        draft?.vehicleId?.registrationNumber || draft?.vehicleReg || 'the vehicle',
+        e,
+      );
+    },
+    [items, handleSingleApprove],
   );
 
   // Bulk Approve
-  const handleBulkApprove = useCallback(async () => {
-    if (selectedIds.size === 0 || bulkBusy) return;
-    setBulkBusy(true);
-    try {
-      const ids = Array.from(selectedIds);
-      const data = await ReceiptApprovalService.bulkPublishDrafts(ids);
-      const { successCount = 0, failureCount = 0, failed = [] } = data;
-
-      if (failureCount === 0) {
-        toast.success(
-          `Successfully published ${successCount} fuel receipt${successCount === 1 ? '' : 's'}`,
-        );
-      } else {
-        const failureMessages = Array.from(new Set(failed.map((f) => f.message).filter(Boolean)));
-        if (successCount > 0) {
-          toast.success(`Published ${successCount} fuel receipt${successCount === 1 ? '' : 's'}`);
-        }
-        if (failureMessages.length > 0) {
-          failureMessages.forEach((msg) => toast.error(msg));
-        } else {
-          toast.error(`${failureCount} receipts failed to publish`);
-        }
-      }
-
-      setShowBulkApproveModal(false);
-      clearSelection();
-      await fetchData();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Error processing bulk approval');
-    } finally {
-      setBulkBusy(false);
-    }
-  }, [selectedIds, bulkBusy, clearSelection, fetchData]);
+  const { handleBulkApprove } = useBulkApproval({
+    selectedIds,
+    selectedDrafts,
+    bulkBusy,
+    setBulkBusy,
+    clearSelection,
+    fetchData,
+    setRowError,
+    setShowBulkApproveModal,
+  });
 
   // Bulk Reject
   const handleBulkReject = useCallback(async () => {
@@ -301,7 +320,7 @@ const useReceiptInbox = ({ onCounts }) => {
       clearSelection();
       await fetchData();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error processing bulk rejection');
+      toast.error(plainActionError(err, 'Error processing bulk rejection'));
     } finally {
       setBulkBusy(false);
     }
@@ -329,6 +348,7 @@ const useReceiptInbox = ({ onCounts }) => {
     filtered,
     handleBulkApprove,
     handleBulkReject,
+    handleRetryRow,
     handleSingleApprove,
     isSuperadminRoute,
     kpis,
@@ -344,6 +364,7 @@ const useReceiptInbox = ({ onCounts }) => {
     query,
     refreshOrganization,
     refreshing,
+    rowErrors,
     savingPolicy,
     selectableItems,
     selectedIds,
@@ -358,6 +379,7 @@ const useReceiptInbox = ({ onCounts }) => {
     setPageSize,
     setPreviewImage,
     setQuery,
+    setRowError,
     setSavingPolicy,
     setShowBulkApproveModal,
     setShowBulkRejectModal,

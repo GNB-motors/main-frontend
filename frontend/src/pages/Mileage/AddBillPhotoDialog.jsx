@@ -30,6 +30,22 @@ const REVIEW_REASONS = {
   ODOMETER_UNRESOLVED: 'An odometer reading is still needed.',
 };
 
+/**
+ * The words of a failed upload.
+ *
+ * A message a person wrote is kept as it is. A raw message from the machine is
+ * not shown to the owner.
+ */
+const plainFailure = (err) => {
+  const message = typeof err?.message === 'string' ? err.message.trim() : '';
+  if (!message) return 'The bill could not be uploaded. Please try again.';
+  const technical =
+    /\bstatus\b|\bHTTP\b|\d{3}\s*(error|status)?|at\s+\S+\s*\(|\d+:\d+|[A-Za-z]:\\|\/[a-z]+\//i.test(
+      message,
+    );
+  return technical ? 'The bill could not be uploaded. Please try again.' : message;
+};
+
 /** Compact photo capture. The selected vehicle is explicit; OCR never silently changes it. */
 function SingleBillDialog({
   open,
@@ -44,6 +60,7 @@ function SingleBillDialog({
   const [stage, setStage] = useState('pick');
   const [fillingType, setFillingType] = useState('');
   const [error, setError] = useState(null);
+  const [failure, setFailure] = useState(null);
   const [vehicles, setVehicles] = useState([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState(vehicleId);
   const [loadingVehicles, setLoadingVehicles] = useState(false);
@@ -58,6 +75,7 @@ function SingleBillDialog({
     if (!open) return undefined;
     setFile(null);
     setError(null);
+    setFailure(null);
     setStage('pick');
     setFillingType('');
     setResult(null);
@@ -114,6 +132,7 @@ function SingleBillDialog({
     busy.current = true;
     setStage('uploading');
     setError(null);
+    setFailure(null);
     const controller = new AbortController();
     request.current = controller;
     try {
@@ -135,7 +154,7 @@ function SingleBillDialog({
     } catch (err) {
       if (!controller.signal.aborted) {
         if (err?.response?.data?.guidance) setGuidance(err.response.data.guidance);
-        setError(err?.message || 'The bill could not be uploaded. Please try again.');
+        setFailure(plainFailure(err));
         setStage('confirm');
       }
     } finally {
@@ -223,6 +242,7 @@ function SingleBillDialog({
                 <span>Drop a bill photo or click to choose</span>
                 <small>JPG, PNG or PDF · up to 10 MB</small>
               </button>
+              {!file ? <p className="bp-help">Choose a bill photo to upload.</p> : null}
               <input
                 ref={fileInput}
                 type="file"
@@ -292,20 +312,29 @@ function SingleBillDialog({
               <strong>Bill saved for {plate}</strong>
               <span>
                 {needsReview
-                  ? 'Saved for review. Please check the extracted details in Diesel & Mileage.'
-                  : 'The fuel entry is now recorded.'}
+                  ? 'Some details could not be read. Review the results below.'
+                  : 'The bill was saved. Check Mileage to see it.'}
               </span>
               {reviewReasons.length ? (
                 <ul>
                   {reviewReasons.map((reason) => (
                     <li key={reason}>
-                      {REVIEW_REASONS[reason] || 'An extracted reading needs review.'}
+                      {REVIEW_REASONS[reason] || 'Some details could not be read.'}
                     </li>
                   ))}
                 </ul>
               ) : null}
             </div>
           )}
+          {failure ? (
+            <div role="alert" className="bp-error">
+              <strong>The bill could not be saved.</strong>
+              <span>{failure}</span>
+              <Button size="sm" onClick={upload}>
+                Try again
+              </Button>
+            </div>
+          ) : null}
           {error ? (
             <p role="alert" className="bp-error">
               {error}

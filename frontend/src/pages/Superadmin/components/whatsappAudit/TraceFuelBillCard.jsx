@@ -95,7 +95,7 @@ const TraceFuelBillCard = ({ traceData }) => (
           Fuel Type / Filling
         </span>
         <strong>
-          {traceData.draft?.fuelType || 'DIESEL'} ({traceData.draft?.fillingType || 'FULL_TANK'})
+          {traceData.draft?.fuelType || '—'} ({traceData.draft?.fillingType || '—'})
         </strong>
       </div>
       <div>

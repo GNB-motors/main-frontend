@@ -20,7 +20,29 @@ import apiClient from '../utils/axiosConfig';
 
 const unwrap = (res) => res.data?.data ?? res.data;
 
+/**
+ * The server (main-backend driverSheet.service) answers a confirm/dismiss with
+ * one result per id: { results: [{ id, status, reason }], confirmed: <count>,
+ * failed: <count> }. The screen wants the ids that went through and the ones
+ * that did not, with the reason.
+ */
+const DONE = new Set(['confirmed', 'dismissed']);
+const decisionLists = (data) => {
+  const results = Array.isArray(data?.results) ? data.results : [];
+  return {
+    confirmed: results.filter((r) => r && DONE.has(r.status)).map((r) => String(r.id)),
+    failed: results
+      .filter((r) => r && !DONE.has(r.status))
+      .map((r) => ({ id: String(r.id), message: r.reason || 'Could not save. Try again.' })),
+  };
+};
+
 const UPLOAD_TIMEOUT = 200000;
+
+// The WhatsApp chat export is read on the server: a few hundred photos are
+// read one by one, so the upload itself can take a while. The timeout has to
+// outlive the sending of the file.
+const WHATSAPP_EXPORT_TIMEOUT = 30 * 60 * 1000;
 
 const buildForm = ({ files = [], uploadedAs = {}, batchId, context } = {}) => {
   const form = new FormData();
@@ -110,6 +132,77 @@ const PhotoImportService = {
     const response = await apiClient.get('/api/photo-imports', { signal });
     const data = unwrap(response);
     return Array.isArray(data) ? data : [];
+  },
+
+  /**
+   * One WhatsApp chat export (a .zip with the chat and its media).
+   * The server writes the zip to the disk and puts the import in a queue: it
+   * answers at once with a job id, and the photos are read in the background.
+   */
+  uploadWhatsappExport: async (file, { signal, onUploadProgress } = {}) => {
+    const form = new FormData();
+    if (file) form.append('file', file, file.name);
+    const response = await apiClient.post('/api/photo-imports/whatsapp-export', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: WHATSAPP_EXPORT_TIMEOUT,
+      signal,
+      onUploadProgress,
+    });
+    return unwrap(response);
+  },
+
+  /**
+   * How the import is doing: its state (queued, reading, done or failed), how
+   * many photos have been read out of how many, and the counts of what it
+   * made once it is done.
+   */
+  getChatExportJob: async (jobId, { signal } = {}) => {
+    const response = await apiClient.get(`/api/photo-imports/chat-export/jobs/${jobId}`, {
+      signal,
+    });
+    return unwrap(response);
+  },
+
+  /**
+   * The import that is running for this organisation right now, if there is
+   * one. A browser that comes back after a reload asks this, so the import is
+   * picked up again instead of being forgotten.
+   */
+  getActiveChatExportJob: async ({ signal } = {}) => {
+    const response = await apiClient.get('/api/photo-imports/chat-export/jobs/active', {
+      signal,
+    });
+    return unwrap(response);
+  },
+
+  /** The pending driver names found in the uploaded driver sheet. */
+  getDriverSheetSuggestions: async ({ signal } = {}) => {
+    const response = await apiClient.get('/api/photo-imports/driver-suggestions', {
+      params: { status: 'PENDING' },
+      signal,
+    });
+    const data = unwrap(response);
+    return Array.isArray(data) ? data : [];
+  },
+
+  /** Confirm one or more pending driver-sheet suggestions. */
+  confirmDriverSheetSuggestions: async (ids, { signal } = {}) => {
+    const response = await apiClient.post(
+      '/api/photo-imports/driver-suggestions/confirm',
+      { ids },
+      { signal },
+    );
+    return decisionLists(unwrap(response));
+  },
+
+  /** Dismiss one or more pending driver-sheet suggestions. */
+  dismissDriverSheetSuggestions: async (ids, { signal } = {}) => {
+    const response = await apiClient.post(
+      '/api/photo-imports/driver-suggestions/dismiss',
+      { ids },
+      { signal },
+    );
+    return decisionLists(unwrap(response));
   },
 
   /** Drivers that already exist, for "pick another driver". */
