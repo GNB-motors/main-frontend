@@ -155,7 +155,7 @@ describe('RunsTab', () => {
     );
 
     expect(await screen.findByText('Plant-to-plant')).toBeInTheDocument();
-    expect(screen.getByText('included in empty km')).toBeInTheDocument();
+    expect(await screen.findByText('included in empty km')).toBeInTheDocument();
     // The plant-to-plant run count is still shown.
     expect(screen.getByText(/3 plant-to-plant runs/)).toBeInTheDocument();
   });
