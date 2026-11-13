@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, useNavigate } from 'react-router-dom';
 
 const { getDigest, getDailyFuel, getVehicleList, listTrips, refreshLive, getOwnerReport } =
   vi.hoisted(() => ({
@@ -158,7 +158,10 @@ describe('DailyDigestPage', () => {
       .getByRole('heading', { name: 'Loaded vs empty running' })
       .closest('section');
     const link = Array.from(card.querySelectorAll('a')).find((a) => a.textContent.includes('Open'));
-    expect(link.getAttribute('href')).toBe('/intelligence?tab=runs');
+    const params = new URL(link.getAttribute('href'), 'https://fleet.invalid').searchParams;
+    expect(params.get('tab')).toBe('runs');
+    expect(params.get('from')).toBe(screen.getByLabelText('Digest date').value);
+    expect(params.get('to')).toBe(screen.getByLabelText('Digest date').value);
   });
 
   it('shows a disconnected account with the button that fixes it', async () => {
@@ -213,6 +216,33 @@ describe('DailyDigestPage', () => {
     );
     expect(listTrips).not.toHaveBeenCalled();
     expect(getVehicleList).not.toHaveBeenCalled();
+  });
+
+  it('opens the selected seven-day fuel window and restores the Digest date on Back', async () => {
+    function Destination() {
+      const navigate = useNavigate();
+      return <button onClick={() => navigate(-1)}>Back to digest</button>;
+    }
+    render(
+      <MemoryRouter initialEntries={['/digest?date=2026-10-30']}>
+        <Routes>
+          <Route path="/digest" element={<DailyDigestPage />} />
+          <Route path="/mileage" element={<Destination />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    const heading = await screen.findByRole('heading', { name: 'Fuel, last 7 days' });
+    expect(screen.getByLabelText('Digest date').value).toBe('2026-10-30');
+    const link = heading.closest('section').querySelector('a');
+    const params = new URL(link.href).searchParams;
+    expect(params.get('from')).toBe('2026-10-24');
+    expect(params.get('to')).toBe('2026-10-30');
+    fireEvent.click(link);
+    fireEvent.click(await screen.findByRole('button', { name: 'Back to digest' }));
+    expect(await screen.findByLabelText('Digest date')).toHaveValue('2026-10-30');
+    await waitFor(() =>
+      expect(getDigest).toHaveBeenLastCalledWith(expect.objectContaining({ date: '2026-10-30' })),
+    );
   });
 
   it('refreshes each owned source once and keeps daily cards visible on report failure', async () => {

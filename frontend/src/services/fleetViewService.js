@@ -91,9 +91,9 @@ export const getNearbyHelp = ({ lat, lng, signal } = {}) =>
 /* ── §7 Trips and places ──────────────────────────────────────────────── */
 
 /** GET /api/fleet-view/trips/history */
-export const getTripsHistory = ({ site, vehicle, from, to, limit, signal } = {}) =>
+export const getTripsHistory = ({ site, vehicle, from, to, limit, page, signal } = {}) =>
   get('/api/fleet-view/trips/history', {
-    params: { site, vehicle, from, to, limit },
+    params: { site, vehicle, from, to, limit, ...(page ? { page } : {}) },
     signal,
     schema: 'TripsHistoryResponseSchema',
     importer: () => import('../schemas/tripsHistory.schema.js'),

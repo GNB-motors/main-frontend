@@ -1,4 +1,5 @@
 import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
+import useUrlFilter from '@/hooks/useUrlFilter';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Plus,
@@ -554,13 +555,13 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [source, setSource] = useState('');
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useUrlFilter('expenseStatus');
   const [vehicleId, setVehicleId] = useState('');
   const [driverId, setDriverId] = useState('');
   const [tripId, setTripId] = useState('');
   const [includeTripExpenses, setIncludeTripExpenses] = useState(true);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useUrlFilter('from');
+  const [endDate, setEndDate] = useUrlFilter('to');
   const [showFilters, setShowFilters] = useState(false);
 
   // Modals
@@ -590,8 +591,8 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
         if (vehicleId) params.vehicleId = vehicleId;
         if (driverId) params.driverId = driverId;
         if (tripId) params.tripId = tripId;
-        if (startDate) params.startDate = new Date(startDate).toISOString();
-        if (endDate) params.endDate = new Date(endDate).toISOString();
+        if (startDate) params.startDate = new Date(`${startDate}T00:00:00.000+05:30`).toISOString();
+        if (endDate) params.endDate = new Date(`${endDate}T23:59:59.999+05:30`).toISOString();
 
         let [data, summaryData] = await Promise.all([
           KhataLedgerService.getExpenses(params),
@@ -682,12 +683,10 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
   const handleClearFilters = () => {
     setCategory('');
     setSource('');
-    setStatus('');
+    setStatus('', { from: null, to: null });
     setVehicleId('');
     setDriverId('');
     setTripId('');
-    setStartDate('');
-    setEndDate('');
     setSearchInput('');
     setSearch('');
   };

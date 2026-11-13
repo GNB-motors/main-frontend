@@ -1,4 +1,7 @@
 import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
+import useUrlFilter from '@/hooks/useUrlFilter';
+import { useSearchParams } from 'react-router-dom';
+import { rangeToParams } from '../Mileage/mileageDates';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../../components/ui/button.jsx';
 import {
@@ -32,12 +35,14 @@ import {
  * the counts, because the counts are what the next shift reads.
  */
 export default function IncidentsTab() {
+  const [params] = useSearchParams();
+  const { from, to } = rangeToParams({ from: params.get('from'), to: params.get('to') });
   const [rows, setRows] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [summary, setSummary] = useState(null);
   const [summaryKnown, setSummaryKnown] = useState(false);
-  const [status, setStatus] = useState('');
-  const [severity, setSeverity] = useState('');
+  const [status, setStatus] = useUrlFilter('incidentStatus', '', ['ACTIVE', ...INCIDENT_STATUSES]);
+  const [severity, setSeverity] = useUrlFilter('incidentSeverity');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionError, setActionError] = useState(null);
@@ -50,24 +55,55 @@ export default function IncidentsTab() {
   const [announcement, setAnnouncement] = useState('');
   const mounted = useRef(true);
 
-  const refreshSummary = useCallback(async (signal) => {
-    try {
-      const data = await getIncidentSummary({ signal });
-      if (mounted.current) {
-        setSummary(data);
-        setSummaryKnown(true);
+  const refreshSummary = useCallback(
+    async (signal) => {
+      try {
+        const data = await getIncidentSummary({ from, to, signal });
+        if (mounted.current) {
+          setSummary(data);
+          setSummaryKnown(true);
+        }
+      } catch {
+        if (mounted.current) setSummaryKnown(false);
       }
-    } catch {
-      if (mounted.current) setSummaryKnown(false);
-    }
-  }, []);
+    },
+    [from, to],
+  );
 
   const load = useCallback(
     async (signal) => {
       setLoading(true);
       setError(null);
       try {
-        const result = await getIncidents({ status, limit: 50, signal });
+        let result;
+        if (status === 'ACTIVE') {
+          const groups = await Promise.all(
+            INCIDENT_STATUSES.filter((value) => value !== 'RESOLVED').map(async (value) => {
+              const items = [];
+              let page = 1;
+              let total = Infinity;
+              while (items.length < total) {
+                const part = await getIncidents({
+                  status: value,
+                  from,
+                  to,
+                  page,
+                  limit: 100,
+                  signal,
+                });
+                if (!part.items.length) break;
+                items.push(...part.items);
+                total = part.pagination?.total ?? items.length;
+                page += 1;
+              }
+              return items.filter((row) => row.status === value);
+            }),
+          );
+          const items = groups.flat();
+          result = { items, pagination: { total: items.length } };
+        } else {
+          result = await getIncidents({ status, from, to, limit: 50, signal });
+        }
         if (mounted.current) {
           setRows(result.items);
           setPagination(result.pagination);
@@ -78,7 +114,7 @@ export default function IncidentsTab() {
         if (mounted.current) setLoading(false);
       }
     },
-    [status],
+    [status, from, to],
   );
 
   useEffect(() => {
@@ -93,7 +129,11 @@ export default function IncidentsTab() {
   }, [load, refreshSummary]);
 
   const items = useMemo(
-    () => filterIncidents(rows, { status, severity }),
+    () =>
+      filterIncidents(
+        status === 'ACTIVE' ? rows.filter((row) => row.status !== 'RESOLVED') : rows,
+        { status: status === 'ACTIVE' ? '' : status, severity },
+      ),
     [rows, status, severity],
   );
   const severities = useMemo(() => severityOptions(rows), [rows]);
@@ -199,6 +239,7 @@ export default function IncidentsTab() {
             onChange={(event) => setStatus(event.target.value)}
           >
             <option value="">All statuses</option>
+            <option value="ACTIVE">Unresolved</option>
             {INCIDENT_STATUSES.map((value) => (
               <option key={value} value={value}>
                 {STATUS_LABEL[value]}

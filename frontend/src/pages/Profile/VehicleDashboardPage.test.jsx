@@ -19,6 +19,33 @@ vi.mock('../../utils/session.js', async (importOriginal) => {
 });
 
 describe('VehicleDashboardPage — Document Dropdown Filter', () => {
+  it('opens expiring documents for the Digest week, including the end day and excluding later documents', async () => {
+    VehicleService.getFleetDashboard.mockResolvedValue([
+      {
+        _id: 'inside',
+        registrationNumber: 'IN-RANGE',
+        documents: { FITNESS: { uploaded: true, expiryDate: '2026-11-11T18:29:59.999Z' } },
+      },
+      {
+        _id: 'outside',
+        registrationNumber: 'OUT-OF-RANGE',
+        documents: { FITNESS: { uploaded: true, expiryDate: '2026-11-11T18:30:00.000Z' } },
+      },
+      { _id: 'missing', registrationNumber: 'NO-EXPIRY', documents: {} },
+    ]);
+    render(
+      <MemoryRouter
+        initialEntries={[
+          '/vehicles/dashboard?docFilter=EXPIRING_SOON&from=2026-11-04&to=2026-11-11',
+        ]}
+      >
+        <VehicleDashboardPage />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('IN-RANGE')).toBeInTheDocument();
+    expect(screen.queryByText('OUT-OF-RANGE')).not.toBeInTheDocument();
+    expect(screen.queryByText('NO-EXPIRY')).not.toBeInTheDocument();
+  });
   const mockVehicles = [
     {
       _id: 'veh-1',

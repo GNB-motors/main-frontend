@@ -575,6 +575,7 @@ export default function AutoTripsPage() {
             <div className="atx-panel-body">
               {viewTab === 'history' ? (
                 <TripHistoryTab
+                  minDwellMin={searchParams.get('minDwellMin')}
                   vehicle={searchParams.get('vehicle')}
                   site={searchParams.get('site')}
                   from={searchParams.get('from')}

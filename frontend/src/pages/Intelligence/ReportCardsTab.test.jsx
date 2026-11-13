@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useNavigate, useLocation } from 'react-router-dom';
 
 vi.mock('./IntelligenceService', () => ({
   default: { getReportCards: vi.fn() },
@@ -42,6 +42,88 @@ const cards = {
 };
 
 describe('ReportCardsTab', () => {
+  it.each(['EXCELLENT', 'FALLING'])(
+    'opens a %s link on the selected category, including zero matches and history',
+    async (grade) => {
+      IntelligenceService.getReportCards.mockResolvedValue({
+        items: [
+          {
+            id: 'ungraded',
+            subject: 'driver',
+            name: 'No score driver',
+            score: null,
+            strengths: [],
+            problems: [],
+          },
+        ],
+      });
+      function History() {
+        const navigate = useNavigate();
+        const location = useLocation();
+        return (
+          <>
+            <button onClick={() => navigate(-1)}>Back</button>
+            <output>{location.search}</output>
+          </>
+        );
+      }
+      render(
+        <MemoryRouter
+          initialEntries={[
+            `/intelligence?tab=drivers&grade=${grade}&from=2026-07-18&to=2026-11-14`,
+          ]}
+        >
+          <History />
+          <ReportCardsTab subject="driver" from="2026-07-18" to="2026-11-14" />
+        </MemoryRouter>,
+      );
+      const label = grade === 'EXCELLENT' ? 'Excellent' : 'Falling off';
+      expect(
+        await screen.findByRole('button', { name: `${label} 0`, exact: true }),
+      ).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.queryByText('No score driver')).not.toBeInTheDocument();
+      expect(screen.getByText(`No ${label} drivers in this selection`)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'All 1', exact: true }));
+      expect(screen.getByText('No score driver')).toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent('from=2026-07-18');
+      fireEvent.click(screen.getByRole('button', { name: 'Back', exact: true }));
+      expect(screen.getByRole('button', { name: `${label} 0`, exact: true })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      expect(screen.queryByText('No score driver')).not.toBeInTheDocument();
+    },
+  );
+
+  it('filters graded rows by the linked grade rather than merely highlighting the chip', async () => {
+    IntelligenceService.getReportCards.mockResolvedValue({
+      items: [
+        {
+          ...cards.items[0],
+          id: 'excellent',
+          name: 'Excellent driver',
+          subject: 'driver',
+          grade: 'EXCELLENT',
+          score: 95,
+        },
+        {
+          ...cards.items[0],
+          id: 'falling',
+          name: 'Falling driver',
+          subject: 'driver',
+          grade: 'FALLING',
+          score: 30,
+        },
+      ],
+    });
+    render(
+      <MemoryRouter initialEntries={['/intelligence?tab=drivers&grade=FALLING']}>
+        <ReportCardsTab subject="driver" />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('Falling driver')).toBeInTheDocument();
+    expect(screen.queryByText('Excellent driver')).not.toBeInTheDocument();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     TripService.getDrivers.mockResolvedValue({ data: [] });

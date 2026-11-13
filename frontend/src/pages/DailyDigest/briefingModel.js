@@ -99,7 +99,7 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
         : fleet.moving == null
           ? 'Live tracking not reported'
           : snapshot,
-      to: '/live-tracking',
+      to: '/live-tracking?status=moving',
     },
     {
       key: 'trips',
@@ -162,7 +162,7 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
         dark == null
           ? 'Live tracking not reported'
           : `of ${count(trucks)} trucks${live ? ' · live' : ` · ${snapshot.toLowerCase()}`}`,
-      to: '/live-tracking',
+      to: '/live-tracking?status=offline',
     },
   ];
 }
@@ -196,14 +196,14 @@ export function leakRows(brief) {
 }
 
 export const EXCEPTION_LINKS = {
-  sos: '/alert-inbox',
+  sos: '/alert-inbox?inboxView=INCIDENTS&incidentStatus=ACTIVE',
   moneyTheft: '/intelligence?tab=fuel',
   idling: '/intelligence?tab=idling',
-  stuckAtPlant: '/place-hub',
+  stuckAtPlant: '/auto-trips?tab=history&minDwellMin=180',
   etaSlipping: '/auto-trips',
-  papersWaiting: '/expenses',
-  documentsExpiring: '/vehicles/dashboard',
-  broadcastNotAcknowledged: '/alert-inbox',
+  papersWaiting: '/khata-ledger?tab=all&expenseStatus=PENDING',
+  documentsExpiring: '/vehicles/dashboard?docFilter=EXPIRING_SOON',
+  broadcastNotAcknowledged: '/alert-inbox?inboxStatus=OPEN',
 };
 
 const URGENT = new Set(['sos', 'moneyTheft']);

@@ -9,6 +9,7 @@ import apiClient from '../../utils/axiosConfig';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import { getUserRole } from '../../utils/session.js';
 import * as chatUpload from './chatUploadStore';
+import { digestDestination } from '../DailyDigest/digestDestination';
 
 vi.mock('../../utils/axiosConfig', () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
@@ -352,10 +353,7 @@ describe('MileagePage', () => {
     await waitFor(() =>
       expect(screen.getByTestId('where').textContent).toBe('/mileage?tab=mileage&view=cycles'),
     );
-    expect(screen.getByRole('tab', { name: /Mileage/ })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
+    expect(screen.getByRole('tab', { name: /Mileage/ })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('ⓘ next to a result shows how it was worked out', async () => {
@@ -395,6 +393,20 @@ describe('MileagePage', () => {
     await waitFor(() => expect(feedCalls().length).toBeGreaterThan(0));
     expect(daysBetween(feedCalls()[0][1].params)).toBe(3);
     expect(screen.getByText('1 Sep – 3 Sep 2026')).toBeInTheDocument();
+  });
+
+  it('uses the Digest fuel window for the real feed request and keeps it on tab changes', async () => {
+    useFeatureFlags.mockReturnValue(flagsFor(['fuelIntegrity', 'mileage']));
+    renderAt(digestDestination('/mileage', '2026-11-04', 7));
+    await waitFor(() => expect(feedCalls().length).toBeGreaterThan(0));
+    expect(feedCalls()[0][1].params).toMatchObject({
+      from: '2026-10-28T18:30:00.000Z',
+      to: '2026-11-04T18:29:59.999Z',
+    });
+    expect(screen.getByText('29 Oct – 4 Nov 2026')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Bill check' }));
+    expect(screen.getByTestId('where').textContent).toContain('from=2026-10-29');
+    expect(screen.getByTestId('where').textContent).toContain('to=2026-11-04');
   });
 
   it('offers explicit naming actions instead of linking pump names away from Mileage', async () => {
@@ -862,9 +874,7 @@ describe('WhatsApp chat upload on the mileage page', () => {
     await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));
     const before = feedCalls().length;
 
-    chatUpload.startUpload(
-      new File(['zip'], 'chat.zip', { type: 'application/zip' }),
-    );
+    chatUpload.startUpload(new File(['zip'], 'chat.zip', { type: 'application/zip' }));
 
     await waitFor(() => expect(feedCalls().length).toBeGreaterThan(before));
   });

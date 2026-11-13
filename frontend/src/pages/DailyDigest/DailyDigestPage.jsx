@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import useApi from '../../hooks/useApi';
 import { useFullPageLayout } from '../../hooks/usePageLayout';
 import { useLivePositions } from '../../hooks/useLivePositions';
@@ -15,7 +16,22 @@ const EMPTY_META = {};
 
 export default function DailyDigestPage() {
   useFullPageLayout();
-  const [date, setDate] = useState(() => istDayString(new Date()));
+  const [params, setParams] = useSearchParams();
+  const today = istDayString(new Date());
+  const requestedDate = params.get('date');
+  const parsed = new Date(`${requestedDate}T12:00:00+05:30`);
+  const date =
+    requestedDate &&
+    Number.isFinite(+parsed) &&
+    istDayString(parsed) === requestedDate &&
+    requestedDate <= today
+      ? requestedDate
+      : today;
+  const setDate = (nextDate) => {
+    const next = new URLSearchParams(params);
+    next.set('date', nextDate);
+    setParams(next);
+  };
   const report = useApi(
     async (signal) => ({
       payload: await fleetViewService.getDigest({ date, signal }),
