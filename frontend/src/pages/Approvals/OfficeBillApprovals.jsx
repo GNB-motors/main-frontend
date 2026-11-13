@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { AlertTriangle, FileCheck2, Inbox, RotateCw } from 'lucide-react';
 import billPhotoService from '../../services/billPhotoService';
 import { MileageApi } from '../Mileage/mileageApi';
@@ -13,6 +14,7 @@ export default function OfficeBillApprovals({ onCount, onUnavailable }) {
   const [counts, setCounts] = useState({});
   const [vehicles, setVehicles] = useState([]);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState(null);
   const [revision, setRevision] = useState(0);
   const refresh = useCallback(() => setRevision((n) => n + 1), []);
@@ -29,7 +31,7 @@ export default function OfficeBillApprovals({ onCount, onUnavailable }) {
   }, []);
   useEffect(() => {
     const controller = new AbortController();
-    setData(null);
+    setLoading(true);
     setError('');
     const list = (status, p, limit) =>
       billPhotoService.listBillCaptures({
@@ -50,16 +52,30 @@ export default function OfficeBillApprovals({ onCount, onUnavailable }) {
         };
         setCounts(next);
         onCount?.(next.pending);
+        setLoading(false);
       })
       .catch((e) => {
         if (controller.signal.aborted) return;
+        setLoading(false);
         if ((e?.status ?? e?.response?.status) === 404) onUnavailable?.();
-        else setError('Could not load bills. Please try again.');
+        else setError('Could not load bills. Try again.');
       });
     return () => controller.abort();
   }, [tab, page, revision, onCount, onUnavailable]);
   return (
     <div className="apv-section">
+      <div className="apv-queue-note">
+        <p className="apv-queue-note__title">Owner &amp; manager bill photos</p>
+        <p className="apv-queue-note__text">
+          These are the bills owners and managers upload for a truck.
+        </p>
+        <p className="apv-queue-note__text">
+          <Link className="apv-queue-note__link" to="/erp/bill-approvals">
+            Driver expense bills
+          </Link>{' '}
+          is a separate queue.
+        </p>
+      </div>
       <div className="ra-toolbar">
         <div className="ra-tabs" role="tablist" aria-label="Bill status">
           {[
@@ -91,11 +107,11 @@ export default function OfficeBillApprovals({ onCount, onUnavailable }) {
             className="ra-btn ra-btn--ghost apv-alert__action"
             onClick={refresh}
           >
-            <RotateCw size={14} /> Refresh
+            <RotateCw size={14} /> Retry
           </button>
         </div>
       )}
-      {!data && !error && (
+      {!data && !error && loading && (
         <div className="ra-state apv-state" aria-live="polite">
           <div className="ra-spinner" />
           <p className="ra-state__title">Loading bills…</p>

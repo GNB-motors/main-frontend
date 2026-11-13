@@ -100,11 +100,12 @@ describe('ReceiptApprovalDrawer — a chat-import row', () => {
   });
 
   it('approves with the values the person changed', async () => {
-    renderDrawer();
+    const { container } = renderDrawer();
     await screen.findByText('Check the fill before you approve it');
 
     // Pick the truck the photo could be, fix the litres and the amount.
-    fireEvent.change(screen.getByLabelText('Truck'), { target: { value: 'v2' } });
+    const truckSelect = container.querySelector('#ra-chat-truck--native');
+    fireEvent.change(truckSelect, { target: { value: 'v2' } });
     fireEvent.change(screen.getByLabelText('Litres'), { target: { value: '150' } });
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '13425' } });
     fireEvent.change(screen.getByLabelText('Filling type'), { target: { value: 'PARTIAL' } });
@@ -126,7 +127,7 @@ describe('ReceiptApprovalDrawer — a chat-import row', () => {
     renderDrawer();
     await screen.findByText('Check the fill before you approve it');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Use the predicted time' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use suggested time' }));
     fireEvent.click(screen.getByRole('button', { name: /Approve & Publish/i }));
 
     await waitFor(() => expect(postCalls('/publish')).toHaveLength(1));
@@ -137,7 +138,7 @@ describe('ReceiptApprovalDrawer — a chat-import row', () => {
     renderDrawer();
     await screen.findByText('Check the fill before you approve it');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Accept suggested time and 218 L' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use suggested time and 218 L' }));
     fireEvent.click(screen.getByRole('button', { name: /Approve & Publish/i }));
 
     await waitFor(() => expect(postCalls('/publish')).toHaveLength(1));

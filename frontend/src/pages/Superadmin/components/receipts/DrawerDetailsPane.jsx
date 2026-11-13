@@ -10,10 +10,16 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { fmtMoney, fmtLitres, fmtDate, fmtRelativeTime } from './receiptFormat';
-import { predictedEvidenceLines, predictedTimeText } from './predictedTime';
+import {
+  predictedEvidenceLines,
+  predictedTimeText,
+  fillTimeFromDraft,
+  matchedRiseText,
+} from './predictedTime';
+import { isChatRow, uploaderOf, driverOf } from './chatDraft';
 
-/** The predicted time of a fill, with the buttons a person needs. */
-const PredictedTime = ({ draft, onSetTime, timeBusy, hidden = false }) => {
+/** The suggested time of a fill, with the buttons a person needs. */
+const SuggestedTime = ({ draft, onSetTime, timeBusy, hidden = false }) => {
   const [editing, setEditing] = useState(false);
   const [typed, setTyped] = useState('');
   const predicted = draft?.time?.predicted || null;
@@ -25,13 +31,14 @@ const PredictedTime = ({ draft, onSetTime, timeBusy, hidden = false }) => {
 
   return (
     <div className="ra-prop ra-prop--full ra-prop--predicted">
-      <span className="ra-prop__label">Fill time</span>
+      <span className="ra-prop__label">Suggested time</span>
       {text && (
         <span className="ra-prop__val ra-prop__val--predicted">
           <Clock size={13} style={{ display: 'inline', marginRight: 4 }} />
           {text}
         </span>
       )}
+      {predicted && <span className="ra-prop__val">{matchedRiseText(predicted)}</span>}
       {evidenceLines.length > 0 && (
         <ul className="ra-predicted__evidence">
           {evidenceLines.map((line) => (
@@ -80,7 +87,7 @@ const PredictedTime = ({ draft, onSetTime, timeBusy, hidden = false }) => {
                 disabled={timeBusy}
                 onClick={() => onSetTime?.('accept')}
               >
-                Accept
+                Use suggested time
               </button>
               <button
                 type="button"
@@ -88,7 +95,7 @@ const PredictedTime = ({ draft, onSetTime, timeBusy, hidden = false }) => {
                 disabled={timeBusy}
                 onClick={() => setEditing(true)}
               >
-                Edit
+                Set time
               </button>
             </>
           )}
@@ -98,13 +105,23 @@ const PredictedTime = ({ draft, onSetTime, timeBusy, hidden = false }) => {
   );
 };
 
+/** Coordinates as a person reads them, or empty when none were supplied. */
+const coordText = (coordinates) => {
+  if (coordinates == null) return '';
+  if (typeof coordinates === 'object') {
+    const lat = coordinates.lat ?? coordinates.latitude;
+    const lng = coordinates.lng ?? coordinates.longitude;
+    return lat != null && lng != null ? `${lat}, ${lng}` : '';
+  }
+  return String(coordinates);
+};
+
 const DrawerDetailsPane = ({
   draft,
   ocrEval,
   veh,
   odoMeta,
   stationInfo,
-  submitter,
   onSetTime,
   timeBusy,
   showTimeBlock = true,
@@ -115,6 +132,37 @@ const DrawerDetailsPane = ({
     : [];
   const reason = draft.pipelineReason || '';
   const caption = draft.caption || '';
+
+  // Who sent the photo, and who drove: two different people, often.
+  const isChat = isChatRow(draft);
+  const uploader = uploaderOf(draft);
+  const driver = driverOf(draft);
+
+  // The caption belongs to the sender of a chat, and to the driver of a
+  // guided receipt — but only when we know who that driver is.
+  const captionHeading =
+    isChat || !driver ? 'Message from the sender' : 'Message from the driver';
+  const fill = fillTimeFromDraft(draft);
+  const yearNote =
+    fill.value && !fill.yearConfirmed ? 'year not confirmed — check the bill' : '';
+
+  // The station facts the draft really carries.
+  const stationName =
+    stationInfo?.stationName || draft.stationName || draft.fuelOcr?.data?.location || null;
+  const coordinates = coordText(stationInfo?.coordinates) || null;
+  const haltTime = stationInfo?.haltTime ?? null;
+  const geofence = stationInfo?.isGeofenceMatch ?? null;
+  const benchmarkRate = stationInfo?.benchmarkRate ?? null;
+  const benchmarkPlace = stationInfo?.benchmarkPlace ?? null;
+  const benchmarkDate = stationInfo?.benchmarkEffectiveDate ?? null;
+  const billRate = stationInfo?.billRate ?? null;
+  // A benchmark is only a benchmark when we know its rate, its place and the
+  // day it applies from.
+  const hasBenchmark = benchmarkRate != null && benchmarkPlace != null && benchmarkDate != null;
+  const variance =
+    hasBenchmark && Number.isFinite(Number(billRate)) && Number.isFinite(Number(benchmarkRate))
+      ? Number(billRate) - Number(benchmarkRate)
+      : null;
 
   return (
     <div className="ra-drawer__details-pane">
@@ -144,7 +192,7 @@ const DrawerDetailsPane = ({
     {/* Section: Fuel & Vehicle Core Details */}
     <div className="ra-section-card">
       <div className="ra-section-card__title">
-        <Receipt size={15} /> Fuel & Vehicle Extracted Data
+        <Receipt size={15} /> Fuel &amp; Vehicle Extracted Data
       </div>
       <div className="ra-grid-props">
         <div className="ra-prop">
@@ -153,17 +201,29 @@ const DrawerDetailsPane = ({
         </div>
         <div className="ra-prop">
           <span className="ra-prop__label">Fuel Type</span>
-          <span className="ra-prop__val">{draft.fuelType || 'DIESEL'}</span>
+          <span className="ra-prop__val">{draft.fuelType || '—'}</span>
         </div>
         <div className="ra-prop">
           <span className="ra-prop__label">Filling Mode</span>
-          <span className="ra-prop__val">{draft.fillingType || 'FULL_TANK'}</span>
+          <span className="ra-prop__val">{draft.fillingType || '—'}</span>
         </div>
         <div className="ra-prop">
-          <span className="ra-prop__label">Bill Date & Time</span>
+          <span className="ra-prop__label">Bill Date &amp; Time</span>
           <span className="ra-prop__val">{fmtDate(draft.billDatetime)}</span>
         </div>
-        <PredictedTime
+        <div className="ra-prop ra-prop--full">
+          <span className="ra-prop__label">Fill time</span>
+          {fill.missing ? (
+            <span className="ra-prop__val">Fill time not read from the photo.</span>
+          ) : (
+            <>
+              <span className="ra-prop__val">{fill.value}</span>
+              <span className="ra-prop__val ra-prop__val--muted">{fill.source}</span>
+              {yearNote && <span className="ra-prop__val ra-prop__val--muted">{yearNote}</span>}
+            </>
+          )}
+        </div>
+        <SuggestedTime
           draft={draft}
           onSetTime={onSetTime}
           timeBusy={timeBusy}
@@ -188,73 +248,77 @@ const DrawerDetailsPane = ({
       <div className="ra-odo-row">
         <div className="ra-odo-box">
           <span className="ra-odo-box__reading">{odoMeta.displayReading}</span>
-          <span className={`ra-odo-badge ${odoMeta.badgeClass}`}>{odoMeta.badgeText}</span>
+          {!odoMeta.isMissing && (
+            <span className={`ra-odo-badge ${odoMeta.badgeClass}`}>{odoMeta.badgeText}</span>
+          )}
         </div>
         <div className="ra-odo-hint">{odoMeta.detailHint}</div>
       </div>
     </div>
 
-    {/* Section: Station & Telematics Cross-Verification */}
+    {/* Section: Station facts the draft carries */}
     <div className="ra-section-card">
       <div className="ra-section-card__title">
-        <MapPin size={15} /> Station & Telematics Verification
+        <MapPin size={15} /> Station Details
       </div>
       <div className="ra-grid-props">
         <div className="ra-prop ra-prop--full">
           <span className="ra-prop__label">Station Name</span>
-          <span className="ra-prop__val">{stationInfo.stationName}</span>
+          <span className="ra-prop__val">{stationName || 'Station not read from the photo.'}</span>
         </div>
         <div className="ra-prop">
           <span className="ra-prop__label">Pump GPS Coordinates</span>
-          <span className="ra-prop__val font-mono">{stationInfo.coordinates}</span>
+          <span className="ra-prop__val font-mono">{coordinates || 'Pump location not available.'}</span>
         </div>
         <div className="ra-prop">
           <span className="ra-prop__label">Vehicle Halt Duration</span>
-          <span className="ra-prop__val" style={{ color: 'var(--emerald-500, #10B981)' }}>
-            <Clock size={13} style={{ display: 'inline', marginRight: 4 }} />
-            {stationInfo.haltTime}
+          <span className="ra-prop__val">{haltTime || 'Halt duration not available.'}</span>
+        </div>
+        <div className="ra-prop">
+          <span className="ra-prop__label">Geofence</span>
+          <span className="ra-prop__val">
+            {geofence === true ? 'Matched' : geofence === false ? 'Not matched' : 'Location match not checked.'}
           </span>
         </div>
         <div className="ra-prop">
-          <span className="ra-prop__label">State Diesel Benchmark</span>
-          <span className="ra-prop__val">₹{stationInfo.benchmarkRate}/L</span>
+          <span className="ra-prop__label">Rate Benchmark</span>
+          <span className="ra-prop__val">
+            {hasBenchmark
+              ? `₹${benchmarkRate}/L · ${benchmarkPlace} · from ${fmtDate(benchmarkDate)}`
+              : 'Benchmark not available'}
+          </span>
         </div>
         <div className="ra-prop">
           <span className="ra-prop__label">Rate Variance</span>
-          <span
-            className="ra-prop__val"
-            style={{
-              color: stationInfo.isRateNormal
-                ? 'var(--emerald-500, #10B981)'
-                : 'var(--amber-500, #F59E0B)',
-            }}
-          >
-            {stationInfo.rateDiff != null
-              ? `${stationInfo.rateDiff > 0 ? '+' : ''}${stationInfo.rateDiff} ₹/L (${
-                  stationInfo.isRateNormal ? 'Normal Variance' : 'High Variance'
-                })`
+          <span className="ra-prop__val">
+            {variance != null
+              ? `${variance > 0 ? '+' : ''}${Number(variance.toFixed(2))} ₹/L vs the benchmark`
               : '—'}
           </span>
         </div>
       </div>
     </div>
 
-    {/* Section: Driver & WhatsApp Submission Metadata */}
+    {/* Section: Who sent it, and who drove */}
     <div className="ra-section-card">
       <div className="ra-section-card__title">
-        <User size={15} /> Submitter & Audit Metadata
+        <User size={15} /> Uploader &amp; Audit Metadata
       </div>
       <div className="ra-grid-props">
         <div className="ra-prop">
-          <span className="ra-prop__label">Submitted by</span>
-          <span className="ra-prop__val">{submitter}</span>
+          <span className="ra-prop__label">Uploaded by</span>
+          <span className="ra-prop__val">{uploader}</span>
+        </div>
+        <div className="ra-prop">
+          <span className="ra-prop__label">Driver</span>
+          <span className="ra-prop__val">{driver || '—'}</span>
         </div>
         <div className="ra-prop">
           <span className="ra-prop__label">WhatsApp Contact</span>
           <span className="ra-prop__val font-mono">{draft.phoneE164 || draft.waId || '—'}</span>
         </div>
         <div className="ra-prop">
-          <span className="ra-prop__label">Received Timestamp</span>
+          <span className="ra-prop__label">WhatsApp received</span>
           <span className="ra-prop__val">
             {fmtDate(draft.createdAt)} ({fmtRelativeTime(draft.createdAt)})
           </span>
@@ -265,7 +329,7 @@ const DrawerDetailsPane = ({
             <span className="ra-prop__val">
               {[draft.publishedBy?.firstName, draft.publishedBy?.lastName]
                 .filter(Boolean)
-                .join(' ') || 'Admin'}{' '}
+                .join(' ') || '—'}{' '}
               on {fmtDate(draft.publishedAt)}
             </span>
           </div>
@@ -296,11 +360,12 @@ const DrawerDetailsPane = ({
       </div>
     )}
 
-    {/* Section: What the driver wrote with the photo */}
+    {/* Section: What the sender wrote with the photo */}
     {caption && (
       <div className="ra-section-card">
         <div className="ra-section-card__title">
-          <MessageCircle size={15} /> Message from the driver
+          <MessageCircle size={15} />
+          {captionHeading}
         </div>
         <div className="ra-caption">{caption}</div>
       </div>

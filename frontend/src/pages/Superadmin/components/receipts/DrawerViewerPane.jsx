@@ -2,10 +2,20 @@ import { Maximize2, Receipt, Gauge, ZoomIn, ZoomOut, RotateCw } from 'lucide-rea
 
 /** The words for each photo of a chat-import row. */
 const PHOTO_LABELS = {
-  pump: 'Pump',
   bill: 'Bill',
+  pump: 'Pump screen',
   dashboard: 'Dashboard',
-  repeat: 'Repeat photo',
+};
+
+/** The tabs of the photos: the kind of each photo, numbered when it repeats. */
+const photoTabs = (photos) => {
+  const counts = new Map();
+  return photos.map((photo) => {
+    const base = PHOTO_LABELS[photo.kind] || 'Photo';
+    const seen = (counts.get(base) || 0) + 1;
+    counts.set(base, seen);
+    return { photo, label: seen > 1 ? `${base} ${seen}` : base };
+  });
 };
 
 const DrawerViewerPane = ({
@@ -24,12 +34,13 @@ const DrawerViewerPane = ({
   // A chat row can carry several photos (the pump, the bill, the dashboard).
   // Each one gets its own tab and is shown large.
   const chatPhotos = Array.isArray(photos) ? photos.filter((p) => p?.url) : [];
+  const tabs = photoTabs(chatPhotos);
 
   return (
     <div className="ra-drawer__viewer-pane">
       <div className="ra-drawer__tab-strip">
-        {chatPhotos.length > 0 ? (
-          chatPhotos.map((photo, index) => (
+        {tabs.length > 0 ? (
+          tabs.map(({ photo, label }, index) => (
             <button
               key={photo.id || photo.url || index}
               type="button"
@@ -40,7 +51,7 @@ const DrawerViewerPane = ({
                 setRotation(0);
               }}
             >
-              {PHOTO_LABELS[photo.kind] || 'Photo'}
+              {label}
             </button>
           ))
         ) : (
@@ -55,7 +66,7 @@ const DrawerViewerPane = ({
               }}
             >
               <Receipt size={14} />
-              Fuel Bill Slip
+              Bill
             </button>
             {draft.odometerImageUrl && (
               <button
@@ -68,7 +79,7 @@ const DrawerViewerPane = ({
                 }}
               >
                 <Gauge size={14} />
-                Dashboard Odometer Photo
+                Dashboard
               </button>
             )}
           </>
@@ -89,7 +100,7 @@ const DrawerViewerPane = ({
         ) : (
           <div className="ra-image-empty">
             <Receipt size={32} />
-            <div>No image uploaded for this entry</div>
+            <div>Photo not available.</div>
           </div>
         )}
       </div>

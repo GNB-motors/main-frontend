@@ -25,7 +25,7 @@ describe('the bill row shows the date, the time and the reason', () => {
   it('shows the date and the time the photo carries, and where they came from', async () => {
     render(<BillsTable rows={[{ id: 'cap1', ocr: { litres: 180 } }]} />);
     await waitFor(() => expect(screen.getByText(/Time: 12:01/)).toBeInTheDocument());
-    expect(screen.getByText(/Date: 2026-10-01/)).toBeInTheDocument();
+    expect(screen.getByText(/Date: 1 Oct 2026/)).toBeInTheDocument();
     expect(screen.getByText(/from the photo stamp/)).toBeInTheDocument();
   });
 
@@ -58,8 +58,23 @@ describe('the bill row shows the date, the time and the reason', () => {
         ]}
       />,
     );
-    expect(screen.getByText(/Date: 2026-10-01/)).toBeInTheDocument();
+    expect(screen.getByText(/Date: 1 Oct 2026/)).toBeInTheDocument();
     expect(screen.getByText(/Time: 12:01/)).toBeInTheDocument();
     expect(screen.queryByText(/from the photo stamp/)).not.toBeInTheDocument();
+  });
+
+  it('says the year is not confirmed when the bill does not give one', async () => {
+    billPhotoService.getBillSuggestion.mockResolvedValue({
+      decision: 'ASK',
+      askReason: 'NO_PLATE_DIGITS',
+      candidates: [],
+      why: { code: 'NO_PLATE_DIGITS', text: 'the plate could not be read', basis: '' },
+      photo: { date: '2 Nov', time: '12:01', timeSource: 'stamp' },
+    });
+    render(<BillsTable rows={[{ id: 'cap1', ocr: { litres: 180 } }]} />);
+    await waitFor(() =>
+      expect(screen.getByText('year not confirmed — check the bill')).toBeInTheDocument(),
+    );
+    expect(screen.getByText('2 Nov')).toBeInTheDocument();
   });
 });

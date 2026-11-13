@@ -1,7 +1,13 @@
-import { Fuel, Truck, Clock, Store, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { predictedTimeText, predictedEvidenceLines, suggestedLitres } from './predictedTime';
+import { Fuel, Clock, Store, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
+import {
+  predictedEvidenceLines,
+  suggestedLitres,
+  fillTimeFromDraft,
+  matchedRiseText,
+} from './predictedTime';
 import { fmtDate } from './receiptFormat';
-import { candidatePercent, truckCandidates } from './chatDraft';
+import { truckCandidates, vehicleIdOf } from './chatDraft';
 
 /**
  * Every field of a chat-import row, ready to be checked and changed.
@@ -16,10 +22,9 @@ const ChatDraftEditor = ({ draft, edits, onChange, vehicles = [], vehiclesError 
   const set = (patch) => onChange({ ...edits, ...patch });
   const candidates = truckCandidates(draft);
   const predicted = draft.time?.predicted || null;
-  const predictedText = predictedTimeText(predicted);
   const evidence = predictedEvidenceLines(predicted?.evidence);
-  const litresSuggestion = predictedText ? suggestedLitres(predicted) : null;
-  const readTime = draft.time?.value || null;
+  const litresSuggestion = suggestedLitres(predicted);
+  const fill = fillTimeFromDraft(draft);
 
   // The trucks a person can pick: the ones this photo could be, plus every
   // vehicle of the org.
@@ -30,12 +35,8 @@ const ChatDraftEditor = ({ draft, edits, onChange, vehicles = [], vehiclesError 
     seen.add(value);
     options.push({ value, label });
   };
-  candidates.forEach((c) => {
-    const percent = candidatePercent(c.score);
-    addOption(
-      c.vehicleId || c.reg,
-      `${c.reg || 'Truck'}${percent != null ? ` · ${percent}% sure` : ''}`,
-    );
+  candidates.slice(0, 3).forEach((c) => {
+    addOption(c.vehicleId || c.reg, c.reg || c.vehicleId || 'Truck');
   });
   vehicles.forEach((v) => {
     const id = v?._id || v?.id;
@@ -51,8 +52,24 @@ const ChatDraftEditor = ({ draft, edits, onChange, vehicles = [], vehiclesError 
     );
   }
 
+  // Why the truck is unsure — only when the server said why in words.
+  const truckSource = String(draft.truck?.source || '').trim();
+  const truckReason =
+    draft.checks?.TRUCK_ONE?.detail || (truckSource && truckSource !== 'CHAT' ? truckSource : '');
+
+  // The overall level of the match, when the server sent one.
+  const overallLevel = draft.truck?.level || draft.truck?.overallLevel || '';
+
+  // A truck picked by a person is a person’s choice, not our measurement.
+  const pickedByPerson = Boolean(edits.vehicleId) && edits.vehicleId !== vehicleIdOf(draft);
+
   const typedTime = edits.timeAt || '';
   const timeReady = typedTime && !Number.isNaN(new Date(typedTime).getTime());
+
+  // The matched tank rise: the time and the litres, or a dash for what we
+  // did not measure.
+  const riseText = matchedRiseText(predicted);
+  const several = predicted?.evidence?.status === 'several' && !predicted?.at;
 
   return (
     <div className="ra-section-card ra-chat-editor">
@@ -69,19 +86,24 @@ const ChatDraftEditor = ({ draft, edits, onChange, vehicles = [], vehiclesError 
               <AlertTriangle size={12} /> We are not sure which truck this is. Pick the right one.
             </span>
           )}
-          <select
+          {truckReason && <span className="ra-chat-note">{truckReason}</span>}
+          {overallLevel && <span className="ra-chat-note">Overall: {overallLevel}</span>}
+          <SearchableSelect
+            id="ra-chat-truck"
             className="ra-select ra-select--plain"
-            aria-label="Truck"
+            placeholder="Select a truck"
+            aria-label="Choose or change truck"
             value={edits.vehicleId || ''}
             onChange={(event) => set({ vehicleId: event.target.value })}
           >
-            <option value="">— Pick a truck —</option>
+            <option value="">Select a truck</option>
             {options.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
             ))}
-          </select>
+          </SearchableSelect>
+          {pickedByPerson && <span className="ra-chat-note">Selected by a person</span>}
           <input
             className="ra-input ra-input--plain"
             aria-label="Truck plate"
@@ -124,9 +146,10 @@ const ChatDraftEditor = ({ draft, edits, onChange, vehicles = [], vehiclesError 
           <select
             className="ra-select ra-select--plain"
             aria-label="Filling type"
-            value={edits.fillingType || 'FULL_TANK'}
+            value={edits.fillingType || ''}
             onChange={(event) => set({ fillingType: event.target.value })}
           >
+            <option value="">— Not said —</option>
             <option value="FULL_TANK">Full tank</option>
             <option value="PARTIAL">Part of a tank</option>
           </select>
@@ -135,18 +158,20 @@ const ChatDraftEditor = ({ draft, edits, onChange, vehicles = [], vehiclesError 
         {/* The time of the fill */}
         <div className="ra-prop ra-prop--full">
           <span className="ra-prop__label">Time of the fill</span>
-          {readTime ? (
+          {!fill.missing ? (
             <span className="ra-prop__val">
               <CheckCircle2 size={13} style={{ display: 'inline', marginRight: 4 }} />
-              Read from the photo: {fmtDate(readTime)}
+              {fill.value} · {fill.source}
             </span>
-          ) : predictedText ? (
+          ) : several ? (
+            <span className="ra-prop__val">Several tank rises fit — choose one.</span>
+          ) : predicted ? (
             <span className="ra-prop__val ra-prop__val--predicted">
               <Clock size={13} style={{ display: 'inline', marginRight: 4 }} />
-              {predictedText}
+              {riseText}
             </span>
           ) : (
-            <span className="ra-prop__val">No time on the photo</span>
+            <span className="ra-prop__val">Fill time not read from the photo.</span>
           )}
           {evidence.length > 0 && (
             <ul className="ra-predicted__evidence">
@@ -155,7 +180,7 @@ const ChatDraftEditor = ({ draft, edits, onChange, vehicles = [], vehiclesError 
               ))}
             </ul>
           )}
-          {predictedText && (
+          {predicted && !several && (
             <div className="ra-predicted__actions">
               {litresSuggestion != null && (
                 <button
@@ -165,7 +190,7 @@ const ChatDraftEditor = ({ draft, edits, onChange, vehicles = [], vehiclesError 
                     set({ time: { action: 'accept' }, litres: String(litresSuggestion) })
                   }
                 >
-                  Accept suggested time and {litresSuggestion} L
+                  Use suggested time and {litresSuggestion} L
                 </button>
               )}
               <button
@@ -173,7 +198,7 @@ const ChatDraftEditor = ({ draft, edits, onChange, vehicles = [], vehiclesError 
                 className={litresSuggestion != null ? 'ra-btn ra-btn--ghost' : 'ra-btn ra-btn--publish'}
                 onClick={() => set({ time: { action: 'accept' } })}
               >
-                Use the predicted time
+                Use suggested time
               </button>
             </div>
           )}
@@ -192,13 +217,13 @@ const ChatDraftEditor = ({ draft, edits, onChange, vehicles = [], vehiclesError 
                 set({ time: { action: 'set', at: new Date(typedTime).toISOString() } })
               }
             >
-              Use this time
+              Set time
             </button>
           </div>
           {edits.time?.action && (
             <span className="ra-chat-note">
               {edits.time.action === 'accept'
-                ? 'The predicted time will be saved with this fill.'
+                ? 'The suggested time will be saved with this fill.'
                 : `This fill will be saved at ${fmtDate(edits.time.at)}.`}
             </span>
           )}

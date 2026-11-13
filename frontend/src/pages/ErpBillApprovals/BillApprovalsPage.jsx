@@ -8,19 +8,26 @@ import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
  * as the app, so approvals stay in sync across web and app.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { ReceiptText, Check, X, Info, AlertTriangle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ReceiptText, Check, X, Info, AlertTriangle, RotateCw } from 'lucide-react';
 import { toast } from 'react-toastify';
 import BillApprovalsService from './BillApprovalsService';
 import PageShell from '../../components/Erp/PageShell';
+import { formatBillDate } from '../Mileage/billDates';
 import '../../styles/erp.css';
+import './BillApprovals.css';
 
 const STATUS_TONE = { PENDING: 'warning', CONFIRMED: 'success', REJECTED: 'danger' };
 
-const money = (v) => `₹${Number(v || 0).toLocaleString('en-IN')}`;
-const fmtDate = (d) =>
-  d
-    ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-    : '—';
+// A bill without an amount shows a dash. It never shows ₹0 as if it were free.
+const money = (v) => {
+  if (v === null || v === undefined || v === '') return '—';
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '—';
+  return `₹${n.toLocaleString('en-IN')}`;
+};
+const hasAmount = (v) => money(v) !== '—';
+const fmtDate = (d) => formatBillDate(d) || '—';
 const catLabel = (b) => (b.title || b.category || 'Bill').replace(/ bill$/i, '');
 
 const BillApprovalsPage = () => {
@@ -33,6 +40,7 @@ const BillApprovalsPage = () => {
   const [decision, setDecision] = useState('');
   const [remarks, setRemarks] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   const fetchBills = useCallback(async (status, page = 1) => {
     setLoading(true);
@@ -49,11 +57,15 @@ const BillApprovalsPage = () => {
         limit: res.limit || 20,
         totalPages: res.totalPages || 0,
       });
+      setError('');
     } catch (err) {
-      if (err.status === 404)
+      // The bills already on screen stay on screen; the message says what went wrong.
+      if (err?.status === 404) {
         toast.error('The bill approvals feature is not enabled for your organization');
-      else toast.error(err.message);
-      setBills([]);
+        setError('Driver bill approvals are not available for this organization.');
+      } else {
+        setError('Could not load driver bills. Try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -90,8 +102,11 @@ const BillApprovalsPage = () => {
     try {
       if (decision === 'CONFIRMED') {
         await BillApprovalsService.confirm(active._id);
+        const driver = active.driver?.name || 'the driver';
         toast.success(
-          `Confirmed — ${money(active.amount)} credited to ${active.driver?.name || 'the driver'}'s wallet`,
+          hasAmount(active.amount)
+            ? `Confirmed — ${money(active.amount)} credited to ${driver}'s wallet`
+            : `Confirmed — the bill was credited to ${driver}'s wallet`,
         );
       } else {
         await BillApprovalsService.reject(active._id, remarks.trim());
@@ -99,50 +114,64 @@ const BillApprovalsPage = () => {
       }
       closeReview();
       fetchBills(statusFilter, meta.page);
-    } catch (err) {
-      toast.error(err.message);
+    } catch {
+      toast.error('The bill could not be updated. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const pendingText =
-    statusFilter === 'PENDING' && meta.total > 0
-      ? `${meta.total} bill${meta.total === 1 ? '' : 's'} waiting on a decision`
-      : 'Driver bills submitted from the app';
-
   return (
-    <PageShell title="Bill Approvals" subtitle={pendingText}>
-      <div className="erp-toolbar">
-        <SearchableSelect
-          className="erp-filter"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="PENDING">Pending</option>
-          <option value="CONFIRMED">Confirmed</option>
-          <option value="REJECTED">Rejected</option>
-          <option value="">All</option>
-        </SearchableSelect>
-      </div>
+    <PageShell title="Driver expense bills" subtitle="Bills submitted by drivers from the app.">
+      <div className="dba-page">
+        <div className="erp-toolbar">
+          <SearchableSelect
+            className="erp-filter"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="PENDING">Pending</option>
+            <option value="CONFIRMED">Confirmed</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="">All</option>
+          </SearchableSelect>
+          <Link className="dba-office-link" to="/approvals?type=office">
+            Owner &amp; manager bill photos
+          </Link>
+        </div>
 
-      <div className="erp-container">
-        {loading ? (
-          <div className="erp-state">
-            <p>Loading bills...</p>
-          </div>
-        ) : bills.length === 0 ? (
-          <div className="erp-state">
-            <ReceiptText size={48} />
-            <p>
-              {statusFilter === 'PENDING'
-                ? 'No bills waiting for approval'
-                : 'No bills match this filter'}
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="erp-table-scroll">
+        <div className="erp-container">
+          {error && (
+            <div className="erp-state dba-error" role="alert">
+              <AlertTriangle size={40} />
+              <p>{error}</p>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => fetchBills(statusFilter, meta.page)}
+              >
+                <RotateCw size={16} /> Retry
+              </button>
+            </div>
+          )}
+          {!error && loading && bills.length === 0 && (
+            <div className="erp-state">
+              <p>Loading bills...</p>
+            </div>
+          )}
+          {!error && !loading && bills.length === 0 && (
+            <div className="erp-state">
+              <ReceiptText size={48} />
+              <p>
+                {statusFilter === 'PENDING'
+                  ? 'No driver expense bills waiting.'
+                  : 'No bills match this filter.'}
+              </p>
+            </div>
+          )}
+          {bills.length > 0 && (
+            <>
+              <div className="erp-table-scroll">
               <table className="erp-table">
                 <thead>
                   <tr>
@@ -186,32 +215,32 @@ const BillApprovalsPage = () => {
                   ))}
                 </tbody>
               </table>
-            </div>
-
-            {meta.totalPages > 1 && (
-              <div className="erp-pagination">
-                <button
-                  className="btn btn-secondary"
-                  disabled={meta.page === 1}
-                  onClick={() => fetchBills(statusFilter, meta.page - 1)}
-                >
-                  Previous
-                </button>
-                <span>
-                  Page {meta.page} of {meta.totalPages} · {meta.total} bills
-                </span>
-                <button
-                  className="btn btn-secondary"
-                  disabled={meta.page === meta.totalPages}
-                  onClick={() => fetchBills(statusFilter, meta.page + 1)}
-                >
-                  Next
-                </button>
               </div>
-            )}
-          </>
-        )}
-      </div>
+
+              {meta.totalPages > 1 && (
+                <div className="erp-pagination">
+                  <button
+                    className="btn btn-secondary"
+                    disabled={meta.page === 1}
+                    onClick={() => fetchBills(statusFilter, meta.page - 1)}
+                  >
+                    Previous
+                  </button>
+                  <span>
+                    Page {meta.page} of {meta.totalPages} · {meta.total} bills
+                  </span>
+                  <button
+                    className="btn btn-secondary"
+                    disabled={meta.page === meta.totalPages}
+                    onClick={() => fetchBills(statusFilter, meta.page + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
       {active && (
         <div
@@ -224,7 +253,8 @@ const BillApprovalsPage = () => {
           <div className="erp-modal">
             <div className="erp-modal-header">
               <h2>
-                {catLabel(active)} bill · {money(active.amount)}
+                {catLabel(active)} bill
+                {hasAmount(active.amount) ? ` · ${money(active.amount)}` : ''}
               </h2>
               <button className="btn-icon" onClick={closeReview}>
                 <X size={20} />
@@ -376,7 +406,9 @@ const BillApprovalsPage = () => {
                       ? 'Saving...'
                       : decision === 'REJECTED'
                         ? 'Reject'
-                        : `Confirm ${money(active.amount)}`}
+                        : hasAmount(active.amount)
+                          ? `Confirm ${money(active.amount)}`
+                          : 'Confirm the bill'}
                   </button>
                 )}
               </div>
@@ -384,6 +416,7 @@ const BillApprovalsPage = () => {
           </div>
         </div>
       )}
+      </div>
     </PageShell>
   );
 };

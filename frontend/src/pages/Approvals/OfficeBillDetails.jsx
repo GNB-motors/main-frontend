@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '../../components/ui/dialog';
 import safeText from '../../utils/redactSensitive';
@@ -11,6 +11,7 @@ import {
 } from '../../components/ui/sheet';
 import billPhotoService from '../../services/billPhotoService';
 import { BillThumbnail } from '../Mileage/BillsTable';
+import { billDateInfo, formatBillDate } from '../Mileage/billDates';
 import { candidateRows } from '../Mileage/billPhotoModel';
 
 const show = (v) => (v == null || v === '' ? 'Unknown' : String(v));
@@ -132,18 +133,77 @@ export function ConfirmedBillRow({ capture, index, vehicles, onUpdated, onHistor
     norm(truck) !== norm(top.registrationNumber);
   const ocr = capture.ocr || {};
   const link = capture.link || {};
+  // The bill cell reads like the shared bill table: what was bought, the money,
+  // then the details grouped under "Bill" and "Pump & truck".
+  const dash = (value) => (value == null || value === '' ? '\u2014' : String(value));
+  const money = (value) => {
+    if (value == null || value === '') return '\u2014';
+    const amount = Number(value);
+    return Number.isFinite(amount) ? '\u20b9' + amount.toLocaleString('en-IN') : '\u2014';
+  };
+  const dateInfo = billDateInfo(ocr.printedDate || ocr.date || null);
+  const litresText = ocr.litres == null || ocr.litres === '' ? '\u2014' : `${ocr.litres} L`;
+  const rateText = ocr.rate == null || ocr.rate === '' ? '\u2014' : `₹${ocr.rate}/L`;
   return (
     <tr>
-      <td>{index + 1}</td>
-      <td>
-        {show(ocr.printedDate || ocr.date || ocr.time)}
-        <br />
-        {show(ocr.litres)} litres
-        <br />₹{show(ocr.amount)}
-        <br />
-        {show(ocr.pump || ocr.station)}
+      <td data-label="#">{index + 1}</td>
+      {/* eslint-disable-next-line jsx-a11y/control-has-associated-label -- a data cell, not a control (no grid role); its text sits deeper than the rule scans */}
+      <td data-label="Bill">
+        <div className="bp-bill">
+          <div className="bp-bill__head">
+            <span className="bp-bill__amount">{litresText}</span>
+            <span className="bp-bill__rate">{rateText}</span>
+            {ocr.fuelType ? <span className="bp-badge">{ocr.fuelType}</span> : null}
+          </div>
+          <div className="bp-bill__sub">{money(ocr.amount)}</div>
+          <dl className="bp-bill__meta">
+            <div className="bp-bill__group">
+              <dt className="bp-bill__group-label">Bill</dt>
+              <div className="bp-bill__group-grid">
+                <div className="bp-bill__pair">
+                  <dt>Date</dt>
+                  <dd className={dateInfo.text ? '' : 'is-empty'}>
+                    {dash(dateInfo.text)}
+                    {dateInfo.yearWarning ? (
+                      <span className="bp-bill__warning"> {dateInfo.yearWarning}</span>
+                    ) : null}
+                  </dd>
+                </div>
+                <div className="bp-bill__pair">
+                  <dt>Time</dt>
+                  <dd>{dash(ocr.printedTime)}</dd>
+                </div>
+                <div className="bp-bill__pair">
+                  <dt>Receipt no.</dt>
+                  <dd>{dash(ocr.receiptNo)}</dd>
+                </div>
+              </div>
+            </div>
+            <div className="bp-bill__group">
+              <dt className="bp-bill__group-label">Pump &amp; truck</dt>
+              <div className="bp-bill__group-grid">
+                <div className="bp-bill__pair">
+                  <dt>Pump / station</dt>
+                  <dd>{dash(ocr.pump || ocr.station)}</dd>
+                </div>
+                <div className="bp-bill__pair">
+                  <dt>Truck on bill</dt>
+                  <dd>{dash(ocr.vehicleNo || ocr.vehicleNumber || ocr.registrationNumber)}</dd>
+                </div>
+                <div className="bp-bill__pair">
+                  <dt>Odometer</dt>
+                  <dd>
+                    {dash(
+                      ocr.odometer == null || ocr.odometer === '' ? null : `${ocr.odometer} km`,
+                    )}
+                  </dd>
+                </div>
+              </div>
+            </div>
+          </dl>
+        </div>
       </td>
-      <td>
+      <td data-label="Photo">
         <button
           type="button"
           onClick={() => setPhoto(true)}
@@ -158,7 +218,7 @@ export function ConfirmedBillRow({ capture, index, vehicles, onUpdated, onHistor
           </DialogContent>
         </Dialog>
       </td>
-      <td>
+      <td data-label="Truck">
         {show(link.registrationNumber)}
         {editing ? (
           <div>
@@ -225,27 +285,27 @@ export function ConfirmedBillRow({ capture, index, vehicles, onUpdated, onHistor
         )}
         {error && <p role="alert">{error}</p>}
       </td>
-      <td>
+      <td data-label="Uploaded by">
         {identity(
           capture.uploadedBy,
           capture.uploaderName || capture.uploadedByName,
           capture.uploaderRole || capture.uploadedByRole,
         )}
         <br />
-        {time(capture.createdAt || capture.uploadedAt)}
+        {formatBillDate(capture.createdAt || capture.uploadedAt) || '—'}
       </td>
-      <td>
+      <td data-label="Confirmed by">
         {identity(
           link.by || link.confirmedBy,
           link.byName || link.confirmedByName,
           link.byRole || link.confirmedByRole,
         )}
         <br />
-        {time(link.at || link.confirmedAt)}
+        {formatBillDate(link.at || link.confirmedAt) || '—'}
         <br />
         {link.via === 'UPLOAD' ? 'at upload' : 'in Approvals'}
       </td>
-      <td>
+      <td data-label="Log">
         <Button size="sm" variant="outline" onClick={() => onHistory(capture)}>
           Log
         </Button>

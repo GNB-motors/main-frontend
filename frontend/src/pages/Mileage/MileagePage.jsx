@@ -281,7 +281,7 @@ export default function MileagePage() {
               ) : null}
             </label>
             {ready && access.editBills ? (
-              <div className="flex items-center gap-2">
+              <>
                 <button
                   type="button"
                   onClick={() => {
@@ -292,21 +292,24 @@ export default function MileagePage() {
                 >
                   <Camera size={15} aria-hidden /> Add bill photo
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setWhatsappExportOpen(true)}
-                  className="pshell-btn mhub-add-btn"
-                >
-                  <MessageCircle size={15} aria-hidden /> Upload WhatsApp chat
-                </button>
-                {/* The by-hand form stays reachable: a route is never deleted. */}
-                <Link
-                  to="/mileage-tracking/new"
-                  className="pshell-btn mhub-add-btn mhub-by-hand-btn"
-                >
-                  <PenLine size={15} aria-hidden /> Enter by hand
-                </Link>
-              </div>
+                {/* The quieter ways in sit together, so one button leads. */}
+                <div className="mhub-secondary-actions">
+                  <button
+                    type="button"
+                    onClick={() => setWhatsappExportOpen(true)}
+                    className="pshell-btn mhub-add-btn"
+                  >
+                    <MessageCircle size={15} aria-hidden /> Upload WhatsApp chat
+                  </button>
+                  {/* The by-hand form stays reachable: a route is never deleted. */}
+                  <Link
+                    to="/mileage-tracking/new"
+                    className="pshell-btn mhub-add-btn mhub-by-hand-btn"
+                  >
+                    <PenLine size={15} aria-hidden /> Enter by hand
+                  </Link>
+                </div>
+              </>
             ) : null}
           </div>
         }

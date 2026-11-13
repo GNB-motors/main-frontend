@@ -140,6 +140,31 @@
   padding: 13px 24px;
   border-top: 1px solid #e2e7ef;
   background: #f8fafc;
+  flex-wrap: wrap;
+}
+
+/* A button that cannot be used yet says so by looking it. */
+.bp-dialog .bp-dialog-foot button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* On a 390 px phone the dialog fits the screen: the body scrolls, the footer
+   stays where it is. */
+@media (max-width: 460px) {
+  .bp-dialog {
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+  }
+
+  .bp-dialog .bp-dialog-body {
+    padding: 16px;
+    overflow-y: auto;
+  }
+
+  .bp-dialog .bp-dialog-foot {
+    padding: 12px 16px;
+  }
 }
 .bp-help,
 .bp-error {
@@ -152,6 +177,10 @@
 }
 .bp-error {
   color: #ac3030;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
 }
 .bp-confirm {
   display: flex;

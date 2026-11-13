@@ -834,8 +834,35 @@ describe('WhatsApp chat upload on the mileage page', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Upload' }));
 
-    // The mocked job saves nothing new, so the end state is the neutral one.
-    expect(await screen.findByText('Nothing new in this chat')).toBeInTheDocument();
+    // The mocked job reports no counts, so the end state says so plainly.
+    expect(
+      await screen.findByText('Import finished — some counts not reported.'),
+    ).toBeInTheDocument();
     await waitFor(() => expect(feedCalls().length).toBeGreaterThan(before));
+  });
+
+  it('keeps the three ways in grouped: the search leads, one button acts, the rest sit together', async () => {
+    mockApi();
+    useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
+    renderAt('/mileage');
+    await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));
+
+    // The search comes first and is a search box.
+    const search = screen.getByRole('searchbox');
+    expect(search).toBeInTheDocument();
+
+    // One big action: the bill photo.
+    const add = screen.getByRole('button', { name: /Add bill photo/ });
+    expect(add.className).toContain('mhub-add-btn');
+    expect(add.className).toContain('pshell-btn--primary');
+
+    // The quieter pair sits together in one group.
+    const group = screen
+      .getByRole('button', { name: /Upload WhatsApp chat/ })
+      .closest('.mhub-secondary-actions');
+    expect(group).not.toBeNull();
+    expect(within(group).getByRole('button', { name: /Upload WhatsApp chat/ })).toBeInTheDocument();
+    expect(within(group).getByRole('link', { name: /Enter by hand/ })).toBeInTheDocument();
+    expect(add.closest('.mhub-secondary-actions')).toBeNull();
   });
 });

@@ -10,10 +10,55 @@
 /** A row that came in through a WhatsApp chat. */
 export const isChatRow = (row) => row?.source === 'CHAT_IMPORT';
 
-/** The truck of a row is certain only when its bucket says EXACT. */
-export const isTruckCertain = (row) => {
-  if (!row?.truck) return true;
-  return row.truck.bucket === 'EXACT';
+/**
+ * Who sent the photo.
+ *
+ * A chat row names its sender; a guided receipt carries the user who uploaded
+ * it. This is the uploader — never called the driver, because the person who
+ * sends a photo is not always the person who drove the truck.
+ */
+export const uploaderOf = (row) => {
+  if (isChatRow(row)) {
+    const sender = row?.sender;
+    const name =
+      typeof sender === 'string'
+        ? sender.trim()
+        : [sender?.name, sender?.firstName, sender?.lastName].filter(Boolean).join(' ').trim();
+    return name || row?.phoneE164 || '—';
+  }
+  const name = [row?.userId?.firstName, row?.userId?.lastName].filter(Boolean).join(' ').trim();
+  return name || row?.phoneE164 || '—';
+};
+
+/**
+ * The driver, only when the row says who drove. Most rows do not, and then
+ * the drawer says so instead of calling the uploader the driver.
+ */
+export const driverOf = (row) => {
+  const driver = row?.driver;
+  if (!driver) return null;
+  if (typeof driver === 'string') return driver.trim() || null;
+  const name = [driver?.name, driver?.firstName, driver?.lastName].filter(Boolean).join(' ').trim();
+  return name || null;
+};
+
+/**
+ * The chip that says how sure we are about the truck of a row.
+ * Nothing is claimed that was not measured.
+ */
+export const truckChip = (row) => {
+  const truck = row?.truck;
+  if (row?.market === true || truck?.status === 'MARKET') {
+    return { text: 'Market truck', note: '', kind: 'market' };
+  }
+  if (truck?.bucket === 'EXACT') {
+    return { text: 'Sure', note: '', kind: 'sure' };
+  }
+  const candidates = Array.isArray(truck?.candidates) ? truck.candidates.length : 0;
+  if (!candidates) {
+    return { text: '—', note: 'Truck not identified', kind: 'none' };
+  }
+  return { text: 'Guess', note: '', kind: 'guess' };
 };
 
 /** The id of the vehicle of a row, whichever way the row carries it. */
@@ -57,13 +102,6 @@ export const truckCandidates = (row) => {
     .filter((c) => c.reg || c.vehicleId);
 };
 
-/** The score of a candidate as the percentage a person reads. */
-export const candidatePercent = (score) => {
-  const n = Number(score);
-  if (!Number.isFinite(n) || n <= 0) return null;
-  return n <= 1 ? Math.round(n * 100) : Math.round(n);
-};
-
 /** A number the server can read, or null when there is none. */
 export const toNumber = (value) => {
   if (value === null || value === undefined || value === '') return null;
@@ -77,7 +115,7 @@ export const initialChatEdits = (draft) => ({
   truckPlate: draft?.truck?.plate || draft?.plateText || '',
   litres: draft?.litres ?? '',
   amount: draft?.amount ?? '',
-  fillingType: draft?.fillingType || 'FULL_TANK',
+  fillingType: draft?.fillingType || '',
   timeAt: '',
   time: null,
 });

@@ -125,3 +125,40 @@
   line-height: 1.65;
   color: #68768d;
 }
+
+/* On a 390 px phone the dialog fits the screen: the body scrolls, the footer
+   stays where it is and nothing is cut off. */
+@media (max-width: 460px) {
+  .bp-dialog {
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+  }
+
+  .bp-dialog .bp-dialog-body {
+    padding: 16px;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .bp-dialog .bp-dialog-foot {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+  }
+}
+
+/* The footer wraps, and a button that cannot be used yet looks it. */
+.bp-dialog .bp-dialog-foot {
+  flex-wrap: wrap;
+}
+
+.bp-dialog .bp-dialog-foot button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* A long list of results scrolls inside the dialog, never the page. */
+.bp-dialog .bp-dialog-body .wxp-table,
+.bp-dialog .bp-dialog-body ul {
+  max-height: 40vh;
+  overflow-y: auto;
+}

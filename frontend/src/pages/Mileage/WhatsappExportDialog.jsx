@@ -129,11 +129,17 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported, o
   };
 
   const summary = summarise(state.result);
-  const failedCount = Array.isArray(state.result?.failed)
-    ? state.result.failed.length
-    : countText(state.result?.failed);
-  const photosMissing = Number(state.result?.photosMissing || 0);
+  const failedCount = countText(summary.failedTotal);
+  const photosMissingRaw = state.result?.photosMissing;
+  const photosMissingNumber =
+    photosMissingRaw === null || photosMissingRaw === undefined || photosMissingRaw === ''
+      ? null
+      : Number(photosMissingRaw);
+  const photosMissing = Number.isFinite(photosMissingNumber) ? photosMissingNumber : null;
   const running = state.stage === 'uploading' || state.stage === 'reading';
+  // Some of the photos made it and some did not, or the server did not report
+  // all of the counts: the owner is told to look at the results below.
+  const partial = summary.unknown || summary.hasProblems;
 
   return (
     <Dialog
@@ -174,6 +180,9 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported, o
                 <span>Choose a WhatsApp chat export</span>
                 <small>.zip only · up to 500 MB</small>
               </button>
+              {!state.file ? (
+                <p className="wxp-note">Choose a .zip file to upload.</p>
+              ) : null}
               <input
                 ref={input}
                 type="file"
@@ -203,7 +212,7 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported, o
           ) : state.stage === 'uploading' ? (
             <div className="bp-progress" role="status">
               <Loader2 size={26} className="animate-spin" aria-hidden="true" />
-              <strong>{`Sending the chat… ${state.percent}%`}</strong>
+              <strong>{`Sending chat: ${state.percent}%`}</strong>
               <div className="wxp-bar">
                 <div className="wxp-bar-fill" style={{ width: `${state.percent}%` }} />
               </div>
@@ -231,8 +240,8 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported, o
               <Loader2 size={26} className="animate-spin" aria-hidden="true" />
               <strong>
                 {state.progress.total > 0
-                  ? `Reading photos ${state.progress.read} / ${state.progress.total}`
-                  : 'Reading the photos… this can take up to 15 minutes.'}
+                  ? `Reading photos: ${state.progress.read} of ${state.progress.total}`
+                  : 'Reading photos…'}
               </strong>
               {state.progress.total > 0 ? (
                 <div className="wxp-bar">
@@ -272,35 +281,35 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported, o
                 <tbody>
                   <tr>
                     <th scope="row">Saved to the mileage list</th>
-                    <td>{summary.buckets.saved}</td>
+                    <td>{countText(summary.buckets.saved)}</td>
                   </tr>
                   <tr>
                     <th scope="row">Waiting for a person</th>
-                    <td>{summary.buckets.waiting}</td>
+                    <td>{countText(summary.buckets.waiting)}</td>
                   </tr>
                   <tr>
                     <th scope="row">Market truck</th>
-                    <td>{summary.buckets.market}</td>
+                    <td>{countText(summary.buckets.market)}</td>
                   </tr>
                   <tr>
                     <th scope="row">Already received</th>
-                    <td>{summary.buckets.alreadyReceived}</td>
+                    <td>{countText(summary.buckets.alreadyReceived)}</td>
                   </tr>
                   <tr>
                     <th scope="row">Unreadable</th>
-                    <td>{summary.buckets.unreadable}</td>
+                    <td>{countText(summary.buckets.unreadable)}</td>
                   </tr>
                   <tr>
                     <th scope="row">Failed</th>
-                    <td>{summary.buckets.failed}</td>
+                    <td>{countText(summary.buckets.failed)}</td>
                   </tr>
                   <tr>
                     <th scope="row">Other</th>
-                    <td>{summary.buckets.other}</td>
+                    <td>{countText(summary.buckets.other)}</td>
                   </tr>
                   <tr>
                     <th scope="row">Photos</th>
-                    <td>{summary.photosTotal}</td>
+                    <td>{countText(summary.photosTotal)}</td>
                   </tr>
                 </tbody>
               </table>
@@ -309,23 +318,23 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported, o
                 <tbody>
                   <tr>
                     <th scope="row">Saved</th>
-                    <td>{summary.fills.saved}</td>
+                    <td>{countText(summary.fills.saved)}</td>
                   </tr>
                   <tr>
                     <th scope="row">Waiting for a person</th>
-                    <td>{summary.fills.waiting}</td>
+                    <td>{countText(summary.fills.waiting)}</td>
                   </tr>
                   <tr>
                     <th scope="row">Market truck</th>
-                    <td>{summary.fills.market}</td>
+                    <td>{countText(summary.fills.market)}</td>
                   </tr>
                   <tr>
                     <th scope="row">Already received</th>
-                    <td>{summary.fills.alreadyReceived}</td>
+                    <td>{countText(summary.fills.alreadyReceived)}</td>
                   </tr>
                   <tr>
                     <th scope="row">Failed</th>
-                    <td>{summary.fills.failed}</td>
+                    <td>{countText(summary.fills.failed)}</td>
                   </tr>
                 </tbody>
               </table>
@@ -342,11 +351,20 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported, o
                     <th scope="row">Failed</th>
                     <td>{failedCount}</td>
                   </tr>
+                  <tr>
+                    <th scope="row">Photos missing</th>
+                    <td>{countText(photosMissing)}</td>
+                  </tr>
                 </tbody>
               </table>
-              {photosMissing > 0 ? (
+              {photosMissing !== null && photosMissing > 0 ? (
                 <p className="wxp-note">
                   {`${photosMissing} photos missing: export the chat again with Include media.`}
+                </p>
+              ) : null}
+              {partial ? (
+                <p className="wxp-note">
+                  Some photos could not be read. Review the results below.
                 </p>
               ) : null}
               {summary.groups.length ? (
@@ -355,7 +373,9 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported, o
                   <ul>
                     {summary.groups.map((group) => (
                       <li key={group.reason}>
-                        {`${group.count} ${group.count === 1 ? 'photo' : 'photos'}: ${group.reason}`}
+                        {`${countText(group.count)} ${
+                          group.count === 1 ? 'photo' : 'photos'
+                        }: ${group.reason}`}
                       </li>
                     ))}
                   </ul>

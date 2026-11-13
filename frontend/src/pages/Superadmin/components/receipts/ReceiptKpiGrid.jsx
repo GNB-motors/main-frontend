@@ -2,6 +2,13 @@ import { AlertTriangle, Fuel, TrendingUp } from 'lucide-react';
 import Skel from './Skel';
 import { fmtMoney, fmtLitres } from './receiptFormat';
 
+/**
+ * The KPI cards.
+ *
+ * A card shows a number only when we measured it. The server's summary covers
+ * the whole tab; the numbers we work out ourselves cover one page, so those
+ * are never shown as a tab total.
+ */
 const ReceiptKpiGrid = ({ loading, kpis, odoFilter, setOdoFilter, error = '', onRetry }) => {
   // A failed load is a failure, never a zero. The cards say they could not be
   // read and offer a way to try again.
@@ -27,10 +34,20 @@ const ReceiptKpiGrid = ({ loading, kpis, odoFilter, setOdoFilter, error = '', on
     );
   }
 
-  // Nothing has come in yet: a zero is not a measurement, so say so instead of
-  // showing "₹0" and a rate of "₹—/L".
-  const empty = !loading && kpis.totalCount === 0;
-  const hasRate = Boolean(kpis.avgRate) && kpis.avgRate !== '—';
+  // Only the server's summary covers the whole tab.
+  const isTab = kpis?.scope === 'tab';
+  const coverage = kpis?.coverage || null;
+  const notMeasured = 'Not measured for this tab.';
+
+  const pendingAmount = kpis?.pendingAmount ?? null;
+  const pendingCount = kpis?.pendingCount ?? null;
+  const totalLitres = kpis?.totalLitres ?? null;
+  const totalAmount = kpis?.totalAmount ?? null;
+  const missingOdoCount = kpis?.missingOdoCount ?? null;
+
+  const amountCoverage = coverage?.amount || null;
+  const litresCoverage = coverage?.litres || null;
+
   return (
     <div className="ra-kpi-grid">
       <div className="ra-kpi-card ra-kpi-card--pending">
@@ -38,20 +55,26 @@ const ReceiptKpiGrid = ({ loading, kpis, odoFilter, setOdoFilter, error = '', on
           <span className="ra-kpi-card__title">Pending approvals</span>
           {loading ? (
             <Skel w={74} h={21} round />
-          ) : empty ? null : (
-            <span className="ra-kpi-card__badge-pulse">{kpis.pendingCount} Pending</span>
-          )}
+          ) : pendingCount != null ? (
+            <span className="ra-kpi-card__badge-pulse">{pendingCount} Pending</span>
+          ) : null}
         </div>
         <div className="ra-kpi-card__val font-mono">
-          {loading ? <Skel w={128} h={26} /> : empty ? '—' : fmtMoney(kpis.pendingAmount)}
+          {loading ? (
+            <Skel w={128} h={26} />
+          ) : isTab && pendingAmount != null ? (
+            fmtMoney(pendingAmount)
+          ) : (
+            '—'
+          )}
         </div>
         <div className="ra-kpi-card__sub">
           {loading ? (
             <Skel w="80%" h={11} />
-          ) : empty ? (
-            'No receipts yet'
+          ) : isTab && pendingAmount != null && pendingCount != null ? (
+            <>Awaiting manager verification across {pendingCount} fuel slips</>
           ) : (
-            <>Awaiting manager verification across {kpis.pendingCount} fuel slips</>
+            notMeasured
           )}
         </div>
       </div>
@@ -62,15 +85,28 @@ const ReceiptKpiGrid = ({ loading, kpis, odoFilter, setOdoFilter, error = '', on
           <Fuel size={16} className="ra-kpi-card__icon" />
         </div>
         <div className="ra-kpi-card__val font-mono">
-          {loading ? <Skel w={104} h={26} /> : empty ? '—' : fmtLitres(kpis.totalLitres)}
+          {loading ? (
+            <Skel w={104} h={26} />
+          ) : isTab && totalLitres != null ? (
+            fmtLitres(totalLitres)
+          ) : (
+            '—'
+          )}
         </div>
         <div className="ra-kpi-card__sub">
           {loading ? (
             <Skel w="70%" h={11} />
-          ) : empty ? (
-            'No receipts yet'
+          ) : isTab && totalLitres != null ? (
+            litresCoverage ? (
+              <>
+                Known volume: <strong>{fmtLitres(totalLitres)}</strong> · {litresCoverage.with} of{' '}
+                {litresCoverage.of} bills have litres.
+              </>
+            ) : (
+              'Total litres billed on this tab.'
+            )
           ) : (
-            <>Diesel logged across {kpis.totalCount} receipts</>
+            notMeasured
           )}
         </div>
       </div>
@@ -81,25 +117,34 @@ const ReceiptKpiGrid = ({ loading, kpis, odoFilter, setOdoFilter, error = '', on
           <TrendingUp size={16} className="ra-kpi-card__icon" />
         </div>
         <div className="ra-kpi-card__val font-mono">
-          {loading ? <Skel w={128} h={26} /> : empty ? '—' : fmtMoney(kpis.totalAmount)}
+          {loading ? (
+            <Skel w={128} h={26} />
+          ) : isTab && totalAmount != null ? (
+            fmtMoney(totalAmount)
+          ) : (
+            '—'
+          )}
         </div>
         <div className="ra-kpi-card__sub">
           {loading ? (
             <Skel w="75%" h={11} />
-          ) : empty ? (
-            'No receipts yet'
-          ) : hasRate ? (
-            <>
-              Average price: <strong>₹{kpis.avgRate}/L</strong> across regional stations
-            </>
+          ) : isTab && totalAmount != null ? (
+            amountCoverage ? (
+              <>
+                Known amount: <strong>{fmtMoney(totalAmount)}</strong> · {amountCoverage.with} of{' '}
+                {amountCoverage.of} bills have an amount.
+              </>
+            ) : (
+              'Total amount billed on this tab.'
+            )
           ) : (
-            'No litres billed yet'
+            notMeasured
           )}
         </div>
       </div>
 
       <div
-        className={`ra-kpi-card ${kpis.missingOdoCount > 0 ? 'ra-kpi-card--alert' : ''}`}
+        className={`ra-kpi-card ${missingOdoCount > 0 ? 'ra-kpi-card--alert' : ''}`}
         role="button"
         tabIndex={0}
         onClick={() => setOdoFilter(odoFilter === 'MISSING' ? 'ALL' : 'MISSING')}
@@ -114,16 +159,26 @@ const ReceiptKpiGrid = ({ loading, kpis, odoFilter, setOdoFilter, error = '', on
       >
         <div className="ra-kpi-card__head">
           <span className="ra-kpi-card__title">Missing odometer</span>
-          <AlertTriangle size={16} color={kpis.missingOdoCount > 0 ? '#2563eb' : 'currentColor'} />
+          <AlertTriangle size={16} color={missingOdoCount > 0 ? '#2563eb' : 'currentColor'} />
         </div>
         <div className="ra-kpi-card__val font-mono">
-          {loading ? <Skel w={40} h={26} /> : kpis.missingOdoCount}
+          {loading ? (
+            <Skel w={40} h={26} />
+          ) : isTab && missingOdoCount != null ? (
+            missingOdoCount
+          ) : (
+            '—'
+          )}
         </div>
         <div className="ra-kpi-card__sub">
-          {odoFilter === 'MISSING' ? (
+          {loading ? (
+            <Skel w="70%" h={11} />
+          ) : odoFilter === 'MISSING' ? (
             <span style={{ color: '#2563eb', fontWeight: 600 }}>Active Filter Applied ✓</span>
-          ) : (
+          ) : isTab && missingOdoCount != null ? (
             'Slips without dash photo or telematics reading'
+          ) : (
+            notMeasured
           )}
         </div>
       </div>

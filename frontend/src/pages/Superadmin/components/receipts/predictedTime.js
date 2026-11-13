@@ -21,13 +21,84 @@ const clock = (value) =>
     minute: '2-digit',
   });
 
-/** A day and a time, the way a person reads it: "9 Nov, 8:11 pm". */
+/** The time of a tank rise, the way a person reads it. */
 const dayClock = (value) =>
   `${new Date(value).toLocaleString('en-IN', {
     timeZone: 'Asia/Kolkata',
     day: 'numeric',
     month: 'short',
   })}, ${clock(value)}`;
+
+/**
+ * The fill time of a photo: the day and the time, the way a person reads it.
+ * No year — the bill has to confirm that.
+ */
+const fillDate = (value) => {
+  if (!value) return '';
+  const at = new Date(value);
+  if (Number.isNaN(at.getTime())) return '';
+  return dayClock(at);
+};
+
+/** The words for where a fill time came from. */
+export const FILL_TIME_SOURCE_WORDS = {
+  stamp: 'Photo stamp',
+  printed: 'Printed bill',
+  person: 'Set by a person',
+  manual: 'Set by a person',
+  predicted: 'Detected fill · suggestion',
+};
+
+/**
+ * The fill time of a row and the source it came from.
+ *
+ * Only time.value and time.source are read. The time a message arrived is
+ * never the time the tank was filled, so it is never used here.
+ */
+export const fillTimeInfo = (time) => {
+  const value = fillDate(time?.value);
+  if (!value) {
+    return { value: '', source: '', sourceKnown: false, missing: true };
+  }
+  const key = String(time?.source ?? '').trim().toLowerCase();
+  const words = FILL_TIME_SOURCE_WORDS[key];
+  return {
+    value,
+    source: words || 'Source not recorded',
+    sourceKnown: Boolean(words),
+    missing: false,
+  };
+};
+
+/**
+ * The fill time of a draft: its own read time, else the printed bill's own
+ * date. The WhatsApp received time is never a fallback.
+ */
+export const fillTimeFromDraft = (draft) => {
+  // The server only sets `time.value` after its year rule decided the year
+  // (photo stamp, else the truck's detected fill), so that year is confirmed.
+  // A bare printed bill date never passed that rule: its year is not.
+  const info = fillTimeInfo(draft?.time);
+  if (!info.missing) return { ...info, yearConfirmed: true };
+  const printed = fillDate(draft?.billDatetime);
+  if (!printed) return { ...info, yearConfirmed: false };
+  return {
+    value: printed,
+    source: 'Printed bill',
+    sourceKnown: true,
+    missing: false,
+    yearConfirmed: false,
+  };
+};
+
+/** The fill time in plain words, or why there is none. */
+export const fillTimeText = (time) => {
+  const info = fillTimeInfo(time);
+  return info.missing ? 'Fill time not read from the photo.' : info.value;
+};
+
+/** Does the date a person reads carry a year? */
+export const dateTextHasYear = (text) => /\b\d{4}\b/.test(String(text || ''));
 
 /** The words for how sure a suggestion is. */
 const CONFIDENCE_WORDS = {
@@ -112,12 +183,21 @@ export const suggestedLitres = (predicted) => {
   return value != null && Number.isFinite(n) && n > 0 ? n : null;
 };
 
+/**
+ * The matched tank rise in the words the drawer uses. Either half that was not
+ * measured stays a dash; nothing is filled in for it.
+ */
+export const matchedRiseText = (predicted) => {
+  const at = predicted?.at ? fillDate(predicted.at) : '—';
+  const litres = suggestedLitres(predicted);
+  return `Matched tank rise: ${at} · ${litres != null ? `${litres} L` : '—'}`;
+};
+
 /** Several rises fit and none was picked: the person has to choose. */
 export const severalRisesText = (predicted) => {
   const ev = predicted?.evidence;
   if (!ev || predicted?.at || ev.status !== 'several') return '';
-  const count = Array.isArray(ev.candidates) ? ev.candidates.length : 0;
-  return count ? `${count} tank rises fit — pick one` : 'Several tank rises fit — pick one';
+  return 'Several tank rises fit — choose one.';
 };
 
 export default predictedTimeText;

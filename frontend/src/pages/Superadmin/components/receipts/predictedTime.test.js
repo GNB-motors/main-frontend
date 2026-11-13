@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { predictedEvidenceLines, predictedTimeText } from './predictedTime';
+import {
+  predictedEvidenceLines,
+  predictedTimeText,
+  fillTimeInfo,
+  fillTimeFromDraft,
+  fillTimeText,
+  matchedRiseText,
+  dateTextHasYear,
+} from './predictedTime';
 
 describe('predictedTimeText', () => {
   it('shows the predicted time in plain words with its source', () => {
@@ -99,7 +107,72 @@ describe('tank-rise match words', () => {
   it('asks a person to pick when several rises fit', () => {
     expect(
       severalRisesText({ at: null, evidence: { status: 'several', candidates: [{}, {}, {}] } })
-    ).toBe('3 tank rises fit — pick one');
+    ).toBe('Several tank rises fit — choose one.');
     expect(severalRisesText({ at: '2026-11-09T14:41:00.000Z', evidence: { status: 'several' } })).toBe('');
+  });
+});
+
+describe('the fill time of a photo', () => {
+  it('shows the time and where it came from', () => {
+    const info = fillTimeInfo({ value: '2026-11-12T13:10:00.000Z', source: 'stamp' });
+    expect(info.value).toBe('12 Nov, 6:40 pm');
+    expect(info.source).toBe('Photo stamp');
+    expect(info.sourceKnown).toBe(true);
+    expect(info.missing).toBe(false);
+  });
+
+  it('says when the source was not recorded', () => {
+    const info = fillTimeInfo({ value: '2026-11-12T13:10:00.000Z' });
+    expect(info.source).toBe('Source not recorded');
+    expect(info.sourceKnown).toBe(false);
+  });
+
+  it('says plainly when there is no fill time', () => {
+    expect(fillTimeInfo(null).missing).toBe(true);
+    expect(fillTimeInfo({ value: null }).missing).toBe(true);
+    expect(fillTimeInfo({ value: 'not-a-date' }).missing).toBe(true);
+    expect(fillTimeText(null)).toBe('Fill time not read from the photo.');
+  });
+
+  it('shows the fill time in plain words', () => {
+    expect(fillTimeText({ value: '2026-11-12T13:10:00.000Z', source: 'printed' })).toBe(
+      '12 Nov, 6:40 pm'
+    );
+  });
+
+  it('knows when a date carries a year', () => {
+    expect(dateTextHasYear('12 Nov 2026, 6:40 pm')).toBe(true);
+    expect(dateTextHasYear('12 Nov, 6:40 pm')).toBe(false);
+    expect(dateTextHasYear('')).toBe(false);
+  });
+
+  it('uses the printed bill date when the photo gave no fill time, never the received time', () => {
+    const info = fillTimeFromDraft({
+      time: null,
+      billDatetime: '2026-11-12T13:10:00.000Z',
+      createdAt: '2026-11-20T10:00:00.000Z',
+    });
+    expect(info.value).toBe('12 Nov, 6:40 pm');
+    expect(info.source).toBe('Printed bill');
+    expect(info.missing).toBe(false);
+  });
+
+  it('shows a dash for the half of a matched rise that was not measured', () => {
+    expect(matchedRiseText({})).toBe('Matched tank rise: — · —');
+    expect(matchedRiseText({ at: '2026-11-12T13:10:00.000Z', litres: 100 })).toBe(
+      'Matched tank rise: 12 Nov, 6:40 pm · 100 L',
+    );
+  });
+});
+
+describe('fillTimeFromDraft year confirmation', () => {
+  it('a time the server decided (stamp) has its year confirmed', () => {
+    const info = fillTimeFromDraft({ time: { value: '2026-11-13T10:27:00.000Z', source: 'stamp' } });
+    expect(info.yearConfirmed).toBe(true);
+  });
+  it('a printed bill date with no decided time leaves the year unconfirmed', () => {
+    const info = fillTimeFromDraft({ time: null, billDatetime: '2026-11-13T10:27:00.000Z' });
+    expect(info.source).toBe('Printed bill');
+    expect(info.yearConfirmed).toBe(false);
   });
 });

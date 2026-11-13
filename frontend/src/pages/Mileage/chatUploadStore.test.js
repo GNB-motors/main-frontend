@@ -140,4 +140,44 @@ describe('the chat upload of the session', () => {
     expect(store.getState().stage).toBe('unreachable');
     expect(store.getState().error).toContain('lost contact with the server');
   });
+
+  it('says that a count the server did not send is not known', () => {
+    const buckets = store.bucketsOf({});
+    expect(buckets.saved).toBeNull();
+    expect(buckets.waiting).toBeNull();
+    expect(buckets.failed).toBeNull();
+    const fills = store.fillsOf({ fills: { saved: 3 } });
+    expect(fills.saved).toBe(3);
+    expect(fills.waiting).toBeNull();
+    expect(store.fillsOf({}).saved).toBeNull();
+  });
+
+  it('does not add up photos it only knows half of', () => {
+    expect(store.photosTotalOf({}, store.bucketsOf({}))).toBeNull();
+    expect(store.photosTotalOf({ photos: 7 }, store.bucketsOf({}))).toBe(7);
+    expect(
+      store.photosTotalOf({ photos: 7 }, store.bucketsOf({ photoBuckets: { saved: 1 } })),
+    ).toBe(7);
+  });
+
+  it('does not say the chat was imported when the counts are unknown', () => {
+    const summary = store.summarise({ photos: 3 });
+    expect(summary.title).toBe('Import finished — some counts not reported.');
+    expect(summary.title).not.toContain('Chat imported');
+    expect(summary.title).not.toContain('Nothing new');
+    expect(summary.line).toContain('—');
+  });
+
+  it('says the chat was imported when the counts are known', () => {
+    const summary = store.summarise({ photos: 3, fills: { saved: 2, waiting: 1 }, failed: [] });
+    expect(summary.title).toBe('Chat imported');
+  });
+
+  it('turns a raw reason into plain words and keeps a sentence as it is', () => {
+    const groups = store.failureGroups({
+      failed: [{ reason: 'ENOENT' }, { reason: 'no truck, litres or time found on the bill' }],
+    });
+    expect(groups[0].reason).toBe('Some details could not be read.');
+    expect(groups[1].reason).toBe('no truck, litres or time found on the bill');
+  });
 });

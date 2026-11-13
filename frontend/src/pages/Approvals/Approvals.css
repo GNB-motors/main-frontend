@@ -21,12 +21,50 @@
   gap: 4px;
   margin-bottom: 22px;
   border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 1px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Queue note: says which queue this is and where the other queue lives. */
+.apv-queue-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.apv-queue-note__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.apv-queue-note__text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
+
+.apv-queue-note__link {
+  color: #2563eb;
+  font-weight: 600;
 }
 
 .apv-type {
   display: inline-flex;
   align-items: center;
+  flex: none;
   gap: 8px;
+  white-space: nowrap;
   margin-bottom: -1px;
   padding: 10px 16px;
   border: none;

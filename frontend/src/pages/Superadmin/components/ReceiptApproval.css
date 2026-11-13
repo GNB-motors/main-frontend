@@ -2016,3 +2016,191 @@
   color: var(--foreground);
   white-space: pre-wrap;
 }
+
+/* A quieter line under a value: the source of a time, a note about a year. */
+.ra-prop__val--muted {
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+
+/* The note that rides along with a chip: "Truck not identified". */
+.ra-chip__note {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  white-space: normal;
+}
+
+/* The filters keep a little room on the sides so nothing is cut off. */
+.ra-toolbar {
+  padding: 0 4px;
+}
+
+.ra-filter-strip {
+  padding: 0 2px;
+}
+
+.ra-select-wrap .searchable-select-trigger {
+  min-width: 126px;
+  padding: 8px 28px 8px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: left;
+}
+
+/* ---------------------------------------------------------------------------
+   A phone-sized screen: the table becomes a list of cards and the drawer
+   becomes one column with its footer pinned to the bottom.
+   ------------------------------------------------------------------------- */
+@media (max-width: 700px) {
+  .ra-page {
+    padding: 8px 8px 60px;
+  }
+
+  .ra-toolbar {
+    padding: 0;
+  }
+
+  .ra-tabs {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .ra-search {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .ra-table-wrap {
+    overflow-x: visible;
+  }
+
+  .ra-table,
+  .ra-table tbody,
+  .ra-table tr,
+  .ra-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .ra-table thead {
+    display: none;
+  }
+
+  .ra-table tbody tr {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+    margin: 0 0 12px;
+    padding: 4px 0;
+  }
+
+  .ra-table tbody tr:hover {
+    background: var(--card);
+  }
+
+  .ra-table td {
+    display: grid;
+    grid-template-columns: 118px 1fr;
+    gap: 10px;
+    align-items: start;
+    padding: 9px 12px;
+    border-bottom: 1px dashed var(--border);
+    text-align: left !important;
+  }
+
+  .ra-table td::before {
+    content: attr(data-label);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  .ra-table__td-select,
+  .ra-table td[data-label='Slip'],
+  .ra-table td[data-label='Actions'] {
+    grid-template-columns: 1fr;
+    width: 100%;
+    text-align: left !important;
+  }
+
+  .ra-table__td-select::before,
+  .ra-table td[data-label='Slip']::before,
+  .ra-table td[data-label='Actions']::before {
+    content: none;
+  }
+
+  .ra-table td[data-label='Actions'] {
+    border-bottom: none;
+  }
+
+  .ra-table td[data-label='Actions'] > * {
+    justify-content: flex-start;
+  }
+
+  .ra-drawer {
+    max-width: 100%;
+  }
+
+  .ra-drawer__header {
+    padding: 12px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ra-drawer__header-left {
+    flex-wrap: wrap;
+  }
+
+  .ra-drawer__body {
+    padding: 14px 12px;
+  }
+
+  .ra-drawer__split {
+    grid-template-columns: 1fr;
+  }
+
+  .ra-drawer__tab-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .ra-drawer__img-tools {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .ra-drawer__footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .ra-drawer__footer-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ra-drawer__footer-actions > * {
+    flex: 1 1 auto;
+  }
+}
+
+/* The smallest screens: one property per row. */
+@media (max-width: 480px) {
+  .ra-grid-props {
+    grid-template-columns: 1fr;
+  }
+}

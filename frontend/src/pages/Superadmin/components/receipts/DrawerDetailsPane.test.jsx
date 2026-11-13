@@ -21,13 +21,14 @@ const props = {
   odoMeta: { displayReading: '1200 km', badgeClass: '', badgeText: 'ok', detailHint: 'from the photo' },
   stationInfo: {
     stationName: 'Jhargram Pump',
-    coordinates: '22.95, 88.4',
-    haltTime: '12 min',
-    benchmarkRate: 90,
-    isRateNormal: true,
-    rateDiff: 0,
+    coordinates: null,
+    haltTime: null,
+    isGeofenceMatch: null,
+    benchmarkRate: null,
+    benchmarkPlace: null,
+    benchmarkEffectiveDate: null,
+    billRate: 90,
   },
-  submitter: 'Asif Khan',
 };
 
 const PREDICTED = {
@@ -44,9 +45,10 @@ describe('DrawerDetailsPane — the predicted fill time', () => {
     expect(screen.getByText('Predicted 10 Nov, 6:40 pm (tank rise, one clue)')).toBeTruthy();
     // The read time of the photo is still unknown.
     expect(screen.getByText('Bill Date & Time')).toBeTruthy();
+    expect(screen.getByText('Fill time not read from the photo.')).toBeTruthy();
   });
 
-  it('offers Accept and Edit, and Accept asks for the predicted time', () => {
+  it('offers the suggested time and a way to set another', () => {
     const onSetTime = vi.fn();
     render(
       <DrawerDetailsPane
@@ -56,10 +58,10 @@ describe('DrawerDetailsPane — the predicted fill time', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use suggested time' }));
     expect(onSetTime).toHaveBeenCalledWith('accept');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Set time' }));
     expect(screen.getByLabelText('Time of the fill')).toBeTruthy();
   });
 
@@ -73,7 +75,7 @@ describe('DrawerDetailsPane — the predicted fill time', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Set time' }));
     fireEvent.change(screen.getByLabelText('Time of the fill'), {
       target: { value: '2026-11-10T18:15' },
     });
@@ -86,7 +88,7 @@ describe('DrawerDetailsPane — the predicted fill time', () => {
     render(<DrawerDetailsPane {...props} draft={draftWith({ predicted: null })} />);
 
     expect(screen.queryByText(/Predicted/)).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Accept' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Use suggested time' })).toBeNull();
   });
 
   it('shows how we know, so that a person can check it', () => {
@@ -130,6 +132,57 @@ describe('DrawerDetailsPane — the predicted fill time', () => {
     expect(predictedTimeText({ ...PREDICTED, source: 'BOTH' })).toBe(
       'Predicted 10 Nov, 6:40 pm (tank rise and GPS at pump, one clue)',
     );
-    expect(predictedTimeText(null)).toBe('');
+  });
+});
+
+describe('DrawerDetailsPane — the facts a draft carries', () => {
+  it('shows the fill time and where it came from', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={draftWith({ value: '2026-11-10T13:10:00.000Z', source: 'stamp' })}
+      />,
+    );
+
+    expect(screen.getByText('10 Nov, 6:40 pm')).toBeTruthy();
+    expect(screen.getByText('Photo stamp')).toBeTruthy();
+    // The server decided this year from the stamp: no warning.
+    expect(screen.queryByText('year not confirmed — check the bill')).toBeNull();
+  });
+
+  it('warns when only the printed bill date is known', () => {
+    render(
+      <DrawerDetailsPane
+        {...props}
+        draft={{ ...draftWith(null), billDatetime: '2026-11-10T13:10:00.000Z' }}
+      />,
+    );
+
+    expect(screen.getByText('Printed bill')).toBeTruthy();
+    expect(screen.getByText('year not confirmed — check the bill')).toBeTruthy();
+  });
+
+  it('says what the station does not tell us', () => {
+    render(<DrawerDetailsPane {...props} draft={draftWith({})} />);
+
+    expect(screen.queryByText('Station not read from the photo.')).toBeNull();
+    expect(screen.getByText('Pump location not available.')).toBeTruthy();
+    expect(screen.getByText('Halt duration not available.')).toBeTruthy();
+    expect(screen.getByText('Location match not checked.')).toBeTruthy();
+    expect(screen.getByText('Benchmark not available')).toBeTruthy();
+  });
+
+  it('keeps the sender and the driver apart', () => {
+    render(<DrawerDetailsPane {...props} draft={draftWith({})} />);
+
+    expect(screen.getByText('Uploaded by')).toBeTruthy();
+    expect(screen.getByText('Driver')).toBeTruthy();
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+  });
+
+  it('calls the caption the sender\u2019s message when no driver is known', () => {
+    render(<DrawerDetailsPane {...props} draft={{ ...draftWith({}), caption: 'Filled up' }} />);
+
+    expect(screen.getByText('Message from the sender')).toBeTruthy();
   });
 });

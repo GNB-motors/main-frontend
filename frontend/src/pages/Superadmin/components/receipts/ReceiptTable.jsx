@@ -58,7 +58,7 @@ const ReceiptTable = ({
             </th>
             <th>Slip</th>
             <th>Vehicle & Plate</th>
-            <th>Driver / Submitter</th>
+            <th>Uploaded by / Driver</th>
             <th>Fuel Station</th>
             <th className="ra-right">Litres</th>
             <th className="ra-right">Amount</th>
@@ -119,7 +119,9 @@ const ReceiptTable = ({
                   <div className="ra-state__icon">
                     <Inbox size={26} />
                   </div>
-                  <div className="ra-state__title">No receipts found</div>
+                  <div className="ra-state__title">
+                    {activeFiltersCount > 0 ? 'No receipts found' : 'No receipts yet'}
+                  </div>
                   <div style={{ color: 'var(--muted-foreground)', fontSize: '13px', marginTop: 4 }}>
                     {activeFiltersCount > 0
                       ? 'No receipts matched your active filters. Try clearing some filters.'

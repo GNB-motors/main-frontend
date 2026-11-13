@@ -53,38 +53,61 @@ const renderRow = (d) =>
   );
 
 describe('ReceiptRow — a chat-import row', () => {
-  it('says it came from a chat and that the truck is not sure', () => {
+  it('says it came from a chat and that the truck is not identified', () => {
     renderRow(chatRow);
 
     expect(screen.getByText('From chat')).toBeInTheDocument();
-    expect(screen.getByText('Truck not sure')).toBeInTheDocument();
+    expect(screen.getByText('Truck not identified')).toBeInTheDocument();
   });
 
   it('shows the predicted time when the photo has no time of its own', () => {
     renderRow(chatRow);
 
     expect(screen.getByText('Predicted 10 Nov, 6:40 pm (tank rise)')).toBeInTheDocument();
-    expect(screen.queryByText('No time on the photo')).not.toBeInTheDocument();
+    expect(screen.queryByText('Fill time not read from the photo.')).not.toBeInTheDocument();
   });
 
   it('shows the time read from the photo when there is one', () => {
     renderRow({ ...chatRow, time: { value: '2026-11-10T08:30:00.000Z' } });
 
     expect(screen.queryByText('Predicted 10 Nov, 6:40 pm (tank rise)')).not.toBeInTheDocument();
-    expect(screen.queryByText('No time on the photo')).not.toBeInTheDocument();
     expect(screen.getByText(/10 Nov/)).toBeInTheDocument();
+    expect(screen.getByText('Source not recorded')).toBeInTheDocument();
   });
 
   it('says plainly that there is no time on the photo', () => {
     renderRow({ ...chatRow, time: {} });
 
-    expect(screen.getByText('No time on the photo')).toBeInTheDocument();
+    expect(screen.getByText('Fill time not read from the photo.')).toBeInTheDocument();
+  });
+
+  it('names the sender and keeps the driver apart from them', () => {
+    renderRow(chatRow);
+
+    expect(screen.getByText('Uploaded by +919876543210')).toBeInTheDocument();
+    expect(screen.getByText('Driver: —')).toBeInTheDocument();
   });
 
   it('shows the market truck chip for a truck that is not in the fleet', () => {
     renderRow({ ...chatRow, market: true });
 
     expect(screen.getByText('Market truck')).toBeInTheDocument();
+  });
+
+  it('says the truck is only a guess when several trucks fit', () => {
+    renderRow({
+      ...chatRow,
+      truck: { ...chatRow.truck, candidates: [{ vehicleId: 'v1' }, { vehicleId: 'v2' }] },
+    });
+
+    expect(screen.getByText('Guess')).toBeInTheDocument();
+    expect(screen.queryByText('Truck not identified')).not.toBeInTheDocument();
+  });
+
+  it('says the truck is certain when the matcher was sure', () => {
+    renderRow({ ...chatRow, truck: { ...chatRow.truck, bucket: 'EXACT' } });
+
+    expect(screen.getByText('Sure')).toBeInTheDocument();
   });
 
   it('leaves a guided row the way it was', () => {
@@ -100,8 +123,9 @@ describe('ReceiptRow — a chat-import row', () => {
     });
 
     expect(screen.queryByText('From chat')).not.toBeInTheDocument();
-    expect(screen.queryByText('Truck not sure')).not.toBeInTheDocument();
+    expect(screen.queryByText('Truck not identified')).not.toBeInTheDocument();
     expect(screen.queryByText('Market truck')).not.toBeInTheDocument();
-    expect(screen.queryByText('No time on the photo')).not.toBeInTheDocument();
+    expect(screen.queryByText('Fill time not read from the photo.')).not.toBeInTheDocument();
+    expect(screen.getByText('Printed bill')).toBeInTheDocument();
   });
 });

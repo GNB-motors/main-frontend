@@ -126,8 +126,8 @@ describe('ReceiptApproval.shared — WhatsApp Fuel Approvals Unit Tests', () => 
     });
   });
 
-  describe('crossVerifyStation (Telematics Station & Benchmark Rate)', () => {
-    it('compares bill rate with state benchmark rate and calculates variance', () => {
+  describe('crossVerifyStation (station facts the draft actually carries)', () => {
+    it('returns the supplied station and bill rate and never invents a benchmark or halt', () => {
       const draft = {
         stationName: 'IOCL Highway Service Station',
         rate: 89.65,
@@ -135,8 +135,19 @@ describe('ReceiptApproval.shared — WhatsApp Fuel Approvals Unit Tests', () => 
       };
       const info = crossVerifyStation(draft);
       expect(info.stationName).toBe('IOCL Highway Service Station');
-      expect(info.isRateNormal).toBe(true);
-      expect(info.haltTime).toContain('mins');
+      expect(info.billRate).toBe(89.65);
+      expect(info.coordinates).toBeNull();
+      expect(info.haltTime).toBeNull();
+      expect(info.isGeofenceMatch).toBeNull();
+      expect(info.benchmarkRate).toBeNull();
+      expect(info.benchmarkPlace).toBeNull();
+      expect(info.benchmarkEffectiveDate).toBeNull();
+    });
+
+    it('leaves absent station facts as null', () => {
+      const info = crossVerifyStation({});
+      expect(info.stationName).toBeNull();
+      expect(info.billRate).toBeNull();
     });
   });
 
@@ -163,12 +174,16 @@ describe('ReceiptApproval.shared — WhatsApp Fuel Approvals Unit Tests', () => 
       expect(filterByDatePreset(items, 'ALL')).toHaveLength(1);
     });
 
-    it('filters today correctly', () => {
+    it('filters today by the fill time, never the WhatsApp received time', () => {
       const today = new Date().toISOString();
       const lastYear = new Date(Date.now() - 365 * 86400000).toISOString();
-      const items = [{ createdAt: today }, { createdAt: lastYear }];
+      const items = [
+        { time: { value: today }, createdAt: lastYear },
+        { time: { value: lastYear }, createdAt: today },
+      ];
       const res = filterByDatePreset(items, 'TODAY');
       expect(res).toHaveLength(1);
+      expect(res[0].time.value).toBe(today);
     });
 
     it('prioritizes billDatetime over createdAt for refuel date filtering', () => {
@@ -226,8 +241,20 @@ describe('ReceiptApproval.shared — WhatsApp Fuel Approvals Unit Tests', () => 
 
     it('keeps the old browser-side filtering for an older backend', () => {
       const rows = [
-        { _id: 'a', vehicleReg: 'WB01', odometerReading: null, createdAt: '2026-10-10T00:00:00Z' },
-        { _id: 'b', vehicleReg: 'WB02', odometerReading: 900, createdAt: '2026-10-11T00:00:00Z' },
+        {
+          _id: 'a',
+          vehicleReg: 'WB01',
+          odometerReading: null,
+          billDatetime: '2026-10-10T00:00:00Z',
+          createdAt: '2026-10-12T00:00:00Z',
+        },
+        {
+          _id: 'b',
+          vehicleReg: 'WB02',
+          odometerReading: 900,
+          billDatetime: '2026-10-11T00:00:00Z',
+          createdAt: '2026-10-11T00:00:00Z',
+        },
       ];
       const base = { query: '', dateFilter: 'ALL', odoFilter: 'ALL', anomalyFilter: 'ALL' };
       expect(
@@ -244,7 +271,7 @@ describe('ReceiptApproval.shared — WhatsApp Fuel Approvals Unit Tests', () => 
     it('maps the server summary onto the KPI cards', () => {
       expect(
         kpisFromSummary({ totalCount: 2, totalLitres: 150, totalAmount: 14000, pendingCount: 2 }),
-      ).toMatchObject({ totalCount: 2, pendingCount: 2, pendingAmount: 0, avgRate: '93.33' });
+      ).toMatchObject({ totalCount: 2, pendingCount: 2, pendingAmount: null, avgRate: '93.33' });
       expect(kpisFromSummary({}).avgRate).toBe('—');
     });
   });

@@ -96,6 +96,52 @@
   letter-spacing: -0.01em !important;
 }
 
+/* The search leads the row and takes the space that is left. */
+.mhub-search {
+  flex: 1 1 260px;
+}
+
+/* The quieter ways in sit together, so one button leads the header. */
+.mhub-secondary-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 700px) {
+  .mhub-top-actions {
+    flex-wrap: wrap;
+  }
+
+  .mhub-search {
+    flex: 1 1 100%;
+    width: auto;
+  }
+
+  .mhub-secondary-actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 400px) {
+  .mhub-top-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mhub-search,
+  .mhub-secondary-actions,
+  .mhub-secondary-actions .mhub-add-btn {
+    width: 100%;
+  }
+
+  .mhub-secondary-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 /* The by-hand entry sits next to the photo button as its quieter sibling:
    same geometry, no solid fill. */
 .mhub-by-hand-btn {

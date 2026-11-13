@@ -33,6 +33,57 @@ export const PARTWAY_MESSAGE =
 export const JOB_GONE_MESSAGE =
   "We can't find that import any more. Upload the chat again if it didn't finish.";
 
+/**
+ * The plain words of a failure reason.
+ *
+ * A sentence a person wrote is kept as it is. A raw reason from the machine is
+ * translated. A reason nobody understands says so plainly.
+ */
+const PLAIN_REASONS = [
+  {
+    match: /could not be read|unreadable|decode|corrupt|damaged/i,
+    text: 'The photo could not be read.',
+  },
+  {
+    match: /ocr|unclear|blurry|low.?resolution|not enough|illegible|printed/i,
+    text: 'The details on the photo could not be read.',
+  },
+  { match: /no file|not found|missing/i, text: 'The photo file was missing.' },
+  {
+    match: /unsupported|invalid|not an image|bad image/i,
+    text: 'The photo file was not an image we could read.',
+  },
+  { match: /too large|file size|exceed/i, text: 'The photo was too large to read.' },
+  { match: /network|timeout|timed out|offline/i, text: 'The photo could not be fetched.' },
+];
+
+/** A count the server did not send is not known: it shows as a dash. */
+const countText = (value) =>
+  value === null || value === undefined || value === '' ? '—' : String(value);
+
+/**
+ * A failure reason in plain words.
+ *
+ * A sentence a person wrote stays as it is. A raw reason from the machine is
+ * translated. A reason nobody understands says so plainly.
+ */
+export function plainReason(reason) {
+  const text = typeof reason === 'string' ? reason.trim() : '';
+  if (!text) return 'Some details could not be read.';
+  const hasBrackets = /[{}<>|]/.test(text) || text.includes('[') || text.includes(']');
+  const human =
+    /[a-z]/i.test(text) &&
+    /\s/.test(text) &&
+    !hasBrackets &&
+    !/\bHTTP\b|\bstatus\b|\b\d{3}\b|[A-Za-z]:\\|\\\\|\/(?:tmp|var|home|users)\//i.test(text) &&
+    !/\b[A-Z0-9]+_[A-Z0-9_]+\b/.test(text);
+  if (human) return text;
+  for (const rule of PLAIN_REASONS) {
+    if (rule.match.test(text)) return rule.text;
+  }
+  return 'Some details could not be read.';
+}
+
 const initialState = {
   // idle | uploading | reading | done | failed | unreachable
   stage: 'idle',
@@ -135,7 +186,7 @@ export function failureText(view) {
   return {
     heading: 'The import stopped partway',
     message: PARTWAY_MESSAGE,
-    detail: serverMessage && serverMessage !== PARTWAY_MESSAGE ? serverMessage : '',
+    detail: serverMessage && serverMessage !== PARTWAY_MESSAGE ? plainReason(serverMessage) : '',
   };
 }
 
@@ -158,37 +209,48 @@ function isLostContact(err) {
  * add up to the number of photos.
  */
 export function bucketsOf(result) {
-  const empty = {
-    saved: 0,
-    waiting: 0,
-    market: 0,
-    alreadyReceived: 0,
-    unreadable: 0,
-    failed: 0,
-    other: 0,
-  };
+  const names = [
+    'saved',
+    'waiting',
+    'market',
+    'alreadyReceived',
+    'unreadable',
+    'failed',
+    'other',
+  ];
   const sent = result?.photoBuckets;
-  if (!sent || typeof sent !== 'object') return empty;
-  const out = { ...empty };
-  for (const name of Object.keys(empty)) out[name] = Number(sent[name] || 0);
+  const out = {};
+  for (const name of names) {
+    const value = sent && typeof sent === 'object' ? sent[name] : undefined;
+    // A count the server did not send is not zero: it is not known.
+    out[name] = value === null || value === undefined || value === '' ? null : Number(value);
+  }
   return out;
 }
 
 /** The fills of the chat: the groups of photos that make one fill. */
 export function fillsOf(result) {
-  const empty = { saved: 0, waiting: 0, market: 0, alreadyReceived: 0, failed: 0 };
+  const names = ['saved', 'waiting', 'market', 'alreadyReceived', 'failed'];
   const sent = result?.fills;
-  if (!sent || typeof sent !== 'object') return empty;
-  const out = { ...empty };
-  for (const name of Object.keys(empty)) out[name] = Number(sent[name] || 0);
+  const out = {};
+  for (const name of names) {
+    const value = sent && typeof sent === 'object' ? sent[name] : undefined;
+    out[name] = value === null || value === undefined || value === '' ? null : Number(value);
+  }
   return out;
 }
 
 /** How many photos there are: the buckets add up to them. */
 export function photosTotalOf(result, buckets) {
-  const total = Object.values(buckets).reduce((sum, number) => sum + number, 0);
-  if (total > 0) return total;
-  return Number(result?.photos || 0);
+  const photos = result?.photos;
+  if (photos !== null && photos !== undefined && photos !== '' && Number.isFinite(Number(photos))) {
+    return Number(photos);
+  }
+  if (!buckets) return null;
+  const values = Object.values(buckets);
+  // Only a sum that is complete counts; a half-known sum is not a number.
+  if (!values.length || values.some((value) => value === null || value === undefined)) return null;
+  return values.reduce((sum, value) => sum + Number(value), 0);
 }
 
 /**
@@ -199,15 +261,18 @@ export function failureGroups(result) {
   const sent = Array.isArray(result?.failedGroups) ? result.failedGroups : null;
   if (sent && sent.length) {
     return sent.map((group) => ({
-      reason: group?.reason || 'Could not be read.',
-      count: Number(group?.count || 0),
+      reason: plainReason(group?.reason),
+      // A count the server did not send is unknown, not zero.
+      count:
+        group?.count === null || group?.count === undefined || group?.count === ''
+          ? null
+          : Number(group.count),
     }));
   }
   const failed = Array.isArray(result?.failed) ? result.failed : [];
   const groups = new Map();
   for (const item of failed) {
-    const reason =
-      typeof item === 'string' ? item : item?.reason || 'Could not be read.';
+    const reason = plainReason(typeof item === 'string' ? item : item?.reason);
     const key = reason.toLowerCase();
     const group = groups.get(key);
     if (group) group.count += 1;
@@ -226,17 +291,33 @@ export function summarise(result) {
   const fills = fillsOf(result);
   const groups = failureGroups(result);
   const photosTotal = photosTotalOf(result, buckets);
-  const failedTotal = Array.isArray(result?.failed)
-    ? result.failed.length
-    : groups.reduce((sum, group) => sum + group.count, 0);
-  const hasProblems = failedTotal > 0;
-  const nothingNew = fills.saved === 0 && fills.waiting === 0;
-  const tone = nothingNew ? 'bp-neutral' : hasProblems ? 'bp-warning' : 'bp-success';
-  const title = nothingNew
-    ? 'Nothing new in this chat'
-    : hasProblems
-      ? `Imported, with ${failedTotal} ${failedTotal === 1 ? 'problem' : 'problems'}`
-      : 'Chat imported';
+  const failedList = Array.isArray(result?.failed) ? result.failed : null;
+  const failedGroupsSent = Array.isArray(result?.failedGroups);
+  const failedGroupsKnown =
+    failedGroupsSent && groups.every((group) => group.count !== null && Number.isFinite(group.count));
+  const failedNumber =
+    result?.failed != null && !Array.isArray(result.failed) && result.failed !== ''
+      ? Number(result.failed)
+      : null;
+  const failedTotal = failedList
+    ? failedList.length
+    : failedGroupsKnown
+      ? groups.reduce((sum, group) => sum + group.count, 0)
+      : Number.isFinite(failedNumber)
+        ? failedNumber
+        : null;
+  // Counts the server never sent are not zero: they are not known.
+  const unknown = fills.saved === null || fills.waiting === null || failedTotal === null;
+  const hasProblems = failedTotal !== null && failedTotal > 0;
+  const nothingNew = !unknown && fills.saved === 0 && fills.waiting === 0;
+  const tone = unknown || nothingNew ? 'bp-neutral' : hasProblems ? 'bp-warning' : 'bp-success';
+  const title = unknown
+    ? 'Import finished — some counts not reported.'
+    : nothingNew
+      ? 'Nothing new in this chat'
+      : hasProblems
+        ? `Imported, with ${failedTotal} ${failedTotal === 1 ? 'problem' : 'problems'}`
+        : 'Chat imported';
   const summaryParts = [];
   if (fills.saved > 0) {
     summaryParts.push(
@@ -255,11 +336,13 @@ export function summarise(result) {
       } already imported`,
     );
   }
-  const line = nothingNew
-    ? `Nothing new in this chat. All ${photosTotal} photos were already imported.`
-    : summaryParts.length
-      ? `${summaryParts.join('. ')}.`
-      : 'Nothing was added to the mileage list.';
+  const line = unknown
+    ? `Saved: ${countText(fills.saved)} · Waiting: ${countText(fills.waiting)} · Failed: ${countText(failedTotal)}`
+    : nothingNew
+      ? `Nothing new in this chat. All ${countText(photosTotal)} photos were already imported.`
+      : summaryParts.length
+        ? `${summaryParts.join('. ')}.`
+        : 'Nothing was added to the mileage list.';
   return {
     title,
     tone,
@@ -271,6 +354,7 @@ export function summarise(result) {
     failedTotal,
     hasProblems,
     nothingNew,
+    unknown,
   };
 }
 

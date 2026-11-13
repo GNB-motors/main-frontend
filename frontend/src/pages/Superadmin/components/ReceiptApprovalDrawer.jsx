@@ -239,10 +239,6 @@ const ReceiptApprovalDrawer = ({
   if (!isOpen) return null;
 
   const veh = draft?.vehicleId?.registrationNumber || draft?.vehicleReg || '—';
-  const submitter =
-    [draft?.userId?.firstName, draft?.userId?.lastName].filter(Boolean).join(' ') ||
-    draft?.phoneE164 ||
-    'Driver';
   const ocrEval = evaluateOcrQuality(draft);
   const odoMeta = getOdometerMeta(draft);
   const stationInfo = crossVerifyStation(draft);
@@ -365,7 +361,6 @@ const ReceiptApprovalDrawer = ({
                   veh={veh}
                   odoMeta={odoMeta}
                   stationInfo={stationInfo}
-                  submitter={submitter}
                   onSetTime={handleSetTime}
                   timeBusy={actionBusy}
                   showTimeBlock={!isChat}
