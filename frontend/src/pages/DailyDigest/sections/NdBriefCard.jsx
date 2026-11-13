@@ -16,13 +16,18 @@ export default function NdBriefCard({ section, onOpenVehicle, rangeLabel = 'toda
         <span className="nd-sp" />
         <span className="nd-hint">{windowTitle} · top 5 vehicles</span>
       </div>
-      {section.status !== 'ok' ? (
+      {section.status === 'empty' && !section.partial ? (
         <div className="nd-empty">
           <span className="nd-ok">
             <Check size={22} />
           </span>
           <b>Clean {rangeLabel}</b>
           <span>{meta.clean}</span>
+        </div>
+      ) : section.rupees == null ? (
+        <div className="nd-empty">
+          <b>Cost unavailable</b>
+          <span>{section.why || section.suggestedAction}</span>
         </div>
       ) : (
         <>
@@ -35,6 +40,12 @@ export default function NdBriefCard({ section, onOpenVehicle, rangeLabel = 'toda
               {meta.sub}
             </span>
           </div>
+          {section.partial ? (
+            <p className="nd-muted" role="status">
+              Incomplete · {section.coverageNote}{' '}
+              {(section.unavailableReasons || []).map((r) => r.message).join(' ')}
+            </p>
+          ) : null}
           <table className="nd-tbl">
             <thead>
               <tr>
@@ -58,6 +69,7 @@ export default function NdBriefCard({ section, onOpenVehicle, rangeLabel = 'toda
                   <td className="nd-muted">{meta.detail(v)}</td>
                   <td className="nd-num" style={{ color: meta.c }}>
                     {formatINR(v.rupees)}
+                    {v.partial ? ' · Incomplete' : ''}
                   </td>
                 </tr>
               ))}

@@ -4,7 +4,7 @@ import NdBriefCard from './NdBriefCard.jsx';
 
 /** The day's leaks ranked biggest-first, led by the one action worth taking first. */
 export default function NdMorningBrief({ brief, onOpenVehicle, onRetry, rangeLabel = 'today' }) {
-  const rank = (s) => (s.status === 'ok' ? s.rupees || 0 : -1);
+  const rank = (s) => (s.status === 'ok' || s.status === 'partial' ? s.rupees || 0 : -1);
   const sections = [...(brief?.sections || [])].sort((a, b) => rank(b) - rank(a));
 
   // A failed load keeps its place on the page — a section that silently
@@ -36,11 +36,16 @@ export default function NdMorningBrief({ brief, onOpenVehicle, onRetry, rangeLab
       </section>
     );
   }
-  const top = sections[0].status === 'ok' ? sections[0] : null;
+  const top = ['ok', 'partial'].includes(sections[0].status) ? sections[0] : null;
 
   return (
     <section className="nd-brief" id="nd-brief">
       <div className="nd-eyebrow">Morning brief</div>
+      {brief?.partial ? (
+        <p className="nd-muted" role="status">
+          Incomplete · {brief.coverageNote}
+        </p>
+      ) : null}
       {top?.suggestedAction ? (
         <div
           className="nd-brief-start"

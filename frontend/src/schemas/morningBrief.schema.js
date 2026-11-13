@@ -15,6 +15,7 @@ const briefVehicleSchema = z
     rupees: num,
     durationMin: num,
     excessL: num,
+    partial: z.boolean().nullish(),
   })
   .passthrough();
 
@@ -27,6 +28,8 @@ const briefSectionSchema = z
     status: str,
     rupees: num,
     suggestedAction: str,
+    partial: z.boolean().nullish(),
+    coverageNote: str,
     vehicles: z.array(briefVehicleSchema).nullish(),
   })
   .passthrough();
@@ -35,6 +38,8 @@ export const morningBriefSchema = z
   .object({
     date: str,
     totalRupees: num,
+    partial: z.boolean().nullish(),
+    coverageNote: str,
     sections: z.array(briefSectionSchema).nullish(),
     disclaimer: str,
   })

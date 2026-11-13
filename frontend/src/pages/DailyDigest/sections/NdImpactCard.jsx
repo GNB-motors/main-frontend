@@ -89,7 +89,18 @@ export default function NdImpactCard({
       tint: 'rgba(147, 51, 234, 0.12)',
       icon: Droplet,
     },
-  ];
+  ].map((row) => {
+    const field = {
+      idling: 'idlingWasteInr',
+      detour: 'detourWasteInr',
+      siphon: 'theftLossInr',
+      mismatch: 'billFraudSuspectInr',
+      speed: 'speedingLossInr',
+      mileage: 'lowMileageLossInr',
+    }[row.key];
+    const coverage = money?.lossCoverage?.[field];
+    return coverage ? { ...row, coverage: coverage.coverageNote, partial: coverage.partial } : row;
+  });
   // Open exposure, not money lost today — shown apart and never added to the
   // headline, so the red total keeps meaning "lost today".
   const risk = [
@@ -141,11 +152,13 @@ export default function NdImpactCard({
   const impactBadge =
     totalSum.known === 0
       ? 'Not measured'
-      : totalSum.known < totalSum.total
-        ? `${totalSum.known} of ${totalSum.total} channels measured`
-        : activeCount > 0
-          ? `${activeCount} active categories`
-          : 'All nominal';
+      : lost.some((row) => row.partial)
+        ? 'Incomplete · calculated losses'
+        : totalSum.known < totalSum.total
+          ? `${totalSum.known} of ${totalSum.total} channels measured`
+          : activeCount > 0
+            ? `${activeCount} active categories`
+            : 'All nominal';
 
   return (
     <div className="nd-card nd-card--impact" id="nd-impact">
@@ -164,6 +177,12 @@ export default function NdImpactCard({
           <span className="nd-impact-count-badge">{impactBadge}</span>
         </div>
         <div className="nd-v">{formatINR(total)}</div>
+        {lost.some((row) => row.partial) ? (
+          <p className="nd-muted" role="status">
+            Some losses are not included because required data is missing. The excluded amount is
+            unknown.
+          </p>
+        ) : null}
         <div className="nd-n">
           Across {lost.length} loss channels · plus {formatINR(riskTotal)} open exposure at risk
         </div>

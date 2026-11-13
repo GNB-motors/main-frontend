@@ -77,6 +77,31 @@ const renderPanel = (day = '2026-11-04', digest = { goodDrivers: [], needsAttent
   );
 
 describe('OwnerReportPanel', () => {
+  it('shows calculated losses with an explicit incomplete-data notice', async () => {
+    fleetViewService.getMorningBrief.mockResolvedValue({
+      date: TODAY_IST,
+      totalRupees: 89900,
+      partial: true,
+      coverageNote: 'Some losses are not included: 1 item could not be calculated.',
+      sections: [
+        {
+          key: 'excessIdling',
+          label: 'Diesel used while stopped',
+          status: 'partial',
+          partial: true,
+          rupees: 89900,
+          coverageNote: '1 idle event is not included because consumption is unavailable.',
+          vehicles: [{ registrationNumber: 'AA1', rupees: 89900, partial: true }],
+        },
+      ],
+    });
+    renderPanel();
+    await waitFor(() => expect(screen.getAllByText('₹89,900').length).toBeGreaterThan(0));
+    expect(screen.getByText(/Some losses are not included/)).toBeTruthy();
+    expect(screen.getByText(/1 idle event is not included/)).toBeTruthy();
+    expect(screen.getAllByText(/Incomplete/).length).toBeGreaterThan(0);
+  });
+
   beforeEach(() => {
     // Keep the fixture day "today" in IST, regardless of the machine's clock.
     vi.useFakeTimers({ toFake: ['Date'] });
