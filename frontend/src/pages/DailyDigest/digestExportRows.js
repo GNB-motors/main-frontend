@@ -16,7 +16,12 @@ export function buildDigestExportRows({ actions, money, morningBrief, upcoming }
       (sec.vehicles || []).map((v) => ({
         section: `Morning brief · ${sec.label}`,
         vehicle: v.registrationNumber,
-        detail: v.durationMin ? `${v.durationMin} min` : v.excessL ? `${v.excessL} L` : '',
+        detail: [
+          v.durationMin ? `${v.durationMin} min` : v.excessL ? `${v.excessL} L` : '',
+          sec.partial ? `Incomplete: ${sec.coverageNote || 'Some losses are not included.'}` : '',
+        ]
+          .filter(Boolean)
+          .join(' · '),
         amount: v.rupees,
       })),
     ),

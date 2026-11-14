@@ -150,7 +150,9 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
           ? 'Morning brief did not load'
           : brief?.totalRupees == null
             ? 'Not estimated for this day'
-            : 'Estimated extra diesel cost',
+            : brief?.partial
+              ? 'Calculated loss · Incomplete'
+              : 'Estimated extra diesel cost',
       why: brief?.disclaimer || null,
     },
     {
@@ -178,6 +180,12 @@ export function leakRows(brief) {
       rupees: section?.rupees == null ? null : Number(section.rupees),
       share: total > 0 && section?.rupees != null ? Number(section.rupees) / total : null,
       action: section?.suggestedAction || '',
+      partial: section?.partial || false,
+      coverageNote: section?.coverageNote || '',
+      reasons: (section?.unavailableReasons || [])
+        .map((r) => r.message)
+        .filter(Boolean)
+        .join(' '),
       trucks: (Array.isArray(section?.vehicles) ? section.vehicles : [])
         .map((v) => ({
           reg: v?.registrationNumber || null,

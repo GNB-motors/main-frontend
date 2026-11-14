@@ -195,9 +195,16 @@ function MoneyLeakCard({ brief$, isPendingDay, day }) {
         <span>
           {brief?.totalRupees == null
             ? 'Not estimated for this day'
-            : 'estimated extra fuel cost for this period'}
+            : brief?.partial
+              ? 'Calculated loss · Incomplete'
+              : 'estimated extra fuel cost for this period'}
         </span>
       </div>
+      {brief?.partial ? (
+        <p className="db-muted" role="status">
+          {brief.coverageNote}
+        </p>
+      ) : null}
       {rows.length > 1 && rows.some((r) => r.share) ? (
         <div className="db-leak-split" role="img" aria-label="Estimated cost by issue">
           {rows.map((row, i) =>
@@ -229,7 +236,13 @@ function MoneyLeakCard({ brief$, isPendingDay, day }) {
                 </strong>
               </div>
               {row.action ? <p className="db-leak-action">{row.action}</p> : null}
-              <TruckChips trucks={row.trucks} day={day} kind={row.key} />
+              {row.partial ? (
+                <p className="db-muted">
+                  Incomplete · {row.coverageNote}
+                  {row.reasons ? ` ${row.reasons}` : ''}
+                </p>
+              ) : null}
+              <TruckChips trucks={row.trucks} />
             </li>
           ))}
         </ol>

@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import AutoTripCoverage from './AutoTripCoverage';
 import AutoTripService from '../../services/AutoTripService';
@@ -40,24 +40,37 @@ it('keeps details out of the page and opens the full truck list from the badge s
   expect(screen.queryByText('WB-TRUCK-0')).not.toBeInTheDocument();
   expect(screen.queryByText('Places to confirm as a pickup')).not.toBeInTheDocument();
 
-  fireEvent.mouseEnter(badge);
-  fireEvent.mouseMove(badge);
-  const reason = await screen.findByText('Pickup place not confirmed');
-  expect(reason.closest('li')).toHaveTextContent('8 trucks');
-  expect(screen.getByText('No GPS stops recorded').closest('li')).toHaveTextContent('6 trucks');
-  fireEvent.click(screen.getByRole('button', { name: 'View all 14 trucks' }));
+  // Advance the hover/transition clocks explicitly; CI coverage must not depend on wall time.
+  vi.useFakeTimers();
+  try {
+    // The trigger registers its native hover listener after the API-driven render.
+    await act(() => vi.advanceTimersByTimeAsync(0));
+    fireEvent.pointerEnter(badge, { pointerType: 'mouse' });
+    fireEvent.mouseOver(badge);
+    fireEvent.mouseEnter(badge);
+    fireEvent.mouseMove(badge);
+    await act(() => vi.advanceTimersByTimeAsync(200));
+    const reason = screen.getByText('Pickup place not confirmed');
+    expect(reason.closest('li')).toHaveTextContent('8 trucks');
+    expect(screen.getByText('No GPS stops recorded').closest('li')).toHaveTextContent('6 trucks');
+    fireEvent.click(screen.getByRole('button', { name: 'View all 14 trucks' }));
+    await act(() => vi.advanceTimersByTimeAsync(200));
 
-  const dialog = within(await screen.findByRole('dialog', { name: 'Trucks without trips' }));
-  for (const truck of coverage.missing) {
-    expect(dialog.getByText(truck.registrationNumber)).toBeInTheDocument();
+    const dialog = within(screen.getByRole('dialog', { name: 'Trucks without trips' }));
+    for (const truck of coverage.missing) {
+      expect(dialog.getByText(truck.registrationNumber)).toBeInTheDocument();
+    }
+    expect(dialog.getByRole('link', { name: 'Salbani' })).toHaveAttribute(
+      'href',
+      '/place-hub?place=site%3Aplant-1',
+    );
+    fireEvent.click(dialog.getByRole('button', { name: 'Close' }));
+    await act(() => vi.advanceTimersByTimeAsync(200));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '14 trucks without trips' })).toBeInTheDocument();
+  } finally {
+    vi.useRealTimers();
   }
-  expect(dialog.getByRole('link', { name: 'Salbani' })).toHaveAttribute(
-    'href',
-    '/place-hub?place=site%3Aplant-1',
-  );
-  fireEvent.click(dialog.getByRole('button', { name: 'Close' }));
-  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-  expect(screen.getByRole('button', { name: '14 trucks without trips' })).toBeInTheDocument();
 });
 
 it('opens the truck list with one click on the badge', async () => {

@@ -24,6 +24,24 @@ const renderCard = (props = {}) =>
   );
 
 describe("today's ₹ impact", () => {
+  it('keeps a partly calculated category visible and warns about excluded losses', () => {
+    const { container } = renderCard({
+      money: money({
+        idlingWasteInr: 89900,
+        lossCoverage: {
+          idlingWasteInr: {
+            partial: true,
+            coverageNote: 'Some losses are not included: 1 item could not be calculated.',
+          },
+        },
+      }),
+    });
+    expect(container.querySelector('.nd-v').textContent).toBe('₹89,900');
+    expect(container.textContent).toContain('Incomplete · calculated losses');
+    expect(container.textContent).toContain('Some losses are not included');
+    expect(container.textContent).not.toContain('All nominal');
+  });
+
   // OLD response: every channel carries a number.
   it('adds the channels it measured', () => {
     const { container } = renderCard({
