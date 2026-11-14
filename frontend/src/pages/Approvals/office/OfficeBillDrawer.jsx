@@ -12,6 +12,8 @@ import {
 } from './officeBill';
 import OfficeChangeTruckCard from './OfficeChangeTruckCard';
 import OfficeTruckSuggestions from './OfficeTruckSuggestions';
+import BillPairCell from '../../Mileage/BillPairCell';
+import { isOdometerCapture, linkFor, pairTruck } from '../../Mileage/billPairModel';
 /**
  * The owner & manager bill drawer: the same shell as the WhatsApp receipt
  * drawer, with the photo on the left, the facts and the truck choices on the
@@ -42,7 +44,11 @@ const OfficeBillDrawer = ({ capture, open = true, onClose, vehicles = [], onSave
   const row = useMemo(() => officeRow(capture), [capture]);
   const confirmed = Boolean(row.confirmed);
   const top = topCandidate(suggestion || capture?.suggestion);
-  const plate = touched ? chosen : row.plate || top?.registrationNumber || '';
+  // The server's slip ↔ odometer-photo pair; only the slip's carries a truck.
+  const pair = capture?.pair || null;
+  const odometer = isOdometerCapture(capture);
+  const pairPlate = pairTruck(pair);
+  const plate = touched ? chosen : row.plate || top?.registrationNumber || pairPlate || '';
   const truckChosen = touched && Boolean(plate.trim());
   // The photo, from the server's own copy of the capture.
   useEffect(() => {
@@ -128,14 +134,7 @@ const OfficeBillDrawer = ({ capture, open = true, onClose, vehicles = [], onSave
     setSaving(true);
     setError('');
     try {
-      await billPhotoService.saveBillLinks([
-        {
-          captureId: capture.id,
-          registrationNumber: plate.trim(),
-          reason: null,
-          via: 'APPROVALS',
-        },
-      ]);
+      await billPhotoService.saveBillLinks([linkFor(capture, plate.trim(), pair, 'APPROVALS')]);
       onSaved?.(capture.id);
       onClose?.();
     } catch {
@@ -265,6 +264,20 @@ const OfficeBillDrawer = ({ capture, open = true, onClose, vehicles = [], onSave
                   )}
                 </div>
               </div>
+              {pair?.role === 'SLIP' && pair.state === 'PROPOSED' && (
+                <BillPairCell
+                  pair={pair}
+                  onUnpair={async () => {
+                    setError('');
+                    try {
+                      await billPhotoService.unpairBill(capture.id);
+                      onSaved?.(capture.id);
+                    } catch {
+                      setError('Could not take the odometer photo off this bill. Try again.');
+                    }
+                  }}
+                />
+              )}
               <OfficeTruckSuggestions
                 suggestion={suggestion}
                 capture={capture}
@@ -324,7 +337,13 @@ const OfficeBillDrawer = ({ capture, open = true, onClose, vehicles = [], onSave
             <span className="ra-drawer__footer-id">{`Bill #${String(capture.id).slice(-8)}`}</span>
           </div>
           <div className="ra-drawer__footer-actions">
-            {confirmed ? (
+            {odometer ? (
+              <p className="ra-caption">
+                {pair
+                  ? 'This is an odometer photo. It is saved with its bill.'
+                  : 'This is an odometer photo. Match it to its bill in the upload list.'}
+              </p>
+            ) : confirmed ? (
               <>
                 <button
                   type="button"
