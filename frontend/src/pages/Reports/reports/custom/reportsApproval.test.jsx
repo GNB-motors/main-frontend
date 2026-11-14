@@ -166,18 +166,16 @@ describe('Super Admin: Reports Approval Module', () => {
 
     expect(screen.getByText('Custom Reports Approval')).toBeDefined();
 
-    // Wait for KPI cards
-    await waitFor(() => {
-      expect(screen.getAllByText('Pending Review').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('Approved').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('Rejected').length).toBeGreaterThan(0);
-    });
-
-    // Submissions table row
-    expect(screen.getByText('Weekly Fuel High Spenders')).toBeDefined();
+    // Wait for submissions table row to load
+    expect(await screen.findByText('Weekly Fuel High Spenders')).toBeDefined();
     expect(screen.getByText('Acme Logistics')).toBeDefined();
     expect(screen.getByText('John Doe')).toBeDefined();
     expect(screen.getByText('john@acme.com')).toBeDefined();
+
+    // KPI cards loaded
+    expect(screen.getAllByText('Pending Review').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Approved/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Rejected/i).length).toBeGreaterThan(0);
 
     // Click Review navigates to new review detail page
     const reviewBtn = screen.getByRole('button', { name: /Review Weekly Fuel High Spenders/i });
