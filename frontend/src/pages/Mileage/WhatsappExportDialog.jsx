@@ -29,7 +29,7 @@ import './WhatsappExportDialog.css';
 
 // The same cap the server keeps: a chat export bigger than this is refused
 // before it is sent, so nobody waits for an upload that will not be read.
-const MAX_BYTES = 500 * 1024 * 1024;
+const MAX_BYTES = 1536 * 1024 * 1024;
 
 // One row per count of the chat itself, in the words the owner reads.
 const CHAT_ROWS = [
@@ -115,7 +115,7 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported, o
     }
     if (next.size > MAX_BYTES) {
       setFile(null);
-      setPickError('That chat export is bigger than 500 MB. Please export a smaller chat.');
+      setPickError('That chat export is bigger than 1.5 GB. Please export a smaller chat.');
       return;
     }
     setFile(next);
@@ -214,7 +214,7 @@ export default function WhatsappExportDialog({ open, onOpenChange, onImported, o
               >
                 <FileArchive size={26} aria-hidden="true" />
                 <span>Choose a WhatsApp chat export</span>
-                <small>.zip only · up to 500 MB</small>
+                <small>.zip only · up to 1.5 GB</small>
               </button>
               {!state.file ? (
                 <p className="wxp-note">Choose a .zip file to upload.</p>
