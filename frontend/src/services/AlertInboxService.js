@@ -34,10 +34,12 @@ export async function acknowledgeAll() {
  * from the same place a manager already sits.
  */
 
-export async function getIncidents({ status, type, page = 1, limit = 20, signal } = {}) {
+export async function getIncidents({ status, type, from, to, page = 1, limit = 20, signal } = {}) {
   const params = { page, limit };
   if (status) params.status = status;
   if (type) params.type = type;
+  if (from) params.from = from;
+  if (to) params.to = to;
   const response = await apiClient.get('/api/incidents', { params, signal });
   const data = response.data?.data;
   return {
@@ -47,8 +49,11 @@ export async function getIncidents({ status, type, page = 1, limit = 20, signal 
 }
 
 /** Headline counts for the same window as the list. */
-export async function getIncidentSummary({ signal } = {}) {
-  const response = await apiClient.get('/api/incidents/summary', { signal });
+export async function getIncidentSummary({ from, to, signal } = {}) {
+  const response = await apiClient.get('/api/incidents/summary', {
+    params: { ...(from ? { from } : {}), ...(to ? { to } : {}) },
+    signal,
+  });
   return response.data?.data ?? null;
 }
 

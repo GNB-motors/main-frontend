@@ -33,6 +33,17 @@ vi.mock('../PlaceHub/page/useHtmlDark.js', () => ({
 }));
 
 describe('IdlingTab', () => {
+  it('opens a Digest idling link on recorded history rather than live idling', async () => {
+    render(
+      <MemoryRouter initialEntries={['/intelligence?tab=idling&idleView=spots']}>
+        <IdlingTab from="2026-11-04" to="2026-11-04" />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('tab', { name: /Idle spots/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     IdlingConsoleService.getLive.mockResolvedValue([

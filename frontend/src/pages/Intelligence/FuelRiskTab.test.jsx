@@ -26,6 +26,18 @@ vi.mock('../PlaceHub/page/useHtmlDark.js', () => ({
 }));
 
 describe('FuelRiskTab', () => {
+  it('opens a Digest fuel link on parked drops rather than current hotspots', async () => {
+    render(
+      <MemoryRouter initialEntries={['/intelligence?tab=fuel&fuelView=drain']}>
+        <FuelRiskTab from="2026-11-04" to="2026-11-04" />
+      </MemoryRouter>,
+    );
+    expect(
+      await within(screen.getByRole('group', { name: 'Fuel map layers' })).findByRole('button', {
+        name: /^Parked drops/,
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     listHotspots.mockResolvedValue([

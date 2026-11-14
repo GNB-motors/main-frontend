@@ -45,6 +45,32 @@ const issues = {
 };
 
 describe('IssuesTab', () => {
+  it('keeps an empty linked Needs you filter visible instead of falling back to All', async () => {
+    IntelligenceService.getIssues.mockResolvedValue({ items: [], total: 0 });
+    render(
+      <MemoryRouter initialEntries={['/intelligence?tab=issues&issueFilter=act']}>
+        <IssuesTab />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('button', { name: 'Needs you 0', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+  it('opens the Digest critical-issues shortcut with Needs you selected and watch rows excluded', async () => {
+    IntelligenceService.getIssues.mockResolvedValue(issues);
+    render(
+      <MemoryRouter initialEntries={['/intelligence?tab=issues&issueFilter=act']}>
+        <IssuesTab from="2026-11-04" to="2026-11-04" />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('button', { name: 'Needs you 1', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.queryByText('WB11F0162')).not.toBeInTheDocument();
+    expect(screen.getByText('GNB Buxar Fleet')).toBeInTheDocument();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
   });

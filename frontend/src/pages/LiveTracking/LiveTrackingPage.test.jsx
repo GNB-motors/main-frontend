@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import React from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useNavigate, useLocation } from 'react-router-dom';
 
 const { seen, pending } = vi.hoisted(() => ({
   seen: { signals: {}, map: null },
@@ -66,6 +66,36 @@ import PlaceHubService from '../PlaceHub/PlaceHubService';
 import LiveTrackingPage from './LiveTrackingPage';
 
 describe('LiveTrackingPage master data', () => {
+  it('applies Digest status links and restores the filter with browser history', () => {
+    function History() {
+      const navigate = useNavigate();
+      const location = useLocation();
+      return (
+        <>
+          <button onClick={() => navigate(-1)}>Back</button>
+          <output>{location.search}</output>
+        </>
+      );
+    }
+    render(
+      <MemoryRouter initialEntries={['/live-tracking?status=offline']}>
+        <History />
+        <LiveTrackingPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('button', { name: /^Offline/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^Moving/ }));
+    expect(screen.getByRole('button', { name: /^Moving/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('status')).toHaveTextContent('?status=moving');
+    fireEvent.click(screen.getByRole('button', { name: 'Back', exact: true }));
+    expect(screen.getByRole('button', { name: /^Offline/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
   const reviewSite = { _id:'review-1', name:'Place to confirm', status:'PROPOSED', centroidLat:22.5,centroidLng:88.3 };
   const renderPlaces = () => render(<MemoryRouter initialEntries={['/live-tracking?view=places']}><LiveTrackingPage /></MemoryRouter>);
 

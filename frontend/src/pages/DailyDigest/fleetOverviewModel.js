@@ -1,6 +1,7 @@
 import { istDayString } from '../../utils/dateUtils';
 import { fleetAttribution } from '../../utils/measuredAttribution.js';
 import { cellNumber } from '../Performance/performanceCells';
+import { fleetDestination } from '../../utils/redesign/fleetDestination';
 
 export const numeric = (value) =>
   typeof value === 'number' && Number.isFinite(value) ? value : null;
@@ -33,6 +34,11 @@ const distance = (card) => {
 
 export function buildOverview(digest, legacy = null, work = null) {
   const cards = Object.fromEntries((digest?.story || []).map((card) => [card.key, card]));
+  const issuesLink = new URL(
+    fleetDestination(cards.issues?.link?.to) || '/intelligence?tab=issues',
+    'https://fleet.invalid',
+  );
+  issuesLink.searchParams.set('issueFilter', 'act');
   const critical = legacy
     ? legacy.loading || legacy.error
       ? null
@@ -106,7 +112,7 @@ export function buildOverview(digest, legacy = null, work = null) {
               ? 'No critical issues reported.'
               : 'Review safety and vehicle issues first.',
           tone: critical > 0 ? 'act' : 'info',
-          to: cards.issues?.link?.to || '/intelligence?tab=issues',
+          to: `${issuesLink.pathname}${issuesLink.search}`,
         },
         {
           id: 'fuel',

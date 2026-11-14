@@ -6,6 +6,7 @@ import { formatDuration, formatIst } from '../../utils/redesign/format';
 import { tripsHistoryLink } from '../../utils/redesign/links';
 import ToneBadge from '../../components/redesign/ToneBadge';
 import NotYetAvailable from '../../components/redesign/NotYetAvailable';
+import { rangeToParams } from '../Mileage/mileageDates';
 
 /**
  * TripHistoryTab — where has this truck been, and when.
@@ -15,13 +16,54 @@ import NotYetAvailable from '../../components/redesign/NotYetAvailable';
  * truck was there. The register rows come from the oil report, so they are
  * badged so nobody mistakes them for GPS.
  */
-export default function TripHistoryTab({ vehicle = null, site = null, from = null, to = null }) {
+export default function TripHistoryTab({
+  vehicle = null,
+  site = null,
+  from = null,
+  to = null,
+  minDwellMin = null,
+}) {
+  const minDwell = Math.max(0, Number(minDwellMin) || 0);
+  const bounds =
+    /^\d{4}-\d{2}-\d{2}$/.test(from || '') && /^\d{4}-\d{2}-\d{2}$/.test(to || '')
+      ? rangeToParams({ from, to })
+      : { from, to };
   const { data, loading, error } = useApi(
-    (signal) => fleetViewService.getTripsHistory({ site, vehicle, from, to, limit: 200, signal }),
-    [vehicle, site, from, to],
+    async (signal) => {
+      const first = await fleetViewService.getTripsHistory({
+        site,
+        vehicle,
+        ...bounds,
+        limit: 200,
+        signal,
+      });
+      if (!minDwell || first.held) return first;
+      const items = [...(first.items || [])];
+      for (let page = 2; items.length < first.total && page <= 50; page++) {
+        const next = await fleetViewService.getTripsHistory({
+          site,
+          vehicle,
+          ...bounds,
+          limit: 200,
+          page,
+          signal,
+        });
+        if (!next.items?.length) break;
+        items.push(...next.items);
+      }
+      return { ...first, items, truncated: items.length < first.total };
+    },
+    [vehicle, site, from, to, minDwell],
+    { scopeKey: `${vehicle}:${site}:${from}:${to}:${minDwell}` },
   );
 
-  const items = useMemo(() => (Array.isArray(data?.items) ? data.items : []), [data]);
+  const items = useMemo(
+    () =>
+      (Array.isArray(data?.items) ? data.items : []).filter(
+        (item) => !minDwell || (item.kind === 'VISIT' && item.dwellMin >= minDwell),
+      ),
+    [data, minDwell],
+  );
   const countsByPlace = useMemo(
     () => (Array.isArray(data?.countsByPlace) ? data.countsByPlace : []),
     [data],
@@ -40,6 +82,16 @@ export default function TripHistoryTab({ vehicle = null, site = null, from = nul
 
   return (
     <div className="flex flex-col gap-3">
+      {minDwell ? (
+        <p>
+          Visits of {minDwell} minutes or more{from && to ? ` · ${from} – ${to}` : ''}.
+        </p>
+      ) : null}
+      {data?.truncated ? (
+        <p role="status">
+          Only part of this history could be loaded. Narrow the dates to see the remaining visits.
+        </p>
+      ) : null}
       {vehicle && site ? (
         <p className="m-0 text-[14px] text-[var(--rd-ink)]">
           {vehicle}

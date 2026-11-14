@@ -80,6 +80,7 @@ describe('buildKpis', () => {
     const by = Object.fromEntries(tiles.map((t) => [t.key, t]));
     expect(by.moving.value).toBe(9);
     expect(by.moving.context).toBe('of 124 trucks · live');
+    expect(by.moving.to).toBe('/live-tracking?status=moving');
     expect(by.trips.value).toBe(0);
     expect(by.trips.context).toBe('Completed / confirmed · so far today');
     expect(by.km.value).toBe(0);
@@ -92,6 +93,7 @@ describe('buildKpis', () => {
     expect(by.lost.context).toBe('Estimated extra diesel cost');
     expect(by.lost.why).toBe('Estimated.');
     expect(by.dark.value).toBe(47);
+    expect(by.dark.to).toBe('/live-tracking?status=offline');
   });
 
   it('keeps missing counts unknown instead of inventing zeros or using the previous average', () => {

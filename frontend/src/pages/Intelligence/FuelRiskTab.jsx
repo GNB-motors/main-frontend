@@ -1,6 +1,7 @@
 import { formatInr, formatNumber } from '@/utils/redesign/format';
 import { formatDateTimeIST } from '../../utils/dateUtils';
 import IntelligenceDataState from './IntelligenceDataState';
+import useUrlFilter from '@/hooks/useUrlFilter';
 import './intelFuelReference.css';
 import '../Vehicle360/panels/overview/referenceOverview.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -17,8 +18,8 @@ const isCanceled = (error) => error?.name === 'CanceledError' || error?.code ===
 
 export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
   const [searchParams] = useSearchParams();
-  const [subView, setSubView] = useState('map'); // 'map' | 'instances'
-  const [view, setView] = useState('hotspots'); // 'hotspots' | 'drain'
+  const [subView, setSubView] = useUrlFilter('fuelSubview', 'map', ['map', 'instances']);
+  const [view, setView] = useUrlFilter('fuelView', 'hotspots', ['hotspots', 'drain']);
 
   // Pre-select hotspot if deep linked from alert inbox
   const initialHotspot = searchParams.get('hotspot');
@@ -30,7 +31,7 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
   const [drainMap, setDrainMap] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
-  const [source, setSource] = useState('all');
+  const [source, setSource] = useUrlFilter('fuelSource', 'all', ['all', 'network', 'own']);
 
   const controllerRef = useRef(null);
 
@@ -123,8 +124,7 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
               <>
                 <button
                   onClick={() => {
-                    setSubView('map');
-                    setView('drain');
+                    setView('drain', { fuelSubview: null });
                   }}
                 >
                   {formatNumber(totals.drainEvents)} parked fuel-drop events
@@ -177,9 +177,10 @@ export default function FuelRiskTab({ from, to, vehicle = '', driver = '' }) {
             <button
               key={label}
               onClick={() => {
-                setSubView('map');
-                setView(target === 'drain' ? 'drain' : 'hotspots');
-                if (target !== 'drain') setSource(target);
+                setView(target === 'drain' ? 'drain' : 'hotspots', {
+                  fuelSubview: null,
+                  ...(target !== 'drain' ? { fuelSource: target } : {}),
+                });
               }}
             >
               <span>{label}</span>

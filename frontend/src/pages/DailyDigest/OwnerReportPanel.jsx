@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ArrowUpRight, RefreshCw } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Link from './DigestLink';
+import { digestSubjectDestination } from './digestDestination';
 import useOwnerReport from './useOwnerReport';
 import InfoTip from '../../components/redesign/InfoTip';
 import DigestSkeleton from './components/DigestSkeleton';
@@ -117,7 +118,7 @@ function KpiStrip({ tiles, loading }) {
 
 const CHIP_LIMIT = 6;
 
-function TruckChips({ trucks }) {
+function TruckChips({ trucks, day, kind }) {
   const [open, setOpen] = useState(false);
   if (!trucks.length) return <p className="db-muted">No truck named for this one.</p>;
   const shown = open ? trucks : trucks.slice(0, CHIP_LIMIT);
@@ -125,7 +126,16 @@ function TruckChips({ trucks }) {
     <ul className="db-chips">
       {shown.map((truck, i) => (
         <li key={`${truck.reg}-${i}`}>
-          <Link className="db-chip" to={truckLink(truck.reg)} title={truck.detail || undefined}>
+          <Link
+            className="db-chip"
+            day={day}
+            to={
+              kind === 'excessIdling'
+                ? `/intelligence?tab=idling&vehicle=${encodeURIComponent(truck.reg)}`
+                : truckLink(truck.reg)
+            }
+            title={truck.detail || undefined}
+          >
             <span className="db-chip-reg">{truck.reg}</span>
             {truck.rupees != null ? (
               <span className="db-chip-amt">{rupees(truck.rupees)}</span>
@@ -145,7 +155,7 @@ function TruckChips({ trucks }) {
   );
 }
 
-function MoneyLeakCard({ brief$, isPendingDay }) {
+function MoneyLeakCard({ brief$, isPendingDay, day }) {
   const brief = brief$.data;
   const rows = useMemo(() => leakRows(brief), [brief]);
 
@@ -243,7 +253,7 @@ function MoneyLeakCard({ brief$, isPendingDay }) {
 
 /* ── Waiting on you ──────────────────────────────────────────────────── */
 
-function WaitingCard({ items, pending, note }) {
+function WaitingCard({ items, pending, note, day }) {
   if (!items) return null;
   return (
     <Card title="Waiting on you" className="db-waiting" info={note}>
@@ -255,7 +265,11 @@ function WaitingCard({ items, pending, note }) {
         <ul className="db-rows">
           {items.map((item) => (
             <li key={item.id}>
-              <Link className={`db-row ${item.count === 0 ? 'is-quiet' : ''}`} to={item.to}>
+              <Link
+                className={`db-row ${item.count === 0 ? 'is-quiet' : ''}`}
+                to={item.to}
+                day={day}
+              >
                 <i
                   className={`db-dot db-dot--${item.tone === 'act' ? 'act' : item.tone === 'watch' ? 'watch' : 'quiet'}`}
                 />
@@ -282,7 +296,7 @@ function WaitingCard({ items, pending, note }) {
 
 /* ── Exceptions ──────────────────────────────────────────────────────── */
 
-function ExceptionsCard({ section, loading, onRetry }) {
+function ExceptionsCard({ section, loading, onRetry, day }) {
   const summary = useMemo(() => exceptionSummary(section), [section]);
   const state = sectionState(section);
   const footer = formatFooterText(sectionFooter(section));
@@ -304,7 +318,7 @@ function ExceptionsCard({ section, loading, onRetry }) {
         <ul className="db-bars">
           {summary.counted.map((row) => (
             <li key={row.key}>
-              <Link className="db-bar" to={row.to}>
+              <Link className="db-bar" to={row.to} day={day}>
                 <span className="db-bar-label">
                   {row.label}
                   {row.detail ? <small>{row.detail}</small> : null}
@@ -317,6 +331,11 @@ function ExceptionsCard({ section, loading, onRetry }) {
                 </span>
                 <strong>{count(row.count)}</strong>
               </Link>
+              {row.key === 'moneyTheft' ? (
+                <Link className="db-link" to="/intelligence?tab=detours" day={day}>
+                  Review route deviations
+                </Link>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -340,7 +359,7 @@ function ExceptionsCard({ section, loading, onRetry }) {
 
 const DARK_LIMIT = 10;
 
-function TrucksCard({ groups, live, reconnect, accountsSummary }) {
+function TrucksCard({ groups, live, reconnect, accountsSummary, day }) {
   const [showAll, setShowAll] = useState(false);
   if (!groups) return null;
   const { dark, darkRange, stuck, stuckCount, neverReported, feeds } = groups;
@@ -412,7 +431,11 @@ function TrucksCard({ groups, live, reconnect, accountsSummary }) {
                 ))}
                 {Number(stuckCount) > stuck.length ? (
                   <li>
-                    <Link className="db-chip db-chip--more" to="/place-hub">
+                    <Link
+                      className="db-chip db-chip--more"
+                      to="/auto-trips?tab=history&minDwellMin=180"
+                      day={day}
+                    >
                       +{count(Number(stuckCount) - stuck.length)} more
                     </Link>
                   </li>
@@ -501,7 +524,7 @@ const TREND_REPEATS = new Set(['trips', 'km']);
 
 const sentence = (text) => (text ? text.charAt(0).toUpperCase() + text.slice(1) : text);
 
-function ReportSection({ section, onRetry, isPendingDay, builtAt }) {
+function ReportSection({ section, onRetry, isPendingDay, builtAt, day }) {
   const state = sectionState(section);
   const pairs = useMemo(
     () =>
@@ -547,7 +570,7 @@ function ReportSection({ section, onRetry, isPendingDay, builtAt }) {
       info={footer ? `How we know: ${footer}` : null}
       action={
         route && state !== 'error' ? (
-          <Link className="db-link" to={route}>
+          <Link className="db-link" to={route} day={day}>
             Open
           </Link>
         ) : null
@@ -594,7 +617,7 @@ function ReportSection({ section, onRetry, isPendingDay, builtAt }) {
 
 /* ── People ──────────────────────────────────────────────────────────── */
 
-function SubjectList({ title, info, items, reason, emptyTo }) {
+function SubjectList({ title, info, items, reason, emptyTo, day, grade, context }) {
   return (
     <Card title={title} className="db-people" info={info}>
       {items.length === 0 ? (
@@ -602,7 +625,10 @@ function SubjectList({ title, info, items, reason, emptyTo }) {
           <p className="db-empty-line">No one this time</p>
           {reason ? <p className="db-muted">{reason}</p> : null}
           {emptyTo ? (
-            <Link className="db-link" to={emptyTo}>
+            <Link
+              className="db-link"
+              to={digestSubjectDestination({ to: emptyTo }, day, grade, context)}
+            >
               See the drivers <ArrowUpRight size={13} />
             </Link>
           ) : null}
@@ -611,7 +637,7 @@ function SubjectList({ title, info, items, reason, emptyTo }) {
         <ol className="db-people-list">
           {items.map((item, i) => (
             <li key={item.id || item.name || i}>
-              <Link to={item.to || '/intelligence?tab=drivers'}>
+              <Link to={digestSubjectDestination(item, day, grade, context)}>
                 <span className="db-rank">{i + 1}</span>
                 <span className="db-row-main">
                   <span className="db-row-title">{item.name || item.id || DASH}</span>
@@ -705,8 +731,13 @@ function BriefingPanel({
 
       <div className="db-grid">
         <div className="db-col db-col--primary">
-          <MoneyLeakCard brief$={brief$} isPendingDay={isPendingDay} />
-          <WaitingCard items={attention} pending={attentionPending} note={attentionNote} />
+          <MoneyLeakCard brief$={brief$} isPendingDay={isPendingDay} day={day} />
+          <WaitingCard
+            items={attention}
+            pending={attentionPending}
+            note={attentionNote}
+            day={day}
+          />
         </div>
         <div className="db-col">
           {report$.error ? (
@@ -720,6 +751,7 @@ function BriefingPanel({
             </Card>
           ) : (
             <ExceptionsCard
+              day={day}
               section={byId.exceptions}
               loading={reportLoading}
               onRetry={report$.refetch}
@@ -727,6 +759,7 @@ function BriefingPanel({
             />
           )}
           <TrucksCard
+            day={day}
             groups={groups}
             live={live}
             reconnect={Array.isArray(digest?.reconnect) ? digest.reconnect : []}
@@ -761,6 +794,7 @@ function BriefingPanel({
           <div className="db-report-grid">
             {numberSections.map((section) => (
               <ReportSection
+                day={day}
                 key={section?.id || section?.title}
                 section={section}
                 onRetry={report$.refetch}
@@ -780,13 +814,21 @@ function BriefingPanel({
         <div className="db-perf-grid">
           {performance}
           <SubjectList
+            day={day}
+            grade="EXCELLENT"
+            context={story.goodDrivers}
             title="Who drove well"
             items={goodDrivers}
-            info="Drivers who beat your own fleet average over the last 30 days."
+            info="Drivers who beat your own fleet average in their learned score window. Each driver link opens that window."
             reason={story.goodDrivers?.why?.text || null}
-            emptyTo={story.goodDrivers ? '/intelligence?tab=drivers' : null}
+            emptyTo={
+              story.goodDrivers ? story.goodDrivers.link?.to || '/intelligence?tab=drivers' : null
+            }
           />
           <SubjectList
+            day={day}
+            grade="FALLING"
+            context={story.needsWord}
             title="Who needs a word"
             items={needsWord.map((s) => ({
               ...s,
@@ -796,9 +838,11 @@ function BriefingPanel({
                   ? `/intelligence?tab=vehicles&vehicle=${encodeURIComponent(s.id)}`
                   : `/intelligence?tab=drivers&driver=${encodeURIComponent(s.id || '')}`),
             }))}
-            info="Trucks and drivers whose behaviour dropped over the last 30 days."
+            info="Trucks and drivers whose behaviour dropped in their learned score window. Each link opens that window."
             reason={story.needsWord?.why?.text || null}
-            emptyTo={story.needsWord ? '/intelligence?tab=drivers' : null}
+            emptyTo={
+              story.needsWord ? story.needsWord.link?.to || '/intelligence?tab=drivers' : null
+            }
           />
         </div>
       </section>

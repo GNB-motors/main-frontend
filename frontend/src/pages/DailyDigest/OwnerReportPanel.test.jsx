@@ -266,8 +266,12 @@ describe('OwnerReportPanel', () => {
 
     const theft = (await screen.findByText('Possible fuel theft')).closest('a');
     const sos = screen.getByText('SOS').closest('a');
-    expect(theft.getAttribute('href')).toBe('/intelligence?tab=fuel');
-    expect(sos.getAttribute('href')).toBe('/alert-inbox');
+    expect(theft.getAttribute('href')).toBe(
+      '/intelligence?tab=fuel&fuelView=drain&from=2026-11-04&to=2026-11-04',
+    );
+    expect(sos.getAttribute('href')).toBe(
+      '/alert-inbox?inboxView=INCIDENTS&incidentStatus=ACTIVE&from=2026-11-04&to=2026-11-04',
+    );
     // biggest first
     expect(theft.compareDocumentPosition(sos) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // a zero is "none today", an unbuilt kind is "not measured" — never a bar

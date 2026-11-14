@@ -2,7 +2,7 @@ import '../Vehicle360/panels/overview/referenceOverview.css';
 import { briefingFromIssues, matchesIssueSearch } from './issuesBriefingModel';
 import IssuesBriefing from './IssuesBriefing';
 import './issuesCards.css';
-import { useState } from 'react';
+import useUrlFilter from '@/hooks/useUrlFilter';
 import { CircleCheck, Inbox, Search } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
 import IntelligenceDataState from './IntelligenceDataState';
@@ -41,8 +41,13 @@ function Chip({ active, onClick, label, count }) {
  * about. An empty list is a green line, not a sad one.
  */
 export default function IssuesTab({ from, to, vehicle = '', kind = '' }) {
-  const [filter, setFilter] = useState('all');
-  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useUrlFilter('issueFilter', 'all', [
+    'all',
+    'act',
+    'watch',
+    ...ISSUE_GROUPS.map((group) => group.id),
+  ]);
+  const [search, setSearch] = useUrlFilter('issueSearch');
 
   const { data, loading, error, refetch } = useApi(
     (signal) =>
@@ -66,7 +71,9 @@ export default function IssuesTab({ from, to, vehicle = '', kind = '' }) {
     matchesIssueSearch(issue, search),
   );
   const groups = groupIssuesByKind(shown);
-  const chipGroups = ISSUE_GROUPS.filter((group) => (counts.groups[group.id] ?? 0) > 0);
+  const chipGroups = ISSUE_GROUPS.filter(
+    (group) => (counts.groups[group.id] ?? 0) > 0 || group.id === filter,
+  );
 
   // The count chips mean something only once there is a list: never "All 0"
   // above a list that is still loading, missing or held back.
@@ -88,7 +95,7 @@ export default function IssuesTab({ from, to, vehicle = '', kind = '' }) {
         />
       ) : null}
       <div className="intel-issues-toolbar">
-        {hasList && counts.all > 0 ? (
+        {hasList && (counts.all > 0 || filter !== 'all') ? (
           <div className="intel-chip-row" role="group" aria-label="Filter the issues">
             <Chip
               active={filter === 'all'}

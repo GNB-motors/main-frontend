@@ -58,6 +58,33 @@ function mount() {
     </MemoryRouter>,
   );
 }
+it('opens the Digest SOS shortcut on unresolved incidents and sends the same IST day to list and summary', async () => {
+  getIncidents.mockResolvedValue({
+    items: [
+      { _id: 'active', status: 'OPEN', type: 'BREAKDOWN', incidentNumber: 'ACTIVE-1' },
+      { _id: 'resolved', status: 'RESOLVED', type: 'BREAKDOWN', incidentNumber: 'RESOLVED-1' },
+    ],
+    pagination: { total: 2 },
+  });
+  render(
+    <MemoryRouter
+      initialEntries={[
+        '/alert-inbox?inboxView=INCIDENTS&incidentStatus=ACTIVE&from=2026-11-04&to=2026-11-04',
+      ]}
+    >
+      <AlertInboxPage />
+    </MemoryRouter>,
+  );
+  await waitFor(() =>
+    expect(getIncidents).toHaveBeenCalledWith(
+      expect.objectContaining({ from: '2026-11-03T18:30:00.000Z', to: '2026-11-04T18:29:59.999Z' }),
+    ),
+  );
+  expect(getIncidentSummary).toHaveBeenCalledWith(
+    expect.objectContaining({ from: '2026-11-03T18:30:00.000Z', to: '2026-11-04T18:29:59.999Z' }),
+  );
+  expect(screen.queryByText('RESOLVED-1')).not.toBeInTheDocument();
+});
 beforeEach(() => {
   vi.clearAllMocks();
   getInbox.mockResolvedValue({ items: [fuel, ticket] });

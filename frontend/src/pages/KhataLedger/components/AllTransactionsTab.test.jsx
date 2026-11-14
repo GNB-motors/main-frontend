@@ -1,6 +1,7 @@
 import { changeField } from '@/test/changeField';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import AllTransactionsTab from './AllTransactionsTab';
 import KhataLedgerService from '../KhataLedgerService';
 
@@ -37,6 +38,42 @@ const rows = [
 ];
 
 describe('Transaction filters before backend pagination', () => {
+  it('applies the Digest pending-bills and date filters before requesting a page', async () => {
+    render(
+      <MemoryRouter
+        initialEntries={[
+          '/khata-ledger?tab=all&expenseStatus=PENDING&from=2026-11-04&to=2026-11-04',
+        ]}
+      >
+        <AllTransactionsTab />
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(KhataLedgerService.getExpenses).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'PENDING',
+          startDate: '2026-11-03T18:30:00.000Z',
+          endDate: '2026-11-04T18:29:59.999Z',
+        }),
+      ),
+    );
+    expect(KhataLedgerService.getSummary).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'PENDING',
+        startDate: '2026-11-03T18:30:00.000Z',
+        endDate: '2026-11-04T18:29:59.999Z',
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Filters', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reset All Filters' }));
+    await waitFor(() =>
+      expect(KhataLedgerService.getExpenses).toHaveBeenLastCalledWith(
+        expect.not.objectContaining({ status: 'PENDING' }),
+      ),
+    );
+    expect(KhataLedgerService.getExpenses.mock.calls.at(-1)[0].startDate).toBeUndefined();
+    expect(KhataLedgerService.getExpenses.mock.calls.at(-1)[0].endDate).toBeUndefined();
+  });
   beforeEach(() => {
     vi.resetAllMocks();
     KhataLedgerService.getSummary.mockResolvedValue({ totalAmount: 450, count: 1 });
@@ -57,7 +94,11 @@ describe('Transaction filters before backend pagination', () => {
   });
 
   it('finds a bill beyond the original first page and sends identical summary filters', async () => {
-    render(<AllTransactionsTab />);
+    render(
+      <MemoryRouter>
+        <AllTransactionsTab />
+      </MemoryRouter>,
+    );
     await screen.findByText('Manual toll 0');
     fireEvent.click(screen.getByRole('button', { name: 'Next Page' }));
     await screen.findByText('Page 2 of 2 (26 total)');
@@ -86,7 +127,11 @@ describe('Transaction filters before backend pagination', () => {
             finishOld = resolve;
           }),
     );
-    render(<AllTransactionsTab />);
+    render(
+      <MemoryRouter>
+        <AllTransactionsTab />
+      </MemoryRouter>,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Filters', exact: true }));
     changeField(screen.getByLabelText('Status'), { target: { value: 'PENDING' } });
     await screen.findByText('Old pending driver receipt');
