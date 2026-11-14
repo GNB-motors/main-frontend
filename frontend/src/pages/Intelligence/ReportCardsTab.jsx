@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import DataTable from '@/components/ui/DataTable';
 import { formatNumber } from '@/utils/redesign/format';
 import { useApi } from '@/hooks/useApi';
+import useUrlFilter from '@/hooks/useUrlFilter';
 import TripService from '@/pages/Trip/services/TripService';
 import IntelligenceDataState from './IntelligenceDataState';
 import ReportCardDrawer from './ReportCardDrawer';
@@ -62,10 +63,14 @@ export default function ReportCardsTab({
   vehicle = '',
   driver = '',
 }) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useUrlFilter('cardSearch');
   const [page, setPage] = useState(1);
-  const [grade, setGrade] = useState('all');
-  const [make, setMake] = useState('all');
+  const [grade, setGrade] = useUrlFilter(
+    'grade',
+    'all',
+    GRADES.map((entry) => entry.id),
+  );
+  const [make, setMake] = useUrlFilter('make', 'all');
   const [openCard, setOpenCard] = useState(null);
   const { data, loading, error, refetch } = useApi(
     (signal) =>
@@ -310,39 +315,37 @@ export default function ReportCardsTab({
         <span className="intel-chip-sep" aria-hidden="true" />
       ) : null}
 
-      {cards.length ? (
-        <div className="intel-chip-row" role="group" aria-label="Assessment groups">
+      <div className="intel-chip-row" role="group" aria-label="Assessment groups">
+        <button
+          type="button"
+          className="intel-chip"
+          aria-pressed={grade === 'all'}
+          onClick={() => {
+            setGrade('all');
+            setPage(1);
+          }}
+        >
+          All
+          <span className="tabular-nums">
+            {gradeBuckets.reduce((sum, bucket) => sum + bucket.cards.length, 0)}
+          </span>
+        </button>
+        {gradeBuckets.map((bucket) => (
           <button
+            key={bucket.id}
             type="button"
             className="intel-chip"
-            aria-pressed={grade === 'all'}
+            aria-pressed={bucket.grades.includes(grade)}
             onClick={() => {
-              setGrade('all');
+              setGrade(grade === bucket.grades[0] ? 'all' : bucket.grades[0]);
               setPage(1);
             }}
           >
-            All
-            <span className="tabular-nums">
-              {gradeBuckets.reduce((sum, bucket) => sum + bucket.cards.length, 0)}
-            </span>
+            {bucket.label}
+            <span className="tabular-nums">{bucket.cards.length}</span>
           </button>
-          {gradeBuckets.map((bucket) => (
-            <button
-              key={bucket.id}
-              type="button"
-              className="intel-chip"
-              aria-pressed={bucket.grades.includes(grade)}
-              onClick={() => {
-                setGrade(grade === bucket.grades[0] ? 'all' : bucket.grades[0]);
-                setPage(1);
-              }}
-            >
-              {bucket.label}
-              <span className="tabular-nums">{bucket.cards.length}</span>
-            </button>
-          ))}
-        </div>
-      ) : null}
+        ))}
+      </div>
 
       {sharedBasis ? (
         <span className="intelligence-scope-note-inline">{`Based on ${humanizeDates(sharedBasis).replace(/^([A-Z])(?=[a-z])/, (c) => c.toLowerCase())}`}</span>
@@ -389,12 +392,6 @@ export default function ReportCardsTab({
         loadingVariant="table"
         error={error}
         held={held}
-        isEmpty={cards.length === 0}
-        emptyMessage={
-          subject === 'driver'
-            ? 'No driver cards for this period yet.'
-            : 'No truck cards for this period yet.'
-        }
         what={what}
         onRetry={refetch}
       >
@@ -414,7 +411,14 @@ export default function ReportCardsTab({
             rowKey={(card) => card.id}
             onRowClick={(card) => setOpenCard(card)}
             showing={Math.min(25, rows.length - (currentPage - 1) * 25)}
-            total={cards.length}
+            total={rows.length}
+            emptyTitle={
+              grade === 'all'
+                ? cards.length
+                  ? `No ${title.toLowerCase()} match this selection`
+                  : `No ${subject === 'driver' ? 'driver' : 'truck'} cards for this period yet.`
+                : `No ${GRADES.find((entry) => entry.id === grade)?.label} ${title.toLowerCase()} in this selection`
+            }
             activeFilters={activeFilters}
             toolbarExtra={toolbar}
             pagination={

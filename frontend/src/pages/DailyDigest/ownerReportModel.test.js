@@ -47,7 +47,7 @@ describe('ownerReportModel', () => {
     expect(formatValue('dieselBillLitres', 12.34)).toBe('12.3 L');
   });
 
-  it('leaves a live day\'s percentage open instead of showing -100%', () => {
+  it("leaves a live day's percentage open instead of showing -100%", () => {
     const pairs = numberPairs({ kmVsPrev7Pct: -100 }, { isPendingDay: true });
     expect(pairs[0].value).toBe(DASH);
     expect(pairs[0].note).toBe('Day not over yet');
@@ -69,8 +69,9 @@ describe('ownerReportModel', () => {
     expect(drillTarget(section)).toBe('fleet.livePositions');
     expect(drillRoute('fleet.livePositions')).toBe('/live-tracking');
     expect(drillRoute('autotrip.day')).toBe('/auto-trips');
-    expect(drillRoute('trend.headlines')).toBe('/intelligence');
+    expect(drillRoute('trend.headlines')).toBe('/intelligence?tab=runs');
     expect(drillRoute('money.out')).toBe('/mileage');
+    expect(drillRoute('money.in.sap')).toBeNull();
     expect(drillRoute('exceptions.ledger')).toBe('/alert-inbox');
     expect(drillRoute('something.else')).toBeNull();
   });

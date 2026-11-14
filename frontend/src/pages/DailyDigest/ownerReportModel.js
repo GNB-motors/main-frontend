@@ -420,9 +420,9 @@ export function drillRoute(drill) {
   const root = target.split('.')[0];
   if (root === 'fleet') return '/live-tracking';
   if (root === 'autotrip') return '/auto-trips';
-  if (root === 'trend') return '/intelligence';
+  if (root === 'trend') return '/intelligence?tab=runs';
   if (root === 'exceptions' || root === 'alert' || root === 'alerts') return '/alert-inbox';
-  if (root === 'money' || root === 'fuel') return '/mileage';
+  if (target === 'money.out' || root === 'fuel') return '/mileage';
   return null;
 }
 

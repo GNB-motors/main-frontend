@@ -1,4 +1,5 @@
 import { IntelligenceViewSwitcher, IntelligenceMapWorkspace } from './IntelligenceWorkspace.jsx';
+import useUrlFilter from '@/hooks/useUrlFilter';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MapPin, Timer } from 'lucide-react';
 import IdlingConsoleService from '../IdlingConsole/IdlingConsoleService.js';
@@ -25,8 +26,8 @@ const MAX_IDLE_PAGES = 5;
 const isCanceled = (error) => error?.name === 'CanceledError' || error?.code === 'ERR_CANCELED';
 
 export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
-  const [subView, setSubView] = useState('map'); // 'map' | 'instances'
-  const [view, setView] = useState('live'); // 'live' | 'spots'
+  const [subView, setSubView] = useUrlFilter('idleSubview', 'map', ['map', 'instances']);
+  const [view, setView] = useUrlFilter('idleView', 'live', ['live', 'spots']);
   const [selectedId, setSelectedId] = useState(null);
 
   const [live, setLive] = useState([]);
@@ -164,12 +165,10 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
         errors={errors}
         truncated={truncated}
         onLive={() => {
-          setSubView('map');
-          setView('live');
+          setView('live', { idleSubview: null });
         }}
         onHistory={() => {
-          setSubView('map');
-          setView('spots');
+          setView('spots', { idleSubview: null });
         }}
       />
       <IntelligenceViewSwitcher label="Idling views">

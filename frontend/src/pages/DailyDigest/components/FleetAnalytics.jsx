@@ -1,4 +1,4 @@
-import Link from '@/components/redesign/FleetLink';
+import Link from '../DigestLink';
 import { ArrowUpRight, Fuel } from 'lucide-react';
 import {
   CartesianGrid,
@@ -30,6 +30,8 @@ function Panel({
   title,
   info = null,
   to,
+  day,
+  days,
   children,
   className = '',
   loading = false,
@@ -43,7 +45,7 @@ function Panel({
         {info ? <InfoTip text={info} label={`About ${title}`} /> : null}
         {destination ? (
           <span className="db-card-action">
-            <Link className="db-link" to={destination}>
+            <Link className="db-link" to={destination} day={day} days={days}>
               Open <ArrowUpRight size={13} />
             </Link>
           </span>
@@ -95,6 +97,7 @@ export default function FleetAnalytics({
     <>
       <Panel
         title="Loaded vs empty running"
+        day={day}
         info={runningWhy || 'Distance attributed to the selected day.'}
         to={
           model.loadedTrips != null && day
@@ -206,6 +209,8 @@ export default function FleetAnalytics({
 
       <Panel
         title="Fuel, last 7 days"
+        day={day}
+        days={7}
         info={
           fuel.data?.basis ||
           'Recorded daily engine consumption in IST, using one measured source per truck/day. Gaps are missing readings; partial days show only recorded consumption.'

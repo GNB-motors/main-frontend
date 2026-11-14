@@ -56,7 +56,10 @@ export function hubRangeFromParams(params, now = new Date()) {
   const from = params.get('from');
   const to = params.get('to');
   if (ISO_DAY.test(from || '') && ISO_DAY.test(to || '') && from <= to) {
-    return { preset: null, range: { from, to } };
+    const key = params.get('dates');
+    const matching = HUB_DATE_PRESETS.some((p) => p.key === key) && presetRange(key, now);
+    const preset = matching && matching.from === from && matching.to === to ? key : null;
+    return { preset, range: { from, to } };
   }
   const key = params.get('dates');
   const preset = HUB_DATE_PRESETS.some((p) => p.key === key) ? key : DEFAULT_PRESET;
@@ -83,9 +86,7 @@ export function humanDateTime(input, now = new Date()) {
   if (!day) return null;
   const year = formatInIST(input, 'YYYY');
   const time = formatInIST(input, 'HH:mm');
-  return year === istDayString(now).slice(0, 4)
-    ? `${day}, ${time}`
-    : `${day} ${year}, ${time}`;
+  return year === istDayString(now).slice(0, 4) ? `${day}, ${time}` : `${day} ${year}, ${time}`;
 }
 
 /** "9 Oct 2026", or "10 Sep – 9 Oct 2026". */

@@ -77,6 +77,7 @@ import './LiveTracking.css';
 
 /* ---------------- Main LiveTrackingPage Component ---------------- */
 const LiveTrackingPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   // Live positions hook
   const {
     positions: rawPositions,
@@ -112,7 +113,14 @@ const LiveTrackingPage = () => {
 
   // The top toolbar is the filter: one status at a time, and a set of makes
   // (empty means every make). The floating legend keeps only the Places layers.
-  const [filter, setFilter] = useState('all');
+  const requestedStatus = searchParams.get('status');
+  const filter = ['moving', 'stopped', 'idling', 'offline'].includes(requestedStatus) ? requestedStatus : 'all';
+  const setFilter = (status) => setSearchParams((current) => {
+    const next = new URLSearchParams(current);
+    if (status === 'all') next.delete('status');
+    else next.set('status', status);
+    return next;
+  });
   const [selectedManufacturers, setSelectedManufacturers] = useState([]);
   const [layerSelection, setLayerSelection] = useState(() => readLayerSelection());
   const [isTrafficOn, setIsTrafficOn] = useState(() => readTrafficOn());
@@ -144,7 +152,6 @@ const LiveTrackingPage = () => {
 
   // Track mode lives in the URL, so every link in the product can open one
   // truck's history on a given range (F3.2).
-  const [searchParams, setSearchParams] = useSearchParams();
   const trackMode = useTrackMode({ searchParams, setSearchParams });
   const isTrackMode = trackMode.isTrackMode;
   const isPlacesView = !isTrackMode && searchParams.get('view') === 'places';

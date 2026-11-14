@@ -68,7 +68,7 @@ describe('fleet overview data', () => {
     });
     expect(model.attention[0].id).toBe('issues');
     expect(model.attention.at(-1).id).toBe('questions');
-    expect(model.attention[0].to).toBe('/intelligence?tab=issues');
+    expect(model.attention[0].to).toBe('/intelligence?tab=issues&issueFilter=act');
   });
 
   it('does not show values from unavailable or held source data', () => {

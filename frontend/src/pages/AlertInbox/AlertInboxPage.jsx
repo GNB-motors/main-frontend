@@ -1,5 +1,6 @@
 import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React from 'react';
+import useUrlFilter from '@/hooks/useUrlFilter';
 import { Link } from 'react-router-dom';
 import {
   Bell,
@@ -43,12 +44,12 @@ export default function AlertInboxPage() {
   const [error, setError] = React.useState(null);
   const [actionError, setActionError] = React.useState(null);
   const [pending, setPending] = React.useState(new Set());
-  const [status, setStatus] = React.useState('OPEN');
-  const [query, setQuery] = React.useState('');
-  const [severity, setSeverity] = React.useState('');
-  const [source, setSource] = React.useState('');
+  const [status, setStatus] = useUrlFilter('inboxStatus', 'OPEN', ['OPEN', 'ACKNOWLEDGED', 'ALL']);
+  const [query, setQuery] = useUrlFilter('inboxSearch');
+  const [severity, setSeverity] = useUrlFilter('inboxSeverity');
+  const [source, setSource] = useUrlFilter('inboxSource');
   const [detailId, setDetailId] = React.useState(null);
-  const [view, setView] = React.useState('ALERTS');
+  const [view, setView] = useUrlFilter('inboxView', 'ALERTS', ['ALERTS', 'INCIDENTS']);
   const [ackAllOpen, setAckAllOpen] = React.useState(false);
   const [ackAllPending, setAckAllPending] = React.useState(false);
   const [announcement, setAnnouncement] = React.useState('');

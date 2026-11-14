@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import useUrlFilter from '@/hooks/useUrlFilter';
+import { istDayString } from '../../utils/dateUtils';
 import { ArrowLeft } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { VehicleService } from './VehicleService.js';
@@ -33,7 +35,10 @@ const VehicleDashboardPage = () => {
   // Selected vehicle & doc for WheelsEye-style right side panel
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [selectedDocKey, setSelectedDocKey] = useState(null);
-  const [docFilter, setDocFilter] = useState('ALL');
+  const [docFilter, setDocFilter] = useUrlFilter('docFilter', 'ALL');
+  const [params] = useSearchParams();
+  const expiryFrom = params.get('from');
+  const expiryTo = params.get('to');
   const [challanModalOpen, setChallanModalOpen] = useState(false);
 
   useEffect(() => {
@@ -138,6 +143,11 @@ const VehicleDashboardPage = () => {
     if (docFilter === 'EXPIRING_SOON') {
       return rows.filter((r) =>
         DOC_COLS.some((col) => {
+          if (expiryFrom && expiryTo) {
+            const expiry = r.documents?.[col.key]?.expiryDate;
+            const day = expiry ? istDayString(expiry) : null;
+            return day && day >= expiryFrom && day <= expiryTo;
+          }
           const b = bucketFor(r.documents?.[col.key]);
           return b === 'critical' || b === 'warning';
         }),
@@ -170,7 +180,7 @@ const VehicleDashboardPage = () => {
     }
 
     return rows;
-  }, [rows, docFilter]);
+  }, [rows, docFilter, expiryFrom, expiryTo]);
 
   const goEdit = useCallback(
     (row) =>
