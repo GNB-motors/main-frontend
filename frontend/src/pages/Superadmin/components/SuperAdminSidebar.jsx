@@ -18,6 +18,7 @@ import UkoLogo from '../../../assets/uko-logo.png';
 import { clearSession } from '../../../utils/session';
 import SupportTicketsNavLink from './supportTickets/SupportTicketsNavLink';
 import EnquiriesNavLink from './enquiries/EnquiriesNavLink';
+import ReportsApprovalNavLink from './reportsApproval/ReportsApprovalNavLink';
 import './SuperAdminSidebar.css';
 
 const SuperAdminSidebar = ({ setSidebarOpen }) => {
@@ -146,6 +147,7 @@ const SuperAdminSidebar = ({ setSidebarOpen }) => {
 
           <SupportTicketsNavLink onNavigate={closeSidebarOnMobile} />
           <EnquiriesNavLink onNavigate={closeSidebarOnMobile} />
+          <ReportsApprovalNavLink onNavigate={closeSidebarOnMobile} />
         </nav>
       </div>
 

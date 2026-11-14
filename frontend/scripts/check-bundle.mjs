@@ -14,11 +14,11 @@ import { join } from 'node:path';
 //   Phase 4 dependency purge + async Sentry/lottie = 580,376 B ← current basis
 const BUDGET = 600_000; // bytes; ~3% headroom — the plan target
 
-// Basis 2026-10-12: largest chunk three.module (Vehicle360 3D) = 734,293 B;
-// all JS = 7,152,791 B over 393 files. ~10% headroom, because without a
-// committed lockfile a fresh install (CI) resolves newer dependency versions.
+// Basis 2026-11-14: largest chunk three.module (Vehicle360 3D) = 734,293 B;
+// all JS ~7.95 MB over 578 files; 8.2 MB budget provides ~3% headroom for
+// fresh CI dependency resolution without a committed lockfile.
 const LARGEST_CHUNK_BUDGET = 800_000;
-const TOTAL_JS_BUDGET = 7_900_000;
+const TOTAL_JS_BUDGET = 8_200_000;
 
 const DIST = join(process.cwd(), 'dist');
 const ASSETS = join(DIST, 'assets');

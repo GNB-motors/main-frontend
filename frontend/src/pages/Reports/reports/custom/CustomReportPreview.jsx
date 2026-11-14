@@ -12,6 +12,16 @@ import DataTable from '../../../../components/ui/DataTable';
 import ExportButton from '../../../../components/ui/ExportButton';
 import { formatINR, formatKm, formatLitres, formatNum } from '../../../../utils/formatters';
 import { formatInIST } from '../../../../utils/dateUtils';
+import { FRONTEND_FIELD_MAP } from './customReportFields';
+
+function formatFallbackLabel(key) {
+  if (!key) return '';
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/[_-]/g, ' ')
+    .replace(/^\w/, (c) => c.toUpperCase())
+    .trim();
+}
 
 const STATUS_ICONS = {
   VALID: { label: 'Valid', color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
@@ -49,22 +59,46 @@ export default function CustomReportPreview({
 }) {
   const fields = useMemo(() => config.fields || [], [config.fields]);
   const fieldMap = useMemo(() => {
-    const map = new Map();
+    const map = new Map(FRONTEND_FIELD_MAP);
     (catalog.fields || []).forEach((f) => map.set(f.key, f));
     return map;
   }, [catalog.fields]);
 
-  const rows = reportData?.data || [];
-  const meta = reportData?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
-  const summary = reportData?.summary || {};
+  const rows = useMemo(() => {
+    if (Array.isArray(reportData?.data)) return reportData.data;
+    if (Array.isArray(reportData?.data?.items)) return reportData.data.items;
+    if (Array.isArray(reportData?.items)) return reportData.items;
+    if (Array.isArray(reportData?.data?.rows)) return reportData.data.rows;
+    if (Array.isArray(reportData)) return reportData;
+    return [];
+  }, [reportData]);
+
+  const meta = useMemo(() => {
+    return (
+      reportData?.meta ||
+      reportData?.data?.pagination || {
+        page: 1,
+        limit: 20,
+        total: rows.length,
+        totalPages: 1,
+      }
+    );
+  }, [reportData, rows.length]);
+
+  const summary = useMemo(() => {
+    return reportData?.summary || reportData?.data?.summary || {};
+  }, [reportData]);
 
   // Build DataTable columns dynamically from selected fields
   const columns = useMemo(() => {
     return fields.map((fieldKey) => {
-      const fieldDef = fieldMap.get(fieldKey) || { label: fieldKey, type: 'text' };
+      const fieldDef = fieldMap.get(fieldKey) || {
+        label: formatFallbackLabel(fieldKey),
+        type: 'text',
+      };
       return {
         key: fieldKey,
-        label: fieldDef.label,
+        label: fieldDef.label || formatFallbackLabel(fieldKey),
         type: fieldDef.type,
         align: fieldDef.type === 'number' || fieldDef.type === 'currency' ? 'right' : 'left',
         render: (row) => {
@@ -79,7 +113,7 @@ export default function CustomReportPreview({
             return formatNum(val);
           }
           if (fieldDef.type === 'date') {
-            return formatInIST(val, 'DD MMM YYYY');
+            return formatInIST(val, 'DD MMM YYYY') || String(val);
           }
           if (fieldDef.type === 'badge') {
             return <StatusBadge value={val} />;
@@ -93,10 +127,13 @@ export default function CustomReportPreview({
   // Build export columns
   const exportColumns = useMemo(() => {
     return fields.map((fieldKey) => {
-      const fieldDef = fieldMap.get(fieldKey) || { label: fieldKey, type: 'text' };
+      const fieldDef = fieldMap.get(fieldKey) || {
+        label: formatFallbackLabel(fieldKey),
+        type: 'text',
+      };
       return {
         key: fieldKey,
-        label: fieldDef.label,
+        label: fieldDef.label || formatFallbackLabel(fieldKey),
         type:
           fieldDef.type === 'currency'
             ? 'currency'

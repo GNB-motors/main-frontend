@@ -5,8 +5,8 @@ import {
   ArrowUp,
   ArrowDown,
   Trash2,
-  Play,
   Save,
+  Send,
   Plus,
   Filter,
   CheckSquare,
@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import SaveReportModal from './SaveReportModal';
 import RequestFieldModal from './RequestFieldModal';
+import CustomReportDatePicker from './CustomReportDatePicker';
+import { toYmd } from './customReportDateUtils';
 
 const DATASET_MODULE_MAP = {
   fuel_transactions: ['FUEL', 'VEHICLE', 'DRIVER'],
@@ -29,8 +31,6 @@ export default function CustomReportBuilder({
   catalog = {},
   config = {},
   onChange = null,
-  onRunPreview = null,
-  loading = false,
 }) {
   const [fieldSearch, setFieldSearch] = useState('');
   const [saveModalOpen, setSaveModalOpen] = useState(false);
@@ -48,6 +48,10 @@ export default function CustomReportBuilder({
   const selectedAggregations = config.aggregations || [];
   const selectedSorting = config.sorting || { field: null, order: 'desc' };
   const currentFilters = config.filters || {};
+
+  const fromYmd = toYmd(currentFilters.startDate);
+  const toYmdVal = toYmd(currentFilters.endDate);
+  const isDateRangeInvalid = Boolean(fromYmd && toYmdVal && fromYmd > toYmdVal);
 
   const allowedModules = useMemo(
     () => DATASET_MODULE_MAP[selectedDataset] || ['FUEL', 'VEHICLE', 'DRIVER'],
@@ -145,8 +149,18 @@ export default function CustomReportBuilder({
     <div className="flex flex-col gap-4">
       {/* 1. Report Details Card */}
       <div className="custom-builder-card">
-        <div className="builder-section-title">
+        <div className="builder-section-title flex items-center justify-between">
           <span>1. Report Configuration & Data Source</span>
+          <button
+            type="button"
+            className="btn-primary-action !text-xs !py-1.5 flex items-center gap-1.5"
+            onClick={() => setSaveModalOpen(true)}
+            disabled={!selectedFields.length || isDateRangeInvalid}
+            aria-label="Submit Report for Approval"
+          >
+            <Send size={13} />
+            <span>Submit Report for Approval</span>
+          </button>
         </div>
         <div className="builder-grid-2">
           <div className="builder-field-group">
@@ -393,39 +407,26 @@ export default function CustomReportBuilder({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="builder-field-group">
-            <label htmlFor="cr-filter-start-date">Start Date</label>
-            <input
-              id="cr-filter-start-date"
-              aria-label="Start Date"
-              type="date"
-              className="builder-input !py-1.5 !text-xs"
-              value={currentFilters.startDate ? currentFilters.startDate.slice(0, 10) : ''}
-              onChange={(e) =>
-                handleFilterChange(
-                  'startDate',
-                  e.target.value ? `${e.target.value}T00:00:00.000+05:30` : '',
-                )
-              }
-            />
-          </div>
+          <CustomReportDatePicker
+            id="cr-filter-start-date"
+            label="From Date"
+            placeholder="dd-mm-yyyy"
+            value={currentFilters.startDate || ''}
+            onChange={(val) => handleFilterChange('startDate', val)}
+            maxDate={toYmdVal || ''}
+            hasError={isDateRangeInvalid}
+          />
 
-          <div className="builder-field-group">
-            <label htmlFor="cr-filter-end-date">End Date</label>
-            <input
-              id="cr-filter-end-date"
-              aria-label="End Date"
-              type="date"
-              className="builder-input !py-1.5 !text-xs"
-              value={currentFilters.endDate ? currentFilters.endDate.slice(0, 10) : ''}
-              onChange={(e) =>
-                handleFilterChange(
-                  'endDate',
-                  e.target.value ? `${e.target.value}T23:59:59.999+05:30` : '',
-                )
-              }
-            />
-          </div>
+          <CustomReportDatePicker
+            id="cr-filter-end-date"
+            label="To Date"
+            placeholder="dd-mm-yyyy"
+            value={currentFilters.endDate || ''}
+            onChange={(val) => handleFilterChange('endDate', val)}
+            minDate={fromYmd || ''}
+            isEndOfDay={true}
+            hasError={isDateRangeInvalid}
+          />
 
           <div className="builder-field-group">
             <label htmlFor="cr-filter-fuel-type">Fuel Type Filter</label>
@@ -455,31 +456,27 @@ export default function CustomReportBuilder({
             />
           </div>
         </div>
+
+        {isDateRangeInvalid && (
+          <div className="custom-date-error-banner" role="alert">
+            <AlertCircle size={14} />
+            <span>From date cannot be later than To date. Please adjust your date range.</span>
+          </div>
+        )}
       </div>
 
       {/* 4. Action Toolbar */}
-      <div className="builder-actions-toolbar">
-        <div className="builder-actions-left">
+      <div className="builder-actions-toolbar flex items-center justify-between">
+        <div className="builder-actions-left flex items-center gap-3">
           <button
             type="button"
-            className="btn-secondary-action"
+            className="btn-primary-action !py-2 !px-5 flex items-center gap-2"
             onClick={() => setSaveModalOpen(true)}
-            disabled={!selectedFields.length}
+            disabled={!selectedFields.length || isDateRangeInvalid}
+            aria-label="Submit Report for Approval"
           >
-            <Save size={15} />
-            <span>Save Configuration</span>
-          </button>
-        </div>
-
-        <div className="builder-actions-right">
-          <button
-            type="button"
-            className="btn-primary-action !py-2 !px-5"
-            onClick={onRunPreview}
-            disabled={!selectedFields.length || loading}
-          >
-            <Play size={15} />
-            <span>{loading ? 'Executing Query...' : 'Generate Report Preview'}</span>
+            <Send size={15} />
+            <span>Submit Report for Approval</span>
           </button>
         </div>
       </div>

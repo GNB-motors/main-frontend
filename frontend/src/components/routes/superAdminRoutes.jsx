@@ -48,6 +48,12 @@ const SupportTicketDetailPage = lazy(
 const EnquiriesPage = lazy(
   () => import('../../pages/Superadmin/components/enquiries/EnquiriesPage.jsx'),
 );
+const ReportsApprovalPage = lazy(
+  () => import('../../pages/Superadmin/components/reportsApproval/ReportsApprovalPage.jsx'),
+);
+const ReportReviewDetailPage = lazy(
+  () => import('../../pages/Superadmin/components/reportsApproval/ReportReviewDetailPage.jsx'),
+);
 
 const superAdminRoutes = (
   <>
@@ -220,6 +226,22 @@ const superAdminRoutes = (
         element={
           <Suspense fallback={null}>
             <EnquiriesPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="reports-approval"
+        element={
+          <Suspense fallback={null}>
+            <ReportsApprovalPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="reports-approval/:id"
+        element={
+          <Suspense fallback={null}>
+            <ReportReviewDetailPage />
           </Suspense>
         }
       />
