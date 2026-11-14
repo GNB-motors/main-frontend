@@ -155,7 +155,7 @@ function TruckChips({ trucks, day, kind }) {
   );
 }
 
-function MoneyLeakCard({ brief$, isPendingDay, day }) {
+function MoneyLeakCard({ brief$, isPendingDay }) {
   const brief = brief$.data;
   const rows = useMemo(() => leakRows(brief), [brief]);
 

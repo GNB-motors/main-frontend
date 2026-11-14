@@ -37,10 +37,10 @@ vi.mock('./chatExportStream', () => ({
 
 const zipFile = () => new File(['zip'], 'mehfuz-chat.zip', { type: 'application/zip' });
 
-// A 500 MB+ file cannot be built in memory, so its size is stated.
+// A 1.5 GB+ file cannot be built in memory, so its size is stated.
 const bigZip = () => {
   const file = new File(['zip'], 'big-chat.zip', { type: 'application/zip' });
-  Object.defineProperty(file, 'size', { value: 501 * 1024 * 1024 });
+  Object.defineProperty(file, 'size', { value: 1537 * 1024 * 1024 });
   return file;
 };
 
@@ -144,11 +144,11 @@ describe('WhatsApp chat export dialog', () => {
     expect(screen.getByRole('button', { name: 'Upload' })).toBeDisabled();
   });
 
-  it('refuses a chat export bigger than 500 MB before anything is uploaded', () => {
+  it('refuses a chat export bigger than 1.5 GB before anything is uploaded', () => {
     open();
     chooseFile(bigZip());
 
-    expect(screen.getByRole('alert')).toHaveTextContent('bigger than 500 MB');
+    expect(screen.getByRole('alert')).toHaveTextContent('bigger than 1.5 GB');
     expect(PhotoImportService.uploadWhatsappExport).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Upload' })).toBeDisabled();
   });

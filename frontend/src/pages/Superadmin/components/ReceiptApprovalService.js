@@ -82,9 +82,6 @@ const setDraftTime = (draftId, { action = 'accept', at = null } = {}) =>
 const bulkPublishDrafts = async (ids) =>
   (await call(apiClient.post('/api/whatsapp/admin/drafts/bulk-publish', { ids }))) || {};
 
-const updateOdometerMode = (odometerMode) =>
-  call(apiClient.patch('/api/whatsapp/settings', { odometerMode }));
-
 export const ReceiptApprovalService = {
   listDrafts,
   getDraftCounts,
@@ -96,5 +93,4 @@ export const ReceiptApprovalService = {
   clearDraft,
   setDraftTime,
   bulkPublishDrafts,
-  updateOdometerMode,
 };

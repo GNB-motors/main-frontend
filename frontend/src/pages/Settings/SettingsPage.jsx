@@ -12,13 +12,11 @@ import { LocationsManager } from './settingsLocations';
 import { FleetDataSettings } from './settingsFleetData';
 import { IdleThresholdSetting } from './settingsIdling';
 import { NetFuelSetting } from './settingsNetFuel';
-import { WhatsAppSettings } from './settingsWhatsApp';
 import './Settings.css';
 
 /**
- * Org setup in one place: locations, fleet data sources and coverage, the idle
- * threshold and the WhatsApp odometer rule. ?section= picks the open one, so
- * other pages can link straight to it.
+ * Org setup in one place: locations, fleet data sources and coverage and the idle
+ * threshold. ?section= picks the open one, so other pages can link straight to it.
  */
 export default function SettingsPage() {
   useFullPageLayout();
@@ -106,7 +104,6 @@ export default function SettingsPage() {
                 <NetFuelSetting canEdit={access.editIdling} />
               </>
             ) : null}
-            {active.key === 'whatsapp' ? <WhatsAppSettings /> : null}
           </section>
         </div>
       </div>

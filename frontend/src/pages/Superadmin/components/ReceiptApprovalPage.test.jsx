@@ -84,18 +84,6 @@ describe('ReceiptApprovalPage', () => {
     expect(screen.getByText('WB02BB2222')).toBeInTheDocument();
   });
 
-  // The odometer policy rides on /api/auth/me; the page no longer re-fetches it.
-  it('does not fetch the WhatsApp settings itself', async () => {
-    apiClient.get.mockResolvedValue(draftsOf([]));
-    render(
-      <MemoryRouter>
-        <ReceiptApprovalPage />
-      </MemoryRouter>,
-    );
-    await act(async () => {});
-    expect(apiClient.get.mock.calls.map(([url]) => url)).not.toContain('/api/whatsapp/settings');
-  });
-
   // B4: the inbox used to fetch 200 rows and filter them in the browser, so
   // receipts after the 200th never appeared. The server now filters and pages.
   it('asks the server for one filtered page', async () => {
