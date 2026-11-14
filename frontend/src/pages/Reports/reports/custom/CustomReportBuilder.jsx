@@ -5,7 +5,6 @@ import {
   ArrowUp,
   ArrowDown,
   Trash2,
-  Play,
   Save,
   Send,
   Plus,
@@ -32,8 +31,6 @@ export default function CustomReportBuilder({
   catalog = {},
   config = {},
   onChange = null,
-  onRunPreview = null,
-  loading = false,
 }) {
   const [fieldSearch, setFieldSearch] = useState('');
   const [saveModalOpen, setSaveModalOpen] = useState(false);
@@ -480,19 +477,6 @@ export default function CustomReportBuilder({
           >
             <Send size={15} />
             <span>Submit Report for Approval</span>
-          </button>
-        </div>
-
-        <div className="builder-actions-right">
-          <button
-            type="button"
-            className="btn-secondary-action !py-2 !px-5 flex items-center gap-2"
-            onClick={onRunPreview}
-            disabled={!selectedFields.length || loading || isDateRangeInvalid}
-            aria-label="Generate Report Preview"
-          >
-            <Play size={15} />
-            <span>{loading ? 'Executing Query...' : 'Generate Report Preview'}</span>
           </button>
         </div>
       </div>
