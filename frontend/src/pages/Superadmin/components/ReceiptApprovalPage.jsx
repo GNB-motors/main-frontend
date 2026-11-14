@@ -1,6 +1,4 @@
 import React from 'react';
-import { toast } from 'react-toastify';
-import { ReceiptApprovalService } from './ReceiptApprovalService';
 import ReceiptApprovalDrawer from './ReceiptApprovalDrawer';
 import ImagePreviewModal from '../../Trip/components/ImagePreviewModal';
 import useReceiptInbox from './receipts/useReceiptInbox';
@@ -11,7 +9,6 @@ import ReceiptTable from './receipts/ReceiptTable';
 import BulkActionBar from './receipts/BulkActionBar';
 import BulkApproveModal from './receipts/BulkApproveModal';
 import BulkRejectModal from './receipts/BulkRejectModal';
-import OdometerPolicyModal from './receipts/OdometerPolicyModal';
 import './ReceiptApproval.css';
 
 /**
@@ -25,7 +22,6 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
     basePath,
     bulkBusy,
     bulkRejectReason,
-    canEditPolicy,
     clearSelection,
     counts,
     currentDrawerIndex,
@@ -43,30 +39,23 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
     loading,
     navigate,
     odoFilter,
-    odoMode,
-    odoPolicyModalOpen,
     page,
     pageSize,
     previewImage,
     query,
-    refreshOrganization,
     refreshing,
     rowErrors,
-    savingPolicy,
     selectableItems,
     selectedIds,
     setActiveDrawerId,
     setAnomalyFilter,
     setBulkRejectReason,
-    setChosenOdoMode,
     setDateFilter,
     setOdoFilter,
-    setOdoPolicyModalOpen,
     setPage,
     setPageSize,
     setPreviewImage,
     setQuery,
-    setSavingPolicy,
     setShowBulkApproveModal,
     setShowBulkRejectModal,
     setSortDirection,
@@ -83,24 +72,6 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
 
   const toggleSort = () => {
     setSortDirection((prev) => (prev === 'desc' ? 'asc' : 'desc'));
-  };
-
-  const changeOdoMode = async (next) => {
-    if (next === odoMode || savingPolicy || !canEditPolicy) return;
-    const prev = odoMode;
-    setChosenOdoMode(next);
-    setSavingPolicy(true);
-    try {
-      await ReceiptApprovalService.updateOdometerMode(next);
-      toast.success('Odometer Triple-Check policy updated');
-      setOdoPolicyModalOpen(false);
-      refreshOrganization();
-    } catch (err) {
-      setChosenOdoMode(prev);
-      toast.error(err.response?.data?.message || 'Failed to update policy');
-    } finally {
-      setSavingPolicy(false);
-    }
   };
 
   const isAllSelected =
@@ -141,8 +112,6 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
         isSuperadminRoute={isSuperadminRoute}
         navigate={navigate}
         embedded={embedded}
-        setOdoPolicyModalOpen={setOdoPolicyModalOpen}
-        odoMode={odoMode}
         refreshing={refreshing}
         fetchData={fetchData}
       />
@@ -240,18 +209,6 @@ const ReceiptApprovalPage = ({ embedded = false, onCounts } = {}) => {
           bulkRejectReason={bulkRejectReason}
           setBulkRejectReason={setBulkRejectReason}
           handleBulkReject={handleBulkReject}
-        />
-      )}
-
-      {/* ── Odometer Policy & Triple-Check Hub Modal ── */}
-      {odoPolicyModalOpen && (
-        <OdometerPolicyModal
-          savingPolicy={savingPolicy}
-          setOdoPolicyModalOpen={setOdoPolicyModalOpen}
-          odoMode={odoMode}
-          canEditPolicy={canEditPolicy}
-          changeOdoMode={changeOdoMode}
-          navigate={navigate}
         />
       )}
 

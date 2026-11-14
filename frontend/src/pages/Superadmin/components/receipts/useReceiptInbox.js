@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { useFeatureFlags } from '../../../../contexts/FeatureFlagsContext';
 import { useDebouncedValue } from '../../../../hooks/useDebouncedValue';
 import { ReceiptApprovalService } from '../ReceiptApprovalService';
-import { getUserRole } from '../../../../utils/session';
 import { draftListParams, filterDraftsLocally } from './receiptFilters';
 import { computeReceiptKpis, kpisFromSummary } from './receiptKpis';
 import { plainActionError, plainLoadError, refusalMessage } from './receiptActions';
@@ -16,18 +14,6 @@ const useReceiptInbox = ({ onCounts }) => {
   const location = useLocation();
   const isSuperadminRoute = location.pathname.startsWith('/superadmin');
   const basePath = isSuperadminRoute ? '/superadmin/receipts' : '/approvals/whatsapp';
-
-  // /api/auth/me already carries organization.whatsappSettings; the server
-  // treats an unset mode as INTERACTIVE. A choice made here wins until the
-  // context refresh after saving brings it back.
-  const { organization, refresh: refreshOrganization } = useFeatureFlags();
-  const [chosenOdoMode, setChosenOdoMode] = useState(null);
-  const odoMode = chosenOdoMode ?? (organization?.whatsappSettings?.odometerMode || 'INTERACTIVE');
-  const [odoPolicyModalOpen, setOdoPolicyModalOpen] = useState(false);
-  const [savingPolicy, setSavingPolicy] = useState(false);
-
-  const userRole = (getUserRole() || '').toUpperCase();
-  const canEditPolicy = ['OWNER', 'MANAGER', 'SUPER_ADMIN'].includes(userRole);
 
   const [status, setStatus] = useState('READY');
   const [items, setItems] = useState([]);
@@ -338,7 +324,6 @@ const useReceiptInbox = ({ onCounts }) => {
     basePath,
     bulkBusy,
     bulkRejectReason,
-    canEditPolicy,
     clearSelection,
     counts,
     currentDrawerIndex,
@@ -356,31 +341,24 @@ const useReceiptInbox = ({ onCounts }) => {
     loading,
     navigate,
     odoFilter,
-    odoMode,
-    odoPolicyModalOpen,
     page,
     pageSize,
     previewImage,
     query,
-    refreshOrganization,
     refreshing,
     rowErrors,
-    savingPolicy,
     selectableItems,
     selectedIds,
     setActiveDrawerId,
     setAnomalyFilter,
     setBulkRejectReason,
-    setChosenOdoMode,
     setDateFilter,
     setOdoFilter,
-    setOdoPolicyModalOpen,
     setPage,
     setPageSize,
     setPreviewImage,
     setQuery,
     setRowError,
-    setSavingPolicy,
     setShowBulkApproveModal,
     setShowBulkRejectModal,
     setSortDirection,

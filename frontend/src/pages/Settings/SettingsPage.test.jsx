@@ -28,8 +28,6 @@ vi.mock('./settingsFleetData', () => ({
 vi.mock('./settingsIdling', () => ({
   IdleThresholdSetting: ({ canEdit }) => <p>idling body {String(canEdit)}</p>,
 }));
-vi.mock('./settingsWhatsApp', () => ({ WhatsAppSettings: () => <p>whatsapp body</p> }));
-
 const renderAt = (url) =>
   render(
     <MemoryRouter initialEntries={[url]}>
@@ -42,7 +40,7 @@ const keys = (access) => visibleSections(access).map((s) => s.key);
 describe('settings sections', () => {
   it('an owner of a fleet org sees every section', () => {
     const access = settingsAccess({ role: 'OWNER', fleetAccess: true, coverageFlag: true });
-    expect(keys(access)).toEqual(['locations', 'fleet-data', 'idling', 'whatsapp']);
+    expect(keys(access)).toEqual(['locations', 'fleet-data', 'idling']);
   });
 
   it('a driver sees locations and idling, read-only', () => {
@@ -61,7 +59,7 @@ describe('settings sections', () => {
     const access = settingsAccess({ role: 'OWNER', fleetAccess: true, coverageFlag: true });
     expect(groupSections(visibleSections(access)).map((g) => [g.label, g.items.length])).toEqual([
       ['Fleet', 2],
-      ['Rules', 2],
+      ['Rules', 1],
     ]);
   });
 
@@ -112,8 +110,8 @@ describe('SettingsPage', () => {
 
   it('a section the viewer may not see falls back to the first', () => {
     getUserRole.mockReturnValue('DRIVER');
-    renderAt('/settings?section=whatsapp');
-    expect(screen.queryByText('whatsapp body')).not.toBeInTheDocument();
+    renderAt('/settings?section=fleet-data');
+    expect(screen.queryByText(/fleet body/)).not.toBeInTheDocument();
     expect(screen.getByText('locations body')).toBeInTheDocument();
   });
 });
