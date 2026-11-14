@@ -119,20 +119,6 @@ export const SIDE_NAV_ITEMS = [
     ],
     matchRoutes: ['/drivers', '/drivers/add', '/drivers/bulk-upload', '/access-control'],
   },
-  // Data Imports — bulk CSV upload of drivers, driver↔vehicle assignments and
-  // vehicle master fields (always preview first, then apply). The backend
-  // route is authorize('OWNER','MANAGER'), so the menu entry carries the same
-  // gate: only an owner or a manager is shown this link.
-  {
-    type: 'link',
-    key: null,
-    roles: ['OWNER', 'MANAGER'],
-    to: '/data-imports',
-    label: 'Data imports',
-    icon: FileUp,
-    hint: 'Upload a CSV of drivers, assignments or vehicle master data — preview first, then apply.',
-  },
-
   // ─── ISOCL ERP / CRM — five workspaces ─────────────────────────────────────
   // Ye list ab role ke hisaab se bani hai, feature ke hisaab se nahi: ERP ko
   // chaar log chalate hain (planning, operations, accounts, approve karne wala
@@ -456,6 +442,19 @@ export const SIDE_NAV_ITEMS = [
     icon: Activity,
     hint: 'How many times your team opens each screen.',
     roles: ['OWNER', 'MANAGER'],
+  },
+  // Data Imports — bulk CSV upload of drivers, driver↔vehicle assignments and
+  // vehicle master fields (always preview first, then apply). The backend
+  // route is authorize('OWNER','MANAGER'), so the menu entry carries the same
+  // gate: only an owner or a manager is shown this link.
+  {
+    type: 'link',
+    key: null,
+    roles: ['OWNER', 'MANAGER'],
+    to: '/data-imports',
+    label: 'Data imports',
+    icon: FileUp,
+    hint: 'Upload a CSV of drivers, assignments or vehicle master data — preview first, then apply.',
   },
   // Settings hub for fleet and vehicle configs
   { type: 'link', key: null, to: '/settings', label: 'Settings', icon: Settings },
