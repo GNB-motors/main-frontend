@@ -211,6 +211,7 @@ export default function ReportReviewModal({
             </label>
             <textarea
               id="ra-review-comments"
+              aria-label="Super Admin Review Notes / Rejection Reason"
               rows={3}
               className="builder-input !text-xs w-full"
               placeholder="Provide comments, feedback, or reason for approval / rejection (required if rejecting)..."

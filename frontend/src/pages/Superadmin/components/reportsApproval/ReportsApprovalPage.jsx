@@ -289,7 +289,7 @@ export default function ReportsApprovalPage() {
 
                   return (
                     <tr key={id}>
-                      <td>
+                      <td aria-label={report.name}>
                         <div className="flex flex-col">
                           <span className="font-semibold text-slate-900">{report.name}</span>
                           <span className="text-[11px] text-slate-400">
@@ -305,7 +305,7 @@ export default function ReportsApprovalPage() {
                         </div>
                       </td>
 
-                      <td>
+                      <td aria-label={submitterName}>
                         <div className="flex flex-col">
                           <span className="font-medium text-slate-800">{submitterName}</span>
                           <span className="text-[11px] text-slate-400">{submitterEmail}</span>
