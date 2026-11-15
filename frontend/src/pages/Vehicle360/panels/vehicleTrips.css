@@ -1,0 +1,302 @@
+.vtrips {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.vtrips .vdo-card {
+  padding: 20px 22px;
+  gap: 18px;
+}
+.vtrips-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: stretch;
+}
+.vtrips-columns > section {
+  flex: 1 1 440px;
+  min-width: 0;
+}
+.vtrips-head,
+.vtrips-head > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.vtrips a {
+  color: #2a4fd6;
+  font-size: 12.5px;
+  text-decoration: none;
+}
+.vtrips small {
+  display: block;
+  color: #93939a;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.vtrips p {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #5d5d5e;
+}
+.vtrips-status {
+  display: inline-flex;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  white-space: nowrap;
+  background: #f3f3f6;
+  color: #5d5d5e;
+}
+.vtrips-status--complete {
+  background: #e8f7ec;
+  color: #187a32;
+}
+.vtrips-status--review {
+  background: #fff5df;
+  color: #c56200;
+}
+.vtrips-status--open {
+  background: #eef1ff;
+  color: #213ea7;
+}
+.vtrips-headline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.vtrips-headline > strong {
+  font:
+    500 32px/1.2 'Vehicle Overview DM Sans',
+    sans-serif;
+  letter-spacing: -0.5px;
+  overflow-wrap: anywhere;
+}
+.vtrips-cycle-facts,
+.vtrips-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 16px;
+  border-top: 1px solid #ececee;
+  padding-top: 14px;
+  font-size: 13px;
+}
+.vtrips-facts strong {
+  font:
+    500 18px 'Vehicle Overview DM Sans',
+    sans-serif;
+}
+.vtrips-timeline {
+  position: relative;
+  height: 42px;
+  margin-top: 8px;
+}
+.vtrips-timeline-track {
+  position: absolute;
+  top: 16px;
+  width: 100%;
+  height: 10px;
+  border-radius: 5px;
+  background: #f3f3f6;
+}
+.vtrips-timeline > i {
+  position: absolute;
+  right: 0;
+  top: 10px;
+  width: 2px;
+  height: 24px;
+  background: #121214;
+}
+.vtrips-timeline-bar {
+  position: absolute;
+  top: 14px;
+  height: 14px;
+  min-width: 6px;
+  border: 0;
+  border-radius: 3px;
+  background: #93939a;
+  padding: 0;
+  cursor: pointer;
+}
+.vtrips-timeline-bar--complete {
+  background: #187a32;
+}
+.vtrips-timeline-bar--review {
+  background: #fff;
+  border: 1.5px dashed #c56200;
+}
+.vtrips-timeline-bar--open {
+  background: #4469f0;
+}
+.data-tooltip.vtrips-tooltip {
+  display: none;
+  position: absolute;
+  bottom: 24px;
+  left: 0;
+  z-index: 20;
+}
+.data-tooltip.vtrips-tooltip--end {
+  left: auto;
+  right: 0;
+}
+.vtrips-timeline-bar:hover,
+.vtrips-timeline-bar:focus-visible {
+  z-index: 21;
+}
+.vtrips-timeline-bar:hover > .data-tooltip,
+.vtrips-timeline-bar:focus-visible > .data-tooltip {
+  display: grid;
+}
+.vtrips-ticks,
+.vtrips-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10.5px;
+  color: #93939a;
+}
+.vtrips-legend {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 11.5px;
+  margin-top: 12px;
+}
+.vtrips-insight {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(135deg, rgba(47, 88, 238, 0.28), rgba(106, 67, 216, 0.06)) border-box;
+}
+.vtrips-eyebrow {
+  color: #6a43d8;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+.vtrips-review {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid #ececee;
+  font-size: 13px;
+}
+.vtrips .vtrips-button {
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #4469f0;
+  border: 1px solid #2a4fd6;
+  color: #fff;
+  font-size: 13.5px;
+}
+.vtrips .vtrips-recent {
+  padding: 0;
+  gap: 12px;
+}
+.vtrips-recent > .vtrips-head {
+  padding: 16px 20px 0;
+}
+.vtrips-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-self: flex-start;
+  gap: 2px;
+  background: #ececee;
+  padding: 3px;
+  border-radius: 999px;
+  margin: 0 20px;
+}
+.vtrips-filters button {
+  background: transparent;
+  border: 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: #5d5d5e;
+  cursor: pointer;
+}
+.vtrips-filters button[aria-pressed='true'] {
+  background: #fff;
+  color: #121214;
+  box-shadow: 0 1px 3px #0000000a;
+}
+.vtrips-filters button > span {
+  color: #93939a;
+}
+.vtrips-table-wrap {
+  overflow: auto;
+}
+.vtrips-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.vtrips-table th {
+  background: #f8f8fb;
+  color: #747476;
+  font-size: 11px;
+  font-weight: 400;
+}
+.vtrips-table td,
+.vtrips-table th {
+  text-align: left;
+  padding: 10px 14px;
+  border-top: 1px solid #f3f3f6;
+}
+.vtrips-table td:nth-child(2) {
+  color: #5d5d5e;
+  font-size: 12px;
+  min-width: 110px;
+}
+.vtrips-table td:nth-child(3) {
+  font:
+    12px 'Vehicle Overview DM Mono',
+    monospace;
+  text-align: right;
+  white-space: nowrap;
+}
+.vtrips-no-drop {
+  display: inline-flex;
+  padding: 3px 8px;
+  border: 1px dashed #c6c6c9;
+  border-radius: 6px;
+  font-size: 11.5px;
+  color: #747476;
+  white-space: nowrap;
+}
+.vtrips-arrow {
+  color: #93939a;
+}
+.vtrips .vtrips-empty {
+  padding: 20px;
+}
+.vtrips-process,
+.vtrips-process > span {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.vtrips-process b {
+  font-size: 12.5px;
+  font-weight: 400;
+  background: #f3f3f6;
+  padding: 7px 12px;
+  border-radius: 999px;
+}
+.vtrips-process i {
+  font-style: normal;
+  color: #93939a;
+}

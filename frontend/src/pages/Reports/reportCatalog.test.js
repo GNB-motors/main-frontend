@@ -13,6 +13,13 @@ const ALL_FLAGS = ['vehicleActivity', 'fuelIntegrity', 'autoTrips', 'sapV2'];
 const flags = (on) => (key) => on.includes(key);
 const ids = (groups) => groups.flatMap((g) => g.children.map((c) => c.id));
 
+describe('DEFAULT_REPORT', () => {
+  it('defaults to vehicle report as the first report feature', () => {
+    expect(DEFAULT_REPORT).toBe('vehicle');
+    expect(REPORT_GROUPS[0].children[0].id).toBe(DEFAULT_REPORT);
+  });
+});
+
 describe('visibleReportGroups', () => {
   it('keeps the six reports this page renders in front, in order', () => {
     const visible = ids(visibleReportGroups(flags(ALL_FLAGS)));
@@ -35,7 +42,6 @@ describe('visibleReportGroups', () => {
         'nonBusiness',
         'runningCost',
         'registerMatch',
-        'laneKm',
       ]),
     );
   });
@@ -49,18 +55,24 @@ describe('visibleReportGroups', () => {
     expect(visibleReportGroups(flags(ALL_FLAGS)).map((g) => g.id)).toEqual([
       'fuel',
       'trips',
-      'compliance',
+      'custom',
     ]);
   });
 
-  it('shows SAP routes on sapV2 alone, and hides the other Trip Economics reports without autoTrips', () => {
+  it('exposes Custom Reports under the custom group', () => {
+    const visible = ids(visibleReportGroups(flags(ALL_FLAGS)));
+    expect(visible).toContain('customReports');
+  });
+
+  it('keeps SAP routes out of Reports navigation while preserving existing authorized URLs', () => {
     const visible = ids(visibleReportGroups(flags(['vehicleActivity', 'fuelIntegrity', 'sapV2'])));
     expect(visible).not.toContain('oilAverage');
     expect(visible).not.toContain('fuelCycles');
     expect(visible).not.toContain('nonBusiness');
     expect(visible).not.toContain('runningCost');
     expect(visible).not.toContain('registerMatch');
-    expect(visible).toContain('laneKm');
+    expect(visible).not.toContain('laneKm');
+    expect(ids(visibleReportGroups(flags(ALL_FLAGS)))).not.toContain('laneKm');
     expect(resolveReport('laneKm', flags(['sapV2']))).toBe('laneKm');
     expect(ids(visibleReportGroups(flags(['autoTrips'])))).not.toContain('laneKm');
     expect(resolveReport('laneKm', flags([]))).toBe(DEFAULT_REPORT);
@@ -89,15 +101,15 @@ describe('reportDestination', () => {
     expect(isInlineReport('driver')).toBe(true);
   });
 
-  it('returns the screen a dedicated report row owns', () => {
-    expect(reportDestination('defLedger')).toBe('/def-ledger');
-    expect(reportDestination('fuelIntegrity')).toBe('/fuel-integrity');
-    expect(isInlineReport('defLedger')).toBe(false);
-  });
-
-  it('keeps the Fuel vs FleetEdge reconciliation deep link', () => {
-    expect(reportDestination('fuelComparison')).toBe('/mileage?tab=reconciliation&view=ecu');
-  });
+  it.each(['fuelIntegrity', 'fuelComparison', 'defLedger'])(
+    'excludes the standalone Fuel Management page %s from Reports',
+    (id) => {
+      expect(ids(visibleReportGroups(flags(ALL_FLAGS)))).not.toContain(id);
+      expect(reportDestination(id)).toBeNull();
+      expect(isInlineReport(id)).toBe(false);
+      expect(resolveReport(id, flags(ALL_FLAGS))).toBe(DEFAULT_REPORT);
+    },
+  );
 
   it('is null for a removed module link or a row not in the catalog', () => {
     expect(reportDestination('erpDayBook')).toBeNull();
@@ -112,11 +124,12 @@ describe('activeReportId', () => {
     expect(activeReportId('/reports', '')).toBe(DEFAULT_REPORT);
   });
 
-  it('matches a dedicated report screen by its path, ignoring query', () => {
-    expect(activeReportId('/fuel-integrity', '')).toBe('fuelIntegrity');
-    expect(activeReportId('/def-ledger', '')).toBe('defLedger');
-    expect(activeReportId('/mileage', '?tab=reconciliation&view=ecu')).toBe('fuelComparison');
-  });
+  it.each(['/fuel-integrity', '/def-ledger', '/mileage'])(
+    'does not treat %s as a report screen',
+    (pathname) => {
+      expect(activeReportId(pathname, '?tab=reconciliation&view=ecu')).toBeNull();
+    },
+  );
 
   it('is null away from any report screen', () => {
     expect(activeReportId('/vehicles', '')).toBeNull();
@@ -135,7 +148,7 @@ describe('resolveReport', () => {
     expect(resolveReport(null, flags([]))).toBe(DEFAULT_REPORT);
   });
 
-  it('falls back for a row that links out — it has no table on this page', () => {
+  it('falls back for a standalone module removed from Reports', () => {
     expect(resolveReport('fuelComparison', flags(ALL_FLAGS))).toBe(DEFAULT_REPORT);
     expect(resolveReport('defLedger', flags([]))).toBe(DEFAULT_REPORT);
   });

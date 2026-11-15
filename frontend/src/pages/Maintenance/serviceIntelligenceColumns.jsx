@@ -24,11 +24,13 @@ export function buildServiceIntelligenceColumns({
     {
       key: 'vehicle',
       label: 'Vehicle',
+      width: 140,
       render: (row) => <VehicleCell row={row} onOpenVehicle={onOpenVehicle} />,
     },
     {
       key: 'date',
       label: isService ? 'Service Date' : 'Incident Date',
+      width: 105,
       render: (row) => formatServiceDate(row.date),
     },
   ];
@@ -37,6 +39,7 @@ export function buildServiceIntelligenceColumns({
     columns.push({
       key: 'currentKm',
       label: 'Current KM',
+      width: 95,
       render: (row) => formatServiceKm(row.currentKm),
     });
   }
@@ -45,17 +48,33 @@ export function buildServiceIntelligenceColumns({
   columns.push({
     key: 'priority',
     label: 'Criticality',
+    width: 115,
     render: (row) => <PriorityCell row={row} />,
   });
 
   columns.push(
-    { key: 'workshop', label: 'Workshop / Location', render: (row) => row.workshop },
+    {
+      key: 'workshop',
+      label: 'Workshop / Location',
+      width: 135,
+      render: (row) => (
+        <span className="si-cell-truncate" title={row.workshop || '—'}>
+          {row.workshop || '—'}
+        </span>
+      ),
+    },
     {
       key: 'type',
-      label: isService ? 'Service Category' : 'Reported Issue',
+      label: isService ? 'Category' : 'Issue Type',
+      width: 125,
       render: (row) => <StatusChip group="serviceType" value={row.type} />,
     },
-    { key: 'amount', label: 'Amount', render: (row) => formatServiceCurrency(row.amount) },
+    {
+      key: 'amount',
+      label: 'Amount',
+      width: 95,
+      render: (row) => formatServiceCurrency(row.amount),
+    },
     {
       key: 'notes',
       label: isService ? 'Service Notes' : 'Diagnostic Notes',
@@ -68,15 +87,23 @@ export function buildServiceIntelligenceColumns({
     columns.push({
       key: 'status',
       label: 'Status',
+      width: 95,
       render: (row) => <StatusCell row={row} />,
     });
   }
 
   columns.push(
-    { key: 'files', label: 'Files', render: (row) => <FilesCell attachments={row.attachments} /> },
+    {
+      key: 'files',
+      label: 'Files',
+      width: 55,
+      align: 'center',
+      render: (row) => <FilesCell attachments={row.attachments} />,
+    },
     {
       key: 'actions',
       label: 'Actions',
+      width: 85,
       align: 'right',
       render: (row) => (
         <ActionsCell

@@ -1,3 +1,4 @@
+import { changeField } from '@/test/changeField';
 import { it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
@@ -35,6 +36,9 @@ vi.mock('../../components/ui/DataTable', () => ({
 }));
 vi.mock('./BulkUploadVehiclesPanel.jsx', () => ({ default: () => null }));
 vi.mock('../../components/ui/ExportButton', () => ({ default: () => null }));
+vi.mock('@/components/ui/popover', () =>
+  import('../../test/baseUiStubs.jsx').then((module) => module.popover),
+);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -51,6 +55,8 @@ it('filters manufacturer on the server and resets pagination without stale rows'
       <VehiclesPage />
     </MemoryRouter>,
   );
+  fireEvent.click(screen.getByRole('button', { name: 'Vehicle filters' }));
+  fireEvent.click(screen.getByLabelText('Manufacturer'));
   await screen.findByRole('option', { name: 'Ashok Leyland' });
   await waitFor(() => expect(VehicleService.getAllVehicles).toHaveBeenCalled());
   expect(screen.getByText('Account')).toBeInTheDocument();
@@ -58,7 +64,7 @@ it('filters manufacturer on the server and resets pagination without stale rows'
   await waitFor(() =>
     expect(VehicleService.getAllVehicles).toHaveBeenLastCalledWith(null, 2, 10, expect.anything()),
   );
-  fireEvent.change(screen.getByLabelText('Manufacturer'), { target: { value: 'ASHOK LEYLAND' } });
+  changeField(screen.getByLabelText('Manufacturer'), { target: { value: 'ASHOK LEYLAND' } });
   await waitFor(() =>
     expect(VehicleService.getAllVehicles).toHaveBeenLastCalledWith(
       null,
@@ -67,7 +73,7 @@ it('filters manufacturer on the server and resets pagination without stale rows'
       expect.objectContaining({ manufacturer: 'ASHOK LEYLAND' }),
     ),
   );
-  fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'WB11' } });
+  changeField(screen.getByRole('searchbox'), { target: { value: 'WB11' } });
   await waitFor(() =>
     expect(VehicleService.getAllVehicles).toHaveBeenLastCalledWith(
       null,

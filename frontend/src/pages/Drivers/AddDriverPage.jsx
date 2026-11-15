@@ -12,8 +12,10 @@ import BasicInformationForm from './Component/BasicInformationForm.jsx';
 import DocumentUpload from './Component/DocumentUpload.jsx';
 import FormFooter from './Component/FormFooter.jsx';
 import ImportEmployeeDialog from './ImportEmployeeDialog.jsx';
+import { ReassignVehicleModal } from './Component/DriverConfirmModals.jsx';
 import { mapFetchedEmployeeDocs } from './employeeDocMapping.js';
 import './DriversPage.css';
+import '../../components/EntityFormLayout.css';
 import logger from '../../utils/logger';
 
 const AddDriverPage = () => {
@@ -26,9 +28,6 @@ const AddDriverPage = () => {
   const [driverId, setDriverId] = useState(null);
   const [themeColors, setThemeColors] = useState(getThemeCSS());
   const [initialFormData, setInitialFormData] = useState({});
-  // The driver's current active vehicle assignment (edit mode), if any — used
-  // to diff against the form's vehicleId on save and to end/replace it correctly.
-  const [currentAssignment, setCurrentAssignment] = useState(null);
   // RBAC roles available to this enterprise — dynamic source for the role
   // selectors (Enterprise Role / Branch Role). New roles show up automatically.
   const [roles, setRoles] = useState([]);
@@ -36,6 +35,9 @@ const AddDriverPage = () => {
   // the Import Employee modal instead of creating a duplicate.
   const [importCandidate, setImportCandidate] = useState(null);
   const [importing, setImporting] = useState(false);
+  // Reassignment conflict state when selected vehicle is held by another driver
+  const [vehicleConflict, setVehicleConflict] = useState(null);
+  const [isReassigning, setIsReassigning] = useState(false);
   const [documents, setDocuments] = useState({
     driverLicense: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
     panCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
@@ -75,7 +77,6 @@ const AddDriverPage = () => {
         } catch (err) {
           logger.warn('AddDriverPage', 'Failed to load vehicle assignment', err);
         }
-        setCurrentAssignment(assignment);
 
         // Map existing role to an enterprise/branch role option if available
         let matchedRoleId = editing.enterpriseRoleId || editing.branchRoleId || '';
@@ -87,6 +88,7 @@ const AddDriverPage = () => {
         }
 
         const formData = {
+          driverId: empId,
           firstName: editing.firstName || editing.first_name || '',
           lastName: editing.lastName || editing.last_name || '',
           email: editing.email || '',
@@ -107,6 +109,9 @@ const AddDriverPage = () => {
           const fetchedDocs = await DriverService.getEmployeeDocuments(empId);
           logger.info('AddDriverPage', 'Fetched documents', fetchedDocs);
           const updatedDocs = mapFetchedEmployeeDocs(fetchedDocs);
+          if (editing.licenseNumber && !updatedDocs.driverLicense.licenseNumber) {
+            updatedDocs.driverLicense.licenseNumber = editing.licenseNumber;
+          }
           setDocuments(updatedDocs);
         } catch (err) {
           logger.warn('AddDriverPage', 'Failed to load documents', err);
@@ -116,11 +121,35 @@ const AddDriverPage = () => {
         setIsEdit(false);
         setDriverId(null);
         setInitialFormData({});
-        setCurrentAssignment(null);
         setDocuments({
-          driverLicense: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-          panCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
-          aadharCard: { file: null, preview: null, imageUrl: null, name: '', documentId: null },
+          driverLicense: {
+            file: null,
+            preview: null,
+            imageUrl: null,
+            name: '',
+            documentId: null,
+            isUploaded: false,
+            isVerified: false,
+            licenseNumber: null,
+          },
+          panCard: {
+            file: null,
+            preview: null,
+            imageUrl: null,
+            name: '',
+            documentId: null,
+            isUploaded: false,
+            isVerified: false,
+          },
+          aadharCard: {
+            file: null,
+            preview: null,
+            imageUrl: null,
+            name: '',
+            documentId: null,
+            isUploaded: false,
+            isVerified: false,
+          },
         });
       }
     };
@@ -129,24 +158,7 @@ const AddDriverPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.state?.editingDriver]);
 
-  const handleSubmit = async (formData) => {
-    // Client-side required checks for creating an employee. The footer submits the
-    // form programmatically, which skips native HTML validation, so we validate
-    // here and show a clear toast instead of letting the user hit a raw 400.
-    if (!isEdit) {
-      const missing = [];
-      if (!formData.firstName?.trim()) missing.push('First name');
-      if (!formData.lastName?.trim()) missing.push('Last name');
-      if (!formData.mobileNumber?.trim()) missing.push('Mobile number');
-      if (!formData.password) missing.push('Password');
-      if (!formData.enterpriseRoleId && !formData.branchRoleId)
-        missing.push('a Role (Enterprise or Branch)');
-      if (missing.length) {
-        toast.error(`To create an employee, please add: ${missing.join(', ')}.`);
-        return;
-      }
-    }
-
+  const executeSave = async (formData) => {
     setIsSubmitting(true);
     try {
       const docTypes = {
@@ -159,25 +171,24 @@ const AddDriverPage = () => {
       // as part of this same save — end-then-create (not an in-place edit) so
       // the per-vehicle history stays intact. No-op if nothing changed.
       const syncVehicleAssignment = async (entityId, vehicleId) => {
+        // A previous save may have ended the old allocation before creation failed.
+        // Re-read the ledger so retrying never repeats a stale end/create decision.
+        const currentAssignment = await DriverVehicleAssignmentService.getActiveAssignment({
+          driverId: entityId,
+        });
         const currentVehicleId = currentAssignment
           ? DriverVehicleAssignmentService.idOf(currentAssignment.vehicleId)
           : '';
         if ((vehicleId || '') === currentVehicleId) return;
-        try {
-          if (currentAssignment) {
-            await DriverVehicleAssignmentService.endAssignment(currentAssignment._id);
-          }
-          if (vehicleId) {
-            await DriverVehicleAssignmentService.createAssignment({
-              driverId: entityId,
-              vehicleId,
-              startDate: new Date().toISOString(),
-            });
-          }
-        } catch (err) {
-          toast.error(
-            err?.response?.data?.message || err?.message || 'Failed to update vehicle assignment',
-          );
+        if (currentAssignment) {
+          await DriverVehicleAssignmentService.endAssignment(currentAssignment._id);
+        }
+        if (vehicleId) {
+          await DriverVehicleAssignmentService.createAssignment({
+            driverId: entityId,
+            vehicleId,
+            startDate: new Date().toISOString(),
+          });
         }
       };
 
@@ -195,7 +206,21 @@ const AddDriverPage = () => {
                   /* best effort */
                 }
               }
-              await DriverService.uploadDocument(entityId, docType, docData.file);
+              const uploadRes = await DriverService.uploadDocument(entityId, docType, docData.file);
+              // If OCR extracted a licence number, sync it without overwriting with empty
+              if (docType === 'DRIVER_LICENSE') {
+                const { extractLicenseNumber } = await import('./employeeDocMapping.js');
+                const extracted = extractLicenseNumber(uploadRes?.data || uploadRes);
+                if (extracted) {
+                  try {
+                    await DriverService.updateDriver(businessRefId, entityId, {
+                      licenseNumber: extracted,
+                    });
+                  } catch {
+                    /* best effort */
+                  }
+                }
+              }
             } catch (docErr) {
               logger.warn('AddDriverPage', `Failed to upload ${docType}`, docErr);
               toast.warning(`Failed to upload ${key} document`);
@@ -220,6 +245,8 @@ const AddDriverPage = () => {
           updatePayload.role = formData.role;
         }
         if (formData.status !== undefined) updatePayload.status = formData.status;
+        if (documents.driverLicense?.licenseNumber)
+          updatePayload.licenseNumber = documents.driverLicense.licenseNumber;
 
         await DriverService.updateDriver(businessRefId, driverId, updatePayload);
         await uploadDocuments(driverId);
@@ -237,6 +264,9 @@ const AddDriverPage = () => {
           lastName: formData.lastName || null,
           email: formData.email || null,
           mobileNumber: formData.mobileNumber || null,
+          ...(documents.driverLicense?.licenseNumber
+            ? { licenseNumber: documents.driverLicense.licenseNumber }
+            : {}),
           // Location is a free-text field only shown at the enterprise scope; inside
           // a branch it's implied by the active location, so omit it when empty
           // rather than sending null (the create validator wants a string or nothing).
@@ -255,6 +285,10 @@ const AddDriverPage = () => {
         const savedEmployee = await DriverService.addDriver(businessRefId, payload);
         // All roles (including field agents, now branch-scoped) return { id, status }.
         const empId = savedEmployee._id || savedEmployee.id || savedEmployee.user?._id;
+        // Retain the saved identity even when a later assignment or upload fails.
+        setDriverId(empId);
+        setIsEdit(true);
+        setInitialFormData({ ...formData, password: '' });
         await uploadDocuments(empId);
         await syncVehicleAssignment(empId, formData.vehicleId);
 
@@ -273,6 +307,90 @@ const AddDriverPage = () => {
       toast.error(msg);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmit = async (formData) => {
+    // Client-side required checks for creating an employee. The footer submits the
+    // form programmatically, which skips native HTML validation, so we validate
+    // here and show a clear toast instead of letting the user hit a raw 400.
+    if (!isEdit) {
+      const missing = [];
+      if (!formData.firstName?.trim()) missing.push('First name');
+      if (!formData.lastName?.trim()) missing.push('Last name');
+      if (!formData.mobileNumber?.trim()) missing.push('Mobile number');
+      if (!formData.password) missing.push('Password');
+      if (!formData.enterpriseRoleId && !formData.branchRoleId)
+        missing.push('a Role (Enterprise or Branch)');
+      if (missing.length) {
+        toast.error(`To create an employee, please add: ${missing.join(', ')}.`);
+        return;
+      }
+    }
+
+    const activeAssignment = driverId
+      ? await DriverVehicleAssignmentService.getActiveAssignment({ driverId })
+      : null;
+    const currentVehicleId = activeAssignment
+      ? DriverVehicleAssignmentService.idOf(activeAssignment.vehicleId)
+      : '';
+    const chosenVehicleId = formData.vehicleId || '';
+
+    // Check if the chosen vehicle already has an active assignment with someone else
+    if (chosenVehicleId && chosenVehicleId !== currentVehicleId) {
+      try {
+        const vehicleAssignment = await DriverVehicleAssignmentService.getActiveAssignment({
+          vehicleId: chosenVehicleId,
+        });
+        const assignedDriverId = vehicleAssignment
+          ? DriverVehicleAssignmentService.idOf(vehicleAssignment.driverId)
+          : null;
+        if (
+          vehicleAssignment &&
+          assignedDriverId &&
+          String(assignedDriverId) !== String(driverId || '')
+        ) {
+          const vehObj =
+            typeof vehicleAssignment.vehicleId === 'object' ? vehicleAssignment.vehicleId : null;
+          const vLabel = vehObj
+            ? `${vehObj.registrationNumber || ''}${vehObj.model ? ` - ${vehObj.model}` : ''}`
+            : 'Selected Vehicle';
+          const drvObj =
+            typeof vehicleAssignment.driverId === 'object' ? vehicleAssignment.driverId : null;
+          const dName = drvObj
+            ? [drvObj.firstName, drvObj.lastName].filter(Boolean).join(' ') || drvObj.mobileNumber
+            : 'Another Driver';
+
+          setVehicleConflict({
+            conflictingAssignmentId: vehicleAssignment._id,
+            vehicleLabel: vLabel,
+            currentDriverName: dName,
+            currentDriverPhone: drvObj?.mobileNumber || '',
+            startDate: vehicleAssignment.startDate,
+            pendingFormData: formData,
+          });
+          return;
+        }
+      } catch (checkErr) {
+        logger.warn('AddDriverPage', 'Could not check vehicle conflict upfront', checkErr);
+      }
+    }
+
+    await executeSave(formData);
+  };
+
+  const handleConfirmReassignment = async () => {
+    if (!vehicleConflict) return;
+    setIsReassigning(true);
+    try {
+      await DriverVehicleAssignmentService.endAssignment(vehicleConflict.conflictingAssignmentId);
+      const pendingData = vehicleConflict.pendingFormData;
+      setVehicleConflict(null);
+      await executeSave(pendingData);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to reassign vehicle');
+    } finally {
+      setIsReassigning(false);
     }
   };
 
@@ -303,8 +421,8 @@ const AddDriverPage = () => {
   };
 
   return (
-    <div className="drivers-page" style={themeColors}>
-      <div className="drivers-content-wrapper" style={{ paddingBottom: '80px' }}>
+    <div className="drivers-page add-employee-page entity-form-page" style={themeColors}>
+      <div className="drivers-content-wrapper entity-form-content">
         <PageHeader
           backLabel="Employees"
           backPath="/drivers"
@@ -357,6 +475,17 @@ const AddDriverPage = () => {
         importing={importing}
         confirmImport={confirmImport}
       />
+
+      {/* Reassign Vehicle Confirmation — shown when the selected vehicle is already held by another driver */}
+      {vehicleConflict && (
+        <ReassignVehicleModal
+          isOpen={Boolean(vehicleConflict)}
+          onClose={() => setVehicleConflict(null)}
+          onConfirm={handleConfirmReassignment}
+          conflict={vehicleConflict}
+          isLoading={isReassigning}
+        />
+      )}
     </div>
   );
 };

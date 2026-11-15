@@ -9,9 +9,16 @@ import { useConfirm } from '../../../components/ui/confirmContext';
 import PlaceIntelligenceService from './PlaceIntelligenceService';
 import { canEditSap, kmText } from '../../Sap/sapModel';
 import DuplicateMap from './DuplicateMap';
+import { samePlaceSentence } from './duplicatePairModel';
 export default function DuplicatePair({ pair, onChanged }) {
   const { a, b } = pair;
-  const [survivorId, setSurvivorId] = useState((a.visits ?? 0) >= (b.visits ?? 0) ? a._id : b._id);
+  // Prefer the older record; ObjectId order is a fallback for legacy rows.
+  const aTime = Date.parse(a.createdAt);
+  const bTime = Date.parse(b.createdAt);
+  const older = Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime
+    ? (aTime < bTime ? a : b)
+    : (String(a._id) < String(b._id) ? a : b);
+  const [survivorId, setSurvivorId] = useState(older._id);
   const m = useMutation(({ action, body }, options) =>
     PlaceIntelligenceService[action](body, options),
   );
@@ -43,6 +50,7 @@ export default function DuplicatePair({ pair, onChanged }) {
     >
       <div className="sap-stack">
         <h2>{pair.verdict === 'LIKELY_SAME' ? 'Likely the same place' : 'Compare these places'}</h2>
+        <p className="sap-muted">{samePlaceSentence(pair)}</p>
         <p className="sap-muted">Check the map and visit history before deciding.</p>
       </div>
       {[a, b].map((s) => (

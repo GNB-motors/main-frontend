@@ -1,3 +1,4 @@
+import PlaceIcon from '../../../components/Icons/PlaceIcon.jsx';
 import { MapPinned, Satellite, Map as MapIcon, Maximize2, Building2 } from 'lucide-react';
 import LocationSearch from '../LocationSearch.jsx';
 
@@ -9,6 +10,10 @@ export default function MapToolbar({
   setShowContext,
   showPoi,
   setShowPoi,
+  showUsedTolls,
+  setShowUsedTolls,
+  showAllTolls,
+  setShowAllTolls,
   satellite,
   setSatellite,
   setFitNonce,
@@ -42,6 +47,24 @@ export default function MapToolbar({
           title="Plants, sidings, pumps and dhabas the map data knows about — zoom in to see them"
         >
           <Building2 size={15} /> Map data
+        </button>
+        <button
+          type="button"
+          className={`ph-tool${showUsedTolls ? ' is-on' : ''}`}
+          onClick={() => setShowUsedTolls((v) => !v)}
+          aria-pressed={showUsedTolls}
+          title="Show toll plazas your trucks have used"
+        >
+          <PlaceIcon layer="tolls" size={17} /> Used tolls
+        </button>
+        <button
+          type="button"
+          className={`ph-tool${showAllTolls ? ' is-on' : ''}`}
+          onClick={() => setShowAllTolls((v) => !v)}
+          aria-pressed={showAllTolls}
+          title="Show used toll plazas and every other plaza in view — zoom in to see them"
+        >
+          <PlaceIcon layer="tolls" size={17} /> All tolls
         </button>
         <button
           type="button"

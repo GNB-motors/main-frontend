@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState, useEffect, useId } from 'react';
 import { Upload, CheckCircle2 } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -173,14 +174,14 @@ const ConsignmentDrawer = ({ isOpen, onClose, trip = null, onSuccess }) => {
                 value={form.loadedQty}
                 onChange={(e) => setForm({ ...form, loadedQty: e.target.value })}
               />
-              <select
+              <SearchableSelect
                 value={form.loadedQtyUnit}
                 onChange={(e) => setForm({ ...form, loadedQtyUnit: e.target.value })}
                 style={{ width: '80px' }}
               >
                 <option value="KL">KL</option>
                 <option value="MT">MT</option>
-              </select>
+              </SearchableSelect>
             </div>
           </div>
           <div className="erp-field full">

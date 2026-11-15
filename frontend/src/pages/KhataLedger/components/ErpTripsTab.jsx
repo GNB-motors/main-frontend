@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Search,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import KhataKpiGrid from './KhataKpiGrid';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -25,7 +27,10 @@ import {
   TableRow,
   TableCell,
 } from '@/components/ui/table';
-import KhataLedgerService from '../KhataLedgerService';
+import KhataLedgerService, {
+  ERP_DISABLED_MESSAGE,
+  isErpDisabledError,
+} from '../KhataLedgerService';
 import ErpTripDetailModal from './ErpTripDetailModal';
 import { useActiveBranch } from '../../../contexts/BranchContext';
 import logger from '../../../utils/logger.js';
@@ -51,11 +56,14 @@ const SORT_OPTIONS = [
 ];
 
 const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
-  const { branchId, activeBranch } = useActiveBranch();
+  const { activeBranch } = useActiveBranch();
   const [trips, setTrips] = useState([]);
   const [tripFinances, setTripFinances] = useState({});
   const [loading, setLoading] = useState(true);
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
+  // Organisations without ERP get a 404 on the trip endpoints — that is not
+  // "no trips yet", so it gets its own empty state.
+  const [erpDisabled, setErpDisabled] = useState(false);
 
   // Filters & Search
   const [searchInput, setSearchInput] = useState('');
@@ -80,12 +88,12 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
     async (page = 1) => {
       setLoading(true);
       try {
+        // The trip list accepts neither branchId nor driverId; the branch comes
+        // from the shared X-Branch-Id header and the driver filter is applied below.
         const params = { page, limit: 20 };
-        if (branchId) params.branchId = branchId;
         if (search) params.search = search;
         if (statusFilter) params.state = statusFilter;
         if (vehicleFilter) params.vehicleId = vehicleFilter;
-        if (driverFilter) params.driverId = driverFilter;
 
         const res = await KhataLedgerService.getErpTrips(params);
         const tripList = res.data || res.results || (Array.isArray(res) ? res : []);
@@ -111,14 +119,16 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
           }),
         );
         setTripFinances(finances);
+        setErpDisabled(false);
       } catch (err) {
         logger.error('Failed to load ERP Trips:', err);
         setTrips([]);
+        if (isErpDisabledError(err)) setErpDisabled(true);
       } finally {
         setLoading(false);
       }
     },
-    [branchId, search, statusFilter, vehicleFilter, driverFilter],
+    [search, statusFilter, vehicleFilter],
   );
 
   useEffect(() => {
@@ -161,6 +171,11 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
       result = result.filter((t) => t.revenue === 0);
     }
 
+    // The trip endpoint has no driver filter, so narrow the loaded page here.
+    if (driverFilter) {
+      result = result.filter((t) => String(t.driverId?._id || t.driverId) === String(driverFilter));
+    }
+
     // Sort
     result.sort((a, b) => {
       switch (sortBy) {
@@ -181,7 +196,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
     });
 
     return result;
-  }, [enrichedTrips, profitabilityFilter, sortBy]);
+  }, [enrichedTrips, profitabilityFilter, sortBy, driverFilter]);
 
   // Summary Metrics across loaded page
   const pageTotals = useMemo(() => {
@@ -245,84 +260,43 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
         </button>
       </div>
 
-      {/* KPI Cards Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className="border-blue-200 bg-gradient-to-br from-blue-50/50 to-white">
-          <CardContent className="p-4">
-            <span className="text-xs font-semibold uppercase tracking-wider text-blue-700 block mb-1">
-              Trip Revenue
-            </span>
-            <div className="text-2xl font-bold text-blue-950">
-              {formatCurrency(pageTotals.totalRevenue)}
-            </div>
-            <p className="text-[11px] text-blue-600/80 mt-1">Sale bills for shown trips</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-amber-200 bg-gradient-to-br from-amber-50/50 to-white">
-          <CardContent className="p-4">
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-700 block mb-1">
-              Trip Expenses
-            </span>
-            <div className="text-2xl font-bold text-amber-950">
-              {formatCurrency(pageTotals.totalCost)}
-            </div>
-            <p className="text-[11px] text-amber-700/80 mt-1">Advances, fuel & hire costs</p>
-          </CardContent>
-        </Card>
-
-        <Card
-          className={`bg-gradient-to-br to-white ${
-            pageTotals.netProfit >= 0
-              ? 'border-emerald-200 from-emerald-50/50'
-              : 'border-rose-200 from-rose-50/50'
-          }`}
-        >
-          <CardContent className="p-4">
-            <span
-              className={`text-xs font-semibold uppercase tracking-wider block mb-1 ${
-                pageTotals.netProfit >= 0 ? 'text-emerald-700' : 'text-rose-700'
-              }`}
-            >
-              Net Margin
-            </span>
-            <div
-              className={`text-2xl font-bold flex items-center gap-1.5 ${
-                pageTotals.netProfit >= 0 ? 'text-emerald-950' : 'text-rose-950'
-              }`}
-            >
-              {pageTotals.netProfit >= 0 ? (
-                <TrendingUp size={22} className="text-emerald-600" />
-              ) : (
-                <TrendingDown size={22} className="text-rose-600" />
-              )}
-              {formatCurrency(Math.abs(pageTotals.netProfit))}
-            </div>
-            <p className="text-[11px] text-gray-500 mt-1">Revenue minus costs</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-purple-200 bg-gradient-to-br from-purple-50/50 to-white">
-          <CardContent className="p-4">
-            <span className="text-xs font-semibold uppercase tracking-wider text-purple-700 block mb-1">
-              Trip Health
-            </span>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge className="bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold">
-                {pageTotals.profitableCount} Profitable
-              </Badge>
-              {pageTotals.lossCount > 0 && (
-                <Badge className="bg-rose-100 text-rose-800 border border-rose-200 text-xs font-semibold">
-                  {pageTotals.lossCount} Loss-making
-                </Badge>
-              )}
-            </div>
-            <p className="text-[11px] text-purple-700/80 mt-2">
-              {processedTrips.length} trips loaded
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <KhataKpiGrid
+        loading={loading}
+        items={[
+          {
+            label: 'Trip Revenue',
+            value: erpDisabled ? '—' : formatCurrency(pageTotals.totalRevenue),
+            sub: erpDisabled ? ERP_DISABLED_MESSAGE : 'Sale bills for shown trips',
+          },
+          {
+            label: 'Trip Expenses',
+            value: erpDisabled ? '—' : formatCurrency(pageTotals.totalCost),
+            sub: erpDisabled ? ERP_DISABLED_MESSAGE : 'Advances, fuel & hire costs',
+          },
+          {
+            label: 'Net Margin',
+            icon: pageTotals.netProfit < 0 ? TrendingDown : TrendingUp,
+            value: erpDisabled ? '—' : formatCurrency(pageTotals.netProfit),
+            sub: erpDisabled ? ERP_DISABLED_MESSAGE : 'Revenue minus costs',
+            status: erpDisabled
+              ? null
+              : pageTotals.netProfit < 0
+                ? 'Loss-making'
+                : pageTotals.netProfit > 0
+                  ? 'Profitable'
+                  : 'Break-even',
+            tone:
+              pageTotals.netProfit < 0 ? 'critical' : pageTotals.netProfit > 0 ? 'ok' : 'neutral',
+          },
+          {
+            label: 'Trip Health',
+            value: erpDisabled ? '—' : `${pageTotals.profitableCount} profitable`,
+            sub: erpDisabled ? ERP_DISABLED_MESSAGE : `${processedTrips.length} trips loaded`,
+            status: pageTotals.lossCount > 0 ? `${pageTotals.lossCount} loss-making` : null,
+            tone: 'critical',
+          },
+        ]}
+      />
 
       {/* Search & Filter Bar */}
       <Card>
@@ -346,7 +320,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
             {/* Sort Dropdown */}
             <div className="flex items-center gap-2">
               <ArrowUpDown size={15} className="text-gray-400" />
-              <select
+              <SearchableSelect
                 aria-label="Sort trips"
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 bg-white"
                 value={sortBy}
@@ -357,7 +331,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
                     {opt.label}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
 
             {/* Toggle Filters button */}
@@ -388,7 +362,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
                 >
                   Trip Status
                 </label>
-                <select
+                <SearchableSelect
                   id="erp-filter-status"
                   className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs bg-white"
                   value={statusFilter}
@@ -400,7 +374,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
                   <option value="DISPATCHED">Dispatched</option>
                   <option value="DELIVERED">Delivered</option>
                   <option value="CLOSED">Closed</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>
@@ -410,7 +384,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
                 >
                   Profitability
                 </label>
-                <select
+                <SearchableSelect
                   id="erp-filter-profitability"
                   className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs bg-white"
                   value={profitabilityFilter}
@@ -420,7 +394,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
                   <option value="PROFITABLE">Profitable Only</option>
                   <option value="LOSS_MAKING">Loss-making Only</option>
                   <option value="UNBILLED">Unbilled (Revenue ₹0)</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>
@@ -430,7 +404,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
                 >
                   Vehicle
                 </label>
-                <select
+                <SearchableSelect
                   id="erp-filter-vehicle"
                   className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs bg-white"
                   value={vehicleFilter}
@@ -442,7 +416,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
                       {getVehicleLabel(v)}
                     </option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>
@@ -452,7 +426,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
                 >
                   Driver
                 </label>
-                <select
+                <SearchableSelect
                   id="erp-filter-driver"
                   className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-xs bg-white"
                   value={driverFilter}
@@ -464,7 +438,7 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
                       {getDriverName(d)}
                     </option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
 
               <div className="sm:col-span-4 flex justify-end">
@@ -488,6 +462,15 @@ const ErpTripsTab = ({ vehicles = [], drivers = [] }) => {
               {[...Array(6)].map((_, i) => (
                 <Skeleton key={i} className="h-12 w-full rounded-lg" />
               ))}
+            </div>
+          ) : erpDisabled ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-16 text-center text-muted-foreground">
+              <Route size={42} className="opacity-30 text-indigo-600" />
+              <p className="text-base font-semibold text-gray-800">{ERP_DISABLED_MESSAGE}</p>
+              <p className="text-xs text-gray-500 max-w-sm">
+                Trip revenue, advances and margins will appear here once ERP is switched on for your
+                organisation.
+              </p>
             </div>
           ) : processedTrips.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-16 text-center text-muted-foreground">

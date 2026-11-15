@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState } from 'react';
 import { AlertTriangle, Truck, Fuel, TrendingUp, Search, X, SlidersHorizontal } from 'lucide-react';
 import EventsFeedPanel from './EventsFeedPanel.jsx';
@@ -37,6 +38,7 @@ const TABS = [
  * FuelIntegrityTables — The unified Mission Control Workspace.
  */
 export default function FuelIntegrityTables({
+  pumpLedger,
   isLoading,
   filteredCount,
   pageEvents,
@@ -56,6 +58,7 @@ export default function FuelIntegrityTables({
   defCount,
   billCount,
   lossL,
+  lossLabel = 'Fuel down while parked',
   affected,
   // Filter controls
   chip,
@@ -152,7 +155,7 @@ export default function FuelIntegrityTables({
               )}
             </div>
 
-            <select
+            <SearchableSelect
               value={eventType}
               onChange={(e) => onEventTypeChange(e.target.value)}
               className="fi-select"
@@ -160,11 +163,11 @@ export default function FuelIntegrityTables({
             >
               <option value="all">All Event Types</option>
               <option value="fill">Refuel Fills</option>
-              <option value="loss">Siphon Losses</option>
+              <option value="loss">{lossLabel}</option>
               <option value="def">DEF / AdBlue Anomalies</option>
-            </select>
+            </SearchableSelect>
 
-            <select
+            <SearchableSelect
               value={statusFilter}
               onChange={(e) => onStatusFilterChange(e.target.value)}
               className="fi-select"
@@ -174,7 +177,7 @@ export default function FuelIntegrityTables({
               <option value="ESTIMATED">Estimated</option>
               <option value="CONFIRMED">Confirmed</option>
               <option value="REJECTED">Rejected</option>
-            </select>
+            </SearchableSelect>
 
             <button type="button" className="fi-action-btn" onClick={onApplyFilter}>
               Apply
@@ -222,6 +225,7 @@ export default function FuelIntegrityTables({
         {activeTab === 'risk' && (
           <div className="p-4">
             <VehicleRiskPanel
+              lossLabel={lossLabel}
               bare
               isLoading={isLoading}
               riskVehicles={riskVehicles}
@@ -232,7 +236,7 @@ export default function FuelIntegrityTables({
 
         {activeTab === 'pumps' && (
           <div className="p-4">
-            <PumpHonestyPanel />
+            <PumpHonestyPanel ledger={pumpLedger} />
           </div>
         )}
 

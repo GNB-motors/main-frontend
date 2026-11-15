@@ -1,3 +1,6 @@
+import { sumKnown } from '../../../../utils/measured';
+import { inr } from '../../routeHubFormat';
+
 export const STATUS_FILTERS = [
   { key: 'all', label: 'All statuses' },
   { key: 'OPEN', label: 'Please review', ic: 'alert', c: '#C56200' },
@@ -9,7 +12,7 @@ export const LEG_FILTERS = [
   { key: 'all', label: 'Any leg' },
   { key: 'LADEN', label: 'Loaded' },
   { key: 'RETURN', label: 'Empty, driving back' },
-  { key: 'NONE', label: 'Outside any trip' },
+  { key: 'NONE', label: 'Unscheduled / Off-trip' },
 ];
 
 export const REVIEW_REASONS = [
@@ -34,6 +37,90 @@ export function costBasisLabel(d) {
     : "at this trip's own cost per km";
 }
 
+/**
+ * Whether the extra distance is a measurement. A truck 9.9 km off its road
+ * with "+0.0 km extra" means there was no usual road to compare against
+ * (fewer than two of the fleet's own trips used it), so we show a dash.
+ */
+export function extraKnown(d) {
+  if (!d) return false;
+  if (d.source === 'ROAD_ENGINE' || d.enrichment?.status === 'UNAVAILABLE') return false;
+  if (d.extraKmEstimate == null) return false;
+  return !(Number(d.extraKmEstimate) === 0 && Number(d.maxOffKm || 0) >= 1);
+}
+
+/**
+ * Whether the extra cost is a measurement: it needs both the extra distance
+ * and a cost for it. Otherwise we show a dash rather than a ₹0 that looks free.
+ */
+export function costKnown(d) {
+  if (!extraKnown(d)) return false;
+  return d.estimatedExtraCostInr != null;
+}
+
+/**
+ * The totals of a group of detours. Only the detours whose figure was
+ * measured go into a sum: a detour the server could not measure is unknown,
+ * and adding it as zero would report a distance nobody drove. The sum is
+ * null when nothing was measured, so the screen can print a dash instead of
+ * 0 km or ₹0, and the `unknown` counts say how many detours are left out.
+ */
+export function groupTotals(events = []) {
+  const list = Array.isArray(events) ? events : [];
+  const extra = sumKnown(list.map((d) => (extraKnown(d) ? d.extraKmEstimate : null)));
+  const cost = sumKnown(list.map((d) => (costKnown(d) ? d.estimatedExtraCostInr : null)));
+  return {
+    extraKm: extra.sum,
+    costInr: cost.sum,
+    extraKnown: extra.known,
+    extraUnknown: extra.unknown,
+    costKnown: cost.known,
+    costUnknown: cost.unknown,
+    total: list.length,
+  };
+}
+
+/**
+ * "2 of 5 detours not measured" - how many detours a sum leaves out. Null
+ * when every one of them was measured, so there is nothing to say.
+ */
+export function notMeasuredNote(unknown, total, noun = 'detour') {
+  if (!unknown || !total) return null;
+  return `${unknown} of ${total} ${total === 1 ? noun : `${noun}s`} not measured`;
+}
+
+/**
+ * The one-line summary of a group of detours: how many detours, the extra
+ * distance and the extra cost. A figure nobody measured is a dash, never
+ * 0 km or ₹0, and a partly measured figure says how many detours it left
+ * out.
+ */
+export function groupSummaryText(g) {
+  const events = g?.events || [];
+  const totals = groupTotals(events);
+  const extraNote = notMeasuredNote(totals.extraUnknown, totals.total);
+  const costNote = notMeasuredNote(totals.costUnknown, totals.total);
+  const extra =
+    totals.extraKm != null
+      ? `+${Number(totals.extraKm).toFixed(1)} km`
+      : 'extra km —';
+  const cost = totals.costInr != null ? inr(totals.costInr) : 'cost —';
+  return [
+    `${events.length} ${events.length === 1 ? 'detour' : 'detours'}`,
+    `${extra}${extraNote ? ` (${extraNote})` : ''}`,
+    `${cost}${costNote ? ` (${costNote})` : ''}`,
+  ].join(' · ');
+}
+
+/** Why a detour can be shown without an extra-distance/cost estimate. */
+export function enrichmentReason(d) {
+  if (d?.enrichment?.message) return d.enrichment.message;
+  if (d?.source === 'ROAD_ENGINE') {
+    return 'This event measures distance driven off the usual road. Extra distance and cost are not calculated for this detector.';
+  }
+  return 'Extra distance and cost are unavailable because a comparable route and a complete exit-and-return track have not been verified.';
+}
+
 export const isOpen = (d) => String(d.status || '').toUpperCase() === 'OPEN';
 
 export const normalisePlate = (s) =>
@@ -42,7 +129,7 @@ export const normalisePlate = (s) =>
     .toLowerCase();
 
 export function legLabel(trip) {
-  if (!trip) return 'Outside any trip';
+  if (!trip) return 'Unscheduled Run';
   if (trip.leg === 'LADEN') return 'Loaded';
   if (trip.leg === 'RETURN') return 'Empty, driving back';
   return 'On trip';
@@ -59,6 +146,48 @@ export function tripLabel(trip) {
   return `${from} → ${to}${extra}`;
 }
 
+/**
+ * Meaningful title for a deviation group or event:
+ * 1. Trip route label if on an ERP trip (e.g. "Plant A → Durgapur Site")
+ * 2. Learned corridor name if known (e.g. "NH19 Corridor Transit")
+ * 3. Quantified detour distance (e.g. "Unscheduled Transit · +19.0 km")
+ * 4. Fallback: "Unscheduled Fleet Transit"
+ */
+export function deviationGroupTitle(g) {
+  if (g?.trip) return tripLabel(g.trip);
+  const firstEv = g?.events ? g.events[0] : g;
+  if (firstEv?.corridorLabel) return firstEv.corridorLabel;
+  const extra = g?.extraKm ?? firstEv?.extraKmEstimate;
+  if (extra != null && Number(extra) > 0) {
+    return `Unscheduled Transit · +${Number(extra).toFixed(1)} km`;
+  }
+  // A road-engine detour carries km driven off the usual road (#150), not a farthest-off point.
+  const offRoad = firstEv?.offRouteKm;
+  if (offRoad != null && Number(offRoad) > 0) {
+    return `Unscheduled Detour · ${Number(offRoad).toFixed(1)} km off the usual road`;
+  }
+  const maxOff = firstEv?.maxOffKm;
+  if (maxOff != null && Number(maxOff) > 0) {
+    return `Unscheduled Detour · ${Number(maxOff).toFixed(1)} km off-route`;
+  }
+  return 'Unscheduled Fleet Transit';
+}
+
+/**
+ * Meaningful subtitle providing date/time/corridor context instead of "Between two known places".
+ */
+export function deviationGroupSubtitle(g) {
+  if (g?.trip) return `Trip of ${shortDay(g.trip.ladenFrom)}`;
+  const firstEv = g?.events ? g.events[0] : g;
+  const day = shortDay(firstEv?.startedAt || firstEv?.detectedAt);
+  const windowStr = runWindow(firstEv);
+  const timeContext = windowStr ? `${day} · ${windowStr}` : day;
+  if (firstEv?.corridorLabel) {
+    return `Corridor deviation · ${timeContext}`;
+  }
+  return `No active ERP trip · ${timeContext}`;
+}
+
 /** Plate, trip places and the route label all match a search. */
 export function matchesSearch(d, q) {
   if (!q) return true;
@@ -72,6 +201,10 @@ export function matchesSearch(d, q) {
 /**
  * Rows grouped by the trip they happened on, in the order the feed sorted
  * them. A run outside any trip is its own group.
+ *
+ * The group totals count only what was measured: a group where nothing was
+ * measured has no distance and no cost (both null), and says how many of its
+ * detours were not measured.
  */
 export function groupByTrip(rows) {
   const groups = [];
@@ -86,22 +219,24 @@ export function groupByTrip(rows) {
         trip: d.trip || null,
         registrationNumber: d.registrationNumber,
         events: [],
-        extraKm: 0,
-        costInr: 0,
+        extraKm: null,
+        costInr: null,
         open: 0,
       };
       groups.push(g);
       if (id) byTrip.set(id, g);
     }
     g.events.push(d);
-    g.extraKm += d.extraKmEstimate || 0;
-    g.costInr += d.estimatedExtraCostInr || 0;
     if (isOpen(d)) g.open += 1;
   }
   for (const g of groups) {
     g.events.sort(
       (a, b) => new Date(a.startedAt || a.detectedAt) - new Date(b.startedAt || b.detectedAt),
     );
+    const totals = groupTotals(g.events);
+    g.extraKm = totals.extraKm;
+    g.costInr = totals.costInr;
+    g.totals = totals;
   }
   return groups;
 }

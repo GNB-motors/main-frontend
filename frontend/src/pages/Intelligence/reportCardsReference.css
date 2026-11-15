@@ -1,0 +1,418 @@
+.intel-assessments {
+  font-family:
+    'Vehicle Overview Inter',
+    Inter,
+    -apple-system,
+    sans-serif;
+  color: #121214;
+  margin-top: 16px;
+}
+.intel-assessments-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.intel-assessments-heading h2 {
+  margin: 0;
+  font:
+    500 24px/1.2 'Vehicle Overview DM Sans',
+    sans-serif;
+  letter-spacing: -0.3px;
+}
+.intel-assessments-heading p {
+  margin: 10px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #5d5d5e;
+}
+.intel-assessments-heading > span {
+  font-size: 12px;
+  color: #5d5d5e;
+}
+.intel-assessment-briefing {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(135deg, #2f58ee4d, #6a43d814) border-box;
+  box-shadow: 0 4px 14px #1e223814;
+  overflow: hidden;
+}
+.intel-assessment-brief-copy {
+  flex: 2 1 520px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px 24px;
+}
+.intel-assessment-brief-copy > span {
+  color: #6a43d8;
+  font:
+    500 10px/1 Helvetica,
+    Arial,
+    sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.intel-assessment-brief-copy > p {
+  margin: 0;
+  font:
+    400 19px/1.5 'Vehicle Overview DM Sans',
+    sans-serif;
+}
+.intel-assessment-brief-copy button {
+  border: 0;
+  border-bottom: 2px solid #c56200;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.intel-assessment-brief-copy small {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #5d5d5e;
+}
+.intel-assessment-brief-kpis {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  flex: 1 1 300px;
+  border-left: 1px solid #ececee;
+}
+.intel-assessment-brief-kpis > button {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid #ececee;
+  border-right: 1px solid #ececee;
+  background: none;
+  cursor: pointer;
+}
+.intel-assessment-brief-kpis > button:hover {
+  background: #f8f8fb;
+}
+.intel-assessment-brief-kpis span {
+  font-size: 12px;
+  color: #5d5d5e;
+}
+.intel-assessment-brief-kpis strong {
+  font:
+    500 26px/1.1 'Vehicle Overview DM Sans',
+    sans-serif;
+  color: #121214;
+}
+.intel-assessment-brief-kpis small {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #93939a;
+}
+.intel-assessments-table {
+  background: #fff;
+  border: 1px solid #0508160d;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px #1e223814;
+  overflow: hidden;
+}
+.intel-assessments-table .dt-tools {
+  padding: 16px 20px;
+  border-bottom: 1px solid #ececee;
+  gap: 0;
+}
+.intel-assessments-table .dt-tools-right {
+  width: 100%;
+}
+.intel-assessments-table .dt-cols,
+.intel-assessments-table .dt-tools > .dt-summary {
+  display: none;
+}
+.intel-assessments-table .intel-tab-tools {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+}
+.intel-assessments-table .intel-search-box {
+  margin-left: auto;
+  height: 34px;
+  flex: 0 1 240px;
+  min-width: 160px;
+  border: 1px solid #dfdfe2;
+  border-radius: 8px;
+  background: #fff;
+}
+.intel-assessments-table .intel-search-input {
+  font-size: 13px;
+}
+.intel-assessments-table .intel-chip-row {
+  gap: 6px;
+}
+.intel-assessments-table .intel-chip {
+  min-height: 32px;
+  padding: 5px 12px;
+  font-size: 13px;
+  border: 1px solid #dfdfe2;
+  color: #121214;
+}
+.intel-assessments-table .intel-chip[aria-pressed='true'] {
+  border-color: #2f58ee40;
+  background: #2f58ee1a;
+  color: #213ea7;
+}
+.intel-assessments-table .dt-table {
+  min-width: 820px;
+}
+.intel-assessments-table th {
+  padding: 10px 20px;
+  color: #747476;
+  background: #f8f8fb;
+  border-bottom: 1px solid #ececee;
+  font-size: 11px;
+  font-weight: 400;
+}
+.intel-assessments-table td {
+  padding: 12px 20px;
+  border-bottom: 1px solid #f3f3f6;
+  font-size: 13px;
+}
+.intel-assessments-table .intelligence-table-open {
+  font:
+    500 12.5px 'Vehicle Overview DM Mono',
+    monospace;
+}
+.intel-assessments-table .intelligence-table-open small {
+  display: block;
+  margin-top: 3px;
+  color: #93939a;
+  font:
+    11.5px 'Vehicle Overview Inter',
+    sans-serif;
+}
+.intel-assessments-table .intel-score {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+.intel-assessments-table .intel-score-bar {
+  width: 72px;
+  height: 4px;
+  background: #ececee;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.intel-assessments-table .intel-score-bar > span {
+  display: block;
+  height: 100%;
+  background: #2f58ee;
+}
+.intel-assessment-trend-missing {
+  font-size: 11.5px;
+  color: #93939a;
+  white-space: nowrap;
+}
+.intel-assessment-drawer[data-slot='sheet-content'] {
+  width: min(460px, 100%);
+  max-width: 460px;
+  background: #fff;
+  border-left: 1px solid #ececee;
+  color: #121214;
+}
+.intel-assessment-drawer [data-slot='sheet-header'] {
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid #ececee;
+}
+.intel-assessment-drawer [data-slot='sheet-title'] {
+  font:
+    500 18px 'Vehicle Overview DM Mono',
+    monospace;
+}
+.intel-assessment-drawer [data-slot='sheet-header'] button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #dfdfe2;
+  border-radius: 50%;
+}
+.intel-assessment-rank,
+.intel-assessment-period {
+  margin: 0;
+  font-size: 12.5px;
+  color: #93939a;
+}
+.intel-assessment-grade {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: #f3f3f6;
+  color: #5d5d5e;
+}
+.intel-assessment-grade--EXCELLENT {
+  background: #e8f7ec;
+  color: #187a32;
+}
+.intel-assessment-grade--GOOD {
+  background: #eaf2ff;
+  color: #213ea7;
+}
+.intel-assessment-grade--FAIR {
+  background: #fff5df;
+  color: #a35100;
+}
+.intel-assessment-grade--FALLING {
+  background: #ffe7e7;
+  color: #bb2626;
+}
+.intel-assessment-open-profile {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  min-height: 36px;
+  padding: 8px 14px;
+  border: 1px solid #2a4fd6;
+  border-radius: 8px;
+  background: #4469f0;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.intel-assessments-heading {
+  align-items: flex-start;
+}
+.intel-assessment-heading-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  margin-left: auto;
+}
+.intel-assessment-heading-right > span {
+  font-size: 12px;
+  color: #5d5d5e;
+}
+.intel-assessment-view-switch {
+  display: flex;
+  min-width: 348px;
+  flex-shrink: 0;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--rd-line, #dfdfe2);
+  border-radius: 10px;
+  background: var(--rd-card-2, #f8f8fb);
+}
+.intel-assessment-view-switch button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--rd-ink-2, #5d5d5e);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.intel-assessment-view-switch button[aria-selected='true'] {
+  background: var(--rd-card, #fff);
+  border-color: var(--rd-line, #dfdfe2);
+  color: var(--rd-ink, #121214);
+  box-shadow: 0 1px 3px #0000000d;
+}
+@media (max-width: 600px) {
+  .intel-assessment-heading-right {
+    width: 100%;
+  }
+  .intel-assessment-view-switch {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+.intel-driver-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.intel-driver-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #eef0ff;
+  color: #2a4fd6;
+  font-size: 12px;
+  font-weight: 600;
+}
+.intel-driver-identity small {
+  max-width: 300px;
+  white-space: normal;
+}
+.intel-driver-coverage {
+  border: 1px solid #ececee;
+  border-radius: 12px;
+  padding: 16px;
+}
+.intel-driver-coverage h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+.intel-driver-coverage dl {
+  margin: 0;
+}
+.intel-driver-coverage dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid #ececee;
+  font-size: 13px;
+}
+.intel-driver-coverage dt,
+.intel-driver-coverage p {
+  color: #66666c;
+}
+.intel-driver-coverage dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.intel-driver-coverage p {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.intel-driver-trucks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.intel-driver-trucks a {
+  border: 1px solid #dfdfe8;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  text-decoration: none;
+  color: #2a4fd6;
+}

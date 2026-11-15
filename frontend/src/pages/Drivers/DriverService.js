@@ -2,6 +2,8 @@ import apiClient from '../../utils/axiosConfig';
 import { parseSafe } from '../../schemas/validate.js';
 import ApiError from '../../errors/ApiError';
 import logger from '../../utils/logger';
+import DriverVehicleAssignmentService from '../../services/DriverVehicleAssignmentService';
+import { attachAssignedVehicles } from './driverList.js';
 
 /** Normalise a mobile number to E.164 (+91XXXXXXXXXX for Indian numbers). */
 function normaliseMobile(mobile) {
@@ -15,6 +17,21 @@ function normaliseMobile(mobile) {
 }
 
 export const DriverService = {
+  // --- Fill each employee's vehicle from the assignment ledger ---
+  // Best-effort: a failed ledger fetch leaves the list showing "Unassigned"
+  // rather than blanking the whole employees table.
+  withAssignedVehicles: async (drivers) => {
+    try {
+      return attachAssignedVehicles(
+        drivers,
+        await DriverVehicleAssignmentService.getAllActiveAssignments(),
+      );
+    } catch (error) {
+      logger.warn('DriverService', 'Failed to fetch vehicle assignments', error);
+      return drivers;
+    }
+  },
+
   // --- Get Employees (drivers/managers) ---
   getAllDrivers: async (businessRefId, params = {}) => {
     try {

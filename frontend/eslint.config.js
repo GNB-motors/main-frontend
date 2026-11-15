@@ -47,7 +47,7 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', ignoreRestSiblings: true }],
       // Rule 24: log through utils/logger.js (console in dev only, errors to Sentry).
       'no-console': 'error',
       // Rule 8: components fetch through a service / api module and useApi or
@@ -98,6 +98,10 @@ export default defineConfig([
       // Deprecated by jsx-a11y in favour of label-has-associated-control; keeping
       // it double-reports every label. Off, not suppressed.
       'jsx-a11y/label-has-for': 'off',
+      'jsx-a11y/label-has-associated-control': [
+        'warn',
+        { controlComponents: ['SearchableSelect'] },
+      ],
       // React correctness rules that don't require prop-types
       'react/no-children-prop': 'error',
       'react/no-danger-with-children': 'error',

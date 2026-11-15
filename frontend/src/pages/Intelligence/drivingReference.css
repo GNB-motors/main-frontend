@@ -1,0 +1,109 @@
+.intelligence-page .intel-driving-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.intelligence-page .intel-driving-tab .intel-assessment-briefing {
+  margin: 0;
+}
+.intel-assessment-brief-kpis > .intel-driving-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 20px 24px;
+  border-left: 1px solid #ececee;
+  border-bottom: 1px solid #ececee;
+}
+.intel-driving-kpi > span {
+  color: #656568;
+  font-size: 13px;
+}
+.intel-driving-kpi > strong {
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: #121214;
+}
+.intel-driving-kpi > small {
+  color: #919198;
+  font-size: 12px;
+}
+.intelligence-page .intel-driving-tab .intel-subview-toolbar {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+.intelligence-page .intel-driving-tab .intel-map-workspace {
+  border-radius: 16px;
+  border: 1px solid #e1e4ec;
+  background: #fff;
+  overflow: hidden;
+}
+.intelligence-page .intel-driving-tab .intel-map-workspace .ph-side {
+  background: #fff;
+}
+.intelligence-page .intel-driving-tab .ph-kpi {
+  border-radius: 12px;
+  border-color: #e5e5eb;
+  box-shadow: none;
+}
+.intelligence-page .intel-driving-tab .intel-audit-workspace {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.intelligence-page .intel-driving-tab .nova-rh .card {
+  background: #fff;
+  border: 1px solid #e3e4eb;
+  border-radius: 14px;
+  box-shadow: 0 2px 5px #1e223808;
+}
+.intelligence-page .intel-driving-tab .nova-rh .card-head {
+  border-bottom: 1px solid #ececee;
+  background: #fff;
+  padding: 16px 20px;
+}
+.intelligence-page .intel-driving-tab .nova-rh .kpi {
+  background: #fff;
+  border: 1px solid #e3e4eb;
+  border-radius: 12px;
+  box-shadow: none;
+}
+.intelligence-page .intel-driving-tab .nova-rh .phead h2 {
+  font-size: 18px;
+  font-weight: 500;
+}
+.intelligence-page .intel-driving-tab .nova-rh .btn {
+  border-radius: 8px;
+}
+.intelligence-page .intel-driving-tab .nova-rh table thead {
+  background: #f8f8fa;
+}
+.intelligence-page .intel-driving-tab .dt-table th {
+  background: #f8f8fa;
+  font-weight: 500;
+}
+.intelligence-page .intel-driving-tab .dt-table td {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+@media (max-width: 640px) {
+  .intel-assessment-brief-kpis > .intel-driving-kpi {
+    padding: 16px;
+  }
+}
+
+.intelligence-page .intel-driving-tab .leaflet-tooltip {
+  padding: 12px 14px;
+  border: 1px solid #dde3ee;
+  border-radius: 10px;
+  background: #fff;
+  color: #253047;
+  box-shadow: 0 8px 24px #182a471f;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.intelligence-page .intel-driving-tab .leaflet-tooltip-top::before {
+  border-top-color: #fff;
+}

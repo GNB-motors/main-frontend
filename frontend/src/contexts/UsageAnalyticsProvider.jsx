@@ -8,25 +8,11 @@ import { getUserRole } from '../utils/session';
 import { UsageAnalyticsContext } from './UsageAnalyticsContext.js';
 
 /**
- * UsageAnalyticsProvider — item 26 wired end to end.
- *
- * TWO JOBS, ONE PROVIDER, because they read and write the same thing:
- *
- *  1. RECORD. Every navigation to a counted surface posts one view. Without
- *     this the cut has no evidence behind it, and a cut with no evidence is a
- *     cut by taste.
- *  2. READ. The org's own learned profile is fetched once per session and handed
- *     to the Sidebar, which folds entries on it.
- *
- * FAILURE BEHAVIOUR (this matters more than it looks)
- * --------------------------------------------------
- * Nothing here may ever break navigation. A failed record is swallowed; a failed
- * profile leaves `profile` null, and a null profile means NO cut. Usage
- * tracking is allowed to be broken. The menu is not allowed to be empty because
- * of it.
+ * Records page visits and shares the organization's learned usage profile.
+ * Analytics failures never affect navigation or sidebar placement.
  */
 
-/** Use the same entitlement and role gates as the sidebar, before usage folding. */
+/** Use the same entitlement and role gates as the sidebar, without changing their navigation placement. */
 
 export default function UsageAnalyticsProvider({ children }) {
   const [profile, setProfile] = React.useState(null);
@@ -69,7 +55,7 @@ export default function UsageAnalyticsProvider({ children }) {
         if (!controller.signal.aborted) setProfile(data);
       })
       .catch(() => {
-        /* No profile leaves the full menu available. */
+        /* analytics consumers can render without a learned profile */
       });
     return () => controller.abort();
   }, [surfaces, enabled]);

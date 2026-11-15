@@ -55,15 +55,10 @@
   --atx-tl-stop: #94a3b8;
   --atx-tl-drop: #16a34a;
   --atx-tl-rail: #cbd5e1;
-  --atx-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --atx-mono: var(--font-mono);
 
   color: var(--atx-ink);
-  font-family:
-    'Plus Jakarta Sans',
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    sans-serif;
+  font-family: var(--font-sans);
 }
 
 .atx-page {
@@ -714,6 +709,9 @@
 }
 
 .atx-range-pop {
+  max-width: var(--available-width, calc(100vw - 24px));
+  max-height: var(--available-height);
+  overflow: auto;
   border-radius: 12px;
   background: var(--atx-surface);
   border-color: var(--atx-line-2);
@@ -860,6 +858,11 @@
 }
 .atx-muted {
   color: var(--atx-ink-4);
+}
+/* A stop we could not place: the trip needs an answer, so it is amber. */
+.atx-drop-missing {
+  color: var(--atx-amber);
+  font-weight: 600;
 }
 .atx-replay-link {
   font-weight: 700;
@@ -1179,9 +1182,6 @@
   color: var(--atx-ink);
   overflow-wrap: anywhere;
 }
-.atx-field-value.is-mono {
-  font-family: var(--atx-mono);
-}
 .atx-field-value.is-warn {
   color: var(--atx-amber);
 }
@@ -1362,6 +1362,16 @@
   border-width: 2px;
   border-color: var(--atx-tl-stop);
 }
+/* A toll plaza driven through: a small amber square, like its marker on the replay map. */
+.atx-tl-step--toll .atx-tl-mark--toll {
+  width: 11px;
+  height: 11px;
+  margin-top: 10px;
+  border: 2px solid var(--atx-amber);
+  border-radius: 2px;
+  background: var(--atx-amber-bg);
+  box-shadow: none;
+}
 
 .atx-tl-body {
   min-width: 0;
@@ -1421,6 +1431,10 @@
 .atx-tl-pill--drop {
   background: var(--atx-green-soft);
   color: var(--atx-green-ink);
+}
+.atx-tl-pill--toll {
+  background: var(--atx-amber-bg);
+  color: var(--atx-amber);
 }
 .atx-tl-actions {
   display: flex;
@@ -1580,6 +1594,64 @@
 }
 .atx-field--wide {
   grid-column: 1 / -1;
+}
+/* A full-width row inside the form grid that splits into equal columns
+   (the approval limits: type / max extra km / max dwell). */
+.atx-form-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 560px) {
+  .atx-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+/* Segmented control — the When toggle and the weekday picker in the
+   approval dialog. Sits on a sunk track like the workspace tabs; the active
+   segment carries the brand blue. */
+.atx-seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px;
+  border: 1px solid var(--ds-line);
+  border-radius: 9px;
+  background: var(--ds-sunk);
+}
+.atx-seg-item {
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-ink2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+.atx-seg-item:hover {
+  color: var(--ds-ink);
+}
+.atx-seg-item--active,
+.atx-seg-item--active:hover {
+  background: var(--rd-brand);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18);
+}
+.atx-seg--sm .atx-seg-item {
+  height: 24px;
+  padding: 0 9px;
+  font-size: 11px;
 }
 .atx-form-footer {
   flex-wrap: wrap;

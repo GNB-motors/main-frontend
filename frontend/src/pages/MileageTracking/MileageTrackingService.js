@@ -1,6 +1,7 @@
 import apiClient from '../../utils/axiosConfig';
 import ApiError from '../../errors/ApiError';
 import { mapAdBlueLogResponse } from './adBlueTrackingLogic';
+import { getBranchId, getOrgId, getUserId } from '../../utils/session.js';
 
 const call = async (request) => {
   try {
@@ -18,9 +19,30 @@ const listIntervals = (params, { signal } = {}) =>
 const getInterval = (id, { signal } = {}) =>
   call(async () => (await apiClient.get(`/api/mileage/intervals/${id}`, { signal })).data);
 
-/** Response body of GET /api/mileage/model-comparison. */
-const getModelComparison = (params, { signal } = {}) =>
-  call(async () => (await apiClient.get('/api/mileage/model-comparison', { params, signal })).data);
+/**
+ * Response body of GET /api/mileage/model-comparison.
+ *
+ * The read is slow (tens of seconds on a big org) and the hub asks for it
+ * twice at once (the km/L tile and the By-model view), so identical requests
+ * share one call for a minute. The shared call is not tied to either caller's
+ * AbortSignal: one caller leaving must not cancel the other's answer.
+ */
+const MODEL_COMPARISON_TTL_MS = 60 * 1000;
+const modelComparisonCalls = new Map();
+const getModelComparison = (params) => {
+  // Scoped like the vehicle list cache: a branch switch or another login
+  // within the minute must never be handed the previous scope's answer.
+  const key = `${getUserId() || ''}:${getOrgId() || ''}:${getBranchId() || 'all'}:${JSON.stringify(params ?? {})}`;
+  const hit = modelComparisonCalls.get(key);
+  if (hit && Date.now() - hit.at < MODEL_COMPARISON_TTL_MS) return hit.promise;
+  const promise = call(
+    async () => (await apiClient.get('/api/mileage/model-comparison', { params })).data,
+  );
+  modelComparisonCalls.set(key, { at: Date.now(), promise });
+  // A failed read is not kept: the next caller tries again.
+  promise.catch(() => modelComparisonCalls.delete(key));
+  return promise;
+};
 
 /** One page of AdBlue logs, mapped to table rows. */
 const listAdBlueLogs = ({ page, limit, search, signal } = {}) =>

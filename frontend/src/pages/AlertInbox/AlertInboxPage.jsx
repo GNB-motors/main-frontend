@@ -1,13 +1,42 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React from 'react';
+import useUrlFilter from '@/hooks/useUrlFilter';
 import { Link } from 'react-router-dom';
-import { Bell, ShieldAlert, Truck, RefreshCw, Search, ArrowUpRight, Check, X } from 'lucide-react';
+import {
+  Bell,
+  ShieldAlert,
+  Truck,
+  RefreshCw,
+  Search,
+  ArrowUpRight,
+  Check,
+  CheckCheck,
+  X,
+  Sparkles,
+  FileText,
+  Clock,
+} from 'lucide-react';
 import PageShell from '../../components/ui/PageShell.jsx';
 import { Button } from '../../components/ui/button.jsx';
 import { Dialog, DialogContent, DialogTitle, DialogClose } from '../../components/ui/dialog.jsx';
 import { useSupportPortal } from '../../contexts/supportPortalContext';
-import { getInbox, acknowledgeItem } from '../../services/AlertInboxService.js';
-import { SOURCE_LABELS, sinceLabel, reviewTarget, filterInbox } from './inboxModel.js';
+import { getInbox, acknowledgeItem, acknowledgeAll } from '../../services/AlertInboxService.js';
+import { fleetViewService } from '../../services/fleetViewService';
+import useApi from '../../hooks/useApi';
+import {
+  SOURCE_LABELS,
+  sinceLabel,
+  reviewTarget,
+  filterInbox,
+  subjectTitle,
+} from './inboxModel.js';
+import AccountLinkBanner from './AccountLinkBanner.jsx';
+import IncidentsTab from './IncidentsTab.jsx';
+import AlertInboxTable from './AlertInboxTable';
+import { billCheckView } from '../../utils/billCheck';
+import { ackAllConfirmText } from './incidentsModel.js';
 import './AlertInbox.css';
+import AlertPageGuide from '../../components/alerts/AlertPageGuide';
 
 export default function AlertInboxPage() {
   const [data, setData] = React.useState(null);
@@ -15,15 +44,26 @@ export default function AlertInboxPage() {
   const [error, setError] = React.useState(null);
   const [actionError, setActionError] = React.useState(null);
   const [pending, setPending] = React.useState(new Set());
-  const [status, setStatus] = React.useState('OPEN');
-  const [query, setQuery] = React.useState('');
-  const [severity, setSeverity] = React.useState('');
-  const [source, setSource] = React.useState('');
+  const [status, setStatus] = useUrlFilter('inboxStatus', 'OPEN', ['OPEN', 'ACKNOWLEDGED', 'ALL']);
+  const [query, setQuery] = useUrlFilter('inboxSearch');
+  const [severity, setSeverity] = useUrlFilter('inboxSeverity');
+  const [source, setSource] = useUrlFilter('inboxSource');
   const [detailId, setDetailId] = React.useState(null);
+  const [view, setView] = useUrlFilter('inboxView', 'ALERTS', ['ALERTS', 'INCIDENTS']);
+  const [ackAllOpen, setAckAllOpen] = React.useState(false);
+  const [ackAllPending, setAckAllPending] = React.useState(false);
   const [announcement, setAnnouncement] = React.useState('');
   const request = React.useRef(null);
   const mounted = React.useRef(true);
   const support = useSupportPortal();
+
+  // The state of the vendor accounts. A 404 means the endpoint is not
+  // deployed yet, and then no banner is shown at all.
+  const { data: linkStateData } = useApi(
+    (signal) => fleetViewService.getAccountsLinkState({ signal }),
+    [],
+  );
+  const linkState = Array.isArray(linkStateData?.items) ? linkStateData.items : [];
 
   const load = React.useCallback(async () => {
     request.current?.abort();
@@ -65,10 +105,10 @@ export default function AlertInboxPage() {
           item.id === id ? { ...item, ...updated, status: 'ACKNOWLEDGED' } : item,
         ),
       }));
-      setAnnouncement('Alert acknowledged. The underlying issue remains available for review.');
+      setAnnouncement('Moved to Reviewed. The issue has not been resolved.');
     } catch (err) {
       if (mounted.current)
-        setActionError(err?.message || 'Could not acknowledge this alert. Try again.');
+        setActionError(err?.message || 'Could not mark this alert as reviewed. Try again.');
     } finally {
       if (mounted.current)
         setPending((current) => {
@@ -76,6 +116,23 @@ export default function AlertInboxPage() {
           next.delete(id);
           return next;
         });
+    }
+  };
+
+  const ackEverything = async () => {
+    setAckAllPending(true);
+    setActionError(null);
+    try {
+      await acknowledgeAll();
+      setAckAllOpen(false);
+      await load();
+      setAnnouncement('Every open alert is marked as seen.');
+    } catch (err) {
+      if (mounted.current) {
+        setActionError(err?.message || 'Could not mark the alerts as seen. Try again.');
+      }
+    } finally {
+      if (mounted.current) setAckAllPending(false);
     }
   };
 
@@ -92,10 +149,11 @@ export default function AlertInboxPage() {
   ).size;
   const reviewAction = (item) => {
     const target = reviewTarget(item);
+    if (!target) return null;
     return target.ticketId ? (
       <Button
         size="sm"
-        variant="secondary"
+        className="ai-review"
         disabled={!support.enabled}
         onClick={() => {
           setDetailId(null);
@@ -117,7 +175,7 @@ export default function AlertInboxPage() {
     <PageShell
       title="Alert Inbox"
       count={open.length}
-      subtitle="Review fleet issues and follow up in one place."
+      subtitle="Fleet issues to check, with evidence and the next step for each one."
       className="alert-inbox"
       actions={
         <Button variant="secondary" size="sm" onClick={load} disabled={loading || pending.size > 0}>
@@ -126,179 +184,234 @@ export default function AlertInboxPage() {
         </Button>
       }
     >
-      <div className="ai-notice">
-        Feeds update periodically. For urgent incidents, check the dedicated alert pages.
-      </div>
-      <div className="ai-summary">
-        {[
-          { label: 'Open alerts', value: open.length, Icon: Bell },
-          {
-            label: 'Critical',
-            value: open.filter((item) => item.severity === 'critical').length,
-            Icon: ShieldAlert,
-          },
-          { label: 'Vehicles affected', value: vehicleCount, Icon: Truck },
-        ].map(({ label, value, Icon }) => (
-          <div className="ai-stat" key={label}>
-            <span className="ai-stat-icon">
-              {React.createElement(Icon, { size: 19, 'aria-hidden': true })}
-            </span>
-            <div>
-              <span>{label}</span>
-              <strong>{data ? value : '—'}</strong>
-            </div>
-          </div>
+      <AlertPageGuide page="inbox" />
+
+      {/* A vendor account that stopped sending data explains why the trucks
+          went quiet, and carries the one button that fixes it (F6). */}
+      {linkState
+        .filter((account) => account.state === 'NEEDS_RELINK' || account.state === 'EXPIRING')
+        .map((account) => (
+          <AccountLinkBanner key={account.accountId} account={account} />
         ))}
+
+      <div className="ai-tabs ai-views" role="group" aria-label="Inbox views">
+        <button type="button" aria-pressed={view === 'ALERTS'} onClick={() => setView('ALERTS')}>
+          Alerts <span>{open.length}</span>
+        </button>
+        <button
+          type="button"
+          aria-pressed={view === 'INCIDENTS'}
+          onClick={() => setView('INCIDENTS')}
+        >
+          Incidents
+        </button>
       </div>
-      <section className="ai-panel" aria-label="Fleet alert queue" aria-busy={loading}>
-        <div className="ai-toolbar">
-          <div className="ai-tabs" role="group" aria-label="Alert status">
-            {['OPEN', 'ACKNOWLEDGED'].map((value) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={status === value}
-                onClick={() => setStatus(value)}
-              >
-                {value === 'OPEN' ? 'Open' : 'Acknowledged'}{' '}
-                <span>{all.filter((item) => item.status === value).length}</span>
-              </button>
-            ))}
-          </div>
-          <label className="ai-search">
-            <Search size={16} aria-hidden="true" />
-            <input
-              aria-label="Search alerts"
-              placeholder="Search vehicle or issue"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </label>
-          <select
-            aria-label="Severity"
-            value={severity}
-            onChange={(event) => setSeverity(event.target.value)}
-          >
-            <option value="">All priorities</option>
-            <option value="critical">Critical</option>
-            <option value="caution">Needs review</option>
-            <option value="info">Information</option>
-          </select>
-          <select
-            aria-label="Source"
-            value={source}
-            onChange={(event) => setSource(event.target.value)}
-          >
-            <option value="">All sources</option>
-            {Object.entries(SOURCE_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
-        {error || actionError ? (
-          <div role="alert" className="ai-error">
-            {error || actionError}{' '}
-            {error && (
-              <button type="button" onClick={load}>
-                Retry
-              </button>
-            )}
-          </div>
-        ) : null}
-        {!data && loading ? (
-          <div role="status" className="ai-empty">
-            Loading your fleet alerts…
-          </div>
-        ) : null}
-        {!loading && !error && items.length === 0 ? (
-          <div className="ai-empty">
-            <Bell size={28} aria-hidden="true" />
-            <h2>
-              {query || severity || source
-                ? 'No matching alerts'
-                : status === 'OPEN'
-                  ? 'No open inbox alerts'
-                  : 'No acknowledged alerts'}
-            </h2>
-            <p>
-              {query || severity || source
-                ? 'Try another search or clear your filters.'
-                : 'Source feeds update periodically. Review urgent incidents in their dedicated pages.'}
-            </p>
-            {(query || severity || source) && (
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setQuery('');
-                  setSeverity('');
-                  setSource('');
-                }}
-              >
-                Clear filters
-              </Button>
-            )}
-          </div>
-        ) : null}
-        <ul className="ai-list">
-          {items.map((item) => (
-            <li key={item.id} className="ai-row">
-              <span className={`ai-priority ai-priority--${item.severity}`}>
-                {item.severity === 'critical'
-                  ? 'Critical'
-                  : item.severity === 'caution'
-                    ? 'Needs review'
-                    : 'Info'}
-              </span>
-              <div className="ai-row-main">
-                <button className="ai-subject" type="button" onClick={() => setDetailId(item.id)}>
-                  {item.subjectLabel || 'Your organisation'}
-                </button>
-                <h2>{item.label}</h2>
-                <p className="ai-ask">
-                  {item.wants || 'Open the source alert to review this issue.'}
-                </p>
-                <div className="ai-meta">
-                  {[
-                    ...new Set(
-                      (item.sources || []).map((s) => SOURCE_LABELS[s.source] || 'Other source'),
-                    ),
-                  ].join(' · ')}
-                  <span>Updated {sinceLabel(item.lastSeenAt)}</span>
-                  {item.status === 'ACKNOWLEDGED' && (
-                    <span>Acknowledged {sinceLabel(item.acknowledgedAt)}</span>
-                  )}
+
+      {view === 'INCIDENTS' ? (
+        <IncidentsTab />
+      ) : (
+        <>
+          <div className="ai-summary">
+            {[
+              { label: 'Open alerts', value: open.length, Icon: Bell },
+              {
+                label: 'Critical',
+                value: open.filter((item) => item.severity === 'critical').length,
+                Icon: ShieldAlert,
+              },
+              { label: 'Vehicles affected', value: vehicleCount, Icon: Truck },
+            ].map(({ label, value, Icon }) => (
+              <div className="ai-stat" key={label}>
+                <span className="ai-stat-icon">
+                  {React.createElement(Icon, { size: 19, 'aria-hidden': true })}
+                </span>
+                <div>
+                  <span>{label}</span>
+                  <strong>{data ? value : '—'}</strong>
                 </div>
               </div>
-              <div className="ai-row-actions">
-                <Button variant="ghost" size="sm" onClick={() => setDetailId(item.id)}>
-                  Details
-                </Button>
-                {reviewAction(item)}
-                {item.status === 'OPEN' && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={pending.has(item.id)}
-                    onClick={() => ack(item.id)}
+            ))}
+          </div>
+          <section className="ai-panel" aria-label="Fleet alert queue" aria-busy={loading}>
+            <div className="ai-toolbar">
+              <div className="ai-tabs" role="group" aria-label="Alert status">
+                {['OPEN', 'ACKNOWLEDGED'].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={status === value}
+                    onClick={() => setStatus(value)}
                   >
-                    <Check size={14} aria-hidden="true" />
-                    {pending.has(item.id) ? 'Saving…' : 'Acknowledge'}
+                    {value === 'OPEN' ? 'To review' : 'Reviewed'}{' '}
+                    <span>{all.filter((item) => item.status === value).length}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="ai-toolbar-controls">
+                <label className="ai-search">
+                  <Search size={16} aria-hidden="true" />
+                  <input
+                    aria-label="Search alerts"
+                    placeholder="Search vehicle or issue"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                  />
+                </label>
+                <SearchableSelect
+                  aria-label="Priority"
+                  className="ai-filter ai-filter--priority"
+                  value={severity}
+                  onChange={(event) => setSeverity(event.target.value)}
+                >
+                  <option value="">All priorities</option>
+                  <option value="critical">Critical</option>
+                  <option value="caution">Needs review</option>
+                  <option value="info">Information</option>
+                </SearchableSelect>
+                <SearchableSelect
+                  aria-label="Source"
+                  className="ai-filter ai-filter--source"
+                  value={source}
+                  onChange={(event) => setSource(event.target.value)}
+                >
+                  <option value="">All sources</option>
+                  {Object.entries(SOURCE_LABELS).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </SearchableSelect>
+                {ackAllOpen ? (
+                  <span
+                    className="ai-confirm"
+                    role="group"
+                    aria-label="Confirm marking every alert as seen"
+                  >
+                    <span>{ackAllConfirmText(open.length)}</span>
+                    <Button size="sm" onClick={ackEverything} disabled={ackAllPending}>
+                      {ackAllPending ? 'Saving…' : 'Yes, mark all'}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setAckAllOpen(false)}>
+                      Cancel
+                    </Button>
+                  </span>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="ai-bulk-review"
+                    onClick={() => setAckAllOpen(true)}
+                    disabled={loading || open.length === 0}
+                  >
+                    <CheckCheck size={14} aria-hidden="true" />
+                    Mark all reviewed
                   </Button>
                 )}
               </div>
-            </li>
-          ))}
-        </ul>
-        {data && (
-          <div className="ai-footer">
-            Showing {items.length} of {all.filter((item) => item.status === status).length}{' '}
-            {status === 'OPEN' ? 'open' : 'acknowledged'} alerts. Acknowledging records your review;
-            it does not resolve the source issue.
-          </div>
-        )}
-      </section>
+            </div>
+            {error || actionError ? (
+              <div role="alert" className="ai-error">
+                {error || actionError}{' '}
+                {error && (
+                  <button type="button" onClick={load}>
+                    Retry
+                  </button>
+                )}
+              </div>
+            ) : null}
+            {!data && loading ? (
+              <div role="status" className="ai-empty" aria-label="Loading your fleet alerts…">
+                <span className="sr-only">Loading your fleet alerts…</span>
+                <div
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                    padding: 8,
+                  }}
+                >
+                  {[1, 2, 3].map((n) => (
+                    <div
+                      key={n}
+                      className="ai-row ai-row--skeleton"
+                      style={{ width: '100%', margin: 0 }}
+                    >
+                      <div
+                        className="ai-skel-bar"
+                        style={{ width: 96, height: 26, borderRadius: 6, flexShrink: 0 }}
+                      />
+                      <div className="ai-row-main">
+                        <div className="ai-skel-bar" style={{ width: 140, height: 18 }} />
+                        <div
+                          className="ai-skel-bar"
+                          style={{ width: '65%', height: 20, marginTop: 8 }}
+                        />
+                        <div
+                          className="ai-skel-bar"
+                          style={{ width: '90%', height: 36, marginTop: 8 }}
+                        />
+                        <div
+                          className="ai-skel-bar"
+                          style={{ width: 220, height: 14, marginTop: 8 }}
+                        />
+                      </div>
+                      <div className="ai-row-actions">
+                        <div className="ai-skel-bar" style={{ width: 70, height: 32 }} />
+                        <div className="ai-skel-bar" style={{ width: 95, height: 32 }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {!loading && !error && items.length === 0 ? (
+              <div className="ai-empty">
+                <Bell size={28} aria-hidden="true" />
+                <h2>
+                  {query || severity || source
+                    ? 'No matching alerts'
+                    : status === 'OPEN'
+                      ? 'No open inbox alerts'
+                      : 'No reviewed alerts'}
+                </h2>
+                <p>
+                  {query || severity || source
+                    ? 'Try another search or clear your filters.'
+                    : 'Source feeds update periodically. Review urgent incidents in their dedicated pages.'}
+                </p>
+                {(query || severity || source) && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setQuery('');
+                      setSeverity('');
+                      setSource('');
+                    }}
+                  >
+                    Clear filters
+                  </Button>
+                )}
+              </div>
+            ) : null}
+            {items.length > 0 ? (
+              <AlertInboxTable
+                items={items}
+                total={all.filter((item) => item.status === status).length}
+                pending={pending}
+                onSelect={(item) => setDetailId(item.id)}
+                onReview={ack}
+              />
+            ) : null}
+            {data && (
+              <div className="ai-footer">
+                Marking an item reviewed records that you checked it; it does not resolve the source
+                issue.
+              </div>
+            )}
+          </section>
+        </>
+      )}
       <p className="sr-only" role="status">
         {announcement}
       </p>
@@ -310,32 +423,123 @@ export default function AlertInboxPage() {
       >
         {detail && (
           <DialogContent className="ai-detail">
-            <header>
+            <header className="ai-detail-header">
               <div>
-                <DialogTitle>{detail.subjectLabel || 'Your organisation'}</DialogTitle>
-                <p>{detail.label}</p>
+                <div className="ai-detail-header-top">
+                  <span className="ai-detail-plate">
+                    <Truck size={14} aria-hidden="true" />
+                    {subjectTitle(detail.subjectLabel)}
+                  </span>
+                  <span className={`ai-priority ai-priority--${detail.severity}`}>
+                    {detail.severity === 'critical'
+                      ? 'Critical'
+                      : detail.severity === 'caution'
+                        ? 'Needs review'
+                        : 'Info'}
+                  </span>
+                  {detail.status === 'ACKNOWLEDGED' && (
+                    <span className="ai-detail-ack-badge">
+                      <Check size={12} aria-hidden="true" />
+                      Reviewed
+                    </span>
+                  )}
+                </div>
+                <DialogTitle className="ai-detail-title">{detail.label}</DialogTitle>
               </div>
-              <DialogClose aria-label="Close alert details">
+              <DialogClose className="ai-detail-close" aria-label="Close alert details">
                 <X size={18} />
               </DialogClose>
             </header>
             <div className="ai-detail-body">
-              <h3>Recommended action</h3>
-              <p>{detail.wants || 'Open the source alert to review this issue.'}</p>
-              <h3>Evidence · {detail.sources?.length || 0} reports</h3>
-              {(detail.sources || []).map((evidence, index) => (
-                <article key={`${evidence.source}-${evidence.refId || index}-${evidence.at}`}>
-                  <strong>{SOURCE_LABELS[evidence.source] || 'Other source'}</strong>
-                  <p>{evidence.detail || 'Open the source page for more information.'}</p>
-                  <small>{sinceLabel(evidence.at)}</small>
-                </article>
-              ))}
-              <p className="ai-meta">
-                First reported {sinceLabel(detail.firstSeenAt)} · Last activity{' '}
-                {sinceLabel(detail.lastSeenAt)}
-              </p>
-              {reviewAction(detail)}
+              <div className="ai-detail-section-header">
+                <Sparkles size={14} aria-hidden="true" className="ai-detail-icon-accent" />
+                <h3>Recommended action</h3>
+              </div>
+              <div className="ai-detail-action-card">
+                <p>{detail.wants || 'Check the reports below and confirm with your team.'}</p>
+              </div>
+
+              <div className="ai-detail-section-header">
+                <FileText size={14} aria-hidden="true" className="ai-detail-icon-accent" />
+                <h3>What was reported</h3>
+                <span className="ai-detail-count-pill">{detail.sources?.length || 0} reports</span>
+              </div>
+              <div className="ai-detail-cards">
+                {(detail.sources || []).map((evidence, index) => {
+                  const bill = billCheckView(evidence.billCheck);
+                  return (
+                    <article
+                      key={`${evidence.source}-${evidence.refId || index}-${evidence.at}`}
+                      className="ai-detail-card"
+                    >
+                      <div className="ai-detail-card-head">
+                        <span className="ai-detail-source-badge">
+                          {SOURCE_LABELS[evidence.source] || 'Other source'}
+                        </span>
+                        <span className="ai-detail-time">
+                          <Clock size={12} aria-hidden="true" />
+                          {sinceLabel(evidence.at)}
+                        </span>
+                      </div>
+                      <p className="ai-detail-card-text">
+                        {evidence.detail || 'No additional report details were recorded.'}
+                      </p>
+                      {bill && (
+                        <div className="ai-evidence-check">
+                          <strong>Refuel bill check: {bill.label}</strong>
+                          {bill.reason && <p>{bill.reason}</p>}
+                        </div>
+                      )}
+                      {evidence.resolutionNote && (
+                        <div className="ai-evidence-check">
+                          <strong>Source update</strong>
+                          <p>{evidence.resolutionNote}</p>
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+              {detail.status === 'OPEN' && (
+                <p className="ai-review-explanation" id="ai-detail-review-help">
+                  Finished checking the reports? Mark this alert as reviewed to move it out of To
+                  review. This does not resolve the issue.
+                </p>
+              )}
+              {actionError && (
+                <p role="alert" className="ai-error">
+                  {actionError}
+                </p>
+              )}
             </div>
+            <footer className="ai-detail-footer">
+              <div className="ai-detail-meta">
+                <Clock size={13} aria-hidden="true" />
+                <span>
+                  First reported {sinceLabel(detail.firstSeenAt)} · Last activity{' '}
+                  {sinceLabel(detail.lastSeenAt)}
+                </span>
+              </div>
+              <div className="ai-detail-actions">
+                <Button variant="outline" size="sm" onClick={() => setDetailId(null)}>
+                  Close
+                </Button>
+                {reviewAction(detail)}
+                {detail.status === 'OPEN' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="ai-mark-reviewed"
+                    aria-describedby="ai-detail-review-help"
+                    disabled={pending.has(detail.id)}
+                    onClick={() => ack(detail.id)}
+                  >
+                    <Check size={14} aria-hidden="true" />
+                    {pending.has(detail.id) ? 'Saving…' : 'Mark as reviewed'}
+                  </Button>
+                )}
+              </div>
+            </footer>
           </DialogContent>
         )}
       </Dialog>

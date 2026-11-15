@@ -1,0 +1,215 @@
+.vdocs {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.vdocs .vdo-card {
+  padding: 20px 22px;
+  gap: 14px;
+}
+.vdocs .vdocs-summary {
+  padding: 24px;
+  gap: 20px;
+}
+.vdocs-summary-head,
+.vdocs-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.vdocs-summary-head p,
+.vdocs .vdocs-description,
+.vdocs-summary-note {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #5d5d5e;
+}
+.vdocs-summary-head p {
+  margin-top: 6px;
+}
+.vdocs-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+.vdocs-metrics > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-left: 1px solid #ececee;
+  padding-left: 20px;
+}
+.vdocs-metrics > div:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+.vdocs-metrics strong {
+  font:
+    500 30px/1.2 'Vehicle Overview DM Sans',
+    sans-serif;
+}
+.vdocs-metrics span {
+  font-size: 12px;
+  color: #5d5d5e;
+}
+.vdocs-progress {
+  height: 7px;
+  background: #ececee;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.vdocs-progress > span {
+  display: block;
+  height: 100%;
+  background: #4469f0;
+  border-radius: 5px;
+}
+.vdocs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr));
+  gap: 20px;
+}
+.vdocs-file-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: #4469f0;
+  background: #eef1ff;
+  border: 1px solid #e3e8ff;
+  border-radius: 12px;
+}
+.vdocs-badge {
+  font-size: 11.5px;
+  padding: 5px 9px;
+  border-radius: 999px;
+}
+.vdocs-badge--danger {
+  color: #bb2626;
+  background: #fff0ef;
+}
+.vdocs-badge--warn {
+  color: #a65c00;
+  background: #fff6df;
+}
+.vdocs-badge--ok {
+  color: #187a32;
+  background: #e8f7ec;
+}
+.vdocs-document .vdocs-description {
+  min-height: 38px;
+}
+.vdocs-validity {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid #f3f3f6;
+  padding-top: 14px;
+  font-size: 12px;
+}
+.vdocs-validity > span {
+  color: #93939a;
+}
+.vdocs-validity > strong {
+  font-family: 'Vehicle Overview DM Mono', monospace;
+  font-weight: 500;
+}
+.vdocs .vdocs-expiry {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.vdocs-expiry--danger {
+  color: #bb2626;
+}
+.vdocs-expiry--warn {
+  color: #a65c00;
+}
+.vdocs-expiry--ok {
+  color: #187a32;
+}
+.vdocs-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 14px;
+  border: 1px solid #dce1ee;
+  background: #fff;
+  color: #2a4fd6;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.vdocs-document > .vdocs-button {
+  margin-top: auto;
+}
+.vdocs-button:hover {
+  background: #f8f8fb;
+  border-color: #b6c4fa;
+}
+.vdocs-button--primary {
+  background: #4469f0;
+  color: #fff;
+  border-color: #2a4fd6;
+}
+.vdocs-button--primary:hover {
+  background: #2a4fd6;
+}
+.vdocs-upload {
+  scroll-margin-top: 24px;
+}
+.vdocs-loading {
+  color: #93939a;
+  font-size: 13px;
+}
+@media (max-width: 600px) {
+  .vdocs-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .vdocs-metrics > div {
+    border: 0;
+    padding: 0;
+  }
+  .vdocs .vdocs-summary {
+    padding: 20px;
+  }
+}
+
+/* The shared uploader's form-sized caps do not fit the full-width vehicle tab. */
+.vdocs-upload .document-upload-wrapper {
+  padding: 0;
+}
+.vdocs-upload .document-upload-outer-container {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  background: #fff;
+  box-shadow: none;
+  outline: none;
+  border-radius: 0;
+}
+.vdocs-upload .document-upload-container {
+  padding: 12px 0 0;
+  border-radius: 0;
+}
+.vdocs-upload .document-cards-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: 20px;
+}
+.vdocs-upload .document-card-wrapper {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+.vdocs-upload .document-upload-header {
+  height: auto;
+  padding: 0;
+  gap: 12px;
+  flex-wrap: wrap;
+}

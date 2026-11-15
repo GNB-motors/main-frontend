@@ -30,7 +30,7 @@ export default function PlacePick({
   showLowConfidence = false,
   enabled = true,
 }) {
-  const typed = siteId ? '' : (name || '');
+  const typed = siteId ? '' : name || '';
   const { suggestions, loading, error } = usePlaceSuggestions({
     enabled,
     q: typed,
@@ -41,9 +41,7 @@ export default function PlacePick({
 
   // Ranked suggestions win; the unranked list is only there for when the
   // suggestions call failed, so the field is never empty for no reason.
-  const options = suggestions.length
-    ? toPickOptions(suggestions)
-    : toPickOptions(places);
+  const options = suggestions.length ? toPickOptions(suggestions) : toPickOptions(places);
   const picked = options.find((o) => o.id === siteId);
   const badge = confidenceBadge(picked ? suggestions.find((s) => s.id === siteId) : null);
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import apiClient from '../utils/axiosConfig';
 import { isAuthenticated } from '../utils/session.js';
 import { FeatureFlagsProvider, useFeatureFlags } from './FeatureFlagsContext.jsx';
@@ -88,6 +88,57 @@ describe('FeatureFlagsProvider ready gate', () => {
 
     expect(screen.getByTestId('state')).toHaveTextContent('ready:0');
     expect(apiClient.get).not.toHaveBeenCalled();
+  });
+});
+
+// A failed /auth/me is not a fact about the account: the last good flags stay
+// on screen, the failure is said out loud, and a person can ask again.
+describe('FeatureFlagsProvider retry', () => {
+  function RetryProbe() {
+    const { failed, retry, flags } = useFeatureFlags();
+    return (
+      <div>
+        <span data-testid="failed">{failed ? 'failed' : 'ok'}</span>
+        <span data-testid="flag">{Object.keys(flags).join(',')}</span>
+        <button type="button" onClick={() => retry()}>
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('says the read failed and asks again when Retry is pressed', async () => {
+    isAuthenticated.mockReturnValue(true);
+    const me = deferred();
+    apiClient.get.mockReturnValue(me.promise);
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    render(
+      <FeatureFlagsProvider>
+        <RetryProbe />
+      </FeatureFlagsProvider>,
+    );
+
+    me.reject(new Error('network down'));
+    await waitFor(() => expect(screen.getByTestId('failed')).toHaveTextContent('failed'));
+
+    apiClient.get.mockResolvedValue({
+      data: {
+        data: {
+          organization: { featureFlags: { vehicles: true } },
+          permissions: { vehicles: true },
+        },
+      },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    await waitFor(() => expect(screen.getByTestId('failed')).toHaveTextContent('ok'));
+    expect(screen.getByTestId('flag')).toHaveTextContent('vehicles');
   });
 });
 

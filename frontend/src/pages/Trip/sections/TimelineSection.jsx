@@ -90,7 +90,7 @@ export default function TimelineSection({ trip }) {
               fontSize: '12px',
               fontWeight: '600',
               color: '#111827',
-              fontFamily: 'monospace',
+              fontFamily: 'var(--font-sans)',
               wordBreak: 'break-all',
             }}
           >

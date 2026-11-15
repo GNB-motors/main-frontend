@@ -1,16 +1,19 @@
+import OverviewSkeleton from './panels/overview/OverviewSkeleton';
+import './panels/overview/referenceOverview.css';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import useApi from '../../hooks/useApi';
 import FleetDataService from '../../services/FleetDataService';
-import { Breadcrumbs, IdentityStrip, HeroRow } from './vehicle360Header';
+import { Breadcrumbs } from './vehicle360Header';
+import VehicleHeaderCard from './VehicleHeaderCard';
 import { Tabs } from './vehicle360Tabs';
 import OverviewPanel from './panels/OverviewPanel';
 import ServicePanel from './panels/ServicePanel';
 import FuelPanel from './panels/FuelPanel';
 import DocumentsPanel from './panels/DocumentsPanel';
 import TelemetryPanel from './panels/TelemetryPanel';
+import TyresPanel from './panels/TyresPanel';
 import TripsPanel from './panels/TripsPanel';
 import DriversPanel from './panels/DriversPanel';
-import OpenChallanBadge from '../Compliance/OpenChallanBadge';
 import './vehicle360.css';
 
 /**
@@ -32,14 +35,15 @@ export default function Vehicle360Page() {
   const { data, loading, error, refetch } = useApi(
     (signal) => FleetDataService.getVehicleProfile(reg, signal),
     [reg],
+    { scopeKey: reg },
   );
   const { data: healthDetail } = useApi(
     (signal) => FleetDataService.getVehicleHealth(reg, { days: 30 }, signal),
     [reg],
-    { enabled: Boolean(data?.health) },
+    { enabled: Boolean(data?.health) && !error, scopeKey: reg },
   );
 
-  const p = data || {};
+  const p = error ? {} : data || {};
   const history = (healthDetail?.history || []).map((h) => ({
     t: h.pulledAt
       ? new Date(h.pulledAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
@@ -56,6 +60,7 @@ export default function Vehicle360Page() {
     { id: 'trips', label: 'Trips' },
     { id: 'drivers', label: 'Drivers' },
     { id: 'telemetry', label: 'Telemetry' },
+    { id: 'tyres', label: 'Tyres & Axles' },
   ];
 
   // Tab lives in the URL so a vehicle view is shareable and the back button works.
@@ -71,12 +76,17 @@ export default function Vehicle360Page() {
   if (error?.status === 404) {
     return (
       <div className="v360">
-        <Breadcrumbs reg={reg} />
+        <Breadcrumbs
+          reg={reg}
+          lastSyncAt={
+            p.livePosition?.view?.lastFixAt || p.livePosition?.eventDateTime || p.health?.pulledAt
+          }
+        />
         <section className="v360-card">
-          <p className="v360-card-title">Nothing on record for {reg}</p>
+          <p className="v360-card-title">Vehicle unavailable — {reg}</p>
           <p className="v360-card-lede">
-            This registration is not in the fleet master, the FleetEdge directory, or the
-            live-status feed. Check the plate, or add the vehicle to the fleet first.
+            This vehicle is not available in your registered fleet or selected location. Check the
+            plate and location, or onboard the vehicle first.
           </p>
           <div style={{ display: 'flex', gap: 9, marginTop: 14 }}>
             <Link to="/vehicles" className="v360-btn v360-btn--primary">
@@ -100,6 +110,24 @@ export default function Vehicle360Page() {
           <div className="v360-modelcard" style={{ height: 424 }} />
           <div className="v360-registry" style={{ height: 424 }} />
         </div>
+        <OverviewSkeleton />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="v360">
+        <Breadcrumbs reg={reg} />
+        <section className="v360-card" role="alert">
+          <p className="v360-card-title">Could not load vehicle</p>
+          <p className="v360-card-lede">
+            {error.displayMessage || error.message || 'Try refreshing this vehicle.'}
+          </p>
+          <button className="v360-btn" onClick={refetch}>
+            Try again
+          </button>
+        </section>
       </div>
     );
   }
@@ -108,39 +136,16 @@ export default function Vehicle360Page() {
     <div className="v360">
       <Breadcrumbs reg={reg} />
 
-      <IdentityStrip
-        reg={reg}
-        fleetMaster={p.fleetMaster}
-        fleetEdge={p.fleetEdge}
-        livePosition={p.livePosition}
-        prediction={p.prediction}
-        telematicsProvider={p.telematicsProvider}
-      />
-
-      {/* Compliance: open e-challans block registration, so they belong on
-          the vehicle header rather than behind a tab. Renders nothing when
-          the vehicle is clean. */}
-      <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-        <OpenChallanBadge vehicleNumber={reg} />
-      </div>
-
-      <HeroRow
-        reg={reg}
-        fleetMaster={p.fleetMaster}
-        fleetEdge={p.fleetEdge}
-        health={p.health}
-        livePosition={p.livePosition}
-        prediction={p.prediction}
-        coverage={p.coverage}
-        history={history}
-        ialert={p.ialert}
-        telematicsProvider={p.telematicsProvider}
-      />
+      <VehicleHeaderCard reg={reg} profile={p} onGoTab={setActive} />
 
       <Tabs tabs={TABS} active={active} onChange={setActive} />
 
       {active === 'overview' ? (
         <OverviewPanel
+          reg={reg}
+          ialert={p.ialert}
+          coverage={p.coverage}
+          telematicsProvider={p.telematicsProvider}
           vehicleId={p.fleetMaster?.id}
           history={history}
           health={p.health}
@@ -151,14 +156,33 @@ export default function Vehicle360Page() {
           assignedDriver={p.assignedDriver}
           fleetMaster={p.fleetMaster}
           fleetEdge={p.fleetEdge}
+          kmPerLitre={p.kmPerLitre}
           onGoTab={setActive}
         />
       ) : null}
       {active === 'service' ? (
-        <ServicePanel prediction={p.prediction} health={p.health} history={history} />
+        <ServicePanel
+          prediction={p.prediction}
+          health={p.health}
+          history={history}
+          vehicleId={p.fleetMaster?.id}
+          registrationNumber={reg}
+          livePosition={p.livePosition}
+        />
       ) : null}
       {active === 'fuel' ? (
-        <FuelPanel recentFuelLogs={p.recentFuelLogs} defBalance={p.defBalance} />
+        <FuelPanel
+          registrationNumber={reg}
+          onGoTab={setActive}
+          recentFuelLogs={p.recentFuelLogs}
+          defBalance={p.defBalance}
+          health={p.health}
+          prediction={p.prediction}
+          kmPerLitre={p.kmPerLitre}
+          fleetMaster={p.fleetMaster}
+          fleetEdge={p.fleetEdge}
+          ialert={p.ialert}
+        />
       ) : null}
       {active === 'documents' ? (
         <DocumentsPanel
@@ -167,12 +191,39 @@ export default function Vehicle360Page() {
           onChanged={refetch}
         />
       ) : null}
-      {active === 'trips' ? <TripsPanel /> : null}
+      {active === 'trips' ? (
+        <TripsPanel vehicleId={p.fleetMaster?.id} registrationNumber={reg} />
+      ) : null}
       {active === 'drivers' ? (
-        <DriversPanel vehicleId={p.fleetMaster?.id} assignedDriver={p.assignedDriver} />
+        <DriversPanel
+          recentAlerts={p.recentAlerts}
+          safetyToday={p.safetyToday}
+          vehicleId={p.fleetMaster?.id}
+          assignedDriver={p.assignedDriver}
+          health={p.health}
+          livePosition={p.livePosition}
+        />
       ) : null}
       {active === 'telemetry' ? (
-        <TelemetryPanel health={p.health} livePosition={p.livePosition} history={history} />
+        <TelemetryPanel
+          registrationNumber={reg}
+          assignedDriver={p.assignedDriver}
+          health={p.health}
+          prediction={p.prediction}
+          livePosition={p.livePosition}
+          history={history}
+          fleetMaster={p.fleetMaster}
+          fleetEdge={p.fleetEdge}
+        />
+      ) : null}
+      {active === 'tyres' ? (
+        <TyresPanel
+          fleetMaster={p.fleetMaster}
+          fleetEdge={p.fleetEdge}
+          health={p.health}
+          ialert={p.ialert}
+          tyres={p.tyres}
+        />
       ) : null}
     </div>
   );

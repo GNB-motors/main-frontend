@@ -35,6 +35,21 @@ export function inr(value) {
   return `₹${Number(value).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 }
 
+/**
+ * What one crossing cost.
+ *
+ * A crossing with no fare on file is "unknown" — never ₹0, because a pass we
+ * cannot price is still money the owner owes. A crossing the return rule made
+ * free is "free": a real zero, said plainly.
+ */
+export function crossingMoney(row) {
+  if (!row) return { text: '—', tone: 'muted' };
+  if (row.billingStatus === 'FREE') return { text: 'free', tone: 'muted' };
+  const amount = row.charge ?? row.amountInr ?? null;
+  if (!Number.isFinite(amount)) return { text: 'unknown', tone: 'unknown' };
+  return { text: inr(amount), tone: 'bill' };
+}
+
 /** What a single money cell should say, in words the owner can act on. */
 export function moneyCell(row) {
   if (!row) return { text: '—', tone: 'muted' };

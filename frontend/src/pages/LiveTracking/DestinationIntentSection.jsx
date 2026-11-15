@@ -1,6 +1,7 @@
 import { Navigation, ChevronDown } from 'lucide-react';
 import useApi from '../../hooks/useApi';
 import { LiveTrackingService } from './LiveTrackingService';
+import { ETA_PASSED_TEXT, etaHasPassed } from './etaPassed.js';
 
 const pct = (v) => (typeof v === 'number' ? `${Math.round(v * 100)}%` : '—');
 const km1 = (v) => (typeof v === 'number' ? `${v.toFixed(1)} km` : '—');
@@ -24,24 +25,24 @@ const plateKey = (reg) =>
     .toUpperCase()
     .replace(/\s+/g, '');
 
+/* The backend names each candidate (Place Hub's name, "Driver's home",
+   "Somewhere else"); a raw id is never shown (audit DC-28). */
 function candidateLabel(c) {
   if (!c) return null;
-  const ref = c.ref;
-  const name = ref && typeof ref === 'object' ? ref.name || ref._id : ref;
-  const kind = c.kind ? c.kind.toLowerCase() : null;
-  return [name, kind ? `(${kind})` : null].filter(Boolean).join(' ') || kind || '—';
+  if (c.name) return c.name;
+  if (c.ref === 'NONE') return 'Somewhere else';
+  return 'Unnamed place';
 }
 
 /**
  * Predicted destination for the selected vehicle (Trip Economics intents). Lives
- * in the Live Tracking detail rail; it fills the gap the "Recorded path" note
- * calls out (telematics has no destination/ETA). Read-only, best-effort: shows
- * nothing if the vehicle has no recent prediction.
+ * in the Live Tracking detail rail (telematics itself has no destination/ETA).
+ * Read-only, best-effort: shows nothing if the vehicle has no recent prediction.
  */
 export default function DestinationIntentSection({ registrationNumber }) {
   const { data, loading, error } = useApi(
-    (signal) => LiveTrackingService.getIntents({ signal }),
-    [],
+    (signal) => LiveTrackingService.getIntents({ signal, registrationNumber }),
+    [registrationNumber],
   );
   const wanted = plateKey(registrationNumber);
   const intent = wanted
@@ -50,6 +51,7 @@ export default function DestinationIntentSection({ registrationNumber }) {
 
   const top = intent && Array.isArray(intent.candidates) ? intent.candidates[0] : null;
   const eta = timeIST(intent?.eta?.etaAt);
+  const etaPassed = etaHasPassed(intent?.eta?.etaAt);
   const alertState = intent?.alert?.state;
 
   return (
@@ -65,10 +67,15 @@ export default function DestinationIntentSection({ registrationNumber }) {
         {loading && !data ? (
           <div className="secnote">Loading prediction…</div>
         ) : error ? (
-          <div className="secnote">Destination prediction is unavailable right now.</div>
+          <div className="secnote">
+            {error?.status === 403 || error?.status === 404
+              ? 'Destination prediction is available to owners and managers of fleets with Auto Trips on.'
+              : 'Destination prediction is unavailable right now.'}
+          </div>
         ) : !intent ? (
           <div className="secnote">
-            No destination prediction for this vehicle yet (needs a GPS fix in the last 30 minutes).
+            No prediction for this vehicle right now. It needs the truck moving with a GPS fix in
+            the last 30 minutes.
           </div>
         ) : (
           <>
@@ -92,7 +99,11 @@ export default function DestinationIntentSection({ registrationNumber }) {
             {eta ? (
               <div className="kv">
                 <span className="k">ETA</span>
-                <span className="v">{eta} IST</span>
+                {etaPassed ? (
+                  <span className="v text-[var(--rd-ink-3)]">{ETA_PASSED_TEXT}</span>
+                ) : (
+                  <span className="v">{eta} IST</span>
+                )}
               </div>
             ) : null}
             <div className="kv">

@@ -8,7 +8,7 @@ import FleetLinkIndicator from './FleetLinkIndicator.jsx';
 import SupportButton from './SupportButton.jsx';
 import './Navbar.css';
 
-const Navbar = ({ toggleSidebar }) => {
+const Navbar = ({ toggleSidebar, pageTitle = null }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [activeTripsCount, setActiveTripsCount] = useState(0);
@@ -71,6 +71,7 @@ const Navbar = ({ toggleSidebar }) => {
   };
 
   const getPageTitle = () => {
+    if (location.pathname === '/mileage-tracking/new') return 'Add diesel fill';
     // Handle trip detail pages
     if (location.pathname.match(/^\/trip-management\/trip\/[a-f0-9]+$/)) {
       return '';
@@ -108,7 +109,6 @@ const Navbar = ({ toggleSidebar }) => {
   };
 
   const isTripsPage = location.pathname.includes('/trips') || location.pathname.includes('/trip');
-  const isMileagePage = location.pathname.startsWith('/mileage-tracking');
   const isMileageListPage = location.pathname === '/mileage-tracking';
   const isAdBlueListPage = location.pathname === '/adblue-tracking';
   const isTripListPage = location.pathname === '/trip-management';
@@ -119,7 +119,9 @@ const Navbar = ({ toggleSidebar }) => {
         <button className="menu-toggle" onClick={toggleSidebar}>
           <Menu />
         </button>
-        <h2>{getPageTitle()}</h2>
+        {/* A page with its own H1 already names itself; the top bar repeating it
+            (in other words) read as two titles. Only H1-less pages get one here. */}
+        {!pageTitle && <h2>{getPageTitle()}</h2>}
         {isMileageListPage && <span className="navbar-count-badge">{mileageCount}</span>}
       </div>
       <div className="navbar-right">
@@ -186,7 +188,7 @@ const Navbar = ({ toggleSidebar }) => {
             </button>
           </>
         )}
-        {isMileagePage && (
+        {isMileageListPage && (
           <button
             className="btn btn-primary trip-action-btn"
             onClick={() => navigate('/mileage-tracking/new')}

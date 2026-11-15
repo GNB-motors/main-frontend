@@ -11,7 +11,7 @@
   background: #F1F5F9;
   display: flex;
   flex-direction: column;
-  font-family: 'Montserrat', 'Inter', sans-serif;
+  font-family: var(--font-sans);
 }
 
 /* ── Top bar ─────────────────────────────────────────────── */

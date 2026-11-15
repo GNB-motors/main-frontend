@@ -21,7 +21,7 @@
 /* Auto Trips pages (trips list + trip detail) */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 /* Settings section nav (matches its mockup) */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @import 'tailwindcss';
 @import 'tw-animate-css';
@@ -31,21 +31,35 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ── Global Input Focus Reset ────────────────────────────── */
-/* Eliminates browser default harsh blue outline ring on input focus */
-input:focus,
-input:focus-visible,
-select:focus,
-select:focus-visible,
-textarea:focus,
-textarea:focus-visible {
-  outline: none !important;
-}
-
-input:focus-visible,
-select:focus-visible,
+/* The reset itself lives in the @layer base block at the end of this file,
+   so a control inside the app can still draw its own focus ring. */
+input:not(select):focus-visible,
 textarea:focus-visible {
   border-color: var(--color-primary-500, #4f46e5);
   box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+}
+
+/* Compound search controls draw focus on their outer, rounded container.
+   The global input ring above would otherwise add a second rectangular ring. */
+:is(
+    .fbar-search,
+    .dt-search,
+    .navbar-search,
+    .fsearch,
+    .mhub-search,
+    .rpt-search,
+    .rpt-picker-search,
+    .fi-field,
+    .search-bar,
+    .refuel-search,
+    .rh-search-bar,
+    .ph-search,
+    .sp-search,
+    .sat-search,
+    .nova-cc .search
+  )
+  input:focus {
+  box-shadow: none;
 }
 
 /* ── Animations ──────────────────────────────────────────── */
@@ -99,6 +113,7 @@ textarea:focus-visible {
   --signal-high: #e5484d; /* HIGH severity */
   --signal-med: #f2a413; /* MEDIUM severity */
   --signal-low: #8b93a7; /* LOW severity */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Space Grotesk', 'DM Sans', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
 
@@ -190,6 +205,48 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ─────────────────────────────────────────────────────────
+   One typeface in the logged-in app
+   ─────────────────────────────────────────────────────────
+   The app used to mix Montserrat, DM Sans, Space Grotesk, Archivo
+   and JetBrains Mono on the same screen, so every page read as a
+   patchwork. Inside the dashboard shell every one of those font
+   variables now points at Inter, so the whole app speaks in one
+   voice. The marketing pages (landing, sign-up, login) live outside
+   .dashboard-layout and keep the faces they had.
+   ───────────────────────────────────────────────────────── */
+.dashboard-layout {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-cluster-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-eyebrow: var(--font-sans);
+  font-family: var(--font-sans);
+}
+
+/* Tailwind's font-* utilities and every "mono" class resolve to the same
+   face; the figures stay aligned with tabular numbers. */
+.dashboard-layout .font-sans,
+.dashboard-layout .font-display,
+.dashboard-layout .font-mono,
+.dashboard-layout [class*='mono'] {
+  font-family: var(--font-sans);
+}
+
+.dashboard-layout .font-mono,
+.dashboard-layout [class*='mono'] {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+/* Headings: one weight, one tracking. The sizes are untouched. */
+.dashboard-layout h1,
+.dashboard-layout h2,
+.dashboard-layout h3 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
 /* ── Global button defaults ──────────────────────────────── */
 .btn {
   width: auto;
@@ -232,6 +289,15 @@ body {
     0 16px 36px rgba(15, 23, 42, 0.09);
   border-color: rgba(99, 102, 241, 0.35);
   transform: translateY(-2px);
+}
+
+/* Data Imports is a form/wizard, not a clickable card grid — the cards should
+   sit still. Opt out of the global hover lift (same specificity, so this must
+   come after the rule above to win). */
+.di-imports [data-slot='card']:hover {
+  box-shadow: var(--ds-shadow);
+  border-color: var(--ds-line);
+  transform: none;
 }
 
 /* On the console (Overview) the hover accent is teal, not indigo.
@@ -279,13 +345,13 @@ body {
 .page-content > .space-y-6 > div:first-child h1 {
   font-family: var(--font-display);
   font-size: 26px;
-  font-weight: 700;
-  letter-spacing: -0.6px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--ink);
 }
 
 .page-content > .space-y-6 > div:first-child p {
-  font-family: 'DM Sans', 'Montserrat', sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   font-weight: 400;
   color: #64748b;
@@ -365,7 +431,7 @@ body {
   border-radius: 10px;
   border: 1px solid #e2e8f0;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
-  font-family: 'Montserrat', sans-serif;
+  font-family: var(--font-sans);
   font-size: 13px;
   padding: 10px 14px;
 }
@@ -484,6 +550,96 @@ body {
   }
   html {
     @apply font-sans;
+  }
+
+  /* The browser's own focus ring is harsh and off-brand. The reset lives in
+     the base layer so a control can still draw its own ring on top of it. */
+  input:focus,
+  input:focus-visible,
+  select:focus,
+  select:focus-visible,
+  textarea:focus,
+  textarea:focus-visible {
+    outline: none;
+  }
+
+  /* ── Native form controls ──────────────────────────────
+     A bare <select> used to render the grey OS chevron and a
+     <input type="date"> used to render "dd-mm-yyyy" in the OS
+     face. Both are redrawn here in the app's own idiom, inside the
+     dashboard shell only, so the marketing pages keep the platform
+     look. Base layer: a Tailwind utility or a component class wins.
+     ─────────────────────────────────────────────────────── */
+  .dashboard-layout select:not([multiple]) {
+    appearance: none;
+    -webkit-appearance: none;
+    height: 36px;
+    padding: 0 32px 0 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background-color: #ffffff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%2364748b' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 7.5 5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px 16px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    color: #0f172a;
+    cursor: pointer;
+  }
+
+  .dashboard-layout select:not([multiple]):focus,
+  .dashboard-layout select:not([multiple]):focus-visible {
+    outline: 2px solid #4f46e5;
+    outline-offset: 1px;
+    border-color: #4f46e5;
+  }
+
+  .dashboard-layout select:not([multiple]):disabled {
+    background-color: #f1f5f9;
+    color: #94a3b8;
+    cursor: not-allowed;
+  }
+
+  .dashboard-layout select:not([multiple]) option {
+    background-color: #ffffff;
+    color: #0f172a;
+  }
+
+  .dashboard-layout input[type='date'],
+  .dashboard-layout input[type='datetime-local'],
+  .dashboard-layout input[type='month'] {
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background-color: #ffffff;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: #0f172a;
+  }
+
+  .dashboard-layout input[type='date']::-webkit-calendar-picker-indicator,
+  .dashboard-layout input[type='datetime-local']::-webkit-calendar-picker-indicator,
+  .dashboard-layout input[type='month']::-webkit-calendar-picker-indicator {
+    opacity: 0.6;
+    cursor: pointer;
+  }
+
+  .dashboard-layout input[type='file']::file-selector-button {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 6px 12px;
+    margin-right: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
   }
 }
 /* ── Utility: theme-aware active filter border (KhataLedger filter btn) ── */
@@ -959,7 +1115,7 @@ a.ov-kpi:hover {
   color: #475569;
 }
 .ov-kpi-value {
-  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   font-size: 28px;
@@ -1180,6 +1336,9 @@ a.ov-kpi:hover {
   display: flex;
   align-items: center;
   gap: 9px;
+  /* On a phone the header buttons wrap instead of running off the screen. */
+  flex-wrap: wrap;
+  max-width: 100%;
 }
 /* Secondary button (Refresh / Export / Outline): white with blue border on all sides */
 .pshell-btn {
@@ -1320,18 +1479,13 @@ a.ov-kpi:hover {
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
   transition:
     border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    width 0.2s ease;
+    box-shadow 0.15s ease;
 }
 .fbar-search:hover {
   border-color: #cbd5e1;
 }
-.fbar-search:focus-within {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
-  width: 340px;
-}
 .fbar-search input {
+  min-width: 0;
   border: 0;
   outline: 0;
   background: transparent;
@@ -1385,20 +1539,10 @@ a.ov-kpi:hover {
   padding: 0 16px 0 14px;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
-.fbar--search-only .fbar-search:focus-within,
-.fbar:not(
-    :has(
-      .fbar-scope,
-      .fbar-range,
-      .fbar-chips,
-      .fbar-clear,
-      .fbar-select,
-      .fbar-field,
-      .fbar-right > *
-    )
-  )
-  .fbar-search:focus-within {
-  width: 380px;
+.fbar-search:focus-within,
+.fbar .fbar-search:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ds-focus, #2563eb) 18%, transparent);
 }
 .fbar-range {
   display: inline-flex;
@@ -1611,18 +1755,17 @@ a.ov-kpi:hover {
   flex: 0 0 auto;
   transition:
     border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    width 0.2s ease;
+    box-shadow 0.15s ease;
 }
 .dt-search:hover {
   border-color: #cbd5e1;
 }
 .dt-search:focus-within {
   border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
-  width: 260px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ds-focus, #2563eb) 18%, transparent);
 }
 .dt-search input {
+  min-width: 0;
   border: 0;
   outline: 0;
   background: transparent;

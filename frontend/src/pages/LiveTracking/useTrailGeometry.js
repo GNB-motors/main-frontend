@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import { NOVA_STATUS } from './statusPalettes.js';
-import { bearingDegrees } from './geoMath.js';
 import trailDistanceKm from './trailDistanceKm.js';
 import { tripColor, tripColorForId } from './tripPalette.js';
+import liveReplay from './liveReplay.js';
+import { toLayers, positionAt, clipLayersAt, summaryOf } from '../../lib/roadTrail.js';
 
 /* Build per-trip polyline segments from the raw trail payload.
 
@@ -32,7 +33,7 @@ function buildTrailSegments(rawTrailPoints) {
   rawTrailPoints.forEach((p) => {
     if (p.latitude == null || p.longitude == null) return;
     const tid = p.tripId != null ? String(p.tripId) : null;
-    if (current == null || tid !== currentTripId) {
+    if (current == null || tid !== currentTripId || liveReplay.breakBefore(p)) {
       if (current && current.coords.length > 0) segments.push(current);
       current = {
         tripId: tid,
@@ -56,6 +57,7 @@ export default function useTrailGeometry({
   rawTrailPoints,
   trips = [],
   replayState,
+  roadTrail,
 }) {
   const selectedStatusColor = useMemo(() => {
     if (!selectedVehicle) return '#187A32';
@@ -68,11 +70,24 @@ export default function useTrailGeometry({
   }, [trailPoints]);
 
   // Total distance (km) of the currently loaded trail — real, from the trail
-  const trailKm = useMemo(() => trailDistanceKm(trailPoints), [trailPoints]);
+  const model = useMemo(() => liveReplay.build(rawTrailPoints), [rawTrailPoints]);
+  const roadLayers = useMemo(
+    () => (roadTrail?.mode === 'MATCHED' ? toLayers(roadTrail) : []),
+    [roadTrail],
+  );
+  const trailKm = useMemo(
+    () =>
+      summaryOf(roadTrail)?.km ??
+      model.segments.reduce(
+        (km, s) => km + trailDistanceKm(s.coords.map((p) => [p.lat, p.lng])),
+        0,
+      ),
+    [roadTrail, model],
+  );
 
   /* Per-trip polyline segments + a quick lookup table for the legend. */
   const { trailSegments, tripLegend } = useMemo(() => {
-    const { segments, tripIds } = buildTrailSegments(rawTrailPoints);
+    const { segments, tripIds } = buildTrailSegments(model.fixes);
     const legend = tripIds.map((tid, idx) => {
       const seg = segments.find((s) => s.tripId === tid);
       // A point's tripId is the ERP trip's _id; the trail response's trips[]
@@ -94,7 +109,7 @@ export default function useTrailGeometry({
       color: tripColorForId(s.tripId, i),
     }));
     return { trailSegments: colored, tripLegend: legend };
-  }, [rawTrailPoints, trips]);
+  }, [model, trips]);
 
   /* When the trail response has exactly one trip we still want the segment
      polyline to draw, even if no tripId was attached. Fall back to the
@@ -103,40 +118,22 @@ export default function useTrailGeometry({
 
   // Replay base trail points transformed to LatLng objects
   const replayPtsCoords = useMemo(() => {
-    if (!replayState.pts) return [];
-    return replayState.pts.map(([lat, lng]) => ({ lat, lng }));
-  }, [replayState.pts]);
+    return model.fixes.map((p) => ({ lat: p.latitude, lng: p.longitude }));
+  }, [model]);
 
   // Derived current replay position, animated trail slice, and heading
-  const { replayCurrentPos, replayRunPath, replayBearing } = useMemo(() => {
-    if (!replayState.on || !replayState.pts || replayState.pts.length < 2) {
-      return { replayCurrentPos: null, replayRunPath: [], replayBearing: 0 };
-    }
-    const pts = replayState.pts;
-    const t = Math.max(0, Math.min(1, replayState.t));
-    const exact = t * (pts.length - 1);
-    const i = Math.min(pts.length - 2, Math.floor(exact));
-    const frac = exact - i;
-    const p0 = pts[i];
-    const p1 = pts[i + 1] || p0;
-    const curLat = p0[0] + (p1[0] - p0[0]) * frac;
-    const curLng = p0[1] + (p1[1] - p0[1]) * frac;
-    const cur = { lat: curLat, lng: curLng };
-    const pathSlice = pts.slice(0, i + 1).map(([lat, lng]) => ({ lat, lng }));
-    pathSlice.push(cur);
-    const brg = bearingDegrees(p0, p1);
-    return { replayCurrentPos: cur, replayRunPath: pathSlice, replayBearing: brg };
-  }, [replayState.on, replayState.pts, replayState.t]);
+  const frame = useMemo(
+    () => (replayState.on ? liveReplay.sample(model, replayState.t) : null),
+    [model, replayState.on, replayState.t],
+  );
+  const onRoad = frame ? positionAt(roadLayers, frame.at) : null;
+  const replayCurrentPos = onRoad || frame?.position || null;
+  const replayRoadLayers = frame
+    ? clipLayersAt(roadLayers, frame.at).filter((l) => l.kind !== 'RAW')
+    : [];
 
-  // The historical timestamp at the current replay position, taken from the raw
-  // trail fix nearest the scrub point, so weather is read for the hour the trip
-  // actually happened rather than for "now".
-  const replayCurrentTs = useMemo(() => {
-    if (!replayState.on || !Array.isArray(rawTrailPoints) || rawTrailPoints.length < 2) return null;
-    const t = Math.max(0, Math.min(1, replayState.t));
-    const i = Math.min(rawTrailPoints.length - 1, Math.round(t * (rawTrailPoints.length - 1)));
-    return rawTrailPoints[i]?.eventDateTime || null;
-  }, [replayState.on, rawTrailPoints, replayState.t]);
+  // Weather follows the same historical clock as the animated truck.
+  const replayCurrentTs = frame ? new Date(frame.at).toISOString() : null;
 
   return {
     selectedStatusColor,
@@ -147,8 +144,10 @@ export default function useTrailGeometry({
     fallbackSingleColor,
     replayPtsCoords,
     replayCurrentPos,
-    replayRunPath,
-    replayBearing,
+    replayRunPaths: frame?.paths || [],
+    replayRoadLayers,
+    replayBaseLayers: roadLayers,
+    replaySpeed: frame?.speed || 0,
     replayCurrentTs,
   };
 }

@@ -1,10 +1,7 @@
 // src/components/ReportsSidebar.jsx
 //
-// The Reports module's secondary (inner) side nav. A thin wrapper over the
-// reusable <SecondarySideNav/> — it supplies the report groups the org can
-// open and wires selection to the page. Rows that consolidate onto a screen
-// they already own (catalog entries with a `to`) navigate there instead of
-// swapping the table in place, so nothing that works today is rewritten.
+// The Reports module's secondary navigation. Only report tables belong here;
+// standalone Fuel Management pages use the main sidebar.
 // Portaled to <body> to escape any transformed ancestor.
 
 import React from 'react';
@@ -17,13 +14,16 @@ import {
   reportDestination,
   visibleReportGroups,
 } from '../pages/Reports/reportCatalog';
+import {
+  useFullTankAvailable,
+  withoutFullTankReport,
+} from '../pages/Reports/fullTankAvailability';
 
-// `selectedReport` / `setSelectedReport` are optional. The Reports page passes
-// them (it owns the in-page report state); on a dedicated report screen the rail
-// renders standalone and falls back to the URL for the active row and to a
-// navigate for in-page reports — so the same rail works everywhere.
 const ReportsSidebar = ({ isOpen, selectedReport, setSelectedReport, mobileOpen = false }) => {
   const { isEnabled } = useFeatureFlags();
+  // The full-tank endpoint is newer than the rest of the Reports API: a
+  // backend that answers 404 has no such report, so its row is not shown.
+  const { available: fullTankAvailable } = useFullTankAvailable();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -39,12 +39,14 @@ const ReportsSidebar = ({ isOpen, selectedReport, setSelectedReport, mobileOpen 
     else navigate(`/reports?report=${id}`);
   };
 
+  const groups = visibleReportGroups(isEnabled);
+
   return ReactDOM.createPortal(
     <SecondarySideNav
       variant="reports"
       className={mobileOpen ? 'reports-sidebar--mobile-open' : ''}
       scrollId="report-side-nav"
-      items={visibleReportGroups(isEnabled)}
+      items={fullTankAvailable ? groups : withoutFullTankReport(groups)}
       activeOption={active}
       onSelect={onSelect}
     />,

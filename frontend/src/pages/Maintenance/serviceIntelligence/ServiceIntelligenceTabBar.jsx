@@ -1,8 +1,9 @@
-import { Wrench, AlertOctagon, Bell } from 'lucide-react';
+import { Wrench, AlertOctagon, Bell, CalendarClock } from 'lucide-react';
 
 const TABS = [
   { key: 'SERVICE', label: 'Service History', icon: Wrench },
   { key: 'REPAIR', label: 'Repair & Breakdowns', icon: AlertOctagon },
+  { key: 'UPCOMING', label: 'Upcoming Service', icon: CalendarClock },
   { key: 'ALERTS', label: 'Fleet Alerts', icon: Bell },
 ];
 

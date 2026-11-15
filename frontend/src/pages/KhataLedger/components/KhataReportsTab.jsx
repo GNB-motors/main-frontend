@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   FileSpreadsheet,
@@ -88,8 +89,9 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
+      // The expenses endpoint caps a page at 100 rows, so the report reads every
+      // page instead of asking for a limit the API rejects.
       const expParams = {
-        limit: 1000,
         includeTripExpenses: true,
       };
       if (branchId) expParams.branchId = branchId;
@@ -99,21 +101,26 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
       if (driverId) expParams.driverId = driverId;
       if (category) expParams.category = category;
 
+      // The trip endpoint accepts neither branchId nor driverId; the branch comes
+      // from the shared X-Branch-Id header and the driver filter is applied below.
       const tripParams = {
         limit: 200,
       };
-      if (branchId) tripParams.branchId = branchId;
       if (vehicleId) tripParams.vehicleId = vehicleId;
-      if (driverId) tripParams.driverId = driverId;
 
       const [expRes, tripRes] = await Promise.all([
-        KhataLedgerService.getExpenses(expParams).catch(() => ({ results: [] })),
+        KhataLedgerService.getDashboardExpenses(expParams).catch(() => []),
         KhataLedgerService.getErpTrips(tripParams).catch(() => ({ data: [] })),
       ]);
 
-      const loadedExpenses = expRes.results || expRes.data || (Array.isArray(expRes) ? expRes : []);
-      const loadedTrips =
-        tripRes.data || tripRes.results || (Array.isArray(tripRes) ? tripRes : []);
+      const loadedExpenses = Array.isArray(expRes)
+        ? expRes
+        : expRes.results || expRes.data || (Array.isArray(expRes) ? expRes : []);
+      const loadedTrips = (
+        tripRes.data ||
+        tripRes.results ||
+        (Array.isArray(tripRes) ? tripRes : [])
+      ).filter((t) => !driverId || String(t.driverId?._id || t.driverId) === String(driverId));
 
       setExpenses(loadedExpenses);
       setTrips(loadedTrips);
@@ -506,7 +513,7 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
               <label htmlFor="krt-filter-vehicle" className="block text-gray-500 font-medium mb-1">
                 Vehicle
               </label>
-              <select
+              <SearchableSelect
                 id="krt-filter-vehicle"
                 className="w-full rounded-md border border-gray-300 px-2 py-1.5 bg-white"
                 value={vehicleId}
@@ -518,13 +525,13 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
                     {getVehicleLabel(v)}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
             <div>
               <label htmlFor="krt-filter-driver" className="block text-gray-500 font-medium mb-1">
                 Driver
               </label>
-              <select
+              <SearchableSelect
                 id="krt-filter-driver"
                 className="w-full rounded-md border border-gray-300 px-2 py-1.5 bg-white"
                 value={driverId}
@@ -536,13 +543,13 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
                     {getDriverName(d)}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
             <div>
               <label htmlFor="krt-filter-category" className="block text-gray-500 font-medium mb-1">
                 Category
               </label>
-              <select
+              <SearchableSelect
                 id="krt-filter-category"
                 className="w-full rounded-md border border-gray-300 px-2 py-1.5 bg-white"
                 value={category}
@@ -554,7 +561,7 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
                     {CATEGORY_LABELS[cat] || cat}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
           </div>
         </CardContent>

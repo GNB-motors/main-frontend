@@ -147,3 +147,33 @@ describe('linkedByText', () => {
     expect(linkedByText(expiring)).toBeNull();
   });
 });
+
+describe('linkStateItems', () => {
+  it('turns link-health accounts into Alert inbox banner rows', async () => {
+    const { linkStateItems } = await import('./fleetLink.js');
+    const rows = linkStateItems({
+      accounts: [
+        {
+          accountId: 7,
+          friendlyName: 'GNB Buxar Fleet',
+          state: 'NEEDS_RELINK',
+          dataPausedSince: '2026-11-02T10:00:00Z',
+          vehicleCount: 4,
+        },
+        { accountId: 'b', fleetId: 'FL-9', state: 'EXPIRING', vehicles: [] },
+      ],
+    });
+    expect(rows[0]).toEqual({
+      accountId: '7',
+      vendor: 'FLEETEDGE',
+      accountName: 'GNB Buxar Fleet',
+      state: 'NEEDS_RELINK',
+      lastDataAt: '2026-11-02T10:00:00Z',
+      trucks: 4,
+      action: { label: 'Reconnect', to: '/settings/fleetedge-accounts' },
+    });
+    // No count in the payload is unknown, never 0.
+    expect(rows[1]).toMatchObject({ accountName: 'FL-9', trucks: null, lastDataAt: null });
+    expect(linkStateItems(null)).toEqual([]);
+  });
+});

@@ -14,14 +14,26 @@ import {
   MapPinOff,
 } from 'lucide-react';
 import { formatINR } from '../../../utils/formatters';
+import { sumKnown } from '../../../utils/measured';
+import { fleetAttribution } from '../../../utils/measuredAttribution';
 import NdImpactItems from './NdImpactItems.jsx';
 
-export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
+export default function NdImpactCard({
+  money,
+  atRisk,
+  utilization,
+  downtime,
+  rangeLabel = 'today',
+}) {
+  // The utilization response's fleet: the empty-running waste covers only the
+  // trucks whose empty-km cost was measured.
+  const fleet = utilization?.fleet ?? null;
+  const attribution = fleetAttribution(fleet, utilization);
   const lost = [
     {
       key: 'idling',
       label: 'Idling cost',
-      v: money?.idlingWasteInr || 0,
+      v: money?.idlingWasteInr ?? null,
       c: '#C56200',
       tint: 'rgba(197, 98, 0, 0.12)',
       icon: Clock,
@@ -29,15 +41,15 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
     {
       key: 'detour',
       label: 'Detour cost',
-      v: money?.detourWasteInr || 0,
+      v: money?.detourWasteInr ?? null,
       c: '#2F58EE',
       tint: 'rgba(47, 88, 238, 0.12)',
       icon: RouteIcon,
     },
     {
       key: 'siphon',
-      label: 'Fuel siphon loss',
-      v: money?.theftLossInr || 0,
+      label: 'Fuel down while parked',
+      v: money?.theftLossInr ?? null,
       c: '#C2323A',
       tint: 'rgba(194, 50, 58, 0.12)',
       icon: FuelIcon,
@@ -45,7 +57,7 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
     {
       key: 'mismatch',
       label: 'Bill mismatch',
-      v: money?.billFraudSuspectInr || 0,
+      v: money?.billFraudSuspectInr ?? null,
       c: '#6A43D8',
       tint: 'rgba(106, 67, 216, 0.12)',
       icon: FileWarning,
@@ -53,15 +65,18 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
     {
       key: 'empty',
       label: 'Empty-running waste',
-      v: utilization?.fleet?.emptyKmWasteInr || 0,
+      v: fleet?.emptyKmWasteInr ?? null,
+      coverage: attribution.note,
+      partial: attribution.partial,
       c: '#0D9488',
       tint: 'rgba(13, 148, 136, 0.12)',
       icon: Gauge,
+      tip: 'Empty km = telemetry distance in the window minus the whole trip’s recorded loaded distance. A trip longer than the selected window can skew this; the default 2-day window covers most trips.',
     },
     {
       key: 'speed',
       label: 'Off-optimal speed',
-      v: money?.speedingLossInr || 0,
+      v: money?.speedingLossInr ?? null,
       c: '#B45309',
       tint: 'rgba(180, 83, 9, 0.12)',
       icon: Zap,
@@ -69,19 +84,30 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
     {
       key: 'mileage',
       label: 'Low-mileage loss',
-      v: money?.lowMileageLossInr || 0,
+      v: money?.lowMileageLossInr ?? null,
       c: '#9333EA',
       tint: 'rgba(147, 51, 234, 0.12)',
       icon: Droplet,
     },
-  ];
+  ].map((row) => {
+    const field = {
+      idling: 'idlingWasteInr',
+      detour: 'detourWasteInr',
+      siphon: 'theftLossInr',
+      mismatch: 'billFraudSuspectInr',
+      speed: 'speedingLossInr',
+      mileage: 'lowMileageLossInr',
+    }[row.key];
+    const coverage = money?.lossCoverage?.[field];
+    return coverage ? { ...row, coverage: coverage.coverageNote, partial: coverage.partial } : row;
+  });
   // Open exposure, not money lost today — shown apart and never added to the
   // headline, so the red total keeps meaning "lost today".
   const risk = [
     {
       key: 'downtime',
       label: 'Service downtime',
-      v: downtime?.totalExposureInr || 0,
+      v: downtime?.totalExposureInr ?? null,
       c: '#C56200',
       tint: 'rgba(197, 98, 0, 0.12)',
       icon: Wrench,
@@ -91,7 +117,7 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
       label: atRisk?.expiredDocCount
         ? `Document fines (${atRisk.expiredDocCount} expired)`
         : 'Document fines',
-      v: atRisk?.complianceFineInr || 0,
+      v: atRisk?.complianceFineInr ?? null,
       c: '#C2323A',
       tint: 'rgba(194, 50, 58, 0.12)',
       icon: FileText,
@@ -99,7 +125,7 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
     {
       key: 'adblue',
       label: 'AdBlue unreconciled',
-      v: atRisk?.adblueUnreconciledInr || 0,
+      v: atRisk?.adblueUnreconciledInr ?? null,
       c: '#0D9488',
       tint: 'rgba(13, 148, 136, 0.12)',
       icon: Droplets,
@@ -107,20 +133,37 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
     {
       key: 'offpump',
       label: 'Off-pump refuels',
-      v: atRisk?.offPumpRefuelInr || 0,
+      v: atRisk?.offPumpRefuelInr ?? null,
       c: '#2F58EE',
       tint: 'rgba(47, 88, 238, 0.12)',
       icon: MapPinOff,
     },
   ];
-  const total = lost.reduce((s, r) => s + r.v, 0);
-  const riskTotal = risk.reduce((s, r) => s + r.v, 0);
+  // A channel with no measurable baseline comes back null ("not measured"), not
+  // 0 — it must not read as "no waste", and it must not drag the totals. Null
+  // contributes nothing to the sums and is never an "active" category.
+  const totalSum = sumKnown(lost.map((r) => r.v));
+  const riskSum = sumKnown(risk.map((r) => r.v));
+  const total = totalSum.sum;
+  const riskTotal = riskSum.sum;
   const activeCount = lost.filter((r) => r.v > 0).length;
+  // "All nominal" is only true when every channel was measured and none of
+  // them lost anything; a partly measured day says how much was measured.
+  const impactBadge =
+    totalSum.known === 0
+      ? 'Not measured'
+      : lost.some((row) => row.partial)
+        ? 'Incomplete · calculated losses'
+        : totalSum.known < totalSum.total
+          ? `${totalSum.known} of ${totalSum.total} channels measured`
+          : activeCount > 0
+            ? `${activeCount} active categories`
+            : 'All nominal';
 
   return (
     <div className="nd-card nd-card--impact" id="nd-impact">
       <div className="nd-card-head">
-        <h2>Today&apos;s ₹ impact</h2>
+        <h2>{rangeLabel === 'today' ? "Today's ₹ impact" : `₹ impact · ${rangeLabel}`}</h2>
         <span className="nd-sp" />
         <span className="nd-hint">Estimated</span>
       </div>
@@ -129,13 +172,17 @@ export default function NdImpactCard({ money, atRisk, utilization, downtime }) {
         <div className="nd-impact-hero-top">
           <span className="nd-impact-tag">
             <TrendingDown size={13} />
-            <span>Total loss today</span>
+            <span>Total loss {rangeLabel === 'today' ? 'today' : `· ${rangeLabel}`}</span>
           </span>
-          <span className="nd-impact-count-badge">
-            {activeCount > 0 ? `${activeCount} active categories` : 'All nominal'}
-          </span>
+          <span className="nd-impact-count-badge">{impactBadge}</span>
         </div>
         <div className="nd-v">{formatINR(total)}</div>
+        {lost.some((row) => row.partial) ? (
+          <p className="nd-muted" role="status">
+            Some losses are not included because required data is missing. The excluded amount is
+            unknown.
+          </p>
+        ) : null}
         <div className="nd-n">
           Across {lost.length} loss channels · plus {formatINR(riskTotal)} open exposure at risk
         </div>

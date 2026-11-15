@@ -39,7 +39,16 @@ import { compactParams } from './reportFilters';
 export const ALL = 'all';
 
 /** Quick ranges offered above the date inputs. */
-export const REPORT_RANGE_PRESETS = HUB_DATE_PRESETS;
+export const REPORT_RANGE_PRESETS = [
+  { key: 'TODAY', label: 'Today' },
+  { key: 'YESTERDAY', label: 'Yesterday' },
+  { key: '7DAYS', label: 'Last 7 Days' },
+  { key: '15DAYS', label: 'Last 15 Days' },
+  { key: '30DAYS', label: 'Last 30 Days' },
+  { key: 'MONTH', label: 'This Month' },
+  { key: 'LAST_MONTH', label: 'Last Month' },
+  { key: 'CUSTOM', label: 'Custom Range' },
+];
 
 /** Every param the shared bar owns. */
 export const REPORT_FILTER_PARAMS = [
@@ -74,7 +83,10 @@ const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 const asParams = (search) =>
   search instanceof URLSearchParams ? search : new URLSearchParams(search || '');
 const readDay = (raw) => (ISO_DAY.test(raw || '') ? raw : '');
-const isPreset = (key) => REPORT_RANGE_PRESETS.some((preset) => preset.key === key);
+const isPreset = (key) =>
+  REPORT_RANGE_PRESETS.some((preset) => preset.key === key) ||
+  key === '90DAYS' ||
+  key === 'THIS_MONTH';
 
 /**
  * The filters a URL describes. Picked dates win over a quick range; anything
@@ -112,12 +124,14 @@ export function writeFilterParams(search, patch) {
 
   // Picking dates retires the quick range, and choosing a quick range retires
   // the picked dates — same precedence the Fuel & Mileage hub uses.
-  if ('from' in patch || 'to' in patch) {
-    const range = { from: merged.from, to: merged.to };
-    if (range.from || range.to) merged.dates = '';
-  } else if ('dates' in patch) {
+  if (patch.dates && patch.dates !== 'CUSTOM') {
+    merged.dates = patch.dates;
     merged.from = '';
     merged.to = '';
+  } else if ('from' in patch || 'to' in patch || patch.dates === '' || patch.dates === 'CUSTOM') {
+    const range = { from: merged.from, to: merged.to };
+    if (range.from || range.to) merged.dates = '';
+    if (patch.dates === 'CUSTOM') merged.dates = '';
   }
 
   REPORT_FILTER_PARAMS.forEach((key) => {

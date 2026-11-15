@@ -1,0 +1,115 @@
+/**
+ * tripLegModel — what a trip's leg means, in the owner's words.
+ *
+ * The big change in the redesign: a plant-to-plant run is NORMAL. Plants
+ * work like warehouses, so a truck going from one plant straight to
+ * another is working, and it usually saves an empty run. It is never shown
+ * as an error and never as something that needs a check.
+ */
+import { isMeasured } from '../../utils/measured';
+
+/** The word for each leg. */
+export const LEG_WORDS = {
+  LADEN: 'Loaded run',
+  RETURN: 'Empty run',
+  REPOSITION: 'Plant to plant',
+  APPROACH: 'Going to the pickup',
+};
+
+/** The tone of each leg. Plant-to-plant is the quiet one. */
+export const LEG_TONES = {
+  LADEN: 'good',
+  RETURN: 'watch',
+  REPOSITION: 'info',
+  APPROACH: 'info',
+};
+
+/** The colour of each leg, the same as the map's leg colours. */
+export const LEG_COLORS = {
+  LADEN: 'var(--rd-leg-loaded)',
+  RETURN: 'var(--rd-leg-empty)',
+  REPOSITION: 'var(--rd-leg-reposition)',
+  APPROACH: 'var(--rd-leg-unknown)',
+};
+
+/** The hover text for the plant-to-plant badge, exactly as the plan words it. */
+export const REPOSITION_INFO =
+  'The truck went from one plant straight to another without coming back empty. This is normal: plants work like warehouses, and it often saves an empty run.';
+
+/** The word for a leg, or null when we do not know it. */
+export function legWord(leg) {
+  return LEG_WORDS[leg] ?? null;
+}
+
+/** The tone for a leg. */
+export function legTone(leg) {
+  return LEG_TONES[leg] ?? 'info';
+}
+
+/** True when the trip went from one plant straight to another. */
+export function isPlantToPlant(trip) {
+  return trip?.leg === 'REPOSITION';
+}
+
+/** Approach and return cover opposite ends of a trip and must remain separate. */
+export function legKilometres(trip) {
+  const km = trip?.km ?? {};
+  const legs = [
+    { kind: 'APPROACH', km: km.approachOdo ?? km.approach ?? null },
+    { kind: 'LADEN', km: km.ladenOdo ?? km.laden ?? null },
+    { kind: 'RETURN', km: km.returnOdo ?? km.return ?? null },
+    { kind: 'REPOSITION', km: km.repositionOdo ?? km.reposition ?? null },
+  ].filter((leg) => leg.km !== null && leg.km !== undefined && Number(leg.km) > 0);
+  return legs;
+}
+
+/**
+ * The km the server could not attribute to a leg: real distance, but not loaded
+ * and not empty either. It never joins the bar's shares — it is said on its own
+ * line, so the bar keeps telling the truth about the legs it does know.
+ */
+export function unattributedKm(trip) {
+  const km = trip?.km?.unattributed;
+  return isMeasured(km) && Number(km) > 0 ? Number(km) : null;
+}
+
+/** Why a drive had no load label, in plain words. */
+export function unknownDriveText(trip) {
+  const reason = trip?.unknownDriveReason;
+  if (!reason) return null;
+  return (
+    {
+      DROP_UNKNOWN: 'Drop not found, so this drive has no load label',
+    }[reason] || 'This drive could not be attributed to a load'
+  );
+}
+
+/**
+ * The leg bar: one slice per leg, sized by its share of the distance.
+ * The slices add up to 100% of the distance they cover, so a bar never
+ * lies about the proportions.
+ */
+export function legBarSegments(trip) {
+  const legs = legKilometres(trip);
+  const total = legs.reduce((sum, leg) => sum + Number(leg.km), 0);
+  if (!total) return [];
+  return legs.map((leg) => ({
+    kind: leg.kind,
+    km: Number(leg.km),
+    label: LEG_WORDS[leg.kind],
+    color: LEG_COLORS[leg.kind],
+    percent: (Number(leg.km) / total) * 100,
+  }));
+}
+
+/**
+ * The sentence under the leg bar.
+ * "412 km loaded · 88 km plant to plant".
+ */
+export function legBarSentence(trip) {
+  const segments = legBarSegments(trip);
+  if (!segments.length) return 'No distance recorded for this trip.';
+  return segments
+    .map((segment) => `${Math.round(segment.km)} km ${segment.label.toLowerCase()}`)
+    .join(' · ');
+}

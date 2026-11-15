@@ -104,3 +104,68 @@ describe('RouteHubService.getFleetOverspeed', () => {
     expect(apiClient.get).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('route deviation search', () => {
+  it('sends the search with pagination and keeps the whole-set cost coverage', async () => {
+    const signal = new AbortController().signal;
+    apiClient.get.mockResolvedValueOnce({
+      data: {
+        data: {
+          records: [],
+          summary: { total: 3, open: 3, openCostInr: 900, openCostCount: 2 },
+          totalPages: 1,
+        },
+      },
+    });
+    const data = await RouteHubService.getDeviationEvents(
+      { q: 'Patna', page: 1, limit: 100 },
+      signal,
+    );
+    expect(apiClient.get).toHaveBeenLastCalledWith('/api/route-deviation/events', {
+      params: { q: 'Patna', page: 1, limit: 100 },
+      signal,
+    });
+    expect(data.summary).toMatchObject({ total: 3, openCostInr: 900, openCostCount: 2 });
+  });
+});
+
+describe('route profitability distance basis', () => {
+  it('displays the window distance used to calculate per-km revenue and cost', async () => {
+    apiClient.get.mockResolvedValueOnce({
+      data: {
+        data: {
+          routes: [
+            {
+              tripCount: 10,
+              distanceKm: 4500,
+              routeDistanceKm: 450,
+              revenueInr: 180000,
+              runningCostInr: 135000,
+              avgRevenuePerTripInr: 18000,
+              avgRunningCostPerTripInr: 13500,
+            },
+          ],
+        },
+      },
+    });
+    const {
+      routes: [route],
+    } = await RouteHubService.getRouteProfitability();
+    expect(route.distanceKm).toBe(4500);
+    expect(route.revenuePerKm).toBe((route.avgRevenueInr * route.tripCount) / route.distanceKm);
+    expect(route.costPerKm).toBe((route.avgCostInr * route.tripCount) / route.distanceKm);
+  });
+  it('does not divide window revenue by a billed single-route distance when actual km are missing', async () => {
+    apiClient.get.mockResolvedValueOnce({
+      data: {
+        data: { routes: [{ routeDistanceKm: 450, revenueInr: 180000, runningCostInr: 135000 }] },
+      },
+    });
+    const {
+      routes: [route],
+    } = await RouteHubService.getRouteProfitability();
+    expect(route.distanceKm).toBeNull();
+    expect(route.revenuePerKm).toBeNull();
+    expect(route.costPerKm).toBeNull();
+  });
+});

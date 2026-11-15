@@ -5,6 +5,7 @@ import { GradePill } from '../DrivingDna/GradePill';
 import useApi from '../../hooks/useApi';
 import PerformanceApi from '../../api/performance';
 import SourceCell from './SourceCell';
+import PaceCell from './PaceCell';
 import { cellNumber } from './performanceCells';
 
 const COLUMNS = [
@@ -39,6 +40,12 @@ const COLUMNS = [
     label: 'Idle %',
     align: 'right',
     render: (d) => <SourceCell cell={d.idlePct} />,
+  },
+  {
+    key: 'paceFactor',
+    label: 'Road pace',
+    align: 'right',
+    render: (d) => <PaceCell cell={d.paceFactor} />,
   },
 ];
 

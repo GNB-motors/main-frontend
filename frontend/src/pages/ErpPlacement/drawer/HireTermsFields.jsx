@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import Row from './Row';
 
 const money = (n) => (typeof n === 'number' ? `₹${n.toLocaleString('en-IN')}` : '—');
@@ -56,7 +57,7 @@ const HireTermsFields = ({ form, setField, pbRateRequired, vendors, order, verdi
 
     <div className="erp-field">
       <label htmlFor="pl-pbunit">Rate unit</label>
-      <select
+      <SearchableSelect
         id="pl-pbunit"
         value={form.pbRateUnit || 'PER_KL'}
         onChange={(e) => setField('pbRateUnit', e.target.value)}
@@ -64,7 +65,7 @@ const HireTermsFields = ({ form, setField, pbRateRequired, vendors, order, verdi
         <option value="PER_KL">Per KL</option>
         <option value="PER_MT">Per MT</option>
         <option value="PER_TRIP">Per Trip</option>
-      </select>
+      </SearchableSelect>
     </div>
 
     {(form.pbRate || pbRateRequired) && (

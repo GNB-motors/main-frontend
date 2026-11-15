@@ -8,18 +8,18 @@ export const BRIEF_SECTION = {
   excessIdling: {
     c: '#C56200',
     icon: Clock,
-    col: 'Idling',
+    col: 'Engine running while stopped',
     detail: (v) => (v.durationMin ? `${formatNum(v.durationMin)} min` : '—'),
-    sub: 'idling outside known loading and customer zones',
-    clean: 'No vehicle idled outside known loading or customer zones today.',
+    sub: 'estimated diesel cost while stopped with the engine running',
+    clean: 'No extra diesel cost from engines left running while stopped was flagged.',
   },
   fuelOverModel: {
     c: '#9333EA',
     icon: Droplet,
-    col: 'Over model',
+    col: 'Extra diesel',
     detail: (v) => (v.excessL ? formatLitres(v.excessL) : '—'),
-    sub: 'burnt above each vehicle’s learned fuel model',
-    clean: 'Every vehicle burnt within its fuel model today.',
+    sub: 'estimated cost of diesel used above the expected amount',
+    clean: 'No higher-than-expected diesel use was flagged.',
   },
 };
 

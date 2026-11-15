@@ -58,17 +58,17 @@ function normaliseProfitability(data) {
   const routes = (data.routes || []).map((r) => {
     const avgRevenueInr = r.avgRevenuePerTripInr ?? 0;
     const avgCostInr = r.avgRunningCostPerTripInr ?? 0;
-    const km = r.distanceKm || r.routeDistanceKm || 0;
+    const km = r.distanceKm ?? null;
     return {
       ...r,
       originCity: r.origin?.city || null,
       destCity: r.destination?.city || null,
-      distanceKm: r.routeDistanceKm ?? r.distanceKm ?? null,
+      distanceKm: km,
       avgRevenueInr,
       avgCostInr,
       avgMarginInr: avgRevenueInr - avgCostInr,
-      revenuePerKm: km ? (r.revenueInr || 0) / km : 0,
-      costPerKm: km ? (r.runningCostInr || 0) / km : 0,
+      revenuePerKm: km > 0 && r.revenueInr != null ? r.revenueInr / km : null,
+      costPerKm: km > 0 && r.runningCostInr != null ? r.runningCostInr / km : null,
       costBreakdown: (r.costBreakdown || []).map((s) => ({ ...s, key: s.slice })),
       path: decodePolyline(r.geometry?.encodedPolyline),
     };
@@ -180,7 +180,7 @@ const RouteHubService = {
    * AutoTrip and leg (LADEN / RETURN) the detour happened on, or is null.
    */
   getDeviationEvents: async (
-    { vehicle, from, to, status, leg, linked, autoTripId, minExtraKm, page, limit } = {},
+    { vehicle, q, from, to, status, leg, linked, autoTripId, minExtraKm, page, limit } = {},
     signal,
   ) =>
     parseSafe(
@@ -190,6 +190,7 @@ const RouteHubService = {
         await apiClient.get('/api/route-deviation/events', {
           params: {
             ...(vehicle ? { vehicle } : {}),
+            ...(q ? { q } : {}),
             ...(from ? { from } : {}),
             ...(to ? { to } : {}),
             ...(status ? { status } : {}),
@@ -252,9 +253,51 @@ const RouteHubService = {
     );
   },
 
+  /**
+   * Per-route & per-trip RUNNING COST from AutoTrip telemetry (no ERP). Detected
+   * trips carry no revenue, so this is cost only — margin is never returned.
+   * Cost is present only for trips the economics engine priced; the rest are null.
+   */
+  getAutoTripRunningCost: async ({ days = 30, from, to, branchId } = {}, signal) => {
+    const toDate = to ? new Date(to) : new Date();
+    const fromDate = from ? new Date(from) : new Date(toDate.getTime() - days * 86400000);
+    return unwrap(
+      await apiClient.get('/api/route-profitability/running-cost', {
+        params: {
+          from: fromDate.toISOString(),
+          to: toDate.toISOString(),
+          ...(branchId ? { branchId } : {}),
+        },
+        signal,
+      }),
+    );
+  },
+
   /** Fleet utilization rollup — distance covered, vehicles active. */
   getUtilization: async (params = {}, signal) =>
     unwrap(await apiClient.get('/api/owner-value/utilization', { params, signal })),
+
+  /**
+   * The fleet's ₹ layer — theft, bill fraud, idling, detour, DEF and fuel waste
+   * for a window, with the top vehicles behind it.
+   */
+  getMoney: async (params = {}, signal) =>
+    unwrap(await apiClient.get('/api/owner-value/money', { params, signal })),
+
+  /**
+   * One trip's P&L estimate: revenue, the cost lines with the source of each,
+   * and the margin. A cost the API could not price comes back null, never 0.
+   */
+  getTripPnl: async (tripId, signal) =>
+    unwrap(await apiClient.get('/api/owner-value/trip-pnl', { params: { tripId }, signal })),
+
+  /** Recent trips from the trip register — the rows a trip P&L is computed for. */
+  getTrips: async ({ limit = 8 } = {}, signal) => {
+    const res = await apiClient.get('/api/trips', { params: { page: 1, limit }, signal });
+    const body = res.data?.data;
+    if (Array.isArray(body)) return body;
+    return Array.isArray(body?.trips) ? body.trips : [];
+  },
 };
 
 export default RouteHubService;

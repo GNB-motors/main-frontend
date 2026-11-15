@@ -18,11 +18,32 @@ import { exportFilteredReportCsv } from '../../../utils/reportCsvExport';
 
 export { formatNumber, formatCurrency, formatDate };
 
-export const fmtKm = (v) => (typeof v === 'number' ? `${v.toFixed(1)} km` : '—');
-export const fmtL = (v) => (typeof v === 'number' ? `${v.toFixed(2)} L` : '—');
-export const fmtPct = (v) => (typeof v === 'number' ? `${v.toFixed(1)}%` : '—');
-
 export const numOrNull = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+
+export const fmtKm = (v) => {
+  const n = numOrNull(v);
+  return n != null ? `${n.toFixed(1)} km` : '—';
+};
+export const fmtL = (v) => {
+  const n = numOrNull(v);
+  return n != null ? `${n.toFixed(2)} L` : '—';
+};
+export const fmtPct = (v) => {
+  const n = numOrNull(v);
+  return n != null ? `${n.toFixed(1)}%` : '—';
+};
+
+/** "2 rows not measured" — a total that leaves rows out; null when none are left out. */
+export function notMeasuredNote(count) {
+  if (!Number.isFinite(count) || count <= 0) return null;
+  return `${count} ${count === 1 ? 'row' : 'rows'} not measured`;
+}
+
+/** "2 rows not costed" — the same note for a cost that was never computed. */
+export function notCostedNote(count) {
+  if (!Number.isFinite(count) || count <= 0) return null;
+  return `${count} ${count === 1 ? 'row' : 'rows'} not costed`;
+}
 
 export const buildTripFilterParams = ({
   from,

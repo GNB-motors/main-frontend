@@ -13,7 +13,16 @@ export default function useStatusCards(counts) {
         stripe: '#9333EA',
         countColor: null,
       },
-      { k: 'idling', label: 'Idling', count: counts.idling, stripe: '#F97316', countColor: null },
+      {
+        k: 'idling',
+        label: 'Idling',
+        count: counts.idling,
+        stripe: '#F97316',
+        countColor: null,
+        // Instant engine-on-and-stopped, not the Idling Console's ≥ threshold stops (DC-17).
+        title:
+          'Engine on and not moving right now. Idling Console counts stops longer than your idle threshold.',
+      },
       {
         k: 'offline',
         label: 'Offline',

@@ -1,4 +1,5 @@
 import apiClient from '../utils/axiosConfig';
+import { getToken, getOrgId, getBranchId } from '../utils/session';
 
 /**
  * liveStream — one shared SSE connection per session (OVERHAUL_MASTER_PLAN §A.5).
@@ -58,6 +59,7 @@ const defaultDeps = {
 
 export function createLiveStream(deps = {}) {
   const { requestTicket, openStream, streamUrl, visibility } = { ...defaultDeps, ...deps };
+  const isCurrentScope = deps.isCurrentScope ?? (() => true);
 
   /** eventType -> Set<handler> */
   const handlers = new Map();
@@ -65,11 +67,13 @@ export function createLiveStream(deps = {}) {
 
   let state = 'closed';
   let source = null;
+  let connectingPromise = null;
   let reconnectTimer = null;
   let graceTimer = null;
   let hiddenTimer = null;
   let cooldownTimer = null;
   let attempt = 0;
+  let generation = 0;
 
   const emitState = (next) => {
     if (next === state) return;
@@ -100,13 +104,16 @@ export function createLiveStream(deps = {}) {
   };
 
   const disconnect = (nextState = 'closed') => {
+    generation += 1;
     clearTimers();
+    connectingPromise = null;
     closeSource();
     attempt = 0;
     emitState(nextState);
   };
 
   const dispatch = (eventType, raw) => {
+    if (!isCurrentScope()) return;
     const set = handlers.get(eventType);
     if (!set || set.size === 0) return;
     let payload;
@@ -119,50 +126,66 @@ export function createLiveStream(deps = {}) {
     set.forEach((h) => h(payload));
   };
 
-  const connect = async () => {
-    if (source) return;
+  const connect = () => {
+    if (source) return Promise.resolve();
+    if (connectingPromise) return connectingPromise;
     clearTimers();
     emitState(attempt === 0 ? 'connecting' : 'reconnecting');
-    let ticket;
-    try {
-      ticket = await requestTicket();
-    } catch (err) {
-      scheduleReconnect(err);
-      return;
-    }
-    if (!ticket) {
-      scheduleReconnect(new Error('ticket endpoint returned no token'));
-      return;
-    }
-    let es;
-    try {
-      es = openStream(streamUrl(ticket));
-    } catch {
-      scheduleReconnect(new Error('EventSource construction failed'));
-      return;
-    }
-    if (state === 'closed') {
-      // Unsubscribed (or hidden-shutdown) while the ticket request was in flight.
-      es.close();
-      return;
-    }
-    source = es;
-    es.onopen = () => {
-      attempt = 0;
-      emitState('open');
-    };
-    es.onerror = () => {
-      // Per SSE semantics the browser auto-reconnects unless we intervene; we
-      // manage retries ourselves (fresh ticket each attempt), so tear down and
-      // schedule our own backoff reconnect.
-      closeSource();
-      scheduleReconnect();
-    };
-    es.onmessage = (ev) => dispatch('message', ev.data);
-    // Named events: register per subscribed type so unknown events are ignored.
-    ['hello', 'positions', 'alerts', 'freshness'].forEach((type) => {
-      es.addEventListener(type, (ev) => dispatch(type, ev.data));
+    const currentGeneration = generation;
+    connectingPromise = (async () => {
+      let ticket;
+      try {
+        ticket = await requestTicket();
+      } catch (err) {
+        if (currentGeneration === generation && isCurrentScope()) scheduleReconnect(err);
+        return;
+      }
+      // A location switch or disposal can happen while minting the ticket.
+      // Never open that old scope's stream, even if the request succeeds late.
+      if (currentGeneration !== generation || !isCurrentScope()) return;
+      if (!ticket) {
+        scheduleReconnect(new Error('ticket endpoint returned no token'));
+        return;
+      }
+      let es;
+      try {
+        es = openStream(streamUrl(ticket));
+      } catch {
+        scheduleReconnect(new Error('EventSource construction failed'));
+        return;
+      }
+      if (state === 'closed') {
+        // Unsubscribed (or hidden-shutdown) while the ticket request was in flight.
+        es.close();
+        return;
+      }
+      source = es;
+      es.onopen = () => {
+        if (!isCurrentScope()) {
+          disconnect('closed');
+          return;
+        }
+        attempt = 0;
+        emitState('open');
+      };
+      es.onerror = () => {
+        // Per SSE semantics the browser auto-reconnects unless we intervene; we
+        // manage retries ourselves (fresh ticket each attempt), so tear down and
+        // schedule our own backoff reconnect.
+        closeSource();
+        scheduleReconnect();
+      };
+      es.onmessage = (ev) => dispatch('message', ev.data);
+      // Named events: register per subscribed type so unknown events are ignored.
+      ['hello', 'positions', 'alerts', 'freshness', 'intent', 'idling', 'incidents'].forEach(
+        (type) => {
+          es.addEventListener(type, (ev) => dispatch(type, ev.data));
+        },
+      );
+    })().finally(() => {
+      if (currentGeneration === generation) connectingPromise = null;
     });
+    return connectingPromise;
   };
 
   const scheduleReconnect = (err) => {
@@ -217,7 +240,14 @@ export function createLiveStream(deps = {}) {
       clearTimeout(hiddenTimer);
       hiddenTimer = null;
     }
-    if (!source && !reconnectTimer && !cooldownTimer && hasSubscribers() && state === 'closed') {
+    if (
+      !source &&
+      !connectingPromise &&
+      !reconnectTimer &&
+      !cooldownTimer &&
+      hasSubscribers() &&
+      state === 'closed'
+    ) {
       connect();
     }
   };
@@ -236,7 +266,7 @@ export function createLiveStream(deps = {}) {
       clearTimeout(graceTimer);
       graceTimer = null;
     }
-    if (!source && !reconnectTimer && !cooldownTimer) connect();
+    if (!source && !connectingPromise && !reconnectTimer && !cooldownTimer) connect();
     return () => {
       const set = handlers.get(eventType);
       if (!set) return;
@@ -280,10 +310,18 @@ export function createLiveStream(deps = {}) {
 }
 
 let singleton = null;
+let singletonScope = null;
+
+const sessionScope = () => JSON.stringify([getToken(), getOrgId(), getBranchId()]);
 
 /** Lazy singleton per A.5: first subscriber opens it, dispose on logout. */
 export function getLiveStream() {
-  if (!singleton) singleton = createLiveStream();
+  const scope = sessionScope();
+  if (singleton && singletonScope !== scope) resetLiveStream();
+  if (!singleton) {
+    singletonScope = scope;
+    singleton = createLiveStream({ isCurrentScope: () => sessionScope() === scope });
+  }
   return singleton;
 }
 
@@ -291,4 +329,11 @@ export function getLiveStream() {
 export function resetLiveStream() {
   if (singleton) singleton.dispose();
   singleton = null;
+  singletonScope = null;
+}
+
+if (typeof import.meta !== 'undefined' && import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    resetLiveStream();
+  });
 }

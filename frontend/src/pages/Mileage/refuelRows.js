@@ -24,6 +24,8 @@ export function refuelResult(status, tankMinusBillL = null) {
       return 'NO_TANK_READING';
     case 'SENSOR_GLITCH':
       return 'GAUGE_JUMP';
+    case 'UNASSESSED':
+      return 'COMPARISON_UNAVAILABLE';
     default:
       return null;
   }
@@ -34,12 +36,13 @@ export const REFUEL_CHIPS = [
   {
     key: 'all',
     label: 'All fills',
-    count: (m) => m.verified + m.flagged + m.unverified + m.slipOnly,
+    count: (m) => m.verified + m.flagged + m.unverified + m.slipOnly + (m.unassessed || 0),
   },
   { key: 'verified', label: 'Bill matches', count: (m) => m.verified },
   { key: 'flagged', label: 'Bill to check', count: (m) => m.flagged },
   { key: 'unverified', label: 'Bill missing', count: (m) => m.unverified },
   { key: 'slip_only', label: 'No tank reading', count: (m) => m.slipOnly },
+  { key: 'unassessed', label: 'Comparison unavailable', count: (m) => m.unassessed || 0 },
   // Glitches are never in "All fills" or any total; only listed when asked for.
   { key: 'sensor_glitch', label: 'Gauge jumps', count: (m) => m.sensorGlitch },
 ];
@@ -49,6 +52,7 @@ export const RECONCILIATION_RESULT = {
   CLEAN: 'BILL_MATCHES',
   FLAGGED: 'BILL_TOO_HIGH',
   REVIEW: 'BILL_TOO_LOW',
+  UNAVAILABLE: 'COMPARISON_UNAVAILABLE',
 };
 
 /** Where a bill's odometer reading came from, in plain words. */
@@ -73,17 +77,26 @@ export function mapUnifiedRow(row) {
   const sensor = row.sensor || null;
   const slipLocation =
     slip?.location && String(slip.location).trim() !== '-' ? String(slip.location).trim() : null;
-  // The saved place the sensor fix falls in (Place Hub) names the pump when
-  // someone named it; otherwise the bill's text, then the raw coordinates.
-  const place = row.place?.hubId
-    ? { hubId: row.place.hubId, name: row.place.name || null, siteType: row.place.siteType }
-    : null;
-  const location = place?.name || slipLocation || sensor?.fuelPumpName || null;
-  const coords =
-    !location && num(sensor?.lat) != null && num(sensor?.lng) != null
-      ? { lat: num(sensor.lat), lng: num(sensor.lng) }
+  // Only typed fuel pumps supply saved names. Receipt station names and
+  // addresses remain separate; neither can rename a saved pump.
+  const place =
+    row.place?.hubId && row.place.siteType === 'FUEL_PUMP'
+      ? {
+          id: row.place.id || row.place.hubId.split(':')[1],
+          hubId: row.place.hubId,
+          name: row.place.name || null,
+          siteType: row.place.siteType,
+        }
       : null;
-  const odometer = num(slip?.odometerReading) || null;
+  const stationName = slip?.stationName?.trim() || null;
+  const location = place?.name || stationName || null;
+  const coords =
+    num(sensor?.lat) != null && num(sensor?.lng) != null
+      ? { lat: num(sensor.lat), lng: num(sensor.lng) }
+      : slip?.locationGeo?.coordinates?.length === 2
+        ? { lat: slip.locationGeo.coordinates[1], lng: slip.locationGeo.coordinates[0] }
+        : null;
+  const odometer = num(slip?.odometerReading) ?? num(sensor?.odometer) ?? null;
 
   return {
     id: row.id,
@@ -105,12 +118,19 @@ export function mapUnifiedRow(row) {
     billToleranceL: num(sensor?.billToleranceL),
     location,
     billLocation: slipLocation,
+    stationName,
+    pumpNameSource: place?.name ? 'SAVED' : stationName ? 'BILL' : null,
     coords,
     place,
     rate: effectiveRate(slip),
-    totalAmount: num(slip?.totalAmount),
+    totalAmount:
+      num(slip?.totalAmount) ??
+      (num(slip?.litres) && num(slip?.rate) ? num(slip.litres) * num(slip.rate) : null),
     odometer,
-    odometerSource: odometer != null ? slip.odometerSource || null : null,
+    odometerSource:
+      odometer != null
+        ? slip?.odometerSource || (sensor?.odometer != null ? 'FLEETEDGE' : null)
+        : null,
     fuelType: slip?.fuelType || (sensor ? 'DIESEL' : null),
     raw: row,
   };
@@ -166,6 +186,7 @@ export function drawerFromLiveRow(row) {
       slip && sensor
         ? {
             toleranceL: num(sensor.billToleranceL),
+            comparable: sensor.billComparable !== false,
             flagged: Boolean(sensor.billFlag),
             v1VarianceL: num(sensor.v1BillVarianceL),
             v1Flagged: sensor.v1BillFlag == null ? null : Boolean(sensor.v1BillFlag),
@@ -202,6 +223,10 @@ export function drawerFromReconciliationRow(r) {
     },
     sensor: {
       litres: num(r.telemetryLitres),
+      rawLitres: num(r.rawLitres),
+      correction: r.correction || null,
+      gainBills: num(r.gainBills),
+      bandL: num(r.bandL),
       at: r.sensorAt || null,
       pumpName: null,
       lat: null,
@@ -210,6 +235,12 @@ export function drawerFromReconciliationRow(r) {
     },
     varianceL: num(r.varianceL),
     variancePct: num(r.variancePct),
-    billCheck: null,
+    billCheck: {
+      toleranceL: num(r.billToleranceL),
+      comparable: r.billComparable !== false,
+      flagged: r.billFlag == null ? null : Boolean(r.billFlag),
+      v1VarianceL: num(r.v1VarianceL),
+      v1Flagged: r.v1Flagged == null ? null : Boolean(r.v1Flagged),
+    },
   };
 }

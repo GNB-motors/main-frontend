@@ -3,13 +3,19 @@ import DataTable from '../../../components/ui/DataTable';
 import EnterprisePagination from '../../../components/ui/EnterprisePagination';
 import StatusChip from '../../../components/ui/StatusChip';
 import { useApi } from '../../../hooks/useApi';
-import { toISTDateString } from '../../../utils/dateUtils';
+import { humanDate } from '../mileageDates';
 import { formatKm, formatLitres } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
-import { mapFuelCycleRow, mileageBand } from '../cycleRows';
+import { mapFuelCycleRow, mileageBand, isPlausibleKmPerL } from '../cycleRows';
 import InfoTip from './InfoTip';
 import { StatusPill } from '../../../components/overview.primitives.jsx';
 import { billCheckView } from '../../../utils/billCheck';
+import {
+  cycleFlagLabels,
+  cycleGapFlags,
+  fullBasisText,
+  hasCycleFlag,
+} from '../../../utils/fuelCycleFields';
 
 const compact = (s) =>
   String(s || '')
@@ -29,8 +35,8 @@ const COLUMNS = [
     label: 'Between fills',
     render: (r) => (
       <span className="num">
-        {r.openAt ? toISTDateString(r.openAt) : '—'} →{' '}
-        {r.closeAt ? toISTDateString(r.closeAt) : 'still running'}
+        {r.openAt ? humanDate(r.openAt) : '—'} →{' '}
+        {r.closeAt ? humanDate(r.closeAt) : 'still running'}
       </span>
     ),
   },
@@ -51,32 +57,56 @@ const COLUMNS = [
   {
     key: 'mileage',
     label: 'Mileage',
-    render: (r) => (
-      <span className="mhub-cell">
-        <span className="mhub-litres">{kmPerL(r.kmPerLTankToTank)}</span>
-        <StatusChip group="mileageBand" value={mileageBand(r.kmPerLTankToTank)} fallback="" />
-        <InfoTip
-          explanation={{
-            title: 'Mileage for this round',
-            text: 'Odometer km between the two full-tank fills, divided by the diesel put in. The engine’s own figure is shown for comparison.',
-            lines: [
-              ['Distance', formatKm(r.km)],
-              ['Diesel (bills)', formatLitres(r.fuelBills)],
-              ['Engine burned', formatLitres(r.fuelEcu)],
-              ['Mileage by engine', kmPerL(r.kmPerLEcu)],
-              ['Km seen by tracker', pct(r.kmCoveragePct)],
-              ['Diesel seen by engine', pct(r.fuelCoveragePct)],
-            ],
-          }}
-        />
-      </span>
-    ),
+    render: (r) => {
+      // Where the km/L came from: "from slips" or "from register rows". A
+      // cycle whose ends were not both full tanks has no km/L, and it says
+      // why instead of leaving a bare dash.
+      const basis = fullBasisText(r.fullBasis);
+      const fillUnknown = hasCycleFlag(r.flags, 'FILL_TYPE_UNKNOWN');
+      return (
+        <span className="mhub-cell">
+          <span className="mhub-litres">{kmPerL(r.kmPerLTankToTank)}</span>
+          {fillUnknown ? (
+            <span className="mhub-sub">fill type not recorded</span>
+          ) : basis ? (
+            <span className="mhub-sub">{basis}</span>
+          ) : null}
+          {r.kmPerLTankToTank != null && !isPlausibleKmPerL(r.kmPerLTankToTank) ? (
+            <span
+              className="mhub-excluded"
+              title="Outside 0.8–8 km/L, so this round is left out of the average. Usually a wrong odometer on a bill or a fill marked full that was not."
+            >
+              Excluded · check the bill
+            </span>
+          ) : (
+            <StatusChip group="mileageBand" value={mileageBand(r.kmPerLTankToTank)} fallback="" />
+          )}
+          <InfoTip
+            explanation={{
+              title: 'Mileage for this round',
+              text: 'Odometer km between the two full-tank fills, divided by the diesel put in. The engine’s own figure is shown for comparison.',
+              lines: [
+                ['Distance', formatKm(r.km)],
+                ['Diesel (bills)', formatLitres(r.fuelBills)],
+                ['Engine burned', formatLitres(r.fuelEcu)],
+                ['Mileage by engine', kmPerL(r.kmPerLEcu)],
+                ['Km seen by tracker', pct(r.kmCoveragePct)],
+                ['Diesel seen by engine', pct(r.fuelCoveragePct)],
+              ],
+            }}
+          />
+        </span>
+      );
+    },
   },
   {
     key: 'status',
     label: 'Status',
     render: (r) => {
       const bill = billCheckView(r.lossCheck);
+      // A flag says what was not measured. Its words never blame the truck.
+      // The fill-type flag is not repeated here — the km/L cell says it.
+      const notes = cycleFlagLabels(cycleGapFlags(r.flags));
       return (
         <span className="mhub-cell">
           <StatusChip group="fuelCycle" value={r.status} />
@@ -85,6 +115,7 @@ const COLUMNS = [
               <StatusPill tone={bill.tone}>Loss flagged · {bill.label}</StatusPill>
             </span>
           )}
+          {notes.length ? <span className="mhub-sub">{notes.join(' · ')}</span> : null}
         </span>
       );
     },

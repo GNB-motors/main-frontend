@@ -1,0 +1,29 @@
+{
+  "items": [
+    {
+      "id": "q-501",
+      "point": { "lat": 25.5647, "lng": 83.9754, "radiusM": 250 },
+      "tripsAffected": 124,
+      "trucks": 18,
+      "suggestion": {
+        "name": "JK BUXAR PLANT GATE",
+        "category": "PLANT",
+        "source": "OSM",
+        "confidence": 0.82
+      },
+      "alternatives": [
+        { "name": "JK BUXAR SIDING", "category": "PLANT", "source": "GOOGLE" },
+        { "name": "Near Buxar", "category": "ADDRESS", "source": "ADDRESS" }
+      ],
+      "sampleTrips": [
+        { "label": "Trip on 1 Nov", "to": "/auto-trips/trip-88213" },
+        { "label": "Trip on 28 Oct", "to": "/auto-trips/trip-88190" }
+      ],
+      "why": {
+        "text": "Trucks stop here 1.5 h on average after loading.",
+        "basis": "124 trips from 18 trucks since 15 Sep"
+      }
+    }
+  ],
+  "total": 1
+}

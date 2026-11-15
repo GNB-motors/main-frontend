@@ -1,15 +1,9 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import ManufacturerFilter from '../../components/filters/ManufacturerFilter';
 import useManufacturerFilter from '../../hooks/useManufacturerFilter';
 import { useState, useEffect, useMemo } from 'react';
 import { Car, FileText, Gauge, Fuel } from 'lucide-react';
 import { toast } from 'react-toastify';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useApi } from '../../hooks/useApi';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
@@ -39,7 +33,6 @@ import VehiclePerformanceChart from './VehiclePerformanceChart';
 import ModelSummaryTable from './ModelSummaryTable';
 import { MileageTrackingService } from './MileageTrackingService';
 import './MileageTracking.css';
-
 const MIN_CYCLE_OPTIONS = [1, 2, 3, 5];
 const MIN_CYCLE_SELECT_OPTIONS = MIN_CYCLE_OPTIONS.map((n) => ({
   value: String(n),
@@ -60,15 +53,22 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
   const [meta, setMeta] = useState(null);
   const [selectedModel, setSelectedModel] = useState(null);
   const [selectedVehicles, setSelectedVehicles] = useState([]);
-  const [ownRange, setRange] = useState({ from: '', to: '' });
+  const [ownRange, setRange] = useState({
+    from: '',
+    to: '',
+  });
   const range = hubRange || ownRange;
   const [minCycles, setMinCycles] = useState(1);
   const [search, setSearch] = useState('');
-
   const params = useMemo(() => {
     // minCycles=1 is the API default; leaving it out keeps the request valid
     // against a backend that predates the parameter.
-    const p = minCycles > 1 ? { minCycles } : {};
+    const p =
+      minCycles > 1
+        ? {
+            minCycles,
+          }
+        : {};
     // The hub's range is local calendar days; the report sends whole IST days.
     const from = embedded ? toStartOfDayIso(range.from) : istDayStart(range.from);
     const to = embedded ? toEndOfDayIso(range.to) : istDayEnd(range.to);
@@ -77,17 +77,20 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
     if (to) p.to = to;
     return p;
   }, [range, minCycles, embedded, manufacturer]);
-
   const {
     data: comparisonResponse,
     loading: isLoading,
     error: comparisonError,
   } = useApi(
-    (signal) => MileageTrackingService.getModelComparison(params, { signal }),
+    (signal) =>
+      MileageTrackingService.getModelComparison(params, {
+        signal,
+      }),
     [JSON.stringify(params)],
-    { scopeKey: manufacturer },
+    {
+      scopeKey: manufacturer,
+    },
   );
-
   useEffect(() => {
     if (!comparisonResponse) {
       setData([]);
@@ -102,11 +105,9 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
       );
     }
   }, [comparisonResponse]);
-
   useEffect(() => {
     if (comparisonError) toast.error('Failed to load model comparison data');
   }, [comparisonError]);
-
   const query = search.trim();
   // `data` itself when nothing is searched, so the charts keep a stable array.
   const models = useMemo(
@@ -119,7 +120,6 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
   const selectedModelData = models.find((d) => d.model === activeModel) ?? null;
   const allVehicleChartData = buildVehicleChartData(selectedModelData);
   const atRiskCount = countAtRisk(allVehicleChartData, selectedModelData?.avgMileage);
-
   useEffect(() => {
     if (!selectedModelData || allVehicleChartData.length === 0) {
       setSelectedVehicles([]);
@@ -129,12 +129,10 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
     // we only want to re-calculate defaults when the model changes (data doesn't mutate dynamically here)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedModelData]);
-
   const vehicleChartData = allVehicleChartData.filter((v) =>
     selectedVehicles.includes(v.vehicleNumber),
   );
   const vehicleOptions = allVehicleChartData.map((v) => v.vehicleNumber);
-
   const handleVehicleToggle = (vehicleNumber) => {
     if (selectedVehicles.includes(vehicleNumber)) {
       setSelectedVehicles(selectedVehicles.filter((v) => v !== vehicleNumber));
@@ -146,7 +144,6 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
     }
     setSelectedVehicles([...selectedVehicles, vehicleNumber]);
   };
-
   const totalRecords = models.reduce((s, d) => s + d.recordCount, 0);
   const totalVehicles = models.reduce((s, d) => s + d.vehicleCount, 0);
   const bestModel = models[0] ?? null;
@@ -160,9 +157,7 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
       (range.to ? 1 : 0) +
       (minCycles > 1 ? 1 : 0) +
       (query ? 1 : 0);
-
   const methodNote = methodNoteOf(meta);
-
   const loadingState = (
     <div className="mc-loading">
       <p>Loading model comparison data...</p>
@@ -177,7 +172,6 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
       </p>
     </div>
   );
-
   const renderCharts = ({ showExport }) => (
     <>
       <ModelAverageBarChart
@@ -209,7 +203,6 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
       />
     </>
   );
-
   const dataNotice = meta ? (
     <ReportDataNotice
       dataAsOf={meta.dataAsOf}
@@ -219,26 +212,43 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
     />
   ) : null;
   const methodNoteText = methodNote ? (
-    <p className="mc-empty-sub" style={{ margin: 0 }}>
+    <p
+      className="mc-empty-sub"
+      style={{
+        margin: 0,
+      }}
+    >
       {methodNote}
     </p>
   ) : null;
-
   if (!embedded) {
     const kpis = models.length
       ? [
-          { label: 'Models tracked', value: models.length, icon: Car },
+          {
+            label: 'Models tracked',
+            value: models.length,
+            icon: Car,
+          },
           {
             label: 'Best avg mileage',
             value: bestModel ? `${bestModel.avgMileage} km/L` : '—',
             icon: Gauge,
             tone: 'green',
           },
-          { label: 'Cycles used', value: totalRecords, icon: FileText, tone: 'violet' },
-          { label: 'Total vehicles', value: totalVehicles, icon: Fuel, tone: 'orange' },
+          {
+            label: 'Cycles used',
+            value: totalRecords,
+            icon: FileText,
+            tone: 'violet',
+          },
+          {
+            label: 'Total vehicles',
+            value: totalVehicles,
+            icon: Fuel,
+            tone: 'orange',
+          },
         ]
       : null;
-
     return (
       <ReportFrame
         title="Model Comparison"
@@ -257,7 +267,10 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
             <ReportClear
               active={activeFilters > 0}
               onClear={() => {
-                setRange({ from: '', to: '' });
+                setRange({
+                  from: '',
+                  to: '',
+                });
                 setSearch('');
                 setManufacturer('');
                 setMinCycles(1);
@@ -278,8 +291,14 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
                   ...ownRange,
                   entityLabel: query ? `“${query}”` : null,
                 }),
-                { label: 'Min cycles per vehicle', value: minCycles },
-                { label: 'Models compared', value: models.length },
+                {
+                  label: 'Min cycles per vehicle',
+                  value: minCycles,
+                },
+                {
+                  label: 'Models compared',
+                  value: models.length,
+                },
               ],
             }}
             disabled={!models.length}
@@ -313,14 +332,21 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
             <p className="mc-empty-sub">Try another model name or clear the search.</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {renderCharts({ showExport: false })}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 20,
+            }}
+          >
+            {renderCharts({
+              showExport: false,
+            })}
           </div>
         )}
       </ReportFrame>
     );
   }
-
   return (
     <PageShell
       embedded={embedded}
@@ -330,34 +356,51 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
         <FilterBar
           from={range.from}
           to={range.to}
-          onRangeChange={hubRange ? null : (patch) => setRange((prev) => ({ ...prev, ...patch }))}
+          onRangeChange={
+            hubRange
+              ? null
+              : (patch) =>
+                  setRange((prev) => ({
+                    ...prev,
+                    ...patch,
+                  }))
+          }
           activeCount={activeFilters}
           onClear={() => {
-            setRange({ from: '', to: '' });
+            setRange({
+              from: '',
+              to: '',
+            });
             setMinCycles(1);
           }}
           right={
             <div className="date-input-group">
               <label htmlFor="model-comparison-min-cycles">Min cycles per vehicle</label>
-              <Select value={String(minCycles)} onValueChange={(v) => setMinCycles(Number(v))}>
-                <SelectTrigger id="model-comparison-min-cycles" className="h-9 w-[90px] text-sm">
-                  <SelectValue>{minCycles}</SelectValue>
-                </SelectTrigger>
-                <SelectContent align="start">
-                  {MIN_CYCLE_OPTIONS.map((n) => (
-                    <SelectItem key={n} value={String(n)}>
-                      {n}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={String(minCycles)}
+                onValueChange={(v) => setMinCycles(Number(v))}
+                id="model-comparison-min-cycles"
+                className="h-9 w-[90px] text-sm"
+              >
+                {MIN_CYCLE_OPTIONS.map((n) => (
+                  <option key={n} value={String(n)}>
+                    {n}
+                  </option>
+                ))}
+              </SearchableSelect>
             </div>
           }
         />
       }
     >
       {meta ? (
-        <div style={{ display: 'grid', gap: 8, marginBottom: 16 }}>
+        <div
+          style={{
+            display: 'grid',
+            gap: 8,
+            marginBottom: 16,
+          }}
+        >
           {dataNotice}
           {methodNoteText}
         </div>
@@ -399,11 +442,12 @@ const ModelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
             />
           </div>
 
-          {renderCharts({ showExport: true })}
+          {renderCharts({
+            showExport: true,
+          })}
         </>
       )}
     </PageShell>
   );
 };
-
 export default ModelComparisonPage;

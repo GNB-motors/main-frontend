@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 /**
  * Rate Master (ISOCL ERP)
  *
@@ -152,7 +153,7 @@ const RatesPage = () => {
       }
     >
       <div className="erp-toolbar">
-        <select
+        <SearchableSelect
           className="erp-filter"
           value={partyFilter}
           onChange={(e) => {
@@ -166,7 +167,7 @@ const RatesPage = () => {
               {p.name}
             </option>
           ))}
-        </select>
+        </SearchableSelect>
       </div>
 
       <div className="erp-container">

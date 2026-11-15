@@ -1,36 +1,20 @@
-import ManufacturerFilter from '../../../components/filters/ManufacturerFilter';
-import useManufacturerFilter from '../../../hooks/useManufacturerFilter';
-import { useMemo, useState } from 'react';
+import React from 'react';
 import { AlertTriangle, CheckCircle2, Clock3, Droplets, Gauge, Info } from 'lucide-react';
 import useApi from '../../../hooks/useApi';
-import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import DataTable from '../../../components/ui/DataTable';
 import ExportButton from '../../../components/ui/ExportButton';
 import ReportDataNotice from '../../../components/ui/ReportDataNotice';
 import { formatInIST } from '../../../utils/dateUtils';
 import { ReportsService } from '../ReportsService.js';
-import ReportFrame, {
-  ReportClear,
-  ReportDateRange,
-  ReportFooter,
-  ReportSearch,
-} from './ReportFrame';
-import { VehiclePicker } from './ReportEntityPicker';
+import ReportFrame, { ReportFooter } from './ReportFrame';
+import ReportFilterBar from './ReportFilterBar';
 import { exportFilterMeta } from './fleetReportUtils';
-import {
-  compactParams,
-  istDayEnd,
-  istDayStart,
-  istDaysAgo,
-  istToday,
-  rangeLabel,
-} from './reportFilters';
+import { rangeLabel } from './reportFilters';
+import useReportFilterParams from './useReportFilterParams';
 import useReportPage from './useReportPage';
 import './AdBlueComparisonReport.css';
 
 const PAGE_SIZE = 20;
-// The comparison endpoint's largest page.
-const EXPORT_PAGE_SIZE = 100;
 
 const number = (value, digits = 1) =>
   typeof value === 'number'
@@ -155,29 +139,9 @@ const EXPORT_COLUMNS = [
   { key: 'status', label: 'Status' },
 ];
 
-const fetchComparison = (params, signal) => ReportsService.getAdBlueComparison(params, { signal });
-
-const defaultRange = () => ({ from: istDaysAgo(30), to: istToday() });
-
 const AdBlueComparisonReport = () => {
-  const { manufacturer, setManufacturer } = useManufacturerFilter();
-  const [range, setRange] = useState(defaultRange);
-  const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search.trim(), 300);
-  const [vehicleId, setVehicleId] = useState('all');
-
-  const filters = useMemo(
-    () =>
-      compactParams({
-        ...(manufacturer ? { manufacturer } : {}),
-        startDate: istDayStart(range.from),
-        endDate: istDayEnd(range.to),
-        search: debouncedSearch,
-        vehicleId,
-      }),
-    [range, manufacturer, debouncedSearch, vehicleId],
-  );
-  const filterKey = JSON.stringify(filters);
+  const { filters, range, requestParams, activeCount } = useReportFilterParams();
+  const filterKey = JSON.stringify(requestParams);
   const [page, setPage] = useReportPage(filterKey);
 
   const {
@@ -186,9 +150,10 @@ const AdBlueComparisonReport = () => {
     error,
     refetch,
   } = useApi(
-    (signal) => fetchComparison({ ...filters, page, limit: PAGE_SIZE }, signal),
+    (signal) =>
+      ReportsService.getAdBlueComparison({ ...requestParams, page, limit: PAGE_SIZE }, signal),
     [filterKey, page],
-    { scopeKey: manufacturer },
+    { scopeKey: filters.manufacturer },
   );
 
   const body = response || {};
@@ -197,59 +162,26 @@ const AdBlueComparisonReport = () => {
   const meta = body.meta || { page: 1, total: 0, totalPages: 1 };
   const methodology = body.methodology || {};
 
-  const fetchAll = async () => {
-    const all = [];
-    let next = 1;
-    let totalPages = 1;
-    do {
-      const res = await fetchComparison({ ...filters, page: next, limit: EXPORT_PAGE_SIZE });
-      all.push(...(res?.data || []));
-      totalPages = res?.meta?.totalPages || 1;
-      next += 1;
-    } while (next <= totalPages);
-    return all;
-  };
-
-  const defaults = defaultRange();
-  const activeFilters =
-    (manufacturer ? 1 : 0) +
-    (range.from !== defaults.from ? 1 : 0) +
-    (range.to !== defaults.to ? 1 : 0) +
-    (search ? 1 : 0) +
-    (vehicleId !== 'all' ? 1 : 0);
-
   return (
     <ReportFrame
       title="AdBlue Telemetry Comparison"
       subtitle="Logged AdBlue top-ups compared with FleetEdge DEF consumption and the live tank level."
-      filters={
-        <>
-          <ReportDateRange from={range.from} to={range.to} onChange={setRange} />
-          <ManufacturerFilter value={manufacturer} onChange={setManufacturer} />
-          <VehiclePicker value={vehicleId} onChange={setVehicleId} />
-          <ReportSearch value={search} onChange={setSearch} placeholder="Search vehicle" />
-          <ReportClear
-            active={activeFilters > 0}
-            onClear={() => {
-              setRange(defaultRange());
-              setSearch('');
-              setManufacturer('');
-              setVehicleId('all');
-            }}
-          />
-        </>
-      }
+      filters={<ReportFilterBar searchPlaceholder="Search vehicle" showDriver={false} />}
       actions={
         <ExportButton
           rows={rows}
           columns={EXPORT_COLUMNS}
           filename="adblue-comparison"
           buttonClass="rpt-btn"
-          fetchAll={fetchAll}
+          fetchAll={() =>
+            ReportsService.fetchAllReportRows(ReportsService.getAdBlueComparison, requestParams)
+          }
           meta={{
             filters: exportFilterMeta({
-              ...range,
-              entityLabel: debouncedSearch ? `“${debouncedSearch}”` : null,
+              from: range.from,
+              to: range.to,
+              manufacturer: filters.manufacturer,
+              entityLabel: requestParams.search ? `“${requestParams.search}”` : null,
             }),
           }}
           disabled={!rows.length}
@@ -268,17 +200,24 @@ const AdBlueComparisonReport = () => {
       kpis={[
         {
           label: 'Recorded additions',
-          value: `${number(summary.totalRecordedLitres)} L`,
+          value:
+            summary.totalRecordedLitres != null ? `${number(summary.totalRecordedLitres)} L` : '—',
           icon: Droplets,
         },
         {
           label: 'FleetEdge consumed',
-          value: `${number(summary.totalTelemetryConsumedLitres)} L`,
+          value:
+            summary.totalTelemetryConsumedLitres != null
+              ? `${number(summary.totalTelemetryConsumedLitres)} L`
+              : '—',
           icon: Gauge,
         },
         {
           label: 'Average current DEF',
-          value: `${number(summary.averageCurrentDefLevel)}%`,
+          value:
+            summary.averageCurrentDefLevel != null
+              ? `${number(summary.averageCurrentDefLevel)}%`
+              : '—',
           icon: Droplets,
         },
         {
@@ -308,7 +247,7 @@ const AdBlueComparisonReport = () => {
         onRetry={refetch}
         showing={rows.length}
         total={meta.total}
-        activeFilters={activeFilters}
+        activeFilters={activeCount}
         emptyTitle="No AdBlue or FleetEdge DEF data"
         emptyHint="Try widening the date range or clearing the search."
       />

@@ -1,4 +1,4 @@
-import { MapPin, MessageCircle, Radio, Timer } from 'lucide-react';
+import { MapPin, Radio, Timer } from 'lucide-react';
 
 export const SETTINGS_SECTIONS = [
   {
@@ -16,13 +16,6 @@ export const SETTINGS_SECTIONS = [
     icon: Radio,
   },
   { key: 'idling', group: 'Rules', label: 'Idling', hint: 'When a stop is idling', icon: Timer },
-  {
-    key: 'whatsapp',
-    group: 'Rules',
-    label: 'WhatsApp bills',
-    hint: 'Odometer on fuel bills',
-    icon: MessageCircle,
-  },
 ];
 
 const MANAGERS = ['OWNER', 'MANAGER'];
@@ -41,8 +34,6 @@ export function settingsAccess({ role, fleetAccess, coverageFlag }) {
     // GET /api/fleet-coverage: OWNER, MANAGER, behind the fleetIntelligence flag
     coverage: fleetAccess && coverageFlag && manager,
     idling: fleetAccess,
-    // /api/whatsapp/settings: OWNER, MANAGER
-    whatsapp: fleetAccess && manager,
   };
 }
 
@@ -61,7 +52,6 @@ export function visibleSections(access) {
   return SETTINGS_SECTIONS.filter((s) => {
     if (s.key === 'fleet-data') return access.fleetEdgeAccounts || access.coverage;
     if (s.key === 'idling') return access.idling;
-    if (s.key === 'whatsapp') return access.whatsapp;
     return true;
   });
 }

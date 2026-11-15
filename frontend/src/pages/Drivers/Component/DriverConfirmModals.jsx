@@ -1,4 +1,4 @@
-﻿// Confirm dialogs: delete / deactivate / cross-branch move. Split from driversComponents.jsx (WS0.7); markup preserved.
+// Confirm dialogs: delete / deactivate / cross-branch move. Split from driversComponents.jsx (WS0.7); markup preserved.
 import NewButton from '@/components/ui/NewButton';
 import { getInitials } from './driverPresenters.js';
 
@@ -215,6 +215,89 @@ export const MoveEmployeeModal = ({ isOpen, onClose, onConfirm, driver, isLoadin
             type="button"
             text="Move Here"
             onClick={() => onConfirm(driver)}
+            loading={isLoading}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- Reassign Vehicle Modal Component ---
+export const ReassignVehicleModal = ({ isOpen, onClose, onConfirm, conflict, isLoading }) => {
+  if (!isOpen || !conflict) return null;
+
+  const driverName = conflict.currentDriverName || 'another driver';
+  const driverPhone = conflict.currentDriverPhone ? ` (${conflict.currentDriverPhone})` : '';
+  const vehicleName = conflict.vehicleLabel || 'Selected Vehicle';
+  const startDate = conflict.startDate
+    ? new Date(conflict.startDate).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      })
+    : 'an earlier date';
+
+  return (
+    <div
+      className="drivers-modal-overlay"
+      role="presentation"
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
+    >
+      <div
+        className="drivers-modal-content"
+        role="presentation"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="drivers-modal-header">
+          <h4>Vehicle Already Assigned</h4>
+          <button onClick={onClose} className="drivers-close-btn" disabled={isLoading}>
+            &times;
+          </button>
+        </div>
+
+        <div className="drivers-delete-content">
+          <div className="drivers-delete-warning">
+            <div className="drivers-warning-icon">⚠️</div>
+            <p>
+              Vehicle <strong>{vehicleName}</strong> is currently assigned to driver{' '}
+              <strong>{driverName}</strong>
+              {driverPhone} since <strong>{startDate}</strong>.
+            </p>
+          </div>
+
+          <p
+            style={{
+              marginTop: '12px',
+              fontSize: '13px',
+              color: 'var(--ds-ink2, #475569)',
+              lineHeight: 1.5,
+            }}
+          >
+            To prevent overlapping assignments, the previous driver&apos;s assignment must be ended
+            before assigning this vehicle. Ending it now will set its end date to today and preserve
+            its history in the ledger.
+          </p>
+        </div>
+
+        <div className="drivers-modal-actions">
+          <NewButton
+            variant="secondary"
+            size="md"
+            type="button"
+            text="Cancel"
+            onClick={onClose}
+            disabled={isLoading}
+          />
+          <NewButton
+            variant="primary"
+            size="md"
+            type="button"
+            text="End Previous & Reassign"
+            onClick={onConfirm}
             loading={isLoading}
           />
         </div>

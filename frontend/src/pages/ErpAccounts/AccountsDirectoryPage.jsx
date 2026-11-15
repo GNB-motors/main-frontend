@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Info } from 'lucide-react';
@@ -32,76 +33,88 @@ const TYPES = [
 const AccountsDirectoryPage = () => {
   const fetcher = useCallback((params, opts) => FinanceHubApi.listAccounts(params, opts), []);
 
-  const {
-    rows, meta, loading, error, params, setParam, pagination,
-  } = useErpList(fetcher, {
+  const { rows, meta, loading, error, params, setParam, pagination } = useErpList(fetcher, {
     initial: {
-      page: 1, limit: 25, q: '', accountType: '', sortBy: 'balance', order: 'desc',
+      page: 1,
+      limit: 25,
+      q: '',
+      accountType: '',
+      sortBy: 'balance',
+      order: 'desc',
     },
     syncToUrl: true,
     urlPrefix: 'acc_',
   });
 
-  const columns = useMemo(() => [
-    {
-      header: 'Account',
-      render: (a) => {
-        const to = accountPathFor(a.accountType, a.accountId);
-        return (
-          <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {to
-              ? <Link to={to} style={{ fontWeight: 600 }}>{a.accountName || '(unnamed)'}</Link>
-              : <span style={{ fontWeight: 600 }}>{a.accountName || '(unnamed)'}</span>}
-            {a.accountCode && (
-              <span className="erp-muted" style={{ fontSize: 11 }}>{a.accountCode}</span>
-            )}
-          </span>
-        );
+  const columns = useMemo(
+    () => [
+      {
+        header: 'Account',
+        render: (a) => {
+          const to = accountPathFor(a.accountType, a.accountId);
+          return (
+            <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {to ? (
+                <Link to={to} style={{ fontWeight: 600 }}>
+                  {a.accountName || '(unnamed)'}
+                </Link>
+              ) : (
+                <span style={{ fontWeight: 600 }}>{a.accountName || '(unnamed)'}</span>
+              )}
+              {a.accountCode && (
+                <span className="erp-muted" style={{ fontSize: 11 }}>
+                  {a.accountCode}
+                </span>
+              )}
+            </span>
+          );
+        },
       },
-    },
-    {
-      header: 'Type',
-      render: (a) => <StatusBadge status={a.accountType} tone="neutral" />,
-    },
-    {
-      header: 'Debit',
-      headerStyle: { textAlign: 'right' },
-      cellStyle: { textAlign: 'right' },
-      render: (a) => <span className="erp-numeric">{inr(a.debit)}</span>,
-    },
-    {
-      header: 'Credit',
-      headerStyle: { textAlign: 'right' },
-      cellStyle: { textAlign: 'right' },
-      render: (a) => <span className="erp-numeric">{inr(a.credit)}</span>,
-    },
-    {
-      header: 'Balance',
-      headerStyle: { textAlign: 'right' },
-      cellStyle: { textAlign: 'right' },
-      render: (a) => {
-        const b = drCr(a.balance);
-        return (
-          <span
-            className="erp-numeric"
-            style={{ fontWeight: 600, color: b.tone === 'credit' ? '#b45309' : undefined }}
-          >
-            {b.text}
-          </span>
-        );
+      {
+        header: 'Type',
+        render: (a) => <StatusBadge status={a.accountType} tone="neutral" />,
       },
-    },
-    {
-      header: 'Entries',
-      headerStyle: { textAlign: 'right' },
-      cellStyle: { textAlign: 'right' },
-      render: (a) => <span className="erp-numeric">{num(a.entryCount)}</span>,
-    },
-    {
-      header: 'Last activity',
-      render: (a) => (a.lastActivityAt ? formatDateIST(a.lastActivityAt) : '—'),
-    },
-  ], []);
+      {
+        header: 'Debit',
+        headerStyle: { textAlign: 'right' },
+        cellStyle: { textAlign: 'right' },
+        render: (a) => <span className="erp-numeric">{inr(a.debit)}</span>,
+      },
+      {
+        header: 'Credit',
+        headerStyle: { textAlign: 'right' },
+        cellStyle: { textAlign: 'right' },
+        render: (a) => <span className="erp-numeric">{inr(a.credit)}</span>,
+      },
+      {
+        header: 'Balance',
+        headerStyle: { textAlign: 'right' },
+        cellStyle: { textAlign: 'right' },
+        render: (a) => {
+          const b = drCr(a.balance);
+          return (
+            <span
+              className="erp-numeric"
+              style={{ fontWeight: 600, color: b.tone === 'credit' ? '#b45309' : undefined }}
+            >
+              {b.text}
+            </span>
+          );
+        },
+      },
+      {
+        header: 'Entries',
+        headerStyle: { textAlign: 'right' },
+        cellStyle: { textAlign: 'right' },
+        render: (a) => <span className="erp-numeric">{num(a.entryCount)}</span>,
+      },
+      {
+        header: 'Last activity',
+        render: (a) => (a.lastActivityAt ? formatDateIST(a.lastActivityAt) : '—'),
+      },
+    ],
+    [],
+  );
 
   if (error && error.status === 404) {
     return <p className="erp-muted">Accounts module is not enabled for your organization.</p>;
@@ -135,8 +148,8 @@ const AccountsDirectoryPage = () => {
         pagination={pagination}
         emptyText="No accounts with ledger activity"
         keyExtractor={(a) => `${a.accountType}:${a.accountId}`}
-        toolbar={(
-          <select
+        toolbar={
+          <SearchableSelect
             className="erp-filter"
             value={params.sortBy}
             onChange={(e) => setParam('sortBy', e.target.value)}
@@ -146,8 +159,8 @@ const AccountsDirectoryPage = () => {
             <option value="lastActivityAt">Most recent activity</option>
             <option value="entryCount">Most entries</option>
             <option value="accountName">Name (A–Z)</option>
-          </select>
-        )}
+          </SearchableSelect>
+        }
       />
 
       <div className="erp-callout info" style={{ marginTop: 16 }}>

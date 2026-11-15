@@ -22,6 +22,7 @@ import {
   buildTripFilterParams,
   defaultTripRange,
   newestFirst,
+  notMeasuredNote,
   numOrNull,
   rangeFilterCount,
   sumOf,
@@ -150,6 +151,11 @@ function oilKpis(rows) {
   const pairedKm = sumOf(paired, (r) => r.distanceKm);
   const pairedFuel = sumOf(paired, fuelUsedOf);
   const mileage = pairedFuel ? pairedKm / pairedFuel : null;
+  // A trip whose cost was not computed is not ₹0: the total says how many it
+  // leaves out.
+  const notMeasured = notMeasuredNote(
+    rows.filter((r) => numOrNull(r.totalCostInr) == null).length,
+  );
   return [
     { label: 'Trips', value: formatNum(rows.length), icon: Truck },
     {
@@ -178,7 +184,9 @@ function oilKpis(rows) {
       value: formatINR(sumOf(rows, (r) => r.totalCostInr)),
       icon: IndianRupee,
       tone: 'green',
-      hint: 'Running cost of these trips, where it has been computed',
+      hint: notMeasured
+        ? `Running cost of these trips · ${notMeasured}`
+        : 'Running cost of these trips, where it has been computed',
     },
   ];
 }

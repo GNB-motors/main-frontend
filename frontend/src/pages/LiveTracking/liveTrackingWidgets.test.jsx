@@ -10,27 +10,16 @@ afterEach(() => {
 });
 
 describe('countVehiclesByStatus', () => {
-  it('counts every status card in one pass, with the same rules as before', () => {
+  it('counts the four live statuses so the cards add up to All (audit DC-16)', () => {
     const counts = countVehiclesByStatus([
       { status: 'moving', live: true },
-      { status: 'moving', live: true, alertsCount: 2 },
-      { status: 'stopped', inGeofenceAlert: true },
+      { status: 'moving', live: true },
+      { status: 'stopped', live: true },
       { status: 'idling', live: true },
-      { status: 'offline' },
-      { status: 'workshop' },
-      { status: 'stopped', isBreakdown: true, hasFault: true },
+      { status: 'offline', live: false },
     ]);
-    expect(counts).toEqual({
-      all: 7,
-      moving: 2,
-      stopped: 2,
-      idling: 1,
-      offline: 1,
-      breakdown: 2,
-      faulty: 2,
-      geofence: 1,
-      gps: 3,
-    });
+    expect(counts).toEqual({ all: 5, moving: 2, stopped: 1, idling: 1, offline: 1, gps: 4 });
+    expect(counts.moving + counts.stopped + counts.idling + counts.offline).toBe(counts.all);
   });
 
   it('is all zeros for an empty fleet', () => {

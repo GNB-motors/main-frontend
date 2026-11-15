@@ -1,7 +1,7 @@
 import React from 'react';
 import SlotUpload from './SlotUpload';
 
-const DocumentSlots = ({ formData, fixedDocs, ocrScanning, handleDocDrop, removeDoc }) => (
+const DocumentSlots = ({ uid, formData, fixedDocs, ocrScanning, handleDocDrop, removeDoc }) => (
   <div style={{ marginTop: 8 }}>
     {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- caption over the upload slots, not a field label; each slot's file input carries its own aria-label */}
     <label
@@ -20,8 +20,7 @@ const DocumentSlots = ({ formData, fixedDocs, ocrScanning, handleDocDrop, remove
         docType="fuel"
         title="FUEL RECEIPT"
         label="fuel slip"
-        inputId="drop-fuel"
-        required
+        inputId={`${uid}-drop-fuel`}
         doc={fixedDocs.fuel}
         isScanning={ocrScanning.fuel}
         onDrop={handleDocDrop}
@@ -30,9 +29,9 @@ const DocumentSlots = ({ formData, fixedDocs, ocrScanning, handleDocDrop, remove
       {formData.fillingType === 'FULL_TANK' && (
         <SlotUpload
           docType="odometer"
-          title="END ODOMETER IMAGE"
+          title="ODOMETER AT REFUELLING"
           label="odometer image"
-          inputId="drop-odometer"
+          inputId={`${uid}-drop-odometer`}
           doc={fixedDocs.odometer}
           isScanning={ocrScanning.odometer}
           onDrop={handleDocDrop}

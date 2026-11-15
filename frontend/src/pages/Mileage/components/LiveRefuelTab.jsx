@@ -1,45 +1,54 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowUpDown } from 'lucide-react';
+import { ArrowUpDown, MapPin } from 'lucide-react';
 import DataTable from '../../../components/ui/DataTable';
 import SegmentedChips from './SegmentedChips';
 import EnterprisePagination from '../../../components/ui/EnterprisePagination';
 import StatusChip from '../../../components/ui/StatusChip';
 import { useApi } from '../../../hooks/useApi';
-import { toISTDateString, toISTTimeString } from '../../../utils/dateUtils';
 import { formatINR, formatKm, formatLitres } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
+import { humanDateTime } from '../mileageDates';
 import { ODOMETER_SOURCE, REFUEL_CHIPS, drawerFromLiveRow, mapUnifiedRow } from '../refuelRows';
 import { fillExplanation } from '../fillExplanations';
 import InfoTip from './InfoTip';
+import PumpNameDialog from './PumpNameDialog';
+import { getUserRole } from '../../../utils/session';
+import { canEditPlaces } from '../../PlaceHub/model/placeHubConfig';
+import './PumpNameDialog.css';
 
 const coordsText = (c) => `${c.lat.toFixed(3)}, ${c.lng.toFixed(3)}`;
 
-/** Where the fill happened: a saved place links to Place Hub, where it can be named. */
-function PumpCell({ row }) {
-  if (row.place) {
-    return (
-      <Link
-        to={`/place-hub?place=${encodeURIComponent(row.place.hubId)}`}
-        className="mhub-link"
-        title="Open in Place Hub"
+function PumpCell({ row, onName }) {
+  const name = row.location;
+
+  return (
+    <span className="mhub-pump-cell">
+      <span
+        className={name ? 'mhub-pump-name' : 'mhub-pump-unnamed'}
+        title={row.coords ? `Coordinates: ${coordsText(row.coords)}` : undefined}
       >
-        {row.place.name || row.location || 'Name this pump'}
-      </Link>
-    );
-  }
-  if (row.location) return <span>{row.location}</span>;
-  if (row.coords) {
-    return (
-      <span>
-        Unknown pump<span className="mhub-sub num">{coordsText(row.coords)}</span>
+        {name || 'Unknown pump'}
+        {row.pumpNameSource === 'BILL' && (
+          <span className="mhub-sub">
+            From bill · {row.place ? 'saved pump unnamed' : 'place not saved'}
+          </span>
+        )}
       </span>
-    );
-  }
-  return <span className="mhub-dim">—</span>;
+      {onName && (
+        <button
+          type="button"
+          className={`mhub-pump-action${name ? ' mhub-pump-action--edit' : ''}`}
+          onClick={() => onName(row)}
+        >
+          {row.place?.name && <MapPin size={13} aria-hidden="true" />}
+          {row.place?.name ? 'View pump' : row.place ? 'Name pump' : 'Save pump'}
+        </button>
+      )}
+    </span>
+  );
 }
 
-const columns = (onOpen) => [
+const columns = (onOpen, onName) => [
   {
     key: 'truck',
     label: 'Truck',
@@ -53,15 +62,7 @@ const columns = (onOpen) => [
   {
     key: 'when',
     label: 'When',
-    render: (r) =>
-      r.at ? (
-        <span className="num">
-          {toISTDateString(r.at)}
-          <span className="mhub-sub">{toISTTimeString(r.at)}</span>
-        </span>
-      ) : (
-        '—'
-      ),
+    render: (r) => (r.at ? <span className="num">{humanDateTime(r.at)}</span> : '—'),
   },
   {
     key: 'tank',
@@ -97,7 +98,7 @@ const columns = (onOpen) => [
       </span>
     ),
   },
-  { key: 'pump', label: 'Pump', render: (r) => <PumpCell row={r} /> },
+  { key: 'pump', label: 'Pump', render: (r) => <PumpCell row={r} onName={onName} /> },
   {
     key: 'rate',
     label: 'Rate',
@@ -167,9 +168,12 @@ export default function LiveRefuelTab({
   refreshKey = 0,
 }) {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(25);
   const [newestFirst, setNewestFirst] = useState(true);
   const [status, setStatus] = useState('all');
+  const [naming, setNaming] = useState(null);
+  const [nameNotice, setNameNotice] = useState('');
+  const canNamePumps = canEditPlaces(getUserRole());
 
   // A new search, vehicle or range is a new result set: back to page 1 in the same render.
   const nextKey = `${searchQuery}|${vehicleId || ''}|${range.manufacturer || ''}|${range.from}|${range.to}`;
@@ -213,6 +217,13 @@ export default function LiveRefuelTab({
   const rows = (data?.data || []).map(mapUnifiedRow);
   const meta = data?.meta || null;
 
+  // Rate and amount come off the bill. With no bill on this page there is
+  // nothing to show in them, so the columns go away rather than fill with dashes.
+  const anyBill = rows.some((r) => r.rate?.value != null || r.totalAmount != null);
+  const visibleColumns = columns(onOpenDrawer, canNamePumps ? setNaming : null).filter(
+    (c) => anyBill || (c.key !== 'rate' && c.key !== 'amount'),
+  );
+
   useEffect(() => {
     onMeta?.(meta);
   }, [meta, onMeta]);
@@ -224,6 +235,7 @@ export default function LiveRefuelTab({
         unverified: meta.unverified || 0,
         slipOnly: meta.slipOnly || 0,
         sensorGlitch: meta.sensorGlitch || 0,
+        unassessed: meta.unassessed || 0,
       }
     : null;
 
@@ -254,8 +266,13 @@ export default function LiveRefuelTab({
           <ArrowUpDown size={14} aria-hidden /> {newestFirst ? 'Newest first' : 'Oldest first'}
         </button>
       </div>
+      {nameNotice && (
+        <p className="mhub-pump-notice" role="status">
+          {nameNotice}
+        </p>
+      )}
       <DataTable
-        columns={columns(onOpenDrawer)}
+        columns={visibleColumns}
         rows={rows}
         rowKey={(r) => r.id}
         loading={loading && !data}
@@ -279,6 +296,17 @@ export default function LiveRefuelTab({
           />
         }
       />
+      {naming && (
+        <PumpNameDialog
+          row={naming}
+          onClose={() => setNaming(null)}
+          onSaved={(place) => {
+            setNameNotice(`Saved pump: ${place.name}`);
+            setNaming(null);
+            refetch();
+          }}
+        />
+      )}
     </div>
   );
 }

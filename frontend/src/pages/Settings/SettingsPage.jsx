@@ -2,6 +2,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext.jsx';
 import { useActiveBranch } from '../../contexts/BranchContext.jsx';
 import useApi from '../../hooks/useApi';
+import { useFullPageLayout } from '../../hooks/usePageLayout';
 import FleetDataService from '../../services/FleetDataService';
 import { hasFleetAccess } from '../../utils/moduleAccess';
 import { getUserRole } from '../../utils/session.js';
@@ -11,15 +12,14 @@ import { LocationsManager } from './settingsLocations';
 import { FleetDataSettings } from './settingsFleetData';
 import { IdleThresholdSetting } from './settingsIdling';
 import { NetFuelSetting } from './settingsNetFuel';
-import { WhatsAppSettings } from './settingsWhatsApp';
 import './Settings.css';
 
 /**
- * Org setup in one place: locations, fleet data sources and coverage, the idle
- * threshold and the WhatsApp odometer rule. ?section= picks the open one, so
- * other pages can link straight to it.
+ * Org setup in one place: locations, fleet data sources and coverage and the idle
+ * threshold. ?section= picks the open one, so other pages can link straight to it.
  */
 export default function SettingsPage() {
+  useFullPageLayout();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isEnabled, canAccess } = useFeatureFlags();
   const { branches } = useActiveBranch();
@@ -104,7 +104,6 @@ export default function SettingsPage() {
                 <NetFuelSetting canEdit={access.editIdling} />
               </>
             ) : null}
-            {active.key === 'whatsapp' ? <WhatsAppSettings /> : null}
           </section>
         </div>
       </div>

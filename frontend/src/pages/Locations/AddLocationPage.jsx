@@ -1,3 +1,4 @@
+import { googleMapsLoaderOptions } from '../../utils/googleMapsLoader.js';
 /**
  * Add/Edit Location Page
  * Form to create or update a location with side-by-side map
@@ -15,7 +16,6 @@ import { AddLocationMap } from './AddLocationMap';
 import './LocationPage.css';
 import logger from '../../utils/logger';
 
-const GOOGLE_MAPS_LIBRARIES = ['places'];
 
 const AddLocationPage = () => {
   const navigate = useNavigate();
@@ -28,10 +28,7 @@ const AddLocationPage = () => {
   const mapRef = useRef(null);
   const [mapCenter, setMapCenter] = useState({ lat: 22.5726, lng: 88.3639 }); // Default Kolkata
 
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    libraries: GOOGLE_MAPS_LIBRARIES,
-  });
+  const { isLoaded } = useLoadScript(googleMapsLoaderOptions);
 
   const [formData, setFormData] = useState({
     name: '',

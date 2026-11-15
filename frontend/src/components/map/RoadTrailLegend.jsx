@@ -21,7 +21,7 @@ export default function RoadTrailLegend({ layers, calibrated, summary, className
       )}
       {items.map((i) => (
         <div key={i.kind}>
-          <span aria-hidden="true" style={{ fontFamily: 'monospace', marginRight: 6 }}>
+          <span aria-hidden="true" style={{ fontFamily: 'var(--font-sans)', marginRight: 6 }}>
             {SWATCH[i.pattern]}
           </span>
           {i.label}

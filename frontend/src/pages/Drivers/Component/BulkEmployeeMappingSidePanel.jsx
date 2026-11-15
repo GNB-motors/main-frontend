@@ -33,7 +33,13 @@ const FIELD_TARGETS = [
   },
 ];
 
-const BulkEmployeeMappingSidePanel = ({ isOpen, fileColumns, onSave, onClose }) => {
+const BulkEmployeeMappingSidePanel = ({
+  isOpen,
+  fileColumns,
+  onSave,
+  onClose,
+  initialMapping = null,
+}) => {
   const [mapping, setMapping] = useState({});
   const [selectedOptions, setSelectedOptions] = useState({});
   const mappingBodyRef = useRef(null);
@@ -76,10 +82,10 @@ const BulkEmployeeMappingSidePanel = ({ isOpen, fileColumns, onSave, onClose }) 
         }
       });
 
-      setMapping(autoMapping);
-      setSelectedOptions(autoMapping);
+      setMapping({ ...autoMapping, ...(initialMapping || {}) });
+      setSelectedOptions({ ...autoMapping, ...(initialMapping || {}) });
     }
-  }, [isOpen, fileColumns]);
+  }, [isOpen, fileColumns, initialMapping]);
 
   const handleMappingChange = (targetKey, fileColumn) => {
     const newMapping = {

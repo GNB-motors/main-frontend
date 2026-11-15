@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { icoHTML } from './routeHubIconPaths';
+import replayAppearance from '../../components/map/replayAppearance.js';
+import '../../components/map/replayTruck.css';
 
 const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
 /** Leaflet never loads a single tile until it has a view (center+zoom) —
@@ -43,9 +45,9 @@ export function pinIcon(color, glyph, size = 22) {
 export function truckIcon() {
   return L.divIcon({
     className: '',
-    iconSize: [38, 38],
-    iconAnchor: [19, 19],
-    html: `<div class="rh-truck"><div>${icoHTML('truck', 19)}</div></div>`,
+    iconSize: [replayAppearance.size, replayAppearance.size],
+    iconAnchor: [replayAppearance.anchor, replayAppearance.anchor],
+    html: replayAppearance.truckHtml,
   });
 }
 

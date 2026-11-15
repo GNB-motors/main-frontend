@@ -1,10 +1,18 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
+import ToneBadge from '../../../components/redesign/ToneBadge';
 import { formatDate, formatNumber, formatCurrency, fmtKm, fmtL } from './tripReportsUtils';
 import { StatusChip, FlagChips } from './tripReportCells';
 import { BILL_VERDICT } from '../../../utils/billCheck';
-import { cycleDistance, notInTripsAlert, slipsHref } from './cycleTrips';
+import { cycleDistance, kmPartialLabel, notInTripsAlert, slipsHref } from './cycleTrips';
+import {
+  cycleFlagLabel,
+  cycleGapFlags,
+  fullBasisText,
+  hasCycleFlag,
+  toleranceScopeText,
+} from '../../../utils/fuelCycleFields';
 
 // Columns for GET /api/reports/fuel-cycles (FuelCycle rows).
 export function useFuelCyclesColumns() {
@@ -92,7 +100,19 @@ export function useFuelCyclesColumns() {
         key: 'tripLaden',
         label: 'Laden in trips',
         align: 'right',
-        render: (r) => <div className="cell-primary">{fmtKm(r.tripSummary?.ladenKm)}</div>,
+        render: (r) => {
+          const partial = kmPartialLabel(r.tripSummary);
+          return (
+            <div className="cell-primary">
+              {fmtKm(r.tripSummary?.ladenKm)}
+              {partial ? (
+                <div className="rpt-cycle-trips-sub">
+                  <ToneBadge tone="watch">{partial}</ToneBadge>
+                </div>
+              ) : null}
+            </div>
+          );
+        },
       },
       {
         key: 'notInTrips',
@@ -100,10 +120,15 @@ export function useFuelCyclesColumns() {
         align: 'right',
         render: (r) => {
           const alert = notInTripsAlert(r.tripSummary);
+          // The gap is judged against a limit the server learned. The tooltip
+          // says what the truck was judged against, so a gap is never read as
+          // a judgement the driver could know about.
+          const scope = toleranceScopeText(r.km?.tolerance);
+          const note = alert?.label || 'Empty running, detours and yard moves between these fills';
           return (
             <div
               className="cell-primary"
-              title={alert?.label || 'Empty running, detours and yard moves between these fills'}
+              title={scope ? `${note} · ${scope}` : note}
               style={
                 alert
                   ? { color: alert.tone === 'red' ? '#B42318' : '#A66300', fontWeight: 600 }
@@ -137,11 +162,24 @@ export function useFuelCyclesColumns() {
         key: 'mileage',
         label: 'Mileage T2T',
         align: 'right',
-        render: (r) => (
-          <div className="cell-primary">
-            {typeof r.mileage?.tankToTank === 'number' ? r.mileage.tankToTank.toFixed(2) : '—'}
-          </div>
-        ),
+        render: (r) => {
+          // Where the km/L came from: "from slips" or "from register rows".
+          // The old backend sends no basis at all, and then nothing is said.
+          const basis = fullBasisText(r.fullBasis);
+          // A cycle whose ends were not both full tanks has no km/L. It says
+          // why, rather than leaving a bare dash.
+          const fillUnknown = hasCycleFlag(r.flags, 'FILL_TYPE_UNKNOWN');
+          return (
+            <div className="cell-primary">
+              {typeof r.mileage?.tankToTank === 'number' ? r.mileage.tankToTank.toFixed(2) : '—'}
+              {fillUnknown ? (
+                <div className="rpt-cycle-trips-sub">fill type not recorded</div>
+              ) : basis ? (
+                <div className="rpt-cycle-trips-sub">{basis}</div>
+              ) : null}
+            </div>
+          );
+        },
       },
       {
         key: 'cost',
@@ -161,7 +199,7 @@ export function useFuelCyclesColumns() {
       {
         key: 'flags',
         label: 'Flags',
-        render: (r) => <FlagChips flags={r.flags} />,
+        render: (r) => <FlagChips flags={cycleGapFlags(r.flags)} labelFor={cycleFlagLabel} />,
       },
       {
         key: 'lossCheck',

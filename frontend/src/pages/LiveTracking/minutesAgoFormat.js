@@ -14,6 +14,13 @@ export const formatDayText = (m) => {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
+/** The fix's own time, IST — never rebuilt from rounded minutes (audit DC-13). */
+export const formatFixTime = (at) => {
+  const d = at instanceof Date ? at : new Date(at);
+  if (Number.isNaN(d.getTime())) return '—';
+  return `${formatISTTime(d)}, ${formatISTDate(d)} ${d.getFullYear()}`;
+};
+
 export const formatFullStamp = (m) => {
   const d = new Date(Date.now() - (m || 0) * 60000);
   return `${formatISTTime(d)}, ${formatISTDate(d)} ${d.getFullYear()}`;

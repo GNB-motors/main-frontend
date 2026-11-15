@@ -170,6 +170,7 @@ export const summarySchema = z
     riskPlaces: num,
     unproductive: z.object({ stops: num, hours: num, trucks: num }).passthrough().nullish(),
     darkZones: num,
+    homes: num.nullish(),
     lastRunAt: str,
   })
   .passthrough();
@@ -467,5 +468,52 @@ export const routesMapSchema = z
     truncated: z.boolean().optional(),
     total: num,
     generatedAt: z.string(),
+  })
+  .passthrough();
+
+const tollFares = z
+  .object({
+    lcv: num,
+    bus: num,
+    multiaxle: num,
+    axle_4_6: num,
+    axle_7_plus: num,
+    source: z.string().nullish(),
+  })
+  .passthrough();
+
+/** GET /place-intelligence/toll-plazas — toll plazas, marked visited by this org's trucks. */
+export const tollPlazaListSchema = z
+  .object({
+    scope: z.string().nullish(),
+    truncated: z.boolean().nullish(),
+    items: z
+      .array(
+        z
+          .object({
+            id: z.string(),
+            name: z.string().nullish(),
+            lat: z.number(),
+            lng: z.number(),
+            radiusM: num,
+            evidenceLevel: z.string().nullish(),
+            source: z.string().nullish(),
+            nhNo: z.string().nullish(),
+            state: z.string().nullish(),
+            corroborated: z.boolean().nullish(),
+            visited: z.boolean().nullish(),
+            visits: z
+              .object({
+                stops: num,
+                lastAt: z.string().nullish(),
+                signals: z.array(z.string()).nullish(),
+              })
+              .passthrough()
+              .nullish(),
+            fares: tollFares.nullish(),
+          })
+          .passthrough(),
+      )
+      .nullish(),
   })
   .passthrough();

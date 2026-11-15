@@ -22,11 +22,33 @@ export function normalizeDriver(d) {
     // normalize contact fields used in UI
     mobileNumber: d.mobileNumber || d.mobile_number || d.mobile || '',
     email: d.email || d.email_address || '',
+    licenseNumber: d.licenseNumber || d.license_number || '',
+    hasLicenseDoc: d.hasLicenseDoc ?? Boolean(d.licenseDoc),
+    isLicenseVerified: d.isLicenseVerified ?? Boolean(d.licenseDoc?.isVerified),
     // Legacy cross-org field agents carry a per-org membershipStatus; show
     // that. New branch-scoped field agents (and every other role) show their
     // real account status — membershipStatus is absent so this falls through.
     status: d.role === 'FIELD_AGENT' ? d.membershipStatus || d.status : d.status,
   };
+}
+
+/**
+ * The employee API carries no vehicle — assignments live in the separate
+ * DriverVehicleAssignment ledger (the same record the edit form writes).
+ * `assignments` arrive sorted newest-first, so the first row per driver wins.
+ */
+export function attachAssignedVehicles(drivers, assignments) {
+  const refId = (ref) => (ref && typeof ref === 'object' ? ref._id : ref);
+  const byDriver = new Map();
+  for (const a of assignments || []) {
+    const driverId = refId(a.driverId);
+    const reg = a.vehicleId?.registrationNumber;
+    if (driverId && reg && !byDriver.has(String(driverId))) byDriver.set(String(driverId), reg);
+  }
+  return (drivers || []).map((d) => {
+    const reg = byDriver.get(String(d.id));
+    return reg ? { ...d, assignedVehicle: reg, vehicle_registration_no: reg } : d;
+  });
 }
 
 /** Normalize the lightweight vehicle shape used by the edit-modal dropdown. */
@@ -140,7 +162,8 @@ export function mapDriverForExport(driver) {
       driver.assignedVehicle && driver.assignedVehicle !== 'Unassigned'
         ? driver.assignedVehicle
         : 'Unassigned',
-    licenseNumber: driver.licenseNumber || '',
+    licenseNumber:
+      driver.licenseNumber || (driver.hasLicenseDoc ? 'Not extracted' : 'Not uploaded'),
     status: driver.branchStatus === 'DEACTIVATED' ? 'Deactivated' : driver.status || 'PENDING',
   };
 }

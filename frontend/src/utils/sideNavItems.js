@@ -3,7 +3,6 @@ import {
   Users,
   User,
   Truck,
-  Map as MapIcon,
   Fuel,
   BookOpen,
   Navigation,
@@ -19,10 +18,13 @@ import {
   Radar,
   Warehouse,
   Route,
-  Gavel,
   Bell,
   Activity,
   Gauge,
+  Sparkles,
+  MapPinned,
+  Receipt,
+  FileUp,
 } from 'lucide-react';
 
 /**
@@ -54,6 +56,11 @@ import {
  * `access`   -> module gate: 'erp' | 'fleet' | 'both'. Item's apna feature-flag
  *               `key` iske upar bhi lagta hai. moduleAccess.js dekho.
  *
+ * `hint`     -> one plain sentence saying what the item does. The sidebar shows
+ *               it as a tooltip on hover (F0.6a), so an owner never has to
+ *               open a page to find out what it was for. Items with no hint
+ *               are listed in frontend/REDESIGN_QUESTIONS.md.
+ *
  * `hoistWhenSole` -> 'erp' | 'fleet'. Agar org ke paas sirf yahi ek module hai,
  *               to ye item apne section se nikal kar sabse upar chala jaata hai
  *               (shared Vehicles/Employees ke bhi upar) — kyunki tab wahi is
@@ -70,6 +77,7 @@ export const SIDE_NAV_ITEMS = [
     to: '/digest',
     label: 'Daily Digest',
     icon: CalendarClock,
+    hint: "Today's story: loaded and empty runs, who drove well, and what needs you.",
   },
 
   // ─── Shared master data ────────────────────────────────────────────────────
@@ -81,9 +89,9 @@ export const SIDE_NAV_ITEMS = [
     key: 'vehicles',
     label: 'Vehicles',
     icon: Truck,
+    hint: 'Your trucks, their papers and service.',
     children: [
       { to: '/vehicles', label: 'All Vehicles', end: true },
-      { to: '/vehicles/dashboard', label: 'Vehicle Dashboard' },
       { to: '/vehicles/service-intelligence', label: 'Service Intelligence' },
     ],
     matchRoutes: [
@@ -104,13 +112,13 @@ export const SIDE_NAV_ITEMS = [
     key: 'drivers',
     label: 'Workforce',
     icon: Users,
+    hint: 'Drivers and staff, and who drives which truck.',
     children: [
       { to: '/drivers', label: 'Employee', end: true },
       { to: '/access-control', label: 'User Management' },
     ],
     matchRoutes: ['/drivers', '/drivers/add', '/drivers/bulk-upload', '/access-control'],
   },
-
   // ─── ISOCL ERP / CRM — five workspaces ─────────────────────────────────────
   // Ye list ab role ke hisaab se bani hai, feature ke hisaab se nahi: ERP ko
   // chaar log chalate hain (planning, operations, accounts, approve karne wala
@@ -225,6 +233,7 @@ export const SIDE_NAV_ITEMS = [
     to: '/live-tracking',
     label: 'Track',
     icon: Radar,
+    hint: 'Live map of every truck, with places, landmarks and each truck’s history.',
   },
   {
     type: 'link',
@@ -233,34 +242,7 @@ export const SIDE_NAV_ITEMS = [
     to: '/auto-trips',
     label: 'Trip',
     icon: Navigation,
-  },
-  // One map for every place: warehouses, zones, loading points, idling, fuel risk.
-  // `key: null` like Warehouses — the page hides the tabs an org isn't entitled to.
-  {
-    type: 'link',
-    key: null,
-    access: 'fleet',
-    to: '/place-hub',
-    label: 'Place Hub',
-    icon: MapIcon,
-  },
-  // Yards trips start and end at. Hidden from sidebar per request.
-  /*
-  {
-    type: 'link',
-    key: null,
-    access: 'fleet',
-    to: '/warehouses',
-    label: 'Warehouses',
-    icon: Warehouse,
-  },
-  */
-  {
-    type: 'link',
-    access: 'fleet',
-    to: '/approvals',
-    label: 'Approvals',
-    icon: ReceiptText,
+    hint: 'Every trip: loaded runs, empty runs, plant-to-plant runs, and history.',
   },
   {
     type: 'link',
@@ -269,6 +251,20 @@ export const SIDE_NAV_ITEMS = [
     to: '/alert-inbox',
     label: 'Alert Inbox',
     icon: Bell,
+    hint: 'Things that need an action, in one list.',
+  },
+  // Intelligence — what we worked out about the fleet, good and bad, with the
+  // reason for every claim. The badge counts the issues that need the owner
+  // now; it disappears when there are none.
+  {
+    type: 'link',
+    key: null,
+    access: 'fleet',
+    to: '/intelligence',
+    label: 'Intelligence',
+    icon: Sparkles,
+    hint: 'Everything we worked out about your trucks and drivers, good and bad, with the reasons.',
+    badgeKey: 'intelligenceActIssues',
   },
   {
     type: 'group',
@@ -276,6 +272,7 @@ export const SIDE_NAV_ITEMS = [
     access: 'fleet',
     label: 'Fuel Management',
     icon: Fuel,
+    hint: 'Fuel, DEF and mileage for every truck.',
     children: [
       // Merges Refuel Logs, Mileage Tracking and Fuel Comparison, so any of their
       // flags opens it; the hub hides the views an org isn't entitled to.
@@ -283,9 +280,20 @@ export const SIDE_NAV_ITEMS = [
         to: '/mileage',
         label: 'Mileage',
         anyKey: ['fuelIntegrity', 'vehicleActivity', 'fuelComparison'],
+        hint: 'km/L and DEF for every truck and every fill-to-fill cycle.',
       },
-      { to: '/fuel-integrity', label: 'Fuel Integrity', key: 'fuelIntegrity' },
-      { to: '/def-ledger', label: 'DEF Ledger', key: 'fuelIntegrity' },
+      {
+        to: '/fuel-integrity',
+        label: 'Fuel Integrity',
+        key: 'fuelIntegrity',
+        hint: 'Checks that every litre is explained by driving.',
+      },
+      {
+        to: '/def-ledger',
+        label: 'DEF Ledger',
+        key: 'fuelIntegrity',
+        hint: 'DEF filled and used per truck.',
+      },
     ],
     matchRoutes: [
       '/mileage',
@@ -305,6 +313,19 @@ export const SIDE_NAV_ITEMS = [
     to: '/route-hub',
     label: 'Route Hub',
     icon: Route,
+    hint: 'Detours, overspeed and route profit.',
+  },
+  // Places & Routes — the two questions a fleet owner asks about a trip:
+  // "where did it go" and "what did it cost to get there". One entry, because
+  // the answers live on the same tabs of the same page.
+  {
+    type: 'link',
+    key: null,
+    access: 'fleet',
+    to: '/place-hub',
+    label: 'Places & Routes',
+    icon: MapPinned,
+    hint: 'Your plants, yards and zones, with idling, fuel and route questions.',
   },
   // ─── Performance (wave 5) ───────────────────────────────────────────────────
   // One section that folds in Driving DNA, the Mileage performance tab,
@@ -320,19 +341,44 @@ export const SIDE_NAV_ITEMS = [
     to: '/performance',
     label: 'Performance',
     icon: Gauge,
+    hint: 'Truck and driver performance tables.',
   },
   // ─── Compliance / Docs ──────────────────────────────────────────────────────
-  // `key: null` — not gated on a feature flag, for the same reason as
-  // Warehouses/Trip/Place Hub: manual challan entry works with or without a
-  // provider configured, so hiding the page would only hide the fallback.
+  // Tolls — the spend that nobody planned for. Gated on the org's `tolls`
+  // flag (same gate as the page itself), and fleet-only like the other
+  // fleet-money entries.
+  {
+    type: 'link',
+    key: 'tolls',
+    access: 'fleet',
+    to: '/tolls',
+    label: 'Tolls',
+    icon: Receipt,
+    hint: 'Toll crossings, what was estimated and what was billed.',
+  },
+  // Challans stays reachable at /challans — the page is the manual-entry
+  // fallback when no provider is configured — but it is no longer an item
+  // in the sidebar.
+  {
+    type: 'link',
+    access: 'fleet',
+    to: '/approvals',
+    label: 'Approvals',
+    icon: ReceiptText,
+    hint: 'Requests waiting for your approval.',
+  },
+  // Yards trips start and end at. Hidden from sidebar per request.
+  /*
   {
     type: 'link',
     key: null,
     access: 'fleet',
-    to: '/challans',
-    label: 'Challans',
-    icon: Gavel,
+    to: '/warehouses',
+    label: 'Warehouses',
+    icon: Warehouse,
+    hint: 'Where each truck is based.',
   },
+  */
   /*
   // Fleet Intelligence surfaces (commented out: Idling Console and Hotspots removed; Route Hub displayed directly)
   {
@@ -370,8 +416,22 @@ export const SIDE_NAV_ITEMS = [
 
   // ─── Reporting / account (low-frequency, so it sits at the bottom) ──────────
   { type: 'section', label: 'Insights' },
-  { type: 'link', key: 'khataLedger', to: '/khata-ledger', label: 'Khata Ledger', icon: BookOpen },
-  { type: 'link', key: 'reports', to: '/reports', label: 'Reports', icon: FileText },
+  {
+    type: 'link',
+    key: 'khataLedger',
+    to: '/khata-ledger',
+    label: 'Khata Ledger',
+    icon: BookOpen,
+    hint: 'Money in and out per party.',
+  },
+  {
+    type: 'link',
+    key: 'reports',
+    to: '/reports',
+    label: 'Reports',
+    icon: FileText,
+    hint: 'Downloadable reports.',
+  },
 
   { type: 'section', label: 'Account' },
   {
@@ -380,7 +440,21 @@ export const SIDE_NAV_ITEMS = [
     to: '/usage',
     label: 'App Usage',
     icon: Activity,
+    hint: 'How many times your team opens each screen.',
     roles: ['OWNER', 'MANAGER'],
+  },
+  // Data Imports — bulk CSV upload of drivers, driver↔vehicle assignments and
+  // vehicle master fields (always preview first, then apply). The backend
+  // route is authorize('OWNER','MANAGER'), so the menu entry carries the same
+  // gate: only an owner or a manager is shown this link.
+  {
+    type: 'link',
+    key: null,
+    roles: ['OWNER', 'MANAGER'],
+    to: '/data-imports',
+    label: 'Data imports',
+    icon: FileUp,
+    hint: 'Upload a CSV of drivers, assignments or vehicle master data — preview first, then apply.',
   },
   // Settings hub for fleet and vehicle configs
   { type: 'link', key: null, to: '/settings', label: 'Settings', icon: Settings },

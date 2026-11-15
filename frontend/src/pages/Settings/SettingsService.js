@@ -20,12 +20,8 @@ const updateIdleThreshold = (idleThresholdMin) =>
 const updateNetFuelKmPerL = (netFuelKmPerL) =>
   call(apiClient.patch('api/fuel-settings', { netFuelKmPerL }));
 
-const updateWhatsAppOdometerMode = (odometerMode) =>
-  call(apiClient.patch('/api/whatsapp/settings', { odometerMode }));
-
 export const SettingsService = {
   getFuelSettings,
   updateIdleThreshold,
   updateNetFuelKmPerL,
-  updateWhatsAppOdometerMode,
 };

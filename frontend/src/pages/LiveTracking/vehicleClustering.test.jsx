@@ -33,7 +33,7 @@ vi.mock('@react-google-maps/api', () => ({
     },
   },
 }));
-vi.mock('./vehicleMarkerIcon.js', () => ({ createVehicleMarkerIcon: () => ({}) }));
+vi.mock('@googlemaps/markerclusterer', () => ({ SuperClusterAlgorithm: class {}, MarkerClusterer: class { constructor() { this.members = []; state.clusters.push(this); } clearMarkers() { this.members = []; } addMarkers(items) { this.members.push(...items); } render() {} setMap() {} } }));
 import AnimatedVehicleMarkers from './AnimatedVehicleMarkers.jsx';
 import { createLiveClusterAlgorithm, createClusterRenderer } from './vehicleClustering.js';
 
@@ -57,6 +57,7 @@ function setupGoogle() {
         setMap = vi.fn();
         setIcon = vi.fn();
         setZIndex = vi.fn();
+        setOpacity = vi.fn();
         getPosition() {
           return { lat: () => this.point.lat, lng: () => this.point.lng };
         }
@@ -66,6 +67,8 @@ function setupGoogle() {
       },
       event: { clearInstanceListeners: vi.fn() },
       SymbolPath: { CIRCLE: 0 },
+      Size: class {},
+      Point: class {},
     },
   };
   vi.stubGlobal(
@@ -80,13 +83,14 @@ const vehicles = [
 ];
 
 describe('live marker clustering', () => {
-  it('shows every vehicle as a truck at overview zoom, updates selection and filters, and cleans up', () => {
+  it('clusters the fleet, keeps the selected marker separate, and cleans up', () => {
     setupGoogle();
     const select = vi.fn();
     const view = renderComponent(
       <AnimatedVehicleMarkers vehicles={vehicles} mapZoom={7} onSelect={select} />,
     );
-    expect(state.clusters).toHaveLength(0);
+    expect(state.clusters).toHaveLength(1);
+    expect(state.clusters[0].members).toHaveLength(2);
     expect(state.markers).toHaveLength(2);
     const [a, b] = state.markers;
     expect(a.options.map).toBe(state.map);
@@ -99,6 +103,8 @@ describe('live marker clustering', () => {
     );
     expect(state.markers).toHaveLength(2);
     expect(a.setZIndex).toHaveBeenLastCalledWith(1000);
+    expect(state.clusters[0].members).toEqual([b]);
+    expect(b.setOpacity).toHaveBeenLastCalledWith(0.4);
     view.rerender(
       <AnimatedVehicleMarkers vehicles={[vehicles[0]]} mapZoom={7} onSelect={select} />,
     );

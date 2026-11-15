@@ -83,7 +83,7 @@ export default function DriverTrendTable({ filteredRows }) {
                 style={{
                   padding: '12px',
                   textAlign: 'right',
-                  fontFamily: 'monospace',
+                  fontFamily: 'var(--font-sans)',
                   fontWeight: 600,
                   color: '#1e293b',
                 }}
@@ -94,7 +94,7 @@ export default function DriverTrendTable({ filteredRows }) {
                 style={{
                   padding: '12px',
                   textAlign: 'right',
-                  fontFamily: 'monospace',
+                  fontFamily: 'var(--font-sans)',
                   color: '#64748b',
                 }}
               >
@@ -116,7 +116,7 @@ export default function DriverTrendTable({ filteredRows }) {
                   {cfg.label}
                 </span>
               </td>
-              <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace' }}>
+              <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'var(--font-sans)' }}>
                 <span
                   style={{
                     display: 'inline-flex',

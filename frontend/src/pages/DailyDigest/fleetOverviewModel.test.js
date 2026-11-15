@@ -1,0 +1,183 @@
+import { describe, expect, it } from 'vitest';
+import { buildFuelTrend, buildOverview, digestNumber, shiftDay } from './fleetOverviewModel';
+
+const card = (key, values, extra = {}) => ({
+  key,
+  status: 'ok',
+  items: Object.entries(values).map(([label, value]) => ({ label, value })),
+  ...extra,
+});
+
+describe('fleet overview data', () => {
+  it('prefers the scoped Trips summary over legacy running and keeps unknown legs unknown', () => {
+    const digest = {
+      story: [
+        card('loaded', { 'Distance covered': '9,999 km' }),
+        card('empty', { 'Empty running': '500 km' }),
+      ],
+    };
+    expect(
+      buildOverview(digest, null, { trips: 3, loadedKm: 330, emptyKm: null, emptyKmPartial: true }),
+    ).toMatchObject({ loadedTrips: 3, loadedKm: 330, emptyKm: null, runningPartial: true });
+  });
+
+  it('preserves the reason the running split is unknown', () => {
+    const model = buildOverview(null, {
+      utilization: {
+        fleet: { loadedKm: null, emptyKm: null, reason: 'Trips not linked to distance yet' },
+      },
+    });
+    expect(model).toMatchObject({
+      loadedKm: null,
+      emptyKm: null,
+      runningReason: 'Trips not linked to distance yet',
+    });
+  });
+  it('keeps missing sources unknown, including a partial pending-action count', () => {
+    const model = buildOverview({ story: [card('questions', { 'Places waiting': '4' })] });
+    expect(model.pending).toBeNull();
+    expect(model.critical).toBeNull();
+    expect(model.loadedKm).toBeNull();
+    expect(digestNumber('—')).toBeNull();
+    expect(digestNumber(null)).toBeNull();
+  });
+
+  it('uses actual severity and distance cells and puts critical action categories first', () => {
+    const model = buildOverview({
+      reconnect: [{ accountName: 'Fleet A' }],
+      story: [
+        card(
+          'issues',
+          { Critical: '3', Caution: '2', 'Open issues': '7' },
+          { link: { to: '/intelligence?tab=issues' } },
+        ),
+        card('loaded', { 'Distance covered': '4,820 km' }),
+        card('empty', { 'Empty running': '1,240 km' }),
+        card('questions', { 'Places waiting': '4' }),
+        card('reconnect', {}),
+        card('fuel', { 'Trucks affected': '2' }, { tone: 'act' }),
+      ],
+    });
+    expect(model).toMatchObject({
+      critical: 3,
+      caution: 2,
+      open: 7,
+      loadedKm: 4820,
+      emptyKm: 1240,
+      pending: 5,
+    });
+    expect(model.attention[0].id).toBe('issues');
+    expect(model.attention.at(-1).id).toBe('questions');
+    expect(model.attention[0].to).toBe('/alert-inbox');
+  });
+
+  it('does not show values from unavailable or held source data', () => {
+    const model = buildOverview({
+      story: [
+        card('issues', { Critical: '0' }, { status: 'error' }),
+        card('loaded', { 'Distance covered': '0 km' }, { status: 'no_data' }),
+      ],
+    });
+    expect(model.critical).toBeNull();
+    expect(model.loadedKm).toBeNull();
+    expect(buildFuelTrend({ held: true }, '2026-11-04')).toEqual([]);
+  });
+
+  it('keeps real zero values and rejects unqualified driver performance cells', () => {
+    expect(
+      buildOverview({
+        reconnect: [],
+        story: [
+          card('issues', { Critical: '0' }),
+          card('questions', { 'Places waiting': '0' }),
+          card('reconnect', {}),
+        ],
+      }),
+    ).toMatchObject({ critical: 0, pending: 0 });
+    const model = buildOverview(null, {
+      actions: [],
+      driverLeaderboard: {
+        boards: [
+          {
+            rows: [
+              { rank: 1, subjectId: 'bad', score: { value: 91, source: 'insufficient_data' } },
+              { rank: 2, subjectId: 'good', score: { value: 84, source: 'measured' } },
+            ],
+          },
+        ],
+      },
+    });
+    expect(model.drivers.map((driver) => driver.id)).toEqual(['good']);
+  });
+
+  it('does not show zero legacy issues while loading or after a source fails', () => {
+    expect(buildOverview(null, { actions: [], loading: true }).critical).toBeNull();
+    expect(buildOverview(null, { actions: [], error: true }).pending).toBeNull();
+  });
+
+  it('keeps unreported fuel days unknown and displays measured partial daily readings', () => {
+    const rows = buildFuelTrend(
+      {
+        items: [
+          { day: '2026-11-02', litres: 50, measuredTrucks: 2 },
+          { day: '2026-11-03', litres: 40, partial: true },
+          { day: '2026-11-04', litres: 0 },
+          { day: '2026-11-05', litres: 999 },
+        ],
+      },
+      '2026-11-04',
+    );
+    expect(rows.find((r) => r.day === '2026-11-01').litres).toBeNull();
+    expect(rows.find((r) => r.day === '2026-11-02').litres).toBe(50);
+    expect(rows.find((r) => r.day === '2026-11-03')).toMatchObject({ litres: 40, partial: true });
+    expect(rows.find((r) => r.day === '2026-11-04').litres).toBe(0);
+    expect(shiftDay('2026-11-01', -1)).toBe('2026-10-31');
+  });
+
+  it('says how many trucks a fleet distance covers, and only when the response says', () => {
+    // OLD response: no attribution fields, so nothing extra is said.
+    const old = buildOverview(null, {
+      utilization: { fleet: { loadedKm: 300, emptyKm: 120 } },
+    });
+    expect(old.runningCoverage).toBeNull();
+    expect(old.runningCoveragePartial).toBe(false);
+    // NEW response: the distance covers only the trucks it was measured on.
+    const fresh = buildOverview(null, {
+      utilization: {
+        fleet: { loadedKm: 300, emptyKm: 120, trucksAttributed: 42, kmPartial: true },
+        vehicles: Array.from({ length: 51 }, (_, i) => ({ registrationNumber: `T${i}` })),
+      },
+    });
+    expect(fresh.runningCoverage).toBe('over 42 of 51 trucks');
+    expect(fresh.runningCoveragePartial).toBe(true);
+  });
+
+  it('reads the digest runs: coverage, the missing leg and the unknown distance', () => {
+    // OLD response: no runs block, so nothing is said about it.
+    const old = buildOverview({ story: [card('loaded', { 'Distance covered': '4,820 km' })] });
+    expect(old.runsPartial).toBe(false);
+    expect(old.runsMissingParts).toEqual([]);
+    expect(old.runsUnknownKm).toBeNull();
+    expect(old.noTripLegs).toBe(false);
+    // NEW response: a partly measured day, one leg missing and 80 km unattributed.
+    const fresh = buildOverview({
+      story: [card('loaded', { 'Distance covered': '300 km' })],
+      runs: {
+        loadedKm: 300,
+        emptyKm: null,
+        unknownKm: 80,
+        coverage: 'partial',
+        kmPartial: true,
+        kmMissingParts: ['empty'],
+        why: { reason: 'NO_TRIPS' },
+      },
+    });
+    expect(fresh.runsPartial).toBe(true);
+    expect(fresh.runsMissingParts).toEqual(['empty']);
+    expect(fresh.runsUnknownKm).toBe(80);
+    expect(fresh.noTripLegs).toBe(true);
+    expect(fresh.runningReason).toBe('No trip legs for this day');
+    expect(fresh.loadedKm).toBeNull();
+    expect(fresh.emptyKm).toBeNull();
+  });
+});

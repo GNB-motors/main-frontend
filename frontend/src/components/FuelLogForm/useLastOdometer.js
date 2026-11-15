@@ -4,7 +4,7 @@ import FuelLogService from '../../services/FuelLogService';
 import logger from '../../utils/logger';
 
 /** The selected vehicle's latest fuel log, kept in the form's lastOdometer state. */
-const useLastOdometer = (selectedVehicle, setLastOdometer) => {
+const useLastOdometer = (selectedVehicle) => {
   const {
     data: odoResponse,
     loading: loadingLastOdometer,
@@ -15,18 +15,15 @@ const useLastOdometer = (selectedVehicle, setLastOdometer) => {
     (signal) =>
       FuelLogService.getLastOdometer(selectedVehicle.id, { signal }).then((last) => ({ last })),
     [JSON.stringify({ vehicleId: selectedVehicle?.id })],
-    { enabled: !!selectedVehicle },
+    { enabled: !!selectedVehicle, scopeKey: selectedVehicle?.id },
   );
-  useEffect(() => {
-    if (odoResponse) setLastOdometer(odoResponse.last);
-  }, [odoResponse, setLastOdometer]);
-  useEffect(() => {
-    if (!selectedVehicle) setLastOdometer(null);
-  }, [selectedVehicle, setLastOdometer]);
   useEffect(() => {
     if (odoError) logger.warn('FuelLogForm', 'Failed to fetch last odometer', odoError);
   }, [odoError]);
-  return loadingLastOdometer;
+  return {
+    lastOdometer: loadingLastOdometer || odoError || !selectedVehicle ? null : odoResponse?.last,
+    loading: loadingLastOdometer,
+  };
 };
 
 export default useLastOdometer;

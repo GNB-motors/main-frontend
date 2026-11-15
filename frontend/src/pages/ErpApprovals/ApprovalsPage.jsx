@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 /**
  * Approval Dashboard (ISOCL ERP)
  *
@@ -244,7 +245,7 @@ const ApprovalsPage = () => {
       </div>
 
       <div className="erp-toolbar">
-        <select
+        <SearchableSelect
           className="erp-filter"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
@@ -253,8 +254,8 @@ const ApprovalsPage = () => {
           <option value="APPROVED">Approved</option>
           <option value="REJECTED">Rejected</option>
           <option value="">All</option>
-        </select>
-        <select
+        </SearchableSelect>
+        <SearchableSelect
           className="erp-filter"
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
@@ -270,7 +271,7 @@ const ApprovalsPage = () => {
               ))}
             </optgroup>
           ))}
-        </select>
+        </SearchableSelect>
       </div>
 
       <div className="erp-container">

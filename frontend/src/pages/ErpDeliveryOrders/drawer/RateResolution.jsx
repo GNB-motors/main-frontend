@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React from 'react';
 import { CheckCircle2, Info } from 'lucide-react';
 import { money } from '../deliveryOrder.constants';
@@ -53,7 +54,7 @@ const RateResolution = ({ rateInfo, form, setField, needsManualRate, manualRateA
           <label htmlFor="do-rate-unit">
             Unit <span className="required">*</span>
           </label>
-          <select
+          <SearchableSelect
             id="do-rate-unit"
             value={form.sbRateUnit}
             onChange={(e) => setField('sbRateUnit', e.target.value)}
@@ -61,7 +62,7 @@ const RateResolution = ({ rateInfo, form, setField, needsManualRate, manualRateA
             <option value="PER_KL">Per KL</option>
             <option value="PER_MT">Per MT</option>
             <option value="PER_TRIP">Per Trip</option>
-          </select>
+          </SearchableSelect>
         </div>
         <div className="erp-field full">
           <label htmlFor="do-rate-remark">

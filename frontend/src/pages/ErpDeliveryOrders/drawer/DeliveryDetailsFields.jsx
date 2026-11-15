@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React from 'react';
 import { DO_TYPES, unitFor } from '../deliveryOrder.constants';
 import DoPlaceFields from '../DoPlaceFields';
@@ -17,7 +18,7 @@ const DeliveryDetailsFields = ({
         <label htmlFor="do-party">
           Account <span className="required">*</span>
         </label>
-        <select
+        <SearchableSelect
           id="do-party"
           value={form.partyId}
           onChange={(e) => setField('partyId', e.target.value)}
@@ -29,7 +30,7 @@ const DeliveryDetailsFields = ({
               {p.name} ({p.code})
             </option>
           ))}
-        </select>
+        </SearchableSelect>
       </div>
     )}
 
@@ -37,7 +38,7 @@ const DeliveryDetailsFields = ({
       <label htmlFor="do-route">
         Route <span className="required">*</span>
       </label>
-      <select
+      <SearchableSelect
         id="do-route"
         value={form.routeId}
         onChange={(e) => setField('routeId', e.target.value)}
@@ -62,7 +63,7 @@ const DeliveryDetailsFields = ({
             ))}
           </optgroup>
         )}
-      </select>
+      </SearchableSelect>
       {suggested.length > 0 && (
         <span className="erp-field-hint">
           {suggested.length} route{suggested.length === 1 ? '' : 's'} already have a sale rate for
@@ -109,13 +110,17 @@ const DeliveryDetailsFields = ({
       <label htmlFor="do-type">
         Measured in <span className="required">*</span>
       </label>
-      <select id="do-type" value={form.doType} onChange={(e) => setField('doType', e.target.value)}>
+      <SearchableSelect
+        id="do-type"
+        value={form.doType}
+        onChange={(e) => setField('doType', e.target.value)}
+      >
         {DO_TYPES.map((t) => (
           <option key={t.value} value={t.value}>
             {t.label}
           </option>
         ))}
-      </select>
+      </SearchableSelect>
     </div>
 
     <div className="erp-field">

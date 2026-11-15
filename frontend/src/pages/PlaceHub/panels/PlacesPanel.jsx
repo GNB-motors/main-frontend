@@ -1,16 +1,19 @@
-import { Search, MapPinPlus, ShieldAlert } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Search, MapPinPlus, ShieldAlert, Truck, X, MapPin } from 'lucide-react';
 import { num } from '../../../utils/formatMoney.js';
 import { PLACE_GROUPS, placeTypeLabel } from '../model/placeGroups.js';
-import { radiusLabel } from '../model/placeLabels.js';
+import { radiusLabel, hoursLabel } from '../model/placeLabels.js';
+import { fromWarehouse, fromZone } from '../model/mergePlaces.js';
 import { TypeTile } from '../PlaceHubPanels.jsx';
 import Empty from './Empty.jsx';
 import LayerError from './LayerError.jsx';
 import ListSkeleton from './ListSkeleton.jsx';
+import PlaceHubService from '../PlaceHubService.js';
 
 function placeMeta(p) {
   if (p.risk && p.status !== 'REJECTED')
     return (
-      <span className="ph-pill ph-pill--crit" title="Theft or unauthorised refuelling reported">
+      <span className="ph-pill ph-pill--crit" title="Fuel loss or unauthorised refuelling reported here">
         <ShieldAlert size={11} /> Fuel risk
       </span>
     );
@@ -34,6 +37,11 @@ export default function PlacesPanel({
   onGroup,
   query,
   onQuery,
+  vehicleLabel,
+  vehicleHalts = [],
+  onVehiclePick,
+  onVehicleClear,
+  onPickVehicleHalt,
   selectedId,
   onPick,
   errors,
@@ -41,6 +49,99 @@ export default function PlacesPanel({
   onAdd,
   reviewNote,
 }) {
+  const [vehicleSuggestions, setVehicleSuggestions] = useState([]);
+  const [vehicleSugActive, setVehicleSugActive] = useState(-1);
+  const [searchResults, setSearchResults] = useState(null);
+  const ctrlRef = useRef(null);
+  const placeCtrlRef = useRef(null);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    const close = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setVehicleSuggestions([]);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
+
+  useEffect(() => {
+    if (vehicleLabel) {
+      setVehicleSuggestions([]);
+      setSearchResults(null);
+      return undefined;
+    }
+    const q = query.trim();
+    if (q.length < 2) {
+      setVehicleSuggestions([]);
+      setSearchResults(null);
+      return undefined;
+    }
+    const timer = setTimeout(() => {
+      // Vehicle dropdown — independent abort so a failing place search never kills it
+      if (ctrlRef.current) ctrlRef.current.abort();
+      ctrlRef.current = new AbortController();
+      PlaceHubService.searchVehicles(q, { limit: 5, signal: ctrlRef.current.signal })
+        .then((rows) => {
+          setVehicleSuggestions(rows);
+          setVehicleSugActive(-1);
+        })
+        .catch(() => {});
+
+      // Place + vehicle-reg results in the main list
+      if (placeCtrlRef.current) placeCtrlRef.current.abort();
+      placeCtrlRef.current = new AbortController();
+      PlaceHubService.searchPlaces(q, { limit: 20, signal: placeCtrlRef.current.signal })
+        .then((rows) => {
+          setSearchResults(
+            rows.map((r) => {
+              if (r._type === 'warehouse') return fromWarehouse(r);
+              if (r._type === 'zone') return fromZone(r);
+              // vehicle result — shape it as a lightweight place entry for the list
+              return {
+                id: `vehicle:${r._id}`,
+                source: 'vehicle',
+                sourceId: String(r._id),
+                name: r.registrationNumber,
+                type: 'VEHICLE',
+                group: 'vehicle',
+                status: 'CONFIRMED',
+                lat: null,
+                lng: null,
+                radiusM: null,
+                polygon: null,
+                subtitle: [r.manufacturer, r.model].filter(Boolean).join(' ') || 'Vehicle',
+                raw: r,
+              };
+            }),
+          );
+        })
+        .catch(() => {});
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query, vehicleLabel]);
+
+  const pickVehicle = (row) => {
+    setVehicleSuggestions([]);
+    onQuery('');
+    onVehiclePick(row);
+  };
+
+  const onKeyDown = (e) => {
+    if (!vehicleSuggestions.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setVehicleSugActive((i) => Math.min(i + 1, vehicleSuggestions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setVehicleSugActive((i) => Math.max(i - 1, 0));
+    } else if (e.key === 'Enter' && vehicleSuggestions[Math.max(vehicleSugActive, 0)]) {
+      e.preventDefault();
+      pickVehicle(vehicleSuggestions[Math.max(vehicleSugActive, 0)]);
+    } else if (e.key === 'Escape') {
+      setVehicleSuggestions([]);
+    }
+  };
+
   const chips = PLACE_GROUPS.filter((g) => g.id === 'all' || counts[g.id]);
   const chip = (g) => (
     <button
@@ -55,19 +156,57 @@ export default function PlacesPanel({
       <span>{num(counts[g.id] || 0)}</span>
     </button>
   );
+
   return (
     <>
       <div className="ph-filter">
-        <label className="ph-input">
-          <Search size={14} aria-hidden="true" />
-          <input
-            value={query}
-            onChange={(e) => onQuery(e.target.value)}
-            placeholder="Search places"
-            aria-label="Search places"
-          />
-        </label>
-        {/* Two rows: what kind of place, then where it stands. */}
+        <div className="ph-input-wrap" ref={wrapRef}>
+          <label className="ph-input">
+            <Search size={14} aria-hidden="true" />
+            <input
+              value={vehicleLabel ? vehicleLabel : query}
+              readOnly={Boolean(vehicleLabel)}
+              onChange={(e) => !vehicleLabel && onQuery(e.target.value)}
+              onKeyDown={onKeyDown}
+              placeholder="Search places or vehicle reg"
+              aria-label="Search places or vehicle"
+            />
+            {vehicleLabel && (
+              <button
+                type="button"
+                className="ph-input-clear"
+                onClick={onVehicleClear}
+                aria-label="Clear vehicle"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </label>
+
+          {vehicleSuggestions.length > 0 && !vehicleLabel && (
+            <ul className="ph-vehicle-suggestions">
+              {vehicleSuggestions.map((s, i) => (
+                <li key={s._id || s.registrationNumber}>
+                  <button
+                    type="button"
+                    className={`ph-vehicle-sug-row${i === vehicleSugActive ? ' is-active' : ''}`}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => pickVehicle(s)}
+                  >
+                    <Truck size={13} />
+                    <span>
+                      <strong>{s.registrationNumber}</strong>
+                      {(s.model || s.manufacturer) && (
+                        <small>{[s.manufacturer, s.model].filter(Boolean).join(' ')}</small>
+                      )}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         <div className="ph-chip-rows" role="tablist" aria-label="Which places">
           <div className="ph-chips">{chips.filter((g) => !STATUS_CHIPS.has(g.id)).map(chip)}</div>
           {chips.some((g) => STATUS_CHIPS.has(g.id)) && (
@@ -75,43 +214,104 @@ export default function PlacesPanel({
           )}
         </div>
       </div>
+
       <LayerError errors={errors} />
-      {reviewNote && <p className="ph-note">{reviewNote}</p>}
-      {loading && !places.length ? (
+      {reviewNote && !vehicleLabel && <p className="ph-note">{reviewNote}</p>}
+
+      {vehicleLabel && (
+        <>
+          {vehicleHalts.length > 0 ? (
+            <>
+              <p className="ph-vehicle-halt-label">
+                {vehicleLabel} · {vehicleHalts.length} habitual stop
+                {vehicleHalts.length !== 1 ? 's' : ''}
+              </p>
+              <ul className="ph-list">
+                {vehicleHalts.map((h, i) => (
+                  <li key={i}>
+                    <button type="button" className="ph-row" onClick={() => onPickVehicleHalt(h)}>
+                      <span className="ph-halt-dot" aria-hidden="true" />
+                      <span className="ph-row-main">
+                        <span className="ph-row-title">Stop {i + 1}</span>
+                        <span className="ph-row-sub">
+                          {h.occurrences} visit{h.occurrences !== 1 ? 's' : ''}
+                          {h.medianDwellMs
+                            ? ` · ${hoursLabel(h.medianDwellMs / 3600000)} median dwell`
+                            : ''}
+                        </span>
+                        <span className="ph-row-sub">
+                          {h.lat.toFixed(4)}, {h.lng.toFixed(4)}
+                        </span>
+                      </span>
+                      <MapPin size={14} style={{ color: '#2563eb', flexShrink: 0 }} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <Empty
+              icon={Truck}
+              title="No habitual stops found"
+              body="This vehicle has no recorded recurring stops in the last 30 days."
+            />
+          )}
+          {places.length > 0 && (
+            <p className="ph-vehicle-halt-label ph-vehicle-halt-label--places">All places</p>
+          )}
+        </>
+      )}
+
+      {loading && !places.length && !vehicleLabel && searchResults === null ? (
         <ListSkeleton />
-      ) : places.length ? (
+      ) : (searchResults ?? places).length ? (
         <ul className="ph-list">
-          {places.map((p) => (
+          {(searchResults ?? places).map((p) => (
             <li key={p.id}>
-              <button
-                type="button"
-                className={`ph-row${p.id === selectedId ? ' is-selected' : ''}`}
-                onClick={() => onPick(p)}
-              >
-                <TypeTile type={p.type} />
-                <span className="ph-row-main">
-                  <span className="ph-row-title">{p.name}</span>
-                  <span className="ph-row-sub">
-                    {placeTypeLabel(p.type)}
-                    {' · '}
-                    {p.polygon ? 'Outline' : radiusLabel(p.radiusM)}
-                    {p.subtitle ? ` · ${p.subtitle}` : ''}
+              {p.source === 'vehicle' ? (
+                <button type="button" className="ph-row" onClick={() => onVehiclePick(p.raw)}>
+                  <span
+                    className="ph-halt-dot"
+                    style={{ background: '#6b7280' }}
+                    aria-hidden="true"
+                  />
+                  <span className="ph-row-main">
+                    <span className="ph-row-title">{p.name}</span>
+                    <span className="ph-row-sub">{p.subtitle}</span>
                   </span>
-                  {p.raw?.tripDrops?.trips ? (
-                    <span className="ph-row-flag">
-                      {num(p.raw.tripDrops.trips)} trip
-                      {p.raw.tripDrops.trips === 1 ? '' : 's'} turned around here
+                  <Truck size={14} style={{ color: '#6b7280', flexShrink: 0 }} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={`ph-row${p.id === selectedId ? ' is-selected' : ''}`}
+                  onClick={() => onPick(p)}
+                >
+                  <TypeTile type={p.type} />
+                  <span className="ph-row-main">
+                    <span className="ph-row-title">{p.name}</span>
+                    <span className="ph-row-sub">
+                      {placeTypeLabel(p.type)}
+                      {' · '}
+                      {p.polygon ? 'Outline' : radiusLabel(p.radiusM)}
+                      {p.subtitle ? ` · ${p.subtitle}` : ''}
                     </span>
-                  ) : null}
-                </span>
-                {placeMeta(p)}
-              </button>
+                    {p.raw?.tripDrops?.trips ? (
+                      <span className="ph-row-flag">
+                        {num(p.raw.tripDrops.trips)} trip
+                        {p.raw.tripDrops.trips === 1 ? '' : 's'} turned around here
+                      </span>
+                    ) : null}
+                  </span>
+                  {placeMeta(p)}
+                </button>
+              )}
             </li>
           ))}
         </ul>
-      ) : query || group !== 'all' ? (
+      ) : searchResults !== null || (query && !vehicleLabel) || group !== 'all' ? (
         <Empty icon={Search} title="No places match" body="Try another search or type." />
-      ) : (
+      ) : !vehicleLabel ? (
         <Empty
           icon={MapPinPlus}
           title="No places yet"
@@ -124,7 +324,7 @@ export default function PlacesPanel({
             )
           }
         />
-      )}
+      ) : null}
     </>
   );
 }

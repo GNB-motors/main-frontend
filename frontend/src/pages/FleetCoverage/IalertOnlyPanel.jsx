@@ -39,7 +39,8 @@ const IALERT_EXPORT_COLUMNS = [
 ];
 
 function ialertRowKey(row, index) {
-  return row.registrationNumber || `ialert-${index}`;
+  // Placeholder plates ("NA") repeat across trucks, so the VIN goes with it.
+  return `${row.registrationNumber || 'ialert'}|${row.vin || index}`;
 }
 
 function filterIalert(rows, q) {

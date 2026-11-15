@@ -30,4 +30,15 @@ describe('PlaceLabel', () => {
     expect(screen.getByText('—')).toBeInTheDocument();
     expect(resolvePlace).not.toHaveBeenCalled();
   });
+
+  it('preserves the unmapped label for pages that do not opt into a fallback link', async () => {
+    resolvePlace.mockResolvedValue({
+      label: 'Unmapped location',
+      sub: 'No known place nearby',
+      source: 'UNMAPPED',
+    });
+    render(<PlaceLabel lat={22.58} lng={88.34} />);
+    expect(await screen.findByText('Unmapped location')).toBeInTheDocument();
+    expect(screen.getByText('No known place nearby')).toBeInTheDocument();
+  });
 });

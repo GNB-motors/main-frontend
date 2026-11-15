@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   IndianRupee,
-  BookOpen,
   Fuel,
   Wrench,
   Receipt,
@@ -14,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import KhataKpiGrid from './KhataKpiGrid';
 import {
   CATEGORY_LABELS,
   CATEGORY_COLORS,
@@ -47,187 +47,78 @@ export const LedgerSummaryCards = ({
   const profitStatus =
     revenue != null ? getProfitabilityStatus(revenue, summary.totalAmount) : null;
 
+  const primary = [
+    {
+      label: isDriver ? 'Total Expense' : 'Total Cost',
+      icon: IndianRupee,
+      value: formatCurrency(summary.totalAmount),
+      sub: `${summary.count ?? 0} entries counted`,
+    },
+    { label: 'Fuel Cost', icon: Fuel, value: formatCurrency(fuelCost), sub: 'Direct fuel refills' },
+    {
+      label: 'Maintenance',
+      icon: Wrench,
+      value: formatCurrency(maintenanceCost),
+      sub: 'Servicing, repairs & tyres',
+    },
+    {
+      label: 'Other Expenses',
+      icon: Receipt,
+      value: formatCurrency(otherCost),
+      sub: 'Tolls, meals, allowances',
+    },
+    { label: 'ERP Trips', icon: Route, value: tripsCount, sub: 'Commercial trips assigned' },
+  ];
+  const secondary = isDriver
+    ? [
+        {
+          label: 'Pending Bills',
+          icon: Clock,
+          value: formatCurrency(pendingAmount),
+          sub: 'Awaiting owner confirmation',
+          status: pendingAmount > 0 ? 'Needs review' : null,
+          tone: 'warning',
+        },
+        {
+          label: 'Driver Wallet / Settlement',
+          icon: Wallet,
+          value: walletAmount != null ? formatCurrency(walletAmount) : 'Not Configured',
+          sub: walletAmount != null ? 'Current balance' : 'Driver wallet not active',
+        },
+      ]
+    : [
+        {
+          label: 'Distance',
+          icon: Route,
+          value: distanceKm != null && distanceKm > 0 ? formatKm(distanceKm) : 'N/A',
+          sub: distanceKm ? 'Logged trip distance' : 'Distance unavailable',
+        },
+        {
+          label: 'Cost / KM',
+          icon: Gauge,
+          value: costPerKmText || 'Unavailable',
+          sub: distanceKm ? `Total Cost / ${formatKm(distanceKm)}` : 'Cost/KM unavailable',
+        },
+        {
+          label: 'Trip Revenue',
+          icon: TrendingUp,
+          value: revenue != null ? formatCurrency(revenue) : '₹0 (Unbilled)',
+          sub: 'From linked ERP trips',
+        },
+        {
+          label: 'Net Profit',
+          icon: profit < 0 ? TrendingDown : TrendingUp,
+          value: profit != null ? formatCurrency(profit) : 'N/A',
+          sub: 'Revenue minus costs',
+          status: profitStatus?.label,
+          tone: profit < 0 ? 'critical' : profit > 0 ? 'ok' : 'neutral',
+        },
+      ];
+
   return (
     <div className="space-y-3">
-      {/* Primary KPI Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3.5">
-        {/* Total Cost / Expense */}
-        <Card className="border-indigo-100 bg-gradient-to-br from-indigo-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-indigo-700 mb-1">
-              <span>{isDriver ? 'Total Expense' : 'Total Cost'}</span>
-              <IndianRupee size={16} className="text-indigo-600" />
-            </div>
-            <p className="text-2xl font-bold text-indigo-950">
-              {formatCurrency(summary.totalAmount)}
-            </p>
-            <p className="text-[11px] text-gray-500 mt-1">{summary.count ?? 0} entries counted</p>
-          </CardContent>
-        </Card>
-
-        {/* Fuel Expense */}
-        <Card className="border-orange-100 bg-gradient-to-br from-orange-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-orange-700 mb-1">
-              <span>Fuel Cost</span>
-              <Fuel size={16} className="text-orange-500" />
-            </div>
-            <p className="text-2xl font-bold text-orange-950">{formatCurrency(fuelCost)}</p>
-            <p className="text-[11px] text-gray-500 mt-1">Direct fuel refills</p>
-          </CardContent>
-        </Card>
-
-        {/* Maintenance Expense */}
-        <Card className="border-purple-100 bg-gradient-to-br from-purple-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-purple-700 mb-1">
-              <span>Maintenance</span>
-              <Wrench size={16} className="text-purple-500" />
-            </div>
-            <p className="text-2xl font-bold text-purple-950">{formatCurrency(maintenanceCost)}</p>
-            <p className="text-[11px] text-gray-500 mt-1">Servicing, repairs & tyres</p>
-          </CardContent>
-        </Card>
-
-        {/* Other Expense */}
-        <Card className="border-blue-100 bg-gradient-to-br from-blue-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-blue-700 mb-1">
-              <span>Other Expenses</span>
-              <Receipt size={16} className="text-blue-500" />
-            </div>
-            <p className="text-2xl font-bold text-blue-950">{formatCurrency(otherCost)}</p>
-            <p className="text-[11px] text-gray-500 mt-1">Tolls, meals, allowances</p>
-          </CardContent>
-        </Card>
-
-        {/* Number of Trips */}
-        <Card className="border-violet-100 bg-gradient-to-br from-violet-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-violet-700 mb-1">
-              <span>ERP Trips</span>
-              <Route size={16} className="text-violet-500" />
-            </div>
-            <p className="text-2xl font-bold text-violet-950">{tripsCount}</p>
-            <p className="text-[11px] text-gray-500 mt-1">Commercial trips assigned</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Secondary Row: Specific to Driver vs Vehicle */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        {isDriver ? (
-          <>
-            {/* Pending Amount */}
-            <Card className="border-amber-100 bg-gradient-to-br from-amber-50/40 to-white shadow-sm">
-              <CardContent className="p-3.5">
-                <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-amber-700 mb-0.5">
-                  <span>Pending Bills</span>
-                  <Clock size={15} className="text-amber-500" />
-                </div>
-                <p className="text-lg font-bold text-amber-950">{formatCurrency(pendingAmount)}</p>
-                <p className="text-[10px] text-gray-500 mt-0.5">Awaiting owner confirmation</p>
-              </CardContent>
-            </Card>
-
-            {/* Settlement / Wallet Amount */}
-            <Card className="border-emerald-100 bg-gradient-to-br from-emerald-50/40 to-white shadow-sm">
-              <CardContent className="p-3.5">
-                <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-emerald-700 mb-0.5">
-                  <span>Driver Wallet / Settlement</span>
-                  <Wallet size={15} className="text-emerald-500" />
-                </div>
-                <p className="text-lg font-bold text-emerald-950">
-                  {walletAmount != null ? formatCurrency(walletAmount) : 'Not Configured'}
-                </p>
-                <p className="text-[10px] text-gray-500 mt-0.5">
-                  {walletAmount != null ? 'Current balance' : 'Driver wallet not active'}
-                </p>
-              </CardContent>
-            </Card>
-          </>
-        ) : (
-          <>
-            {/* Total Distance */}
-            <Card className="border-teal-100 bg-gradient-to-br from-teal-50/40 to-white shadow-sm">
-              <CardContent className="p-3.5">
-                <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-teal-700 mb-0.5">
-                  <span>Distance</span>
-                  <Route size={15} className="text-teal-500" />
-                </div>
-                <p className="text-lg font-bold text-teal-950">
-                  {distanceKm != null && distanceKm > 0 ? formatKm(distanceKm) : 'N/A'}
-                </p>
-                <p className="text-[10px] text-gray-500 mt-0.5">
-                  {distanceKm ? 'Logged trip distance' : 'Distance unavailable'}
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Cost / KM */}
-            <Card className="border-purple-100 bg-gradient-to-br from-purple-50/40 to-white shadow-sm">
-              <CardContent className="p-3.5">
-                <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-purple-700 mb-0.5">
-                  <span>Cost / KM</span>
-                  <Gauge size={15} className="text-purple-500" />
-                </div>
-                <p className="text-lg font-bold text-purple-950">
-                  {costPerKmText || 'Unavailable'}
-                </p>
-                <p className="text-[10px] text-gray-500 mt-0.5">
-                  {distanceKm ? `Total Cost / ${formatKm(distanceKm)}` : 'Cost/KM unavailable'}
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Vehicle Revenue */}
-            <Card className="border-blue-100 bg-gradient-to-br from-blue-50/40 to-white shadow-sm">
-              <CardContent className="p-3.5">
-                <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-blue-700 mb-0.5">
-                  <span>Trip Revenue</span>
-                  <TrendingUp size={15} className="text-blue-500" />
-                </div>
-                <p className="text-lg font-bold text-blue-950">
-                  {revenue != null ? formatCurrency(revenue) : '₹0 (Unbilled)'}
-                </p>
-                <p className="text-[10px] text-gray-500 mt-0.5">From linked ERP trips</p>
-              </CardContent>
-            </Card>
-
-            {/* Vehicle Profit */}
-            <Card
-              className={`shadow-sm bg-gradient-to-br to-white ${
-                profit != null && profit >= 0
-                  ? 'border-emerald-200 from-emerald-50/40'
-                  : 'border-rose-200 from-rose-50/40'
-              }`}
-            >
-              <CardContent className="p-3.5">
-                <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider mb-0.5">
-                  <span
-                    className={profit != null && profit >= 0 ? 'text-emerald-700' : 'text-rose-700'}
-                  >
-                    Net Profit
-                  </span>
-                  {profitStatus && (
-                    <Badge className={`text-[9px] px-1 py-0 ${profitStatus.color}`}>
-                      {profitStatus.label}
-                    </Badge>
-                  )}
-                </div>
-                <p
-                  className={`text-lg font-bold ${
-                    profit != null && profit >= 0 ? 'text-emerald-950' : 'text-rose-950'
-                  }`}
-                >
-                  {profit != null ? formatCurrency(profit) : 'N/A'}
-                </p>
-                <p className="text-[10px] text-gray-500 mt-0.5">Revenue minus costs</p>
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </div>
+      <KhataKpiGrid columns={5} items={primary} />
+      <KhataKpiGrid columns={isDriver ? 2 : 4} items={secondary} />
     </div>
   );
 };

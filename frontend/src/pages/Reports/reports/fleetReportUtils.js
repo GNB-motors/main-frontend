@@ -16,6 +16,11 @@ export function cycleNote(cycleCount = 0, excludedCycleCount = 0) {
   return `${used} · ${excludedCycleCount} excluded`;
 }
 
+/** Tooltip explaining why distance and mileage are missing when no cycle is completed. */
+export function noCycleHint() {
+  return 'Distance and mileage require at least two consecutive full-tank refuels with valid odometer readings to form a completed cycle.';
+}
+
 /** Tooltip explaining why cycles were left out of the ratios. */
 export function excludedCycleHint(plausible) {
   const band = plausible ? ` (${plausible.min}–${plausible.max} km/L)` : '';

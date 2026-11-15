@@ -3,8 +3,12 @@ import RouteHubService from '../../../services/RouteHubService';
 import Ico from '../routeHubIcons.jsx';
 import { L, useLeafletMap, useLayerGroup, cityLayer } from '../routeHubMap';
 import { KpiRow, RefreshButton, Seg } from '../routeHubShared.jsx';
-import { HEALTH, inr, inrK } from '../routeHubFormat';
+import { inr, inrK } from '../routeHubFormat';
 import { RANGES, OS_THRESHOLD, OS_MIN_MIN, OS_MAX_HOURS } from './overview/overviewConstants.js';
+import { distanceCoverage } from './overview/overviewDistance.js';
+import ToneBadge from '../../../components/redesign/ToneBadge';
+import { PARTIAL_LABEL } from '../../../utils/measured';
+import { groupTotals, notMeasuredNote } from './deviation/deviationRules.js';
 import NetworkChip from './overview/NetworkChip.jsx';
 import DeviationModule from './overview/DeviationModule.jsx';
 import OverspeedModule from './overview/OverspeedModule.jsx';
@@ -41,7 +45,7 @@ export default function OverviewView({ go, toast, setBadge }) {
         speedKmh: OS_THRESHOLD,
         durationSec: OS_MIN_MIN * 60,
       }).catch(() => null),
-      RouteHubService.getRouteProfitability({ days: 30 }).catch(() => null),
+      RouteHubService.getAutoTripRunningCost({ days: 30 }).catch(() => null),
       RouteHubService.getUtilization(iso).catch(() => null),
       RouteHubService.getVehicles().catch(() => []),
     ]);
@@ -69,17 +73,35 @@ export default function OverviewView({ go, toast, setBadge }) {
   const first = loading && !ready;
   const openDev = deviation.filter((d) => String(d.status || '').toUpperCase() === 'OPEN');
   const osTotals = overspeed?.totals || {};
-  const target = profit?.targetMarginPct ?? 22.5;
-  const routes = useMemo(
-    () =>
-      (profit?.routes || [])
-        .map((r) => ({ ...r, health: HEALTH(r.marginPct ?? 0) }))
-        .sort((a, b) => (b.marginPct ?? 0) - (a.marginPct ?? 0)),
-    [profit],
-  );
+  // Routes come ranked by running cost from the AutoTrip endpoint; render as-is.
+  const routes = useMemo(() => profit?.routes || [], [profit]);
 
-  const distanceKm = utilization?.totals?.totalKm ?? utilization?.totalKm ?? null;
+  // /api/owner-value/utilization returns the distance under fleet.totalKm; the
+  // older totals/top-level keys are kept as fallbacks only. The new backend
+  // sums only the trucks it measured, so the figure says how many it covers.
+  const coverage = distanceCoverage(utilization);
+  const distanceKm = coverage.distanceKm;
   const activeVehicles = utilization?.vehicles?.length ?? vehicles.length;
+  // The cards do not share one timeframe: distance follows the window selector,
+  // overspeed is clamped to OS_MAX_HOURS, deviations are the currently-open set,
+  // and margin/trips are a 30-day roll-up. Each card states its own period.
+  const osHours = Math.min(hours, OS_MAX_HOURS);
+
+  // "No records" is never a zero. A failed endpoint is unknown ("—"), and an
+  // unpriced trip has no running cost — detected trips carry no revenue, so there
+  // is no margin here, only cost.
+  const costTotals = profit?.totals || {};
+  const noDetectedTrips = profit == null || (costTotals.tripCount ?? 0) === 0;
+  const runningCostInr = costTotals.runningCostInr ?? null;
+  // A detour cost nobody estimated is unknown, not ₹0. The figure counts only
+  // the detours that were measured, and says how many detours are left out.
+  const deviationTotals = groupTotals(openDev);
+  const deviationCostInr = deviationSummary?.openCostInr ?? deviationTotals.costInr;
+  const deviationCostKnown = deviationSummary?.openCostInr != null || deviationTotals.costKnown > 0;
+  const deviationCostNote =
+    deviationSummary?.openCostInr != null
+      ? null
+      : notMeasuredNote(deviationTotals.costUnknown, deviationTotals.total);
 
   const kpis = [
     {
@@ -87,14 +109,29 @@ export default function OverviewView({ go, toast, setBadge }) {
       ic: 'truck',
       l: 'Distance covered',
       v: distanceKm != null ? Math.round(distanceKm).toLocaleString('en-IN') : '—',
-      u: 'km',
-      s: `${activeVehicles} vehicles on ${routes.length} routes`,
+      u: distanceKm != null ? 'km' : '',
+      s: (
+        <>
+          {routes.length === 0
+            ? `${activeVehicles} vehicles · no detected routes yet · last ${hours}h`
+            : `${activeVehicles} vehicles on ${routes.length} routes · last ${hours}h`}
+          {coverage.note ? ` · ${coverage.note}` : ''}
+          {coverage.partial ? (
+            <>
+              {' '}
+              <ToneBadge tone="watch">{PARTIAL_LABEL}</ToneBadge>
+            </>
+          ) : null}
+        </>
+      ),
     },
     {
       ic: 'split',
       l: 'Open deviations',
       v: deviationSummary?.open ?? openDev.length,
-      s: `${inr(deviationSummary?.openCostInr ?? openDev.reduce((a, d) => a + (d.estimatedExtraCostInr || 0), 0))} est. detour cost`,
+      s: deviationCostKnown
+        ? `${inr(deviationCostInr)} est. detour cost · currently open${deviationCostNote ? ` · ${deviationCostNote}` : ''}`
+        : 'Detour cost not estimated · currently open',
       c: '#C2323A',
       tint: 'rgba(229,104,107,.14)',
       vc: '#C2323A',
@@ -102,29 +139,33 @@ export default function OverviewView({ go, toast, setBadge }) {
     {
       ic: 'gauge',
       l: 'Sustained overspeed',
-      v: osTotals.eventCount ?? 0,
-      s: `events over ${OS_THRESHOLD} km/h for ${OS_MIN_MIN}+ min`,
+      v: overspeed == null ? '—' : (osTotals.eventCount ?? 0),
+      s: `over ${OS_THRESHOLD} km/h for ${OS_MIN_MIN}+ min · last ${osHours}h`,
       c: '#C56200',
       tint: 'rgba(240,170,72,.16)',
       vc: '#C56200',
     },
     {
       ic: 'trend',
-      l: 'Fleet net margin',
-      v: profit?.totals?.marginPct != null ? Number(profit.totals.marginPct).toFixed(1) : '—',
-      u: '%',
-      s: `target ${target}% · last 30 days`,
-      c: '#187A32',
-      tint: 'rgba(37,186,76,.12)',
+      l: 'Running cost',
+      v: runningCostInr != null ? inrK(runningCostInr) : '—',
+      u: '',
+      s:
+        runningCostInr != null
+          ? `${costTotals.costPerKmInr != null ? `₹${Math.round(costTotals.costPerKmInr)}/km · ` : ''}last 30 days`
+          : noDetectedTrips
+            ? 'No detected trips yet'
+            : 'Cost not priced yet',
+      c: '#C56200',
+      tint: 'rgba(240,170,72,.16)',
     },
     {
       ic: 'route',
-      l: 'Trips this month',
-      v: profit?.totals?.tripCount ?? 0,
-      s:
-        profit?.totals?.revenueInr != null
-          ? `${inrK(profit.totals.revenueInr)} invoiced`
-          : 'no billing yet',
+      l: 'Detected trips',
+      v: noDetectedTrips ? '—' : (costTotals.tripCount ?? 0),
+      s: noDetectedTrips
+        ? 'No detected trips yet'
+        : `${costTotals.economicsTripCount ?? 0} priced · last 30 days`,
       c: 'var(--nova-rage-600)',
       tint: 'var(--nova-rage-a10)',
     },
@@ -182,8 +223,19 @@ export default function OverviewView({ go, toast, setBadge }) {
           ),
       );
 
-      if (withPath.length) {
-        map.fitBounds(L.latLngBounds(withPath.flatMap((r) => r.path)), { padding: [40, 40] });
+      // The map frames what is actually plotted. With nothing plotted it sits
+      // over India instead of the whole of Asia.
+      const routePoints = withPath.flatMap((r) => r.path);
+      const speedPoints = (overspeed?.vehicles || []).flatMap((v) =>
+        (v.events || [])
+          .filter((e) => e.startLat != null && e.startLng != null)
+          .map((e) => [e.startLat, e.startLng]),
+      );
+      const plotted = routePoints.concat(speedPoints);
+      if (plotted.length) {
+        map.fitBounds(L.latLngBounds(plotted), { padding: [40, 40], maxZoom: 9 });
+      } else {
+        map.setView([22.5, 82], 5);
       }
     },
     [routes, overspeed, go],
@@ -193,7 +245,6 @@ export default function OverviewView({ go, toast, setBadge }) {
     <section className="view">
       <div className="phead">
         <div className="t">
-          <h2>Route hub</h2>
           <p>
             Every corridor, trip and exception across your fleet in the last 24 hours. Open any
             module for full detail.
@@ -261,7 +312,7 @@ export default function OverviewView({ go, toast, setBadge }) {
           />
         </div>
 
-        <ProfitabilityModule go={go} first={first} routes={routes} target={target} />
+        <ProfitabilityModule go={go} first={first} routes={routes} />
 
         <ReplayModule go={go} first={first} utilization={utilization} vehicles={vehicles} />
       </div>

@@ -5,7 +5,7 @@ import { getManufacturerCatalog } from '../../services/manufacturerService';
 vi.mock('../../services/manufacturerService', () => ({ getManufacturerCatalog: vi.fn() }));
 
 describe('ManufacturerFilter', () => {
-  it('preserves an active scope when metadata fails and offers retry and Unclassified', async () => {
+  it('preserves an active scope on failure and loads only backend choices on retry', async () => {
     getManufacturerCatalog.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce([
       { value: 'TATA', label: 'Tata' },
       { value: 'ASHOK LEYLAND', label: 'Ashok Leyland' },
@@ -13,15 +13,24 @@ describe('ManufacturerFilter', () => {
     const change = vi.fn();
     render(<ManufacturerFilter value="TATA" onChange={change} />);
     await screen.findByRole('button', { name: 'Retry' });
-    expect(screen.getByRole('combobox', { name: 'Manufacturer' }).value).toBe('TATA');
+    expect(screen.getByRole('combobox', { name: 'Manufacturer' })).toHaveTextContent('TATA');
     expect(change).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Manufacturer' })).toHaveTextContent('Tata'),
+    );
+    fireEvent.click(screen.getByRole('combobox', { name: 'Manufacturer' }));
+    await waitFor(() =>
       expect(screen.getByRole('option', { name: 'Ashok Leyland' })).toBeInTheDocument(),
     );
-    fireEvent.change(screen.getByRole('combobox', { name: 'Manufacturer' }), {
-      target: { value: 'UNKNOWN' },
-    });
-    expect(change).toHaveBeenCalledWith('UNKNOWN');
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'All manufacturers',
+      'Tata',
+      'Ashok Leyland',
+    ]);
+    const option = screen.getByRole('option', { name: 'Ashok Leyland' });
+    fireEvent.pointerDown(option, { pointerType: 'mouse' });
+    fireEvent.click(option);
+    expect(change).toHaveBeenCalledWith('ASHOK LEYLAND');
   });
 });

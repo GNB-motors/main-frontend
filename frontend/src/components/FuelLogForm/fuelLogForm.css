@@ -1,0 +1,134 @@
+.diesel-entry.mileage-form-content {
+  padding: 0;
+  background: transparent;
+  overflow: visible;
+  max-width: 960px;
+  margin: 0 auto;
+}
+.diesel-entry-page .diesel-entry.mileage-form-content {
+  max-width: none;
+  margin: 0;
+}
+
+/* The Add diesel fill page keeps its buttons in view: the page fills the
+   window height, only the fields scroll, and Cancel/Save sit in their own
+   strip pinned to the bottom of the card. */
+.diesel-entry-page {
+  height: 100%;
+  max-height: 100vh;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.diesel-entry-page .pshell-body {
+  min-height: 0;
+}
+.diesel-entry-page .diesel-entry.mileage-form-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 24px 32px 0;
+}
+.diesel-entry-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  /* the fields region scrolls, so the card bottom stays put */
+  overflow: hidden;
+}
+.diesel-entry-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+.diesel-entry-foot {
+  flex: none;
+  margin: 20px -28px -24px;
+  padding: 14px 28px 18px;
+  border-top: 1px solid #e5e7eb;
+  border-radius: 0 0 12px 12px;
+  background: #f8fafc;
+}
+.diesel-entry-foot .mileage-actions {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+.diesel-entry-page > .pshell-head {
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+}
+.diesel-entry-page > .pshell-head > .pshell-actions {
+  order: -1;
+  padding-top: 2px;
+}
+.diesel-entry-page .pshell-head-main {
+  min-width: 0;
+  flex: 1;
+}
+.diesel-entry-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.diesel-entry small,
+.diesel-entry-documents > p {
+  font-size: 12px;
+  color: var(--text-secondary, #475569);
+  line-height: 1.5;
+}
+.diesel-entry-help {
+  background: var(--surface-secondary, #eff6ff);
+  border: 1px solid var(--border-color, #dbeafe);
+  border-radius: 8px;
+  padding: 14px 16px;
+  color: var(--text-primary, #1e293b);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.diesel-entry-help p {
+  margin: 6px 0 0;
+}
+.diesel-entry-documents {
+  margin-top: 20px;
+}
+.diesel-entry-documents summary {
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+.diesel-entry-documents .slot-dropzone-inner {
+  padding: 18px;
+  min-height: 120px;
+}
+.diesel-entry-error {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-radius: 8px;
+  padding: 12px;
+}
+.diesel-entry .mileage-actions {
+  margin-top: 20px;
+}
+.diesel-entry .dropdown-menu {
+  max-width: 100%;
+}
+@media (max-width: 768px) {
+  .diesel-entry.mileage-form-content form {
+    padding: 18px;
+  }
+  .diesel-entry .mileage-actions {
+    flex-wrap: wrap;
+  }
+  .diesel-entry-page .diesel-entry.mileage-form-content {
+    padding: 16px 16px 0;
+  }
+  .diesel-entry-foot {
+    margin: 16px -18px -18px;
+    padding: 12px 18px 14px;
+  }
+}

@@ -1,20 +1,22 @@
+import { changeField } from '@/test/changeField';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import React from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import MileagePage from './MileagePage';
 import DieselRefuelReport from '../Reports/reports/DieselRefuelReport';
 import apiClient from '../../utils/axiosConfig';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
 import { getUserRole } from '../../utils/session.js';
+import * as chatUpload from './chatUploadStore';
+import { digestDestination } from '../DailyDigest/digestDestination';
 
 vi.mock('../../utils/axiosConfig', () => ({
   default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
 }));
 
-// Base UI's popover/select stall jsdom on open; see test/baseUiStubs.jsx.
+// Stub the popover; use the real shared select for manufacturer scope checks.
 vi.mock('@/components/ui/popover', async () => (await import('../../test/baseUiStubs')).popover);
-vi.mock('../../components/ui/select', async () => (await import('../../test/baseUiStubs')).select);
 
 vi.mock('../../contexts/FeatureFlagsContext', () => ({
   useFeatureFlags: vi.fn(),
@@ -129,9 +131,15 @@ const flagsFor = (on) => ({
   isEnabled: (key) => on.includes(key),
 });
 
+const Where = () => {
+  const location = useLocation();
+  return <span data-testid="where">{`${location.pathname}${location.search}`}</span>;
+};
+
 const renderAt = (url) =>
   render(
     <MemoryRouter initialEntries={[url]}>
+      <Where />
       <MileagePage />
     </MemoryRouter>,
   );
@@ -158,6 +166,10 @@ function mockApi() {
       });
     if (url === '/api/fuel-logs/unified') return Promise.resolve({ data: feed });
     if (url === '/api/mileage/model-comparison') return Promise.resolve({ data: models });
+    if (url === '/api/fleet-view/mileage')
+      return Promise.resolve({
+        data: { status: 'success', data: { items: [], totals: {} } },
+      });
     if (url === '/api/mileage/fleet-overview') {
       return Promise.resolve({
         data: {
@@ -190,6 +202,18 @@ function mockApi() {
                 status: 'RECONCILED',
               },
             ],
+          },
+        },
+      });
+    }
+    if (url.startsWith('/api/photo-imports/chat-export/jobs/')) {
+      return Promise.resolve({
+        data: {
+          status: 'success',
+          data: {
+            state: 'done',
+            progress: { read: 2, total: 2 },
+            result: { filename: 'chat.zip', messages: 4, photos: 2, failed: [] },
           },
         },
       });
@@ -272,7 +296,11 @@ describe('MileagePage', () => {
     await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));
 
     expect(screen.getByRole('heading', { name: 'Diesel & Mileage' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Average mileage')).toHaveTextContent('3.80km/L');
+    expect(document.getElementById('report-side-nav')).not.toBeInTheDocument();
+    // The fleet km/L figure is read on the Mileage tab: the landing page says
+    // where it lives instead of waiting for that read.
+    expect(screen.getByLabelText('Fill-to-fill km/L')).toHaveTextContent(/\u2014/);
+    expect(screen.getByRole('button', { name: 'Open Mileage' })).toBeInTheDocument();
     // (18 + 1) of (18 + 1 + 1) tank rises have a bill — meta counts as sent
     expect(screen.getByLabelText('Fills with a bill')).toHaveTextContent('19of 20');
     expect(screen.getByText('Bills up to date')).toBeInTheDocument();
@@ -296,6 +324,36 @@ describe('MileagePage', () => {
     expect(opts.params.from).toMatch(/T18:30:00\.000Z$/); // start of an IST day
     expect(opts.params.to).toMatch(/T18:29:59\.999Z$/); // end of an IST day
     expect(daysBetween(opts.params)).toBe(30);
+  });
+
+  it('reads the fleet km/L figure on the Mileage tab, not on the way in', async () => {
+    useFeatureFlags.mockReturnValue(
+      flagsFor(['fuelIntegrity', 'vehicleActivity', 'fuelComparison']),
+    );
+    renderAt('/mileage');
+
+    await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));
+    // The model comparison is the slow read: the landing page must not wait
+    // for it, so it is not asked for until the Mileage tab is opened.
+    expect(
+      apiClient.get.mock.calls.filter(([url]) => url === '/api/mileage/model-comparison'),
+    ).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole('tab', { name: /Mileage/ }));
+
+    await waitFor(() =>
+      expect(screen.getByLabelText('Fill-to-fill km/L')).toHaveTextContent('3.80km/L'),
+    );
+  });
+
+  it('accepts the old performance tab key and makes the address canonical', async () => {
+    useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
+    renderAt('/mileage?tab=performance&view=cycles');
+
+    await waitFor(() =>
+      expect(screen.getByTestId('where').textContent).toBe('/mileage?tab=mileage&view=cycles'),
+    );
+    expect(screen.getByRole('tab', { name: /Mileage/ })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('ⓘ next to a result shows how it was worked out', async () => {
@@ -322,8 +380,8 @@ describe('MileagePage', () => {
     fireEvent.click(screen.getByRole('button', { name: '7 days' }));
     await waitFor(() => expect(daysBetween(feedCalls().at(-1)[1].params)).toBe(7));
 
-    fireEvent.change(screen.getByLabelText('From date'), { target: { value: '2026-08-01' } });
-    fireEvent.change(screen.getByLabelText('To date'), { target: { value: '2026-08-31' } });
+    changeField(screen.getByLabelText('From date'), { target: { value: '2026-08-01' } });
+    changeField(screen.getByLabelText('To date'), { target: { value: '2026-08-31' } });
     await waitFor(() => expect(feedCalls().at(-1)[1].params.from).toBe('2026-07-31T18:30:00.000Z'));
     expect(screen.getByText('1 Aug – 31 Aug 2026')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '7 days' })).toHaveAttribute('aria-pressed', 'false');
@@ -337,13 +395,33 @@ describe('MileagePage', () => {
     expect(screen.getByText('1 Sep – 3 Sep 2026')).toBeInTheDocument();
   });
 
-  it('links a fill made at a saved place to that place in Place Hub', async () => {
+  it('uses the Digest fuel window for the real feed request and keeps it on tab changes', async () => {
+    useFeatureFlags.mockReturnValue(flagsFor(['fuelIntegrity', 'mileage']));
+    renderAt(digestDestination('/mileage', '2026-11-04', 7));
+    await waitFor(() => expect(feedCalls().length).toBeGreaterThan(0));
+    expect(feedCalls()[0][1].params).toMatchObject({
+      from: '2026-10-28T18:30:00.000Z',
+      to: '2026-11-04T18:29:59.999Z',
+    });
+    expect(screen.getByText('29 Oct – 4 Nov 2026')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: 'Bill check' }));
+    expect(screen.getByTestId('where').textContent).toContain('from=2026-10-29');
+    expect(screen.getByTestId('where').textContent).toContain('to=2026-11-04');
+  });
+
+  it('offers explicit naming actions instead of linking pump names away from Mileage', async () => {
     useFeatureFlags.mockReturnValue(flagsFor(['fuelIntegrity']));
     const placed = {
       ...feed,
       data: [
-        { ...feed.data[0], place: { id: 's1', hubId: 'site:s1', name: 'Dankuni pump' } },
-        { ...feed.data[1], place: { id: 's2', hubId: 'site:s2', name: null } },
+        {
+          ...feed.data[0],
+          place: { id: 's1', hubId: 'site:s1', name: 'Dankuni pump', siteType: 'FUEL_PUMP' },
+        },
+        {
+          ...feed.data[1],
+          place: { id: 's2', hubId: 'site:s2', name: null, siteType: 'FUEL_PUMP' },
+        },
       ],
     };
     apiClient.get.mockImplementation((url) =>
@@ -353,10 +431,10 @@ describe('MileagePage', () => {
     );
     renderAt('/mileage');
 
-    const named = await screen.findByRole('link', { name: 'Dankuni pump' });
-    expect(named).toHaveAttribute('href', '/place-hub?place=site%3As1');
-    const unnamed = screen.getByRole('link', { name: 'Name this pump' });
-    expect(unnamed).toHaveAttribute('href', '/place-hub?place=site%3As2');
+    expect(await screen.findByText('Dankuni pump')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Dankuni pump' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'View pump' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Name pump' })).toBeInTheDocument();
   });
 
   it('keeps gauge jumps out of the list, behind their own chip', async () => {
@@ -436,7 +514,7 @@ describe('MileagePage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open fill for WB25V8040' }));
     const dialog = await screen.findByRole('dialog');
     fireEvent.click(within(dialog).getByRole('button', { name: /Edit/ }));
-    fireEvent.change(within(dialog).getByLabelText('Litres'), { target: { value: '118' } });
+    changeField(within(dialog).getByLabelText('Litres'), { target: { value: '118' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(apiClient.put).toHaveBeenCalled());
@@ -449,11 +527,11 @@ describe('MileagePage', () => {
   it('hides views the viewer is not entitled to — by flag and by role', async () => {
     useFeatureFlags.mockReturnValue(flagsFor(['fuelComparison']));
     getUserRole.mockReturnValue('MANAGER');
-    const { unmount } = renderAt('/mileage?tab=performance');
+    const { unmount } = renderAt('/mileage?tab=mileage');
 
     await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));
     expect(screen.queryByRole('tab', { name: 'Mileage' })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Average mileage')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Fill-to-fill km/L')).not.toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Bill check' })).toBeInTheDocument();
     expect(apiClient.get).not.toHaveBeenCalledWith(
       '/api/mileage/model-comparison',
@@ -537,19 +615,101 @@ describe('MileagePage', () => {
     expect(daysBetween(call[1].params)).toBe(7);
   });
 
-  it('By truck reads each truck’s mileage for the hub’s dates', async () => {
+  it('By truck reads each truck’s mileage and DEF for the hub’s dates', async () => {
     useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
-    renderAt('/mileage?tab=performance');
+    apiClient.get.mockImplementation((url, opts) => {
+      if (url === '/api/fleet-view/mileage') {
+        if (opts?.params?.groupBy === 'truck') {
+          return Promise.resolve({
+            data: {
+              status: 'success',
+              data: {
+                items: [
+                  {
+                    registrationNumber: 'KA01AB1234',
+                    driverName: 'Ramesh Yadav',
+                    from: '2026-10-02T00:00:00Z',
+                    to: '2026-10-19T00:00:00Z',
+                    km: 4820,
+                    dieselL: 1420,
+                    kmPerL: 3.4,
+                    usualKmPerL: 3.2,
+                    defL: 61,
+                    defPctOfDiesel: 4.3,
+                    defBand: { min: 3, max: 6 },
+                    verdict: 'ADDS_UP',
+                    verdictWhy: {
+                      text: 'The diesel used matches the km driven at this truck’s usual km/L.',
+                      basis: '4,820 km at 3.2 km/L',
+                    },
+                    source: 'RECONCILED_REGISTER',
+                  },
+                ],
+                totals: { km: 4820, dieselL: 1420, defL: 61, kmPerL: 3.4 },
+              },
+            },
+          });
+        }
+        return Promise.resolve({
+          data: { status: 'success', data: { items: [], totals: {} } },
+        });
+      }
+      return Promise.resolve({ data: { status: 'success', data: [], meta: {} } });
+    });
+    renderAt('/mileage?tab=mileage');
 
     expect(await screen.findByText('KA01AB1234')).toBeInTheDocument();
-    expect(within(rowOf('KA01AB1234')).getByText('3.90 km/L')).toBeInTheDocument();
-    expect(within(rowOf('KA01AB1234')).getByText('Average')).toBeInTheDocument();
+    expect(within(rowOf('KA01AB1234')).getByText('3.40 km/L')).toBeInTheDocument();
+    expect(within(rowOf('KA01AB1234')).getByText('Adds up')).toBeInTheDocument();
+    expect(within(rowOf('KA01AB1234')).getByText('4.3%')).toBeInTheDocument();
     expect(apiClient.get).not.toHaveBeenCalledWith(
       '/api/mileage/fleet-overview',
       expect.anything(),
     );
+    const call = apiClient.get.mock.calls.find(([u]) => u === '/api/fleet-view/mileage');
+    expect(call[1].params.groupBy).toBe('truck');
+    expect(daysBetween(call[1].params)).toBe(30);
     expect(screen.getByRole('tab', { name: 'By model' })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Used vs should use' })).not.toBeInTheDocument();
+  });
+
+  it('offers the reconciled fill-to-fill cycles under Mileage', async () => {
+    useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
+    apiClient.get.mockImplementation((url, opts) => {
+      if (url === '/api/fleet-view/mileage' && opts?.params?.groupBy === 'cycle') {
+        return Promise.resolve({
+          data: {
+            status: 'success',
+            data: {
+              items: [
+                {
+                  registrationNumber: 'KA01AB1234',
+                  from: '2026-10-02T00:00:00Z',
+                  to: '2026-10-19T00:00:00Z',
+                  km: 4820,
+                  dieselL: 1420,
+                  kmPerL: 3.4,
+                  usualKmPerL: 3.2,
+                  defL: 61,
+                  defPctOfDiesel: 4.3,
+                  verdict: 'ADDS_UP',
+                  source: 'RECONCILED_REGISTER',
+                },
+              ],
+              totals: {},
+            },
+          },
+        });
+      }
+      return Promise.resolve({ data: { status: 'success', data: { items: [], totals: {} } } });
+    });
+    renderAt('/mileage?tab=mileage&view=cycles');
+
+    expect(
+      await screen.findByRole('tab', { name: 'Fill to fill (reconciled)' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('KA01AB1234')).toBeInTheDocument();
+    expect(screen.getByText('From your oil report')).toBeInTheDocument();
   });
 });
 
@@ -558,11 +718,15 @@ describe('Mileage → Used vs should use', () => {
 
   it('needs the fuelModel flag and compares one truck at a time', async () => {
     useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity', 'fuelModel']));
-    renderAt('/mileage?tab=performance&view=expected');
+    renderAt('/mileage?tab=mileage&view=expected');
 
-    expect(await screen.findByText('Choose a truck')).toBeInTheDocument();
+    const truckSelect = await screen.findByRole('combobox', { name: 'Truck' });
+    expect(truckSelect).toHaveTextContent('Choose a truck');
     expect(apiClient.get).not.toHaveBeenCalledWith('/api/fuel-model/expected', expect.anything());
-    fireEvent.click(await screen.findByRole('option', { name: /WB11J8562/ }));
+    fireEvent.click(truckSelect);
+    const option = await screen.findByRole('option', { name: /WB11J8562/ });
+    fireEvent.pointerDown(option, { pointerType: 'mouse' });
+    fireEvent.click(option);
 
     expect(await screen.findByText('Used extra')).toBeInTheDocument();
     const call = apiClient.get.mock.calls.find(([u]) => u === '/api/fuel-model/expected');
@@ -595,23 +759,32 @@ describe('manufacturer scope in the mileage hub', () => {
   it('scopes the feed and both KPI sources, survives tabs, and clears back to All', async () => {
     renderAt('/mileage?dates=7DAYS');
     const select = await screen.findByRole('combobox', { name: 'Manufacturer' });
-    await waitFor(() =>
-      expect(within(select).getByRole('option', { name: 'Tata' })).toBeInTheDocument(),
-    );
-    fireEvent.change(select, { target: { value: 'TATA' } });
+    fireEvent.click(select);
+    await waitFor(() => expect(screen.getByRole('option', { name: 'Tata' })).toBeInTheDocument());
+    fireEvent.pointerDown(screen.getByRole('option', { name: 'Tata' }), { pointerType: 'mouse' });
+    fireEvent.click(screen.getByRole('option', { name: 'Tata' }));
     await waitFor(() => expect(feedCalls().at(-1)[1].params.manufacturer).toBe('TATA'));
     const kpi = apiClient.get.mock.calls.filter(
       ([url, options]) => url === '/api/fuel-logs/unified' && options.params.limit === 1,
     );
     expect(kpi.at(-1)[1].params.manufacturer).toBe('TATA');
-    const modelsCalls = apiClient.get.mock.calls.filter(
-      ([url]) => url === '/api/mileage/model-comparison',
-    );
-    expect(modelsCalls.at(-1)[1].params.manufacturer).toBe('TATA');
+    // The model comparison is read on the Mileage tab, so that tab is opened
+    // before the figure it feeds can be checked.
     fireEvent.click(screen.getByRole('tab', { name: /Mileage/ }));
-    expect(select.value).toBe('TATA');
+    expect(select).toHaveTextContent('Tata');
     expect(screen.getAllByRole('combobox', { name: 'Manufacturer' })).toHaveLength(1);
-    fireEvent.change(select, { target: { value: '' } });
+    await waitFor(() =>
+      expect(
+        apiClient.get.mock.calls
+          .filter(([url]) => url === '/api/mileage/model-comparison')
+          .at(-1)[1].params.manufacturer,
+      ).toBe('TATA'),
+    );
+    fireEvent.click(select);
+    fireEvent.pointerDown(screen.getByRole('option', { name: 'All manufacturers' }), {
+      pointerType: 'mouse',
+    });
+    fireEvent.click(screen.getByRole('option', { name: 'All manufacturers' }));
     await waitFor(() => {
       const calls = apiClient.get.mock.calls.filter(
         ([url]) => url === '/api/mileage/model-comparison',
@@ -628,5 +801,106 @@ describe('manufacturer scope in the mileage hub', () => {
         true,
       );
     });
+  });
+  it('passes the shared picked dates to completed full-tank cycles', async () => {
+    useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
+    renderAt('/mileage?subtab=completed&from=2026-11-01&to=2026-11-07');
+    await waitFor(() => {
+      const calls = apiClient.get.mock.calls.filter(
+        ([url, opts]) => url === '/api/mileage/intervals' && opts.params.limit > 1,
+      );
+      expect(calls.length).toBeGreaterThan(0);
+      expect(calls.at(-1)[1].params).toMatchObject({
+        from: '2026-10-31T18:30:00.000Z',
+        to: '2026-11-07T18:29:59.999Z',
+        status: 'COMPLETED',
+      });
+    });
+  });
+});
+
+describe('bill approval placement', () => {
+  it('does not render the bills to confirm card', () => {
+    mockApi();
+    useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
+    renderAt('/mileage');
+    expect(screen.queryByText('Bills to confirm')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Add bill photo/ })).toBeInTheDocument();
+  });
+});
+
+describe('WhatsApp chat upload on the mileage page', () => {
+  it('offers the upload to people who can edit bills', async () => {
+    mockApi();
+    useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
+    renderAt('/mileage');
+
+    await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));
+    expect(screen.getByRole('button', { name: /Upload WhatsApp chat/ })).toBeInTheDocument();
+  });
+
+  it('keeps the upload away from people who cannot edit bills', async () => {
+    mockApi();
+    useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
+    getUserRole.mockReturnValue('DRIVER');
+    renderAt('/mileage');
+
+    await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));
+    expect(screen.queryByRole('button', { name: /Upload WhatsApp chat/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Add bill photo/ })).not.toBeInTheDocument();
+  });
+
+  it('opens the shared upload dialog without leaving the mileage page', async () => {
+    chatUpload.reset();
+    mockApi();
+    useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
+    renderAt('/mileage');
+    await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));
+
+    fireEvent.click(screen.getByRole('button', { name: /Upload WhatsApp chat/ }));
+
+    expect(chatUpload.getState().dialogOpen).toBe(true);
+    expect(screen.getByTestId('where').textContent).toBe('/mileage');
+  });
+
+  it('reads the list again after a chat has been imported', async () => {
+    chatUpload.reset();
+    mockApi();
+    useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
+    apiClient.post.mockResolvedValue({
+      data: { status: 'success', jobId: 'job-1', data: { jobId: 'job-1' } },
+    });
+    renderAt('/mileage');
+    await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));
+    const before = feedCalls().length;
+
+    chatUpload.startUpload(new File(['zip'], 'chat.zip', { type: 'application/zip' }));
+
+    await waitFor(() => expect(feedCalls().length).toBeGreaterThan(before));
+  });
+
+  it('keeps the three ways in grouped: the search leads, one button acts, the rest sit together', async () => {
+    mockApi();
+    useFeatureFlags.mockReturnValue(flagsFor(['vehicleActivity']));
+    renderAt('/mileage');
+    await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));
+
+    // The search comes first and is a search box.
+    const search = screen.getByRole('searchbox');
+    expect(search).toBeInTheDocument();
+
+    // One big action: the bill photo.
+    const add = screen.getByRole('button', { name: /Add bill photo/ });
+    expect(add.className).toContain('mhub-add-btn');
+    expect(add.className).toContain('pshell-btn--primary');
+
+    // The quieter pair sits together in one group.
+    const group = screen
+      .getByRole('button', { name: /Upload WhatsApp chat/ })
+      .closest('.mhub-secondary-actions');
+    expect(group).not.toBeNull();
+    expect(within(group).getByRole('button', { name: /Upload WhatsApp chat/ })).toBeInTheDocument();
+    expect(within(group).getByRole('link', { name: /Enter by hand/ })).toBeInTheDocument();
+    expect(add.closest('.mhub-secondary-actions')).toBeNull();
   });
 });

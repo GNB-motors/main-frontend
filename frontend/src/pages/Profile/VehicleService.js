@@ -33,11 +33,17 @@ const getAllVehicles = async (
   businessRefId,
   page = 1,
   limit = 10,
-  { signal, manufacturer, search } = {},
+  { signal, manufacturer, search, view } = {},
 ) => {
   try {
     const response = await apiClient.get('/api/vehicles', {
-      params: { page, limit, manufacturer: manufacturer || undefined, search: search || undefined },
+      params: {
+        page,
+        limit,
+        manufacturer: manufacturer || undefined,
+        search: search || undefined,
+        ...(view && view !== 'ALL' ? { view } : {}),
+      },
       signal,
     });
 
@@ -240,6 +246,8 @@ const getVehicleDocuments = async (vehicleId, { signal } = {}) => {
   }
 };
 
+import { normalizeVehicleDashboardRow } from './vehicleDocNormalization';
+
 // Fleet-wide dashboard: every vehicle + a per-docType expiry digest. Backend
 // derives the owner name from RC OCR. Returns plain array, badges are computed
 // client-side from expiryDate.
@@ -249,7 +257,8 @@ const getFleetDashboard = async ({ search, signal } = {}) => {
       params: { search: search || undefined },
       signal,
     });
-    return response.data?.data || response.data || [];
+    const list = response.data?.data || response.data || [];
+    return Array.isArray(list) ? list.map(normalizeVehicleDashboardRow) : [];
   } catch (error) {
     throw ApiError.from(error);
   }

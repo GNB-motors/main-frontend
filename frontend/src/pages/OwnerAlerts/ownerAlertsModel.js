@@ -8,34 +8,9 @@ export const LIMIT = 20;
 export const formatIST = (s) => formatInIST(s, 'DD MMM YYYY, hh:mm A [IST]') ?? '—';
 export const formatRelativeIST = (s) => (s ? timeAgo(s) : null);
 
-// Severity / title / category derived from the alert type.
-const SEVERITY_BY_TYPE = {
-  FUEL_SIPHON_SUSPECTED: 'CRITICAL',
-  FLEETEDGE_ALERT_FUEL_DRAIN: 'CRITICAL',
-  FLEETEDGE_SUBSCRIPTION_EXPIRED: 'WARNING',
-  FLEETEDGE_REAUTH_REQUIRED: 'WARNING',
-  FLEETEDGE_RELINK_DUE: 'WARNING',
-  ADBLUE_BALANCE_FLAG: 'WARNING',
-  FUEL_DATA_REVIEW: 'WARNING',
-  IDLING_BURN_HIGH: 'WARNING',
-  EV_LOW_SOC: 'WARNING',
-  FLEETEDGE_ALERT_OVERSPEED: 'WARNING',
-  FLEETEDGE_SUBSCRIPTION_EXPIRING: 'INFO',
-  IALERT_REAUTH_REQUIRED: 'WARNING',
-  IALERT_RELINK_DUE: 'WARNING',
-  IALERT_SUBSCRIPTION_EXPIRED: 'WARNING',
-  IALERT_SUBSCRIPTION_EXPIRING: 'INFO',
-  REFUEL_ESTIMATED: 'INFO',
-  FLEETEDGE_ALERT_REFUEL: 'INFO',
-  FLEETEDGE_ALERT_GEOFENCE_ENTERED: 'INFO',
-  FLEETEDGE_ALERT_GEOFENCE_EXITED: 'INFO',
-  // Trip Economics (movement)
-  DEVIATION_DETECTED: 'WARNING',
-  DEVIATION_IN_PROGRESS: 'WARNING',
-  UNAPPROVED_SERVICE_VISIT: 'WARNING',
-  RECONCILE_GAP: 'WARNING',
-  WATCHED_PLACE_VISIT: 'INFO',
-};
+// Severity comes from the backend on every record (`severity`). The frontend
+// keeps no severity table of its own (F13): a type's severity is the
+// backend's decision. A record without one (the server before B0b) has none.
 const ALERT_TITLE = {
   FLEETEDGE_SUBSCRIPTION_EXPIRED: 'Subscription expired',
   FLEETEDGE_SUBSCRIPTION_EXPIRING: 'Subscription expiring',
@@ -83,20 +58,43 @@ const CATEGORY_BY_TYPE = {
 
 export const SEV_RANK = { CRITICAL: 3, WARNING: 2, INFO: 1 };
 
-export const sevOf = (t) => SEVERITY_BY_TYPE[t] || 'WARNING';
+/** The record's severity as the backend sent it, upper-cased; null when absent. */
+export const severityOf = (record) => {
+  const sev = record?.severity;
+  return sev ? String(sev).toUpperCase() : null;
+};
 export const catOf = (t) => CATEGORY_BY_TYPE[t] || 'other';
-export const titleOf = (t) => ALERT_TITLE[t] || ALERT_TYPE_LABELS[t] || t;
+/**
+ * The row's title. A fuel row the backend rates only a WARNING is "Fuel to
+ * check" — never "loss" or "theft" unless the code says it is corroborated.
+ */
+export const titleOf = (t, severity = null) => {
+  if (t === 'FUEL_SIPHON_SUSPECTED' && severity === 'WARNING') return 'Fuel to check';
+  return ALERT_TITLE[t] || ALERT_TYPE_LABELS[t] || t;
+};
 export const cleanMsg = (m) => (m || '').replace(/^Please review:\s*/i, '');
 
+/** The views of the page. Critical is the default: it is what the owner reads. */
 export const CHIPS = [
-  { key: 'all', label: 'All' },
   { key: 'critical', label: 'Critical' },
-  { key: 'warning', label: 'Warning' },
-  { key: 'subscription', label: 'Subscription' },
-  { key: 'movement', label: 'Movement' },
-  { key: 'data', label: 'Data issues' },
+  { key: 'warning', label: 'Warnings' },
+  { key: 'all', label: 'All' },
   { key: 'acknowledged', label: 'Acknowledged' },
 ];
+/** Before the server sends severity, only these views mean anything. */
+export const LEGACY_CHIPS = [
+  { key: 'all', label: 'All' },
+  { key: 'acknowledged', label: 'Acknowledged' },
+];
+export const DEFAULT_CHIP = 'critical';
+
+/** The request parameters for a view. The server filters; we never re-filter. */
+export function viewParams(chip) {
+  if (chip === 'acknowledged') return { acknowledged: true };
+  if (chip === 'critical') return { acknowledged: false, severity: 'critical' };
+  if (chip === 'warning') return { acknowledged: false, severity: 'warning' };
+  return { acknowledged: false };
+}
 export const SINCE = [
   { key: 'all', label: 'Any time' },
   { key: '1', label: 'Today' },
@@ -110,23 +108,22 @@ export const SORTS = [
   { key: 'vehicle', label: 'Vehicle' },
 ];
 
-// Enrich + client refine + sort. Pure: never mutates the input array.
-export function computeView(alerts, refine, sort) {
-  let list = alerts.map((a) => ({
-    ...a,
-    severity: sevOf(a.type),
-    category: catOf(a.type),
-    title: titleOf(a.type),
-    typeLabel: ALERT_TYPE_LABELS[a.type] || a.type,
-    detectedRel: formatRelativeIST(a.at),
-    detectedAbs: formatIST(a.at),
-    bill: billCheckView(a.billCheck),
-  }));
-  if (refine === 'critical') list = list.filter((a) => a.severity === 'CRITICAL');
-  else if (refine === 'warning') list = list.filter((a) => a.severity === 'WARNING');
-  else if (refine === 'subscription') list = list.filter((a) => a.category === 'subscription');
-  else if (refine === 'movement') list = list.filter((a) => a.category === 'movement');
-  else if (refine === 'data') list = list.filter((a) => a.category === 'data');
+// Enrich + sort. Pure: never mutates the input array. The server already
+// filtered by severity, so nothing here drops a row.
+export function computeView(alerts, sort) {
+  const list = alerts.map((a) => {
+    const severity = severityOf(a);
+    return {
+      ...a,
+      severity,
+      category: catOf(a.type),
+      title: titleOf(a.type, severity),
+      typeLabel: ALERT_TYPE_LABELS[a.type] || a.type,
+      detectedRel: formatRelativeIST(a.at),
+      detectedAbs: formatIST(a.at),
+      bill: billCheckView(a.billCheck),
+    };
+  });
 
   const byDateDesc = (a, b) => new Date(b.at) - new Date(a.at);
   if (sort === 'newest') list.sort(byDateDesc);
@@ -137,21 +134,27 @@ export function computeView(alerts, refine, sort) {
     list.sort(
       (a, b) =>
         Number(a.acknowledged) - Number(b.acknowledged) ||
-        SEV_RANK[b.severity] - SEV_RANK[a.severity] ||
+        (SEV_RANK[b.severity] ?? 0) - (SEV_RANK[a.severity] ?? 0) ||
         byDateDesc(a, b),
     );
   }
   return list;
 }
 
-// Summary tiles — derived only from the current page of alerts.
-export function buildSummary(alerts, unacknowledgedCount) {
-  const enriched = alerts.map((a) => ({ ...a, severity: sevOf(a.type), category: catOf(a.type) }));
-  const vehicles = new Set(enriched.filter((a) => a.vehicleNumber).map((a) => a.vehicleNumber));
+/**
+ * The server's counts over the whole filter (`meta.counts`), or null when the
+ * server does not send them yet. Never counted from the page of rows.
+ */
+export function countsOf(data) {
+  const counts = data?.meta?.counts;
+  if (!counts || typeof counts !== 'object') return null;
+  const num = (v) =>
+    Number.isFinite(Number(v)) && v !== null && v !== undefined ? Number(v) : null;
   return {
-    toReview: unacknowledgedCount,
-    critical: enriched.filter((a) => a.severity === 'CRITICAL').length,
-    subscription: enriched.filter((a) => a.category === 'subscription').length,
-    vehicles: vehicles.size,
+    critical: num(counts.critical) ?? 0,
+    warning: num(counts.warning ?? counts.warnings) ?? 0,
+    trucks: num(
+      counts.trucksCritical ?? counts.vehiclesCritical ?? counts.trucks ?? counts.vehicles,
+    ),
   };
 }

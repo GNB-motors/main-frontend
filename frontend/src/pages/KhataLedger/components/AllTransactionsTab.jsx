@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
+import useUrlFilter from '@/hooks/useUrlFilter';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Plus,
   Search,
   Trash2,
   Edit2,
   BookOpen,
-  IndianRupee,
   Filter,
   X,
   ChevronLeft,
@@ -13,7 +14,6 @@ import {
   Truck,
   User,
   Route,
-  Fuel,
   Receipt,
   Eye,
   AlertTriangle,
@@ -36,6 +36,8 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import KhataLedgerService from '../KhataLedgerService';
+import TransactionSummaryCards from './TransactionSummaryCards';
+import NewButton from '@/components/ui/NewButton';
 import DriverVehicleAssignmentService from '../../../services/DriverVehicleAssignmentService';
 import ReceiptPreviewModal from './ReceiptPreviewModal';
 import FuelAnomalyModal from './FuelAnomalyModal';
@@ -374,7 +376,7 @@ const ExpenseModal = ({
               >
                 Category
               </label>
-              <select
+              <SearchableSelect
                 id="atx-form-category"
                 className={inputClass}
                 value={form.category}
@@ -385,7 +387,7 @@ const ExpenseModal = ({
                     {CATEGORY_LABELS[c]}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
           </div>
 
@@ -433,7 +435,7 @@ const ExpenseModal = ({
                   <span className="text-[10px] text-gray-400">Loading trips...</span>
                 )}
               </label>
-              <select
+              <SearchableSelect
                 className={inputClass}
                 value={form.tripId}
                 onChange={(e) => handleTripChange(e.target.value)}
@@ -445,7 +447,7 @@ const ExpenseModal = ({
                     {t.fromLocation && t.toLocation ? ` (${t.fromLocation} → ${t.toLocation})` : ''}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
               {selectedTripObj && (
                 <div className="mt-1.5 p-2 bg-indigo-50/70 border border-indigo-100 rounded text-[11px] text-indigo-900">
                   <span>
@@ -466,7 +468,7 @@ const ExpenseModal = ({
                 >
                   Vehicle
                 </label>
-                <select
+                <SearchableSelect
                   id="atx-form-vehicle"
                   className={inputClass}
                   value={form.vehicleId}
@@ -478,7 +480,7 @@ const ExpenseModal = ({
                       {getVehicleLabel(v)}
                     </option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
 
               {/* Driver */}
@@ -489,7 +491,7 @@ const ExpenseModal = ({
                 >
                   Driver
                 </label>
-                <select
+                <SearchableSelect
                   id="atx-form-driver"
                   className={inputClass}
                   value={form.driverId}
@@ -501,7 +503,7 @@ const ExpenseModal = ({
                       {getDriverName(d)}
                     </option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
             </div>
 
@@ -546,19 +548,20 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
     totalFuel: 0,
   });
   const [summary, setSummary] = useState({ totalAmount: 0, count: 0 });
+  const requestVersion = useRef(0);
 
   // Filters
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [source, setSource] = useState('');
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useUrlFilter('expenseStatus');
   const [vehicleId, setVehicleId] = useState('');
   const [driverId, setDriverId] = useState('');
   const [tripId, setTripId] = useState('');
   const [includeTripExpenses, setIncludeTripExpenses] = useState(true);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useUrlFilter('from');
+  const [endDate, setEndDate] = useUrlFilter('to');
   const [showFilters, setShowFilters] = useState(false);
 
   // Modals
@@ -577,29 +580,32 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
 
   const fetchExpenses = useCallback(
     async (page = 1) => {
+      const version = ++requestVersion.current;
       setLoading(true);
       try {
         const params = { page, limit: 20, includeTripExpenses };
         if (search) params.search = search;
         if (category) params.category = category;
+        if (source) params.source = source;
+        if (status) params.status = status;
         if (vehicleId) params.vehicleId = vehicleId;
         if (driverId) params.driverId = driverId;
         if (tripId) params.tripId = tripId;
-        if (startDate) params.startDate = new Date(startDate).toISOString();
-        if (endDate) params.endDate = new Date(endDate).toISOString();
+        if (startDate) params.startDate = new Date(`${startDate}T00:00:00.000+05:30`).toISOString();
+        if (endDate) params.endDate = new Date(`${endDate}T23:59:59.999+05:30`).toISOString();
 
-        const [data, summaryData] = await Promise.all([
+        let [data, summaryData] = await Promise.all([
           KhataLedgerService.getExpenses(params),
-          KhataLedgerService.getSummary({
-            ...(startDate && { startDate: new Date(startDate).toISOString() }),
-            ...(endDate && { endDate: new Date(endDate).toISOString() }),
-          }),
+          KhataLedgerService.getSummary(params),
         ]);
+        if (version !== requestVersion.current) return;
+        const lastPage = Math.max(1, data.totalPages || 1);
+        if (page > lastPage) {
+          data = await KhataLedgerService.getExpenses({ ...params, page: lastPage });
+          if (version !== requestVersion.current) return;
+        }
 
-        let loaded = data.results || data.data || [];
-        // Apply client-side filters if needed (source / status)
-        if (source) loaded = loaded.filter((e) => e.source === source);
-        if (status) loaded = loaded.filter((e) => (e.status || 'CONFIRMED') === status);
+        const loaded = data.results || data.data || [];
 
         setExpenses(loaded);
         setMeta({
@@ -612,9 +618,11 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
         });
         setSummary(summaryData);
       } catch (err) {
-        toast.error(err?.response?.data?.message || err?.message || 'Failed to load expenses');
+        if (version === requestVersion.current) {
+          toast.error(err?.response?.data?.message || err?.message || 'Failed to load expenses');
+        }
       } finally {
-        setLoading(false);
+        if (version === requestVersion.current) setLoading(false);
       }
     },
     [
@@ -633,6 +641,9 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
 
   useEffect(() => {
     fetchExpenses(1);
+    return () => {
+      requestVersion.current += 1;
+    };
   }, [fetchExpenses]);
 
   const handleSave = async (payload) => {
@@ -672,12 +683,10 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
   const handleClearFilters = () => {
     setCategory('');
     setSource('');
-    setStatus('');
+    setStatus('', { from: null, to: null });
     setVehicleId('');
     setDriverId('');
     setTripId('');
-    setStartDate('');
-    setEndDate('');
     setSearchInput('');
     setSearch('');
   };
@@ -693,80 +702,24 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
             previews
           </p>
         </div>
-        <button
+        <NewButton
+          size="md"
+          prependIcon={<Plus size={16} />}
           onClick={() => {
             setEditingExpense(null);
             setModalOpen(true);
           }}
-          className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors"
         >
-          <Plus size={18} />
           Add Expense
-        </button>
+        </NewButton>
       </div>
 
-      {/* Summary KPI Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
-              <IndianRupee size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Total Expenses
-              </p>
-              <p className="mt-0.5 text-xl font-bold">{formatCurrency(summary.totalAmount)}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
-              <BookOpen size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Manual Entries
-              </p>
-              <p className="mt-0.5 text-xl font-bold">{meta.totalManual}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 text-orange-600 border border-orange-100">
-              <Fuel size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Fuel Refills
-              </p>
-              <p className="mt-0.5 text-xl font-bold">
-                {includeTripExpenses ? meta.totalFuel : 'Filtered'}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-violet-600 border border-violet-100">
-              <Route size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Trip Generated
-              </p>
-              <p className="mt-0.5 text-xl font-bold">
-                {includeTripExpenses ? meta.totalTrip : 'Filtered'}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <TransactionSummaryCards
+        summary={summary}
+        meta={meta}
+        includeTripExpenses={includeTripExpenses}
+        loading={loading}
+      />
 
       {/* Filter and Search Bar */}
       <Card>
@@ -826,7 +779,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
                 >
                   Category
                 </label>
-                <select
+                <SearchableSelect
                   id="atx-filter-category"
                   className="w-full rounded-lg border border-gray-300 px-2 py-1.5 bg-white text-xs"
                   value={category}
@@ -838,14 +791,14 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
                       {CATEGORY_LABELS[c]}
                     </option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>
                 <label htmlFor="atx-filter-source" className="block text-gray-500 font-medium mb-1">
                   Source
                 </label>
-                <select
+                <SearchableSelect
                   id="atx-filter-source"
                   className="w-full rounded-lg border border-gray-300 px-2 py-1.5 bg-white text-xs"
                   value={source}
@@ -857,14 +810,14 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
                   <option value="MAINTENANCE">Maintenance</option>
                   <option value="TRIP">Trip Expense</option>
                   <option value="DRIVER_BILL">Driver Bill</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>
                 <label htmlFor="atx-filter-status" className="block text-gray-500 font-medium mb-1">
                   Status
                 </label>
-                <select
+                <SearchableSelect
                   id="atx-filter-status"
                   className="w-full rounded-lg border border-gray-300 px-2 py-1.5 bg-white text-xs"
                   value={status}
@@ -874,7 +827,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
                   <option value="CONFIRMED">Confirmed / Approved</option>
                   <option value="PENDING">Pending</option>
                   <option value="REJECTED">Rejected</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>
@@ -884,7 +837,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
                 >
                   Vehicle
                 </label>
-                <select
+                <SearchableSelect
                   id="atx-filter-vehicle"
                   className="w-full rounded-lg border border-gray-300 px-2 py-1.5 bg-white text-xs"
                   value={vehicleId}
@@ -896,7 +849,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
                       {getVehicleLabel(v)}
                     </option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>
@@ -1157,7 +1110,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
               </p>
               <div className="flex gap-1">
                 <button
-                  disabled={meta.page <= 1}
+                  disabled={loading || meta.page <= 1}
                   onClick={() => fetchExpenses(meta.page - 1)}
                   className="rounded-lg border bg-white p-2 text-sm disabled:opacity-40"
                   aria-label="Previous Page"
@@ -1165,7 +1118,7 @@ const AllTransactionsTab = ({ vehicles = [], drivers = [] }) => {
                   <ChevronLeft size={16} />
                 </button>
                 <button
-                  disabled={meta.page >= meta.totalPages}
+                  disabled={loading || meta.page >= meta.totalPages}
                   onClick={() => fetchExpenses(meta.page + 1)}
                   className="rounded-lg border bg-white p-2 text-sm disabled:opacity-40"
                   aria-label="Next Page"

@@ -1,3 +1,4 @@
+import { TZDate } from 'react-day-picker';
 import { toISTDateString } from '../../utils/dateUtils';
 
 /**
@@ -107,14 +108,12 @@ export function rangeLabel(value, now = new Date()) {
   return `${shortDay(value.from, showYear)} – ${shortDay(value.to, showYear)}`;
 }
 
-/** A local Date from the calendar → its YYYY-MM-DD as the person picked it. */
+/** The picker uses IST for both its calendar math and selected dates. */
 export function ymdOf(date) {
-  const p = (n) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`;
+  return toISTDateString(date);
 }
 
-/** YYYY-MM-DD → a local Date at midnight, for handing back to the calendar. */
 export function dateOf(ymd) {
   const [y, m, d] = ymd.split('-').map(Number);
-  return new Date(y, m - 1, d);
+  return new TZDate(y, m - 1, d, 'Asia/Kolkata');
 }

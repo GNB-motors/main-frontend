@@ -1,13 +1,37 @@
 import Ico from '../../routeHubIcons.jsx';
 import { RowsSkeleton, Skel } from '../../routeHubShared.jsx';
 import { inr } from '../../routeHubFormat';
-import { legLabel, tripLabel } from '../deviation/deviationRules.js';
+import {
+  costKnown,
+  extraKnown,
+  groupTotals,
+  legLabel,
+  notMeasuredNote,
+  tripLabel,
+} from '../deviation/deviationRules.js';
 
 /** `summary` (when the API sent one) counts every open detour, not just this page. */
 export default function DeviationModule({ go, first, openDev, summary }) {
   const openCount = summary?.open ?? openDev.length;
-  const openCost =
-    summary?.openCostInr ?? openDev.reduce((a, d) => a + (d.estimatedExtraCostInr || 0), 0);
+  // A cost nobody estimated is unknown, not ₹0. The totals count only the
+  // detours that were measured, and say how many detours are left out.
+  const totals = groupTotals(openDev);
+  const summaryCost = summary?.openCostInr ?? null;
+  const costIsKnown = summaryCost != null || totals.costKnown > 0;
+  const openCost = summaryCost ?? totals.costInr;
+  const extraKmIsKnown = totals.extraKnown > 0;
+  const extraKm = totals.extraKm;
+  const extraNote = notMeasuredNote(totals.extraUnknown, totals.total);
+  const costNote = summaryCost != null ? null : notMeasuredNote(totals.costUnknown, totals.total);
+  // One line when both figures leave out the same detours, one line each when
+  // they do not.
+  const notes =
+    extraNote && extraNote === costNote
+      ? [extraNote]
+      : [
+          extraNote ? `Extra km: ${extraNote}` : null,
+          costNote ? `Detour cost: ${costNote}` : null,
+        ].filter(Boolean);
   return (
     <div className="card">
       <div className="mhead" style={{ '--c': '#C2323A', '--tint': 'rgba(229,104,107,.14)' }}>
@@ -35,20 +59,27 @@ export default function DeviationModule({ go, first, openDev, summary }) {
           <div className="k">pending review</div>
         </div>
         <div>
-          <div className="v">{first ? <Skel w={56} h={20} /> : inr(openCost)}</div>
-          <div className="k">est. detour cost</div>
+          <div className="v">{first ? <Skel w={56} h={20} /> : costIsKnown ? inr(openCost) : '—'}</div>
+          <div className="k">{costIsKnown ? 'est. detour cost' : 'detour cost not estimated'}</div>
         </div>
         <div>
           <div className="v">
             {first ? (
               <Skel w={48} h={20} />
+            ) : extraKmIsKnown ? (
+              `+${extraKm.toFixed(1)}`
             ) : (
-              `+${openDev.reduce((a, d) => a + (d.extraKmEstimate || 0), 0).toFixed(1)}`
+              '—'
             )}
           </div>
-          <div className="k">extra km</div>
+          <div className="k">{extraKmIsKnown ? 'extra km' : 'extra km not estimated'}</div>
         </div>
       </div>
+      {first || !notes.length ? null : (
+        <p className="muted" style={{ padding: '0 16px', fontSize: 11, margin: 0 }}>
+          {notes.join(' · ')}
+        </p>
+      )}
       {first ? <RowsSkeleton n={3} /> : null}
       <div className="rows">
         {openDev.slice(0, 3).map((d) => (
@@ -81,10 +112,25 @@ export default function DeviationModule({ go, first, openDev, summary }) {
               {d.trip ? tripLabel(d.trip) : legLabel(null)}
             </span>
             <span className="sp" />
-            <b style={{ fontVariantNumeric: 'tabular-nums' }}>+{d.extraKmEstimate ?? 0} km</b>
-            <b style={{ color: '#C2323A', width: 44, textAlign: 'right' }}>
-              {inr(d.estimatedExtraCostInr || 0)}
+            <b style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+              {d.offRouteKm != null
+                ? `${d.offRouteKm} km off road`
+                : extraKnown(d)
+                  ? `+${d.extraKmEstimate} km`
+                  : '—'}
             </b>
+            {costKnown(d) ? (
+              <b
+                style={{
+                  color: '#C2323A',
+                  width: 44,
+                  textAlign: 'right',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {inr(d.estimatedExtraCostInr)}
+              </b>
+            ) : null}
           </button>
         ))}
       </div>

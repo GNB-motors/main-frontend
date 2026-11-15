@@ -1,0 +1,60 @@
+{
+  "items": [
+    {
+      "kind": "VISIT",
+      "registrationNumber": "WB11L8862",
+      "place": {
+        "id": "site-dalmia",
+        "kind": "SITE",
+        "name": "DALMIA OCL",
+        "category": "PLANT",
+        "lat": 25.3541,
+        "lng": 84.9812,
+        "radiusM": 700
+      },
+      "arrivedAt": "2026-11-01T12:40:00Z",
+      "departedAt": "2026-11-01T16:25:00Z",
+      "dwellMin": 225,
+      "purpose": "LOADING",
+      "register": null,
+      "trip": { "label": "Open trip", "to": "/auto-trips/trip-88213" },
+      "replay": {
+        "label": "Watch it",
+        "to": "/live-tracking?v=WB11L8862&from=2026-11-01T18:10:00%2B05:30&to=2026-11-01T21:55:00%2B05:30"
+      }
+    },
+    {
+      "kind": "REGISTER_TRIP",
+      "registrationNumber": "WB11F6762",
+      "place": null,
+      "arrivedAt": null,
+      "departedAt": null,
+      "dwellMin": null,
+      "purpose": null,
+      "register": {
+        "date": "2026-04-02",
+        "from": "DALMIA OCL",
+        "to": ["FARAKKA AMBUJA PLANT"],
+        "driver": "Ramesh Yadav",
+        "litres": 320
+      },
+      "trip": null,
+      "replay": null
+    }
+  ],
+  "total": 2,
+  "countsByPlace": [
+    {
+      "place": {
+        "id": "site-dalmia",
+        "kind": "SITE",
+        "name": "DALMIA OCL",
+        "category": "PLANT",
+        "lat": 25.3541,
+        "lng": 84.9812,
+        "radiusM": 700
+      },
+      "visits": 14
+    }
+  ]
+}

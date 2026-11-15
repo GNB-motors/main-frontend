@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { mileageBand as bandOf, isPlausibleKmPerL } from './cycleRows';
 import {
   REFUEL_CHIPS,
   drawerFromLiveRow,
@@ -33,6 +34,7 @@ const slipRow = {
     totalAmount: 11400,
     rate: null,
     location: 'IOCL Dankuni',
+    stationName: 'IOCL Dankuni',
     fuelType: 'DIESEL',
     odometerReading: 418920,
     odometerSource: 'FLEETEDGE',
@@ -53,6 +55,26 @@ const sensorOnlyRow = {
 };
 
 describe('mapUnifiedRow', () => {
+  it('does not turn a plant or a bill address into a pump name', () => {
+    const row = mapUnifiedRow({
+      ...sensorOnlyRow,
+      place: { id: 'plant', hubId: 'site:plant', name: 'Dalmia OCL', siteType: 'PLANT' },
+      slip: { location: 'Plant road, Salbani' },
+    });
+    expect(row.place).toBeNull();
+    expect(row.location).toBeNull();
+    expect(row.billLocation).toBe('Plant road, Salbani');
+  });
+  it('keeps a saved pump name ahead of a different receipt name', () => {
+    const row = mapUnifiedRow({
+      ...slipRow,
+      place: { id: 's', hubId: 'site:s', name: 'My Salbani Pump', siteType: 'FUEL_PUMP' },
+    });
+    expect(row.location).toBe('My Salbani Pump');
+    expect(row.stationName).toBe('IOCL Dankuni');
+    expect(row.pumpNameSource).toBe('SAVED');
+  });
+
   it('turns every backend status into a plain-word result that has a label', () => {
     for (const status of ['VERIFIED', 'UNVERIFIED', 'SLIP_ONLY', 'FLAGGED', 'SENSOR_GLITCH']) {
       expect(LABELS.refuel[refuelResult(status, -1)]).toBeDefined();
@@ -100,11 +122,16 @@ describe('mapUnifiedRow', () => {
     });
     expect(row.location).toBe('Dankuni pump');
     expect(row.billLocation).toBe('IOCL Dankuni');
-    expect(row.place).toEqual({ hubId: 'site:s1', name: 'Dankuni pump', siteType: 'FUEL_PUMP' });
+    expect(row.place).toEqual({
+      id: 's1',
+      hubId: 'site:s1',
+      name: 'Dankuni pump',
+      siteType: 'FUEL_PUMP',
+    });
   });
 
   it('an unnamed saved place keeps the bill text, or the coordinates, and still links', () => {
-    const unnamed = { id: 's2', hubId: 'site:s2', name: null, siteType: 'UNKNOWN' };
+    const unnamed = { id: 's2', hubId: 'site:s2', name: null, siteType: 'FUEL_PUMP' };
     expect(mapUnifiedRow({ ...slipRow, place: unnamed }).location).toBe('IOCL Dankuni');
     const sensorOnly = mapUnifiedRow({ ...sensorOnlyRow, place: unnamed });
     expect(sensorOnly.location).toBeNull();
@@ -138,9 +165,10 @@ describe('drawer detail', () => {
       telemetryLitres: 78,
       varianceL: -17,
       variancePct: -17.89,
+      billToleranceL: 18.5,
     });
     expect(d.result).toBe('BILL_TOO_HIGH');
-    expect(d.explanation.lines).toContainEqual(['Allowed', '± 10.0 L']);
+    expect(d.explanation.lines).toContainEqual(['Allowed', '± 18.5 L']);
     expect(d.bill.litres).toBe(95);
     expect(d.sensor.litres).toBe(78);
     expect(d.varianceL).toBe(-17);
@@ -283,6 +311,7 @@ describe('PR #142 feed fields', () => {
     expect(d.varianceL).toBe(-40);
     expect(d.billCheck).toEqual({
       toleranceL: 7.5,
+      comparable: true,
       flagged: true,
       v1VarianceL: -43.6,
       v1Flagged: true,
@@ -537,7 +566,7 @@ describe('plain-word verdicts', () => {
 
   it('fill chips read the feed counts, gauge jumps kept out of All', () => {
     const m = { verified: 21, flagged: 1, unverified: 81, slipOnly: 61, sensorGlitch: 3 };
-    expect(REFUEL_CHIPS.map((c) => c.count(m))).toEqual([164, 21, 1, 81, 61, 3]);
+    expect(REFUEL_CHIPS.map((c) => c.count(m))).toEqual([164, 21, 1, 81, 61, 0, 3]);
   });
 });
 
@@ -558,5 +587,15 @@ describe('trucksFromModels', () => {
       ['WB1', 'Signa', 3.1, 4],
     ]);
     expect(trucksFromModels(null)).toEqual([]);
+  });
+});
+
+describe('implausible rounds (audit ML-02)', () => {
+  it('never bands a round the average leaves out', () => {
+    expect(isPlausibleKmPerL(0.49)).toBe(false);
+    expect(isPlausibleKmPerL(9.2)).toBe(false);
+    expect(bandOf(0.49)).toBeNull();
+    expect(bandOf(3.2)).toBe('MILEAGE_LOW');
+    expect(bandOf(4.1)).toBe('MILEAGE_GOOD');
   });
 });

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import Link from '@/components/redesign/FleetLink';
 import { motion as Motion } from 'framer-motion';
 import { Check, Loader2, Clock } from 'lucide-react';
 import { OwnerAlertsService } from '../../OwnerAlerts/OwnerAlertsService';

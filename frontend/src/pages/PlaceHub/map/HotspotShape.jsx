@@ -3,7 +3,14 @@ import { MarkerF, CircleF } from '@react-google-maps/api';
 import { PROVENANCE_COLOR, CONTEXT_COLOR } from '../placeHubStyle.js';
 import { dotIcon } from './mapIcons.js';
 
-const HotspotShape = memo(function HotspotShape({ hotspot, selected, interactive, onSelect }) {
+const HotspotShape = memo(function HotspotShape({
+  hotspot,
+  selected,
+  interactive,
+  onSelect,
+  onMouseOver,
+  onMouseOut,
+}) {
   const color = hotspot.active ? PROVENANCE_COLOR[hotspot.provenance] : CONTEXT_COLOR;
   const options = useMemo(
     () => ({
@@ -27,7 +34,14 @@ const HotspotShape = memo(function HotspotShape({ hotspot, selected, interactive
   );
   return (
     <>
-      <CircleF center={center} radius={hotspot.radiusM} options={options} onClick={click} />
+      <CircleF
+        center={center}
+        radius={hotspot.radiusM}
+        options={options}
+        onClick={click}
+        onMouseOver={onMouseOver}
+        onMouseOut={onMouseOut}
+      />
       <MarkerF
         position={center}
         icon={icon}
@@ -35,6 +49,8 @@ const HotspotShape = memo(function HotspotShape({ hotspot, selected, interactive
         clickable={interactive}
         zIndex={selected ? 1000 : 50}
         onClick={click}
+        onMouseOver={onMouseOver}
+        onMouseOut={onMouseOut}
       />
     </>
   );

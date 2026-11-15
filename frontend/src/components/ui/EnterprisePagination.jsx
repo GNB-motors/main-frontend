@@ -1,3 +1,4 @@
+import SearchableSelect from '../SearchableDropdown/SearchableSelect';
 import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
@@ -6,6 +7,9 @@ import {
   ChevronsRight,
   MoreHorizontal,
 } from 'lucide-react';
+
+/** Counts are written the way this app writes numbers: Indian digit grouping. */
+const inrCount = new Intl.NumberFormat('en-IN');
 
 export default function EnterprisePagination({
   page = 1,
@@ -62,23 +66,23 @@ export default function EnterprisePagination({
       {/* Left: Item Counter & Page Size Selector */}
       <div className="flex items-center gap-4">
         {totalItems != null && (
-          <span className="font-mono text-slate-500">
-            Showing{' '}
+          /* The one place the row count is printed: "1–10 of 1,352". */
+          <span className="text-slate-500 tabular-nums">
             <strong className="text-slate-800 dark:text-slate-200">
-              {startItem}–{endItem}
+              {inrCount.format(startItem)}–{inrCount.format(endItem)}
             </strong>{' '}
             of{' '}
             <strong className="text-slate-800 dark:text-slate-200">
-              {totalItems.toLocaleString()}
-            </strong>{' '}
-            rows
+              {inrCount.format(totalItems)}
+            </strong>
           </span>
         )}
 
         {onPageSizeChange && (
           <div className="flex items-center gap-1.5">
             <span className="text-slate-500">Rows:</span>
-            <select
+            <SearchableSelect
+              aria-label="Rows per page"
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
               className="h-7 px-2 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none cursor-pointer focus:border-indigo-500"
@@ -88,7 +92,7 @@ export default function EnterprisePagination({
                   {opt}
                 </option>
               ))}
-            </select>
+            </SearchableSelect>
           </div>
         )}
       </div>

@@ -28,9 +28,11 @@ export const STATUS_CONFIG = {
    NOVA EDGE PRO EXTENSIONS & CONSTANTS
    ========================================================================= */
 
+/* Motion status only. No invented trip word ('In transit', 'Pending'): a trip
+   state comes from trip data, not from speed (audit DC-12). */
 export const NOVA_STATUS = {
-  moving: { label: 'Moving', trip: 'In transit', c: '#187A32', tint: 'rgba(37,186,76,.12)' },
-  idling: { label: 'Idling', trip: 'Halted', c: '#C56200', tint: 'rgba(240,170,72,.16)' },
-  stopped: { label: 'Stopped', trip: 'At stop', c: '#6A43D8', tint: 'rgba(106,67,216,.12)' },
-  offline: { label: 'Offline', trip: 'Pending', c: '#5D5D5E', tint: 'rgba(93,93,94,.12)' },
+  moving: { label: 'Moving', c: '#187A32', tint: 'rgba(37,186,76,.12)' },
+  idling: { label: 'Idling', c: '#C56200', tint: 'rgba(240,170,72,.16)' },
+  stopped: { label: 'Stopped', c: '#6A43D8', tint: 'rgba(106,67,216,.12)' },
+  offline: { label: 'Offline', c: '#5D5D5E', tint: 'rgba(93,93,94,.12)' },
 };

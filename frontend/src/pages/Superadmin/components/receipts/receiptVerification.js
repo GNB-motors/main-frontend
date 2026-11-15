@@ -141,8 +141,8 @@ export const getOdometerMeta = (draft) => {
       badgeText: 'Missing Odometer',
       badgeClass: 'ra-odo-badge--missing',
       icon: 'alert',
-      displayReading: 'Missing Odo',
-      detailHint: 'Driver did not submit odometer reading or dash photo.',
+      displayReading: 'Odometer missing',
+      detailHint: 'No odometer reading or dash photo is on this receipt.',
     };
   }
 
@@ -170,40 +170,28 @@ export const getOdometerMeta = (draft) => {
 
   return {
     isMissing: false,
-    badgeText: 'Manual / Typed',
+    badgeText: 'Source not recorded',
     badgeClass: 'ra-odo-badge--manual',
     icon: 'pencil',
     displayReading: `${Number(reading).toLocaleString('en-IN')} km`,
-    detailHint: 'Reported manually by driver via WhatsApp message.',
+    detailHint: 'The reading is on the receipt, but where it came from was not recorded.',
   };
 };
 
 /**
- * Telematics station cross-verification simulation & details
+ * The station facts a draft actually carries.
+ *
+ * Nothing is guessed here: a field the photo did not give stays null, so the
+ * drawer can say "not available" instead of showing a made-up pump, halt or
+ * benchmark rate.
  */
-export const crossVerifyStation = (draft) => {
-  const station = draft?.stationName || draft?.fuelOcr?.data?.location || 'Highway IOCL Fuel Point';
-  const pumpLocation = draft?.pumpLocation || {};
-  const lat = pumpLocation.lat || 22.5726;
-  const lng = pumpLocation.lng || 88.3639;
-
-  // Expected rate benchmark in INR for regional diesel
-  const regionalBenchmarkRate = 89.65;
-  const billRate = draft?.rate != null ? Number(draft.rate) : null;
-  const rateDiff = billRate != null ? billRate - regionalBenchmarkRate : null;
-  const isRateNormal = rateDiff == null || Math.abs(rateDiff) <= 1.5;
-
-  // Dwell calculation (standard fuel halt duration 15-25 mins)
-  const estimatedHaltMinutes = 18;
-
-  return {
-    stationName: station,
-    coordinates: `${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E`,
-    haltTime: `${estimatedHaltMinutes} mins (GPS Geo-dwell)`,
-    isGeofenceMatch: true,
-    benchmarkRate: regionalBenchmarkRate,
-    billRate,
-    rateDiff: rateDiff != null ? Number(rateDiff.toFixed(2)) : null,
-    isRateNormal,
-  };
-};
+export const crossVerifyStation = (draft) => ({
+  stationName: draft?.stationName ?? null,
+  billRate: draft?.rate ?? null,
+  coordinates: null,
+  haltTime: null,
+  isGeofenceMatch: null,
+  benchmarkRate: null,
+  benchmarkPlace: null,
+  benchmarkEffectiveDate: null,
+});

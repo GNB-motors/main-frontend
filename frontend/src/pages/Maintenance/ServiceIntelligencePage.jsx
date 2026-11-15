@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { MaintenanceService } from './MaintenanceService.js';
 import { getThemeCSS } from '../../utils/colorTheme';
 import AlertsTab from './Component/AlertsTab.jsx';
+import UpcomingServiceTab from './Component/UpcomingServiceTab.jsx';
 import ResolveIssueModal from './Component/ResolveIssueModal.jsx';
 import { useConfirm } from '../../components/ui/confirmContext';
 import PageShell from '../../components/ui/PageShell';
@@ -89,7 +90,9 @@ const ServiceIntelligencePage = () => {
   const isFirstRenderRef = useRef(true);
 
   const load = useCallback(async (recordType, q, pageNum) => {
-    if (recordType === 'ALERTS') {
+    // ALERTS and UPCOMING are self-contained tabs with their own fetch (alerts /
+    // maintenance predictions) — they do not read maintenance records.
+    if (recordType === 'ALERTS' || recordType === 'UPCOMING') {
       setRows([]);
       return;
     }
@@ -228,6 +231,7 @@ const ServiceIntelligencePage = () => {
     setSearchParams({ tab: tab.toLowerCase() });
     setSearch('');
     setPage(1);
+    setRows([]);
     setActivePriorityFilter('ALL');
     setActiveServiceFilter('ALL');
     isFirstRenderRef.current = true; // re-fire immediate load
@@ -240,6 +244,7 @@ const ServiceIntelligencePage = () => {
       setActiveTab(tabParam);
       setSearch('');
       setPage(1);
+      setRows([]);
       setActivePriorityFilter('ALL');
       setActiveServiceFilter('ALL');
       isFirstRenderRef.current = true;
@@ -252,6 +257,7 @@ const ServiceIntelligencePage = () => {
 
   const isService = activeTab === 'SERVICE';
   const isAlerts = activeTab === 'ALERTS';
+  const isUpcoming = activeTab === 'UPCOMING';
 
   // Dynamic filter pill counts computed from current rows
   const filterCounts = useMemo(() => countFilterPills(rows, activeTab), [rows, activeTab]);
@@ -275,7 +281,7 @@ const ServiceIntelligencePage = () => {
     <div className="vehicles-page-container" style={themeColors}>
       <div
         className="vehicles-content-wrapper"
-        style={{ paddingBottom: 48, alignItems: 'stretch' }}
+        style={{ paddingBottom: 16, alignItems: 'stretch' }}
       >
         <PageShell
           title="Service Intelligence"
@@ -283,6 +289,7 @@ const ServiceIntelligencePage = () => {
           actions={
             <ServiceIntelligenceActions
               isAlerts={isAlerts}
+              isUpcoming={isUpcoming}
               isService={isService}
               alertsRefreshing={alertsRefreshing}
               setAlertsRefreshing={setAlertsRefreshing}
@@ -298,14 +305,16 @@ const ServiceIntelligencePage = () => {
             switchTab={switchTab}
           />
 
-          <div style={{ margin: '14px 0 6px 0' }}>
+          <div style={{ margin: '0 0 10px 0' }}>
             <FilterBar
               searchValue={search}
               onSearchChange={setSearch}
               searchPlaceholder={
                 isAlerts
                   ? 'Search alerts by vehicle, category, or notes…'
-                  : `Search vehicle, workshop, ${isService ? 'service category' : 'issue type'}, notes…`
+                  : isUpcoming
+                    ? 'Search upcoming service by vehicle…'
+                    : `Search vehicle, workshop, ${isService ? 'service category' : 'issue type'}, notes…`
               }
             />
           </div>
@@ -316,6 +325,8 @@ const ServiceIntelligencePage = () => {
           >
             {isAlerts ? (
               <AlertsTab search={search} refreshKey={alertsRefreshKey} />
+            ) : isUpcoming ? (
+              <UpcomingServiceTab search={search} refreshKey={alertsRefreshKey} />
             ) : (
               <>
                 {/* Upgraded KPI Stats Strip */}
@@ -323,6 +334,7 @@ const ServiceIntelligencePage = () => {
                   isService={isService}
                   summary={summary}
                   filterCounts={filterCounts}
+                  loading={loading}
                 />
 
                 {/* Priority & Category Quick Filter Pills Bar */}

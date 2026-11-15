@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   cycleDistance,
+  kmPartialLabel,
   notInTripsAlert,
   slipsHref,
   slipsTotals,
@@ -8,6 +9,17 @@ import {
   tripNotes,
   tripCountLabel,
 } from './cycleTrips';
+
+describe('kmPartialLabel', () => {
+  it('says the cycle was only partly measured', () => {
+    expect(kmPartialLabel({ kmPartial: true })).toBe('Partly measured');
+  });
+
+  it('says nothing when every km of the cycle was measured', () => {
+    expect(kmPartialLabel({ kmPartial: false })).toBeNull();
+    expect(kmPartialLabel(null)).toBeNull();
+  });
+});
 
 describe('notInTripsAlert', () => {
   it('stays quiet for ordinary empty running', () => {

@@ -19,7 +19,12 @@ import { onActivateKey } from '../../utils/onActivateKey';
 
 const PAGE_SIZE = 12;
 
-export default function VehicleRiskPanel({ isLoading, riskVehicles = [], onDrill }) {
+export default function VehicleRiskPanel({
+  isLoading,
+  riskVehicles = [],
+  onDrill,
+  lossLabel = 'Fuel down while parked',
+}) {
   const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
 
@@ -112,7 +117,8 @@ export default function VehicleRiskPanel({ isLoading, riskVehicles = [], onDrill
       {viewMode === 'grid' ? (
         <div className="fi-risk-grid">
           {pageVehicles.map((v) => {
-            const hasLoss = (v.siphonSuspectedLossL || 0) > 0;
+            const parkedDropL = v.siphonSuspectedLossL ?? null;
+            const hasLoss = parkedDropL != null && parkedDropL > 0;
             const tone = RISK_TONE[v.risk] || 'ok';
 
             return (
@@ -136,7 +142,7 @@ export default function VehicleRiskPanel({ isLoading, riskVehicles = [], onDrill
                   <StatusPill tone={tone}>{v.risk}</StatusPill>
                 </div>
 
-                {/* Fuel & Siphon Meter */}
+                {/* Fuel & parked drop meter */}
                 <div className="flex flex-col gap-1 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-500 font-medium">Audited Fuel Dispensed</span>
@@ -146,7 +152,7 @@ export default function VehicleRiskPanel({ isLoading, riskVehicles = [], onDrill
                   </div>
 
                   <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200/60 dark:border-slate-800/80">
-                    <span className="text-slate-500 font-medium">Unaccounted Siphon Loss</span>
+                    <span className="text-slate-500 font-medium">{lossLabel}</span>
                     <span
                       className={`font-bold font-mono ${
                         hasLoss
@@ -154,9 +160,11 @@ export default function VehicleRiskPanel({ isLoading, riskVehicles = [], onDrill
                           : 'text-emerald-600 dark:text-emerald-400'
                       }`}
                     >
-                      {hasLoss
-                        ? `−${formatLitres(v.siphonSuspectedLossL)} (${formatINR(v.siphonSuspectedLossInr)})`
-                        : '0.0 L (Intact)'}
+                      {parkedDropL == null
+                        ? '—'
+                        : hasLoss
+                          ? `−${formatLitres(parkedDropL)} (${formatINR(v.siphonSuspectedLossInr)})`
+                          : '0.0 L'}
                     </span>
                   </div>
                 </div>
@@ -207,11 +215,11 @@ export default function VehicleRiskPanel({ isLoading, riskVehicles = [], onDrill
               <tr>
                 <th>Vehicle</th>
                 <th className="text-right">Dispensed Fuel</th>
-                <th className="text-right">Unaccounted Loss</th>
-                <th className="text-right">Est. Rupee Loss</th>
+                <th className="text-right">{lossLabel}</th>
+                <th className="text-right">Est. value of the drop</th>
                 <th className="text-right">DEF Flags</th>
                 <th className="text-right">Bill Flags</th>
-                <th>Threat Status</th>
+                <th>Status</th>
                 <th aria-label="Action" />
               </tr>
             </thead>

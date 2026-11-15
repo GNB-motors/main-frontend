@@ -1,6 +1,6 @@
 import { Flame, Droplets } from 'lucide-react';
 import PlaceLabel from '../../../components/ui/PlaceLabel';
-import { num } from '../../../utils/formatMoney.js';
+import { litres, num } from '../../../utils/formatMoney.js';
 import { formatInrCompact, timeAgo } from '../../../utils/formatters.js';
 import { PROVENANCE_LABEL } from '../model/fuelRisk.js';
 import { radiusLabel } from '../model/placeLabels.js';
@@ -105,7 +105,7 @@ export default function FuelPanel({
                       <PlaceLabel lat={c.lat} lng={c.lng} showMap={false} />
                     </span>
                     <span className="ph-row-sub">
-                      {num(c.events)} drops · {num(Math.round(c.litres))} L ·{' '}
+                      {num(c.events)} drops · {litres(c.litres)} ·{' '}
                       {num(c.vehicles.length)} trucks
                     </span>
                   </span>

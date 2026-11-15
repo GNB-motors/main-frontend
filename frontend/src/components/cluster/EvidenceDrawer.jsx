@@ -70,8 +70,8 @@ export default function EvidenceDrawer({ open, onClose, window: w, context = {} 
       <div className="flex items-start gap-2 rounded-lg p-3 signal-bg-caution">
         <AlertTriangle size={16} className="mt-0.5 signal-caution" />
         <p className="text-sm signal-caution">
-          Unaccounted fuel: the tank dropped more than fills + burn can explain. This can also be
-          sensor drift, a missed fill, or a unit mismatch — please review.
+          The tank dropped more than the fills and the driving explain. This can also be sensor
+          drift, a missed fill, or a unit mismatch — please review.
           {confidence && ` Confidence: ${confidence}.`}
         </p>
       </div>

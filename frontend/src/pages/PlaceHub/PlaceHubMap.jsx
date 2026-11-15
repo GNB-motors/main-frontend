@@ -1,8 +1,12 @@
+import PlaceClusterer from './map/PlaceClusterer.jsx';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { GoogleMap, MarkerClustererF } from '@react-google-maps/api';
-import { boundsOf } from './intelligence/model/mapBounds.js';
+import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
+import { GoogleMap } from '@react-google-maps/api';
+import { planFit } from './intelligence/model/mapBounds.js';
 import { LIGHT_MAP_STYLE, DARK_MAP_STYLE } from '../LiveTracking/mapStyles.js';
 import { IDLE_COLOR, idleTone, DRAIN_COLOR, STOP_COLOR } from './placeHubStyle.js';
+
+const VEHICLE_HALT_COLOR = '#2563eb';
 import { hoursLabel } from './model/placeLabels.js';
 import { formatInrCompact } from '../../utils/formatters.js';
 import {
@@ -12,7 +16,10 @@ import {
   detachClusterer,
 } from './map/clusterer.js';
 import PlaceShape from './map/PlaceShape.jsx';
+import GroupShape from './map/GroupShape.jsx';
 import PlaceMarker from './map/PlaceMarker.jsx';
+import PlaceAreaLabel from './map/PlaceAreaLabel.jsx';
+import usePlaceAreaLabels from './map/usePlaceAreaLabels.js';
 import ClusterRepaint from './map/ClusterRepaint.jsx';
 import ContextShape from './map/ContextShape.jsx';
 import ScaledDot from './map/ScaledDot.jsx';
@@ -21,7 +28,10 @@ import HotspotShape from './map/HotspotShape.jsx';
 import DraftLayer from './map/DraftLayer.jsx';
 import usePoiLayer from './map/usePoiLayer.js';
 import PoiLayer from './map/PoiLayer.jsx';
+import useTollLayer from './map/useTollLayer.js';
+import TollLayer from './map/TollLayer.jsx';
 import RouteLayer from './map/RouteLayer.jsx';
+import { POI_LABEL_STYLES } from '../../utils/mapLabelStyles';
 
 const MAP_STYLE = { width: '100%', height: '100%' };
 const INDIA = { lat: 22.5, lng: 82 };
@@ -30,7 +40,7 @@ const SHAPE_MIN_ZOOM = 11;
 
 // Satellite keeps its own colours; only the clutter goes.
 const SATELLITE_STYLES = [
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  ...POI_LABEL_STYLES,
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
 ];
 
@@ -55,7 +65,10 @@ export default function PlaceHubMap({
   hotspots,
   drainCells,
   stopGroups = [],
+  vehicleHalts = [],
   showPoi = false,
+  showAllTolls = false,
+  showUsedTolls = false,
   hiddenPlaceId,
   selectedId,
   onSelect,
@@ -68,9 +81,21 @@ export default function PlaceHubMap({
 }) {
   const [map, setMap] = useState(null);
   const [zoom, setZoom] = useState(5);
+  const { labels, markerPlaces } = usePlaceAreaLabels(
+    places,
+    zoom,
+    zoom >= SHAPE_MIN_ZOOM,
+    selectedId,
+  );
   const lastFitKey = useRef(null);
+  const warnedFitKey = useRef(null);
   const drafting = Boolean(draft);
   const { pois, load: loadPois } = usePoiLayer(map, showPoi);
+  const { plazas: tollPlazas, load: loadTolls } = useTollLayer(map, showAllTolls);
+  const onIdle = useCallback(() => {
+    loadPois();
+    loadTolls();
+  }, [loadPois, loadTolls]);
 
   const options = useMemo(
     () => ({
@@ -78,7 +103,7 @@ export default function PlaceHubMap({
       mapTypeControl: false,
       fullscreenControl: false,
       zoomControl: true,
-      clickableIcons: false,
+      clickableIcons: true,
       gestureHandling: 'greedy',
       styles: satellite ? SATELLITE_STYLES : isDark ? DARK_MAP_STYLE : LIGHT_MAP_STYLE,
       draggableCursor: drafting ? 'crosshair' : undefined,
@@ -87,14 +112,37 @@ export default function PlaceHubMap({
   );
 
   useEffect(() => {
+    if (!map) return undefined;
+    // Clicking one of Google's own POIs opens it in Google Maps instead of
+    // Google's info window.
+    const listener = map.addListener('click', (e) => {
+      if (!e.placeId) return;
+      e.stop();
+      openInGoogleMaps({ lat: e.latLng.lat(), lng: e.latLng.lng(), placeId: e.placeId });
+    });
+    return () => listener.remove();
+  }, [map]);
+
+  useEffect(() => {
     if (map) map.setMapTypeId(satellite ? 'hybrid' : 'roadmap');
   }, [map, satellite]);
 
   useEffect(() => {
     if (!map || lastFitKey.current === fitKey) return;
-    const b = boundsOf(fitPoints);
-    if (!b) return;
+    const { bounds, rejected } = planFit(fitPoints);
+    if (rejected.length && warnedFitKey.current !== fitKey) {
+      warnedFitKey.current = fitKey;
+      // The bad fix is worth saying out loud: it is a data problem, not a view one.
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[place-hub] ignoring fit points outside India:',
+        rejected.map((p) => p.id || p._id || `${p.lat},${p.lng}`).join(', '),
+      );
+    }
+    // Nothing usable inside the country — leave the map where the user left it.
+    if (!bounds) return;
     lastFitKey.current = fitKey;
+    const b = bounds;
     if (b.north - b.south < 0.01 && b.east - b.west < 0.01) {
       map.setCenter({ lat: (b.north + b.south) / 2, lng: (b.east + b.west) / 2 });
       map.setZoom(14);
@@ -144,6 +192,7 @@ export default function PlaceHubMap({
   const maxIdle = Math.max(0, ...idleSpots.map((s) => s.rupees));
   const maxDrain = Math.max(0, ...drainCells.map((c) => c.rupees || c.events));
   const maxStop = Math.max(0, ...stopGroups.map((g) => g.minutes));
+  const maxHalt = Math.max(0, ...vehicleHalts.map((h) => h.occurrences || 1));
 
   return (
     <GoogleMap
@@ -154,37 +203,55 @@ export default function PlaceHubMap({
       onLoad={setMap}
       onUnmount={() => setMap(null)}
       onZoomChanged={() => map && setZoom(map.getZoom() || 5)}
-      onIdle={loadPois}
+      onIdle={onIdle}
       onClick={onMapClick}
     >
       {showPoi && <PoiLayer pois={pois} />}
+      {(showAllTolls || showUsedTolls) && (
+        <TollLayer plazas={tollPlazas} interactive={interactive} />
+      )}
       {tab === 'routes' && routes && (
         <RouteLayer map={map} {...routes} isDark={isDark || satellite} zoom={zoom} />
       )}
 
+      {tab === 'places' && (
+        <>
+          {places.map((p) =>
+            p.id === hiddenPlaceId ? null : <GroupShape key={`g-${p.id}`} place={p} />,
+          )}
+          {places.map((p) =>
+            p.id === hiddenPlaceId ? null : (
+              <PlaceShape
+                key={`s-${p.id}`}
+                place={p}
+                selected={p.id === selectedId}
+                showCircle={showCircles || p.id === selectedId}
+                interactive={interactive}
+                onSelect={onSelect}
+              />
+            ),
+          )}
+        </>
+      )}
       {tab === 'places' &&
-        places.map((p) =>
-          p.id === hiddenPlaceId ? null : (
-            <PlaceShape
-              key={`s-${p.id}`}
-              place={p}
-              selected={p.id === selectedId}
-              showCircle={showCircles || p.id === selectedId}
-              interactive={interactive}
-              onSelect={onSelect}
-            />
-          ),
+        places.map(
+          (p) =>
+            p.id !== hiddenPlaceId &&
+            labels.has(p.id) && (
+              <PlaceAreaLabel key={`label-${p.id}`} name={p.name} layout={labels.get(p.id)} />
+            ),
         )}
       {tab === 'places' && (
-        <MarkerClustererF
-          options={CLUSTER_OPTIONS}
+        <PlaceClusterer
+          places={markerPlaces}
+          options={{ ...CLUSTER_OPTIONS, styles: clusterStylesNow }}
           styles={clusterStylesNow}
           title="Zoom in to see these places"
           onUnmount={detachClusterer}
         >
           {(clusterer) => (
             <>
-              {places.map((p) =>
+              {markerPlaces.map((p) =>
                 p.id === hiddenPlaceId ? null : (
                   <PlaceMarker
                     key={`m-${p.id}`}
@@ -199,12 +266,12 @@ export default function PlaceHubMap({
               <ClusterRepaint
                 clusterer={clusterer}
                 styles={clusterStylesNow}
-                places={places}
+                places={markerPlaces}
                 hiddenPlaceId={hiddenPlaceId}
               />
             </>
           )}
-        </MarkerClustererF>
+        </PlaceClusterer>
       )}
 
       {tab !== 'places' &&
@@ -282,6 +349,21 @@ export default function PlaceHubMap({
             />
           ),
         )}
+
+      {vehicleHalts.map((h, i) => (
+        <ScaledDot
+          key={`vh-${i}`}
+          id={`vh-${i}`}
+          lat={h.lat}
+          lng={h.lng}
+          color={VEHICLE_HALT_COLOR}
+          scale={scaleFor(h.occurrences || 1, maxHalt, 8, 22)}
+          title={`${h.occurrences || 1} visit${h.occurrences !== 1 ? 's' : ''}${h.medianDwellMs ? ` · ${hoursLabel(h.medianDwellMs / 3600000)} median dwell` : ''}`}
+          selected={false}
+          interactive={false}
+          onSelect={() => {}}
+        />
+      ))}
 
       {draft && <DraftLayer draft={draft} onDraftChange={onDraftChange} />}
     </GoogleMap>

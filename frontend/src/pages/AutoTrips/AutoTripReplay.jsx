@@ -1,16 +1,27 @@
+import { googleMapsLoaderOptions } from '../../utils/googleMapsLoader.js';
 import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { GoogleMap, MarkerF, PolylineF, useLoadScript } from '@react-google-maps/api';
 import { createVehicleMarkerIcon } from '../LiveTracking/vehicleMarkerIcon.js';
-import { positionAt, toFrames, toLatLngSegments } from '../RouteReplay/routeReplay';
+import { positionAt, toFrames } from '../RouteReplay/routeReplay';
 import RoadTrailLayer from '../../components/map/RoadTrailLayer';
 import { fmtClock, fmtDayTime } from './autoTripFormat';
 import { routeMapPoints, tripRoadAt, tripRoadLayers } from './autoTripPlaces';
 import { stopKind } from './timelineModel';
+import { SUSPICIOUS_UNLOAD_LABEL, suspiciousDropPoint } from './tripSuspicion';
 import ReplayPlayer from './ReplayPlayer';
 import useNavigationHistory from '../RouteHub/navigation/useNavigationHistory';
 import NavigationHistoryPanel from '../RouteHub/navigation/NavigationHistoryPanel';
+import {
+  PATH_COLORS,
+  loadWindows,
+  pathSegments,
+  segmentPath,
+  travelledSegments,
+} from './tripPathModel';
+import TollMarkers from './TollMarkers';
+import { justPassed, tollMarks } from './tripTolls';
+import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
 
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 const CONTAINER = { width: '100%', height: '100%' };
 const INDIA = { lat: 22.9734, lng: 78.6569 };
 /** At 1× the replay plays one minute of the trip every second; 10× and 50× scale up. */
@@ -20,20 +31,20 @@ const HEADING_STEP = 5;
 const MOVING_KMPH = 3;
 const COLOR = {
   trail: '#CBD5E1',
-  run: '#1D4ED8',
   detour: '#C2323A',
-  plant: '#0F172A',
-  drop: '#15803D',
+  /** The trip starts at the plant (green) and ends at the drop (red). */
+  start: '#15803D',
+  drop: '#DC2626',
+  /** A suspicious unload: the watch colour, because it asks for a look. */
+  suspicious: '#B45309',
   unknown: '#B45309',
   stop: '#64748B',
 };
-/** A quiet, light basemap so the route reads first. */
+/** A quiet, light basemap so the route reads first — Google's own place labels stay on. */
 const MAP_THEME = [
   { elementType: 'geometry', stylers: [{ color: '#eef2ec' }] },
-  { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
   { elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
   { elementType: 'labels.text.stroke', stylers: [{ color: '#f7f8fa' }] },
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
   { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
   { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#f1f5f9' }] },
@@ -45,6 +56,33 @@ const MAP_THEME = [
   },
 ];
 const LINE = (color, zIndex) => ({ strokeColor: color, strokeOpacity: 1, strokeWeight: 6, zIndex });
+
+/**
+ * The driven path: solid indigo where the truck carried, dashed slate where it drove
+ * empty. The part already driven is drawn opaque over the faded rest of the trip.
+ */
+const pathStyle = (load, opacity, zIndex) =>
+  load === 'empty'
+    ? {
+        strokeColor: PATH_COLORS.empty,
+        strokeOpacity: 0,
+        strokeWeight: 3,
+        zIndex,
+        icons: [
+          {
+            icon: {
+              path: 'M 0,-1 0,1',
+              strokeOpacity: opacity,
+              strokeColor: PATH_COLORS.empty,
+              strokeWeight: 3,
+              scale: 2,
+            },
+            offset: '0',
+            repeat: '10px',
+          },
+        ],
+      }
+    : { strokeColor: PATH_COLORS.loaded, strokeOpacity: opacity, strokeWeight: 4, zIndex };
 
 const headKmph = (head) => head?.reportedSpeed ?? head?.groundSpeedKmph;
 
@@ -60,7 +98,7 @@ function placeLabel(text, color) {
     color,
     fontSize: '14px',
     fontWeight: '700',
-    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    fontFamily: 'var(--font-sans, Inter, sans-serif)',
     className: 'atx-map-label',
   };
 }
@@ -79,13 +117,15 @@ export default function AutoTripReplay({
   track,
   roadTrail = null,
   detours = null,
+  tolls = null,
   loading,
   error,
   autoPlay = false,
   ref,
 }) {
-  const { isLoaded } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY });
+  const { isLoaded } = useLoadScript(googleMapsLoaderOptions);
   const mapRef = useRef(null);
+  const poiClickRef = useRef(null);
   const wrapRef = useRef(null);
   const navigation = useNavigationHistory({
     autoTripId: trip?._id || trip?.id,
@@ -164,16 +204,9 @@ export default function AutoTripReplay({
     () => (frames.length ? positionAt(frames, progress) : null),
     [frames, progress],
   );
-  const fullSegments = useMemo(() => toLatLngSegments(frames), [frames]);
-  const runSegments = useMemo(() => {
-    if (!head || !canPlay) return [];
-    const segs = toLatLngSegments(frames, head.index);
-    const next = frames[head.index + 1];
-    if (segs.length && next && !next.isBreak) {
-      segs[segs.length - 1] = [...segs[segs.length - 1], { lat: head.lat, lng: head.lng }];
-    }
-    return segs;
-  }, [frames, head, canPlay]);
+  const windows = useMemo(() => loadWindows(trip), [trip]);
+  const segments = useMemo(() => pathSegments(frames, windows), [frames, windows]);
+  const runSegments = useMemo(() => travelledSegments(segments, head), [segments, head]);
 
   const roadLayers = useMemo(() => tripRoadLayers(roadTrail), [roadTrail]);
   const onRoad = useMemo(
@@ -183,6 +216,11 @@ export default function AutoTripReplay({
   const truckAt = onRoad?.truckAt || head;
 
   const pts = useMemo(() => routeMapPoints(trip || {}), [trip]);
+  // A suspicious unload is pinned at the trip's own drop, so a person can see
+  // the exact spot that is worth a look. It is the drop's coordinates — never
+  // an invented point.
+  const suspicious = useMemo(() => suspiciousDropPoint(trip), [trip]);
+  const marks = tollMarks(tolls?.passes, head?.at, { includeReturn: track?.scope === 'JOURNEY' });
   const windowEnd = track?.to ? new Date(track.to).getTime() : null;
   const stopMarks = useMemo(() => {
     const byId = new Map((trip?.routeStops || []).map((s) => [String(s._id), s]));
@@ -231,9 +269,23 @@ export default function AutoTripReplay({
       strokeWeight,
       ...(labelY != null ? { labelOrigin: new Point(0, labelY) } : {}),
     });
+    // The start and the drop are pins, so they read as where the trip began and where
+    // it ended rather than as one more stop on the route.
+    const pin = (fill) => ({
+      path: 'M 0,-14 C -7.5,-14 -13,-8.5 -13,-1 C -13,6 0,14 0,14 C 0,14 13,6 13,-1 C 13,-8.5 7.5,-14 0,-14 Z',
+      fillColor: fill,
+      fillOpacity: 1,
+      strokeColor: '#FFFFFF',
+      strokeWeight: 2,
+      anchor: new Point(0, 14),
+      labelOrigin: new Point(0, -30),
+    });
     return {
-      plant: circle(COLOR.plant, 10, '#FFFFFF', 2, 3),
-      drop: circle(COLOR.drop, 10, '#FFFFFF', 2, 3),
+      start: pin(COLOR.start),
+      drop: pin(COLOR.drop),
+      // The suspicious unload wears the watch colour, not the alarm colour: it
+      // asks for a look, it does not accuse anyone.
+      suspicious: pin(COLOR.suspicious),
       unknown: circle('#FFFFFF', 7, COLOR.unknown, 3),
       stop: circle('#FFFFFF', 5, COLOR.stop, 2),
     };
@@ -261,23 +313,30 @@ export default function AutoTripReplay({
   };
 
   let chip = null;
-  if (GOOGLE_MAPS_API_KEY) {
+  if (googleMapsLoaderOptions.googleMapsApiKey) {
     if (loading && !track) chip = 'Loading GPS track…';
     else if (error && !track) chip = 'Could not load the GPS track';
     else if (!frames.length) chip = 'No GPS track for this trip';
-    else chip = `${fmtDayTime(head?.at)} · ${speedText(head)}`;
+    else {
+      const crossed = justPassed(tolls?.passes, head?.at, {
+        includeReturn: track?.scope === 'JOURNEY',
+      });
+      chip = `${fmtDayTime(head?.at)} · ${speedText(head)}${crossed ? ` · ${crossed}` : ''}`;
+    }
   }
 
   const lastAt = frames.length ? frames[frames.length - 1].at : null;
   const leftLabel = `Left plant ${fmtClock(trip?.pickup?.departedAt || (frames[0] && frames[0].at))}`;
   const rightLabel = track?.open
     ? `Last GPS ${fmtClock(lastAt || track?.to)}`
-    : `Reached drop ${fmtClock(track?.to || trip?.drop?.arrivedAt)}`;
+    : track?.scope === 'JOURNEY'
+      ? `Return window ends ${fmtClock(track?.to)}`
+      : `Reached drop ${fmtClock(track?.to || trip?.drop?.arrivedAt)}`;
 
   return (
     <div ref={wrapRef} className="atx-replay">
       <div className="atx-map">
-        {!GOOGLE_MAPS_API_KEY ? (
+        {!googleMapsLoaderOptions.googleMapsApiKey ? (
           <div className="atx-map-empty">
             <strong>Map unavailable</strong>
             <span>No Google Maps key is configured.</span>
@@ -289,9 +348,19 @@ export default function AutoTripReplay({
             zoom={9}
             onLoad={(map) => {
               mapRef.current = map;
+              // Clicking one of Google's own POIs opens it in Google Maps
+              // instead of Google's info window.
+              poiClickRef.current?.remove();
+              poiClickRef.current = map.addListener('click', (e) => {
+                if (!e.placeId) return;
+                e.stop();
+                openInGoogleMaps({ lat: e.latLng.lat(), lng: e.latLng.lng(), placeId: e.placeId });
+              });
               fit(map);
             }}
             onUnmount={() => {
+              poiClickRef.current?.remove();
+              poiClickRef.current = null;
               mapRef.current = null;
             }}
             onZoomChanged={() => {
@@ -302,7 +371,7 @@ export default function AutoTripReplay({
               disableDefaultUI: true,
               zoomControl: true,
               gestureHandling: 'cooperative',
-              clickableIcons: false,
+              clickableIcons: true,
               styles: MAP_THEME,
             }}
           >
@@ -318,26 +387,33 @@ export default function AutoTripReplay({
               />
             )}
             {roadLayers && <RoadTrailLayer layers={roadLayers} color={COLOR.trail} />}
-            {roadLayers && onRoad && <RoadTrailLayer layers={onRoad.run} color={COLOR.run} />}
-            {roadLayers
-              ? null
-              : frames.length > 1
-                ? fullSegments.map((seg, i) =>
-                    seg.length > 1 ? (
-                      <PolylineF key={`full-${i}`} path={seg} options={LINE(COLOR.trail, 1)} />
-                    ) : null,
-                  )
-                : pts.path.length > 1 && (
-                    <PolylineF path={pts.path} options={LINE(COLOR.trail, 1)} />
-                  )}
-            {!roadLayers &&
-              runSegments.map((seg, i) =>
-                seg.length > 1 ? (
-                  <PolylineF key={`run-${i}`} path={seg} options={LINE(COLOR.run, 2)} />
-                ) : null,
-              )}
+            {segments.map((seg, i) =>
+              seg.points.length > 1 ? (
+                <PolylineF
+                  key={`path-${i}`}
+                  path={segmentPath(seg)}
+                  options={pathStyle(seg.load, 0.35, 4)}
+                />
+              ) : null,
+            )}
+            {runSegments.map((seg, i) =>
+              seg.path.length > 1 ? (
+                <PolylineF key={`run-${i}`} path={seg.path} options={pathStyle(seg.load, 1, 5)} />
+              ) : null,
+            )}
+            {!frames.length && pts.path.length > 1 && (
+              <PolylineF
+                path={pts.path}
+                options={{
+                  strokeColor: COLOR.trail,
+                  strokeOpacity: 0.9,
+                  strokeWeight: 3,
+                  zIndex: 4,
+                }}
+              />
+            )}
             {(detours || []).map((d) => (
-              <PolylineF key={`detour-${d.id}`} path={d.path} options={LINE(COLOR.detour, 3)} />
+              <PolylineF key={`detour-${d.id}`} path={d.path} options={LINE(COLOR.detour, 6)} />
             ))}
             {icons &&
               stopMarks.map((m) => (
@@ -346,16 +422,16 @@ export default function AutoTripReplay({
                   position={m.at}
                   icon={m.unknown ? icons.unknown : icons.stop}
                   title={m.unknown ? 'Unknown stop' : 'Stop'}
-                  zIndex={3}
+                  zIndex={7}
                 />
               ))}
             {icons && pts.pickup ? (
               <MarkerF
                 position={pts.pickup}
-                icon={icons.plant}
-                label={placeLabel(trip?.pickup?.name, COLOR.plant)}
+                icon={icons.start}
+                label={placeLabel(trip?.pickup?.name, COLOR.start)}
                 title={trip?.pickup?.name || 'Plant'}
-                zIndex={4}
+                zIndex={12}
               />
             ) : null}
             {icons && pts.drop ? (
@@ -364,7 +440,16 @@ export default function AutoTripReplay({
                 icon={icons.drop}
                 label={placeLabel(trip?.drop?.name, COLOR.drop)}
                 title={trip?.drop?.name || 'Drop'}
-                zIndex={4}
+                zIndex={12}
+              />
+            ) : null}
+            {icons && suspicious ? (
+              <MarkerF
+                position={suspicious}
+                icon={icons.suspicious}
+                label={placeLabel(SUSPICIOUS_UNLOAD_LABEL, COLOR.suspicious)}
+                title={`${SUSPICIOUS_UNLOAD_LABEL} — a person should look at this spot`}
+                zIndex={13}
               />
             ) : null}
             {icons &&
@@ -375,9 +460,10 @@ export default function AutoTripReplay({
                   icon={icons.drop}
                   label={placeLabel(x.label, COLOR.drop)}
                   title="Further drop"
-                  zIndex={4}
+                  zIndex={12}
                 />
               ))}
+            <TollMarkers marks={marks} />
             {truckIcon && head ? (
               <MarkerF
                 position={{ lat: truckAt.lat, lng: truckAt.lng }}

@@ -11,7 +11,15 @@ import FuelLogForm from '@/components/FuelLogForm/FuelLogForm';
 import DriverVehicleAssignmentService from '../../../services/DriverVehicleAssignmentService';
 import logger from '../../../utils/logger';
 
-const AddFuelLogModal = ({ open, onClose, driverId, vehicleId, onAdded }) => {
+const AddFuelLogModal = ({
+  open,
+  onClose,
+  driverId,
+  vehicleId,
+  onAdded,
+  photoFirst = false,
+  registrationNumber = '',
+}) => {
   const [resolvedDriverId, setResolvedDriverId] = useState(driverId || '');
   const [resolvedVehicleId, setResolvedVehicleId] = useState(vehicleId || '');
   const [lockDriver, setLockDriver] = useState(!!driverId);
@@ -70,13 +78,15 @@ const AddFuelLogModal = ({ open, onClose, driverId, vehicleId, onAdded }) => {
     >
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add Fuel Log</DialogTitle>
+          <DialogTitle>{photoFirst ? 'Add bill photo' : 'Add Fuel Log'}</DialogTitle>
           <DialogDescription>
-            Log a diesel fuel entry. The selected driver/vehicle context is prefilled from active
-            assignments.
+            {photoFirst
+              ? `Log fuel${registrationNumber ? ` for ${registrationNumber}` : ''}. Add a bill photo, review the details and save the diesel fill.`
+              : 'Log a diesel fuel entry. The selected driver/vehicle context is prefilled from active assignments.'}
           </DialogDescription>
         </DialogHeader>
         <FuelLogForm
+          photoFirst={photoFirst}
           initialVehicleId={resolvedVehicleId}
           initialDriverId={resolvedDriverId}
           lockVehicle={lockVehicle}

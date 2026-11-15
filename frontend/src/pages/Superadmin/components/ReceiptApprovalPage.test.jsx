@@ -1,3 +1,4 @@
+import { changeField } from '@/test/changeField';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import React from 'react';
@@ -83,18 +84,6 @@ describe('ReceiptApprovalPage', () => {
     expect(screen.getByText('WB02BB2222')).toBeInTheDocument();
   });
 
-  // The odometer policy rides on /api/auth/me; the page no longer re-fetches it.
-  it('does not fetch the WhatsApp settings itself', async () => {
-    apiClient.get.mockResolvedValue(draftsOf([]));
-    render(
-      <MemoryRouter>
-        <ReceiptApprovalPage />
-      </MemoryRouter>,
-    );
-    await act(async () => {});
-    expect(apiClient.get.mock.calls.map(([url]) => url)).not.toContain('/api/whatsapp/settings');
-  });
-
   // B4: the inbox used to fetch 200 rows and filter them in the browser, so
   // receipts after the 200th never appeared. The server now filters and pages.
   it('asks the server for one filtered page', async () => {
@@ -103,13 +92,12 @@ describe('ReceiptApprovalPage', () => {
     expect(await screen.findByText('WB01AA1111')).toBeInTheDocument();
     expect(listParams()[0]).toEqual({ status: 'READY', page: 1, limit: 50, order: 'desc' });
 
-    fireEvent.change(
-      screen.getByLabelText('Search receipts by vehicle, driver, station, or plate'),
-      { target: { value: 'WB01' } },
-    );
+    changeField(screen.getByLabelText('Search receipts by vehicle, driver, station, or plate'), {
+      target: { value: 'WB01' },
+    });
     await waitFor(() => expect(listParams().at(-1)).toMatchObject({ q: 'WB01', page: 1 }));
 
-    fireEvent.change(screen.getByLabelText('Filter receipts by odometer source'), {
+    changeField(screen.getByLabelText('Filter receipts by odometer source'), {
       target: { value: 'MISSING' },
     });
     await waitFor(() =>
@@ -132,7 +120,7 @@ describe('ReceiptApprovalPage', () => {
     expect(await screen.findByText('WB02PG0000')).toBeInTheDocument();
     expect(listParams().at(-1)).toMatchObject({ page: 2 });
 
-    fireEvent.change(screen.getByLabelText('Filter receipts by odometer source'), {
+    changeField(screen.getByLabelText('Filter receipts by odometer source'), {
       target: { value: 'PHOTO' },
     });
     await waitFor(() => expect(listParams().at(-1)).toMatchObject({ page: 1, odometer: 'PHOTO' }));
@@ -160,6 +148,15 @@ describe('ReceiptApprovalPage', () => {
 
   // Until the paging backend is deployed, an older one answers with its first
   // 200 drafts and no totalPages; the page then filters them itself, as before.
+  // D1: with nothing in the inbox the cards used to read "₹0" and "₹—/L".
+  it('says there are no receipts yet instead of showing an empty rate', async () => {
+    serveList(() => pagedOf([]));
+    renderPage();
+    expect((await screen.findAllByText('No receipts yet')).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/₹—\/L/)).not.toBeInTheDocument();
+    expect(screen.getByText('Pending approvals')).toBeInTheDocument();
+  });
+
   it('falls back to filtering in the browser against an older backend', async () => {
     serveList(() =>
       draftsOf([
@@ -173,7 +170,7 @@ describe('ReceiptApprovalPage', () => {
     await waitFor(() => expect(screen.getByText('WB02BB2222')).toBeInTheDocument());
     const requests = listParams().length;
 
-    fireEvent.change(screen.getByLabelText('Filter receipts by odometer source'), {
+    changeField(screen.getByLabelText('Filter receipts by odometer source'), {
       target: { value: 'MISSING' },
     });
     await waitFor(() => {

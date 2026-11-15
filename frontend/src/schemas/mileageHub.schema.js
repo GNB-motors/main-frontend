@@ -20,7 +20,14 @@ export const unifiedFeedSchema = list(
       at: str,
       litres: num,
       slip: z
-        .object({ id: str, litres: money, totalAmount: money, rate: money, location: str })
+        .object({
+          id: str,
+          litres: money,
+          totalAmount: money,
+          rate: money,
+          location: str,
+          stationName: str,
+        })
         .passthrough()
         .nullish(),
       sensor: z
@@ -38,6 +45,9 @@ export const unifiedFeedSchema = list(
       unverified: num,
       slipOnly: num,
       sensorGlitch: num,
+      unassessed: num,
+      totalLitres: num,
+      truncated: z.boolean().nullish(),
       totalSpendInr: num,
     })
     .passthrough()
@@ -160,6 +170,9 @@ export const billVsTankSchema = z
                 billLitres: num,
                 telemetryLitres: num,
                 varianceL: num,
+                rawLitres: num,
+                billToleranceL: num,
+                billComparable: z.boolean().nullish(),
                 status: str,
               })
               .passthrough(),

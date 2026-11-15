@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import PageShell from '../../components/ui/PageShell';
@@ -125,7 +126,7 @@ const ServicesView = () => {
           ))}
           <label className="sbp-window">
             Last
-            <select
+            <SearchableSelect
               value={sinceDays}
               onChange={(e) => {
                 setPage(1);
@@ -136,7 +137,7 @@ const ServicesView = () => {
               <option value={180}>180 days</option>
               <option value={365}>1 year</option>
               <option value={730}>2 years</option>
-            </select>
+            </SearchableSelect>
           </label>
         </div>
       }

@@ -5,7 +5,7 @@ import { DriverService } from './DriverService.js';
 import { getVehicleList } from '../../services/vehicleListService';
 import { useNavigate } from 'react-router-dom';
 import { getThemeCSS } from '../../utils/colorTheme';
-import { getToken, getProfileField } from '../../utils/session.js';
+import { getToken, getProfileField, getUserRole } from '../../utils/session.js';
 import LottieLoader from '../../components/LottieLoader.jsx';
 import NewButton from '@/components/ui/NewButton';
 import PageShell from '../../components/ui/PageShell';
@@ -24,6 +24,7 @@ import DriversPagination from './Component/DriversPagination.jsx';
 import DriverFilter from './Component/DriverFilter.jsx';
 import DriverTrendDrawer from './Component/DriverTrendDrawer.jsx';
 import BulkUploadDriversPanel from './BulkUploadDriversPanel.jsx';
+import BulkAssignVehiclesPanel from './BulkAssignVehiclesPanel.jsx';
 import {
   normalizeDriver,
   normalizeVehicleOption,
@@ -55,6 +56,7 @@ const DriversPage = () => {
 
   const [showTrendsDrawer, setShowTrendsDrawer] = useState(false);
   const [showBulkPanel, setShowBulkPanel] = useState(false);
+  const [showAssignmentPanel, setShowAssignmentPanel] = useState(false);
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -103,7 +105,9 @@ const DriversPage = () => {
       const { data: items, meta } = result;
 
       // Normalize drivers to include a `name` convenience field used across the UI
-      const normalizedDrivers = (items || []).map(normalizeDriver);
+      const normalizedDrivers = await DriverService.withAssignedVehicles(
+        (items || []).map(normalizeDriver),
+      );
       setDrivers(normalizedDrivers);
       if (meta) {
         setTotalPages(meta.totalPages);
@@ -250,6 +254,14 @@ const DriversPage = () => {
               prependIcon={<Upload size={16} />}
               onClick={() => setShowBulkPanel(true)}
             />
+            {['OWNER', 'MANAGER'].includes(getUserRole()) && (
+              <NewButton
+                variant="secondary"
+                text="Bulk Assign Vehicles"
+                prependIcon={<Upload size={16} />}
+                onClick={() => setShowAssignmentPanel(true)}
+              />
+            )}
             <NewButton
               variant="primary"
               text="Add Employee"
@@ -377,6 +389,12 @@ const DriversPage = () => {
       />
       <DriverTrendDrawer isOpen={showTrendsDrawer} onClose={() => setShowTrendsDrawer(false)} />
 
+      {showAssignmentPanel && (
+        <BulkAssignVehiclesPanel
+          onClose={() => setShowAssignmentPanel(false)}
+          onAssigned={fetchDrivers}
+        />
+      )}
       <BulkUploadDriversPanel
         isOpen={showBulkPanel}
         onClose={() => setShowBulkPanel(false)}

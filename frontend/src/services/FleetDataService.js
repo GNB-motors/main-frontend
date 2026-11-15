@@ -30,6 +30,10 @@ export const FleetDataService = {
   /** Latest live-status reading per vehicle (fuel%, DEF%, odo, engine hrs, service, staleness). */
   getFleetHealth: (signal) => get('/api/vehicle-health', {}, signal),
 
+  /** Most recent provider status for a selected VIN. */
+  getLatestVehicleStatus: (vin, signal) =>
+    get('/api/fleet-insights/status', { vin, limit: 1 }, signal),
+
   /** One vehicle's latest reading + history for trend charts. */
   getVehicleHealth: (registrationNumber, params = {}, signal) =>
     get(`/api/vehicle-health/${encodeURIComponent(registrationNumber)}`, params, signal),
@@ -50,6 +54,9 @@ export const FleetDataService = {
   getVehicleProfile: (registrationNumber, signal) =>
     get(`/api/vehicle-profile/${encodeURIComponent(registrationNumber)}`, {}, signal),
 
+  getVehicleOverview: (registrationNumber, signal) =>
+    get(`/api/vehicle-profile/${encodeURIComponent(registrationNumber)}/overview`, {}, signal),
+
   /** Service predictions, riskiest first. */
   getMaintenancePredictions: (params = {}, signal) =>
     get('/api/maintenance-predictions', params, signal),
@@ -63,6 +70,21 @@ export const FleetDataService = {
 
   /** Latest driver fuel-efficiency leaderboard (km/L), ranked. */
   getDriverLeaderboard: (params = {}, signal) => get('/api/driver-leaderboard', params, signal),
+
+  /** Detected trips (plant → plant) for one vehicle. */
+  getAutoTrips: (params = {}, signal) => get('/api/auto-trips', params, signal),
+
+  /** Warehouse-to-warehouse cycles for one vehicle; the OPEN one is the truck's live cycle. */
+  getVehicleTours: (params = {}, signal) => get('/api/vehicle-tours', params, signal),
+
+  /** Tyre set status for one vehicle: km run, ₹/km, life used, projected replacement. */
+  getVehicleTelemetry: (reg, signal) =>
+    get(`/api/vehicle-profile/${encodeURIComponent(reg)}/telemetry`, {}, signal),
+
+  getTyreStatus: (params = {}, signal) => get('/api/tyres/status', params, signal),
+
+  /** Service centres near a position, costed by our road engine (lat/lng required). */
+  getServiceCentres: (params = {}, signal) => get('/api/service-centres/recommend', params, signal),
 };
 
 export default FleetDataService;

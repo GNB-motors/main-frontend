@@ -12,25 +12,52 @@ import { SIDE_NAV_ITEMS } from '../sideNavItems.js';
 const LEARNED = {
   state: 'LEARNED',
   window: { from: '2026-09-01', to: '2026-10-22' },
-  learned: { engagementFloor: 40, sessionGapMs: 120000, surfacesMeasured: 5, userDays: 0, totalViews: 664 },
+  learned: {
+    engagementFloor: 40,
+    sessionGapMs: 120000,
+    surfacesMeasured: 5,
+    userDays: 0,
+    totalViews: 664,
+  },
   surfaces: [
     {
       surfaceKey: '/live-tracking',
       disposition: 'AT_OR_ABOVE_FLOOR',
-      reason: '400 opens, at or above this org\'s own median of 40.',
-      evidence: { views: 400, activeDays: 60, userDays: 90, followOn: 120, lastViewedAt: null, shareOfFloor: 10 },
+      reason: "400 opens, at or above this org's own median of 40.",
+      evidence: {
+        views: 400,
+        activeDays: 60,
+        userDays: 90,
+        followOn: 120,
+        lastViewedAt: null,
+        shareOfFloor: 10,
+      },
     },
     {
       surfaceKey: '/route-hub',
       disposition: 'BELOW_ORG_FLOOR',
-      reason: '4 opens vs this org\'s own median of 40.',
-      evidence: { views: 4, activeDays: 2, userDays: 3, followOn: 1, lastViewedAt: null, shareOfFloor: 0.1 },
+      reason: "4 opens vs this org's own median of 40.",
+      evidence: {
+        views: 4,
+        activeDays: 2,
+        userDays: 3,
+        followOn: 1,
+        lastViewedAt: null,
+        shareOfFloor: 0.1,
+      },
     },
     {
       surfaceKey: '/khata-ledger',
       disposition: 'NEVER_OPENED',
       reason: 'Not opened once since usage recording started.',
-      evidence: { views: 0, activeDays: 0, userDays: 0, followOn: 0, lastViewedAt: null, shareOfFloor: null },
+      evidence: {
+        views: 0,
+        activeDays: 0,
+        userDays: 0,
+        followOn: 0,
+        lastViewedAt: null,
+        shareOfFloor: null,
+      },
     },
   ],
 };
@@ -44,9 +71,11 @@ const nav = [
 ];
 
 const paths = (items) =>
-  items.flatMap((i) => (i.type === 'group' ? (i.children || []).map((c) => c.to) : i.to ? [i.to] : []));
+  items.flatMap((i) =>
+    i.type === 'group' ? (i.children || []).map((c) => c.to) : i.to ? [i.to] : [],
+  );
 
-describe('the cut refuses to act without the org\'s own measurement', () => {
+describe("the cut refuses to act without the org's own measurement", () => {
   it('cuts nothing when there is no profile', () => {
     const out = applyUsageCut(nav, null);
     expect(out.applied).toBe(false);
@@ -61,8 +90,15 @@ describe('the cut refuses to act without the org\'s own measurement', () => {
   });
 
   it('cuts nothing while the engagement floor has not been learned', () => {
-    const out = applyUsageCut(nav, { ...LEARNED, learned: { ...LEARNED.learned, engagementFloor: null } });
-    expect(cutIsApplicable(out ? { ...LEARNED, learned: { ...LEARNED.learned, engagementFloor: null } } : null).ok).toBe(false);
+    const out = applyUsageCut(nav, {
+      ...LEARNED,
+      learned: { ...LEARNED.learned, engagementFloor: null },
+    });
+    expect(
+      cutIsApplicable(
+        out ? { ...LEARNED, learned: { ...LEARNED.learned, engagementFloor: null } } : null,
+      ).ok,
+    ).toBe(false);
     expect(paths(out.items)).toEqual(paths(nav));
   });
 
@@ -143,8 +179,18 @@ describe('folding never empties a section or the menu', () => {
     const profile = {
       ...LEARNED,
       surfaces: [
-        { surfaceKey: '/mileage', disposition: 'AT_OR_ABOVE_FLOOR', reason: '', evidence: { views: 99 } },
-        { surfaceKey: '/def-ledger', disposition: 'BELOW_ORG_FLOOR', reason: '2 opens', evidence: { views: 2 } },
+        {
+          surfaceKey: '/mileage',
+          disposition: 'AT_OR_ABOVE_FLOOR',
+          reason: '',
+          evidence: { views: 99 },
+        },
+        {
+          surfaceKey: '/def-ledger',
+          disposition: 'BELOW_ORG_FLOOR',
+          reason: '2 opens',
+          evidence: { views: 2 },
+        },
       ],
     };
     const out = applyUsageCut(grouped, profile);
@@ -158,7 +204,7 @@ describe('surfaceKeysFromNav', () => {
   it('collects link paths and group children so the server can judge unopened screens', () => {
     const keys = surfaceKeysFromNav(SIDE_NAV_ITEMS);
     expect(keys).toContain('/alert-inbox');
-    expect(keys).toContain('/usage');
+    expect(keys).toContain('/def-ledger');
     expect(keys).toContain('/live-tracking');
     // A screen this org has never opened leaves no row behind, so the menu has
     // to name it for the "never opened" verdict to exist at all.

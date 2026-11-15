@@ -238,3 +238,29 @@ input[type='number'] {
 .basic-info-input[type='number'] {
   -moz-appearance: textfield;
 }
+
+.basic-info-form-field .employee-select-trigger {
+  width: 100%;
+  min-height: 46px;
+  height: auto;
+  padding: 12px 16px;
+  border: 1px solid #dfdfe2;
+  border-radius: 8px;
+  background: #fff;
+  color: #121214;
+  font-size: 14px;
+  line-height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.basic-info-form-field .employee-select-trigger > [data-slot='select-value'] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.basic-info-form-field .employee-select-trigger > svg {
+  flex-shrink: 0;
+}

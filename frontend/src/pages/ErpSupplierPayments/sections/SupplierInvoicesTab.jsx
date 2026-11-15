@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React from 'react';
 import { money } from '../money';
 
@@ -45,7 +46,7 @@ function SupplierInvoicesTab({
         </label>
         <label>
           Type
-          <select
+          <SearchableSelect
             value={invoiceForm.supplyType}
             onChange={(e) => setInvoiceForm({ ...invoiceForm, supplyType: e.target.value })}
           >
@@ -54,7 +55,7 @@ function SupplierInvoicesTab({
                 {t}
               </option>
             ))}
-          </select>
+          </SearchableSelect>
         </label>
         <label>
           Gross amount

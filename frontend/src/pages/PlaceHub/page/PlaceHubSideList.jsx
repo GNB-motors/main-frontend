@@ -15,6 +15,11 @@ export default function PlaceHubSideList({
   setGroup,
   query,
   setQuery,
+  vehicleLabel,
+  vehicleHalts,
+  onVehiclePick,
+  onVehicleClear,
+  onPickVehicleHalt,
   selectedId,
   pickFromList,
   canEdit,
@@ -46,6 +51,11 @@ export default function PlaceHubSideList({
           onGroup={setGroup}
           query={query}
           onQuery={setQuery}
+          vehicleLabel={vehicleLabel}
+          vehicleHalts={vehicleHalts}
+          onVehiclePick={onVehiclePick}
+          onVehicleClear={onVehicleClear}
+          onPickVehicleHalt={onPickVehicleHalt}
           selectedId={selectedId}
           onPick={(p) => pickFromList(p.id, p.lat, p.lng)}
           errors={{

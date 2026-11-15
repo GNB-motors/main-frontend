@@ -5,23 +5,12 @@ import { useMutation } from '../../../hooks/useMutation';
 import Ico from '../routeHubIcons.jsx';
 import { KpiRow, RefreshButton } from '../routeHubShared.jsx';
 import { downloadCsv, fmtDT, inr } from '../routeHubFormat';
-import {
-  dayRange,
-  groupByTrip,
-  legLabel,
-  matchesSearch,
-  normalisePlate,
-  tripLabel,
-} from './deviation/deviationRules.js';
+import { dayRange, groupByTrip, legLabel, tripLabel } from './deviation/deviationRules.js';
 import DeviationFilterBar from './deviation/DeviationFilterBar.jsx';
 import DeviationFeed from './deviation/DeviationFeed.jsx';
 import DeviationDetail from './deviation/DeviationDetail.jsx';
 
 const PAGE_SIZE = 100;
-// A full Indian plate goes to the server as an exact vehicle filter; anything
-// else (a partial plate, a place name) filters the loaded page.
-const FULL_PLATE = /^[a-z]{2}\d{1,2}[a-z]{0,3}\d{3,4}$/;
-
 function filtersReducer(state, action) {
   if (action.type === 'set') {
     // Any filter change starts again from the first page.
@@ -45,15 +34,22 @@ export default function DeviationView({ params, toast, setBadge, go }) {
   });
   const [selId, setSelId] = useState(params.get('d') || null);
   const q = useDeferredValue(filters.q.trim());
-  const plate = FULL_PLATE.test(normalisePlate(q)) ? normalisePlate(q).toUpperCase() : null;
   const unfiltered =
-    !filters.from && !filters.to && filters.status === 'all' && filters.leg === 'all' && !plate;
+    !filters.from && !filters.to && filters.status === 'all' && filters.leg === 'all' && !q;
+  const listScope = JSON.stringify([
+    q,
+    filters.from,
+    filters.to,
+    filters.status,
+    filters.leg,
+    filters.page,
+  ]);
 
   const list = useApi(
     (signal) =>
       RouteHubService.getDeviationEvents(
         {
-          vehicle: plate || undefined,
+          q: q || undefined,
           ...dayRange(filters.from, filters.to),
           status: filters.status === 'all' ? undefined : filters.status,
           leg: filters.leg === 'all' ? undefined : filters.leg,
@@ -62,15 +58,18 @@ export default function DeviationView({ params, toast, setBadge, go }) {
         },
         signal,
       ).then((data) => {
-        if (unfiltered) setBadge('deviation', data.summary?.open ?? data.openCount ?? 0);
+        if (unfiltered && !signal.aborted)
+          setBadge('deviation', data.summary?.open ?? data.openCount ?? 0);
         return data;
       }),
-    [plate, filters.from, filters.to, filters.status, filters.leg, filters.page],
+    [listScope],
+    { scopeKey: listScope },
   );
 
-  const records = list.data?.records || [];
   const summary = list.data?.summary || null;
-  const rows = plate ? records : records.filter((d) => matchesSearch(d, q));
+  const rows = list.data?.records || [];
+  const hasOpenCost =
+    summary?.openCostCount != null ? summary.openCostCount > 0 : summary?.openCostInr > 0;
   const groups = groupByTrip(rows);
   const selected = rows.find((d) => d._id === selId) || rows[0] || null;
   const selectedId = selected?._id || null;
@@ -121,7 +120,11 @@ export default function DeviationView({ params, toast, setBadge, go }) {
       ic: 'split',
       l: 'Detours',
       v: summary?.total ?? 0,
-      s: summary ? `on ${summary.trips} trip${summary.trips === 1 ? '' : 's'}` : 'in this period',
+      s: !summary
+        ? 'in this period'
+        : summary.trips
+          ? `on ${summary.trips} trip${summary.trips === 1 ? '' : 's'}`
+          : 'none on a recorded trip',
       c: 'var(--nova-rage-600)',
       tint: 'var(--nova-rage-a10)',
     },
@@ -136,11 +139,16 @@ export default function DeviationView({ params, toast, setBadge, go }) {
     {
       ic: 'rupee',
       l: 'Est. detour cost',
-      v: inr(summary?.openCostInr || 0),
-      s: 'estimated fuel and wear · open only',
+      v: hasOpenCost && summary?.openCostInr != null ? inr(summary.openCostInr) : '—',
+      s:
+        !hasOpenCost || summary?.openCostInr == null
+          ? 'detour cost not estimated yet'
+          : summary.openCostCount != null && summary.openCostCount < summary.open
+            ? `estimated fuel and wear · ${summary.openCostCount} of ${summary.open} open detours priced`
+            : 'estimated fuel and wear · open only',
       c: '#C2323A',
       tint: 'rgba(229,104,107,.14)',
-      vc: '#C2323A',
+      vc: hasOpenCost && summary?.openCostInr != null ? '#C2323A' : 'var(--rd-ink-3)',
     },
   ];
 
@@ -210,19 +218,9 @@ export default function DeviationView({ params, toast, setBadge, go }) {
     <section className="view">
       <div className="phead">
         <div className="t">
-          <a
-            className="crumb"
-            href="?tab=overview"
-            onClick={(e) => {
-              e.preventDefault();
-              go('overview');
-            }}
-          >
-            <Ico n="arrowL" s={14} />
-            Route hub
-          </a>
           <h2>
-            Route deviation <span className="count-pill">{summary?.open ?? 0}</span>
+            Route deviation{' '}
+            {summary?.open ? <span className="count-pill">{summary.open}</span> : null}
           </h2>
           <p>
             Trucks that left the route they usually take between two places, shown on the trip they
@@ -248,6 +246,15 @@ export default function DeviationView({ params, toast, setBadge, go }) {
 
       <div className="split">
         <DeviationFeed
+          selectedChecked={Boolean(detail.data)}
+          selectedNotJudged={Boolean(
+            detail.data &&
+            !(
+              detail.data.roadEngine?.usualRoute?.length > 1 ||
+              detail.data.usualRoute?.length > 1 ||
+              detail.data.corridor?.line?.length > 1
+            ),
+          )}
           groups={groups}
           selId={selectedId}
           onSelect={setSelId}

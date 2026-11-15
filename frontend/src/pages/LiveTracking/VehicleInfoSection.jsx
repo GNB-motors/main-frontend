@@ -1,6 +1,7 @@
 import renderIconSvg from './renderIconSvg.jsx';
+import vehicleMetricReadings from './vehicleMetricReadings.js';
 
-export default function VehicleInfoSection({ selectedVehicle }) {
+export default function VehicleInfoSection({ selectedVehicle, odometer }) {
   return (
     <details className="sec">
       <summary>
@@ -19,15 +20,11 @@ export default function VehicleInfoSection({ selectedVehicle }) {
         </div>
         <div className="kv">
           <span className="k">Odometer</span>
-          <span className="v">
-            {selectedVehicle.odo != null
-              ? `${selectedVehicle.odo.toLocaleString('en-IN')} km`
-              : '—'}
-          </span>
+          <span className="v">{odometer ?? vehicleMetricReadings(selectedVehicle).odometer}</span>
         </div>
         <div className="kv">
-          <span className="k">Registered</span>
-          <span className="v">{selectedVehicle.regYear || '—'}</span>
+          <span className="k">Manufactured</span>
+          <span className="v">{selectedVehicle.manufactureYear || '—'}</span>
         </div>
       </div>
     </details>

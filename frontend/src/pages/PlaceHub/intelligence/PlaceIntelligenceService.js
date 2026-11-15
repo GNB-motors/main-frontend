@@ -14,7 +14,21 @@ const parsed = async (name, response) => parseSafe(name, schemas, unwrap(respons
  * Warehouse changes (accept as WAREHOUSE) answer 409 with an `impact` body
  * until resent with `confirmImpact: true` — see isImpactGate in the model.
  */
-export const PlaceIntelligenceService = {
+export const PAGE_SIZE = 200;
+const MAX_PAGES = 5;
+
+async function allPages(list, params, { signal } = {}) {
+  const page = (n) => list({ ...params, limit: PAGE_SIZE, page: n }, { signal });
+  const first = await page(1);
+  const total = first?.total || 0;
+  const pages = Math.min(Math.ceil(total / PAGE_SIZE), MAX_PAGES);
+  const rest = await Promise.all(
+    Array.from({ length: Math.max(0, pages - 1) }, (_, i) => page(i + 2)),
+  );
+  return { ...first, records: [first, ...rest].flatMap((d) => d?.records ?? []) };
+}
+
+const PlaceIntelligenceService = {
   listDeliveryLegs: async (params = {}, { signal } = {}) =>
     parsed(
       'deliveryLegListSchema',
@@ -105,12 +119,31 @@ export const PlaceIntelligenceService = {
   listRegions: async (params = {}, { signal } = {}) =>
     parsed('regionListSchema', await apiClient.get(`${BASE}/regions`, { params, signal })),
 
+  /** Every site matching `params`, paged at the server's 200-row cap (a bigger
+   *  limit is a 400). Stops at five pages, like Place Hub and Track. */
+  listAllSites: (params = {}, opts = {}) =>
+    allPages(PlaceIntelligenceService.listSites, params, opts),
+
+  /** Every region matching `params`, paged the same way. */
+  listAllRegions: (params = {}, opts = {}) =>
+    allPages(PlaceIntelligenceService.listRegions, params, opts),
+
   decideRegion: async ({ id, decision }, { signal } = {}) =>
     unwrap(await apiClient.post(`${BASE}/regions/${id}/decide`, { decision }, { signal })),
 
   // ─── Facilities (one row per physical place; what trip detection sees) ────
   listFacilities: async (params = {}, { signal } = {}) =>
     unwrap(await apiClient.get(`${BASE}/facilities`, { params, signal })),
+
+  /** Toll plazas: every one this org's trucks visited, or (scope 'all') every one in a box. */
+  listTollPlazas: async ({ scope, south, west, north, east }, { signal } = {}) =>
+    parsed(
+      'tollPlazaListSchema',
+      await apiClient.get(`${BASE}/toll-plazas`, {
+        params: scope === 'all' ? { scope, south, west, north, east } : { scope },
+        signal,
+      }),
+    ),
 
   // ─── Map knowledge (plants, pumps, sidings, towns …) learned from OSM/Google
   listPoi: async ({ south, west, north, east, categories }, { signal } = {}) =>
@@ -150,11 +183,7 @@ export const PlaceIntelligenceService = {
   previewMergeApply: async ({ survivorId, memberIds }, { signal } = {}) =>
     parsed(
       'mergeApplyPreviewSchema',
-      await apiClient.post(
-        `${BASE}/merges/preview-apply`,
-        { survivorId, memberIds },
-        { signal },
-      ),
+      await apiClient.post(`${BASE}/merges/preview-apply`, { survivorId, memberIds }, { signal }),
     ),
 
   applyMerge: async ({ survivorId, memberIds }, { signal } = {}) =>

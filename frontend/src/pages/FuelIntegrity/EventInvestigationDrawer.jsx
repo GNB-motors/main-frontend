@@ -3,6 +3,7 @@ import { Truck, MapPin, ReceiptText, CheckCircle2, Fuel } from 'lucide-react';
 import SlideOver from '../../components/cluster/SlideOver.jsx';
 import PlaceLabel from '../../components/ui/PlaceLabel';
 import { formatINR, formatLitres } from '../../utils/formatters';
+import { fillBillView } from './fillBillView';
 
 const STATUS_TONE = {
   CONFIRMED: { tone: 'ok', label: 'Confirmed' },
@@ -27,13 +28,24 @@ function Cell({ label, value, full = false, tone }) {
  * vehicle's own fill history (previous / average / variance are computed here,
  * not invented).
  */
-export default function EventInvestigationDrawer({ open, onClose, event, context = {}, reviewed, onMarkReviewed }) {
+export default function EventInvestigationDrawer({
+  open,
+  onClose,
+  event,
+  context = {},
+  reviewed,
+  onMarkReviewed,
+}) {
   if (!event) return null;
 
   const price = context.fuelPriceInrPerL ?? 95;
   const status = STATUS_TONE[event.confirmationStatus] || STATUS_TONE.ESTIMATED;
   const statusColor =
-    status.tone === 'ok' ? 'var(--ok)' : status.tone === 'caution' ? 'var(--caution)' : 'var(--inert)';
+    status.tone === 'ok'
+      ? 'var(--ok)'
+      : status.tone === 'caution'
+        ? 'var(--caution)'
+        : 'var(--inert)';
 
   const litres = event.litres;
   const inr = litres != null ? litres * price : null;
@@ -42,19 +54,19 @@ export default function EventInvestigationDrawer({ open, onClose, event, context
   const variance = litres != null && avg != null ? litres - avg : null;
   const variancePct = variance != null && avg ? (variance / avg) * 100 : null;
 
-  const billStatus = event.billFlag
-    ? `Mismatch · ${event.billVarianceL ?? '—'} L variance`
-    : event.claimedLitres != null
-      ? 'Matched to bill'
-      : 'No bill on file';
+  const bill = fillBillView(event);
+  const billStatus = bill.statusText;
 
-  const reasonForFlag = event.billFlag
-    ? `Bill vs tank mismatch of ${event.billVarianceL ?? '—'} L — please review.`
-    : event.confirmationStatus === 'ESTIMATED'
-      ? 'Volume estimated from the tank-level jump. FleetEdge confirms in ~4h.'
-      : event.confirmationStatus === 'REJECTED'
-        ? 'FleetEdge did not confirm this as a fill.'
-        : 'Confirmed fill — no anomaly detected.';
+  const reasonForFlag =
+    bill.hasBill && !bill.comparable
+      ? 'This fill cannot be checked against one bill because sensor data is missing or spans a large telemetry gap.'
+      : bill.flagged
+        ? `Corrected sensor − billed is ${bill.varianceText} — please review.`
+        : event.confirmationStatus === 'ESTIMATED'
+          ? 'Volume estimated from the tank-level jump. FleetEdge confirms in ~4h.'
+          : event.confirmationStatus === 'REJECTED'
+            ? 'FleetEdge did not confirm this as a fill.'
+            : 'Confirmed fill — no anomaly detected.';
 
   const hasLoc = event.lat != null && event.lng != null;
 
@@ -75,7 +87,13 @@ export default function EventInvestigationDrawer({ open, onClose, event, context
             </div>
             <div className="text-dim text-xs">≈ {formatINR(inr)} estimated value</div>
           </div>
-          <span className="ov-pill" style={{ color: statusColor, background: `color-mix(in srgb, ${statusColor} 12%, transparent)` }}>
+          <span
+            className="ov-pill"
+            style={{
+              color: statusColor,
+              background: `color-mix(in srgb, ${statusColor} 12%, transparent)`,
+            }}
+          >
             {status.label}
           </span>
         </div>
@@ -83,13 +101,25 @@ export default function EventInvestigationDrawer({ open, onClose, event, context
         {/* detail grid */}
         <div className="fi-detail-grid">
           <Cell label="Fuel type" value="Diesel" />
-          <Cell label="Sensor jump" value={event.smoothedJumpL != null ? formatLitres(event.smoothedJumpL) : '—'} />
+          <Cell
+            label="Raw sensor jump"
+            value={event.smoothedJumpL != null ? formatLitres(event.smoothedJumpL) : '—'}
+          />
+          <Cell label="Sensor fill (corrected)" value={formatLitres(litres)} />
+          <Cell label="Billed" value={formatLitres(event.claimedLitres)} />
+          <Cell label="Sensor − billed" value={bill.varianceText} />
           <Cell label="Previous fill" value={prev != null ? formatLitres(prev) : '—'} />
           <Cell label="Average fill" value={avg != null ? formatLitres(avg) : '—'} />
           <Cell
             label="Variance vs avg"
-            value={variance != null ? `${variance > 0 ? '+' : ''}${formatLitres(variance)}${variancePct != null ? ` (${variancePct > 0 ? '+' : ''}${variancePct.toFixed(0)}%)` : ''}` : '—'}
-            tone={variance != null && Math.abs(variancePct || 0) > 40 ? 'var(--caution)' : undefined}
+            value={
+              variance != null
+                ? `${variance > 0 ? '+' : ''}${formatLitres(variance)}${variancePct != null ? ` (${variancePct > 0 ? '+' : ''}${variancePct.toFixed(0)}%)` : ''}`
+                : '—'
+            }
+            tone={
+              variance != null && Math.abs(variancePct || 0) > 40 ? 'var(--caution)' : undefined
+            }
           />
           <Cell label="Odometer" value={event.odometer != null ? `${event.odometer} km` : '—'} />
           <Cell
@@ -103,20 +133,38 @@ export default function EventInvestigationDrawer({ open, onClose, event, context
             value={hasLoc ? <PlaceLabel lat={event.lat} lng={event.lng} /> : 'Not recorded'}
             full
           />
-          <Cell label="Reason for flag" value={reasonForFlag} full tone={event.billFlag ? 'var(--caution)' : undefined} />
+          <Cell
+            label="Reason for flag"
+            value={reasonForFlag}
+            full
+            tone={event.billFlag ? 'var(--caution)' : undefined}
+          />
         </div>
 
         {/* actions */}
         <div className="grid grid-cols-2 gap-2">
-          <Link to={`/vehicles/${encodeURIComponent(event.vehicle)}`} className="ov-btn justify-center">
+          <Link
+            to={`/vehicles/${encodeURIComponent(event.vehicle)}`}
+            className="ov-btn justify-center"
+          >
             <Truck size={15} /> View vehicle
           </Link>
           {hasLoc ? (
-            <a href={`https://www.google.com/maps?q=${event.lat},${event.lng}`} target="_blank" rel="noreferrer" className="ov-btn justify-center">
+            <a
+              href={`https://www.google.com/maps?q=${event.lat},${event.lng}`}
+              target="_blank"
+              rel="noreferrer"
+              className="ov-btn justify-center"
+            >
               <MapPin size={15} /> View on map
             </a>
           ) : (
-            <button type="button" className="ov-btn justify-center" disabled style={{ opacity: 0.5 }}>
+            <button
+              type="button"
+              className="ov-btn justify-center"
+              disabled
+              style={{ opacity: 0.5 }}
+            >
               <MapPin size={15} /> No location
             </button>
           )}
@@ -134,7 +182,8 @@ export default function EventInvestigationDrawer({ open, onClose, event, context
 
         <p className="text-dim flex items-start gap-1.5 text-[11px] leading-relaxed">
           <Fuel size={12} className="mt-0.5 shrink-0" />
-          All ₹ figures are estimates at ₹{price}/L. Flags mean “please review”, not a confirmed loss.
+          All ₹ figures are estimates at ₹{price}/L. Flags mean “please review”, not a confirmed
+          loss.
         </p>
       </div>
     </SlideOver>

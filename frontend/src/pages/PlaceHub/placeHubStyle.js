@@ -1,4 +1,4 @@
-import { Hexagon, Flame } from 'lucide-react';
+import { placeTypeIcon } from '../../utils/placeTypeIcon.js';
 import typeStyle from './intelligence/placeTypes.js';
 
 /**
@@ -6,8 +6,8 @@ import typeStyle from './intelligence/placeTypes.js';
  * looks like a pump on both pages; adds the two kinds only Place Hub shows.
  */
 const EXTRA = {
-  ZONE: { Icon: Hexagon, color: '#6366f1' },
-  HOTSPOT: { Icon: Flame, color: '#c62828' },
+  ZONE: { Icon: placeTypeIcon('ZONE'), color: '#6366f1' },
+  HOTSPOT: { Icon: placeTypeIcon('HOTSPOT'), color: '#c62828' },
 };
 
 export function styleOfType(type) {

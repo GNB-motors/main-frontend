@@ -90,13 +90,33 @@ describe('resolveRange', () => {
   });
 
   it('expands a quick range into calendar days', () => {
+    expect(resolveRange(at('dates=TODAY'), NOW)).toEqual({
+      from: '2026-10-09',
+      to: '2026-10-09',
+    });
+    expect(resolveRange(at('dates=YESTERDAY'), NOW)).toEqual({
+      from: '2026-10-08',
+      to: '2026-10-08',
+    });
     expect(resolveRange(at('dates=7DAYS'), NOW)).toEqual({
       from: '2026-10-03',
+      to: '2026-10-09',
+    });
+    expect(resolveRange(at('dates=15DAYS'), NOW)).toEqual({
+      from: '2026-09-25',
+      to: '2026-10-09',
+    });
+    expect(resolveRange(at('dates=30DAYS'), NOW)).toEqual({
+      from: '2026-09-10',
       to: '2026-10-09',
     });
     expect(resolveRange(at('dates=MONTH'), NOW)).toEqual({
       from: '2026-10-01',
       to: '2026-10-09',
+    });
+    expect(resolveRange(at('dates=LAST_MONTH'), NOW)).toEqual({
+      from: '2026-09-01',
+      to: '2026-09-30',
     });
   });
 
@@ -149,6 +169,14 @@ describe('toRequestParams', () => {
     expect(toRequestParams(at('dates=7DAYS'), NOW)).toEqual({
       startDate: '2026-10-03T00:00:00.000+05:30',
       endDate: '2026-10-09T23:59:59.999+05:30',
+    });
+    expect(toRequestParams(at('dates=15DAYS'), NOW)).toEqual({
+      startDate: '2026-09-25T00:00:00.000+05:30',
+      endDate: '2026-10-09T23:59:59.999+05:30',
+    });
+    expect(toRequestParams(at('dates=LAST_MONTH'), NOW)).toEqual({
+      startDate: '2026-09-01T00:00:00.000+05:30',
+      endDate: '2026-09-30T23:59:59.999+05:30',
     });
   });
 

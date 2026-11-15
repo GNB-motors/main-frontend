@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React from 'react';
 
 /** Lets the user point each vehicle field at a column of the uploaded sheet. */
@@ -20,7 +21,7 @@ const BulkUploadVehiclesMapping = ({
             {col.label}
             {col.required ? <em> *</em> : null}
           </span>
-          <select
+          <SearchableSelect
             value={mapping[col.key] || ''}
             onChange={(e) => handleMappingChange(col.key, e.target.value)}
             disabled={isSubmitting}
@@ -31,7 +32,7 @@ const BulkUploadVehiclesMapping = ({
                 {h}
               </option>
             ))}
-          </select>
+          </SearchableSelect>
         </label>
       ))}
     </div>

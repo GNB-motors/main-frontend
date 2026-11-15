@@ -9,7 +9,7 @@ import {
   Droplet,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { TripService, OCRService } from '../Trip/services';
 import { getVehicleList } from '../../services/vehicleListService';
 import PageShell from '../../components/ui/PageShell';
@@ -21,6 +21,10 @@ import './MileageTracking.css';
 
 const AdBlueLogPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // The DEF & AdBlue ledger deep-links here with ?vehicleId= to log against one truck.
+  const prefillVehicleId = searchParams.get('vehicleId');
+  const backTo = '/def-ledger';
   const [isLoading, setIsLoading] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [selectedDriver, setSelectedDriver] = useState(null);
@@ -58,13 +62,16 @@ const AdBlueLogPage = () => {
       try {
         const vehicleList = await getVehicleList();
         const drvRes = await TripService.getDrivers({ limit: 100 });
-        setVehicles(
-          vehicleList.map((v) => ({
-            id: v._id,
-            name: v.registrationNumber,
-            registration: `${v.vehicleType} - ${v.model || 'N/A'}`,
-          })),
-        );
+        const mappedVehicles = vehicleList.map((v) => ({
+          id: v._id,
+          name: v.registrationNumber,
+          registration: `${v.vehicleType} - ${v.model || 'N/A'}`,
+        }));
+        setVehicles(mappedVehicles);
+        if (prefillVehicleId) {
+          const match = mappedVehicles.find((v) => v.id === prefillVehicleId);
+          if (match) setSelectedVehicle(match);
+        }
         setDrivers(
           (drvRes?.data || []).map((d) => ({
             id: d._id,
@@ -80,7 +87,7 @@ const AdBlueLogPage = () => {
       }
     };
     fetchDeps();
-  }, []);
+  }, [prefillVehicleId]);
 
   const filteredVehicles = useMemo(
     () =>
@@ -173,7 +180,7 @@ const AdBlueLogPage = () => {
 
       await MileageTrackingService.createAdBlueLog(payload);
       toast.success('AdBlue entry saved');
-      navigate('/adblue-tracking');
+      navigate(backTo);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to submit AdBlue entry.');
     } finally {
@@ -188,11 +195,7 @@ const AdBlueLogPage = () => {
         subtitle="Record AdBlue top-ups. Proof upload is optional."
         actions={
           <>
-            <button
-              type="button"
-              className="mileage-back-circle"
-              onClick={() => navigate('/adblue-tracking')}
-            >
+            <button type="button" className="mileage-back-circle" onClick={() => navigate(backTo)}>
               <ArrowLeft size={18} />
             </button>
             <div className="mileage-header-icon-badge">
@@ -330,7 +333,7 @@ const AdBlueLogPage = () => {
               <button
                 type="button"
                 className="mileage-btn mileage-btn-secondary"
-                onClick={() => navigate('/adblue-tracking')}
+                onClick={() => navigate(backTo)}
               >
                 Cancel
               </button>

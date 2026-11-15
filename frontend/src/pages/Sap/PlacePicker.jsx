@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { useDeferredValue, useState } from 'react';
 import useApi from '../../hooks/useApi';
 import PlaceIntelligenceService from '../PlaceHub/intelligence/PlaceIntelligenceService';
@@ -29,7 +30,7 @@ export default function PlacePicker({ label = 'Search a place', disabled, onChoo
         <>
           <label>
             Place
-            <select
+            <SearchableSelect
               value={siteId}
               disabled={q.loading || !!q.error}
               onChange={(e) => setSiteId(e.target.value)}
@@ -40,7 +41,7 @@ export default function PlacePicker({ label = 'Search a place', disabled, onChoo
                   {s.name || s.siteType}
                 </option>
               ))}
-            </select>
+            </SearchableSelect>
           </label>
           {q.error && (
             <p role="alert">

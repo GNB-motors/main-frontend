@@ -1,0 +1,275 @@
+.wxp-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #e7ecf4;
+  overflow: hidden;
+}
+.wxp-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: #4c6ef5;
+  transition: width 0.2s ease;
+}
+.wxp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+.wxp-table th,
+.wxp-table td {
+  padding: 6px 0;
+  border-bottom: 1px solid #eef1f6;
+  font-weight: 400;
+  vertical-align: top;
+}
+.wxp-table th {
+  color: #59667b;
+}
+.wxp-table td {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #162033;
+}
+.wxp-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.65;
+  color: #68768d;
+  text-align: left;
+}
+/* The amber state: the chat came in, but some of it could not be read. */
+.bp-warning,
+.bp-failed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  text-align: center;
+}
+.bp-warning strong,
+.bp-failed strong {
+  font-size: 14px;
+}
+.bp-warning span,
+.bp-failed span,
+.bp-warning li {
+  font-size: 12px;
+  line-height: 1.65;
+  color: #68768d;
+}
+.bp-warning > svg {
+  color: #a16b00;
+}
+.bp-failed > svg {
+  color: #ac3030;
+}
+.bp-warning ul {
+  margin: 0;
+  padding-left: 20px;
+  text-align: left;
+}
+/* The live list: the photos as they are read, newest first. */
+.wxp-live {
+  width: 100%;
+  text-align: left;
+}
+.wxp-live-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid #eef1f6;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+.wxp-live-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  border-bottom: 1px solid #f2f5fa;
+}
+.wxp-live-row:last-child {
+  border-bottom: none;
+}
+.wxp-live-mark {
+  flex: none;
+  width: 14px;
+  font-weight: 600;
+  color: #162033;
+}
+.wxp-live-text {
+  color: #46536a;
+  overflow-wrap: anywhere;
+}
+/* The neutral state: nothing new came in, so there is nothing to be happy about. */
+.bp-neutral {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  text-align: center;
+}
+.bp-neutral strong {
+  font-size: 14px;
+}
+.bp-neutral span {
+  font-size: 12px;
+  line-height: 1.65;
+  color: #68768d;
+}
+
+/* On a 390 px phone the dialog fits the screen: the body scrolls, the footer
+   stays where it is and nothing is cut off. */
+@media (max-width: 460px) {
+  .bp-dialog {
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+  }
+
+  .bp-dialog .bp-dialog-body {
+    padding: 16px;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .bp-dialog .bp-dialog-foot {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+  }
+}
+
+/* The footer wraps, and a button that cannot be used yet looks it. */
+.bp-dialog .bp-dialog-foot {
+  flex-wrap: wrap;
+}
+
+.bp-dialog .bp-dialog-foot button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* A long list of results scrolls inside the dialog, never the page. */
+.bp-dialog .bp-dialog-body .wxp-table,
+.bp-dialog .bp-dialog-body ul {
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+
+/* Reading has begun, but the server has not said how many photos there are. */
+.wxp-bar--indeterminate .wxp-bar-fill {
+  width: 35%;
+  animation: wxp-progress-slide 1.2s ease-in-out infinite;
+}
+@keyframes wxp-progress-slide {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(310%);
+  }
+}
+
+/* The driver names from the chat, when some still need a person to decide. */
+.wxp-driver-card {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #f0d49a;
+  border-radius: 10px;
+  background: #fff9ec;
+  color: #6f4d00;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.55;
+  text-align: left;
+  cursor: pointer;
+}
+.wxp-driver-card:hover {
+  background: #fff5dd;
+}
+.wxp-driver-card:focus-visible {
+  outline: 2px solid #4c6ef5;
+  outline-offset: 2px;
+}
+.wxp-driver-dialog {
+  width: min(760px, calc(100vw - 32px));
+  max-width: min(760px, calc(100vw - 32px));
+}
+.wxp-driver-body {
+  min-height: 0;
+  overflow-y: auto;
+}
+.wxp-driver-table-wrap {
+  max-height: 48vh;
+  overflow: auto;
+  border: 1px solid #e7ecf4;
+  border-radius: 9px;
+}
+.wxp-driver-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+.wxp-driver-table th,
+.wxp-driver-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid #eef1f6;
+  vertical-align: top;
+}
+.wxp-driver-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f7f9fc;
+  color: #59667b;
+  font-weight: 600;
+}
+.wxp-driver-table tr:last-child td {
+  border-bottom: none;
+}
+.wxp-driver-table small {
+  display: block;
+  margin-top: 3px;
+  color: #68768d;
+}
+.wxp-driver-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.wxp-driver-row-error {
+  color: #ac3030 !important;
+}
+.wxp-driver-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: #fff1f1;
+  color: #ac3030;
+  font-size: 12px;
+}
+
+@media (max-width: 460px) {
+  .wxp-driver-dialog {
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+  }
+  .wxp-driver-table {
+    min-width: 620px;
+  }
+}

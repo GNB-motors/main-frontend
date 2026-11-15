@@ -1,6 +1,4 @@
-import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { labelStyle, rowStyle } from './approvalDialogStyles';
 
 const WEEKDAYS = [
   { d: 1, label: 'Mon' },
@@ -27,28 +25,28 @@ const ApprovalWhenFields = ({
   toHour,
   setToHour,
 }) => (
-  <div style={rowStyle}>
-    <span style={labelStyle}>When</span>
-    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-      <Button
+  <div className="atx-field atx-field--wide">
+    <span className="atx-field-label">When</span>
+    <div className="atx-seg" role="group" aria-label="When type">
+      <button
         type="button"
-        size="sm"
-        variant={timeMode === 'window' ? 'default' : 'outline'}
+        className={`atx-seg-item${timeMode === 'window' ? ' atx-seg-item--active' : ''}`}
+        aria-pressed={timeMode === 'window'}
         onClick={() => setTimeMode('window')}
       >
         One-time window
-      </Button>
-      <Button
+      </button>
+      <button
         type="button"
-        size="sm"
-        variant={timeMode === 'recurrence' ? 'default' : 'outline'}
+        className={`atx-seg-item${timeMode === 'recurrence' ? ' atx-seg-item--active' : ''}`}
+        aria-pressed={timeMode === 'recurrence'}
         onClick={() => setTimeMode('recurrence')}
       >
         Recurring
-      </Button>
+      </button>
     </div>
     {timeMode === 'window' ? (
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div className="grid grid-cols-2 gap-3">
         <Input
           type="date"
           aria-label="From date"
@@ -64,22 +62,22 @@ const ApprovalWhenFields = ({
         />
       </div>
     ) : (
-      <div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+      <div className="flex flex-col gap-2">
+        <div className="atx-seg atx-seg--sm" role="group" aria-label="Weekdays">
           {WEEKDAYS.map((w) => (
-            <Button
+            <button
               key={w.d}
               type="button"
-              size="sm"
-              variant={weekdays.includes(w.d) ? 'default' : 'outline'}
+              className={`atx-seg-item${weekdays.includes(w.d) ? ' atx-seg-item--active' : ''}`}
+              aria-pressed={weekdays.includes(w.d)}
               onClick={() => toggleDay(w.d)}
             >
               {w.label}
-            </Button>
+            </button>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <span style={{ fontSize: 13 }}>From hour</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[13px] text-[var(--ds-ink2)]">From hour</span>
           <Input
             type="number"
             min="0"
@@ -87,9 +85,9 @@ const ApprovalWhenFields = ({
             aria-label="From hour"
             value={fromHour}
             onChange={(e) => setFromHour(e.target.value)}
-            style={{ width: 80 }}
+            className="w-[80px]"
           />
-          <span style={{ fontSize: 13 }}>to</span>
+          <span className="text-[13px] text-[var(--ds-ink2)]">to</span>
           <Input
             type="number"
             min="0"
@@ -97,7 +95,7 @@ const ApprovalWhenFields = ({
             aria-label="To hour"
             value={toHour}
             onChange={(e) => setToHour(e.target.value)}
-            style={{ width: 80 }}
+            className="w-[80px]"
           />
         </div>
       </div>

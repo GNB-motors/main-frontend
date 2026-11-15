@@ -66,6 +66,12 @@ beforeEach(() => {
           markers.push(this);
         }
       },
+      Size: class {
+        constructor(width, height) {
+          this.width = width;
+          this.height = height;
+        }
+      },
       Point: class {
         constructor(x, y) {
           this.x = x;

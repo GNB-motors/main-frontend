@@ -181,14 +181,26 @@ export default function VehicleDashboardPanel({
               if (bucket === 'expired') {
                 statusLabel = `Expired (${Math.abs(days)}d ago)`;
                 statusClass = 'v-dash-card-status--expired';
+              } else if (bucket === 'verified') {
+                statusLabel = days !== null ? `Verified (${days}d left)` : 'Verified';
+                statusClass = 'v-dash-card-status--valid';
               } else if (bucket === 'healthy') {
-                statusLabel = `Expires in ${days} days`;
+                statusLabel = days !== null ? `Expires in ${days} days` : 'Uploaded';
                 statusClass = 'v-dash-card-status--valid';
               } else if (bucket === 'warning' || bucket === 'critical') {
                 statusLabel = `Expiring soon (${days}d left)`;
                 statusClass = 'v-dash-card-status--warning';
+              } else if (bucket === 'rejected') {
+                statusLabel = 'Verification Rejected';
+                statusClass = 'v-dash-card-status--expired';
+              } else if (bucket === 'pending') {
+                statusLabel = docEntry?.ocrStatus === 'FAILED' ? 'Verify needed' : 'OCR processing';
+                statusClass = 'v-dash-card-status--pending';
+              } else if (bucket === 'uploaded') {
+                statusLabel = 'Uploaded';
+                statusClass = 'v-dash-card-status--valid';
               } else {
-                statusLabel = docEntry?.uploaded ? 'OCR processing' : 'Not uploaded';
+                statusLabel = 'Not uploaded';
                 statusClass = 'v-dash-card-status--missing';
               }
 

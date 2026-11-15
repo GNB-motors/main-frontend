@@ -1,0 +1,70 @@
+/*
+ * Driver expense bills — the queue that stays apart from office bill photos.
+ * The office queue is a link away, never a second tab here.
+ */
+
+.dba-page .erp-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.dba-office-link {
+  color: var(--erp-primary, #2563eb);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dba-office-link:hover,
+.dba-office-link:focus-visible {
+  text-decoration: underline;
+}
+
+.dba-error p {
+  margin: 8px 0;
+  font-weight: 600;
+}
+
+.dba-error .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The table scrolls inside its own box, so the page never scrolls sideways. */
+.dba-page .erp-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dba-page .erp-table-scroll .erp-table {
+  min-width: 620px;
+}
+
+@media (max-width: 640px) {
+  .dba-page .erp-modal-backdrop {
+    padding: 12px;
+  }
+
+  .dba-page .erp-modal {
+    max-height: calc(100dvh - 24px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dba-page .erp-modal-body {
+    padding: 16px;
+    overflow-y: auto;
+  }
+
+  .dba-page .erp-modal-footer {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .dba-page .erp-modal-footer .btn {
+    flex: 1 1 auto;
+  }
+}

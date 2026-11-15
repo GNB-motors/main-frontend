@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useMemo } from 'react';
 import { toISTDateString } from '../../utils/dateUtils';
 
@@ -52,7 +53,10 @@ const buildPreset = (key, now = new Date()) => {
       const lastY = m === 1 ? y - 1 : y;
       const mm = String(lastM).padStart(2, '0');
       const lastDay = new Date(lastY, lastM, 0).getDate();
-      return { from: `${lastY}-${mm}-01`, to: `${lastY}-${mm}-${String(lastDay).padStart(2, '0')}` };
+      return {
+        from: `${lastY}-${mm}-01`,
+        to: `${lastY}-${mm}-${String(lastDay).padStart(2, '0')}`,
+      };
     }
     case 'FY':
       return financialYearBounds(now);
@@ -105,10 +109,12 @@ const DateRangeFilter = ({
 
   return (
     <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-      {label && <span style={{ fontSize: '13px', color: '#475569', fontWeight: 500 }}>{label}</span>}
+      {label && (
+        <span style={{ fontSize: '13px', color: '#475569', fontWeight: 500 }}>{label}</span>
+      )}
 
       {showPresets && (
-        <select
+        <SearchableSelect
           className="erp-filter"
           value={activePreset}
           disabled={disabled}
@@ -116,10 +122,12 @@ const DateRangeFilter = ({
           aria-label="Date range preset"
         >
           {presets.map((p) => (
-            <option key={p.key} value={p.key}>{p.label}</option>
+            <option key={p.key} value={p.key}>
+              {p.label}
+            </option>
           ))}
           <option value="CUSTOM">Custom…</option>
-        </select>
+        </SearchableSelect>
       )}
 
       <input

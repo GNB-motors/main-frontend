@@ -46,6 +46,7 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--accent-ink);
+  cursor: pointer;
 }
 
 .pi-detail-sec {
@@ -252,6 +253,57 @@
   color: var(--ds-crit-ink);
 }
 
+.pi-region-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.pi-region-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 82px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 150ms,
+    box-shadow 150ms;
+}
+
+.pi-region-action--keep {
+  background: var(--ds-ok-tint, #e9f6ee);
+  color: var(--ds-ok-ink, #166534);
+}
+
+.pi-region-action--reject {
+  background: var(--ph-crit-tint, #fdeceb);
+  color: var(--ph-crit, #c62828);
+}
+
+.pi-region-action:not(:disabled):hover {
+  background: color-mix(in srgb, currentColor 18%, var(--ph-surface, #fff));
+  box-shadow: 0 2px 5px rgb(15 23 42 / 12%);
+}
+
+.pi-region-action:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.pi-region-action:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
 .pi-btn-yes:disabled,
 .pi-btn-quiet:disabled,
 .pi-chip:disabled {
@@ -445,4 +497,128 @@
 
 .pi-trav .is-ok {
   color: var(--ds-ok-ink);
+}
+
+/* ─── Place map modal (driver homes + facilities) ─────────────────────────── */
+
+.pi-row-click {
+  cursor: pointer;
+}
+
+.pi-row-click:hover td {
+  background: #f6f8ff;
+}
+
+.pi-row-click:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: -2px;
+}
+
+.pi-cell-strong {
+  font-weight: 600;
+  color: var(--ds-ink);
+}
+
+.pi-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pi-modal-ico {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  color: #2563eb;
+  background: color-mix(in srgb, #2563eb 12%, transparent);
+}
+
+.pi-modal-body {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  align-items: stretch;
+}
+
+@media (max-width: 700px) {
+  .pi-modal-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pi-mini-map {
+  width: 100%;
+  height: 100%;
+  min-height: 380px;
+  background: var(--ds-sunk);
+}
+
+@media (max-width: 700px) {
+  .pi-mini-map {
+    min-height: 260px;
+  }
+}
+
+.pi-mini-map--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ds-ink3);
+  font-size: 13px;
+  text-align: center;
+  padding: 0 16px;
+}
+
+.pi-modal-side {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 20px;
+  border-left: 1px solid var(--ds-line);
+}
+
+@media (max-width: 700px) {
+  .pi-modal-side {
+    border-left: 0;
+    border-top: 1px solid var(--ds-line);
+  }
+}
+
+.pi-fact {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--ds-line);
+  font-size: 13px;
+}
+
+.pi-fact:last-child {
+  border-bottom: 0;
+}
+
+.pi-fact dt {
+  flex: none;
+  color: var(--ds-ink3);
+}
+
+.pi-fact dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 600;
+  color: var(--ds-ink);
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.pi-modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--ds-line);
+  background: var(--ds-sunk);
 }

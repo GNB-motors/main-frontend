@@ -7,8 +7,19 @@
  *  - a cycle that ran real km with no trip at all, and
  *  - trips longer than the cycle, which means a slip odometer is wrong.
  */
+import { PARTIAL_LABEL } from '../../../utils/measured';
 
 const NO_TRIP_MIN_KM = 50;
+
+/**
+ * "Partly measured" when the server says the cycle's trip km are only partly
+ * measured; null when every km of the cycle was measured. The words stay
+ * neutral: the server means something different by this flag on each side of
+ * the new backend.
+ */
+export function kmPartialLabel(summary) {
+  return summary?.kmPartial === true ? PARTIAL_LABEL : null;
+}
 
 /** null | { tone: 'red'|'amber', label } for the cycle's "Not in trips" cell. */
 export function notInTripsAlert(summary) {

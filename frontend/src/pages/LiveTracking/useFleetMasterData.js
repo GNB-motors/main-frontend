@@ -40,10 +40,12 @@ export default function useFleetMasterData() {
     const controller = new AbortController();
     const loadAssignments = async () => {
       try {
-        const res = await DriverVehicleAssignmentService.getAssignments(
-          {},
-          { signal: controller.signal },
-        );
+        // Every assignment covering NOW, all pages — not the list API's default
+        // first 50 "active or future" rows (audit DC-22). Only a fallback: the
+        // positions API carries the driver of record itself.
+        const res = await DriverVehicleAssignmentService.getAllActiveAssignments({
+          signal: controller.signal,
+        });
         const list = Array.isArray(res) ? res : res?.items || res?.records || [];
         if (controller.signal.aborted) return;
         const map = {};

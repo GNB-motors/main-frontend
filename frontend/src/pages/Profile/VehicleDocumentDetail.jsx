@@ -17,6 +17,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { DOC_COLS, bucketFor, daysUntil } from './vehicleDashboardLogic';
+import { normalizeDocType } from './vehicleDocNormalization';
 
 export default function VehicleDocumentDetail({
   selectedVehicle,
@@ -42,9 +43,17 @@ export default function VehicleDocumentDetail({
   const bucket = bucketFor(docEntry);
   const days = daysUntil(docEntry?.expiryDate);
 
-  // Find the full document from fetched list
-  const fullDoc = fullDocs.find((d) => d.docType === selectedDocKey);
-  const files = fullDoc?.files || [];
+  // Find the full document from fetched list using canonical type matching
+  const fullDoc = fullDocs.find(
+    (d) => normalizeDocType(d.docType) === selectedDocKey || d.docType === selectedDocKey,
+  );
+  const files = fullDoc?.files?.length
+    ? fullDoc.files
+    : docEntry?.files?.length
+      ? docEntry.files
+      : docEntry?.publicUrl
+        ? [{ side: 'SINGLE', publicUrl: docEntry.publicUrl, mimeType: 'image/jpeg' }]
+        : [];
   const frontFile = files.find((f) => f.side === 'FRONT') || files[0];
   const backFile = files.find((f) => f.side === 'BACK') || files[1];
   const currentFile = activeSide === 'BACK' && backFile ? backFile : frontFile;
@@ -54,7 +63,7 @@ export default function VehicleDocumentDetail({
     currentFile?.publicUrl?.toLowerCase()?.includes('.pdf'),
   );
 
-  const ocrFields = fullDoc?.ocr?.fields || {};
+  const ocrFields = fullDoc?.ocr?.fields || docEntry?.ocr?.fields || {};
   const ocrStatus =
     fullDoc?.ocr?.status || docEntry?.ocrStatus || (docEntry?.uploaded ? 'PENDING' : 'NONE');
 
@@ -66,16 +75,32 @@ export default function VehicleDocumentDetail({
     badgeStatusText = `Expired (${Math.abs(days)}d ago)`;
     badgeColorClass = 'v-dash-status-pill--expired';
     badgeIcon = <XCircle size={14} />;
+  } else if (bucket === 'verified') {
+    badgeStatusText = days !== null ? `Verified (${days} days left)` : 'Verified';
+    badgeColorClass = 'v-dash-status-pill--valid';
+    badgeIcon = <CheckCircle2 size={14} />;
   } else if (bucket === 'healthy') {
-    badgeStatusText = `Valid (${days} days left)`;
+    badgeStatusText = days !== null ? `Valid (${days} days left)` : 'Uploaded';
     badgeColorClass = 'v-dash-status-pill--valid';
     badgeIcon = <CheckCircle2 size={14} />;
   } else if (bucket === 'warning' || bucket === 'critical') {
     badgeStatusText = `Expiring Soon (${days} days left)`;
     badgeColorClass = 'v-dash-status-pill--warning';
     badgeIcon = <AlertTriangle size={14} />;
+  } else if (bucket === 'rejected') {
+    badgeStatusText = 'Verification Rejected';
+    badgeColorClass = 'v-dash-status-pill--expired';
+    badgeIcon = <XCircle size={14} />;
+  } else if (bucket === 'pending') {
+    badgeStatusText = docEntry?.ocrStatus === 'FAILED' ? 'Verification Needed' : 'OCR In Progress';
+    badgeColorClass = 'v-dash-status-pill--pending';
+    badgeIcon = <HelpCircle size={14} />;
+  } else if (bucket === 'uploaded') {
+    badgeStatusText = 'Document Uploaded';
+    badgeColorClass = 'v-dash-status-pill--valid';
+    badgeIcon = <CheckCircle2 size={14} />;
   } else {
-    badgeStatusText = docEntry?.uploaded ? 'OCR In Progress' : 'Document Missing';
+    badgeStatusText = 'Document Missing';
     badgeColorClass = 'v-dash-status-pill--missing';
     badgeIcon = <HelpCircle size={14} />;
   }
@@ -216,7 +241,7 @@ export default function VehicleDocumentDetail({
                 <UploadCloud size={32} className="v-dash-empty-icon" />
                 <p className="v-dash-preview-empty-text">
                   {docEntry?.uploaded
-                    ? 'File processing. Scanned image will appear once verified.'
+                    ? 'Document record found. Scanned file preview is currently inaccessible or syncing with storage.'
                     : 'No scanned copy uploaded for this vehicle.'}
                 </p>
                 <button
@@ -225,7 +250,9 @@ export default function VehicleDocumentDetail({
                   onClick={() => onManageVehicle(selectedVehicle)}
                 >
                   <UploadCloud size={14} />
-                  <span>Upload {docMeta.short} Now</span>
+                  <span>
+                    {docEntry?.uploaded ? 'Replace / Upload File' : `Upload ${docMeta.short} Now`}
+                  </span>
                 </button>
               </div>
             )}
@@ -236,6 +263,44 @@ export default function VehicleDocumentDetail({
         <div className="v-dash-metadata-section" style={{ flexShrink: 0 }}>
           <h4 className="v-dash-section-subhead">Verification &amp; OCR Metadata</h4>
           <div className="v-dash-metadata-grid">
+            <div className="v-dash-meta-row">
+              <span className="v-dash-meta-label">
+                <FileText size={13} /> Document Name
+              </span>
+              <span className="v-dash-meta-value">
+                {docEntry?.fileName || fullDoc?.fileName || docMeta.label}
+              </span>
+            </div>
+
+            <div className="v-dash-meta-row">
+              <span className="v-dash-meta-label">
+                <Calendar size={13} /> Uploaded On
+              </span>
+              <span className="v-dash-meta-value">
+                {docEntry?.uploadedAt || fullDoc?.uploadedAt
+                  ? new Date(docEntry?.uploadedAt || fullDoc?.uploadedAt).toLocaleDateString(
+                      'en-IN',
+                      {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      },
+                    )
+                  : '—'}
+              </span>
+            </div>
+
+            <div className="v-dash-meta-row">
+              <span className="v-dash-meta-label">
+                <CheckCircle2 size={13} /> Verification
+              </span>
+              <span className="v-dash-meta-value">
+                {docEntry?.isVerified || fullDoc?.isVerified
+                  ? 'VERIFIED'
+                  : docEntry?.verificationStatus ||
+                    (docEntry?.ocrStatus === 'FAILED' ? 'REJECTED / MANUAL REVIEW' : 'PENDING')}
+              </span>
+            </div>
             <div className="v-dash-meta-row">
               <span className="v-dash-meta-label">
                 <Calendar size={13} /> Expiry Date

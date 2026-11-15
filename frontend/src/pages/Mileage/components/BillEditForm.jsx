@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import { useMutation } from '../../../hooks/useMutation';
@@ -58,7 +59,7 @@ export default function BillEditForm({ bill, onCancel, onSaved }) {
   return (
     <form onSubmit={submit} className="grid grid-cols-2 gap-2.5 py-2">
       <Field id="bill-fuel" label="Fuel">
-        <select
+        <SearchableSelect
           id="bill-fuel"
           className={inputClass}
           value={form.fuelType}
@@ -66,10 +67,10 @@ export default function BillEditForm({ bill, onCancel, onSaved }) {
         >
           <option value="DIESEL">Diesel</option>
           <option value="ADBLUE">AdBlue</option>
-        </select>
+        </SearchableSelect>
       </Field>
       <Field id="bill-fill" label="Fill">
-        <select
+        <SearchableSelect
           id="bill-fill"
           className={inputClass}
           value={form.fillingType}
@@ -77,7 +78,7 @@ export default function BillEditForm({ bill, onCancel, onSaved }) {
         >
           <option value="PARTIAL">Part tank</option>
           <option value="FULL_TANK">Full tank</option>
-        </select>
+        </SearchableSelect>
       </Field>
       <Field id="bill-litres" label="Litres">
         <input

@@ -4,6 +4,23 @@
 import { dropLabel } from '../PlaceHub/intelligence/facilityText';
 import { notReachedYet, toDate } from './autoTripFormat';
 
+/** Keep the delivery timeline inside the same window as the loaded replay. */
+export function timelineTrip(trip, scope = 'DELIVERY') {
+  if (!trip || scope === 'JOURNEY') return trip;
+  const arrivals = [trip.drop, ...(trip.extraDrops || [])]
+    .map((drop) => toDate(drop?.arrivedAt)?.getTime())
+    .filter(Number.isFinite);
+  if (!arrivals.length) return trip;
+  const end = Math.max(...arrivals);
+  return {
+    ...trip,
+    routeStops: (trip.routeStops || []).filter((stop) => {
+      const start = toDate(stop.startAt)?.getTime();
+      return Number.isFinite(start) && start <= end;
+    }),
+  };
+}
+
 // ─── Trip timeline ───────────────────────────────────────────────────────────
 
 const STOP_KIND_LABEL = {
@@ -12,7 +29,7 @@ const STOP_KIND_LABEL = {
   OVERNIGHT: 'Overnight stop',
   DHABA: 'Food stop',
   FOOD: 'Food stop',
-  TOLL: 'Toll',
+  TOLL: 'Toll plaza',
   PARKING: 'Parking',
   SERVICE: 'Service stop',
   REPAIR: 'Repair stop',
@@ -26,16 +43,21 @@ const STOP_KIND_LABEL = {
 const DROP_NOTE = {
   LABELLED_PLACE: 'drop place',
   HUMAN: 'set by a person',
-  INFERRED_TURNAROUND: 'guessed',
+  // The engine took the turnaround point as the drop; only a person can
+  // confirm it, so the note asks for the answer.
+  INFERRED_TURNAROUND: 'inferred, needs your answer',
 };
 
-/** What a stop after the plant was: a person's answer wins over the engine's guess. */
+/**
+ * What a stop after the plant was: a person's answer wins over the engine's guess. A stop the engine
+ * could not explain inside a toll plaza is a toll stop: the place says so even when its stop does not.
+ */
 export function stopKind(stop) {
   const answer = stop?.humanReason?.purpose;
   if (answer) return STOP_KIND_LABEL[answer.toUpperCase()] ? answer.toUpperCase() : 'UNKNOWN';
-  if (stop?.purpose?.unexplained) return 'UNKNOWN';
   const top = (stop?.purpose?.top || '').toUpperCase();
-  return STOP_KIND_LABEL[top] ? top : 'UNKNOWN';
+  const known = !stop?.purpose?.unexplained && STOP_KIND_LABEL[top] ? top : 'UNKNOWN';
+  return known === 'UNKNOWN' && stop?.place?.siteType === 'TOLL' ? 'TOLL' : known;
 }
 
 function stopPlace(stop) {

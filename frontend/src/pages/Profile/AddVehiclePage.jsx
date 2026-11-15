@@ -16,6 +16,7 @@ import { mapFetchedDocsToUiState } from './addVehicleDocMapping';
 import { ImportVehicleDialog } from './ImportVehicleDialog';
 import './VehiclesPage.css';
 import './AddVehiclePage.css';
+import '../../components/EntityFormLayout.css';
 import logger from '../../utils/logger';
 import useVehicleManufacturers from './useVehicleManufacturers.js';
 import { eligibleAccounts, canonicalManufacturer } from './vehicleManufacturerOptions.js';
@@ -49,7 +50,8 @@ const AddVehiclePage = () => {
   const assignedAccountRef = useRef('');
   const originalManufacturerRef = useRef('');
   const canAssignAccount = ['OWNER', 'SUPER_ADMIN'].includes(getUserRole());
-  const { manufacturers, metadataError, retryMetadata } = useVehicleManufacturers();
+  const { manufacturers, metadataError, metadataLoading, retryMetadata } =
+    useVehicleManufacturers();
   const compatibleAccounts = eligibleAccounts(fleetEdgeAccounts, liveManufacturer);
 
   // Owning location (branch) for the new vehicle. Defaults to the active location.
@@ -302,8 +304,8 @@ const AddVehiclePage = () => {
   };
 
   return (
-    <div className="vehicles-page-container add-vehicle-page" style={themeColors}>
-      <div className="add-vehicle-container">
+    <div className="vehicles-page-container add-vehicle-page entity-form-page" style={themeColors}>
+      <div className="add-vehicle-container entity-form-content">
         {saveMessage && (
           <div className="vehicle-save-message" role="alert">
             {saveMessage}
@@ -376,6 +378,7 @@ const AddVehiclePage = () => {
           fleetEdgeAccounts={compatibleAccounts}
           manufacturers={manufacturers}
           metadataError={metadataError}
+          metadataLoading={metadataLoading}
           onRetryMetadata={retryMetadata}
           manufacturer={liveManufacturer}
           onManufacturerChange={setLiveManufacturer}

@@ -6,6 +6,7 @@ import { clock } from './deviationRules';
  */
 export default function DeviationTimeline({ model, onSelect }) {
   if (!model) return null;
+  if (model.outsideTrip) return <p className="dev-tl muted">This run happened outside the linked trip</p>;
   return (
     <div className="dev-tl" aria-label="Trip timeline">
       <div className="dev-tl-bar">

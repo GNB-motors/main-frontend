@@ -13,7 +13,6 @@ import PageShell from '../../components/ui/PageShell.jsx';
 import { Button } from '../../components/ui/button.jsx';
 import { getUsageSummary } from '../../services/UsageAnalyticsService.js';
 import { useUsageAnalytics } from '../../contexts/UsageAnalyticsContext';
-import { applyUsageCut } from '../../utils/navCut';
 import { formatCount as number, navLabels, visibleUsageRows } from './usageModel.js';
 import UsageTrendPanel from './UsageTrendPanel.jsx';
 import './UsageAnalytics.css';
@@ -56,14 +55,16 @@ export default function UsageAnalyticsPage() {
 
   const labels = React.useMemo(() => navLabels(catalog), [catalog]);
   const rows = visibleUsageRows(data?.surfaces || [], labels, { query, disposition, sort });
-  const cut = applyUsageCut(catalog, data);
+  const lessUsed = (data?.surfaces || []).filter(
+    (row) => row.disposition === 'BELOW_ORG_FLOOR' || row.disposition === 'NEVER_OPENED',
+  ).length;
   const activeScreens = (data?.surfaces || []).filter((row) => row.evidence?.views > 0).length;
   const refresh = () => setRevision((value) => value + 1);
 
   return (
     <PageShell
       title="App Usage"
-      subtitle="Understand which screens your team opens and how your menu is organized."
+      subtitle="See how many times your team opens each screen."
       freshnessAt={data?.computedAt}
       className="usage-page"
       actions={
@@ -98,7 +99,7 @@ export default function UsageAnalyticsPage() {
               { label: 'Page opens', value: data.learned?.totalViews, Icon: Activity },
               { label: 'Active screens', value: activeScreens, Icon: LayoutGrid },
               { label: 'User-days', value: data.learned?.userDays, Icon: Users },
-              { label: 'Less-used screens', value: cut.folded.length, Icon: PanelLeft },
+              { label: 'Less-used screens', value: lessUsed, Icon: PanelLeft },
             ].map(({ label, value, Icon }) => (
               <div className="usage-stat" key={label}>
                 <span className="usage-stat-icon">
@@ -117,7 +118,7 @@ export default function UsageAnalyticsPage() {
             </strong>
             <p>
               {data.state === 'LEARNED'
-                ? `${number(cut.folded.length)} screens are opened less than your organization’s median of ${number(data.learned?.engagementFloor)} opens, or not at all. They stay in your menu.`
+                ? `${number(lessUsed)} screens are opened less than your organization’s median of ${number(data.learned?.engagementFloor)} opens, or not at all. They stay in your menu.`
                 : 'Less-used screens are flagged once there is enough history across multiple screens and completed days to compare usage.'}
             </p>
             <small>

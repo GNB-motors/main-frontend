@@ -54,6 +54,9 @@ const JOB_BY_PREFIX = Object.freeze([
   ['/vehicles', JOB.VEHICLES],
   ['/drivers', JOB.DRIVERS],
   ['/access-control', JOB.DRIVERS],
+  // Bulk CSV setup (drivers, assignments, vehicle master) lives with the
+  // vehicle master it writes into, so a folded menu still offers it there.
+  ['/data-imports', JOB.VEHICLES],
   ['/mileage', JOB.FUEL],
   ['/refuel-logs', JOB.FUEL],
   ['/mileage-tracking', JOB.FUEL],

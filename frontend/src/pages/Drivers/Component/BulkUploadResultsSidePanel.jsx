@@ -146,7 +146,7 @@ const BulkUploadResultsSidePanel = ({
                               {created.mobileNumber}
                             </td>
                             <td
-                              style={{ padding: '12px', fontFamily: 'monospace', color: '#111827' }}
+                              style={{ padding: '12px', fontFamily: 'var(--font-sans)', color: '#111827' }}
                             >
                               {password}
                             </td>

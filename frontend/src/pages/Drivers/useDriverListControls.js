@@ -91,7 +91,8 @@ export function useDriverListControls({
       const next = await DriverService.getAllDrivers(businessRefId, { ...baseParams, page });
       all.push(...(next.data || []).map(normalizeDriver));
     }
-    return filterAndSortDrivers(all, filters.vehicleAssignment).map(mapDriverForExport);
+    const withVehicles = await DriverService.withAssignedVehicles(all);
+    return filterAndSortDrivers(withVehicles, filters.vehicleAssignment).map(mapDriverForExport);
   };
 
   // Reset to page 1 when filters change

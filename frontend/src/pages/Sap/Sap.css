@@ -217,10 +217,65 @@
   background: var(--ds-warn-tint);
   color: var(--ds-warn-ink);
 }
+/* The dialog frame has no padding of its own; the body lines up with the header's 24px. */
 .sap-dialog-body {
   display: grid;
-  gap: 20px;
-  padding: 16px 0 24px;
+  gap: 18px;
+  padding: 18px 24px 22px;
+  max-height: min(68vh, 620px);
+  overflow-y: auto;
+}
+.sap-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  min-width: 0;
+}
+.sap-choices legend {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  font-weight: 550;
+}
+/* Beats `.sap-panel label:not(...)` (a stacked grid) so the radio sits beside its text. */
+.sap-panel label.sap-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--ds-line);
+  border-radius: 8px;
+  background: var(--card);
+  font-weight: 400;
+  cursor: pointer;
+}
+.sap-panel label.sap-choice:has(input:checked) {
+  border-color: var(--ds-focus, #2563eb);
+  background: color-mix(in srgb, var(--ds-focus, #2563eb) 6%, var(--card));
+}
+.sap-choice input[type='radio'] {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  accent-color: var(--ds-focus, #2563eb);
+}
+.sap-choice-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.sap-choice-text strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.sap-choice-text .sap-muted {
+  font-size: 12px;
+  line-height: 1.4;
+}
+@media (max-width: 480px) {
+  .sap-choices {
+    grid-template-columns: 1fr;
+  }
 }
 .sap-error {
   color: var(--ds-crit-ink);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { boundsOf, bboxAround } from './model/mapBounds.js';
+import { boundsOf, bboxAround, isInsideIndia, planFit } from './model/mapBounds.js';
 import { impactSummary, isImpactGate, messageOf } from './model/requestOutcome.js';
 import { gateRows } from './model/shadowGates.js';
 import { evidenceLines, purposeShares } from './model/siteEvidence.js';
@@ -12,6 +12,8 @@ import {
   placeSubtitle,
   placeStats,
   riskSentence,
+  distanceM,
+  nearestKnownPlace,
 } from './model/siteSummary.js';
 import {
   typeLabel,
@@ -165,12 +167,31 @@ describe('placeIntelligenceModel', () => {
   });
 
   it('names states in plain words with reserved tones', () => {
-    expect(placeState({ status: 'PROPOSED' })).toMatchObject({ key: 'review', tone: 'warn' });
+    expect(placeState({ status: 'PROPOSED' })).toMatchObject({
+      key: 'review',
+      label: 'Proposed',
+      tone: 'warn',
+    });
     expect(placeState({ status: 'CONFIRMED' })).toMatchObject({ label: 'Confirmed', tone: 'ok' });
     expect(
       placeState({ status: 'CONFIRMED', engine: { evidenceLevel: 'CONFLICT' } }).label,
     ).toMatch(/disagrees/);
     expect(placeState({ status: 'REJECTED' })).toMatchObject({ label: 'Not a place' });
+  });
+
+  it('says who knows a place: the system proposed it, a person confirmed it, or nobody did', () => {
+    // The system's own reading — nobody has answered for this place.
+    expect(placeState({ status: 'PROPOSED' }).label).toBe('Proposed');
+    // A person answered for this place.
+    expect(placeState({ status: 'CONFIRMED' }).label).toBe('Confirmed');
+    // No status at all: the old wording still asks for an answer.
+    expect(placeState({})).toMatchObject({
+      key: 'review',
+      label: 'Needs your answer',
+      tone: 'warn',
+    });
+    // No place at all is not a zero — it is nothing measured.
+    expect(placeState(null)).toEqual({ key: 'unknown', label: '—', tone: 'neutral' });
   });
 
   it('titles a place by name, else by type and town — never by raw status', () => {
@@ -185,6 +206,32 @@ describe('placeIntelligenceModel', () => {
     expect(placeTitle({ status: 'PROPOSED', siteType: 'UNEXPLAINED' })).toBe('Unnamed stop');
     expect(placeSubtitle({ address: { formatted: 'AH45, Kolaghat' } })).toBe('AH45, Kolaghat');
     expect(placeSubtitle({ centroidLat: 22.35, centroidLng: 87.25 })).toBe('22.3500, 87.2500');
+  });
+
+  it('names an unnamed own yard by how far it sits from a place we know', () => {
+    const yard = { status: 'CONFIRMED', siteType: 'YARD', centroidLat: 22.5, centroidLng: 87.5 };
+    // A town is enough on its own.
+    expect(placeTitle({ ...yard, address: { locality: 'Kolaghat' } })).toBe('Own yard, Kolaghat');
+    const nearest = nearestKnownPlace(yard, [{ name: 'Howrah Yard', lat: 22.6, lng: 87.4 }]);
+    expect(nearest.name).toBe('Howrah Yard');
+    expect(placeTitle(yard, nearest)).toMatch(/^Own yard · .+ km from Howrah Yard$/);
+    // Nothing to measure against: the plain label stands.
+    expect(placeTitle(yard)).toBe('Own yard');
+    expect(nearestKnownPlace(yard, [])).toBeNull();
+    expect(distanceM({ lat: 22.5, lng: 87.5 }, { lat: 22.5, lng: 87.5 })).toBe(0);
+  });
+
+  it('drops fit points outside India and keeps the rest', () => {
+    const plan = planFit([
+      { id: 'kolkata', lat: 22.57, lng: 88.36 },
+      { id: 'ocean', lat: 10.5, lng: 62.2 },
+    ]);
+    expect(plan.bounds).toEqual({ north: 22.57, south: 22.57, east: 88.36, west: 88.36 });
+    expect(plan.rejected.map((p) => p.id)).toEqual(['ocean']);
+    // Nothing inside the country: no bounds, so the map keeps the view it has.
+    expect(planFit([{ id: 'ocean', lat: 10.5, lng: 62.2 }]).bounds).toBeNull();
+    expect(isInsideIndia({ lat: 6, lng: 68 })).toBe(true);
+    expect(isInsideIndia({ lat: 37.1, lng: 88 })).toBe(false);
   });
 
   it('turns engine evidence into sentences, hard proof first', () => {
@@ -243,6 +290,8 @@ describe('placeIntelligenceModel', () => {
     ];
     expect(filterPlaces(sites, 'all').map((s) => s._id)).toEqual(['a', 'b']);
     expect(filterPlaces(sites, 'confirmed').map((s) => s._id)).toEqual(['a']);
+    // A proposed place is never swallowed by the confirmed group — it has its own.
+    expect(filterPlaces(sites, 'proposed').map((s) => s._id)).toEqual(['b']);
     expect(filterPlaces(sites, 'risk').map((s) => s._id)).toEqual(['b']);
     expect(filterPlaces(sites, 'rejected').map((s) => s._id)).toEqual(['c']);
     expect(filterPlaces(sites, 'all', 'fuel').map((s) => s._id)).toEqual(['b']);
@@ -304,10 +353,15 @@ describe('placeIntelligenceModel', () => {
 
   it('words fuel risk with correct plurals', () => {
     expect(riskSentence({})).toBeNull();
-    expect(riskSentence({ theftIncidents: 1 })).toMatch(/^1 fuel theft report here\./);
+    expect(riskSentence({ theftIncidents: 1 })).toMatch(/^1 fuel-loss report here\./);
     expect(
       riskSentence({ theftIncidents: 3, unauthRefuelIncidents: 2, lastIncidentAt: 'D' }),
-    ).toMatch(/^3 fuel theft reports and 2 unauthorised refuels here, last on D\./);
+    ).toMatch(/^3 fuel-loss reports and 2 unauthorised refuels here, last on D\./);
+  });
+
+  it('never accuses anyone of stealing', () => {
+    const sentence = riskSentence({ theftIncidents: 3, unauthRefuelIncidents: 1 });
+    expect(sentence).not.toMatch(/theft|stolen|stole|siphon/i);
   });
 
   it('puts the right article before a type', () => {

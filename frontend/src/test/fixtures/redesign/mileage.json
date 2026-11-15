@@ -1,0 +1,43 @@
+{
+  "items": [
+    {
+      "registrationNumber": "WB11L8862",
+      "driverName": "Ramesh Yadav",
+      "from": "2026-10-02T00:00:00Z",
+      "to": "2026-10-19T00:00:00Z",
+      "km": 4820,
+      "dieselL": 1420,
+      "kmPerL": 3.39,
+      "usualKmPerL": 3.2,
+      "defL": 61,
+      "defPctOfDiesel": 4.3,
+      "defBand": { "min": 3, "max": 6 },
+      "verdict": "ADDS_UP",
+      "verdictWhy": {
+        "text": "The diesel used matches the km driven at this truck's usual km/L.",
+        "basis": "4,820 km at 3.2 km/L"
+      },
+      "source": "RECONCILED_REGISTER"
+    },
+    {
+      "registrationNumber": "WB11F0162",
+      "driverName": null,
+      "from": "2026-09-14T00:00:00Z",
+      "to": "2026-10-06T00:00:00Z",
+      "km": 2140,
+      "dieselL": 690,
+      "kmPerL": 3.1,
+      "usualKmPerL": 3.2,
+      "defL": 12,
+      "defPctOfDiesel": 1.7,
+      "defBand": { "min": 3, "max": 6 },
+      "verdict": "LOW_KMPL",
+      "verdictWhy": {
+        "text": "DEF use is below the normal 3–6% of diesel, which can mean DEF is not being dosed.",
+        "basis": "690 L diesel · 12 L DEF"
+      },
+      "source": "RECONCILED_REGISTER"
+    }
+  ],
+  "totals": { "km": 6960, "dieselL": 2110, "defL": 73, "kmPerL": 3.3 }
+}

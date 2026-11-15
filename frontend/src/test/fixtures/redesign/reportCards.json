@@ -1,0 +1,53 @@
+{
+  "items": [
+    {
+      "subject": "vehicle",
+      "id": "WB11L8862",
+      "name": "WB11L8862",
+      "grade": "EXCELLENT",
+      "trend": "UP",
+      "score": 92,
+      "headline": "Best km/L in the fleet this week",
+      "strengths": [
+        {
+          "key": "CRUISE",
+          "tone": "good",
+          "label": "Steady cruise",
+          "why": {
+            "text": "This truck held 60 km/h for 6 h a day this week.",
+            "basis": "From 1,240 km"
+          },
+          "link": { "label": "See the 6 times", "to": "/intelligence?tab=cruise&vehicle=WB11L8862" }
+        }
+      ],
+      "problems": [
+        {
+          "key": "IDLE",
+          "tone": "bad",
+          "label": "Idles 2.1 h/day",
+          "why": {
+            "text": "Engine on, not moving, for 2.1 h a day this week.",
+            "basis": "From 1,240 km"
+          },
+          "link": { "label": "See the 12 times", "to": "/intelligence?tab=idling&vehicle=WB11L8862" },
+          "advice": "Ask the driver to switch the engine off at the gate."
+        }
+      ],
+      "kmInPeriod": 1240,
+      "basis": { "text": "From 1,240 km and 9 trips", "basis": "1,240 km · 9 trips" }
+    },
+    {
+      "subject": "driver",
+      "id": "drv-441",
+      "name": "Ramesh Yadav",
+      "grade": "GOOD",
+      "trend": "FLAT",
+      "score": 78,
+      "headline": "Smooth driving, 12% fewer harsh brakes",
+      "strengths": [],
+      "problems": [],
+      "kmInPeriod": 2210,
+      "basis": { "text": "From 2,210 km and 14 trips", "basis": "2,210 km · 14 trips" }
+    }
+  ]
+}

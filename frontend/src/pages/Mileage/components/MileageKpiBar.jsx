@@ -18,12 +18,29 @@ const Tile = ({ label, explanation, value, valueClass = '', children }) => (
 );
 
 /**
+ * Why the fill-to-fill figure is missing. One wording for every tab, so the
+ * tile reads the same way wherever it is shown.
+ */
+const NO_ROUNDS_REASON = 'No full-tank rounds in these dates';
+
+/** The tile's foot line: how many trucks had a round, or why there were none. */
+const fleetKmLReason = (vehicleCount) =>
+  vehicleCount ? `${vehicleCount} trucks` : NO_ROUNDS_REASON;
+
+/**
  * Four plain-word figures for the hub's dates. Reconciliation figures come
  * from the fill list's counts (diesel only, the tank sensor sees diesel);
  * average mileage is the model comparison's distance-weighted total, which
- * needs the vehicleActivity module.
+ * needs the vehicleActivity module. That read is slow, so it is asked for
+ * only when the tile itself is on screen (the performance tab).
  */
-export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 }) {
+export default function MileageKpiBar({
+  range,
+  showFleetKmL,
+  showFleetKmLHint = false,
+  onOpenPerformance,
+  refreshKey = 0,
+}) {
   const feed = useApi(
     (signal) => MileageApi.unifiedFeed(range, { fuelType: 'DIESEL', limit: 1 }, signal),
     [range.manufacturer, range.from, range.to, refreshKey],
@@ -31,22 +48,24 @@ export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 
   const models = useApi(
     (signal) => MileageApi.modelComparison(range, signal),
     [range.manufacturer, range.from, range.to, refreshKey],
-    { enabled: showFleetMileage },
+    { enabled: showFleetKmL, scopeKey: JSON.stringify([range.manufacturer, range.from, range.to]) },
   );
 
   const k = kpisFromSources({
     feedMeta: feed.data?.meta || null,
-    modelData: showFleetMileage ? models.data?.data || null : null,
+    modelData: showFleetKmL ? models.data?.data || null : null,
   });
   const pending = feed.loading ? '…' : '—';
   const coveragePct = k.sensorFills ? (k.matched / k.sensorFills) * 100 : null;
   const skipped = models.data?.meta?.excludedCycleCount;
+  // Nothing to spend and nothing to check: say so instead of showing a zero.
+  const noBills = k.bills != null && k.bills === 0;
 
   return (
     <div className="mhub-kpis">
-      {showFleetMileage && (
+      {showFleetKmL && (
         <Tile
-          label="Average mileage"
+          label="Fill-to-fill km/L"
           value={
             k.fleetKmPerL != null ? (
               <>
@@ -60,8 +79,8 @@ export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 
             )
           }
           explanation={{
-            title: 'How average mileage is worked out',
-            text: 'All km driven divided by all diesel, over every full-tank-to-full-tank round that ended in these dates. Long rounds count more than short ones.',
+            title: 'How fill-to-fill km/L is worked out',
+            text: 'All km driven divided by all diesel, over every full-tank-to-full-tank round that ended in these dates — loaded and empty running together. Long rounds count more than short ones. The Trip page’s Oil & Average report shows a different figure on purpose: loaded running only, which burns more.',
             lines: [
               ['Trucks', k.vehicleCount != null ? formatNum(k.vehicleCount) : '—'],
               [
@@ -74,22 +93,43 @@ export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 
           {k.fleetKmPerL != null ? (
             <StatusChip group="mileageBand" value={mileageBand(k.fleetKmPerL)} />
           ) : null}
-          <span>
-            {k.vehicleCount ? `${k.vehicleCount} trucks` : 'No full-tank rounds in these dates'}
-          </span>
+          <span>{fleetKmLReason(k.vehicleCount)}</span>
+        </Tile>
+      )}
+
+      {showFleetKmLHint && (
+        <Tile
+          label="Fill-to-fill km/L"
+          value="—"
+          explanation={{
+            title: 'Fill-to-fill km/L',
+            text: 'This figure is worked out from the model comparison. It is read on the Mileage tab, so the hub opens without waiting for it.',
+            lines: [],
+          }}
+        >
+          <span>{fleetKmLReason(k.vehicleCount)}</span>
+          <button type="button" className="mhub-kpi-open" onClick={onOpenPerformance}>
+            Open Mileage
+          </button>
         </Tile>
       )}
 
       <Tile
         label="Diesel bought"
-        value={k.spendInr != null ? formatInrCompact(k.spendInr) : pending}
+        value={noBills ? '—' : k.spendInr != null ? formatInrCompact(k.spendInr) : pending}
         explanation={{
           title: 'Diesel bought',
           text: 'The amounts on every diesel bill in these dates. AdBlue bills are not included.',
           lines: [['Bills', k.bills != null ? formatNum(k.bills) : '—']],
         }}
       >
-        <span>{k.bills != null ? `${formatNum(k.bills)} bills` : ' '}</span>
+        <span>
+          {noBills
+            ? 'No bills uploaded in these dates'
+            : k.bills != null
+              ? `${formatNum(k.bills)} bills`
+              : ' '}
+        </span>
       </Tile>
 
       <Tile
@@ -121,15 +161,19 @@ export default function MileageKpiBar({ range, showFleetMileage, refreshKey = 0 
 
       <Tile
         label="Bills to check"
-        value={k.flagged != null ? formatNum(k.flagged) : pending}
-        valueClass={k.flagged > 0 ? 'mhub-kpi-value--critical' : ''}
+        value={noBills ? '—' : k.flagged != null ? formatNum(k.flagged) : pending}
+        valueClass={!noBills && k.flagged > 0 ? 'mhub-kpi-value--critical' : ''}
         explanation={{
           title: 'Bills to check',
           text: 'Bills where the litres on the bill and the rise in the tank disagree by more than that truck normally varies.',
           lines: [],
         }}
       >
-        {k.flagged != null ? (
+        {/* "All clear" needs bills to have been checked: with none uploaded it
+            would contradict "Many bills missing" next to it. */}
+        {noBills ? (
+          <span>No bills to check yet</span>
+        ) : k.flagged != null ? (
           <StatusChip group="billsToCheck" value={k.flagged > 0 ? 'NEEDS_A_LOOK' : 'ALL_CLEAR'} />
         ) : null}
       </Tile>

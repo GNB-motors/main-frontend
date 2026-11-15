@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import React from 'react';
 import DataTable from './DataTable';
+import EnterprisePagination from './EnterprisePagination';
 
 const COLUMNS = [
   { key: 'plate', label: 'Vehicle' },
@@ -16,6 +17,36 @@ const ROWS = [
 function renderTable(extraProps = {}) {
   return render(<DataTable columns={COLUMNS} rows={ROWS} rowKey={(r) => r._id} {...extraProps} />);
 }
+
+describe('DataTable row count', () => {
+  // The count is printed once: the pagination row owns it when the table has
+  // one, so the toolbar and the footer never repeat it.
+  it('prints the count once, in the pagination row, when the table is paginated', () => {
+    const { container } = renderTable({
+      showing: 2,
+      total: 1352,
+      pagination: (
+        <EnterprisePagination page={1} totalPages={136} totalItems={1352} pageSize={10} />
+      ),
+    });
+    expect(container.querySelectorAll('.dt-summary')).toHaveLength(0);
+    expect(container.textContent.match(/1\u201310 of 1,352/g)).toHaveLength(1);
+  });
+
+  it('keeps a single count line for an unpaginated table', () => {
+    const { container } = renderTable({ showing: 2, total: 1352 });
+    const summaries = container.querySelectorAll('.dt-summary');
+    expect(summaries).toHaveLength(1);
+    expect(summaries[0].textContent).toBe('Showing 2 of 1,352');
+  });
+
+  it('counts in the footer row when the table is paginated without a pager', () => {
+    const { container } = renderTable({ showing: 2, total: 1352, paginated: true });
+    const summaries = container.querySelectorAll('.dt-summary');
+    expect(summaries).toHaveLength(1);
+    expect(summaries[0].textContent).toBe('Showing 2 of 1,352');
+  });
+});
 
 describe('DataTable toolbar', () => {
   // Read through session.js's getPref, the one sanctioned storage gateway.

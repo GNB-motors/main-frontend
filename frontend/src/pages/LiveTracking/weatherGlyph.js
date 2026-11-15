@@ -77,3 +77,15 @@ export const isAdverse = (category) =>
 
 /** Rounds a measured number for display, or returns null when absent. */
 export const num = (v, digits = 0) => (Number.isFinite(v) ? Number(v.toFixed(digits)) : null);
+
+/**
+ * True when the given UTC ms timestamp falls during daytime at the given longitude.
+ * lng approximates local UTC offset (15° ≈ 1 h); defaults to IST (+5.5 h) when omitted.
+ * Day = 06:00–18:30 local.
+ */
+export function isDayAt(hourMs, lng = null) {
+  const d = new Date(hourMs ?? Date.now());
+  const offsetH = lng != null ? Math.max(-12, Math.min(12, lng / 15)) : 5.5;
+  const localH = (d.getUTCHours() + offsetH + 24) % 24;
+  return localH >= 6 && localH < 18.5;
+}

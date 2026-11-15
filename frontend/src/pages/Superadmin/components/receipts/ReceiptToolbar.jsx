@@ -1,4 +1,5 @@
-import { Search, Gauge, ChevronDown, ShieldCheck, Calendar, X } from 'lucide-react';
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
+import { Search, Gauge, ShieldCheck, Calendar, X } from 'lucide-react';
 import Skel from './Skel';
 
 const STATUS_TABS = [
@@ -50,49 +51,46 @@ const ReceiptToolbar = ({
       {/* Date Preset Filter */}
       <div className="ra-select-wrap">
         <Calendar size={14} className="ra-select-icon" />
-        <select
+        <SearchableSelect
           value={dateFilter}
           onChange={(e) => setDateFilter(e.target.value)}
           aria-label="Filter receipts by date range"
         >
-          <option value="ALL">All Dates</option>
+          <option value="ALL">All dates</option>
           <option value="TODAY">Today</option>
           <option value="YESTERDAY">Yesterday</option>
-          <option value="7DAYS">Last 7 Days</option>
-          <option value="30DAYS">Last 30 Days</option>
-        </select>
-        <ChevronDown size={14} className="ra-select-chevron" />
+          <option value="7DAYS">Last 7 days</option>
+          <option value="30DAYS">Last 30 days</option>
+        </SearchableSelect>
       </div>
 
       {/* Odometer Source Filter */}
       <div className="ra-select-wrap">
         <Gauge size={14} className="ra-select-icon" />
-        <select
+        <SearchableSelect
           value={odoFilter}
           onChange={(e) => setOdoFilter(e.target.value)}
           aria-label="Filter receipts by odometer source"
         >
-          <option value="ALL">All Odometer</option>
+          <option value="ALL">All odometers</option>
           <option value="TELEMATICS">📡 FleetEdge Auto</option>
           <option value="PHOTO">📸 Dash Photo OCR</option>
-          <option value="MISSING">⚠️ Missing Odometer</option>
-        </select>
-        <ChevronDown size={14} className="ra-select-chevron" />
+          <option value="MISSING">⚠️ Missing odometer</option>
+        </SearchableSelect>
       </div>
 
       {/* Anomaly / Quality Filter */}
       <div className="ra-select-wrap">
         <ShieldCheck size={14} className="ra-select-icon" />
-        <select
+        <SearchableSelect
           value={anomalyFilter}
           onChange={(e) => setAnomalyFilter(e.target.value)}
           aria-label="Filter receipts by AI extraction health"
         >
-          <option value="ALL">All AI Health</option>
+          <option value="ALL">All AI health</option>
           <option value="MATH_VERIFIED">✓ Math Verified</option>
           <option value="NEEDS_REVIEW">⚠️ Needs Review</option>
-        </select>
-        <ChevronDown size={14} className="ra-select-chevron" />
+        </SearchableSelect>
       </div>
 
       {/* Reset Filters if active */}

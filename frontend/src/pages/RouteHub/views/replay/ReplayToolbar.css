@@ -1,0 +1,48 @@
+.nova-rh .rtool-vehicle-picker {
+  flex: 0 1 280px;
+  width: 280px;
+  max-width: 100%;
+  min-width: 0;
+}
+.nova-rh .rtool-vehicle-picker .searchable-dropdown-header {
+  min-height: 38px;
+  padding: 6px 12px;
+  font-size: var(--type-2xs);
+  border: 1px solid var(--border-input, #e0e0e0);
+  border-radius: var(--radius-m, 8px);
+  background: var(--bg-input);
+  color: var(--fg-primary);
+}
+.nova-rh .rtool-vehicle-picker .searchable-dropdown-header[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.nova-rh .rtool-vehicle-picker .searchable-dropdown-header:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.nova-rh .rtool-vehicle-picker .searchable-dropdown-list-container {
+  background: var(--bg-elevated);
+  border-color: var(--border-input);
+}
+.nova-rh .rtool-vehicle-picker :is(.searchable-dropdown-item, .searchable-search-input) {
+  color: var(--fg-primary);
+}
+.nova-rh .rtool-vehicle-picker .searchable-search-input {
+  background: var(--bg-input);
+  border-color: var(--border-input);
+}
+.nova-rh .rtool-vehicle-picker .searchable-dropdown-item:hover {
+  background: var(--bg-subtle);
+}
+
+.nova-rh .rtool-load-error {
+  margin: 0 0 12px;
+  padding: 12px 16px;
+  border: 1px solid #efc6c6;
+  border-radius: 10px;
+  background: #fff5f5;
+  color: #a12b2b;
+  font-size: 13px;
+}

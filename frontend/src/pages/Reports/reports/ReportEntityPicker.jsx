@@ -1,8 +1,8 @@
 import { getVehicleList } from '../../../services/vehicleListService';
 import { toast } from 'react-toastify';
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import useManufacturerFilter from '../../../hooks/useManufacturerFilter';
-import { ChevronDown, Search } from 'lucide-react';
+import SearchableDropdown from '@/components/SearchableDropdown/SearchableDropdown';
 import { ReportsService } from '../ReportsService.js';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 
@@ -33,15 +33,12 @@ export default function ReportEntityPicker({
   width = 200,
   scopeKey = '',
 }) {
-  const listId = useId();
-  const rootRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebouncedValue(query.trim(), 250);
   const [options, setOptions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [highlight, setHighlight] = useState(0);
   const [selected, setSelected] = useState(null);
 
   const isAll = !value || value === ALL;
@@ -57,7 +54,6 @@ export default function ReportEntityPicker({
       .then((rows) => {
         if (controller.signal.aborted) return;
         setOptions(Array.isArray(rows) ? rows : []);
-        setHighlight(0);
       })
       .catch((err) => {
         if (controller.signal.aborted || err?.name === 'CanceledError') return;
@@ -72,15 +68,6 @@ export default function ReportEntityPicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, debouncedQuery, scopeKey]);
 
-  useEffect(() => {
-    if (!open) return undefined;
-    const onDocDown = (e) => {
-      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', onDocDown);
-    return () => document.removeEventListener('mousedown', onDocDown);
-  }, [open]);
-
   const rows = [{ id: ALL, label: allLabel }, ...options];
 
   const choose = (row) => {
@@ -90,92 +77,41 @@ export default function ReportEntityPicker({
     setQuery('');
   };
 
-  const onKeyDown = (e) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setHighlight((h) => Math.min(h + 1, rows.length - 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setHighlight((h) => Math.max(h - 1, 0));
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (rows[highlight]) choose(rows[highlight]);
-    } else if (e.key === 'Escape') {
-      setOpen(false);
-    }
-  };
-
   return (
-    <div className="rpt-field rpt-picker" ref={rootRef} style={{ width }}>
+    <div className="rpt-field rpt-picker" style={{ width }}>
       {label}
-      <button
-        type="button"
-        className={`rpt-picker-trigger${triggerLabel === allLabel ? ' is-placeholder' : ''}`}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={open ? listId : undefined}
-        onClick={() => setOpen((o) => !o)}
-      >
-        <span>{triggerLabel}</span>
-        <ChevronDown size={15} aria-hidden="true" />
-      </button>
-      {open ? (
-        <div className="rpt-picker-panel">
-          <div className="rpt-picker-query">
-            <div className="rpt-picker-search">
-              <Search size={14} aria-hidden="true" />
-              <input
-                // eslint-disable-next-line jsx-a11y/no-autofocus
-                autoFocus
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={onKeyDown}
-                placeholder={searchPlaceholder}
-                aria-label={searchPlaceholder}
-                aria-controls={listId}
-              />
-            </div>
-          </div>
-          <div className="rpt-picker-list" id={listId} role="listbox">
-            {rows.map((row, i) => (
-              <div
-                key={row.id}
-                role="option"
-                tabIndex={-1}
-                aria-selected={row.id === (isAll ? ALL : value)}
-                className={[
-                  'rpt-picker-option',
-                  i === highlight && 'is-active',
-                  row.id === (isAll ? ALL : value) && 'is-selected',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                onMouseEnter={() => setHighlight(i)}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  choose(row);
-                }}
-              >
-                {row.label}
-                {row.sub ? <small>{row.sub}</small> : null}
-              </div>
-            ))}
-          </div>
-          {loading ? <div className="rpt-picker-note">Searching…</div> : null}
-          {!loading && failed ? (
-            <div className="rpt-picker-note">Could not load the list.</div>
-          ) : null}
-          {!loading && !failed && debouncedQuery && options.length === 0 ? (
+      <SearchableDropdown
+        bare
+        options={rows}
+        selectedOption={triggerLabel}
+        aria-label={`${label}: ${triggerLabel}`}
+        open={open}
+        onOpenChange={setOpen}
+        onSelect={choose}
+        searchValue={query}
+        onSearchChange={setQuery}
+        filterOptions={false}
+        searchLabel={searchPlaceholder}
+        searchPlaceholder={searchPlaceholder}
+        loading={loading}
+        error={failed ? 'Could not load the list.' : null}
+        isOptionSelected={(row) => row.id === (isAll ? ALL : value)}
+        renderOption={(row) => (
+          <span>
+            {row.label}
+            {row.sub ? <small className="block text-xs text-slate-500">{row.sub}</small> : null}
+          </span>
+        )}
+        footer={
+          !loading && !failed && debouncedQuery && options.length === 0 ? (
             <div className="rpt-picker-note">No match for “{debouncedQuery}”.</div>
-          ) : null}
-          {!loading && options.length >= RESULT_LIMIT ? (
+          ) : !loading && options.length >= RESULT_LIMIT ? (
             <div className="rpt-picker-note">
               Type to narrow — showing the first {RESULT_LIMIT}.
             </div>
-          ) : null}
-        </div>
-      ) : null}
+          ) : null
+        }
+      />
     </div>
   );
 }

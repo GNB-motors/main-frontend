@@ -1,19 +1,9 @@
+import { mapPlaceIcon } from '../../LiveTracking/mapPlaceIcon.js';
 import { memo } from 'react';
 import { MarkerF, PolygonF } from '@react-google-maps/api';
 import { POI_COLOR, poiBucket } from '../placeHubStyle.js';
 
 const MAX_POI = 1500;
-
-function poiIcon(color) {
-  return {
-    path: 'M -3.5 -3.5 L 3.5 -3.5 L 3.5 3.5 L -3.5 3.5 z',
-    scale: 1,
-    fillColor: color,
-    fillOpacity: 0.9,
-    strokeColor: '#ffffff',
-    strokeWeight: 1,
-  };
-}
 
 function poiTitle(p) {
   const what = (p.category || '').toLowerCase().replace(/_/g, ' ');
@@ -47,7 +37,7 @@ const PoiLayer = memo(function PoiLayer({ pois }) {
         <MarkerF
           key={`poi-${p.source}-${p.sourceId}`}
           position={{ lat: p.lat, lng: p.lng }}
-          icon={poiIcon(POI_COLOR[poiBucket(p.category)])}
+          icon={mapPlaceIcon(p, { color: POI_COLOR[poiBucket(p.category)] })}
           title={poiTitle(p)}
           clickable={false}
           zIndex={0}

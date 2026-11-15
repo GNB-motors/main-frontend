@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 // Add/Edit employee form modals. Split from driversComponents.jsx (WS0.7); markup preserved.
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
@@ -185,7 +186,7 @@ export const EditDriverModal = ({
             </div>
             <div className="drivers-form-group">
               <label htmlFor="editDriverStatus">Status</label>
-              <select
+              <SearchableSelect
                 id="editDriverStatus"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
@@ -194,13 +195,13 @@ export const EditDriverModal = ({
                 <option value="PENDING">Pending</option>
                 <option value="ACTIVE">Active</option>
                 <option value="SUSPENDED">Suspended</option>
-              </select>
+              </SearchableSelect>
             </div>
           </div>
           <div className="drivers-form-row">
             <div className="drivers-form-group">
               <label htmlFor="editDriverVehicle">Assign Vehicle (Optional)</label>
-              <select
+              <SearchableSelect
                 id="editDriverVehicle"
                 value={vehicleRegistrationNo}
                 onChange={(e) => setVehicleRegistrationNo(e.target.value)}
@@ -212,7 +213,7 @@ export const EditDriverModal = ({
                     {vehicle.registration_no} - {vehicle.vehicle_type || 'Unknown Type'}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
           </div>
 

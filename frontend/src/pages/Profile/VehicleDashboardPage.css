@@ -7,6 +7,116 @@
   padding: 16px 20px 24px 20px;
 }
 
+.v-dash-page .pshell-head {
+  display: grid;
+  grid-template-columns: 36px minmax(220px, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+}
+
+.v-dash-page .pshell-head-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.v-dash-back {
+  display: inline-flex;
+  flex: 0 0 36px;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--ds-line);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--ds-ink2);
+  cursor: pointer;
+}
+
+.v-dash-back:hover {
+  background: var(--ds-sunk);
+  color: var(--ds-ink);
+}
+
+.v-dash-back:focus-visible {
+  outline: 2px solid var(--ds-focus);
+  outline-offset: 2px;
+}
+
+.v-dash-header-tools {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 12px;
+  min-width: 0;
+  width: 100%;
+}
+
+.v-dash-header-tools .v-dash-filter-dropdown-bar {
+  flex: 0 1 440px;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  gap: 8px;
+  padding: 0;
+}
+
+.v-dash-header-tools .v-dash-dropdown-wrapper {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 40px;
+  padding: 4px 10px;
+}
+
+.v-dash-header-tools .v-dash-filter-select {
+  flex: 1;
+  width: 260px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.v-dash-header-tools .v-dash-filter-reset-btn {
+  align-self: flex-end;
+}
+
+.v-dash-header-tools .fbar {
+  flex: 0 1 240px;
+  min-width: 0;
+  margin: 0;
+}
+
+.v-dash-header-tools .fbar-search {
+  width: 100%;
+  height: 40px;
+}
+
+.v-dash-header-tools .fbar-right {
+  display: none;
+}
+
+@media (max-width: 1200px) {
+  .v-dash-page .pshell-head {
+    grid-template-columns: 36px minmax(0, 1fr);
+  }
+
+  .v-dash-page .pshell-actions {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .v-dash-header-tools {
+    flex-wrap: wrap;
+  }
+
+  .v-dash-header-tools .v-dash-filter-dropdown-bar,
+  .v-dash-header-tools .fbar {
+    flex-basis: 100%;
+  }
+}
+
 /* Main Split Layout Container — Responsive viewport-based height with internal vertical scroll */
 .v-dash-split-container {
   display: flex;
@@ -524,6 +634,18 @@
   border-color: #cbd5e1;
 }
 
+/* Pending Verification / OCR Processing (Blue/Info) */
+.v-dash-badge--pending {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+
+.v-dash-badge--pending:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
 /* Selected badge highlight */
 .v-dash-badge--selected {
   outline: 2px solid #2563eb;
@@ -968,6 +1090,10 @@
   color: #64748b;
 }
 
+.v-dash-card-status--pending {
+  color: #2563eb;
+}
+
 .v-dash-doc-card-title {
   font-size: 13px;
   font-weight: 700;
@@ -1045,6 +1171,12 @@
   background: #f8fafc;
   color: #64748b;
   border: 1px solid #e2e8f0;
+}
+
+.v-dash-status-pill--pending {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
 }
 
 /* Scanned Document Viewer Card — Rigid 280px Frame to Prevent Flex Shrinking */

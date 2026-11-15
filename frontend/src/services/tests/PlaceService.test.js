@@ -1,5 +1,41 @@
-import { describe, it, expect } from 'vitest';
-import { coordKey, dedupePoints, CACHE_LIMIT } from '../PlaceService';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import {
+  coordKey,
+  dedupePoints,
+  CACHE_LIMIT,
+  resolvePlace,
+  __resetPlaceCache,
+} from '../PlaceService';
+import apiClient from '../../utils/axiosConfig';
+
+vi.mock('../../utils/axiosConfig', () => ({ default: { post: vi.fn() } }));
+
+afterEach(() => {
+  __resetPlaceCache();
+  vi.useRealTimers();
+  vi.clearAllMocks();
+});
+
+describe('large fleet resolution', () => {
+  it('resolves 401 distinct locations without exceeding the backend 200-point limit', async () => {
+    vi.useFakeTimers();
+    apiClient.post.mockImplementation(async (_url, { points }) => {
+      if (points.length > 200) throw new Error('Too many points');
+      return {
+        data: {
+          data: {
+            places: Object.fromEntries(points.map((p) => [p.key, { label: `Place ${p.key}` }])),
+          },
+        },
+      };
+    });
+    const pending = Array.from({ length: 401 }, (_, i) => resolvePlace(22 + i / 10000, 88));
+    await vi.runAllTimersAsync();
+    const places = await Promise.all(pending);
+    expect(places.every((p) => p?.label.startsWith('Place '))).toBe(true);
+    expect(apiClient.post.mock.calls.map(([, { points }]) => points.length)).toEqual([200, 200, 1]);
+  });
+});
 
 describe('coordKey', () => {
   it('rounds to ~11 m grid', () => {

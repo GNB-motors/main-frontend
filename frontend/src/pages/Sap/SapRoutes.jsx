@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { useDeferredValue, useState } from 'react';
 import { Plus, Pencil, Search } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -153,7 +154,7 @@ export default function SapRoutes() {
               onChange={(e) => set({ search: e.target.value })}
             />
           </label>
-          <select
+          <SearchableSelect
             className="sap-filter"
             aria-label="SAP set"
             value={filters.has}
@@ -164,8 +165,8 @@ export default function SapRoutes() {
                 {l}
               </option>
             ))}
-          </select>
-          <select
+          </SearchableSelect>
+          <SearchableSelect
             className="sap-filter"
             aria-label="Against SAP"
             value={filters.verdict}
@@ -176,7 +177,7 @@ export default function SapRoutes() {
                 {l}
               </option>
             ))}
-          </select>
+          </SearchableSelect>
         </div>
       }
       footer={

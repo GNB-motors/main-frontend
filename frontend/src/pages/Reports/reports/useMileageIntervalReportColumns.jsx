@@ -17,7 +17,26 @@ export function useMileageIntervalReportColumns() {
         label: 'End Date',
         render: (row) => (
           <div className="cell-primary">
-            {row.endDate ? formatDate(row.endDate) : row.intervalStatus === 'ONGOING' ? '...' : '—'}
+            {row.endDate ? (
+              formatDate(row.endDate)
+            ) : row.intervalStatus === 'ONGOING' ? (
+              <span
+                style={{
+                  display: 'inline-block',
+                  color: '#b45309',
+                  backgroundColor: '#fef3c7',
+                  padding: '1px 8px',
+                  borderRadius: '10px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                }}
+                title="Active ongoing cycle — closes when vehicle completes its next full-tank refuel"
+              >
+                Ongoing
+              </span>
+            ) : (
+              '—'
+            )}
           </div>
         ),
       },
@@ -58,7 +77,18 @@ export function useMileageIntervalReportColumns() {
         align: 'right',
         render: (row) => (
           <div className="cell-primary">
-            {row.endOdo != null ? formatNumber(row.endOdo) : '...'}
+            {row.endOdo != null ? (
+              formatNumber(row.endOdo)
+            ) : row.intervalStatus === 'ONGOING' ? (
+              <span
+                style={{ color: '#9ca3af', fontSize: '11px', fontStyle: 'italic' }}
+                title="Awaiting closing refuel"
+              >
+                In progress
+              </span>
+            ) : (
+              '—'
+            )}
           </div>
         ),
       },

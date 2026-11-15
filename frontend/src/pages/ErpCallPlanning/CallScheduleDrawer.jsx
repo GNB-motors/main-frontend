@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Info } from 'lucide-react';
 import ErpDrawer from '../../components/Erp/ErpDrawer';
@@ -168,7 +169,7 @@ const CallScheduleDrawer = ({
             <label htmlFor="sched-party">
               Account <span className="required">*</span>
             </label>
-            <select
+            <SearchableSelect
               id="sched-party"
               value={form.partyId}
               disabled={isEditing}
@@ -181,7 +182,7 @@ const CallScheduleDrawer = ({
                   {p.name} {p.code ? `(${p.code})` : ''}
                 </option>
               ))}
-            </select>
+            </SearchableSelect>
             {isEditing && (
               <span className="erp-field-hint">
                 The account cannot be changed — delete this schedule and create one instead.
@@ -214,7 +215,7 @@ const CallScheduleDrawer = ({
             <label htmlFor="sched-kam">
               Key Account Manager <span className="required">*</span>
             </label>
-            <select
+            <SearchableSelect
               id="sched-kam"
               value={form.kamId}
               onChange={(e) => {
@@ -229,7 +230,7 @@ const CallScheduleDrawer = ({
                   {k.firstName} {k.lastName}
                 </option>
               ))}
-            </select>
+            </SearchableSelect>
             {kamFromAccount && !isEditing && (
               <span className="erp-field-hint">
                 Taken from {party?.name || 'the account master'}. Changing it updates that
@@ -306,14 +307,14 @@ const CallScheduleDrawer = ({
 
           <div className="erp-field full">
             <label htmlFor="sched-status">Status</label>
-            <select
+            <SearchableSelect
               id="sched-status"
               value={form.status}
               onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}
             >
               <option value="ACTIVE">Active — generate call tasks</option>
               <option value="PAUSED">Paused — generate nothing</option>
-            </select>
+            </SearchableSelect>
           </div>
 
           <div className="erp-callout info full">

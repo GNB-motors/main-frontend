@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from '@/components/redesign/FleetLink';
 import { ArrowUpRight, ArrowUp, ArrowDown } from 'lucide-react';
 
 // Smooth-scrolls to an in-page section instead of relying on react-router's

@@ -1,16 +1,15 @@
+import { googleMapsLoaderOptions } from '../../utils/googleMapsLoader.js';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { GoogleMap, LoadScript, Marker, useLoadScript } from '@react-google-maps/api';
 import { X, Check } from 'lucide-react';
 import GoogleMapsSearch from './GoogleMapsSearch';
 import './GoogleMapsModal.css';
 import logger from '../../utils/logger';
-import GOOGLE_MAPS_API_KEY from './googleMapsApiKey';
 import extractLocationDetails from './extractLocationDetails';
 import GoogleMapsLoadError from './GoogleMapsLoadError';
 import GoogleMapsLoading from './GoogleMapsLoading';
 
 // Static libraries array to prevent performance warnings
-const GOOGLE_MAPS_LIBRARIES = ['places', 'geometry'];
 
 const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) => {
   const [selectedLocation, setSelectedLocation] = useState(
@@ -30,10 +29,7 @@ const GoogleMapsModal = ({ isOpen, onClose, onApply, initialLocation = null }) =
   const mapRef = useRef(null);
   const markerRef = useRef(null);
 
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    libraries: GOOGLE_MAPS_LIBRARIES,
-  });
+  const { isLoaded, loadError } = useLoadScript(googleMapsLoaderOptions);
 
   const isMapsReady =
     isLoaded || (typeof window !== 'undefined' && Boolean(window.google?.maps?.Map));

@@ -1,15 +1,15 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { CalendarDays, Check, ChevronDown, ChevronLeft } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { RANGE_PRESETS, dateOf, rangeLabel, ymdOf } from './tripRange';
+import { RANGE_PRESETS, dateOf, rangeLabel, shiftYmd, ymdOf } from './tripRange';
 
 const narrowScreen = () => typeof window !== 'undefined' && window.innerWidth < 640;
 
 /** Open on last month + this month, so the second month isn't all future days. */
 const firstShownMonth = (months) => {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
+  const month = ymdOf(new Date()).slice(0, 7) + '-01';
+  return dateOf(shiftYmd(month, { months: -(months - 1) }));
 };
 
 /**
@@ -20,10 +20,13 @@ export default function TripRangePicker({ value, onChange }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState('presets');
   const [draft, setDraft] = useState(undefined);
+  const [boundary, setBoundary] = useState(undefined);
+  const triggerRef = useRef(null);
 
   const openChange = (next) => {
     setOpen(next);
     if (next) {
+      setBoundary(triggerRef.current?.closest('.atx-page') || undefined);
       setView(value.range === 'custom' ? 'custom' : 'presets');
       setDraft(
         value.range === 'custom' ? { from: dateOf(value.from), to: dateOf(value.to) } : undefined,
@@ -44,6 +47,7 @@ export default function TripRangePicker({ value, onChange }) {
   };
 
   const months = narrowScreen() ? 1 : 2;
+  const today = dateOf(ymdOf(new Date()));
   const filtered = value.range !== 'all';
   const draftText = draft?.from
     ? rangeLabel({
@@ -56,6 +60,7 @@ export default function TripRangePicker({ value, onChange }) {
   return (
     <Popover open={open} onOpenChange={openChange}>
       <PopoverTrigger
+        ref={triggerRef}
         className={`atx-range-trigger${filtered ? ' atx-range-trigger--on' : ''}`}
         aria-label={`Trips in: ${rangeLabel(value)}`}
       >
@@ -63,7 +68,13 @@ export default function TripRangePicker({ value, onChange }) {
         <span>{rangeLabel(value)}</span>
         <ChevronDown size={15} strokeWidth={2} aria-hidden="true" className="atx-range-chev" />
       </PopoverTrigger>
-      <PopoverContent align="end" className="atx-scope atx-range-pop w-auto p-0">
+      <PopoverContent
+        align="start"
+        collisionBoundary={boundary}
+        collisionPadding={8}
+        collisionAvoidance={{ side: 'flip', align: 'shift' }}
+        className="atx-scope atx-range-pop w-auto p-0"
+      >
         {view === 'presets' ? (
           <div className="atx-range-list" role="listbox" aria-label="Date range">
             {RANGE_PRESETS.map((p) => {
@@ -104,16 +115,17 @@ export default function TripRangePicker({ value, onChange }) {
             </button>
             <Calendar
               mode="range"
+              timeZone="Asia/Kolkata"
               numberOfMonths={months}
               selected={draft}
               onSelect={setDraft}
               defaultMonth={draft?.from || firstShownMonth(months)}
-              endMonth={new Date()}
-              disabled={{ after: new Date() }}
+              endMonth={today}
+              disabled={{ after: today }}
               weekStartsOn={1}
             />
             <div className="atx-range-foot">
-              <span className="atx-range-draft">{draftText}</span>
+              <span className="atx-range-draft">{draftText} · IST</span>
               <button type="button" className="atx-btn atx-btn--sm" onClick={() => setOpen(false)}>
                 Cancel
               </button>

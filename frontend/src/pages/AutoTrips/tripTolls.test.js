@@ -1,0 +1,265 @@
+import { describe, expect, it } from 'vitest';
+import {
+  fareText,
+  justPassed,
+  tollClassText,
+  tollMarks,
+  tollSummary,
+  tollLedgerText,
+  withTollPasses,
+} from './tripTolls';
+
+const pass = (iso, extra = {}) => ({
+  at: iso,
+  lat: 22.6988,
+  lng: 88.2888,
+  placeId: 'p1',
+  name: 'Dankuni Toll Plaza',
+  fareInr: 410,
+  ...extra,
+});
+
+const plan = {
+  items: [
+    {
+      type: 'step',
+      id: 'pickup',
+      kind: 'loading',
+      at: '2026-10-20T04:00:00Z',
+      leftAt: '2026-10-20T06:00:00Z',
+    },
+    { type: 'leg', id: 'leg-s1', driveMin: 60 },
+    {
+      type: 'step',
+      id: 's1',
+      kind: 'unknown',
+      at: '2026-10-20T07:00:00Z',
+      leftAt: '2026-10-20T07:20:00Z',
+    },
+    { type: 'leg', id: 'leg-d', driveMin: 120 },
+    {
+      type: 'step',
+      id: 'd',
+      kind: 'drop',
+      at: '2026-10-20T09:20:00Z',
+      leftAt: '2026-10-20T10:00:00Z',
+    },
+  ],
+};
+
+describe('withTollPasses', () => {
+  it('puts a drive-through pass between the drive and the stop that came after it', () => {
+    const out = withTollPasses(plan, [pass('2026-10-20T08:30:00Z')]);
+    expect(out.items.map((it) => (it.type === 'toll' ? 'toll' : it.id))).toEqual([
+      'pickup',
+      'leg-s1',
+      's1',
+      'leg-d',
+      'toll',
+      'd',
+    ]);
+    expect(out.items[4].playAt).toBe('2026-10-20T08:30:00Z');
+  });
+
+  it('a pass while the truck stood at a stop belongs to that stop', () => {
+    const out = withTollPasses(plan, [pass('2026-10-20T07:10:00Z')]);
+    expect(out.items.filter((it) => it.type === 'toll')).toHaveLength(0);
+    expect(out.items.find((it) => it.id === 's1').tollPass.name).toBe('Dankuni Toll Plaza');
+  });
+
+  it('never folds a pass into the plant or the drop, and keeps passes after the last step', () => {
+    const out = withTollPasses(plan, [pass('2026-10-20T09:25:00Z'), pass('2026-10-20T11:00:00Z')]);
+    expect(out.items.slice(-2).map((it) => it.type)).toEqual(['toll', 'toll']);
+    expect(out.items.find((it) => it.id === 'd').tollPass).toBeUndefined();
+  });
+
+  it('leaves return passes off the timeline: they happen after the replay ends', () => {
+    const plan = { items: [{ type: 'step', id: 's1', kind: 'plant', at: '2026-10-20T04:00:00Z' }] };
+    expect(withTollPasses(plan, [{ leg: 'RETURN', at: '2026-10-20T01:00:00Z' }])).toBe(plan);
+    expect(
+      tollMarks([{ leg: 'RETURN', at: '2026-10-20T01:00:00Z', lat: 1, lng: 2 }], null),
+    ).toEqual([]);
+  });
+  it('leaves the plan untouched with no passes', () => {
+    expect(withTollPasses(plan, [])).toBe(plan);
+  });
+});
+
+describe('tollSummary and fareText', () => {
+  it('counts plazas, the known rupees and the unpriced ones', () => {
+    expect(tollSummary({ passes: [{}, {}, {}], total: { inr: 825, priced: 2, unknown: 1 } })).toBe(
+      '3 toll plazas · ₹825 estimated · 1 unpriced',
+    );
+    expect(tollSummary({ passes: [{}], total: null })).toBe('1 toll plaza');
+    expect(tollSummary({ status: 'FALLBACK', passes: [{}], total: { inr: 590, priced: 1 } })).toBe(
+      '1 toll plaza · ₹590 estimated · road not matched yet',
+    );
+    expect(tollSummary({ passes: [] })).toBeNull();
+  });
+  it('splits the drive home (return) from the loaded run', () => {
+    const tolls = {
+      passes: [{ leg: 'RETURN' }, { leg: 'RETURN' }, { leg: 'LADEN' }],
+      total: {
+        inr: 1475,
+        priced: 3,
+        unknown: 0,
+        byLeg: {
+          RETURN: { inr: 885, priced: 2, unknown: 0 },
+          LADEN: { inr: 590, priced: 1, unknown: 0 },
+        },
+      },
+    };
+    expect(tollSummary(tolls)).toBe('1 toll plaza · ₹590 estimated');
+    expect(tollSummary(tolls, 'RETURN')).toBe('2 toll plazas · ₹885 estimated');
+    expect(tollSummary({ passes: [{ leg: 'LADEN' }], total: null }, 'RETURN')).toBeNull();
+  });
+  it('an unpriced pass says so instead of ₹0', () => {
+    expect(fareText({ fareInr: 410 })).toBe('₹410');
+    expect(fareText({ fareInr: 205, fareBasis: 'RETURN' })).toBe('₹205 return');
+    expect(fareText({ fareInr: 0, fareBasis: 'ENTRY', fareSource: 'TOLLGURU' })).toBe(
+      'charged at exit',
+    );
+    expect(fareText({ fareInr: 1200, fareBasis: 'SEGMENT', fareSource: 'TOLLGURU' })).toBe(
+      '₹1,200 for the stretch (quote)',
+    );
+    expect(fareText({ fareInr: null, unknownReason: 'NO_TOLL_PLACE' })).toBe('fare unknown');
+    expect(fareText({})).toBeNull();
+  });
+});
+
+describe('tollMarks', () => {
+  it('marks the plazas the replay has already passed', () => {
+    const marks = tollMarks(
+      [
+        pass('2026-10-20T08:30:00Z'),
+        pass('2026-10-20T09:00:00Z', { name: null, evidence: 'GPS', fareInr: null }),
+      ],
+      '2026-10-20T08:45:00Z',
+    );
+    expect(marks.map((m) => m.passed)).toEqual([true, false]);
+    expect(marks[1].title).toBe('Toll booth · from GPS — road not matched yet');
+    expect(new Set(marks.map((m) => m.id)).size).toBe(2);
+  });
+});
+
+describe('justPassed', () => {
+  it('names the plaza the replay crossed in the last few minutes, and nothing after', () => {
+    const passes = [pass('2026-10-20T08:30:00Z')];
+    expect(justPassed(passes, '2026-10-20T08:32:00Z')).toBe('Dankuni Toll Plaza');
+    expect(justPassed(passes, '2026-10-20T08:29:00Z')).toBeNull();
+    expect(justPassed(passes, '2026-10-20T08:40:00Z')).toBeNull();
+  });
+});
+
+describe('tollClassText', () => {
+  const tolls = (vehicleGroup) => ({ passes: [{}], total: { inr: 590 }, vehicleGroup });
+  it('says what the truck was priced as and where that came from', () => {
+    expect(
+      tollClassText(tolls({ group: 'axle_4_6', source: 'MODEL_GVW', basis: 'LPT 4830 (48 t)' })),
+    ).toBe('priced as 4–6 axle (LPT 4830 (48 t))');
+  });
+  it('asks for the axle class when nothing on the vehicle places it', () => {
+    expect(tollClassText(tolls({ group: null, source: null, basis: 'TATA ACE' }))).toBe(
+      'not priced: set this truck’s axle class or model',
+    );
+  });
+  it('says nothing to a driver, who gets no fares', () => {
+    expect(tollClassText({ passes: [{}], total: null })).toBeNull();
+  });
+});
+
+describe('ledger and tariff estimates', () => {
+  it('labels crossing totals as estimates and exposes incomplete return history', () => {
+    expect(
+      tollSummary({
+        passes: [{}],
+        total: { inr: 590, priced: 1, notes: ['RETURN_HISTORY_PENDING'] },
+      }),
+    ).toBe('1 toll plaza · ₹590 estimated · return history pending');
+  });
+});
+
+it('shows the reconciled ledger amount separately from crossing estimates', () => {
+  expect(
+    tollLedgerText({
+      ledger: { totalInr: 895, unknownCount: 0, complete: true },
+      total: { inr: 885 },
+    }),
+  ).toBe('₹895');
+  expect(tollLedgerText({ ledger: { totalInr: null, unknownCount: 2, complete: false } })).toBe(
+    'Amount unknown · 2 unpriced · coverage not fully verified',
+  );
+  expect(tollLedgerText({ total: null })).toBeNull();
+});
+
+describe('the server’s own toll coverage', () => {
+  it('says when only part of the road was matched', () => {
+    expect(
+      tollSummary({
+        passes: [{}],
+        total: { inr: 590, priced: 1 },
+        basis: 'ROAD_PARTIAL',
+        unmatchedKm: 12.4,
+      }),
+    ).toBe('1 toll plaza · ₹590 estimated · partial · 12 km of the road not matched');
+  });
+
+  it('says the unmatched distance is unknown when the server did not say', () => {
+    expect(
+      tollSummary({ passes: [{}], total: { inr: 590, priced: 1 }, basis: 'ROAD_PARTIAL' }),
+    ).toBe('1 toll plaza · ₹590 estimated · partial · unmatched distance unknown');
+  });
+
+  it('says a total that is not final is not final', () => {
+    expect(tollSummary({ passes: [{}], total: { inr: 590, priced: 1, complete: false } })).toBe(
+      '1 toll plaza · ₹590 estimated · not final',
+    );
+  });
+
+  it('never turns an amount the server did not send into ₹0', () => {
+    expect(tollSummary({ passes: [{}], total: { priced: 1, inr: null } })).toBe(
+      '1 toll plaza · amount unknown',
+    );
+  });
+});
+
+describe('a leg with no toll passes', () => {
+  it('says nothing, as it did before', () => {
+    expect(tollSummary({ passes: [], status: 'STALE' })).toBeNull();
+    expect(tollSummary({ passes: [], status: 'FALLBACK' })).toBeNull();
+  });
+
+  it('still says what the server said about its coverage', () => {
+    expect(tollSummary({ passes: [], basis: 'ROAD_PARTIAL', unmatchedKm: 12 })).toBe(
+      'partial · 12 km of the road not matched',
+    );
+    expect(tollSummary({ passes: [], total: { complete: false } })).toBe('not final');
+  });
+});
+
+it('explains partial evidence even with zero unmatched km and all crossings priced', () => {
+  const tolls = {
+    basis: 'ROAD_PARTIAL',
+    unmatchedKm: 0,
+    passes: [{ leg: 'LADEN' }, { leg: 'RETURN' }],
+    total: { complete: false, notes: ['ROAD_PARTIAL'], byLeg: { RETURN: { priced: 1, inr: 440 } } },
+    ledger: { totalInr: 2680, unknownCount: 0, complete: false },
+  };
+  expect(tollLedgerText(tolls)).toContain(
+    'route coverage partial; more toll crossings may be missing',
+  );
+  expect(tollSummary(tolls, 'RETURN')).toContain('1 toll plaza · ₹440 estimated');
+  expect(tollSummary(tolls, 'RETURN')).not.toContain('0 km of the road not matched');
+  expect(tollSummary(tolls, 'RETURN')).toContain('GPS gaps');
+});
+
+it('includes return tolls on the timeline and map only in journey mode', () => {
+  const passes = [pass('2026-10-20T11:00:00Z', { leg: 'RETURN' })];
+  expect(withTollPasses(plan, passes).items.some((item) => item.type === 'toll')).toBe(false);
+  expect(
+    withTollPasses(plan, passes, { includeReturn: true }).items.some(
+      (item) => item.type === 'toll',
+    ),
+  ).toBe(true);
+  expect(tollMarks(passes, '2026-10-20T11:01:00Z', { includeReturn: true })).toHaveLength(1);
+});

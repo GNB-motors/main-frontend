@@ -1,12 +1,15 @@
 import React from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import ErrorBoundary from '../errors/ErrorBoundary.jsx';
 import Sidebar from './Sidebar.jsx';
 import Navbar from './Navbar.jsx';
 import LottieLoader from './LottieLoader.jsx';
 import CommandPalette from './cluster/CommandPalette.jsx';
+import ChatUploadIndicator from './ChatUploadIndicator.jsx';
+import WhatsappExportDialog from '../pages/Mileage/WhatsappExportDialog.jsx';
 import { ConfirmDialogHost } from './ui/ConfirmDialog.jsx';
 import { applyThemeToRoot } from '../utils/colorTheme.js';
+import { usePageHeading } from '../hooks/usePageHeading.js';
 import { storeMeProfile } from '../utils/profileStorage.js';
 import { FeatureFlagsProvider, useFeatureFlags } from '../contexts/FeatureFlagsContext.jsx';
 import { BranchProvider, useActiveBranch } from '../contexts/BranchContext.jsx';
@@ -16,12 +19,20 @@ import UsageAnalyticsProvider from '../contexts/UsageAnalyticsProvider.jsx';
 import './DashboardLayout.css';
 
 const DashboardLayoutInner = () => {
-  const [isSidebarOpen, setSidebarOpen] = React.useState(true);
+  // On a phone the open sidebar is a drawer over the page, so it starts
+  // closed there; on a desktop it starts open as before.
+  const [isSidebarOpen, setSidebarOpen] = React.useState(
+    () => typeof window === 'undefined' || window.innerWidth > 992,
+  );
   // Re-key the routed page on location switch so every fetch effect re-runs
   // against the newly selected branch (X-Branch-Id changes in the interceptor).
   const { branchId } = useActiveBranch();
   const { profile, ready } = useFeatureFlags();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  // The top bar shows the heading the page itself renders, so a page is never
+  // named twice in two different ways.
+  const pageTitle = usePageHeading();
 
   React.useEffect(() => {
     // Set all CSS tokens on :root immediately — covers page refresh & login redirect.
@@ -64,7 +75,7 @@ const DashboardLayoutInner = () => {
         id="main-content"
         className={`main-content ${isSidebarOpen ? 'sidebar-open' : 'sidebar-collapsed'}`}
       >
-        <Navbar toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} />
+        <Navbar toggleSidebar={() => setSidebarOpen(!isSidebarOpen)} pageTitle={pageTitle} />
         <div className="page-content" key={branchId || 'all-locations'}>
           <ConfirmDialogHost>
             {/* A page crash stays inside the page area; sidebar and navbar survive. */}
@@ -75,6 +86,11 @@ const DashboardLayoutInner = () => {
         </div>
       </main>
       <CommandPalette />
+      {/* The chat upload belongs to the session, not to the page: the pill is
+          here, outside the page, so it is there on every page of the site. */}
+      <ChatUploadIndicator />
+      {/* One chat-upload dialog for the whole dashboard: it opens over any page. */}
+      <WhatsappExportDialog onReview={() => navigate('/approvals?type=whatsapp')} />
     </div>
   );
 };
@@ -84,8 +100,7 @@ const DashboardLayout = () => (
     <BranchProvider>
       <FleetLinkProvider>
         <SupportPortalProvider>
-          {/* Records what gets opened and feeds the sidebar its evidence-based
-              cut. A failure here degrades to a whole menu, never a broken one. */}
+          {/* Usage analytics remain independent of sidebar visibility. */}
           <UsageAnalyticsProvider>
             <DashboardLayoutInner />
           </UsageAnalyticsProvider>

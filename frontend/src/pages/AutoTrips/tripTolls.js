@@ -1,0 +1,205 @@
+/**
+ * Toll plazas a trip drove through (GET /auto-trips/:id/tolls) placed on the trip page — pure.
+ *
+ * A pass that happened while the truck stood at a stop (a toll queue) belongs to that stop, so the stop
+ * and the crossing read as one event. Every other pass is its own timeline row between the stops it
+ * happened between. Rupees are shown only when the server sent them (owners and managers).
+ *
+ * A trip owns two legs, SAP's cut (the same as route deviations): LADEN, the run the replay plays, and
+ * RETURN, the empty drive home from the last drop to the truck's next plant. Only laden passes go on the
+ * timeline and the replay map; return passes happen after the replay ends.
+ */
+import { inr } from '../../utils/formatMoney';
+import { toDate } from './autoTripFormat';
+
+/** A pass this close to a stop's span is that stop: the booth and the queue are one place. */
+const STOP_SLACK_MS = 5 * 60000;
+const STOP_KINDS = new Set(['stop', 'unknown']);
+
+const ms = (v) => toDate(v)?.getTime() ?? null;
+
+/** A pass with no leg comes from a server before legs existed: it was on the laden run. */
+const legOf = (p) => p.leg || 'LADEN';
+
+/** The passes of one leg (LADEN | RETURN). */
+export const passesOf = (passes, leg) => (passes || []).filter((p) => legOf(p) === leg);
+
+export const passId = (p) => `toll-${p.placeId || `${p.lat},${p.lng}`}-${ms(p.at)}`;
+
+/** "Dankuni Toll Plaza", or what we know when no toll Place covers the booth yet. */
+export const passName = (p) => p.name || 'Toll booth';
+
+/**
+ * The pass's fare as people read it. A closed expressway's entry pays nothing ("charged at exit"); its
+ * exit pays the stretch. A fare from TollGuru rather than a published tariff says "quote".
+ */
+export function fareText(p) {
+  if (p.fareBasis === 'ENTRY') return 'charged at exit';
+  if (p.fareInr == null) return p.unknownReason ? 'fare unknown' : null;
+  const suffix = { RETURN: ' return', SEGMENT: ' for the stretch' }[p.fareBasis] || '';
+  return `${inr(p.fareInr)}${suffix}${p.fareSource === 'TOLLGURU' ? ' (quote)' : ''}`;
+}
+
+/** What saw a pass, when that is less than the matched road. */
+const EVIDENCE_NOTE = {
+  INFERRED_ROAD: 'time estimated across a GPS gap',
+  STOP: 'stopped at the plaza',
+  GPS: 'from GPS — road not matched yet',
+};
+export const evidenceNote = (p) => EVIDENCE_NOTE[p.evidence] || null;
+
+const GROUP_LABEL = {
+  lcv: 'LCV',
+  bus: '2-axle truck',
+  multiaxle: '3-axle',
+  axle_4_6: '4–6 axle',
+  axle_7_plus: '7+ axle',
+};
+
+/**
+ * How the truck was priced: "priced as 4–6 axle (LPT 4830 (48 t))", or, when nothing on the vehicle
+ * says its axles, what to fill in. Null for drivers (no fares) or with no passes.
+ */
+export function tollClassText(tolls) {
+  if (!tolls?.total || !tolls.passes?.length) return null;
+  const g = tolls.vehicleGroup;
+  if (g?.group)
+    return `priced as ${GROUP_LABEL[g.group] || g.group}${g.basis ? ` (${g.basis})` : ''}`;
+  return 'not priced: set this truck’s axle class or model';
+}
+
+/** Money as people read it. An amount the server did not send stays unknown, not ₹0. */
+const amount = (value) => (value == null ? null : inr(value));
+
+/**
+ * What the server says about its own toll coverage: a match it could only partly make,
+ * and a total that is not final yet.
+ */
+export function tollBasisNotes(tolls) {
+  const notes = [];
+  if (tolls?.basis === 'ROAD_PARTIAL') {
+    notes.push('partial');
+    const km = tolls.unmatchedKm;
+    notes.push(
+      km == null
+        ? 'unmatched distance unknown'
+        : Number(km) > 0
+          ? `${Number(km) < 1 ? '<1' : Math.round(Number(km))} km of the road not matched`
+          : 'some road sections inferred across GPS gaps',
+    );
+  }
+  if (tolls?.total?.complete === false) notes.push('not final');
+  return notes;
+}
+
+/**
+ * One leg's tolls: "3 toll plazas · ₹1,185" (+ "· 1 unpriced"), "2 toll plazas" for drivers, null with
+ * none. Rupees come from the server's per-leg total (owners and managers only).
+ */
+export function tollSummary(tolls, leg = 'LADEN') {
+  const own = passesOf(tolls?.passes, leg);
+  const n = own.length;
+  const basis = leg === 'LADEN' || n > 0 || tolls?.returnTo ? tollBasisNotes(tolls) : [];
+  // A leg with no crossing has nothing to count, so only what the server said stays.
+  if (!n) return basis.length ? basis.join(' · ') : null;
+  const t = tolls?.total?.byLeg?.[leg] || (leg === 'LADEN' ? tolls?.total : null);
+  const parts = [`${n} toll plaza${n === 1 ? '' : 's'}`];
+  if (t?.priced) parts.push(t.inr == null ? 'amount unknown' : `${amount(t.inr)} estimated`);
+  if (t?.unknown) parts.push(`${t.unknown} unpriced`);
+  if (tolls?.total?.notes?.includes('RETURN_HISTORY_PENDING')) parts.push('return history pending');
+  if (tolls?.status === 'STALE') parts.push('refresh pending');
+  if (tolls?.status === 'FALLBACK') parts.push('road not matched yet');
+  parts.push(...basis);
+  return parts.join(' · ');
+}
+
+/** Reconciled money comes from Expense; crossing fares above remain tariff estimates. */
+export function tollLedgerText(tolls) {
+  const ledger = tolls?.ledger;
+  if (!ledger) return null;
+  const parts = [ledger.totalInr == null ? 'Amount unknown' : inr(ledger.totalInr)];
+  if (ledger.unknownCount) parts.push(`${ledger.unknownCount} unpriced`);
+  if (ledger.complete === false) {
+    const reasons = ledger.coverageReasons || tolls?.total?.notes || [];
+    const labels = {
+      ROAD_PARTIAL: 'route coverage partial; more toll crossings may be missing',
+      ROAD_NOT_MATCHED: 'road not matched; more toll crossings may be missing',
+      RETURN_HISTORY_PENDING: 'earlier crossings still being checked for return fares',
+    };
+    const explanations = [...new Set(reasons.map((reason) => labels[reason]).filter(Boolean))];
+    parts.push(...(explanations.length ? explanations : ['coverage not fully verified']));
+  }
+  return parts.join(' · ');
+}
+
+function stopOf(steps, at) {
+  return steps.find((s) => {
+    if (!STOP_KINDS.has(s.kind)) return false;
+    const from = ms(s.at);
+    const to = ms(s.leftAt) ?? from;
+    return from != null && at >= from - STOP_SLACK_MS && at <= to + STOP_SLACK_MS;
+  });
+}
+
+/**
+ * The timeline plan with the trip's toll passes in it: a pass inside a stop sets that step's
+ * `tollPass`; any other pass becomes a `{ type: 'toll' }` item right before the first step after it.
+ */
+export function withTollPasses(plan, passes, { includeReturn = false } = {}) {
+  const laden = includeReturn ? passes || [] : passesOf(passes, 'LADEN');
+  if (!plan || !laden.length) return plan;
+  const steps = plan.items.filter((it) => it.type === 'step');
+  const onStep = new Map();
+  const loose = [];
+  [...laden]
+    .sort((a, b) => ms(a.at) - ms(b.at))
+    .forEach((p) => {
+      const step = stopOf(steps, ms(p.at));
+      if (step && !onStep.has(step.id)) onStep.set(step.id, p);
+      else loose.push(p);
+    });
+
+  const items = [];
+  let k = 0;
+  const flushBefore = (limit) => {
+    while (k < loose.length && (limit == null || ms(loose[k].at) < limit)) {
+      items.push({ type: 'toll', id: passId(loose[k]), pass: loose[k], playAt: loose[k].at });
+      k += 1;
+    }
+  };
+  plan.items.forEach((it) => {
+    if (it.type === 'step') {
+      // The pass goes between the drive and the step it happened before.
+      flushBefore(ms(it.at));
+      items.push(onStep.has(it.id) ? { ...it, tollPass: onStep.get(it.id) } : it);
+    } else items.push(it);
+  });
+  flushBefore(null);
+  return { ...plan, items };
+}
+
+/** Markers for the replay map; `passed` is relative to the replay's current instant. */
+export function tollMarks(passes, cursorAt, { includeReturn = false } = {}) {
+  const now = ms(cursorAt);
+  return (includeReturn ? passes || [] : passesOf(passes, 'LADEN')).map((p) => ({
+    id: passId(p),
+    at: { lat: p.lat, lng: p.lng },
+    name: passName(p),
+    passed: now != null && ms(p.at) <= now,
+    title: [passName(p), fareText(p), evidenceNote(p)].filter(Boolean).join(' · '),
+  }));
+}
+
+/** For this long after a pass the replay says which plaza the truck just crossed. */
+const JUST_PASSED_MS = 5 * 60000;
+
+/** The plaza the replay crossed in the last few minutes before `cursorAt`, or null. */
+export function justPassed(passes, cursorAt, { includeReturn = false } = {}) {
+  const now = ms(cursorAt);
+  if (now == null) return null;
+  const recent = (includeReturn ? passes || [] : passesOf(passes, 'LADEN')).filter((p) => {
+    const at = ms(p.at);
+    return at != null && at <= now && now - at <= JUST_PASSED_MS;
+  });
+  return recent.length ? passName(recent[recent.length - 1]) : null;
+}

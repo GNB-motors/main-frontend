@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 /**
  * Delivery Orders (ISOCL ERP Stage 2)
  *
@@ -251,7 +252,7 @@ const DeliveryOrdersPage = ({ embedded = false }) => {
             onChange={handleSearch}
           />
         </div>
-        <select
+        <SearchableSelect
           className="erp-filter"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
@@ -264,7 +265,7 @@ const DeliveryOrdersPage = ({ embedded = false }) => {
           <option value="COMPLETED">Completed</option>
           <option value="EXPIRED">Expired</option>
           <option value="CANCELLED">Cancelled</option>
-        </select>
+        </SearchableSelect>
       </div>
 
       <div className="erp-container">

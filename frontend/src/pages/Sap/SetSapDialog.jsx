@@ -76,6 +76,10 @@ export default function SetSapDialog({ from = null, to = null, current = null, o
         </DialogHeader>
         <form className="sap-panel" onSubmit={submit}>
           <div className="sap-dialog-body">
+            <p className="sap-muted">
+              This sets the route’s agreed SAP distance. Learned distances stay separate; existing
+              trip snapshots refresh in the background.
+            </p>
             {!from && (
               <PlacePicker
                 label={ends.from ? `Plant: ${ends.from.name} (change)` : 'Plant (loading place)'}
@@ -104,10 +108,10 @@ export default function SetSapDialog({ from = null, to = null, current = null, o
                 onChange={(e) => setKm(e.target.value)}
               />
             </label>
-            <fieldset className="sap-stack">
+            <fieldset className="sap-choices">
               <legend>This SAP km pays for</legend>
               {['ONE_WAY', 'ROUND_TRIP'].map((b) => (
-                <label key={b} className="sap-row">
+                <label key={b} className="sap-choice">
                   <input
                     type="radio"
                     name="basis"
@@ -116,9 +120,11 @@ export default function SetSapDialog({ from = null, to = null, current = null, o
                     checked={basis === b}
                     onChange={() => setBasis(b)}
                   />
-                  {BASIS_LABEL[b]}
-                  <span className="sap-muted">
-                    — compared with {COMPARED_WITH[b].toLowerCase()}
+                  <span className="sap-choice-text">
+                    <strong>{BASIS_LABEL[b]}</strong>
+                    <span className="sap-muted">
+                      Compared with {COMPARED_WITH[b].toLowerCase()}
+                    </span>
                   </span>
                 </label>
               ))}

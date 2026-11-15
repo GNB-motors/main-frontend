@@ -2,9 +2,19 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Ico from '../../routeHubIcons.jsx';
 import { Empty, Seg, Skel } from '../../routeHubShared.jsx';
-import { fmtDT, inr } from '../../routeHubFormat';
-import { clock, costBasisLabel, legLabel, tripLabel } from './deviationRules.js';
+import { fmtDT } from '../../routeHubFormat';
+import {
+  clock,
+  costBasisLabel,
+  costKnown,
+  extraKnown,
+  enrichmentReason,
+  deviationGroupSubtitle,
+  deviationGroupTitle,
+  legLabel,
+} from './deviationRules.js';
 import { timelineModel } from './deviationMapModel.js';
+import { deviationDetailModel } from './deviationDetailModel.js';
 import DeviationMap from './DeviationMap.jsx';
 import DeviationTimeline from './DeviationTimeline.jsx';
 import DeviationReview from './DeviationReview.jsx';
@@ -16,11 +26,11 @@ const ZOOMS = [
 
 const km = (n, digits = 1) => (n == null ? '—' : `${Number(n).toFixed(digits)} km`);
 
-function Fact({ k, v, tone }) {
+function Fact({ k, v, tone, title }) {
   return (
     <div>
       <div className="k">{k}</div>
-      <div className="v" style={tone ? { color: tone } : undefined}>
+      <div className="v" style={tone ? { color: tone } : undefined} title={title}>
         {v}
       </div>
     </div>
@@ -30,7 +40,12 @@ function Fact({ k, v, tone }) {
 /**
  * The selected deviation: which trip it was on, the map of the trip with the
  * detour highlighted, a timeline of the trip, the facts, and the review action.
- * `row` is the feed row (shown at once); `detail` arrives from the detail call.
+ *
+ * The redesign's rules here: the header says which run it was and where it
+ * went; the button says "See on map" and opens Track mode; the cost is an
+ * em dash when it is unknown and never a zero; and the stops while the
+ * truck was off its usual road are listed as FACTS - where and for how
+ * long, with no reason and no judgement.
  */
 export default function DeviationDetail({
   row,
@@ -56,23 +71,32 @@ export default function DeviationDetail({
   const trip = row.trip;
   const tripId = trip?.autoTripId ? String(trip.autoTripId) : null;
   const event = detail?.event || row;
-  const exitAt = detail?.detour?.exitPoint?.at || event.startedAt;
-  const rejoinAt = detail?.detour?.rejoinPoint?.at || event.endedAt;
+  const model = deviationDetailModel(detail, row);
+  const exitAt = model.exitAt;
+  const rejoinAt = model.rejoinAt;
+  const timeline = timelineModel(detail, siblings);
 
   return (
     <div className="card detailmap">
       <div className="card-head dev-head">
         <span className="plate">{row.registrationNumber}</span>
         <div className="dev-head-t">
-          <h3>{trip ? tripLabel(trip) : 'Outside any trip'}</h3>
+          <h3>{deviationGroupTitle(row)}</h3>
           <span className="muted">
-            {trip
-              ? `${legLabel(trip)} · left the plant ${trip.ladenFrom ? fmtDT(new Date(trip.ladenFrom)) : '—'}`
-              : row.corridorLabel || 'No trip was running when this happened'}
+            {model.header
+              ? model.header
+              : trip
+                ? `${legLabel(trip)} · left the plant ${trip.ladenFrom ? fmtDT(new Date(trip.ladenFrom)) : '—'}`
+                : deviationGroupSubtitle(row)}
           </span>
         </div>
         <span className="sp" />
-        {tripId ? (
+        {timeline?.outsideTrip ? null : model.replay?.to ? (
+          <Link className="btn btn--sm" to={model.replay.to}>
+            <Ico n="play" s={12} />
+            See on map
+          </Link>
+        ) : tripId ? (
           <>
             <Link className="btn btn--sm" to={`/auto-trips/${tripId}?deviation=${row._id}`}>
               <Ico n="route" s={12} />
@@ -90,7 +114,7 @@ export default function DeviationDetail({
             onClick={() => go('replay', { v: row.registrationNumber })}
           >
             <Ico n="play" s={12} />
-            Replay vehicle
+            See on map
           </button>
         )}
       </div>
@@ -110,32 +134,29 @@ export default function DeviationDetail({
             Could not load the map for this deviation.
           </div>
         ) : null}
+        {model.noUsualRoadCaption ? (
+          <div className="ov chipcard" style={{ bottom: 54, left: 14, color: 'var(--rd-ink-2)' }}>
+            {model.noUsualRoadCaption}
+          </div>
+        ) : null}
         <div className="ov chipcard legend" style={{ bottom: 14, left: 14 }}>
-          <span>
-            <i className="dot" style={{ background: '#8B8B8C' }} />
-            Usual route
-            {detail?.corridor?.sampleCount ? ` (from ${detail.corridor.sampleCount} trips)` : ''}
-            {detail?.corridor?.bandTruncated ? ' · band sampled' : ''}
-          </span>
-          {trip ? (
+          {model.hasUsualRoad ? (
             <span>
-              <i style={{ background: '#828BAE' }} />
-              Empty
+              <i className="dot" style={{ background: '#3468a5' }} />
+              Usual route
+              {detail?.corridor?.sampleCount ? ` (from ${detail.corridor.sampleCount} trips)` : ''}
+              {detail?.corridor?.bandTruncated ? ' · band sampled' : ''}
             </span>
           ) : null}
           <span>
-            <i style={{ background: '#2F58EE' }} />
-            {trip ? 'Loaded' : 'Driven'}
-          </span>
-          <span>
-            <i style={{ background: '#C2323A' }} />
-            Off usual route
+            <i style={{ background: model.hasUsualRoad ? '#dc2626' : '#77818d' }} />
+            GPS points, not matched to roads
           </span>
         </div>
       </div>
 
       {detail ? (
-        <DeviationTimeline model={timelineModel(detail, siblings)} onSelect={onSelect} />
+        <DeviationTimeline model={timeline} onSelect={onSelect} />
       ) : (
         <div className="dev-tl">
           <Skel h={10} />
@@ -146,19 +167,55 @@ export default function DeviationDetail({
         <Fact k="Left usual route" v={exitAt ? clock(exitAt) : '—'} />
         <Fact k="Back on usual route" v={rejoinAt ? clock(rejoinAt) : 'Not seen'} />
         <Fact k="Off route for" v={event.durationMin != null ? `${event.durationMin} min` : '—'} />
-        <Fact k="Farthest off" v={km(event.maxOffKm)} />
+        {event.offRouteKm != null ? (
+          <Fact k="Driven off usual road" v={km(event.offRouteKm)} />
+        ) : (
+          <Fact k="Farthest off" v={km(event.maxOffKm)} />
+        )}
         <Fact
           k="Extra distance (est.)"
-          v={event.extraKmEstimate != null ? `+${km(event.extraKmEstimate)}` : '—'}
+          v={extraKnown(event) ? `+${km(event.extraKmEstimate)}` : '—'}
+          title={extraKnown(event) ? undefined : enrichmentReason(event)}
         />
         <Fact
-          k={`Extra cost (est., ${costBasisLabel(event)})`}
-          v={event.estimatedExtraCostInr != null ? inr(event.estimatedExtraCostInr) : '—'}
-          tone="#C2323A"
+          k={costKnown(event) ? `Extra cost (est., ${costBasisLabel(event)})` : 'Extra cost (est.)'}
+          v={costKnown(event) ? model.cost : '—'}
+          title={costKnown(event) ? costBasisLabel(event) : enrichmentReason(event)}
         />
       </div>
+      {!extraKnown(event) || !costKnown(event) ? (
+        <p className="muted" style={{ padding: '0 16px' }}>
+          {enrichmentReason(event)}
+        </p>
+      ) : null}
 
-      <DeviationReview key={event._id} event={event} busy={reviewBusy} onReview={onReview} />
+      {/* Facts only: where it stopped while off the usual road, and for how
+          long. No reason, no judgement - the owner decides. */}
+      <div className="dev-stops">
+        <h4 className="dev-stops__title">Stops while off the usual road</h4>
+        {model.stopsDuring.length === 0 ? (
+          <p className="dev-stops__empty">Didn&apos;t stop while off the usual road.</p>
+        ) : (
+          <ul className="dev-stops__list">
+            {model.stopsDuring.map((stop) => (
+              <li key={stop.key}>
+                <span>
+                  Stopped {stop.durationMin != null ? `${stop.durationMin} min` : '—'}
+                  {stop.placeName ? ` near ${stop.placeName}` : ''}
+                </span>
+                <span className="dev-stops__time">
+                  {stop.startAt ? clock(stop.startAt) : '—'}
+                  {stop.endAt ? `–${clock(stop.endAt)}` : ''}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {model.hasUsualRoad ? (
+        <DeviationReview key={event._id} event={event} busy={reviewBusy} onReview={onReview} />
+      ) : null}
     </div>
   );
 }

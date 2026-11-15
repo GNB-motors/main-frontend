@@ -1,6 +1,14 @@
 import { evaluateOcrQuality, getOdometerMeta } from './receiptVerification';
 
 /**
+ * The fill time of a draft: what the photo says, else the bill's own time.
+ *
+ * The time a message arrived is never the fill time, and a predicted time is
+ * a suggestion, so neither is used to place a draft on a day.
+ */
+export const refuelTimeOf = (d) => d?.time?.value || d?.billDatetime || null;
+
+/**
  * Filter drafts by date preset
  */
 export const filterByDatePreset = (items, preset) => {
@@ -9,7 +17,7 @@ export const filterByDatePreset = (items, preset) => {
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
   return items.filter((d) => {
-    const rawDate = d.billDatetime || d.fuelOcr?.data?.datetime || d.createdAt;
+    const rawDate = refuelTimeOf(d);
     if (!rawDate) return false;
     const time = new Date(rawDate).getTime();
     if (isNaN(time)) return false;
@@ -103,9 +111,8 @@ export const filterDraftsLocally = (
     });
   }
 
-  // Sort by refuel date (billDatetime), falling back to OCR datetime and createdAt
-  const refuelTime = (d) =>
-    new Date(d.billDatetime || d.fuelOcr?.data?.datetime || d.createdAt || 0).getTime();
+  // Sort by the fill time (time.value), else the bill's own time.
+  const refuelTime = (d) => new Date(refuelTimeOf(d) || 0).getTime();
   return [...result].sort((a, b) =>
     sortDirection === 'asc' ? refuelTime(a) - refuelTime(b) : refuelTime(b) - refuelTime(a),
   );

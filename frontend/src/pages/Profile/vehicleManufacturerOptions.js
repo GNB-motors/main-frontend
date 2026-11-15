@@ -1,7 +1,3 @@
-export const PRIMARY_MANUFACTURERS = [
-  { value: 'TATA', label: 'Tata' },
-  { value: 'ASHOK LEYLAND', label: 'Ashok Leyland' },
-];
 export function canonicalManufacturer(value) {
   const name = String(value || '')
     .trim()
@@ -24,7 +20,7 @@ export function eligibleAccounts(accounts, manufacturer) {
     return account.status === 'ACTIVE' && supported.includes(make);
   });
 }
-export function manufacturerLabel(value, catalog = PRIMARY_MANUFACTURERS) {
+export function manufacturerLabel(value, catalog = []) {
   return (
     catalog.find((item) => item.value === canonicalManufacturer(value))?.label ||
     (value === 'UNKNOWN' || !value ? 'Unclassified' : value)

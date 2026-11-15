@@ -1,7 +1,7 @@
 import { Fuel, ShieldCheck, ShieldAlert, ArrowRight, Gauge, Activity, Layers } from 'lucide-react';
 import { formatINR, formatLitres } from '../../../utils/formatters';
 
-/** Fleet mass balance: fuel in, engine burn and tank change, and what is left unexplained. */
+/** Fleet mass balance: fuel in, engine burn and tank change, and what went down while parked. */
 const MassBalancePipeline = ({
   lossL,
   pricePerL,
@@ -9,14 +9,16 @@ const MassBalancePipeline = ({
   totalFillsLitres,
   totalNetTankDeltaL,
   windowDays,
+  lossLabel = 'Fuel down while parked',
 }) => (
   <div className="fi-flow-pipeline">
     <div className="fi-pipeline-header">
       <div className="fi-pipeline-title-group">
         <Layers size={15} className="text-blue-600 dark:text-blue-400" />
-        <span className="fi-pipeline-title">Autonomous Mass-Balance Flow Reconciliation</span>
+        <span className="fi-pipeline-title">Fuel in and fuel used, this period</span>
         <span className="fi-pipeline-formula">
-          Pump Inflow − Engine Burn − ΔTank Level = Unaccounted Loss
+          Fuel in, engine burn and tank change side by side · review unexplained loss in the windows
+          below
         </span>
       </div>
       <div className="text-xs text-slate-500 font-medium">
@@ -28,16 +30,18 @@ const MassBalancePipeline = ({
     </div>
 
     <div className="fi-pipeline-steps">
-      {/* Step 1: Dispensed Inflow */}
+      {/* Step 1: Fuel in. Same figure as the "Fuel in (tank sensor)" card. */}
       <div className="fi-step-card">
         <div className="fi-step-head">
-          <span className="fi-step-label">1. Pump Dispensed</span>
+          <span className="fi-step-label">1. Fuel in (tank sensor)</span>
           <Fuel size={14} className="text-blue-500" />
         </div>
         <div className="fi-step-val text-blue-600 dark:text-blue-400">
-          +{formatLitres(totalFillsLitres)}
+          {formatLitres(totalFillsLitres)}
         </div>
-        <div className="fi-step-sub">≈ {formatINR(totalFillsLitres * pricePerL)} invoiced</div>
+        <div className="fi-step-sub">
+          ≈ {formatINR(totalFillsLitres * pricePerL)} at ₹{pricePerL}/L
+        </div>
       </div>
 
       <div className="fi-step-arrow">
@@ -47,7 +51,7 @@ const MassBalancePipeline = ({
       {/* Step 2: Engine Consumed */}
       <div className="fi-step-card">
         <div className="fi-step-head">
-          <span className="fi-step-label">2. Engine Consumed</span>
+          <span className="fi-step-label">2. Engine consumed</span>
           <Activity size={14} className="text-emerald-500" />
         </div>
         <div className="fi-step-val text-slate-800 dark:text-slate-100">
@@ -65,11 +69,10 @@ const MassBalancePipeline = ({
       {/* Step 3: Net Tank Delta */}
       <div className="fi-step-card">
         <div className="fi-step-head">
-          <span className="fi-step-label">3. Net Tank Reserve</span>
+          <span className="fi-step-label">3. Net tank reserve</span>
           <Gauge size={14} className="text-indigo-500" />
         </div>
         <div className="fi-step-val text-indigo-600 dark:text-indigo-400">
-          {totalNetTankDeltaL >= 0 ? '+' : ''}
           {formatLitres(totalNetTankDeltaL)}
         </div>
         <div className="fi-step-sub">Fleet tank level balance</div>
@@ -79,18 +82,30 @@ const MassBalancePipeline = ({
         <ArrowRight size={16} />
       </div>
 
-      {/* Step 4: Siphon Loss Defense */}
+      {/* Step 4: the fuel that went down while parked */}
       <div
         className="fi-step-card"
         style={{
-          borderColor: lossL > 0 ? 'rgba(239, 68, 68, 0.5)' : 'rgba(16, 185, 129, 0.4)',
-          background: lossL > 0 ? 'rgba(239, 68, 68, 0.05)' : 'rgba(16, 185, 129, 0.06)',
+          borderColor:
+            lossL > 0
+              ? 'rgba(239, 68, 68, 0.5)'
+              : lossL == null
+                ? 'var(--rd-line-strong)'
+                : 'rgba(16, 185, 129, 0.4)',
+          background:
+            lossL > 0
+              ? 'rgba(239, 68, 68, 0.05)'
+              : lossL == null
+                ? 'transparent'
+                : 'rgba(16, 185, 129, 0.06)',
         }}
       >
         <div className="fi-step-head">
-          <span className="fi-step-label">4. Unaccounted Loss</span>
+          <span className="fi-step-label">4. {lossLabel}</span>
           {lossL > 0 ? (
             <ShieldAlert size={14} className="text-red-500" />
+          ) : lossL == null ? (
+            <Layers size={14} className="text-slate-400" />
           ) : (
             <ShieldCheck size={14} className="text-emerald-500" />
           )}
@@ -98,13 +113,22 @@ const MassBalancePipeline = ({
         <div
           className="fi-step-val"
           style={{
-            color: lossL > 0 ? 'var(--critical, #dc2626)' : 'var(--ok, #10b981)',
+            color:
+              lossL > 0
+                ? 'var(--critical, #dc2626)'
+                : lossL == null
+                  ? 'var(--rd-ink-3)'
+                  : 'var(--ok, #10b981)',
           }}
         >
-          {lossL > 0 ? `−${formatLitres(lossL)}` : '0.0 L (₹0)'}
+          {lossL == null ? '—' : lossL > 0 ? `−${formatLitres(lossL)}` : '0.0 L'}
         </div>
         <div className="fi-step-sub">
-          {lossL > 0 ? `Leakage: ${formatINR(lossL * pricePerL)}` : '🛡️ 100% Intact · Zero Theft'}
+          {lossL == null
+            ? 'Not measured yet'
+            : lossL > 0
+              ? `Worth about ${formatINR(lossL * pricePerL)}`
+              : 'None found in checked windows'}
         </div>
       </div>
     </div>

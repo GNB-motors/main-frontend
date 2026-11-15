@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React from 'react';
 import { X } from 'lucide-react';
 import { todayInput } from '../todayInput';
@@ -33,14 +34,14 @@ function SubmitBillModal({
           </label>
           <label>
             Delivery mode
-            <select
+            <SearchableSelect
               value={submitForm.deliveryMode}
               onChange={(e) => setSubmitForm((f) => ({ ...f, deliveryMode: e.target.value }))}
             >
               <option value="COURIER">Courier</option>
               <option value="BY_HAND">By hand</option>
               <option value="EMAIL">Email</option>
-            </select>
+            </SearchableSelect>
           </label>
           {submitForm.deliveryMode === 'COURIER' && (
             <>

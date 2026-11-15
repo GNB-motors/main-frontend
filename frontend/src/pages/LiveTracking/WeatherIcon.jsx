@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { WX } from './weatherGlyph.js';
 
 /**
@@ -5,7 +6,40 @@ import { WX } from './weatherGlyph.js';
  * under `.wx-icon`). One category → one composed scene: sun rays rotate, the
  * cloud drifts, rain/snow falls, the bolt flashes. `animated={false}` freezes
  * it (used in tight list contexts if ever needed).
+ *
+ * `isDay` swaps the clear/partly scenes to moon variants at night.
  */
+
+function Moon({ cx = 32, cy = 26 }) {
+  const id = useId();
+  return (
+    <g className="wx-moon">
+      <defs>
+        <mask id={id}>
+          <circle cx={cx} cy={cy} r={11} fill="white" />
+          <circle cx={cx + 7} cy={cy - 5} r={9} fill="black" />
+        </mask>
+      </defs>
+      <circle cx={cx} cy={cy} r={11} mask={`url(#${id})`} />
+    </g>
+  );
+}
+
+function Stars() {
+  const pts = [
+    [18, 12, 1.4],
+    [46, 9, 1],
+    [50, 20, 1.2],
+    [14, 30, 1],
+  ];
+  return (
+    <g className="wx-stars">
+      {pts.map(([x, y, r]) => (
+        <circle key={`${x}-${y}`} className="wx-star" cx={x} cy={y} r={r} />
+      ))}
+    </g>
+  );
+}
 
 function Sun({ cx = 32, cy = 20, r = 9 }) {
   const rays = Array.from({ length: 8 }, (_, i) => {
@@ -102,15 +136,32 @@ function FogLines() {
   );
 }
 
-export default function WeatherIcon({ category = WX.UNKNOWN, size = 36, animated = true }) {
+export default function WeatherIcon({
+  category = WX.UNKNOWN,
+  size = 36,
+  animated = true,
+  isDay = true,
+}) {
   const scene = (() => {
     switch (category) {
       case WX.CLEAR:
-        return <Sun cx={32} cy={26} r={11} />;
+        return isDay ? (
+          <Sun cx={32} cy={26} r={11} />
+        ) : (
+          <>
+            <Stars />
+            <Moon cx={32} cy={28} />
+          </>
+        );
       case WX.PARTLY:
-        return (
+        return isDay ? (
           <>
             <Sun cx={22} cy={18} r={7} />
+            <Cloud dx={6} dy={4} scale={0.92} />
+          </>
+        ) : (
+          <>
+            <Moon cx={20} cy={18} />
             <Cloud dx={6} dy={4} scale={0.92} />
           </>
         );

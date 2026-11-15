@@ -29,10 +29,34 @@ describe('useSelectedDriver', () => {
     expect(result.current.since).toBeNull();
   });
 
-  it('falls back to the generic label when the driver was not populated', () => {
+  it('says the name is not recorded instead of inventing one (audit DC-23)', () => {
     const { result } = renderHook(() =>
       useSelectedDriver(vehicle, {}, { WB01AB1234: { _id: 'a2', driverId: 'd2' } }),
     );
-    expect(result.current.name).toBe('Primary Driver');
+    expect(result.current.name).toBe('Name not recorded');
+  });
+
+  it('prefers the driver of record on the position row, and reports two drivers as unclear', () => {
+    const withDriver = {
+      ...vehicle,
+      driver: {
+        state: 'ASSIGNED',
+        name: 'Asha Devi',
+        phone: '+919111111111',
+        since: '2026-10-01T00:00:00Z',
+      },
+    };
+    const { result } = renderHook(() =>
+      useSelectedDriver(withDriver, {}, { WB01AB1234: assignment }),
+    );
+    expect(result.current).toMatchObject({ name: 'Asha Devi', phone: '+919111111111' });
+    const unclear = renderHook(() =>
+      useSelectedDriver({ ...vehicle, driver: { state: 'UNCLEAR' } }, {}, {}),
+    );
+    expect(unclear.result.current).toMatchObject({ unclear: true });
+    const none = renderHook(() =>
+      useSelectedDriver({ ...vehicle, driver: { state: 'NONE' } }, {}, { WB01AB1234: assignment }),
+    );
+    expect(none.result.current).toBeNull();
   });
 });

@@ -3,22 +3,21 @@ import PageShell from '../../components/ui/PageShell';
 import EmptyState from '../../components/cluster/EmptyState';
 import TollsService from '../../services/TollsService';
 import PlazaMasterTab from './PlazaMasterTab';
-import ReconciliationTab from './ReconciliationTab';
 import RankingTab from './RankingTab';
-import { completenessLine } from './tollsView';
+import { completenessLine, crossingMoney } from './tollsView';
 import './TollsPage.css';
 
 const TABS = [
   { key: 'plazas', label: 'Plaza master' },
-  { key: 'reconciliation', label: 'Estimate vs bill' },
+  { key: 'crossings', label: 'Crossings' },
   { key: 'report', label: 'Vehicle report' },
   { key: 'ranking', label: 'Driver ranking' },
 ];
 
-const DEFAULT_WINDOW = () => {
-  const to = new Date();
-  const from = new Date(to.getTime() - 30 * 86400000);
-  return { from: from.toISOString(), to: to.toISOString() };
+/** The toll ledger is read a month at a time — that is the window the API has. */
+const CURRENT_MONTH = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 };
 
 /**
@@ -32,31 +31,27 @@ const DEFAULT_WINDOW = () => {
  */
 export default function TollsPage() {
   const [tab, setTab] = useState('plazas');
-  const [window, setWindow] = useState(DEFAULT_WINDOW);
+  const [month, setMonth] = useState(CURRENT_MONTH);
   const [plazas, setPlazas] = useState([]);
-  const [reconciliation, setReconciliation] = useState([]);
-  const [returnGaps, setReturnGaps] = useState([]);
+  const [crossings, setCrossings] = useState([]);
   const [report, setReport] = useState({ vehicles: [] });
   const [ranking, setRanking] = useState({ drivers: [] });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [notice, setNotice] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [p, rec, gaps, rep, rank] = await Promise.all([
+      const [p, cross, rep, rank] = await Promise.all([
         TollsService.listPlazas({ limit: 200 }),
-        TollsService.getReconciliation(window),
-        TollsService.getReturnGaps(window),
-        TollsService.getReport(window),
-        TollsService.getRanking(window),
+        TollsService.getCrossings({ month, limit: 200 }),
+        TollsService.getReport({ month }),
+        TollsService.getRanking({ month }),
       ]);
       setPlazas(p || []);
-      setReconciliation(rec || []);
-      setReturnGaps(gaps || []);
+      setCrossings(cross?.rows || []);
       setReport(rep || { vehicles: [] });
       setRanking(rank || { drivers: [] });
     } catch (err) {
@@ -64,29 +59,10 @@ export default function TollsPage() {
     } finally {
       setLoading(false);
     }
-  }, [window]);
+  }, [month]);
 
   useEffect(() => {
     load();
-  }, [load]);
-
-  const onSweep = useCallback(async () => {
-    setBusy(true);
-    setNotice(null);
-    setError(null);
-    try {
-      const out = await TollsService.sweep();
-      setNotice(
-        `Swept ${out?.osm?.scanned ?? 0} OSM booths · ${out?.gate?.resolved ?? 0} gates resolved · ` +
-          `${out?.detected?.crossings ?? 0} crossings found (${out?.detected?.priced ?? 0} priced, ` +
-          `${out?.detected?.unpriced ?? 0} with no rate on file, ${out?.detected?.unmatched ?? 0} stretches of road unmatched).`,
-      );
-      await load();
-    } catch (err) {
-      setError(err.message || 'Sweep failed');
-    } finally {
-      setBusy(false);
-    }
   }, [load]);
 
   const onReview = useCallback(
@@ -107,10 +83,10 @@ export default function TollsPage() {
   const counts = useMemo(
     () => ({
       report: report.vehicles || [],
-      reconciliation: reconciliation.length,
+      crossings: crossings.length,
       ranking: (ranking.drivers || []).length,
     }),
-    [report, reconciliation, ranking],
+    [report, crossings, ranking],
   );
 
   return (
@@ -118,11 +94,6 @@ export default function TollsPage() {
       title="Tolls"
       count={plazas.length}
       subtitle="Plaza gates on the road network, crossings found on the road-matched path, and what drivers actually paid."
-      actions={
-        <button className="pshell-btn pshell-btn--primary" onClick={onSweep} disabled={busy}>
-          {busy ? 'Sweeping…' : 'Re-sweep plazas & detect'}
-        </button>
-      }
       filters={
         <div className="tolls-filters">
           <div className="tolls-tabs">
@@ -136,24 +107,14 @@ export default function TollsPage() {
               </button>
             ))}
           </div>
-          <label className="tolls-window" htmlFor="tolls-from">
-            From
+          <label className="tolls-window" htmlFor="tolls-month">
+            Month
             <input
-              id="tolls-from"
-              aria-label="Toll window start"
-              type="date"
-              value={window.from.slice(0, 10)}
-              onChange={(e) => setWindow((w) => ({ ...w, from: e.target.value }))}
-            />
-          </label>
-          <label className="tolls-window" htmlFor="tolls-to">
-            To
-            <input
-              id="tolls-to"
-              aria-label="Toll window end"
-              type="date"
-              value={window.to.slice(0, 10)}
-              onChange={(e) => setWindow((w) => ({ ...w, to: e.target.value }))}
+              id="tolls-month"
+              aria-label="Toll month"
+              type="month"
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
             />
           </label>
         </div>
@@ -161,14 +122,13 @@ export default function TollsPage() {
       footer={completenessLine(counts.report)}
     >
       {error ? <div className="tolls-banner tolls-banner--bad">{error}</div> : null}
-      {notice ? <div className="tolls-banner">{notice}</div> : null}
 
       {loading ? (
         <div className="tolls-loading">Reading the toll ledger…</div>
       ) : tab === 'plazas' ? (
         <PlazaMasterTab plazas={plazas} onReview={onReview} busy={busy} />
-      ) : tab === 'reconciliation' ? (
-        <ReconciliationTab rows={reconciliation} gaps={returnGaps} />
+      ) : tab === 'crossings' ? (
+        <CrossingsTab rows={crossings} plazas={plazas} />
       ) : tab === 'report' ? (
         <ReportTab report={report} />
       ) : (
@@ -182,6 +142,54 @@ export default function TollsPage() {
         />
       ) : null}
     </PageShell>
+  );
+}
+
+/**
+ * Crossings — every gate a truck went through this month.
+ *
+ * The amount is the honest one: a crossing we could not price is "unknown",
+ * never ₹0, and a crossing the return rule made free says "free".
+ */
+function CrossingsTab({ rows = [], plazas = [] }) {
+  if (!rows.length) {
+    return (
+      <EmptyState
+        title="No toll crossings in this month"
+        hint="A crossing appears here once the detector has matched a truck's road-matched path against a plaza gate. A crossing with no rate on file is listed as unknown, never as zero — a pass we cannot price is still money the owner owes."
+      />
+    );
+  }
+
+  const plazaName = new Map(
+    plazas.map((p) => [String(p._id ?? p.id), p.name || p.code || '—']),
+  );
+
+  return (
+    <table className="tolls-table">
+      <thead>
+        <tr>
+          <th>Vehicle</th>
+          <th>Plaza</th>
+          <th>Direction</th>
+          <th>When</th>
+          <th className="num">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr key={row._id ?? `${row.vehicleId}-${row.crossedAt}`}>
+            <td>{row.registrationNumber || '—'}</td>
+            <td>{plazaName.get(String(row.plazaId)) || '—'}</td>
+            <td>{row.direction || 'onward'}</td>
+            <td>
+              {row.crossedAt ? new Date(row.crossedAt).toLocaleString('en-IN') : '—'}
+            </td>
+            <td className="num">{crossingMoney(row).text}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 

@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Download, Info } from 'lucide-react';
@@ -32,28 +33,26 @@ const DayBookPage = () => {
   const [accountType, setAccountType] = useState('');
   const [accountId, setAccountId] = useState('');
 
-  const fetcher = useCallback(
-    (params, opts) => LedgerEntriesApi.list(params, opts),
-    [],
-  );
+  const fetcher = useCallback((params, opts) => LedgerEntriesApi.list(params, opts), []);
 
   const today = toISTDateString(new Date());
 
-  const {
-    rows, raw, meta, loading, error, params, setParam, setParams, pagination,
-  } = useErpList(fetcher, {
-    initial: {
-      page: 1,
-      limit: 25,
-      q: '',
-      from: today,
-      to: today,
-      sourceType: '',
-      accountType: '',
-      accountId: '',
+  const { rows, raw, meta, loading, error, params, setParam, setParams, pagination } = useErpList(
+    fetcher,
+    {
+      initial: {
+        page: 1,
+        limit: 25,
+        q: '',
+        from: today,
+        to: today,
+        sourceType: '',
+        accountType: '',
+        accountId: '',
+      },
+      syncToUrl: true,
     },
-    syncToUrl: true,
-  });
+  );
 
   const totals = raw?.totals || { debit: 0, credit: 0, net: 0 };
 
@@ -70,71 +69,93 @@ const DayBookPage = () => {
     setParam('accountId', value);
   };
 
-  const columns = useMemo(() => [
-    {
-      header: 'Date',
-      cellStyle: { whiteSpace: 'nowrap' },
-      render: (e) => formatDateIST(e.entryDate),
-    },
-    {
-      header: 'Account',
-      render: (e) => {
-        const to = accountPathFor(e.accountType, e.accountId);
-        const label = e.accountName || '—';
-        return (
-          <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {to ? <Link to={to}>{label}</Link> : label}
-            <span className="erp-muted" style={{ fontSize: 11 }}>
-              {e.accountType}
-              {e.accountCode ? ` · ${e.accountCode}` : ''}
+  const columns = useMemo(
+    () => [
+      {
+        header: 'Date',
+        cellStyle: { whiteSpace: 'nowrap' },
+        render: (e) => formatDateIST(e.entryDate),
+      },
+      {
+        header: 'Account',
+        render: (e) => {
+          const to = accountPathFor(e.accountType, e.accountId);
+          const label = e.accountName || '—';
+          return (
+            <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {to ? <Link to={to}>{label}</Link> : label}
+              <span className="erp-muted" style={{ fontSize: 11 }}>
+                {e.accountType}
+                {e.accountCode ? ` · ${e.accountCode}` : ''}
+              </span>
             </span>
-          </span>
-        );
+          );
+        },
       },
-    },
-    {
-      header: 'Source',
-      render: (e) => {
-        // documentPathFor returns null for OPENING/REVERSAL and anything with
-        // no page yet, so this renders as plain text rather than a dead link.
-        const to = documentPathFor(e.sourceType, e.sourceId, { tripId: e.tripId });
-        return (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <StatusBadge status={e.sourceType} tone={e.isReversal ? 'neutral' : undefined} />
-            {e.sourceLabel && (to
-              ? <Link to={to}>{e.sourceLabel}</Link>
-              : <span className="erp-muted">{e.sourceLabel}</span>)}
-          </span>
-        );
+      {
+        header: 'Source',
+        render: (e) => {
+          // documentPathFor returns null for OPENING/REVERSAL and anything with
+          // no page yet, so this renders as plain text rather than a dead link.
+          const to = documentPathFor(e.sourceType, e.sourceId, { tripId: e.tripId });
+          return (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <StatusBadge status={e.sourceType} tone={e.isReversal ? 'neutral' : undefined} />
+              {e.sourceLabel &&
+                (to ? (
+                  <Link to={to}>{e.sourceLabel}</Link>
+                ) : (
+                  <span className="erp-muted">{e.sourceLabel}</span>
+                ))}
+            </span>
+          );
+        },
       },
-    },
-    {
-      header: 'Narration',
-      render: (e) => (
-        <span style={e.isReversal ? { textDecoration: 'line-through', color: '#94a3b8' } : undefined}>
-          {e.narration || '—'}
-        </span>
-      ),
-    },
-    {
-      header: 'Debit',
-      headerStyle: { textAlign: 'right' },
-      cellStyle: { textAlign: 'right' },
-      render: (e) => (e.debit ? <span className="erp-numeric">{inr(e.debit)}</span> : <span className="erp-muted">—</span>),
-    },
-    {
-      header: 'Credit',
-      headerStyle: { textAlign: 'right' },
-      cellStyle: { textAlign: 'right' },
-      render: (e) => (e.credit ? <span className="erp-numeric">{inr(e.credit)}</span> : <span className="erp-muted">—</span>),
-    },
-  ], []);
+      {
+        header: 'Narration',
+        render: (e) => (
+          <span
+            style={e.isReversal ? { textDecoration: 'line-through', color: '#94a3b8' } : undefined}
+          >
+            {e.narration || '—'}
+          </span>
+        ),
+      },
+      {
+        header: 'Debit',
+        headerStyle: { textAlign: 'right' },
+        cellStyle: { textAlign: 'right' },
+        render: (e) =>
+          e.debit ? (
+            <span className="erp-numeric">{inr(e.debit)}</span>
+          ) : (
+            <span className="erp-muted">—</span>
+          ),
+      },
+      {
+        header: 'Credit',
+        headerStyle: { textAlign: 'right' },
+        cellStyle: { textAlign: 'right' },
+        render: (e) =>
+          e.credit ? (
+            <span className="erp-numeric">{inr(e.credit)}</span>
+          ) : (
+            <span className="erp-muted">—</span>
+          ),
+      },
+    ],
+    [],
+  );
 
   const exportCsv = async () => {
     try {
       const blob = await LedgerEntriesApi.exportCsv({
-        from: params.from, to: params.to, q: params.q, sourceType: params.sourceType,
-        accountType: params.accountType, accountId: params.accountId,
+        from: params.from,
+        to: params.to,
+        q: params.q,
+        sourceType: params.sourceType,
+        accountType: params.accountType,
+        accountId: params.accountId,
       });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -153,13 +174,18 @@ const DayBookPage = () => {
 
   return (
     <div className="acc-workspace">
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
-        <DateRangeFilter
-          value={{ from: params.from, to: params.to }}
-          onChange={onRangeChange}
-        />
+      <div
+        style={{
+          display: 'flex',
+          gap: 12,
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          marginBottom: 16,
+        }}
+      >
+        <DateRangeFilter value={{ from: params.from, to: params.to }} onChange={onRangeChange} />
 
-        <select
+        <SearchableSelect
           className="erp-filter"
           value={params.sourceType}
           onChange={(e) => setParam('sourceType', e.target.value)}
@@ -167,19 +193,25 @@ const DayBookPage = () => {
         >
           <option value="">All sources</option>
           {SOURCE_TYPES.map((s) => (
-            <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
+            <option key={s} value={s}>
+              {s.replace(/_/g, ' ')}
+            </option>
           ))}
-        </select>
+        </SearchableSelect>
 
-        <select
+        <SearchableSelect
           className="erp-filter"
           value={accountType}
           onChange={(e) => onAccountTypeChange(e.target.value)}
           aria-label="Account type"
         >
           <option value="">All accounts</option>
-          {ACCOUNT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-        </select>
+          {ACCOUNT_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </SearchableSelect>
 
         {accountType && (
           <div style={{ minWidth: 240 }}>
@@ -192,13 +224,21 @@ const DayBookPage = () => {
           </div>
         )}
 
-        <button type="button" className="erp-btn" onClick={exportCsv} style={{ marginLeft: 'auto' }}>
+        <button
+          type="button"
+          className="erp-btn"
+          onClick={exportCsv}
+          style={{ marginLeft: 'auto' }}
+        >
           <Download size={15} /> Export CSV
         </button>
       </div>
 
       {/* Period totals strip */}
-      <div className="erp-stat-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', marginBottom: 16 }}>
+      <div
+        className="erp-stat-grid"
+        style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', marginBottom: 16 }}
+      >
         <div className="erp-stat">
           <div className="erp-stat-label">Total debit</div>
           <div className="erp-stat-value">{inr(totals.debit)}</div>
@@ -231,10 +271,9 @@ const DayBookPage = () => {
       <div className="erp-callout info" style={{ marginTop: 16 }}>
         <Info size={15} />
         <span>
-          No running balance is shown here — that figure is only meaningful within a single
-          account. Open an account from the Account column for a statement with running balance.
-          Driver and vehicle khata is tracked separately in{' '}
-          <Link to="/khata-ledger">Khata Ledger</Link>.
+          No running balance is shown here — that figure is only meaningful within a single account.
+          Open an account from the Account column for a statement with running balance. Driver and
+          vehicle khata is tracked separately in <Link to="/khata-ledger">Khata Ledger</Link>.
         </span>
       </div>
     </div>

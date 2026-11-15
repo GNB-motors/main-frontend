@@ -22,6 +22,12 @@ export function fillExplanation(row) {
     ['Allowed', row.billToleranceL == null ? '—' : `± ${L1(row.billToleranceL)}`],
   ];
   switch (row.result) {
+    case 'COMPARISON_UNAVAILABLE':
+      return {
+        title: 'Bill comparison unavailable',
+        text: 'The tank reading cannot reliably be compared with a single bill. A telemetry gap may contain more than one refill.',
+        lines: [...tank, ...vsBill],
+      };
     case 'GAUGE_JUMP':
       return {
         title: 'Not a refill',
@@ -63,16 +69,20 @@ export function fillExplanation(row) {
   }
 }
 
-/** ⓘ for a Bill vs tank row (raw gauge rise, fixed 10 L allowance). */
+/** Same corrected litres and per-fill tolerance as the live feed. */
 export function reconciliationExplanation(r) {
   return {
     title: 'Bill vs tank',
-    text: 'The bill compared with how far the tank gauge rose at that fill.',
+    text:
+      r.billComparable === false
+        ? 'This tank reading cannot reliably be compared with a single bill; comparison is unavailable.'
+        : 'The bill compared with the corrected sensor fill, using this fill’s reported tolerance.',
     lines: [
       ['Bill', L1(r.billLitres)],
-      ['Tank rose', L1(r.telemetryLitres)],
+      ['Gauge rose', L1(r.rawLitres)],
+      ['Corrected sensor fill', L1(r.telemetryLitres)],
       ['Tank − bill', signedL1(r.varianceL)],
-      ['Allowed', '± 10.0 L'],
+      ['Allowed', r.billToleranceL == null ? '—' : `± ${L1(r.billToleranceL)}`],
     ],
   };
 }
@@ -86,6 +96,11 @@ export function fillVerdict(detail) {
   const tank = L0(detail?.sensor?.litres);
   const driver = detail?.bill?.driverName?.split(' ')[0];
   switch (detail?.result) {
+    case 'COMPARISON_UNAVAILABLE':
+      return {
+        headline: 'This fill cannot reliably be compared with one bill.',
+        next: 'Review telemetry coverage and the bill details before treating it as a match or mismatch.',
+      };
     case 'BILL_MATCHES':
       return { headline: 'The bill and the tank agree.', next: 'Nothing to do.' };
     case 'BILL_TOO_HIGH':

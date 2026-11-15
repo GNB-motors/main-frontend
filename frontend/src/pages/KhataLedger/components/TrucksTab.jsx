@@ -14,6 +14,7 @@ import {
 import { toast } from 'react-toastify';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import KhataKpiGrid from './KhataKpiGrid';
 import {
   Table,
   TableHeader,
@@ -138,64 +139,37 @@ const TrucksTab = ({ vehicles: allVehicles = [], drivers = [] }) => {
         <DateRangeFilter value={dateRange} onChange={setDateRange} />
       </div>
 
-      {/* KPI Cards Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
-        <Card className="border-indigo-100 bg-gradient-to-br from-indigo-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-indigo-700 mb-1">
-              <span>Total Fleet Spend</span>
-              <DollarSign size={16} className="text-indigo-600" />
-            </div>
-            <p className="text-2xl font-bold text-indigo-950">
-              {formatCurrency(truckKpis.totalSpend)}
-            </p>
-            <p className="text-[11px] text-gray-500 mt-1">
-              {truckKpis.totalEntries} entries recorded
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-teal-100 bg-gradient-to-br from-teal-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-teal-700 mb-1">
-              <span>Active Vehicles</span>
-              <Truck size={16} className="text-teal-600" />
-            </div>
-            <p className="text-2xl font-bold text-teal-950">
-              {meta.totalResults || enrichedTrucks.length}
-            </p>
-            <p className="text-[11px] text-gray-500 mt-1">Vehicles with active entries</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-purple-100 bg-gradient-to-br from-purple-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-purple-700 mb-1">
-              <span>Avg Spend / Truck</span>
-              <Truck size={16} className="text-purple-600" />
-            </div>
-            <p className="text-2xl font-bold text-purple-950">
-              {formatCurrency(truckKpis.avgPerTruck)}
-            </p>
-            <p className="text-[11px] text-gray-500 mt-1">For selected date period</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-amber-100 bg-gradient-to-br from-amber-50/40 to-white shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-amber-700 mb-1">
-              <span>Highest Cost Truck</span>
-              <Award size={16} className="text-amber-600" />
-            </div>
-            <p className="text-base font-bold text-amber-950 truncate">
-              {truckKpis.topSpender?.label || '—'}
-            </p>
-            <p className="text-[11px] text-amber-800 mt-1 font-semibold">
-              {truckKpis.topSpender ? formatCurrency(truckKpis.topSpender.totalAmount) : ''}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <KhataKpiGrid
+        loading={loading}
+        items={[
+          {
+            label: 'Total Fleet Spend',
+            icon: DollarSign,
+            value: formatCurrency(truckKpis.totalSpend),
+            sub: `${truckKpis.totalEntries} entries recorded`,
+          },
+          {
+            label: 'Active Vehicles',
+            icon: Truck,
+            value: meta.totalResults || enrichedTrucks.length,
+            sub: 'Vehicles with active entries',
+          },
+          {
+            label: 'Avg Spend / Truck',
+            icon: Truck,
+            value: formatCurrency(truckKpis.avgPerTruck),
+            sub: 'For selected date period',
+          },
+          {
+            label: 'Highest Cost Truck',
+            icon: Award,
+            value: truckKpis.topSpender?.label || '—',
+            sub: truckKpis.topSpender
+              ? formatCurrency(truckKpis.topSpender.totalAmount)
+              : 'No spending recorded',
+          },
+        ]}
+      />
 
       {/* Search Input */}
       <Card>

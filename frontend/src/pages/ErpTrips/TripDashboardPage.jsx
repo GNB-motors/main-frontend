@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -271,7 +272,7 @@ const TripDashboardPage = () => {
           />
         </form>
 
-        <select
+        <SearchableSelect
           className="trippipe-select"
           value={state}
           onChange={(e) => setState(e.target.value)}
@@ -282,7 +283,7 @@ const TripDashboardPage = () => {
               {s.replace(/_/g, ' ')}
             </option>
           ))}
-        </select>
+        </SearchableSelect>
 
         {hasFilters && (
           <button type="button" className="trippipe-clear" onClick={clearFilters}>

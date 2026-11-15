@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { CalendarClock, CheckCircle2, Info } from 'lucide-react';
 import ErpDrawer from '../../components/Erp/ErpDrawer';
@@ -257,7 +258,7 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
                 </div>
                 <div className="erp-field">
                   <label htmlFor="order-unit">Unit</label>
-                  <select
+                  <SearchableSelect
                     id="order-unit"
                     value={order.unit}
                     onChange={(e) => setOrder((p) => ({ ...p, unit: e.target.value }))}
@@ -265,7 +266,7 @@ const RecordCallDrawer = ({ task, onClose, onSaved }) => {
                     <option value="KL">KL</option>
                     <option value="MT">MT</option>
                     <option value="VEHICLE">Vehicles</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
               <span className="erp-field-hint">

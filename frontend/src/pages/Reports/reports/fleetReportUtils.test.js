@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cycleNote, excludedCycleHint, exportFilterMeta } from './fleetReportUtils';
+import { cycleNote, excludedCycleHint, noCycleHint, exportFilterMeta } from './fleetReportUtils';
 
 describe('cycleNote', () => {
   it('says what a km/L figure is based on', () => {
@@ -14,6 +14,12 @@ describe('excludedCycleHint', () => {
   it('names the band when the API sends it', () => {
     expect(excludedCycleHint({ min: 0.8, max: 8 })).toContain('(0.8–8 km/L)');
     expect(excludedCycleHint(null)).not.toContain('(');
+  });
+});
+
+describe('noCycleHint', () => {
+  it('explains why mileage and distance require consecutive full tanks', () => {
+    expect(noCycleHint()).toContain('consecutive full-tank');
   });
 });
 

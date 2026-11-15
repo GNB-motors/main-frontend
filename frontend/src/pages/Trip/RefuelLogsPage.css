@@ -1380,11 +1380,12 @@
   background: var(--card, #ffffff);
   color: var(--foreground, #0f172a);
   outline: none;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .refuel-search-input:focus {
-  width: 265px;
   border-color: var(--primary-color, #2563eb);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }

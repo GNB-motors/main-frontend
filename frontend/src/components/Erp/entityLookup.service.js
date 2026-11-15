@@ -60,7 +60,7 @@ const CONFIG = {
     map: (r) => ({ id: r._id, name: r.name, code: '', meta: r.address }),
   },
   DRIVER: {
-    url: '/api/drivers',
+    url: '/api/employees',
     label: 'driver',
     searchKey: 'search',
     map: (r) => ({ id: r._id, name: r.name || r.fullName, code: r.licenseNumber, meta: r.phone }),

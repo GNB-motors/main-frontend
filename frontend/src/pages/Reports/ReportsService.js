@@ -1,3 +1,10 @@
+import {
+  FRONTEND_FIELD_CATALOG,
+  DATASETS,
+  PROPOSED_UNSUPPORTED_FIELDS,
+  REPORT_TEMPLATES,
+} from './reports/custom/customReportFields';
+import { getStorageItem, setStorageItem } from '../../utils/session';
 import apiClient from '../../utils/axiosConfig'; // Use the configured axios instance
 import ApiError from '../../errors/ApiError';
 import logger from '../../utils/logger';
@@ -23,6 +30,7 @@ export const ReportsService = {
         summary: response.data?.summary || null,
       };
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
@@ -63,6 +71,7 @@ export const ReportsService = {
       };
     } catch (error) {
       if (error?.name === 'CanceledError') throw error;
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -86,6 +95,7 @@ export const ReportsService = {
         summary: body.totals || null,
       };
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
@@ -113,9 +123,40 @@ export const ReportsService = {
       };
     } catch (error) {
       if (error?.name === 'CanceledError') throw error;
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
+  /**
+   * The "Full tank" report tab (GET /api/reports/fuel-cycles/full-tank-tab).
+   *
+   * This endpoint is newer than the rest of the Reports API, so a backend
+   * that has not shipped it yet answers 404. That is not a failure of the
+   * request but an answer about the server, so it is reported as
+   * `available: false` instead of being thrown: the caller hides the tab
+   * rather than showing a broken report. Every other failure still throws a
+   * typed ApiError, and the response body is returned under `data` with the
+   * endpoint's own field names (trucks, summary, models, days).
+   * @param {object} params - { days, search }
+   * @param {AbortSignal} signal
+   * @returns {Promise<{ available: boolean, data: Object|null }>}
+   */
+  getFullTankTab: async (params = {}, signal) => {
+    try {
+      const response = await apiClient.get('api/reports/fuel-cycles/full-tank-tab', {
+        params,
+        signal,
+      });
+      const body = response.data?.data ?? response.data ?? {};
+      return { available: true, data: body };
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+      const apiError = ApiError.from(error);
+      if (apiError.status === 404) return { available: false, data: null };
+      throw apiError;
+    }
+  },
+
   getNonBusiness: (params = {}, signal) =>
     ReportsService._getTripReport('api/reports/non-business', params, signal),
   getRunningCost: (params = {}, signal) =>
@@ -155,6 +196,7 @@ export const ReportsService = {
           cause: error,
         });
       }
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -173,6 +215,7 @@ export const ReportsService = {
         summary: response.data?.summary || null,
       };
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
@@ -203,6 +246,7 @@ export const ReportsService = {
         .filter((v) => v.id && v.id !== 'undefined');
     } catch (error) {
       if (error?.name === 'CanceledError') throw error;
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -227,6 +271,7 @@ export const ReportsService = {
         .filter((d) => d.id && d.id !== 'undefined');
     } catch (error) {
       if (error?.name === 'CanceledError') throw error;
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -242,6 +287,7 @@ export const ReportsService = {
       const response = await apiClient.get(`api/extension/status`, { params });
       return response.data?.data || response.data || {};
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -259,6 +305,7 @@ export const ReportsService = {
         response.data || { records: [], total: 0, page: 1, limit: 20, totalPages: 0 }
       );
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -276,6 +323,7 @@ export const ReportsService = {
         response.data || { records: [], total: 0, page: 1, limit: 20, totalPages: 0 }
       );
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -290,6 +338,7 @@ export const ReportsService = {
         response.data || { records: [], total: 0, page: 1, limit: 20, totalPages: 0 }
       );
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -302,6 +351,7 @@ export const ReportsService = {
       );
       return response.data?.data || response.data || {};
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -341,11 +391,14 @@ export const ReportsService = {
    * @param {object} params - { page, limit, startDate, endDate, search }
    * @returns {Promise<{ data?: Array, summary?: Object, meta?: Object, methodology?: Object }>} the response body
    */
-  getAdBlueComparison: async (params = {}, { signal } = {}) => {
+  getAdBlueComparison: async (params = {}, signalOrOptions = {}) => {
+    const signal =
+      signalOrOptions instanceof AbortSignal ? signalOrOptions : signalOrOptions?.signal;
     try {
       const response = await apiClient.get('/api/adblue-logs/comparison', { params, signal });
       return response.data;
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
@@ -356,7 +409,219 @@ export const ReportsService = {
       const response = await apiClient.post('api/extension/fleetedge/process-tasks');
       return response.data?.data || response.data || {};
     } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
       throw ApiError.from(error);
     }
   },
+  // --- Custom Reports ---
+  getCustomReportCatalog: async (signal) => {
+    try {
+      const response = await apiClient.get('/api/reports/custom/fields', { signal });
+      if (response.data?.data) return response.data.data;
+      if (response.data?.fields) return response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+    }
+    return {
+      datasets: DATASETS,
+      fields: FRONTEND_FIELD_CATALOG,
+      unsupportedFields: PROPOSED_UNSUPPORTED_FIELDS,
+    };
+  },
+
+  getCustomReportTemplates: async (signal) => {
+    try {
+      const response = await apiClient.get('/api/reports/custom/templates', { signal });
+      if (Array.isArray(response.data?.data)) return response.data.data;
+      if (Array.isArray(response.data)) return response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+    }
+    return REPORT_TEMPLATES;
+  },
+
+  executeCustomReport: async (config, signal) => {
+    try {
+      const response = await apiClient.post('/api/reports/custom/query', config, { signal });
+      return response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError' || error?.code === 'ERR_CANCELED') throw error;
+      throw ApiError.from(error);
+    }
+  },
+
+  getSavedCustomReports: async (signal) => {
+    try {
+      const response = await apiClient.get('/api/reports/custom/saved', { signal });
+      if (Array.isArray(response.data?.data)) return response.data.data;
+      if (Array.isArray(response.data)) return response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+    }
+    return getLocalSavedReports();
+  },
+
+  getSavedCustomReportById: async (id, signal) => {
+    try {
+      const response = await apiClient.get(`/api/reports/custom/saved/${id}`, { signal });
+      if (response.data?.data) return response.data.data;
+      if (response.data?.name) return response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+    }
+    const saved = getLocalSavedReports();
+    return saved.find((r) => (r._id || r.id) === id) || null;
+  },
+
+  createSavedCustomReport: async (data) => {
+    try {
+      const response = await apiClient.post('/api/reports/custom/saved', data);
+      return response.data?.data || response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+      const list = getLocalSavedReports();
+      const newReport = {
+        ...data,
+        _id: 'saved-' + Date.now(),
+        createdAt: new Date().toISOString(),
+      };
+      list.unshift(newReport);
+      setLocalSavedReports(list);
+      return newReport;
+    }
+  },
+
+  updateSavedCustomReport: async (id, data) => {
+    try {
+      const response = await apiClient.put(`/api/reports/custom/saved/${id}`, data);
+      return response.data?.data || response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+      const list = getLocalSavedReports();
+      const idx = list.findIndex((r) => (r._id || r.id) === id);
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...data, updatedAt: new Date().toISOString() };
+        setLocalSavedReports(list);
+        return list[idx];
+      }
+      return data;
+    }
+  },
+
+  deleteSavedCustomReport: async (id) => {
+    try {
+      const response = await apiClient.delete(`/api/reports/custom/saved/${id}`);
+      return response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+      const list = getLocalSavedReports().filter((r) => (r._id || r.id) !== id);
+      setLocalSavedReports(list);
+      return { status: 'success' };
+    }
+  },
+
+  createFieldRequest: async (data) => {
+    try {
+      const response = await apiClient.post('/api/reports/custom/field-requests', data);
+      return response.data?.data || response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+      const list = getLocalFieldRequests();
+      const newReq = {
+        ...data,
+        _id: 'req-' + Date.now(),
+        status: 'SUBMITTED',
+        createdAt: new Date().toISOString(),
+        requestedBy: { firstName: 'Fleet', lastName: 'Member' },
+      };
+      list.unshift(newReq);
+      setLocalFieldRequests(list);
+      return newReq;
+    }
+  },
+
+  getFieldRequests: async (signal) => {
+    try {
+      const response = await apiClient.get('/api/reports/custom/field-requests', { signal });
+      if (Array.isArray(response.data?.data)) return response.data.data;
+      if (Array.isArray(response.data)) return response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+    }
+    return getLocalFieldRequests();
+  },
+
+  updateFieldRequestStatus: async (id, data) => {
+    try {
+      const response = await apiClient.patch(`/api/reports/custom/field-requests/${id}`, data);
+      return response.data?.data || response.data;
+    } catch (error) {
+      if (error?.name === 'CanceledError') throw error;
+      const list = getLocalFieldRequests();
+      const idx = list.findIndex((r) => (r._id || r.id) === id);
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...data, updatedAt: new Date().toISOString() };
+        setLocalFieldRequests(list);
+        return list[idx];
+      }
+      return data;
+    }
+  },
+};
+
+const LOCAL_SAVED_KEY = 'gnb_saved_custom_reports';
+const getLocalSavedReports = () => {
+  try {
+    return JSON.parse(getStorageItem(LOCAL_SAVED_KEY) || '[]');
+  } catch {
+    return [];
+  }
+};
+const setLocalSavedReports = (list) => {
+  try {
+    setStorageItem(LOCAL_SAVED_KEY, JSON.stringify(list));
+  } catch {
+    // ignore
+  }
+};
+
+const LOCAL_REQUESTS_KEY = 'gnb_custom_field_requests';
+const getLocalFieldRequests = () => {
+  try {
+    const stored = JSON.parse(getStorageItem(LOCAL_REQUESTS_KEY) || '[]');
+    if (stored && stored.length) return stored;
+  } catch {
+    // ignore
+  }
+  return [
+    {
+      _id: 'req-sample-1',
+      fieldName: 'GPS Over-Speed Violations',
+      module: 'TRIP',
+      description: 'Count of over-speeding instances exceeding route thresholds.',
+      reason: 'Driver safety scoring and insurance risk reduction.',
+      status: 'UNDER_REVIEW',
+      adminComments: 'Evaluating Valhalla map matching integration.',
+      createdAt: new Date().toISOString(),
+      requestedBy: { firstName: 'Fleet', lastName: 'Manager' },
+    },
+    {
+      _id: 'req-sample-2',
+      fieldName: 'FASTag Plaza Deductions',
+      module: 'FUEL',
+      description: 'Toll plaza name, timestamp, and amount deducted.',
+      reason: 'Reconcile toll expenses against trip routes.',
+      status: 'APPROVED',
+      adminComments: 'Scheduled for next sprint API integration.',
+      createdAt: new Date().toISOString(),
+      requestedBy: { firstName: 'Operations', lastName: 'Team' },
+    },
+  ];
+};
+const setLocalFieldRequests = (list) => {
+  try {
+    setStorageItem(LOCAL_REQUESTS_KEY, JSON.stringify(list));
+  } catch {
+    // ignore
+  }
 };

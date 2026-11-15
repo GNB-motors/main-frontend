@@ -7,6 +7,8 @@ import {
   isCrossBranchMove,
   countActiveFilters,
   generatePageNumbers,
+  attachAssignedVehicles,
+  mapDriverForExport,
 } from './driverList';
 
 describe('normalizeDriver', () => {
@@ -45,6 +47,30 @@ describe('normalizeDriver', () => {
     expect(
       normalizeDriver({ role: 'DRIVER', membershipStatus: 'INVITED', status: 'ACTIVE' }).status,
     ).toBe('ACTIVE');
+  });
+
+  it('normalizes licenseNumber, hasLicenseDoc, and isLicenseVerified', () => {
+    const d1 = normalizeDriver({
+      id: 'd1',
+      licenseNumber: 'DL-01-2020-001',
+      hasLicenseDoc: true,
+      isLicenseVerified: true,
+    });
+    expect(d1.licenseNumber).toBe('DL-01-2020-001');
+    expect(d1.hasLicenseDoc).toBe(true);
+    expect(d1.isLicenseVerified).toBe(true);
+
+    const d2 = normalizeDriver({
+      id: 'd2',
+      licenseDoc: { isVerified: false },
+    });
+    expect(d2.hasLicenseDoc).toBe(true);
+    expect(d2.isLicenseVerified).toBe(false);
+
+    const d3 = normalizeDriver({ id: 'd3' });
+    expect(d3.licenseNumber).toBe('');
+    expect(d3.hasLicenseDoc).toBe(false);
+    expect(d3.isLicenseVerified).toBe(false);
   });
 });
 
@@ -134,5 +160,58 @@ describe('generatePageNumbers', () => {
     expect(generatePageNumbers(1, 10)).toEqual([1, 2, '...', 10]);
     expect(generatePageNumbers(10, 10)).toEqual([1, '...', 9, 10]);
     expect(generatePageNumbers(5, 10)).toEqual([1, '...', 4, 5, 6, '...', 10]);
+  });
+});
+
+describe('attachAssignedVehicles', () => {
+  it('shows the vehicle from the active DriverVehicleAssignment ledger row', () => {
+    const drivers = [{ id: 'd1' }, { id: 'd2' }];
+    const assignments = [
+      { driverId: { _id: 'd1' }, vehicleId: { _id: 'v1', registrationNumber: 'BR44GB1162' } },
+    ];
+    const out = attachAssignedVehicles(drivers, assignments);
+    expect(out[0].assignedVehicle).toBe('BR44GB1162');
+    expect(out[0].vehicle_registration_no).toBe('BR44GB1162');
+    expect(out[1].assignedVehicle).toBeUndefined();
+    expect(filterAndSortDrivers(out, 'assigned').map((d) => d.id)).toEqual(['d1']);
+  });
+
+  it('accepts bare-id refs and keeps the most recent assignment per driver', () => {
+    const out = attachAssignedVehicles(
+      [{ id: 'd1' }],
+      [
+        { driverId: 'd1', vehicleId: { registrationNumber: 'NEWER' } },
+        { driverId: 'd1', vehicleId: { registrationNumber: 'OLDER' } },
+      ],
+    );
+    expect(out[0].assignedVehicle).toBe('NEWER');
+  });
+});
+
+describe('mapDriverForExport', () => {
+  it('formats licenseNumber accurately depending on document presence', () => {
+    const withExtracted = mapDriverForExport({
+      name: 'John Doe',
+      role: 'DRIVER',
+      licenseNumber: 'KA-01-2023-1234567',
+      hasLicenseDoc: true,
+    });
+    expect(withExtracted.licenseNumber).toBe('KA-01-2023-1234567');
+
+    const withDocNotExtracted = mapDriverForExport({
+      name: 'Jane Doe',
+      role: 'DRIVER',
+      licenseNumber: '',
+      hasLicenseDoc: true,
+    });
+    expect(withDocNotExtracted.licenseNumber).toBe('Not extracted');
+
+    const withoutDoc = mapDriverForExport({
+      name: 'Bob',
+      role: 'DRIVER',
+      licenseNumber: '',
+      hasLicenseDoc: false,
+    });
+    expect(withoutDoc.licenseNumber).toBe('Not uploaded');
   });
 });

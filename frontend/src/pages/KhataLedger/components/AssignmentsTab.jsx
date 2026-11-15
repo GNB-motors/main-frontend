@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Plus,
   Search,
@@ -7,7 +7,8 @@ import {
   Calendar,
   User,
   Truck,
-  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   XCircle,
   Trash2,
 } from 'lucide-react';
@@ -23,6 +24,7 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
+import NewButton from '@/components/ui/NewButton';
 import KhataLedgerService from '../KhataLedgerService';
 import AssignmentFormModal from './AssignmentFormModal';
 import { formatDate, getDriverName, getVehicleLabel } from '../utils';
@@ -36,6 +38,9 @@ const STATUS_COLORS = {
 const AssignmentsTab = ({ vehicles = [], drivers = [] }) => {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [meta, setMeta] = useState({ total: 0, totalPages: 1 });
+  const [refreshKey, setRefreshKey] = useState(0);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -44,31 +49,50 @@ const AssignmentsTab = ({ vehicles = [], drivers = [] }) => {
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => setSearch(searchInput), 400);
-    return () => clearTimeout(timer);
-  }, [searchInput]);
-
-  const fetchAssignments = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = {};
-      if (search) params.search = search;
-      const data = await KhataLedgerService.getAssignments(params);
-      setAssignments(data.results || data.items || data || []);
-    } catch (err) {
-      if (err?.response?.status === 404) {
-        setAssignments([]);
-      } else {
-        toast.error(err?.response?.data?.message || err?.message || 'Failed to load assignments');
+    const timer = setTimeout(() => {
+      const nextSearch = searchInput.trim();
+      if (nextSearch !== search) {
+        setSearch(nextSearch);
+        setPage(1);
       }
-    } finally {
-      setLoading(false);
-    }
-  }, [search]);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput, search]);
 
   useEffect(() => {
-    fetchAssignments();
-  }, [fetchAssignments]);
+    const controller = new AbortController();
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await KhataLedgerService.getAssignmentPage(
+          { page, limit: 20, includePast: true, ...(search && { search }) },
+          { signal: controller.signal },
+        );
+        if (controller.signal.aborted) return;
+        const lastPage = Math.max(1, data.meta.totalPages);
+        if (page > lastPage) {
+          setPage(lastPage);
+          return;
+        }
+        setAssignments(data.results);
+        setMeta(data.meta);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        if (err?.response?.status === 404) {
+          setAssignments([]);
+          setMeta({ total: 0, totalPages: 1 });
+        } else {
+          toast.error(err?.response?.data?.message || err?.message || 'Failed to load assignments');
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    };
+    load();
+    return () => controller.abort();
+  }, [page, search, refreshKey]);
+
+  const refreshAssignments = () => setRefreshKey((key) => key + 1);
 
   const handleEnd = async () => {
     if (!endTarget) return;
@@ -76,7 +100,7 @@ const AssignmentsTab = ({ vehicles = [], drivers = [] }) => {
       await KhataLedgerService.endAssignment(endTarget._id);
       toast.success('Assignment ended');
       setEndTarget(null);
-      fetchAssignments();
+      refreshAssignments();
     } catch (err) {
       toast.error(err?.response?.data?.message || err?.message || 'Failed to end assignment');
     }
@@ -88,7 +112,7 @@ const AssignmentsTab = ({ vehicles = [], drivers = [] }) => {
       await KhataLedgerService.deleteAssignment(deleteTarget._id);
       toast.success('Assignment deleted');
       setDeleteTarget(null);
-      fetchAssignments();
+      refreshAssignments();
     } catch (err) {
       toast.error(err?.response?.data?.message || err?.message || 'Failed to delete assignment');
     }
@@ -277,13 +301,47 @@ const AssignmentsTab = ({ vehicles = [], drivers = [] }) => {
         </CardContent>
       </Card>
 
+      <nav
+        aria-label="Assignment pagination"
+        className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground"
+      >
+        <span>
+          Page {page} of {Math.max(1, meta.totalPages)} ({meta.total} assignments)
+        </span>
+        <div className="flex gap-2">
+          <NewButton
+            variant="secondary"
+            size="sm"
+            aria-label="Previous assignments page"
+            disabled={loading || page <= 1}
+            onClick={() => setPage((current) => current - 1)}
+            prependIcon={<ChevronLeft size={14} />}
+          >
+            Previous
+          </NewButton>
+          <NewButton
+            variant="secondary"
+            size="sm"
+            aria-label="Next assignments page"
+            disabled={loading || page >= Math.max(1, meta.totalPages)}
+            onClick={() => setPage((current) => current + 1)}
+            appendIcon={<ChevronRight size={14} />}
+          >
+            Next
+          </NewButton>
+        </div>
+      </nav>
+
       <AssignmentFormModal
         isOpen={modalOpen}
         onClose={() => {
           setModalOpen(false);
           setEditingAssignment(null);
         }}
-        onSaved={fetchAssignments}
+        onSaved={() => {
+          setPage(1);
+          refreshAssignments();
+        }}
         editingAssignment={editingAssignment}
         vehicles={vehicles}
         drivers={drivers}

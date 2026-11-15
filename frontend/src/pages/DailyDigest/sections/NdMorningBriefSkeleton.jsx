@@ -5,7 +5,7 @@ export default function NdMorningBriefSkeleton() {
     <section className="nd-brief">
       <div className="nd-eyebrow">Morning brief</div>
       <div className="nd-cols nd-cols--half">
-        {['Excess idling', 'Fuel over expected'].map((title) => (
+        {['Diesel used while stopped', 'Extra diesel used'].map((title) => (
           <NdCardSkeleton
             key={title}
             title={title}

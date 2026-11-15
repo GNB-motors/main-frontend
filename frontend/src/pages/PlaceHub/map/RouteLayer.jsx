@@ -1,4 +1,6 @@
+import { mapPlaceIcon } from '../../LiveTracking/mapPlaceIcon.js';
 import { useEffect, useRef, useState } from 'react';
+import DataTooltip from '../../../components/ui/DataTooltip.jsx';
 import { decodePolyline6 } from '../../../lib/polyline6.js';
 import { routeColor, routeWidth } from '../model/routes.js';
 import { placeTitle } from '../intelligence/model/siteSummary.js';
@@ -36,6 +38,8 @@ export default function RouteLayer({
   detail,
   showEngine,
   zoom,
+  neutral = false,
+  dimmed = false,
 }) {
   const objects = useRef([]);
   const callbacks = useRef({ onPick, onHover, onSite });
@@ -50,8 +54,10 @@ export default function RouteLayer({
     const records = [];
     const listeners = [];
     for (const line of lines.filter((l) => !l.legs[0].inPlant)) {
-      const color = routeColor(line.runs, isDark);
-      const width = routeWidth(line.runs, max);
+      const color = neutral ? (isDark ? '#cbd5e1' : '#475569') : routeColor(line.runs, isDark);
+      const width = neutral
+        ? Math.min(3, Math.max(1, 1 + (line.runs / max) * 2))
+        : routeWidth(line.runs, max);
       for (const path of line.segments) {
         const casing = new window.google.maps.Polyline({
           map,
@@ -113,13 +119,25 @@ export default function RouteLayer({
       objects.current = [];
       setTooltip(null);
     };
-  }, [map, lines, isDark, land]);
+  }, [map, lines, isDark, land, neutral]);
 
   useEffect(() => {
+    const max = Math.max(1, ...lines.map((l) => l.runs));
     for (const obj of objects.current) {
       const selected = obj.line.legs.some((l) => String(l._id) === selectedId);
       const hovered = obj.line.legs.some((l) => String(l._id) === hoveredId);
-      const opacity = selected || hovered ? 1 : selectedId ? 0.15 : 0.75;
+      // Share of the busiest corridor's run count: the lever that de-tangles the
+      // Routes overview. The many one-off legs fade to almost nothing while the
+      // handful of trunk corridors stay readable — like Google Maps keeping the
+      // main route bold and alternates faint. The Track backdrop keeps its own
+      // flat, quiet opacities unchanged.
+      const share = obj.line.runs / max;
+      let opacity;
+      if (selected || hovered) opacity = 1;
+      else if (neutral) opacity = selectedId ? 0.15 : dimmed ? 0.12 : hoveredId ? 0.2 : 0.35;
+      else if (selectedId) opacity = 0.06;
+      else if (hoveredId) opacity = 0.05 + 0.1 * share;
+      else opacity = 0.1 + 0.2 * share;
       const icons = pattern(obj.line.source, obj.color).map((i) => ({
         ...i,
         icon: { ...i.icon, strokeOpacity: opacity },
@@ -132,10 +150,11 @@ export default function RouteLayer({
       obj.casing.setOptions({ strokeOpacity: selected ? 1 : 0 });
       obj.hit.setOptions({ zIndex: selected ? 10005 : hovered ? 9001 : obj.line.runs + 1 });
     }
-  }, [selectedId, hoveredId, lines, isDark]);
+  }, [selectedId, hoveredId, lines, isDark, neutral, dimmed]);
 
   useEffect(() => {
-    if (!map) return undefined;
+    // Track has its own places layer; end-point dots and in-plant counts here only add stray digits.
+    if (!map || neutral) return undefined;
     const counts = new Map();
     const plantCounts = new Map();
     for (const line of lines)
@@ -157,18 +176,15 @@ export default function RouteLayer({
       const site = sites.get(id);
       if (!site || !Number.isFinite(site.lat) || !Number.isFinite(site.lng)) continue;
       const plant = plantCounts.get(id) || 0;
+      const type = effectiveType(site).type;
+      const size = Math.round(22 + 8 * Math.sqrt(count / max) + (plant ? 4 : 0));
       const marker = new window.google.maps.Marker({
         map,
         position: { lat: site.lat, lng: site.lng },
         title: `${placeTitle(site)}${plant ? ` · ${plant} in-plant legs` : ''}`,
         icon: {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 4 + 4 * Math.sqrt(count / max) + (plant ? 3 : 0),
-          fillColor: typeStyle(effectiveType(site).type).color,
-          fillOpacity: plant ? 0.25 : 1,
-          strokeColor: plant ? ink : land,
-          strokeWeight: plant ? 3 : 2,
-          labelOrigin: new window.google.maps.Point(0, -18),
+          ...mapPlaceIcon({ type }, { size, color: typeStyle(type).color, hollow: Boolean(plant) }),
+          labelOrigin: new window.google.maps.Point(size / 2, -8),
         },
         label: plant
           ? { text: String(plant), color: ink, fontSize: '11px' }
@@ -189,7 +205,7 @@ export default function RouteLayer({
       listeners.forEach((l) => l.remove());
       markers.forEach((m) => m.setMap(null));
     };
-  }, [map, lines, sites, zoom, isDark, ink, land]);
+  }, [map, lines, sites, zoom, isDark, ink, land, neutral]);
 
   // Selected direction uses its own geometry (including detail) over the shared pair.
   useEffect(() => {
@@ -258,19 +274,25 @@ export default function RouteLayer({
     };
   }, [map, lines, selectedId, detail, showEngine, isDark]);
 
-  return tooltip ? (
-    <div className="ph-route-tooltip" style={{ left: tooltip.x, top: tooltip.y }} role="tooltip">
-      {tooltip.line.legs[0].title}
-      {tooltip.line.legs.length > 1 ? ' (both directions)' : ''}
-      <br />
-      {tooltip.line.runs} runs · usual {minutesLabel(tooltip.line.legs[0].stats?.minutes?.p50)} ·{' '}
-      {kmLabel(tooltip.line.legs[0].path?.km)}
-      <br />
-      {tooltip.line.source === 'NONE'
-        ? 'Straight-line link'
-        : tooltip.line.source === 'ENGINE'
-          ? 'Likely road (engine)'
-          : 'Road our trucks drove'}
+  if (!tooltip) return null;
+  const stats = tooltip.line.legs[0].stats;
+  const sourceText =
+    tooltip.line.source === 'NONE'
+      ? 'Straight-line link'
+      : tooltip.line.source === 'ENGINE'
+        ? 'Likely road (engine)'
+        : 'Road our trucks drove';
+  return (
+    <div className="ph-route-tooltip" style={{ left: tooltip.x, top: tooltip.y }}>
+      <DataTooltip
+        role="tooltip"
+        label={`${tooltip.line.legs[0].title}${tooltip.line.legs.length > 1 ? ' (both directions)' : ''}`}
+        value={`${tooltip.line.runs} ${tooltip.line.runs === 1 ? 'pass' : 'passes'}`}
+        details={[
+          `Usual ${minutesLabel(stats?.minutes?.p50)} · ${kmLabel(stats?.km?.p50)}`,
+          sourceText,
+        ]}
+      />
     </div>
-  ) : null;
+  );
 }

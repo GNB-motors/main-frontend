@@ -14,7 +14,7 @@ export const Field = (props) => {
         <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
           {label}
         </p>
-        <p className="truncate text-sm font-semibold text-slate-800">
+        <p className="break-words [overflow-wrap:anywhere] text-sm font-semibold text-slate-800">
           {value || <span className="font-normal italic text-slate-300">Not provided</span>}
         </p>
       </div>

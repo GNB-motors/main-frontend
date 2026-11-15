@@ -1,16 +1,71 @@
 /* Approvals hub: one tab per kind of approval, above that kind's own page. */
 
+.ra-page.apv-page {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+  padding: 24px 32px 60px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 639px) {
+  .ra-page.apv-page {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+}
+
 .apv-types {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin-bottom: 22px;
   border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 1px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Queue note: says which queue this is and where the other queue lives. */
+.apv-queue-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.apv-queue-note__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.apv-queue-note__text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
+
+.apv-queue-note__link {
+  color: #2563eb;
+  font-weight: 600;
 }
 
 .apv-type {
   display: inline-flex;
   align-items: center;
+  flex: none;
   gap: 8px;
+  white-space: nowrap;
   margin-bottom: -1px;
   padding: 10px 16px;
   border: none;
@@ -164,6 +219,46 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-top: 16px;
   font-size: 13px;
   color: var(--muted-foreground);
+}
+
+/* Loading / empty states for the Owner & manager tab, matching the hub's look. */
+.apv-state {
+  gap: 4px;
+  padding: 56px 24px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.apv-state__hint {
+  max-width: 420px;
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+
+/* The Refresh action sits at the trailing edge of the error banner. */
+.apv-alert__action {
+  margin-left: auto;
+  padding: 6px 12px;
+}
+
+.apv-trip-hint {
+  margin: 0 0 16px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.apv-trip-create {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.apv-trip-create:hover:not(:disabled) {
+  background: #1d4ed8;
 }

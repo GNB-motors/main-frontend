@@ -14,40 +14,44 @@ const RepairFilterPills = ({ activePriorityFilter, setActivePriorityFilter, filt
       type="button"
       className={`si-filter-pill ${activePriorityFilter === 'P0' ? 'si-filter-pill--active' : ''}`}
       onClick={() => setActivePriorityFilter('P0')}
+      title="P0 Critical: Axle, Engine, Brakes"
       style={activePriorityFilter !== 'P0' ? { borderColor: '#fca5a5', color: '#dc2626' } : {}}
     >
       <AlertOctagon size={13} color={activePriorityFilter === 'P0' ? '#fff' : '#dc2626'} />
-      <span>P0 Critical (Axle / Engine / Brakes)</span>
+      <span>P0 Critical</span>
       <span className="si-filter-pill-count">{filterCounts.p0 ?? 0}</span>
     </button>
     <button
       type="button"
       className={`si-filter-pill ${activePriorityFilter === 'P1' ? 'si-filter-pill--active' : ''}`}
       onClick={() => setActivePriorityFilter('P1')}
+      title="P1 High: Clutch, Suspension"
       style={activePriorityFilter !== 'P1' ? { borderColor: '#fdba74', color: '#ea580c' } : {}}
     >
       <AlertTriangle size={13} color={activePriorityFilter === 'P1' ? '#fff' : '#ea580c'} />
-      <span>P1 High (Clutch / Suspension)</span>
+      <span>P1 High</span>
       <span className="si-filter-pill-count">{filterCounts.p1 ?? 0}</span>
     </button>
     <button
       type="button"
       className={`si-filter-pill ${activePriorityFilter === 'P2' ? 'si-filter-pill--active' : ''}`}
       onClick={() => setActivePriorityFilter('P2')}
+      title="P2 Medium: Tyres, Roadside"
       style={activePriorityFilter !== 'P2' ? { borderColor: '#fde047', color: '#ca8a04' } : {}}
     >
       <Wrench size={13} color={activePriorityFilter === 'P2' ? '#fff' : '#ca8a04'} />
-      <span>P2 Medium (Tyres / Roadside)</span>
+      <span>P2 Medium</span>
       <span className="si-filter-pill-count">{filterCounts.p2 ?? 0}</span>
     </button>
     <button
       type="button"
       className={`si-filter-pill ${activePriorityFilter === 'P3' ? 'si-filter-pill--active' : ''}`}
       onClick={() => setActivePriorityFilter('P3')}
+      title="P3 Routine / Minor"
       style={activePriorityFilter !== 'P3' ? { borderColor: '#86efac', color: '#16a34a' } : {}}
     >
       <CheckCircle2 size={13} color={activePriorityFilter === 'P3' ? '#fff' : '#16a34a'} />
-      <span>P3 Routine / Minor</span>
+      <span>P3 Minor</span>
       <span className="si-filter-pill-count">{filterCounts.p3 ?? 0}</span>
     </button>
     <div

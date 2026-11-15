@@ -1,8 +1,8 @@
 import WeatherIcon from './WeatherIcon.jsx';
-import { categoryOf, labelOf, num } from './weatherGlyph.js';
+import { categoryOf, isDayAt, labelOf, num } from './weatherGlyph.js';
 
 /**
- * Weather section for the vehicle detail panel. Shows the measured conditions at
+ * Weather section for the vehicle detail panel. Shows the provider's modelled conditions at
  * the vehicle's cell (live) or at the replay position+hour, with the provider's
  * credit — which the backend attaches to every conditions payload and whose
  * terms require it be shown next to any weather rendered.
@@ -10,11 +10,12 @@ import { categoryOf, labelOf, num } from './weatherGlyph.js';
 export default function WeatherSection({
   weather,
   loading,
-  contextLabel = 'Now, at this location',
+  contextLabel = 'Forecast model for this hour, around this location',
 }) {
   const state = weather?.state;
   const c = weather?.conditions || {};
   const category = categoryOf(c);
+  const isDay = isDayAt(weather?.hour ?? Date.now());
   const attr = weather?.attribution;
 
   const rows = [
@@ -33,6 +34,7 @@ export default function WeatherSection({
             category={state === 'OK' ? category : 'cloudy'}
             size={18}
             animated={state === 'OK'}
+            isDay={isDay}
           />
         </span>
         Weather

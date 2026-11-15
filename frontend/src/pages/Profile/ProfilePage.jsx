@@ -51,9 +51,9 @@ const ProfilePage = () => {
   return (
     <div className="h-full w-full bg-slate-50 p-6" style={themeColors}>
       <PageShell title="Profile">
-        <div className="flex w-full gap-6 items-stretch">
+        <div className="flex flex-col lg:flex-row w-full gap-6 items-stretch">
           {/* Left sidebar */}
-          <div className="w-72 shrink-0">
+          <div className="w-full lg:w-80 xl:w-88 shrink-0">
             <ProfileCard user={userData} organization={organizationData} />
           </div>
 

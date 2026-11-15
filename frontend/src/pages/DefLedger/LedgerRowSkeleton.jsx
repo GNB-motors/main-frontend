@@ -7,6 +7,9 @@ function LedgerRowSkeleton() {
       <td className="py-3 px-4">
         <Skel className="h-5 w-24" />
       </td>
+      <td className="py-3 px-4">
+        <Skel className="h-3.5 w-28" />
+      </td>
       {['w-14', 'w-14', 'w-14', 'w-12'].map((width, i) => (
         <td key={i} className="py-3 px-4 text-right">
           <Skel className={`h-3.5 ${width}`} />

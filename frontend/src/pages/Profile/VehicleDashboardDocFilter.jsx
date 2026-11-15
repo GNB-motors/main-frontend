@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { FileText } from 'lucide-react';
 import { DOC_COLS } from './vehicleDashboardLogic';
 
@@ -16,7 +17,7 @@ export default function VehicleDashboardDocFilter({
           <FileText size={15} color="#2563eb" />
           <span>Document Filter:</span>
         </label>
-        <select
+        <SearchableSelect
           id="v-dash-doc-filter"
           className="v-dash-filter-select"
           value={docFilter}
@@ -48,7 +49,7 @@ export default function VehicleDashboardDocFilter({
               </option>
             ))}
           </optgroup>
-        </select>
+        </SearchableSelect>
       </div>
 
       {docFilter !== 'ALL' && (

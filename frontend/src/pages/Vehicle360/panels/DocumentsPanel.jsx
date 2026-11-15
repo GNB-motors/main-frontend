@@ -9,9 +9,10 @@ import VehicleDocumentUpload, {
   emptyDocsState,
 } from '../../Profile/Component/VehicleDocumentUpload.jsx';
 import { mapFetchedDocsToUiState } from '../../Profile/addVehicleDocMapping.js';
-import { documentSummary } from '../vehicle360Logic';
 import logger from '../../../utils/logger';
-import Empty from './Empty';
+import { OverviewCardSkeleton } from './overview/OverviewSkeleton';
+import './overview/referenceOverview.css';
+import './vehicleDocuments.css';
 
 /**
  * Documents tab — the real thing, not a summary of it. Reads and writes the
@@ -40,7 +41,36 @@ export default function DocumentsPanel({ vehicleId, documents, onChanged }) {
   }, [fetchedDocs]);
 
   const rows = fetchedDocs ?? documents ?? [];
-  const summary = documentSummary(rows);
+  const uploadRef = useRef(null);
+  const cards = VEHICLE_DOC_TYPES.map((meta) => {
+    const doc = rows.find((row) => row.docType === meta.backendType);
+    const expiry = doc?.expiryDate ? new Date(doc.expiryDate).getTime() : NaN;
+    const days = Number.isFinite(expiry) ? Math.ceil((expiry - Date.now()) / 86400000) : null;
+    const status = !doc
+      ? 'Missing'
+      : days == null
+        ? 'Expiry unknown'
+        : days < 0
+          ? 'Expired'
+          : days <= 30
+            ? 'Expiring soon'
+            : 'Current';
+    return {
+      ...meta,
+      doc,
+      days,
+      status,
+      tone: !doc || days < 0 ? 'danger' : days == null || days <= 30 ? 'warn' : 'ok',
+    };
+  });
+  const onFile = cards.filter((card) => card.doc).length;
+  const expired = cards.filter((card) => card.status === 'Expired').length;
+  const expiring = cards.filter((card) => card.status === 'Expiring soon').length;
+  const missing = cards.length - onFile;
+  const goToUploads = () => {
+    uploadRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    uploadRef.current?.focus({ preventScroll: true });
+  };
 
   const handleDocumentsChange = async (updated) => {
     setUiState(updated);
@@ -89,80 +119,124 @@ export default function DocumentsPanel({ vehicleId, documents, onChanged }) {
 
   return (
     <PanelErrorBoundary name="vehicle-docs">
-      <div className="v360-panel v360-panel--halves">
-        <section className={`v360-card ${summary.expired > 0 ? 'v360-card--alert' : ''}`.trim()}>
-          <div className="v360-card-head">
-            <p className="v360-card-title">Documents</p>
+      <div className="vdo-overview vdocs">
+        <section className="vdo-card vdocs-summary">
+          <div className="vdocs-summary-head">
+            <div>
+              <h3>Vehicle documents</h3>
+              <p>Records, validity and renewals for this vehicle.</p>
+            </div>
+            {vehicleId ? (
+              <button className="vdocs-button vdocs-button--primary" onClick={goToUploads}>
+                Manage documents →
+              </button>
+            ) : null}
           </div>
-          {rows.length === 0 ? (
-            <Empty
-              title={docsLoading ? 'Loading documents…' : 'No documents on record'}
-              hint={
-                docsLoading
-                  ? undefined
-                  : 'RC, insurance, fitness and permits have never been uploaded, so nothing can be checked for expiry. Upload them below.'
-              }
-            />
+          {docsLoading && !fetchedDocs ? (
+            <div className="vdocs-loading">Loading document records…</div>
           ) : (
             <>
-              <span
-                className={`v360-pill v360-pill--${summary.expired > 0 ? 'crit' : summary.expiring > 0 ? 'warn' : 'ok'}`}
+              <div className="vdocs-metrics">
+                {[
+                  [`${onFile} / ${cards.length}`, 'On file'],
+                  [missing, 'Missing'],
+                  [expired, 'Expired'],
+                  [expiring, 'Expiring in 30 days'],
+                ].map(([value, label]) => (
+                  <div key={label}>
+                    <strong>{value}</strong>
+                    <span>{label}</span>
+                  </div>
+                ))}
+              </div>
+              <div
+                className="vdocs-progress"
+                aria-label={`${onFile} of ${cards.length} document types on file`}
               >
-                <span className="v360-pill-dot" aria-hidden="true" />
-                {summary.expired > 0
-                  ? `${summary.expired} expired`
-                  : summary.expiring > 0
-                    ? `${summary.expiring} expiring soon`
-                    : 'All current'}
-              </span>
-              <table className="v360-table">
-                <thead>
-                  <tr>
-                    <th>Document</th>
-                    <th className="is-num">Expires</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((d) => (
-                    <tr key={d.docType}>
-                      <td>{d.docType}</td>
-                      <td className="is-num">
-                        {d.expiryDate ? formatDateIST(d.expiryDate) : 'no expiry recorded'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                <span style={{ width: `${(onFile / cards.length) * 100}%` }} />
+              </div>
+              <p className="vdocs-summary-note">
+                {missing || expired || expiring
+                  ? 'Review missing documents and upcoming renewals before the next trip.'
+                  : 'Check that every uploaded document has a recorded expiry date.'}
+              </p>
             </>
           )}
         </section>
-
-        <section className="v360-card">
-          <p className="v360-card-title">Why these matter</p>
-          <dl className="v360-kv">
-            <dt>Registration</dt>
-            <dd className="is-dim">Proves the truck is yours and legally on the road</dd>
-            <dt>Insurance</dt>
-            <dd className="is-dim">Without it a claim cannot be filed at all</dd>
-            <dt>Fitness</dt>
-            <dd className="is-dim">Checked at every state border</dd>
-            <dt>Permit</dt>
-            <dd className="is-dim">Covers the routes this truck is allowed to run</dd>
-          </dl>
-        </section>
-      </div>
-
-      {vehicleId ? (
-        <div className="v360-panel--single v360-panel" style={{ marginTop: 12 }}>
-          <section className="v360-card">
+        <div className="vdocs-grid">
+          {docsLoading && !fetchedDocs
+            ? cards.map((card) => <OverviewCardSkeleton key={card.key} />)
+            : cards.map((card) => (
+                <section className="vdo-card vdocs-document" key={card.key}>
+                  <div className="vdocs-card-head">
+                    <span className="vdocs-file-icon" aria-hidden="true">
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                      >
+                        <path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z" />
+                        <path d="M14 3v6h5M8 13h8M8 17h5" />
+                      </svg>
+                    </span>
+                    <span className={`vdocs-badge vdocs-badge--${card.tone}`}>● {card.status}</span>
+                  </div>
+                  <h3>
+                    {card.label === 'RC'
+                      ? 'Registration (RC)'
+                      : card.label === 'PUCC'
+                        ? 'Pollution (PUCC)'
+                        : card.label}
+                  </h3>
+                  <p className="vdocs-description">{card.description}</p>
+                  <div className="vdocs-validity">
+                    <span>Valid until</span>
+                    <strong>
+                      {card.doc?.expiryDate && card.days != null
+                        ? formatDateIST(card.doc.expiryDate)
+                        : '—'}
+                    </strong>
+                  </div>
+                  <p className={`vdocs-expiry vdocs-expiry--${card.tone}`}>
+                    {!card.doc
+                      ? 'Upload this document to track its validity.'
+                      : card.days == null
+                        ? 'No valid expiry date recorded.'
+                        : card.days < 0
+                          ? `Expired ${Math.abs(card.days)} ${Math.abs(card.days) === 1 ? 'day' : 'days'} ago`
+                          : card.days === 0
+                            ? 'Expires today'
+                            : `${card.days} days remaining`}
+                  </p>
+                  {vehicleId ? (
+                    <button className="vdocs-button" onClick={goToUploads}>
+                      {card.doc ? 'View or update document' : 'Upload document'} →
+                    </button>
+                  ) : (
+                    <p className="vdocs-description">
+                      A vehicle record is needed to upload documents.
+                    </p>
+                  )}
+                </section>
+              ))}
+        </div>
+        {vehicleId ? (
+          <section className="vdo-card vdocs-upload" ref={uploadRef} tabIndex={-1}>
+            <h3>Manage documents</h3>
+            <p className="vdocs-description">
+              Upload, preview or replace files and update expiry dates below.
+            </p>
             <VehicleDocumentUpload
               initialData={uiState}
               onDocumentsChange={handleDocumentsChange}
               onDeleteDocument={handleDeleteDocument}
             />
           </section>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </PanelErrorBoundary>
   );
 }

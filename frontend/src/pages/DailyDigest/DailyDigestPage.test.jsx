@@ -3,7 +3,32 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import OwnerValueService from '../../services/OwnerValueService';
+import ReleaseDigest from './ReleaseDigest';
 import DailyDigestPage from './DailyDigestPage';
+
+vi.mock('../../services/fleetViewService', () => ({
+  fleetViewService: {
+    getDigest: vi.fn(async () => {
+      throw Object.assign(new Error('Not deployed'), { status: 404 });
+    }),
+    getDailyFuel: vi.fn(async () => ({ items: [] })),
+    getMorningBrief: vi.fn(async () => ({})),
+    getOwnerReport: vi.fn(async () => ({ sections: [] })),
+  },
+}));
+vi.mock('../../hooks/useLivePositions', () => ({
+  useLivePositions: () => ({ positions: [], isLoading: false, refresh: vi.fn() }),
+}));
+vi.mock('../../services/vehicleListService', () => ({
+  getVehicleList: vi.fn(async () => []),
+  invalidateVehicleList: vi.fn(),
+}));
+vi.mock('../../services/AutoTripService', () => ({
+  AutoTripService: { list: vi.fn(async () => ({ items: [], total: 0 })) },
+}));
+vi.mock('../../api/performance', () => ({
+  default: { leaderboards: vi.fn(async () => ({ boards: [] })) },
+}));
 
 vi.mock('../../services/OwnerValueService', () => {
   const svc = { getDigest: vi.fn() };
@@ -40,11 +65,13 @@ const digest = {
 const renderPage = () =>
   render(
     <MemoryRouter>
-      <DailyDigestPage />
+      <ReleaseDigest />
     </MemoryRouter>,
   );
 
-describe('DailyDigestPage', () => {
+// The release digest is the fallback the new page shows while
+// /api/fleet-view/digest is not on prod. It keeps its own honest labels.
+describe('ReleaseDigest (the fallback)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     OwnerValueService.getDigest.mockResolvedValue(digest);
@@ -66,5 +93,25 @@ describe('DailyDigestPage', () => {
     await screen.findByText('Grade B');
     fireEvent.click(screen.getByRole('button', { name: /refresh/i }));
     await waitFor(() => expect(OwnerValueService.getDigest).toHaveBeenCalledTimes(2));
+  });
+
+  it('uses the new operations layout on a server with only the legacy digest', async () => {
+    render(
+      <MemoryRouter>
+        <DailyDigestPage />
+      </MemoryRouter>,
+    );
+    await screen.findByText('Detailed operational reports');
+    expect(screen.getByRole('heading', { name: 'Daily digest' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Fleet right now' })).not.toBeInTheDocument();
+    expect(screen.getByText('Detailed operational reports')).toBeInTheDocument();
+    await waitFor(() => expect(OwnerValueService.getDigest).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    await waitFor(() => expect(OwnerValueService.getDigest).toHaveBeenCalledTimes(2));
+    fireEvent.change(screen.getByLabelText('Digest date'), { target: { value: '2026-10-30' } });
+    expect(
+      await screen.findByText(/Historical digest reports are unavailable/),
+    ).toBeInTheDocument();
   });
 });

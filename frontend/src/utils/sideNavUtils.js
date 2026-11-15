@@ -1,6 +1,5 @@
 import { hasErpAccess, hasFleetAccess, satisfiesAccess } from './moduleAccess.js';
 import { SIDE_NAV_ITEMS } from './sideNavItems.js';
-import { applyUsageCut, surfaceKeysFromNav } from './navCut.js';
 
 /** Saare dropdown groups (open/close state isi se chalti hai). */
 export const SIDE_NAV_GROUPS = SIDE_NAV_ITEMS.filter((item) => item.type === 'group');
@@ -21,32 +20,27 @@ export const getVisibleNavChildren = (group, isEnabled, access = null) =>
 /**
  * Top-level items visible for the current org's feature flags.
  *
- * Paanch pass hote hain:
+ * Chaar pass hote hain:
  *  1. flag/module/role se gated items hatao,
  *  2. `mergeInto` se duplicate entries hatao — an item that a surviving group
  *     already carries (item 26.2's two Approvals entries),
  *  3. single-module org ke liye uska home top par hoist karo,
- *  4. is org ke APNE recorded usage se fold karo (navCut) — nothing is cut
- *     without a measured verdict,
- *  5. woh section headings hatao jinke neeche kuch bacha hi nahi.
+ *  4. woh section headings hatao jinke neeche kuch bacha hi nahi.
  *
- * `usageProfile` is GET /api/usage/nav-profile for this org. Pass nothing and
- * the menu is whole: absence of measurement never removes anything.
+ * Usage never changes a destination's visibility or its original group.
  */
-export const getVisibleNavItems = (isEnabled, role = null, usageProfile = null) =>
-  computeVisibleNav(isEnabled, role, usageProfile).items;
+export const getVisibleNavItems = (isEnabled, role = null) =>
+  computeVisibleNav(isEnabled, role).items;
 
-/**
- * The menu PLUS what the usage cut folded. A folded entry never vanishes: it
- * comes back here with its route, its job and the sentence the server wrote,
- * so the sidebar can still offer it under "More".
- */
+/** Preserve configured placement while retaining flag-only navigation access. */
 export const computeVisibleNav = (
   isEnabled,
   role = null,
-  usageProfile = null,
+  _usageProfile = null,
   flagOnlyEnabled = isEnabled,
 ) => {
+  // Older callers may still pass a usage profile; it never changes placement.
+  void _usageProfile;
   const access = { erp: hasErpAccess(isEnabled), fleet: hasFleetAccess(isEnabled) };
 
   // A `flagOnly` entry is gated on the ORG's feature flag alone. It is a
@@ -91,22 +85,13 @@ export const computeVisibleNav = (
     )
     .filter((item) => item.type !== 'group' || item.children.length > 0);
 
-  // Last, and only with the org's own measured numbers behind it.
-  const cut = applyUsageCut(gated, usageProfile);
-
-  const prunedItems = cut.items.filter((item, i) => {
+  const prunedItems = gated.filter((item, i) => {
     if (item.type !== 'section') return true;
-    const next = cut.items[i + 1];
+    const next = gated[i + 1];
     return !!next && next.type !== 'section';
   });
 
-  return {
-    items: prunedItems,
-    folded: cut.folded,
-    foldedByJob: cut.foldedByJob,
-    cutApplied: cut.applied,
-    cutWhy: cut.why,
-  };
+  return { items: prunedItems };
 };
 
 /** Pehla navigable route jispe current org ke flags ke hisaab se user ki access hai. */
@@ -128,5 +113,3 @@ export const getFirstNavPath = (isEnabled) => {
  */
 export const isGroupActive = (group, pathname) =>
   (group.matchRoutes || []).some((r) => pathname === r || pathname.startsWith(`${r}/`));
-
-export { applyUsageCut, surfaceKeysFromNav };

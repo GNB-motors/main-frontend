@@ -7,6 +7,16 @@ import { linkForAccount, linkStatus, needsAction } from '../../lib/fleetLink';
 
 /** Normalize the camelCase API vehicle shape to the snake_case UI shape. */
 export function normalizeVehicle(v) {
+  const efficiency = v.kmPerLitre;
+  const rawMileage = Object.hasOwn(v, 'kmPerLitre')
+    ? efficiency?.published === false
+      ? null
+      : efficiency?.kmPerL
+    : (v.averageMileage ?? v.avgMileage ?? v.mileage);
+  const numericMileage =
+    typeof rawMileage === 'number' || typeof rawMileage === 'string' ? Number(rawMileage) : NaN;
+  const averageMileage =
+    Number.isFinite(numericMileage) && numericMileage > 0 ? numericMileage : null;
   return {
     id: v._id || v.id || v._id, // keep id if present
     registration_no: v.registrationNumber || v.registration_no || v.registrationNumber,
@@ -26,7 +36,14 @@ export function normalizeVehicle(v) {
     // Branch membership state (present only in a branch view).
     branchStatus: v.branchStatus,
     isImported: v.isImported,
-    averageMileage: v.averageMileage ?? v.avgMileage ?? v.mileage ?? null,
+    averageMileage,
+    mileageWithheld:
+      averageMileage == null &&
+      (efficiency?.published === false || Boolean(efficiency?.withheldReason)),
+    mileageUnavailableReason:
+      averageMileage != null
+        ? null
+        : efficiency?.withheldReason || 'No full-tank rounds yet.',
   };
 }
 
@@ -66,6 +83,14 @@ export function vehicleNeedsRelink(vehicle, linkIndex) {
 }
 
 /**
+ * The telematics provider behind an account. Only iALERT portal accounts are
+ * not Tata FleetEdge; the extension and lemu accounts are FleetEdge.
+ */
+export function accountProviderLabel(source) {
+  return String(source || '').toUpperCase() === 'IALERT_PORTAL' ? 'iALERT' : 'FleetEdge';
+}
+
+/**
  * Resolve the FleetEdge account badge model for a vehicle row. `linkIndex`
  * (from lib/fleetLink) adds the account's link state — connected, expiring or
  * disconnected — whenever link health covers it.
@@ -84,6 +109,9 @@ export function describeFleetEdgeAccount(vehicle, accountMap = {}, linkIndex = n
     tagged: true,
     label,
     tip,
+    provider: accountProviderLabel(acct?.source),
+    accountId: acct?.externalAccountId || String(vehicle.fleetEdgeAccountId),
+    name: acct?.friendlyName || '',
     isDisabled: acct?.status === 'DISABLED',
     isAuthFailed: acct?.status === 'AUTH_FAILED',
     link: linkAccount

@@ -1,9 +1,16 @@
 import useApi from '../../../hooks/useApi';
 import { formatDateTimeIST } from '../../../utils/dateUtils';
+import ToneBadge from '../../../components/redesign/ToneBadge';
 import { ReportsService } from '../ReportsService.js';
 import { fmtKm, formatNumber } from './tripReportsUtils';
 import { StatusChip } from './tripReportCells';
-import { TRIP_SOURCE_LABEL, notInTripsAlert, tripNotes, tripRoute } from './cycleTrips';
+import {
+  TRIP_SOURCE_LABEL,
+  kmPartialLabel,
+  notInTripsAlert,
+  tripNotes,
+  tripRoute,
+} from './cycleTrips';
 import CycleSlipsTable from './CycleSlipsTable';
 
 const odoRange = (t) =>
@@ -34,6 +41,7 @@ export default function CycleTripsPanel({ cycleId }) {
   const summary = data?.summary;
   const trips = data?.trips || [];
   const alert = notInTripsAlert(summary);
+  const partial = kmPartialLabel(summary);
 
   return (
     <div className="rpt-cycle-trips">
@@ -48,6 +56,7 @@ export default function CycleTripsPanel({ cycleId }) {
         </span>
         <span>
           Laden in trips <strong>{fmtKm(summary?.ladenKm)}</strong>
+          {partial ? <ToneBadge tone="watch">{partial}</ToneBadge> : null}
         </span>
         <span title="Empty running to the plant and back from the drop, detours, yard moves">
           Not in trips <strong>{fmtKm(summary?.otherKm)}</strong>

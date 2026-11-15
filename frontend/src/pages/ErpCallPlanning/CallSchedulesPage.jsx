@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 /**
  * Account Calling Schedule (ISOCL ERP Stage 1)
  *
@@ -215,7 +216,7 @@ const CallSchedulesPage = () => {
           />
         </div>
 
-        <select
+        <SearchableSelect
           className="erp-filter"
           value={kamFilter}
           onChange={(e) => setKamFilter(e.target.value)}
@@ -227,9 +228,9 @@ const CallSchedulesPage = () => {
               {k.firstName} {k.lastName}
             </option>
           ))}
-        </select>
+        </SearchableSelect>
 
-        <select
+        <SearchableSelect
           className="erp-filter"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
@@ -238,9 +239,9 @@ const CallSchedulesPage = () => {
           <option value="">All statuses</option>
           <option value="ACTIVE">Active</option>
           <option value="PAUSED">Paused</option>
-        </select>
+        </SearchableSelect>
 
-        <select
+        <SearchableSelect
           className="erp-filter"
           value={dayFilter}
           onChange={(e) => setDayFilter(e.target.value)}
@@ -252,7 +253,7 @@ const CallSchedulesPage = () => {
               {w.short}
             </option>
           ))}
-        </select>
+        </SearchableSelect>
 
         <div className="erp-tabs" style={{ margin: 0, marginLeft: 'auto' }}>
           <button

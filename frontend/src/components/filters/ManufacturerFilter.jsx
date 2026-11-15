@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
+import { useEffect, useId, useState } from 'react';
 import { getManufacturerCatalog } from '../../services/manufacturerService';
 import './ManufacturerFilter.css';
-
 export default function ManufacturerFilter({ value = '', onChange }) {
+  const id = useId();
   const [options, setOptions] = useState([]);
   const [state, setState] = useState('loading');
   const [attempt, setAttempt] = useState(0);
@@ -23,29 +24,38 @@ export default function ManufacturerFilter({ value = '', onChange }) {
       active = false;
     };
   }, [attempt]);
+  const items = [
+    {
+      value: null,
+      label: 'All manufacturers',
+    },
+    ...(value && !options.some((item) => item.value === value)
+      ? [
+          {
+            value,
+            label: value === 'UNKNOWN' ? 'Unclassified (current filter)' : value,
+          },
+        ]
+      : []),
+    ...options,
+  ];
   return (
     <div className="manufacturer-filter">
-      <label>
-        <span>Manufacturer</span>
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          aria-busy={state === 'loading'}
-        >
-          <option value="">All manufacturers</option>
-          {value && value !== 'UNKNOWN' && !options.some((item) => item.value === value) ? (
-            <option value={value}>{value}</option>
-          ) : null}
-          <option value="UNKNOWN">Unclassified</option>
-          {options
-            .filter((item) => item.value !== 'UNKNOWN')
-            .map((item) => (
-              <option key={item.value} value={item.value}>
-                {item.value === 'UNKNOWN' ? 'Unclassified' : item.label}
-              </option>
-            ))}
-        </select>
-      </label>
+      <label htmlFor={id}>Manufacturer</label>
+      <SearchableSelect
+        value={value || null}
+        onValueChange={(next) => onChange(next || '')}
+        id={id}
+        className="manufacturer-filter-trigger"
+        aria-busy={state === 'loading'}
+        placeholder="All manufacturers"
+      >
+        {items.map((item) => (
+          <option key={item.value ?? 'all'} value={item.value}>
+            {item.label}
+          </option>
+        ))}
+      </SearchableSelect>
       {state === 'loading' ? <small role="status">Loading manufacturers…</small> : null}
       {state === 'error' ? (
         <small role="status">

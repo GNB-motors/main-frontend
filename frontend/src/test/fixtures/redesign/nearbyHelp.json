@@ -1,0 +1,30 @@
+{
+  "items": [
+    {
+      "id": "poi-303",
+      "kind": "POI",
+      "name": "Buxar Service Centre",
+      "category": "HOSPITAL",
+      "lat": 25.571,
+      "lng": 83.9812,
+      "radiusM": null,
+      "layer": "hospitals",
+      "phone": "0612422002",
+      "distanceKm": 4.2,
+      "brand": null
+    },
+    {
+      "id": "poi-404",
+      "kind": "POI",
+      "name": "Buxar Tyre Works",
+      "category": "TYRE",
+      "lat": 25.5592,
+      "lng": 83.9601,
+      "radiusM": null,
+      "layer": "tyres",
+      "phone": "0612422003",
+      "distanceKm": 6.8,
+      "brand": "MRF"
+    }
+  ]
+}

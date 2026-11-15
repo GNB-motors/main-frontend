@@ -3,9 +3,10 @@ import { formatINR } from '../../../utils/formatters';
 import { onActivateKey } from '../../../utils/onActivateKey';
 import { BRIEF_SECTION, BRIEF_FALLBACK } from './briefSections';
 
-export default function NdBriefCard({ section, onOpenVehicle }) {
+export default function NdBriefCard({ section, onOpenVehicle, rangeLabel = 'today' }) {
   const meta = BRIEF_SECTION[section.key] || BRIEF_FALLBACK;
   const vehicles = section.vehicles || [];
+  const windowTitle = rangeLabel === 'today' ? 'Today' : 'Last 2 days';
   const Icon = meta.icon;
 
   return (
@@ -13,15 +14,20 @@ export default function NdBriefCard({ section, onOpenVehicle }) {
       <div className="nd-card-head">
         <h2>{section.label}</h2>
         <span className="nd-sp" />
-        <span className="nd-hint">Today · top 5 vehicles</span>
+        <span className="nd-hint">{windowTitle} · top 5 vehicles</span>
       </div>
-      {section.status !== 'ok' ? (
+      {section.status === 'empty' && !section.partial ? (
         <div className="nd-empty">
           <span className="nd-ok">
             <Check size={22} />
           </span>
-          <b>Clean today</b>
+          <b>Clean {rangeLabel}</b>
           <span>{meta.clean}</span>
+        </div>
+      ) : section.rupees == null ? (
+        <div className="nd-empty">
+          <b>Cost unavailable</b>
+          <span>{section.why || section.suggestedAction}</span>
         </div>
       ) : (
         <>
@@ -34,12 +40,18 @@ export default function NdBriefCard({ section, onOpenVehicle }) {
               {meta.sub}
             </span>
           </div>
+          {section.partial ? (
+            <p className="nd-muted" role="status">
+              Incomplete · {section.coverageNote}{' '}
+              {(section.unavailableReasons || []).map((r) => r.message).join(' ')}
+            </p>
+          ) : null}
           <table className="nd-tbl">
             <thead>
               <tr>
                 <th>Vehicle</th>
                 <th>{meta.col}</th>
-                <th className="nd-num">Cost today</th>
+                <th className="nd-num">Cost {rangeLabel}</th>
               </tr>
             </thead>
             <tbody>
@@ -57,6 +69,7 @@ export default function NdBriefCard({ section, onOpenVehicle }) {
                   <td className="nd-muted">{meta.detail(v)}</td>
                   <td className="nd-num" style={{ color: meta.c }}>
                     {formatINR(v.rupees)}
+                    {v.partial ? ' · Incomplete' : ''}
                   </td>
                 </tr>
               ))}

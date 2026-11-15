@@ -1,14 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { L, useLeafletMap, useLayerGroup, pinIcon } from '../../routeHubMap';
 import { mapModel } from './deviationMapModel.js';
+import { deviationDetailModel } from './deviationDetailModel.js';
+import { cssToken } from '../../../../utils/redesign/tone';
 
 const STYLE = {
   band: { radius: 3, stroke: false, fillColor: '#8B8B8C', fillOpacity: 0.3 },
-  usual: { color: '#5D5D5E', weight: 3, opacity: 0.7, dashArray: '2 7', lineCap: 'round' },
-  approach: { color: '#828BAE', weight: 3, opacity: 0.85, dashArray: '6 6', lineCap: 'round' },
-  laden: { color: '#2F58EE', weight: 4, opacity: 0.8, lineCap: 'round' },
-  detourHalo: { color: '#C2323A', weight: 14, opacity: 0.16 },
-  detour: { color: '#C2323A', weight: 5, opacity: 0.95, lineCap: 'round' },
+  usual: { color: '#3468a5', weight: 4, opacity: 0.85, lineCap: 'round' },
 };
 
 const MARKER = {
@@ -20,34 +18,97 @@ const MARKER = {
 };
 
 /**
- * The trip as driven (empty run dashed, loaded run solid), the usual route as
- * grey dots (the cells it was checked against) plus a dotted typical drive, and the detour in red with where it left, its farthest point and
- * where it came back. `zoom` is 'detour' or 'trip'.
+ * The trip as driven, the usual road, and the part that came off it.
+ *
+ * The layer order is exact: the usual road UNDER the road as driven, and
+ * the off-road part ON TOP of it. The colours are the redesign's tokens,
+ * read from the stylesheet so there is one source of truth.
  */
 export default function DeviationMap({ detail, zoom }) {
   const { containerRef, mapRef } = useLeafletMap({ preferCanvas: true });
+
+  // The redesign's colours: the usual road grey, the driven road blue, the
+  // off-road part red.
+  const colours = useMemo(
+    () => ({
+      usual: cssToken('--rd-usual-road', '#9ca3af'),
+      driven: cssToken('--rd-leg-loaded', '#2563eb'),
+      detour: cssToken('--rd-detour', '#dc2626'),
+    }),
+    [],
+  );
 
   useLayerGroup(
     mapRef,
     (group) => {
       const model = mapModel(detail);
       if (!model) return;
-      model.band.forEach((p) => L.circleMarker(p, STYLE.band).addTo(group));
-      if (model.usual.length) L.polyline(model.usual, STYLE.usual).addTo(group);
-      model.approach.forEach((line) => L.polyline(line, STYLE.approach).addTo(group));
-      model.laden.forEach((line) => L.polyline(line, STYLE.laden).addTo(group));
-      if (model.detour.length > 1) {
-        L.polyline(model.detour, STYLE.detourHalo).addTo(group);
-        L.polyline(model.detour, STYLE.detour).addTo(group);
+      const redesigned = deviationDetailModel(detail, null);
+
+      if (model.usual.length > 1) L.polyline(model.usual, STYLE.usual).addTo(group);
+      if (model.driven.length > 1) L.polyline(model.driven, {
+        color: model.judged ? colours.detour : '#77818d', weight: 4, opacity: 0.9,
+        dashArray: '2 8', lineCap: 'round',
+      }).addTo(group);
+
+      // 4. Where it left the usual road and where it came back: white
+      //    circles with a red edge.
+      if (model.judged && redesigned.exitPoint) {
+        L.circleMarker([redesigned.exitPoint.lat, redesigned.exitPoint.lng], {
+          radius: 7,
+          color: colours.detour,
+          weight: 3,
+          fillColor: '#ffffff',
+          fillOpacity: 1,
+        })
+          .bindTooltip(
+            `Left the usual road${redesigned.exitAt ? ` · ${clockLabel(redesigned.exitAt)}` : ''}`,
+            { direction: 'top', offset: [0, -10] },
+          )
+          .addTo(group);
       }
-      model.markers.forEach((m) => {
+      if (model.judged && redesigned.rejoinPoint) {
+        L.circleMarker([redesigned.rejoinPoint.lat, redesigned.rejoinPoint.lng], {
+          radius: 7,
+          color: colours.detour,
+          weight: 3,
+          fillColor: '#ffffff',
+          fillOpacity: 1,
+        })
+          .bindTooltip(
+            `Back on it${redesigned.rejoinAt ? ` · ${clockLabel(redesigned.rejoinAt)}` : ''}`,
+            { direction: 'top', offset: [0, -10] },
+          )
+          .addTo(group);
+      }
+
+      // The stops while off the usual road: facts, pinned where they were.
+      if (model.judged) redesigned.stopsDuring.forEach((stop) => {
+        if (stop.lat == null || stop.lng == null) return;
+        L.circleMarker([stop.lat, stop.lng], {
+          radius: 6,
+          color: '#ffffff',
+          weight: 2,
+          fillColor: colours.detour,
+          fillOpacity: 1,
+        })
+          .bindTooltip(
+            textTip(
+              `${stop.placeName ?? 'Stopped'}${stop.durationMin != null ? ` · ${stop.durationMin} min` : ''}`,
+            ),
+            { direction: 'top', offset: [0, -10] },
+          )
+          .addTo(group);
+      });
+
+      model.markers.filter((m) => model.judged || !['exit', 'maxOff', 'rejoin'].includes(m.kind)).forEach((m) => {
         const [color, glyph, size] = MARKER[m.kind];
         L.marker(m.at, { icon: pinIcon(color, glyph, size), title: m.label })
-          .bindTooltip(m.label, { direction: 'top', offset: [0, -10] })
+          .bindTooltip(textTip(m.label), { direction: 'top', offset: [0, -10] })
           .addTo(group);
       });
     },
-    [detail],
+    [detail, colours],
   );
 
   useEffect(() => {
@@ -58,4 +119,18 @@ export default function DeviationMap({ detail, zoom }) {
   }, [detail, zoom, mapRef]);
 
   return <div className="lmap" ref={containerRef} />;
+}
+
+/** The time of day, for the exit and rejoin labels. */
+// Place names come from data: set them as text so the tooltip never parses them as HTML.
+function textTip(label) {
+  const el = document.createElement('span');
+  el.textContent = label == null ? '' : String(label);
+  return el;
+}
+
+function clockLabel(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }

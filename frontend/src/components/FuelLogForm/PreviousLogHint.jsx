@@ -1,5 +1,6 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
+import { formatDateTimeIST } from '../../utils/dateUtils';
 
 /** Under the vehicle picker: the selected vehicle's last fuel log, if any. */
 const PreviousLogHint = ({ loadingLastOdometer, lastOdometer }) => (
@@ -20,12 +21,10 @@ const PreviousLogHint = ({ loadingLastOdometer, lastOdometer }) => (
     ) : lastOdometer ? (
       <span>
         <b>Previous Log:</b> {lastOdometer.fillingType?.replace('_', ' ')} fill{' '}
-        {lastOdometer.odometerReading
+        {lastOdometer.odometerReading != null
           ? `at ${lastOdometer.odometerReading} km`
           : '(No odometer recorded)'}{' '}
-        <span style={{ color: '#94a3b8' }}>
-          ({new Date(lastOdometer.refuelTime).toLocaleDateString()})
-        </span>
+        <span style={{ color: '#94a3b8' }}>({formatDateTimeIST(lastOdometer.refuelTime)} IST)</span>
       </span>
     ) : (
       <span>No prior fuel logs found. Starting fresh.</span>

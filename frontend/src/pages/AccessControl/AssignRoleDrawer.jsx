@@ -1,3 +1,4 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useEffect, useId, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Info, X } from 'lucide-react';
@@ -171,7 +172,7 @@ const AssignRoleDrawer = ({
             <label className="ff-field__label" htmlFor={`${fieldId}-employee`}>
               Employee
             </label>
-            <select
+            <SearchableSelect
               id={`${fieldId}-employee`}
               className="rbac-select"
               value={userId}
@@ -183,14 +184,14 @@ const AssignRoleDrawer = ({
                   {fullName(e)} · {e.role}
                 </option>
               ))}
-            </select>
+            </SearchableSelect>
           </div>
 
           <div className="ff-field">
             <label className="ff-field__label" htmlFor={`${fieldId}-scope`}>
               Scope
             </label>
-            <select
+            <SearchableSelect
               id={`${fieldId}-scope`}
               className="rbac-select"
               value={scope}
@@ -201,7 +202,7 @@ const AssignRoleDrawer = ({
             >
               <option value="ENTERPRISE">Enterprise — when no location is selected</option>
               <option value="BRANCH">A specific location</option>
-            </select>
+            </SearchableSelect>
           </div>
 
           {scope === 'BRANCH' && (
@@ -209,7 +210,7 @@ const AssignRoleDrawer = ({
               <label className="ff-field__label" htmlFor={`${fieldId}-location`}>
                 Location
               </label>
-              <select
+              <SearchableSelect
                 id={`${fieldId}-location`}
                 className="rbac-select"
                 value={branchId}
@@ -221,7 +222,7 @@ const AssignRoleDrawer = ({
                     {b.name}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
           )}
 
@@ -229,7 +230,7 @@ const AssignRoleDrawer = ({
             <label className="ff-field__label" htmlFor={`${fieldId}-role`}>
               Role
             </label>
-            <select
+            <SearchableSelect
               id={`${fieldId}-role`}
               className="rbac-select"
               value={roleId}
@@ -244,7 +245,7 @@ const AssignRoleDrawer = ({
                   {r.name}
                 </option>
               ))}
-            </select>
+            </SearchableSelect>
             {scope === 'BRANCH' && branchId && options.length === 0 && (
               <span className="ff-field__help">
                 No roles are switched on at this location yet — see Branch Access.

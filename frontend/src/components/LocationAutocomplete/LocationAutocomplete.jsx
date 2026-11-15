@@ -1,3 +1,4 @@
+import { googleMapsLoaderOptions } from '../../utils/googleMapsLoader.js';
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, MapPin, Loader2, Save, CheckCircle } from 'lucide-react';
 import { useLoadScript } from '@react-google-maps/api';
@@ -6,7 +7,6 @@ import { toast } from 'react-toastify';
 import logger from '../../utils/logger';
 import GooglePredictionsSection from './GooglePredictionsSection';
 
-const libraries = ['places'];
 
 const LocationAutocomplete = ({
   value,
@@ -34,10 +34,7 @@ const LocationAutocomplete = ({
   const sessionTokenRef = useRef(null);
   const debounceRef = useRef(null);
 
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    libraries,
-  });
+  const { isLoaded } = useLoadScript(googleMapsLoaderOptions);
 
   // Handle click outside to close dropdown
   useEffect(() => {

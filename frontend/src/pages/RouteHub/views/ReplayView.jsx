@@ -8,6 +8,7 @@ import { replayWindow } from '../overspeedReplay';
 import { DEFAULT_LIMIT_KMH, DEFAULT_DUR_MIN, PLAYBACK_BASE_SEC } from './replay/replayConstants.js';
 import { windowForRange, tripWindow } from './replay/replayWindows.js';
 import buildTrip from './replay/buildTrip.js';
+import { travelledPieces } from './replay/replayPath.js';
 import sampleAt from './replay/sampleAt.js';
 import tripStats from './replay/tripStats.js';
 import useReplayLayers from './replay/useReplayLayers.js';
@@ -28,13 +29,16 @@ export default function ReplayView({ params, toast }) {
   const [vehicles, setVehicles] = useState([]);
   const [reg, setReg] = useState('');
   const [range, setRange] = useState(linked ? 'custom' : 'today');
-  const [from, setFrom] = useState(dkey(new Date(Date.now() - 7 * 86400000)));
-  const [to, setTo] = useState(dkey(new Date()));
+  const [from, setFrom] = useState(dkey(linked?.from || new Date()));
+  const [to, setTo] = useState(dkey(linked?.to || new Date()));
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [navigationContext, setNavigationContext] = useState(null);
   const navigation = useNavigationHistory(navigationContext || {});
+  // Set when the server capped the window (returned only the newest points), so
+  // the replay can say the trail is partial instead of silently showing a slice.
+  const [trailMeta, setTrailMeta] = useState(null);
 
   // ERP trips for the selected vehicle. Picking one switches the replay from
   // "whatever fell inside these dates" to the real trip: its window comes from the
@@ -72,9 +76,38 @@ export default function ReplayView({ params, toast }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const appliedVehicleRef = useRef(null);
+  // Search selections can change the replay URL while this tab stays mounted.
+  useEffect(() => {
+    const wanted = params.get('v');
+    if (!wanted || appliedVehicleRef.current === wanted) return;
+    const match = vehicles.find(
+      (item) => item._id === wanted || item.registrationNumber === wanted,
+    );
+    if (!match) return;
+    appliedVehicleRef.current = wanted;
+    if (match.registrationNumber !== reg) {
+      setTrip(null);
+      setErpTripId('');
+      setError(null);
+      setReg(match.registrationNumber);
+    }
+  }, [params, vehicles, reg]);
+
+  const requestRef = useRef(0);
+  useEffect(
+    () => () => {
+      requestRef.current += 1;
+    },
+    [],
+  );
+
   const load = useCallback(
     async (nextReg = reg, nextRange = range, nextTripId = erpTripId, tripRow = null) => {
-      if (!nextReg) return;
+      if (!nextReg) {
+        setError('Select a vehicle to load its replay.');
+        return false;
+      }
       const vehicle = vehicles.find((v) => v.registrationNumber === nextReg);
       // A picked trip defines its own window. Anchors first (GPS-proven), falling
       // back to the ERP timestamps when the trip has not been anchored yet — those
@@ -85,6 +118,19 @@ export default function ReplayView({ params, toast }) {
         : nextRange === 'linked' && linked
           ? { from: linked.from, to: linked.to }
           : windowForRange(nextRange, from, to);
+      if (
+        !Number.isFinite(win.from.getTime()) ||
+        !Number.isFinite(win.to.getTime()) ||
+        win.from > win.to
+      ) {
+        setError('Choose valid dates with From on or before To.');
+        return false;
+      }
+      if (nextRange !== 'custom') {
+        setFrom(dkey(win.from));
+        setTo(dkey(win.to));
+      }
+      const requestId = ++requestRef.current;
       setLoading(true);
       setNavigationContext({
         vehicleId: vehicle?._id,
@@ -92,44 +138,39 @@ export default function ReplayView({ params, toast }) {
         to: win.to.toISOString(),
       });
       setError(null);
+      setTrailMeta(null);
       try {
-        const trail = await RouteHubService.getTrail(nextReg, {
-          from: win.from.toISOString(),
-          to: win.to.toISOString(),
-          limit: 5000,
-        });
-        // Overspeed is a separate recompute; a failure there shouldn't cost
-        // the whole replay, so it degrades to "no markers".
-        let os = [];
-        if (vehicle?._id) {
-          os = await RouteHubService.getOverspeedEvents({
-            vehicleId: vehicle._id,
-            from: win.from.toISOString(),
-            to: win.to.toISOString(),
-            speedKmh: limitKmh,
-            durationSec: durMin * 60,
-          })
-            .then((r) => r.events || [])
-            .catch(() => []);
-        }
-        const dev = await RouteHubService.getDeviationEvents({
-          vehicle: nextReg,
-          from: win.from.toISOString(),
-          to: win.to.toISOString(),
-          limit: 50,
-        })
-          .then((r) => r.records || [])
-          .catch(() => []);
-
-        // When the replay is opened from an ERP trip (?trip=<id>), its warehouse
-        // anchors give the real start/end. Without one the labels stay honest about
-        // being window edges rather than a trip.
-        const anchors = await RouteHubService.getTripAnchors(nextTripId);
-
-        const road = await RoadService.getRoadTrailIfEnabled(nextReg, {
-          from: win.from.toISOString(),
-          to: win.to.toISOString(),
-        });
+        const window = { from: win.from.toISOString(), to: win.to.toISOString() };
+        const [trail, os, dev, anchors, road] = await Promise.all([
+          RouteHubService.getTrail(nextReg, { ...window, limit: 5000 }),
+          vehicle?._id
+            ? RouteHubService.getOverspeedEvents({
+                vehicleId: vehicle._id,
+                ...window,
+                speedKmh: limitKmh,
+                durationSec: durMin * 60,
+              })
+                .then((result) => result.events || [])
+                .catch(() => [])
+            : Promise.resolve([]),
+          RouteHubService.getDeviationEvents({ vehicle: nextReg, ...window, limit: 50 })
+            .then((result) => result.records || [])
+            .catch(() => []),
+          RouteHubService.getTripAnchors(nextTripId),
+          RoadService.getRoadTrailIfEnabled(nextReg, window),
+        ]);
+        if (requestId !== requestRef.current) return false;
+        setTrailMeta(
+          trail?.truncated
+            ? {
+                truncated: true,
+                totalCount: trail.totalCount ?? null,
+                shown: (trail.points || []).length,
+                actualFrom: trail.actualFrom || null,
+                actualTo: trail.actualTo || null,
+              }
+            : null,
+        );
         const built = buildTrip(trail.points, os, dev, anchors, road);
         setTrip(built);
         const startT =
@@ -141,12 +182,16 @@ export default function ReplayView({ params, toast }) {
             : 0;
         setT(startT);
         setPlaying(false);
-        if (!built) setError('No position fixes in this window.');
+        if (!built)
+          setError('No position fixes in this window. Try another vehicle or date range.');
+        return Boolean(built);
       } catch (e) {
+        if (requestId !== requestRef.current) return false;
         setTrip(null);
         setError(e?.message || 'Could not load the trail.');
+        return false;
       } finally {
-        setLoading(false);
+        if (requestId === requestRef.current) setLoading(false);
       }
     },
     [reg, range, from, to, vehicles, erpTripId, linked, limitKmh, durMin],
@@ -192,7 +237,9 @@ export default function ReplayView({ params, toast }) {
     }
     const row = erpTrips.find((t) => String(t._id) === String(id));
     setRange('custom');
-    load(reg, 'custom', id, row).then(() => toast(`Replaying ${row?.tripNumber || 'trip'}`));
+    load(reg, 'custom', id, row).then((loaded) => {
+      if (loaded) toast(`Replaying ${row?.tripNumber || 'trip'}`);
+    });
   };
 
   useReplayLayers({ mapRef, trip, limitKmh, runRef, truckRef, setPlaying, setT });
@@ -223,13 +270,14 @@ export default function ReplayView({ params, toast }) {
     truckRef.current.setLatLng(onRoad ? [onRoad.lat, onRoad.lng] : frame.ll);
     if (trip.roadLayers.length) {
       const travelled = clipLayersAt(trip.roadLayers, frame.at.getTime()).filter(
-        (l) => l.kind !== 'RAW',
+        (l) => l.kind !== 'RAW' && l.kind !== 'INFERRED',
       );
       runRef.current.setLatLngs(
         travelled.length ? travelled.map((l) => toLatLngPairs(l.path)) : [frame.ll],
       );
     } else {
-      runRef.current.setLatLngs(trip.path.slice(0, frame.upto).concat([frame.ll]));
+      const driven = travelledPieces(trip.pieces, frame.upto, frame.ll);
+      runRef.current.setLatLngs(driven.length ? driven : [frame.ll]);
     }
     const el = truckRef.current.getElement()?.querySelector('.rh-truck');
     if (el) el.classList.toggle('fast', (frame.speed || 0) > limitKmh);
@@ -309,6 +357,32 @@ export default function ReplayView({ params, toast }) {
         loading={loading}
         toast={toast}
       />
+
+      {error ? (
+        <div className="rtool-load-error" role="alert">
+          {error}
+        </div>
+      ) : null}
+      {trailMeta?.truncated ? (
+        <div
+          role="status"
+          style={{
+            margin: '0 0 10px',
+            padding: '8px 12px',
+            borderRadius: 8,
+            background: 'rgba(245, 158, 11, 0.12)',
+            border: '1px solid rgba(245, 158, 11, 0.35)',
+            color: '#92400e',
+            fontSize: 12,
+            fontWeight: 500,
+          }}
+        >
+          ⚠️ Showing {trailMeta.shown.toLocaleString('en-IN')}
+          {trailMeta.totalCount ? ` of ${trailMeta.totalCount.toLocaleString('en-IN')}` : ''}{' '}
+          position fixes — sampled evenly across the whole window to stay within the server cap. The
+          full time span is shown at reduced detail; narrow the date range to see every fix.
+        </div>
+      ) : null}
 
       <div className="card">
         <ReplayStatsHead vehicle={vehicle} trip={trip} loading={loading} stats={stats} />

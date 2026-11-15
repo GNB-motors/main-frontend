@@ -1,24 +1,20 @@
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState } from 'react';
 import DataTable from '../../../components/ui/DataTable';
 import FilterBar from '../../../components/ui/FilterBar';
 import StatusChip from '../../../components/ui/StatusChip';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../../components/ui/select';
 import { useApi } from '../../../hooks/useApi';
 import { formatKm, formatLitres } from '../../../utils/formatters';
 import { MileageApi } from '../mileageApi';
 import { dailyRollup, dieselUse } from '../cycleRows';
 import InfoTip from './InfoTip';
-
 const signed = (v, unit) => (v == null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(1)}${unit}`);
-
 const COLUMNS = [
-  { key: 'day', label: 'Day', render: (d) => <span className="num">{d.day}</span> },
+  {
+    key: 'day',
+    label: 'Day',
+    render: (d) => <span className="num">{d.day}</span>,
+  },
   {
     key: 'km',
     label: 'Driven',
@@ -72,9 +68,10 @@ export default function ExpectedFuelView({ range }) {
   const result = useApi(
     (signal) => MileageApi.expected(range, vehicleId, signal),
     [vehicleId, range.from, range.to],
-    { enabled: Boolean(vehicleId) },
+    {
+      enabled: Boolean(vehicleId),
+    },
   );
-
   const list = (Array.isArray(vehicles.data) ? vehicles.data : [])
     .filter(
       (v) =>
@@ -83,32 +80,27 @@ export default function ExpectedFuelView({ range }) {
         (!range.manufacturer || (v.manufacturer || 'UNKNOWN') === range.manufacturer),
     )
     .sort((a, b) => a.registrationNumber.localeCompare(b.registrationNumber));
-  const selected = list.find((v) => v._id === vehicleId);
   const days = vehicleId ? dailyRollup(result.data?.windows || []) : [];
-
   return (
     <div className="mhub">
       <FilterBar
         right={
           <div className="date-input-group">
             <label htmlFor="expected-truck">Truck</label>
-            <Select value={vehicleId} onValueChange={setVehicleId}>
-              <SelectTrigger id="expected-truck" className="h-9 w-[260px] text-sm">
-                <SelectValue>
-                  {selected
-                    ? `${selected.registrationNumber}${selected.model ? ` · ${selected.model}` : ''}`
-                    : 'Choose a truck'}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent align="start">
-                {list.map((v) => (
-                  <SelectItem key={v._id} value={v._id}>
-                    {v.registrationNumber}
-                    {v.model ? ` · ${v.model}` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={vehicleId}
+              placeholder="Choose a truck"
+              onValueChange={setVehicleId}
+              id="expected-truck"
+              className="h-9 w-[260px] text-sm"
+            >
+              {list.map((v) => (
+                <option key={v._id} value={v._id}>
+                  {v.registrationNumber}
+                  {v.model ? ` · ${v.model}` : ''}
+                </option>
+              ))}
+            </SearchableSelect>
           </div>
         }
       />

@@ -1,0 +1,761 @@
+/*
+ * TripList.css — the Trips list: KPI strip (which is also the status filter),
+ * the "needs your answer" banner and a dense trip table. Tokens and the shared
+ * header/chip rules are in TripsRedesign.css.
+ */
+
+/* ─── KPI strip ───────────────────────────────────────────────────────── */
+.atx-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+}
+.atx-kpi-tabs {
+  grid-column: span 4;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: subgrid;
+  gap: 16px;
+}
+.atx-kpi {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  padding: 14px 18px 16px;
+  border: 1px solid var(--rd-line);
+  border-radius: 10px;
+  background: var(--rd-card);
+  color: var(--rd-ink);
+  text-align: left;
+  font: inherit;
+}
+.atx-kpi--tab {
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+.atx-kpi--tab:hover {
+  border-color: var(--rd-line-strong);
+}
+.atx-kpi--tab.is-selected {
+  border-color: var(--rd-brand);
+  box-shadow: inset 0 0 0 1px var(--rd-brand);
+}
+.atx-kpi-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--rd-ink-2);
+}
+.atx-kpi--tab.is-selected .atx-kpi-label {
+  color: var(--rd-brand);
+}
+.atx-kpi-value {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 36px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--rd-ink);
+}
+.atx-kpi-sub {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--rd-ink-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.atx-kpi-dot {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.atx-kpi-dot--good {
+  background: var(--rd-good);
+}
+.atx-kpi-dot--info {
+  background: var(--rd-info);
+}
+.atx-kpi-dot--watch {
+  background: var(--rd-watch);
+}
+.atx-kpi-dot--act {
+  background: var(--rd-act);
+}
+
+/* ─── Needs your answer ───────────────────────────────────────────────── */
+.atx-needs {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr);
+  border: 1px solid var(--rd-line);
+  border-radius: 10px;
+  background: var(--rd-card);
+}
+.atx-needs-main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px 20px;
+}
+.atx-needs-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--rd-ink);
+  font-variant-numeric: tabular-nums;
+}
+.atx-needs-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.atx-needs-reason {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 96px;
+  align-items: center;
+  gap: 12px;
+}
+.atx-needs-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--rd-ink);
+}
+.atx-needs-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--rd-card-2);
+  box-shadow: inset 0 0 0 1px var(--rd-line);
+}
+.atx-needs-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--rd-watch);
+}
+.atx-needs-reason--DROP_INFERRED .atx-needs-bar > span {
+  background: color-mix(in srgb, var(--rd-watch) 50%, var(--rd-card));
+}
+.atx-needs-reason--OTHER .atx-needs-bar > span {
+  background: var(--rd-ink-3);
+}
+.atx-needs-count {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.atx-needs-of {
+  font-weight: 400;
+  color: var(--rd-ink-3);
+}
+.atx-needs-basis {
+  margin: 0;
+  font-size: 12px;
+  color: var(--rd-ink-3);
+}
+.atx-needs-fix {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px 20px;
+  border-left: 1px solid var(--rd-line);
+  background: var(--rd-card-2);
+  border-radius: 0 10px 10px 0;
+}
+.atx-needs-fix-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rd-ink);
+}
+.atx-needs-fix-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--rd-ink-2);
+}
+.atx-needs-fix-text strong {
+  font-weight: 600;
+  color: var(--rd-ink);
+  font-variant-numeric: tabular-nums;
+}
+.atx-needs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+.atx-list .atx-needs-actions .atx-btn {
+  border: 1px solid var(--rd-line-strong);
+  background: var(--rd-card);
+  color: var(--rd-ink);
+}
+.atx-list .atx-needs-actions .atx-btn--primary {
+  border-color: var(--rd-brand);
+  background: var(--rd-brand);
+  color: #fff;
+}
+.atx-list .atx-needs-actions .atx-btn--primary:hover {
+  background: var(--rd-brand-2);
+}
+
+/* ─── Toolbar inside the table card ───────────────────────────────────── */
+.atx-tools {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+.atx-tools-title {
+  display: inline-flex;
+  flex: none;
+  align-items: baseline;
+  gap: 8px;
+  margin-right: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--rd-ink);
+}
+.atx-tools-title .atx-num {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--rd-ink-3);
+}
+.atx-tools-note {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-right: auto;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--rd-ink-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.atx-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--rd-line);
+  border-radius: 8px;
+  background: var(--rd-card);
+  color: var(--rd-ink-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.atx-tool:hover {
+  border-color: var(--rd-line-strong);
+  color: var(--rd-ink);
+}
+.atx-tool.is-active {
+  border-color: var(--rd-brand);
+  background: var(--rd-brand-tint);
+  color: var(--rd-brand);
+}
+.atx-tool--select {
+  flex: 0 0 auto;
+  padding: 0;
+}
+.atx-tool--select:focus-within {
+  border-color: var(--rd-brand);
+}
+.atx-tool--select :is(select, .searchable-select-trigger) {
+  width: auto;
+  min-width: 112px;
+  height: 30px;
+  min-height: 0;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--rd-ink);
+  font: inherit;
+  font-size: 13px;
+}
+.atx-list .atx-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--rd-line);
+  border-radius: 8px;
+  background: var(--rd-card);
+  color: var(--rd-ink-3);
+}
+.atx-list .atx-search:focus-within {
+  border-color: var(--rd-brand-2);
+}
+.atx-list .atx-search-input {
+  width: 200px;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--rd-ink);
+  font-size: 13px;
+}
+.atx-list .atx-search-input::placeholder {
+  color: var(--rd-ink-3);
+}
+/* ─── The "More" menu ───────────────────────────────────────────────────
+   The .atx-list block below only restyles this menu; these are the base
+   mechanics. Without them the menu renders as a static block under the
+   button and shoves the page content apart. */
+.atx-more-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  max-height: min(320px, 60vh);
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--rd-line, var(--ds-line));
+  border-radius: 8px;
+  background: var(--rd-card, var(--card));
+  box-shadow: var(--rd-shadow-float, 0 12px 32px -12px rgba(17, 24, 39, 0.35));
+}
+.atx-more-item {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.atx-more-item:focus-visible {
+  outline: 2px solid var(--rd-brand, var(--ds-focus));
+  outline-offset: -1px;
+}
+.atx-more-rule {
+  display: block;
+  flex: none;
+}
+.atx-list .atx-more {
+  position: relative;
+  flex: 0 0 auto;
+}
+.atx-list .atx-more-menu {
+  right: 0;
+  left: auto;
+  min-width: 200px;
+  padding: 4px;
+  border-color: var(--rd-line);
+  border-radius: 8px;
+  background: var(--rd-card);
+}
+.atx-list .atx-more-item {
+  padding: 7px 10px;
+  border-radius: 6px;
+  color: var(--rd-ink);
+  font-size: 13px;
+  font-weight: 400;
+}
+.atx-list .atx-more-item:hover {
+  background: var(--rd-card-2);
+  color: var(--rd-ink);
+}
+.atx-list .atx-more-item--active,
+.atx-list .atx-more-item--active:hover {
+  background: var(--rd-brand-tint);
+  color: var(--rd-brand);
+  font-weight: 500;
+}
+.atx-list .atx-more-rule {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--rd-line);
+}
+.atx-list .atx-tab-count {
+  padding: 0;
+  background: none;
+  color: var(--rd-ink-3);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── The trip table ──────────────────────────────────────────────────── */
+.atx-list .atx-table.dt {
+  overflow: visible;
+  border: 1px solid var(--rd-line);
+  border-radius: 12px;
+  background: var(--rd-card);
+  box-shadow: var(--rd-shadow);
+}
+.atx-list .atx-table .dt-tools {
+  gap: 16px;
+  padding: 10px 12px 10px 18px;
+  border-bottom: 1px solid var(--rd-line);
+  border-radius: 12px 12px 0 0;
+  background: var(--rd-card);
+}
+.atx-list .atx-table .dt-tools-right {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* The view title in the toolbar says the count; the pager says the rows shown. */
+.atx-list .atx-table .dt-summary {
+  display: none;
+}
+.atx-list .atx-table .dt-foot {
+  justify-content: flex-end;
+}
+.atx-list .atx-table .dt-foot *,
+.atx-list .atx-panel .dt-foot * {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.atx-list .atx-table .dt-tool {
+  height: 32px;
+  border-color: var(--rd-line);
+  border-radius: 8px;
+  box-shadow: none;
+}
+.atx-list .atx-table .dt-scroll {
+  overflow: visible;
+}
+.atx-list .atx-table .dt-table {
+  min-width: 0;
+  /* Fixed layout: the route takes what the other columns leave, at any width. */
+  table-layout: fixed;
+  font-size: 13px;
+}
+/* Header: one strong rule under it, the body rows keep hairlines, so the
+   head clearly owns the column titles. */
+.atx-list .atx-table .dt-table thead th {
+  position: sticky;
+  /* The page scroller (.page-content) has a 24 px padding; stick to its edge, not inside it. */
+  top: calc(-1 * var(--spacing-lg, 24px));
+  z-index: 4;
+  height: 38px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--rd-line-strong);
+  background: var(--rd-card-2);
+  color: var(--rd-ink-2);
+  font-size: 12px;
+  font-weight: 550;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.atx-list .atx-table .dt-table thead th:first-child,
+.atx-list .atx-table .dt-table tbody td:first-child {
+  padding-left: 18px;
+}
+.atx-list .atx-table .dt-table thead th:last-child,
+.atx-list .atx-table .dt-table tbody td:last-child {
+  padding-right: 18px;
+}
+.atx-list .atx-table .dt-table tbody td {
+  height: 48px;
+  padding: 0 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--rd-line) 62%, transparent);
+  background: var(--rd-card);
+  color: var(--rd-ink);
+  font-size: 13px;
+  line-height: 20px;
+  vertical-align: middle;
+  white-space: nowrap;
+  /* Fixed layout sizes the columns; clip what would spill instead of
+     overlapping the next cell. */
+  overflow: hidden;
+}
+.atx-list .atx-table .dt-row:hover td {
+  background: var(--rd-card-2);
+}
+.atx-list .atx-table .dt-row:hover td:first-child {
+  box-shadow: inset 2px 0 0 var(--rd-brand);
+}
+.atx-list .atx-table .dt-row:last-child td {
+  border-bottom: 0;
+}
+.atx-list .atx-table .dt-foot {
+  padding: 10px 18px;
+  border-top: 1px solid var(--rd-line);
+  border-radius: 0 0 12px 12px;
+  background: var(--rd-card);
+}
+.atx-truck {
+  color: var(--rd-ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.atx-truck:hover {
+  color: var(--rd-brand);
+}
+.atx-route {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.atx-route-from,
+.atx-route-to {
+  overflow: hidden;
+}
+.atx-route-from {
+  flex: 0 1 auto;
+  max-width: 55%;
+  color: var(--rd-ink);
+}
+.atx-route-arrow {
+  flex: none;
+  color: var(--rd-ink-3);
+}
+.atx-route-to {
+  flex: 0 1 auto;
+  min-width: 0;
+  color: var(--rd-ink);
+}
+.atx-route-to--moving,
+.atx-route-to--missing,
+.atx-route-to--guessed,
+.atx-route-to--unnamed {
+  color: var(--rd-ink-3);
+}
+.atx-route-tag {
+  flex: none;
+  margin-left: 2px;
+  padding: 1px 7px;
+  border: 1px solid var(--rd-line);
+  border-radius: 999px;
+  background: var(--rd-brand-tint);
+  color: var(--rd-brand);
+  font-size: 11px;
+  font-weight: 550;
+}
+.atx-cell-text {
+  display: block;
+  overflow: hidden;
+}
+.atx-cell-quiet {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--rd-ink-3);
+}
+.atx-sap-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.atx-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* History / Questions / Planned share one card with the same toolbar. */
+.atx-panel {
+  border: 1px solid var(--rd-line);
+  border-radius: 10px;
+  background: var(--rd-card);
+}
+.atx-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 12px 10px 16px;
+  border-bottom: 1px solid var(--rd-line);
+}
+.atx-panel-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--rd-ink);
+  white-space: nowrap;
+}
+.atx-panel-body {
+  padding: 16px;
+}
+.atx-panel .dt {
+  border: 0;
+  border-radius: 0 0 10px 10px;
+  box-shadow: none;
+}
+/* The panel tables (Planned trips) wear the same row geometry as the main
+   trip list, not the loose shared defaults. */
+.atx-panel .dt .dt-table {
+  font-size: 13px;
+}
+.atx-panel .dt .dt-table thead th {
+  height: 38px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--rd-line-strong);
+  background: var(--rd-card-2);
+  color: var(--rd-ink-2);
+  font-size: 12px;
+  font-weight: 550;
+  letter-spacing: 0.01em;
+}
+.atx-panel .dt .dt-table thead th:first-child,
+.atx-panel .dt .dt-table tbody td:first-child {
+  padding-left: 18px;
+}
+.atx-panel .dt .dt-table thead th:last-child,
+.atx-panel .dt .dt-table tbody td:last-child {
+  padding-right: 18px;
+}
+.atx-panel .dt .dt-table tbody td {
+  height: 48px;
+  padding: 0 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--rd-line) 62%, transparent);
+  background: var(--rd-card);
+  color: var(--rd-ink);
+  font-size: 13px;
+  line-height: 20px;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.atx-panel .dt .dt-row:hover td {
+  background: var(--rd-card-2);
+}
+.atx-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  align-self: flex-start;
+  padding: 6px 12px;
+  border: 1px solid var(--rd-line);
+  border-radius: 8px;
+  background: var(--rd-card);
+  font-size: 13px;
+}
+
+/* ─── Narrower screens ────────────────────────────────────────────────── */
+@media (max-width: 1360px) {
+  .atx-list .atx-search-input {
+    width: 150px;
+  }
+}
+@media (max-width: 1180px) {
+  .atx-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .atx-kpi-tabs {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .atx-needs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .atx-needs-fix {
+    border-left: 0;
+    border-top: 1px solid var(--rd-line);
+    border-radius: 0 0 10px 10px;
+  }
+  .atx-list .atx-table .dt-scroll {
+    overflow-x: auto;
+  }
+  .atx-list .atx-table .dt-table {
+    min-width: 960px;
+  }
+  .atx-tools-note {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .atx-kpis,
+  .atx-kpi-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .atx-list .atx-table .dt-tools,
+  .atx-panel-head {
+    flex-wrap: wrap;
+  }
+  .atx-tools {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  .atx-needs-reason {
+    grid-template-columns: 120px minmax(0, 1fr) 80px;
+  }
+}
+
+/* ─── Skeletons ─────────────────────────────────────────────────────────
+   Loading placeholders for the History and Place questions views, so the
+   panel shows shaped rows while the data is on its way instead of a bare
+   "Loading…" line (or looking frozen). */
+.atx-skel {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--rd-card-2, var(--ds-sunk));
+  box-shadow: inset 0 0 0 1px var(--rd-line, transparent);
+}
+.atx-skel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--rd-card, #ffffff) 75%, transparent),
+    transparent
+  );
+  animation: atx-skel-sweep 1.4s ease-in-out infinite;
+}
+@keyframes atx-skel-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .atx-skel::after {
+    animation: none;
+  }
+}

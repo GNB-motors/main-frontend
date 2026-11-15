@@ -1,262 +1,269 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useRef, useState } from 'react';
+import { Popover } from '@base-ui/react/popover';
+import { Check, ChevronDown, Search, Trash2, X } from 'lucide-react';
+import { optionLabel, optionKey, optionDisabled } from './dropdownOptions';
 import './SearchableDropdown.css';
-import logger from '../../utils/logger';
 
-const SearchableDropdown = ({
+export default function SearchableDropdown({
   options = [],
   selectedOption = '',
   selectedOptions = [],
   onSelect,
   onAddNew,
   onRemove,
-  onRequestAddNew, // new: callback to open map modal
-  onDeleteOption, // new: callback to delete an option
-  onSearchChange, // new: callback for search input change
+  onRequestAddNew,
+  onDeleteOption,
+  onClear,
+  onSearchChange,
+  getSearchText,
+  getOptionLabel = optionLabel,
+  getOptionKey = optionKey,
+  isOptionDisabled = optionDisabled,
+  isOptionSelected,
+  renderOption,
   placeholder = 'Select option',
   addNewLabel = 'Create new',
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const dropdownRef = useRef(null);
-
-  const handleSelect = (option) => {
-    onSelect(option);
-    if (!selectedOptions || selectedOptions.length === 0) {
-      setIsOpen(false);
+  disabled = false,
+  multiple,
+  open: controlledOpen,
+  onOpenChange,
+  searchValue,
+  searchPlaceholder = 'Search',
+  searchLabel = 'Search options',
+  filterOptions = true,
+  loading = false,
+  error = null,
+  emptyMessage = 'No results found',
+  footer,
+  bare = false,
+  className = '',
+  triggerClassName = '',
+  contentClassName = '',
+  triggerRef: externalTriggerRef,
+  ...triggerProps
+}) {
+  const [localOpen, setLocalOpen] = useState(false);
+  const [localQuery, setLocalQuery] = useState('');
+  const [active, setActive] = useState(-1);
+  const searchRef = useRef(null);
+  const listRef = useRef(null);
+  const open = !disabled && (controlledOpen ?? localOpen);
+  const query = searchValue ?? localQuery;
+  const multi = multiple ?? Boolean(onRemove || selectedOptions.length);
+  const filtered = filterOptions
+    ? options.filter((option) =>
+        String(getSearchText ? getSearchText(option) : getOptionLabel(option))
+          .toLowerCase()
+          .includes(query.toLowerCase()),
+      )
+    : options;
+  const enabled = filtered.filter((option) => !isOptionDisabled(option));
+  const setQuery = (value) => {
+    setLocalQuery(value);
+    setActive(-1);
+    onSearchChange?.(value);
+  };
+  const setOpen = (next) => {
+    if (disabled && next) return;
+    setLocalOpen(next);
+    onOpenChange?.(next);
+    if (next) setQuery('');
+  };
+  const selected = (option) =>
+    isOptionSelected
+      ? isOptionSelected(option)
+      : multi
+        ? selectedOptions.some((item) => getOptionKey(item) === getOptionKey(option))
+        : Boolean(selectedOption) && getOptionLabel(option) === optionTextLabel;
+  const optionTextLabel = typeof selectedOption === 'string' ? selectedOption : '';
+  const choose = (option) => {
+    if (disabled || isOptionDisabled(option)) return;
+    if (!multi) setOpen(false);
+    onSelect?.(option);
+  };
+  const addNew = () => {
+    setOpen(false);
+    if (onRequestAddNew) onRequestAddNew(query, () => setQuery(''));
+    else if (onAddNew && query) {
+      onAddNew(query);
+      setQuery('');
     }
   };
-
-  const handleAddNewClick = () => {
-    if (onRequestAddNew) {
-      onRequestAddNew(searchTerm, () => setSearchTerm(''));
-    } else if (onAddNew) {
-      if (searchTerm && !options.includes(searchTerm)) {
-        onAddNew(searchTerm);
-        setSearchTerm('');
-      }
+  const canCreate =
+    Boolean(onRequestAddNew || onAddNew) &&
+    (!options.length ||
+      (query &&
+        !options.some((option) => getOptionLabel(option).toLowerCase() === query.toLowerCase())));
+  const onSearchKeyDown = (event) => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const index =
+        event.key === 'ArrowDown'
+          ? (active + 1) % Math.max(1, enabled.length)
+          : active <= 0
+            ? enabled.length - 1
+            : active - 1;
+      setActive(index);
+      listRef.current
+        ?.querySelectorAll('[role="option"]:not(:disabled)')
+        ?.[index]?.scrollIntoView?.({ block: 'nearest' });
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (enabled[active >= 0 ? active : 0]) choose(enabled[active >= 0 ? active : 0]);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      setOpen(false);
     }
-    setIsOpen(false);
   };
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [dropdownRef]);
-
-  // Support both string and object options
-  const getOptionLabel = (option) => (typeof option === 'string' ? option : option.name);
-  const filteredOptions = options.filter((option) =>
-    getOptionLabel(option).toLowerCase().includes(searchTerm.toLowerCase()),
-  );
-
-  // Show "+ Add new" when:
-  //   1. user has typed something that doesn't match any existing option, OR
-  //   2. the options list is completely empty (give them an escape hatch).
-  const hasAddHandler = Boolean(onRequestAddNew || onAddNew);
-  const canCreateNew =
-    hasAddHandler &&
-    ((searchTerm &&
-      !options.some((opt) => getOptionLabel(opt).toLowerCase() === searchTerm.toLowerCase())) ||
-      options.length === 0);
-
-  return (
-    <div className="searchable-dropdown-container" ref={dropdownRef}>
-      <div
-        className="searchable-dropdown-header"
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            setIsOpen(!isOpen);
-          }
-        }}
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <div className="searchable-dropdown-content">
-          {selectedOptions && selectedOptions.length > 0
-            ? selectedOptions.map((tag) => (
-                <span key={getOptionLabel(tag)} className="searchable-selected-tag">
-                  {getOptionLabel(tag)}
-                  {onRemove && (
-                    <div className="searchable-remove-tag">
-                      <button
-                        type="button"
-                        aria-label={`Remove ${getOptionLabel(tag)}`}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          padding: 0,
-                          font: 'inherit',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRemove(tag);
-                        }}
-                      >
-                        <svg
-                          width={12}
-                          height={12}
-                          viewBox="0 0 12 12"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                          style={{ display: 'block' }}
-                        >
-                          <path
-                            d="M2 2L10 10M10 2L2 10"
-                            stroke="#454547"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                </span>
-              ))
-            : selectedOption || <span className="searchable-placeholder">{placeholder}</span>}
-        </div>
-        <span className={`searchable-chevron-icon ${isOpen ? 'open' : ''}`}>
-          <svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-            <path
-              d="M4 6L8 10L12 6"
-              stroke="#454547"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
-      </div>
-      {isOpen && (
-        <div className="searchable-dropdown-list-container">
-          <div className="searchable-search-container">
-            <input
-              type="text"
-              aria-label="Search options"
-              placeholder="Search"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                if (onSearchChange) onSearchChange(e.target.value); // Notify parent
-              }}
-              className="searchable-search-input"
-            />
-            <div className="searchable-search-icon">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path
-                  d="M7.33333 12.6667 10.2789 12.6667 12.6667 10.2789 12.6667 7.33333 12.6667 4.38781 10.2789 2 7.33333 2 4.38781 2 2 4.38781 2 7.33333 2 10.2789 4.38781 12.6667 7.33333 12.6667Z"
-                  stroke="#8B8B8C"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M14 14L11.1 11.1"
-                  stroke="#8B8B8C"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-          </div>
-          <div className="searchable-options-list">
-            {canCreateNew && (
-              <button
-                type="button"
-                className="searchable-dropdown-item searchable-add-new-option"
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: '0 12px',
-                  font: 'inherit',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                }}
-                onClick={handleAddNewClick}
-              >
-                {searchTerm ? `+ ${addNewLabel} "${searchTerm}"` : `+ ${addNewLabel}`}
-              </button>
-            )}
-            {filteredOptions.length === 0 && !canCreateNew ? (
-              <div className="searchable-dropdown-item searchable-no-results">No results found</div>
-            ) : (
-              filteredOptions.map((option) => (
-                <div
-                  key={getOptionLabel(option)}
-                  className="searchable-dropdown-item"
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+  const content = (
+    <>
+      {multi && selectedOptions.length > 0 && (
+        <div className="searchable-tags">
+          {selectedOptions.map((tag) => (
+            <span key={getOptionKey(tag)} className="searchable-selected-tag">
+              {getOptionLabel(tag)}
+              {onRemove && (
+                <button
+                  type="button"
+                  disabled={disabled}
+                  aria-label={`Remove ${getOptionLabel(tag)}`}
+                  onClick={() => onRemove(tag)}
                 >
-                  <button
-                    type="button"
-                    style={{
-                      flex: 1,
-                      background: 'none',
-                      border: 'none',
-                      padding: 0,
-                      font: 'inherit',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                    }}
-                    onClick={() => handleSelect(option)}
-                  >
-                    {getOptionLabel(option)}
-                  </button>
-                  {onDeleteOption && (
-                    <button
-                      type="button"
-                      className="searchable-delete-option"
-                      title="Delete location"
-                      aria-label="Delete location"
-                      style={{
-                        marginLeft: 8,
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        font: 'inherit',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        logger.info('SearchableDropdown', 'Delete icon clicked for option', option);
-                        onDeleteOption(option);
-                      }}
-                    >
-                      <svg width={14} height={14} viewBox="0 0 14 14" fill="none">
-                        <path
-                          d="M2 4h10M4.5 4V3a1.5 1.5 0 011.5-1.5h2.5A1.5 1.5 0 0110 3v1m1 0v8a1.5 1.5 0 01-1.5 1.5h-5A1.5 1.5 0 013 12V4h8z"
-                          stroke="#D32F2F"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
+                  <X size={12} aria-hidden="true" />
+                </button>
+              )}
+            </span>
+          ))}
         </div>
       )}
-    </div>
+      <Popover.Trigger
+        ref={externalTriggerRef}
+        className={`searchable-dropdown-header ${triggerClassName}`.trim()}
+        disabled={disabled}
+        aria-disabled={disabled}
+        aria-haspopup="listbox"
+        onKeyDown={(event) => {
+          triggerProps.onKeyDown?.(event);
+          if (!event.defaultPrevented && event.key === 'ArrowDown') {
+            event.preventDefault();
+            setOpen(true);
+          }
+        }}
+        {...triggerProps}
+      >
+        <span className="searchable-dropdown-content">
+          {selectedOption || <span className="searchable-placeholder">{placeholder}</span>}
+        </span>
+        <ChevronDown size={16} aria-hidden="true" className="searchable-chevron-icon" />
+      </Popover.Trigger>
+      {onClear && selectedOption && (
+        <button
+          type="button"
+          className="searchable-clear"
+          disabled={disabled}
+          aria-label="Clear selection"
+          onClick={onClear}
+        >
+          <X size={14} />
+        </button>
+      )}
+      <Popover.Portal>
+        <Popover.Positioner
+          sideOffset={6}
+          align="start"
+          collisionPadding={8}
+          className="searchable-dropdown-positioner"
+        >
+          <Popover.Popup
+            initialFocus={searchRef}
+            className={`searchable-dropdown-list-container ${contentClassName}`.trim()}
+          >
+            <div className="searchable-search-container">
+              <Search size={16} aria-hidden="true" />
+              <input
+                ref={searchRef}
+                type="text"
+                aria-label={searchLabel}
+                placeholder={searchPlaceholder}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={onSearchKeyDown}
+                className="searchable-search-input"
+              />
+            </div>
+            <div
+              className="searchable-options-list"
+              role="listbox"
+              aria-label={searchLabel}
+              aria-multiselectable={multi || undefined}
+              ref={listRef}
+            >
+              {filtered.map((option, index) => {
+                const highlighted = enabled[active] === option;
+                return (
+                  <div key={getOptionKey(option)}>
+                    {option?.group && option.group !== filtered[index - 1]?.group && (
+                      <div className="searchable-option-group">{option.group}</div>
+                    )}
+                    <div className="searchable-option-row">
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={selected(option)}
+                        disabled={isOptionDisabled(option)}
+                        className={`searchable-dropdown-item${highlighted ? ' is-active' : ''}`}
+                        onClick={() => choose(option)}
+                      >
+                        <span>{renderOption ? renderOption(option) : getOptionLabel(option)}</span>
+                        {selected(option) && <Check size={14} aria-hidden="true" />}
+                      </button>
+                      {onDeleteOption && (
+                        <button
+                          type="button"
+                          className="searchable-delete-option"
+                          aria-label="Delete location"
+                          title="Delete location"
+                          onClick={() => onDeleteOption(option)}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {loading && (
+              <div className="searchable-note" role="status">
+                Searching…
+              </div>
+            )}
+            {error && (
+              <div className="searchable-note is-error" role="alert">
+                {typeof error === 'string' ? error : 'Could not load the list.'}
+              </div>
+            )}
+            {!loading && !error && !filtered.length && !canCreate && (
+              <div className="searchable-no-results">{emptyMessage}</div>
+            )}
+            {canCreate && (
+              <button type="button" className="searchable-create" onClick={addNew}>
+                {query ? `+ ${addNewLabel} "${query}"` : `+ ${addNewLabel}`}
+              </button>
+            )}
+            {footer}
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </>
   );
-};
-
-export default SearchableDropdown;
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      {bare ? (
+        content
+      ) : (
+        <div className={`searchable-dropdown-container ${className}`.trim()}>{content}</div>
+      )}
+    </Popover.Root>
+  );
+}

@@ -4,6 +4,7 @@ import RedirectWithState from './RedirectWithState';
 import PlacesRedirect from './PlacesRedirect';
 import LegacyReceiptRedirect from './LegacyReceiptRedirect';
 import PerformanceRedirect from './PerformanceRedirect';
+import FeatureGate from './FeatureGate';
 import ReceiptApprovalDetailPage from './lazyReceiptApprovalDetailPage';
 import erpRoutes from './erpRoutes';
 
@@ -48,8 +49,10 @@ const TripPlansPage = lazy(() => import('../../pages/AutoTrips/TripPlansPage.jsx
 const AutoTripDetailPage = lazy(() => import('../../pages/AutoTrips/AutoTripDetailPage.jsx'));
 const ExcursionsPage = lazy(() => import('../../pages/AutoTrips/ExcursionsPage.jsx'));
 const ExcursionDetailPage = lazy(() => import('../../pages/AutoTrips/ExcursionDetailPage.jsx'));
-const MovementApprovalsPage = lazy(() => import('../../pages/AutoTrips/MovementApprovalsPage.jsx'));
 const PlaceHubPage = lazy(() => import('../../pages/PlaceHub/PlaceHubPage.jsx'));
+// Intelligence — what we worked out about the fleet, good and bad, with the
+// reason for every claim. Same guard as /route-hub.
+const IntelligencePage = lazy(() => import('../../pages/Intelligence/IntelligencePage.jsx'));
 // Tolls — plaza gates on the road network, crossings found on the road-matched
 // path, and the estimate-vs-driver-bill cross-check. The API is the role gate.
 const TollsPage = lazy(() => import('../../pages/Tolls/TollsPage.jsx'));
@@ -93,14 +96,16 @@ const dashboardRoutes = (
   <>
     <Route path="/digest" element={<DailyDigestPage />} />
     <Route path="/fleet-alerts" element={<FleetAlertsPage />} />
-    <Route path="/idling-console" element={<Navigate to="/route-hub" replace />} />
+    <Route path="/idling-console" element={<Navigate to="/intelligence?tab=idling" replace />} />
     <Route path="/daily-brief" element={<Navigate to="/digest" replace />} />
     <Route path="/def-ledger" element={<DefLedgerPage />} />
+    <Route path="/def-ledger/log" element={<AdBlueLogPage />} />
     <Route path="/challans" element={<ChallansPage />} />
     {/* Legacy deep link — the challan ledger lives under Compliance / Docs. */}
     <Route path="/vehicle-challans" element={<Navigate to="/challans" replace />} />
     <Route path="/fleet-coverage" element={<FleetCoveragePage />} />
     <Route path="/route-hub" element={<RouteHubPage />} />
+    <Route path="/intelligence" element={<IntelligencePage />} />
     <Route
       path="/route-intelligence"
       element={<RedirectWithState to="/route-hub?tab=intelligence" />}
@@ -118,7 +123,14 @@ const dashboardRoutes = (
         </PerformanceRedirect>
       }
     />
-    <Route path="/performance" element={<PerformancePage />} />
+    <Route
+      path="/performance"
+      element={
+        <FeatureGate flag="performanceSection" name="Performance">
+          <PerformancePage />
+        </FeatureGate>
+      }
+    />
     <Route path="/vehicles/:registrationNumber" element={<Vehicle360Page />} />
     <Route path="/reports" element={<ReportsPage />} />
     <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
@@ -150,21 +162,27 @@ const dashboardRoutes = (
       path="/route-profitability"
       element={<RedirectWithState to="/route-hub?tab=profitability" />}
     />
-    <Route path="/overspeed" element={<RedirectWithState to="/route-hub?tab=overspeed" />} />
+    <Route path="/overspeed" element={<RedirectWithState to="/intelligence?tab=overspeed" />} />
     {/* Deprecated / hidden routes redirect cleanly so no blank screens appear */}
-    <Route path="/hotspots" element={<Navigate to="/route-hub" replace />} />
-    <Route path="/idling-console" element={<Navigate to="/route-hub" replace />} />
+    <Route path="/hotspots" element={<Navigate to="/intelligence?tab=fuel" replace />} />
+    <Route path="/idling-console" element={<Navigate to="/intelligence?tab=idling" replace />} />
     <Route path="/places" element={<PlacesRedirect />} />
     <Route path="/place-hub" element={<PlaceHubPage />} />
-    <Route path="/tolls" element={<TollsPage />} />
+    <Route
+      path="/tolls"
+      element={
+        <FeatureGate flag="tolls" name="Tolls">
+          <TollsPage />
+        </FeatureGate>
+      }
+    />
     <Route path="/live-tracking" element={<LiveTrackingPage />} />
     <Route path="/owner-alerts" element={<OwnerAlertsPage />} />
     {/* Item 26.5: ONE inbox over the scattered alert sources. The pages it reads
         from are all still mounted below and keep working unchanged. */}
     <Route path="/alert-inbox" element={<AlertInboxPage />} />
-    {/* Item 26.1: what this org opens, and the numbers the menu cut is argued
-        from. The endpoint authorizes OWNER/MANAGER; the nav entry is gated to
-        the same two roles. */}
+    {/* App Usage reports the current organization's page opens. The sidebar
+        entry and summary API are restricted to owners and managers. */}
     <Route path="/usage" element={<UsageAnalyticsPage />} />
     <Route path="/geofence" element={<Navigate to="/live-tracking" replace />} />
     <Route path="/geofence/zones" element={<Navigate to="/live-tracking" replace />} />
@@ -205,6 +223,7 @@ const dashboardRoutes = (
     />
     <Route path="/fuel-integrity" element={<FuelIntegrityPage />} />
     <Route path="/def-ledger" element={<DefLedgerPage />} />
+    <Route path="/def-ledger/log" element={<AdBlueLogPage />} />
     {/* Backward-compatibility redirects for unified Mileage */}
     <Route path="/refuel-logs" element={<Navigate to="/mileage?tab=live" replace />} />
     <Route path="/mileage-tracking" element={<Navigate to="/mileage?tab=performance" replace />} />
@@ -217,7 +236,7 @@ const dashboardRoutes = (
       element={<Navigate to="/mileage?tab=reconciliation&view=ecu" replace />}
     />
     <Route path="/adblue-tracking" element={<Navigate to="/def-ledger" replace />} />
-    <Route path="/adblue-tracking/new" element={<Navigate to="/def-ledger" replace />} />
+    <Route path="/adblue-tracking/new" element={<Navigate to="/def-ledger/log" replace />} />
     <Route
       path="/model-comparison"
       element={<Navigate to="/mileage?tab=performance&view=models" replace />}
@@ -257,7 +276,7 @@ const dashboardRoutes = (
     />
     <Route path="/auto-trips/excursions" element={<ExcursionsPage />} />
     <Route path="/auto-trips/excursions/:id" element={<ExcursionDetailPage />} />
-    <Route path="/auto-trips/approvals" element={<MovementApprovalsPage />} />
+    <Route path="/auto-trips/approvals" element={<Navigate to="/approvals?type=trips" replace />} />
     <Route path="/auto-trips/plans" element={<TripPlansPage />} />
     <Route path="/auto-trips/:id" element={<AutoTripDetailPage />} />
     <Route path="/khata-ledger" element={<KhataLedgerPage />} />

@@ -20,9 +20,13 @@ export const DocBadge = ({ docEntry, onClick, isSelected = false }) => {
     icon = <XCircle size={13} strokeWidth={2.4} className="v-dash-badge-icon" />;
     text = 'Expired!';
     badgeClass += ' v-dash-badge--expired';
+  } else if (bucket === 'verified') {
+    icon = <Check size={13} strokeWidth={2.6} className="v-dash-badge-icon" />;
+    text = days !== null ? `${days}d left` : 'Verified';
+    badgeClass += ' v-dash-badge--valid';
   } else if (bucket === 'healthy') {
     icon = <Check size={13} strokeWidth={2.6} className="v-dash-badge-icon" />;
-    text = `${days}d left`;
+    text = days !== null ? `${days}d left` : 'Valid';
     badgeClass += ' v-dash-badge--valid';
   } else if (bucket === 'warning') {
     icon = <AlertCircle size={13} strokeWidth={2.4} className="v-dash-badge-icon" />;
@@ -32,10 +36,22 @@ export const DocBadge = ({ docEntry, onClick, isSelected = false }) => {
     icon = <AlertCircle size={13} strokeWidth={2.4} className="v-dash-badge-icon" />;
     text = `${days}d left`;
     badgeClass += ' v-dash-badge--critical';
-  } else {
-    // missing or ocr pending
+  } else if (bucket === 'rejected') {
+    icon = <XCircle size={13} strokeWidth={2.2} className="v-dash-badge-icon" />;
+    text = 'Rejected';
+    badgeClass += ' v-dash-badge--expired';
+  } else if (bucket === 'pending') {
     icon = <HelpCircle size={13} strokeWidth={2.2} className="v-dash-badge-icon" />;
-    text = docEntry?.uploaded ? 'OCR pending' : 'Missing';
+    text = docEntry?.ocrStatus === 'FAILED' ? 'Verify needed' : 'OCR pending';
+    badgeClass += ' v-dash-badge--pending';
+  } else if (bucket === 'uploaded') {
+    icon = <Check size={13} strokeWidth={2.2} className="v-dash-badge-icon" />;
+    text = 'Uploaded';
+    badgeClass += ' v-dash-badge--valid';
+  } else {
+    // genuinely missing (never uploaded)
+    icon = <HelpCircle size={13} strokeWidth={2.2} className="v-dash-badge-icon" />;
+    text = 'Missing';
     badgeClass += ' v-dash-badge--missing';
   }
 
@@ -50,7 +66,7 @@ export const DocBadge = ({ docEntry, onClick, isSelected = false }) => {
         year: 'numeric',
       })}`
     : docEntry?.uploaded
-      ? 'Uploaded (OCR Processing)'
+      ? 'Uploaded — click to view'
       : 'No document uploaded — click to view';
 
   return (

@@ -1,6 +1,8 @@
-import { useEffect, useId, useRef, useState } from 'react';
-import { ChevronDown, Search, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Calendar, Search, X } from 'lucide-react';
+import { presetRange, rangeLabel } from '../../Mileage/mileageDates';
 import './ReportFrame.css';
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 
 /**
  * ReportFrame — the one layout every Reports-page report uses, taken from the
@@ -72,31 +74,118 @@ export default function ReportFrame({
   );
 }
 
-/** Labelled From / To day inputs; each bounds the other so To can't precede From. */
-export function ReportDateRange({ from, to, onChange }) {
+const PRESET_OPTIONS = [
+  { value: 'TODAY', label: 'Today' },
+  { value: 'YESTERDAY', label: 'Yesterday' },
+  { value: '7DAYS', label: 'Last 7 Days' },
+  { value: '15DAYS', label: 'Last 15 Days' },
+  { value: '30DAYS', label: 'Last 30 Days' },
+  { value: 'MONTH', label: 'This Month' },
+  { value: 'LAST_MONTH', label: 'Last Month' },
+  { value: 'CUSTOM', label: 'Custom Range' },
+];
+
+/**
+ * Reusable Report Date Filter with Quick Date Range selector, clear range display,
+ * and custom From/To inputs when Custom Range is active.
+ */
+export function ReportDateRange({
+  from = '',
+  to = '',
+  dates = '',
+  onChange,
+  className = '',
+  showPresetSelector = true,
+}) {
+  const [isCustomMode, setIsCustomMode] = useState(false);
+
+  // Detect which preset matches the given from & to (or dates param)
+  const detectedPreset = useMemo(() => {
+    if (dates && dates !== 'CUSTOM') return dates;
+    if (from && to) {
+      for (const p of PRESET_OPTIONS) {
+        if (p.value === 'CUSTOM') continue;
+        const r = presetRange(p.value);
+        if (r.from === from && r.to === to) return p.value;
+      }
+      return 'CUSTOM';
+    }
+    return '';
+  }, [dates, from, to]);
+
+  const activePreset = isCustomMode ? 'CUSTOM' : detectedPreset || 'CUSTOM';
+  const showCustomInputs = activePreset === 'CUSTOM' || !showPresetSelector;
+
+  const handlePresetChange = (presetKey) => {
+    if (presetKey === 'CUSTOM') {
+      setIsCustomMode(true);
+      onChange({ from: from || '', to: to || '', dates: 'CUSTOM' });
+      return;
+    }
+    setIsCustomMode(false);
+    const range = presetRange(presetKey);
+    onChange({ from: range.from, to: range.to, dates: presetKey });
+  };
+
+  const handleFromChange = (newFrom) => {
+    setIsCustomMode(true);
+    onChange({ from: newFrom, to, dates: '' });
+  };
+
+  const handleToChange = (newTo) => {
+    setIsCustomMode(true);
+    onChange({ from, to: newTo, dates: '' });
+  };
+
+  const activeRangeText = from && to ? rangeLabel({ from, to }) : '';
+
   return (
-    <>
-      <label className="rpt-field">
-        From
-        <input
-          type="date"
-          aria-label="From date"
-          value={from}
-          max={to || undefined}
-          onChange={(e) => onChange({ from: e.target.value, to })}
+    <div className={`rpt-date-range-group ${className}`.trim()}>
+      {showPresetSelector ? (
+        <ReportSelect
+          label="Quick range"
+          value={activePreset}
+          onChange={handlePresetChange}
+          options={PRESET_OPTIONS}
+          width={155}
         />
-      </label>
-      <label className="rpt-field">
-        To
-        <input
-          type="date"
-          aria-label="To date"
-          value={to}
-          min={from || undefined}
-          onChange={(e) => onChange({ from, to: e.target.value })}
-        />
-      </label>
-    </>
+      ) : null}
+
+      {activeRangeText ? (
+        <div className="rpt-field rpt-date-display">
+          <span>Selected range</span>
+          <div className="rpt-date-range-badge" title={`Current date range: ${activeRangeText}`}>
+            <Calendar size={13} aria-hidden="true" />
+            <span>{activeRangeText}</span>
+          </div>
+        </div>
+      ) : null}
+
+      {showCustomInputs ? (
+        <>
+          <label className="rpt-field">
+            From
+            <input
+              type="date"
+              aria-label="From date"
+              value={from}
+              max={to || undefined}
+              onChange={(e) => handleFromChange(e.target.value)}
+            />
+          </label>
+          <label className="rpt-field">
+            To
+            <input
+              type="date"
+              aria-label="To date"
+              value={to}
+              min={from || undefined}
+              onChange={(e) => handleToChange(e.target.value)}
+            />
+          </label>
+        </>
+      ) : null}
+    </div>
   );
 }
 
@@ -126,101 +215,24 @@ export function ReportSearch({ value, onChange, placeholder = 'Search' }) {
 }
 
 /**
- * A labelled dropdown that looks and behaves like the vehicle picker (minus its
- * search box). options: [{ value, label }]; `onChange` receives the value as a
+ * A labelled dropdown using the shared searchable control. options: [{ value, label }]; `onChange` receives the value as a
  * string, like a native <select>.
  */
 export function ReportSelect({ label, value, onChange, options, width = 160 }) {
-  const listId = useId();
-  const rootRef = useRef(null);
-  const [open, setOpen] = useState(false);
-  const [highlight, setHighlight] = useState(0);
-  const selectedIndex = Math.max(
-    0,
-    options.findIndex((o) => String(o.value) === String(value)),
-  );
-  const current = options[selectedIndex];
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const onDocDown = (e) => {
-      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', onDocDown);
-    return () => document.removeEventListener('mousedown', onDocDown);
-  }, [open]);
-
-  const openList = () => {
-    setHighlight(selectedIndex);
-    setOpen(true);
-  };
-
-  const choose = (option) => {
-    onChange(String(option.value));
-    setOpen(false);
-  };
-
-  const onKeyDown = (e) => {
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (!open) {
-        openList();
-        return;
-      }
-      const step = e.key === 'ArrowDown' ? 1 : -1;
-      setHighlight((h) => Math.min(Math.max(h + step, 0), options.length - 1));
-    } else if ((e.key === 'Enter' || e.key === ' ') && open) {
-      e.preventDefault();
-      if (options[highlight]) choose(options[highlight]);
-    } else if (e.key === 'Escape') {
-      setOpen(false);
-    }
-  };
-
   return (
-    <div className="rpt-field rpt-picker" ref={rootRef} style={{ width }}>
+    <div className="rpt-field rpt-picker" style={{ width }}>
       {label}
-      <button
-        type="button"
-        className="rpt-picker-trigger"
-        aria-label={`${label}: ${current?.label ?? ''}`}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={open ? listId : undefined}
-        onClick={() => (open ? setOpen(false) : openList())}
-        onKeyDown={onKeyDown}
+      <SearchableSelect
+        aria-label={`${label}: ${options.find((option) => String(option.value) === String(value))?.label || ''}`}
+        value={value}
+        onValueChange={(next) => onChange(String(next))}
       >
-        <span>{current?.label}</span>
-        <ChevronDown size={15} aria-hidden="true" />
-      </button>
-      {open ? (
-        <div className="rpt-picker-panel rpt-picker-panel--fit">
-          <div className="rpt-picker-list" id={listId} role="listbox" aria-label={label}>
-            {options.map((option, i) => (
-              <div
-                key={option.value}
-                role="option"
-                tabIndex={-1}
-                aria-selected={i === selectedIndex}
-                className={[
-                  'rpt-picker-option',
-                  i === highlight && 'is-active',
-                  i === selectedIndex && 'is-selected',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                onMouseEnter={() => setHighlight(i)}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  choose(option);
-                }}
-              >
-                {option.label}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </SearchableSelect>
     </div>
   );
 }

@@ -1,11 +1,8 @@
-import { Gauge, ArrowLeft, RefreshCw, Fuel, Sliders, Sparkles } from 'lucide-react';
-import ODOMETER_MODES from './odometerModes';
+import { ArrowLeft, RefreshCw, Fuel, Sparkles } from 'lucide-react';
 const ReceiptInboxHeader = ({
   isSuperadminRoute,
   navigate,
   embedded,
-  setOdoPolicyModalOpen,
-  odoMode,
   refreshing,
   fetchData,
 }) => (
@@ -38,23 +35,6 @@ const ReceiptInboxHeader = ({
       )}
 
       <div className="ra-header__actions">
-        {/* Odometer Policy Pill Button */}
-        {!isSuperadminRoute && (
-          <button
-            type="button"
-            className="ra-policy-btn"
-            onClick={() => setOdoPolicyModalOpen(true)}
-            title="Configure Odometer Ingestion & Triple-Check Settings"
-          >
-            <Gauge size={15} />
-            <span className="ra-policy-btn__text">
-              Odometer Mode:{' '}
-              <strong>{ODOMETER_MODES.find((m) => m.key === odoMode)?.label.split(' ')[0]}</strong>
-            </span>
-            <Sliders size={13} style={{ opacity: 0.6 }} />
-          </button>
-        )}
-
         {/* Refresh Button */}
         <button
           type="button"

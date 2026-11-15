@@ -1,0 +1,31 @@
+{
+  "items": [
+    {
+      "id": "campus-dalmia",
+      "name": "DALMIA OCL",
+      "center": [25.3541, 84.9812],
+      "radiusM": 1800,
+      "memberSites": [
+        {
+          "id": "site-dalmia",
+          "kind": "SITE",
+          "name": "DALMIA OCL",
+          "category": "PLANT",
+          "lat": 25.3541,
+          "lng": 84.9812,
+          "radiusM": 700
+        },
+        {
+          "id": "site-dalmia-gate",
+          "kind": "SITE",
+          "name": "DALMIA OCL SOUTH GATE",
+          "category": "PLANT",
+          "lat": 25.3512,
+          "lng": 84.9901,
+          "radiusM": 300
+        }
+      ],
+      "trucksInsideNow": 6
+    }
+  ]
+}

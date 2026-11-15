@@ -209,3 +209,6 @@ export const clearSession = () => {
   Object.values(KEYS).forEach(remove);
   clearOnboardingDraft();
 };
+
+export const getStorageItem = (key) => get(key);
+export const setStorageItem = (key, value) => set(key, value);

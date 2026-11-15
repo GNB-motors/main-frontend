@@ -14,7 +14,7 @@ export default function ReplayStatsHead({ vehicle, trip, loading, stats }) {
       <span className="sp" />
       <div className="stats">
         {loading && !trip
-          ? ['Distance', 'Duration', 'Avg speed', 'Peak speed'].map((k) => (
+          ? ['Road distance', 'Time span', 'Avg speed', 'Peak'].map((k) => (
               <span className="stat" key={k} aria-hidden="true">
                 {k}
                 <Skel w={44} h={12} />

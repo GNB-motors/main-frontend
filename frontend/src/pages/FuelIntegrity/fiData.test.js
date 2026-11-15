@@ -14,7 +14,7 @@ import {
 } from './fiData';
 
 describe('computeRisk', () => {
-  it('flags any siphon-suspected loss as Critical', () => {
+  it('flags a vehicle with fuel down while parked as Critical', () => {
     expect(computeRisk({ siphonSuspectedLossL: 0.5 })).toBe('Critical');
   });
 
@@ -54,14 +54,14 @@ describe('buildEvents', () => {
     {
       _id: 'w1',
       registrationNumber: 'WB25A0001',
-      siphonSuspected: true,
-      unaccountedLossL: 12,
+      verdict: 'UNEXPLAINED_WHILE_PARKED',
+      parkedDropL: 12,
       windowFrom: '2026-08-11T00:00:00Z',
       windowTo: '2026-08-12T00:00:00Z',
       defRatioFlag: true,
       defToFuelRatioPct: 7,
     },
-    { _id: 'w2', registrationNumber: 'WB25A0002', siphonSuspected: false, defRatioFlag: false },
+    { _id: 'w2', registrationNumber: 'WB25A0002', verdict: 'EXPLAINED_BY_DRIVING', defRatioFlag: false },
   ];
 
   it('merges fills, losses and DEF flags, newest first', () => {
@@ -82,6 +82,16 @@ describe('buildEvents', () => {
   it('skips windows without flags', () => {
     const events = buildEvents([], windows, 95);
     expect(events.every((e) => e.vehicle === 'WB25A0001')).toBe(true);
+  });
+
+  it('only reports a window the backend judged as fuel down while parked', () => {
+    const events = buildEvents([], [windows[1], { ...windows[0], verdict: 'NOT_ENOUGH_DATA' }], 95);
+    expect(events.filter((e) => e.kind === 'loss')).toHaveLength(0);
+  });
+
+  it('never uses the old flag that fired on parked trucks', () => {
+    const events = buildEvents([], [{ ...windows[1], siphonSuspected: true }], 95);
+    expect(events.filter((e) => e.kind === 'loss')).toHaveLength(0);
   });
 });
 
@@ -127,8 +137,8 @@ describe('buildChartData', () => {
     const windows = [
       {
         windowTo: '2026-08-12T00:00:00Z',
-        siphonSuspected: true,
-        unaccountedLossL: 5.04,
+        verdict: 'UNEXPLAINED_WHILE_PARKED',
+        parkedDropL: 5.04,
         defRatioFlag: true,
       },
     ];
@@ -160,18 +170,18 @@ describe('buildDrillChartData', () => {
     {
       registrationNumber: 'A',
       windowTo: '2026-08-11T00:00:00Z',
-      siphonSuspected: true,
-      unaccountedLossL: 3.33,
+      verdict: 'UNEXPLAINED_WHILE_PARKED',
+      parkedDropL: 3.33,
     },
     {
       registrationNumber: 'A',
       windowTo: '2026-08-11T00:00:00Z',
-      siphonSuspected: false,
-      unaccountedLossL: 50,
+      verdict: 'EXPLAINED_BY_DRIVING',
+      parkedDropL: null,
     },
   ];
 
-  it('buckets only the selected vehicle and only suspected losses', () => {
+  it('buckets only the selected vehicle and only fuel down while parked', () => {
     const data = buildDrillChartData(fills, windows, 'A');
     expect(data).toHaveLength(2);
     const lossDay = data.find((d) => d.day === '11 Aug');
@@ -239,11 +249,13 @@ describe('buildChipDefs', () => {
 });
 
 describe('buildBanner', () => {
-  it('is critical when there is unexplained loss', () => {
+  it('asks for review, never names a culprit, when fuel went down while parked', () => {
     const b = buildBanner(12, 3, 95);
-    expect(b.state).toBe('crit');
+    expect(b.state).toBe('warn');
+    expect(b.title).toContain('needs review');
     expect(b.msg).toContain('12 L');
     expect(b.msg).toContain('₹1,140');
+    expect(b.msg).not.toMatch(/theft detected|investigate now/i);
   });
 
   it('warns on bill mismatches when there is no loss', () => {
@@ -255,6 +267,12 @@ describe('buildBanner', () => {
 
   it('is ok when clean', () => {
     expect(buildBanner(0, 0, 95).state).toBe('ok');
+  });
+
+  it('says the drop has not been measured yet when the number is unknown', () => {
+    const b = buildBanner(null, 0, 95);
+    expect(b.state).toBe('warn');
+    expect(b.msg).toMatch(/could not measure/i);
   });
 });
 
