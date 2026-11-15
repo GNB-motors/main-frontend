@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import RoadService from '../../../services/RoadService';
 import { RefreshButton, Empty, TableSkeleton } from '../routeHubShared.jsx';
 import { istHourOfWeek, howLabel } from '../intelligenceFormat.js';
+import NavigationCorridorsPanel from '../navigation/NavigationCorridorsPanel';
 
 /**
  * Route Hub "Intelligence" tab (ROAD_INTELLIGENCE plan Task P5.6): the road edges our own trucks proved
@@ -192,6 +193,7 @@ export default function IntelligenceView() {
         Based on shared fleet observations with sufficient evidence. These are typical patterns for
         the selected hour, not live traffic readings.
       </p>
+      <NavigationCorridorsPanel />
     </section>
   );
 }

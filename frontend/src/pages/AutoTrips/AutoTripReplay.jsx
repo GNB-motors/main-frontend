@@ -9,6 +9,8 @@ import { routeMapPoints, tripRoadAt, tripRoadLayers } from './autoTripPlaces';
 import { stopKind } from './timelineModel';
 import { SUSPICIOUS_UNLOAD_LABEL, suspiciousDropPoint } from './tripSuspicion';
 import ReplayPlayer from './ReplayPlayer';
+import useNavigationHistory from '../RouteHub/navigation/useNavigationHistory';
+import NavigationHistoryPanel from '../RouteHub/navigation/NavigationHistoryPanel';
 import {
   PATH_COLORS,
   loadWindows,
@@ -125,6 +127,12 @@ export default function AutoTripReplay({
   const mapRef = useRef(null);
   const poiClickRef = useRef(null);
   const wrapRef = useRef(null);
+  const navigation = useNavigationHistory({
+    autoTripId: trip?._id || trip?.id,
+    vehicleId: trip?.vehicleId?._id || trip?.vehicleId,
+    from: track?.from,
+    to: track?.to,
+  });
 
   const frames = useMemo(() => toFrames(track?.points), [track]);
   const start = frames.length ? frames[0].at : 0;
@@ -367,6 +375,17 @@ export default function AutoTripReplay({
               styles: MAP_THEME,
             }}
           >
+            {navigation.path.length > 1 && (
+              <PolylineF
+                path={navigation.path}
+                options={{
+                  strokeColor: '#7C3AED',
+                  strokeOpacity: 0.8,
+                  strokeWeight: 4,
+                  zIndex: 1,
+                }}
+              />
+            )}
             {roadLayers && <RoadTrailLayer layers={roadLayers} color={COLOR.trail} />}
             {segments.map((seg, i) =>
               seg.points.length > 1 ? (
@@ -471,6 +490,7 @@ export default function AutoTripReplay({
         speed={speed}
         setSpeed={setSpeed}
       />
+      <NavigationHistoryPanel history={navigation} linkedToTrip />
     </div>
   );
 }
