@@ -74,7 +74,6 @@ import {
 } from './trackLegendPrefs.js';
 import './LiveTracking.css';
 
-
 /* ---------------- Main LiveTrackingPage Component ---------------- */
 const LiveTrackingPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -114,13 +113,16 @@ const LiveTrackingPage = () => {
   // The top toolbar is the filter: one status at a time, and a set of makes
   // (empty means every make). The floating legend keeps only the Places layers.
   const requestedStatus = searchParams.get('status');
-  const filter = ['moving', 'stopped', 'idling', 'offline'].includes(requestedStatus) ? requestedStatus : 'all';
-  const setFilter = (status) => setSearchParams((current) => {
-    const next = new URLSearchParams(current);
-    if (status === 'all') next.delete('status');
-    else next.set('status', status);
-    return next;
-  });
+  const filter = ['moving', 'stopped', 'idling', 'offline'].includes(requestedStatus)
+    ? requestedStatus
+    : 'all';
+  const setFilter = (status) =>
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (status === 'all') next.delete('status');
+      else next.set('status', status);
+      return next;
+    });
   const [selectedManufacturers, setSelectedManufacturers] = useState([]);
   const [layerSelection, setLayerSelection] = useState(() => readLayerSelection());
   const [isTrafficOn, setIsTrafficOn] = useState(() => readTrafficOn());
@@ -141,23 +143,33 @@ const LiveTrackingPage = () => {
   const canCreateZoneHere = canEditPlaces(getUserRole()) && isEnabled('geofence');
   const canEditPlacesHere = canEditPlaces(getUserRole());
 
-  const handleMapClick = useCallback((click) => {
-    if (openRouteId || placeDraft || zoneDraft || savingDraft) return;
-    reviewBeforeFence.current = null;
-    setMapClick(click);
-    setPlaceDraft(null);
-    setZoneDraft(null);
-    setDraftError(null);
-  }, [openRouteId, placeDraft, zoneDraft, savingDraft]);
+  const handleMapClick = useCallback(
+    (click) => {
+      if (openRouteId || placeDraft || zoneDraft || savingDraft) return;
+      reviewBeforeFence.current = null;
+      setMapClick(click);
+      setPlaceDraft(null);
+      setZoneDraft(null);
+      setDraftError(null);
+    },
+    [openRouteId, placeDraft, zoneDraft, savingDraft],
+  );
 
   // Track mode lives in the URL, so every link in the product can open one
   // truck's history on a given range (F3.2).
   const trackMode = useTrackMode({ searchParams, setSearchParams });
   const isTrackMode = trackMode.isTrackMode;
   const isPlacesView = !isTrackMode && searchParams.get('view') === 'places';
-  const deliveryRoutesEnabled = canEditPlacesHere && isEnabled('fleetIntelligence') && isEnabled('routesV2');
-  const routeKind = deliveryRoutesEnabled && searchParams.get('routeView') !== 'movements' ? 'delivery' : 'movement';
-  useEffect(() => { setOpenRouteId(null); setRouteDetail(null); }, [routeKind]);
+  const deliveryRoutesEnabled =
+    canEditPlacesHere && isEnabled('fleetIntelligence') && isEnabled('routesV2');
+  const routeKind =
+    deliveryRoutesEnabled && searchParams.get('routeView') !== 'movements'
+      ? 'delivery'
+      : 'movement';
+  useEffect(() => {
+    setOpenRouteId(null);
+    setRouteDetail(null);
+  }, [routeKind]);
 
   // Google Maps Load Script
   const { isLoaded, loadError } = useLoadScript(googleMapsLoaderOptions);
@@ -213,7 +225,11 @@ const LiveTrackingPage = () => {
       return !prev;
     });
 
-  const passiveTrail = usePassiveTrail(selectedId, selectedVehicle?.plate, !isTrackMode && !isPlacesView);
+  const passiveTrail = usePassiveTrail(
+    selectedId,
+    selectedVehicle?.plate,
+    !isTrackMode && !isPlacesView,
+  );
 
   const {
     mapRef,
@@ -266,18 +282,31 @@ const LiveTrackingPage = () => {
   const selectedVehicleForFit = useRef(selectedVehicle);
   selectedVehicleForFit.current = selectedVehicle;
   useEffect(() => {
-    if (!passiveTrail || !mapRef.current || !window.google?.maps?.LatLngBounds || replayState.on || isTrailVisible) return;
+    if (
+      !passiveTrail ||
+      !mapRef.current ||
+      !window.google?.maps?.LatLngBounds ||
+      replayState.on ||
+      isTrailVisible
+    )
+      return;
     const bounds = new window.google.maps.LatLngBounds();
     const points = [...passiveTrail.points];
     const vehicle = selectedVehicleForFit.current;
     if (vehicle?.hasFix) points.push({ lat: vehicle.lat, lng: vehicle.lng });
     if (points.length < 2) return;
-    points.forEach(point => bounds.extend(point));
+    points.forEach((point) => bounds.extend(point));
     const panel = document.querySelector('.gnb-lt-page .rail');
     const right = panel?.getBoundingClientRect().width || 0;
     const mapBounds = mapRef.current.getDiv().getBoundingClientRect();
     const overlays = document.querySelectorAll('.gnb-lt-page .ov-search, .gnb-lt-page .ov-legend');
-    const left = Math.max(70, ...Array.from(overlays, overlay => overlay.getBoundingClientRect().right - mapBounds.left + 20));
+    const left = Math.max(
+      70,
+      ...Array.from(
+        overlays,
+        (overlay) => overlay.getBoundingClientRect().right - mapBounds.left + 20,
+      ),
+    );
     mapRef.current.fitBounds(bounds, { top: 70, bottom: 70, left, right: right + 70 });
   }, [passiveTrail, mapRef, replayState.on, isTrailVisible]);
 
@@ -298,16 +327,27 @@ const LiveTrackingPage = () => {
   const idlingByPlate = useMemo(() => idlingMinutesByPlate(idlingRows), [idlingRows]);
   const alertCounts = useMemo(() => alertCountsByVehicle(alerts), [alerts]);
   const reviewQueue = useTrackReviewQueue({ enabled: isPlacesView });
-  const routes = useTrackRoutes({ enabled: isPlacesView && placesTab === 'routes', kind: routeKind });
+  const routes = useTrackRoutes({
+    enabled: isPlacesView && placesTab === 'routes',
+    kind: routeKind,
+  });
   const [showAllTolls, setShowAllTolls] = useState(false);
-  const tolls = useTrackTolls({ enabled: isPlacesView && placesTab === 'places', showAll: showAllTolls && Boolean(layerSelection.tolls), bbox: mapBounds, zoom: mapZoom });
+  const tolls = useTrackTolls({
+    enabled: isPlacesView && placesTab === 'places',
+    showAll: showAllTolls && Boolean(layerSelection.tolls),
+    bbox: mapBounds,
+    zoom: mapZoom,
+  });
   const layerAvailability = usePlaceLayerAvailability(isPlacesView && placesTab === 'places');
 
-
   const selectedRoute = routes.legs.find((leg) => String(leg._id) === String(openRouteId));
-  const focusedRoute = useMemo(() => isPlacesView && placesTab === 'routes' && selectedRoute
-    ? routeFocusModel(selectedRoute, routes.sites, routeDetail) : null,
-  [isPlacesView, placesTab, selectedRoute, routes.sites, routeDetail]);
+  const focusedRoute = useMemo(
+    () =>
+      isPlacesView && placesTab === 'routes' && selectedRoute
+        ? routeFocusModel(selectedRoute, routes.sites, routeDetail)
+        : null,
+    [isPlacesView, placesTab, selectedRoute, routes.sites, routeDetail],
+  );
   const showPlaceLayers = isPlacesView && placesTab === 'places';
 
   // The plates that have a destination on the way — only those trucks get the
@@ -316,7 +356,9 @@ const LiveTrackingPage = () => {
     () =>
       new Set(
         intents
-          .map((intent) => plateKey(intent?.registrationNumber || intent?.vehicleNumber || intent?.plate))
+          .map((intent) =>
+            plateKey(intent?.registrationNumber || intent?.vehicleNumber || intent?.plate),
+          )
           .filter(Boolean),
       ),
     [intents],
@@ -357,33 +399,39 @@ const LiveTrackingPage = () => {
     setIsRailOpen(true);
     setPlacesTab('places');
     setRailTab(view === 'places' ? 'places' : 'fleet');
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (view === 'places') next.set('view', 'places');
-      else next.delete('view');
-      return next;
-    }, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (view === 'places') next.set('view', 'places');
+        else next.delete('view');
+        return next;
+      },
+      { replace: true },
+    );
     setTimeout(triggerMapResize, 240);
   };
 
   // Recenter on a place picked from the Places list.
-  const focusPlace = useCallback((place) => {
-    const map = mapRef.current;
-    if (!map || !window.google) return;
-    if (place.polygon) {
-      const bounds = new window.google.maps.LatLngBounds();
-      place.polygon.forEach((pt) => bounds.extend(pt));
-      map.fitBounds(bounds, 80);
-      return;
-    }
-    const center = { lat: place.lat, lng: place.lng };
-    const zoom = Math.max(map.getZoom() || 5, 15);
-    if (typeof map.moveCamera === 'function') map.moveCamera({ center, zoom });
-    else {
-      map.setCenter(center);
-      map.setZoom(zoom);
-    }
-  }, [mapRef]);
+  const focusPlace = useCallback(
+    (place) => {
+      const map = mapRef.current;
+      if (!map || !window.google) return;
+      if (place.polygon) {
+        const bounds = new window.google.maps.LatLngBounds();
+        place.polygon.forEach((pt) => bounds.extend(pt));
+        map.fitBounds(bounds, 80);
+        return;
+      }
+      const center = { lat: place.lat, lng: place.lng };
+      const zoom = Math.max(map.getZoom() || 5, 15);
+      if (typeof map.moveCamera === 'function') map.moveCamera({ center, zoom });
+      else {
+        map.setCenter(center);
+        map.setZoom(zoom);
+      }
+    },
+    [mapRef],
+  );
 
   const pickPlace = (place) => {
     setReviewSite(null);
@@ -440,15 +488,21 @@ const LiveTrackingPage = () => {
     [mapClick, canEditPlacesHere, canCreateZoneHere],
   );
 
-  const changePlaceDraft = useCallback((patch) => {
-    if (savingDraft) return;
-    setPlaceDraft((prev) => (prev ? { ...prev, ...patch } : prev));
-  }, [savingDraft]);
+  const changePlaceDraft = useCallback(
+    (patch) => {
+      if (savingDraft) return;
+      setPlaceDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+    },
+    [savingDraft],
+  );
 
-  const changeZoneDraft = useCallback((patch) => {
-    if (savingDraft) return;
-    setZoneDraft((prev) => (prev ? { ...prev, ...patch } : prev));
-  }, [savingDraft]);
+  const changeZoneDraft = useCallback(
+    (patch) => {
+      if (savingDraft) return;
+      setZoneDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+    },
+    [savingDraft],
+  );
 
   const closeZoneDraft = useCallback(() => {
     setZoneDraft(null);
@@ -468,7 +522,11 @@ const LiveTrackingPage = () => {
       setDraftError('Give the place a name (2–120 characters)');
       return;
     }
-    if (!Number.isFinite(Number(draft.radiusM)) || Number(draft.radiusM) < 50 || Number(draft.radiusM) > 5000) {
+    if (
+      !Number.isFinite(Number(draft.radiusM)) ||
+      Number(draft.radiusM) < 50 ||
+      Number(draft.radiusM) > 5000
+    ) {
       setDraftError('Radius must be 50–5,000 m');
       return;
     }
@@ -582,13 +640,21 @@ const LiveTrackingPage = () => {
   }, []);
 
   const fitSelectedRoute = useCallback(() => {
-    if (!focusedRoute?.points.length || !mapRef.current || !window.google?.maps?.LatLngBounds) return;
+    if (!focusedRoute?.points.length || !mapRef.current || !window.google?.maps?.LatLngBounds)
+      return;
     const bounds = new window.google.maps.LatLngBounds();
     focusedRoute.points.forEach((point) => bounds.extend(point));
     const narrow = mapRef.current.getDiv().getBoundingClientRect().width < 600;
-    mapRef.current.fitBounds(bounds, { top: narrow ? 90 : 110, bottom: narrow ? 130 : 90, left: narrow ? 50 : 150, right: narrow ? 50 : 150 });
+    mapRef.current.fitBounds(bounds, {
+      top: narrow ? 90 : 110,
+      bottom: narrow ? 130 : 90,
+      left: narrow ? 50 : 150,
+      right: narrow ? 50 : 150,
+    });
   }, [focusedRoute, mapRef]);
-  useEffect(() => { fitSelectedRoute(); }, [fitSelectedRoute]);
+  useEffect(() => {
+    fitSelectedRoute();
+  }, [fitSelectedRoute]);
   const closeRoute = useCallback(() => {
     setOpenRouteId(null);
     setRouteDetail(null);
@@ -626,8 +692,16 @@ const LiveTrackingPage = () => {
   useEffect(() => {
     const onEscape = (event) => {
       if (event.key !== 'Escape' || event.defaultPrevented || savingDraft) return;
-      const overlay = event.target?.closest?.('[role="dialog"], [role="alertdialog"], [role="menu"]');
-      if (overlay && !['Make this a place', 'Alert zone here', 'Route detail'].includes(overlay.getAttribute('aria-label'))) return;
+      const overlay = event.target?.closest?.(
+        '[role="dialog"], [role="alertdialog"], [role="menu"]',
+      );
+      if (
+        overlay &&
+        !['Make this a place', 'Alert zone here', 'Route detail'].includes(
+          overlay.getAttribute('aria-label'),
+        )
+      )
+        return;
       if (zoneDraft) closeZoneDraft();
       else if (placeDraft) setPlaceDraft(null);
       else if (reviewSite) setReviewSite(null);
@@ -639,20 +713,26 @@ const LiveTrackingPage = () => {
     return () => window.removeEventListener('keydown', onEscape);
   }, [savingDraft, zoneDraft, placeDraft, reviewSite, openRouteId, closeZoneDraft, closeRoute]);
   const selectTrackPlace = trackPlaces.selectPlace;
-  const handleRoutePick = useCallback((id) => {
-    if (!routeOverviewCamera.current && mapRef.current) {
-      routeOverviewCamera.current = { center: mapRef.current.getCenter().toJSON(), zoom: mapRef.current.getZoom() };
-    }
-    setRouteDetail(null);
-    setOpenRouteId(id);
-    setReviewSite(null);
-    selectTrackPlace(null);
-    setMapClick(null);
-    setPlaceDraft(null);
-    setZoneDraft(null);
-    setPlacesTab('routes');
-    setIsRailOpen(true);
-  }, [mapRef, selectTrackPlace]);
+  const handleRoutePick = useCallback(
+    (id) => {
+      if (!routeOverviewCamera.current && mapRef.current) {
+        routeOverviewCamera.current = {
+          center: mapRef.current.getCenter().toJSON(),
+          zoom: mapRef.current.getZoom(),
+        };
+      }
+      setRouteDetail(null);
+      setOpenRouteId(id);
+      setReviewSite(null);
+      selectTrackPlace(null);
+      setMapClick(null);
+      setPlaceDraft(null);
+      setZoneDraft(null);
+      setPlacesTab('routes');
+      setIsRailOpen(true);
+    },
+    [mapRef, selectTrackPlace],
+  );
 
   // An idling marker is a truck: clicking it opens the truck.
   const selectIdlingRow = useCallback(
@@ -730,7 +810,10 @@ const LiveTrackingPage = () => {
         }
       }
       if (e.key === 'Escape') {
-        if (openRouteId) { closeRoute(); return; }
+        if (openRouteId) {
+          closeRoute();
+          return;
+        }
         if (replayState.on) exitReplay();
         else setSelectedId(null);
       }
@@ -767,7 +850,11 @@ const LiveTrackingPage = () => {
           handleRefresh={handleRefresh}
           isRefreshing={isRefreshing}
           manufacturers={manufacturers}
-          manufacturerCounts={Object.fromEntries(manufacturers.map(name => [name, vehicles.filter(v => v.manufacturer === name).length]).concat([['Unclassified', vehicles.filter(v => !v.manufacturer).length]]))}
+          manufacturerCounts={Object.fromEntries(
+            manufacturers
+              .map((name) => [name, vehicles.filter((v) => v.manufacturer === name).length])
+              .concat([['Unclassified', vehicles.filter((v) => !v.manufacturer).length]]),
+          )}
           selectedManufacturers={selectedManufacturers}
           setSelectedManufacturers={setSelectedManufacturers}
           lastEventAt={lastEventAt}
@@ -786,7 +873,13 @@ const LiveTrackingPage = () => {
           <div className="mapcol">
             <LiveMapCanvas
               passiveTrail={passiveTrail}
-              whereNext={whereNext?.registrationNumber === activeVehicle?.plate && !isTrackMode && !replayState.on ? whereNext : null}
+              whereNext={
+                whereNext?.registrationNumber === activeVehicle?.plate &&
+                !isTrackMode &&
+                !replayState.on
+                  ? whereNext
+                  : null
+              }
               whereNextPosition={activeVehicle}
               isLoaded={isLoaded}
               loadError={loadError}
@@ -831,6 +924,7 @@ const LiveTrackingPage = () => {
               trackPlayheadTime={isTrackMode ? trackMode.playheadTime : null}
               trackRoad={isTrackMode ? trackMode.roadTrail : null}
               trackTolls={isTrackMode ? trackMode.tolls : null}
+              trackReg={isTrackMode ? trackMode.reg : null}
               placesPanelOpen={isPlacesView && placesPanelOpen}
               reviewItems={showPlaceLayers && layerSelection.reviewQueue ? reviewQueue.items : []}
               tollPlazas={showPlaceLayers && layerSelection.tolls ? tolls.plazas : []}
@@ -848,8 +942,11 @@ const LiveTrackingPage = () => {
               onDraftMapClick={(point) => {
                 if (savingDraft || !point) return;
                 if (zoneDraft?.shape === 'polygon') {
-                  setZoneDraft((current) => current && !current.polygonDone
-                    ? { ...current, polygon: [...current.polygon, point] } : current);
+                  setZoneDraft((current) =>
+                    current && !current.polygonDone
+                      ? { ...current, polygon: [...current.polygon, point] }
+                      : current,
+                  );
                 } else if (placeDraft) changePlaceDraft({ center: point });
                 else if (zoneDraft) changeZoneDraft({ center: point });
               }}
@@ -903,7 +1000,9 @@ const LiveTrackingPage = () => {
               <TrackMapKey
                 tab={placesTab}
                 places={showPlaceLayers && layerSelection.ourPlaces ? trackPlaces.shownPlaces : []}
-                reviewCount={showPlaceLayers && layerSelection.reviewQueue ? reviewQueue.items.length : 0}
+                reviewCount={
+                  showPlaceLayers && layerSelection.reviewQueue ? reviewQueue.items.length : 0
+                }
                 idlingCount={showPlaceLayers && layerSelection.idling ? idlingRows.length : 0}
                 tollCount={showPlaceLayers && layerSelection.tolls ? tolls.plazas.length : 0}
                 routeLines={focusedRoute ? [] : routes.lines}
@@ -914,57 +1013,88 @@ const LiveTrackingPage = () => {
             {/* Floating controls: the search, live telemetry and the legend
                 (which IS the filter) down the left; traffic at the top-right.
                 MapOverlayControls owns the corners so nothing overlaps. */}
-            {focusedRoute ? <div className="lt-route-focus-bar">
-              <span className="lt-route-focus-dot" /><span>Selected route</span>
-              <button type="button" onClick={fitSelectedRoute}>Fit route</button>
-            </div> : null}
+            {focusedRoute ? (
+              <div className="lt-route-focus-bar">
+                <span className="lt-route-focus-dot" />
+                <span>Selected route</span>
+                <button type="button" onClick={fitSelectedRoute}>
+                  Fit route
+                </button>
+              </div>
+            ) : null}
             <MapOverlayControls
-              searchBox={focusedRoute ? null : (
-                <MapSearchBox
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  inputRef={searchInputRef}
-                  placeholder={isPlacesView ? placesTab === 'routes' ? 'Search routes' : 'Search places' : 'Search vehicles'}
-                />
-              )}
-              listLabel={isPlacesView ? placesTab === 'routes' ? 'Routes list' : 'Places list' : 'Fleet list'}
+              searchBox={
+                focusedRoute ? null : (
+                  <MapSearchBox
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                    inputRef={searchInputRef}
+                    placeholder={
+                      isPlacesView
+                        ? placesTab === 'routes'
+                          ? 'Search routes'
+                          : 'Search places'
+                        : 'Search vehicles'
+                    }
+                  />
+                )
+              }
+              listLabel={
+                isPlacesView
+                  ? placesTab === 'routes'
+                    ? 'Routes list'
+                    : 'Places list'
+                  : 'Fleet list'
+              }
               trafficToggle={<TrafficToggle on={isTrafficOn} onToggle={handleToggleTraffic} />}
 
-              legend={showPlaceLayers ? (
-                <TrackLegend
-                  hideRoutes
-                  initialOpen
-                  initialPlacesOpen
-                  nearbyInfo={mapPlaces}
-                  onRetryNearby={mapPlaces.refetch}
-                  layerAvailability={layerAvailability.data}
-                  availabilityLoading={layerAvailability.loading}
-                  ownPlacesCount={trackPlaces.loaded ? trackPlaces.places.length : null}
-                  tollInfo={tolls}
-                  showAllTolls={showAllTolls}
-                  onToggleAllTolls={() => {
-                    if (!layerSelection.tolls) handleToggleLayer('tolls');
-                    setShowAllTolls(!(showAllTolls && layerSelection.tolls));
-                  }}
-                  layerSelection={layerSelection}
-                  onToggleLayer={handleToggleLayer}
-                  lastEventAt={lastEventAt}
-                  onRefresh={() => { trackPlaces.retry(); mapPlaces.refetch(); routes.reload(); tolls.refresh(); layerAvailability.refetch(); }}
-                  isRefreshing={isRefreshing}
-                  zoom={mapZoom}
-                  placesNotAvailable={mapPlaces.notAvailable}
-                  placesTruncated={mapPlaces.truncated}
-                  placesCount={mapPlaces.items.length}
-                  tollsError={layerSelection.tolls ? tolls.error : null}
-                  onRetryTolls={tolls.refresh}
-                  unmatchedRoutes={routes.error ? null : routes.unmatchedCount}
-                  liveCounts={{
-                    reviewQueue: reviewQueue.count,
-                    routes: !layerSelection.routes ? '—' : routes.error ? null : routes.lines.length,
-                    idling: idlingError ? null : idlingRows.length,
-                  }}
-                />
-              ) : null}
+              legend={
+                showPlaceLayers ? (
+                  <TrackLegend
+                    hideRoutes
+                    initialOpen
+                    initialPlacesOpen
+                    nearbyInfo={mapPlaces}
+                    onRetryNearby={mapPlaces.refetch}
+                    layerAvailability={layerAvailability.data}
+                    availabilityLoading={layerAvailability.loading}
+                    ownPlacesCount={trackPlaces.loaded ? trackPlaces.places.length : null}
+                    tollInfo={tolls}
+                    showAllTolls={showAllTolls}
+                    onToggleAllTolls={() => {
+                      if (!layerSelection.tolls) handleToggleLayer('tolls');
+                      setShowAllTolls(!(showAllTolls && layerSelection.tolls));
+                    }}
+                    layerSelection={layerSelection}
+                    onToggleLayer={handleToggleLayer}
+                    lastEventAt={lastEventAt}
+                    onRefresh={() => {
+                      trackPlaces.retry();
+                      mapPlaces.refetch();
+                      routes.reload();
+                      tolls.refresh();
+                      layerAvailability.refetch();
+                    }}
+                    isRefreshing={isRefreshing}
+                    zoom={mapZoom}
+                    placesNotAvailable={mapPlaces.notAvailable}
+                    placesTruncated={mapPlaces.truncated}
+                    placesCount={mapPlaces.items.length}
+                    tollsError={layerSelection.tolls ? tolls.error : null}
+                    onRetryTolls={tolls.refresh}
+                    unmatchedRoutes={routes.error ? null : routes.unmatchedCount}
+                    liveCounts={{
+                      reviewQueue: reviewQueue.count,
+                      routes: !layerSelection.routes
+                        ? '—'
+                        : routes.error
+                          ? null
+                          : routes.lines.length,
+                      idling: idlingError ? null : idlingRows.length,
+                    }}
+                  />
+                ) : null
+              }
               selectedVehicle={selectedVehicle}
               replayState={replayState}
               trailSelection={trailSelection}
@@ -993,6 +1123,7 @@ const LiveTrackingPage = () => {
                 track={trackMode.track}
                 points={trackMode.points}
                 playheadIndex={trackMode.playheadIndex}
+                playheadTime={trackMode.playheadTime}
                 isPlaying={trackMode.isPlaying}
                 speed={trackMode.speed}
                 onTogglePlay={() => trackMode.setIsPlaying((playing) => !playing)}
@@ -1003,6 +1134,7 @@ const LiveTrackingPage = () => {
                   );
                   trackMode.seekToIndex(index);
                 }}
+                onSeekToTime={(time) => trackMode.seekToTime(time)}
                 onExit={trackMode.exitTrackMode}
                 from={trackMode.from}
                 to={trackMode.to}
@@ -1047,6 +1179,10 @@ const LiveTrackingPage = () => {
                   ) : (
                     <TrackLog
                       track={trackMode.track}
+                      points={trackMode.points}
+                      playheadTime={trackMode.playheadTime}
+                      playheadIndex={trackMode.playheadIndex}
+                      isPlaying={trackMode.isPlaying}
                       onSeek={(at) => trackMode.seekToTime(new Date(at))}
                     />
                   )}
@@ -1056,11 +1192,48 @@ const LiveTrackingPage = () => {
               <>
                 {isPlacesView ? (
                   <div className="rail-tabs" role="tablist" aria-label="Places and routes">
-                    <button type="button" role="tab" className="rail-tab" disabled={savingDraft} aria-selected={placesTab === 'places'} onClick={() => changePlacesTab('places')}>Places</button>
-                    <button type="button" role="tab" className="rail-tab" disabled={savingDraft} aria-selected={placesTab === 'routes'} onClick={() => changePlacesTab('routes')}>Routes</button>
+                    <button
+                      type="button"
+                      role="tab"
+                      className="rail-tab"
+                      disabled={savingDraft}
+                      aria-selected={placesTab === 'places'}
+                      onClick={() => changePlacesTab('places')}
+                    >
+                      Places
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      className="rail-tab"
+                      disabled={savingDraft}
+                      aria-selected={placesTab === 'routes'}
+                      onClick={() => changePlacesTab('routes')}
+                    >
+                      Routes
+                    </button>
                   </div>
                 ) : null}
-                {isPlacesView && placesTab === 'routes' && deliveryRoutesEnabled && <nav className="rail-tabs lt-route-modes" aria-label="Route types"><button type="button" className="rail-tab" aria-pressed={routeKind === 'delivery'} onClick={() => changeRouteKind('delivery')}>Delivery routes</button><button type="button" className="rail-tab" aria-pressed={routeKind === 'movement'} onClick={() => changeRouteKind('movement')}>All movements</button></nav>}
+                {isPlacesView && placesTab === 'routes' && deliveryRoutesEnabled && (
+                  <nav className="rail-tabs lt-route-modes" aria-label="Route types">
+                    <button
+                      type="button"
+                      className="rail-tab"
+                      aria-pressed={routeKind === 'delivery'}
+                      onClick={() => changeRouteKind('delivery')}
+                    >
+                      Delivery routes
+                    </button>
+                    <button
+                      type="button"
+                      className="rail-tab"
+                      aria-pressed={routeKind === 'movement'}
+                      onClick={() => changeRouteKind('movement')}
+                    >
+                      All movements
+                    </button>
+                  </nav>
+                )}
                 <div className="rail-body">
                   {!isPlacesView && railTab === 'fleet' ? (
                     <>
@@ -1105,9 +1278,13 @@ const LiveTrackingPage = () => {
                         toggleHabitualHalts={toggleHabitualHalts}
                         habitualHalts={habitualHalts}
                         idlingMinutes={
-                          activeVehicle ? (idlingByPlate.get(plateKey(activeVehicle.plate)) ?? null) : null
+                          activeVehicle
+                            ? (idlingByPlate.get(plateKey(activeVehicle.plate)) ?? null)
+                            : null
                         }
-                        vehicleAlerts={activeVehicle ? alertsForVehicle(alerts, activeVehicle.plate) : []}
+                        vehicleAlerts={
+                          activeVehicle ? alertsForVehicle(alerts, activeVehicle.plate) : []
+                        }
                         showIntent={activeVehicle ? hasIntentFor(activeVehicle.plate) : false}
                         knownEtas={knownEtas}
                         canEditPlaces={canEditPlacesHere}
@@ -1116,10 +1293,33 @@ const LiveTrackingPage = () => {
                     </>
                   ) : isPlacesView && placesTab === 'routes' ? (
                     <>
-                      {openRouteId ? <TrackRouteDetailPanel key={`${routeKind}:${openRouteId}`} docked kind={routeKind} showSap={isEnabled('sapV2') && ['OWNER', 'MANAGER'].includes(getUserRole())} id={openRouteId} leg={selectedRoute} focus={focusedRoute}
-                        onDetail={setRouteDetail} onFit={fitSelectedRoute} onClose={closeRoute} /> : (
-                        <RoutesListView routes={routes} kind={routeKind} query={searchQuery} selectedId={openRouteId} onPick={handleRoutePick}
-                          onHide={() => { setIsRailOpen(false); setTimeout(triggerMapResize, 240); }} />
+                      {openRouteId ? (
+                        <TrackRouteDetailPanel
+                          key={`${routeKind}:${openRouteId}`}
+                          docked
+                          kind={routeKind}
+                          showSap={
+                            isEnabled('sapV2') && ['OWNER', 'MANAGER'].includes(getUserRole())
+                          }
+                          id={openRouteId}
+                          leg={selectedRoute}
+                          focus={focusedRoute}
+                          onDetail={setRouteDetail}
+                          onFit={fitSelectedRoute}
+                          onClose={closeRoute}
+                        />
+                      ) : (
+                        <RoutesListView
+                          routes={routes}
+                          kind={routeKind}
+                          query={searchQuery}
+                          selectedId={openRouteId}
+                          onPick={handleRoutePick}
+                          onHide={() => {
+                            setIsRailOpen(false);
+                            setTimeout(triggerMapResize, 240);
+                          }}
+                        />
                       )}
                     </>
                   ) : (

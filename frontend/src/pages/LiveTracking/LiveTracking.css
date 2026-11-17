@@ -3701,129 +3701,66 @@ html.dark .wx-icon .wx-star,
 }
 .track-log {
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 .track-log-header {
   flex: none;
-  padding: 20px 16px 16px;
+  padding: 16px;
   border-bottom: 1px solid var(--border-subtle);
 }
 .track-log-title {
   margin: 0;
   color: var(--fg-primary);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   line-height: 20px;
 }
 .track-log-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin: 12px 0 0;
-  padding: 12px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  background: var(--bg-subtle);
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 .track-log-summary > div {
   min-width: 0;
 }
-.track-log-summary dt {
-  margin-bottom: 5px;
-  color: var(--fg-secondary);
-  font-size: 11px;
-  line-height: 16px;
-}
-.track-log-summary dd {
-  margin: 0;
-  color: var(--fg-primary);
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 18px;
-  font-variant-numeric: tabular-nums;
-}
-.track-log-summary dd > span {
-  font-weight: 400;
-  color: var(--fg-secondary);
-}
-.track-log-list {
+.track-log-list-wrapper {
   flex: 1;
   min-height: 0;
-  margin: 0;
-  padding: 8px;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+.track-log-list {
+  margin: 0;
+  padding: 0;
   list-style: none;
 }
-.track-log-item + .track-log-item {
-  border-top: 1px solid var(--border-subtle);
+.track-log-item {
+  position: relative;
 }
 .track-log-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  display: block;
   width: 100%;
-  padding: 14px 8px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--fg-primary);
   font: inherit;
   text-align: left;
   cursor: pointer;
-}
-.track-log-row:hover {
-  background: var(--bg-subtle);
+  outline: none;
 }
 .track-rail-back:focus-visible,
 .track-log-row:focus-visible {
   outline: 2px solid var(--nova-rage-400);
   outline-offset: 2px;
 }
-.track-log-dot {
-  flex: none;
-  width: 8px;
-  height: 8px;
-  margin-top: 5px;
-  border-radius: 50%;
-}
-.track-log-content {
-  flex: 1;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.track-log-name {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 18px;
-}
-.track-log-time,
-.track-log-detail {
-  display: block;
-  margin-top: 4px;
-  color: var(--fg-secondary);
-  font-size: 11px;
-  line-height: 16px;
-}
-.track-log-time,
-.track-log-duration {
-  font-variant-numeric: tabular-nums;
-}
-.track-log-duration {
-  flex: none;
-  max-width: 30%;
-  color: var(--fg-secondary);
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 18px;
-  text-align: right;
-}
 .track-log-message {
   margin: 0;
-  padding: 20px 16px;
+  padding: 24px 16px;
   color: var(--fg-secondary);
   font-size: 13px;
   line-height: 20px;
+  text-align: center;
 }
 .rail-tab__count {
   font-size: 11px;
@@ -5053,7 +4990,15 @@ html.dark .wx-icon .wx-star,
   --ph-crit: #c62828;
 }
 
-.lt-map-draft-error { margin: 12px 16px; padding: 10px 12px; background: #fff1f1; color: #9f2424; border: 1px solid #f2cccc; border-radius: 8px; font-size: 12px; }
+.lt-map-draft-error {
+  margin: 12px 16px;
+  padding: 10px 12px;
+  background: #fff1f1;
+  color: #9f2424;
+  border: 1px solid #f2cccc;
+  border-radius: 8px;
+  font-size: 12px;
+}
 
 /* The menu lives in a portal, so its styles use the shared root tokens. */
 .lt-location-menu {
@@ -5226,7 +5171,19 @@ html.dark .wx-icon .wx-star,
   }
 }
 
-.lt-route-list-note { margin: 0; padding: 10px 16px; color: var(--rd-ink-3); font-size: 11px; line-height: 1.6; }
-.lt-route-modes { flex-shrink: 0; }
+.lt-route-list-note {
+  margin: 0;
+  padding: 10px 16px;
+  color: var(--rd-ink-3);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.lt-route-modes {
+  flex-shrink: 0;
+}
 
-.lt-route-modes .rail-tab[aria-pressed="true"] { color: var(--fg-primary); border-bottom-color: #2563eb; background: var(--bg-subtle); }
+.lt-route-modes .rail-tab[aria-pressed='true'] {
+  color: var(--fg-primary);
+  border-bottom-color: #2563eb;
+  background: var(--bg-subtle);
+}
