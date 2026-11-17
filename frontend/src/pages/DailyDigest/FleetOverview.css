@@ -1335,3 +1335,10 @@
   height: 30px;
   text-decoration: none;
 }
+
+/* The side column's last card fills down to the main column's end, so the
+ * two columns finish on one line instead of leaving a hole beside the
+ * taller one. */
+.db-grid > .db-col:not(.db-col--primary) > .db-card:last-child {
+  flex: 1;
+}
