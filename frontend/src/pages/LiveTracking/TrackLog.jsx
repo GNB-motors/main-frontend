@@ -1,5 +1,15 @@
 import { useMemo, useEffect, useRef, useState } from 'react';
-import { MapPin, Clock, Zap, Radio, Fuel, CornerUpRight, Calendar, Truck } from 'lucide-react';
+import {
+  MapPin,
+  Clock,
+  Zap,
+  Radio,
+  Fuel,
+  CornerUpRight,
+  Calendar,
+  Truck,
+  Info,
+} from 'lucide-react';
 import { formatDuration, formatIst } from '../../utils/redesign/format';
 import { journeyLogRows } from './journeyLogRows';
 
@@ -340,6 +350,7 @@ export default function TrackLog({
               }
 
               const canName = (row.stopId || row.fixAt) && !row.place?.name?.trim() && onOpenPlace;
+              const canView = row.place?.id && row.place?.name?.trim() && onOpenPlace;
               return (
                 <li
                   key={row.key}
@@ -387,10 +398,8 @@ export default function TrackLog({
                       onClick={() => {
                         setClickedRow({ key: row.key, at: Date.parse(row.at) });
                         onSeek?.(row.at);
-                        if (row.place?.id && row.place?.name?.trim())
-                          onOpenPlace?.({ ...row, unidentified: false });
                       }}
-                      className={`track-log-row w-full text-left rounded-xl p-3 ${canName ? 'pb-14' : ''} border transition-all cursor-pointer ${
+                      className={`track-log-row w-full text-left rounded-xl p-3 ${canName || canView ? 'pb-14' : ''} border transition-all cursor-pointer ${
                         isActive
                           ? 'border-blue-500/80 bg-blue-50/50 dark:bg-blue-950/30 shadow-md ring-1 ring-blue-500/30'
                           : isPast
@@ -452,13 +461,18 @@ export default function TrackLog({
                         </div>
                       ) : null}
                     </button>
-                    {canName ? (
+                    {canName || canView ? (
                       <button
                         type="button"
                         className="lt-journey-name-action lt-track-name-action"
-                        onClick={() => onOpenPlace({ ...row, unidentified: true })}
+                        onClick={() => onOpenPlace({ ...row, unidentified: Boolean(canName) })}
                       >
-                        <MapPin size={14} aria-hidden="true" /> Name this place
+                        {canName ? (
+                          <MapPin size={14} aria-hidden="true" />
+                        ) : (
+                          <Info size={14} aria-hidden="true" />
+                        )}
+                        {canName ? 'Name this place' : 'View details'}
                       </button>
                     ) : null}
                   </div>

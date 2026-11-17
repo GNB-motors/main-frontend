@@ -637,6 +637,8 @@ it('opens named journey landmarks in a details modal', async () => {
     </MemoryRouter>,
   );
   fireEvent.click(await screen.findByRole('button', { name: /Nearby dhaba/ }));
+  expect(screen.queryByRole('dialog', { name: 'Nearby dhaba' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'View details' }));
   expect(screen.getByRole('dialog', { name: 'Nearby dhaba' })).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Nearby dhaba' })).toBeInTheDocument();
 });

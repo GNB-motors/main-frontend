@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import PlaceRouteSkeletons from './PlaceRouteSkeletons.jsx';
-import { MapPin, Route, ChevronRight } from 'lucide-react';
+import { MapPin, Route, ChevronRight, Info } from 'lucide-react';
 import { formatDuration, formatIst } from '../../utils/redesign/format';
 import { journeyPlaces, journeyRoutes } from './vehicleJourneyModel';
 
@@ -68,11 +68,10 @@ export default function VehicleJourneyPanel({
             <li key={row.id} className="lt-journey-item">
               <button
                 type="button"
-                className={`lt-journey-row ${row.unidentified && onOpenPlace && (row.stopId || row.fixAt) ? 'lt-journey-row--nameable' : ''}`}
+                className={`lt-journey-row ${tab !== 'routes' && onOpenPlace && (row.unidentified ? row.stopId || row.fixAt : row.place?.id) ? 'lt-journey-row--nameable' : ''}`}
                 onClick={() => {
                   if (row.at) onSeek?.(row.at);
                   onFocus?.(row);
-                  if (tab !== 'routes' && !row.unidentified) onOpenPlace?.(row);
                 }}
               >
                 <span className="lt-journey-icon" aria-hidden="true">
@@ -116,13 +115,20 @@ export default function VehicleJourneyPanel({
                 </span>
                 <ChevronRight className="lt-journey-arrow" size={15} aria-hidden="true" />
               </button>
-              {tab !== 'routes' && row.unidentified && onOpenPlace && (row.stopId || row.fixAt) ? (
+              {tab !== 'routes' &&
+              onOpenPlace &&
+              (row.unidentified ? row.stopId || row.fixAt : row.place?.id) ? (
                 <button
                   type="button"
                   className="lt-journey-name-action lt-places-name-action"
                   onClick={() => onOpenPlace(row)}
                 >
-                  <MapPin size={14} aria-hidden="true" /> Name this place
+                  {row.unidentified ? (
+                    <MapPin size={14} aria-hidden="true" />
+                  ) : (
+                    <Info size={14} aria-hidden="true" />
+                  )}
+                  {row.unidentified ? 'Name this place' : 'View details'}
                 </button>
               ) : null}
             </li>

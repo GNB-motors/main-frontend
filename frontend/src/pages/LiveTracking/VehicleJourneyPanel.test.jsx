@@ -87,3 +87,36 @@ it('opens an unidentified recorded stop without losing its real stop ID', () => 
     expect.objectContaining({ stopId: 'stop1', unidentified: true }),
   );
 });
+
+it.each(['stop', 'moving'])('keeps named %s card navigation separate from details', (kind) => {
+  const at = '2026-11-17T10:00:00Z';
+  const place = { id: 'site1', kind: 'SITE', name: 'Named location', lat: 22, lng: 88 };
+  const track =
+    kind === 'stop'
+      ? { stops: [{ id: 'stop1', startAt: at, place }] }
+      : {
+          points: [
+            { t: at, lat: 22, lng: 88, speedKmh: 40, place },
+            { t: '2026-11-17T11:00:00Z', lat: 23, lng: 89, speedKmh: 40 },
+          ],
+        };
+  const onOpenPlace = vi.fn();
+  const onSeek = vi.fn();
+  const onFocus = vi.fn();
+  render(
+    <VehicleJourneyPanel
+      journey={{ track }}
+      tab="places"
+      onOpenPlace={onOpenPlace}
+      onSeek={onSeek}
+      onFocus={onFocus}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: /Named location/ }));
+  expect(onSeek).toHaveBeenCalledWith(at);
+  expect(onFocus).toHaveBeenCalledOnce();
+  expect(onOpenPlace).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'View details' }));
+  expect(onOpenPlace).toHaveBeenCalledWith(expect.objectContaining({ place }));
+  expect(onFocus).toHaveBeenCalledOnce();
+});

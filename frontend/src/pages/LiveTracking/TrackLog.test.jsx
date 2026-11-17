@@ -219,3 +219,30 @@ it('opens the naming action for an unidentified moving GPS position', () => {
     expect.objectContaining({ fixAt: points[0].t, lat: 22, lng: 88, unidentified: true }),
   );
 });
+
+it.each(['stop', 'moving'])('opens named %s details only through its explicit action', (kind) => {
+  const onSeek = vi.fn();
+  const onOpenPlace = vi.fn();
+  const at = '2026-11-17T10:00:00Z';
+  const place = { id: 'site1', kind: 'SITE', name: 'Named location', lat: 22, lng: 88 };
+  const track =
+    kind === 'stop'
+      ? {
+          stops: [
+            { id: 'stop1', startAt: at, endAt: '2026-11-17T10:20:00Z', durationMin: 20, place },
+          ],
+        }
+      : {
+          points: [
+            { t: at, lat: 22, lng: 88, speedKmh: 40, place },
+            { t: '2026-11-17T11:00:00Z', lat: 23, lng: 89, speedKmh: 40 },
+          ],
+        };
+  render(<TrackLog track={track} onSeek={onSeek} onOpenPlace={onOpenPlace} />);
+  fireEvent.click(screen.getByText('Named location'));
+  expect(onSeek).toHaveBeenCalledWith(at);
+  expect(onOpenPlace).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'View details' }));
+  expect(onOpenPlace).toHaveBeenCalledWith(expect.objectContaining({ place, unidentified: false }));
+  expect(onSeek).toHaveBeenCalledTimes(1);
+});
