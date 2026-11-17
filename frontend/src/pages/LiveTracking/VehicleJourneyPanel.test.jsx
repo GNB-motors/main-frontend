@@ -66,3 +66,22 @@ describe('vehicle journey panel', () => {
     expect(screen.getByText('No matching results.')).toBeInTheDocument();
   });
 });
+
+it('opens an unidentified recorded stop without losing its real stop ID', () => {
+  const open = vi.fn();
+  render(
+    <VehicleJourneyPanel
+      journey={{
+        track: {
+          stops: [{ id: 'stop1', startAt: '2026-11-17T00:00:00Z', lat: 22, lng: 88, place: null }],
+        },
+      }}
+      tab="places"
+      onOpenPlace={open}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: /Place not identified/ }));
+  expect(open).toHaveBeenCalledWith(
+    expect.objectContaining({ stopId: 'stop1', unidentified: true }),
+  );
+});

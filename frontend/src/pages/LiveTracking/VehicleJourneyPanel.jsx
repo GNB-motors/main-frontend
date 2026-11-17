@@ -4,7 +4,14 @@ import { MapPin, Route, ChevronRight } from 'lucide-react';
 import { formatDuration, formatIst } from '../../utils/redesign/format';
 import { journeyPlaces, journeyRoutes } from './vehicleJourneyModel';
 
-export default function VehicleJourneyPanel({ journey, tab, query = '', onFocus, onSeek }) {
+export default function VehicleJourneyPanel({
+  journey,
+  tab,
+  query = '',
+  onFocus,
+  onSeek,
+  onOpenPlace,
+}) {
   const places = useMemo(() => journeyPlaces(journey.track), [journey.track]);
   const routes = useMemo(() => journeyRoutes(journey.track), [journey.track]);
   const rows = (tab === 'routes' ? routes : places).filter((row) =>
@@ -65,6 +72,7 @@ export default function VehicleJourneyPanel({ journey, tab, query = '', onFocus,
                 onClick={() => {
                   if (row.at) onSeek?.(row.at);
                   onFocus?.(row);
+                  if (tab !== 'routes') onOpenPlace?.(row);
                 }}
               >
                 <span className="lt-journey-icon" aria-hidden="true">

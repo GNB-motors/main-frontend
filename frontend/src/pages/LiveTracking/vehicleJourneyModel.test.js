@@ -25,7 +25,7 @@ describe('vehicle journey', () => {
       endAt: '2026-11-01T01:00:00Z',
       durationMin: 60,
     });
-    expect(rows[1].title).toBe('Recorded stop');
+    expect(rows[1].title).toBe('Place not identified');
     expect(rows[2]).toMatchObject({ title: 'Pump', description: '120 m from the recorded path' });
     expect(rows[2].at).toBeUndefined();
   });
@@ -47,5 +47,31 @@ describe('vehicle journey', () => {
   it('keeps empty journeys empty', () => {
     expect(journeyPlaces(null)).toEqual([]);
     expect(journeyRoutes(null)).toEqual([]);
+  });
+});
+
+it('retains the authoritative stop identity and location without adding a duplicate nearby card', () => {
+  const place = { id: 'site1', kind: 'SITE', name: 'Named parking', lat: 22, lng: 88 };
+  const rows = journeyPlaces({
+    stops: [
+      {
+        id: 'stop1',
+        lat: 22.01,
+        lng: 88.01,
+        orgSiteId: 'site1',
+        startAt: '2026-11-17T00:00:00Z',
+        place,
+      },
+    ],
+    landmarks: [place],
+  });
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({
+    stopId: 'stop1',
+    siteId: 'site1',
+    lat: 22.01,
+    lng: 88.01,
+    unidentified: false,
+    place,
   });
 });

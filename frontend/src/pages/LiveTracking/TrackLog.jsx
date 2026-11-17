@@ -145,6 +145,7 @@ export default function TrackLog({
   playheadIndex = 0,
   isPlaying = false,
   onSeek = null,
+  onOpenPlace = null,
 }) {
   const stops = useMemo(() => (Array.isArray(track?.stops) ? track.stops : []), [track]);
   const events = useMemo(() => (Array.isArray(track?.events) ? track.events : []), [track]);
@@ -556,6 +557,8 @@ export default function TrackLog({
                     onClick={() => {
                       setClickedRow({ key: row.key, at: Date.parse(row.at) });
                       onSeek?.(row.at);
+                      if (row.stopId || row.place?.id)
+                        onOpenPlace?.({ ...row, unidentified: !row.place?.name?.trim() });
                     }}
                     className={`track-log-row flex-1 text-left rounded-xl p-3 border transition-all cursor-pointer ${
                       isActive

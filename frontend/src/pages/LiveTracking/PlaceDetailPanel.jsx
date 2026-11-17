@@ -32,6 +32,7 @@ export default function PlaceDetailPanel({
   onPickVehicle,
   onEditPlace,
   onEditFence,
+  backLabel = 'All places',
 }) {
   const here = useMemo(() => vehiclesAtPlace(place, vehicles), [place, vehicles]);
   const ours = isOurPlace(place);
@@ -52,7 +53,7 @@ export default function PlaceDetailPanel({
     <div className="railview railview--detail open lt-place-detail" aria-live="polite">
       <div className="pd-topbar">
         <button type="button" className="pd-back" onClick={onBack}>
-          <ArrowLeft size={15} aria-hidden="true" /> All places
+          <ArrowLeft size={15} aria-hidden="true" /> {backLabel}
         </button>
         <span className="pd-context">Place details</span>
       </div>

@@ -7,25 +7,43 @@ const KIND = {
 };
 
 export function journeyPlaces(track) {
+  const visited = new Set(
+    (track?.stops || [])
+      .filter((stop) => stop.place?.id)
+      .map((stop) => `${stop.place.kind}:${stop.place.id}`),
+  );
   return [
     ...(track?.stops || []).map((stop, index) => ({
       id: `stop:${index}:${stop.startAt}`,
-      title: stop.place?.name || 'Recorded stop',
+      title: stop.place?.name || 'Place not identified',
+      kind: 'stop',
+      stopId: stop.id || null,
+      siteId: stop.orgSiteId || null,
+      unidentified: !stop.place?.name?.trim(),
+      place: stop.place || null,
       at: stop.startAt,
       endAt: stop.endAt,
       durationMin: stop.durationMin,
       description: stop.reasonWhy,
-      ...(position(stop.place) ? { lat: stop.place.lat, lng: stop.place.lng } : {}),
+      ...(position(stop)
+        ? { lat: stop.lat, lng: stop.lng }
+        : position(stop.place)
+          ? { lat: stop.place.lat, lng: stop.place.lng }
+          : {}),
     })),
-    ...(track?.landmarks || []).filter(position).map((place, index) => ({
-      id: `landmark:${place.id || index}`,
-      title: place.name,
-      lat: place.lat,
-      lng: place.lng,
-      description: Number.isFinite(place.distanceFromPathM)
-        ? `${Math.round(place.distanceFromPathM)} m from the recorded path`
-        : 'Near the recorded path',
-    })),
+    ...(track?.landmarks || [])
+      .filter((place) => position(place) && !visited.has(`${place.kind}:${place.id}`))
+      .map((place, index) => ({
+        id: `landmark:${place.id || index}`,
+        title: place.name,
+        kind: 'landmark',
+        place,
+        lat: place.lat,
+        lng: place.lng,
+        description: Number.isFinite(place.distanceFromPathM)
+          ? `${Math.round(place.distanceFromPathM)} m from the recorded path`
+          : 'Near the recorded path',
+      })),
   ];
 }
 

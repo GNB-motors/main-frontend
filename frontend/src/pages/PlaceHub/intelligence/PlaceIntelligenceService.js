@@ -100,6 +100,9 @@ const PlaceIntelligenceService = {
   listBreaks: async (params = {}, { signal } = {}) =>
     parsed('breakListSchema', await apiClient.get(`${BASE}/breaks`, { params, signal })),
 
+  identifyStopPlace: async ({ id, ...body }, { signal } = {}) =>
+    unwrap(await apiClient.post(`${BASE}/stops/${id}/identify-place`, body, { signal })),
+
   tagStop: async ({ id, purpose }, { signal } = {}) =>
     unwrap(await apiClient.post(`${BASE}/stops/${id}/reason`, { purpose }, { signal })),
 

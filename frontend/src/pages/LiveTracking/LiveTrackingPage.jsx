@@ -36,6 +36,13 @@ import RoutesListView from './RoutesListView.jsx';
 import PlacesListView from './PlacesListView.jsx';
 import PlaceDetailPanel from './PlaceDetailPanel.jsx';
 import EditPlaceDialog from './EditPlaceDialog.jsx';
+import IdentifyJourneyPlaceDialog from './IdentifyJourneyPlaceDialog.jsx';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from '../../components/ui/dialog.jsx';
 import { fromSite } from '../PlaceHub/model/mergePlaces.js';
 import TrackLegend from './TrackLegend.jsx';
 import TrackMapKey from './TrackMapKey.jsx';
@@ -96,6 +103,9 @@ const LiveTrackingPage = () => {
   const confirm = useConfirm();
   const fenceRequest = useRef(0);
   const [editingPlace, setEditingPlace] = useState(null);
+  const [identifyingStop, setIdentifyingStop] = useState(null);
+  const [journeyPlace, setJourneyPlace] = useState(null);
+  const journeyPlaceRequest = useRef(0);
   // Live positions hook
   const {
     positions: rawPositions,
@@ -181,6 +191,11 @@ const LiveTrackingPage = () => {
   const isTrackMode = trackMode.isTrackMode;
   const isPlacesView = searchParams.get('view') === 'places';
   const contextReg = trackMode.contextReg;
+  useEffect(() => {
+    journeyPlaceRequest.current += 1;
+    setIdentifyingStop(null);
+    setJourneyPlace(null);
+  }, [contextReg]);
   const isVehiclePlaces = isPlacesView && Boolean(contextReg);
   const deliveryRoutesEnabled =
     canEditPlacesHere && isEnabled('fleetIntelligence') && isEnabled('routesV2');
@@ -812,6 +827,50 @@ const LiveTrackingPage = () => {
     setEditingPlace(place);
   }, []);
 
+  const openJourneyPlace = useCallback(
+    async (row) => {
+      const request = ++journeyPlaceRequest.current;
+      trackMode.setIsPlaying(false);
+      if (row.unidentified) {
+        if (!canEditPlacesHere) {
+          showToast('Only owners and managers can identify a place.');
+          return;
+        }
+        if (!row.stopId) {
+          showToast(
+            'Refresh this journey after the updated backend is available to identify this stop.',
+          );
+          return;
+        }
+        setIdentifyingStop(row);
+        return;
+      }
+      const place = row.place;
+      if (!place) return;
+      const fallback = {
+        id: `${place.kind === 'SITE' ? 'site' : 'poi'}:${place.id}`,
+        sourceId: place.id,
+        source: 'landmark',
+        name: place.name,
+        type: place.category,
+        lat: place.lat,
+        lng: place.lng,
+        radiusM: place.radiusM,
+        subtitle: row.description || '',
+      };
+      setJourneyPlace(fallback);
+      if (place.kind === 'SITE') {
+        try {
+          const site = await PlaceHubService.siteDetail(place.id);
+          if (request === journeyPlaceRequest.current && site) setJourneyPlace(fromSite(site));
+        } catch {
+          /* The known name/location remain usable when extra details are unavailable. */
+        }
+      }
+    },
+    [canEditPlacesHere, showToast, trackMode.setIsPlaying],
+  );
+
   const fitSelectedRoute = useCallback(() => {
     fitRouteOnMap(mapRef.current, focusedRoute?.points || []);
   }, [focusedRoute, mapRef]);
@@ -1442,6 +1501,7 @@ const LiveTrackingPage = () => {
                       playheadIndex={trackMode.playheadIndex}
                       isPlaying={trackMode.isPlaying}
                       onSeek={(at) => trackMode.seekToTime(new Date(at))}
+                      onOpenPlace={openJourneyPlace}
                     />
                   )}
                 </div>
@@ -1555,6 +1615,7 @@ const LiveTrackingPage = () => {
                   ) : isVehiclePlaces ? (
                     <VehicleJourneyPanel
                       journey={trackMode}
+                      onOpenPlace={openJourneyPlace}
                       tab={placesTab}
                       query={searchQuery}
                       onSeek={isTrackMode ? trackMode.seekToTime : undefined}
@@ -1648,6 +1709,73 @@ const LiveTrackingPage = () => {
         <span>{toastMsg}</span>
       </div>
 
+      {identifyingStop ? (
+        <IdentifyJourneyPlaceDialog
+          key={identifyingStop.stopId}
+          stop={identifyingStop}
+          onClose={() => setIdentifyingStop(null)}
+          onSaved={() => {
+            setIdentifyingStop(null);
+            trackMode.refetch();
+            trackPlaces.retry?.();
+            reviewQueue.reload();
+            showToast('Place saved. Refreshing this journey…');
+          }}
+        />
+      ) : null}
+      {journeyPlace ? (
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open) {
+              journeyPlaceRequest.current += 1;
+              setJourneyPlace(null);
+            }
+          }}
+        >
+          <DialogContent
+            className="lt-journey-place-dialog"
+            onKeyDown={(event) => event.stopPropagation()}
+          >
+            <DialogTitle className="sr-only" render={<span />}>
+              {journeyPlace.name}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Place details. A nearby landmark does not indicate a recorded visit.
+            </DialogDescription>
+            <PlaceDetailPanel
+              place={journeyPlace}
+              backLabel="Back to journey"
+              vehicles={vehicles}
+              onBack={() => {
+                journeyPlaceRequest.current += 1;
+                setJourneyPlace(null);
+              }}
+              onPickVehicle={(id) => {
+                setJourneyPlace(null);
+                pickVehicleFromPlace(id);
+              }}
+              onEditPlace={
+                canEditPlacesHere
+                  ? (place) => {
+                      setJourneyPlace(null);
+                      setEditingPlace(place);
+                    }
+                  : undefined
+              }
+              onEditFence={
+                canEditPlacesHere
+                  ? (place) => {
+                      setJourneyPlace(null);
+                      editFenceForSite(place);
+                    }
+                  : undefined
+              }
+            />
+          </DialogContent>
+        </Dialog>
+      ) : null}
+
       {editingPlace ? (
         <EditPlaceDialog
           key={editingPlace.id}
@@ -1659,6 +1787,7 @@ const LiveTrackingPage = () => {
             setReviewSite(null);
             trackPlaces.retry?.();
             reviewQueue.reload();
+            if (contextReg) trackMode.refetch();
             showToast('Place changes saved');
           }}
         />

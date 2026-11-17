@@ -5634,3 +5634,19 @@ html.dark .wx-icon .wx-star,
 .lt-place-decision .lt-place-modal-icon.is-reject {
   --lt-place-icon-color: var(--ph-crit);
 }
+
+.lt-journey-place-dialog {
+  max-width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+}
+.lt-journey-place-dialog .lt-place-detail {
+  position: relative;
+  inset: auto;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 32px);
+}
+.lt-journey-place-dialog .pd-body {
+  overflow-y: auto;
+}
