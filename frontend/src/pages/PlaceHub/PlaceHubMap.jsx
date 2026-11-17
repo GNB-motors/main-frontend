@@ -185,6 +185,9 @@ export default function PlaceHubMap({
   if (!isLoaded) return <div className="ph-map-empty ph-shimmer" aria-busy="true" />;
 
   const showCircles = zoom >= SHAPE_MIN_ZOOM;
+  // A place drawn as a pin lets its marker own the hover card; the shape shows a
+  // tooltip only for area-label places with no pin, so the two never stack.
+  const markerIds = new Set(markerPlaces.map((p) => p.id));
   // While drafting, every click belongs to the draft — even one that lands on
   // an existing place, which is exactly where a new fence is often drawn.
   const interactive = !drafting;
@@ -227,6 +230,7 @@ export default function PlaceHubMap({
                 selected={p.id === selectedId}
                 showCircle={showCircles || p.id === selectedId}
                 interactive={interactive}
+                showTooltip={!markerIds.has(p.id)}
                 onSelect={onSelect}
               />
             ),

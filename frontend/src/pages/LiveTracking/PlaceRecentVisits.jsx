@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import PlaceRouteSkeletons from './PlaceRouteSkeletons.jsx';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, ChevronDown, History } from 'lucide-react';
 import { useApi } from '../../hooks/useApi';
@@ -14,7 +15,7 @@ export default function PlaceRecentVisits({ place, limit = 10 }) {
   const { data, loading, error } = useApi(
     (signal) => fleetViewService.getTripsHistory({ site: siteId, limit, signal }),
     [siteId, limit],
-    { enabled: Boolean(siteId) },
+    { enabled: Boolean(siteId), scopeKey: `${siteId}:${limit}` },
   );
   const visits = useMemo(
     () => (Array.isArray(data?.items) ? data.items : []).slice(0, limit),
@@ -33,9 +34,7 @@ export default function PlaceRecentVisits({ place, limit = 10 }) {
         </Link>
       </div>
       {loading ? (
-        <p className="pd-empty" role="status">
-          Loading visits…
-        </p>
+        <PlaceRouteSkeletons kind="route" count={3} label="Loading recent visits" />
       ) : error ? (
         <p className="pd-empty" role="status">
           Visit history could not be loaded. Reopen this place to try again.

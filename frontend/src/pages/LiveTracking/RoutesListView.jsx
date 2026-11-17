@@ -1,4 +1,6 @@
+import Skel from './Skel.jsx';
 import { useMemo } from 'react';
+import PlaceRouteSkeletons from './PlaceRouteSkeletons.jsx';
 import { Route } from 'lucide-react';
 import renderIconSvg from './renderIconSvg.jsx';
 
@@ -22,11 +24,13 @@ export default function RoutesListView({
         <div className="ftitle">
           <h2>{kind === 'delivery' ? 'Delivery routes' : 'All movements'}</h2>
           <div className="fsub">
-            {routes.isLoading
-              ? 'Loading routes…'
-              : routes.error
-                ? 'Routes unavailable'
-                : `${rows.length} ${kind === 'delivery' ? 'delivery routes' : 'movement legs'}`}
+            {routes.isLoading ? (
+              <Skel w={108} h={11} />
+            ) : routes.error ? (
+              'Routes unavailable'
+            ) : (
+              `${rows.length} ${kind === 'delivery' ? 'delivery routes' : 'movement legs'}`
+            )}
           </div>
         </div>
         <button
@@ -40,8 +44,8 @@ export default function RoutesListView({
       </div>
       {kind === 'delivery' ? (
         <p className="lt-route-list-note">
-          Pickup → drop, learned from completed loaded trips. Configured SAP routes stay visible
-          before their first trip.
+          Pickup → drop, learned from completed loaded trips. Routes with a customer-agreed distance
+          stay visible before their first trip.
         </p>
       ) : (
         <p className="lt-route-list-note">
@@ -62,6 +66,11 @@ export default function RoutesListView({
               Retry routes
             </button>
           </div>
+        ) : routes.isLoading && !routes.legs.length ? (
+          <PlaceRouteSkeletons
+            kind="route"
+            label={kind === 'delivery' ? 'Loading delivery routes' : 'Loading all movements'}
+          />
         ) : !routes.isLoading && !rows.length ? (
           <div className="fempty">
             {query ? 'No routes match your search.' : 'No fleet routes yet.'}

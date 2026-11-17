@@ -28,6 +28,10 @@ export const TrackSegmentSchema = z
 /** A stop, with the reason worked out from the landmarks around it. */
 export const TrackStopSchema = z
   .object({
+    id: z.string().optional(),
+    orgSiteId: z.string().nullable().optional(),
+    lat: z.number().nullable().optional(),
+    lng: z.number().nullable().optional(),
     startAt: z.string(),
     endAt: z.string(),
     durationMin: z.number(),

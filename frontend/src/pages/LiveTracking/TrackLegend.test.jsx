@@ -37,7 +37,13 @@ function renderLegend(overrides = {}) {
 
 describe('TrackLegend', () => {
   it('groups only confirmed-empty categories and retains unknown coverage', () => {
-    renderLegend({ layerAvailability: { hospitals: { count: 0 }, police: { count: 0 }, pumps: { count: null, failed: true } } });
+    renderLegend({
+      layerAvailability: {
+        hospitals: { count: 0 },
+        police: { count: 0 },
+        pumps: { count: null, failed: true },
+      },
+    });
     const expand = screen.queryByRole('button', { name: 'Expand Places' });
     if (expand) fireEvent.click(expand);
     expect(screen.queryByRole('button', { name: /Hospitals/ })).not.toBeInTheDocument();
@@ -47,7 +53,12 @@ describe('TrackLegend', () => {
   });
   it('offers the All tolls switch independently of other category layers', () => {
     const change = vi.fn();
-    renderLegend({ onToggleAllTolls: change, showAllTolls: true, layerSelection: { ...defaultLayerSelection(), tolls: true }, tollInfo: { visitedCount: 56, allCount: 19 } });
+    renderLegend({
+      onToggleAllTolls: change,
+      showAllTolls: true,
+      layerSelection: { ...defaultLayerSelection(), tolls: true },
+      tollInfo: { visitedCount: 56, allCount: 19 },
+    });
     const expand = screen.queryByRole('button', { name: 'Expand Places' });
     if (expand) fireEvent.click(expand);
     const toggle = screen.getByRole('switch', { name: 'Show all tolls in view' });
@@ -56,6 +67,24 @@ describe('TrackLegend', () => {
     expect(change).toHaveBeenCalled();
     expect(screen.getByText('19 toll plazas in this view')).toBeInTheDocument();
   });
+  it('offers fleet-visited and All scopes for pumps and dhabas', () => {
+    const change = vi.fn();
+    renderLegend({
+      onPlaceScopeChange: change,
+      placeScopes: { pumps: 'visited', dhabas: 'visited' },
+    });
+    const expand = screen.queryByRole('button', { name: 'Expand Places' });
+    if (expand) fireEvent.click(expand);
+    expect(screen.getByRole('switch', { name: 'Show all pumps in view' })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+    fireEvent.click(screen.getByRole('switch', { name: 'Show all pumps in view' }));
+    expect(change).toHaveBeenCalledWith('pumps', 'all');
+    fireEvent.click(screen.getByRole('switch', { name: 'Show all dhabas in view' }));
+    expect(change).toHaveBeenCalledWith('dhabas', 'all');
+  });
+
   it('is a labelled region of map filters', () => {
     renderLegend();
     expect(screen.getByRole('region', { name: 'Map filters' })).toBeInTheDocument();
@@ -106,7 +135,11 @@ describe('TrackLegend', () => {
   });
 
   it('shows local counts and empty states instead of blocking pins by zoom', () => {
-    renderLegend({ zoom: 7, layerSelection: { ...defaultLayerSelection(), dhabas: true }, nearbyInfo: { loaded: true, counts: { pumps: 6, dhabas: 0 } } });
+    renderLegend({
+      zoom: 7,
+      layerSelection: { ...defaultLayerSelection(), dhabas: true },
+      nearbyInfo: { loaded: true, counts: { pumps: 6, dhabas: 0 } },
+    });
     const expand = screen.queryByRole('button', { name: 'Expand Places' });
     if (expand) fireEvent.click(expand);
     expect(screen.queryByText('Zoom in to see nearby places.')).not.toBeInTheDocument();

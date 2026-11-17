@@ -17,6 +17,9 @@ export default function TrackPlacesLayer({ places, selectedId, onSelect, dark, z
   const { labels, markerPlaces } = usePlaceAreaLabels(places, zoom, false, selectedId);
   if (!places.length) return null;
   const styles = dark ? CLUSTER_STYLES_DARK : CLUSTER_STYLES_LIGHT;
+  // Places drawn as a pin let the marker own the hover card; the shape shows its
+  // own only for places rendered as an area label (no pin).
+  const markerIds = new Set(markerPlaces.map((p) => p.id));
   return (
     <>
       {/* A learned area is always drawn. A place with no truck stops has only
@@ -28,6 +31,7 @@ export default function TrackPlacesLayer({ places, selectedId, onSelect, dark, z
           selected={p.id === selectedId}
           showCircle={p.id === selectedId}
           interactive
+          showTooltip={!markerIds.has(p.id)}
           onSelect={onSelect}
         />
       ))}

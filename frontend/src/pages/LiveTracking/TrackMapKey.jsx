@@ -4,6 +4,7 @@ import { placeTypeLabel } from '../PlaceHub/model/placeGroups.js';
 import { styleOfType } from '../PlaceHub/placeHubStyle.js';
 import { mapPlaceIconUrl } from './mapPlaceIcon.js';
 import { keyPlaceTypes, keyRouteSources } from './trackMapKeyModel.js';
+import { reviewPlaceIconUrl } from './reviewPlaceIcon.js';
 import './TrackMapKey.css';
 
 const ROUTE_SOURCE = {
@@ -46,7 +47,7 @@ function placeItems(places, reviewCount, idlingCount, tollCount) {
   if (reviewCount)
     items.push(
       <span key="review" className="lt-map-key-item">
-        <i className="lt-map-key-diamond" /> Place to review
+        <img className="lt-map-key-review" src={reviewPlaceIconUrl} alt="" /> Place to review
       </span>,
     );
   if (idlingCount)

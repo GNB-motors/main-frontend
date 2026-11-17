@@ -26,7 +26,7 @@ export default function TrackPlaceDraft({
   return (
     <section
       role="dialog"
-      aria-label="Make this a place"
+      aria-label={draft?.mode === 'edit' ? 'Edit saved place' : 'Make this a place'}
       className="lt-place-draft lt-location-draft absolute right-4 top-4 z-[1200] w-[340px] max-w-[92vw] overflow-y-auto rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] shadow-[var(--rd-shadow-float)]"
     >
       <div className="dtop lt-draft-back">
@@ -41,8 +41,10 @@ export default function TrackPlaceDraft({
             <MapPinPlus size={22} aria-hidden="true" />
           </span>
           <div>
-            <span className="lt-location-draft-eyebrow">New place</span>
-            <h3>Save this location</h3>
+            <span className="lt-location-draft-eyebrow">
+              {draft?.mode === 'edit' ? 'Saved place' : 'New place'}
+            </span>
+            <h3>{draft?.mode === 'edit' ? 'Edit this place' : 'Save this location'}</h3>
           </div>
         </div>
         <p className="m-0 mt-1 text-[12px] text-[var(--rd-ink-3)]">
@@ -81,7 +83,7 @@ export default function TrackPlaceDraft({
           disabled={saving}
           data-testid="save-place"
         >
-          {saving ? 'Saving…' : 'Save place'}
+          {saving ? 'Saving…' : draft?.mode === 'edit' ? 'Save changes' : 'Save place'}
         </button>
       </div>
     </section>

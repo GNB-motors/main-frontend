@@ -39,7 +39,7 @@ describe('place visit history', () => {
   });
 
   it.each([
-    [{ loading: true }, 'Loading visits…'],
+    [{ loading: true }, 'Loading recent visits…'],
     [
       { loading: false, error: new Error('unavailable') },
       'Visit history could not be loaded. Reopen this place to try again.',

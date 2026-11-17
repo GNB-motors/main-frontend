@@ -81,6 +81,9 @@ const PlaceIntelligenceService = {
   accept: async ({ id, ...body }, { signal } = {}) =>
     unwrap(await apiClient.post(`${BASE}/sites/${id}/accept`, body, { signal })),
 
+  move: async ({ id, ...body }, { signal } = {}) =>
+    unwrap(await apiClient.post(`${BASE}/sites/${id}/move`, body, { signal })),
+
   reject: async ({ id, note }, { signal } = {}) =>
     unwrap(await apiClient.post(`${BASE}/sites/${id}/reject`, note ? { note } : {}, { signal })),
 
@@ -96,6 +99,12 @@ const PlaceIntelligenceService = {
 
   listBreaks: async (params = {}, { signal } = {}) =>
     parsed('breakListSchema', await apiClient.get(`${BASE}/breaks`, { params, signal })),
+
+  identifyStopPlace: async ({ id, ...body }, { signal } = {}) =>
+    unwrap(await apiClient.post(`${BASE}/stops/${id}/identify-place`, body, { signal })),
+
+  identifyTrackPointPlace: async (body, { signal } = {}) =>
+    unwrap(await apiClient.post(`${BASE}/track-points/identify-place`, body, { signal })),
 
   tagStop: async ({ id, purpose }, { signal } = {}) =>
     unwrap(await apiClient.post(`${BASE}/stops/${id}/reason`, { purpose }, { signal })),

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { filterIndianPumps } from './indiaPumpFilter';
 import { fleetViewService } from '../../services/fleetViewService';
 import { apiLayerNames, layersForZoom, LAYER_API_NAMES } from './trackLegendModel';
 
@@ -29,6 +30,7 @@ export default function useMapPlaces({
   bbox = null,
   zoom = 0,
   layers = null,
+  scopes = {},
   enabled = true,
 } = {}) {
   const allowedLayers = useMemo(
@@ -36,6 +38,11 @@ export default function useMapPlaces({
     [zoom, layers],
   );
   const layerParam = apiLayerNames(allowedLayers);
+  const visitedLayers = allowedLayers
+    .filter((id) => scopes[id] === 'visited')
+    .map((id) => LAYER_API_NAMES[id])
+    .join(',');
+  const queryKey = `${layerParam}:${visitedLayers}`;
   const boxKey = bbox?.join(',') || '';
   const requestEnabled = enabled && Boolean(boxKey) && Boolean(layerParam);
   const cache = useRef([]);
@@ -51,12 +58,19 @@ export default function useMapPlaces({
     const view = boxKey.split(',').map(Number);
     const hit = cache.current.find(
       (entry) =>
-        entry.layers === layerParam &&
+        entry.layers === queryKey &&
         Date.now() - entry.at < CACHE_MS &&
         (entry.data.truncated ? sameBox(entry.view, view) : contains(entry.bounds, view)),
     );
     if (hit) {
-      setState({ data: hit.data, loading: false, error: null, held: false });
+      setState({
+        data: hit.data,
+        bounds: hit.bounds,
+        queryKey,
+        loading: false,
+        error: null,
+        held: false,
+      });
       return undefined;
     }
     const controller = new AbortController();
@@ -65,18 +79,23 @@ export default function useMapPlaces({
     const timer = setTimeout(async () => {
       const bounds = padded(view);
       try {
-        const data = await fleetViewService.getMapPlaces({
+        let data = await fleetViewService.getMapPlaces({
           bbox: [bounds[1], bounds[0], bounds[3], bounds[2]].join(','),
           layers: layerParam,
+          visitedLayers,
           signal: controller.signal,
         });
         if (controller.signal.aborted) return;
         if (!data?.held && Array.isArray(data?.items)) {
-          cache.current.unshift({ view, bounds, layers: layerParam, data, at: Date.now() });
+          data = { ...data, items: await filterIndianPumps(data.items, ['pumps', 'dhabas']) };
+          if (controller.signal.aborted) return;
+          cache.current.unshift({ view, bounds, layers: queryKey, data, at: Date.now() });
           cache.current = cache.current.slice(0, CACHE_LIMIT);
         }
         setState((previous) => ({
           data: data?.held ? previous.data : data,
+          bounds: data?.held ? previous.bounds : bounds,
+          queryKey: data?.held ? previous.queryKey : queryKey,
           held: data?.held === true,
           loading: false,
           error: null,
@@ -90,20 +109,42 @@ export default function useMapPlaces({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [boxKey, layerParam, requestEnabled, revision]);
+  }, [boxKey, layerParam, visitedLayers, queryKey, requestEnabled, revision]);
 
   const { data, loading, error, held } = state;
   const items = useMemo(() => {
     if (!requestEnabled || !Array.isArray(data?.items)) return EMPTY;
     const active = new Set(layerParam.split(','));
-    return data.items.filter((item) => active.has(item.layer));
-  }, [requestEnabled, data, layerParam]);
+    const visited = new Set(visitedLayers.split(','));
+    return data.items.filter(
+      (item) =>
+        active.has(item.layer) &&
+        (!visited.has(item.layer) || item.visited === true) &&
+        (!bbox ||
+          (item.lat >= bbox[0] &&
+            item.lng >= bbox[1] &&
+            item.lat <= bbox[2] &&
+            item.lng <= bbox[3])),
+    );
+  }, [requestEnabled, data, layerParam, visitedLayers, boxKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const viewReady =
+    state.queryKey === queryKey && state.bounds && (!bbox || contains(state.bounds, bbox));
+  const truncatedByLayer = Object.fromEntries(
+    allowedLayers.map((id) => [
+      id,
+      Array.isArray(data?.truncatedLayers)
+        ? LAYER_API_NAMES[id].split(',').some((layer) => data.truncatedLayers.includes(layer))
+        : Boolean(data?.truncated),
+    ]),
+  );
   const notAvailable = error?.status === 404;
   return {
     items,
     truncated: Boolean(data?.truncated),
-    loading: requestEnabled && loading,
-    loaded: requestEnabled && !loading && !error && !held && Array.isArray(data?.items),
+    truncatedByLayer,
+    loading: requestEnabled && (loading || (!error && !viewReady)),
+    loaded:
+      requestEnabled && viewReady && !loading && !error && !held && Array.isArray(data?.items),
     counts: Object.fromEntries(
       allowedLayers.map((id) => [
         id,

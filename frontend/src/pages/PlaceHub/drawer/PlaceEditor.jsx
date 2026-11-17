@@ -21,6 +21,8 @@ export default function PlaceEditor({
   onPick,
   onCancel,
   onSave,
+  polygonHelp = false,
+  boundaryOnly = false,
 }) {
   const meta = KIND_META[draft.kind];
   const Icon = KIND_ICON[draft.kind];
@@ -44,7 +46,7 @@ export default function PlaceEditor({
     <Frame
       icon={<TypeTile type={draft.kind} Icon={Icon} size={40} />}
       eyebrow={draft.mode === 'edit' ? 'Editing' : 'New place'}
-      title={`${verb} ${meta.label.toLowerCase()}`}
+      title={boundaryOnly ? 'Edit place boundary' : `${verb} ${meta.label.toLowerCase()}`}
       onClose={onCancel}
       footer={
         <>
@@ -88,7 +90,9 @@ export default function PlaceEditor({
           })}
         </div>
       )}
-      <p className="ph-muted">{meta.hint}</p>
+      <p className="ph-muted">
+        {boundaryOnly ? 'Change the area used to recognise visits to this place.' : meta.hint}
+      </p>
 
       <Field label="Find on map" hint="Search, or click straight on the map.">
         <LocationSearch
@@ -102,6 +106,8 @@ export default function PlaceEditor({
         <input
           className="ph-text"
           aria-label="Name"
+          readOnly={boundaryOnly}
+          title={boundaryOnly ? 'Change the name using Edit place.' : undefined}
           value={draft.name}
           onChange={(e) => onChange({ name: e.target.value })}
           placeholder={draft.kind === 'WAREHOUSE' ? 'e.g. Dankuni yard' : 'e.g. Tata Steel gate 3'}
@@ -147,6 +153,19 @@ export default function PlaceEditor({
       {draft.shape === 'polygon' ? (
         <div className={`ph-field${errors.shape ? ' has-error' : ''}`}>
           <span className="ph-field-label">Outline</span>
+          {polygonHelp ? (
+            <details className="lt-polygon-help" open>
+              <summary>How to draw the boundary</summary>
+              <p>
+                Click the map at each corner of the place, following its outer edge. Add at least 3
+                corners, then click the first corner again or choose Finish to close the outline.
+              </p>
+              <p>
+                Use Undo to remove the last corner, or Clear to start again. Save when the boundary
+                is ready.
+              </p>
+            </details>
+          ) : null}
           <div className="ph-outline">
             <span>
               {draft.polygonDone
@@ -204,7 +223,7 @@ export default function PlaceEditor({
         </>
       )}
 
-      {draft.kind === 'ZONE' && (
+      {draft.kind === 'ZONE' && !boundaryOnly && (
         <div className="ph-field">
           <span className="ph-field-label">
             <BellRing size={13} /> Alerts

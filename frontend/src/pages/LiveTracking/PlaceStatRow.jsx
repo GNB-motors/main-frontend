@@ -1,8 +1,9 @@
+import Skel from './Skel.jsx';
 import InfoTip from '../../components/redesign/InfoTip';
 import { formatDuration } from '../../utils/redesign/format';
 import { compactDuration } from './placeDetailFormat.js';
 
-export default function PlaceStatRow({ stats, trucksHere = 0 }) {
+export default function PlaceStatRow({ stats, trucksHere = 0, loading = false }) {
   const usualDwell = stats?.usualDwellMin ?? null;
   const visits = stats?.visits ?? null;
   const metrics = [
@@ -27,14 +28,16 @@ export default function PlaceStatRow({ stats, trucksHere = 0 }) {
     },
   ];
   return (
-    <dl className="pd-stats" aria-label="Place activity">
+    <dl className="pd-stats" aria-label="Place activity" aria-busy={loading}>
       {metrics.map((m) => (
         <div key={m.label} className="pd-stat">
           <dt>
             {m.label}
             <InfoTip label={`About ${m.label.toLowerCase()}`} text={m.why} />
           </dt>
-          <dd title={m.title}>{m.value}</dd>
+          <dd title={m.title}>
+            {loading && m.label !== 'Here now' ? <Skel w={54} h={22} /> : m.value}
+          </dd>
           <span className="pd-stat-sub">{m.sub}</span>
         </div>
       ))}

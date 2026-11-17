@@ -8,19 +8,19 @@ import { placeTypeIcon } from '../../../utils/placeTypeIcon.js';
  * model/siteVocabulary.js so they stay testable without React.
  */
 const TYPE_STYLE = {
-  FUEL_PUMP: { color: '#d97706' },
-  LOADING: { color: '#2563eb' },
-  UNLOADING: { color: '#7c3aed' },
-  PLANT: { color: '#0f766e' },
-  WAREHOUSE: { color: '#1e3a8a' },
-  YARD: { color: '#334155' },
-  PARKING: { color: '#475569' },
-  VEHICLE_HABIT: { color: '#64748b' },
-  WORKSHOP: { color: '#be123c' },
+  FUEL_PUMP: { color: '#0ea5e9' }, // sky blue — matches the pump map layer
+  LOADING: { color: '#2563eb' }, // blue
+  UNLOADING: { color: '#7c3aed' }, // violet
+  PLANT: { color: '#1f3fbf' }, // royal blue — matches the plant map layer
+  WAREHOUSE: { color: '#1e3a8a' }, // navy
+  YARD: { color: '#334155' }, // slate
+  PARKING: { color: '#0891b2' }, // cyan
+  VEHICLE_HABIT: { color: '#64748b' }, // grey
+  WORKSHOP: { color: '#be123c' }, // crimson
   SERVICE: { color: '#be123c' },
-  DHABA: { color: '#15803d' },
-  TOLL: { color: '#0891b2' },
-  CHECKPOST: { color: '#0e7490' },
+  DHABA: { color: '#d97706' }, // amber — matches the dhaba map layer
+  TOLL: { color: '#6b7280' }, // grey — matches the toll map layer
+  CHECKPOST: { color: '#0e7490' }, // dark cyan
   UNKNOWN: { color: '#9ca3af' },
 };
 

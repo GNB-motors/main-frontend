@@ -3,7 +3,9 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import useTrackTolls, { tollViewBoxes } from './useTrackTolls.js';
 import PlaceIntelligenceService from '../PlaceHub/intelligence/PlaceIntelligenceService.js';
 
-vi.mock('../PlaceHub/intelligence/PlaceIntelligenceService.js', () => ({ default: { listTollPlazas: vi.fn() } }));
+vi.mock('../PlaceHub/intelligence/PlaceIntelligenceService.js', () => ({
+  default: { listTollPlazas: vi.fn() },
+}));
 
 describe('toll map scope', () => {
   it('covers the whole visible box without exceeding the API six-degree limit', () => {
@@ -17,10 +19,35 @@ describe('toll map scope', () => {
     expect(tollViewBoxes([6, 68, 38, 98], 5)).toEqual([]);
     expect(tollViewBoxes([21, 90, 25, 80], 9)).toEqual([]);
   });
+  it('does not expose the previous viewport tolls while the next viewport is loading', async () => {
+    PlaceIntelligenceService.listTollPlazas.mockImplementation(async ({ scope }) => ({
+      items: scope === 'visited' ? [] : [{ id: 'north', lat: 25, lng: 88 }],
+    }));
+    const { result, rerender } = renderHook(
+      ({ bbox }) => useTrackTolls({ enabled: true, showAll: true, bbox, zoom: 8 }),
+      { initialProps: { bbox: [24, 87, 26, 89] } },
+    );
+    await waitFor(() => expect(result.current.allCount).toBe(1));
+    PlaceIntelligenceService.listTollPlazas.mockImplementation(() => new Promise(() => {}));
+    rerender({ bbox: [10, 76, 12, 78] });
+    expect(result.current.plazas).toEqual([]);
+    expect(result.current.allCount).toBeNull();
+  });
+
   it('keeps visited plazas and adds/removes others when scope changes', async () => {
-    PlaceIntelligenceService.listTollPlazas.mockImplementation(async ({ scope }) => ({ items: scope === 'visited'
-      ? [{ id: 'a', visited: true }] : [{ id: 'a', visited: true }, { id: 'b', visited: false }] }));
-    const { result, rerender } = renderHook(({ all }) => useTrackTolls({ enabled: true, showAll: all, bbox: [22, 86, 25, 89], zoom: 8 }), { initialProps: { all: false } });
+    PlaceIntelligenceService.listTollPlazas.mockImplementation(async ({ scope }) => ({
+      items:
+        scope === 'visited'
+          ? [{ id: 'a', visited: true }]
+          : [
+              { id: 'a', visited: true },
+              { id: 'b', visited: false },
+            ],
+    }));
+    const { result, rerender } = renderHook(
+      ({ all }) => useTrackTolls({ enabled: true, showAll: all, bbox: [22, 86, 25, 89], zoom: 8 }),
+      { initialProps: { all: false } },
+    );
     await waitFor(() => expect(result.current.visitedCount).toBe(1));
     expect(result.current.plazas.map((p) => p.id)).toEqual(['a']);
     act(() => rerender({ all: true }));

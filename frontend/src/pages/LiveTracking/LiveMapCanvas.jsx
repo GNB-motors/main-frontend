@@ -74,6 +74,8 @@ export default function LiveMapCanvas({
   trackPlayheadTime = null,
   trackRoad = null,
   trackTolls = null,
+  trackReg = '',
+  trackReplay = true,
   reviewItems = [],
   selectedReviewId = null,
   onSelectReviewSite,
@@ -111,12 +113,13 @@ export default function LiveMapCanvas({
   // In Track mode only the tracked truck matters, drawn by TrackMapLayers as
   // the moving playhead; the rest of the live fleet is hidden so the owner
   // watches one truck at a time (back out to pick another).
-  const fleetOnMap = track
-    ? []
-    : focusedMapVehicles(mapVehicles, {
-        selectedId,
-        replayOn: replayState.on,
-      });
+  const fleetOnMap =
+    track && trackReplay
+      ? []
+      : focusedMapVehicles(mapVehicles, {
+          selectedId,
+          replayOn: replayState.on,
+        });
 
   // In Track mode the truck being watched is drawn by ReplayTruckMarker: an
   // overlay that sits above the line and turns with the heading. Its position
@@ -135,7 +138,7 @@ export default function LiveMapCanvas({
   useEffect(() => {
     if (!track || !mapInstance || !window.google?.maps?.LatLngBounds) return;
     if (trackPoints.length < 2) return;
-    const key = `${trackPoints.length}:${trackPoints[0]?.t ?? ''}:${
+    const key = `${trackReg}:${trackPoints.length}:${trackPoints[0]?.t ?? ''}:${
       trackPoints[trackPoints.length - 1]?.t ?? ''
     }`;
     if (fittedTrailRef.current === key) return;
@@ -143,7 +146,7 @@ export default function LiveMapCanvas({
     const bounds = new window.google.maps.LatLngBounds();
     trackPoints.forEach((point) => bounds.extend({ lat: point.lat, lng: point.lng }));
     mapInstance.fitBounds(bounds, trackFitPadding({ placesPanelOpen }));
-  }, [track, trackPoints, mapInstance, placesPanelOpen]);
+  }, [track, trackPoints, mapInstance, placesPanelOpen, trackReg]);
 
   // Keep the truck in view while the drive plays: when it comes close to an
   // edge of the visible box the map is panned to it. The zoom never changes.
@@ -228,7 +231,8 @@ export default function LiveMapCanvas({
           }}
           onClick={(event) => {
             setSelectedHalt(null);
-            if (draft && event?.latLng) onDraftMapClick?.({ lat: event.latLng.lat(), lng: event.latLng.lng() });
+            if (draft && event?.latLng)
+              onDraftMapClick?.({ lat: event.latLng.lat(), lng: event.latLng.lng() });
           }}
           options={effectiveMapOptions}
         >
@@ -236,15 +240,48 @@ export default function LiveMapCanvas({
               on the congestion in the vehicle panel's ETA, which comes from
               our own road network, not from this layer. */}
           <TrafficLayer map={map} enabled={isTrafficOn} />
-          {!track && !replayState.on && !isTrailVisible ? <PassiveTrailLayer trail={passiveTrail} color={resolveMapColor(selectedStatusColor)} /> : null}
-          {predictionLines(whereNext?.data, whereNext?.open, whereNextPosition).map(({ path, index, weak }) => (
-            <PolylineF key={`where-next-${index}`} path={path} options={{
-              strokeOpacity: 0,
-              icons: [{ icon: { path: 'M 0,-1 0,1', strokeColor: resolveMapColor(selectedStatusColor), strokeOpacity: index || weak ? 0.35 : 0.9, strokeWeight: index ? 2 : 3, scale: 3 }, offset: '0', repeat: '16px' }],
-            }} />
-          ))}
-          {whereNext?.data && !whereNext.data.held && Number.isFinite(whereNext.data.destinations?.[0]?.place?.lat) && Number.isFinite(whereNext.data.destinations?.[0]?.place?.lng) ? (
-            <MarkerF position={{ lat: whereNext.data.destinations[0].place.lat, lng: whereNext.data.destinations[0].place.lng }} title={destinationHeading(whereNext.data.destinations[0])} label={{ text: destinationHeading(whereNext.data.destinations[0]), className: 'where-next-map-label' }} />
+          {!track && !replayState.on && !isTrailVisible ? (
+            <PassiveTrailLayer trail={passiveTrail} color={resolveMapColor(selectedStatusColor)} />
+          ) : null}
+          {predictionLines(whereNext?.data, whereNext?.open, whereNextPosition).map(
+            ({ path, index, weak }) => (
+              <PolylineF
+                key={`where-next-${index}`}
+                path={path}
+                options={{
+                  strokeOpacity: 0,
+                  icons: [
+                    {
+                      icon: {
+                        path: 'M 0,-1 0,1',
+                        strokeColor: resolveMapColor(selectedStatusColor),
+                        strokeOpacity: index || weak ? 0.35 : 0.9,
+                        strokeWeight: index ? 2 : 3,
+                        scale: 3,
+                      },
+                      offset: '0',
+                      repeat: '16px',
+                    },
+                  ],
+                }}
+              />
+            ),
+          )}
+          {whereNext?.data &&
+          !whereNext.data.held &&
+          Number.isFinite(whereNext.data.destinations?.[0]?.place?.lat) &&
+          Number.isFinite(whereNext.data.destinations?.[0]?.place?.lng) ? (
+            <MarkerF
+              position={{
+                lat: whereNext.data.destinations[0].place.lat,
+                lng: whereNext.data.destinations[0].place.lng,
+              }}
+              title={destinationHeading(whereNext.data.destinations[0])}
+              label={{
+                text: destinationHeading(whereNext.data.destinations[0]),
+                className: 'where-next-map-label',
+              }}
+            />
           ) : null}
 
           {/* Track mode: one truck's history, drawn over the live map. */}
@@ -264,6 +301,9 @@ export default function LiveMapCanvas({
               position={{ lat: trackPlayhead.lat, lng: trackPlayhead.lng }}
               heading={trackPlayhead.headingDeg ?? 0}
               fast={(trackPlayhead.speedKmh ?? 0) > DEFAULT_LIMIT_KMH}
+              speedKmh={trackPlayhead.speedKmh ?? 0}
+              ignition={trackPlayhead.ignition}
+              registration={trackReg || track?.vehicle?.registrationNumber || track?.reg || ''}
             />
           ) : null}
 
@@ -283,11 +323,7 @@ export default function LiveMapCanvas({
           {/* The landmark layers (pumps, dhabas, hospitals…) — under the
               fleet too, so a truck is never hidden by a pin. */}
           <TollLayer plazas={tollPlazas} interactive markerIcon={tollMarkerIcon} />
-          <MapPlacesLayer
-            places={extraPlaces}
-            selectedId={selectedPlaceId}
-            zoom={mapZoom}
-          />
+          <MapPlacesLayer places={extraPlaces} selectedId={selectedPlaceId} zoom={mapZoom} />
 
           {/* The live control room's own layers: the places nobody has
               answered for, the routes the fleet runs, and the trucks idling
@@ -301,10 +337,15 @@ export default function LiveMapCanvas({
             />
           ) : null}
 
-          {!track && idlingRows.length ? <TrackIdlingLayer rows={idlingRows} onSelect={onSelectIdling} /> : null}
+          {!track && idlingRows.length ? (
+            <TrackIdlingLayer rows={idlingRows} onSelect={onSelectIdling} />
+          ) : null}
 
           <FocusedRouteLayer route={focusedRoute} />
-          {!focusedRoute && !track && (routeKind === 'delivery' || mapZoom >= 7) && routeLines.length ? (
+          {!focusedRoute &&
+          !track &&
+          (routeKind === 'delivery' || mapZoom >= 7) &&
+          routeLines.length ? (
             <RouteLayer
               dimmed={Boolean(selectedId)}
               map={map}
@@ -460,7 +501,10 @@ export default function LiveMapCanvas({
                     <PolylineF
                       key={`replay-road-${layer.kind}-${layer.t0}`}
                       path={layer.path}
-                      options={replayAppearance.googleRoad(layer, window.google.maps.SymbolPath.CIRCLE)}
+                      options={replayAppearance.googleRoad(
+                        layer,
+                        window.google.maps.SymbolPath.CIRCLE,
+                      )}
                     />
                   ))
                 : replayRunPaths.map(({ key, path }) => (

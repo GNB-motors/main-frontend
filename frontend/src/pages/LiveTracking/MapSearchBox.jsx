@@ -1,7 +1,7 @@
 import { Search, X } from 'lucide-react';
 
 /**
- * MapSearchBox — the floating search field at the top-left of the map.
+ * MapSearchBox — search for the tracking map or its docked list panel.
  *
  * It holds the same search state as the fleet list, so "/" still focuses it
  * from anywhere. On a narrow screen it collapses to an icon that expands,
@@ -13,6 +13,7 @@ export default function MapSearchBox({
   inputRef = null,
   placeholder = 'Search truck or place',
   compact = false,
+  placement = 'map',
 }) {
   // On a phone the field is narrow, so the placeholder is shortened to fit.
   // A one-off read, not a subscribed hook: the map remounts this box on its
@@ -21,7 +22,7 @@ export default function MapSearchBox({
     typeof window !== 'undefined' && window.matchMedia?.('(max-width: 600px)').matches;
   return (
     <div
-      className={`ov-search flex h-10 items-center gap-2 rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] px-3 shadow-[var(--rd-shadow-float)] ${
+      className={`${placement === 'panel' ? 'lt-panel-search-field' : 'ov-search'} flex h-10 items-center gap-2 rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] px-3 shadow-[var(--rd-shadow-float)] ${
         compact ? 'ov-search--compact justify-center' : ''
       }`}
     >
@@ -31,9 +32,9 @@ export default function MapSearchBox({
         type="search"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder={isPhone ? 'Search' : placeholder}
+        placeholder={isPhone && placement !== 'panel' ? 'Search' : placeholder}
         autoComplete="off"
-        aria-label="Search truck or place"
+        aria-label={placement === 'panel' ? placeholder : 'Search truck or place'}
         className={`min-w-0 flex-1 bg-transparent text-[13px] text-[var(--rd-ink)] outline-hidden placeholder:text-[var(--rd-ink-3)] ${
           compact ? 'w-6' : 'w-full'
         }`}

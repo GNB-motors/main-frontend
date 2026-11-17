@@ -97,7 +97,7 @@
 /* ─── Needs your answer ───────────────────────────────────────────────── */
 .atx-needs {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr);
+  grid-template-columns: minmax(0, 1.35fr) minmax(560px, 1fr);
   border: 1px solid var(--rd-line);
   border-radius: 10px;
   background: var(--rd-card);
@@ -206,10 +206,17 @@
 }
 .atx-needs-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
   margin-top: auto;
-  padding-top: 4px;
+  padding: 4px 0;
+}
+.atx-needs-actions .atx-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .atx-list .atx-needs-actions .atx-btn {
   border: 1px solid var(--rd-line-strong);

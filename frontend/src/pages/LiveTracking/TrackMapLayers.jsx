@@ -20,7 +20,7 @@ function resolveColor(color) {
  * TrackMapLayers — the map drawing of one truck's history.
  *
  * The rules live in trackLayersModel.js; this component only draws what it
- * is given. In particular an overspeed is an orange circle marker, never a
+ * is given. In particular an overspeed is a red circle marker, never a
  * red line, and a detour is a red diamond.
  */
 export default function TrackMapLayers({
@@ -53,7 +53,10 @@ export default function TrackMapLayers({
             <PolylineF
               key={road.key}
               path={road.path}
-              options={polylineOptions(road, { color: routeColor, symbolCircle: window.google.maps.SymbolPath.CIRCLE })}
+              options={polylineOptions(road, {
+                color: routeColor,
+                symbolCircle: window.google.maps.SymbolPath.CIRCLE,
+              })}
             />
           ))
         : layers.segments.map((segment) =>
@@ -66,7 +69,7 @@ export default function TrackMapLayers({
             ) : null,
           )}
 
-      {/* 2. Overspeed: orange circles, never a red line. */}
+      {/* 2. Overspeed: red circles, never a red line. */}
       {showOverspeed
         ? layers.overspeed.map((marker) => (
             <MarkerF

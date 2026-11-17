@@ -1,4 +1,4 @@
-import ReviewActions from '../PlaceHub/intelligence/ReviewActions.jsx';
+import TrackReviewActions from './TrackReviewActions.jsx';
 import useSiteAnswer from '../PlaceHub/intelligence/useSiteAnswer.js';
 import { canEditPlaces } from '../PlaceHub/model/placeHubConfig.js';
 import { getUserRole } from '../../utils/session';
@@ -15,6 +15,7 @@ export default function TrackReviewPanel({
   site,
   onAnswered,
   onEditFence,
+  onEditPlace,
   onClose,
   backLabel = 'Back to places',
 }) {
@@ -75,8 +76,18 @@ export default function TrackReviewPanel({
               ? 'Confirmed place'
               : site.status === 'REJECTED'
                 ? 'Not a real place'
-                : 'Needs confirmation'}
+                : 'Pending review'}
           </span>
+          {canAnswer && site.status === 'CONFIRMED' && onEditPlace ? (
+            <button
+              type="button"
+              className="ph-btn"
+              disabled={Boolean(answer.busyId)}
+              onClick={() => onEditPlace(site)}
+            >
+              Edit place
+            </button>
+          ) : null}
           {site.address?.formatted ? (
             <div className="lt-place-address">
               <span className="lt-place-eyebrow">Address</span>
@@ -101,13 +112,6 @@ export default function TrackReviewPanel({
                 : 'This place has not been confirmed yet.'}
           </p>
         </section>
-        <section className="lt-place-classification" aria-label="Place type">
-          {canAnswer ? (
-            <ReviewActions key={site._id} site={site} answer={answer} />
-          ) : (
-            <p className="pi-note">Only owners and managers can answer for a place.</p>
-          )}
-        </section>
         {canAnswer ? (
           <section className="lt-place-boundary">
             <span className="lt-place-boundary-icon">
@@ -127,6 +131,18 @@ export default function TrackReviewPanel({
             </button>
           </section>
         ) : null}
+        <section className="lt-place-classification" aria-label="Place type">
+          {canAnswer ? (
+            <TrackReviewActions
+              key={site._id}
+              site={site}
+              answer={answer}
+              onReviewLater={onClose}
+            />
+          ) : (
+            <p className="pi-note">Only owners and managers can answer for a place.</p>
+          )}
+        </section>
       </div>
     </div>
   );

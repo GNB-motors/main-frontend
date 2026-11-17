@@ -1,3 +1,4 @@
+import Skel from './Skel.jsx';
 import { TRACK_PLACE_GROUPS } from './trackPlaces.js';
 
 /* Which kinds of place are on the map — shown under the layer pills while
@@ -10,7 +11,14 @@ export default function TrackPlacesFilter({
   toggleGroup,
   retry,
 }) {
-  if (loading) return <div className="lp-places-note">Loading places…</div>;
+  if (loading)
+    return (
+      <div className="lt-place-filter-skeleton" aria-hidden="true">
+        <Skel w={72} h={25} />
+        <Skel w={90} h={25} />
+        <Skel w={65} h={25} />
+      </div>
+    );
   const groups = TRACK_PLACE_GROUPS.filter((g) => counts[g.id] > 0);
   return (
     <div className="lp-places" role="group" aria-label="Place types on the map">

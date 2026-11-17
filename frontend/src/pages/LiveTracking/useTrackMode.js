@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useApi } from '../../hooks/useApi';
 import { fleetViewService } from '../../services/fleetViewService';
 import RoadService from '../../services/RoadService';
-import { buildTrackUrl, parseTrackParams, toIso } from './trackUrlModel';
+import { parseTrackParams, toIso } from './trackUrlModel';
 import { MS_PER_TRACK_MINUTE, indexAtTime, timeAtIndex } from './trackPlayback';
 
 /**
@@ -14,18 +14,36 @@ import { MS_PER_TRACK_MINUTE, indexAtTime, timeAtIndex } from './trackPlayback';
  * and runs the playhead.
  */
 export default function useTrackMode({ searchParams, setSearchParams }) {
-  const state = useMemo(() => parseTrackParams(searchParams), [searchParams]);
+  const regParam = searchParams?.get('v') || null;
+  const contextReg = regParam || searchParams?.get('vehicle') || null;
+  const fromParam = searchParams?.get('from');
+  const toParam = searchParams?.get('to');
+  const atParam = searchParams?.get('at');
+  const state = useMemo(
+    () =>
+      parseTrackParams(
+        new URLSearchParams({
+          ...(regParam ? { v: regParam } : {}),
+          ...(fromParam ? { from: fromParam } : {}),
+          ...(toParam ? { to: toParam } : {}),
+          ...(atParam ? { at: atParam } : {}),
+        }),
+      ),
+    [regParam, fromParam, toParam, atParam],
+  );
   const isTrackMode = Boolean(state.reg);
+  const enabled = isTrackMode || Boolean(contextReg && searchParams?.get('view') === 'places');
+  const scopeKey = `${contextReg}:${toIso(state.from)}:${toIso(state.to)}`;
 
-  const { data, loading, error } = useApi(
+  const { data, loading, error, refetch } = useApi(
     (signal) =>
-      fleetViewService.getVehicleTrack(state.reg, {
+      fleetViewService.getVehicleTrack(contextReg, {
         from: toIso(state.from),
         to: toIso(state.to),
         signal,
       }),
-    [state.reg, state.from?.getTime(), state.to?.getTime()],
-    { enabled: isTrackMode },
+    [contextReg, state.from?.getTime(), state.to?.getTime()],
+    { enabled, scopeKey },
   );
 
   const track = data?.held === true ? null : (data ?? null);
@@ -39,17 +57,17 @@ export default function useTrackMode({ searchParams, setSearchParams }) {
   const { data: roadData } = useApi(
     (signal) =>
       RoadService.getRoadTrailIfEnabled(
-        state.reg,
+        contextReg,
         { from: toIso(state.from), to: toIso(state.to) },
         signal,
       ),
-    [state.reg, state.from?.getTime(), state.to?.getTime()],
-    { enabled: isTrackMode },
+    [contextReg, state.from?.getTime(), state.to?.getTime()],
+    { enabled, scopeKey },
   );
   const roadTrail = roadData ?? null;
 
   // Independent, abortable read once per vehicle/range, never per playback frame.
-  const tollScope = `${state.reg}:${toIso(state.from)}:${toIso(state.to)}`;
+  const tollScope = scopeKey;
   const {
     data: tolls,
     loading: tollsLoading,
@@ -57,13 +75,13 @@ export default function useTrackMode({ searchParams, setSearchParams }) {
     refetch: retryTolls,
   } = useApi(
     (signal) =>
-      fleetViewService.getVehicleTolls(state.reg, {
+      fleetViewService.getVehicleTolls(contextReg, {
         from: toIso(state.from),
         to: toIso(state.to),
         signal,
       }),
-    [state.reg, state.from?.getTime(), state.to?.getTime()],
-    { enabled: isTrackMode, scopeKey: tollScope },
+    [contextReg, state.from?.getTime(), state.to?.getTime()],
+    { enabled, scopeKey: tollScope },
   );
 
   // The playhead. It starts where the URL says, or at the start of the range.
@@ -132,10 +150,24 @@ export default function useTrackMode({ searchParams, setSearchParams }) {
     };
   }, [isPlaying, points, speed]);
 
-  const seekToTime = useCallback((time) => {
-    setIsPlaying(false);
-    setPlayheadTime(time instanceof Date ? time : new Date(time));
-  }, []);
+  const seekToTime = useCallback(
+    (time) => {
+      const target = time instanceof Date ? time : new Date(time);
+      if (!Number.isFinite(target.getTime())) return;
+      setIsPlaying(false);
+      setPlayheadTime(target);
+      if (isTrackMode)
+        setSearchParams?.(
+          (current) => {
+            const next = new URLSearchParams(current);
+            next.set('at', toIso(target));
+            return next;
+          },
+          { replace: true },
+        );
+    },
+    [isTrackMode, setSearchParams],
+  );
 
   const seekToIndex = useCallback(
     (index) => {
@@ -152,25 +184,45 @@ export default function useTrackMode({ searchParams, setSearchParams }) {
    */
   const applyRange = useCallback(
     ({ from, to, at = null }) => {
-      const next = buildTrackUrl({
-        reg: state.reg,
-        from,
-        to,
-        at: at ?? to,
-      });
-      setSearchParams?.(new URLSearchParams(next.split('?')[1] || ''), { replace: true });
+      setSearchParams?.(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.set('from', toIso(from));
+          next.set('to', toIso(to));
+          next.set('at', toIso(at ?? from));
+          return next;
+        },
+        { replace: true },
+      );
     },
-    [state.reg, setSearchParams],
+    [setSearchParams],
   );
 
   const exitTrackMode = useCallback(() => {
-    setSearchParams?.(new URLSearchParams(''), { replace: true });
+    setIsPlaying(false);
+    setSearchParams?.(
+      (current) => {
+        const next = new URLSearchParams(current);
+        const reg = next.get('v');
+        if (reg) next.set('vehicle', reg);
+        next.delete('v');
+        next.delete('at');
+        return next;
+      },
+      { replace: true },
+    );
   }, [setSearchParams]);
+
+  useEffect(() => {
+    if (searchParams?.get('view') === 'places') setIsPlaying(false);
+  }, [searchParams]);
 
   const playheadIndex = points.length ? indexAtTime(points, playheadTime) : 0;
 
   return {
     isTrackMode,
+    contextReg,
+    refetch,
     reg: state.reg,
     from: state.from,
     to: state.to,
