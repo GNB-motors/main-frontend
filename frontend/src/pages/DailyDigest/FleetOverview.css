@@ -1335,34 +1335,3 @@
   height: 30px;
   text-decoration: none;
 }
-
-/* ── Layout: balanced columns ──────────────────────────────────────────────
- * The cards flow into columns like a newspaper instead of a fixed grid, so a
- * short card no longer leaves a hole beside a tall one and no card is
- * stretched to the height of its tallest neighbour. Self-contained: removing
- * this block restores the fixed grid above. Narrow screens fall back to one
- * column on their own (each column needs its minimum width).
- */
-.fleet-overview .db-grid {
-  display: block;
-  columns: 2 380px;
-  column-gap: 16px;
-  margin-bottom: -16px;
-}
-.fleet-overview .db-grid > .db-col {
-  display: contents;
-}
-.fleet-overview .db-grid .db-card,
-.fleet-overview .db-report-grid > .db-card {
-  break-inside: avoid;
-  margin-bottom: 16px;
-}
-.fleet-overview .db-col--primary > .db-card {
-  flex: none;
-}
-.fleet-overview .db-report-grid {
-  display: block;
-  columns: 4 240px;
-  column-gap: 16px;
-  margin-bottom: -16px;
-}
