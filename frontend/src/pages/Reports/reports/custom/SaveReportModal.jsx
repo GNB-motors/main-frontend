@@ -1,6 +1,6 @@
 import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState, useEffect } from 'react';
-import { X, Save, AlertCircle } from 'lucide-react';
+import { X, Send, ShieldCheck, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { ReportsService } from '../../ReportsService';
 
@@ -56,15 +56,15 @@ export default function SaveReportModal({
 
       if (currentSavedId) {
         await ReportsService.updateSavedCustomReport(currentSavedId, payload);
-        toast.success('Custom report updated successfully.');
+        toast.success('Custom report updated and resubmitted for approval.');
       } else {
         const saved = await ReportsService.createSavedCustomReport(payload);
-        toast.success('Custom report saved successfully.');
+        toast.success('Custom report submitted for Super Admin approval.');
         onSuccess?.(saved._id || saved.id);
       }
       onClose();
     } catch (err) {
-      setError(err?.message || 'Failed to save report configuration.');
+      setError(err?.message || 'Failed to submit report configuration.');
     } finally {
       setSaving(false);
     }
@@ -74,7 +74,11 @@ export default function SaveReportModal({
     <div className="custom-modal-backdrop" role="dialog" aria-modal="true">
       <div className="custom-modal-content">
         <div className="custom-modal-header">
-          <h3>{currentSavedId ? 'Update Saved Report' : 'Save Custom Report'}</h3>
+          <h3>
+            {currentSavedId
+              ? 'Update & Resubmit Custom Report'
+              : 'Submit Custom Report for Approval'}
+          </h3>
           <button type="button" className="col-btn" onClick={onClose} aria-label="Close">
             <X size={18} />
           </button>
@@ -87,6 +91,15 @@ export default function SaveReportModal({
                 <span>{error}</span>
               </div>
             ) : null}
+
+            <div className="text-xs text-blue-800 bg-blue-50 border border-blue-200 p-2.5 rounded-md flex items-start gap-2">
+              <ShieldCheck size={16} className="text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <strong>Super Admin Approval Required:</strong> Submitted custom reports are
+                reviewed by the Super Admin before they can be officially executed or shared. You
+                can track their live status under Requested Reports.
+              </div>
+            </div>
 
             <div className="builder-field-group">
               <label htmlFor="sr-report-name">Report Name *</label>
@@ -133,9 +146,9 @@ export default function SaveReportModal({
             </div>
 
             <div className="text-xs text-slate-500 bg-slate-50 p-2.5 rounded">
-              <strong>Notice:</strong> This saves the dynamic query configuration, not a stale copy
-              of the records. Whenever you re-run this report, it executes against current live
-              data.
+              <strong>Notice:</strong> This submits the dynamic query definition (dataset, fields,
+              filters, aggregations). When executed after approval, it will fetch real-time live
+              fleet data.
             </div>
           </div>
 
@@ -149,8 +162,12 @@ export default function SaveReportModal({
               Cancel
             </button>
             <button type="submit" className="btn-primary-action" disabled={saving}>
-              <Save size={15} />
-              {saving ? 'Saving...' : 'Save Configuration'}
+              <Send size={15} />
+              {saving
+                ? 'Submitting...'
+                : currentSavedId
+                  ? 'Update & Resubmit'
+                  : 'Submit for Super Admin Approval'}
             </button>
           </div>
         </form>

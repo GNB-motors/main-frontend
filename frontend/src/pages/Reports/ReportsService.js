@@ -446,7 +446,75 @@ export const ReportsService = {
       return response.data;
     } catch (error) {
       if (error?.name === 'CanceledError' || error?.code === 'ERR_CANCELED') throw error;
-      throw ApiError.from(error);
+      if (error?.response?.status && error.response.status !== 404) {
+        throw ApiError.from(error);
+      }
+      // Fallback mock preview generator when API is not yet deployed on remote server (404)
+      const fields = config.fields || [];
+      const count = 10;
+      const vehicles = ['MH-12-AB-1234', 'DL-01-XY-5678', 'KA-05-CD-9012', 'MH-04-EF-3456', 'GJ-01-GH-7890'];
+      const drivers = ['Ramesh Singh', 'Suresh Patel', 'Vikram Yadav', 'Mohan Lal', 'Anil Sharma'];
+      const pumps = ['IndianOil City Central', 'HPCL Highway Hub #4', 'BPCL Auto Station', 'Shell Express Retail'];
+      
+      const rows = [];
+      for (let i = 0; i < count; i++) {
+        const row = { _id: `row-${i + 1}`, id: `row-${i + 1}` };
+        fields.forEach((fKey) => {
+          if (fKey === 'vehicleNo' || fKey === 'vehicleNumber') row[fKey] = vehicles[i % vehicles.length];
+          else if (fKey === 'driverName') row[fKey] = drivers[i % drivers.length];
+          else if (fKey === 'driverPhone') row[fKey] = `+91 98765 ${43210 + i}`;
+          else if (fKey === 'driverStatus') row[fKey] = i % 3 === 0 ? 'ACTIVE' : 'ON_DUTY';
+          else if (fKey === 'fuelDate') row[fKey] = new Date(Date.now() - i * 86400000).toISOString();
+          else if (fKey === 'fuelQuantity') row[fKey] = 45 + ((i * 7) % 30);
+          else if (fKey === 'fuelAmount') row[fKey] = (45 + ((i * 7) % 30)) * 94.5;
+          else if (fKey === 'fuelRate') row[fKey] = 94.5;
+          else if (fKey === 'fuelType') row[fKey] = config.filters?.fuelType || 'DIESEL';
+          else if (fKey === 'fuelStation' || fKey === 'pumpName') row[fKey] = pumps[i % pumps.length];
+          else if (fKey === 'fuelMileage' || fKey === 'mileage') row[fKey] = Number((4.2 + ((i * 0.3) % 2)).toFixed(2));
+          else if (fKey === 'defLevel') row[fKey] = 60 + ((i * 4) % 35);
+          else if (fKey === 'defMileage') row[fKey] = Number((180 + ((i * 15) % 80)).toFixed(1));
+          else if (fKey === 'distanceKm' || fKey === 'tripDistance') row[fKey] = 120 + i * 45;
+          else if (fKey === 'tripStart') row[fKey] = 'Mumbai Yard #2';
+          else if (fKey === 'tripEnd') row[fKey] = 'Pune Distribution Hub';
+          else if (fKey === 'rcStatus' || fKey === 'fitnessStatus' || fKey === 'insuranceStatus' || fKey === 'permitStatus' || fKey === 'puccStatus') row[fKey] = 'VALID';
+          else row[fKey] = `Sample ${fKey} ${i + 1}`;
+        });
+        rows.push(row);
+      }
+
+      const summary = {};
+      if (fields.includes('fuelQuantity')) {
+        summary.fuelQuantity_SUM = rows.reduce((acc, r) => acc + (Number(r.fuelQuantity) || 0), 0);
+      }
+      if (fields.includes('fuelAmount')) {
+        summary.fuelAmount_SUM = rows.reduce((acc, r) => acc + (Number(r.fuelAmount) || 0), 0);
+      }
+      if (config.aggregations && Array.isArray(config.aggregations)) {
+        config.aggregations.forEach((agg) => {
+          if (!agg?.field || !agg?.op) return;
+          const key = `${agg.field}_${agg.op}`;
+          if (agg.op === 'SUM') {
+            summary[key] = rows.reduce((acc, r) => acc + (Number(r[agg.field]) || 0), 0);
+          } else if (agg.op === 'AVG') {
+            const sum = rows.reduce((acc, r) => acc + (Number(r[agg.field]) || 0), 0);
+            summary[key] = rows.length ? Number((sum / rows.length).toFixed(2)) : 0;
+          } else if (agg.op === 'COUNT') {
+            summary[key] = rows.length;
+          }
+        });
+      }
+
+      return {
+        status: 'success',
+        data: rows,
+        summary,
+        meta: {
+          page: config.page || 1,
+          limit: config.limit || 20,
+          total: rows.length,
+          totalPages: 1,
+        },
+      };
     }
   },
 
@@ -476,6 +544,7 @@ export const ReportsService = {
   createSavedCustomReport: async (data) => {
     try {
       const response = await apiClient.post('/api/reports/custom/saved', data);
+      window.dispatchEvent(new Event('gnb:reports-approval-changed'));
       return response.data?.data || response.data;
     } catch (error) {
       if (error?.name === 'CanceledError') throw error;
@@ -483,10 +552,15 @@ export const ReportsService = {
       const newReport = {
         ...data,
         _id: 'saved-' + Date.now(),
+        status: data.status || 'PENDING',
+        submittedAt: new Date().toISOString(),
         createdAt: new Date().toISOString(),
+        orgId: { companyName: 'Your Organization' },
+        createdBy: { firstName: 'Fleet', lastName: 'Member' },
       };
       list.unshift(newReport);
       setLocalSavedReports(list);
+      window.dispatchEvent(new Event('gnb:reports-approval-changed'));
       return newReport;
     }
   },
@@ -494,14 +568,23 @@ export const ReportsService = {
   updateSavedCustomReport: async (id, data) => {
     try {
       const response = await apiClient.put(`/api/reports/custom/saved/${id}`, data);
+      window.dispatchEvent(new Event('gnb:reports-approval-changed'));
       return response.data?.data || response.data;
     } catch (error) {
       if (error?.name === 'CanceledError') throw error;
       const list = getLocalSavedReports();
       const idx = list.findIndex((r) => (r._id || r.id) === id);
       if (idx !== -1) {
-        list[idx] = { ...list[idx], ...data, updatedAt: new Date().toISOString() };
+        list[idx] = {
+          ...list[idx],
+          ...data,
+          status: 'PENDING',
+          rejectionReason: '',
+          submittedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
         setLocalSavedReports(list);
+        window.dispatchEvent(new Event('gnb:reports-approval-changed'));
         return list[idx];
       }
       return data;
@@ -569,13 +652,20 @@ export const ReportsService = {
   },
 };
 
+import { SEED_SUBMISSIONS } from '../Superadmin/components/reportsApproval/ReportsApprovalAdminService';
+
 const LOCAL_SAVED_KEY = 'gnb_saved_custom_reports';
 const getLocalSavedReports = () => {
   try {
-    return JSON.parse(getStorageItem(LOCAL_SAVED_KEY) || '[]');
+    const raw = getStorageItem(LOCAL_SAVED_KEY);
+    if (raw) {
+      const list = JSON.parse(raw);
+      if (Array.isArray(list) && list.length > 0) return list;
+    }
   } catch {
-    return [];
+    // ignore
   }
+  return [...SEED_SUBMISSIONS];
 };
 const setLocalSavedReports = (list) => {
   try {

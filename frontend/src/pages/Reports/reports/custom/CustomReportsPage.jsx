@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Wrench, Bookmark, LayoutTemplate, MessageSquare, Sparkles } from 'lucide-react';
+import { ArrowLeft, Sparkles, RefreshCw, Edit3, CheckCircle2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ReportFrame from '../ReportFrame';
 import CustomReportBuilder from './CustomReportBuilder';
 import CustomReportPreview from './CustomReportPreview';
-import SavedReportsList from './SavedReportsList';
-import ReportTemplatesList from './ReportTemplatesList';
 import FieldRequestsView from './FieldRequestsView';
 import { ReportsService } from '../../ReportsService';
 import { getUserRole } from '../../../../utils/session';
@@ -35,7 +33,7 @@ const DEFAULT_CONFIG = {
 
 export default function CustomReportsPage() {
   const userRole = getUserRole();
-  const [activeTab, setActiveTab] = useState('builder'); // 'builder' | 'saved' | 'requests' | 'templates'
+  const [activeTab, setActiveTab] = useState('requests'); // 'requests' (default front) | 'builder'
   const [catalog, setCatalog] = useState({ datasets: [], fields: [], unsupportedFields: [] });
   const [config, setConfig] = useState(DEFAULT_CONFIG);
 
@@ -61,6 +59,19 @@ export default function CustomReportsPage() {
         toast.warn('Please select at least one field to generate a preview.');
         return;
       }
+
+      // Validate date range: From date cannot be later than To date
+      const startStr = activeConfig.filters?.startDate;
+      const endStr = activeConfig.filters?.endDate;
+      if (startStr && endStr) {
+        const startYmd = startStr.slice(0, 10);
+        const endYmd = endStr.slice(0, 10);
+        if (startYmd > endYmd) {
+          toast.error('From date cannot be later than To date.');
+          return;
+        }
+      }
+
       setPreviewLoading(true);
       setPreviewError(null);
       setCurrentPage(page);
@@ -85,108 +96,160 @@ export default function CustomReportsPage() {
     [config],
   );
 
-  // When loading a saved report
-  const handleRunSavedReport = (savedReport) => {
-    const loadedConfig = {
-      savedId: savedReport._id || savedReport.id,
-      name: savedReport.name,
-      description: savedReport.description || '',
-      category: savedReport.category || 'GENERAL',
-      dataset: savedReport.dataset || 'fuel_transactions',
-      fields: savedReport.fields || [],
-      filters: savedReport.filters || {},
-      sorting: savedReport.sorting || { field: null, order: 'desc' },
-      aggregations: savedReport.aggregations || [],
-    };
-    setConfig(loadedConfig);
-    setActiveTab('builder');
-    runPreview(loadedConfig, 1);
-  };
-
-  // When loading a template
-  const handleUseTemplate = (template) => {
-    const loadedConfig = {
-      name: template.name,
-      description: template.description || '',
-      category: template.category || 'GENERAL',
-      dataset: template.dataset || 'fuel_transactions',
-      fields: template.fields || [],
-      filters: {},
-      sorting: template.sorting || { field: null, order: 'desc' },
-      aggregations: template.aggregations || [],
-    };
-    setConfig(loadedConfig);
-    setActiveTab('builder');
-    runPreview(loadedConfig, 1);
-  };
-
   return (
     <ReportFrame
       title="Custom Reports"
-      subtitle="Create tailored reports by selecting fields, filters and aggregations across your fleet data."
+      subtitle={
+        activeTab === 'runner'
+          ? `Live execution view and export for "${config.name || 'Custom Report'}".`
+          : activeTab === 'builder'
+            ? 'Create tailored reports by selecting fields, filters and aggregations across your fleet data.'
+            : 'Track and manage custom report field requests, or create custom reports.'
+      }
     >
       <div className="custom-reports-container">
-        {/* Sub-navigation tabs */}
-        <div className="custom-tabs-nav" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'builder'}
-            className={`custom-tab-btn ${activeTab === 'builder' ? 'is-active' : ''}`}
-            onClick={() => setActiveTab('builder')}
-          >
-            <Wrench size={16} />
-            <span>Create Custom Report</span>
-          </button>
+        {/* View 1: Report Runner (Dedicated Live Report View) */}
+        {activeTab === 'runner' && (
+          <div className="flex flex-col gap-5">
+            {/* Header with Navigation and Quick Actions */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 flex-wrap gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+                  onClick={() => setActiveTab('requests')}
+                  aria-label="Back to Requested Reports"
+                >
+                  <ArrowLeft size={15} />
+                  <span>Back to Requested Reports</span>
+                </button>
+                <span className="text-slate-300">|</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                    {config.category || 'GENERAL'}
+                  </span>
+                  <h3 className="text-base font-bold text-slate-900">
+                    {config.name || 'Untitled Custom Report'}
+                  </h3>
+                  {config.status === 'APPROVED' && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <CheckCircle2 size={13} className="text-emerald-600" />
+                      <span>Approved by Super Admin</span>
+                    </span>
+                  )}
+                </div>
+              </div>
 
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'saved'}
-            className={`custom-tab-btn ${activeTab === 'saved' ? 'is-active' : ''}`}
-            onClick={() => setActiveTab('saved')}
-          >
-            <Bookmark size={16} />
-            <span>My Saved Reports</span>
-          </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="btn-secondary-action !py-1.5 !px-3 !text-xs inline-flex items-center gap-1.5"
+                  onClick={() => runPreview(config, currentPage)}
+                  disabled={previewLoading}
+                  title="Re-run Report"
+                >
+                  <RefreshCw size={13} className={previewLoading ? 'animate-spin' : ''} />
+                  <span>Re-run Report</span>
+                </button>
 
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'templates'}
-            className={`custom-tab-btn ${activeTab === 'templates' ? 'is-active' : ''}`}
-            onClick={() => setActiveTab('templates')}
-          >
-            <LayoutTemplate size={16} />
-            <span>Report Templates</span>
-          </button>
+                <button
+                  type="button"
+                  className="btn-secondary-action !py-1.5 !px-3 !text-xs inline-flex items-center gap-1.5"
+                  onClick={() => setActiveTab('builder')}
+                  title="Open in Builder to view or edit configuration"
+                >
+                  <Edit3 size={13} />
+                  <span>Edit in Builder</span>
+                </button>
+              </div>
+            </div>
 
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'requests'}
-            className={`custom-tab-btn ${activeTab === 'requests' ? 'is-active' : ''}`}
-            onClick={() => setActiveTab('requests')}
-          >
-            <MessageSquare size={16} />
-            <span>Requested Reports</span>
-          </button>
-        </div>
+            {/* Quick Report Meta Bar */}
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-600 flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-4 flex-wrap">
+                <div>
+                  <span className="text-slate-400 font-medium">Dataset: </span>
+                  <code className="bg-white px-1.5 py-0.5 rounded border border-slate-200 font-mono text-slate-800">
+                    {config.dataset}
+                  </code>
+                </div>
+                <div>
+                  <span className="text-slate-400 font-medium">Columns: </span>
+                  <span className="font-semibold text-slate-800">
+                    {config.fields?.length || 0} fields
+                  </span>
+                </div>
+                {(config.filters?.startDate || config.filters?.endDate) && (
+                  <div>
+                    <span className="text-slate-400 font-medium">Date Range: </span>
+                    <span className="font-semibold text-slate-800">
+                      {config.filters?.startDate ? config.filters.startDate.slice(0, 10) : 'Any'} →{' '}
+                      {config.filters?.endDate ? config.filters.endDate.slice(0, 10) : 'Any'}
+                    </span>
+                  </div>
+                )}
+                {config.description && (
+                  <div className="text-slate-500 italic max-w-md truncate">
+                    &ldquo;{config.description}&rdquo;
+                  </div>
+                )}
+              </div>
+            </div>
 
-        {/* Tab 1: Builder & Preview */}
+            {/* Live Report Results */}
+            <div className="custom-builder-card !p-4">
+              <div className="builder-section-title">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={16} className="text-blue-600" />
+                  <span>Live Report Results: {config.name || 'Untitled Report'}</span>
+                </div>
+              </div>
+
+              <CustomReportPreview
+                config={config}
+                catalog={catalog}
+                reportData={previewData}
+                loading={previewLoading}
+                error={previewError}
+                onRetry={() => runPreview(config, currentPage)}
+                onPageChange={(page) => runPreview(config, page)}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* View 2: Builder & Preview */}
         {activeTab === 'builder' && (
           <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+                onClick={() => setActiveTab('requests')}
+                aria-label="Back to Requested Reports"
+              >
+                <ArrowLeft size={15} />
+                <span>Back to Requested Reports</span>
+              </button>
+              <span className="text-xs text-slate-400 font-medium">Create Custom Report</span>
+            </div>
+
             <CustomReportBuilder
               catalog={catalog}
               config={config}
               onChange={setConfig}
-              onRunPreview={() => runPreview(config, 1)}
+              onRunPreview={() => {
+                runPreview(config, 1);
+                setTimeout(() => {
+                  document.getElementById('report-preview-section')?.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+              }}
               loading={previewLoading}
             />
 
             {/* Preview Section */}
             {(previewData || previewLoading || previewError) && (
-              <div className="custom-builder-card !p-4">
+              <div id="report-preview-section" className="custom-builder-card !p-4">
                 <div className="builder-section-title">
                   <div className="flex items-center gap-2">
                     <Sparkles size={16} className="text-blue-600" />
@@ -208,16 +271,39 @@ export default function CustomReportsPage() {
           </div>
         )}
 
-        {/* Tab 2: Saved Reports */}
-        {activeTab === 'saved' && <SavedReportsList onRunReport={handleRunSavedReport} />}
-
-        {/* Tab 3: Report Templates */}
-        {activeTab === 'templates' && (
-          <ReportTemplatesList onUseTemplate={handleUseTemplate} catalog={catalog} />
+        {/* View 3: Requested Reports (Default Landing) */}
+        {activeTab === 'requests' && (
+          <FieldRequestsView
+            userRole={userRole}
+            onCreateCustomReport={() => {
+              setConfig(DEFAULT_CONFIG);
+              setPreviewData(null);
+              setPreviewError(null);
+              setActiveTab('builder');
+            }}
+            onLoadReport={(savedReport, autoRun = false) => {
+              const loaded = {
+                savedId: savedReport._id || savedReport.id,
+                name: savedReport.name || '',
+                description: savedReport.description || '',
+                category: savedReport.category || 'GENERAL',
+                dataset: savedReport.dataset || 'fuel_transactions',
+                fields: savedReport.fields || [],
+                filters: savedReport.filters || {},
+                sorting: savedReport.sorting || { field: null, order: 'desc' },
+                aggregations: savedReport.aggregations || [],
+                status: savedReport.status || 'PENDING',
+              };
+              setConfig(loaded);
+              if (autoRun) {
+                setActiveTab('runner');
+                runPreview(loaded, 1);
+              } else {
+                setActiveTab('builder');
+              }
+            }}
+          />
         )}
-
-        {/* Tab 4: Field Requests */}
-        {activeTab === 'requests' && <FieldRequestsView userRole={userRole} />}
       </div>
     </ReportFrame>
   );
