@@ -5650,3 +5650,39 @@ html.dark .wx-icon .wx-star,
 .lt-journey-place-dialog .pd-body {
   overflow-y: auto;
 }
+
+/* Explicit naming action, separate from the replay/map navigation button. */
+.gnb-lt-page .lt-journey-item {
+  position: relative;
+}
+.gnb-lt-page .lt-journey-row--nameable {
+  padding-bottom: 56px;
+}
+.gnb-lt-page .lt-journey-name-action {
+  position: absolute;
+  bottom: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--accent-primary, #2563eb);
+  border-radius: 7px;
+  color: var(--accent-primary, #2563eb);
+  background: var(--bg-surface, #fff);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.gnb-lt-page .lt-track-name-action {
+  left: 12px;
+}
+.gnb-lt-page .lt-places-name-action {
+  left: 52px;
+}
+.gnb-lt-page .lt-journey-name-action:hover {
+  background: var(--bg-subtle, #eff6ff);
+}
+.gnb-lt-page .lt-journey-name-action:focus-visible {
+  outline: 2px solid var(--accent-primary, #2563eb);
+  outline-offset: 2px;
+}

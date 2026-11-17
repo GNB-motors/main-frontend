@@ -590,6 +590,8 @@ it('identifies a journey stop then refreshes the same vehicle and range with its
     </MemoryRouter>,
   );
   fireEvent.click(await screen.findByRole('button', { name: /Place not identified/ }));
+  expect(screen.queryByRole('dialog', { name: 'Identify this place' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getAllByRole('button', { name: 'Name this place' })[0]);
   expect(screen.getByRole('dialog', { name: 'Identify this place' })).toBeInTheDocument();
   fireEvent.change(screen.getByRole('textbox', { name: 'Place name' }), {
     target: { value: 'Named parking' },
@@ -679,6 +681,8 @@ it('identifies a moving GPS location then refreshes the same vehicle and range w
     </MemoryRouter>,
   );
   fireEvent.click((await screen.findAllByRole('button', { name: /Place not identified/ }))[0]);
+  expect(screen.queryByRole('dialog', { name: 'Identify this place' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getAllByRole('button', { name: 'Name this place' })[0]);
   expect(screen.getByRole('dialog', { name: 'Identify this place' })).toBeInTheDocument();
   fireEvent.change(screen.getByRole('textbox', { name: 'Place name' }), {
     target: { value: 'Named parking' },

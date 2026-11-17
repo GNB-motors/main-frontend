@@ -339,6 +339,7 @@ export default function TrackLog({
                 }
               }
 
+              const canName = (row.stopId || row.fixAt) && !row.place?.name?.trim() && onOpenPlace;
               return (
                 <li
                   key={row.key}
@@ -378,79 +379,89 @@ export default function TrackLog({
                     </div>
                   </div>
 
-                  {/* Event Card Button */}
-                  <button
-                    type="button"
-                    aria-current={isActive ? 'step' : undefined}
-                    onClick={() => {
-                      setClickedRow({ key: row.key, at: Date.parse(row.at) });
-                      onSeek?.(row.at);
-                      if (row.stopId || row.fixAt || row.place?.id)
-                        onOpenPlace?.({ ...row, unidentified: !row.place?.name?.trim() });
-                    }}
-                    className={`track-log-row flex-1 text-left rounded-xl p-3 border transition-all cursor-pointer ${
-                      isActive
-                        ? 'border-blue-500/80 bg-blue-50/50 dark:bg-blue-950/30 shadow-md ring-1 ring-blue-500/30'
-                        : isPast
-                          ? 'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-xs'
-                          : 'border-slate-200/70 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/30 opacity-75 hover:opacity-100'
-                    }`}
-                  >
-                    {/* Card Top Row: Badge, Time, Duration */}
-                    <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
-                      <div className="flex items-center gap-1.5">
-                        {row.isStart && row.kind !== 'START' ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30">
-                            <MapPin size={13} aria-hidden="true" />
-                            Start
+                  {/* Separate sibling buttons keep replay navigation independent from naming. */}
+                  <div className="relative flex-1 min-w-0">
+                    <button
+                      type="button"
+                      aria-current={isActive ? 'step' : undefined}
+                      onClick={() => {
+                        setClickedRow({ key: row.key, at: Date.parse(row.at) });
+                        onSeek?.(row.at);
+                        if (row.place?.id && row.place?.name?.trim())
+                          onOpenPlace?.({ ...row, unidentified: false });
+                      }}
+                      className={`track-log-row w-full text-left rounded-xl p-3 ${canName ? 'pb-14' : ''} border transition-all cursor-pointer ${
+                        isActive
+                          ? 'border-blue-500/80 bg-blue-50/50 dark:bg-blue-950/30 shadow-md ring-1 ring-blue-500/30'
+                          : isPast
+                            ? 'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-xs'
+                            : 'border-slate-200/70 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/30 opacity-75 hover:opacity-100'
+                      }`}
+                    >
+                      {/* Card Top Row: Badge, Time, Duration */}
+                      <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                          {row.isStart && row.kind !== 'START' ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30">
+                              <MapPin size={13} aria-hidden="true" />
+                              Start
+                            </span>
+                          ) : null}
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border ${style.badgeClass}`}
+                          >
+                            {style.icon}
+                            {style.label}
                           </span>
-                        ) : null}
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border ${style.badgeClass}`}
-                        >
-                          {style.icon}
-                          {style.label}
-                        </span>
 
-                        {isActive && (
-                          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-blue-600 text-white uppercase tracking-wider">
-                            <span className="size-1 rounded-full bg-white animate-ping" />
-                            Here
+                          {isActive && (
+                            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-blue-600 text-white uppercase tracking-wider">
+                              <span className="size-1 rounded-full bg-white animate-ping" />
+                              Here
+                            </span>
+                          )}
+                        </div>
+
+                        {row.durationMin != null && (
+                          <span className="track-log-duration flex items-center gap-1 text-xs font-semibold text-slate-700 dark:text-slate-300 tabular-nums bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                            <Clock size={11} className="text-slate-400" aria-hidden="true" />
+                            {formatDuration(row.durationMin)}
                           </span>
                         )}
                       </div>
 
-                      {row.durationMin != null && (
-                        <span className="track-log-duration flex items-center gap-1 text-xs font-semibold text-slate-700 dark:text-slate-300 tabular-nums bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
-                          <Clock size={11} className="text-slate-400" aria-hidden="true" />
-                          {formatDuration(row.durationMin)}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Card Title */}
-                    <div className="track-log-name font-bold text-[13px] text-slate-900 dark:text-white leading-snug">
-                      {row.title}
-                    </div>
-
-                    {(row.stopId || row.fixAt) && !row.place?.name?.trim() && onOpenPlace ? (
-                      <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-blue-600">
-                        <MapPin size={13} aria-hidden="true" /> Name this place
-                      </span>
-                    ) : null}
-                    {/* Card Timestamp */}
-                    <div className="track-log-time mt-1 flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums">
-                      <Calendar size={11} className="text-slate-400 shrink-0" aria-hidden="true" />
-                      <span>{formatIst(row.at)}</span>
-                    </div>
-
-                    {/* Humanized Details / Reason */}
-                    {cleanedDetail ? (
-                      <div className="track-log-detail mt-1.5 text-xs text-slate-600 dark:text-slate-300 bg-slate-100/70 dark:bg-slate-800/50 rounded-lg px-2.5 py-1.5 leading-relaxed font-medium">
-                        {cleanedDetail}
+                      {/* Card Title */}
+                      <div className="track-log-name font-bold text-[13px] text-slate-900 dark:text-white leading-snug">
+                        {row.title}
                       </div>
+
+                      {/* Card Timestamp */}
+                      <div className="track-log-time mt-1 flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums">
+                        <Calendar
+                          size={11}
+                          className="text-slate-400 shrink-0"
+                          aria-hidden="true"
+                        />
+                        <span>{formatIst(row.at)}</span>
+                      </div>
+
+                      {/* Humanized Details / Reason */}
+                      {cleanedDetail ? (
+                        <div className="track-log-detail mt-1.5 text-xs text-slate-600 dark:text-slate-300 bg-slate-100/70 dark:bg-slate-800/50 rounded-lg px-2.5 py-1.5 leading-relaxed font-medium">
+                          {cleanedDetail}
+                        </div>
+                      ) : null}
+                    </button>
+                    {canName ? (
+                      <button
+                        type="button"
+                        className="lt-journey-name-action lt-track-name-action"
+                        onClick={() => onOpenPlace({ ...row, unidentified: true })}
+                      >
+                        <MapPin size={14} aria-hidden="true" /> Name this place
+                      </button>
                     ) : null}
-                  </button>
+                  </div>
                 </li>
               );
             })}

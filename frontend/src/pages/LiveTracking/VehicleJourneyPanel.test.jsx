@@ -81,6 +81,8 @@ it('opens an unidentified recorded stop without losing its real stop ID', () => 
     />,
   );
   fireEvent.click(screen.getByRole('button', { name: /Place not identified/ }));
+  expect(open).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Name this place' }));
   expect(open).toHaveBeenCalledWith(
     expect.objectContaining({ stopId: 'stop1', unidentified: true }),
   );
