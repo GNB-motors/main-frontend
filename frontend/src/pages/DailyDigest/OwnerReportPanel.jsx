@@ -9,6 +9,7 @@ import DigestSkeleton from './components/DigestSkeleton';
 import digestExplain from './digestExplain';
 import digestDay from './digestDay';
 import TrendBody from './components/TrendBody';
+import AttentionCard from './components/AttentionCard';
 import {
   DASH,
   drillRoute,
@@ -24,7 +25,6 @@ import {
   attentionGroups,
   buildKpis,
   count,
-  exceptionSummary,
   leakRows,
   rupees,
   sectionsById,
@@ -320,72 +320,6 @@ function WaitingCard({ items, pending, note, day }) {
   );
 }
 
-/* ── Exceptions ──────────────────────────────────────────────────────── */
-
-function ExceptionsCard({ section, loading, onRetry, day }) {
-  const summary = useMemo(() => exceptionSummary(section), [section]);
-  const state = sectionState(section);
-  const max = summary.counted[0]?.count || 1;
-  return (
-    <Card
-      title="Exceptions"
-      className="db-exceptions"
-      info={sectionCopy.about(section) || 'Things that need a look.'}
-      infoBasis={sectionCopy.updated(section)}
-      meta={summary.total != null ? `${count(summary.total)} in all` : null}
-    >
-      {loading && !section ? (
-        <DigestSkeleton label="Loading exceptions" />
-      ) : state === 'error' ? (
-        <p className="db-error">
-          Exceptions unavailable. <RetryButton onRetry={onRetry} />
-        </p>
-      ) : summary.counted.length ? (
-        <ul className="db-bars">
-          {summary.counted.map((row) => (
-            <li key={row.key}>
-              <Link className="db-bar" to={row.to} day={day}>
-                <span className="db-bar-label">
-                  {row.label}
-                  {row.detail ? <small>{row.detail}</small> : null}
-                </span>
-                <span className="db-bar-track">
-                  <i
-                    className={row.urgent ? 'is-urgent' : ''}
-                    style={{ width: `${Math.max((row.count / max) * 100, 1.5)}%` }}
-                  />
-                </span>
-                <strong>{count(row.count)}</strong>
-              </Link>
-              {row.key === 'moneyTheft' ? (
-                <Link className="db-link" to="/intelligence?tab=detours" day={day}>
-                  Review route deviations
-                </Link>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="db-empty-line">No exceptions reported.</p>
-      )}
-      {summary.clear.length || summary.unmeasured.length ? (
-        <p className="db-foot-line">
-          {summary.clear.length ? (
-            <>
-              {digestDay.isToday(day) ? 'None today' : 'None on this day'}:{' '}
-              {summary.clear.join(', ')}.
-            </>
-          ) : null}
-          {summary.clear.length && summary.unmeasured.length ? ' ' : null}
-          {summary.unmeasured.length ? (
-            <>Not measured yet: {summary.unmeasured.join(', ')}.</>
-          ) : null}
-        </p>
-      ) : null}
-    </Card>
-  );
-}
-
 /* ── Trucks needing attention ────────────────────────────────────────── */
 
 const DARK_LIMIT = 10;
@@ -412,7 +346,7 @@ function TrucksCard({ groups, live, reconnect, accountsSummary, day }) {
       {live?.isLoading && !dark.length ? (
         <DigestSkeleton label="Loading live positions" />
       ) : nothing ? (
-        <p className="db-empty-line">Every truck is reporting and none is stuck.</p>
+        <p className="db-empty-line">No trucks need attention from the available live feeds.</p>
       ) : (
         <div className="db-groups">
           {dark.length ? (
@@ -791,7 +725,8 @@ function BriefingPanel({
               </p>
             </Card>
           ) : (
-            <ExceptionsCard
+            <AttentionCard
+              key={`${day}:${report$.data?.generatedAt || ''}`}
               day={day}
               section={byId.exceptions}
               loading={reportLoading}

@@ -154,7 +154,7 @@ describe('DailyDigestPage', () => {
     const headings = screen.getAllByRole('heading').map((h) => h.textContent);
     for (const title of [
       'Extra fuel costs to review',
-      'Exceptions',
+      'Needs attention',
       'Trucks needing attention',
       'The day in numbers',
       'Loaded vs empty running',

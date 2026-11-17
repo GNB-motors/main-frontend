@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   attentionGroups,
   buildKpis,
-  exceptionSummary,
   feedReason,
   formatSilence,
   leakRows,
@@ -173,19 +172,28 @@ describe('leakRows', () => {
   });
 });
 
-describe('exceptionSummary', () => {
-  it('bars the counted kinds and names the clear and unmeasured ones', () => {
-    const summary = exceptionSummary(sections.exceptions);
-    expect(summary.counted.map((r) => r.key)).toEqual(['idling', 'moneyTheft', 'stuckAtPlant']);
-    expect(summary.counted[0].detail).toBe('93 h engine on');
-    expect(summary.counted[1].urgent).toBe(true);
-    expect(summary.clear).toEqual(['SOS']);
-    expect(summary.unmeasured).toEqual(['ETA slipping']);
-    expect(summary.total).toBe(1257);
-  });
-});
-
 describe('attentionGroups', () => {
+  it('does not label historical plant visits as trucks stuck now', () => {
+    const groups = attentionGroups({
+      vehicles: [],
+      byId: {
+        exceptions: {
+          numbers: { attentionVersion: 2 },
+          rows: [
+            {
+              kind: 'stuckAtPlant',
+              count: 1,
+              rows: [
+                { registrationNumber: 'LEFT-PLANT', stationaryMinutes: 300, status: 'DEPARTED' },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    expect(groups.stuck).toEqual([]);
+    expect(groups.stuckCount).toBe(0);
+  });
   it('groups dark trucks most-recently-dark first, plus stuck, no-data and failing feeds', () => {
     const groups = attentionGroups({
       vehicles: [

@@ -47,17 +47,17 @@ const REPORT = {
       title: 'Exceptions',
       state: 'ok',
       numbers: {
-        total: 3,
+        attentionVersion: 2,
         kinds: [
           { kind: 'moneyTheft', count: 2 },
           { kind: 'sos', count: 1 },
         ],
       },
       rows: [
-        { kind: 'moneyTheft', count: 2 },
-        { kind: 'sos', count: 1 },
-        { kind: 'papersWaiting', count: 0 },
-        { kind: 'etaSlipping', count: null, note: 'not built yet' },
+        { kind: 'sos', period: 'day', state: 'ok', count: 1 },
+        { kind: 'moneyTheft', period: 'day', state: 'ok', count: 2 },
+        { kind: 'papersWaiting', period: 'live', state: 'empty', count: 0 },
+        { kind: 'etaSlipping', period: 'day', state: 'unmeasured', count: null },
       ],
       notes: [],
       footer: { text: 'How we know: no source yet' },
@@ -291,25 +291,17 @@ describe('OwnerReportPanel', () => {
     expect(screen.queryByText(/sensor litres unavailable/)).toBeNull();
   });
 
-  it('bars the counted exception kinds, biggest first, and names the rest in one line', async () => {
+  it('separates day events from open queues without a misleading combined total', async () => {
     renderPanel();
-
-    const theft = (await screen.findByText('Possible fuel theft')).closest('a');
-    const sos = screen.getByText('SOS').closest('a');
-    expect(theft.getAttribute('href')).toBe(
-      '/intelligence?tab=fuel&fuelView=drain&from=2026-11-04&to=2026-11-04',
-    );
-    expect(sos.getAttribute('href')).toBe(
-      '/alert-inbox?inboxView=INCIDENTS&incidentStatus=ACTIVE&from=2026-11-04&to=2026-11-04',
-    );
-    // biggest first
-    expect(theft.compareDocumentPosition(sos) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // a zero is "none today", an unbuilt kind is "not measured" — never a bar
-    expect(screen.queryByText('Papers waiting')).toBeNull();
-    expect(screen.getByText(/None today: Papers waiting\./)).toBeTruthy();
-    expect(screen.getByText(/Not measured yet: ETA slipping\./)).toBeTruthy();
-    expect(screen.queryByText('kinds')).toBeNull();
-    expect(screen.getByText('3 in all')).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Needs attention' })).toBeTruthy();
+    const card = screen.getByRole('region', { name: 'Needs attention' });
+    expect(within(card).getByText('Suspected fuel loss')).toBeTruthy();
+    expect(within(card).getByRole('button', { name: 'Review SOS and breakdowns' })).toBeTruthy();
+    expect(within(card).getByText('Still open now')).toBeTruthy();
+    expect(within(card).getByText('No expense bills awaiting review found.')).toBeTruthy();
+    expect(within(card).getByText('ETA delays are not tracked yet.')).toBeTruthy();
+    expect(within(card).queryByText(/in all/)).toBeNull();
+    expect(within(card).queryByText('Possible fuel theft')).toBeNull();
   });
 
   it('writes the morning brief the way an owner reads it', async () => {

@@ -235,62 +235,6 @@ export function leakRows(brief) {
     .sort((a, b) => (b.rupees ?? -1) - (a.rupees ?? -1));
 }
 
-export const EXCEPTION_LINKS = {
-  sos: '/alert-inbox?inboxView=INCIDENTS&incidentStatus=ACTIVE',
-  moneyTheft: '/intelligence?tab=fuel',
-  idling: '/intelligence?tab=idling',
-  stuckAtPlant: '/auto-trips?tab=history&minDwellMin=180',
-  etaSlipping: '/auto-trips',
-  papersWaiting: '/khata-ledger?tab=all&expenseStatus=PENDING',
-  documentsExpiring: '/vehicles/dashboard?docFilter=EXPIRING_SOON',
-  broadcastNotAcknowledged: '/alert-inbox?inboxStatus=OPEN',
-};
-
-const URGENT = new Set(['sos', 'moneyTheft']);
-
-/** Exceptions: the counted ones as bars, the rest named in one line. */
-export function exceptionSummary(section) {
-  const rows = Array.isArray(section?.rows)
-    ? section.rows.filter((r) => r && typeof r === 'object')
-    : [];
-  const counted = rows
-    .filter((r) => Number.isFinite(Number(r.count)) && r.count !== null && Number(r.count) > 0)
-    .filter(
-      (r) =>
-        String(r.note || '')
-          .trim()
-          .toLowerCase() !== 'not built yet',
-    )
-    .map((r) => {
-      const idleMin = Number(r.numbers?.verifiedIdleMinutes);
-      return {
-        key: r.kind,
-        label: labelFor(r.kind),
-        count: Number(r.count),
-        urgent: URGENT.has(r.kind),
-        detail:
-          r.kind === 'idling' && Number.isFinite(idleMin) && idleMin > 0
-            ? `${Math.round(idleMin / 60).toLocaleString('en-IN')} h engine on`
-            : null,
-        to: EXCEPTION_LINKS[r.kind] || '/alert-inbox',
-      };
-    })
-    .sort((a, b) => b.count - a.count);
-  const clear = rows
-    .filter((r) => r.count !== null && Number(r.count) === 0)
-    .map((r) => labelFor(r.kind));
-  const unmeasured = rows
-    .filter((r) => r.count == null || String(r.note || '').toLowerCase() === 'not built yet')
-    .map((r) => labelFor(r.kind));
-  const total = section?.numbers?.total;
-  return {
-    counted,
-    clear,
-    unmeasured,
-    total: Number.isFinite(Number(total)) ? Number(total) : null,
-  };
-}
-
 const regKey = (reg) =>
   String(reg || '')
     .replace(/[^a-z0-9]/gi, '')
@@ -312,7 +256,13 @@ export function attentionGroups({ vehicles, byId, now = Date.now() }) {
     .sort((a, b) => (a.silentMs ?? Infinity) - (b.silentMs ?? Infinity));
 
   const ex = Array.isArray(byId.exceptions?.rows) ? byId.exceptions.rows : [];
-  const stuckRows = ex.find((r) => r?.kind === 'stuckAtPlant');
+  // The revised report counts historical visits, including proven departures.
+  // Those visits cannot establish that a truck is stuck right now. Their full
+  // evidence belongs in Needs attention rather than this live-truck list.
+  const stuckRows =
+    byId.exceptions?.numbers?.attentionVersion === 2
+      ? null
+      : ex.find((r) => r?.kind === 'stuckAtPlant');
   const stuck = (Array.isArray(stuckRows?.rows) ? stuckRows.rows : [])
     .filter((r) => r?.registrationNumber)
     .map((r) => ({

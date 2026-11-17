@@ -32,7 +32,8 @@ const COPY = {
     empty: () => 'Crew duty is not tracked yet.',
   },
   exceptions: {
-    about: 'Things that need a look: possible fuel theft, long idling, stuck trucks and alerts.',
+    about:
+      'Events on the selected day, and alerts, bills and documents still needing attention now.',
     empty: () => 'Nothing needed attention on this day.',
   },
   trend: {
