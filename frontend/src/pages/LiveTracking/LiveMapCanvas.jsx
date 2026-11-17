@@ -75,6 +75,7 @@ export default function LiveMapCanvas({
   trackRoad = null,
   trackTolls = null,
   trackReg = '',
+  trackReplay = true,
   reviewItems = [],
   selectedReviewId = null,
   onSelectReviewSite,
@@ -112,12 +113,13 @@ export default function LiveMapCanvas({
   // In Track mode only the tracked truck matters, drawn by TrackMapLayers as
   // the moving playhead; the rest of the live fleet is hidden so the owner
   // watches one truck at a time (back out to pick another).
-  const fleetOnMap = track
-    ? []
-    : focusedMapVehicles(mapVehicles, {
-        selectedId,
-        replayOn: replayState.on,
-      });
+  const fleetOnMap =
+    track && trackReplay
+      ? []
+      : focusedMapVehicles(mapVehicles, {
+          selectedId,
+          replayOn: replayState.on,
+        });
 
   // In Track mode the truck being watched is drawn by ReplayTruckMarker: an
   // overlay that sits above the line and turns with the heading. Its position
@@ -136,7 +138,7 @@ export default function LiveMapCanvas({
   useEffect(() => {
     if (!track || !mapInstance || !window.google?.maps?.LatLngBounds) return;
     if (trackPoints.length < 2) return;
-    const key = `${trackPoints.length}:${trackPoints[0]?.t ?? ''}:${
+    const key = `${trackReg}:${trackPoints.length}:${trackPoints[0]?.t ?? ''}:${
       trackPoints[trackPoints.length - 1]?.t ?? ''
     }`;
     if (fittedTrailRef.current === key) return;
@@ -144,7 +146,7 @@ export default function LiveMapCanvas({
     const bounds = new window.google.maps.LatLngBounds();
     trackPoints.forEach((point) => bounds.extend({ lat: point.lat, lng: point.lng }));
     mapInstance.fitBounds(bounds, trackFitPadding({ placesPanelOpen }));
-  }, [track, trackPoints, mapInstance, placesPanelOpen]);
+  }, [track, trackPoints, mapInstance, placesPanelOpen, trackReg]);
 
   // Keep the truck in view while the drive plays: when it comes close to an
   // edge of the visible box the map is panned to it. The zoom never changes.

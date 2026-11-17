@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowUpRight, Clock3, Route, Truck, Expand, ChevronDown } from 'lucide-react';
+import PlaceRouteSkeletons from './PlaceRouteSkeletons.jsx';
+import { ArrowLeft, ArrowUpRight, Clock3, Route, Truck, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import useApi from '../../hooks/useApi.js';
 import PlaceIntelligenceService from '../PlaceHub/intelligence/PlaceIntelligenceService.js';
@@ -14,7 +15,6 @@ export default function TrackRouteDetailPanel({
   leg,
   focus,
   onDetail,
-  onFit,
   onClose,
   docked = false,
 }) {
@@ -28,6 +28,7 @@ export default function TrackRouteDetailPanel({
     { enabled: Boolean(id), scopeKey: `${kind}:${id}` },
   );
   const [runLimit, setRunLimit] = useState(5);
+  useEffect(() => setRunLimit(5), [id, kind]);
   const detail = String(query.data?._id) === String(id) ? query.data : null;
   useEffect(() => {
     onDetail?.(detail);
@@ -87,30 +88,23 @@ export default function TrackRouteDetailPanel({
               <span className="lt-route-letter is-start">A</span>
               <div>
                 <small>{delivery ? 'PICKUP' : 'START'}</small>
-                <h3>{focus?.start.name || names[0] || 'Start place'}</h3>
+                <h3>{focus?.start?.name || names[0] || 'Start place'}</h3>
               </div>
             </div>
             <div className="lt-route-endpoint">
               <span className="lt-route-letter is-end">B</span>
               <div>
                 <small>{delivery ? 'DROP' : 'END'}</small>
-                <h3>{focus?.end.name || names[1] || 'End place'}</h3>
+                <h3>{focus?.end?.name || names[1] || 'End place'}</h3>
               </div>
             </div>
           </div>
-          {onFit ? (
-            <button type="button" className="lt-route-fit" onClick={onFit}>
-              <Expand size={14} aria-hidden="true" />
-              Fit route on map
-              <ArrowUpRight size={14} aria-hidden="true" />
-            </button>
-          ) : null}
         </div>
         {route ? (
           <div className="lt-route-summary">
             <div className="lt-route-section-heading">
               <h4>Typical journey</h4>
-              <span>{delivery ? 'Across loaded trips' : 'Across movement passes'}</span>
+              <span>{delivery ? 'Based on recorded trips' : 'Based on recorded movements'}</span>
             </div>
             <dl className="lt-route-metrics">
               <div>
@@ -134,7 +128,9 @@ export default function TrackRouteDetailPanel({
                 <dd>{count ?? '—'}</dd>
               </div>
               <div>
-                <dt>Slow run (1 in 10)</dt>
+                <dt title="90% of recorded journeys finished within this time">
+                  Longer journey time
+                </dt>
                 <dd>{minutesLabel(route.stats?.minutes?.p90)}</dd>
               </div>
             </dl>
@@ -152,30 +148,52 @@ export default function TrackRouteDetailPanel({
           </div>
         ) : null}
         {delivery && route ? (
-          <div className="lt-route-summary">
-            {showSap && (
+          <section
+            className="lt-route-summary lt-route-agreement"
+            aria-label={showSap ? 'Customer-agreed distance' : 'Delivery route settings'}
+          >
+            {showSap ? (
               <>
-                <h4>Agreed SAP</h4>
-                <p>
-                  {route.sap
-                    ? `${kmLabel(route.sap.sapKm)} · ${route.sap.basis === 'ROUND_TRIP' ? 'round trip' : 'one way'}`
-                    : 'SAP not set'}
+                <div className="lt-route-section-heading">
+                  <h4>Customer-agreed distance</h4>
+                  <span className={`lt-route-agreement-status${route.sap ? ' is-set' : ''}`}>
+                    {route.sap ? 'Saved' : 'Not set'}
+                  </span>
+                </div>
+                <p className="lt-route-agreement-help">
+                  The distance agreed with your customer for this route.
                 </p>
+                {route.sap ? (
+                  <div className="lt-route-agreement-value">
+                    <strong>{kmLabel(route.sap.sapKm)}</strong>
+                    <span>{route.sap.basis === 'ROUND_TRIP' ? 'Round trip' : 'One way'}</span>
+                  </div>
+                ) : (
+                  <p className="lt-route-agreement-empty">
+                    No agreed distance has been saved for this route.
+                  </p>
+                )}
               </>
-            )}
+            ) : null}
             <Link
-              className="lt-route-trip-link"
+              className="lt-route-settings-link"
               to={`/place-hub?tab=routes&routeView=deliveries&delivery=${id}`}
             >
-              Open delivery route{showSap && route.sap ? ' & SAP' : ''}
-              <ArrowUpRight size={13} />
+              {showSap
+                ? route.sap
+                  ? 'Manage agreed distance'
+                  : 'Set agreed distance'
+                : 'Manage delivery route'}
+              <ArrowUpRight size={14} aria-hidden="true" />
             </Link>
-          </div>
+          </section>
         ) : null}
         {query.loading ? (
-          <p className="lt-route-feedback" role="status">
-            Loading route details…
-          </p>
+          !detail ? (
+            <div className="lt-route-history" aria-busy="true">
+              <PlaceRouteSkeletons kind="route" count={3} label="Loading route details" />
+            </div>
+          ) : null
         ) : null}
         {query.error ? (
           <div className="lt-route-feedback" role="alert">

@@ -5,6 +5,8 @@ import PlaceDetailPanel from './PlaceDetailPanel.jsx';
 
 const place = {
   id: 'site:s1',
+  source: 'site',
+  status: 'CONFIRMED',
   name: 'Kolaghat Plant',
   type: 'PLANT',
   lat: 22.5,
@@ -15,8 +17,9 @@ const place = {
 };
 
 describe('Place detail in the Places tab', () => {
-  it('lists the trucks inside the place, opens one, and links to Place Hub', () => {
+  it('lists trucks and places the edit action beside the place name', () => {
     const onPick = vi.fn();
+    const edit = vi.fn();
     render(
       <MemoryRouter>
         <PlaceDetailPanel
@@ -53,6 +56,7 @@ describe('Place detail in the Places tab', () => {
           ]}
           onBack={() => {}}
           onPickVehicle={onPick}
+          onEditPlace={edit}
         />
       </MemoryRouter>,
     );
@@ -62,10 +66,11 @@ describe('Place detail in the Places tab', () => {
     expect(screen.queryByText('here 4 min')).toBeNull();
     fireEvent.click(screen.getByText('WB01AB1234'));
     expect(onPick).toHaveBeenCalledWith('v1');
-    // The redesign moves place editing behind one plain link (F1.7).
-    expect(screen.getByRole('link', { name: 'Manage places' }).getAttribute('href')).toBe(
-      '/place-hub',
-    );
+    const editButton = screen.getByRole('button', { name: 'Edit place' });
+    expect(editButton.closest('.pd-title-row')).toHaveTextContent('Kolaghat Plant');
+    fireEvent.click(editButton);
+    expect(edit).toHaveBeenCalledWith(place);
+    expect(screen.queryByRole('link', { name: 'Manage places' })).not.toBeInTheDocument();
   });
 
   it('renders nothing open when no place is picked', () => {

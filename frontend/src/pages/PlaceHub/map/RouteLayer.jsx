@@ -54,9 +54,9 @@ export default function RouteLayer({
     const records = [];
     const listeners = [];
     for (const line of lines.filter((l) => !l.legs[0].inPlant)) {
-      const color = neutral ? (isDark ? '#cbd5e1' : '#475569') : routeColor(line.runs, isDark);
+      const color = neutral ? (isDark ? '#60a5fa' : '#2563eb') : routeColor(line.runs, isDark);
       const width = neutral
-        ? Math.min(3, Math.max(1, 1 + (line.runs / max) * 2))
+        ? Math.min(4, Math.max(2, 2 + (line.runs / max) * 2))
         : routeWidth(line.runs, max);
       for (const path of line.segments) {
         const casing = new window.google.maps.Polyline({
@@ -134,7 +134,7 @@ export default function RouteLayer({
       const share = obj.line.runs / max;
       let opacity;
       if (selected || hovered) opacity = 1;
-      else if (neutral) opacity = selectedId ? 0.15 : dimmed ? 0.12 : hoveredId ? 0.2 : 0.35;
+      else if (neutral) opacity = selectedId ? 0.25 : dimmed ? 0.25 : hoveredId ? 0.9 : 0.8;
       else if (selectedId) opacity = 0.06;
       else if (hoveredId) opacity = 0.05 + 0.1 * share;
       else opacity = 0.1 + 0.2 * share;

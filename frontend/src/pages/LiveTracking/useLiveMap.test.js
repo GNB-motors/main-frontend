@@ -32,6 +32,23 @@ afterEach(() => {
 });
 
 describe('Track map actions', () => {
+  it('allows worldwide panning and zooming in both map styles', () => {
+    const { result, rerender } = renderHook(
+      ({ theme, mapMode }) =>
+        useLiveMap({
+          theme,
+          mapMode,
+          vehicles: [],
+        }),
+      { initialProps: { theme: 'light', mapMode: 'map' } },
+    );
+    expect(result.current.mapOptions).not.toHaveProperty('restriction');
+    expect(result.current.mapOptions).not.toHaveProperty('minZoom');
+    rerender({ theme: 'dark', mapMode: 'sat' });
+    expect(result.current.mapOptions).not.toHaveProperty('restriction');
+    expect(result.current.mapOptions).not.toHaveProperty('minZoom');
+  });
+
   it('opens location actions from contextmenu, not a left click', () => {
     const onMapClick = vi.fn();
     const handlers = {};
@@ -43,15 +60,22 @@ describe('Track map actions', () => {
         return { remove };
       }),
     };
-    const { result, unmount } = renderHook(() => useLiveMap({
-      theme: 'light', mapMode: 'map', vehicles: [], onMapClick,
-    }));
+    const { result, unmount } = renderHook(() =>
+      useLiveMap({
+        theme: 'light',
+        mapMode: 'map',
+        vehicles: [],
+        onMapClick,
+      }),
+    );
     act(() => result.current.onMapLoad(map));
     expect(handlers.click).toBeUndefined();
-    act(() => handlers.contextmenu({
-      latLng: { lat: () => 22, lng: () => 88 },
-      domEvent: { clientX: 10, clientY: 20 },
-    }));
+    act(() =>
+      handlers.contextmenu({
+        latLng: { lat: () => 22, lng: () => 88 },
+        domEvent: { clientX: 10, clientY: 20 },
+      }),
+    );
     expect(onMapClick).toHaveBeenCalledWith({ lat: 22, lng: 88, placeId: null, x: 10, y: 20 });
     unmount();
     expect(remove).toHaveBeenCalled();

@@ -76,6 +76,7 @@
 
 .pd-title {
   min-width: 0;
+  flex: 1;
 }
 
 .pd-type {
@@ -521,4 +522,36 @@
 .lt-place-detail :is(button, a, summary):focus-visible {
   outline: 2px solid var(--rd-brand-2);
   outline-offset: 3px;
+}
+
+.lt-place-detail .pd-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.lt-place-detail .pd-title-row h2 {
+  flex: 1;
+  min-width: 0;
+}
+.lt-place-detail .pd-title-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  margin-top: -3px;
+  padding: 0;
+  border: 1px solid var(--rd-line);
+  border-radius: 8px;
+  background: var(--rd-card);
+  color: var(--pd-link-color);
+  cursor: pointer;
+  transition:
+    background 120ms,
+    border-color 120ms;
+}
+.lt-place-detail .pd-title-edit:hover {
+  background: var(--rd-brand-tint);
+  border-color: var(--rd-line-strong);
 }

@@ -36,12 +36,36 @@ export const STATUS_TOKENS = {
 export const PLACE_LAYERS = [
   { id: 'ourPlaces', label: 'Our places', icon: 'Factory', defaultOn: true, zoomGated: false },
   { id: 'pumps', label: 'Pumps', icon: 'Fuel', defaultOn: true, zoomGated: false },
-  { id: 'dhabas', label: 'Dhabas & truck stops', icon: 'UtensilsCrossed', defaultOn: false, zoomGated: false },
+  {
+    id: 'dhabas',
+    label: 'Dhabas & truck stops',
+    icon: 'UtensilsCrossed',
+    defaultOn: false,
+    zoomGated: false,
+  },
   { id: 'hospitals', label: 'Hospitals', icon: 'Cross', defaultOn: false, zoomGated: false },
   { id: 'police', label: 'Police', icon: 'Shield', defaultOn: false, zoomGated: false },
-  { id: 'workshops', label: 'Workshops & tyres', icon: 'Wrench', defaultOn: false, zoomGated: false },
-  { id: 'dealers', label: 'Dealers (Tata / AL)', icon: 'BadgeCheck', defaultOn: false, zoomGated: false },
-  { id: 'parking', label: 'Truck parking', icon: 'ParkingSquare', defaultOn: false, zoomGated: false },
+  {
+    id: 'workshops',
+    label: 'Workshops & tyres',
+    icon: 'Wrench',
+    defaultOn: false,
+    zoomGated: false,
+  },
+  {
+    id: 'dealers',
+    label: 'Dealers (Tata / AL)',
+    icon: 'BadgeCheck',
+    defaultOn: false,
+    zoomGated: false,
+  },
+  {
+    id: 'parking',
+    label: 'Truck parking',
+    icon: 'ParkingSquare',
+    defaultOn: false,
+    zoomGated: false,
+  },
   {
     id: 'tolls',
     label: 'Toll plazas',
@@ -49,7 +73,6 @@ export const PLACE_LAYERS = [
     defaultOn: false,
     zoomGated: false,
   },
-  { id: 'weighbridges', label: 'Weighbridges', icon: 'Weight', defaultOn: false, zoomGated: false },
 ];
 
 /**
@@ -61,7 +84,7 @@ export const LIVE_LAYERS = [
   {
     id: 'reviewQueue',
     label: 'Places to confirm',
-    icon: 'CircleHelp',
+    icon: 'MapPin',
     color: 'var(--rd-stopped)',
     defaultOn: false,
   },
@@ -181,13 +204,11 @@ export function legendStatusRows(counts = {}) {
  * Trucks with no make at all get one "Unclassified" row.
  */
 export function legendMakeRows(manufacturers = [], vehicles = []) {
-  const rows = manufacturers
-    .filter(Boolean)
-    .map((make) => ({
-      key: make,
-      label: make,
-      count: vehicles.filter((vehicle) => vehicle.manufacturer === make).length,
-    }));
+  const rows = manufacturers.filter(Boolean).map((make) => ({
+    key: make,
+    label: make,
+    count: vehicles.filter((vehicle) => vehicle.manufacturer === make).length,
+  }));
 
   const unclassified = vehicles.filter((vehicle) => !vehicle.manufacturer).length;
   if (unclassified > 0) {

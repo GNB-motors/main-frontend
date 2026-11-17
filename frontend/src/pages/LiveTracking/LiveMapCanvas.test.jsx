@@ -4,6 +4,7 @@ import { PolylineF } from '@react-google-maps/api';
 import RouteLayer from '../PlaceHub/map/RouteLayer.jsx';
 import LiveMapCanvas from './LiveMapCanvas.jsx';
 import focusedMapVehicles from './focusedMapVehicles.js';
+import AnimatedVehicleMarkers from './AnimatedVehicleMarkers.jsx';
 
 const { map, overlays } = vi.hoisted(() => ({ map: {}, overlays: [] }));
 vi.mock('@react-google-maps/api', () => ({
@@ -13,7 +14,7 @@ vi.mock('@react-google-maps/api', () => ({
   useGoogleMap: () => map,
 }));
 vi.mock('../PlaceHub/map/RouteLayer.jsx', () => ({ default: vi.fn(() => null) }));
-vi.mock('./AnimatedVehicleMarkers.jsx', () => ({ default: () => null }));
+vi.mock('./AnimatedVehicleMarkers.jsx', () => ({ default: vi.fn(() => null) }));
 vi.mock('../../components/map/CongestionLayer', () => ({ default: () => null }));
 
 let pane;
@@ -119,10 +120,10 @@ describe('Track replay presentation', () => {
   });
   it('keeps the same truck DOM and map overlay as playback and zoom change', () => {
     const { rerender, unmount } = render(<LiveMapCanvas {...props} />);
-    const truck = pane.querySelector('.rh-truck');
+    const truck = pane.querySelector('.replay-truck-marker');
     expect(truck).not.toBeNull();
     const svg = truck.querySelector('svg');
-    expect(svg.getAttribute('width')).toBe('19');
+    expect(svg.getAttribute('width')).toBe('96');
     rerender(
       <LiveMapCanvas
         {...props}
@@ -131,9 +132,19 @@ describe('Track replay presentation', () => {
         replaySpeed={80}
       />,
     );
-    expect(pane.querySelector('.rh-truck')).toBe(truck);
-    expect(truck.querySelector('svg')).toBe(svg);
-    expect(truck.classList.contains('fast')).toBe(true);
+    expect(pane.querySelector('.replay-truck-marker')).toBe(truck);
+    expect(truck.querySelector('svg')).not.toBe(svg);
+    expect(truck.querySelector('.replay-truck-vehicle').innerHTML).toContain('#EF4444');
+    const fastSvg = truck.querySelector('svg');
+    rerender(
+      <LiveMapCanvas
+        {...props}
+        mapZoom={17}
+        replayCurrentPos={{ lat: 22.7, lng: 88.7 }}
+        replaySpeed={81}
+      />,
+    );
+    expect(truck.querySelector('svg')).toBe(fastSvg);
     expect(overlays).toHaveLength(1);
     expect(overlays[0].setMap).toHaveBeenCalledTimes(1);
     expect(PolylineF.mock.calls.filter(([p]) => p.path === props.replayPtsCoords)).toHaveLength(1);
@@ -152,7 +163,7 @@ const track = {
 describe('Track mode', () => {
   it('draws the truck being replayed, on an overlay above the line', () => {
     render(<LiveMapCanvas {...props} track={track} trackPlayheadTime="2026-11-01T13:10:00Z" />);
-    const truck = pane.querySelector('.rh-truck');
+    const truck = pane.querySelector('.replay-truck-marker');
     expect(truck).not.toBeNull();
     // The truck turns with the heading it actually had.
     expect(truck.querySelector('div').style.transform).toMatch(/rotate\(/);
@@ -188,10 +199,42 @@ describe('Fleet markers while focused on one truck', () => {
 });
 
 it('shows primary delivery roads at overview zoom while retaining the movement zoom floor', () => {
-  const config = { ...props, replayState: { on: false }, isTrailVisible: false, selectedId: null, mapZoom: 5, routeKind: 'delivery', routeLines: [{ id: 'delivery1', segments: [] }] };
+  const config = {
+    ...props,
+    replayState: { on: false },
+    isTrailVisible: false,
+    selectedId: null,
+    mapZoom: 5,
+    routeKind: 'delivery',
+    routeLines: [{ id: 'delivery1', segments: [] }],
+  };
   const view = render(<LiveMapCanvas {...config} />);
   expect(RouteLayer).toHaveBeenCalled();
   RouteLayer.mockClear();
   view.rerender(<LiveMapCanvas {...config} routeKind="movement" />);
   expect(RouteLayer).not.toHaveBeenCalled();
+});
+
+describe('selected vehicle Places context', () => {
+  it('keeps the live marker alongside its recorded journey outside replay', () => {
+    const vehicle = { id: 'live-TEST01', plate: 'TEST01', lat: 22, lng: 88 };
+    render(
+      <LiveMapCanvas
+        {...props}
+        track={track}
+        trackReplay={false}
+        trackReg="TEST01"
+        replayState={{ on: false }}
+        selectedId={vehicle.id}
+        mapVehicles={[vehicle]}
+      />,
+    );
+    expect(AnimatedVehicleMarkers.mock.calls.at(-1)[0].vehicles).toEqual([vehicle]);
+  });
+  it('refits when another vehicle has fixes at the same timestamps', () => {
+    const { rerender } = render(<LiveMapCanvas {...props} track={track} trackReg="FIRST" />);
+    expect(map.fitBounds).toHaveBeenCalledTimes(1);
+    rerender(<LiveMapCanvas {...props} track={track} trackReg="SECOND" />);
+    expect(map.fitBounds).toHaveBeenCalledTimes(2);
+  });
 });

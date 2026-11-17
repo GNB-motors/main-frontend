@@ -63,9 +63,9 @@ export const getVehicleTrack = (reg, { from, to, signal } = {}) =>
 const importMapPlaces = () => import('../schemas/mapPlaces.schema.js');
 
 /** GET /api/fleet-view/map/places — the places inside the visible map box. */
-export const getMapPlaces = ({ bbox, layers, signal } = {}) =>
+export const getMapPlaces = ({ bbox, layers, visitedLayers, signal } = {}) =>
   get('/api/fleet-view/map/places', {
-    params: { bbox, layers },
+    params: { bbox, layers, ...(visitedLayers ? { visitedLayers } : {}) },
     signal,
     schema: 'MapPlacesResponseSchema',
     importer: importMapPlaces,

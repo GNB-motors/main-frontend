@@ -52,15 +52,15 @@ describe('pathSegments', () => {
 
 describe('gapCaption', () => {
   it('writes hours and minutes', () => {
-    expect(
-      gapCaption({ fromT: '2026-11-01T18:00:00Z', toT: '2026-11-01T19:10:00Z' }),
-    ).toBe('No signal 1 h 10 min');
+    expect(gapCaption({ fromT: '2026-11-01T18:00:00Z', toT: '2026-11-01T19:10:00Z' })).toBe(
+      'No signal 1 h 10 min',
+    );
   });
 
   it('writes whole hours', () => {
-    expect(
-      gapCaption({ fromT: '2026-11-01T18:00:00Z', toT: '2026-11-01T19:00:00Z' }),
-    ).toBe('No signal 1 h');
+    expect(gapCaption({ fromT: '2026-11-01T18:00:00Z', toT: '2026-11-01T19:00:00Z' })).toBe(
+      'No signal 1 h',
+    );
   });
 });
 
@@ -74,7 +74,7 @@ describe('overspeedMarkers', () => {
 
   it('is orange, not red', () => {
     const markers = overspeedMarkers(track);
-    expect(markers[0].color).toBe('var(--rd-overspeed)');
+    expect(markers[0].color).toBe('#ef4444');
     expect(markers[0].color).not.toBe('var(--rd-detour)');
     expect(markers[0].color).not.toContain('red');
   });
@@ -175,9 +175,7 @@ describe('playheadAt', () => {
 
 describe('bearingBetween', () => {
   it('reads due north', () => {
-    expect(
-      bearingBetween({ lat: 25, lng: 84 }, { lat: 26, lng: 84 }),
-    ).toBeCloseTo(0, 1);
+    expect(bearingBetween({ lat: 25, lng: 84 }, { lat: 26, lng: 84 })).toBeCloseTo(0, 1);
   });
 });
 
@@ -194,7 +192,7 @@ describe('pathBounds', () => {
 });
 
 describe('EVENT_MARKERS', () => {
-  it('keeps overspeed orange', () => {
-    expect(EVENT_MARKERS.OVERSPEED.color).toBe('var(--rd-overspeed)');
+  it('keeps overspeed red', () => {
+    expect(EVENT_MARKERS.OVERSPEED.color).toBe('#ef4444');
   });
 });

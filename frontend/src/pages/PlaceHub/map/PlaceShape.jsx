@@ -103,7 +103,9 @@ const PlaceShapeGeometry = memo(function PlaceShapeGeometry({
 
 export default memo(function PlaceShape(props) {
   const [position, setPosition] = useState(null);
-  const { place, interactive } = props;
+  // When the place also has a pin, that marker owns the hover card — the shape
+  // staying silent avoids two identical tooltips stacking on the same place.
+  const { place, interactive, showTooltip = true } = props;
   return (
     <>
       <PlaceShapeGeometry
@@ -113,7 +115,7 @@ export default memo(function PlaceShape(props) {
         }
         onMouseOut={() => setPosition(null)}
       />
-      {position && interactive && (
+      {position && interactive && showTooltip && (
         <PlaceHoverTooltip
           position={position}
           label={place.name || 'Unnamed place'}

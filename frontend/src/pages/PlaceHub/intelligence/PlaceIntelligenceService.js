@@ -81,6 +81,9 @@ const PlaceIntelligenceService = {
   accept: async ({ id, ...body }, { signal } = {}) =>
     unwrap(await apiClient.post(`${BASE}/sites/${id}/accept`, body, { signal })),
 
+  move: async ({ id, ...body }, { signal } = {}) =>
+    unwrap(await apiClient.post(`${BASE}/sites/${id}/move`, body, { signal })),
+
   reject: async ({ id, note }, { signal } = {}) =>
     unwrap(await apiClient.post(`${BASE}/sites/${id}/reject`, note ? { note } : {}, { signal })),
 

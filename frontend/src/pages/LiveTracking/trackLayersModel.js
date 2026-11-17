@@ -6,7 +6,7 @@
  *
  * 1. The path is drawn as segments coloured by what the truck was doing:
  *    laden, empty, plant-to-plant, unknown, or a gap with no signal.
- * 2. Overspeed is NEVER a red line. It is an orange circle marker.
+ * 2. Overspeed is NEVER a red line. It is a red circle marker.
  * 3. A detour is a red DIAMOND marker in normal Track mode; the red line
  *    belongs only to the detour detail screen.
  * 4. Stops are round pins, coloured and pictured by their reason.
@@ -39,7 +39,7 @@ export const STOP_MARKERS = {
 
 /** The event markers, by kind. */
 export const EVENT_MARKERS = {
-  OVERSPEED: { color: 'var(--rd-overspeed)', shape: 'circle', size: 10, stroke: '#ffffff', strokeWidth: 2 },
+  OVERSPEED: { color: '#ef4444', shape: 'circle', size: 10, stroke: '#ffffff', strokeWidth: 2 },
   DETOUR: { color: 'var(--rd-detour)', shape: 'diamond', size: 10 },
   FUEL_FILL: { color: 'var(--rd-leg-loaded)', shape: 'circle', size: 9 },
   FUEL_DROP: { color: 'var(--rd-leg-reposition)', shape: 'circle', size: 9 },

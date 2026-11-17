@@ -25,7 +25,7 @@ const GAP_DOT = '#94a3b8';
 function eventColor(kind) {
   switch (kind) {
     case 'OVERSPEED':
-      return '#f97316';
+      return '#ef4444';
     case 'DETOUR':
       return '#ef4444';
     case 'FUEL_FILL':
@@ -207,10 +207,10 @@ export default function TrackTimeline({
   const statusConfig = useMemo(() => {
     if (isOverLimit) {
       return {
-        bg: 'bg-rose-500/15 border-rose-500/30 text-rose-600 dark:text-rose-400',
-        dot: 'bg-rose-500 animate-pulse',
+        bg: 'bg-red-500/15 border-red-500/30 text-red-600 dark:text-red-400',
+        dot: 'bg-red-500 animate-pulse',
         label: `Overspeed · ${Math.round(currentSpeed)} km/h`,
-        icon: <Zap size={13} className="text-rose-500" />,
+        icon: <Zap size={13} className="text-red-500" />,
       };
     }
     if (currentSpeed > 3) {
@@ -296,7 +296,7 @@ export default function TrackTimeline({
               Stop
             </span>
             <span className="flex items-center gap-1 shrink-0">
-              <span className="size-2 rounded-full shadow-sm bg-amber-500" aria-hidden="true" />
+              <span className="size-2 rounded-full shadow-sm bg-red-500" aria-hidden="true" />
               Overspeed
             </span>
             <span className="flex items-center gap-1 shrink-0">

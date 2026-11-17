@@ -78,9 +78,12 @@ it('loads a delivery ID through the delivery API and links its trips and SAP wor
     signal: expect.any(AbortSignal),
   });
   expect(PlaceIntelligenceService.getLeg).not.toHaveBeenCalled();
-  expect(screen.getByRole('link', { name: 'Open delivery route & SAP' })).toHaveAttribute(
+  expect(screen.getByRole('link', { name: 'Manage agreed distance' })).toHaveAttribute(
     'href',
     '/place-hub?tab=routes&routeView=deliveries&delivery=delivery1',
   );
-  expect(screen.getByText('120 km · one way')).toBeInTheDocument();
+  expect(screen.getByText('120 km')).toBeInTheDocument();
+  expect(screen.getByText('One way')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Customer-agreed distance' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Fit route/ })).not.toBeInTheDocument();
 });

@@ -40,9 +40,7 @@ export default function MapOverlayControls({
   return (
     <>
       <div className="ov ov--left">
-        <div className="ov-left-row">
-          {searchBox}
-        </div>
+        {searchBox ? <div className="ov-left-row">{searchBox}</div> : null}
         {legend}
       </div>
 

@@ -33,7 +33,6 @@ const PlaceMarker = memo(function PlaceMarker({
       <MarkerF
         position={{ lat: place.lat, lng: place.lng }}
         icon={icon}
-        title={[place.name, placeTypeLabel(place.type)].filter(Boolean).join(' · ')}
         onMouseOver={() => interactive && setHovered(true)}
         onMouseOut={() => setHovered(false)}
         clickable={interactive}

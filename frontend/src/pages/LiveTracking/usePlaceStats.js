@@ -20,12 +20,12 @@ export default function usePlaceStats(place) {
   const { data, loading, error } = useApi(
     (signal) => PlaceIntelligenceService.getSite(siteId, { signal }),
     [siteId],
-    { enabled: Boolean(siteId) },
+    { enabled: Boolean(siteId), scopeKey: siteId },
   );
 
   return {
     stats: placePanelStats(place, data?.report ?? null),
-    loading,
+    loading: Boolean(siteId) && loading,
     error,
   };
 }

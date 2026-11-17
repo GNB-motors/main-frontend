@@ -29,7 +29,6 @@
   font-weight: 500;
   opacity: 0.7;
 }
-.lt-map-key-diamond,
 .lt-map-key-dot {
   display: inline-block;
   width: 9px;
@@ -37,10 +36,10 @@
   border: 1.5px solid #fff;
   box-shadow: 0 0 0 1px rgb(15 23 42 / 18%);
 }
-.lt-map-key-diamond {
-  background: #7c3aed;
-  border-radius: 2px;
-  transform: rotate(45deg);
+.lt-map-key-review {
+  width: 16px;
+  height: 20px;
+  object-fit: contain;
 }
 .lt-map-key-dot {
   background: #f59e0b;

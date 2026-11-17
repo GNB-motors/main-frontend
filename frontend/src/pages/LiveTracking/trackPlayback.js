@@ -116,7 +116,7 @@ export function buildTripLog(stops = [], events = []) {
       at: stop.startAt,
       kind: 'STOP',
       reason: stop.reason,
-      title: stop.place?.name ?? 'Stop',
+      title: stop.place?.name?.trim() || 'Place not identified',
       text: stop.reasonWhy ?? '',
       durationMin: stop.durationMin ?? null,
       place: stop.place ?? null,

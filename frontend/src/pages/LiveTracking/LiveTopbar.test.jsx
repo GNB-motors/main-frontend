@@ -42,7 +42,7 @@ describe('tracking toolbar', () => {
       '/place-hub',
     );
   });
-  it('keeps replay protected until the user exits Track mode', () => {
+  it('prevents switching while a place is being saved', () => {
     const changeView = vi.fn();
     render(<Toolbar onViewChange={changeView} viewSwitchDisabled />);
     fireEvent.click(screen.getByRole('button', { name: 'Places & routes' }));
@@ -55,7 +55,7 @@ describe('tracking toolbar', () => {
     fireEvent.click(screen.getByRole('button', { name: /Tata/ }));
     expect(screen.getByRole('button', { name: /Volvo/ })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: /Tata/ })).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(screen.getByRole('button', { name: /All makes/ }));
+    fireEvent.click(screen.getByRole('button', { name: /All manufacturers/ }));
     expect(screen.getByRole('button', { name: /Volvo/ })).toHaveAttribute('aria-pressed', 'false');
   });
   it('omits clock, feed age and refresh controls while retaining update errors', () => {

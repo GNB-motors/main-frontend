@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -7,6 +6,7 @@ import {
   ChevronRight,
   MapPin,
   Navigation,
+  Pencil,
   ScanLine,
   Truck,
 } from 'lucide-react';
@@ -25,10 +25,17 @@ import usePlaceStats from './usePlaceStats.js';
 import { formatDuration } from '../../utils/redesign/format';
 import './PlaceDetailPanel.css';
 
-export default function PlaceDetailPanel({ place, vehicles, onBack, onPickVehicle }) {
+export default function PlaceDetailPanel({
+  place,
+  vehicles,
+  onBack,
+  onPickVehicle,
+  onEditPlace,
+  onEditFence,
+}) {
   const here = useMemo(() => vehiclesAtPlace(place, vehicles), [place, vehicles]);
   const ours = isOurPlace(place);
-  const { stats } = usePlaceStats(place);
+  const { stats, loading: statsLoading } = usePlaceStats(place);
 
   if (!place) return <div className="railview railview--detail" aria-live="polite" />;
 
@@ -59,7 +66,20 @@ export default function PlaceDetailPanel({ place, vehicles, onBack, onPickVehicl
               <div className="pd-type">
                 {place.type ? placeTypeLabel(place.type) : place.category || 'Place'}
               </div>
-              <h2>{place.name || 'Location not known'}</h2>
+              <div className="pd-title-row">
+                <h2>{place.name || 'Location not known'}</h2>
+                {ours && (!place.readOnly || place.erp) && onEditPlace ? (
+                  <button
+                    type="button"
+                    className="pd-title-edit"
+                    aria-label="Edit place"
+                    title="Edit place"
+                    onClick={() => onEditPlace(place)}
+                  >
+                    <Pencil size={16} aria-hidden="true" />
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
           {place.subtitle ? (
@@ -83,13 +103,15 @@ export default function PlaceDetailPanel({ place, vehicles, onBack, onPickVehicl
               <Navigation size={14} aria-hidden="true" /> Open in Maps{' '}
               <ArrowUpRight size={13} aria-hidden="true" />
             </button>
-            <Link className="pd-action" to="/place-hub">
-              Manage places <ChevronRight size={13} aria-hidden="true" />
-            </Link>
+            {ours && (!place.readOnly || place.erp) && onEditFence ? (
+              <button type="button" className="pd-action" onClick={() => onEditFence(place)}>
+                <ScanLine size={14} aria-hidden="true" /> Edit fence
+              </button>
+            ) : null}
           </div>
         </header>
 
-        <PlaceStatRow stats={stats} trucksHere={here.length} />
+        <PlaceStatRow stats={stats} trucksHere={here.length} loading={statsLoading} />
         <div className="pd-extra">
           <PlaceLandmarkActions place={place} />
         </div>

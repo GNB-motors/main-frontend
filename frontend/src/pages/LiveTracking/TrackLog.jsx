@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import { MapPin, Clock, Zap, Radio, Fuel, CornerUpRight, Calendar, Truck } from 'lucide-react';
 import { formatDuration, formatIst } from '../../utils/redesign/format';
 import { buildTripLog } from './trackPlayback';
@@ -58,6 +58,13 @@ function getPointStatus(point, summary) {
 /** Icon and style configuration per kind */
 function getEventStyle(kind) {
   switch (kind) {
+    case 'START':
+      return {
+        label: 'Start',
+        badgeClass: 'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30',
+        dotColor: '#2563eb',
+        icon: <MapPin size={13} className="text-blue-600 dark:text-blue-400 shrink-0" />,
+      };
     case 'MOVING':
       return {
         label: 'Moving',
@@ -76,9 +83,9 @@ function getEventStyle(kind) {
     case 'OVERSPEED':
       return {
         label: 'Overspeed',
-        badgeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30',
-        dotColor: '#f97316',
-        icon: <Zap size={13} className="text-amber-600 dark:text-amber-400 shrink-0" />,
+        badgeClass: 'bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/30',
+        dotColor: '#ef4444',
+        icon: <Zap size={13} className="text-red-600 dark:text-red-400 shrink-0" />,
       };
     case 'DETOUR':
       return {
@@ -131,6 +138,7 @@ function getEventStyle(kind) {
  * - Human-friendly formatted cards for Stops, Overspeed, and GPS gaps
  */
 export default function TrackLog({
+  query = '',
   track,
   points = [],
   playheadTime = null,
@@ -160,27 +168,6 @@ export default function TrackLog({
     const lastPointMs = new Date(lastPoint.t).getTime();
 
     const result = [...baseRows];
-
-    // 1. If tracking started with moving or idling well before the first event/stop:
-    if (result.length > 0) {
-      const firstRow = result[0];
-      const firstRowMs = new Date(firstRow.at).getTime();
-      if (firstRowMs - firstPointMs >= 10 * 60000) {
-        const startStatus = getPointStatus(firstPoint, summary);
-        const startDurationMin = Math.round((firstRowMs - firstPointMs) / 60000);
-        result.unshift({
-          key: `start-status-${firstPoint.t}`,
-          at: firstPoint.t,
-          kind: startStatus.kind,
-          reason: startStatus.kind,
-          title: startStatus.kind === 'MOVING' ? 'Moving' : startStatus.title,
-          text: startStatus.detail,
-          durationMin: startDurationMin,
-          place: null,
-          isGap: false,
-        });
-      }
-    }
 
     // 2. If the vehicle was active after the last event/stop before track end:
     if (result.length > 0) {
@@ -266,9 +253,60 @@ export default function TrackLog({
       });
     }
 
-    return result;
-  }, [baseRows, effectivePoints, summary]);
+    const journeyRows = result.map((row) => {
+      if (row.kind !== 'MOVING') return row;
+      // Only use a location attached to this exact historical point. The
+      // current API supplies coordinates, not a moving-point place name.
+      const point = effectivePoints.find((item) => item.t === row.at);
+      const name = row.place?.name?.trim() || point?.place?.name?.trim() || point?.address?.trim();
+      const speed = Number.isFinite(point?.speedKmh) ? `${Math.round(point.speedKmh)} km/h` : null;
+      return {
+        ...row,
+        title: name || 'Place not identified',
+        text: [row.text, speed].filter(Boolean).join(' · '),
+      };
+    });
+    // Events can start before the first GPS fix when a stop overlaps the window.
+    const firstRow = journeyRows[0];
+    const startAt = firstRow && Date.parse(firstRow.at) < firstPointMs ? firstRow.at : firstPoint.t;
+    if (firstRow && Date.parse(firstRow.at) === Date.parse(startAt)) {
+      return [{ ...firstRow, isStart: true }, ...journeyRows.slice(1)];
+    }
+    const startPlace = stops.find(
+      (stop) =>
+        Date.parse(stop.startAt) <= Date.parse(startAt) &&
+        Date.parse(stop.endAt || stop.startAt) >= Date.parse(startAt),
+    )?.place;
+    return [
+      {
+        key: `replay-start-${startAt}`,
+        at: startAt,
+        kind: 'START',
+        isStart: true,
+        title:
+          startPlace?.name?.trim() ||
+          (startAt === firstPoint.t
+            ? firstPoint.place?.name?.trim() || firstPoint.address?.trim()
+            : null) ||
+          'Starting point',
+        text: 'Beginning of this replay window.',
+        durationMin: null,
+        place: startPlace || null,
+        isGap: false,
+      },
+      ...journeyRows,
+    ];
+  }, [baseRows, effectivePoints, summary, stops]);
 
+  const [clickedRow, setClickedRow] = useState(null);
+  const normalizedQuery = query.trim().toLowerCase();
+  const matchesSearch = (row) =>
+    [row.title, row.text, getEventStyle(row.kind).label, row.isStart ? 'Starting point' : ''].some(
+      (value) =>
+        String(value || '')
+          .toLowerCase()
+          .includes(normalizedQuery),
+    );
   const activeItemRef = useRef(null);
   const listContainerRef = useRef(null);
 
@@ -302,6 +340,14 @@ export default function TrackLog({
   // Active event index: latest row at or before currentTimeMs
   const activeRowIndex = useMemo(() => {
     if (!rows.length || currentTimeMs === null) return -1;
+    if (!isPlaying && clickedRow && clickedRow.at === currentTimeMs) {
+      const selected = rows.findIndex((row) => row.key === clickedRow.key);
+      if (selected !== -1) return selected;
+    }
+    if (!isPlaying) {
+      const exact = rows.findIndex((row) => Date.parse(row.at) === currentTimeMs);
+      if (exact !== -1) return exact;
+    }
     let idx = -1;
     for (let i = 0; i < rows.length; i += 1) {
       if (new Date(rows[i].at).getTime() <= currentTimeMs) {
@@ -311,7 +357,7 @@ export default function TrackLog({
       }
     }
     return idx >= 0 ? idx : 0;
-  }, [rows, currentTimeMs]);
+  }, [rows, currentTimeMs, clickedRow, isPlaying]);
 
   // Auto-scroll active item into view during playback
   useEffect(() => {
@@ -406,9 +452,9 @@ export default function TrackLog({
       </div>
 
       {/* 2. THE CONNECTED VERTICAL TIMELINE LIST */}
-      {rows.length === 0 ? (
+      {rows.length === 0 || !rows.some(matchesSearch) ? (
         <p className="track-log-message p-6 text-center text-sm text-slate-500 dark:text-slate-400 m-0">
-          Nothing was recorded on this drive.
+          {rows.length ? 'No matching journey records.' : 'Nothing was recorded on this drive.'}
         </p>
       ) : (
         <div
@@ -417,6 +463,7 @@ export default function TrackLog({
         >
           <ul className="track-log-list m-0 p-0 list-none space-y-3 relative">
             {rows.map((row, index) => {
+              if (!matchesSearch(row)) return null;
               const rowTimeMs = new Date(row.at).getTime();
               const isPast = currentTimeMs !== null && currentTimeMs >= rowTimeMs;
               const isActive = index === activeRowIndex;
@@ -505,7 +552,11 @@ export default function TrackLog({
                   {/* Event Card Button */}
                   <button
                     type="button"
-                    onClick={() => onSeek?.(row.at)}
+                    aria-current={isActive ? 'step' : undefined}
+                    onClick={() => {
+                      setClickedRow({ key: row.key, at: Date.parse(row.at) });
+                      onSeek?.(row.at);
+                    }}
                     className={`track-log-row flex-1 text-left rounded-xl p-3 border transition-all cursor-pointer ${
                       isActive
                         ? 'border-blue-500/80 bg-blue-50/50 dark:bg-blue-950/30 shadow-md ring-1 ring-blue-500/30'
@@ -517,6 +568,12 @@ export default function TrackLog({
                     {/* Card Top Row: Badge, Time, Duration */}
                     <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
                       <div className="flex items-center gap-1.5">
+                        {row.isStart && row.kind !== 'START' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30">
+                            <MapPin size={13} aria-hidden="true" />
+                            Start
+                          </span>
+                        ) : null}
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border ${style.badgeClass}`}
                         >

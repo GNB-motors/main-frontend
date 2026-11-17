@@ -4975,7 +4975,8 @@ html.dark .wx-icon .wx-star,
   opacity: 0.5;
   cursor: default;
 }
-.gnb-lt-page :is(.lt-place-review, .lt-place-draft) {
+.gnb-lt-page :is(.lt-place-review, .lt-place-draft),
+.lt-place-decision {
   --ph-surface: var(--bg-surface, #fff);
   --ph-raised: var(--bg-subtle, #f8fafc);
   --ph-sunk: var(--bg-subtle, #f1f5f9);
@@ -5186,4 +5187,450 @@ html.dark .wx-icon .wx-star,
   color: var(--fg-primary);
   border-bottom-color: #2563eb;
   background: var(--bg-subtle);
+}
+
+/* Vehicle-scoped Places and Routes: independent of the replay log's markup. */
+.gnb-lt-page .lt-vehicle-context {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.gnb-lt-page .lt-vehicle-context > div:first-child {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 3px;
+}
+.gnb-lt-page .lt-vehicle-context > div:first-child strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.gnb-lt-page .lt-vehicle-context > div:first-child > span {
+  font-size: 11px;
+  color: var(--fg-secondary);
+}
+.gnb-lt-page .lt-vehicle-period {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+.gnb-lt-page .lt-vehicle-period > span {
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--fg-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.gnb-lt-page .lt-journey-range {
+  flex: 0 0 auto;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  padding: 7px 11px;
+  background: var(--bg-surface);
+  color: var(--fg-primary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.gnb-lt-page .lt-journey-panel {
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  background: var(--bg-surface);
+  color: var(--fg-primary);
+  text-align: left;
+}
+.gnb-lt-page .lt-journey-heading {
+  padding: 18px 16px 14px;
+}
+.gnb-lt-page .lt-journey-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gnb-lt-page .lt-journey-title h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+.gnb-lt-page .lt-journey-count {
+  flex-shrink: 0;
+  border-radius: 6px;
+  padding: 2px 6px;
+  background: var(--bg-subtle);
+  color: var(--fg-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+.gnb-lt-page .lt-journey-intro {
+  margin: 7px 0 0;
+  color: var(--fg-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.gnb-lt-page .lt-journey-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0 12px 20px;
+  list-style: none;
+}
+.gnb-lt-page .lt-journey-item {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+.gnb-lt-page .lt-journey-row {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 15px;
+  align-items: start;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  color: var(--fg-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.gnb-lt-page .lt-journey-row:hover {
+  background: var(--bg-subtle);
+  border-color: var(--border-default);
+}
+.gnb-lt-page .lt-journey-row:focus-visible,
+.gnb-lt-page .lt-journey-range:focus-visible {
+  outline: 2px solid var(--accent-primary, #2563eb);
+  outline-offset: 2px;
+}
+.gnb-lt-page .lt-journey-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--bg-subtle);
+  color: var(--fg-secondary);
+}
+.gnb-lt-page .lt-journey-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.gnb-lt-page .lt-journey-kind {
+  color: var(--fg-secondary);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.03em;
+}
+.gnb-lt-page .lt-journey-name {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.gnb-lt-page .lt-journey-time,
+.gnb-lt-page .lt-journey-detail {
+  color: var(--fg-secondary);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.gnb-lt-page .lt-journey-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.gnb-lt-page .lt-journey-metrics > span {
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: var(--bg-subtle);
+  color: var(--fg-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+.gnb-lt-page .lt-journey-arrow {
+  margin-top: 8px;
+  color: var(--fg-secondary);
+}
+.gnb-lt-page .lt-journey-message {
+  margin: 0;
+  padding: 20px 16px;
+  color: var(--fg-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: left;
+}
+
+/* Keep search in the docked panel, above every tracking list. */
+.gnb-lt-page .lt-panel-search {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+}
+.gnb-lt-page .lt-panel-search-field {
+  width: 100%;
+  min-width: 0;
+  box-shadow: none;
+  border-radius: 8px;
+}
+/* The field already has an accessible Clear search button. */
+.gnb-lt-page
+  :is(.ov-search, .lt-panel-search-field)
+  input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+.gnb-lt-page .stage.railoff .lt-panel-search {
+  visibility: hidden;
+}
+
+.gnb-lt-page .lt-review-actions .pi-chips {
+  margin: 12px 0;
+}
+.gnb-lt-page .lt-review-later {
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 12px;
+  padding-top: 8px;
+}
+.lt-place-decision {
+  max-width: min(460px, calc(100vw - 32px));
+}
+.lt-place-decision-fields {
+  display: grid;
+  gap: 16px;
+  padding: 20px 24px;
+}
+.lt-place-decision-fields label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.lt-place-decision-fields .ph-text {
+  width: 100%;
+}
+.gnb-lt-page .lt-place-review .lt-place-boundary {
+  margin-top: 0;
+}
+
+.gnb-lt-page .lt-polygon-help {
+  padding: 10px 12px;
+  margin: 8px 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+.gnb-lt-page .lt-polygon-help summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.gnb-lt-page .lt-polygon-help p {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--fg-secondary);
+}
+
+.lt-place-edit-boundary {
+  border-top: 1px solid var(--ph-border);
+  padding-top: 12px;
+}
+.lt-place-edit-boundary p {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0 0 10px;
+  color: var(--ph-text-2);
+}
+.lt-place-edit-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ph-crit);
+}
+.lt-place-decision {
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+}
+
+.gnb-lt-page .lt-route-fit {
+  min-height: 38px;
+  background: var(--rd-brand-tint);
+  color: var(--rd-brand-2);
+  border-color: color-mix(in srgb, var(--rd-brand-2) 22%, var(--rd-line));
+  font-size: 12px;
+  font-weight: 600;
+}
+.gnb-lt-page .lt-route-fit:hover:not(:disabled) {
+  border-color: var(--rd-brand-2);
+}
+.gnb-lt-page .lt-route-fit:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.gnb-lt-page .lt-route-fit svg:last-child {
+  margin-left: 0;
+}
+.gnb-lt-page .lt-route-agreement .lt-route-section-heading {
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+.gnb-lt-page .lt-route-agreement-status {
+  padding: 3px 7px;
+  border: 1px solid var(--rd-line);
+  border-radius: 5px;
+  white-space: nowrap;
+  background: var(--rd-card-2);
+  font-size: 10px;
+}
+.gnb-lt-page .lt-route-agreement-status.is-set {
+  color: var(--rd-moving);
+}
+.gnb-lt-page .lt-route-agreement-help {
+  margin: 0;
+  color: var(--rd-ink-3);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.gnb-lt-page .lt-route-agreement-empty {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px dashed var(--rd-line);
+  border-radius: 8px;
+  color: var(--rd-ink-2);
+  background: var(--rd-card-2);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.gnb-lt-page .lt-route-agreement-value {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 12px 0;
+}
+.gnb-lt-page .lt-route-agreement-value strong {
+  font-size: 20px;
+  color: var(--rd-ink);
+}
+.gnb-lt-page .lt-route-agreement-value span {
+  font-size: 11px;
+  color: var(--rd-ink-3);
+}
+.gnb-lt-page .lt-route-settings-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--rd-brand-2);
+  text-decoration: none;
+}
+.gnb-lt-page .lt-route-settings-link:hover {
+  text-decoration: underline;
+}
+
+/* Places and both route feeds share the sidebar's card loading rhythm. */
+.gnb-lt-page .lt-sidebar-skeletons {
+  width: 100%;
+  min-width: 0;
+}
+.gnb-lt-page .lt-sidebar-skeleton-cards {
+  display: grid;
+  gap: 8px;
+}
+.gnb-lt-page .lt-sidebar-skeleton-card,
+.gnb-lt-page .lt-sidebar-skeleton-card:hover {
+  min-height: 68px;
+  cursor: default;
+  border-color: var(--border-default);
+}
+.gnb-lt-page .lt-sidebar-skeleton-card > .skel {
+  flex-shrink: 0;
+}
+.gnb-lt-page .lt-sidebar-skeleton-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.gnb-lt-page .lt-place-filter-skeleton {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.lt-place-decision .lt-place-type-trigger {
+  width: 100%;
+  min-height: 40px;
+  font-size: 13px;
+  font-weight: 400;
+}
+.lt-place-type-options {
+  max-height: min(320px, var(--available-height));
+  padding: 4px;
+}
+.lt-place-type-options [data-slot='select-item'] {
+  min-height: 36px;
+  padding-left: 10px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.lt-place-type-options [data-slot='select-item'][data-highlighted] {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.lt-place-decision .lt-place-modal-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.lt-place-decision .lt-place-modal-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  color: var(--lt-place-icon-color, var(--ph-accent));
+  background: color-mix(
+    in srgb,
+    var(--lt-place-icon-color, var(--ph-accent)) 10%,
+    var(--ph-surface)
+  );
+  border: 1px solid
+    color-mix(in srgb, var(--lt-place-icon-color, var(--ph-accent)) 18%, transparent);
+}
+.lt-place-decision .lt-place-modal-icon.is-reject {
+  --lt-place-icon-color: var(--ph-crit);
 }

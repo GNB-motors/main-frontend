@@ -4,7 +4,7 @@ import {
   BadgeCheck,
   ChevronDown,
   ChevronUp,
-  CircleHelp,
+  MapPin,
   Cross,
   Factory,
   Fuel,
@@ -36,7 +36,7 @@ const LAYER_ICONS = {
   BadgeCheck,
   ParkingSquare,
   Landmark,
-  CircleHelp,
+  MapPin,
   Route,
   Timer,
 };
@@ -81,6 +81,8 @@ export default function TrackLegend({
   ownPlacesCount = null,
   tollInfo = null,
   showAllTolls = false,
+  placeScopes = {},
+  onPlaceScopeChange,
   onToggleAllTolls,
   hideRoutes = false,
   initialOpen = false,
@@ -112,8 +114,13 @@ export default function TrackLegend({
   onRetry = null,
 }) {
   const [showEmptyLayers, setShowEmptyLayers] = useState(false);
-  const emptyLayers = PLACE_LAYERS.filter((layer) => layerAvailability?.[layer.id]?.count === 0);
-  const availableLayers = PLACE_LAYERS.filter((layer) => layerAvailability?.[layer.id]?.count !== 0);
+  const hasScope = (id) => Boolean(onPlaceScopeChange && ['pumps', 'dhabas'].includes(id));
+  const emptyLayers = PLACE_LAYERS.filter(
+    (layer) => !hasScope(layer.id) && layerAvailability?.[layer.id]?.count === 0,
+  );
+  const availableLayers = PLACE_LAYERS.filter(
+    (layer) => hasScope(layer.id) || layerAvailability?.[layer.id]?.count !== 0,
+  );
   const [isOpen, setIsOpen] = useState(() => initialOpen || readLegendOpen());
   // The place layers are many rows; they start folded away and the owner keeps
   // that choice (the storage read/write never throws — utils/session.js).
@@ -264,38 +271,186 @@ export default function TrackLegend({
               onToggle={togglePlaces}
             >
               <div className="lt-place-layer-list">
-              {availableLayers.map((layer) => {
-                const coverage = layerAvailability?.[layer.id];
-                const isToll = layer.id === 'tolls';
-                const notAvailable = placesNotAvailable && !isToll && layer.id !== 'ourPlaces';
-                const nearby = !isToll && layer.id !== 'ourPlaces' && layerSelection[layer.id]
-                  ? nearbyInfo?.loading ? nearbyInfo.items?.length ? 'Updating nearby places…' : 'Loading in this view…'
-                    : nearbyInfo?.error ? 'Could not load this view'
-                      : nearbyInfo?.loaded ? nearbyInfo.counts[layer.id] ? `${nearbyInfo.counts[layer.id]}${nearbyInfo.truncated ? '+' : ''} in this view` : nearbyInfo.truncated ? 'Zoom in for local results' : 'None in this view' : null : null;
-                const count = layer.id === 'ourPlaces' ? ownPlacesCount : isToll ? tollInfo?.visitedCount : coverage?.count;
-                return <div key={layer.id}>
-                  <PlaceLayerRow layer={layer} on={Boolean(layerSelection[layer.id])} onToggle={() => onToggleLayer(layer.id)}
-                    count={count} truncated={coverage?.truncated} color={placeLayerColor(layer.id)} disabled={notAvailable}
-                    subtitle={notAvailable ? 'Coming soon' : isToll ? 'Visited by your fleet' : nearby || (coverage?.failed ? 'Coverage unavailable' : null)} />
-                  {notAvailable ? <InfoTip text="Coming soon. This layer arrives with the new map places service." basis={null} side="left" /> : null}
-                  {isToll && onToggleAllTolls ? <div className="lt-toll-scope">
-                    <div className="lt-toll-scope-heading"><span>All tolls in view</span><button type="button" role="switch" aria-label="Show all tolls in view" aria-checked={showAllTolls && Boolean(layerSelection.tolls)} onClick={onToggleAllTolls} className="lt-layer-switch"><span /></button></div>
-                    <p>{showAllTolls && layerSelection.tolls ? tollInfo?.needsZoom ? 'Zoom in to load all tolls in view.' : tollInfo?.loading ? 'Loading toll plazas…' : `${tollInfo?.allCount ?? '—'} toll plazas in this view` : 'Include plazas your fleet hasn’t used.'}</p>
-                    {tollInfo?.truncated ? <p>Some plazas are hidden. Zoom in for all.</p> : null}
-                  </div> : null}
-                </div>;
-              })}
+                {availableLayers.map((layer) => {
+                  const coverage = layerAvailability?.[layer.id];
+                  const localTruncated =
+                    nearbyInfo?.truncatedByLayer?.[layer.id] ?? nearbyInfo?.truncated;
+                  const isToll = layer.id === 'tolls';
+                  const notAvailable = placesNotAvailable && !isToll && layer.id !== 'ourPlaces';
+                  const nearby =
+                    !isToll && layer.id !== 'ourPlaces' && layerSelection[layer.id]
+                      ? nearbyInfo?.loading
+                        ? nearbyInfo.items?.length
+                          ? 'Updating nearby places…'
+                          : 'Loading in this view…'
+                        : nearbyInfo?.error
+                          ? 'Could not load this view'
+                          : nearbyInfo?.loaded
+                            ? nearbyInfo.counts[layer.id]
+                              ? `${nearbyInfo.counts[layer.id]}${localTruncated ? '+' : ''} in this view`
+                              : localTruncated
+                                ? 'Zoom in for local results'
+                                : 'None in this view'
+                            : null
+                      : null;
+                  const count =
+                    layer.id === 'ourPlaces'
+                      ? ownPlacesCount
+                      : isToll
+                        ? tollInfo?.visitedCount
+                        : hasScope(layer.id)
+                          ? nearbyInfo?.loaded
+                            ? nearbyInfo.counts[layer.id]
+                            : null
+                          : coverage?.count;
+                  return (
+                    <div key={layer.id}>
+                      <PlaceLayerRow
+                        layer={layer}
+                        on={Boolean(layerSelection[layer.id])}
+                        onToggle={() => onToggleLayer(layer.id)}
+                        count={count}
+                        truncated={coverage?.truncated}
+                        color={placeLayerColor(layer.id)}
+                        disabled={notAvailable}
+                        subtitle={
+                          notAvailable
+                            ? 'Coming soon'
+                            : isToll
+                              ? 'Visited by your fleet'
+                              : nearby || (coverage?.failed ? 'Coverage unavailable' : null)
+                        }
+                      />
+                      {hasScope(layer.id) ? (
+                        <div className="lt-toll-scope">
+                          <div className="lt-toll-scope-heading">
+                            <span>All {layer.id} in view</span>
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-label={`Show all ${layer.id} in view`}
+                              aria-checked={
+                                placeScopes[layer.id] === 'all' && Boolean(layerSelection[layer.id])
+                              }
+                              onClick={() =>
+                                onPlaceScopeChange(
+                                  layer.id,
+                                  placeScopes[layer.id] === 'all' && layerSelection[layer.id]
+                                    ? 'visited'
+                                    : 'all',
+                                )
+                              }
+                              className="lt-layer-switch"
+                            >
+                              <span />
+                            </button>
+                          </div>
+                          <p>
+                            {placeScopes[layer.id] === 'all' && layerSelection[layer.id]
+                              ? nearbyInfo?.loading
+                                ? `Loading ${layer.id}…`
+                                : nearbyInfo?.error
+                                  ? 'Could not load this view.'
+                                  : `${count ?? '—'} ${layer.id} in this India view`
+                              : `Include ${layer.id} your fleet hasn’t visited.`}
+                          </p>
+                          {layerSelection[layer.id] && localTruncated ? (
+                            <p>Some places are hidden. Zoom in for all.</p>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      {notAvailable ? (
+                        <InfoTip
+                          text="Coming soon. This layer arrives with the new map places service."
+                          basis={null}
+                          side="left"
+                        />
+                      ) : null}
+                      {isToll && onToggleAllTolls ? (
+                        <div className="lt-toll-scope">
+                          <div className="lt-toll-scope-heading">
+                            <span>All tolls in view</span>
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-label="Show all tolls in view"
+                              aria-checked={showAllTolls && Boolean(layerSelection.tolls)}
+                              onClick={onToggleAllTolls}
+                              className="lt-layer-switch"
+                            >
+                              <span />
+                            </button>
+                          </div>
+                          <p>
+                            {showAllTolls && layerSelection.tolls
+                              ? tollInfo?.needsZoom
+                                ? 'Zoom in to load all tolls in view.'
+                                : tollInfo?.loading
+                                  ? 'Loading toll plazas…'
+                                  : `${tollInfo?.allCount ?? '—'} toll plazas in this view`
+                              : 'Include plazas your fleet hasn’t used.'}
+                          </p>
+                          {tollInfo?.truncated ? (
+                            <p>Some plazas are hidden. Zoom in for all.</p>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
-              {availabilityLoading && !layerAvailability ? <p className="lt-layer-coverage-note" role="status">Checking map coverage…</p> : null}
-              {layerAvailability ? <p className="lt-layer-coverage-note">Map category counts cover India. Toll count shows fleet-visited plazas.</p> : null}
-              {emptyLayers.length ? <div className="lt-empty-layer-group">
-                <button type="button" aria-expanded={showEmptyLayers} onClick={() => setShowEmptyLayers((value) => !value)}>{emptyLayers.length} categories without mapped data <ChevronDown size={12} aria-hidden="true" /></button>
-                {showEmptyLayers ? emptyLayers.map((layer) => <PlaceLayerRow key={layer.id} layer={layer} on={false} disabled color={placeLayerColor(layer.id)} count={0} subtitle="No mapped data yet" />) : null}
-              </div> : null}
-              {tollsError ? <p role="status" className="m-0 px-1 pt-1 text-[12px] text-[var(--rd-ink-2)]">
-                Could not load toll plazas. <button type="button" onClick={onRetryTolls}>Retry tolls</button>
-              </p> : null}
-              {nearbyInfo?.error ? <p className="lt-layer-coverage-note" role="alert">Could not load nearby places. <button type="button" onClick={onRetryNearby}>Retry nearby places</button></p> : null}
+              {availabilityLoading && !layerAvailability ? (
+                <p className="lt-layer-coverage-note" role="status">
+                  Checking map coverage…
+                </p>
+              ) : null}
+              {layerAvailability ? (
+                <p className="lt-layer-coverage-note">
+                  Pump and dhaba counts match your selection in this view. Other category counts
+                  cover India. Toll count shows fleet-visited plazas.
+                </p>
+              ) : null}
+              {emptyLayers.length ? (
+                <div className="lt-empty-layer-group">
+                  <button
+                    type="button"
+                    aria-expanded={showEmptyLayers}
+                    onClick={() => setShowEmptyLayers((value) => !value)}
+                  >
+                    {emptyLayers.length} categories without mapped data{' '}
+                    <ChevronDown size={12} aria-hidden="true" />
+                  </button>
+                  {showEmptyLayers
+                    ? emptyLayers.map((layer) => (
+                        <PlaceLayerRow
+                          key={layer.id}
+                          layer={layer}
+                          on={false}
+                          disabled
+                          color={placeLayerColor(layer.id)}
+                          count={0}
+                          subtitle="No mapped data yet"
+                        />
+                      ))
+                    : null}
+                </div>
+              ) : null}
+              {tollsError ? (
+                <p role="status" className="m-0 px-1 pt-1 text-[12px] text-[var(--rd-ink-2)]">
+                  Could not load toll plazas.{' '}
+                  <button type="button" onClick={onRetryTolls}>
+                    Retry tolls
+                  </button>
+                </p>
+              ) : null}
+              {nearbyInfo?.error ? (
+                <p className="lt-layer-coverage-note" role="alert">
+                  Could not load nearby places.{' '}
+                  <button type="button" onClick={onRetryNearby}>
+                    Retry nearby places
+                  </button>
+                </p>
+              ) : null}
               {placesTruncated ? (
                 <p className="m-0 px-1 pt-1 text-[11px] text-[var(--rd-ink-3)]">
                   Showing {placesCount.toLocaleString('en-IN')} · zoom in for all
@@ -334,7 +489,9 @@ export default function TrackLegend({
                 </p>
               ) : null}
               {!hideRoutes && layerSelection.routes && zoom < 7 ? (
-                <p className="m-0 px-1 pt-1 text-[11px] text-[var(--rd-ink-3)]">Zoom in to see routes</p>
+                <p className="m-0 px-1 pt-1 text-[11px] text-[var(--rd-ink-3)]">
+                  Zoom in to see routes
+                </p>
               ) : null}
             </LegendBlock>
           </div>
@@ -356,14 +513,30 @@ export default function TrackLegend({
               </span>
             ) : (
               <span className="flex-1 text-[11px] text-[var(--rd-ink-3)]">
-                {hasFilterRows ? lastEventAt ? `Updated ${formatAgo(lastEventAt)}` : 'Waiting for data' : 'Place layers'}
+                {hasFilterRows
+                  ? lastEventAt
+                    ? `Updated ${formatAgo(lastEventAt)}`
+                    : 'Waiting for data'
+                  : 'Place layers'}
               </span>
             )}
             <button
               type="button"
               onClick={onRefresh}
-              aria-label={hasFilterRows ? error ? 'Retry fleet data' : 'Refresh fleet data' : 'Refresh place layers'}
-              title={hasFilterRows ? error ? 'Retry fleet data' : 'Refresh fleet data' : 'Refresh place layers'}
+              aria-label={
+                hasFilterRows
+                  ? error
+                    ? 'Retry fleet data'
+                    : 'Refresh fleet data'
+                  : 'Refresh place layers'
+              }
+              title={
+                hasFilterRows
+                  ? error
+                    ? 'Retry fleet data'
+                    : 'Refresh fleet data'
+                  : 'Refresh place layers'
+              }
               className="rounded-md p-1 text-[var(--rd-ink-3)] transition-colors hover:bg-[var(--rd-card-2)] hover:text-[var(--rd-ink-2)]"
             >
               <RotateCw

@@ -1,4 +1,6 @@
 import { MapPinned, Radio } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import DataTooltip from '../../components/ui/DataTooltip.jsx';
 import Skel from './Skel.jsx';
 
 export default function LiveTopbar({
@@ -36,7 +38,7 @@ export default function LiveTopbar({
               aria-pressed={view === id}
               disabled={viewSwitchDisabled}
               onClick={() => onViewChange(id)}
-              title={viewSwitchDisabled ? 'Exit Track mode to switch views' : label}
+              title={viewSwitchDisabled ? 'Finish saving before switching views' : label}
             >
               {icon}
               {label}
@@ -55,23 +57,46 @@ export default function LiveTopbar({
           <div className="lt-filter-groups">
             <div className="lt-filter-group lt-filter-group--movement">
               <div className="gnb-status-bar" role="group" aria-label="Fleet status filters">
-                {statusCards.map((card) => (
-                  <button
-                    key={card.k}
-                    type="button"
-                    className={`gnb-status-card ${filter === card.k ? 'gnb-status-card--active' : ''}`}
-                    aria-pressed={filter === card.k}
-                    style={{ '--lt-status-color': card.stripe }}
-                    title={card.title}
-                    onClick={() => setFilter(card.k)}
-                  >
-                    <span className="lt-status-dot" style={{ backgroundColor: card.stripe }} />
-                    <span className="gnb-status-card-label">{card.label}</span>
-                    <span className="gnb-status-card-count">
-                      {isLiveLoading ? <Skel w={18} h={14} /> : card.count}
-                    </span>
-                  </button>
-                ))}
+                {statusCards.map((card) => {
+                  const chip = (
+                    <button
+                      type="button"
+                      className={`gnb-status-card ${filter === card.k ? 'gnb-status-card--active' : ''}`}
+                      aria-pressed={filter === card.k}
+                      aria-label={card.hint ? `${card.label} — ${card.hint}` : card.label}
+                      style={{ '--lt-status-color': card.stripe }}
+                      onClick={() => setFilter(card.k)}
+                    >
+                      <span className="lt-status-dot" style={{ backgroundColor: card.stripe }} />
+                      <span className="gnb-status-card-label">{card.label}</span>
+                      <span className="gnb-status-card-count">
+                        {isLiveLoading ? <Skel w={18} h={14} /> : card.count}
+                      </span>
+                    </button>
+                  );
+                  if (!card.hint)
+                    return (
+                      <span key={card.k} style={{ display: 'contents' }}>
+                        {chip}
+                      </span>
+                    );
+                  // The map's DataTooltip card, carried by the shared tooltip so it
+                  // portals out (the status bar's overflow would clip an inline one).
+                  return (
+                    <Tooltip key={card.k} delay={200}>
+                      <TooltipTrigger render={chip} />
+                      <TooltipContent
+                        side="bottom"
+                        align="start"
+                        sideOffset={6}
+                        collisionPadding={8}
+                        className="w-max max-w-none border-0 bg-transparent p-0 shadow-none"
+                      >
+                        <DataTooltip label={card.label} details={[card.hint]} />
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })}
               </div>
             </div>
             <div className="lt-filter-group lt-filter-group--make">
@@ -82,7 +107,7 @@ export default function LiveTopbar({
                   aria-pressed={!selectedManufacturers.length}
                   onClick={() => setSelectedManufacturers([])}
                 >
-                  <span>All makes</span>
+                  <span>All manufacturers</span>
                   <span className="lt-make-count">
                     {Object.values(manufacturerCounts).reduce((sum, n) => sum + (n || 0), 0)}
                   </span>

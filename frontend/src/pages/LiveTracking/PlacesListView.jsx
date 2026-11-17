@@ -1,4 +1,6 @@
+import Skel from './Skel.jsx';
 import { useMemo } from 'react';
+import PlaceRouteSkeletons from './PlaceRouteSkeletons.jsx';
 import renderIconSvg from './renderIconSvg.jsx';
 import TrackPlacesFilter from './TrackPlacesFilter.jsx';
 import { styleOfType } from '../PlaceHub/placeHubStyle.js';
@@ -11,6 +13,7 @@ import { vehicleCountsByPlace } from './trackPlaces.js';
    is filtered by that one search. */
 export default function PlacesListView({ trackPlaces, vehicles, onPick, onHide, query = '' }) {
   const { listPlaces, places, loading, loaded } = trackPlaces;
+  const initialLoading = (loading || !loaded) && !places.length && !trackPlaces.notice;
   const here = useMemo(() => vehicleCountsByPlace(listPlaces, vehicles), [listPlaces, vehicles]);
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -28,11 +31,13 @@ export default function PlacesListView({ trackPlaces, vehicles, onPick, onHide, 
         <div className="ftitle">
           <h2>Places</h2>
           <div className="fsub">
-            {!loaded
-              ? 'Loading…'
-              : rows.length === places.length
-                ? `${places.length} confirmed places`
-                : `${rows.length} of ${places.length} places`}
+            {initialLoading ? (
+              <Skel w={108} h={11} />
+            ) : rows.length === places.length ? (
+              `${places.length} confirmed places`
+            ) : (
+              `${rows.length} of ${places.length} places`
+            )}
           </div>
         </div>
         <button
@@ -47,7 +52,7 @@ export default function PlacesListView({ trackPlaces, vehicles, onPick, onHide, 
 
       <div className="pl-filter">
         <TrackPlacesFilter
-          loading={trackPlaces.loading}
+          loading={trackPlaces.loading || initialLoading}
           notice={trackPlaces.notice}
           counts={trackPlaces.counts}
           hiddenGroups={trackPlaces.hiddenGroups}
@@ -56,8 +61,10 @@ export default function PlacesListView({ trackPlaces, vehicles, onPick, onHide, 
         />
       </div>
 
-      <div className="flist" aria-busy={loading}>
-        {loaded && rows.length === 0 ? (
+      <div className="flist" aria-busy={loading || initialLoading}>
+        {initialLoading ? (
+          <PlaceRouteSkeletons label="Loading places" />
+        ) : loaded && rows.length === 0 ? (
           <div className="fempty">
             {places.length === 0
               ? 'No confirmed places yet. Add them in Place Hub.'

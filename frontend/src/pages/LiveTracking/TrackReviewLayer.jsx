@@ -1,16 +1,27 @@
 import { useMemo } from 'react';
 import { MarkerF } from '@react-google-maps/api';
-import { diamondIcon } from '../PlaceHub/map/mapIcons.js';
+import { reviewPlaceIconUrl } from './reviewPlaceIcon.js';
+
+// Kept local to Live tracking: confirmation markers differ from known places.
+function reviewIcon(selected) {
+  const size = selected ? 44 : 36;
+  const height = (size * 44) / 36;
+  return {
+    url: reviewPlaceIconUrl,
+    scaledSize: new window.google.maps.Size(size, height),
+    anchor: new window.google.maps.Point(size / 2, (height * 42) / 44),
+  };
+}
 
 /**
  * TrackReviewLayer — the places still waiting for an answer.
  *
- * A diamond, not a pin: a place nobody has confirmed yet must not look like a
- * place the fleet already knows. Clicking one opens the place panel.
+ * A question-mark pin distinguishes unconfirmed places from known places.
+ * Its tip stays on the recorded coordinates, including when selected.
  */
 export default function TrackReviewLayer({ items = [], selectedId = null, onSelect }) {
-  const icon = useMemo(() => diamondIcon('#7c3aed', false), []);
-  const selectedIcon = useMemo(() => diamondIcon('#7c3aed', true), []);
+  const icon = useMemo(() => reviewIcon(false), []);
+  const selectedIcon = useMemo(() => reviewIcon(true), []);
 
   if (!items.length) return null;
 
@@ -20,7 +31,15 @@ export default function TrackReviewLayer({ items = [], selectedId = null, onSele
         const site = item?.site || item;
         const lat = Number(site?.centroidLat ?? site?.lat);
         const lng = Number(site?.centroidLng ?? site?.lng);
-        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+        if (site?.centroidLat == null && site?.lat == null) return null;
+        if (site?.centroidLng == null && site?.lng == null) return null;
+        if (
+          !Number.isFinite(lat) ||
+          !Number.isFinite(lng) ||
+          Math.abs(lat) > 90 ||
+          Math.abs(lng) > 180
+        )
+          return null;
         const id = String(site?._id ?? site?.id ?? '');
         return (
           <MarkerF
@@ -28,7 +47,7 @@ export default function TrackReviewLayer({ items = [], selectedId = null, onSele
             position={{ lat, lng }}
             icon={id === String(selectedId) ? selectedIcon : icon}
             title={`${site?.name || 'Place'} · to confirm`}
-            zIndex={40}
+            zIndex={id === String(selectedId) ? 60 : 40}
             onClick={() => onSelect?.(site)}
           />
         );
