@@ -3,7 +3,6 @@ import { CalendarDays, ChevronLeft, ChevronRight, RefreshCw, ShieldAlert } from 
 import { formatIst, formatIstDate } from '../../utils/redesign/format';
 import { istDayString } from '../../utils/dateUtils';
 import OwnerReportPanel from './OwnerReportPanel';
-import useOwnerReport from './useOwnerReport';
 import FleetAnalytics from './components/FleetAnalytics';
 import { buildOverview, shiftDay } from './fleetOverviewModel';
 
@@ -57,6 +56,7 @@ export default function FleetOperationsOverview({
   date,
   onDateChange,
   report,
+  owner,
   live,
   fleet,
   fuel,
@@ -66,7 +66,8 @@ export default function FleetOperationsOverview({
   legacy = null,
 }) {
   const digest = report.data?.payload;
-  const owner = useOwnerReport(date);
+  // The quick read leaves the day's km out: those parts keep loading until the full read lands.
+  const runsPending = Array.isArray(digest?.pending) && digest.pending.includes('runs');
   const work = owner.report$.data?.sections?.find(
     (section) => section.id === 'yesterdaysWork',
   )?.numbers;
@@ -90,11 +91,7 @@ export default function FleetOperationsOverview({
   const builtAt = generatedAt ? formatIst(generatedAt) : null;
   const dayDate = new Date(`${date}T12:00:00+05:30`);
 
-  const handleRefresh = () => {
-    owner.brief$.refetch();
-    owner.report$.refetch();
-    onRefresh();
-  };
+  const handleRefresh = () => onRefresh();
 
   return (
     <div className="fleet-overview">
@@ -104,7 +101,8 @@ export default function FleetOperationsOverview({
             <h1>Daily digest</h1>
             <p>
               {date === today ? 'Today' : WEEKDAY.format(dayDate)}, {formatIstDate(dayDate)}.{' '}
-              {digest?.headline || 'What happened, what it cost and what needs you.'}
+              {(!runsPending && digest?.headline) ||
+                'What happened, what it cost and what needs you.'}
               {builtAt ? <span className="db-header-meta"> Report built {builtAt}.</span> : null}
             </p>
           </div>
@@ -217,7 +215,9 @@ export default function FleetOperationsOverview({
                 ...legacy?.loadingSections,
                 running:
                   !work &&
-                  (owner.report$.loading || (legacy?.loadingSections?.running ?? reportPending)),
+                  (owner.report$.loading ||
+                    runsPending ||
+                    (legacy?.loadingSections?.running ?? reportPending)),
               }}
             />
           }

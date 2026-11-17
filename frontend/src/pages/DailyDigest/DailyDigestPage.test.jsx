@@ -5,6 +5,8 @@ import { MemoryRouter } from 'react-router-dom';
 import OwnerValueService from '../../services/OwnerValueService';
 import ReleaseDigest from './ReleaseDigest';
 import DailyDigestPage from './DailyDigestPage';
+import digestRouteMemory from './digestRouteMemory';
+import { fleetViewService } from '../../services/fleetViewService';
 
 vi.mock('../../services/fleetViewService', () => ({
   fleetViewService: {
@@ -113,5 +115,41 @@ describe('ReleaseDigest (the fallback)', () => {
     expect(
       await screen.findByText(/Historical digest reports are unavailable/),
     ).toBeInTheDocument();
+  });
+});
+
+describe('DailyDigestPage on a server without the new digest', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    digestRouteMemory.forget();
+    OwnerValueService.getDigest.mockResolvedValue(digest);
+  });
+
+  const renderDigestPage = () =>
+    render(
+      <MemoryRouter>
+        <DailyDigestPage />
+      </MemoryRouter>,
+    );
+
+  it('remembers the 404, so the next visit starts the release digest without asking again', async () => {
+    const first = renderDigestPage();
+    await screen.findByText('Detailed operational reports');
+    expect(digestRouteMemory.knownMissing()).toBe(true);
+    first.unmount();
+    vi.clearAllMocks();
+    OwnerValueService.getDigest.mockResolvedValue(digest);
+    renderDigestPage();
+    await screen.findByText('Detailed operational reports');
+    expect(fleetViewService.getDigest).not.toHaveBeenCalled();
+    // The owner report is read once, not once per layout the page passes through.
+    expect(fleetViewService.getOwnerReport).toHaveBeenCalledTimes(1);
+  });
+
+  it('forgets the 404 after a few hours, so a deploy that adds the route is picked up', () => {
+    const now = Date.now();
+    digestRouteMemory.remember(now);
+    expect(digestRouteMemory.knownMissing(now + 60 * 1000)).toBe(true);
+    expect(digestRouteMemory.knownMissing(now + digestRouteMemory.REMEMBER_MS + 1)).toBe(false);
   });
 });
