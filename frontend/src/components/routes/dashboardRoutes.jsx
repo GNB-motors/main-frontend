@@ -2,6 +2,7 @@ import { Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import RedirectWithState from './RedirectWithState';
 import PlacesRedirect from './PlacesRedirect';
+import TripsRedirect from './TripsRedirect';
 import LegacyReceiptRedirect from './LegacyReceiptRedirect';
 import PerformanceRedirect from './PerformanceRedirect';
 import FeatureGate from './FeatureGate';
@@ -209,6 +210,7 @@ const dashboardRoutes = (
     {/* The old weight-slip trip form was retired with its backend; adding a trip now happens on the Trips page. */}
     <Route path="/trip/new" element={<Navigate to="/auto-trips?new=manual" replace />} />
     <Route path="/trip/:tripId" element={<TripManagementPage />} />
+    <Route path="/trips/:id" element={<TripsRedirect />} />
     {/* Fuel Management Routes */}
     <Route
       path="/mileage"

@@ -82,12 +82,23 @@ export default function PlaceQuestionCard({ question, canAnswer = true, onAnswer
               View location <ArrowUpRight size={13} aria-hidden="true" />
             </a>
           ) : null}
-          {samples.map((sample, index) => (
-            <Link key={`${sample.to}-${index}`} to={sample.to}>
-              {sample.label || `Open sample trip ${index + 1}`}{' '}
-              <ArrowUpRight size={13} aria-hidden="true" />
-            </Link>
-          ))}
+          {samples.map((sample, index) => {
+            const targetUrl = sample.to?.startsWith('/trips/')
+              ? sample.to.replace('/trips/', '/auto-trips/')
+              : (sample.to || '/auto-trips');
+            const displayLabel =
+              sample.label && sample.label !== 'Open trip'
+                ? sample.label
+                : samples.length > 1
+                  ? `Sample trip ${index + 1}`
+                  : (sample.label || 'Open sample trip');
+
+            return (
+              <Link key={`${targetUrl}-${index}`} to={targetUrl}>
+                {displayLabel} <ArrowUpRight size={13} aria-hidden="true" />
+              </Link>
+            );
+          })}
         </div>
         {alternatives.length ? (
           <p className="atx-place-question-alternatives">
