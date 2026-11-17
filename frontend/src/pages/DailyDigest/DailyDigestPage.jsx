@@ -68,8 +68,8 @@ export default function DailyDigestPage() {
       throw err;
     }
   };
-  // Cache dated summaries on a revisit (5 min today, 30 min a past day).
-  // The owner report still refreshes its open attention queues.
+  // A revisit inside the cache window (5 min today, 30 min a past day) asks
+  // the server nothing: every read below is answered from this tab's memory.
   const cacheMs = apiMemo.ttlFor(date, today);
   const fullKey = `digest:${date}:full`;
   const fullCached = apiMemo.get(fullKey, cacheMs) !== undefined;

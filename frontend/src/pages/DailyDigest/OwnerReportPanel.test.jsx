@@ -295,11 +295,11 @@ describe('OwnerReportPanel', () => {
     renderPanel();
     expect(await screen.findByRole('heading', { name: 'Needs attention' })).toBeTruthy();
     const card = screen.getByRole('region', { name: 'Needs attention' });
-    expect(within(card).getByText('Suspected fuel loss')).toBeTruthy();
+    expect(within(card).getByText('Possible fuel loss')).toBeTruthy();
     expect(within(card).getByRole('button', { name: 'Review SOS and breakdowns' })).toBeTruthy();
     expect(within(card).getByText('Still open now')).toBeTruthy();
-    expect(within(card).getByText('No expense bills awaiting review found.')).toBeTruthy();
-    expect(within(card).getByText('ETA delays are not tracked yet.')).toBeTruthy();
+    expect(within(card).getByText('No bills to approve right now.')).toBeTruthy();
+    expect(within(card).getByText('Late arrivals are not tracked yet.')).toBeTruthy();
     expect(within(card).queryByText(/in all/)).toBeNull();
     expect(within(card).queryByText('Possible fuel theft')).toBeNull();
   });

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import digestExplain from './digestExplain';
 import sectionCopy from './sectionCopy';
+import attentionCopy from './attentionCopy';
 
 // Whole words only ("IST" must not match "distance"). GPS is an owner's word.
 const ENGINEER_WORDS =
@@ -31,6 +32,16 @@ describe('digestExplain', () => {
     ]) {
       expect(sectionCopy.about({ id }), id).not.toMatch(ENGINEER_WORDS);
       expect(sectionCopy.empty({ id }), id).not.toMatch(ENGINEER_WORDS);
+    }
+  });
+
+  it('the Needs attention card speaks the same way', () => {
+    expect(attentionCopy.info).not.toMatch(ENGINEER_WORDS);
+    const row = { numbers: { thresholdMin: 10, verifiedIdleMinutes: 320 } };
+    for (const kind of attentionCopy.kinds) {
+      expect(attentionCopy.label(kind), kind).not.toMatch(ENGINEER_WORDS);
+      expect(attentionCopy.about({ ...row, kind }), kind).not.toMatch(ENGINEER_WORDS);
+      expect(attentionCopy.about({ ...row, kind }).length, kind).toBeLessThan(110);
     }
   });
 

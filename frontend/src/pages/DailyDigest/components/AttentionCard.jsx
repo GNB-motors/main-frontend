@@ -1,64 +1,44 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { RefreshCw, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import useApi from '../../../hooks/useApi';
 import { fleetViewService } from '../../../services/fleetViewService';
-import { formatHours, formatMoment, formatMoney, humanCode } from '../ownerReportModel';
+import { formatMoment, humanCode } from '../ownerReportModel';
 import digestDay from '../digestDay';
+import attentionCopy from '../attentionCopy';
 import DigestSkeleton from './DigestSkeleton';
 import InfoTip from '../../../components/redesign/InfoTip';
 
-const ATTENTION_KINDS = {
-  sos: { label: 'SOS and breakdowns', unit: 'incidents' },
-  moneyTheft: { label: 'Suspected fuel loss', unit: 'flags' },
-  routeDeviations: { label: 'Route deviations', unit: 'events' },
-  idling: { label: 'Long idling', unit: 'events' },
-  stuckAtPlant: { label: 'Long plant visits', unit: 'visits' },
-  papersWaiting: { label: 'Expense bills awaiting review', unit: 'bills' },
-  documentsExpiring: { label: 'Documents needing renewal', unit: 'documents' },
-  broadcastNotAcknowledged: { label: 'Alerts awaiting acknowledgement', unit: 'alerts' },
-  etaSlipping: { label: 'ETA delays', unit: 'events' },
-};
+/** Open queues read as they are now, whatever day is picked. */
+const LIVE_KINDS = new Set(['papersWaiting', 'documentsExpiring', 'broadcastNotAcknowledged']);
 
-const unitFor = (kind, count) =>
-  count === 1 ? ATTENTION_KINDS[kind].unit.slice(0, -1) : ATTENTION_KINDS[kind].unit;
-
-function detailFor(row) {
-  const n = row.numbers || {};
-  if (row.kind === 'idling') {
-    const parts = [`Engine on · at least ${n.thresholdMin ?? '—'} min per event`];
-    if (Number.isFinite(n.verifiedIdleMinutes))
-      parts.push(`${formatHours(n.verifiedIdleMinutes / 60)} recorded`);
-    if (n.verifiedIdleMinutesUnknown)
-      parts.push(`${n.verifiedIdleMinutesUnknown} unfinished durations excluded`);
-    if (n.unknownEngineState)
-      parts.push(`${n.unknownEngineState} other events have unknown engine state`);
-    return parts.join(' · ');
-  }
-  if (row.kind === 'moneyTheft') return 'Fuel balance flags to investigate; theft is not confirmed';
-  if (row.kind === 'routeDeviations') return 'Detected on this day; includes reviewed events';
-  if (row.kind === 'stuckAtPlant')
-    return 'Visits starting on this day above the site’s usual waiting time';
-  if (row.kind === 'sos') return 'Reported on this day; includes resolved incidents';
-  if (row.kind === 'documentsExpiring')
-    return 'Recorded documents expired or due in the next 7 days';
-  return 'Includes items from earlier days';
-}
-
-function evidence(row, kind) {
-  if (kind === 'moneyTheft')
-    return `Missing: ${row.missingL == null ? 'unknown' : `${row.missingL} L`} · billed: ${row.billedL == null ? 'unknown' : `${row.billedL} L`} · measured burn: ${row.burnedL == null ? 'unknown' : `${row.burnedL} L`}`;
-  if (kind === 'routeDeviations')
-    return `${row.corridor || 'Route not named'} · extra distance: ${row.extraKm == null ? 'unknown' : `${row.extraKm} km`} · ${humanCode(row.status)}`;
-  if (kind === 'idling')
-    return `${row.minutes == null ? 'Duration unfinished' : `${formatHours(row.minutes / 60)} recorded`} · engine on`;
-  if (kind === 'stuckAtPlant')
-    return `${row.site} · ${formatHours(row.stationaryMinutes / 60)} waiting · threshold ${formatHours(row.usualMaxMinutes / 60)} (${row.thresholdSource === 'LEARNED' ? 'learned at this site' : 'default'}) · ${row.status === 'DEPARTED' ? 'Departure recorded' : 'Departure not confirmed'}`;
-  if (kind === 'sos') return `${humanCode(row.type)} · ${humanCode(row.status)}`;
-  if (kind === 'papersWaiting') return `${humanCode(row.category)} · ${formatMoney(row.amount)}`;
-  if (kind === 'documentsExpiring')
-    return `${humanCode(row.docType)} · ${row.expired ? 'Expired' : 'Due'} ${formatMoment(row.expiryDate, { withTime: false })}`;
-  return row.wants || row.condition || 'Review alert';
+/**
+ * The rows to draw. A current server sends them ready (attentionVersion 2)
+ * and each can be reviewed; an older server sends plain counts, which are
+ * drawn the same way but without Review (it has no review endpoint).
+ */
+function rowsOf(section) {
+  const rows = Array.isArray(section?.rows) ? section.rows.filter((r) => r && r.kind) : [];
+  if (section?.numbers?.attentionVersion === 2) return { rows, reviewable: true };
+  return {
+    reviewable: false,
+    rows: rows.map((r) => {
+      const unmeasured =
+        r.count == null ||
+        String(r.note || '')
+          .trim()
+          .toLowerCase() === 'not built yet';
+      const count = unmeasured ? null : Number(r.count);
+      return {
+        ...r,
+        // Its "theft" count also held route deviations: say both, not one.
+        kind: r.kind === 'moneyTheft' ? 'fuelOrRoute' : r.kind,
+        count,
+        period: LIVE_KINDS.has(r.kind) ? 'live' : 'day',
+        state: unmeasured ? 'unmeasured' : count > 0 ? 'ok' : 'empty',
+      };
+    }),
+  };
 }
 
 function ReviewList({ kind, day, initial, onClose, onUpdate }) {
@@ -76,23 +56,18 @@ function ReviewList({ kind, day, initial, onClose, onUpdate }) {
   );
   const result = review$.data;
   const failed = review$.error || result?.state === 'error';
-  // The freshly read count is shown alongside the evidence. The summary is
-  // updated explicitly when the user returns; there is no silent mismatch.
+  const label = attentionCopy.label(kind);
+  // The freshly read count is shown with the records; the card's count is
+  // updated when the review closes, so the two never silently disagree.
   return (
-    <section
-      ref={panelRef}
-      className="db-attention-review"
-      aria-label={`Review ${ATTENTION_KINDS[kind].label}`}
-    >
+    <section ref={panelRef} className="db-attention-review" aria-label={`Review ${label}`}>
       <header className="db-attention-review-head">
         <div>
           <h4 ref={headingRef} tabIndex={-1}>
-            {ATTENTION_KINDS[kind].label}
+            {label}
           </h4>
           <p className="db-muted">
-            {initial.period === 'live'
-              ? 'Open now · includes earlier days'
-              : `${digestDay.short(day)} · IST`}
+            {initial.period === 'live' ? 'Open now · includes earlier days' : digestDay.short(day)}
           </p>
         </div>
         <button
@@ -108,10 +83,10 @@ function ReviewList({ kind, day, initial, onClose, onUpdate }) {
         </button>
       </header>
       {review$.loading ? (
-        <DigestSkeleton label="Loading matching records" />
+        <DigestSkeleton label="Loading the list" />
       ) : failed ? (
         <p className="db-error" role="alert">
-          Couldn&apos;t load these records.{' '}
+          Couldn&apos;t load this list.{' '}
           <button className="db-link" type="button" onClick={review$.refetch}>
             Retry
           </button>
@@ -121,13 +96,11 @@ function ReviewList({ kind, day, initial, onClose, onUpdate }) {
           <p className="db-attention-read" aria-live="polite">
             {result.count == null
               ? 'Not tracked yet'
-              : `${result.count.toLocaleString('en-IN')} ${unitFor(kind, result.count)}`}{' '}
-            · Read {formatMoment(result.readAt)}
+              : `${result.count.toLocaleString('en-IN')} ${attentionCopy.unit(kind, result.count)}`}{' '}
+            · Updated {formatMoment(result.readAt)}
           </p>
           {result.count !== initial.count ? (
-            <p className="db-muted">
-              The count changed since the card was read. These are the latest matching records.
-            </p>
+            <p className="db-muted">{attentionCopy.changed}</p>
           ) : null}
           <ul className="db-attention-records">
             {(result.rows || []).map((row) => (
@@ -143,16 +116,16 @@ function ReviewList({ kind, day, initial, onClose, onUpdate }) {
                         row.title ||
                         row.incidentNumber ||
                         humanCode(row.entityType) ||
-                        'Recorded item'}
+                        'Item'}
                     </strong>
                   )}
                   {row.at ? <time dateTime={row.at}>{formatMoment(row.at)}</time> : null}
                 </div>
-                <p>{evidence(row, kind)}</p>
+                <p>{attentionCopy.record(kind, row)}</p>
               </li>
             ))}
           </ul>
-          {result.count === 0 ? <p className="db-muted">No matching records.</p> : null}
+          {result.count === 0 ? <p className="db-muted">Nothing here.</p> : null}
           {result.totalPages > 1 ? (
             <nav className="db-attention-pages" aria-label="Review pages">
               <button
@@ -178,12 +151,12 @@ function ReviewList({ kind, day, initial, onClose, onUpdate }) {
           ) : null}
           {kind === 'broadcastNotAcknowledged' ? (
             <Link className="db-link" to="/alert-inbox?inboxStatus=OPEN">
-              Open inbox to acknowledge alerts
+              Open the alert inbox
             </Link>
           ) : null}
           {kind === 'papersWaiting' ? (
             <Link className="db-link" to="/khata-ledger?tab=all&expenseStatus=PENDING">
-              Open expense reviews
+              Open bills to approve
             </Link>
           ) : null}
         </>
@@ -192,52 +165,40 @@ function ReviewList({ kind, day, initial, onClose, onUpdate }) {
   );
 }
 
-function Category({ row, onReview }) {
-  const meta = ATTENTION_KINDS[row.kind];
-  if (!meta || row.state === 'unmeasured') return null;
+function Category({ row, reviewable, onReview }) {
+  const label = attentionCopy.label(row.kind);
+  if (row.state === 'unmeasured') return null;
   const failed = row.state === 'error';
   if (!failed && row.count === 0) {
-    if (row.kind === 'sos')
-      return (
-        <li className="db-attention-clear">No SOS or breakdown incidents recorded for this day.</li>
-      );
-    return (
-      <li className="db-attention-clear">
-        No {meta.label.toLowerCase()} found
-        {row.kind === 'idling' && row.numbers?.unknownEngineState
-          ? ` with verified engine on · ${row.numbers.unknownEngineState} events have unknown engine state`
-          : ''}
-        .
-      </li>
-    );
+    return <li className="db-attention-clear">{attentionCopy.none(row.kind, row.period)}</li>;
   }
   return (
     <li className="db-attention-row">
       <div>
-        <h4>{meta.label}</h4>
-        <p>{failed ? 'Could not load this category' : detailFor(row)}</p>
+        <h4>{label}</h4>
+        <p>{failed ? attentionCopy.failed : attentionCopy.about(row)}</p>
       </div>
       <div className="db-attention-count">
         {failed || row.count == null ? '—' : row.count.toLocaleString('en-IN')}
-        <small>{unitFor(row.kind, row.count)}</small>
+        <small>{attentionCopy.unit(row.kind, row.count)}</small>
       </div>
-      {failed || row.count > 0 ? (
+      {reviewable && (failed || row.count > 0) ? (
         <button
           type="button"
           className="db-attention-button"
           onClick={(event) => onReview(row, event.currentTarget)}
-          aria-label={`${failed ? 'Retry' : 'Review'} ${meta.label}`}
+          aria-label={`${failed ? 'Retry' : 'Review'} ${label}`}
         >
           {failed ? 'Retry' : 'Review'}
         </button>
       ) : (
-        <span className="db-attention-none">None found</span>
+        <span className="db-attention-none" />
       )}
     </li>
   );
 }
 
-export default function AttentionCard({ section, loading, onRetry, day }) {
+export default function AttentionCard({ section, loading, day }) {
   const [selected, setSelected] = useState(null);
   const [overrides, setOverrides] = useState({});
   const triggerRef = useRef(null);
@@ -245,55 +206,37 @@ export default function AttentionCard({ section, loading, onRetry, day }) {
     triggerRef.current = trigger;
     setSelected(row);
   };
-  const modern = section?.numbers?.attentionVersion === 2;
-  const rows = modern ? (section.rows || []).map((r) => overrides[r.kind] || r) : [];
+  const { rows: base, reviewable } = rowsOf(section);
+  const rows = base.map((r) => overrides[r.kind] || r);
   const liveReadAt = rows.find((r) => r.period === 'live')?.readAt;
+  const group = (period) =>
+    rows
+      .filter((r) => r.period === period)
+      .map((r) => <Category key={r.kind} row={r} reviewable={reviewable} onReview={openReview} />);
   return (
     <section className="db-card db-exceptions" aria-label="Needs attention">
       <header className="db-card-head">
         <h3>Needs attention</h3>
-        <InfoTip
-          text="Day events and items still open now are shown separately. A truck can have several events. Review opens the records behind each count."
-          label="About Needs attention"
-        />
+        <InfoTip text={attentionCopy.info} label="About Needs attention" />
       </header>
       {loading ? (
-        <DigestSkeleton label="Loading attention items" />
-      ) : !modern ? (
-        <p className="db-error">
-          Attention details are unavailable.{' '}
-          <button type="button" className="db-link" onClick={onRetry}>
-            Retry <RefreshCw size={13} />
-          </button>
-        </p>
+        <DigestSkeleton label="Loading" />
+      ) : !rows.length ? (
+        <p className="db-empty-line">Nothing needs attention.</p>
       ) : (
         <>
           <div className="db-attention-group">
-            <h4 className="db-attention-group-title">
-              On the selected day <span>{digestDay.short(day)} · IST</span>
-            </h4>
-            <ul className="db-attention-rows">
-              {rows
-                .filter((r) => r.period === 'day')
-                .map((r) => (
-                  <Category key={r.kind} row={r} onReview={openReview} />
-                ))}
-            </ul>
+            <h4 className="db-attention-group-title">On {digestDay.short(day)}</h4>
+            <ul className="db-attention-rows">{group('day')}</ul>
           </div>
           <div className="db-attention-group">
             <h4 className="db-attention-group-title">
               Still open now <span className="db-live-tag">Live</span>
             </h4>
             <p className="db-muted">
-              Includes earlier days{liveReadAt ? ` · read ${formatMoment(liveReadAt)}` : ''}
+              Includes earlier days{liveReadAt ? ` · updated ${formatMoment(liveReadAt)}` : ''}
             </p>
-            <ul className="db-attention-rows">
-              {rows
-                .filter((r) => r.period === 'live')
-                .map((r) => (
-                  <Category key={r.kind} row={r} onReview={openReview} />
-                ))}
-            </ul>
+            <ul className="db-attention-rows">{group('live')}</ul>
           </div>
           {selected ? (
             <ReviewList
@@ -308,7 +251,7 @@ export default function AttentionCard({ section, loading, onRetry, day }) {
               onUpdate={(r) => setOverrides((current) => ({ ...current, [r.kind]: r }))}
             />
           ) : null}
-          <p className="db-foot-line">ETA delays are not tracked yet.</p>
+          <p className="db-foot-line">{attentionCopy.notTracked}</p>
         </>
       )}
     </section>

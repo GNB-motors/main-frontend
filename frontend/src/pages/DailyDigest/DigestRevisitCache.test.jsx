@@ -66,7 +66,7 @@ describe('Daily digest: a revisit inside the cache window', () => {
     svc.getOwnerReport.mockResolvedValue(withOpenAlerts(1));
   });
 
-  it('reuses dated summaries but refreshes open attention queues on a revisit', async () => {
+  it('asks the server nothing on a revisit, and Refresh still asks it', async () => {
     const first = renderPage();
     expect(
       await screen.findByText(/A good day: 41 loaded trips, 3 trucks need you\./),
@@ -78,24 +78,24 @@ describe('Daily digest: a revisit inside the cache window', () => {
     svc.getOwnerReport.mockResolvedValue(withOpenAlerts(2));
 
     renderPage();
-    // Drawn at once from memory: the headline is there without waiting.
+    // Drawn at once from memory — the open queues included — with no request.
     expect(
       screen.getByText(/A good day: 41 loaded trips, 3 trucks need you\./),
     ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('region', { name: 'Needs attention' })).getByText('1'),
+    ).toBeTruthy();
+    expect(calls()).toBe(afterFirst);
+
+    // Refresh reads everything again, the new open-alert count included.
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
     await waitFor(() => expect(svc.getOwnerReport).toHaveBeenCalledTimes(2));
+    expect(svc.getDigest.mock.calls.at(-1)[0].fresh).toBe(true);
+    expect(svc.getDailyFuel).toHaveBeenCalledTimes(2);
     await waitFor(() =>
       expect(
         within(screen.getByRole('region', { name: 'Needs attention' })).getByText('2'),
       ).toBeTruthy(),
     );
-    expect(calls()).toBe(afterFirst + 1);
-    expect(svc.getDailyFuel).toHaveBeenCalledTimes(1);
-    expect(svc.getMorningBrief).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).toBeEnabled());
-
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
-    await waitFor(() => expect(svc.getOwnerReport).toHaveBeenCalledTimes(3));
-    expect(svc.getDigest.mock.calls.at(-1)[0].fresh).toBe(true);
-    expect(svc.getDailyFuel).toHaveBeenCalledTimes(2);
   });
 });

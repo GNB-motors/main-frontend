@@ -69,33 +69,31 @@ beforeEach(() => vi.resetAllMocks());
 describe('Needs attention', () => {
   it('shows selected-day events and live queues separately, with explicit units and incomplete idle durations', () => {
     renderCard();
-    expect(screen.getByText('4 Nov · IST')).toBeTruthy();
+    expect(screen.getByText('On 4 Nov')).toBeTruthy();
     expect(screen.getByText('Still open now')).toBeTruthy();
-    expect(screen.getByText(/Includes earlier days · read 18 Nov/)).toBeTruthy();
-    expect(
-      screen.getByText(
-        /148 h recorded · 3 unfinished durations excluded · 4 other events have unknown engine state/,
-      ),
-    ).toBeTruthy();
-    expect(screen.getByText('No SOS or breakdown incidents recorded for this day.')).toBeTruthy();
-    expect(screen.getByText('No expense bills awaiting review found.')).toBeTruthy();
-    expect(screen.getByText('ETA delays are not tracked yet.')).toBeTruthy();
+    expect(screen.getByText(/Includes earlier days · updated 18 Nov/)).toBeTruthy();
+    // Plain words: how long engines idled, no engine-state or duration jargon.
+    expect(screen.getByText(/Engine left on at a stop for .* · 148 h in total\./)).toBeTruthy();
+    expect(screen.queryByText(/unfinished|engine state/)).toBeNull();
+    expect(screen.getByText('No SOS and breakdowns on this day.')).toBeTruthy();
+    expect(screen.getByText('No bills to approve right now.')).toBeTruthy();
+    expect(screen.getByText('Late arrivals are not tracked yet.')).toBeTruthy();
     expect(
       screen.queryByText(/567|in all|Broadcasts not acknowledged|Possible fuel theft/),
     ).toBeNull();
-    const fuel = screen.getByRole('heading', { name: 'Suspected fuel loss' });
-    const route = screen.getByRole('heading', { name: 'Route deviations' });
+    const fuel = screen.getByRole('heading', { name: 'Possible fuel loss' });
+    const route = screen.getByRole('heading', { name: 'Off-route trips' });
     expect(fuel.compareDocumentPosition(route) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('opens the exact selected-day loss evidence, distinguishing unknown litres from zero', async () => {
     fleetViewService.getAttentionReview.mockResolvedValue(result());
     renderCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Review Suspected fuel loss' }));
-    const review = screen.getByRole('region', { name: 'Review Suspected fuel loss' });
+    fireEvent.click(screen.getByRole('button', { name: 'Review Possible fuel loss' }));
+    const review = screen.getByRole('region', { name: 'Review Possible fuel loss' });
     expect(await within(review).findByText('TEST-A')).toBeTruthy();
     expect(
-      within(review).getByText('Missing: 12 L · billed: unknown · measured burn: 25 L'),
+      within(review).getByText('Missing 12 L · billed not known · used driving 25 L'),
     ).toBeTruthy();
     expect(fleetViewService.getAttentionReview).toHaveBeenCalledWith({
       day: DAY,
@@ -118,14 +116,14 @@ describe('Needs attention', () => {
       }),
     );
     renderCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Review Suspected fuel loss' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Review Possible fuel loss' }));
     expect(await screen.findByText('PAGE-1')).toBeTruthy();
-    expect(screen.getByText(/count changed since the card was read/)).toBeTruthy();
+    expect(screen.getByText(/has changed since the card loaded/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     expect(await screen.findByText('PAGE-2')).toBeTruthy();
     expect(screen.queryByText('PAGE-1')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Close review' }));
-    expect(screen.queryByRole('region', { name: 'Review Suspected fuel loss' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Review Possible fuel loss' })).toBeNull();
     expect(screen.getByText('21')).toBeTruthy();
   });
 
@@ -141,8 +139,8 @@ describe('Needs attention', () => {
       .mockResolvedValueOnce(result());
     renderCard(section);
     expect(screen.getByText('119')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Retry Suspected fuel loss' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't load these records");
+    fireEvent.click(screen.getByRole('button', { name: 'Retry Possible fuel loss' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent("Couldn't load this list");
     fireEvent.click(within(screen.getByRole('alert')).getByRole('button', { name: 'Retry' }));
     expect(await screen.findByText('TEST-A')).toBeTruthy();
     expect(screen.getByText('119')).toBeTruthy();
@@ -159,8 +157,8 @@ describe('Needs attention', () => {
       }),
     );
     renderCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Review Alerts awaiting acknowledgement' }));
-    const link = await screen.findByRole('link', { name: 'Open inbox to acknowledge alerts' });
+    fireEvent.click(screen.getByRole('button', { name: 'Review Alerts to acknowledge' }));
+    const link = await screen.findByRole('link', { name: 'Open the alert inbox' });
     expect(link.getAttribute('href')).toBe('/alert-inbox?inboxStatus=OPEN');
     expect(screen.getByText('Open now · includes earlier days')).toBeTruthy();
   });
@@ -174,7 +172,7 @@ describe('Needs attention', () => {
         }),
     );
     const view = renderCard();
-    fireEvent.click(screen.getByRole('button', { name: 'Review Suspected fuel loss' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Review Possible fuel loss' }));
     const signal = fleetViewService.getAttentionReview.mock.calls[0][0].signal;
     view.rerender(
       <MemoryRouter>
@@ -183,13 +181,23 @@ describe('Needs attention', () => {
     );
     expect(signal.aborted).toBe(true);
     finish(result());
-    await waitFor(() => expect(screen.getByText('5 Nov · IST')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('On 5 Nov')).toBeTruthy());
     expect(screen.queryByText('TEST-A')).toBeNull();
   });
 
-  it('does not pretend an older combined theft/deviation response has separate counts', () => {
-    renderCard({ state: 'ok', numbers: { total: 7 }, rows: [kindRow('moneyTheft', 7)] });
-    expect(screen.getByText(/Attention details are unavailable/)).toBeTruthy();
-    expect(screen.queryByText('7')).toBeNull();
+  it('draws an older server’s counts without Review, naming its combined theft/deviation count honestly', () => {
+    renderCard({
+      state: 'ok',
+      numbers: { total: 7 },
+      rows: [kindRow('moneyTheft', 7), kindRow('papersWaiting', 2), kindRow('sos', 0)],
+    });
+    expect(
+      screen.getByRole('heading', { name: 'Possible fuel loss or off-route trips' }),
+    ).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Possible fuel loss' })).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Bills to approve' })).toBeTruthy();
+    expect(screen.getByText('No SOS and breakdowns on this day.')).toBeTruthy();
+    // That server has no review list to open.
+    expect(screen.queryByRole('button', { name: /^Review / })).toBeNull();
   });
 });
