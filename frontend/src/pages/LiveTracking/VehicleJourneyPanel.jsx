@@ -83,7 +83,9 @@ export default function VehicleJourneyPanel({
                     {tab === 'routes'
                       ? 'Route section'
                       : row.at
-                        ? 'Recorded stop'
+                        ? row.kind === 'point'
+                          ? 'Recorded location'
+                          : 'Recorded stop'
                         : 'Nearby landmark'}
                   </span>
                   <strong className="lt-journey-name">{row.title}</strong>

@@ -14,7 +14,7 @@ import { impactSummary, isImpactGate } from '../PlaceHub/intelligence/model/requ
 import typeStyle from '../PlaceHub/intelligence/placeTypes.js';
 import PlaceTypeSelect from './PlaceTypeSelect.jsx';
 
-export default function IdentifyJourneyPlaceDialog({ stop, onClose, onSaved }) {
+export default function IdentifyJourneyPlaceDialog({ stop, registrationNumber, onClose, onSaved }) {
   const [name, setName] = useState('');
   const [type, setType] = useState('');
   const [busy, setBusy] = useState(false);
@@ -32,10 +32,17 @@ export default function IdentifyJourneyPlaceDialog({ stop, onClose, onSaved }) {
     setBusy(true);
     setError('');
     try {
-      const body = { id: stop.stopId, name: name.trim(), siteType: type };
+      const identify = stop.stopId
+        ? PlaceIntelligenceService.identifyStopPlace
+        : PlaceIntelligenceService.identifyTrackPointPlace;
+      const body = {
+        ...(stop.stopId ? { id: stop.stopId } : { registrationNumber, at: stop.fixAt }),
+        name: name.trim(),
+        siteType: type,
+      };
       let result;
       try {
-        result = await PlaceIntelligenceService.identifyStopPlace(body);
+        result = await identify(body);
       } catch (failure) {
         if (!isImpactGate(failure)) throw failure;
         const approved = await confirm({
@@ -44,7 +51,7 @@ export default function IdentifyJourneyPlaceDialog({ stop, onClose, onSaved }) {
           confirmLabel: 'Confirm warehouse',
         });
         if (!approved) return;
-        result = await PlaceIntelligenceService.identifyStopPlace({ ...body, confirmImpact: true });
+        result = await identify({ ...body, confirmImpact: true });
       }
       onSaved(result);
     } catch (failure) {
@@ -75,7 +82,7 @@ export default function IdentifyJourneyPlaceDialog({ stop, onClose, onSaved }) {
               <DialogTitle>Identify this place</DialogTitle>
             </div>
             <DialogDescription>
-              Name this recorded stop and choose its type. Saving updates the journey without
+              Name this recorded location and choose its type. Saving updates the journey without
               changing your replay range.
             </DialogDescription>
           </DialogHeader>

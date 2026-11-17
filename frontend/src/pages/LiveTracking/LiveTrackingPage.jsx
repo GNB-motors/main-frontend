@@ -836,7 +836,7 @@ const LiveTrackingPage = () => {
           showToast('Only owners and managers can identify a place.');
           return;
         }
-        if (!row.stopId) {
+        if (!row.stopId && !row.fixAt) {
           showToast(
             'Refresh this journey after the updated backend is available to identify this stop.',
           );
@@ -1711,7 +1711,8 @@ const LiveTrackingPage = () => {
 
       {identifyingStop ? (
         <IdentifyJourneyPlaceDialog
-          key={identifyingStop.stopId}
+          key={identifyingStop.stopId || identifyingStop.fixAt}
+          registrationNumber={contextReg}
           stop={identifyingStop}
           onClose={() => setIdentifyingStop(null)}
           onSaved={() => {

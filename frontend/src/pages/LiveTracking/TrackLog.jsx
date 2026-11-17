@@ -1,7 +1,7 @@
 import { useMemo, useEffect, useRef, useState } from 'react';
 import { MapPin, Clock, Zap, Radio, Fuel, CornerUpRight, Calendar, Truck } from 'lucide-react';
 import { formatDuration, formatIst } from '../../utils/redesign/format';
-import { buildTripLog } from './trackPlayback';
+import { journeyLogRows } from './journeyLogRows';
 
 /** Clean and humanize backend reason text */
 function humanizeReasonText(text) {
@@ -21,38 +21,6 @@ function humanizeReasonText(text) {
   }
 
   return str;
-}
-
-/** Determine vehicle status from raw point */
-function getPointStatus(point, summary) {
-  if (!point) {
-    return {
-      kind: 'STOP',
-      title: 'Stopped',
-      detail: summary?.km ? `${summary.km} km recorded` : 'Parked',
-    };
-  }
-  const spd = Number(point.speedKmh ?? 0);
-  const ign = point.ign;
-  if (spd > 3) {
-    return {
-      kind: 'MOVING',
-      title: `Moving · ${Math.round(spd)} km/h`,
-      detail: summary?.km ? `In motion · ${summary.km} km recorded` : 'In motion on route',
-    };
-  }
-  if (ign === true) {
-    return {
-      kind: 'IDLING',
-      title: 'Idling · Engine ON',
-      detail: 'Stationary with engine running',
-    };
-  }
-  return {
-    kind: 'STOP',
-    title: 'Stopped · Engine OFF',
-    detail: summary?.km ? `Parked · ${summary.km} km recorded` : 'Parked',
-  };
 }
 
 /** Icon and style configuration per kind */
@@ -147,8 +115,6 @@ export default function TrackLog({
   onSeek = null,
   onOpenPlace = null,
 }) {
-  const stops = useMemo(() => (Array.isArray(track?.stops) ? track.stops : []), [track]);
-  const events = useMemo(() => (Array.isArray(track?.events) ? track.events : []), [track]);
   const summary = track?.summary ?? null;
 
   const effectivePoints = useMemo(() => {
@@ -157,147 +123,9 @@ export default function TrackLog({
     return [];
   }, [points, track?.points]);
 
-  const baseRows = useMemo(() => buildTripLog(stops, events), [stops, events]);
-
   const rows = useMemo(() => {
-    if (!effectivePoints.length && !baseRows.length) return [];
-    if (!effectivePoints.length) return baseRows;
-
-    const firstPoint = effectivePoints[0];
-    const lastPoint = effectivePoints[effectivePoints.length - 1];
-    const firstPointMs = new Date(firstPoint.t).getTime();
-    const lastPointMs = new Date(lastPoint.t).getTime();
-
-    const result = [...baseRows];
-
-    // 2. If the vehicle was active after the last event/stop before track end:
-    if (result.length > 0) {
-      const lastRow = result[result.length - 1];
-      const lastRowStartMs = new Date(lastRow.at).getTime();
-      const lastRowEndMs = lastRow.gapEndAt
-        ? new Date(lastRow.gapEndAt).getTime()
-        : lastRowStartMs + (Number(lastRow.durationMin) || 0) * 60000;
-
-      const endStatus = getPointStatus(lastPoint, summary);
-
-      // If significant time (>= 10 min) elapsed after last event
-      if (lastPointMs - lastRowEndMs >= 10 * 60000) {
-        const activeMin = Math.round((lastPointMs - lastRowEndMs) / 60000);
-        result.push({
-          key: `moving-${lastRowEndMs}-${lastPointMs}`,
-          at: new Date(lastRowEndMs).toISOString(),
-          endAt: lastPoint.t,
-          kind: 'MOVING',
-          reason: 'MOVING',
-          title: 'Moving',
-          text: summary?.maxKmh
-            ? `In motion on route · Top ${summary.maxKmh} km/h`
-            : 'In motion on route',
-          durationMin: activeMin,
-          place: null,
-          isGap: false,
-        });
-
-        // Status at the end of the track replay window
-        result.push({
-          key: `status-end-${lastPoint.t}`,
-          at: lastPoint.t,
-          kind: endStatus.kind,
-          reason: endStatus.kind,
-          title: endStatus.title,
-          text: endStatus.detail,
-          durationMin: null,
-          place: null,
-          isGap: false,
-        });
-      } else if (lastPointMs - lastRowEndMs > 3 * 60000 && lastRow.kind !== 'STOP') {
-        result.push({
-          key: `status-end-${lastPoint.t}`,
-          at: lastPoint.t,
-          kind: endStatus.kind,
-          reason: endStatus.kind,
-          title: endStatus.title,
-          text: endStatus.detail,
-          durationMin: null,
-          place: null,
-          isGap: false,
-        });
-      }
-    } else if (effectivePoints.length >= 2) {
-      // Entire track window has no stops or events:
-      const totalMin = Math.round((lastPointMs - firstPointMs) / 60000);
-      const startStatus = getPointStatus(firstPoint, summary);
-      const endStatus = getPointStatus(lastPoint, summary);
-
-      result.push({
-        key: `status-start-${firstPoint.t}`,
-        at: firstPoint.t,
-        kind: startStatus.kind,
-        reason: startStatus.kind,
-        title: startStatus.kind === 'MOVING' ? 'Moving' : startStatus.title,
-        text: startStatus.detail,
-        durationMin: totalMin,
-        place: null,
-        isGap: false,
-      });
-
-      result.push({
-        key: `status-end-${lastPoint.t}`,
-        at: lastPoint.t,
-        kind: endStatus.kind,
-        reason: endStatus.kind,
-        title: endStatus.title,
-        text: endStatus.detail,
-        durationMin: null,
-        place: null,
-        isGap: false,
-      });
-    }
-
-    const journeyRows = result.map((row) => {
-      if (row.kind !== 'MOVING') return row;
-      // Only use a location attached to this exact historical point. The
-      // current API supplies coordinates, not a moving-point place name.
-      const point = effectivePoints.find((item) => item.t === row.at);
-      const name = row.place?.name?.trim() || point?.place?.name?.trim() || point?.address?.trim();
-      const speed = Number.isFinite(point?.speedKmh) ? `${Math.round(point.speedKmh)} km/h` : null;
-      return {
-        ...row,
-        title: name || 'Place not identified',
-        text: [row.text, speed].filter(Boolean).join(' · '),
-      };
-    });
-    // Events can start before the first GPS fix when a stop overlaps the window.
-    const firstRow = journeyRows[0];
-    const startAt = firstRow && Date.parse(firstRow.at) < firstPointMs ? firstRow.at : firstPoint.t;
-    if (firstRow && Date.parse(firstRow.at) === Date.parse(startAt)) {
-      return [{ ...firstRow, isStart: true }, ...journeyRows.slice(1)];
-    }
-    const startPlace = stops.find(
-      (stop) =>
-        Date.parse(stop.startAt) <= Date.parse(startAt) &&
-        Date.parse(stop.endAt || stop.startAt) >= Date.parse(startAt),
-    )?.place;
-    return [
-      {
-        key: `replay-start-${startAt}`,
-        at: startAt,
-        kind: 'START',
-        isStart: true,
-        title:
-          startPlace?.name?.trim() ||
-          (startAt === firstPoint.t
-            ? firstPoint.place?.name?.trim() || firstPoint.address?.trim()
-            : null) ||
-          'Starting point',
-        text: 'Beginning of this replay window.',
-        durationMin: null,
-        place: startPlace || null,
-        isGap: false,
-      },
-      ...journeyRows,
-    ];
-  }, [baseRows, effectivePoints, summary, stops]);
+    return journeyLogRows(track, effectivePoints);
+  }, [track, effectivePoints]);
 
   const [clickedRow, setClickedRow] = useState(null);
   const normalizedQuery = query.trim().toLowerCase();
@@ -557,7 +385,7 @@ export default function TrackLog({
                     onClick={() => {
                       setClickedRow({ key: row.key, at: Date.parse(row.at) });
                       onSeek?.(row.at);
-                      if (row.stopId || row.place?.id)
+                      if (row.stopId || row.fixAt || row.place?.id)
                         onOpenPlace?.({ ...row, unidentified: !row.place?.name?.trim() });
                     }}
                     className={`track-log-row flex-1 text-left rounded-xl p-3 border transition-all cursor-pointer ${
@@ -605,6 +433,11 @@ export default function TrackLog({
                       {row.title}
                     </div>
 
+                    {(row.stopId || row.fixAt) && !row.place?.name?.trim() && onOpenPlace ? (
+                      <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-blue-600">
+                        <MapPin size={13} aria-hidden="true" /> Name this place
+                      </span>
+                    ) : null}
                     {/* Card Timestamp */}
                     <div className="track-log-time mt-1 flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400 tabular-nums">
                       <Calendar size={11} className="text-slate-400 shrink-0" aria-hidden="true" />

@@ -1,3 +1,5 @@
+import { journeyLogRows } from './journeyLogRows';
+
 const position = (point) => Number.isFinite(point?.lat) && Number.isFinite(point?.lng);
 const KIND = {
   LADEN: 'Loaded running',
@@ -12,6 +14,8 @@ export function journeyPlaces(track) {
       .filter((stop) => stop.place?.id)
       .map((stop) => `${stop.place.kind}:${stop.place.id}`),
   );
+  const pointPlaces = journeyLogRows(track).filter((row) => row.fixAt && row.place?.id);
+  const namedPoints = new Set(pointPlaces.map((row) => `${row.place.kind}:${row.place.id}`));
   return [
     ...(track?.stops || []).map((stop, index) => ({
       id: `stop:${index}:${stop.startAt}`,
@@ -31,8 +35,34 @@ export function journeyPlaces(track) {
           ? { lat: stop.place.lat, lng: stop.place.lng }
           : {}),
     })),
+    ...journeyLogRows(track)
+      .filter(
+        (row) =>
+          row.fixAt &&
+          !row.stopId &&
+          position(row) &&
+          !(track?.stops || []).some(
+            (stop) =>
+              Date.parse(row.fixAt) >= Date.parse(stop.startAt) &&
+              Date.parse(row.fixAt) <= Date.parse(stop.endAt || stop.startAt),
+          ) &&
+          !visited.has(`${row.place?.kind}:${row.place?.id}`),
+      )
+      .map((row) => ({
+        ...row,
+        id: `point:${row.fixAt}`,
+        kind: 'point',
+        unidentified: !row.place?.name?.trim(),
+        description: 'Recorded GPS location on this journey',
+      }))
+      .filter((row, index, rows) => rows.findIndex((item) => item.fixAt === row.fixAt) === index),
     ...(track?.landmarks || [])
-      .filter((place) => position(place) && !visited.has(`${place.kind}:${place.id}`))
+      .filter(
+        (place) =>
+          position(place) &&
+          !visited.has(`${place.kind}:${place.id}`) &&
+          !namedPoints.has(`${place.kind}:${place.id}`),
+      )
       .map((place, index) => ({
         id: `landmark:${place.id || index}`,
         title: place.name,

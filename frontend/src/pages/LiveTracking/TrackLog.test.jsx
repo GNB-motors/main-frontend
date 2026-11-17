@@ -204,3 +204,16 @@ describe('TrackLog', () => {
     expect(screen.getByText(/58 km\/h/)).toBeInTheDocument();
   });
 });
+
+it('opens the naming action for an unidentified moving GPS position', () => {
+  const onOpenPlace = vi.fn();
+  const points = [
+    { t: '2026-11-17T10:00:00Z', lat: 22, lng: 88, speedKmh: 40 },
+    { t: '2026-11-17T11:00:00Z', lat: 23, lng: 89, speedKmh: 40 },
+  ];
+  render(<TrackLog track={{ points }} onOpenPlace={onOpenPlace} />);
+  fireEvent.click(screen.getAllByText('Name this place')[0]);
+  expect(onOpenPlace).toHaveBeenCalledWith(
+    expect.objectContaining({ fixAt: points[0].t, lat: 22, lng: 88, unidentified: true }),
+  );
+});

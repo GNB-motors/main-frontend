@@ -638,3 +638,65 @@ it('opens named journey landmarks in a details modal', async () => {
   expect(screen.getByRole('dialog', { name: 'Nearby dhaba' })).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Nearby dhaba' })).toBeInTheDocument();
 });
+
+it('identifies a moving GPS location then refreshes the same vehicle and range with its saved name', async () => {
+  const stop = {
+    id: 'stop1',
+    startAt: '2026-11-03T01:00:00Z',
+    endAt: '2026-11-03T02:00:00Z',
+    durationMin: 60,
+    lat: 22,
+    lng: 88,
+    place: null,
+  };
+  const first = {
+    points: [
+      { t: stop.startAt, lat: 22, lng: 88, speedKmh: 40 },
+      { t: stop.endAt, lat: 23, lng: 89, speedKmh: 40 },
+    ],
+    stops: [],
+    landmarks: [],
+    segments: [],
+  };
+  fleetViewService.getVehicleTrack.mockResolvedValueOnce(first).mockResolvedValueOnce({
+    ...first,
+    points: [
+      {
+        ...first.points[0],
+        place: { id: 'saved-site', kind: 'SITE', name: 'Named parking', lat: 22, lng: 88 },
+      },
+      first.points[1],
+    ],
+  });
+  apiClient.post.mockResolvedValueOnce({ data: { data: { site: { _id: 'saved-site' } } } });
+  render(
+    <MemoryRouter
+      initialEntries={[
+        '/live-tracking?vehicle=TEST01&view=places&from=2026-11-03T00:00:00Z&to=2026-11-04T00:00:00Z',
+      ]}
+    >
+      <LiveTrackingPage />
+    </MemoryRouter>,
+  );
+  fireEvent.click((await screen.findAllByRole('button', { name: /Place not identified/ }))[0]);
+  expect(screen.getByRole('dialog', { name: 'Identify this place' })).toBeInTheDocument();
+  fireEvent.change(screen.getByRole('textbox', { name: 'Place name' }), {
+    target: { value: 'Named parking' },
+  });
+  fireEvent.click(screen.getByRole('combobox', { name: 'Place type' }));
+  const option = await screen.findByRole('option', { name: 'Parking' });
+  fireEvent.pointerDown(option, { pointerType: 'mouse' });
+  fireEvent.click(option);
+  fireEvent.click(screen.getByRole('button', { name: 'Save place' }));
+  expect(await screen.findByRole('button', { name: /Named parking/ })).toBeInTheDocument();
+  expect(apiClient.post).toHaveBeenCalledWith(
+    '/api/place-intelligence/track-points/identify-place',
+    { name: 'Named parking', siteType: 'PARKING', registrationNumber: 'TEST01', at: stop.startAt },
+    { signal: undefined },
+  );
+  const [reg, range] = fleetViewService.getVehicleTrack.mock.calls.at(-1);
+  expect(reg).toBe('TEST01');
+  expect(Date.parse(range.from)).toBe(Date.parse('2026-11-03T00:00:00Z'));
+  expect(Date.parse(range.to)).toBe(Date.parse('2026-11-04T00:00:00Z'));
+  expect(screen.queryByRole('dialog', { name: 'Identify this place' })).not.toBeInTheDocument();
+});

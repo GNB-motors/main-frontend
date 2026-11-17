@@ -75,3 +75,28 @@ it('retains the authoritative stop identity and location without adding a duplic
     place,
   });
 });
+
+it('shows unidentified moving locations in Places and replaces their titles after confirmation', () => {
+  const track = {
+    points: [
+      { t: '2026-11-17T10:00:00Z', lat: 22, lng: 88, speedKmh: 40 },
+      { t: '2026-11-17T11:00:00Z', lat: 23, lng: 89, speedKmh: 40 },
+    ],
+  };
+  expect(journeyPlaces(track)).toHaveLength(2);
+  expect(journeyPlaces(track)[0]).toMatchObject({
+    kind: 'point',
+    fixAt: track.points[0].t,
+    unidentified: true,
+    title: 'Place not identified',
+  });
+  const place = { id: 'site1', kind: 'SITE', name: 'Named junction', lat: 22, lng: 88 };
+  track.points[0].place = place;
+  track.landmarks = [place];
+  expect(journeyPlaces(track)).toHaveLength(2);
+  expect(journeyPlaces(track)[0]).toMatchObject({
+    title: 'Named junction',
+    unidentified: false,
+    place,
+  });
+});

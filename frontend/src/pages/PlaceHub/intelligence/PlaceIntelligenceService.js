@@ -103,6 +103,9 @@ const PlaceIntelligenceService = {
   identifyStopPlace: async ({ id, ...body }, { signal } = {}) =>
     unwrap(await apiClient.post(`${BASE}/stops/${id}/identify-place`, body, { signal })),
 
+  identifyTrackPointPlace: async (body, { signal } = {}) =>
+    unwrap(await apiClient.post(`${BASE}/track-points/identify-place`, body, { signal })),
+
   tagStop: async ({ id, purpose }, { signal } = {}) =>
     unwrap(await apiClient.post(`${BASE}/stops/${id}/reason`, { purpose }, { signal })),
 
