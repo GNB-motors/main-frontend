@@ -151,9 +151,14 @@ export const getFuelIntegrityWindows = ({ vehicle, from, to, signal } = {}) =>
 /* ── §10 The daily digest ────────────────────────────────────────────── */
 
 /** GET /api/fleet-view/digest */
-export const getDigest = ({ date, signal } = {}) =>
+/**
+ * `quick` leaves out the slow runs source (its cards come back `pending`) so
+ * the page can draw everything else first; `fresh` asks the server to rebuild
+ * instead of serving its short cache (the Refresh button).
+ */
+export const getDigest = ({ date, quick, fresh, signal } = {}) =>
   get('/api/fleet-view/digest', {
-    params: { date },
+    params: { date, quick: quick ? 1 : undefined, fresh: fresh ? 1 : undefined },
     signal,
     schema: 'DigestResponseSchema',
     importer: () => import('../schemas/digestV2.schema.js'),
@@ -165,9 +170,9 @@ export const getDigest = ({ date, signal } = {}) =>
  * GET /api/owner-value/morning-brief — the day's ₹ leaks ranked by vehicle,
  * with a suggested action. `date` is any instant inside the IST day.
  */
-export const getMorningBrief = ({ date, signal } = {}) =>
+export const getMorningBrief = ({ date, fresh, signal } = {}) =>
   get('/api/owner-value/morning-brief', {
-    params: { date },
+    params: { date, fresh: fresh ? 1 : undefined },
     signal,
     schema: 'morningBriefSchema',
     importer: () => import('../schemas/morningBrief.schema.js'),
@@ -177,13 +182,13 @@ export const getMorningBrief = ({ date, signal } = {}) =>
  * GET /api/owner-report?day=YYYY-MM-DD — the owner's daily business report.
  * Always eight sections, in the same order; each one is ok | empty | error.
  */
-export const getOwnerReport = ({ day, signal } = {}) =>
-  get('/api/owner-report', { params: { day }, signal });
+export const getOwnerReport = ({ day, fresh, signal } = {}) =>
+  get('/api/owner-report', { params: { day, fresh: fresh ? 1 : undefined }, signal });
 
 /** Seven IST days of recorded engine consumption, independent of refuel cycles. */
-export const getDailyFuel = ({ day, signal } = {}) =>
+export const getDailyFuel = ({ day, fresh, signal } = {}) =>
   get('/api/owner-report/fuel-trend', {
-    params: { day },
+    params: { day, fresh: fresh ? 1 : undefined },
     signal,
     schema: 'DailyFuelTrendSchema',
     importer: () => import('../schemas/digestV2.schema.js'),

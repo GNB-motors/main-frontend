@@ -1,6 +1,14 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useApi } from './useApi';
+import apiMemo from '../utils/apiMemo';
+
+vi.mock('../utils/session', () => ({
+  getToken: () => 'T',
+  getUserId: () => 'U1',
+  getOrgId: () => 'O1',
+  getBranchId: () => null,
+}));
 
 const deferred = () => {
   let resolve;
@@ -191,4 +199,54 @@ it('hides data from a previous scope immediately and remains retryable after fai
     result.current.refetch();
   });
   await waitFor(() => expect(result.current.data).toEqual(['ashok']));
+
+  describe('with cacheKey (revisits ask the server nothing)', () => {
+    it('a second mount inside the window shows the kept answer without a request', async () => {
+      apiMemo.clear();
+      const fetcher = vi.fn(() => Promise.resolve({ id: 7 }));
+      const opts = { cacheKey: 'thing:1', cacheMs: 60000 };
+      const first = renderHook(() => useApi(fetcher, [], opts));
+      await waitFor(() => expect(first.result.current.data).toEqual({ id: 7 }));
+      first.unmount();
+      const second = renderHook(() => useApi(fetcher, [], opts));
+      expect(second.result.current.loading).toBe(false);
+      expect(second.result.current.data).toEqual({ id: 7 });
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    });
+
+    it('refetch always asks the server and refills the cache', async () => {
+      apiMemo.clear();
+      let n = 0;
+      const fetcher = vi.fn(() => Promise.resolve({ n: ++n }));
+      const opts = { cacheKey: 'thing:2', cacheMs: 60000 };
+      const { result } = renderHook(() => useApi(fetcher, [], opts));
+      await waitFor(() => expect(result.current.data).toEqual({ n: 1 }));
+      act(() => {
+        result.current.refetch();
+      });
+      await waitFor(() => expect(result.current.data).toEqual({ n: 2 }));
+      expect(fetcher).toHaveBeenCalledTimes(2);
+      expect(apiMemo.get('thing:2', 60000)).toEqual({ n: 2 });
+    });
+
+    it('a failed read is not kept', async () => {
+      apiMemo.clear();
+      const fetcher = vi.fn(() => Promise.reject(Object.assign(new Error('x'), { status: 500 })));
+      const { result } = renderHook(() =>
+        useApi(fetcher, [], { cacheKey: 'thing:3', cacheMs: 60000 }),
+      );
+      await waitFor(() => expect(result.current.error).toBeTruthy());
+      expect(apiMemo.get('thing:3', 60000)).toBeUndefined();
+    });
+
+    it('without a cacheKey every mount asks the server, as before', async () => {
+      const fetcher = vi.fn(() => Promise.resolve(1));
+      const a = renderHook(() => useApi(fetcher, []));
+      await waitFor(() => expect(a.result.current.loading).toBe(false));
+      a.unmount();
+      const b = renderHook(() => useApi(fetcher, []));
+      await waitFor(() => expect(b.result.current.loading).toBe(false));
+      expect(fetcher).toHaveBeenCalledTimes(2);
+    });
+  });
 });

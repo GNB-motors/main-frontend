@@ -62,6 +62,8 @@ export const DigestPayloadSchema = z
     reconnect: z.array(DigestReconnectSchema).default([]),
     goodDrivers: z.array(ReportCardSchema).default([]),
     needsAttention: z.array(ReportCardSchema).default([]),
+    /** Sources a quick read left out; the full read follows with them. */
+    pending: z.array(z.string()).default([]),
   })
   .passthrough();
 

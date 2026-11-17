@@ -78,6 +78,37 @@ describe('DailyDigestPage', () => {
     refreshLive.mockReset();
   });
 
+  it('draws the quick part first and keeps the km loading until the full digest lands', async () => {
+    let finishFull;
+    getDigest.mockImplementation(({ quick }) =>
+      quick
+        ? Promise.resolve({
+            ...digestFixture,
+            pending: ['runs'],
+            headline: 'Not enough is known about this day yet.',
+          })
+        : new Promise((resolve) => {
+            finishFull = resolve;
+          }),
+    );
+    getOwnerReport.mockResolvedValue({ sections: [] });
+    renderPage();
+    await waitFor(() =>
+      expect(screen.queryByRole('status', { name: 'Loading actions' })).not.toBeInTheDocument(),
+    );
+    // The quick headline would undersell the day: the neutral subtitle stays until the km arrive.
+    expect(screen.queryByText(/Not enough is known/)).not.toBeInTheDocument();
+    const running = (
+      await screen.findByRole('heading', { name: 'Loaded vs empty running' })
+    ).closest('section');
+    expect(running.querySelector('[role="status"]')).toBeTruthy();
+    await act(async () => finishFull(digestFixture));
+    expect(
+      await screen.findByText(/A good day: 41 loaded trips, 3 trucks need you\./),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(running.querySelector('[role="status"]')).toBeNull());
+  });
+
   it('waits for Trips distance instead of flashing a different source first', async () => {
     let finishOwner;
     getOwnerReport.mockImplementation(
@@ -188,10 +219,15 @@ describe('DailyDigestPage', () => {
     expect(await screen.findByText(/could not load today/)).toBeInTheDocument();
   });
 
-  it('asks for the digest once, for the day it is showing', async () => {
+  it('asks for the digest in two parts, quick then full, for the day it is showing', async () => {
     renderPage();
-    await waitFor(() => expect(getDigest).toHaveBeenCalledTimes(1));
-    expect(getDigest.mock.calls[0][0].date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    await waitFor(() => expect(getDigest).toHaveBeenCalledTimes(2));
+    const calls = getDigest.mock.calls.map(([args]) => args);
+    expect(calls.map((c) => Boolean(c.quick)).sort()).toEqual([false, true]);
+    for (const c of calls) {
+      expect(c.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(c.fresh).toBeUndefined();
+    }
   });
 
   it('omits the live fleet section and its unused trip and inventory requests', async () => {
@@ -252,10 +288,14 @@ describe('DailyDigestPage', () => {
     expect(screen.queryByRole('heading', { name: 'Fleet right now' })).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
-    await waitFor(() => expect(getDigest).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(getDigest).toHaveBeenCalledTimes(4));
+    // Refresh asks the server to rebuild, not to serve its cache.
+    for (const [args] of getDigest.mock.calls.slice(2)) expect(args.fresh).toBe(true);
     expect(listTrips).not.toHaveBeenCalled();
     expect(getVehicleList).not.toHaveBeenCalled();
     expect(getDailyFuel).toHaveBeenCalledTimes(2);
+    expect(getDailyFuel.mock.calls[1][0].fresh).toBe(true);
+    expect(getOwnerReport.mock.calls.at(-1)[0].fresh).toBe(true);
     expect(refreshLive).toHaveBeenCalledTimes(1);
   });
 });
