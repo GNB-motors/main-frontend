@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  formatHours,
   DASH,
   drillRoute,
   drillTarget,
@@ -27,7 +28,7 @@ describe('ownerReportModel', () => {
   it('never prints a developer key', () => {
     expect(labelFor('moneyTheft')).toBe('Possible fuel theft');
     expect(labelFor('broadcastNotAcknowledged')).toBe('Broadcasts not acknowledged');
-    expect(labelFor('kmVsPrev7Pct')).toBe('km vs last 7-day average');
+    expect(labelFor('kmVsPrev7Pct')).toBe('Km vs last 7 days');
     expect(labelFor('someNewKey')).toBe('Some new key');
   });
 
@@ -105,5 +106,13 @@ describe('ownerReportModel', () => {
     }).format(new Date());
     expect(isToday(today)).toBe(true);
     expect(isToday('2000-01-01')).toBe(false);
+  });
+});
+
+describe('formatHours', () => {
+  it('writes hours the way a person says them', () => {
+    expect(formatHours(5.38)).toBe('5 h 23 min');
+    expect(formatHours(0.7)).toBe('42 min');
+    expect(formatHours(3)).toBe('3 h');
   });
 });

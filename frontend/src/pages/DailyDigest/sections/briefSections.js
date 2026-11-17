@@ -8,10 +8,10 @@ export const BRIEF_SECTION = {
   excessIdling: {
     c: '#C56200',
     icon: Clock,
-    col: 'Engine running while stopped',
+    col: 'Idling',
     detail: (v) => (v.durationMin ? `${formatNum(v.durationMin)} min` : '—'),
-    sub: 'estimated diesel cost while stopped with the engine running',
-    clean: 'No extra diesel cost from engines left running while stopped was flagged.',
+    sub: 'estimated diesel cost of idling (engine on while stopped)',
+    clean: 'No idling cost was flagged.',
   },
   fuelOverModel: {
     c: '#9333EA',

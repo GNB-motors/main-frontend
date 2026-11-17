@@ -220,10 +220,37 @@
   color: var(--rd-ink-2);
   font-size: 13px;
 }
+/* The empty state's sentence sits under its badge, never wrapped beside it. */
+.db-empty-text {
+  display: block;
+  margin-top: 8px;
+  line-height: 1.5;
+}
 .db-foot-line {
   margin: 12px 0 0;
   color: var(--rd-ink-3);
   font-size: 12px;
+}
+/* "Live": a card read as it is now, shown on a past day. Quiet, one line. */
+.db-live-tag {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  color: var(--rd-good, #15803d);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.db-live-tag::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
 }
 .db-badge {
   display: inline-block;
@@ -267,6 +294,11 @@
   margin-bottom: 12px;
 }
 .db-card-head h3 {
+  /* One line: a narrow card truncates its title rather than wrapping it. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   margin: 0;
   font-size: 15px;
   line-height: 22px;
@@ -453,6 +485,22 @@
   margin-left: auto;
   font-size: 16px;
   font-weight: 600;
+}
+/* A change against the usual level, in the shared label → value rows. */
+.db-kv dd.db-kv-up {
+  color: var(--rd-good, #15803d);
+}
+.db-kv dd.db-kv-down {
+  color: var(--rd-bad, #b91c1c);
+}
+
+/* What a leak's "extra" is measured against: one quiet line under its title. */
+.db-leak-compare {
+  margin: 4px 0 0 18px;
+  max-width: 76ch;
+  color: var(--rd-ink-3);
+  font-size: 12.5px;
+  line-height: 1.45;
 }
 .db-leak-action {
   margin: 4px 0 0 18px;

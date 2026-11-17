@@ -8,6 +8,8 @@
  */
 import { DASH, formatMoment, labelFor } from './ownerReportModel';
 import { PARTIAL_LABEL } from '../../utils/measured.js';
+import digestExplain from './digestExplain';
+import digestDay from './digestDay';
 
 /** A vendor error, without the internal API path: "Timed out after 30 s". */
 export function feedReason(reason) {
@@ -75,41 +77,38 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
   const avgNote = (avg, unit) =>
     avg == null ? 'Not counted yet' : `Not counted yet · usually ${count(Math.round(avg))}${unit}`;
 
-  const countWhy = `${
-    tripsModule
-      ? 'The Trips module detector version and pickup-departure day in IST are used. Open, completed, confirmed and review trips are included; dismissed and superseded trips are excluded'
-      : 'Counts include completed and confirmed trips that left a pickup on this IST day. Open trips are excluded'
-  }${
-    builtAt ? `; this report was built at ${builtAt}` : ''
-  }. "Usually" is the average of the previous 7 days.`;
-  const distanceWhy = tripsModule
-    ? `${countWhy} Distance is the Trips table's loaded km: odometer first, GPS otherwise. An open trip can be counted before its loaded distance is recorded. Missing distances are excluded and the total is labelled partial. This is loaded trip distance, not all fleet travel since midnight.`
-    : `${countWhy} Distance includes approach, loaded, return and fuel-detour km for those trips, rather than all fleet travel since midnight.`;
+  // The ⓘ on each tile: what it shows, in the owner's words (digestExplain).
+  const countWhy = digestExplain.trips(isToday);
+  const distanceWhy = digestExplain.loadedKm();
 
   const trucks = live ? live.all : (health.trucks ?? null);
   const dark = live ? live.offline : (fleet.dark ?? health.trucksDark ?? null);
+  // Moving and dark are read as they are now, whatever day is picked.
+  const notForDay = isToday || !day ? null : digestDay.notFor(day);
 
   return [
     {
       key: 'moving',
-      label: isToday ? 'Moving now' : 'Moving',
+      label: 'Moving now',
       value: live ? live.moving : (fleet.moving ?? null),
       context: live
         ? `of ${count(trucks)} trucks · live`
         : fleet.moving == null
           ? 'Live tracking not reported'
-          : snapshot,
+          : notForDay
+            ? `Live · ${notForDay}`
+            : snapshot,
       to: '/live-tracking?status=moving',
     },
     {
       key: 'trips',
-      label: isToday ? 'Trips today' : 'Trips',
+      label: isToday ? 'Trips started today' : 'Trips started',
       value: notCounted(work.trips) ? null : work.trips,
       context: notCounted(work.trips)
         ? avgNote(trend.tripsPrev7Avg, '/day')
         : isToday
           ? tripsModule
-            ? 'Departed today · includes open trips'
+            ? 'Includes trips still on the road'
             : 'Completed / confirmed · so far today'
           : null,
       delta: notCounted(work.trips) ? null : delta(trend.tripsVsPrev7Pct),
@@ -153,20 +152,52 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
             : brief?.partial
               ? 'Calculated loss · Incomplete'
               : 'Estimated extra diesel cost',
-      why: brief?.disclaimer || null,
+      why: digestExplain.extraFuelCost(),
     },
     {
       key: 'dark',
-      label: 'Trucks dark',
+      label: notForDay ? 'Dark now' : 'Trucks dark',
       value: dark,
       tone: Number(dark) > 0 ? 'watch' : null,
       context:
         dark == null
           ? 'Live tracking not reported'
-          : `of ${count(trucks)} trucks${live ? ' · live' : ` · ${snapshot.toLowerCase()}`}`,
+          : `of ${count(trucks)} trucks${
+              live
+                ? ' · live'
+                : notForDay
+                  ? ` · live, ${notForDay}`
+                  : ` · ${snapshot.toLowerCase()}`
+            }`,
       to: '/live-tracking?status=offline',
     },
   ];
+}
+
+/** The owner's word for a leak, whatever older servers called it. */
+const LEAK_TITLES = { excessIdling: 'Idling' };
+
+/** What "extra" is measured against, said once under the leak's title. */
+const LEAK_COMPARED_TO = {
+  fuelOverModel:
+    'Compared with what each truck normally uses for the same distance and driving, learned from its own recent trips.',
+};
+
+const litres = (v) => Math.round(Number(v) * 10) / 10;
+
+/** "20.7 L over its normal 85 L" — the extra, and what it is extra to. */
+function overNormal(v) {
+  const over = `${litres(v.excessL)} L over its normal`;
+  return v.normalL != null && Number(v.normalL) > 0 ? `${over} ${litres(v.normalL)} L` : over;
+}
+
+/** Older servers said "than expected": say what it was expected from. */
+function plainAction(key, text) {
+  if (key !== 'fuelOverModel' || !text) return text || '';
+  return text.replace(
+    /more diesel than expected/,
+    'more diesel than it normally uses for the same distance and driving',
+  );
 }
 
 /** The ₹ leaks, biggest first, with each one's share of the day's total. */
@@ -176,10 +207,11 @@ export function leakRows(brief) {
   return sections
     .map((section) => ({
       key: section?.key || section?.label || 'leak',
-      label: section?.label || labelFor(section?.key),
+      label: LEAK_TITLES[section?.key] || section?.label || labelFor(section?.key),
       rupees: section?.rupees == null ? null : Number(section.rupees),
       share: total > 0 && section?.rupees != null ? Number(section.rupees) / total : null,
-      action: section?.suggestedAction || '',
+      action: plainAction(section?.key, section?.suggestedAction),
+      comparedTo: LEAK_COMPARED_TO[section?.key] || null,
       partial: section?.partial || false,
       coverageNote: section?.coverageNote || '',
       reasons: (section?.unavailableReasons || [])
@@ -192,9 +224,9 @@ export function leakRows(brief) {
           rupees: v?.rupees == null ? null : Number(v.rupees),
           detail:
             v?.excessL != null
-              ? `${Math.round(Number(v.excessL) * 10) / 10} litres extra diesel`
+              ? overNormal(v)
               : v?.durationMin != null
-                ? `${formatSilence(Number(v.durationMin) * 60000)} stopped with engine running`
+                ? `${formatSilence(Number(v.durationMin) * 60000)} idling`
                 : null,
         }))
         .filter((t) => t.reg)

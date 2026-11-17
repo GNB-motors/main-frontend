@@ -63,10 +63,13 @@ describe('buildKpis', () => {
     });
     const by = Object.fromEntries(tiles.map((tile) => [tile.key, tile]));
     expect(by.trips.value).toBe(9);
-    expect(by.trips.context).toBe('Departed today · includes open trips');
+    expect(by.trips.label).toBe('Trips started today');
+    expect(by.trips.context).toBe('Includes trips still on the road');
     expect(by.km.value).toBe(325);
     expect(by.km.context).toBe('Loaded trip distance · partly measured');
-    expect(by.km.why).toContain('odometer first');
+    // The ⓘ says what the tile shows, in the owner's words — no method notes.
+    expect(by.km.why).toMatch(/^How far your trucks drove carrying a load/);
+    expect(by.km.why).not.toMatch(/odometer|GPS|detector|IST/);
   });
 
   it('uses live counts for "now" and preserves reported zero trips and km today', () => {
@@ -87,11 +90,12 @@ describe('buildKpis', () => {
     expect(by.km.context).toBe('From completed / confirmed trips');
     expect(by.trips.delta).toBeNull();
     expect(by.km.delta).toBeNull();
-    expect(by.trips.why).toMatch(/Open trips are excluded/);
-    expect(by.trips.why).toMatch(/built at 6:20 am/);
+    expect(by.trips.why).toBe(
+      'How many trips left a pickup today. "Usually" is your average for the last 7 days.',
+    );
     expect(by.lost.value).toBe(47486.7);
     expect(by.lost.context).toBe('Estimated extra diesel cost');
-    expect(by.lost.why).toBe('Estimated.');
+    expect(by.lost.why).toMatch(/^Diesel money you could have saved/);
     expect(by.dark.value).toBe(47);
     expect(by.dark.to).toBe('/live-tracking?status=offline');
   });
@@ -119,11 +123,15 @@ describe('buildKpis', () => {
       isToday: false,
       liveCounts: { all: 124, moving: 9, offline: 47 },
       builtAt: '3 Nov, 6:20 am',
+      day: '2026-11-01',
     });
     const by = Object.fromEntries(tiles.map((t) => [t.key, t]));
-    expect(by.moving.label).toBe('Moving');
+    // Moving and dark are read now, whatever day is picked: they say so.
+    expect(by.moving.label).toBe('Moving now');
     expect(by.moving.value).toBe(27);
-    expect(by.moving.context).toBe('When the report ran, 3 Nov, 6:20 am');
+    expect(by.moving.context).toBe('Live · not for 1 Nov');
+    expect(by.dark.label).toBe('Dark now');
+    expect(by.dark.context).toMatch(/live, not for 1 Nov$/);
     expect(by.trips.value).toBe(36);
     expect(by.trips.delta).toBe(12.5);
     expect(by.km.delta).toBe(-4);
@@ -158,9 +166,10 @@ describe('leakRows', () => {
     expect(rows[0].trucks[0]).toEqual({
       reg: 'WB11S4062',
       rupees: 2950.7,
-      detail: '31.1 litres extra diesel',
+      detail: '31.1 L over its normal',
     });
-    expect(rows[1].trucks[0].detail).toBe('2 d stopped with engine running');
+    expect(rows[1].trucks[0].detail).toBe('2 d idling');
+    expect(rows[1].label).toBe('Idling');
   });
 });
 
@@ -212,5 +221,28 @@ describe('small formatters', () => {
   it('strips internal API paths from a vendor error', () => {
     expect(feedReason('auth failed at /api/x/y')).toBe('Auth failed at');
     expect(feedReason(null)).toBeNull();
+  });
+
+  it('says what "extra diesel" is extra to', () => {
+    const [row] = leakRows({
+      sections: [
+        {
+          key: 'fuelOverModel',
+          label: 'Extra diesel used',
+          rupees: 2058,
+          suggestedAction:
+            'WB11F6162 used 20.71 litres more diesel than expected, adding about ₹2,058 to fuel costs.',
+          vehicles: [
+            { registrationNumber: 'WB11F6162', rupees: 2058, excessL: 20.71, normalL: 85.04 },
+          ],
+        },
+      ],
+    });
+    expect(row.comparedTo).toMatch(/^Compared with what each truck normally uses/);
+    expect(row.action).toContain(
+      'more diesel than it normally uses for the same distance and driving',
+    );
+    expect(row.action).not.toMatch(/than expected/);
+    expect(row.trucks[0].detail).toBe('20.7 L over its normal 85 L');
   });
 });

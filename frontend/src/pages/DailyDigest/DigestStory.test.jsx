@@ -168,13 +168,17 @@ describe('DailyDigestPage', () => {
     expect(screen.queryByText('More operational detail')).not.toBeInTheDocument();
   });
 
-  it('keeps the story text the API sent behind the running card info tip', async () => {
+  it('explains the running card in plain words behind its info tip', async () => {
     renderPage();
     await screen.findByText(/A good day/);
-    fireEvent.click(screen.getByRole('button', { name: 'About Loaded vs empty running' }));
+    // Info tips open on hover and keyboard focus, not on a click.
+    const tip = screen.getByRole('button', { name: 'About Loaded vs empty running' });
+    act(() => tip.focus());
+    fireEvent.focus(tip);
     expect(
-      await screen.findByText(/Most of your distance today carried cement and clinker/),
+      await screen.findByText(/How far your trucks drove loaded and how far they drove empty/),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/detector version|odometer first/)).toBeNull();
   });
 
   it('shows the loaded trip count from the story beside the loaded distance', async () => {
