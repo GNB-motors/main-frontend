@@ -1,5 +1,15 @@
 import { Link } from 'react-router-dom';
-import { ArrowUpRight } from 'lucide-react';
+import {
+  ArrowUpRight,
+  Bell,
+  Check,
+  Clock3,
+  FileText,
+  Fuel,
+  MapPin,
+  Route,
+  ShieldAlert,
+} from 'lucide-react';
 import { formatMoment } from '../ownerReportModel';
 import digestDay from '../digestDay';
 import attentionCopy from '../attentionCopy';
@@ -9,6 +19,17 @@ import InfoTip from '../../../components/redesign/InfoTip';
 
 /** Open queues read as they are now, whatever day is picked. */
 const LIVE_KINDS = new Set(['papersWaiting', 'documentsExpiring', 'broadcastNotAcknowledged']);
+const ICONS = {
+  moneyTheft: Fuel,
+  fuelOrRoute: Fuel,
+  routeDeviations: Route,
+  idling: Clock3,
+  stuckAtPlant: MapPin,
+  papersWaiting: FileText,
+  documentsExpiring: FileText,
+  broadcastNotAcknowledged: Bell,
+  sos: ShieldAlert,
+};
 
 /**
  * Where each count is handled. A day event opens its page on the chosen day
@@ -110,16 +131,27 @@ function Category({ row, day }) {
   }
   const failed = row.state === 'error';
   if (!failed && row.count === 0) {
-    return <li className="db-attention-clear">{attentionCopy.none(row.kind, row.period)}</li>;
+    return (
+      <li className="db-attention-clear">
+        <Check size={13} aria-hidden="true" />
+        {attentionCopy.none(row.kind, row.period)}
+      </li>
+    );
   }
   // Possible fuel loss has no page to review on: its trucks are listed under
   // it instead, so the row has no Review column to leave empty.
   const trucksRow = row.kind === 'moneyTheft';
+  const Icon = ICONS[row.kind] || Bell;
   return (
     <li className={trucksRow ? 'db-attention-row db-attention-row--trucks' : 'db-attention-row'}>
-      <div>
-        <h4>{attentionCopy.label(row.kind)}</h4>
-        <p>{failed ? attentionCopy.failed : attentionCopy.about(row)}</p>
+      <div className="db-attention-topic">
+        <span className="db-attention-icon" aria-hidden="true">
+          <Icon size={16} />
+        </span>
+        <div>
+          <h4>{attentionCopy.label(row.kind)}</h4>
+          <p>{failed ? attentionCopy.failed : attentionCopy.about(row)}</p>
+        </div>
       </div>
       <div className="db-attention-count">
         {failed || row.count == null ? '—' : row.count.toLocaleString('en-IN')}
@@ -134,8 +166,28 @@ function Category({ row, day }) {
 export default function AttentionCard({ section, loading, day }) {
   const rows = rowsOf(section);
   const liveReadAt = rows.find((r) => r.period === 'live')?.readAt;
-  const group = (period) =>
-    rows.filter((r) => r.period === period).map((r) => <Category key={r.kind} row={r} day={day} />);
+  const group = (period) => {
+    const inGroup = rows.filter((r) => r.period === period && r.state !== 'unmeasured');
+    const quiet = (row) => row.count === 0 && row.state !== 'error' && row.state !== 'pending';
+    return (
+      <>
+        <ul className="db-attention-rows">
+          {inGroup
+            .filter((r) => !quiet(r))
+            .map((r) => (
+              <Category key={r.kind} row={r} day={day} />
+            ))}
+        </ul>
+        {inGroup.some(quiet) ? (
+          <ul className="db-attention-quiet">
+            {inGroup.filter(quiet).map((r) => (
+              <Category key={r.kind} row={r} day={day} />
+            ))}
+          </ul>
+        ) : null}
+      </>
+    );
+  };
   return (
     <section className="db-card db-exceptions" aria-label="Needs attention">
       <header className="db-card-head">
@@ -149,8 +201,11 @@ export default function AttentionCard({ section, loading, day }) {
       ) : (
         <>
           <div className="db-attention-group">
-            <h4 className="db-attention-group-title">On {digestDay.short(day)}</h4>
-            <ul className="db-attention-rows">{group('day')}</ul>
+            <h4 className="db-attention-group-title">
+              On {digestDay.short(day)}
+              <span>Selected day</span>
+            </h4>
+            {group('day')}
           </div>
           <div className="db-attention-group">
             <h4 className="db-attention-group-title">
@@ -159,7 +214,7 @@ export default function AttentionCard({ section, loading, day }) {
             <p className="db-muted">
               Includes earlier days{liveReadAt ? ` · updated ${formatMoment(liveReadAt)}` : ''}
             </p>
-            <ul className="db-attention-rows">{group('live')}</ul>
+            {group('live')}
           </div>
           <p className="db-foot-line">{attentionCopy.notTracked}</p>
         </>
