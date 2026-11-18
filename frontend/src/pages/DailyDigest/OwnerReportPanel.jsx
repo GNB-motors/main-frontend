@@ -178,6 +178,12 @@ function TruckChips({ trucks, day, kind }) {
 function MoneyLeakCard({ brief$, isPendingDay }) {
   const brief = brief$.data;
   const rows = useMemo(() => leakRows(brief), [brief]);
+  const categorySum = rows.reduce((sum, row) => sum + (row.rupees ?? 0), 0);
+  // Explain the server's per-truck maximum without changing its valuation.
+  const overlap =
+    brief?.totalRule && brief.totalRupees != null
+      ? Math.round((categorySum - brief.totalRupees) * 100) / 100
+      : null;
 
   if (brief$.loading && !brief) {
     return (
@@ -210,34 +216,43 @@ function MoneyLeakCard({ brief$, isPendingDay }) {
       info={digestExplain.extraFuelCost()}
       meta={isPendingDay ? 'So far today' : null}
     >
-      <div className="db-leak-total">
-        <strong>{rupees(brief?.totalRupees)}</strong>
-        <span>
-          {brief?.totalRupees == null
-            ? 'Not estimated for this day'
-            : brief?.partial
-              ? 'Calculated loss · Incomplete'
-              : 'estimated extra fuel cost for this period'}
-        </span>
+      <div className="db-leak-summary">
+        <div className="db-leak-total">
+          <strong>{rupees(brief?.totalRupees)}</strong>
+          <span>
+            {brief?.totalRupees == null
+              ? 'Not estimated for this day'
+              : brief?.partial
+                ? 'Calculated loss · Incomplete'
+                : 'estimated extra fuel cost for this period'}
+          </span>
+        </div>
+        {brief?.partial ? <span className="db-coverage-badge">Incomplete data</span> : null}
       </div>
+      {overlap > 0 ? (
+        <div className="db-leak-math" aria-label="How the fuel cost total is calculated">
+          <div>
+            <span>Combined categories</span>
+            <strong>{rupees(categorySum)}</strong>
+          </div>
+          <div>
+            <span>Counted in both · removed once</span>
+            <strong>−{rupees(overlap)}</strong>
+          </div>
+          <div className="db-leak-math-total">
+            <span>Estimated extra fuel cost</span>
+            <strong>{rupees(brief.totalRupees)}</strong>
+          </div>
+          <p>
+            For each truck, the larger of extra diesel cost and idling cost is counted. The same
+            fuel is never added twice.
+          </p>
+        </div>
+      ) : null}
       {brief?.partial ? (
         <p className="db-muted" role="status">
           {brief.coverageNote}
         </p>
-      ) : null}
-      {rows.length > 1 && rows.some((r) => r.share) ? (
-        <div className="db-leak-split" role="img" aria-label="Estimated cost by issue">
-          {rows.map((row, i) =>
-            row.share ? (
-              <span
-                key={row.key}
-                className={`db-leak-seg db-leak-seg--${i}`}
-                style={{ flexGrow: row.share }}
-                title={`${row.label}: ${Math.round(row.share * 100)}%`}
-              />
-            ) : null,
-          )}
-        </div>
       ) : null}
       {rows.length === 0 ? (
         <p className="db-empty-line">No extra fuel costs were flagged for this day.</p>
@@ -248,22 +263,25 @@ function MoneyLeakCard({ brief$, isPendingDay }) {
               <div className="db-leak-row-head">
                 <span className={`db-leak-key db-leak-seg--${i}`} aria-hidden="true" />
                 <h4>{row.label}</h4>
-                {row.share != null ? (
-                  <span className="db-leak-share">{Math.round(row.share * 100)}%</span>
-                ) : null}
                 <strong className="db-leak-amt">
                   {row.rupees == null ? DASH : rupees(row.rupees)}
                 </strong>
               </div>
-              {row.comparedTo ? <p className="db-leak-compare">{row.comparedTo}</p> : null}
-              {row.action ? <p className="db-leak-action">{row.action}</p> : null}
-              {row.partial ? (
-                <p className="db-muted">
-                  Incomplete · {row.coverageNote}
-                  {row.reasons ? ` ${row.reasons}` : ''}
-                </p>
-              ) : null}
+              <p className="db-leak-preview-label">
+                Top trucks · amounts are part of this category
+              </p>
               <TruckChips trucks={row.trucks} />
+              <details className="db-leak-details">
+                <summary>Why flagged{row.partial ? ' · Incomplete data' : ''}</summary>
+                {row.comparedTo ? <p className="db-leak-compare">{row.comparedTo}</p> : null}
+                {row.action ? <p className="db-leak-action">{row.action}</p> : null}
+                {row.partial ? (
+                  <p className="db-muted">
+                    Incomplete · {row.coverageNote}
+                    {row.reasons ? ` ${row.reasons}` : ''}
+                  </p>
+                ) : null}
+              </details>
             </li>
           ))}
         </ol>
