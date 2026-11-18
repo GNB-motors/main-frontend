@@ -7,6 +7,8 @@ import billPhotoService from '../../services/billPhotoService';
 import SearchableSelect from '../../components/SearchableDropdown/SearchableSelect';
 import { candidateRows } from './billPhotoModel';
 import { billDateInfo } from './billDates';
+import { isOdometerCapture, pairTruck } from './billPairModel';
+import BillPairCell from './BillPairCell';
 
 export const statusOf = (error) => error?.status ?? error?.response?.status;
 
@@ -92,7 +94,7 @@ export function useSuggestion(capture, onMatched, skip, onUnavailable) {
   };
 }
 
-export function BillThumbnail({ capture, file, large = false }) {
+export function BillThumbnail({ capture, file, large = false, alt = 'Bill thumbnail' }) {
   const [url, setUrl] = useState('');
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -130,7 +132,7 @@ export function BillThumbnail({ capture, file, large = false }) {
   return url ? (
     <img
       src={url}
-      alt="Bill thumbnail"
+      alt={alt}
       className={
         large
           ? 'max-h-[75vh] w-auto object-contain'
@@ -174,14 +176,20 @@ export function BillRow({
   onMatched,
   queue,
   onUnavailable,
+  pair,
+  pairFile,
+  onUnpair,
+  odometerCell,
 }) {
   const capture = row.capture || row;
   const confirmed = row.status === 'confirmed';
   const pending = Boolean(row.status && row.status !== 'sent' && !confirmed);
+  // An odometer photo has no truck to read: it belongs to a slip.
+  const odometer = isOdometerCapture(capture);
   const { suggestion, state, retry } = useSuggestion(
     capture,
     onMatched,
-    pending || confirmed,
+    pending || confirmed || odometer,
     onUnavailable,
   );
   const [editing, setEditing] = useState(false);
@@ -191,6 +199,7 @@ export function BillRow({
     choice ??
     (capture.vehicleHint ||
       (suggestion?.decision === 'AUTO' ? candidates[0]?.registrationNumber : '') ||
+      pairTruck(pair) ||
       '');
   const ocr = capture.ocr || {};
   // The date and the time of the photo: the paper's own when it prints them,
@@ -286,8 +295,11 @@ export function BillRow({
               <Loader2 size={16} className="inline animate-spin" /> Reading the bill...
             </p>
           )
+        ) : odometerCell ? (
+          odometerCell
         ) : (
           <>
+            {pair ? <BillPairCell pair={pair} file={pairFile} onUnpair={onUnpair} /> : null}
             {(state === 'loading' || state === 'waiting') && (
               <p>
                 <Loader2 size={16} className="inline animate-spin" /> Reading the bill...

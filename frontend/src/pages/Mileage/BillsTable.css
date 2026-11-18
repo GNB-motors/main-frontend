@@ -222,3 +222,30 @@
   max-width: 100%;
   overscroll-behavior-x: contain;
 }
+
+/* A bill's odometer photo, as the server paired it. */
+.bp-pair {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid var(--rd-line, var(--border));
+  border-radius: 0.375rem;
+}
+.bp-pair__thumb {
+  flex: 0 0 4rem;
+}
+.bp-pair__body {
+  min-width: 0;
+  font-size: 0.8125rem;
+}
+.bp-pair__reasons {
+  margin: 0.25rem 0;
+  padding-left: 1rem;
+  list-style: disc;
+  color: var(--muted-foreground);
+}
+.bp-pair__ask {
+  font-weight: 600;
+}

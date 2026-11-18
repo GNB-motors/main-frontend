@@ -72,6 +72,23 @@ export const saveBillLinks = async (links) => {
   const res = await apiClient.post(`${base}/confirmations`, { links });
   return res.data?.data;
 };
+/**
+ * Pair a slip with its odometer photo, or refuse the pair the server
+ * proposed. A refused odometer photo is never proposed for that slip again.
+ */
+export const pairBills = async ({ slipCaptureId, odometerCaptureId, verdict }) => {
+  const res = await apiClient.post(`${base}/pairs`, {
+    slipCaptureId,
+    odometerCaptureId,
+    verdict,
+  });
+  return res.data?.data;
+};
+/** Take the odometer photo off this slip: "not this one". */
+export const unpairBill = async (slipCaptureId) => {
+  const res = await apiClient.delete(`${capturePath(slipCaptureId)}/pair`);
+  return res.data?.data;
+};
 export const editBillLink = async (captureId, body) => {
   const res = await apiClient.patch(`${capturePath(captureId)}/link`, body);
   return res.data?.data;
@@ -88,6 +105,8 @@ export default {
   getBillSuggestion,
   getBillPage,
   saveBillLinks,
+  pairBills,
+  unpairBill,
   editBillLink,
   getBillLinkHistory,
 };
