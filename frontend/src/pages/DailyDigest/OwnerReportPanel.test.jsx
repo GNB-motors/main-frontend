@@ -92,6 +92,34 @@ const renderPanel = (day = '2026-11-04', digest = { goodDrivers: [], needsAttent
   );
 
 describe('OwnerReportPanel', () => {
+  it('explains the server overlap deduction without showing additive category percentages', async () => {
+    fleetViewService.getMorningBrief.mockResolvedValue({
+      totalRupees: 20675,
+      totalRule: 'per truck, the larger of excess idling and fuel over expected — never both',
+      sections: [
+        { key: 'fuelOverModel', rupees: 18592, vehicles: [] },
+        { key: 'excessIdling', rupees: 4367, vehicles: [] },
+      ],
+    });
+    const { container } = renderPanel();
+    const math = await screen.findByLabelText('How the fuel cost total is calculated');
+    expect(within(math).getByText('₹22,959')).toBeTruthy();
+    expect(within(math).getByText('−₹2,284')).toBeTruthy();
+    expect(within(math).getByText('₹20,675')).toBeTruthy();
+    expect(container.querySelector('.db-leak-share, .db-leak-split')).toBeNull();
+  });
+
+  it('keeps an unavailable total unknown and does not invent an overlap deduction', async () => {
+    fleetViewService.getMorningBrief.mockResolvedValue({
+      totalRupees: null,
+      totalRule: 'per truck, the larger of excess idling and fuel over expected — never both',
+      sections: [{ key: 'excessIdling', rupees: null, vehicles: [] }],
+    });
+    renderPanel();
+    expect(await screen.findByText('Not estimated for this day')).toBeTruthy();
+    expect(screen.queryByLabelText('How the fuel cost total is calculated')).toBeNull();
+  });
+
   it('shows calculated losses with an explicit incomplete-data notice', async () => {
     fleetViewService.getMorningBrief.mockResolvedValue({
       date: TODAY_IST,

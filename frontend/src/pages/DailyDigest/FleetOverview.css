@@ -1434,3 +1434,283 @@
   grid-column: 1 / -1;
   margin: 2px 0 0;
 }
+
+/* Fuel review: reconcile the headline, then scan trucks in aligned rows. */
+.db-col--primary > .db-leak,
+.db-col--primary .db-leak-list,
+.db-col--primary .db-leak-row {
+  flex: initial;
+}
+.db-leak-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.db-leak-total {
+  display: grid;
+  gap: 2px;
+}
+.db-coverage-badge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--rd-watch-tint);
+  color: var(--rd-watch-ink);
+  font-size: 11px;
+  font-weight: 500;
+}
+.db-leak-math {
+  padding: 12px 14px;
+  border: 1px solid var(--rd-line);
+  border-radius: 8px;
+  background: var(--rd-card-2);
+  font-size: 12px;
+  color: var(--rd-ink-2);
+}
+.db-leak-math > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+}
+.db-leak-math strong {
+  color: var(--rd-ink);
+  white-space: nowrap;
+}
+.db-leak-math .db-leak-math-total {
+  border-top: 1px solid var(--rd-line);
+  padding-top: 8px;
+  margin-top: 5px;
+  font-weight: 600;
+  color: var(--rd-ink);
+}
+.db-leak-math p {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.db-leak > .db-muted {
+  margin-top: 10px;
+  color: var(--rd-ink-2);
+}
+.db-leak .db-leak-row {
+  padding: 18px 0 4px;
+}
+.db-leak-preview-label {
+  margin: 8px 0;
+  font-size: 11px;
+  color: var(--rd-ink-2);
+}
+.db-leak .db-chips {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+.db-leak .db-chips > li + li {
+  border-top: 1px solid var(--rd-line);
+}
+.db-leak .db-chip {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.8fr) minmax(0, 1.4fr) auto;
+  width: 100%;
+  height: auto;
+  min-height: 40px;
+  gap: 2px 12px;
+  padding: 9px 4px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  white-space: normal;
+}
+.db-leak .db-chip:hover {
+  background: var(--rd-card-2);
+}
+.db-leak .db-chip-reg {
+  font-size: 12px;
+}
+.db-leak .db-chip-amt {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: center;
+  font-weight: 600;
+}
+.db-leak .db-chip-detail {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 11px;
+  color: var(--rd-ink-2);
+}
+@media (max-width: 600px) {
+  .db-leak .db-chip {
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 48px;
+  }
+  .db-leak .db-chip-amt {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+  .db-leak .db-chip-detail {
+    grid-column: 1;
+    grid-row: 2;
+  }
+}
+.db-leak-details {
+  margin: 8px 0 4px;
+  font-size: 12px;
+}
+.db-leak-details summary {
+  cursor: pointer;
+  color: var(--rd-ink-2);
+  padding: 4px 0;
+}
+.db-leak-details .db-leak-compare,
+.db-leak-details .db-leak-action {
+  margin-left: 0;
+  font-size: 12px;
+}
+
+/* Attention: active issues first, clear checks together beneath them. */
+.db-exceptions .db-attention-group {
+  padding: 12px;
+  border: 1px solid var(--rd-line);
+  border-radius: 8px;
+}
+.db-exceptions .db-attention-group + .db-attention-group {
+  margin-top: 14px;
+}
+.db-exceptions .db-attention-group-title {
+  justify-content: space-between;
+  margin-bottom: 2px;
+  font-size: 13px;
+}
+.db-exceptions .db-attention-group-title > span:not(.db-live-tag) {
+  font-size: 11px;
+}
+.db-exceptions .db-attention-row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  padding: 14px 0;
+}
+.db-exceptions .db-attention-row:last-child {
+  border-bottom: 0;
+}
+.db-exceptions .db-attention-row--trucks {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.db-attention-topic {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  min-width: 0;
+}
+.db-attention-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--rd-card-2);
+  color: var(--rd-ink-2);
+}
+.db-exceptions .db-attention-row h4 {
+  font-size: 13px;
+}
+.db-exceptions .db-attention-row p {
+  font-size: 11px;
+  color: var(--rd-ink-2);
+  line-height: 1.5;
+}
+.db-exceptions .db-attention-count {
+  font-size: 18px;
+  min-width: 35px;
+}
+.db-exceptions .db-attention-count small {
+  font-size: 10px;
+}
+.db-exceptions .db-attention-button {
+  border: 0;
+  padding: 8px 0 8px 4px;
+  min-height: 36px;
+  text-decoration: none;
+  font-size: 11px;
+}
+.db-exceptions .db-attention-trucks {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  border: 1px solid var(--rd-line);
+  border-radius: 7px;
+  overflow: hidden;
+}
+.db-attention-trucks > li + li {
+  border-top: 1px solid var(--rd-line);
+}
+.db-exceptions .db-attention-trucks .db-chip {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  height: auto;
+  min-height: 36px;
+  border: 0;
+  border-radius: 0;
+  padding: 8px 10px;
+  white-space: normal;
+  gap: 8px;
+}
+.db-exceptions .db-attention-trucks .db-chip-reg {
+  font-size: 11px;
+}
+.db-exceptions .db-attention-trucks .db-chip-detail {
+  font-size: 11px;
+  text-align: right;
+  color: var(--rd-ink-2);
+}
+.db-attention-quiet {
+  list-style: none;
+  padding: 8px 0 0;
+  margin: 0;
+  border-top: 1px solid var(--rd-line);
+}
+.db-exceptions .db-attention-clear {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: 11px;
+  color: var(--rd-ink-2);
+}
+.db-attention-clear svg {
+  flex: none;
+  color: var(--rd-good-ink);
+}
+.db-exceptions .db-foot-line {
+  margin-top: 12px;
+  font-size: 11px;
+}
+@media (max-width: 480px) {
+  .db-exceptions .db-attention-group {
+    padding: 10px;
+  }
+  .db-exceptions .db-attention-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .db-exceptions .db-attention-row > .db-attention-button {
+    grid-column: 1 / -1;
+    justify-self: end;
+    min-height: 36px;
+    padding: 0 2px;
+  }
+  .db-attention-icon {
+    display: none;
+  }
+}
+@media (pointer: coarse) {
+  .db-exceptions .db-attention-button,
+  .db-exceptions .db-attention-row > .db-attention-button,
+  .db-exceptions .db-attention-trucks .db-chip {
+    min-height: 44px;
+  }
+}
