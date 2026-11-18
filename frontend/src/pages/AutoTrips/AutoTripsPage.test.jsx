@@ -4,6 +4,7 @@ import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import AutoTripsPage from './AutoTripsPage';
 import AutoTripService from '../../services/AutoTripService';
 import TripPlanService from '../../services/TripPlanService';
+import { resetWithCountsSupport } from './tripCounts';
 
 vi.mock('../../services/AutoTripService', () => ({
   default: { list: vi.fn(), coverage: vi.fn() },
@@ -59,6 +60,7 @@ function open(entry = '/auto-trips?range=7d') {
 beforeEach(() => {
   cleanup();
   vi.clearAllMocks();
+  resetWithCountsSupport();
   getUserRole.mockReturnValue('VIEWER');
   AutoTripService.coverage.mockResolvedValue({ trucksMissing: 0 });
   AutoTripService.list.mockResolvedValue({
@@ -69,6 +71,68 @@ beforeEach(() => {
   TripPlanService.list.mockResolvedValue({ items: [], total: 0, tabCounts: { PLANNED: 0 } });
   getPlaceQuestions.mockResolvedValue({ items: [], total: 0 });
 });
+it('asks the backend for the counts with the list and reads the tab counts from there', async () => {
+  AutoTripService.list.mockImplementation(async () => ({
+    items: [{ _id: 't1', registrationNumber: 'WB-ACTUAL', status: 'OPEN' }],
+    total: 1,
+    tabCounts: { OPEN: 3, COMPLETE: 2, NEEDS_REVIEW: 0, total: 5 },
+  }));
+  open();
+  expect(await screen.findByText('WB-ACTUAL')).toBeInTheDocument();
+  expect(AutoTripService.list).toHaveBeenCalledWith(
+    expect.objectContaining({ withCounts: 1 }),
+    expect.anything(),
+  );
+  // Every trips read asks for the counts: one aggregate per read, not one
+  // count query per status.
+  const reads = AutoTripService.list.mock.calls;
+  expect(reads.length).toBeGreaterThan(1);
+  expect(reads.every(([p]) => p.withCounts === 1)).toBe(true);
+});
+
+it('falls back to the plain read when the backend does not know the flag', async () => {
+  AutoTripService.list.mockImplementation(async (params) => {
+    if (params.withCounts) {
+      const err = new Error('"withCounts" is not allowed');
+      err.status = 400;
+      throw err;
+    }
+    return {
+      items: [{ _id: 't1', registrationNumber: 'WB-ACTUAL', status: 'OPEN' }],
+      total: 1,
+      tabCounts: { OPEN: 1, total: 1 },
+    };
+  });
+  open();
+  expect(await screen.findByText('WB-ACTUAL')).toBeInTheDocument();
+  expect(AutoTripService.list).toHaveBeenCalledWith(
+    expect.objectContaining({ withCounts: 1 }),
+    expect.anything(),
+  );
+  expect(AutoTripService.list).toHaveBeenCalledWith(
+    expect.not.objectContaining({ withCounts: 1 }),
+    expect.anything(),
+  );
+  // The old count reads are back: the today count is read on its own again.
+  await waitFor(() =>
+    expect(AutoTripService.list.mock.calls.filter(([p]) => p.limit === 1).length).toBeGreaterThan(
+      0,
+    ),
+  );
+});
+
+it('keeps the old count reads when the backend sends no counts', async () => {
+  AutoTripService.list.mockImplementation(async (params) => ({
+    items: [{ _id: 't1', registrationNumber: 'WB-ACTUAL', status: 'OPEN' }],
+    total: 1,
+    // The list answers without tabCounts; the count reads still carry them.
+    ...(params.limit === 1 ? { tabCounts: { OPEN: 4, total: 4 } } : {}),
+  }));
+  open();
+  expect(await screen.findByText('WB-ACTUAL')).toBeInTheDocument();
+  expect(await screen.findByText('4 left a plant today')).toBeInTheDocument();
+});
+
 it('badges a trip row the server flagged as a suspicious unload', async () => {
   AutoTripService.list.mockResolvedValue({
     items: [
@@ -486,4 +550,40 @@ it('previews the exact bulk suggestions, cancels safely and writes only after co
     name: 'Salbani pump',
     category: 'FUEL_PUMP',
   });
+});
+
+it('does not reuse the counts of the previous filter when the list answers without counts', async () => {
+  let listReads = 0;
+  AutoTripService.list.mockImplementation(async (params) => {
+    if (params.limit === 50) {
+      listReads += 1;
+      // The first read of the filter answers with counts; the next one answers
+      // without any (the `withCounts` fallback).
+      return listReads === 1
+        ? {
+            items: [{ _id: 't1', registrationNumber: 'WB-ACTUAL', status: 'OPEN' }],
+            total: 1,
+            tabCounts: { OPEN: 7, total: 7 },
+          }
+        : { items: [], total: 0 };
+    }
+    return { items: [], total: 0 };
+  });
+  open();
+  expect(await screen.findByRole('tab', { name: 'On the road 7' })).toBeInTheDocument();
+
+  // Another filter: the list settles without counts. The counts of the
+  // previous filter are not this filter's counts, and nobody answered these
+  // ones either - they are unknown, not zero.
+  fireEvent.click(screen.getByRole('tab', { name: 'Needs your answer 0' }));
+  await waitFor(() =>
+    expect(screen.getByRole('tab', { name: 'On the road —' })).toBeInTheDocument(),
+  );
+  expect(screen.queryByRole('tab', { name: 'On the road 7' })).not.toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: 'Trips —' })).toBeInTheDocument();
+
+  // The plant-to-plant count is unknown too: its tab stays and says so.
+  fireEvent.click(screen.getByRole('tab', { name: /More/ }));
+  const reposition = await screen.findByRole('menuitem', { name: /Plant to plant/ });
+  expect(reposition.textContent).toContain('—');
 });

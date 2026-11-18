@@ -20,6 +20,10 @@ function nextCount(result, feedGone, previous, read) {
  * Sidebar badge counts: pending ERP approvals and pending driver bills,
  * polled every 30 s while `enabled`. A failed poll keeps the last value; the
  * next tick retries. Each poll cancels the one before it, and unmount aborts.
+ *
+ * The poll stops while the tab is hidden — a background tab costs a request
+ * every 30 s for a badge nobody is looking at — and reads once when the tab
+ * comes back into view.
  */
 export default function useApprovalBadges(enabled) {
   const [counts, setCounts] = useState(NONE);
@@ -51,10 +55,39 @@ export default function useApprovalBadges(enabled) {
         bills: nextCount(bills, gone.bills, prev.bills, (v) => v.total || 0),
       }));
     };
-    poll();
-    interval = setInterval(poll, POLL_MS);
+    const stopPolling = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+    const startPolling = () => {
+      if (interval) return;
+      interval = setInterval(() => {
+        // A hidden tab is nobody's business: nobody reads the badge.
+        if (document.hidden) return;
+        poll();
+      }, POLL_MS);
+    };
+    // Back in view: the tab may have been asleep for minutes, so the badge
+    // catches up with one read before the old cadence resumes.
+    const onVisibility = () => {
+      if (document.hidden) {
+        stopPolling();
+        return;
+      }
+      poll();
+      startPolling();
+    };
+
+    if (!document.hidden) {
+      poll();
+      startPolling();
+    }
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
-      clearInterval(interval);
+      stopPolling();
+      document.removeEventListener('visibilitychange', onVisibility);
       controller?.abort();
     };
   }, [enabled]);

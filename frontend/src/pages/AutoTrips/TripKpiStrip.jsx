@@ -102,7 +102,12 @@ export default function TripKpiStrip({
       label: 'Needs your answer',
       count: review,
       tone: review ? 'watch' : null,
-      sub: review ? `${shareText(review, all)} of trips` : 'nothing waiting',
+      sub:
+        review == null
+          ? 'count unknown'
+          : review
+            ? `${shareText(review, all) ?? '—'} of trips`
+            : 'nothing waiting',
     },
   ];
   return (

@@ -15,6 +15,12 @@ const { getDigest, getDailyFuel, getVehicleList, listTrips, refreshLive, getOwne
 vi.mock('../../services/fleetViewService', () => ({
   fleetViewService: {
     getDigest,
+    // The page asks conditionally; a server without a tag answers plainly.
+    getDigestConditional: vi.fn(async ({ date, quick, signal }) => ({
+      status: 200,
+      data: await getDigest({ date, quick, signal }),
+      etag: null,
+    })),
     getDailyFuel,
     getMorningBrief: vi.fn(async () => ({})),
     getOwnerReport,

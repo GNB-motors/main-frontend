@@ -250,3 +250,54 @@ it('hides data from a previous scope immediately and remains retryable after fai
     });
   });
 });
+
+describe('with dedupeKey (the same read in flight is one request)', () => {
+  it('shares one request between two components asking for the same read', async () => {
+    const d = deferred();
+    const fetcher = vi.fn(() => d.promise);
+    const a = renderHook(() => useApi(fetcher, [], { dedupeKey: 'GET /api/thing' }));
+    const b = renderHook(() => useApi(fetcher, [], { dedupeKey: 'GET /api/thing' }));
+
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      d.resolve({ id: 1 });
+      await d.promise;
+    });
+    await waitFor(() => expect(a.result.current.data).toEqual({ id: 1 }));
+    await waitFor(() => expect(b.result.current.data).toEqual({ id: 1 }));
+  });
+
+  it('keeps a different read on its own request', async () => {
+    const fetcher = vi.fn(() => Promise.resolve('x'));
+    renderHook(() => useApi(fetcher, [], { dedupeKey: 'GET /api/a' }));
+    renderHook(() => useApi(fetcher, [], { dedupeKey: 'GET /api/b' }));
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+  });
+
+  it('one caller walking away does not kill the read the other one waits for', async () => {
+    const d = deferred();
+    const fetcher = vi.fn(() => d.promise);
+    const a = renderHook(() => useApi(fetcher, [], { dedupeKey: 'GET /api/thing' }));
+    const b = renderHook(() => useApi(fetcher, [], { dedupeKey: 'GET /api/thing' }));
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+
+    a.unmount();
+    await act(async () => {
+      d.resolve('ok');
+      await d.promise;
+    });
+    await waitFor(() => expect(b.result.current.data).toBe('ok'));
+  });
+
+  it('a later read asks the server again', async () => {
+    const fetcher = vi.fn(() => Promise.resolve('x'));
+    const first = renderHook(() => useApi(fetcher, [], { dedupeKey: 'GET /api/thing' }));
+    await waitFor(() => expect(first.result.current.loading).toBe(false));
+    first.unmount();
+
+    const second = renderHook(() => useApi(fetcher, [], { dedupeKey: 'GET /api/thing' }));
+    await waitFor(() => expect(second.result.current.loading).toBe(false));
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+});

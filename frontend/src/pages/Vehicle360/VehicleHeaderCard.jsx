@@ -122,15 +122,32 @@ function TruckIllustration({ reg, axles, fuelPercent }) {
   );
 }
 
-export default function VehicleHeaderCard({ reg, profile, onGoTab }) {
+export default function VehicleHeaderCard({
+  reg,
+  profile,
+  onGoTab,
+  overview: sharedOverview,
+  refreshOverview,
+}) {
   const [specsOpen, setSpecsOpen] = useState(false);
   const [fuelLogOpen, setFuelLogOpen] = useState(false);
   const { fleetMaster: vehicle, fleetEdge, ialert, livePosition, health, prediction } = profile;
   const overview = useApi((signal) => FleetDataService.getVehicleOverview(reg, signal), [reg], {
-    enabled: Boolean(reg),
+    enabled: Boolean(reg) && !sharedOverview,
     scopeKey: reg,
+    dedupeKey: `vehicle-overview:${reg}`,
   });
-  const [fuel, def] = fluidLevels(overview.data, health, vehicle, ialert);
+  const overviewData = sharedOverview ?? overview.data;
+  // With a shared overview the local read is off, so the page's own refetch is
+  // what refreshes the header's fuel, DEF and odometer tiles.
+  const refreshHeader = () => {
+    if (sharedOverview) {
+      refreshOverview?.();
+      return;
+    }
+    overview.refetch();
+  };
+  const [fuel, def] = fluidLevels(overviewData, health, vehicle, ialert);
   const view = viewOf(livePosition);
   const axles = vehicleAxles(vehicle);
   const svc = serviceState(prediction, health);
@@ -164,7 +181,7 @@ export default function VehicleHeaderCard({ reg, profile, onGoTab }) {
     ['Gross vehicle mass', vehicle?.gvm != null ? `${formatNum(vehicle.gvm)} kg` : null],
     ['Manufacture year', vehicle?.manufactureYear],
     ['Registration state', vehicle?.registrationState],
-    ['Device', overview.data?.deviceId || ialert?.obuId],
+    ['Device', overviewData?.deviceId || ialert?.obuId],
   ];
   const percentText = (reading) =>
     reading.litres != null
@@ -178,13 +195,13 @@ export default function VehicleHeaderCard({ reg, profile, onGoTab }) {
     {
       label: 'Odometer',
       value:
-        numeric(overview.data?.odometer?.value) != null
-          ? formatKm(overview.data.odometer.value)
+        numeric(overviewData?.odometer?.value) != null
+          ? formatKm(overviewData.odometer.value)
           : health?.canOdo != null
             ? formatKm(health.canOdo)
             : '—',
-      note: overview.data?.odometer?.at
-        ? `Read ${timeAgo(overview.data.odometer.at)}`
+      note: overviewData?.odometer?.at
+        ? `Read ${timeAgo(overviewData.odometer.at)}`
         : 'Last available reading',
       tab: 'telemetry',
     },
@@ -311,7 +328,7 @@ export default function VehicleHeaderCard({ reg, profile, onGoTab }) {
         {tiles.map((tile) => (
           <button key={tile.label} onClick={() => onGoTab(tile.tab)}>
             <span>{tile.label}</span>
-            {overview.loading && !overview.data && ['fuel', 'telemetry'].includes(tile.tab) ? (
+            {overview.loading && !overviewData && ['fuel', 'telemetry'].includes(tile.tab) ? (
               <Skeleton style={{ width: '65%', height: 25 }} />
             ) : (
               <strong>{tile.value}</strong>
@@ -334,7 +351,7 @@ export default function VehicleHeaderCard({ reg, profile, onGoTab }) {
             registrationNumber={reg}
             vehicleId={vehicle?._id || vehicle?.id || ''}
             onOpenChange={setFuelLogOpen}
-            onConfirmed={() => overview.refetch()}
+            onConfirmed={() => refreshHeader()}
           />
         </Suspense>
       ) : null}

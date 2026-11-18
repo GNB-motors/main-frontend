@@ -114,7 +114,9 @@ describe('useLiveData', () => {
 
   it('re-runs initialFetch once when the stream (re)connects', async () => {
     const initialFetch = vi.fn().mockResolvedValue([{ reg: 'A', speed: 10 }]);
-    const { result } = renderHook(() => useLiveData('positions', { initialFetch }));
+    const { result } = renderHook(() =>
+      useLiveData('positions', { initialFetch, resyncMinGapMs: 0 }),
+    );
     await waitFor(() => expect(result.current.status).toBe('ready'));
     expect(initialFetch).toHaveBeenCalledTimes(1);
 
@@ -123,12 +125,26 @@ describe('useLiveData', () => {
     expect(result.current.connectionState).toBe('open');
   });
 
+  // The mount read and the read the stream asks for on (re)connect used to
+  // land together: the fleet was read twice for one paint.
+  it('does not read the fleet again when the stream opens right after the first read', async () => {
+    const initialFetch = vi.fn().mockResolvedValue([{ reg: 'A', speed: 10 }]);
+    renderHook(() => useLiveData('positions', { initialFetch }));
+    await waitFor(() => expect(initialFetch).toHaveBeenCalledTimes(1));
+
+    emitState('open');
+    await act(async () => {});
+    expect(initialFetch).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps the last good dataset when a refresh fails', async () => {
     const initialFetch = vi
       .fn()
       .mockResolvedValueOnce([{ reg: 'A', speed: 10 }])
       .mockRejectedValueOnce(new Error('network down'));
-    const { result } = renderHook(() => useLiveData('positions', { initialFetch }));
+    const { result } = renderHook(() =>
+      useLiveData('positions', { initialFetch, resyncMinGapMs: 0 }),
+    );
     await waitFor(() => expect(result.current.status).toBe('ready'));
 
     emitState('open');
@@ -186,5 +202,50 @@ describe('useLiveData', () => {
     const { result } = renderHook(() => useLiveData('positions', { initialFetch, enabled: false }));
     expect(initialFetch).not.toHaveBeenCalled();
     expect(result.current.status).toBe('loading');
+  });
+
+  // A read that landed a moment before the socket came back may predate the
+  // drop: what the socket missed is only in the server's answer, so every
+  // reconnect gets its own read.
+  it('resyncs on every reconnect, even right after a read', async () => {
+    const initialFetch = vi.fn().mockResolvedValue([{ reg: 'A', speed: 10 }]);
+    renderHook(() => useLiveData('positions', { initialFetch }));
+    await waitFor(() => expect(initialFetch).toHaveBeenCalledTimes(1));
+
+    // The first open belongs to the read that opened the page.
+    emitState('open');
+    await act(async () => {});
+    expect(initialFetch).toHaveBeenCalledTimes(1);
+
+    emitState('closed');
+    emitState('open');
+    await waitFor(() => expect(initialFetch).toHaveBeenCalledTimes(2));
+  });
+
+  it('queues a resync when the reconnect happens while a read is in flight', async () => {
+    let release;
+    const initialFetch = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            release = () => resolve([{ reg: 'A' }]);
+          }),
+      )
+      .mockImplementation(() => Promise.resolve([{ reg: 'B' }]));
+    renderHook(() => useLiveData('positions', { initialFetch }));
+    await waitFor(() => expect(initialFetch).toHaveBeenCalledTimes(1));
+
+    emitState('open');
+    emitState('closed');
+    // A reconnect while the first read is still running: that read may have
+    // started before the drop.
+    emitState('open');
+    expect(initialFetch).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      release();
+    });
+    await waitFor(() => expect(initialFetch).toHaveBeenCalledTimes(2));
   });
 });

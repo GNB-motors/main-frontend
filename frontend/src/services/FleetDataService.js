@@ -57,6 +57,14 @@ export const FleetDataService = {
   getVehicleOverview: (registrationNumber, signal) =>
     get(`/api/vehicle-profile/${encodeURIComponent(registrationNumber)}/overview`, {}, signal),
 
+  /**
+   * The whole vehicle screen in one read: profile, health and overview.
+   * Answers 404 until the backend has the route; the page then falls back to
+   * the separate calls.
+   */
+  getVehicleScreen: (registrationNumber, signal) =>
+    get(`/api/vehicle-profile/${encodeURIComponent(registrationNumber)}/screen`, {}, signal),
+
   /** Service predictions, riskiest first. */
   getMaintenancePredictions: (params = {}, signal) =>
     get('/api/maintenance-predictions', params, signal),
