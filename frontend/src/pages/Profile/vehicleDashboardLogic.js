@@ -1,3 +1,4 @@
+import { istDayString } from '../../utils/dateUtils';
 /**
  * Pure document-expiry logic for the Vehicle Dashboard (rule 21). `now` is
  * injectable everywhere so bucket/day-count math is deterministic in tests.
@@ -27,15 +28,21 @@ export const EXPIRED_FILTER_PILLS = [
 
 import { isUploadedDoc } from './vehicleDocNormalization';
 
-// Days between today (00:00) and the given Date — negative if past.
+// Compare IST calendar days so a document's status does not depend on browser timezone.
 export function daysUntil(d, now = new Date()) {
-  if (!d) return null;
-  const target = new Date(d);
-  if (Number.isNaN(target.getTime())) return null;
-  const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
-  target.setHours(0, 0, 0, 0);
-  return Math.round((target - today) / 86400000);
+  if (!d || Number.isNaN(new Date(d).getTime()) || Number.isNaN(new Date(now).getTime()))
+    return null;
+  return Math.round((Date.parse(istDayString(d)) - Date.parse(istDayString(now))) / 86400000);
+}
+
+export function formatDocumentExpiry(value) {
+  if (!value || Number.isNaN(new Date(value).getTime())) return null;
+  return new Intl.DateTimeFormat('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(value));
 }
 
 // Bucket a doc into one of: 'missing' | 'pending' | 'expired' | 'critical' | 'warning' | 'healthy' | 'verified' | 'rejected' | 'uploaded'.

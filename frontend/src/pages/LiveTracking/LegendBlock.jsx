@@ -27,32 +27,34 @@ export default function LegendBlock({
         <h3 className="m-0 text-[11px] font-semibold tracking-wide text-[var(--rd-ink-3)] uppercase">
           {title}
         </h3>
-        {collapsible ? (
-          <button
-            type="button"
-            onClick={onToggle}
-            aria-expanded={isOpen}
-            aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${title}`}
-            title={`${isOpen ? 'Collapse' : 'Expand'} ${title}`}
-            className="rounded p-0.5 text-[var(--rd-ink-3)] transition-colors hover:bg-[var(--rd-card-2)] hover:text-[var(--rd-ink-2)]"
-          >
-            {isOpen ? (
-              <ChevronUp size={13} aria-hidden="true" />
-            ) : (
-              <ChevronDown size={13} aria-hidden="true" />
-            )}
-          </button>
-        ) : null}
         {info ? <InfoTip text={info.text} basis={info.basis} /> : null}
-        {showAll && onAll ? (
-          <button
-            type="button"
-            onClick={onAll}
-            className="ml-auto rounded px-1 text-[11px] font-semibold text-[var(--rd-brand-2)] hover:underline"
-          >
-            All
-          </button>
-        ) : null}
+        <div className="ml-auto flex items-center gap-1.5">
+          {showAll && onAll ? (
+            <button
+              type="button"
+              onClick={onAll}
+              className="rounded px-1 text-[11px] font-semibold text-[var(--rd-brand-2)] hover:underline"
+            >
+              All
+            </button>
+          ) : null}
+          {collapsible ? (
+            <button
+              type="button"
+              onClick={onToggle}
+              aria-expanded={isOpen}
+              aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${title}`}
+              title={`${isOpen ? 'Collapse' : 'Expand'} ${title}`}
+              className="rounded p-0.5 text-[var(--rd-ink-3)] transition-colors hover:bg-[var(--rd-card-2)] hover:text-[var(--rd-ink-2)]"
+            >
+              {isOpen ? (
+                <ChevronUp size={13} aria-hidden="true" />
+              ) : (
+                <ChevronDown size={13} aria-hidden="true" />
+              )}
+            </button>
+          ) : null}
+        </div>
       </div>
       {isOpen ? children : null}
     </div>

@@ -188,61 +188,38 @@ export function useDriverColumns({
         }
 
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div>
-              {licNum ? (
-                <span
-                  style={{
-                    fontFamily: 'var(--font-mono, monospace)',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: 'var(--ds-ink, #0f172a)',
-                  }}
-                >
-                  {licNum}
-                </span>
-              ) : (
-                <span
-                  style={{
-                    fontSize: '11px',
-                    color: '#b45309',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  Not extracted
-                </span>
-              )}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            {licNum ? (
               <span
                 style={{
-                  display: 'inline-block',
-                  padding: '1px 5px',
-                  borderRadius: '4px',
-                  fontSize: '10px',
-                  fontWeight: 500,
-                  background: '#dbeafe',
-                  color: '#1e40af',
-                  border: '1px solid #bfdbfe',
+                  fontFamily: 'var(--font-mono, monospace)',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: 'var(--ds-ink, #0f172a)',
                 }}
               >
-                Uploaded
+                {licNum}
               </span>
-              <span
-                style={{
-                  display: 'inline-block',
-                  padding: '1px 5px',
-                  borderRadius: '4px',
-                  fontSize: '10px',
-                  fontWeight: 500,
-                  background: isVerified ? '#dcfce7' : '#fef3c7',
-                  color: isVerified ? '#166534' : '#92400e',
-                  border: `1px solid ${isVerified ? '#bbf7d0' : '#fde68a'}`,
-                }}
-              >
-                {isVerified ? 'Verified' : 'Unverified'}
-              </span>
-            </div>
+            ) : (
+              <span style={{ fontSize: '11px', color: '#94a3b8' }}>No number extracted</span>
+            )}
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                width: 'fit-content',
+                padding: '1px 6px',
+                borderRadius: '4px',
+                fontSize: '10px',
+                fontWeight: 600,
+                background: isVerified ? '#dcfce7' : '#fef3c7',
+                color: isVerified ? '#166534' : '#92400e',
+                border: `1px solid ${isVerified ? '#bbf7d0' : '#fde68a'}`,
+              }}
+            >
+              {isVerified ? 'Verified' : 'Pending review'}
+            </span>
           </div>
         );
       },

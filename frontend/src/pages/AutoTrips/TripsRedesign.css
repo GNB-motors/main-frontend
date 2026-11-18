@@ -465,20 +465,17 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
   gap: 16px;
-  align-items: stretch;
+  align-items: start;
 }
 .atx-detail-more > * {
   min-width: 0;
 }
 .atx-page--detail .atx-detail-more .sap-route-card {
   grid-column: auto;
-  flex: 1 0 auto;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   gap: 18px;
-}
-.atx-page--detail .atx-detail-more .sap-route-footer {
-  margin-top: auto;
 }
 .atx-page--detail .atx-summary {
   gap: 14px;

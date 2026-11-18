@@ -230,7 +230,7 @@ const VehiclesPage = () => {
   // The page renders without profile context or businessRefId.
 
   return (
-    <div className="vehicles-page-container" style={themeColors}>
+    <div className="vehicles-page-container vehicle-list-page" style={themeColors}>
       <PageShell
         title="Vehicles"
         count={totalVehicles}

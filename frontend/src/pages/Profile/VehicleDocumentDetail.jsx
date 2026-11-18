@@ -16,7 +16,7 @@ import {
   Truck,
   RefreshCw,
 } from 'lucide-react';
-import { DOC_COLS, bucketFor, daysUntil } from './vehicleDashboardLogic';
+import { DOC_COLS, bucketFor, formatDocumentExpiry } from './vehicleDashboardLogic';
 import { normalizeDocType } from './vehicleDocNormalization';
 
 export default function VehicleDocumentDetail({
@@ -41,7 +41,6 @@ export default function VehicleDocumentDetail({
 
   const docEntry = selectedVehicle.documents?.[selectedDocKey];
   const bucket = bucketFor(docEntry);
-  const days = daysUntil(docEntry?.expiryDate);
 
   // Find the full document from fetched list using canonical type matching
   const fullDoc = fullDocs.find(
@@ -72,19 +71,19 @@ export default function VehicleDocumentDetail({
   let badgeIcon = null;
 
   if (bucket === 'expired') {
-    badgeStatusText = `Expired (${Math.abs(days)}d ago)`;
+    badgeStatusText = 'Expired';
     badgeColorClass = 'v-dash-status-pill--expired';
     badgeIcon = <XCircle size={14} />;
   } else if (bucket === 'verified') {
-    badgeStatusText = days !== null ? `Verified (${days} days left)` : 'Verified';
+    badgeStatusText = 'Verified';
     badgeColorClass = 'v-dash-status-pill--valid';
     badgeIcon = <CheckCircle2 size={14} />;
   } else if (bucket === 'healthy') {
-    badgeStatusText = days !== null ? `Valid (${days} days left)` : 'Uploaded';
+    badgeStatusText = 'Valid';
     badgeColorClass = 'v-dash-status-pill--valid';
     badgeIcon = <CheckCircle2 size={14} />;
   } else if (bucket === 'warning' || bucket === 'critical') {
-    badgeStatusText = `Expiring Soon (${days} days left)`;
+    badgeStatusText = 'Expiring Soon';
     badgeColorClass = 'v-dash-status-pill--warning';
     badgeIcon = <AlertTriangle size={14} />;
   } else if (bucket === 'rejected') {
@@ -306,13 +305,7 @@ export default function VehicleDocumentDetail({
                 <Calendar size={13} /> Expiry Date
               </span>
               <span className="v-dash-meta-value">
-                {docEntry?.expiryDate
-                  ? new Date(docEntry.expiryDate).toLocaleDateString('en-IN', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    })
-                  : 'Not specified'}
+                {docEntry?.expiryDate ? formatDocumentExpiry(docEntry.expiryDate) : 'Not specified'}
               </span>
             </div>
 

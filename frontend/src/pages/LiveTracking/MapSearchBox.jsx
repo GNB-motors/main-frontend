@@ -1,4 +1,5 @@
 import { Search, X } from 'lucide-react';
+import SearchField from '../../components/ui/SearchField';
 
 /**
  * MapSearchBox — search for the tracking map or its docked list panel.
@@ -21,7 +22,7 @@ export default function MapSearchBox({
   const isPhone =
     typeof window !== 'undefined' && window.matchMedia?.('(max-width: 600px)').matches;
   return (
-    <div
+    <SearchField
       className={`${placement === 'panel' ? 'lt-panel-search-field' : 'ov-search'} flex h-10 items-center gap-2 rounded-[var(--rd-radius)] border border-[var(--rd-line)] bg-[var(--rd-card)] px-3 shadow-[var(--rd-shadow-float)] ${
         compact ? 'ov-search--compact justify-center' : ''
       }`}
@@ -49,6 +50,6 @@ export default function MapSearchBox({
           <X size={14} aria-hidden="true" />
         </button>
       ) : null}
-    </div>
+    </SearchField>
   );
 }

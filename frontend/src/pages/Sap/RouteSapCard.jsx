@@ -47,107 +47,136 @@ export default function RouteSapCard({ trip }) {
     }
   };
   return (
-    <section className="atx-card sap-panel sap-route-card atx-span-2" aria-label="Route SAP">
-      <div className="sap-route-header">
-        <div className="sap-stack">
-          <h2>
-            <Route size={18} aria-hidden="true" />
-            Agreed distance (SAP)
-          </h2>
-          <p className="sap-muted">
-            {route?.fromName || trip.pickup?.name || 'Plant'} →{' '}
-            {route?.toName || trip.drop?.name || 'Drop not known'}
-          </p>
-        </div>
-        <div className="sap-row">
-          <Link
-            className="sap-link"
-            to={
-              isEnabled('fleetIntelligence') && isEnabled('routesV2')
-                ? '/place-hub?tab=routes&routeView=deliveries'
-                : '/reports?report=laneKm'
-            }
-          >
-            Manage routes
-            <ArrowUpRight size={14} />
-          </Link>
-          {route && entry && (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={remove.loading}
-              onClick={() => setEditing(true)}
+    <>
+      <section className="atx-card sap-panel sap-route-card atx-span-2" aria-label="Route SAP">
+        <div className="sap-route-header">
+          <div className="sap-stack">
+            <h2>
+              <Route size={18} aria-hidden="true" />
+              Agreed distance (SAP)
+            </h2>
+            <p className="sap-muted">
+              {route?.fromName || trip.pickup?.name || 'Plant'} →{' '}
+              {route?.toName || trip.drop?.name || 'Drop not known'}
+            </p>
+          </div>
+          <div className="sap-row">
+            <Link
+              className="sap-link"
+              to={
+                isEnabled('fleetIntelligence') && isEnabled('routesV2')
+                  ? '/place-hub?tab=routes&routeView=deliveries'
+                  : '/reports?report=laneKm'
+              }
             >
-              <Pencil size={13} />
-              {entry ? 'Change SAP' : 'Set SAP'}
-            </Button>
-          )}
+              Manage routes
+              <ArrowUpRight size={14} />
+            </Link>
+            {route && entry && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={remove.loading}
+                onClick={() => setEditing(true)}
+              >
+                <Pencil size={13} />
+                {entry ? 'Change SAP' : 'Set SAP'}
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
-      <SapRequestState query={q}>
-        <div className="sap-stack">
-          {sap?.status === 'MATCHED' ? (
-            <>
-              <SapComparison
-                basis={sap.basis}
-                sapKm={sap.sapKm}
-                comparison={sap.comparison}
-                tolerance={sap.tolerancePct}
-              />
-              <p className="sap-muted">
-                {kmText(entry?.sapKm ?? sap.sapKm)} {BASIS_LABEL[sap.basis]?.toLowerCase()} ·{' '}
-                {SOURCE_LABEL[sap.source] || SOURCE_LABEL.MANUAL}
-                {entry?.note ? ` · ${entry.note}` : ''} · Tolerance {sap.tolerancePct ?? 10}%
-              </p>
-            </>
-          ) : (
-            <div className="sap-route-empty">
-              <span className="sap-route-empty-icon">
-                <Route size={25} strokeWidth={1.5} aria-hidden="true" />
-              </span>
-              <h3>
-                {entry
-                  ? 'Distance comparison unavailable'
-                  : route
-                    ? 'No agreed distance set'
-                    : SAP_REASONS[sap?.status] || 'Route not ready for comparison'}
-              </h3>
-              <p>
-                {route
-                  ? entry
-                    ? 'The agreed distance is saved. GPS distance is needed to compare this trip.'
-                    : 'Add the distance agreed with the plant to compare it with the kilometres driven.'
-                  : 'Save the plant and drop as places to set SAP for this route.'}
-              </p>
-              {route && !entry && (
-                <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-                  <Pencil size={13} aria-hidden="true" />
-                  Set SAP distance
-                </Button>
-              )}
-            </div>
-          )}
-          {(q.data?.history || []).length > 0 && (
-            <details className="sap-disclosure">
-              <summary>
-                <History size={13} aria-hidden="true" /> Earlier SAP on this route
-              </summary>
-              <ul>
-                {q.data.history.map((h) => (
-                  <li key={h._id}>
-                    {kmText(h.sapKm)} {BASIS_LABEL[h.basis]?.toLowerCase()} ·{' '}
-                    {SOURCE_LABEL[h.source] || SOURCE_LABEL.MANUAL}
-                    {h.supersededAt
-                      ? ` · replaced ${new Date(h.supersededAt).toLocaleDateString('en-IN')}`
-                      : ''}
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
-        </div>
-      </SapRequestState>
-      <aside className="sap-route-help" aria-label="About SAP distance">
+        <SapRequestState query={q}>
+          <div className="sap-stack">
+            {sap?.status === 'MATCHED' ? (
+              <>
+                <SapComparison
+                  basis={sap.basis}
+                  sapKm={sap.sapKm}
+                  comparison={sap.comparison}
+                  tolerance={sap.tolerancePct}
+                />
+                <p className="sap-muted">
+                  {kmText(entry?.sapKm ?? sap.sapKm)} {BASIS_LABEL[sap.basis]?.toLowerCase()} ·{' '}
+                  {SOURCE_LABEL[sap.source] || SOURCE_LABEL.MANUAL}
+                  {entry?.note ? ` · ${entry.note}` : ''} · Tolerance {sap.tolerancePct ?? 10}%
+                </p>
+              </>
+            ) : (
+              <div className="sap-route-empty">
+                <span className="sap-route-empty-icon">
+                  <Route size={25} strokeWidth={1.5} aria-hidden="true" />
+                </span>
+                <h3>
+                  {entry
+                    ? 'Distance comparison unavailable'
+                    : route
+                      ? 'No agreed distance set'
+                      : SAP_REASONS[sap?.status] || 'Route not ready for comparison'}
+                </h3>
+                <p>
+                  {route
+                    ? entry
+                      ? 'The agreed distance is saved. GPS distance is needed to compare this trip.'
+                      : 'Add the distance agreed with the plant to compare it with the kilometres driven.'
+                    : 'Save the plant and drop as places to set SAP for this route.'}
+                </p>
+                {route && !entry && (
+                  <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+                    <Pencil size={13} aria-hidden="true" />
+                    Set SAP distance
+                  </Button>
+                )}
+              </div>
+            )}
+            {(q.data?.history || []).length > 0 && (
+              <details className="sap-disclosure">
+                <summary>
+                  <History size={13} aria-hidden="true" /> Earlier SAP on this route
+                </summary>
+                <ul>
+                  {q.data.history.map((h) => (
+                    <li key={h._id}>
+                      {kmText(h.sapKm)} {BASIS_LABEL[h.basis]?.toLowerCase()} ·{' '}
+                      {SOURCE_LABEL[h.source] || SOURCE_LABEL.MANUAL}
+                      {h.supersededAt
+                        ? ` · replaced ${new Date(h.supersededAt).toLocaleDateString('en-IN')}`
+                        : ''}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
+        </SapRequestState>
+        {(entry || (isEnabled('routesV2') && trip.routeLeg)) && (
+          <div className="sap-route-footer">
+            {isEnabled('routesV2') && trip.routeLeg && (
+              <Link
+                className="sap-link"
+                to={`/place-hub?tab=routes&routeView=deliveries&delivery=${trip.routeLeg._id}`}
+              >
+                Usual for this route: {kmText(trip.routeLeg.km?.p50)} ({trip.routeLeg.n} trips)
+                <ArrowUpRight size={14} />
+              </Link>
+            )}
+            {entry && (
+              <Button variant="ghost" size="sm" disabled={remove.loading} onClick={removeSap}>
+                Remove route SAP
+              </Button>
+            )}
+          </div>
+        )}
+        {editing && route && (
+          <SetSapDialog
+            from={{ id: route.fromSiteId, name: route.fromName || trip.pickup?.name }}
+            to={{ id: route.toSiteId, name: route.toName || trip.drop?.name }}
+            current={entry}
+            onClose={() => setEditing(false)}
+            onSaved={saved}
+          />
+        )}
+      </section>
+      <aside className="atx-card sap-route-help" aria-label="About SAP distance">
         <span className="sap-route-help-icon">
           <Truck size={28} strokeWidth={1.5} aria-hidden="true" />
         </span>
@@ -163,33 +192,6 @@ export default function RouteSapCard({ trip }) {
           </span>
         </div>
       </aside>
-      {(entry || (isEnabled('routesV2') && trip.routeLeg)) && (
-        <div className="sap-route-footer">
-          {isEnabled('routesV2') && trip.routeLeg && (
-            <Link
-              className="sap-link"
-              to={`/place-hub?tab=routes&routeView=deliveries&delivery=${trip.routeLeg._id}`}
-            >
-              Usual for this route: {kmText(trip.routeLeg.km?.p50)} ({trip.routeLeg.n} trips)
-              <ArrowUpRight size={14} />
-            </Link>
-          )}
-          {entry && (
-            <Button variant="ghost" size="sm" disabled={remove.loading} onClick={removeSap}>
-              Remove route SAP
-            </Button>
-          )}
-        </div>
-      )}
-      {editing && route && (
-        <SetSapDialog
-          from={{ id: route.fromSiteId, name: route.fromName || trip.pickup?.name }}
-          to={{ id: route.toSiteId, name: route.toName || trip.drop?.name }}
-          current={entry}
-          onClose={() => setEditing(false)}
-          onSaved={saved}
-        />
-      )}
-    </section>
+    </>
   );
 }

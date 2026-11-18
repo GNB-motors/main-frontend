@@ -1,5 +1,5 @@
 import { Check, XCircle, AlertCircle, HelpCircle } from 'lucide-react';
-import { bucketFor, daysUntil, BUCKET_STYLES } from './vehicleDashboardLogic';
+import { bucketFor, formatDocumentExpiry, BUCKET_STYLES } from './vehicleDashboardLogic';
 
 /**
  * Cell/presentational components for the Vehicle Dashboard. Kept separate
@@ -10,7 +10,7 @@ import { bucketFor, daysUntil, BUCKET_STYLES } from './vehicleDashboardLogic';
 
 export const DocBadge = ({ docEntry, onClick, isSelected = false }) => {
   const bucket = bucketFor(docEntry);
-  const days = daysUntil(docEntry?.expiryDate);
+  const expiry = formatDocumentExpiry(docEntry?.expiryDate);
 
   let icon = null;
   let text = '';
@@ -18,23 +18,23 @@ export const DocBadge = ({ docEntry, onClick, isSelected = false }) => {
 
   if (bucket === 'expired') {
     icon = <XCircle size={13} strokeWidth={2.4} className="v-dash-badge-icon" />;
-    text = 'Expired!';
+    text = expiry || 'Expired';
     badgeClass += ' v-dash-badge--expired';
   } else if (bucket === 'verified') {
     icon = <Check size={13} strokeWidth={2.6} className="v-dash-badge-icon" />;
-    text = days !== null ? `${days}d left` : 'Verified';
+    text = expiry || 'Verified';
     badgeClass += ' v-dash-badge--valid';
   } else if (bucket === 'healthy') {
     icon = <Check size={13} strokeWidth={2.6} className="v-dash-badge-icon" />;
-    text = days !== null ? `${days}d left` : 'Valid';
+    text = expiry || 'Valid';
     badgeClass += ' v-dash-badge--valid';
   } else if (bucket === 'warning') {
     icon = <AlertCircle size={13} strokeWidth={2.4} className="v-dash-badge-icon" />;
-    text = `${days}d left`;
+    text = expiry || 'Expiring soon';
     badgeClass += ' v-dash-badge--warning';
   } else if (bucket === 'critical') {
     icon = <AlertCircle size={13} strokeWidth={2.4} className="v-dash-badge-icon" />;
-    text = `${days}d left`;
+    text = expiry || 'Expiring soon';
     badgeClass += ' v-dash-badge--critical';
   } else if (bucket === 'rejected') {
     icon = <XCircle size={13} strokeWidth={2.2} className="v-dash-badge-icon" />;
@@ -59,12 +59,8 @@ export const DocBadge = ({ docEntry, onClick, isSelected = false }) => {
     badgeClass += ' v-dash-badge--selected';
   }
 
-  const title = docEntry?.expiryDate
-    ? `Expiry: ${new Date(docEntry.expiryDate).toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      })}`
+  const title = expiry
+    ? `${BUCKET_STYLES[bucket]?.label || 'Document'}. Expiry: ${expiry}`
     : docEntry?.uploaded
       ? 'Uploaded — click to view'
       : 'No document uploaded — click to view';

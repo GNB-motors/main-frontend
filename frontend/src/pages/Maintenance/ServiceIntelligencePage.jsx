@@ -35,7 +35,7 @@ const ServiceIntelligencePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTab = searchParams.get('tab')?.toUpperCase();
   const navState = typeof window !== 'undefined' ? window.history.state?.usr || {} : {};
-  const initialTab = VALID_TABS.includes(urlTab) ? urlTab : navState.focusTab || 'SERVICE';
+  const initialTab = VALID_TABS.includes(urlTab) ? urlTab : navState.focusTab || 'UPCOMING';
   const [activeTab, setActiveTab] = useState(initialTab);
   const confirm = useConfirm();
   const [rows, setRows] = useState([]);

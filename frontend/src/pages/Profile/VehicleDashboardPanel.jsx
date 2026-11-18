@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, ShieldCheck, Copy, Check } from 'lucide-react';
-import { DOC_COLS, bucketFor, daysUntil } from './vehicleDashboardLogic';
+import { DOC_COLS, bucketFor, formatDocumentExpiry } from './vehicleDashboardLogic';
 import { VehicleService } from './VehicleService';
 import './VehicleDashboardPage.css';
 import VehicleDashboardEmptyPanel from './VehicleDashboardEmptyPanel.jsx';
@@ -172,23 +172,22 @@ export default function VehicleDashboardPanel({
             {DOC_COLS.map(({ key, fullLabel, short }) => {
               const docEntry = selectedVehicle.documents?.[key];
               const bucket = bucketFor(docEntry);
-              const days = daysUntil(docEntry?.expiryDate);
 
               let statusLabel = '';
               let statusClass = '';
               let issuedText = 'Issued on: No data found';
 
               if (bucket === 'expired') {
-                statusLabel = `Expired (${Math.abs(days)}d ago)`;
+                statusLabel = 'Expired';
                 statusClass = 'v-dash-card-status--expired';
               } else if (bucket === 'verified') {
-                statusLabel = days !== null ? `Verified (${days}d left)` : 'Verified';
+                statusLabel = 'Verified';
                 statusClass = 'v-dash-card-status--valid';
               } else if (bucket === 'healthy') {
-                statusLabel = days !== null ? `Expires in ${days} days` : 'Uploaded';
+                statusLabel = 'Valid';
                 statusClass = 'v-dash-card-status--valid';
               } else if (bucket === 'warning' || bucket === 'critical') {
-                statusLabel = `Expiring soon (${days}d left)`;
+                statusLabel = 'Expiring soon';
                 statusClass = 'v-dash-card-status--warning';
               } else if (bucket === 'rejected') {
                 statusLabel = 'Verification Rejected';
@@ -204,14 +203,8 @@ export default function VehicleDashboardPanel({
                 statusClass = 'v-dash-card-status--missing';
               }
 
-              if (docEntry?.expiryDate) {
-                const expDate = new Date(docEntry.expiryDate);
-                issuedText = `Expires: ${expDate.toLocaleDateString('en-IN', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-                })}`;
-              }
+              const expiry = formatDocumentExpiry(docEntry?.expiryDate);
+              if (expiry) issuedText = `Expires: ${expiry}`;
 
               return (
                 <div

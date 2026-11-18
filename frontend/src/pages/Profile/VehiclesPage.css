@@ -1302,3 +1302,25 @@
   font-family: 'Inter', sans-serif;
   font-weight: 500;
 }
+
+/* One application clear button; hide the browser's duplicate search decoration. */
+:is(.vehicle-list-page, .v-dash-page)
+  .fbar-search
+  input[type='search']::-webkit-search-cancel-button,
+:is(.vehicle-list-page, .v-dash-page) .fbar-search input[type='search']::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+/* Keep column tools and the table heading in separate stacking contexts. */
+:is(.vehicle-list-page, .v-dash-page) .dt-tools {
+  position: relative;
+  z-index: 6;
+  flex-shrink: 0;
+}
+:is(.vehicle-list-page, .v-dash-page) .dt-scroll {
+  position: relative;
+  isolation: isolate;
+}
+:is(.vehicle-list-page, .v-dash-page) .dt-table thead th {
+  vertical-align: middle;
+}

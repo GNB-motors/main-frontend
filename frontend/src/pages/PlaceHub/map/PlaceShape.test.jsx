@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 import { CircleF, PolygonF } from '@react-google-maps/api';
 import PlaceShape from './PlaceShape.jsx';
+import { RISK_COLOR } from '../placeHubStyle.js';
 import { PURPOSE_COLOR } from '../model/placePurpose.js';
 
 vi.mock('@react-google-maps/api', () => ({
@@ -119,5 +120,57 @@ describe('PlaceShape', () => {
     );
     expect(PolygonF).toHaveBeenCalledTimes(1);
     expect(PolygonF.mock.calls[0][0].options.fillOpacity).toBe(0.18);
+  });
+});
+
+it.each([false, true])(
+  'highlights an unloading place’s fuel-risk footprint independently of its purpose (selected: %s)',
+  (selected) => {
+    render(
+      <PlaceShape
+        place={{
+          ...place,
+          type: 'UNLOADING_POINT',
+          purpose: 'general',
+          risk: true,
+          polygonParts: [[ring(22.4, 88.2)]],
+          coreParts: [[ring(22.45, 88.25)]],
+        }}
+        highlightRisk
+        selected={selected}
+        interactive
+        onSelect={() => {}}
+      />,
+    );
+    const area = PolygonF.mock.calls[0][0].options;
+    const core = PolygonF.mock.calls[1][0].options;
+    expect(area.strokeColor).toBe(RISK_COLOR);
+    expect(area.fillColor).toBe(RISK_COLOR);
+    expect(area.strokeWeight).toBe(selected ? 3 : 2.5);
+    expect(area.fillOpacity).toBeLessThanOrEqual(0.22);
+    expect(core.fillColor).toBe(RISK_COLOR);
+  },
+);
+
+it('keeps ordinary unloading areas in their existing color and highlights risk circles in tracking', () => {
+  const view = render(
+    <PlaceShape
+      place={{ ...place, purpose: 'general', risk: false }}
+      highlightRisk
+      onSelect={() => {}}
+    />,
+  );
+  expect(PolygonF.mock.calls[0][0].options.fillColor).toBe(PURPOSE_COLOR.general);
+  view.rerender(
+    <PlaceShape
+      place={{ ...place, polygon: null, risk: true }}
+      highlightRisk
+      showCircle
+      onSelect={() => {}}
+    />,
+  );
+  expect(CircleF.mock.calls[0][0].options).toMatchObject({
+    fillColor: RISK_COLOR,
+    strokeColor: RISK_COLOR,
   });
 });

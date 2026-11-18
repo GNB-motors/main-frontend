@@ -2,7 +2,7 @@ import PlaceHoverTooltip from './PlaceHoverTooltip.jsx';
 import { placeTypeLabel } from '../model/placeGroups.js';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { CircleF, PolygonF } from '@react-google-maps/api';
-import { styleOfType } from '../placeHubStyle.js';
+import { RISK_COLOR, styleOfType } from '../placeHubStyle.js';
 import { purposeColor } from '../model/placePurpose.js';
 
 const PlaceShapeGeometry = memo(function PlaceShapeGeometry({
@@ -13,32 +13,35 @@ const PlaceShapeGeometry = memo(function PlaceShapeGeometry({
   onSelect,
   onMouseOver,
   onMouseOut,
+  highlightRisk = false,
 }) {
   const { color } = styleOfType(place.type);
   const proposed = place.status === 'PROPOSED';
-  const purpose = purposeColor(place.purpose);
+  const risk = highlightRisk && Boolean(place.risk);
+  const purpose = risk ? RISK_COLOR : purposeColor(place.purpose);
+  const shapeColor = risk ? RISK_COLOR : color;
   const options = useMemo(
     () => ({
-      strokeColor: color,
+      strokeColor: shapeColor,
       strokeOpacity: proposed ? 0.6 : 0.9,
       strokeWeight: selected ? 3 : 1.5,
-      fillColor: color,
+      fillColor: shapeColor,
       fillOpacity: selected ? 0.22 : 0.08,
       clickable: interactive,
     }),
-    [color, proposed, selected, interactive],
+    [shapeColor, proposed, selected, interactive],
   );
   // An area is drawn in the colour of what the place is for, not of its type.
   const areaOptions = useMemo(
     () => ({
       strokeColor: purpose,
       strokeOpacity: proposed ? 0.6 : 0.9,
-      strokeWeight: selected ? 3 : 2,
+      strokeWeight: selected ? 3 : risk ? 2.5 : 2,
       fillColor: purpose,
-      fillOpacity: selected ? 0.3 : 0.18,
+      fillOpacity: risk ? (selected ? 0.22 : 0.12) : selected ? 0.3 : 0.18,
       clickable: interactive,
     }),
-    [purpose, proposed, selected, interactive],
+    [purpose, proposed, selected, interactive, risk],
   );
   // The busiest part sits on top, same colour, darker, with no edge of its own.
   const coreOptions = useMemo(
@@ -46,9 +49,9 @@ const PlaceShapeGeometry = memo(function PlaceShapeGeometry({
       ...areaOptions,
       strokeOpacity: 0,
       strokeWeight: 0,
-      fillOpacity: 0.45,
+      fillOpacity: risk ? 0.24 : 0.45,
     }),
-    [areaOptions],
+    [areaOptions, risk],
   );
   const click = useCallback(() => onSelect(place.id), [onSelect, place.id]);
   // A real area: one polygon per part, each with its holes — no circle on top.
@@ -119,7 +122,10 @@ export default memo(function PlaceShape(props) {
         <PlaceHoverTooltip
           position={position}
           label={place.name || 'Unnamed place'}
-          details={[placeTypeLabel(place.type)]}
+          details={[
+            placeTypeLabel(place.type),
+            props.highlightRisk && place.risk ? 'Fuel risk' : null,
+          ]}
         />
       )}
     </>

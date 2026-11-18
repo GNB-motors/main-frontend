@@ -213,7 +213,13 @@ export default function AutoTripsPage() {
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
-  const tabCounts = data?.tabCounts ?? {};
+  // tabCounts carry every status' total regardless of the active status filter, so
+  // keep the last-known set while the list refetches under a new scope (card click
+  // changes the status filter → useApi nulls `data`). Without this the KPI cards
+  // flash to 0 between the click and the next response.
+  const lastTabCountsRef = useRef({});
+  if (data?.tabCounts) lastTabCountsRef.current = data.tabCounts;
+  const tabCounts = data?.tabCounts ?? lastTabCountsRef.current;
   const allCount = actualTripCount(tabCounts);
   const deliveredCount = deliveredTripCount(tabCounts);
   const visibleTotal = planned ? (plans.data?.total ?? 0) : total;

@@ -106,3 +106,10 @@ describe('EXPIRED_FILTER_PILLS', () => {
     ]);
   });
 });
+
+it('uses IST calendar days for expiry at a midnight boundary', async () => {
+  const { daysUntil, formatDocumentExpiry } = await import('./vehicleDashboardLogic');
+  expect(daysUntil('2026-11-19T18:29:59Z', new Date('2026-11-19T18:30:00Z'))).toBe(-1);
+  expect(daysUntil('2026-11-19T18:30:00Z', new Date('2026-11-19T18:30:00Z'))).toBe(0);
+  expect(formatDocumentExpiry('2026-11-19T18:30:00Z')).toBe('20 Nov 2026');
+});
