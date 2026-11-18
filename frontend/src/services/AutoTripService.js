@@ -13,8 +13,21 @@ const parsed = async (name, response) => parseSafe(name, schemas, unwrap(respons
  * pickup/drop places — never declared.
  */
 export const AutoTripService = {
-  list: async (params = {}, { signal } = {}) =>
-    parsed('autoTripListSchema', await apiClient.get(BASE, { params, signal })),
+  /**
+   * The trips list. The counts may arrive beside `data` (the trips list puts
+   * them there) or inside it; both land on `counts`/`tabCounts` here so the
+   * page reads one place.
+   */
+  list: async (params = {}, { signal } = {}) => {
+    const response = await apiClient.get(BASE, { params, signal });
+    const body = await parseSafe('autoTripListSchema', schemas, unwrap(response));
+    const side = response?.data;
+    if (body && side && side !== body && typeof side === 'object') {
+      if (side.counts && !body.counts) body.counts = side.counts;
+      if (side.tabCounts && !body.tabCounts) body.tabCounts = side.tabCounts;
+    }
+    return body;
+  },
 
   /** Our trips vs the org's own trip register (latest per algorithm + daily series). */
   registerMatch: async ({ signal } = {}) =>

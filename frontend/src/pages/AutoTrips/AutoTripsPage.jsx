@@ -9,7 +9,6 @@ import { getUserRole } from '../../utils/session';
 import DataTable from '../../components/ui/DataTable';
 import EnterprisePagination from '../../components/ui/EnterprisePagination';
 import { useApi } from '../../hooks/useApi';
-import AutoTripService from '../../services/AutoTripService';
 import TripPlanService from '../../services/TripPlanService';
 import { fleetViewService } from '../../services/fleetViewService';
 import TripPlansTable from './TripPlansTable';
@@ -29,6 +28,7 @@ import TripKpiStrip from './TripKpiStrip';
 import NeedsAnswerBanner from './NeedsAnswerBanner';
 import AutoTripCoverage from './AutoTripCoverage';
 import { actualTripCount, deliveredTripCount, typicalRun } from './tripListModel';
+import { listTripsWithCounts } from './tripCounts';
 import { rangeToParams, readRange, writeRange } from './tripRange';
 import './AutoTrips.css';
 import './TripsWorkspace.css';
@@ -156,10 +156,17 @@ export default function AutoTripsPage() {
   };
 
   const { data, loading, error, refetch } = useApi(
-    (signal) => AutoTripService.list(params, { signal }),
+    (signal) => listTripsWithCounts(params, { signal }),
     [JSON.stringify(params)],
     { scopeKey: JSON.stringify(params) },
   );
+
+  // The counts the backend answers with the list itself (`?withCounts=1`): one
+  // key per tab status plus `total`, beside the list. The last ones are kept
+  // so a filter change does not blank the counts while the list reloads.
+  const countsRef = useRef(null);
+  if (data?.tabCounts) countsRef.current = data.tabCounts;
+  const listCounts = data?.tabCounts ?? countsRef.current ?? null;
 
   const planParams = {
     page: planned ? page : 1,
@@ -171,7 +178,12 @@ export default function AutoTripsPage() {
   const plans = useApi(
     (signal) => TripPlanService.list(planParams, { signal }),
     [JSON.stringify(planParams)],
-    { scopeKey: JSON.stringify(planParams) },
+    {
+      // On the planned tab this is the list itself; elsewhere it carries the
+      // planned count, which the trips counts do not cover.
+      enabled: true,
+      scopeKey: JSON.stringify(planParams),
+    },
   );
 
   // ── The KPI strip and the banner: small reads that follow the period only. ──
@@ -183,13 +195,17 @@ export default function AutoTripsPage() {
     ...rangeToParams({ range: 'today' }),
   };
   const today = useApi(
-    (signal) => AutoTripService.list(todayParams, { signal }),
+    (signal) => listTripsWithCounts(todayParams, { signal }),
     [JSON.stringify(todayParams)],
-    { enabled: rangeKind !== 'today', scopeKey: `today:${JSON.stringify(todayParams)}` },
+    {
+      // The trips counts do not cover "today": that count needs its own read.
+      enabled: rangeKind !== 'today',
+      scopeKey: `today:${JSON.stringify(todayParams)}`,
+    },
   );
   const deliveredSample = useApi(
     (signal) =>
-      AutoTripService.list(
+      listTripsWithCounts(
         { page: 1, limit: SAMPLE_SIZE, status: 'DELIVERED', ...periodParams },
         { signal },
       ),
@@ -198,7 +214,7 @@ export default function AutoTripsPage() {
   );
   const waitingSample = useApi(
     (signal) =>
-      AutoTripService.list(
+      listTripsWithCounts(
         { page: 1, limit: SAMPLE_SIZE, status: 'NEEDS_REVIEW', ...periodParams },
         { signal },
       ),
@@ -213,14 +229,15 @@ export default function AutoTripsPage() {
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
-  const tabCounts = data?.tabCounts ?? {};
+  const tabCounts = listCounts ?? {};
   const allCount = actualTripCount(tabCounts);
   const deliveredCount = deliveredTripCount(tabCounts);
+  const plannedCount = plans.data?.total ?? 0;
   const visibleTotal = planned ? (plans.data?.total ?? 0) : total;
   const totalPages = Math.max(1, Math.ceil(visibleTotal / PAGE_SIZE));
   const countFor = (key) =>
     key === 'PLANNED'
-      ? (plans.data?.total ?? 0)
+      ? plannedCount
       : key === ''
         ? allCount
         : key === 'COMPLETE'

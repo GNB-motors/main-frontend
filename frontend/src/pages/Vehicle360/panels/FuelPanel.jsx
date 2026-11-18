@@ -67,22 +67,28 @@ export default function FuelPanel({
   kmPerLitre,
   fleetMaster,
   ialert,
+  overview: sharedOverview,
   onGoTab,
 }) {
   const overview = useApi(
     (signal) => FleetDataService.getVehicleOverview(registrationNumber, signal),
     [registrationNumber],
-    { enabled: Boolean(registrationNumber), scopeKey: registrationNumber },
+    {
+      enabled: Boolean(registrationNumber) && !sharedOverview,
+      scopeKey: registrationNumber,
+      dedupeKey: `vehicle-overview:${registrationNumber}`,
+    },
   );
-  const [fuel, def] = fluidLevels(overview.data, health, fleetMaster, ialert);
+  const overviewData = sharedOverview ?? overview.data;
+  const [fuel, def] = fluidLevels(overviewData, health, fleetMaster, ialert);
   const fuelCapacity =
-    numeric(overview.data?.fuel?.capacityL) ??
+    numeric(overviewData?.fuel?.capacityL) ??
     numeric(health?.primaryFuelTankCapacityL) ??
     numeric(fleetMaster?.fuelTankCapacity) ??
     numeric(fleetMaster?.fuelCapacity) ??
     numeric(ialert?.primaryFuelTankCapacityL);
   const defCapacity =
-    numeric(overview.data?.def?.capacityL) ??
+    numeric(overviewData?.def?.capacityL) ??
     numeric(health?.defTankCapacityL) ??
     numeric(fleetMaster?.defCapacity) ??
     numeric(ialert?.defTankCapacityL);
@@ -105,7 +111,7 @@ export default function FuelPanel({
   return (
     <PanelErrorBoundary name="vehicle-fuel">
       <div className="vdo-overview vfuel">
-        {overview.loading && !overview.data ? (
+        {overview.loading && !overviewData ? (
           <OverviewCardSkeleton />
         ) : (
           <section className="vdo-card vfuel-summary">

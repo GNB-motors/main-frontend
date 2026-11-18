@@ -1,8 +1,10 @@
 import OverviewSkeleton from './panels/overview/OverviewSkeleton';
 import './panels/overview/referenceOverview.css';
+import { useEffect, useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import useApi from '../../hooks/useApi';
 import FleetDataService from '../../services/FleetDataService';
+import { isScreenUnsupported, markScreenUnsupported } from './vehicleScreen';
 import { Breadcrumbs } from './vehicle360Header';
 import VehicleHeaderCard from './VehicleHeaderCard';
 import { Tabs } from './vehicle360Tabs';
@@ -32,16 +34,51 @@ export default function Vehicle360Page() {
 
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { data, loading, error, refetch } = useApi(
-    (signal) => FleetDataService.getVehicleProfile(reg, signal),
-    [reg],
-    { scopeKey: reg },
-  );
-  const { data: healthDetail } = useApi(
+  // The screen endpoint answers the whole page in one read (profile + health +
+  // overview). A backend that does not have it yet answers 404, and the page
+  // falls back to the old profile → health → overview calls.
+  const [screenUnsupported, setScreenUnsupported] = useState(isScreenUnsupported);
+  const screen = useApi((signal) => FleetDataService.getVehicleScreen(reg, signal), [reg], {
+    enabled: Boolean(reg) && !screenUnsupported,
+    scopeKey: reg,
+  });
+  useEffect(() => {
+    if (screen.error?.status === 404 && !screenUnsupported) {
+      markScreenUnsupported();
+      setScreenUnsupported(true);
+    }
+  }, [screen.error, screenUnsupported]);
+
+  const screenProfile = screen.data?.profile ?? screen.data?.vehicle ?? null;
+  const screenOverview = screen.data?.overview ?? null;
+  const screenHealth = screen.data?.health ?? null;
+  // A screen read that answered without a profile is no screen read at all.
+  const useLegacy =
+    screenUnsupported || Boolean(screen.error) || (Boolean(screen.data) && !screenProfile);
+
+  const {
+    data: legacyProfile,
+    loading: legacyLoading,
+    error: legacyError,
+    refetch: refetchLegacy,
+  } = useApi((signal) => FleetDataService.getVehicleProfile(reg, signal), [reg], {
+    enabled: useLegacy,
+    scopeKey: reg,
+  });
+  const { data: legacyHealth } = useApi(
     (signal) => FleetDataService.getVehicleHealth(reg, { days: 30 }, signal),
     [reg],
-    { enabled: Boolean(data?.health) && !error, scopeKey: reg },
+    { enabled: useLegacy && Boolean(legacyProfile?.health) && !legacyError, scopeKey: reg },
   );
+
+  const data = useLegacy ? legacyProfile : screenProfile;
+  const healthDetail = useLegacy ? legacyHealth : screenHealth;
+  const loading = useLegacy ? legacyLoading || (!legacyProfile && !legacyError) : screen.loading;
+  const error = useLegacy ? legacyError : screen.error;
+  const refetch = useLegacy ? refetchLegacy : screen.refetch;
+  // The panels draw the overview from the screen read when it carries one;
+  // otherwise they read it themselves — and share that one request.
+  const sharedOverview = useLegacy ? undefined : (screenOverview ?? undefined);
 
   const p = error ? {} : data || {};
   const history = (healthDetail?.history || []).map((h) => ({
@@ -136,7 +173,7 @@ export default function Vehicle360Page() {
     <div className="v360">
       <Breadcrumbs reg={reg} />
 
-      <VehicleHeaderCard reg={reg} profile={p} onGoTab={setActive} />
+      <VehicleHeaderCard reg={reg} profile={p} onGoTab={setActive} overview={sharedOverview} />
 
       <Tabs tabs={TABS} active={active} onChange={setActive} />
 
@@ -158,6 +195,7 @@ export default function Vehicle360Page() {
           fleetEdge={p.fleetEdge}
           kmPerLitre={p.kmPerLitre}
           onGoTab={setActive}
+          overview={sharedOverview}
         />
       ) : null}
       {active === 'service' ? (
@@ -182,6 +220,7 @@ export default function Vehicle360Page() {
           fleetMaster={p.fleetMaster}
           fleetEdge={p.fleetEdge}
           ialert={p.ialert}
+          overview={sharedOverview}
         />
       ) : null}
       {active === 'documents' ? (

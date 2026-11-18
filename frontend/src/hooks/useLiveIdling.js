@@ -40,21 +40,25 @@ function mergeRows(current, pushed) {
  *
  * The live stream pushes idling events; the console endpoint is read every
  * minute so the minutes on the chip keep moving even when the stream is quiet.
+ * The poll stops while the stream is connected: the pushes already carry the
+ * same rows, so the read would only ask for what is on screen.
  */
 export function useLiveIdling({ enabled = true, pollMs = IDLING_POLL_MS } = {}) {
-  const { data, status, error, lastEventAt, refresh } = useLiveData('idling', {
+  const { data, status, error, lastEventAt, refresh, connectionState } = useLiveData('idling', {
     enabled,
     initialFetch: (signal) => IdlingConsoleService.getLive({ signal }),
     applyDiff: (current, payload) => mergeRows(current ?? [], payload),
   });
 
+  // While the stream is connected the pushed idling events keep the list
+  // fresh, so the REST poll only runs when the stream is not carrying it.
   useEffect(() => {
-    if (!enabled) return undefined;
+    if (!enabled || connectionState === 'open') return undefined;
     const timer = setInterval(() => {
       refresh();
     }, pollMs);
     return () => clearInterval(timer);
-  }, [enabled, pollMs, refresh]);
+  }, [enabled, pollMs, refresh, connectionState]);
 
   return {
     idling: data ?? [],

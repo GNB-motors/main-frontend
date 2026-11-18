@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 
 const svc = vi.hoisted(() => ({
   getDigest: vi.fn(),
+  getDigestConditional: vi.fn(),
   getDailyFuel: vi.fn(),
   getMorningBrief: vi.fn(),
   getOwnerReport: vi.fn(),
@@ -31,6 +32,7 @@ vi.mock('../../utils/session', async (importOriginal) => ({
 
 import DailyDigestPage from './DailyDigestPage';
 import apiMemo from '../../utils/apiMemo';
+import { istDayString } from '../../utils/dateUtils';
 import digestFixture from '../../test/fixtures/redesign/digest.json';
 
 const renderPage = () =>
@@ -41,6 +43,7 @@ const renderPage = () =>
   );
 const calls = () =>
   svc.getDigest.mock.calls.length +
+  svc.getDigestConditional.mock.calls.length +
   svc.getDailyFuel.mock.calls.length +
   svc.getMorningBrief.mock.calls.length +
   svc.getOwnerReport.mock.calls.length;
@@ -61,6 +64,7 @@ describe('Daily digest: a revisit inside the cache window', () => {
     apiMemo.clear();
     vi.clearAllMocks();
     svc.getDigest.mockResolvedValue(digestFixture);
+    svc.getDigestConditional.mockResolvedValue({ status: 200, data: digestFixture, etag: '"v1"' });
     svc.getDailyFuel.mockResolvedValue({ items: [] });
     svc.getMorningBrief.mockResolvedValue({});
     svc.getOwnerReport.mockResolvedValue(withOpenAlerts(1));
@@ -96,6 +100,38 @@ describe('Daily digest: a revisit inside the cache window', () => {
       expect(
         within(screen.getByRole('region', { name: 'Needs attention' })).getByText('2'),
       ).toBeTruthy(),
+    );
+  });
+});
+
+describe('Daily digest: the tag the server gave us', () => {
+  beforeEach(() => {
+    apiMemo.clear();
+    vi.clearAllMocks();
+    svc.getDigest.mockResolvedValue(digestFixture);
+    svc.getDigestConditional.mockImplementation(async ({ etag }) =>
+      etag ? { status: 304, data: null, etag } : { status: 200, data: digestFixture, etag: '"v1"' },
+    );
+    svc.getDailyFuel.mockResolvedValue({ items: [] });
+    svc.getMorningBrief.mockResolvedValue({});
+    svc.getOwnerReport.mockResolvedValue(withOpenAlerts(1));
+  });
+
+  it('asks with the tag it holds and keeps its copy when the server answers 304', async () => {
+    const today = istDayString(new Date());
+    // The copy we hold is past the window: the page must ask again — with the tag.
+    apiMemo.setWithEtag(
+      `digest:${today}:full`,
+      { payload: digestFixture, readAt: Date.now() - 10 * 60 * 1000 },
+      '"v1"',
+      Date.now() - 10 * 60 * 1000,
+    );
+    renderPage();
+    expect(
+      await screen.findByText(/A good day: 41 loaded trips, 3 trucks need you\./),
+    ).toBeInTheDocument();
+    expect(svc.getDigestConditional).toHaveBeenCalledWith(
+      expect.objectContaining({ etag: '"v1"' }),
     );
   });
 });

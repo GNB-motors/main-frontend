@@ -51,7 +51,18 @@ export function mergeByKey(current, changed, key) {
   return next;
 }
 
-export function useLiveData(eventType, { initialFetch, applyDiff, enabled = true } = {}) {
+/**
+ * The read that opens the page and the read the stream asks for on (re)connect
+ * can land together: the socket opens while the first read is still in flight,
+ * so the fleet was read twice for one paint. A read that finished moments ago
+ * is still the truth — the resync is skipped and the stream owns freshness.
+ */
+export const RESYNC_MIN_GAP_MS = 2000;
+
+export function useLiveData(
+  eventType,
+  { initialFetch, applyDiff, enabled = true, resyncMinGapMs = RESYNC_MIN_GAP_MS } = {},
+) {
   const [data, setData] = useState(null);
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState(null);
@@ -72,16 +83,22 @@ export function useLiveData(eventType, { initialFetch, applyDiff, enabled = true
   // that is only a few trucks — merging it would show a partial fleet.
   const baseReadyRef = useRef(false);
   const refetchingRef = useRef(false);
+  // When the last successful read landed, so a resync that would only repeat
+  // it can be skipped.
+  const lastReadAtRef = useRef(0);
+  const readingRef = useRef(false);
   const runFetch = useCallback(async ({ initial = false } = {}) => {
     const fetcher = fetchRef.current;
     if (!fetcher) return;
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
+    readingRef.current = true;
     if (initial) setStatus('loading');
     try {
       const rows = await fetcher(controller.signal);
       if (controller.signal.aborted) return;
+      lastReadAtRef.current = Date.now();
       setData(rows);
       baseReadyRef.current = true;
       setError(null);
@@ -92,6 +109,8 @@ export function useLiveData(eventType, { initialFetch, applyDiff, enabled = true
       setError(err);
       // A failed refresh must not blank a previously good dataset.
       setStatus((prev) => (prev === 'ready' ? 'ready' : 'error'));
+    } finally {
+      if (abortRef.current === controller) readingRef.current = false;
     }
   }, []);
 
@@ -127,8 +146,12 @@ export function useLiveData(eventType, { initialFetch, applyDiff, enabled = true
         unsubscribeState = stream.onConnectionState((s) => {
           setConnectionState(s);
           // Resynchronise after any (re)connect — events may have been dropped
-          // while the socket was down.
-          if (s === 'open') runFetch();
+          // while the socket was down. The read that opened the page is still
+          // the truth when it landed moments ago: repeating it would read the
+          // fleet twice for one paint.
+          if (s !== 'open') return;
+          if (readingRef.current || Date.now() - lastReadAtRef.current < resyncMinGapMs) return;
+          runFetch();
         });
         setConnectionState(stream.getState());
       })
@@ -142,7 +165,7 @@ export function useLiveData(eventType, { initialFetch, applyDiff, enabled = true
       if (unsubscribe) unsubscribe();
       if (unsubscribeState) unsubscribeState();
     };
-  }, [enabled, eventType, runFetch]);
+  }, [enabled, eventType, resyncMinGapMs, runFetch]);
 
   const refresh = useCallback(() => runFetch(), [runFetch]);
 

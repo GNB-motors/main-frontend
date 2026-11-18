@@ -33,21 +33,24 @@ export default function OverviewPanel({
   ialert,
   coverage,
   telematicsProvider,
+  overview: sharedOverview,
   onGoTab,
 }) {
   const [range] = useState(() => monthWindow());
   const overview = useApi((signal) => FleetDataService.getVehicleOverview(reg, signal), [reg], {
-    enabled: Boolean(reg),
+    enabled: Boolean(reg) && !sharedOverview,
     scopeKey: reg,
+    dedupeKey: `vehicle-overview:${reg}`,
   });
+  const overviewData = sharedOverview ?? overview.data;
   const track = useApi(
     (signal) => fleetViewService.getVehicleTrack(reg, { ...range, signal }),
     [reg, range.from, range.to],
     { enabled: Boolean(reg), scopeKey: reg },
   );
   const series = useMemo(
-    () => distanceSeries(overview.data, track.data),
-    [overview.data, track.data],
+    () => distanceSeries(overviewData, track.data),
+    [overviewData, track.data],
   );
   const view = viewOf(livePosition);
   const location =
@@ -71,7 +74,7 @@ export default function OverviewPanel({
             <DistanceCard
               series={series}
               prediction={prediction}
-              overview={overview.data}
+              overview={overviewData}
               loading={overview.loading || track.loading}
             />
             {track.loading && !track.data ? (
@@ -105,23 +108,23 @@ export default function OverviewPanel({
             )}
           </div>
           <div className="vdo-card-grid">
-            {overview.loading && !overview.data ? (
+            {overview.loading && !overviewData ? (
               <OverviewCardSkeleton />
             ) : (
               <ServiceCard
                 prediction={prediction}
                 health={health}
-                overview={overview.data}
+                overview={overviewData}
                 onGoTab={onGoTab}
               />
             )}
             <DriverCard driver={assignedDriver} />
             <DocumentsCard documents={documents} onGoTab={onGoTab} />
-            {overview.loading && !overview.data ? (
+            {overview.loading && !overviewData ? (
               <OverviewCardSkeleton />
             ) : (
               <FuelCard
-                overview={overview.data}
+                overview={overviewData}
                 health={health}
                 fleetMaster={fleetMaster}
                 ialert={ialert}
@@ -135,7 +138,7 @@ export default function OverviewPanel({
             ialert={ialert}
             coverage={coverage}
             telematicsProvider={telematicsProvider}
-            overview={overview.data}
+            overview={overviewData}
           />
         </div>
       </div>

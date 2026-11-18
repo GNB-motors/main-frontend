@@ -94,4 +94,56 @@ describe('useApprovalBadges', () => {
     unmount();
     expect(signal.aborted).toBe(true);
   });
+
+  // A hidden tab cost a request every 30 s for a badge nobody was looking at.
+  it('pauses the poll while the tab is hidden and reads once when it comes back', async () => {
+    vi.useFakeTimers();
+    let hidden = false;
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
+    try {
+      renderHook(() => useApprovalBadges(true));
+      await act(async () => {});
+      expect(ApprovalService.getSummary).toHaveBeenCalledTimes(1);
+
+      hidden = true;
+      await act(async () => {
+        vi.advanceTimersByTime(120000);
+      });
+      expect(ApprovalService.getSummary).toHaveBeenCalledTimes(1);
+
+      hidden = false;
+      await act(async () => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      expect(ApprovalService.getSummary).toHaveBeenCalledTimes(2);
+
+      await act(async () => {
+        vi.advanceTimersByTime(30000);
+      });
+      expect(ApprovalService.getSummary).toHaveBeenCalledTimes(3);
+    } finally {
+      delete document.hidden;
+    }
+  });
+
+  it('does not read a hidden tab at all until somebody looks at it', async () => {
+    vi.useFakeTimers();
+    let hidden = true;
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
+    try {
+      renderHook(() => useApprovalBadges(true));
+      await act(async () => {
+        vi.advanceTimersByTime(60000);
+      });
+      expect(ApprovalService.getSummary).not.toHaveBeenCalled();
+
+      hidden = false;
+      await act(async () => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      expect(ApprovalService.getSummary).toHaveBeenCalledTimes(1);
+    } finally {
+      delete document.hidden;
+    }
+  });
 });

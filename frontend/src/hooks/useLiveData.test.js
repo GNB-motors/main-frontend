@@ -114,7 +114,9 @@ describe('useLiveData', () => {
 
   it('re-runs initialFetch once when the stream (re)connects', async () => {
     const initialFetch = vi.fn().mockResolvedValue([{ reg: 'A', speed: 10 }]);
-    const { result } = renderHook(() => useLiveData('positions', { initialFetch }));
+    const { result } = renderHook(() =>
+      useLiveData('positions', { initialFetch, resyncMinGapMs: 0 }),
+    );
     await waitFor(() => expect(result.current.status).toBe('ready'));
     expect(initialFetch).toHaveBeenCalledTimes(1);
 
@@ -123,12 +125,26 @@ describe('useLiveData', () => {
     expect(result.current.connectionState).toBe('open');
   });
 
+  // The mount read and the read the stream asks for on (re)connect used to
+  // land together: the fleet was read twice for one paint.
+  it('does not read the fleet again when the stream opens right after the first read', async () => {
+    const initialFetch = vi.fn().mockResolvedValue([{ reg: 'A', speed: 10 }]);
+    renderHook(() => useLiveData('positions', { initialFetch }));
+    await waitFor(() => expect(initialFetch).toHaveBeenCalledTimes(1));
+
+    emitState('open');
+    await act(async () => {});
+    expect(initialFetch).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps the last good dataset when a refresh fails', async () => {
     const initialFetch = vi
       .fn()
       .mockResolvedValueOnce([{ reg: 'A', speed: 10 }])
       .mockRejectedValueOnce(new Error('network down'));
-    const { result } = renderHook(() => useLiveData('positions', { initialFetch }));
+    const { result } = renderHook(() =>
+      useLiveData('positions', { initialFetch, resyncMinGapMs: 0 }),
+    );
     await waitFor(() => expect(result.current.status).toBe('ready'));
 
     emitState('open');
