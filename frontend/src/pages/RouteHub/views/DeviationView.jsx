@@ -26,8 +26,9 @@ function filtersReducer(state, action) {
 export default function DeviationView({ params, toast, setBadge, go }) {
   const [filters, dispatch] = useReducer(filtersReducer, {
     q: params.get('q') || '',
-    from: '',
-    to: '',
+    // A link can open the view on a day (the digest's "Off-route trips").
+    from: /^\d{4}-\d{2}-\d{2}$/.test(params.get('from') || '') ? params.get('from') : '',
+    to: /^\d{4}-\d{2}-\d{2}$/.test(params.get('to') || '') ? params.get('to') : '',
     status: 'all',
     leg: 'all',
     page: 1,

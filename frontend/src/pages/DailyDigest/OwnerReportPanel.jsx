@@ -301,11 +301,7 @@ function WaitingCard({ items, pending, note, day }) {
                 />
                 <span className="db-row-main">
                   <span className="db-row-title">{item.title}</span>
-                  {item.description ? (
-                    <span className="db-row-sub" title={item.description}>
-                      {item.description}
-                    </span>
-                  ) : null}
+                  {item.description ? <span className="db-row-sub">{item.description}</span> : null}
                 </span>
                 <strong className="db-row-num">
                   {item.count == null ? DASH : count(item.count)}
