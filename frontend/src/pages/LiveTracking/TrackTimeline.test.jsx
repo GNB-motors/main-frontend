@@ -107,3 +107,40 @@ describe('TrackTimeline', () => {
     expect(props.onSeek).toHaveBeenCalled();
   });
 });
+
+it('changes the date range from inside the replay console', () => {
+  const props = renderTimeline();
+  const range = screen.getByRole('button', { name: 'Change journey date range' });
+  expect(range.closest('.track-replay-console')).not.toBeNull();
+  fireEvent.click(range);
+  fireEvent.click(screen.getByRole('button', { name: 'Yesterday' }));
+  expect(props.onApplyRange).toHaveBeenCalledWith({ from: expect.any(Date), to: expect.any(Date) });
+});
+
+it('shows the selected replay window in IST and updates when the loaded range changes', () => {
+  const onApplyRange = vi.fn();
+  const { rerender } = render(
+    <TrackTimeline
+      from={new Date('2026-11-17T16:54:00Z')}
+      to={new Date('2026-11-18T16:47:00Z')}
+      onApplyRange={onApplyRange}
+    />,
+  );
+  const range = screen.getByRole('button', { name: 'Change journey date range' });
+  expect(range).toHaveTextContent('From');
+  expect(range).toHaveTextContent('To');
+  expect(range).toHaveTextContent('IST');
+  expect(range).toHaveTextContent('17 Nov, 10:24 pm');
+  expect(range).toHaveTextContent('18 Nov, 10:17 pm');
+  rerender(
+    <TrackTimeline
+      from={new Date('2026-11-18T00:00:00Z')}
+      to={new Date('2026-11-18T02:00:00Z')}
+      onApplyRange={onApplyRange}
+    />,
+  );
+  const updatedRange = screen.getByRole('button', { name: 'Change journey date range' });
+  expect(updatedRange).toHaveTextContent('18 Nov, 5:30 am');
+  expect(updatedRange).toHaveTextContent('18 Nov, 7:30 am');
+  expect(updatedRange).not.toHaveTextContent('17 Nov');
+});

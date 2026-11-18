@@ -9,12 +9,7 @@ import { getThemeCSS } from '../../utils/colorTheme';
 import PageShell from '../../components/ui/PageShell';
 import FilterBar from '../../components/ui/FilterBar';
 import DataTable from '../../components/ui/DataTable';
-import {
-  computeVehicleDashboardKpis,
-  DOC_COLS,
-  bucketFor,
-  EXPIRED_FILTER_PILLS,
-} from './vehicleDashboardLogic';
+import { computeVehicleDashboardKpis, DOC_COLS, bucketFor } from './vehicleDashboardLogic';
 import { LegendDot } from './vehicleDashboardCells';
 import { normalizeVehicleDashboardRow } from './vehicleDocNormalization';
 import VehicleDashboardDocFilter from './VehicleDashboardDocFilter.jsx';
@@ -37,6 +32,11 @@ const VehicleDashboardPage = () => {
   const [selectedDocKey, setSelectedDocKey] = useState(null);
   const [docFilter, setDocFilter] = useUrlFilter('docFilter', 'ALL');
   const [params] = useSearchParams();
+  const changeDocFilter = (value) => setDocFilter(value, { from: null, to: null });
+  const showAllVehicles = () => {
+    setSearch('');
+    changeDocFilter('ALL');
+  };
   const expiryFrom = params.get('from');
   const expiryTo = params.get('to');
   const [challanModalOpen, setChallanModalOpen] = useState(false);
@@ -50,35 +50,37 @@ const VehicleDashboardPage = () => {
 
   // Track in-flight request so a stale fetch can't overwrite a fresher one
   const requestIdRef = useRef(0);
-  const isFirstRenderRef = useRef(true);
 
-  const load = useCallback(async (q) => {
+  const load = useCallback(async (signal) => {
     const myId = ++requestIdRef.current;
     setLoading(true);
     try {
-      const data = await VehicleService.getFleetDashboard({ search: q || undefined });
-      if (myId !== requestIdRef.current) return;
+      const data = await VehicleService.getFleetDashboard({ signal });
+      if (myId !== requestIdRef.current || signal?.aborted) return;
       const rawList = Array.isArray(data) ? data : [];
       const normalized = rawList.map(normalizeVehicleDashboardRow);
       setRows(normalized);
     } catch (err) {
-      if (myId !== requestIdRef.current) return;
+      if (myId !== requestIdRef.current || signal?.aborted) return;
       toast.error(err?.message || 'Failed to load vehicle dashboard');
     } finally {
       if (myId === requestIdRef.current) setLoading(false);
     }
   }, []);
 
-  // Fire immediately on mount, debounce search changes
+  // The dashboard returns the whole scoped fleet. Search and compliance filters
+  // share that snapshot, so clearing a search cannot retain a server-filtered subset.
   useEffect(() => {
-    if (isFirstRenderRef.current) {
-      isFirstRenderRef.current = false;
-      load('');
-      return undefined;
-    }
-    const t = setTimeout(() => load(search.trim()), 300);
-    return () => clearTimeout(t);
-  }, [search, load]);
+    const controller = new AbortController();
+    load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
+
+  useEffect(() => {
+    setSelectedVehicle(null);
+    setSelectedDocKey(null);
+    setChallanModalOpen(false);
+  }, [search, docFilter, expiryFrom, expiryTo]);
 
   // If selected vehicle is in rows, keep its reference fresh when rows update
   useEffect(() => {
@@ -138,10 +140,20 @@ const VehicleDashboardPage = () => {
 
   // Filter rows based on active dropdown document filter
   const displayRows = useMemo(() => {
-    if (docFilter === 'ALL') return rows;
+    const term = search.trim().toLowerCase();
+    const matching = term
+      ? rows.filter((row) =>
+          [row.registrationNumber, row.chassisNumber].some((value) =>
+            String(value || '')
+              .toLowerCase()
+              .includes(term),
+          ),
+        )
+      : rows;
+    if (docFilter === 'ALL') return matching;
 
     if (docFilter === 'EXPIRING_SOON') {
-      return rows.filter((r) =>
+      return matching.filter((r) =>
         DOC_COLS.some((col) => {
           if (expiryFrom && expiryTo) {
             const expiry = r.documents?.[col.key]?.expiryDate;
@@ -155,32 +167,32 @@ const VehicleDashboardPage = () => {
     }
 
     if (docFilter === 'EXPIRED_ANY') {
-      return rows.filter((r) =>
+      return matching.filter((r) =>
         DOC_COLS.some((col) => bucketFor(r.documents?.[col.key]) === 'expired'),
       );
     }
 
     if (docFilter === 'MISSING_ANY') {
-      return rows.filter((r) =>
+      return matching.filter((r) =>
         DOC_COLS.some((col) => bucketFor(r.documents?.[col.key]) === 'missing'),
       );
     }
 
     if (docFilter.startsWith('EXPIRED_')) {
       const docKey = docFilter.replace('EXPIRED_', '');
-      return rows.filter((r) => bucketFor(r.documents?.[docKey]) === 'expired');
+      return matching.filter((r) => bucketFor(r.documents?.[docKey]) === 'expired');
     }
 
     if (docFilter.startsWith('SOON_')) {
       const docKey = docFilter.replace('SOON_', '');
-      return rows.filter((r) => {
+      return matching.filter((r) => {
         const b = bucketFor(r.documents?.[docKey]);
         return b === 'critical' || b === 'warning';
       });
     }
 
-    return rows;
-  }, [rows, docFilter, expiryFrom, expiryTo]);
+    return matching;
+  }, [rows, search, docFilter, expiryFrom, expiryTo]);
 
   const goEdit = useCallback(
     (row) =>
@@ -249,7 +261,7 @@ const VehicleDashboardPage = () => {
             <div className="v-dash-header-tools" aria-busy={loading}>
               <VehicleDashboardDocFilter
                 docFilter={docFilter}
-                setDocFilter={setDocFilter}
+                setDocFilter={changeDocFilter}
                 rows={rows}
                 displayRows={displayRows}
                 filterOptionsWithCounts={filterOptionsWithCounts}
@@ -286,10 +298,10 @@ const VehicleDashboardPage = () => {
                     : 'No vehicles found'
                 }
                 emptyAction={
-                  docFilter !== 'ALL' ? (
+                  docFilter !== 'ALL' || search.trim() ? (
                     <button
                       type="button"
-                      onClick={() => setDocFilter('ALL')}
+                      onClick={showAllVehicles}
                       style={{
                         background: 'none',
                         border: 'none',
@@ -322,6 +334,7 @@ const VehicleDashboardPage = () => {
             {/* Right Side WheelsEye-Style Details Panel */}
             <div className="v-dash-side-panel-wrap">
               <VehicleDashboardPanel
+                key={selectedVehicle?._id || 'empty'}
                 selectedVehicle={selectedVehicle}
                 selectedDocKey={selectedDocKey}
                 onSelectDoc={(docKey) => setSelectedDocKey(docKey)}

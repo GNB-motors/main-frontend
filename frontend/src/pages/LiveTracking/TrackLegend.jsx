@@ -23,6 +23,7 @@ import { placeLayerColor } from '../../utils/redesign/tone';
 import InfoTip from '../../components/redesign/InfoTip';
 import { LIVE_LAYERS, PLACE_LAYERS } from './trackLegendModel';
 import LegendBlock from './LegendBlock';
+import { PURPOSE_COLOR } from '../PlaceHub/model/placePurpose.js';
 import LegendToggle from './LegendToggle';
 
 /** The lucide icon for each place layer. */
@@ -494,6 +495,29 @@ export default function TrackLegend({
                 </p>
               ) : null}
             </LegendBlock>
+
+            <section className="lt-map-colour-key" aria-label="Map colour key">
+              <h3>Place areas</h3>
+              <div className="lt-map-colour-key-items">
+                {[
+                  ['theft', 'Fuel-risk area'],
+                  ['pump', 'Fuel-pump area'],
+                  ['general', 'Other place area'],
+                ].map(([purpose, label]) => (
+                  <div className="lt-map-colour-key-item" key={purpose}>
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        borderColor: PURPOSE_COLOR[purpose],
+                        backgroundColor: `${PURPOSE_COLOR[purpose]}1f`,
+                      }}
+                    />
+                    {label}
+                  </div>
+                ))}
+              </div>
+              <p>Darker shading marks the busiest part. Pin icons show the place type.</p>
+            </section>
           </div>
 
           {/* Footer */}

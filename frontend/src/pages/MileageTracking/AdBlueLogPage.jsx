@@ -193,16 +193,16 @@ const AdBlueLogPage = () => {
       <PageShell
         title="Log AdBlue Entry"
         subtitle="Record AdBlue top-ups. Proof upload is optional."
+        leading={
+          <button type="button" className="mileage-back-circle" onClick={() => navigate(backTo)}>
+            <ArrowLeft size={18} />
+          </button>
+        }
         actions={
-          <>
-            <button type="button" className="mileage-back-circle" onClick={() => navigate(backTo)}>
-              <ArrowLeft size={18} />
-            </button>
-            <div className="mileage-header-icon-badge">
-              <Droplet size={22} strokeWidth={1.8} />
-              <span>AdBlue</span>
-            </div>
-          </>
+          <div className="mileage-header-icon-badge">
+            <Droplet size={22} strokeWidth={1.8} />
+            <span>AdBlue</span>
+          </div>
         }
       >
         <div className="mileage-form-content">

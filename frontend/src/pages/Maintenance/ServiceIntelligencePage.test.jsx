@@ -48,7 +48,7 @@ describe('ServiceIntelligencePage — full-fleet pagination + KPI fix', () => {
     });
 
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/maintenance?tab=SERVICE']}>
         <ServiceIntelligencePage />
       </MemoryRouter>,
     );
@@ -65,7 +65,7 @@ describe('ServiceIntelligencePage — full-fleet pagination + KPI fix', () => {
     });
 
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/maintenance?tab=SERVICE']}>
         <ServiceIntelligencePage />
       </MemoryRouter>,
     );
@@ -94,7 +94,7 @@ describe('ServiceIntelligencePage — full-fleet pagination + KPI fix', () => {
     MaintenanceService.getSummary.mockResolvedValue({ total: 3, totalAmount: 1500, last30: 1 });
 
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/maintenance?tab=SERVICE']}>
         <ServiceIntelligencePage />
       </MemoryRouter>,
     );
@@ -253,7 +253,7 @@ describe('ServiceIntelligencePage — full-fleet pagination + KPI fix', () => {
     MaintenanceService.getSummary.mockResolvedValue({ total: 2, totalAmount: 11500, last30: 2 });
 
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/maintenance?tab=SERVICE']}>
         <ServiceIntelligencePage />
       </MemoryRouter>,
     );

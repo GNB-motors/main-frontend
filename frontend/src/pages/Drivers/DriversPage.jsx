@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Upload, TrendingUp } from 'lucide-react';
+import { Search, Plus, Upload } from 'lucide-react';
 import './DriversPage.css';
 import { DriverService } from './DriverService.js';
 import { getVehicleList } from '../../services/vehicleListService';
@@ -22,7 +22,6 @@ import {
 import DriverTable from './Component/DriverTable.jsx';
 import DriversPagination from './Component/DriversPagination.jsx';
 import DriverFilter from './Component/DriverFilter.jsx';
-import DriverTrendDrawer from './Component/DriverTrendDrawer.jsx';
 import BulkUploadDriversPanel from './BulkUploadDriversPanel.jsx';
 import BulkAssignVehiclesPanel from './BulkAssignVehiclesPanel.jsx';
 import {
@@ -54,7 +53,6 @@ const DriversPage = () => {
     setThemeColors(getThemeCSS());
   }, []);
 
-  const [showTrendsDrawer, setShowTrendsDrawer] = useState(false);
   const [showBulkPanel, setShowBulkPanel] = useState(false);
   const [showAssignmentPanel, setShowAssignmentPanel] = useState(false);
 
@@ -244,12 +242,6 @@ const DriversPage = () => {
           <>
             <NewButton
               variant="secondary"
-              text="Performance & Trends"
-              prependIcon={<TrendingUp size={16} />}
-              onClick={() => setShowTrendsDrawer(true)}
-            />
-            <NewButton
-              variant="secondary"
               text="Bulk Upload"
               prependIcon={<Upload size={16} />}
               onClick={() => setShowBulkPanel(true)}
@@ -387,8 +379,6 @@ const DriversPage = () => {
         driver={movingDriver}
         isLoading={isActionSubmitting}
       />
-      <DriverTrendDrawer isOpen={showTrendsDrawer} onClose={() => setShowTrendsDrawer(false)} />
-
       {showAssignmentPanel && (
         <BulkAssignVehiclesPanel
           onClose={() => setShowAssignmentPanel(false)}

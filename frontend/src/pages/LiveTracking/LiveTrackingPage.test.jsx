@@ -184,6 +184,11 @@ describe('LiveTrackingPage master data', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Places & routes' }));
     await screen.findByRole('heading', { name: 'Places on this journey' });
     expect(screen.getAllByRole('button', { name: 'Change journey date range' })).toHaveLength(1);
+    expect(
+      screen
+        .getByRole('button', { name: 'Change journey date range' })
+        .closest('.track-replay-console'),
+    ).not.toBeNull();
     expect(screen.queryByRole('button', { name: 'Change the date range' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Vehicle plant/ })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Fleet' })).not.toBeInTheDocument();

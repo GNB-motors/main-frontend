@@ -1,4 +1,5 @@
 import { Search, X } from 'lucide-react';
+import SearchField from './SearchField';
 
 /**
  * FilterBar — the one filter row every fleet list uses (master plan C.2).
@@ -36,7 +37,7 @@ export default function FilterBar({
     <div className={`fbar${!hasExtras ? ' fbar--search-only' : ''}`}>
       {scope ? <div className="fbar-scope manufacturer-scope-row">{scope}</div> : null}
       {onSearchChange ? (
-        <label className="fbar-search">
+        <SearchField as="label" className="fbar-search">
           <Search size={14} className="fbar-search-icon" aria-hidden />
           <input
             type="search"
@@ -58,7 +59,7 @@ export default function FilterBar({
               <X size={13} />
             </button>
           ) : null}
-        </label>
+        </SearchField>
       ) : null}
 
       {onRangeChange ? (

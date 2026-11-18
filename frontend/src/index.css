@@ -42,6 +42,7 @@ textarea:focus-visible {
 /* Compound search controls draw focus on their outer, rounded container.
    The global input ring above would otherwise add a second rectangular ring. */
 :is(
+    [data-search-field],
     .fbar-search,
     .dt-search,
     .navbar-search,
@@ -56,10 +57,22 @@ textarea:focus-visible {
     .ph-search,
     .sp-search,
     .sat-search,
-    .nova-cc .search
+    .nova-cc .search,
+    .ov-search,
+    .lt-panel-search-field,
+    .searchable-search-container
   )
-  input:focus {
+  input:is(:focus, :focus-visible) {
+  outline: none;
+  outline-offset: 0;
   box-shadow: none;
+}
+
+/* Shared search components keep a single focus treatment on the rounded field.
+   Clear buttons retain their own keyboard focus indicator. */
+[data-search-field]:focus-within {
+  border-color: var(--ds-focus, #2563eb);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ds-focus, #2563eb) 18%, transparent);
 }
 
 /* ── Animations ──────────────────────────────────────────── */

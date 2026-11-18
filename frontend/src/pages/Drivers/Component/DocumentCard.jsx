@@ -24,7 +24,6 @@ const DocumentCard = ({
   digilockerStatus,
 }) => {
   const isUploaded = Boolean(propIsUploaded || preview || fileName || name);
-  const displayName = fileName || name || '';
 
   const handleView = (e) => {
     e.stopPropagation();
@@ -74,7 +73,7 @@ const DocumentCard = ({
               ) : (
                 <div className="document-preview-fallback">
                   <FileText size={40} className="doc-fallback-icon" />
-                  <span className="doc-fallback-text">{displayName || label}</span>
+                  <span className="doc-fallback-text">{label}</span>
                 </div>
               )}
               <div className="document-preview-overlay">
@@ -113,15 +112,8 @@ const DocumentCard = ({
               </div>
             </div>
 
-            {/* Document metadata: filename and licence details */}
+            {/* Document metadata: licence details */}
             <div className="document-card-meta">
-              {displayName && (
-                <div className="document-filename-row" title={displayName}>
-                  <FileText size={13} className="document-file-icon" />
-                  <span className="document-filename-text">{displayName}</span>
-                </div>
-              )}
-
               {documentType === 'driverLicense' && (
                 <div className="document-license-info">
                   <span className="document-license-label">License Number:</span>

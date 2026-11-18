@@ -39,9 +39,8 @@ export const FLAGS_RETRY_BACKOFF_MS = Object.freeze([1000, 2000, 4000, 8000]);
  *
  * A missing flag is never ON: every key starts OFF and only the server
  * (/api/auth/me -> organization.featureFlags) can turn one on.
- * `performanceSection` is wave 5's Performance section — OFF by default.
  */
-export const DEFAULT_FEATURE_FLAGS = Object.freeze({ performanceSection: false });
+export const DEFAULT_FEATURE_FLAGS = Object.freeze({});
 
 export const FeatureFlagsProvider = ({ children }) => {
   const [flags, setFlags] = useState({});

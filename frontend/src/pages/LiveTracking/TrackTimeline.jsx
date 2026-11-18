@@ -5,6 +5,8 @@ import {
   RotateCcw,
   X,
   Calendar,
+  ArrowRight,
+  Pencil,
   Clock,
   Activity,
   Zap,
@@ -15,6 +17,7 @@ import {
 import { formatDuration, formatIst, formatIstDate } from '../../utils/redesign/format';
 import { PLAYBACK_SPEEDS, gapMinutes, isGapEvent } from './trackPlayback';
 import { isLongRange } from './trackUrlModel';
+import TrackRangePicker from './TrackRangePicker.jsx';
 
 /** The colour of a stop dot on the timeline. */
 const STOP_DOT = '#7c3aed';
@@ -66,6 +69,7 @@ export default function TrackTimeline({
   onSpeedChange,
   onSeek,
   onExit,
+  onApplyRange,
   from = null,
   to = null,
   tollStatus = null,
@@ -240,8 +244,8 @@ export default function TrackTimeline({
   return (
     <div className="ov-track-bar track-replay-console flex flex-col gap-2.5 rounded-2xl border border-slate-300/90 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-3.5 shadow-2xl shadow-slate-900/15 dark:shadow-black/50">
       {/* 1. TOP TELEMETRY HUD STRIP */}
-      <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 dark:border-slate-800/80 pb-2 flex-nowrap overflow-x-auto">
-        <div className="flex items-center gap-2.5 shrink-0 flex-nowrap">
+      <div className="lt-replay-header flex items-center justify-between gap-3 border-b border-slate-200/80 dark:border-slate-800/80 pb-2 flex-nowrap">
+        <div className="lt-replay-telemetry flex min-w-0 items-center gap-2.5 flex-nowrap overflow-x-auto">
           {/* Prominent Live Replay Date & Time Badge */}
           <div className="flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-1.5 text-white shadow-sm dark:bg-slate-800 font-medium shrink-0">
             <Calendar size={13} className="text-blue-400 shrink-0" aria-hidden="true" />
@@ -310,16 +314,60 @@ export default function TrackTimeline({
           </div>
         </div>
 
-        {/* Close Button at the far right */}
-        <button
-          type="button"
-          onClick={onExit}
-          aria-label="Leave Track mode"
-          title="Leave Track mode"
-          className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors"
-        >
-          <X size={16} aria-hidden="true" />
-        </button>
+        <div className="lt-replay-actions flex shrink-0 items-center gap-2">
+          {onApplyRange ? (
+            <TrackRangePicker
+              key={`${from?.getTime()}:${to?.getTime()}`}
+              from={from}
+              to={to}
+              onApply={onApplyRange}
+              trigger={
+                <button
+                  type="button"
+                  className="lt-replay-range"
+                  aria-label="Change journey date range"
+                  title="Change replay range (IST)"
+                >
+                  <span className="lt-replay-range-icon">
+                    <Calendar size={16} aria-hidden="true" />
+                  </span>
+                  {from && to ? (
+                    <>
+                      <span className="lt-replay-range-value">
+                        <span className="lt-replay-range-label">From</span>
+                        <span>{formatIst(from, { withDate: true })}</span>
+                      </span>
+                      <ArrowRight size={14} className="lt-replay-range-arrow" aria-hidden="true" />
+                      <span className="lt-replay-range-value">
+                        <span className="lt-replay-range-label">
+                          To <span className="lt-replay-range-zone">IST</span>
+                        </span>
+                        <span>{formatIst(to, { withDate: true })}</span>
+                      </span>
+                    </>
+                  ) : (
+                    <span className="lt-replay-range-value">
+                      Choose date range <span className="lt-replay-range-label">IST</span>
+                    </span>
+                  )}
+                  <span className="lt-replay-range-edit">
+                    <Pencil size={13} aria-hidden="true" />
+                  </span>
+                </button>
+              }
+            />
+          ) : null}
+          {/* Close Button at the far right */}
+          <button
+            type="button"
+            onClick={onExit}
+            aria-label="Leave Track mode"
+            title="Leave Track mode"
+            className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors"
+          >
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       {/* 2. MEDIA CONTROLS & INTERACTIVE PROGRESS SCRUBBER */}

@@ -28,6 +28,7 @@ export default function TrackPlacesLayer({ places, selectedId, onSelect, dark, z
         <PlaceShape
           key={`tp-s-${p.id}`}
           place={p}
+          highlightRisk
           selected={p.id === selectedId}
           showCircle={p.id === selectedId}
           interactive

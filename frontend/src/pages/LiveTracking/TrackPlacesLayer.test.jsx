@@ -1,13 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { MarkerClustererF } from '@react-google-maps/api';
+import PlaceShape from '../PlaceHub/map/PlaceShape.jsx';
 import TrackPlacesLayer from './TrackPlacesLayer.jsx';
 import { CLUSTER_STYLES_DARK, CLUSTER_STYLES_LIGHT } from '../PlaceHub/map/clusterer.js';
 
 vi.mock('@react-google-maps/api', () => ({
   MarkerClustererF: vi.fn(({ children }) => children({})),
 }));
-vi.mock('../PlaceHub/map/PlaceShape.jsx', () => ({ default: () => null }));
+vi.mock('../PlaceHub/map/PlaceShape.jsx', () => ({ default: vi.fn(() => null) }));
 vi.mock('../PlaceHub/map/PlaceMarker.jsx', () => ({
   default: ({ place }) => <span data-testid="pin">{place.name}</span>,
 }));
@@ -49,4 +50,13 @@ describe('TrackPlacesLayer cluster options', () => {
       undefined,
     );
   });
+});
+
+it('enables risk boundaries for tracking while preserving the place type for its marker', () => {
+  const place = { id: 'risk-unloading', type: 'UNLOADING_POINT', risk: true, lat: 22, lng: 88 };
+  render(<TrackPlacesLayer places={[place]} zoom={10} />);
+  expect(PlaceShape).toHaveBeenLastCalledWith(
+    expect.objectContaining({ place, highlightRisk: true }),
+    undefined,
+  );
 });
