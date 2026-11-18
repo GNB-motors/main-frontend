@@ -54,30 +54,43 @@ export default function DailyDigestPage() {
   // (and the wait for the 404) and go straight to the release digest.
   const routeMissing = digestRouteMemory.knownMissing();
 
+  // A revisit inside the cache window (5 min today, 30 min a past day) asks
+  // the server nothing: every read below is answered from this tab's memory.
+  const cacheMs = apiMemo.ttlFor(date, today);
+  const fullKey = `digest:${date}:full`;
+  const quickKey = `digest:${date}:quick`;
+  const fullCached = apiMemo.get(fullKey, cacheMs) !== undefined;
+
   // The digest arrives in two parts: the quick read (every card but the
   // day's km) draws the page first, the full read follows with the km. The
   // server shares the sources both need, so this is not double work.
   const readDigest = (quick) => async (signal) => {
+    const key = quick ? quickKey : fullKey;
     try {
-      return {
-        payload: await fleetViewService.getDigest({ date, quick, fresh: fresh(), signal }),
-        readAt: Date.now(),
-      };
+      if (fresh()) {
+        // A rebuild must not be answered with "you already have it".
+        return {
+          payload: await fleetViewService.getDigest({ date, quick, fresh: fresh(), signal }),
+          readAt: Date.now(),
+        };
+      }
+      // The server's tag rides along: a server whose copy is still the one we
+      // hold answers 304 and we keep our copy — no rebuild, no body.
+      return await apiMemo.revalidate(key, async (etag) => {
+        const res = await fleetViewService.getDigestConditional({ date, quick, etag, signal });
+        if (res.status === 304) return { notModified: true };
+        return { data: { payload: res.data, readAt: Date.now() }, etag: res.etag };
+      });
     } catch (err) {
       if (err?.status === 404) digestRouteMemory.remember();
       throw err;
     }
   };
-  // A revisit inside the cache window (5 min today, 30 min a past day) asks
-  // the server nothing: every read below is answered from this tab's memory.
-  const cacheMs = apiMemo.ttlFor(date, today);
-  const fullKey = `digest:${date}:full`;
-  const fullCached = apiMemo.get(fullKey, cacheMs) !== undefined;
   const quickReport = useApi(readDigest(true), [date], {
     scopeKey: date,
     // The full answer already covers the quick one.
     enabled: !routeMissing && !fullCached,
-    cacheKey: `digest:${date}:quick`,
+    cacheKey: quickKey,
     cacheMs,
   });
   const fullReport = useApi(readDigest(false), [date], {

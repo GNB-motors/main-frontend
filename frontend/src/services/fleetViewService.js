@@ -164,6 +164,35 @@ export const getDigest = ({ date, quick, fresh, signal } = {}) =>
     importer: () => import('../schemas/digestV2.schema.js'),
   });
 
+/**
+ * GET /api/fleet-view/digest, the conditional way.
+ *
+ * Sends the ETag we hold; a server whose copy is still the one we hold answers
+ * 304 with no body, and the copy we hold is reused — no rebuild, no body.
+ * Axios rejects anything outside 2xx by default, so 304 is accepted here and
+ * reported as such.
+ */
+export const getDigestConditional = async ({ date, quick, fresh, signal, etag } = {}) => {
+  const res = await apiClient.get('/api/fleet-view/digest', {
+    params: { date, quick: quick ? 1 : undefined, fresh: fresh ? 1 : undefined },
+    signal,
+    ...(etag ? { headers: { 'If-None-Match': etag } } : {}),
+    validateStatus: (status) => status === 200 || status === 304,
+  });
+  const tag = res?.headers?.etag ?? null;
+  if (res.status === 304) return { status: 304, data: null, etag: tag };
+  const body = bodyOf(res);
+  return {
+    status: 200,
+    data: await parseSafe(
+      'DigestResponseSchema',
+      () => import('../schemas/digestV2.schema.js'),
+      body,
+    ),
+    etag: tag,
+  };
+};
+
 /* ── The owner's day: the morning brief and the eight-section report ─── */
 
 /**
@@ -270,6 +299,7 @@ export const fleetViewService = {
   getMileage,
   getFuelIntegrityWindows,
   getDigest,
+  getDigestConditional,
   getMorningBrief,
   getOwnerReport,
   getDailyFuel,

@@ -21,6 +21,9 @@ describe('axiosConfig — request budget', () => {
     '/api/mileage/model-comparison',
     '/api/lemu/warehouse',
     '/api/livetracking/positions',
+    '/api/fleet-view/digest',
+    '/api/owner-report',
+    '/api/intelligence/summary',
   ])('widens the budget for the heavy read %s', async (url) => {
     const config = await applyRequest({ url });
     expect(config.timeout).toBe(SLOW_TIMEOUT);

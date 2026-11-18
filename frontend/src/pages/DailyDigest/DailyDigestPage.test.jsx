@@ -8,16 +8,25 @@ import DailyDigestPage from './DailyDigestPage';
 import digestRouteMemory from './digestRouteMemory';
 import { fleetViewService } from '../../services/fleetViewService';
 
-vi.mock('../../services/fleetViewService', () => ({
-  fleetViewService: {
-    getDigest: vi.fn(async () => {
-      throw Object.assign(new Error('Not deployed'), { status: 404 });
-    }),
-    getDailyFuel: vi.fn(async () => ({ items: [] })),
-    getMorningBrief: vi.fn(async () => ({})),
-    getOwnerReport: vi.fn(async () => ({ sections: [] })),
-  },
-}));
+vi.mock('../../services/fleetViewService', () => {
+  const getDigest = vi.fn(async () => {
+    throw Object.assign(new Error('Not deployed'), { status: 404 });
+  });
+  return {
+    fleetViewService: {
+      getDigest,
+      // The page asks conditionally; a server without a tag answers plainly.
+      getDigestConditional: vi.fn(async ({ date, quick, signal }) => ({
+        status: 200,
+        data: await getDigest({ date, quick, signal }),
+        etag: null,
+      })),
+      getDailyFuel: vi.fn(async () => ({ items: [] })),
+      getMorningBrief: vi.fn(async () => ({})),
+      getOwnerReport: vi.fn(async () => ({ sections: [] })),
+    },
+  };
+});
 vi.mock('../../hooks/useLivePositions', () => ({
   useLivePositions: () => ({ positions: [], isLoading: false, refresh: vi.fn() }),
 }));

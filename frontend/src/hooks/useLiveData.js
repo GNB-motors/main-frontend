@@ -51,7 +51,18 @@ export function mergeByKey(current, changed, key) {
   return next;
 }
 
-export function useLiveData(eventType, { initialFetch, applyDiff, enabled = true } = {}) {
+/**
+ * The read that opens the page and the read the stream asks for on (re)connect
+ * can land together: the socket opens while the first read is still in flight,
+ * so the fleet was read twice for one paint. A read that finished moments ago
+ * is still the truth — the resync is skipped and the stream owns freshness.
+ */
+export const RESYNC_MIN_GAP_MS = 2000;
+
+export function useLiveData(
+  eventType,
+  { initialFetch, applyDiff, enabled = true, resyncMinGapMs = RESYNC_MIN_GAP_MS } = {},
+) {
   const [data, setData] = useState(null);
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState(null);
@@ -72,16 +83,31 @@ export function useLiveData(eventType, { initialFetch, applyDiff, enabled = true
   // that is only a few trucks — merging it would show a partial fleet.
   const baseReadyRef = useRef(false);
   const refetchingRef = useRef(false);
+  // When the last successful read landed, so a resync that would only repeat
+  // it can be skipped.
+  const lastReadAtRef = useRef(0);
+  const readingRef = useRef(false);
+  // The stream has been open before: every 'open' after the first one is a
+  // reconnect, and a reconnect always gets its own read.
+  const openedRef = useRef(false);
+  // A reconnect that landed while a read was in flight: that read may have
+  // started before the drop, so one more read is owed once it ends.
+  const pendingResyncRef = useRef(false);
+  // The read itself, so the queue above can start the next read without the
+  // callback having to refer to itself.
+  const runFetchRef = useRef(null);
   const runFetch = useCallback(async ({ initial = false } = {}) => {
     const fetcher = fetchRef.current;
     if (!fetcher) return;
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
+    readingRef.current = true;
     if (initial) setStatus('loading');
     try {
       const rows = await fetcher(controller.signal);
       if (controller.signal.aborted) return;
+      lastReadAtRef.current = Date.now();
       setData(rows);
       baseReadyRef.current = true;
       setError(null);
@@ -92,8 +118,19 @@ export function useLiveData(eventType, { initialFetch, applyDiff, enabled = true
       setError(err);
       // A failed refresh must not blank a previously good dataset.
       setStatus((prev) => (prev === 'ready' ? 'ready' : 'error'));
+    } finally {
+      if (abortRef.current === controller) {
+        readingRef.current = false;
+        // The read that was in flight when the socket came back is not the
+        // resync: it may predate the drop. Read again now that it has ended.
+        if (pendingResyncRef.current) {
+          pendingResyncRef.current = false;
+          runFetchRef.current?.();
+        }
+      }
     }
   }, []);
+  runFetchRef.current = runFetch;
 
   useEffect(() => {
     if (!enabled || !fetchRef.current) return undefined;
@@ -102,6 +139,9 @@ export function useLiveData(eventType, { initialFetch, applyDiff, enabled = true
     let unsubscribeState = null;
 
     runFetch({ initial: true });
+    // A fresh subscription starts over: its first 'open' belongs to the read
+    // that opened the page.
+    openedRef.current = false;
 
     // Lazy-load the transport so the eager bundle never pays for it.
     import('../lib/liveStream')
@@ -128,7 +168,27 @@ export function useLiveData(eventType, { initialFetch, applyDiff, enabled = true
           setConnectionState(s);
           // Resynchronise after any (re)connect — events may have been dropped
           // while the socket was down.
-          if (s === 'open') runFetch();
+          if (s !== 'open') return;
+          const first = !openedRef.current;
+          openedRef.current = true;
+          if (first) {
+            // The read that opened the page is still the truth when it landed
+            // moments ago: repeating it would read the fleet twice for one
+            // paint.
+            if (readingRef.current || Date.now() - lastReadAtRef.current < resyncMinGapMs) return;
+            runFetch();
+            return;
+          }
+          // A reconnect always resyncs, even when a read landed a moment ago:
+          // that read may predate the drop, and what the socket missed is
+          // only in the server's answer.
+          if (readingRef.current) {
+            // A read is in flight: it may predate the drop, so one more read
+            // is owed once it ends.
+            pendingResyncRef.current = true;
+            return;
+          }
+          runFetch();
         });
         setConnectionState(stream.getState());
       })
@@ -142,7 +202,7 @@ export function useLiveData(eventType, { initialFetch, applyDiff, enabled = true
       if (unsubscribe) unsubscribe();
       if (unsubscribeState) unsubscribeState();
     };
-  }, [enabled, eventType, runFetch]);
+  }, [enabled, eventType, resyncMinGapMs, runFetch]);
 
   const refresh = useCallback(() => runFetch(), [runFetch]);
 
