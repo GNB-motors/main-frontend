@@ -185,10 +185,6 @@ export const getMorningBrief = ({ date, fresh, signal } = {}) =>
 export const getOwnerReport = ({ day, fresh, signal } = {}) =>
   get('/api/owner-report', { params: { day, fresh: fresh ? 1 : undefined }, signal });
 
-/** The records behind one attention count, using the summary's qualifying rules. */
-export const getAttentionReview = ({ day, kind, page = 1, signal } = {}) =>
-  get('/api/owner-report/exceptions', { params: { day, kind, page }, signal });
-
 /** Seven IST days of recorded engine consumption, independent of refuel cycles. */
 export const getDailyFuel = ({ day, fresh, signal } = {}) =>
   get('/api/owner-report/fuel-trend', {
@@ -276,7 +272,6 @@ export const fleetViewService = {
   getDigest,
   getMorningBrief,
   getOwnerReport,
-  getAttentionReview,
   getDailyFuel,
   getAccountsLinkState,
   getIntelligenceSummary,
