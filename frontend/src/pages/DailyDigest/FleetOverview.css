@@ -1424,6 +1424,11 @@
   flex: 1;
 }
 
+/* A row that lists its trucks instead of a Review link: text | count, and
+   the trucks on their own line under both. */
+.db-attention-row--trucks {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
 /* The flagged trucks under a "Needs attention" row, across the whole row. */
 .db-attention-trucks {
   grid-column: 1 / -1;
