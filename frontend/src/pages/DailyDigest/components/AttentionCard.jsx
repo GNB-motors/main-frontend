@@ -112,8 +112,11 @@ function Category({ row, day }) {
   if (!failed && row.count === 0) {
     return <li className="db-attention-clear">{attentionCopy.none(row.kind, row.period)}</li>;
   }
+  // Possible fuel loss has no page to review on: its trucks are listed under
+  // it instead, so the row has no Review column to leave empty.
+  const trucksRow = row.kind === 'moneyTheft';
   return (
-    <li className="db-attention-row">
+    <li className={trucksRow ? 'db-attention-row db-attention-row--trucks' : 'db-attention-row'}>
       <div>
         <h4>{attentionCopy.label(row.kind)}</h4>
         <p>{failed ? attentionCopy.failed : attentionCopy.about(row)}</p>
@@ -122,12 +125,8 @@ function Category({ row, day }) {
         {failed || row.count == null ? '—' : row.count.toLocaleString('en-IN')}
         <small>{attentionCopy.unit(row.kind, row.count)}</small>
       </div>
-      {row.kind === 'moneyTheft' ? (
-        <span className="db-attention-none" />
-      ) : (
-        <Review row={row} day={day} />
-      )}
-      {row.kind === 'moneyTheft' && !failed ? <TruckList row={row} /> : null}
+      {trucksRow ? null : <Review row={row} day={day} />}
+      {trucksRow && !failed ? <TruckList row={row} /> : null}
     </li>
   );
 }
