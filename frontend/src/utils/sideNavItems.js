@@ -20,7 +20,6 @@ import {
   Route,
   Bell,
   Activity,
-  Gauge,
   Sparkles,
   MapPinned,
   Receipt,
@@ -327,22 +326,9 @@ export const SIDE_NAV_ITEMS = [
     icon: MapPinned,
     hint: 'Your plants, yards and zones, with idling, fuel and route questions.',
   },
-  // ─── Performance (wave 5) ───────────────────────────────────────────────────
-  // One section that folds in Driving DNA, the Mileage performance tab,
-  // Leaderboards and Vehicle360's telemetry panels. Dark launch: the entry
-  // appears ONLY for orgs whose `performanceSection` flag is on.
-  // `flagOnly` reads the ORG's flag alone — this brand-new surface has no RBAC
-  // permission yet, and `canAccess` (flag AND permission) would hide it for
-  // good. Nothing else about the nav changes.
-  {
-    type: 'link',
-    key: 'performanceSection',
-    flagOnly: true,
-    to: '/performance',
-    label: 'Performance',
-    icon: Gauge,
-    hint: 'Truck and driver performance tables.',
-  },
+  // Performance (wave 5) was folded into the Intelligence page's Performance
+  // section (Vehicles / Drivers / Leaderboards tabs); there is no separate
+  // Performance entry any more.
   // ─── Compliance / Docs ──────────────────────────────────────────────────────
   // Tolls — the spend that nobody planned for. Gated on the org's `tolls`
   // flag (same gate as the page itself), and fleet-only like the other

@@ -19,6 +19,7 @@ import {
 import { periodDates, periodRangeLabel, resolvePeriod } from './intelligenceModel';
 import './IntelligencePage.css';
 import './IntelligenceDesign.css';
+import '../Performance/performancePanels.css';
 import AlertPageGuide from '../../components/alerts/AlertPageGuide';
 
 const IssuesTab = lazy(() => import('./IssuesTab'));
@@ -31,12 +32,21 @@ const IdlingTab = lazy(() => import('./IdlingTab'));
 const FuelRiskTab = lazy(() => import('./FuelRiskTab'));
 const OverspeedTab = lazy(() => import('./OverspeedTab'));
 const DetoursTab = lazy(() => import('./DetoursTab'));
+// Performance tabs folded in from the old Performance page (Wave 5). They
+// self-fetch the whole fleet over a fixed server window, so they take no
+// period/vehicle/driver props.
+const PerfVehiclesTab = lazy(() => import('../Performance/VehiclesTab'));
+const PerfDriversTab = lazy(() => import('../Performance/DriversTab'));
+const LeaderboardsTab = lazy(() => import('../Performance/LeaderboardsTab'));
 
 /** The shape of a tab while its code is still being fetched. */
 const TAB_FALLBACK = <IntelligenceSkeleton variant="table" />;
 
 /** The tabs that always cover the whole fleet. */
 const FLEET_ONLY_TABS = ['runs', 'places'];
+
+/** The performance tables; they cover the whole fleet and own their window. */
+const PERFORMANCE_TABS = ['perfVehicles', 'perfDrivers', 'leaderboards'];
 
 function TabContent({ active, from, to, vehicle, driver, kind, headerControl }) {
   if (active === 'issues') {
@@ -141,6 +151,27 @@ function TabContent({ active, from, to, vehicle, driver, kind, headerControl }) 
       </Suspense>
     );
   }
+  if (active === 'perfVehicles') {
+    return (
+      <Suspense fallback={TAB_FALLBACK}>
+        <PerfVehiclesTab />
+      </Suspense>
+    );
+  }
+  if (active === 'perfDrivers') {
+    return (
+      <Suspense fallback={TAB_FALLBACK}>
+        <PerfDriversTab />
+      </Suspense>
+    );
+  }
+  if (active === 'leaderboards') {
+    return (
+      <Suspense fallback={TAB_FALLBACK}>
+        <LeaderboardsTab />
+      </Suspense>
+    );
+  }
   if (Object.hasOwn(INSTANCE_TABS, active)) {
     return (
       <Suspense fallback={TAB_FALLBACK}>
@@ -219,7 +250,7 @@ export default function IntelligencePage() {
 
         <div className="intel-header-controls">
           <IntelligenceFilters
-            showVehicle={!['drivers', ...FLEET_ONLY_TABS].includes(active)}
+            showVehicle={!['drivers', ...FLEET_ONLY_TABS, ...PERFORMANCE_TABS].includes(active)}
             showDriver={active === 'drivers' || Object.hasOwn(INSTANCE_TABS, active)}
             vehicle={vehicle}
             driver={driver}

@@ -55,7 +55,6 @@ import { formatIst } from '../../utils/redesign/format';
 import VehicleJourneyPanel from './VehicleJourneyPanel.jsx';
 import TrackTimeline from './TrackTimeline.jsx';
 import TrackLog from './TrackLog.jsx';
-import TrackRangePicker from './TrackRangePicker.jsx';
 import { nextEventAt, previousEventAt } from './trackPlayback.js';
 import { toggleSelection } from './trackLegendModel.js';
 import TrackClickMenu from './TrackClickMenu.jsx';
@@ -1361,10 +1360,6 @@ const LiveTrackingPage = () => {
               roadTrail={roadTrail}
               mapMode={mapMode}
               setMapMode={setMapMode}
-              isTrackMode={isTrackMode && !isVehiclePlaces}
-              trackFrom={trackMode.from}
-              trackTo={trackMode.to}
-              onApplyTrackRange={(range) => trackMode.applyRange(range)}
             />
 
             {/* Track mode: the timeline at the bottom of the map. */}
@@ -1385,6 +1380,7 @@ const LiveTrackingPage = () => {
                   trackMode.seekToIndex(index);
                 }}
                 onSeekToTime={(time) => trackMode.seekToTime(time)}
+                onApplyRange={trackMode.applyRange}
                 onExit={trackMode.exitTrackMode}
                 from={trackMode.from}
                 to={trackMode.to}
@@ -1451,21 +1447,6 @@ const LiveTrackingPage = () => {
                       {formatIst(trackMode.from, { withDate: true })} –{' '}
                       {formatIst(trackMode.to, { withDate: true })}
                     </span>
-                    <TrackRangePicker
-                      key={`${toIso(trackMode.from)}:${toIso(trackMode.to)}`}
-                      from={trackMode.from}
-                      to={trackMode.to}
-                      onApply={trackMode.applyRange}
-                      trigger={
-                        <button
-                          type="button"
-                          className="lt-journey-range"
-                          aria-label="Change journey date range"
-                        >
-                          Range
-                        </button>
-                      }
-                    />
                   </div>
                 ) : null}
               </div>

@@ -7,6 +7,7 @@ import {
   MapPin,
   Route,
   Timer,
+  Trophy,
   Truck,
   Users,
   Zap,
@@ -87,6 +88,27 @@ export const INTELLIGENCE_TABS = [
     hint: 'Places waiting for your answer, and the busiest places.',
     icon: MapPin,
   },
+  // Performance — the source-aware tables folded in from the old Performance
+  // page (Wave 5). Every number says where it came from, and anything that
+  // cannot be compared says so instead of showing a zero.
+  {
+    id: 'perfVehicles',
+    label: 'Vehicles',
+    hint: 'Per-truck km/L, idling and gear use, each number with its source.',
+    icon: Gauge,
+  },
+  {
+    id: 'perfDrivers',
+    label: 'Drivers',
+    hint: 'Driver DNA and road pace, each number with its source.',
+    icon: Users,
+  },
+  {
+    id: 'leaderboards',
+    label: 'Leaderboards',
+    hint: 'Drivers ranked against the expected value for their duty group.',
+    icon: Trophy,
+  },
 ];
 
 /**
@@ -102,6 +124,11 @@ export const INTELLIGENCE_SECTIONS = [
   { id: 'driving', label: 'Driving', tabs: ['idling', 'overspeed', 'cruise', 'detours'] },
   { id: 'fuel', label: 'Fuel & DEF', tabs: ['fuel', 'mileage'] },
   { id: 'runs', label: 'Runs & places', tabs: ['runs', 'places'] },
+  {
+    id: 'performance',
+    label: 'Performance',
+    tabs: ['perfVehicles', 'perfDrivers', 'leaderboards'],
+  },
 ];
 
 /** The section a tab belongs to. */

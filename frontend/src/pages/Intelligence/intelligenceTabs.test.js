@@ -8,7 +8,7 @@ import {
 } from './intelligenceTabs';
 
 describe('the Intelligence tabs', () => {
-  it('has the eleven tabs the spec asks for, in order', () => {
+  it('has the tabs the spec asks for, in order', () => {
     expect(INTELLIGENCE_TABS.map((tab) => tab.id)).toEqual([
       'issues',
       'vehicles',
@@ -21,6 +21,9 @@ describe('the Intelligence tabs', () => {
       'fuel',
       'detours',
       'places',
+      'perfVehicles',
+      'perfDrivers',
+      'leaderboards',
     ]);
   });
 
@@ -68,6 +71,8 @@ describe('resolveIntelligenceTab', () => {
   });
 
   it('never lands on a tab that does not exist', () => {
-    expect(INTELLIGENCE_TABS.some((tab) => tab.id === resolveIntelligenceTab('nope', 0))).toBe(true);
+    expect(INTELLIGENCE_TABS.some((tab) => tab.id === resolveIntelligenceTab('nope', 0))).toBe(
+      true,
+    );
   });
 });
