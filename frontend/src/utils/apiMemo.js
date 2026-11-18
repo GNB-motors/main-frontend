@@ -54,11 +54,13 @@ function getEntry(key, maxAgeMs, now = Date.now()) {
   return { data: entry, at: kept?.at ?? now, etag: kept?.etag ?? null };
 }
 
-function setWithEtag(key, data, etag, now = Date.now()) {
+function setWithEtag(key, data, etag, now = Date.now(), scope = currentScope()) {
   if (!getToken()) return;
+  // An answer read under another session (logout / org switch mid-request) is never kept.
+  if (scope !== currentScope()) return;
   if (store.has(key)) store.delete(key);
   while (store.size >= MAX_ENTRIES) store.delete(store.keys().next().value);
-  store.set(key, { data, at: now, scope: currentScope(), etag: etag ?? null });
+  store.set(key, { data, at: now, scope, etag: etag ?? null });
 }
 
 function set(key, data, now = Date.now()) {
@@ -81,12 +83,13 @@ function set(key, data, now = Date.now()) {
  */
 async function revalidate(key, request) {
   if (!getToken()) store.clear();
+  const scope = currentScope();
   const entry = store.get(key);
-  const etag = entry && entry.scope === currentScope() ? (entry.etag ?? null) : null;
+  const etag = entry && entry.scope === scope ? (entry.etag ?? null) : null;
   const now = Date.now();
   if (!etag) {
     const answer = await request(null);
-    setWithEtag(key, answer.data, answer.etag, now);
+    setWithEtag(key, answer.data, answer.etag, now, scope);
     return answer.data;
   }
   const answer = await request(etag);
@@ -94,14 +97,14 @@ async function revalidate(key, request) {
     if (!entry) {
       // The server says we have it, but we do not: ask for the body.
       const full = await request(null);
-      setWithEtag(key, full.data, full.etag, now);
+      setWithEtag(key, full.data, full.etag, now, scope);
       return full.data;
     }
     store.delete(key);
     store.set(key, { ...entry, at: now });
     return entry.data;
   }
-  setWithEtag(key, answer.data, answer.etag, now);
+  setWithEtag(key, answer.data, answer.etag, now, scope);
   return answer.data;
 }
 
@@ -111,6 +114,7 @@ const apiMemo = {
   set,
   setWithEtag,
   revalidate,
+  currentScope,
   clear: () => store.clear(),
   get size() {
     return store.size;

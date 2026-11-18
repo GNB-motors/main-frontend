@@ -13,14 +13,19 @@ import apiMemo from '../utils/apiMemo';
  */
 const inFlight = new Map(); // key -> { promise, controller, refs }
 
-function release(entry) {
+function release(key, entry) {
   entry.refs -= 1;
-  if (entry.refs <= 0) entry.controller.abort();
+  if (entry.refs <= 0) {
+    // Drop it now: a caller arriving before the rejection lands must start fresh.
+    if (inFlight.get(key) === entry) inFlight.delete(key);
+    entry.controller.abort();
+  }
 }
 
 /** Join (or start) the one request for `key`; hands back the shared promise. */
 function joinRequest(key, factory, subscriberSignal) {
   let entry = inFlight.get(key);
+  if (entry && entry.controller.signal.aborted) entry = null;
   if (!entry) {
     const controller = new AbortController();
     entry = { controller, refs: 0, promise: null };
@@ -33,8 +38,8 @@ function joinRequest(key, factory, subscriberSignal) {
   }
   entry.refs += 1;
   if (subscriberSignal) {
-    if (subscriberSignal.aborted) release(entry);
-    else subscriberSignal.addEventListener('abort', () => release(entry), { once: true });
+    if (subscriberSignal.aborted) release(key, entry);
+    else subscriberSignal.addEventListener('abort', () => release(key, entry), { once: true });
   }
   return entry.promise;
 }
@@ -90,7 +95,8 @@ export function useApi(
       // The same read asked for at the same time is one request, not N.
       const request = dedupeKey
         ? joinRequest(
-            dedupeKey,
+            // Scoped to the session: another user/org never joins this read.
+            `${apiMemo.currentScope()}::${dedupeKey}`,
             (sharedSignal) => fetcherRef.current(sharedSignal),
             controller.signal,
           )
