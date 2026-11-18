@@ -12,7 +12,7 @@ export default function NdBriefCard({ section, onOpenVehicle, rangeLabel = 'toda
   return (
     <div className="nd-card nd-opcard" style={{ '--c': meta.c }}>
       <div className="nd-card-head">
-        <h2>{section.label}</h2>
+        <h2>{section.key === 'excessIdling' ? 'Idling' : section.label}</h2>
         <span className="nd-sp" />
         <span className="nd-hint">{windowTitle} · top 5 vehicles</span>
       </div>

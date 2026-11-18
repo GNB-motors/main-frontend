@@ -77,7 +77,7 @@ export function buildDigestKpis({
     {
       id: 'trips',
       icon: Calendar,
-      label: rangeDays <= 1 ? 'Trips today' : `Trips · ${rangeDays}d`,
+      label: rangeDays <= 1 ? 'Trips started today' : `Trips started · ${rangeDays}d`,
       value: formatNum(tripsToday),
       note: `left a pickup ${windowWord}`,
       to: tripsHref,

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
+import { act } from 'react';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import OwnerReportPanel from './OwnerReportPanel';
@@ -25,6 +26,20 @@ const REPORT = {
       rows: { drill: 'fleet.livePositions', params: { orgId: 'org-1', branchId: null } },
       footer: {
         text: 'How we know: LiveVehiclePosition (live tracking) (as of 2026-11-04T00:49:43.105Z)',
+        sources: [
+          { name: 'LiveVehiclePosition (live tracking)', freshAsOf: '2026-11-04T00:49:43.105Z' },
+        ],
+      },
+    },
+    {
+      id: 'moneyOut',
+      title: 'Money out',
+      state: 'empty',
+      numbers: {},
+      notes: ['sensor litres unavailable for this day — bills shown alone'],
+      footer: {
+        text: 'How we know: TripFuelLog (no data yet) — sensor litres unavailable',
+        sources: [],
       },
     },
     {
@@ -32,17 +47,17 @@ const REPORT = {
       title: 'Exceptions',
       state: 'ok',
       numbers: {
-        total: 3,
+        attentionVersion: 2,
         kinds: [
           { kind: 'moneyTheft', count: 2 },
           { kind: 'sos', count: 1 },
         ],
       },
       rows: [
-        { kind: 'moneyTheft', count: 2 },
-        { kind: 'sos', count: 1 },
-        { kind: 'papersWaiting', count: 0 },
-        { kind: 'etaSlipping', count: null, note: 'not built yet' },
+        { kind: 'sos', period: 'day', state: 'ok', count: 1 },
+        { kind: 'moneyTheft', period: 'day', state: 'ok', count: 2 },
+        { kind: 'papersWaiting', period: 'live', state: 'empty', count: 0 },
+        { kind: 'etaSlipping', period: 'day', state: 'unmeasured', count: null },
       ],
       notes: [],
       footer: { text: 'How we know: no source yet' },
@@ -100,6 +115,9 @@ describe('OwnerReportPanel', () => {
     expect(screen.getByText(/Some losses are not included/)).toBeTruthy();
     expect(screen.getByText(/1 idle event is not included/)).toBeTruthy();
     expect(screen.getAllByText(/Incomplete/).length).toBeGreaterThan(0);
+    // An older server still calls it "Diesel used while stopped": the owner reads "Idling".
+    expect(screen.getByText('Idling')).toBeTruthy();
+    expect(screen.queryByText('Diesel used while stopped')).toBeNull();
   });
 
   beforeEach(() => {
@@ -137,7 +155,7 @@ describe('OwnerReportPanel', () => {
     // reason, grouped on one line instead of a column of dashes.
     expect(screen.getByText('Moving')).toBeTruthy();
     expect(screen.getAllByText('3').length).toBeGreaterThan(0);
-    expect(screen.getByText('— Not measured: At plant')).toBeTruthy();
+    expect(screen.getByText('— Not available yet: At plant')).toBeTruthy();
     expect(screen.getAllByText('—').length).toBeGreaterThan(0);
 
     // empty — one line of reason, and no number dressed as a zero.
@@ -249,37 +267,41 @@ describe('OwnerReportPanel', () => {
     expect(open.getAttribute('href')).toBe('/live-tracking');
   });
 
-  it('keeps "How we know" behind an info tip and writes its timestamps for a person', async () => {
+  it('explains a section in one plain line behind its info tip, with a readable update time', async () => {
     renderPanel();
 
     await waitFor(() => expect(screen.getByText('Fleet now')).toBeTruthy());
-
-    // Collapsed until asked for.
-    expect(screen.queryByText(/\(as of [^)]+\)/)).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'How we know: Fleet now' }));
-    expect(await screen.findByText(/\(as of [^)]+\)/)).toBeTruthy();
-    expect(screen.queryByText(/T00:49/)).toBeNull();
+    // Info tips open on hover and keyboard focus, not on a click.
+    const tip = screen.getByRole('button', { name: 'About Fleet now' });
+    act(() => tip.focus());
+    fireEvent.focus(tip);
+    expect(
+      await screen.findByText('Where your trucks are right now, from their live GPS.'),
+    ).toBeTruthy();
+    expect(screen.getByText(/^Updated 4 Nov, 6:19 am$/)).toBeTruthy();
+    // No engineer words: source model names, raw timestamps, method notes.
+    expect(screen.queryByText(/LiveVehiclePosition|T00:49|truck-state model/)).toBeNull();
   });
 
-  it('bars the counted exception kinds, biggest first, and names the rest in one line', async () => {
+  it('says an empty section in one short sentence, without the method notes', async () => {
     renderPanel();
+    expect(
+      await screen.findByText('No diesel bills or expenses were recorded for this day.'),
+    ).toBeTruthy();
+    expect(screen.queryByText(/sensor litres unavailable/)).toBeNull();
+  });
 
-    const theft = (await screen.findByText('Possible fuel theft')).closest('a');
-    const sos = screen.getByText('SOS').closest('a');
-    expect(theft.getAttribute('href')).toBe(
-      '/intelligence?tab=fuel&fuelView=drain&from=2026-11-04&to=2026-11-04',
-    );
-    expect(sos.getAttribute('href')).toBe(
-      '/alert-inbox?inboxView=INCIDENTS&incidentStatus=ACTIVE&from=2026-11-04&to=2026-11-04',
-    );
-    // biggest first
-    expect(theft.compareDocumentPosition(sos) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // a zero is "none today", an unbuilt kind is "not measured" — never a bar
-    expect(screen.queryByText('Papers waiting')).toBeNull();
-    expect(screen.getByText(/None today: Papers waiting\./)).toBeTruthy();
-    expect(screen.getByText(/Not measured yet: ETA slipping\./)).toBeTruthy();
-    expect(screen.queryByText('kinds')).toBeNull();
-    expect(screen.getByText('3 in all')).toBeTruthy();
+  it('separates day events from open queues without a misleading combined total', async () => {
+    renderPanel();
+    expect(await screen.findByRole('heading', { name: 'Needs attention' })).toBeTruthy();
+    const card = screen.getByRole('region', { name: 'Needs attention' });
+    expect(within(card).getByText('Possible fuel loss')).toBeTruthy();
+    expect(within(card).getByRole('button', { name: 'Review SOS and breakdowns' })).toBeTruthy();
+    expect(within(card).getByText('Still open now')).toBeTruthy();
+    expect(within(card).getByText('No bills to approve right now.')).toBeTruthy();
+    expect(within(card).getByText('Late arrivals are not tracked yet.')).toBeTruthy();
+    expect(within(card).queryByText(/in all/)).toBeNull();
+    expect(within(card).queryByText('Possible fuel theft')).toBeNull();
   });
 
   it('writes the morning brief the way an owner reads it', async () => {
@@ -318,9 +340,9 @@ describe('OwnerReportPanel', () => {
 
     await waitFor(() => expect(screen.getByText('Today so far')).toBeTruthy());
     expect(screen.queryByText("Yesterday's work")).toBeNull();
-    expect(screen.getByText(/Day not over yet: km vs last 7-day average/)).toBeTruthy();
+    expect(screen.getByText(/Day not over yet: Km vs last 7 days/)).toBeTruthy();
     const kpis = within(screen.getByRole('region', { name: 'Key numbers for the day' }));
-    expect(kpis.getByRole('link', { name: /Trips today/ })).toHaveTextContent('0');
+    expect(kpis.getByRole('link', { name: /Trips started today/ })).toHaveTextContent('0');
     expect(kpis.getByRole('link', { name: /km today/ })).toHaveTextContent('0');
     expect(kpis.getByText('Completed / confirmed · so far today')).toBeInTheDocument();
     const work = within(screen.getByText('Today so far').closest('section'));
@@ -347,5 +369,13 @@ describe('OwnerReportPanel', () => {
     await waitFor(() => expect(screen.getByText('Ramesh Yadav')).toBeTruthy());
     expect(screen.getByText('92')).toBeTruthy();
     expect(screen.getAllByText('No one this time')).toHaveLength(1);
+  });
+
+  it('on a past day names the day card by its date and marks the live cards', async () => {
+    renderPanel('2026-10-28');
+    expect(await screen.findByText('Fleet now')).toBeTruthy();
+    // Fleet now is read live: on a past day it carries the "Live" tag.
+    expect((await screen.findAllByText('Live')).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/^Fleet at /)).toBeNull();
   });
 });

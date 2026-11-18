@@ -85,6 +85,8 @@ export const METRIC_LABELS = {
   onTimeArrivals: 'On-time arrivals',
   promisedArrivals: 'Promised arrivals',
   avgTurnaroundHours: 'Average plant turnaround',
+  // Trips from the day that have not finished yet (read now).
+  openTrips: 'Still open',
   plantsMeasured: 'Loading/unloading sites visited',
   plantVisitsMeasured: 'Completed plant visits',
   // 3. Money out
@@ -120,12 +122,12 @@ export const METRIC_LABELS = {
   // 6. Exceptions
   total: 'Total exceptions',
   // 7. Trend
-  tripsPrev7Avg: 'Trips, last 7-day average',
-  kmPrev7Avg: 'km, last 7-day average',
-  tripsVsPrev7Pct: 'Trips vs last 7-day average',
-  kmVsPrev7Pct: 'km vs last 7-day average',
-  tripsSameWeekdayAvg: 'Trips, same weekday average',
-  kmSameWeekdayAvg: 'km, same weekday average',
+  tripsPrev7Avg: 'Avg trips (last 7 days)',
+  kmPrev7Avg: 'Avg km (last 7 days)',
+  tripsVsPrev7Pct: 'Trips vs last 7 days',
+  kmVsPrev7Pct: 'Km vs last 7 days',
+  tripsSameWeekdayAvg: 'Avg trips (same weekday)',
+  kmSameWeekdayAvg: 'Avg km (same weekday)',
   daysWithData: 'Days with data',
   // 8. Data health
   trucks: 'Trucks',
@@ -133,7 +135,7 @@ export const METRIC_LABELS = {
   trucksDark: 'Trucks dark',
   vendorFeeds: 'Vendor feeds',
   vendorFeedsFailing: 'Vendor feeds failing',
-  kmWithAppNavigation: 'km with app navigation',
+  kmWithAppNavigation: 'Km with app navigation',
   // The exception kinds
   sos: 'SOS',
   moneyTheft: 'Possible fuel theft',
@@ -266,6 +268,15 @@ export function isToday(day) {
   return String(day) === today;
 }
 
+/** 5.38 → "5 h 23 min", 0.7 → "42 min", 3 → "3 h". */
+export function formatHours(value) {
+  const minutes = Math.round(value * 60);
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (!h) return `${m} min`;
+  return m ? `${h} h ${m} min` : `${h} h`;
+}
+
 /** One measured value, written the way the page writes every other number. */
 export function formatValue(key, value) {
   if (value == null) return DASH;
@@ -298,7 +309,7 @@ export function formatValue(key, value) {
   if (k.endsWith('Km')) return `${value} km`;
   if (KM_KEYS.has(k)) return `${Math.round(value).toLocaleString('en-IN')} km`;
   if (k.endsWith('Minutes') || k.endsWith('Min')) return `${value} min`;
-  if (k.endsWith('Hours')) return `${value} h`;
+  if (k.endsWith('Hours')) return formatHours(value);
   if (k.endsWith('Litres') || k.endsWith('L')) return `${Math.round(value * 10) / 10} L`;
   return value.toLocaleString('en-IN');
 }

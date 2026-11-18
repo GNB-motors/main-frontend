@@ -5,6 +5,7 @@ import { istDayString } from '../../utils/dateUtils';
 import OwnerReportPanel from './OwnerReportPanel';
 import FleetAnalytics from './components/FleetAnalytics';
 import { buildOverview, shiftDay } from './fleetOverviewModel';
+import digestExplain from './digestExplain';
 
 const WEEKDAY = new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long' });
 
@@ -103,7 +104,12 @@ export default function FleetOperationsOverview({
               {date === today ? 'Today' : WEEKDAY.format(dayDate)}, {formatIstDate(dayDate)}.{' '}
               {(!runsPending && digest?.headline) ||
                 'What happened, what it cost and what needs you.'}
-              {builtAt ? <span className="db-header-meta"> Report built {builtAt}.</span> : null}
+              {builtAt ? (
+                <span className="db-header-meta">
+                  {' '}
+                  {date === today ? `Report built ${builtAt}.` : `Data read today at ${builtAt}.`}
+                </span>
+              ) : null}
             </p>
           </div>
           <div className="db-header-actions">
@@ -197,11 +203,7 @@ export default function FleetOperationsOverview({
           live={live}
           attention={waitingItems(model, legacy)}
           attentionPending={attentionPending}
-          attentionNote={
-            legacy
-              ? 'Priority action items from the daily report. They may group several alerts.'
-              : 'Counts follow the digest for this organisation. An unknown count is shown as —.'
-          }
+          attentionNote={digestExplain.waitingOnYou()}
           accountsSummary={accountsLine(accounts)}
           drivers={legacy ? model.drivers : null}
           performance={

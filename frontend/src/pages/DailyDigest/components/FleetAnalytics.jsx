@@ -16,6 +16,8 @@ import { missingPartsLabel, runningCoverageLine, runningDistance } from '../meas
 import { formatIstDate } from '../../../utils/redesign/format';
 import { fleetDestination } from '@/utils/redesign/fleetDestination';
 import DigestSkeleton from './DigestSkeleton';
+import digestExplain from '../digestExplain';
+import { istDayString } from '../../../utils/dateUtils';
 
 /** "41 trips" from a story card's big line ("41 trips · 4,820 km"). */
 const tripsOf = (card) => {
@@ -88,17 +90,14 @@ export default function FleetAnalytics({
   );
   const knownDays = fuelTrend.filter((d) => d.litres != null);
   const summary = fuelTrend.reduce((sum, d) => sum + (d.litres ?? 0), 0);
-  const runningWhy =
-    model.loadedTrips != null
-      ? 'The same pickup-departure day and detector version as Trips. Loaded km uses the odometer first; approach and return are empty km. Missing legs remain unknown.'
-      : [model.cards.loaded?.text, model.cards.empty?.text].filter(Boolean).join(' ');
+  const runningWhy = digestExplain.running(day === istDayString(new Date()));
 
   return (
     <>
       <Panel
         title="Loaded vs empty running"
         day={day}
-        info={runningWhy || 'Distance attributed to the selected day.'}
+        info={runningWhy}
         to={
           model.loadedTrips != null && day
             ? `/auto-trips?range=custom&from=${day}&to=${day}`
@@ -211,10 +210,7 @@ export default function FleetAnalytics({
         title="Fuel, last 7 days"
         day={day}
         days={7}
-        info={
-          fuel.data?.basis ||
-          'Recorded daily engine consumption in IST, using one measured source per truck/day. Gaps are missing readings; partial days show only recorded consumption.'
-        }
+        info={digestExplain.fuelWeek()}
         to="/mileage"
         className="db-fuel"
         loading={fuel.loading && !fuel.data}

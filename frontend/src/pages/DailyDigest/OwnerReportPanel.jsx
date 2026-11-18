@@ -4,17 +4,19 @@ import Link from './DigestLink';
 import { digestSubjectDestination } from './digestDestination';
 import useOwnerReport from './useOwnerReport';
 import InfoTip from '../../components/redesign/InfoTip';
+import sectionCopy from './sectionCopy';
 import DigestSkeleton from './components/DigestSkeleton';
+import digestExplain from './digestExplain';
+import digestDay from './digestDay';
+import TrendBody from './components/TrendBody';
+import AttentionCard from './components/AttentionCard';
 import {
   DASH,
   drillRoute,
   drillTarget,
-  formatFooterText,
   isToday,
   numberPairs,
   partialLabel,
-  sectionFooter,
-  sectionReason,
   sectionState,
   sectionTitle,
 } from './ownerReportModel';
@@ -23,7 +25,6 @@ import {
   attentionGroups,
   buildKpis,
   count,
-  exceptionSummary,
   leakRows,
   rupees,
   sectionsById,
@@ -51,12 +52,31 @@ function RetryButton({ onRetry, label = 'Retry' }) {
   );
 }
 
-function Card({ title, info, meta, action, className = '', children }) {
+/**
+ * `liveNote` marks a card read live on a past day: it shows the fleet as it is
+ * now, so it says so ("Live · not for 10 Nov") instead of passing for
+ * that day's numbers.
+ */
+function Card({
+  title,
+  info,
+  infoBasis = null,
+  meta,
+  action,
+  liveNote = null,
+  className = '',
+  children,
+}) {
   return (
     <section className={`db-card ${className}`}>
       <header className="db-card-head">
-        <h3>{title}</h3>
-        {info ? <InfoTip text={info} label={`How we know: ${title}`} /> : null}
+        <h3 title={title}>{title}</h3>
+        {info ? <InfoTip text={info} basis={infoBasis} label={`About ${title}`} /> : null}
+        {liveNote ? (
+          <span className="db-live-tag" title={`Live: shows the fleet now, ${liveNote}`}>
+            Live
+          </span>
+        ) : null}
         {meta ? <span className="db-card-meta">{meta}</span> : null}
         {action ? <span className="db-card-action">{action}</span> : null}
       </header>
@@ -187,7 +207,7 @@ function MoneyLeakCard({ brief$, isPendingDay }) {
     <Card
       title="Extra fuel costs to review"
       className="db-leak"
-      info={brief?.disclaimer || null}
+      info={digestExplain.extraFuelCost()}
       meta={isPendingDay ? 'So far today' : null}
     >
       <div className="db-leak-total">
@@ -235,6 +255,7 @@ function MoneyLeakCard({ brief$, isPendingDay }) {
                   {row.rupees == null ? DASH : rupees(row.rupees)}
                 </strong>
               </div>
+              {row.comparedTo ? <p className="db-leak-compare">{row.comparedTo}</p> : null}
               {row.action ? <p className="db-leak-action">{row.action}</p> : null}
               {row.partial ? (
                 <p className="db-muted">
@@ -256,7 +277,12 @@ function MoneyLeakCard({ brief$, isPendingDay }) {
 function WaitingCard({ items, pending, note, day }) {
   if (!items) return null;
   return (
-    <Card title="Waiting on you" className="db-waiting" info={note}>
+    <Card
+      title="Waiting on you"
+      className="db-waiting"
+      info={note}
+      liveNote={digestDay.notFor(day)}
+    >
       {pending ? (
         <DigestSkeleton label="Loading actions" />
       ) : !items.length ? (
@@ -294,67 +320,6 @@ function WaitingCard({ items, pending, note, day }) {
   );
 }
 
-/* ── Exceptions ──────────────────────────────────────────────────────── */
-
-function ExceptionsCard({ section, loading, onRetry, day }) {
-  const summary = useMemo(() => exceptionSummary(section), [section]);
-  const state = sectionState(section);
-  const footer = formatFooterText(sectionFooter(section));
-  const max = summary.counted[0]?.count || 1;
-  return (
-    <Card
-      title="Exceptions"
-      className="db-exceptions"
-      info={footer || null}
-      meta={summary.total != null ? `${count(summary.total)} in all` : null}
-    >
-      {loading && !section ? (
-        <DigestSkeleton label="Loading exceptions" />
-      ) : state === 'error' ? (
-        <p className="db-error">
-          Exceptions unavailable. <RetryButton onRetry={onRetry} />
-        </p>
-      ) : summary.counted.length ? (
-        <ul className="db-bars">
-          {summary.counted.map((row) => (
-            <li key={row.key}>
-              <Link className="db-bar" to={row.to} day={day}>
-                <span className="db-bar-label">
-                  {row.label}
-                  {row.detail ? <small>{row.detail}</small> : null}
-                </span>
-                <span className="db-bar-track">
-                  <i
-                    className={row.urgent ? 'is-urgent' : ''}
-                    style={{ width: `${Math.max((row.count / max) * 100, 1.5)}%` }}
-                  />
-                </span>
-                <strong>{count(row.count)}</strong>
-              </Link>
-              {row.key === 'moneyTheft' ? (
-                <Link className="db-link" to="/intelligence?tab=detours" day={day}>
-                  Review route deviations
-                </Link>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="db-empty-line">No exceptions reported.</p>
-      )}
-      {summary.clear.length || summary.unmeasured.length ? (
-        <p className="db-foot-line">
-          {summary.clear.length ? <>None today: {summary.clear.join(', ')}.</> : null}
-          {summary.clear.length && summary.unmeasured.length ? ' ' : null}
-          {summary.unmeasured.length ? (
-            <>Not measured yet: {summary.unmeasured.join(', ')}.</>
-          ) : null}
-        </p>
-      ) : null}
-    </Card>
-  );
-}
-
 /* ── Trucks needing attention ────────────────────────────────────────── */
 
 const DARK_LIMIT = 10;
@@ -371,6 +336,7 @@ function TrucksCard({ groups, live, reconnect, accountsSummary, day }) {
     <Card
       title="Trucks needing attention"
       className="db-trucks"
+      liveNote={digestDay.notFor(day)}
       action={
         <Link className="db-link" to="/live-tracking">
           Live map <ArrowUpRight size={13} />
@@ -380,7 +346,7 @@ function TrucksCard({ groups, live, reconnect, accountsSummary, day }) {
       {live?.isLoading && !dark.length ? (
         <DigestSkeleton label="Loading live positions" />
       ) : nothing ? (
-        <p className="db-empty-line">Every truck is reporting and none is stuck.</p>
+        <p className="db-empty-line">No trucks need attention from the available live feeds.</p>
       ) : (
         <div className="db-groups">
           {dark.length ? (
@@ -521,8 +487,8 @@ function TrucksCard({ groups, live, reconnect, accountsSummary, day }) {
 /* ── The day in numbers ──────────────────────────────────────────────── */
 
 const TREND_REPEATS = new Set(['trips', 'km']);
-
-const sentence = (text) => (text ? text.charAt(0).toUpperCase() + text.slice(1) : text);
+/** Sections the server always reads as they are now, whatever the day. */
+const LIVE_SECTIONS = new Set(['fleetNow', 'dataHealth']);
 
 function ReportSection({ section, onRetry, isPendingDay, builtAt, day }) {
   const state = sectionState(section);
@@ -549,25 +515,29 @@ function ReportSection({ section, onRetry, isPendingDay, builtAt, day }) {
   // Unknowns are grouped by their reason: one line each, never a column of dashes.
   const unknownGroups = [];
   for (const pair of shown.filter((p) => p.unknown)) {
-    const reason = pair.note || 'Not measured';
+    const reason = pair.note || 'Not available yet';
     const group = unknownGroups.find((g) => g.reason === reason);
     if (group) group.labels.push(pair.label);
     else unknownGroups.push({ reason, labels: [pair.label] });
   }
   const route = drillRoute(drillTarget(section));
   const title =
-    section?.id === 'yesterdaysWork' && isPendingDay
-      ? 'Today so far'
-      : section?.id === 'fleetNow' && builtAt
-        ? `Fleet at ${builtAt}`
+    section?.id === 'yesterdaysWork'
+      ? digestDay.workTitle(day)
+      : section?.id === 'fleetNow'
+        ? isPendingDay && builtAt
+          ? `Fleet at ${builtAt}`
+          : 'Fleet now'
         : sectionTitle(section);
-  const footer = formatFooterText(sectionFooter(section));
-
+  // Read live whatever the day: on a past day they say so.
+  const liveNote = LIVE_SECTIONS.has(section?.id) ? digestDay.notFor(day) : null;
   return (
     <Card
       title={title}
       className={`db-report db-report--${state}`}
-      info={footer ? `How we know: ${footer}` : null}
+      info={sectionCopy.about(section)}
+      infoBasis={sectionCopy.updated(section)}
+      liveNote={liveNote}
       action={
         route && state !== 'error' ? (
           <Link className="db-link" to={route} day={day}>
@@ -585,8 +555,13 @@ function ReportSection({ section, onRetry, isPendingDay, builtAt, day }) {
         </>
       ) : state === 'empty' ? (
         <p className="db-empty-line">
-          <span className="db-badge">Nothing recorded</span> {sentence(sectionReason(section))}
+          <span className="db-badge">Nothing recorded</span>
+          <span className="db-empty-text">
+            {sectionCopy.empty(section, { pending: isPendingDay })}
+          </span>
         </p>
+      ) : section?.id === 'trend' ? (
+        <TrendBody numbers={section.numbers} day={day} pending={isPendingDay} />
       ) : (
         <>
           {known.length ? (
@@ -750,7 +725,8 @@ function BriefingPanel({
               </p>
             </Card>
           ) : (
-            <ExceptionsCard
+            <AttentionCard
+              key={`${day}:${report$.data?.generatedAt || ''}`}
               day={day}
               section={byId.exceptions}
               loading={reportLoading}
@@ -773,7 +749,7 @@ function BriefingPanel({
           Not tracked yet:{' '}
           {untracked.map((s) => (s.id === 'moneyIn' ? 'Money in' : 'People')).join(', ')}
           <InfoTip
-            text={untracked.map((s) => `${sectionTitle(s)}: ${sectionReason(s)}`).join(' · ')}
+            text={untracked.map((s) => `${sectionTitle(s)}: ${sectionCopy.empty(s)}`).join(' · ')}
             label="Why these are not tracked"
           />
         </p>
@@ -819,7 +795,7 @@ function BriefingPanel({
             context={story.goodDrivers}
             title="Who drove well"
             items={goodDrivers}
-            info="Drivers who beat your own fleet average in their learned score window. Each driver link opens that window."
+            info={digestExplain.goodDrivers()}
             reason={story.goodDrivers?.why?.text || null}
             emptyTo={
               story.goodDrivers ? story.goodDrivers.link?.to || '/intelligence?tab=drivers' : null
@@ -838,7 +814,7 @@ function BriefingPanel({
                   ? `/intelligence?tab=vehicles&vehicle=${encodeURIComponent(s.id)}`
                   : `/intelligence?tab=drivers&driver=${encodeURIComponent(s.id || '')}`),
             }))}
-            info="Trucks and drivers whose behaviour dropped in their learned score window. Each link opens that window."
+            info={digestExplain.needsWord()}
             reason={story.needsWord?.why?.text || null}
             emptyTo={
               story.needsWord ? story.needsWord.link?.to || '/intelligence?tab=drivers' : null
