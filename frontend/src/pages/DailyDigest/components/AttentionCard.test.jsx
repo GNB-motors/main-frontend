@@ -18,7 +18,12 @@ const SECTION = {
   numbers: { attentionVersion: 2 },
   rows: [
     kindRow('sos', 0),
-    kindRow('moneyTheft', 5),
+    kindRow('moneyTheft', 2, 'day', {
+      rows: [
+        { id: 'l1', registrationNumber: 'WB11T0662', missingL: 329.7 },
+        { id: 'l2', registrationNumber: 'WB11L8862', missingL: 255.2 },
+      ],
+    }),
     kindRow('routeDeviations', 2),
     kindRow('idling', 119, 'day', { numbers: { thresholdMin: 20, verifiedIdleMinutes: 8880 } }),
     kindRow('stuckAtPlant', 1),
@@ -61,9 +66,6 @@ describe('Needs attention', () => {
     expect(reviewHref('Long idling')).toBe(
       '/intelligence?tab=idling&idleSubview=instances&idleView=spots&from=2026-11-04&to=2026-11-04',
     );
-    expect(reviewHref('Possible fuel loss')).toBe(
-      '/intelligence?tab=fuel&fuelView=drain&from=2026-11-04&to=2026-11-04',
-    );
     expect(reviewHref('Long waits at plants')).toBe(
       '/auto-trips?tab=history&minDwellMin=180&from=2026-11-04&to=2026-11-04&range=custom',
     );
@@ -71,6 +73,26 @@ describe('Needs attention', () => {
     expect(reviewHref('Bills to approve')).toBe('/khata-ledger?tab=all&expenseStatus=PENDING');
     expect(reviewHref('Alerts to acknowledge')).toBe('/alert-inbox?inboxStatus=OPEN');
     expect(screen.queryByRole('region', { name: /^Review / })).toBeNull();
+  });
+
+  it('names the trucks with possible fuel loss, each opening its own Fuel tab (no page lists them)', () => {
+    renderCard();
+    expect(screen.queryByRole('link', { name: 'Review Possible fuel loss' })).toBeNull();
+    const chip = screen.getByRole('link', { name: /WB11T0662/ });
+    expect(chip.getAttribute('href')).toBe('/vehicles/WB11T0662?tab=fuel');
+    expect(chip.textContent).toContain('329.7 L missing');
+    expect(screen.getByRole('link', { name: /WB11L8862/ })).toBeTruthy();
+  });
+
+  it('says a day is not checked yet instead of "none" while the fuel check has not run', () => {
+    renderCard({
+      ...SECTION,
+      rows: SECTION.rows.map((r) =>
+        r.kind === 'moneyTheft' ? { ...r, count: null, state: 'pending', rows: [] } : r,
+      ),
+    });
+    expect(screen.getByText('Fuel loss is checked after the day ends.')).toBeTruthy();
+    expect(screen.queryByText('No possible fuel loss on this day.')).toBeNull();
   });
 
   it('a category that failed to load says so and shows no count', () => {

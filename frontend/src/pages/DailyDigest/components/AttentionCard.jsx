@@ -17,7 +17,8 @@ const LIVE_KINDS = new Set(['papersWaiting', 'documentsExpiring', 'broadcastNotA
  */
 const DESTINATION = {
   sos: '/alert-inbox?inboxView=INCIDENTS',
-  moneyTheft: '/intelligence?tab=fuel',
+  // No page lists the daily fuel check's flagged trucks: possible fuel loss
+  // names them as chips, each opening that truck's Fuel tab (TruckList).
   fuelOrRoute: '/intelligence?tab=fuel',
   routeDeviations: '/intelligence?tab=detours',
   idling: '/intelligence?tab=idling&idleSubview=instances',
@@ -76,8 +77,37 @@ function Review({ row, day }) {
   );
 }
 
+/** The flagged trucks themselves, each opening its own Fuel tab. */
+function TruckList({ row }) {
+  const trucks = (row.rows || []).filter((t) => t.registrationNumber);
+  if (!trucks.length) return <span className="db-attention-none" />;
+  const more = Number.isFinite(row.count) ? row.count - trucks.length : 0;
+  return (
+    <ul className="db-chips db-chips--tight db-attention-trucks">
+      {trucks.map((t) => (
+        <li key={t.id || t.registrationNumber}>
+          <Link
+            className="db-chip"
+            to={`/vehicles/${encodeURIComponent(t.registrationNumber)}?tab=fuel`}
+          >
+            <span className="db-chip-reg">{t.registrationNumber}</span>
+            {t.missingL != null ? (
+              <span className="db-chip-detail">{`${t.missingL} L missing`}</span>
+            ) : null}
+          </Link>
+        </li>
+      ))}
+      {more > 0 ? <li className="db-muted">{`+${more} more`}</li> : null}
+    </ul>
+  );
+}
+
 function Category({ row, day }) {
   if (row.state === 'unmeasured') return null;
+  // Not checked yet (the day's fuel check runs after the day ends): never "none".
+  if (row.state === 'pending') {
+    return <li className="db-attention-clear">{attentionCopy.pending(row.kind)}</li>;
+  }
   const failed = row.state === 'error';
   if (!failed && row.count === 0) {
     return <li className="db-attention-clear">{attentionCopy.none(row.kind, row.period)}</li>;
@@ -92,7 +122,12 @@ function Category({ row, day }) {
         {failed || row.count == null ? '—' : row.count.toLocaleString('en-IN')}
         <small>{attentionCopy.unit(row.kind, row.count)}</small>
       </div>
-      <Review row={row} day={day} />
+      {row.kind === 'moneyTheft' ? (
+        <span className="db-attention-none" />
+      ) : (
+        <Review row={row} day={day} />
+      )}
+      {row.kind === 'moneyTheft' && !failed ? <TruckList row={row} /> : null}
     </li>
   );
 }

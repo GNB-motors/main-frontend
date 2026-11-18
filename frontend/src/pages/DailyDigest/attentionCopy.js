@@ -83,6 +83,11 @@ const attentionCopy = {
   /** "No long idling on this day." / "No bills to approve right now." */
   none: (kind, period) =>
     `No ${lowerFirst(KINDS[kind]?.label || 'items')} ${period === 'live' ? 'right now' : 'on this day'}.`,
+  /** A day the check has not run for yet. */
+  pending: (kind) =>
+    kind === 'moneyTheft'
+      ? 'Fuel loss is checked after the day ends.'
+      : `${KINDS[kind]?.label || 'This'} is checked after the day ends.`,
   failed: 'Could not load this. Try again.',
   kinds: Object.keys(KINDS),
 };

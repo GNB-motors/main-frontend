@@ -1423,3 +1423,9 @@
 .db-grid > .db-col:not(.db-col--primary) > .db-card:last-child {
   flex: 1;
 }
+
+/* The flagged trucks under a "Needs attention" row, across the whole row. */
+.db-attention-trucks {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+}
