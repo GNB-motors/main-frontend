@@ -173,7 +173,13 @@ export default function Vehicle360Page() {
     <div className="v360">
       <Breadcrumbs reg={reg} />
 
-      <VehicleHeaderCard reg={reg} profile={p} onGoTab={setActive} overview={sharedOverview} />
+      <VehicleHeaderCard
+        reg={reg}
+        profile={p}
+        onGoTab={setActive}
+        overview={sharedOverview}
+        refreshOverview={refetch}
+      />
 
       <Tabs tabs={TABS} active={active} onChange={setActive} />
 

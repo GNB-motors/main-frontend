@@ -551,3 +551,39 @@ it('previews the exact bulk suggestions, cancels safely and writes only after co
     category: 'FUEL_PUMP',
   });
 });
+
+it('does not reuse the counts of the previous filter when the list answers without counts', async () => {
+  let listReads = 0;
+  AutoTripService.list.mockImplementation(async (params) => {
+    if (params.limit === 50) {
+      listReads += 1;
+      // The first read of the filter answers with counts; the next one answers
+      // without any (the `withCounts` fallback).
+      return listReads === 1
+        ? {
+            items: [{ _id: 't1', registrationNumber: 'WB-ACTUAL', status: 'OPEN' }],
+            total: 1,
+            tabCounts: { OPEN: 7, total: 7 },
+          }
+        : { items: [], total: 0 };
+    }
+    return { items: [], total: 0 };
+  });
+  open();
+  expect(await screen.findByRole('tab', { name: 'On the road 7' })).toBeInTheDocument();
+
+  // Another filter: the list settles without counts. The counts of the
+  // previous filter are not this filter's counts, and nobody answered these
+  // ones either - they are unknown, not zero.
+  fireEvent.click(screen.getByRole('tab', { name: 'Needs your answer 0' }));
+  await waitFor(() =>
+    expect(screen.getByRole('tab', { name: 'On the road —' })).toBeInTheDocument(),
+  );
+  expect(screen.queryByRole('tab', { name: 'On the road 7' })).not.toBeInTheDocument();
+  expect(screen.getByRole('tab', { name: 'Trips —' })).toBeInTheDocument();
+
+  // The plant-to-plant count is unknown too: its tab stays and says so.
+  fireEvent.click(screen.getByRole('tab', { name: /More/ }));
+  const reposition = await screen.findByRole('menuitem', { name: /Plant to plant/ });
+  expect(reposition.textContent).toContain('—');
+});

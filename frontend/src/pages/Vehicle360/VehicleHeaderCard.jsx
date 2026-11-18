@@ -122,7 +122,13 @@ function TruckIllustration({ reg, axles, fuelPercent }) {
   );
 }
 
-export default function VehicleHeaderCard({ reg, profile, onGoTab, overview: sharedOverview }) {
+export default function VehicleHeaderCard({
+  reg,
+  profile,
+  onGoTab,
+  overview: sharedOverview,
+  refreshOverview,
+}) {
   const [specsOpen, setSpecsOpen] = useState(false);
   const [fuelLogOpen, setFuelLogOpen] = useState(false);
   const { fleetMaster: vehicle, fleetEdge, ialert, livePosition, health, prediction } = profile;
@@ -132,6 +138,15 @@ export default function VehicleHeaderCard({ reg, profile, onGoTab, overview: sha
     dedupeKey: `vehicle-overview:${reg}`,
   });
   const overviewData = sharedOverview ?? overview.data;
+  // With a shared overview the local read is off, so the page's own refetch is
+  // what refreshes the header's fuel, DEF and odometer tiles.
+  const refreshHeader = () => {
+    if (sharedOverview) {
+      refreshOverview?.();
+      return;
+    }
+    overview.refetch();
+  };
   const [fuel, def] = fluidLevels(overviewData, health, vehicle, ialert);
   const view = viewOf(livePosition);
   const axles = vehicleAxles(vehicle);
@@ -336,7 +351,7 @@ export default function VehicleHeaderCard({ reg, profile, onGoTab, overview: sha
             registrationNumber={reg}
             vehicleId={vehicle?._id || vehicle?.id || ''}
             onOpenChange={setFuelLogOpen}
-            onConfirmed={() => overview.refetch()}
+            onConfirmed={() => refreshHeader()}
           />
         </Suspense>
       ) : null}

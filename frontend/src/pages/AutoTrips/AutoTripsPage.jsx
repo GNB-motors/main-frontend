@@ -27,8 +27,8 @@ import { suggestedPlaceAnswer } from './placeQuestionCategories';
 import TripKpiStrip from './TripKpiStrip';
 import NeedsAnswerBanner from './NeedsAnswerBanner';
 import AutoTripCoverage from './AutoTripCoverage';
-import { actualTripCount, deliveredTripCount, typicalRun } from './tripListModel';
-import { listTripsWithCounts } from './tripCounts';
+import { actualTripCount, typicalRun } from './tripListModel';
+import { listTripsWithCounts, resolveTabCounts } from './tripCounts';
 import { rangeToParams, readRange, writeRange } from './tripRange';
 import './AutoTrips.css';
 import './TripsWorkspace.css';
@@ -162,11 +162,13 @@ export default function AutoTripsPage() {
   );
 
   // The counts the backend answers with the list itself (`?withCounts=1`): one
-  // key per tab status plus `total`, beside the list. The last ones are kept
-  // so a filter change does not blank the counts while the list reloads.
+  // key per tab status plus `total`, beside the list. While the current filter
+  // is loading, the last ones are kept so the counts do not blank. Once it has
+  // settled without counts, nothing is carried over: the counts of the
+  // previous filter are not this filter's counts.
   const countsRef = useRef(null);
   if (data?.tabCounts) countsRef.current = data.tabCounts;
-  const listCounts = data?.tabCounts ?? countsRef.current ?? null;
+  const listCounts = data?.tabCounts ?? (loading ? countsRef.current : null);
 
   const planParams = {
     page: planned ? page : 1,
@@ -229,9 +231,16 @@ export default function AutoTripsPage() {
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
-  const tabCounts = listCounts ?? {};
-  const allCount = actualTripCount(tabCounts);
-  const deliveredCount = deliveredTripCount(tabCounts);
+  // The counts to show: the list's own, or the ones the other reads carry
+  // where they are exact. What nobody answered is unknown ('—'), never a zero.
+  const counts = resolveTabCounts({
+    listCounts,
+    deliveredTotal: deliveredSample.data?.total,
+    waitingTotal: waitingSample.data?.total,
+    waitingCounts: waitingSample.data?.tabCounts,
+  });
+  const allCount = counts.all;
+  const deliveredCount = counts.delivered;
   const plannedCount = plans.data?.total ?? 0;
   const visibleTotal = planned ? (plans.data?.total ?? 0) : total;
   const totalPages = Math.max(1, Math.ceil(visibleTotal / PAGE_SIZE));
@@ -243,10 +252,13 @@ export default function AutoTripsPage() {
         : key === 'COMPLETE'
           ? deliveredCount
           : key === 'REPOSITION'
-            ? (tabCounts.reposition ?? tabCounts.REPOSITION ?? 0)
-            : (tabCounts[key] ?? 0);
+            ? counts.reposition
+            : counts.tab(key);
+  // A tab whose count nobody answered stays visible: hiding it would say
+  // "there are none" when the truth is "we do not know".
   const moreTabs = MORE_TABS.filter(
-    (t) => !t.hideWhenEmpty || countFor(t.key) > 0 || statusTab === t.key,
+    (t) =>
+      !t.hideWhenEmpty || countFor(t.key) == null || countFor(t.key) > 0 || statusTab === t.key,
   );
   const activeMoreTab =
     moreTabs.find((t) => statusTab === t.key) || VIEWS.find((v) => viewTab === v.key) || null;
@@ -361,7 +373,7 @@ export default function AutoTripsPage() {
     />
   );
 
-  const reviewCount = waitingSample.data?.tabCounts?.NEEDS_REVIEW ?? 0;
+  const reviewCount = counts.review;
   const showBanner =
     !viewTab && (statusTab === '' || statusTab === 'NEEDS_REVIEW') && reviewCount > 0;
 
@@ -513,7 +525,7 @@ export default function AutoTripsPage() {
           counts={{
             all: allCount,
             delivered: deliveredCount,
-            open: tabCounts.OPEN ?? 0,
+            open: counts.open,
             review: reviewCount,
           }}
           todayCount={todayCount}
