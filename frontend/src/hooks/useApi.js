@@ -45,6 +45,17 @@ function joinRequest(key, factory, subscriberSignal) {
 }
 
 /**
+ * The shared in-flight registry, for a read that is not a useApi one.
+ * The same read asked for at the same moment is one request; the request is
+ * aborted only when every caller has walked away. `key` must describe the
+ * read itself (method + url + params) — it is scoped to the session, so
+ * another user, org or branch never joins it.
+ */
+export function dedupeRequest(key, factory, subscriberSignal) {
+  return joinRequest(`${apiMemo.currentScope()}::${key}`, factory, subscriberSignal);
+}
+
+/**
  * useApi — the house data-fetching primitive.
  *
  * const { data, loading, error, refetch } = useApi(
@@ -59,7 +70,7 @@ function joinRequest(key, factory, subscriberSignal) {
  *   `cacheMs` ago is shown without a request (utils/apiMemo: per user, org and
  *   branch, this tab only). `refetch` always asks the server and refills it.
  * - `dedupeKey` (opt-in): the same read asked for by several components at
- *   the same moment is one request. The key must describe the read itself
+ *   the same time is one request. The key must describe the read itself
  *   (method + url + params), e.g. `vehicle-overview:ABC123`.
  */
 export function useApi(
@@ -94,9 +105,8 @@ export function useApi(
       setError(null);
       // The same read asked for at the same time is one request, not N.
       const request = dedupeKey
-        ? joinRequest(
-            // Scoped to the session: another user/org never joins this read.
-            `${apiMemo.currentScope()}::${dedupeKey}`,
+        ? dedupeRequest(
+            dedupeKey,
             (sharedSignal) => fetcherRef.current(sharedSignal),
             controller.signal,
           )

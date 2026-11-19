@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { filterIndianPumps } from './indiaPumpFilter';
 import { fleetViewService } from '../../services/fleetViewService';
+import { dedupeRequest } from '../../hooks/useApi.js';
 import { apiLayerNames, layersForZoom, LAYER_API_NAMES } from './trackLegendModel';
 
 const EMPTY = [];
@@ -9,7 +10,10 @@ const CACHE_MS = 5 * 60 * 1000;
 const SETTLE_MS = 180;
 const contains = (outer, inner) =>
   outer[0] <= inner[0] && outer[1] <= inner[1] && outer[2] >= inner[2] && outer[3] >= inner[3];
-const sameBox = (a, b) => a.every((value, i) => value === b[i]);
+// A pan keeps the size of the box; a zoom changes it.
+const sameSize = (a, b) =>
+  Math.abs(a[2] - a[0] - (b[2] - b[0])) <= (a[2] - a[0]) * 0.02 &&
+  Math.abs(a[3] - a[1] - (b[3] - b[1])) <= (a[3] - a[1]) * 0.02;
 const padded = ([south, west, north, east]) => {
   const lat = (north - south) * 0.25;
   const lng = (east - west) * 0.25;
@@ -22,8 +26,10 @@ const padded = ([south, west, north, east]) => {
 };
 
 /** Keep the last good markers while fetching a settled, buffered viewport.
- * Complete responses cover nearby pans/zoom-ins; truncated responses only
- * cover the exact viewport requested, so zooming in can still reveal all POIs.
+ * Complete responses cover nearby pans/zoom-ins; truncated responses are a
+ * nearest-N sample around the box they were asked for, so a pan inside the
+ * padded box may show that sample as it is, while a zoom needs a fresh
+ * sample centred on the tighter box.
  * Cache is bounded and belongs to this mounted page (reset on branch change).
  */
 export default function useMapPlaces({
@@ -60,7 +66,8 @@ export default function useMapPlaces({
       (entry) =>
         entry.layers === queryKey &&
         Date.now() - entry.at < CACHE_MS &&
-        (entry.data.truncated ? sameBox(entry.view, view) : contains(entry.bounds, view)),
+        contains(entry.bounds, view) &&
+        (!entry.data.truncated || sameSize(entry.view, view)),
     );
     if (hit) {
       setState({
@@ -79,12 +86,18 @@ export default function useMapPlaces({
     const timer = setTimeout(async () => {
       const bounds = padded(view);
       try {
-        let data = await fleetViewService.getMapPlaces({
-          bbox: [bounds[1], bounds[0], bounds[3], bounds[2]].join(','),
-          layers: layerParam,
-          visitedLayers,
-          signal: controller.signal,
-        });
+        // The same read asked for at the same moment is one request, not N.
+        let data = await dedupeRequest(
+          `map-places:${layerParam}|${visitedLayers}|${bounds.join(',')}`,
+          (sharedSignal) =>
+            fleetViewService.getMapPlaces({
+              bbox: [bounds[1], bounds[0], bounds[3], bounds[2]].join(','),
+              layers: layerParam,
+              visitedLayers,
+              signal: sharedSignal,
+            }),
+          controller.signal,
+        );
         if (controller.signal.aborted) return;
         if (!data?.held && Array.isArray(data?.items)) {
           data = { ...data, items: await filterIndianPumps(data.items, ['pumps', 'dhabas']) };
