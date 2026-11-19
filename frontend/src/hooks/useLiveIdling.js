@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useLiveData } from './useLiveData';
+import { useVisibleInterval } from './useVisibleInterval';
 import IdlingConsoleService from '../pages/IdlingConsole/IdlingConsoleService';
 
 /**
@@ -77,27 +78,15 @@ export function useLiveIdling({
     // The stream just opened: read now, so the chips are fresh without
     // waiting for the first push.
     if (open && !wasOpen) refresh();
-    // The poll never stops: with the stream open it is slow, without it the
-    // stream is not carrying the feed and the read is the only refresh.
-    const timer = setInterval(
-      () => {
-        refresh();
-      },
-      open ? openPollMs : pollMs,
-    );
-    return () => clearInterval(timer);
-  }, [enabled, pollMs, openPollMs, refresh, connectionState]);
+  }, [enabled, refresh, connectionState]);
 
-  // A tab that was in the background keeps its minutes stale: read on the way
-  // back in.
-  useEffect(() => {
-    if (!enabled || typeof document === 'undefined') return undefined;
-    const onVisibility = () => {
-      if (document.visibilityState === 'visible') refresh();
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
-  }, [enabled, refresh]);
+  // The poll never stops: with the stream open it is slow, without it the
+  // stream is not carrying the feed and the read is the only refresh. It only
+  // runs while the tab is visible — a tab nobody looks at does not need its
+  // minutes to keep moving, and it reads the moment it is looked at again.
+  useVisibleInterval(() => refresh(), connectionState === 'open' ? openPollMs : pollMs, {
+    enabled,
+  });
 
   return {
     idling: data ?? [],

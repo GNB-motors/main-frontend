@@ -74,7 +74,7 @@ describe('the full tank report', () => {
   it('asks the backend for the 90-day full-tank tab', async () => {
     await renderReport(FIXTURE);
     expect(apiClient.get).toHaveBeenCalledWith(
-      'api/reports/fuel-cycles/full-tank-tab',
+      '/api/reports/fuel-cycles/full-tank-tab',
       expect.objectContaining({ params: { days: 90, search: '' } }),
     );
   });

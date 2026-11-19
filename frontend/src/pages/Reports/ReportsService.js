@@ -23,7 +23,7 @@ export const ReportsService = {
    */
   getVehicleReports: async (params = {}, signal) => {
     try {
-      const response = await apiClient.get(`api/reports/vehicles`, { params, signal });
+      const response = await apiClient.get(`/api/reports/vehicles`, { params, signal });
       return {
         data: Array.isArray(response.data?.data) ? response.data.data : [],
         meta: response.data?.meta || { total: 0, page: 1, limit: 20, totalPages: 0 },
@@ -63,7 +63,7 @@ export const ReportsService = {
    */
   getMileageIntervalReports: async (params = {}, signal) => {
     try {
-      const response = await apiClient.get(`api/reports/mileage-intervals`, { params, signal });
+      const response = await apiClient.get(`/api/reports/mileage-intervals`, { params, signal });
       return {
         data: Array.isArray(response.data?.data) ? response.data.data : [],
         meta: response.data?.meta || { total: 0, page: 1, limit: 20, totalPages: 0 },
@@ -102,7 +102,7 @@ export const ReportsService = {
   },
 
   getFuelCycles: (params = {}, signal) =>
-    ReportsService._getTripReport('api/reports/fuel-cycles', params, signal),
+    ReportsService._getTripReport('/api/reports/fuel-cycles', params, signal),
   /**
    * One fuel cycle's trips and fuel slips (drop-down under a Fuel Cycles row).
    * @returns {Promise<{ cycle: Object, summary: Object|null, trips: Array, slips: Array }>}
@@ -110,7 +110,7 @@ export const ReportsService = {
   getFuelCycleTrips: async (cycleId, signal) => {
     try {
       const response = await apiClient.get(
-        `api/reports/fuel-cycles/${encodeURIComponent(cycleId)}/trips`,
+        `/api/reports/fuel-cycles/${encodeURIComponent(cycleId)}/trips`,
         { signal },
       );
       const body = await parseSafe('fuelCycleTripsSchema', hubSchemas, response.data ?? null);
@@ -143,7 +143,7 @@ export const ReportsService = {
    */
   getFullTankTab: async (params = {}, signal) => {
     try {
-      const response = await apiClient.get('api/reports/fuel-cycles/full-tank-tab', {
+      const response = await apiClient.get('/api/reports/fuel-cycles/full-tank-tab', {
         params,
         signal,
       });
@@ -158,14 +158,14 @@ export const ReportsService = {
   },
 
   getNonBusiness: (params = {}, signal) =>
-    ReportsService._getTripReport('api/reports/non-business', params, signal),
+    ReportsService._getTripReport('/api/reports/non-business', params, signal),
   getRunningCost: (params = {}, signal) =>
-    ReportsService._getTripReport('api/reports/running-cost', params, signal),
+    ReportsService._getTripReport('/api/reports/running-cost', params, signal),
 
   /**
    * Generic filtered CSV export — call any report `/export` endpoint with the
    * same filters used by the table. Reuse from Mileage, Driver, etc.
-   * @param {string} endpoint - e.g. 'api/reports/mileage-intervals/export'
+   * @param {string} endpoint - e.g. '/api/reports/mileage-intervals/export'
    * @param {object} params - active filters only
    * @returns {Promise<Blob>}
    */
@@ -208,7 +208,7 @@ export const ReportsService = {
    */
   getDriverReports: async (params = {}, signal) => {
     try {
-      const response = await apiClient.get(`api/reports/drivers`, { params, signal });
+      const response = await apiClient.get(`/api/reports/drivers`, { params, signal });
       return {
         data: Array.isArray(response.data?.data) ? response.data.data : [],
         meta: response.data?.meta || { total: 0, page: 1, limit: 20, totalPages: 0 },
@@ -228,7 +228,7 @@ export const ReportsService = {
    */
   searchVehicles: async (query, { signal, limit = 20, manufacturer } = {}) => {
     try {
-      const response = await apiClient.get('api/vehicles', {
+      const response = await apiClient.get('/api/vehicles', {
         params: {
           limit,
           ...(manufacturer ? { manufacturer } : {}),
@@ -257,7 +257,7 @@ export const ReportsService = {
    */
   searchDrivers: async (query, { signal, limit = 20 } = {}) => {
     try {
-      const response = await apiClient.get('api/employees', {
+      const response = await apiClient.get('/api/employees', {
         params: { role: 'DRIVER', limit, ...(query ? { search: query } : {}) },
         signal,
       });
@@ -284,7 +284,7 @@ export const ReportsService = {
    */
   getExtensionStatus: async (params = {}) => {
     try {
-      const response = await apiClient.get(`api/extension/status`, { params });
+      const response = await apiClient.get(`/api/extension/status`, { params });
       return response.data?.data || response.data || {};
     } catch (error) {
       if (error?.name === 'CanceledError') throw error;
@@ -299,7 +299,7 @@ export const ReportsService = {
    */
   getExtensionFlagged: async (params = {}) => {
     try {
-      const response = await apiClient.get(`api/extension/flagged`, { params });
+      const response = await apiClient.get(`/api/extension/flagged`, { params });
       return (
         response.data?.data ||
         response.data || { records: [], total: 0, page: 1, limit: 20, totalPages: 0 }
@@ -317,7 +317,7 @@ export const ReportsService = {
    */
   getExtensionComparisons: async (params = {}) => {
     try {
-      const response = await apiClient.get(`api/extension/comparisons`, { params });
+      const response = await apiClient.get(`/api/extension/comparisons`, { params });
       return (
         response.data?.data ||
         response.data || { records: [], total: 0, page: 1, limit: 20, totalPages: 0 }
@@ -330,7 +330,7 @@ export const ReportsService = {
 
   getPendingReviewTasks: async (params = {}) => {
     try {
-      const response = await apiClient.get(`api/extension/fuel-comparison/pending-review`, {
+      const response = await apiClient.get(`/api/extension/fuel-comparison/pending-review`, {
         params,
       });
       return (
@@ -346,7 +346,7 @@ export const ReportsService = {
   approveReviewTask: async (taskId, updates = {}) => {
     try {
       const response = await apiClient.put(
-        `api/extension/fuel-comparison/${taskId}/review`,
+        `/api/extension/fuel-comparison/${taskId}/review`,
         updates,
       );
       return response.data?.data || response.data || {};
@@ -359,7 +359,7 @@ export const ReportsService = {
   /** GET /api/extension/fleetedge/status — multi-account connectivity info */
   getFleetEdgeConnectivity: async () => {
     try {
-      const response = await apiClient.get('api/extension/fleetedge/status');
+      const response = await apiClient.get('/api/extension/fleetedge/status');
       return response.data?.data || response.data || { accounts: [], pull: {} };
     } catch (error) {
       logger.warn(
@@ -374,7 +374,7 @@ export const ReportsService = {
   /** GET /api/extension/user-errors — unacknowledged errors (includes FLEETEDGE_REAUTH_REQUIRED) */
   getUserErrors: async () => {
     try {
-      const response = await apiClient.get('api/extension/user-errors');
+      const response = await apiClient.get('/api/extension/user-errors');
       return response.data?.data || response.data || [];
     } catch (error) {
       logger.warn(
@@ -406,7 +406,7 @@ export const ReportsService = {
   /** POST /api/extension/fleetedge/process-tasks — on-demand pull + backfill */
   triggerPullNow: async () => {
     try {
-      const response = await apiClient.post('api/extension/fleetedge/process-tasks');
+      const response = await apiClient.post('/api/extension/fleetedge/process-tasks');
       return response.data?.data || response.data || {};
     } catch (error) {
       if (error?.name === 'CanceledError') throw error;
@@ -452,31 +452,53 @@ export const ReportsService = {
       // Fallback mock preview generator when API is not yet deployed on remote server (404)
       const fields = config.fields || [];
       const count = 10;
-      const vehicles = ['MH-12-AB-1234', 'DL-01-XY-5678', 'KA-05-CD-9012', 'MH-04-EF-3456', 'GJ-01-GH-7890'];
+      const vehicles = [
+        'MH-12-AB-1234',
+        'DL-01-XY-5678',
+        'KA-05-CD-9012',
+        'MH-04-EF-3456',
+        'GJ-01-GH-7890',
+      ];
       const drivers = ['Ramesh Singh', 'Suresh Patel', 'Vikram Yadav', 'Mohan Lal', 'Anil Sharma'];
-      const pumps = ['IndianOil City Central', 'HPCL Highway Hub #4', 'BPCL Auto Station', 'Shell Express Retail'];
-      
+      const pumps = [
+        'IndianOil City Central',
+        'HPCL Highway Hub #4',
+        'BPCL Auto Station',
+        'Shell Express Retail',
+      ];
+
       const rows = [];
       for (let i = 0; i < count; i++) {
         const row = { _id: `row-${i + 1}`, id: `row-${i + 1}` };
         fields.forEach((fKey) => {
-          if (fKey === 'vehicleNo' || fKey === 'vehicleNumber') row[fKey] = vehicles[i % vehicles.length];
+          if (fKey === 'vehicleNo' || fKey === 'vehicleNumber')
+            row[fKey] = vehicles[i % vehicles.length];
           else if (fKey === 'driverName') row[fKey] = drivers[i % drivers.length];
           else if (fKey === 'driverPhone') row[fKey] = `+91 98765 ${43210 + i}`;
           else if (fKey === 'driverStatus') row[fKey] = i % 3 === 0 ? 'ACTIVE' : 'ON_DUTY';
-          else if (fKey === 'fuelDate') row[fKey] = new Date(Date.now() - i * 86400000).toISOString();
+          else if (fKey === 'fuelDate')
+            row[fKey] = new Date(Date.now() - i * 86400000).toISOString();
           else if (fKey === 'fuelQuantity') row[fKey] = 45 + ((i * 7) % 30);
           else if (fKey === 'fuelAmount') row[fKey] = (45 + ((i * 7) % 30)) * 94.5;
           else if (fKey === 'fuelRate') row[fKey] = 94.5;
           else if (fKey === 'fuelType') row[fKey] = config.filters?.fuelType || 'DIESEL';
-          else if (fKey === 'fuelStation' || fKey === 'pumpName') row[fKey] = pumps[i % pumps.length];
-          else if (fKey === 'fuelMileage' || fKey === 'mileage') row[fKey] = Number((4.2 + ((i * 0.3) % 2)).toFixed(2));
+          else if (fKey === 'fuelStation' || fKey === 'pumpName')
+            row[fKey] = pumps[i % pumps.length];
+          else if (fKey === 'fuelMileage' || fKey === 'mileage')
+            row[fKey] = Number((4.2 + ((i * 0.3) % 2)).toFixed(2));
           else if (fKey === 'defLevel') row[fKey] = 60 + ((i * 4) % 35);
           else if (fKey === 'defMileage') row[fKey] = Number((180 + ((i * 15) % 80)).toFixed(1));
           else if (fKey === 'distanceKm' || fKey === 'tripDistance') row[fKey] = 120 + i * 45;
           else if (fKey === 'tripStart') row[fKey] = 'Mumbai Yard #2';
           else if (fKey === 'tripEnd') row[fKey] = 'Pune Distribution Hub';
-          else if (fKey === 'rcStatus' || fKey === 'fitnessStatus' || fKey === 'insuranceStatus' || fKey === 'permitStatus' || fKey === 'puccStatus') row[fKey] = 'VALID';
+          else if (
+            fKey === 'rcStatus' ||
+            fKey === 'fitnessStatus' ||
+            fKey === 'insuranceStatus' ||
+            fKey === 'permitStatus' ||
+            fKey === 'puccStatus'
+          )
+            row[fKey] = 'VALID';
           else row[fKey] = `Sample ${fKey} ${i + 1}`;
         });
         rows.push(row);

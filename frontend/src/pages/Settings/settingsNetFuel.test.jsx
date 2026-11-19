@@ -29,7 +29,7 @@ describe('Settings — oil report standard mileage', () => {
     fireEvent.change(await screen.findByDisplayValue('2.9'), { target: { value: '3.1' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() =>
-      expect(apiClient.patch).toHaveBeenCalledWith('api/fuel-settings', { netFuelKmPerL: 3.1 }),
+      expect(apiClient.patch).toHaveBeenCalledWith('/api/fuel-settings', { netFuelKmPerL: 3.1 }),
     );
   });
 
