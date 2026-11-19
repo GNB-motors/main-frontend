@@ -221,4 +221,35 @@ describe('useMapPlaces', () => {
     await waitFor(() => expect(result.current.error).toBeTruthy());
     expect(result.current.notAvailable).toBe(false);
   });
+
+  it('reuses a truncated answer for a pan inside the padded box', async () => {
+    getMapPlaces.mockResolvedValue({
+      items: [{ id: 'pump', layer: 'pumps', lat: 25, lng: 87 }],
+      truncated: true,
+    });
+    const { result, rerender } = renderHook(
+      ({ bbox }) => useMapPlaces({ bbox, zoom: 8, layers: { pumps: true } }),
+      { initialProps: { bbox: [24, 86, 26, 88] } },
+    );
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    // A pan: the box moves, its size stays.
+    rerender({ bbox: [24.2, 86.2, 26.2, 88.2] });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(getMapPlaces).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks again when the pan leaves the padded box', async () => {
+    getMapPlaces.mockResolvedValue({
+      items: [{ id: 'pump', layer: 'pumps', lat: 25, lng: 87 }],
+      truncated: true,
+    });
+    const { result, rerender } = renderHook(
+      ({ bbox }) => useMapPlaces({ bbox, zoom: 8, layers: { pumps: true } }),
+      { initialProps: { bbox: [24, 86, 26, 88] } },
+    );
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    rerender({ bbox: [26.5, 88.5, 28.5, 90.5] });
+    await waitFor(() => expect(getMapPlaces).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+  });
 });
