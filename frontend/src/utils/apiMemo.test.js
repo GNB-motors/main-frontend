@@ -19,7 +19,22 @@ describe('apiMemo', () => {
   it('answers inside the window and not after it', () => {
     apiMemo.set('k', { a: 1 }, 1000);
     expect(apiMemo.get('k', 5000, 5999)).toEqual({ a: 1 });
-    expect(apiMemo.get('k', 5000, 6001)).toBeUndefined();
+  });
+
+  it('hands out an expired answer marked stale, so a page can show it while it re-reads', () => {
+    apiMemo.set('k', { a: 1 }, 1000);
+    const stale = apiMemo.get('k', 5000, 6001);
+    expect(stale).toEqual({ data: { a: 1 }, stale: true });
+    // The answer is still kept: a conditional request can reuse it.
+    expect(apiMemo.getEntry('k', 5000, 6001)).toBeUndefined();
+    expect(apiMemo.size).toBe(1);
+  });
+
+  it('never hands a stale answer to another account, org or branch', () => {
+    apiMemo.set('k', 'org one', 1000);
+    session.orgId = 'O2';
+    expect(apiMemo.get('k', 1, 60000)).toBeUndefined();
+    session.orgId = 'O1';
   });
 
   it('never hands one account, org or branch the answer another one read', () => {

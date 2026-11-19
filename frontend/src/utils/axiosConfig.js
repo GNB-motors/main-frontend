@@ -20,12 +20,23 @@ export const DEFAULT_TIMEOUT = 30000;
 export const SLOW_TIMEOUT = 90000;
 
 /**
+ * Report reads and exports: the backend now gives these two minutes, because
+ * a wide report is built, not fetched.
+ */
+export const REPORT_TIMEOUT = 120000;
+
+/**
  * Path prefixes granted SLOW_TIMEOUT. Matched against the request URL, so a
  * prefix covers every route beneath it. Add a prefix here rather than passing
  * a per-call timeout, so the budget stays visible in one place.
  */
 const SLOW_PATH_PREFIXES = [
-  '/api/reports',
+  '/api/leaderboards',
+  '/api/fuel-integrity',
+  '/api/refuel-advisory',
+  '/api/performance',
+  '/api/sap',
+  '/api/place-intelligence',
   '/api/mileage/fleet-overview',
   '/api/mileage/model-comparison',
   '/api/mileage/intervals',
@@ -49,7 +60,30 @@ const SLOW_PATH_PREFIXES = [
   '/api/intelligence', // the intelligence summary reads CAN history
 ];
 
-const isSlowPath = (url = '') => SLOW_PATH_PREFIXES.some((prefix) => url.startsWith(prefix));
+/**
+ * The path of a request, ready to be matched: no query, no hash, and always
+ * with the leading slash — a call written `api/reports/x` must match the same
+ * prefixes as `/api/reports/x`, or a missing slash silently costs a call its
+ * budget.
+ */
+export const normalisePath = (url = '') => {
+  const path = String(url).split('?')[0].split('#')[0];
+  return path.startsWith('api/') ? `/${path}` : path;
+};
+
+const isSlowPath = (url = '') => {
+  const path = normalisePath(url);
+  return SLOW_PATH_PREFIXES.some((prefix) => path.startsWith(prefix));
+};
+
+/**
+ * Reports and exports get the long budget. More specific than the slow list,
+ * so it is asked first.
+ */
+const isReportPath = (url = '') => {
+  const path = normalisePath(url);
+  return path.startsWith('/api/reports') || path.includes('/export');
+};
 
 // Create axios instance with base configuration
 const apiClient = axios.create({
@@ -78,8 +112,10 @@ apiClient.interceptors.request.use(
     // Widen the budget for known-heavy reads. Only when the timeout is
     // still the instance default — a call that set its own (uploads, OCR)
     // has already made this decision and must not be overridden.
-    if (config.timeout === DEFAULT_TIMEOUT && isSlowPath(config.url ?? '')) {
-      config.timeout = SLOW_TIMEOUT;
+    if (config.timeout === DEFAULT_TIMEOUT) {
+      const url = config.url ?? '';
+      if (isReportPath(url)) config.timeout = REPORT_TIMEOUT;
+      else if (isSlowPath(url)) config.timeout = SLOW_TIMEOUT;
     }
 
     return config;

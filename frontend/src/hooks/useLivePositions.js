@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import useLiveData, { mergeByKey } from './useLiveData.js';
+import { useVisibleInterval } from './useVisibleInterval.js';
 import { LiveTrackingService } from '../pages/LiveTracking/LiveTrackingService.jsx';
 import { POLL_INTERVAL_MS } from '../pages/LiveTracking/liveTrackingConstants.js';
 
@@ -47,13 +48,9 @@ export function useLivePositions({
   }, [connectionState]);
 
   const degraded = sawStream && connectionState === 'closed';
-  useEffect(() => {
-    if (!enabled || !degraded) return undefined;
-    const id = setInterval(() => {
-      refresh();
-    }, fallbackPollMs);
-    return () => clearInterval(id);
-  }, [enabled, degraded, fallbackPollMs, refresh]);
+  // The fallback poll only runs while the tab is looked at; a hidden tab
+  // refreshes the moment it is looked at again.
+  useVisibleInterval(() => refresh(), fallbackPollMs, { enabled: enabled && degraded });
 
   return {
     positions: data ?? [],

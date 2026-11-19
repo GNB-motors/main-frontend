@@ -206,7 +206,7 @@ const FuelCyclesReport = () => {
             // cannot reproduce. It applies every filter on screen, search included.
             exportTripReport({
               extension,
-              endpoint: 'api/reports/fuel-cycles/export',
+              endpoint: '/api/reports/fuel-cycles/export',
               params: {
                 ...params,
                 ...(search.trim() ? { search: search.trim() } : {}),

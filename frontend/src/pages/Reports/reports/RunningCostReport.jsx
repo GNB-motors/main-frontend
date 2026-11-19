@@ -182,7 +182,7 @@ const RunningCostReport = () => {
               extension,
               clientRows: searching ? filtered : null,
               columns: EXPORT_COLUMNS,
-              endpoint: 'api/reports/running-cost/export',
+              endpoint: '/api/reports/running-cost/export',
               params,
               filenamePrefix: 'running_cost_report',
               errorMessage: 'Could not export running-cost report.',
