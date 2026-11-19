@@ -82,6 +82,7 @@ export const RECORD_EXPORT_COLUMNS = [
   { key: 'knownLadenFuelLitres', label: 'Known laden fuel including partial (L)', type: 'number' },
   { key: 'ladenFuelBasis', label: 'Laden fuel completeness' },
   { key: 'fuelSource', label: 'Laden fuel source' },
+  { key: 'fuelReadingConflict', label: 'Saved role fuel differs from direct measurement' },
   { key: 'mileageEligible', label: 'Complete fuel available for mileage' },
   { key: 'extraKm', label: 'Extra distance (km)', type: 'number' },
   { key: 'status', label: 'Status' },

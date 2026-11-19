@@ -33,6 +33,7 @@ const qualityLabel = (value) =>
     ENGINE_GAP: 'Incomplete engine data',
     CHECK_ENGINE: 'Check engine reading',
     ODOMETER_REVERSED: 'Check odometer',
+    INVALID_ODOMETER: 'Invalid odometer',
     MEASURED_ZERO: 'Measured zero',
     CHECK_READINGS: 'Check readings',
     COVERAGE_GAP: 'Missing engine coverage',
@@ -201,7 +202,11 @@ export default function SlipToSlipReport({ navigation }) {
         <>
           <div>{km(r.distanceKm)}</div>
           <div className="cell-secondary">
-            {r.distanceBasis === 'SLIP_ODOMETERS' ? 'Slip odometers' : 'Engine windows'}
+            {r.distanceBasis === 'INVALID_SLIP_ODOMETERS'
+              ? 'Invalid slip odometers'
+              : r.distanceBasis === 'SLIP_ODOMETERS'
+                ? 'Slip odometers'
+                : 'Engine windows'}
           </div>
         </>
       ),

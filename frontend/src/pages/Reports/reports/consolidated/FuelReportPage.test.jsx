@@ -107,6 +107,26 @@ beforeEach(() => {
 });
 
 describe('Fuel & Mileage report modes', () => {
+  it('labels invalid slip odometers without hiding known engine consumption', async () => {
+    Service.slipIntervals.mockResolvedValue({
+      rows: [
+        {
+          ...slipRow,
+          distanceKm: null,
+          mileageKmpl: null,
+          quality: 'INVALID_ODOMETER',
+          distanceBasis: 'INVALID_SLIP_ODOMETERS',
+        },
+      ],
+      summary: slipSummary,
+      meta: {},
+    });
+    mount('&fuelView=bill&billView=slips');
+    expect(await screen.findByText('Invalid odometer')).toBeInTheDocument();
+    expect(screen.getByText('Invalid slip odometers')).toBeInTheDocument();
+    expect(screen.queryByText('Engine windows')).not.toBeInTheDocument();
+    expect(screen.getAllByText('150 L').length).toBeGreaterThan(0);
+  });
   it('shows minor movement without downgrading an otherwise priced day', async () => {
     Service.dailyFuel.mockResolvedValue({
       rows: [

@@ -95,6 +95,9 @@ function recordColumns(movements = false) {
           {!movements && r.fuelSource === 'ROLE_ENGINE' && (
             <div className="cell-secondary">Complete laden measurement</div>
           )}
+          {!movements && r.fuelReadingConflict && (
+            <div className="cr-caution">Saved role fuel differs; direct measurement used</div>
+          )}
           {!movements && (
             <div className="cell-secondary">
               {r.refuelLitres == null

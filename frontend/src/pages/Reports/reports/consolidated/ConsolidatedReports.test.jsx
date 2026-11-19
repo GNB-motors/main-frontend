@@ -66,6 +66,32 @@ beforeEach(() => {
 });
 
 describe('new report workflows', () => {
+  it('explains when direct trip fuel overrides a conflicting saved role reading', async () => {
+    Service.tripsRunningCost.mockResolvedValue({
+      rows: [],
+      summary: { tripCount: 1, costedTrips: 1, totalCost: 1500 },
+      meta: {},
+      records: [
+        {
+          id: 'conflict',
+          kind: 'trip',
+          vehicleNumber: 'QA11TEST',
+          fuelUsedLitres: 12,
+          roleFuelL: 10,
+          fuelSource: 'TRIP_ENGINE',
+          fuelReadingConflict: true,
+          mileageKmPerL: 2.5,
+          totalCostInr: 1500,
+        },
+      ],
+    });
+    mount(TripsRunningCostReport, 'report=tripsRunningCost' + period + '&view=trips');
+    expect(
+      await screen.findByText('Saved role fuel differs; direct measurement used'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('12 L')).toBeInTheDocument();
+    expect(screen.getByText('2.5 km/L')).toBeInTheDocument();
+  });
   it('explains an empty completed-trip period using scoped data freshness and open records', async () => {
     Service.tripsRunningCost.mockResolvedValue({
       rows: [],
