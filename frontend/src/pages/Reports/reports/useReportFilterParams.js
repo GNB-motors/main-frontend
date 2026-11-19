@@ -38,7 +38,10 @@ import {
  *   applyRangePreset set a quick range from a REPORT_RANGE_PRESETS entry
  *   clearFilters     drop every filter param, keep the rest of the query
  */
-export default function useReportFilterParams({ searchDebounceMs = 300 } = {}) {
+export default function useReportFilterParams({
+  searchDebounceMs = 300,
+  syncLocation = true,
+} = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const { branchId, setBranch } = useActiveBranch();
 
@@ -79,12 +82,13 @@ export default function useReportFilterParams({ searchDebounceMs = 300 } = {}) {
   // switcher stays authoritative after that.
   const appliedLoc = useRef(null);
   useEffect(() => {
-    if (!setBranch) return;
-    const wanted = filters.loc;
-    if (!wanted || wanted === branchId || appliedLoc.current === wanted) return;
-    appliedLoc.current = wanted;
+    if (!syncLocation || !setBranch) return;
+    const location = filters.loc;
+    const wanted = location === ALL ? null : location;
+    if (!location || wanted === branchId || appliedLoc.current === location) return;
+    appliedLoc.current = location;
     setBranch(wanted);
-  }, [branchId, filters.loc, setBranch]);
+  }, [branchId, filters.loc, setBranch, syncLocation]);
 
   return {
     filters,

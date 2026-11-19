@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import GNBLogo from '../../assets/animations/logo.png';
@@ -8,6 +8,7 @@ import './LoginPage.css';
 import { LoginPageService } from './LoginPageService.js';
 import { resolveLandingRoute } from '../../utils/featureFlagRoutes.js';
 import { setSession, setOrgId, getOrgId, clearSession } from '../../utils/session.js';
+import { resolveLoginReturnPath } from './loginReturnPath.js';
 
 // --- Carousel Data ---
 const slideData = [
@@ -39,6 +40,7 @@ const slideData = [
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [emailOrMobile, setEmailOrMobile] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -128,7 +130,10 @@ const LoginPage = () => {
           }, 1500);
           return;
         } else if (isOnboarded) {
-          const landing = resolveLandingRoute(organization?.featureFlags);
+          const landing = resolveLoginReturnPath(
+            location.state?.from,
+            resolveLandingRoute(organization?.featureFlags),
+          );
           toast.success('Welcome back! Redirecting to dashboard...');
           setTimeout(() => {
             navigate(landing);

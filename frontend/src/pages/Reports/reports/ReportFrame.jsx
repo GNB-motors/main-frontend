@@ -36,6 +36,8 @@ export default function ReportFrame({
   kpis = null,
   footer = null,
   layout = 'stacked',
+  variant = 'standard',
+  navigation = null,
   children,
 }) {
   const heading = (
@@ -46,7 +48,7 @@ export default function ReportFrame({
   );
 
   return (
-    <div className="rpt">
+    <div className={`rpt${variant === 'consolidated' ? ' rpt--consolidated' : ''}`}>
       {layout === 'inline' ? (
         <header className="rpt-head rpt-head--inline">
           {heading}
@@ -63,11 +65,15 @@ export default function ReportFrame({
             {heading}
             {actions ? <div className="rpt-actions">{actions}</div> : null}
           </div>
+          {navigation}
           {filters ? <div className="rpt-filters">{filters}</div> : null}
         </header>
       )}
-      {notice ? <div className="rpt-notice">{notice}</div> : null}
-      {kpis && kpis.length ? <ReportKpis items={kpis} /> : null}
+      {variant !== 'consolidated' && notice ? <div className="rpt-notice">{notice}</div> : null}
+      {kpis && kpis.length ? (
+        <ReportKpis items={kpis} showHints={variant === 'consolidated'} />
+      ) : null}
+      {variant === 'consolidated' && notice ? <div className="rpt-notice">{notice}</div> : null}
       <div className="rpt-body">{children}</div>
       {footer}
     </div>
@@ -250,7 +256,7 @@ export function ReportClear({ active, onClear }) {
 const KPI_TONES = new Set(['blue', 'teal', 'violet', 'orange', 'red', 'green']);
 
 /** KPI cards. items: [{ label, value, icon?: LucideIcon, tone?: 'blue'|…, hint? }]. */
-export function ReportKpis({ items }) {
+export function ReportKpis({ items, showHints = false }) {
   return (
     <div className="rpt-kpis">
       {items.map((item) => {
@@ -266,6 +272,7 @@ export function ReportKpis({ items }) {
             <div>
               <span>{item.label}</span>
               <strong>{item.value}</strong>
+              {showHints && item.hint ? <small className="rpt-kpi-hint">{item.hint}</small> : null}
             </div>
           </div>
         );

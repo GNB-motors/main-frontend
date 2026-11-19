@@ -9,6 +9,14 @@ export const DEFAULT_REPORT = 'vehicle';
 
 export const REPORT_GROUPS = [
   {
+    id: 'consolidated',
+    label: 'NEW REPORTS',
+    children: [
+      { id: 'fuelMileage', label: 'Fuel & Mileage' },
+      { id: 'tripsRunningCost', label: 'Trips & Running Cost', flag: 'autoTrips' },
+    ],
+  },
+  {
     id: 'fuel',
     label: 'FUEL & MILEAGE',
     children: [

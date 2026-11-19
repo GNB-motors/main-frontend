@@ -58,6 +58,11 @@ describe('readFilterParams', () => {
 });
 
 describe('writeFilterParams', () => {
+  it('preserves explicit All locations so it can clear a pinned branch, while omitting unselected entity filters', () => {
+    expect(
+      written('report=fuelMileage&loc=branch-1&vehicle=v1', { loc: 'all', vehicle: 'all' }),
+    ).toBe('report=fuelMileage&loc=all');
+  });
   it('sets a filter and leaves the report selection alone', () => {
     expect(written('report=driver', { vehicle: 'v1' })).toBe('report=driver&vehicle=v1');
   });

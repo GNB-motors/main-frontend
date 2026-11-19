@@ -136,7 +136,13 @@ export function writeFilterParams(search, patch) {
 
   REPORT_FILTER_PARAMS.forEach((key) => {
     const value = merged[key];
-    if (value === undefined || value === null || value === '' || value === ALL) next.delete(key);
+    if (
+      value === undefined ||
+      value === null ||
+      value === '' ||
+      (value === ALL && ['vehicle', 'driver'].includes(key))
+    )
+      next.delete(key);
     else next.set(key, String(value));
   });
 

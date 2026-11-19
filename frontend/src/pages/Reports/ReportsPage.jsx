@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { ListFilter, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Fuel, LayoutGrid, ListFilter, Truck, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import ReportsSidebar from '../../components/ReportsSidebar';
 import '../PageStyles.css';
@@ -23,8 +24,12 @@ import OilAverageReport from './reports/OilAverageReport.jsx';
 import RegisterMatchReport from './reports/RegisterMatchReport.jsx';
 import LaneKmReport from './reports/LaneKmReport.jsx';
 import CustomReportsPage from './reports/custom/CustomReportsPage.jsx';
+import FuelMileageReport from './reports/consolidated/FuelReportPage.jsx';
+import TripsRunningCostReport from './reports/consolidated/TripsRunningCostReport.jsx';
 
 const REPORT_COMPONENTS = {
+  fuelMileage: () => <FuelMileageReport />,
+  tripsRunningCost: () => <TripsRunningCostReport />,
   driver: () => <DriverReport />,
   vehicle: () => <VehicleReport />,
   mileageIntervals: () => <MileageIntervalReport />,
@@ -43,6 +48,7 @@ const REPORT_COMPONENTS = {
 
 const ReportsPage = () => {
   const [reportNavOpen, setReportNavOpen] = useState(false);
+  const reportMenuButton = useRef(null);
   const [scopeNotice, setScopeNotice] = useState('');
   const [isMainSidebarCollapsed, setIsMainSidebarCollapsed] = useState(false);
   const [themeColors, setThemeColors] = useState(getThemeCSS());
@@ -63,6 +69,18 @@ const ReportsPage = () => {
   // screen that can only show an error.
   const activeReport =
     selectedReport === FULL_TANK_REPORT_ID && !fullTankAvailable ? DEFAULT_REPORT : selectedReport;
+  const consolidated = ['fuelMileage', 'tripsRunningCost'].includes(activeReport);
+  useEffect(() => {
+    if (!reportNavOpen) return undefined;
+    const close = (event) => {
+      if (event.key === 'Escape') {
+        setReportNavOpen(false);
+        reportMenuButton.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [reportNavOpen]);
   const unsupportedManufacturer = ['registerMatch', 'laneKm'].includes(activeReport);
   useEffect(() => {
     if (!unsupportedManufacturer || !searchParams.has('manufacturer')) return;
@@ -117,17 +135,68 @@ const ReportsPage = () => {
   const renderReport = REPORT_COMPONENTS[activeReport] || REPORT_COMPONENTS[DEFAULT_REPORT];
 
   return (
-    <div className="reports-page-container" style={themeColors}>
+    <div
+      className={`reports-page-container ${consolidated ? 'reports-page--consolidated' : ''}`}
+      style={themeColors}
+    >
       <ReportsSidebar
-        isOpen
+        isOpen={!consolidated || reportNavOpen}
         mobileOpen={reportNavOpen}
+        drawer={consolidated}
         selectedReport={activeReport}
         setSelectedReport={setSelectedReport}
       />
       <div
-        className={`reports-content with-sidebar ${isMainSidebarCollapsed ? 'main-sidebar-collapsed' : ''}`}
+        className={`reports-content ${consolidated ? '' : 'with-sidebar'} ${isMainSidebarCollapsed ? 'main-sidebar-collapsed' : ''}`}
       >
-        <div className="reports-mobile-nav">
+        {consolidated && (
+          <div className="cr-report-switcher">
+            <nav aria-label="Consolidated reports">
+              <button
+                type="button"
+                aria-current={activeReport === 'fuelMileage' ? 'page' : undefined}
+                onClick={() => setSelectedReport('fuelMileage')}
+              >
+                <Fuel size={16} />
+                Fuel &amp; Mileage
+              </button>
+              {isEnabled('autoTrips') && (
+                <button
+                  type="button"
+                  aria-current={activeReport === 'tripsRunningCost' ? 'page' : undefined}
+                  onClick={() => setSelectedReport('tripsRunningCost')}
+                >
+                  <Truck size={16} />
+                  Trips &amp; Running Cost
+                </button>
+              )}
+            </nav>
+            <button
+              type="button"
+              className="cr-library-button"
+              ref={reportMenuButton}
+              aria-label="All reports"
+              aria-expanded={reportNavOpen}
+              aria-controls="report-side-nav"
+              onClick={() => setReportNavOpen((open) => !open)}
+            >
+              <LayoutGrid size={16} />
+              <span>All reports</span>
+            </button>
+          </div>
+        )}
+        {consolidated &&
+          reportNavOpen &&
+          createPortal(
+            <button
+              type="button"
+              className="cr-report-menu-backdrop"
+              aria-label="Close report menu"
+              onClick={() => setReportNavOpen(false)}
+            />,
+            document.body,
+          )}
+        <div className={`reports-mobile-nav ${consolidated ? 'cr-legacy-mobile-nav' : ''}`}>
           <button
             type="button"
             aria-expanded={reportNavOpen}

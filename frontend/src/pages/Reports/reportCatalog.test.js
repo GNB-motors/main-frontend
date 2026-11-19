@@ -16,13 +16,13 @@ const ids = (groups) => groups.flatMap((g) => g.children.map((c) => c.id));
 describe('DEFAULT_REPORT', () => {
   it('defaults to vehicle report as the first report feature', () => {
     expect(DEFAULT_REPORT).toBe('vehicle');
-    expect(REPORT_GROUPS[0].children[0].id).toBe(DEFAULT_REPORT);
+    expect(REPORT_GROUPS.find((g) => g.id === 'fuel').children[0].id).toBe(DEFAULT_REPORT);
   });
 });
 
 describe('visibleReportGroups', () => {
   it('keeps the six reports this page renders in front, in order', () => {
-    const visible = ids(visibleReportGroups(flags(ALL_FLAGS)));
+    const visible = ids(visibleReportGroups(flags(ALL_FLAGS)).filter((g) => g.id === 'fuel'));
     expect(visible.slice(0, 6)).toEqual([
       'vehicle',
       'driver',
@@ -53,6 +53,7 @@ describe('visibleReportGroups', () => {
 
   it('keeps only the genuine-report groups (module deep-links removed)', () => {
     expect(visibleReportGroups(flags(ALL_FLAGS)).map((g) => g.id)).toEqual([
+      'consolidated',
       'fuel',
       'trips',
       'custom',
@@ -138,6 +139,14 @@ describe('activeReportId', () => {
 });
 
 describe('resolveReport', () => {
+  it('adds both reports without removing existing reports or changing feature gates', () => {
+    const all = ids(visibleReportGroups(flags(ALL_FLAGS)));
+    expect(all).toHaveLength(15);
+    expect(all.slice(0, 2)).toEqual(['fuelMileage', 'tripsRunningCost']);
+    expect(resolveReport('fuelMileage', flags([]))).toBe('fuelMileage');
+    expect(resolveReport('tripsRunningCost', flags([]))).toBe(DEFAULT_REPORT);
+    expect(resolveReport('tripsRunningCost', flags(['autoTrips']))).toBe('tripsRunningCost');
+  });
   it('keeps a requested report the org can open', () => {
     expect(resolveReport('vehicle', flags([]))).toBe('vehicle');
   });

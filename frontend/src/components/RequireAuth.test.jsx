@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import RequireAuth from './RequireAuth';
 import { setSession, clearSession } from '../utils/session';
 
@@ -49,5 +49,28 @@ describe('RequireAuth', () => {
     renderProtected();
     expect(screen.getByText('dashboard shell')).toBeInTheDocument();
     expect(screen.queryByText('login page')).not.toBeInTheDocument();
+  });
+
+  it('carries the complete requested report URL through the login redirect', () => {
+    const target = '/reports?report=tripsRunningCost&from=2026-11-01&to=2026-11-17&loc=all#trips';
+    function LoginDestination() {
+      return <p>{useLocation().state?.from}</p>;
+    }
+    render(
+      <MemoryRouter initialEntries={[target]}>
+        <Routes>
+          <Route path="/login" element={<LoginDestination />} />
+          <Route
+            path="/reports"
+            element={
+              <RequireAuth>
+                <p>report</p>
+              </RequireAuth>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(target)).toBeInTheDocument();
   });
 });

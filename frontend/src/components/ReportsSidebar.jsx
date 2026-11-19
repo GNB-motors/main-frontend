@@ -14,12 +14,15 @@ import {
   reportDestination,
   visibleReportGroups,
 } from '../pages/Reports/reportCatalog';
-import {
-  useFullTankAvailable,
-  withoutFullTankReport,
-} from '../pages/Reports/fullTankAvailability';
+import { useFullTankAvailable, withoutFullTankReport } from '../pages/Reports/fullTankAvailability';
 
-const ReportsSidebar = ({ isOpen, selectedReport, setSelectedReport, mobileOpen = false }) => {
+const ReportsSidebar = ({
+  isOpen,
+  selectedReport,
+  setSelectedReport,
+  mobileOpen = false,
+  drawer = false,
+}) => {
   const { isEnabled } = useFeatureFlags();
   // The full-tank endpoint is newer than the rest of the Reports API: a
   // backend that answers 404 has no such report, so its row is not shown.
@@ -44,7 +47,7 @@ const ReportsSidebar = ({ isOpen, selectedReport, setSelectedReport, mobileOpen 
   return ReactDOM.createPortal(
     <SecondarySideNav
       variant="reports"
-      className={mobileOpen ? 'reports-sidebar--mobile-open' : ''}
+      className={`${mobileOpen ? 'reports-sidebar--mobile-open' : ''} ${drawer ? 'reports-sidebar--drawer' : ''}`}
       scrollId="report-side-nav"
       items={fullTankAvailable ? groups : withoutFullTankReport(groups)}
       activeOption={active}
