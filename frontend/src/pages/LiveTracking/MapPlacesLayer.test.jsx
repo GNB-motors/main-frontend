@@ -120,4 +120,21 @@ describe('POI marker population', () => {
     expect(markers.every((m) => m.setMap.mock.calls.at(-1)?.[0] === null)).toBe(true);
     view.unmount();
   });
+
+  it('zooms into the map and calls onSelect when a marker is clicked', () => {
+    map.panTo = vi.fn();
+    map.setZoom = vi.fn();
+    map.getZoom = vi.fn(() => 10);
+    const onSelect = vi.fn();
+    const view = render(<MapPlacesLayer places={places.slice(0, 1)} onSelect={onSelect} />);
+    step();
+    expect(markers).toHaveLength(1);
+    const clickListener = markers[0].addListener.mock.calls.find((c) => c[0] === 'click')?.[1];
+    expect(clickListener).toBeDefined();
+    clickListener();
+    expect(map.panTo).toHaveBeenCalledWith({ lat: places[0].lat, lng: places[0].lng });
+    expect(map.setZoom).toHaveBeenCalledWith(15);
+    expect(onSelect).toHaveBeenCalledWith(places[0].id, places[0]);
+    view.unmount();
+  });
 });

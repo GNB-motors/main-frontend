@@ -401,6 +401,19 @@ const LiveTrackingPage = () => {
   });
   const [showAllTolls, setShowAllTolls] = useState(false);
   const [placeScopes, setPlaceScopes] = useState({ pumps: 'visited', dhabas: 'visited' });
+  const showAllPumps = placeScopes.pumps === 'all';
+  const handleToggleAllPumps = useCallback(() => {
+    setPlaceScopes((current) => {
+      const nextScope = current.pumps === 'all' ? 'visited' : 'all';
+      return { ...current, pumps: nextScope };
+    });
+    setLayerSelection((prev) => {
+      if (prev.pumps) return prev;
+      const next = { ...prev, pumps: true };
+      writeLayerSelection(next);
+      return next;
+    });
+  }, []);
   const tolls = useTrackTolls({
     enabled: isPlacesView && !isVehiclePlaces && placesTab === 'places',
     showAll: showAllTolls && Boolean(layerSelection.tolls),
@@ -420,6 +433,17 @@ const LiveTrackingPage = () => {
     [isPlacesView, placesTab, selectedRoute, routes.sites, routeDetail],
   );
   const showPlaceLayers = isPlacesView && !isVehiclePlaces && placesTab === 'places';
+  const shownPlacesForMap = useMemo(() => {
+    if (!showPlaceLayers || !layerSelection.ourPlaces) return [];
+    if (showAllPumps) return trackPlaces.shownPlaces;
+    return trackPlaces.shownPlaces.filter((p) => {
+      if (p.type === 'FUEL_PUMP' || p.purpose === 'pump') {
+        const visits = p.raw?.visitCount ?? p.raw?.visits ?? 0;
+        return visits > 0;
+      }
+      return true;
+    });
+  }, [showPlaceLayers, layerSelection.ourPlaces, showAllPumps, trackPlaces.shownPlaces]);
 
   // The plates that have a destination on the way — only those trucks get the
   // destination section in their panel.
@@ -510,7 +534,7 @@ const LiveTrackingPage = () => {
     focusPlace(place);
   };
 
-  const selectPlaceFromMap = (id) => {
+  const selectPlaceFromMap = (id, placeObj) => {
     setReviewSite(null);
     setPlacesTab('places');
     setOpenRouteId(null);
@@ -519,7 +543,10 @@ const LiveTrackingPage = () => {
     setIsRailOpen(true);
     // Recenter and zoom to the place, the same as picking it from the list — a
     // single pin should frame itself, not just highlight in place.
-    const place = trackPlaces.places.find((p) => p.id === id);
+    const place =
+      trackPlaces.places.find((p) => p.id === id) ||
+      placeObj ||
+      mapPlaces.items.find((p) => p.id === id);
     if (place) focusPlace(place);
   };
 
@@ -1175,7 +1202,7 @@ const LiveTrackingPage = () => {
               weather={activeWeather}
               weatherBubblePosition={weatherBubblePosition}
               fleetWeather={fleetWeather}
-              places={showPlaceLayers && layerSelection.ourPlaces ? trackPlaces.shownPlaces : []}
+              places={shownPlacesForMap}
               extraPlaces={showPlaceLayers ? mapPlaces.items : []}
               selectedPlaceId={trackPlaces.selectedPlace?.id ?? null}
               onSelectPlace={selectPlaceFromMap}
@@ -1262,7 +1289,7 @@ const LiveTrackingPage = () => {
             {isPlacesView && !isVehiclePlaces && !placeDraft && !zoneDraft ? (
               <TrackMapKey
                 tab={placesTab}
-                places={showPlaceLayers && layerSelection.ourPlaces ? trackPlaces.shownPlaces : []}
+                places={shownPlacesForMap}
                 reviewCount={
                   showPlaceLayers && layerSelection.reviewQueue ? reviewQueue.items.length : 0
                 }
@@ -1649,6 +1676,8 @@ const LiveTrackingPage = () => {
                         vehicles={vehicles}
                         query={searchQuery}
                         onPick={pickPlace}
+                        showAllPumps={showAllPumps}
+                        onToggleAllPumps={handleToggleAllPumps}
                         onHide={() => {
                           setIsRailOpen(false);
                           setTimeout(triggerMapResize, 240);

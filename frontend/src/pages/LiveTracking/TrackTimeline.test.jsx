@@ -19,8 +19,8 @@ function renderTimeline(overrides = {}) {
     to: new Date('2026-11-01T19:30:00Z'),
     ...overrides,
   };
-  render(<TrackTimeline {...props} />);
-  return props;
+  const result = render(<TrackTimeline {...props} />);
+  return { ...result, ...props };
 }
 
 describe('TrackTimeline', () => {
@@ -105,6 +105,22 @@ describe('TrackTimeline', () => {
     const tick = screen.getAllByRole('button', { name: /Over 60 km\/h/ })[0];
     fireEvent.click(tick);
     expect(props.onSeek).toHaveBeenCalled();
+  });
+
+  it('renders the date and time badge in primary blue and displays Stop/Overspeed/No GPS legend without horizontal scroll in top telemetry', () => {
+    const { container } = renderTimeline();
+    const telemetry = container.querySelector('.lt-replay-telemetry');
+    expect(telemetry).not.toBeNull();
+    expect(telemetry.className).not.toContain('overflow-x-auto');
+
+    // Date & time badge has the blue color (bg-blue-600)
+    const dateBadge = telemetry.querySelector('.bg-blue-600');
+    expect(dateBadge).not.toBeNull();
+
+    // Legend items are displayed in the footer
+    expect(screen.getByText('Stop')).toBeInTheDocument();
+    expect(screen.getByText('Overspeed')).toBeInTheDocument();
+    expect(screen.getByText('No GPS')).toBeInTheDocument();
   });
 });
 

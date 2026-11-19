@@ -39,7 +39,7 @@ const ServiceIntelligencePage = () => {
   const [activeTab, setActiveTab] = useState(initialTab);
   const confirm = useConfirm();
   const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(initialTab === 'SERVICE' || initialTab === 'REPAIR');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -227,11 +227,16 @@ const ServiceIntelligencePage = () => {
     });
 
   const switchTab = (tab) => {
+    if (tab === activeTab) return;
     setActiveTab(tab);
     setSearchParams({ tab: tab.toLowerCase() });
     setSearch('');
     setPage(1);
     setRows([]);
+    setSummary(EMPTY_SUMMARY);
+    if (tab === 'SERVICE' || tab === 'REPAIR') {
+      setLoading(true);
+    }
     setActivePriorityFilter('ALL');
     setActiveServiceFilter('ALL');
     isFirstRenderRef.current = true; // re-fire immediate load
@@ -245,6 +250,10 @@ const ServiceIntelligencePage = () => {
       setSearch('');
       setPage(1);
       setRows([]);
+      setSummary(EMPTY_SUMMARY);
+      if (tabParam === 'SERVICE' || tabParam === 'REPAIR') {
+        setLoading(true);
+      }
       setActivePriorityFilter('ALL');
       setActiveServiceFilter('ALL');
       isFirstRenderRef.current = true;
@@ -319,10 +328,7 @@ const ServiceIntelligencePage = () => {
             />
           </div>
 
-          <div
-            className="si-tab-view-container"
-            style={{ transition: 'all 0.2s ease-in-out', width: '100%' }}
-          >
+          <div className="si-tab-view-container" style={{ width: '100%' }}>
             {isAlerts ? (
               <AlertsTab search={search} refreshKey={alertsRefreshKey} />
             ) : isUpcoming ? (

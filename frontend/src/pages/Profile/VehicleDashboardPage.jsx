@@ -97,13 +97,18 @@ const VehicleDashboardPage = () => {
     let anyExpiredCount = 0;
     let anyExpiringSoonCount = 0;
     let anyMissingCount = 0;
+    let healthyCount = 0;
 
     const expiredByDoc = {};
     const soonByDoc = {};
+    const missingByDoc = {};
+    const totalIssuesByDoc = {};
 
     DOC_COLS.forEach(({ key }) => {
       expiredByDoc[key] = 0;
       soonByDoc[key] = 0;
+      missingByDoc[key] = 0;
+      totalIssuesByDoc[key] = 0;
     });
 
     rows.forEach((r) => {
@@ -116,25 +121,33 @@ const VehicleDashboardPage = () => {
         if (b === 'expired') {
           hasExpired = true;
           expiredByDoc[key] += 1;
+          totalIssuesByDoc[key] += 1;
         } else if (b === 'critical' || b === 'warning') {
           hasSoon = true;
           soonByDoc[key] += 1;
+          totalIssuesByDoc[key] += 1;
         } else if (b === 'missing') {
           hasMissing = true;
+          missingByDoc[key] += 1;
+          totalIssuesByDoc[key] += 1;
         }
       });
 
       if (hasExpired) anyExpiredCount += 1;
       if (hasSoon) anyExpiringSoonCount += 1;
       if (hasMissing) anyMissingCount += 1;
+      if (!hasExpired && !hasSoon) healthyCount += 1;
     });
 
     return {
       anyExpiredCount,
       anyExpiringSoonCount,
       anyMissingCount,
+      healthyCount,
       expiredByDoc,
       soonByDoc,
+      missingByDoc,
+      totalIssuesByDoc,
     };
   }, [rows]);
 
@@ -166,16 +179,27 @@ const VehicleDashboardPage = () => {
       );
     }
 
-    if (docFilter === 'EXPIRED_ANY') {
+    if (docFilter === 'EXPIRED_ANY' || docFilter === 'EXPIRED') {
       return matching.filter((r) =>
         DOC_COLS.some((col) => bucketFor(r.documents?.[col.key]) === 'expired'),
       );
     }
 
-    if (docFilter === 'MISSING_ANY') {
+    if (docFilter === 'MISSING_ANY' || docFilter === 'MISSING') {
       return matching.filter((r) =>
         DOC_COLS.some((col) => bucketFor(r.documents?.[col.key]) === 'missing'),
       );
+    }
+
+    if (docFilter === 'HEALTHY') {
+      return matching.filter((r) => {
+        const hasExpired = DOC_COLS.some((col) => bucketFor(r.documents?.[col.key]) === 'expired');
+        const hasSoon = DOC_COLS.some((col) => {
+          const b = bucketFor(r.documents?.[col.key]);
+          return b === 'critical' || b === 'warning';
+        });
+        return !hasExpired && !hasSoon;
+      });
     }
 
     if (docFilter.startsWith('EXPIRED_')) {
@@ -186,8 +210,34 @@ const VehicleDashboardPage = () => {
     if (docFilter.startsWith('SOON_')) {
       const docKey = docFilter.replace('SOON_', '');
       return matching.filter((r) => {
+        if (expiryFrom && expiryTo) {
+          const expiry = r.documents?.[docKey]?.expiryDate;
+          const day = expiry ? istDayString(expiry) : null;
+          return day && day >= expiryFrom && day <= expiryTo;
+        }
         const b = bucketFor(r.documents?.[docKey]);
         return b === 'critical' || b === 'warning';
+      });
+    }
+
+    if (docFilter.startsWith('MISSING_')) {
+      const docKey = docFilter.replace('MISSING_', '');
+      return matching.filter((r) => bucketFor(r.documents?.[docKey]) === 'missing');
+    }
+
+    if (docFilter.startsWith('HEALTHY_')) {
+      const docKey = docFilter.replace('HEALTHY_', '');
+      return matching.filter((r) => {
+        const b = bucketFor(r.documents?.[docKey]);
+        return b === 'healthy' || b === 'verified' || b === 'uploaded';
+      });
+    }
+
+    if (docFilter.startsWith('DOC_')) {
+      const docKey = docFilter.replace('DOC_', '');
+      return matching.filter((r) => {
+        const b = bucketFor(r.documents?.[docKey]);
+        return b === 'expired' || b === 'critical' || b === 'warning' || b === 'missing';
       });
     }
 
@@ -259,13 +309,6 @@ const VehicleDashboardPage = () => {
           }
           actions={
             <div className="v-dash-header-tools" aria-busy={loading}>
-              <VehicleDashboardDocFilter
-                docFilter={docFilter}
-                setDocFilter={changeDocFilter}
-                rows={rows}
-                displayRows={displayRows}
-                filterOptionsWithCounts={filterOptionsWithCounts}
-              />
               <FilterBar
                 searchValue={search}
                 onSearchChange={setSearch}
@@ -276,6 +319,15 @@ const VehicleDashboardPage = () => {
         >
           {/* Metric Summary Cards */}
           <VehicleDashboardKpis kpis={kpis} />
+
+          {/* Severity Pills on top + Document Filter Dropdown */}
+          <VehicleDashboardDocFilter
+            docFilter={docFilter}
+            setDocFilter={changeDocFilter}
+            rows={rows}
+            displayRows={displayRows}
+            filterOptionsWithCounts={filterOptionsWithCounts}
+          />
 
           {/* WheelsEye-Inspired Split Layout Container */}
           <div className="v-dash-split-container">

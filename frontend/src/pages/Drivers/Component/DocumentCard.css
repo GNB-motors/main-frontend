@@ -1,21 +1,24 @@
 /* Document Card Wrapper - Contains label and card */
 .document-card-wrapper {
   width: 100%;
-  max-width: 300px;
+  max-width: none;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  align-items: flex-start;
-  gap: 10px;
+  align-items: stretch;
+  height: 100%;
+  gap: 8px;
 }
 
 .document-card-label {
   color: var(--alias-type-type-primary, #121214);
-  font-size: 14px;
+  font-size: 13.5px;
   font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  line-height: 20px;
-  word-wrap: break-word;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Label row now carries the optional DigiLocker verification badge. */
@@ -23,16 +26,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
+  min-height: 24px;
 }
 
 /* Document Card */
 .document-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
+  flex: 1;
   position: relative;
   align-self: stretch;
 }
@@ -41,40 +46,37 @@
 .document-upload-btn {
   all: unset;
   cursor: pointer;
-  padding: 10px;
+  padding: 16px 12px;
+  box-sizing: border-box;
   background: linear-gradient(
-    132deg,
+    135deg,
     var(--core-semantics-universal-white, white) 0%,
-    var(--core-morning-fog-solids-morning-fog-900, #f8f8fb) 38%,
-    var(--core-semantics-universal-white, white) 100%
+    var(--core-morning-fog-solids-morning-fog-900, #f8f8fb) 100%
   );
-  box-shadow:
-    0px 1px 2px rgba(18, 18, 20, 0.2),
-    1px 1px 0px white inset,
-    -1px -1px 0px rgba(18, 18, 20, 0.04);
-  border-radius: 16px;
-  outline: 3px var(--core-semantics-universal-white, white) solid;
-  outline-offset: -3px;
+  border: 1.5px dashed var(--core-morning-fog-solids-morning-fog-700, #cbd5e1);
+  border-radius: 14px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  align-items: flex-start;
-  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
   transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
   width: 100%;
+  height: 180px;
+  min-height: 180px;
 }
 
 .document-upload-btn:hover:not(:disabled) {
-  box-shadow:
-    0px 2px 4px rgba(18, 18, 20, 0.25),
-    1px 1px 0px white inset,
-    -1px -1px 0px rgba(18, 18, 20, 0.06);
+  border-color: #3b82f6;
+  background: #f0f7ff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
 }
 
 .document-upload-btn:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.99);
 }
 
 .document-upload-btn:disabled {
@@ -84,51 +86,55 @@
 
 .document-upload-content {
   display: flex;
-  flex: 1;
-  justify-content: flex-start;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: 16px;
-  flex-wrap: nowrap;
+  gap: 8px;
   width: 100%;
-  align-self: stretch;
 }
 
 .document-upload-icon {
-  width: 50px;
-  height: 50px;
-  padding: 12px;
+  width: 44px;
+  height: 44px;
+  padding: 10px;
   background: var(--core-morning-fog-solids-morning-fog-850, #f3f3f6);
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   justify-content: center;
   align-items: center;
   flex-shrink: 0;
   color: var(--alias-icon-icon-secondary, #454547);
+  transition: all 0.2s ease;
+}
+
+.document-upload-btn:hover:not(:disabled) .document-upload-icon {
+  background: #dbeafe;
+  color: #2563eb;
 }
 
 .document-upload-icon svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
 }
 
 .document-upload-text-content {
   display: flex;
-  flex: 1;
   flex-direction: column;
-  justify-content: flex-start;
-  align-items: flex-start;
-  gap: 0;
-  min-width: 180px;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
 }
 
 .document-upload-main-text {
   align-self: stretch;
   color: var(--alias-type-type-primary, #121214);
-  font-size: 13px;
+  font-size: 12.5px;
   font-family: 'Inter', sans-serif;
   font-weight: 400;
-  line-height: 18px;
-  word-wrap: break-word;
+  line-height: 17px;
+  text-align: center;
 }
 
 .document-upload-span {
@@ -178,29 +184,29 @@
 }
 
 .document-upload-footer {
-  align-self: stretch;
-  padding-left: 12px;
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
+  padding-left: 0;
+  margin-top: 2px;
 }
 
 .document-upload-size,
 .document-upload-formats {
   color: var(--alias-type-type-placeholder, #8b8b8c);
-  font-size: 10px;
+  font-size: 10.5px;
   font-family: 'Inter', sans-serif;
   font-weight: 400;
   line-height: 14px;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   word-wrap: break-word;
 }
 
 .document-upload-divider {
-  width: 4px;
-  height: 4px;
+  width: 3px;
+  height: 3px;
   background: var(--core-morning-fog-solids-morning-fog-700, #dfdfe2);
   border-radius: 9999px;
 }
@@ -209,17 +215,23 @@
 .document-card-preview {
   position: relative;
   width: 100%;
-  height: 200px;
-  border-radius: 16px;
+  height: 180px;
+  min-height: 180px;
+  border-radius: 14px;
   overflow: hidden;
-  background: var(--core-morning-fog-solids-morning-fog-900, #f8f8fb);
+  background: #f8fafc;
   border: 1px solid var(--core-morning-fog-solids-morning-fog-700, #dfdfe2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  box-sizing: border-box;
 }
 
 .document-preview-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 
@@ -293,19 +305,21 @@
 .document-card-badges {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .doc-status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 7px;
-  border-radius: 6px;
-  font-size: 11px;
+  gap: 3px;
+  padding: 1.5px 6px;
+  border-radius: 5px;
+  font-size: 10.5px;
   font-weight: 500;
-  line-height: 16px;
+  line-height: 14px;
+  white-space: nowrap;
 }
 
 .doc-status-badge--uploaded {
@@ -337,15 +351,20 @@
 .document-card-unuploaded-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 6px;
   width: 100%;
+  flex: 1;
+  height: 100%;
 }
 
 .document-card-meta {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px 2px;
+  justify-content: center;
+  min-height: 24px;
+  padding: 2px 2px;
+  box-sizing: border-box;
 }
 
 .document-filename-row {
@@ -353,7 +372,7 @@
   align-items: center;
   gap: 6px;
   color: var(--alias-type-type-secondary, #475569);
-  font-size: 12px;
+  font-size: 11.5px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -374,23 +393,30 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  margin-top: 2px;
+  font-size: 11.5px;
+  margin-top: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .document-license-info--empty {
-  padding: 4px 6px;
+  padding: 0;
 }
 
 .document-license-label {
   font-weight: 500;
   color: var(--alias-type-type-secondary, #64748b);
+  flex-shrink: 0;
 }
 
 .document-license-number {
   font-family: var(--font-mono, monospace);
   font-weight: 600;
   color: var(--alias-type-type-primary, #0f172a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .document-license-not-extracted {
@@ -400,7 +426,7 @@
 }
 
 .document-license-not-uploaded {
-  color: #64748b;
+  color: #94a3b8;
   font-size: 11.5px;
 }
 

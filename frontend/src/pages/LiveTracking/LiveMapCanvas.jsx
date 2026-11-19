@@ -323,7 +323,12 @@ export default function LiveMapCanvas({
           {/* The landmark layers (pumps, dhabas, hospitals…) — under the
               fleet too, so a truck is never hidden by a pin. */}
           <TollLayer plazas={tollPlazas} interactive markerIcon={tollMarkerIcon} />
-          <MapPlacesLayer places={extraPlaces} selectedId={selectedPlaceId} zoom={mapZoom} />
+          <MapPlacesLayer
+            places={extraPlaces}
+            selectedId={selectedPlaceId}
+            zoom={mapZoom}
+            onSelect={onSelectPlace}
+          />
 
           {/* The live control room's own layers: the places nobody has
               answered for, the routes the fleet runs, and the trucks idling

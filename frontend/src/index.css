@@ -1717,6 +1717,7 @@ a.ov-kpi:hover {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  margin-left: auto;
 }
 .dt-tool {
   display: inline-flex;
