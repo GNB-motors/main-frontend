@@ -1,6 +1,5 @@
 import PlaceClusterer from './map/PlaceClusterer.jsx';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
 import { GoogleMap } from '@react-google-maps/api';
 import { planFit } from './intelligence/model/mapBounds.js';
 import { LIGHT_MAP_STYLE, DARK_MAP_STYLE } from '../LiveTracking/mapStyles.js';
@@ -113,12 +112,13 @@ export default function PlaceHubMap({
 
   useEffect(() => {
     if (!map) return undefined;
-    // Clicking one of Google's own POIs opens it in Google Maps instead of
-    // Google's info window.
+    // Clicking one of Google's own POIs zooms into the region instead of opening Google Maps.
     const listener = map.addListener('click', (e) => {
       if (!e.placeId) return;
       e.stop();
-      openInGoogleMaps({ lat: e.latLng.lat(), lng: e.latLng.lng(), placeId: e.placeId });
+      const targetZoom = Math.max(map.getZoom() || 5, 15);
+      map.panTo(e.latLng);
+      map.setZoom(targetZoom);
     });
     return () => listener.remove();
   }, [map]);

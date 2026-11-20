@@ -1316,6 +1316,10 @@
   position: relative;
   z-index: 6;
   flex-shrink: 0;
+  justify-content: flex-end;
+}
+:is(.vehicle-list-page, .v-dash-page) .dt-tools-right {
+  margin-left: auto;
 }
 :is(.vehicle-list-page, .v-dash-page) .dt-scroll {
   position: relative;

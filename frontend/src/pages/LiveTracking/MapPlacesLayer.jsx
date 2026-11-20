@@ -4,7 +4,6 @@ import { useGoogleMap } from '@react-google-maps/api';
 import { MarkerClusterer, SuperClusterAlgorithm } from '@googlemaps/markerclusterer';
 import { colorForPlace, mapPlaceIcon, layerForPlace } from './mapPlaceIcon.js';
 import { resolveMapColor } from './mapColor.js';
-import { openInGoogleMaps } from '../../utils/googleMapsLink.js';
 
 const EMPTY = [];
 const BATCH_SIZE = 80;
@@ -14,7 +13,7 @@ const signatureOf = (place, selected) =>
 
 /** Reuse unchanged markers and clusterers. Build additions off-map in small
  * batches, then publish the diff once; previous markers remain during work. */
-function MapPlacesLayer({ places = EMPTY, selectedId = null }) {
+function MapPlacesLayer({ places = EMPTY, selectedId = null, onSelect = null }) {
   const map = useGoogleMap();
   const live = useRef({ markers: new Map(), groups: new Map(), icons: new Map() });
 
@@ -126,9 +125,15 @@ function MapPlacesLayer({ places = EMPTY, selectedId = null }) {
           clickable: true,
           zIndex: selected ? 900 : 20,
         });
-        const listener = marker.addListener('click', () =>
-          openInGoogleMaps({ lat: place.lat, lng: place.lng, name: place.name }),
-        );
+        const listener = marker.addListener('click', () => {
+          if (map) {
+            const currentZoom = map.getZoom() || 5;
+            const targetZoom = Math.max(currentZoom, 15);
+            map.panTo({ lat: place.lat, lng: place.lng });
+            map.setZoom(targetZoom);
+          }
+          onSelect?.(place.id, place);
+        });
         staged.set(key, { marker, listener, signature, layer, place });
       }
       if (index < additions.length) frame = requestAnimationFrame(populate);
@@ -144,7 +149,7 @@ function MapPlacesLayer({ places = EMPTY, selectedId = null }) {
           marker.setMap(null);
         });
     };
-  }, [map, places, selectedId]);
+  }, [map, places, selectedId, onSelect]);
   return null;
 }
 

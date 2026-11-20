@@ -249,6 +249,176 @@
   flex-wrap: wrap;
 }
 
+/* Container for Severity Pills + Document Dropdown */
+.v-dash-filter-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 0 0 16px 0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+/* Row 1: Severity Pills */
+.v-dash-severity-pills-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.v-dash-severity-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  user-select: none;
+  background: #f8fafc;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+.v-dash-severity-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.v-dash-severity-pill-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* Specific Pill Variants: Neutral (All) */
+.v-dash-severity-pill--all {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+.v-dash-severity-pill--all.v-dash-severity-pill--active {
+  background: #2563eb;
+  border-color: #1d4ed8;
+  color: #ffffff;
+}
+.v-dash-severity-pill--all.v-dash-severity-pill--active .v-dash-severity-pill-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Expired (Red) */
+.v-dash-severity-pill--expired {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+.v-dash-severity-pill--expired .v-dash-severity-pill-count {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.v-dash-severity-pill--expired.v-dash-severity-pill--active {
+  background: #dc2626;
+  border-color: #b91c1c;
+  color: #ffffff;
+}
+.v-dash-severity-pill--expired.v-dash-severity-pill--active .v-dash-severity-pill-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Expiring Soon (Yellow / Amber) */
+.v-dash-severity-pill--warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #b45309;
+}
+.v-dash-severity-pill--warning .v-dash-severity-pill-count {
+  background: #fef3c7;
+  color: #92400e;
+}
+.v-dash-severity-pill--warning.v-dash-severity-pill--active {
+  background: #f59e0b;
+  border-color: #d97706;
+  color: #ffffff;
+}
+.v-dash-severity-pill--warning.v-dash-severity-pill--active .v-dash-severity-pill-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Missing (Slate / Gray) */
+.v-dash-severity-pill--missing {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+.v-dash-severity-pill--missing .v-dash-severity-pill-count {
+  background: #f1f5f9;
+  color: #334155;
+}
+.v-dash-severity-pill--missing.v-dash-severity-pill--active {
+  background: #475569;
+  border-color: #334155;
+  color: #ffffff;
+}
+.v-dash-severity-pill--missing.v-dash-severity-pill--active .v-dash-severity-pill-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Healthy / OK (Green) */
+.v-dash-severity-pill--healthy {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #15803d;
+}
+.v-dash-severity-pill--healthy .v-dash-severity-pill-count {
+  background: #dcfce7;
+  color: #166534;
+}
+.v-dash-severity-pill--healthy.v-dash-severity-pill--active {
+  background: #16a34a;
+  border-color: #15803d;
+  color: #ffffff;
+}
+.v-dash-severity-pill--healthy.v-dash-severity-pill--active .v-dash-severity-pill-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Row 2: Document Select Bar */
+.v-dash-doc-select-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.v-dash-doc-select-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  max-width: 440px;
+  min-width: 280px;
+}
+
 .v-dash-dropdown-wrapper {
   display: inline-flex;
   align-items: center;

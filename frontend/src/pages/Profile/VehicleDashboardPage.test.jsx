@@ -199,4 +199,42 @@ describe('VehicleDashboardPage — Document Dropdown Filter', () => {
     );
     expect(screen.getByText('No vehicle selected')).toBeInTheDocument();
   });
+
+  it('filters vehicles by clicking Severity Pills directly', async () => {
+    render(
+      <MemoryRouter>
+        <VehicleDashboardPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByText('UP14BT1001')).toBeInTheDocument());
+    expect(screen.getByText('UP14BT2002')).toBeInTheDocument();
+    expect(screen.getByText('UP14BT3003')).toBeInTheDocument();
+
+    // Click Expired pill
+    const expiredTab = screen.getByRole('tab', { name: /Expired/i });
+    fireEvent.click(expiredTab);
+
+    // Only veh-1 (expired RC) should show
+    expect(screen.getByText('UP14BT1001')).toBeInTheDocument();
+    expect(screen.queryByText('UP14BT2002')).toBeNull();
+    expect(screen.queryByText('UP14BT3003')).toBeNull();
+
+    // Click Expiring Soon pill
+    const soonTab = screen.getByRole('tab', { name: /Expiring Soon/i });
+    fireEvent.click(soonTab);
+
+    // Only veh-2 (FITNESS expiring soon) should show
+    expect(screen.getByText('UP14BT2002')).toBeInTheDocument();
+    expect(screen.queryByText('UP14BT1001')).toBeNull();
+    expect(screen.queryByText('UP14BT3003')).toBeNull();
+
+    // Click All Vehicles pill to restore
+    const allTab = screen.getByRole('tab', { name: /All Vehicles/i });
+    fireEvent.click(allTab);
+
+    expect(screen.getByText('UP14BT1001')).toBeInTheDocument();
+    expect(screen.getByText('UP14BT2002')).toBeInTheDocument();
+    expect(screen.getByText('UP14BT3003')).toBeInTheDocument();
+  });
 });

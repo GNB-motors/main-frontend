@@ -6,6 +6,7 @@ import { FleetDataService } from '../../../services/FleetDataService';
 import NewButton from '../../../components/ui/NewButton';
 import KpiCard from '../../../components/ui/KpiCard';
 import { formatKm } from '../../../utils/formatters';
+import { formatServiceDueDays } from '../serviceIntelligenceLogic';
 
 // Predicted next-service position per vehicle (MaintenancePrediction), projected
 // from telemetry odometer/engine-hours. This is a different data domain from the
@@ -33,13 +34,6 @@ const formatDate = (d) => {
   return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
-const daysText = (days) => {
-  if (days == null) return 'Due date not projected';
-  if (days < 0) return `Overdue by ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'}`;
-  if (days === 0) return 'Due today';
-  return `Due in ${days} day${days === 1 ? '' : 's'}`;
-};
-
 const PredictionSkeleton = () => (
   <div className="si-alert-skel-card">
     <div className="si-alert-skel-icon" />
@@ -61,7 +55,7 @@ const PredictionSkeleton = () => (
 const UpcomingServiceTab = ({ search = '', refreshKey = 0 }) => {
   const navigate = useNavigate();
   const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [subTab, setSubTab] = useState('ALL');
   const requestIdRef = useRef(0);
 
@@ -108,31 +102,25 @@ const UpcomingServiceTab = ({ search = '', refreshKey = 0 }) => {
       <div className="si-kpis-strip" style={{ margin: '0 0 12px 0' }}>
         <KpiCard
           title="Tracked vehicles"
-          value={
-            loading && records.length === 0 ? <span className="si-skel-kpi-val" /> : counts.total
-          }
+          value={loading ? <span className="si-skel-kpi-val" /> : counts.total}
           accent="#3b82f6"
           icon={<CalendarClock size={18} />}
         />
         <KpiCard
           title="Overdue"
-          value={
-            loading && records.length === 0 ? <span className="si-skel-kpi-val" /> : counts.OVERDUE
-          }
+          value={loading ? <span className="si-skel-kpi-val" /> : counts.OVERDUE}
           accent="#dc2626"
           icon={<AlertTriangle size={18} />}
         />
         <KpiCard
           title="Due soon"
-          value={
-            loading && records.length === 0 ? <span className="si-skel-kpi-val" /> : counts.DUE_SOON
-          }
+          value={loading ? <span className="si-skel-kpi-val" /> : counts.DUE_SOON}
           accent="#ea580c"
           icon={<Clock size={18} />}
         />
         <KpiCard
           title="On track"
-          value={loading && records.length === 0 ? <span className="si-skel-kpi-val" /> : counts.OK}
+          value={loading ? <span className="si-skel-kpi-val" /> : counts.OK}
           accent="#16a34a"
           icon={<CheckCircle2 size={18} />}
         />
@@ -259,7 +247,7 @@ const PredictionCard = ({ row, onOpen }) => {
           </button>
         </div>
         <div className="si-alert-desc">
-          {daysText(row.daysUntilDue)}
+          {formatServiceDueDays(row.daysUntilDue)}
           {kmText ? ` · ${kmText}` : ''}
           {dueDate ? ` · projected ${dueDate}` : ''}
         </div>

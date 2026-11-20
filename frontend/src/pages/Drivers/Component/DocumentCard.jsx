@@ -112,9 +112,9 @@ const DocumentCard = ({
               </div>
             </div>
 
-            {/* Document metadata: licence details */}
+            {/* Document metadata: licence / document details */}
             <div className="document-card-meta">
-              {documentType === 'driverLicense' && (
+              {documentType === 'driverLicense' ? (
                 <div className="document-license-info">
                   <span className="document-license-label">License Number:</span>
                   {licenseNumber ? (
@@ -122,6 +122,13 @@ const DocumentCard = ({
                   ) : (
                     <span className="document-license-not-extracted">Not extracted</span>
                   )}
+                </div>
+              ) : (
+                <div className="document-license-info">
+                  <span className="document-license-label">{label}:</span>
+                  <span className="document-license-number" style={{ fontSize: 11.5 }}>
+                    {fileName || name || 'Uploaded'}
+                  </span>
                 </div>
               )}
             </div>
@@ -174,12 +181,14 @@ const DocumentCard = ({
               </div>
             </button>
 
-            {documentType === 'driverLicense' && (
+            <div className="document-card-meta">
               <div className="document-license-info document-license-info--empty">
-                <span className="document-license-label">License Status:</span>
+                <span className="document-license-label">
+                  {documentType === 'driverLicense' ? 'License Status:' : `${label}:`}
+                </span>
                 <span className="document-license-not-uploaded">Not uploaded</span>
               </div>
-            )}
+            </div>
           </div>
         )}
       </div>

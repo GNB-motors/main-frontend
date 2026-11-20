@@ -242,24 +242,24 @@ export default function TrackTimeline({
   }, [isOverLimit, currentSpeed, isIgnitionOn]);
 
   return (
-    <div className="ov-track-bar track-replay-console flex flex-col gap-2.5 rounded-2xl border border-slate-300/90 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-3.5 shadow-2xl shadow-slate-900/15 dark:shadow-black/50">
+    <div className="ov-track-bar track-replay-console flex flex-col gap-2 rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-3 shadow-xl shadow-slate-900/10 dark:shadow-black/50">
       {/* 1. TOP TELEMETRY HUD STRIP */}
-      <div className="lt-replay-header flex items-center justify-between gap-3 border-b border-slate-200/80 dark:border-slate-800/80 pb-2 flex-nowrap">
-        <div className="lt-replay-telemetry flex min-w-0 items-center gap-2.5 flex-nowrap overflow-x-auto">
+      <div className="lt-replay-header flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-2 flex-nowrap">
+        <div className="lt-replay-telemetry flex items-center gap-1.5 shrink-0 whitespace-nowrap">
           {/* Prominent Live Replay Date & Time Badge */}
-          <div className="flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-1.5 text-white shadow-sm dark:bg-slate-800 font-medium shrink-0">
-            <Calendar size={13} className="text-blue-400 shrink-0" aria-hidden="true" />
-            <span className="text-xs font-semibold text-slate-200">
+          <div className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-2 py-1 text-white shadow-xs font-medium shrink-0 whitespace-nowrap text-[11px]">
+            <Calendar size={12} className="text-blue-100 shrink-0" aria-hidden="true" />
+            <span className="font-semibold text-white">
               {currentTime ? formatIstDate(currentTime) : '—'}
             </span>
-            <span className="text-slate-500 font-bold">·</span>
-            <Clock size={13} className="text-blue-400 shrink-0" aria-hidden="true" />
-            <span className="tabular-nums text-[13px] font-bold text-white tracking-wide">
+            <span className="text-blue-200/80 font-bold">·</span>
+            <Clock size={12} className="text-blue-100 shrink-0" aria-hidden="true" />
+            <span className="tabular-nums font-bold text-white tracking-wide">
               {currentTime ? formatIst(currentTime, { withDate: false }) : '—'}
             </span>
             {isPlaying && (
-              <span className="ml-1 flex items-center gap-1 rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-                <span className="size-1.5 rounded-full bg-emerald-400 animate-ping" />
+              <span className="ml-0.5 flex items-center gap-1 rounded bg-white/20 px-1 py-0.2 text-[9px] font-bold uppercase tracking-wider text-white">
+                <span className="size-1.5 rounded-full bg-emerald-300 animate-ping" />
                 Live
               </span>
             )}
@@ -267,7 +267,7 @@ export default function TrackTimeline({
 
           {/* Current Vehicle State & Speed Badge */}
           <div
-            className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs font-semibold shrink-0 ${statusConfig.bg}`}
+            className={`flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] font-semibold shrink-0 whitespace-nowrap ${statusConfig.bg}`}
           >
             {statusConfig.icon}
             <span className="tabular-nums">{statusConfig.label}</span>
@@ -275,46 +275,26 @@ export default function TrackTimeline({
 
           {/* Distance Covered Telemetry */}
           {coveredKm !== null && (
-            <div className="flex items-center gap-1.5 rounded-xl bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800/70 dark:text-slate-300 shrink-0">
-              <Activity size={13} className="text-indigo-500 shrink-0" aria-hidden="true" />
+            <div className="flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 py-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300 shrink-0 whitespace-nowrap">
+              <Activity
+                size={12}
+                className="text-blue-600 dark:text-blue-400 shrink-0"
+                aria-hidden="true"
+              />
               <span>
                 <strong className="font-bold text-slate-900 dark:text-white tabular-nums">
                   {coveredKm} km
                 </strong>{' '}
-                covered
+                <span className="text-slate-500 font-normal">covered</span>
               </span>
-              <span className="text-slate-400 dark:text-slate-500 font-bold tabular-nums">
+              <span className="text-slate-400 dark:text-slate-500 font-medium tabular-nums">
                 ({Math.round(playheadPercent)}%)
               </span>
             </div>
           )}
-
-          {/* Legend Indicators — Stays to the right of km covered at all times */}
-          <div className="flex items-center gap-2.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 pl-1 shrink-0">
-            <span className="flex items-center gap-1 shrink-0">
-              <span
-                className="size-2 rounded-full shadow-sm"
-                style={{ backgroundColor: STOP_DOT }}
-                aria-hidden="true"
-              />
-              Stop
-            </span>
-            <span className="flex items-center gap-1 shrink-0">
-              <span className="size-2 rounded-full shadow-sm bg-red-500" aria-hidden="true" />
-              Overspeed
-            </span>
-            <span className="flex items-center gap-1 shrink-0">
-              <span
-                className="size-2 rounded-full shadow-sm"
-                style={{ backgroundColor: GAP_DOT }}
-                aria-hidden="true"
-              />
-              No GPS
-            </span>
-          </div>
         </div>
 
-        <div className="lt-replay-actions flex shrink-0 items-center gap-2">
+        <div className="lt-replay-actions flex shrink-0 items-center gap-1.5 ml-auto whitespace-nowrap">
           {onApplyRange ? (
             <TrackRangePicker
               key={`${from?.getTime()}:${to?.getTime()}`}
@@ -329,29 +309,25 @@ export default function TrackTimeline({
                   title="Change replay range (IST)"
                 >
                   <span className="lt-replay-range-icon">
-                    <Calendar size={16} aria-hidden="true" />
+                    <Calendar size={12} aria-hidden="true" />
                   </span>
                   {from && to ? (
-                    <>
-                      <span className="lt-replay-range-value">
-                        <span className="lt-replay-range-label">From</span>
-                        <span>{formatIst(from, { withDate: true })}</span>
+                    <span className="lt-replay-range-value">
+                      <span className="lt-replay-range-label">From</span>
+                      <span>{formatIst(from, { withDate: true })}</span>
+                      <ArrowRight size={10} className="lt-replay-range-arrow" aria-hidden="true" />
+                      <span className="lt-replay-range-label">
+                        To <span className="lt-replay-range-zone">IST</span>
                       </span>
-                      <ArrowRight size={14} className="lt-replay-range-arrow" aria-hidden="true" />
-                      <span className="lt-replay-range-value">
-                        <span className="lt-replay-range-label">
-                          To <span className="lt-replay-range-zone">IST</span>
-                        </span>
-                        <span>{formatIst(to, { withDate: true })}</span>
-                      </span>
-                    </>
+                      <span>{formatIst(to, { withDate: true })}</span>
+                    </span>
                   ) : (
                     <span className="lt-replay-range-value">
                       Choose date range <span className="lt-replay-range-label">IST</span>
                     </span>
                   )}
                   <span className="lt-replay-range-edit">
-                    <Pencil size={13} aria-hidden="true" />
+                    <Pencil size={10} aria-hidden="true" />
                   </span>
                 </button>
               }
@@ -363,9 +339,9 @@ export default function TrackTimeline({
             onClick={onExit}
             aria-label="Leave Track mode"
             title="Leave Track mode"
-            className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors"
+            className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
           >
-            <X size={16} aria-hidden="true" />
+            <X size={15} aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -538,23 +514,64 @@ export default function TrackTimeline({
         </span>
       </div>
 
-      {/* 3. BOTTOM SUMMARY & TOLL FOOTER */}
+      {/* 3. BOTTOM SUMMARY, LEGEND & TOLL FOOTER */}
       {long ? (
         <p className="m-0 text-xs text-amber-600 dark:text-amber-400 font-medium">
           Long range: the path is simplified; zoom in on the timeline for detail.
         </p>
       ) : null}
 
-      {summary ? (
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pt-1 border-t border-slate-100 dark:border-slate-800/60 text-xs text-slate-600 dark:text-slate-400 font-medium tabular-nums">
-          <span className="flex flex-wrap items-center gap-1.5">
-            <strong>{summary.km} km</strong> · {formatDuration(summary.driveMin)} driving ·{' '}
-            {formatDuration(summary.stopMin)} stopped
-            {summary.maxKmh ? ` · top ${summary.maxKmh} km/h` : ''}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pt-2 border-t border-slate-100 dark:border-slate-800/80 text-xs tabular-nums">
+        {/* Drive summary stats: kept strictly together with whitespace-nowrap so it never breaks mid-sentence */}
+        {summary ? (
+          <div className="flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-400 whitespace-nowrap shrink-0">
+            <span className="font-bold text-slate-900 dark:text-white">{summary.km} km</span>
+            <span className="text-slate-300 dark:text-slate-600">·</span>
+            <span>{formatDuration(summary.driveMin)} driving</span>
+            <span className="text-slate-300 dark:text-slate-600">·</span>
+            <span>{formatDuration(summary.stopMin)} stopped</span>
+            {summary.maxKmh ? (
+              <>
+                <span className="text-slate-300 dark:text-slate-600">·</span>
+                <span>top {summary.maxKmh} km/h</span>
+              </>
+            ) : null}
+          </div>
+        ) : (
+          <div />
+        )}
+
+        {/* Legend Indicators — Positioned in the middle */}
+        <div className="flex items-center gap-3 text-[11px] font-medium text-slate-500 dark:text-slate-400 shrink-0 whitespace-nowrap">
+          <span className="flex items-center gap-1.5 shrink-0">
+            <span
+              className="size-2 rounded-full shadow-xs"
+              style={{ backgroundColor: STOP_DOT }}
+              aria-hidden="true"
+            />
+            Stop
           </span>
-          {tollStatus}
+          <span className="flex items-center gap-1.5 shrink-0">
+            <span className="size-2 rounded-full shadow-xs bg-red-500" aria-hidden="true" />
+            Overspeed
+          </span>
+          <span className="flex items-center gap-1.5 shrink-0">
+            <span
+              className="size-2 rounded-full shadow-xs"
+              style={{ backgroundColor: GAP_DOT }}
+              aria-hidden="true"
+            />
+            No GPS
+          </span>
         </div>
-      ) : null}
+
+        {/* Toll Status on the right */}
+        {tollStatus ? (
+          <div className="flex items-center justify-end text-xs text-slate-500 dark:text-slate-400 shrink-0 whitespace-nowrap">
+            {tollStatus}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

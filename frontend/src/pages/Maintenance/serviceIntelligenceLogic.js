@@ -134,3 +134,17 @@ export function formatCurrencyINR(amount) {
   if (amount == null || Number.isNaN(Number(amount))) return 'Not recorded';
   return `₹${Math.round(Number(amount)).toLocaleString('en-IN')}`;
 }
+
+/**
+ * Format days until due or overdue as an integer string without decimals.
+ */
+export function formatServiceDueDays(daysRaw) {
+  if (daysRaw == null || Number.isNaN(Number(daysRaw))) return 'Due date not projected';
+  const rounded = Math.round(Number(daysRaw));
+  if (rounded < 0) {
+    const abs = Math.abs(rounded);
+    return `Overdue by ${abs} day${abs === 1 ? '' : 's'}`;
+  }
+  if (rounded === 0) return 'Due today';
+  return `Due in ${rounded} day${rounded === 1 ? '' : 's'}`;
+}
