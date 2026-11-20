@@ -1,4 +1,5 @@
 {
+  "buildCommand": "vite build && node scripts/check-bundle.mjs",
   "git": { "deploymentEnabled": true },
   "rewrites": [
     {

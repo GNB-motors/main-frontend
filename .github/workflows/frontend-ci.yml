@@ -38,6 +38,8 @@ jobs:
 
       - name: Test (with coverage)
         run: npm run test:coverage
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
 
       - name: Build
         run: npx vite build

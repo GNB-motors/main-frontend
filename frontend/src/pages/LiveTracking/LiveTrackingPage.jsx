@@ -188,6 +188,7 @@ const LiveTrackingPage = () => {
   // truck's history on a given range (F3.2).
   const trackMode = useTrackMode({ searchParams, setSearchParams });
   const isTrackMode = trackMode.isTrackMode;
+  const setTrackIsPlaying = trackMode.setIsPlaying;
   const isPlacesView = searchParams.get('view') === 'places';
   const contextReg = trackMode.contextReg;
   useEffect(() => {
@@ -856,7 +857,7 @@ const LiveTrackingPage = () => {
   const openJourneyPlace = useCallback(
     async (row) => {
       const request = ++journeyPlaceRequest.current;
-      trackMode.setIsPlaying(false);
+      setTrackIsPlaying(false);
       if (row.unidentified) {
         if (!canEditPlacesHere) {
           showToast('Only owners and managers can identify a place.');
@@ -894,7 +895,7 @@ const LiveTrackingPage = () => {
         }
       }
     },
-    [canEditPlacesHere, showToast, trackMode.setIsPlaying],
+    [canEditPlacesHere, showToast, setTrackIsPlaying],
   );
 
   const fitSelectedRoute = useCallback(() => {

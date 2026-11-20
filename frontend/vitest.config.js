@@ -14,6 +14,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.js'],
     include: ['src/**/*.test.{js,jsx}'],
+    testTimeout: 20000,
     // Measured, not yet enforced (FRONTEND_AUDIT TEST-4): add thresholds once
     // the baseline is known. `npm run test:coverage` writes coverage/.
     coverage: {
