@@ -1,19 +1,25 @@
-import React, { useMemo } from 'react';
-import DataTable from '../../components/ui/DataTable';
-import Empty from '../Vehicle360/panels/Empty';
+import React, { useMemo, useState } from 'react';
 import useApi from '../../hooks/useApi';
+import useUrlFilter from '../../hooks/useUrlFilter';
 import PerformanceApi from '../../api/performance';
+import { humanizeCode } from '../../utils/format';
+import IntelligenceDataState from '../Intelligence/IntelligenceDataState';
+import { PerformanceBriefing } from './PerformanceParts';
+import { windowLabel } from './performanceGaps';
 import {
   DASH,
+  boardStats,
   coverageText,
   floorText,
   formatBoardValue,
   formatVsExpected,
+  boardTabLabel,
   methodRows,
   rankLabel,
   sumLine,
   unknownKmNote,
   vehicleCoverageRows,
+  vsExpectedTone,
 } from './leaderboardsModel';
 
 /**
@@ -28,132 +34,190 @@ import {
  * row above it, so a healthy fleet produces FEW ranks. That is the correct
  * output, and every unranked row says why in words.
  */
-function columnsFor(board) {
-  const unit = board.unit;
-  return [
-    {
-      key: 'driver',
-      label: 'Driver',
-      render: (r) => (
-        <>
-          <span className="pf-veh">{r.driverName || r.driverId || DASH}</span>
-          <span className="pf-sub">{r.driverId || ''}</span>
-        </>
-      ),
-    },
-    {
-      key: 'value',
-      label: unit || 'Value',
-      align: 'right',
-      render: (r) => <span className="num">{formatBoardValue(r.value, unit)}</span>,
-    },
-    {
-      key: 'expected',
-      label: 'Expected (peers)',
-      align: 'right',
-      render: (r) => (
-        <>
-          <span className="num">{formatBoardValue(r.expectedValue, unit)}</span>
-          <span className="pf-sub">
-            {r.expectedPeers
-              ? `pool of ${r.expectedPeers}${r.expectedExcludesSelf ? ', this row excluded' : ''}`
-              : 'no peers to compare to'}
-          </span>
-        </>
-      ),
-    },
-    {
-      key: 'vsExpected',
-      label: 'Vs expected',
-      align: 'right',
-      render: (r) => <span className="num">{formatVsExpected(r.vsExpectedPct)}</span>,
-    },
-    {
-      key: 'rank',
-      label: 'Rank',
-      render: (r) => (
-        <>
-          <span className="num">{rankLabel(r)}</span>
-          {r.rankNote ? <span className="pf-sub">{r.rankNote}</span> : null}
-        </>
-      ),
-    },
-    {
-      key: 'coverage',
-      label: 'Coverage',
-      render: (r) => {
-        const trucks = vehicleCoverageRows(r);
-        return (
-          <>
-            <span className="pf-sub">{coverageText(r.sample) || DASH}</span>
-            {trucks.map((truck) => (
-              <span className="pf-sub" key={truck.vehicleNumber || truck.dutyGroup}>
-                {truck.vehicleNumber || 'truck without a plate'}
-                {truck.km != null ? ` · ${Math.round(truck.km).toLocaleString('en-IN')} km` : ''}
-                {truck.trips != null ? ` · ${truck.trips} trips` : ''}
-                {truck.biasPct != null
-                  ? ` · bill↔ECU ${truck.biasPct.toFixed(1)}% (${truck.biasSamples ?? 0} samples)`
-                  : ''}
-              </span>
-            ))}
-          </>
-        );
-      },
-    },
-  ];
-}
+/** "pool of 5, this row excluded", or the words for a row with no peers. */
+const poolText = (r) =>
+  r.expectedPeers
+    ? `pool of ${r.expectedPeers}${r.expectedExcludesSelf ? ', this row excluded' : ''}`
+    : 'no peers to compare to';
+
+/** The pool note of a whole duty group, said once. */
+const sharedPoolText = (r) =>
+  r.expectedPeers
+    ? `Expected value from a pool of ${r.expectedPeers} drivers${
+        r.expectedExcludesSelf ? ', leaving out the driver being compared' : ''
+      }.`
+    : 'No peers to compare to.';
+
+/** The one value every entry shares, or null when they differ (or there are fewer than two). */
+const sharedValue = (values) => {
+  const present = values.filter(Boolean);
+  if (present.length < 2 || present.length !== values.length) return null;
+  return present.every((value) => value === present[0]) ? present[0] : null;
+};
 
 function DutyGroup({ group, board }) {
-  const columns = useMemo(() => columnsFor(board), [board]);
+  const rows = group.rows || [];
   const floor = floorText(group.floor);
+  const unit = board.unit;
+  // A note every row would repeat is said once, in the group's head.
+  const sharedRankNote = sharedValue(rows.filter((r) => r.rank == null).map((r) => r.rankNote));
+  const sharedPool = sharedValue(rows.map(poolText));
 
   return (
-    <div style={{ marginTop: 14 }}>
-      <h3 className="pf-sub-title">
-        Duty group {group.dutyGroup} — {group.rankedCount} ranked
-      </h3>
-      {floor ? <p className="pf-sub">Rank floor: {floor}</p> : null}
-      <DataTable
-        columns={columns}
-        rows={group.rows || []}
-        rowKey={(r) => r.key || r.driverId}
-        showing={(group.rows || []).length}
-        total={(group.rows || []).length}
-        emptyTitle="No rows in this duty group"
-        emptyHint="A row appears once the server has a reading for that driver in this window."
-      />
-    </div>
+    <>
+      <div className="pf-group-head">
+        <h4>
+          {`Duty group ${group.dutyGroup}`}
+          <span>{`${group.rankedCount ?? 0} ranked of ${rows.length}`}</span>
+        </h4>
+        {floor ? <small>{`Rank floor: ${floor}`}</small> : null}
+        {sharedRankNote || sharedPool ? (
+          <p>
+            {[
+              sharedRankNote ? `Unranked: ${sharedRankNote}` : null,
+              sharedPool ? sharedPoolText(rows[0]) : null,
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          </p>
+        ) : null}
+      </div>
+      <div className="pf-lb-wrap">
+        <table className="pf-lb-table">
+          <thead>
+            <tr>
+              <th scope="col">Rank</th>
+              <th scope="col">Driver</th>
+              <th scope="col" className="is-num">
+                This driver
+              </th>
+              <th scope="col" className="is-num">
+                Expected for this duty
+              </th>
+              <th scope="col" className="is-num">
+                Vs expected
+              </th>
+              <th scope="col">Based on</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length ? (
+              rows.map((r) => {
+                const tone = vsExpectedTone(r.vsExpectedPct, board.direction);
+                return (
+                  <tr key={r.key || r.driverId}>
+                    <td className="is-wrap">
+                      <span className={r.rank != null ? 'pf-rank' : 'pf-rank--none'}>
+                        {rankLabel(r)}
+                      </span>
+                      {r.rankNote && !sharedRankNote ? <small>{r.rankNote}</small> : null}
+                    </td>
+                    <td>
+                      <strong className="font-semibold">
+                        {r.driverName || r.driverId || DASH}
+                      </strong>
+                    </td>
+                    <td className="is-num">{formatBoardValue(r.value, unit)}</td>
+                    <td className="is-num">
+                      <span>{formatBoardValue(r.expectedValue, unit)}</span>
+                      {sharedPool ? null : <small>{poolText(r)}</small>}
+                    </td>
+                    <td className="is-num">
+                      <span className={tone ? `pf-${tone}` : undefined}>
+                        {formatVsExpected(r.vsExpectedPct)}
+                      </span>
+                    </td>
+                    <td className="is-wrap">
+                      <span className="text-[12.5px]">{coverageText(r.sample) || DASH}</span>
+                      {vehicleCoverageRows(r).map((truck) => (
+                        <small key={truck.vehicleNumber || truck.dutyGroup}>
+                          {truck.vehicleNumber || 'Truck without a plate'}
+                          {truck.km != null
+                            ? ` · ${Math.round(truck.km).toLocaleString('en-IN')} km`
+                            : ''}
+                          {truck.trips != null ? ` · ${truck.trips} trips` : ''}
+                          {truck.biasPct != null
+                            ? ` · bill↔ECU ${truck.biasPct.toFixed(1)}% (${truck.biasSamples ?? 0} samples)`
+                            : ''}
+                        </small>
+                      ))}
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={6} className="text-[12.5px] text-[var(--ui-ink-3)]">
+                  No driver in this duty group yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
-function BoardCard({ board }) {
+function BoardCard({ board, id }) {
   const groups = board.groups || [];
-  const direction = board.direction === 'higher' ? 'higher is better' : 'lower is better';
   const sum = sumLine(board);
+  const title = board.title || humanizeCode(board.key);
 
   return (
-    <section className="pf-card">
+    <section className="pf-card" aria-label={title} id={id} role="tabpanel">
       <header className="pf-card-head">
-        <h2 className="pf-card-title">{board.title || board.key}</h2>
-        <span className="pf-hint">
-          {direction} · {board.unit || ''}
-        </span>
+        <div className="min-w-0">
+          <h3>{title}</h3>
+          {board.doesNotMeasure ? <p>{board.doesNotMeasure}</p> : null}
+          {board.measures ? <p>{`Measures: ${String(board.measures).toLowerCase()}`}</p> : null}
+          {sum ? <p className="pf-sum">{sum}</p> : null}
+        </div>
+        <div className="pf-card-meta">
+          <span className="pf-pill">
+            {board.direction === 'higher' ? 'Higher is better' : 'Lower is better'}
+          </span>
+          {board.unit ? <span className="pf-pill">{board.unit}</span> : null}
+        </div>
       </header>
 
-      {board.measures ? <p className="pf-sub-title">Measures: {board.measures}</p> : null}
-      {board.doesNotMeasure ? <p className="pf-note">{board.doesNotMeasure}</p> : null}
-      {sum ? <p className="pf-sub">{sum}</p> : null}
-
       {groups.length ? (
-        groups.map((group) => (
-          <DutyGroup group={group} board={board} key={group.dutyGroup} />
-        ))
+        groups.map((group) => <DutyGroup group={group} board={board} key={group.dutyGroup} />)
       ) : (
-        <Empty
-          title="No duty group yet"
-          hint="A board needs this org's own cycles before it can learn which trucks are doing comparable work."
-        />
+        <p className="pf-board-empty">
+          No duty group yet. A board needs this fleet’s own cycles before it can tell which trucks
+          do comparable work.
+        </p>
       )}
+    </section>
+  );
+}
+
+/** The method behind the boards, as the server wrote it — closed until asked for. */
+function MethodNotes({ notes }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <section className="pf-card">
+      <button
+        type="button"
+        className="pf-expand"
+        aria-expanded={open}
+        aria-controls="pf-method-notes"
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span>How these boards are worked out</span>
+        <span>{open ? 'Hide' : `Show ${notes.length} notes`}</span>
+      </button>
+      {open ? (
+        <dl id="pf-method-notes" className="pf-fields">
+          {notes.map((note) => (
+            <div key={note.label}>
+              <dt>{note.label}</dt>
+              <dd>{humanizeCode(note.value)}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
     </section>
   );
 }
@@ -173,49 +237,87 @@ export default function LeaderboardsTab() {
   const boards = useMemo(() => data?.boards ?? [], [data]);
   const notes = useMemo(() => methodRows(data?.meta), [data]);
   const unmeasuredTrips = useMemo(() => unknownKmNote(data?.meta), [data]);
+  const stats = useMemo(() => boardStats(boards), [boards]);
+  const days = data?.window?.days ?? 30;
+  const range = windowLabel(data?.window);
+
+  const [boardKey, setBoardKey] = useUrlFilter('board');
+  const active = boards.find((board) => board.key === boardKey) ?? boards[0] ?? null;
 
   return (
-    <div className="pf-stack">
-      {loading && !data ? (
-        <div className="text-dim p-4 text-sm">Loading boards…</div>
-      ) : error ? (
-        <div className="p-4 text-sm" style={{ color: 'var(--critical)' }}>
-          Could not load the boards. {error.message || ''}
-          <button type="button" className="pf-retry" onClick={refetch}>
-            Retry
-          </button>
-        </div>
-      ) : boards.length === 0 ? (
-        <Empty
-          title="No boards in this window"
-          hint="A board appears once the server has rows for it in the last 30 days."
-        />
-      ) : (
-        boards.map((board) => <BoardCard board={board} key={board.key || board.title} />)
-      )}
+    <div className="pf-tab">
+      <IntelligenceDataState
+        loading={loading && !data}
+        loadingVariant="table"
+        error={error}
+        isEmpty={!boards.length}
+        emptyMessage={`No board has rows in the last ${days} days yet. A board appears once this fleet’s own trips give it something to compare.`}
+        what="Leaderboards"
+        onRetry={refetch}
+      >
+        <>
+          <PerformanceBriefing
+            label="Leaderboards read"
+            eyebrow={`How drivers compare · last ${days} days`}
+            lead={
+              <>
+                <b>{stats.ranked.toLocaleString('en-IN')}</b> of{' '}
+                <b>{stats.drivers.toLocaleString('en-IN')}</b>{' '}
+                {stats.drivers === 1 ? 'driver' : 'drivers'} earned a rank on at least one board.
+              </>
+            }
+            notes={[
+              'A rank is given only when a driver is clearly ahead of the one below, so most drivers stay unranked.',
+              unmeasuredTrips,
+              range ? `Readings from ${range}.` : null,
+            ]}
+            kpis={[
+              { label: 'Boards', value: boards.length, note: 'one per measure' },
+              {
+                label: 'Drivers ranked',
+                value: stats.ranked.toLocaleString('en-IN'),
+                note: `of ${stats.drivers.toLocaleString('en-IN')} compared`,
+              },
+              {
+                label: 'Duty groups',
+                value: stats.groups.toLocaleString('en-IN'),
+                note: 'learned from this fleet’s own cycles',
+              },
+              {
+                label: 'Unranked rows',
+                value: stats.unranked.toLocaleString('en-IN'),
+                note: 'each says why beside it',
+              },
+            ]}
+          />
 
-      {unmeasuredTrips ? <p className="pf-note">{unmeasuredTrips}</p> : null}
+          <div className="pf-board-tabs" role="tablist" aria-label="Boards">
+            {boards.map((board) => {
+              const selected = board === active;
+              const ranked = boardStats([board]).ranked;
+              return (
+                <button
+                  key={board.key || board.title}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  aria-controls="pf-board-panel"
+                  onClick={() => setBoardKey(board.key || '')}
+                >
+                  {boardTabLabel(board)}
+                  {ranked ? <span aria-label={`${ranked} ranked`}>{ranked}</span> : null}
+                </button>
+              );
+            })}
+          </div>
 
-      {notes.length ? (
-        <section className="pf-card">
-          <header className="pf-card-head">
-            <h2 className="pf-card-title">How these boards are worked out</h2>
-          </header>
-          <dl className="pf-kv">
-            {notes.map((note) => (
-              <div className="pf-kv-row" key={note.label}>
-                <dt>{note.label}</dt>
-                <dd>{note.value}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-      ) : null}
+          {active ? (
+            <BoardCard board={active} id="pf-board-panel" key={active.key || active.title} />
+          ) : null}
 
-      <p className="pf-note">
-        A row whose number was not measured stays unranked, with the reason beside it. It is never
-        shown as a zero, and it is never ranked above a driver who was measured.
-      </p>
+          {notes.length ? <MethodNotes notes={notes} /> : null}
+        </>
+      </IntelligenceDataState>
     </div>
   );
 }

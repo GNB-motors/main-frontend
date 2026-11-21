@@ -1,87 +1,38 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import DataTable from '../../components/ui/DataTable';
-import Empty from '../Vehicle360/panels/Empty';
-import Trend from '../Vehicle360/panels/Trend';
+import React, { useMemo, useState } from 'react';
 import useApi from '../../hooks/useApi';
 import PerformanceApi from '../../api/performance';
+import IntelligenceDataState from '../Intelligence/IntelligenceDataState';
 import SourceCell from './SourceCell';
 import SourceLegend from './SourceLegend';
-import { cellNumber, formatCellNumber, isKnownSource } from './performanceCells';
+import VehicleDrawer from './VehicleDrawer';
+import { PerformanceBriefing, PerformanceNoNumbers, PerformanceTable } from './PerformanceParts';
+import { VEHICLE_METRICS, keyOf, providerLabel } from './vehiclesModel';
+import {
+  columnGaps,
+  columnMedian,
+  hiddenLine,
+  sourcesPresent,
+  windowLabel,
+} from './performanceGaps';
+import { formatCellNumber } from './performanceCells';
+
+/** The server's default page; a full page means the fleet may be cut off. */
+const LIST_LIMIT = 50;
+
+function EngineAlerts({ count }) {
+  if (count === null || count === undefined) return <span className="pf-none">—</span>;
+  if (count === 0) return <span className="pf-none">None</span>;
+  return (
+    <span className="pf-pill pf-pill--bad">{`${count} ${count === 1 ? 'alert' : 'alerts'}`}</span>
+  );
+}
 
 /**
- * A row's identity: `vehicleKey` (also set for iALERT-only trucks, which have no
- * platform vehicle id), or the platform id from an older server.
- */
-const keyOf = (v) => v.vehicleKey || v.vehicleId || null;
-
-const COLUMNS = [
-  {
-    key: 'vehicle',
-    label: 'Vehicle',
-    render: (v) => (
-      <>
-        <span className="pf-veh">{v.registration || '—'}</span>
-        <span className="pf-sub">{v.vehicleId || ''}</span>
-      </>
-    ),
-  },
-  {
-    key: 'provider',
-    label: 'Provider',
-    render: (v) => (
-      <span className={`pf-prov pf-prov--${String(v.provider || '').toLowerCase()}`}>
-        {v.provider || '—'}
-      </span>
-    ),
-  },
-  {
-    key: 'kmPerL',
-    label: 'km/L',
-    render: (v) => <SourceCell cell={v.kmPerL} decimals={2} />,
-  },
-  {
-    key: 'idlePct',
-    label: 'Idle %',
-    align: 'right',
-    render: (v) => <SourceCell cell={v.idlePct} />,
-  },
-  {
-    key: 'topGearPct',
-    label: 'Top gear %',
-    align: 'right',
-    render: (v) => <SourceCell cell={v.topGearPct} />,
-  },
-  {
-    key: 'overRevPct',
-    label: 'Over-rev %',
-    align: 'right',
-    render: (v) => <SourceCell cell={v.overRevPct} />,
-  },
-  {
-    key: 'healthFindings',
-    label: 'Health',
-    align: 'right',
-    render: (v) => <span className="num">{v.healthFindings == null ? '—' : v.healthFindings}</span>,
-  },
-];
-
-const barWidth = (cell) => {
-  const n = cellNumber(cell);
-  if (n == null) return 0;
-  return Math.max(0, Math.min(100, n));
-};
-
-const edgesText = (edges) => {
-  if (edges == null) return '';
-  if (typeof edges === 'object') return JSON.stringify(edges);
-  return String(edges);
-};
-
-/**
- * Vehicles — the fleet table and the selected vehicle's own numbers.
+ * Vehicles — each truck's own km/L, idling and gear use over the server's
+ * window, every number with its source.
  *
- * The table is the Mileage performance view rebuilt on the performance API:
- * one row per truck, every number a cell with its source.
+ * A column no truck can fill is left out and explained once in the briefing;
+ * a row opens the truck's drawer with its gear, health and drift.
  */
 export default function VehiclesTab() {
   const { data, loading, error, refetch } = useApi(
@@ -89,256 +40,170 @@ export default function VehiclesTab() {
     [],
   );
   const vehicles = useMemo(() => data?.vehicles ?? [], [data]);
-  const [selectedId, setSelectedId] = useState(null);
+  const [open, setOpen] = useState(null);
 
-  useEffect(() => {
-    if (!vehicles.length) {
-      if (selectedId) setSelectedId(null);
-      return;
-    }
-    if (!vehicles.some((v) => keyOf(v) === selectedId)) setSelectedId(keyOf(vehicles[0]));
-  }, [vehicles, selectedId]);
+  const gaps = useMemo(
+    () =>
+      columnGaps(
+        vehicles,
+        VEHICLE_METRICS.map((metric) => ({
+          key: metric.key,
+          label: metric.label,
+          cell: (v) => v[metric.key],
+        })),
+      ),
+    [vehicles],
+  );
+  const shownMetrics = VEHICLE_METRICS.filter((metric) => !gaps.hidden.has(metric.key));
+  const present = sourcesPresent(vehicles, (v) => shownMetrics.map((metric) => v[metric.key]));
 
-  const detail = useApi((signal) => PerformanceApi.vehicle(selectedId, {}, signal), [selectedId], {
-    enabled: Boolean(selectedId),
-  });
+  const mileage = columnMedian(vehicles, (v) => v.kmPerL);
+  const idle = columnMedian(vehicles, (v) => v.idlePct);
+  const withAlerts = vehicles.filter((v) => v.healthFindings > 0).length;
+  const days = data?.window?.days ?? 30;
+  const range = windowLabel(data?.window);
+  const count = vehicles.length;
+  const cutOff =
+    count >= LIST_LIMIT
+      ? `This list stops at ${LIST_LIMIT} trucks, ordered by plate; a bigger fleet is cut off here.`
+      : null;
 
-  const vehicle = detail.data?.vehicle ?? null;
-  const gear = detail.data?.gearRpm ?? null;
-  const findings = detail.data?.health ?? [];
-  const drift = detail.data?.efficiencyDrift ?? null;
-  const harsh = detail.data?.harshEvents ?? [];
+  const columns = [
+    {
+      key: 'vehicle',
+      label: 'Truck',
+      render: (v) => (
+        <button
+          type="button"
+          className="intelligence-table-open pf-open"
+          aria-label={`Open ${v.registration || 'this truck'}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen(v);
+          }}
+        >
+          {v.registration || '—'}
+          <small>{providerLabel(v.provider)}</small>
+        </button>
+      ),
+    },
+    ...shownMetrics.map((metric) => ({
+      key: metric.key,
+      label: metric.label,
+      align: 'right',
+      render: (v) => <SourceCell cell={v[metric.key]} decimals={metric.decimals} reason="hidden" />,
+    })),
+    {
+      key: 'healthFindings',
+      label: 'Engine alerts',
+      align: 'right',
+      render: (v) => <EngineAlerts count={v.healthFindings} />,
+    },
+  ];
 
-  const gearEntries = Object.entries(gear?.gearPct ?? {});
-  const bandEntries = Object.entries(gear?.rpmBandPct ?? {});
-  const series = drift?.series ?? [];
-  const points = series.map((p) => ({ t: p.istDay, kmPerL: cellNumber(p.kmPerL) }));
-  const unknownDays = series.filter((p) => cellNumber(p.kmPerL) == null);
+  const lead = (
+    <>
+      <b>{count.toLocaleString('en-IN')}</b> {count === 1 ? 'truck' : 'trucks'} in this read.
+      {mileage.median !== null ? (
+        <>
+          {' '}
+          Half of them do better than <b>{formatCellNumber(mileage.median, 2)} km/L</b>
+          {idle.median !== null ? (
+            <>
+              , and half idle less than <b>{formatCellNumber(idle.median, 1)}%</b> of engine-on
+              time.
+            </>
+          ) : (
+            '.'
+          )}
+        </>
+      ) : idle.median !== null ? (
+        <>
+          {' '}
+          Half of them idle less than <b>{formatCellNumber(idle.median, 1)}%</b> of engine-on time.
+        </>
+      ) : null}
+    </>
+  );
 
   return (
-    <div className="pf-stack">
-      <SourceLegend />
+    <div className="pf-tab">
+      <IntelligenceDataState
+        loading={loading && !data}
+        loadingVariant="table"
+        error={error}
+        isEmpty={!count}
+        emptyMessage={`No truck has a reading in the last ${days} days yet. A truck shows up here once its device reports.`}
+        what="Truck performance"
+        onRetry={refetch}
+      >
+        {shownMetrics.length ? (
+          <>
+            <PerformanceBriefing
+              label="Truck performance read"
+              eyebrow={`Fleet read · last ${days} days`}
+              lead={lead}
+              notes={[
+                range ? `Readings from ${range}.` : null,
+                ...gaps.notes.map(hiddenLine),
+                cutOff,
+              ]}
+              kpis={[
+                {
+                  label: 'Trucks',
+                  value: count.toLocaleString('en-IN'),
+                  note: `${mileage.known} with a mileage reading`,
+                },
+                {
+                  label: 'Median mileage',
+                  value:
+                    mileage.median === null ? '—' : `${formatCellNumber(mileage.median, 2)} km/L`,
+                  note:
+                    mileage.median === null
+                      ? 'No truck reported fuel and distance'
+                      : `${mileage.known} of ${count} trucks measured`,
+                },
+                {
+                  label: 'Median idle share',
+                  value: idle.median === null ? '—' : `${formatCellNumber(idle.median, 1)}%`,
+                  note:
+                    idle.median === null
+                      ? 'No truck reported idle time'
+                      : `of engine-on time · ${idle.known} of ${count} trucks`,
+                },
+                {
+                  label: 'Engine alerts',
+                  value: withAlerts.toLocaleString('en-IN'),
+                  note: withAlerts ? 'trucks with an engine alert' : 'No truck has an engine alert',
+                },
+              ]}
+            >
+              <SourceLegend present={present} />
+            </PerformanceBriefing>
 
-      <section className="pf-card">
-        <header className="pf-card-head">
-          <h2 className="pf-card-title">Fleet</h2>
-          <span className="pf-hint">click a row</span>
-        </header>
-        <DataTable
-          columns={COLUMNS}
-          rows={vehicles}
-          rowKey={keyOf}
-          loading={loading && !data}
-          error={error}
-          onRetry={refetch}
-          showing={vehicles.length}
-          total={vehicles.length}
-          onRowClick={(v) => setSelectedId(keyOf(v))}
-          rowClassName={(v) => (keyOf(v) === selectedId ? 'dt-row--selected' : '')}
-          emptyTitle="No vehicles in this window"
-          emptyHint="A truck shows up once the server has a reading for it in the last 30 days."
-        />
-      </section>
-
-      <section className="pf-card">
-        <header className="pf-card-head">
-          <h2 className="pf-card-title">Selected vehicle</h2>
-          <span className="pf-hint">{vehicle?.registration || '—'}</span>
-        </header>
-        {vehicle ? (
-          <dl className="pf-kv">
-            <div className="pf-kv-row">
-              <dt>Registration</dt>
-              <dd>{vehicle.registration || '—'}</dd>
-            </div>
-            <div className="pf-kv-row">
-              <dt>Provider</dt>
-              <dd>{vehicle.provider || '—'}</dd>
-            </div>
-            <div className="pf-kv-row">
-              <dt>km/L</dt>
-              <dd>
-                <SourceCell cell={vehicle.kmPerL} decimals={2} />
-              </dd>
-            </div>
-            <div className="pf-kv-row">
-              <dt>Idle share</dt>
-              <dd>
-                <SourceCell cell={vehicle.idlePct} />
-              </dd>
-            </div>
-            <div className="pf-kv-row">
-              <dt>Top gear share</dt>
-              <dd>
-                <SourceCell cell={vehicle.topGearPct} />
-              </dd>
-            </div>
-            <div className="pf-kv-row">
-              <dt>Over-rev share</dt>
-              <dd>
-                <SourceCell cell={vehicle.overRevPct} />
-              </dd>
-            </div>
-          </dl>
+            <PerformanceTable
+              columns={columns}
+              rows={vehicles}
+              rowKey={keyOf}
+              searchText={(v) => `${v.registration || ''} ${providerLabel(v.provider)}`}
+              searchLabel="Search a plate"
+              noun={{ one: 'truck', many: 'trucks' }}
+              placeholder="Search a plate"
+              openKey={open ? keyOf(open) : null}
+              onOpen={setOpen}
+              emptyTitle="No trucks in this read"
+            />
+          </>
         ) : (
-          <Empty
-            title="No vehicle selected"
-            hint="Pick a truck from the fleet table to see its own numbers."
+          <PerformanceNoNumbers
+            title={`No truck numbers ${range ? `for ${range} ` : ''}yet`}
+            lead={`${count.toLocaleString('en-IN')} ${count === 1 ? 'truck is' : 'trucks are'} on record for this window, but none has a number we can stand behind yet. They show up here as soon as the readings arrive.`}
+            notes={gaps.notes}
           />
         )}
-      </section>
+      </IntelligenceDataState>
 
-      <div className="pf-grid">
-        <section className="pf-card">
-          <header className="pf-card-head">
-            <h2 className="pf-card-title">Gear &amp; RPM behaviour</h2>
-          </header>
-          {gearEntries.length || bandEntries.length ? (
-            <>
-              <h3 className="pf-sub-title">Gear share</h3>
-              <div className="pf-bars">
-                {gearEntries.map(([key, cell]) => (
-                  <div className="pf-bar" key={key}>
-                    <span className="pf-bar-label">{key}</span>
-                    <span className="pf-bar-track">
-                      <span className="pf-bar-fill" style={{ width: `${barWidth(cell)}%` }} />
-                    </span>
-                    <span className="pf-bar-value">
-                      <SourceCell cell={cell} />
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <h3 className="pf-sub-title">RPM bands</h3>
-              <div className="pf-bars">
-                {bandEntries.map(([key, cell]) => (
-                  <div className="pf-bar" key={key}>
-                    <span className="pf-bar-label">{key}</span>
-                    <span className="pf-bar-track">
-                      <span className="pf-bar-fill" style={{ width: `${barWidth(cell)}%` }} />
-                    </span>
-                    <span className="pf-bar-value">
-                      <SourceCell cell={cell} />
-                    </span>
-                  </div>
-                ))}
-              </div>
-              {gear?.bandEdgesRpm != null ? (
-                <p className="pf-edges">
-                  <span className="pf-bar-label">Band edges</span>
-                  <span className="num">{edgesText(gear.bandEdgesRpm)}</span>
-                  {isKnownSource({ source: gear.bandEdgesSource }) ? (
-                    <span className={`psrc-badge psrc-badge--${gear.bandEdgesSource}`}>
-                      {gear.bandEdgesSource}
-                    </span>
-                  ) : null}
-                </p>
-              ) : null}
-            </>
-          ) : (
-            <Empty
-              title="No gear or RPM reading"
-              hint="Gear comes from rpm and speed until a real vendor gear label arrives."
-            />
-          )}
-        </section>
-
-        <section className="pf-card">
-          <header className="pf-card-head">
-            <h2 className="pf-card-title">Engine health</h2>
-            <span className="pf-hint">shadow — findings do not raise an alert yet</span>
-          </header>
-          {findings.length ? (
-            <ul className="pf-findings">
-              {findings.map((f) => (
-                <li
-                  className={`pf-finding pf-finding--${f.status}`}
-                  key={`${f.monitor}-${f.title}`}
-                >
-                  <span className="pf-finding-title">{f.title || f.monitor}</span>
-                  {f.detail ? <span className="pf-finding-detail">{f.detail}</span> : null}
-                  {f.since ? <span className="pf-finding-meta">since {f.since}</span> : null}
-                  <span className={`pf-status pf-status--${f.status}`}>{f.status}</span>
-                  {isKnownSource({ source: f.source }) ? (
-                    <span className={`psrc-badge psrc-badge--${f.source}`}>{f.source}</span>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <Empty
-              title="No health findings"
-              hint="Nothing was flagged for this truck in this window."
-            />
-          )}
-        </section>
-      </div>
-
-      <div className="pf-grid">
-        <section className="pf-card">
-          <header className="pf-card-head">
-            <h2 className="pf-card-title">Efficiency drift</h2>
-            <span className="pf-hint">vs the truck&apos;s own baseline</span>
-          </header>
-          {points.length ? (
-            <>
-              <Trend
-                data={points}
-                dataKey="kmPerL"
-                format={(v) => `${formatCellNumber(v, 2)} km/L`}
-              />
-              <p className="pf-note">
-                Drift is <SourceCell cell={drift?.driftPct} /> against this truck&apos;s own
-                baseline.
-              </p>
-              {unknownDays.length ? (
-                <ul className="pf-unknown-days">
-                  {unknownDays.map((p) => (
-                    <li key={p.istDay}>
-                      <span className="num">{p.istDay}</span>
-                      <span className="pf-finding-detail">{p.kmPerL?.reason || 'No reading.'}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </>
-          ) : (
-            <Empty
-              title="No drift series"
-              hint="Drift needs enough of this truck's own history to compare against."
-            />
-          )}
-        </section>
-
-        <section className="pf-card">
-          <header className="pf-card-head">
-            <h2 className="pf-card-title">Vendor harsh events</h2>
-            <span className="pf-hint">last 30 days</span>
-          </header>
-          {harsh.length ? (
-            <ul className="pf-harsh">
-              {harsh.map((h, i) => (
-                <li className="pf-harsh-row" key={`${h.at}-${h.type}-${i}`}>
-                  <span className="pf-harsh-type">{h.type}</span>
-                  <span className="num pf-harsh-value">
-                    {h.value == null ? '—' : h.value} {h.unit || ''}
-                  </span>
-                  {h.vendorThreshold != null ? (
-                    <span className="pf-harsh-threshold">vendor threshold {h.vendorThreshold}</span>
-                  ) : null}
-                  <span className="pf-harsh-at">{h.at}</span>
-                  <span className="psrc-badge psrc-badge--vendor">vendor</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <Empty
-              title="No vendor harsh events"
-              hint="iALERT counts these from the OBU. We grade our own count against theirs; we never adopt theirs."
-            />
-          )}
-        </section>
-      </div>
+      <VehicleDrawer vehicle={open} window={data?.window} onClose={() => setOpen(null)} />
     </div>
   );
 }

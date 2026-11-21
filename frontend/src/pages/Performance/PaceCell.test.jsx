@@ -18,7 +18,7 @@ describe('PaceCell', () => {
     );
 
     expect(screen.getByText('1.08× road pace ± 0.04')).toBeTruthy();
-    expect(screen.getByText('estimated')).toBeTruthy();
+    expect(screen.getByText('Estimated')).toBeTruthy();
   });
 
   it('never turns an unknown pace into 1.00', () => {

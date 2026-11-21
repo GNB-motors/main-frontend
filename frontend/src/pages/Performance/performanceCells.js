@@ -11,11 +11,11 @@
 export const SOURCES = ['measured', 'vendor', 'estimated', 'not_comparable', 'insufficient_data'];
 
 export const SOURCE_LABEL = {
-  measured: 'measured',
-  vendor: 'vendor',
-  estimated: 'estimated',
-  not_comparable: 'not comparable',
-  insufficient_data: 'insufficient data',
+  measured: 'Measured',
+  vendor: 'iALERT',
+  estimated: 'Estimated',
+  not_comparable: 'Not comparable',
+  insufficient_data: 'Not enough data',
 };
 
 export const UNKNOWN_SOURCES = ['not_comparable', 'insufficient_data'];
@@ -53,7 +53,11 @@ export const cellReason = (cell) => {
 export const formatCellNumber = (value, decimals = 1) => {
   const n = Number(value);
   if (!Number.isFinite(n)) return '—';
-  return n.toFixed(decimals).replace(/\.?0+$/, '');
+  // Trailing zeros are trimmed after the decimal point only: 70 stays 70.
+  return n
+    .toFixed(decimals)
+    .replace(/(\.\d*?)0+$/, '$1')
+    .replace(/\.$/, '');
 };
 
 export const cellUnit = (cell) => (typeof cell?.unit === 'string' ? cell.unit.trim() : '');
@@ -76,3 +80,70 @@ export const cellUncertainty = (cell) => {
 
 /** True when the cell is a plain number with a source we understand. */
 export const isKnownSource = (cell) => SOURCES.includes(cell?.source);
+
+const CADENCE_REASON = /^cadence P90 (\d+) min > (\d+) s$/;
+
+const sentence = (text) => {
+  const trimmed = String(text || '')
+    .trim()
+    .replace(/\.$/, '');
+  return trimmed ? `${trimmed.charAt(0).toUpperCase()}${trimmed.slice(1)}.` : '';
+};
+
+/**
+ * The reason a cell carries, grouped so one sentence can explain every row it
+ * applies to. The server writes the cadence gate per truck ("cadence P90 63 min
+ * > 90 s"), so trucks that fail the same gate share one group and the gap range
+ * is kept for the sentence.
+ */
+export function reasonGroup(cell) {
+  const raw = cellReason(cell);
+  const cadence = CADENCE_REASON.exec(raw);
+  if (cadence) {
+    const minutes = Number(cadence[1]);
+    const requiredS = Number(cadence[2]);
+    return { key: `cadence:${requiredS}`, kind: 'cadence', minutes, requiredS };
+  }
+  if (/^no learned cadence/i.test(raw)) {
+    return {
+      key: 'cadence:unlearned',
+      kind: 'text',
+      text: 'Not enough readings yet to judge this feed.',
+    };
+  }
+  if (/^this feed cannot be compared yet/i.test(raw)) {
+    return { key: 'cadence:unknown', kind: 'text', text: 'This feed can’t be compared yet.' };
+  }
+  const text = sentence(raw);
+  return { key: `text:${text}`, kind: 'text', text };
+}
+
+/** "Readings arrive up to 63 min apart; this needs one at least every 90 s." */
+export function cadenceSentence({ minMinutes, maxMinutes, requiredS }) {
+  const gap = minMinutes === maxMinutes ? `${maxMinutes} min` : `${minMinutes}–${maxMinutes} min`;
+  return `Readings arrive up to ${gap} apart; this needs one at least every ${requiredS} s.`;
+}
+
+/** The reason of one cell, in plain words. */
+export function plainReason(cell) {
+  const group = reasonGroup(cell);
+  if (group.kind !== 'cadence') return group.text;
+  return cadenceSentence({
+    minMinutes: group.minutes,
+    maxMinutes: group.minutes,
+    requiredS: group.requiredS,
+  });
+}
+
+/** "neutral" → "Neutral", "harshBraking" → "Harsh braking", "g4" → "Gear 4". */
+export function words(key) {
+  const text = String(key ?? '');
+  const gear = /^g(\d+)$/i.exec(text);
+  if (gear) return `Gear ${gear[1]}`;
+  const spaced = text
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .trim()
+    .toLowerCase();
+  return spaced ? `${spaced.charAt(0).toUpperCase()}${spaced.slice(1)}` : '';
+}

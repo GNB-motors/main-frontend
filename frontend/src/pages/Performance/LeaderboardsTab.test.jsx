@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import LeaderboardsTab from './LeaderboardsTab';
 import PerformanceApi from '../../api/performance';
 
@@ -105,12 +106,30 @@ const BOARDS = {
       method: 'LEARNED_DUTY_FROM_OWN_CYCLES',
       vehiclesGrouped: 12,
     },
-    ranking: 'A rank is awarded only where this row’s 95% interval does not overlap the row above it.',
+    ranking:
+      'A rank is awarded only where this row’s 95% interval does not overlap the row above it.',
     rankRuleSource: 'app/modules/scorecard/scorecard.service.js — componentInterval',
     biasScope: 'PER_VEHICLE_ONLY',
     behaviourSource: 'BEHAVIOURDAY',
     supersedes: 'GET /api/driver-leaderboard',
   },
+};
+
+const renderTab = (path = '/') =>
+  render(
+    <MemoryRouter initialEntries={[path]}>
+      <LeaderboardsTab />
+    </MemoryRouter>,
+  );
+
+const IDLE_BOARD = {
+  key: 'IDLE_PCT',
+  title: 'Idle share of engine-on time',
+  unit: '%',
+  direction: 'lower',
+  measures: 'VEHICLE AND DRIVER',
+  doesNotMeasure: 'Idle at a loading point counts too.',
+  groups: [],
 };
 
 describe('LeaderboardsTab', () => {
@@ -120,35 +139,58 @@ describe('LeaderboardsTab', () => {
   });
 
   it('shows the board, what it measures and what it does not measure', async () => {
-    render(<LeaderboardsTab />);
+    renderTab();
 
-    await waitFor(() =>
-      expect(screen.getByText('km/L vs expected for this duty')).toBeTruthy(),
-    );
-    expect(screen.getByText('Measures: THE TRUCK MOSTLY')).toBeTruthy();
+    await waitFor(() => expect(screen.getByText('km/L vs expected for this duty')).toBeTruthy());
+    expect(screen.getByText('Measures: the truck mostly')).toBeTruthy();
     expect(screen.getByText('Fuel is measured at the tank and the engine.')).toBeTruthy();
-    expect(screen.getByText('LEARNED_DUTY_FROM_OWN_CYCLES')).toBeTruthy();
+  });
+
+  it('keeps the method notes closed until asked, then shows them without codes', async () => {
+    renderTab();
+
+    const toggle = await screen.findByRole('button', { name: /How these boards are worked out/ });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('Learned duty from own cycles')).toBeNull();
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Learned duty from own cycles')).toBeTruthy();
+    expect(screen.queryByText('LEARNED_DUTY_FROM_OWN_CYCLES')).toBeNull();
   });
 
   it('shows the value, the expected pool beside it, and the rank', async () => {
-    render(<LeaderboardsTab />);
+    renderTab();
 
     await waitFor(() => expect(screen.getByText('Ramesh Yadav')).toBeTruthy());
     expect(screen.getByText('4.12 km/L')).toBeTruthy();
     expect(screen.getByText('3.95 km/L')).toBeTruthy();
     expect(screen.getByText('+4.3%')).toBeTruthy();
     expect(screen.getByText('#1')).toBeTruthy();
-    expect(screen.getAllByText(/pool of 3, this row excluded/).length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(
+        /Expected value from a pool of 3 drivers, leaving out the driver being compared\./,
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText('pool of 3, this row excluded')).toBeNull();
   });
 
   it('leaves an unmeasured row unranked and says why', async () => {
-    render(<LeaderboardsTab />);
+    renderTab();
 
     await waitFor(() => expect(screen.getByText('Sita Devi')).toBeTruthy());
-    expect(screen.getByText('unranked')).toBeTruthy();
+    expect(screen.getByText('Unranked')).toBeTruthy();
     expect(screen.getByText(/Nothing was measured for this row/)).toBeTruthy();
     expect(screen.getAllByText('—').length).toBeGreaterThan(0);
     expect(screen.queryByText('0 km/L')).toBeNull();
+  });
+
+  it('says in the briefing how many drivers earned a rank', async () => {
+    renderTab();
+
+    const briefing = await screen.findByRole('region', { name: 'Leaderboards read' });
+    expect(briefing.textContent).toContain('1 of 2 drivers earned a rank on at least one board.');
   });
 
   it('says how many trips were not measured', async () => {
@@ -156,13 +198,13 @@ describe('LeaderboardsTab', () => {
       ...BOARDS,
       meta: { ...BOARDS.meta, tripsWithUnknownKm: 7 },
     });
-    render(<LeaderboardsTab />);
+    renderTab();
 
     await waitFor(() => expect(screen.getByText('7 trips not measured.')).toBeTruthy());
   });
 
   it('says nothing about unmeasured trips when the server did not count them', async () => {
-    render(<LeaderboardsTab />);
+    renderTab();
 
     await waitFor(() => expect(screen.getByText('km/L vs expected for this duty')).toBeTruthy());
     expect(screen.queryByText(/trips not measured/)).toBeNull();
@@ -173,8 +215,31 @@ describe('LeaderboardsTab', () => {
       ...BOARDS,
       boards: BOARDS.boards.map((board) => ({ ...board, numerator: null })),
     });
-    render(<LeaderboardsTab />);
+    renderTab();
 
     await waitFor(() => expect(screen.getByText('Σ — ÷ Σ litres')).toBeTruthy());
+  });
+
+  it('shows one board at a time behind a tab per board', async () => {
+    PerformanceApi.boards.mockResolvedValue({ ...BOARDS, boards: [...BOARDS.boards, IDLE_BOARD] });
+    renderTab();
+
+    const tabs = await screen.findByRole('tablist', { name: 'Boards' });
+    expect(screen.getByRole('tab', { name: /Mileage/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByText('km/L vs expected for this duty')).toBeTruthy();
+    expect(screen.queryByText('Idle share of engine-on time')).toBeNull();
+
+    fireEvent.click(within(tabs).getByRole('tab', { name: 'Idling' }));
+
+    expect(screen.getByText('Idle share of engine-on time')).toBeTruthy();
+    expect(screen.queryByText('km/L vs expected for this duty')).toBeNull();
+  });
+
+  it('opens the board the link names', async () => {
+    PerformanceApi.boards.mockResolvedValue({ ...BOARDS, boards: [...BOARDS.boards, IDLE_BOARD] });
+    renderTab('/?board=IDLE_PCT');
+
+    await screen.findByText('Idle share of engine-on time');
+    expect(screen.getByRole('tab', { name: 'Idling' })).toHaveAttribute('aria-selected', 'true');
   });
 });
