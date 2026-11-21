@@ -11,6 +11,7 @@ vi.mock('../KhataLedgerService', () => ({
     getSummary: vi.fn(),
     getErpTrips: vi.fn(),
   },
+  getErpAvailability: async () => true,
 }));
 vi.mock('./ReceiptPreviewModal', () => ({ default: () => null }));
 vi.mock('./FuelAnomalyModal', () => ({ default: () => null }));
@@ -64,8 +65,7 @@ describe('Transaction filters before backend pagination', () => {
         endDate: '2026-11-04T18:29:59.999Z',
       }),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Filters', exact: true }));
-    fireEvent.click(screen.getByRole('button', { name: 'Reset All Filters' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Clear filters' }));
     await waitFor(() =>
       expect(KhataLedgerService.getExpenses).toHaveBeenLastCalledWith(
         expect.not.objectContaining({ status: 'PENDING' }),
@@ -100,9 +100,9 @@ describe('Transaction filters before backend pagination', () => {
       </MemoryRouter>,
     );
     await screen.findByText('Manual toll 0');
-    fireEvent.click(screen.getByRole('button', { name: 'Next Page' }));
-    await screen.findByText('Page 2 of 2 (26 total)');
-    fireEvent.click(screen.getByRole('button', { name: 'Filters', exact: true }));
+    expect(screen.getByText('26 entries', { selector: '.khata-pager span' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByText('Page 2 of 2');
     changeField(screen.getByLabelText('Source'), { target: { value: 'DRIVER_BILL' } });
     changeField(screen.getByLabelText('Status'), { target: { value: 'PENDING' } });
     await screen.findByText('Old pending driver receipt');
@@ -115,7 +115,7 @@ describe('Transaction filters before backend pagination', () => {
       expect.objectContaining({ source: 'DRIVER_BILL', status: 'PENDING' }),
     );
     expect(screen.queryByText('Manual toll 0')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Next Page' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument();
   });
 
   it('ignores a late response from a previous filter', async () => {
@@ -132,11 +132,39 @@ describe('Transaction filters before backend pagination', () => {
         <AllTransactionsTab />
       </MemoryRouter>,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Filters', exact: true }));
     changeField(screen.getByLabelText('Status'), { target: { value: 'PENDING' } });
     await screen.findByText('Old pending driver receipt');
     finishOld({ results: [rows[0]], totalPages: 1, page: 1, totalResults: 1 });
     await waitFor(() => expect(screen.queryByText('Manual toll 0')).not.toBeInTheDocument());
     expect(screen.getByText('Old pending driver receipt')).toBeInTheDocument();
+  });
+
+  it('opens only numbered trips as ERP trips and links other trip ids to the auto trip', async () => {
+    KhataLedgerService.getExpenses.mockResolvedValue({
+      results: [
+        { ...rows[0], _id: 'erp', title: 'ERP toll', trip: { _id: 't1', tripNumber: 'TRP-7' } },
+        {
+          ...rows[0],
+          _id: 'auto',
+          title: 'Detected toll',
+          source: 'DETECTED_CROSSING',
+          tripId: 'auto-9',
+        },
+      ],
+      page: 1,
+      totalPages: 1,
+      totalResults: 2,
+    });
+    render(
+      <MemoryRouter>
+        <AllTransactionsTab />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('button', { name: 'Open ERP trip TRP-7' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Auto trip →' })).toHaveAttribute(
+      'href',
+      '/auto-trips/auto-9',
+    );
+    expect(screen.getByText('Detected toll', { selector: '.khata-cell-sub' })).toBeInTheDocument();
   });
 });

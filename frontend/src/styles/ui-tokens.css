@@ -1,0 +1,115 @@
+@font-face {
+  font-family: 'Vehicle Overview Inter';
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/vehicle-overview/inter-regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Vehicle Overview Inter';
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/vehicle-overview/inter-medium.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Vehicle Overview Inter';
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/vehicle-overview/inter-semibold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Vehicle Overview DM Sans';
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/vehicle-overview/dm-sans-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Vehicle Overview DM Mono';
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/vehicle-overview/dm-mono-regular.woff2') format('woff2');
+}
+
+:root {
+  --ui-font: 'Vehicle Overview Inter', Inter, -apple-system, sans-serif;
+  --ui-font-figure: 'Vehicle Overview DM Sans', 'DM Sans', sans-serif;
+  --ui-font-mono: 'Vehicle Overview DM Mono', 'DM Mono', ui-monospace, monospace;
+
+  --ui-ink: #121214;
+  --ui-ink-2: #2e2e30;
+  --ui-ink-3: #5d5d5e;
+  --ui-ink-4: #747476;
+  --ui-ink-5: #93939a;
+  --ui-ink-6: #c6c6c9;
+
+  --ui-page: #ffffff;
+  --ui-card: #ffffff;
+  --ui-sunk: #f8f8fb;
+  --ui-well: #fcfcfd;
+  --ui-divider: #f3f3f6;
+  --ui-line: #ececee;
+  --ui-line-strong: #dfdfe2;
+  --ui-card-edge: rgba(5, 8, 22, 0.05);
+  --ui-card-edge-on-grey: #dce1e8;
+  --ui-control-edge: #dce1ee;
+  --ui-tooltip-edge: #dde3ee;
+
+  --ui-brand: #4469f0;
+  --ui-brand-strong: #2646be;
+  --ui-brand-deep: #213ea7;
+  --ui-link: #2a4fd6;
+  --ui-link-hover: #1c358f;
+  --ui-brand-tint: rgba(47, 88, 238, 0.1);
+  --ui-brand-tint-2: rgba(47, 88, 238, 0.2);
+  --ui-brand-wash: #eef1ff;
+  --ui-selected: #f2f5ff;
+  --ui-insight: #6a43d8;
+
+  --ui-ok: #187a32;
+  --ui-ok-tint: #e8f7ec;
+  --ui-warn: #c56200;
+  --ui-warn-ink: #a65c00;
+  --ui-warn-tint: #fff5df;
+  --ui-bad: #dd3030;
+  --ui-bad-ink: #bb2626;
+  --ui-bad-tint: #fff0ef;
+
+  --ui-shadow-card: 0 2px 4px rgba(30, 34, 56, 0.08), 0 1px 2px rgba(30, 34, 56, 0.04);
+  --ui-shadow-raised: 0 4px 14px rgba(30, 34, 56, 0.08);
+  --ui-shadow-pop: 0 6px 24px rgba(30, 34, 56, 0.12);
+
+  --ui-r-card: 12px;
+  --ui-r-control: 8px;
+  --ui-r-chip: 6px;
+  --ui-r-pill: 999px;
+}
+
+/* Dark theme. The design is light-first; this is a legibility floor, with values
+   taken from the existing `.dark .v360` block. Keep it after :root. */
+.dark {
+  --ui-page: #0b1220;
+  --ui-card: #131c2e;
+  --ui-sunk: #0f1725;
+  --ui-well: #0f1725;
+  --ui-divider: rgba(255, 255, 255, 0.1);
+  --ui-line: rgba(255, 255, 255, 0.1);
+  --ui-line-strong: rgba(255, 255, 255, 0.18);
+  --ui-card-edge: rgba(255, 255, 255, 0.1);
+  --ui-control-edge: rgba(255, 255, 255, 0.18);
+  --ui-tooltip-edge: rgba(255, 255, 255, 0.18);
+  --ui-ink: #e8eef7;
+  --ui-ink-2: #c3ccdb;
+  --ui-ink-3: #8fa0b8;
+  --ui-ink-4: #8fa0b8;
+  --ui-ink-5: #8fa0b8;
+  --ui-ink-6: rgba(255, 255, 255, 0.18);
+  --ui-link: #7aa2ff;
+  --ui-link-hover: #a9c1ff;
+  --ui-brand-wash: rgba(68, 105, 240, 0.16);
+  --ui-selected: rgba(68, 105, 240, 0.12);
+  --ui-ok: #74d68a;
+  --ui-ok-tint: rgba(76, 175, 80, 0.16);
+  --ui-warn-ink: #f5c164;
+  --ui-warn-tint: rgba(245, 158, 11, 0.16);
+  --ui-bad-ink: #ff8a80;
+  --ui-bad-tint: rgba(244, 67, 54, 0.16);
+}

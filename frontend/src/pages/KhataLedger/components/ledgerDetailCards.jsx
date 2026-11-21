@@ -1,215 +1,282 @@
-import React from 'react';
+import { useState } from 'react';
+import { Route } from 'lucide-react';
 import {
-  IndianRupee,
-  Fuel,
-  Wrench,
-  Receipt,
-  Route,
-  Gauge,
-  TrendingUp,
-  TrendingDown,
-  Clock,
-  Wallet,
-} from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
 import KhataKpiGrid from './KhataKpiGrid';
+import { KhataCard, KhataEmpty, KhataPill, KhataSectionHead, KhataTableSkeleton } from './khataUi';
 import {
-  CATEGORY_LABELS,
-  CATEGORY_COLORS,
-  SOURCE_LABELS,
-  SOURCE_COLORS,
   formatCurrency,
+  formatDate,
   formatKm,
   formatCostPerKm,
   getProfitabilityStatus,
+  plural,
 } from '../utils';
-import { getLedgerSplitItems, resolveLedgerSplitLabel } from './ledgerDetailLogic';
+import {
+  categoryLabel,
+  costBuckets,
+  getLedgerSplitItems,
+  rankRows,
+  resolveLedgerSplitLabel,
+  sourceLabel,
+  tripStateLabel,
+  tripStateTone,
+} from './ledgerDetailLogic';
 
-const TOP_N = 6;
+const TRIPS_SHOWN = 6;
+const share = (part, total) => (total > 0 ? (part / total) * 100 : null);
+const pctText = (part, total) =>
+  total > 0 ? `${Math.round((part / total) * 100)}% of the total` : 'No entries in this period';
 
-export const LedgerSummaryCards = ({
-  summary,
-  isDriver,
-  tripsCount = 0,
-  distanceKm = null,
-  revenue = null,
-  profit = null,
-  pendingAmount = 0,
-  walletAmount = null,
-}) => {
-  const fuelCost = summary.byCategory?.FUEL || 0;
-  const maintenanceCost =
-    (summary.byCategory?.MAINTENANCE || 0) + (summary.byCategory?.REPAIR || 0);
-  const otherCost = Math.max(0, (summary.totalAmount || 0) - (fuelCost + maintenanceCost));
-
-  const costPerKmText = formatCostPerKm(summary.totalAmount, distanceKm);
-  const profitStatus =
-    revenue != null ? getProfitabilityStatus(revenue, summary.totalAmount) : null;
-
-  const primary = [
-    {
-      label: isDriver ? 'Total Expense' : 'Total Cost',
-      icon: IndianRupee,
-      value: formatCurrency(summary.totalAmount),
-      sub: `${summary.count ?? 0} entries counted`,
-    },
-    { label: 'Fuel Cost', icon: Fuel, value: formatCurrency(fuelCost), sub: 'Direct fuel refills' },
-    {
-      label: 'Maintenance',
-      icon: Wrench,
-      value: formatCurrency(maintenanceCost),
-      sub: 'Servicing, repairs & tyres',
-    },
-    {
-      label: 'Other Expenses',
-      icon: Receipt,
-      value: formatCurrency(otherCost),
-      sub: 'Tolls, meals, allowances',
-    },
-    { label: 'ERP Trips', icon: Route, value: tripsCount, sub: 'Commercial trips assigned' },
-  ];
-  const secondary = isDriver
-    ? [
-        {
-          label: 'Pending Bills',
-          icon: Clock,
-          value: formatCurrency(pendingAmount),
-          sub: 'Awaiting owner confirmation',
-          status: pendingAmount > 0 ? 'Needs review' : null,
-          tone: 'warning',
-        },
-        {
-          label: 'Driver Wallet / Settlement',
-          icon: Wallet,
-          value: walletAmount != null ? formatCurrency(walletAmount) : 'Not Configured',
-          sub: walletAmount != null ? 'Current balance' : 'Driver wallet not active',
-        },
-      ]
-    : [
-        {
-          label: 'Distance',
-          icon: Route,
-          value: distanceKm != null && distanceKm > 0 ? formatKm(distanceKm) : 'N/A',
-          sub: distanceKm ? 'Logged trip distance' : 'Distance unavailable',
-        },
-        {
-          label: 'Cost / KM',
-          icon: Gauge,
-          value: costPerKmText || 'Unavailable',
-          sub: distanceKm ? `Total Cost / ${formatKm(distanceKm)}` : 'Cost/KM unavailable',
-        },
-        {
-          label: 'Trip Revenue',
-          icon: TrendingUp,
-          value: revenue != null ? formatCurrency(revenue) : '₹0 (Unbilled)',
-          sub: 'From linked ERP trips',
-        },
-        {
-          label: 'Net Profit',
-          icon: profit < 0 ? TrendingDown : TrendingUp,
-          value: profit != null ? formatCurrency(profit) : 'N/A',
-          sub: 'Revenue minus costs',
-          status: profitStatus?.label,
-          tone: profit < 0 ? 'critical' : profit > 0 ? 'ok' : 'neutral',
-        },
-      ];
-
+/** The period's cost split, as the KPI strip of the header card. */
+export const LedgerCostStrip = ({ summary, loading }) => {
+  const { total, fuel, maintenance, other } = costBuckets(summary);
+  const none = !summary.count;
+  const money = (value) => (none ? '—' : formatCurrency(value));
   return (
-    <div className="space-y-3">
-      <KhataKpiGrid columns={5} items={primary} />
-      <KhataKpiGrid columns={isDriver ? 2 : 4} items={secondary} />
-    </div>
+    <KhataKpiGrid
+      variant="strip"
+      loading={loading}
+      items={[
+        {
+          label: 'Total cost',
+          value: money(total),
+          sub: none
+            ? 'No entries in this period'
+            : `${plural(summary.count, 'entry', 'entries')} in this period`,
+        },
+        {
+          label: 'Fuel',
+          value: money(fuel),
+          pct: none ? null : share(fuel, total),
+          sub: pctText(fuel, total),
+        },
+        {
+          label: 'Maintenance',
+          value: money(maintenance),
+          pct: none ? null : share(maintenance, total),
+          sub: pctText(maintenance, total),
+        },
+        {
+          label: 'Other costs',
+          value: money(other),
+          pct: none ? null : share(other, total),
+          sub: none ? 'No entries in this period' : 'Tolls, meals, allowances and the rest',
+        },
+      ]}
+    />
   );
 };
 
-export const LedgerBreakdownCards = ({ summary, isDriver, vehicles, drivers }) => {
-  const categoryEntries = Object.entries(summary.byCategory || {});
-  const sourceEntries = Object.entries(summary.bySource || {});
-  const splitItems = getLedgerSplitItems(summary, isDriver);
+/** ERP trips in the period: revenue against the ledger's cost, and the trip list. */
+export const LedgerTripsCard = ({ trips, finances, totalCost, loading, isDriver, onOpenTrip }) => {
+  const [showAll, setShowAll] = useState(false);
+  const withFinance = trips.filter((trip) => finances[trip._id]);
+  const revenue = withFinance.reduce((sum, trip) => sum + (finances[trip._id].revenue || 0), 0);
+  const complete = trips.length > 0 && withFinance.length === trips.length;
+  const distance = trips.reduce((sum, trip) => sum + (trip.totalKm > 0 ? trip.totalKm : 0), 0);
+  const costPerKm = formatCostPerKm(totalCost, distance);
+  const profit = revenue - (totalCost || 0);
+  const profitStatus = getProfitabilityStatus(revenue, totalCost);
+  const noTrips = 'No ERP trips in this period';
+  const shown = showAll ? trips : trips.slice(0, TRIPS_SHOWN);
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-      {/* Category Breakdown */}
-      <Card>
-        <CardContent className="p-4">
-          <p className="mb-3 text-sm font-semibold text-gray-900">By Expense Category</p>
-          <div className="space-y-2">
-            {categoryEntries.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No data</p>
-            ) : (
-              categoryEntries.slice(0, TOP_N).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between text-xs">
-                  <Badge
-                    className={`text-[10px] ${CATEGORY_COLORS[key] || CATEGORY_COLORS.MISCELLANEOUS}`}
-                  >
-                    {CATEGORY_LABELS[key] || key}
-                  </Badge>
-                  <span className="font-semibold text-gray-800">{formatCurrency(value)}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
+    <>
+      <KhataSectionHead
+        title={
+          <>
+            ERP trips
+            {!loading ? <span className="khata-count">{plural(trips.length, 'trip')}</span> : null}
+          </>
+        }
+        subtitle={`Commercial trips of this ${isDriver ? 'driver' : 'vehicle'} in the selected period.`}
+      />
+      <KhataKpiGrid
+        label="ERP trip totals"
+        loading={loading}
+        items={[
+          {
+            label: 'Distance',
+            value: distance > 0 ? formatKm(distance) : '—',
+            sub: trips.length
+              ? distance > 0
+                ? 'Logged on the trips'
+                : 'No distance on these trips'
+              : noTrips,
+          },
+          {
+            label: 'Cost per km',
+            value: costPerKm || '—',
+            sub: costPerKm
+              ? 'Ledger cost ÷ trip distance'
+              : trips.length
+                ? 'Needs trip distance'
+                : noTrips,
+          },
+          {
+            label: 'Trip revenue',
+            value: withFinance.length ? formatCurrency(revenue) : '—',
+            sub: trips.length
+              ? `Finances for ${withFinance.length} of ${trips.length} trips`
+              : noTrips,
+            noteTone: trips.length && !complete ? 'warn' : undefined,
+          },
+          {
+            label: 'Net profit',
+            value: complete ? formatCurrency(profit) : '—',
+            sub: complete
+              ? 'Revenue minus the ledger cost'
+              : trips.length
+                ? 'Some trip finances are missing'
+                : noTrips,
+            status: complete ? profitStatus.label : null,
+            tone: complete && profit < 0 ? 'bad' : complete && profit > 0 ? 'ok' : 'neutral',
+          },
+        ]}
+      />
+      <KhataCard flush aria-label="ERP trips of this period">
+        {loading ? (
+          <KhataTableSkeleton rows={3} />
+        ) : trips.length === 0 ? (
+          <KhataEmpty icon={Route} title={noTrips}>
+            Trips planned in ERP for this {isDriver ? 'driver' : 'vehicle'} show here with their
+            revenue.
+          </KhataEmpty>
+        ) : (
+          <>
+            <Table className="khata-table">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Trip</TableHead>
+                  <TableHead>Route</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="is-num">Distance</TableHead>
+                  <TableHead className="is-num">Revenue</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {shown.map((trip) => {
+                  const label = trip.tripNumber || `TRIP-${trip._id.slice(-6).toUpperCase()}`;
+                  const fin = finances[trip._id];
+                  return (
+                    <TableRow key={trip._id}>
+                      <TableCell>
+                        <button
+                          type="button"
+                          className="khata-link"
+                          onClick={() => onOpenTrip(trip._id)}
+                          aria-label={`Open trip ${label}`}
+                        >
+                          {label}
+                        </button>
+                      </TableCell>
+                      <TableCell>
+                        {trip.fromLocation && trip.toLocation ? (
+                          `${trip.fromLocation} → ${trip.toLocation}`
+                        ) : (
+                          <span className="khata-muted">Route not set</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="is-secondary">
+                        {formatDate(trip.tripDate || trip.createdAt)}
+                      </TableCell>
+                      <TableCell>
+                        <KhataPill small tone={tripStateTone(trip.state)}>
+                          {tripStateLabel(trip.state)}
+                        </KhataPill>
+                      </TableCell>
+                      <TableCell className="is-num">
+                        {trip.totalKm > 0 ? formatKm(trip.totalKm) : '—'}
+                      </TableCell>
+                      <TableCell className="is-num">
+                        {fin?.revenue != null ? formatCurrency(fin.revenue) : '—'}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            {trips.length > TRIPS_SHOWN ? (
+              <div className="khata-strip">
+                <button type="button" className="khata-link" onClick={() => setShowAll(!showAll)}>
+                  {showAll ? 'Show fewer' : `Show all ${trips.length} trips`}
+                </button>
+              </div>
+            ) : null}
+          </>
+        )}
+      </KhataCard>
+    </>
+  );
+};
 
-      {/* Source Breakdown */}
-      <Card>
-        <CardContent className="p-4">
-          <p className="mb-3 text-sm font-semibold text-gray-900">By Transaction Source</p>
-          <div className="space-y-2">
-            {sourceEntries.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No data</p>
-            ) : (
-              sourceEntries.map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between text-xs">
-                  <Badge
-                    variant="outline"
-                    className={`text-[10px] font-semibold uppercase ${
-                      SOURCE_COLORS[key] || SOURCE_COLORS.MANUAL
-                    }`}
-                  >
-                    {SOURCE_LABELS[key] || key}
-                  </Badge>
-                  <span className="font-semibold text-gray-800">{formatCurrency(value)}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
+function RankCard({ title, rows, loading }) {
+  const total = rows.reduce((sum, row) => sum + row.amount, 0);
+  return (
+    <KhataCard title={title}>
+      {loading ? (
+        <div className="khata-rank-loading" role="status" aria-busy="true">
+          <span className="sr-only">Loading…</span>
+          {[0, 1, 2].map((index) => (
+            <Skeleton key={index} className="h-7 w-full rounded" />
+          ))}
+        </div>
+      ) : rows.length === 0 ? (
+        <p className="khata-foot-note">No entries in this period.</p>
+      ) : (
+        <ol className="khata-rank">
+          {rows.map((row) => (
+            <li key={row.name}>
+              <span className="khata-rank-name">{row.name}</span>
+              <span className="khata-rank-value">
+                {formatCurrency(row.amount)}
+                <small>{Math.round((row.amount / total) * 100)}%</small>
+              </span>
+              <span className="khata-track" aria-hidden="true">
+                <span style={{ width: `${Math.max(2, (row.amount / rows[0].amount) * 100)}%` }} />
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </KhataCard>
+  );
+}
 
-      {/* Entity Split (Vehicle split for Driver, Driver split for Vehicle) */}
-      <Card>
-        <CardContent className="p-4">
-          <p className="mb-3 text-sm font-semibold text-gray-900">
-            {isDriver ? 'Vehicle Utilization' : 'Driver Distribution'}
-          </p>
-          <div className="space-y-2">
-            {splitItems.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No data</p>
-            ) : (
-              splitItems.slice(0, TOP_N).map((item) => (
-                <div
-                  key={item.vehicleId || item.driverId || item._id || item.name}
-                  className="flex items-center justify-between text-xs"
-                >
-                  <span className="text-gray-600 truncate max-w-[160px]">
-                    {resolveLedgerSplitLabel({
-                      isDriver,
-                      item,
-                      vehicles,
-                      drivers,
-                      fallback: 'Unattributed',
-                    })}
-                  </span>
-                  <span className="font-semibold text-gray-800">{formatCurrency(item.amount)}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
+/** Where the period's money went: by category, by source, and by vehicle or driver. */
+export const LedgerBreakdownCards = ({ summary, isDriver, vehicles, drivers, loading }) => {
+  const byCategory = rankRows(
+    Object.entries(summary.byCategory || {}).map(([key, value]) => [categoryLabel(key), value]),
+  );
+  const bySource = rankRows(
+    Object.entries(summary.bySource || {}).map(([key, value]) => [sourceLabel(key), value]),
+  );
+  const split = getLedgerSplitItems(summary, isDriver).map((item) => [
+    resolveLedgerSplitLabel({ isDriver, item, vehicles, drivers, fallback: 'Unattributed' }),
+    item.amount,
+  ]);
+  if (summary.unattributedAmount > 0) {
+    split.push([isDriver ? 'No vehicle linked' : 'No driver linked', summary.unattributedAmount]);
+  }
+
+  return (
+    <div className="khata-card-grid khata-breakdown">
+      <RankCard title="By category" rows={byCategory} loading={loading} />
+      <RankCard title="By source" rows={bySource} loading={loading} />
+      <RankCard
+        title={isDriver ? 'By vehicle' : 'By driver'}
+        rows={rankRows(split)}
+        loading={loading}
+      />
     </div>
   );
 };

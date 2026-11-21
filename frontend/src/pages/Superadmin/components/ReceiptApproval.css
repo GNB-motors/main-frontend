@@ -2111,9 +2111,10 @@
   padding: 0 2px;
 }
 
+/* The left padding clears the icon that sits on the trigger (.ra-select-icon). */
 .ra-select-wrap .searchable-select-trigger {
   min-width: 126px;
-  padding: 8px 28px 8px 12px;
+  padding: 8px 28px 8px 32px;
   border-radius: 9px;
   border: 1px solid var(--border);
   background: var(--card);

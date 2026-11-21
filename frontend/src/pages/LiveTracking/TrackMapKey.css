@@ -1,13 +1,44 @@
-/* Map key, bottom-centre of the Places & routes map (the replay timeline's slot,
-   unused in this view). It never takes clicks, so the map under it still pans. */
-.lt-map-key-slot {
+/* One key for pins and shaded areas; compact maps expose it on demand. */
+.gnb-lt-page .lt-map-key-slot {
   pointer-events: none;
+  left: 304px;
+  right: 64px;
+  bottom: 20px;
+  gap: 6px;
+  max-height: calc(100% - 24px);
+}
+.gnb-lt-page .lt-map-key-slot.is-compact {
+  left: 172px;
+  align-items: flex-end;
+}
+.lt-map-key-toggle {
+  order: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  pointer-events: auto;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--bg-surface);
+  color: var(--fg-primary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.lt-map-key-toggle:focus-visible {
+  outline: 2px solid var(--rd-brand-2);
+  outline-offset: 3px;
 }
 .lt-map-key {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px 14px;
+  flex-direction: column;
+  gap: 7px;
+  pointer-events: auto;
+  min-height: 0;
+  overflow-y: auto;
   max-width: 100%;
   padding: 7px 12px;
   border: 1px solid var(--border-default);
@@ -15,6 +46,36 @@
   background: color-mix(in srgb, var(--bg-surface) 92%, transparent);
   box-shadow: var(--shadow-sm);
   backdrop-filter: blur(6px);
+}
+.lt-map-key[hidden] {
+  display: none;
+}
+.lt-map-key-symbols,
+.lt-map-key-areas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 12px;
+}
+.lt-map-key-areas {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 6px;
+}
+.lt-map-key-areas .lt-map-key-title {
+  font-size: 11px;
+}
+.lt-map-key-areas .lt-map-key-item {
+  font-size: 11px;
+  font-weight: 400;
+}
+.lt-map-key-area {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border: 2px solid;
+  border-radius: 3px;
 }
 .lt-map-key-item {
   display: inline-flex;
@@ -61,8 +122,17 @@
 .lt-map-key-line.is-dotted {
   border-top-style: dotted;
 }
-@media (max-width: 760px) {
-  .lt-map-key-slot {
-    display: none;
+@media (max-width: 780px) {
+  .lt-map-key-toggle {
+    min-height: 44px;
+  }
+  .gnb-lt-page .lt-map-key-slot.is-compact {
+    left: 12px;
+    right: 12px;
+    bottom: 108px;
+  }
+  .lt-map-key-slot.is-compact .lt-map-key {
+    width: 100%;
+    max-height: min(240px, calc(100dvh - 200px));
   }
 }

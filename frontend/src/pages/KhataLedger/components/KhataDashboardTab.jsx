@@ -1,30 +1,14 @@
 import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  TrendingUp,
-  TrendingDown,
-  IndianRupee,
-  AlertCircle,
-  RefreshCw,
-  Fuel,
-  Wrench,
-  Receipt,
-  Route,
-  Clock,
-  Gauge,
-  Filter,
-  RotateCcw,
-  Calendar,
-} from 'lucide-react';
 import KhataLedgerService, {
   ERP_DISABLED_MESSAGE,
   isErpDisabledError,
 } from '../KhataLedgerService';
-import { Badge } from '@/components/ui/badge';
+import DateRangeFilter from '../../Superadmin/components/DateRangeFilter';
 import ErpTripDetailModal from './ErpTripDetailModal';
 import KhataKpiGrid from './KhataKpiGrid';
 import KhataDashboardCharts from './KhataDashboardCharts';
-import NewButton from '@/components/ui/NewButton';
+import { KhataCard, KhataError, KhataField, KhataPill, KhataSectionHead } from './khataUi';
 import { useActiveBranch } from '../../../contexts/BranchContext';
 import logger from '../../../utils/logger.js';
 import {
@@ -39,9 +23,13 @@ import {
   getInitialDateRange,
   getVehicleLabel,
   getDriverName,
+  plural,
 } from '../utils';
 
-const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
+// The only sources /api/expenses returns rows for.
+const LISTED_SOURCES = ['MANUAL', 'FUEL', 'DRIVER_BILL', 'DETECTED_CROSSING'];
+
+const KhataDashboardTab = ({ vehicles = [], drivers = [], erpAvailable }) => {
   const { branchId, activeBranch } = useActiveBranch();
 
   // Filters
@@ -108,7 +96,12 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
           );
         });
 
-        setExpenses(loadedExpenses);
+        // Rejected rows (e.g. toll crossings superseded by a later trip) are not spend.
+        setExpenses(
+          status === 'REJECTED'
+            ? loadedExpenses
+            : loadedExpenses.filter((expense) => expense.status !== 'REJECTED'),
+        );
         setErpTrips(loadedTrips);
         setErpDisabled(tripResult?.disabled === true);
 
@@ -151,7 +144,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
     let fuelCost = 0;
     let maintenanceCost = 0;
     let otherExpenses = 0;
-    let tripExpenses = 0;
+    let tollCost = 0;
     let pendingExpenses = 0;
 
     filteredExpenses.forEach((exp) => {
@@ -162,8 +155,8 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
         fuelCost += amt;
       } else if (exp.source === 'MAINTENANCE' || ['MAINTENANCE', 'REPAIR'].includes(exp.category)) {
         maintenanceCost += amt;
-      } else if (exp.source === 'TRIP' || exp.category === 'TRIP_EXPENSE') {
-        tripExpenses += amt;
+      } else if (exp.category === 'TOLL' || exp.source === 'DETECTED_CROSSING') {
+        tollCost += amt;
       } else {
         otherExpenses += amt;
       }
@@ -198,7 +191,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
       fuelCost,
       maintenanceCost,
       otherExpenses,
-      tripExpenses,
+      tollCost,
       pendingExpenses,
       totalRevenue,
       totalProfit,
@@ -230,9 +223,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
   const sourceChartData = useMemo(() => {
     const map = {};
     filteredExpenses.forEach((expense) => {
-      const name =
-        SOURCE_LABELS[expense.source] ||
-        (expense.source === 'DETECTED_CROSSING' ? 'Detected tolls' : 'Other');
+      const name = SOURCE_LABELS[expense.source] || 'Other';
       map[name] = (map[name] || 0) + (Number(expense.amount) || 0);
     });
 
@@ -243,10 +234,13 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
   const vehicleChartData = useMemo(() => {
     const map = {};
     filteredExpenses.forEach((e) => {
+      const id = e.vehicle?._id || e.vehicleId;
+      const known = vehicles.find((v) => v._id === id);
       const vLabel =
         e.vehicle?.registrationNumber ||
+        known?.registrationNumber ||
         e.vehicle?.name ||
-        (e.vehicleId ? 'Assigned' : 'Unattributed');
+        (id ? 'Vehicle not in list' : 'No vehicle');
       map[vLabel] = (map[vLabel] || 0) + (Number(e.amount) || 0);
     });
 
@@ -254,7 +248,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
       .map(([name, cost]) => ({ name, cost }))
       .sort((a, b) => b.cost - a.cost)
       .slice(0, 6);
-  }, [filteredExpenses]);
+  }, [filteredExpenses, vehicles]);
 
   // 4. Trip Profitability Data
   const tripProfitData = useMemo(() => {
@@ -272,12 +266,11 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
       });
   }, [erpTrips, tripFinances]);
 
-  // Date range formatted label
   const periodLabel = useMemo(() => {
-    if (!dateRange.startDate && !dateRange.endDate) return 'All Recorded Dates';
-    const s = dateRange.startDate ? formatDate(dateRange.startDate) : 'Beginning';
-    const e = dateRange.endDate ? formatDate(dateRange.endDate) : 'Today';
-    return `${s} – ${e}`;
+    if (!dateRange.startDate && !dateRange.endDate) return 'All dates';
+    const start = dateRange.startDate ? formatDate(dateRange.startDate) : 'Beginning';
+    const end = dateRange.endDate ? formatDate(dateRange.endDate) : 'Today';
+    return `${start} – ${end}`;
   }, [dateRange]);
 
   const handleResetFilters = () => {
@@ -298,377 +291,300 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
   const NO_RECORDS = 'No expenses recorded for this period';
   const money = (value) => (noExpenseRecords ? '—' : formatCurrency(value));
 
-  return (
-    <div className="space-y-4">
-      {/* Location & Period Scope Banner */}
-      <div className="khata-scope">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div>
-              <div className="khata-scope-heading">
-                <h2>Financial overview</h2>
-                <Badge variant="outline" className="text-[11px] font-medium">
-                  {activeBranch ? activeBranch.name : 'Enterprise (All Locations)'}
-                </Badge>
-              </div>
-              <p className="khata-scope-period">
-                <Calendar size={13} className="text-gray-400" />
-                <span>
-                  Period: <strong>{periodLabel}</strong>
-                </span>
-              </p>
-            </div>
-          </div>
+  const activeFilters = [vehicleId, driverId, category, source, status, tripId].filter(
+    Boolean,
+  ).length;
+  const share = (value) => (kpis.totalCost > 0 ? (value / kpis.totalCost) * 100 : null);
+  const shareNote = (value, fallback) =>
+    noExpenseRecords
+      ? NO_RECORDS
+      : kpis.totalCost > 0
+        ? `${Math.round((value / kpis.totalCost) * 100)}% of total spend`
+        : fallback;
 
-          <div className="flex items-center gap-2">
-            <NewButton
-              variant="secondary"
-              size="sm"
-              prependIcon={<Filter size={14} />}
-              selected={Boolean(
-                showFilters || vehicleId || driverId || category || source || status || tripId,
-              )}
+  const profitKnown = !(noExpenseRecords && !erpTrips.length);
+  // Trip revenue, profit and cost per km need ERP trips. Until the location has
+  // one they are left out rather than shown as dashes. The page asks once; on
+  // its own the tab goes by the trips it loaded.
+  const showErp = erpAvailable ?? (!erpDisabled && erpTrips.length > 0);
+
+  return (
+    <>
+      <KhataSectionHead
+        title={
+          <>
+            Financial overview
+            <KhataPill>{activeBranch ? activeBranch.name : 'All locations'}</KhataPill>
+          </>
+        }
+        subtitle={
+          loading
+            ? periodLabel
+            : [
+                periodLabel,
+                noExpenseRecords ? null : plural(kpis.expensesCount, 'expense'),
+                showErp ? plural(kpis.tripCount, 'ERP trip') : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')
+        }
+        actions={
+          <>
+            <DateRangeFilter value={dateRange} onChange={setDateRange} />
+            <button
+              type="button"
+              className="khata-btn"
+              aria-pressed={showFilters}
               aria-expanded={showFilters}
               aria-controls="khata-dashboard-filters"
               onClick={() => setShowFilters(!showFilters)}
             >
-              Filter Scope
-            </NewButton>
-            <NewButton
-              variant="ghost"
-              size="sm"
-              prependIcon={<RotateCcw size={13} />}
-              onClick={handleResetFilters}
-              title="Reset all filters"
-            >
-              Reset
-            </NewButton>
-          </div>
-        </div>
-
-        {/* Filter Bar */}
-        {showFilters && (
-          <div
-            id="khata-dashboard-filters"
-            className="khata-filter-fields grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs"
-          >
-            {/* Start Date */}
-            <div>
-              <label
-                htmlFor="kdt-filter-from"
-                className="block text-[11px] font-medium text-gray-600 mb-1"
+              {activeFilters ? `Filters · ${activeFilters}` : 'Filters'}
+            </button>
+            {activeFilters ? (
+              <button
+                type="button"
+                className="khata-btn khata-btn--ghost"
+                onClick={handleResetFilters}
               >
-                From Date
-              </label>
-              <input
-                id="kdt-filter-from"
-                aria-label="From date"
-                type="date"
-                className="w-full rounded-md border border-gray-300 px-2 py-1 bg-white text-xs"
-                value={dateRange.startDate ? dateRange.startDate.split('T')[0] : ''}
-                onChange={(e) =>
-                  setDateRange((prev) => ({
-                    ...prev,
-                    startDate: e.target.value ? new Date(e.target.value).toISOString() : '',
-                  }))
-                }
-              />
-            </div>
-
-            {/* End Date */}
-            <div>
-              <label
-                htmlFor="kdt-filter-to"
-                className="block text-[11px] font-medium text-gray-600 mb-1"
-              >
-                To Date
-              </label>
-              <input
-                id="kdt-filter-to"
-                aria-label="To date"
-                type="date"
-                className="w-full rounded-md border border-gray-300 px-2 py-1 bg-white text-xs"
-                value={dateRange.endDate ? dateRange.endDate.split('T')[0] : ''}
-                onChange={(e) =>
-                  setDateRange((prev) => ({
-                    ...prev,
-                    endDate: e.target.value
-                      ? new Date(e.target.value + 'T23:59:59').toISOString()
-                      : '',
-                  }))
-                }
-              />
-            </div>
-
-            {/* Vehicle */}
-            <div>
-              <label
-                htmlFor="kdt-filter-vehicle"
-                className="block text-[11px] font-medium text-gray-600 mb-1"
-              >
-                Vehicle
-              </label>
+                Clear
+              </button>
+            ) : null}
+          </>
+        }
+      />
+      {showFilters && (
+        <KhataCard id="khata-dashboard-filters" title="Filters">
+          <div className="khata-filters">
+            <KhataField label="Vehicle" htmlFor="kdt-filter-vehicle">
               <SearchableSelect
                 id="kdt-filter-vehicle"
-                className="w-full rounded-md border border-gray-300 px-2 py-1 bg-white text-xs"
                 value={vehicleId}
                 onChange={(e) => setVehicleId(e.target.value)}
               >
-                <option value="">All Vehicles</option>
+                <option value="">All vehicles</option>
                 {vehicles.map((v) => (
                   <option key={v._id} value={v._id}>
                     {getVehicleLabel(v)}
                   </option>
                 ))}
               </SearchableSelect>
-            </div>
-
-            {/* Driver */}
-            <div>
-              <label
-                htmlFor="kdt-filter-driver"
-                className="block text-[11px] font-medium text-gray-600 mb-1"
-              >
-                Driver
-              </label>
+            </KhataField>
+            <KhataField label="Driver" htmlFor="kdt-filter-driver">
               <SearchableSelect
                 id="kdt-filter-driver"
-                className="w-full rounded-md border border-gray-300 px-2 py-1 bg-white text-xs"
                 value={driverId}
                 onChange={(e) => setDriverId(e.target.value)}
               >
-                <option value="">All Drivers</option>
+                <option value="">All drivers</option>
                 {drivers.map((d) => (
                   <option key={d._id} value={d._id}>
                     {getDriverName(d)}
                   </option>
                 ))}
               </SearchableSelect>
-            </div>
-
-            {/* Category */}
-            <div>
-              <label
-                htmlFor="kdt-filter-category"
-                className="block text-[11px] font-medium text-gray-600 mb-1"
-              >
-                Category
-              </label>
+            </KhataField>
+            <KhataField label="Category" htmlFor="kdt-filter-category">
               <SearchableSelect
                 id="kdt-filter-category"
-                className="w-full rounded-md border border-gray-300 px-2 py-1 bg-white text-xs"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               >
-                <option value="">All Categories</option>
+                <option value="">All categories</option>
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
                     {CATEGORY_LABELS[c]}
                   </option>
                 ))}
               </SearchableSelect>
-            </div>
-
-            {/* Source */}
-            <div>
-              <label
-                htmlFor="kdt-filter-source"
-                className="block text-[11px] font-medium text-gray-600 mb-1"
-              >
-                Source
-              </label>
+            </KhataField>
+            <KhataField label="Source" htmlFor="kdt-filter-source">
               <SearchableSelect
                 id="kdt-filter-source"
-                className="w-full rounded-md border border-gray-300 px-2 py-1 bg-white text-xs"
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
               >
-                <option value="">All Sources</option>
-                <option value="MANUAL">Manual</option>
-                <option value="FUEL">Fuel Refill</option>
-                <option value="MAINTENANCE">Maintenance</option>
-                <option value="TRIP">Trip Generated</option>
+                <option value="">All sources</option>
+                {Object.entries(SOURCE_LABELS)
+                  .filter(([key]) => LISTED_SOURCES.includes(key))
+                  .map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
               </SearchableSelect>
-            </div>
-
-            {/* Status */}
-            <div>
-              <label
-                htmlFor="kdt-filter-status"
-                className="block text-[11px] font-medium text-gray-600 mb-1"
-              >
-                Status
-              </label>
+            </KhataField>
+            <KhataField label="Status" htmlFor="kdt-filter-status">
               <SearchableSelect
                 id="kdt-filter-status"
-                className="w-full rounded-md border border-gray-300 px-2 py-1 bg-white text-xs"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
               >
-                <option value="">All Statuses</option>
-                <option value="CONFIRMED">Confirmed / Approved</option>
-                <option value="PENDING">Pending Review</option>
+                <option value="">All statuses</option>
+                <option value="CONFIRMED">Confirmed</option>
+                <option value="PENDING">Pending review</option>
                 <option value="REJECTED">Rejected</option>
               </SearchableSelect>
-            </div>
+            </KhataField>
           </div>
-        )}
-      </div>
+        </KhataCard>
+      )}
 
       {loadError ? (
-        <div className="khata-dashboard-error" role="alert">
-          <AlertCircle size={22} aria-hidden="true" />
-          <div>
-            <strong>Financial overview unavailable</strong>
-            <p>{loadError}</p>
-          </div>
-          <NewButton
-            variant="secondary"
-            size="sm"
-            prependIcon={<RefreshCw size={14} />}
-            onClick={() => setRefreshKey((key) => key + 1)}
+        <KhataCard>
+          <KhataError
+            title="Financial overview unavailable"
+            onRetry={() => setRefreshKey((key) => key + 1)}
           >
-            Try again
-          </NewButton>
-        </div>
+            {loadError}
+          </KhataError>
+        </KhataCard>
       ) : (
         <>
-          {erpDisabled && (
-            <div className="khata-erp-note" role="status">
-              <Route size={20} className="text-gray-400" aria-hidden="true" />
-              <div>
-                <strong>{ERP_DISABLED_MESSAGE}</strong>
-                <p>
-                  Trip revenue, advances and margins show up here once ERP is switched on. The
-                  expense ledger below is complete for this period.
-                </p>
-              </div>
-            </div>
-          )}
           <KhataKpiGrid
-            headline
+            label="Financial overview"
             loading={loading}
-            columns={3}
+            items={
+              showErp
+                ? [
+                    {
+                      label: 'Total cost',
+                      value: money(kpis.totalCost),
+                      sub: noExpenseRecords ? NO_RECORDS : 'Every expense counted in this period',
+                    },
+                    {
+                      label: 'Trip revenue',
+                      value: erpDisabled
+                        ? '—'
+                        : financeCount || erpTrips.length === 0
+                          ? formatCurrency(kpis.totalRevenue)
+                          : 'Unavailable',
+                      sub: erpDisabled
+                        ? ERP_DISABLED_MESSAGE
+                        : `Finances available for ${financeCount} of ${erpTrips.length} trips`,
+                    },
+                    {
+                      label: 'Net profit',
+                      value: !profitKnown
+                        ? '—'
+                        : completeFinances
+                          ? formatCurrency(kpis.totalProfit)
+                          : 'Unavailable',
+                      sub: !profitKnown
+                        ? NO_RECORDS
+                        : completeFinances
+                          ? 'Revenue minus every expense'
+                          : 'Some trip finances are unavailable',
+                      status: !profitKnown
+                        ? null
+                        : completeFinances
+                          ? kpis.profitStatus.label
+                          : 'Partial data',
+                      tone:
+                        completeFinances && kpis.totalProfit < 0
+                          ? 'bad'
+                          : completeFinances && kpis.totalProfit > 0
+                            ? 'ok'
+                            : 'neutral',
+                    },
+                  ]
+                : [
+                    {
+                      label: 'Total cost',
+                      value: money(kpis.totalCost),
+                      sub: noExpenseRecords ? NO_RECORDS : 'Every expense counted in this period',
+                    },
+                    {
+                      label: 'Pending review',
+                      value: money(kpis.pendingExpenses),
+                      pct: share(kpis.pendingExpenses),
+                      sub: noExpenseRecords
+                        ? NO_RECORDS
+                        : kpis.pendingExpenses > 0
+                          ? 'Needs review before it counts'
+                          : 'Nothing waiting',
+                      noteTone: kpis.pendingExpenses > 0 ? 'warn' : null,
+                    },
+                    {
+                      label: 'Expenses',
+                      value: noExpenseRecords ? '—' : kpis.expensesCount.toLocaleString('en-IN'),
+                      sub: noExpenseRecords ? NO_RECORDS : 'Entries counted in this period',
+                    },
+                  ]
+            }
+          />
+          <KhataSectionHead
+            title="Expense breakdown"
+            subtitle={
+              showErp
+                ? 'Operating costs and entries waiting for review'
+                : 'Where this period’s spend went'
+            }
+          />
+          <KhataKpiGrid
+            label="Expense breakdown"
+            loading={loading}
             items={[
               {
-                label: 'Total Cost',
-                icon: IndianRupee,
-                value: money(kpis.totalCost),
-                sub: noExpenseRecords ? NO_RECORDS : 'All counted fleet expenditures',
+                label: 'Fuel',
+                value: money(kpis.fuelCost),
+                pct: share(kpis.fuelCost),
+                sub: shareNote(kpis.fuelCost, 'refills'),
               },
               {
-                label: 'Trip Revenue',
-                icon: TrendingUp,
-                value: erpDisabled
-                  ? '—'
-                  : financeCount || erpTrips.length === 0
-                    ? formatCurrency(kpis.totalRevenue)
-                    : 'Unavailable',
-                sub: erpDisabled
-                  ? ERP_DISABLED_MESSAGE
-                  : `Finances available for ${financeCount} of ${erpTrips.length} trips`,
+                label: 'Tolls',
+                value: money(kpis.tollCost),
+                pct: share(kpis.tollCost),
+                sub: shareNote(kpis.tollCost, 'detected and entered'),
               },
               {
-                label: 'Net Profit',
-                icon: kpis.totalProfit < 0 ? TrendingDown : TrendingUp,
-                value:
-                  noExpenseRecords && !erpTrips.length
-                    ? '—'
-                    : completeFinances
-                      ? formatCurrency(kpis.totalProfit)
-                      : 'Unavailable',
-                sub:
-                  noExpenseRecords && !erpTrips.length
-                    ? NO_RECORDS
-                    : completeFinances
-                      ? 'Revenue minus all expenses'
-                      : 'Some trip finances are unavailable',
-                status:
-                  noExpenseRecords && !erpTrips.length
-                    ? null
-                    : completeFinances
-                      ? kpis.profitStatus.label
-                      : 'Partial data',
-                tone:
-                  completeFinances && kpis.totalProfit < 0
-                    ? 'critical'
-                    : completeFinances && kpis.totalProfit > 0
-                      ? 'ok'
-                      : 'neutral',
+                label: 'Maintenance',
+                value: money(kpis.maintenanceCost),
+                pct: share(kpis.maintenanceCost),
+                sub: shareNote(kpis.maintenanceCost, 'repairs, service, tyres'),
               },
+              {
+                label: 'Other expenses',
+                value: money(kpis.otherExpenses),
+                pct: share(kpis.otherExpenses),
+                sub: shareNote(kpis.otherExpenses, 'food, fines, permits'),
+              },
+              ...(showErp
+                ? [
+                    {
+                      label: 'Pending review',
+                      value: money(kpis.pendingExpenses),
+                      pct: share(kpis.pendingExpenses),
+                      sub: noExpenseRecords
+                        ? NO_RECORDS
+                        : kpis.pendingExpenses > 0
+                          ? 'Needs review before it counts'
+                          : 'Nothing waiting',
+                      noteTone: kpis.pendingExpenses > 0 ? 'warn' : null,
+                    },
+                    {
+                      label: 'Cost per km',
+                      value: kpis.costPerKmText || '—',
+                      sub:
+                        kpis.totalDistanceKm > 0
+                          ? `${formatKm(kpis.totalDistanceKm)} on ERP trips`
+                          : 'No trip distance recorded',
+                    },
+                  ]
+                : []),
             ]}
           />
-          <section aria-labelledby="khata-breakdown-heading">
-            <div className="khata-section-heading">
-              <div>
-                <h2 id="khata-breakdown-heading">Expense breakdown</h2>
-                <p>Operating costs and entries awaiting review for the selected period.</p>
-              </div>
-            </div>
-            <KhataKpiGrid
-              loading={loading}
-              columns={3}
-              items={[
-                {
-                  label: 'Fuel Cost',
-                  icon: Fuel,
-                  value: money(kpis.fuelCost),
-                  sub: noExpenseRecords
-                    ? NO_RECORDS
-                    : kpis.totalCost > 0
-                      ? `${((kpis.fuelCost / kpis.totalCost) * 100).toFixed(0)}% of total expenditure`
-                      : 'Direct fuel refills',
-                },
-                {
-                  label: 'Maintenance',
-                  icon: Wrench,
-                  value: money(kpis.maintenanceCost),
-                  sub: noExpenseRecords ? NO_RECORDS : 'Repairs, servicing & tyres',
-                },
-                {
-                  label: 'Other Expenses',
-                  icon: Receipt,
-                  value: money(kpis.otherExpenses),
-                  sub: noExpenseRecords ? NO_RECORDS : 'Tolls, driver food, fines, permits',
-                },
-                {
-                  label: 'ERP Trip Costs',
-                  icon: Route,
-                  value: money(kpis.tripExpenses),
-                  sub: noExpenseRecords ? NO_RECORDS : 'Advances and trip charges',
-                },
-                {
-                  label: 'Pending Review',
-                  icon: Clock,
-                  value: money(kpis.pendingExpenses),
-                  sub: noExpenseRecords ? NO_RECORDS : 'Awaiting approval before ledger',
-                  status: kpis.pendingExpenses > 0 ? 'Needs review' : null,
-                  tone: 'warning',
-                },
-                {
-                  label: 'Fleet Cost / KM',
-                  icon: Gauge,
-                  value: kpis.costPerKmText || '—',
-                  sub:
-                    kpis.totalDistanceKm > 0
-                      ? `Logged distance: ${formatKm(kpis.totalDistanceKm)}`
-                      : 'No distance recorded',
-                },
-              ]}
-            />
-          </section>
 
           <KhataDashboardCharts
             loading={loading}
             categoryData={categoryChartData}
             sourceData={sourceChartData}
             vehicleData={vehicleChartData}
-            tripData={tripProfitData}
+            tripData={showErp ? tripProfitData : null}
           />
         </>
       )}
 
-      {/* Selected Trip Details Modal */}
       {selectedTrip && (
         <ErpTripDetailModal
           isOpen={Boolean(selectedTrip)}
@@ -677,7 +593,7 @@ const KhataDashboardTab = ({ vehicles = [], drivers = [] }) => {
           initialTripData={selectedTrip}
         />
       )}
-    </div>
+    </>
   );
 };
 

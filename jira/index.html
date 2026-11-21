@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GNB Edge</title>
+<link rel="stylesheet" href="styles.css?v=4">
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script defer src="app.js?v=4"></script>
+</head>
+<body>
+<div class="workspace">
+  <aside class="sidebar" aria-label="Workspace sidebar">
+    <a class="brand" href="#tasks"><span class="mark" aria-hidden="true">G</span>GNB Edge</a>
+    <button class="btn menu-toggle" id="menu-toggle" type="button" aria-controls="workspace-nav" aria-expanded="false">Menu</button>
+    <nav id="workspace-nav" aria-label="Workspace"><a href="#tasks" data-tab="tasks">Tasks</a><a href="#docs" data-tab="docs">Docs</a></nav>
+    <div class="account" id="account"></div>
+  </aside>
+  <main id="main" tabindex="-1"><p>Loading workspace…</p></main>
+</div>
+<div id="notice" role="status" aria-live="polite"></div>
+<dialog id="modal"></dialog>
+</body>
+</html>

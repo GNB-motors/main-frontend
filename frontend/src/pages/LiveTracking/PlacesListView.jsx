@@ -26,7 +26,7 @@ export default function PlacesListView({ trackPlaces, vehicles, onPick, onHide, 
   }, [listPlaces, here, query]);
 
   return (
-    <div className="railview">
+    <div className="railview lt-places-list">
       <div className="fhead">
         <div className="ftitle">
           <h2>Places</h2>

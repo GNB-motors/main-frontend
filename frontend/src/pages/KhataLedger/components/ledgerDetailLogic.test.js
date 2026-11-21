@@ -8,6 +8,11 @@ import {
   resolveLedgerSplitLabel,
   ledgerTxKey,
   countActiveLedgerFilters,
+  LEDGER_SOURCE_OPTIONS,
+  categoryLabel,
+  costBuckets,
+  rankRows,
+  tripsInPeriod,
 } from './ledgerDetailLogic';
 
 describe('buildLedgerParams', () => {
@@ -125,6 +130,12 @@ describe('getLedgerSplitItems', () => {
     ]);
   });
 
+  it('ignores the empty split list that every parsed summary carries', () => {
+    expect(getLedgerSplitItems(parseLedgerSummary({ byVehicle: { 'KA-01': 3 } }), true)).toEqual([
+      { name: 'KA-01', amount: 3 },
+    ]);
+  });
+
   it('returns an empty array when nothing is present', () => {
     expect(getLedgerSplitItems({}, true)).toEqual([]);
     expect(getLedgerSplitItems(null, false)).toEqual([]);
@@ -173,5 +184,61 @@ describe('countActiveLedgerFilters', () => {
     expect(
       countActiveLedgerFilters({ category: 'FUEL', source: 'TRIP', crossFilterId: 'v1' }),
     ).toBe(3);
+  });
+});
+
+describe('costBuckets', () => {
+  it('counts fuel logs as fuel and service records as maintenance', () => {
+    expect(
+      costBuckets({
+        totalAmount: 1000,
+        byCategory: { FUEL: 100, FUEL_EXPENSE: 400, SERVICE: 150, REPAIR: 50, TOLL: 300 },
+      }),
+    ).toEqual({ total: 1000, fuel: 500, maintenance: 200, other: 300 });
+  });
+});
+
+describe('ledger labels and filter options', () => {
+  it('names the record kinds the merged ledger adds', () => {
+    expect(categoryLabel('FUEL_EXPENSE')).toBe('Fuel log');
+    expect(categoryLabel('SERVICE')).toBe('Service');
+    expect(categoryLabel('DRIVER_SALARY')).toBe('Driver salary');
+  });
+
+  it('offers only the sources the ledger endpoints accept', () => {
+    expect(LEDGER_SOURCE_OPTIONS).toEqual(['MANUAL', 'FUEL', 'MAINTENANCE', 'TRIP']);
+  });
+});
+
+describe('tripsInPeriod', () => {
+  it('keeps the trips dated inside the range', () => {
+    const trips = [
+      { _id: 'in', tripDate: '2026-01-10T05:00:00.000Z' },
+      { _id: 'before', tripDate: '2025-12-31T10:00:00.000Z' },
+      { _id: 'undated' },
+    ];
+    expect(
+      tripsInPeriod(trips, {
+        startDate: '2025-12-31T18:30:00.000Z',
+        endDate: '2026-01-31T18:29:59.999Z',
+      }).map((t) => t._id),
+    ).toEqual(['in']);
+  });
+});
+
+describe('rankRows', () => {
+  it('sorts by amount, drops zeros and folds the tail into Other', () => {
+    const entries = [
+      ['a', 1],
+      ['b', 7],
+      ['c', 0],
+      ['d', 3],
+      ['e', 2],
+    ];
+    expect(rankRows(entries, 3)).toEqual([
+      { name: 'b', amount: 7 },
+      { name: 'd', amount: 3 },
+      { name: 'Other', amount: 3 },
+    ]);
   });
 });

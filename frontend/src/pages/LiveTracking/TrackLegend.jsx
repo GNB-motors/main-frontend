@@ -23,7 +23,6 @@ import { placeLayerColor } from '../../utils/redesign/tone';
 import InfoTip from '../../components/redesign/InfoTip';
 import { LIVE_LAYERS, PLACE_LAYERS } from './trackLegendModel';
 import LegendBlock from './LegendBlock';
-import { PURPOSE_COLOR } from '../PlaceHub/model/placePurpose.js';
 import LegendToggle from './LegendToggle';
 
 /** The lucide icon for each place layer. */
@@ -264,7 +263,7 @@ export default function TrackLegend({
             <LegendBlock
               title="Places"
               info={{
-                text: 'The places on the map: your own plants and sidings, and the landmarks a driver needs.',
+                text: 'Choose the places shown on the map. Pump and dhaba counts match your selection in this view. Other category counts cover India. Toll counts show fleet-visited plazas.',
                 basis: null,
               }}
               collapsible
@@ -322,10 +321,16 @@ export default function TrackLegend({
                               : nearby || (coverage?.failed ? 'Coverage unavailable' : null)
                         }
                       />
-                      {hasScope(layer.id) ? (
+                      {hasScope(layer.id) && layerSelection[layer.id] && !notAvailable ? (
                         <div className="lt-toll-scope">
                           <div className="lt-toll-scope-heading">
-                            <span>All {layer.id} in view</span>
+                            <span>
+                              All {layer.id} in view{' '}
+                              <InfoTip
+                                label={`About all ${layer.id}`}
+                                text={`Include ${layer.id} your fleet hasn’t visited.`}
+                              />
+                            </span>
                             <button
                               type="button"
                               role="switch"
@@ -346,15 +351,15 @@ export default function TrackLegend({
                               <span />
                             </button>
                           </div>
-                          <p>
-                            {placeScopes[layer.id] === 'all' && layerSelection[layer.id]
-                              ? nearbyInfo?.loading
+                          {placeScopes[layer.id] === 'all' ? (
+                            <p role="status">
+                              {nearbyInfo?.loading
                                 ? `Loading ${layer.id}…`
                                 : nearbyInfo?.error
                                   ? 'Could not load this view.'
-                                  : `${count ?? '—'} ${layer.id} in this India view`
-                              : `Include ${layer.id} your fleet hasn’t visited.`}
-                          </p>
+                                  : `${count ?? '—'} ${layer.id} in this India view`}
+                            </p>
+                          ) : null}
                           {layerSelection[layer.id] && localTruncated ? (
                             <p>Some places are hidden. Zoom in for all.</p>
                           ) : null}
@@ -367,10 +372,16 @@ export default function TrackLegend({
                           side="left"
                         />
                       ) : null}
-                      {isToll && onToggleAllTolls ? (
+                      {isToll && onToggleAllTolls && layerSelection.tolls ? (
                         <div className="lt-toll-scope">
                           <div className="lt-toll-scope-heading">
-                            <span>All tolls in view</span>
+                            <span>
+                              All tolls in view{' '}
+                              <InfoTip
+                                label="About all tolls"
+                                text="Include toll plazas your fleet hasn’t used."
+                              />
+                            </span>
                             <button
                               type="button"
                               role="switch"
@@ -382,15 +393,15 @@ export default function TrackLegend({
                               <span />
                             </button>
                           </div>
-                          <p>
-                            {showAllTolls && layerSelection.tolls
-                              ? tollInfo?.needsZoom
+                          {showAllTolls ? (
+                            <p role="status">
+                              {tollInfo?.needsZoom
                                 ? 'Zoom in to load all tolls in view.'
                                 : tollInfo?.loading
                                   ? 'Loading toll plazas…'
-                                  : `${tollInfo?.allCount ?? '—'} toll plazas in this view`
-                              : 'Include plazas your fleet hasn’t used.'}
-                          </p>
+                                  : `${tollInfo?.allCount ?? '—'} toll plazas in this view`}
+                            </p>
+                          ) : null}
                           {tollInfo?.truncated ? (
                             <p>Some plazas are hidden. Zoom in for all.</p>
                           ) : null}
@@ -403,12 +414,6 @@ export default function TrackLegend({
               {availabilityLoading && !layerAvailability ? (
                 <p className="lt-layer-coverage-note" role="status">
                   Checking map coverage…
-                </p>
-              ) : null}
-              {layerAvailability ? (
-                <p className="lt-layer-coverage-note">
-                  Pump and dhaba counts match your selection in this view. Other category counts
-                  cover India. Toll count shows fleet-visited plazas.
                 </p>
               ) : null}
               {emptyLayers.length ? (
@@ -495,29 +500,6 @@ export default function TrackLegend({
                 </p>
               ) : null}
             </LegendBlock>
-
-            <section className="lt-map-colour-key" aria-label="Map colour key">
-              <h3>Place areas</h3>
-              <div className="lt-map-colour-key-items">
-                {[
-                  ['theft', 'Fuel-risk area'],
-                  ['pump', 'Fuel-pump area'],
-                  ['general', 'Other place area'],
-                ].map(([purpose, label]) => (
-                  <div className="lt-map-colour-key-item" key={purpose}>
-                    <span
-                      aria-hidden="true"
-                      style={{
-                        borderColor: PURPOSE_COLOR[purpose],
-                        backgroundColor: `${PURPOSE_COLOR[purpose]}1f`,
-                      }}
-                    />
-                    {label}
-                  </div>
-                ))}
-              </div>
-              <p>Darker shading marks the busiest part. Pin icons show the place type.</p>
-            </section>
           </div>
 
           {/* Footer */}

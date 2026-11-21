@@ -223,6 +223,47 @@ describe('multi bill photo queue', () => {
     expect(queue.add.mock.calls[0][0]).toHaveLength(2);
     expect(queue.start).not.toHaveBeenCalled();
   });
+
+  it('uploads the picked photos only when Upload is pressed, and lets one be removed', () => {
+    const queue = { add: vi.fn(), start: vi.fn(), remove: vi.fn() };
+    const rows = [
+      { id: 'r1', name: 'one.jpg', status: 'ready' },
+      { id: 'r2', name: 'two.jpg', status: 'ready' },
+      { id: 'r3', name: 'one-again.jpg', status: 'duplicate' },
+    ];
+    render(
+      <MemoryRouter>
+        <AddBillPhotoDialog open onOpenChange={vi.fn()} queue={queue} rows={rows} />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByLabelText('Bill type (optional)')).not.toBeInTheDocument();
+    expect(screen.getByText('Already added, not sent again')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove two.jpg' }));
+    expect(queue.remove).toHaveBeenCalledWith('r2');
+    fireEvent.click(screen.getByRole('button', { name: 'Upload 2 photos' }));
+    expect(queue.start).toHaveBeenCalledTimes(1);
+  });
+
+  it('says how far the upload has come, one photo at a time', () => {
+    const queue = { add: vi.fn(), start: vi.fn(), retry: vi.fn() };
+    const rows = [
+      { id: 'r1', name: 'one.jpg', status: 'sent', run: 1, capture: { id: 'c1', ocr: {} } },
+      { id: 'r2', name: 'two.jpg', status: 'failed', run: 1 },
+      { id: 'r3', name: 'three.jpg', status: 'sending', run: 1 },
+      { id: 'r4', name: 'four.jpg', status: 'queued', run: 1 },
+    ];
+    render(
+      <MemoryRouter>
+        <AddBillPhotoDialog open onOpenChange={vi.fn()} queue={queue} rows={rows} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('Uploading 3 of 4…')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Uploading…' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(queue.retry).toHaveBeenCalledWith('r2');
+    // The sent bill waits below for its truck to be confirmed.
+    expect(screen.getByRole('button', { name: 'Confirm 0 bills' })).toBeInTheDocument();
+  });
 });
 
 it('confirms selected uploaded bills with the upload source', async () => {

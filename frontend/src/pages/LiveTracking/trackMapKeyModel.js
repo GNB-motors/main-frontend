@@ -22,3 +22,15 @@ export function keyRouteSources(lines = []) {
   const present = new Set(lines.map((l) => l?.source || 'NONE'));
   return ['DRIVEN', 'ENGINE', 'NONE'].filter((s) => present.has(s));
 }
+
+/** Only explain shading for polygon areas that are actually drawn. */
+export function keyAreaPurposes(places = []) {
+  const purposes = new Set(
+    places
+      .filter(
+        (place) => place.polygon?.length || place.polygonParts?.length || place.coreParts?.length,
+      )
+      .map((place) => (place.risk ? 'theft' : place.purpose || 'general')),
+  );
+  return ['theft', 'pump', 'general'].filter((purpose) => purposes.has(purpose));
+}

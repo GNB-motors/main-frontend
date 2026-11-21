@@ -34,10 +34,16 @@ const formatDate = (d) => {
 };
 
 const daysText = (days) => {
-  if (days == null) return 'Due date not projected';
-  if (days < 0) return `Overdue by ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'}`;
-  if (days === 0) return 'Due today';
-  return `Due in ${days} day${days === 1 ? '' : 's'}`;
+  if (days == null || days === '' || !Number.isFinite(Number(days)))
+    return 'Due date not projected';
+  const value = Number(days);
+  if (value === 0) return 'Due today';
+  const magnitude = Math.abs(value);
+  const duration =
+    magnitude < 1
+      ? 'less than 1 day'
+      : `${Math.round(magnitude)} day${Math.round(magnitude) === 1 ? '' : 's'}`;
+  return value < 0 ? `Overdue by ${duration}` : `Due in ${duration}`;
 };
 
 const PredictionSkeleton = () => (

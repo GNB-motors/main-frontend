@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import DeviationModule from './DeviationModule.jsx';
 
@@ -11,7 +11,9 @@ const base = {
 
 describe('DeviationModule', () => {
   it('says a detour cost is unknown instead of showing ₹0', () => {
-    render(<DeviationModule {...base} openDev={[{ _id: 'a', registrationNumber: 'AS15AC6474' }]} />);
+    render(
+      <DeviationModule {...base} openDev={[{ _id: 'a', registrationNumber: 'AS15AC6474' }]} />,
+    );
 
     expect(screen.getByText('detour cost not estimated')).toBeInTheDocument();
     expect(screen.getByText('extra km not estimated')).toBeInTheDocument();
@@ -39,7 +41,8 @@ describe('DeviationModule', () => {
       />,
     );
 
-    expect(screen.getByText('4.2 km off road')).toBeInTheDocument();
+    expect(screen.getByText('4.2 km')).toBeInTheDocument();
+    expect(screen.getByText('off road')).toBeInTheDocument();
     expect(screen.queryByText('₹0')).not.toBeInTheDocument();
   });
 
@@ -63,9 +66,24 @@ describe('DeviationModule', () => {
       <DeviationModule
         {...base}
         openDev={[
-          { _id: 'a', registrationNumber: 'AS15AC6474', extraKmEstimate: 3.4, estimatedExtraCostInr: 500 },
-          { _id: 'b', registrationNumber: 'WB11S1962', extraKmEstimate: null, estimatedExtraCostInr: null },
-          { _id: 'c', registrationNumber: 'WB11S1963', extraKmEstimate: null, estimatedExtraCostInr: null },
+          {
+            _id: 'a',
+            registrationNumber: 'AS15AC6474',
+            extraKmEstimate: 3.4,
+            estimatedExtraCostInr: 500,
+          },
+          {
+            _id: 'b',
+            registrationNumber: 'WB11S1962',
+            extraKmEstimate: null,
+            estimatedExtraCostInr: null,
+          },
+          {
+            _id: 'c',
+            registrationNumber: 'WB11S1963',
+            extraKmEstimate: null,
+            estimatedExtraCostInr: null,
+          },
         ]}
       />,
     );
@@ -79,8 +97,18 @@ describe('DeviationModule', () => {
       <DeviationModule
         {...base}
         openDev={[
-          { _id: 'a', registrationNumber: 'AS15AC6474', extraKmEstimate: null, estimatedExtraCostInr: null },
-          { _id: 'b', registrationNumber: 'WB11S1962', extraKmEstimate: null, estimatedExtraCostInr: null },
+          {
+            _id: 'a',
+            registrationNumber: 'AS15AC6474',
+            extraKmEstimate: null,
+            estimatedExtraCostInr: null,
+          },
+          {
+            _id: 'b',
+            registrationNumber: 'WB11S1962',
+            extraKmEstimate: null,
+            estimatedExtraCostInr: null,
+          },
         ]}
       />,
     );
@@ -96,12 +124,47 @@ describe('DeviationModule', () => {
       <DeviationModule
         {...base}
         openDev={[
-          { _id: 'a', registrationNumber: 'AS15AC6474', extraKmEstimate: 0, estimatedExtraCostInr: 0, maxOffKm: 0.4 },
+          {
+            _id: 'a',
+            registrationNumber: 'AS15AC6474',
+            extraKmEstimate: 0,
+            estimatedExtraCostInr: 0,
+            maxOffKm: 0.4,
+          },
         ]}
       />,
     );
 
     expect(container.textContent).toContain('+0.0');
     expect(container.textContent).toContain('₹0');
+  });
+  it('keeps a labelled cost field in every row and opens the selected detour', () => {
+    const go = vi.fn();
+    render(
+      <DeviationModule
+        {...base}
+        go={go}
+        openDev={[
+          {
+            _id: 'measured',
+            registrationNumber: 'WB11J4162',
+            extraKmEstimate: 19.22,
+            estimatedExtraCostInr: 231,
+          },
+          { _id: 'off-road', registrationNumber: 'WB11F5062', offRouteKm: 5.19 },
+        ]}
+      />,
+    );
+    const measured = within(screen.getByRole('button', { name: /WB11J4162/ }));
+    expect(measured.getByText('+19.22 km')).toBeInTheDocument();
+    expect(measured.getByText('extra distance')).toBeInTheDocument();
+    expect(measured.getByText('₹231')).toBeInTheDocument();
+    const unknown = screen.getByRole('button', { name: /WB11F5062/ });
+    expect(within(unknown).getByText('5.19 km')).toBeInTheDocument();
+    expect(within(unknown).getByText('off road')).toBeInTheDocument();
+    expect(within(unknown).getByText('—')).toBeInTheDocument();
+    expect(within(unknown).getByText('cost not estimated')).toBeInTheDocument();
+    fireEvent.click(unknown);
+    expect(go).toHaveBeenCalledWith('deviation', { d: 'off-road' });
   });
 });

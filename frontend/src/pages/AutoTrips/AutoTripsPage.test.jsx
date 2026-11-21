@@ -25,6 +25,7 @@ vi.mock('../../services/fleetViewService', () => ({
   fleetViewService: { getPlaceQuestions, answerPlaceQuestion, getTripsHistory: vi.fn() },
 }));
 vi.mock('../../components/ui/confirmContext', () => ({ useConfirm: () => vi.fn() }));
+vi.mock('../../hooks/useKnownEtas', () => ({ useKnownEtas: () => new Map() }));
 vi.mock('./ManualTripDialog', () => ({ default: () => null }));
 vi.mock('./TripPlanDialog', () => ({
   default: ({ open, onCreated, onOpenChange }) =>
@@ -346,11 +347,11 @@ it('does not fall back to the rejected list total when every detection was rejec
   expect(screen.queryByRole('tab', { name: 'Trips 20' })).not.toBeInTheDocument();
 });
 
-it('explains the waiting trips once and offers the bulk answer', async () => {
+it('opens the review workspace from one clear banner action without a modal', async () => {
   listByStatus({
-    items: [{ _id: 't1', registrationNumber: 'WB-ACTUAL', status: 'OPEN' }],
-    waitingItems: [...waiting(9, ['DROP_UNKNOWN']), ...waiting(1, ['DROP_INFERRED'])],
-    tabCounts: { COMPLETE: 5, NEEDS_REVIEW: 120, OPEN: 1 },
+    items: [],
+    waitingItems: waiting(10, ['DROP_UNKNOWN']),
+    tabCounts: { NEEDS_REVIEW: 120 },
   });
   getPlaceQuestions.mockResolvedValue({
     items: [
@@ -360,22 +361,20 @@ it('explains the waiting trips once and offers the bulk answer', async () => {
     total: 2,
   });
   open();
-  expect(
-    await screen.findByRole('heading', { name: '120 trips need your answer' }),
-  ).toBeInTheDocument();
-  expect(await screen.findByText('Drop not found')).toBeInTheDocument();
-  expect(
-    screen.getByText('Split measured on the latest 10 waiting trips in this period.'),
-  ).toBeInTheDocument();
-  expect(
-    await screen.findByText(/For the other 108, open the trip and mark its drop/),
-  ).toBeInTheDocument();
+  expect(await screen.findByRole('heading', { name: '2 places need review' })).toBeInTheDocument();
+  expect(screen.getByText('12 trips')).toBeInTheDocument();
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   expect(getPlaceQuestions).toHaveBeenCalledWith(expect.objectContaining({ limit: 200 }));
-  fireEvent.click(screen.getByRole('button', { name: 'Answer place questions' }));
-  expect(await screen.findByRole('tab', { name: /Place questions/ })).toHaveAttribute(
+  fireEvent.click(screen.getByRole('button', { name: 'Review places' }));
+  expect(await screen.findByRole('tab', { name: /Review places/ })).toHaveAttribute(
     'aria-selected',
     'true',
   );
+  expect(screen.getAllByRole('button', { name: 'Review Unnamed stop' })[0]).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
 it('scopes place questions to the selected IST period and truck, hiding the previous queue while loading', async () => {
@@ -433,9 +432,7 @@ it('scopes place questions to the selected IST period and truck, hiding the prev
   await act(async () =>
     finish({ items: [{ id: 'current', tripsAffected: 3 }], total: 1, tripsAffected: 3 }),
   );
-  expect(
-    await screen.findByRole('heading', { name: '3 trips need your answer' }),
-  ).toBeInTheDocument();
+  expect(await screen.findByRole('heading', { name: '1 place needs review' })).toBeInTheDocument();
   expect(screen.getByText('3 trips')).toBeInTheDocument();
   expect(screen.queryByText('14 places')).not.toBeInTheDocument();
 });
@@ -478,18 +475,28 @@ it('keeps a way back and the selected show-trips action after filtering waiting 
   });
   getPlaceQuestions.mockResolvedValue({ items: [{ id: 'q1', tripsAffected: 8 }], total: 1 });
   open('/auto-trips?range=7d');
-  fireEvent.click(await screen.findByRole('button', { name: 'Show these trips' }));
-  expect(await screen.findByRole('button', { name: 'Showing these trips' })).toHaveAttribute(
+  fireEvent.click(await screen.findByRole('button', { name: 'View affected trips' }));
+  expect(await screen.findByRole('button', { name: 'Show all trips' })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
-  expect(screen.getByRole('button', { name: 'Back to all trips' })).toBeInTheDocument();
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Show all trips' }));
+  });
+  expect(screen.getByLabelText('Current location')).not.toHaveTextContent('status=');
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'View affected trips' }));
+  });
   expect(screen.getByLabelText('Current location')).toHaveTextContent('status=NEEDS_REVIEW');
-  fireEvent.click(screen.getByRole('button', { name: 'Review place questions' }));
-  expect(await screen.findByRole('button', { name: 'Back to trips' })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Back to trips' }));
-  expect(await screen.findByRole('button', { name: 'Show these trips' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Review places' }));
+  expect(await screen.findByRole('button', { name: 'Back to affected trips' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Back to affected trips' }));
+  expect(await screen.findByRole('button', { name: 'Show all trips' })).toBeInTheDocument();
   expect(screen.getByLabelText('Current location')).toHaveTextContent('range=7d');
+  expect(screen.getByLabelText('Current location')).toHaveTextContent('status=NEEDS_REVIEW');
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Show all trips' }));
+  });
   expect(screen.getByLabelText('Current location')).not.toHaveTextContent('status=');
 });
 
@@ -517,7 +524,15 @@ it('previews the exact bulk suggestions, cancels safely and writes only after co
   );
   answerPlaceQuestion.mockResolvedValueOnce({ placeId: 'site-pump', tripsUpdated: 0 });
   open();
-  fireEvent.click(await screen.findByRole('button', { name: 'Review bulk confirmation' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Review places' }));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: /Confirm .*selected places/ }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Select Customer yard' }));
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Select Salbani pump' }));
+  expect(screen.queryByRole('checkbox', { name: 'Select Unnamed stop' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Confirm 2 selected places' }));
   let dialog = within(await screen.findByRole('dialog', { name: 'Confirm suggested places' }));
   expect(dialog.getByText('Customer yard')).toBeInTheDocument();
   expect(dialog.getByText('Delivery / unloading point')).toBeInTheDocument();
@@ -531,7 +546,7 @@ it('previews the exact bulk suggestions, cancels safely and writes only after co
   fireEvent.click(dialog.getByRole('button', { name: 'Cancel' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   expect(answerPlaceQuestion).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Review bulk confirmation' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Confirm 2 selected places' }));
   dialog = within(await screen.findByRole('dialog', { name: 'Confirm suggested places' }));
   fireEvent.click(dialog.getByRole('button', { name: 'Confirm 2 places' }));
   expect(dialog.getByRole('button', { name: 'Cancel' })).toBeDisabled();

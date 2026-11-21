@@ -1,16 +1,17 @@
 import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
+import { KhataField } from './khataUi';
+import { getVehicleLabel, getDriverName } from '../utils';
 import {
-  CATEGORIES,
-  CATEGORY_LABELS,
-  SOURCE_LABELS,
-  getVehicleLabel,
-  getDriverName,
-} from '../utils';
+  LEDGER_CATEGORY_OPTIONS,
+  LEDGER_SOURCE_OPTIONS,
+  categoryLabel,
+  sourceLabel,
+} from './ledgerDetailLogic';
 
 /**
- * The three ledger-detail filter dropdowns (category / source / cross-entity),
- * rendered inside FilterBar's right slot. Kept as components-only so
- * react-refresh doesn't mix plain-function exports into logic modules (rule 15).
+ * The three ledger-detail filter dropdowns (category / source / the other side
+ * of the ledger). Kept as components-only so react-refresh doesn't mix
+ * plain-function exports into logic modules (rule 15).
  */
 export const LedgerFilterSelects = ({
   isDriver,
@@ -22,51 +23,48 @@ export const LedgerFilterSelects = ({
   onSourceChange,
   onCrossFilterChange,
 }) => (
-  <>
-    <label className="fbar-field">
-      <span>Category</span>
+  <div className="khata-filters">
+    <KhataField label="Category" htmlFor="kld-filter-category">
       <SearchableSelect
-        className="fbar-select"
+        id="kld-filter-category"
         value={category}
         onChange={(e) => onCategoryChange(e.target.value)}
       >
-        <option value="">All Categories</option>
-        {CATEGORIES.map((c) => (
+        <option value="">All categories</option>
+        {LEDGER_CATEGORY_OPTIONS.map((c) => (
           <option key={c} value={c}>
-            {CATEGORY_LABELS[c]}
+            {categoryLabel(c)}
           </option>
         ))}
       </SearchableSelect>
-    </label>
-    <label className="fbar-field">
-      <span>Source</span>
+    </KhataField>
+    <KhataField label="Source" htmlFor="kld-filter-source">
       <SearchableSelect
-        className="fbar-select"
+        id="kld-filter-source"
         value={source}
         onChange={(e) => onSourceChange(e.target.value)}
       >
-        <option value="">All Sources</option>
-        {Object.keys(SOURCE_LABELS).map((s) => (
+        <option value="">All sources</option>
+        {LEDGER_SOURCE_OPTIONS.map((s) => (
           <option key={s} value={s}>
-            {SOURCE_LABELS[s]}
+            {sourceLabel(s)}
           </option>
         ))}
       </SearchableSelect>
-    </label>
-    <label className="fbar-field">
-      <span>{isDriver ? 'Vehicle' : 'Driver'}</span>
+    </KhataField>
+    <KhataField label={isDriver ? 'Vehicle' : 'Driver'} htmlFor="kld-filter-cross">
       <SearchableSelect
-        className="fbar-select"
+        id="kld-filter-cross"
         value={crossFilterId}
         onChange={(e) => onCrossFilterChange(e.target.value)}
       >
-        <option value="">All {isDriver ? 'Vehicles' : 'Drivers'}</option>
+        <option value="">All {isDriver ? 'vehicles' : 'drivers'}</option>
         {crossOptions.map((opt) => (
           <option key={opt._id} value={opt._id}>
             {isDriver ? getVehicleLabel(opt) : getDriverName(opt)}
           </option>
         ))}
       </SearchableSelect>
-    </label>
-  </>
+    </KhataField>
+  </div>
 );

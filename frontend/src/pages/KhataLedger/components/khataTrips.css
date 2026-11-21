@@ -1,0 +1,121 @@
+/* ERP trips and Assignments tabs: the few pieces the shared Khata CSS does not have. */
+
+.khata-filters-clear {
+  align-self: end;
+  justify-self: start;
+  min-height: 38px;
+}
+
+.khata-num-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.khata-num-stack .khata-pill {
+  font-family: var(--ui-font);
+}
+
+.khata-table .is-num.is-loss,
+.khata-table .is-loss {
+  color: var(--ui-bad-ink);
+}
+
+.khata-table .is-num.is-gain,
+.khata-table .is-gain {
+  color: var(--ui-ok);
+}
+
+.khata-table .is-date {
+  white-space: nowrap;
+}
+
+.khata-table .khata-trip-link {
+  font: 500 12px var(--ui-font-mono);
+}
+
+.khata-truncate {
+  display: block;
+  max-width: 260px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The shared Dialog popup, widened for the trip details. */
+.khata-dialog.khata-dialog--wide {
+  width: calc(100vw - 32px);
+  max-width: 960px;
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+.khata-dialog.khata-dialog--form {
+  width: calc(100vw - 32px);
+  max-width: 560px;
+}
+
+.khata-dialog.khata-dialog--confirm {
+  width: calc(100vw - 32px);
+  max-width: 420px;
+}
+
+.khata-dialog .khata-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--ui-line);
+}
+
+.khata-dialog .khata-dialog-head > div:first-child {
+  min-width: 0;
+}
+
+.khata-dialog .khata-dialog-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  color: var(--ui-ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: normal;
+}
+
+.khata-dialog .khata-dialog-title.is-code {
+  font-family: var(--ui-font-mono);
+  font-weight: 500;
+}
+
+.khata-dialog .khata-dialog-desc {
+  margin: 4px 0 0;
+  color: var(--ui-ink-3);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.khata-dialog .khata-dialog-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.khata-dialog-foot--split {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.khata-dialog-foot .khata-hint.is-code {
+  font-family: var(--ui-font-mono);
+  font-size: 11px;
+  color: var(--ui-ink-5);
+}
+
+.khata-dialog .khata-rows .is-code {
+  font: 12px var(--ui-font-mono);
+}

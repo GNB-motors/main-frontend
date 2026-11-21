@@ -324,3 +324,370 @@
     padding: 16px;
   }
 }
+
+.atx-place-review-intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.atx-place-review-intro > div {
+  max-width: 720px;
+}
+.atx-place-review-intro h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--atx-ink);
+}
+.atx-place-review-intro p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--atx-ink-3);
+}
+.atx-place-review-intro > span {
+  font-size: 12px;
+  color: var(--atx-ink-3);
+}
+.atx-place-workspace {
+  display: grid;
+  grid-template-columns: minmax(240px, 32%) minmax(0, 1fr);
+  align-items: start;
+  border: 1px solid var(--atx-line);
+  border-radius: 10px;
+  background: var(--atx-surface);
+}
+.atx-place-review-list {
+  max-height: 720px;
+  overflow-y: auto;
+  min-width: 0;
+}
+.atx-place-review-row {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  padding: 14px;
+  border-bottom: 1px solid var(--atx-line);
+  border-left: 3px solid transparent;
+}
+.atx-place-review-row:last-child {
+  border-bottom: 0;
+}
+.atx-place-review-row.is-active {
+  border-left-color: var(--atx-blue);
+  background: var(--atx-blue-bg);
+}
+.atx-place-review-row > input {
+  margin: 4px 0 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--atx-blue);
+  flex-shrink: 0;
+}
+.atx-place-review-row > svg {
+  margin-top: 4px;
+  flex-shrink: 0;
+  color: var(--atx-ink-3);
+}
+.atx-place-review-open {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.atx-place-review-open strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--atx-ink);
+  overflow-wrap: anywhere;
+}
+.atx-place-review-open span {
+  font-size: 12px;
+  color: var(--atx-ink-3);
+}
+.atx-place-review-open:focus-visible,
+.atx-place-review-row > input:focus-visible {
+  outline: 2px solid var(--atx-blue);
+  outline-offset: 4px;
+}
+.atx-place-review-detail {
+  min-width: 0;
+  min-height: 430px;
+  padding: 18px;
+  border-left: 1px solid var(--atx-line);
+}
+.atx-place-review-map {
+  height: 230px;
+  margin-bottom: 16px;
+  border: 1px solid var(--atx-line);
+  border-radius: 8px;
+  z-index: 0;
+}
+.atx-place-review-map-empty {
+  margin-bottom: 16px;
+  padding: 20px;
+  border-radius: 8px;
+  background: var(--atx-chip);
+  color: var(--atx-ink-3);
+  font-size: 13px;
+}
+.atx-place-review-empty {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  min-height: 390px;
+  text-align: center;
+  color: var(--atx-ink-3);
+}
+.atx-place-review-empty h3 {
+  margin: 16px 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--atx-ink);
+}
+.atx-place-review-empty p {
+  margin: 0;
+  max-width: 270px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.atx-place-review-back {
+  display: none;
+}
+.atx-place-selection-bar {
+  position: sticky;
+  bottom: 16px;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--atx-blue-line);
+  border-radius: 10px;
+  background: var(--atx-surface);
+  box-shadow: 0 4px 20px #00000012;
+}
+.atx-place-selection-bar > div {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: 190px;
+}
+.atx-place-selection-bar strong {
+  color: var(--atx-ink);
+  font-size: 13px;
+}
+.atx-place-selection-bar span {
+  color: var(--atx-ink-3);
+  font-size: 12px;
+  line-height: 1.5;
+}
+@media (max-width: 760px) {
+  .atx-place-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .atx-place-review-detail {
+    display: none;
+    border-left: 0;
+    padding: 12px;
+  }
+  .atx-place-workspace.has-active-place .atx-place-review-list {
+    display: none;
+  }
+  .atx-place-workspace.has-active-place .atx-place-review-detail {
+    display: block;
+  }
+  .atx-place-review-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .atx-place-review-list {
+    max-height: none;
+  }
+  .atx-place-selection-bar {
+    bottom: 8px;
+  }
+}
+
+/* Keep the review panel and dialogs compact, with loading in the same layout. */
+.atx-place-review-detail {
+  padding: 14px;
+}
+.atx-place-review-detail .atx-place-question-head {
+  padding: 14px;
+  gap: 10px;
+}
+.atx-place-review-detail .atx-place-question-evidence {
+  padding: 0 14px 14px;
+  gap: 6px;
+}
+.atx-place-review-detail .atx-place-question-answer {
+  padding: 12px 14px;
+  gap: 8px;
+}
+.atx-place-review-detail .atx-place-question-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+.atx-place-review-detail .atx-place-question-name {
+  min-width: min(180px, 100%);
+}
+.atx-place-review-map-wrap {
+  position: relative;
+  height: 190px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.atx-place-review-map-wrap .atx-place-review-map {
+  height: 100%;
+  margin: 0;
+}
+.atx-place-review-map-wrap .atx-place-map-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 8px;
+}
+.atx-place-map-error {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  background: var(--atx-hover);
+  color: var(--atx-ink-3);
+  font-size: 12px;
+  text-align: center;
+}
+.atx-place-map-error a {
+  color: var(--atx-blue);
+  text-decoration: underline;
+}
+.atx-place-workspace--loading .atx-place-review-detail {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+.atx-place-skeleton-map {
+  height: 190px;
+  width: 100%;
+  border-radius: 8px;
+}
+.atx-place-skeleton-row {
+  min-height: 98px;
+}
+.atx-place-skeleton-row > div {
+  display: grid;
+  flex: 1;
+  gap: 10px;
+}
+.atx-place-skeleton-check {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.atx-place-skeleton-title {
+  display: block;
+  width: 65%;
+  height: 16px;
+}
+.atx-place-skeleton-name {
+  display: block;
+  width: 80%;
+  height: 13px;
+}
+.atx-place-skeleton-line {
+  display: block;
+  width: 55%;
+  height: 11px;
+}
+.atx-place-review-complete {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 40px 20px;
+  color: var(--atx-green);
+  border: 1px solid var(--atx-line);
+  border-radius: 10px;
+  text-align: center;
+}
+.atx-place-review-complete h3 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--atx-ink);
+}
+.atx-place-review-complete p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--atx-ink-3);
+}
+.atx-place-bulk-dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-width: 440px;
+  max-height: min(560px, calc(100dvh - 32px));
+}
+.atx-place-bulk-dialog > [data-slot='dialog-header'],
+.atx-place-bulk-dialog .atx-place-bulk-footer {
+  padding: 14px 18px;
+}
+.atx-place-bulk-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.atx-place-bulk-heading [data-slot='dialog-title'] {
+  font-size: 16px;
+  line-height: 1.4;
+}
+.atx-place-bulk-dialog [data-slot='dialog-description'] {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.atx-place-bulk-body {
+  padding: 12px 18px;
+}
+.atx-place-bulk-scope {
+  margin: 0 0 12px;
+}
+.atx-place-bulk-list {
+  max-height: min(220px, 32dvh);
+  overflow-y: auto;
+}
+.atx-place-bulk-list li {
+  gap: 8px;
+  padding: 10px 0;
+}
+.atx-place-bulk-list strong {
+  overflow-wrap: anywhere;
+}
+.atx-place-bulk-list li > span {
+  white-space: nowrap;
+}
+@media (max-width: 760px) {
+  .atx-place-workspace--loading .atx-place-review-detail {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .atx-place-questions .atx-skel,
+  .atx-place-review-banner .atx-skel {
+    animation: none;
+  }
+}

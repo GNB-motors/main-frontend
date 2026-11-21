@@ -1,21 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import {
-  Fuel,
-  LayoutDashboard,
-  Users,
-  Truck,
-  Route,
-  ClipboardList,
-  Receipt,
-  FileSpreadsheet,
-  Building2,
-} from 'lucide-react';
+import { Fuel } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import PageShell from '@/components/ui/PageShell';
 import NewButton from '@/components/ui/NewButton';
 import TripService from '../Trip/services/TripService';
+import { getVehicleList } from '../../services/vehicleListService';
 import KhataDashboardTab from './components/KhataDashboardTab';
 import DriversTab from './components/DriversTab';
 import TrucksTab from './components/TrucksTab';
@@ -24,6 +14,8 @@ import AssignmentsTab from './components/AssignmentsTab';
 import AllTransactionsTab from './components/AllTransactionsTab';
 import KhataReportsTab from './components/KhataReportsTab';
 import AddFuelLogModal from './components/AddFuelLogModal';
+import { KhataPill } from './components/khataUi';
+import useErpAvailable from './useErpAvailable';
 import { useActiveBranch } from '../../contexts/BranchContext';
 import './KhataLedger.css';
 
@@ -37,6 +29,16 @@ const TAB_KEYS = {
   reports: 'reports',
 };
 
+const TABS = [
+  [TAB_KEYS.dashboard, 'Dashboard'],
+  [TAB_KEYS.drivers, 'Drivers'],
+  [TAB_KEYS.trucks, 'Vehicles'],
+  [TAB_KEYS.trips, 'ERP trips'],
+  [TAB_KEYS.assignments, 'Assignments'],
+  [TAB_KEYS.all, 'Transactions'],
+  [TAB_KEYS.reports, 'Reports'],
+];
+
 const KhataLedgerPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const rawTab = searchParams.get('tab');
@@ -44,6 +46,8 @@ const KhataLedgerPage = () => {
   const [activeTab, setActiveTab] = useState(initialTab);
 
   const { activeBranch } = useActiveBranch();
+  // The ERP trips tab and every ERP figure stay hidden until the location has an ERP trip.
+  const erpAvailable = useErpAvailable();
   const [vehicles, setVehicles] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const [dropdownsLoading, setDropdownsLoading] = useState(true);
@@ -62,10 +66,10 @@ const KhataLedgerPage = () => {
       setDropdownsLoading(true);
       try {
         const [vRes, dRes] = await Promise.all([
-          TripService.getVehicles({ limit: 200 }),
+          getVehicleList(),
           TripService.getDrivers({ limit: 200 }),
         ]);
-        setVehicles(vRes?.data || vRes?.results || (Array.isArray(vRes) ? vRes : []));
+        setVehicles(Array.isArray(vRes) ? vRes : []);
         setDrivers(dRes?.data || dRes?.results || (Array.isArray(dRes) ? dRes : []));
       } catch {
         // Non-critical; child tabs may re-fetch as needed
@@ -75,6 +79,21 @@ const KhataLedgerPage = () => {
     };
     loadDropdowns();
   }, []);
+
+  useEffect(() => {
+    if (erpAvailable !== false || activeTab !== TAB_KEYS.trips) return;
+    setActiveTab(TAB_KEYS.dashboard);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('tab', TAB_KEYS.dashboard);
+        return next;
+      },
+      { replace: true },
+    );
+  }, [erpAvailable, activeTab, setSearchParams]);
+
+  const tabs = TABS.filter(([key]) => key !== TAB_KEYS.trips || erpAvailable === true);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -90,95 +109,65 @@ const KhataLedgerPage = () => {
       className="khata-ledger"
       title={
         <>
-          Khata Ledger
-          {activeBranch?.name && (
-            <Badge
-              variant="outline"
-              className="ml-2 inline-flex items-center gap-1 text-xs font-normal"
-            >
-              <Building2 size={12} />
-              {activeBranch.name}
-            </Badge>
-          )}
+          Khata ledger
+          {activeBranch?.name ? <KhataPill>{activeBranch.name}</KhataPill> : null}
         </>
       }
-      subtitle="Track expenses by driver, vehicle, assignment, or transaction."
+      subtitle="Expenses by driver, vehicle, trip and assignment."
+      // Add fuel belongs to the overview. Drivers and Vehicles add fuel per row, and
+      // Transactions has its own button beside Add expense.
       actions={
-        <NewButton
-          size="md"
-          prependIcon={<Fuel size={16} />}
-          onClick={() => setFuelModalOpen(true)}
-        >
-          Add Fuel
-        </NewButton>
+        activeTab === TAB_KEYS.dashboard ? (
+          <NewButton
+            size="md"
+            prependIcon={<Fuel size={16} />}
+            onClick={() => setFuelModalOpen(true)}
+          >
+            Add fuel
+          </NewButton>
+        ) : null
       }
     >
-      {/* Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <div className="overflow-x-auto pb-1">
-          <TabsList aria-label="Khata ledger views">
-            <TabsTrigger value={TAB_KEYS.dashboard} className="gap-1.5">
-              <LayoutDashboard size={14} />
-              Dashboard
+        <TabsList className="khata-tabs" aria-label="Khata ledger views">
+          {tabs.map(([key, label]) => (
+            <TabsTrigger key={key} value={key} className="khata-tab">
+              {label}
             </TabsTrigger>
-            <TabsTrigger value={TAB_KEYS.drivers} className="gap-1.5">
-              <Users size={14} />
-              Drivers
-            </TabsTrigger>
-            <TabsTrigger value={TAB_KEYS.trucks} className="gap-1.5">
-              <Truck size={14} />
-              Vehicles
-            </TabsTrigger>
-            <TabsTrigger value={TAB_KEYS.trips} className="gap-1.5">
-              <Route size={14} />
-              ERP Trips
-            </TabsTrigger>
-            <TabsTrigger value={TAB_KEYS.assignments} className="gap-1.5">
-              <ClipboardList size={14} />
-              Assignments
-            </TabsTrigger>
-            <TabsTrigger value={TAB_KEYS.all} className="gap-1.5">
-              <Receipt size={14} />
-              Transactions
-            </TabsTrigger>
-            <TabsTrigger value={TAB_KEYS.reports} className="gap-1.5">
-              <FileSpreadsheet size={14} />
-              Reports
-            </TabsTrigger>
-          </TabsList>
-        </div>
+          ))}
+        </TabsList>
 
-        {/* Tab Contents */}
-        <TabsContent value={TAB_KEYS.dashboard} className="mt-4 focus-visible:outline-none">
-          <KhataDashboardTab vehicles={vehicles} drivers={drivers} />
+        <TabsContent value={TAB_KEYS.dashboard} className="khata-panel">
+          <KhataDashboardTab vehicles={vehicles} drivers={drivers} erpAvailable={erpAvailable} />
         </TabsContent>
 
-        <TabsContent value={TAB_KEYS.drivers} className="mt-4 focus-visible:outline-none">
+        <TabsContent value={TAB_KEYS.drivers} className="khata-panel">
           <DriversTab vehicles={vehicles} drivers={drivers} loading={dropdownsLoading} />
         </TabsContent>
 
-        <TabsContent value={TAB_KEYS.trucks} className="mt-4 focus-visible:outline-none">
+        <TabsContent value={TAB_KEYS.trucks} className="khata-panel">
           <TrucksTab vehicles={vehicles} drivers={drivers} loading={dropdownsLoading} />
         </TabsContent>
 
-        <TabsContent value={TAB_KEYS.trips} className="mt-4 focus-visible:outline-none">
-          <ErpTripsTab vehicles={vehicles} drivers={drivers} />
-        </TabsContent>
+        {erpAvailable === true ? (
+          <TabsContent value={TAB_KEYS.trips} className="khata-panel">
+            <ErpTripsTab vehicles={vehicles} drivers={drivers} />
+          </TabsContent>
+        ) : null}
 
-        <TabsContent value={TAB_KEYS.assignments} className="mt-4 focus-visible:outline-none">
+        <TabsContent value={TAB_KEYS.assignments} className="khata-panel">
           <AssignmentsTab vehicles={vehicles} drivers={drivers} loading={dropdownsLoading} />
         </TabsContent>
 
-        <TabsContent value={TAB_KEYS.all} className="mt-4 focus-visible:outline-none">
+        <TabsContent value={TAB_KEYS.all} className="khata-panel">
           <AllTransactionsTab vehicles={vehicles} drivers={drivers} />
         </TabsContent>
 
-        <TabsContent value={TAB_KEYS.reports} className="mt-4 focus-visible:outline-none">
-          <KhataReportsTab vehicles={vehicles} drivers={drivers} />
+        <TabsContent value={TAB_KEYS.reports} className="khata-panel">
+          <KhataReportsTab vehicles={vehicles} drivers={drivers} erpAvailable={erpAvailable} />
         </TabsContent>
       </Tabs>
 
-      {/* Quick Add Fuel Modal */}
       <AddFuelLogModal open={fuelModalOpen} onClose={() => setFuelModalOpen(false)} />
     </PageShell>
   );

@@ -32,8 +32,8 @@ describe('AssignmentsTab backend pagination', () => {
     }));
     render(<AssignmentsTab />);
     await screen.findByText('Driver 1');
-    expect(screen.getByRole('button', { name: 'Previous assignments page' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Next assignments page' }));
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     await screen.findByText('Driver 21');
     await new Promise((resolve) => setTimeout(resolve, 450));
     expect(screen.getByRole('navigation')).toHaveTextContent('Page 2 of 3');
@@ -41,7 +41,7 @@ describe('AssignmentsTab backend pagination', () => {
       { page: 2, limit: 20, includePast: true },
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
-    fireEvent.change(screen.getByRole('textbox', { name: 'Search driver or vehicle' }), {
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search driver or vehicle' }), {
       target: { value: 'Driver 99' },
     });
     await screen.findByText('Driver 99');
@@ -49,10 +49,10 @@ describe('AssignmentsTab backend pagination', () => {
       { page: 1, limit: 20, includePast: true, search: 'Driver 99' },
       expect.anything(),
     );
-    expect(screen.getByRole('navigation', { name: 'Assignment pagination' })).toHaveTextContent(
-      'Page 1 of 1 (1 assignments)',
-    );
-    expect(screen.getByRole('button', { name: 'Next assignments page' })).toBeDisabled();
+    const pager = screen.getByRole('navigation', { name: 'Assignment pagination' });
+    expect(pager).toHaveTextContent('1 assignment');
+    // One page: nothing to page through.
+    expect(within(pager).queryByRole('button', { name: 'Next' })).not.toBeInTheDocument();
   });
 
   it('returns to the last valid page after its only row is deleted', async () => {
@@ -66,14 +66,16 @@ describe('AssignmentsTab backend pagination', () => {
     }));
     render(<AssignmentsTab />);
     await screen.findByText('Driver 1');
-    fireEvent.click(screen.getByRole('button', { name: 'Next assignments page' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     await screen.findByText('Driver 21');
-    fireEvent.click(screen.getByTitle('Delete'));
-    const dialog = screen.getByRole('heading', { name: 'Delete Assignment' }).parentElement;
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete', exact: true }));
-    await waitFor(() =>
-      expect(screen.getByRole('navigation')).toHaveTextContent('Page 1 of 1 (20 assignments)'),
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Delete assignment of Driver 21 on WBTEST21' }),
     );
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Delete assignment')).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete', exact: true }));
+    await waitFor(() => expect(screen.getByRole('navigation')).toHaveTextContent('20 assignments'));
+    expect(screen.getByRole('navigation')).not.toHaveTextContent('Page');
     expect(KhataLedgerService.deleteAssignment).toHaveBeenCalledWith('a21');
     expect(screen.getByText('Driver 1')).toBeInTheDocument();
   });

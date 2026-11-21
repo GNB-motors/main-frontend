@@ -1,7 +1,6 @@
 import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { toast } from 'react-toastify';
 import { ArrowLeft, CalendarClock, ChevronDown, Plus, Search, ShieldCheck } from 'lucide-react';
 import { canEditSap } from '../Sap/sapModel';
 import { useFeatureFlags } from '../../contexts/FeatureFlagsContext';
@@ -22,8 +21,6 @@ import { tripDetailHref } from './tripWorkspace';
 import tripColumns, { hiddenColumnsNote } from './tripColumns';
 import TripHistoryTab from './TripHistoryTab';
 import PlaceQuestionsTab from './PlaceQuestionsTab';
-import BulkPlaceConfirmDialog from './BulkPlaceConfirmDialog';
-import { suggestedPlaceAnswer } from './placeQuestionCategories';
 import TripKpiStrip from './TripKpiStrip';
 import NeedsAnswerBanner from './NeedsAnswerBanner';
 import AutoTripCoverage from './AutoTripCoverage';
@@ -66,7 +63,7 @@ const MORE_TABS = TABS.filter((t) => t.inMore);
 /** The two views that are not a filter on the trip list. */
 const VIEWS = [
   { key: 'history', label: 'History' },
-  { key: 'questions', label: 'Place questions' },
+  { key: 'questions', label: 'Review places' },
 ];
 
 const PAGE_SIZE = 50;
@@ -261,7 +258,7 @@ export default function AutoTripsPage() {
       !t.hideWhenEmpty || countFor(t.key) == null || countFor(t.key) > 0 || statusTab === t.key,
   );
   const activeMoreTab =
-    moreTabs.find((t) => statusTab === t.key) || VIEWS.find((v) => viewTab === v.key) || null;
+    VIEWS.find((v) => viewTab === v.key) || moreTabs.find((t) => statusTab === t.key) || null;
   const kpiTab = viewTab || moreTabs.some((t) => t.key === statusTab) ? null : statusTab;
   const todayCounts = today.data?.tabCounts;
   const todayCount = todayCounts ? actualTripCount(todayCounts) : null;
@@ -279,64 +276,6 @@ export default function AutoTripsPage() {
   }, [moreOpen]);
 
   const canAnswerPlaces = ['OWNER', 'MANAGER'].includes(getUserRole());
-  const [closingAll, setClosingAll] = useState({ busy: false, done: 0, total: 0 });
-  const closingAllRef = useRef(false);
-  const [bulkReview, setBulkReview] = useState(null);
-  const reviewBulkPlaces = () => {
-    if (!canAnswerPlaces || closingAllRef.current || questions.loading) return;
-    const entries = (questions.data?.items ?? [])
-      .filter((question) => question.suggestion?.name?.trim())
-      .map((question) => ({
-        id: question.id,
-        tripsAffected: question.tripsAffected,
-        payload: suggestedPlaceAnswer(question),
-      }));
-    if (!entries.length) {
-      toast.info(
-        'No suggested names to confirm yet. Review the places and add their names individually.',
-      );
-      return;
-    }
-    setBulkReview({ entries });
-  };
-  const closeAllPlaces = async () => {
-    if (!canAnswerPlaces || closingAllRef.current || !bulkReview?.entries.length) return;
-    const entries = bulkReview.entries;
-    closingAllRef.current = true;
-    setClosingAll({ busy: true, done: 0, total: entries.length });
-    let named = 0;
-    let failed = 0;
-    let tripsUpdated = 0;
-    try {
-      for (const [index, entry] of entries.entries()) {
-        try {
-          const result = await fleetViewService.answerPlaceQuestion(entry.id, entry.payload);
-          if (result?.placeId) {
-            named += 1;
-            tripsUpdated += Number(result.tripsUpdated) || 0;
-          } else {
-            failed += 1;
-          }
-        } catch {
-          failed += 1;
-        }
-        setClosingAll({ busy: true, done: index + 1, total: entries.length });
-      }
-      const message =
-        `Confirmed ${named} place${named === 1 ? '' : 's'}; ${tripsUpdated} trips updated` +
-        (failed ? `. ${failed} places could not be confirmed; review them individually.` : '.');
-      if (named) toast.success(message);
-      else toast.info(message);
-      questions.refetch?.();
-      waitingSample.refetch();
-      refetch();
-    } finally {
-      closingAllRef.current = false;
-      setClosingAll({ busy: false, done: 0, total: 0 });
-      setBulkReview(null);
-    }
-  };
-
   const { isEnabled } = useFeatureFlags();
   // SAP is contract data: owners and managers of an org with SAP only.
   const showSap = canEditSap(getUserRole()) && isEnabled('sapV2');
@@ -361,7 +300,7 @@ export default function AutoTripsPage() {
     setSearchParams(next);
   };
   const changeTab = (key) => select(key, '');
-  const changeView = (key) => select('', key);
+  const changeView = (key) => select(statusTab, key);
 
   const pagination = (
     <EnterprisePagination
@@ -540,30 +479,23 @@ export default function AutoTripsPage() {
         {showBanner ? (
           <NeedsAnswerBanner
             total={reviewCount}
-            sample={waitingSample.data?.items}
-            sampleLoading={waitingSample.loading}
             questions={questions.data?.items}
             questionsTotal={questions.data?.total}
             questionsTrips={questions.data?.tripsAffected}
             questionsLoading={questions.loading}
             questionsFailed={Boolean(questions.error)}
             onAnswerPlaces={() => changeView('questions')}
-            onAnswerAllPlaces={canAnswerPlaces ? reviewBulkPlaces : null}
-            closingAll={closingAll}
-            onShowTrips={() => changeTab('NEEDS_REVIEW')}
+            onShowTrips={() => changeTab(statusTab === 'NEEDS_REVIEW' ? '' : 'NEEDS_REVIEW')}
             showingTrips={statusTab === 'NEEDS_REVIEW'}
           />
         ) : null}
 
-        {!viewTab && statusTab === 'NEEDS_REVIEW' ? (
+        {!viewTab && statusTab === 'NEEDS_REVIEW' && !showBanner ? (
           <nav className="atx-question-trip-nav" aria-label="Trips needing your answer">
             <button type="button" onClick={() => changeTab('')}>
               <ArrowLeft size={16} aria-hidden="true" /> Back to all trips
             </button>
             <span>Showing trips that need your answer</span>
-            <button type="button" onClick={() => changeView('questions')}>
-              Review place questions
-            </button>
           </nav>
         ) : null}
 
@@ -593,8 +525,10 @@ export default function AutoTripsPage() {
                 type="button"
                 className="trip-back-circle"
                 onClick={() => changeView('')}
-                aria-label="Back to trips"
-                title="Back to trips"
+                aria-label={
+                  statusTab === 'NEEDS_REVIEW' ? 'Back to affected trips' : 'Back to trips'
+                }
+                title={statusTab === 'NEEDS_REVIEW' ? 'Back to affected trips' : 'Back to trips'}
               >
                 <ArrowLeft size={16} aria-hidden="true" />
               </button>
@@ -611,7 +545,16 @@ export default function AutoTripsPage() {
                   to={searchParams.get('to')}
                 />
               ) : (
-                <PlaceQuestionsTab query={questions} />
+                <PlaceQuestionsTab
+                  key={periodKey}
+                  query={questions}
+                  canAnswer={canAnswerPlaces}
+                  onAnswered={() => {
+                    waitingSample.refetch();
+                    deliveredSample.refetch();
+                    refetch();
+                  }}
+                />
               )}
             </div>
           </section>
@@ -663,15 +606,6 @@ export default function AutoTripsPage() {
           />
         )}
       </div>
-
-      <BulkPlaceConfirmDialog
-        review={bulkReview}
-        progress={closingAll}
-        onOpenChange={(open) => {
-          if (!open) setBulkReview(null);
-        }}
-        onConfirm={closeAllPlaces}
-      />
 
       <ManualTripDialog
         open={dialog?.kind === 'manual'}

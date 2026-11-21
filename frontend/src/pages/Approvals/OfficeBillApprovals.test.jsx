@@ -26,6 +26,7 @@ vi.mock('../../services/billPhotoService', () => ({
     getBillPage: vi.fn(),
     editBillLink: vi.fn(),
     saveBillLinks: vi.fn(),
+    rejectBillCaptures: vi.fn(),
   },
 }));
 describe('office approvals', () => {
@@ -255,5 +256,81 @@ describe('the office bill queue markup', () => {
       await screen.findByText('We could not suggest a truck for this bill — pick one below.'),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Confirm/ })).toBeInTheDocument();
+  });
+});
+
+describe('rejecting an office bill', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    billPhotoService.getBillSuggestion.mockResolvedValue({ decision: 'ASK', candidates: [] });
+  });
+
+  it('rejects a pending bill with a reason and reads the counts of every tab', async () => {
+    billPhotoService.listBillCaptures.mockResolvedValue({
+      captures: [UNCONFIRMED_CAPTURE],
+      total: 1,
+      counts: { pending: 1, submitted: 4, rejected: 2 },
+    });
+    billPhotoService.rejectBillCaptures.mockResolvedValue({
+      rejected: 1,
+      results: [{ id: 'cap-2', status: 'rejected' }],
+    });
+    const onCount = vi.fn();
+    render(
+      <MemoryRouter>
+        <OfficeBillApprovals onCount={onCount} />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('tab', { name: /Rejected 2/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Confirmed 4/ })).toBeInTheDocument();
+    expect(onCount).toHaveBeenCalledWith(1);
+    // One read answers the list and every count.
+    expect(billPhotoService.listBillCaptures).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: /Reject/ }));
+    const dialog = screen.getByRole('dialog', { name: 'Reject 1 bill' });
+    fireEvent.change(within(dialog).getByLabelText('Reason for rejecting'), {
+      target: { value: '  Blurry photo ' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Reject' }));
+    await waitFor(() =>
+      expect(billPhotoService.rejectBillCaptures).toHaveBeenCalledWith(['cap-2'], 'Blurry photo'),
+    );
+    await waitFor(() => expect(billPhotoService.listBillCaptures).toHaveBeenCalledTimes(2));
+    expect(screen.queryByRole('dialog', { name: 'Reject 1 bill' })).not.toBeInTheDocument();
+  });
+
+  it('lists rejected bills with who rejected them and no reject button', async () => {
+    billPhotoService.listBillCaptures.mockImplementation(({ status }) =>
+      Promise.resolve(
+        status === 'rejected'
+          ? {
+              captures: [
+                {
+                  ...UNCONFIRMED_CAPTURE,
+                  rejection: {
+                    by: 'u1',
+                    byName: 'Ravi',
+                    byRole: 'MANAGER',
+                    at: '2026-11-20T06:00:00Z',
+                    reason: 'Not our truck',
+                  },
+                },
+              ],
+              total: 1,
+              counts: { pending: 0, submitted: 0, rejected: 1 },
+            }
+          : { captures: [], total: 0, counts: { pending: 0, submitted: 0, rejected: 1 } },
+      ),
+    );
+    render(
+      <MemoryRouter>
+        <OfficeBillApprovals />
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole('tab', { name: /Rejected/ }));
+    expect(await screen.findByText('Rejected by Ravi · Manager')).toBeInTheDocument();
+    expect(screen.getByText('Not our truck')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Reject/ })).not.toBeInTheDocument();
   });
 });

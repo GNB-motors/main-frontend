@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="hi-Latn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>22 Nov Driver App Release</title>
+<style>
+:root { color-scheme: light; --ink:#111827; --muted:#4b5563; --canvas:#f6f7fb; --paper:#fff; --edge:#e3e7ef; --accent:#1f3fbf; --accent-dark:#173095; --wash:#eaf0ff; }
+* { box-sizing:border-box; }
+[hidden] { display:none !important; }
+body { margin:0; color:var(--ink); background:var(--canvas); font:16px/1.55 system-ui, sans-serif; }
+a { color:var(--accent); text-underline-offset:.16em; }
+a:focus-visible, button:focus-visible, input:focus-visible { outline:3px solid #227d91; outline-offset:3px; }
+h1,h2,h3,h4 { line-height:1.18; margin:0 0 .55em; }
+h1 { font-size:clamp(1.9rem,4.2vw,3.15rem); letter-spacing:-.043em; }
+h2 { font-size:clamp(1.22rem,2.3vw,1.65rem); letter-spacing:-.025em; }
+h3 { font-size:1.13rem; } h4 { font-size:.96rem; }
+p,ul,ol { margin:.35em 0 .85em; } li+li { margin-top:.34em; }
+code { background:#e8efeb; padding:.04em .24em; border-radius:4px; overflow-wrap:anywhere; font-size:.86em; }
+.shell { display:grid; grid-template-columns:245px minmax(0,1fr); min-height:100vh; }
+.sidebar { align-self:start; position:sticky; top:0; max-height:100vh; overflow:auto; background:#142952; color:#e4edff; min-height:100vh; padding:24px 18px; }
+.brand { display:block; text-decoration:none; color:white; font-size:1.15rem; font-weight:750; padding:0 8px; }
+.sidebar .brand small { display:block; color:#bfcff0; font-size:.79rem; font-weight:500; }
+.nav-group { margin-top:1.15rem; }
+.nav-group p { margin:0 0 .25rem; padding-left:.64rem; color:#bfcff0; font-size:.76rem; }
+.nav-link { display:block; color:#e3ebff; text-decoration:none; font-size:.92rem; padding:.36rem .64rem; border-radius:7px; }
+.nav-link:hover { background:#253f6f; } .nav-link[aria-current="page"] { background:#eaf0ff; color:#142952; font-weight:750; }
+.mobile-control { display:none; }
+main { min-width:0; max-width:1200px; width:100%; margin-inline:auto; padding:clamp(20px,4.7vw,58px); }
+.page-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin:0 0 1.55rem; }
+.page-heading p { color:var(--muted); margin:0; max-width:63ch; }
+.release-summary { display:flex; align-items:flex-end; justify-content:space-between; gap:1.2rem; padding:clamp(16px,3vw,28px); background:var(--wash); border:1px solid #d4dfff; border-radius:15px; }
+.release-summary p { max-width:63ch; margin-bottom:0; }
+.status-chip { display:inline-block; color:#70431b; background:#f9ead7; border-radius:100px; padding:.22rem .68rem; margin-bottom:.65rem; font-size:.8rem; font-weight:750; }
+.primary, .copy-ticket { display:inline-flex; align-items:center; gap:.5rem; border:0; border-radius:8px; padding:.58rem .9rem; color:white; background:var(--accent); font:inherit; font-size:.9rem; font-weight:700; text-decoration:none; white-space:nowrap; cursor:pointer; }
+.primary:hover,.copy-ticket:hover { background:var(--accent-dark); }
+.overview-section { margin-top:1.8rem; }
+.role-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.85rem; }
+.role-card { display:flex; flex-direction:column; background:var(--paper); border:1px solid var(--edge); border-radius:12px; padding:1rem 1.1rem; text-decoration:none; color:var(--ink); }
+.role-card strong { font-size:1.12rem; } .role-card p { color:var(--muted); }
+.jump-label { margin-top:auto; color:var(--accent); font-weight:700; font-size:.88rem; }
+.role-card:hover, .resource-list a:hover { background:#f2f6ff; border-color:#8197db; }
+.resource-list { display:grid; gap:.4rem; }
+.resource-list a { display:flex; align-items:center; justify-content:space-between; gap:1rem; background:var(--paper); color:var(--ink); border:1px solid var(--edge); padding:.65rem .9rem; border-radius:8px; text-decoration:none; }
+.resource-list small { display:block; color:var(--muted); }
+.release-refs { margin-top:1.7rem; color:var(--muted); font-size:.88rem; }
+.route-view > section + section { margin-top:1.6rem; }
+.panel, article { background:var(--paper); border:1px solid var(--edge); padding:1rem 1.15rem; border-radius:12px; margin:0 0 1rem; }
+.panel h4,article h4,.flow,.work-label,.view { color:var(--accent); }
+.flow,.work-label { font-weight:700; }
+.grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px 24px; }
+.done { background:var(--wash); padding:.65rem .85rem; border-radius:7px; }
+.meta,.refs { color:var(--muted); font-size:.88rem; }
+.ticket-nav { margin-bottom:.65rem; }
+.return-link,.ticket-link { display:inline-block; font-weight:700; font-size:.92rem; }
+.ticket-link::after { content:" →"; }
+.table-scroll { overflow-x:auto; border:1px solid var(--edge); border-radius:10px; background:white; }
+table { width:100%; min-width:610px; border-collapse:collapse; text-align:left; font-size:.92rem; }
+th,td { vertical-align:top; padding:.64rem .75rem; border-bottom:1px solid var(--edge); }
+th { background:#eaf0ff; }
+tr:last-child td { border-bottom:0; }
+.ticket-index label { display:block; font-weight:700; margin-bottom:.35rem; }
+.ticket-index input { background:white; color:var(--ink); width:min(100%,440px); padding:.62rem .75rem; border:1px solid #9cb1a8; border-radius:8px; font:inherit; }
+.search-result { margin:.5rem 0; color:var(--muted); font-size:.88rem; }
+@media(max-width:920px) {
+ .shell { grid-template-columns:190px minmax(0,1fr); }
+ .sidebar { padding:18px 12px; }
+ .release-summary { align-items:flex-start; flex-direction:column; }
+}
+@media(max-width:680px) {
+ .shell { display:block; }
+ .sidebar { min-height:0; max-height:none; position:static; overflow:visible; display:grid; grid-template-columns:1fr auto; align-items:center; }
+ .mobile-control { display:inline-block; color:white; font:inherit; border:1px solid #a8c5b8; border-radius:7px; background:transparent; padding:.3rem .64rem; }
+ #release-nav { display:none; grid-column:1 / -1; }
+ #release-nav[data-open] { display:block; }
+ .grid,.role-grid { grid-template-columns:1fr; } .page-heading { flex-wrap:wrap; }
+}
+@media print {
+ .shell { display:block; } .sidebar,.copy-ticket,.ticket-nav,.primary { display:none; }
+ main { max-width:none; padding:0; } .panel,article,tr { break-inside:avoid; }
+}
+
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar">
+<a href="#overview" class="brand">Driver App<small>22 Nov Release</small></a>
+<button id="menu-button" class="mobile-control" type="button" aria-expanded="false" aria-controls="release-nav">Menu</button>
+<nav id="release-nav" aria-label="Release navigation">
+<div class="nav-group"><p>Release</p><a class="nav-link" href="#overview">Release overview</a></div>
+<div class="nav-group"><p>App views</p><a class="nav-link" href="#driver">Driver</a><a class="nav-link" href="#field-agent">Field Agent</a><a class="nav-link" href="#manager">Manager</a><a class="nav-link" href="#owner">Owner</a></div>
+<div class="nav-group"><p>Work</p><a class="nav-link" href="#screen-map">Screen tracker</a><a class="nav-link" href="#status">Feature status</a><a class="nav-link" href="#tickets">Tickets</a><a class="nav-link" href="#branches">Release branches</a></div>
+<div class="nav-group"><p>Validation</p><a class="nav-link" href="#end-to-end">End-to-end sign-off</a><a class="nav-link" href="#qa">QA evidence</a><a class="nav-link" href="#phase-2">Phase 2 · Navigation</a></div>
+</nav>
+</aside>
+<main id="main-content">
+<section id="overview" class="route-view">
+<header class="page-heading"><div><h1>22 Nov Driver App Release</h1><p>Phase 1 ka scope, screen-wise pending work aur sign-off.</p></div></header>
+<div class="release-summary">
+  <div><span class="status-chip">Sign-off pending</span><h2>Phase 1 navigation ke bina ship ho sakta hai</h2><p>Core APIs aur app screens available hain. Mobile wiring, backend gaps aur device/pilot proof baaki hai. Navigation ka scope Phase 2 mein hai.</p></div>
+  <a class="primary" href="#end-to-end">Open sign-off checklist <span aria-hidden="true">→</span></a>
+</div>
+<section class="overview-section">
+  <h2>App views</h2>
+  <div class="role-grid">
+    <a class="role-card" href="#driver"><strong>Driver</strong><p>Trip, crew, papers, Wallet aur road alerts</p><span class="jump-label">Open view <span aria-hidden="true">→</span></span></a><a class="role-card" href="#field-agent"><strong>Field Agent</strong><p>Org, vehicle aur fuel capture</p><span class="jump-label">Open view <span aria-hidden="true">→</span></span></a><a class="role-card" href="#manager"><strong>Manager</strong><p>Fleet, evidence aur action cards</p><span class="jump-label">Open view <span aria-hidden="true">→</span></span></a><a class="role-card" href="#owner"><strong>Owner</strong><p>Reports, paper review, bills aur settings</p><span class="jump-label">Open view <span aria-hidden="true">→</span></span></a>
+  </div>
+</section>
+<section class="overview-section">
+  <h2>Release work</h2>
+  <div class="resource-list">
+    <a href="#screen-map"><span><strong>Screen tracker</strong><small>16 screen entries · Kahan aur kya change chahiye</small></span><span aria-hidden="true">→</span></a>
+    <a href="#status"><span><strong>Feature status</strong><small>Backend ready, mobile pending aur dono ka work</small></span><span aria-hidden="true">→</span></a>
+    <a href="#tickets"><span><strong>Tickets</strong><small>11 copyable feature and QA tickets</small></span><span aria-hidden="true">→</span></a>
+    <a href="#branches"><span><strong>Release branches</strong><small>Included backend patches aur mobile references</small></span><span aria-hidden="true">→</span></a>
+    <a href="#qa"><span><strong>QA evidence</strong><small>Passed tests, device drills aur rollout checks</small></span><span aria-hidden="true">→</span></a>
+    <a href="#phase-2"><span><strong>Phase 2 · Navigation</strong><small>Truck routing, guidance, offline maps aur learned ETA</small></span><span aria-hidden="true">→</span></a>
+  </div>
+</section>
+<p class="release-refs">Backend <code>release/en-24-nov-backend @ 77d257c5</code><br>Mobile <code>release/en-24-nov-driver-app @ 73a415f</code></p></section>
+<section id="driver" class="route-view" hidden><header class="page-heading"><div><h1>Driver</h1><p>Trip, crew, papers, Wallet aur road alerts</p></div></header><section class="panel" aria-label="Driver app overview">
+<h2>App abhi kaise chalti hai</h2>
+<p class="flow">Login → truck pairing → Trips / Inbox / More → fuel, documents ya help</p>
+<div class="grid">
+<div><h4>Kya done hai</h4><p>Truck assignment, past GPS trips, fuel entry, document upload, manual stop reasons, SOS, messages aur handover ke screens available hain.</p></div>
+<div><h4>Kitna bacha hai</h4><p>Offline login recovery, Wallet, two-phone prompts, plant push aur paper review ka result driver tak pahunchana baaki hai.</p></div>
+</div>
+<h4>Kya improve karna hai</h4><p>Capture mein status aur retake reason clear rakho. Offline retries same request se chalni chahiye. Moving driver ke prompts short aur safe rakho.</p>
+</section>
+<section aria-label="Driver tickets">
+<h2>Feature tickets</h2>
+<article>
+<h3>01 API version aur CI</h3>
+<p class="work-label">Dono</p>
+<p><strong>Backend</strong> · Version guard aur manifest hain. Release compatibility aur required CI coverage baaki.</p>
+<p><strong>Mobile mein bacha</strong> · Actual build version bhejna aur 426 handling.</p>
+<a class="ticket-link" href="#ticket-api">Open detailed ticket</a>
+</article><article>
+<h3>02 Refresh aur GPS queue</h3>
+<p class="work-label">Mainly mobile</p>
+<p><strong>Backend</strong> · Refresh, revocation aur batch APIs ready. Duty/consent signal verify karna hai.</p>
+<p><strong>Mobile mein bacha</strong> · Foreground/background refresh, queue replay aur tracking stop.</p>
+<a class="ticket-link" href="#ticket-session">Open detailed ticket</a>
+</article><article>
+<h3>03B Universal capture aur retake</h3>
+<p class="work-label">Dono</p>
+<p><strong>Backend</strong> · OCR, hashing aur intake hain. Driver scope aur review lifecycle jodna hai.</p>
+<p><strong>Mobile mein bacha</strong> · V2 capture, retake, reviewer actions aur driver status.</p>
+<a class="ticket-link" href="#ticket-papers">Open detailed ticket</a>
+</article><article>
+<h3>04 Reimbursement aur wallet</h3>
+<p class="work-label">Dono · mainly mobile</p>
+<p><strong>Backend</strong> · Bill aur ledger APIs hain. Retry, review concurrency aur settlement contract verify/harden karna hai.</p>
+<p><strong>Mobile mein bacha</strong> · Wallet, Add Bill aur decision status active stack mein.</p>
+<a class="ticket-link" href="#ticket-wallet">Open detailed ticket</a>
+</article><article>
+<h3>05 Crew handover aur duty</h3>
+<p class="work-label">Dono</p>
+<p><strong>Backend</strong> · Core handover and duty APIs hain. Owner crew declaration APIs release mein hain. Fuel/score attribution baaki.</p>
+<p><strong>Mobile mein bacha</strong> · Two-phone prompts, break plan aur owner crew UI.</p>
+<a class="ticket-link" href="#ticket-crew">Open detailed ticket</a>
+</article><article>
+<h3>06 Plant entry/exit</h3>
+<p class="work-label">Dono</p>
+<p><strong>Backend</strong> · Visit state machine aur push code hain. Live GPS producer wiring baaki.</p>
+<p><strong>Mobile mein bacha</strong> · Push tap se correct site card kholna.</p>
+<a class="ticket-link" href="#ticket-plant">Open detailed ticket</a>
+</article><article>
+<h3>07 Road reports aur prompts</h3>
+<p class="work-label">Dono</p>
+<p><strong>Backend</strong> · Report/prompt APIs hain. Fresh fix, stable retry aur policy integration baaki.</p>
+<p><strong>Mobile mein bacha</strong> · Nearby feed, Still there? aur safe 10-second prompt.</p>
+<a class="ticket-link" href="#ticket-road">Open detailed ticket</a>
+</article><article>
+<h3>08 Manager cards aur driver help</h3>
+<p class="work-label">Dono · mainly mobile</p>
+<p><strong>Backend</strong> · Action APIs hain. Driver reply aur same-card linkage verify karni hai.</p>
+<p><strong>Mobile mein bacha</strong> · Call result, handled, snooze aur reply wiring.</p>
+<a class="ticket-link" href="#ticket-office">Open detailed ticket</a>
+</article><article>
+<h3>09E Paper evidence aur reminders</h3>
+<p class="work-label">Dono</p>
+<p><strong>Backend</strong> · Taxonomy, bill pairing aur evidence readers hain. Per-type cross-check aur accuracy proof baaki.</p>
+<p><strong>Mobile mein bacha</strong> · Disagreement, expiry aur actionable retake screens.</p>
+<a class="ticket-link" href="#ticket-evidence">Open detailed ticket</a>
+</article>
+</section></section>
+<section id="field-agent" class="route-view" hidden><header class="page-heading"><div><h1>Field Agent</h1><p>Org, vehicle aur fuel capture</p></div></header><section class="panel" aria-label="Field Agent app overview">
+<h2>App abhi kaise chalti hai</h2>
+<p class="flow">Login → Orgs → vehicle select → fuel capture → Profile</p>
+<div class="grid">
+<div><h4>Kya done hai</h4><p>Org membership selection, scoped vehicle picker aur fuel submission available hain. Parity check org switch aur truck-bound scope cover karta hai.</p></div>
+<div><h4>Kitna bacha hai</h4><p>Is view ka main pending item device verification hai. Org switch, eligible vehicle aur real fuel submit test karo. V2 document capture API available hai, mobile adoption capture ticket mein tracked hai.</p></div>
+</div>
+<h4>Kya improve karna hai</h4><p>Org switch ke baad current org aur allowed vehicle clearly dikhao. Upload failure aur retry state device par check karo.</p>
+</section>
+<section aria-label="Field Agent tickets">
+<h2>Feature tickets</h2>
+<article>
+<h3>Field Agent org aur fuel flow</h3>
+<p class="work-label">QA</p>
+<p><strong>Backend</strong> · Org membership, vehicle scope aur fuel submission available hain.</p>
+<p><strong>Mobile mein bacha</strong> · Org switch → vehicle select → fuel submit ka device check.</p>
+<a class="ticket-link" href="#ticket-field-agent">Open detailed ticket</a>
+</article><article>
+<h3>01 API version aur CI</h3>
+<p class="work-label">Dono</p>
+<p><strong>Backend</strong> · Version guard aur manifest hain. Release compatibility aur required CI coverage baaki.</p>
+<p><strong>Mobile mein bacha</strong> · Actual build version bhejna aur 426 handling.</p>
+<a class="ticket-link" href="#ticket-api">Open detailed ticket</a>
+</article><article>
+<h3>03B Universal capture aur retake</h3>
+<p class="work-label">Dono</p>
+<p><strong>Backend</strong> · OCR, hashing aur intake hain. Driver scope aur review lifecycle jodna hai.</p>
+<p><strong>Mobile mein bacha</strong> · V2 capture, retake, reviewer actions aur driver status.</p>
+<a class="ticket-link" href="#ticket-papers">Open detailed ticket</a>
+</article>
+</section></section>
+<section id="manager" class="route-view" hidden><header class="page-heading"><div><h1>Manager</h1><p>Fleet, evidence aur action cards</p></div></header><section class="panel" aria-label="Manager app overview">
+<h2>App abhi kaise chalti hai</h2>
+<p class="flow">Login → fleet/map ya action cards → evidence → call ya message</p>
+<div class="grid">
+<div><h4>Kya done hai</h4><p>Fleet/trip views, manager card list, card evidence aur driver/vehicle detail links available hain.</p></div>
+<div><h4>Kitna bacha hai</h4><p>Call outcome, handled, snooze aur card-linked driver reply complete karna hai. Crew handover ke effect ko history mein verify karna hai.</p></div>
+</div>
+<h4>Kya improve karna hai</h4><p>Har card par action, result aur driver ka reply ek jagah dikhao. Act-rate se pata chalega kaunse cards useful hain.</p>
+</section>
+<section aria-label="Manager tickets">
+<h2>Feature tickets</h2>
+<article>
+<h3>08 Manager cards aur driver help</h3>
+<p class="work-label">Dono · mainly mobile</p>
+<p><strong>Backend</strong> · Action APIs hain. Driver reply aur same-card linkage verify karni hai.</p>
+<p><strong>Mobile mein bacha</strong> · Call result, handled, snooze aur reply wiring.</p>
+<a class="ticket-link" href="#ticket-office">Open detailed ticket</a>
+</article><article>
+<h3>05 Crew handover aur duty</h3>
+<p class="work-label">Dono</p>
+<p><strong>Backend</strong> · Core handover and duty APIs hain. Owner crew declaration APIs release mein hain. Fuel/score attribution baaki.</p>
+<p><strong>Mobile mein bacha</strong> · Two-phone prompts, break plan aur owner crew UI.</p>
+<a class="ticket-link" href="#ticket-crew">Open detailed ticket</a>
+</article><article>
+<h3>01 API version aur CI</h3>
+<p class="work-label">Dono</p>
+<p><strong>Backend</strong> · Version guard aur manifest hain. Release compatibility aur required CI coverage baaki.</p>
+<p><strong>Mobile mein bacha</strong> · Actual build version bhejna aur 426 handling.</p>
+<a class="ticket-link" href="#ticket-api">Open detailed ticket</a>
+</article>
+</section></section>
+<section id="owner" class="route-view" hidden><header class="page-heading"><div><h1>Owner</h1><p>Reports, paper review, bills aur settings</p></div></header><section class="panel" aria-label="Owner app overview">
+<h2>App abhi kaise chalti hai</h2>
+<p class="flow">Login → Today report → drilldown / messages → papers, fleet aur team</p>
+<div class="grid">
+<div><h4>Kya done hai</h4><p>Daily report, messaging, voice notes, broadcast receipts, fleet aur team access available hain. Backend release mein new paper-review route, promises, cost closure aur report distribution contracts hain.</p></div>
+<div><h4>Kitna bacha hai</h4><p>Paper-review mobile route, retake and reimbursement status, promise/history, trip-cost screens aur audience/settings UI baaki hain.</p></div>
+</div>
+<h4>Kya improve karna hai</h4><p>Reports mein source evidence aur missing-data state visible rakho. Bill approved aur payment settled ko alag dikhana hai.</p>
+</section>
+<section aria-label="Owner tickets">
+<h2>Feature tickets</h2>
+<article>
+<h3>03A Owner paper review queue</h3>
+<p class="work-label">Mobile</p>
+<p><strong>Backend</strong> · Release branch mein route aur match order fix.</p>
+<p><strong>Mobile mein bacha</strong> · Queue call ko /captures/review par le jaana.</p>
+<a class="ticket-link" href="#ticket-papers">Open detailed ticket</a>
+</article><article>
+<h3>03B Universal capture aur retake</h3>
+<p class="work-label">Dono</p>
+<p><strong>Backend</strong> · OCR, hashing aur intake hain. Driver scope aur review lifecycle jodna hai.</p>
+<p><strong>Mobile mein bacha</strong> · V2 capture, retake, reviewer actions aur driver status.</p>
+<a class="ticket-link" href="#ticket-papers">Open detailed ticket</a>
+</article><article>
+<h3>04 Reimbursement aur wallet</h3>
+<p class="work-label">Dono · mainly mobile</p>
+<p><strong>Backend</strong> · Bill aur ledger APIs hain. Retry, review concurrency aur settlement contract verify/harden karna hai.</p>
+<p><strong>Mobile mein bacha</strong> · Wallet, Add Bill aur decision status active stack mein.</p>
+<a class="ticket-link" href="#ticket-wallet">Open detailed ticket</a>
+</article><article>
+<h3>09A Arrival promise</h3>
+<p class="work-label">Mobile</p>
+<p><strong>Backend</strong> · Versioned promise API aur on-time reporting release branch mein.</p>
+<p><strong>Mobile mein bacha</strong> · Promise form, version history aur drilldown.</p>
+<a class="ticket-link" href="#ticket-followup">Open detailed ticket</a>
+</article><article>
+<h3>09B Trip costs aur margin</h3>
+<p class="work-label">Mobile + data QA</p>
+<p><strong>Backend</strong> · Cost-closure API aur margin readers release branch mein. Source reconciliation proof baaki.</p>
+<p><strong>Mobile mein bacha</strong> · Trip-cost form, evidence aur margin detail.</p>
+<a class="ticket-link" href="#ticket-followup">Open detailed ticket</a>
+</article><article>
+<h3>09C Report distribution</h3>
+<p class="work-label">Mobile + release setup</p>
+<p><strong>Backend</strong> · Email/WhatsApp preference aur delivery-history code release branch mein. Provider setup baaki.</p>
+<p><strong>Mobile mein bacha</strong> · Channel opt-ins, history aur error states.</p>
+<a class="ticket-link" href="#ticket-followup">Open detailed ticket</a>
+</article><article>
+<h3>09D Crew/plant/lane audiences</h3>
+<p class="work-label">Dono</p>
+<p><strong>Backend</strong> · Target/member APIs release branch mein. Live plant/lane membership ko source evidence chahiye.</p>
+<p><strong>Mobile mein bacha</strong> · Audience picker aur recipient preview.</p>
+<a class="ticket-link" href="#ticket-followup">Open detailed ticket</a>
+</article><article>
+<h3>09E Paper evidence aur reminders</h3>
+<p class="work-label">Dono</p>
+<p><strong>Backend</strong> · Taxonomy, bill pairing aur evidence readers hain. Per-type cross-check aur accuracy proof baaki.</p>
+<p><strong>Mobile mein bacha</strong> · Disagreement, expiry aur actionable retake screens.</p>
+<a class="ticket-link" href="#ticket-evidence">Open detailed ticket</a>
+</article><article>
+<h3>05 Crew handover aur duty</h3>
+<p class="work-label">Dono</p>
+<p><strong>Backend</strong> · Core handover and duty APIs hain. Owner crew declaration APIs release mein hain. Fuel/score attribution baaki.</p>
+<p><strong>Mobile mein bacha</strong> · Two-phone prompts, break plan aur owner crew UI.</p>
+<a class="ticket-link" href="#ticket-crew">Open detailed ticket</a>
+</article><article>
+<h3>01 API version aur CI</h3>
+<p class="work-label">Dono</p>
+<p><strong>Backend</strong> · Version guard aur manifest hain. Release compatibility aur required CI coverage baaki.</p>
+<p><strong>Mobile mein bacha</strong> · Actual build version bhejna aur 426 handling.</p>
+<a class="ticket-link" href="#ticket-api">Open detailed ticket</a>
+</article>
+</section></section>
+<section id="screen-map" class="route-view" hidden><header class="page-heading"><div><h1>Screen tracker</h1><p>Har role aur screen par kya ready hai aur kya change karna hai.</p></div></header><div class="table-scroll"><table><thead><tr><th scope="col">App view</th><th scope="col">Screen / entry point</th><th scope="col">Kya done hai</th><th scope="col">Kya bacha hai</th><th scope="col">Ticket</th></tr></thead><tbody><tr><td>Driver</td><td>Login / location sharing</td><td>Login, offline queue aur consent screen available.</td><td>Refresh rotation, same-account replay aur off-duty/withdrawal par background tracking stop.</td><td><a href="#ticket-session">Open ticket</a></td></tr>
+<tr><td>Driver</td><td>Capture → Upload document / My papers</td><td>Basic AUTO upload aur document list available.</td><td>V2 intake, retake, owner decision status, rejection reason aur push deep link.</td><td><a href="#ticket-papers">Open ticket</a></td></tr>
+<tr><td>Driver</td><td>Home / More / Capture → Wallet + Add Bill</td><td>Wallet component aur bill API available.</td><td>Active routes, submit/retry, pending/approved/rejected status aur settlement ledger.</td><td><a href="#ticket-wallet">Open ticket</a></td></tr>
+<tr><td>Driver</td><td>Crew &amp; driving / Rest &amp; hours</td><td>Manual handover aur rest screen available.</td><td>Both phones par safe question, break plan aur handed-over stint ki attribution.</td><td><a href="#ticket-crew">Open ticket</a></td></tr>
+<tr><td>Driver</td><td>Site card / notifications</td><td>Site-card reader available.</td><td>GPS visit events se push aur correct site card/papers open karna.</td><td><a href="#ticket-plant">Open ticket</a></td></tr>
+<tr><td>Driver</td><td>Road report / Inbox / prompt</td><td>Road report submit aur stop notes available.</td><td>Nearby hazards, retry, Still there?, dismiss/timeout aur safe 10-second shared prompt.</td><td><a href="#ticket-road">Open ticket</a></td></tr>
+<tr><td>Driver</td><td>Help / Helpful cards</td><td>Help aur contact options available.</td><td>Card-specific reply aur action result connect karna.</td><td><a href="#ticket-office">Open ticket</a></td></tr>
+<tr><td>Field Agent</td><td>Orgs / Vehicle Picker / Fuel form</td><td>Org selection, scoped truck selection aur fuel submit active.</td><td>Release-device check with org switching, allowed truck and retry. Universal capture ka extra mobile scope alag se confirm karo.</td><td><a href="#ticket-field-agent">Open ticket</a></td></tr>
+<tr><td>Manager</td><td>Home card list / Manager action detail</td><td>Ranked cards, evidence aur detail links available.</td><td>Call outcome, Handled, Snooze aur driver reply same card mein.</td><td><a href="#ticket-office">Open ticket</a></td></tr>
+<tr><td>Manager</td><td>Fleet / Vehicle detail / Crew history</td><td>Fleet paths aur crew history available.</td><td>Two-driver handover ke baad duty, fuel aur score evidence flow verify karna.</td><td><a href="#ticket-crew">Open ticket</a></td></tr>
+<tr><td>Owner</td><td>More → Capture reviews / Owner record</td><td>Owner API route release par verified.</td><td>Mobile queue call new route par, extraction correction aur driver-facing retake/reject lifecycle.</td><td><a href="#ticket-papers">Open ticket</a></td></tr>
+<tr><td>Owner</td><td>Pending bill review / finance</td><td>Bill confirmation, rejection aur wallet service available.</td><td>Bill decision from review queue, branch scope, proof of single credit and settlement.</td><td><a href="#ticket-wallet">Open ticket</a></td></tr>
+<tr><td>Owner</td><td>Today / Report drilldowns / Trip costs</td><td>Daily report active. Follow-up finance and promise APIs release mein.</td><td>Arrival promise + history, cost closure, margin detail aur source reconciliation.</td><td><a href="#ticket-followup">Open ticket</a></td></tr>
+<tr><td>Owner</td><td>Messages / Broadcasts / Report settings</td><td>Messages and receipts active. Additional audiences and delivery APIs available.</td><td>Crew/plant/lane recipient preview, opt-ins aur delivery history.</td><td><a href="#ticket-followup">Open ticket</a></td></tr>
+<tr><td>Owner + Driver</td><td>Documents / reminders / evidence</td><td>Taxonomy, capture evidence aur reminder list available.</td><td>Side-by-side evidence, expiry and retake actions, per-type accuracy proof.</td><td><a href="#ticket-evidence">Open ticket</a></td></tr>
+<tr><td>All views</td><td>Request compatibility / expired build</td><td>Manifest aur version guard available.</td><td>Real app version, 426 handling aur mandatory contract CI.</td><td><a href="#ticket-api">Open ticket</a></td></tr>
+</tbody></table></div></section>
+<section id="status" class="route-view" hidden><header class="page-heading"><div><h1>Feature status</h1><p>Backend aur mobile ka status ek saath compare karo.</p></div></header><section>
+  <p>Har row mein release branch par kya available hai aur remaining kaam kis side par hai. Feature ka naam click karke details dekho.</p>
+  <div class="table-scroll"><table>
+    <thead><tr><th scope="col">App view</th><th scope="col">Feature</th><th scope="col">Backend status</th><th scope="col">Frontend pending</th><th scope="col">Work left</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Driver · Field Agent · Manager · Owner</strong></td><td><a href="#ticket-api">01 API version aur CI</a></td><td>Version guard aur manifest hain. Release compatibility aur required CI coverage baaki.</td><td>Actual build version bhejna aur 426 handling.</td><td><strong>Dono</strong></td></tr>
+      <tr><td><strong>Driver GPS · Shared login</strong></td><td><a href="#ticket-session">02 Refresh aur GPS queue</a></td><td>Refresh, revocation aur batch APIs ready. Duty/consent signal verify karna hai.</td><td>Foreground/background refresh, queue replay aur tracking stop.</td><td><strong>Mainly mobile</strong></td></tr>
+      <tr><td><strong>Owner</strong></td><td><a href="#ticket-papers">03A Owner paper review queue</a></td><td>Release branch mein route aur match order fix.</td><td>Queue call ko /captures/review par le jaana.</td><td><strong>Mobile</strong></td></tr>
+      <tr><td><strong>Driver · Owner · Field Agent API</strong></td><td><a href="#ticket-papers">03B Universal capture aur retake</a></td><td>OCR, hashing aur intake hain. Driver scope aur review lifecycle jodna hai.</td><td>V2 capture, retake, reviewer actions aur driver status.</td><td><strong>Dono</strong></td></tr>
+      <tr><td><strong>Driver · Owner review</strong></td><td><a href="#ticket-wallet">04 Reimbursement aur wallet</a></td><td>Bill aur ledger APIs hain. Retry, review concurrency aur settlement contract verify/harden karna hai.</td><td>Wallet, Add Bill aur decision status active stack mein.</td><td><strong>Dono · mainly mobile</strong></td></tr>
+      <tr><td><strong>Driver · Manager · Owner</strong></td><td><a href="#ticket-crew">05 Crew handover aur duty</a></td><td>Core handover and duty APIs hain. Owner crew declaration APIs release mein hain. Fuel/score attribution baaki.</td><td>Two-phone prompts, break plan aur owner crew UI.</td><td><strong>Dono</strong></td></tr>
+      <tr><td><strong>Driver</strong></td><td><a href="#ticket-plant">06 Plant entry/exit</a></td><td>Visit state machine aur push code hain. Live GPS producer wiring baaki.</td><td>Push tap se correct site card kholna.</td><td><strong>Dono</strong></td></tr>
+      <tr><td><strong>Driver</strong></td><td><a href="#ticket-road">07 Road reports aur prompts</a></td><td>Report/prompt APIs hain. Fresh fix, stable retry aur policy integration baaki.</td><td>Nearby feed, Still there? aur safe 10-second prompt.</td><td><strong>Dono</strong></td></tr>
+      <tr><td><strong>Manager · Driver</strong></td><td><a href="#ticket-office">08 Manager cards aur driver help</a></td><td>Action APIs hain. Driver reply aur same-card linkage verify karni hai.</td><td>Call result, handled, snooze aur reply wiring.</td><td><strong>Dono · mainly mobile</strong></td></tr>
+      <tr><td><strong>Owner</strong></td><td><a href="#ticket-followup">09A Arrival promise</a></td><td>Versioned promise API aur on-time reporting release branch mein.</td><td>Promise form, version history aur drilldown.</td><td><strong>Mobile</strong></td></tr>
+      <tr><td><strong>Owner</strong></td><td><a href="#ticket-followup">09B Trip costs aur margin</a></td><td>Cost-closure API aur margin readers release branch mein. Source reconciliation proof baaki.</td><td>Trip-cost form, evidence aur margin detail.</td><td><strong>Mobile + data QA</strong></td></tr>
+      <tr><td><strong>Owner</strong></td><td><a href="#ticket-followup">09C Report distribution</a></td><td>Email/WhatsApp preference aur delivery-history code release branch mein. Provider setup baaki.</td><td>Channel opt-ins, history aur error states.</td><td><strong>Mobile + release setup</strong></td></tr>
+      <tr><td><strong>Owner</strong></td><td><a href="#ticket-followup">09D Crew/plant/lane audiences</a></td><td>Target/member APIs release branch mein. Live plant/lane membership ko source evidence chahiye.</td><td>Audience picker aur recipient preview.</td><td><strong>Dono</strong></td></tr>
+      <tr><td><strong>Driver · Owner</strong></td><td><a href="#ticket-evidence">09E Paper evidence aur reminders</a></td><td>Taxonomy, bill pairing aur evidence readers hain. Per-type cross-check aur accuracy proof baaki.</td><td>Disagreement, expiry aur actionable retake screens.</td><td><strong>Dono</strong></td></tr>
+      <tr><td><strong>Driver · Field Agent · Manager · Owner</strong></td><td><a href="#qa">10 QA aur pilot</a></td><td>Focused checks available. Production evidence aur rollout gates baaki.</td><td>Real device end-to-end flow, permissions aur OEM testing.</td><td><strong>Dono</strong></td></tr>
+      <tr><td><strong>Field Agent</strong></td><td><a href="#ticket-field-agent">Field Agent org aur fuel flow</a></td><td>Org membership, vehicle scope aur fuel submission available hain.</td><td>Org switch → vehicle select → fuel submit ka device check.</td><td><strong>QA</strong></td></tr>
+    </tbody>
+  </table></div>
+  <div class="panel">
+    <h3>Already usable in source</h3>
+    <p>Login, assigned truck, historical GPS trips, fuel capture/history, documents, support, SOS, manual stop reason, ERP trip/POD actions, field-agent org selection, team access, messaging/voice notes, owner report aur manual crew handover ke active paths milte hain. Inko regression checklist mein rakho. Crew, cards aur baaki v2 calls ka end-to-end sign-off 01 ke baad karo.</p>
+    <p><strong>Phase 2 scope</strong> mein Ferrostar/MapLibre, turn-by-turn, destination search without ERP, alternate truck routes, route corridor packs, fused guidance, learned ETA aur predictive corridor jam prompts rahenge. Plant notifications, manual road reports aur shared prompt UI Phase 1 mein included hain.</p>
+  </div>
+</section></section>
+<section id="branches" class="route-view" hidden><header class="page-heading"><div><h1>Release branches</h1><p>Kaunsa code release mein hai aur mobile reference kahan milega.</p></div></header><section>
+  <p>Neeche branch aur commit se verify kar sakte ho ki kaunsa patch reuse ho sakta hai aur kaunsa code current main mein already hai.</p>
+  <div class="table-scroll"><table>
+    <thead><tr><th scope="col">Branch / evidence</th><th scope="col">Kya mila</th><th scope="col">Merge decision</th></tr></thead>
+    <tbody>
+      <tr><td><code>feat/owner-experience-on-main</code><br>Test commit <a href="https://github.com/GNB-motors/main-backend/commit/7050e8e9">7050e8e9</a>, integration merge <a href="https://github.com/GNB-motors/main-backend/commit/2165fe0a">2165fe0a</a></td><td>Branch mein <code>GET /api/app/v2/captures/review</code> aur owner router before driver router, dono hain. Backend release branch mein ye fix port ho gaya.</td><td><strong>Backend fix included.</strong> Ab mobile ko new path call karna hai.</td></tr>
+      <tr><td><code>feat/owner-experience-followup-20261029</code><br>Backend commit <a href="https://github.com/GNB-motors/main-backend/commit/8ea4b864">8ea4b864</a>, mobile <a href="https://github.com/GNB-motors/DriverApp/commit/972e944">972e944</a></td><td>Backend mein arrival promises, trip-cost closure, reconciliation, crew/trip group targeting aur report distribution ke implementations. Mobile mein owner crew, promise aur trip-cost screens. Backend implementation release branch mein port hui. Mobile implementation reference branch par hai.</td><td><strong>Mobile reference available.</strong> Current mobile release branch main se cut hui. Screens ko current contracts par port karke test karna hai. Route ETA integration Phase 2 mein rahe.</td></tr>
+      <tr><td><code>feat/driver-app-backend-combined</code>, <code>feat/driver-app-backend-integration</code>, N3/N4/N6 branches</td><td>Combined/integration refs mein main se bahar koi equivalent-diff comparison mein unique non-merge patch nahi mila. Stop questions, fusion aur taxonomy refs main ki history mein hain. Older road reports/help refs ke matching features main mein newer versions ke saath hain.</td><td><strong>Use main.</strong> Crew, prompts, road reports, help, fusion aur taxonomy ka code main mein available hai. Inki pending integration neeche listed hai. <a href="https://github.com/GNB-motors/main-backend/commit/3de86466">3 November release</a></td></tr>
+      <tr><td><code>fix/main-ci-2026-11-03</code><br><a href="https://github.com/GNB-motors/main-backend/commit/5911b2ec">5911b2ec</a>, <a href="https://github.com/GNB-motors/main-backend/commit/8445b3a2">8445b3a2</a></td><td>Branch history mein app tests ko shard karne ka attempt hai. Tip dedicated step hata deta hai. Current main ka CI alag evolve hua hai aur default test shards unit paths target karte hain. Dedicated mandatory driver-app matrix job nahi mila.</td><td><strong>01 mein CI fix main se likho.</strong> Old sharding patch ko sizing reference ke liye dekho. Full branch merge simulation workflow mein conflict deti hai.</td></tr>
+      <tr><td><code>feat/office-bill-pairing</code> · <a href="https://github.com/GNB-motors/main-backend/pull/448">PR #448</a></td><td>Current main mein office/WhatsApp diesel slip aur odometer evidence pairing hai. Driver reimbursement legacy bill + khata service se alag lifecycle hai.</td><td><strong>Existing pairing ko 09 mein reuse karo</strong> jahaan applicable evidence available hai. Wallet credit ka decision 04 ke financial workflow mein rahe.</td></tr>
+      <tr><td><code>feat/ferrostar-navigation-20261031</code><br><a href="https://github.com/GNB-motors/DriverApp/commit/acd45f2">Mobile version header patch</a></td><td>Navigation work ke saath version-header example bhi hai.</td><td><strong>Phase 2 branch.</strong> 01 mein version-header hunk reference kar sakte ho. Current app version aur supported API versions ka agreement phir bhi chahiye.</td></tr>
+    </tbody>
+  </table></div>
+</section></section>
+<section id="end-to-end" class="route-view" hidden><header class="page-heading"><div><h1>End-to-end sign-off</h1><p>Ek real shift ka demo aur Phase 1 close karne ke checks.</p></div></header><section class="panel">
+<h2>Seedha answer</h2>
+<p><strong>Phase 1 independently complete ho sakta hai. Abhi complete nahi hai.</strong> Driver, Field Agent, Manager aur Owner ke non-navigation workflows neeche diye staging aur pilot checks pass karenge tab Phase 1 done maana jayega. Release branches mein APIs aur screens kaafi had tak available hain. Main pending kaam mobile wiring, kuch backend connections, aur end-to-end proof hai.</p>
+<p>Master plan ka poora sign-off Phase 2 ke baad hoga. Usme navigation ke saath route-dependent ETA, traffic, reroute, e-way ETA alerts aur navigation pilot gates bhi aate hain.</p>
+</section>
+<section>
+<h2>Ek real shift mein kya prove karna hai</h2>
+<div class="table-scroll"><table>
+<thead><tr><th scope="col">Step</th><th scope="col">End-to-end demo</th><th scope="col">Abhi status</th></tr></thead>
+<tbody>
+<tr><td>1 · Shift start</td><td>Driver login kare, location notice dekhe, correct truck pair kare. Network cut aur token expiry ke baad same account ki queued GPS fixes ek baar sync hon. Off-duty ya consent withdrawal par phone collection stop ho.</td><td>Backend refresh aur queue pieces ready. Mobile lifecycle aur device proof pending.</td></tr>
+<tr><td>2 · Field Agent fuel entry</td><td>Field Agent eligible org switch kare, allowed truck select kare aur receipt ke saath fuel submit kare. Cross-org ya out-of-scope truck deny ho. Network retry duplicate entry na banaye.</td><td>Active workflow aur parity checks available. Release-device demo pending.</td></tr>
+<tr><td>3 · Road aur plant</td><td>During shift driver road issue report kare. Safe stop par prompt answer/dismiss/expire ho. Plant approach, entry aur exit GPS evidence se create hon, correct phone par push aaye aur tap se correct card khule.</td><td>Visit/report/prompt components available. Live GPS wiring, driver prompt UI aur field latency pending.</td></tr>
+<tr><td>4 · Two-driver handover</td><td>A se B ko confirmed handover, disputed responses alag, aur baad ke fuel, driving score aur duty evidence correct stint se trace ho. Retry se extra interval na bane.</td><td>Manual handover available. Shared prompt, break plan aur attribution migration pending.</td></tr>
+<tr><td>5 · Document aur reimbursement</td><td>Driver photo bheje. Owner correct branch se original/extraction review kare, correction ya retake reason de. Reimbursable bill confirm ho toh Wallet mein ek baar credit aaye. Actual settlement alag ledger entry ho.</td><td>Owner review route backend release par verified. Mobile path, driver-specific capture scope, status/retake aur Wallet integration pending.</td></tr>
+<tr><td>6 · Office action</td><td>Manager breakdown/SOS card dekhe, call kare, actual outcome save kare aur card handle kare. Driver ka reply usi card par aaye. Broadcast intended recipients ko mile aur acknowledgements visible hon.</td><td>Card, message aur action APIs available. Mobile actions aur same-card reply verification pending.</td></tr>
+<tr><td>7 · Daily close</td><td>Owner report mein fuel/expense/plant and trip evidence raw rows se match kare. Promise aur trip costs auditable hon. Missing source unknown rahe. Expiry, retake aur report delivery correct record khole.</td><td>Core report active aur extra backend contracts present. Mobile UI, source reconciliation aur delivery setup/proof pending.</td></tr>
+</tbody>
+</table></div>
+</section>
+<section>
+<h2>Master plan se phase-wise closure</h2>
+<div class="table-scroll"><table>
+<thead><tr><th scope="col">Plan</th><th scope="col">Phase 1 mein close karna hai</th></tr></thead>
+<tbody>
+<tr><td>N0 · Decisions aur usability</td><td>Pilot org, devices, scope aur baseline documented hon. Relevant non-nav screens ka driver, manager aur owner walkthrough aur Hindi/Bengali copy check ho. Master plan ka navigation-specific usability gate Phase 2 mein hai.</td></tr>
+<tr><td>N1 · Foundations</td><td>API version aur contract sweep CI mein required ho. Mobile refresh, consent stop within 1 min, history retention/downsampling, cross-instance SSE, document role checks, secret rotation status, offline banner aur language coverage verify hon. Site movement rows pilot sites ke liye validate hon.</td></tr>
+<tr><td>N2 · Non-nav workflows</td><td>Plant entry/exit and site card, messages/voice notes/broadcasts aur owner report sign-off. Plant entry p90 ≤ 90 sec aur false entries measure karo. Owner report 7 daily samples raw rows se spot-check karo. Core messaging/broadcast delivery aur owner report 5/7 days usage measure karo.</td></tr>
+<tr><td>N3 · Crew, capture aur manager</td><td>Confident at-wheel coverage report, exact 10-second prompt and outcome separation, 7-day dismiss/expiry monitoring, 300 labelled capture accuracy, manager act-rate ≥ 50%, help in ≤ 2 taps. Voice-note transcription spike ko real samples par measure karke decision record karo where included.</td></tr>
+<tr><td>N4 · Live data without routing</td><td>Tracking-dark, moving-without-driver aur verified engine-idle cases ke inputs and false cards verify karo. Plant audience membership ko live visits se check karo. Route-aware deviation, lane groups and predictive jam/reroute closure Phase 2 mein hai.</td></tr>
+<tr><td>N5 · Learned ETA</td><td>Phase 2. Admitted-factor backtests aur ETA calibration navigation evidence ke saath close honge.</td></tr>
+<tr><td>N6 · Paper and money</td><td>Per-type extraction, original vs sensor disagreement, owner decision, driver status/push, basic expiry/challan checks aur ERP reconciliation. Auto-accept sirf measured precision bar clear hone par. E-way validity vs P80 ETA Phase 2 mein.</td></tr>
+<tr><td>N7 · Pilot to rollout</td><td>Targets predeclare karo. OEM battery/offline, handover aur three-plant field drills run karo. Monitoring, support content/runbook aur staged rollout proof collect karo. Plan har rollout stage ke targets 14 days hold karne ko kehta hai.</td></tr>
+</tbody>
+</table></div>
+<p class="refs"><a href="https://github.com/GNB-motors/main-backend/blob/23cbaa95/docs/DRIVER_NAV_MASTER_PLAN_2026-10-28.md">Master plan · Part 18</a></p>
+</section>
+<section class="panel">
+<h2>Release verification</h2>
+<p>Backend release par 64 targeted tests aur capture-route regression pass hue. Frontend ke six checks pass hue. Device, staging aur pilot sign-off abhi pending hai.</p>
+<p>Backend <code>release/en-24-nov-backend</code> at <code>77d257c5</code> · Mobile <code>release/en-24-nov-driver-app</code> at <code>73a415f</code>.</p>
+</section></section>
+<section id="qa" class="route-view" hidden><header class="page-heading"><div><h1>QA evidence</h1><p>Passed checks, device drills aur rollout evidence.</p></div></header><section>
+<p class="view"><strong>App view</strong> · Driver · Field Agent · Manager · Owner</p>
+<p class="meta">N0, remaining non-nav N1 gates, N7</p>
+<div class="table-scroll"><table>
+<thead><tr><th scope="col">QA scenario</th><th scope="col">Evidence required</th></tr></thead>
+<tbody>
+<tr><td>One driver, normal day</td><td>Login → pair/on-duty → document photo → owner review → driver notification. Separate reimbursable bill → confirmation → ledger → settlement demo. No fabricated balances.</td></tr>
+<tr><td>Two drivers, two trucks, shared phone</td><td>Handover and disputed response, wrong-truck change, account/org switch, and scoped mobile/API reads. Driver B should not see A’s queued photos, location or wallet. Branch reviewer boundaries hold.</td></tr>
+<tr><td>Network, consent, device</td><td>Airplane mode, expiry, retry, delayed/mock GPS, clock skew, GPS-only/phone-only/both dark, denied location and OEM task kill. Real Android device runs including relevant Xiaomi/Oppo/Vivo models and iOS push/camera. Verify local collection stops as well as server ingestion.</td></tr>
+<tr><td>Office and plant</td><td>Three pilot plants, timed entry/exit, no duplicate push. Manager call/result and driver reply. Owner daily report raw-row spot checks across 7 days. Broadcast receipt and permission checks.</td></tr>
+<tr><td>Release</td><td>Record pilot org, people and acceptance targets before trials. Confirm staging job/push/OCR readiness, secret rotation status and retention/TTL evidence. Test build, observability, support runbook aur staged rollout verify karo. Master plan calls for targets to hold 14 days per stage. SSE reconnect across server instances, stale/resync handling aur scoped events ko staging mein verify karo.</td></tr>
+</tbody>
+</table></div>
+<div class="panel">
+  <h3>Checks actually run</h3>
+  <p>DriverApp main ke <code>check:api</code>, <code>check:telematics</code>, <code>check:parity</code>, <code>check:push</code>, <code>check:owner</code> aur <code>check:live-data</code> pass hue. Backend remote main ke isolated checkout mein 5 focused suites / 55 tests aur 5 local Mongo/Redis suites / 79 tests pass hue, including contract sweep with mobile source scan, visits, capture intake, app refresh aur owner experience.</p>
+  <p>Owner experience suite apna isolated router mount karti hai. Ek alag local regression probe ne full mounted server par confirm kiya ki versioned OWNER request ko current captures list aur proposed review URL par 403 milta hai. Version header ke bina crew request ko 426 mila. Full device flows, production config, SLOs aur deployment verify nahi kiye gaye. Ye results earlier main baseline ke hain.</p>
+  <p><strong>Release verification</strong> Owner Experience, contract sweep aur OpenAPI ke 64 tests pass hue. Updated sweep ka dedicated route test bhi pass hua. Owner review returned 200, existing driver capture list returned 200, aur driver ko owner review par 403 mila. Frontend release branch par six mobile checks pass hue.</p>
+  <p class="refs"><a href="https://github.com/GNB-motors/main-backend/blob/d28e7c3a/tests/app/ownerExperience.db.test.js#L35">Owner test mount</a> · <a href="https://github.com/GNB-motors/main-backend/blob/d28e7c3a/docs/DRIVER_NAV_MASTER_PLAN_2026-10-28.md#182-phase-n0-decide-12-weeks">Master plan</a> · <a href="https://github.com/GNB-motors/main-backend/blob/23cbaa95/docs/driver-app/README.md">Original driver brief</a></p>
+</div>
+</section></section>
+<section id="phase-2" class="route-view" hidden><header class="page-heading"><div><h1>Phase 2 · Navigation</h1><p>Routing, guidance, offline maps, live road aur learned ETA.</p></div></header><section class="panel">
+<ul>
+<li><strong>Plan aur guide</strong> · NavSession, ERP ya manual destination, Valhalla truck rules/alternatives, learned corridors, Ferrostar/MapLibre, 3-language maneuver audio aur off-route recovery.</li>
+<li><strong>Offline navigation</strong> · Approved tile artifacts, offline corridor packs, location cadence, battery/device budgets aur map/routing failover drill.</li>
+<li><strong>Live road</strong> · Probe/fused position quality proof, traffic and predictive jam prompts, upcoming tolls/pumps/parking, corridor alerts aur rerouting.</li>
+<li><strong>Learned ETA</strong> · Real inputs, calibration, held-out evidence, ETA range and source clarity, promise risk and e-way validity vs P80 ETA. Lane groups aur route-deviation cards bhi route data se connect honge.</li>
+<li><strong>Navigation pilot</strong> · Master plan calls for 10 drivers and at least 50 navigated trips, maneuver completion ≥ 95%, crash-free sessions ≥ 99.5% aur data ≤ 5 MB/day. Entry alert p90 ≤ 90 sec Phase 1 plant work ke saath bhi verify hoga.</li>
+</ul>
+<p>Ferrostar reference branches aur backend routing pieces available hain. Active release branch pe feature integration, field behavior aur pilot acceptance independently prove karne hain.</p>
+</section></section>
+<section id="tickets" class="route-view" hidden><header class="page-heading"><div><h1>Tickets</h1><p>Feature choose karo. Ticket par app view, backend, mobile aur done check dikhega.</p></div></header><div class="ticket-index"><label for="ticket-search">Find a ticket</label><input id="ticket-search" type="search" placeholder="Search feature or app view"><p class="search-result" id="ticket-result" aria-live="polite"></p>
+  <div class="resource-list" id="ticket-list"><a href="#ticket-api"><span><strong>01 · API compatibility aur release gate</strong><small>All app views</small></span><span aria-hidden="true">→</span></a><a href="#ticket-session"><span><strong>02 · Session refresh, permission aur GPS queue</strong><small>Driver · shared login</small></span><span aria-hidden="true">→</span></a><a href="#ticket-papers"><span><strong>03 · Universal paper capture aur owner review</strong><small>Driver · Owner · Field Agent API</small></span><span aria-hidden="true">→</span></a><a href="#ticket-wallet"><span><strong>04 · Reimbursable bill se Wallet</strong><small>Driver · Owner</small></span><span aria-hidden="true">→</span></a><a href="#ticket-crew"><span><strong>05 · Two drivers, mid-trip handover aur attribution</strong><small>Driver · Manager · Owner</small></span><span aria-hidden="true">→</span></a><a href="#ticket-plant"><span><strong>06 · Automatic plant entry / exit</strong><small>Driver</small></span><span aria-hidden="true">→</span></a><a href="#ticket-road"><span><strong>07 · Road reports aur low-distraction prompts</strong><small>Driver</small></span><span aria-hidden="true">→</span></a><a href="#ticket-office"><span><strong>08 · Manager actions, driver help aur communication</strong><small>Manager · Driver</small></span><span aria-hidden="true">→</span></a><a href="#ticket-followup"><span><strong>09A–09D · Owner follow-up features</strong><small>Owner</small></span><span aria-hidden="true">→</span></a><a href="#ticket-evidence"><span><strong>09 · Paper evidence aur owner report completeness</strong><small>Owner · Driver</small></span><span aria-hidden="true">→</span></a><a href="#ticket-field-agent"><span><strong>Field Agent · Org aur fuel flow</strong><small>Field Agent</small></span><span aria-hidden="true">→</span></a></div></div></section>
+<section id="ticket-api" class="route-view" hidden><nav class="ticket-nav" aria-label="Ticket navigation"><a id="return-ticket-api" class="return-link" href="#tickets">← All tickets</a></nav><header class="page-heading"><div><h1>01 · API compatibility aur release gate</h1></div><button class="copy-ticket" type="button">Copy ticket</button></header><article class="ticket" data-title="01 · API compatibility aur release gate">
+
+<p class="view"><strong>App view</strong> · Driver · Field Agent · Manager · Owner</p>
+<p class="meta">P0 · Master plan N1.1, N1.2, N1.15</p>
+<div class="grid">
+<div><h4>Backend mein bana</h4><p>Separated <code>app/driverApp</code>, manifest router, OpenAPI aur mutation sweep. Missing app version default <code>1.0.0</code> hai. Crew, duty, help, road reports aur manager cards mein <code>2.0.0</code> minimum milta hai.</p></div>
+<div><h4>Mobile mein bana</h4><p>Active app version <code>1.0.1</code> hai. Mobile request new minimum ke liye version header nahi bhejti. Default config par affected endpoints 426 de sakte hain.</p></div>
+<div><h4>Backend mein bacha</h4><p>Mobile ke saath decide karo kaunse contracts current binary support karti hai aur kise newer release chahiye. Legacy routes retain karo. Mounted route, manifest/inventory, role + org + branch + driver scope, validation, idempotency, response shape aur version cases cover karo. Owner/legacy surface aur duplicate method/path mounts ki integration coverage add karo. CI mein DriverApp checkout aur mandatory <code>DRIVERAPP_SRC</code> ke saath focused app job chalao.</p></div>
+<div><h4>Mobile mein bacha</h4><p>Shared, telematics aur relevant background callers se actual released build version bhejo. 426 par actionable update state do. Old supported build ke sign-in, capture aur SOS paths verify karo.</p></div>
+</div>
+<p class="done"><strong>Done jab</strong> Current supported build se crew, help, duty, road report aur manager cards open hon. Old supported paths pass hon. CI mein missing coverage aur duplicate registration dono fail hon, aur green run mein app call scan skipped na ho.</p>
+<p class="refs"><a href="https://github.com/GNB-motors/main-backend/blob/d28e7c3a/app/driverApp/api/router.js#L152">Version guard</a> · <a href="https://github.com/GNB-motors/main-backend/blob/d28e7c3a/tests/app/sweep/contractSweep.test.js">Sweep</a> · <a href="https://github.com/GNB-motors/DriverApp/blob/73a415f/frontend/src/telematics/services/telematicsApi.js">Mobile client</a></p>
+</article></section>
+<section id="ticket-session" class="route-view" hidden><nav class="ticket-nav" aria-label="Ticket navigation"><a id="return-ticket-session" class="return-link" href="#tickets">← All tickets</a></nav><header class="page-heading"><div><h1>02 · Session refresh, permission aur GPS queue</h1></div><button class="copy-ticket" type="button">Copy ticket</button></header><article class="ticket" data-title="02 · Session refresh, permission aur GPS queue">
+
+<p class="view"><strong>App view</strong> · Driver GPS · Shared login for all views</p>
+<p class="meta">P0 · N1.3, N1.10, N1.12–1.13</p>
+<div class="grid">
+<div><h4>Backend mein bana</h4><p><code>POST /api/auth/app/refresh</code> returns rotated credentials in <code>data.accessToken</code> and <code>data.refreshToken</code>. Revocation, location batches, retention, consent upload check, probe/fusion aur SSE infrastructure code mein hai.</p></div>
+<div><h4>Mobile mein bana</h4><p>Queue identity-scoped aur acknowledged hai. Refresh login/restore se connected nahi. Dormant refresh interceptor wrong path/shape read karti hai. Background task old bearer use karta hai. Consent withdrawal UI refresh karti hai, native sampler ko directly stop nahi karti.</p></div>
+<div><h4>Backend mein bacha</h4><p>Login, rotate, revoke aur expired offline replay responses mobile team ke saath freeze karo. Collection eligibility ke liye authoritative paired/on-duty state expose ya reuse karo. Session expiry, consent withdrawal aur no-data health reason ko clearly distinguish karo.</p></div>
+<div><h4>Mobile mein bacha</h4><p>Rotated credentials securely persist karo. Foreground aur background refresh ko coordinate karo taaki ek token do baar rotate na ho. Logout/account switch race guard karo. Same account re-login pe original queue IDs replay karo. Consent withdrawal, duty end aur account switch pe foreground/background sampling stop karo. Denied permission state clearly show karo.</p></div>
+</div>
+<p class="done"><strong>Done jab</strong> Offline → expiry → reconnect/re-login mein same-account queue safely replay ho. Account B ko A ka queue na mile. Background samet sampling withdrawal ke 1 minute ke andar stop ho. App logout se web logout na ho. Device logs mein OEM kill/recovery aur denied permission prove karo.</p>
+<p class="refs"><a href="https://github.com/GNB-motors/main-backend/blob/d28e7c3a/app/modules/auth/auth.routes.js#L159">Refresh route</a> · <a href="https://github.com/GNB-motors/DriverApp/blob/73a415f/frontend/src/context/AuthContext.js">AuthContext</a> · <a href="https://github.com/GNB-motors/DriverApp/blob/73a415f/frontend/src/telematics/tracking/useDriverLocationSharing.js">Tracking</a></p>
+</article></section>
+<section id="ticket-papers" class="route-view" hidden><nav class="ticket-nav" aria-label="Ticket navigation"><a id="return-ticket-papers" class="return-link" href="#tickets">← All tickets</a></nav><header class="page-heading"><div><h1>03 · Universal paper capture aur owner review</h1></div><button class="copy-ticket" type="button">Copy ticket</button></header><article class="ticket" data-title="03 · Universal paper capture aur owner review">
+
+<p class="view"><strong>App view</strong> · Driver capture · Owner review · Field Agent capture API</p>
+<p class="meta">P0 route fix · P1 workflow · N3.7, N6.1, N6.3–6.4 · Device demo 01 ke baad</p>
+<div class="grid">
+<div><h4>Backend mein bana</h4><p>Legacy AUTO document stores original + OCR suggestions. V2 intake mein retake, hash/dedup, classifier, extraction aur context model hain. Owner queue legacy Document data read karti hai. Release backend par owner review <code>GET /api/app/v2/captures/review</code> se pehle match hota hai. Driver intake paths retain kiye gaye hain. Latest main mein office bill metadata aur dedup race handling bhi hai.</p></div>
+<div><h4>Mobile mein bana</h4><p>Quick Capture ka Universal Capture older personal document form open karta hai. V2 create/retake helpers screen se connected nahi. My papers document list hai. Verify se record update hota hai. “Note an issue” se driver-visible rejection nahi banti.</p></div>
+<div><h4>Backend mein bacha</h4><p>03A ka backend route ready hai. V2 intake reads aur retake ko actual record owner par scope karo, including dedup responses. 03B mein one capture-to-review lifecycle agree karo, linking legacy records where needed. Owner verify/correct/retake/reject decisions, original evidence, audit history aur driver push define karo.</p></div>
+<div><h4>Mobile mein bacha</h4><p>Driver camera-first capture, original fingerprint and persistent request ID, upload states, readable retake flow aur My Papers status jodo. Owner queue <code>/app/v2/captures/review</code> use kare aur original vs extracted fields dikhaye. Rejection/retake push correct record open kare. Existing compliance-document workflow preserve karo.</p></div>
+</div>
+<p class="done"><strong>Done jab</strong> Driver A ki clear aur blurry photo Owner ki correct branch queue mein aaye. Driver B uska paper na dekh ya badal sake. Duplicate retry se extra record na bane. Owner correction/retake reason A ko dikhe. OCR unavailable ho toh original aur manual review available rahen.</p>
+<p class="refs"><a href="https://github.com/GNB-motors/main-backend/blob/d28e7c3a/app/app.js#L497">Original mount order on main</a> · <a href="https://github.com/GNB-motors/main-backend/blob/d28e7c3a/app/driverApp/api/routes/capture.controller.js#L169">Intake reads</a> · <a href="https://github.com/GNB-motors/DriverApp/blob/73a415f/frontend/src/telematics/screens/OwnerReportScreens.js">Mobile owner review</a></p>
+</article></section>
+<section id="ticket-wallet" class="route-view" hidden><nav class="ticket-nav" aria-label="Ticket navigation"><a id="return-ticket-wallet" class="return-link" href="#tickets">← All tickets</a></nav><header class="page-heading"><div><h1>04 · Reimbursable bill se Wallet</h1></div><button class="copy-ticket" type="button">Copy ticket</button></header><article class="ticket" data-title="04 · Reimbursable bill se Wallet">
+
+<p class="view"><strong>App view</strong> · Driver wallet · Owner review</p>
+<p class="meta">P1 · N6.3–6.4 · Existing v1 APIs se start</p>
+<div class="grid">
+<div><h4>Backend mein bana</h4><p>V1 bill submit/list/detail/confirm/reject aur khata summary/ledger hain. Pending/rejected bills wallet math se exclude hote hain. V1 upload amount aur receipt maangta hai. Office slip pairing ka accounting purpose alag hai.</p></div>
+<div><h4>Mobile mein bana</h4><p>WalletScreen aur bill client source mein hain. Active Driver stack Wallet/Add Bill register nahi karta. Capture mein Workshop Bill OCR hai, reimbursement Add Bill ka equivalent nahi. Existing owner review mein expense decision path milta hai.</p></div>
+<div><h4>Backend mein bacha</h4><p>Driver-paid expense ke liye canonical bill → owner decision → khata flow freeze karo. Submit retries ka stable key, concurrent review ka single outcome, driver self-read aur reviewer branch permissions test karo. Settlement event aur rejection reason ka contract confirm karo. Single photo se paper aur financial record link chahiye toh 03 ke saath shared reference agree karo.</p></div>
+<div><h4>Mobile mein bacha</h4><p>Active home/More mein Wallet, capture mein Add Bill, amount/date/photo, pending list, detail, reject reason aur resubmit jodo. Owner pending bills queue se confirm/reject kare. Wallet ledger mein approval aur actual payment independently show karo. Agar photo-only submission chahiye, 03 se extraction + owner correction contract lo.</p></div>
+</div>
+<p class="done"><strong>Done jab</strong> Staging mein ₹500 pending par balance unchanged, approval par ₹500 ek baar, actual settlement par ledger alag entry dikhaye. Reject reason driver tak aaye. Double tap aur lost response ke baad duplicate credit na ho.</p>
+<p class="refs"><a href="https://github.com/GNB-motors/DriverApp/blob/73a415f/design/bill-confirmation-wallet-loop/Bill%20to%20Wallet.dc.html">Bill to Wallet design</a> · <a href="https://github.com/GNB-motors/DriverApp/blob/73a415f/frontend/src/screens/driver/wallet/WalletScreen.js">Existing Wallet</a> · <a href="https://github.com/GNB-motors/main-backend/blob/d28e7c3a/app/modules/appV1/bill.controller.js">Existing bill contract</a></p>
+</article></section>
+<section id="ticket-crew" class="route-view" hidden><nav class="ticket-nav" aria-label="Ticket navigation"><a id="return-ticket-crew" class="return-link" href="#tickets">← All tickets</a></nav><header class="page-heading"><div><h1>05 · Two drivers, mid-trip handover aur attribution</h1></div><button class="copy-ticket" type="button">Copy ticket</button></header><article class="ticket" data-title="05 · Two drivers, mid-trip handover aur attribution">
+
+<p class="view"><strong>App view</strong> · Driver handover and duty · Manager crew history · Owner crew</p>
+<p class="meta">P1 · N3.1–3.3 · Prompt component 07 se reuse</p>
+<div class="grid">
+<div><h4>Backend mein bana</h4><p>Crew and at-wheel intervals, roster, versioned handover, DVA mirroring, “Who is driving?” prompt backend aur duty/break-plan APIs hain. Common historical attribution abhi assignment intervals read karti hai.</p></div>
+<div><h4>Mobile mein bana</h4><p>Driver crew invitation/explicit handover, reviewer crew history aur Rest &amp; hours screen hain. Shared two-phone question aur break-plan result active UI mein wired nahi mile.</p></div>
+<div><h4>Backend mein bacha</h4><p>Current primary/co-driver pairing and migrations verify karo. Confirmed at-wheel intervals ko fuel/oil, score aur duty readers se align karo. Disputed/unconfirmed time separately preserve karo. DVA mirror comparison/dry run aur old-data fallback prove karo. Fuel submitter aur event-time driver ke fields clearly rakho.</p></div>
+<div><h4>Mobile mein bacha</h4><p>Both phones par role, safe prompt recipient, accept/dispute/pending/expired states, receipt-time handover aur rest + break plan render karo. Existing explicit handover ko reuse karo.</p></div>
+</div>
+<p class="done"><strong>Done jab</strong> Two phones par A drives → B takes over at stop → later fuel and duty/score B ke stint se trace ho. Conflicting answers dispute hi rahen. Offline retry se extra interval na bane. Confident-stint coverage pilot report mein aaye.</p>
+<p class="refs"><a href="https://github.com/GNB-motors/main-backend/blob/d28e7c3a/docs/driver-app/CREW_READER_AUDIT.md">Reader audit</a> · <a href="https://github.com/GNB-motors/DriverApp/blob/73a415f/frontend/src/telematics/screens/CrewScreens.js">Crew screens</a></p>
+</article></section>
+<section id="ticket-plant" class="route-view" hidden><nav class="ticket-nav" aria-label="Ticket navigation"><a id="return-ticket-plant" class="return-link" href="#tickets">← All tickets</a></nav><header class="page-heading"><div><h1>06 · Automatic plant entry / exit</h1></div><button class="copy-ticket" type="button">Copy ticket</button></header><article class="ticket" data-title="06 · Automatic plant entry / exit">
+
+<p class="view"><strong>App view</strong> · Driver site card and notifications</p>
+<p class="meta">P1 · N2.9 · Turn-by-turn se independent</p>
+<div class="grid">
+<div><h4>Backend mein bana</h4><p>Visit state machine, thresholds, site card, entry/exit push code aur persistence hain. Main ke source search mein live production caller of <code>ingestEvidence</code> nahi mila.</p></div>
+<div><h4>Mobile mein bana</h4><p>Site Card active visit lookup karti hai. Dedicated push tap to site card route nahi mila.</p></div>
+<div><h4>Backend mein bacha</h4><p>Known truck and site evidence ko visit ingestion se connect karo. Stale/replayed observations, out-of-order events, repeated boundary crossings aur driver association handle karo. Entry/exit time aur notification dispatch time log karo. Same visit lifecycle retry-safe rakho.</p></div>
+<div><h4>Mobile mein bacha</h4><p>Entry/exit push tap se correct authorized site card open karo. Unknown queue/gate honest state dikhaye. Checklist aur exit ke baad relevant POD affordance connect karo.</p></div>
+</div>
+<p class="done"><strong>Done jab</strong> GPS replay and real visits on three pilot plants mein entry + exit once per visit, passing truck par false alert measure ho aur entry latency p90 ≤ 90 seconds aaye. Tap se current site khule.</p>
+<p class="refs"><a href="https://github.com/GNB-motors/main-backend/blob/d28e7c3a/app/driverApp/adapters/visits/visit.service.js#L274">Visit ingestion</a> · <a href="https://github.com/GNB-motors/DriverApp/blob/73a415f/frontend/src/services/NotificationRouter.js">Push routing</a></p>
+</article></section>
+<section id="ticket-road" class="route-view" hidden><nav class="ticket-nav" aria-label="Ticket navigation"><a id="return-ticket-road" class="return-link" href="#tickets">← All tickets</a></nav><header class="page-heading"><div><h1>07 · Road reports aur low-distraction prompts</h1></div><button class="copy-ticket" type="button">Copy ticket</button></header><article class="ticket" data-title="07 · Road reports aur low-distraction prompts">
+
+<p class="view"><strong>App view</strong> · Driver road reports and prompts</p>
+<p class="meta">P1 · N3.4–3.6 · Reusable UI for 05</p>
+<div class="grid">
+<div><h4>Backend mein bana</h4><p>Report create/list/still-there, prompt policy/budget, inbox, answer, and stop question APIs hain. Probe v2 and fusion analysis bhi main mein hai.</p></div>
+<div><h4>Mobile mein bana</h4><p>Report screen sends type and fresh timestamp ID per attempt, server last fix par depend karti hai. Nearby feed aur still-there reader active nahi mile. Prompt event refresh trigger karta hai, driver chip render nahi hoti. Manual stop reason path already exists.</p></div>
+<div><h4>Backend mein bacha</h4><p>Fresh position and stable retry contract freeze karo. Existing supported types major hazards cover karte hain. Rain aur site queue ke liye product categories decide karo. Stop/refuel/crew cases ko existing prompt policy and evidence se feed karo. Safety, expiry/disposition and outcome counters verify karo.</p></div>
+<div><h4>Mobile mein bacha</h4><p>Report request ka original ID save karo. Fresh fix unavailable ho toh honest state do. Nearby/still-there experience and shared prompt host jodo. Yes/No taps, outside dismissal, 10-second fade, no-response path, and motion/co-driver gating implement karo.</p></div>
+</div>
+<p class="done"><strong>Done jab</strong> Report retry single event ho. Authorized nearby view report dekhe. Yes, No, dismiss aur timeout independent cases hon. Driver fast move kar raha ho toh unsafe prompt na aaye. Seven-day dismiss/expire and rollback drill pilot mein report ho.</p>
+<p class="refs"><a href="https://github.com/GNB-motors/main-backend/blob/d28e7c3a/app/driverApp/application/reports/roadReports.usecase.js">Report rules</a> · <a href="https://github.com/GNB-motors/DriverApp/blob/73a415f/frontend/src/telematics/screens/DriverServices.js">Mobile report</a> · <a href="https://github.com/GNB-motors/DriverApp/blob/73a415f/frontend/src/telematics/context/DriverDataContext.js">Mobile events</a></p>
+</article></section>
+<section id="ticket-office" class="route-view" hidden><nav class="ticket-nav" aria-label="Ticket navigation"><a id="return-ticket-office" class="return-link" href="#tickets">← All tickets</a></nav><header class="page-heading"><div><h1>08 · Manager actions, driver help aur communication</h1></div><button class="copy-ticket" type="button">Copy ticket</button></header><article class="ticket" data-title="08 · Manager actions, driver help aur communication">
+
+<p class="view"><strong>App view</strong> · Manager action cards · Driver help and reply</p>
+<p class="meta">P1 · N2.11–2.12, N3.8–3.10</p>
+<div class="grid">
+<div><h4>Backend mein bana</h4><p>Messaging, voice notes, broadcasts, receipts, call logs, daily report, help, manager rankings/outcome/dismiss/snooze APIs hain. V2 messaging aur owner communication surfaces available hain. Release backend mein extra crew/plant/lane audience APIs hain.</p></div>
+<div><h4>Mobile mein bana</h4><p>Owner report and communication active hain. Manager detail evidence/links dikhata hai. Card action mutations UI mein connected nahi mile. Driver helpful-card reply generic Messages kholta hai.</p></div>
+<div><h4>Backend mein bacha</h4><p>Each card action, evidence and driver reply ko same card identity se bind karo. Role/branch and conversation membership verify karo, including owner visibility aur private driver↔co-driver 1:1 rule. Publish act-rate per type. Extra audience types 06/Phase 2 source events ready hone ke baad turn on karo.</p></div>
+<div><h4>Mobile mein bacha</h4><p>Card se Call, outcome, Handled, Snooze aur attached driver reply connect karo. Dialer launch aur actual outcome separately record karo. Driver Help core surfaces se ≤ 2 taps check karo. Voice note moving state mein auto-play na kare. Owner report schedule and acknowledgement receipt on-device verify karo.</p></div>
+</div>
+<p class="done"><strong>Done jab</strong> Manager SOS/breakdown card se evidence → action → status/act-rate dekh sake. Driver ka reply usi card par dikhe. Broadcast eligible recipients aur acknowledgements show kare. Pilot mein act-rate ≥ 50% aur owner report opening 5/7 days measure karo.</p>
+<p class="refs"><a href="https://github.com/GNB-motors/DriverApp/blob/73a415f/frontend/src/telematics/experience/ManagerActions.js">Manager screen</a> · <a href="https://github.com/GNB-motors/main-backend/blob/d28e7c3a/app/modules/ownerExperience/README.md">Owner backend contracts</a></p>
+</article></section>
+<section id="ticket-followup" class="route-view" hidden><nav class="ticket-nav" aria-label="Ticket navigation"><a id="return-ticket-followup" class="return-link" href="#tickets">← All tickets</a></nav><header class="page-heading"><div><h1>09A–09D · Owner follow-up features</h1></div><button class="copy-ticket" type="button">Copy ticket</button></header><article class="ticket" data-title="09A–09D · Owner follow-up features">
+
+<p class="view"><strong>App view</strong> · Owner reports, trip costs, promises and audiences</p>
+<div class="grid">
+<div><h4>Backend mein bana</h4><p>Release branch mein arrival promises, owner-attested trip cost closure, report delivery history aur dynamic audience target/member APIs hain.</p></div>
+<div><h4>Mobile mein bana</h4><p>Daily report, messaging aur core owner flows active hain. Owner crew, promise aur trip-cost screens ka reference mobile follow-up commit <code>972e944</code> mein hai.</p></div>
+<div><h4>Backend mein bacha</h4><p>Plant/lane membership inputs aur ERP source evidence verify karo. Email/WhatsApp provider config aur approved templates staging mein verify karo. Owner crew declarations ko verified at-wheel evidence se alag track karo jab tak re-use policy agreed ho.</p></div>
+<div><h4>Mobile mein bacha</h4><p>Promise capture/history, cost review/closure, audience picker aur opt-in/delivery history UI current release contracts se connect karo. Date, branch aur account changes par evidence refresh verify karo.</p></div>
+</div>
+<p class="done"><strong>Done jab</strong> Promise save aur version history, evidence-linked cost closure, dynamic recipient preview aur opt-in delivery history staging mein verify ho. Missing data clearly visible ho.</p>
+<p class="refs"><a href="https://github.com/GNB-motors/main-backend/commit/8ea4b864">Backend follow-up source</a> · <a href="https://github.com/GNB-motors/DriverApp/commit/972e944">Mobile reference</a></p>
+</article></section>
+<section id="ticket-evidence" class="route-view" hidden><nav class="ticket-nav" aria-label="Ticket navigation"><a id="return-ticket-evidence" class="return-link" href="#tickets">← All tickets</a></nav><header class="page-heading"><div><h1>09 · Paper evidence aur owner report completeness</h1></div><button class="copy-ticket" type="button">Copy ticket</button></header><article class="ticket" data-title="09 · Paper evidence aur owner report completeness">
+
+<p class="view"><strong>App view</strong> · Owner evidence review · Driver reminders</p>
+<p class="meta">P2 · N6.1–6.7 · 03/04 ke linked records ke baad</p>
+<div class="grid">
+<div><h4>Backend mein bana</h4><p>Taxonomy/extraction dispatcher, fleet diesel slip+odometer pairing, e-way/ERP data aur financial report readers available hain. Release backend mein crew declarations, sensor reconciliation, versioned promises aur trip-margin readers hain. Source evidence missing ho toh partial/unknown state verify karna hai. V2 capture auto-accept disabled hai.</p></div>
+<div><h4>Mobile mein bana</h4><p>Owner report states and drilldowns work in source. Generic document reminder screen document list reuse karti hai. Full paper-review evidence and per-type production accuracy proof open hai.</p></div>
+<div><h4>Backend mein bacha</h4><p>03 ke capture ID par slip/refuel, weighment/load, toll/crossing, repair/workshop, POD/plant-exit matching cases split karo. Evidence disagreement store karo. Labeled samples per type score karo. Trip margin ke liye ERP billed revenue and actual cost reconcile karo. Release backend ka trip closure reuse karo. E-way expiry vs P80 ETA Phase 2 dependency hai, basic expiry separately ship ho sakta hai.</p></div>
+<div><h4>Mobile mein bacha</h4><p>Owner review mein extracted vs observed facts, disagreement, missing evidence aur edit reason dikhaye. Driver ko expiry/retake reminders open correct record. Owner report once sources ready hon tab drilldowns connect karo.</p></div>
+</div>
+<p class="done"><strong>Done jab</strong> Initial 300 owner-labelled captures ka classification result publish ho. Per-type accuracy and correction rate visible ho. Disagreement silently overwrite na ho. Auto-accept tabhi jab owner's cost-based precision bar clear ho. Trip margin sample ERP/raw records se reconcile ho.</p>
+<p class="refs"><a href="https://github.com/GNB-motors/main-backend/blob/d28e7c3a/app/modules/billMatch/fleetBills.service.js">Office slip evidence</a> · <a href="https://github.com/GNB-motors/main-backend/blob/d28e7c3a/app/modules/ownerExperience/ownerReport.service.js">Owner report sources</a></p>
+</article></section>
+<section id="ticket-field-agent" class="route-view" hidden><nav class="ticket-nav" aria-label="Ticket navigation"><a id="return-ticket-field-agent" class="return-link" href="#tickets">← All tickets</a></nav><header class="page-heading"><div><h1>Field Agent · Org aur fuel flow</h1></div><button class="copy-ticket" type="button">Copy ticket</button></header><article class="ticket" data-title="Field Agent · Org aur fuel flow">
+
+<p class="view"><strong>App view</strong> · Field Agent</p>
+<p><strong>Backend aur mobile mein bana</strong> · Org membership selection, vehicle picker aur fuel capture ke active paths hain. Parity check org switching aur truck-bound scope cover karta hai.</p>
+<p><strong>Kya bacha</strong> · Release device test mein eligible org switch karo, scoped vehicle choose karo aur fuel form submit karo. Truck-bound agent ke liye org/vehicle scope bhi verify karo.</p>
+<p class="refs"><a href="https://github.com/GNB-motors/DriverApp/blob/73a415f/frontend/src/navigation/AppNavigator.js">Field Agent stack</a> · <a href="https://github.com/GNB-motors/DriverApp/blob/73a415f/frontend/scripts/check-parity.mjs">Parity check</a></p>
+</article></section>
+</main>
+</div>
+
+<script>
+const views = new Map([...document.querySelectorAll('.route-view')].map(view => [view.id, view]));
+const nav = document.getElementById('release-nav');
+const menu = document.getElementById('menu-button');
+let active = null;
+let ticketFrom = 'tickets';
+
+
+function renderRoute() {
+  const route = location.hash.slice(1);
+  const next = views.get(route) || views.get('overview');
+  if (next === active) return;
+  if (next.id.startsWith('ticket-') && active && !active.id.startsWith('ticket-')) {
+    ticketFrom = active.id;
+  }
+  const hadActiveView = Boolean(active);
+  for (const view of views.values()) view.hidden = view !== next;
+  active = next;
+  const heading = next.querySelector('h1');
+  if (hadActiveView) {
+    heading.tabIndex = -1;
+    heading.focus({preventScroll:true});
+  }
+  window.scrollTo(0,0);
+  requestAnimationFrame(() => window.scrollTo(0,0));
+  document.title = next.id === 'overview' ? '22 Nov Driver App Release' :
+    heading.textContent + ' · 22 Nov Driver App Release';
+  const navId = next.id.startsWith('ticket-') ? 'tickets' : next.id;
+  for (const link of nav.querySelectorAll('a')) {
+    if (link.hash === '#' + navId) link.setAttribute('aria-current','page');
+    else link.removeAttribute('aria-current');
+  }
+  const back = next.querySelector('.return-link');
+  if (back) {
+    back.href = '#' + ticketFrom;
+    back.textContent = ticketFrom === 'tickets' ? '← All tickets' : '← Back';
+  }
+  menu.setAttribute('aria-expanded','false');
+  nav.removeAttribute('data-open');
+}
+window.addEventListener('hashchange',renderRoute);
+menu.addEventListener('click',() => {
+  const open = nav.toggleAttribute('data-open');
+  menu.setAttribute('aria-expanded', String(open));
+});
+nav.addEventListener('click',event => {
+  if (event.target.closest('a')) {
+    menu.setAttribute('aria-expanded','false');
+    nav.removeAttribute('data-open');
+  }
+});
+renderRoute();
+
+const search = document.getElementById('ticket-search');
+const list = [...document.querySelectorAll('#ticket-list a')];
+const result = document.getElementById('ticket-result');
+search.addEventListener('input', () => {
+  const query = search.value.trim().toLowerCase();
+  let matches = 0;
+  for (const link of list) {
+    link.hidden = !link.textContent.toLowerCase().includes(query);
+    if (!link.hidden) matches++;
+  }
+  result.textContent = query ? matches + ' matching tickets' : '';
+});
+for (const button of document.querySelectorAll('.copy-ticket')) {
+  button.addEventListener('click',async () => {
+    const view = button.closest('.route-view');
+    const ticket = view.querySelector('.ticket');
+    const text = [ticket.dataset.title,...Array.from(ticket.children).map(element => element.innerText.trim())].join('\n\n');
+    try {
+      await navigator.clipboard.writeText(text);
+      button.textContent = 'Copied';
+    } catch {
+      const range = document.createRange();
+      range.selectNodeContents(ticket);
+      const selection = getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      button.textContent = 'Selected · press Copy';
+    }
+  });
+}
+</script>
+</body>
+</html>

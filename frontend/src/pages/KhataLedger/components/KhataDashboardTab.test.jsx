@@ -37,10 +37,10 @@ describe('dashboard data states', () => {
     KhataLedgerService.getDashboardExpenses.mockRejectedValueOnce(new Error('HTTP 400'));
     const { container } = render(<KhataDashboardTab />);
     expect(await screen.findByRole('alert')).toHaveTextContent('Financial overview unavailable');
-    expect(container.querySelector('.khata-kpis')).toBeNull();
+    expect(container.querySelector('.khata-stats')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
-    await waitFor(() => expect(container.querySelector('.ov-kpi')).toHaveTextContent('₹3,500'));
+    await waitFor(() => expect(container.querySelector('.khata-stat')).toHaveTextContent('₹3,500'));
     expect(KhataLedgerService.getDashboardExpenses).toHaveBeenCalledTimes(2);
   });
 
@@ -56,8 +56,8 @@ describe('dashboard data states', () => {
     );
     const { container } = render(<KhataDashboardTab />);
     await screen.findByText('Partial data');
-    const profit = [...container.querySelectorAll('.ov-kpi')].find((tile) =>
-      tile.textContent.includes('Net Profit'),
+    const profit = [...container.querySelectorAll('.khata-stat')].find((tile) =>
+      tile.textContent.includes('Net profit'),
     );
     expect(profit).toHaveTextContent('Unavailable');
     expect(screen.getByText('Finances available for 1 of 2 trips')).toBeInTheDocument();
@@ -66,27 +66,44 @@ describe('dashboard data states', () => {
 
   it('shows a dash and a reason when the period has no expense records', async () => {
     KhataLedgerService.getDashboardExpenses.mockResolvedValue([]);
-    const { container } = render(<KhataDashboardTab />);
+    const { container } = render(<KhataDashboardTab erpAvailable />);
     await screen.findAllByText('No expenses recorded for this period');
-    const cost = [...container.querySelectorAll('.ov-kpi')].find((tile) =>
-      tile.textContent.includes('Total Cost'),
+    const cost = [...container.querySelectorAll('.khata-stat')].find((tile) =>
+      tile.textContent.includes('Total cost'),
     );
     expect(cost).toHaveTextContent('—');
     expect(screen.queryByText('Break-even')).not.toBeInTheDocument();
-    const perKm = [...container.querySelectorAll('.ov-kpi')].find((tile) =>
-      tile.textContent.includes('Fleet Cost / KM'),
+    const perKm = [...container.querySelectorAll('.khata-stat')].find((tile) =>
+      tile.textContent.includes('Cost per km'),
     );
     expect(perKm).toHaveTextContent('—');
   });
 
-  it('explains that ERP is switched off instead of showing an empty ledger', async () => {
+  it('leaves out the ERP figures while ERP is switched off', async () => {
     const off = new Error('Not Found');
     off.status = 404;
     KhataLedgerService.getDashboardTrips.mockRejectedValue(off);
-    render(<KhataDashboardTab />);
-    expect(
-      await screen.findAllByText("ERP isn't switched on for your organisation"),
-    ).not.toHaveLength(0);
+    const { container } = render(<KhataDashboardTab />);
+    await waitFor(() =>
+      expect(
+        [...container.querySelectorAll('.khata-stat')].some((tile) =>
+          tile.textContent.includes('Pending review'),
+        ),
+      ).toBe(true),
+    );
+    const labels = [...container.querySelectorAll('.khata-stat .khata-card-title')].map(
+      (title) => title.textContent,
+    );
+    expect(labels).not.toContain('Trip revenue');
+    expect(labels).not.toContain('Net profit');
+    expect(labels).not.toContain('Cost per km');
+    expect(screen.queryByText("ERP isn't switched on for your organisation")).toBeNull();
+  });
+
+  it('shows the ERP figures once the location has ERP trips', async () => {
+    render(<KhataDashboardTab erpAvailable />);
+    expect(await screen.findByText('Trip revenue')).toBeInTheDocument();
+    expect(screen.getByText('Net profit')).toBeInTheDocument();
   });
 
   it('aborts outstanding dashboard loads on unmount', () => {
@@ -109,7 +126,7 @@ describe('dashboard data states', () => {
     render(<KhataDashboardTab drivers={[{ _id: 'driver-a', firstName: 'Ravi' }]} />);
     await screen.findByText('Finances available for 2 of 2 trips');
     KhataLedgerService.getErpTripFinance.mockClear();
-    fireEvent.click(screen.getByRole('button', { name: 'Filter Scope' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
     changeField(screen.getByLabelText('Driver'), { target: { value: 'driver-a' } });
     await screen.findByText('Finances available for 1 of 1 trips');
     expect(KhataLedgerService.getDashboardTrips).toHaveBeenLastCalledWith({}, expect.anything());

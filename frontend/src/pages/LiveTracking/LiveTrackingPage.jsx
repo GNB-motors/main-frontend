@@ -1087,7 +1087,7 @@ const LiveTrackingPage = () => {
   const activeSelectedId = isTrackMode ? (trackVehicle?.id ?? null) : selectedId;
 
   return (
-    <div className="gnb-lt-page">
+    <div className={`gnb-lt-page${isPlacesView ? ' gnb-lt-page--places' : ''}`}>
       {/* Main Console Container */}
       <main className="console">
         {/* Top toolbar: manufacturer + status filters (Places stay on the map legend) */}

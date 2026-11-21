@@ -1,63 +1,141 @@
-import React, { useState, useEffect, useId } from 'react';
-import { X } from 'lucide-react';
+import { useState, useEffect, useId } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
+import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import KhataLedgerService from '../KhataLedgerService';
+import useErpAvailable from '../useErpAvailable';
 import DriverVehicleAssignmentService from '../../../services/DriverVehicleAssignmentService';
-import { CATEGORIES, CATEGORY_LABELS, getDriverName, getVehicleLabel } from '../utils';
-import logger from '../../../utils/logger';
+import {
+  CATEGORIES,
+  CATEGORY_LABELS,
+  formatCurrency,
+  formatDate,
+  getDriverName,
+  getVehicleLabel,
+} from '../utils';
+import '../KhataLedger.css';
+import './khataTransactions.css';
 
-const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drivers }) => {
-  const [form, setForm] = useState({
-    title: '',
-    amount: '',
-    category: 'MISCELLANEOUS',
-    description: '',
-    expenseDate: new Date().toISOString().split('T')[0],
-    tripId: '',
-    vehicleId: '',
-    driverId: '',
-  });
+const today = () => new Date().toISOString().split('T')[0];
+const categoryName = (category) => {
+  const label = CATEGORY_LABELS[category] || category || '';
+  return label.charAt(0) + label.slice(1).toLowerCase().replace(/_/g, ' ');
+};
+
+const emptyForm = () => ({
+  title: '',
+  amount: '',
+  category: 'MISCELLANEOUS',
+  description: '',
+  expenseDate: today(),
+  tripId: '',
+  vehicleId: '',
+  driverId: '',
+});
+
+const tripLabel = (trip) => trip.tripNumber || `TRIP-${trip._id.slice(-6).toUpperCase()}`;
+
+/** Add or edit a manual expense, optionally linked to an ERP trip, vehicle and driver. */
+const ExpenseModal = ({
+  isOpen,
+  onClose,
+  onSave,
+  editingExpense,
+  vehicles = [],
+  drivers = [],
+  existingExpenses = [],
+}) => {
+  const uid = useId();
+  // ERP trips can be linked once the location has one; an expense already linked keeps its field.
+  const erpAvailable = useErpAvailable();
+  const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [driverAutoFilled, setDriverAutoFilled] = useState(false);
   const [driverTouchedByUser, setDriverTouchedByUser] = useState(false);
-  const uid = useId();
+  const [erpTrips, setErpTrips] = useState([]);
+  const [tripsLoading, setTripsLoading] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState(null);
+  const [duplicateIgnored, setDuplicateIgnored] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const loadTrips = async () => {
+      setTripsLoading(true);
+      try {
+        const res = await KhataLedgerService.getErpTrips({ limit: 100 });
+        setErpTrips(res?.data || res?.results || (Array.isArray(res) ? res : []));
+      } catch {
+        setErpTrips([]);
+      } finally {
+        setTripsLoading(false);
+      }
+    };
+    loadTrips();
+  }, [isOpen]);
 
   useEffect(() => {
     setDriverAutoFilled(false);
     setDriverTouchedByUser(false);
-    if (editingExpense) {
-      setForm({
-        title: editingExpense.title || '',
-        amount: editingExpense.amount || '',
-        category: editingExpense.category || 'MISCELLANEOUS',
-        description: editingExpense.description || '',
-        expenseDate: editingExpense.expenseDate
-          ? new Date(editingExpense.expenseDate).toISOString().split('T')[0]
-          : new Date().toISOString().split('T')[0],
-        tripId: editingExpense.tripId || '',
-        vehicleId: editingExpense.vehicle?._id || editingExpense.vehicleId || '',
-        driverId: editingExpense.driver?._id || editingExpense.driverId || '',
-      });
-    } else {
-      setForm({
-        title: '',
-        amount: '',
-        category: 'MISCELLANEOUS',
-        description: '',
-        expenseDate: new Date().toISOString().split('T')[0],
-        tripId: '',
-        vehicleId: '',
-        driverId: '',
-      });
-    }
+    setDuplicateWarning(null);
+    setDuplicateIgnored(false);
+    setForm(
+      editingExpense
+        ? {
+            title: editingExpense.title || '',
+            amount: editingExpense.amount || '',
+            category: editingExpense.category || 'MISCELLANEOUS',
+            description: editingExpense.description || '',
+            expenseDate: editingExpense.expenseDate
+              ? new Date(editingExpense.expenseDate).toISOString().split('T')[0]
+              : today(),
+            tripId: editingExpense.trip?._id || editingExpense.tripId || '',
+            vehicleId: editingExpense.vehicle?._id || editingExpense.vehicleId || '',
+            driverId: editingExpense.driver?._id || editingExpense.driverId || '',
+          }
+        : emptyForm(),
+    );
   }, [editingExpense, isOpen]);
 
-  if (!isOpen) return null;
+  // Same amount, category and day on the same vehicle, driver or trip.
+  useEffect(() => {
+    if (!form.amount || duplicateIgnored || editingExpense) {
+      setDuplicateWarning(null);
+      return;
+    }
+    const amount = Number(form.amount);
+    if (!amount || amount <= 0) return;
+    const match = existingExpenses.find((exp) => {
+      if (Number(exp.amount) !== amount || exp.category !== form.category) return false;
+      const day = exp.expenseDate ? new Date(exp.expenseDate).toISOString().split('T')[0] : '';
+      if (day !== form.expenseDate) return false;
+      const same = (a, b) => a && b && String(a) === String(b);
+      return (
+        same(form.vehicleId, exp.vehicle?._id || exp.vehicleId) ||
+        same(form.driverId, exp.driver?._id || exp.driverId) ||
+        same(form.tripId, exp.trip?._id || exp.tripId)
+      );
+    });
+    setDuplicateWarning(match || null);
+  }, [
+    form.amount,
+    form.category,
+    form.expenseDate,
+    form.vehicleId,
+    form.driverId,
+    form.tripId,
+    existingExpenses,
+    duplicateIgnored,
+    editingExpense,
+  ]);
 
-  /**
-   * Suggest the vehicle's currently-assigned driver when a vehicle is picked.
-   * Never overrides a driver already hand-picked in this form, and never
-   * writes anything back — a suggestion for this one expense, not a sync.
-   */
+  // Suggest the vehicle's assigned driver, unless a driver was already picked by hand.
   const handleVehicleChange = async (vehicleId) => {
     setForm((prev) => ({ ...prev, vehicleId }));
     if (!vehicleId || driverTouchedByUser) return;
@@ -72,9 +150,8 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
         setForm((prev) => ({ ...prev, driverId: suggestedId }));
         setDriverAutoFilled(true);
       }
-    } catch (err) {
-      if (err?.response?.status !== 404)
-        logger.warn('AllTransactionsTab', 'Failed to resolve active assignment', err);
+    } catch {
+      // A suggestion only; the driver can still be picked by hand.
     }
   };
 
@@ -84,15 +161,31 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
     setDriverAutoFilled(false);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // A trip fills in its vehicle and driver when those are still empty.
+  const handleTripChange = (tripId) => {
+    setForm((prev) => ({ ...prev, tripId }));
+    const trip = tripId && erpTrips.find((t) => t._id === tripId);
+    if (!trip) return;
+    const updates = {};
+    if (trip.vehicleId && !form.vehicleId) {
+      updates.vehicleId = typeof trip.vehicleId === 'object' ? trip.vehicleId._id : trip.vehicleId;
+    }
+    if (trip.driverId && !form.driverId && !driverTouchedByUser) {
+      updates.driverId = typeof trip.driverId === 'object' ? trip.driverId._id : trip.driverId;
+      setDriverAutoFilled(true);
+    }
+    if (Object.keys(updates).length) setForm((prev) => ({ ...prev, ...updates }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     if (!form.title.trim() || !form.amount) {
       toast.error('Title and amount are required');
       return;
     }
     setSaving(true);
     try {
-      const payload = {
+      await onSave({
         title: form.title.trim(),
         amount: Number(form.amount),
         category: form.category,
@@ -101,204 +194,221 @@ const ExpenseModal = ({ isOpen, onClose, onSave, editingExpense, vehicles, drive
         tripId: form.tripId || null,
         vehicleId: form.vehicleId || null,
         driverId: form.driverId || null,
-      };
-      await onSave(payload);
+      });
       onClose();
     } catch (err) {
-      toast.error(err?.message || 'Failed to save expense');
+      toast.error(err?.message || 'Could not save the expense');
     } finally {
       setSaving(false);
     }
   };
 
-  const inputClass =
-    'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary-color,#4f46e5)] focus:border-[var(--primary-color,#4f46e5)]';
+  const field = (name) => `${uid}-${name}`;
+  const selectedTrip = erpTrips.find((t) => t._id === form.tripId);
+  const showTripField = erpAvailable === true || Boolean(form.tripId);
 
   return (
-    <div
-      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50"
-      role="presentation"
-      onClick={onClose}
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
     >
-      <div
-        className="mx-4 w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl"
-        role="presentation"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
-            {editingExpense ? 'Edit Expense' : 'Add Expense'}
-          </h2>
-          <button onClick={onClose} className="rounded-lg p-1 hover:bg-gray-100">
-            <X size={20} />
-          </button>
-        </div>
+      <DialogContent className="khata-dialog max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="px-5">
+          <DialogTitle>{editingExpense ? 'Edit expense' : 'Add expense'}</DialogTitle>
+          <DialogDescription>
+            A manual khata entry. Link it to a trip, vehicle or driver so it shows in their ledgers.
+          </DialogDescription>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label
-              htmlFor={`${uid}-title`}
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Title <span className="text-red-500">*</span>
-            </label>
-            <input
-              id={`${uid}-title`}
-              aria-label="Title"
-              className={inputClass}
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder="e.g. Tyre replacement"
-              maxLength={200}
-            />
-          </div>
+        <form onSubmit={handleSubmit}>
+          <div className="khata-dialog-body">
+            {duplicateWarning ? (
+              <div className="khata-note khata-note--warn" role="status">
+                <AlertTriangle size={16} aria-hidden="true" />
+                <div>
+                  <p>
+                    <b>This may be a duplicate.</b> A {formatCurrency(duplicateWarning.amount)}{' '}
+                    {(
+                      CATEGORY_LABELS[duplicateWarning.category] || duplicateWarning.category
+                    ).toLowerCase()}{' '}
+                    expense is already on record for {formatDate(duplicateWarning.expenseDate)}:
+                    &ldquo;{duplicateWarning.title}&rdquo;.
+                  </p>
+                  <button
+                    type="button"
+                    className="khata-link khata-dialog-note-action"
+                    onClick={() => setDuplicateIgnored(true)}
+                  >
+                    It&apos;s a different expense
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label
-                htmlFor={`${uid}-amount`}
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                Amount (INR) <span className="text-red-500">*</span>
+            <div className="khata-field">
+              <label htmlFor={field('title')}>
+                Title <span className="khata-required">*</span>
               </label>
               <input
-                id={`${uid}-amount`}
-                aria-label="Amount (INR)"
-                type="number"
-                className={inputClass}
-                value={form.amount}
-                onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                placeholder="0"
-                min="0"
-                step="1"
+                id={field('title')}
+                aria-label="Title"
+                className="khata-input"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                placeholder="Loading charge, toll, spare tyre…"
+                maxLength={200}
+                required
               />
             </div>
-            <div>
-              <label
-                htmlFor={`${uid}-category`}
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                Category
-              </label>
-              <select
-                id={`${uid}-category`}
-                className={inputClass}
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {CATEGORY_LABELS[c]}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
 
-          <div>
-            <label htmlFor={`${uid}-date`} className="mb-1 block text-sm font-medium text-gray-700">
-              Expense Date
-            </label>
-            <input
-              id={`${uid}-date`}
-              aria-label="Expense Date"
-              type="date"
-              className={inputClass}
-              value={form.expenseDate}
-              onChange={(e) => setForm({ ...form, expenseDate: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor={`${uid}-description`}
-              className="mb-1 block text-sm font-medium text-gray-700"
-            >
-              Description
-            </label>
-            <textarea
-              id={`${uid}-description`}
-              aria-label="Description"
-              className={inputClass}
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Optional notes..."
-              rows={2}
-              maxLength={1000}
-            />
-          </div>
-
-          <div className="rounded-lg border border-gray-200 p-3">
-            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
-              Optional — Map to
-            </p>
-            <div className="space-y-3">
-              <div>
-                <label htmlFor={`${uid}-vehicle`} className="mb-1 block text-xs text-gray-600">
-                  Vehicle
+            <div className="khata-dialog-grid">
+              <div className="khata-field">
+                <label htmlFor={field('amount')}>
+                  Amount (₹) <span className="khata-required">*</span>
                 </label>
-                <select
-                  id={`${uid}-vehicle`}
-                  className={inputClass}
-                  value={form.vehicleId}
-                  onChange={(e) => handleVehicleChange(e.target.value)}
-                >
-                  <option value="">None</option>
-                  {vehicles.map((v) => (
-                    <option key={v._id} value={v._id}>
-                      {getVehicleLabel(v)}
-                    </option>
-                  ))}
-                </select>
+                <input
+                  id={field('amount')}
+                  aria-label="Amount in rupees"
+                  type="number"
+                  className="khata-input"
+                  value={form.amount}
+                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                  placeholder="0"
+                  min="0"
+                  step="1"
+                  required
+                />
               </div>
-              <div>
-                <label htmlFor={`${uid}-driver`} className="mb-1 block text-xs text-gray-600">
-                  Driver
-                </label>
-                <select
-                  id={`${uid}-driver`}
-                  className={inputClass}
-                  value={form.driverId}
-                  onChange={(e) => handleDriverChange(e.target.value)}
+              <div className="khata-field">
+                <label htmlFor={field('category')}>Category</label>
+                <SearchableSelect
+                  id={field('category')}
+                  value={form.category}
+                  onChange={(e) => setForm({ ...form, category: e.target.value })}
                 >
-                  <option value="">None</option>
-                  {drivers.map((d) => (
-                    <option key={d._id} value={d._id}>
-                      {getDriverName(d)}
+                  {CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {categoryName(c)}
                     </option>
                   ))}
-                </select>
-                {driverAutoFilled && (
-                  <p className="mt-1 text-xs text-gray-500">
-                    Auto-filled from vehicle&apos;s assigned driver — change if a different driver
-                    made this trip.
+                </SearchableSelect>
+              </div>
+            </div>
+
+            <div className="khata-field">
+              <label htmlFor={field('date')}>Expense date</label>
+              <input
+                id={field('date')}
+                aria-label="Expense date"
+                type="date"
+                className="khata-input"
+                value={form.expenseDate}
+                onChange={(e) => setForm({ ...form, expenseDate: e.target.value })}
+              />
+            </div>
+
+            <div className="khata-field">
+              <label htmlFor={field('description')}>Notes</label>
+              <textarea
+                id={field('description')}
+                aria-label="Notes"
+                className="khata-input"
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                placeholder="Optional notes or reference numbers"
+                rows={2}
+                maxLength={1000}
+              />
+            </div>
+
+            <div className="khata-dialog-section">
+              <h4>Link to</h4>
+              {showTripField ? (
+                <div className="khata-field">
+                  <label htmlFor={field('trip')}>
+                    ERP trip
+                    {tripsLoading ? <span className="khata-hint">Loading trips…</span> : null}
+                  </label>
+                  <SearchableSelect
+                    id={field('trip')}
+                    value={form.tripId}
+                    onChange={(e) => handleTripChange(e.target.value)}
+                  >
+                    <option value="">No trip</option>
+                    {erpTrips.map((t) => (
+                      <option key={t._id} value={t._id}>
+                        {tripLabel(t)}
+                        {t.fromLocation && t.toLocation
+                          ? ` · ${t.fromLocation} → ${t.toLocation}`
+                          : ''}
+                      </option>
+                    ))}
+                  </SearchableSelect>
+                  <p className="khata-hint">
+                    Linking ERP trips needs a backend update; saving with a trip may fail.
                   </p>
-                )}
+                  {selectedTrip?.fromLocation ? (
+                    <p className="khata-hint">
+                      {tripLabel(selectedTrip)} · {selectedTrip.fromLocation} →{' '}
+                      {selectedTrip.toLocation}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+              <div className="khata-dialog-grid">
+                <div className="khata-field">
+                  <label htmlFor={field('vehicle')}>Vehicle</label>
+                  <SearchableSelect
+                    id={field('vehicle')}
+                    value={form.vehicleId}
+                    onChange={(e) => handleVehicleChange(e.target.value)}
+                  >
+                    <option value="">No vehicle</option>
+                    {vehicles.map((v) => (
+                      <option key={v._id} value={v._id}>
+                        {getVehicleLabel(v)}
+                      </option>
+                    ))}
+                  </SearchableSelect>
+                </div>
+                <div className="khata-field">
+                  <label htmlFor={field('driver')}>Driver</label>
+                  <SearchableSelect
+                    id={field('driver')}
+                    value={form.driverId}
+                    onChange={(e) => handleDriverChange(e.target.value)}
+                  >
+                    <option value="">No driver</option>
+                    {drivers.map((d) => (
+                      <option key={d._id} value={d._id}>
+                        {getDriverName(d)}
+                      </option>
+                    ))}
+                  </SearchableSelect>
+                </div>
               </div>
+              {driverAutoFilled ? (
+                <p className="khata-hint">
+                  Driver filled in from the vehicle&apos;s assignment or the trip. Change it if
+                  someone else drove.
+                </p>
+              ) : null}
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="pshell-btn pshell-btn--cancel"
-              style={{ height: 38, minHeight: 38, padding: '0 18px', borderRadius: 8 }}
-            >
+          <div className="khata-dialog-foot">
+            <button type="button" className="khata-btn" onClick={onClose}>
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="pshell-btn pshell-btn--primary"
-              style={{ height: 38, minHeight: 38, padding: '0 20px', borderRadius: 8 }}
-            >
-              {saving ? 'Saving...' : editingExpense ? 'Update' : 'Add Expense'}
+            <button type="submit" className="khata-btn khata-btn--primary" disabled={saving}>
+              {saving ? 'Saving…' : editingExpense ? 'Save changes' : 'Add expense'}
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

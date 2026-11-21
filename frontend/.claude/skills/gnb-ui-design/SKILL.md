@@ -268,7 +268,7 @@ Three families, each with one job:
 
 - Use weights 400, 500 and 600. Don't use 700.
 - Use sentence case everywhere. The eyebrow is the only uppercase text. Turn enums into words: `AVAILABLE` becomes `Available`, and `IN_TRANSIT` becomes `In transit`.
-- Use these sizes and no others: 10.5, 11, 11.5, 12, 12.5, 13 and 13.5px for text, and 18, 20, 22, 26, 30, 32, 36 and 44px for figures. 14px is for names only. Don't add 9px, 15px or 17px.
+- Use these sizes and no others: 10.5, 11, 11.5, 12, 12.5, 13 and 13.5px for text, and 18, 20, 22, 26, 30, 32, 36 and 44px for figures. 14px is for names only. A section head title (section 5) is 18px/600 in Inter, the one text use of 18px. Don't add 9px, 15px or 17px.
 - Single-line text uses `line-height: normal`. Paragraphs and notes use 1.5.
 - Numbers that line up in a column use DM Mono, right-aligned, with `white-space: nowrap`.
 
@@ -339,7 +339,9 @@ Use only these values: `2 3 4 5 6 8 10 12 14 16 18 20 22 24` px.
 ```
 
 - Every flex or grid child that holds text gets `min-width: 0`, or long values overflow.
-- **Equal heights:** stretching is fine when the cards in a row hold about the same amount of content. Put the card's button at the bottom with `margin-top: auto` so the buttons line up across the row. **Don't stretch a short card to match a tall neighbour.** It leaves a large empty area inside the short card. Use `align-items: start` for that row instead.
+- **Equal heights are required.** Cards in the same row always share one height (`align-items: stretch`, the grid default). The reference does this: Next service stretches to the height of Documents. Pin the card's button or closing note to the bottom with `margin-top: auto` so they line up across the row. The extra space in a shorter card stays at its bottom, under the content; never centre the content in it.
+- **Balance the rows.** Pick a column count that divides the number of cards, so no row is left half empty: 2 or 4 cards → that many columns, 3 or 6 → 3 columns. Put cards with similar amounts of content in the same row. If one card would be far taller than its neighbours, give it a full-width row instead of leaving its neighbours mostly empty.
+- **Space between cards is always 20px**, both across and down, and comes from the parent's `gap`. Cards never touch, and a group of figures is never drawn as tiles joined by lines (that is the KPI strip, section 6.5, which only lives inside an entity header card).
 - One breakpoint, `600px`: cards go to a single column (`flex-basis: 100%`) and horizontal padding drops to 16px.
 
 ### 4.3 Alignment and empty space
@@ -350,7 +352,7 @@ These rules keep cards tight and lined up. Most "too much space" bugs come from 
 
 - Space between siblings comes from the parent's `gap`. Use a margin only for a one-off offset: an icon nudged 2px, or `margin-top: auto` to push a CTA to the bottom.
 - Don't give cards or text blocks a fixed `height`. Only canvases get one: a chart (160px), a map (`min-height: 220px`) or an illustration. Skeletons use `min-height`.
-- Inside a card, don't spread content vertically with `justify-content: space-between`, `space-around` or `center`, and don't give a content block `flex: 1`. The only thing that may grow is a chart or map canvas. If a card is taller than its content, the card is being stretched; fix the row (section 4.2), not the card's inside.
+- Inside a card, don't spread content vertically with `justify-content: space-between`, `space-around` or `center`, and don't give a content block `flex: 1`. The only thing that may grow is a chart or map canvas. When a row stretches a card, the spare height collects at the bottom, above the pinned button (section 4.2).
 - An empty state sits right under the card head with its own padding (about 24px top and bottom). It is never centred in a tall empty box.
 
 **Alignment**
@@ -377,8 +379,19 @@ Tabs                  Dashboard  Service  Fuel 0  Documents 0  Trips …
 Tab panel             cards in feature rows and card grids
 ```
 
+A page or tab that is not about one entity (a ledger, a dashboard, a list) has no header card. It stacks, with 20px between each block:
+
+```
+Section head          Title · subtitle ....................... [Date] [Filters] [Primary]
+Stat cards            Total cost | Trip revenue | Net profit       (separate cards, 20px apart)
+Content cards         lists, breakdowns, charts in card grids
+```
+
+- **Section head:** no card around it. Title at 18px/600 in ink (letter-spacing −0.2px; a count beside it at 13.5px/500 in ink-3, a location pill at the normal 12px size), a subtitle at 13.5px in ink-3 6px below it, actions on the right (`display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px`). It sits 12px above the cards it heads, closer than the 20px between groups, so it reads as their title (`.x-section-head + * { margin-top: -8px }` inside the 20px stack). Filters that open from it appear in their own card right under it.
 - **Breadcrumb:** 13px. Links are ink-3 and turn ink on hover. The `/` separator is ink-6, and the current item is ink at weight 600.
 - **Tabs:** the row has `border-bottom: 1px solid var(--ui-line)` and scrolls sideways with the scrollbar hidden. Each tab has padding `10px 14px` and is 13px/500 ink-3; it turns ink on hover. The active tab is ink at weight 600 with a `2.5px` brand underline inset 6px on each side, at `bottom: -1px`, with `border-radius: 2px`. Counts sit 6px after the label in DM Mono 12px ink-3. Put the selected tab in the URL (`?tab=`) so the view can be shared and Back works.
+- **Tabs on the grey canvas:** when the page sits on the grey app canvas (most list and ledger pages), the underline gets lost, so the tab row is a white bar instead: `padding: 4px; gap: 4px; border: 1px solid --ui-card-edge-on-grey; border-radius: 12px; background: --ui-card; box-shadow: --ui-shadow-card`. Each tab is `padding: 8px 14px; border-radius: 8px`, 13px/500 ink-3, hover background `--ui-sunk`. The open tab is `--ui-brand-wash` with an inset `1px --ui-brand-tint-2` ring and `--ui-brand-deep` text at 600. The panel below starts 20px under the bar.
+- **Hide what can't have data yet.** A tab or card that depends on a module the organisation hasn't started using (for example ERP trips before the first trip) is left out, not shown full of dashes. It appears once there is data.
 - **List pages** use `PageShell` and the shared `DataTable`, restyled with scoped CSS to section 9. **Reports** use `ReportFrame`. Don't build a new frame for either.
 - Keep each page's CSS in its own file next to its components, with a short class prefix for that feature (the reference uses `vhcard-`, `vdo-`, `vtrips-` and `vtelemetry-`). Don't put feature styles in `index.css`.
 
@@ -464,9 +477,49 @@ A subtitle joins facts with `·`, for example `1,867 km · 65 km/day pace`. Leav
 } /* "to go", "overdue" */
 ```
 
-### 6.4 KPI strip
+### 6.4 Stat cards
 
-KPI tiles sit edge to edge inside a card, with a line between them. Each tile is a `<button>` that opens the tab with the details.
+Summary figures on a page (a ledger total, a count, a share of spend) are separate peer cards in a grid, built like the Next service and Fuel cards: a card head, a headline figure, an optional level track, and a note. They are never tiles joined edge to edge.
+
+```css
+.x-stats {
+  display: grid;
+  grid-template-columns: repeat(var(--x-cols, 4), minmax(0, 1fr)); /* 2, 3 or 4: see 4.2 */
+  gap: 20px;
+}
+.x-stat {
+  /* .x-card: 18px 20px padding, 12px gap, 12px radius, card shadow */
+}
+.x-stat .x-figure strong {
+  font: 500 26px/1 var(--ui-font-figure);
+  white-space: nowrap;
+}
+.x-stat-note {
+  margin: auto 0 0; /* pinned to the bottom so notes line up across the row */
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ui-ink-3);
+}
+@media (max-width: 1100px) {
+  .x-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .x-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+```
+
+- The head holds the label as the card title (13px/600) and, on the right, either one link ("Details →") or a status that needs action: a toned pill, or a count in `--ui-bad-ink` like "0 of 5 on record".
+- The figure uses section 6.3. Its qualifier says what the number is ("this month", "to go").
+- A share of a whole draws the 6px level track (section 6.6) under the figure. Give every card in the row the same parts; if one card has a track and its neighbour has none, the neighbour's note still sits at the bottom, so the rows stay aligned.
+- A missing figure is `—` with the reason in the note, never `0`.
+
+### 6.5 KPI strip (entity header card only)
+
+KPI tiles sit edge to edge inside the entity header card, with a line between them. Use the strip only there, once per page; everywhere else summary figures are stat cards (section 6.4). Each tile is a `<button>` that opens the tab with the details.
 
 ```css
 .x-kpis {
@@ -524,7 +577,7 @@ KPI tiles sit edge to edge inside a card, with a line between them. Each tile is
 
 Keep the 4px bar row even when a tile has no percentage, so the values in every tile line up. The note says how fresh the reading is ("Read 13h ago") or where it came from.
 
-### 6.5 Level track (progress)
+### 6.6 Level track (progress)
 
 ```css
 .x-track {
@@ -549,7 +602,7 @@ Keep the 4px bar row even when a tile has no percentage, so the values in every 
 
 The fill is brand by default, `--ui-bad` when overdue, and `--ui-warn` at `opacity: .55` when the reading is stale. Clamp the width to 0–100%.
 
-### 6.6 Info rows
+### 6.7 Info rows
 
 ```css
 .x-rows > div {
@@ -573,7 +626,7 @@ The fill is brand by default, `--ui-bad` when overdue, and `--ui-warn` at `opaci
 
 Missing values read "Not on record", "Not assigned" or `—` in ink-5. Problem values use `--ui-bad-ink`.
 
-### 6.7 Note callout
+### 6.8 Note callout
 
 ```css
 .x-note {
@@ -594,7 +647,7 @@ Missing values read "Not on record", "Not assigned" or `—` in ink-5. Problem v
 
 Use a note to explain a number ("Predicted due **12 Dec** at the 65 km/day pace. The odometer is 2 days old, so the real figure may be closer."). A plain note without an icon is a `<p>` at 12px/1.5 in ink-3.
 
-### 6.8 Notice strip
+### 6.9 Notice strip
 
 A notice strip is one line at the top of a card that summarises data freshness or gaps.
 
@@ -623,7 +676,7 @@ A notice strip is one line at the top of a card that summarises data freshness o
 }
 ```
 
-### 6.9 Insight card
+### 6.10 Insight card
 
 Use an insight card for content the system derived or predicted: a diagnosis, a recommendation, an anomaly.
 
@@ -654,7 +707,7 @@ Use an insight card for content the system derived or predicted: a diagnosis, a 
 
 Keep `--ui-insight` purple for derived content. Facts the system measured stay blue and grey.
 
-### 6.10 Buttons
+### 6.11 Buttons
 
 | Variant     | Use                                       | Spec                                                                                                               |
 | ----------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
@@ -670,7 +723,7 @@ Keep `--ui-insight` purple for derived content. Facts the system measured stay b
 
 All buttons have `border-radius: 8px`. A card's bottom button gets `margin-top: auto` so buttons line up across a row. Use `<button>` or `<a>` for anything clickable.
 
-### 6.11 Pills and badges
+### 6.12 Pills and badges
 
 ```css
 .x-pill {
@@ -703,7 +756,7 @@ All buttons have `border-radius: 8px`. A card's bottom button gets `margin-top: 
 
 The neutral pill is the default. Use a tone only when the pill shows a status the user should act on. A count next to a card title is plain text at 12px/500 in ink-3, and turns `--ui-bad-ink` when something is wrong ("1 of 4 on record").
 
-### 6.12 Segmented filter
+### 6.13 Segmented filter
 
 ```css
 .x-segment {
@@ -733,13 +786,13 @@ The neutral pill is the default. Use a tone only when the pill shows a status th
 } /* count */
 ```
 
-### 6.13 Avatar, checkbox and dashed chip
+### 6.14 Avatar, checkbox and dashed chip
 
 - **Avatar:** 44px circle, bg `--ui-brand-tint`, initials in `--ui-brand-deep` at 14px/600. Show `—` when there is no name.
 - **Document checkbox:** 14×14px, `1.5px dashed --ui-ink-6`, radius 4. When the document is present it turns solid `--ui-ok` with a `✓`.
 - **Missing-value chip:** `padding: 3px 8px; border: 1px dashed var(--ui-ink-6); border-radius: 6px; font-size: 11.5px; color: var(--ui-ink-4)`, for example "No drop".
 
-### 6.14 Expandable section
+### 6.15 Expandable section
 
 A full-width `<button>` with `aria-expanded` and `aria-controls` toggles the section. Inside it: `padding: 16px 20px`, the title at 13px/600, and the right side reads "Show 10 fields" or "Hide" at 12px/400 ink-3. The open content uses the field grid from section 4.2, with rows `padding: 9px 0; border-top: 1px solid var(--ui-divider)` and right-aligned values. Codes in it use DM Mono.
 
@@ -940,7 +993,7 @@ A live mini-map has a caption below it instead of a head: `padding: 12px 16px`, 
 - A table inside a card runs edge to edge: give the card `padding: 0`, and pad its head and filters `16px 20px 0`.
 - Pages that list records use the shared `DataTable`, restyled in a scoped CSS file to the values above. Reports use `ReportFrame`.
 - Table headers are sentence case at 11px. Don't use uppercase headers.
-- Missing values use the dashed chip (section 6.13) or `—`. Don't leave a cell blank.
+- Missing values use the dashed chip (section 6.14) or `—`. Don't leave a cell blank.
 
 ---
 
@@ -991,7 +1044,8 @@ A live mini-map has a caption below it instead of a head: `padding: 12px 16px`, 
 | Use DM Sans for figures only                               | Set body text or labels in DM Sans                    |
 | Put status colour on tints and text                        | Fill a large area with red or green                   |
 | Give each card one CTA, aligned with `margin-top: auto`    | Put three buttons in a card                           |
-| Let a short card keep its natural height                   | Stretch a short card to match a tall neighbour        |
+| Give cards in a row one height, CTAs pinned to the bottom  | Leave ragged card bottoms or centre content in a card |
+| Show page figures as separate stat cards, 20px apart       | Join figures into one card with lines between them    |
 | Use `DataTooltip`                                          | Build a new tooltip, or use `title` alone for data    |
 | Use scoped CSS with a feature prefix                       | Add feature styles to `index.css`                     |
 
@@ -1015,7 +1069,8 @@ These are known gaps on the Vehicle Detail page. Don't copy them; fix them when 
 - [ ] Colours come from `--ui-*` tokens (or the same hex values in SVG attributes); no other blues or slate greys.
 - [ ] Text uses only the sizes in section 3.2 and weights 400/500/600; figures use DM Sans and codes and numeric columns use DM Mono.
 - [ ] Cards use the card recipe: 12px radius, card shadow, `18px 20px` padding, 20px between cards.
-- [ ] No short card is stretched next to a tall one; CTAs line up with `margin-top: auto`.
+- [ ] Cards in a row share one height, rows are balanced (no half-empty last row), CTAs and closing notes line up with `margin-top: auto`, and there is 20px between every pair of cards.
+- [ ] Page figures are stat cards (section 6.4); the KPI strip appears only inside an entity header card.
 - [ ] Spacing comes from the parent's `gap`; no fixed heights on cards; nothing inside a card is centred vertically or grown with `flex: 1` except a chart or map canvas.
 - [ ] Every strip inside a card uses the card's horizontal padding, so all text lines up with the card title.
 - [ ] Each missing value shows `—` or a reason, never 0; readings show how fresh they are; estimates are dashed.

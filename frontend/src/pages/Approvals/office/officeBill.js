@@ -142,9 +142,13 @@ export const billDateTime = (capture) => {
   };
 };
 
-/** The state of the match, in words: needs review, confirmed, or nothing yet. */
+/** A bill rejected in Approvals and not confirmed since. */
+export const isRejected = (capture) => Boolean(capture?.rejection) && !linkedPlate(capture);
+
+/** The state of the match, in words: needs review, confirmed, rejected, or nothing yet. */
 export const matchStatus = (capture) => {
   if (linkedPlate(capture)) return 'Confirmed';
+  if (isRejected(capture)) return 'Rejected';
   if (capture?.status === 'pending' || capture?.suggestion?.decision) return 'Needs review';
   return '-';
 };
@@ -180,6 +184,13 @@ export const officeRow = (capture) => {
       capture?.link?.byRole || capture?.link?.confirmedByRole,
     ),
     confirmedVia: capture?.link?.via === 'UPLOAD' ? 'at upload' : 'in Approvals',
+    rejected: isRejected(capture),
+    rejectedBy: identity(
+      capture?.rejection?.by,
+      capture?.rejection?.byName,
+      capture?.rejection?.byRole,
+    ),
+    rejectionReason: safeText(capture?.rejection?.reason || ''),
     confirmedByName: name(
       capture?.link?.by || capture?.link?.confirmedBy,
       capture?.link?.byName || capture?.link?.confirmedByName,

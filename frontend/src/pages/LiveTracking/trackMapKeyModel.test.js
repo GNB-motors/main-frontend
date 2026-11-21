@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { keyPlaceTypes, keyRouteSources } from './trackMapKeyModel';
+import { keyAreaPurposes, keyPlaceTypes, keyRouteSources } from './trackMapKeyModel';
 
 describe('keyPlaceTypes', () => {
   it('lists drawn place types, most common first, unknown kept', () => {
@@ -20,5 +20,19 @@ describe('keyRouteSources', () => {
       'NONE',
     ]);
     expect(keyRouteSources([])).toEqual([]);
+  });
+});
+
+describe('keyAreaPurposes', () => {
+  it('matches polygon shading, prioritises risk, and excludes pin-only places', () => {
+    expect(
+      keyAreaPurposes([
+        { type: 'FUEL_PUMP', purpose: 'pump' },
+        { polygon: [{}], purpose: 'general' },
+        { polygonParts: [[[]]], purpose: 'pump' },
+        { coreParts: [[[]]], purpose: 'pump', risk: true },
+      ]),
+    ).toEqual(['theft', 'pump', 'general']);
+    expect(keyAreaPurposes([])).toEqual([]);
   });
 });

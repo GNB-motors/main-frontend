@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Check, MapPin } from 'lucide-react';
+import { Check, MapPin, X } from 'lucide-react';
 import { formatNum } from '../../utils/formatters';
 import { placeCategoryLabel } from './placeQuestionCategories';
 import './PlaceQuestions.css';
@@ -23,29 +23,27 @@ export default function BulkPlaceConfirmDialog({ review, progress, onOpenChange,
     >
       <DialogContent className="atx-scope atx-place-bulk-dialog">
         <DialogHeader>
-          <DialogTitle>Confirm suggested places</DialogTitle>
+          <div className="atx-place-bulk-heading">
+            <DialogTitle>Confirm suggested places</DialogTitle>
+            <button
+              type="button"
+              className="atx-place-action atx-place-action--quiet"
+              aria-label="Close confirmation"
+              disabled={busy}
+              onClick={() => onOpenChange(false)}
+            >
+              <X size={16} aria-hidden="true" />
+            </button>
+          </div>
           <DialogDescription>
-            Review these {formatNum(entries.length)} suggested names and place types before saving.
+            Save {formatNum(entries.length)} selected {entries.length === 1 ? 'place' : 'places'}{' '}
+            with the names and types below.
           </DialogDescription>
         </DialogHeader>
         <div className="atx-place-bulk-body">
-          <div className="atx-place-bulk-explanation">
-            <strong>What will happen</strong>
-            <ul>
-              <li>Save each name and place type below as confirmed by you.</li>
-              <li>
-                Update matching delivery trips where this place is the drop. Fuel and rest stops
-                leave trips open.
-              </li>
-              <li>
-                These place definitions apply across your organisation. Matching trips outside this
-                date range may also update.
-              </li>
-            </ul>
-          </div>
           <p className="atx-place-bulk-scope">
-            Only the {formatNum(entries.length)} suggestions listed here will be confirmed. Other
-            places stay in the review queue.
+            Save the selected names and types across your organisation. Matching trips outside this
+            date range may also update. Fuel and rest stops leave trips open.
           </p>
           <ul className="atx-place-bulk-list">
             {entries.map((entry) => (
@@ -80,7 +78,7 @@ export default function BulkPlaceConfirmDialog({ review, progress, onOpenChange,
             <Check size={15} aria-hidden="true" />
             {busy
               ? `Saving ${formatNum(progress.done)} of ${formatNum(progress.total)}…`
-              : `Confirm ${formatNum(entries.length)} places`}
+              : `Confirm ${formatNum(entries.length)} ${entries.length === 1 ? 'place' : 'places'}`}
           </button>
         </DialogFooter>
       </DialogContent>
