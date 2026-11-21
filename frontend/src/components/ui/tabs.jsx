@@ -24,7 +24,7 @@ function TabsTrigger({ className, ...props }) {
       className={cn(
         'relative flex cursor-pointer items-center justify-center rounded-[6px] px-3.5 py-1.5 text-[13px] font-medium transition-colors outline-hidden select-none',
         'hover:bg-card/60 hover:text-[var(--ds-ink)] focus-visible:ring-2 focus-visible:ring-ring/60',
-        'data-[selected]:bg-card data-[selected]:font-semibold data-[selected]:text-[var(--ds-ink)] data-[selected]:shadow-[0_1px_2px_rgba(28,20,14,0.10)]',
+        'data-[active]:bg-card data-[active]:font-semibold data-[active]:text-[var(--ds-ink)] data-[active]:shadow-[0_1px_2px_rgba(28,20,14,0.10)]',
         className,
       )}
       {...props}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, FileCheck2, Inbox, RotateCw } from 'lucide-react';
+import { toast } from 'react-toastify';
+import { AlertTriangle, Ban, FileCheck2, Inbox, RotateCw } from 'lucide-react';
 import billPhotoService from '../../services/billPhotoService';
 import { MileageApi } from '../Mileage/mileageApi';
 import OfficeBillRow from './office/OfficeBillRow';
@@ -11,6 +12,26 @@ const uploaderRole = 'OWNER,MANAGER';
 // The bills owners and managers upload: their own queue, not the WhatsApp one.
 const source = 'office';
 const PAGE_SIZE = 50;
+const STATUS_TABS = [
+  ['pending', 'Pending'],
+  ['submitted', 'Confirmed'],
+  ['rejected', 'Rejected'],
+];
+const EMPTY = {
+  pending: {
+    title: 'No bills waiting.',
+    hint: 'Fuel bills that owners and managers upload show up here until you confirm the truck.',
+  },
+  submitted: {
+    title: 'No confirmed bills.',
+    hint: 'Bills you confirm move here, with who confirmed them and when.',
+  },
+  rejected: {
+    title: 'No rejected bills.',
+    hint: 'Bills you reject move here, with who rejected them and why.',
+  },
+};
+const plural = (n) => `${n} bill${n === 1 ? '' : 's'}`;
 
 export default function OfficeBillApprovals({ onCount }) {
   const [tab, setTab] = useState('pending');
@@ -22,6 +43,9 @@ export default function OfficeBillApprovals({ onCount }) {
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState(null);
   const [active, setActive] = useState(null);
+  const [rejectIds, setRejectIds] = useState(null);
+  const [reason, setReason] = useState('');
+  const [rejecting, setRejecting] = useState(false);
   const [revision, setRevision] = useState(0);
   const refresh = useCallback(() => setRevision((n) => n + 1), []);
   useEffect(() => {
@@ -44,26 +68,23 @@ export default function OfficeBillApprovals({ onCount }) {
     const controller = new AbortController();
     setLoading(true);
     setError('');
-    const list = (status, p, limit) =>
-      billPhotoService.listBillCaptures({
-        status,
+    billPhotoService
+      .listBillCaptures({
+        status: tab,
         uploaderRole,
         source,
-        page: p,
-        limit,
+        page,
+        limit: PAGE_SIZE,
         signal: controller.signal,
-      });
-    Promise.all([list(tab, page, PAGE_SIZE), list(tab === 'pending' ? 'submitted' : 'pending', 1, 1)])
-      .then(([current, other]) => {
+      })
+      .then((current) => {
         if (controller.signal.aborted) return;
         if (!Array.isArray(current?.captures)) throw new Error('Invalid response');
         setData(current);
-        const next = {
-          [tab]: current.total,
-          [tab === 'pending' ? 'submitted' : 'pending']: other.total,
-        };
+        // The server counts every status in the same read.
+        const next = current.counts || { [tab]: current.total };
         setCounts(next);
-        onCount?.(next.pending);
+        if (next.pending != null) onCount?.(next.pending);
         setLoading(false);
       })
       .catch((e) => {
@@ -77,6 +98,27 @@ export default function OfficeBillApprovals({ onCount }) {
       });
     return () => controller.abort();
   }, [tab, page, revision, onCount]);
+  const closeReject = () => {
+    if (rejecting) return;
+    setRejectIds(null);
+    setReason('');
+  };
+  const confirmReject = async () => {
+    setRejecting(true);
+    try {
+      const answer = await billPhotoService.rejectBillCaptures(rejectIds, reason.trim());
+      const left = (answer?.results || []).filter((result) => result.status !== 'rejected');
+      if (answer?.rejected) toast.success(`${plural(answer.rejected)} rejected`);
+      if (left.length) toast.info(`${plural(left.length)} not rejected: ${left[0].reason}`);
+      setRejectIds(null);
+      setReason('');
+      refresh();
+    } catch (e) {
+      toast.error(e?.response?.data?.message || 'Could not reject. Try again.');
+    } finally {
+      setRejecting(false);
+    }
+  };
   return (
     <div className="apv-section">
       <div className="apv-queue-note">
@@ -93,10 +135,7 @@ export default function OfficeBillApprovals({ onCount }) {
       </div>
       <div className="ra-toolbar">
         <div className="ra-tabs" role="tablist" aria-label="Bill status">
-          {[
-            ['pending', 'Pending'],
-            ['submitted', 'Confirmed'],
-          ].map(([key, label]) => (
+          {STATUS_TABS.map(([key, label]) => (
             <button
               key={key}
               type="button"
@@ -135,16 +174,16 @@ export default function OfficeBillApprovals({ onCount }) {
       {data && !error && !data.captures.length && (
         <div className="ra-state apv-state">
           <div className="ra-state__icon">
-            {tab === 'pending' ? <Inbox size={22} /> : <FileCheck2 size={22} />}
+            {tab === 'pending' ? (
+              <Inbox size={22} />
+            ) : tab === 'rejected' ? (
+              <Ban size={22} />
+            ) : (
+              <FileCheck2 size={22} />
+            )}
           </div>
-          <p className="ra-state__title">
-            {tab === 'pending' ? 'No bills waiting.' : 'No confirmed bills.'}
-          </p>
-          <p className="apv-state__hint">
-            {tab === 'pending'
-              ? 'Fuel bills that owners and managers upload show up here until you confirm the truck.'
-              : 'Bills you confirm move here, with who confirmed them and when.'}
-          </p>
+          <p className="ra-state__title">{EMPTY[tab].title}</p>
+          <p className="apv-state__hint">{EMPTY[tab].hint}</p>
         </div>
       )}
       {data && data.captures.length > 0 && (
@@ -174,6 +213,7 @@ export default function OfficeBillApprovals({ onCount }) {
                     confirmed={tab === 'submitted'}
                     onOpen={setActive}
                     onHistory={setHistory}
+                    onReject={tab === 'pending' ? (c) => setRejectIds([c.id]) : undefined}
                   />
                 ))}
               </tbody>
@@ -212,8 +252,77 @@ export default function OfficeBillApprovals({ onCount }) {
         vehicles={vehicles}
         onSaved={refresh}
         onHistory={setHistory}
+        onReject={(c) => {
+          setActive(null);
+          setRejectIds([c.id]);
+        }}
       />
       <HistoryDrawer capture={history} onClose={() => setHistory(null)} />
+      {rejectIds && (
+        <div
+          className="ra-modal-overlay"
+          role="presentation"
+          onClick={(e) => e.target === e.currentTarget && closeReject()}
+          onKeyDown={(e) => e.key === 'Escape' && closeReject()}
+        >
+          <div
+            className="ra-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="office-reject-title"
+          >
+            <div
+              id="office-reject-title"
+              className="ra-modal__head"
+              style={{ color: 'var(--rose-500, #EF4444)' }}
+            >
+              {`Reject ${plural(rejectIds.length)}`}
+            </div>
+            <div className="ra-modal__body">
+              <p style={{ margin: 0, fontSize: '14px', color: 'var(--foreground)' }}>
+                Nothing is deleted. The bill moves to Rejected and is not added to the mileage list.
+              </p>
+              <div style={{ marginTop: 12 }}>
+                <label
+                  htmlFor="office-reject-reason"
+                  className="ra-field__label"
+                  style={{ marginBottom: 6, display: 'block' }}
+                >
+                  Reason (optional)
+                </label>
+                <textarea
+                  id="office-reject-reason"
+                  rows={2}
+                  className="ra-modal__textarea"
+                  value={reason}
+                  maxLength={2000}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="e.g. Unclear bill, duplicate, not our truck…"
+                  aria-label="Reason for rejecting"
+                />
+              </div>
+            </div>
+            <div className="ra-modal__foot">
+              <button
+                type="button"
+                className="ra-btn ra-btn--ghost"
+                onClick={closeReject}
+                disabled={rejecting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="ra-btn ra-btn--reject"
+                onClick={confirmReject}
+                disabled={rejecting}
+              >
+                {rejecting ? 'Rejecting…' : 'Reject'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

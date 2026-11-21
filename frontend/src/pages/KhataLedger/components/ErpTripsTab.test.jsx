@@ -39,12 +39,38 @@ describe('ERP trips tab', () => {
     expect(
       await screen.findAllByText("ERP isn't switched on for your organisation"),
     ).not.toHaveLength(0);
-    expect(screen.queryByText('No ERP Trips found')).not.toBeInTheDocument();
+    expect(screen.queryByText('No ERP trips found')).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('shows a retryable error, not an empty list, when the trip list fails', async () => {
+    const failed = new Error('Request failed');
+    failed.response = { status: 400, data: { message: '"state" must be one of [PLANNED, …]' } };
+    KhataLedgerService.getErpTrips.mockRejectedValueOnce(failed);
+    render(<ErpTripsTab />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load ERP trips');
+    expect(screen.queryByText('No ERP trips found')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await screen.findAllByText('No ERP trips found');
+    expect(KhataLedgerService.getErpTrips).toHaveBeenCalledTimes(2);
+  });
+
+  it('filters by the trip states the backend accepts', async () => {
+    render(<ErpTripsTab />);
+    await screen.findAllByText('No ERP trips found');
+    changeField(screen.getByLabelText('Status'), { target: { value: 'TRIP_CLOSED' } });
+    await waitFor(() =>
+      expect(KhataLedgerService.getErpTrips).toHaveBeenLastCalledWith({
+        page: 1,
+        limit: 20,
+        state: 'TRIP_CLOSED',
+      }),
+    );
   });
 
   it('asks only for query fields the trip endpoint accepts', async () => {
     render(<ErpTripsTab drivers={[{ _id: 'driver-a', firstName: 'Ravi' }]} />);
-    await screen.findAllByText('No ERP Trips found');
+    await screen.findAllByText('No ERP trips found');
     expect(KhataLedgerService.getErpTrips).toHaveBeenCalledWith({ page: 1, limit: 20 });
   });
 
@@ -58,7 +84,6 @@ describe('ERP trips tab', () => {
     });
     render(<ErpTripsTab drivers={[{ _id: 'driver-a', firstName: 'Ravi' }]} />);
     expect(await screen.findByText('TRIP-1')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /^filters$/i }));
     changeField(screen.getByLabelText('Driver'), { target: { value: 'driver-a' } });
     await waitFor(() => expect(screen.queryByText('TRIP-2')).not.toBeInTheDocument());
     expect(screen.getByText('TRIP-1')).toBeInTheDocument();

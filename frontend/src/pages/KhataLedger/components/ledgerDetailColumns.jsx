@@ -1,4 +1,3 @@
-import React from 'react';
 import { formatDateIST } from '@/utils/dateUtils';
 import { formatCurrency } from '../utils';
 import {
@@ -11,23 +10,26 @@ import {
   ReceiptCell,
 } from './ledgerDetailCells';
 
-/** Column defs for the ledger detail transactions table. */
-export function buildLedgerDetailColumns(handlers = {}) {
+/**
+ * Column defs for the ledger detail transactions table. A driver's ledger shows
+ * the vehicle of each entry and a vehicle's ledger the driver; the ledger's own
+ * entity would repeat on every row.
+ */
+export function buildLedgerDetailColumns({ isDriver = true, ...handlers } = {}) {
   const { onOpenTrip, onPreviewReceipt, onOpenAnomaly } = handlers;
 
   return [
     {
       key: 'date',
       label: 'Date',
+      className: 'is-secondary',
       render: (tx) => (
-        <span className="whitespace-nowrap text-sm">
-          {formatDateIST(tx.expenseDate || tx.date)}
-        </span>
+        <span className="khata-nowrap">{formatDateIST(tx.expenseDate || tx.date)}</span>
       ),
     },
     {
       key: 'title',
-      label: 'Title',
+      label: 'Entry',
       render: (tx) => (
         <TxTitleCell
           title={tx.title}
@@ -42,36 +44,25 @@ export function buildLedgerDetailColumns(handlers = {}) {
       label: 'Category',
       render: (tx) => <LedgerCategoryBadge category={tx.category} />,
     },
-    {
-      key: 'amount',
-      label: 'Amount',
-      render: (tx) => (
-        <span className="font-semibold text-gray-900">{formatCurrency(tx.amount)}</span>
-      ),
-    },
-    {
-      key: 'vehicle',
-      label: 'Vehicle',
-      render: (tx) => <EntityRefCell entity={tx.vehicle} kind="vehicle" />,
-    },
-    {
-      key: 'driver',
-      label: 'Driver',
-      render: (tx) => <EntityRefCell entity={tx.driver} kind="driver" />,
-    },
+    isDriver
+      ? {
+          key: 'vehicle',
+          label: 'Vehicle',
+          render: (tx) => <EntityRefCell entity={tx.vehicle} kind="vehicle" />,
+        }
+      : {
+          key: 'driver',
+          label: 'Driver',
+          render: (tx) => <EntityRefCell entity={tx.driver} kind="driver" />,
+        },
     {
       key: 'source',
       label: 'Source',
       render: (tx) => <LedgerSourceBadge source={tx.source} />,
     },
     {
-      key: 'status',
-      label: 'Status',
-      render: (tx) => <LedgerStatusBadge status={tx.status} />,
-    },
-    {
       key: 'trip',
-      label: 'ERP Trip',
+      label: 'ERP trip',
       render: (tx) => <TripRefCell trip={tx.trip} onOpenTrip={onOpenTrip} />,
     },
     {
@@ -80,6 +71,17 @@ export function buildLedgerDetailColumns(handlers = {}) {
       render: (tx) => (
         <ReceiptCell receiptUrl={tx.receiptUrl} onPreviewReceipt={onPreviewReceipt} />
       ),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (tx) => <LedgerStatusBadge status={tx.status} />,
+    },
+    {
+      key: 'amount',
+      label: 'Amount',
+      className: 'is-num',
+      render: (tx) => formatCurrency(tx.amount),
     },
   ];
 }

@@ -6,6 +6,7 @@ import ErrorBoundary from './errors/ErrorBoundary.jsx';
 import { initSentry, installGlobalHandlers } from './utils/sentry.js';
 import './index.css';
 import './styles/redesign/tokens.css';
+import './styles/ui-tokens.css';
 
 // Installed before render so an error thrown during the first mount — or in a
 // promise nothing is awaiting — is still captured. Cheap and synchronous; the

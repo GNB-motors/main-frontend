@@ -1,21 +1,6 @@
 import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  FileSpreadsheet,
-  Download,
-  Filter,
-  FileText,
-  Calendar,
-  Truck,
-  User,
-  Route,
-  RefreshCw,
-  TrendingUp,
-  AlertTriangle,
-} from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Download, FileSpreadsheet, FileText } from 'lucide-react';
 import {
   Table,
   TableHeader,
@@ -25,56 +10,92 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { toast } from 'react-toastify';
+import DateRangeFilter from '../../Superadmin/components/DateRangeFilter';
 import KhataLedgerService from '../KhataLedgerService';
 import exportTable from '../../../lib/exportTable';
 import { useActiveBranch } from '../../../contexts/BranchContext';
 import logger from '../../../utils/logger.js';
 import {
+  KhataCard,
+  KhataEmpty,
+  KhataField,
+  KhataPager,
+  KhataPill,
+  KhataSectionHead,
+  KhataTableSkeleton,
+} from './khataUi';
+import {
   formatCurrency,
   formatDate,
   CATEGORIES,
-  CATEGORY_LABELS,
   getInitialDateRange,
   getVehicleLabel,
   getDriverName,
+  plural,
 } from '../utils';
+import { categoryLabel, tripStateLabel, tripStateTone, tripsInPeriod } from './ledgerDetailLogic';
+import './khataDetail.css';
+
+const PAGE_SIZE = 25;
+// Trip finances are one request per trip, so only the newest trips get one.
+const FINANCE_TRIPS = 50;
 
 const REPORT_TYPES = [
   {
     id: 'TRIP_PROFITABILITY',
-    label: 'Trip Profitability Report',
-    description: 'Commercial trips revenue, cost, profit margins & Cost/KM',
+    short: 'Trip profit',
+    label: 'Trip profitability',
+    description: 'Revenue, cost, margin and cost per km of each ERP trip.',
   },
   {
     id: 'VEHICLE_COST',
-    label: 'Vehicle Cost & Cost/KM Report',
-    description: 'Total cost per vehicle with distance & fuel consumption',
+    short: 'Vehicle cost',
+    label: 'Vehicle cost',
+    description: 'Fuel, maintenance and other cost of each vehicle.',
   },
   {
     id: 'DRIVER_COST',
-    label: 'Driver Ledger Report',
-    description: 'Total expenses and trip counts per driver',
+    short: 'Driver cost',
+    label: 'Driver cost',
+    description: 'Fuel, meals, allowances and total spend of each driver.',
   },
   {
     id: 'EXPENSE_BREAKDOWN',
-    label: 'Expense Category Breakdown',
-    description: 'Aggregated expenses grouped by business category',
+    short: 'Categories',
+    label: 'Expense categories',
+    description: 'Spend grouped by expense category.',
   },
   {
     id: 'FUEL_REPORT',
-    label: 'Fuel Spend & Anomaly Report',
-    description: 'Fuel refills with mileage flags and litre rates',
+    short: 'Fuel',
+    label: 'Fuel spend and mileage flags',
+    description: 'Each fuel entry, with a flag where the mileage looked wrong.',
   },
   {
     id: 'MAINTENANCE_REPORT',
-    label: 'Maintenance & Service Report',
-    description: 'Workshop service, parts, repairs and inspections',
+    short: 'Maintenance',
+    label: 'Maintenance and service',
+    description: 'Workshop service, parts and repairs.',
   },
 ];
 
-const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
+// The trip list sends a populated object or a bare id; a bare id is looked up in the picker list.
+const tripRef = (ref, list) =>
+  ref && typeof ref === 'object' ? ref : list.find((item) => item._id === ref);
+const nameOr = (name) => (name && name !== '-' ? name : '—');
+
+const KhataReportsTab = ({ vehicles = [], drivers = [], erpAvailable }) => {
   const { branchId, activeBranch } = useActiveBranch();
-  const [selectedReport, setSelectedReport] = useState('TRIP_PROFITABILITY');
+  // The trip report needs ERP trips; it is offered once the location has one.
+  const reportTypes = REPORT_TYPES.filter(
+    (rep) => rep.id !== 'TRIP_PROFITABILITY' || erpAvailable === true,
+  );
+  const [chosenReport, setSelectedReport] = useState(() =>
+    erpAvailable === true ? 'TRIP_PROFITABILITY' : 'VEHICLE_COST',
+  );
+  const selectedReport = reportTypes.some((rep) => rep.id === chosenReport)
+    ? chosenReport
+    : reportTypes[0].id;
   const [dateRange, setDateRange] = useState(getInitialDateRange);
   const [vehicleId, setVehicleId] = useState('');
   const [driverId, setDriverId] = useState('');
@@ -85,6 +106,7 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
   const [expenses, setExpenses] = useState([]);
   const [trips, setTrips] = useState([]);
   const [tripFinances, setTripFinances] = useState({});
+  const [page, setPage] = useState(1);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -116,11 +138,12 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
       const loadedExpenses = Array.isArray(expRes)
         ? expRes
         : expRes.results || expRes.data || (Array.isArray(expRes) ? expRes : []);
-      const loadedTrips = (
-        tripRes.data ||
-        tripRes.results ||
-        (Array.isArray(tripRes) ? tripRes : [])
-      ).filter((t) => !driverId || String(t.driverId?._id || t.driverId) === String(driverId));
+      const loadedTrips = tripsInPeriod(
+        (tripRes.data || tripRes.results || (Array.isArray(tripRes) ? tripRes : [])).filter(
+          (t) => !driverId || String(t.driverId?._id || t.driverId) === String(driverId),
+        ),
+        dateRange,
+      );
 
       setExpenses(loadedExpenses);
       setTrips(loadedTrips);
@@ -128,7 +151,7 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
       // Load finances for trips
       const finances = {};
       await Promise.allSettled(
-        loadedTrips.slice(0, 50).map(async (t) => {
+        loadedTrips.slice(0, FINANCE_TRIPS).map(async (t) => {
           try {
             const fin = await KhataLedgerService.getErpTripFinance(t._id);
             if (fin?.margin) finances[t._id] = fin.margin;
@@ -155,11 +178,13 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
     switch (selectedReport) {
       case 'TRIP_PROFITABILITY': {
         return trips.map((t) => {
+          // A trip without a finance summary has unknown figures, not zero ones.
           const m = tripFinances[t._id];
-          const revenue = m?.revenue != null ? m.revenue : 0;
-          const cost = m?.cost != null ? m.cost : 0;
-          const profit = revenue - cost;
-          const marginPct = revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : '—';
+          const revenue = m?.revenue != null ? m.revenue : null;
+          const cost = m?.cost != null ? m.cost : null;
+          const profit = revenue != null && cost != null ? revenue - cost : null;
+          const marginPct =
+            profit != null && revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : '—';
           const distance = t.totalKm || null;
           const costPerKm =
             distance && distance > 0 && cost > 0 ? (cost / distance).toFixed(2) : '—';
@@ -168,9 +193,10 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
             tripNumber: t.tripNumber || `TRIP-${t._id.slice(-6).toUpperCase()}`,
             date: formatDate(t.tripDate || t.createdAt),
             route: t.fromLocation && t.toLocation ? `${t.fromLocation} → ${t.toLocation}` : '—',
-            vehicle: t.vehicleNumber || (t.vehicleId && getVehicleLabel(t.vehicleId)) || '—',
-            driver: (t.driverId && getDriverName(t.driverId)) || '—',
-            status: t.state || 'PLACED',
+            vehicle: nameOr(t.vehicleNumber || getVehicleLabel(tripRef(t.vehicleId, vehicles))),
+            driver: nameOr(getDriverName(tripRef(t.driverId, drivers))),
+            status: tripStateLabel(t.state),
+            state: t.state,
             revenue,
             cost,
             profit,
@@ -244,7 +270,7 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
           const amt = Number(e.amount) || 0;
           grandTotal += amt;
           if (!catMap[cat]) {
-            catMap[cat] = { category: CATEGORY_LABELS[cat] || cat, count: 0, totalAmount: 0 };
+            catMap[cat] = { category: categoryLabel(cat), count: 0, totalAmount: 0 };
           }
           catMap[cat].totalAmount += amt;
           catMap[cat].count += 1;
@@ -284,7 +310,7 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
             vehicle: e.vehicle ? getVehicleLabel(e.vehicle) : '—',
             driver: e.driver ? getDriverName(e.driver) : '—',
             title: e.title,
-            category: CATEGORY_LABELS[e.category] || e.category,
+            category: categoryLabel(e.category),
             description: e.description || '—',
             amount: Number(e.amount) || 0,
           }));
@@ -293,65 +319,65 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
       default:
         return [];
     }
-  }, [selectedReport, expenses, trips, tripFinances]);
+  }, [selectedReport, expenses, trips, tripFinances, vehicles, drivers]);
 
   // Columns definition for each report
   const columns = useMemo(() => {
     switch (selectedReport) {
       case 'TRIP_PROFITABILITY':
         return [
-          { key: 'tripNumber', label: 'Trip #' },
+          { key: 'tripNumber', label: 'Trip' },
           { key: 'date', label: 'Date' },
           { key: 'route', label: 'Route' },
           { key: 'vehicle', label: 'Vehicle' },
           { key: 'driver', label: 'Driver' },
           { key: 'status', label: 'Status' },
           { key: 'revenue', label: 'Revenue', type: 'currency' },
-          { key: 'cost', label: 'Total Cost', type: 'currency' },
+          { key: 'cost', label: 'Total cost', type: 'currency' },
           { key: 'profit', label: 'Profit', type: 'currency' },
-          { key: 'marginPct', label: 'Margin' },
-          { key: 'costPerKm', label: 'Cost/KM' },
+          { key: 'marginPct', label: 'Margin', align: 'num' },
+          { key: 'costPerKm', label: 'Cost per km', align: 'num' },
         ];
       case 'VEHICLE_COST':
         return [
           { key: 'vehicle', label: 'Vehicle' },
-          { key: 'fuelCost', label: 'Fuel Cost', type: 'currency' },
-          { key: 'maintenanceCost', label: 'Maintenance Cost', type: 'currency' },
-          { key: 'otherCost', label: 'Other Cost', type: 'currency' },
-          { key: 'totalCost', label: 'Total Cost', type: 'currency' },
-          { key: 'count', label: 'Entries Count', type: 'number' },
+          { key: 'fuelCost', label: 'Fuel cost', type: 'currency' },
+          { key: 'maintenanceCost', label: 'Maintenance cost', type: 'currency' },
+          { key: 'otherCost', label: 'Other cost', type: 'currency' },
+          { key: 'totalCost', label: 'Total cost', type: 'currency' },
+          { key: 'count', label: 'Entries', type: 'number' },
         ];
       case 'DRIVER_COST':
         return [
           { key: 'driver', label: 'Driver' },
-          { key: 'fuelSpend', label: 'Fuel Spend', type: 'currency' },
-          { key: 'mealsAndAllowance', label: 'Meals / Allowance', type: 'currency' },
-          { key: 'totalSpend', label: 'Total Spend', type: 'currency' },
-          { key: 'entriesCount', label: 'Entries Count', type: 'number' },
+          { key: 'fuelSpend', label: 'Fuel spend', type: 'currency' },
+          { key: 'mealsAndAllowance', label: 'Meals and allowance', type: 'currency' },
+          { key: 'totalSpend', label: 'Total spend', type: 'currency' },
+          { key: 'entriesCount', label: 'Entries', type: 'number' },
         ];
       case 'EXPENSE_BREAKDOWN':
         return [
-          { key: 'category', label: 'Expense Category' },
-          { key: 'count', label: 'Transaction Count', type: 'number' },
-          { key: 'totalAmount', label: 'Total Amount', type: 'currency' },
-          { key: 'pct', label: '% of Spend' },
+          { key: 'category', label: 'Category' },
+          { key: 'count', label: 'Entries', type: 'number' },
+          { key: 'totalAmount', label: 'Total amount', type: 'currency' },
+          { key: 'pct', label: 'Share of spend', align: 'num' },
         ];
       case 'FUEL_REPORT':
         return [
           { key: 'date', label: 'Date' },
           { key: 'vehicle', label: 'Vehicle' },
           { key: 'driver', label: 'Driver' },
-          { key: 'title', label: 'Fuel Title' },
+          { key: 'title', label: 'Entry' },
           { key: 'description', label: 'Details' },
           { key: 'amount', label: 'Amount', type: 'currency' },
-          { key: 'mileageAnomaly', label: 'Mileage Integrity' },
+          { key: 'mileageAnomaly', label: 'Mileage check' },
         ];
       case 'MAINTENANCE_REPORT':
         return [
           { key: 'date', label: 'Date' },
           { key: 'vehicle', label: 'Vehicle' },
           { key: 'driver', label: 'Driver' },
-          { key: 'title', label: 'Job Title' },
+          { key: 'title', label: 'Job' },
           { key: 'category', label: 'Type' },
           { key: 'description', label: 'Description' },
           { key: 'amount', label: 'Amount', type: 'currency' },
@@ -372,12 +398,12 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
       const filename = `Khata-${selectedReport.toLowerCase()}-${new Date().toISOString().split('T')[0]}`;
       const meta = {
         filters: [
-          { label: 'Location', value: activeBranch ? activeBranch.name : 'All Locations' },
+          { label: 'Location', value: activeBranch ? activeBranch.name : 'All locations' },
           {
             label: 'Period',
             value: dateRange.startDate
               ? `${formatDate(dateRange.startDate)} to ${formatDate(dateRange.endDate)}`
-              : 'All Dates',
+              : 'All dates',
           },
           { label: 'Report', value: activeReportObj?.label || selectedReport },
         ],
@@ -400,248 +426,212 @@ const KhataReportsTab = ({ vehicles = [], drivers = [] }) => {
     }
   };
 
+  useEffect(() => {
+    setPage(1);
+  }, [reportData]);
+
+  const activeReport = REPORT_TYPES.find((r) => r.id === selectedReport);
+  const totalPages = Math.max(1, Math.ceil(reportData.length / PAGE_SIZE));
+  const pageRows = reportData.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const cantExport = exporting || loading || reportData.length === 0;
+
+  const renderCell = (col, row) => {
+    const val = row[col.key];
+    if (col.type === 'currency') return val == null ? '—' : formatCurrency(val);
+    if (val == null || val === '') return '—';
+    if (selectedReport === 'TRIP_PROFITABILITY' && col.key === 'status') {
+      return (
+        <KhataPill small tone={tripStateTone(row.state)}>
+          {val}
+        </KhataPill>
+      );
+    }
+    if (col.key === 'mileageAnomaly') {
+      return row.mileageAnomaly === 'Normal' ? (
+        <span className="khata-muted">Normal</span>
+      ) : (
+        <KhataPill small tone="warn">
+          {val}
+        </KhataPill>
+      );
+    }
+    if (val === '—' || val === 'Unattributed' || val === 'Unassigned') {
+      return <span className="khata-muted">{val}</span>;
+    }
+    return String(val);
+  };
+
+  const cellClass = (col, row) => {
+    if (col.type === 'currency' || col.type === 'number' || col.align === 'num') {
+      return row && col.key === 'profit' && row.profit < 0 ? 'is-num is-negative' : 'is-num';
+    }
+    if (col.key === 'tripNumber' || col.key === 'vehicle') return 'is-code';
+    if (col.key === 'date') return 'is-secondary khata-nowrap';
+    if (col.key === 'description') return 'is-secondary';
+    return undefined;
+  };
+
   return (
-    <div className="space-y-5">
-      {/* Header and selector */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-gray-900">Financial Reports & Exports</h2>
-            <Badge
-              variant="outline"
-              className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200"
-            >
-              {activeBranch ? activeBranch.name : 'All Locations'}
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Audit-ready export reports with active branch and filter preservation
-          </p>
-        </div>
-
-        {/* Export Controls */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => handleExport('csv')}
-            disabled={exporting || loading || reportData.length === 0}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-sm disabled:opacity-40"
-          >
-            <Download size={14} />
-            Export CSV
-          </button>
-          <button
-            onClick={() => handleExport('xlsx')}
-            disabled={exporting || loading || reportData.length === 0}
-            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm disabled:opacity-40"
-          >
-            <FileSpreadsheet size={15} />
-            Export Excel (.xlsx)
-          </button>
-        </div>
-      </div>
-
-      {/* Report Selection Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-        {REPORT_TYPES.map((rep) => {
-          const isSelected = selectedReport === rep.id;
-          return (
+    <div className="khata-reports">
+      <KhataSectionHead
+        title="Reports"
+        subtitle={`Audit-ready exports for ${activeBranch ? activeBranch.name : 'all locations'}, with the filters below.`}
+        actions={
+          <>
             <button
-              key={rep.id}
-              onClick={() => setSelectedReport(rep.id)}
-              className={`p-3 text-left rounded-xl border transition-all ${
-                isSelected
-                  ? 'border-indigo-600 bg-indigo-50/70 shadow-sm ring-1 ring-indigo-600'
-                  : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50'
-              }`}
+              type="button"
+              className="khata-btn"
+              onClick={() => handleExport('csv')}
+              disabled={cantExport}
             >
-              <span
-                className={`text-xs font-bold block ${isSelected ? 'text-indigo-950' : 'text-gray-800'}`}
-              >
-                {rep.label.replace(' Report', '')}
-              </span>
-              <span className="text-[10px] text-gray-500 mt-0.5 line-clamp-1 block">
-                {rep.description}
-              </span>
+              <Download size={15} aria-hidden="true" />
+              Export CSV
             </button>
-          );
-        })}
-      </div>
-
-      {/* Filter Controls */}
-      <Card>
-        <CardContent className="p-3.5">
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 text-xs">
-            <div>
-              <label htmlFor="krt-filter-from" className="block text-gray-500 font-medium mb-1">
-                From Date
-              </label>
-              <input
-                id="krt-filter-from"
-                aria-label="From date"
-                type="date"
-                className="w-full rounded-md border border-gray-300 px-2 py-1.5 bg-white"
-                value={dateRange.startDate ? dateRange.startDate.split('T')[0] : ''}
-                onChange={(e) =>
-                  setDateRange((prev) => ({
-                    ...prev,
-                    startDate: e.target.value ? new Date(e.target.value).toISOString() : '',
-                  }))
-                }
-              />
+            <button
+              type="button"
+              className="khata-btn khata-btn--primary"
+              onClick={() => handleExport('xlsx')}
+              disabled={cantExport}
+            >
+              <FileSpreadsheet size={15} aria-hidden="true" />
+              Export Excel
+            </button>
+          </>
+        }
+      />
+      <KhataCard flush aria-label="Report and filters">
+        <div className="khata-strip">
+          <div className="khata-segment" role="group" aria-label="Report">
+            {reportTypes.map((rep) => (
+              <button
+                key={rep.id}
+                type="button"
+                aria-pressed={selectedReport === rep.id}
+                onClick={() => setSelectedReport(rep.id)}
+              >
+                {rep.short}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="khata-strip">
+          <div className="khata-filters">
+            <div className="khata-field">
+              <span className="khata-field-label">Period</span>
+              <DateRangeFilter value={dateRange} onChange={setDateRange} />
             </div>
-            <div>
-              <label htmlFor="krt-filter-to" className="block text-gray-500 font-medium mb-1">
-                To Date
-              </label>
-              <input
-                id="krt-filter-to"
-                aria-label="To date"
-                type="date"
-                className="w-full rounded-md border border-gray-300 px-2 py-1.5 bg-white"
-                value={dateRange.endDate ? dateRange.endDate.split('T')[0] : ''}
-                onChange={(e) =>
-                  setDateRange((prev) => ({
-                    ...prev,
-                    endDate: e.target.value
-                      ? new Date(e.target.value + 'T23:59:59').toISOString()
-                      : '',
-                  }))
-                }
-              />
-            </div>
-            <div>
-              <label htmlFor="krt-filter-vehicle" className="block text-gray-500 font-medium mb-1">
-                Vehicle
-              </label>
+            <KhataField label="Vehicle" htmlFor="krt-filter-vehicle">
               <SearchableSelect
                 id="krt-filter-vehicle"
-                className="w-full rounded-md border border-gray-300 px-2 py-1.5 bg-white"
                 value={vehicleId}
                 onChange={(e) => setVehicleId(e.target.value)}
               >
-                <option value="">All Vehicles</option>
+                <option value="">All vehicles</option>
                 {vehicles.map((v) => (
                   <option key={v._id} value={v._id}>
                     {getVehicleLabel(v)}
                   </option>
                 ))}
               </SearchableSelect>
-            </div>
-            <div>
-              <label htmlFor="krt-filter-driver" className="block text-gray-500 font-medium mb-1">
-                Driver
-              </label>
+            </KhataField>
+            <KhataField label="Driver" htmlFor="krt-filter-driver">
               <SearchableSelect
                 id="krt-filter-driver"
-                className="w-full rounded-md border border-gray-300 px-2 py-1.5 bg-white"
                 value={driverId}
                 onChange={(e) => setDriverId(e.target.value)}
               >
-                <option value="">All Drivers</option>
+                <option value="">All drivers</option>
                 {drivers.map((d) => (
                   <option key={d._id} value={d._id}>
                     {getDriverName(d)}
                   </option>
                 ))}
               </SearchableSelect>
-            </div>
-            <div>
-              <label htmlFor="krt-filter-category" className="block text-gray-500 font-medium mb-1">
-                Category
-              </label>
+            </KhataField>
+            <KhataField label="Category" htmlFor="krt-filter-category">
               <SearchableSelect
                 id="krt-filter-category"
-                className="w-full rounded-md border border-gray-300 px-2 py-1.5 bg-white"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               >
-                <option value="">All Categories</option>
+                <option value="">All categories</option>
                 {CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
-                    {CATEGORY_LABELS[cat] || cat}
+                    {categoryLabel(cat)}
                   </option>
                 ))}
               </SearchableSelect>
-            </div>
+            </KhataField>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </KhataCard>
 
-      {/* Report Table */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="p-4 border-b bg-gray-50/60 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-gray-900">
-                {REPORT_TYPES.find((r) => r.id === selectedReport)?.label}
-              </h3>
-              <p className="text-xs text-gray-500">
-                {REPORT_TYPES.find((r) => r.id === selectedReport)?.description}
-              </p>
-            </div>
-            <Badge variant="outline" className="text-xs">
-              {reportData.length} record{reportData.length === 1 ? '' : 's'}
-            </Badge>
+      <KhataCard
+        flush
+        title={
+          <>
+            {activeReport?.label}
+            {!loading ? (
+              <span className="khata-count">{plural(reportData.length, 'row')}</span>
+            ) : null}
+          </>
+        }
+        subtitle={activeReport?.description}
+      >
+        {selectedReport === 'TRIP_PROFITABILITY' ? (
+          <div className="khata-strip">
+            <p className="khata-hint">
+              ERP trips in this period, from the newest 200. Revenue and cost are loaded for the
+              newest {FINANCE_TRIPS}; the rest show —.
+            </p>
           </div>
-
-          {loading ? (
-            <div className="p-5 space-y-3">
-              {[...Array(6)].map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full rounded" />
-              ))}
-            </div>
-          ) : reportData.length === 0 ? (
-            <div className="py-16 text-center text-gray-400 text-xs">
-              <FileText size={36} className="mx-auto opacity-30 mb-2" />
-              No records found for the selected report filters
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50/90 text-xs">
-                    {columns.map((col) => (
-                      <TableHead
-                        key={col.key}
-                        className={
-                          col.type === 'currency' || col.type === 'number' ? 'text-right' : ''
-                        }
-                      >
-                        {col.label}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {reportData.map((row, index) => (
-                    <TableRow key={index} className="hover:bg-slate-50/70 text-xs">
-                      {columns.map((col) => {
-                        const val = row[col.key];
-                        return (
-                          <TableCell
-                            key={col.key}
-                            className={`py-2.5 ${
-                              col.type === 'currency' || col.type === 'number'
-                                ? 'text-right font-medium'
-                                : ''
-                            }`}
-                          >
-                            {col.type === 'currency'
-                              ? formatCurrency(val)
-                              : val != null
-                                ? String(val)
-                                : '—'}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
+        ) : null}
+        {loading ? (
+          <KhataTableSkeleton rows={6} />
+        ) : reportData.length === 0 ? (
+          <KhataEmpty icon={FileText} title="No rows for these filters">
+            Pick a wider period or clear a filter.
+          </KhataEmpty>
+        ) : (
+          <Table className="khata-table">
+            <TableHeader>
+              <TableRow>
+                {columns.map((col) => (
+                  <TableHead
+                    key={col.key}
+                    className={
+                      col.type === 'currency' || col.type === 'number' || col.align === 'num'
+                        ? 'is-num'
+                        : undefined
+                    }
+                  >
+                    {col.label}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pageRows.map((row, index) => (
+                <TableRow key={(page - 1) * PAGE_SIZE + index}>
+                  {columns.map((col) => (
+                    <TableCell key={col.key} className={cellClass(col, row)}>
+                      {renderCell(col, row)}
+                    </TableCell>
                   ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+        {!loading && reportData.length ? (
+          <KhataPager
+            summary={plural(reportData.length, 'row')}
+            page={page}
+            totalPages={totalPages}
+            onPage={setPage}
+          />
+        ) : null}
+      </KhataCard>
     </div>
   );
 };

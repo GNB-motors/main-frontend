@@ -72,6 +72,15 @@ export const saveBillLinks = async (links) => {
   const res = await apiClient.post(`${base}/confirmations`, { links });
   return res.data?.data;
 };
+/**
+ * Reject bills that are not confirmed yet. Nothing is deleted: they move to
+ * Rejected. The server answers one result per bill, so a bill confirmed in
+ * the meantime comes back as left alone instead of failing the rest.
+ */
+export const rejectBillCaptures = async (captureIds, reason) => {
+  const res = await apiClient.post(`${base}/rejections`, { captureIds, reason: reason || null });
+  return res.data?.data;
+};
 export const editBillLink = async (captureId, body) => {
   const res = await apiClient.patch(`${capturePath(captureId)}/link`, body);
   return res.data?.data;
@@ -88,6 +97,7 @@ export default {
   getBillSuggestion,
   getBillPage,
   saveBillLinks,
+  rejectBillCaptures,
   editBillLink,
   getBillLinkHistory,
 };

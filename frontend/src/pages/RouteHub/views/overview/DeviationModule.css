@@ -1,0 +1,114 @@
+/* Keep preview metrics aligned even when only some detours have estimates. */
+.nova-rh .rh-deviation-card {
+  container-type: inline-size;
+  min-width: 0;
+}
+.nova-rh .rh-deviation-card .ministat {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.nova-rh .rh-deviation-card .ministat > div {
+  min-width: 0;
+}
+.nova-rh .rh-deviation-card .ministat .v {
+  font-size: clamp(22px, 5.5cqi, 28px);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.nova-rh .rh-deviation-card .ministat .k {
+  margin-top: 4px;
+  line-height: 1.4;
+}
+.nova-rh .rh-deviation-note {
+  margin: 0;
+  padding: 0 var(--space-4) 8px;
+  color: var(--fg-secondary);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.nova-rh .rh-deviation-rows {
+  display: grid;
+  padding: 0 var(--space-4) var(--space-3);
+}
+.nova-rh .rh-deviation-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(92px, 0.4fr) minmax(76px, 0.3fr);
+  align-items: center;
+  gap: 10px 16px;
+  width: 100%;
+  min-width: 0;
+  padding: 12px 0;
+  border: 0;
+  border-top: 1px dashed var(--border-subtle);
+  background: transparent;
+  color: var(--fg-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.nova-rh .rh-deviation-row:hover {
+  background: var(--bg-subtle);
+}
+.nova-rh .rh-deviation-row:focus-visible {
+  outline: 2px solid var(--nova-rage-500);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.nova-rh .rh-deviation-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 0;
+}
+.nova-rh .rh-deviation-identity .plate {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nova-rh .rh-deviation-route {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg-secondary);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.nova-rh .rh-deviation-metric {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  min-width: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.nova-rh .rh-deviation-metric b {
+  font-size: 14px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.nova-rh .rh-deviation-metric > span {
+  color: var(--fg-secondary);
+  font-size: 10px;
+  line-height: 1.4;
+}
+.nova-rh .rh-deviation-cost b {
+  color: #c2323a;
+}
+@container (max-width:420px) {
+  .nova-rh .rh-deviation-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 12px;
+  }
+  .nova-rh .rh-deviation-identity {
+    grid-column: 1 / -1;
+  }
+  .nova-rh .rh-deviation-metric {
+    text-align: left;
+  }
+}

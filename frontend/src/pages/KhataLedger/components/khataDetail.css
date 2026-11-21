@@ -1,0 +1,240 @@
+/* Ledger detail page and Reports tab — additions to KhataLedger.css. */
+
+/* ── Page top: breadcrumb + header card (section 5) ──────────────── */
+
+.khata-detail-top {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.khata-crumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--ui-ink-3);
+  font-size: 13px;
+}
+
+.khata-crumbs a {
+  color: var(--ui-ink-3);
+  text-decoration: none;
+}
+
+.khata-crumbs a:hover {
+  color: var(--ui-ink);
+}
+
+.khata-crumbs a:focus-visible {
+  outline: 2px solid var(--ui-link);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.khata-crumbs > span[aria-hidden='true'] {
+  color: var(--ui-ink-6);
+}
+
+.khata-crumbs > span[aria-current] {
+  color: var(--ui-ink);
+  font-weight: 600;
+}
+
+.khata-hero-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 22px 24px 18px;
+}
+
+.khata-hero-text {
+  min-width: 0;
+}
+
+.khata-hero-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.khata-ledger .khata-hero-title {
+  margin: 0;
+  color: var(--ui-ink);
+  font: 500 30px/1.1 var(--ui-font-figure);
+  letter-spacing: -0.4px;
+  overflow-wrap: anywhere;
+}
+
+.khata-ledger .khata-hero-title.is-code {
+  font-family: var(--ui-font-mono);
+  font-size: 26px;
+  letter-spacing: 0;
+}
+
+.khata-ledger .khata-hero-desc {
+  margin: 6px 0 0;
+  color: var(--ui-ink-3);
+  font-size: 13.5px;
+}
+
+.khata-hero-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.khata-hero .khata-kpis {
+  border-top: 1px solid var(--ui-line);
+}
+
+.khata-hero .khata-kpi:first-child {
+  padding-left: 24px;
+}
+
+/* Page and header actions are 40px (6.10). */
+.khata-btn--lg {
+  height: auto;
+  min-height: 40px;
+  padding: 9px 16px;
+  font-size: 13.5px;
+  font-weight: 400;
+}
+
+/* ── Strips, tables, rank cards ──────────────────────────────────── */
+
+.khata-reports {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.khata-detail .khata-strip,
+.khata-reports .khata-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.khata-filters .date-range-trigger {
+  width: 100%;
+}
+
+.khata-filters .date-range-trigger > span {
+  flex: 1;
+  overflow: hidden;
+  text-align: left;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.khata-nowrap {
+  white-space: nowrap;
+}
+
+.khata-tx-title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  max-width: 320px;
+}
+
+.khata-tx-title .khata-cell-sub {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.khata-flag {
+  margin-top: 4px;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+}
+
+.khata-flag:hover {
+  background: var(--ui-warn-tint);
+  text-decoration: underline;
+}
+
+.khata-flag:focus-visible {
+  outline: 2px solid var(--ui-link);
+  outline-offset: 2px;
+}
+
+.khata-table .is-negative {
+  color: var(--ui-bad-ink);
+}
+
+.khata-card-grid.khata-breakdown {
+  --khata-cols: 3;
+}
+
+.khata-rank-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Segmented report picker (6.12) ──────────────────────────────── */
+
+.khata-segment {
+  display: inline-flex;
+  align-self: flex-start;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--ui-r-pill);
+  background: var(--ui-line);
+}
+
+.khata-segment button {
+  padding: 5px 12px;
+  border: 0;
+  border-radius: var(--ui-r-pill);
+  background: transparent;
+  color: var(--ui-ink-3);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.khata-segment button:hover {
+  color: var(--ui-ink);
+}
+
+.khata-segment button[aria-pressed='true'] {
+  background: var(--ui-card);
+  color: var(--ui-ink);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.khata-segment button:focus-visible {
+  outline: 2px solid var(--ui-link);
+  outline-offset: 1px;
+}
+
+@media (max-width: 600px) {
+  .khata-hero-top {
+    padding: 18px 16px 16px;
+  }
+
+  .khata-hero .khata-kpi:first-child {
+    padding-left: 16px;
+  }
+
+  .khata-ledger .khata-hero-title {
+    font-size: 26px;
+  }
+
+  .khata-segment {
+    border-radius: var(--ui-r-card);
+  }
+}

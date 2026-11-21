@@ -1,5 +1,6 @@
 import apiClient from '../../utils/axiosConfig';
 import DriverVehicleAssignmentService from '../../services/DriverVehicleAssignmentService';
+import { getBranchId } from '../../utils/session.js';
 
 const unwrap = (res) => res.data?.data || res.data;
 
@@ -16,6 +17,37 @@ const erpDisabledError = () => {
   err.erpDisabled = true;
   return err;
 };
+
+// Whether the active location has any ERP trip at all. The ERP pieces of Khata
+// (the ERP trips tab, trip revenue and profit, the trip report) stay hidden until
+// it does: an organisation without ERP answers 404, one that has not planned a
+// trip yet answers an empty list. Asked once per location for a few minutes.
+const ERP_CHECK_TTL_MS = 5 * 60 * 1000;
+const erpChecks = new Map();
+
+const hasErpTrips = async () => {
+  try {
+    const response = await apiClient.get('/api/erp/trips', { params: { page: 1, limit: 1 } });
+    const rows = response.data?.data;
+    const total = Number(response.data?.meta?.total);
+    return Number.isFinite(total) ? total > 0 : Array.isArray(rows) && rows.length > 0;
+  } catch (err) {
+    if (isErpDisabledError(err)) return false;
+    // Unknown is not "no": leave the ERP pieces in place and let them show their own error.
+    return true;
+  }
+};
+
+export const getErpAvailability = () => {
+  const key = getBranchId() || 'all';
+  const cached = erpChecks.get(key);
+  if (cached && Date.now() - cached.at < ERP_CHECK_TTL_MS) return cached.promise;
+  const promise = hasErpTrips();
+  erpChecks.set(key, { at: Date.now(), promise });
+  return promise;
+};
+
+export const resetErpAvailability = () => erpChecks.clear();
 
 // Chart aggregates need the complete filtered set; the API caps each page at 100.
 const getDashboardPages = async (path, params, { signal } = {}) => {

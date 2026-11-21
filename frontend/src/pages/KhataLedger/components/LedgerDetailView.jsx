@@ -1,31 +1,25 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Fuel,
-  ChevronLeft,
-  ChevronRight,
-  Route,
-  Truck,
-  User,
-  ExternalLink,
-} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { BookOpen, Fuel } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from '@/components/ui/table';
 import DateRangeFilter from '../../Superadmin/components/DateRangeFilter';
 import KhataLedgerService from '../KhataLedgerService';
 import TripService from '../../Trip/services/TripService';
 import { getVehicleList } from '../../../services/vehicleListService';
-import PageShell from '@/components/ui/PageShell';
-import FilterBar from '@/components/ui/FilterBar';
-import DataTable from '@/components/ui/DataTable';
 import AddFuelLogModal from './AddFuelLogModal';
 import ReceiptPreviewModal from './ReceiptPreviewModal';
 import FuelAnomalyModal from './FuelAnomalyModal';
 import ErpTripDetailModal from './ErpTripDetailModal';
-import { LedgerSummaryCards, LedgerBreakdownCards } from './ledgerDetailCards';
+import { KhataCard, KhataEmpty, KhataPager, KhataPill, KhataTableSkeleton } from './khataUi';
+import { LedgerCostStrip, LedgerTripsCard, LedgerBreakdownCards } from './ledgerDetailCards';
 import { LedgerFilterSelects } from './ledgerDetailFilters';
 import { buildLedgerDetailColumns } from './ledgerDetailColumns';
 import {
@@ -35,30 +29,29 @@ import {
   parseLedgerSummary,
   ledgerTxKey,
   countActiveLedgerFilters,
+  tripsInPeriod,
 } from './ledgerDetailLogic';
-import {
-  getDriverName,
-  getVehicleLabel,
-  getInitialDateRange,
-  formatCurrency,
-  formatDate,
-  formatKm,
-  TRIP_STATE_LABELS,
-  TRIP_STATE_COLORS,
-} from '../utils';
+import { getDriverName, getVehicleLabel, getInitialDateRange, plural } from '../utils';
+import useErpAvailable from '../useErpAvailable';
+import '../KhataLedger.css';
+import './khataDetail.css';
+
+const named = (value) => (value && value !== '-' ? value : '');
 
 const LedgerDetailView = ({ entityType, entityId }) => {
-  const navigate = useNavigate();
+  const erpAvailable = useErpAvailable();
   const isDriver = entityType === 'driver';
+  const listTab = isDriver ? 'drivers' : 'trucks';
 
+  const [entityData, setEntityData] = useState(null);
   const [entityName, setEntityName] = useState('');
-  const [_entityData, setEntityData] = useState(null);
   const [entityLoading, setEntityLoading] = useState(true);
 
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, totalResults: 0 });
   const [summary, setSummary] = useState(() => ({ ...EMPTY_SUMMARY }));
+  const [summaryLoading, setSummaryLoading] = useState(true);
 
   // Linked ERP Trips
   const [erpTrips, setErpTrips] = useState([]);
@@ -87,16 +80,16 @@ const LedgerDetailView = ({ entityType, entityId }) => {
           // filters already carries the name.
           const drivers = await driversPromise;
           const data = drivers.find((d) => String(d._id ?? d.id) === String(entityId));
-          setEntityData(data);
-          setEntityName(getDriverName(data) || 'Driver Ledger');
+          setEntityData(data || null);
+          setEntityName(named(getDriverName(data)));
         } else {
           const res = await TripService.getVehicleById(entityId);
           const data = res?.data ?? res;
-          setEntityData(data);
-          setEntityName(getVehicleLabel(data) || 'Truck Ledger');
+          setEntityData(data || null);
+          setEntityName(named(getVehicleLabel(data)));
         }
       } catch {
-        setEntityName(isDriver ? 'Driver Ledger' : 'Truck Ledger');
+        setEntityName('');
       } finally {
         setEntityLoading(false);
       }
@@ -157,6 +150,7 @@ const LedgerDetailView = ({ entityType, entityId }) => {
   const fetchData = useCallback(
     async (page = 1) => {
       setLoading(true);
+      setSummaryLoading(page === 1);
       try {
         const params = buildLedgerParams({
           page,
@@ -186,10 +180,11 @@ const LedgerDetailView = ({ entityType, entityId }) => {
           setMeta({ page: 1, totalPages: 1, totalResults: 0 });
           setSummary({ ...EMPTY_SUMMARY });
         } else {
-          toast.error(err?.response?.data?.message || err?.message || 'Failed to load ledger');
+          toast.error(err?.response?.data?.message || err?.message || 'Could not load the ledger');
         }
       } finally {
         setLoading(false);
+        setSummaryLoading(false);
       }
     },
     [entityId, isDriver, dateRange, category, source, crossFilterId],
@@ -199,37 +194,39 @@ const LedgerDetailView = ({ entityType, entityId }) => {
     fetchData(1);
   }, [fetchData]);
 
-  // Aggregate trip financials for this entity
-  const tripTotals = useMemo(() => {
-    let totalRev = 0;
-    let totalDist = 0;
+  // The ledger's own rows carry the name when the picker lists don't have it.
+  const displayName = useMemo(() => {
+    if (entityName) return entityName;
+    const row = transactions.find((tx) => (isDriver ? tx.driver : tx.vehicle));
+    if (row) return named(isDriver ? getDriverName(row.driver) : getVehicleLabel(row.vehicle));
+    return '';
+  }, [entityName, transactions, isDriver]);
+  const title = displayName || (entityLoading ? '' : isDriver ? 'Driver' : 'Vehicle');
 
-    erpTrips.forEach((t) => {
-      const fin = tripFinances[t._id];
-      if (fin?.revenue) totalRev += fin.revenue;
-      if (t.totalKm && t.totalKm > 0) totalDist += t.totalKm;
-    });
+  const descriptor = isDriver
+    ? [entityData?.mobileNumber, 'Driver ledger']
+    : [
+        [entityData?.make || entityData?.manufacturer, entityData?.model].filter(Boolean).join(' '),
+        entityData?.vehicleType,
+        'Vehicle ledger',
+      ];
 
-    const netProfit = totalRev - (summary.totalAmount || 0);
-
-    return {
-      totalRevenue: totalRev,
-      totalDistanceKm: totalDist,
-      netProfit,
-    };
-  }, [erpTrips, tripFinances, summary.totalAmount]);
+  // Ledger cost is for the selected period, so trip revenue must be too.
+  const periodTrips = useMemo(() => tripsInPeriod(erpTrips, dateRange), [erpTrips, dateRange]);
 
   const crossOptions = isDriver ? filterOptions.vehicles : filterOptions.drivers;
   const activeFilterCount = countActiveLedgerFilters({ category, source, crossFilterId });
 
-  // Columns with clickable handlers
-  const columns = useMemo(() => {
-    return buildLedgerDetailColumns({
-      onOpenTrip: (tId) => setSelectedTripModalId(tId),
-      onPreviewReceipt: (url) => setSelectedReceiptUrl(url),
-      onOpenAnomaly: (flag) => setSelectedAnomaly(flag),
-    });
-  }, []);
+  const columns = useMemo(
+    () =>
+      buildLedgerDetailColumns({
+        isDriver,
+        onOpenTrip: (tId) => setSelectedTripModalId(tId),
+        onPreviewReceipt: (url) => setSelectedReceiptUrl(url),
+        onOpenAnomaly: (flag) => setSelectedAnomaly(flag),
+      }),
+    [isDriver],
+  );
 
   const clearFilters = () => {
     setCategory('');
@@ -238,186 +235,145 @@ const LedgerDetailView = ({ entityType, entityId }) => {
   };
 
   return (
-    <PageShell
-      className="khata-ledger"
-      title={entityLoading ? (isDriver ? 'Driver Ledger' : 'Truck Ledger') : entityName}
-      subtitle={`${isDriver ? 'Driver' : 'Truck'} financial ledger — operational trips, transactions & cost per KM`}
-      count={meta.totalResults}
-      actions={
-        <>
-          <button
-            type="button"
-            onClick={() =>
-              navigate('/khata-ledger', { state: { tab: isDriver ? 'drivers' : 'trucks' } })
-            }
-            className="pshell-btn"
-            aria-label="Back to Khata Ledger"
-            title="Back to Khata Ledger"
-          >
-            <ArrowLeft size={16} />
-            <span>Back</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setFuelModalOpen(true)}
-            className="pshell-btn pshell-btn--primary"
-          >
-            <Fuel size={16} />
-            Add Fuel
-          </button>
-          <DateRangeFilter value={dateRange} onChange={setDateRange} />
-        </>
-      }
-      filters={
-        <FilterBar
-          activeCount={activeFilterCount}
-          onClear={clearFilters}
-          right={
-            <LedgerFilterSelects
-              isDriver={isDriver}
-              category={category}
-              source={source}
-              crossFilterId={crossFilterId}
-              crossOptions={crossOptions}
-              onCategoryChange={setCategory}
-              onSourceChange={setSource}
-              onCrossFilterChange={setCrossFilterId}
-            />
-          }
-        />
-      }
-      footer={
-        meta.totalPages > 1 ? (
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-xs text-muted-foreground">
-              Page {meta.page} of {meta.totalPages} ({meta.totalResults} total)
-            </span>
-            <div className="flex gap-1">
+    <div className="pshell khata-ledger khata-detail">
+      <div className="khata-detail-top">
+        <nav className="khata-crumbs" aria-label="Breadcrumb">
+          <Link to="/khata-ledger">Khata ledger</Link>
+          <span aria-hidden="true">/</span>
+          <Link to={`/khata-ledger?tab=${listTab}`}>{isDriver ? 'Drivers' : 'Vehicles'}</Link>
+          <span aria-hidden="true">/</span>
+          <span aria-current="page">{title || '…'}</span>
+        </nav>
+
+        <section
+          className="khata-card khata-card--flush khata-hero"
+          aria-labelledby="khata-hero-title"
+        >
+          <div className="khata-hero-top">
+            <div className="khata-hero-text">
+              <div className="khata-hero-title-row">
+                <h1
+                  id="khata-hero-title"
+                  className={`khata-hero-title${isDriver ? '' : ' is-code'}`}
+                >
+                  {title || <span className="khata-muted">Loading…</span>}
+                </h1>
+                <KhataPill>{isDriver ? 'Driver' : 'Vehicle'}</KhataPill>
+              </div>
+              <p className="khata-hero-desc">{descriptor.filter(Boolean).join(' · ')}</p>
+            </div>
+            <div className="khata-hero-actions">
+              <DateRangeFilter value={dateRange} onChange={setDateRange} />
               <button
                 type="button"
-                disabled={meta.page <= 1}
-                onClick={() => fetchData(meta.page - 1)}
-                className="pshell-btn"
-                aria-label="Previous page"
+                className="khata-btn khata-btn--primary khata-btn--lg"
+                onClick={() => setFuelModalOpen(true)}
               >
-                <ChevronLeft size={14} />
-              </button>
-              <button
-                type="button"
-                disabled={meta.page >= meta.totalPages}
-                onClick={() => fetchData(meta.page + 1)}
-                className="pshell-btn"
-                aria-label="Next page"
-              >
-                <ChevronRight size={14} />
+                <Fuel size={16} aria-hidden="true" />
+                Add fuel
               </button>
             </div>
           </div>
-        ) : null
-      }
-    >
-      {/* Upgraded Financial KPI Cards */}
-      <LedgerSummaryCards
-        summary={summary}
-        isDriver={isDriver}
-        vehicles={filterOptions.vehicles}
-        drivers={filterOptions.drivers}
-        tripsCount={erpTrips.length}
-        distanceKm={tripTotals.totalDistanceKm}
-        revenue={tripTotals.totalRevenue}
-        profit={tripTotals.netProfit}
-        pendingAmount={0}
-        walletAmount={null}
-      />
-
-      {/* Linked ERP Trips Strip (Mandatory Section) */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-3 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-              <Route size={16} className="text-indigo-600" />
-              <span>Assigned ERP Trips ({erpTrips.length})</span>
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Commercial journeys associated with this {isDriver ? 'driver' : 'vehicle'}
-            </p>
-          </div>
-        </div>
-
-        {tripsLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-16 w-full rounded-lg" />
-            ))}
-          </div>
-        ) : erpTrips.length === 0 ? (
-          <p className="text-xs text-muted-foreground italic py-2">
-            No ERP trips recorded for this {isDriver ? 'driver' : 'vehicle'}.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {erpTrips.slice(0, 6).map((t) => {
-              const fin = tripFinances[t._id];
-              return (
-                // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-                <div
-                  key={t._id}
-                  onClick={() => setSelectedTripModalId(t._id)}
-                  className="p-3 rounded-lg border border-gray-200 bg-gray-50/50 hover:bg-indigo-50/60 hover:border-indigo-200 transition-all cursor-pointer group"
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-xs text-indigo-700 group-hover:underline flex items-center gap-1">
-                      <Route size={12} />
-                      {t.tripNumber || `TRIP-${t._id.slice(-6).toUpperCase()}`}
-                    </span>
-                    <Badge
-                      className={`text-[10px] ${TRIP_STATE_COLORS[t.state] || 'bg-gray-100 text-gray-700'}`}
-                    >
-                      {TRIP_STATE_LABELS[t.state] || t.state || 'PLACED'}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-gray-700 font-medium truncate">
-                    {t.fromLocation && t.toLocation
-                      ? `${t.fromLocation} → ${t.toLocation}`
-                      : 'Route unassigned'}
-                  </p>
-                  <div className="flex items-center justify-between text-[11px] text-gray-500 mt-2 pt-1.5 border-t border-gray-200/60">
-                    <span>{formatDate(t.tripDate || t.createdAt)}</span>
-                    {fin?.revenue != null ? (
-                      <span className="font-semibold text-emerald-700">
-                        Rev: {formatCurrency(fin.revenue)}
-                      </span>
-                    ) : (
-                      <span>{t.totalKm ? formatKm(t.totalKm) : ''}</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+          <LedgerCostStrip summary={summary} loading={summaryLoading} />
+        </section>
       </div>
 
-      {/* Breakdown Cards */}
+      {erpAvailable === true ? (
+        <LedgerTripsCard
+          trips={periodTrips}
+          finances={tripFinances}
+          totalCost={summary.totalAmount}
+          loading={tripsLoading}
+          isDriver={isDriver}
+          onOpenTrip={(tId) => setSelectedTripModalId(tId)}
+        />
+      ) : null}
+
       <LedgerBreakdownCards
         summary={summary}
         isDriver={isDriver}
         vehicles={filterOptions.vehicles}
         drivers={filterOptions.drivers}
+        loading={summaryLoading}
       />
 
-      {/* Transactions Table with Trip & Receipt links */}
-      <DataTable
-        columns={columns}
-        rows={transactions}
-        rowKey={ledgerTxKey}
-        loading={loading}
-        showing={transactions.length}
-        total={meta.totalResults}
-        activeFilters={activeFilterCount}
-        emptyTitle="No transactions found"
-        emptyHint="Try widening the date range or clearing the filters."
-      />
+      <KhataCard
+        flush
+        title={
+          <>
+            Entries
+            {!loading ? (
+              <span className="khata-count">{plural(meta.totalResults, 'entry', 'entries')}</span>
+            ) : null}
+          </>
+        }
+        subtitle="Expenses, fuel logs and maintenance records in the selected period."
+        actions={
+          activeFilterCount ? (
+            <button type="button" className="khata-link" onClick={clearFilters}>
+              Clear filters
+            </button>
+          ) : null
+        }
+      >
+        <div className="khata-strip">
+          <LedgerFilterSelects
+            isDriver={isDriver}
+            category={category}
+            source={source}
+            crossFilterId={crossFilterId}
+            crossOptions={crossOptions}
+            onCategoryChange={setCategory}
+            onSourceChange={setSource}
+            onCrossFilterChange={setCrossFilterId}
+          />
+          {activeFilterCount ? (
+            <p className="khata-hint">
+              The totals above cover the whole period; these filters narrow only this list.
+            </p>
+          ) : null}
+        </div>
+        {loading ? (
+          <KhataTableSkeleton />
+        ) : transactions.length === 0 ? (
+          <KhataEmpty icon={BookOpen} title="No entries found">
+            {activeFilterCount
+              ? 'Nothing matches these filters. Clear them or pick a wider date range.'
+              : 'Nothing was recorded in this period. Pick a wider date range.'}
+          </KhataEmpty>
+        ) : (
+          <Table className="khata-table">
+            <TableHeader>
+              <TableRow>
+                {columns.map((col) => (
+                  <TableHead key={col.key} className={col.className}>
+                    {col.label}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {transactions.map((tx) => (
+                <TableRow key={ledgerTxKey(tx)}>
+                  {columns.map((col) => (
+                    <TableCell key={col.key} className={col.className}>
+                      {col.render(tx)}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+        {!loading && transactions.length ? (
+          <KhataPager
+            summary={plural(meta.totalResults, 'entry', 'entries')}
+            page={meta.page}
+            totalPages={meta.totalPages}
+            onPage={fetchData}
+          />
+        ) : null}
+      </KhataCard>
 
       {/* Fuel Refill Modal */}
       <AddFuelLogModal
@@ -450,7 +406,7 @@ const LedgerDetailView = ({ entityType, entityId }) => {
           tripId={selectedTripModalId}
         />
       )}
-    </PageShell>
+    </div>
   );
 };
 

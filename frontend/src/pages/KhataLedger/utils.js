@@ -1,3 +1,5 @@
+import { istDayEndISO, istDayStartISO, istDayString } from '@/utils/dateUtils';
+
 export const CATEGORIES = [
   'FUEL',
   'TOLL',
@@ -31,37 +33,13 @@ export const CATEGORY_LABELS = {
   TRIP_EXPENSE: 'Trip Expense',
 };
 
-export const CATEGORY_COLORS = {
-  FUEL: 'bg-blue-100 text-blue-700',
-  TOLL: 'bg-amber-100 text-amber-700',
-  MAINTENANCE: 'bg-purple-100 text-purple-700',
-  REPAIR: 'bg-red-100 text-red-700',
-  DRIVER_SALARY: 'bg-green-100 text-green-700',
-  DRIVER_ALLOWANCE: 'bg-teal-100 text-teal-700',
-  DRIVER_MEAL: 'bg-pink-100 text-pink-700',
-  INSURANCE: 'bg-indigo-100 text-indigo-700',
-  PERMIT: 'bg-cyan-100 text-cyan-700',
-  FINE: 'bg-rose-100 text-rose-700',
-  TYRE: 'bg-orange-100 text-orange-700',
-  LOADING_UNLOADING: 'bg-lime-100 text-lime-700',
-  MISCELLANEOUS: 'bg-gray-100 text-gray-700',
-  TRIP_EXPENSE: 'bg-violet-100 text-violet-700',
-};
-
 export const SOURCE_LABELS = {
   MANUAL: 'Manual',
-  DRIVER_BILL: 'Driver Bill',
+  DRIVER_BILL: 'Driver bill',
   TRIP: 'Trip',
-  FUEL: 'Fuel',
+  FUEL: 'Fuel log',
   MAINTENANCE: 'Maintenance',
-};
-
-export const SOURCE_COLORS = {
-  MANUAL: 'border-blue-300 text-blue-600 bg-blue-50/50',
-  DRIVER_BILL: 'border-cyan-300 text-cyan-700 bg-cyan-50/50',
-  TRIP: 'border-violet-300 text-violet-600 bg-violet-50/50',
-  FUEL: 'border-orange-300 text-orange-600 bg-orange-50/50',
-  MAINTENANCE: 'border-purple-300 text-purple-600 bg-purple-50/50',
+  DETECTED_CROSSING: 'Detected toll',
 };
 
 export const STATUS_LABELS = {
@@ -69,31 +47,6 @@ export const STATUS_LABELS = {
   CONFIRMED: 'Confirmed',
   APPROVED: 'Approved',
   REJECTED: 'Rejected',
-};
-
-export const STATUS_COLORS = {
-  PENDING: 'bg-amber-100 text-amber-800 border border-amber-200',
-  CONFIRMED: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
-  APPROVED: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
-  REJECTED: 'bg-rose-100 text-rose-800 border border-rose-200',
-};
-
-export const TRIP_STATE_LABELS = {
-  PLANNED: 'Planned',
-  PLACED: 'Placed',
-  DISPATCHED: 'Dispatched',
-  DELIVERED: 'Delivered',
-  CLOSED: 'Closed',
-  CANCELLED: 'Cancelled',
-};
-
-export const TRIP_STATE_COLORS = {
-  PLANNED: 'bg-slate-100 text-slate-700 border-slate-200',
-  PLACED: 'bg-blue-100 text-blue-700 border-blue-200',
-  DISPATCHED: 'bg-amber-100 text-amber-800 border-amber-200',
-  DELIVERED: 'bg-teal-100 text-teal-800 border-teal-200',
-  CLOSED: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  CANCELLED: 'bg-rose-100 text-rose-800 border-rose-200',
 };
 
 export const formatCurrency = (v) =>
@@ -137,7 +90,6 @@ export const getProfitabilityStatus = (revenue, cost) => {
     return {
       status: 'BREAK_EVEN',
       label: 'Break-even',
-      color: 'bg-gray-100 text-gray-700 border-gray-200',
       profit: 0,
     };
   }
@@ -145,7 +97,6 @@ export const getProfitabilityStatus = (revenue, cost) => {
     return {
       status: 'PROFITABLE',
       label: 'Profitable',
-      color: 'bg-emerald-100 text-emerald-800 border-emerald-200',
       profit,
     };
   }
@@ -153,14 +104,12 @@ export const getProfitabilityStatus = (revenue, cost) => {
     return {
       status: 'BREAK_EVEN',
       label: 'Break-even',
-      color: 'bg-slate-100 text-slate-700 border-slate-200',
       profit: 0,
     };
   }
   return {
     status: 'LOSS_MAKING',
     label: 'Loss-making',
-    color: 'bg-rose-100 text-rose-800 border-rose-200',
     profit,
   };
 };
@@ -186,12 +135,22 @@ export const toSplitArray = (split) => {
     .sort((a, b) => (b.amount || 0) - (a.amount || 0));
 };
 
+// This month so far, in IST days, so the date picker reads "This Month".
 export const getInitialDateRange = () => {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  const today = istDayString();
   return {
-    startDate: start.toISOString(),
-    endDate: end.toISOString(),
+    startDate: istDayStartISO(`${today.slice(0, 8)}01`),
+    endDate: istDayEndISO(today),
   };
 };
+
+export const plural = (count, one, many = `${one}s`) =>
+  `${Number(count || 0).toLocaleString('en-IN')} ${Number(count) === 1 ? one : many}`;
+
+export const initialsOf = (name) =>
+  String(name || '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join('') || '—';

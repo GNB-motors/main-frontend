@@ -1,10 +1,15 @@
+/* Khata Ledger — built on the shared design system (.claude/skills/gnb-ui-design). */
+
 .pshell.khata-ledger {
   width: 100%;
   max-width: none;
   margin-inline: 0;
-  padding: 24px 32px 40px;
+  padding: 16px 20px 28px;
   box-sizing: border-box;
   background: transparent;
+  color: var(--ui-ink);
+  font-family: var(--ui-font);
+  container: khata / inline-size;
 }
 
 .khata-ledger > .pshell-body,
@@ -13,50 +18,13 @@
   max-width: 100%;
 }
 
-.khata-ledger .pshell-actions {
-  max-width: 100%;
-  flex-wrap: wrap;
-}
-
 .khata-ledger .pshell-head {
   align-items: center;
 }
 
-/* Keep section typography independent of other pages' global heading rules. */
-.khata-ledger .khata-chart-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  color: var(--ds-ink);
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.5;
-}
-
-.khata-ledger .khata-chart-title svg {
-  flex-shrink: 0;
-}
-
-.khata-ledger .khata-chart-description {
-  margin: 4px 0 0;
-  color: var(--ds-ink3);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-/* CardContent owns the spacing; avoid stacking its padding with Card's. */
-.page-content .khata-ledger [data-slot='card'] {
-  padding-block: 0;
-  gap: 0;
-  border: 1px solid var(--ds-line);
-  border-radius: var(--ds-radius-md);
-  background: var(--card);
-  box-shadow: var(--ds-shadow);
-}
-
-.page-content .khata-ledger [data-slot='card'].border-l-4 {
-  border-left: 4px solid var(--ds-warn);
+.khata-ledger .pshell-actions {
+  max-width: 100%;
+  flex-wrap: wrap;
 }
 
 .khata-ledger .pshell-title {
@@ -64,418 +32,1280 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  line-height: 1.3;
+  line-height: normal;
 }
 
-.khata-scope {
-  border: 1px solid var(--ds-line);
-  border-radius: var(--ds-radius-md);
-  padding: 16px;
-  background: var(--card);
-  box-shadow: var(--ds-shadow);
-}
+/* ── Tabs (section 5) ─────────────────────────────────────────────── */
 
-.khata-scope-heading {
+/* On the grey canvas the tab row is a white bar, like a card, and the open tab
+   is a tinted pill inside it (skill 5, tabs on a grey page). */
+.khata-ledger .khata-tabs {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  width: 100%;
+  gap: 4px;
+  padding: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border: 1px solid var(--ui-card-edge-on-grey);
+  border-radius: var(--ui-r-card);
+  background: var(--ui-card);
+  box-shadow: var(--ui-shadow-card);
 }
 
-.khata-scope h2 {
-  margin: 0;
-  color: var(--ds-ink);
-  font-size: 15px;
+.khata-ledger .khata-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.khata-ledger .khata-tab {
+  position: relative;
+  flex: none;
+  padding: 8px 14px;
+  border-radius: var(--ui-r-control);
+  background: transparent;
+  box-shadow: none;
+  color: var(--ui-ink-3);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.khata-ledger .khata-tab:hover {
+  background: var(--ui-sunk);
+  color: var(--ui-ink);
+}
+
+.khata-ledger .khata-tab[aria-selected='true'] {
+  background: var(--ui-brand-wash);
+  box-shadow: inset 0 0 0 1px var(--ui-brand-tint-2);
+  color: var(--ui-brand-deep);
   font-weight: 600;
 }
 
-.khata-scope-period {
+.khata-ledger .khata-tab:focus-visible {
+  outline: 2px solid var(--ui-link);
+  outline-offset: -2px;
+  box-shadow: none;
+}
+
+.khata-ledger .khata-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 0;
+  padding-top: 20px;
+}
+
+/* ── Card (6.1, 6.2) ──────────────────────────────────────────────── */
+
+.khata-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px;
+  background: var(--ui-card);
+  border: 1px solid var(--ui-card-edge-on-grey);
+  border-radius: var(--ui-r-card);
+  box-shadow: var(--ui-shadow-card);
+  color: var(--ui-ink);
+  font-family: var(--ui-font);
+}
+
+.khata-card--flush {
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+.khata-card--flush > .khata-card-head {
+  padding: 16px 20px;
+}
+
+.khata-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.khata-card-head > div:first-child {
+  min-width: 0;
+}
+
+/* Next to a control (search, date, button) the title centres on it; next to a
+   text link both keep the top edge. */
+.khata-card-head:has(
+  > .khata-card-actions .khata-search,
+  > .khata-card-actions .khata-btn,
+  > .khata-card-actions .date-range-trigger
+) {
+  align-items: center;
+}
+
+.khata-ledger .khata-card-title,
+.khata-card-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  color: var(--ui-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: normal;
+}
+
+.khata-card-title > .khata-count {
+  color: var(--ui-ink-3);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.khata-ledger .khata-card-sub,
+.khata-card-sub {
+  margin: 4px 0 0;
+  color: var(--ui-ink-3);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.khata-card-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Cards in a row share one height (skill 4.2); a closing note sits at the bottom. */
+.khata-card-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--khata-cols, 2), minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+.khata-card > .khata-foot-note:last-child {
+  margin-top: auto;
+}
+
+/* ── Section head (skill 5) ───────────────────────────────────────── */
+
+.khata-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-width: 0;
+}
+
+.khata-section-head > div:first-child {
+  min-width: 0;
+}
+
+.khata-ledger .khata-section-title,
+.khata-section-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  color: var(--ui-ink);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  line-height: normal;
+}
+
+.khata-ledger .khata-section-sub,
+.khata-section-sub {
+  margin: 6px 0 0;
+  color: var(--ui-ink-3);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.khata-section-title > .khata-count {
+  color: var(--ui-ink-3);
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.khata-section-title > .khata-pill {
+  letter-spacing: 0;
+}
+
+/* A section head sits 12px above the cards it heads, closer than the 20px
+   between groups, so it reads as their title. */
+.khata-section-head + * {
+  margin-top: -8px;
+}
+
+.khata-section-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ── Stat cards (skill 6.4) ───────────────────────────────────────── */
+
+.khata-stats {
+  display: grid;
+  grid-template-columns: repeat(var(--khata-cols, 4), minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+.khata-stat {
+  gap: 12px;
+}
+
+.khata-stat .khata-card-head {
+  align-items: center;
+  min-height: 20px;
+}
+
+button.khata-stat {
+  border: 1px solid var(--ui-card-edge-on-grey);
+  text-align: left;
+  cursor: pointer;
+}
+
+button.khata-stat:hover {
+  background: var(--ui-sunk);
+}
+
+button.khata-stat:focus-visible {
+  outline: 2px solid var(--ui-link);
+  outline-offset: 2px;
+}
+
+.khata-figure {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
+.khata-figure strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ui-ink);
+  font: 500 26px/1 var(--ui-font-figure);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.khata-figure strong.is-bad {
+  color: var(--ui-bad-ink);
+}
+
+.khata-figure strong.is-ok {
+  color: var(--ui-ok);
+}
+
+.khata-figure > span {
+  color: var(--ui-ink-3);
+  font-size: 12.5px;
+}
+
+.khata-stat-note {
+  margin: auto 0 0;
+  color: var(--ui-ink-3);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.khata-stat-note.is-warn {
+  color: var(--ui-warn-ink);
+}
+
+.khata-stat-note.is-bad {
+  color: var(--ui-bad-ink);
+}
+
+/* Columns follow the page's own width, so an open sidebar doesn't squeeze four
+   figures into a row that can't hold them. */
+@container khata (max-width: 860px) {
+  /* Four figures break into two rows of two; three or six keep their columns. */
+  .khata-stats[data-cols='4'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .khata-card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@container khata (max-width: 520px) {
+  .khata-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A strip that runs edge to edge inside a flush card. */
+.khata-strip {
+  padding: 14px 20px;
+  border-top: 1px solid var(--ui-line);
+}
+
+.khata-card--flush > .khata-strip:first-child,
+.khata-card--flush > .khata-empty:first-child,
+.khata-card--flush > .khata-skeleton-rows:first-child {
+  border-top: 0;
+}
+
+/* ── Links and buttons (6.2, 6.10) ────────────────────────────────── */
+
+.khata-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--ui-link);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.khata-link:hover {
+  color: var(--ui-link-hover);
+  text-decoration: underline;
+}
+
+.khata-link:focus-visible {
+  outline: 2px solid var(--ui-link);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.khata-link:disabled {
+  color: var(--ui-ink-6);
+  cursor: default;
+  text-decoration: none;
+}
+
+.khata-link--danger {
+  color: var(--ui-bad-ink);
+}
+
+.khata-link--danger:hover {
+  color: var(--ui-bad-ink);
+}
+
+.khata-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: 6px;
-  margin-top: 6px;
-  color: var(--ds-ink3);
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--ui-control-edge);
+  border-radius: var(--ui-r-control);
+  background: var(--ui-card);
+  color: var(--ui-link);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.khata-btn:hover {
+  background: var(--ui-sunk);
+}
+
+.khata-btn:focus-visible {
+  outline: 2px solid var(--ui-link);
+  outline-offset: 2px;
+}
+
+.khata-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.khata-btn[aria-pressed='true'] {
+  border-color: var(--ui-brand-tint-2);
+  background: var(--ui-brand-tint);
+  color: var(--ui-brand-strong);
+}
+
+.khata-btn--primary {
+  border-color: var(--ui-link);
+  background: var(--ui-brand);
+  color: #fff;
+}
+
+.khata-btn--primary:hover {
+  background: var(--ui-brand-strong);
+}
+
+.khata-btn--tinted {
+  border-color: var(--ui-brand-tint-2);
+  background: var(--ui-brand-tint);
+  color: var(--ui-brand-strong);
+}
+
+.khata-btn--tinted:hover {
+  background: var(--ui-brand-tint-2);
+}
+
+.khata-btn--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ui-ink-3);
+}
+
+.khata-btn--ghost:hover {
+  background: var(--ui-sunk);
+  color: var(--ui-ink);
+}
+
+.khata-btn--danger {
+  border-color: var(--ui-bad);
+  background: var(--ui-bad);
+  color: #fff;
+}
+
+.khata-btn--danger:hover {
+  background: var(--ui-bad-ink);
+}
+
+.khata-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ui-r-control);
+  background: transparent;
+  color: var(--ui-ink-3);
+  cursor: pointer;
+}
+
+.khata-icon-btn:hover {
+  background: var(--ui-sunk);
+  color: var(--ui-ink);
+}
+
+.khata-icon-btn--danger:hover {
+  background: var(--ui-bad-tint);
+  color: var(--ui-bad-ink);
+}
+
+.khata-icon-btn:focus-visible {
+  outline: 2px solid var(--ui-link);
+  outline-offset: 2px;
+}
+
+/* ── Pills (6.11) ─────────────────────────────────────────────────── */
+
+.khata-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--ui-r-pill);
+  background: var(--ui-divider);
+  color: var(--ui-ink-3);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+.khata-pill--sm {
+  padding: 1px 8px;
+  font-size: 11px;
+}
+
+.khata-pill--ok {
+  background: var(--ui-ok-tint);
+  color: var(--ui-ok);
+}
+
+.khata-pill--warn {
+  background: var(--ui-warn-tint);
+  color: var(--ui-warn-ink);
+}
+
+.khata-pill--bad {
+  background: var(--ui-bad-tint);
+  color: var(--ui-bad-ink);
+}
+
+.khata-pill--info {
+  background: var(--ui-brand-wash);
+  color: var(--ui-brand-deep);
+}
+
+.khata-chip-missing {
+  display: inline-flex;
+  padding: 3px 8px;
+  border: 1px dashed var(--ui-ink-6);
+  border-radius: var(--ui-r-chip);
+  color: var(--ui-ink-4);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.khata-muted {
+  color: var(--ui-ink-5);
+}
+
+/* ── KPI strip: entity header card and dialogs only (skill 6.5) ──────────────────────────────────────────────── */
+
+.khata-kpis {
+  display: grid;
+  grid-template-columns: repeat(var(--khata-kpi-count, 4), minmax(150px, 1fr));
+  overflow-x: auto;
+}
+
+.khata-card-head + .khata-kpis,
+.khata-strip + .khata-kpis {
+  border-top: 1px solid var(--ui-line);
+}
+
+.khata-kpi {
+  display: grid;
+  grid-template-rows: 16px 28px 4px 16px;
+  gap: 8px;
+  align-content: start;
+  min-width: 0;
+  padding: 16px 20px;
+  border: 0;
+  border-right: 1px solid var(--ui-line);
+  background: var(--ui-card);
+  color: var(--ui-ink);
+  text-align: left;
+  font-family: var(--ui-font);
+}
+
+.khata-kpi:last-child {
+  border-right: 0;
+}
+
+button.khata-kpi {
+  cursor: pointer;
+}
+
+button.khata-kpi:hover {
+  background: var(--ui-sunk);
+}
+
+button.khata-kpi:focus-visible {
+  outline: 2px solid var(--ui-link);
+  outline-offset: -2px;
+}
+
+.khata-kpi-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+  color: var(--ui-ink-3);
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.khata-kpi-label > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.khata-kpi-value {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ui-ink);
+  font: 500 22px/28px var(--ui-font-figure);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.khata-kpi-value.is-bad {
+  color: var(--ui-bad-ink);
+}
+
+.khata-kpi-value.is-ok {
+  color: var(--ui-ok);
+}
+
+.khata-kpi-bar {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--ui-divider);
+}
+
+.khata-kpi-bar > b {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--ui-brand);
+}
+
+.khata-kpi-note {
+  overflow: hidden;
+  color: var(--ui-ink-5);
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.khata-kpi-note.is-warn {
+  color: var(--ui-warn-ink);
+}
+
+.khata-kpi-note.is-bad {
+  color: var(--ui-bad-ink);
+}
+
+/* ── Filters ──────────────────────────────────────────────────────── */
+
+.khata-toolbar {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.khata-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(190px, 100%), 1fr));
+  gap: 12px;
+}
+
+.khata-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.khata-field > label,
+.khata-field > .khata-field-label {
+  color: var(--ui-ink-3);
+  font-size: 12px;
+  line-height: normal;
+}
+
+.khata-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 240px;
+  min-width: 0;
+  max-width: 420px;
+}
+
+.khata-card-actions .khata-search {
+  flex: 0 1 280px;
+  width: 280px;
+}
+
+.khata-search > svg {
+  position: absolute;
+  left: 12px;
+  color: var(--ui-ink-5);
+  pointer-events: none;
+}
+
+.khata-search input,
+.khata-input {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-line, var(--ui-line-strong));
+  border-radius: var(--ui-r-control);
+  background: var(--ui-card);
+  color: var(--ui-ink);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  box-sizing: border-box;
+}
+
+.khata-search input {
+  padding-left: 36px;
+  padding-right: 32px;
+}
+
+.khata-search input::placeholder,
+.khata-input::placeholder {
+  color: var(--ui-ink-5);
+}
+
+.khata-search input:focus-visible,
+.khata-input:focus-visible {
+  outline: 2px solid var(--ui-link);
+  outline-offset: 1px;
+}
+
+textarea.khata-input {
+  resize: vertical;
+}
+
+.khata-search-clear {
+  position: absolute;
+  right: 6px;
+}
+
+.khata-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  color: var(--ui-ink-2);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.khata-check input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--ui-brand);
+}
+
+/* The shared date picker trigger, sized like the shared dropdown. */
+.khata-ledger .date-range-trigger {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-line, var(--ui-line-strong));
+  border-radius: var(--ui-r-control);
+  background: var(--ui-card);
+  color: var(--ui-ink);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.khata-ledger .date-range-trigger:hover {
+  border-color: var(--ui-control-edge);
+  background: var(--ui-sunk);
+}
+
+.khata-ledger .date-range-trigger svg {
+  color: var(--ui-ink-4);
+}
+
+/* ── Tables (section 9) ───────────────────────────────────────────── */
+
+.khata-ledger table.khata-table,
+.khata-dialog table.khata-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--ui-ink);
+  font-size: 13px;
+}
+
+.khata-table thead tr,
+.khata-table tbody tr {
+  border: 0;
+}
+
+.khata-table th {
+  height: auto;
+  padding: 10px 14px;
+  border-top: 1px solid var(--ui-divider);
+  background: var(--ui-sunk);
+  color: var(--ui-ink-4);
+  font-size: 11px;
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.khata-table td {
+  padding: 10px 14px;
+  border-top: 1px solid var(--ui-divider);
+  color: var(--ui-ink);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.khata-table th:first-child,
+.khata-table td:first-child {
+  padding-left: 20px;
+}
+
+.khata-table th:last-child,
+.khata-table td:last-child {
+  padding-right: 20px;
+}
+
+.khata-table tbody tr:hover td {
+  background: var(--ui-sunk);
+}
+
+.khata-table .is-num {
+  font: 12px var(--ui-font-mono);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.khata-table th.is-num {
+  font-family: var(--ui-font);
+  font-size: 11px;
+}
+
+.khata-table .is-end {
+  text-align: right;
+}
+
+.khata-table .is-center {
+  text-align: center;
+}
+
+.khata-table .is-secondary {
+  color: var(--ui-ink-3);
   font-size: 12px;
 }
 
-.khata-filter-fields {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--ds-line);
+.khata-table .is-code {
+  font: 12px var(--ui-font-mono);
+  white-space: nowrap;
 }
 
-.khata-kpis {
+.khata-cell-main {
+  display: block;
+  color: var(--ui-ink);
+  font-weight: 500;
+}
+
+.khata-cell-sub {
+  display: block;
+  margin-top: 2px;
+  color: var(--ui-ink-3);
+  font-size: 12px;
+}
+
+.khata-cell-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.khata-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+}
+
+.khata-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--ui-brand-tint);
+  color: var(--ui-brand-deep);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.khata-entity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* ── Footer pager ─────────────────────────────────────────────────── */
+
+.khata-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--ui-line);
+  color: var(--ui-ink-3);
+  font-size: 12.5px;
+}
+
+.khata-pager-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.khata-pager-nav > span {
+  color: var(--ui-ink-3);
+}
+
+/* ── Notes, empty, error, loading (6.7, section 10) ───────────────── */
+
+.khata-note {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--ui-r-control);
+  background: var(--ui-sunk);
+  color: var(--ui-ink-2);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.khata-note > svg {
+  margin-top: 2px;
+  color: var(--ui-ink-4);
+}
+
+.khata-note b,
+.khata-note strong {
+  font-weight: 600;
+}
+
+.khata-note p {
+  margin: 0;
+}
+
+/* A note standing on the grey page between cards gets a card surface. */
+.khata-panel > .khata-note,
+.khata-ledger > .pshell-body > .khata-note {
+  border: 1px solid var(--ui-card-edge-on-grey);
+  background: var(--ui-card);
+}
+
+.khata-note--warn {
+  background: var(--ui-warn-tint);
+  color: var(--ui-ink-2);
+}
+
+.khata-note--warn > svg {
+  color: var(--ui-warn-ink);
+}
+
+.khata-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.khata-card--flush > .khata-empty {
+  border-top: 1px solid var(--ui-line);
+}
+
+.khata-empty > svg {
+  margin-bottom: 4px;
+  color: var(--ui-ink-5);
+}
+
+.khata-empty strong {
+  color: var(--ui-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.khata-empty p {
+  max-width: 48ch;
+  margin: 0;
+  color: var(--ui-ink-3);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.khata-empty .khata-btn {
+  margin-top: 8px;
+}
+
+.khata-error {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.khata-error > svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--ui-bad-ink);
+}
+
+.khata-error > div {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.khata-error strong {
+  display: block;
+  color: var(--ui-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.khata-error p {
+  margin: 4px 0 0;
+  color: var(--ui-ink-3);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.khata-skeleton-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--ui-line);
+}
+
+/* ── Ranked rows: label, amount and a share track (6.5) ───────────── */
+
+.khata-rank {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.khata-rank > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 12px;
+  padding: 9px 0;
+  border-top: 1px solid var(--ui-divider);
+  font-size: 12.5px;
+}
+
+.khata-rank > li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.khata-rank-name {
+  overflow: hidden;
+  color: var(--ui-ink);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.khata-rank-value {
+  color: var(--ui-ink);
+  font: 12px var(--ui-font-mono);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.khata-rank-value small {
+  margin-left: 6px;
+  color: var(--ui-ink-5);
+  font-size: 11px;
+}
+
+.khata-track {
+  position: relative;
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--ui-line);
+}
+
+.khata-track > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 3px;
+  background: var(--ui-brand);
+}
+
+.khata-track--cost > span {
+  background: var(--ui-ink-5);
+}
+
+.khata-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  color: var(--ui-ink-3);
+  font-size: 11.5px;
+}
+
+.khata-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.khata-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--ui-brand);
+}
+
+.khata-legend i.is-cost {
+  background: var(--ui-ink-5);
+}
+
+.khata-foot-note {
+  margin: 0;
+  color: var(--ui-ink-3);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ── Scope header (dashboard) ─────────────────────────────────────── */
+
+.khata-scope-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 4px 0 0;
+  color: var(--ui-ink-3);
+  font-size: 12.5px;
+}
+
+.khata-scope-meta > .sep {
+  color: var(--ui-ink-6);
+}
+
+/* ── Dialogs ──────────────────────────────────────────────────────── */
+
+.khata-dialog {
+  color: var(--ui-ink);
+  font-family: var(--ui-font);
+}
+
+.khata-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px;
+}
+
+.khata-dialog-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
-/* Reuse Overview's KPI typography and layout with the shared card tokens. */
-.khata-kpis .ov-kpi {
-  padding: 16px;
-  border: 1px solid var(--ds-line);
-  border-radius: var(--ds-radius-md);
-  background: var(--card);
-  box-shadow: var(--ds-shadow);
-}
-
-.khata-kpis .ov-kpi-label {
-  color: var(--ds-ink3);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-}
-
-.khata-kpis .ov-kpi-label svg {
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  color: var(--accent-ink);
-}
-
-.khata-kpis--headline .ov-kpi {
-  padding: 18px 20px;
-}
-
-.khata-kpis--headline .ov-kpi-label svg {
-  padding: 6px;
-  border-radius: 8px;
-  background: var(--ds-info-tint);
-  box-sizing: content-box;
-}
-
-.khata-kpis.khata-kpis--headline .ov-kpi-value {
-  font-size: 30px;
-}
-
-.khata-section-heading {
+.khata-dialog-section {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 4px 0 14px;
-}
-
-.khata-ledger .khata-section-heading h2 {
-  margin: 0;
-  color: var(--ds-ink);
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.5;
-}
-
-.khata-ledger .khata-section-heading p {
-  margin: 3px 0 0;
-  color: var(--ds-ink3);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.khata-section-note {
-  color: var(--ds-ink3);
-  font-size: 11px;
-}
-
-.khata-charts-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 16px;
-}
-
-.khata-chart-card {
-  min-width: 0;
-  container-type: inline-size;
-}
-
-.page-content .khata-ledger .khata-chart-card:hover {
-  transform: none;
-  box-shadow: var(--ds-shadow);
-  border-color: var(--ds-line);
-}
-
-.khata-chart-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 18px;
-}
-
-.khata-chart-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  color: var(--accent-ink);
-  background: var(--ds-info-tint);
-}
-
-.khata-chart-canvas {
-  width: 100%;
-  height: 244px;
-  min-width: 0;
-}
-
-.khata-donut-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--ui-line);
+  border-radius: var(--ui-r-control);
+  background: var(--ui-sunk);
 }
 
-.khata-donut-canvas {
-  position: relative;
-  width: 100%;
-  height: 220px;
-  min-width: 0;
-}
-
-.khata-donut-total {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  pointer-events: none;
-}
-
-.khata-donut-total span {
-  color: var(--ds-ink3);
-  font-size: 11px;
-}
-
-.khata-donut-total strong {
-  color: var(--ds-ink);
-  font-size: 22px;
-  font-variant-numeric: tabular-nums;
-}
-
-.khata-chart-legend {
-  list-style: none;
+.khata-dialog-section > h4 {
   margin: 0;
-  padding: 0;
-  min-width: 0;
-}
-
-.khata-chart-legend li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 9px 0;
-  border-bottom: 1px solid var(--ds-line);
-  color: var(--ds-ink2);
-  font-size: 12px;
-}
-
-.khata-chart-legend li:last-child {
-  border-bottom: 0;
-}
-
-.khata-legend-label,
-.khata-comparison-legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.khata-legend-label i,
-.khata-comparison-legend i {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-
-.khata-legend-amount {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  font-variant-numeric: tabular-nums;
-}
-
-.khata-legend-amount strong {
-  color: var(--ds-ink);
+  color: var(--ui-ink);
+  font-size: 12.5px;
   font-weight: 600;
 }
 
-.khata-legend-amount small {
-  color: var(--ds-ink3);
-  font-size: 10px;
-}
-
-.khata-comparison-legend {
+.khata-dialog-foot {
   display: flex;
   justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin-bottom: 8px;
-  color: var(--ds-ink2);
-  font-size: 11px;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--ui-line);
 }
 
-.khata-ledger .khata-chart-note {
-  margin: 10px 0 0;
-  padding-top: 10px;
-  border-top: 1px solid var(--ds-line);
-  color: var(--ds-ink3);
-  font-size: 11px;
-  line-height: 1.5;
+.khata-required {
+  color: var(--ui-bad-ink);
 }
 
-.khata-chart-empty {
-  min-height: 220px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 24px 16px;
-  border: 1px dashed var(--ds-line);
-  border-radius: 8px;
-  background: var(--ds-sunk);
-  text-align: center;
-}
-
-.khata-chart-empty-icon {
-  color: var(--ds-neutral-ink);
-}
-
-.khata-chart-empty strong {
-  color: var(--ds-ink2);
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.khata-chart-empty > span:last-child {
-  max-width: 30ch;
-  color: var(--ds-ink3);
+.khata-hint {
+  margin: 0;
+  color: var(--ui-ink-3);
   font-size: 12px;
   line-height: 1.5;
 }
 
-.khata-dashboard-error {
+/* ── Info rows (6.6) ──────────────────────────────────────────────── */
+
+.khata-rows > div {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  border: 1px solid var(--ds-line);
-  border-radius: var(--ds-radius-md);
-  padding: 24px;
-  background: var(--card);
-  color: var(--ds-crit-ink);
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--ui-divider);
+  font-size: 12.5px;
 }
 
-.khata-dashboard-error strong {
-  color: var(--ds-ink);
-  font-size: 14px;
+.khata-rows > div:first-child {
+  border-top: 0;
 }
 
-.khata-erp-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  border: 1px solid var(--ds-line);
-  border-radius: var(--ds-radius-md);
-  padding: 16px 20px;
-  background: var(--card);
-  color: var(--ds-ink3);
+.khata-rows > div > span:first-child {
+  color: var(--ui-ink-3);
 }
 
-.khata-erp-note strong {
-  color: var(--ds-ink);
-  font-size: 13px;
-  display: block;
-}
-
-.khata-erp-note p {
-  margin: 4px 0 0;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.khata-ledger .khata-dashboard-error p {
-  margin: 4px 0 0;
-  color: var(--ds-ink3);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-@media (min-width: 1200px) {
-  .khata-charts-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@container (min-width: 460px) {
-  .khata-donut-layout {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
-}
-
-.khata-kpis .ov-kpi-value {
-  color: var(--ds-ink);
-  font-size: 24px;
-  line-height: 1.25;
+.khata-rows > div > span:last-child {
+  min-width: 0;
+  text-align: right;
   overflow-wrap: anywhere;
 }
 
-.khata-kpis .ov-kpi-sub {
-  color: var(--ds-ink3);
-  font-size: 12px;
-}
-
-.khata-kpis .ov-kpi > div:last-child {
-  flex-wrap: wrap;
-}
-
-.khata-kpi-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border-radius: var(--ds-radius-sm);
-  padding: 2px 6px;
-  color: var(--ds-neutral-ink);
-  background: var(--ds-neutral-tint);
-  font-size: 10px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.khata-kpi-status--ok {
-  color: var(--ds-ok-ink);
-  background: var(--ds-ok-tint);
-}
-
-.khata-kpi-status--critical {
-  color: var(--ds-crit-ink);
-  background: var(--ds-crit-tint);
-}
-
-.khata-kpi-status--warning {
-  color: var(--ds-warn-ink);
-  background: var(--ds-warn-tint);
-}
-
-@media (min-width: 768px) {
-  .khata-kpis {
-    grid-template-columns: repeat(var(--khata-kpi-columns, 4), minmax(0, 1fr));
+@media (max-width: 600px) {
+  .pshell.khata-ledger {
+    padding: 16px 16px 28px;
   }
-}
 
-@media (max-width: 479px) {
-  .khata-kpis {
+  .khata-card {
+    padding: 16px;
+  }
+
+  .khata-card--flush {
+    padding: 0;
+  }
+
+  .khata-card--flush > .khata-card-head,
+  .khata-strip,
+  .khata-pager,
+  .khata-skeleton-rows {
+    padding-inline: 16px;
+  }
+
+  .khata-kpi {
+    padding: 14px 16px;
+  }
+
+  .khata-search {
+    max-width: none;
+  }
+
+  .khata-dialog-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
-@media (max-width: 767px) {
-  .pshell.khata-ledger {
-    padding: 20px 16px 32px;
+@media (prefers-reduced-motion: reduce) {
+  .khata-ledger [data-slot='skeleton'] {
+    animation: none;
   }
 }

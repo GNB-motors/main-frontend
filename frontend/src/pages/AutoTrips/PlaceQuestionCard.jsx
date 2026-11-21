@@ -1,7 +1,7 @@
-import SearchableSelect from '@/components/SearchableDropdown/SearchableSelect';
+import NamePlaceDialog from '../../components/places/NamePlaceDialog';
 import { useState } from 'react';
 import { ArrowUpRight, Check, MapPin, Pencil } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   PLACE_CATEGORIES,
   placeCategory,
@@ -22,9 +22,8 @@ const SOURCES = {
 
 /** Help the owner identify a GPS stop and understand which trips the answer affects. */
 export default function PlaceQuestionCard({ question, canAnswer = true, onAnswer, busy = false }) {
+  const location = useLocation();
   const [mode, setMode] = useState(null);
-  const [name, setName] = useState(question?.suggestion?.name ?? '');
-  const [category, setCategory] = useState(placeCategory(question?.suggestion?.category));
   if (!question) return null;
 
   const suggest = question.suggestion;
@@ -85,16 +84,20 @@ export default function PlaceQuestionCard({ question, canAnswer = true, onAnswer
           {samples.map((sample, index) => {
             const targetUrl = sample.to?.startsWith('/trips/')
               ? sample.to.replace('/trips/', '/auto-trips/')
-              : (sample.to || '/auto-trips');
+              : sample.to || '/auto-trips';
             const displayLabel =
               sample.label && sample.label !== 'Open trip'
                 ? sample.label
                 : samples.length > 1
                   ? `Sample trip ${index + 1}`
-                  : (sample.label || 'Open sample trip');
+                  : sample.label || 'Open sample trip';
 
             return (
-              <Link key={`${targetUrl}-${index}`} to={targetUrl}>
+              <Link
+                key={`${targetUrl}-${index}`}
+                to={targetUrl}
+                state={{ tripsReturnTo: `${location.pathname}${location.search}` }}
+              >
                 {displayLabel} <ArrowUpRight size={13} aria-hidden="true" />
               </Link>
             );
@@ -111,106 +114,65 @@ export default function PlaceQuestionCard({ question, canAnswer = true, onAnswer
         <div className="atx-place-question-answer">
           <strong>Your answer</strong>
           <p>
-            Confirm the name and type of this place. Delivery points can update linked trips; fuel
-            and rest stops leave trips open.
+            Confirming this place applies across your organisation and may update matching trips.
           </p>
-          {mode === 'rename' ? (
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (!busy && name.trim()) answer({ answer: 'RENAME', name: name.trim(), category });
-              }}
+          <div className="atx-place-question-actions">
+            {suggest?.name?.trim() ? (
+              <button
+                type="button"
+                className="atx-place-action atx-place-action--primary"
+                disabled={busy}
+                onClick={() => answer(suggestedPlaceAnswer(question))}
+              >
+                <Check size={15} aria-hidden="true" />
+                {busy ? 'Saving…' : 'Confirm place'}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="atx-place-action"
+              disabled={busy}
+              onClick={() => setMode('rename')}
             >
-              <div className="atx-place-question-fields">
-                <label>
-                  Place name
-                  <input
-                    type="text"
-                    aria-label="New name for this place"
-                    maxLength={120}
-                    value={name}
-                    disabled={busy}
-                    onChange={(event) => setName(event.target.value)}
-                  />
-                </label>
-                <label>
-                  Place type
-                  <SearchableSelect
-                    aria-label="Place type"
-                    value={category}
-                    disabled={busy}
-                    onChange={(event) => setCategory(event.target.value)}
-                  >
-                    {PLACE_CATEGORIES.map((item) => (
-                      <option key={item.value} value={item.value}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </SearchableSelect>
-                </label>
-              </div>
-              <div className="atx-place-question-actions">
-                <button
-                  type="submit"
-                  className="atx-place-action atx-place-action--primary"
-                  disabled={busy || !name.trim()}
-                >
-                  {busy ? 'Saving…' : 'Save place'}
-                </button>
-                <button
-                  type="button"
-                  className="atx-place-action"
-                  disabled={busy}
-                  onClick={() => setMode(null)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          ) : (
-            <div className="atx-place-question-actions">
-              {suggest?.name?.trim() ? (
-                <button
-                  type="button"
-                  className="atx-place-action atx-place-action--primary"
-                  disabled={busy}
-                  onClick={() => answer(suggestedPlaceAnswer(question))}
-                >
-                  <Check size={15} aria-hidden="true" />
-                  {busy ? 'Saving…' : 'Confirm place'}
-                </button>
-              ) : null}
-              <button
-                type="button"
-                className="atx-place-action"
-                disabled={busy}
-                onClick={() => setMode('rename')}
-              >
-                <Pencil size={14} aria-hidden="true" />
-                {suggest ? 'Edit name or type' : 'Name this place'}
-              </button>
-              <button
-                type="button"
-                className="atx-place-action atx-place-action--quiet"
-                disabled={busy}
-                onClick={() => answer({ answer: 'NOT_A_PLACE' })}
-              >
-                Not a place
-              </button>
-              <button
-                type="button"
-                className="atx-place-action atx-place-action--quiet"
-                disabled={busy}
-                onClick={() => answer({ answer: 'SKIP' })}
-              >
-                Skip for now
-              </button>
-            </div>
-          )}
+              <Pencil size={14} aria-hidden="true" />
+              {suggest?.name?.trim() ? 'Edit name or type' : 'Name this place'}
+            </button>
+            <button
+              type="button"
+              className="atx-place-action atx-place-action--quiet"
+              disabled={busy}
+              onClick={() => answer({ answer: 'NOT_A_PLACE' })}
+            >
+              Not a place
+            </button>
+            <button
+              type="button"
+              className="atx-place-action atx-place-action--quiet"
+              disabled={busy}
+              onClick={() => answer({ answer: 'SKIP' })}
+            >
+              Skip for now
+            </button>
+          </div>
         </div>
       ) : (
         <p className="atx-place-question-readonly">Ask your manager to answer this.</p>
       )}
+      {canAnswer && mode === 'rename' ? (
+        <NamePlaceDialog
+          title={suggest?.name?.trim() ? 'Edit place' : 'Name this place'}
+          description="Save this name and type across your organisation. Matching delivery trips may update, including outside this period."
+          initialName={suggest?.name ?? ''}
+          initialType={suggest?.category ? placeCategory(suggest.category) : ''}
+          options={PLACE_CATEGORIES}
+          maxLength={120}
+          onClose={() => setMode(null)}
+          onSave={async ({ name, type }) => {
+            const result = await answer({ answer: 'RENAME', name, category: type });
+            if (result?.error) throw new Error(result.error);
+          }}
+        />
+      ) : null}
     </article>
   );
 }

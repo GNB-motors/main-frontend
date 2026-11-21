@@ -399,28 +399,69 @@ function SingleBillDialog({
   );
 }
 
+// What a picked photo is doing, in a few words.
+const PICKED_WORDS = {
+  hashing: 'Checking…',
+  ready: 'Ready to upload',
+  queued: 'Waiting to upload',
+  sending: 'Uploading…',
+  failed: 'Upload failed',
+  duplicate: 'Already added, not sent again',
+};
+const REMOVABLE = new Set(['ready', 'queued', 'failed', 'duplicate']);
+const BILL_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+// The server refuses a page bigger than this.
+const MAX_BILL_BYTES = 10 * 1024 * 1024;
+const photos = (n) => `${n} ${n === 1 ? 'photo' : 'photos'}`;
+
+/** A small preview of a picked photo, made in the browser. */
+function PickedThumb({ file }) {
+  const [url, setUrl] = useState('');
+  useEffect(() => {
+    if (!file || !URL.createObjectURL) return undefined;
+    const local = URL.createObjectURL(file);
+    setUrl(local);
+    return () => URL.revokeObjectURL(local);
+  }, [file]);
+  return url ? (
+    <img className="bp-upload__thumb" src={url} alt="" />
+  ) : (
+    <span className="bp-upload__thumb" aria-hidden="true" />
+  );
+}
+
 /**
- * Many bills at once. The bill type and the truck are optional: the server
- * reads the photo, suggests the truck and the owner confirms it later in
- * "Bills to confirm".
+ * Many bills at once. Picked photos wait until the owner presses Upload, then
+ * go one at a time. The server reads each photo and suggests its truck; the
+ * owner confirms it below, or later in Approvals.
  */
 function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [], onUnavailable }) {
   const input = useRef(null);
   const [dragging, setDragging] = useState(false);
-  const [kind, setKind] = useState('');
   const [error, setError] = useState(null);
 
   const addFiles = (files) => {
     const list = Array.from(files || []);
     if (!list.length) return;
-    const bad = list.find((file) => !['image/jpeg', 'image/png', 'image/webp'].includes(file.type));
-    if (bad) {
+    if (list.some((file) => !BILL_IMAGE_TYPES.includes(file.type))) {
       setError('Choose JPG, PNG or WEBP bill photos.');
+      return;
+    }
+    if (list.some((file) => file.size > MAX_BILL_BYTES)) {
+      setError('Each bill photo must be smaller than 10 MB.');
       return;
     }
     setError(null);
     queue?.add?.(list);
   };
+  const picked = rows.filter((row) => PICKED_WORDS[row.status]);
+  const uploaded = rows.filter((row) => row.status === 'sent' || row.status === 'confirmed');
+  const ready = rows.filter((row) => row.status === 'ready').length;
+  const checking = rows.some((row) => row.status === 'hashing');
+  const run = Math.max(0, ...rows.map((row) => row.run || 0));
+  const inRun = run ? rows.filter((row) => row.run === run) : [];
+  const running = inRun.some((row) => row.status === 'queued' || row.status === 'sending');
+  const finished = inRun.filter((row) => !['queued', 'sending'].includes(row.status)).length;
   const waiting = rows.filter((row) => row.status === 'sent').length;
   const changeOpen = (next) => {
     if (!next && waiting)
@@ -432,10 +473,6 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [], 
       );
     onOpenChange(next);
   };
-  const changeKind = (next) => {
-    setKind(next ?? '');
-    queue?.setKind?.(next ?? '');
-  };
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
@@ -443,18 +480,10 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [], 
         <DialogHeader className="bp-dialog-head">
           <DialogTitle>Add bill photos</DialogTitle>
           <DialogDescription>
-            1. Upload photos. 2. Check suggested trucks. 3. Confirm bills.
+            1. Choose one or more photos. 2. Press Upload. 3. Check the trucks and confirm.
           </DialogDescription>
         </DialogHeader>
         <div className="bp-dialog-body">
-          <div className="bp-field">
-            <label htmlFor="bill-queue-kind">Bill type (optional)</label>
-            <SearchableSelect id="bill-queue-kind" value={kind} onValueChange={changeKind}>
-              <option value="">Not sure</option>
-              <option value="DIESEL">Diesel slip</option>
-              <option value="ADBLUE">DEF (AdBlue) slip</option>
-            </SearchableSelect>
-          </div>
           <button
             type="button"
             className={`bp-drop${dragging ? ' bp-drop--active' : ''}`}
@@ -472,7 +501,7 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [], 
           >
             <Camera size={26} aria-hidden="true" />
             <span>Drop bill photos or tap to choose</span>
-            <small>JPG, PNG or WEBP · many at a time</small>
+            <small>JPG, PNG or WEBP · one or many · up to 10 MB each</small>
           </button>
           <input
             ref={input}
@@ -491,8 +520,61 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [], 
               {error}
             </p>
           ) : null}
+          {!rows.length ? (
+            <p className="bp-help">Choose the bill photos, then press Upload.</p>
+          ) : null}
+          {running ? (
+            <div className="bp-uploads-progress" role="status">
+              <strong>{`Uploading ${Math.min(finished + 1, inRun.length)} of ${inRun.length}…`}</strong>
+              <div className="bp-bar">
+                <div
+                  className="bp-bar-fill"
+                  style={{ width: `${(finished / inRun.length) * 100}%` }}
+                />
+              </div>
+              <span>You can close this and keep working. The upload goes on.</span>
+            </div>
+          ) : null}
+          {picked.length ? (
+            <ul className="bp-uploads" aria-label="Photos to upload">
+              {picked.map((row) => (
+                <li key={row.id} className={`bp-upload bp-upload--${row.status}`}>
+                  <PickedThumb file={row.file} />
+                  <span className="bp-upload__text">
+                    <span className="bp-upload__name">{row.name}</span>
+                    <span className="bp-upload__state">
+                      {row.status === 'sending' || row.status === 'hashing' ? (
+                        <Loader2 size={12} className="animate-spin" aria-hidden="true" />
+                      ) : null}
+                      {PICKED_WORDS[row.status]}
+                    </span>
+                  </span>
+                  {row.status === 'failed' ? (
+                    <Button size="sm" variant="outline" onClick={() => queue?.retry?.(row.id)}>
+                      Try again
+                    </Button>
+                  ) : null}
+                  {REMOVABLE.has(row.status) ? (
+                    <button
+                      type="button"
+                      className="bp-file-remove"
+                      aria-label={`Remove ${row.name}`}
+                      onClick={() => queue?.remove?.(row.id)}
+                    >
+                      <X size={15} />
+                    </button>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {uploaded.length ? (
+            <p className="bp-help">
+              <strong>Uploaded.</strong> Check the truck of each bill, then confirm.
+            </p>
+          ) : null}
           <BillsTable
-            rows={rows}
+            rows={uploaded}
             via="UPLOAD"
             vehicles={vehicles}
             queue={queue}
@@ -509,6 +591,9 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [], 
         <div className="bp-dialog-foot flex-wrap">
           <Button variant="outline" size="sm" onClick={() => changeOpen(false)}>
             Close
+          </Button>
+          <Button size="sm" disabled={!ready || checking} onClick={() => queue?.start?.()}>
+            {ready ? `Upload ${photos(ready)}` : running ? 'Uploading…' : 'Upload'}
           </Button>
         </div>
       </DialogContent>

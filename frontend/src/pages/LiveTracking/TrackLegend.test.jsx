@@ -72,6 +72,7 @@ describe('TrackLegend', () => {
     renderLegend({
       onPlaceScopeChange: change,
       placeScopes: { pumps: 'visited', dhabas: 'visited' },
+      layerSelection: { ...defaultLayerSelection(), pumps: true, dhabas: true },
     });
     const expand = screen.queryByRole('button', { name: 'Expand Places' });
     if (expand) fireEvent.click(expand);
@@ -197,5 +198,26 @@ describe('TrackLegend', () => {
     const pill = screen.getByRole('button', { name: /Layers/ });
     expect(pill).toBeInTheDocument();
     expect(pill).not.toHaveTextContent('moving');
+  });
+  it('keeps inactive layer options and the area colour key out of the filter panel', () => {
+    renderLegend({
+      onPlaceScopeChange: vi.fn(),
+      onToggleAllTolls: vi.fn(),
+      layerSelection: { ...defaultLayerSelection(), pumps: false, dhabas: false, tolls: false },
+    });
+    const expand = screen.queryByRole('button', { name: 'Expand Places' });
+    if (expand) fireEvent.click(expand);
+    expect(
+      screen.queryByRole('switch', { name: 'Show all pumps in view' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('switch', { name: 'Show all dhabas in view' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('switch', { name: 'Show all tolls in view' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Place areas')).not.toBeInTheDocument();
+    expect(screen.queryByText('Fuel-risk area')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Pumps/ })).toBeEnabled();
   });
 });

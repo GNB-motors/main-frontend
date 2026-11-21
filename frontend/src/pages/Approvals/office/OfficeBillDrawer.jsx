@@ -17,7 +17,15 @@ import OfficeTruckSuggestions from './OfficeTruckSuggestions';
  * drawer, with the photo on the left, the facts and the truck choices on the
  * right.
  */
-const OfficeBillDrawer = ({ capture, open = true, onClose, vehicles = [], onSaved, onHistory }) => {
+const OfficeBillDrawer = ({
+  capture,
+  open = true,
+  onClose,
+  vehicles = [],
+  onSaved,
+  onHistory,
+  onReject,
+}) => {
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [photo, setPhoto] = useState('');
@@ -351,6 +359,16 @@ const OfficeBillDrawer = ({ capture, open = true, onClose, vehicles = [], onSave
               </>
             ) : (
               <>
+                {onReject && !row.rejected && (
+                  <button
+                    type="button"
+                    className="ra-btn ra-btn--reject"
+                    onClick={() => onReject(capture)}
+                    disabled={saving}
+                  >
+                    <X size={16} /> Reject
+                  </button>
+                )}
                 <button
                   key={`confirm-${shakeCount}`}
                   ref={confirmButtonRef}

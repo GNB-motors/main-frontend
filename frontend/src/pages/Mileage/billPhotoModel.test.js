@@ -25,6 +25,8 @@ describe('buildBillFormData', () => {
     expect(form.get('clientId')).toBe('client-1');
     expect(buildBillFormData(file, 'client-1', 'WB01').get('vehicleHint')).toBe('WB01');
     expect(form.has('vehicleHint')).toBe(false);
+    // The server refuses fields it does not know.
+    expect(form.has('kind')).toBe(false);
   });
 });
 
@@ -79,9 +81,7 @@ describe('isAutoMatch / needsChoice', () => {
 
 describe('shouldKeepPolling', () => {
   it('stops when the answer arrives', () => {
-    expect(
-      shouldKeepPolling({ startedAt: 0, now: 1000, decision: 'AUTO' }),
-    ).toBe(false);
+    expect(shouldKeepPolling({ startedAt: 0, now: 1000, decision: 'AUTO' })).toBe(false);
   });
 
   it('stops when the request failed', () => {
@@ -93,9 +93,9 @@ describe('shouldKeepPolling', () => {
   });
 
   it('stops after the timeout', () => {
-    expect(
-      shouldKeepPolling({ startedAt: 0, now: POLL_TIMEOUT_MS + 1, decision: null }),
-    ).toBe(false);
+    expect(shouldKeepPolling({ startedAt: 0, now: POLL_TIMEOUT_MS + 1, decision: null })).toBe(
+      false,
+    );
   });
 
   it('polls every two seconds for thirty', () => {

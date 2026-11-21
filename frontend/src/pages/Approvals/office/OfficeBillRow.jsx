@@ -1,4 +1,4 @@
-import { Eye, History, Receipt, Store, Truck } from 'lucide-react';
+import { Eye, History, Receipt, Store, Truck, X } from 'lucide-react';
 import { DASH, officeRow } from './officeBill';
 
 /**
@@ -8,21 +8,13 @@ import { DASH, officeRow } from './officeBill';
  * (`ra-table`, `ra-veh-cell`, `ra-badge`, ...), so both queues read the same
  * way and the phone layout works without a second stylesheet.
  */
-const OfficeBillRow = ({ capture, index = 0, confirmed = false, onOpen, onHistory }) => {
+const OfficeBillRow = ({ capture, index = 0, confirmed = false, onOpen, onHistory, onReject }) => {
   const row = officeRow(capture);
   const isConfirmed = row.confirmed || confirmed;
   return (
-    <tr
-      className="ra-clickable"
-      onClick={() => onOpen?.(capture)}
-      aria-label={`Bill ${row.id}`}
-    >
+    <tr className="ra-clickable" onClick={() => onOpen?.(capture)} aria-label={`Bill ${row.id}`}>
       {/* The photo opens the same drawer the Review button opens. */}
-      <td
-        className="ra-table__td-slip"
-        data-label="Photo"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <td className="ra-table__td-slip" data-label="Photo" onClick={(e) => e.stopPropagation()}>
         <button
           type="button"
           className="ra-slip-thumbnail"
@@ -44,7 +36,7 @@ const OfficeBillRow = ({ capture, index = 0, confirmed = false, onOpen, onHistor
             </span>
             <strong>{row.plate || DASH}</strong>
           </span>
-          {((row.market && !isConfirmed) || (row.certainty && !isConfirmed)) && (
+          {!row.rejected && ((row.market && !isConfirmed) || (row.certainty && !isConfirmed)) && (
             <div className="ra-chip-row">
               {row.market && (
                 <span
@@ -68,6 +60,14 @@ const OfficeBillRow = ({ capture, index = 0, confirmed = false, onOpen, onHistor
           {isConfirmed && (
             <span className="ra-driver-phone">
               {`Confirmed by ${row.confirmedBy} \u00b7 ${row.confirmedVia}`}
+            </span>
+          )}
+          {row.rejected && (
+            <span className="apv-decision">
+              <span>{`Rejected by ${row.rejectedBy}`}</span>
+              {row.rejectionReason && (
+                <span className="apv-decision__reason">{row.rejectionReason}</span>
+              )}
             </span>
           )}
         </div>
@@ -104,12 +104,8 @@ const OfficeBillRow = ({ capture, index = 0, confirmed = false, onOpen, onHistor
       {/* The date and the time the bill itself shows. */}
       <td className="ra-center" data-label="Bill date/time">
         <div className="ra-time-cell">
-          <div style={{ fontWeight: 600, color: 'var(--foreground)' }}>
-            {row.date || DASH}
-          </div>
-          {row.time && (
-            <div style={{ fontSize: '11px', opacity: 0.75 }}>{row.time}</div>
-          )}
+          <div style={{ fontWeight: 600, color: 'var(--foreground)' }}>{row.date || DASH}</div>
+          {row.time && <div style={{ fontSize: '11px', opacity: 0.75 }}>{row.time}</div>}
         </div>
       </td>
 
@@ -119,9 +115,11 @@ const OfficeBillRow = ({ capture, index = 0, confirmed = false, onOpen, onHistor
           className={`ra-badge ${
             row.status === 'Confirmed'
               ? 'ra-badge--published'
-              : row.status === 'Needs review'
-                ? 'ra-badge--ready'
-                : 'ra-badge--cleared'
+              : row.status === 'Rejected'
+                ? 'ra-badge--rejected'
+                : row.status === 'Needs review'
+                  ? 'ra-badge--ready'
+                  : 'ra-badge--cleared'
           }`}
         >
           <span className="ra-badge__dot" />
@@ -141,6 +139,16 @@ const OfficeBillRow = ({ capture, index = 0, confirmed = false, onOpen, onHistor
           >
             <Eye size={14} />
           </button>
+          {onReject && !isConfirmed && !row.rejected && (
+            <button
+              type="button"
+              className="apv-row-btn apv-row-btn--reject"
+              onClick={() => onReject(capture)}
+              title="Reject this bill"
+            >
+              <X size={14} /> Reject
+            </button>
+          )}
           {isConfirmed && (
             <button
               type="button"

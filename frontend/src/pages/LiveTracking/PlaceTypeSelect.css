@@ -1,0 +1,14 @@
+.lt-place-type-options {
+  max-height: min(320px, var(--available-height));
+  padding: 4px;
+}
+.lt-place-type-options [data-slot='select-item'] {
+  min-height: 36px;
+  padding-left: 10px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.lt-place-type-options [data-slot='select-item'][data-highlighted] {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
