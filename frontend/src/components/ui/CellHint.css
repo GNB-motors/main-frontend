@@ -1,0 +1,26 @@
+/* The trigger is invisible chrome: the cell's own content is what you see. */
+.cell-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  /* Follows the row: a clickable row keeps its pointer, nothing else. */
+  cursor: inherit;
+}
+.cell-hint:focus-visible {
+  outline: 2px solid var(--ui-link);
+  outline-offset: 2px;
+}
+.data-tooltip.cell-hint-card {
+  width: max-content;
+  max-width: 280px;
+  white-space: normal;
+}

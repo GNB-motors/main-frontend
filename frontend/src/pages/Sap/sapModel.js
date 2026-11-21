@@ -37,6 +37,17 @@ export function verdictView(comparison, tolerance = 10) {
     return { tone: v.toLowerCase(), text: signed(comparison.deltaPct, '%') };
   return { tone: 'none', text: '—' };
 }
+/** The words beside a trip's SAP km: why there is none, or how the trip compares. */
+export function sapNoteText(
+  sap,
+  comparison = sap?.comparison,
+  tolerance = sap?.tolerancePct ?? 10,
+) {
+  if (sap && sap.status && sap.status !== 'MATCHED')
+    return SAP_REASONS[sap.status] || 'SAP not computed yet';
+  const text = verdictView(comparison, tolerance).text;
+  return text === '—' ? 'Not compared' : text;
+}
 /**
  * What the road engine says about a typed SAP km, in words. `hint` is GET /sap/routes/hint.
  * A suggestion only: the person chooses the basis.

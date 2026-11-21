@@ -1,11 +1,16 @@
 import { Link } from 'react-router-dom';
+import CellHint from '@/components/ui/CellHint';
 import SapPill from '../Sap/SapPill';
-import { BASIS_LABEL } from '../Sap/sapModel';
+import { BASIS_LABEL, sapNoteText } from '../Sap/sapModel';
 import TripStatus from './TripStatus';
 import { flagReasons } from './tripFlags';
 import { PARTIAL_LABEL } from '../../utils/measured';
-import { fmtDayTime, fmtKm } from './autoTripFormat';
-import { SUSPICIOUS_UNLOAD_LABEL, SUSPICIOUS_UNLOAD_REASON, isSuspiciousUnload } from './tripSuspicion';
+import { STATUS_LABEL, fmtDayTime, fmtKm } from './autoTripFormat';
+import {
+  SUSPICIOUS_UNLOAD_LABEL,
+  SUSPICIOUS_UNLOAD_REASON,
+  isSuspiciousUnload,
+} from './tripSuspicion';
 import { tripDetailHref } from './tripWorkspace';
 import { allUnknown, loadedKm, loadedMin, minutesOnRoad } from './tripListModel';
 import { DriverCell, RouteCell, TimeCell } from './TripCells';
@@ -93,44 +98,62 @@ export default function tripColumns({
     },
     {
       key: 'sap',
-      width: '144px',
+      width: '200px',
       label: 'SAP km',
-      render: (r) => (
-        <span className="atx-sap-cell">
-          <span className="atx-num" title={r.sap?.basis ? BASIS_LABEL[r.sap.basis] : undefined}>
-            {r.sap?.status === 'MATCHED' ? `${r.sap.sapKm} km` : '—'}
-          </span>
-          {r.sap ? <SapPill sap={r.sap} /> : null}
-        </span>
-      ),
+      render: (r) => {
+        const km = r.sap?.status === 'MATCHED' ? `${r.sap.sapKm} km` : '—';
+        if (!r.sap) return <span className="atx-num">{km}</span>;
+        const note = sapNoteText(r.sap);
+        const basis = r.sap.basis ? `Basis: ${BASIS_LABEL[r.sap.basis]}` : null;
+        // One line: the km, then the note clipped with "…"; the tooltip says it all.
+        return (
+          <CellHint
+            className="atx-sap-cell"
+            label="SAP km"
+            value={km}
+            details={[note, basis]}
+            ariaLabel={['SAP km', km, note, basis].filter(Boolean).join('. ')}
+          >
+            <span className="atx-num">{km}</span>
+            <span className="atx-sap-note">
+              <SapPill sap={r.sap} />
+            </span>
+          </CellHint>
+        );
+      },
     },
     {
       key: 'status',
-      width: '142px',
+      width: '172px',
       label: 'Status',
       render: (r) => {
-        const checks = flagReasons(r);
-        // A suspicious unload is worth a person's attention, so the row says so
-        // in a badge rather than hiding it in the tooltip.
+        const reasons = flagReasons(r);
+        if (!reasons.length) return <TripStatus status={r.status} />;
+        // A suspicious unload is worth a person's attention, so the row shows a
+        // "+1" beside the status; what it is, and every other check, is in the
+        // tooltip, so the row stays one line.
         const suspicious = isSuspiciousUnload(r);
+        const checks = reasons.filter((reason) => reason !== SUSPICIOUS_UNLOAD_REASON);
+        const details = [
+          suspicious ? `${SUSPICIOUS_UNLOAD_LABEL}: ${SUSPICIOUS_UNLOAD_REASON}` : null,
+          checks.length ? `To check: ${checks.join(', ')}` : null,
+        ].filter(Boolean);
+        const statusText = STATUS_LABEL[r.status] || r.status;
         return (
-          <span
+          <CellHint
             className="atx-status-cell"
-            title={
-              checks.length
-                ? `To check: ${checks.join(', ')}`
-                : suspicious
-                  ? SUSPICIOUS_UNLOAD_REASON
-                  : undefined
-            }
+            label="Status"
+            value={statusText}
+            details={details}
+            ariaLabel={[statusText, ...details].join('. ')}
           >
             <TripStatus status={r.status} />
             {suspicious ? (
-              <span className="atx-chip atx-chip--watch" title={SUSPICIOUS_UNLOAD_REASON}>
-                {SUSPICIOUS_UNLOAD_LABEL}
+              <span className="atx-chip atx-chip--watch atx-chip--more" aria-hidden="true">
+                +1
               </span>
             ) : null}
-          </span>
+          </CellHint>
         );
       },
     },

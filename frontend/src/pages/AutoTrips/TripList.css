@@ -589,10 +589,34 @@
   gap: 8px;
   color: var(--rd-ink-3);
 }
-.atx-sap-cell {
-  display: inline-flex;
+/* The km sits in a fixed slot, so every row's note starts at the same edge. */
+.cell-hint.atx-sap-cell {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+.atx-sap-cell > .atx-num {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The note beside the SAP km is clipped with "…"; its tooltip has the rest. */
+.atx-sap-note {
+  justify-self: start;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+.atx-sap-note > .sap-pill,
+.atx-sap-note > .sap-muted {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .atx-sr {
   position: absolute;

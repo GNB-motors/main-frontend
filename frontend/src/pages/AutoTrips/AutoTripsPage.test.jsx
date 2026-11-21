@@ -149,15 +149,18 @@ it('badges a trip row the server flagged as a suspicious unload', async () => {
     tabCounts: { OPEN: 1 },
   });
   open();
-  const badge = await screen.findByText('Suspicious unload');
+  // One line: the status and a "+1"; the tooltip (and the label) names the check.
+  const badge = await screen.findByRole('button', { name: /Suspicious unload/ });
   expect(screen.getByRole('link', { name: 'Trip approvals' })).toHaveAttribute(
     'href',
     '/approvals?type=trips',
   );
-  expect(badge).toBeInTheDocument();
+  expect(badge).toHaveTextContent('+1');
+  expect(badge).toHaveTextContent('On the road');
   // The badge says where to look, never what happened.
-  expect(badge.getAttribute('title')).toMatch(/a person should look/i);
-  expect(badge.getAttribute('title')).not.toMatch(/theft|stolen|steal|siphon|thief/i);
+  const label = badge.getAttribute('aria-label');
+  expect(label).toMatch(/a person should look/i);
+  expect(label).not.toMatch(/theft|stolen|steal|siphon|thief/i);
 });
 
 it('shows a planned tab with zero and its empty table on the same page', async () => {
