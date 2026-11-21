@@ -48,7 +48,8 @@
   min-height: 0;
   flex: 1;
   overflow: auto;
-  overscroll-behavior: contain;
+  /* At the panel's end the wheel carries on to the page. */
+  overscroll-behavior: auto;
   scrollbar-gutter: stable;
   padding: 22px 18px 24px;
 }

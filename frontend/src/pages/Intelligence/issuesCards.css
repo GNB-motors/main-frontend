@@ -282,7 +282,8 @@
 .intel-issues-layout .intel-issue-records .intel-issue-scroll {
   max-height: 400px;
   overflow: auto;
-  overscroll-behavior: contain;
+  /* At the list's end the wheel carries on to the page. */
+  overscroll-behavior: auto;
   scrollbar-gutter: stable;
   flex: 1;
 }
