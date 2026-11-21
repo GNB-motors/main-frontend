@@ -10,7 +10,15 @@ vi.mock('../../services/fleetViewService', () => ({
 import WhereNextSection from './WhereNextSection';
 
 const destination = {
-  place: { id: 'site-dankuni', kind: 'SITE', name: 'DANKUNI SIDING', category: 'PLANT', lat: 22.6, lng: 88.3, radiusM: 500 },
+  place: {
+    id: 'site-dankuni',
+    kind: 'SITE',
+    name: 'DANKUNI SIDING',
+    category: 'PLANT',
+    lat: 22.6,
+    lng: 88.3,
+    radiusM: 500,
+  },
   probability: 0.75,
   reason: 'Usually goes here after JK BUXAR (18 of 24 times)',
   eta: {
@@ -29,7 +37,11 @@ const destination = {
     usualMin: 40,
     text: 'Usually stops 40 min at Mohania dhaba',
   },
-  overspeedRisk: { probability: 0.4, place: null, text: 'Has gone over 60 km/h near Sasaram 3 times this month' },
+  overspeedRisk: {
+    probability: 0.4,
+    place: null,
+    text: 'Has gone over 60 km/h near Sasaram 3 times this month',
+  },
 };
 
 describe('WhereNextSection', () => {
@@ -47,16 +59,14 @@ describe('WhereNextSection', () => {
   it('shows the top guess in the collapsed header once it knows it', async () => {
     getWhereNext.mockResolvedValue({ destinations: [destination], basis: null, computedAt: null });
     render(<WhereNextSection registrationNumber="WB11L8862" />);
-    await waitFor(() =>
-      expect(screen.getByText(/→ DANKUNI SIDING/)).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText(/→ DANKUNI SIDING/)).toBeInTheDocument());
   });
 
   it('never shows a held guess in the header, and says why it is held', async () => {
     getWhereNext.mockResolvedValue({
       held: true,
       destinations: [destination],
-      basis: { text: 'Last fix is not near any of this org\'s places.' },
+      basis: { text: "Last fix is not near any of this org's places." },
     });
     render(<WhereNextSection registrationNumber="WB11J8562" />);
     expect(await screen.findByText('Where next · not sure yet')).toBeInTheDocument();
@@ -70,7 +80,9 @@ describe('WhereNextSection', () => {
     render(<WhereNextSection registrationNumber="WB11L8862" />);
     fireEvent.click(await screen.findByRole('button', { name: 'Open' }));
     await waitFor(() =>
-      expect(screen.getByText('Usually goes here after JK BUXAR (18 of 24 times)')).toBeInTheDocument(),
+      expect(
+        screen.getByText('Usually goes here after JK BUXAR (18 of 24 times)'),
+      ).toBeInTheDocument(),
     );
   });
 
@@ -97,9 +109,7 @@ describe('WhereNextSection', () => {
       computedAt: null,
     });
     render(<WhereNextSection registrationNumber="WB11L8862" />);
-    await waitFor(() =>
-      expect(screen.getByText(/→ DANKUNI SIDING/)).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText(/→ DANKUNI SIDING/)).toBeInTheDocument());
     expect(screen.queryByText(/ETA \d/)).not.toBeInTheDocument();
     expect(screen.getAllByText(/ETA passed/).length).toBeGreaterThan(0);
   });
@@ -116,9 +126,7 @@ describe('WhereNextSection', () => {
       computedAt: null,
     });
     render(<WhereNextSection registrationNumber="WB11L8862" />);
-    await waitFor(() =>
-      expect(screen.getByText(/→ DANKUNI SIDING/)).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText(/→ DANKUNI SIDING/)).toBeInTheDocument());
     expect(screen.getAllByText(/ETA \d/).length).toBeGreaterThan(0);
     expect(screen.queryByText(/ETA passed/)).not.toBeInTheDocument();
   });
@@ -143,16 +151,22 @@ describe('WhereNextSection', () => {
     await waitFor(() => expect(container).toBeEmptyDOMElement());
   });
 
-  it('draws nothing when there are no destinations', async () => {
+  it('says why when there is no guess', async () => {
     getWhereNext.mockResolvedValue({
       destinations: [],
       basis: null,
       computedAt: null,
       noPredictionWhy: { text: 'We do not have enough of this truck’s history to guess.' },
     });
+    render(<WhereNextSection registrationNumber="WB11L8862" />);
+    expect(await screen.findByText(/do not have enough of this truck/)).toBeInTheDocument();
+    expect(screen.getByText('Where next · no guess')).toBeInTheDocument();
+  });
+
+  it('draws nothing when there is no guess and no reason', async () => {
+    getWhereNext.mockResolvedValue({ destinations: [], basis: null, computedAt: null });
     const { container } = render(<WhereNextSection registrationNumber="WB11L8862" />);
     await waitFor(() => expect(getWhereNext).toHaveBeenCalled());
     await waitFor(() => expect(container).toBeEmptyDOMElement());
-    expect(screen.queryByText(/do not have enough of this truck/)).not.toBeInTheDocument();
   });
 });

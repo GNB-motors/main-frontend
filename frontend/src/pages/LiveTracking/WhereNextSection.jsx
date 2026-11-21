@@ -19,7 +19,11 @@ import { destinationHeading, destinationName, evidence, heldReason } from './whe
  * of 24 times"). We print it exactly as sent. We never show a raw
  * probability, and we never invent a reason.
  */
-export default function WhereNextSection({ registrationNumber, onSelectDestination = null, onPrediction = null }) {
+export default function WhereNextSection({
+  registrationNumber,
+  onSelectDestination = null,
+  onPrediction = null,
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
 
@@ -39,16 +43,26 @@ export default function WhereNextSection({ registrationNumber, onSelectDestinati
   }, [registrationNumber, data, loading, error, isOpen, onPrediction]);
 
   // Nothing real to say — still asking, endpoint missing, request failed, or
-  // no guess — means no section. A held answer is real, so it stays.
-  if (!held && (loading || error || destinations.length === 0)) return null;
+  // no guess with no reason — means no section. A held answer is real, so it
+  // stays, and so does the API's reason for not guessing.
+  const noGuessWhy = data?.noPredictionWhy?.text || null;
+  if (!held && (loading || error)) return null;
+  if (!held && destinations.length === 0) {
+    if (!noGuessWhy) return null;
+    return (
+      <SectionCard icon={Navigation} tone="info" title="Where next · no guess">
+        <p className="m-0 text-[12px] text-[var(--rd-ink-3)]">{noGuessWhy}</p>
+      </SectionCard>
+    );
+  }
 
   // A held answer never leaks its guess into the header, and an ETA already
   // in the past is stale data, not a time to show.
   const headerTitle = held
-      ? 'Where next · not sure yet'
-      : top
-        ? `${destinationHeading(top)}${etaHasPassed(top.eta) ? ` · ${ETA_PASSED_TEXT}` : top.eta?.at && new Date(top.eta.at).getTime() > Date.now() ? ` · ETA ${formatIst(top.eta.at)}` : ''}`
-        : 'Where next';
+    ? 'Where next · not sure yet'
+    : top
+      ? `${destinationHeading(top)}${etaHasPassed(top.eta) ? ` · ${ETA_PASSED_TEXT}` : top.eta?.at && new Date(top.eta.at).getTime() > Date.now() ? ` · ETA ${formatIst(top.eta.at)}` : ''}`
+      : 'Where next';
 
   return (
     <SectionCard
@@ -70,7 +84,8 @@ export default function WhereNextSection({ registrationNumber, onSelectDestinati
         <p className="m-0 text-[12px] text-[var(--rd-ink-2)]">{heldReason(data)}</p>
       ) : !isOpen ? (
         <p className="m-0 text-[12px] text-[var(--rd-ink-3)]">
-          {top?.route?.viaNames?.length ? `usually via ${top.route.viaNames.join(' → ')} · ` : ''}{evidence(top)}
+          {top?.route?.viaNames?.length ? `usually via ${top.route.viaNames.join(' → ')} · ` : ''}
+          {evidence(top)}
         </p>
       ) : (
         <div className="flex flex-col gap-2">
