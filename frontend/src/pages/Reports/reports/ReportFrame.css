@@ -452,14 +452,15 @@
   display: none;
 }
 
-/* The table scrolls inside itself, so its header row stays in view. No
-   overscroll: a fast scroll stops at the table's end instead of carrying the
-   page along, and macOS's rubber-band bounce can't drag the rows (header and
-   all) down off the top of the card. */
+/* The table scrolls inside itself, so its header row stays in view. At the
+   table's top or bottom the wheel carries on to the page, so the reader never
+   has to move the pointer off the table to keep scrolling. The bounce happens
+   on the report around it, which has none, so the rows never drag off the
+   card. */
 .rpt .dt-scroll {
   max-height: max(360px, calc(100vh - 300px));
   overflow: auto;
-  overscroll-behavior: none;
+  overscroll-behavior: auto;
 }
 
 /* On a tall enough screen a report whose body holds a table is exactly as tall

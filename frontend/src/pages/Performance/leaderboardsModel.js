@@ -32,6 +32,7 @@ export function formatBoardValue(value, unit) {
   if (n === null) return DASH;
   const decimals = DECIMALS[unit] ?? 2;
   const text = n.toFixed(decimals).replace(/\.?0+$/, '');
+  if (unit === '%') return `${text}%`;
   return unit ? `${text} ${unit}` : text;
 }
 
@@ -43,9 +44,57 @@ export function formatVsExpected(pct) {
   return `${sign}${Math.abs(n).toFixed(1)}%`;
 }
 
-/** "#3" when the interval allowed a rank, "unranked" when it did not. */
+const BOARD_TAB_LABEL = {
+  FUEL_VS_EXPECTED: 'Mileage',
+  IDLE_PCT: 'Idling',
+  OVERSPEED_PCT: 'Overspeed',
+  HARSH_PER_ENGINE_HOUR: 'Harsh events',
+  RUPEES_PER_KM: 'Cost per km',
+  SAP_EXTRA_KM: 'Extra km',
+};
+
+/** The short name of a board, for its tab. A board we do not know keeps its title. */
+export function boardTabLabel(board) {
+  return BOARD_TAB_LABEL[board?.key] || board?.title || board?.key || DASH;
+}
+
+/** "#3" when the interval allowed a rank, "Unranked" when it did not. */
 export function rankLabel(row) {
-  return row?.rank != null ? `#${row.rank}` : 'unranked';
+  return row?.rank != null ? `#${row.rank}` : 'Unranked';
+}
+
+/**
+ * Whether a row sits on the good or the bad side of its duty pool, by the
+ * board's direction. Null when there is no comparison or it is level.
+ */
+export function vsExpectedTone(pct, direction) {
+  const n = num(pct);
+  if (n === null || n === 0) return null;
+  const better = direction === 'higher' ? n > 0 : n < 0;
+  return better ? 'better' : 'worse';
+}
+
+/** How many drivers the boards compare, rank and leave unranked. */
+export function boardStats(boards) {
+  const drivers = new Set();
+  const ranked = new Set();
+  const groups = new Set();
+  let unranked = 0;
+  (boards || []).forEach((board) => {
+    (board?.groups || []).forEach((group) => {
+      groups.add(group?.dutyGroup);
+      (group?.rows || []).forEach((row) => {
+        const id = row?.driverId || row?.key;
+        if (id) drivers.add(id);
+        if (row?.rank != null) {
+          if (id) ranked.add(id);
+        } else {
+          unranked += 1;
+        }
+      });
+    });
+  });
+  return { drivers: drivers.size, ranked: ranked.size, groups: groups.size, unranked };
 }
 
 /** The learned floor of a duty group, in words. */
@@ -93,7 +142,10 @@ export function methodRows(meta) {
   const duty = meta.duty || {};
   return [
     { label: 'Duty method', value: duty.method || null },
-    { label: 'Duty cut', value: duty.cutKmPerCycle != null ? `${duty.cutKmPerCycle} km per cycle` : null },
+    {
+      label: 'Duty cut',
+      value: duty.cutKmPerCycle != null ? `${duty.cutKmPerCycle} km per cycle` : null,
+    },
     { label: 'Duty rule', value: duty.rule || null },
     { label: 'Ranking rule', value: meta.ranking || null },
     { label: 'Rank rule source', value: meta.rankRuleSource || null },

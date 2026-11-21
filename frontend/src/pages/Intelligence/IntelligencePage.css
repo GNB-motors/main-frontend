@@ -705,7 +705,9 @@ button.intel-kpi-hit:focus-visible {
 .intelligence-page .dt-scroll {
   max-height: 64dvh;
   overflow: auto;
-  overscroll-behavior: contain;
+  /* At the table's top or bottom the wheel carries on to the page, so the
+     reader never has to move the pointer off the table to keep scrolling. */
+  overscroll-behavior: auto;
   background: var(--rd-card);
   scrollbar-width: thin;
   scrollbar-color: var(--rd-line-strong) var(--rd-card);

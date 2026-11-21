@@ -1,67 +1,33 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import DataTable from '../../components/ui/DataTable';
-import Empty from '../Vehicle360/panels/Empty';
-import { GradePill } from '../DrivingDna/GradePill';
+import React, { useMemo, useState } from 'react';
 import useApi from '../../hooks/useApi';
 import PerformanceApi from '../../api/performance';
+import IntelligenceDataState from '../Intelligence/IntelligenceDataState';
 import SourceCell from './SourceCell';
 import PaceCell from './PaceCell';
-import { cellNumber } from './performanceCells';
+import SourceLegend from './SourceLegend';
+import DriverDrawer from './DriverDrawer';
+import { PerformanceBriefing, PerformanceNoNumbers, PerformanceTable } from './PerformanceParts';
+import {
+  columnGaps,
+  columnMedian,
+  hiddenLine,
+  sourcesPresent,
+  windowLabel,
+} from './performanceGaps';
+import { formatCellNumber } from './performanceCells';
+import { DRIVER_METRICS, driverTrucks } from './driversModel';
 
-const COLUMNS = [
-  {
-    key: 'driver',
-    label: 'Driver',
-    render: (d) => (
-      <>
-        <span className="pf-veh">{d.name || '—'}</span>
-        <span className="pf-sub">{d.driverId || ''}</span>
-      </>
-    ),
-  },
-  {
-    key: 'vehicles',
-    label: 'Vehicles',
-    render: (d) => <span>{(d.vehicles ?? []).join(', ') || '—'}</span>,
-  },
-  {
-    key: 'dnaScore',
-    label: 'DNA score',
-    render: (d) => <SourceCell cell={d.dnaScore} decimals={0} />,
-  },
-  {
-    key: 'harshPer100Km',
-    label: 'Harsh /100 km',
-    align: 'right',
-    render: (d) => <SourceCell cell={d.harshPer100Km} />,
-  },
-  {
-    key: 'idlePct',
-    label: 'Idle %',
-    align: 'right',
-    render: (d) => <SourceCell cell={d.idlePct} />,
-  },
-  {
-    key: 'paceFactor',
-    label: 'Road pace',
-    align: 'right',
-    render: (d) => <PaceCell cell={d.paceFactor} />,
-  },
-];
-
-const isCell = (v) => !!v && typeof v === 'object' && !Array.isArray(v) && 'source' in v;
-
-const labelFor = (key) =>
-  String(key)
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/_/g, ' ')
-    .replace(/^./, (c) => c.toUpperCase());
+const metricCell = (metric, d) =>
+  metric.pace ? (
+    <PaceCell cell={d[metric.key]} reason="hidden" />
+  ) : (
+    <SourceCell cell={d[metric.key]} decimals={metric.decimals} reason="hidden" />
+  );
 
 /**
- * Drivers — the fleet's drivers and the Driver DNA behind each score.
- *
- * The DNA payload arrives with every number already a cell, so each trait is
- * rendered with its own source and its own reason when it is unknown.
+ * Drivers — each driver's DNA score, harsh events, idling and road pace over
+ * the server's window, every number with its source. A row opens the driver's
+ * DNA.
  */
 export default function DriversTab() {
   const { data, loading, error, refetch } = useApi(
@@ -69,122 +35,153 @@ export default function DriversTab() {
     [],
   );
   const drivers = useMemo(() => data?.drivers ?? [], [data]);
-  const [selectedId, setSelectedId] = useState(null);
+  const [open, setOpen] = useState(null);
 
-  useEffect(() => {
-    if (!drivers.length) {
-      if (selectedId) setSelectedId(null);
-      return;
-    }
-    if (!drivers.some((d) => d.driverId === selectedId)) setSelectedId(drivers[0].driverId);
-  }, [drivers, selectedId]);
-
-  const detail = useApi((signal) => PerformanceApi.driver(selectedId, {}, signal), [selectedId], {
-    enabled: Boolean(selectedId),
-  });
-
-  const selected = drivers.find((d) => d.driverId === selectedId) ?? null;
-  const dna = detail.data?.dna ?? null;
-  const dnaRows = useMemo(() => Object.entries(dna ?? {}).filter(([, v]) => isCell(v)), [dna]);
-  const dnaTextRows = useMemo(
-    () => Object.entries(dna ?? {}).filter(([, v]) => typeof v === 'string'),
-    [dna],
+  const gaps = useMemo(
+    () =>
+      columnGaps(
+        drivers,
+        DRIVER_METRICS.map((metric) => ({
+          key: metric.key,
+          label: metric.label,
+          cell: (d) => d[metric.key],
+        })),
+      ),
+    [drivers],
   );
-  const grade = typeof dna?.grade === 'string' ? dna.grade : null;
-  const scoreEntry = dnaRows.find(([key]) => /score/i.test(key));
-  const scoreValue = scoreEntry ? cellNumber(scoreEntry[1]) : null;
+  const shownMetrics = DRIVER_METRICS.filter((metric) => !gaps.hidden.has(metric.key));
+  const present = sourcesPresent(drivers, (d) => shownMetrics.map((metric) => d[metric.key]));
+
+  const score = columnMedian(drivers, (d) => d.dnaScore);
+  const harsh = columnMedian(drivers, (d) => d.harshPer100Km);
+  const idle = columnMedian(drivers, (d) => d.idlePct);
+  const days = data?.window?.days ?? 30;
+  const range = windowLabel(data?.window);
+  const count = drivers.length;
+
+  const columns = [
+    {
+      key: 'driver',
+      label: 'Driver',
+      render: (d) => (
+        <button
+          type="button"
+          className="intelligence-table-open pf-open pf-open--person"
+          aria-label={`Open ${d.name || 'this driver'}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen(d);
+          }}
+        >
+          {d.name || 'Name not on record'}
+          <small>{driverTrucks(d)}</small>
+        </button>
+      ),
+    },
+    ...shownMetrics.map((metric) => ({
+      key: metric.key,
+      label: metric.label,
+      align: 'right',
+      render: (d) => metricCell(metric, d),
+    })),
+  ];
+
+  const lead = (
+    <>
+      <b>{count.toLocaleString('en-IN')}</b> {count === 1 ? 'driver' : 'drivers'} in this read.
+      {score.median !== null ? (
+        <>
+          {' '}
+          Half of them score above <b>{formatCellNumber(score.median, 0)}</b> on Driving DNA
+          {harsh.median !== null ? (
+            <>
+              , and half have fewer than <b>{formatCellNumber(harsh.median, 1)}</b> harsh events per
+              100 km.
+            </>
+          ) : (
+            '.'
+          )}
+        </>
+      ) : null}
+    </>
+  );
 
   return (
-    <div className="pf-stack">
-      <section className="pf-card">
-        <header className="pf-card-head">
-          <h2 className="pf-card-title">Driver DNA</h2>
-          <span className="pf-hint">{selected?.name || '—'}</span>
-        </header>
-        {selected ? (
+    <div className="pf-tab">
+      <IntelligenceDataState
+        loading={loading && !data}
+        loadingVariant="table"
+        error={error}
+        isEmpty={!count}
+        emptyMessage={`No driver has a reading in the last ${days} days yet. A driver shows up once a truck they drive reports.`}
+        what="Driver performance"
+        onRetry={refetch}
+      >
+        {shownMetrics.length ? (
           <>
-            <dl className="pf-kv">
-              <div className="pf-kv-row">
-                <dt>Driver</dt>
-                <dd>{selected.name || '—'}</dd>
-              </div>
-              <div className="pf-kv-row">
-                <dt>Vehicles</dt>
-                <dd>{(selected.vehicles ?? []).join(', ') || '—'}</dd>
-              </div>
-              <div className="pf-kv-row">
-                <dt>DNA score</dt>
-                <dd>
-                  <SourceCell cell={selected.dnaScore} decimals={0} />
-                </dd>
-              </div>
-              {grade ? (
-                <div className="pf-kv-row">
-                  <dt>Grade</dt>
-                  <dd>
-                    <GradePill grade={grade} score={scoreValue} />
-                  </dd>
-                </div>
-              ) : null}
-            </dl>
+            <PerformanceBriefing
+              label="Driver performance read"
+              eyebrow={`Driver read · last ${days} days`}
+              lead={lead}
+              notes={[range ? `Readings from ${range}.` : null, ...gaps.notes.map(hiddenLine)]}
+              kpis={[
+                {
+                  label: 'Drivers',
+                  value: count.toLocaleString('en-IN'),
+                  note: `${score.known} with a DNA score`,
+                },
+                {
+                  label: 'Median DNA score',
+                  value: score.median === null ? '—' : formatCellNumber(score.median, 0),
+                  note:
+                    score.median === null
+                      ? 'No driver has a DNA day yet'
+                      : `out of 100 · ${score.known} of ${count} drivers`,
+                },
+                {
+                  label: 'Median harsh events',
+                  value: harsh.median === null ? '—' : formatCellNumber(harsh.median, 1),
+                  note:
+                    harsh.median === null
+                      ? 'No driver has push telemetry'
+                      : `per 100 km · ${harsh.known} of ${count} drivers`,
+                },
+                {
+                  label: 'Median idle share',
+                  value: idle.median === null ? '—' : `${formatCellNumber(idle.median, 1)}%`,
+                  note:
+                    idle.median === null
+                      ? 'No driver has an idle day'
+                      : `of engine-on time · ${idle.known} of ${count} drivers`,
+                },
+              ]}
+            >
+              <SourceLegend present={present} />
+            </PerformanceBriefing>
 
-            {dnaRows.length ? (
-              <div className="pf-bars">
-                {dnaRows.map(([key, cell]) => (
-                  <div className="pf-bar" key={key}>
-                    <span className="pf-bar-label">{labelFor(key)}</span>
-                    <span className="pf-bar-track">
-                      <span
-                        className="pf-bar-fill"
-                        style={{ width: `${Math.max(0, Math.min(100, cellNumber(cell) ?? 0))}%` }}
-                      />
-                    </span>
-                    <span className="pf-bar-value">
-                      <SourceCell cell={cell} decimals={0} />
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-
-            {dnaTextRows.length ? (
-              <ul className="pf-dna-text">
-                {dnaTextRows.map(([key, value]) => (
-                  <li key={key}>
-                    <span className="pf-bar-label">{labelFor(key)}</span>
-                    <span>{value}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+            <PerformanceTable
+              columns={columns}
+              rows={drivers}
+              rowKey={(d) => d.driverId}
+              searchText={(d) => `${d.name || ''} ${(d.vehicles ?? []).join(' ')}`}
+              searchLabel="Search a driver or plate"
+              noun={{ one: 'driver', many: 'drivers' }}
+              placeholder="Search a driver or plate"
+              openKey={open?.driverId ?? null}
+              onOpen={setOpen}
+              emptyTitle="No drivers in this read"
+            />
           </>
         ) : (
-          <Empty
-            title="No driver selected"
-            hint="Pick a driver from the table below to see their DNA."
+          <PerformanceNoNumbers
+            title={`No driver numbers ${range ? `for ${range} ` : ''}yet`}
+            lead={`${count.toLocaleString('en-IN')} ${count === 1 ? 'driver is' : 'drivers are'} on record for this window, but none has a number we can stand behind yet. They show up here as soon as the readings arrive.`}
+            notes={gaps.notes}
           />
         )}
-      </section>
+      </IntelligenceDataState>
 
-      <section className="pf-card">
-        <header className="pf-card-head">
-          <h2 className="pf-card-title">Drivers</h2>
-        </header>
-        <DataTable
-          columns={COLUMNS}
-          rows={drivers}
-          rowKey={(d) => d.driverId}
-          loading={loading && !data}
-          error={error}
-          onRetry={refetch}
-          showing={drivers.length}
-          total={drivers.length}
-          onRowClick={(d) => setSelectedId(d.driverId)}
-          rowClassName={(d) => (d.driverId === selectedId ? 'dt-row--selected' : '')}
-          emptyTitle="No drivers in this window"
-          emptyHint="A driver shows up once the server has a reading for them in the last 30 days."
-        />
-      </section>
+      <DriverDrawer driver={open} window={data?.window} onClose={() => setOpen(null)} />
     </div>
   );
 }

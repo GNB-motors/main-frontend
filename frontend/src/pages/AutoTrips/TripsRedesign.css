@@ -167,11 +167,19 @@
   color: var(--rd-watch-ink);
 }
 /* The status column can carry the status and a check badge beside it. */
+/* The status column keeps to one line: the status, and "+1" when a check
+   rides along; the tooltip says what it is. */
 :is(.atx-list, .atx-page--detail) .atx-status-cell {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+:is(.atx-list, .atx-page--detail) .atx-chip--more {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 7px;
+  font-variant-numeric: tabular-nums;
 }
 
 .atx-num {

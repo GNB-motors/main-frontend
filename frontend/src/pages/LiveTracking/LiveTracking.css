@@ -3731,7 +3731,8 @@ html.dark .wx-icon .wx-star,
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  /* At the list's end the wheel carries on to the page. */
+  overscroll-behavior: auto;
 }
 .track-log-list {
   margin: 0;
@@ -5247,7 +5248,8 @@ html.dark .wx-icon .wx-star,
   min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  overscroll-behavior: contain;
+  /* At the panel's end the wheel carries on to the page. */
+  overscroll-behavior: auto;
   background: var(--bg-surface);
   color: var(--fg-primary);
   text-align: left;

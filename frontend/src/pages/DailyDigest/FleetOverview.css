@@ -1157,7 +1157,8 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  overscroll-behavior: contain;
+  /* At the list's end the wheel carries on to the page. */
+  overscroll-behavior: auto;
   border-top: 1px solid var(--rd-line);
 }
 .fo-vehicle-scroll > .fo-skeleton {
