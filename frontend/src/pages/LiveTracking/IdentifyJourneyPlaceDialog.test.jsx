@@ -16,6 +16,9 @@ async function fillNameAndType() {
   });
   fireEvent.click(screen.getByRole('combobox', { name: 'Place type' }));
   const option = await screen.findByRole('option', { name: 'Warehouse' });
+  // The type picker only commits the option that is highlighted, and a pointer
+  // move is what highlights it in a test.
+  fireEvent.mouseMove(option);
   fireEvent.pointerDown(option, { pointerType: 'mouse' });
   fireEvent.click(option);
 }

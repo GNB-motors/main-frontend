@@ -253,6 +253,9 @@ describe('PlaceQuestionsTab', () => {
     expect(fleetViewService.answerPlaceQuestion).not.toHaveBeenCalled();
     fireEvent.click(dialog.getByRole('combobox', { name: 'Place type' }));
     const option = await screen.findByRole('option', { name: 'Delivery / unloading point' });
+    // The type picker only commits the option that is highlighted, and a pointer
+    // move is what highlights it in a test.
+    fireEvent.mouseMove(option);
     fireEvent.pointerDown(option, { pointerType: 'mouse' });
     fireEvent.click(option);
     fireEvent.click(dialog.getByRole('button', { name: 'Save place' }));
