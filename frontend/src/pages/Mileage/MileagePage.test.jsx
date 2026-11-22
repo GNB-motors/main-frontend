@@ -747,7 +747,7 @@ describe('Reports → Diesel Report', () => {
     await waitFor(() => expect(screen.getAllByText('WB25V8040').length).toBeGreaterThan(0));
     expect(feedCalls()[0][1].params.fuelType).toBe('DIESEL');
     expect(daysBetween(feedCalls()[0][1].params)).toBe(30);
-    expect(apiClient.get).not.toHaveBeenCalledWith('api/fuel-logs', expect.anything());
+    expect(apiClient.get).not.toHaveBeenCalledWith('/api/fuel-logs', expect.anything());
   });
 });
 

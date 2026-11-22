@@ -18,16 +18,17 @@ import './runsPlacesReference.css';
 
 /** The empty share of a truck, when every km behind it was measured. */
 const emptyShareOf = (row) =>
-  row?.totalKm > 0 && row?.emptyKm != null && !isPartialRow(row)
-    ? row.emptyKm / row.totalKm
-    : null;
+  row?.totalKm > 0 && row?.emptyKm != null && !isPartialRow(row) ? row.emptyKm / row.totalKm : null;
 
-export default function RunsTab({ from, to }) {
+export default function RunsTab({ from, to, summary: summary$ }) {
   const [filter, setFilter] = useState('all');
-  const { data, loading, error, refetch } = useApi(
-    (signal) => IntelligenceService.getSummary({ from, to, signal }),
-    [from, to],
-  );
+  // The page already read the summary for its own tiles. The tab uses that
+  // answer instead of asking the server for the same read a second time.
+  const shared = summary$ !== undefined;
+  const own = useApi((signal) => IntelligenceService.getSummary({ from, to, signal }), [from, to], {
+    enabled: !shared,
+  });
+  const { data, loading, error, refetch } = shared ? summary$ : own;
   const rangeReady = isYmd(from) && isYmd(to);
   const {
     data: trips,
@@ -61,9 +62,7 @@ export default function RunsTab({ from, to }) {
   const serverBars = Array.isArray(runs?.byTruck);
   // A truck is missing part of its distance when the server says so (`kmPartial`)
   // or when it reports km it could not attribute to loaded or empty running.
-  const unknownKmTrucks = bars.filter(
-    (row) => isPartialRow(row) || unknownKmOf(row) > 0,
-  ).length;
+  const unknownKmTrucks = bars.filter((row) => isPartialRow(row) || unknownKmOf(row) > 0).length;
   // The bars now come from the trip list, which the API pages.
   const loadedTrips = trips?.items?.length ?? 0;
   const tripTotal = trips?.total ?? 0;
@@ -122,7 +121,9 @@ export default function RunsTab({ from, to }) {
               ) : (
                 'Not enough classified distance is available to calculate the loaded share. '
               )}
-              {plantKnown ? 'Plant-to-plant running is shown separately from empty returns. ' : null}
+              {plantKnown
+                ? 'Plant-to-plant running is shown separately from empty returns. '
+                : null}
               {!plantKnown && plantRuns != null
                 ? `${formatNumber(plantRuns)} plant-to-plant runs. `
                 : null}

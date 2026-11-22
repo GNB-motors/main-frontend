@@ -59,11 +59,15 @@ describe('vehicle history overview', () => {
     const [params, options] = AutoTripService.list.mock.calls[0];
     expect(params).toEqual({ vehicleId: 'vehicle-1', page: 1, limit: 200 });
     expect(options.signal).toBeInstanceOf(AbortSignal);
-    expect(onMapPlaces.mock.lastCall[0].places).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ lat: 22, lng: 88, to: '/auto-trips/trip-1' }),
-        expect.objectContaining({ lat: 24, lng: 85, to: '/auto-trips/trip-1' }),
-      ]),
+    // The map places arrive in a later render than the link (slow CI with
+    // coverage reads an empty first call), so wait for them.
+    await waitFor(() =>
+      expect(onMapPlaces.mock.lastCall[0].places).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ lat: 22, lng: 88, to: '/auto-trips/trip-1' }),
+          expect.objectContaining({ lat: 24, lng: 85, to: '/auto-trips/trip-1' }),
+        ]),
+      ),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     expect(await screen.findByRole('link', { name: /Older depot/ })).toHaveAttribute(

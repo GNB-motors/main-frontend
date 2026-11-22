@@ -9,7 +9,7 @@ import { toast } from 'react-toastify';
  *
  * @example API export (Mileage Report)
  * await exportFilteredReportCsv({
- *   fetchExport: (filters) => ReportsService.exportReportCsv('api/reports/mileage-intervals/export', filters),
+ *   fetchExport: (filters) => ReportsService.exportReportCsv('/api/reports/mileage-intervals/export', filters),
  *   filters: { startDate, vehicleId },
  *   filenamePrefix: 'mileage_interval_report',
  * });

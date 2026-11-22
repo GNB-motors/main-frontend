@@ -67,6 +67,21 @@ describe('RunsTab', () => {
     expect(await screen.findByText('966 runs')).toBeInTheDocument();
   });
 
+  it('does not read the summary again when the page already read it', async () => {
+    render(
+      <MemoryRouter>
+        <RunsTab
+          from="2026-10-27"
+          to="2026-11-02"
+          summary={{ data: summary, loading: false, error: null, refetch: vi.fn() }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('42,180 km')).toBeInTheDocument();
+    expect(IntelligenceService.getSummary).not.toHaveBeenCalled();
+  });
+
   it('never counts a plant-to-plant run as an empty run', async () => {
     render(
       <MemoryRouter>

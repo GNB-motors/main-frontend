@@ -23,18 +23,30 @@ vi.mock('../routeHubMap', () => ({
 vi.mock('./replay/useReplayLayers', () => ({ default: () => {} }));
 vi.mock('./replay/buildTrip', () => ({ default: vi.fn() }));
 vi.mock('./replay/sampleAt', () => ({ default: () => null }));
-vi.mock('./replay/tripStats', () => ({ default: () => ({}) }));
-vi.mock('./replay/ReplayStatsHead', () => ({ default: () => null }));
 vi.mock('./replay/ReplayPerspectiveBar', () => ({ default: () => null }));
 vi.mock('./replay/ReplayHud', () => ({ default: () => null }));
 vi.mock('./replay/ReplayPlayer', () => ({
   default: ({ trip }) => <div>{trip ? 'Replay ready' : 'Replay empty'}</div>,
 }));
-vi.mock('./replay/TripLog', () => ({ default: () => null }));
+// ReplayStatsHead, TripLog and tripStats are deliberately NOT mocked: the
+// figures and the words around them are what this screen is judged on.
 const vehicles = [
   { _id: 'v1', registrationNumber: 'WB11T0662' },
   { _id: 'v2', registrationNumber: 'WB11S1962' },
 ];
+const movingTrip = {
+  durationMin: 95,
+  startAt: new Date('2026-11-12T08:00:00Z'),
+  km: 42,
+  avg: 38,
+  peak: 62,
+  distanceSource: 'straight-line',
+  events: [],
+  path: [],
+  pieces: [],
+  fixes: [],
+  roadLayers: [],
+};
 const toast = vi.fn();
 beforeEach(() => {
   vi.clearAllMocks();
@@ -44,7 +56,7 @@ beforeEach(() => {
   RouteHubService.getDeviationEvents.mockResolvedValue({ records: [] });
   RouteHubService.getTripAnchors.mockResolvedValue(null);
   RouteHubService.getTripsForVehicle.mockResolvedValue([]);
-  buildTrip.mockReturnValue({ durationMin: 1, startAt: 0 });
+  buildTrip.mockReturnValue(movingTrip);
 });
 const mount = () =>
   render(<ReplayView params={new URLSearchParams('v=WB11T0662')} toast={toast} />);
@@ -105,5 +117,42 @@ describe('Replay loading', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'WB11T0662' })).toBeInTheDocument(),
     );
+  });
+  it('says there was no movement instead of a bare 0 km and keeps a failed ERP trip lookup labelled', async () => {
+    // A real truck that reported its position for 12 h 52 m and never moved.
+    buildTrip.mockReturnValue({
+      ...movingTrip,
+      km: 0,
+      avg: 0,
+      peak: 0,
+      durationMin: 772,
+      events: [
+        {
+          type: 'stop',
+          t: 0,
+          at: new Date('2026-11-12T08:00:00Z'),
+          title: 'Halt · 12 h 52 m',
+          sub: 'Stationary until 20:52',
+        },
+      ],
+    });
+    // The ERP trips lookup 404s: that is not "this vehicle has no trips".
+    RouteHubService.getTripsForVehicle.mockRejectedValue(
+      Object.assign(new Error('Request failed with status code 404'), { status: 404 }),
+    );
+    mount();
+    await screen.findByText('Replay ready');
+
+    // The measurement is real, but a bare "0 km" reads as a broken sensor.
+    expect(screen.getAllByText(/No movement in this period/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText('0 km')).not.toBeInTheDocument();
+    // The log keeps working: the halt is still there to click.
+    expect(screen.getByText('Halt · 12 h 52 m')).toBeInTheDocument();
+
+    // The failed ERP lookup is labelled as unavailable, with its own retry,
+    // and the raw server text never reaches the owner.
+    expect(await screen.findByText('ERP trip context unavailable.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+    expect(screen.queryByText(/Request failed with status code 404/)).not.toBeInTheDocument();
   });
 });

@@ -8,7 +8,7 @@ import { RANGES, OS_THRESHOLD, OS_MIN_MIN, OS_MAX_HOURS } from './overview/overv
 import { distanceCoverage } from './overview/overviewDistance.js';
 import ToneBadge from '../../../components/redesign/ToneBadge';
 import { PARTIAL_LABEL } from '../../../utils/measured';
-import { groupTotals, notMeasuredNote } from './deviation/deviationRules.js';
+import { groupTotals, notMeasuredNote, costTotalKnown } from './deviation/deviationRules.js';
 import NetworkChip from './overview/NetworkChip.jsx';
 import DeviationModule from './overview/DeviationModule.jsx';
 import OverspeedModule from './overview/OverspeedModule.jsx';
@@ -96,12 +96,20 @@ export default function OverviewView({ go, toast, setBadge }) {
   // A detour cost nobody estimated is unknown, not ₹0. The figure counts only
   // the detours that were measured, and says how many detours are left out.
   const deviationTotals = groupTotals(openDev);
-  const deviationCostInr = deviationSummary?.openCostInr ?? deviationTotals.costInr;
-  const deviationCostKnown = deviationSummary?.openCostInr != null || deviationTotals.costKnown > 0;
-  const deviationCostNote =
-    deviationSummary?.openCostInr != null
-      ? null
-      : notMeasuredNote(deviationTotals.costUnknown, deviationTotals.total);
+  // The server's open-cost total is only a figure when it is positive, or when a
+  // zero stands behind a detour that was actually priced. A ₹0 nobody measured
+  // would tell the owner the detours were free.
+  const deviationSummaryCostKnown = costTotalKnown(
+    deviationSummary?.openCostInr ?? null,
+    deviationTotals,
+  );
+  const deviationCostInr = deviationSummaryCostKnown
+    ? deviationSummary.openCostInr
+    : deviationTotals.costInr;
+  const deviationCostKnown = deviationSummaryCostKnown || deviationTotals.costKnown > 0;
+  const deviationCostNote = deviationSummaryCostKnown
+    ? 'server total for all open detours'
+    : notMeasuredNote(deviationTotals.costUnknown, deviationTotals.total);
 
   const kpis = [
     {

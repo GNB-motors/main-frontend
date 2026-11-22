@@ -2,7 +2,7 @@ import apiClient from '../../utils/axiosConfig';
 
 /** GET api/extension/ialert/vehicles → { vehicleCount, firstPullPending, vehicles[] }. */
 export async function fetchIalertVehicles(signal) {
-  const res = await apiClient.get('api/extension/ialert/vehicles', { signal });
+  const res = await apiClient.get('/api/extension/ialert/vehicles', { signal });
   const data = res.data?.data || {};
   return {
     vehicleCount: data.vehicleCount ?? 0,
@@ -17,6 +17,6 @@ export async function fetchIalertVehicles(signal) {
  * comes back with { status: 'skipped', reason: 'already_tagged' }.
  */
 export async function addIalertVehicleToFleet(vin) {
-  const res = await apiClient.post('api/extension/ialert/add-to-fleet', { vin });
+  const res = await apiClient.post('/api/extension/ialert/add-to-fleet', { vin });
   return res.data?.data || {};
 }

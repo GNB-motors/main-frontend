@@ -16,6 +16,8 @@ const BUSY_STATUS = ['hashing', 'queued', 'sending'];
 export default function BillsTable({
   rows = [],
   vehicles = [],
+  vehiclesError = null,
+  onRetryVehicles = null,
   queue,
   onSaved,
   onUnavailable,
@@ -216,6 +218,8 @@ export default function BillsTable({
                     pairFile={odometerRow?.file}
                     onUnpair={pair ? () => unpair(pair.slipCaptureId) : undefined}
                     odometerCell={odometer ? odometerCellFor(capture) : undefined}
+                    vehiclesError={vehiclesError}
+                    onRetryVehicles={onRetryVehicles}
                   />
                 );
               })}

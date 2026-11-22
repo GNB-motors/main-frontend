@@ -16,7 +16,7 @@ describe('Settings — idle threshold', () => {
   it('shows the org threshold, 20 min by default', async () => {
     render(<IdleThresholdSetting canEdit />);
     expect(await screen.findByDisplayValue('20')).toBeInTheDocument();
-    expect(apiClient.get).toHaveBeenCalledWith('api/fuel-settings', expect.any(Object));
+    expect(apiClient.get).toHaveBeenCalledWith('/api/fuel-settings', expect.any(Object));
   });
 
   // It used to sit on the skeleton forever when the load failed.
@@ -37,7 +37,7 @@ describe('Settings — idle threshold', () => {
     fireEvent.change(input, { target: { value: '45' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() =>
-      expect(apiClient.patch).toHaveBeenCalledWith('api/fuel-settings', { idleThresholdMin: 45 }),
+      expect(apiClient.patch).toHaveBeenCalledWith('/api/fuel-settings', { idleThresholdMin: 45 }),
     );
   });
 

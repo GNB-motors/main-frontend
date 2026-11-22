@@ -815,3 +815,101 @@ html.dark .intelligence-page {
     scroll-snap-align: start;
   }
 }
+
+/* Screen review S14 — on a driving task the fleet-wide strip collapses into
+   one quiet line, so the task, its period and its evidence lead the screen. */
+.intelligence-page .intel-kpi-strip--compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--rd-line);
+  border-radius: var(--intel-radius);
+  background: var(--rd-card);
+}
+.intelligence-page .intel-task-breadcrumb {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--rd-ink-3);
+}
+.intelligence-page .intel-task-breadcrumb-sep {
+  color: var(--rd-ink-3);
+  opacity: 0.7;
+}
+.intelligence-page .intel-kpi-compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.intelligence-page .intel-kpi-compact > li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.intelligence-page .intel-kpi-compact button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: var(--rd-ink-2);
+  cursor: pointer;
+}
+.intelligence-page .intel-kpi-compact button:hover span {
+  color: var(--rd-brand-2);
+  text-decoration: underline;
+}
+.intelligence-page .intel-kpi-compact button:focus-visible {
+  outline: 2px solid var(--rd-brand-2);
+  outline-offset: 2px;
+  border-radius: var(--rd-radius-xs);
+}
+.intelligence-page .intel-kpi-compact button span {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--rd-ink-2);
+}
+.intelligence-page .intel-kpi-compact button b {
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--rd-ink);
+}
+.intelligence-page .intel-kpi-compact button small {
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 400;
+  color: var(--rd-ink-3);
+}
+.intelligence-page .intel-kpi-compact .intel-kpi-why {
+  position: static;
+}
+
+/* The task's own period, next to the task title. */
+.intelligence-page .intel-panel-heading-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+.intelligence-page .intel-panel-heading-period {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--rd-ink-2);
+  background: var(--rd-card-2);
+  border: 1px solid var(--rd-line);
+  border-radius: var(--rd-radius-xs);
+  padding: 2px 8px;
+  white-space: nowrap;
+}

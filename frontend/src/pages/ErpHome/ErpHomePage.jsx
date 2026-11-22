@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast as notify } from 'react-toastify';
 import ConsignmentDrawer from '../../components/Erp/Drawers/ConsignmentDrawer';
 import TripCloseDrawer from '../../components/Erp/Drawers/TripCloseDrawer';
 import PodDrawer from '../../components/Erp/Drawers/PodDrawer';
 import UnloadingDrawer from '../../components/Erp/Drawers/UnloadingDrawer';
+import ErrorCard from '../../components/redesign/ErrorCard';
+import logger from '../../utils/logger';
 import { useTheme } from '../../hooks/useTheme.js';
 import ErpDashboardService from './ErpDashboardService';
 import CcIcon from './commandCenterIcons';
@@ -28,9 +29,12 @@ const ErpHomePage = () => {
   const queueRef = useRef(null);
 
   const [summary, setSummary] = useState(null);
+  const [summaryError, setSummaryError] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
   const [cur, setCur] = useState('cn');
-  const [queue, setQueue] = useState({ key: null, rows: [], count: 0, late: 0, limitDays: 0 });
-  const [loadingQueue, setLoadingQueue] = useState(false);
+  const [queue, setQueue] = useState(null);
+  const [queueError, setQueueError] = useState(null);
+  const [loadingQueue, setLoadingQueue] = useState(true);
   const [sortKey, setSortKey] = useState('ageDays');
   const [sortDir, setSortDir] = useState(-1);
   const [query, setQuery] = useState('');
@@ -43,7 +47,8 @@ const ErpHomePage = () => {
   const doneRunRef = useRef(0);
   const succeededRef = useRef(false);
 
-  const [updatedAt, setUpdatedAt] = useState(() => Date.now());
+  const [summaryUpdatedAt, setSummaryUpdatedAt] = useState(null);
+  const [queueUpdatedAt, setQueueUpdatedAt] = useState(null);
   const [, setTick] = useState(0);
   const [spinKey, setSpinKey] = useState(0);
   const [toastMsg, setToastMsg] = useState(null);
@@ -61,15 +66,30 @@ const ErpHomePage = () => {
     return () => clearInterval(id);
   }, []);
 
+  // The summary and the queue are two independent reads. Each one keeps its
+  // own failure, and a failed read never rewrites the other one.
   const fetchSummary = useCallback(async () => {
+    setSummaryLoading(true);
     try {
       const res = await ErpDashboardService.getSummary();
-      if (res.success) setSummary(unwrap(res));
-      else notify.error(res.message || 'Failed to load dashboard summary');
+      if (res && res.success === false) {
+        const err = new Error(res.message || 'Dashboard summary request failed');
+        err.status = typeof res.status === 'number' ? res.status : null;
+        throw err;
+      }
+      setSummary(unwrap(res));
+      setSummaryError(null);
+      setSummaryUpdatedAt(Date.now());
+      return true;
     } catch (err) {
-      notify.error(
-        err.response?.data?.message || err.message || 'Failed to load dashboard summary',
-      );
+      logger.error('erp-dashboard', 'summary request failed', {
+        status: err?.status ?? err?.response?.status ?? null,
+        message: err?.message ?? String(err),
+      });
+      setSummaryError(err);
+      return false;
+    } finally {
+      setSummaryLoading(false);
     }
   }, []);
 
@@ -77,10 +97,22 @@ const ErpHomePage = () => {
     setLoadingQueue(true);
     try {
       const res = await ErpDashboardService.getQueue(cur, { limit: 200 });
-      setQueue(unwrap(res) || { key: cur, rows: [] });
+      const next = unwrap(res);
+      // The stage a queue belongs to is stamped on it, so a queue from another
+      // stage is never shown under this one.
+      setQueue(next ? { ...next, key: next.key ?? cur } : { key: cur, rows: [] });
+      setQueueError(null);
+      setQueueUpdatedAt(Date.now());
+      return true;
     } catch (err) {
-      setQueue({ key: cur, rows: [], count: 0, late: 0, limitDays: 0 });
-      notify.error(err.response?.data?.message || 'Failed to load queue');
+      logger.error('erp-dashboard', 'queue request failed', {
+        status: err?.status ?? err?.response?.status ?? null,
+        message: err?.message ?? String(err),
+        stage: cur,
+      });
+      // The last queue we managed to load stays on screen, marked as stale.
+      setQueueError(err);
+      return false;
     } finally {
       setLoadingQueue(false);
     }
@@ -94,9 +126,10 @@ const ErpHomePage = () => {
     fetchQueue();
   }, [fetchQueue]);
 
-  const refreshAll = useCallback(() => {
-    setUpdatedAt(Date.now());
-    return Promise.all([fetchSummary(), fetchQueue()]);
+  // A refresh only counts as a refresh when the requests actually succeeded.
+  const refreshAll = useCallback(async () => {
+    const [summaryOk, queueOk] = await Promise.all([fetchSummary(), fetchQueue()]);
+    return { summary: summaryOk, queue: queueOk };
   }, [fetchSummary, fetchQueue]);
 
   const pickStage = (k) => {
@@ -120,10 +153,12 @@ const ErpHomePage = () => {
   };
 
   const stage = stageOf(cur);
-  const allRows = useMemo(() => (queue.key === cur ? queue.rows || [] : []), [queue, cur]);
-  const nLate = queue.key === cur ? queue.late || 0 : 0;
-  const total = queue.key === cur ? queue.count || 0 : 0;
-  const limitDays = queue.limitDays || 0;
+  const queueForStage = queue && queue.key === cur ? queue : null;
+  const allRows = useMemo(() => queueForStage?.rows || [], [queueForStage]);
+  // Unknown stays unknown: a count nobody loaded is not a count of zero.
+  const nLate = queueForStage ? (queueForStage.late ?? 0) : null;
+  const total = queueForStage ? (queueForStage.count ?? null) : null;
+  const limitDays = queueForStage ? (queueForStage.limitDays ?? null) : null;
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -210,12 +245,21 @@ const ErpHomePage = () => {
     }
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setSpinKey((k) => k + 1);
-    refreshAll().then(() => toast('Command center refreshed'));
+    const result = await refreshAll();
+    if (result.summary && result.queue) {
+      toast('Command center refreshed');
+    } else {
+      toast('Some sections could not be refreshed — showing the last data we have.');
+    }
   };
 
-  const mins = Math.floor((Date.now() - updatedAt) / 60000);
+  // The header shows how old the oldest confirmed section is. It never moves
+  // forward on a request that failed.
+  const confirmedAt =
+    [summaryUpdatedAt, queueUpdatedAt].filter(Boolean).sort((a, b) => a - b)[0] ?? null;
+  const mins = confirmedAt == null ? null : Math.floor((Date.now() - confirmedAt) / 60000);
   const selectedRows = allRows.filter((r) => sel.has(r._id));
 
   let body;
@@ -225,6 +269,9 @@ const ErpHomePage = () => {
         <span>Loading {stage.l.toLowerCase()}…</span>
       </div>
     );
+  } else if (queueError && !allRows.length) {
+    // The failure is shown in the card below — never as an empty queue.
+    body = null;
   } else if (!allRows.length) {
     body = (
       <div className="empty">
@@ -256,8 +303,20 @@ const ErpHomePage = () => {
             toggleTheme={toggleTheme}
           />
 
+          {summaryError ? (
+            <div style={{ marginBottom: 12 }}>
+              <ErrorCard error={summaryError} onRetry={fetchSummary} />
+              {summary ? (
+                <p style={{ color: 'var(--fg-secondary)', fontSize: 12, margin: '6px 0 0' }}>
+                  Showing the last figures we loaded — they may be out of date.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           <Kpis
             summary={summary}
+            loading={summaryLoading && !summary}
             onReviewApprovals={(e) => {
               e.preventDefault();
               navigate('/erp/approvals');
@@ -270,7 +329,9 @@ const ErpHomePage = () => {
             <div className="card" id="queue" ref={queueRef}>
               <div className="qhead">
                 <h2>{stage.l}</h2>
-                <span className="pill">{plural(total, stage.k === 'do' ? 'DO' : 'trip')}</span>
+                <span className="pill">
+                  {total == null ? '—' : plural(total, stage.k === 'do' ? 'DO' : 'trip')}
+                </span>
                 {nLate > 0 && (
                   <span className="pill" style={{ '--c': RED.c, '--tint': RED.tint }}>
                     <i />
@@ -289,6 +350,16 @@ const ErpHomePage = () => {
                   />
                 </label>
               </div>
+              {queueError ? (
+                <div style={{ padding: '12px 16px 0' }}>
+                  <ErrorCard error={queueError} onRetry={fetchQueue} />
+                  {allRows.length ? (
+                    <p style={{ color: 'var(--fg-secondary)', fontSize: 12, margin: '6px 0 0' }}>
+                      Showing the last queue we loaded — it may be out of date.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
               <div className={`bulk ${sel.size > 0 ? 'on' : ''}`}>
                 <b>{sel.size} selected</b>
                 <span className="sp" />
@@ -321,8 +392,8 @@ const ErpHomePage = () => {
               {!body && (
                 <div className="qfoot">
                   <span>
-                    Showing {visible.length} of {rows.length} · limit {plural(limitDays, 'day')} for
-                    this stage
+                    Showing {visible.length} of {rows.length} · limit{' '}
+                    {limitDays == null ? '—' : plural(limitDays, 'day')} for this stage
                   </span>
                   <span className="sp" />
                   {rows.length > QUEUE_PREVIEW && (

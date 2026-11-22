@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { icoHTML } from './routeHubIconPaths';
 import replayAppearance from '../../components/map/replayAppearance.js';
 import '../../components/map/replayTruck.css';
+import logger from '../../utils/logger';
 
 const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
 /** Leaflet never loads a single tile until it has a view (center+zoom) —
@@ -82,18 +83,39 @@ export function useLeafletMap(opts = {}, deps = []) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const optsRef = useRef(opts);
+  // A map that cannot start (or a tile server that is down) must never take the
+  // page with it: the trip log, the numbers and the replay controls stay
+  // usable, and the owner gets a local retry.
+  const [mapError, setMapError] = useState(null);
+  const [tileError, setTileError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   optsRef.current = opts;
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return undefined;
-    const map = makeMap(containerRef.current, optsRef.current);
+    let map;
+    try {
+      map = makeMap(containerRef.current, optsRef.current);
+    } catch (err) {
+      logger.error('RouteHubMap', 'Leaflet map could not be created', err);
+      setMapError(err);
+      return undefined;
+    }
+    setMapError(null);
+    setTileError(false);
     mapRef.current = map;
+
+    // Tiles come from a third-party server. When they fail the canvas stays
+    // grey and the owner reads it as a broken replay — say so locally instead.
+    const onTileError = () => setTileError(true);
+    map.on('tileerror', onTileError);
 
     const ro = new ResizeObserver(() => map.invalidateSize());
     ro.observe(containerRef.current);
 
     return () => {
       ro.disconnect();
+      map.off('tileerror', onTileError);
       // Null the ref first: this hook is declared before useLayerGroup, so its
       // cleanup runs first, and the layer-group cleanup that follows must be
       // able to tell the map is already gone.
@@ -106,9 +128,25 @@ export function useLeafletMap(opts = {}, deps = []) {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [...deps, attempt]);
 
-  return { containerRef, mapRef };
+  /** Rebuild the map after a failure (or a dead tile server). */
+  const retry = useCallback(() => {
+    const map = mapRef.current;
+    if (map) {
+      mapRef.current = null;
+      try {
+        map.remove();
+      } catch {
+        // already detached
+      }
+    }
+    setMapError(null);
+    setTileError(false);
+    setAttempt((n) => n + 1);
+  }, []);
+
+  return { containerRef, mapRef, mapError, tileError, retry };
 }
 
 /**

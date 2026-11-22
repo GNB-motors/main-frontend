@@ -1,15 +1,20 @@
 import apiClient from '../../utils/axiosConfig';
+import { ApiError } from '../../errors/ApiError';
 
 const BASE = '/api/erp/finance-hub';
 const LEDGER_BASE = '/api/erp/ledger';
 
+/**
+ * Keep the typed error intact. The status, the request id and the body are
+ * what let the UI say "this module is not available" instead of "something
+ * went wrong", and the request id is what support asks for. The raw server
+ * text is never shown to the owner — the UI maps it to plain words.
+ */
 const unwrapError = (error, fallback) => {
-  const payload = error.response?.data;
-  const err = new Error(payload?.message || error.message || fallback);
-  err.status = error.response?.status;
-  err.payload = payload;
-  err.code = error.code; // preserve ERR_CANCELED so callers can ignore aborted requests
-  return err;
+  const apiError = ApiError.from(error, fallback);
+  // legacy alias: several ERP screens read `err.payload`
+  apiError.payload = error?.response?.data ?? apiError.body ?? null;
+  return apiError;
 };
 
 /**
@@ -60,10 +65,9 @@ const FinanceHubApi = {
   /** Ledger postings, settlement history and timeline for one document. */
   getDocumentActivity: async (docType, docId, opts = {}) => {
     try {
-      const res = await apiClient.get(
-        `${BASE}/document/${docType}/${docId}/activity`,
-        { signal: opts.signal },
-      );
+      const res = await apiClient.get(`${BASE}/document/${docType}/${docId}/activity`, {
+        signal: opts.signal,
+      });
       return res.data;
     } catch (error) {
       throw unwrapError(error, 'Failed to load document activity');

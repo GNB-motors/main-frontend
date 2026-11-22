@@ -39,6 +39,8 @@ export default function OfficeBillApprovals({ onCount }) {
   const [data, setData] = useState(null);
   const [counts, setCounts] = useState({});
   const [vehicles, setVehicles] = useState([]);
+  const [vehiclesError, setVehiclesError] = useState(null);
+  const [vehicleRevision, setVehicleRevision] = useState(0);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState(null);
@@ -48,22 +50,26 @@ export default function OfficeBillApprovals({ onCount }) {
   const [rejecting, setRejecting] = useState(false);
   const [revision, setRevision] = useState(0);
   const refresh = useCallback(() => setRevision((n) => n + 1), []);
+  const refreshVehicles = useCallback(() => setVehicleRevision((n) => n + 1), []);
   useEffect(() => {
     let live = true;
     const controller = new AbortController();
+    setVehiclesError(null);
     MileageApi.vehicles(controller.signal)
       .then((v) => {
         if (live) setVehicles(Array.isArray(v) ? v : []);
       })
       .catch(() => {
         // The queue still works without the fleet list; only the truck picker
-        // needs it, and it can be filled in by hand.
+        // needs it, and it can be filled in by hand. Say so, and offer a retry:
+        // an empty picker must never look like an empty fleet.
+        if (live) setVehiclesError('The truck list could not be loaded.');
       });
     return () => {
       live = false;
       controller.abort();
     };
-  }, []);
+  }, [vehicleRevision]);
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
@@ -162,6 +168,19 @@ export default function OfficeBillApprovals({ onCount }) {
             onClick={refresh}
           >
             <RotateCw size={14} /> Retry
+          </button>
+        </div>
+      )}
+      {vehiclesError && (
+        <div className="ra-alert ra-alert--error" role="alert">
+          <AlertTriangle size={16} />
+          <span>{vehiclesError} Choosing a truck by hand still works.</span>
+          <button
+            type="button"
+            className="ra-btn ra-btn--ghost apv-alert__action"
+            onClick={refreshVehicles}
+          >
+            <RotateCw size={14} /> Retry trucks
           </button>
         </div>
       )}

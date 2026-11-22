@@ -43,6 +43,9 @@ const ComparisonToolbar = ({
   setSearchQuery,
   activeFilterCount,
   handleResetFilters,
+  scopeNote = '',
+  statusError = null,
+  onRetryStatus = null,
 }) => (
   <div className="fc-toolbar">
     {/* Status Tabs */}
@@ -172,6 +175,23 @@ const ComparisonToolbar = ({
         </button>
       )}
     </div>
+
+    {/* Which numbers these are — the counts and the table do not share a scope. */}
+    {scopeNote ? (
+      <div className="fc-count-scope">
+        <span>{scopeNote}</span>
+        {statusError ? (
+          <span className="fc-count-scope__error">
+            Audit totals unavailable
+            {onRetryStatus ? (
+              <button type="button" className="fc-btn-reset" onClick={onRetryStatus}>
+                Retry
+              </button>
+            ) : null}
+          </span>
+        ) : null}
+      </div>
+    ) : null}
   </div>
 );
 

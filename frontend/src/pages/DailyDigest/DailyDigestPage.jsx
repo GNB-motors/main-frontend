@@ -59,7 +59,10 @@ export default function DailyDigestPage() {
   const cacheMs = apiMemo.ttlFor(date, today);
   const fullKey = `digest:${date}:full`;
   const quickKey = `digest:${date}:quick`;
-  const fullCached = apiMemo.get(fullKey, cacheMs) !== undefined;
+  // Fresh only: an expired answer comes back marked `stale` and must not skip
+  // the quick read.
+  const fullHit = apiMemo.get(fullKey, cacheMs);
+  const fullCached = fullHit !== undefined && !(fullHit && fullHit.stale === true);
 
   // The digest arrives in two parts: the quick read (every card but the
   // day's km) draws the page first, the full read follows with the km. The

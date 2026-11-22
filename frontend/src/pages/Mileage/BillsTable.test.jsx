@@ -91,6 +91,29 @@ describe('the bill row shows the date, the time and the reason', () => {
     );
     expect(screen.getByText('2 Nov')).toBeInTheDocument();
   });
+
+  it('keeps a way to pick a truck when the matcher failed', async () => {
+    billPhotoService.getBillSuggestion.mockRejectedValue({ response: { status: 403 } });
+    render(<BillsTable rows={[{ id: 'cap1', ocr: {} }]} />);
+    // The failure is said out loud, and the owner is not left with no way out.
+    await waitFor(() => expect(screen.getByText(/Suggestions unavailable/i)).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
+    expect(screen.getAllByText('Truck').length).toBeGreaterThan(0);
+  });
+
+  it('says when the truck list could not be loaded and offers a retry', async () => {
+    const onRetryVehicles = vi.fn();
+    render(
+      <BillsTable
+        rows={[{ id: 'cap1', ocr: {} }]}
+        vehiclesError="The truck list could not be loaded."
+        onRetryVehicles={onRetryVehicles}
+      />,
+    );
+    await waitFor(() => expect(screen.getByText(/Truck list unavailable/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /retry trucks/i }));
+    expect(onRetryVehicles).toHaveBeenCalled();
+  });
 });
 
 describe('the slip and its odometer photo', () => {

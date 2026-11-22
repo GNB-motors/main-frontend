@@ -163,7 +163,7 @@ const NonBusinessReport = () => {
               extension,
               clientRows: searching ? filtered : null,
               columns: EXPORT_COLUMNS,
-              endpoint: 'api/reports/non-business/export',
+              endpoint: '/api/reports/non-business/export',
               params,
               filenamePrefix: 'non_business_report',
               errorMessage: 'Could not export non-business report.',

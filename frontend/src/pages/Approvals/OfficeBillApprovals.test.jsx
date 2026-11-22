@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import ApprovalsPage from './ApprovalsPage';
 import OfficeBillApprovals from './OfficeBillApprovals';
 import billPhotoService from '../../services/billPhotoService';
+import { MileageApi } from '../Mileage/mileageApi';
 import { ConfirmedBillRow } from './ConfirmedBillRow';
 vi.mock('../../hooks/usePageLayout', () => ({ useFullPageLayout: vi.fn() }));
 vi.mock('../../contexts/FeatureFlagsContext', () => ({
@@ -30,7 +31,10 @@ vi.mock('../../services/billPhotoService', () => ({
   },
 }));
 describe('office approvals', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    MileageApi.vehicles.mockResolvedValue([]);
+  });
   it('shows the office tab and its pending count', async () => {
     billPhotoService.listBillCaptures.mockResolvedValue({ captures: [], total: 7 });
     render(
@@ -332,5 +336,21 @@ describe('rejecting an office bill', () => {
     expect(await screen.findByText('Rejected by Ravi · Manager')).toBeInTheDocument();
     expect(screen.getByText('Not our truck')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Reject/ })).not.toBeInTheDocument();
+  });
+
+  it('says when the truck list could not be loaded and offers a retry', async () => {
+    billPhotoService.listBillCaptures.mockResolvedValue({ captures: [], total: 0 });
+    MileageApi.vehicles.mockRejectedValue(new Error('no trucks'));
+    render(
+      <MemoryRouter>
+        <OfficeBillApprovals />
+      </MemoryRouter>,
+    );
+    // An empty truck picker must never look like an empty fleet.
+    await waitFor(() =>
+      expect(screen.getByText(/truck list could not be loaded/i)).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /retry trucks/i }));
+    await waitFor(() => expect(MileageApi.vehicles).toHaveBeenCalledTimes(2));
   });
 });
