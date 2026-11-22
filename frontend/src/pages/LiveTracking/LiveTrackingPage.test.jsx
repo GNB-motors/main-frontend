@@ -297,8 +297,10 @@ describe('LiveTrackingPage master data', () => {
     );
     expect(screen.getAllByText('Full recorded history').length).toBeGreaterThan(0);
     expect(seen.map.track).toBeNull();
-    expect(seen.map.places).toEqual(
-      expect.arrayContaining([expect.objectContaining({ name: 'Historical yard' })]),
+    await waitFor(() =>
+      expect(seen.map.places).toEqual(
+        expect.arrayContaining([expect.objectContaining({ name: 'Historical yard' })]),
+      ),
     );
     expect(seen.map.mapVehicles).toHaveLength(1);
     expect(seen.map.mapVehicles[0].plate).toBe('TEST01');
@@ -359,6 +361,11 @@ describe('LiveTrackingPage master data', () => {
     );
     try {
       await screen.findByRole('link', { name: /Old plant → Historical yard/ });
+      await waitFor(() =>
+        expect(seen.map.places).toEqual(
+          expect.arrayContaining([expect.objectContaining({ name: 'Historical yard' })]),
+        ),
+      );
       const endpoint = seen.map.places.find((place) => place.name === 'Historical yard');
       expect(endpoint.to).toBe('/auto-trips/historical-trip');
       act(() => seen.map.onSelectPlace(endpoint.id));
