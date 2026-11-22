@@ -9,7 +9,7 @@ const { seen, pending } = vi.hoisted(() => ({
 }));
 
 vi.mock('@react-google-maps/api', () => ({
-  useLoadScript: () => ({ isLoaded: false, loadError: null }),
+  useLoadScript: () => ({ isLoaded: Boolean(seen.mapsLoaded), loadError: null }),
   GoogleMap: () => null,
   MarkerF: () => null,
   PolylineF: () => null,
@@ -65,6 +65,19 @@ vi.mock('../../services/fleetViewService', async (original) => {
         ],
       }),
       getVehicleTolls: vi.fn().mockResolvedValue({ status: 'READY', passes: [] }),
+      getTripsHistory: vi.fn().mockResolvedValue({
+        items: [
+          {
+            kind: 'VISIT',
+            registrationNumber: 'TEST01',
+            arrivedAt: '2026-09-01T00:00:00Z',
+            departedAt: '2026-09-01T01:00:00Z',
+            place: { id: 'old-yard', name: 'Historical yard', lat: 24, lng: 85 },
+            trip: { to: '/trips/historical-trip' },
+          },
+        ],
+        total: 1,
+      }),
     },
   };
 });
@@ -119,6 +132,20 @@ vi.mock('../../contexts/FeatureFlagsContext', () => ({
   useFeatureFlags: () => ({ isEnabled: () => true }),
 }));
 vi.mock('../../services/erpSiteService.js', () => ({ ErpSiteService: { declare: vi.fn() } }));
+vi.mock('../../services/AutoTripService', () => ({
+  default: {
+    list: vi.fn().mockResolvedValue({
+      items: [
+        {
+          _id: 'historical-trip',
+          pickup: { name: 'Old plant', departedAt: '2026-09-01T00:00:00Z', lat: 22, lng: 88 },
+          drop: { name: 'Historical yard', arrivedAt: '2026-09-02T00:00:00Z', lat: 24, lng: 85 },
+        },
+      ],
+      total: 1,
+    }),
+  },
+}));
 vi.mock('../PlaceHub/PlaceHubService', () => ({
   default: {
     createZone: vi.fn(),
@@ -157,8 +184,43 @@ import PlaceHubService from '../PlaceHub/PlaceHubService';
 import LiveTrackingPage from './LiveTrackingPage';
 import { fleetViewService } from '../../services/fleetViewService';
 import apiClient from '../../utils/axiosConfig';
+import AutoTripService from '../../services/AutoTripService';
 
 describe('LiveTrackingPage master data', () => {
+  it('enables 3D follow for a selected vehicle and resets it when returning to the fleet', async () => {
+    seen.mapsLoaded = true;
+    seen.positions = [
+      {
+        registrationNumber: 'TEST01',
+        latitude: 22,
+        longitude: 88,
+        eventDateTime: new Date().toISOString(),
+      },
+    ];
+    const view = render(
+      <MemoryRouter initialEntries={['/live-tracking']}>
+        <LiveTrackingPage />
+      </MemoryRouter>,
+    );
+    try {
+      expect(screen.queryByRole('button', { name: '3D follow' })).not.toBeInTheDocument();
+      act(() => seen.map.setSelectedId('live-TEST01'));
+      await waitFor(() => expect(screen.getByRole('button', { name: '3D follow' })).toBeEnabled());
+      fireEvent.click(screen.getByRole('button', { name: '3D follow' }));
+      expect(seen.map.followCameraEnabled).toBe(true);
+      expect(screen.getByRole('button', { name: '3D follow' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Clear vehicle' }));
+      expect(seen.map.followCameraEnabled).toBe(false);
+      expect(screen.queryByRole('button', { name: '3D follow' })).not.toBeInTheDocument();
+    } finally {
+      view.unmount();
+      seen.mapsLoaded = false;
+      seen.positions = null;
+    }
+  });
   it('keeps a replay vehicle across Places, Routes, history and return to replay', async () => {
     function History() {
       const navigate = useNavigate();
@@ -218,6 +280,7 @@ describe('LiveTrackingPage master data', () => {
         latitude: 22,
         longitude: 88,
         eventDateTime: new Date().toISOString(),
+        vehicle: { vehicleId: 'vehicle-1' },
       },
     ];
     const view = render(
@@ -227,9 +290,27 @@ describe('LiveTrackingPage master data', () => {
     );
     await waitFor(() => expect(seen.map.selectedId).toBe('live-TEST01'));
     fireEvent.click(screen.getByRole('button', { name: 'Places & routes' }));
-    await screen.findByRole('heading', { name: 'Places on this journey' });
+    await screen.findByRole('heading', { name: 'Visited places' });
+    expect(await screen.findByRole('link', { name: /Historical yard/ })).toHaveAttribute(
+      'href',
+      '/auto-trips/historical-trip',
+    );
+    expect(screen.getAllByText('Full recorded history').length).toBeGreaterThan(0);
+    expect(seen.map.track).toBeNull();
+    expect(seen.map.places).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'Historical yard' })]),
+    );
     expect(seen.map.mapVehicles).toHaveLength(1);
     expect(seen.map.mapVehicles[0].plate).toBe('TEST01');
+    fireEvent.click(screen.getByRole('tab', { name: 'Routes' }));
+    expect(
+      await screen.findByRole('link', { name: /Old plant → Historical yard/ }),
+    ).toHaveAttribute('href', '/auto-trips/historical-trip');
+    expect(AutoTripService.list.mock.lastCall[0]).toEqual({
+      vehicleId: 'vehicle-1',
+      page: 1,
+      limit: 200,
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Live tracking' }));
     expect(seen.map.selectedId).toBe('live-TEST01');
     expect(screen.getByRole('button', { name: 'Clear vehicle' })).toBeInTheDocument();
@@ -247,13 +328,47 @@ describe('LiveTrackingPage master data', () => {
         <LiveTrackingPage />
       </MemoryRouter>,
     );
-    await screen.findByRole('heading', { name: 'Recorded routes' });
+    await screen.findByRole('heading', { name: 'Recorded trips' });
     expect(screen.getByText('TEST01')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Track mode' })).not.toBeInTheDocument();
     expect(seen.map.trackPlayheadTime).toBeNull();
     expect(seen.map.trackReplay).toBe(false);
     expect(seen.routeOptions.enabled).toBe(false);
     view.unmount();
+  });
+
+  it('opens the exact historical trip when its map endpoint is selected', async () => {
+    seen.positions = [
+      {
+        registrationNumber: 'TEST01',
+        latitude: 22,
+        longitude: 88,
+        vehicle: { vehicleId: 'vehicle-1' },
+        eventDateTime: new Date().toISOString(),
+      },
+    ];
+    function Location() {
+      const location = useLocation();
+      return <output data-testid="history-location">{location.pathname}</output>;
+    }
+    const view = render(
+      <MemoryRouter initialEntries={['/live-tracking?vehicle=TEST01&view=places&placesTab=routes']}>
+        <Location />
+        <LiveTrackingPage />
+      </MemoryRouter>,
+    );
+    try {
+      await screen.findByRole('link', { name: /Old plant → Historical yard/ });
+      const endpoint = seen.map.places.find((place) => place.name === 'Historical yard');
+      expect(endpoint.to).toBe('/auto-trips/historical-trip');
+      act(() => seen.map.onSelectPlace(endpoint.id));
+      expect(screen.getByTestId('history-location')).toHaveTextContent(
+        '/auto-trips/historical-trip',
+      );
+    } finally {
+      view.unmount();
+      seen.positions = null;
+    }
   });
 
   it('applies Digest status links and restores the filter with browser history', () => {
@@ -285,6 +400,101 @@ describe('LiveTrackingPage master data', () => {
       'aria-pressed',
       'true',
     );
+  });
+  it.each([0, 40])(
+    'returns to the fleet when Moving is clicked after selecting a vehicle at %s km/h',
+    async (speed) => {
+      seen.positions = [
+        {
+          registrationNumber: 'PICK01',
+          latitude: 22,
+          longitude: 88,
+          speed,
+          ignition: speed > 0,
+          eventDateTime: new Date().toISOString(),
+        },
+        {
+          registrationNumber: 'MOVE02',
+          latitude: 25,
+          longitude: 84,
+          speed: 35,
+          ignition: true,
+          eventDateTime: new Date().toISOString(),
+        },
+      ];
+      function Url() {
+        const location = useLocation();
+        return <output data-testid="fleet-url">{location.search}</output>;
+      }
+      const view = render(
+        <MemoryRouter initialEntries={['/live-tracking']}>
+          <Url />
+          <LiveTrackingPage />
+        </MemoryRouter>,
+      );
+      try {
+        act(() => seen.map.setSelectedId('live-PICK01'));
+        await waitFor(() => expect(seen.map.selectedId).toBe('live-PICK01'));
+        expect(screen.getByRole('button', { name: 'Clear vehicle' })).toBeInTheDocument();
+        fireEvent.change(screen.getByRole('searchbox', { name: 'Search vehicles' }), {
+          target: { value: 'PICK' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: /^Moving/ }));
+        await waitFor(() => expect(seen.map.selectedId).toBeNull());
+        expect(screen.getByTestId('fleet-url')).toHaveTextContent('status=moving');
+        expect(screen.getByTestId('fleet-url')).not.toHaveTextContent('vehicle=');
+        expect(screen.queryByRole('button', { name: 'Clear vehicle' })).not.toBeInTheDocument();
+        expect(document.querySelector('.railview--detail.open')).toBeNull();
+        expect(seen.map.mapVehicles.some((v) => v.plate === 'MOVE02')).toBe(true);
+        expect(seen.map.mapVehicles.every((v) => v.status === 'moving')).toBe(true);
+        expect(screen.getByRole('heading', { name: 'Fleet' })).toBeInTheDocument();
+        expect(screen.getByRole('searchbox', { name: 'Search vehicles' })).toHaveValue('');
+      } finally {
+        view.unmount();
+        seen.positions = null;
+      }
+    },
+  );
+  it('leaves Track mode and removes the replay range when a fleet status is clicked', async () => {
+    seen.positions = [
+      {
+        registrationNumber: 'MOVE02',
+        latitude: 25,
+        longitude: 84,
+        speed: 35,
+        ignition: true,
+        eventDateTime: new Date().toISOString(),
+      },
+    ];
+    function Url() {
+      const location = useLocation();
+      return <output data-testid="fleet-url">{location.search}</output>;
+    }
+    const view = render(
+      <MemoryRouter
+        initialEntries={[
+          '/live-tracking?v=TEST01&vehicle=TEST01&from=2026-11-03T00:00:00Z&to=2026-11-04T00:00:00Z&at=2026-11-03T01:00:00Z',
+        ]}
+      >
+        <Url />
+        <LiveTrackingPage />
+      </MemoryRouter>,
+    );
+    try {
+      await screen.findByRole('heading', { name: 'Track mode' });
+      fireEvent.click(screen.getByRole('button', { name: /^Moving/ }));
+      expect(screen.getByTestId('fleet-url').textContent).toBe('?status=moving');
+      expect(screen.queryByRole('heading', { name: 'Track mode' })).not.toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Fleet' })).toBeInTheDocument();
+      expect(seen.map.track).toBeNull();
+      expect(seen.map.trackReplay).toBe(false);
+      expect(seen.map.isTrailVisible).toBe(false);
+      expect(seen.map.selectedId).toBeNull();
+      expect(seen.map.mapVehicles.map((v) => v.plate)).toEqual(['MOVE02']);
+    } finally {
+      view.unmount();
+      seen.positions = null;
+    }
   });
   const reviewSite = {
     _id: 'review-1',
@@ -588,7 +798,7 @@ it('identifies a journey stop then refreshes the same vehicle and range with its
   render(
     <MemoryRouter
       initialEntries={[
-        '/live-tracking?vehicle=TEST01&view=places&from=2026-11-03T00:00:00Z&to=2026-11-04T00:00:00Z',
+        '/live-tracking?v=TEST01&view=places&from=2026-11-03T00:00:00Z&to=2026-11-04T00:00:00Z',
       ]}
     >
       <LiveTrackingPage />
@@ -637,7 +847,7 @@ it('opens named journey landmarks in a details modal', async () => {
     ],
   });
   render(
-    <MemoryRouter initialEntries={['/live-tracking?vehicle=TEST01&view=places']}>
+    <MemoryRouter initialEntries={['/live-tracking?v=TEST01&view=places']}>
       <LiveTrackingPage />
     </MemoryRouter>,
   );
@@ -681,7 +891,7 @@ it('identifies a moving GPS location then refreshes the same vehicle and range w
   render(
     <MemoryRouter
       initialEntries={[
-        '/live-tracking?vehicle=TEST01&view=places&from=2026-11-03T00:00:00Z&to=2026-11-04T00:00:00Z',
+        '/live-tracking?v=TEST01&view=places&from=2026-11-03T00:00:00Z&to=2026-11-04T00:00:00Z',
       ]}
     >
       <LiveTrackingPage />

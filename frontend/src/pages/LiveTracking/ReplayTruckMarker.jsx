@@ -1,14 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useGoogleMap } from '@react-google-maps/api';
-import { navTruckSvg } from './navTruckIcon.js';
+import { createVehicleMarkerIcon } from './vehicleMarkerIcon.js';
 import '../../components/map/replayTruck.css';
-
-const THEMES = {
-  moving: { color: '#0C9F41', deep: '#088B36', highlight: '#4ade80' },
-  stopped: { color: '#9333EA', deep: '#7E22CE', highlight: '#c084fc' },
-  idling: { color: '#F97316', deep: '#C2410C', highlight: '#fb923c' },
-  fast: { color: '#EF4444', deep: '#DC2626', highlight: '#fca5a5' },
-};
 
 function resolveStatusKey(speedKmh, isFast, ignition) {
   if (isFast) return 'fast';
@@ -21,8 +14,7 @@ function resolveStatusKey(speedKmh, isFast, ignition) {
  * Authentic telematics top-down truck for replay, matching Live Tracking style.
  *
  * Renders on a Google Maps OverlayView with:
- * - Direction-oriented top-down commercial truck (navTruckSvg) with cab, windshield,
- *   headlights, container body, and taillights (NO circular background disks).
+ * - The same direction-oriented truck artwork as Trip Details.
  * - Dynamic status theme for the vehicle SVG: Green (moving), Purple (stopped),
  *   Orange (idling), Red (overspeed).
  * - Rectangular label box with fixed high-contrast color showing vehicle plate and speed.
@@ -32,6 +24,7 @@ export default function ReplayTruckMarker({
   position,
   fast,
   heading = null,
+  cameraHeading = 0,
   speedKmh = 0,
   ignition = false,
   registration = '',
@@ -96,9 +89,9 @@ export default function ReplayTruckMarker({
     const plateEl = elementRef.current.querySelector('.replay-truck-plate');
     const sepEl = elementRef.current.querySelector('.replay-truck-sep');
 
-    // navTruckSvg points north at 0°. Rotate directly to heading.
+    // The shared truck artwork points north at 0°. Rotate directly to heading.
     if (truck && Number.isFinite(Number(heading))) {
-      truck.style.transform = `rotate(${Math.round(Number(heading))}deg)`;
+      truck.style.transform = `rotate(${Math.round(Number(heading) - cameraHeading)}deg)`;
     }
 
     // Fixed color rectangular badge with vehicle no and speed
@@ -121,19 +114,17 @@ export default function ReplayTruckMarker({
     // Update SVG colors if status transitioned or initial render
     if (lastStatusRef.current !== statusKey || !truck?.innerHTML) {
       lastStatusRef.current = statusKey;
-      const theme = THEMES[statusKey] || THEMES.stopped;
       if (truck) {
-        truck.innerHTML = navTruckSvg({
-          heading: 0,
-          color: theme.color,
-          deep: theme.deep,
-          bodyHighlight: theme.highlight,
+        const icon = createVehicleMarkerIcon({
+          status: statusKey === 'fast' ? 'breakdown' : statusKey,
+          courseDegrees: 0,
         });
+        truck.innerHTML = decodeURIComponent(icon.url.slice(icon.url.indexOf(',') + 1));
       }
     }
 
     overlayRef.current?.draw();
-  }, [position, fast, heading, speedKmh, ignition, registration]);
+  }, [position, fast, heading, cameraHeading, speedKmh, ignition, registration]);
 
   return null;
 }

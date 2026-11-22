@@ -1,7 +1,6 @@
 import Skel from './Skel.jsx';
 import { useMemo } from 'react';
 import PlaceRouteSkeletons from './PlaceRouteSkeletons.jsx';
-import renderIconSvg from './renderIconSvg.jsx';
 import TrackPlacesFilter from './TrackPlacesFilter.jsx';
 import { styleOfType } from '../PlaceHub/placeHubStyle.js';
 import { placeTypeLabel } from '../PlaceHub/model/placeGroups.js';
@@ -11,7 +10,7 @@ import { vehicleCountsByPlace } from './trackPlaces.js';
    with how many trucks are inside each one right now. Places with trucks in
    them come first. The search box now lives on the map (F1.3), so this list
    is filtered by that one search. */
-export default function PlacesListView({ trackPlaces, vehicles, onPick, onHide, query = '' }) {
+export default function PlacesListView({ trackPlaces, vehicles, onPick, query = '' }) {
   const { listPlaces, places, loading, loaded } = trackPlaces;
   const initialLoading = (loading || !loaded) && !places.length && !trackPlaces.notice;
   const here = useMemo(() => vehicleCountsByPlace(listPlaces, vehicles), [listPlaces, vehicles]);
@@ -40,14 +39,6 @@ export default function PlacesListView({ trackPlaces, vehicles, onPick, onHide, 
             )}
           </div>
         </div>
-        <button
-          className="btn btn--sm btn--icon"
-          title="Hide list"
-          aria-label="Hide list"
-          onClick={onHide}
-        >
-          {renderIconSvg('chevRight', 16)}
-        </button>
       </div>
 
       <div className="pl-filter">

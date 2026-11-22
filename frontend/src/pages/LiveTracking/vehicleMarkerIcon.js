@@ -81,7 +81,7 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3, arg4) => {
   // Smoothly increases marker & label dimensions as the client zooms in,
   // and maintains a prominent, readable silhouette when zoomed out.
   const effectiveZoom =
-    typeof zoom === 'number' && !isNaN(zoom) ? Math.max(4, Math.min(20, zoom)) : 12;
+    typeof zoom === 'number' && !isNaN(zoom) ? Math.round(Math.max(4, Math.min(20, zoom))) : 12;
 
   // Responsive scale curve from zoom 4 (national overview) to zoom 20 (street level).
   // The zoomed-out / page-open range (<=13) is deliberately kept large so trucks
@@ -148,9 +148,9 @@ export const createVehicleMarkerIcon = (arg1, arg2, arg3, arg4) => {
 
   // To avoid unreadable clutter across India when zoomed out (< 10),
   // labels for unselected vehicles appear once the user zooms into district/city level (zoom >= 10).
-  // Selected vehicles always display their plate label.
+  // Selected vehicles and explicitly hovered markers always display their plate label.
   const hasLabel = Boolean(
-    plateText.length > 0 && (isSelected || (showLabel && effectiveZoom >= 10)),
+    plateText.length > 0 && (isSelected || v.forceLabel || (showLabel && effectiveZoom >= 10)),
   );
   const shortPlate = plateText.length > 12 ? plateText.slice(-10) : plateText;
   const labelFontSize = effectiveZoom >= 16 ? 16 : effectiveZoom >= 13 ? 15 : 14;

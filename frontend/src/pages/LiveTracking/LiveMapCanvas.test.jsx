@@ -1,6 +1,6 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
-import { render } from '@testing-library/react';
-import { PolylineF } from '@react-google-maps/api';
+import { act, render, screen } from '@testing-library/react';
+import { MarkerF, PolylineF } from '@react-google-maps/api';
 import RouteLayer from '../PlaceHub/map/RouteLayer.jsx';
 import LiveMapCanvas from './LiveMapCanvas.jsx';
 import focusedMapVehicles from './focusedMapVehicles.js';
@@ -10,11 +10,13 @@ const { map, overlays } = vi.hoisted(() => ({ map: {}, overlays: [] }));
 vi.mock('@react-google-maps/api', () => ({
   GoogleMap: ({ children }) => <div>{children}</div>,
   PolylineF: vi.fn(() => null),
-  MarkerF: () => null,
+  MarkerF: vi.fn(() => null),
+  OverlayViewF: ({ children }) => <div>{children}</div>,
   useGoogleMap: () => map,
 }));
 vi.mock('../PlaceHub/map/RouteLayer.jsx', () => ({ default: vi.fn(() => null) }));
 vi.mock('./AnimatedVehicleMarkers.jsx', () => ({ default: vi.fn(() => null) }));
+vi.mock('./VectorGoogleMap.jsx', () => ({ default: ({ children }) => <div>{children}</div> }));
 vi.mock('../../components/map/CongestionLayer', () => ({ default: () => null }));
 
 let pane;
@@ -104,6 +106,52 @@ const props = {
   habitualHalts: [],
 };
 
+describe('habitual stop hover tooltips', () => {
+  const haltProps = {
+    ...props,
+    replayState: { on: false },
+    isTrailVisible: false,
+    isHabitualHaltsVisible: true,
+    habitualHalts: [
+      { lat: 22, lng: 88, occurrences: 3, medianDwellMs: 7200000 },
+      { lat: 23, lng: 89, occurrences: 7, medianDwellMs: 1800000 },
+    ],
+  };
+  const haltMarkers = () => MarkerF.mock.calls.map(([p]) => p).filter((p) => p.onMouseOver);
+
+  it('shows stop details on hover, keeps other markers visible and dismisses on mouse out', () => {
+    render(<LiveMapCanvas {...haltProps} />);
+    const [first, second] = haltMarkers();
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    expect(first.onClick).toBeUndefined();
+    MarkerF.mockClear();
+    act(() => first.onMouseOver());
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Habitual stop');
+    expect(screen.getByRole('tooltip')).toHaveTextContent('3× stopped here');
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Usually ~2 h');
+    expect(haltMarkers()).toHaveLength(2);
+    act(() => second.onMouseOver());
+    act(() => first.onMouseOut());
+    expect(screen.getByRole('tooltip')).toHaveTextContent('7× stopped here');
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Usually ~30 min');
+    act(() => second.onMouseOut());
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  it('clears the tooltip when the layer is hidden or the selected truck changes', () => {
+    const { rerender } = render(<LiveMapCanvas {...haltProps} />);
+    act(() => haltMarkers()[0].onMouseOver());
+    rerender(<LiveMapCanvas {...haltProps} isHabitualHaltsVisible={false} />);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    rerender(<LiveMapCanvas {...haltProps} />);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    act(() => haltMarkers().at(-1).onMouseOver());
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+    rerender(<LiveMapCanvas {...haltProps} selectedId="other-truck" />);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+});
+
 describe('Track replay presentation', () => {
   it('keeps raw replay geometry dotted, including the travelled part', () => {
     render(<LiveMapCanvas {...props} />);
@@ -123,7 +171,8 @@ describe('Track replay presentation', () => {
     const truck = pane.querySelector('.replay-truck-marker');
     expect(truck).not.toBeNull();
     const svg = truck.querySelector('svg');
-    expect(svg.getAttribute('width')).toBe('96');
+    expect(svg.getAttribute('viewBox')).toBe('0 0 96 96');
+    expect(svg.innerHTML).toContain('M53.1321 14.2725'); // Trip Details truck's forward beam
     rerender(
       <LiveMapCanvas
         {...props}
@@ -161,6 +210,32 @@ const track = {
 };
 
 describe('Track mode', () => {
+  it('follows the replay truck in 3D without fitting or edge-panning the whole route', () => {
+    map.getZoom = () => 12;
+    map.getRenderingType = () => 'VECTOR';
+    map.moveCamera = vi.fn();
+    const view = render(
+      <LiveMapCanvas
+        {...props}
+        track={track}
+        trackPlayheadTime="2026-11-01T13:10:00Z"
+        followCameraEnabled
+      />,
+    );
+    expect(map.moveCamera).toHaveBeenCalledWith(
+      expect.objectContaining({
+        center: { lat: 23, lng: 89 },
+        tilt: 60,
+        zoom: 16,
+      }),
+    );
+    expect(map.fitBounds).not.toHaveBeenCalled();
+    expect(map.panTo).not.toHaveBeenCalled();
+    view.unmount();
+    delete map.getZoom;
+    delete map.getRenderingType;
+    delete map.moveCamera;
+  });
   it('draws the truck being replayed, on an overlay above the line', () => {
     render(<LiveMapCanvas {...props} track={track} trackPlayheadTime="2026-11-01T13:10:00Z" />);
     const truck = pane.querySelector('.replay-truck-marker');
@@ -192,6 +267,11 @@ describe('Fleet markers while focused on one truck', () => {
   });
   it('shows only the selected truck', () => {
     expect(focusedMapVehicles(fleet, { selectedId: 'v2', replayOn: false })).toEqual([fleet[1]]);
+  });
+  it('shows the filtered fleet if the selected truck is no longer in scope', () => {
+    expect(focusedMapVehicles(fleet, { selectedId: 'filtered-out', replayOn: false })).toEqual(
+      fleet,
+    );
   });
   it('hides every live marker during Replay (the replay truck stands in)', () => {
     expect(focusedMapVehicles(fleet, { selectedId: 'v2', replayOn: true })).toEqual([]);

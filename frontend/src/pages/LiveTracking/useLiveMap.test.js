@@ -32,6 +32,51 @@ afterEach(() => {
 });
 
 describe('Track map actions', () => {
+  it('fits a new fleet filter after selection clears, includes offline positions and preserves the camera on stream updates', () => {
+    vi.stubGlobal('google', {
+      maps: {
+        LatLngBounds: class {
+          points = [];
+          extend(point) {
+            this.points.push(point);
+          }
+        },
+        event: { addListenerOnce: vi.fn() },
+      },
+    });
+    const map = {
+      getZoom: () => 14,
+      addListener: vi.fn(() => ({ remove: vi.fn() })),
+      fitBounds: vi.fn(),
+      moveCamera: vi.fn(),
+      panTo: vi.fn(),
+    };
+    const moving = { ...vehicle, id: 'moving', live: true };
+    const parked = { ...vehicle, id: 'parked', lat: 26, lng: 84, live: true };
+    const offline = { ...vehicle, id: 'offline', lat: 27, lng: 85, live: false };
+    const { result, rerender } = renderHook(
+      ({ vehicles, selected, scope }) =>
+        useLiveMap({
+          theme: 'light',
+          mapMode: 'map',
+          vehicles,
+          selectedId: selected?.id ?? null,
+          selectedVehicle: selected,
+          fleetScope: scope,
+        }),
+      { initialProps: { vehicles: [moving, parked, offline], selected: parked, scope: 'all' } },
+    );
+    act(() => result.current.onMapLoad(map));
+    map.fitBounds.mockClear();
+    rerender({ vehicles: [moving], selected: null, scope: 'moving' });
+    expect(map.fitBounds).toHaveBeenCalledOnce();
+    expect(map.fitBounds.mock.lastCall[0].points).toEqual([{ lat: moving.lat, lng: moving.lng }]);
+    rerender({ vehicles: [{ ...moving, lat: 23 }], selected: null, scope: 'moving' });
+    expect(map.fitBounds).toHaveBeenCalledOnce();
+    rerender({ vehicles: [offline], selected: null, scope: 'offline' });
+    expect(map.fitBounds.mock.lastCall[0].points).toEqual([{ lat: offline.lat, lng: offline.lng }]);
+    expect(map.fitBounds).toHaveBeenCalledTimes(2);
+  });
   it('allows worldwide panning and zooming in both map styles', () => {
     const { result, rerender } = renderHook(
       ({ theme, mapMode }) =>

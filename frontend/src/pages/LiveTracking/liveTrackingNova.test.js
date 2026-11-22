@@ -198,6 +198,7 @@ describe('Nova Edge Pro Live Tracking Helpers', () => {
       // Zoom 16 (scale 1.50): scaledW = 60 * 1.50 = 90
       const iconClose = createVehicleMarkerIcon(veh, false, true, 16);
       expect(iconClose.scaledSize.width).toBe(90);
+      expect(createVehicleMarkerIcon(veh, false, true, 16.2).scaledSize.width).toBe(90);
 
       // Zoom 14 (scale 1.30): scaledW = 60 * 1.30 = 78
       const iconNormal = createVehicleMarkerIcon(veh, false, true, 14);

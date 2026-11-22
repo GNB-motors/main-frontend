@@ -1,6 +1,28 @@
 import { expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import MapOverlayControls from './MapOverlayControls.jsx';
+import FollowCameraToggle from './FollowCameraToggle.jsx';
+import TrafficToggle from './TrafficToggle.jsx';
+
+it('places the 3D follow toggle beside Traffic and exposes its state', () => {
+  const onToggle = vi.fn();
+  const { rerender } = render(
+    <MapOverlayControls
+      trafficToggle={<TrafficToggle />}
+      followCameraToggle={<FollowCameraToggle onToggle={onToggle} />}
+    />,
+  );
+  const follow = screen.getByRole('button', { name: '3D follow' });
+  expect(follow.closest('.ov-right-row')).toBe(
+    screen.getByRole('button', { name: 'Traffic' }).closest('.ov-right-row'),
+  );
+  expect(follow).toHaveAttribute('aria-pressed', 'false');
+  fireEvent.click(follow);
+  expect(onToggle).toHaveBeenCalledOnce();
+  rerender(<MapOverlayControls followCameraToggle={<FollowCameraToggle on disabled />} />);
+  expect(screen.getByRole('button', { name: '3D follow' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: '3D follow' })).toHaveAttribute('aria-pressed', 'true');
+});
 
 it('shows the date filter only while a selected vehicle has Trail open', () => {
   const props = {

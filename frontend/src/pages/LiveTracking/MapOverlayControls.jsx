@@ -22,6 +22,7 @@ export default function MapOverlayControls({
   searchBox = null,
   legend = null,
   trafficToggle = null,
+  followCameraToggle = null,
   trackTollStatus = null,
 }) {
   const showTrailDates = Boolean(selectedVehicle && isTrailVisible && !replayState?.on);
@@ -53,6 +54,7 @@ export default function MapOverlayControls({
             {listLabel}
           </button>
           {trafficToggle}
+          {followCameraToggle}
         </div>
 
         {trackTollStatus ? <div className="w-[280px] max-w-full">{trackTollStatus}</div> : null}

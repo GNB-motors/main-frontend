@@ -4,6 +4,9 @@
    With nothing selected, the whole fleet shows. */
 export default function focusedMapVehicles(mapVehicles, { selectedId, replayOn }) {
   if (replayOn) return [];
-  if (selectedId != null) return mapVehicles.filter((vehicle) => vehicle.id === selectedId);
+  if (selectedId != null) {
+    const selected = mapVehicles.filter((vehicle) => vehicle.id === selectedId);
+    if (selected.length) return selected;
+  }
   return mapVehicles;
 }

@@ -42,7 +42,13 @@ function haversineMeters(a, b) {
 
 const zIndexFor = (v, isSelected) => (isSelected ? 1000 : v.live ? 500 : 100);
 
-const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, mapZoom = 12 }) => {
+const AnimatedVehicleMarkers = ({
+  vehicles = [],
+  selectedId = null,
+  onSelect,
+  mapZoom = 12,
+  cameraHeading = 0,
+}) => {
   const map = useGoogleMap();
   // id -> { marker, from, to, start, dur, iconSig }
   const markersRef = useRef(new Map());
@@ -57,7 +63,12 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
   useEffect(() => {
     if (!map || !window.google) return undefined;
     const markers = markersRef.current;
-    const cluster = new MarkerClusterer({ map, markers: [], algorithm: new SuperClusterAlgorithm({ radius: 30, maxZoom: 22 }), renderer: createStatusClusterRenderer(() => Boolean(selectedRef.current)) });
+    const cluster = new MarkerClusterer({
+      map,
+      markers: [],
+      algorithm: new SuperClusterAlgorithm({ radius: 30, maxZoom: 22 }),
+      renderer: createStatusClusterRenderer(() => Boolean(selectedRef.current)),
+    });
     clusterRef.current = cluster;
     return () => {
       cluster.setMap(null);
@@ -78,10 +89,19 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
     const markers = markersRef.current;
     const seen = new Set();
     const projection = map.getProjection?.();
-    const labels = projection && mapZoom >= 17 ? visibleVehicleLabels(vehicles.filter(v => v.hasFix), selectedId, v => {
-      const point = projection.fromLatLngToPoint(new g.LatLng(Number(v.lat), Number(v.lng)));
-      return point ? { x: point.x * 2 ** mapZoom, y: point.y * 2 ** mapZoom } : null;
-    }) : new Set();
+    const labels =
+      projection && mapZoom >= 17
+        ? visibleVehicleLabels(
+            vehicles.filter((v) => v.hasFix),
+            selectedId,
+            (v) => {
+              const point = projection.fromLatLngToPoint(
+                new g.LatLng(Number(v.lat), Number(v.lng)),
+              );
+              return point ? { x: point.x * 2 ** mapZoom, y: point.y * 2 ** mapZoom } : null;
+            },
+          )
+        : new Set();
 
     for (const v of vehicles) {
       if (!v.hasFix || v.lat == null || v.lng == null) continue;
@@ -89,7 +109,7 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
       const target = { lat: Number(v.lat), lng: Number(v.lng) };
       const isSelected = v.id === selectedId;
       const showLabel = labels.has(v.id);
-      const iconSig = `${v.status}|${v.courseDegrees ?? ''}|${isSelected}|${showLabel}`;
+      const iconSig = `${v.status}|${v.courseDegrees ?? v.heading ?? ''}|${v.plate}|${isSelected}|${showLabel}|${mapZoom}|${cameraHeading}`;
 
       let rec = markers.get(v.id);
       if (!rec) {
@@ -97,18 +117,44 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
           map,
           title: v.plate,
           position: target,
-          icon: compactVehicleIcon(v, isSelected, showLabel),
+          icon: compactVehicleIcon(v, isSelected, showLabel, mapZoom, cameraHeading),
           opacity: selectedId && !isSelected ? 0.4 : 1,
           zIndex: zIndexFor(v, isSelected),
         });
         marker.fleetStatus = v.status;
         marker.addListener('click', () => onSelectRef.current && onSelectRef.current(v.id));
-        marker.addListener('mouseover', () => { const current = markers.get(v.id); if (current) current.marker.setIcon(compactVehicleIcon(current.vehicle, current.vehicle.id === selectedRef.current, true)); });
-        marker.addListener('mouseout', () => { const current = markers.get(v.id); if (current) current.marker.setIcon(compactVehicleIcon(current.vehicle, current.vehicle.id === selectedRef.current, current.showLabel)); });
+        marker.addListener('mouseover', () => {
+          const current = markers.get(v.id);
+          if (current)
+            current.marker.setIcon(
+              compactVehicleIcon(
+                current.vehicle,
+                current.vehicle.id === selectedRef.current,
+                true,
+                current.zoom,
+                current.cameraHeading,
+              ),
+            );
+        });
+        marker.addListener('mouseout', () => {
+          const current = markers.get(v.id);
+          if (current)
+            current.marker.setIcon(
+              compactVehicleIcon(
+                current.vehicle,
+                current.vehicle.id === selectedRef.current,
+                current.showLabel,
+                current.zoom,
+                current.cameraHeading,
+              ),
+            );
+        });
         markers.set(v.id, {
           marker,
           vehicle: v,
           showLabel,
+          zoom: mapZoom,
+          cameraHeading,
           from: target,
           to: target,
           start: 0,
@@ -120,9 +166,11 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
 
       rec.vehicle = v;
       rec.showLabel = showLabel;
+      rec.zoom = mapZoom;
+      rec.cameraHeading = cameraHeading;
       rec.marker.fleetStatus = v.status;
       if (rec.iconSig !== iconSig) {
-        rec.marker.setIcon(compactVehicleIcon(v, isSelected, showLabel));
+        rec.marker.setIcon(compactVehicleIcon(v, isSelected, showLabel, mapZoom, cameraHeading));
         rec.marker.setZIndex(zIndexFor(v, isSelected));
         rec.iconSig = iconSig;
       }
@@ -154,11 +202,14 @@ const AnimatedVehicleMarkers = ({ vehicles = [], selectedId = null, onSelect, ma
     }
     if (clusterRef.current) {
       clusterRef.current.clearMarkers(true);
-      clusterRef.current.addMarkers([...markers].filter(([id]) => id !== selectedId).map(([, rec]) => rec.marker), true);
+      clusterRef.current.addMarkers(
+        [...markers].filter(([id]) => id !== selectedId).map(([, rec]) => rec.marker),
+        true,
+      );
       clusterRef.current.render();
       if (selectedId && markers.has(selectedId)) markers.get(selectedId).marker.setMap(map);
     }
-  }, [map, vehicles, selectedId, mapZoom]);
+  }, [map, vehicles, selectedId, mapZoom, cameraHeading]);
 
   // One rAF loop drives every active glide; markers at rest cost nothing.
   useEffect(() => {

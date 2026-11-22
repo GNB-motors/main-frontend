@@ -12,6 +12,7 @@ export default function useLiveMap({
   theme,
   mapMode,
   vehicles,
+  fleetScope = '',
   selectedId,
   selectedVehicle,
   suspendFollow = false,
@@ -101,6 +102,8 @@ export default function useLiveMap({
   // Map & interaction refs
   const mapRef = useRef(null);
   const didAutoFitRef = useRef(false);
+  const overviewScopeRef = useRef(fleetScope);
+  const overviewSelectionRef = useRef(selectedId);
   // Zoom once per selection, so live updates preserve the user's zoom.
   const zoomedSelectionRef = useRef(null);
   // The click handler is kept in a ref so a new callback does not make the
@@ -139,6 +142,7 @@ export default function useLiveMap({
   const mapOptions = useMemo(
     () => ({
       disableDefaultUI: true,
+      isFractionalZoomEnabled: true,
       zoomControl: false,
       mapTypeControl: false,
       streetViewControl: false,
@@ -160,14 +164,16 @@ export default function useLiveMap({
     }
   }, [mapMode]);
 
-  // Fit GPS-live vehicles, with a zoom cap for tightly clustered fleets.
-  const fitToLiveVehicles = useCallback(
+  // Fit the visible fleet, including last-known positions in the Offline filter.
+  const fitToFleetVehicles = useCallback(
     (map) => {
       if (!map || !window.google) return false;
-      const live = vehicles.filter((v) => v.live && v.hasFix);
-      if (!live.length) return false;
+      const located = vehicles.filter(
+        (v) => v.hasFix && Number.isFinite(v.lat) && Number.isFinite(v.lng),
+      );
+      if (!located.length) return false;
       const bounds = new window.google.maps.LatLngBounds();
-      live.forEach((v) => bounds.extend({ lat: v.lat, lng: v.lng }));
+      located.forEach((v) => bounds.extend({ lat: v.lat, lng: v.lng }));
       map.fitBounds(bounds, { top: 80, right: 360, bottom: 80, left: 80 });
       window.google.maps.event.addListenerOnce(map, 'idle', () => {
         // Land a little closer than a bare fit — one notch in, capped so a tight
@@ -207,13 +213,13 @@ export default function useLiveMap({
           setMapZoom(z);
         }
       });
-      // Try fitting to live vehicles immediately; if positions haven't loaded
+      // Try fitting to visible vehicles immediately; if positions haven't loaded
       // yet, the auto-fit effect below handles it once they arrive.
-      if (fitToLiveVehicles(map)) {
+      if (fitToFleetVehicles(map)) {
         didAutoFitRef.current = true;
       }
     },
-    [fitToLiveVehicles],
+    [fitToFleetVehicles],
   );
 
   /**
@@ -234,13 +240,19 @@ export default function useLiveMap({
     setMapBounds([sw.lat(), sw.lng(), ne.lat(), ne.lng()]);
   }, []);
 
-  // Frame the live fleet once its first positions arrive.
+  // Reframe when the filter changes or vehicle focus closes. Stream updates
+  // keep the user's camera once the current overview has been fitted.
   useEffect(() => {
-    if (didAutoFitRef.current || !mapRef.current || selectedId) return;
-    if (fitToLiveVehicles(mapRef.current)) {
+    const scopeChanged = overviewScopeRef.current !== fleetScope;
+    const selectionCleared = overviewSelectionRef.current != null && selectedId == null;
+    overviewScopeRef.current = fleetScope;
+    overviewSelectionRef.current = selectedId;
+    if (scopeChanged || selectionCleared) didAutoFitRef.current = false;
+    if (didAutoFitRef.current || !mapRef.current || selectedId || suspendFollow) return;
+    if (fitToFleetVehicles(mapRef.current)) {
       didAutoFitRef.current = true;
     }
-  }, [fitToLiveVehicles, selectedId]);
+  }, [fitToFleetVehicles, selectedId, fleetScope, suspendFollow]);
 
   // Pan / focus when selected vehicle changes
   useEffect(() => {

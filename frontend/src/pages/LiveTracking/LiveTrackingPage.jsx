@@ -9,7 +9,7 @@ import { googleMapsLoaderOptions } from '../../utils/googleMapsLoader.js';
 import TrackTollStatus from './TrackTollStatus';
 import { getPref } from '../../utils/session';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLoadScript } from '@react-google-maps/api';
 import { useLivePositions } from '../../hooks/useLivePositions';
 import { useFullPageLayout } from '../../hooks/usePageLayout';
@@ -48,11 +48,13 @@ import TrackLegend from './TrackLegend.jsx';
 import TrackMapKey from './TrackMapKey.jsx';
 import MapSearchBox from './MapSearchBox.jsx';
 import TrafficToggle from './TrafficToggle.jsx';
+import FollowCameraToggle from './FollowCameraToggle.jsx';
 import useMapPlaces from './useMapPlaces.js';
 import useTrackMode from './useTrackMode.js';
 import { toIso } from './trackUrlModel.js';
 import { formatIst } from '../../utils/redesign/format';
 import VehicleJourneyPanel from './VehicleJourneyPanel.jsx';
+import VehicleHistoryPanel from './VehicleHistoryPanel.jsx';
 import TrackTimeline from './TrackTimeline.jsx';
 import TrackLog from './TrackLog.jsx';
 import { nextEventAt, previousEventAt } from './trackPlayback.js';
@@ -99,6 +101,8 @@ import './LiveTracking.css';
 /* ---------------- Main LiveTrackingPage Component ---------------- */
 const LiveTrackingPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [historyMap, setHistoryMap] = useState(null);
   const confirm = useConfirm();
   const fenceRequest = useRef(0);
   const [editingPlace, setEditingPlace] = useState(null);
@@ -120,6 +124,7 @@ const LiveTrackingPage = () => {
   const [isRailOpen, setIsRailOpen] = useState(true);
   const [mapMode, setMapMode] = useState('map'); // 'map' | 'sat'
   const [isTelemetryOn, setIsTelemetryOn] = useState(true);
+  const [isFollowCameraOn, setIsFollowCameraOn] = useState(false);
 
   // The Places panel (the legend down the left of the map) covers that side of
   // the map, so a track is fitted to the right of it while it is open. The
@@ -196,6 +201,7 @@ const LiveTrackingPage = () => {
     setJourneyPlace(null);
   }, [contextReg]);
   const isVehiclePlaces = isPlacesView && Boolean(contextReg);
+  const isVehicleHistory = isVehiclePlaces && !isTrackMode;
   const deliveryRoutesEnabled =
     canEditPlacesHere && isEnabled('fleetIntelligence') && isEnabled('routesV2');
   const routeKind =
@@ -327,19 +333,41 @@ const LiveTrackingPage = () => {
   } = useLiveMap({
     theme,
     mapMode,
-    vehicles,
+    vehicles: mapVehicles,
+    fleetScope: JSON.stringify([filter, selectedManufacturers, searchQuery]),
     selectedId,
     selectedVehicle,
-    suspendFollow: isPlacesView || isTrackMode || Boolean(passiveTrail),
+    suspendFollow: isPlacesView || isTrackMode || Boolean(passiveTrail) || isFollowCameraOn,
     showToast,
     onMapClick: handleMapClick,
   });
 
+  // Search, make filters and live status changes can also remove the selected
+  // truck. Release that focus rather than leave a stale vehicle in the sidebar.
+  useEffect(() => {
+    if (!isTrackMode && !isPlacesView && !isLiveLoading && selectedId && !selectedVehicle) {
+      setSelectedId(null);
+      exitReplay();
+      setWhereNext(null);
+    }
+  }, [
+    isTrackMode,
+    isPlacesView,
+    isLiveLoading,
+    selectedId,
+    selectedVehicle,
+    setSelectedId,
+    exitReplay,
+  ]);
+
   const selectedVehicleForFit = useRef(selectedVehicle);
   selectedVehicleForFit.current = selectedVehicle;
+  const fittedPassiveTrail = useRef(null);
   useEffect(() => {
     if (
       !passiveTrail ||
+      fittedPassiveTrail.current === passiveTrail ||
+      isFollowCameraOn ||
       !mapRef.current ||
       !window.google?.maps?.LatLngBounds ||
       replayState.on ||
@@ -364,7 +392,8 @@ const LiveTrackingPage = () => {
       ),
     );
     mapRef.current.fitBounds(bounds, { top: 70, bottom: 70, left, right: right + 70 });
-  }, [passiveTrail, mapRef, replayState.on, isTrailVisible]);
+    fittedPassiveTrail.current = passiveTrail;
+  }, [passiveTrail, mapRef, replayState.on, isTrailVisible, isFollowCameraOn]);
 
   const selectedDriver = useSelectedDriver(selectedVehicle, vehiclesMeta, driverAssignments);
 
@@ -384,6 +413,32 @@ const LiveTrackingPage = () => {
     [setSearchParams],
   );
   const [railTab, setRailTab] = useState('fleet'); // 'fleet' | 'places'
+  const historyVehicle = vehicles.find(
+    (vehicle) => plateKey(vehicle.plate) === plateKey(contextReg),
+  );
+  const historyVehicleId = historyVehicle?.vehicleId || vehiclesMeta[plateKey(contextReg)]?._id;
+  const historyPlaces = useMemo(
+    () =>
+      isVehicleHistory &&
+      historyMap?.registrationNumber === contextReg &&
+      historyMap?.tab === placesTab
+        ? historyMap.places
+        : [],
+    [isVehicleHistory, historyMap, contextReg, placesTab],
+  );
+  const selectHistoryPlace = useCallback(
+    (id) => {
+      const place = historyPlaces.find((item) => item.id === id);
+      if (place?.to) navigate(place.to);
+    },
+    [historyPlaces, navigate],
+  );
+  useEffect(() => {
+    if (!historyPlaces.length || !mapRef.current || !window.google?.maps?.LatLngBounds) return;
+    const bounds = new window.google.maps.LatLngBounds();
+    historyPlaces.forEach((place) => bounds.extend({ lat: place.lat, lng: place.lng }));
+    mapRef.current.fitBounds(bounds, 80);
+  }, [historyPlaces, mapRef]);
 
   // The live control room: idling, alerts and destinations, all from the
   // stream. The new map layers are asked for only when they are switched on.
@@ -472,13 +527,33 @@ const LiveTrackingPage = () => {
     setRailTab(view === 'places' ? 'places' : 'fleet');
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
-      if (contextReg) {
+      if (contextReg && isTrackMode) {
         next.set('from', toIso(trackMode.from));
         next.set('to', toIso(trackMode.to));
         if (isTrackMode) next.set('at', toIso(trackMode.playheadTime));
       }
       if (view === 'places') next.set('view', 'places');
       else next.delete('view');
+      return next;
+    });
+    setTimeout(triggerMapResize, 240);
+  };
+
+  const changeStatusFilter = (status) => {
+    trackMode.setIsPlaying(false);
+    exitReplay();
+    setSelectedIdState(null);
+    setWhereNext(null);
+    setSearchQuery('');
+    setRailTab('fleet');
+    setIsRailOpen(true);
+    // A status card opens a fleet overview, so remove the previous truck's
+    // live/replay context in the same URL update as the filter.
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      ['v', 'vehicle', 'from', 'to', 'at'].forEach((key) => next.delete(key));
+      if (status === 'all') next.delete('status');
+      else next.set('status', status);
       return next;
     });
     setTimeout(triggerMapResize, 240);
@@ -1084,7 +1159,22 @@ const LiveTrackingPage = () => {
     [trackMode.reg, vehicles],
   );
   const activeVehicle = isTrackMode ? trackVehicle : selectedVehicle;
-  const activeSelectedId = isTrackMode ? (trackVehicle?.id ?? null) : selectedId;
+  const activeSelectedId = isTrackMode ? (trackVehicle?.id ?? null) : (selectedVehicle?.id ?? null);
+  const canFollowVehicle =
+    !isPlacesView &&
+    (isTrackMode
+      ? trackMode.points.length > 0
+      : replayState.on
+        ? Boolean(replayCurrentPos)
+        : Boolean(selectedVehicle?.hasFix));
+  const followCameraEnabled = isFollowCameraOn && canFollowVehicle;
+  useEffect(() => {
+    if (!canFollowVehicle) setIsFollowCameraOn(false);
+  }, [canFollowVehicle]);
+  const handleFollowUnavailable = useCallback(() => {
+    setIsFollowCameraOn(false);
+    showToast('3D follow is not available on this device.');
+  }, [showToast]);
 
   return (
     <div className={`gnb-lt-page${isPlacesView ? ' gnb-lt-page--places' : ''}`}>
@@ -1098,7 +1188,7 @@ const LiveTrackingPage = () => {
           isLiveLoading={isLiveLoading}
           statusCards={statusCards}
           filter={filter}
-          setFilter={setFilter}
+          setFilter={changeStatusFilter}
           handleRefresh={handleRefresh}
           isRefreshing={isRefreshing}
           manufacturers={manufacturers}
@@ -1124,6 +1214,9 @@ const LiveTrackingPage = () => {
           {/* Map Column */}
           <div className="mapcol">
             <LiveMapCanvas
+              followCameraEnabled={followCameraEnabled}
+              restoreFollowView={canFollowVehicle}
+              onFollowUnavailable={handleFollowUnavailable}
               passiveTrail={passiveTrail}
               whereNext={
                 whereNext?.registrationNumber === activeVehicle?.plate &&
@@ -1175,16 +1268,22 @@ const LiveTrackingPage = () => {
               weather={activeWeather}
               weatherBubblePosition={weatherBubblePosition}
               fleetWeather={fleetWeather}
-              places={showPlaceLayers && layerSelection.ourPlaces ? trackPlaces.shownPlaces : []}
+              places={
+                isVehicleHistory
+                  ? historyPlaces
+                  : showPlaceLayers && layerSelection.ourPlaces
+                    ? trackPlaces.shownPlaces
+                    : []
+              }
               extraPlaces={showPlaceLayers ? mapPlaces.items : []}
               selectedPlaceId={trackPlaces.selectedPlace?.id ?? null}
-              onSelectPlace={selectPlaceFromMap}
+              onSelectPlace={isVehicleHistory ? selectHistoryPlace : selectPlaceFromMap}
               placesDark={theme === 'dark' && mapMode !== 'sat'}
               isTrafficOn={isTrafficOn}
               map={mapRef.current}
-              track={isTrackMode || isVehiclePlaces ? trackMode.track : null}
+              track={isTrackMode ? trackMode.track : null}
               trackPlayheadTime={isTrackMode ? trackMode.playheadTime : null}
-              trackRoad={isTrackMode || isVehiclePlaces ? trackMode.roadTrail : null}
+              trackRoad={isTrackMode ? trackMode.roadTrail : null}
               trackTolls={isTrackMode ? trackMode.tolls : null}
               trackReg={contextReg}
               trackReplay={isTrackMode}
@@ -1291,6 +1390,15 @@ const LiveTrackingPage = () => {
                   : 'Fleet list'
               }
               trafficToggle={<TrafficToggle on={isTrafficOn} onToggle={handleToggleTraffic} />}
+              followCameraToggle={
+                !isPlacesView && activeVehicle ? (
+                  <FollowCameraToggle
+                    on={followCameraEnabled}
+                    disabled={!isLoaded || !canFollowVehicle}
+                    onToggle={() => setIsFollowCameraOn((current) => !current)}
+                  />
+                ) : null
+              }
 
               legend={
                 showPlaceLayers ? (
@@ -1443,10 +1551,14 @@ const LiveTrackingPage = () => {
                 </button>
                 {isVehiclePlaces ? (
                   <div className="lt-vehicle-period">
-                    <span>
-                      {formatIst(trackMode.from, { withDate: true })} –{' '}
-                      {formatIst(trackMode.to, { withDate: true })}
-                    </span>
+                    {isVehicleHistory ? (
+                      <span>Full recorded history</span>
+                    ) : (
+                      <span>
+                        {formatIst(trackMode.from, { withDate: true })} –{' '}
+                        {formatIst(trackMode.to, { withDate: true })}
+                      </span>
+                    )}
                   </div>
                 ) : null}
               </div>
@@ -1593,6 +1705,15 @@ const LiveTrackingPage = () => {
                         onAddAtSpot={handleAddAtSpot}
                       />
                     </>
+                  ) : isVehicleHistory ? (
+                    <VehicleHistoryPanel
+                      key={`${contextReg}:${placesTab}:${searchQuery}`}
+                      registrationNumber={contextReg}
+                      vehicleId={historyVehicleId}
+                      tab={placesTab}
+                      query={searchQuery}
+                      onMapPlaces={setHistoryMap}
+                    />
                   ) : isVehiclePlaces ? (
                     <VehicleJourneyPanel
                       journey={trackMode}
@@ -1649,10 +1770,6 @@ const LiveTrackingPage = () => {
                         vehicles={vehicles}
                         query={searchQuery}
                         onPick={pickPlace}
-                        onHide={() => {
-                          setIsRailOpen(false);
-                          setTimeout(triggerMapResize, 240);
-                        }}
                       />
                       <PlaceDetailPanel
                         place={trackPlaces.selectedPlace}

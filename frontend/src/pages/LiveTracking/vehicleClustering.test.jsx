@@ -33,9 +33,26 @@ vi.mock('@react-google-maps/api', () => ({
     },
   },
 }));
-vi.mock('@googlemaps/markerclusterer', () => ({ SuperClusterAlgorithm: class {}, MarkerClusterer: class { constructor() { this.members = []; state.clusters.push(this); } clearMarkers() { this.members = []; } addMarkers(items) { this.members.push(...items); } render() {} setMap() {} } }));
+vi.mock('@googlemaps/markerclusterer', () => ({
+  SuperClusterAlgorithm: class {},
+  MarkerClusterer: class {
+    constructor() {
+      this.members = [];
+      state.clusters.push(this);
+    }
+    clearMarkers() {
+      this.members = [];
+    }
+    addMarkers(items) {
+      this.members.push(...items);
+    }
+    render() {}
+    setMap() {}
+  },
+}));
 import AnimatedVehicleMarkers from './AnimatedVehicleMarkers.jsx';
 import { createLiveClusterAlgorithm, createClusterRenderer } from './vehicleClustering.js';
+import { createVehicleMarkerIcon } from './vehicleMarkerIcon.js';
 
 afterEach(() => {
   cleanup();
@@ -83,6 +100,44 @@ const vehicles = [
 ];
 
 describe('live marker clustering', () => {
+  it('keeps the truck facing along the road when the follow camera rotates', () => {
+    setupGoogle();
+    renderComponent(
+      <AnimatedVehicleMarkers
+        vehicles={[{ ...vehicles[0], status: 'moving', courseDegrees: 90 }]}
+        selectedId="a"
+        cameraHeading={90}
+      />,
+    );
+    expect(decodeURIComponent(state.markers[0].options.icon.url)).toContain('rotate(0, 48, 48)');
+  });
+  it('uses the Trip Details truck and refreshes zoom sizing while preserving hover labels', () => {
+    setupGoogle();
+    const vehicle = { ...vehicles[0], status: 'moving', courseDegrees: 90 };
+    const view = renderComponent(<AnimatedVehicleMarkers vehicles={[vehicle]} mapZoom={7} />);
+    const marker = state.markers[0];
+    const expectedUrl = (zoom) =>
+      createVehicleMarkerIcon({
+        status: 'moving',
+        courseDegrees: 90,
+        plate: 'A',
+        zoom,
+      }).url;
+    expect(marker.options.icon.url).toBe(expectedUrl(7));
+    const mouseover = marker.addListener.mock.calls.find(([event]) => event === 'mouseover')[1];
+    const mouseout = marker.addListener.mock.calls.find(([event]) => event === 'mouseout')[1];
+    act(() => mouseover());
+    expect(decodeURIComponent(marker.setIcon.mock.lastCall[0].url)).toContain('>A</text>');
+    act(() => mouseout());
+    expect(marker.setIcon.mock.lastCall[0].url).toBe(expectedUrl(7));
+    view.rerender(<AnimatedVehicleMarkers vehicles={[vehicle]} mapZoom={16} />);
+    expect(state.markers).toHaveLength(1);
+    expect(marker.setIcon.mock.lastCall[0].url).toBe(expectedUrl(16));
+    act(() => mouseover());
+    const hovered = decodeURIComponent(marker.setIcon.mock.lastCall[0].url);
+    expect(hovered).toContain('data-scale="84"');
+    expect(hovered).toContain('>A</text>');
+  });
   it('clusters the fleet, keeps the selected marker separate, and cleans up', () => {
     setupGoogle();
     const select = vi.fn();

@@ -32,7 +32,7 @@ export default function useTrackMode({ searchParams, setSearchParams }) {
     [regParam, fromParam, toParam, atParam],
   );
   const isTrackMode = Boolean(state.reg);
-  const enabled = isTrackMode || Boolean(contextReg && searchParams?.get('view') === 'places');
+  const enabled = isTrackMode;
   const scopeKey = `${contextReg}:${toIso(state.from)}:${toIso(state.to)}`;
 
   const { data, loading, error, refetch } = useApi(
@@ -132,10 +132,9 @@ export default function useTrackMode({ searchParams, setSearchParams }) {
       const trackMs = (Date.now() - startedAt) * speed * MS_PER_TRACK_MINUTE;
       const absoluteMs = fromMs + trackMs;
       if (absoluteMs >= lastMs) {
-        // The drive is over: rewind the playhead to the start so the marker is
-        // ready at the beginning. Pressing play then runs forward smoothly
-        // instead of teleporting from the last point to the first.
-        setPlayheadTime(new Date(firstMs));
+        // Leave the truck at its final recorded fix. Only an explicit Play
+        // or rewind action should take the owner back to the start.
+        setPlayheadTime(new Date(lastMs));
         setIsPlaying(false);
         return;
       }

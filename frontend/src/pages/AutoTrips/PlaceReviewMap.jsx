@@ -14,7 +14,7 @@ export default function PlaceReviewMap({ point }) {
     let cancelled = false;
     let loaded = 0;
     setStatus('loading');
-    const map = L.map(container.current, { scrollWheelZoom: false }).setView([lat, lng], 15);
+    const map = L.map(container.current, { scrollWheelZoom: true }).setView([lat, lng], 15);
     const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19,

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import useTrackMode from './useTrackMode';
 import { fleetViewService } from '../../services/fleetViewService';
@@ -17,6 +17,63 @@ beforeEach(() => {
   vi.clearAllMocks();
   fleetViewService.getVehicleTrack.mockResolvedValue({ points: [] });
   fleetViewService.getVehicleTolls.mockResolvedValue({ status: 'READY', passes: [] });
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+describe('Track playback completion', () => {
+  it('stays at the final recorded position until playback is explicitly restarted', async () => {
+    const points = [
+      { t: '2026-11-03T00:00:00Z', lat: 22, lng: 88 },
+      { t: '2026-11-03T00:05:00Z', lat: 23, lng: 89 },
+      { t: '2026-11-03T00:10:00Z', lat: 24, lng: 90 },
+    ];
+    fleetViewService.getVehicleTrack.mockResolvedValue({ points });
+    let now = Date.parse(points[0].t);
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    const frames = new Map();
+    let frameId = 0;
+    vi.stubGlobal(
+      'requestAnimationFrame',
+      vi.fn((callback) => {
+        frames.set(++frameId, callback);
+        return frameId;
+      }),
+    );
+    vi.stubGlobal(
+      'cancelAnimationFrame',
+      vi.fn((id) => frames.delete(id)),
+    );
+    const advanceFrame = (ms) =>
+      act(() => {
+        now += ms;
+        const [id, callback] = frames.entries().next().value;
+        frames.delete(id);
+        callback(now);
+      });
+    const searchParams = params();
+    const { result, rerender } = renderHook(() => useTrackMode({ searchParams }));
+    await waitFor(() => expect(result.current.points).toHaveLength(3));
+    act(() => result.current.seekToIndex(0));
+    act(() => result.current.setIsPlaying(true));
+    advanceFrame(500); // At 10x, five minutes of driving in half a second.
+    expect(result.current.playheadIndex).toBe(1);
+    advanceFrame(600); // Overshoot the end; stop exactly on the final fix.
+    expect(result.current.isPlaying).toBe(false);
+    expect(result.current.playheadIndex).toBe(2);
+    expect(result.current.playheadTime.toISOString()).toBe(points[2].t.replace('Z', '.000Z'));
+    expect(frames.size).toBe(0);
+    rerender();
+    expect(result.current.playheadIndex).toBe(2);
+    expect(fleetViewService.getVehicleTrack).toHaveBeenCalledOnce();
+
+    act(() => result.current.setIsPlaying(true));
+    advanceFrame(0);
+    expect(result.current.playheadIndex).toBe(0);
+    expect(result.current.isPlaying).toBe(true);
+  });
 });
 describe('Track toll request lifecycle', () => {
   it('does not fetch tolls outside Track mode', () => {
@@ -99,18 +156,16 @@ describe('shared vehicle journey context', () => {
     expect(fleetViewService.getVehicleTrack).toHaveBeenCalledOnce();
   });
 
-  it('loads a live selected vehicle journey in Places without entering replay', async () => {
+  it('does not impose the replay window on a live selected vehicle’s Places history', async () => {
     const searchParams = params();
     searchParams.delete('v');
     searchParams.set('vehicle', 'WB11J7062');
     searchParams.set('view', 'places');
     const { result } = renderHook(() => useTrackMode({ searchParams }));
-    await waitFor(() => expect(result.current.track).toBeTruthy());
     expect(result.current.isTrackMode).toBe(false);
-    expect(fleetViewService.getVehicleTrack).toHaveBeenCalledWith(
-      'WB11J7062',
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
+    expect(result.current.track).toBeNull();
+    expect(fleetViewService.getVehicleTrack).not.toHaveBeenCalled();
+    expect(fleetViewService.getVehicleTolls).not.toHaveBeenCalled();
   });
 
   it('clears the previous journey immediately when the vehicle or dates change', async () => {

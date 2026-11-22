@@ -4,7 +4,8 @@ import TollLayer from './TrackPlacesTollLayer.jsx';
 import PassiveTrailLayer from './PassiveTrailLayer.jsx';
 import TrackTollLayers from './TrackTollLayers';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { GoogleMap, MarkerF, OverlayView, PolylineF } from '@react-google-maps/api';
+import { MarkerF, PolylineF } from '@react-google-maps/api';
+import VectorGoogleMap from './VectorGoogleMap.jsx';
 import { formatDuration } from '../../utils/redesign/format';
 import RoadTrailLayer from '../../components/map/RoadTrailLayer';
 import { createTrailEndpointIcon } from './trailMarkerIcons.js';
@@ -15,6 +16,7 @@ import TrackPlacesLayer from './TrackPlacesLayer.jsx';
 import TrackReviewLayer from './TrackReviewLayer.jsx';
 import TrackIdlingLayer from './TrackIdlingLayer.jsx';
 import RouteLayer from '../PlaceHub/map/RouteLayer.jsx';
+import PlaceHoverTooltip from '../PlaceHub/map/PlaceHoverTooltip.jsx';
 import DraftLayer from '../PlaceHub/map/DraftLayer.jsx';
 import MapPlacesLayer from './MapPlacesLayer.jsx';
 import ReplayTruckMarker from './ReplayTruckMarker.jsx';
@@ -27,6 +29,8 @@ import { destinationHeading, routeLines as predictionLines } from './whereNextMo
 import { resolveMapColor } from './mapColor';
 import { playheadAt } from './trackLayersModel';
 import { isNearEdge, trackFitPadding } from './trackMapCamera';
+import useFollowCamera from './useFollowCamera.js';
+import { bearingDegrees } from './geoMath.js';
 
 const INDIA_CENTER = { lat: 22.5937, lng: 78.9629 };
 
@@ -93,6 +97,9 @@ export default function LiveMapCanvas({
   passiveTrail = null,
   whereNext = null,
   whereNextPosition = null,
+  followCameraEnabled = false,
+  restoreFollowView = true,
+  onFollowUnavailable,
 }) {
   /* When the user disables per-trip segmentation we fall back to a single
      polyline (visual continuity with the legacy behavior). The fallback
@@ -135,8 +142,41 @@ export default function LiveMapCanvas({
   // trail: a change of range is a new trail and gets its own fit.
   const fittedTrailRef = useRef(null);
   const mapInstance = mapRef?.current || map;
+  const selectedVehicle = mapVehicles.find((vehicle) => vehicle.id === selectedId);
+  const replayHeading = useMemo(() => {
+    const path = replayRunPaths?.at(-1)?.path || [];
+    if (!replayCurrentPos) return null;
+    const previous = path
+      .slice(0, -1)
+      .findLast(
+        (point) => point.lat !== replayCurrentPos.lat || point.lng !== replayCurrentPos.lng,
+      );
+    const start = previous || replayPtsCoords?.[0];
+    const end = previous
+      ? replayCurrentPos
+      : replayPtsCoords?.find((point) => point.lat !== start?.lat || point.lng !== start?.lng);
+    return start && end ? bearingDegrees([start.lat, start.lng], [end.lat, end.lng]) : null;
+  }, [replayRunPaths, replayCurrentPos, replayPtsCoords]);
+  const followTarget = track
+    ? trackPlayhead && { ...trackPlayhead, heading: trackPlayhead.headingDeg }
+    : replayState.on
+      ? replayCurrentPos && { ...replayCurrentPos, heading: replayHeading }
+      : selectedVehicle?.hasFix
+        ? {
+            lat: selectedVehicle.lat,
+            lng: selectedVehicle.lng,
+            heading: selectedVehicle.courseDegrees,
+          }
+        : null;
+  const cameraHeading = useFollowCamera({
+    map: mapInstance,
+    enabled: followCameraEnabled,
+    target: followTarget,
+    restoreView: restoreFollowView,
+    onUnavailable: onFollowUnavailable,
+  });
   useEffect(() => {
-    if (!track || !mapInstance || !window.google?.maps?.LatLngBounds) return;
+    if (followCameraEnabled || !track || !mapInstance || !window.google?.maps?.LatLngBounds) return;
     if (trackPoints.length < 2) return;
     const key = `${trackReg}:${trackPoints.length}:${trackPoints[0]?.t ?? ''}:${
       trackPoints[trackPoints.length - 1]?.t ?? ''
@@ -146,12 +186,12 @@ export default function LiveMapCanvas({
     const bounds = new window.google.maps.LatLngBounds();
     trackPoints.forEach((point) => bounds.extend({ lat: point.lat, lng: point.lng }));
     mapInstance.fitBounds(bounds, trackFitPadding({ placesPanelOpen }));
-  }, [track, trackPoints, mapInstance, placesPanelOpen, trackReg]);
+  }, [track, trackPoints, mapInstance, placesPanelOpen, trackReg, followCameraEnabled]);
 
   // Keep the truck in view while the drive plays: when it comes close to an
   // edge of the visible box the map is panned to it. The zoom never changes.
   useEffect(() => {
-    if (!track || !trackPlayhead || !mapInstance) return;
+    if (followCameraEnabled || !track || !trackPlayhead || !mapInstance) return;
     const box = mapInstance.getBounds?.();
     const ne = box?.getNorthEast?.();
     const sw = box?.getSouthWest?.();
@@ -161,15 +201,13 @@ export default function LiveMapCanvas({
     const point = { lat: trackPlayhead.lat, lng: trackPlayhead.lng };
     if (!isNearEdge(point, { ne: toPoint(ne), sw: toPoint(sw) })) return;
     mapInstance.panTo(point);
-  }, [track, trackPlayhead, mapInstance]);
+  }, [track, trackPlayhead, mapInstance, followCameraEnabled]);
 
-  // Clicking a habitual halt isolates it and opens a small card; only that place
-  // stays on the map until it is closed (its ×, or a click on the empty map).
-  // Reset when the halts change (a new truck, or they are hidden).
-  const [selectedHalt, setSelectedHalt] = useState(null);
+  // Hover details belong only to the current truck and visible halt layer.
+  const [hoveredHalt, setHoveredHalt] = useState(null);
   useEffect(() => {
-    setSelectedHalt(null);
-  }, [habitualHalts]);
+    setHoveredHalt(null);
+  }, [habitualHalts, isHabitualHaltsVisible, selectedId]);
 
   // Track mode wants a clean map for one truck's path, so every basemap line is
   // switched off — roads, railways, district/administrative boundaries, and the
@@ -217,7 +255,7 @@ export default function LiveMapCanvas({
           <span>Error loading Google Maps. Please check your connection and API key.</span>
         </div>
       ) : (
-        <GoogleMap
+        <VectorGoogleMap
           mapContainerStyle={{ width: '100%', height: '100%' }}
           center={INDIA_CENTER}
           zoom={mapZoom}
@@ -230,7 +268,7 @@ export default function LiveMapCanvas({
             }
           }}
           onClick={(event) => {
-            setSelectedHalt(null);
+            setHoveredHalt(null);
             if (draft && event?.latLng)
               onDraftMapClick?.({ lat: event.latLng.lat(), lng: event.latLng.lng() });
           }}
@@ -300,6 +338,7 @@ export default function LiveMapCanvas({
             <ReplayTruckMarker
               position={{ lat: trackPlayhead.lat, lng: trackPlayhead.lng }}
               heading={trackPlayhead.headingDeg ?? 0}
+              cameraHeading={cameraHeading}
               fast={(trackPlayhead.speedKmh ?? 0) > DEFAULT_LIMIT_KMH}
               speedKmh={trackPlayhead.speedKmh ?? 0}
               ignition={trackPlayhead.ignition}
@@ -374,6 +413,7 @@ export default function LiveMapCanvas({
             vehicles={fleetOnMap}
             selectedId={selectedId}
             mapZoom={mapZoom}
+            cameraHeading={cameraHeading}
             onSelect={(id) => {
               setSelectedId(id);
               setIsRailOpen(true);
@@ -447,8 +487,6 @@ export default function LiveMapCanvas({
             habitualHalts.map((h, i) => {
               if (h.lat == null || h.lng == null) return null;
               const key = `halt-${h.lat.toFixed(5)}-${h.lng.toFixed(5)}-${i}`;
-              // When one halt is picked, hide the rest until it is picked again.
-              if (selectedHalt && key !== selectedHalt.key) return null;
               return (
                 <MarkerF
                   key={key}
@@ -456,40 +494,23 @@ export default function LiveMapCanvas({
                   icon={createHabitualHaltIcon(h.occurrences || 1)}
                   zIndex={900}
                   clickable
-                  onClick={() =>
-                    setSelectedHalt((cur) => (cur?.key === key ? null : { key, ...h }))
+                  onMouseOver={() => setHoveredHalt({ ...h, key })}
+                  onMouseOut={() =>
+                    setHoveredHalt((current) => (current?.key === key ? null : current))
                   }
                 />
               );
             })}
 
-          {/* The habitual-stop card, anchored just to the right of its marker. */}
-          {selectedHalt ? (
-            <OverlayView
-              position={{ lat: selectedHalt.lat, lng: selectedHalt.lng }}
-              mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-              getPixelPositionOffset={() => ({ x: 22, y: 0 })}
-            >
-              <div className="habitual-halt-anchor">
-                <div className="habitual-halt-card" role="dialog" aria-label="Habitual stop">
-                  <button
-                    type="button"
-                    className="habitual-halt-card__close"
-                    onClick={() => setSelectedHalt(null)}
-                    aria-label="Close"
-                  >
-                    ×
-                  </button>
-                  <p className="habitual-halt-card__eyebrow">Habitual stop</p>
-                  <p className="habitual-halt-card__stat">
-                    <strong>{selectedHalt.occurrences}×</strong> stopped here
-                  </p>
-                  <p className="habitual-halt-card__sub">
-                    Usually ~{formatDuration(Math.round((selectedHalt.medianDwellMs || 0) / 60000))}
-                  </p>
-                </div>
-              </div>
-            </OverlayView>
+          {isHabitualHaltsVisible && hoveredHalt ? (
+            <PlaceHoverTooltip
+              position={{ lat: hoveredHalt.lat, lng: hoveredHalt.lng }}
+              label="Habitual stop"
+              details={[
+                `${hoveredHalt.occurrences || 1}× stopped here`,
+                `Usually ~${formatDuration(Math.round((hoveredHalt.medianDwellMs || 0) / 60000))}`,
+              ]}
+            />
           ) : null}
 
           {/* Trip Replay */}
@@ -525,12 +546,14 @@ export default function LiveMapCanvas({
               {replayCurrentPos && (
                 <ReplayTruckMarker
                   position={replayCurrentPos}
+                  heading={replayHeading}
+                  cameraHeading={cameraHeading}
                   fast={replaySpeed > DEFAULT_LIMIT_KMH}
                 />
               )}
             </>
           )}
-        </GoogleMap>
+        </VectorGoogleMap>
       )}
     </div>
   );
