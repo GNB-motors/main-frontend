@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import apiMemo from '../utils/apiMemo';
+import { describeError } from '@/errors/errorMessages';
 
 /**
  * One request per read, shared by everyone who asked for it at the same time.
@@ -66,6 +67,9 @@ export function dedupeRequest(key, factory, subscriberSignal) {
  * - abortable: in-flight request is cancelled on dep change/unmount
  * - keeps last good data while refetching (no flash-to-skeleton)
  * - error is the thrown payload (response.data) or a shaped fallback
+ * - errorInfo is the same failure in plain words: kind, status, request id and
+ *   whether a retry can help. Screens show errorInfo.message, never
+ *   error.message, so transport and server text never reaches the owner.
  * - `cacheKey` + `cacheMs` (opt-in): an answer read under that key less than
  *   `cacheMs` ago is shown without a request (utils/apiMemo: per user, org and
  *   branch, this tab only). `refetch` always asks the server and refills it.
@@ -143,10 +147,13 @@ export function useApi(
   // A manual refetch always asks the server.
   const refetch = useCallback(() => run(true), [run]);
 
+  const errorInfo = useMemo(() => describeError(error), [error]);
+
   return {
     data: dataScope === scopeKey ? data : null,
     loading: !error && (loading || dataScope !== scopeKey),
     error,
+    errorInfo,
     refetch,
   };
 }

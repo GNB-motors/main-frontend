@@ -1,21 +1,24 @@
-import { Activity } from 'lucide-react';
+import { useEffect } from 'react';
+import { Activity, RotateCw } from 'lucide-react';
 import PageShell from '../../components/ui/PageShell';
 import PanelErrorBoundary from '../../components/cluster/PanelErrorBoundary';
+import { Button } from '../../components/ui/button';
 import { useApi } from '../../hooks/useApi';
 import { DrivingDnaService } from './DrivingDnaService';
 import { drivingDnaResponseSchema } from '../../schemas/drivingDna.schema';
-import { formatInrCompact, formatNum } from '../../utils/formatters';
+import Num from '../../components/ui/Num';
 import { GradePill } from './GradePill';
+import logger from '../../utils/logger';
 
 const CARD_BORDER = '1px solid color-mix(in srgb, var(--cluster-text) 16%, transparent)';
 
-/** A DNA sub-score: a number, or an honest dash when there is none. */
+/** A DNA sub-score: a number, or an honest dash with the reason beside it. */
 function scoreCell(score) {
-  return score != null ? formatNum(score) : '—';
+  return <Num value={score} reason="Not scored" />;
 }
 
 export default function DrivingDnaPage() {
-  const { data, loading, error } = useApi(
+  const { data, loading, error, errorInfo, refetch } = useApi(
     (signal) =>
       DrivingDnaService.getProfiles({}, signal).then((d) => drivingDnaResponseSchema.parse(d)),
     [],
@@ -23,6 +26,17 @@ export default function DrivingDnaPage() {
 
   const profiles = data?.profiles ?? [];
   const avgScore = data?.summary?.avgScore;
+
+  // The raw failure (validation or transport detail) goes to the logger; the
+  // owner only ever reads plain words.
+  useEffect(() => {
+    if (!error) return;
+    logger.error('ui', 'Driving DNA: the profiles failed', {
+      status: errorInfo.status,
+      kind: errorInfo.kind,
+      message: error?.message ?? String(error),
+    });
+  }, [error, errorInfo]);
 
   return (
     <div className="cluster-page">
@@ -34,8 +48,15 @@ export default function DrivingDnaPage() {
           {loading && !data ? (
             <div className="text-dim p-6 text-sm">Loading driving-DNA profiles…</div>
           ) : error ? (
-            <div className="p-6 text-sm" style={{ color: 'var(--critical)' }}>
-              Could not load driving-DNA profiles. {error.message || ''}
+            <div className="p-6 text-sm" role="alert" style={{ color: 'var(--critical)' }}>
+              <p className="m-0 font-semibold">{errorInfo.title}</p>
+              <p className="m-0 mt-1">{errorInfo.message}</p>
+              {errorInfo.retryable ? (
+                <Button className="mt-3" variant="outline" size="sm" onClick={() => refetch?.()}>
+                  <RotateCw size={14} aria-hidden="true" />
+                  Retry
+                </Button>
+              ) : null}
             </div>
           ) : (
             <div className="flex flex-col gap-4">
@@ -56,7 +77,9 @@ export default function DrivingDnaPage() {
                   <Activity size={13} />
                   Fleet average score
                 </span>
-                <span className="ov-kpi-value">{avgScore != null ? formatNum(avgScore) : '—'}</span>
+                <span className="ov-kpi-value">
+                  <Num value={avgScore} reason="No profiles yet" />
+                </span>
                 <span className="ov-kpi-sub">0–100, higher is better</span>
               </div>
 
@@ -90,7 +113,9 @@ export default function DrivingDnaPage() {
                           <td className="num p-3 text-right">{scoreCell(p.idleScore)}</td>
                           <td className="num p-3 text-right">{scoreCell(p.speedingScore)}</td>
                           <td className="num p-3 text-right">{scoreCell(p.overRevScore)}</td>
-                          <td className="num p-3 text-right">{formatInrCompact(p.idleRupees)}</td>
+                          <td className="num p-3 text-right">
+                            <Num value={p.idleRupees} format="inr" reason="Not measured" />
+                          </td>
                         </tr>
                       ))}
                     </tbody>

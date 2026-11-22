@@ -12,6 +12,7 @@ function AccountHeaderCard({
   utilisation,
   overLimit,
   overBy,
+  balanceNote = null,
 }) {
   return (
     <div className="erp-card" style={{ padding: '20px', marginBottom: 20 }}>
@@ -29,6 +30,9 @@ function AccountHeaderCard({
               Dr {inr(balance.debit)} · Cr {inr(balance.credit)}
             </div>
           )}
+          {!balance && !headLoading && balanceNote ? (
+            <div className="erp-stat-sub">{balanceNote}</div>
+          ) : null}
         </div>
 
         {account?.code && (

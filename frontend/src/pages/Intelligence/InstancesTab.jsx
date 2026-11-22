@@ -355,7 +355,9 @@ export default function InstancesTab({ kind, from, to, vehicle = '', driver = ''
           className={activeKind === 'fuel_unexplained' ? 'mt-4' : 'intel-assessments-table'}
           columns={columns}
           rows={displayedItems}
-          rowKey={(row) => row?.id ?? row?.startAt}
+          rowKey={(row, i) =>
+            row?.id ?? `${row?.startAt ?? 'row'}-${row?.registrationNumber ?? 'row'}-${i}`
+          }
           onRowClick={(row) => goTo(row?.replay)}
           showing={displayedItems.length}
           total={total}

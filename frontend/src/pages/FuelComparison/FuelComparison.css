@@ -251,6 +251,18 @@
   white-space: nowrap;
 }
 
+/* Which scope a card's number covers — so "—" always carries its reason. */
+.fc-kpi-card__note {
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--fc-text-secondary);
+  text-transform: none;
+  letter-spacing: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .fc-kpi-card__icon {
   width: 28px;
   height: 28px;
@@ -344,6 +356,24 @@
 .fc-tab__count--alert {
   background: var(--fc-danger-subtle);
   color: var(--fc-danger);
+}
+
+/* Names the scope of the tab counts, so they are never read as the table's. */
+.fc-count-scope {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--fc-text-secondary);
+}
+
+.fc-count-scope__error {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #a12b2b;
 }
 
 .fc-filters-row {

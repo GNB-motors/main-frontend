@@ -21,11 +21,12 @@ export default function ReplayStatsHead({ vehicle, trip, loading, stats }) {
               </span>
             ))
           : null}
-        {stats.map(([i, k, val, c]) => (
+        {stats.map(([i, k, val, c, note]) => (
           <span className="stat" key={k} style={{ '--c': c }}>
             <Ico n={i} s={14} />
             {k}
             <b>{val}</b>
+            {note ? <span className="stat-note">{note}</span> : null}
           </span>
         ))}
       </div>

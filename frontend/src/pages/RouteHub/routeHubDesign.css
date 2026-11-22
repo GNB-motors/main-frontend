@@ -1321,6 +1321,14 @@ html.dark .nova-rh {
   font-size: 11px;
   color: var(--fg-secondary);
 }
+/* The coverage of a figure sits right under it, never under the headline. */
+.nova-rh .ministat .note {
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--fg-secondary);
+  margin-top: 2px;
+  max-width: 200px;
+}
 .nova-rh .rows {
   display: flex;
   flex-direction: column;
@@ -2284,4 +2292,51 @@ html.dark .nova-rh .persp::before {
   min-height: 0;
   height: 100%;
   padding: 0;
+}
+
+/* ---------- replay: honest figures and a survivable map ---------- */
+
+/* A figure nobody measured keeps its words next to the number, so a measured
+   zero is never read as a broken sensor. */
+.nova-rh .stat .stat-note {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fg-secondary);
+}
+
+/* The trip log says in words that the vehicle never moved — the bare "0 km"
+   in the figures above is not left to carry that meaning on its own. */
+.nova-rh .log .log-note {
+  margin: 0;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-subtle);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--fg-secondary);
+}
+
+/* A map that cannot load never takes the log with it: the notice sits on the
+   canvas and leaves the trip log and the figures readable. */
+.nova-rh .rhm-map-note {
+  position: absolute;
+  z-index: 900;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-l);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-md);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-secondary);
 }

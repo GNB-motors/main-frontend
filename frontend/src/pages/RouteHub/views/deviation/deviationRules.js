@@ -90,6 +90,20 @@ export function notMeasuredNote(unknown, total, noun = 'detour') {
 }
 
 /**
+ * Whether a group's cost total is a figure somebody measured.
+ *
+ * The server's `openCostInr` is evidence when it is positive. A ₹0 from the
+ * server only counts when at least one detour in the list carries a measured
+ * cost - otherwise nobody priced these detours and the zero would read as
+ * "this detour was free".
+ */
+export function costTotalKnown(summaryCost, totals) {
+  if (summaryCost == null) return false;
+  if (summaryCost > 0) return true;
+  return (totals?.costKnown ?? 0) > 0;
+}
+
+/**
  * The one-line summary of a group of detours: how many detours, the extra
  * distance and the extra cost. A figure nobody measured is a dash, never
  * 0 km or ₹0, and a partly measured figure says how many detours it left
@@ -100,10 +114,7 @@ export function groupSummaryText(g) {
   const totals = groupTotals(events);
   const extraNote = notMeasuredNote(totals.extraUnknown, totals.total);
   const costNote = notMeasuredNote(totals.costUnknown, totals.total);
-  const extra =
-    totals.extraKm != null
-      ? `+${Number(totals.extraKm).toFixed(1)} km`
-      : 'extra km —';
+  const extra = totals.extraKm != null ? `+${Number(totals.extraKm).toFixed(1)} km` : 'extra km —';
   const cost = totals.costInr != null ? inr(totals.costInr) : 'cost —';
   return [
     `${events.length} ${events.length === 1 ? 'detour' : 'detours'}`,

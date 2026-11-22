@@ -174,6 +174,8 @@ export function BillRow({
   onMatched,
   queue,
   onUnavailable,
+  vehiclesError,
+  onRetryVehicles,
 }) {
   const capture = row.capture || row;
   const confirmed = row.status === 'confirmed';
@@ -193,6 +195,26 @@ export function BillRow({
       (suggestion?.decision === 'AUTO' ? candidates[0]?.registrationNumber : '') ||
       '');
   const ocr = capture.ocr || {};
+  // Choosing a truck by hand stays possible even when the matcher failed —
+  // the owner must never be left with an empty cell and no way out.
+  const truckPicker = (
+    <label className="bp-truck-pick">
+      <span className="bp-truck-pick__label">Truck</span>
+      <SearchableSelect
+        className="bp-truck-select"
+        aria-label="Truck"
+        value={chosen}
+        onChange={(event) => onChoice(event.target.value)}
+      >
+        <option value="">Search all trucks…</option>
+        {vehicles.map((vehicle) => (
+          <option key={vehicle._id || vehicle.id} value={vehicle.registrationNumber}>
+            {vehicle.registrationNumber}
+          </option>
+        ))}
+      </SearchableSelect>
+    </label>
+  );
   // The date and the time of the photo: the paper's own when it prints them,
   // the camera's own stamp when it does not.
   const photo = suggestion?.photo || null;
@@ -294,9 +316,23 @@ export function BillRow({
               </p>
             )}
             {state === 'failed' && (
-              <Button size="sm" onClick={retry}>
-                Try again
-              </Button>
+              <>
+                <p role="alert">Suggestions unavailable — choose a truck or retry.</p>
+                <Button size="sm" onClick={retry}>
+                  Try again
+                </Button>
+                {truckPicker}
+              </>
+            )}
+            {vehiclesError && (
+              <>
+                <p role="alert">Truck list unavailable — retry to choose a truck.</p>
+                {onRetryVehicles ? (
+                  <Button size="sm" variant="outline" onClick={onRetryVehicles}>
+                    Retry trucks
+                  </Button>
+                ) : null}
+              </>
             )}
             {suggestion?.decision === 'AUTO' && !editing && (
               <p>
@@ -331,22 +367,7 @@ export function BillRow({
                 ) : (
                   <p className="bp-reason">{reasonOf(suggestion)}</p>
                 )}
-                <label className="bp-truck-pick">
-                  <span className="bp-truck-pick__label">Truck</span>
-                  <SearchableSelect
-                    className="bp-truck-select"
-                    aria-label="Truck"
-                    value={chosen}
-                    onChange={(event) => onChoice(event.target.value)}
-                  >
-                    <option value="">Search all trucks…</option>
-                    {vehicles.map((vehicle) => (
-                      <option key={vehicle._id || vehicle.id} value={vehicle.registrationNumber}>
-                        {vehicle.registrationNumber}
-                      </option>
-                    ))}
-                  </SearchableSelect>
-                </label>
+                {truckPicker}
               </>
             )}
             {errors?.map((message, i) => (

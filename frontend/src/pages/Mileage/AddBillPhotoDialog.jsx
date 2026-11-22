@@ -435,7 +435,16 @@ function PickedThumb({ file }) {
  * go one at a time. The server reads each photo and suggests its truck; the
  * owner confirms it below, or later in Approvals.
  */
-function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [], onUnavailable }) {
+function BillQueueDialog({
+  open,
+  onOpenChange,
+  rows = [],
+  queue,
+  vehicles = [],
+  vehiclesError = null,
+  onRetryVehicles = null,
+  onUnavailable,
+}) {
   const input = useRef(null);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState(null);
@@ -577,6 +586,8 @@ function BillQueueDialog({ open, onOpenChange, rows = [], queue, vehicles = [], 
             rows={uploaded}
             via="UPLOAD"
             vehicles={vehicles}
+            vehiclesError={vehiclesError}
+            onRetryVehicles={onRetryVehicles}
             queue={queue}
             onUnavailable={onUnavailable}
             onSaved={(ids) => queue?.removeSaved?.(ids)}

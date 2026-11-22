@@ -184,8 +184,12 @@ function minutesText(value) {
   return `${mins} min`;
 }
 
-const times = (issue) =>
-  Number.isFinite(Number(issue?.occurrences)) ? String(issue.occurrences) : null;
+/** How many times an issue was seen — or null when the API did not say. */
+const times = (issue) => {
+  const value = issue?.occurrences;
+  if (value === null || value === undefined) return null;
+  return Number.isFinite(Number(value)) ? String(value) : null;
+};
 
 /**
  * How each kind of issue reads as one group.
@@ -293,6 +297,95 @@ function daysIn(text) {
 }
 
 /**
+ * The identity of the truck (or the account) an issue is about.
+ *
+ * A plate and an account never share a key, so a truck and an account with
+ * the same name are still two different things.
+ */
+function issueSubjectKey(issue) {
+  const reg = String(issue?.registrationNumber ?? '')
+    .replace(/\s/g, '')
+    .toUpperCase();
+  if (reg) return `reg:${reg}`;
+  const account = String(issue?.accountName ?? '')
+    .replace(/\s/g, '')
+    .toUpperCase();
+  if (account) return `account:${account}`;
+  return `issue:${issue?.id ?? ''}`;
+}
+
+/**
+ * One row per truck for a group of issues.
+ *
+ * The API can send the same truck more than once for one kind of issue — one
+ * record per check, each with its own dates, and sometimes the same id. The
+ * table shows the truck once and keeps every check inside its row, so the
+ * reader sees one problem with a dated history instead of the same truck
+ * repeated on several lines.
+ *
+ * The merged row speaks with its latest check (the silence that is current
+ * now), keeps the earliest sighting as its first seen, and carries the worst
+ * tone, the summed occurrences and every dated piece of evidence.
+ */
+export function mergeIssueRecords(items = []) {
+  const bySubject = new Map();
+  items.forEach((issue) => {
+    const key = issueSubjectKey(issue);
+    const bucket = bySubject.get(key);
+    if (bucket) bucket.push(issue);
+    else bySubject.set(key, [issue]);
+  });
+
+  return [...bySubject.entries()].map(([key, records]) => {
+    const earliest = records.reduce((a, b) =>
+      String(a?.firstSeenAt ?? '') <= String(b?.firstSeenAt ?? '') ? a : b,
+    );
+    const newest = records.reduce((a, b) =>
+      String(a?.lastSeenAt ?? '') >= String(b?.lastSeenAt ?? '') ? a : b,
+    );
+    const counts = records.map((record) => {
+      const value = record?.occurrences;
+      if (value === null || value === undefined) return null;
+      return Number.isFinite(Number(value)) ? Number(value) : null;
+    });
+    const occurrences = counts.every((count) => count !== null)
+      ? counts.reduce((sum, count) => sum + count, 0)
+      : null;
+    const severity = records.reduce(
+      (worst, record) =>
+        (TONE_ORDER[record?.severity] ?? 9) < (TONE_ORDER[worst] ?? 9) ? record.severity : worst,
+      records[0]?.severity ?? 'info',
+    );
+
+    // The same evidence can come back on several checks: keep it once, dated.
+    const evidence = [];
+    const seen = new Set();
+    records.forEach((record) => {
+      (record?.evidence ?? []).forEach((entry) => {
+        const fingerprint = `${entry?.at ?? ''}|${entry?.text ?? ''}`;
+        if (seen.has(fingerprint)) return;
+        seen.add(fingerprint);
+        evidence.push(entry);
+      });
+    });
+    evidence.sort((a, b) => String(a?.at ?? '').localeCompare(String(b?.at ?? '')));
+
+    return {
+      ...newest,
+      id: `merged:${key}`,
+      key,
+      records,
+      severity,
+      occurrences: records.length === 1 ? (newest?.occurrences ?? null) : occurrences,
+      firstSeenAt: earliest?.firstSeenAt ?? null,
+      lastSeenAt: newest?.lastSeenAt ?? null,
+      evidence,
+      findingCount: records.length,
+    };
+  });
+}
+
+/**
  * The open issues as one group per kind, in the order the owner should read
  * them: what needs the owner first, an account problem before a truck
  * problem, then the biggest group.
@@ -339,6 +432,7 @@ export function groupIssuesByKind(items = []) {
       severity,
       mixedSeverity: new Set(sorted.map((issue) => issue?.severity)).size > 1,
       items: sorted,
+      rows: mergeIssueRecords(sorted),
       count: subjects.size,
       countLabel: `${subjects.size} ${noun}${subjects.size === 1 ? '' : 's'}`,
       range,

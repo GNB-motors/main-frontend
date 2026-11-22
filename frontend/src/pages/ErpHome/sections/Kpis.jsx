@@ -12,15 +12,25 @@ const RATE_APPROVALS = new Set([
   'BILLING_RATE_EDIT',
 ]);
 
-function Kpis({ summary, onReviewApprovals }) {
-  const counts = summary?.pendingCounts || {};
-  const fin = summary?.financials || {};
-  const load = summary?.load || {};
-  const placed = counts.activeTrips?.PLACED || 0;
-  const dispatched = counts.activeTrips?.DISPATCHED || 0;
-  const active = placed + dispatched;
+/**
+ * The headline figures of the command center.
+ *
+ * When the summary has not been loaded, every figure is unknown and says so
+ * ("—" / "not checked"). A failed request must never look like a business with
+ * nothing pending.
+ */
+function Kpis({ summary, loading, onReviewApprovals }) {
+  const known = Boolean(summary);
+  // A request that is still running is not the same as a figure we never got.
+  const unknownNote = loading ? 'loading…' : 'not checked';
+  const counts = known ? summary.pendingCounts || {} : {};
+  const fin = known ? summary.financials || {} : {};
+  const load = known ? summary.load || {} : {};
+  const placed = known ? counts.activeTrips?.PLACED || 0 : null;
+  const dispatched = known ? counts.activeTrips?.DISPATCHED || 0 : null;
+  const active = known ? placed + dispatched : null;
 
-  const byType = counts.pendingApprovalsByType || {};
+  const byType = known ? counts.pendingApprovalsByType || {} : {};
   const approvals = Object.entries(byType).reduce(
     (acc, [type, n]) => {
       if (type.startsWith('ADVANCE_')) acc.advances += n;
@@ -36,19 +46,25 @@ function Kpis({ summary, onReviewApprovals }) {
     [approvals.other, 'other'],
   ].filter(([n]) => n > 0);
 
-  const ageing = fin.receivablesAgeing || {};
+  const ageing = known ? fin.receivablesAgeing || {} : {};
   const recv = [
     { label: '0–30 d', value: ageing.d0to30 || 0, color: 'var(--nova-rage-400)' },
     { label: '31–60 d', value: ageing.d31to60 || 0, color: '#F0AA48' },
     { label: '60+ d', value: ageing.over60 || 0, color: '#C2323A' },
-  ].map((p) => ({ ...p, legend: `${p.label} · ${formatInrCompact(p.value)}` }));
-  const recvTotal = fin.receivablesOutstanding || 0;
+  ].map((p) => ({
+    ...p,
+    legend: known ? `${p.label} · ${formatInrCompact(p.value)}` : `${p.label} · —`,
+  }));
+  const recvTotal = known ? (fin.receivablesOutstanding ?? null) : null;
 
   const pay = [
     { label: 'Vendors', value: fin.vendorPayables || 0, color: 'var(--nova-rage-400)' },
     { label: 'Suppliers', value: fin.supplierPayables || 0, color: '#6A43D8' },
-  ].map((p) => ({ ...p, legend: `${p.label} · ${formatInrCompact(p.value)}` }));
-  const payTotal = fin.payablesDue || 0;
+  ].map((p) => ({
+    ...p,
+    legend: known ? `${p.label} · ${formatInrCompact(p.value)}` : `${p.label} · —`,
+  }));
+  const payTotal = known ? (fin.payablesDue ?? null) : null;
 
   return (
     <section className="kpis">
@@ -62,29 +78,35 @@ function Kpis({ summary, onReviewApprovals }) {
           </span>
           <span>Active trips</span>
         </div>
-        <div className="kpi-val">{active}</div>
+        <div className="kpi-val">{known ? active : '—'}</div>
         <div className="kpi-foot">
-          <span>
-            <b>{placed}</b> placed
-          </span>
-          <span>·</span>
-          <span>
-            <b>{dispatched}</b> dispatched
-          </span>
-          {load.tonnageInTransit > 0 && (
+          {known ? (
             <>
+              <span>
+                <b>{placed}</b> placed
+              </span>
               <span>·</span>
               <span>
-                <b>{load.tonnageInTransit.toLocaleString('en-IN')} t</b> moving
+                <b>{dispatched}</b> dispatched
               </span>
+              {load.tonnageInTransit > 0 && (
+                <>
+                  <span>·</span>
+                  <span>
+                    <b>{load.tonnageInTransit.toLocaleString('en-IN')} t</b> moving
+                  </span>
+                </>
+              )}
             </>
+          ) : (
+            <span>{unknownNote}</span>
           )}
         </div>
         <SegBar
-          total={active}
+          total={active || 0}
           parts={[
-            { label: 'Placed', value: placed, color: '#8FA6F5' },
-            { label: 'Dispatched', value: dispatched, color: 'var(--nova-rage-400)' },
+            { label: 'Placed', value: placed || 0, color: '#8FA6F5' },
+            { label: 'Dispatched', value: dispatched || 0, color: 'var(--nova-rage-400)' },
           ]}
         />
       </div>
@@ -96,9 +118,11 @@ function Kpis({ summary, onReviewApprovals }) {
           </span>
           <span>Pending approvals</span>
         </div>
-        <div className="kpi-val">{counts.pendingApprovals || 0}</div>
+        <div className="kpi-val">{known ? counts.pendingApprovals || 0 : '—'}</div>
         <div className="kpi-foot">
-          {approvalParts.length ? (
+          {!known ? (
+            <span>{unknownNote}</span>
+          ) : approvalParts.length ? (
             approvalParts.map(([n, word]) => (
               <span key={word}>
                 <b>{n}</b> {n === 1 ? word : `${word}s`}
@@ -132,14 +156,18 @@ function Kpis({ summary, onReviewApprovals }) {
           <span>Receivables due</span>
         </div>
         <div className="kpi-val" style={{ color: GRN.c }}>
-          {formatInrCompact(recvTotal)}
+          {known ? formatInrCompact(recvTotal) : '—'}
         </div>
         <div className="kpi-foot">
-          <span>
-            <b style={{ color: RED.c }}>{formatInrCompact(ageing.over60)}</b> over 60 days
-          </span>
+          {known ? (
+            <span>
+              <b style={{ color: RED.c }}>{formatInrCompact(ageing.over60)}</b> over 60 days
+            </span>
+          ) : (
+            <span>{unknownNote}</span>
+          )}
         </div>
-        <SegBar parts={recv} total={recvTotal} />
+        <SegBar parts={recv} total={recvTotal ?? 0} />
       </div>
 
       <div className="card kpi">
@@ -149,13 +177,17 @@ function Kpis({ summary, onReviewApprovals }) {
           </span>
           <span>Payables due</span>
         </div>
-        <div className="kpi-val">{formatInrCompact(payTotal)}</div>
+        <div className="kpi-val">{known ? formatInrCompact(payTotal) : '—'}</div>
         <div className="kpi-foot">
-          <span>
-            <b>{formatInrCompact(fin.payablesDueThisWeek)}</b> due this week
-          </span>
+          {known ? (
+            <span>
+              <b>{formatInrCompact(fin.payablesDueThisWeek)}</b> due this week
+            </span>
+          ) : (
+            <span>{unknownNote}</span>
+          )}
         </div>
-        <SegBar parts={pay} total={payTotal} />
+        <SegBar parts={pay} total={payTotal ?? 0} />
       </div>
     </section>
   );

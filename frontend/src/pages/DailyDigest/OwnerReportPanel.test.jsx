@@ -4,6 +4,7 @@ import { act } from 'react';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import OwnerReportPanel from './OwnerReportPanel';
+import { buildOverview } from './fleetOverviewModel';
 import { fleetViewService } from '../../services/fleetViewService';
 
 vi.mock('../../services/fleetViewService', () => ({
@@ -397,6 +398,62 @@ describe('OwnerReportPanel', () => {
     await waitFor(() => expect(screen.getByText('Ramesh Yadav')).toBeTruthy());
     expect(screen.getByText('92')).toBeTruthy();
     expect(screen.getAllByText('No one this time')).toHaveLength(1);
+  });
+
+  it('splits the dark-truck headline and never counts an unrecorded fuel bill as zero', async () => {
+    fleetViewService.getOwnerReport.mockResolvedValue({
+      ...REPORT,
+      sections: [
+        {
+          id: 'fleetNow',
+          title: 'Fleet now',
+          state: 'ok',
+          numbers: { trucks: 45, dark: 43, moving: 0 },
+        },
+        {
+          id: 'dataHealth',
+          title: 'Data health',
+          state: 'ok',
+          numbers: { trucks: 45, trucksDark: 43, trucksNoData: 2 },
+          rows: { trucksNoData: ['WB11F0162'] },
+        },
+      ],
+    });
+
+    const digest = {
+      story: [
+        {
+          key: 'fuel',
+          status: 'ok',
+          title: 'Fuel',
+          text: 'fuel billed for this day is not recorded yet',
+          items: [{ label: 'Trucks affected', value: '0' }],
+        },
+      ],
+    };
+
+    render(
+      <MemoryRouter>
+        <OwnerReportPanel
+          day={TODAY_IST}
+          digest={digest}
+          fleet={{ fleetCounts: { all: 45, moving: 0, offline: 45 }, vehicles: [] }}
+          attention={buildOverview(digest, null, null).attention}
+        />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByText('Trucks dark')).toBeTruthy());
+
+    // 45 dark now is 43 with no signal + 2 that never reported.
+    const kpis = within(screen.getByRole('region', { name: 'Key numbers for the day' }));
+    expect(kpis.getByText('45')).toBeInTheDocument();
+    expect(kpis.getByText(/43 no signal \+ 2 never reported/)).toBeInTheDocument();
+
+    // A day whose fuel bills were never recorded cannot be compared: no zero.
+    const fuelRow = screen.getByText('Fuel discrepancies').closest('a');
+    expect(fuelRow).toHaveTextContent('—');
+    expect(fuelRow).toHaveTextContent('Cannot compare until bills are recorded');
   });
 
   it('on a past day names the day card by its date and marks the live cards', async () => {

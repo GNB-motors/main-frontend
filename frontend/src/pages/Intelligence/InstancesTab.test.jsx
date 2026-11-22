@@ -8,6 +8,8 @@ vi.mock('./IntelligenceService', () => ({
 
 import IntelligenceService from './IntelligenceService';
 import InstancesTab from './InstancesTab';
+import IssueGroup from './IssueGroup';
+import { groupIssuesByKind } from './intelligenceModel';
 
 const instances = {
   kind: 'idle',
@@ -178,5 +180,92 @@ describe('InstancesTab', () => {
         expect.objectContaining({ kind: 'gear' }),
       ),
     );
+  });
+
+  it('lists a truck once with its dated findings, and gives every row its own key', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    // The API sends one record per check of a truck, and the checks share the
+    // issue id — so the table must not repeat the truck or reuse a key.
+    const check = (lastSeenAt, days) => ({
+      id: 'iss-77',
+      kind: 'NO_DATA',
+      severity: 'act',
+      registrationNumber: 'WB11F0162',
+      title: 'No data from WB11F0162',
+      detail: `No reading for ${days} days, while the telematics account feeding this truck is healthy.`,
+      advice: 'Check that the tracker has power and the SIM is active.',
+      firstSeenAt: '2026-10-28T05:00:00Z',
+      lastSeenAt,
+      occurrences: 1,
+      evidence: [],
+      action: null,
+    });
+    const [group] = groupIssuesByKind([
+      check('2026-11-01T23:40:00Z', 4),
+      check('2026-11-03T23:40:00Z', 6),
+    ]);
+
+    const { unmount } = render(
+      <MemoryRouter>
+        <IssueGroup group={group} />
+      </MemoryRouter>,
+    );
+
+    // One row for the truck, and the truck count beside the finding count.
+    expect(screen.getAllByRole('button', { name: /WB11F0162: show details/ })).toHaveLength(1);
+    expect(screen.getByText('1 truck')).toBeInTheDocument();
+    expect(screen.getByText('2 findings')).toBeInTheDocument();
+    expect(screen.getByText('6 days')).toBeInTheDocument();
+
+    // Both checks stay inside that row, each with its own date.
+    fireEvent.click(screen.getByRole('button', { name: /WB11F0162: show details/ }));
+    expect(
+      screen.getByText(
+        'No reading for 4 days, while the telematics account feeding this truck is healthy.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'No reading for 6 days, while the telematics account feeding this truck is healthy.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      consoleError.mock.calls.filter((call) => String(call[0]).includes('same key')),
+    ).toHaveLength(0);
+    unmount();
+
+    // Two moments that start together are two rows, each with its own key.
+    IntelligenceService.getInstances.mockResolvedValue({
+      kind: 'idle',
+      summary: {
+        count: 2,
+        totalMin: 80,
+        totalL: null,
+        totalInr: null,
+        why: { text: 'Engine on, not moving.' },
+      },
+      total: 2,
+      items: [
+        { ...instances.items[0], id: undefined, registrationNumber: 'WB11L8862' },
+        {
+          ...instances.items[0],
+          id: undefined,
+          registrationNumber: 'WB11F0162',
+          text: 'Idled 40 min with engine on at another stop',
+        },
+      ],
+    });
+    render(
+      <MemoryRouter>
+        <InstancesTab kind="idle" from="2026-10-27" to="2026-11-02" />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('WB11L8862')).toBeInTheDocument();
+    expect(screen.getByText('WB11F0162')).toBeInTheDocument();
+    expect(
+      consoleError.mock.calls.filter((call) => String(call[0]).includes('same key')),
+    ).toHaveLength(0);
+    consoleError.mockRestore();
   });
 });

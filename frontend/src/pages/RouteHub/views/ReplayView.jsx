@@ -18,6 +18,35 @@ import ReplayPerspectiveBar from './replay/ReplayPerspectiveBar.jsx';
 import ReplayHud from './replay/ReplayHud.jsx';
 import ReplayPlayer from './replay/ReplayPlayer.jsx';
 import TripLog from './replay/TripLog.jsx';
+import { describeError } from '@/errors/errorMessages';
+import logger from '@/utils/logger';
+
+/**
+ * A failed lookup the owner can act on: plain words, its own Retry, and no raw
+ * server text. The technical detail goes to the logger, never to the screen.
+ */
+function UnavailableNotice({ title, message, error, onRetry }) {
+  useEffect(() => {
+    if (!error) return;
+    const info = describeError(error);
+    logger.warn('RouteHub/Replay', `${title} (${info.kind})`, {
+      status: info.status,
+      requestId: info.requestId,
+      error: error?.message ?? String(error),
+    });
+  }, [error, title]);
+  return (
+    <div className="rtool-load-error" role="alert">
+      <b>{title}</b>
+      <span style={{ marginLeft: 6 }}>{message}</span>
+      {onRetry ? (
+        <button type="button" className="btn btn--sm" onClick={onRetry} style={{ marginLeft: 8 }}>
+          Retry
+        </button>
+      ) : null}
+    </div>
+  );
+}
 
 export default function ReplayView({ params, toast }) {
   // Opened from the overspeed audit (?from&to&at&limit&dur): that window, at that event.
@@ -40,6 +69,9 @@ export default function ReplayView({ params, toast }) {
   // "whatever fell inside these dates" to the real trip: its window comes from the
   // GPS-proven yard exit/return, so the timeline's start and end mean something.
   const [erpTrips, setErpTrips] = useState([]);
+  // A failed ERP lookup is not "this vehicle has no booked trips". The trip
+  // context is unavailable until it is retried, and it says so.
+  const [erpTripsError, setErpTripsError] = useState(null);
   const [erpTripId, setErpTripId] = useState(params.get('trip') || '');
 
   const [t, setT] = useState(0);
@@ -52,7 +84,7 @@ export default function ReplayView({ params, toast }) {
   const tRef = useRef(0);
   tRef.current = t;
 
-  const { containerRef, mapRef } = useLeafletMap({});
+  const { containerRef, mapRef, mapError, tileError, retry: retryMap } = useLeafletMap({});
   const runRef = useRef(null);
   const truckRef = useRef(null);
 
@@ -193,18 +225,44 @@ export default function ReplayView({ params, toast }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reg]);
 
-  // ERP trips follow the vehicle selection. Empty list is normal — an org without
-  // the ERP module, or a vehicle that has never run a booked trip.
+  // ERP trips follow the vehicle selection. An empty list is normal — a vehicle
+  // that has never run a booked trip. A FAILED list is not: it is labelled and
+  // retried, never shown as "no trip".
+  const loadErpTrips = useCallback(async (vehicleId, signal) => {
+    if (!vehicleId) {
+      setErpTrips([]);
+      setErpTripsError(null);
+      return;
+    }
+    try {
+      const trips = await RouteHubService.getTripsForVehicle(vehicleId, signal);
+      if (signal?.aborted) return;
+      setErpTrips(Array.isArray(trips) ? trips : []);
+      setErpTripsError(null);
+    } catch (err) {
+      if (signal?.aborted) return;
+      logger.warn('RouteHub/Replay', 'ERP trips lookup failed', err);
+      setErpTrips([]);
+      setErpTripsError(err);
+    }
+  }, []);
+
   useEffect(() => {
     const vehicle = vehicles.find((v) => v.registrationNumber === reg);
     if (!vehicle?._id) {
       setErpTrips([]);
+      setErpTripsError(null);
       return undefined;
     }
     const ac = new AbortController();
-    RouteHubService.getTripsForVehicle(vehicle._id, ac.signal).then(setErpTrips);
+    loadErpTrips(vehicle._id, ac.signal);
     return () => ac.abort();
-  }, [reg, vehicles]);
+  }, [reg, vehicles, loadErpTrips]);
+
+  const retryErpTrips = useCallback(() => {
+    const vehicle = vehicles.find((v) => v.registrationNumber === reg);
+    loadErpTrips(vehicle?._id);
+  }, [vehicles, reg, loadErpTrips]);
 
   // Deep link (?trip=<id>) — once the trip row is in hand, replay it directly so the
   // link lands on the trip, not on a date range that happens to contain it.
@@ -335,6 +393,15 @@ export default function ReplayView({ params, toast }) {
         toast={toast}
       />
 
+      {erpTripsError ? (
+        <UnavailableNotice
+          title="ERP trip context unavailable."
+          message="The booked trips for this vehicle could not be loaded, so the replay below uses the date range only."
+          error={erpTripsError}
+          onRetry={retryErpTrips}
+        />
+      ) : null}
+
       {error ? (
         <div className="rtool-load-error" role="alert">
           {error}
@@ -370,6 +437,17 @@ export default function ReplayView({ params, toast }) {
             <div className={`persp ${persp === 'flat' ? '' : persp}`}>
               <div className="lmap" ref={containerRef} />
               {loading ? <div className="ov ovs-notice">Loading replay…</div> : null}
+              {mapError || tileError ? (
+                <div className="rhm-map-note" role="status">
+                  <b>The map could not be loaded.</b>
+                  <span>The trip log and the figures beside it are still complete.</span>
+                  {retryMap ? (
+                    <button type="button" className="btn btn--sm" onClick={retryMap}>
+                      Retry map
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
               <ReplayHud frame={frame} limitKmh={limitKmh} erpTripId={erpTripId} />
             </div>
 

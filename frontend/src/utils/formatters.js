@@ -10,8 +10,16 @@
  *    badges it through `freshnessOf` + `timeAgo`.
  */
 
-const inr0 = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
-const inr2 = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 });
+const inr0 = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  maximumFractionDigits: 0,
+});
+const inr2 = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  maximumFractionDigits: 2,
+});
 const numIN = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 const numIN1 = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 1 });
 const numIN2 = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 });
@@ -94,6 +102,14 @@ export function freshnessOf(input, now = Date.now()) {
   if (ageMs < 6 * 60 * 60 * 1000) return 'aging';
   if (ageMs < 24 * 60 * 60 * 1000) return 'stale';
   return 'dead';
+}
+
+/**
+ * A number we can actually show. Unknown stays unknown: null, undefined, NaN
+ * and Infinity are never rendered as 0.
+ */
+export function isKnownNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value);
 }
 
 /** Grade → signal word for the health gauge bands. */
