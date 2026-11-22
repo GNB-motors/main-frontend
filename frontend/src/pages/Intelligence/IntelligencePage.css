@@ -691,6 +691,36 @@ button.intel-kpi-hit:focus-visible {
   font-size: 13px;
   line-height: 20px;
 }
+/* The dated history of one truck, kept inside its own row --------------- */
+.intel-issue-history {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.intel-issue-history li {
+  display: contents;
+}
+.intel-issue-history-when {
+  font-weight: 500;
+  color: var(--rd-ink-3);
+  font-size: 12px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.intel-issue-history-text {
+  color: var(--rd-ink);
+  font-size: 13px;
+  line-height: 20px;
+}
+.intel-issue-history-advice {
+  grid-column: 2;
+  color: var(--rd-ink-2);
+  font-size: 12px;
+  line-height: 18px;
+}
 
 /* DataTable inside the page ------------------------------------------ */
 .intelligence-page .dt {

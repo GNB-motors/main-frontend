@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
+import React from 'react';
+import { render, screen } from '@testing-library/react';
 import {
   formatDateRange,
   formatDateTimeIST,
@@ -7,6 +9,9 @@ import {
   fmtDuration,
   exportComparisonToCsv,
 } from './formatIST';
+import ComparisonTable from './ComparisonTable.jsx';
+import ComparisonKpiStrip from './ComparisonKpiStrip.jsx';
+import useComparisonMetrics from './useComparisonMetrics.js';
 
 describe('Fuel Comparison Audit Helpers & Logic', () => {
   describe('Formatting Utilities', () => {
@@ -113,7 +118,7 @@ describe('Fuel Comparison Audit Helpers & Logic', () => {
       const clickMock = vi.fn();
       const appendChildMock = vi.spyOn(document.body, 'appendChild').mockImplementation(() => {});
       const removeChildMock = vi.spyOn(document.body, 'removeChild').mockImplementation(() => {});
-      vi.spyOn(document, 'createElement').mockReturnValue({
+      const createElementMock = vi.spyOn(document, 'createElement').mockReturnValue({
         setAttribute: vi.fn(),
         click: clickMock,
       });
@@ -126,6 +131,52 @@ describe('Fuel Comparison Audit Helpers & Logic', () => {
 
       appendChildMock.mockRestore();
       removeChildMock.mockRestore();
+      // Restore createElement too: a leaked mock makes every later render fail.
+      createElementMock.mockRestore();
+    });
+  });
+
+  // S03 — the strip said "All 4 / Flagged 2 / Verified clean 2" directly above
+  // "No comparison intervals found" with 0.00 L totals. The counts and the
+  // table answer different questions, so each one has to say which it is.
+  describe('Comparison scope honesty', () => {
+    const KpiStrip = ({ records, status, loaded, loadError = null }) => {
+      const { kpiMetrics } = useComparisonMetrics(records, status, { loaded });
+      return (
+        <ComparisonKpiStrip
+          kpiMetrics={kpiMetrics}
+          activeTab="all"
+          setActiveTab={() => {}}
+          loadError={loadError}
+        />
+      );
+    };
+
+    it('does not say there are no comparison intervals while the query is still loading or has failed', () => {
+      const { rerender } = render(<ComparisonTable isLoading records={[]} error={null} />);
+      expect(screen.queryByText('No comparison intervals found')).not.toBeInTheDocument();
+      expect(screen.getByText(/Calculating & Auditing/)).toBeInTheDocument();
+
+      rerender(<ComparisonTable isLoading={false} records={[]} error={new Error('boom')} />);
+      expect(screen.queryByText('No comparison intervals found')).not.toBeInTheDocument();
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+
+    it('shows an unavailable total as — rather than 0.00 L and labels where the counts come from', () => {
+      render(
+        <KpiStrip
+          records={[]}
+          status={null}
+          loaded={false}
+          loadError={new Error('comparisons failed')}
+        />,
+      );
+      // A total nobody measured is unknown, not zero litres.
+      expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+      expect(screen.queryByText('0.00 L')).not.toBeInTheDocument();
+      expect(screen.getAllByText('Comparisons could not be loaded').length).toBeGreaterThan(0);
+      // The counts that could not be loaded say so instead of showing a zero.
+      expect(screen.getAllByText('Audit totals unavailable').length).toBeGreaterThan(0);
     });
   });
 });

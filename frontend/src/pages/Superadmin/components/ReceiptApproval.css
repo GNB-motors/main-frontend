@@ -1814,6 +1814,13 @@
   border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
+/* A degraded read: the page still works, but one part is missing. */
+.ra-alert--warn {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+}
+
 .ra-state {
   display: flex;
   flex-direction: column;

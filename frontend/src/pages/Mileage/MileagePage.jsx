@@ -216,6 +216,8 @@ export default function MileagePage() {
   const [billPhotosAvailable, setBillPhotosAvailable] = useState(true);
   const [billUploads, setBillUploads] = useState([]);
   const [billVehicles, setBillVehicles] = useState([]);
+  const [billVehiclesError, setBillVehiclesError] = useState(null);
+  const [billVehiclesRevision, setBillVehiclesRevision] = useState(0);
   const billQueue = useRef(null);
   // A chat import that finishes while this page is open makes the list refresh.
   useEffect(() => onImported(() => setRefreshKey((key) => key + 1)), []);
@@ -232,16 +234,19 @@ export default function MileagePage() {
   useEffect(() => {
     if (!ready || !access.editBills) return undefined;
     const controller = new AbortController();
+    setBillVehiclesError(null);
     MileageApi.vehicles(controller.signal)
       .then((data) => {
         if (!controller.signal.aborted) setBillVehicles(Array.isArray(data) ? data : []);
       })
       .catch(() => {
         // The bill dialog still works without the fleet list; the plate can be
-        // typed in by hand.
+        // typed in by hand. Say so, so an empty picker is never read as an
+        // empty fleet, and let the person retry.
+        if (!controller.signal.aborted) setBillVehiclesError('The truck list could not be loaded.');
       });
     return () => controller.abort();
-  }, [ready, access.editBills]);
+  }, [ready, access.editBills, billVehiclesRevision]);
 
   const updateParams = (patch, { replace = false } = {}) => {
     const next = new URLSearchParams(searchParams);
@@ -310,11 +315,7 @@ export default function MileagePage() {
                 </button>
                 {/* The quieter ways in sit together, so one button leads. */}
                 <div className="mhub-secondary-actions">
-                  <button
-                    type="button"
-                    onClick={openDialog}
-                    className="pshell-btn mhub-add-btn"
-                  >
+                  <button type="button" onClick={openDialog} className="pshell-btn mhub-add-btn">
                     <MessageCircle size={15} aria-hidden /> Upload WhatsApp chat
                   </button>
                   {/* The by-hand form stays reachable: a route is never deleted. */}
@@ -473,13 +474,14 @@ export default function MileagePage() {
           rows={billUploads}
           queue={billQueue.current}
           vehicles={billVehicles}
+          vehiclesError={billVehiclesError}
+          onRetryVehicles={() => setBillVehiclesRevision((n) => n + 1)}
           onUnavailable={() => {
             setBillPhotosAvailable(false);
             setBillPhotoOpen(false);
             toast.info('Bill photos are not switched on yet');
           }}
         />
-
       </PageShell>
     </>
   );

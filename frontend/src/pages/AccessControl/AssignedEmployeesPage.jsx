@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
-import { Building2, Shield, UserMinus, UserPlus } from 'lucide-react';
+import { AlertTriangle, Building2, Shield, UserMinus, UserPlus } from 'lucide-react';
 import AccessControlApi from './accessControlService';
 import { useConfirm } from '../../components/ui/confirmContext';
 import PageShell from '../../components/ui/PageShell';
@@ -9,12 +9,19 @@ import DataTable from '../../components/ui/DataTable';
 import ExportButton from '../../components/ui/ExportButton';
 import { activeFilterCount, footerSummary } from '../../lib/tableState';
 import { humanise } from '../../lib/vocabulary';
+import { describeError } from '../../errors/errorMessages';
+import logger from '../../utils/logger';
 import '../Superadmin/components/FeatureFlags.css';
 import '../Superadmin/components/Rbac.css';
 import './AccessControl.css';
 
-const employeeName = (e) =>
-  `${e?.firstName || ''} ${e?.lastName || ''}`.trim() || e?.mobileNumber || e?.email || 'Employee';
+const employeeName = (e) => {
+  // No employee record at all is an unknown identity, not a nameless one.
+  if (!e) return 'Unknown employee';
+  return (
+    `${e?.firstName || ''} ${e?.lastName || ''}`.trim() || e?.mobileNumber || e?.email || 'Employee'
+  );
+};
 
 /**
  * Assigned Employees — the full "who holds what" table, on its own page.
@@ -28,26 +35,43 @@ const AssignedEmployeesPage = () => {
   const confirm = useConfirm();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [assignmentsError, setAssignmentsError] = useState(null);
+  const [employeesError, setEmployeesError] = useState(null);
   const [revokingId, setRevokingId] = useState(null);
   const [q, setQ] = useState('');
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError('');
+  /** The employee directory — its own read, its own failure, its own Retry. */
+  const loadEmployees = useCallback(async () => {
+    setEmployeesError(null);
     try {
-      const [asg, emp] = await Promise.all([
-        AccessControlApi.listAssignments(),
-        AccessControlApi.listEmployees().catch(() => []),
-      ]);
-      setAssignments(asg || []);
-      setEmployees(emp || []);
+      const emp = await AccessControlApi.listEmployees();
+      setEmployees(Array.isArray(emp) ? emp : emp || []);
     } catch (e) {
-      setError(e.response?.data?.message || 'Failed to load assignments');
-    } finally {
-      setLoading(false);
+      setEmployeesError(e);
+      logger.error('ui', 'Assigned employees: the employee lookup failed', {
+        status: e?.status ?? e?.response?.status ?? null,
+      });
     }
   }, []);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setAssignmentsError(null);
+    // Two independent reads. A failed employee lookup must not hide the
+    // assignments, and a failed assignments read must not hide the names.
+    await Promise.allSettled([
+      AccessControlApi.listAssignments()
+        .then((asg) => setAssignments(asg || []))
+        .catch((e) => {
+          setAssignmentsError(e);
+          logger.error('ui', 'Assigned employees: the assignments failed', {
+            status: e?.status ?? e?.response?.status ?? null,
+          });
+        }),
+      loadEmployees(),
+    ]);
+    setLoading(false);
+  }, [loadEmployees]);
 
   useEffect(() => {
     load();
@@ -67,8 +91,10 @@ const AssignedEmployeesPage = () => {
         const emp = employeeById.get(String(a.userId));
         return {
           ...a,
-          employeeNameText: employeeName(emp),
-          employeeMobile: emp?.mobileNumber || '',
+          // A failed lookup is an unknown identity, never a made-up name and
+          // never an empty list that looks like "nobody is assigned".
+          employeeNameText: employeesError ? 'Name unavailable' : employeeName(emp),
+          employeeMobile: employeesError ? '' : emp?.mobileNumber || '',
           roleName: a.roleId?.name || 'Deleted role',
           baseRoleLabel: a.roleId?.baseRole ? humanise(a.roleId.baseRole) : '',
           appliesTo:
@@ -77,7 +103,7 @@ const AssignedEmployeesPage = () => {
               : 'Enterprise (no location selected)',
         };
       }),
-    [assignments, employeeById],
+    [assignments, employeeById, employeesError],
   );
 
   const filtered = useMemo(() => {
@@ -153,7 +179,11 @@ const AssignedEmployeesPage = () => {
       toast.success('Assignment revoked');
       await load();
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Failed to revoke assignment');
+      const info = describeError(e, { fallbackTitle: 'The access could not be removed.' });
+      toast.error(`${info.title} ${info.message}`);
+      logger.error('ui', 'Assigned employees: the revoke failed', {
+        status: e?.status ?? e?.response?.status ?? null,
+      });
     } finally {
       setRevokingId(null);
     }
@@ -161,9 +191,15 @@ const AssignedEmployeesPage = () => {
 
   return (
     <div className="ff-page">
-      {error && (
+      {employeesError && (
         <div className="ff-alert ff-alert--error" role="alert">
-          {error}
+          <span>
+            We couldn&apos;t load the employee names. The assignments below are correct, but the
+            names and mobile numbers are unknown until this is loaded again.
+          </span>
+          <button type="button" className="ff-btn ff-btn--ghost" onClick={loadEmployees}>
+            Retry
+          </button>
         </div>
       )}
 
@@ -202,7 +238,19 @@ const AssignedEmployeesPage = () => {
           activeFilters: activeFilterCount({ q }),
         })}
       >
-        {!loading && assignments.length === 0 && !error ? (
+        {assignmentsError ? (
+          <div className="ff-state">
+            <div className="ff-state__icon">
+              <AlertTriangle size={22} />
+            </div>
+            <div className="ff-state__title">
+              {describeError(assignmentsError).title} {describeError(assignmentsError).message}
+            </div>
+            <button type="button" className="ff-btn ff-btn--ghost" onClick={load}>
+              Retry
+            </button>
+          </div>
+        ) : !loading && assignments.length === 0 ? (
           <div className="ff-state">
             <div className="ff-state__icon">
               <UserPlus size={22} />

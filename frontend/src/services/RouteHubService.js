@@ -92,21 +92,19 @@ const RouteHubService = {
   /**
    * ERP trips for one vehicle, newest first — the replay's trip picker.
    *
-   * Degrades to [] rather than throwing: an org without the ERP module still gets a
-   * working replay, it just picks by date range as before.
+   * Throws when the lookup fails: a 404 from the ERP trips endpoint is NOT the
+   * same answer as "this vehicle has no booked trips", and the caller has to be
+   * able to say "the trip context is unavailable" instead of silently dropping
+   * the trip picker. The caller still keeps the date-range replay working.
    */
   getTripsForVehicle: async (vehicleId, signal) => {
     if (!vehicleId) return [];
-    try {
-      const res = await apiClient.get('/api/erp/trips', {
-        params: { vehicleId, limit: 50 },
-        signal,
-      });
-      const rows = res.data?.data ?? [];
-      return Array.isArray(rows) ? rows : [];
-    } catch {
-      return [];
-    }
+    const res = await apiClient.get('/api/erp/trips', {
+      params: { vehicleId, limit: 50 },
+      signal,
+    });
+    const rows = res.data?.data ?? [];
+    return Array.isArray(rows) ? rows : [];
   },
 
   /**

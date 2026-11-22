@@ -321,4 +321,24 @@ describe('DEF ledger page', () => {
     expect(within(row).getByText('Telemetry date unavailable')).toBeInTheDocument();
     expect(within(row).queryByText(/Data as of/)).not.toBeInTheDocument();
   });
+
+  it('shows a failed ledger load with a retry instead of claiming a clean fleet', async () => {
+    useApi.mockReturnValue({
+      data: null,
+      loading: false,
+      error: { status: 500, message: 'boom' },
+      refetch: vi.fn(),
+    });
+    await renderPage();
+    // The owner is told in plain words, and there is a way out.
+    expect(screen.getByRole('alert')).toHaveTextContent(/couldn.t load this/i);
+    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
+    // The count nobody loaded is unknown, not zero.
+    const tile = tileFor('Needs review');
+    expect(within(tile).getByText('—')).toBeInTheDocument();
+    expect(within(tile).getByText(/not loaded/i)).toBeInTheDocument();
+    // A failed request must not read as a fleet with no AdBlue bills.
+    expect(screen.queryByText(/No AdBlue bills logged/)).not.toBeInTheDocument();
+    expect(screen.getByText(/vehicle list could not be loaded/i)).toBeInTheDocument();
+  });
 });

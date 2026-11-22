@@ -79,9 +79,10 @@ const unwrapRows = (payload) => {
 };
 
 const decorate = (error) => {
-  const status = error?.response?.status;
+  const status = error?.status ?? error?.response?.status ?? null;
   const err = new Error(error?.response?.data?.message || error.message || 'Lookup failed');
   err.status = status;
+  err.requestId = error?.requestId ?? error?.response?.headers?.['x-request-id'] ?? null;
   // 404 here means "module not enabled for this org", not "no such endpoint".
   err.moduleUnavailable = status === 404;
   return err;
@@ -121,15 +122,22 @@ export const forgetEntitySearches = (...types) => {
   }
 };
 
-/** Resolve a stored id into a display label, for hydrating an existing value. */
-export const getEntityById = async (type, id) => {
+/**
+ * Resolve a stored id into a display label, for hydrating an existing value.
+ *
+ * By default a failed hydrate returns null so a form can fall back to the raw
+ * id. Callers that need to tell "no such record" from "the lookup failed" pass
+ * `throwOnError` and get the real error (with its status) instead.
+ */
+export const getEntityById = async (type, id, { throwOnError = false } = {}) => {
   const cfg = CONFIG[type];
   if (!cfg || !id) return null;
   try {
     const response = await apiClient.get(`${cfg.url}/${id}`);
     const payload = response.data?.data ?? response.data;
     return payload ? cfg.map(payload) : null;
-  } catch {
+  } catch (error) {
+    if (throwOnError) throw decorate(error);
     // A failed hydrate must not break the form — the picker falls back to
     // showing the raw id, which is still better than an empty box.
     return null;

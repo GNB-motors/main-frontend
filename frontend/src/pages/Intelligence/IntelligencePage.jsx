@@ -45,6 +45,15 @@ const TAB_FALLBACK = <IntelligenceSkeleton variant="table" />;
 /** The tabs that always cover the whole fleet. */
 const FLEET_ONLY_TABS = ['runs', 'places'];
 
+/**
+ * The tabs that are one driving task (idling, overspeed, cruise, detours).
+ *
+ * On those tabs the five fleet-wide numbers collapse into one quiet line, so
+ * the task, its period and its evidence are the first thing on the screen
+ * (screen review S14).
+ */
+const DRIVING_TASK_TABS =
+  INTELLIGENCE_SECTIONS.find((section) => section.id === 'driving')?.tabs ?? [];
 /** The performance tables; they cover the whole fleet and own their window. */
 const PERFORMANCE_TABS = ['perfVehicles', 'perfDrivers', 'leaderboards'];
 
@@ -235,6 +244,8 @@ export default function IntelligencePage() {
   const section = sectionOfTab(active);
   const activeTab = tabById(active);
   const openTab = (tab) => updateParams({ tab, kind: null });
+  const drivingTask = DRIVING_TASK_TABS.includes(active);
+  const periodLabel = periodRangeLabel(from, to);
 
   return (
     <div className="intelligence-page min-w-0 w-full">
@@ -278,6 +289,8 @@ export default function IntelligencePage() {
         to={to}
         vehicle={vehicle}
         onOpenTab={openTab}
+        compact={drivingTask}
+        breadcrumb={drivingTask ? ['Intelligence', section.label, activeTab?.label] : []}
       />
 
       <nav className="intel-sections" aria-label="Intelligence sections">
@@ -312,6 +325,9 @@ export default function IntelligencePage() {
           <div className="intel-panel-heading-copy">
             <div className="intel-panel-heading-title">
               <h2>{activeTab?.label}</h2>
+              {periodLabel ? (
+                <span className="intel-panel-heading-period">{periodLabel}</span>
+              ) : null}
             </div>
             <p>{activeTab?.hint}</p>
           </div>
