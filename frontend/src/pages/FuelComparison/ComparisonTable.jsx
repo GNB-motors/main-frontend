@@ -12,16 +12,20 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { formatDateRange, fmtLitres, fmtDuration } from './formatIST';
+import ErrorCard from '../../components/redesign/ErrorCard';
 
 const ComparisonTable = ({
   activeTab,
   records = [],
-  total = 0,
+  total = null,
   totalPages = 1,
   page = 1,
   limit = 20,
   isLoading = false,
   activeFilters = 0,
+  error = null,
+  onRetry = null,
+  auditTotal = null,
   onPageChange,
   onSelectRow,
   onReview,
@@ -70,7 +74,18 @@ const ComparisonTable = ({
               </tr>
             )}
 
-            {!isLoading && records.length === 0 && (
+            {!isLoading && error != null && (
+              // eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table row, not a control; the rule reads <tr> as an interactive row and stops before the text inside
+              <tr>
+                <td colSpan={7}>
+                  <div className="fc-state">
+                    <ErrorCard error={error} onRetry={onRetry} />
+                  </div>
+                </td>
+              </tr>
+            )}
+
+            {!isLoading && error == null && records.length === 0 && (
               // eslint-disable-next-line jsx-a11y/control-has-associated-label -- a table row, not a control; the rule reads <tr> as an interactive row and stops before the text inside
               <tr>
                 <td colSpan={7}>
@@ -87,6 +102,11 @@ const ComparisonTable = ({
                           : activeTab === 'review'
                             ? 'All caught up! No tasks currently pending manager reconciliation.'
                             : 'No fuel comparison records exist for this fleet.'}
+                      {auditTotal != null && auditTotal > 0 && activeFilters > 0
+                        ? ` The whole fuel audit holds ${auditTotal} interval${
+                            auditTotal === 1 ? '' : 's'
+                          }.`
+                        : ''}
                     </div>
                     {activeFilters > 0 && onResetFilters && (
                       <button
@@ -276,8 +296,16 @@ const ComparisonTable = ({
         <div className="fc-pagination">
           <div className="fc-pagination__info">
             Showing <span className="fc-mono font-bold">{(page - 1) * limit + 1}</span>–
-            <span className="fc-mono font-bold">{Math.min(page * limit, total)}</span> of{' '}
-            <span className="fc-mono font-bold">{total}</span> intervals
+            <span className="fc-mono font-bold">
+              {Math.min(page * limit, total ?? records.length)}
+            </span>{' '}
+            {total != null ? (
+              <>
+                of <span className="fc-mono font-bold">{total}</span> intervals
+              </>
+            ) : (
+              'intervals on this page'
+            )}
           </div>
 
           <div className="fc-pagination__controls">

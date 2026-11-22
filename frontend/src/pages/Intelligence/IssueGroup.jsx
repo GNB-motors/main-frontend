@@ -4,7 +4,7 @@ import Link from '@/components/redesign/FleetLink';
 import ToneBadge from '@/components/redesign/ToneBadge';
 import { formatIst } from '@/utils/redesign/format';
 import { RECONNECT_PATH, trackLink } from '@/utils/redesign/links';
-import { shiftYmd } from './intelligenceModel';
+import { mergeIssueRecords, shiftYmd } from './intelligenceModel';
 import { toISTDateString } from '../../utils/dateUtils';
 import DataTooltip from '../../components/ui/DataTooltip';
 
@@ -48,9 +48,13 @@ function ActionLink({ action, className = '' }) {
 }
 
 /** One open issue's details, shown under its row. */
-function IssueDetail({ issue, showAdvice, showDetail }) {
+function IssueDetail({ issue, showAdvice, showDetail, history }) {
   const evidence = issue?.evidence ?? [];
   const ownAction = issue?.action?.to ? issue.action : null;
+  // When the checks of one truck were given different advice, each check
+  // keeps its own; when they agree, the advice is said once.
+  const historyAdvices = new Set((history ?? []).map((row) => row?.advice).filter(Boolean));
+  const adviceDiffers = historyAdvices.size > 1;
   const fallbackMap =
     !ownAction && issue?.registrationNumber
       ? {
@@ -61,10 +65,25 @@ function IssueDetail({ issue, showAdvice, showDetail }) {
       : null;
   return (
     <div className="intel-issue-detail">
+      {history?.length ? (
+        <ul className="intel-issue-history" aria-label="Every finding of this truck">
+          {history.map((record, index) => (
+            <li key={`${record?.id ?? 'finding'}-${index}`}>
+              <span className="intel-issue-history-when">
+                {formatIst(record?.lastSeenAt, { withDate: true })}
+              </span>
+              <span className="intel-issue-history-text">{record?.detail}</span>
+              {adviceDiffers && record?.advice ? (
+                <span className="intel-issue-history-advice">{record.advice}</span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {showDetail && issue?.detail ? (
         <p className="intel-issue-detail-text">{issue.detail}</p>
       ) : null}
-      {showAdvice && issue?.advice ? (
+      {showAdvice && issue?.advice && !adviceDiffers ? (
         <p className="intel-issue-detail-text">
           <span className="font-semibold text-[var(--rd-ink)]">What to do: </span>
           {issue.advice}
@@ -173,7 +192,8 @@ function ActivityCells({ issue, endDay }) {
 
 export default function IssueGroup({ group, to }) {
   const [openIds, setOpenIds] = useState(() => new Set());
-  const rows = group.items;
+  // One row per truck: the same truck may come back with a record per check.
+  const rows = group.rows ?? mergeIssueRecords(group.items);
   const headingId = `intel-issue-group-${group.kind}`;
   const endDay =
     toISTDateString(to ? `${String(to).slice(0, 10)}T12:00:00+05:30` : new Date()) ||
@@ -181,6 +201,8 @@ export default function IssueGroup({ group, to }) {
   const columns = group.columns ?? [];
   const metric = columns[0];
   const step = group.sharedAction && !actionTarget(group.action) ? group.action?.label : null;
+  const findings = group.items?.length ?? rows.length;
+  const trucks = group.count ?? rows.length;
   const toggle = (id) =>
     setOpenIds((prev) => {
       const next = new Set(prev);
@@ -203,6 +225,12 @@ export default function IssueGroup({ group, to }) {
               <>
                 {' '}
                 · <span>{group.range}</span>
+              </>
+            ) : null}
+            {findings > trucks ? (
+              <>
+                {' '}
+                · <span className="intel-issue-group-findings">{findings} findings</span>
               </>
             ) : null}
           </span>
@@ -263,14 +291,14 @@ export default function IssueGroup({ group, to }) {
             <tbody>
               {rows.map((issue) => {
                 const subject = issue.registrationNumber || issue.accountName || issue.title;
-                const open = openIds.has(issue.id);
+                const open = openIds.has(issue.key);
                 return (
                   <IssueRecord
-                    key={issue.id}
+                    key={issue.key}
                     issue={issue}
                     subject={subject}
                     open={open}
-                    onToggle={() => toggle(issue.id)}
+                    onToggle={() => toggle(issue.key)}
                     metric={metric}
                     columns={columns}
                     endDay={endDay}
@@ -294,6 +322,9 @@ export default function IssueGroup({ group, to }) {
 }
 
 function IssueRecord({ issue, subject, open, onToggle, metric, columns, endDay, sharedAdvice }) {
+  // A truck with more than one check keeps them all inside its own row.
+  const records = issue?.records ?? [issue];
+  const merged = records.length > 1;
   return (
     <>
       <tr className={`intel-row${open ? ' intel-row--open' : ''}`} onClick={onToggle}>
@@ -326,10 +357,16 @@ function IssueRecord({ issue, subject, open, onToggle, metric, columns, endDay, 
           <td colSpan={5}>
             <div className="intel-reference-detail">
               <div>
-                <IssueDetail issue={issue} showAdvice={!sharedAdvice} showDetail />
+                <IssueDetail
+                  issue={issue}
+                  showAdvice={!sharedAdvice}
+                  showDetail={!merged}
+                  history={merged ? records : null}
+                />
                 <span className="intel-issue-first-seen">
                   First seen {formatIst(issue.firstSeenAt, { withDate: true })} ·{' '}
                   {issue.occurrences ?? '—'} recorded occurrences
+                  {merged ? ` · ${records.length} checks` : ''}
                 </span>
                 {columns.length > 1 ? (
                   <dl className="intel-issue-extra-metrics">

@@ -10,6 +10,8 @@ export { BillThumbnail } from './BillRow';
 export default function BillsTable({
   rows = [],
   vehicles = [],
+  vehiclesError = null,
+  onRetryVehicles = null,
   queue,
   onSaved,
   onUnavailable,
@@ -97,6 +99,8 @@ export default function BillsTable({
                     onMatched={matched}
                     onUnavailable={onUnavailable}
                     queue={queue}
+                    vehiclesError={vehiclesError}
+                    onRetryVehicles={onRetryVehicles}
                   />
                 );
               })}
@@ -106,11 +110,7 @@ export default function BillsTable({
       )}
       {error && <p role="alert">{error}</p>}
       {rows.length > 0 && (
-        <Button
-          className="bp-confirm-btn"
-          disabled={saving || !selected.length}
-          onClick={save}
-        >
+        <Button className="bp-confirm-btn" disabled={saving || !selected.length} onClick={save}>
           Confirm {selected.length} bills
         </Button>
       )}

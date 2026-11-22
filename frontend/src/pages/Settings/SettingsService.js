@@ -12,13 +12,13 @@ const call = async (request) => {
 };
 
 /** Org fuel settings: { idleThresholdMin, idleThresholdSource, … }. */
-const getFuelSettings = ({ signal } = {}) => call(apiClient.get('api/fuel-settings', { signal }));
+const getFuelSettings = ({ signal } = {}) => call(apiClient.get('/api/fuel-settings', { signal }));
 
 const updateIdleThreshold = (idleThresholdMin) =>
-  call(apiClient.patch('api/fuel-settings', { idleThresholdMin }));
+  call(apiClient.patch('/api/fuel-settings', { idleThresholdMin }));
 
 const updateNetFuelKmPerL = (netFuelKmPerL) =>
-  call(apiClient.patch('api/fuel-settings', { netFuelKmPerL }));
+  call(apiClient.patch('/api/fuel-settings', { netFuelKmPerL }));
 
 export const SettingsService = {
   getFuelSettings,

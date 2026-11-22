@@ -86,6 +86,18 @@ export function buildOverview(digest, legacy = null, work = null) {
   const loadedKm = noTripLegs ? null : rawLoadedKm;
   const emptyKm = noTripLegs ? null : rawEmptyKm;
 
+  // The fuel card's own sentence says when the day's billed fuel was never
+  // recorded. A count of 0 beside that sentence reads as "no truck has a fuel
+  // problem" when it really means "no comparison was possible" - so the count
+  // stays unknown until the bills are there. A measured zero (bills recorded,
+  // no discrepancy found) stays a zero.
+  const fuelText = cards.fuel?.text || cards.fuel?.why?.text || '';
+  const fuelBillsUnrecorded =
+    /not\s+(?:yet\s+)?(?:been\s+)?recorded|isn'?t\s+recorded|no bills?\s+(?:are\s+)?(?:recorded|uploaded)/i.test(
+      fuelText,
+    );
+  const fuelCount = fuelBillsUnrecorded ? null : cell(cards.fuel, 'Trucks affected');
+
   const attention = legacy
     ? (legacy.actions || []).map((a) => ({
         id: a.id,
@@ -111,11 +123,12 @@ export function buildOverview(digest, legacy = null, work = null) {
         {
           id: 'fuel',
           title: 'Fuel discrepancies',
-          count: cell(cards.fuel, 'Trucks affected'),
-          description:
-            cards.fuel?.text ||
-            cards.fuel?.why?.text ||
-            'Check unexplained fuel loss and tank discrepancies.',
+          count: fuelCount,
+          description: fuelBillsUnrecorded
+            ? 'Cannot compare until bills are recorded'
+            : cards.fuel?.text ||
+              cards.fuel?.why?.text ||
+              'Check unexplained fuel loss and tank discrepancies.',
           tone: cards.fuel?.tone || 'info',
           to: cards.fuel?.link?.to || '/intelligence?tab=fuel',
         },

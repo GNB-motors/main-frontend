@@ -1,5 +1,6 @@
 import { useApi } from '@/hooks/useApi';
 import { formatDuration, formatNumber } from '@/utils/redesign/format';
+import InfoTip from '@/components/redesign/InfoTip';
 import IntelligenceKpi from './IntelligenceKpi';
 import IntelligenceService from './IntelligenceService';
 import { ISSUE_GROUPS, groupIssuesByKind } from './intelligenceModel';
@@ -50,6 +51,10 @@ function useInstanceSummary(kind, { from, to, vehicle }) {
  * many trucks are actually sending data, what to keep an eye on, and how
  * much speeding and off-route driving the period had. A tile opens the tab
  * that explains it.
+ *
+ * Once a driving task is selected the same five numbers collapse into one
+ * quiet line, so the task, its period and its evidence are the first thing on
+ * the screen (screen review S14).
  */
 export default function IntelligenceOverview({
   summary,
@@ -59,6 +64,8 @@ export default function IntelligenceOverview({
   to,
   vehicle = '',
   onOpenTab,
+  compact = false,
+  breadcrumb = [],
 }) {
   const overspeed = useInstanceSummary('overspeed', { from, to, vehicle });
   const detours = useInstanceSummary('detour', { from, to, vehicle });
@@ -91,8 +98,7 @@ export default function IntelligenceOverview({
     reportingContext = silentCount
       ? `${silent.countLabel} ${silent.range ?? 'silent'}`
       : 'Every truck sent data in the last day';
-    if (disconnected > 0)
-      reportingContext += ` · ${disconnected} on a disconnected account`;
+    if (disconnected > 0) reportingContext += ` · ${disconnected} on a disconnected account`;
   } else if (issuesKnown) {
     reportingContext = 'Fleet size not received';
   }
@@ -104,79 +110,143 @@ export default function IntelligenceOverview({
   // lower bound, so the reader is told.
   const detourCut = truncatedNoteFor(detours.truncated, ['detour']);
 
+  const tiles = [
+    {
+      key: 'needs',
+      label: 'Needs you',
+      value: issuesKnown ? formatNumber(act.length) : null,
+      tone: issuesKnown ? (act.length ? 'act' : 'good') : 'info',
+      context: issuesKnown
+        ? act.length
+          ? reasonLine(act)
+          : 'Nothing needs you right now'
+        : pending,
+      onOpen: () => onOpenTab?.('issues'),
+      openLabel: `Needs you: ${act.length} open issues. Open the issues`,
+    },
+    {
+      key: 'reporting',
+      label: 'Trucks reporting',
+      value: reportingValue,
+      suffix: reportingSuffix,
+      tone: reportingTone,
+      context: reportingContext,
+      why: {
+        text: 'A truck counts as silent when no reading has arrived for over a day while its telematics account is healthy, so the unit or its SIM has gone quiet.',
+      },
+      onOpen: () => onOpenTab?.('issues'),
+      openLabel: 'Trucks reporting. Open the issues',
+    },
+    {
+      key: 'watch',
+      label: 'To watch',
+      value: issuesKnown ? formatNumber(watch.length) : null,
+      tone: issuesKnown && watch.length ? 'watch' : 'info',
+      context: issuesKnown ? (watch.length ? groupLine(watch) : 'Nothing to watch') : pending,
+      onOpen: () => onOpenTab?.('issues'),
+      openLabel: `To watch: ${watch.length} open issues. Open the issues`,
+    },
+    {
+      key: 'overspeed',
+      label: 'Overspeed',
+      value: overspeed.state === 'ok' ? formatNumber(overspeedSummary.count) : null,
+      suffix: overspeed.state === 'ok' ? 'stretches' : null,
+      tone: overspeed.state === 'ok' && overspeedSummary.count ? 'watch' : 'info',
+      context:
+        overspeed.state === 'ok'
+          ? overspeedSummary.totalMin != null
+            ? `${formatDuration(overspeedSummary.totalMin)} over the limit`
+            : 'Time over the limit not measured'
+          : overspeed.state === 'loading'
+            ? 'Loading…'
+            : 'Not available for this period',
+      why: overspeedSummary?.why ?? null,
+      onOpen: () => onOpenTab?.('overspeed'),
+      openLabel: 'Overspeed. Open the overspeed list',
+    },
+    {
+      key: 'detours',
+      label: 'Detours',
+      value: detours.state === 'ok' ? formatNumber(detourSummary.count) : null,
+      suffix: detours.state === 'ok' ? 'runs' : null,
+      tone: 'info',
+      context: detourSummary
+        ? [
+            detourKm ? `${detourKm} km off the usual road` : 'Runs that left the usual road',
+            detourCut,
+          ]
+            .filter(Boolean)
+            .join(' · ')
+        : overspeed.state === 'loading'
+          ? 'Loading…'
+          : 'Not available for this period',
+      why: detourSummary?.why ?? null,
+      onOpen: () => onOpenTab?.('detours'),
+      openLabel: 'Detours. Open the detours list',
+    },
+  ];
+
+  if (compact) {
+    return (
+      <section
+        aria-label="This period at a glance"
+        className="intel-kpi-strip intel-kpi-strip--compact"
+      >
+        {breadcrumb.length ? (
+          <p className="intel-task-breadcrumb" aria-label="Where you are">
+            {breadcrumb.map((part, index) => (
+              <span key={part}>
+                {index > 0 ? (
+                  <span className="intel-task-breadcrumb-sep" aria-hidden="true">
+                    {' › '}
+                  </span>
+                ) : null}
+                {part}
+              </span>
+            ))}
+          </p>
+        ) : null}
+        <ul className="intel-kpi-compact">
+          {tiles.map((tile) => (
+            <li key={tile.key}>
+              <button type="button" onClick={tile.onOpen} aria-label={tile.openLabel}>
+                <span>{tile.label}</span>
+                <b>
+                  {tile.value ?? '—'}
+                  {tile.suffix ? <small>{tile.suffix}</small> : null}
+                </b>
+              </button>
+              {tile.why?.text ? (
+                <span className="intel-kpi-why">
+                  <InfoTip
+                    text={tile.why.text}
+                    basis={tile.why.basis}
+                    label={`About ${tile.label}`}
+                  />
+                </span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
+
   return (
     <section aria-label="This period at a glance" className="intel-kpi-strip">
-      <IntelligenceKpi
-        label="Needs you"
-        value={issuesKnown ? formatNumber(act.length) : null}
-        tone={issuesKnown ? (act.length ? 'act' : 'good') : 'info'}
-        context={
-          issuesKnown ? (act.length ? reasonLine(act) : 'Nothing needs you right now') : pending
-        }
-        onOpen={() => onOpenTab?.('issues')}
-        openLabel={`Needs you: ${act.length} open issues. Open the issues`}
-      />
-      <IntelligenceKpi
-        label="Trucks reporting"
-        value={reportingValue}
-        suffix={reportingSuffix}
-        tone={reportingTone}
-        context={reportingContext}
-        why={{
-          text: 'A truck counts as silent when no reading has arrived for over a day while its telematics account is healthy, so the unit or its SIM has gone quiet.',
-        }}
-        onOpen={() => onOpenTab?.('issues')}
-        openLabel="Trucks reporting. Open the issues"
-      />
-      <IntelligenceKpi
-        label="To watch"
-        value={issuesKnown ? formatNumber(watch.length) : null}
-        tone={issuesKnown && watch.length ? 'watch' : 'info'}
-        context={
-          issuesKnown ? (watch.length ? groupLine(watch) : 'Nothing to watch') : pending
-        }
-        onOpen={() => onOpenTab?.('issues')}
-        openLabel={`To watch: ${watch.length} open issues. Open the issues`}
-      />
-      <IntelligenceKpi
-        label="Overspeed"
-        value={overspeed.state === 'ok' ? formatNumber(overspeedSummary.count) : null}
-        suffix={overspeed.state === 'ok' ? 'stretches' : null}
-        tone={overspeed.state === 'ok' && overspeedSummary.count ? 'watch' : 'info'}
-        context={
-          overspeed.state === 'ok'
-            ? overspeedSummary.totalMin != null
-              ? `${formatDuration(overspeedSummary.totalMin)} over the limit`
-              : 'Time over the limit not measured'
-            : overspeed.state === 'loading'
-              ? 'Loading…'
-              : 'Not available for this period'
-        }
-        why={overspeedSummary?.why ?? null}
-        onOpen={() => onOpenTab?.('overspeed')}
-        openLabel="Overspeed. Open the overspeed list"
-      />
-      <IntelligenceKpi
-        label="Detours"
-        value={detours.state === 'ok' ? formatNumber(detourSummary.count) : null}
-        suffix={detours.state === 'ok' ? 'runs' : null}
-        tone="info"
-        context={
-          detours.state === 'ok'
-            ? [
-                detourKm ? `${detourKm} km off the usual road` : 'Runs that left the usual road',
-                detourCut,
-              ]
-                .filter(Boolean)
-                .join(' · ')
-            : detours.state === 'loading'
-              ? 'Loading…'
-              : 'Not available for this period'
-        }
-        why={detourSummary?.why ?? null}
-        onOpen={() => onOpenTab?.('detours')}
-        openLabel="Detours. Open the detours list"
-      />
+      {tiles.map((tile) => (
+        <IntelligenceKpi
+          key={tile.key}
+          label={tile.label}
+          value={tile.value}
+          suffix={tile.suffix}
+          tone={tile.tone}
+          context={tile.context}
+          why={tile.why}
+          onOpen={tile.onOpen}
+          openLabel={tile.openLabel}
+        />
+      ))}
     </section>
   );
 }

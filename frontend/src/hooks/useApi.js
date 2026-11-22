@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import apiMemo from '../utils/apiMemo';
+import { describeError } from '@/errors/errorMessages';
 
 /**
  * One request per read, shared by everyone who asked for it at the same time.
@@ -66,6 +67,9 @@ export function dedupeRequest(key, factory, subscriberSignal) {
  * - abortable: in-flight request is cancelled on dep change/unmount
  * - keeps last good data while refetching (no flash-to-skeleton)
  * - error is the thrown payload (response.data) or a shaped fallback
+ * - errorInfo is the same failure in plain words: kind, status, request id and
+ *   whether a retry can help. Screens show errorInfo.message, never
+ *   error.message, so transport and server text never reaches the owner.
  * - `cacheKey` + `cacheMs` (opt-in): an answer read under that key less than
  *   `cacheMs` ago is shown without a request (utils/apiMemo: per user, org and
  *   branch, this tab only). `refetch` always asks the server and refills it.
@@ -78,11 +82,22 @@ export function useApi(
   deps = [],
   { enabled = true, scopeKey = null, cacheKey = null, cacheMs = 0, dedupeKey = null } = {},
 ) {
-  const cached = () =>
-    enabled && cacheKey && cacheMs > 0 ? apiMemo.get(cacheKey, cacheMs) : undefined;
-  const [data, setData] = useState(() => cached() ?? null);
+  /**
+   * The memo's answer for this read: `{ value, stale }`.
+   *
+   * An expired answer is handed out marked `stale` — the page shows it while
+   * the read goes out again (stale-while-revalidate) instead of blanking.
+   */
+  const readCache = () => {
+    if (!enabled || !cacheKey || cacheMs <= 0) return { value: undefined, stale: false };
+    const hit = apiMemo.get(cacheKey, cacheMs);
+    if (hit === undefined) return { value: undefined, stale: false };
+    if (hit && hit.stale === true && 'data' in hit) return { value: hit.data, stale: true };
+    return { value: hit, stale: false };
+  };
+  const [data, setData] = useState(() => readCache().value ?? null);
   const [dataScope, setDataScope] = useState(scopeKey);
-  const [loading, setLoading] = useState(() => enabled && cached() === undefined);
+  const [loading, setLoading] = useState(() => enabled && readCache().value === undefined);
   const [error, setError] = useState(null);
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
@@ -90,19 +105,30 @@ export function useApi(
   const run = useCallback(
     (force = false) => {
       if (!enabled) return undefined;
-      if (force !== true) {
-        const hit = cached();
-        if (hit !== undefined) {
-          setData(hit);
+      const hit = readCache();
+      if (force !== true && !hit.stale) {
+        if (hit.value !== undefined) {
+          setData(hit.value);
           setDataScope(scopeKey);
           setError(null);
           setLoading(false);
           return undefined;
         }
       }
+      // A stale answer stays on screen while the read goes out again: the
+      // page never blanks between two reads, and the numbers it shows are
+      // marked as old rather than passed off as current.
+      const showingStale = force !== true && hit.stale;
+      if (showingStale) {
+        setData(hit.value);
+        setDataScope(scopeKey);
+        setError(null);
+      }
       const controller = new AbortController();
-      setLoading(true);
-      setError(null);
+      if (!showingStale) {
+        setLoading(true);
+        setError(null);
+      }
       // The same read asked for at the same time is one request, not N.
       const request = dedupeKey
         ? dedupeRequest(
@@ -143,10 +169,13 @@ export function useApi(
   // A manual refetch always asks the server.
   const refetch = useCallback(() => run(true), [run]);
 
+  const errorInfo = useMemo(() => describeError(error), [error]);
+
   return {
     data: dataScope === scopeKey ? data : null,
     loading: !error && (loading || dataScope !== scopeKey),
     error,
+    errorInfo,
     refetch,
   };
 }

@@ -85,7 +85,7 @@ export default function IssuesTab({ from, to, vehicle = '', kind = '' }) {
         <h2>Issues</h2>
         <p>
           Problems with trucks, sensors or accounts, found by scanning every reading. Each truck
-          appears once per issue.
+          appears once per issue, with every dated finding inside its own row.
         </p>
       </header>
       {hasList ? (

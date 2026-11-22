@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { ArrowLeft, Download } from 'lucide-react';
-import { toast } from 'react-toastify';
 import PageShell from '../../components/Erp/PageShell';
+import ErrorCard from '../../components/redesign/ErrorCard';
+import Num from '../../components/ui/Num';
+import logger from '../../utils/logger';
 import ErpTable from '../../components/Erp/ErpTable';
 import DateRangeFilter from '../../components/Erp/DateRangeFilter';
 import useErpList from '../../hooks/useErpList';
@@ -45,9 +47,34 @@ const Account360Page = () => {
   const isValid = VALID_TYPES.includes(String(rawType || '').toLowerCase());
 
   const [tab, setTab] = useState(() => searchParams.get('tab') || 'statement');
-  const [account, setAccount] = useState(null);
-  const [balance, setBalance] = useState(null);
-  const [headLoading, setHeadLoading] = useState(true);
+
+  // The master record and the balance are two independent reads. Each keeps its
+  // own failure, and each result is stamped with the identity it belongs to, so
+  // the previous account can never be shown under a new one.
+  const identityKey = `${accountType}:${accountId || ''}`;
+  const [accountRead, setAccountRead] = useState({
+    key: null,
+    entity: null,
+    error: null,
+    loading: false,
+  });
+  const [balanceRead, setBalanceRead] = useState({
+    key: null,
+    value: null,
+    error: null,
+    loading: false,
+  });
+  const [accountToken, setAccountToken] = useState(0);
+  const [balanceToken, setBalanceToken] = useState(0);
+  const [exportError, setExportError] = useState(null);
+
+  const account = accountRead.key === identityKey ? accountRead.entity : null;
+  const accountError = accountRead.key === identityKey ? accountRead.error : null;
+  const accountLoading = accountRead.key !== identityKey || accountRead.loading;
+  const balance = balanceRead.key === identityKey ? balanceRead.value : null;
+  const balanceError = balanceRead.key === identityKey ? balanceRead.error : null;
+  const balanceLoading = balanceRead.key !== identityKey || balanceRead.loading;
+  const headLoading = accountLoading || balanceLoading;
 
   useEffect(() => {
     const t = searchParams.get('tab');
@@ -62,30 +89,62 @@ const Account360Page = () => {
     setSearchParams(next, { replace: true });
   };
 
-  // Header: master record + aggregate balance.
+  // Header: the master record on its own. A failure here is shown and can be
+  // retried — it never leaves a blank header with no explanation.
   useEffect(() => {
     if (!isValid) return undefined;
     let active = true;
-    setHeadLoading(true);
-    Promise.all([
-      getEntityById(accountType, accountId),
-      LedgerApi.getBalance({ accountType, accountId }).catch((e) => {
-        if (e.status !== 404) toast.error(e.message);
-        return null;
-      }),
-    ])
-      .then(([entity, bal]) => {
+    setAccountRead({ key: identityKey, entity: null, error: null, loading: true });
+    getEntityById(accountType, accountId, { throwOnError: true })
+      .then((entity) => {
         if (!active) return;
-        setAccount(entity);
-        setBalance(bal?.data || null);
+        setAccountRead({ key: identityKey, entity: entity || null, error: null, loading: false });
       })
-      .finally(() => {
-        if (active) setHeadLoading(false);
+      .catch((err) => {
+        if (!active) return;
+        logger.error('erp-account360', 'account lookup failed', {
+          status: err?.status ?? err?.response?.status ?? null,
+          message: err?.message ?? String(err),
+          accountType,
+          accountId,
+        });
+        setAccountRead({ key: identityKey, entity: null, error: err, loading: false });
       });
     return () => {
       active = false;
     };
-  }, [accountType, accountId, isValid]);
+  }, [accountType, accountId, isValid, identityKey, accountToken]);
+
+  // Header: the aggregate balance on its own. It can fail without taking the
+  // master record down with it.
+  useEffect(() => {
+    if (!isValid) return undefined;
+    let active = true;
+    setBalanceRead({ key: identityKey, value: null, error: null, loading: true });
+    LedgerApi.getBalance({ accountType, accountId })
+      .then((res) => {
+        if (!active) return;
+        setBalanceRead({
+          key: identityKey,
+          value: res?.data || null,
+          error: null,
+          loading: false,
+        });
+      })
+      .catch((err) => {
+        if (!active) return;
+        logger.error('erp-account360', 'balance request failed', {
+          status: err?.status ?? err?.response?.status ?? null,
+          message: err?.message ?? String(err),
+          accountType,
+          accountId,
+        });
+        setBalanceRead({ key: identityKey, value: null, error: err, loading: false });
+      });
+    return () => {
+      active = false;
+    };
+  }, [accountType, accountId, isValid, identityKey, balanceToken]);
 
   /* ── Statement tab ─────────────────────────────────────────────────────── */
   const statementFetcher = useCallback(
@@ -142,6 +201,7 @@ const Account360Page = () => {
   const openTotal = useMemo(() => openItemsTotal(openItems.rows), [openItems.rows]);
 
   const exportStatement = async () => {
+    setExportError(null);
     try {
       const blob = await LedgerApi.exportStatementCsv({
         accountType,
@@ -156,7 +216,13 @@ const Account360Page = () => {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      toast.error(err.message);
+      logger.error('erp-account360', 'statement export failed', {
+        status: err?.status ?? err?.response?.status ?? null,
+        message: err?.message ?? String(err),
+        accountType,
+        accountId,
+      });
+      setExportError(err);
     }
   };
 
@@ -173,7 +239,13 @@ const Account360Page = () => {
     );
   }
 
-  const statementTotals = statement.raw || {};
+  const statementTotals = statement.raw || null;
+  // A total the server did not send is unknown, not zero rupees.
+  const opening = statementTotals?.openingBalance ?? null;
+  const periodDebit = statementTotals?.totals?.debit ?? null;
+  const periodCredit = statementTotals?.totals?.credit ?? null;
+  const closing = statementTotals?.closingBalance ?? null;
+  const openUnknown = Boolean(openItems.error);
 
   return (
     <PageShell
@@ -195,6 +267,37 @@ const Account360Page = () => {
         </>
       }
     >
+      {/* ── Header failures: one card each, one retry each ────────────── */}
+      {exportError ? (
+        <div style={{ marginBottom: 16 }}>
+          <ErrorCard
+            error={exportError}
+            onRetry={exportStatement}
+            title="We couldn't download the statement."
+          />
+        </div>
+      ) : null}
+
+      {accountError ? (
+        <div style={{ marginBottom: 16 }}>
+          <ErrorCard
+            error={accountError}
+            onRetry={() => setAccountToken((t) => t + 1)}
+            title="We couldn't load this account."
+          />
+        </div>
+      ) : null}
+
+      {balanceError ? (
+        <div style={{ marginBottom: 16 }}>
+          <ErrorCard
+            error={balanceError}
+            onRetry={() => setBalanceToken((t) => t + 1)}
+            title="We couldn't load the balance for this account."
+          />
+        </div>
+      ) : null}
+
       {/* Header card — balance as Dr/Cr, credit exposure. */}
       <AccountHeaderCard
         headLoading={headLoading}
@@ -205,6 +308,7 @@ const Account360Page = () => {
         utilisation={utilisation}
         overLimit={overLimit}
         overBy={overBy}
+        balanceNote={balanceError ? 'Balance not loaded' : null}
       />
 
       <div className="erp-tabs" style={{ marginBottom: 16 }}>
@@ -237,6 +341,16 @@ const Account360Page = () => {
             />
           </div>
 
+          {statement.error ? (
+            <div style={{ marginBottom: 14 }}>
+              <ErrorCard
+                error={statement.error}
+                onRetry={statement.refresh}
+                title="We couldn't load the statement."
+              />
+            </div>
+          ) : null}
+
           <div
             className="erp-stat-grid"
             style={{
@@ -247,25 +361,41 @@ const Account360Page = () => {
             <div className="erp-stat">
               <div className="erp-stat-label">Opening</div>
               <div className="erp-stat-value" style={{ fontSize: 18 }}>
-                {drCr(statementTotals.openingBalance || 0).text}
+                {opening != null ? (
+                  drCr(opening).text
+                ) : (
+                  <Num value={null} reason="total unavailable" />
+                )}
               </div>
             </div>
             <div className="erp-stat">
               <div className="erp-stat-label">Period debit</div>
               <div className="erp-stat-value" style={{ fontSize: 18 }}>
-                {inr(statementTotals.totals?.debit || 0)}
+                {periodDebit != null ? (
+                  inr(periodDebit)
+                ) : (
+                  <Num value={null} reason="total unavailable" />
+                )}
               </div>
             </div>
             <div className="erp-stat">
               <div className="erp-stat-label">Period credit</div>
               <div className="erp-stat-value" style={{ fontSize: 18 }}>
-                {inr(statementTotals.totals?.credit || 0)}
+                {periodCredit != null ? (
+                  inr(periodCredit)
+                ) : (
+                  <Num value={null} reason="total unavailable" />
+                )}
               </div>
             </div>
             <div className="erp-stat">
               <div className="erp-stat-label">Closing</div>
               <div className="erp-stat-value" style={{ fontSize: 18 }}>
-                {drCr(statementTotals.closingBalance || 0).text}
+                {closing != null ? (
+                  drCr(closing).text
+                ) : (
+                  <Num value={null} reason="total unavailable" />
+                )}
               </div>
             </div>
           </div>
@@ -289,6 +419,16 @@ const Account360Page = () => {
             </p>
           ) : (
             <>
+              {openItems.error ? (
+                <div style={{ marginBottom: 14 }}>
+                  <ErrorCard
+                    error={openItems.error}
+                    onRetry={openItems.refresh}
+                    title="We couldn't load the open items."
+                  />
+                </div>
+              ) : null}
+
               <div
                 style={{
                   display: 'flex',
@@ -300,11 +440,14 @@ const Account360Page = () => {
                 }}
               >
                 <span className="erp-muted">
-                  {num(openItems.rows.length)} open{' '}
+                  {openUnknown ? '—' : num(openItems.rows.length)} open{' '}
                   {accountType === 'SUPPLIER' ? 'invoices' : 'bills'}
                 </span>
                 <span style={{ fontSize: 15 }}>
-                  Total <strong className="erp-numeric">{inr(openTotal)}</strong>
+                  Total{' '}
+                  <strong className="erp-numeric">
+                    {openUnknown ? <Num value={null} reason="total unavailable" /> : inr(openTotal)}
+                  </strong>
                 </span>
               </div>
 

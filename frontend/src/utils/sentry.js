@@ -27,7 +27,7 @@ const BUFFER_CAP = 20;
 // flooding on a render loop; best-effort and never throws.
 // Same mount the backend uses for extension telemetry (app.js: /api/extension/telemetry),
 // under the API base the rest of the app already targets (VITE_API_BASE_URL). The
-// base carries no /api segment — every axios call adds it ('api/...') — so the
+// base carries no /api segment — every axios call adds it ('/api/...') — so the
 // endpoint must too; without it every report 404s and errors never reach LEMU.
 export function lemuEndpoint(base) {
   return `${(base || '').replace(/\/+$/, '')}/api/extension/telemetry/ingest`;

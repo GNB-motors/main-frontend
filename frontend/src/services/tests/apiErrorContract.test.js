@@ -72,7 +72,7 @@ describe('service errors arrive as ApiError', () => {
     blob.text = () => Promise.resolve(JSON.stringify(body));
     apiClient.get.mockRejectedValueOnce(httpError(400, blob));
 
-    const err = await ReportsService.exportReportCsv('api/reports/x/export').catch((e) => e);
+    const err = await ReportsService.exportReportCsv('/api/reports/x/export').catch((e) => e);
 
     expect(err).toBeInstanceOf(ApiError);
     expect(err.status).toBe(400);

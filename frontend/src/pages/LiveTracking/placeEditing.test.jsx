@@ -29,6 +29,9 @@ describe('review decisions', () => {
     expect(picker.querySelector('svg')).not.toBeNull();
     fireEvent.click(picker);
     const plantOption = await screen.findByRole('option', { name: 'Plant' });
+    // The type picker only commits the option that is highlighted, and a pointer
+    // move is what highlights it in a test.
+    fireEvent.mouseMove(plantOption);
     fireEvent.pointerDown(plantOption, { pointerType: 'mouse' });
     fireEvent.click(plantOption);
     expect(picker).toHaveTextContent('Plant');

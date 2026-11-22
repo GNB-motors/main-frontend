@@ -15,6 +15,7 @@ import IdleSpotDetail from '../PlaceHub/drawer/IdleSpotDetail.jsx';
 import useHtmlDark from '../PlaceHub/page/useHtmlDark.js';
 import InstancesTab from './InstancesTab';
 import IdlingPeriodRead from './IdlingPeriodRead';
+import { useVisibleInterval } from '@/hooks/useVisibleInterval';
 import './drivingReference.css';
 import RiskMapCanvas from './RiskMapCanvas';
 import '../PlaceHub/PlaceHub.css';
@@ -105,19 +106,17 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
     };
   }, [loadData]);
 
-  // Periodic refresh for live idling every 30 seconds
-  useEffect(() => {
-    const timer = setInterval(() => {
-      if (subView === 'map' && view === 'live') {
-        IdlingConsoleService.getLive()
-          .then((data) => {
-            if (Array.isArray(data)) setLive(data);
-          })
-          .catch(() => {});
-      }
-    }, 30000);
-    return () => clearInterval(timer);
-  }, [subView, view]);
+  // Periodic refresh for live idling every 30 seconds — but only while the
+  // tab is looked at; a hidden tab reads again the moment it is looked at.
+  useVisibleInterval(() => {
+    if (subView === 'map' && view === 'live') {
+      IdlingConsoleService.getLive()
+        .then((data) => {
+          if (Array.isArray(data)) setLive(data);
+        })
+        .catch(() => {});
+    }
+  }, 30000);
 
   // Vehicle filter support
   const filteredLive = useMemo(() => {

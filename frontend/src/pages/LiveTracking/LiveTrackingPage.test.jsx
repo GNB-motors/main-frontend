@@ -820,6 +820,9 @@ it('identifies a journey stop then refreshes the same vehicle and range with its
   });
   fireEvent.click(screen.getByRole('combobox', { name: 'Place type' }));
   const option = await screen.findByRole('option', { name: 'Parking' });
+  // The type picker only commits the option that is highlighted, and a pointer
+  // move is what highlights it in a test.
+  fireEvent.mouseMove(option);
   fireEvent.pointerDown(option, { pointerType: 'mouse' });
   fireEvent.click(option);
   fireEvent.click(screen.getByRole('button', { name: 'Save place' }));
@@ -913,6 +916,9 @@ it('identifies a moving GPS location then refreshes the same vehicle and range w
   });
   fireEvent.click(screen.getByRole('combobox', { name: 'Place type' }));
   const option = await screen.findByRole('option', { name: 'Parking' });
+  // The type picker only commits the option that is highlighted, and a pointer
+  // move is what highlights it in a test.
+  fireEvent.mouseMove(option);
   fireEvent.pointerDown(option, { pointerType: 'mouse' });
   fireEvent.click(option);
   fireEvent.click(screen.getByRole('button', { name: 'Save place' }));

@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { RotateCw, Search, Plus, BadgeCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useApi from '../../hooks/useApi';
+import { describeError } from '../../errors/errorMessages';
 import FleetDataService from '../../services/FleetDataService';
 import ExportButton from '../../components/ui/ExportButton';
 import PageShell from '../../components/ui/PageShell';
@@ -89,13 +90,16 @@ export default function DefLedgerPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
-  const { data, loading, refetch } = useApi(
+  const { data, loading, error, refetch } = useApi(
     (signal) => FleetDataService.getDefLedger(signal, manufacturer ? { manufacturer } : {}),
     [manufacturer],
     { scopeKey: manufacturer },
   );
   // Only the first load shows placeholders; a refresh keeps the numbers on screen.
   const firstLoad = loading && !data;
+  // A failed read is not an empty ledger. Say so instead of showing zeros.
+  const loadFailed = Boolean(error);
+  const loadError = describeError(error);
 
   const claimsTracked = Boolean(data?.claimsTracked);
   const totals = data?.totals || {};
@@ -209,14 +213,33 @@ export default function DefLedgerPage() {
           </div>
         }
       >
+        {loadFailed ? (
+          <div
+            className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-100"
+            role="alert"
+          >
+            <span>
+              {loadError?.title
+                ? `${loadError.title} ${loadError.message}`
+                : 'The DEF ledger could not be loaded.'}
+            </span>{' '}
+            <button type="button" onClick={refetch} className="underline underline-offset-2">
+              Retry
+            </button>
+          </div>
+        ) : null}
         {/* ── KPI Tiles ──────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiTile
             label="Registered vehicles"
             loading={firstLoad}
-            value={formatNum(totals.vehicles)}
+            value={loadFailed ? '—' : formatNum(totals.vehicles)}
             valueClass="text-slate-900 dark:text-white"
-            note={`${formatNum(totals.withData)} with telemetry${staleCount > 0 ? ` · ${staleCount} stale` : ''}`}
+            note={
+              loadFailed
+                ? 'Not loaded · retry above'
+                : `${formatNum(totals.withData)} with telemetry${staleCount > 0 ? ` · ${staleCount} stale` : ''}`
+            }
           />
           <KpiTile
             label="AdBlue logged (manual)"
@@ -228,32 +251,40 @@ export default function DefLedgerPage() {
                 : 'text-slate-400 dark:text-slate-500'
             }
             note={
-              claimsTracked && price
-                ? `~${formatINR(Math.round((totals.claimedAdblueL || 0) * price))} at ₹${price}/L · sensors saw ${formatLitres(totals.sensorFillL)}`
-                : `No AdBlue bills logged · sensors saw ${formatLitres(totals.sensorFillL)} go in`
+              loadFailed
+                ? 'Not loaded · retry above'
+                : claimsTracked && price
+                  ? `~${formatINR(Math.round((totals.claimedAdblueL || 0) * price))} at ₹${price}/L · sensors saw ${formatLitres(totals.sensorFillL)}`
+                  : `No AdBlue bills logged · sensors saw ${formatLitres(totals.sensorFillL)} go in`
             }
           />
           <KpiTile
             label="DEF burned (fresh telemetry)"
             loading={firstLoad}
-            value={formatLitres(freshDefBurnedL)}
+            value={loadFailed ? '—' : formatLitres(freshDefBurnedL)}
             valueClass="text-emerald-600 dark:text-emerald-400"
             note={
-              freshVehicles.length === 0
-                ? staleCount > 0
-                  ? `No fresh telemetry · ${staleCount} stale truck${staleCount === 1 ? '' : 's'} excluded`
-                  : 'Fleet dosing —'
-                : `Fleet dosing ${freshDosingPct != null ? formatPct(freshDosingPct, { decimals: 1 }) : '—'} of diesel${data?.defBand ? ` (normal ${data.defBand.min}–${data.defBand.max}%)` : ''}${staleCount > 0 ? ` · ${staleCount} stale excluded` : ''}`
+              loadFailed
+                ? 'Not loaded · retry above'
+                : freshVehicles.length === 0
+                  ? staleCount > 0
+                    ? `No fresh telemetry · ${staleCount} stale truck${staleCount === 1 ? '' : 's'} excluded`
+                    : 'Fleet dosing —'
+                  : `Fleet dosing ${freshDosingPct != null ? formatPct(freshDosingPct, { decimals: 1 }) : '—'} of diesel${data?.defBand ? ` (normal ${data.defBand.min}–${data.defBand.max}%)` : ''}${staleCount > 0 ? ` · ${staleCount} stale excluded` : ''}`
             }
             noteClass="text-emerald-600 dark:text-emerald-400 font-semibold"
           />
           <KpiTile
             label="Needs review"
             loading={firstLoad}
-            value={formatNum(totals.flagged ?? 0)}
+            value={loadFailed ? '—' : formatNum(totals.flagged ?? 0)}
             unit="vehicles"
             valueClass="text-slate-900 dark:text-white"
-            note="Drains beyond engine burn or impossible fills"
+            note={
+              loadFailed
+                ? 'Not loaded · retry above'
+                : 'Drains beyond engine burn or impossible fills'
+            }
             noteDot
           />
         </div>
@@ -402,9 +433,11 @@ export default function DefLedgerPage() {
                 ) : paginatedVehicles.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="py-12 text-center text-slate-400">
-                      {vehicles.length === 0
-                        ? 'No vehicles are registered to your organization yet.'
-                        : 'No vehicles found matching current filter.'}
+                      {loadFailed
+                        ? 'The vehicle list could not be loaded. Try again above.'
+                        : vehicles.length === 0
+                          ? 'No vehicles are registered to your organization yet.'
+                          : 'No vehicles found matching current filter.'}
                     </td>
                   </tr>
                 ) : (

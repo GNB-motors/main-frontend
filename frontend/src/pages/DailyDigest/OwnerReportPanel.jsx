@@ -368,7 +368,9 @@ function TrucksCard({ groups, live, reconnect, accountsSummary, day }) {
               <p className="db-group-title">
                 <i className="db-dot db-dot--watch" />
                 <strong>{dark.length} dark now</strong>
-                <span>{darkRange ? `silent ${darkRange}` : 'no recent signal'}</span>
+                <span>
+                  {darkRange ? `silent ${darkRange}` : 'no recent signal'} · live positions
+                </span>
               </p>
               <ul className="db-chips db-chips--tight">
                 {darkShown.map((truck) => (
@@ -428,7 +430,7 @@ function TrucksCard({ groups, live, reconnect, accountsSummary, day }) {
               <p className="db-group-title">
                 <i className="db-dot db-dot--quiet" />
                 <strong>{neverReported.length} with no data</strong>
-                <span>no position on record</span>
+                <span>no position on record · daily report</span>
               </p>
               <ul className="db-chips db-chips--tight">
                 {neverReported.map((truck) => (

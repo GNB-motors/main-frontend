@@ -47,7 +47,9 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
   // Pagination
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
+  // null when the server did not say how many rows the query has — unknown,
+  // never a confident 0.
+  const [total, setTotal] = useState(null);
   // New dates are a new result set: back to page 1 in the same render.
   const [shownDates, setShownDates] = useState(`${fromDate}|${toDate}`);
   if (shownDates !== `${fromDate}|${toDate}`) {
@@ -60,6 +62,10 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
   const [status, setStatus] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  // Each request fails on its own: the interval list and the audit totals that
+  // label the tabs are different calls, so each keeps its own message + retry.
+  const [comparisonError, setComparisonError] = useState(null);
+  const [statusError, setStatusError] = useState(null);
 
   // Slideover & Modal States
   const [activeDrawerTask, setActiveDrawerTask] = useState(null);
@@ -110,15 +116,20 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
     setPage(1);
   };
 
-  // Fetch Summary Status
+  // Fetch Summary Status — the audit-wide totals behind the tab counts.
   const fetchStatus = useCallback(async () => {
     try {
       const res = await ReportsService.getExtensionStatus(manufacturer ? { manufacturer } : {});
       if (res && res.success !== false) {
         setStatus(res);
+        setStatusError(null);
+      } else {
+        setStatusError(new Error('Audit totals unavailable'));
       }
-    } catch {
-      // Non-blocking
+    } catch (err) {
+      logger.warn('FuelComparisonPage', 'Error fetching extension status', err);
+      setStatus(null);
+      setStatusError(err);
     }
   }, [manufacturer]);
 
@@ -148,7 +159,7 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
       }
 
       let fetchedTasks = [];
-      let totalCount = 0;
+      let totalCount = null;
       let calculatedPages = 1;
 
       if (activeTab === 'review') {
@@ -166,7 +177,7 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
         const res = await ReportsService.getExtensionComparisons(params);
         if (res) {
           fetchedTasks = res.records || res.tasks || [];
-          totalCount = res.total ?? 0;
+          totalCount = res.total ?? null;
           calculatedPages = res.totalPages ?? 1;
         }
       }
@@ -194,10 +205,13 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
       setRecords(filtered);
       setTotal(totalCount);
       setTotalPages(calculatedPages);
+      setComparisonError(null);
     } catch (err) {
       logger.warn('FuelComparisonPage', 'Error fetching comparisons', err);
       toast.error('Failed to load fuel comparisons');
       setRecords([]);
+      setTotal(null);
+      setComparisonError(err);
     } finally {
       setIsLoading(false);
     }
@@ -279,7 +293,15 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
     }
   };
 
-  const { kpiMetrics, tabCounts } = useComparisonMetrics(records, status, total);
+  const { kpiMetrics, tabCounts } = useComparisonMetrics(records, status, {
+    loaded: !comparisonError,
+  });
+
+  // The tab counts and the table answer different questions — say which is which
+  // instead of letting the owner read two numbers as the same thing.
+  const countsScopeNote = statusError
+    ? 'Audit totals could not be loaded, so the tab counts are hidden.'
+    : 'Tab counts cover the whole fuel audit · the table below follows your filters and dates.';
 
   const { currentDrawerIndex, handlePrevDrawer, handleNextDrawer } = useDrawerNavigation(
     records,
@@ -293,7 +315,7 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
         embedded={embedded}
         title="Fuel Comparison"
         subtitle="CAN-bus telematics audit reconciling driver fuel bills against engine consumption"
-        count={tabCounts.all ?? total}
+        count={total}
         actions={
           <ComparisonHeaderActions
             handleSyncPipeline={handleSyncPipeline}
@@ -310,6 +332,7 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
           kpiMetrics={kpiMetrics}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
+          loadError={comparisonError}
         />
 
         {/* Unified Toolbar: Status Tabs + Inline Filters */}
@@ -331,6 +354,9 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
           setSearchQuery={setSearchQuery}
           activeFilterCount={activeFilterCount}
           handleResetFilters={handleResetFilters}
+          scopeNote={countsScopeNote}
+          statusError={statusError}
+          onRetryStatus={fetchStatus}
         />
 
         {/* Compact Table (NO horizontal scroll, NO checkboxes) */}
@@ -343,6 +369,9 @@ const FuelComparisonPage = ({ embedded = false, range: hubRange = null }) => {
           limit={LIMIT}
           isLoading={isLoading}
           activeFilters={activeFilterCount}
+          error={comparisonError}
+          onRetry={fetchComparisons}
+          auditTotal={tabCounts.all}
           onPageChange={setPage}
           onSelectRow={handleOpenDrawer}
           onReview={handleOpenReview}

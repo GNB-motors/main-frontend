@@ -34,29 +34,29 @@ async function send(method, path, body) {
 export const TollsService = {
   // ─── Plaza master ────────────────────────────────────────────────────────────
   /** Every plaza: its gate, whether OSM and this fleet agree on it, its review state. */
-  listPlazas: (params = {}, signal) => get('api/tolls/plazas', params, signal),
+  listPlazas: (params = {}, signal) => get('/api/tolls/plazas', params, signal),
 
-  getPlaza: (code, signal) => get(`api/tolls/plazas/${encodeURIComponent(code)}`, {}, signal),
+  getPlaza: (code, signal) => get(`/api/tolls/plazas/${encodeURIComponent(code)}`, {}, signal),
 
   /** Rate card, return rule, or a review decision. Anything a person owns. */
-  updatePlaza: (code, body) => send('put', `api/tolls/plazas/${encodeURIComponent(code)}`, body),
+  updatePlaza: (code, body) => send('put', `/api/tolls/plazas/${encodeURIComponent(code)}`, body),
 
   // ─── Crossings and the money ─────────────────────────────────────────────────
   /** Crossing rows, each labelled as an estimate or a driver bill. */
-  getCrossings: (params = {}, signal) => get('api/tolls/crossings', params, signal),
+  getCrossings: (params = {}, signal) => get('/api/tolls/crossings', params, signal),
 
   /**
    * A toll quote between two points: { fromLat, fromLng, toLat, toLng }.
    * The road engine can be down — that is an error the caller must report as
    * "unavailable", never as ₹0.
    */
-  quote: (params = {}, signal) => get('api/route-tolls/quote', params, signal),
+  quote: (params = {}, signal) => get('/api/route-tolls/quote', params, signal),
 
   /** Per-vehicle toll money, known and unknown apart. */
-  getReport: (params = {}, signal) => get('api/tolls/report', params, signal),
+  getReport: (params = {}, signal) => get('/api/tolls/report', params, signal),
 
   /** Per-driver toll spend and the extra against the lane's normal. */
-  getRanking: (params = {}, signal) => get('api/tolls/ranking', params, signal),
+  getRanking: (params = {}, signal) => get('/api/tolls/ranking', params, signal),
 };
 
 export default TollsService;

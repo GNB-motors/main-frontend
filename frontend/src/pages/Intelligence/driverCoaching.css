@@ -1,0 +1,42 @@
+/* The link from an observation to the coaching conversation. One place, so the
+   owner meets the same words on every screen that offers it. */
+.intel-coaching {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.intel-coaching-link {
+  color: var(--rd-brand-2);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.intel-coaching-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.intel-coaching-link:focus-visible {
+  outline: 2px solid var(--rd-brand-2);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.intel-coaching-period {
+  color: var(--rd-ink-3);
+  font-size: 12px;
+}
+.intel-coaching-note {
+  color: var(--rd-ink-3);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* The row a tab keeps its one action in. */
+.intel-tab-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px 0 12px;
+}

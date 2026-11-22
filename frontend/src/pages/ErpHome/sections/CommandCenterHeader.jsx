@@ -16,7 +16,13 @@ function CommandCenterHeader({ mins, handleRefresh, spinKey, isDark, toggleTheme
       <div className="tools">
         <span className="updated">
           <i />
-          <span>{mins <= 0 ? 'Updated just now' : `Updated ${mins}m ago`}</span>
+          <span>
+            {mins == null
+              ? 'Not refreshed yet'
+              : mins <= 0
+                ? 'Updated just now'
+                : `Updated ${mins}m ago`}
+          </span>
         </span>
         <button type="button" className="btn" onClick={handleRefresh}>
           <CcIcon key={spinKey} n="refresh" className={spinKey ? 'spin' : ''} />

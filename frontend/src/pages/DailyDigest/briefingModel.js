@@ -85,6 +85,38 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
   const dark = live ? live.offline : (fleet.dark ?? health.trucksDark ?? null);
   // Moving and dark are read as they are now, whatever day is picked.
   const notForDay = isToday || !day ? null : digestDay.notFor(day);
+  // "Dark" can mean two things: the trucks without a live signal right now, and
+  // the trucks the daily report counted as dark. When the report's split adds
+  // up to the headline, it is printed beside it; when it does not, both
+  // definitions are named so the two numbers are never read as one.
+  const healthDark = health.trucksDark ?? null;
+  const healthNoData = health.trucksNoData ?? null;
+  const splitParts = [];
+  if (healthDark != null) splitParts.push(`${healthDark} no signal`);
+  if (healthNoData != null) splitParts.push(`${healthNoData} never reported`);
+  const splitKnown = healthDark != null && healthNoData != null;
+  const splitMatches = splitKnown && dark != null && Number(dark) === healthDark + healthNoData;
+  const darkContext = (() => {
+    if (dark == null) return 'Live tracking not reported';
+    const fleetNote = `of ${count(trucks)} trucks`;
+    // The live numbers are read now, whatever day is picked: say which day
+    // they are not for, so they are never read as that day's count.
+    const dayNote = notForDay ? `live, ${notForDay}` : null;
+    const withDay = (text) => (dayNote ? `${text} · ${dayNote}` : text);
+    if (live && splitMatches) return `${splitParts.join(' + ')} · ${fleetNote} · live`;
+    if (!live && healthDark != null && Number(dark) === healthDark) {
+      const base =
+        healthNoData != null
+          ? `${healthDark} with no signal · ${healthNoData} more never reported`
+          : `${healthDark} with no signal`;
+      return withDay(base);
+    }
+    if (splitKnown) {
+      const head = live ? 'dark right now (live positions)' : 'dark in the daily report';
+      return withDay(`${head} · the report counted ${splitParts.join(' + ')}`);
+    }
+    return `${fleetNote}${live ? ' · live' : ` · ${snapshot.toLowerCase()}`}${dayNote ? ` · ${dayNote}` : ''}`;
+  })();
 
   return [
     {
@@ -159,16 +191,7 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
       label: notForDay ? 'Dark now' : 'Trucks dark',
       value: dark,
       tone: Number(dark) > 0 ? 'watch' : null,
-      context:
-        dark == null
-          ? 'Live tracking not reported'
-          : `of ${count(trucks)} trucks${
-              live
-                ? ' · live'
-                : notForDay
-                  ? ` · live, ${notForDay}`
-                  : ` · ${snapshot.toLowerCase()}`
-            }`,
+      context: darkContext,
       to: '/live-tracking?status=offline',
     },
   ];

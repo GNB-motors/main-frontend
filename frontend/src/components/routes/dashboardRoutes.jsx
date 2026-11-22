@@ -4,6 +4,7 @@ import RedirectWithState from './RedirectWithState';
 import PlacesRedirect from './PlacesRedirect';
 import TripsRedirect from './TripsRedirect';
 import LegacyReceiptRedirect from './LegacyReceiptRedirect';
+import RouteFallback from './RouteFallback';
 import FeatureGate from './FeatureGate';
 import ReceiptApprovalDetailPage from './lazyReceiptApprovalDetailPage';
 import erpRoutes from './erpRoutes';
@@ -118,7 +119,7 @@ const dashboardRoutes = (
     <Route
       path="/approvals"
       element={
-        <Suspense fallback={null}>
+        <Suspense fallback={<RouteFallback label="Loading approvals…" />}>
           <FleetApprovalsPage />
         </Suspense>
       }
@@ -126,7 +127,7 @@ const dashboardRoutes = (
     <Route
       path="/approvals/whatsapp/:id"
       element={
-        <Suspense fallback={null}>
+        <Suspense fallback={<RouteFallback label="Loading the approval…" />}>
           <ReceiptApprovalDetailPage />
         </Suspense>
       }
