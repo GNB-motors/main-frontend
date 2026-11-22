@@ -72,7 +72,7 @@ describe('useFullTankAvailable', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.available).toBe(true);
     expect(apiClient.get).toHaveBeenCalledWith(
-      'api/reports/fuel-cycles/full-tank-tab',
+      '/api/reports/fuel-cycles/full-tank-tab',
       expect.objectContaining({ params: { days: 90 } }),
     );
   });

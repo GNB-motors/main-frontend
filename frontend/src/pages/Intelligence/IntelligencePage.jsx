@@ -48,7 +48,7 @@ const FLEET_ONLY_TABS = ['runs', 'places'];
 /** The performance tables; they cover the whole fleet and own their window. */
 const PERFORMANCE_TABS = ['perfVehicles', 'perfDrivers', 'leaderboards'];
 
-function TabContent({ active, from, to, vehicle, driver, kind, headerControl }) {
+function TabContent({ active, from, to, vehicle, driver, kind, headerControl, summary }) {
   if (active === 'issues') {
     return (
       <Suspense fallback={<IntelligenceSkeleton />}>
@@ -81,7 +81,7 @@ function TabContent({ active, from, to, vehicle, driver, kind, headerControl }) 
   if (active === 'runs') {
     return (
       <Suspense fallback={<IntelligenceSkeleton variant="metrics" count={3} />}>
-        <RunsTab from={from} to={to} />
+        <RunsTab from={from} to={to} summary={summary} />
       </Suspense>
     );
   }
@@ -218,10 +218,12 @@ export default function IntelligencePage() {
     setSearchParams(next);
   };
 
-  const { data: summary } = useApi(
-    (signal) => IntelligenceService.getSummary({ from, to, signal }),
-    [from, to],
-  );
+  const {
+    data: summary,
+    loading: summaryLoading,
+    error: summaryError,
+    refetch: summaryRefetch,
+  } = useApi((signal) => IntelligenceService.getSummary({ from, to, signal }), [from, to]);
 
   const { data: issues, loading: issuesLoading } = useApi(
     (signal) => IntelligenceService.getIssues({ from, to, signal }),
@@ -346,6 +348,12 @@ export default function IntelligencePage() {
           vehicle={vehicle}
           driver={driver}
           kind={kind}
+          summary={{
+            data: summary,
+            loading: summaryLoading,
+            error: summaryError,
+            refetch: summaryRefetch,
+          }}
           headerControl={
             ['vehicles', 'drivers'].includes(active) ? (
               <div

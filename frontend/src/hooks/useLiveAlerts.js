@@ -1,5 +1,5 @@
 import { useLiveData } from './useLiveData';
-import { OwnerAlertsService } from '../pages/OwnerAlerts/OwnerAlertsService';
+import { ownerAlertsFeed } from '../pages/OwnerAlerts/ownerAlertsStore';
 
 const keyOf = (row) => row?.id ?? row?._id ?? null;
 
@@ -21,15 +21,15 @@ function mergeAlerts(current, pushed) {
   return next;
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** The unacknowledged alerts of the last 24 h (the feed's page cap is 100). */
+/**
+ * The unacknowledged alerts of the last day (the feed's page cap is 100).
+ *
+ * The read is the shared one: the bell wants the same feed, so both get the
+ * same answer instead of asking the server twice.
+ */
 export async function loadOpenAlerts(signal, now = Date.now()) {
   try {
-    const data = await OwnerAlertsService.getAlerts(
-      { acknowledged: false, from: new Date(now - DAY_MS).toISOString(), limit: 100 },
-      signal,
-    );
+    const data = await ownerAlertsFeed.load({ now, signal });
     return Array.isArray(data?.records) ? data.records : [];
   } catch (error) {
     if (error?.code === 'ERR_CANCELED') throw error;

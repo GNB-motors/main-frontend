@@ -61,7 +61,8 @@ const MileageIntervalReport = () => {
     // Excel: the owner workbook (what to check, where each vehicle's litres
     // went, idling, missing bills, every cycle); CSV: the flat rows.
     await exportFilteredReportCsv({
-      fetchExport: (f) => ReportsService.exportReportCsv('api/reports/mileage-intervals/export', f),
+      fetchExport: (f) =>
+        ReportsService.exportReportCsv('/api/reports/mileage-intervals/export', f),
       filters: format === 'xlsx' ? { ...requestParams, format: 'xlsx' } : requestParams,
       filenamePrefix: format === 'xlsx' ? 'mileage_report' : 'mileage_interval_report',
       extension: format,

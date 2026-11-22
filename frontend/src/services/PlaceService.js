@@ -55,7 +55,7 @@ async function flush() {
   for (let i = 0; i < pending.length; i += 200) {
     const chunk = pending.slice(i, i + 200);
     try {
-      const response = await apiClient.post('api/places/resolve', { points: chunk });
+      const response = await apiClient.post('/api/places/resolve', { points: chunk });
       const places = response.data?.data?.places ?? response.data?.places ?? {};
       for (const p of chunk) {
         setCached(p.key, places[p.key] ?? null);
