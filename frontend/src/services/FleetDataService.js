@@ -50,6 +50,9 @@ export const FleetDataService = {
   /** FleetEdge directory vs fleet master join (the onboarding gap). */
   getFleetCoverage: (signal) => get('/api/fleet-coverage', {}, signal),
 
+  /** Trucks that are not sending, and why (one reason per truck). */
+  getFleetSignal: (signal) => get('/api/fleet-coverage/signal', {}, signal),
+
   /** Vehicle 360 aggregate. */
   getVehicleProfile: (registrationNumber, signal) =>
     get(`/api/vehicle-profile/${encodeURIComponent(registrationNumber)}`, {}, signal),

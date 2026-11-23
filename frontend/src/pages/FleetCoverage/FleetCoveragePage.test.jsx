@@ -5,7 +5,10 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import FleetCoveragePage from './FleetCoveragePage';
 
 vi.mock('../../services/FleetDataService', () => ({
-  default: { getFleetCoverage: vi.fn(() => new Promise(() => {})) },
+  default: {
+    getFleetCoverage: vi.fn(() => new Promise(() => {})),
+    getFleetSignal: vi.fn(() => new Promise(() => {})),
+  },
 }));
 
 const renderFrom = (entries) =>

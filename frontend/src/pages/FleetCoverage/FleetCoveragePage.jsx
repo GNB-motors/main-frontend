@@ -29,6 +29,7 @@ import CoverageTabs from './CoverageTabs.jsx';
 import EdgeOnlyPanel from './EdgeOnlyPanel.jsx';
 import MasterOnlyPanel from './MasterOnlyPanel.jsx';
 import IalertOnlyPanel from './IalertOnlyPanel.jsx';
+import NotSendingPanel from './NotSendingPanel.jsx';
 
 export default function FleetCoveragePage() {
   const navigate = useNavigate();
@@ -42,6 +43,7 @@ export default function FleetCoveragePage() {
     (signal) => FleetDataService.getFleetCoverage(signal),
     [],
   );
+  const { data: signalData } = useApi((signal) => FleetDataService.getFleetSignal(signal), []);
   const confirm = useConfirm();
   const [q, setQ] = useState('');
   const [selectedKeys, setSelectedKeys] = useState(() => new Set());
@@ -368,6 +370,8 @@ export default function FleetCoveragePage() {
                   onlyMasterRows={onlyMasterRows}
                 />
               )}
+
+              <NotSendingPanel signal={signalData} />
 
               <p className="text-dim text-xs">
                 {formatNum(linkedCount)} vehicle{linkedCount === 1 ? '' : 's'} linked and reporting
