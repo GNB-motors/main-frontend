@@ -93,6 +93,19 @@ const renderPanel = (day = '2026-11-04', digest = { goodDrivers: [], needsAttent
   );
 
 describe('OwnerReportPanel', () => {
+  it('keeps a zero cost unknown when calculations are incomplete', async () => {
+    fleetViewService.getMorningBrief.mockResolvedValue({
+      totalRupees: 0,
+      partial: true,
+      sections: [],
+      coverageNote: '2 items could not be calculated',
+    });
+    const { container } = renderPanel();
+    expect(await screen.findByText(/Not counted yet. Fuel calculations/)).toBeInTheDocument();
+    expect(container.querySelector('.db-leak-total strong')).toHaveTextContent('—');
+    expect(container.querySelector('.db-leak-total')).toHaveClass('db-leak-total--quiet');
+    expect(screen.queryByText('₹0')).not.toBeInTheDocument();
+  });
   it('explains the server overlap deduction without showing additive category percentages', async () => {
     fleetViewService.getMorningBrief.mockResolvedValue({
       totalRupees: 20675,

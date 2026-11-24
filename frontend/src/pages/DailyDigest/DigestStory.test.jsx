@@ -212,11 +212,11 @@ describe('DailyDigestPage', () => {
     expect(button.getAttribute('href')).toBe('/settings/fleetedge-accounts');
   });
 
-  it('says nothing leaked on a quiet day instead of printing a zero', async () => {
+  it('keeps fuel cost unknown when no morning-brief calculations were returned', async () => {
     getDigest.mockResolvedValue({ date: '2026-11-02', headline: '', story: [] });
     renderPage();
     expect(
-      await screen.findByText('No extra fuel costs were flagged for this day.'),
+      await screen.findByText('Not counted yet. Fuel calculations are not available for this day.'),
     ).toBeInTheDocument();
     expect(
       screen.getByText(/What happened, what it cost and what needs you\./),

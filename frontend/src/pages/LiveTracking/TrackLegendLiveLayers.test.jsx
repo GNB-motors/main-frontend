@@ -45,7 +45,7 @@ describe('the live layers of the legend', () => {
 
   it('leaves an unknown count out instead of saying zero', () => {
     renderLegend({ liveCounts: { idling: null } });
-    const row = screen.getByRole('button', { name: /Trucks idling now/ });
+    const row = screen.getByRole('button', { name: /Long idling now/ });
     expect(row).not.toHaveTextContent('0');
   });
 });

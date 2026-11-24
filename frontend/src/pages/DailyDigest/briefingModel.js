@@ -41,6 +41,15 @@ export function rupees(value) {
   return `₹${Math.round(Number(value)).toLocaleString('en-IN')}`;
 }
 
+/** A zero assembled from missing calculations is not a measured zero. */
+export function extraFuelTotal(brief) {
+  const total = brief?.totalRupees;
+  if (total == null || !Number.isFinite(Number(total))) return null;
+  const measured = brief.sections?.some((section) => section.rupees != null);
+  if (Number(total) === 0 && (brief.partial || !measured)) return null;
+  return Number(total);
+}
+
 export const count = (value) =>
   value == null || !Number.isFinite(Number(value))
     ? DASH
@@ -173,14 +182,14 @@ export function buildKpis({ byId, brief, briefState, isToday, liveCounts, builtA
     {
       key: 'lost',
       label: isToday ? 'Extra fuel cost today' : 'Extra fuel cost',
-      value: brief?.totalRupees ?? null,
+      value: extraFuelTotal(brief),
       money: true,
       tone: Number(brief?.totalRupees) > 0 ? 'act' : null,
       context:
         briefState === 'error'
           ? 'Morning brief did not load'
-          : brief?.totalRupees == null
-            ? 'Not estimated for this day'
+          : extraFuelTotal(brief) == null
+            ? 'Not counted yet'
             : brief?.partial
               ? 'Calculated loss · Incomplete'
               : 'Estimated extra diesel cost',

@@ -470,7 +470,7 @@ export default function TrackLegend({
             <LegendBlock
               title="Live layers"
               info={{
-                text: 'What the fleet is doing between the pins: places still to confirm, the routes it runs, and the trucks idling now.',
+                text: 'What the fleet is doing between the pins: places still to confirm, the routes it runs, and trucks idling longer than your idle limit. The Idling count above includes every stop with the engine on, so it can be higher.',
                 basis: null,
               }}
             >

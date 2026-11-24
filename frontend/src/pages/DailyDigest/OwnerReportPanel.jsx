@@ -25,6 +25,7 @@ import {
   attentionGroups,
   buildKpis,
   count,
+  extraFuelTotal,
   leakRows,
   rupees,
   sectionsById,
@@ -182,6 +183,7 @@ function TruckChips({ trucks, day, kind }) {
 function MoneyLeakCard({ brief$, isPendingDay, day }) {
   const brief = brief$.data;
   const rows = useMemo(() => leakRows(brief), [brief]);
+  const total = extraFuelTotal(brief);
   const categorySum = rows.reduce((sum, row) => sum + (row.rupees ?? 0), 0);
   // Explain the server's per-truck maximum without changing its valuation.
   const overlap =
@@ -221,10 +223,10 @@ function MoneyLeakCard({ brief$, isPendingDay, day }) {
       meta={isPendingDay ? 'So far today' : null}
     >
       <div className="db-leak-summary">
-        <div className="db-leak-total">
-          <strong>{rupees(brief?.totalRupees)}</strong>
+        <div className={`db-leak-total${total > 0 ? '' : ' db-leak-total--quiet'}`}>
+          <strong>{rupees(total)}</strong>
           <span>
-            {brief?.totalRupees == null
+            {total == null
               ? 'Not estimated for this day'
               : brief?.partial
                 ? 'Calculated loss · Incomplete'
@@ -259,7 +261,11 @@ function MoneyLeakCard({ brief$, isPendingDay, day }) {
         </p>
       ) : null}
       {rows.length === 0 ? (
-        <p className="db-empty-line">No extra fuel costs were flagged for this day.</p>
+        <p className="db-empty-line">
+          {total == null
+            ? 'Not counted yet. Fuel calculations are not available for this day.'
+            : 'No extra fuel costs were flagged for this day.'}
+        </p>
       ) : (
         <ol className="db-leak-list">
           {rows.map((row, i) => (

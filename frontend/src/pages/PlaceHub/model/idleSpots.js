@@ -1,12 +1,25 @@
 import { isNum, toNum } from './placeGeometry.js';
 
+/**
+ * Sum of a field over the events that have it. An event with no value is
+ * unknown, not zero: when some events exist and none carries the value the
+ * total is null (shown as "—"), never ₹0 or 0 h.
+ */
+function knownSum(events, read) {
+  const values = events
+    .map(read)
+    .filter((v) => v != null && v !== '' && Number.isFinite(Number(v)));
+  if (events.length && !values.length) return null;
+  return values.reduce((s, v) => s + Number(v), 0);
+}
+
 export function liveIdleTotals(live = []) {
   const excess = live.filter((e) => e.legitimacy === 'excess');
   return {
     count: live.length,
     excessCount: excess.length,
-    rupees: live.reduce((s, e) => s + (Number(e.rupees) || 0), 0),
-    excessRupees: excess.reduce((s, e) => s + (Number(e.rupees) || 0), 0),
+    rupees: knownSum(live, (e) => e.rupees),
+    excessRupees: knownSum(excess, (e) => e.rupees),
   };
 }
 
@@ -63,15 +76,14 @@ export function clusterIdleEvents(events = [], { cellDeg = IDLE_CELL_DEG } = {})
 }
 
 export function idleHistoryTotals(events = []) {
-  return events.reduce(
-    (t, e) => {
-      const rupees = Number(e.rupees) || 0;
-      t.events += 1;
-      t.hours += (Number(e.durationMin) || 0) / 60;
-      t.rupees += rupees;
-      if (e.legitimacy === 'excess') t.excessRupees += rupees;
-      return t;
-    },
-    { events: 0, hours: 0, rupees: 0, excessRupees: 0 },
-  );
+  const minutes = knownSum(events, (e) => e.durationMin);
+  return {
+    events: events.length,
+    hours: minutes == null ? null : minutes / 60,
+    rupees: knownSum(events, (e) => e.rupees),
+    excessRupees: knownSum(
+      events.filter((e) => e.legitimacy === 'excess'),
+      (e) => e.rupees,
+    ),
+  };
 }

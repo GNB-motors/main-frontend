@@ -101,7 +101,9 @@ describe('IdlingTab', () => {
     );
     expect(screen.getByRole('region', { name: 'Idling period read' })).toBeInTheDocument();
     expect(
-      await screen.findByRole('button', { name: /Closed idle events 1 Selected period/ }),
+      // One finished stop plus the live one that started inside the period:
+      // the same stops the idle-moments log lists.
+      await screen.findByRole('button', { name: /Idle stops 2 Selected period/ }),
     ).toBeInTheDocument();
     expect(
       await screen.findByRole('figure', { name: 'Recorded idle hours by truck' }),
@@ -109,6 +111,22 @@ describe('IdlingTab', () => {
     expect(screen.getByRole('figure', { name: 'Recorded idle hours by day' })).toBeInTheDocument();
     expect(IdlingConsoleService.getHistory).toHaveBeenCalledWith(
       expect.objectContaining({ to: '2026-11-06T00:00:00Z' }),
+      expect.any(Object),
+    );
+  });
+
+  it('asks idle history for whole IST days, like the idle-moments log', async () => {
+    render(
+      <MemoryRouter>
+        <IdlingTab from="2026-11-18" to="2026-11-24" />
+      </MemoryRouter>,
+    );
+    await screen.findByRole('button', { name: /Idle stops/ });
+    expect(IdlingConsoleService.getHistory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: '2026-11-18T00:00:00.000+05:30',
+        to: '2026-11-24T23:59:59.999+05:30',
+      }),
       expect.any(Object),
     );
   });
@@ -200,7 +218,7 @@ describe('IdlingTab', () => {
         <IdlingTab driver="driver1" from="2026-11-01" to="2026-11-07" />
       </MemoryRouter>,
     );
-    expect(await screen.findByText('WB11T0662')).toBeInTheDocument();
+    expect(await idleMap().findByText('WB11T0662')).toBeInTheDocument();
     expect(screen.queryByText('WB11T0999')).not.toBeInTheDocument();
     expect(screen.queryByText('WB11G0962')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Idling now 1/ })).toBeInTheDocument();
@@ -233,7 +251,7 @@ describe('IdlingTab', () => {
       expect.objectContaining({ page: 2 }),
       expect.any(Object),
     );
-    expect(screen.getByRole('button', { name: /Closed idle events 1/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Idle stops 1/ })).toBeInTheDocument();
   });
   it('shows unavailable totals and a retry when driver attribution cannot load', async () => {
     DriverVehicleAssignmentService.getAssignmentPage.mockRejectedValue(new Error('Offline'));

@@ -7,6 +7,7 @@ import '../Vehicle360/panels/overview/referenceOverview.css';
 export default function IdlingPeriodRead({
   live,
   history,
+  open = [],
   loading,
   errors,
   truncated,
@@ -17,9 +18,13 @@ export default function IdlingPeriodRead({
   const historyReady = !loading && !errors['idle history'] && !errors['driver assignments'];
   const hasNumber = (value) => value != null && value !== '' && Number.isFinite(Number(value));
   const excess = history.filter((row) => row.legitimacy === 'excess');
+  // Finished stops plus the ones still running that started in the period:
+  // the same stops the idle-moments log lists, so the two counts agree.
+  const stops = historyReady && liveReady ? [...history, ...open] : history;
+  const runningKnown = historyReady && liveReady;
   const hours =
-    historyReady && history.every((row) => hasNumber(row.durationMin))
-      ? history.reduce((sum, row) => sum + Number(row.durationMin), 0) / 60
+    historyReady && stops.every((row) => hasNumber(row.durationMin))
+      ? stops.reduce((sum, row) => sum + Number(row.durationMin), 0) / 60
       : null;
   const cost =
     historyReady && excess.every((row) => hasNumber(row.rupees))
@@ -28,7 +33,7 @@ export default function IdlingPeriodRead({
   const truckHours = new Map();
   const dayHours = new Map();
   if (historyReady) {
-    for (const row of history) {
+    for (const row of stops) {
       if (!hasNumber(row.durationMin) || Number(row.durationMin) < 0) continue;
       const duration = Number(row.durationMin) / 60;
       const truck = row.registrationNumber;
@@ -67,9 +72,13 @@ export default function IdlingPeriodRead({
               {historyReady ? (
                 <>
                   <button type="button" onClick={onHistory}>
-                    {formatNumber(history.length)} closed idle events
+                    {formatNumber(stops.length)} idle stops
                   </button>{' '}
-                  are recorded in the selected period.
+                  in the selected period
+                  {runningKnown && open.length
+                    ? `, ${formatNumber(open.length)} of them still going`
+                    : ''}
+                  .
                 </>
               ) : (
                 'Idle history is unavailable.'
@@ -78,8 +87,9 @@ export default function IdlingPeriodRead({
           )}
         </p>
         <small>
-          Live activity shows the current position; closed events follow the selected dates.
-          Excess-idling cost is an estimate from recorded events.
+          Idle stops follow the selected dates and include stops still going.
+          {runningKnown ? '' : ' Stops still going could not be loaded, so they are left out.'}{' '}
+          Excess-idling cost is an estimate from finished stops.
           {truncated
             ? ' Only the first 500 history records are loaded; period totals are incomplete.'
             : ''}
@@ -94,21 +104,21 @@ export default function IdlingPeriodRead({
             onLive,
           ],
           [
-            'Closed idle events',
-            historyReady ? formatNumber(history.length) : '—',
+            'Idle stops',
+            historyReady ? formatNumber(stops.length) : '—',
             truncated ? 'Loaded records · incomplete' : 'Selected period',
             onHistory,
           ],
           [
             'Idle hours',
             hours == null ? '—' : `${formatNumber(hours, { digits: 1 })} h`,
-            'Recorded closed events',
+            'Selected period',
             onHistory,
           ],
           [
             'Excess idling',
             cost == null ? '—' : formatInr(cost),
-            'Estimated cost · closed events',
+            'Estimated cost · finished stops',
             onHistory,
           ],
         ].map(([label, value, note, onClick]) => (

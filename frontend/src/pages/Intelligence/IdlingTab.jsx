@@ -5,6 +5,7 @@ import { MapPin, Timer } from 'lucide-react';
 import IdlingConsoleService from '../IdlingConsole/IdlingConsoleService.js';
 import DriverVehicleAssignmentService from '@/services/DriverVehicleAssignmentService';
 import { filterIdleEvents } from './idlingDriverFilter';
+import { istWindow, openIdlesInWindow } from './idlingWindow';
 import PlaceHubService from '../PlaceHub/PlaceHubService.js';
 import {
   clusterIdleEvents,
@@ -56,7 +57,7 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
     setErrors({});
 
     try {
-      const fromDate = from || new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+      const range = istWindow(from, to);
 
       const [liveRes, historyPages, settingRes, driverAssignments] = await Promise.all([
         IdlingConsoleService.getLive({ signal }).catch((err) => {
@@ -70,7 +71,7 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
           try {
             for (let page = 1; page <= MAX_IDLE_PAGES; page++) {
               const res = await IdlingConsoleService.getHistory(
-                { from: fromDate, to, page, limit: IDLE_PAGE_SIZE },
+                { from: range.from, to: range.to, page, limit: IDLE_PAGE_SIZE },
                 { signal },
               );
               rows = rows.concat(res.data || []);
@@ -163,6 +164,10 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
   }, [spots, vehicle]);
 
   const liveTotals = useMemo(() => liveIdleTotals(filteredLive), [filteredLive]);
+  const openInPeriod = useMemo(
+    () => openIdlesInWindow(filteredLive, istWindow(from, to)),
+    [filteredLive, from, to],
+  );
   const historyTotals = useMemo(() => idleHistoryTotals(filteredHistory), [filteredHistory]);
 
   // Selected item
@@ -190,6 +195,7 @@ export default function IdlingTab({ from, to, vehicle = '', driver = '' }) {
         <IdlingPeriodRead
           live={filteredLive}
           history={filteredHistory}
+          open={openInPeriod}
           loading={loading}
           errors={errors}
           truncated={truncated}

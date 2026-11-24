@@ -522,7 +522,7 @@ describe('LiveTrackingPage master data', () => {
     const view = renderPlaces();
     for (const [label, mapProp] of [
       ['Places to confirm', 'reviewItems'],
-      ['Trucks idling now', 'idlingRows'],
+      ['Long idling now', 'idlingRows'],
     ]) {
       const row = screen.getByRole('button', { name: new RegExp(label) });
       expect(row).toHaveClass('lt-place-layer-row');

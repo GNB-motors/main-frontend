@@ -49,7 +49,10 @@ export default function IdlingPanel({
             value={formatInrCompact(historyTotals.excessRupees)}
             tone="crit"
           />
-          <Kpi label={`Idle hours · ${historyLabel}`} value={hoursLabel(historyTotals.hours)} />
+          <Kpi
+            label={`Idle hours · ${historyLabel}`}
+            value={historyTotals.hours == null ? '—' : hoursLabel(historyTotals.hours)}
+          />
         </div>
       ) : null}
       <div className="ph-filter">
