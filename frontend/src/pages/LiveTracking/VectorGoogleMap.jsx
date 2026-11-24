@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContext } from '@react-google-maps/api';
+import { installOsmMapType, OSM_MAP_TYPE_ID } from './osmGoogleMapType.js';
 
 /** Set the renderer only at construction; replace the map when 3D is toggled. */
 export default function VectorGoogleMap({
   children,
   options,
   renderingType = 'RASTER',
+  osmBasemap = false,
   center,
   zoom,
   mapContainerStyle,
@@ -24,13 +26,19 @@ export default function VectorGoogleMap({
     const next = { ...options };
     delete next.renderingType;
     // Embedded colour styles work on the normal raster map only.
-    if (renderingType === 'VECTOR') delete next.styles;
+    if (renderingType === 'VECTOR') {
+      delete next.styles;
+      // Raster OSM tiles have no 3D tilt. Keep Google's existing vector
+      // follow view, then restore OSM when the owner leaves 3D follow.
+      if (osmBasemap && next.mapTypeId === OSM_MAP_TYPE_ID) next.mapTypeId = 'roadmap';
+    }
     return next;
-  }, [options, renderingType]);
+  }, [options, renderingType, osmBasemap]);
   const current = useRef(null);
   current.current = {
     options: mutableOptions,
     renderingType,
+    osmBasemap,
     center,
     zoom,
     onLoad,
@@ -53,6 +61,7 @@ export default function VectorGoogleMap({
       tilt: 0,
       renderingType: initial.renderingType,
     });
+    const removeOsmType = initial.osmBasemap ? installOsmMapType(instance, mapsApi) : null;
     applied.current = {
       options: initial.options,
       renderingType: initial.renderingType,
@@ -76,9 +85,10 @@ export default function VectorGoogleMap({
       instance.__cameraAnim = null;
       listeners.forEach((listener) => listener.remove());
       current.current.onUnmount?.(instance);
+      removeOsmType?.();
       mapsApi.event?.clearInstanceListeners?.(instance);
     };
-  }, [renderingType]);
+  }, [renderingType, osmBasemap]);
 
   useEffect(() => {
     if (!map) return;

@@ -157,6 +157,7 @@ describe('Track map actions', () => {
     );
     expect(result.current.mapOptions).not.toHaveProperty('restriction');
     expect(result.current.mapOptions).not.toHaveProperty('minZoom');
+    expect(result.current.mapOptions.mapTypeId).toBe('osm');
     rerender({ theme: 'dark', mapMode: 'sat' });
     expect(result.current.mapOptions.mapTypeId).toBe('hybrid');
     expect(result.current.mapOptions).not.toHaveProperty('restriction');

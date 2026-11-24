@@ -24,7 +24,7 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   const location = useLocation();
   // Accordion: at most one group open at a time, keyed by getNavGroupId().
   const [openGroupId, setOpenGroupId] = useState(null);
-  const [navQuery, setNavQuery] = useState('');
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   // A broken/expired logo URL must not leave an empty header, so a load error
   // falls back to the default mark exactly like "no logo uploaded" does.
   const [logoFailed, setLogoFailed] = useState(false);
@@ -34,9 +34,9 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   const { canAccess, isEnabled, failed, retry, profile } = useFeatureFlags();
   const { organization } = useOrganization();
   const role = getUserRole();
-  // The user controls desktop expansion with the navbar toggle.
+  // Desktop expansion is handled by CSS hover, independently of the mobile drawer.
   const isDesktop = useMediaQuery('(min-width: 993px)');
-  const isRailCollapsed = isDesktop && !isSidebarOpen;
+  const isRailCollapsed = isDesktop && !isSidebarHovered;
 
   const logoSrc = !logoFailed && organization?.logoUrl ? organization.logoUrl : UkoLogo;
   const logoAlt = organization?.companyName || getProfileField('company_name') || 'Company logo';
@@ -54,18 +54,6 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     const granted = (key) => !key || (entitled(key) && snapshot.permissions?.[key] === true);
     return computeVisibleNav(granted, role, null, entitled);
   }, [canAccess, role, isEnabled, failed, profile]);
-
-  const needle = isRailCollapsed ? '' : navQuery.trim().toLowerCase();
-  const filteredNav = !needle
-    ? navItems
-    : navItems.flatMap((item) => {
-        const matches = (entry) =>
-          `${entry.label || ''} ${entry.to || ''}`.toLowerCase().includes(needle);
-        if (item.type === 'section') return [];
-        if (matches(item)) return [item];
-        const children = (item.children || []).filter(matches);
-        return children.length ? [{ ...item, children }] : [];
-      });
 
   // Approval badges belong to the ERP "Approval Center". For an org without the
   // erpApprovals entitlement that nav group is hidden AND the backend routes
@@ -101,20 +89,21 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   // cross-fades to blue on ERP & CRM routes (and back on leaving).
   const isErpRoute = location.pathname === '/erp' || location.pathname.startsWith('/erp/');
 
-  // Close the menu after navigation, including browser Back/Forward.
+  // Restore the original active-route accordion behavior.
   useEffect(() => {
-    setOpenGroupId(null);
-    setNavQuery('');
-  }, [location.pathname, location.search]);
+    if (activeGroupId) setOpenGroupId(activeGroupId);
+  }, [activeGroupId]);
+
+  useEffect(() => {
+    if (!isSidebarHovered && window.innerWidth > 992) {
+      const timer = setTimeout(() => setOpenGroupId(activeGroupId), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [isSidebarHovered, activeGroupId]);
 
   // Opening a group collapses whichever one was open — the CSS grid-rows
   // transition animates both at once, so they cross-fade smoothly.
   const toggleGroup = (groupId) => {
-    if (isRailCollapsed) {
-      setSidebarOpen(true);
-      setOpenGroupId(groupId);
-      return;
-    }
     setOpenGroupId((prev) => (prev === groupId ? null : groupId));
   };
 
@@ -125,12 +114,9 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     navigate('/login');
   };
 
-  // When a nav link is clicked on mobile, close the sidebar.
+  // Page selection closes the mobile drawer; desktop stays open until hover ends.
   const closeSidebarOnMobile = () => {
-    setOpenGroupId(null);
-    if (!isDesktop) {
-      setSidebarOpen(false);
-    }
+    if (!isDesktop) setSidebarOpen(false);
   };
 
   // Render one item from the SIDE_NAV_ITEMS config. Feature-flag filtering
@@ -183,14 +169,13 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
     // Children already satisfy the feature, module and role access checks.
     const visibleChildren = item.children || [];
     const groupId = getNavGroupId(item);
-    const isOpen = Boolean(needle) || openGroupId === groupId;
+    const isOpen = openGroupId === groupId;
     return (
       <div className="nav-section" key={groupId}>
         <NavHint hint={item.hint} label={item.label} collapsed={isRailCollapsed}>
           <button
-            className={`nav-link nav-parent ${isOpen || activeGroupId === groupId ? 'active-parent' : ''}`}
+            className={`nav-link nav-parent ${isOpen ? 'active-parent' : ''}`}
             onClick={() => toggleGroup(groupId)}
-            disabled={Boolean(needle)}
             aria-label={item.label}
             aria-expanded={isOpen}
           >
@@ -239,7 +224,13 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
   };
 
   return (
-    <aside className={`sidebar ${isSidebarOpen ? 'open' : ''} ${isErpRoute ? 'sidebar--erp' : ''}`}>
+    // Hover tracks the desktop rail without changing the mobile drawer state.
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- hover only tracks presentation
+    <aside
+      className={`sidebar ${isSidebarOpen ? 'open' : ''} ${isErpRoute ? 'sidebar--erp' : ''}`}
+      onMouseEnter={() => setIsSidebarHovered(true)}
+      onMouseLeave={() => setIsSidebarHovered(false)}
+    >
       <div className="sidebar-content">
         <div className="sidebar-header">
           {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- onError swaps in the fallback logo; it is not a user interaction */}
@@ -263,21 +254,8 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
             </button>
           </div>
         ) : null}
-        {isSidebarOpen && (
-          <input
-            type="search"
-            className="nav-screen-search"
-            aria-label="Find a screen"
-            placeholder="Find a screen"
-            value={navQuery}
-            onChange={(event) => setNavQuery(event.target.value)}
-          />
-        )}
         <nav className="sidebar-nav" aria-label="Main navigation">
-          {filteredNav.map(renderNavItem)}
-          {needle && !filteredNav.length ? (
-            <p className="nav-search-empty">No matching screens</p>
-          ) : null}
+          {navItems.map(renderNavItem)}
         </nav>
       </div>
 

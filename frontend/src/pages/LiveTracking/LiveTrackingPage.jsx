@@ -509,6 +509,12 @@ const LiveTrackingPage = () => {
   useEffect(() => {
     if (isPlacesView && !isVehiclePlaces && layerSelection.ourPlaces) showPlaces();
   }, [isPlacesView, isVehiclePlaces, layerSelection.ourPlaces, showPlaces]);
+  // The Places tab has its own list even when the "Our places" map layer is
+  // hidden. Load the shared records for the list without turning map markers
+  // on; otherwise `PlacesListView` remains in its initial shimmer forever.
+  useEffect(() => {
+    if (isPlacesView && !isVehiclePlaces && placesTab === 'places') trackPlaces.ensureLoaded();
+  }, [isPlacesView, isVehiclePlaces, placesTab, trackPlaces.ensureLoaded]);
 
   const changeView = (view) => {
     reviewBeforeFence.current = null;

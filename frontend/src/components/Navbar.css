@@ -42,7 +42,7 @@
 }
 
 .menu-toggle {
-  display: inline-flex;
+  display: none;
   background: none;
   border: none;
   cursor: pointer;

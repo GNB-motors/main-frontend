@@ -6,6 +6,7 @@ import { LIGHT_MAP_STYLE, DARK_MAP_STYLE } from './mapStyles.js';
 import useTrailGeometry from './useTrailGeometry.js';
 import useTrackReplay from './useTrackReplay.js';
 import useTrailHistory from './useTrailHistory.js';
+import { OSM_MAP_TYPE_ID } from './osmGoogleMapType.js';
 
 /* Map viewport, trail layers and replay share the same map instance. */
 export default function useLiveMap({
@@ -150,7 +151,7 @@ export default function useLiveMap({
       streetViewControl: false,
       fullscreenControl: false,
       styles: theme === 'dark' ? DARK_MAP_STYLE : LIGHT_MAP_STYLE,
-      mapTypeId: mapMode === 'sat' ? 'hybrid' : 'roadmap',
+      mapTypeId: mapMode === 'sat' ? 'hybrid' : OSM_MAP_TYPE_ID,
       gestureHandling: 'greedy',
       // Google's own POIs are clickable: a click opens them in Google Maps
       // instead of Google's info window (handled by the map click listener).
@@ -159,12 +160,7 @@ export default function useLiveMap({
     [theme, mapMode],
   );
 
-  // Sync MapTypeId dynamically
-  useEffect(() => {
-    if (mapRef.current && window.google) {
-      mapRef.current.setMapTypeId(mapMode === 'sat' ? 'hybrid' : 'roadmap');
-    }
-  }, [mapMode]);
+  // VectorGoogleMap applies map type changes with the other mutable options.
 
   // Fit the visible fleet, including last-known positions in the Offline filter.
   const fitToFleetVehicles = useCallback(

@@ -40,37 +40,39 @@ beforeEach(() => {
   vi.clearAllMocks();
   useMediaQuery.mockReturnValue(true);
 });
-it('keeps labels expanded until the user collapses navigation', () => {
-  const { container } = mount();
+it('uses desktop hover independently of the mobile drawer state', () => {
+  const { container } = mount(false);
   const sidebar = container.querySelector('aside');
-  expect(sidebar).toHaveClass('open');
-  fireEvent.mouseLeave(sidebar);
-  expect(sidebar).toHaveClass('open');
-  fireEvent.click(screen.getByRole('button', { name: 'Toggle' }));
-  expect(sidebar).not.toHaveClass('open');
   fireEvent.mouseEnter(sidebar);
+  fireEvent.click(screen.getByRole('button', { name: 'Employees' }));
+  expect(screen.getByRole('link', { name: 'Access control' })).toBeInTheDocument();
+  expect(sidebar).not.toHaveClass('open');
+  fireEvent.mouseLeave(sidebar);
+  expect(screen.queryByRole('link', { name: 'Access control' })).not.toBeInTheDocument();
   expect(sidebar).not.toHaveClass('open');
 });
-it('opens the employee submenu when its icon is clicked from the collapsed rail', () => {
+it('opens the employee submenu after hovering the desktop rail', () => {
   const { container } = mount(false);
+  fireEvent.mouseEnter(container.querySelector('aside'));
   fireEvent.click(screen.getByRole('button', { name: 'Employees' }));
-  expect(container.querySelector('aside')).toHaveClass('open');
+  expect(container.querySelector('aside')).not.toHaveClass('open');
   expect(screen.getByRole('button', { name: 'Employees' })).toHaveAttribute(
     'aria-expanded',
     'true',
   );
   expect(screen.getByRole('link', { name: 'Access control' })).toBeInTheDocument();
 });
-it('closes the selected submenu after navigation while keeping desktop labels visible', () => {
+it('keeps the active route group expanded while the desktop rail is hovered', () => {
   const { container } = mount();
+  fireEvent.mouseEnter(container.querySelector('aside'));
   fireEvent.click(screen.getByRole('button', { name: 'Employees' }));
   fireEvent.click(screen.getByRole('link', { name: 'Employees' }));
   expect(screen.getByRole('status')).toHaveTextContent('/drivers');
   expect(screen.getByRole('button', { name: 'Employees' })).toHaveAttribute(
     'aria-expanded',
-    'false',
+    'true',
   );
-  expect(screen.queryByRole('link', { name: 'Access control' })).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Access control' })).toBeInTheDocument();
   expect(container.querySelector('aside')).toHaveClass('open');
 });
 it('closes the mobile drawer after choosing a page', () => {
@@ -81,12 +83,15 @@ it('closes the mobile drawer after choosing a page', () => {
   expect(container.querySelector('aside')).not.toHaveClass('open');
 });
 
-it('reopens an existing submenu when its group is selected after collapsing the rail', () => {
+it('shows the active route submenu again when the pointer returns', () => {
   const { container } = mount();
+  const sidebar = container.querySelector('aside');
+  fireEvent.mouseEnter(sidebar);
   fireEvent.click(screen.getByRole('button', { name: 'Employees' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Toggle' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Employees' }));
-  expect(container.querySelector('aside')).toHaveClass('open');
+  fireEvent.click(screen.getByRole('link', { name: 'Employees' }));
+  fireEvent.mouseLeave(sidebar);
+  expect(screen.queryByRole('link', { name: 'Access control' })).not.toBeInTheDocument();
+  fireEvent.mouseEnter(sidebar);
   expect(screen.getByRole('button', { name: 'Employees' })).toHaveAttribute(
     'aria-expanded',
     'true',
@@ -94,11 +99,11 @@ it('reopens an existing submenu when its group is selected after collapsing the 
   expect(screen.getByRole('link', { name: 'Access control' })).toBeInTheDocument();
 });
 
-it('finds a destination inside a collapsed group by its screen name', () => {
-  mount();
-  fireEvent.change(screen.getByRole('searchbox', { name: 'Find a screen' }), {
-    target: { value: 'access control' },
-  });
+it('keeps page links available without a screen finder', () => {
+  const { container } = mount();
+  expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Daily Digest' })).toBeInTheDocument();
+  fireEvent.mouseEnter(container.querySelector('aside'));
+  fireEvent.click(screen.getByRole('button', { name: 'Employees' }));
   expect(screen.getByRole('link', { name: 'Access control' })).toBeVisible();
-  expect(screen.queryByRole('link', { name: 'Daily Digest' })).not.toBeInTheDocument();
 });

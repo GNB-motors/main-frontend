@@ -237,8 +237,8 @@
     background-color 0.35s ease;
 }
 
-/* Expanded navigation keeps room between icons and labels. */
-.sidebar.open .nav-link {
+/* Gap only when sidebar is hovered */
+.sidebar:hover .nav-link {
   gap: var(--spacing-md);
 }
 
@@ -303,12 +303,12 @@
     padding-right: var(--spacing-md);
   }
 
-  .sidebar.open {
+  .sidebar:hover {
     width: 260px;
     padding-left: var(--spacing-lg);
     padding-right: var(--spacing-lg);
-    /* Expanded navigation has a subtle edge against the page. */
-    box-shadow: 2px 0 10px rgba(15, 23, 42, 0.12);
+    /* Elevate the rail when expanded so it clearly reads as the focused overlay */
+    box-shadow: 0 12px 48px rgba(15, 23, 42, 0.32);
   }
 
   .sidebar .nav-link svg {
@@ -329,8 +329,8 @@
     width: 0;
   }
 
-  .sidebar.open .logo-text,
-  .sidebar.open .nav-link span {
+  .sidebar:hover .logo-text,
+  .sidebar:hover .nav-link span {
     opacity: 1;
     visibility: visible;
     width: auto;
@@ -340,7 +340,7 @@
     justify-content: center;
   }
 
-  .sidebar.open .sidebar-header {
+  .sidebar:hover .sidebar-header {
     justify-content: flex-start;
   }
 
@@ -349,7 +349,7 @@
     gap: 0;
   }
 
-  .sidebar.open .nav-link {
+  .sidebar:hover .nav-link {
     justify-content: flex-start;
   }
 }
@@ -560,6 +560,7 @@
       opacity 0.2s ease;
   }
 
+  .sidebar:hover .nav-section-label,
   .sidebar.open .nav-section-label {
     display: block;
     padding: 16px 12px 6px;
@@ -567,6 +568,7 @@
     overflow: visible;
   }
 
+  .sidebar:hover .nav-section-label span,
   .sidebar.open .nav-section-label span {
     opacity: 1;
     visibility: visible;
@@ -575,11 +577,12 @@
     overflow: visible;
   }
 
+  .sidebar:hover .nav-section-label::before,
   .sidebar.open .nav-section-label::before {
     display: none;
   }
 
-  /* Collapsed navigation */
+  /* When sidebar is collapsed (not hovered) */
   .sidebar .nav-parent {
     justify-content: center;
     gap: 0;
@@ -612,36 +615,36 @@
     width: 0;
   }
 
-  /* Expanded navigation */
-  .sidebar.open .nav-parent {
+  /* When sidebar is hovered/expanded */
+  .sidebar:hover .nav-parent {
     justify-content: space-between;
     gap: var(--spacing-md);
   }
 
-  .sidebar.open .nav-parent-left svg {
+  .sidebar:hover .nav-parent-left svg {
     margin: 0;
   }
-  .sidebar.open .nav-parent-left {
+  .sidebar:hover .nav-parent-left {
     gap: var(--spacing-md);
     justify-content: flex-start;
   }
 
-  .sidebar.open .nav-parent span {
+  .sidebar:hover .nav-parent span {
     opacity: 1;
     visibility: visible;
     width: auto;
   }
 
-  .sidebar.open .chevron-icon {
+  .sidebar:hover .chevron-icon {
     opacity: 1;
     width: 16px;
   }
 
-  .sidebar.open .nav-children {
+  .sidebar:hover .nav-children {
     display: grid;
   }
 
-  .sidebar.open .nav-children.open {
+  .sidebar:hover .nav-children.open {
     opacity: 1;
     grid-template-rows: 1fr;
   }
@@ -763,23 +766,4 @@
 .sidebar--erp .nav-link.active::before,
 .sidebar--erp .nav-parent.active-parent::before {
   background-color: var(--erp, #2563eb);
-}
-
-.nav-screen-search {
-  margin: 0.25rem 0.75rem 0.5rem;
-  min-width: 0;
-  padding: 0.45rem 0.6rem;
-  border: 1px solid currentColor;
-  border-radius: 0.4rem;
-  background: transparent;
-  color: inherit;
-  font-size: 0.8rem;
-}
-.nav-screen-search::placeholder {
-  color: inherit;
-  opacity: 0.75;
-}
-.nav-search-empty {
-  padding: 0 0.75rem;
-  font-size: 0.8rem;
 }

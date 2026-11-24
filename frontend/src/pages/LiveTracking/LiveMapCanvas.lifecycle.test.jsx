@@ -30,6 +30,7 @@ it('enters replay, toggles 3D and returns to the grey map without mutating a ren
     const camera = { ...options };
     const listeners = new Map();
     const map = {
+      mapTypes: { set: vi.fn() },
       getRenderingType: () => options.renderingType,
       setRenderingType: vi.fn(() => {
         throw new Error("Setting map 'renderingType' after instantiation is not supported.");
@@ -59,6 +60,12 @@ it('enters replay, toggles 3D and returns to the grey map without mutating a ren
   vi.stubGlobal('google', {
     maps: {
       Map: constructor,
+      ImageMapType: class {
+        constructor(options) {
+          this.options = options;
+        }
+      },
+      Size: class {},
       LatLngBounds: class {
         extend() {}
       },

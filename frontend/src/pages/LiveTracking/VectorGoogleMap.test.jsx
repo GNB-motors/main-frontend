@@ -12,6 +12,7 @@ function setup() {
   const instances = [];
   const createInstance = () => ({
     camera: {},
+    mapTypes: { set: vi.fn() },
     setOptions: vi.fn((options) => {
       if ('renderingType' in options)
         throw new Error('renderingType cannot change after instantiation');
@@ -50,11 +51,38 @@ function setup() {
     instances.push(next);
     return next;
   });
-  vi.stubGlobal('google', { maps: { Map: constructor } });
+  vi.stubGlobal('google', {
+    maps: {
+      Map: constructor,
+      ImageMapType: class {
+        constructor(options) {
+          this.options = options;
+        }
+      },
+      Size: class {},
+    },
+  });
   return { instance, instances, constructor, handlers, removers };
 }
 
 describe('vector map lifecycle', () => {
+  it('uses OSM normally, keeps Google imagery for 3D and restores OSM afterwards', () => {
+    const { constructor, instances } = setup();
+    const options = { mapTypeId: 'osm' };
+    const { rerender, unmount } = render(
+      <VectorGoogleMap osmBasemap options={options} renderingType="RASTER" />,
+    );
+    expect(constructor.mock.calls[0][1].mapTypeId).toBe('osm');
+    expect(instances[0].mapTypes.set.mock.calls[0][0]).toBe('osm');
+    rerender(<VectorGoogleMap osmBasemap options={options} renderingType="VECTOR" />);
+    expect(constructor.mock.calls[1][1].mapTypeId).toBe('roadmap');
+    expect(instances[0].mapTypes.set).toHaveBeenLastCalledWith('osm', null);
+    rerender(<VectorGoogleMap osmBasemap options={options} renderingType="RASTER" />);
+    expect(constructor.mock.calls[2][1].mapTypeId).toBe('osm');
+    unmount();
+    expect(instances[2].mapTypes.set).toHaveBeenLastCalledWith('osm', null);
+  });
+
   it('keeps the normal raster map through replay and style changes', () => {
     const { instance, constructor } = setup();
     const center = { lat: 22, lng: 88 };

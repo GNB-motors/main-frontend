@@ -322,7 +322,7 @@ describe('Fleet markers while focused on one truck', () => {
   });
 });
 
-it('shows primary delivery roads at overview zoom while retaining the movement zoom floor', () => {
+it('shows delivery and movement roads at overview zoom', () => {
   const config = {
     ...props,
     replayState: { on: false },
@@ -336,7 +336,7 @@ it('shows primary delivery roads at overview zoom while retaining the movement z
   expect(RouteLayer).toHaveBeenCalled();
   RouteLayer.mockClear();
   view.rerender(<LiveMapCanvas {...config} routeKind="movement" />);
-  expect(RouteLayer).not.toHaveBeenCalled();
+  expect(RouteLayer).toHaveBeenCalled();
 });
 
 describe('selected vehicle Places context', () => {

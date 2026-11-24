@@ -31,6 +31,7 @@ import { playheadAt } from './trackLayersModel';
 import { isNearEdge, trackFitPadding } from './trackMapCamera';
 import useFollowCamera from './useFollowCamera.js';
 import { bearingDegrees } from './geoMath.js';
+import { OSM_MAP_TYPE_ID } from './osmGoogleMapType.js';
 
 const INDIA_CENTER = { lat: 22.5937, lng: 78.9629 };
 
@@ -85,7 +86,6 @@ export default function LiveMapCanvas({
   idlingRows = [],
   onSelectIdling,
   focusedRoute = null,
-  routeKind = 'movement',
   routeLines = [],
   routeSites = NO_SITES,
   onPickRoute,
@@ -273,6 +273,7 @@ export default function LiveMapCanvas({
         </div>
       ) : (
         <VectorGoogleMap
+          osmBasemap
           mapContainerStyle={{ width: '100%', height: '100%' }}
           renderingType={renderingType}
           center={INDIA_CENTER}
@@ -394,10 +395,7 @@ export default function LiveMapCanvas({
           ) : null}
 
           <FocusedRouteLayer route={focusedRoute} />
-          {!focusedRoute &&
-          !track &&
-          (routeKind === 'delivery' || mapZoom >= 7) &&
-          routeLines.length ? (
+          {!focusedRoute && !track && routeLines.length ? (
             <RouteLayer
               dimmed={Boolean(selectedId)}
               map={mapInstance}
@@ -568,6 +566,22 @@ export default function LiveMapCanvas({
           )}
         </VectorGoogleMap>
       )}
+      {isLoaded &&
+      !loadError &&
+      !followCameraEnabled &&
+      mapOptions?.mapTypeId === OSM_MAP_TYPE_ID ? (
+        <div className="lt-osm-attribution">
+          ©{' '}
+          <a
+            href="https://www.openstreetmap.org/copyright"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            OpenStreetMap
+          </a>{' '}
+          contributors
+        </div>
+      ) : null}
     </div>
   );
 }

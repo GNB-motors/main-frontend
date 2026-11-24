@@ -102,7 +102,6 @@ export default function TrackLegend({
   lastEventAt,
   onRefresh,
   isRefreshing = false,
-  zoom = 0,
   tollsError = null,
   onRetryTolls,
   placesNotAvailable = false,
@@ -492,11 +491,6 @@ export default function TrackLegend({
               {!hideRoutes && layerSelection.routes && unmatchedRoutes > 0 ? (
                 <p className="m-0 px-1 pt-1 text-[11px] text-[var(--rd-ink-3)]">
                   {unmatchedRoutes} lanes not yet road-matched
-                </p>
-              ) : null}
-              {!hideRoutes && layerSelection.routes && zoom < 7 ? (
-                <p className="m-0 px-1 pt-1 text-[11px] text-[var(--rd-ink-3)]">
-                  Zoom in to see routes
                 </p>
               ) : null}
             </LegendBlock>
